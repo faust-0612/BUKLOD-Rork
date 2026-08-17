@@ -1,0 +1,92 @@
+{
+    "cli":  {
+                "version":  "\u003e= 21.0.0",
+                "appVersionSource":  "remote"
+            },
+    "build":  {
+                  "development":  {
+                                      "developmentClient":  true,
+                                      "distribution":  "internal",
+                                      "channel":  "development",
+                                      "environment":  "development",
+                                      "env":  {
+                                                  "APP_VARIANT":  "development",
+                                                  "EXPO_PUBLIC_APP_ENV":  "development",
+                                                  "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME":  "firebase-video-staging"
+                                              }
+                                  },
+                  "preview":  {
+                                  "distribution":  "internal",
+                                  "channel":  "preview",
+                                  "environment":  "preview",
+                                  "env":  {
+                                              "APP_VARIANT":  "staging",
+                                              "EXPO_PUBLIC_APP_ENV":  "staging",
+                                              "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME":  "firebase-video-staging"
+                                          },
+                                  "autoIncrement":  true
+                              },
+                  "production":  {
+                                     "autoIncrement":  true,
+                                     "channel":  "production",
+                                     "environment":  "production",
+                                     "env":  {
+                                                 "APP_VARIANT":  "production",
+                                                 "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME":  "firebase-video-production",
+                                                 "EXPO_PUBLIC_APP_ENV":  "production"
+                                             },
+                                     "android":  {
+                                                     "buildType":  "apk"
+                                                 }
+                                 },
+                  "e2e-test":  {
+                                   "withoutCredentials":  true,
+                                   "ios":  {
+                                               "simulator":  true
+                                           },
+                                   "android":  {
+                                                   "buildType":  "apk"
+                                               },
+                                   "environment":  "preview",
+                                   "env":  {
+                                               "APP_VARIANT":  "staging",
+                                               "EXPO_PUBLIC_APP_ENV":  "staging"
+                                           }
+                               },
+                  "direct":  {
+                                 "extends":  "production",
+                                 "distribution":  "internal",
+                                 "android":  {
+                                                 "buildType":  "apk"
+                                             }
+                             },
+                  "dev-native-120":  {
+                                         "developmentClient":  true,
+                                         "distribution":  "internal",
+                                         "env":  {
+                                                     "APP_VARIANT":  "staging",
+                                                     "EXPO_PUBLIC_APP_ENV":  "staging",
+                                                     "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME":  "firebase-video-staging"
+                                                 },
+                                         "android":  {
+                                                         "buildType":  "apk"
+                                                     }
+                                     }
+              },
+    "submit":  {
+                   "production":  {
+
+                                  },
+                   "google-play-draft":  {
+                                             "android":  {
+                                                             "releaseStatus":  "draft"
+                                                         }
+                                         },
+                   "google-play-internal":  {
+                                                "android":  {
+                                                                "track":  "internal",
+                                                                "releaseStatus":  "completed"
+                                                            }
+                                            }
+               }
+}

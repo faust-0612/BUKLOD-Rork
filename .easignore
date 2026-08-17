@@ -1,0 +1,85 @@
+node_modules/
+.expo/
+dist/
+web-build/
+coverage/
+*.log
+
+# Local environment files
+.env
+.env.local
+.env.*.local
+.env.staging
+.env.production
+
+# Keep committed templates
+!.env.example
+!.env.staging.example
+!.env.production.example
+!supabase/.env.functions.example
+
+# Supabase CLI local state
+supabase/.temp/
+supabase/.branches/
+
+# Native generated folders if using CNG/prebuild
+/ios
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+buklod-efa4a-firebase-adminsdk-fbsvc-5e9b3893ea.json
+/ios
+
+# ==================================================
+# BUKLOD PLAY STORE BUILD - LOCAL ARTIFACT EXCLUSIONS
+# ==================================================
+
+# Expo local caches/logs
+.expo/
+.cache/
+
+# Generated OTA/preflight exports
+BUKLOD_ANDROID_OTA_PREFLIGHT/
+
+# Local audits/reports
+BUKLOD_SCOPE_ENGINE_AUDIT.txt
+BUKLOD_SIZE_AUDIT_*/
+
+# Database history is not required to compile Android
+# Files remain locally and are NOT deleted.
+supabase/migrations/
+
+# Local backups
+*.bak
+*.before_*
+*.before-*
+
+# TypeScript/build scratch
+*.tsbuildinfo
+
+# Local web exports
+dist/
+
+# ==================================================
+# BUKLOD PLAY STORE - DEVELOPMENT/BACKUP EXCLUSIONS
+# ==================================================
+
+# Local patch / repair scripts
+/PATCH_*.ps1
+/AUDIT_*.ps1
+
+# Snapshots and local diagnostic outputs
+/*_SNAPSHOT.txt
+/*_AUDIT.txt
+
+# All backup copies
+*.bak*
+*.before_*
+*.before-*
+
+# Generated backup directories
+BUKLOD_*_BACKUP_*/
+BUKLOD_STREAM_WEB_BACKUP_*/

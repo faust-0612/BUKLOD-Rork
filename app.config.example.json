@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "BUKLOD",
+    "slug": "buklod",
+    "scheme": "buklod",
+    "plugins": [
+      "expo-router",
+      "expo-notifications"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "REPLACE_WITH_YOUR_EAS_PROJECT_UUID"
+      }
+    },
+    "android": {
+      "package": "org.mzbministry.buklod"
+    },
+    "ios": {
+      "bundleIdentifier": "org.mzbministry.buklod"
+    }
+  }
+}

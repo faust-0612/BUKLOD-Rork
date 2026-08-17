@@ -1,0 +1,264 @@
+import React, {
+  useEffect,
+  useState,
+} from 'react';
+
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+
+import {
+  MaterialCommunityIcons,
+} from '@expo/vector-icons';
+
+import {
+  supabase,
+} from '@/lib/supabase';
+
+import {
+  buklodLanguageLabel,
+  detectBuklodLocalLanguage,
+  getDailyFaithVerse,
+  getDailyMotivation,
+} from '@/lib/buklodPublicDailyFaith';
+
+import {
+  colors,
+} from '@/lib/theme';
+
+import {
+  useAuth,
+} from '@/providers/AuthProvider';
+
+import {
+  useBuklodScope,
+} from '@/providers/BuklodScopeProvider';
+
+export default function BuklodPublicDailyMessageBar({
+  forceVisible = false,
+}: {
+  forceVisible?: boolean;
+}) {
+  /* PATCH_186F_ENCOURAGEMENT_THROUGH_PROFILE */
+  const {
+    user,
+    profile,
+  } = useAuth();
+
+  const {
+    activeScope,
+  } = useBuklodScope();
+
+  const [address, setAddress] =
+    useState<{
+      province?: string | null;
+      country?: string | null;
+    }>({});
+
+  const [loading, setLoading] =
+    useState(true);
+
+  useEffect(() => {
+    let alive = true;
+
+    const load = async () => {
+      if (!user?.id) {
+        if (alive) {
+          setLoading(false);
+        }
+
+        return;
+      }
+
+      const {
+        data,
+      } = await (supabase as any)
+        .from('buklod_user_addresses')
+        .select('province,country')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!alive) {
+        return;
+      }
+
+      setAddress(
+        data ?? {}
+      );
+
+      setLoading(false);
+    };
+
+    void load();
+
+    return () => {
+      alive = false;
+    };
+  }, [user?.id]);
+
+  const isPublic =
+    activeScope?.scope_type ===
+    'PUBLIC';
+
+  const showFaithContent =
+    Boolean(
+      activeScope
+        ?.show_faith_content
+    );
+
+  const language =
+    detectBuklodLocalLanguage(
+      address.province,
+      address.country,
+      (profile as any)
+        ?.preferred_language,
+    );
+
+  const verse =
+    getDailyFaithVerse(
+      user?.id ?? 'public-user',
+      language,
+    );
+
+  const motivation =
+    getDailyMotivation(
+      user?.id ?? 'public-user',
+      language,
+    );
+
+  if (!isPublic && !forceVisible) {
+    return null;
+  }
+
+  if (loading) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator
+          size="small"
+          color={colors.greenDark}
+        />
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.shell}>
+      <View style={styles.icon}>
+        <MaterialCommunityIcons
+          name={
+            showFaithContent
+              ? 'book-open-page-variant-outline'
+              : 'lightbulb-on-outline'
+          }
+          size={19}
+          color={colors.greenDark}
+        />
+      </View>
+
+      <View style={styles.copy}>
+        <View style={styles.metaRow}>
+          <Text style={styles.label}>
+            TODAY'S ENCOURAGEMENT
+          </Text>
+
+          <Text style={styles.language}>
+            {buklodLanguageLabel(
+              language
+            )}
+          </Text>
+        </View>
+
+        <Text
+          style={styles.message}
+          numberOfLines={3}
+        >
+          {showFaithContent
+            ? verse.text
+            : motivation}
+        </Text>
+
+        {showFaithContent ? (
+          <Text style={styles.reference}>
+            {verse.reference}
+          </Text>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  shell: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+    backgroundColor: '#F8FBF9',
+  },
+
+  loading: {
+    minHeight: 54,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+    backgroundColor: '#F8FBF9',
+  },
+
+  icon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor:
+      'rgba(39,93,69,0.10)',
+  },
+
+  copy: {
+    flex: 1,
+  },
+
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent:
+      'space-between',
+    gap: 8,
+  },
+
+  label: {
+    flex: 1,
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.75,
+    color: colors.greenDark,
+  },
+
+  language: {
+    fontSize: 8,
+    fontWeight: '800',
+    color: colors.muted,
+  },
+
+  message: {
+    marginTop: 2,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
+    color: colors.text,
+  },
+
+  reference: {
+    marginTop: 2,
+    fontSize: 9.5,
+    fontWeight: '900',
+    color: colors.greenDark,
+  },
+});
