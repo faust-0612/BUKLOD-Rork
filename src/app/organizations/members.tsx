@@ -9,12 +9,13 @@ import {
   ActivityIndicator,
   Alert,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+
+import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 
 import {
   MaterialCommunityIcons,
@@ -32,6 +33,18 @@ import {
 import {
   colors,
 } from '@/lib/theme';
+
+import {
+  readOrganizationScopeId,
+} from '@/lib/buklodOrganization';
+import {
+  fetchScopeMembers,
+} from '@/lib/buklodScopeMembers';
+import {
+  orgMembersCacheKey,
+  readOfflineCache,
+  writeOfflineCache,
+} from '@/lib/buklodOfflineSync';
 
 type Action =
   | 'invite'
@@ -146,12 +159,9 @@ OrganizationMembersScreen() {
         string | string[];
     }>();
 
-  const scopeId =
-    Array.isArray(
-      params.organization
-    )
-      ? params.organization[0]
-      : params.organization ?? '';
+  const scopeId = readOrganizationScopeId(
+    params as Record<string, unknown>,
+  );
 
   const rawAction =
     Array.isArray(
@@ -208,6 +218,26 @@ OrganizationMembersScreen() {
 
         setLoading(true);
 
+        const cacheKey =
+          scopeId
+            ? orgMembersCacheKey(
+                scopeId,
+                action,
+              )
+            : null;
+
+        if (cacheKey) {
+          const cached =
+            await readOfflineCache<MemberRow[]>(
+              cacheKey,
+            );
+
+          if (cached?.length) {
+            setMembers(cached);
+            setLoading(false);
+          }
+        }
+
         let status:
           | string
           | null = null;
@@ -244,14 +274,38 @@ OrganizationMembersScreen() {
             },
           );
 
-        setLoading(false);
-
         if (error) {
-          Alert.alert(
-            'Organization Membership',
-            error.message,
-          );
+          const fallbackRows = await fetchScopeMembers({
+            scopeId,
+            status: status ?? 'ACTIVE',
+            limit: 200,
+            offset: 0,
+          });
 
+          let rows = fallbackRows.map(row => ({
+            user_id: row.user_id,
+            full_name: row.full_name,
+            username: row.username,
+            mobile: null,
+            membership_status: row.membership_status,
+            roles: row.is_admin ? ['ORG_ADMIN'] : [],
+            joined_at: row.joined_at,
+            updated_at: null,
+          })) as MemberRow[];
+
+          if (action === 'remove') {
+            rows = rows.filter(row =>
+              ['ACTIVE', 'SUSPENDED'].includes(
+                String(row.membership_status).toUpperCase()
+              )
+            );
+          }
+
+          setMembers(rows);
+          if (cacheKey) {
+            void writeOfflineCache(cacheKey, rows, 'network');
+          }
+          setLoading(false);
           return;
         }
 
@@ -281,6 +335,10 @@ OrganizationMembersScreen() {
         setMembers(
           rows
         );
+        if (cacheKey) {
+          void writeOfflineCache(cacheKey, rows, 'network');
+        }
+        setLoading(false);
       },
       [
         action,
@@ -601,7 +659,7 @@ OrganizationMembersScreen() {
   }
 
   return (
-    <ScrollView
+    <BuklodPortalScrollView
       style={
         styles.screen
       }
@@ -1110,7 +1168,7 @@ OrganizationMembersScreen() {
           }
         )
       )}
-    </ScrollView>
+    </BuklodPortalScrollView>
   );
 }
 
@@ -1124,7 +1182,7 @@ const styles =
 
     content: {
       padding: 16,
-      paddingBottom: 50,
+      paddingBottom: 16,
     },
 
     center: {

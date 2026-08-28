@@ -1,14 +1,15 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 
 import {
   Alert,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+
+import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 
 import { router } from 'expo-router';
 
@@ -16,6 +17,7 @@ import {
   ClusterVisibility,
   createCluster,
 } from '@/lib/buklodClusters';
+import { supabase } from '@/lib/supabase';
 
 function messageOf(error: unknown) {
   if (
@@ -57,23 +59,60 @@ const visibilityOptions: {
   },
 ];
 
+type OrgOption = {
+  scope_id: string;
+  name: string;
+};
+
 export default function CreateClusterScreen() {
   const [name, setName] = useState('');
-  const [category, setCategory] =
-    useState('');
-  const [description, setDescription] =
-    useState('');
-
+  const [category, setCategory] = useState('');
+  const [description, setDescription] = useState('');
+  const [organizationId, setOrganizationId] = useState('');
+  const [organizations, setOrganizations] = useState<OrgOption[]>([]);
   const [visibility, setVisibility] =
     useState<ClusterVisibility>('PUBLIC');
-
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      try {
+        const { data, error } = await (supabase as any).rpc(
+          'buklod_my_manageable_organizations_v2',
+        );
+        if (error) throw error;
+        if (!active) return;
+        const rows = (Array.isArray(data) ? data : []).map((row: {
+          scope_id?: string;
+          id?: string;
+          name?: string;
+        }) => ({
+          scope_id: String(row.scope_id ?? row.id ?? ''),
+          name: String(row.name ?? 'Organization'),
+        })).filter((row: OrgOption) => row.scope_id);
+        setOrganizations(rows);
+        if (rows.length === 1) {
+          setOrganizationId(rows[0].scope_id);
+        }
+      } catch {
+        if (active) setOrganizations([]);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const submit = async () => {
     if (!name.trim()) {
+      Alert.alert('Cluster', 'Enter a Cluster name.');
+      return;
+    }
+    if (!organizationId) {
       Alert.alert(
         'Cluster',
-        'Enter a Cluster name.'
+        'Every Cluster must belong to an Organization. Create or select an Organization first.',
       );
       return;
     }
@@ -86,6 +125,7 @@ export default function CreateClusterScreen() {
         category,
         description,
         visibility,
+        organizationId,
       });
 
       router.replace({
@@ -93,41 +133,59 @@ export default function CreateClusterScreen() {
         params: { id },
       } as any);
     } catch (error) {
-      Alert.alert(
-        'Create Cluster',
-        messageOf(error)
-      );
+      Alert.alert('Create Cluster', messageOf(error));
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <ScrollView
+    <BuklodPortalScrollView
       style={styles.screen}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.hero}>
-        <Text style={styles.eyebrow}>
-          NEW COMMUNITY
-        </Text>
-
-        <Text style={styles.title}>
-          Create a Cluster
-        </Text>
-
+        <Text style={styles.eyebrow}>NEW COMMUNITY</Text>
+        <Text style={styles.title}>Create a Cluster</Text>
         <Text style={styles.subtitle}>
-          Any registered BUKLOD user may create
-          a Cluster. You become its Cluster Admin.
+          Clusters belong to an Organization. Organization registration stays
+          free. You become Cluster Admin of this Cluster only.
         </Text>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.label}>
-          CLUSTER NAME *
-        </Text>
+        <Text style={styles.label}>PARENT ORGANIZATION *</Text>
+        {organizations.length === 0 ? (
+          <>
+            <Text style={styles.help}>
+              Create an Organization first. Clusters cannot be created without one.
+            </Text>
+            <Pressable
+              onPress={() => router.push('/organizations/create' as any)}
+              style={styles.secondary}
+            >
+              <Text style={styles.secondaryText}>CREATE ORGANIZATION</Text>
+            </Pressable>
+          </>
+        ) : (
+          organizations.map((org) => {
+            const selected = organizationId === org.scope_id;
+            return (
+              <Pressable
+                key={org.scope_id}
+                onPress={() => setOrganizationId(org.scope_id)}
+                style={[styles.orgRow, selected && styles.orgRowOn]}
+              >
+                <Text style={[styles.orgName, selected && styles.orgNameOn]}>
+                  {org.name}
+                </Text>
+              </Pressable>
+            );
+          })
+        )}
 
+        <Text style={styles.label}>CLUSTER NAME *</Text>
         <TextInput
           style={styles.input}
           placeholder="Example: Tanay Nurses Network"
@@ -136,10 +194,7 @@ export default function CreateClusterScreen() {
           maxLength={120}
         />
 
-        <Text style={styles.label}>
-          CATEGORY
-        </Text>
-
+        <Text style={styles.label}>CATEGORY</Text>
         <TextInput
           style={styles.input}
           placeholder="Friends, Association, School, Ministry..."
@@ -148,15 +203,9 @@ export default function CreateClusterScreen() {
           maxLength={80}
         />
 
-        <Text style={styles.label}>
-          DESCRIPTION
-        </Text>
-
+        <Text style={styles.label}>DESCRIPTION</Text>
         <TextInput
-          style={[
-            styles.input,
-            styles.multiline,
-          ]}
+          style={[styles.input, styles.multiline]}
           placeholder="What is this Cluster for?"
           value={description}
           onChangeText={setDescription}
@@ -166,235 +215,107 @@ export default function CreateClusterScreen() {
         />
       </View>
 
-      <Text style={styles.sectionTitle}>
-        PRIVACY
-      </Text>
-
+      <Text style={styles.sectionTitle}>PRIVACY</Text>
       {visibilityOptions.map((option) => {
-        const active =
-          visibility === option.value;
-
+        const active = visibility === option.value;
         return (
           <Pressable
             key={option.value}
-            onPress={() =>
-              setVisibility(option.value)
-            }
-            style={[
-              styles.option,
-              active && styles.optionActive,
-            ]}
+            onPress={() => setVisibility(option.value)}
+            style={[styles.choice, active && styles.choiceOn]}
           >
-            <View style={{ flex: 1 }}>
-              <Text
-                style={[
-                  styles.optionTitle,
-                  active &&
-                    styles.optionTitleActive,
-                ]}
-              >
-                {option.title}
-              </Text>
-
-              <Text style={styles.optionText}>
-                {option.description}
-              </Text>
-            </View>
-
-            <View
-              style={[
-                styles.radio,
-                active && styles.radioActive,
-              ]}
-            />
+            <Text style={[styles.choiceTitle, active && styles.choiceTitleOn]}>
+              {option.title}
+            </Text>
+            <Text style={styles.choiceBody}>{option.description}</Text>
           </Pressable>
         );
       })}
 
       <Pressable
-        disabled={busy}
+        disabled={busy || !organizationId}
         onPress={() => void submit()}
-        style={[
-          styles.createButton,
-          busy && styles.disabled,
-        ]}
+        style={[styles.primary, (busy || !organizationId) && { opacity: 0.55 }]}
       >
-        <Text style={styles.createText}>
-          {busy
-            ? 'CREATING...'
-            : 'CREATE CLUSTER'}
+        <Text style={styles.primaryText}>
+          {busy ? 'CREATING...' : 'CREATE CLUSTER'}
         </Text>
       </Pressable>
-
-      <Pressable
-        onPress={() => router.back()}
-        style={styles.cancelButton}
-      >
-        <Text style={styles.cancelText}>
-          CANCEL
-        </Text>
-      </Pressable>
-
-      <View style={{ height: 40 }} />
-    </ScrollView>
+    </BuklodPortalScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: '#F5F7F6',
-  },
-
-  content: {
-    padding: 16,
-    gap: 12,
-  },
-
+  screen: { flex: 1, backgroundColor: '#F4F7F5' },
+  content: { padding: 16, paddingBottom: 24, gap: 10 },
   hero: {
-    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
     padding: 18,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#E1E7E3',
+    backgroundColor: '#1F4D3A',
+    marginBottom: 6,
   },
-
-  eyebrow: {
-    color: '#2D6A4F',
-    fontSize: 11,
-    letterSpacing: 1.5,
-    fontWeight: '900',
-  },
-
-  title: {
-    color: '#19362A',
-    fontSize: 28,
-    fontWeight: '900',
-    marginTop: 4,
-  },
-
-  subtitle: {
-    color: '#66756D',
-    lineHeight: 20,
-    marginTop: 6,
-  },
-
+  eyebrow: { fontSize: 9, fontWeight: '900', letterSpacing: 1, color: 'rgba(255,255,255,0.72)' },
+  title: { marginTop: 4, fontSize: 24, fontWeight: '900', color: '#FFFFFF' },
+  subtitle: { marginTop: 7, fontSize: 11, lineHeight: 16, color: 'rgba(255,255,255,0.82)' },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E1E7E3',
-    padding: 15,
+    borderColor: '#DCE5E0',
+    borderRadius: 18,
+    padding: 14,
+    backgroundColor: '#FFFFFF',
     gap: 8,
   },
-
-  label: {
-    marginTop: 6,
-    color: '#365347',
-    fontWeight: '900',
-    fontSize: 12,
-    letterSpacing: 0.7,
-  },
-
+  label: { marginTop: 6, fontSize: 9, fontWeight: '900', letterSpacing: 0.5, color: '#2D6A4F' },
+  help: { fontSize: 11, lineHeight: 16, color: '#6E7E76' },
   input: {
-    backgroundColor: '#FAFBFA',
+    minHeight: 45,
     borderWidth: 1,
-    borderColor: '#D9E2DD',
-    borderRadius: 12,
-    minHeight: 48,
-    paddingHorizontal: 12,
-    color: '#1A3329',
-  },
-
-  multiline: {
-    minHeight: 120,
-    paddingTop: 12,
-  },
-
-  sectionTitle: {
-    marginTop: 5,
-    fontWeight: '900',
-    color: '#365347',
-    fontSize: 13,
-    letterSpacing: 1,
-  },
-
-  option: {
+    borderColor: '#DCE5E0',
+    borderRadius: 13,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+    color: '#173B2F',
     backgroundColor: '#FFFFFF',
+  },
+  multiline: { minHeight: 88, textAlignVertical: 'top' },
+  orgRow: {
+    minHeight: 42,
     borderWidth: 1,
-    borderColor: '#DFE6E2',
-    borderRadius: 15,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    borderColor: '#DCE5E0',
+    borderRadius: 11,
+    paddingHorizontal: 12,
+    justifyContent: 'center',
   },
-
-  optionActive: {
-    borderColor: '#2D6A4F',
-    backgroundColor: '#F1F8F4',
+  orgRowOn: { borderColor: '#2D6A4F', backgroundColor: '#E8F5EE' },
+  orgName: { fontSize: 12, fontWeight: '800', color: '#6E7E76' },
+  orgNameOn: { color: '#173B2F' },
+  sectionTitle: { marginTop: 8, fontSize: 9, fontWeight: '900', letterSpacing: 0.8, color: '#2D6A4F' },
+  choice: {
+    borderWidth: 1,
+    borderColor: '#DCE5E0',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 12,
   },
-
-  optionTitle: {
-    fontWeight: '900',
-    color: '#34463D',
-  },
-
-  optionTitleActive: {
-    color: '#23543E',
-  },
-
-  optionText: {
-    marginTop: 3,
-    color: '#748079',
-    lineHeight: 18,
-    fontSize: 12,
-  },
-
-  radio: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#A6B2AB',
-  },
-
-  radioActive: {
-    borderWidth: 6,
-    borderColor: '#2D6A4F',
-  },
-
-  createButton: {
-    marginTop: 8,
+  choiceOn: { borderColor: '#2D6A4F', backgroundColor: '#E8F5EE' },
+  choiceTitle: { fontSize: 13, fontWeight: '900', color: '#173B2F' },
+  choiceTitleOn: { color: '#1F4D3A' },
+  choiceBody: { marginTop: 3, fontSize: 11, color: '#6E7E76' },
+  primary: {
     minHeight: 50,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#2D6A4F',
+    backgroundColor: '#1F4D3A',
+    marginTop: 8,
   },
-
-  createText: {
-    color: '#FFFFFF',
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-
-  cancelButton: {
-    minHeight: 46,
-    borderRadius: 14,
+  primaryText: { fontSize: 11, fontWeight: '900', letterSpacing: 0.55, color: '#FFFFFF' },
+  secondary: {
+    minHeight: 42,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#B7C2BC',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#2D6A4F',
   },
-
-  cancelText: {
-    color: '#506058',
-    fontWeight: '900',
-  },
-
-  disabled: {
-    opacity: 0.5,
-  },
+  secondaryText: { color: '#FFFFFF', fontWeight: '900', fontSize: 11 },
 });

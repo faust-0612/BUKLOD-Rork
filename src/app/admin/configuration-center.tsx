@@ -18,7 +18,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
-import { AdminGate } from '@/components/AdminGate';
+import { ConfigCenterGate } from '@/components/ConfigCenterGate';
 import { supabase } from '@/lib/supabase';
 
 type Tab = 'WORKSPACES' | 'FEATURES' | 'CONTENT' | 'DESIGN';
@@ -711,7 +711,7 @@ export default function ConfigurationCenterScreen() {
   );
 
   return (
-    <AdminGate>
+    <ConfigCenterGate>
       <ScrollView
         style={styles.screen}
         contentContainerStyle={styles.content}
@@ -965,8 +965,8 @@ export default function ConfigurationCenterScreen() {
                       {item.route}
                     </Text>
                     <Text style={styles.meta}>
-                      Order {item.sort_order} Â·{' '}
-                      {item.visibility_mode} Â·{' '}
+                      Order {item.sort_order} ·{' '}
+                      {item.visibility_mode} ·{' '}
                       {item.is_active ? 'ON' : 'OFF'}
                     </Text>
                   </View>
@@ -1098,7 +1098,7 @@ export default function ConfigurationCenterScreen() {
                       {item.label}
                     </Text>
                     <Text style={styles.meta}>
-                      {item.flag_key} Â·{' '}
+                      {item.flag_key} ·{' '}
                       {item.enabled ? 'ON' : 'OFF'}
                     </Text>
                   </View>
@@ -1231,8 +1231,8 @@ export default function ConfigurationCenterScreen() {
               />
 
               <Text style={styles.hint}>
-                Examples: {'{"string":"Hello"}'} Â·{' '}
-                {'{"number":16}'} Â·{' '}
+                Examples: {'{"string":"Hello"}'} ·{' '}
+                {'{"number":16}'} ·{' '}
                 {'{"url":"/profile/..."}'}
               </Text>
 
@@ -1319,7 +1319,7 @@ export default function ConfigurationCenterScreen() {
                       {item.label}
                     </Text>
                     <Text style={styles.meta}>
-                      {item.item_type} Â· {item.item_key}
+                      {item.item_type} · {item.item_key}
                     </Text>
                     <Text style={styles.value}>
                       {JSON.stringify(item.value)}
@@ -1354,7 +1354,7 @@ export default function ConfigurationCenterScreen() {
 
         <View style={{ height: 80 }} />
       </ScrollView>
-    </AdminGate>
+    </ConfigCenterGate>
   );
 }
 
@@ -1384,9 +1384,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#F4F7F5',
   },
   content: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 10,
     paddingTop: 14,
     paddingBottom: 30,
+    maxWidth: 920,
+    width: '100%',
+    alignSelf: 'center',
   },
   back: {
     flexDirection: 'row',

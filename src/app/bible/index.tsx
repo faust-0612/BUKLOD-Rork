@@ -1,4 +1,5 @@
-﻿import BuklodOccasionalAd from '@/components/BuklodOccasionalAd';
+import { repairMojibakeText } from '@/lib/repairMojibakeText';
+import BuklodOccasionalAd from '@/components/BuklodOccasionalAd';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -14,8 +15,13 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { VoiceReader } from '@/components/VoiceReader';
+import { BuklodBibleNarrationBar } from '@/components/BuklodBibleNarrationBar';
+import {
+  mapBibleChapterRows,
+  type BibleNarrationVerse,
+} from '@/lib/buklodBibleNarration';
 import { Card, SectionTitle, shared } from '@/components/UI';
+import BuklodClusterMembershipGate from '@/components/BuklodClusterMembershipGate';
 
 type Assignment = {
   id: string;
@@ -351,10 +357,18 @@ function DailyReadingAudioPreview({
 
 
   const [
-    audioText,
-    setAudioText,
+    audioSession,
+    setAudioSession,
   ] =
-    useState<string[]>([]);
+    useState<{
+      translation: string;
+      bookNo: number;
+      bookName: string;
+      chapterNo: number;
+      verses: BibleNarrationVerse[];
+    } | null>(
+      null
+    );
 
 
   const [
@@ -391,8 +405,8 @@ function DailyReadingAudioPreview({
             null
           );
 
-          setAudioText(
-            []
+          setAudioSession(
+            null
           );
 
 
@@ -601,8 +615,13 @@ function DailyReadingAudioPreview({
             }
 
 
-            const speech:
-              string[] = [];
+            let startSession: {
+              translation: string;
+              bookNo: number;
+              bookName: string;
+              chapterNo: number;
+              verses: BibleNarrationVerse[];
+            } | null = null;
 
 
             for (
@@ -623,79 +642,50 @@ function DailyReadingAudioPreview({
               }
 
 
-              const rows =
-                (
-                  result?.data ??
-                  []
-                ) as Array<{
-                  book_name?: string;
-                  chapter_no?: number;
-                  verse_no?: number;
-                  verse_text?: string;
-                }>;
+              const target =
+                targets[index];
+
+
+              const verses =
+                mapBibleChapterRows(
+                  result?.data,
+                  {
+                    bookNo:
+                      target.bookNo,
+                    chapterNo:
+                      target.chapterNo,
+                  }
+                );
 
 
               if (
-                rows.length === 0
+                verses.length === 0
               ) {
                 continue;
               }
 
 
-              const target =
-                targets[index];
-
-
-              const bookName =
-                String(
-                  rows[0]
-                    ?.book_name ??
-                  reference
-                );
-
-
-              /*
-               * Chapter heading may be spoken.
-               * Individual verse numbers are NOT.
-               */
-              speech.push(
-                translation ===
-                  'KJV'
-                  ? `${bookName}, chapter ${target.chapterNo}.`
-                  : `${bookName}, kabanata ${target.chapterNo}.`
-              );
-
-
-              for (
-                const verse
-                of rows
-              ) {
-
-                const clean =
-                  String(
-                    verse.verse_text ??
-                    ''
-                  )
-                    .replace(
-                      /^\u00B6\s*/,
-                      ''
-                    )
-                    .trim();
-
-
-                if (clean) {
-                  speech.push(
-                    clean
-                  );
-                }
-
+              if (!startSession) {
+                startSession = {
+                  translation,
+                  bookNo:
+                    verses[0].book_no ||
+                    target.bookNo,
+                  bookName:
+                    verses[0].book_name ||
+                    reference,
+                  chapterNo:
+                    verses[0].chapter_no ||
+                    target.chapterNo,
+                  verses,
+                };
               }
 
             }
 
 
             if (
-              speech.length === 0
+              !startSession
             ) {
 
               throw new Error(
@@ -709,8 +699,8 @@ function DailyReadingAudioPreview({
               !cancelled
             ) {
 
-              setAudioText(
-                speech
+              setAudioSession(
+                startSession
               );
 
             }
@@ -910,23 +900,34 @@ function DailyReadingAudioPreview({
 
         </View>
 
-      ) : audioText.length > 0 ? (
+      ) : audioSession &&
+        audioSession.verses.length > 0 ? (
 
-        <VoiceReader
-
-          title="PAKINGGAN ANG READING OF THE DAY"
-
+        <BuklodBibleNarrationBar
+          title="Listen to today's reading"
+          subtitle="One play continues verse by verse, then to the next chapter, until you stop. This does not mark the reading complete."
+          translation={
+            audioSession.translation
+          }
           language={
-            audioTranslation ===
+            audioSession.translation ===
               'KJV'
               ? 'en-US'
               : 'fil-PH'
           }
-
-          text={
-            audioText
+          bookNo={
+            audioSession.bookNo
           }
-
+          bookName={
+            audioSession.bookName
+          }
+          chapterNo={
+            audioSession.chapterNo
+          }
+          verses={
+            audioSession.verses
+          }
+          continueNextBook
         />
 
       ) : (
@@ -1588,7 +1589,7 @@ export default function DailyBibleScreen() {
               verse =>
                 `${verse.verse_no} ${
                   String(
-                    verse.verse_text ??
+                    repairMojibakeText(verse.verse_text) ??
                     ''
                   )
                     .replace(
@@ -1808,6 +1809,7 @@ export default function DailyBibleScreen() {
   }
 
   return (
+    <BuklodClusterMembershipGate title="Join a Cluster to use Daily Bible Reading">
     <ScrollView
       style={shared.screen}
       contentContainerStyle={[shared.content,styles.content]}
@@ -2103,6 +2105,7 @@ export default function DailyBibleScreen() {
         </>
       )}
     </ScrollView>
+    </BuklodClusterMembershipGate>
   );
 }
 

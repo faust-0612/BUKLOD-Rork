@@ -16,6 +16,10 @@ import {
 
 import * as Speech from 'expo-speech';
 
+import {
+  normalizeBuklodSpeechText,
+} from '@/lib/buklodSpeech';
+
 
 /* ==========================================================
    VOICE_READER_SPEED_IMMEDIATE_V2
@@ -330,61 +334,23 @@ function maleVoiceScore(
 
 
 /* ==========================================================
-   FILIPINO_TTS_CONTRACTIONS_V1
-
-   Displayed Bible text remains unchanged.
-   Only the text sent to Filipino TTS is expanded.
-
-   Examples:
-   nawa'y  -> nawa ay
-   ako'y   -> ako ay
-   siya'y  -> siya ay
-   tayo'y  -> tayo ay
-   ako't   -> ako at
+   Speech text for TTS only. Displayed Bible text stays as-is.
+   BUKLOD is spoken as a word. Filipino apostrophes (n'yong, ako'y)
+   are expanded so the voice does not spell them.
 ========================================================== */
 
 function normalizeFilipinoSpeech(
-  input: string
+  input: string,
+  language?: string,
 ) {
-
-  return String(
-    input ?? ''
-  )
-
-    /*
-     * Normalize curly apostrophes first.
-     */
-    .replace(
-      /[’‘]/g,
-      "'"
-    )
-
-    /*
-     * Filipino contraction:
-     * ako'y -> ako ay
-     * nawa'y -> nawa ay
-     */
-    .replace(
-      /([A-Za-zÀ-ÖØ-öø-ÿ]+)'y\b/gi,
-      '$1 ay'
-    )
-
-    /*
-     * Filipino contraction:
-     * ako't -> ako at
-     * puso't -> puso at
-     */
-    .replace(
-      /([A-Za-zÀ-ÖØ-öø-ÿ]+)'t\b/gi,
-      '$1 at'
-    )
-
-    .replace(
-      /\s+/g,
-      ' '
-    )
-    .trim();
-
+  return normalizeBuklodSpeechText(
+    input,
+    {
+      filipino: String(language ?? '')
+        .toLowerCase()
+        .startsWith('fil'),
+    }
+  );
 }
 
 
@@ -417,17 +383,10 @@ export function VoiceReader({
           );
 
 
-        return String(
+        return normalizeFilipinoSpeech(
+          normalized,
           language
-        )
-          .toLowerCase()
-          .startsWith(
-            'fil'
-          )
-            ? normalizeFilipinoSpeech(
-                normalized
-              )
-            : normalized;
+        );
 
       },
       [
@@ -500,6 +459,14 @@ export function VoiceReader({
   const finishCallback =
     onFinished ??
     onComplete;
+
+  const finishCallbackRef =
+    useRef(
+      finishCallback
+    );
+
+  finishCallbackRef.current =
+    finishCallback;
 
 
   const setSpeakingSafe =
@@ -655,7 +622,8 @@ export function VoiceReader({
             false
           );
 
-          finishCallback
+          finishCallbackRef
+            .current
             ?.();
 
           return;
@@ -753,7 +721,6 @@ export function VoiceReader({
       [
         chunks,
         language,
-        finishCallback,
         setSpeakingSafe,
       ]
     );
@@ -1159,7 +1126,7 @@ export function VoiceReader({
             }
 
           },
-          180
+          420
         );
 
 

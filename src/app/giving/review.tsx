@@ -13,6 +13,7 @@ import {
 import { router } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
+import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import { Card, SectionTitle, shared } from '@/components/UI';
 import { colors } from '@/lib/theme';
 
@@ -375,7 +376,10 @@ export default function GivingReviewScreen() {
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
             <Text style={styles.memberName}>
-              {item.full_name || 'BUKLOD Member'}
+              {resolvePersonDisplayName(
+                item.full_name,
+                item.user_id,
+              )}
             </Text>
 
             <Text style={styles.date}>

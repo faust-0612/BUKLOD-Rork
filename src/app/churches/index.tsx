@@ -8,20 +8,16 @@ import {
   ActivityIndicator,
   Alert,
   Pressable,
-  RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 
 import { router } from 'expo-router';
 
+import BuklodNearbyChurchFinder from '@/components/BuklodNearbyChurchFinder';
 import {
   ChurchSummary,
-  discoverChurches,
-  joinChurch,
   myChurches,
   respondChurchInvite,
 } from '@/lib/buklodChurches';
@@ -97,12 +93,6 @@ function Card({
         {!!location && `  |  ${location}`}
       </Text>
 
-      {!!item.senior_pastor_name && (
-        <Text style={s.meta}>
-          Pastor: {item.senior_pastor_name}
-        </Text>
-      )}
-
       {!!item.description && (
         <Text style={s.description}>
           {item.description}
@@ -127,79 +117,33 @@ export default function ChurchesScreen() {
   const [mine, setMine] =
     useState<ChurchSummary[]>([]);
 
-  const [discover, setDiscover] =
-    useState<ChurchSummary[]>([]);
-
-  const [query, setQuery] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] =
-    useState(false);
+  const [loadingMine, setLoadingMine] = useState(true);
   const [busy, setBusy] =
     useState<string | null>(null);
 
-  const load = useCallback(
-    async (q = '', refresh = false) => {
-      refresh
-        ? setRefreshing(true)
-        : setLoading(true);
-
-      try {
-        const [mineRows, discoverRows] =
-          await Promise.all([
-            myChurches(),
-            discoverChurches(q),
-          ]);
-
-        setMine(mineRows);
-        setDiscover(discoverRows);
-      } catch (e) {
-        Alert.alert('Churches', msg(e));
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    },
-    []
-  );
+  const loadMine = useCallback(async () => {
+    try {
+      setMine(await myChurches());
+    } catch (e) {
+      Alert.alert('Churches', msg(e));
+    } finally {
+      setLoadingMine(false);
+    }
+  }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
-
-  async function requestJoin(item: ChurchSummary) {
-    setBusy(item.scope_id);
-
-    try {
-      const status = await joinChurch(item.scope_id);
-
-      if (status === 'PENDING') {
-        Alert.alert(
-          'Church membership',
-          'Your request was sent to the Church Admin.'
-        );
-      }
-
-      await load(query, true);
-    } catch (e) {
-      Alert.alert('Church membership', msg(e));
-    } finally {
-      setBusy(null);
-    }
-  }
+    void loadMine();
+  }, [loadMine]);
 
   async function respond(
     item: ChurchSummary,
-    accept: boolean
+    accept: boolean,
   ) {
     setBusy(item.scope_id);
 
     try {
-      await respondChurchInvite(
-        item.scope_id,
-        accept
-      );
-
-      await load(query, true);
+      await respondChurchInvite(item.scope_id, accept);
+      await loadMine();
     } catch (e) {
       Alert.alert('Church invitation', msg(e));
     } finally {
@@ -208,42 +152,35 @@ export default function ChurchesScreen() {
   }
 
   return (
-    <ScrollView
-      style={s.screen}
-      contentContainerStyle={s.content}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={() => void load(query, true)}
-        />
-      }
-    >
-      <View style={s.hero}>
-        <Text style={s.eyebrow}>BUKLOD</Text>
-        <Text style={s.title}>Churches</Text>
-
-        <Text style={s.subtitle}>
-          Find verified Churches or register an
-          authorized Church for BUKLOD verification.
-        </Text>
-
-        <Button
-          title="REGISTER A CHURCH"
-          onPress={() =>
-            router.push('/churches/create' as any)
-          }
-        />
-      </View>
-
-      {loading ? (
-        <View style={s.loading}>
-          <ActivityIndicator size="large" />
-        </View>
-      ) : (
+    <BuklodNearbyChurchFinder
+      onMembershipChange={() => void loadMine()}
+      header={
         <>
+          <View style={s.hero}>
+            <Text style={s.eyebrow}>BUKLOD</Text>
+            <Text style={s.title}>Find a Church</Text>
+
+            <Text style={s.subtitle}>
+              Nearby Churches uses your location only to find churches around
+              you. Search by name, pastor, mentor, or public place name. Home
+              addresses are never shown.
+            </Text>
+
+            <Button
+              title="REGISTER A CHURCH"
+              onPress={() =>
+                router.push('/churches/create' as any)
+              }
+            />
+          </View>
+
           <Text style={s.section}>MY CHURCHES</Text>
 
-          {mine.length === 0 ? (
+          {loadingMine ? (
+            <View style={s.loading}>
+              <ActivityIndicator size="large" />
+            </View>
+          ) : mine.length === 0 ? (
             <View style={s.empty}>
               <Text style={s.muted}>
                 You do not have a Church membership yet.
@@ -253,130 +190,39 @@ export default function ChurchesScreen() {
             mine.map((item) => (
               <Card key={item.scope_id} item={item}>
                 <View style={s.actions}>
-                  {item.membership_status ===
-                  'INVITED' ? (
+                  {item.membership_status === 'INVITED' ? (
                     <>
                       <Button
                         title="ACCEPT"
                         disabled={busy === item.scope_id}
-                        onPress={() =>
-                          void respond(item, true)
-                        }
+                        onPress={() => void respond(item, true)}
                       />
-
                       <Button
                         title="DECLINE"
                         outline
                         disabled={busy === item.scope_id}
-                        onPress={() =>
-                          void respond(item, false)
-                        }
+                        onPress={() => void respond(item, false)}
                       />
                     </>
                   ) : (
                     <Button
                       title={
-                        item.is_admin
-                          ? 'OPEN / MANAGE'
-                          : 'OPEN'
+                        item.is_admin ? 'OPEN / MANAGE' : 'OPEN'
                       }
-                      onPress={() =>
-                        openChurch(item.scope_id)
-                      }
+                      onPress={() => openChurch(item.scope_id)}
                     />
                   )}
                 </View>
               </Card>
             ))
           )}
-
-          <Text style={s.section}>
-            DISCOVER VERIFIED CHURCHES
-          </Text>
-
-          <View style={s.searchRow}>
-            <TextInput
-              style={s.search}
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Church, location or denomination..."
-              returnKeyType="search"
-              onSubmitEditing={() =>
-                void load(query, true)
-              }
-            />
-
-            <Button
-              title="SEARCH"
-              onPress={() =>
-                void load(query, true)
-              }
-            />
-          </View>
-
-          {discover.map((item) => (
-            <Card key={item.scope_id} item={item}>
-              <View style={s.actions}>
-                {item.membership_status ===
-                'ACTIVE' ? (
-                  <Button
-                    title="OPEN"
-                    onPress={() =>
-                      openChurch(item.scope_id)
-                    }
-                  />
-                ) : item.membership_status ===
-                  'PENDING' ? (
-                  <Button
-                    title="REQUEST PENDING"
-                    disabled
-                    onPress={() => {}}
-                  />
-                ) : item.membership_status ===
-                  'INVITED' ? (
-                  <Button
-                    title="ACCEPT INVITATION"
-                    onPress={() =>
-                      void respond(item, true)
-                    }
-                  />
-                ) : (
-                  <Button
-                    title="REQUEST MEMBERSHIP"
-                    disabled={busy === item.scope_id}
-                    onPress={() =>
-                      void requestJoin(item)
-                    }
-                  />
-                )}
-
-                <Button
-                  title="VIEW"
-                  outline
-                  onPress={() =>
-                    openChurch(item.scope_id)
-                  }
-                />
-              </View>
-            </Card>
-          ))}
         </>
-      )}
-
-      <View style={{ height: 40 }} />
-    </ScrollView>
+      }
+    />
   );
 }
 
 const s = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: '#F5F7F6',
-  },
-  content: {
-    padding: 16,
-    gap: 10,
-  },
   hero: {
     padding: 18,
     borderRadius: 20,
@@ -456,19 +302,6 @@ const s = StyleSheet.create({
   disabled: {
     opacity: 0.45,
   },
-  searchRow: {
-    flexDirection: 'row',
-    gap: 7,
-  },
-  search: {
-    flex: 1,
-    minHeight: 44,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#D8E1DC',
-    borderRadius: 11,
-    paddingHorizontal: 12,
-  },
   empty: {
     padding: 15,
     backgroundColor: '#FFFFFF',
@@ -480,6 +313,6 @@ const s = StyleSheet.create({
     color: '#748079',
   },
   loading: {
-    padding: 40,
+    padding: 24,
   },
 });

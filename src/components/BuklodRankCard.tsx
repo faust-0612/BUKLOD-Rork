@@ -130,7 +130,7 @@ export default function BuklodRankCard({
           </Text>
 
           <Text style={styles.rankName}>
-            {rankName || 'Circle Starter III'}
+            {rankName || 'Circle Starter V'}
           </Text>
 
           <Text style={styles.points}>

@@ -7,18 +7,20 @@ import React, {
 import {
   Alert,
   Pressable,
-  ScrollView,
   StyleSheet,
   Switch,
   Text,
   TextInput,
   View,
 } from 'react-native';
+
+import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 import {
   Stack,
   useLocalSearchParams,
 } from 'expo-router';
 import { supabase } from '../../lib/supabase';
+import { readOrganizationScopeId } from '@/lib/buklodOrganization';
 
 type Primitive = string | number | boolean | null;
 
@@ -40,21 +42,6 @@ type MetaField = {
   label: string;
   value: Primitive;
 };
-
-function firstString(value: unknown) {
-  if (typeof value === 'string') {
-    return value.trim();
-  }
-
-  if (
-    Array.isArray(value) &&
-    typeof value[0] === 'string'
-  ) {
-    return value[0].trim();
-  }
-
-  return '';
-}
 
 function upper(value: unknown) {
   return String(value || '').trim().toUpperCase();
@@ -244,12 +231,7 @@ function Choice({
 export default function OrganizationalSettingsScreen() {
   const params = useLocalSearchParams();
 
-  const scopeId =
-    firstString(params.scopeId) ||
-    firstString(params.scope_id) ||
-    firstString(params.organizationId) ||
-    firstString(params.organization_id) ||
-    firstString(params.id);
+  const scopeId = readOrganizationScopeId(params as Record<string, unknown>);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -483,7 +465,7 @@ export default function OrganizationalSettingsScreen() {
         }}
       />
 
-      <ScrollView
+      <BuklodPortalScrollView
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.content}>
@@ -661,7 +643,7 @@ export default function OrganizationalSettingsScreen() {
               : 'SAVE ORGANIZATIONAL SETTINGS'}
           </Text>
         </Pressable>
-      </ScrollView>
+      </BuklodPortalScrollView>
     </>
   );
 }
@@ -670,7 +652,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 18,
     paddingTop: 24,
-    paddingBottom: 46,
+    paddingBottom: 16,
     gap: 12,
     backgroundColor: '#F4F7F5',
   },

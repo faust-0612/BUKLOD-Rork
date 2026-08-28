@@ -11,6 +11,10 @@ import {
   Text,
   View,
 } from 'react-native';
+import {
+  BUKLOD_HIT_SLOP,
+  BUKLOD_HIT_SLOP_TIGHT,
+} from '@/lib/buklodTouch';
 
 import {
   MaterialCommunityIcons,
@@ -249,7 +253,7 @@ export function BuklodProfileStatusBubble() {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Edit Profile Note and Music"
-        hitSlop={8}
+        hitSlop={BUKLOD_HIT_SLOP}
         onPress={() =>
           router.push(
             '/profile/status' as any

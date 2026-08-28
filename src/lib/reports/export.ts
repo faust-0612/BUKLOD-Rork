@@ -1,8 +1,19 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
-import * as XLSX from 'xlsx';
 import { rowsToCsv } from '@/lib/reports/csv';
+
+type XlsxModule = typeof import('xlsx');
+
+let xlsxModulePromise: Promise<XlsxModule> | null = null;
+
+export async function loadXlsxModule() {
+  if (!xlsxModulePromise) {
+    xlsxModulePromise = import('xlsx');
+  }
+
+  return xlsxModulePromise;
+}
 
 export async function shareCsv(
   filename: string,
@@ -40,8 +51,9 @@ export async function shareCsv(
 
 export async function shareWorkbook(
   filename: string,
-  workbook: XLSX.WorkBook
+  workbook: import('xlsx').WorkBook
 ) {
+  const XLSX = await loadXlsxModule();
   const mimeType =
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 

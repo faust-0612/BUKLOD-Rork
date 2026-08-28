@@ -16,8 +16,17 @@ import {
   shared,
 } from '@/components/UI';
 import { useAuth } from '@/providers/AuthProvider';
-import { colors } from '@/lib/theme';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
+import { colors } from '@/lib/theme';
+import { useFormationJourney } from '@/hooks/useFormationJourney';
+import FormationJourneySection from '@/components/formation/FormationJourneySection';
+import FormationAdvancedStageCatalog from '@/components/formation/FormationAdvancedStageCatalog';
+import BuklodScopeLessonLicensesCard from '@/components/BuklodScopeLessonLicensesCard';
+import BuklodClusterMembershipGate from '@/components/BuklodClusterMembershipGate';
+import { mergeFormationStageProgress } from '@/lib/buklodLessonStages';
+import { loadFormationStageCatalog } from '@/lib/buklodFormationProgress';
+import type { FormationStageCatalog } from '@/types/buklodFormation';
+import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 
 type WeeklyDevotional = {
   id: string;
@@ -99,9 +108,14 @@ const COMPONENT_LABELS: Record<string, string> = {
   LEADERSHIP_3: 'Leadership Lesson 3',
 };
 
-export default function LearnScreen() {
-  const { featureEnabled } = useRuntimeConfig();
+export function BuklodLearningContent({
+  variant = 'screen',
+}: {
+  variant?: 'screen' | 'embedded';
+}) {
+  const embedded = variant === 'embedded';
   const { user , hasRole} = useAuth();
+  const { activeScope } = useBuklodScope();
 
   /* PATCH_185B_PROGRESS_ADMIN */
   const canManageLearning = hasRole('system_admin');
@@ -110,6 +124,13 @@ export default function LearnScreen() {
   const [tracks, setTracks] = useState<any[]>([]);
   const [enrollments, setEnrollments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [advancedCatalogs, setAdvancedCatalogs] = useState<
+    Partial<Record<106 | 107, FormationStageCatalog | null>>
+  >({});
+  const [advancedCatalogLoading, setAdvancedCatalogLoading] =
+    useState(false);
+
+  const formationJourney = useFormationJourney(user?.id);
 
   /*
    * PATCH 153D-1C2
@@ -372,9 +393,39 @@ export default function LearnScreen() {
     setEnrollments(enrollmentData ?? []);
   }, [user?.id]);
 
+  const loadAdvancedCatalogs = useCallback(async () => {
+    if (!user?.id) {
+      setAdvancedCatalogs({});
+      return;
+    }
+
+    setAdvancedCatalogLoading(true);
+
+    try {
+      const [catalog106, catalog107] = await Promise.all([
+        loadFormationStageCatalog(106),
+        loadFormationStageCatalog(107),
+      ]);
+
+      setAdvancedCatalogs({
+        106: catalog106,
+        107: catalog107,
+      });
+    } catch (error: any) {
+      console.warn('Formation advanced catalog:', error?.message ?? error);
+      setAdvancedCatalogs({});
+    } finally {
+      setAdvancedCatalogLoading(false);
+    }
+  }, [user?.id]);
+
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    void loadAdvancedCatalogs();
+  }, [loadAdvancedCatalogs]);
 
 
   useEffect(() => {
@@ -392,6 +443,15 @@ export default function LearnScreen() {
     return map;
   }, [enrollments]);
 
+  const displayStages = useMemo(
+    () => mergeFormationStageProgress(stages),
+    [stages],
+  );
+
+  const showFormationJourney =
+    formationJourney.engineEnabled &&
+    (formationJourney.journey?.stages?.length ?? 0) > 0;
+
   const tracksForStage = useCallback(
     (stageCode: number) =>
       tracks.filter(
@@ -401,7 +461,46 @@ export default function LearnScreen() {
     [tracks]
   );
 
+  const journeyStageByCode = useMemo(() => {
+    const map = new Map<number, any>();
+    formationJourney.journey?.stages?.forEach((stage) => {
+      map.set(stage.stage_code, stage);
+    });
+    return map;
+  }, [formationJourney.journey?.stages]);
+
+  const isFormationStageLocked = useCallback(
+    (stageCode: number) => {
+      if (!formationJourney.engineEnabled) {
+        return false;
+      }
+
+      const journeyStage = journeyStageByCode.get(stageCode);
+      if (!journeyStage) {
+        return false;
+      }
+
+      return (
+        journeyStage.is_locked === true ||
+        journeyStage.access_allowed === false ||
+        journeyStage.status === 'locked'
+      );
+    },
+    [formationJourney.engineEnabled, journeyStageByCode],
+  );
+
   const startTrack = async (trackId: string) => {
+    const track = tracks.find((item) => item.id === trackId);
+    const stageCode = Number(track?.stage_code ?? 0);
+
+    if (isFormationStageLocked(stageCode)) {
+      Alert.alert(
+        'Stage locked',
+        'Complete the previous formation stage before starting this track.',
+      );
+      return;
+    }
+
     const { error } = await supabase.rpc(
       'enroll_in_track',
       {
@@ -463,14 +562,10 @@ export default function LearnScreen() {
     };
   };
 
-  if (!featureEnabled('learning')) {
-    return null;
-  }
-
-  return (
-    <ScrollView
-      contentContainerStyle={shared.content}
-    >
+  const content = (
+    <>
+      {!embedded ? (
+        <>
       <Text style={styles.eyebrow}>
         BUKLOD FORMATION
       </Text>
@@ -499,6 +594,8 @@ export default function LearnScreen() {
           />
         </View>
       )}
+        </>
+      ) : null}
 
       
       {/* PATCH_185B_OFFICIAL_PROGRESS_REMOVED */}
@@ -670,7 +767,29 @@ export default function LearnScreen() {
         FORMATION JOURNEY
       </SectionTitle>
 
-      {loading && (
+      {!embedded &&
+      activeScope?.show_faith_content &&
+      activeScope.scope_id ? (
+        <BuklodScopeLessonLicensesCard
+          scopeId={activeScope.scope_id}
+          scopeName={activeScope.name}
+          defaultExpanded
+        />
+      ) : null}
+
+      {showFormationJourney && formationJourney.journey ? (
+        <FormationJourneySection
+          journey={formationJourney.journey}
+          tracks={tracks}
+          loading={formationJourney.loading}
+          onRefresh={formationJourney.refresh}
+          advancedCatalogs={advancedCatalogs}
+          advancedCatalogLoading={advancedCatalogLoading}
+          isFormationStageLocked={isFormationStageLocked}
+        />
+      ) : (
+        <>
+      {(loading || formationJourney.loading) && (
         <Card>
           <Text style={shared.body}>
             Loading your formation progress...
@@ -679,7 +798,8 @@ export default function LearnScreen() {
       )}
 
       {!loading &&
-        stages.map((stage) => {
+        !formationJourney.loading &&
+        displayStages.map((stage) => {
           const meta =
             STAGE_META[stage.stage_code];
 
@@ -800,6 +920,26 @@ export default function LearnScreen() {
                   </View>
                 )}
 
+                {(stage.stage_code === 106 ||
+                  stage.stage_code === 107) ? (
+                  <FormationAdvancedStageCatalog
+                    stageCode={stage.stage_code as 106 | 107}
+                    catalog={
+                      advancedCatalogs[
+                        stage.stage_code as 106 | 107
+                      ] ?? null
+                    }
+                    stageLocked={
+                      formationJourney.engineEnabled
+                        ? isFormationStageLocked(stage.stage_code)
+                        : (advancedCatalogs[
+                            stage.stage_code as 106 | 107
+                          ]?.is_locked ?? false)
+                    }
+                    loading={advancedCatalogLoading}
+                  />
+                ) : null}
+
                 {stageTracks.length > 0 && (
                   <>
                     <View style={styles.divider} />
@@ -837,6 +977,18 @@ export default function LearnScreen() {
                               styles.trackPress
                             }
                             onPress={() => {
+                              if (
+                                isFormationStageLocked(
+                                  stage.stage_code,
+                                )
+                              ) {
+                                Alert.alert(
+                                  'Stage locked',
+                                  'Complete the previous formation stage before opening this track.',
+                                );
+                                return;
+                              }
+
                               if (enrollment) {
                                 router.push(
                                   `/learn/${track.id}`
@@ -919,7 +1071,14 @@ export default function LearnScreen() {
                   </>
                 )}
 
-                {stageTracks.length === 0 && (
+                {stageTracks.length === 0 &&
+                  !(
+                    (stage.stage_code === 106 ||
+                      stage.stage_code === 107) &&
+                    (advancedCatalogLoading ||
+                      (advancedCatalogs[stage.stage_code as 106 | 107]
+                        ?.counts.catalog_total ?? 0) > 0)
+                  ) && (
                   <>
                     <View style={styles.divider} />
 
@@ -937,6 +1096,24 @@ export default function LearnScreen() {
             </View>
           );
         })}
+        </>
+      )}
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <View style={styles.embedded}>
+        {content}
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView
+      contentContainerStyle={shared.content}
+    >
+      {content}
     </ScrollView>
   );
 }
@@ -1221,4 +1398,21 @@ const styles = StyleSheet.create({
     color: colors.muted,
     marginLeft: 10,
   },
+  embedded: {
+    gap: 10,
+  },
 });
+
+export default function LearnScreen() {
+  const { featureEnabled } = useRuntimeConfig();
+
+  if (!featureEnabled('learning')) {
+    return null;
+  }
+
+  return (
+    <BuklodClusterMembershipGate title="Join a Cluster to use BUKLOD Lessons">
+      <BuklodLearningContent variant="screen" />
+    </BuklodClusterMembershipGate>
+  );
+}

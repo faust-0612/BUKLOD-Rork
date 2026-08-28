@@ -7,14 +7,18 @@
  */
 
 import React, {
+  useCallback,
   useEffect,
   useRef,
   useState,
 } from 'react';
 
+import { useFocusEffect } from 'expo-router';
+
 import {
   ActivityIndicator,
   Animated as RNAnimated,
+  Easing,
   Pressable,
   StyleSheet,
   Text,
@@ -34,8 +38,21 @@ import {
 } from '@/lib/supabase';
 
 import {
-  colors,
-} from '@/lib/theme';
+  useBuklodPresentation,
+} from '@/hooks/useBuklodPresentation';
+
+import {
+  useBuklodReduceMotion,
+} from '@/components/HomeMotion';
+
+import BuklodFindAChurchDoorway from '@/components/BuklodFindAChurchDoorway';
+import {
+  buildDefaultScopeFaithAccessStatus,
+  fetchScopeFaithAccessStatusResilient,
+  type ScopeFaithAccessStatus,
+} from '@/lib/buklodScopeFaithAccess';
+
+const FOCUS_EASING = Easing.out(Easing.cubic);
 
 type TodayReading = {
   bible_reference: string;
@@ -56,40 +73,35 @@ type FaithActionProps = {
   tone: FaithTone;
   onPress: () => void;
   loading?: boolean;
+  locked?: boolean;
 };
 
-const TONES: Record<
-  FaithTone,
-  {
-    surface: string;
-    iconSurface: string;
-    accent: string;
-  }
-> = {
-  reading: {
-    surface: '#F4FAF6',
-    iconSurface: '#DDEFE3',
-    accent: '#2F7650',
-  },
+function useFaithTones() {
+  const { theme } = useBuklodPresentation();
 
-  bible: {
-    surface: '#F7F9F4',
-    iconSurface: '#E8EDDC',
-    accent: '#5D7041',
-  },
-
-  word: {
-    surface: '#FAF8F2',
-    iconSurface: '#F1E9D5',
-    accent: '#806A37',
-  },
-
-  prayer: {
-    surface: '#F7F5FA',
-    iconSurface: '#EAE3F1',
-    accent: '#6B5680',
-  },
-};
+  return {
+    reading: {
+      surface: theme.accentSoft,
+      iconSurface: theme.accentSoft,
+      accent: theme.accent,
+    },
+    bible: {
+      surface: theme.surfaceMuted,
+      iconSurface: theme.accentSoft,
+      accent: theme.accent,
+    },
+    word: {
+      surface: theme.surfaceElevated,
+      iconSurface: theme.accentSoft,
+      accent: theme.accent,
+    },
+    prayer: {
+      surface: theme.cardSurface,
+      iconSurface: theme.accentSoft,
+      accent: theme.accent,
+    },
+  } as const;
+}
 
 function FaithAction({
   label,
@@ -99,27 +111,33 @@ function FaithAction({
   tone,
   onPress,
   loading = false,
+  locked = false,
 }: FaithActionProps) {
+  const { colors } = useBuklodPresentation();
+  const reduceMotion = useBuklodReduceMotion();
   const scale =
     useRef(
       new RNAnimated.Value(1)
     ).current;
 
   const styleTone =
-    TONES[tone];
+    useFaithTones()[tone];
 
-  const pressTo =
-    (value: number) => {
-      RNAnimated.spring(
-        scale,
-        {
-          toValue: value,
-          useNativeDriver: true,
-          speed: 28,
-          bounciness: 4,
-        }
-      ).start();
-    };
+  const pressTo = (
+    value: number,
+    duration: number
+  ) => {
+    if (reduceMotion) {
+      return;
+    }
+
+    RNAnimated.timing(scale, {
+      toValue: value,
+      duration,
+      easing: FOCUS_EASING,
+      useNativeDriver: true,
+    }).start();
+  };
 
   return (
     <RNAnimated.View
@@ -139,10 +157,10 @@ function FaithAction({
         accessibilityLabel={label}
         onPress={onPress}
         onPressIn={() =>
-          pressTo(0.975)
+          pressTo(0.97, 70)
         }
         onPressOut={() =>
-          pressTo(1)
+          pressTo(1, 145)
         }
         style={({pressed}) => [
           styles.card,
@@ -152,6 +170,7 @@ function FaithAction({
 
             borderColor:
               `${styleTone.accent}22`,
+            minHeight: 72,
           },
           pressed && {
             opacity: 0.90,
@@ -188,7 +207,7 @@ function FaithAction({
           </View>
 
           <MaterialCommunityIcons
-            name="arrow-top-right"
+            name={locked ? 'lock-outline' : 'arrow-top-right'}
             size={16}
             color={`${styleTone.accent}99`}
           />
@@ -220,14 +239,20 @@ function FaithAction({
           <>
             <Text
               numberOfLines={2}
-              style={styles.cardTitle}
+              style={[
+                styles.cardTitle,
+                { color: colors.text },
+              ]}
             >
               {title}
             </Text>
 
             <Text
               numberOfLines={2}
-              style={styles.meta}
+              style={[
+                styles.meta,
+                { color: colors.muted },
+              ]}
             >
               {meta}
             </Text>
@@ -238,8 +263,13 @@ function FaithAction({
   );
 }
 
-export default function
-BuklodHomeFaithPanel() {
+export default function BuklodHomeFaithPanel({
+  scopeId,
+}: {
+  scopeId?: string;
+} = {}) {
+  const { colors } = useBuklodPresentation();
+  const reduceMotion = useBuklodReduceMotion();
   const [reading,setReading] =
     useState<TodayReading | null>(
       null
@@ -247,27 +277,72 @@ BuklodHomeFaithPanel() {
 
   const [loading,setLoading] =
     useState(true);
+  const [access, setAccess] =
+    useState<ScopeFaithAccessStatus | null>(null);
 
-  const reveal =
-    useRef(
-      new RNAnimated.Value(0)
-    ).current;
+  const opacity = useRef(
+    new RNAnimated.Value(1)
+  ).current;
+  const translateY = useRef(
+    new RNAnimated.Value(0)
+  ).current;
 
-  useEffect(
-    () => {
-      RNAnimated.timing(
-        reveal,
-        {
+  useFocusEffect(
+    useCallback(() => {
+      if (reduceMotion) {
+        opacity.setValue(1);
+        translateY.setValue(0);
+        return;
+      }
+
+      opacity.setValue(0.7);
+      translateY.setValue(10);
+
+      const motion = RNAnimated.parallel([
+        RNAnimated.timing(opacity, {
           toValue: 1,
-          duration: 420,
+          duration: 260,
+          easing: FOCUS_EASING,
           useNativeDriver: true,
-        }
-      ).start();
-    },
-    [
-      reveal,
-    ]
+        }),
+        RNAnimated.timing(translateY, {
+          toValue: 0,
+          duration: 260,
+          easing: FOCUS_EASING,
+          useNativeDriver: true,
+        }),
+      ]);
+
+      const frame = requestAnimationFrame(() => {
+        motion.start();
+      });
+
+      return () => {
+        cancelAnimationFrame(frame);
+        motion.stop();
+        opacity.setValue(1);
+        translateY.setValue(0);
+      };
+    }, [opacity, reduceMotion, translateY])
   );
+
+  const loadFaithAccess = useCallback(async () => {
+    if (!scopeId) {
+      setAccess(null);
+      return;
+    }
+
+    try {
+      const next = await fetchScopeFaithAccessStatusResilient(scopeId);
+      setAccess(next);
+    } catch (error: unknown) {
+      console.warn(
+        'SHOW FAITH access:',
+        error instanceof Error ? error.message : error
+      );
+      setAccess(buildDefaultScopeFaithAccessStatus(scopeId));
+    }
+  }, [scopeId]);
 
   useEffect(
     () => {
@@ -325,14 +400,31 @@ BuklodHomeFaithPanel() {
         };
 
       void load();
+      void loadFaithAccess();
 
       return () => {
         active =
           false;
       };
     },
-    []
+    [loadFaithAccess]
   );
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadFaithAccess();
+    }, [loadFaithAccess])
+  );
+
+  const dailyReadingLocked =
+    Boolean(scopeId) &&
+    access != null &&
+    !access.daily_reading.unlocked;
+
+  const devotionLocked =
+    Boolean(scopeId) &&
+    access != null &&
+    !access.devotion_word.unlocked;
 
   const todayLabel =
     new Date()
@@ -350,23 +442,25 @@ BuklodHomeFaithPanel() {
       style={[
         styles.section,
         {
-          opacity:
-            reveal,
-
+          backgroundColor: colors.white,
+          borderColor: colors.line,
+          shadowColor: colors.text,
+          opacity,
           transform: [
             {
-              translateY:
-                reveal.interpolate({
-                  inputRange: [0,1],
-                  outputRange: [12,0],
-                }),
+              translateY,
             },
           ],
         },
       ]}
     >
       <View style={styles.header}>
-        <View style={styles.headerIcon}>
+        <View
+          style={[
+            styles.headerIcon,
+            { backgroundColor: colors.greenSoft },
+          ]}
+        >
           <MaterialCommunityIcons
             name="heart-outline"
             size={20}
@@ -375,17 +469,22 @@ BuklodHomeFaithPanel() {
         </View>
 
         <View style={styles.headerCopy}>
-          <Text style={styles.sectionTitle}>
+          <Text style={[styles.sectionTitle, { color: colors.greenDark }]}>
             SHOW FAITH
           </Text>
 
-          <Text style={styles.sectionSubtitle}>
+          <Text style={[styles.sectionSubtitle, { color: colors.muted }]}>
             Your daily space for Scripture, devotion and prayer.
           </Text>
         </View>
 
-        <View style={styles.todayPill}>
-          <Text style={styles.todayText}>
+        <View
+          style={[
+            styles.todayPill,
+            { backgroundColor: colors.greenSoft },
+          ]}
+        >
+          <Text style={[styles.todayText, { color: colors.greenDark }]}>
             {todayLabel}
           </Text>
         </View>
@@ -400,7 +499,13 @@ BuklodHomeFaithPanel() {
             "Today's reading"
           }
           meta={
-            reading
+            !access?.has_active_cluster
+              ? 'Join a Cluster first'
+              : dailyReadingLocked
+              ? access?.daily_reading.pending_request_id
+                ? 'Payment pending verification'
+                : 'This feature is available through your Cluster Premium.'
+              : reading
               ? `${reading.chapters_today} ${
                   reading.chapters_today ===
                   1
@@ -412,11 +517,18 @@ BuklodHomeFaithPanel() {
           icon="calendar-text-outline"
           tone="reading"
           loading={loading}
-          onPress={() =>
-            router.push(
-              '/bible' as any
-            )
-          }
+          locked={dailyReadingLocked}
+          onPress={() => {
+            if (!access?.has_active_cluster) {
+              router.push('/clusters' as any);
+              return;
+            }
+            if (dailyReadingLocked) {
+              return;
+            }
+
+            router.push('/bible' as any);
+          }}
         />
 
         <FaithAction
@@ -441,14 +553,29 @@ BuklodHomeFaithPanel() {
         <FaithAction
           label="Word"
           title="Daily devotional"
-          meta="Read • Reflect • Apply"
+          meta={
+            !access?.has_active_cluster
+              ? 'Join a Cluster first'
+              : devotionLocked
+              ? access?.devotion_word.pending_request_id
+                ? 'Payment pending verification'
+                : 'This feature is available through your Cluster Premium.'
+              : 'Read • Reflect • Apply'
+          }
           icon="book-open-page-variant-outline"
           tone="word"
-          onPress={() =>
-            router.push(
-              '/word' as any
-            )
-          }
+          locked={devotionLocked}
+          onPress={() => {
+            if (!access?.has_active_cluster) {
+              router.push('/clusters' as any);
+              return;
+            }
+            if (devotionLocked) {
+              return;
+            }
+
+            router.push('/word' as any);
+          }}
         />
 
         <FaithAction
@@ -464,6 +591,10 @@ BuklodHomeFaithPanel() {
           }
         />
       </View>
+
+      <View style={{ marginTop: 6 }}>
+        <BuklodFindAChurchDoorway />
+      </View>
     </RNAnimated.View>
   );
 }
@@ -476,20 +607,11 @@ const styles =
       marginBottom: 6,
       padding: 13,
       borderWidth: 1,
-      borderColor:
-        'rgba(39,93,69,0.12)',
       borderRadius: 24,
-      backgroundColor:
-        '#FCFEFC',
-
-      shadowColor:
-        '#000000',
-
       shadowOffset: {
         width: 0,
         height: 5,
       },
-
       shadowOpacity: 0.055,
       shadowRadius: 14,
       elevation: 3,
@@ -508,8 +630,6 @@ const styles =
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: 10,
-      backgroundColor:
-        '#E7F4EB',
     },
 
     headerCopy: {
@@ -518,7 +638,6 @@ const styles =
     },
 
     sectionTitle: {
-      color: colors.greenDark,
       fontSize: 13,
       fontWeight: '900',
       letterSpacing: 0.8,
@@ -526,7 +645,6 @@ const styles =
 
     sectionSubtitle: {
       marginTop: 2,
-      color: colors.muted,
       fontSize: 9,
       lineHeight: 13,
     },
@@ -536,12 +654,9 @@ const styles =
       paddingHorizontal: 9,
       paddingVertical: 6,
       borderRadius: 999,
-      backgroundColor:
-        '#F0F6F2',
     },
 
     todayText: {
-      color: colors.greenDark,
       fontSize: 8,
       fontWeight: '900',
       letterSpacing: 0.45,
@@ -561,13 +676,13 @@ const styles =
     },
 
     card: {
-      minHeight: 120,
+      minHeight: 72,
       overflow: 'hidden',
       paddingHorizontal: 11,
       paddingTop: 10,
       paddingBottom: 11,
       borderWidth: 1,
-      borderRadius: 0,
+      borderRadius: 12,
     },
 
     accentRail: {
@@ -605,7 +720,6 @@ const styles =
     },
 
     cardTitle: {
-      color: colors.text,
       fontSize: 11.5,
       lineHeight: 15,
       fontWeight: '900',
@@ -613,7 +727,6 @@ const styles =
 
     meta: {
       marginTop: 4,
-      color: colors.muted,
       fontSize: 8.5,
       lineHeight: 12,
       fontWeight: '600',

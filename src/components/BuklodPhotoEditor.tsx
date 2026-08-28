@@ -35,7 +35,10 @@ type Tool =
   | 'draw'
   | 'line'
   | 'highlight'
-  | 'text';
+  | 'text'
+  | 'emoji';
+
+export type BuklodPhotoEditorTool = Tool;
 
 type Point = {
   x: number;
@@ -51,6 +54,28 @@ type Stroke = {
   points: Point[];
 };
 
+type EmojiSticker = {
+  id: string;
+  emoji: string;
+  x: number;
+  y: number;
+};
+
+const PHOTO_EDITOR_EMOJI = [
+  '🙏',
+  '❤️',
+  '😊',
+  '🎉',
+  '✨',
+  '😂',
+  '👏',
+  '🕊️',
+  '🔥',
+  '💯',
+  '😍',
+  '🙌',
+] as const;
+
 export type BuklodEditedPhoto = {
   uri: string;
   base64: string;
@@ -61,6 +86,7 @@ export type BuklodEditedPhoto = {
 type Props = {
   visible: boolean;
   sourceUri: string | null;
+  initialTool?: BuklodPhotoEditorTool;
   onCancel: () => void;
   onDone: (
     result: BuklodEditedPhoto
@@ -126,9 +152,10 @@ function makePath(
 export function BuklodPhotoEditor({
   visible,
   sourceUri,
+  initialTool = 'draw',
   onCancel,
   onDone,
-}: Props) { 
+}: Props) {
   /* UI_002_R9_R2_PHOTO_SAFE_AREA */
   const insets = useSafeAreaInsets();
 
@@ -169,6 +196,20 @@ export function BuklodPhotoEditor({
     useState('');
 
   const [
+    emojiStickers,
+    setEmojiStickers,
+  ] =
+    useState<EmojiSticker[]>([]);
+
+  const [
+    selectedEmoji,
+    setSelectedEmoji,
+  ] =
+    useState<string>(
+      PHOTO_EDITOR_EMOJI[0]
+    );
+
+  const [
     textPosition,
     setTextPosition,
   ] =
@@ -200,9 +241,13 @@ export function BuklodPhotoEditor({
         return;
       }
 
-      setTool('draw');
+      setTool(initialTool);
       setStrokes([]);
       setOverlayText('');
+      setEmojiStickers([]);
+      setSelectedEmoji(
+        PHOTO_EDITOR_EMOJI[0]
+      );
       setSaving(false);
 
       Image.getSize(
@@ -231,6 +276,7 @@ export function BuklodPhotoEditor({
     [
       visible,
       sourceUri,
+      initialTool,
     ]
   );
 
@@ -373,6 +419,31 @@ export function BuklodPhotoEditor({
                 return;
               }
 
+              if (
+                tool ===
+                'emoji'
+              ) {
+                const id =
+                  `emoji-${Date.now()}-${Math.random()
+                    .toString(36)
+                    .slice(2, 7)}`;
+
+                setEmojiStickers(
+                  current => [
+                    ...current,
+                    {
+                      id,
+                      emoji:
+                        selectedEmoji,
+                      x: point.x,
+                      y: point.y,
+                    },
+                  ]
+                );
+
+                return;
+              }
+
               const id =
                 `stroke-${Date.now()}-${Math.random()
                   .toString(
@@ -428,6 +499,13 @@ export function BuklodPhotoEditor({
                   point
                 );
 
+                return;
+              }
+
+              if (
+                tool ===
+                'emoji'
+              ) {
                 return;
               }
 
@@ -491,6 +569,7 @@ export function BuklodPhotoEditor({
       [
         saving,
         tool,
+        selectedEmoji,
       ]
     );
 
@@ -500,6 +579,20 @@ export function BuklodPhotoEditor({
         strokes.length
       ) {
         setStrokes(
+          current =>
+            current.slice(
+              0,
+              -1
+            )
+        );
+
+        return;
+      }
+
+      if (
+        emojiStickers.length
+      ) {
+        setEmojiStickers(
           current =>
             current.slice(
               0,
@@ -521,6 +614,7 @@ export function BuklodPhotoEditor({
     () => {
       setStrokes([]);
       setOverlayText('');
+      setEmojiStickers([]);
     };
 
   const apply =
@@ -732,7 +826,7 @@ export function BuklodPhotoEditor({
                 styles.subtitle
               }
             >
-              Draw, highlight, add a line, or place text before sending.
+              Draw, highlight, add a line, place text, or add emoji before sending.
             </Text>
           </View>
 
@@ -869,6 +963,38 @@ export function BuklodPhotoEditor({
                 </Text>
               )}
 
+              {emojiStickers.map(
+                sticker => (
+                  <Text
+                    key={sticker.id}
+                    pointerEvents="none"
+                    style={[
+                      styles.emojiSticker,
+                      {
+                        left: Math.max(
+                          4,
+                          Math.min(
+                            sticker.x,
+                            previewSize.width -
+                              34
+                          )
+                        ),
+                        top: Math.max(
+                          4,
+                          Math.min(
+                            sticker.y,
+                            previewSize.height -
+                              34
+                          )
+                        ),
+                      },
+                    ]}
+                  >
+                    {sticker.emoji}
+                  </Text>
+                )
+              )}
+
               <View
                 {...panResponder.panHandlers}
                 style={
@@ -907,6 +1033,10 @@ export function BuklodPhotoEditor({
                 [
                   'text',
                   'TEXT',
+                ],
+                [
+                  'emoji',
+                  'EMOJI',
                 ],
               ] as const
             ).map(
@@ -961,6 +1091,42 @@ export function BuklodPhotoEditor({
             />
           )}
 
+          {tool ===
+            'emoji' && (
+            <View
+              style={
+                styles.emojiRow
+              }
+            >
+              {PHOTO_EDITOR_EMOJI.map(
+                emoji => (
+                  <Pressable
+                    key={emoji}
+                    onPress={() =>
+                      setSelectedEmoji(
+                        emoji
+                      )
+                    }
+                    style={[
+                      styles.emojiChip,
+                      selectedEmoji ===
+                        emoji &&
+                        styles.emojiChipOn,
+                    ]}
+                  >
+                    <Text
+                      style={
+                        styles.emojiChipText
+                      }
+                    >
+                      {emoji}
+                    </Text>
+                  </Pressable>
+                )
+              )}
+            </View>
+          )}
+
           <View
             style={
               styles.utilityRow
@@ -991,7 +1157,10 @@ export function BuklodPhotoEditor({
               {tool ===
               'text'
                 ? 'Tap or drag on the photo to position your text.'
-                : 'Drag directly on the photo.'}
+                : tool ===
+                  'emoji'
+                  ? 'Pick an emoji, then tap the photo to place it.'
+                  : 'Drag directly on the photo.'}
             </Text>
 
             <Pressable
@@ -1250,6 +1419,47 @@ const styles =
       },
       textShadowRadius:
         2,
+    },
+
+    emojiSticker: {
+      position: 'absolute',
+      fontSize: 30,
+      lineHeight: 34,
+      textShadowColor: 'rgba(0,0,0,0.65)',
+      textShadowOffset: {
+        width: 0,
+        height: 1,
+      },
+      textShadowRadius: 2,
+    },
+
+    emojiRow: {
+      marginTop: 10,
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 6,
+    },
+
+    emojiChip: {
+      width: 38,
+      height: 38,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: '#3A403C',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#101311',
+    },
+
+    emojiChipOn: {
+      borderColor: '#B9D7C5',
+      backgroundColor: '#294B3B',
+    },
+
+    emojiChipText: {
+      fontSize: 20,
+      lineHeight: 24,
+      textAlign: 'center',
     },
   });
 

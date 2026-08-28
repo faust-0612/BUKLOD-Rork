@@ -1,8 +1,9 @@
-import BuklodSponsorSlot from '@/components/BuklodSponsorSlot';
+﻿import BuklodSponsorSlot from '@/components/BuklodSponsorSlot';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
+import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import { getClusterLabels, formatClusterName } from '@/lib/clusterLabels'; // PATCH_154A_CLUSTER_LABELS
 import { Button, Card, SectionTitle, shared } from '@/components/UI';
 import { useAuth } from '@/providers/AuthProvider';
@@ -34,7 +35,6 @@ export default function PrayerScreen() {
         `prayer-wall:${Date.now()}:${Math.random().toString(36).slice(2)}`
       )
       .on('postgres_changes',{event:'*',schema:'public',table:'prayer_requests'},load)
-      .on('postgres_changes',{event:'*',schema:'public',table:'prayer_responses'},load)
       .subscribe();
     return()=>{supabase.removeChannel(ch)};
   },[load]);
@@ -87,7 +87,7 @@ export default function PrayerScreen() {
       'Prayer recorded. Thank you for praying.'
     );
 
-    await load();
+    
   };
 
   return(
@@ -111,7 +111,7 @@ export default function PrayerScreen() {
         renderItem={({item})=>(
           <Pressable onPress={()=>router.push(`/prayer/${item.id}`)}>
             <Card>
-              <Text style={shared.h2}>{item.profiles?.full_name||'BUKLOD Member'} | {formatClusterName(item.cluster_name)}</Text>
+              <Text style={shared.h2}>{resolvePersonDisplayName(item.profiles, item.user_id)} | {formatClusterName(item.cluster_name)}</Text>
               <Text style={shared.muted}>{item.privacy} | {new Date(item.created_at).toLocaleDateString()}</Text>
               {!!item.title&&<Text style={{fontWeight:'900',marginTop:8}}>{item.title}</Text>}
               <Text style={[shared.body,{marginVertical:8}]}>{item.request_text}</Text>
@@ -134,5 +134,6 @@ const styles=StyleSheet.create({
   addText:{color:colors.white,fontSize:11,fontWeight:'900'},
   pray:{color:colors.green,fontWeight:'900'}
 });
+
 
 

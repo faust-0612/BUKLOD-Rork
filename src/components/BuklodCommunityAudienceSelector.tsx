@@ -24,6 +24,7 @@ import {
 import {
   colors,
 } from '@/lib/theme';
+import { useBuklodDrawerBottomInset } from '@/lib/buklodSafeArea';
 
 type LocalScope = {
   scope_id: string;
@@ -114,6 +115,7 @@ BuklodCommunityAudienceSelector({
   selectedScopeId,
   onChange,
 }: Props) {
+  const drawerBottomInset = useBuklodDrawerBottomInset();
   const {
     scopes,
     loading,
@@ -274,9 +276,10 @@ BuklodCommunityAudienceSelector({
           />
 
           <View
-            style={
-              styles.drawer
-            }
+            style={[
+              styles.drawer,
+              { paddingBottom: drawerBottomInset + 12 },
+            ]}
           >
             <View
               style={

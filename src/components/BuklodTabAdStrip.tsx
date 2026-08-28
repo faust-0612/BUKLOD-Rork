@@ -66,28 +66,8 @@ export default function BuklodTabAdStrip() {
 
 
   /*
-   * Exact route only.
-   * No ad inside an opened private conversation.
+   * Messages inbox is ad-free — no tab-strip banner.
    */
-  if (
-    pathname === '/messages'
-  ) {
-    return (
-      <BuklodAdMobBanner
-        placement="messages"
-      />
-    );
-  }
-  if (
-    pathname === '/me' ||
-    pathname.startsWith('/me/')
-  ) {
-    return (
-      <BuklodAdMobBanner
-        placement="me"
-      />
-    );
-  }
 
 
   return null;

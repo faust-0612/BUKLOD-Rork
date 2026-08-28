@@ -1,5 +1,7 @@
 import React, {
+  memo,
   useEffect,
+  useRef,
   useState,
 } from 'react';
 
@@ -17,13 +19,30 @@ import {
 
 import {
   BuklodAdPlacement,
+  BUKLOD_DASHBOARD_BANNER_AD_HEIGHT,
+  diagnosticPlacementFor,
   getBuklodBannerUnitId,
 } from '@/lib/buklodAdUnits';
 
 import {
-  initializeBuklodAds,
-} from '@/lib/buklodAds';
+  recordBuklodAdEvent,
+  type BuklodAdDiagnosticPlacement,
+} from '@/lib/buklodAdDiagnostics';
 
+import {
+  useBuklodAdViewportGate,
+} from '@/lib/buklodAdViewport';
+
+import {
+  useAds,
+} from '@/providers/AdsProvider';
+
+import {
+  useNetwork,
+} from '@/providers/NetworkProvider';
+
+const RETRY_DELAYS_MS = [8000, 20000, 45000];
+const MAX_RETRIES = RETRY_DELAYS_MS.length;
 
 type Props = {
   placement:
@@ -33,192 +52,206 @@ type Props = {
 
   format?:
     | 'adaptive'
+    | 'inline'
     | 'mediumRectangle';
+
+  diagnosticName?:
+    BuklodAdDiagnosticPlacement;
+
+  /** When false, skip viewport gating (already known visible). */
+  requireViewport?: boolean;
+
+  showLabel?: boolean;
 };
 
-
-export default function BuklodAdMobBanner({
+function BuklodAdMobBanner({
   placement,
   compact = false,
   format = 'adaptive',
+  diagnosticName,
+  requireViewport = true,
+  showLabel = true,
 }: Props) {
+  const { ready, canRequestAds } = useAds();
+  const { online } = useNetwork();
+  const { ref, eligible } = useBuklodAdViewportGate();
+  const viewportReady = !requireViewport || eligible;
+  const diagnostic =
+    diagnosticName ?? diagnosticPlacementFor(placement);
 
-  const [
-    sdkReady,
-    setSdkReady,
-  ] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const [opacity] = useState(() => new Animated.Value(0));
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestedAttempt = useRef(-1);
+  const failedBecauseOffline = useRef(false);
 
-  const [
-    failed,
-    setFailed,
-  ] = useState(false);
+  const unitId = getBuklodBannerUnitId(placement);
+  const sdkReady = ready && canRequestAds;
+  const shouldRequest =
+    !!unitId && sdkReady && viewportReady && online && !failed;
+  const mountBanner = (shouldRequest || loaded) && !!unitId && !failed;
 
-  const [
-    loaded,
-    setLoaded,
-  ] = useState(false);
-
-  const [
-    opacity,
-  ] = useState(
-    () =>
-      new Animated.Value(0)
-  );
-
-
-  const unitId =
-    getBuklodBannerUnitId(
-      placement
-    );
-
-
-  useEffect(
-    () => {
-
-      let mounted = true;
-
-
-      void initializeBuklodAds()
-        .then(
-          (ready) => {
-            if (mounted) {
-              setSdkReady(
-                ready
-              );
-            }
-          }
-        );
-
-
-      return () => {
-        mounted = false;
-      };
-    },
-    []
-  );
-
-
-  useEffect(
-    () => {
-
-      if (!loaded) {
-        return;
+  useEffect(() => {
+    return () => {
+      if (retryTimer.current) {
+        clearTimeout(retryTimer.current);
       }
+    };
+  }, []);
 
+  useEffect(() => {
+    if (online && retryTimer.current == null) {
+      return;
+    }
+    if (!online && retryTimer.current) {
+      clearTimeout(retryTimer.current);
+      retryTimer.current = null;
+    }
+  }, [online]);
 
-      Animated
-        .timing(
-          opacity,
-          {
-            toValue: 1,
-            duration: 280,
-            useNativeDriver: true,
-          }
-        )
-        .start();
-    },
-    [
-      loaded,
-      opacity,
-    ]
-  );
+  useEffect(() => {
+    if (!online || !failed || !failedBecauseOffline.current) {
+      return;
+    }
+    failedBecauseOffline.current = false;
+    requestedAttempt.current = -1;
+    setFailed(false);
+  }, [online, failed]);
 
+  useEffect(() => {
+    if (!shouldRequest || requestedAttempt.current === attempt) {
+      return;
+    }
+    requestedAttempt.current = attempt;
+    recordBuklodAdEvent(diagnostic, 'requested');
+  }, [attempt, shouldRequest, diagnostic]);
 
-  if (
-    !unitId ||
-    !sdkReady ||
-    failed
-  ) {
+  useEffect(() => {
+    if (!loaded) {
+      return;
+    }
+
+    Animated.timing(opacity, {
+      toValue: 1,
+      duration: 280,
+      useNativeDriver: true,
+    }).start();
+  }, [loaded, opacity]);
+
+  const bannerSize =
+    format === 'mediumRectangle'
+      ? BannerAdSize.MEDIUM_RECTANGLE
+      : format === 'inline'
+        ? BannerAdSize.INLINE_ADAPTIVE_BANNER
+        : BannerAdSize.ANCHORED_ADAPTIVE_BANNER;
+
+  if (!unitId || failed) {
     return null;
   }
 
+  if (!sdkReady || !viewportReady || (!online && !loaded)) {
+    if (compact) {
+      return <View ref={ref} collapsable={false} />;
+    }
+
+    return (
+      <View
+        ref={ref}
+        collapsable={false}
+        style={styles.pendingShell}
+      />
+    );
+  }
 
   return (
-    <Animated.View
-      style={[
-        styles.shell,
-
-        compact &&
-          styles.compactShell,
-
-        {
-          opacity,
-        },
-      ]}
-    >
-      <View
-        style={
-          styles.labelRow
-        }
+    <View ref={ref} collapsable={false}>
+      <Animated.View
+        style={[
+          styles.shell,
+          compact && styles.compactShell,
+          { opacity: compact ? opacity : 1 },
+        ]}
       >
-        <Text
-          style={
-            styles.label
-          }
+        {showLabel ? (
+          <View style={styles.labelRow}>
+            <Text style={styles.label}>Sponsored</Text>
+          </View>
+        ) : null}
+
+        <View
+          style={[
+            styles.adArea,
+            format === 'mediumRectangle'
+              ? { minHeight: 250 }
+              : { minHeight: BUKLOD_DASHBOARD_BANNER_AD_HEIGHT },
+          ]}
         >
-          Sponsored
-        </Text>
-      </View>
+          {mountBanner && unitId ? (
+            <BannerAd
+              key={`${unitId}:${attempt}`}
+              unitId={unitId}
+              size={bannerSize}
+              onAdLoaded={() => {
+                setLoaded(true);
+                recordBuklodAdEvent(diagnostic, 'loaded');
+              }}
+              onAdOpened={() => {
+                recordBuklodAdEvent(diagnostic, 'displayed');
+              }}
+              {...({
+                onAdImpression: () => {
+                  recordBuklodAdEvent(diagnostic, 'impression');
+                },
+              } as object)}
+              onAdFailedToLoad={(error) => {
+                recordBuklodAdEvent(diagnostic, 'failed_load', error);
+                setLoaded(false);
 
+                if (!online) {
+                  failedBecauseOffline.current = true;
+                  setFailed(true);
+                  return;
+                }
 
-      <View
-        style={
-          styles.adArea
-        }
-      >
-        <BannerAd
-          unitId={
-            unitId
-          }
+                if (attempt >= MAX_RETRIES) {
+                  setFailed(true);
+                  return;
+                }
 
-          size={
-            format ===
-            'mediumRectangle'
-              ? BannerAdSize
-                  .MEDIUM_RECTANGLE
-              : BannerAdSize
-                  .ANCHORED_ADAPTIVE_BANNER
-          }
-
-          onAdLoaded={
-            () =>
-              setLoaded(true)
-          }
-
-          onAdFailedToLoad={
-            (error) => {
-              console.warn(
-                `BUKLOD AdMob ${placement}:`,
-                error
-              );
-
-              setFailed(true);
-            }
-          }
-        />
-      </View>
-    </Animated.View>
+                const delay = RETRY_DELAYS_MS[attempt] ?? 45000;
+                retryTimer.current = setTimeout(() => {
+                  setAttempt((current) => current + 1);
+                }, delay);
+              }}
+            />
+          ) : null}
+        </View>
+      </Animated.View>
+    </View>
   );
 }
 
-
 const styles =
   StyleSheet.create({
+    pendingShell: {
+      width: '100%',
+      minHeight: 12,
+    },
+
     shell: {
       width: '100%',
-      backgroundColor:
-        '#FFFFFF',
+      backgroundColor: '#FFFFFF',
       borderBottomWidth: 1,
-      borderBottomColor:
-        '#E2E8E4',
+      borderBottomColor: '#E2E8E4',
       paddingTop: 2,
       paddingBottom: 4,
     },
 
     compactShell: {
       borderWidth: 1,
-      borderColor:
-        '#E1E7E3',
+      borderColor: '#E1E7E3',
       borderRadius: 14,
       overflow: 'hidden',
       marginVertical: 8,
@@ -233,15 +266,15 @@ const styles =
       color: '#77837C',
       fontSize: 8,
       fontWeight: '700',
-      textTransform:
-        'uppercase',
+      textTransform: 'uppercase',
       letterSpacing: 0.6,
     },
 
     adArea: {
       alignItems: 'center',
-      justifyContent:
-        'center',
+      justifyContent: 'center',
       overflow: 'hidden',
     },
   });
+
+export default memo(BuklodAdMobBanner);

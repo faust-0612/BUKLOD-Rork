@@ -14,6 +14,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
 import { exportEducationClassCsv } from '@/lib/education/exportClassCsv';
+import { FACULTY_AUTOPILOT_MODULES, openFacultyAutopilotModule } from '@/lib/education/facultyAutopilot';
+import { FacultyGate } from '@/components/faculty/FacultyGate';
 
 type StudentRow = {
   id: string;
@@ -37,8 +39,8 @@ type GradeItem = {
 };
 
 export default function BuklodFacultyClassScreen() {
-  const params = useLocalSearchParams<{ id?: string; name?: string }>();
-  const classroomId = String(params.id ?? '');
+  const params = useLocalSearchParams<{ id?: string; classroomId?: string; name?: string }>();
+  const classroomId = String(params.id ?? params.classroomId ?? '');
   const classroomName = String(params.name ?? 'Classroom');
 
   const [students, setStudents] = useState<StudentRow[]>([]);
@@ -223,6 +225,7 @@ export default function BuklodFacultyClassScreen() {
   };
 
   return (
+    <FacultyGate>
     <>
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         <Pressable onPress={() => router.back()} style={styles.back}>
@@ -265,34 +268,48 @@ export default function BuklodFacultyClassScreen() {
           </Pressable>
         ))}
 
-        <Text style={styles.sectionTitle}>Faculty Tools</Text>
+        <Text style={styles.sectionTitle}>Faculty Autopilot</Text>
         <View style={styles.actionGrid}>
-          <Pressable
-            style={styles.actionCard}
-            onPress={() => router.push({ pathname: '/profile/buklod-faculty-materials' as any, params: { id: classroomId, name: classroomName } })}
-          >
-            <MaterialCommunityIcons name="folder-multiple-outline" size={24} color="#1f7a3f" />
-            <Text style={styles.actionTitle}>Materials</Text>
-            <Text style={styles.actionHint}>Upload, release, open, delete</Text>
-          </Pressable>
+          {FACULTY_AUTOPILOT_MODULES.map(module => (
+            <Pressable
+              key={module.key}
+              style={({ pressed }) => [styles.actionCard, pressed && { opacity: 0.88 }]}
+              onPress={() => openFacultyAutopilotModule(module, { id: classroomId, name: classroomName })}
+            >
+              <MaterialCommunityIcons name={module.icon as any} size={24} color="#1f7a3f" />
+              <Text style={styles.actionTitle}>{module.title}</Text>
+              <Text style={styles.actionHint}>{module.description}</Text>
+            </Pressable>
+          ))}
+        </View>
 
+        <Text style={styles.sectionTitle}>Faculty Tools</Text>
           <Pressable
-            style={styles.actionCard}
-            onPress={() => router.push({ pathname: '/profile/buklod-faculty-groups' as any, params: { id: classroomId, name: classroomName } })}
+            onPress={() => router.push({ pathname: '/profile/buklod-faculty-grade-scanner' as any, params: { id: classroomId, name: classroomName } })}
+            style={({ pressed }) => ({
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+              backgroundColor: '#ffffff',
+              borderWidth: 1,
+              borderColor: '#dfe8e1',
+              borderRadius: 16,
+              paddingHorizontal: 14,
+              paddingVertical: 13,
+              marginTop: 10,
+              opacity: pressed ? 0.78 : 1,
+            })}
           >
-            <MaterialCommunityIcons name="account-group-outline" size={24} color="#1f7a3f" />
-            <Text style={styles.actionTitle}>Group Scores</Text>
-            <Text style={styles.actionHint}>Separate group + individual contribution</Text>
+            <View style={{ width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#e4efe6' }}>
+              <Text style={{ color: '#1f7a3f', fontWeight: '900', fontSize: 12 }}>AI</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: '#22382a', fontSize: 15, fontWeight: '900' }}>Grade Scanner</Text>
+              <Text style={{ color: '#738078', fontSize: 11, lineHeight: 16, marginTop: 2 }}>Scan papers or PDFs, apply rubrics, then review the AI-proposed grade.</Text>
+            </View>
+            <Text style={{ color: '#1f7a3f', fontSize: 22, fontWeight: '700' }}>{'>'}</Text>
           </Pressable>
-          <Pressable
-            style={styles.actionCard}
-            onPress={() => router.push({ pathname: '/profile/buklod-faculty-assessments' as any, params: { id: classroomId, name: classroomName } })}
-          >
-            <MaterialCommunityIcons name="clipboard-text-outline" size={24} color="#1f7a3f" />
-            <Text style={styles.actionTitle}>Assessments</Text>
-            <Text style={styles.actionHint}>Quizzes, exams, auto-check, review queue</Text>
-          </Pressable>
-
+        <View style={styles.actionGrid}>
           <Pressable style={styles.actionCard} onPress={createQuickGradeItem}>
             <MaterialCommunityIcons name="playlist-plus" size={24} color="#1f7a3f" />
             <Text style={styles.actionTitle}>New Grade Item</Text>
@@ -323,7 +340,7 @@ export default function BuklodFacultyClassScreen() {
             }}
           >
             <MaterialCommunityIcons name="account-star-outline" size={24} color="#1f7a3f" />
-            <Text style={styles.actionTitle}>Participation</Text>
+            <Text style={styles.actionTitle}>Quick Observation</Text>
           </Pressable>
 
           <Pressable style={styles.actionCard} onPress={exportCsv}>
@@ -339,7 +356,7 @@ export default function BuklodFacultyClassScreen() {
           onPress={() =>
             router.push({
               pathname: '/profile/buklod-faculty-final-grades' as any,
-              params: { classroomId },
+              params: { classroomId, id: classroomId, name: classroomName },
             })
           }
         >
@@ -407,6 +424,7 @@ export default function BuklodFacultyClassScreen() {
         </View></View>
       </Modal>
     </>
+    </FacultyGate>
   );
 }
 

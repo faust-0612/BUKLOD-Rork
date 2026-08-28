@@ -18,121 +18,58 @@ export default function Index() {
   const { loading: runtimeLoading, config } = useRuntimeConfig();
 
   /*
-   * PATCH_171L_REOPEN_PUBLIC_CONNECT
-   *
-   * Root "/" is used for an already-authenticated app reopen.
-   * Before it may open global/personal Connect, normalize the
-   * current BUKLOD scope to PUBLIC.
-   *
-   * This prevents a persisted Organization/Sub-org/Cluster/Church
-   * context from leaking into the global Connect screen.
-   *
-   * Fresh manual/Suggested login does NOT use this root landing
-   * route; those flows continue to open Public Home.
+   * Boot should not force Public. Forcing Public here yanked the user
+   * out of Organization / Cluster as soon as they opened it.
    */
   const {
-    scopes,
     activeScope,
     loading: scopeLoading,
-    selectScope,
   } =
     useBuklodScope();
 
   const [
-    publicConnectReady,
-    setPublicConnectReady,
+    bootReady,
+    setBootReady,
   ] =
     useState(false);
 
   useEffect(() => {
-    let cancelled =
-      false;
-
     if (
       !session?.user?.id ||
-      loading ||
-      scopeLoading
+      (loading && !profile)
     ) {
-      setPublicConnectReady(
-        false
-      );
-
-      return () => {
-        cancelled = true;
-      };
+      setBootReady(false);
+      return;
     }
 
-    const publicScope =
-      scopes.find(
-        scope =>
-          scope.scope_type ===
-          'PUBLIC'
-      );
-
-    if (!publicScope) {
-      setPublicConnectReady(
-        false
-      );
-
-      return () => {
-        cancelled = true;
-      };
+    if (activeScope || !scopeLoading) {
+      setBootReady(true);
+      return;
     }
 
-    if (
-      activeScope?.scope_id ===
-      publicScope.scope_id
-    ) {
-      setPublicConnectReady(
-        true
-      );
-
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    setPublicConnectReady(
-      false
-    );
-
-    void selectScope(
-      publicScope.scope_id
-    )
-      .then(() => {
-        if (!cancelled) {
-          setPublicConnectReady(
-            true
-          );
-        }
-      })
-      .catch(error => {
-        console.warn(
-          'BUKLOD reopen Public scope reset:',
-          error
-        );
-
-        if (!cancelled) {
-          setPublicConnectReady(
-            false
-          );
-        }
-      });
+    const readyWatchdog =
+      setTimeout(() => {
+        setBootReady(true);
+      }, 2500);
 
     return () => {
-      cancelled = true;
+      clearTimeout(readyWatchdog);
     };
   }, [
     session?.user?.id,
     loading,
+    profile,
     scopeLoading,
-    scopes,
-    activeScope?.scope_id,
-    selectScope,
+    activeScope,
   ]);
 
 
-  if (loading || complianceLoading || runtimeLoading || membershipState === 'loading') {
+  if (
+    (loading && !session && !profile) ||
+    (complianceLoading && !session) ||
+    (runtimeLoading && !config) ||
+    (membershipState === 'loading' && !profile)
+  ) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white }}>
         <ActivityIndicator color={colors.green} />
@@ -153,8 +90,9 @@ export default function Index() {
     return <Redirect href="/onboarding" />;
   }
   if (
-    scopeLoading ||
-    !publicConnectReady
+    scopeLoading &&
+    !bootReady &&
+    !activeScope
   ) {
     return (
       <View

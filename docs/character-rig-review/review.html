@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BUKLOD Character Rig — Segmentation Review</title>
+  <style>
+    :root {
+      --bg: #0a1210;
+      --panel: #121f1a;
+      --text: #e8f0ea;
+      --muted: #8aa398;
+      --gold: #f0b429;
+      --emerald: #4fbf6b;
+      --line-head: #f0b429;
+      --line-neck: #5fc8ce;
+      --line-torso: #4fbf6b;
+      --line-arm: #9c7cd0;
+      --line-leg: #58a87c;
+      --line-face: #ebdcc0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid rgba(79, 191, 107, 0.25);
+      background: linear-gradient(180deg, #142820, var(--bg));
+    }
+    header h1 { margin: 0 0 0.35rem; font-size: 1.35rem; color: var(--gold); }
+    header p { margin: 0; color: var(--muted); max-width: 72ch; }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      padding: 1rem 1.5rem;
+      background: var(--panel);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      align-items: center;
+    }
+    label { display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.92rem; }
+    select, button {
+      background: #1a2e26;
+      color: var(--text);
+      border: 1px solid rgba(79,191,107,0.35);
+      border-radius: 6px;
+      padding: 0.45rem 0.75rem;
+      font-size: 0.92rem;
+    }
+    button { cursor: pointer; }
+    button:hover { border-color: var(--gold); }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.25rem;
+      padding: 1.25rem 1.5rem 2rem;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid rgba(79,191,107,0.2);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .card h2 {
+      margin: 0;
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .card h2 span { color: var(--muted); font-weight: 400; font-size: 0.85rem; }
+    .canvas-wrap {
+      position: relative;
+      background: #060a08;
+      display: flex;
+      justify-content: center;
+      padding: 0.5rem;
+    }
+    canvas { max-width: 100%; height: auto; display: block; }
+    .legend {
+      padding: 0.75rem 1rem 1rem;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .legend b { color: var(--text); }
+    .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+    .note {
+      margin: 0 1.5rem 1.5rem;
+      padding: 1rem 1.1rem;
+      background: rgba(200, 144, 31, 0.08);
+      border: 1px solid rgba(240, 180, 41, 0.25);
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+    .note strong { color: var(--gold); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>BUKLOD Character Rig — Segmentation Review</h1>
+    <p>
+      Approved Rork reference only. Cut lines map to <code>FACE_RIG</code> + atlas silhouette landmarks.
+      No new character design. Review male and female before segmented PNG authoring.
+    </p>
+  </header>
+
+  <div class="controls">
+    <label>
+      View
+      <select id="viewMode">
+        <option value="base">Base body only</option>
+        <option value="starter" selected>Starter loadout composite</option>
+      </select>
+    </label>
+    <label><input type="checkbox" id="showCuts" checked /> Segmentation cut lines</label>
+    <label><input type="checkbox" id="showPivots" checked /> Joint pivots</label>
+    <label><input type="checkbox" id="showLabels" checked /> Labels</label>
+    <button id="downloadOverlay" type="button">Download overlay PNG (visible panel)</button>
+  </div>
+
+  <p class="note">
+    <strong>Classification C:</strong> Source PNGs are flattened — not directly riggable.
+    This page shows where approved art must be cut. Open locally:
+    <code>docs/character-rig-review/review.html</code>
+  </p>
+
+  <div class="grid">
+    <div class="card" id="card-male">
+      <h2>Male <span>char_base_male · 492×1310</span></h2>
+      <div class="canvas-wrap"><canvas id="canvas-male"></canvas></div>
+      <div class="legend" id="legend-male"></div>
+    </div>
+    <div class="card" id="card-female">
+      <h2>Female <span>char_base_female · 507×1408</span></h2>
+      <div class="canvas-wrap"><canvas id="canvas-female"></canvas></div>
+      <div class="legend" id="legend-female"></div>
+    </div>
+  </div>
+
+  <script>
+    const FACE_RIG = {
+      male: {
+        headTop: 0.153, browY: 3.893, eyeBandTop: 3.487, eyeBandHeight: 2.739,
+        eyeY: 4.962, chinY: 10.687, headCenterX: 49.39, headWidth: 29.878,
+        shoulderY: 15.42, waistY: 31.069, feetY: 99.847, bodyCenterX: 49.39,
+        width: 492, height: 1310,
+      },
+      female: {
+        headTop: 0.071, browY: 4.688, eyeBandTop: 4.156, eyeBandHeight: 3.361,
+        eyeY: 5.966, chinY: 12.997, headCenterX: 48.718, headWidth: 30.572,
+        shoulderY: 16.335, waistY: 31.037, feetY: 99.858, bodyCenterX: 49.112,
+        width: 507, height: 1408,
+      },
+    };
+
+    const LAYERS = {
+      male: {
+        base: 'assets/char_base_male.png',
+        bottom: { url: 'assets/bottom_m_wrap.png', left: 3.659, top: 28.55, width: 95.325, height: 90.687 },
+        shoes: { url: 'assets/shoes_m_sandals.png', left: 7.724, top: 83.893, width: 87.195, height: 15.191 },
+        top: { url: 'assets/top_m_tunic.png', left: 1.829, top: 16.031, width: 95.122, height: 40.687 },
+        hair: { url: 'assets/hair_m_sweep.png', left: 31.911, top: 0.916, width: 37.398, height: 12.061 },
+      },
+      female: {
+        base: 'assets/char_base_female.png',
+        bottom: { url: 'assets/bottom_f_wrap.png', left: 5.523, top: 28.551, width: 89.152, height: 86.08 },
+        shoes: { url: 'assets/shoes_f_sandals.png', left: 10.848, top: 84.872, width: 79.882, height: 13.92 },
+        top: { url: 'assets/top_f_tunic.png', left: 5.523, top: 16.477, width: 86.982, height: 39.205 },
+        hair: { url: 'assets/hair_f_waves.png', left: 23.866, top: 1.634, width: 52.86, height: 23.224 },
+      },
+    };
+
+    function deriveLandmarks(rig) {
+      const bodyH = rig.feetY - rig.headTop;
+      const neckY = rig.chinY + 0.012 * bodyH;
+      const crotchY = rig.headTop + 0.55 * bodyH;
+      const forearmY = crotchY - 0.035 * bodyH;
+      const elbowY = (rig.shoulderY + forearmY) / 2;
+      const kneeY = crotchY + 0.42 * (rig.feetY - crotchY);
+      const ankleY = rig.feetY - 0.035 * bodyH;
+      return { neckY, crotchY, forearmY, elbowY, kneeY, ankleY, bodyH };
+    }
+
+    function pct(y, h) { return (y / 100) * h; }
+
+    function loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('Failed: ' + src));
+        img.src = src;
+      });
+    }
+
+    async function drawCharacter(gender, canvas) {
+      const rig = FACE_RIG[gender];
+      const lm = deriveLandmarks(rig);
+      const W = rig.width;
+      const H = rig.height;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const displayW = Math.min(360, W);
+      const scale = displayW / W;
+      canvas.width = W * dpr;
+      canvas.height = H * dpr;
+      canvas.style.width = displayW + 'px';
+      canvas.style.height = (H * scale) + 'px';
+      const ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
+      ctx.clearRect(0, 0, W, H);
+
+      const viewMode = document.getElementById('viewMode').value;
+      const showCuts = document.getElementById('showCuts').checked;
+      const showPivots = document.getElementById('showPivots').checked;
+      const showLabels = document.getElementById('showLabels').checked;
+      const pack = LAYERS[gender];
+
+      const base = await loadImage(pack.base);
+      ctx.drawImage(base, 0, 0, W, H);
+
+      if (viewMode === 'starter') {
+        for (const key of ['bottom', 'shoes', 'top', 'hair']) {
+          const layer = pack[key];
+          if (!layer) continue;
+          const img = await loadImage(layer.url);
+          const x = (layer.left / 100) * W;
+          const y = (layer.top / 100) * H;
+          const w = (layer.width / 100) * W;
+          const h = (layer.height / 100) * H;
+          ctx.drawImage(img, x, y, w, h);
+        }
+      }
+
+      if (showCuts) {
+        const lines = [
+          { y: rig.headTop, color: '#f0b429', label: 'HEAD top' },
+          { y: rig.eyeBandTop, color: '#ebdcc0', label: 'EYE band top', dash: true },
+          { y: rig.eyeY, color: '#ebdcc0', label: 'EYES pivot', dash: true },
+          { y: rig.chinY, color: '#f0b429', label: 'CHIN / face bottom' },
+          { y: lm.neckY, color: '#5fc8ce', label: 'NECK pivot' },
+          { y: rig.shoulderY, color: '#4fbf6b', label: 'SHOULDER / upper arm' },
+          { y: rig.waistY, color: '#4fbf6b', label: 'WAIST / TOP hem' },
+          { y: lm.elbowY, color: '#9c7cd0', label: 'ELBOW' },
+          { y: lm.forearmY, color: '#9c7cd0', label: 'WRIST band' },
+          { y: lm.crotchY, color: '#58a87c', label: 'CROTCH / THIGH' },
+          { y: lm.kneeY, color: '#58a87c', label: 'KNEE' },
+          { y: lm.ankleY, color: '#58a87c', label: 'ANKLE / FOOT' },
+          { y: rig.feetY, color: '#58a87c', label: 'FEET ground' },
+        ];
+
+        lines.forEach(({ y, color, label, dash }) => {
+          const py = pct(y, H);
+          ctx.save();
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 1.5;
+          if (dash) ctx.setLineDash([6, 4]);
+          ctx.beginPath();
+          ctx.moveTo(0, py);
+          ctx.lineTo(W, py);
+          ctx.stroke();
+          ctx.restore();
+          if (showLabels) {
+            ctx.fillStyle = color;
+            ctx.font = '11px Segoe UI, sans-serif';
+            ctx.fillText(label + ' (' + y.toFixed(1) + '%)', 6, py - 3);
+          }
+        });
+
+        // Head window (Rork blink clip)
+        const hw = {
+          left: rig.headCenterX - rig.headWidth * 0.78,
+          top: Math.max(0, rig.headTop - 1.1),
+          width: rig.headWidth * 1.56,
+          height: rig.chinY - rig.headTop + 2.6,
+        };
+        ctx.strokeStyle = 'rgba(240,180,41,0.55)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 3]);
+        ctx.strokeRect(
+          pct(hw.left, W), pct(hw.top, H),
+          pct(hw.width, W), pct(hw.height, H)
+        );
+        ctx.setLineDash([]);
+      }
+
+      if (showPivots) {
+        const pivots = [
+          { x: rig.bodyCenterX, y: lm.neckY, r: 5, c: '#5fc8ce', l: 'neck/head' },
+          { x: rig.bodyCenterX - 11, y: rig.shoulderY, r: 4, c: '#9c7cd0', l: 'L shoulder' },
+          { x: rig.bodyCenterX + 11, y: rig.shoulderY, r: 4, c: '#9c7cd0', l: 'R shoulder' },
+          { x: rig.bodyCenterX - 13, y: lm.elbowY, r: 3.5, c: '#9c7cd0', l: 'L elbow' },
+          { x: rig.bodyCenterX + 13, y: lm.elbowY, r: 3.5, c: '#9c7cd0', l: 'R elbow' },
+          { x: rig.bodyCenterX, y: lm.crotchY, r: 5, c: '#58a87c', l: 'root/hips' },
+          { x: rig.bodyCenterX - 8, y: lm.kneeY, r: 3.5, c: '#58a87c', l: 'L knee' },
+          { x: rig.bodyCenterX + 8, y: lm.kneeY, r: 3.5, c: '#58a87c', l: 'R knee' },
+        ];
+        pivots.forEach(({ x, y, r, c, l }) => {
+          const px = pct(x, W);
+          const py = pct(y, H);
+          ctx.beginPath();
+          ctx.fillStyle = c;
+          ctx.arc(px, py, r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          if (showLabels) {
+            ctx.fillStyle = '#fff';
+            ctx.font = '10px Segoe UI, sans-serif';
+            ctx.fillText(l, px + 6, py + 3);
+          }
+        });
+      }
+
+      return { W, H, lm, rig };
+    }
+
+    function renderLegend(id, gender, lm, rig) {
+      document.getElementById(id).innerHTML =
+        '<b>Derived landmarks</b> (atlas formulas): neck ' + lm.neckY.toFixed(1) +
+        '%, crotch ' + lm.crotchY.toFixed(1) + '%, knee ' + lm.kneeY.toFixed(1) +
+        '%, ankle ' + lm.ankleY.toFixed(1) + '%. ' +
+        '<span class="swatch" style="background:#f0b429"></span>head ' +
+        '<span class="swatch" style="background:#5fc8ce"></span>neck ' +
+        '<span class="swatch" style="background:#4fbf6b"></span>torso ' +
+        '<span class="swatch" style="background:#9c7cd0"></span>arms ' +
+        '<span class="swatch" style="background:#58a87c"></span>legs';
+    }
+
+    let maleMeta, femaleMeta;
+
+    async function renderAll() {
+      try {
+        maleMeta = await drawCharacter('male', document.getElementById('canvas-male'));
+        femaleMeta = await drawCharacter('female', document.getElementById('canvas-female'));
+        renderLegend('legend-male', 'male', maleMeta.lm, maleMeta.rig);
+        renderLegend('legend-female', 'female', femaleMeta.lm, femaleMeta.rig);
+      } catch (e) {
+        alert('Load error — open this file from docs/character-rig-review/ so assets/ paths resolve.\n\n' + e.message);
+      }
+    }
+
+    ['viewMode', 'showCuts', 'showPivots', 'showLabels'].forEach((id) => {
+      document.getElementById(id).addEventListener('change', renderAll);
+    });
+
+    document.getElementById('downloadOverlay').addEventListener('click', () => {
+      const canvas = document.getElementById('canvas-male');
+      const a = document.createElement('a');
+      a.download = 'buklod-segmentation-male-overlay.png';
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+    });
+
+    renderAll();
+  </script>
+</body>
+</html>

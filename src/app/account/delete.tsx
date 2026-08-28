@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   Alert,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -94,6 +95,20 @@ export default function DeleteAccountScreen() {
           Supabase Auth to delete the account. Database relationships still
           enforce their configured cascade, set-null, or retention rules.
         </Text>
+        <Pressable
+          onPress={() => router.push('/delete-account' as any)}
+          accessibilityRole="link"
+          accessibilityLabel="Read how account deletion works"
+        >
+          <Text
+            style={[
+              shared.body,
+              { marginTop: 10, color: '#0E4F20', fontWeight: '800' },
+            ]}
+          >
+            Read how account deletion works (public page)
+          </Text>
+        </Pressable>
       </Card>
 
       <TextInput

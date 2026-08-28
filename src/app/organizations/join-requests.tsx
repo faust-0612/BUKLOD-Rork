@@ -10,11 +10,12 @@ import {
   Alert,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+
+import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 
 import {
   MaterialCommunityIcons,
@@ -32,6 +33,10 @@ import {
 import {
   colors,
 } from '@/lib/theme';
+
+import {
+  readOrganizationScopeId,
+} from '@/lib/buklodOrganization';
 
 type JoinRequestRow = {
   scope_id: string;
@@ -64,10 +69,9 @@ export default function OrganizationJoinRequestsScreen() {
       organization?: string;
     }>();
 
-  const scopeId =
-    typeof params.organization === 'string'
-      ? params.organization
-      : '';
+  const scopeId = readOrganizationScopeId(
+    params as Record<string, unknown>,
+  );
 
   const [
     rows,
@@ -269,7 +273,7 @@ export default function OrganizationJoinRequestsScreen() {
       : 'ORGANIZATION';
 
   return (
-    <ScrollView
+    <BuklodPortalScrollView
       style={styles.screen}
       contentContainerStyle={
         styles.content
@@ -453,7 +457,7 @@ export default function OrganizationJoinRequestsScreen() {
           }
         )
       )}
-    </ScrollView>
+    </BuklodPortalScrollView>
   );
 }
 
@@ -467,7 +471,7 @@ const styles =
 
     content: {
       padding: 16,
-      paddingBottom: 52,
+      paddingBottom: 16,
     },
 
     center: {

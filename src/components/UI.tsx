@@ -1,19 +1,44 @@
-import { ReactNode } from 'react';
 import {
-  Pressable,
+  ReactNode,
+  useMemo,
+} from 'react';
+import {
   StyleSheet,
   Text,
   View,
+  type TextStyle,
+  type ViewStyle,
 } from 'react-native';
 
+import BuklodPressable from '@/components/BuklodPressable';
+import {
+  createBuklodButtonStyles,
+  createBuklodCardStyle,
+  createBuklodSharedStyles,
+} from '@/lib/buklodThemePresentation';
 import { colors } from '@/lib/theme';
+import {
+  useBuklodTheme,
+} from '@/providers/BuklodThemeProvider';
 
 export function Card({
   children,
+  style,
 }: {
   children: ReactNode;
+  style?: ViewStyle | ViewStyle[];
 }) {
-  return <View style={styles.card}>{children}</View>;
+  const { theme } = useBuklodTheme();
+  const cardStyle = useMemo(
+    () => createBuklodCardStyle(theme),
+    [theme]
+  );
+
+  return (
+    <View style={[cardStyle, style]}>
+      {children}
+    </View>
+  );
 }
 
 export function Button({
@@ -25,8 +50,15 @@ export function Button({
   onPress: () => void;
   outline?: boolean;
 }) {
+  const { theme } = useBuklodTheme();
+  const styles = useMemo(
+    () => createBuklodButtonStyles(theme),
+    [theme]
+  );
+
   return (
-    <Pressable
+    <BuklodPressable
+      instant
       onPress={onPress}
       style={[
         styles.button,
@@ -39,59 +71,64 @@ export function Button({
         ]}>
         {title}
       </Text>
-    </Pressable>
+    </BuklodPressable>
   );
 }
+
+export { BuklodPressable };
 
 export function SectionTitle({
   children,
 }: {
   children: ReactNode;
 }) {
-  return <Text style={styles.section}>{children}</Text>;
+  const { theme } = useBuklodTheme();
+  const styles = useMemo(
+    () => createBuklodButtonStyles(theme),
+    [theme]
+  );
+
+  return (
+    <Text style={styles.section}>
+      {children}
+    </Text>
+  );
 }
 
+/** @deprecated Prefer useBuklodPresentation().shared for reactive theming. */
 export const shared = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.background,
   },
-
-  // App-wide content using shared primitives:
-  // tighter outer spacing, but not cramped.
   content: {
     paddingHorizontal: 11,
     paddingTop: 10,
     paddingBottom: 18,
     gap: 8,
   },
-
   h1: {
     fontSize: 25,
     lineHeight: 31,
     fontWeight: '900',
     color: colors.text,
   },
-
   h2: {
     fontSize: 19,
     lineHeight: 25,
     fontWeight: '800',
     color: colors.text,
   },
-
   muted: {
     fontSize: 14,
     lineHeight: 20,
     color: colors.muted,
   },
-
   body: {
     fontSize: 15.5,
     lineHeight: 22,
     color: colors.text,
   },
-
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -99,6 +136,18 @@ export const shared = StyleSheet.create({
     gap: 8,
   },
 });
+
+export function useThemedShared() {
+  const { theme } = useBuklodTheme();
+
+  return useMemo(
+    () => createBuklodSharedStyles(theme),
+    [theme]
+  );
+}
+
+export type ThemedTextStyle = TextStyle;
+export type ThemedViewStyle = ViewStyle;
 
 const styles = StyleSheet.create({
   card: {
@@ -109,7 +158,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
   },
-
   button: {
     minHeight: 46,
     backgroundColor: colors.green,
@@ -119,7 +167,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-
   buttonText: {
     color: colors.white,
     fontSize: 15.5,
@@ -127,17 +174,14 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     textAlign: 'center',
   },
-
   outline: {
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.green,
   },
-
   outlineText: {
     color: colors.green,
   },
-
   section: {
     marginTop: 7,
     marginBottom: 4,
@@ -148,3 +192,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.35,
   },
 });
+
+// Legacy static styles kept for any direct StyleSheet references
+void styles;

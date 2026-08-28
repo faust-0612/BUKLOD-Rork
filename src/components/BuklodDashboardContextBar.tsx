@@ -11,6 +11,10 @@ import {
   useBuklodScope,
 } from '@/providers/BuklodScopeProvider';
 
+import {
+  isManagedCommunityScope,
+} from '@/lib/buklodScopeRoute';
+
 export default function BuklodDashboardContextBar() {
   /* PATCH_169F_R3_PROFILE_ROUTE */
   const pathname =
@@ -23,6 +27,9 @@ export default function BuklodDashboardContextBar() {
     pathname.endsWith('/profile') ||
     pathname.includes('/me/') ||
     pathname.includes('/profile/');
+  const messagesRoute =
+    pathname === '/messages' ||
+    pathname.startsWith('/messages/');
   const {
     activeScope,
   } = useBuklodScope();
@@ -43,6 +50,25 @@ export default function BuklodDashboardContextBar() {
     );
   }
 
+  if (
+    messagesRoute &&
+    activeScope?.scope_type === 'PUBLIC'
+  ) {
+    return null;
+  }
+
+  /*
+   * Organization / Sub-organization / Cluster workspaces live only under
+   * `/scope` (opened from Profile or portal actions). Never show the global
+   * scope drawer on the personal tab dashboard.
+   */
+  if (
+    isManagedCommunityScope(
+      activeScope,
+    )
+  ) {
+    return null;
+  }
 
   if (
     activeScope?.scope_type ===

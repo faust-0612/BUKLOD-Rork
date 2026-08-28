@@ -24,13 +24,22 @@ import {
 
 import {
   BuklodScope,
+  formatScopeTypeLabel,
 } from '@/lib/buklodScope';
+
+import {
+  buildScopedWorkspacePath,
+  isManagedCommunityScopeType,
+  type ScopedWorkspaceSection,
+} from '@/lib/buklodScopeRoute';
 
 import {
   useBuklodScope,
 } from '@/providers/BuklodScopeProvider';
 
-import { colors } from '@/lib/theme';
+import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
+import { useBuklodDrawerBottomInset } from '@/lib/buklodSafeArea';
+import type { LegacyThemeColors } from '@/lib/buklodThemePresentation';
 
 function iconForScope(
   scope: BuklodScope
@@ -41,7 +50,7 @@ function iconForScope(
     case 'CLUSTER':
       return 'account-group-outline';
     case 'CHURCH':
-      return 'church';
+      return 'map-marker-radius-outline';
     case 'ORGANIZATION':
       return 'domain';
     default:
@@ -119,7 +128,11 @@ function scopeMeta(
       .toUpperCase();
   }
 
-  return scope.scope_type;
+  return formatScopeTypeLabel(
+    scope.scope_type,
+    scope.geo_level,
+    scope.parent_scope_id
+  ).toUpperCase();
 }
 
 export default function
@@ -128,6 +141,14 @@ BuklodScopeBar({
 }: {
   hideLocalScopes?: boolean;
 }) {
+  const { colors, theme, paletteId } =
+    useBuklodPresentation();
+  const drawerBottomInset = useBuklodDrawerBottomInset();
+  const barStyles = useMemo(
+    () => createScopeBarStyles(colors),
+    [paletteId]
+  );
+
   const {
     scopes,
     activeScope,
@@ -145,15 +166,27 @@ BuklodScopeBar({
       '/scope/'
     );
 
-  const workspaceSection =
+  const workspaceSection: ScopedWorkspaceSection =
     pathname === '/buklod' ||
     pathname.startsWith(
       '/buklod/'
     )
       ? 'community'
-      : pathname === '/connect'
+      : pathname === '/connect' ||
+        pathname === '/messages' ||
+        pathname.startsWith('/messages/')
       ? 'connect'
       : 'home';
+
+  const workspaceHref =
+    activeScope &&
+    (activeScope.scope_type === 'ORGANIZATION' ||
+      activeScope.scope_type === 'CLUSTER')
+      ? buildScopedWorkspacePath(
+          workspaceSection,
+          activeScope.scope_id
+        )
+      : `/scope?section=${workspaceSection}`;
 
   const [open, setOpen] =
     useState(false);
@@ -170,8 +203,9 @@ BuklodScopeBar({
     pathname.startsWith('/profile/');
   /* PATCH_172A_MANAGED_SCOPE_VISIBILITY
    * Actual dashboard/profile scope choices:
-   * Public / Church / Cluster / Organization / Sub-organization.
+   * Public / Location / Cluster / Organization / Sub-organization.
    * LOCAL geography is not a Profile scope button.
+   * Legacy CHURCH IDs remain valid and display as Location.
    */
   const visibleScopes =
     useMemo(
@@ -211,9 +245,9 @@ BuklodScopeBar({
           null
         )
       : activeScope;
-if (loading) {
+if (loading && !activeScope && !displayScope) {
     return (
-      <View style={styles.loading}>
+      <View style={barStyles.loading}>
         <ActivityIndicator
           size="small"
           color={colors.green}
@@ -221,7 +255,7 @@ if (loading) {
 
         <Text
           style={
-            styles.loadingText
+            barStyles.loadingText
           }
         >
           Loading communities...
@@ -257,7 +291,18 @@ if (loading) {
         scope.scope_id
       );
 
-      
+      if (
+        isManagedCommunityScopeType(
+          scope.scope_type,
+        )
+      ) {
+        router.replace(
+          buildScopedWorkspacePath(
+            workspaceSection,
+            scope.scope_id,
+          ) as any,
+        );
+      }
     } catch (error) {
       console.warn(
         'BUKLOD scope select:',
@@ -270,16 +315,16 @@ if (loading) {
 
   return (
     <>
-      <View style={styles.bar}>
+      <View style={barStyles.bar}>
         <Pressable
-          style={styles.current}
+          style={barStyles.current}
           onPress={() =>
             setOpen(true)
           }
         >
           <View
             style={
-              styles.iconWrap
+              barStyles.iconWrap
             }
           >
             <MaterialCommunityIcons
@@ -296,14 +341,14 @@ if (loading) {
           <View style={{ flex: 1 }}>
             <Text
               style={
-                styles.eyebrow
+                barStyles.eyebrow
               }
             >
               CURRENT COMMUNITY
             </Text>
 
             <Text
-              style={styles.name}
+              style={barStyles.name}
               numberOfLines={1}
             >
               {displayScope!.name}
@@ -311,7 +356,7 @@ if (loading) {
 
             <Text
               style={
-                styles.meta
+                barStyles.meta
               }
             >
               {scopeMeta(displayScope!)}
@@ -333,11 +378,11 @@ if (loading) {
         {!inWorkspace && (
           <Pressable
             style={
-              styles.workspace
+              barStyles.workspace
             }
             onPress={() =>
-              router.push(
-                `/scope?section=${workspaceSection}` as any
+              router.replace(
+                workspaceHref as any
               )
             }
           >
@@ -349,7 +394,7 @@ if (loading) {
 
             <Text
               style={
-                styles.workspaceText
+                barStyles.workspaceText
               }
             >
               OPEN
@@ -366,7 +411,7 @@ if (loading) {
           setOpen(false)
         }
       >
-        <View style={styles.overlay}>
+        <View style={barStyles.overlay}>
           <Pressable
             style={{ flex: 1 }}
             onPress={() =>
@@ -374,16 +419,21 @@ if (loading) {
             }
           />
 
-          <View style={styles.sheet}>
+          <View
+            style={[
+              barStyles.sheet,
+              { paddingBottom: drawerBottomInset + 12 },
+            ]}
+          >
             <View
               style={
-                styles.sheetHandle
+                barStyles.sheetHandle
               }
             />
 
             <Text
               style={
-                styles.sheetTitle
+                barStyles.sheetTitle
               }
             >
               Switch Community
@@ -391,7 +441,7 @@ if (loading) {
 
             <Text
               style={
-                styles.sheetHelp
+                barStyles.sheetHelp
               }
             >
               One account can belong to several BUKLOD communities at the same time.
@@ -445,28 +495,28 @@ if (loading) {
                         )
                       }
                       style={[
-                        styles.scopeRow,
+                        barStyles.scopeRow,
                         selected &&
-                          styles.scopeRowOn,
+                          barStyles.scopeRowOn,
                         isOrganizationButton &&
-                          styles.organizationScopeButton,
+                          barStyles.organizationScopeButton,
                         isSubOrganizationButton &&
-                          styles.subOrganizationScopeButton,
+                          barStyles.subOrganizationScopeButton,
                         isClusterButton &&
-                          styles.clusterScopeButton,
+                          barStyles.clusterScopeButton,
                         selected &&
-                          styles.scopeSelectedRing,
+                          barStyles.scopeSelectedRing,
                       ]}
                     >
                       <View
                         style={[
-                          styles.scopeIcon,
+                          barStyles.scopeIcon,
                           isOrganizationButton &&
-                            styles.organizationScopeIcon,
+                            barStyles.organizationScopeIcon,
                           isSubOrganizationButton &&
-                            styles.subOrganizationScopeIcon,
+                            barStyles.subOrganizationScopeIcon,
                           isClusterButton &&
-                            styles.clusterScopeIcon,
+                            barStyles.clusterScopeIcon,
                         ]}
                       >
                         <MaterialCommunityIcons
@@ -489,13 +539,13 @@ if (loading) {
                       >
                         <Text
                           style={[
-                            styles.scopeName,
+                            barStyles.scopeName,
                             isOrganizationButton &&
-                              styles.organizationScopeName,
+                              barStyles.organizationScopeName,
                             isSubOrganizationButton &&
-                              styles.subOrganizationScopeName,
+                              barStyles.subOrganizationScopeName,
                             isClusterButton &&
-                              styles.clusterScopeName,
+                              barStyles.clusterScopeName,
                           ]}
                           numberOfLines={
                             1
@@ -506,7 +556,7 @@ if (loading) {
 
                         <Text
                           style={
-                            styles.scopeMeta
+                            barStyles.scopeMeta
                           }
                         >
                           {scopeMeta(
@@ -561,8 +611,10 @@ if (loading) {
   );
 }
 
-const styles =
-  StyleSheet.create({
+function createScopeBarStyles(
+  c: LegacyThemeColors
+) {
+  return StyleSheet.create({
     loading: {
       minHeight: 44,
       flexDirection: 'row',
@@ -571,12 +623,12 @@ const styles =
       paddingHorizontal: 14,
       borderBottomWidth: 1,
       borderBottomColor:
-        colors.line,
+        c.line,
       backgroundColor:
-        colors.white,
+        c.white,
     },
     loadingText: {
-      color: colors.muted,
+      color: c.muted,
       fontSize: 10,
       fontWeight: '700',
     },
@@ -589,9 +641,9 @@ const styles =
       paddingVertical: 7,
       borderBottomWidth: 1,
       borderBottomColor:
-        colors.line,
+        c.line,
       backgroundColor:
-        colors.white,
+        c.white,
     },
     current: {
       flex: 1,
@@ -614,20 +666,20 @@ const styles =
         'rgba(39,93,69,0.09)',
     },
     eyebrow: {
-      color: colors.muted,
+      color: c.muted,
       fontSize: 7.5,
       fontWeight: '900',
       letterSpacing: 0.7,
     },
     name: {
       marginTop: 1,
-      color: colors.greenDark,
+      color: c.greenDark,
       fontSize: 12,
       fontWeight: '900',
     },
     meta: {
       marginTop: 1,
-      color: colors.muted,
+      color: c.muted,
       fontSize: 7.5,
       fontWeight: '700',
     },
@@ -639,10 +691,10 @@ const styles =
       gap: 1,
       borderRadius: 12,
       backgroundColor:
-        colors.greenDark,
+        c.greenDark,
     },
     workspaceText: {
-      color: colors.white,
+      color: c.white,
       fontSize: 7,
       fontWeight: '900',
     },
@@ -659,7 +711,7 @@ const styles =
       borderTopLeftRadius: 22,
       borderTopRightRadius: 22,
       backgroundColor:
-        colors.white,
+        c.white,
     },
     sheetHandle: {
       width: 42,
@@ -668,17 +720,17 @@ const styles =
       marginBottom: 6,
       borderRadius: 999,
       backgroundColor:
-        colors.line,
+        c.line,
     },
     sheetTitle: {
-      color: colors.greenDark,
+      color: c.greenDark,
       fontSize: 19,
       fontWeight: '900',
     },
     sheetHelp: {
       marginTop: 3,
       marginBottom: 6,
-      color: colors.muted,
+      color: c.muted,
       fontSize: 10,
       lineHeight: 15,
     },
@@ -689,7 +741,7 @@ const styles =
       gap: 6,
       padding: 9,
       borderWidth: 1,
-      borderColor: colors.line,
+      borderColor: c.line,
       borderRadius: 13,
     },
     organizationScopeButton: {
@@ -724,7 +776,7 @@ const styles =
     },
     scopeSelectedRing: {
       borderWidth: 2,
-      borderColor: colors.greenDark,
+      borderColor: c.greenDark,
     },
     organizationScopeIcon: {
       backgroundColor: '#D3EEDC',
@@ -746,7 +798,7 @@ const styles =
     },
     scopeRowOn: {
       borderColor:
-        colors.green,
+        c.green,
       backgroundColor:
         'rgba(39,93,69,0.06)',
     },
@@ -760,14 +812,16 @@ const styles =
         'rgba(39,93,69,0.08)',
     },
     scopeName: {
-      color: colors.text,
+      color: c.text,
       fontSize: 12,
       fontWeight: '900',
     },
     scopeMeta: {
       marginTop: 2,
-      color: colors.muted,
+      color: c.muted,
       fontSize: 8,
       fontWeight: '700',
     },
   });
+}
+

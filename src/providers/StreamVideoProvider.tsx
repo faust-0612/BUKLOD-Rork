@@ -1,7 +1,12 @@
 import {
+  disconnectBuklodStreamVideoClient,
+  ensureBuklodStreamVideoClient,
+  getCachedBuklodStreamVideoClient,
   prewarmBuklodStreamVideoClient,
+  subscribeBuklodStreamVideoClient,
 } from '@/lib/buklodStreamVideoClient';
-﻿import {
+import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
+import {
   rememberStreamPushUser,
 } from '@/utils/setPushConfig';
 import {
@@ -9,16 +14,14 @@ import {
   useEffect,
   useState,
 } from 'react';
+import {
+  AppState,
+} from 'react-native';
 
 import {
   StreamVideo,
   StreamVideoClient,
-  type User,
 } from '@/lib/streamVideoSdk';
-
-import {
-  supabase,
-} from '@/lib/supabase';
 
 import {
   useAuth,
@@ -28,13 +31,6 @@ import {
   RingingCalls,
 } from '@/components/RingingCalls';
 
-const STREAM_API_KEY =
-  (
-    process.env
-      .EXPO_PUBLIC_STREAM_API_KEY
-    ?? ''
-  ).trim();
-
 export function StreamVideoProvider({
   children,
 }: PropsWithChildren) {
@@ -42,7 +38,18 @@ export function StreamVideoProvider({
     user,
   } = useAuth();
 
-  /* PATCH_179F_CALL_PROVIDER_PREWARM */
+  const [
+    client,
+    setClient,
+  ] =
+    useState<
+      StreamVideoClient | undefined
+    >(
+      () =>
+        getCachedBuklodStreamVideoClient()
+        ?? undefined
+    );
+
   useEffect(
     () => {
       if (!user?.id) {
@@ -56,38 +63,25 @@ export function StreamVideoProvider({
     ]
   );
 
-  const [
-    client,
-    setClient,
-  ] =
-    useState<
-      StreamVideoClient | undefined
-    >(undefined);
-
   useEffect(
     () => {
-      if (
-        !user?.id ||
-        !STREAM_API_KEY
-      ) {
+      if (!user?.id) {
         setClient(undefined);
+        void disconnectBuklodStreamVideoClient();
         return;
       }
 
-      /* PATCH_168F_REMEMBER_STREAM_PUSH_USER */
       void rememberStreamPushUser(
         user.id,
-        (
-          user.user_metadata?.full_name
-          ??
-          user.user_metadata?.name
-          ??
-          user.email
-          ??
-          'BUKLOD Member'
-        )
-          .toString()
-          .trim()
+        resolvePersonDisplayName(
+          {
+            full_name:
+              user.user_metadata?.full_name ??
+              user.user_metadata?.name,
+            username: user.email,
+          },
+          user.id,
+        ),
       )
         .catch(error => {
           console.warn(
@@ -95,89 +89,54 @@ export function StreamVideoProvider({
             error
           );
         });
-      const tokenProvider =
-        async (): Promise<string> => {
-          const {
-            data,
-            error,
-          } =
-            await supabase
-              .functions
-              .invoke(
-                'stream-token',
-                {
-                  body: {},
-                }
-              );
 
-          if (error) {
-            throw new Error(
-              error.message
-              || 'Could not get call token.'
+      const unsubscribe =
+        subscribeBuklodStreamVideoClient(
+          nextClient => {
+            setClient(
+              nextClient ??
+                undefined
             );
           }
+        );
 
-          if (!data?.token) {
-            throw new Error(
-              'Call token was not returned.'
-            );
+      void ensureBuklodStreamVideoClient()
+        .catch(error => {
+          console.warn(
+            'BUKLOD call client:',
+            error
+          );
+        });
+
+      const onAppState =
+        AppState.addEventListener(
+          'change',
+          state => {
+            if (state !== 'active') {
+              return;
+            }
+
+            if (getCachedBuklodStreamVideoClient()) {
+              return;
+            }
+
+            void ensureBuklodStreamVideoClient()
+              .catch(error => {
+                console.warn(
+                  'BUKLOD call client retry:',
+                  error
+                );
+              });
           }
-
-          return data.token;
-        };
-
-      const streamUser: User = {
-        id: user.id,
-
-        name:
-          user.user_metadata
-            ?.full_name
-          ||
-          user.user_metadata
-            ?.name
-          ||
-          user.email
-          ||
-          'BUKLOD Member',
-      };
-
-      const nextClient =
-        StreamVideoClient
-          .getOrCreateInstance({
-            apiKey:
-              STREAM_API_KEY,
-
-            user:
-              streamUser,
-
-            tokenProvider,
-
-            options: {
-              rejectCallWhenBusy:
-                true,
-            },
-          });
-
-      setClient(
-        nextClient
-      );
+        );
 
       return () => {
-        nextClient
-          .disconnectUser()
-          .catch(
-            error => {
-              console.warn(
-                'Stream disconnect:',
-                error
-              );
-            }
-          );
+        onAppState.remove();
+        unsubscribe();
       };
     },
     [
       user?.id,
-      user?.email,
     ]
   );
 
@@ -196,4 +155,3 @@ export function StreamVideoProvider({
     </StreamVideo>
   );
 }
-

@@ -4,16 +4,27 @@ import {
   ActivityIndicator,
   Alert,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+
+import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
+import {
+  enqueuePendingAction,
+  orgAdminRecordsCacheKey,
+  readOfflineCache,
+  writeOfflineCache,
+  type BuklodSyncStatus,
+} from '@/lib/buklodOfflineSync';
+import { BuklodSyncStatusBadge } from '@/components/BuklodSyncStatusBadge';
+import { useNetwork } from '@/providers/NetworkProvider';
 import { colors } from '@/lib/theme';
+import { readOrganizationScopeId } from '@/lib/buklodOrganization';
 
 type AdminRecord = {
   id: string;
@@ -42,6 +53,11 @@ type Overview = {
 
 const STATUSES = ['DRAFT', 'ACTIVE', 'PUBLISHED', 'COMPLETED', 'ARCHIVED'] as const;
 
+type AdminModuleCache = {
+  records: AdminRecord[];
+  overview: Overview;
+};
+
 export default function OrganizationAdminModuleScreen() {
   const params = useLocalSearchParams<{
     organization?: string;
@@ -50,16 +66,22 @@ export default function OrganizationAdminModuleScreen() {
     mode?: string;
   }>();
 
-  const scopeId = typeof params.organization === 'string' ? params.organization : '';
+  const scopeId = readOrganizationScopeId(params as Record<string, unknown>);
   const moduleKey = typeof params.module === 'string' ? params.module : 'custom_module';
   const screenTitle = typeof params.title === 'string' ? params.title : 'Organization Records';
   const mode = typeof params.mode === 'string' ? params.mode : 'manage';
+
+  const { isConnected, isInternetReachable } = useNetwork();
+  const online =
+    isConnected && isInternetReachable !== false;
 
   const [records, setRecords] = useState<AdminRecord[]>([]);
   const [overview, setOverview] = useState<Overview>({});
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] =
+    useState<BuklodSyncStatus | null>(null);
 
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -74,7 +96,29 @@ export default function OrganizationAdminModuleScreen() {
 
   const load = useCallback(async () => {
     if (!scopeId) return;
-    setLoading(true);
+
+    const cacheKey = orgAdminRecordsCacheKey(
+      scopeId,
+      moduleKey,
+    );
+
+    const cached = await readOfflineCache<AdminModuleCache>(
+      cacheKey,
+    );
+
+    if (cached) {
+      setRecords(cached.records);
+      setOverview(cached.overview);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
+    if (!online) {
+      setLoading(false);
+      return;
+    }
+
     try {
       const [{ data, error }, { data: overviewData, error: overviewError }] =
         await Promise.all([
@@ -88,14 +132,29 @@ export default function OrganizationAdminModuleScreen() {
         ]);
       if (error) throw error;
       if (overviewError) throw overviewError;
-      setRecords((data ?? []) as AdminRecord[]);
-      setOverview((overviewData ?? {}) as Overview);
+
+      const nextRecords = (data ?? []) as AdminRecord[];
+      const nextOverview = (overviewData ?? {}) as Overview;
+
+      setRecords(nextRecords);
+      setOverview(nextOverview);
+
+      await writeOfflineCache(
+        cacheKey,
+        {
+          records: nextRecords,
+          overview: nextOverview,
+        },
+        'network',
+      );
     } catch (error: any) {
-      Alert.alert(screenTitle, String(error?.message ?? error));
+      if (!cached) {
+        Alert.alert(screenTitle, String(error?.message ?? error));
+      }
     } finally {
       setLoading(false);
     }
-  }, [moduleKey, scopeId, screenTitle]);
+  }, [moduleKey, online, scopeId, screenTitle]);
 
   useEffect(() => {
     void load();
@@ -135,32 +194,76 @@ export default function OrganizationAdminModuleScreen() {
       return;
     }
     setBusy(true);
+
+    const payload = {
+      _scope_id: scopeId,
+      _module_key: moduleKey,
+      _record_id: editingId,
+      _title: title.trim(),
+      _body: body.trim() || null,
+      _status: status,
+      _is_pinned: pinned,
+      _starts_at: startsAt.trim() || null,
+      _ends_at: endsAt.trim() || null,
+      _payload: {
+        url: url.trim(),
+        location: location.trim(),
+        value: value.trim(),
+        target: target.trim(),
+        mode,
+      },
+    };
+
     try {
+      if (!online) {
+        await enqueuePendingAction({
+          type: 'org_upsert_record',
+          scopeKey: `${scopeId}:${moduleKey}`,
+          label: title.trim(),
+          payload,
+        });
+
+        const localId =
+          editingId ??
+          `offline_${Date.now()}`;
+        const now = new Date().toISOString();
+        const optimistic: AdminRecord = {
+          id: localId,
+          module_key: moduleKey,
+          title: title.trim(),
+          body: body.trim() || null,
+          status,
+          sort_order: 0,
+          is_pinned: pinned,
+          starts_at: startsAt.trim() || null,
+          ends_at: endsAt.trim() || null,
+          payload: payload._payload,
+          created_at: now,
+          updated_at: now,
+        };
+
+        setRecords((current) => {
+          const without = current.filter(
+            (row) => row.id !== localId,
+          );
+          return [optimistic, ...without];
+        });
+
+        setSaveStatus('saved_offline');
+        reset();
+        return;
+      }
+
       const { error } = await (supabase as any).rpc(
         'buklod_org_upsert_record_v1',
-        {
-          _scope_id: scopeId,
-          _module_key: moduleKey,
-          _record_id: editingId,
-          _title: title.trim(),
-          _body: body.trim() || null,
-          _status: status,
-          _is_pinned: pinned,
-          _starts_at: startsAt.trim() || null,
-          _ends_at: endsAt.trim() || null,
-          _payload: {
-            url: url.trim(),
-            location: location.trim(),
-            value: value.trim(),
-            target: target.trim(),
-            mode,
-          },
-        },
+        payload,
       );
       if (error) throw error;
+      setSaveStatus('synced');
       reset();
       await load();
     } catch (error: any) {
+      setSaveStatus('failed_to_sync');
       Alert.alert('Could Not Save', String(error?.message ?? error));
     } finally {
       setBusy(false);
@@ -207,7 +310,7 @@ export default function OrganizationAdminModuleScreen() {
     moduleKey.includes('monitoring');
 
   return (
-    <ScrollView
+    <BuklodPortalScrollView
       style={styles.screen}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
@@ -346,6 +449,9 @@ export default function OrganizationAdminModuleScreen() {
         </Pressable>
 
         <View style={styles.formActions}>
+          {saveStatus ? (
+            <BuklodSyncStatusBadge status={saveStatus} />
+          ) : null}
           {editingId && (
             <Pressable onPress={reset} style={styles.secondary}>
               <Text style={styles.secondaryText}>CANCEL EDIT</Text>
@@ -357,7 +463,13 @@ export default function OrganizationAdminModuleScreen() {
             style={[styles.primary, busy && { opacity: 0.55 }]}
           >
             {busy ? <ActivityIndicator size="small" color="#FFFFFF" /> : null}
-            <Text style={styles.primaryText}>{editingId ? 'SAVE CHANGES' : 'CREATE RECORD'}</Text>
+            <Text style={styles.primaryText}>
+              {!online
+                ? 'SAVE OFFLINE'
+                : editingId
+                  ? 'SAVE CHANGES'
+                  : 'CREATE RECORD'}
+            </Text>
           </Pressable>
         </View>
       </View>
@@ -378,6 +490,9 @@ export default function OrganizationAdminModuleScreen() {
                 </View>
                 <Text style={styles.recordMeta}>
                   {row.status}
+                  {row.id.startsWith('offline_')
+                    ? '  •  Saved Offline'
+                    : ''}
                   {row.starts_at ? `  •  ${new Date(row.starts_at).toLocaleString()}` : ''}
                 </Text>
                 {row.body ? <Text numberOfLines={3} style={styles.recordBody}>{row.body}</Text> : null}
@@ -395,13 +510,13 @@ export default function OrganizationAdminModuleScreen() {
           ))}
         </View>
       )}
-    </ScrollView>
+    </BuklodPortalScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 16, paddingBottom: 48 },
+  content: { padding: 16, paddingBottom: 16 },
   back: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
   backText: { fontSize: 10.5, fontWeight: '800', color: colors.greenDark },
   hero: { borderRadius: 20, padding: 17, backgroundColor: colors.greenDark, marginBottom: 14 },

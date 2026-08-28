@@ -16,6 +16,7 @@ import { decode } from 'base64-arraybuffer';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
+import { FacultyGate } from '@/components/faculty/FacultyGate';
 
 const BUCKET = 'buklod-education-materials';
 const MAX_BYTES = 25 * 1024 * 1024;
@@ -33,8 +34,8 @@ type MaterialRow = {
 };
 
 export default function FacultyMaterialsScreen() {
-  const params = useLocalSearchParams<{ id?: string; name?: string }>();
-  const classroomId = String(params.id ?? '');
+  const params = useLocalSearchParams<{ id?: string; classroomId?: string; name?: string }>();
+  const classroomId = String(params.id ?? params.classroomId ?? '');
   const classroomName = String(params.name ?? 'Classroom');
 
   const [materials, setMaterials] = useState<MaterialRow[]>([]);
@@ -181,6 +182,7 @@ export default function FacultyMaterialsScreen() {
   };
 
   return (
+    <FacultyGate>
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Pressable style={styles.back} onPress={() => router.back()}>
         <MaterialCommunityIcons name="arrow-left" size={22} color="#17311f" />
@@ -210,9 +212,9 @@ export default function FacultyMaterialsScreen() {
 
         <Pressable style={styles.primary} onPress={upload} disabled={uploading}>
           <MaterialCommunityIcons name="file-upload-outline" size={21} color="#fff" />
-          <Text style={styles.primaryText}>{uploading ? 'Uploadingâ€¦' : 'Choose & Upload File'}</Text>
+          <Text style={styles.primaryText}>{uploading ? 'Uploading…' : 'Choose & Upload File'}</Text>
         </Pressable>
-        <Text style={styles.help}>PDF, Office files, images, videos and other classroom files â€¢ 25 MB Phase 5 limit.</Text>
+        <Text style={styles.help}>PDF, Office files, images, videos and other classroom files • 25 MB Phase 5 limit.</Text>
       </View>
 
       <Text style={styles.sectionTitle}>Class Materials</Text>
@@ -231,7 +233,7 @@ export default function FacultyMaterialsScreen() {
               <Text style={styles.materialTitle}>{item.title}</Text>
               <Text style={styles.materialMeta}>
                 {item.is_released ? 'RELEASED' : 'DRAFT'}
-                {item.file_size ? ` â€¢ ${(item.file_size / 1024 / 1024).toFixed(1)} MB` : ''}
+                {item.file_size ? ` • ${(item.file_size / 1024 / 1024).toFixed(1)} MB` : ''}
               </Text>
               {!!item.original_name && <Text style={styles.fileName}>{item.original_name}</Text>}
               <View style={styles.rowActions}>
@@ -250,6 +252,7 @@ export default function FacultyMaterialsScreen() {
         ))
       )}
     </ScrollView>
+    </FacultyGate>
   );
 }
 

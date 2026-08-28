@@ -25,12 +25,31 @@ import {
 } from '@/components/UI';
 
 import {
+  BuklodAnswerValidationFeedback,
+} from '@/components/education/BuklodAnswerValidationGate';
+
+import {
+  buildGeneratedLessonQuestionContext,
+  buildLessonReflectionContext,
+  isValidationAcceptable,
+  validateBuklodResponse,
+} from '@/lib/buklodAiResponseValidation';
+
+import {
+  pickGeneratedQuestions,
+} from '@/lib/buklodQuestionEngine';
+
+import {
   supabase,
 } from '@/lib/supabase';
 
 import {
   colors,
 } from '@/lib/theme';
+
+import type {
+  AIAnswerValidationResult,
+} from '@/types/buklodAiValidation';
 
 
 type Props = {
@@ -79,21 +98,6 @@ function LessonAudio({
 }
 
 
-function normalizeQuestions(
-  value: unknown
-): string[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value
-    .map((item) =>
-      String(item ?? '').trim()
-    )
-    .filter(Boolean);
-}
-
-
 function emptyAnswers(): string[] {
   return ['', '', '', ''];
 }
@@ -104,27 +108,18 @@ export function LearningQuestionResponse({
   enrollmentId,
   onSubmitted,
 }: Props) {
-  const questions = useMemo(() => {
-    const fil = normalizeQuestions(
-      lesson?.generated_questions_fil
-    );
-
-    if (fil.length === 4) {
-      return fil;
-    }
-
-    const en = normalizeQuestions(
-      lesson?.generated_questions_en
-    );
-
-    return en.length === 4
-      ? en
-      : [];
-  }, [
-    lesson?.id,
-    lesson?.generated_questions_fil,
-    lesson?.generated_questions_en,
-  ]);
+  const questions = useMemo(
+    () =>
+      pickGeneratedQuestions({
+        fil: lesson?.generated_questions_fil,
+        en: lesson?.generated_questions_en,
+      }),
+    [
+      lesson?.id,
+      lesson?.generated_questions_fil,
+      lesson?.generated_questions_en,
+    ],
+  );
 
   const [
     answers,
@@ -142,6 +137,23 @@ export function LearningQuestionResponse({
     busy,
     setBusy,
   ] = useState(false);
+
+  const [
+    validating,
+    setValidating,
+  ] = useState(false);
+
+  const [
+    answerValidations,
+    setAnswerValidations,
+  ] = useState<Array<AIAnswerValidationResult | null>>(
+    emptyAnswers().map(() => null),
+  );
+
+  const [
+    reflectionValidation,
+    setReflectionValidation,
+  ] = useState<AIAnswerValidationResult | null>(null);
 
   const [
     previouslySubmitted,
@@ -232,6 +244,75 @@ export function LearningQuestionResponse({
 
       return next;
     });
+
+    setAnswerValidations((current) => {
+      const next = [...current];
+      next[index] = null;
+      return next;
+    });
+  };
+
+
+  const validateAllFields = async (
+    normalized: string[],
+    reflectionText: string,
+  ): Promise<boolean> => {
+    setValidating(true);
+
+    try {
+      const nextAnswerValidations: Array<AIAnswerValidationResult | null> = [
+        null,
+        null,
+        null,
+        null,
+      ];
+
+      for (let index = 0; index < normalized.length; index += 1) {
+        const result = await validateBuklodResponse({
+          questionContext: buildGeneratedLessonQuestionContext({
+            lessonId: lesson.id,
+            trackId: lesson.track_id ?? null,
+            enrollmentId: enrollmentId ?? null,
+            questionIndex: index + 1,
+            questionText: questions[index] ?? '',
+            lessonTitle: lesson.title ?? null,
+            scriptureReference: lesson.scripture_reference ?? null,
+            aiValidationContext: lesson.ai_validation_context,
+          }),
+          response: normalized[index] ?? '',
+        });
+
+        nextAnswerValidations[index] = result;
+
+        if (!isValidationAcceptable(result)) {
+          setAnswerValidations(nextAnswerValidations);
+          setReflectionValidation(null);
+          return false;
+        }
+      }
+
+      const reflectionResult = await validateBuklodResponse({
+        questionContext: buildLessonReflectionContext({
+          lessonId: lesson.id,
+          trackId: lesson.track_id ?? null,
+          enrollmentId: enrollmentId ?? null,
+          questionText:
+            lesson.reflection_question ??
+            'Write your personal reflection.',
+          lessonTitle: lesson.title ?? null,
+          scriptureReference: lesson.scripture_reference ?? null,
+          aiValidationContext: lesson.ai_validation_context,
+        }),
+        response: reflectionText,
+      });
+
+      setAnswerValidations(nextAnswerValidations);
+      setReflectionValidation(reflectionResult);
+
+      return isValidationAcceptable(reflectionResult);
+    } finally {
+      setValidating(false);
+    }
   };
 
 
@@ -278,6 +359,18 @@ export function LearningQuestionResponse({
       );
     }
 
+    const validated = await validateAllFields(
+      normalized,
+      reflection.trim(),
+    );
+
+    if (!validated) {
+      return Alert.alert(
+        'Review your answers',
+        'Please improve your answers using the guidance shown, then try again.',
+      );
+    }
+
     setBusy(true);
 
     try {
@@ -306,14 +399,6 @@ export function LearningQuestionResponse({
         throw responseError;
       }
 
-      /*
-       * Preserve the existing official
-       * Formation pipeline:
-       *
-       * Member Study
-       * -> Pastor Validation
-       * -> System Admin Final Approval
-       */
       const {
         error: studyError,
       } = await (
@@ -393,13 +478,12 @@ export function LearningQuestionResponse({
       )}
 
       <SectionTitle>
-        LESSON REVIEW
+        QUICK CHECK
       </SectionTitle>
 
       <Card>
         <Text style={styles.intro}>
-          Answer all four questions based
-          on what you learned.
+          Answer all questions based on what you learned.
         </Text>
 
         {questions.map(
@@ -412,7 +496,7 @@ export function LearningQuestionResponse({
               style={styles.questionBlock}
             >
               <Text style={styles.questionNo}>
-                QUESTION {index + 1}
+                Question {index + 1} of {questions.length}
               </Text>
 
               <Text style={styles.question}>
@@ -439,6 +523,12 @@ export function LearningQuestionResponse({
                 }
                 style={styles.answer}
               />
+
+              <BuklodAnswerValidationFeedback
+                isValidating={validating}
+                lastResult={answerValidations[index]}
+                error={null}
+              />
             </View>
           )
         )}
@@ -446,7 +536,7 @@ export function LearningQuestionResponse({
 
 
       <SectionTitle>
-        PERSONAL REFLECTION
+        PAGNINILAY
       </SectionTitle>
 
       <Card>
@@ -459,12 +549,21 @@ export function LearningQuestionResponse({
         <TextInput
           multiline
           value={reflection}
-          onChangeText={setReflection}
-          placeholder="What did God teach you through this lesson, and how will you apply it?"
+          onChangeText={(value) => {
+            setReflection(value);
+            setReflectionValidation(null);
+          }}
+          placeholder="Type your reflection..."
           placeholderTextColor={
             colors.muted
           }
           style={styles.reflection}
+        />
+
+        <BuklodAnswerValidationFeedback
+          isValidating={validating}
+          lastResult={reflectionValidation}
+          error={null}
         />
 
         <Text style={styles.helper}>
@@ -489,8 +588,10 @@ export function LearningQuestionResponse({
 
       <Button
         title={
-          busy
-            ? 'SUBMITTING...'
+          busy || validating
+            ? validating
+              ? 'CHECKING...'
+              : 'SUBMITTING...'
             : previouslySubmitted
               ? 'UPDATE & RESUBMIT STUDY'
               : 'SUBMIT FOR VALIDATION'

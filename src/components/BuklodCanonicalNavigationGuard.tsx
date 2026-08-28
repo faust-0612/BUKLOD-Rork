@@ -10,6 +10,22 @@ import {
 } from 'expo-router';
 
 import {
+  firstRouteParam,
+  isBuklodCirclePersonalRoute,
+  isBuklodFaithPersonalRoute,
+  isFormationLearningRoute,
+  isManagedCommunityScope,
+  isScopePortalRoute,
+  scopedWorkspacePathForGlobalRoute,
+} from '@/lib/buklodScopeRoute';
+
+import {
+  isBuklodProfileRoute,
+  isBuklodScopedWorkspacePath,
+  normalizeBuklodPathname,
+} from '@/lib/buklodSafeArea';
+
+import {
   useBuklodScope,
 } from '@/providers/BuklodScopeProvider';
 
@@ -57,28 +73,6 @@ function publicRouteFor(
   return '/home';
 }
 
-function scopedRouteFor(
-  pathname: string
-) {
-  if (pathname === '/home') {
-    return '/scope?section=home';
-  }
-
-  if (pathname === '/buklod') {
-    return '/scope?section=community';
-  }
-
-  /*
-   * Only the Connect directory route is canonicalized.
-   * /connect/[id] remains private one-to-one messaging.
-   */
-  if (pathname === '/connect') {
-    return '/scope?section=connect';
-  }
-
-  return null;
-}
-
 export default function
 BuklodCanonicalNavigationGuard() {
   const pathname =
@@ -87,6 +81,12 @@ BuklodCanonicalNavigationGuard() {
   const params =
     useGlobalSearchParams<{
       section?:
+        | string
+        | string[];
+      returnScopeId?:
+        | string
+        | string[];
+      scopeId?:
         | string
         | string[];
     }>();
@@ -101,19 +101,38 @@ BuklodCanonicalNavigationGuard() {
     useRef('');
 
   useEffect(() => {
-        /*
+    const normalized =
+      normalizeBuklodPathname(pathname);
+
+    /*
      * PATCH_177B_R4_ATTENDANCE_ROUTE_EXEMPT
      * Attendance is an exact-scope utility route.
      */
     if (
-      pathname === '/scope/attendance' ||
-      pathname.startsWith('/scope/attendance/')
+      normalized === '/scope/attendance' ||
+      normalized.startsWith('/scope/attendance/') ||
+      normalized === '/scope/faith-monitoring/report' ||
+      normalized.startsWith('/scope/faith-monitoring/') ||
+      normalized === '/scope/manage' ||
+      normalized.startsWith('/scope/manage/') ||
+      normalized.startsWith('/scope/buklod-lesson') ||
+      isFormationLearningRoute(normalized) ||
+      isBuklodFaithPersonalRoute(normalized) ||
+      isBuklodCirclePersonalRoute(normalized) ||
+      (
+        isBuklodProfileRoute(normalized) &&
+        Boolean(
+          firstRouteParam(
+            params.returnScopeId
+          )
+        )
+      )
     ) {
       lastRedirectRef.current = '';
       return;
     }
 
-if (
+    if (
       loading ||
       !activeScope
     ) {
@@ -129,10 +148,24 @@ if (
       activeScope.scope_type ===
       'PUBLIC'
     ) {
+      const openingScopeId =
+        firstRouteParam(
+          params.scopeId
+        );
+
       if (
-        pathname === '/scope' ||
-        pathname.startsWith(
-          '/scope/'
+        openingScopeId &&
+        isBuklodScopedWorkspacePath(
+          normalized,
+        )
+      ) {
+        lastRedirectRef.current = '';
+        return;
+      }
+
+      if (
+        isBuklodScopedWorkspacePath(
+          normalized,
         )
       ) {
         target =
@@ -142,10 +175,24 @@ if (
             )
           );
       }
-    } else {
+    } else if (
+      isManagedCommunityScope(
+        activeScope,
+      )
+    ) {
+      if (
+        isScopePortalRoute(
+          normalized,
+        )
+      ) {
+        lastRedirectRef.current = '';
+        return;
+      }
+
       target =
-        scopedRouteFor(
-          pathname
+        scopedWorkspacePathForGlobalRoute(
+          normalized,
+          activeScope.scope_id,
         );
     }
 
@@ -156,7 +203,7 @@ if (
     }
 
     const key =
-      `${activeScope.scope_id}|${pathname}|${target}`;
+      `${activeScope.scope_id}|${normalized}|${target}`;
 
     if (
       lastRedirectRef.current ===
@@ -174,6 +221,7 @@ if (
   }, [
     pathname,
     params.section,
+    params.returnScopeId,
     activeScope?.scope_id,
     activeScope?.scope_type,
     loading,

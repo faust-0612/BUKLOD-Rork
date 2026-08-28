@@ -16,6 +16,8 @@ import {
   View,
 } from 'react-native';
 
+import BuklodScopedWorkspaceScrollView from '@/components/BuklodScopedWorkspaceScrollView';
+
 import {
   MaterialCommunityIcons,
 } from '@expo/vector-icons';
@@ -745,7 +747,7 @@ ScopeBulletinEditor() {
   }
 
   return (
-    <ScrollView
+    <BuklodScopedWorkspaceScrollView
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={
         styles.content
@@ -913,7 +915,7 @@ ScopeBulletinEditor() {
           </Text>
         )}
       </Pressable>
-    </ScrollView>
+    </BuklodScopedWorkspaceScrollView>
   );
 }
 

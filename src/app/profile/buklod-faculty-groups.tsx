@@ -12,6 +12,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
+import { FacultyGate } from '@/components/faculty/FacultyGate';
 
 type StudentRow = {
   id: string;
@@ -29,8 +30,8 @@ type Activity = {
 };
 
 export default function FacultyGroupsScreen() {
-  const params = useLocalSearchParams<{ id?: string; name?: string }>();
-  const classroomId = String(params.id ?? '');
+  const params = useLocalSearchParams<{ id?: string; classroomId?: string; name?: string }>();
+  const classroomId = String(params.id ?? params.classroomId ?? '');
   const classroomName = String(params.name ?? 'Classroom');
 
   const [students, setStudents] = useState<StudentRow[]>([]);
@@ -41,15 +42,30 @@ export default function FacultyGroupsScreen() {
   const [groupScore, setGroupScore] = useState('');
   const [individualScore, setIndividualScore] = useState('');
   const [newTitle, setNewTitle] = useState('');
+  const [savedScores, setSavedScores] = useState<Array<{
+    id: string;
+    student_user_id: string;
+    group_name: string | null;
+    group_score: number | null;
+    individual_score: number | null;
+    final_score: number | null;
+    status: string;
+    activity_id: string;
+  }>>([]);
 
   const load = async () => {
-    const [rosterRes, activityRes] = await Promise.all([
+    const [rosterRes, activityRes, scoreRes] = await Promise.all([
       supabase.rpc('buklod_education_roster_v1', { p_classroom_id: classroomId }),
       supabase
         .from('buklod_education_group_activities')
         .select('id,title,points_possible,group_weight_percent,individual_weight_percent')
         .eq('classroom_id', classroomId)
         .order('created_at', { ascending: false }),
+      supabase
+        .from('buklod_education_group_activity_scores')
+        .select('id,activity_id,student_user_id,group_name,group_score,individual_score,final_score,status')
+        .eq('classroom_id', classroomId)
+        .order('updated_at', { ascending: false }),
     ]);
 
     if (rosterRes.error) Alert.alert('Roster', rosterRes.error.message);
@@ -57,6 +73,7 @@ export default function FacultyGroupsScreen() {
 
     setStudents((rosterRes.data ?? []) as StudentRow[]);
     setActivities((activityRes.data ?? []) as Activity[]);
+    setSavedScores((scoreRes.data ?? []) as typeof savedScores);
   };
 
   useEffect(() => {
@@ -123,6 +140,7 @@ export default function FacultyGroupsScreen() {
   };
 
   return (
+    <FacultyGate>
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Pressable style={styles.back} onPress={() => router.back()}>
         <MaterialCommunityIcons name="arrow-left" size={22} color="#17311f" />
@@ -148,7 +166,7 @@ export default function FacultyGroupsScreen() {
         >
           <Text style={styles.choiceTitle}>{item.title}</Text>
           <Text style={styles.choiceMeta}>
-            {item.group_weight_percent}% group â€¢ {item.individual_weight_percent}% individual â€¢ {item.points_possible} pts
+            {item.group_weight_percent}% group • {item.individual_weight_percent}% individual • {item.points_possible} pts
           </Text>
         </Pressable>
       ))}
@@ -177,7 +195,31 @@ export default function FacultyGroupsScreen() {
           <Text style={styles.releaseButtonText}>Release Selected Score</Text>
         </Pressable>
       </View>
+
+      <Text style={styles.sectionTitle}>Saved contribution scores</Text>
+      {savedScores.length === 0 ? (
+        <View style={styles.choice}>
+          <Text style={styles.choiceMeta}>No group/individual scores saved in this class yet.</Text>
+        </View>
+      ) : (
+        savedScores.map(item => {
+          const student = students.find(row => row.student_user_id === item.student_user_id);
+          const activity = activities.find(row => row.id === item.activity_id);
+          return (
+            <View key={item.id} style={styles.choice}>
+              <Text style={styles.choiceTitle}>
+                {student?.display_name || student?.username || 'Student'}
+                {item.group_name ? ` • ${item.group_name}` : ''}
+              </Text>
+              <Text style={styles.choiceMeta}>
+                {activity?.title || 'Activity'} • group {item.group_score ?? '—'} • individual {item.individual_score ?? '—'} • final {item.final_score ?? '—'} • {item.status}
+              </Text>
+            </View>
+          );
+        })
+      )}
     </ScrollView>
+    </FacultyGate>
   );
 }
 

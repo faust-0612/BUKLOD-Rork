@@ -8,6 +8,77 @@ export type BuklodScopeType =
   | 'ORGANIZATION'
   | 'SYSTEM';
 
+export function isSubOrganizationScope(scope: {
+  scope_type?: string | null;
+  parent_scope_id?: string | null;
+  geo_level?: string | null;
+} | null | undefined) {
+  if (!scope) return false;
+
+  const type = String(scope.scope_type ?? '')
+    .trim()
+    .toUpperCase();
+
+  if (type !== 'ORGANIZATION') return false;
+
+  if (scope.parent_scope_id) return true;
+
+  const geo = String(scope.geo_level ?? '')
+    .trim()
+    .toUpperCase();
+
+  return (
+    geo.includes('SUB') ||
+    geo.includes('SUB_ORG') ||
+    geo.includes('SUB-ORG')
+  );
+}
+
+export function formatScopeTypeLabel(
+  scopeType?: string | null,
+  geoLevel?: string | null,
+  parentScopeId?: string | null
+) {
+  const type = String(scopeType ?? '')
+    .trim()
+    .toUpperCase();
+  const geo = String(geoLevel ?? '')
+    .trim()
+    .toUpperCase();
+
+  if (type === 'ORGANIZATION') {
+    if (
+      isSubOrganizationScope({
+        scope_type: type,
+        parent_scope_id: parentScopeId,
+        geo_level: geo,
+      })
+    ) {
+      return 'Sub-organization';
+    }
+
+    return 'Organization';
+  }
+
+  if (type === 'CLUSTER') {
+    return 'Cluster';
+  }
+
+  if (type === 'CHURCH' || type === 'LOCAL') {
+    return 'Location';
+  }
+
+  if (type === 'PUBLIC') {
+    return 'Public';
+  }
+
+  if (type === 'SYSTEM') {
+    return 'System';
+  }
+
+  return type || 'BUKLOD';
+}
+
 export type BuklodScope = {
   scope_id: string;
   scope_type: BuklodScopeType;
@@ -23,6 +94,7 @@ export type BuklodScope = {
   show_faith_content?: boolean | null;
   feature_keys: string[];
   is_active_scope?: boolean;
+  is_mzb_organization?: boolean;
 };
 
 export type ScopeFeedMode =
@@ -280,7 +352,7 @@ function canTryAlternateRpcArgs(error: any) {
   );
 }
 
-async function rpcWithArgFallback(
+export async function rpcWithArgFallback(
   name: string,
   candidates: Array<Record<string, unknown>>
 ) {

@@ -1,3 +1,4 @@
+import { repairMojibakeText } from '@/lib/repairMojibakeText';
 /**
  * PATCH 153H-3B
  * BIBLE SEARCH
@@ -564,7 +565,7 @@ export default function BibleSearchScreen() {
 
               const cleanText =
                 String(
-                  result.verse_text
+                  repairMojibakeText(result.verse_text)
                 )
                   .replace(
                     /^¶\s*/,

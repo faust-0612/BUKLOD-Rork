@@ -1,14 +1,6 @@
 import React from 'react';
+import { Redirect } from 'expo-router';
 
-import PublicWordScreen
-  from '../(tabs)/word';
-
-
-export default function
-MzbWordScreen() {
-  return (
-    
-      <PublicWordScreen />
-    
-  );
+export default function MzbWordRedirect() {
+  return <Redirect href="/word" />;
 }

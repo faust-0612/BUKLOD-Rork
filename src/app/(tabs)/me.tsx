@@ -2,32 +2,79 @@
 /* PATCH_179C_R1_PREMIUM_CURRENT_PROFILE */
 import { useCallback as useProfileFocusCallback, useRef as useProfileScrollRef } from 'react';
 import { useFocusEffect as useProfileFocusEffect } from 'expo-router';
-import { useBuklodScope } from '@/providers/BuklodScopeProvider';
-import BuklodProfileMembershipNav
-  from '@/components/BuklodProfileMembershipNav';
+import BuklodProfileMembershipNav from '@/components/BuklodProfileMembershipNav';
+import { BuklodSystemAnnouncementBoard } from '@/components/BuklodSystemAnnouncementBoard';
 import BuklodFoundationWorkspaceNav from '@/components/BuklodFoundationWorkspaceNav';
+import {
+  BuklodTappableAvatar,
+} from '@/components/BuklodTappableAvatar';
+import {
+  BuklodProfileGlassCard,
+  BuklodProfileGlassRow,
+} from '@/components/BuklodProfileGlassCard';
+import {
+  BuklodProfileCustomizeSheet,
+} from '@/components/BuklodProfileCustomizeSheet';
+import {
+  ProfileMotionAvatar,
+  ProfileMotionCover,
+  ProfileMotionFadeUp,
+  ProfilePressable,
+} from '@/components/BuklodProfileMotion';
+import BuklodProfileCharacterCard from '@/components/points/BuklodProfileCharacterCard';
+import BuklodReferralInviteCard from '@/components/BuklodReferralInviteCard';
+import {
+  resolveContrastPaint,
+  withAlpha,
+} from '@/lib/buklodContrast';
+import {
+  DEFAULT_PROFILE_LAYOUT,
+  loadProfileLayout,
+  saveProfileLayout,
+  type ProfileSectionId,
+  type ProfileSectionLayout,
+} from '@/lib/buklodProfileLayout';
 import { decode } from 'base64-arraybuffer';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { Alert } from 'react-native';
-import React, { ReactNode, useEffect, useState } from 'react';
+import {
+  BUKLOD_HIT_SLOP,
+  BUKLOD_HIT_SLOP_TIGHT,
+} from '@/lib/buklodTouch';
+import React, { ReactNode, useEffect, useMemo, useState } from 'react';
 import {
   Image,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { Button, shared } from '@/components/UI';
+import { Button } from '@/components/UI';
 import { AppRole, useAuth } from '@/providers/AuthProvider';
+import { useBuklodScope } from '@/providers/BuklodScopeProvider';
+import { firstRouteParam, enterScopedWorkspace } from '@/lib/buklodScopeRoute';
+import { isActiveMembershipStatus } from '@/lib/buklodOrganization';
 import { supabase } from '@/lib/supabase';
-import { useBuklodAccess } from '@/hooks/useBuklodAccess';
+import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import {
-  BuklodDashboardCustomizer,
+  loadMyProfileLocked,
+  setMyProfileLocked,
+} from '@/lib/buklodMemberProfile';
+import { shareProfileUpdateOnCommunityWall } from '@/lib/buklodProfileCommunityShare';
+import { loadBuklodPointsDashboard } from '@/lib/buklodRewards';
+import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
+import { BuklodGlobalThemeSelectorModal } from '@/components/BuklodGlobalThemeSelector';
+import {
+  useBuklodTheme,
+} from '@/providers/BuklodThemeProvider';
+import {
   DEFAULT_DASHBOARD_THEME,
   type DashboardTheme,
 } from '@/components/BuklodDashboardCustomizer';
@@ -35,10 +82,81 @@ import {
   loadProfileDashboardTheme,
   saveProfileDashboardTheme,
 } from '@/lib/buklodDashboardTheme';
-// PATCH_170B_R3_PERSONAL_PROFILE_THEME
-
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+const QUICK_ACTION_WIDTH = 118;
+const QUICK_ACTION_GAP = 8;
+const QUICK_ACTION_SNAP_INTERVAL =
+  QUICK_ACTION_WIDTH + QUICK_ACTION_GAP;
+
+type QuickActionItem = {
+  key: string;
+  icon: IconName;
+  label: string;
+  onPress: () => void;
+};
+
+function ProfileQuickActionsStrip({
+  items,
+  styles,
+  theme,
+}: {
+  items: QuickActionItem[];
+  styles: ReturnType<typeof createMeStyles>;
+  theme: ReturnType<typeof useBuklodTheme>['theme'];
+}) {
+  const [horizontalDragging, setHorizontalDragging] =
+    useState(false);
+
+  return (
+    <ScrollView
+      horizontal
+      nestedScrollEnabled
+      directionalLockEnabled
+      showsHorizontalScrollIndicator={false}
+      decelerationRate="fast"
+      disableIntervalMomentum
+      snapToInterval={QUICK_ACTION_SNAP_INTERVAL}
+      snapToAlignment="start"
+      scrollEventThrottle={16}
+      onScrollBeginDrag={() => setHorizontalDragging(true)}
+      onScrollEndDrag={(event) => {
+        const velocityX = event.nativeEvent.velocity?.x ?? 0;
+        if (Math.abs(velocityX) < 0.05) {
+          setHorizontalDragging(false);
+        }
+      }}
+      onMomentumScrollEnd={() => setHorizontalDragging(false)}
+      contentContainerStyle={styles.quickRow}
+    >
+      {items.map((item, index) => (
+        <ProfileMotionFadeUp
+          key={item.key}
+          delay={35 + index * 35}
+          duration={240}
+          fromY={10}
+          fromOpacity={0.78}
+        >
+          <ProfilePressable
+            disabled={horizontalDragging}
+            onPress={item.onPress}
+            style={styles.quickAction}
+          >
+            <MaterialCommunityIcons
+              name={item.icon}
+              size={18}
+              color={theme.accent}
+            />
+            <Text numberOfLines={1} style={styles.quickLabel}>
+              {item.label}
+            </Text>
+          </ProfilePressable>
+        </ProfileMotionFadeUp>
+      ))}
+    </ScrollView>
+  );
+}
 
 function roleLabel(role: AppRole) {
   const labels: Record<AppRole, string> = {
@@ -68,28 +186,90 @@ function DrawerSection({
   onToggle: () => void;
   children: ReactNode;
 }) {
+  const { theme } = useBuklodTheme();
+  const local = useMemo(
+    () =>
+      StyleSheet.create({
+        drawer: {
+          marginBottom: 6,
+          marginHorizontal: 12,
+          borderWidth: 1,
+          borderColor: theme.border,
+          borderRadius: 13,
+          overflow: 'hidden',
+          backgroundColor: withAlpha(theme.cardSurface, 0.78),
+          shadowColor: theme.shadow,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.045,
+          shadowRadius: 12,
+          elevation: 2,
+        },
+        drawerHeader: {
+          minHeight: 62,
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingHorizontal: 13,
+          paddingVertical: 10,
+          gap: 6,
+          backgroundColor: theme.surface,
+        },
+        drawerIcon: {
+          width: 36,
+          height: 36,
+          borderRadius: 12,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.accentSoft,
+          borderWidth: 1,
+          borderColor: theme.border,
+        },
+        drawerTitle: {
+          fontSize: 15.5,
+          lineHeight: 18,
+          fontWeight: '900',
+          letterSpacing: -0.05,
+          color: theme.textPrimary,
+        },
+        drawerSubtitle: {
+          marginTop: 2,
+          fontSize: 13.5,
+          lineHeight: 18,
+          color: theme.textMuted,
+        },
+        drawerBody: {
+          borderTopWidth: 1,
+          borderTopColor: theme.border,
+          paddingHorizontal: 0,
+          paddingTop: 5,
+          paddingBottom: 7,
+          backgroundColor: theme.surfaceElevated,
+        },
+      }),
+    [theme]
+  );
+
   return (
-    <View style={styles.drawer}>
-      <Pressable
+    <View style={local.drawer}>
+      <ProfilePressable
         onPress={onToggle}
         style={({ pressed }) => [
-          styles.drawerHeader,
+          local.drawerHeader,
           pressed && { opacity: 0.78 },
         ]}
       >
-        <View style={styles.drawerIcon}>
+        <View style={local.drawerIcon}>
           <MaterialCommunityIcons
             name={icon}
             size={18}
-            color="#275D45"
+            color={theme.accent}
           />
         </View>
 
         <View style={{ flex: 1 }}>
-          <Text style={styles.drawerTitle}>{title}</Text>
+          <Text style={local.drawerTitle}>{title}</Text>
 
           {!!subtitle && (
-            <Text style={styles.drawerSubtitle}>
+            <Text style={local.drawerSubtitle}>
               {subtitle}
             </Text>
           )}
@@ -98,12 +278,12 @@ function DrawerSection({
         <MaterialCommunityIcons
           name={open ? 'chevron-up' : 'chevron-down'}
           size={20}
-          color="#68756E"
+          color={theme.textMuted}
         />
-      </Pressable>
+      </ProfilePressable>
 
       {open && (
-        <View style={styles.drawerBody}>
+        <View style={local.drawerBody}>
           {children}
         </View>
       )}
@@ -122,27 +302,67 @@ function MenuRow({
   subtitle?: string;
   onPress: () => void;
 }) {
+  const { theme } = useBuklodTheme();
+  const local = useMemo(
+    () =>
+      StyleSheet.create({
+        menuRow: {
+          minHeight: 54,
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingHorizontal: 7,
+          paddingVertical: 7,
+          marginVertical: 2,
+          borderRadius: 13,
+          gap: 6,
+          backgroundColor: theme.surface,
+        },
+        menuIcon: {
+          width: 32,
+          height: 32,
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: 10,
+          backgroundColor: theme.accentSoft,
+        },
+        menuTitle: {
+          fontSize: 14.5,
+          lineHeight: 18,
+          fontWeight: '900',
+          letterSpacing: -0.03,
+          color: theme.textPrimary,
+        },
+        menuSubtitle: {
+          marginTop: 1,
+          fontSize: 12.5,
+          lineHeight: 18,
+          color: theme.textMuted,
+        },
+      }),
+    [theme]
+  );
+
   return (
-    <Pressable
+    <ProfilePressable
       onPress={onPress}
       style={({ pressed }) => [
-        styles.menuRow,
+        local.menuRow,
         pressed && { opacity: 0.72 },
       ]}
     >
-      <View style={styles.menuIcon}>
+      <View style={local.menuIcon}>
         <MaterialCommunityIcons
           name={icon}
           size={18}
-          color="#275D45"
+          color={theme.accent}
         />
       </View>
 
       <View style={{ flex: 1 }}>
-        <Text style={styles.menuTitle}>{title}</Text>
+        <Text style={local.menuTitle}>{title}</Text>
 
         {!!subtitle && (
-          <Text style={styles.menuSubtitle}>
+          <Text style={local.menuSubtitle}>
             {subtitle}
           </Text>
         )}
@@ -151,13 +371,25 @@ function MenuRow({
       <MaterialCommunityIcons
         name="chevron-right"
         size={18}
-        color="#8A948F"
+        color={theme.textMuted}
       />
-    </Pressable>
+    </ProfilePressable>
   );
 }
 
 export default function MeScreen() {
+  const { theme, shared } = useBuklodPresentation();
+  const params =
+    useLocalSearchParams<{
+      returnScopeId?:
+        | string
+        | string[];
+    }>();
+  const {
+    activeScope,
+    scopes,
+    selectScope,
+  } = useBuklodScope();
   /* PATCH_174B_R2_PROFILE_FOCUS_STABILITY */
   const profileScrollRef =
     useProfileScrollRef(null as ScrollView | null);
@@ -169,14 +401,55 @@ export default function MeScreen() {
         y: 0,
         animated: false,
       });
-    }, [])
+
+      const returnScopeId =
+        firstRouteParam(
+          params.returnScopeId
+        );
+
+      if (!returnScopeId) {
+        return;
+      }
+
+      const publicScope =
+        scopes.find(
+          (scope) =>
+            scope.scope_type ===
+            'PUBLIC'
+        );
+
+      if (
+        !publicScope ||
+        activeScope?.scope_id ===
+          publicScope.scope_id
+      ) {
+        return;
+      }
+
+      void (async () => {
+        try {
+          await selectScope(
+            publicScope.scope_id
+          );
+        } catch (error) {
+          console.warn(
+            'BUKLOD profile public scope refresh:',
+            error
+          );
+        }
+      })();
+    }, [
+      params.returnScopeId,
+      scopes,
+      activeScope?.scope_id,
+      selectScope,
+    ])
   );
 
   const {
     profile,
     roles,
     hasRole,
-    hasAnyRole,
     signOut,
     refreshProfile,
   } = useAuth();
@@ -188,6 +461,98 @@ export default function MeScreen() {
     DEFAULT_DASHBOARD_THEME
   );
 
+  const [
+    profileLayout,
+    setProfileLayout,
+  ] = useState<ProfileSectionLayout[]>(
+    DEFAULT_PROFILE_LAYOUT
+  );
+
+  const [customizeOpen, setCustomizeOpen] =
+    useState(false);
+
+  const [profileMenuOpen, setProfileMenuOpen] =
+    useState(false);
+
+  const [profileLocked, setProfileLockedState] =
+    useState(false);
+
+  const [profileLockBusy, setProfileLockBusy] =
+    useState(false);
+
+  const [themeOpen, setThemeOpen] =
+    useState(false);
+
+  const [lifetimePoints, setLifetimePoints] =
+    useState(0);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadPoints = async () => {
+      try {
+        const dashboard = await loadBuklodPointsDashboard();
+        if (!mounted || !dashboard) return;
+        setLifetimePoints(
+          dashboard.lifetime_points ?? dashboard.total_points,
+        );
+      } catch {
+        if (!mounted) return;
+      }
+    };
+
+    void loadPoints();
+
+    return () => {
+      mounted = false;
+    };
+  }, [profile?.id]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    if (!profile?.id) {
+      setProfileLockedState(false);
+      return () => {
+        mounted = false;
+      };
+    }
+
+    void loadMyProfileLocked()
+      .then((locked) => {
+        if (mounted) {
+          setProfileLockedState(locked);
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setProfileLockedState(false);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [profile?.id]);
+
+  const toggleProfileLock = async (next: boolean) => {
+    setProfileLockBusy(true);
+
+    try {
+      await setMyProfileLocked(next);
+      setProfileLockedState(next);
+    } catch (error: unknown) {
+      Alert.alert(
+        'Profile Privacy',
+        error instanceof Error
+          ? error.message
+          : 'Could not update profile privacy.',
+      );
+    } finally {
+      setProfileLockBusy(false);
+    }
+  };
+
   useEffect(
     () => {
       let mounted = true;
@@ -196,6 +561,7 @@ export default function MeScreen() {
         setPersonalDashboardTheme(
           DEFAULT_DASHBOARD_THEME
         );
+        setProfileLayout(DEFAULT_PROFILE_LAYOUT);
 
         return () => {
           mounted = false;
@@ -218,6 +584,14 @@ export default function MeScreen() {
             error
           );
         });
+
+      void loadProfileLayout(profile.id)
+        .then(nextLayout => {
+          if (mounted) {
+            setProfileLayout(nextLayout);
+          }
+        })
+        .catch(() => undefined);
 
       return () => {
         mounted = false;
@@ -252,60 +626,16 @@ export default function MeScreen() {
       }
     };
 
+  const applyProfileLayout = (
+    next: ProfileSectionLayout[]
+  ) => {
+    setProfileLayout(next);
+    if (profile?.id) {
+      void saveProfileLayout(profile.id, next);
+    }
+  };
+
   /* PATCH_169D_ACTIVE_MZB_PROFILE_GATE */
-  const {
-    scopes: buklodScopes,
-  } = useBuklodScope();
-
-  const hasActiveMzbMembership =
-    (buklodScopes as any[]).some(
-      scope =>
-        scope?.scope_type ===
-          'ORGANIZATION' &&
-        scope?.membership_status ===
-          'ACTIVE' &&
-        (
-          String(
-            scope?.name ?? ''
-          )
-            .toLowerCase()
-            .includes(
-              'mzb ministry'
-            ) ||
-          String(
-            scope?.metadata
-              ?.organization_code ??
-              ''
-          )
-            .toLowerCase() ===
-            'mzb' ||
-          String(
-            scope?.metadata
-              ?.is_mzb ??
-              ''
-          )
-            .toLowerCase() ===
-            'true' ||
-          String(
-            scope?.metadata
-              ?.organization_type ??
-              ''
-          )
-            .toUpperCase() ===
-            'MZB_MINISTRY'
-        )
-    );
-
-  /* PATCH_172J_MZB_ADMIN_PORTAL_ACCESS
-     Active MZB members keep normal access.
-     System Admin must never lose the MZB Ministry portal. */
-  const hasMzbPortalAccess =
-    hasActiveMzbMembership ||
-    hasRole('system_admin');
-  /* PATCH_165H_ME_ENTITLEMENTS */
-  const { hasEntitlement } = useBuklodAccess();
-  const canUseBayanihan = hasEntitlement('bayanihan');
-  const canUseTithes = hasEntitlement('tithes');
 
   /* PATCH_160_EDITABLE_AVATAR */
   const [
@@ -313,7 +643,6 @@ export default function MeScreen() {
     setAvatarBusy,
   ] =
     useState(false);
-
 
   const changeProfilePhoto =
     async () => {
@@ -499,6 +828,18 @@ export default function MeScreen() {
 
         await refreshProfile();
 
+        try {
+          await shareProfileUpdateOnCommunityWall({
+            userId: profile.id,
+            kind: 'photo',
+            base64: prepared.base64,
+          });
+        } catch (shareError: any) {
+          console.warn(
+            'Profile photo community post:',
+            shareError?.message || shareError
+          );
+        }
 
         Alert.alert(
           'Profile Photo',
@@ -741,6 +1082,19 @@ export default function MeScreen() {
 
         await refreshProfile();
 
+        try {
+          await shareProfileUpdateOnCommunityWall({
+            userId: profile.id,
+            kind: 'background',
+            base64: prepared.base64,
+          });
+        } catch (shareError: any) {
+          console.warn(
+            'Profile background community post:',
+            shareError?.message || shareError
+          );
+        }
+
         Alert.alert(
           'Profile Background',
           'Profile background updated.'
@@ -761,16 +1115,15 @@ export default function MeScreen() {
     };
 
 
-  // PROFILE_CIRCLE_RANK_IDENTITY
   const [circleRank, setCircleRank] =
-    useState<string | null>('Circle Starter V');
+    useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
 
     const loadCircleRank = async () => {
       if (!profile?.id) {
-        if (active) setCircleRank('Circle Starter V');
+        if (active) setCircleRank(null);
         return;
       }
 
@@ -784,7 +1137,7 @@ export default function MeScreen() {
       if (!active) return;
 
       if (error) {
-        setCircleRank('Circle Starter V');
+        setCircleRank(null);
         return;
       }
 
@@ -793,9 +1146,12 @@ export default function MeScreen() {
           ? data[0]
           : null;
 
-      setCircleRank(
-        row?.rank_name ?? 'Circle Starter V'
-      );
+      const rankName =
+        typeof row?.rank_name === 'string'
+          ? row.rank_name.trim()
+          : '';
+
+      setCircleRank(rankName || null);
     };
 
     void loadCircleRank();
@@ -806,7 +1162,9 @@ export default function MeScreen() {
   }, [profile?.id]);
 
 
-  const [openSection, setOpenSection] = useState<'buklod' | 'organizations' | 'ministry' | 'admin' | 'account' | null>('buklod');
+  const [openSection, setOpenSection] = useState<
+    'buklod' | 'organizations' | 'ministry' | 'admin' | 'account' | null
+  >(null);
 
   /* PATCH_166L_MY_BUKLOD_DEEPLINK */
   const myBuklodParams =
@@ -820,30 +1178,11 @@ export default function MeScreen() {
         myBuklodParams.section ?? ''
       ).toLowerCase() === 'buklod'
     ) {
-      setOpenSection('buklod');
+      setOpenSection('account');
     }
   }, [myBuklodParams.section]);
 
   const isSystemAdmin = hasRole('system_admin');
-  const isPastor = hasRole('pastor');
-  const isMentor = hasRole('mentor');
-
-  const canLead = hasAnyRole([
-    'leader',
-    'pastor',
-    'local_admin',
-    'system_admin',
-  ]);
-
-  const canReview = hasAnyRole([
-    // PATCH_156B_LOCAL_REVIEW_MENU
-    'pastor',
-    'local_admin',
-    'system_admin',
-  ]);
-
-  const hasMinistryTools =
-    canLead || isMentor || isPastor;
 
   const toggle = (
     section: 'buklod' | 'organizations' | 'ministry' | 'admin' | 'account'
@@ -857,23 +1196,436 @@ export default function MeScreen() {
     ? require('../../../assets/branding/admin-profile.jpg')
     : require('../../../assets/release/buklod-generic-photo.jpg');
 
+  const coverUrl =
+    profileBackgroundUrl ||
+    (profile as any)?.profile_background_url ||
+    null;
+
+  const hasPersonalCanvas =
+    !!personalDashboardTheme.backgroundImage ||
+    (
+      !!personalDashboardTheme.backgroundColor &&
+      personalDashboardTheme.backgroundColor !==
+        DEFAULT_DASHBOARD_THEME.backgroundColor
+    );
+
+  const hasCoverImage = !!(
+    coverUrl ||
+    personalDashboardTheme.backgroundImage
+  );
+
+  const identityPaint = resolveContrastPaint(
+    hasPersonalCanvas
+      ? personalDashboardTheme.backgroundColor
+      : theme.canvas,
+    hasCoverImage,
+    theme
+  );
+
+  const identityShadow = {
+    color: identityPaint.color,
+    textShadowColor: identityPaint.shadowColor,
+    textShadowOffset: {
+      width: 0,
+      height: 1,
+    } as const,
+    textShadowRadius: hasCoverImage ? 6 : 3,
+  };
+
+  const highlightAccent =
+    personalDashboardTheme.accentColor &&
+    personalDashboardTheme.accentColor !==
+      DEFAULT_DASHBOARD_THEME.accentColor
+      ? personalDashboardTheme.accentColor
+      : theme.accent;
+
+  const visibleRoles = (roles ?? []).filter(Boolean);
+  const username = String(profile?.username ?? '').trim();
+
+  const sectionVisible = (
+    id: ProfileSectionId
+  ) =>
+    profileLayout.find((row) => row.id === id)?.visible !==
+    false;
+
+  const orderedSections = profileLayout.filter(
+    (row) => row.visible
+  );
+
+  const styles = useMemo(
+    () => createMeStyles(theme),
+    [theme]
+  );
+
+  const openUserOrganization = () => {
+    const organization = scopes.find(
+      (scope) =>
+        scope.scope_type === 'ORGANIZATION' &&
+        isActiveMembershipStatus(scope.membership_status),
+    );
+
+    if (organization) {
+      void enterScopedWorkspace(selectScope, organization.scope_id, {
+        section: 'home',
+      });
+      return;
+    }
+
+    router.push('/organizations/manage' as any);
+  };
+
+  const highlightsSection =
+    sectionVisible('highlights') && !!circleRank ? (
+      <ProfileMotionFadeUp delay={40}>
+        <View style={styles.sectionPad}>
+          <Text style={styles.eyebrow}>
+            PERSONAL HIGHLIGHTS
+          </Text>
+          <BuklodProfileGlassCard>
+            <BuklodProfileGlassRow
+              icon="star-circle-outline"
+              title={circleRank}
+              subtitle="Circle rank"
+              onPress={() => router.push('/points')}
+            />
+          </BuklodProfileGlassCard>
+        </View>
+      </ProfileMotionFadeUp>
+    ) : null;
+
+  const referralSection = sectionVisible('highlights') ? (
+    <ProfileMotionFadeUp delay={60}>
+      <View style={styles.sectionPad}>
+        <BuklodReferralInviteCard />
+      </View>
+    </ProfileMotionFadeUp>
+  ) : null;
+
+  const quickActionItems = useMemo<QuickActionItem[]>(
+    () => [
+      {
+        key: 'attendance-qr',
+        icon: 'qrcode',
+        label: 'Attendance QR',
+        onPress: () => router.push('/profile/attendance-qr' as any),
+      },
+      {
+        key: 'organization',
+        icon: 'domain',
+        label: 'Organization',
+        onPress: () => openUserOrganization(),
+      },
+      {
+        key: 'theme',
+        icon: 'palette-outline',
+        label: 'Theme',
+        onPress: () => setThemeOpen(true),
+      },
+      {
+        key: 'advertise',
+        icon: 'bullhorn-outline',
+        label: 'Advertise',
+        onPress: () => router.push('/advertise' as any),
+      },
+    ],
+    [scopes, selectScope]
+  );
+
+  const quickActionsSection =
+    sectionVisible('quickActions') ? (
+      <View style={styles.sectionPad}>
+        <ProfileMotionFadeUp
+          delay={0}
+          duration={240}
+          fromY={10}
+          fromOpacity={0.78}
+        >
+          <Text style={styles.eyebrow}>
+            QUICK ACTIONS
+          </Text>
+        </ProfileMotionFadeUp>
+        <ProfileQuickActionsStrip
+          items={quickActionItems}
+          styles={styles}
+          theme={theme}
+        />
+      </View>
+    ) : null;
+
+  const communitiesSection =
+    sectionVisible('communities') ? (
+      <BuklodProfileMembershipNav />
+    ) : null;
+
+  const focusAppsSection =
+    sectionVisible('focusApps') ? (
+      <BuklodFoundationWorkspaceNav />
+    ) : null;
+
+  const myBuklodSection =
+    sectionVisible('myBuklod') ? (
+      <ProfileMotionFadeUp delay={120} duration={240} fromY={10} fromOpacity={0.78}>
+        <DrawerSection
+          title="My BUKLOD"
+          icon="lock-outline"
+          open={openSection === 'account'}
+          onToggle={() => toggle('account')}
+        >
+          <MenuRow
+            icon="information-outline"
+            title="About BUKLOD"
+            onPress={() =>
+              router.push('/about-buklod' as any)
+            }
+          />
+
+          <MenuRow
+            icon="account-edit-outline"
+            title="Edit My Personal Information"
+            onPress={() =>
+              router.push(
+                '/account/personal-information' as any
+              )
+            }
+          />
+
+          <View
+            style={{
+              minHeight: 54,
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingHorizontal: 7,
+              paddingVertical: 7,
+              marginVertical: 2,
+              borderRadius: 13,
+              gap: 6,
+              backgroundColor: theme.surface,
+            }}
+          >
+            <View
+              style={{
+                width: 32,
+                height: 32,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 10,
+                backgroundColor: theme.accentSoft,
+              }}
+            >
+              <MaterialCommunityIcons
+                name="lock-outline"
+                size={18}
+                color={theme.accent}
+              />
+            </View>
+
+            <View style={{ flex: 1 }}>
+              <Text
+                style={{
+                  fontSize: 14.5,
+                  lineHeight: 18,
+                  fontWeight: '900',
+                  color: theme.textPrimary,
+                }}
+              >
+                Lock Profile
+              </Text>
+              <Text
+                style={{
+                  marginTop: 1,
+                  fontSize: 12.5,
+                  lineHeight: 18,
+                  color: theme.textMuted,
+                }}
+              >
+                Hide your profile details from other members
+              </Text>
+            </View>
+
+            <Switch
+              value={profileLocked}
+              disabled={profileLockBusy}
+              onValueChange={(next) => {
+                void toggleProfileLock(next);
+              }}
+              trackColor={{
+                false: theme.border,
+                true: theme.accent,
+              }}
+            />
+          </View>
+
+          <MenuRow
+            icon="crown-outline"
+            title="Paid Features"
+            onPress={() =>
+              router.push('/premium' as any)
+            }
+          />
+
+          <MenuRow
+            icon="lock-reset"
+            title="Password & Recovery"
+            onPress={() =>
+              router.push('/account/security' as any)
+            }
+          />
+
+          <MenuRow
+            icon="shield-lock-outline"
+            title="Recovery PIN"
+            onPress={() =>
+              router.push(
+                '/account/recovery-pin' as any
+              )
+            }
+          />
+
+          <MenuRow
+            icon="account-off-outline"
+            title="Deactivate Account"
+            onPress={() =>
+              router.push(
+                '/account/deactivate' as any
+              )
+            }
+          />
+
+          <MenuRow
+            icon="delete-outline"
+            title="Delete Account"
+            onPress={() =>
+              router.push('/account/delete' as any)
+            }
+          />
+
+          <MenuRow
+            icon="information-outline"
+            title="How Account Deletion Works"
+            onPress={() =>
+              router.push('/delete-account' as any)
+            }
+          />
+
+          <MenuRow
+            icon="shield-account-outline"
+            title="Privacy Policy"
+            onPress={() =>
+              router.push('/privacy' as any)
+            }
+          />
+
+          <MenuRow
+            icon="file-document-outline"
+            title="Privacy Notice"
+            onPress={() =>
+              router.push('/privacy/notice')
+            }
+          />
+
+          <MenuRow
+            icon="lifebuoy"
+            title="BUKLOD Policy"
+            onPress={() =>
+              router.push('/policy' as any)
+            }
+          />
+
+          <MenuRow
+            icon="email-outline"
+            title="Contact Us"
+            onPress={() =>
+              router.push('/contact-us' as any)
+            }
+          />
+
+          <MenuRow
+            icon="message-text-outline"
+            title="Send Feedback"
+            onPress={() => router.push('/feedback')}
+          />
+
+          {isSystemAdmin && (
+            <MenuRow
+              icon="crown-outline"
+              title="Subscription Admin"
+              onPress={() =>
+                router.push(
+                  '/system/paid-features' as any
+                )
+              }
+            />
+          )}
+
+          {isSystemAdmin && (
+            <MenuRow
+              icon="test-tube"
+              title="Pilot Checklist"
+              onPress={() =>
+                router.push('/pilot/checklist')
+              }
+            />
+          )}
+
+          {isSystemAdmin && (
+            <>
+              <MenuRow
+                icon="lock-reset"
+                title="Account Recovery Requests"
+                onPress={() =>
+                  router.push(
+                    '/admin/account-recovery' as any
+                  )
+                }
+              />
+              <MenuRow
+                icon="shield-crown-outline"
+                title="Open BUKLOD Admin"
+                onPress={() => router.push('/admin')}
+              />
+            </>
+          )}
+
+          <View style={styles.signOutWrap}>
+            <Button
+              title="SIGN OUT"
+              outline
+              onPress={signOut}
+            />
+          </View>
+        </DrawerSection>
+      </ProfileMotionFadeUp>
+    ) : null;
+
+  const sectionMap: Record<
+    ProfileSectionId,
+    ReactNode
+  > = {
+    highlights: highlightsSection,
+    quickActions: quickActionsSection,
+    communities: communitiesSection,
+    focusApps: focusAppsSection,
+    myBuklod: myBuklodSection,
+  };
+
   return (
     <ScrollView
       ref={profileScrollRef}
-      style={[shared.screen, { backgroundColor: personalDashboardTheme.backgroundColor }]}
+      style={[
+        shared.screen,
+        {
+          backgroundColor: hasPersonalCanvas
+            ? personalDashboardTheme.backgroundColor
+            : theme.canvas,
+        },
+      ]}
       contentContainerStyle={[
         shared.content,
         styles.content,
-        {
-          /* UI_002_R4_R6_PROFILE_EDGE */
-          paddingHorizontal: 0,
-          marginHorizontal: 0,
-          gap: 6,
-        }
       ]}
       showsVerticalScrollIndicator={false}
+      directionalLockEnabled
     >
-
       {!!personalDashboardTheme.backgroundImage && (
         <View
           pointerEvents="none"
@@ -893,1017 +1645,556 @@ export default function MeScreen() {
       <View
         style={[
           styles.profileCard,
-          !!(
-            profileBackgroundUrl ||
-            (profile as any)?.profile_background_url
-          ) && {
-            backgroundColor: 'transparent',
+          {
+            backgroundColor: hasCoverImage
+              ? 'transparent'
+              : withAlpha(theme.cardSurface, 0.62),
+            borderColor: withAlpha(theme.border, 0.7),
           },
         ]}
       >
-        {!!(profileBackgroundUrl || (profile as any)?.profile_background_url) && (
-          <View
-            pointerEvents="none"
+        {!!coverUrl && (
+          <ProfileMotionCover
+            active
             style={styles.profileCardCover}
           >
             <Image
-              source={{
-                uri:
-                  profileBackgroundUrl ||
-                  (profile as any)?.profile_background_url,
-              }}
+              source={{ uri: coverUrl }}
               resizeMode="cover"
               style={styles.profileCardBackground}
-              onLoad={() => {
-                console.log(
-                  'PROFILE COVER LOADED:',
-                  profileBackgroundUrl ||
-                    (profile as any)?.profile_background_url
-                );
-              }}
-              onError={(event) => {
-                console.error(
-                  'PROFILE COVER IMAGE ERROR:',
-                  event.nativeEvent?.error,
-                  profileBackgroundUrl ||
-                    (profile as any)?.profile_background_url
-                );
-              }}
             />
-
-            <View
-              style={styles.profileCardWash}
-            />
-          </View>
+            <View style={styles.profileCardWash} />
+          </ProfileMotionCover>
         )}
-        <View
-          style={{
-            position: 'absolute',
-            top: 8,
-            right: 8,
-            zIndex: 20,
-            backgroundColor: '#FFFFFF',
-            borderRadius: 22,
-            shadowColor: '#000000',
-            shadowOpacity: 0.18,
-            shadowRadius: 5,
-            shadowOffset: {
-              width: 0,
-              height: 2,
-            },
-            elevation: 4,
-          }}
-        >
-          <BuklodDashboardCustomizer
-            theme={personalDashboardTheme}
-            canCustomize={!!profile?.id}
-            onSave={
-              savePersonalDashboardTheme
-            }          onEditProfileBackground={() =>
-            void changeProfileBackground()
-          }
-        />
-        </View>
-        <Pressable
-          style={
-            styles.avatarRing
-          }
-          disabled={
-            avatarBusy
-          }
-          onPress={() =>
-            void changeProfilePhoto()
-          }
-        >
-          <Image
-            source={
-              profile?.avatar_url
-                ? {
-                    uri:
-                      profile.avatar_url,
-                  }
-                : fallbackPortrait
-            }
-            style={
-              styles.avatar
-            }
-          />
-<View
-            style={
-              styles.avatarEditBadge
-            }
-          >
-            <MaterialCommunityIcons
-              name={
-                avatarBusy
-                  ? 'progress-clock'
-                  : 'camera-outline'
-              }
-              size={17}
-              color="#FFFFFF"
-            />
-          </View>
-        </Pressable>
-
-        <Text
-          style={
-            styles.avatarHint
-          }
-        >
-          {avatarBusy
-            ? 'UPLOADING...'
-            : 'Tap photo to change'}
-        </Text>
-
-        <Text style={styles.name}>
-          {profile?.full_name || 'BUKLOD Member'}
-        </Text>
-
-        {!!circleRank && (
-          <Pressable
-            onPress={() =>
-              router.push('/points')
-            }
-            style={{
-              marginTop: 9,
-              paddingHorizontal: 20,
-              paddingVertical: 10,
-              borderRadius: 999,
-              backgroundColor: '#0B5D2A',
-              borderWidth: 2,
-              borderColor: '#FFFFFF',
-              shadowColor: '#000000',
-              shadowOpacity: 0.55,
-              shadowRadius: 9,
-              shadowOffset: {
-                width: 0,
-                height: 3,
-              },
-              elevation: 9,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 18,
-                lineHeight: 23,
-                fontWeight: '900',
-                letterSpacing: 0.5,
-                color: '#FFFFFF',
-                textShadowColor: '#000000',
-                textShadowOffset: {
-                  width: 0,
-                  height: 2,
-                },
-                textShadowRadius: 7,
-              }}
-            >
-              {circleRank}
-            </Text>
-          </Pressable>
-        )}
-{/* PATCH_169D_MEMBERSHIP_NAV_MOUNT */}
-        <BuklodProfileMembershipNav />
-      </View>
-      {/* PATCH_166M_MY_BUKLOD_CONTENT_PRESERVED */}
-      <View>
-
-
-
-        
-
-        <MenuRow
-          icon="account-group-outline"
-          title="My Clusters"
-          
-          onPress={() => router.push('/clusters' as any)}
-        />
-
-                <MenuRow
-          icon="bullhorn-outline"
-          title="Advertise"
-          
-          onPress={() => router.push('/advertise' as any)}
-        />
-<MenuRow
-          icon="lifebuoy"
-          title="BUKLOD Policy"
-          
-          onPress={() => router.push('/policy' as any)}
-        />
-
-                <MenuRow
-          icon="email-outline"
-          title="Contact Us"
-          
-          onPress={() =>
-            router.push(
-              '/contact-us' as any
-            )
-          }
-        />
-<MenuRow
-          icon="message-text-outline"
-          title="Send Feedback"
-          
-          onPress={() => router.push('/feedback')}
-        />
-      </View>
-      {/* PATCH_168C_ORGANIZATIONS_BUTTON */}
-      <Pressable
-        onPress={() =>
-          router.push('/organizations' as any)
-        }
-        style={({ pressed }) => [
-          styles.organizationMainButton,
-          pressed && {
-            opacity: 0.72,
-          },
-        ]}
-      >
-        <View
-          style={
-            styles.organizationMainButtonIcon
-          }
-        >
-          <MaterialCommunityIcons
-            name="domain"
-            size={22}
-            color="#FFFFFF"
-          />
-        </View>
-
-        <View
-          style={{
-            flex: 1,
-          }}
-        >
-          <Text
-            style={
-              styles.organizationMainButtonTitle
-            }
-          >
-            Organizations
-          </Text>
-
-          <Text
-            style={
-              styles.organizationMainButtonText
-            }
-          >
-            Create and manage organization environments
-          </Text>
-        </View>
-
-        <MaterialCommunityIcons
-          name="chevron-right"
-          size={21}
-          color="#275D45"
-        />
-      </Pressable>
-
-      {/* PATCH_168A_R3_ORGANIZATION_PORTALS */}
-      {hasMzbPortalAccess && (
-      <View
-        style={
-          styles.organizationPortalSection
-        }
-      >
-        <Text
-          style={
-            styles.organizationPortalEyebrow
-          }
-        >
-          MY ORGANIZATIONS
-        </Text>
 
         <Pressable
-          onPress={() =>
-            router.push('/mzb/home' as any)
-          }
-          style={({ pressed }) => [
-            styles.organizationPortal,
-            pressed && {
-              opacity: 0.72,
+          accessibilityRole="button"
+          accessibilityLabel="Profile options"
+          onPress={() => setProfileMenuOpen(true)}
+          hitSlop={BUKLOD_HIT_SLOP}
+          style={[
+            styles.profileMenuBtn,
+            {
+              backgroundColor: withAlpha(
+                theme.surface,
+                hasCoverImage ? 0.82 : 0.9
+              ),
+              borderColor: withAlpha(
+                theme.border,
+                0.75
+              ),
             },
           ]}
         >
-          <View
-            style={
-              styles.organizationPortalIcon
-            }
-          >
-            <MaterialCommunityIcons
-              name="church"
-              size={22}
-              color="#FFFFFF"
-            />
-          </View>
-
-          <View
-            style={{
-              flex: 1,
-            }}
-          >
-            <Text
-              style={
-                styles.organizationPortalTitle
-              }
-            >
-              MZB Ministry
-            </Text>
-
-            <Text
-              style={
-                styles.organizationPortalText
-              }
-            >
-              Open MZB Ministry environment
-            </Text>
-          </View>
-
           <MaterialCommunityIcons
-            name="chevron-right"
-            size={21}
-            color="#275D45"
+            name="dots-vertical"
+            size={22}
+            color={identityPaint.color}
           />
         </Pressable>
-      </View>
-      )}
 
-
-      {isSystemAdmin && (
-        <DrawerSection
-          title="System Administration"
-          
-          icon="shield-crown-outline"
-          open={openSection === 'admin'}
-          onToggle={() => toggle('admin')}
-        >
-          <View style={styles.adminBanner}>
-            <MaterialCommunityIcons
-              name="shield-check-outline"
-              size={25}
-              color="#275D45"
+        <ProfileMotionAvatar>
+          <View
+            style={[
+              styles.avatarRing,
+              {
+                borderColor: withAlpha(
+                  identityPaint.edgeColor,
+                  0.72
+                ),
+                backgroundColor: withAlpha(
+                  theme.surface,
+                  0.88
+                ),
+              },
+            ]}
+          >
+            <BuklodTappableAvatar
+              userId={profile?.id}
+              uri={profile?.avatar_url}
+              name={profile?.full_name}
+              size={108}
+              fallbackSource={fallbackPortrait}
+              enableLongPressSheet={false}
+              onPress={() => {
+                if (!avatarBusy) {
+                  void changeProfilePhoto();
+                }
+              }}
             />
-
-            <View style={{ flex: 1 }}>
-              <Text style={styles.adminBannerTitle}>
-                Executive Administration
-              </Text>
-
-              <Text style={styles.adminBannerText}>
-                Organization, formation, users, operations and governance.
-              </Text>
+            <View
+              pointerEvents="box-none"
+              style={styles.avatarEditBadge}
+            >
+              <Pressable
+                onPress={() => {
+                  if (!avatarBusy) {
+                    void changeProfilePhoto();
+                  }
+                }}
+                style={styles.avatarEditHit}
+              >
+                <MaterialCommunityIcons
+                  name={
+                    avatarBusy
+                      ? 'progress-clock'
+                      : 'camera-outline'
+                  }
+                  size={17}
+                  color={theme.white}
+                />
+              </Pressable>
             </View>
           </View>
+        </ProfileMotionAvatar>
 
-          
-                    
-          {/* PATCH_174A_R2_ADMIN_RECOVERY_MENU */}
-          <MenuRow
-            icon="lock-reset"
-            title="Account Recovery Requests"
-            
-            onPress={() =>
-              router.push('/admin/account-recovery' as any)
-            }
-          />
-<Button
-            title="OPEN BUKLOD ADMIN"
-            onPress={() => router.push('/admin')}
-          />
-        </DrawerSection>
-      )}
+        <ProfileMotionFadeUp delay={40}>
+          <Text
+            style={[
+              styles.avatarHint,
+              identityShadow,
+            ]}
+          >
+            {avatarBusy
+              ? 'UPLOADING...'
+              : 'Tap photo to change'}
+          </Text>
+        </ProfileMotionFadeUp>
 
-      <DrawerSection
-        title="My BUKLOD"
-        
-        icon="lock-outline"
-        open={openSection === 'account'}
-        onToggle={() => toggle('account')}
-      >
+        <ProfileMotionFadeUp delay={70} duration={240} fromY={10} fromOpacity={0}>
+          <Text style={[styles.name, identityShadow]}>
+            {resolvePersonDisplayName(profile, profile?.id)}
+          </Text>
+        </ProfileMotionFadeUp>
 
-        {/* PATCH_172K_R4_PERSONAL_INFORMATION */}
-        <MenuRow
-          icon="account-edit-outline"
-          title="Edit My Personal Information"
-          
-          onPress={() =>
-            router.push(
-              '/account/personal-information' as any
-            )
-          }
-        />
-
-
-
-                        <MenuRow
-          icon="crown-outline"
-          title="Paid Features"
-          
-          onPress={() => router.push('/premium' as any)}
-        />
-        {/* PATCH_173G_R4_PROFILE_STATUS_ENTRY */}
-                {/* PATCH_177E_R2_ATTENDANCE_QR_ENTRY */}
-        <MenuRow
-          icon="qrcode"
-          title="My Attendance QR"
-          
-          onPress={() =>
-            router.push(
-              '/profile/attendance-qr' as any
-            )
-          }
-        />
-<MenuRow
-          icon="note-text-outline"
-          title="Profile Note"
-          
-          onPress={() =>
-            router.push('/profile/status' as any)
-          }
-        />
-<MenuRow
-          icon="lock-reset"
-          title="Password & Recovery"
-          
-          onPress={() =>
-            router.push(
-              '/account/security' as any
-            )
-          }
-        />
-        {/* PATCH_174A_R2_RECOVERY_PIN_MENU */}
-        <MenuRow
-          icon="shield-lock-outline"
-          title="Recovery PIN"
-          
-          onPress={() =>
-            router.push('/account/recovery-pin' as any)
-          }
-        />
-        {/* PATCH_174C_ACCOUNT_DEACTIVATE_MENU */}
-        <MenuRow
-          icon="account-off-outline"
-          title="Deactivate Account"
-          
-          onPress={() =>
-            router.push('/account/deactivate' as any)
-          }
-        />
-        {/* PATCH_174C_ACCOUNT_DELETE_MENU */}
-        <MenuRow
-          icon="delete-outline"
-          title="Delete Account"
-          
-          onPress={() =>
-            router.push('/account/delete' as any)
-          }
-        />
-<MenuRow
-          icon="file-document-outline"
-          title="Privacy Notice"
-          
-          onPress={() => router.push('/privacy/notice')}
-        />
-                {isSystemAdmin && (
-          <MenuRow
-            icon="crown-outline"
-            title="Subscription Admin"
-            
-            onPress={() => router.push('/system/paid-features' as any)}
-          />
-        )}
-{isSystemAdmin && (
-          
-
-        <MenuRow
-          icon="test-tube"
-          title="Pilot Checklist"
-          
-          onPress={() => router.push('/pilot/checklist')}
-        />
+        {!!username && (
+          <ProfileMotionFadeUp delay={110}>
+            <Text
+              style={[
+                styles.meta,
+                identityShadow,
+              ]}
+            >
+              @{username}
+            </Text>
+          </ProfileMotionFadeUp>
         )}
 
-        <View style={styles.signOutWrap}>
-          <Button
-            title="SIGN OUT"
-            outline
-            onPress={signOut}
-          />
+        {visibleRoles.length > 0 && (
+          <ProfileMotionFadeUp delay={140}>
+            <View style={styles.rolesWrap}>
+              {visibleRoles.map((role) => (
+                <View
+                  key={role}
+                  style={[
+                    styles.roleBadge,
+                    {
+                      backgroundColor: withAlpha(
+                        theme.surface,
+                        0.92
+                      ),
+                      borderColor: withAlpha(
+                        highlightAccent,
+                        0.35
+                      ),
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.roleText,
+                      { color: highlightAccent },
+                    ]}
+                  >
+                    {roleLabel(role)}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </ProfileMotionFadeUp>
+        )}
+      </View>
+
+      <View style={styles.sectionPad}>
+        <BuklodSystemAnnouncementBoard slot="profile" />
+      </View>
+
+      <BuklodProfileCharacterCard
+        lifetimePoints={lifetimePoints}
+        rankName={circleRank}
+      />
+
+      {referralSection}
+
+      {orderedSections.map((row) => (
+        <View key={row.id}>
+          {sectionMap[row.id]}
         </View>
-      </DrawerSection>
+      ))}
 
-      {/* BUKLOD_FOUNDATION_WORKSPACE_NAV */}
-      <BuklodFoundationWorkspaceNav />
-
-      <Text style={styles.footer}>
+      <Text
+        style={[
+          styles.footer,
+          { color: theme.textMuted },
+        ]}
+      >
         Samahang Binuklod ng Pag-ibig
-      </Text></ScrollView>
+      </Text>
+
+      <BuklodGlobalThemeSelectorModal
+        visible={themeOpen}
+        onClose={() => setThemeOpen(false)}
+      />
+
+      <Modal
+        visible={profileMenuOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() =>
+          setProfileMenuOpen(false)
+        }
+      >
+        <Pressable
+          style={styles.profileMenuBackdrop}
+          onPress={() =>
+            setProfileMenuOpen(false)
+          }
+        >
+          <View
+            style={[
+              styles.profileMenuSheet,
+              {
+                backgroundColor: theme.surfaceElevated,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Pressable
+              style={styles.profileMenuItem}
+              onPress={() => {
+                setProfileMenuOpen(false);
+                void changeProfileBackground();
+              }}
+            >
+              <MaterialCommunityIcons
+                name="image-outline"
+                size={22}
+                color={theme.accent}
+              />
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[
+                    styles.profileMenuTitle,
+                    { color: theme.textPrimary },
+                  ]}
+                >
+                  Edit Profile Background
+                </Text>
+                <Text
+                  style={[
+                    styles.profileMenuSubtitle,
+                    { color: theme.textMuted },
+                  ]}
+                >
+                  Change your profile cover photo
+                </Text>
+              </View>
+            </Pressable>
+
+            <Pressable
+              style={styles.profileMenuItem}
+              onPress={() => {
+                setProfileMenuOpen(false);
+                setCustomizeOpen(true);
+              }}
+            >
+              <MaterialCommunityIcons
+                name="palette-outline"
+                size={22}
+                color={theme.accent}
+              />
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[
+                    styles.profileMenuTitle,
+                    { color: theme.textPrimary },
+                  ]}
+                >
+                  Customize Profile
+                </Text>
+                <Text
+                  style={[
+                    styles.profileMenuSubtitle,
+                    { color: theme.textMuted },
+                  ]}
+                >
+                  Sections, accent, and layout
+                </Text>
+              </View>
+            </Pressable>
+
+            <View style={styles.profileMenuItem}>
+              <MaterialCommunityIcons
+                name="lock-outline"
+                size={22}
+                color={theme.accent}
+              />
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[
+                    styles.profileMenuTitle,
+                    { color: theme.textPrimary },
+                  ]}
+                >
+                  Lock Profile
+                </Text>
+                <Text
+                  style={[
+                    styles.profileMenuSubtitle,
+                    { color: theme.textMuted },
+                  ]}
+                >
+                  Other members only see your name when locked
+                </Text>
+              </View>
+              <Switch
+                value={profileLocked}
+                disabled={profileLockBusy}
+                onValueChange={(next) => {
+                  void toggleProfileLock(next);
+                }}
+                trackColor={{
+                  false: theme.border,
+                  true: theme.accent,
+                }}
+              />
+            </View>
+          </View>
+        </Pressable>
+      </Modal>
+
+      <BuklodProfileCustomizeSheet
+        visible={customizeOpen}
+        layout={profileLayout}
+        dashboardTheme={personalDashboardTheme}
+        onClose={() => setCustomizeOpen(false)}
+        onChangeLayout={applyProfileLayout}
+        onChangeDashboardTheme={(next) => {
+          setPersonalDashboardTheme(next);
+          void savePersonalDashboardTheme(next);
+        }}
+        onEditCover={() =>
+          void changeProfileBackground()
+        }
+      />
+    </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    paddingTop: 10,
-    paddingBottom: 24,
-    gap: 6,
-  },
-
-  organizationMainButton: {
-    minHeight: 72,
-    borderWidth: 1,
-    borderColor: 'rgba(39,93,69,0.13)',
-    borderRadius: 13,
-    paddingHorizontal: 13,
-    paddingVertical: 11,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#FFFFFF',
-    marginBottom: 6,
-    shadowColor: '#000000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
+function createMeStyles(
+  theme: ReturnType<typeof useBuklodTheme>['theme']
+) {
+  return StyleSheet.create({
+    content: {
+      paddingTop: 10,
+      paddingBottom: 24,
+      paddingHorizontal: 0,
+      marginHorizontal: 0,
+      gap: 10,
     },
-    shadowOpacity: 0.045,
-    shadowRadius: 11,
-    elevation: 2,
-  },
-
-  organizationMainButtonIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#275D45',
-    shadowColor: '#275D45',
-    shadowOffset: {
-      width: 0,
-      height: 3,
+    sectionPad: {
+      paddingHorizontal: 12,
     },
-    shadowOpacity: 0.16,
-    shadowRadius: 7,
-    elevation: 2,
-  },
-
-  organizationMainButtonTitle: {
-    fontSize: 15.5,
-    lineHeight: 18,
-    fontWeight: '900',
-    letterSpacing: -0.1,
-    color: '#17231D',
-  },
-
-  organizationMainButtonText: {
-    marginTop: 3,
-    fontSize: 12.5,
-    lineHeight: 18,
-    color: '#6B7280',
-  },
-  organizationPortalSection: {
-    marginBottom: 6,
-  },
-
-  organizationPortalEyebrow: {
-    marginBottom: 6,
-    marginLeft: 4,
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 0.95,
-    color: '#275D45',
-  },
-
-  organizationPortal: {
-    minHeight: 72,
-    borderWidth: 1,
-    borderColor: 'rgba(39,93,69,0.13)',
-    borderRadius: 13,
-    paddingHorizontal: 13,
-    paddingVertical: 11,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
+    eyebrow: {
+      marginBottom: 8,
+      marginLeft: 4,
+      fontSize: 12,
+      fontWeight: '800',
+      letterSpacing: 0.8,
+      color: theme.textMuted,
     },
-    shadowOpacity: 0.045,
-    shadowRadius: 11,
-    elevation: 2,
-  },
-
-  organizationPortalIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#275D45',
-  },
-
-  organizationPortalTitle: {
-    fontSize: 15.5,
-    lineHeight: 18,
-    fontWeight: '900',
-    letterSpacing: -0.1,
-    color: '#17231D',
-  },
-
-  organizationPortalText: {
-    marginTop: 3,
-    fontSize: 12.5,
-    lineHeight: 18,
-    color: '#6B7280',
-  },
-  profileCard: {
-    /* PATCH_174B_R2_PROFILE_STABLE_FOOTPRINT */
-    minHeight: 70,
-    position: 'relative',
-    alignItems: 'center',
-    paddingTop: 12,
-    paddingBottom: 23,
-    paddingHorizontal: 12,
-    marginBottom: 6,
-    borderRadius: 0,
-    backgroundColor: 'rgba(39,93,69,0.055)',
-    borderWidth: 1,
-    borderColor: 'rgba(39,93,69,0.13)',
-    overflow: 'hidden',
-    shadowColor: '#000000',
-    shadowOffset: {
-      width: 0,
-      height: 8,
+    quickRow: {
+      flexDirection: 'row',
+      alignItems: 'stretch',
+      gap: 8,
+      paddingRight: 4,
     },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 4,
-  },
-
-  profileCardCover: {
-    ...StyleSheet.absoluteFill,
-    overflow: 'hidden',
-  },
-
-  profileCardBackground: {
-    ...StyleSheet.absoluteFill,
-  },
-
-  profileCardWash: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor:
-      'rgba(0,0,0,0.16)',
-  },
-
-rankTextStrong: {
-    fontSize: 18,
-    lineHeight: 23,
-    fontWeight: '900',
-    letterSpacing: 0.25,
-    color: '#FFFFFF',
-    textShadowColor: 'rgba(0,0,0,0.95)',
-    textShadowOffset: {
-      width: 0,
-      height: 2,
+    quickAction: {
+      width: QUICK_ACTION_WIDTH,
+      minWidth: QUICK_ACTION_WIDTH,
+      minHeight: 48,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      borderWidth: 1,
+      borderColor: withAlpha(theme.border, 0.88),
+      borderRadius: 14,
+      backgroundColor: withAlpha(theme.cardSurface, 0.72),
     },
-    textShadowRadius: 7,
-  },
-
-rankPill: {
-    alignSelf: 'flex-start',
-    marginTop: 4,
-    paddingHorizontal: 15,
-    paddingVertical: 7,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.45)',
-    backgroundColor: 'rgba(11,93,42,0.92)',
-    shadowColor: '#000000',
-    shadowOpacity: 0.28,
-    shadowRadius: 8,
-    shadowOffset: {
-      width: 0,
-      height: 3,
+    quickLabel: {
+      fontSize: 12,
+      lineHeight: 15,
+      fontWeight: '800',
+      textAlign: 'center',
+      color: theme.textPrimary,
     },
-    elevation: 5,
-  },
-
-avatarEditBadge: {
-    position: 'absolute',
-    right: 0,
-    bottom: 0,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#275D45',
-    borderWidth: 2.5,
-    borderColor: '#FFFFFF',
-    shadowColor: '#000000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
+    profileCard: {
+      minHeight: 70,
+      position: 'relative',
+      alignItems: 'center',
+      paddingTop: 12,
+      paddingBottom: 23,
+      paddingHorizontal: 12,
+      marginBottom: 6,
+      borderRadius: 0,
+      overflow: 'hidden',
+      borderWidth: 1,
     },
-    shadowOpacity: 0.20,
-    shadowRadius: 5,
-    elevation: 3,
-  },
-
-  avatarHint: {
-    marginTop: 6,
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '900',
-    letterSpacing: 0.15,
-    color: '#FFFFFF',
-    textAlign: 'center',
-    textShadowColor: 'rgba(0,0,0,0.90)',
-    textShadowOffset: {
-      width: 0,
-      height: 1,
+    profileCardCover: {
+      ...StyleSheet.absoluteFill,
+      overflow: 'hidden',
     },
-    textShadowRadius: 4,
-  },
-
-  avatarRing: {
-    padding: 5,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.72)',
-    borderRadius: 64,
-    backgroundColor: '#FFFFFF',
-    zIndex: 2,
-    shadowColor: '#000000',
-    shadowOffset: {
-      width: 0,
-      height: 5,
+    profileCardBackground: {
+      ...StyleSheet.absoluteFill,
     },
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-
-  avatar: {
-    width: 108,
-    height: 108,
-    borderRadius: 54,
-    backgroundColor: '#EEF4F0',
-  },
-
-  name: {
-    marginTop: 6,
-    paddingHorizontal: 8,
-    fontSize: 25,
-    lineHeight: 31,
-    fontWeight: '900',
-    letterSpacing: -0.4,
-    textAlign: 'center',
-    color: '#FFFFFF',
-    textShadowColor: 'rgba(0,0,0,0.95)',
-    textShadowOffset: {
-      width: 0,
-      height: 2,
+    profileCardWash: {
+      ...StyleSheet.absoluteFill,
+      backgroundColor: 'rgba(0,0,0,0.16)',
     },
-    textShadowRadius: 7,
-  },
-
-  identity: {
-    marginTop: 5,
-    fontSize: 13.5,
-    lineHeight: 14,
-    fontWeight: '900',
-    letterSpacing: 1.35,
-    color: '#FFFFFF',
-    textAlign: 'center',
-    textShadowColor: 'rgba(0,0,0,0.95)',
-    textShadowOffset: {
-      width: 0,
-      height: 1,
+    profileMenuBtn: {
+      position: 'absolute',
+      top: 10,
+      right: 10,
+      zIndex: 4,
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
-    textShadowRadius: 5,
-  },
-
-  rolesWrap: {
-    marginTop: 6,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 6,
-  },
-
-  roleBadge: {
-    minHeight: 29,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.96)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.72)',
-    justifyContent: 'center',
-    shadowColor: '#000000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
+    profileMenuBackdrop: {
+      flex: 1,
+      justifyContent: 'flex-start',
+      alignItems: 'flex-end',
+      paddingTop: 118,
+      paddingRight: 14,
+      backgroundColor: 'rgba(0,0,0,0.28)',
     },
-    shadowOpacity: 0.08,
-    shadowRadius: 5,
-    elevation: 1,
-  },
-
-  roleBadgeExecutive: {
-    backgroundColor: '#275D45',
-    borderColor: 'rgba(255,255,255,0.72)',
-  },
-
-  roleText: {
-    fontSize: 13.5,
-    fontWeight: '900',
-    letterSpacing: 0.1,
-    color: '#275D45',
-  },
-
-  roleTextExecutive: {
-    color: '#FFFFFF',
-  },
-
-  executiveLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 5,
-    marginBottom: 6,
-    paddingHorizontal: 4,
-  },
-
-  executiveEyebrow: {
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '900',
-    letterSpacing: 1.5,
-    color: '#7A867F',
-  },
-
-  executiveTitle: {
-    marginTop: 2,
-    fontSize: 23,
-    lineHeight: 29,
-    fontWeight: '900',
-    letterSpacing: -0.35,
-    color: '#1C2822',
-  },
-
-  drawer: {
-    marginBottom: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(25,45,35,0.09)',
-    borderRadius: 13,
-    overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
+    profileMenuSheet: {
+      width: 280,
+      borderRadius: 16,
+      borderWidth: 1,
+      overflow: 'hidden',
     },
-    shadowOpacity: 0.045,
-    shadowRadius: 12,
-    elevation: 2,
-  },
-
-  /* PATCH_153E_1_SECONDARY_DRAWER */
-  drawerHeader: {
-    minHeight: 62,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 13,
-    paddingVertical: 10,
-    gap: 6,
-    backgroundColor: '#FFFFFF',
-  },
-
-  drawerIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#EAF4ED',
-    borderWidth: 1,
-    borderColor: 'rgba(39,93,69,0.08)',
-  },
-
-  drawerTitle: {
-    fontSize: 15.5,
-    lineHeight: 18,
-    fontWeight: '900',
-    letterSpacing: -0.05,
-    color: '#1C2822',
-  },
-
-  drawerSubtitle: {
-    marginTop: 2,
-    fontSize: 13.5,
-    lineHeight: 18,
-    color: '#7A867F',
-  },
-
-  drawerBody: {
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(25,45,35,0.07)',
-    paddingHorizontal: 0,
-    paddingTop: 5,
-    paddingBottom: 7,
-    backgroundColor: '#FCFDFC',
-  },
-
-  menuRow: {
-    minHeight: 54,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 7,
-    paddingVertical: 7,
-    marginVertical: 2,
-    borderRadius: 13,
-    gap: 6,
-    backgroundColor: '#FFFFFF',
-  },
-
-  menuIcon: {
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 10,
-    backgroundColor: '#EFF6F1',
-  },
-
-  menuTitle: {
-    fontSize: 14.5,
-    lineHeight: 18,
-    fontWeight: '900',
-    letterSpacing: -0.03,
-    color: '#25312B',
-  },
-
-  menuSubtitle: {
-    marginTop: 1,
-    fontSize: 12.5,
-    lineHeight: 18,
-    color: '#7A867F',
-  },
-
-  adminBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    padding: 14,
-    marginVertical: 7,
-    borderRadius: 0,
-    borderWidth: 1,
-    borderColor: 'rgba(39,93,69,0.10)',
-    backgroundColor: '#EEF6F1',
-  },
-
-  adminBannerTitle: {
-    fontSize: 15.5,
-    lineHeight: 18,
-    fontWeight: '900',
-    color: '#275D45',
-  },
-
-  adminBannerText: {
-    marginTop: 3,
-    fontSize: 13.5,
-    lineHeight: 18,
-    color: '#66736C',
-  },
-
-  signOutWrap: {
-    paddingTop: 12,
-    paddingHorizontal: 4,
-    paddingBottom: 5,
-  },
-
-  footer: {
-    marginTop: 6,
-    marginBottom: 4,
-    textAlign: 'center',
-    fontSize: 12.5,
-    lineHeight: 14,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-    color: '#909B95',
-  },
-});
-
-
-
-
-
-
-
-
-
+    profileMenuItem: {
+      minHeight: 64,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    profileMenuTitle: {
+      fontSize: 14.5,
+      fontWeight: '800',
+    },
+    profileMenuSubtitle: {
+      marginTop: 2,
+      fontSize: 12,
+      lineHeight: 16,
+    },
+    avatarEditBadge: {
+      position: 'absolute',
+      right: 0,
+      bottom: 0,
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      overflow: 'hidden',
+      backgroundColor: theme.accent,
+      borderWidth: 2.5,
+      borderColor: theme.white,
+      shadowColor: theme.shadow,
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.2,
+      shadowRadius: 5,
+      elevation: 3,
+    },
+    avatarEditHit: {
+      width: 32,
+      height: 32,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    avatarHint: {
+      marginTop: 6,
+      fontSize: 12,
+      lineHeight: 18,
+      fontWeight: '900',
+      letterSpacing: 0.15,
+      textAlign: 'center',
+    },
+    avatarRing: {
+      position: 'relative',
+      padding: 5,
+      borderWidth: 1.5,
+      borderRadius: 64,
+      zIndex: 2,
+    },
+    name: {
+      marginTop: 6,
+      paddingHorizontal: 8,
+      fontSize: 25,
+      lineHeight: 31,
+      fontWeight: '900',
+      letterSpacing: -0.4,
+      textAlign: 'center',
+    },
+    meta: {
+      marginTop: 4,
+      fontSize: 13.5,
+      lineHeight: 18,
+      fontWeight: '700',
+      textAlign: 'center',
+    },
+    rolesWrap: {
+      marginTop: 8,
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      gap: 6,
+    },
+    roleBadge: {
+      minHeight: 29,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 999,
+      borderWidth: 1,
+      justifyContent: 'center',
+    },
+    roleText: {
+      fontSize: 13,
+      fontWeight: '800',
+    },
+    signOutWrap: {
+      paddingTop: 12,
+      paddingHorizontal: 4,
+      paddingBottom: 5,
+    },
+    footer: {
+      marginTop: 10,
+      marginBottom: 4,
+      textAlign: 'center',
+      fontSize: 12.5,
+      lineHeight: 14,
+      fontWeight: '800',
+      letterSpacing: 0.8,
+    },
+  });
+}

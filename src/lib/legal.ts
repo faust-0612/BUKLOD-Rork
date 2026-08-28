@@ -1,20 +1,23 @@
+import { BUKLOD_PRIVACY_CONTACT_EMAIL } from '@/lib/buklodPublicPrivacyPolicy';
+
 export const PRIVACY_NOTICE_VERSION = '1.0';
 export const COMMUNITY_GUIDELINES_VERSION = '1.0';
 export const PASTORAL_CARE_NOTICE_VERSION = '1.0';
 
 export const privacyNotice = `
-BUKLOD PRIVACY NOTICE — DRAFT FOR PRE-LAUNCH REVIEW
+BUKLOD PRIVACY NOTICE
 Version ${PRIVACY_NOTICE_VERSION}
 
 BUKLOD is a devotional, discipleship, church-community, and pastoral-care application
-operated for MZB Ministry Inc. This draft notice must be reviewed and completed by the
-ministry's authorized privacy lead/DPO before public launch.
+operated for MZB Ministry Inc.
 
 WHO CONTROLS THE DATA
 Personal Information Controller:
 MZB Ministry Inc.
-Contact: [OFFICIAL PRIVACY/DPO EMAIL — REQUIRED BEFORE LAUNCH]
-Address: [OFFICIAL ORGANIZATION ADDRESS — REQUIRED BEFORE LAUNCH]
+Contact: ${BUKLOD_PRIVACY_CONTACT_EMAIL}
+
+Public Privacy Policy (Google Play): https://buklod.expo.app/privacy
+Public account deletion (Google Play): https://buklod.expo.app/delete-account
 
 WHAT BUKLOD MAY PROCESS
 Depending on the feature used, BUKLOD may process account/profile information,
@@ -44,15 +47,22 @@ local church, pastor/local administrator, or system administrator. Private refle
 and private prayer requests are not intended for ordinary leadership access.
 
 RETENTION
-BUKLOD should retain personal data only for as long as reasonably necessary for the
-declared ministry/operational purpose, applicable legal requirements, or legitimate
-recordkeeping needs. The ministry must publish a specific retention schedule before
-production launch.
+BUKLOD retains personal data only as long as reasonably necessary for the declared
+ministry or operational purpose, applicable legal requirements, or legitimate
+recordkeeping. If automatic account deletion cannot finish, the request can be
+completed manually through ${BUKLOD_PRIVACY_CONTACT_EMAIL}. Only records
+legitimately required for legal, security, financial, audit, or operational purposes
+may be retained. Current in-app account deletion follows the live delete-account
+service and each table's cascade, set-null, or blocking rule. It is not a claim that
+every related record or third-party backup is erased. See
+https://buklod.expo.app/delete-account for the public description of that behavior.
 
 DATA SUBJECT RIGHTS
 Users may submit requests concerning access, correction, objection, erasure/blocking,
 data portability, or withdrawal of consent where applicable. Requests may be made in
-the app under Account → Privacy & Data Rights or through the official privacy contact.
+the app under Account → Privacy & Data Rights, by emailing
+${BUKLOD_PRIVACY_CONTACT_EMAIL}, or by using the public account-deletion page at
+https://buklod.expo.app/delete-account.
 
 SECURITY
 BUKLOD uses role-based access controls and database row-level security. No system can
@@ -60,16 +70,13 @@ guarantee absolute security. Members should use a strong password and should not
 sensitive prayer or pastoral information beyond what is necessary.
 
 THIRD-PARTY SERVICE PROVIDERS
-BUKLOD is designed to use service providers such as Expo and Supabase for app delivery,
-authentication, database, notifications, and related infrastructure. Any additional
-providers used in production must be listed in the final notice with the relevant
-processing purpose.
+BUKLOD uses service providers such as Expo and Supabase for app delivery,
+authentication, database, notifications, and related infrastructure. The production
+list of processors is in the public Privacy Policy at https://buklod.expo.app/privacy.
 
 CHANGES TO THIS NOTICE
 When a required policy version changes, BUKLOD may ask the user to review the updated
 notice before continuing.
-
-This notice is a product draft, not a substitute for legal/privacy review.
 `;
 
 export const communityGuidelines = `

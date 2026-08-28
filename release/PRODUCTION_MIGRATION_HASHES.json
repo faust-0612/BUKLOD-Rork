@@ -1,0 +1,70 @@
+{
+  "migration_count": 13,
+  "migrations": [
+    {
+      "name": "20260810010000_initial_schema.sql",
+      "sha256": "8c4365b0aab404bc1e818f71846889a118cd7b368d1415ca54d9dcb14a859bd9",
+      "bytes": 11783
+    },
+    {
+      "name": "20260810010100_initial_rls.sql",
+      "sha256": "8699021a3a0657cd90e7ff865130b378ea1eed9fdb7aa3599744e888a15d52e3",
+      "bytes": 16692
+    },
+    {
+      "name": "20260810010200_onboarding.sql",
+      "sha256": "3f718e971a320bfeee47fe332e715f04871cfa7bd28e07abab08f394d4a8ad4f",
+      "bytes": 9840
+    },
+    {
+      "name": "20260810010300_admin_cms.sql",
+      "sha256": "acf33863c7d085f4aca95fcbb71cb5994394581e88524c90abee3deb770fec23",
+      "bytes": 10068
+    },
+    {
+      "name": "20260810010400_realtime_notifications.sql",
+      "sha256": "edb43815a33ad66d9073f89572f2fe6dd4da06ef29c3d0f5eb106ead7806a134",
+      "bytes": 16481
+    },
+    {
+      "name": "20260810010500_discipleship_learning.sql",
+      "sha256": "dc8c3a9e279fc04f2390b94672906b4c9694ee164aff9adac73cf15779073498",
+      "bytes": 27733
+    },
+    {
+      "name": "20260810010600_church_life.sql",
+      "sha256": "b4c874f008344c9be240ca13d7e0f2c231e901863e6973fcdb5600fc857a6557",
+      "bytes": 30079
+    },
+    {
+      "name": "20260810010700_member_care_directory.sql",
+      "sha256": "025e06454fa612e411adf4318862aaae50de28e6c7fb55cb235133052037187d",
+      "bytes": 30592
+    },
+    {
+      "name": "20260810010800_reporting_analytics.sql",
+      "sha256": "b7e29c6df531ff0894cebd530ecd3621e847e9716269b137d80000bbb480ea71",
+      "bytes": 24264
+    },
+    {
+      "name": "20260810010900_production_hardening.sql",
+      "sha256": "45927d7b979d7c94c77695c41e29142556410f442a815e491ca7c46e3abc2123",
+      "bytes": 16388
+    },
+    {
+      "name": "20260810011000_pilot_operations.sql",
+      "sha256": "94b8a2ce1619aaae82dc9135bc48bc66151b90437daf3024d7fbd79cf041a9ac",
+      "bytes": 23036
+    },
+    {
+      "name": "20260810011100_launch_content_support.sql",
+      "sha256": "471dd6a89797a8731b6bbd17ea7a7ce68d3f4fb3c4145a36ca6c8a083f47b163",
+      "bytes": 10514
+    },
+    {
+      "name": "20260810011200_go_live_command_center.sql",
+      "sha256": "8db8099eebbc55f4d7373e024a8e5dc5a6a163f0d9dd0b8b9e27eaf9db9fd18a",
+      "bytes": 27248
+    }
+  ]
+}

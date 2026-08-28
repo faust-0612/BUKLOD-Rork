@@ -9,7 +9,6 @@ import {
   Alert,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -19,6 +18,10 @@ import {
   useRouter,
 } from 'expo-router';
 import { supabase } from '../../lib/supabase';
+import { isActiveMembershipStatus } from '@/lib/buklodOrganization';
+import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
+import { useBuklodScope } from '@/providers/BuklodScopeProvider';
+import { enterScopedWorkspace } from '@/lib/buklodScopeRoute';
 
 type ScopeRow = {
   id: string;
@@ -111,6 +114,7 @@ function canShowJoin(
 
 export default function OrganizationsManageListScreen() {
   const router = useRouter();
+  const { selectScope } = useBuklodScope();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -210,11 +214,13 @@ export default function OrganizationsManageListScreen() {
             row.scope_id ?? '',
           ).trim();
 
+          const membershipStatus =
+            row.membership_status ?? row.status ?? '';
+
           if (
             rowUserId === userId &&
             scopeId &&
-            upper(row.status ?? 'ACTIVE') ===
-              'ACTIVE'
+            isActiveMembershipStatus(membershipStatus)
           ) {
             nextMemberships.add(scopeId);
           }
@@ -280,6 +286,23 @@ export default function OrganizationsManageListScreen() {
     } as any);
   };
 
+  const openWorkspace = async (scope: ScopeRow) => {
+    try {
+      await enterScopedWorkspace(
+        selectScope,
+        scope.id,
+        { fromPortal: true },
+      );
+    } catch (error: unknown) {
+      Alert.alert(
+        'Organization Workspace',
+        error instanceof Error
+          ? error.message
+          : 'Could not open this workspace.',
+      );
+    }
+  };
+
   const openManage = (scope: ScopeRow) => {
     router.push({
       pathname:
@@ -295,14 +318,11 @@ export default function OrganizationsManageListScreen() {
     } as any);
   };
 
-  const createSuborganization = (
-    scope: ScopeRow,
-  ) => {
+  const openUnitsStructure = (scope: ScopeRow) => {
     router.push({
-      pathname:
-        '/organizations/suborganizations' as any,
+      pathname: '/organizations/suborganizations' as any,
       params: {
-        mode: 'create',
+        mode: 'units',
         parentScopeId: scope.id,
         parent_scope_id: scope.id,
         organizationId: scope.id,
@@ -311,6 +331,10 @@ export default function OrganizationsManageListScreen() {
         parentName: scope.name,
       },
     } as any);
+  };
+
+  const createSuborganization = (scope: ScopeRow) => {
+    openUnitsStructure(scope);
   };
 
   const renderSuborganization = (
@@ -362,13 +386,20 @@ export default function OrganizationsManageListScreen() {
             </Pressable>
           ) : null}
 
-          {isMember && !canManage ? (
-            <View style={styles.memberPill}>
-              <Text style={styles.memberPillText}>
-                MEMBER
-              </Text>
-            </View>
-          ) : null}
+                  {isMember && !canManage ? (
+                    <Pressable
+                      onPress={() =>
+                        void openWorkspace(scope)
+                      }
+                      style={({ pressed }) => [
+                        styles.subOpen,
+                        pressed && styles.pressed,
+                      ]}>
+                      <Text style={styles.subOpenText}>
+                        OPEN
+                      </Text>
+                    </Pressable>
+                  ) : null}
         </View>
       </View>
     );
@@ -382,8 +413,7 @@ export default function OrganizationsManageListScreen() {
         }}
       />
 
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
+      <BuklodPortalScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
         refreshControl={
@@ -502,14 +532,21 @@ export default function OrganizationsManageListScreen() {
                   ) : null}
 
                   {isMember && !canManage ? (
-                    <View style={styles.memberPill}>
+                    <Pressable
+                      onPress={() =>
+                        void openWorkspace(scope)
+                      }
+                      style={({ pressed }) => [
+                        styles.openButton,
+                        pressed && styles.pressed,
+                      ]}>
                       <Text
                         style={
-                          styles.memberPillText
+                          styles.openButtonText
                         }>
-                        MEMBER
+                        OPEN WORKSPACE
                       </Text>
-                    </View>
+                    </Pressable>
                   ) : null}
                 </View>
 
@@ -565,7 +602,7 @@ export default function OrganizationsManageListScreen() {
             );
           })
         )}
-      </ScrollView>
+      </BuklodPortalScrollView>
     </>
   );
 }
@@ -674,6 +711,19 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     fontWeight: '900',
   },
+  openButton: {
+    minHeight: 44,
+    borderRadius: 10,
+    backgroundColor: '#176B4A',
+    paddingHorizontal: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  openButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12.5,
+    fontWeight: '900',
+  },
   memberPill: {
     minHeight: 32,
     borderRadius: 999,
@@ -777,6 +827,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   subManageText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  subOpen: {
+    minHeight: 44,
+    borderRadius: 8,
+    backgroundColor: '#176B4A',
+    paddingHorizontal: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  subOpenText: {
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '900',

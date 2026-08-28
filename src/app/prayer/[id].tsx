@@ -1,4 +1,4 @@
-import {
+﻿import {
   useCallback,
   useEffect,
   useState
@@ -20,6 +20,7 @@ import {
 } from 'expo-router';
 
 import {supabase} from '@/lib/supabase';
+import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 
 import {
   Button,
@@ -86,8 +87,10 @@ export default function PrayerDetail() {
             (row:any)=>({
               user_id:row.user_id,
               full_name:
-                row.full_name ||
-                'BUKLOD Member',
+                resolvePersonDisplayName(
+                  row.full_name,
+                  row.user_id,
+                ),
               prayed_at:
                 row.prayed_at
             })
@@ -136,8 +139,10 @@ export default function PrayerDetail() {
             user_id:row.user_id,
 
             full_name:
-              row.profiles?.full_name ||
-              'BUKLOD Member',
+              resolvePersonDisplayName(
+                row.profiles,
+                row.user_id,
+              ),
 
             prayed_at:
               row.prayed_at
@@ -291,8 +296,6 @@ export default function PrayerDetail() {
 
     if(existing){
 
-      await load();
-
       Alert.alert(
         'Prayer',
         'You already prayed for this request.'
@@ -323,8 +326,6 @@ export default function PrayerDetail() {
       error?.code==='23505'
     ){
 
-      await load();
-
       Alert.alert(
         'Prayer',
         'You already prayed for this request.'
@@ -345,7 +346,13 @@ export default function PrayerDetail() {
     }
 
 
-    await load();
+    /*
+     * BUKLOD PERFORMANCE 001-E2
+     *
+     * Only the responder list changed.
+     * Do not refetch the whole prayer request.
+     */
+    await loadResponders();
 
 
     Alert.alert(
@@ -429,10 +436,10 @@ export default function PrayerDetail() {
       <Card>
 
         <Text style={shared.h2}>
-          {
-            item.profiles?.full_name ||
-            'BUKLOD Member'
-          }
+          {resolvePersonDisplayName(
+            item.profiles,
+            item.user_id,
+          )}
         </Text>
 
         <Text style={shared.muted}>
@@ -477,12 +484,12 @@ export default function PrayerDetail() {
         >
 
           <Text style={styles.prayedText}>
-            🙏 {responders.length} prayed
+            {'\uD83D\uDE4F '} {responders.length} prayed
             {
               responders.length > 0
                 ? showResponders
-                  ? ' ▲'
-                  : ' ▼'
+                  ? ' â–²'
+                  : ' â–¼'
                 : ''
             }
           </Text>
@@ -533,7 +540,7 @@ export default function PrayerDetail() {
                           styles.responderName
                         }
                       >
-                        🙏 {person.full_name}
+                        {'\uD83D\uDE4F '} {person.full_name}
                       </Text>
 
                     </View>
@@ -553,12 +560,12 @@ export default function PrayerDetail() {
 
         <>
           <Button
-            title="🙏 I PRAYED"
+            title={'\uD83D\uDE4F I PRAYED'}
             onPress={prayed}
           />
 
           <Button
-            title="⚑ REPORT CONTENT"
+            title="âš‘ REPORT CONTENT"
             outline
             onPress={()=>
               router.push({
@@ -602,7 +609,7 @@ export default function PrayerDetail() {
               />
 
               <Button
-                title="✓ MARK AS ANSWERED"
+                title="âœ“ MARK AS ANSWERED"
                 onPress={markAnswered}
               />
 
@@ -620,7 +627,7 @@ export default function PrayerDetail() {
           <Card>
 
             <Text style={shared.h2}>
-              ✓ Answered Prayer
+              âœ“ Answered Prayer
             </Text>
 
             <Text style={shared.body}>

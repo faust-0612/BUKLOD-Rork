@@ -34,6 +34,15 @@ export function useCallStateHooks(): any {
   );
 }
 
+export const CallingState = {
+  IDLE: 'idle',
+  RINGING: 'ringing',
+  JOINING: 'joining',
+  JOINED: 'joined',
+  LEFT: 'left',
+  RECONNECTING: 'reconnecting',
+} as const;
+
 export function StreamVideo({
   children,
 }: PropsWithChildren<{

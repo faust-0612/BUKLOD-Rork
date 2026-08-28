@@ -5,6 +5,7 @@ import React, {
 import {
   Alert,
   Image,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -251,6 +252,37 @@ export default function PrivacyConsentScreen() {
           Your acknowledgement is saved using the existing BUKLOD compliance process. After acceptance, the current root routing flow determines the correct destination based on your account, membership, and active scope.
         </Text>
       </Card>
+
+      <Pressable
+        onPress={() => router.push('/privacy' as any)}
+        accessibilityRole="link"
+        style={{ paddingVertical: 12 }}
+      >
+        <Text
+          style={{
+            color: colors.greenDark,
+            fontWeight: '800',
+            textDecorationLine: 'underline',
+          }}
+        >
+          Read the BUKLOD Privacy Policy
+        </Text>
+      </Pressable>
+      <Pressable
+        onPress={() => router.push('/delete-account' as any)}
+        accessibilityRole="link"
+        style={{ paddingBottom: 12 }}
+      >
+        <Text
+          style={{
+            color: colors.greenDark,
+            fontWeight: '800',
+            textDecorationLine: 'underline',
+          }}
+        >
+          How to delete a BUKLOD account
+        </Text>
+      </Pressable>
 
       <View
         style={

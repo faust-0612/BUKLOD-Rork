@@ -10,6 +10,7 @@ import {
 import { router } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
+import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import {
   Button,
   Card,
@@ -196,9 +197,10 @@ export default function TreasurerAssignmentsScreen() {
       setTreasurers(
         assignments.map((item) => ({
           ...item,
-          full_name:
-            nameMap.get(item.user_id) ??
-            'BUKLOD Member',
+          full_name: resolvePersonDisplayName(
+            nameMap.get(item.user_id),
+            item.user_id,
+          ),
         }))
       );
     }, [churchId]);
@@ -417,8 +419,10 @@ export default function TreasurerAssignmentsScreen() {
             .map((item) => (
               <Card key={item.id}>
                 <Text style={styles.name}>
-                  {item.full_name ||
-                    'BUKLOD Member'}
+                  {resolvePersonDisplayName(
+                    item.full_name,
+                    item.user_id,
+                  )}
                 </Text>
 
                 <Text style={shared.muted}>
@@ -490,8 +494,10 @@ export default function TreasurerAssignmentsScreen() {
                             styles.memberTextOn,
                         ]}
                       >
-                        {member.full_name ||
-                          'BUKLOD Member'}
+                        {resolvePersonDisplayName(
+                          member.full_name,
+                          member.id,
+                        )}
                       </Text>
                     </Pressable>
                   );
@@ -537,8 +543,10 @@ export default function TreasurerAssignmentsScreen() {
             .map((item) => (
               <Card key={item.id}>
                 <Text style={styles.name}>
-                  {item.full_name ||
-                    'BUKLOD Member'}
+                  {resolvePersonDisplayName(
+                    item.full_name,
+                    item.user_id,
+                  )}
                 </Text>
 
                 <Text style={shared.muted}>

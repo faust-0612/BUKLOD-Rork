@@ -4,19 +4,28 @@ import {
   ActivityIndicator,
   Alert,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
+import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
+import {
+  enterScopedWorkspace,
+} from '@/lib/buklodScopeRoute';
+import { BUKLOD_ORGANIZATION_TYPE_CHURCH } from '@/lib/buklodCommercialCatalog';
+import {
+  formatBuklodAddressQuery,
+  geocodeBuklodAddress,
+} from '@/lib/buklodGeocode';
 
 type OrganizationType =
+  | 'CHURCH'
   | 'MINISTRY_FAITH'
   | 'NGO_FOUNDATION'
   | 'SCHOOL_EDUCATION'
@@ -38,7 +47,8 @@ const TYPES: Array<{
   description: string;
   icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 }> = [
-  { key: 'MINISTRY_FAITH', label: 'Ministry / Faith Organization', description: 'Ministries, missions, churches and faith-based institutions.', icon: 'church-outline' },
+  { key: 'CHURCH', label: 'Church', description: 'A church registered as an Organization. Appears in Find a Church when address and location are saved.', icon: 'church-outline' },
+  { key: 'MINISTRY_FAITH', label: 'Ministry / Faith Organization', description: 'Ministries, missions and faith-based institutions. Not listed as a Church unless registered as Church.', icon: 'hands-pray' },
   { key: 'NGO_FOUNDATION', label: 'NGO / Foundation', description: 'Foundations, NGOs, charities and nonprofit organizations.', icon: 'hand-heart-outline' },
   { key: 'SCHOOL_EDUCATION', label: 'School / Education', description: 'Schools, academies, training centers and learning organizations.', icon: 'school-outline' },
   { key: 'BUSINESS_COMPANY', label: 'Business / Company', description: 'Companies, businesses and private organizations.', icon: 'office-building-outline' },
@@ -57,6 +67,14 @@ const COMMON_FIELDS: FieldDefinition[] = [
 ];
 
 const TYPE_FIELDS: Record<OrganizationType, FieldDefinition[]> = {
+  CHURCH: [
+    { key: 'address_line', label: 'STREET / BUILDING', placeholder: 'Worship address or building name' },
+    { key: 'barangay', label: 'BARANGAY', placeholder: 'Barangay' },
+    { key: 'city_municipality', label: 'CITY / MUNICIPALITY', placeholder: 'City or municipality' },
+    { key: 'province', label: 'PROVINCE', placeholder: 'Province' },
+    { key: 'affiliation', label: 'DENOMINATION / AFFILIATION', placeholder: 'Affiliation or network' },
+    { key: 'leader', label: 'PASTOR / LEADER', placeholder: 'Lead pastor or church leader' },
+  ],
   MINISTRY_FAITH: [
     { key: 'affiliation', label: 'DENOMINATION / AFFILIATION', placeholder: 'Affiliation or network' },
     { key: 'leader', label: 'LEADER / DIRECTOR', placeholder: 'Lead pastor, director or president' },
@@ -121,8 +139,12 @@ function Choice({
 }
 
 export default function CreateOrganizationScreen() {
+  const params = useLocalSearchParams<{ type?: string }>();
+  const presetType = String(params.type ?? '').trim().toUpperCase();
   const { selectScope, refresh } = useBuklodScope();
-  const [selectedType, setSelectedType] = useState<OrganizationType | null>(null);
+  const [selectedType, setSelectedType] = useState<OrganizationType | null>(
+    presetType === BUKLOD_ORGANIZATION_TYPE_CHURCH ? 'CHURCH' : null,
+  );
   const [values, setValues] = useState<Record<string, string>>({});
   const [visibility, setVisibility] = useState<'PUBLIC' | 'PRIVATE'>('PUBLIC');
   const [joinPolicy, setJoinPolicy] = useState<'OPEN' | 'APPROVAL_REQUIRED' | 'INVITE_ONLY'>('APPROVAL_REQUIRED');
@@ -158,6 +180,15 @@ export default function CreateOrganizationScreen() {
       Alert.alert('Organization', 'Organization name is required.');
       return;
     }
+    if (selectedType === 'CHURCH') {
+      if (!values.city_municipality?.trim() && !values.address_line?.trim()) {
+        Alert.alert(
+          'Church address',
+          'Add a usable church address so Find a Church can store coordinates.',
+        );
+        return;
+      }
+    }
     if (busy) return;
 
     setBusy(true);
@@ -166,7 +197,29 @@ export default function CreateOrganizationScreen() {
         Object.entries(values)
           .filter(([key]) => key !== 'name')
           .map(([key, value]) => [key, value.trim()]),
-      );
+      ) as Record<string, string>;
+
+      if (selectedType === 'CHURCH') {
+        const query = formatBuklodAddressQuery({
+          addressLine: profile.address_line,
+          barangay: profile.barangay,
+          cityMunicipality: profile.city_municipality,
+          province: profile.province,
+          country: 'Philippines',
+        });
+        const coords = await geocodeBuklodAddress(query);
+        if (coords) {
+          profile.latitude = String(coords.latitude);
+          profile.longitude = String(coords.longitude);
+        }
+        profile.safe_location_label = [
+          profile.barangay,
+          profile.city_municipality,
+          profile.province,
+        ]
+          .filter(Boolean)
+          .join(', ');
+      }
 
       const { data, error } = await (supabase as any).rpc(
         'buklod_create_organization_v3',
@@ -192,7 +245,12 @@ export default function CreateOrganizationScreen() {
         [
           {
             text: 'OPEN WORKSPACE',
-            onPress: () => router.replace('/scope' as any),
+            onPress: () =>
+              void enterScopedWorkspace(
+                selectScope,
+                scopeId,
+                { fromPortal: true }
+              ),
           },
           {
             text: 'MANAGE',
@@ -215,7 +273,7 @@ export default function CreateOrganizationScreen() {
   };
 
   return (
-    <ScrollView
+    <BuklodPortalScrollView
       style={styles.screen}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
@@ -227,9 +285,13 @@ export default function CreateOrganizationScreen() {
 
       <View style={styles.hero}>
         <Text style={styles.eyebrow}>CREATE</Text>
-        <Text style={styles.title}>Create Organization</Text>
+        <Text style={styles.title}>
+          {selectedType === 'CHURCH' ? 'Register a Church' : 'Create Organization'}
+        </Text>
         <Text style={styles.subtitle}>
-          Create a complete Organization environment. The creator becomes an active member and Organization Admin.
+          {selectedType === 'CHURCH'
+            ? 'A Church is an Organization type. Registration is free. After saving a usable address, it can appear in Find a Church.'
+            : 'Create a complete Organization environment. The creator becomes an active member and Organization Admin. Registration is free.'}
         </Text>
       </View>
 
@@ -348,13 +410,13 @@ export default function CreateOrganizationScreen() {
           </Pressable>
         </>
       )}
-    </ScrollView>
+    </BuklodPortalScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 16, paddingBottom: 44 },
+  content: { padding: 16, paddingBottom: 16 },
   back: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
   backText: { fontSize: 10.5, fontWeight: '800', color: colors.greenDark },
   hero: { borderRadius: 22, padding: 18, backgroundColor: colors.greenDark, marginBottom: 16 },

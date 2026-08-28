@@ -1,7 +1,9 @@
+import Constants from 'expo-constants';
 import {
   TestIds,
 } from 'react-native-google-mobile-ads';
 
+import type { BuklodAdDiagnosticPlacement } from '@/lib/buklodAdDiagnostics';
 
 export type BuklodAdPlacement =
   | 'home'
@@ -10,23 +12,79 @@ export type BuklodAdPlacement =
   | 'messages'
   | 'bible'
   | 'devotion'
-    | 'me'
+  | 'me'
+  | 'reels'
   | 'test';
 
+/* Standard AdMob BANNER creative is 320x50. Dashboard chrome
+ * reserves this plus the Sponsored label/padding so the shell
+ * never collapses while an ad is loading, empty, or failed. */
+export const BUKLOD_DASHBOARD_BANNER_AD_HEIGHT = 50;
+export const BUKLOD_DASHBOARD_BANNER_RESERVED_HEIGHT = 68;
+
+const GOOGLE_SAMPLE_ANDROID_APP_ID =
+  'ca-app-pub-3940256099942544~3347511713';
+
+const PRODUCTION_PACKAGE =
+  'org.mzbministry.buklod';
+
+const STAGING_PACKAGE =
+  'org.mzbministry.buklod.staging';
 
 const appEnvironment =
   (
-    process.env.EXPO_PUBLIC_APP_ENV ??
-    'development'
+    process.env.EXPO_PUBLIC_APP_ENV ||
+    String(
+      Constants.expoConfig?.extra?.appEnvironment ||
+        'production',
+    )
   )
     .trim()
     .toLowerCase();
 
+function nativePackages() {
+  return {
+    androidPackage: String(
+      Constants.expoConfig?.android?.package ?? '',
+    ).trim(),
+    iosBundle: String(
+      Constants.expoConfig?.ios?.bundleIdentifier ?? '',
+    ).trim(),
+  };
+}
+
+function isStagingNativeIdentity() {
+  const { androidPackage, iosBundle } =
+    nativePackages();
+
+  return (
+    androidPackage === STAGING_PACKAGE ||
+    iosBundle === STAGING_PACKAGE
+  );
+}
+
+function isProductionNativeIdentity() {
+  const { androidPackage, iosBundle } =
+    nativePackages();
+
+  return (
+    androidPackage === PRODUCTION_PACKAGE ||
+    iosBundle === PRODUCTION_PACKAGE
+  );
+}
 
 export const buklodAdsTestMode =
-  __DEV__ ||
-  appEnvironment !== 'production';
+  isStagingNativeIdentity() ||
+  (
+    !isProductionNativeIdentity() &&
+    (
+      __DEV__ ||
+      appEnvironment !== 'production'
+    )
+  );
 
+export const BUKLOD_GOOGLE_TEST_ANDROID_APP_ID =
+  GOOGLE_SAMPLE_ANDROID_APP_ID;
 
 function clean(
   value:
@@ -44,6 +102,21 @@ const genericBanner =
       .EXPO_PUBLIC_ADMOB_BANNER_UNIT_ID
   );
 
+export function getBuklodAdTestDeviceIds(): string[] {
+  return clean(process.env.EXPO_PUBLIC_ADMOB_TEST_DEVICE_IDS)
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
+export function diagnosticPlacementFor(
+  placement: BuklodAdPlacement,
+): BuklodAdDiagnosticPlacement {
+  if (placement === 'community') return 'community_inline';
+  if (placement === 'reels') return 'reels_inline';
+  if (placement === 'test') return 'test';
+  return 'home_bottom_banner';
+}
 
 export function getBuklodBannerUnitId(
   placement:
@@ -51,7 +124,7 @@ export function getBuklodBannerUnitId(
 ): string | null {
 
   if (buklodAdsTestMode) {
-    return TestIds.BANNER;
+    return TestIds.ADAPTIVE_BANNER;
   }
 
 
@@ -67,6 +140,7 @@ export function getBuklodBannerUnitId(
       break;
 
     case 'community':
+    case 'reels':
       placementId =
         clean(
           process.env
@@ -105,7 +179,7 @@ export function getBuklodBannerUnitId(
 
 
     case 'test':
-      return TestIds.BANNER;
+      return TestIds.ADAPTIVE_BANNER;
   }
 
 

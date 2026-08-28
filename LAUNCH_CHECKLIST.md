@@ -1,0 +1,175 @@
+# Before Launch Checklist
+
+- [ ] Create separate development, staging, and production Supabase projects.
+- [ ] Run schema + RLS in staging first.
+- [ ] Test member cannot read another member's private reflection.
+- [ ] Test group leader can read only authorized shared content.
+- [ ] Test pastor/local admin boundaries are limited to their church.
+- [ ] Test system admin permissions separately.
+- [ ] Add account deletion flow.
+- [ ] Add privacy notice and consent for pastoral monitoring.
+- [ ] Define retention periods for reflections, prayer requests, and follow-ups.
+- [ ] Add moderation/reporting for community content.
+- [ ] Add audit logging for privileged admin actions.
+- [ ] Configure backup and recovery.
+- [ ] Configure Expo push credentials.
+- [ ] Create Android and iOS builds through EAS.
+- [ ] Pen-test/auth-test before live deployment.
+
+- [ ] Verify anonymous users can read only active church names/codes, not private member data.
+- [ ] Test registration cannot set `role`, `church_id`, or group membership directly.
+- [ ] Test duplicate pending join requests are blocked.
+- [ ] Test local admins cannot approve requests for another church.
+- [ ] Test group leaders cannot approve an unassigned request.
+- [ ] Test approval assigns a group, updates church, creates notification, and writes an audit event atomically.
+
+- [ ] Confirm non-system-admin users cannot open or query draft devotional content.
+- [ ] Confirm pastor/local_admin cannot edit global devotional series or devotionals.
+- [ ] Confirm future-dated published devotionals are hidden until their publish date.
+- [ ] Test duplicate `(series_id, day_number)` handling in the CMS.
+- [ ] Verify church/group creation boundaries for local admins.
+- [ ] Verify only system_admin can change roles or deactivate accounts.
+- [ ] Review audit logs after each privileged administration action.
+
+- [ ] Test prayer `private` cannot be read by leader/group/church members.
+- [ ] Test `leader`, `group`, and `church` prayer privacy separately.
+- [ ] Test community realtime subscriptions with two separate member accounts.
+- [ ] Test comment/reaction notifications do not notify the acting user about their own action.
+- [ ] Test Expo push on Android development build.
+- [ ] Test Expo push on iOS development build.
+- [ ] Verify EAS project ID is configured before requesting ExpoPushToken.
+- [ ] Verify service/secret role credentials never appear in Expo/browser source.
+- [ ] Test notification deep links.
+- [ ] Test push permission denial gracefully falls back to in-app notifications.
+- [ ] Review follow-up thresholds with ministry leadership.
+- [ ] Confirm engagement labels are never presented as spirituality rankings.
+- [ ] Review leader follow-up notes for privacy, necessity, retention, and access.
+- [ ] Consider migrating high-volume realtime channels to Supabase Broadcast before large-scale rollout.
+
+- [ ] Review all seeded theological/discipleship content before launch.
+- [ ] Test member cannot read draft learning tracks.
+- [ ] Test member cannot edit another member's enrollment or progress.
+- [ ] Test mentor cannot review assignments outside assigned disciples.
+- [ ] Test quiz correct answers are not exposed in ordinary member UI.
+- [ ] Test quiz grading only through server-side RPC.
+- [ ] Confirm track completion creates one certificate only.
+- [ ] Define certificate wording and whether a downloadable PDF certificate is desired.
+- [ ] Define mentor assignment/removal process and pastoral accountability.
+- [ ] Review assignment retention and mentor-feedback privacy.
+
+- [ ] Test group event is invisible outside the assigned BUKLOD group.
+- [ ] Test church event is invisible outside the approved local church.
+- [ ] Test only system_admin can create system-wide events.
+- [ ] Test attendance managers cannot record users outside their scope.
+- [ ] Test self check-in before opening time, during window, and after closing time.
+- [ ] Verify check-in code is never shown in ordinary member event queries/UI.
+- [ ] Test RSVP capacity rules if capacity enforcement is enabled later.
+- [ ] Test announcement visibility and read receipts.
+- [ ] Test service assignment member can change only response status, not assignment text.
+- [ ] Confirm ordinary members cannot query quiz answer flags after v6 migration.
+- [ ] Confirm assignment review state remains RPC-controlled.
+- [ ] Schedule event reminders only after staging notification tests.
+
+- [ ] Test directory `private`, `leaders`, and `church` visibility with separate accounts.
+- [ ] Test hidden mobile number never appears in directory RPC output.
+- [ ] Test birthday reveals only month/day when enabled, not full birth date.
+- [ ] Test household visibility honors member preferences.
+- [ ] Test ordinary group leaders cannot read pastoral care notes.
+- [ ] Test pastor/local admin cannot access pastoral notes from another church.
+- [ ] Define pastoral note retention and deletion policy.
+- [ ] Define process for correcting inaccurate member-care notes.
+- [ ] Review visitor contact-consent wording.
+- [ ] Test no visitor follow-up contact is created from UI when consent is not recorded.
+- [ ] Publish member privacy notice before production launch.
+- [ ] Define account/data deletion workflow and retention exceptions.
+
+- [ ] Test system analytics denied to non-system-admin accounts.
+- [ ] Test church analytics denied outside the user's approved church.
+- [ ] Test group analytics denied to leaders who do not manage that group.
+- [ ] Confirm exported CSV excludes reflection text, prayer text, care-note text, and visitor notes.
+- [ ] Confirm church/group comparisons are visible only to appropriate leadership roles.
+- [ ] Label comparison reports as operational/participation metrics, not spirituality rankings.
+- [ ] Test CSV export on Android.
+- [ ] Test CSV export on iOS.
+- [ ] Test CSV export on web.
+- [ ] Review monthly snapshot definitions with leadership before formal reporting.
+- [ ] Define which metrics belong in official BOT/monthly reports.
+- [ ] Define retention period for saved analytics snapshots.
+
+- [ ] Run v9 policy-gate test with fresh and returning accounts.
+- [ ] Replace all privacy notice placeholders with verified organization details.
+- [ ] Test privacy request access/rectification/erasure/portability/object workflows.
+- [ ] Test permanent account deletion with disposable user.
+- [ ] Verify deleted-user session is cleared on device.
+- [ ] If Storage uploads are added, implement owned-object cleanup before Auth deletion.
+- [ ] Test reporting of post/prayer content.
+- [ ] Test system-admin moderation and hidden-content behavior.
+- [ ] Test offline banner and reconnect behavior.
+- [ ] Test push-token retry after reconnect.
+- [ ] Test ErrorBoundary and not-found screen in a preview build.
+- [ ] Review Supabase Auth rate limits and CAPTCHA.
+- [ ] Verify SSL Enforcement and backup settings.
+- [ ] Complete a staging restore drill before public launch.
+- [ ] Complete NPC/DPA privacy review appropriate to the ministry's actual processing.
+
+- [ ] Dedicated staging Supabase project is separate from production.
+- [ ] Canonical migration chain replays successfully using `supabase db reset`.
+- [ ] `supabase db push --dry-run` reviewed before remote staging push.
+- [ ] `--include-seed` used only on development/staging, never production.
+- [ ] Preview build identifies itself as `BUKLOD Staging`.
+- [ ] Preview Android package is `org.mzbministry.buklod.staging`.
+- [ ] EAS preview environment points only to the staging Supabase project.
+- [ ] First System Admin bootstrapped once, then normal protected role workflow used.
+- [ ] First Android preview passes `qa/FIRST_ANDROID_PREVIEW_CHECKLIST.md`.
+
+- [ ] Staging pilot access is enabled only after the first System Admin is available.
+- [ ] Every pilot tester is added to an intended cohort.
+- [ ] Maintenance mode ordinary-user block and System Admin bypass tested.
+- [ ] Minimum-version block tested using a disposable preview version.
+- [ ] Feature flags tested without weakening database RLS.
+- [ ] Feedback diagnostics verified to exclude private/sensitive content.
+- [ ] Pilot feedback queue owner is assigned.
+- [ ] Release notes updated for each preview build.
+
+- [ ] Pilot Welcome and Support Center reviewed on physical Android device.
+- [ ] Pilot Checklist works for Member, Leader, and System Admin roles.
+- [ ] Seven-day pilot devotional dates reviewed before access opens.
+- [ ] New Believer and Membership starter content reviewed by ministry leadership.
+- [ ] Pilot announcement templates reviewed before sending.
+- [ ] Pilot Tester Guide distributed.
+- [ ] Leader Pilot Guide distributed to leader testers.
+- [ ] Support triage owner knows P0 stop/escalation rule.
+- [ ] Launch Day Checklist completed.
+
+- [ ] Current pilot build is registered as an exact Release Candidate.
+- [ ] Zero unresolved P0 incidents before expansion.
+- [ ] Every required Go-Live readiness check has real evidence.
+- [ ] Readiness check PASS values are not self-certified without testing evidence.
+- [ ] Open P1 incidents explicitly reviewed.
+- [ ] Human HOLD/CONTINUE/GO-LIVE decision is recorded with rationale.
+- [ ] Production cutover checklist reviewed before any production migration.
+- [ ] Rollback owner and rollback procedure confirmed.
+
+- [ ] `supabase/seed.staging.sql` will never be applied to production.
+- [ ] `supabase/seed.production.sql` reviewed before production baseline use.
+- [ ] Production Privacy Notice contains no launch placeholders.
+- [ ] Production preflight passes.
+- [ ] Production migration hashes recorded.
+- [ ] Production migration dry-run reviewed by a human.
+- [ ] First production System Admin email verified before bootstrap.
+- [ ] Live church selector contains only verified production churches.
+- [ ] Production remains in Maintenance Mode through final smoke testing.
+- [ ] Exact production binary registered as approved Release Candidate.
+- [ ] Google Play / Apple privacy declarations match actual behavior.
+- [ ] Final production sign-off completed.
+- [ ] GO LIVE recorded in Command Center before disabling Maintenance Mode.
+
+- [ ] Production EAS environment configured with verified production public values.
+- [ ] Production Supabase linked using correct project reference.
+- [ ] Production Supabase platform settings checklist completed.
+- [ ] Android production AAB built from production profile.
+- [ ] Exact Android build registered in Command Center.
+- [ ] First Google Play upload is draft/internal only until store/readiness review completes.
+- [ ] Android production smoke test completed under Maintenance Mode.
+- [ ] Execution State reflects only actions actually completed.
+- [ ] Production Action Log records operator, target, result, and evidence.

@@ -3,9 +3,8 @@ import BuklodFoundationPortalShell from '@/components/BuklodFoundationPortalShel
 export default function BuklodBusinessPortal() {
   return (
     <BuklodFoundationPortalShell
-      title="BUKLOD Business"
+      integrationAppId="commercial"
       icon="storefront-outline"
-      description="Business creation and business workspace portal."
     />
   );
 }

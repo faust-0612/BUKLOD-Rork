@@ -1,41 +1,36 @@
 import React from 'react';
 
 import {
+  Redirect,
   useLocalSearchParams,
 } from 'expo-router';
 
-import BuklodConnectThread
-  from '@/components/BuklodConnectThread';
+import {
+  firstRouteParam,
+} from '@/lib/buklodScopeRoute';
 
-
-/* PATCH_169C_MZB_DIRECT_THREAD */
-
-export default function
-MzbPersonalThreadScreen() {
+export default function MzbPersonalThreadRedirect() {
   const params =
     useLocalSearchParams<{
-      threadId?: string;
+      threadId?: string | string[];
+      targetUserId?: string | string[];
+      otherUserId?: string | string[];
+      otherUserName?: string | string[];
     }>();
 
-  const threadId =
-    Array.isArray(
-      params.threadId
-    )
-      ? params.threadId[0]
-      : params.threadId;
-
-  if (!threadId) {
-    return null;
-  }
+  const threadId = firstRouteParam(params.threadId);
 
   return (
-    
-      <BuklodConnectThread
-        mode="direct"
-        containerId={
-          threadId
-        }
-      />
-    
+    <Redirect
+      href={{
+        pathname: '/connect/personal/[threadId]',
+        params: {
+          threadId,
+          targetUserId: firstRouteParam(params.targetUserId),
+          otherUserId: firstRouteParam(params.otherUserId),
+          otherUserName: firstRouteParam(params.otherUserName),
+        },
+      } as any}
+    />
   );
 }

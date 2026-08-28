@@ -49,7 +49,7 @@ module.exports = ({ config }) => {
     icon: './assets/release/app-icon.png',
 
     assetBundlePatterns: [
-      '**/*',
+      'assets/**',
     ],
 
 
@@ -108,14 +108,17 @@ module.exports = ({ config }) => {
 
 
     plugins: [
+      'expo-background-task',
       [
         'react-native-google-mobile-ads',
         {
           androidAppId:
-            (
-              process.env.ADMOB_ANDROID_APP_ID ||
-              ''
-            ).trim(),
+            isStaging
+              ? 'ca-app-pub-3940256099942544~3347511713'
+              : (
+                  process.env.ADMOB_ANDROID_APP_ID ||
+                  ''
+                ).trim(),
 
           delayAppMeasurementInit: true,
           optimizeInitialization: true,
@@ -173,7 +176,23 @@ module.exports = ({ config }) => {
 
       'expo-status-bar',
 
-      'expo-sharing',
+      /* BUKLOD_SHARE_TARGET_187A */
+      [
+        'expo-sharing',
+        {
+          android: {
+            enabled: true,
+            singleShareMimeTypes: [
+              'image/*',
+              'video/*',
+              'text/*',
+            ],
+            multipleShareMimeTypes: [
+              'image/*',
+            ],
+          },
+        },
+      ],
 
 
       [
@@ -293,6 +312,8 @@ module.exports = ({ config }) => {
         {
           android: {
             minSdkVersion: 24,
+            enableProguardInReleaseBuilds: true,
+            enableShrinkResourcesInReleaseBuilds: true,
             extraProguardRules: '-keep class com.google.android.gms.internal.consent_sdk.** { *; }',
           },
 
@@ -351,6 +372,7 @@ module.exports = ({ config }) => {
         : undefined,
 
 
-    runtimeVersion: '1.3.0',
+    runtimeVersion: isStaging ? '1.3.2' : '1.3.0',
   };
 };
+

@@ -1,12 +1,14 @@
-export type BuklodScopedHeaderBannerProps = {
-  [key: string]: unknown;
-};
+﻿import React from 'react';
 
-export function BuklodScopedHeaderBanner(
-  _props: BuklodScopedHeaderBannerProps
+type Placement =
+  | 'home'
+  | 'messages'
+  | 'community';
+
+export default function BuklodScopedHeaderBanner(
+  _props: {
+    placement: Placement;
+  }
 ) {
-  // Web intentionally has no native AdMob banner.
   return null;
 }
-
-export default BuklodScopedHeaderBanner;

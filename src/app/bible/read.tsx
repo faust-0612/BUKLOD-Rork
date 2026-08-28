@@ -1,3 +1,4 @@
+import { repairMojibakeText } from '@/lib/repairMojibakeText';
 import BuklodOccasionalAd from '@/components/BuklodOccasionalAd';
 /**
  * PATCH 153H-3A
@@ -21,6 +22,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -49,7 +51,13 @@ import {
   SectionTitle,
   shared,
 } from '@/components/UI';
-import { VoiceReader } from '@/components/VoiceReader';
+import { BuklodBibleNarrationBar } from '@/components/BuklodBibleNarrationBar';
+import {
+  mapBibleChapterRows,
+} from '@/lib/buklodBibleNarration';
+import {
+  useBuklodBibleNarration,
+} from '@/providers/BuklodBibleNarrationProvider';
 
 
 type Translation = {
@@ -336,11 +344,41 @@ const [showChapters, setShowChapters] =
     );
 
 
-  const [
-    myBibleContinuousReading,
-    setMyBibleContinuousReading,
-  ] =
-    useState(false);
+  const {
+    snapshot: bibleNarration,
+    play: playBibleNarration,
+  } =
+    useBuklodBibleNarration();
+
+  const bibleNarrationStatusRef =
+    useRef(
+      bibleNarration.status
+    );
+  bibleNarrationStatusRef.current =
+    bibleNarration.status;
+
+  const userChapterPickRef =
+    useRef(false);
+  const pendingNarrationPlayRef =
+    useRef(false);
+
+  const markUserBibleChapterChange =
+    () => {
+      userChapterPickRef.current =
+        true;
+
+      if (
+        bibleNarrationStatusRef.current ===
+          'playing' ||
+        bibleNarrationStatusRef.current ===
+          'paused' ||
+        bibleNarrationStatusRef.current ===
+          'loading'
+      ) {
+        pendingNarrationPlayRef.current =
+          true;
+      }
+    };
 
 
   const [initializing, setInitializing] =
@@ -1581,7 +1619,6 @@ if (requestedChapter > 0) {
   ]);
 
 
-  // ==========================================================
   // LOAD CHAPTER + START READING SESSION
   // ==========================================================
 
@@ -1600,7 +1637,15 @@ if (requestedChapter > 0) {
 
 
     const run = async () => {
-      setChapterLoading(true);
+      const keepVisible =
+        bibleNarrationStatusRef.current ===
+          'playing' ||
+        bibleNarrationStatusRef.current ===
+          'paused' ||
+        bibleNarrationStatusRef.current ===
+          'loading';
+
+      setChapterLoading(!keepVisible);
       setCompleted(false);
       setSessionId(null);
 
@@ -1638,6 +1683,51 @@ if (requestedChapter > 0) {
 
 
         setVerses(chapter);
+
+        if (cancelled) return;
+
+        if (
+          pendingNarrationPlayRef.current &&
+          chapter.length
+        ) {
+          pendingNarrationPlayRef.current =
+            false;
+
+          const playingBook =
+            books.find(
+              (item) =>
+                Number(item.book_no) ===
+                bookNo
+            );
+
+          void playBibleNarration({
+            translation,
+            language:
+              translation === 'ASD'
+                ? 'fil-PH'
+                : 'en-US',
+            bookNo,
+            bookName:
+              String(
+                playingBook?.book_name ??
+                  'Bible'
+              ),
+            chapterNo,
+            verses:
+              mapBibleChapterRows(
+                chapter,
+                {
+                  bookNo,
+                  bookName:
+                    playingBook?.book_name,
+                  chapterNo,
+                }
+              ),
+            startVerseNo: 1,
+            books,
+            continueNextBook: true,
+          });
+        }
 
 
         if (!chapter.length) {
@@ -1710,6 +1800,7 @@ if (requestedChapter > 0) {
     chapterNo,
     source,
     books.length,
+    playBibleNarration,
   ]);
 
 
@@ -1786,6 +1877,7 @@ if (requestedChapter > 0) {
     (
       nextChapter: number
     ) => {
+      markUserBibleChapterChange();
 
       setChapterNo(nextChapter);
 
@@ -1823,109 +1915,84 @@ if (requestedChapter > 0) {
 
 
   /* ========================================================
-     MY BIBLE CONTINUOUS AUDIO
+     FOLLOW CONTINUOUS NARRATION
 
-     chapter 1
-       ↓
-     chapter 2
-       ↓
-     last chapter of book
-       ↓
-     next book chapter 1
-       ↓
-     continues until STOP
+     The playback engine lives above this screen so
+     scrolling and chapter reloads cannot stop audio.
+     The reader follows the current book/chapter/verse.
   ======================================================== */
 
-  const advanceMyBibleAudio =
+  useEffect(
     () => {
-
       if (
-        !isMyBibleMode ||
-        !myBibleContinuousReading ||
-        !currentBook
+        bibleNarration.status !==
+          'playing' &&
+        bibleNarration.status !==
+          'loading'
       ) {
         return;
       }
 
+      if (
+        bibleNarration.translation &&
+        bibleNarration.translation !==
+          translation
+      ) {
+        return;
+      }
 
-      /*
-       * A selected verse applies only
-       * to the current chapter.
-       *
-       * Next chapter starts from verse 1.
-       */
-      setPassageVerseNo(
-        null
-      );
-
-
-      const chapterCount =
-        Number(
-          currentBook.chapter_count
-        );
-
-
-      /* ----------------------------------------
-         NEXT CHAPTER IN SAME BOOK
-      ----------------------------------------- */
+      if (userChapterPickRef.current) {
+        if (
+          bibleNarration.bookNo ===
+            bookNo &&
+          bibleNarration.chapterNo ===
+            chapterNo
+        ) {
+          userChapterPickRef.current =
+            false;
+        }
+        return;
+      }
 
       if (
-        chapterNo <
-        chapterCount
+        bibleNarration.bookNo > 0 &&
+        bibleNarration.bookNo !==
+          bookNo
       ) {
+        setBookNo(
+          bibleNarration.bookNo
+        );
+      }
 
+      if (
+        bibleNarration.chapterNo > 0 &&
+        bibleNarration.chapterNo !==
+          chapterNo
+      ) {
         setChapterNo(
-          current =>
-            current + 1
+          bibleNarration.chapterNo
         );
-
-        return;
-
       }
-
-
-      /* ----------------------------------------
-         LAST CHAPTER -> NEXT BOOK
-      ----------------------------------------- */
-
-      const nextBook =
-        books.find(
-          item =>
-            Number(
-              item.book_no
-            ) ===
-            bookNo + 1
-        );
-
 
       if (
-        !nextBook
+        bibleNarration.verseNo > 0
       ) {
-
-        /*
-         * End of final available Bible book.
-         */
-        setMyBibleContinuousReading(
-          false
+        setPassageVerseNo(
+          bibleNarration.verseNo
         );
-
-        return;
-
       }
-
-
-      setBookNo(
-        Number(
-          nextBook.book_no
-        )
-      );
-
-
-      setChapterNo(
-        1
-      );
-
-    };
+    },
+    [
+      bibleNarration.status,
+      bibleNarration.translation,
+      bibleNarration.bookNo,
+      bibleNarration.chapterNo,
+      bibleNarration.verseNo,
+      translation,
+      bookNo,
+      chapterNo,
+    ]
+  );
 
 
   const moveChapter =
@@ -1936,6 +2003,8 @@ if (requestedChapter > 0) {
       if (!currentBook) {
         return;
       }
+
+      markUserBibleChapterChange();
 
 
       if (direction === -1) {
@@ -2632,50 +2701,42 @@ setMarking(true);
           
           {/* DAILY_DEVOTION_VOICE_READER_V1 */}
 
-          {!chapterLoading &&
-            verses.length > 0 && (
-
-            <View
-              style={{
-                marginBottom: 14,
-              }}
-            >
-
-              <VoiceReader
-            title="PAKINGGAN ANG READING"
-            subtitle={
-              translation === 'ASD'
-                ? 'Malinaw na Tagalog / Filipino voice'
-                : 'Audio reader for this Bible version'
-            }
-            language={
-              translation === 'ASD'
-                ? 'fil-PH'
-                : 'en-US'
-            }
-            text={[
-              (currentBook?.book_name ?? 'Bible') +
-                ', kabanata ' +
-                chapterNo +
-                '.',
-
-              ...verses.map(
-                verse =>
-                  String(
-                    verse.verse_text ?? ''
-                  )
-                    .replace(
-                      /^\u00B6\s*/,
-                      ''
-                    )
-                    .trim()
-              ),
-            ].join(' ')}
-          />
-
-            </View>
-
-          )}
+          <View
+            style={{
+              marginBottom: 14,
+            }}
+          >
+            <BuklodBibleNarrationBar
+            key={`${translation}:${bookNo}:${chapterNo}`}
+              title="Listen to today's reading"
+              subtitle="One play continues verse by verse, then to the next chapter, until you stop."
+              translation={translation}
+              language={
+                translation === 'ASD'
+                  ? 'fil-PH'
+                  : 'en-US'
+              }
+              bookNo={bookNo}
+              bookName={
+                currentBook?.book_name ??
+                'Bible'
+              }
+              chapterNo={chapterNo}
+              verses={mapBibleChapterRows(
+                verses,
+                {
+                  bookNo,
+                  bookName:
+                    currentBook?.book_name,
+                  chapterNo,
+                }
+              )}
+              startVerseNo={passageVerseNo}
+              books={books}
+              continueNextBook
+              disabled={verses.length === 0}
+            />
+          </View>
 
 
 {chapterLoading ? (
@@ -2741,7 +2802,7 @@ setMarking(true);
 
                   const cleanText =
                     String(
-                      verse.verse_text ??
+                      repairMojibakeText(verse.verse_text) ??
                       ''
                     )
                       .replace(
@@ -2751,14 +2812,37 @@ setMarking(true);
                       .trim();
 
 
+                  const listeningVerse =
+                    bibleNarration.status !==
+                      'idle' &&
+                    bibleNarration.translation ===
+                      translation &&
+                    Number(
+                      bibleNarration.bookNo
+                    ) ===
+                      Number(bookNo) &&
+                    Number(
+                      bibleNarration.chapterNo
+                    ) ===
+                      Number(chapterNo) &&
+                    Number(
+                      bibleNarration.verseNo
+                    ) ===
+                      Number(
+                        verse.verse_no
+                      );
+
+
                   return (
                     <View
                       key={
                         verse.verse_no
                       }
-                      style={
-                        styles.verseRow
-                      }
+                      style={[
+                        styles.verseRow,
+                        listeningVerse &&
+                          styles.focusVerse,
+                      ]}
                     >
 
                       <Text
@@ -3836,99 +3920,42 @@ setMarking(true);
         </View>
 
 
-        {/* BIBLE_TAGALOG_VOICE_READER_V2 */}
-        {!chapterLoading &&
-          verses.length > 0 && (
-          <VoiceReader
-
-            /* MY_BIBLE_CONTINUOUS_AUDIO_FINAL_V2 */
-
-            autoPlay={
-              isMyBibleMode &&
-              myBibleContinuousReading
-            }
-
-            onUserStart={() => {
-
-              if (
-                isMyBibleMode
-              ) {
-
-                setMyBibleContinuousReading(
-                  true
-                );
-
-              }
-
-            }}
-
-            onUserStop={() => {
-
-              if (
-                isMyBibleMode
-              ) {
-
-                setMyBibleContinuousReading(
-                  false
-                );
-
-              }
-
-            }}
-
-            onFinished={
-              advanceMyBibleAudio
-            }
-            title="PAKINGGAN ANG KABANATA"
-            subtitle={
-              translation === 'ASD'
-                ? 'Malinaw na Tagalog / Filipino voice'
-                : 'Audio reader for this Bible version'
-            }
+        <View
+          style={{
+            marginBottom: 14,
+          }}
+        >
+          <BuklodBibleNarrationBar
+            key={`${translation}:${bookNo}:${chapterNo}`}
+            title="Listen to this chapter"
+            subtitle="One play continues verse by verse, then to the next chapter, until you stop."
+            translation={translation}
             language={
               translation === 'ASD'
                 ? 'fil-PH'
                 : 'en-US'
             }
-            text={[
-              (currentBook?.book_name ?? 'Bible') +
-                ', kabanata ' +
-                chapterNo +
-                '.',
-
-              ...verses
-              .filter(
-                verse =>
-                  passageVerseNo ===
-                    null ||
-                  Number(
-                    verse.verse_no
-                  ) >=
-                    passageVerseNo
-              )
-              .map(
-                verse =>
-                  'Talata ' +
-                  Number(
-                    verse.verse_no
-                  ) +
-                  '. ' +
-                  String(
-                    verse.verse_text ?? ''
-                  )
-                    .replace(
-                      /^\u00B6\s*/,
-                      ''
-                    )
-                    .trim()
-              ),
-            ].join(' ')}
+            bookNo={bookNo}
+            bookName={
+              currentBook?.book_name ??
+              'Bible'
+            }
+            chapterNo={chapterNo}
+            verses={mapBibleChapterRows(
+              verses,
+              {
+                bookNo,
+                bookName:
+                  currentBook?.book_name,
+                chapterNo,
+              }
+            )}
+            startVerseNo={passageVerseNo}
+            books={books}
+            continueNextBook
+            disabled={verses.length === 0}
           />
-
-        
-
-
-        )}
+        </View>
 
 
         {/* BIBLE RESPONSIVE VIEW CONTROLS */}
@@ -4145,7 +4172,7 @@ setMarking(true);
 
                 const cleanText =
                   String(
-                    verse.verse_text
+                    repairMojibakeText(verse.verse_text)
                   )
                     .replace(/^\u00B6\s*/, '').trim();
 

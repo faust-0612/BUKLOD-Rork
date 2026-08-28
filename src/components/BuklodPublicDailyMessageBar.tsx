@@ -26,8 +26,8 @@ import {
 } from '@/lib/buklodPublicDailyFaith';
 
 import {
-  colors,
-} from '@/lib/theme';
+  useBuklodPresentation,
+} from '@/hooks/useBuklodPresentation';
 
 import {
   useAuth,
@@ -47,6 +47,9 @@ export default function BuklodPublicDailyMessageBar({
     user,
     profile,
   } = useAuth();
+
+  const { colors } = useBuklodPresentation();
+  const styles = createStyles(colors);
 
   const {
     activeScope,
@@ -190,7 +193,10 @@ export default function BuklodPublicDailyMessageBar({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(
+  colors: ReturnType<typeof useBuklodPresentation>['colors']
+) {
+  return StyleSheet.create({
   shell: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -199,7 +205,7 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
-    backgroundColor: '#F8FBF9',
+    backgroundColor: colors.white,
   },
 
   loading: {
@@ -208,7 +214,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
-    backgroundColor: '#F8FBF9',
+    backgroundColor: colors.white,
   },
 
   icon: {
@@ -217,8 +223,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor:
-      'rgba(39,93,69,0.10)',
+    backgroundColor: colors.greenSoft,
   },
 
   copy: {
@@ -261,4 +266,5 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: colors.greenDark,
   },
-});
+  });
+}

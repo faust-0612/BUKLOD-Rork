@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -8,243 +8,216 @@ import {
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import {
-  router,
-  useFocusEffect,
-} from 'expo-router';
+import { router } from 'expo-router';
 
 import {
-  getMyBuklodFoundationWorkspaces,
-  type BuklodFoundationWorkspace,
+  BuklodProfileGlassCard,
+  BuklodProfileGlassRow,
+} from '@/components/BuklodProfileGlassCard';
+import { ProfileMotionFadeUp } from '@/components/BuklodProfileMotion';
+import {
+  BUKLOD_FOCUS_APP_CATALOG,
+  BUKLOD_FOCUS_APP_ICONS,
+  BUKLOD_FOCUS_APP_LABELS,
+  BUKLOD_FOCUS_APP_REGISTRY,
+  type BuklodFocusApp,
+  type BuklodFocusAppAccess,
 } from '@/lib/buklodFoundation';
+import { isOrgSubscriptionGatedFocusApp } from '@/lib/buklodCommercialCatalog';
+import {
+  canUseOrganizationFocusApp,
+  resolveOrganizationIdFromScope,
+} from '@/lib/buklodOrganizationFocusApps';
+import { useBuklodFoundation } from '@/hooks/useBuklodFoundation';
+import { openAttendanceWorkspaceForAccount } from '@/lib/buklodScopeManage';
+import { useBuklodScope } from '@/providers/BuklodScopeProvider';
+import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import { supabase } from '@/lib/supabase';
 
 export default function BuklodFoundationWorkspaceNav() {
-  const [rows, setRows] = useState<
-    BuklodFoundationWorkspace[]
-  >([]);
-  const [loading, setLoading] = useState(false);
-  const [openingKey, setOpeningKey] =
-    useState<string | null>(null);
+  const { theme } = useBuklodTheme();
+  const { focusApps } = useBuklodFoundation();
+  const { scopes, activeScope, selectScope } = useBuklodScope();
+  const [open, setOpen] = useState(false);
+  const [openingKey, setOpeningKey] = useState<string | null>(null);
+  const [locked, setLocked] = useState<Record<string, boolean>>({});
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const organizationId =
+    resolveOrganizationIdFromScope(activeScope) ??
+    scopes.map((scope) => resolveOrganizationIdFromScope(scope)).find(Boolean) ??
+    null;
 
-    try {
-      const next =
-        await getMyBuklodFoundationWorkspaces();
-
-      // FOUNDATION 007-R5:
-      // NO frontend canonical whitelist.
-      // The database registry/RPC is the source of truth.
-      setRows(next);
-    } catch (error: any) {
-      console.warn(
-        'BUKLOD Foundation workspace load failed:',
-        String(error?.message ?? error)
-      );
-      setRows([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      void load();
-    }, [load])
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        section: {
+          marginTop: 4,
+          paddingHorizontal: 12,
+        },
+        eyebrow: {
+          marginBottom: 8,
+          marginLeft: 4,
+          color: theme.textMuted,
+          fontSize: 12,
+          fontWeight: '800',
+          letterSpacing: 0.8,
+        },
+        rowBorder: {
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: theme.border,
+        },
+        lockNote: {
+          paddingHorizontal: 14,
+          paddingBottom: 12,
+          fontSize: 12,
+          lineHeight: 17,
+          color: theme.textMuted,
+        },
+      }),
+    [theme],
   );
 
-  const openWorkspace = useCallback(
-    async (item: BuklodFoundationWorkspace) => {
-      if (openingKey) return;
+  const catalogApps = useMemo(() => {
+    const byApp = new Map<BuklodFocusApp, BuklodFocusAppAccess>();
+    for (const item of focusApps) {
+      byApp.set(item.app, item);
+    }
+    return BUKLOD_FOCUS_APP_REGISTRY.map((app) => {
+      const existing = byApp.get(app);
+      return {
+        app,
+        access: existing ?? null,
+        gated: isOrgSubscriptionGatedFocusApp(app),
+      };
+    });
+  }, [focusApps]);
 
-      setOpeningKey(item.workspace_key);
+  const openDrawer = useCallback(async () => {
+    const nextOpen = !open;
+    setOpen(nextOpen);
+    if (!nextOpen || !organizationId) return;
 
-      try {
-        // Faculty activation stays idempotent and automatic.
-        // This does NOT create an extra button.
-        if (item.workspace_key === 'FACULTY') {
-          const { error } = await (supabase as any).rpc(
-            'buklod_education_activate_faculty_workspace_v1'
+    const nextLocked: Record<string, boolean> = {};
+    await Promise.all(
+      catalogApps
+        .filter((row) => row.gated)
+        .map(async (row) => {
+          const allowed = await canUseOrganizationFocusApp(
+            organizationId,
+            row.app,
           );
+          nextLocked[row.app] = !allowed;
+        }),
+    );
+    setLocked(nextLocked);
+  }, [catalogApps, open, organizationId]);
 
+  const openApp = useCallback(
+    async (app: BuklodFocusApp, item: BuklodFocusAppAccess | null) => {
+      if (openingKey) return;
+      if (locked[app]) {
+        router.push('/profile/focus-apps' as any);
+        return;
+      }
+
+      const route =
+        item?.workspace?.route ||
+        BUKLOD_FOCUS_APP_CATALOG[app].routes[0];
+      if (!route) return;
+
+      setOpeningKey(app);
+      try {
+        if (app === 'faculty') {
+          const { error } = await (supabase as any).rpc(
+            'buklod_education_activate_faculty_workspace_v1',
+          );
           if (error) throw error;
         }
-
-        router.push(item.route as any);
+        if (app === 'attendance') {
+          await openAttendanceWorkspaceForAccount(selectScope, scopes, {
+            scopeId: item?.scopeId,
+            activeScope,
+          });
+          return;
+        }
+        router.push(route as any);
       } catch (error: any) {
         Alert.alert(
-          item.title || 'BUKLOD Workspace',
-          String(
-            error?.message ??
-              'Could not open this BUKLOD workspace.'
-          )
+          BUKLOD_FOCUS_APP_LABELS[app],
+          String(error?.message ?? 'Could not open this BUKLOD workspace.'),
         );
       } finally {
         setOpeningKey(null);
       }
     },
-    [openingKey]
+    [activeScope, locked, openingKey, scopes, selectScope],
   );
-
-  if (loading && !rows.length) {
-    return (
-      <View style={styles.section}>
-        <Text style={styles.eyebrow}>
-          MY BUKLOD WORKSPACES
-        </Text>
-
-        <View style={styles.loadingCard}>
-          <ActivityIndicator color="#275D45" />
-          <Text style={styles.loadingText}>
-            Loading workspaces...
-          </Text>
-        </View>
-      </View>
-    );
-  }
-
-  if (!rows.length) return null;
 
   return (
     <View style={styles.section}>
-      <Text style={styles.eyebrow}>
-        MY BUKLOD WORKSPACES
-      </Text>
+      <ProfileMotionFadeUp delay={0} duration={240} fromY={10} fromOpacity={0.78}>
+        <Text style={styles.eyebrow}>BUKLOD FOCUS APPS</Text>
+      </ProfileMotionFadeUp>
 
-      <View style={styles.card}>
-        {rows.map((item, index) => {
-          const opening =
-            openingKey === item.workspace_key;
+      <BuklodProfileGlassCard>
+        <BuklodProfileGlassRow
+          icon="apps"
+          title="BUKLOD Focus Apps"
+          subtitle="Premium portals · ₱59/month or ₱499/year"
+          onPress={() => void openDrawer()}
+          trailing={
+            <MaterialCommunityIcons
+              name={open ? 'chevron-up' : 'chevron-down'}
+              size={20}
+              color={theme.textMuted}
+            />
+          }
+        />
 
-          return (
-            <Pressable
-              key={item.workspace_key}
-              onPress={() => void openWorkspace(item)}
-              disabled={!!openingKey}
-              style={({ pressed }) => [
-                styles.row,
-                index > 0 && styles.rowBorder,
-                pressed && styles.pressed,
-                opening && styles.opening,
-              ]}
-            >
-              <View style={styles.iconBox}>
-                <MaterialCommunityIcons
-                  name={(item.icon || 'apps') as any}
-                  size={21}
-                  color="#275D45"
-                />
-              </View>
+        {open
+          ? catalogApps.map((row, index) => {
+              const opening = openingKey === row.app;
+              const isLocked = row.gated && locked[row.app] !== false && locked[row.app] !== undefined
+                ? locked[row.app]
+                : row.gated && !row.access?.canSee;
+              const title = BUKLOD_FOCUS_APP_LABELS[row.app];
+              return (
+                <View key={row.app} style={index >= 0 ? styles.rowBorder : undefined}>
+                  <BuklodProfileGlassRow
+                    icon={
+                      (BUKLOD_FOCUS_APP_ICONS[row.app] as
+                        React.ComponentProps<typeof MaterialCommunityIcons>['name']) ||
+                      'apps'
+                    }
+                    title={title}
+                    subtitle={isLocked ? 'Locked · subscription required' : 'Open portal'}
+                    disabled={!!openingKey}
+                    onPress={() => void openApp(row.app, row.access)}
+                    trailing={
+                      opening ? (
+                        <ActivityIndicator size="small" color={theme.accent} />
+                      ) : (
+                        <MaterialCommunityIcons
+                          name={isLocked ? 'lock-outline' : 'chevron-right'}
+                          size={20}
+                          color={theme.textMuted}
+                        />
+                      )
+                    }
+                  />
+                </View>
+              );
+            })
+          : null}
 
-              <View style={styles.body}>
-                <Text style={styles.title}>
-                  {item.title}
-                </Text>
-
-                {!!item.subtitle && (
-                  <Text
-                    style={styles.subtitle}
-                    numberOfLines={2}
-                  >
-                    {item.subtitle}
-                  </Text>
-                )}
-              </View>
-
-              {opening ? (
-                <ActivityIndicator
-                  size="small"
-                  color="#275D45"
-                />
-              ) : (
-                <MaterialCommunityIcons
-                  name="chevron-right"
-                  size={22}
-                  color="#6D7A73"
-                />
-              )}
-            </Pressable>
-          );
-        })}
-      </View>
+        {open ? (
+          <Pressable onPress={() => router.push('/profile/focus-apps' as any)}>
+            <Text style={styles.lockNote}>
+              Show plans, lock state, and Organization subscription options.
+            </Text>
+          </Pressable>
+        ) : null}
+      </BuklodProfileGlassCard>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  section: {
-    marginTop: 6,
-  },
-  eyebrow: {
-    marginBottom: 6,
-    color: '#275D45',
-    fontSize: 13,
-    fontWeight: '900',
-    letterSpacing: 0.65,
-  },
-  card: {
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#DDE5E0',
-    borderRadius: 0,
-    backgroundColor: '#FFFFFF',
-  },
-  row: {
-    minHeight: 58,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  rowBorder: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E4EAE6',
-  },
-  pressed: {
-    opacity: 0.72,
-  },
-  opening: {
-    opacity: 0.62,
-  },
-  iconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#EDF4F0',
-  },
-  body: {
-    flex: 1,
-  },
-  title: {
-    color: '#17231D',
-    fontSize: 16,
-    fontWeight: '900',
-  },
-  subtitle: {
-    marginTop: 2,
-    color: '#66736C',
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  loadingCard: {
-    minHeight: 58,
-    paddingHorizontal: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderWidth: 1,
-    borderColor: '#DDE5E0',
-    borderRadius: 0,
-    backgroundColor: '#FFFFFF',
-  },
-  loadingText: {
-    color: '#66736C',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-});

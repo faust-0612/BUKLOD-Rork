@@ -1,7 +1,4 @@
-import React, {
-  useEffect,
-  useState,
-} from 'react';
+import React, { memo } from 'react';
 
 import {
   StyleSheet,
@@ -10,168 +7,55 @@ import {
   View,
 } from 'react-native';
 
-import {
-  BannerAd,
-  BannerAdSize,
-} from 'react-native-google-mobile-ads';
+import BuklodAdMobBanner from '@/components/BuklodAdMobBanner';
 
-import {
-  type BuklodAdPlacement,
-  getBuklodBannerUnitId,
-} from '@/lib/buklodAdUnits';
+export default memo(function BuklodCommunityInlineAd({
+  slotId,
+  active = true,
+}: {
+  slotId?: string;
+  active?: boolean;
+}) {
+  const { width } = useWindowDimensions();
+  const adWidth = Math.max(280, Math.floor(width - 32));
 
-import {
-  initializeBuklodAds,
-} from '@/lib/buklodAds';
-
-/* PATCH_186K_PUBLIC_COMMUNITY_INLINE_ADMOB
- *
- * Inline adaptive is intentionally used because this ad lives INSIDE
- * scrolling Community content.
- *
- * IMPORTANT:
- * - No manual reload() is called.
- * - Pull-to-refresh does NOT remount/reload this ad on purpose.
- * - Existing BUKLOD test/production unit selection remains canonical.
- */
-export default function
-BuklodCommunityInlineAd() {
-  const {
-    width,
-  } =
-    useWindowDimensions();
-
-  const [
-    sdkReady,
-    setSdkReady,
-  ] =
-    useState(false);
-
-  const [
-    failed,
-    setFailed,
-  ] =
-    useState(false);
-
-  const [
-    loaded,
-    setLoaded,
-  ] =
-    useState(false);
-
-  const unitId =
-    getBuklodBannerUnitId(
-      'community' as
-        BuklodAdPlacement,
+  if (!active) {
+    return (
+      <View
+        testID={slotId}
+        style={styles.placeholder}
+        accessibilityLabel="Sponsored advertisement"
+      />
     );
-
-  const adWidth =
-    Math.max(
-      280,
-      Math.floor(
-        width - 32,
-      ),
-    );
-
-  useEffect(
-    () => {
-      let mounted =
-        true;
-
-      void initializeBuklodAds()
-        .then(
-          ready => {
-            if (mounted) {
-              setSdkReady(
-                Boolean(
-                  ready,
-                ),
-              );
-            }
-          },
-        )
-        .catch(
-          () => {
-            if (mounted) {
-              setFailed(true);
-            }
-          },
-        );
-
-      return () => {
-        mounted =
-          false;
-      };
-    },
-    [],
-  );
-
-  if (
-    !unitId ||
-    !sdkReady ||
-    failed
-  ) {
-    return null;
   }
 
   return (
     <View
-      style={
-        styles.shell
-      }
+      testID={slotId}
+      style={styles.shell}
+      accessibilityLabel="Sponsored advertisement"
     >
-      <Text
-        style={
-          styles.label
-        }
-      >
-        Sponsored
-      </Text>
-
-      <View
-        style={[
-          styles.adArea,
-          !loaded && {
-            opacity: 0,
-          },
-        ]}
-      >
-        <BannerAd
-          unitId={
-            unitId
-          }
-          size={
-            BannerAdSize
-              .INLINE_ADAPTIVE_BANNER
-          }
-          width={
-            adWidth
-          }
-          maxHeight={
-            100
-          }
-          onAdLoaded={
-            () =>
-              setLoaded(true)
-          }
-          onAdFailedToLoad={
-            error => {
-              console.warn(
-                'BUKLOD Community inline AdMob:',
-                error,
-              );
-
-              setFailed(true);
-            }
-          }
+      <Text style={styles.label}>Sponsored</Text>
+      <View style={[styles.adArea, { width: adWidth }]}>
+        <BuklodAdMobBanner
+          placement="community"
+          compact
+          format="inline"
+          diagnosticName="community_inline"
+          requireViewport={false}
+          showLabel={false}
         />
       </View>
     </View>
   );
-}
+});
 
 const styles =
   StyleSheet.create({
+    placeholder: {
+      height: 108,
+      marginVertical: 8,
+    },
     shell: {
       width: '100%',
       marginTop: 10,
@@ -180,10 +64,8 @@ const styles =
       paddingBottom: 8,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor:
-        'transparent',
+      backgroundColor: 'transparent',
     },
-
     label: {
       width: '100%',
       marginBottom: 5,
@@ -195,11 +77,8 @@ const styles =
       fontWeight: '700',
       letterSpacing: 0.35,
     },
-
     adArea: {
-      width: '100%',
-      minHeight: 50,
-      maxHeight: 100,
+      maxHeight: 120,
       alignItems: 'center',
       justifyContent: 'center',
       overflow: 'hidden',

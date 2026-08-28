@@ -1,14 +1,6 @@
 import React from 'react';
+import { Redirect } from 'expo-router';
 
-import PublicLearnScreen
-  from '../(tabs)/learn';
-
-
-export default function
-MzbLearnScreen() {
-  return (
-    
-      <PublicLearnScreen />
-    
-  );
+export default function MzbLearnRedirect() {
+  return <Redirect href="/(tabs)/learn" />;
 }

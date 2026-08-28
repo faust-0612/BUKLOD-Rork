@@ -1,3 +1,9 @@
+import BuklodReelsInlineAd from '@/components/BuklodReelsInlineAd';
+import BuklodPressable from '@/components/BuklodPressable';
+import {
+  buildReelsFeedWithInlineAds,
+  isReelsFeedInlineAdRow,
+} from '@/lib/buklodAdPlacements';
 import BuklodPublicLocationChips from '@/components/BuklodPublicLocationChips';
 import { repairMojibakeText } from '@/lib/repairMojibakeText';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -10,10 +16,33 @@ import {
 import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
+import { useBuklodDrawerBottomInset } from '@/lib/buklodSafeArea';
 
 import {
-  ProfileAvatar,
-} from '@/components/ProfileAvatar';
+  BuklodTappableAvatar,
+} from '@/components/BuklodTappableAvatar';
+import {
+  useBuklodContentReport,
+} from '@/components/BuklodContentReportSheet';
+import BuklodMentionText from '@/components/BuklodMentionText';
+
+import {
+  BuklodCommunityCommentPreview,
+} from '@/components/BuklodCommunityCommentPreview';
+
+import {
+  BuklodReactionAction,
+  BUKLOD_COMMUNITY_REACTION_OPTIONS,
+} from '@/components/BuklodReactionAction';
+
+import {
+  type BuklodCommunityReactionKey,
+} from '@/lib/buklodCommunityReactions';
+
+import {
+  fetchBuklodPostCommentPreviews,
+  type BuklodPostCommentPreview,
+} from '@/lib/buklodPostCommentPreviews';
 
 import {
   formatSpecificDateTime,
@@ -22,6 +51,7 @@ import {
 import React, {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -31,7 +61,9 @@ import {
   Alert,
   Dimensions,
   FlatList,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   Share,
@@ -59,6 +91,7 @@ import {
 import {
   supabase,
 } from '@/lib/supabase';
+import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 
 import {
   useAuth,
@@ -68,11 +101,16 @@ import {
   colors,
 } from '@/lib/theme';
 
-
+
 
 import {
   uploadCommunityVideoFile,
 } from '@/lib/uploadCommunityVideoFile';
+import {
+  BUKLOD_REEL_MAX_DURATION_SECONDS,
+  formatVideoBytes,
+  readVideoSizeBytes,
+} from '@/lib/buklodCommunityWallMedia';
 type Audience =
   | 'group'
   | 'local'
@@ -113,30 +151,12 @@ type ReelRow = {
   my_reaction: string | null;
 
   media_url?: string | null;
+  comment_preview?: BuklodPostCommentPreview | null;
 };
 
 
-const MAX_REEL_BYTES =
-  50 * 1024 * 1024;
-
-
-const RX = [
-  {
-    key: 'love',
-    icon: 'heart',
-    label: 'Love',
-  },
-  {
-    key: 'haha',
-    icon: 'emoticon-happy-outline',
-    label: 'Haha',
-  },
-  {
-    key: 'praying',
-    icon: 'hands-pray',
-    label: 'Praying',
-  },
-] as const;
+const MAX_REEL_DURATION_SECONDS =
+  BUKLOD_REEL_MAX_DURATION_SECONDS;
 
 
 function ReelVideo({
@@ -430,6 +450,10 @@ export default function ReelsScreen() {
     user,
     profile,
   } = useAuth();
+  const {
+    openReport,
+    reportSheet,
+  } = useBuklodContentReport();
 
   const [
     rows,
@@ -445,6 +469,11 @@ export default function ReelsScreen() {
     busy,
     setBusy,
   ] = useState(false);
+
+  const [
+    videoUploadPercent,
+    setVideoUploadPercent,
+  ] = useState<number | null>(null);
 
   const [
     caption,
@@ -614,14 +643,25 @@ export default function ReelsScreen() {
           )
         );
 
-      setRows(signed);
-      /* PATCH_173H_R4_FILTER_FINAL_ROWS */
-      setRows(current =>
-        current.filter(row =>
+      const filteredSigned =
+        signed.filter(row =>
           allowedReelIds.has(
-            String((row as any)?.id ?? ''),
+            String(row?.id ?? ''),
           ),
-        ),
+        );
+
+      const previewMap =
+        await fetchBuklodPostCommentPreviews(
+          filteredSigned.map(row => row.id)
+        );
+
+      setRows(
+        filteredSigned.map(row => ({
+          ...row,
+          comment_preview:
+            previewMap[row.id] ??
+            null,
+        }))
       );
       setLoading(false);
     },
@@ -659,61 +699,22 @@ export default function ReelsScreen() {
       );
     }
 
-    if (durationSeconds > 60) {
+    if (durationSeconds > MAX_REEL_DURATION_SECONDS) {
       return Alert.alert(
         'Maximum 60 Seconds',
         `This video is ${durationSeconds} seconds. BUKLOD Reels may be up to 60 seconds only.`
       );
     }
 
-
-    let sizeBytes =
-      Number(
-        asset?.fileSize ??
-        0
+    const sizeBytes =
+      await readVideoSizeBytes(
+        asset,
+        async (uri, options) =>
+          FileSystem.getInfoAsync(
+            uri,
+            options as any
+          )
       );
-
-    if (!sizeBytes) {
-      try {
-        const info =
-          await FileSystem.getInfoAsync(
-            asset.uri
-          );
-
-        if (
-          info.exists &&
-          Number(
-            (info as any).size ??
-            0
-          ) > 0
-        ) {
-          sizeBytes =
-            Number(
-              (info as any).size
-            );
-        }
-      } catch {
-        // handled below
-      }
-    }
-
-    if (!sizeBytes) {
-      return Alert.alert(
-        'BUKLOD Reel',
-        'Could not determine the video file size.'
-      );
-    }
-
-    if (
-      sizeBytes >
-      MAX_REEL_BYTES
-    ) {
-      return Alert.alert(
-        'Video Too Large',
-        'BUKLOD Reels must be 50 MB or smaller.'
-      );
-    }
-
 
     const mimeType =
       inferMime(asset);
@@ -864,6 +865,8 @@ export default function ReelsScreen() {
        * PATCH_173F_R3_MEMORY_SAFE_PUBLIC_REEL
        * Native file upload; no base64 video allocation.
        */
+      setVideoUploadPercent(0);
+
       await uploadCommunityVideoFile({
         path:
           uploadedPath,
@@ -871,6 +874,11 @@ export default function ReelsScreen() {
           draft.uri,
         contentType:
           draft.mimeType,
+        onProgress: (progress) => {
+          setVideoUploadPercent(
+            progress.ratio
+          );
+        },
       });
 
 
@@ -939,6 +947,7 @@ export default function ReelsScreen() {
 
     } finally {
       setBusy(false);
+      setVideoUploadPercent(null);
     }
   };
 
@@ -962,6 +971,8 @@ export default function ReelsScreen() {
 
   const insets =
     useSafeAreaInsets();
+  const drawerBottomInset =
+    useBuklodDrawerBottomInset();
 
 
   const pageWidth =
@@ -1100,12 +1111,24 @@ export default function ReelsScreen() {
   );
 
 
+  const feedRows =
+    useMemo(
+      () =>
+        buildReelsFeedWithInlineAds(
+          rows,
+        ),
+      [
+        rows,
+      ],
+    );
+
+
   useEffect(
     () => {
 
       if (
         activeIndex >=
-        rows.length
+        feedRows.length
       ) {
         setActiveIndex(
           0
@@ -1115,7 +1138,7 @@ export default function ReelsScreen() {
     },
     [
       activeIndex,
-      rows.length,
+      feedRows.length,
     ]
   );
 
@@ -1151,10 +1174,7 @@ export default function ReelsScreen() {
   const react =
     async (
       postId: string,
-      reaction:
-        'love'
-        | 'haha'
-        | 'praying'
+      reaction: BuklodCommunityReactionKey
     ) => {
 
       const target =
@@ -1611,6 +1631,22 @@ export default function ReelsScreen() {
                             .comment_count
                           ?? 0
                         ) + 1,
+
+                      comment_preview: {
+                        post_id: reel.id,
+                        comment_id: 'pending',
+                        user_id:
+                          user?.id ??
+                          item.user_id,
+                        author_name:
+                          resolvePersonDisplayName(
+                            profile?.full_name,
+                            user?.id ?? item.user_id,
+                          ),
+                        body,
+                        created_at:
+                          new Date().toISOString(),
+                      },
                     }
                   : item
             )
@@ -1651,11 +1687,15 @@ export default function ReelsScreen() {
 
       try {
 
-        /*
-         * Preserve BUKLOD's
-         * outside-sharing approval
-         * rule.
-         */
+        const message =
+          reel.author_name +
+          '\n\n' +
+          (
+            reel.body ||
+            'BUKLOD Reel'
+          ) +
+          '\n\nShared from BUKLOD';
+
         const {
           data,
           error,
@@ -1670,12 +1710,6 @@ export default function ReelsScreen() {
             }
           );
 
-
-        if (error) {
-          throw error;
-        }
-
-
         const decision =
           Array.isArray(
             data
@@ -1683,27 +1717,18 @@ export default function ReelsScreen() {
             ? data[0]
             : data;
 
-
-        if (
-          !decision
-            ?.share_allowed
-        ) {
-
-          Alert.alert(
-            'Approval Requested',
-            'The Reel owner was notified. Sharing outside BUKLOD becomes available after approval.'
+        const shareAllowed =
+          !error &&
+          Boolean(
+            decision?.share_allowed
           );
-
-          return;
-        }
-
 
         const shareAvailable =
           await Sharing
             .isAvailableAsync();
 
-
         if (
+          shareAllowed &&
           shareAvailable &&
           reel.media_url &&
           FileSystem
@@ -1718,7 +1743,6 @@ export default function ReelsScreen() {
               'video/mp4'
             );
 
-
           const localUri =
             FileSystem
               .cacheDirectory +
@@ -1727,13 +1751,11 @@ export default function ReelsScreen() {
             '.' +
             extension;
 
-
           await FileSystem
             .downloadAsync(
               reel.media_url,
               localUri
             );
-
 
           await Sharing
             .shareAsync(
@@ -1750,20 +1772,11 @@ export default function ReelsScreen() {
               }
             );
 
-
           return;
         }
 
-
         await Share.share({
-          message:
-            reel.author_name +
-            '\n\n' +
-            (
-              reel.body ||
-              'BUKLOD Reel'
-            ) +
-            '\n\nShared from BUKLOD',
+          message,
         });
 
       }
@@ -1791,22 +1804,29 @@ export default function ReelsScreen() {
 
       <FlatList
         data={
-          rows
+          feedRows
         }
-        horizontal
         pagingEnabled
-        showsHorizontalScrollIndicator={
+        showsVerticalScrollIndicator={
           false
         }
         bounces={
           false
         }
         decelerationRate="fast"
+        removeClippedSubviews={
+          Platform.OS === 'android'
+        }
 
         keyExtractor={
           item =>
             item.id
         }
+        extraData={
+          activeIndex
+        }
+        directionalLockEnabled
+        disableIntervalMomentum
 
         initialNumToRender={
           2
@@ -1829,10 +1849,10 @@ export default function ReelsScreen() {
           index
         ) => ({
           length:
-            pageWidth,
+            pageHeight,
 
           offset:
-            pageWidth *
+            pageHeight *
             index,
 
           index,
@@ -1846,8 +1866,8 @@ export default function ReelsScreen() {
                 event
                   .nativeEvent
                   .contentOffset
-                  .x /
-                pageWidth
+                  .y /
+                pageHeight
               );
 
 
@@ -1856,7 +1876,7 @@ export default function ReelsScreen() {
                 0,
                 Math.min(
                   nextIndex,
-                  rows.length - 1
+                  feedRows.length - 1
                 )
               )
             );
@@ -1868,6 +1888,37 @@ export default function ReelsScreen() {
           item,
           index,
         }) => {
+
+          if (
+            isReelsFeedInlineAdRow(
+              item,
+            )
+          ) {
+            return (
+              <View
+                style={[
+                  styles.reelPage,
+                  {
+                    width:
+                      pageWidth,
+
+                    height:
+                      pageHeight,
+                  },
+                ]}
+              >
+                <BuklodReelsInlineAd
+                  slotId={
+                    item.id
+                  }
+                  active={
+                    index ===
+                    activeIndex
+                  }
+                />
+              </View>
+            );
+          }
 
           const active =
             index ===
@@ -1906,7 +1957,7 @@ export default function ReelsScreen() {
                     Math.max(
                       insets.bottom,
                       10
-                    ) + 8,
+                    ),
                 },
               ]}
             >
@@ -1975,14 +2026,14 @@ export default function ReelsScreen() {
                     }
                   >
 
-                    <ProfileAvatar
+                    <BuklodTappableAvatar
                       userId={
                         item.user_id
                       }
-                      name={
-                        item.author_name ||
-                        'BUKLOD Member'
-                      }
+                      name={resolvePersonDisplayName(
+                        item.author_name,
+                        item.user_id,
+                      )}
                       size={38}
                     />
 
@@ -2002,8 +2053,10 @@ export default function ReelsScreen() {
                         }
                       >
                         {
-                          item.author_name ||
-                          'BUKLOD Member'
+                          resolvePersonDisplayName(
+                            item.author_name,
+                            item.user_id,
+                          )
                         }
                       </Text>
 
@@ -2057,6 +2110,27 @@ export default function ReelsScreen() {
                     Double-tap video to Love
                   </Text>
 
+                  {!!item.comment_preview && (
+                    <BuklodCommunityCommentPreview
+                      variant="reel"
+                      preview={{
+                        user_id:
+                          item.comment_preview.user_id,
+                        author_name:
+                          item.comment_preview.author_name,
+                        body:
+                          item.comment_preview.body,
+                        created_at:
+                          item.comment_preview.created_at,
+                      }}
+                      onPress={() =>
+                        void openComments(
+                          item
+                        )
+                      }
+                    />
+                  )}
+
                 </View>
 
 
@@ -2066,77 +2140,46 @@ export default function ReelsScreen() {
                   }
                 >
 
-                  {RX.map(
-                    reaction => {
-
-                      const activeReaction =
-                        item
-                          .my_reaction ===
-                        reaction.key;
-
-
-                      const count =
-                        Number(
-                          counts[
-                            reaction.key
-                          ] ?? 0
-                        );
-
-
-                      return (
-                        <Pressable
-                          key={
-                            reaction.key
-                          }
-                          onPress={() =>
-                            void react(
-                              item.id,
-                              reaction.key
-                            )
-                          }
-                          style={
-                            styles.actionButton
-                          }
-                        >
-
-                          <View
-                            style={[
-                              styles.actionCircle,
-
-                              activeReaction &&
-                                styles.actionCircleOn,
-                            ]}
-                          >
-                            <MaterialCommunityIcons
-                              name={
-                                reaction.icon
-                              }
-                              size={25}
-                              color={
-                                activeReaction
-                                  ? '#FFFFFF'
-                                  : '#FFFFFF'
-                              }
-                            />
-                          </View>
-
-
-                          <Text
-                            style={
-                              styles.actionCount
-                            }
-                          >
-                            {count}
-                          </Text>
-
-                        </Pressable>
-                      );
-
+                  <View
+                    style={
+                      styles.actionButton
                     }
-                  )}
+                  >
+                    <BuklodReactionAction
+                      options={
+                        BUKLOD_COMMUNITY_REACTION_OPTIONS
+                      }
+                      counts={counts}
+                      mine={
+                        item.my_reaction
+                      }
+                      overlay
+                      compact
+                      showSummary={false}
+                      onSelect={key =>
+                        void react(
+                          item.id,
+                          key as BuklodCommunityReactionKey
+                        )
+                      }
+                    />
+
+                    <Text
+                      style={
+                        styles.actionCount
+                      }
+                    >
+                      {Number(
+                        item.reaction_count ??
+                          0
+                      )}
+                    </Text>
+                  </View>
 
 
-                  <Pressable
+                  <BuklodPressable
+                    nested
+                    compact
                     onPress={() =>
                       void openComments(
                         item
@@ -2173,10 +2216,12 @@ export default function ReelsScreen() {
                       }
                     </Text>
 
-                  </Pressable>
+                  </BuklodPressable>
 
 
-                  <Pressable
+                  <BuklodPressable
+                    nested
+                    compact
                     onPress={() =>
                       void shareReel(
                         item
@@ -2207,7 +2252,43 @@ export default function ReelsScreen() {
                       Share
                     </Text>
 
-                  </Pressable>
+                  </BuklodPressable>
+
+                  {user?.id &&
+                  user.id !== item.user_id ? (
+                    <BuklodPressable
+                      nested
+                      compact
+                      onPress={() =>
+                        openReport(
+                          'post',
+                          String(item.id)
+                        )
+                      }
+                      style={
+                        styles.actionButton
+                      }
+                    >
+                      <View
+                        style={
+                          styles.actionCircle
+                        }
+                      >
+                        <MaterialCommunityIcons
+                          name="flag-outline"
+                          size={25}
+                          color="#FFFFFF"
+                        />
+                      </View>
+                      <Text
+                        style={
+                          styles.actionCount
+                        }
+                      >
+                        Report
+                      </Text>
+                    </BuklodPressable>
+                  ) : null}
 
                 </View>
 
@@ -2421,10 +2502,7 @@ export default function ReelsScreen() {
               styles.createSheet,
               {
                 paddingBottom:
-                  Math.max(
-                    insets.bottom,
-                    16
-                  ),
+                  drawerBottomInset,
               },
             ]}
           >
@@ -2448,7 +2526,7 @@ export default function ReelsScreen() {
                     styles.sheetSub
                   }
                 >
-                  Maximum 60 seconds • 50 MB
+                  Maximum 60 seconds
                 </Text>
               </View>
 
@@ -2577,16 +2655,9 @@ export default function ReelsScreen() {
                           .durationSeconds
                       }s
                       {' • '}
-                      {
-                        (
-                          draft
-                            .sizeBytes /
-                          1024 /
-                          1024
-                        ).toFixed(
-                          1
-                        )
-                      } MB
+                      {formatVideoBytes(
+                        draft.sizeBytes
+                      )}
                     </Text>
                   </View>
 
@@ -2754,9 +2825,21 @@ export default function ReelsScreen() {
 
                 {busy ? (
 
-                  <ActivityIndicator
-                    color="#FFFFFF"
-                  />
+                  videoUploadPercent != null ? (
+                    <Text
+                      style={
+                        styles.publishText
+                      }
+                    >
+                      {`Uploading video… ${Math.round(
+                        videoUploadPercent * 100
+                      )}%`}
+                    </Text>
+                  ) : (
+                    <ActivityIndicator
+                      color="#FFFFFF"
+                    />
+                  )
 
                 ) : (
 
@@ -2798,24 +2881,48 @@ export default function ReelsScreen() {
         }
       >
 
-        <View
-          style={
-            styles.modalBackdrop
+        <KeyboardAvoidingView
+          style={{
+            flex: 1,
+          }}
+          behavior={
+            Platform.OS === 'ios'
+              ? 'padding'
+              : 'height'
+          }
+          keyboardVerticalOffset={
+            Platform.OS === 'ios'
+              ? 0
+              : 0
           }
         >
 
           <View
-            style={[
-              styles.commentsSheet,
-              {
-                paddingBottom:
-                  Math.max(
-                    insets.bottom,
-                    12
-                  ),
-              },
-            ]}
+            style={
+              styles.modalBackdrop
+            }
           >
+
+            <Pressable
+              style={{
+                flex: 1,
+              }}
+              onPress={() =>
+                setCommentsOpen(
+                  false
+                )
+              }
+            />
+
+            <View
+              style={[
+                styles.commentsSheet,
+                {
+                  paddingBottom:
+                    drawerBottomInset,
+                },
+              ]}
+            >
 
             <View
               style={
@@ -2933,7 +3040,7 @@ export default function ReelsScreen() {
                       }
                     >
 
-                      <ProfileAvatar
+                      <BuklodTappableAvatar
                         userId={
                           item.user_id
                         }
@@ -2981,60 +3088,76 @@ export default function ReelsScreen() {
                     </View>
 
 
-                    {!!item.parent_id &&
-                      !!item
-                        .parent_commenter_name && (
-
-                      <Text
-                        style={
-                          styles.replyingTo
-                        }
-                      >
-                        Replying to @
-                        {
-                          item
-                            .parent_commenter_name
-                        }
-                      </Text>
-
-                    )}
-
-
-                    <Text
+                    <BuklodMentionText
+                      text={repairMojibakeText(item.body)}
                       style={
                         styles.commentBody
                       }
+                      mentionStyle={{
+                        fontWeight: '800',
+                        color: colors.greenDark,
+                      }}
+                    />
+
+
+                    <View
+                      style={[
+                        styles.replyButton,
+                        {
+                          alignSelf: 'flex-end',
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 12,
+                        },
+                      ]}
                     >
-                      {repairMojibakeText(item.body)}
-                    </Text>
-
-
-                    <Pressable
-                      onPress={() =>
-                        startReply(
-                          item
-                        )
-                      }
-                      style={
-                        styles.replyButton
-                      }
-                    >
-                      <MaterialCommunityIcons
-                        name="reply-outline"
-                        size={15}
-                        color={
-                          colors.greenDark
+                      {user?.id &&
+                      user.id !== item.user_id ? (
+                        <Pressable
+                          onPress={() =>
+                            openReport(
+                              'comment',
+                              String(item.id)
+                            )
+                          }
+                        >
+                          <Text
+                            style={
+                              styles.replyText
+                            }
+                          >
+                            Report
+                          </Text>
+                        </Pressable>
+                      ) : null}
+                      <Pressable
+                        onPress={() =>
+                          startReply(
+                            item
+                          )
                         }
-                      />
-
-                      <Text
-                        style={
-                          styles.replyText
-                        }
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 4,
+                        }}
                       >
-                        Reply
-                      </Text>
-                    </Pressable>
+                        <MaterialCommunityIcons
+                          name="reply-outline"
+                          size={15}
+                          color={
+                            colors.greenDark
+                          }
+                        />
+                        <Text
+                          style={
+                            styles.replyText
+                          }
+                        >
+                          Reply
+                        </Text>
+                      </Pressable>
+                    </View>
 
                   </View>
 
@@ -3051,20 +3174,16 @@ export default function ReelsScreen() {
                   styles.replyBanner
                 }
               >
-                <Text
+                <BuklodMentionText
+                  text={`@${replyTo.commenter_name}`}
+                  numberOfLines={1}
                   style={
                     styles.replyBannerText
                   }
-                  numberOfLines={
-                    1
+                  mentionStyle={
+                    styles.replyBannerText
                   }
-                >
-                  Replying to @
-                  {
-                    replyTo
-                      .commenter_name
-                  }
-                </Text>
+                />
 
                 <Pressable
                   onPress={() => {
@@ -3163,10 +3282,12 @@ export default function ReelsScreen() {
 
           </View>
 
-        </View>
+          </View>
+
+        </KeyboardAvoidingView>
 
       </Modal>
-
+      {reportSheet}
     </View>
   );
 }
@@ -3523,8 +3644,9 @@ const styles =
 
 
     commentsSheet: {
-      height:
+      maxHeight:
         '83%',
+      flexShrink: 1,
       backgroundColor:
         '#FFFFFF',
       borderTopLeftRadius: 24,

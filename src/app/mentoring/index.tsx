@@ -28,12 +28,31 @@ import {
 } from '@/components/UI';
 
 import {
+  BuklodAnswerValidationFeedback,
+} from '@/components/education/BuklodAnswerValidationGate';
+
+import {
+  buildMentoringGeneratedQuestionContext,
+  buildMentoringReflectionContext,
+  isValidationAcceptable,
+  validateBuklodResponse,
+} from '@/lib/buklodAiResponseValidation';
+
+import {
+  normalizeGeneratedQuestions,
+} from '@/lib/buklodQuestionEngine';
+
+import {
   supabase,
 } from '@/lib/supabase';
 
 import {
   colors,
 } from '@/lib/theme';
+
+import type {
+  AIAnswerValidationResult,
+} from '@/types/buklodAiValidation';
 
 
 type Row = {
@@ -68,20 +87,13 @@ type Row = {
 function fourQuestions(
   value: unknown
 ): string[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
+  const questions = normalizeGeneratedQuestions(value);
+  return questions.length === 4 ? questions : [];
+}
 
-  const q = value
-    .map(
-      (x) =>
-        String(x ?? '').trim()
-    )
-    .filter(Boolean);
 
-  return q.length === 4
-    ? q
-    : [];
+function emptyValidationRow(): Array<AIAnswerValidationResult | null> {
+  return [null, null, null, null];
 }
 
 
@@ -154,6 +166,25 @@ export default function MentoringScreen() {
     setReflections,
   ] = useState<
     Record<string,string>
+  >({});
+
+  const [
+    validatingId,
+    setValidatingId,
+  ] = useState<string | null>(null);
+
+  const [
+    answerValidations,
+    setAnswerValidations,
+  ] = useState<
+    Record<string, Array<AIAnswerValidationResult | null>>
+  >({});
+
+  const [
+    reflectionValidations,
+    setReflectionValidations,
+  ] = useState<
+    Record<string, AIAnswerValidationResult | null>
   >({});
 
 
@@ -253,6 +284,80 @@ export default function MentoringScreen() {
         [releaseId]: next,
       };
     });
+
+    setAnswerValidations((current) => {
+      const row = [...(current[releaseId] ?? emptyValidationRow())];
+      row[index] = null;
+      return { ...current, [releaseId]: row };
+    });
+  };
+
+
+  const validateMentoringFields = async (
+    row: Row,
+    finalAnswers: string[],
+    reflection: string,
+  ): Promise<boolean> => {
+    const questions =
+      fourQuestions(row.generated_questions_fil).length === 4
+        ? fourQuestions(row.generated_questions_fil)
+        : fourQuestions(row.generated_questions_en);
+
+    setValidatingId(row.release_id);
+
+    try {
+      const nextAnswerValidations = emptyValidationRow();
+
+      for (let index = 0; index < finalAnswers.length; index += 1) {
+        const result = await validateBuklodResponse({
+          questionContext: buildMentoringGeneratedQuestionContext({
+            releaseId: row.release_id,
+            questionIndex: index + 1,
+            questionText: questions[index] ?? '',
+            lessonTitle: row.title_fil,
+            scriptureReference: row.scripture_reference,
+            stageCode: row.stage_code,
+          }),
+          response: finalAnswers[index] ?? '',
+        });
+
+        nextAnswerValidations[index] = result;
+
+        if (!isValidationAcceptable(result)) {
+          setAnswerValidations((current) => ({
+            ...current,
+            [row.release_id]: nextAnswerValidations,
+          }));
+          setReflectionValidations((current) => ({
+            ...current,
+            [row.release_id]: null,
+          }));
+          return false;
+        }
+      }
+
+      const reflectionResult = await validateBuklodResponse({
+        questionContext: buildMentoringReflectionContext({
+          releaseId: row.release_id,
+          lessonTitle: row.title_fil,
+          stageCode: row.stage_code,
+        }),
+        response: reflection,
+      });
+
+      setAnswerValidations((current) => ({
+        ...current,
+        [row.release_id]: nextAnswerValidations,
+      }));
+      setReflectionValidations((current) => ({
+        ...current,
+        [row.release_id]: reflectionResult,
+      }));
+
+      return isValidationAcceptable(reflectionResult);
+    } finally {
+      setValidatingId(null);
+    }
   };
 
 
@@ -312,6 +417,19 @@ export default function MentoringScreen() {
       return Alert.alert(
         'Personal Reflection',
         'Write a Personal Reflection with at least 20 characters.'
+      );
+    }
+
+    const validated = await validateMentoringFields(
+      row,
+      finalAnswers,
+      reflection,
+    );
+
+    if (!validated) {
+      return Alert.alert(
+        'Review your answers',
+        'Please improve your answers using the guidance shown, then try again.',
       );
     }
 
@@ -460,15 +578,6 @@ export default function MentoringScreen() {
                     {row.title_fil}
                   </Text>
                 </View>
-
-                <View style={styles.reward}>
-                  <Text style={styles.rewardText}>
-                    ₱{Number(
-                      row.reward_amount ??
-                      0
-                    ).toFixed(0)}
-                  </Text>
-                </View>
               </View>
 
               {!!row.scripture_reference && (
@@ -571,6 +680,14 @@ export default function MentoringScreen() {
                             colors.muted
                           }
                         />
+
+                        <BuklodAnswerValidationFeedback
+                          isValidating={validatingId === row.release_id}
+                          lastResult={
+                            answerValidations[row.release_id]?.[index] ?? null
+                          }
+                          error={null}
+                        />
                       </View>
                     )
                   )}
@@ -591,15 +708,19 @@ export default function MentoringScreen() {
                     }
                     onChangeText={(
                       value
-                    ) =>
+                    ) => {
                       setReflections(
                         (current) => ({
                           ...current,
                           [row.release_id]:
                             value,
                         })
-                      )
-                    }
+                      );
+                      setReflectionValidations((current) => ({
+                        ...current,
+                        [row.release_id]: null,
+                      }));
+                    }}
                     style={[
                       styles.reflection,
                       locked &&
@@ -611,16 +732,22 @@ export default function MentoringScreen() {
                     }
                   />
 
+                  <BuklodAnswerValidationFeedback
+                    isValidating={validatingId === row.release_id}
+                    lastResult={reflectionValidations[row.release_id] ?? null}
+                    error={null}
+                  />
+
 
                   {!locked && (
                     <View style={{ marginTop: 12 }}>
                       <Button
                         title={
-                          busyId ===
-                          row.release_id
-                            ? 'SUBMITTING...'
-                            : status ===
-                                'rejected'
+                          busyId === row.release_id
+                            ? validatingId === row.release_id
+                              ? 'CHECKING...'
+                              : 'SUBMITTING...'
+                            : status === 'rejected'
                               ? 'REVISE & RESUBMIT'
                               : 'SUBMIT MENTORING'
                         }

@@ -4,6 +4,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -15,13 +16,26 @@ import {
   setBuklodActiveScope,
 } from '@/lib/buklodScope';
 import {
+  isMzbOrganizationScope,
+  resolveMzbOrganizationScopeId,
+} from '@/lib/buklodMzbOrganization';
+import {
   supabase,
 } from '@/lib/supabase';
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import AsyncStorage
   from '@react-native-async-storage/async-storage';
 
 const BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY =
   'buklod.auth.fresh_login_public.v1';
+
+function scopeCacheKey(userId: string) {
+  return `buklod:scopes:v1:${userId}`;
+}
+
+/* BUKLOD_GLOBAL_BOOT_R20 */
+const SCOPE_PRIMARY_TIMEOUT_MS = 6000;
+const SCOPE_LOADING_WATCHDOG_MS = 7000;
 
 
 
@@ -84,6 +98,11 @@ export function BuklodScopeProvider({
   const [error, setError] =
     useState<string | null>(null);
 
+  const scopesRef = useRef(scopes);
+  scopesRef.current = scopes;
+  const activeScopeRef = useRef(activeScope);
+  activeScopeRef.current = activeScope;
+
   const refresh =
     useCallback(async () => {
       if (!user?.id) {
@@ -94,12 +113,61 @@ export function BuklodScopeProvider({
         return;
       }
 
-      setLoading(true);
+      if (scopesRef.current.length === 0) {
+        setLoading(true);
+      }
+
+      let loadedFromCache = false;
+
+      try {
+        const cachedRaw =
+          await AsyncStorage.getItem(
+            scopeCacheKey(user.id)
+          );
+
+        if (cachedRaw) {
+          const cached = JSON.parse(cachedRaw) as {
+            scopes?: BuklodScope[];
+            activeScopeId?: string | null;
+          };
+
+          if (Array.isArray(cached?.scopes) && cached.scopes.length) {
+            loadedFromCache = true;
+
+            if (scopesRef.current.length === 0) {
+              setScopes(cached.scopes);
+              setActiveScope(
+                cached.scopes.find(
+                  scope =>
+                    scope.scope_id ===
+                    cached.activeScopeId
+                ) ??
+                pickActiveScope(cached.scopes)
+              );
+              setLoading(false);
+            }
+          }
+        }
+      } catch {
+        // Cached scopes are optional.
+      }
+
+      /*
+       * R20: secondary scope enrichment must never hold a loading
+       * indicator forever if a browser/network request never settles.
+       */
+      const loadingWatchdog = setTimeout(() => {
+        setLoading(false);
+      }, SCOPE_LOADING_WATCHDOG_MS);
 
       try {
         /* PATCH_172A_SCOPE_HIERARCHY_ENRICHMENT */
         const baseRows =
-          await getMyBuklodScopes();
+          await withBuklodTimeout(
+            getMyBuklodScopes(),
+            SCOPE_PRIMARY_TIMEOUT_MS,
+            'BUKLOD scopes'
+          );
 
         let rows = baseRows;
 
@@ -157,24 +225,46 @@ export function BuklodScopeProvider({
          * The canonical RPC remains the primary source. This supplements
          * any ACTIVE managed membership omitted by older RPC logic.
          */
-        const {
-          data: activeManagedMembershipRows,
-          error: activeManagedMembershipError,
-        } =
-          await supabase
-            .from('buklod_scope_memberships')
-            .select('scope_id')
-            .eq('user_id', user.id)
-            .eq(
-              'membership_status',
-              'ACTIVE'
-            );
+        const membershipResult =
+          await withBuklodTimeout<{
+            data: any;
+            error: any;
+          }>(
+            supabase
+              .from('buklod_scope_memberships')
+              .select('scope_id')
+              .eq('user_id', user.id)
+              .eq(
+                'membership_status',
+                'ACTIVE'
+              ),
+            4000,
+            'Scope memberships'
+          ).catch((error: any) => ({
+            data: null,
+            error: {
+              message:
+                String(
+                  error?.message ??
+                    error ??
+                    'membership timeout'
+                ),
+            },
+          }));
+
+        const activeManagedMembershipRows =
+          membershipResult?.data;
+        const activeManagedMembershipError =
+          membershipResult?.error;
 
         if (
           activeManagedMembershipError
         ) {
-          throw activeManagedMembershipError;
-        }
+          console.warn(
+            'BUKLOD active memberships:',
+            activeManagedMembershipError
+          );
+        } else {
 
         const activeManagedScopeIds =
           Array.from(
@@ -183,7 +273,7 @@ export function BuklodScopeProvider({
                 activeManagedMembershipRows ??
                 []
               )
-                .map(row =>
+                .map((row: { scope_id?: string | null }) =>
                   row.scope_id
                     ? String(
                         row.scope_id
@@ -341,6 +431,7 @@ export function BuklodScopeProvider({
             );
           }
         }
+        }
         /*
          * PATCH_171K_R3_FRESH_AUTH_PUBLIC_SCOPE
          *
@@ -370,13 +461,45 @@ export function BuklodScopeProvider({
               )
             : null;
 
+        const mzbOrganizationScopeId =
+          await resolveMzbOrganizationScopeId();
+
+        rows = rows.map(scope => ({
+          ...scope,
+          is_mzb_organization: isMzbOrganizationScope(
+            {
+              scope_id: scope.scope_id,
+              scope_type: scope.scope_type,
+            },
+            mzbOrganizationScopeId
+          ),
+        }));
+
         setScopes(rows);
 
-        if (freshPublicScope) {
-          setActiveScope(
-            freshPublicScope
-          );
+        const currentId =
+          activeScopeRef.current?.scope_id ??
+          null;
+        const keptScope =
+          currentId
+            ? rows.find(
+                scope =>
+                  scope.scope_id ===
+                  currentId
+              ) ??
+              null
+            : null;
 
+        const nextActive =
+          freshPublicScope ??
+          keptScope ??
+          pickActiveScope(rows);
+
+        setActiveScope(
+          nextActive
+        );
+
+        if (freshPublicScope) {
           await AsyncStorage.removeItem(
             BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY
           );
@@ -402,28 +525,42 @@ export function BuklodScopeProvider({
               BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY
             );
           }
-
-          setActiveScope(
-            pickActiveScope(rows)
-          );
         }
         setError(null);
+
+        void AsyncStorage.setItem(
+          scopeCacheKey(user.id),
+          JSON.stringify({
+            scopes: rows,
+            activeScopeId:
+              nextActive?.scope_id ??
+              null,
+          }),
+        ).catch(() => undefined);
       } catch (nextError: any) {
         console.warn(
           'BUKLOD scope load:',
           nextError
         );
 
-        setScopes([]);
-        setActiveScope(null);
-
-        setError(
-          String(
-            nextError?.message ??
-            nextError
-          )
-        );
+        if (
+          scopesRef.current.length === 0 &&
+          !activeScopeRef.current &&
+          !loadedFromCache
+        ) {
+          setScopes([]);
+          setActiveScope(null);
+          setError(
+            String(
+              nextError?.message ??
+              nextError
+            )
+          );
+        } else {
+          setError(null);
+        }
       } finally {
+        clearTimeout(loadingWatchdog);
         setLoading(false);
       }
     }, [user?.id]);
@@ -470,10 +607,6 @@ export function BuklodScopeProvider({
           );
         }
 
-        await setBuklodActiveScope(
-          scopeId
-        );
-
         setActiveScope(target);
 
         setScopes(
@@ -487,8 +620,36 @@ export function BuklodScopeProvider({
               })
             )
         );
+
+        if (user?.id) {
+          void AsyncStorage.setItem(
+            scopeCacheKey(user.id),
+            JSON.stringify({
+              scopes: scopes.map(scope => ({
+                ...scope,
+                is_active_scope:
+                  scope.scope_id ===
+                  scopeId,
+              })),
+              activeScopeId: scopeId,
+            }),
+          ).catch(() => undefined);
+        }
+
+        /*
+         * PERF: update local scope immediately for navigation;
+         * persist active scope without blocking UI transitions.
+         */
+        void setBuklodActiveScope(
+          scopeId
+        ).catch((error) => {
+          console.warn(
+            'BUKLOD scope persistence:',
+            error
+          );
+        });
       },
-      [scopes]
+      [scopes, user?.id]
     );
 
   const featureEnabled =

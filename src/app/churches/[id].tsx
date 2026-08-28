@@ -43,12 +43,27 @@ import {
   transferChurchAdmin,
   updateChurch,
 } from '@/lib/buklodChurches';
+import {
+  searchAccountabilityScopes,
+  type ChurchFinderRow,
+} from '@/lib/buklodChurchFinder';
+import {
+  fetchChurchSetupSnapshot,
+  type ChurchSetupSnapshot,
+} from '@/lib/buklodChurchRegistration';
+import { visitMemberProfile } from '@/lib/buklodMemberProfile';
+import { scopeMembersRoute } from '@/lib/buklodScopeManage';
+import BuklodChurchMapLocationEditor from '@/components/BuklodChurchMapLocationEditor';
 
 function msg(e: unknown) {
   if (e && typeof e === 'object' && 'message' in e) {
     return String((e as any).message);
   }
   return String(e || 'Unknown error');
+}
+
+function setupChecklistLine(label: string, done: boolean) {
+  return `${done ? 'Done' : 'Needed'}  ·  ${label}`;
 }
 
 function Button({
@@ -99,6 +114,12 @@ export default function ChurchDetailScreen() {
   const [church, setChurch] =
     useState<ChurchSummary | null>(null);
 
+  const [finder, setFinder] =
+    useState<ChurchFinderRow | null>(null);
+
+  const [setup, setSetup] =
+    useState<ChurchSetupSnapshot | null>(null);
+
   const [verification, setVerification] =
     useState<ChurchVerification | null>(null);
 
@@ -137,9 +158,18 @@ export default function ChurchDetailScreen() {
         : setLoading(true);
 
       try {
-        const info = await churchDetails(id);
+        const [info, found, snapshot] = await Promise.all([
+          churchDetails(id),
+          searchAccountabilityScopes({
+            scopeId: id,
+            mode: 'nearby_churches',
+          }).catch(() => [] as ChurchFinderRow[]),
+          fetchChurchSetupSnapshot(id).catch(() => null),
+        ]);
 
         setChurch(info);
+        setFinder(found[0] ?? null);
+        setSetup(snapshot);
 
         if (info) {
           setName(info.name);
@@ -224,14 +254,11 @@ export default function ChurchDetailScreen() {
     );
   }
 
-  const location = [
-    church.barangay,
-    church.city_municipality,
-    church.province,
-    church.country,
-  ]
-    .filter(Boolean)
-    .join(', ');
+  const location =
+    finder?.safe_location_label ||
+    [church.barangay, church.city_municipality]
+      .filter(Boolean)
+      .join(', ');
 
   return (
     <ScrollView
@@ -259,11 +286,65 @@ export default function ChurchDetailScreen() {
             'Christian Church'}
         </Text>
 
-        {!!church.senior_pastor_name && (
-          <Text style={s.meta}>
-            Pastor: {church.senior_pastor_name}
-          </Text>
+        {finder?.pastors.map((person) =>
+          person.user_id ? (
+            <Pressable
+              key={`pastor-${person.user_id}`}
+              onPress={() =>
+                visitMemberProfile(
+                  person.user_id,
+                  person.display_name
+                )
+              }
+            >
+              <Text style={s.meta}>
+                Pastor: {person.display_name}
+              </Text>
+            </Pressable>
+          ) : (
+            <Text
+              key={`pastor-${person.display_name}`}
+              style={s.meta}
+            >
+              Pastor: {person.display_name}
+            </Text>
+          )
         )}
+
+        {finder?.mentors.map((person) =>
+          person.user_id ? (
+            <Pressable
+              key={`mentor-${person.user_id}`}
+              onPress={() =>
+                visitMemberProfile(
+                  person.user_id,
+                  person.display_name
+                )
+              }
+            >
+              <Text style={s.meta}>
+                Mentor: {person.display_name}
+              </Text>
+            </Pressable>
+          ) : (
+            <Text
+              key={`mentor-${person.display_name}`}
+              style={s.meta}
+            >
+              Mentor: {person.display_name}
+            </Text>
+          )
+        )}
+
+        {finder && !finder.accountability_ready ? (
+          <Text style={s.notice}>
+            Accountability setup incomplete — assign a Pastor or Mentor.
+          </Text>
+        ) : finder?.accountability_ready ? (
+          <Text style={s.meta}>
+            Accountability Ready
+          </Text>
+        ) : null}
 
         {!!location && (
           <Text style={s.meta}>
@@ -299,6 +380,68 @@ export default function ChurchDetailScreen() {
             </View>
           )}
         </View>
+
+        {church.is_admin && (
+          <Button
+            title="MEMBERS & ROLES"
+            outline
+            onPress={() =>
+              router.push(
+                scopeMembersRoute(id, {
+                  scopeType: 'CHURCH',
+                  scopeName: church.name,
+                }) as any
+              )
+            }
+          />
+        )}
+      </View>
+
+      {church.is_admin && (
+        <>
+          <Text style={s.section}>CHURCH SETUP</Text>
+          <View style={s.card}>
+            <Text style={s.meta}>
+              {setupChecklistLine('Church name', setup?.has_name ?? Boolean(church.name))}
+            </Text>
+            <Text style={s.meta}>
+              {setupChecklistLine(
+                'Public-safe location',
+                setup?.has_safe_location_label ?? Boolean(finder?.safe_location_label),
+              )}
+            </Text>
+            <Text style={s.meta}>
+              {setupChecklistLine(
+                'Worship map pin',
+                setup?.has_worship_pin ??
+                  Boolean(finder?.latitude != null && finder?.longitude != null),
+              )}
+            </Text>
+            <Text style={s.meta}>
+              {setupChecklistLine(
+                'Who can join',
+                Boolean(setup?.visibility || church.visibility),
+              )}
+              {`  |  ${(setup?.visibility || church.visibility).replace('_', ' ')}`}
+            </Text>
+            <Text style={s.meta}>
+              {setupChecklistLine(
+                'Pastor or Mentor',
+                setup?.has_pastor_or_mentor ??
+                  Boolean(finder?.accountability_ready),
+              )}
+            </Text>
+            <Text style={s.meta}>
+              Review: {setup?.verification_status || church.verification_status || 'Not submitted'}
+            </Text>
+            <Text style={setup?.nearby_discoverable ? s.ready : s.notice}>
+              {setup?.nearby_discoverable
+                ? 'Listed in Nearby Churches'
+                : 'Not listed in Nearby Churches yet. Public churches appear there after review, a worship pin, and a Pastor or Mentor.'}
+            </Text>
+          </View>
+        </>
+      )}
 
         {church.scope_status === 'ACTIVE' &&
           !church.membership_status &&
@@ -391,7 +534,6 @@ export default function ChurchDetailScreen() {
               }
             />
           )}
-      </View>
 
       {church.is_admin && verification && (
         <>
@@ -526,6 +668,27 @@ export default function ChurchDetailScreen() {
               }
             />
           </View>
+
+          <Text style={s.section}>
+            WORSHIP MAP LOCATION
+          </Text>
+
+          <BuklodChurchMapLocationEditor
+            key={`${finder?.latitude ?? ''}:${finder?.longitude ?? ''}:${finder?.safe_location_label ?? ''}`}
+            scopeId={id}
+            initialLabel={
+              finder?.safe_location_label ||
+              [
+                church.barangay,
+                church.city_municipality,
+              ]
+                .filter(Boolean)
+                .join(', ')
+            }
+            initialLatitude={finder?.latitude}
+            initialLongitude={finder?.longitude}
+            onSaved={() => void load(true)}
+          />
 
           {church.scope_status ===
             'ACTIVE' && (
@@ -794,6 +957,11 @@ const s = StyleSheet.create({
     padding: 10,
     borderRadius: 10,
     lineHeight: 18,
+  },
+  ready: {
+    color: '#236043',
+    fontWeight: '800',
+    fontSize: 12,
   },
   section: {
     marginTop: 14,

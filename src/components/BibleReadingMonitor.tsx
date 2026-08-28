@@ -658,7 +658,7 @@ export function BibleReadingMonitor() {
                     : 'RETURNED',
 
                   approve
-                    ? 'The Daily Bible Reading has been approved.'
+                    ? 'Daily Bible Reading approved. The member receives +2 BUKLOD Points ⭐ (Ready to Claim on the Points screen).'
                     : 'The submission was returned for revision.'
                 );
 

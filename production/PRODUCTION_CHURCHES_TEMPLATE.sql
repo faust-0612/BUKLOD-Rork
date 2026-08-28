@@ -1,0 +1,15 @@
+-- BUKLOD PRODUCTION ORGANIZATION BOOTSTRAP TEMPLATE
+-- Do not run until each production church name/code has been verified.
+--
+-- Example only:
+--
+-- insert into public.churches(name,code,is_active)
+-- values
+--   ('VERIFIED CHURCH NAME','VERIFIED_CODE',true)
+-- on conflict(code)
+-- do update set
+--   name=excluded.name,
+--   is_active=excluded.is_active;
+--
+-- Add only churches that should appear in the live registration selector.
+-- Do not copy QA/Pilot churches into production merely because they existed in staging.

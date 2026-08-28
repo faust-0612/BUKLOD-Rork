@@ -10,13 +10,12 @@ import {
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import * as XLSX from 'xlsx';
+import { shareWorkbook, loadXlsxModule } from '@/lib/reports/export';
 
 import { AdminGate } from '@/components/AdminGate';
 import { Button, Card, SectionTitle, shared } from '@/components/UI';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
-import { shareWorkbook } from '@/lib/reports/export';
 import { AppRole, useAuth } from '@/providers/AuthProvider';
 
 type Row = Record<string, any>;
@@ -69,7 +68,10 @@ const inPeriod = (
   return d >= from && d <= to;
 };
 
-function safeSheet(rows: Row[]) {
+function safeSheet(
+  rows: Row[],
+  XLSX: Awaited<ReturnType<typeof loadXlsxModule>>
+) {
   const source = rows.length ? rows : [{ Info: 'No records found for this filter.' }];
   const sheet = XLSX.utils.json_to_sheet(source);
   const headers = Object.keys(source[0] ?? {});
@@ -389,6 +391,8 @@ export default function MemberMasterRecordsScreen() {
   );
 
   const buildWorkbook = async (full: boolean) => {
+    const XLSX = await loadXlsxModule();
+
     if (!dateFrom || !dateTo || dateFrom > dateTo) {
       throw new Error('Enter a valid date range in YYYY-MM-DD format.');
     }
@@ -746,23 +750,23 @@ export default function MemberMasterRecordsScreen() {
 
     const workbook = XLSX.utils.book_new();
     workbook.Props = {
-      Title: full ? 'BUKLOD Full Admin Master Record' : 'BUKLOD Member Masterlist',
+      Title: full ? 'BUKLOD Full Admin Master Record' : 'Member Masterlist',
       Subject: 'BUKLOD member administrative records',
       Author: 'MZB Ministry Inc. - BUKLOD',
       CreatedDate: new Date(),
     };
 
-    XLSX.utils.book_append_sheet(workbook, safeSheet(dashboardRows), 'Summary Dashboard');
-    XLSX.utils.book_append_sheet(workbook, safeSheet(masterRows), 'Member Masterlist');
-    XLSX.utils.book_append_sheet(workbook, safeSheet(assignmentRows), 'Roles & Assignments');
-    XLSX.utils.book_append_sheet(workbook, safeSheet(learningRows), 'Learning Records');
-    XLSX.utils.book_append_sheet(workbook, safeSheet(bibleRows), 'Daily Bible');
-    XLSX.utils.book_append_sheet(workbook, safeSheet(pointRows), 'BUKLOD Points');
-    XLSX.utils.book_append_sheet(workbook, safeSheet(churchLifeRows), 'Church Life');
+    XLSX.utils.book_append_sheet(workbook, safeSheet(dashboardRows, XLSX), 'Summary Dashboard');
+    XLSX.utils.book_append_sheet(workbook, safeSheet(masterRows, XLSX), 'Member Masterlist');
+    XLSX.utils.book_append_sheet(workbook, safeSheet(assignmentRows, XLSX), 'Roles & Assignments');
+    XLSX.utils.book_append_sheet(workbook, safeSheet(learningRows, XLSX), 'Learning Records');
+    XLSX.utils.book_append_sheet(workbook, safeSheet(bibleRows, XLSX), 'Daily Bible');
+    XLSX.utils.book_append_sheet(workbook, safeSheet(pointRows, XLSX), 'BUKLOD Points');
+    XLSX.utils.book_append_sheet(workbook, safeSheet(churchLifeRows, XLSX), 'Church Life');
     if (full) {
-      XLSX.utils.book_append_sheet(workbook, safeSheet(givingRows), 'Giving Summary');
+      XLSX.utils.book_append_sheet(workbook, safeSheet(givingRows, XLSX), 'Giving Summary');
     }
-    XLSX.utils.book_append_sheet(workbook, safeSheet(exportInfoRows), 'Export Info');
+    XLSX.utils.book_append_sheet(workbook, safeSheet(exportInfoRows, XLSX), 'Export Info');
 
     return workbook;
   };

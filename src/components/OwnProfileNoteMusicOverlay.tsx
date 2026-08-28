@@ -8,6 +8,10 @@ import {
   Text,
   View,
 } from 'react-native';
+import {
+  BUKLOD_HIT_SLOP,
+  BUKLOD_HIT_SLOP_TIGHT,
+} from '@/lib/buklodTouch';
 
 import {
   useFocusEffect,
@@ -198,7 +202,7 @@ export function OwnProfileNoteMusicOverlay({
             '/profile/status' as any
           )
         }
-        hitSlop={5}
+        hitSlop={BUKLOD_HIT_SLOP_TIGHT}
         style={{
           height:
             24,

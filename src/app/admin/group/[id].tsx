@@ -491,7 +491,7 @@ export default function GroupDetailScreen() {
 
         if (result.error) {
           Alert.alert(
-            'BUKLOD Members',
+            'Group Members',
             result.error.message
           );
 

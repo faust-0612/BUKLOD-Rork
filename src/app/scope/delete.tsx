@@ -16,10 +16,16 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import {
+  BUKLOD_HIT_SLOP,
+  BUKLOD_HIT_SLOP_TIGHT,
+} from '@/lib/buklodTouch';
 
 import {
   MaterialCommunityIcons,
 } from '@expo/vector-icons';
+
+import BuklodScopedWorkspaceScrollView from '@/components/BuklodScopedWorkspaceScrollView';
 
 import {
   router,
@@ -351,7 +357,7 @@ export default function DeleteManagedScopeScreen() {
   }
 
   return (
-    <ScrollView
+    <BuklodScopedWorkspaceScrollView
       style={
         styles.screen
       }
@@ -371,7 +377,7 @@ export default function DeleteManagedScopeScreen() {
           onPress={() =>
             router.back()
           }
-          hitSlop={10}
+          hitSlop={BUKLOD_HIT_SLOP}
           style={
             styles.back
           }
@@ -651,7 +657,7 @@ export default function DeleteManagedScopeScreen() {
           )}
         </>
       )}
-    </ScrollView>
+    </BuklodScopedWorkspaceScrollView>
   );
 }
 

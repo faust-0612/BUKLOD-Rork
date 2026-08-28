@@ -2,6 +2,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -20,37 +21,42 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { shared } from '@/components/UI';
 import BuklodRankCard from '@/components/BuklodRankCard';
-import BuklodClaimCelebration from '@/components/BuklodClaimCelebration';
+import BuklodPointsStage from '@/components/points/BuklodPointsStage';
+import BuklodCharacterRewardRoadmap from '@/components/points/BuklodCharacterRewardRoadmap';
+import BuklodParticipationProgress from '@/components/points/BuklodParticipationProgress';
+import BuklodClaimRewardCard, {
+  type ClaimRewardItem,
+} from '@/components/points/BuklodClaimRewardCard';
+import BuklodPointsClaimCelebration from '@/components/points/BuklodPointsClaimCelebration';
+import BuklodMyCollectionCard from '@/components/points/BuklodMyCollectionCard';
+import BuklodRedeemCatalogSection from '@/components/points/BuklodRedeemCatalogSection';
+import BuklodCharacterCustomizeSheet from '@/components/points/BuklodCharacterCustomizeSheet';
+import BuklodCharacterFaceAvatar from '@/components/points/BuklodCharacterFaceAvatar';
+import { useBuklodCharacterEventsOptional } from '@/components/character/BuklodCharacterEventProvider';
+import { PointsFocusCard } from '@/components/points/PointsMotion';
+import { useAuth } from '@/providers/AuthProvider';
+import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
+import {
+  DEFAULT_CHARACTER,
+  loadBuklodCharacter,
+  reconcileCharacterForPoints,
+  type BuklodCharacterConfig,
+} from '@/lib/buklodCharacter';
+import { itemsUnlockedBetween } from '@/lib/character-lab-core/unlock';
+import { loadCharacterProgressionConfig } from '@/lib/buklodCharacterProgression';
+import { CharacterEventType } from '@/lib/buklodCharacterEvents';
 import { supabase } from '@/lib/supabase';
+import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
+import {
+  claimBuklodRewardEvent,
+  loadBuklodPointsDashboard,
+  loadPendingBuklodRewardEvent,
+  type BuklodPointsDashboard,
+  type BuklodRewardEvent,
+} from '@/lib/buklodRewards';
+import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 
-type PointsDashboard = {
-  total_points: number;
-  weekly_points: number;
-  monthly_points: number;
-  weekly_rank: number | null;
-  monthly_rank: number | null;
-  all_time_rank: number | null;
-};
-
-type RewardEvent = {
-  id: string;
-  event_type:
-    | 'points'
-    | 'rank_up'
-    | 'achievement';
-
-  points: number | null;
-  activity_type: string | null;
-
-  rank_code: string | null;
-  rank_name: string | null;
-
-  title: string;
-  message: string | null;
-  spoken_message: string | null;
-
-  created_at: string;
-};
+type PointsDashboard = BuklodPointsDashboard;
 
 type RankDashboard = {
   disclaimer: string;
@@ -146,15 +152,6 @@ function points(value: unknown) {
   return `◉ ${number.toLocaleString('en-PH')}`;
 }
 
-function peso(value: unknown) {
-  const number = Number(value ?? 0);
-
-  return `₱${number.toLocaleString('en-PH', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
-
 function rank(value: number | null | undefined) {
   if (!value) {
     return '—';
@@ -204,6 +201,16 @@ case 'ministry_activity':
 
 case 'event_attendance':
   return 'Official Activity Attendance';
+
+case 'scope_attendance':
+  return 'Scope Attendance';
+
+    case 'daily_bible_verification':
+      return 'Daily Bible Reading — Verified';
+
+    case 'learning_progress_verification':
+      return 'Learning Progress — Verified';
+
 case 'weekly_consistency':
       return 'Weekly Consistency';
 
@@ -266,9 +273,11 @@ function StatCard({
 function CircleRankTracker({
   progress,
   ladder,
+  character,
 }: {
   progress: any;
   ladder: any[];
+  character: BuklodCharacterConfig;
 }) {
   const lifetimePoints =
     Number(progress?.lifetime_points ?? 0);
@@ -368,22 +377,13 @@ function CircleRankTracker({
           </Text>
         </View>
 
-        <View
-          style={{
-            width: 54,
-            height: 54,
-            borderRadius: 27,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: '#EAF4EE',
-          }}
-        >
-          <MaterialCommunityIcons
-            name="shield-star-outline"
-            size={29}
-            color="#275D45"
-          />
-        </View>
+        <BuklodCharacterFaceAvatar
+          body={character.body}
+          equipment={
+            character.equipment
+          }
+          size={54}
+        />
       </View>
 
       <Text
@@ -1236,14 +1236,47 @@ function CircleRankAchievementHistory({
   );
 }
 export default function BuklodPointsScreen() {
+  const { session } = useAuth();
+  const { theme } = useBuklodPresentation();
+  const characterEvents = useBuklodCharacterEventsOptional();
+  const userId = session?.user?.id ?? null;
+
   const [dashboard, setDashboard] =
     useState<PointsDashboard | null>(null);
 
   const [rewardEvent, setRewardEvent] =
-    useState<RewardEvent | null>(null);
+    useState<BuklodRewardEvent | null>(null);
 
   const [claimBusy, setClaimBusy] =
     useState(false);
+
+  const [claimCardStatus, setClaimCardStatus] =
+    useState<
+      'claimable' | 'claiming' | 'claimed' | 'failed'
+    >('claimable');
+
+  const [character, setCharacter] =
+    useState<BuklodCharacterConfig>({
+      ...DEFAULT_CHARACTER,
+    });
+
+  const [customizeOpen, setCustomizeOpen] =
+    useState(false);
+
+  const [celebrationActive, setCelebrationActive] =
+    useState(false);
+
+  const [celebrationPoints, setCelebrationPoints] =
+    useState<number | null>(null);
+
+  const [hudPop, setHudPop] = useState(false);
+  const previousLifetimeRef = useRef<number | null>(null);
+
+  const [confirmedBalance, setConfirmedBalance] =
+    useState<number | null>(null);
+
+  const [confirmedAvailableBalance, setConfirmedAvailableBalance] =
+    useState<number | null>(null);
 
   const [rankDashboard, setRankDashboard] =
     useState<RankDashboard | null>(null);
@@ -1396,15 +1429,10 @@ useState<any[]>([]);
 const load = useCallback(async () => {
   await loadCircleRank();
     const [
-      dashboardResult,
       rankResult,
       historyResult,
       evaluationResult,
     ] = await Promise.all([
-      supabase.rpc(
-        'get_my_buklod_points_dashboard'
-      ),
-
       supabase.rpc(
         'get_my_buklod_rank_dashboard'
       ),
@@ -1430,14 +1458,15 @@ const load = useCallback(async () => {
         .limit(50),
     ]);
 
-    if (dashboardResult.error) {
+    try {
+      const nextDashboard = await loadBuklodPointsDashboard();
+      setDashboard(nextDashboard);
+    } catch (dashboardError: unknown) {
       Alert.alert(
         'BUKLOD Points',
-        dashboardResult.error.message
-      );
-    } else {
-      setDashboard(
-        dashboardResult.data as PointsDashboard
+        dashboardError instanceof Error
+          ? dashboardError.message
+          : 'Could not load BUKLOD Points.',
       );
     }
 
@@ -1480,27 +1509,95 @@ const load = useCallback(async () => {
 
   useEffect(() => {
     load();
+    void loadCharacterProgressionConfig();
   }, [load]);
+
+  useEffect(() => {
+    const lifetimePoints =
+      confirmedBalance ??
+      dashboard?.lifetime_points ??
+      dashboard?.total_points ??
+      0;
+    void loadBuklodCharacter(userId).then((loaded) => {
+      const reconciled = reconcileCharacterForPoints(
+        loaded,
+        lifetimePoints
+      );
+      setCharacter(reconciled);
+    });
+  }, [
+    userId,
+    confirmedBalance,
+    dashboard?.lifetime_points,
+    dashboard?.total_points,
+  ]);
+
+  useEffect(() => {
+    if (dashboard) {
+      setConfirmedBalance(
+        dashboard.lifetime_points ?? dashboard.total_points,
+      );
+      setConfirmedAvailableBalance(
+        dashboard.available_points ?? dashboard.total_points,
+      );
+    }
+  }, [
+    dashboard?.lifetime_points,
+    dashboard?.available_points,
+    dashboard?.total_points,
+  ]);
+
+  useEffect(() => {
+    if (!dashboard || !characterEvents) return;
+
+    const current =
+      dashboard.lifetime_points ?? dashboard.total_points;
+    const previous = previousLifetimeRef.current;
+
+    if (previous !== null && current > previous) {
+      const unlocked = itemsUnlockedBetween(
+        previous,
+        current,
+        character.body
+      );
+
+      if (unlocked.length > 0) {
+        const first = unlocked[0];
+        characterEvents.emit({
+          type: CharacterEventType.ITEM_REVEAL,
+          success: true,
+          itemName: first.name,
+          itemId: first.id,
+        });
+      } else if (current - previous >= 5) {
+        characterEvents.emit({
+          type: CharacterEventType.POINTS_EARNED,
+          success: true,
+          points: current - previous,
+        });
+      }
+    }
+
+    previousLifetimeRef.current = current;
+  }, [character.body, characterEvents, dashboard?.total_points]);
+
+  useEffect(() => {
+    if (rewardEvent) {
+      setClaimCardStatus('claimable');
+    }
+  }, [rewardEvent?.id]);
 
   const loadPendingReward =
     useCallback(async () => {
-      const { data, error } =
-        await supabase.rpc(
-          'get_my_pending_buklod_reward_event'
-        );
-
-      if (error) {
+      try {
+        const pending = await loadPendingBuklodRewardEvent();
+        setRewardEvent(pending);
+      } catch (error: unknown) {
         console.warn(
           'Pending BUKLOD reward:',
-          error.message
+          error instanceof Error ? error.message : error,
         );
-
-        return;
       }
-
-      setRewardEvent(
-        (data ?? null) as RewardEvent | null
-      );
     }, []);
 
   useEffect(() => {
@@ -1513,34 +1610,95 @@ const load = useCallback(async () => {
     }
 
     setClaimBusy(true);
+    setClaimCardStatus('claiming');
 
     const eventId = rewardEvent.id;
 
-    const { error } = await supabase.rpc(
-      'claim_my_buklod_reward_event',
-      {
-        p_event_id: eventId,
-      }
-    );
+    try {
+      const result = await claimBuklodRewardEvent(eventId);
+      const earnedPoints =
+        result.claimed_points > 0
+          ? result.claimed_points
+          : rewardEvent.points;
 
-    if (error) {
+      setConfirmedBalance(result.lifetime_points);
+      setConfirmedAvailableBalance(result.available_points);
+      setDashboard((current) =>
+        current
+          ? {
+              ...current,
+              total_points: result.lifetime_points,
+              lifetime_points: result.lifetime_points,
+              available_points: result.available_points,
+            }
+          : current,
+      );
+
+      const spoken =
+        rewardEvent.spoken_message ??
+        rewardEvent.message ??
+        undefined;
+
+      if (result.rank_up) {
+        characterEvents?.emit({
+          type: CharacterEventType.MILESTONE_REACHED,
+          success: true,
+          spokenText:
+            result.rank_name
+              ? `Rank up! You are now ${result.rank_name}.`
+              : spoken,
+        });
+      }
+
+      if (earnedPoints && !result.ack_only) {
+        characterEvents?.emit({
+          type: CharacterEventType.POINTS_CLAIMED,
+          success: true,
+          points: earnedPoints,
+          spokenText: spoken ?? undefined,
+          dialogue: rewardEvent.title
+            ? `${rewardEvent.title} — +${earnedPoints} pts`
+            : undefined,
+        });
+
+        setCelebrationPoints(earnedPoints);
+        setCelebrationActive(true);
+        setHudPop(true);
+      } else if (earnedPoints) {
+        characterEvents?.emit({
+          type: CharacterEventType.POINTS_CLAIMED,
+          success: true,
+          points: earnedPoints,
+          spokenText: spoken ?? undefined,
+        });
+      }
+
+      setClaimCardStatus('claimed');
       setClaimBusy(false);
+
+      await Promise.all([
+        load(),
+        loadPendingReward(),
+      ]);
+    } catch (error: unknown) {
+      setClaimBusy(false);
+      setClaimCardStatus('failed');
 
       Alert.alert(
         'BUKLOD Reward',
-        error.message
+        error instanceof Error
+          ? error.message
+          : 'Claim failed. No points were awarded.',
       );
-
-      return;
     }
+  };
 
+  const onCelebrationComplete = () => {
+    setCelebrationActive(false);
+    setCelebrationPoints(null);
+    setHudPop(false);
     setRewardEvent(null);
-    setClaimBusy(false);
-
-    await Promise.all([
-      load(),
-      loadPendingReward(),
-    ]);
+    setClaimCardStatus('claimable');
   };
 
   const refresh = async () => {
@@ -1622,28 +1780,25 @@ const load = useCallback(async () => {
     });
   }, [history, search, filter]);
 
+  const claimableCount = rewardEvent ? 1 : 0;
+
+  const pendingClaim: ClaimRewardItem | null =
+    rewardEvent
+      ? {
+          id: rewardEvent.id,
+          title: rewardEvent.title,
+          message: rewardEvent.message,
+          points: rewardEvent.points,
+          eventType: rewardEvent.event_type,
+          status: claimCardStatus,
+        }
+      : null;
+
+  const recentHistory = filtered.slice(0, 5);
+
   return (
     <>
-      <BuklodClaimCelebration
-        visible={!!rewardEvent}
-        onClose={claimReward}
-        type={
-          rewardEvent?.event_type === 'rank_up'
-            ? 'rank_up'
-            : rewardEvent?.event_type ===
-                'achievement'
-              ? 'achievement'
-              : 'points'
-        }
-        title={rewardEvent?.title}
-        message={rewardEvent?.message ?? undefined}
-        points={rewardEvent?.points}
-        rankName={rewardEvent?.rank_name}
-        soundEnabled
-        hapticsEnabled
-      />
-
-      <ScrollView
+      <BuklodPortalScrollView
       style={shared.screen}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
@@ -1654,30 +1809,6 @@ const load = useCallback(async () => {
         />
       }
     >
-      <View style={styles.hero}>
-        <View style={styles.symbol}>
-          <Text style={styles.symbolText}>
-            ◉
-          </Text>
-        </View>
-
-        <View style={{ flex: 1 }}>
-          <Text style={styles.eyebrow}>
-            PARTICIPATION & PROGRESS
-          </Text>
-
-          <Text style={styles.title}>
-            BUKLOD Points
-          </Text>
-
-          <Text style={styles.subtitle}>
-            Points recognize recorded
-            participation, consistency, learning
-            and service within BUKLOD.
-          </Text>
-        </View>
-      </View>
-
       {loading || !dashboard ? (
         <View style={styles.emptyCard}>
           <Text style={styles.emptyText}>
@@ -1686,53 +1817,296 @@ const load = useCallback(async () => {
         </View>
       ) : (
         <>
-          <View style={styles.totalCard}>
-            <Text style={styles.totalEyebrow}>
-              MY TOTAL BUKLOD POINTS
-            </Text>
+          <View style={{ position: 'relative' }}>
+            <BuklodPointsStage
+              character={character}
+              lifetimePoints={
+                confirmedBalance ??
+                dashboard.lifetime_points ??
+                dashboard.total_points
+              }
+              availablePoints={
+                confirmedAvailableBalance ??
+                dashboard.available_points ??
+                dashboard.total_points
+              }
+              claimableCount={claimableCount}
+              hudPop={hudPop}
+              pointsToNext={
+                circleProgress?.points_to_next ??
+                rankDashboard?.lifetime.points_to_next ??
+                null
+              }
+              rankName={
+                circleProgress?.rank_name ??
+                rankDashboard?.lifetime.rank_name ??
+                null
+              }
+              nextRankName={
+                circleProgress?.next_rank_name ??
+                rankDashboard?.lifetime.next_rank_name ??
+                null
+              }
+              onOpenCustomize={() => setCustomizeOpen(true)}
+            />
 
-            <Text style={styles.totalValue}>
-              {points(dashboard.total_points)}
-            </Text>
-
-            <Text style={styles.totalNote}>
-              Points are separate from your
-              BUKLOD Bayanihan monetary balance.
-            </Text>
+            <BuklodPointsClaimCelebration
+              active={celebrationActive}
+              points={celebrationPoints}
+              onComplete={onCelebrationComplete}
+            />
           </View>
 
-          {/* CIRCLE_TRACKER_153G2 */}           {circleProgress ? (             <CircleRankTracker               progress={circleProgress}               ladder={circleLadder}             />           ) : null}
-          {/* CIRCLE_RANK_HISTORY_153G5B */}
-          <CircleRankAchievementHistory
-            history={circleRankHistory}
-            currentOrder={Number(
-              circleProgress?.rank_order ?? 1
+          <View style={styles.sectionPad}>
+            <BuklodParticipationProgress
+              rankName={
+                circleProgress?.rank_name ??
+                rankDashboard?.lifetime.rank_name
+              }
+              progressPercent={
+                Number(
+                  circleProgress?.progress_percent ??
+                    rankDashboard?.lifetime
+                      .progress_percent ??
+                    0
+                )
+              }
+              pointsToNext={
+                circleProgress?.points_to_next ??
+                rankDashboard?.lifetime.points_to_next
+              }
+              nextRankName={
+                circleProgress?.next_rank_name ??
+                rankDashboard?.lifetime.next_rank_name
+              }
+              weeklyPoints={dashboard.weekly_points}
+              monthlyPoints={dashboard.monthly_points}
+            />
+          </View>
+
+          {/* BUKLOD_CHARACTER_REWARD_ROADMAP_500K_INSERT */}
+          <View style={styles.sectionPad}>
+            <BuklodCharacterRewardRoadmap
+              lifetimePoints={
+                confirmedBalance ??
+                dashboard.lifetime_points ??
+                dashboard.total_points
+              }
+              body={character.body}
+              currentRankName={
+                circleProgress?.rank_name ??
+                rankDashboard?.lifetime.rank_name ??
+                null
+              }
+              nextRankName={
+                circleProgress?.next_rank_name ??
+                rankDashboard?.lifetime.next_rank_name ??
+                null
+              }
+              onOpenCustomize={() =>
+                setCustomizeOpen(true)
+              }
+            />
+          </View>
+          {pendingClaim && (
+            <View style={styles.sectionPad}>
+              <Text style={styles.sectionEyebrow}>
+                CLAIMABLE REWARDS
+              </Text>
+              <Text style={[styles.sectionTitle, { marginBottom: 8 }]}>
+                Ready to Claim
+              </Text>
+              <PointsFocusCard index={0}>
+                <BuklodClaimRewardCard
+                  reward={pendingClaim}
+                  onClaim={() => void claimReward()}
+                  onRetry={() => {
+                    setClaimCardStatus('claimable');
+                    void claimReward();
+                  }}
+                />
+              </PointsFocusCard>
+            </View>
+          )}
+
+          <View style={styles.sectionPad}>
+            <BuklodRedeemCatalogSection
+              availablePoints={
+                confirmedAvailableBalance ??
+                dashboard.available_points ??
+                0
+              }
+              onRedeemed={(nextAvailable) => {
+                setConfirmedAvailableBalance(nextAvailable);
+                setDashboard((current) =>
+                  current
+                    ? { ...current, available_points: nextAvailable }
+                    : current,
+                );
+              }}
+            />
+          </View>
+
+          <View style={styles.sectionPad}>
+            <BuklodMyCollectionCard
+              index={1}
+              lifetimePoints={
+                confirmedBalance ??
+                dashboard.lifetime_points ??
+                dashboard.total_points
+              }
+              body={character.body}
+              equipment={character.equipment}
+            />
+          </View>
+
+          <View style={styles.sectionPad}>
+            <PointsFocusCard index={2}>
+              <Pressable
+                onPress={() => setCustomizeOpen(true)}
+                style={({ pressed }) => [
+                  styles.customizeEntry,
+                  {
+                    backgroundColor: theme.surface,
+                    borderColor: theme.border,
+                  },
+                  pressed && { opacity: 0.9 },
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name="account-edit-outline"
+                  size={22}
+                  color={theme.accent}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={[
+                      styles.customizeTitle,
+                      { color: theme.textPrimary },
+                    ]}
+                  >
+                    Customize Character
+                  </Text>
+                  <Text
+                    style={[
+                      styles.customizeSub,
+                      { color: theme.textMuted },
+                    ]}
+                  >
+                    Local preview — not synced across devices
+                  </Text>
+                </View>
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={22}
+                  color={theme.textMuted}
+                />
+              </Pressable>
+            </PointsFocusCard>
+          </View>
+
+          <View style={styles.sectionPad}>
+            <Text style={styles.sectionEyebrow}>
+              RECENT ACTIVITY
+            </Text>
+            <Text style={[styles.sectionTitle, { marginBottom: 8 }]}>
+              Latest Points
+            </Text>
+
+            {recentHistory.length === 0 ? (
+              <View style={styles.emptyCard}>
+                <Text style={styles.emptyText}>
+                  No points activity yet.
+                </Text>
+              </View>
+            ) : (
+              recentHistory.map((item, index) => {
+                const credit =
+                  item.direction === 'credit';
+
+                return (
+                  <PointsFocusCard
+                    key={item.id}
+                    index={index + 3}
+                  >
+                    <View style={styles.historyCard}>
+                      <View style={styles.rowBetween}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.historyTitle}>
+                            {activityLabel(
+                              item.activity_type
+                            )}
+                          </Text>
+                          <Text style={styles.meta}>
+                            {dateLabel(item.created_at)}
+                          </Text>
+                        </View>
+                        <Text
+                          style={[
+                            styles.pointsAmount,
+                            credit
+                              ? styles.pointsCredit
+                              : styles.pointsDebit,
+                          ]}
+                        >
+                          {credit ? '+' : '-'}
+                          {points(item.points)}
+                        </Text>
+                      </View>
+                    </View>
+                  </PointsFocusCard>
+                );
+              })
             )}
-            available={
-              circleRankHistoryAvailable
-            }
-          />
-          {rankDashboard && (
+
+            <Pressable
+              style={{ marginTop: 6 }}
+            >
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: '800',
+                  color: theme.accent,
+                }}
+              >
+                Full history below ↓
+              </Text>
+            </Pressable>
+          </View>
+          {/* CIRCLE_TRACKER_153G2 */}
+          {circleProgress ? (
+            <View style={styles.sectionPad}>
+              <CircleRankTracker
+                progress={circleProgress}
+                ladder={circleLadder}
+                character={character}
+              />
+            </View>
+          ) : null}
+          {/* CIRCLE_RANK_HISTORY_153G5B */}
+          <View style={styles.sectionPad}>
+            <CircleRankAchievementHistory
+              history={circleRankHistory}
+              currentOrder={Number(
+                circleProgress?.rank_order ?? 1
+              )}
+              available={
+                circleRankHistoryAvailable
+              }
+            />
+          </View>
+          {rankDashboard && !circleProgress && (
             <View style={styles.rankFeature}>
               <BuklodRankCard
-                rankName={
-                  rankDashboard.season?.rank_name ??
-                  rankDashboard.lifetime.rank_name
-                }
-                points={
-                  rankDashboard.season?.points ??
-                  rankDashboard.lifetime.points
-                }
+                rankName={rankDashboard.lifetime.rank_name}
+                points={rankDashboard.lifetime.points}
                 nextRankName={
-                  rankDashboard.season?.next_rank_name ??
                   rankDashboard.lifetime.next_rank_name
                 }
                 pointsToNext={
-                  rankDashboard.season?.points_to_next ??
                   rankDashboard.lifetime.points_to_next
                 }
                 progressPercent={
-                  rankDashboard.season?.progress_percent ??
                   rankDashboard.lifetime.progress_percent
                 }
                 seasonTitle={
@@ -1902,7 +2276,10 @@ const load = useCallback(async () => {
                           color: '#183D2C',
                         }}
                       >
-                        {item.full_name || 'BUKLOD Member'}
+                        {resolvePersonDisplayName(
+                          item.full_name,
+                          item.user_id,
+                        )}
                       </Text>
 
                       <Text
@@ -1968,16 +2345,6 @@ const load = useCallback(async () => {
                         {item.period_end}
                       </Text>
                     </View>
-
-                    <Text
-                      style={
-                        styles.bonusAmount
-                      }
-                    >
-                      {peso(
-                        item.bayanihan_bonus
-                      )}
-                    </Text>
                   </View>
 
                   <View
@@ -2016,32 +2383,6 @@ const load = useCallback(async () => {
                     <Text style={styles.note}>
                       {item.admin_note}
                     </Text>
-                  )}
-
-                  {Number(
-                    item.bayanihan_bonus
-                  ) > 0 && (
-                    <View
-                      style={
-                        styles.bonusNotice
-                      }
-                    >
-                      <MaterialCommunityIcons
-                        name="check-decagram-outline"
-                        size={18}
-                        color="#275D45"
-                      />
-
-                      <Text
-                        style={
-                          styles.bonusNoticeText
-                        }
-                      >
-                        This approved bonus was
-                        added separately to your
-                        BUKLOD Bayanihan.
-                      </Text>
-                    </View>
                   )}
                 </View>
               ))}
@@ -2202,7 +2543,17 @@ const load = useCallback(async () => {
       <Text style={styles.brand}>
         SAMAHANG BINUKLOD NG PAG-IBIG
       </Text>
-      </ScrollView>
+      </BuklodPortalScrollView>
+
+      <BuklodCharacterCustomizeSheet
+        visible={customizeOpen}
+        onClose={() => setCustomizeOpen(false)}
+        userId={userId}
+        lifetimePoints={
+          confirmedBalance ?? dashboard?.total_points ?? 0
+        }
+        onSaved={setCharacter}
+      />
     </>
   );
 }
@@ -2239,12 +2590,32 @@ function RankRow({
 const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 0,
-    paddingTop: 18,
+    paddingTop: 12,
     paddingBottom: 160,
-    paddingLeft: 0,
-    marginLeft: 0,
-    paddingStart: 0,
-    marginStart: 0,
+  },
+
+  sectionPad: {
+    paddingHorizontal: 12,
+    marginBottom: 8,
+  },
+
+  customizeEntry: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 16,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+
+  customizeTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+  },
+
+  customizeSub: {
+    marginTop: 3,
+    fontSize: 10.5,
   },
 
   hero: {

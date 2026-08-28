@@ -13,6 +13,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
+import { FacultyGate } from '@/components/faculty/FacultyGate';
 
 type Category = {
   id: string;
@@ -36,8 +37,8 @@ type StudentSummary = {
 };
 
 export default function BuklodFacultyFinalGradesScreen() {
-  const params = useLocalSearchParams<{ classroomId?: string; name?: string }>();
-  const classroomId = String(params.classroomId ?? '');
+  const params = useLocalSearchParams<{ classroomId?: string; id?: string; name?: string }>();
+  const classroomId = String(params.classroomId ?? params.id ?? '');
   const className = String(params.name ?? 'Class');
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -169,6 +170,7 @@ export default function BuklodFacultyFinalGradesScreen() {
   };
 
   return (
+    <FacultyGate>
     <ScrollView
       style={styles.screen}
       contentContainerStyle={styles.content}
@@ -184,6 +186,18 @@ export default function BuklodFacultyFinalGradesScreen() {
       <Text style={styles.subtitle}>
         Finalization is allowed only when category weights equal exactly 100% and every positive-weight category has released or locked graded work.
       </Text>
+
+      <Pressable
+        style={[styles.primary, { marginBottom: 14 }]}
+        onPress={() =>
+          router.push({
+            pathname: '/profile/buklod-faculty-class' as any,
+            params: { id: classroomId, name: className },
+          })
+        }
+      >
+        <Text style={styles.primaryText}>Open item-level grades</Text>
+      </Pressable>
 
       <View
         style={[
@@ -282,7 +296,7 @@ export default function BuklodFacultyFinalGradesScreen() {
                 <View style={styles.metric}>
                   <Text style={styles.metricValue}>
                     {student.current_percent == null
-                      ? 'â€”'
+                      ? '—'
                       : Number(student.current_percent).toFixed(2)}
                   </Text>
                   <Text style={styles.metricLabel}>Current %</Text>
@@ -295,7 +309,7 @@ export default function BuklodFacultyFinalGradesScreen() {
                 </View>
                 <View style={styles.metric}>
                   <Text style={styles.metricValue}>
-                    {student.final_grade == null ? 'â€”' : Number(student.final_grade).toFixed(2)}
+                    {student.final_grade == null ? '—' : Number(student.final_grade).toFixed(2)}
                   </Text>
                   <Text style={styles.metricLabel}>Final</Text>
                 </View>
@@ -375,6 +389,7 @@ export default function BuklodFacultyFinalGradesScreen() {
         </Text>
       </View>
     </ScrollView>
+    </FacultyGate>
   );
 }
 

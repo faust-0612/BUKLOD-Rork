@@ -17,6 +17,9 @@ import {
 } from '@expo/vector-icons';
 
 import {
+  BUKLOD_PRIVACY_CONTACT_EMAIL,
+} from '@/lib/buklodPublicPrivacyPolicy';
+import {
   colors,
 } from '@/lib/theme';
 
@@ -33,13 +36,57 @@ ContactUsScreen() {
       </Text>
 
       <Text style={styles.body}>
-        Contact BUKLOD through the
-        in-app feedback channel. Official
-        phone or email details can be
-        added here later without placing
-        unverified contact information in
-        the app.
+        Contact BUKLOD through the in-app feedback channel or{' '}
+        {BUKLOD_PRIVACY_CONTACT_EMAIL}.
       </Text>
+
+      <Pressable
+        style={styles.row}
+        onPress={() =>
+          router.push(
+            '/privacy' as any
+          )
+        }
+      >
+        <MaterialCommunityIcons
+          name="shield-account-outline"
+          size={24}
+          color={colors.green}
+        />
+
+        <View style={styles.copy}>
+          <Text style={styles.rowTitle}>
+            Privacy Policy
+          </Text>
+          <Text style={styles.rowBody}>
+            Public policy at buklod.expo.app/privacy. No login required.
+          </Text>
+        </View>
+      </Pressable>
+
+      <Pressable
+        style={styles.row}
+        onPress={() =>
+          router.push(
+            '/delete-account' as any
+          )
+        }
+      >
+        <MaterialCommunityIcons
+          name="account-remove-outline"
+          size={24}
+          color={colors.green}
+        />
+
+        <View style={styles.copy}>
+          <Text style={styles.rowTitle}>
+            Account Deletion
+          </Text>
+          <Text style={styles.rowBody}>
+            Public instructions at buklod.expo.app/delete-account. No login required.
+          </Text>
+        </View>
+      </Pressable>
 
       <Pressable
         style={styles.row}

@@ -23,7 +23,6 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 export type BuklodCelebrationType =
   | 'points'
   | 'rank_up'
-  | 'bayanihan'
   | 'lesson'
   | 'achievement'
   | 'generic';
@@ -37,7 +36,6 @@ type Props = {
   title?: string;
   message?: string;
   points?: number | null;
-  bayanihanAmount?: number | null;
 
   rankName?: string | null;
 
@@ -58,13 +56,6 @@ const ENCOURAGEMENTS = [
   'Nice work! Your effort is adding up.',
 ];
 
-function peso(value: number) {
-  return `₱${Number(value).toLocaleString('en-PH', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
-
 function defaultTitle(
   type: BuklodCelebrationType
 ) {
@@ -74,9 +65,6 @@ function defaultTitle(
 
     case 'rank_up':
       return 'Rank Up!';
-
-    case 'bayanihan':
-      return 'Bayanihan Reward!';
 
     case 'lesson':
       return 'Lesson Completed!';
@@ -98,7 +86,6 @@ export default function BuklodClaimCelebration({
   title,
   message,
   points,
-  bayanihanAmount,
   rankName,
 
   characterSource = null,
@@ -153,13 +140,6 @@ export default function BuklodClaimCelebration({
     }
 
     if (
-      type === 'bayanihan' &&
-      Number(bayanihanAmount ?? 0) > 0
-    ) {
-      return peso(Number(bayanihanAmount));
-    }
-
-    if (
       type === 'rank_up' &&
       rankName
     ) {
@@ -179,7 +159,6 @@ export default function BuklodClaimCelebration({
   }, [
     type,
     points,
-    bayanihanAmount,
     rankName,
   ]);
   useEffect(() => {
@@ -298,7 +277,6 @@ export default function BuklodClaimCelebration({
     visible,
     type,
     points,
-    bayanihanAmount,
     rankName,
     soundEnabled,
     hapticsEnabled,

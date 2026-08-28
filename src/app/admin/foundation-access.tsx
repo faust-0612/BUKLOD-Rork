@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -14,6 +14,7 @@ import { router } from 'expo-router';
 
 import { AdminGate } from '@/components/AdminGate';
 import { supabase } from '@/lib/supabase';
+import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 
 type RoleRow = {
   role_key: string;
@@ -72,12 +73,12 @@ function clean(value: unknown) {
 function shortId(value: string | null) {
   if (!value) return 'Domain-wide';
   return value.length > 14
-    ? `${value.slice(0, 8)}â€¦${value.slice(-4)}`
+    ? `${value.slice(0, 8)}…${value.slice(-4)}`
     : value;
 }
 
 function formatDate(value: string | null) {
-  if (!value) return 'â€”';
+  if (!value) return '—';
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? value
@@ -116,7 +117,6 @@ export default function FoundationAccessAdmin() {
         'role_key,label,description,scope_required,admin_role'
       )
       .eq('is_active', true)
-      .neq('role_key', 'SYSTEM_ADMIN')
       .order('label');
 
     if (error) throw error;
@@ -164,7 +164,7 @@ export default function FoundationAccessAdmin() {
     if (!q) {
       Alert.alert(
         'Search user',
-        'Enter a name, username, or mobile number.'
+        'Enter at least 2 characters — name, username, mobile, or email.'
       );
       return;
     }
@@ -191,6 +191,33 @@ export default function FoundationAccessAdmin() {
       setLoading(false);
     }
   }, [query, loadRoles]);
+
+  const searchTimerRef = useRef<
+    ReturnType<typeof setTimeout> | null
+  >(null);
+
+  useEffect(() => {
+    const q = clean(query);
+
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
+    }
+
+    if (q.length < 2) {
+      setUsers([]);
+      return;
+    }
+
+    searchTimerRef.current = setTimeout(() => {
+      void search();
+    }, 350);
+
+    return () => {
+      if (searchTimerRef.current) {
+        clearTimeout(searchTimerRef.current);
+      }
+    };
+  }, [query, search]);
 
   const chooseUser = useCallback(
     async (user: UserRow) => {
@@ -229,8 +256,48 @@ export default function FoundationAccessAdmin() {
 
     if (selectedRole === 'SYSTEM_ADMIN') {
       Alert.alert(
-        'Protected role',
-        'SYSTEM_ADMIN cannot be assigned from this screen.'
+        'Assign System Admin?',
+        'This grants full BUKLOD system access. Continue only if you trust this person.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'ASSIGN SYSTEM ADMIN',
+            style: 'destructive',
+            onPress: () => {
+              void (async () => {
+                setBusy(true);
+                try {
+                  const { error } = await (supabase as any).rpc(
+                    'buklod_admin_set_foundation_role_v1',
+                    {
+                      p_user_id: selectedUser.user_id,
+                      p_role_key: 'SYSTEM_ADMIN',
+                      p_scope_type: 'GLOBAL',
+                      p_scope_id: null,
+                      p_active: true,
+                      p_reason: reasonText,
+                    }
+                  );
+                  if (error) throw error;
+                  await loadAssignments(selectedUser.user_id);
+                  setReason('');
+                  Alert.alert(
+                    'System Admin assigned',
+                    'Full system access was granted.'
+                  );
+                } catch (error: any) {
+                  Alert.alert(
+                    'Could not grant access',
+                    clean(error?.message) ||
+                      'System Admin assignment failed.'
+                  );
+                } finally {
+                  setBusy(false);
+                }
+              })();
+            },
+          },
+        ]
       );
       return;
     }
@@ -404,7 +471,7 @@ export default function FoundationAccessAdmin() {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Name, username, or mobile"
+            placeholder="Name, username, mobile, or email"
             autoCapitalize="none"
             style={styles.input}
             returnKeyType="search"
@@ -435,7 +502,10 @@ export default function FoundationAccessAdmin() {
                 >
                   <View style={{ flex: 1 }}>
                     <Text style={styles.userName}>
-                      {user.full_name || 'BUKLOD Member'}
+                      {resolvePersonDisplayName(
+                        user.full_name,
+                        user.user_id,
+                      )}
                     </Text>
                     <Text style={styles.meta}>
                       {user.username
@@ -466,7 +536,10 @@ export default function FoundationAccessAdmin() {
 
             <View style={styles.card}>
               <Text style={styles.selectedName}>
-                {selectedUser.full_name || 'BUKLOD Member'}
+                {resolvePersonDisplayName(
+                  selectedUser.full_name,
+                  selectedUser.user_id,
+                )}
               </Text>
               <Text style={styles.meta}>
                 {selectedUser.username
@@ -593,7 +666,7 @@ export default function FoundationAccessAdmin() {
                       </Text>
 
                       <Text style={styles.meta}>
-                        {item.status} Â· updated {formatDate(item.updated_at)}
+                        {item.status} · updated {formatDate(item.updated_at)}
                       </Text>
 
                       {!!item.reason && (

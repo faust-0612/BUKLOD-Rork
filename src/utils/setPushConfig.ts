@@ -8,17 +8,25 @@ import {
 import {
   supabase,
 } from '@/lib/supabase';
-
-const streamApiKey =
-  (
-    process.env.EXPO_PUBLIC_STREAM_API_KEY
-    ?? ''
-  ).trim();
+import {
+  resolvePersonDisplayName,
+} from '@/lib/buklodPersonDisplay';
+import {
+  rememberStreamApiKey,
+  resolveStreamApiKey,
+} from '@/lib/buklodStreamPushStorage';
 
 const androidPushProviderName =
   (
     process.env
       .EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME
+    ?? ''
+  ).trim();
+
+const iosPushProviderName =
+  (
+    process.env
+      .EXPO_PUBLIC_STREAM_IOS_PUSH_PROVIDER_NAME
     ?? ''
   ).trim();
 
@@ -52,10 +60,7 @@ export async function rememberStreamPushUser(
     ],
     [
       STREAM_USER_NAME_KEY,
-      (
-        userName
-        ?? 'BUKLOD Member'
-      ).trim() || 'BUKLOD Member',
+      resolvePersonDisplayName(userName, id),
     ],
   ]);
 }
@@ -68,12 +73,81 @@ async function createTokenProvider():
     await supabase.auth
       .getSession();
 
-  if (!sessionData.session) {
+  let session =
+    sessionData.session;
+
+  try {
+    const refreshed =
+      await supabase.auth.refreshSession();
+
+    if (refreshed.data.session) {
+      session =
+        refreshed.data.session;
+    }
+  } catch {
+    // Keep the existing session when refresh is unavailable.
+  }
+
+  if (!session?.access_token) {
     throw new Error(
       'No active BUKLOD session for Stream push.'
     );
   }
 
+  const {
+    data,
+    error,
+  } =
+    await supabase.functions.invoke(
+      'stream-token',
+      {
+        body: {},
+        headers: {
+          Authorization:
+            `Bearer ${session.access_token}`,
+        },
+      }
+    );
+
+  if (error) {
+    throw error;
+  }
+
+  const token =
+    (
+      data?.token ??
+      data?.data?.token ??
+      ''
+    )
+      .toString()
+      .trim();
+
+  const apiKey =
+    (
+      data?.api_key ??
+      data?.data?.api_key ??
+      ''
+    )
+      .toString()
+      .trim();
+
+  if (apiKey) {
+    await rememberStreamApiKey(
+      apiKey
+    );
+  }
+
+  if (!token) {
+    throw new Error(
+      'Stream token provider returned no token.'
+    );
+  }
+
+  return token;
+}
+
+async function fetchStreamApiKeyFromServer():
+  Promise<string> {
   const {
     data,
     error,
@@ -89,21 +163,13 @@ async function createTokenProvider():
     throw error;
   }
 
-  const token =
-    (
-      data?.token
-      ?? ''
-    )
-      .toString()
-      .trim();
-
-  if (!token) {
-    throw new Error(
-      'Stream token provider returned no token.'
-    );
-  }
-
-  return token;
+  return (
+    data?.api_key ??
+    data?.data?.api_key ??
+    ''
+  )
+    .toString()
+    .trim();
 }
 
 async function resolvePushUser():
@@ -119,18 +185,15 @@ async function resolvePushUser():
       data.session?.user;
 
     if (authUser?.id) {
-      const name =
-        (
-          authUser.user_metadata?.full_name
-          ??
-          authUser.user_metadata?.name
-          ??
-          authUser.email
-          ??
-          'BUKLOD Member'
-        )
-          .toString()
-          .trim();
+      const name = resolvePersonDisplayName(
+        {
+          full_name:
+            authUser.user_metadata?.full_name ??
+            authUser.user_metadata?.name,
+          username: authUser.email,
+        },
+        authUser.id,
+      );
 
       await rememberStreamPushUser(
         authUser.id,
@@ -141,9 +204,7 @@ async function resolvePushUser():
         id:
           authUser.id,
 
-        name:
-          name ||
-          'BUKLOD Member',
+        name,
 
         type:
           'authenticated',
@@ -180,20 +241,15 @@ async function resolvePushUser():
     return undefined;
   }
 
-  const name =
-    (
-      map[
-        STREAM_USER_NAME_KEY
-      ]
-      ?? 'BUKLOD Member'
-    ).trim();
+  const name = resolvePersonDisplayName(
+    map[STREAM_USER_NAME_KEY],
+    id,
+  );
 
   return {
     id,
 
-    name:
-      name ||
-      'BUKLOD Member',
+    name,
 
     type:
       'authenticated',
@@ -201,52 +257,70 @@ async function resolvePushUser():
 }
 
 export function setPushConfig() {
-  if (!streamApiKey) {
-    console.warn(
-      'BUKLOD Stream push: EXPO_PUBLIC_STREAM_API_KEY is missing.'
+  const hasAndroid =
+    Boolean(
+      androidPushProviderName
     );
 
-    return;
-  }
+  const hasIos =
+    Boolean(
+      iosPushProviderName
+    );
 
-  if (!androidPushProviderName) {
+  if (
+    !hasAndroid &&
+    !hasIos
+  ) {
     console.warn(
-      'BUKLOD Stream push: EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME is missing.'
+      'BUKLOD Stream push: no Android or iOS push provider configured.'
     );
 
     return;
   }
 
   StreamVideoRN.setPushConfig({
-    android: {
-      pushProviderName:
-        androidPushProviderName,
+    ...(hasAndroid
+      ? {
+          android: {
+            pushProviderName:
+              androidPushProviderName,
 
-      incomingChannel: {
-        id:
-          'buklod_incoming_calls',
+            incomingChannel: {
+              id:
+                'buklod_incoming_calls',
 
-        name:
-          'Incoming BUKLOD Calls',
+              name:
+                'Incoming BUKLOD Calls',
 
-        vibration:
-          true,
-      },
+              vibration:
+                true,
+            },
 
-      notificationTexts: {
-        accepting:
-          'Connecting to BUKLOD call...',
+            notificationTexts: {
+              accepting:
+                'Connecting to BUKLOD call...',
 
-        rejecting:
-          'Declining BUKLOD call...',
-      },
+              rejecting:
+                'Declining BUKLOD call...',
+            },
 
-      enableOngoingCalls:
-        true,
+            enableOngoingCalls:
+              true,
 
-      defaultDeviceEndpointType:
-        'speaker',
-    },
+            defaultDeviceEndpointType:
+              'speaker',
+          },
+        }
+      : {}),
+
+    ...(hasIos
+      ? {
+          ios: {
+            pushProviderName:
+              iosPushProviderName,
+          },
+        }
+      : {}),
 
     shouldRejectCallWhenBusy:
       true,
@@ -260,14 +334,26 @@ export function setPushConfig() {
           return undefined;
         }
 
+        const apiKey =
+          await resolveStreamApiKey(
+            fetchStreamApiKeyFromServer
+          );
+
+        if (!apiKey) {
+          console.warn(
+            'BUKLOD Stream push: API key unavailable for killed-state calls.'
+          );
+
+          return undefined;
+        }
+
         const tokenProvider =
           async () =>
             createTokenProvider();
 
         return StreamVideoClient
           .getOrCreateInstance({
-            apiKey:
-              streamApiKey,
+            apiKey,
 
             user,
 

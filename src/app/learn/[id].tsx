@@ -1,5 +1,6 @@
 ﻿import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   FlatList,
   Pressable,
   StyleSheet,
@@ -8,9 +9,29 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { Card, SectionTitle, shared } from '@/components/UI';
+import { Card, SectionTitle, shared, Button } from '@/components/UI';
 import { useAuth } from '@/providers/AuthProvider';
 import { colors } from '@/lib/theme';
+import { useFormationJourney } from '@/hooks/useFormationJourney';
+import {
+  friendlyLessonBlockingReason,
+  formationCopy,
+  lessonBlockingGuide,
+} from '@/lib/formationCopy';
+import {
+  mergeLessonAccessWithLegacySequentialLock,
+  requiresFormationSequentialLock,
+} from '@/lib/formationPacing';
+import {
+  loadFormationLessonAccessBatch,
+  loadMyFormationRoleTrack,
+  loadMyFormationWeeklyDelivery,
+} from '@/lib/buklodFormationProgress';
+import FormationWeeklySection from '@/components/formation/FormationWeeklySection';
+import type {
+  FormationLessonAccess,
+  FormationWeeklyDelivery,
+} from '@/types/buklodFormation';
 
 export default function TrackDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -22,6 +43,14 @@ export default function TrackDetail() {
 
   const [formationStatuses, setFormationStatuses] = useState<any[]>([]);
   const [legacyProgress, setLegacyProgress] = useState<any[]>([]);
+  const [roleTrack, setRoleTrack] = useState<Record<string, unknown> | null>(null);
+  const [weeklyDelivery, setWeeklyDelivery] =
+    useState<FormationWeeklyDelivery | null>(null);
+  const [lessonAccessById, setLessonAccessById] = useState<
+    Map<string, FormationLessonAccess>
+  >(new Map());
+
+  const formationJourney = useFormationJourney(user?.id);
 
   const load = useCallback(async () => {
     if (!id || !user) return;
@@ -55,9 +84,38 @@ export default function TrackDetail() {
     setLessons(l ?? []);
     setEnrollment(e);
 
+    if (t?.stage_code === 106 && formationJourney.engineEnabled) {
+      try {
+        const trackInfo = await loadMyFormationRoleTrack();
+        setRoleTrack(trackInfo);
+      } catch {
+        setRoleTrack(null);
+      }
+    } else {
+      setRoleTrack(null);
+    }
+
+    const stageNum = Number(t?.stage_code ?? 0);
+    if (
+      formationJourney.engineEnabled &&
+      (stageNum === 106 || stageNum === 107)
+    ) {
+      try {
+        const weekly = await loadMyFormationWeeklyDelivery(stageNum);
+        setWeeklyDelivery(weekly);
+      } catch {
+        setWeeklyDelivery(null);
+      }
+    } else {
+      setWeeklyDelivery(null);
+    }
+
     const isFormationTrack =
       t?.formation_program === 'ccp' ||
       t?.formation_program === 'discipleship';
+
+    const lessonRows = l ?? [];
+    const statusRows: any[] = [];
 
     if (isFormationTrack) {
       const { data: statusData } = await supabase.rpc(
@@ -67,22 +125,77 @@ export default function TrackDetail() {
         }
       );
 
-      setFormationStatuses(statusData ?? []);
+      statusRows.push(...(statusData ?? []));
+      setFormationStatuses(statusRows);
       setLegacyProgress([]);
-      return;
-    }
-
-    if (e?.id) {
+    } else if (e?.id) {
       const { data: p } = await supabase
         .from('lesson_progress')
         .select('lesson_id,completed_at')
         .eq('enrollment_id', e.id);
 
       setLegacyProgress(p ?? []);
+      setFormationStatuses([]);
     } else {
       setLegacyProgress([]);
+      setFormationStatuses([]);
     }
-  }, [id, user?.id]);
+
+    const applySequentialLock =
+      isFormationTrack &&
+      lessonRows.length > 0 &&
+      requiresFormationSequentialLock(
+        stageNum > 0 ? stageNum : null,
+        formationJourney.engineEnabled,
+      );
+
+    if (applySequentialLock) {
+      try {
+        const statusByLessonId = new Map<string, { official_status?: string }>(
+          statusRows.map((row) => [row.lesson_id, row]),
+        );
+        const accessMap = formationJourney.engineEnabled
+          ? await loadFormationLessonAccessBatch(
+              lessonRows.map((lesson: { id: string }) => lesson.id),
+            )
+          : new Map<string, FormationLessonAccess>();
+        const merged = new Map<string, FormationLessonAccess>();
+
+        for (const lesson of lessonRows) {
+          const resolved = mergeLessonAccessWithLegacySequentialLock(
+            accessMap.get(lesson.id),
+            {
+              engineEnabled: formationJourney.engineEnabled,
+              isFormation: true,
+              lessonId: lesson.id,
+              stageCode: stageNum > 0 ? stageNum : null,
+              lessons: lessonRows.map(
+                (row: { id: string; lesson_number: number }) => ({
+                  id: row.id,
+                  lesson_number: row.lesson_number,
+                }),
+              ),
+              statusByLessonId,
+            },
+          );
+
+          if (resolved) {
+            merged.set(lesson.id, resolved);
+          }
+        }
+
+        setLessonAccessById(merged);
+      } catch {
+        setLessonAccessById(new Map());
+      }
+    } else {
+      setLessonAccessById(new Map());
+    }
+
+    if (isFormationTrack) {
+      return;
+    }
+  }, [id, user?.id, formationJourney.engineEnabled]);
 
   useEffect(() => {
     load();
@@ -138,24 +251,6 @@ export default function TrackDetail() {
     ? Math.round((approvedCount / lessons.length) * 100)
     : 0;
 
-  const totalPossibleReward = isFormation
-    ? lessons.reduce(
-        (sum, lesson) =>
-          sum + Number(lesson.bayanihan_reward ?? 0),
-        0
-      )
-    : 0;
-
-  const approvedReward = isFormation
-    ? formationStatuses
-        .filter((x) => x.official_status === 'approved')
-        .reduce(
-          (sum, x) =>
-            sum + Number(x.bayanihan_reward ?? 0),
-          0
-        )
-    : 0;
-
   const lessonStatus = (lessonId: string) => {
     if (!isFormation) {
       return legacyCompletedSet.has(lessonId)
@@ -205,12 +300,78 @@ export default function TrackDetail() {
     };
   };
 
+  const visibleLessons = useMemo(() => {
+    const code = Number(track?.stage_code ?? 0);
+    if (
+      !formationJourney.engineEnabled ||
+      !weeklyDelivery?.delivery_assigned ||
+      (code !== 106 && code !== 107)
+    ) {
+      return lessons;
+    }
+
+    const releasedIds = new Set(
+      (weeklyDelivery.lessons ?? [])
+        .filter((l) => l.calendar_released || l.approved)
+        .map((l) => l.learning_lesson_id)
+        .filter(Boolean),
+    );
+
+    return lessons.filter((lesson) => releasedIds.has(lesson.id));
+  }, [
+    lessons,
+    weeklyDelivery,
+    formationJourney.engineEnabled,
+    track?.stage_code,
+  ]);
+
+  const stageCode = Number(track?.stage_code ?? 0);
+  const sequentialLockActive =
+    isFormation &&
+    requiresFormationSequentialLock(
+      stageCode > 0 ? stageCode : null,
+      formationJourney.engineEnabled,
+    );
+
+  const openLesson = (lesson: { id: string }) => {
+    const access = lessonAccessById.get(lesson.id);
+
+    if (
+      sequentialLockActive &&
+      (!access || !access.allowed)
+    ) {
+      Alert.alert(
+        formationCopy.lessonUnavailableTitle,
+        [
+          friendlyLessonBlockingReason(access?.blocking_reason),
+          lessonBlockingGuide(access?.blocking_reason),
+        ]
+          .filter(Boolean)
+          .join('\n\n') ||
+          formationCopy.lessonStageLockedGuide,
+      );
+      return;
+    }
+
+    router.push({
+      pathname: '/learn/lesson',
+      params: {
+        lessonId: lesson.id,
+        enrollmentId: enrollment?.id ?? '',
+      },
+    });
+  };
+
   if (!track) return null;
+
+  const journeyStage = formationJourney.journey?.stages.find(
+    (s) => s.stage_code === stageCode,
+  );
 
   return (
     <FlatList
       contentContainerStyle={shared.content}
-      data={lessons}
+      data={visibleLessons}
       keyExtractor={(item) => item.id}
       ListHeaderComponent={
         <>
@@ -304,15 +465,6 @@ export default function TrackDetail() {
 
                 <View style={styles.divider} />
 
-                <Text style={styles.rewardText}>
-                  Approved Bayanihan: ₱{approvedReward.toFixed(2)}
-                </Text>
-
-                <Text style={styles.rewardMuted}>
-                  Possible value for this track: ₱
-                  {totalPossibleReward.toFixed(2)}
-                </Text>
-
                 <Text style={styles.explanation}>
                   Studying a lesson does not officially complete it.
                   Official progress is counted only after Pastor
@@ -321,6 +473,153 @@ export default function TrackDetail() {
               </>
             )}
           </Card>
+
+          {formationJourney.engineEnabled &&
+            (stageCode === 106 || stageCode === 107) && (
+              <FormationWeeklySection
+                stageCode={stageCode}
+                delivery={weeklyDelivery}
+                trackTitle={
+                  typeof roleTrack?.title_en === 'string'
+                    ? roleTrack.title_en
+                    : undefined
+                }
+              />
+            )}
+
+          {formationJourney.engineEnabled && journeyStage && (
+            <>
+              <SectionTitle>STAGE REQUIREMENTS</SectionTitle>
+              <Card>
+                {(journeyStage.stage_points_required ?? 0) > 0 && (
+                  <Text style={styles.requirementLine}>
+                    {formationCopy.buklodPoints}{' '}
+                    {Number(journeyStage.stage_points_current ?? 0)} /{' '}
+                    {Number(journeyStage.stage_points_required ?? 0)}
+                  </Text>
+                )}
+                {(journeyStage.stage_bayanihan_required ?? 0) > 0 && (
+                  <Text style={styles.requirementLine}>
+                    {stageCode === 107
+                      ? formationCopy.missionActions
+                      : formationCopy.bayanihan}{' '}
+                    {Number(journeyStage.stage_bayanihan_current ?? 0)} /{' '}
+                    {Number(journeyStage.stage_bayanihan_required ?? 0)}{' '}
+                    verified
+                  </Text>
+                )}
+                {stageCode === 107 &&
+                  (journeyStage.stage_points_required ?? 0) === 0 && (
+                    <Text style={styles.requirementLine}>
+                      {formationCopy.buklodPoints} ·{' '}
+                      {formationCopy.noPointRequirement}
+                    </Text>
+                  )}
+                <View style={{ marginTop: 10, gap: 8 }}>
+                  <Button
+                    title="Documents & Covenants"
+                    onPress={() =>
+                      router.push({
+                        pathname: '/formation/documents',
+                        params: { stage: String(stageCode) },
+                      } as any)
+                    }
+                  />
+                  {(journeyStage.stage_bayanihan_required ?? 0) > 0 && (
+                    <Button
+                      title={
+                        stageCode === 107
+                          ? 'Submit Mission Action'
+                          : 'Submit Bayanihan Action'
+                      }
+                      onPress={() =>
+                        router.push({
+                          pathname: '/formation/bayanihan-action',
+                          params: { stage: String(stageCode) },
+                        } as any)
+                      }
+                    />
+                  )}
+                </View>
+              </Card>
+            </>
+          )}
+
+          {formationJourney.engineEnabled && stageCode === 106 && (
+            <>
+              <SectionTitle>FORMATION TRACK</SectionTitle>
+              <Card>
+                {roleTrack?.assigned ? (
+                  <>
+                    <Text style={styles.trackAssigned}>
+                      {(roleTrack.title_en as string) ?? 'Assigned Track'}
+                    </Text>
+                    <Text style={shared.muted}>
+                      {String(roleTrack.track_code ?? '').replace(/_/g, ' ')}
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.trackAwaiting}>
+                      {formationCopy.awaitingTrack}
+                    </Text>
+                    <Text style={shared.muted}>
+                      {formationCopy.trackAssignmentHint}
+                    </Text>
+                  </>
+                )}
+              </Card>
+            </>
+          )}
+
+          {formationJourney.engineEnabled &&
+            journeyStage?.repeat_required && (
+              <>
+                <SectionTitle>REPEAT REQUIRED</SectionTitle>
+                <Card>
+                  <Text style={shared.body}>
+                    Your previous completion is preserved. Complete required
+                    lessons again before continuing.
+                  </Text>
+                  <View style={{ marginTop: 10 }}>
+                    <Button
+                      title="View Repeat Requirements"
+                      onPress={() =>
+                        router.push({
+                          pathname: '/formation/repeat-review',
+                          params: {
+                            stage: String(stageCode),
+                            mode: 'member',
+                          },
+                        } as any)
+                      }
+                    />
+                  </View>
+                </Card>
+              </>
+            )}
+
+          {formationJourney.engineEnabled && stageCode === 107 && (
+            <>
+              <SectionTitle>MISSION FORMATION</SectionTitle>
+              <Card>
+                <Text style={shared.body}>
+                  Record mission field work and church planting milestones with
+                  mentor validation.
+                </Text>
+                <View style={{ marginTop: 10, gap: 8 }}>
+                  <Button
+                    title="Mission Journal"
+                    onPress={() => router.push('/formation/mission-journal' as any)}
+                  />
+                  <Button
+                    title="Mission Project Milestones"
+                    onPress={() => router.push('/formation/mission-project' as any)}
+                  />
+                </View>
+              </Card>
+            </>
+          )}
 
           <SectionTitle>LESSONS</SectionTitle>
         </>
@@ -334,18 +633,15 @@ export default function TrackDetail() {
       }
       renderItem={({ item }) => {
         const status = lessonStatus(item.id);
+        const access = lessonAccessById.get(item.id);
+        const locked =
+          sequentialLockActive &&
+          (!access || !access.allowed);
 
         return (
           <Pressable
-            onPress={() =>
-              router.push({
-                pathname: '/learn/lesson',
-                params: {
-                  lessonId: item.id,
-                  enrollmentId: enrollment?.id ?? '',
-                },
-              })
-            }
+            onPress={() => openLesson(item)}
+            style={locked ? styles.lessonRowLocked : undefined}
           >
             <Card>
               <View style={styles.lessonRow}>
@@ -362,17 +658,14 @@ export default function TrackDetail() {
                     {status.label}
                   </Text>
 
-                  {isFormation && (
-                    <Text style={styles.lessonReward}>
-                      Bayanihan Value: ₱
-                      {Number(
-                        item.bayanihan_reward ?? 0
-                      ).toFixed(2)}
+                  {locked ? (
+                    <Text style={styles.lessonLockedMeta}>
+                      {friendlyLessonBlockingReason(access?.blocking_reason)}
                     </Text>
-                  )}
+                  ) : null}
                 </View>
 
-                <Text style={styles.arrow}>›</Text>
+                {!locked ? <Text style={styles.arrow}>›</Text> : null}
               </View>
             </Card>
           </Pressable>
@@ -494,6 +787,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
+  lessonRowLocked: {
+    opacity: 0.72,
+  },
+
+  lessonLockedMeta: {
+    marginTop: 6,
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.muted,
+  },
+
   lessonMain: {
     flex: 1,
   },
@@ -550,6 +854,38 @@ const styles = StyleSheet.create({
     fontSize: 30,
     color: colors.muted,
     marginLeft: 10,
+  },
+
+  requirementLine: {
+    marginTop: 6,
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text,
+  },
+
+  trackAssigned: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: colors.greenDark,
+  },
+
+  trackAwaiting: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#B45309',
+  },
+
+  missionPhase: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: colors.text,
+    marginBottom: 8,
+  },
+
+  milestone: {
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: 4,
   },
 });
 

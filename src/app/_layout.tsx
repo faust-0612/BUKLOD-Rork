@@ -1,20 +1,30 @@
-import BuklodPersistentBottomNav from '@/components/BuklodPersistentBottomNav';
+import BuklodNavSafeShell from '@/components/BuklodNavSafeShell';
+import BuklodRootKeyboardAvoidingView from '@/components/BuklodRootKeyboardAvoidingView';
 import { BuklodGuideAvatar } from '@/components/BuklodGuideAvatar';
 import '@/lib/performanceBoot';
 import { Stack, type ErrorBoundaryProps } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AuthProvider } from '@/providers/AuthProvider';
+import { BuklodBibleNarrationProvider } from '@/providers/BuklodBibleNarrationProvider';
 import { BuklodScopeProvider } from '@/providers/BuklodScopeProvider';
+import { BuklodFoundationProvider } from '@/providers/BuklodFoundationProvider';
 import { NetworkProvider } from '@/providers/NetworkProvider';
 import { NotificationProvider } from '@/providers/NotificationProvider';
 import { ComplianceProvider } from '@/providers/ComplianceProvider';
 import { RuntimeConfigProvider } from '@/providers/RuntimeConfigProvider';
 import { OfflineBanner } from '@/components/OfflineBanner';
+import BuklodPublishBanner from '@/components/BuklodPublishBanner';
 import BuklodEntitlementRouteGuard from '@/components/BuklodEntitlementRouteGuard';
+import BuklodFocusAppRouteGuard from '@/components/BuklodFocusAppRouteGuard';
 import BuklodCanonicalNavigationGuard from '@/components/BuklodCanonicalNavigationGuard';
+import BuklodClusterInviteDeepLinkHandler from '@/components/BuklodClusterInviteDeepLinkHandler';
+import BuklodAttendanceDeepLinkHandler from '@/components/BuklodAttendanceDeepLinkHandler';
 import { colors } from '@/lib/theme';
 import { StreamVideoProvider } from '@/providers/StreamVideoProvider';
+import { BuklodThemeProvider } from '@/providers/BuklodThemeProvider';
+import { BuklodCharacterEventProvider } from '@/components/character/BuklodCharacterEventProvider';
+import RorkAvatarOnboardingGate from '@/components/character/RorkAvatarOnboardingGate';
 
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   return (
@@ -45,31 +55,49 @@ export function SuspenseFallback() {
 }
 
 import { AdsProvider } from '@/providers/AdsProvider';
+import { BuklodOfflineSyncProvider } from '@/providers/BuklodOfflineSyncProvider';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 export default function RootLayout() {
   return (
+    <SafeAreaProvider>
     <GestureHandlerRootView
       style={{ flex: 1 }}
     >
       <AuthProvider>
+        <BuklodBibleNarrationProvider>
+        <BuklodThemeProvider>
+        <BuklodCharacterEventProvider>
+        <RorkAvatarOnboardingGate />
         <BuklodScopeProvider>
+        <BuklodFoundationProvider>
       <NetworkProvider>
+        <BuklodOfflineSyncProvider>
         <ComplianceProvider>
           <RuntimeConfigProvider>
           <AdsProvider>
       <NotificationProvider>
             <StreamVideoProvider>
-            <KeyboardAvoidingView
-              style={{flex:1}}
-              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-              keyboardVerticalOffset={0}
-            >
+            <BuklodRootKeyboardAvoidingView style={{ flex: 1 }}>
               <OfflineBanner/>
+              <BuklodPublishBanner />
               <BuklodEntitlementRouteGuard />
+              <BuklodFocusAppRouteGuard />
               <BuklodCanonicalNavigationGuard />
-              <Stack screenOptions={{ headerShown: false }}>
+              <BuklodClusterInviteDeepLinkHandler />
+              <BuklodAttendanceDeepLinkHandler />
+              <BuklodNavSafeShell>
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  animation: 'none',
+                  contentStyle: { flex: 1 },
+                }}
+              >
                 <Stack.Screen name="index" />
                 <Stack.Screen name="(auth)" />
+                <Stack.Screen name="privacy/index" />
+                <Stack.Screen name="delete-account/index" />
                 <Stack.Screen name="privacy/notice" />
                 <Stack.Screen name="privacy/consent" />
                 <Stack.Screen name="account/data-rights" />
@@ -80,6 +108,7 @@ export default function RootLayout() {
                 <Stack.Screen name="onboarding/index" />
                 <Stack.Screen name="(tabs)" />
                 <Stack.Screen name="scope/index" />
+                <Stack.Screen name="scope/buklod-lesson/index" />
                 <Stack.Screen name="devotional/[id]" />
                 <Stack.Screen name="reflection/[id]" />
                 <Stack.Screen name="post/[id]" />
@@ -87,6 +116,9 @@ export default function RootLayout() {
                 <Stack.Screen name="connect/[id]" />
                 <Stack.Screen name="connect/personal/[threadId]" />
                 <Stack.Screen name="connect/community/[scopeId]" />
+                <Stack.Screen name="mzb" />
+                <Stack.Screen name="organizations" />
+                <Stack.Screen name="clusters" />
                 <Stack.Screen name="prayer/new" />
                 <Stack.Screen name="prayer/[id]" />
                 <Stack.Screen name="notifications/index" />
@@ -94,6 +126,12 @@ export default function RootLayout() {
                 <Stack.Screen name="leader/follow-up/[id]" />
                 <Stack.Screen name="learn/[id]" />
                 <Stack.Screen name="learn/lesson" options={{ orientation: 'default' }} />
+                <Stack.Screen name="formation/documents" />
+                <Stack.Screen name="formation/repeat-review" />
+                <Stack.Screen name="formation/bayanihan-action" />
+                <Stack.Screen name="formation/mission-journal" />
+                <Stack.Screen name="formation/mission-project" />
+                <Stack.Screen name="word/index" />
                 <Stack.Screen name="bible/index" />
 {/* PATCH_155BC_NEW_ROUTES */}
                 <Stack.Screen name="mentoring/index" />
@@ -124,6 +162,7 @@ export default function RootLayout() {
                 <Stack.Screen name="admin/pilot/checklist" />
                 <Stack.Screen name="feedback/index" />
                 <Stack.Screen name="feedback/mine" />
+                <Stack.Screen name="about-buklod" />
                 <Stack.Screen name="system/maintenance" />
                 <Stack.Screen name="system/update-required" />
                 <Stack.Screen name="system/pilot-access" />
@@ -138,10 +177,16 @@ export default function RootLayout() {
                 <Stack.Screen name="admin/pilot/features" />
                 <Stack.Screen name="admin/pilot/cohorts" />
                 <Stack.Screen name="admin/pilot/feedback" />
-                <Stack.Screen name="admin/index" />
+                <Stack.Screen name="admin/configuration-center" />
+                <Stack.Screen name="admin/foundation-access" />
+                <Stack.Screen name="admin/faith-payments" />
+                <Stack.Screen name="admin/account-recovery" />
+                <Stack.Screen name="account/recovery-pin" />
+                <Stack.Screen name="(auth)/forgot-password" />
                 {/* PATCH_162D_SPONSOR_ROUTE */}
                 <Stack.Screen name="admin/sponsors" />
                 <Stack.Screen name="admin/member-master" />
+                <Stack.Screen name="admin/org-cluster-control" />
                 <Stack.Screen name="admin/bible/index" />
                 <Stack.Screen name="admin/bible/monitor" />
                 <Stack.Screen name="admin/approvals" />
@@ -149,6 +194,7 @@ export default function RootLayout() {
                 <Stack.Screen name="admin/devotionals" />
                 <Stack.Screen name="admin/devotional-editor" />
                 <Stack.Screen name="admin/churches" />
+                <Stack.Screen name="admin/church-readiness" />
                 <Stack.Screen name="admin/groups" />
                 <Stack.Screen name="admin/group/[id]" />
                 <Stack.Screen name="admin/users" />
@@ -156,7 +202,16 @@ export default function RootLayout() {
                 <Stack.Screen name="admin/learning/track-editor" />
                 <Stack.Screen name="admin/learning/mentors" />
                 <Stack.Screen name="admin/learning-approvals" />
+                <Stack.Screen name="admin/formation/config" />
+                <Stack.Screen name="admin/formation/track-assignment" />
+                <Stack.Screen name="admin/formation/curriculum-preview" />
+                <Stack.Screen name="admin/formation/lesson-builder" />
                 <Stack.Screen name="admin/bayanihan" />
+                <Stack.Screen name="admin/attendance/index" />
+                <Stack.Screen name="admin/attendance/usage" />
+                <Stack.Screen name="admin/attendance/scopes" />
+                <Stack.Screen name="admin/attendance/focus-apps/index" />
+                <Stack.Screen name="admin/attendance/focus-apps/payments" />
                 <Stack.Screen name="admin/church-life/index" />
                 <Stack.Screen name="admin/church-life/event-editor" />
                 <Stack.Screen name="admin/church-life/events" />
@@ -168,9 +223,14 @@ export default function RootLayout() {
                 <Stack.Screen name="admin/visitors/[id]" />
                 
                 <Stack.Screen name="admin/privacy/index" />
+                <Stack.Screen name="admin/content-reports" />
+                <Stack.Screen name="admin/system-announcement-boards" />
+                <Stack.Screen name="scope/attendance/index" />
+                <Stack.Screen name="scope/attendance/report" />
+                <Stack.Screen name="organizations/events-attendance" />
               </Stack>
-              <BuklodPersistentBottomNav />
-            </KeyboardAvoidingView>
+              </BuklodNavSafeShell>
+            </BuklodRootKeyboardAvoidingView>
             </StreamVideoProvider>
                       {/* PATCH_163A_R_ROOT_GUIDE */}
             <BuklodGuideAvatar />
@@ -178,10 +238,16 @@ export default function RootLayout() {
     </AdsProvider>
           </RuntimeConfigProvider>
         </ComplianceProvider>
+        </BuklodOfflineSyncProvider>
       </NetworkProvider>
+            </BuklodFoundationProvider>
             </BuklodScopeProvider>
+        </BuklodCharacterEventProvider>
+        </BuklodThemeProvider>
+        </BuklodBibleNarrationProvider>
 </AuthProvider>
     </GestureHandlerRootView>
+    </SafeAreaProvider>
   );
 }
 

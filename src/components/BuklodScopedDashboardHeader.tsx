@@ -6,6 +6,14 @@ import {
   Text,
   View,
 } from 'react-native';
+import {
+  BUKLOD_HIT_SLOP,
+  BUKLOD_HIT_SLOP_TIGHT,
+} from '@/lib/buklodTouch';
+
+import {
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 
 import {
   MaterialCommunityIcons,
@@ -17,12 +25,13 @@ import {
   type DashboardTheme,
 } from '@/components/BuklodDashboardCustomizer';
 // PATCH_170A_HEADER_CUSTOMIZER
-import BuklodScopedHeaderBanner
-  from '@/components/BuklodScopedHeaderBanner';
 
 import {
   colors,
 } from '@/lib/theme';
+import {
+  formatScopeTypeLabel,
+} from '@/lib/buklodScope';
 
 type Section =
   | 'home'
@@ -32,31 +41,13 @@ type Section =
 type Props = {
   scopeName: string;
   scopeType: string;
+  geoLevel?: string | null;
   section: Section;
   onBack: () => void;
   theme: DashboardTheme;
   canCustomize: boolean;
   onThemeChange: (theme: DashboardTheme) => void | Promise<void>;
 };
-
-type SponsorPlacement =
-  | 'home'
-  | 'messages'
-  | 'community';
-
-function sponsorPlacement(
-  section: Section,
-): SponsorPlacement {
-  if (section === 'community') {
-    return 'community';
-  }
-
-  if (section === 'connect') {
-    return 'messages';
-  }
-
-  return 'home';
-}
 
 function encouragementFor(
   section: Section,
@@ -76,17 +67,25 @@ export default function
 BuklodScopedDashboardHeader({
   scopeName,
   scopeType,
+  geoLevel,
   section,
   onBack,
   theme,
   canCustomize,
   onThemeChange,
 }: Props) {
+  const insets = useSafeAreaInsets();
 
   const normalizedType =
     String(scopeType ?? '')
       .trim()
       .toUpperCase();
+
+  const typeLabel =
+    formatScopeTypeLabel(
+      normalizedType,
+      geoLevel
+    );
 
   /*
    * Sub-organizations are child ORGANIZATION scopes,
@@ -96,38 +95,22 @@ BuklodScopedDashboardHeader({
     normalizedType === 'ORGANIZATION' ||
     normalizedType === 'CLUSTER';
 
-  /*
-   * Two-column layout only when there is enough real width.
-   * Narrow phones stack the ad below the title to prevent
-   * clipped creatives and accidental taps near Back.
-   */
-  const splitHeader = false;
-
-  const placement =
-    sponsorPlacement(section);
-
   return (
-    <View style={styles.shell}>
-      <View
-        style={[
-          styles.titleBar,
-          splitHeader
-            ? styles.titleBarSplit
-            : styles.titleBarStacked,
-        ]}
-      >
-        <View
-          style={[
-            styles.identityPane,
-            splitHeader &&
-              styles.halfPane,
-          ]}
-        >
+    <View
+      style={[
+        styles.shell,
+        {
+          paddingTop: insets.top,
+        },
+      ]}
+    >
+      <View style={styles.titleBar}>
+        <View style={styles.identityPane}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Back"
             onPress={onBack}
-            hitSlop={6}
+            hitSlop={BUKLOD_HIT_SLOP_TIGHT}
             style={styles.back}
           >
             <MaterialCommunityIcons
@@ -142,7 +125,7 @@ BuklodScopedDashboardHeader({
               style={styles.headerEyebrow}
               numberOfLines={1}
             >
-              {normalizedType}
+              {typeLabel.toUpperCase()}
             </Text>
 
             <Text
@@ -159,26 +142,10 @@ BuklodScopedDashboardHeader({
             onSave={onThemeChange}
           />
         </View>
-
-        {showCommercialHeader && (
-          <View
-            style={[
-              styles.adPane,
-              splitHeader
-                ? styles.halfPane
-                : styles.adPaneStacked,
-            ]}
-          >
-            <View style={styles.adSafetyShell}>
-              <BuklodScopedHeaderBanner
-                placement={placement}
-              />
-            </View>
-          </View>
-        )}
       </View>
 
-      {showCommercialHeader && (
+      {showCommercialHeader &&
+        section !== 'connect' && (
         <View style={styles.encouragementBar}>
           <MaterialCommunityIcons
             name="heart-outline"
@@ -208,28 +175,12 @@ const styles =
 
     titleBar: {
       width: '100%',
+      minHeight: 64,
       paddingHorizontal: 12,
       paddingTop: 7,
       paddingBottom: 8,
       backgroundColor:
         colors.greenDark,
-    },
-
-    titleBarSplit: {
-      minHeight: 64,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-    },
-
-    titleBarStacked: {
-      minHeight: 64,
-      gap: 6,
-    },
-
-    halfPane: {
-      flex: 1,
-      minWidth: 0,
     },
 
     identityPane: {
@@ -268,35 +219,6 @@ const styles =
       color: colors.white,
       fontSize: 18,
       fontWeight: '900',
-    },
-
-    adPane: {
-      minHeight: 48,
-      alignItems: 'flex-end',
-      justifyContent: 'center',
-    },
-
-    adPaneStacked: {
-      width: '100%',
-      minHeight: 50,
-      paddingTop: 4,
-      paddingBottom: 4,
-      borderTopWidth:
-        StyleSheet.hairlineWidth,
-      borderTopColor:
-        'rgba(255,255,255,0.18)',
-      alignItems: 'center',
-      justifyContent: 'center',
-      overflow: 'visible',
-    },
-
-    adSafetyShell: {
-      minWidth: 188,
-      minHeight: 42,
-      alignItems: 'center',
-      justifyContent: 'center',
-      overflow: 'hidden',
-      borderRadius: 9,
     },
 
     encouragementBar: {

@@ -83,6 +83,26 @@ AccountSecurityScreen() {
     useState(false);
 
   const [
+    currentPassword,
+    setCurrentPassword,
+  ] =
+    useState('');
+
+  const [
+    loginSummary,
+    setLoginSummary,
+  ] =
+    useState<
+      | {
+          authEmail: string | null;
+          username: string | null;
+          mobile: string | null;
+          fullName: string | null;
+        }
+      | null
+    >(null);
+
+  const [
     codes,
     setCodes,
   ] =
@@ -147,6 +167,47 @@ AccountSecurityScreen() {
                 ),
             });
           }
+
+          const {
+            data: authData,
+          } =
+            await supabase.auth.getUser();
+
+          const userId =
+            authData.user?.id ??
+            null;
+
+          if (userId) {
+            const {
+              data: profileRow,
+            } =
+              await supabase
+                .from('profiles')
+                .select(
+                  'full_name,username,mobile'
+                )
+                .eq(
+                  'id',
+                  userId
+                )
+                .maybeSingle();
+
+            setLoginSummary({
+              authEmail:
+                authData.user
+                  ?.email ??
+                null,
+              username:
+                profileRow?.username ??
+                null,
+              mobile:
+                profileRow?.mobile ??
+                null,
+              fullName:
+                profileRow?.full_name ??
+                null,
+            });
+          }
         } catch (
           error
         ) {
@@ -173,12 +234,22 @@ AccountSecurityScreen() {
   const changePassword =
     async () => {
       if (
+        !currentPassword.trim()
+      ) {
+        Alert.alert(
+          'Change Password',
+          'Enter your current password first.'
+        );
+        return;
+      }
+
+      if (
         password.length <
         8
       ) {
         Alert.alert(
           'Change Password',
-          'Use at least 8 characters.'
+          'Use at least 8 characters for your new password.'
         );
         return;
       }
@@ -189,7 +260,7 @@ AccountSecurityScreen() {
       ) {
         Alert.alert(
           'Change Password',
-          'The passwords do not match.'
+          'The new passwords do not match.'
         );
         return;
       }
@@ -197,6 +268,38 @@ AccountSecurityScreen() {
       setBusy(true);
 
       try {
+        const {
+          data: authData,
+        } =
+          await supabase.auth.getUser();
+
+        const authEmail =
+          authData.user?.email ??
+          null;
+
+        if (!authEmail) {
+          throw new Error(
+            'Could not read your sign-in account.'
+          );
+        }
+
+        const {
+          error: verifyError,
+        } =
+          await supabase.auth.signInWithPassword(
+            {
+              email: authEmail,
+              password:
+                currentPassword,
+            }
+          );
+
+        if (verifyError) {
+          throw new Error(
+            'Current password is incorrect.'
+          );
+        }
+
         const {
           error,
         } =
@@ -210,6 +313,7 @@ AccountSecurityScreen() {
           throw error;
         }
 
+        setCurrentPassword('');
         setPassword('');
         setConfirm('');
 
@@ -474,11 +578,43 @@ AccountSecurityScreen() {
         }
       >
         BUKLOD never stores or shows
-        your readable password. Use a
-        confirmed email or offline
-        recovery codes to reset it
-        safely.
+        your readable password. Confirm your
+        current password below, then set a new one.
+        Use a confirmed email or offline recovery
+        codes if you forget it.
       </Text>
+
+      {!!loginSummary && (
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>
+            YOUR SIGN-IN
+          </Text>
+
+          {!!loginSummary.fullName && (
+            <Text style={styles.identityLine}>
+              Name: {loginSummary.fullName}
+            </Text>
+          )}
+
+          {!!loginSummary.mobile && (
+            <Text style={styles.identityLine}>
+              Mobile login: {loginSummary.mobile}
+            </Text>
+          )}
+
+          {!!loginSummary.username && (
+            <Text style={styles.identityLine}>
+              Username login: {loginSummary.username}
+            </Text>
+          )}
+
+          {!!loginSummary.authEmail && (
+            <Text style={styles.identityLine}>
+              Auth email: {loginSummary.authEmail}
+            </Text>
+          )}
+        </View>
+      )}
 
       <View
         style={
@@ -596,6 +732,20 @@ AccountSecurityScreen() {
         >
           CHANGE PASSWORD
         </Text>
+
+        <Text style={styles.help}>
+          Enter your current password, then your new
+          password twice.
+        </Text>
+
+        <TextInput
+          value={currentPassword}
+          onChangeText={setCurrentPassword}
+          placeholder="Current password"
+          secureTextEntry
+          autoCapitalize="none"
+          style={styles.input}
+        />
 
         <TextInput
           value={
@@ -924,6 +1074,15 @@ const styles =
         colors.muted,
       fontSize: 9.5,
       lineHeight: 15,
+      marginBottom: 8,
+    },
+
+    identityLine: {
+      color: colors.text,
+      fontSize: 10,
+      lineHeight: 16,
+      marginBottom: 4,
+      fontWeight: '700',
     },
 
     primary: {

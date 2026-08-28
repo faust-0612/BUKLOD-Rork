@@ -3,9 +3,8 @@ import BuklodFoundationPortalShell from '@/components/BuklodFoundationPortalShel
 export default function BuklodLocalPortal() {
   return (
     <BuklodFoundationPortalShell
-      title="BUKLOD Local"
+      integrationAppId="local"
       icon="home-city-outline"
-      description="Local community and local-scope BUKLOD portal."
     />
   );
 }

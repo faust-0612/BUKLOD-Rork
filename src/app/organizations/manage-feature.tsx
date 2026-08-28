@@ -3,15 +3,29 @@ import React from 'react';
 import {
   Alert,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+
+import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { colors } from '@/lib/theme';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
+import { readOrganizationScopeId } from '@/lib/buklodOrganization';
+import {
+  buklodReportDefinitionsPath,
+  buklodReportLandingPath,
+} from '@/lib/buklodReportRoutes';
+import {
+  enterScopedWorkspace,
+  parseScopedWorkspaceSection,
+} from '@/lib/buklodScopeRoute';
+import {
+  openScopedAttendance,
+  scopeRouteParams,
+} from '@/lib/buklodScopeManage';
 
 type Detail = {
   icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -47,6 +61,49 @@ function bulletinRoute(scope: string) {
 
 function details(scope: string): Record<string, Detail> {
   return {
+    'Reports to Submit': {
+      icon: 'file-upload-outline',
+      description:
+        'Official BUKLOD Report workspace for required submissions, due dates, and review — not generic admin records.',
+      items: [
+        {
+          label: 'Open BUKLOD Report',
+          route: buklodReportLandingPath(scope),
+        },
+        {
+          label: 'Manage report definitions',
+          route: buklodReportDefinitionsPath(scope),
+        },
+      ],
+    },
+    Visitors: {
+      icon: 'account-heart-outline',
+      description:
+        'Track visitors, visits, follow-up, and outreach records for this Organization.',
+      items: [
+        {
+          label: 'Visitor records',
+          route: moduleRoute(scope, 'visitors', 'Visitor Records', 'manage'),
+        },
+        {
+          label: 'Record a visit',
+          route: moduleRoute(scope, 'visitor_visits', 'Visit Log', 'create'),
+        },
+        {
+          label: 'Follow-up queue',
+          route: moduleRoute(
+            scope,
+            'visitor_followups',
+            'Follow-up Queue',
+            'manage'
+          ),
+        },
+        {
+          label: 'Church visitor admin',
+          route: '/admin/visitors',
+        },
+      ],
+    },
     Members: {
       icon: 'account-multiple-outline',
       description: 'Invite, review, activate, suspend or remove members in this exact Organization scope.',
@@ -98,9 +155,16 @@ function details(scope: string): Record<string, Detail> {
       icon: 'calendar-month-outline',
       description: 'Manage Organization activities, schedules and programs.',
       items: [
-        { label: 'Create event', route: moduleRoute(scope, 'events', 'Events & Programs', 'create') },
+        {
+          label: 'Events & Attendance workspace',
+          route: '/scope/attendance',
+        },
+        {
+          label: 'Attendance analytics (all events)',
+          route: '/scope/attendance/report',
+        },
+        { label: 'Create event', route: '/scope/attendance/create' },
         { label: 'Program list', route: moduleRoute(scope, 'events', 'Program List', 'manage') },
-        { label: 'Attendance', route: moduleRoute(scope, 'event_attendance', 'Event Attendance', 'manage') },
         { label: 'Calendar', route: moduleRoute(scope, 'events', 'Organization Calendar', 'calendar') },
         { label: 'Event reports', route: moduleRoute(scope, 'event_reports', 'Event Reports', 'manage') },
       ],
@@ -110,6 +174,10 @@ function details(scope: string): Record<string, Detail> {
       description: 'Track indicators, participation, alerts and follow-up records.',
       items: [
         { label: 'Monitoring dashboard', route: moduleRoute(scope, 'monitoring', 'Monitoring Dashboard', 'manage') },
+        {
+          label: 'Attendance report & analytics',
+          route: '/scope/attendance/report',
+        },
         { label: 'Attendance indicators', route: moduleRoute(scope, 'monitoring_attendance', 'Attendance Indicators', 'manage') },
         { label: 'Participation', route: moduleRoute(scope, 'monitoring_participation', 'Participation', 'manage') },
         { label: 'Custom indicators', route: moduleRoute(scope, 'monitoring_custom', 'Custom Indicators', 'manage') },
@@ -118,13 +186,17 @@ function details(scope: string): Record<string, Detail> {
     },
     'Reports & Analytics': {
       icon: 'chart-box-outline',
-      description: 'View live Organization counts and maintain saved reports.',
+      description:
+        'BUKLOD Report compliance and organizational reporting. Submission workflows arrive in the next release.',
       items: [
-        { label: 'Membership report', route: moduleRoute(scope, 'reports_membership', 'Membership Report', 'report') },
-        { label: 'Engagement report', route: moduleRoute(scope, 'reports_engagement', 'Engagement Report', 'report') },
-        { label: 'Program report', route: moduleRoute(scope, 'reports_program', 'Program Report', 'report') },
-        { label: 'Monitoring summary', route: moduleRoute(scope, 'reports_monitoring', 'Monitoring Summary', 'report') },
-        { label: 'Saved / export-ready reports', route: moduleRoute(scope, 'reports', 'Saved Reports', 'report') },
+        {
+          label: 'Open BUKLOD Report',
+          route: buklodReportLandingPath(scope),
+        },
+        {
+          label: 'Manage report definitions',
+          route: buklodReportDefinitionsPath(scope),
+        },
       ],
     },
     'Forms & Records': {
@@ -189,15 +261,61 @@ function slugify(value: string) {
 export default function OrganizationManageFeatureScreen() {
   const params = useLocalSearchParams<{ organization?: string; feature?: string }>();
   const { selectScope } = useBuklodScope();
-  const scopeId = typeof params.organization === 'string' ? params.organization : '';
-  const feature = typeof params.feature === 'string' ? params.feature : '';
-  const detail = details(scopeId)[feature];
+  const scopeId = readOrganizationScopeId(params as Record<string, unknown>);
+  const feature = typeof params.feature === 'string' ? params.feature.trim() : '';
+  const catalog = details(scopeId);
+  const detail = feature ? catalog[feature] : undefined;
 
   const openItem = async (route: string) => {
+    if (
+      route === '/scope/attendance' ||
+      route.startsWith('/scope/attendance/')
+    ) {
+      try {
+        if (route === '/scope/attendance') {
+          await openScopedAttendance(selectScope, scopeId);
+          return;
+        }
+
+        if (route === '/scope/attendance/create') {
+          await openScopedAttendance(selectScope, scopeId, {
+            showCreate: '1',
+          });
+          return;
+        }
+
+        await selectScope(scopeId);
+        router.push({
+          pathname: route as any,
+          params: scopeRouteParams(scopeId),
+        } as any);
+      }
+      catch (error: any) {
+        Alert.alert(
+          'Events & Attendance',
+          String(
+            error?.message ??
+              error ??
+              'This Organization attendance workspace cannot be opened right now.'
+          )
+        );
+      }
+      return;
+    }
+
     if (route.startsWith('/scope')) {
       try {
-        await selectScope(scopeId);
-        router.push(route as any);
+        await enterScopedWorkspace(
+          selectScope,
+          scopeId,
+          {
+            section:
+              parseScopedWorkspaceSection(
+                route
+              ),
+            fromPortal: true,
+          }
+        );
       }
       catch (error: any) {
         Alert.alert(
@@ -234,8 +352,6 @@ export default function OrganizationManageFeatureScreen() {
     ],
   };
 
-  const current = detail ?? fallback;
-
   if (!scopeId) {
     return (
       <View style={styles.center}>
@@ -244,8 +360,60 @@ export default function OrganizationManageFeatureScreen() {
     );
   }
 
+  if (!feature) {
+    return (
+      <BuklodPortalScrollView style={styles.screen} contentContainerStyle={styles.content}>
+        <Pressable onPress={() => router.back()} style={styles.back}>
+          <MaterialCommunityIcons name="arrow-left" size={20} color={colors.greenDark} />
+          <Text style={styles.backText}>Manage Organization</Text>
+        </Pressable>
+
+        <View style={styles.hero}>
+          <Text style={styles.title}>More Admin Controls</Text>
+          <Text style={styles.subtitle}>
+            Open reports, visitors, dashboard builder, members, events, and the rest of
+            this Organization&apos;s admin tools.
+          </Text>
+        </View>
+
+        <View style={styles.card}>
+          {Object.entries(catalog).map(([key, item]) => (
+            <Pressable
+              key={key}
+              onPress={() =>
+                router.push({
+                  pathname: '/organizations/manage-feature',
+                  params: {
+                    organization: scopeId,
+                    feature: key,
+                  },
+                } as any)
+              }
+              style={({ pressed }) => [styles.row, pressed && { opacity: 0.72 }]}
+            >
+              <View style={styles.icon}>
+                <MaterialCommunityIcons
+                  name={item.icon}
+                  size={19}
+                  color={colors.greenDark}
+                />
+              </View>
+              <View style={{ flex: 1, gap: 3 }}>
+                <Text style={styles.rowText}>{key}</Text>
+                <Text style={styles.rowHint}>{item.description}</Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={19} color={colors.muted} />
+            </Pressable>
+          ))}
+        </View>
+      </BuklodPortalScrollView>
+    );
+  }
+
+  const current = detail ?? fallback;
+
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <BuklodPortalScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Pressable onPress={() => router.back()} style={styles.back}>
         <MaterialCommunityIcons name="arrow-left" size={20} color={colors.greenDark} />
         <Text style={styles.backText}>Manage Organizations</Text>
@@ -272,7 +440,7 @@ export default function OrganizationManageFeatureScreen() {
           </Pressable>
         ))}
       </View>
-</ScrollView>
+</BuklodPortalScrollView>
   );
 }
 
@@ -289,5 +457,6 @@ const styles = StyleSheet.create({
   row: { minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: 7, borderBottomWidth: 1, borderBottomColor: colors.line, paddingVertical: 8 },
   icon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.greenSoft },
   rowText: { flex: 1, fontSize: 13.5, fontWeight: '800', color: colors.text },
+  rowHint: { fontSize: 10.5, lineHeight: 15, color: colors.muted },
   emptyTitle: { fontSize: 14.5, fontWeight: '900', color: colors.text },
 });

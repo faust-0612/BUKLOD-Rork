@@ -1,86 +1,39 @@
 import AsyncStorage
   from '@react-native-async-storage/async-storage';
 
-import mobileAds, {
+import {
   AdEventType,
   AdsConsent,
   InterstitialAd,
 } from 'react-native-google-mobile-ads';
 
 import {
+  initializeBuklodAds as initializeBuklodAdsSdk,
+} from '@/lib/adMob';
+
+import {
+  getBuklodAdDiagnosticsSummary,
+} from '@/lib/buklodAdDiagnostics';
+
+import {
   buklodAdsTestMode,
   getBuklodInterstitialUnitId,
 } from '@/lib/buklodAdUnits';
 
-
-let initializationPromise:
-  Promise<boolean> | null =
-  null;
-
-
-export function initializeBuklodAds():
+export async function initializeBuklodAds():
   Promise<boolean> {
+  try {
+    const state =
+      await initializeBuklodAdsSdk();
 
-  if (initializationPromise) {
-    return initializationPromise;
+    return state.ready && state.canRequestAds;
+  } catch (error) {
+    console.warn(
+      'BUKLOD Ads initialization:',
+      error
+    );
+    return false;
   }
-
-
-  initializationPromise =
-    (async () => {
-
-      try {
-        /*
-         * UMP should refresh its information
-         * for the current launch/session.
-         */
-        await AdsConsent
-          .gatherConsent();
-      }
-      catch (error) {
-        /*
-         * Previous-session consent may still
-         * allow ads, so continue to check.
-         */
-        console.warn(
-          'BUKLOD Ads consent:',
-          error
-        );
-      }
-
-
-      try {
-        const {
-          canRequestAds,
-        } =
-          await AdsConsent
-            .getConsentInfo();
-
-
-        if (!canRequestAds) {
-          return false;
-        }
-
-
-        await mobileAds()
-          .initialize();
-
-
-        return true;
-      }
-      catch (error) {
-
-        console.warn(
-          'BUKLOD Ads initialization:',
-          error
-        );
-
-        return false;
-      }
-    })();
-
-
-  return initializationPromise;
 }
 
 
@@ -123,6 +76,9 @@ getBuklodAdsDiagnostics() {
       Boolean(
         getBuklodInterstitialUnitId()
       ),
+
+    fill:
+      getBuklodAdDiagnosticsSummary(),
   };
 }
 

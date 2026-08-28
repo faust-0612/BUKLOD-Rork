@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  Animated,
+  Easing,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -11,14 +13,196 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import {
+  BUKLOD_HIT_SLOP,
+  BUKLOD_HIT_SLOP_TIGHT,
+} from '@/lib/buklodTouch';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
 import { useAuth } from '@/providers/AuthProvider';
+import {
+  HomePressable,
+  useBuklodReduceMotion,
+} from '@/components/HomeMotion';
+
+const LOGIN_EASING = Easing.out(Easing.cubic);
+
+function LoginMotionScale({
+  children,
+  style,
+}: {
+  children: React.ReactNode;
+  style?: object;
+}) {
+  const reduceMotion = useBuklodReduceMotion();
+  const opacity = useRef(
+    new Animated.Value(1)
+  ).current;
+  const scale = useRef(
+    new Animated.Value(1)
+  ).current;
+
+  useEffect(() => {
+    if (reduceMotion) {
+      opacity.setValue(1);
+      scale.setValue(1);
+      return;
+    }
+
+    opacity.setValue(0.65);
+    scale.setValue(0.92);
+
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 280,
+        easing: LOGIN_EASING,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scale, {
+        toValue: 1,
+        duration: 280,
+        easing: LOGIN_EASING,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [opacity, reduceMotion, scale]);
+
+  return (
+    <Animated.View
+      style={[
+        { opacity, transform: [{ scale }] },
+        style,
+      ]}
+    >
+      {children}
+    </Animated.View>
+  );
+}
+
+function LoginMotionFadeUp({
+  delay = 0,
+  duration = 240,
+  fromY = 10,
+  fromOpacity = 0,
+  children,
+  style,
+}: {
+  delay?: number;
+  duration?: number;
+  fromY?: number;
+  fromOpacity?: number;
+  children: React.ReactNode;
+  style?: object;
+}) {
+  const reduceMotion = useBuklodReduceMotion();
+  const opacity = useRef(
+    new Animated.Value(1)
+  ).current;
+  const translateY = useRef(
+    new Animated.Value(0)
+  ).current;
+
+  useEffect(() => {
+    if (reduceMotion) {
+      opacity.setValue(1);
+      translateY.setValue(0);
+      return;
+    }
+
+    opacity.setValue(fromOpacity);
+    translateY.setValue(fromY);
+
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration,
+        delay,
+        easing: LOGIN_EASING,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration,
+        delay,
+        easing: LOGIN_EASING,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [
+    delay,
+    duration,
+    fromOpacity,
+    fromY,
+    opacity,
+    reduceMotion,
+    translateY,
+  ]);
+
+  return (
+    <Animated.View
+      style={[
+        {
+          opacity,
+          transform: [{ translateY }],
+        },
+        style,
+      ]}
+    >
+      {children}
+    </Animated.View>
+  );
+}
+
+function useLoginShake() {
+  const reduceMotion = useBuklodReduceMotion();
+  const shakeX = useRef(
+    new Animated.Value(0)
+  ).current;
+
+  const triggerShake = useCallback(() => {
+    if (reduceMotion) {
+      return;
+    }
+
+    shakeX.setValue(0);
+    Animated.sequence([
+      Animated.timing(shakeX, {
+        toValue: 8,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeX, {
+        toValue: -8,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeX, {
+        toValue: 6,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeX, {
+        toValue: -6,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeX, {
+        toValue: 0,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [reduceMotion, shakeX]);
+
+  return { shakeX, triggerShake };
+}
 
 const BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY =
   'buklod.auth.fresh_login_public.v1';
@@ -372,6 +556,7 @@ function SuggestedLoginAvatar({
 }
 
 export default function LoginScreen() {
+  const insets = useSafeAreaInsets();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -400,6 +585,7 @@ export default function LoginScreen() {
     useState(false);
   const [rememberLoaded, setRememberLoaded] =
     useState(false);
+  const { shakeX, triggerShake } = useLoginShake();
 
   useEffect(() => {
     let active = true;
@@ -685,18 +871,6 @@ const chooseSuggestedLogin =
       password: string;
     },
   ) {
-    console.log(
-      '[BUKLOD LOGIN] CLICK/ENTER',
-      {
-        busy,
-        identifier:
-          (
-            credentialsOverride?.identifier ??
-            identifier
-          ).trim(),
-      }
-    );
-
     const raw =
       (
         credentialsOverride
@@ -710,6 +884,7 @@ const chooseSuggestedLogin =
       password;
 
     if (!raw || !effectivePassword) {
+      triggerShake();
       return Alert.alert(
         'BUKLOD',
         'Enter your Mobile Number, Username, or Email and your password.'
@@ -768,6 +943,7 @@ const chooseSuggestedLogin =
 
     if (error) {
       setBusy(false);
+      triggerShake();
 
       return Alert.alert(
         'Login failed',
@@ -937,24 +1113,37 @@ const chooseSuggestedLogin =
     >
       <ScrollView
         style={styles.screen}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingTop: Math.max(insets.top, 12),
+            paddingBottom: Math.max(insets.bottom, 16),
+          },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.brand}>
-          <Image
-            source={require('../../../assets/release/buklod-generic-photo.jpg')}
-            style={styles.logo}
-          />
+          <LoginMotionScale>
+            <Image
+              source={require('../../../assets/release/buklod-generic-photo.jpg')}
+              style={styles.logo}
+            />
+          </LoginMotionScale>
 
-          <Text style={styles.title}>BUKLOD</Text>
+          <LoginMotionFadeUp delay={60} duration={240}>
+            <Text style={styles.title}>BUKLOD</Text>
+          </LoginMotionFadeUp>
 
-          <Text style={styles.tagline}>
-            Samahang Binuklod ng Pag-ibig
-          </Text>
+          <LoginMotionFadeUp delay={100} duration={240}>
+            <Text style={styles.tagline}>
+              Samahang Binuklod ng Pag-ibig
+            </Text>
+          </LoginMotionFadeUp>
         </View>
 
         {suggestedLoginsLoaded &&
         suggestedLogins.length > 0 ? (
+          <LoginMotionFadeUp delay={120} duration={240} fromOpacity={0.78}>
           <View style={styles.suggestedSection}>
             <View style={styles.suggestedHeadingRow}>
               <View style={{ flex: 1 }}>
@@ -974,9 +1163,15 @@ const chooseSuggestedLogin =
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={styles.suggestedRow}
             >
-              {suggestedLogins.map(item => (
-                <View
+              {suggestedLogins.map((item, index) => (
+                <LoginMotionFadeUp
                   key={item.userId}
+                  delay={160 + index * 35}
+                  duration={220}
+                  fromOpacity={0.78}
+                  fromY={8}
+                >
+                <View
                   style={styles.suggestedItem}
                 >
                   <Pressable
@@ -1041,7 +1236,7 @@ const chooseSuggestedLogin =
                         item
                       )
                     }
-                    hitSlop={8}
+                    hitSlop={BUKLOD_HIT_SLOP}
                     style={({ pressed }) => ({
                       paddingVertical: 5,
                       opacity: pressed ? 0.55 : 1,
@@ -1052,13 +1247,24 @@ const chooseSuggestedLogin =
                     </Text>
                   </Pressable>
                 </View>
+                </LoginMotionFadeUp>
               ))}
             </ScrollView>
           </View>
+          </LoginMotionFadeUp>
         ) : null}
-        <View style={styles.form}>
+        <Animated.View
+          style={[
+            styles.form,
+            {
+              transform: [{ translateX: shakeX }],
+            },
+          ]}
+        >
+          <LoginMotionFadeUp delay={140} duration={240} fromOpacity={0.78}>
           <Text style={styles.label}>
-            Mobile Number, Username, or Email
+            Sign in with your mobile number, username,
+            or email — all BUKLOD apps use the same login.
           </Text>
 
           <Text style={styles.help}>
@@ -1141,7 +1347,8 @@ const chooseSuggestedLogin =
             </Text>
           </Pressable>
 
-          <Pressable
+          <HomePressable
+            haptic={false}
             onPress={() => void login()}
             disabled={busy}
             style={styles.primary}
@@ -1149,7 +1356,7 @@ const chooseSuggestedLogin =
             <Text style={styles.primaryText}>
               LOG IN
             </Text>
-          </Pressable>
+          </HomePressable>
 
           
           {/* PATCH_166D_PASSWORD_RECOVERY */}
@@ -1176,7 +1383,7 @@ const chooseSuggestedLogin =
               FORGOT PASSWORD?
             </Text>
           </Pressable>
-<Pressable
+          <Pressable
             onPress={() => router.push('/(auth)/register')}
             disabled={busy}
             style={styles.secondary}
@@ -1186,10 +1393,48 @@ const chooseSuggestedLogin =
             </Text>
           </Pressable>
 
+          <Pressable
+            onPress={() => router.push('/privacy' as any)}
+            disabled={busy}
+            accessibilityRole="link"
+            accessibilityLabel="BUKLOD Privacy Policy"
+            style={{ alignSelf: 'center', paddingVertical: 10 }}
+          >
+            <Text
+              style={{
+                color: colors.greenDark,
+                fontSize: 13,
+                fontWeight: '800',
+                textDecorationLine: 'underline',
+              }}
+            >
+              Privacy Policy
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => router.push('/delete-account' as any)}
+            disabled={busy}
+            accessibilityRole="link"
+            accessibilityLabel="BUKLOD account deletion"
+            style={{ alignSelf: 'center', paddingBottom: 10 }}
+          >
+            <Text
+              style={{
+                color: colors.greenDark,
+                fontSize: 13,
+                fontWeight: '800',
+                textDecorationLine: 'underline',
+              }}
+            >
+              Delete Account
+            </Text>
+          </Pressable>
+
           <Text style={styles.note}>
             New accounts can enter the BUKLOD Community immediately. Local Church and BUKLOD Group access requires membership verification.
           </Text>
-        </View>
+          </LoginMotionFadeUp>
+        </Animated.View>
       </ScrollView>
     </KeyboardAvoidingView>
   );

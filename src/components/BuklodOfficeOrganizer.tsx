@@ -24,6 +24,7 @@ import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { colors } from '@/lib/theme';
+import { useBuklodDrawerBottomInset } from '@/lib/buklodSafeArea';
 import {
   type OfficeAccess,
   type OfficePickedFile,
@@ -213,6 +214,7 @@ export default function BuklodOfficeOrganizer({
   scopeId: string;
 }) {
   const { profile } = useAuth();
+  const drawerBottomInset = useBuklodDrawerBottomInset();
   const profileId = (profile as any)?.id as string | undefined;
 
   const [info, setInfo] = useState<ScopeInfo | null>(null);
@@ -1123,7 +1125,7 @@ export default function BuklodOfficeOrganizer({
           />
 
           {!!selected && (
-            <View style={styles.sheet}>
+            <View style={[styles.sheet, { paddingBottom: drawerBottomInset + 12 }]}>
               <View style={styles.sheetHandle} />
 
               <Text
@@ -1274,7 +1276,7 @@ export default function BuklodOfficeOrganizer({
             onPress={() => setMoveOpen(false)}
           />
 
-          <View style={styles.sheet}>
+          <View style={[styles.sheet, { paddingBottom: drawerBottomInset + 12 }]}>
             <View style={styles.sheetHandle} />
             <Text style={styles.sheetTitle}>
               Move to Folder

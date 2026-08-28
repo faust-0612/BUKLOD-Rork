@@ -1,19 +1,17 @@
-import {
-  useEffect as usePremiumHomeEffect,
-  useRef as usePremiumHomeRef,
-} from 'react';
-import { Animated as RNAnimated } from 'react-native';
-import {
-  useEffect as useModernHomeEffect,
-  useRef as useModernHomeRef,
-} from 'react';
 import BuklodPublicCommunityBulletin from '@/components/BuklodPublicCommunityBulletin';
 import BuklodPremiumMusicDeck from '@/components/BuklodPremiumMusicDeck';
-import BuklodAdMobBanner from '@/components/BuklodAdMobBanner';
 import BuklodPublicWordShortcut from '@/components/BuklodPublicWordShortcut';
+import BuklodFindAChurchDoorway from '@/components/BuklodFindAChurchDoorway';
+import BuklodMentionText from '@/components/BuklodMentionText';
 import BuklodHomeScopeBulletins from '@/components/BuklodHomeScopeBulletins';
-import BuklodHomeFaithPanel from '@/components/BuklodHomeFaithPanel';
+import BuklodScreenBottomBanner from '@/components/BuklodScreenBottomBanner';
+import { BuklodSystemAnnouncementBoard } from '@/components/BuklodSystemAnnouncementBoard';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
+import {
+  BuklodFocusScaleIn,
+  HomeMotionSection,
+  HomePressable,
+} from '@/components/HomeMotion';
 
 import BuklodSponsorSlot from '@/components/BuklodSponsorSlot';
 /* PATCH_161B_BULLETIN_SOCIAL_UI */
@@ -49,12 +47,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
-import { Card, Button, SectionTitle, shared } from '@/components/UI';
+import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
+import { loadBuklodPointsDashboard } from '@/lib/buklodRewards';
+import { Card, Button, SectionTitle } from '@/components/UI';
 import { useAuth } from '@/providers/AuthProvider';
 import { useBuklodAccess } from '@/hooks/useBuklodAccess';
 import { useNotifications } from '@/providers/NotificationProvider';
 import { EnvironmentBadge } from '@/components/EnvironmentBadge';
-import { colors } from '@/lib/theme';
+import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
 
 type Devotional = {
   id: string;
@@ -94,6 +94,7 @@ type HomeLeaderboardRow = {
   points?: number;
   church_name?: string;
   rank?: number;
+  rank_position?: number;
 };
 function churchName(
   church: MissionBulletin['church']
@@ -108,81 +109,7 @@ function churchName(
 /* PATCH_173I_R3_REMOVE_DUPLICATE_WORD_TOP_ICON */
 /* PATCH_177B_P1_R4_SAFE_HOME_INTRO */
 export default function HomeScreen() {
-  const premiumBulletinIntro =
-    usePremiumHomeRef(new RNAnimated.Value(0)).current;
-
-  const premiumCommunityIntro =
-    usePremiumHomeRef(new RNAnimated.Value(0)).current;
-
-  usePremiumHomeEffect(() => {
-    premiumBulletinIntro.setValue(0);
-    premiumCommunityIntro.setValue(0);
-
-    const entrance = RNAnimated.stagger(110, [
-      RNAnimated.timing(premiumBulletinIntro, {
-        toValue: 1,
-        duration: 440,
-        useNativeDriver: true,
-      }),
-      RNAnimated.timing(premiumCommunityIntro, {
-        toValue: 1,
-        duration: 480,
-        useNativeDriver: true,
-      }),
-    ]);
-
-    entrance.start();
-
-    return () => {
-      entrance.stop();
-    };
-  }, [
-    premiumBulletinIntro,
-    premiumCommunityIntro,
-  ]);
-
-
-  const homeHeroIntro =
-    useModernHomeRef(new RNAnimated.Value(0)).current;
-
-  const homeHeroFloat =
-    useModernHomeRef(new RNAnimated.Value(0)).current;
-
-  useModernHomeEffect(() => {
-    homeHeroIntro.setValue(0);
-    homeHeroFloat.setValue(0);
-
-    const intro = RNAnimated.timing(homeHeroIntro, {
-      toValue: 1,
-      duration: 420,
-      useNativeDriver: true,
-    });
-
-    const floating = RNAnimated.loop(
-      RNAnimated.sequence([
-        RNAnimated.timing(homeHeroFloat, {
-          toValue: 1,
-          duration: 2600,
-          useNativeDriver: true,
-        }),
-        RNAnimated.timing(homeHeroFloat, {
-          toValue: 0,
-          duration: 2600,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    intro.start();
-    floating.start();
-
-    return () => {
-      intro.stop();
-      floating.stop();
-    };
-  }, [homeHeroFloat, homeHeroIntro]);
-
-
+  const { colors, shared, theme } = useBuklodPresentation();
   const { profile, hasRole } = useAuth();
   const { activeScope } = useBuklodScope();
   const showFaithContent = Boolean(activeScope?.show_faith_content);
@@ -602,7 +529,7 @@ export default function HomeScreen() {
             'get_buklod_points_leaderboard',
             {
               p_period: 'week',
-              p_limit: 5,
+              p_limit: 10,
               p_church_id: null,
             }
           );
@@ -631,21 +558,6 @@ export default function HomeScreen() {
       active = false;
     };
   }, []);
-  if (loading) {
-    return (
-      <View
-        style={[
-          shared.screen,
-          {
-            justifyContent: 'center',
-            alignItems: 'center',
-          },
-        ]}
-      >
-        <ActivityIndicator />
-      </View>
-    );
-  }
 
   const bulletinChurch =
     bulletin
@@ -673,302 +585,239 @@ export default function HomeScreen() {
         false
       }
     >
+      {loading ? (
+        <View style={{ paddingVertical: 8, alignItems: 'center' }}>
+          <ActivityIndicator color={colors.green} />
+        </View>
+      ) : null}
       <EnvironmentBadge />
 
-      <RNAnimated.View
-        style={{
-          opacity: homeHeroIntro,
-          transform: [
+      <HomeMotionSection delay={0}>
+        <View
+          style={[
+            shared.row,
             {
-              translateY: homeHeroIntro.interpolate({
-                inputRange: [0, 1],
-                outputRange: [12, 0],
-              }),
+              marginHorizontal: 12,
+              marginTop: 8,
+              marginBottom: 4,
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+              borderRadius: 18,
+              backgroundColor: theme.cardSurface,
+              borderWidth: 1,
+              borderColor: theme.border,
+              overflow: 'hidden',
             },
-          ],
-        }}
-      >
-        <RNAnimated.View
-          style={{
-            transform: [
-              {
-                translateY: homeHeroFloat.interpolate({
-                  inputRange: [0, 0.5, 1],
-                  outputRange: [0, -2.5, 0],
-                }),
-              },
-            ],
-          }}
+          ]}
         >
-<View style={[[shared.row, {
-  marginHorizontal: 12,
-  marginTop: 10,
-  marginBottom: 10,
-  paddingHorizontal: 14,
-  paddingVertical: 14,
-  borderRadius: 24,
-  backgroundColor: colors.white,
-  borderWidth: 1,
-  borderColor: colors.line,
-  shadowColor: '#000000',
-  shadowOffset: { width: 0, height: 3 },
-  shadowOpacity: 0.055,
-  shadowRadius: 10,
-  elevation: 2
-}], {
-  marginHorizontal: 12,
-  marginTop: 10,
-  marginBottom: 10,
-  paddingHorizontal: 14,
-  paddingVertical: 14,
-  borderRadius: 24,
-  backgroundColor: '#FBFEFC',
-  borderWidth: 1,
-  borderColor: colors.line,
-  overflow: 'hidden',
-  shadowColor: '#000000',
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.06,
-  shadowRadius: 12,
-  elevation: 3
-}]}>
-        {/* PATCH_178A_DYNAMIC_PUBLIC_HOME_HERO */}
-        <RNAnimated.View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            right: -28,
-            top: -38,
-            width: 116,
-            height: 116,
-            borderRadius: 58,
-            backgroundColor: colors.greenSoft,
-            opacity: 0.58,
-            transform: [
-              {
-                scale: homeHeroFloat.interpolate({
-                  inputRange: [0, 0.5, 1],
-                  outputRange: [0.96, 1.06, 0.96],
-                }),
-              },
-            ],
-          }}
-        />
-
-{/* PATCH_154A_HOME_ACTIONS */}
-        <Pressable
-          accessibilityLabel="BUKLOD Rewards"
-          onPress={() =>
-            router.push('/points')
-          }
-          style={({ pressed }) => ({
-            width: 46,
-            height: 46,
-            borderRadius: 15,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: colors.greenSoft,
-            borderWidth: 1,
-            borderColor: colors.line,
-            opacity: pressed ? 0.65 : 1,
-          })}
-        >
-          <MaterialCommunityIcons
-            name="trophy-outline"
-            size={23}
-            color={colors.greenDark}
-          />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={shared.muted}>
-            Good day,
-          </Text>
-
-          {/* HOME_NAME_RANK_BADGE_V2 */}
-          <View
-            style={{
-              flexDirection: 'row',
+          <HomePressable
+            accessibilityLabel="BUKLOD Rewards"
+            onPress={() =>
+              router.push('/points')
+            }
+            style={({ pressed }) => ({
+              width: 44,
+              height: 44,
+              borderRadius: 14,
               alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: 6,
-            }}
+              justifyContent: 'center',
+              backgroundColor: theme.accentSoft,
+              borderWidth: 1,
+              borderColor: theme.border,
+              opacity: pressed ? 0.72 : 1,
+            })}
           >
-            <Text style={shared.h1}>
-              {profile?.full_name ||
-                'BUKLOD Member'}
+            <MaterialCommunityIcons
+              name="trophy-outline"
+              size={22}
+              color={theme.accent}
+            />
+          </HomePressable>
+          <View style={{ flex: 1 }}>
+            <Text style={[shared.muted, { fontSize: 12 }]}>
+              Good day,
             </Text>
 
             <View
               style={{
-                paddingHorizontal: 13,
-                paddingVertical: 6,
-                borderRadius: 999,
-                borderWidth: 1,
-                borderColor: colors.green,
-                backgroundColor:
-                  colors.greenSoft,
+                flexDirection: 'row',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 6,
               }}
             >
               <Text
+                style={[
+                  shared.h1,
+                  { fontSize: 18, lineHeight: 22 },
+                ]}
+              >
+                {resolvePersonDisplayName(
+                  profile,
+                  profile?.id,
+                )}
+              </Text>
+
+              <View
                 style={{
-                  fontSize: 14,
-                  fontWeight: '900',
-                  color: colors.greenDark,
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                  minHeight: 28,
+                  borderRadius: 999,
+                  borderWidth: 1,
+                  borderColor: theme.accent,
+                  backgroundColor: theme.accentSoft,
+                  justifyContent: 'center',
                 }}
               >
-                {circleRank}
-              </Text>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontWeight: '900',
+                    color: theme.accent,
+                  }}
+                >
+                  {circleRank}
+                </Text>
+              </View>
             </View>
           </View>
+          <BuklodPublicWordShortcut />
         </View>
-        <BuklodPublicWordShortcut />
-      </View>
-        </RNAnimated.View>
-      </RNAnimated.View>
+      </HomeMotionSection>
 
-      {/* PATCH_154T_HOME_DAILY_BAYANIHAN_PAIR */}
-            {/* PATCH_178C_R6_SHOW_FAITH_MUSIC_ONLY */}
-            {showFaithContent && (
-              <>
-                <BuklodHomeFaithPanel />
-                <BuklodPremiumMusicDeck />
-              </>
-            )}
-      
-      {/* PATCH_178B_PREMIUM_HOME_MOTION_DECKS:BULLETINS */}
-      <RNAnimated.View
-        style={{
-          marginHorizontal: 2,
-          marginTop: 1,
-          marginBottom: 5,
-          borderRadius: 26,
-          borderWidth: 0.5,
-          borderColor: 'rgba(26, 92, 52, 0.10)',
-          backgroundColor: '#FCFEFC',
-          overflow: 'hidden',
-          shadowColor: '#000000',
-          shadowOffset: {
-            width: 0,
-            height: 5,
-          },
-          shadowOpacity: 0.065,
-          shadowRadius: 14,
-          elevation: 3,
-          opacity: premiumBulletinIntro,
-          transform: [
-            {
-              translateY: premiumBulletinIntro.interpolate({
-                inputRange: [0, 1],
-                outputRange: [18, 0],
-              }),
-            },
-            {
-              scale: premiumBulletinIntro.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0.985, 1],
-              }),
-            },
-          ],
-        }}
+      <HomeMotionSection delay={20}>
+        <BuklodSystemAnnouncementBoard slot="public_home" />
+      </HomeMotionSection>
+
+      {showFaithContent && (
+        <View style={{ marginHorizontal: 12 }}>
+          <HomeDailyBayanihanPair circleRank={circleRank} />
+        </View>
+      )}
+
+      {showFaithContent && (
+        <HomeMotionSection delay={30}>
+          <View style={{ marginHorizontal: 12 }}>
+            <BuklodFindAChurchDoorway />
+          </View>
+        </HomeMotionSection>
+      )}
+
+      {showFaithContent && !!devotional && (
+        <HomeMotionSection delay={40}>
+          <View style={{ marginHorizontal: 12 }}>
+            <Card>
+              <Text
+                style={{
+                  color: colors.green,
+                  fontSize: 10,
+                  fontWeight: '900',
+                  letterSpacing: 0.6,
+                }}
+              >
+                {[
+                  devotional.week_number
+                    ? `WEEK ${devotional.week_number}`
+                    : null,
+                  devotional.lesson_number
+                    ? `LESSON ${devotional.lesson_number}`
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join('  •  ') || 'WEEKLY DEVOTIONAL'}
+              </Text>
+
+              {!!devotional.series_title && (
+                <Text
+                  style={{
+                    marginTop: 4,
+                    color: colors.muted,
+                    fontSize: 11,
+                    fontWeight: '800',
+                  }}
+                >
+                  {devotional.series_title}
+                </Text>
+              )}
+
+              {!!devotional.bible_passage && (
+                <Text
+                  style={{
+                    marginTop: 8,
+                    color: colors.greenDark,
+                    fontSize: 12,
+                    fontWeight: '800',
+                  }}
+                >
+                  {devotional.bible_passage}
+                </Text>
+              )}
+
+              <Text
+                style={{
+                  marginTop: 8,
+                  color: colors.text,
+                  fontSize: 16,
+                  fontWeight: '900',
+                }}
+              >
+                {devotional.title}
+              </Text>
+
+              {!!devotional.reflection_text && (
+                <Text
+                  numberOfLines={3}
+                  style={{
+                    marginTop: 6,
+                    color: colors.muted,
+                    fontSize: 12,
+                    lineHeight: 18,
+                  }}
+                >
+                  {devotional.reflection_text}
+                </Text>
+              )}
+
+              <View style={{ marginTop: 12 }}>
+                <Button
+                  title="OPEN WEEKLY DEVOTIONAL"
+                  onPress={() =>
+                    router.push(
+                      `/devotional/${devotional.id}` as any
+                    )
+                  }
+                />
+              </View>
+            </Card>
+          </View>
+        </HomeMotionSection>
+      )}
+
+      {showFaithContent && (
+        <HomeMotionSection delay={70}>
+          <BuklodPremiumMusicDeck />
+        </HomeMotionSection>
+      )}
+
+      <BuklodFocusScaleIn
+        delay={80}
+        duration={270}
+        fromOpacity={0.68}
+        fromScale={0.95}
       >
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            right: -34,
-            top: -42,
-            width: 124,
-            height: 124,
-            borderRadius: 62,
-            backgroundColor: colors.greenSoft,
-            opacity: 0.32,
-          }}
-        />
-
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            left: 22,
-            right: 22,
-            top: 0,
-            height: 2,
-            borderRadius: 2,
-            backgroundColor: colors.greenSoft,
-            opacity: 0.95,
-          }}
-        />
-
         <BuklodHomeScopeBulletins />
-      </RNAnimated.View>
-      
-      {/* PATCH_178B_PREMIUM_HOME_MOTION_DECKS:COMMUNITY */}
-      <RNAnimated.View
-        style={{
-          marginHorizontal: 2,
-          marginTop: 1,
-          marginBottom: 5,
-          borderRadius: 26,
-          borderWidth: 0.5,
-          borderColor: 'rgba(26, 92, 52, 0.10)',
-          backgroundColor: '#FAFCFB',
-          overflow: 'hidden',
-          shadowColor: '#000000',
-          shadowOffset: {
-            width: 0,
-            height: 5,
-          },
-          shadowOpacity: 0.065,
-          shadowRadius: 14,
-          elevation: 3,
-          opacity: premiumCommunityIntro,
-          transform: [
-            {
-              translateY: premiumCommunityIntro.interpolate({
-                inputRange: [0, 1],
-                outputRange: [18, 0],
-              }),
-            },
-            {
-              scale: premiumCommunityIntro.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0.985, 1],
-              }),
-            },
-          ],
-        }}
+      </BuklodFocusScaleIn>
+
+      <BuklodFocusScaleIn
+        delay={120}
+        duration={270}
+        fromOpacity={0.68}
+        fromScale={0.95}
       >
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            right: -34,
-            top: -42,
-            width: 124,
-            height: 124,
-            borderRadius: 62,
-            backgroundColor: colors.greenSoft,
-            opacity: 0.32,
-          }}
-        />
-
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            left: 22,
-            right: 22,
-            top: 0,
-            height: 2,
-            borderRadius: 2,
-            backgroundColor: colors.greenSoft,
-            opacity: 0.95,
-          }}
-        />
-
         <BuklodPublicCommunityBulletin />
-      
-      </RNAnimated.View>
+      </BuklodFocusScaleIn>
+
 {false && bulletin && (
 <Card>
         {bulletin ? (
@@ -1088,37 +937,26 @@ export default function HomeScreen() {
         )}
       </Card>
       )}
-      <SectionTitle>
-        TOP 5 MEMBERS
-      </SectionTitle>
+      <HomeMotionSection delay={180}>
+        <View style={{ paddingHorizontal: 12 }}>
+          <SectionTitle>
+            TOP 10 MEMBERS
+          </SectionTitle>
 
-      <HomeTopFiveCompact
-        weekly={
-          homeTop.slice(0, 5)
-        }
-        weeklyLoading={
-          topLoading
-        }
-      />
+          <HomeTopTenCompact
+            weekly={
+              homeTop.slice(0, 10)
+            }
+            weeklyLoading={
+              topLoading
+            }
+          />
 
+          <HomeImportantReminder />
+        </View>
+      </HomeMotionSection>
 
-      {/* HOME_IMPORTANT_REMINDER_V1 */}
-      <HomeImportantReminder />
-
-    
-      {/* HOME_LOWEST_ADMOB_300X250_V1 */}
-      <View
-        style={{
-          width: '100%',
-          marginTop: 16,
-          marginBottom: 12,
-        }}
-      >
-        <BuklodAdMobBanner
-          placement="home"
-          format="mediumRectangle"
-        />
-      </View>
+      <BuklodScreenBottomBanner placement="home" variant="large" />
 </ScrollView>
   );
 }
@@ -1132,10 +970,15 @@ export default function HomeScreen() {
 
 /* ============================================================
    PATCH 154T
-   HOME DAILY DEVOTION + BAYANIHAN CURRENT BALANCE
+   HOME DAILY DEVOTION + BUKLOD BAYANIHAN DOORWAY
 ============================================================ */
 
-function HomeDailyBayanihanPair() {
+function HomeDailyBayanihanPair({
+  circleRank,
+}: {
+  circleRank: string;
+}) {
+  const { colors, shared } = useBuklodPresentation();
   /* PATCH_165H_HOME_ENTITLEMENT */
   const { hasEntitlement } = useBuklodAccess();
   const canUseBayanihan = hasEntitlement('bayanihan');
@@ -1147,13 +990,7 @@ function HomeDailyBayanihanPair() {
       chapters_today:number;
     } | null>(null);
 
-  const [bayanihanBalance,setBayanihanBalance] =
-    useState<number | null>(null);
-
   const [readingLoading,setReadingLoading] =
-    useState(true);
-
-  const [balanceLoading,setBalanceLoading] =
     useState(true);
 
 
@@ -1162,18 +999,9 @@ function HomeDailyBayanihanPair() {
 
     const load=async()=>{
       try{
-        const [
-          bibleResult,
-          balanceResult
-        ]=await Promise.all([
-          (supabase as any).rpc(
-            'get_automatic_bible_today'
-          ),
-
-          (supabase as any).rpc(
-            'get_my_bayanihan_current_balance_v1'
-          )
-        ]);
+        const bibleResult = await (supabase as any).rpc(
+          'get_automatic_bible_today'
+        );
 
         if(!active)return;
 
@@ -1196,43 +1024,6 @@ function HomeDailyBayanihanPair() {
           setReading(null);
         }
 
-
-        const balanceRaw=
-          Array.isArray(balanceResult.data)
-            ? balanceResult.data[0] ?? null
-            : balanceResult.data;
-
-
-        if(balanceResult.error){
-          console.warn(
-            'Home Bayanihan balance:',
-            balanceResult.error.message
-          );
-
-          setBayanihanBalance(null);
-        }else{
-          const value=
-            balanceRaw &&
-            typeof balanceRaw==='object'
-              ? (
-                  balanceRaw.current_balance ??
-                  balanceRaw.balance ??
-                  0
-                )
-              : (
-                  balanceRaw ?? 0
-                );
-
-          const numeric=
-            Number(value);
-
-          setBayanihanBalance(
-            Number.isFinite(numeric)
-              ? numeric
-              : 0
-          );
-        }
-
       }catch(error:any){
 
         if(!active)return;
@@ -1246,7 +1037,6 @@ function HomeDailyBayanihanPair() {
 
         if(active){
           setReadingLoading(false);
-          setBalanceLoading(false);
         }
       }
     };
@@ -1260,18 +1050,6 @@ function HomeDailyBayanihanPair() {
     };
 
   },[]);
-
-
-  const money=(value:number)=>{
-    return Number(value || 0)
-      .toLocaleString(
-        'en-PH',
-        {
-          minimumFractionDigits:2,
-          maximumFractionDigits:2
-        }
-      );
-  };
 
 
   return(
@@ -1291,6 +1069,12 @@ function HomeDailyBayanihanPair() {
           DAILY DEVOTION + MY BIBLE
       =================================================== */}
 
+      <HomeMotionSection
+        delay={0}
+        style={{
+          flex:1,
+        }}
+      >
       <View
         style={{
           flex:1,
@@ -1299,7 +1083,12 @@ function HomeDailyBayanihanPair() {
       >
 
         {/* DAILY DEVOTION */}
-<Pressable
+<HomePressable
+          haptic={false}
+          wrapStyle={{
+            flex:1,
+            minHeight: 44,
+          }}
           onPress={()=>
             router.push('/bible' as any)
           }
@@ -1307,13 +1096,14 @@ function HomeDailyBayanihanPair() {
           accessibilityLabel="Open Daily Devotion"
           style={({pressed})=>({
             flex:1,
+            minHeight: 44,
             opacity:pressed ? 0.82 : 1
           })}
         >
           <View
             style={{
               flex:1,
-              minHeight:53,
+              minHeight:44,
               borderWidth:1,
               borderColor:colors.line,
               borderRadius:15,
@@ -1390,12 +1180,17 @@ function HomeDailyBayanihanPair() {
             </Text>
 
           </View>
-        </Pressable>
+        </HomePressable>
 
 
         {/* MY BIBLE */}
 
-        <Pressable
+        <HomePressable
+          haptic={false}
+          wrapStyle={{
+            flex:1,
+            minHeight: 44,
+          }}
           onPress={()=>
             router.push({
               pathname:'/bible/read',
@@ -1408,17 +1203,18 @@ function HomeDailyBayanihanPair() {
           accessibilityLabel="Open My Bible"
           style={({pressed})=>({
             flex:1,
+            minHeight: 44,
             opacity:pressed ? 0.82 : 1
           })}
         >
           <View
             style={{
               flex:1,
-              minHeight:53,
+              minHeight:44,
               borderWidth:1,
               borderColor:colors.line,
               borderRadius:15,
-              backgroundColor:'#F7FBF8',
+              backgroundColor:colors.white,
               paddingHorizontal:9,
               paddingVertical:7,
               justifyContent:'center'
@@ -1470,9 +1266,10 @@ function HomeDailyBayanihanPair() {
             </View>
 
           </View>
-        </Pressable>
+        </HomePressable>
 
       </View>
+      </HomeMotionSection>
 
 
       {/* ==================================================
@@ -1481,7 +1278,18 @@ function HomeDailyBayanihanPair() {
       =================================================== */}
 
       {canUseBayanihan && (
-<Pressable
+      <HomeMotionSection
+        delay={40}
+        style={{
+          flex:1,
+        }}
+      >
+<HomePressable
+        haptic={false}
+        wrapStyle={{
+          flex:1,
+          minHeight: 44,
+        }}
         onPress={()=>
           router.push('/bayanihan' as any)
         }
@@ -1489,6 +1297,7 @@ function HomeDailyBayanihanPair() {
         accessibilityLabel="Open BUKLOD Bayanihan"
         style={({pressed})=>({
           flex:1,
+          minHeight: 44,
           opacity:pressed ? 0.82 : 1
         })}
       >
@@ -1535,50 +1344,30 @@ function HomeDailyBayanihanPair() {
             style={{
               marginTop:5,
               fontSize:9,
-              fontWeight:'800',
-              color:colors.muted,
-              letterSpacing:.3
-            }}
-          >
-            CURRENT BALANCE
-          </Text>
-
-
-          <Text
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.75}
-            style={{
-              marginTop:3,
-              fontSize:18,
-              lineHeight:23,
-              fontWeight:'900',
-              color:colors.text
-            }}
-          >
-            {
-              balanceLoading
-                ? '...'
-                : bayanihanBalance===null
-                  ? 'Unavailable'
-                  : `\u20B1${money(bayanihanBalance)}`
-            }
-          </Text>
-
-
-          <Text
-            style={{
-              marginTop:5,
-              fontSize:9,
               lineHeight:12,
               color:colors.muted
             }}
           >
-            Reference only \u2022 Not personal cash.
+            Participation \u2022 Growth \u2022 Community
+          </Text>
+
+
+          <Text
+            numberOfLines={2}
+            style={{
+              marginTop:6,
+              fontSize:13,
+              lineHeight:17,
+              fontWeight:'900',
+              color:colors.text
+            }}
+          >
+            {circleRank}
           </Text>
 
         </View>
-      </Pressable>
+      </HomePressable>
+      </HomeMotionSection>
       )}
 
     </View>
@@ -1588,6 +1377,7 @@ function HomeDailyBayanihanPair() {
 
 
 function HomeDailyBibleStrip() {
+  const { colors, shared } = useBuklodPresentation();
 const [reading, setReading] = useState<{
     reading_date: string;
     bible_reference: string;
@@ -2769,6 +2559,7 @@ function sanitizeHomeNewsText(
 }
 
 function HomeChurchNewsCarousel() {
+  const { colors, shared } = useBuklodPresentation();
 
   const [
     items,
@@ -3898,6 +3689,7 @@ borderWidth:
 
 
 function HomeImportantReminder() {
+  const { colors, shared } = useBuklodPresentation();
 
   const {
     hasRole,
@@ -4191,6 +3983,7 @@ function HomeImportantReminder() {
 
 
 function HomeMissionBulletins() {
+  const { colors, shared } = useBuklodPresentation();
 
   const {
     profile,
@@ -5410,81 +5203,50 @@ function HomeMissionBulletins() {
 
                           <Text
                             style={{
-                              fontSize:
-                                12,
-                              fontWeight:
-                                '900',
-                              color:
-                                '#1F2937',
+                              fontSize: 12,
+                              fontWeight: '900',
+                              color: '#1F2937',
                             }}
                           >
                             {comment.author_name}
                           </Text>
-
-
                           <Text
                             style={{
-                              marginTop:
-                                3,
-                              fontSize:
-                                13,
-                              lineHeight:
-                                19,
-                              color:
-                                '#374151',
+                              marginTop: 2,
+                              fontSize: 10,
+                              color: '#9CA3AF',
                             }}
                           >
-                            {comment.body}
+                            {new Date(
+                              comment.created_at
+                            ).toLocaleString()}
                           </Text>
 
 
-                          <View
+                            <BuklodMentionText
+                              text={comment.body}
+                              style={{
+                                marginTop: 3,
+                                fontSize: 13,
+                                lineHeight: 19,
+                                color: '#374151',
+                              }}
+                              mentionStyle={{
+                                fontWeight: '800',
+                                color: colors.green,
+                              }}
+                            />
+
+
+                            <View
                             style={{
-                              marginTop:
-                                6,
-                              flexDirection:
-                                'row',
-                              alignItems:
-                                'center',
+                              marginTop: 6,
+                              flexDirection: 'row',
+                              alignItems: 'center',
                               gap: 6,
                             }}
                           >
-
-                            <Pressable
-                              onPress={() => {
-
-                                setReplyingTo({
-                                  bulletinId:
-                                    item.id,
-                                  commentId:
-                                    comment.id,
-                                  name:
-                                    comment.author_name,
-                                });
-
-                                setReplyDraft(
-                                  ''
-                                );
-
-                              }}
-                            >
-                              <Text
-                                style={{
-                                  fontSize:
-                                    11,
-                                  fontWeight:
-                                    '800',
-                                  color:
-                                    colors.green,
-                                }}
-                              >
-                                Reply
-                              </Text>
-                            </Pressable>
-
-
                             {own && (
-
                               <Pressable
                                 onPress={() =>
                                   void deleteComment(
@@ -5494,35 +5256,38 @@ function HomeMissionBulletins() {
                               >
                                 <Text
                                   style={{
-                                    fontSize:
-                                      11,
-                                    fontWeight:
-                                      '800',
-                                    color:
-                                      '#B91C1C',
+                                    fontSize: 11,
+                                    fontWeight: '800',
+                                    color: '#B91C1C',
                                   }}
                                 >
                                   Delete
                                 </Text>
                               </Pressable>
-
                             )}
-
-
-                            <Text
-                              style={{
-                                marginLeft: 0,
-                                fontSize:
-                                  10,
-                                color:
-                                  '#9CA3AF',
+                            <Pressable
+                              onPress={() => {
+                                setReplyingTo({
+                                  bulletinId: item.id,
+                                  commentId: comment.id,
+                                  name: comment.author_name,
+                                });
+                                setReplyDraft(
+                                  `@${comment.author_name} `
+                                );
                               }}
+                              style={{ marginLeft: 'auto' }}
                             >
-                              {new Date(
-                                comment.created_at
-                              ).toLocaleString()}
-                            </Text>
-
+                              <Text
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: '800',
+                                  color: colors.green,
+                                }}
+                              >
+                                Reply
+                              </Text>
+                            </Pressable>
                           </View>
 
                         </View>
@@ -5575,20 +5340,19 @@ function HomeMissionBulletins() {
                                 </Text>
 
 
-                                <Text
+                                <BuklodMentionText
+                                  text={reply.body}
                                   style={{
-                                    marginTop:
-                                      3,
-                                    fontSize:
-                                      12.5,
-                                    lineHeight:
-                                      18,
-                                    color:
-                                      '#4B5563',
+                                    marginTop: 3,
+                                    fontSize: 12.5,
+                                    lineHeight: 18,
+                                    color: '#4B5563',
                                   }}
-                                >
-                                  {reply.body}
-                                </Text>
+                                  mentionStyle={{
+                                    fontWeight: '800',
+                                    color: colors.green,
+                                  }}
+                                />
 
 
                                 {ownReply && (
@@ -5639,18 +5403,19 @@ function HomeMissionBulletins() {
                             }}
                           >
 
-                            <Text
+                            <BuklodMentionText
+                              text={`@${replyingTo?.name ?? ''}`}
                               style={{
-                                fontSize:
-                                  11,
-                                color:
-                                  '#6B7280',
-                                marginBottom:
-                                  5,
+                                fontSize: 11,
+                                fontWeight: '800',
+                                color: colors.green,
+                                marginBottom: 5,
                               }}
-                            >
-                              Replying to {replyingTo?.name ?? ''}
-                            </Text>
+                              mentionStyle={{
+                                fontWeight: '800',
+                                color: colors.green,
+                              }}
+                            />
 
 
                             <BulletinTextInput
@@ -5910,6 +5675,7 @@ type HomeBiblePlan = {
 
 
 function HomeDailyBibleReminder() {
+  const { colors, shared } = useBuklodPresentation();
 
   const [
     plan,
@@ -6304,67 +6070,90 @@ function HomeDailyBibleReminder() {
 }
 
 
-/* PATCH_157C_HOME_TOP5 */
-function HomeTopFiveCompact({
+/* PATCH_157C_HOME_TOP10 */
+function HomeTopTenCompact({
   weekly,
   weeklyLoading,
 }: {
-  weekly: any[];
+  weekly: HomeLeaderboardRow[];
   weeklyLoading: boolean;
 }) {
+  const { colors, shared } = useBuklodPresentation();
+  const { profile } = useAuth();
+  const currentUserId =
+    String((profile as any)?.id ?? '');
+
   const [
     monthly,
     setMonthly,
-  ] = useState<any[]>([]);
+  ] = useState<HomeLeaderboardRow[]>([]);
 
   const [
     monthlyLoading,
     setMonthlyLoading,
   ] = useState(true);
 
+  const [
+    myWeeklyRank,
+    setMyWeeklyRank,
+  ] = useState<number | null>(null);
+
+  const [
+    myMonthlyRank,
+    setMyMonthlyRank,
+  ] = useState<number | null>(null);
+
+  const [
+    myWeeklyPoints,
+    setMyWeeklyPoints,
+  ] = useState(0);
+
+  const [
+    myMonthlyPoints,
+    setMyMonthlyPoints,
+  ] = useState(0);
+
   useEffect(() => {
     let active = true;
 
-    const loadMonthly =
-      async () => {
-        setMonthlyLoading(true);
+    const loadMonthly = async () => {
+      setMonthlyLoading(true);
 
-        const {
-          data,
-          error,
-        } =
-          await (
-            supabase as any
-          ).rpc(
-            'get_buklod_points_top5_v1',
-            {
-              p_period: 'month',
-            }
-          );
+      const load = async (period: string) =>
+        (supabase as any).rpc(
+          'get_buklod_points_leaderboard',
+          {
+            p_period: period,
+            p_limit: 10,
+            p_church_id: null,
+          }
+        );
 
-        if (!active) {
-          return;
-        }
+      let result = await load('month');
 
-        if (error) {
-          console.warn(
-            'Home monthly Top 5:',
-            error.message
-          );
+      if (result?.error) {
+        result = await load('monthly');
+      }
 
-          setMonthly([]);
-        }
-        else {
-          setMonthly(
-            (data ?? []).slice(
-              0,
-              5
-            )
-          );
-        }
+      if (!active) {
+        return;
+      }
 
-        setMonthlyLoading(false);
-      };
+      if (result?.error) {
+        console.warn(
+          'Home monthly Top 10:',
+          result.error.message
+        );
+        setMonthly([]);
+      } else {
+        setMonthly(
+          ((result?.data ?? []) as HomeLeaderboardRow[])
+            .slice(0, 10)
+        );
+      }
+
+      setMonthlyLoading(false);
+    };
 
     void loadMonthly();
 
@@ -6373,129 +6162,208 @@ function HomeTopFiveCompact({
     };
   }, []);
 
-  const renderRows =
-    (
-      rows: any[],
-      loading: boolean
-    ) => {
-      if (loading) {
-        return (
-          <ActivityIndicator
-            color={colors.green}
-          />
+  useEffect(() => {
+    let active = true;
+
+    const loadMyRank = async () => {
+      try {
+        const dashboard =
+          await loadBuklodPointsDashboard();
+
+        if (!active || !dashboard) {
+          return;
+        }
+
+        setMyWeeklyRank(dashboard.weekly_rank);
+        setMyMonthlyRank(dashboard.monthly_rank);
+        setMyWeeklyPoints(dashboard.weekly_points);
+        setMyMonthlyPoints(dashboard.monthly_points);
+      } catch (error: any) {
+        console.warn(
+          'Home ranking:',
+          error?.message ?? error
         );
       }
-
-      if (!rows.length) {
-        return (
-          <Text style={shared.muted}>
-            No leaderboard results yet.
-          </Text>
-        );
-      }
-
-      return (
-        <View>
-          {rows
-            .slice(0, 5)
-            .map(
-              (
-                item,
-                index
-              ) => {
-                const memberName =
-                  item.full_name ||
-                  item.member_name ||
-                  item.name ||
-                  'BUKLOD Member';
-
-                const points =
-                  Number(
-                    item.total_points ??
-                    item.points ??
-                    0
-                  );
-
-                return (
-                  <View
-                    key={
-                      item.user_id ||
-                      `${memberName}-${index}`
-                    }
-                    style={{
-                      flexDirection:
-                        'row',
-
-                      alignItems:
-                        'center',
-
-                      paddingVertical:
-                        7,
-
-                      borderBottomWidth:
-                        index <
-                        Math.min(
-                          rows.length,
-                          5
-                        ) - 1
-                          ? 1
-                          : 0,
-
-                      borderBottomColor:
-                        colors.line,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        width: 24,
-                        fontSize: 11,
-                        fontWeight:
-                          '900',
-                        color:
-                          colors.greenDark,
-                      }}
-                    >
-                      {index + 1}
-                    </Text>
-
-                    <Text
-                      numberOfLines={1}
-                      style={{
-                        flex: 1,
-                        fontSize: 12,
-                        fontWeight:
-                          '800',
-                        color:
-                          colors.text,
-                      }}
-                    >
-                      {memberName}
-                    </Text>
-
-                    <Text
-                      style={{
-                        marginLeft: 0,
-                        fontSize: 11,
-                        fontWeight:
-                          '900',
-                        color:
-                          colors.greenDark,
-                      }}
-                    >
-                      {points.toLocaleString()}
-                    </Text>
-                  </View>
-                );
-              }
-            )}
-        </View>
-      );
     };
+
+    void loadMyRank();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const renderMyRank = (
+    rankValue: number | null,
+    points: number
+  ) => (
+    <View
+      style={{
+        marginTop: 10,
+        paddingHorizontal: 10,
+        paddingVertical: 9,
+        borderRadius: 12,
+        backgroundColor: '#EEF6F1',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+      }}
+    >
+      <View style={{ flex: 1 }}>
+        <Text
+          style={{
+            fontSize: 11,
+            fontWeight: '800',
+            color: colors.text,
+          }}
+        >
+          Your rank
+        </Text>
+        <Text
+          style={{
+            marginTop: 2,
+            fontSize: 10,
+            fontWeight: '700',
+            color: colors.muted,
+          }}
+        >
+          {Number(points).toLocaleString()} pts
+        </Text>
+      </View>
+      <Text
+        style={{
+          fontSize: 16,
+          fontWeight: '900',
+          color: colors.greenDark,
+        }}
+      >
+        {rankValue && rankValue > 0
+          ? `#${rankValue}`
+          : '—'}
+      </Text>
+    </View>
+  );
+
+  const renderRows = (
+    rows: HomeLeaderboardRow[],
+    loading: boolean
+  ) => {
+    if (loading) {
+      return (
+        <ActivityIndicator
+          color={colors.green}
+        />
+      );
+    }
+
+    if (!rows.length) {
+      return (
+        <Text style={shared.muted}>
+          No leaderboard results yet.
+        </Text>
+      );
+    }
+
+    const visible = rows.slice(0, 10);
+
+    return (
+      <View>
+        {visible.map((item, index) => {
+          const memberName =
+            resolvePersonDisplayName(
+              {
+                full_name:
+                  item.full_name ??
+                  item.member_name ??
+                  item.name,
+                user_id: item.user_id,
+              },
+              item.user_id,
+            );
+
+          const points = Number(
+            item.total_points ??
+            item.points ??
+            0
+          );
+
+          const rankNumber = Number(
+            item.rank_position ??
+            item.rank ??
+            index + 1
+          );
+
+          const isMe =
+            !!currentUserId &&
+            String(item.user_id ?? '') ===
+              currentUserId;
+
+          return (
+            <View
+              key={
+                item.user_id ||
+                `${memberName}-${index}`
+              }
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingVertical: 7,
+                paddingHorizontal: isMe ? 6 : 0,
+                marginHorizontal: isMe ? -6 : 0,
+                borderRadius: isMe ? 10 : 0,
+                backgroundColor: isMe
+                  ? '#EEF6F1'
+                  : 'transparent',
+                borderBottomWidth:
+                  index < visible.length - 1
+                    ? 1
+                    : 0,
+                borderBottomColor: colors.line,
+              }}
+            >
+              <Text
+                style={{
+                  width: 28,
+                  fontSize: 11,
+                  fontWeight: '900',
+                  color: colors.greenDark,
+                }}
+              >
+                {rankNumber}
+              </Text>
+
+              <Text
+                numberOfLines={1}
+                style={{
+                  flex: 1,
+                  fontSize: 12,
+                  fontWeight: isMe ? '900' : '800',
+                  color: colors.text,
+                }}
+              >
+                {isMe ? `${memberName} (You)` : memberName}
+              </Text>
+
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: '900',
+                  color: colors.greenDark,
+                }}
+              >
+                {points.toLocaleString()}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+    );
+  };
 
   return (
     <Card>
       <Text style={shared.h2}>
-        Top 5 Members
+        Top 10 Members
       </Text>
 
       <Text
@@ -6511,16 +6379,13 @@ function HomeTopFiveCompact({
         THIS WEEK
       </Text>
 
-      {renderRows(
-        weekly,
-        weeklyLoading
-      )}
+      {renderRows(weekly, weeklyLoading)}
+      {renderMyRank(myWeeklyRank, myWeeklyPoints)}
 
       <View
         style={{
           height: 1,
-          backgroundColor:
-            colors.line,
+          backgroundColor: colors.line,
           marginVertical: 12,
         }}
       />
@@ -6537,10 +6402,8 @@ function HomeTopFiveCompact({
         THIS MONTH
       </Text>
 
-      {renderRows(
-        monthly,
-        monthlyLoading
-      )}
+      {renderRows(monthly, monthlyLoading)}
+      {renderMyRank(myMonthlyRank, myMonthlyPoints)}
     </Card>
   );
 }

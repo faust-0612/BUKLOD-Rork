@@ -1,4 +1,4 @@
-import React, { ReactNode, useCallback, useEffect, useState } from 'react';
+import React, { ReactNode, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -12,7 +12,10 @@ import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { AdminGate } from '@/components/AdminGate';
+import { BuklodSyncStatusBadge } from '@/components/BuklodSyncStatusBadge';
 import { shared } from '@/components/UI';
+import { useBuklodOfflineCache } from '@/hooks/useBuklodOfflineCache';
+import { adminDashboardStatsCacheKey } from '@/lib/buklodOfflineSync';
 import { supabase } from '@/lib/supabase';
 
 type Stats = {
@@ -31,6 +34,7 @@ type DrawerKey =
   | 'organization'
   | 'care'
   | 'operations'
+  | 'attendance'
   | null;
 
 type IconName =
@@ -180,42 +184,48 @@ function AdminRow({
 }
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const {
+    data: stats,
+    loading,
+    refreshing,
+    syncing,
+    fromCache,
+    online,
+    refresh,
+    error: loadError,
+  } = useBuklodOfflineCache<Stats | null>({
+    cacheKey: adminDashboardStatsCacheKey(),
+    fetcher: async () => {
+      const { data, error } = await supabase.rpc('admin_dashboard_stats');
+
+      if (error) {
+        throw error;
+      }
+
+      return data as Stats;
+    },
+  });
 
   // Organization is open by default because it contains
   // the most frequently used people/access controls.
   const [openDrawer, setOpenDrawer] =
     useState<DrawerKey>('organization');
 
-  const load = useCallback(async () => {
-    const { data, error } = await supabase.rpc(
-      'admin_dashboard_stats'
-    );
-
-    if (!error) {
-      setStats(data as Stats);
-    }
-
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const refresh = async () => {
-    setRefreshing(true);
-    await load();
-    setRefreshing(false);
-  };
-
   const toggle = (key: DrawerKey) => {
     setOpenDrawer((current) =>
       current === key ? null : key
     );
   };
+
+  const showBlockingLoader = loading && !stats;
+
+  const syncStatus = useMemo(() => {
+    if (syncing) return 'syncing' as const;
+    if (!online && stats) return 'saved_offline' as const;
+    if (fromCache && online) return 'waiting_to_sync' as const;
+    if (stats && !fromCache) return 'synced' as const;
+    return null;
+  }, [syncing, online, stats, fromCache]);
 
   return (
     <AdminGate>
@@ -226,7 +236,9 @@ export default function AdminDashboard() {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={refresh}
+            onRefresh={() => {
+              void refresh();
+            }}
           />
         }
       >
@@ -244,6 +256,12 @@ export default function AdminDashboard() {
               Organization, formation, people, ministry operations,
               governance and system oversight.
             </Text>
+
+            {syncStatus ? (
+              <View style={{ marginTop: 10 }}>
+                <BuklodSyncStatusBadge status={syncStatus} compact />
+              </View>
+            ) : null}
           </View>
 
           <View style={styles.heroIcon}>
@@ -255,7 +273,7 @@ export default function AdminDashboard() {
           </View>
         </View>
 
-        {loading || !stats ? (
+        {showBlockingLoader ? (
           <View style={styles.loading}>
             <ActivityIndicator
               size="large"
@@ -266,7 +284,31 @@ export default function AdminDashboard() {
               Loading executive dashboard...
             </Text>
           </View>
-        ) : (
+        ) : loadError && !stats ? (
+          <View style={styles.loading}>
+            <MaterialCommunityIcons
+              name="cloud-alert-outline"
+              size={34}
+              color="#B26A00"
+            />
+            <Text style={styles.errorTitle}>
+              Overview unavailable
+            </Text>
+            <Text style={styles.errorText}>
+              {loadError}
+            </Text>
+            <Pressable
+              onPress={() => {
+                void refresh();
+              }}
+              style={styles.retryButton}
+            >
+              <Text style={styles.retryButtonText}>
+                TRY AGAIN
+              </Text>
+            </Pressable>
+          </View>
+        ) : stats ? (
           <>
             <View style={styles.sectionHeading}>
               <View>
@@ -395,6 +437,13 @@ export default function AdminDashboard() {
               
 
               <AdminRow
+                icon="bullhorn-outline"
+                title="Announcement Boards"
+                subtitle="Bold Home board and separate profile message"
+                path="/admin/system-announcement-boards"
+              />
+
+              <AdminRow
                 icon="clipboard-check-outline"
                 title="Learning Progress Approval"
                 subtitle="Final System Admin review after Pastor validation"
@@ -404,48 +453,63 @@ export default function AdminDashboard() {
 
             <DrawerSection
               icon="office-building-cog-outline"
-              title="People & Organization"
-              subtitle="Membership, churches, clusters, pastors and roles"
+              title="People & Rewards"
+              subtitle="Bayanihan participation and faith payment verification"
               open={openDrawer === 'organization'}
               onPress={() => toggle('organization')}
             >
-              
-
-              
-
-              
-
-              
-
-              <AdminRow
-                icon="cash-multiple"
-                title="Tithes & Giving"
-                subtitle="Manage church payment accounts and giving settings"
-                path="/admin/giving"
-              />
-
               <AdminRow
                 icon="hand-heart-outline"
                 title="BUKLOD Bayanihan"
-                subtitle="Lesson rewards, Reward Member and Bayanihan leaderboard"
+                subtitle="Participation, recognition and BUKLOD progress"
                 path="/admin/bayanihan"
               />
 
-              
-
-              
-              
-
-              
               <AdminRow
-                icon="database-export-outline"
-                title="Member Master Records"
-                subtitle="Masterlist, records and Excel workbook export"
-                path="/admin/member-master"
+                icon="cash-check"
+                title="Faith & Cluster Payments"
+                subtitle="Verify GCash for Cluster Premium, lesson packages, and Organization Focus Apps"
+                path="/admin/faith-payments"
               />
             </DrawerSection>
 
             
+
+            <DrawerSection
+              icon="clipboard-check-outline"
+              title="BUKLOD Attendance & Focus Apps"
+              subtitle="Platform usage, analytics, subscriptions and all focus apps"
+              open={openDrawer === 'attendance'}
+              onPress={() => toggle('attendance')}
+            >
+              <AdminRow
+                icon="view-dashboard-outline"
+                title="Attendance & Focus Apps Console"
+                subtitle="Platform snapshot, reports, scope adoption and focus app analytics"
+                path="/admin/attendance"
+              />
+
+              <AdminRow
+                icon="chart-timeline-variant"
+                title="Attendance Usage Analytics"
+                subtitle="Events, check-ins, cluster activity and adoption trends"
+                path="/admin/attendance/usage"
+              />
+
+              <AdminRow
+                icon="apps"
+                title="All Focus Apps"
+                subtitle="Subscriptions, admins and per-app usage across the platform"
+                path="/admin/attendance/focus-apps"
+              />
+
+              <AdminRow
+                icon="cash-check"
+                title="Focus App Payments"
+                subtitle="Review annual GCash subscription requests for every focus app"
+                path="/admin/attendance/focus-apps/payments"
+              />
+            </DrawerSection>
 
             <DrawerSection
               icon="shield-outline"
@@ -458,23 +522,40 @@ export default function AdminDashboard() {
 
               
               <AdminRow
+                icon="office-building-cog-outline"
+                title="Org / Cluster Control Center"
+                subtitle="Organizations, Clusters, leadership, grants, suspend and audit"
+                path="/admin/org-cluster-control"
+              />
+              <AdminRow
                 icon="shield-account-outline"
                 title="Access & Roles"
                 subtitle="Foundation roles, scoped admins and audited access changes"
                 path="/admin/foundation-access"
               />
               <AdminRow
+                icon="church-outline"
+                title="Church Readiness"
+                subtitle="Pastor/Mentor, map location and Nearby discovery setup"
+                path="/admin/church-readiness"
+              />
+              <AdminRow
                 icon="tune-variant"
                 title="Configuration Center"
-                subtitle="Buttons, links, strings, features and design"
+                subtitle="Buttons, links, strings, features — System Admin and scope admins"
                 path="/admin/configuration-center"
               />
 
-
-<AdminRow
+              <AdminRow
+                icon="flag-outline"
+                title="Reported Posts & Comments"
+                subtitle="Reason, post or comment, and System Admin review"
+                path="/admin/content-reports"
+              />
+              <AdminRow
                 icon="shield-lock-outline"
                 title="Privacy & Moderation"
-                subtitle="Privacy requests and moderation controls"
+                subtitle="Privacy requests and reported posts or comments"
                 path="/admin/privacy"
               />
               {/* PATCH_162D_SPONSOR_ADMIN */}
@@ -483,14 +564,6 @@ export default function AdminDashboard() {
                 title="Sponsors & Advertising"
                 subtitle="Review, approve and manage BUKLOD local advertisements"
                 path="/admin/sponsors"
-              />
-
-
-              <AdminRow
-                icon="clipboard-pulse-outline"
-                title="Go-Live Command Center"
-                subtitle="Pilot health, incidents and readiness"
-                path="/admin/command-center"
               />
 
               <AdminRow
@@ -520,7 +593,7 @@ export default function AdminDashboard() {
               </View>
             </View>
           </>
-        )}
+        ) : null}
 
         <Text style={styles.footerBrand}>
           MZB MINISTRY INC. | BUKLOD
@@ -605,6 +678,39 @@ const styles = StyleSheet.create({
     color: '#748078',
   },
 
+  errorTitle: {
+    marginTop: 10,
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#1C2822',
+  },
+
+  errorText: {
+    marginTop: 6,
+    paddingHorizontal: 24,
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#69766F',
+    textAlign: 'center',
+  },
+
+  retryButton: {
+    marginTop: 14,
+    minHeight: 44,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#275D45',
+  },
+
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.4,
+  },
+
   sectionHeading: {
     marginTop: 5,
     marginBottom: 6,
@@ -631,27 +737,20 @@ const styles = StyleSheet.create({
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 6,
-    paddingLeft: 0,
-    marginLeft: 0,
-    paddingStart: 0,
-    marginStart: 0,
+    gap: 8,
+    marginBottom: 10,
+    paddingHorizontal: 12,
   },
 
   statCard: {
-    width: '31%',
-    minWidth: 98,
+    width: '47%',
+    minWidth: 150,
     flexGrow: 1,
-    padding: 13,
-    borderRadius: 0,
+    padding: 16,
+    borderRadius: 14,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: 'rgba(25,45,35,0.09)',
-    paddingLeft: 0,
-    marginLeft: 0,
-    paddingStart: 0,
-    marginStart: 0,
   },
 
   statIcon: {

@@ -3,6 +3,10 @@ import mobileAds, {
   MaxAdContentRating,
 } from 'react-native-google-mobile-ads';
 
+import {
+  getBuklodAdTestDeviceIds,
+} from '@/lib/buklodAdUnits';
+
 let requestConfigurationPromise:
   Promise<void> | null = null;
 
@@ -11,11 +15,17 @@ let initializationPromise:
 
 async function configureAdRequests() {
   if (!requestConfigurationPromise) {
+    const testDeviceIdentifiers =
+      getBuklodAdTestDeviceIds();
+
     requestConfigurationPromise =
       mobileAds()
         .setRequestConfiguration({
           maxAdContentRating:
             MaxAdContentRating.PG,
+          ...(testDeviceIdentifiers.length
+            ? { testDeviceIdentifiers }
+            : {}),
         })
         .then(() => undefined)
         .catch(error => {

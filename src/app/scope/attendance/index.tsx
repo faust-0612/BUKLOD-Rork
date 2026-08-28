@@ -5,26 +5,40 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
+  Share,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 
+import {
+  BuklodAttendanceEventForm,
+  type AttendanceEventMethod,
+  type BuklodAttendanceEventFormValues,
+} from '@/components/attendance/BuklodAttendanceEventForm';
+import BuklodScopedWorkspaceScrollView from '@/components/BuklodScopedWorkspaceScrollView';
 import { Button, Card, SectionTitle, shared } from '@/components/UI';
-import { useBuklodAccess } from '@/hooks/useBuklodAccess';
+import { useAttendancePermissions } from '@/hooks/useAttendancePermissions';
+import { useAttendanceWorkspaceScope } from '@/hooks/useAttendanceWorkspaceScope';
+import {
+  ATTENDANCE_CHECKER_INSTRUCTIONS,
+  ATTENDANCE_WORKSPACE_INSTRUCTIONS,
+  buildAttendanceCheckerUrl,
+  buildAttendanceWorkspaceUrl,
+} from '@/lib/buklodAttendanceLinks';
+import { fetchScopeMembers } from '@/lib/buklodScopeMembers';
+import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
+import { scopeAttendanceReportRoute } from '@/lib/buklodScopeManage';
+import {
+  createBuklodAttendanceEvent,
+  listBuklodAttendanceEvents,
+} from '@/lib/buklodAttendanceEvents';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
-import { useBuklodScope } from '@/providers/BuklodScopeProvider';
-
-type AttendanceMethod =
-  | 'qr'
-  | 'face'
-  | 'device_biometric'
-  | 'manual';
 
 type EventRow = {
   id: string;
@@ -36,9 +50,10 @@ type EventRow = {
   attendance_open_at: string | null;
   attendance_close_at: string | null;
   late_after: string | null;
-  allowed_methods: AttendanceMethod[] | null;
+  allowed_methods: AttendanceEventMethod[] | null;
   is_active: boolean;
   created_at: string;
+  created_by: string;
 };
 
 type ReportRow = {
@@ -49,16 +64,17 @@ type ReportRow = {
   checked_in_at: string;
 };
 
-const METHOD_OPTIONS: {
-  key: AttendanceMethod;
-  label: string;
-  icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-}[] = [
-  { key: 'qr', label: 'QR', icon: 'qrcode-scan' },
-  { key: 'face', label: 'Face', icon: 'face-recognition' },
-  { key: 'device_biometric', label: 'Biometric', icon: 'fingerprint' },
-  { key: 'manual', label: 'Manual', icon: 'account-check-outline' },
-];
+function firstString(value: unknown) {
+  if (typeof value === 'string') {
+    return value.trim();
+  }
+
+  if (Array.isArray(value) && typeof value[0] === 'string') {
+    return value[0].trim();
+  }
+
+  return '';
+}
 
 function pad(value: number) {
   return String(value).padStart(2, '0');
@@ -66,6 +82,63 @@ function pad(value: number) {
 
 function localDateString(date = new Date()) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function isoToLocalDate(value: string | null | undefined) {
+  if (!value) {
+    return localDateString();
+  }
+
+  const parsed = new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return localDateString();
+  }
+
+  return localDateString(parsed);
+}
+
+function isoToLocalTime(
+  value: string | null | undefined,
+  fallback = '08:00'
+) {
+  if (!value) {
+    return fallback;
+  }
+
+  const parsed = new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return fallback;
+  }
+
+  return `${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`;
+}
+
+function upcomingAttendanceWindow(now = new Date()) {
+  const start = new Date(now.getTime() + 60 * 1000);
+  const date = localDateString(start);
+  const endOfDay = new Date(
+    start.getFullYear(),
+    start.getMonth(),
+    start.getDate(),
+    23,
+    59,
+    0
+  );
+  const late = new Date(
+    Math.min(start.getTime() + 15 * 60 * 1000, endOfDay.getTime())
+  );
+  const end = new Date(
+    Math.min(start.getTime() + 2 * 60 * 60 * 1000, endOfDay.getTime())
+  );
+
+  return {
+    date,
+    startTime: `${pad(start.getHours())}:${pad(start.getMinutes())}`,
+    lateTime: `${pad(late.getHours())}:${pad(late.getMinutes())}`,
+    endTime: `${pad(end.getHours())}:${pad(end.getMinutes())}`,
+  };
 }
 
 function parseLocal(date: string, time: string) {
@@ -86,8 +159,14 @@ function formatDateTime(value: string | null) {
 }
 
 export default function ScopeAttendanceScreen() {
-  const { activeScope } = useBuklodScope();
-  const { isAdmin } = useBuklodAccess();
+  const params = useLocalSearchParams();
+  const showCreateParam =
+    firstString(params.showCreate) || firstString(params.create);
+
+  const { workspaceScope, access, scopesLoading } =
+    useAttendanceWorkspaceScope();
+  const { canOperateScope, canManageEvent } =
+    useAttendancePermissions(workspaceScope);
 
   const [events, setEvents] = useState<EventRow[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -95,20 +174,140 @@ export default function ScopeAttendanceScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
+  const [refreshSourceEvent, setRefreshSourceEvent] =
+    useState<EventRow | null>(null);
+  const [memberQuery, setMemberQuery] = useState('');
+  const [memberResults, setMemberResults] = useState<
+    Array<{ user_id: string; full_name: string | null }>
+  >([]);
+  const [manualBusy, setManualBusy] = useState(false);
 
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
-  const [date, setDate] = useState(localDateString());
-  const [startTime, setStartTime] = useState('08:00');
-  const [endTime, setEndTime] = useState('10:00');
-  const [lateTime, setLateTime] = useState('08:15');
+  const [date, setDate] = useState(() => upcomingAttendanceWindow().date);
+  const [startTime, setStartTime] = useState(
+    () => upcomingAttendanceWindow().startTime
+  );
+  const [endTime, setEndTime] = useState(
+    () => upcomingAttendanceWindow().endTime
+  );
+  const [lateTime, setLateTime] = useState(
+    () => upcomingAttendanceWindow().lateTime
+  );
   const [openNow, setOpenNow] = useState(true);
-  const [methods, setMethods] = useState<AttendanceMethod[]>([
+  const [methods, setMethods] = useState<AttendanceEventMethod[]>([
     'qr',
     'face',
     'device_biometric',
     'manual',
   ]);
+
+  const createFormValues = useMemo<BuklodAttendanceEventFormValues>(
+    () => ({
+      title,
+      location,
+      date,
+      startTime,
+      endTime,
+      lateTime,
+      openNow,
+      methods,
+    }),
+    [
+      title,
+      location,
+      date,
+      startTime,
+      endTime,
+      lateTime,
+      openNow,
+      methods,
+    ]
+  );
+
+  const resetCreateForm = useCallback(() => {
+    const next = upcomingAttendanceWindow();
+    setTitle('');
+    setLocation('');
+    setDate(next.date);
+    setStartTime(next.startTime);
+    setEndTime(next.endTime);
+    setLateTime(next.lateTime);
+    setOpenNow(true);
+    setMethods(['qr', 'face', 'device_biometric', 'manual']);
+    setRefreshSourceEvent(null);
+  }, []);
+
+  const prefillRefreshAttendance = useCallback((item: EventRow) => {
+    setTitle(item.title);
+    setLocation(item.location ?? '');
+    setDate(localDateString());
+    setStartTime(isoToLocalTime(item.starts_at, '08:00'));
+    setEndTime(
+      isoToLocalTime(
+        item.ends_at ?? item.starts_at,
+        '10:00'
+      )
+    );
+    setLateTime(
+      isoToLocalTime(
+        item.late_after ?? item.starts_at,
+        '08:15'
+      )
+    );
+    setMethods(
+      item.allowed_methods?.length
+        ? [...item.allowed_methods]
+        : ['qr', 'face', 'device_biometric', 'manual']
+    );
+    setOpenNow(false);
+    setRefreshSourceEvent(item);
+    setSelectedId(item.id);
+    setShowCreate(true);
+  }, []);
+
+  const handleCreateFormChange = useCallback(
+    <K extends keyof BuklodAttendanceEventFormValues>(
+      key: K,
+      value: BuklodAttendanceEventFormValues[K]
+    ) => {
+      switch (key) {
+        case 'title':
+          setTitle(String(value));
+          break;
+        case 'location':
+          setLocation(String(value));
+          break;
+        case 'date':
+          setDate(String(value));
+          break;
+        case 'startTime':
+          setStartTime(String(value));
+          break;
+        case 'endTime':
+          setEndTime(String(value));
+          break;
+        case 'lateTime':
+          setLateTime(String(value));
+          break;
+        case 'openNow':
+          setOpenNow(Boolean(value));
+          break;
+        case 'methods':
+          setMethods(value as AttendanceEventMethod[]);
+          break;
+        default:
+          break;
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (showCreateParam === '1' || showCreateParam === 'true') {
+      setShowCreate(true);
+    }
+  }, [showCreateParam]);
 
   const selected =
     useMemo(
@@ -116,47 +315,53 @@ export default function ScopeAttendanceScreen() {
       [events, selectedId]
     );
 
+  const canManageSelected = canManageEvent(selected);
+
   const scopeKind =
-    activeScope?.scope_type === 'CLUSTER'
+    workspaceScope?.scope_type === 'CLUSTER'
       ? 'Cluster'
-      : activeScope?.parent_scope_id
+      : workspaceScope?.parent_scope_id
         ? 'Sub-organization'
         : 'Organization';
 
   const loadEvents = useCallback(async () => {
-    if (!activeScope?.scope_id) {
+    if (!workspaceScope?.scope_id) {
       setEvents([]);
       setSelectedId(null);
       return;
     }
 
-    const { data, error } = await supabase
-      .from('attendance_events')
-      .select(
-        'id,scope_id,title,location,starts_at,ends_at,attendance_open_at,attendance_close_at,late_after,allowed_methods,is_active,created_at'
-      )
-      .eq('scope_id', activeScope.scope_id)
-      .order('starts_at', { ascending: false })
-      .limit(50);
+    const rows = (await listBuklodAttendanceEvents(
+      workspaceScope.scope_id
+    )) as EventRow[];
 
-    if (error) {
-      Alert.alert('Attendance', error.message);
-      return;
-    }
+    setEvents(current => {
+      if (!rows.length && current.length) {
+        return current;
+      }
 
-    const rows = (data ?? []) as EventRow[];
-    setEvents(rows);
+      const extras = current.filter(
+        item => !rows.some(row => row.id === item.id)
+      );
+
+      return extras.length ? [...extras, ...rows] : rows;
+    });
 
     setSelectedId(current => {
       if (current && rows.some(item => item.id === current)) {
         return current;
       }
-      return rows.find(item => item.is_active)?.id ?? rows[0]?.id ?? null;
+
+      if (current && !rows.length) {
+        return current;
+      }
+
+      return rows.find(item => item.is_active)?.id ?? rows[0]?.id ?? current;
     });
-  }, [activeScope?.scope_id]);
+  }, [workspaceScope?.scope_id]);
 
   const loadReport = useCallback(async () => {
-    if (!selectedId || !isAdmin) {
+    if (!selectedId || !canManageSelected) {
       setReport([]);
       return;
     }
@@ -171,16 +376,54 @@ export default function ScopeAttendanceScreen() {
       return;
     }
 
-    setReport((data ?? []) as ReportRow[]);
-  }, [selectedId, isAdmin]);
+    setReport(
+      ((data ?? []) as ReportRow[]).sort(
+        (a, b) =>
+          new Date(b.checked_in_at).getTime() -
+          new Date(a.checked_in_at).getTime()
+      )
+    );
+  }, [selectedId, canManageSelected]);
 
-  useEffect(() => {
-    void loadEvents();
-  }, [loadEvents]);
+  useFocusEffect(
+    useCallback(() => {
+      void loadEvents();
+      void loadReport();
+    }, [loadEvents, loadReport])
+  );
 
   useEffect(() => {
     void loadReport();
   }, [loadReport]);
+
+  useEffect(() => {
+    if (!workspaceScope?.scope_id) {
+      return;
+    }
+
+    const channel = supabase
+      .channel(
+        `scope-attendance:${workspaceScope.scope_id}:${Date.now()}`
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'attendance_events',
+          filter: `scope_id=eq.${workspaceScope.scope_id}`,
+        },
+        () => {
+          void loadEvents();
+          void loadReport();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [workspaceScope?.scope_id, loadEvents, loadReport]);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
@@ -192,9 +435,18 @@ export default function ScopeAttendanceScreen() {
     }
   }, [loadEvents, loadReport]);
 
+  if (scopesLoading) {
+    return (
+      <View style={styles.center}>
+        <Text style={shared.muted}>Loading attendance workspace...</Text>
+      </View>
+    );
+  }
+
   if (
-    !activeScope ||
-    !['ORGANIZATION', 'CLUSTER'].includes(activeScope.scope_type)
+    access !== 'authorized' ||
+    !workspaceScope ||
+    !['ORGANIZATION', 'CLUSTER'].includes(workspaceScope.scope_type)
   ) {
     return (
       <View style={styles.center}>
@@ -208,16 +460,16 @@ export default function ScopeAttendanceScreen() {
   }
 
   async function createEvent() {
-    if (!isAdmin) {
+    if (!canOperateScope) {
       Alert.alert(
         'Attendance',
-        'Only an admin of this exact scope can create attendance events.'
+        'Only a scope attendance operator or admin can create attendance events.'
       );
       return;
     }
 
     const scopeId =
-      activeScope?.scope_id;
+      workspaceScope?.scope_id;
 
     if (!scopeId) {
       Alert.alert(
@@ -258,36 +510,55 @@ export default function ScopeAttendanceScreen() {
 
     setSaving(true);
     try {
-      const { data, error } = await supabase.rpc(
-        'create_buklod_attendance_event',
-        {
-          p_scope_id: scopeId,
-          p_title: title.trim(),
-          p_starts_at: startsAt,
-          p_ends_at: endsAt,
-          p_location: location.trim() || null,
-          p_late_after: lateAfter,
-          p_allowed_methods: methods,
-          p_open_now: openNow,
+      const created = await createBuklodAttendanceEvent({
+        scopeId,
+        title: title.trim(),
+        startsAt,
+        endsAt,
+        location: location.trim() || null,
+        lateAfter,
+        allowedMethods: methods,
+        openNow,
+      });
+
+      const refreshedFrom = refreshSourceEvent;
+
+      if (refreshedFrom?.is_active) {
+        const { error: closeError } = await supabase.rpc(
+          'set_buklod_attendance_event_active',
+          {
+            p_event_id: refreshedFrom.id,
+            p_active: false,
+          }
+        );
+
+        if (closeError) {
+          console.warn(
+            'Close previous attendance session:',
+            closeError.message
+          );
         }
-      );
-
-      if (error) throw error;
-
-      setTitle('');
-      setLocation('');
-      setShowCreate(false);
-      await loadEvents();
-
-      if (typeof data === 'string') {
-        setSelectedId(data);
       }
 
+      resetCreateForm();
+      setShowCreate(false);
+      setEvents(current => {
+        const next = current.filter(item => item.id !== created.id);
+        return [created as EventRow, ...next];
+      });
+      setSelectedId(created.id);
+      await loadEvents();
+      setSelectedId(created.id);
+
       Alert.alert(
-        'Attendance event created',
-        openNow
-          ? 'The event is now available in BUKLOD Attendance.'
-          : 'The event was saved closed. Open it when attendance should begin.'
+        refreshedFrom
+          ? 'Attendance refreshed'
+          : 'Attendance event created',
+        refreshedFrom
+          ? `A new session for "${refreshedFrom.title}" was created. The previous session was closed automatically and its check-in data is preserved. Use Analytics to review all sessions by date range.`
+          : openNow
+            ? 'The event is now available in BUKLOD Attendance.'
+            : 'The event was saved closed. Open it when attendance should begin.'
       );
     } catch (error: any) {
       Alert.alert(
@@ -300,7 +571,7 @@ export default function ScopeAttendanceScreen() {
   }
 
   async function setEventOpen(item: EventRow, next: boolean) {
-    if (!isAdmin) return;
+    if (!canManageEvent(item)) return;
 
     const { error } = await supabase.rpc(
       'set_buklod_attendance_event_active',
@@ -318,16 +589,170 @@ export default function ScopeAttendanceScreen() {
   }
 
   async function openChecker(item: EventRow) {
-    const url = `buklod-attendance://event/${item.id}`;
+    const url = buildAttendanceCheckerUrl(item.id);
 
     try {
       await Linking.openURL(url);
     } catch {
       Alert.alert(
         'BUKLOD Attendance',
-        'The event is saved and available to the Attendance Checker. Open the BUKLOD Attendance app and select this event.'
+        `${ATTENDANCE_CHECKER_INSTRUCTIONS}\n\nEvent link:\n${url}`
       );
     }
+  }
+
+  async function shareWorkspaceLink(item?: EventRow) {
+    if (!workspaceScope?.scope_id) {
+      return;
+    }
+
+    const url = buildAttendanceWorkspaceUrl(
+      workspaceScope.scope_id,
+      item
+        ? {
+            eventId: item.id,
+            eventTitle: item.title,
+          }
+        : {}
+    );
+
+    await Share.share({
+      title: item
+        ? `Attendance: ${item.title}`
+        : `Attendance: ${workspaceScope.name}`,
+      message: `${ATTENDANCE_WORKSPACE_INSTRUCTIONS}\n\nOpen link:\n${url}`,
+    });
+  }
+
+  async function copyWorkspaceLink(item?: EventRow) {
+    if (!workspaceScope?.scope_id) {
+      return;
+    }
+
+    const url = buildAttendanceWorkspaceUrl(
+      workspaceScope.scope_id,
+      item
+        ? {
+            eventId: item.id,
+            eventTitle: item.title,
+          }
+        : {}
+    );
+
+    await Clipboard.setStringAsync(url);
+    Alert.alert(
+      'Attendance link copied',
+      'Share this link with recorders who are active members of this scope.'
+    );
+  }
+
+  async function copyCheckerLink(item: EventRow) {
+    const url = buildAttendanceCheckerUrl(item.id);
+
+    await Clipboard.setStringAsync(url);
+    Alert.alert(
+      'Checker link copied',
+      `${ATTENDANCE_CHECKER_INSTRUCTIONS}\n\n${url}`
+    );
+  }
+
+  async function searchMembers(query: string) {
+    if (!workspaceScope?.scope_id) {
+      return;
+    }
+
+    const rows = await fetchScopeMembers({
+      scopeId: workspaceScope.scope_id,
+      query,
+      limit: 12,
+    });
+
+    setMemberResults(
+      rows.map(row => ({
+        user_id: row.user_id,
+        full_name: row.full_name,
+      }))
+    );
+  }
+
+  async function manualCheckIn(
+    memberId: string,
+    memberName: string | null
+  ) {
+    if (!selected || !canManageSelected) {
+      return;
+    }
+
+    if (!selected.allowed_methods?.includes('manual')) {
+      Alert.alert(
+        'Manual check-in',
+        'Manual attendance is not enabled for this event.'
+      );
+      return;
+    }
+
+    setManualBusy(true);
+
+    try {
+      const { error } = await supabase.rpc(
+        'record_buklod_attendance',
+        {
+          p_event_id: selected.id,
+          p_member_id: memberId,
+          p_method: 'manual',
+          p_status: 'present',
+          p_metadata: {
+            source: 'buklod_main_app',
+          },
+        }
+      );
+
+      if (error) {
+        throw error;
+      }
+
+      Alert.alert(
+        'Checked in',
+        `${resolvePersonDisplayName(memberName, memberId)} was marked present.`
+      );
+
+      setMemberQuery('');
+      setMemberResults([]);
+      await loadReport();
+    } catch (error: any) {
+      Alert.alert(
+        'Manual check-in',
+        error?.message ?? 'Could not record attendance.'
+      );
+    } finally {
+      setManualBusy(false);
+    }
+  }
+
+  async function openEventReport(item: EventRow) {
+    if (!workspaceScope?.scope_id) {
+      return;
+    }
+
+    router.push(
+      scopeAttendanceReportRoute(workspaceScope.scope_id, {
+        eventId: item.id,
+        eventTitle: item.title,
+      }) as any
+    );
+  }
+
+  async function openEventSeriesReport(item: EventRow) {
+    if (!workspaceScope?.scope_id) {
+      return;
+    }
+
+    router.push(
+      scopeAttendanceReportRoute(workspaceScope.scope_id, {
+        eventSeriesTitle: item.title,
+        anchorEventId: item.id,
+      }) as any
+    );
   }
 
   const present = report.filter(row => row.status === 'present').length;
@@ -336,7 +761,7 @@ export default function ScopeAttendanceScreen() {
     report.filter(row => row.method === method).length;
 
   return (
-    <ScrollView
+    <BuklodScopedWorkspaceScrollView
       style={shared.screen}
       contentContainerStyle={shared.content}
       refreshControl={
@@ -359,131 +784,100 @@ export default function ScopeAttendanceScreen() {
         <View style={{ flex: 1 }}>
           <Text style={shared.h1}>Attendance</Text>
           <Text style={shared.muted}>
-            {scopeKind} • {activeScope.name}
+            {scopeKind} • {workspaceScope.name}
           </Text>
         </View>
+
+        {canOperateScope && (
+          <Pressable
+            style={styles.reportLink}
+            onPress={() =>
+              workspaceScope?.scope_id
+                ? router.push(
+                    scopeAttendanceReportRoute(
+                      workspaceScope.scope_id
+                    ) as any
+                  )
+                : undefined
+            }
+            accessibilityLabel="Open attendance report"
+          >
+            <MaterialCommunityIcons
+              name="chart-box-outline"
+              size={20}
+              color={colors.greenDark}
+            />
+          </Pressable>
+        )}
       </View>
 
-      {isAdmin && (
+      <Card>
+        <Text style={styles.instructionTitle}>
+          How to use attendance links
+        </Text>
+        <Text style={styles.instructionBody}>
+          {ATTENDANCE_WORKSPACE_INSTRUCTIONS}
+        </Text>
+        {canOperateScope ? (
+          <View style={styles.linkActions}>
+            <Pressable
+              style={styles.linkBtn}
+              onPress={() => void shareWorkspaceLink()}
+            >
+              <Text style={styles.linkBtnText}>SHARE WORKSPACE LINK</Text>
+            </Pressable>
+            <Pressable
+              style={styles.linkBtn}
+              onPress={() => void copyWorkspaceLink()}
+            >
+              <Text style={styles.linkBtnText}>COPY WORKSPACE LINK</Text>
+            </Pressable>
+          </View>
+        ) : null}
+      </Card>
+
+      {canOperateScope && (
         <>
           <Button
-            title={showCreate ? 'CLOSE CREATE EVENT' : '+ CREATE ATTENDANCE EVENT'}
-            onPress={() => setShowCreate(value => !value)}
+            title={
+              showCreate
+                ? refreshSourceEvent
+                  ? 'CLOSE REFRESH ATTENDANCE'
+                  : 'CLOSE CREATE EVENT'
+                : '+ CREATE ATTENDANCE EVENT'
+            }
+            onPress={() => {
+              if (showCreate) {
+                resetCreateForm();
+              }
+
+              setShowCreate(value => !value);
+            }}
           />
 
-          {showCreate && (
-            <>
-              <SectionTitle>CREATE EVENT</SectionTitle>
-              <Card>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Event name"
-                  value={title}
-                  onChangeText={setTitle}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Location (optional)"
-                  value={location}
-                  onChangeText={setLocation}
-                />
-
-                <Text style={styles.label}>Date</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="YYYY-MM-DD"
-                  value={date}
-                  onChangeText={setDate}
-                  autoCapitalize="none"
-                />
-
-                <View style={styles.twoCol}>
-                  <View style={styles.col}>
-                    <Text style={styles.label}>Start</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="08:00"
-                      value={startTime}
-                      onChangeText={setStartTime}
-                    />
-                  </View>
-                  <View style={styles.col}>
-                    <Text style={styles.label}>End</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="10:00"
-                      value={endTime}
-                      onChangeText={setEndTime}
-                    />
-                  </View>
-                </View>
-
-                <Text style={styles.label}>Late after</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="08:15"
-                  value={lateTime}
-                  onChangeText={setLateTime}
-                />
-
-                <Text style={styles.label}>Allowed methods</Text>
-                <View style={styles.methodWrap}>
-                  {METHOD_OPTIONS.map(option => {
-                    const on = methods.includes(option.key);
-                    return (
-                      <Pressable
-                        key={option.key}
-                        onPress={() =>
-                          setMethods(current =>
-                            on
-                              ? current.filter(item => item !== option.key)
-                              : [...current, option.key]
-                          )
-                        }
-                        style={[
-                          styles.methodChip,
-                          on && styles.methodChipOn,
-                        ]}
-                      >
-                        <MaterialCommunityIcons
-                          name={option.icon}
-                          size={18}
-                          color={on ? colors.greenDark : colors.muted}
-                        />
-                        <Text
-                          style={[
-                            styles.methodText,
-                            on && styles.methodTextOn,
-                          ]}
-                        >
-                          {option.label}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-
-                <View style={styles.switchRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.label}>Open attendance now</Text>
-                    <Text style={styles.help}>
-                      If enabled, the event immediately appears as open in the Attendance Checker.
-                    </Text>
-                  </View>
-                  <Switch value={openNow} onValueChange={setOpenNow} />
-                </View>
-
-                <Button
-                  title={saving ? 'CREATING...' : 'CREATE EVENT'}
-                  onPress={
-                    saving
-                      ? () => undefined
-                      : createEvent
-                  }
-                />
-              </Card>
-            </>
-          )}
+          {showCreate ? (
+            <BuklodAttendanceEventForm
+              values={createFormValues}
+              saving={saving}
+              submitTitle={
+                refreshSourceEvent
+                  ? 'REFRESH ATTENDANCE'
+                  : 'CREATE EVENT'
+              }
+              savingTitle={
+                refreshSourceEvent
+                  ? 'REFRESHING...'
+                  : 'CREATING...'
+              }
+              contextNote={
+                refreshSourceEvent
+                  ? `Same event as "${refreshSourceEvent.title}". Update the date and time, then tap Refresh Attendance. The current open session will close automatically. All past check-ins stay saved.`
+                  : null
+              }
+              onChange={handleCreateFormChange}
+              onSubmit={createEvent}
+            />
+          ) : null}
         </>
       )}
 
@@ -493,9 +887,9 @@ export default function ScopeAttendanceScreen() {
         <Card>
           <Text style={shared.h2}>No attendance event yet</Text>
           <Text style={shared.muted}>
-            {isAdmin
+            {canOperateScope
               ? 'Create the first event for this exact scope.'
-              : 'Your scope admin has not created an attendance event yet.'}
+              : 'Your scope attendance operator has not created an attendance event yet.'}
           </Text>
         </Card>
       ) : (
@@ -540,16 +934,85 @@ export default function ScopeAttendanceScreen() {
                 </View>
               </View>
 
+              {canManageEvent(item) && (
+                <View style={styles.eventReportLinks}>
+                  <Pressable
+                    style={styles.eventReportBtn}
+                    onPress={() => void openEventReport(item)}
+                  >
+                    <MaterialCommunityIcons
+                      name="clipboard-text-outline"
+                      size={16}
+                      color={colors.greenDark}
+                    />
+                    <Text style={styles.eventReportText}>
+                      Report Attendance
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={styles.eventReportBtn}
+                    onPress={() => void openEventSeriesReport(item)}
+                  >
+                    <MaterialCommunityIcons
+                      name="chart-box-outline"
+                      size={16}
+                      color={colors.greenDark}
+                    />
+                    <Text style={styles.eventReportText}>
+                      Analytics
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={styles.eventReportBtn}
+                    onPress={() => void shareWorkspaceLink(item)}
+                  >
+                    <MaterialCommunityIcons
+                      name="share-variant-outline"
+                      size={16}
+                      color={colors.greenDark}
+                    />
+                    <Text style={styles.eventReportText}>
+                      Share Link
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={styles.eventReportBtn}
+                    onPress={() => prefillRefreshAttendance(item)}
+                  >
+                    <MaterialCommunityIcons
+                      name="calendar-refresh"
+                      size={16}
+                      color={colors.greenDark}
+                    />
+                    <Text style={styles.eventReportText}>
+                      Refresh Attendance
+                    </Text>
+                  </Pressable>
+                </View>
+              )}
+
               {selectedEvent && (
                 <View style={styles.eventActions}>
                   {item.is_active && (
-                    <Button
-                      title="OPEN ATTENDANCE CHECKER"
-                      onPress={() => void openChecker(item)}
-                    />
+                    <>
+                      <Button
+                        title="OPEN ATTENDANCE CHECKER"
+                        onPress={() => void openChecker(item)}
+                      />
+                      {canManageEvent(item) ? (
+                        <Button
+                          title="COPY CHECKER LINK"
+                          outline
+                          onPress={() => void copyCheckerLink(item)}
+                        />
+                      ) : null}
+                    </>
                   )}
 
-                  {isAdmin && (
+                  {canManageEvent(item) && (
                     <Button
                       title={item.is_active ? 'CLOSE ATTENDANCE' : 'OPEN ATTENDANCE'}
                       onPress={() => void setEventOpen(item, !item.is_active)}
@@ -562,9 +1025,15 @@ export default function ScopeAttendanceScreen() {
         })
       )}
 
-      {selected && isAdmin && (
+      {selected && canManageSelected && (
         <>
           <SectionTitle>REPORT</SectionTitle>
+
+          <Button
+            title="OPEN FULL REPORT & ANALYTICS"
+            outline
+            onPress={() => void openEventReport(selected)}
+          />
 
           <View style={styles.stats}>
             <View style={styles.stat}>
@@ -599,7 +1068,10 @@ export default function ScopeAttendanceScreen() {
               >
                 <View style={{ flex: 1 }}>
                   <Text style={styles.personName}>
-                    {row.full_name || 'BUKLOD Member'}
+                    {resolvePersonDisplayName(
+                      row.full_name,
+                      row.user_id,
+                    )}
                   </Text>
                   <Text style={styles.personMeta}>
                     {row.status.toUpperCase()} • {row.method.replaceAll('_', ' ')}
@@ -614,20 +1086,63 @@ export default function ScopeAttendanceScreen() {
               </View>
             ))
           )}
+
+          {selected.is_active &&
+          selected.allowed_methods?.includes('manual') ? (
+            <>
+              <SectionTitle>MANUAL CHECK-IN</SectionTitle>
+              <Card>
+                <Text style={styles.help}>
+                  Search an active member, then tap their name to mark them
+                  present manually.
+                </Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Search member name..."
+                  value={memberQuery}
+                  onChangeText={value => {
+                    setMemberQuery(value);
+                    void searchMembers(value);
+                  }}
+                />
+                {memberResults.map(member => (
+                  <Pressable
+                    key={member.user_id}
+                    disabled={manualBusy}
+                    onPress={() =>
+                      void manualCheckIn(
+                        member.user_id,
+                        member.full_name
+                      )
+                    }
+                    style={styles.person}
+                  >
+                    <Text style={styles.personName}>
+                      {resolvePersonDisplayName(
+                        member.full_name,
+                        member.user_id
+                      )}
+                    </Text>
+                    <Text style={styles.linkBtnText}>CHECK IN</Text>
+                  </Pressable>
+                ))}
+              </Card>
+            </>
+          ) : null}
         </>
       )}
 
-      {!isAdmin && (
+      {!canOperateScope && (
         <Card>
           <Text style={shared.h2}>Member access</Text>
           <Text style={shared.muted}>
-            You can see the attendance events for this scope. Event creation,
-            open/close controls and the detailed attendance report are restricted
-            to the exact-scope admin.
+            You can see attendance events for this scope. Creating events,
+            opening or closing attendance, reports, and manual check-in are
+            limited to the event creator, attendance operator, or scope admin.
           </Text>
         </Card>
       )}
-    </ScrollView>
+    </BuklodScopedWorkspaceScrollView>
   );
 }
 
@@ -645,6 +1160,14 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   back: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.greenSoft,
+  },
+  reportLink: {
     width: 42,
     height: 42,
     borderRadius: 21,
@@ -766,6 +1289,28 @@ const styles = StyleSheet.create({
     marginTop: 10,
     gap: 5,
   },
+  eventReportLinks: {
+    marginTop: 10,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  eventReportBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.greenSoft,
+  },
+  eventReportText: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: colors.greenDark,
+  },
   stats: {
     flexDirection: 'row',
     gap: 8,
@@ -821,6 +1366,34 @@ const styles = StyleSheet.create({
   personTime: {
     fontSize: 12,
     fontWeight: '800',
+    color: colors.greenDark,
+  },
+  instructionTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  instructionBody: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.muted,
+    marginBottom: 10,
+  },
+  linkActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  linkBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: colors.greenSoft,
+  },
+  linkBtnText: {
+    fontSize: 10,
+    fontWeight: '900',
     color: colors.greenDark,
   },
 });

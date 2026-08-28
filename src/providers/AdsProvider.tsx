@@ -13,8 +13,8 @@ import {
 } from '@/lib/adMob';
 
 import {
-  BUKLOD_AD_TEST_MODE,
-} from '@/lib/adUnits';
+  buklodAdsTestMode,
+} from '@/lib/buklodAdUnits';
 
 type AdsContextValue = {
   ready: boolean;
@@ -98,7 +98,7 @@ export function AdsProvider({
         ready,
         canRequestAds,
         testMode:
-          BUKLOD_AD_TEST_MODE,
+          buklodAdsTestMode,
         refreshConsent,
       }),
       [

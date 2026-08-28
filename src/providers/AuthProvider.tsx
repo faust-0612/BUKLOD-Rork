@@ -1,6 +1,20 @@
 import { Session, User } from '@supabase/supabase-js';
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { supabase } from '@/lib/supabase';
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
+import {
+  clearAuthSnapshot,
+  readAuthSnapshot,
+  readPersistedSupabaseSession,
+  writeAuthSnapshot,
+} from '@/lib/buklodAuthSnapshot';
 
 export type AppRole =
   | 'member'
@@ -82,6 +96,10 @@ const LEADERSHIP_ROLES: AppRole[] = [
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+/* BUKLOD_GLOBAL_BOOT_R20 */
+const AUTH_SESSION_TIMEOUT_MS = 8000;
+const AUTH_QUERY_TIMEOUT_MS = 4500;
+
 export function AuthProvider({
   children,
 }: {
@@ -95,6 +113,9 @@ export function AuthProvider({
   const [membershipState, setMembershipState] =
     useState<MembershipState>('loading');
 
+  const bootstrappedRef = useRef(false);
+  const sessionUserIdRef = useRef<string | null>(null);
+
   const loadRoles = async (
     userId?: string,
     legacyRole?: AppRole | null
@@ -104,16 +125,29 @@ export function AuthProvider({
       return [];
     }
 
-    const { data, error } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId)
-      .eq('is_active', true);
+    const { data, error } =
+      await withBuklodTimeout(
+        supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId)
+          .eq('is_active', true),
+        AUTH_QUERY_TIMEOUT_MS,
+        'BUKLOD roles'
+      ).catch((nextError: any) => ({
+        data: null,
+        error: {
+          message: String(
+            nextError?.message ??
+              nextError ??
+              'Role request timed out.'
+          ),
+        },
+      }));
 
     if (error) {
       console.warn('Role load failed:', error.message);
 
-      // Compatibility fallback only if user_roles could not be read.
       const fallback: AppRole[] =
         legacyRole === 'system_admin'
           ? ['system_admin']
@@ -139,7 +173,6 @@ export function AuthProvider({
       )
     );
 
-    // Every active BUKLOD account has Member as its baseline role.
     if (
       !nextRoles.includes('system_admin') &&
       !nextRoles.includes('member')
@@ -148,57 +181,106 @@ export function AuthProvider({
     }
 
     setRoles(nextRoles);
-
     return nextRoles;
   };
 
   const loadMembership = async (
     userId?: string,
-    _activeRoles: AppRole[] = []
+    _activeRoles: AppRole[] = [],
+    knownVerified?: boolean | null
   ) => {
     if (!userId) {
       setMembershipState('none');
       return;
     }
 
-    // Verification is now the universal entry gate.
-    // Role and group do not bypass System Admin verification.
-    const { data: verification, error: verificationError } =
-      await supabase
-        .from('profiles')
-        .select('is_verified')
-        .eq('id', userId)
-        .maybeSingle();
+    let isVerified = knownVerified;
 
-    if (verificationError) {
-      console.warn(
-        'Verification load failed:',
-        verificationError.message
-      );
-      setMembershipState('pending');
-      return;
+    /*
+     * R20: loadProfile already selects is_verified.
+     * Do not repeat the same profiles query during normal bootstrap.
+     */
+    if (isVerified == null) {
+      const {
+        data: verification,
+        error: verificationError,
+      } = await withBuklodTimeout(
+        supabase
+          .from('profiles')
+          .select('is_verified')
+          .eq('id', userId)
+          .maybeSingle(),
+        AUTH_QUERY_TIMEOUT_MS,
+        'BUKLOD verification'
+      ).catch((nextError: any) => ({
+        data: null,
+        error: {
+          message: String(
+            nextError?.message ??
+              nextError ??
+              'Verification request timed out.'
+          ),
+        },
+      }));
+
+      if (verificationError) {
+        console.warn(
+          'Verification load failed:',
+          verificationError.message
+        );
+        setMembershipState('pending');
+        return;
+      }
+
+      isVerified =
+        verification?.is_verified === true;
     }
 
-    if (verification?.is_verified === true) {
+    if (isVerified === true) {
       setMembershipState('ready');
       return;
     }
 
-    const { data: request } = await supabase
-      .from('church_join_requests')
-      .select('status')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const {
+      data: request,
+      error: requestError,
+    } = await withBuklodTimeout(
+      supabase
+        .from('church_join_requests')
+        .select('status')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      AUTH_QUERY_TIMEOUT_MS,
+      'BUKLOD membership'
+    ).catch((nextError: any) => ({
+      data: null,
+      error: {
+        message: String(
+          nextError?.message ??
+            nextError ??
+            'Membership request timed out.'
+        ),
+      },
+    }));
+
+    if (requestError) {
+      console.warn(
+        'Membership load failed:',
+        requestError.message
+      );
+      setMembershipState((current) =>
+        current === 'loading' ? 'pending' : current
+      );
+      return;
+    }
 
     if (request?.status === 'rejected') {
       setMembershipState('rejected');
       return;
     }
 
-    // Signed-in but not System Admin verified:
-    // keep the account on the onboarding/verification screen.
     setMembershipState('pending');
   };
 
@@ -210,63 +292,247 @@ export function AuthProvider({
       return;
     }
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .select(
-        'id,full_name,first_name,middle_name,surname,suffix,mobile,sex,username,login_method,login_identifier,avatar_url,church_id,connection_type,trust_level,is_verified,role,is_active'
-      )
-      .eq('id', userId)
-      .single();
+    const cachedSnapshot = await readAuthSnapshot(userId);
+    if (cachedSnapshot) {
+      setProfile(cachedSnapshot.profile as Profile);
+      setRoles(
+        (cachedSnapshot.roles as AppRole[]).filter((role) =>
+          VALID_ROLES.includes(role)
+        )
+      );
+      setMembershipState(
+        cachedSnapshot.membershipState as MembershipState
+      );
+    }
 
-    if (error) {
-      console.warn('Profile load failed:', error.message);
-      setProfile(null);
-      setRoles([]);
-      setMembershipState('none');
+    const { data, error } =
+      await withBuklodTimeout(
+        supabase
+          .from('profiles')
+          .select(
+            'id,full_name,first_name,middle_name,surname,suffix,mobile,sex,username,login_method,login_identifier,avatar_url,church_id,connection_type,trust_level,is_verified,role,is_active'
+          )
+          .eq('id', userId)
+          .single(),
+        AUTH_QUERY_TIMEOUT_MS,
+        'BUKLOD profile'
+      ).catch((nextError: any) => ({
+        data: null,
+        error: {
+          message: String(
+            nextError?.message ??
+              nextError ??
+              'Profile request timed out.'
+          ),
+        },
+      }));
+
+    if (error || !data) {
+      console.warn(
+        'Profile load failed:',
+        error?.message ?? 'Profile not available.'
+      );
+
+      if (cachedSnapshot) {
+        return;
+      }
+
+      setMembershipState((current) =>
+        current === 'loading' ? 'pending' : current
+      );
       return;
     }
 
     const nextProfile = data as Profile;
-
     setProfile(nextProfile);
 
-    const nextRoles = await loadRoles(
-      userId,
-      nextProfile.role
-    );
+    /*
+     * Roles and membership are independent after the profile row
+     * is known. Run them together instead of serially.
+     */
+    const [nextRoles] = await Promise.all([
+      loadRoles(
+        userId,
+        nextProfile.role
+      ),
+      loadMembership(
+        userId,
+        [],
+        nextProfile.is_verified ?? null
+      ),
+    ]);
 
-    await loadMembership(userId, nextRoles);
+    await writeAuthSnapshot(userId, {
+      profile: nextProfile,
+      roles: nextRoles,
+      membershipState:
+        nextProfile.is_verified === true
+          ? 'ready'
+          : 'pending',
+    });
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data }) => {
-      setSession(data.session);
+    let disposed = false;
 
-      await loadProfile(data.session?.user.id);
+    const finishBootstrap = () => {
+      if (disposed) {
+        return;
+      }
 
+      bootstrappedRef.current = true;
       setLoading(false);
-    });
+    };
+
+    void withBuklodTimeout(
+      supabase.auth.getSession(),
+      AUTH_SESSION_TIMEOUT_MS,
+      'BUKLOD auth session'
+    )
+      .then(async ({ data }) => {
+        if (disposed) {
+          return;
+        }
+
+        const session =
+          data.session ??
+          (await readPersistedSupabaseSession());
+
+        setSession(session);
+        sessionUserIdRef.current =
+          session?.user?.id ?? null;
+
+        await loadProfile(
+          session?.user.id
+        );
+      })
+      .catch(async (error: any) => {
+        if (disposed) {
+          return;
+        }
+
+        console.warn(
+          'BUKLOD auth bootstrap:',
+          String(
+            error?.message ??
+              error ??
+              'Session bootstrap failed.'
+          )
+        );
+
+        const persisted =
+          await readPersistedSupabaseSession();
+
+        if (persisted?.user?.id) {
+          setSession(persisted);
+          sessionUserIdRef.current =
+            persisted.user.id;
+          await loadProfile(persisted.user.id);
+          return;
+        }
+
+        setMembershipState((current) =>
+          current === 'loading' ? 'none' : current
+        );
+      })
+      .finally(finishBootstrap);
 
     const { data: listener } =
       supabase.auth.onAuthStateChange(
-        async (_event, nextSession) => {
-          /* PATCH_171C_SIGNIN_DIRECT_HOME_RACE_FIX */
-          if (_event === 'SIGNED_IN') {
-            // Initial app boot already starts with loading=true.
-            // A manual sign-in happens after loading has become false,
-            // so raise the gate again until loadProfile() finishes.
+        (_event, nextSession) => {
+          if (disposed) {
+            return;
+          }
+
+          const nextUserId =
+            nextSession?.user?.id ?? null;
+
+          /*
+           * R20: getSession owns initial hydration.
+           * Avoid a duplicate profile/role/membership request.
+           */
+          if (_event === 'INITIAL_SESSION') {
+            return;
+          }
+
+          const previousUserId =
+            sessionUserIdRef.current;
+
+          setSession(nextSession);
+          sessionUserIdRef.current =
+            nextUserId;
+
+          if (
+            _event === 'SIGNED_OUT' ||
+            !nextUserId
+          ) {
+            void clearAuthSnapshot(previousUserId);
+            setProfile(null);
+            setRoles([]);
+            setMembershipState('none');
+            finishBootstrap();
+            return;
+          }
+
+          /*
+           * Token refresh only changes auth tokens.
+           * Do not reload profile/roles for every refresh event.
+           */
+          if (_event === 'TOKEN_REFRESHED') {
+            return;
+          }
+
+          const sameUser =
+            nextUserId ===
+            previousUserId;
+
+          if (
+            _event === 'SIGNED_IN' &&
+            !sameUser
+          ) {
             setLoading(true);
           }
 
-          setSession(nextSession);
+          /*
+           * Keep the auth callback synchronous. Defer database
+           * hydration outside the auth event callback.
+           */
+          setTimeout(() => {
+            if (disposed) {
+              return;
+            }
 
-          await loadProfile(nextSession?.user.id);
+            void loadProfile(
+              nextSession?.user.id
+            )
+              .catch((error: any) => {
+                console.warn(
+                  'BUKLOD auth state hydration:',
+                  String(
+                    error?.message ??
+                      error ??
+                      'Profile refresh failed.'
+                  )
+                );
 
-          setLoading(false);
+                setMembershipState(
+                  nextUserId
+                    ? 'pending'
+                    : 'none'
+                );
+              })
+              .finally(() => {
+                if (!disposed) {
+                  bootstrappedRef.current = true;
+                  setLoading(false);
+                }
+              });
+          }, 0);
         }
       );
 
     return () => {
+      disposed = true;
       listener.subscription.unsubscribe();
     };
   }, []);

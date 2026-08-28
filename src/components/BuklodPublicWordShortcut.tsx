@@ -14,8 +14,8 @@ import {
 } from 'expo-router';
 
 import {
-  colors,
-} from '@/lib/theme';
+  useBuklodPresentation,
+} from '@/hooks/useBuklodPresentation';
 
 import {
   useBuklodScope,
@@ -23,6 +23,7 @@ import {
 
 
 export default function BuklodPublicWordShortcut() {
+  const { colors } = useBuklodPresentation();
 
   const {
     activeScope,
@@ -46,16 +47,15 @@ export default function BuklodPublicWordShortcut() {
         .show_faith_content
     );
 
-
   /*
    * PUBLIC:
    *
    * Show Faith ON
-   *   -> WORD
+   *   -> Word
    *   -> /word
    *
    * Show Faith OFF
-   *   -> INSPIRE
+   *   -> Inspire
    *   -> /inspire
    *
    * NON-PUBLIC:
@@ -72,6 +72,10 @@ export default function BuklodPublicWordShortcut() {
   const inspire =
     isPublic &&
     !showFaithContent;
+
+  const label = inspire
+    ? 'Inspire'
+    : 'Word';
 
 
   return (
@@ -93,9 +97,10 @@ export default function BuklodPublicWordShortcut() {
       style={({
         pressed,
       }) => ({
-        width: 50,
-        height: 50,
-        borderRadius: 15,
+        minWidth: 58,
+        height: 44,
+        paddingHorizontal: 8,
+        borderRadius: 14,
         alignItems:
           'center',
         justifyContent:
@@ -118,28 +123,25 @@ export default function BuklodPublicWordShortcut() {
             ? 'book-open-outline'
             : 'book-open-page-variant-outline'
         }
-        size={20}
+        size={18}
         color={
           colors.greenDark
         }
       />
 
       <Text
+        allowFontScaling={false}
+        numberOfLines={1}
         style={{
           marginTop: 1,
-          fontSize: 7,
-          lineHeight: 8,
+          fontSize: 9,
+          lineHeight: 11,
           fontWeight: '900',
-          letterSpacing: 0.25,
           color:
             colors.greenDark,
         }}
       >
-        {
-          inspire
-            ? 'INSPIRE'
-            : 'WORD'
-        }
+        {label}
       </Text>
 
     </Pressable>

@@ -6,17 +6,22 @@ import React, {
 import {
   Alert,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+
+import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 import {
   Stack,
   useLocalSearchParams,
   useRouter,
 } from 'expo-router';
 import { supabase } from '../../lib/supabase';
+import {
+  organizationScopeParams,
+  readOrganizationScopeId,
+} from '@/lib/buklodOrganization';
 
 function firstString(value: unknown) {
   if (typeof value === 'string') {
@@ -37,18 +42,15 @@ export default function ExactOrganizationManageScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
 
-  const scopeId =
-    firstString(params.scopeId) ||
-    firstString(params.scope_id) ||
-    firstString(params.organizationId) ||
-    firstString(params.organization_id) ||
-    firstString(params.id);
+  const scopeId = readOrganizationScopeId(params as Record<string, unknown>);
 
   const routeName =
     firstString(params.organizationName);
 
   const [loading, setLoading] = useState(true);
   const [allowed, setAllowed] = useState(false);
+  const [isRootOrganization, setIsRootOrganization] =
+    useState(false);
   const [scopeName, setScopeName] =
     useState(routeName || 'Organization');
 
@@ -91,6 +93,10 @@ export default function ExactOrganizationManageScreen() {
       if (scopeResult.data?.name) {
         setScopeName(scopeResult.data.name);
       }
+
+      setIsRootOrganization(
+        !scopeResult.data?.parent_scope_id
+      );
     } catch (error: any) {
       setAllowed(false);
       Alert.alert(
@@ -113,15 +119,11 @@ export default function ExactOrganizationManageScreen() {
   ) => {
     router.push({
       pathname: pathname as any,
-      params: {
-        scopeId,
-        scope_id: scopeId,
-        organizationId: scopeId,
-        organization_id: scopeId,
-        id: scopeId,
+      params: organizationScopeParams(scopeId, {
         organizationName: scopeName,
+        scopeType: 'ORGANIZATION',
         ...extra,
-      },
+      }),
     } as any);
   };
 
@@ -161,6 +163,33 @@ export default function ExactOrganizationManageScreen() {
   }
 
   const buttons = [
+    ...(isRootOrganization
+      ? [
+          {
+            title: 'Units & Structure',
+            subtitle:
+              'Create Sub-organizations, view structural children, and prepare linked units (Phase 1B).',
+            onPress: () =>
+              open('/organizations/suborganizations', {
+                mode: 'units',
+                parentScopeId: scopeId,
+                parentName: scopeName,
+              }),
+          },
+        ]
+      : []),
+    {
+      title: 'Members & Roles (Unified)',
+      subtitle:
+        'Exact-scope member directory, functional roles, and admin assignment.',
+      onPress: () => open('/scope/manage/members'),
+    },
+    {
+      title: 'BUKLOD Focus Apps — ₱59/month or ₱499/year',
+      subtitle:
+        'Organization-level Focus Apps subscription. Cluster Premium and lesson packages stay separate.',
+      onPress: () => open('/organizations/subscription'),
+    },
     {
       title: 'Organizational Settings',
       subtitle:
@@ -176,11 +205,18 @@ export default function ExactOrganizationManageScreen() {
         open('/organizations/members-requests'),
     },
     {
+      title: 'Admins & Roles',
+      subtitle:
+        'Assign or remove Organization Admins for this exact scope only.',
+      onPress: () =>
+        open('/organizations/admins', { action: 'list' }),
+    },
+    {
       title: 'Events & Attendance',
       subtitle:
         'Open the exact-scope events and attendance area.',
       onPress: () =>
-        open('/scope/attendance'),
+        open('/organizations/events-attendance'),
     },
     {
       title: 'Giving / GCash Settings',
@@ -204,7 +240,7 @@ export default function ExactOrganizationManageScreen() {
         options={{ title: 'Manage Organization' }}
       />
 
-      <ScrollView
+      <BuklodPortalScrollView
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}>
@@ -239,7 +275,7 @@ export default function ExactOrganizationManageScreen() {
             <Text style={styles.chevron}>›</Text>
           </Pressable>
         ))}
-      </ScrollView>
+      </BuklodPortalScrollView>
     </>
   );
 }
@@ -248,7 +284,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 18,
     paddingTop: 24,
-    paddingBottom: 46,
+    paddingBottom: 16,
     gap: 11,
     backgroundColor: '#F4F7F5',
   },

@@ -31,6 +31,10 @@ import {
 } from 'expo-router';
 
 import {
+  useResolvedScope,
+} from '@/hooks/useResolvedScope';
+
+import {
   colors,
 } from '@/lib/theme';
 
@@ -367,6 +371,11 @@ MzbEnvironmentShell({
 }: {
   children: React.ReactNode;
 }) {
+  useResolvedScope({
+    mzbOnly: true,
+    syncActiveScope: true,
+  });
+
   const insets =
     useSafeAreaInsets();
 
@@ -535,8 +544,7 @@ MzbEnvironmentShell({
 
               return (
                 horizontal >= 10 &&
-                horizontal >
-                  vertical * 1.25
+                horizontal > vertical * 1.55
               );
             },
 

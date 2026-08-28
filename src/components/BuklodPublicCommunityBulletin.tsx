@@ -1,8 +1,7 @@
-import { Animated } from 'react-native';
-import { Image as ExpoImage } from 'expo-image';
 import React, {
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from 'react';
 
@@ -21,7 +20,10 @@ import {
 import { router } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
-import { colors } from '@/lib/theme';
+import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
+import SquareMediaCard, {
+  SquareMediaFrame,
+} from '@/components/SquareMediaCard';
 
 type PublicCommunityPhoto = {
   id: string;
@@ -105,6 +107,14 @@ function isPhotoPost(
 /* PATCH_170J_R3_HOME_RANDOM_COMMUNITY_PHOTO_ONLY */
 export default function
 BuklodPublicCommunityBulletin() {
+  const {
+    colors,
+  } = useBuklodPresentation();
+  const styles = useMemo(
+    () => createStyles(colors),
+    [colors]
+  );
+
   const [
     photo,
     setPhoto,
@@ -112,99 +122,6 @@ BuklodPublicCommunityBulletin() {
     useState<
       RandomPhoto | null
     >(null);
-
-  const [
-    spotlightReveal,
-  ] =
-    useState(
-      () =>
-        new Animated.Value(0),
-    );
-
-  const [
-    spotlightDrift,
-  ] =
-    useState(
-      () =>
-        new Animated.Value(0),
-    );
-
-  useEffect(
-    () => {
-      spotlightReveal.setValue(
-        0,
-      );
-
-      spotlightDrift.setValue(
-        0,
-      );
-
-      const reveal =
-        Animated.timing(
-          spotlightReveal,
-          {
-            toValue:
-              1,
-
-            duration:
-              420,
-
-            useNativeDriver:
-              true,
-          },
-        );
-
-      const drift =
-        Animated.loop(
-          Animated.sequence([
-            Animated.timing(
-              spotlightDrift,
-              {
-                toValue:
-                  1,
-
-                duration:
-                  4200,
-
-                useNativeDriver:
-                  true,
-              },
-            ),
-
-            Animated.timing(
-              spotlightDrift,
-              {
-                toValue:
-                  0,
-
-                duration:
-                  4200,
-
-                useNativeDriver:
-                  true,
-              },
-            ),
-          ]),
-        );
-
-      reveal.start();
-
-      if (photo) {
-        drift.start();
-      }
-
-      return () => {
-        reveal.stop();
-        drift.stop();
-      };
-    },
-    [
-      photo?.id,
-      spotlightDrift,
-      spotlightReveal,
-    ],
-  );
-
 
   const [
     loading,
@@ -414,344 +331,144 @@ BuklodPublicCommunityBulletin() {
       </View>
 
       {loading ? (
-        <View
-          style={
-            styles.state
-          }
-        >
-          <ActivityIndicator
-            color={
-              colors.green
-            }
-          />
-        </View>
-      ) : failed ? (
-        <View
-          style={
-            styles.state
-          }
-        >
-          <MaterialCommunityIcons
-            name="image-off-outline"
-            size={25}
-            color={
-              colors.muted
-            }
-          />
-
-          <Text
-            style={
-              styles.stateText
-            }
-          >
-            Community photo unavailable.
-          </Text>
-        </View>
-      ) : !photo ? (
-        <View
-          style={
-            styles.state
-          }
-        >
-          <MaterialCommunityIcons
-            name="image-outline"
-            size={25}
-            color={
-              colors.muted
-            }
-          />
-
-          <Text
-            style={
-              styles.stateText
-            }
-          >
-            No Public Community photo post yet.
-          </Text>
-        </View>
-      ) : (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Open Community post"
-          onPress={
-            openPost
-          }
-          style={({
-            pressed,
-          }) => [
-            styles.photoCard,
-            {
-              borderRadius:
-                24,
-
-              backgroundColor:
-                '#0E2D1D',
-
-              borderWidth:
-                1,
-
-              borderColor:
-                'rgba(18,61,38,0.12)',
-
-              shadowColor:
-                '#000000',
-
-              shadowOffset: {
-                width:
-                  0,
-
-                height:
-                  8,
-              },
-
-              shadowOpacity:
-                0.13,
-
-              shadowRadius:
-                18,
-
-              elevation:
-                6,
-            },
-            pressed && {
-              opacity: 0.94,
-            },
-          ]}
-        >
-          {/*
-           * HOME PREVIEW = PHOTO ONLY.
-           *
-           * Deliberately omitted:
-           * - author
-           * - date/meta
-           * - caption/body
-           * - reactions
-           * - comments
-           */}
-          <Animated.View
-            style={{
-              opacity:
-                spotlightReveal,
-
-              transform: [
-                {
-                  scale:
-                    spotlightDrift.interpolate({
-                      inputRange:
-                        [0, 1],
-
-                      outputRange:
-                        [1, 1.035],
-                    }),
-                },
-              ],
-            }}
-          >
-            <ExpoImage
-              source={{
-                uri:
-                  photo.mediaUrl,
-              }}
-              style={
-                styles.photo
+        <SquareMediaFrame>
+          <View style={styles.stateInner}>
+            <ActivityIndicator
+              color={
+                colors.green
               }
-              contentFit="cover"
-              transition={320}
             />
-          </Animated.View>
-
-          <View
-            pointerEvents="none"
-            style={{
-              position:
-                'absolute',
-
-              left:
-                0,
-
-              right:
-                0,
-
-              top:
-                0,
-
-              height:
-                88,
-
-              backgroundColor:
-                'rgba(4,20,12,0.14)',
-            }}
-          />
-
-          <View
-            pointerEvents="none"
-            style={{
-              position:
-                'absolute',
-
-              left:
-                0,
-
-              right:
-                0,
-
-              bottom:
-                0,
-
-              height:
-                116,
-
-              backgroundColor:
-                'rgba(4,20,12,0.28)',
-            }}
-          />
-
-          <View
-            pointerEvents="none"
-            style={{
-              position:
-                'absolute',
-
-              left:
-                12,
-
-              top:
-                12,
-
-              flexDirection:
-                'row',
-
-              alignItems:
-                'center',
-
-              paddingHorizontal:
-                10,
-
-              paddingVertical:
-                7,
-
-              borderRadius:
-                999,
-
-              backgroundColor:
-                'rgba(9,36,22,0.68)',
-
-              borderWidth:
-                1,
-
-              borderColor:
-                'rgba(255,255,255,0.18)',
-            }}
-          >
+          </View>
+        </SquareMediaFrame>
+      ) : failed ? (
+        <SquareMediaFrame>
+          <View style={styles.stateInner}>
             <MaterialCommunityIcons
-              name="image-multiple-outline"
-              size={14}
-              color="#FFFFFF"
+              name="image-off-outline"
+              size={25}
+              color={
+                colors.muted
+              }
             />
 
             <Text
-              style={{
-                marginLeft:
-                  6,
-
-                color:
-                  '#FFFFFF',
-
-                fontSize:
-                  9,
-
-                fontWeight:
-                  '900',
-
-                letterSpacing:
-                  0.55,
-              }}
+              style={
+                styles.stateText
+              }
             >
-              BUKLOD COMMUNITY
+              Community photo unavailable.
             </Text>
           </View>
-
-          <View
-            pointerEvents="none"
-            style={{
-              position:
-                'absolute',
-
-              right:
-                12,
-
-              bottom:
-                12,
-
-              flexDirection:
-                'row',
-
-              alignItems:
-                'center',
-
-              paddingHorizontal:
-                11,
-
-              paddingVertical:
-                8,
-
-              borderRadius:
-                999,
-
-              backgroundColor:
-                'rgba(255,255,255,0.90)',
-
-              borderWidth:
-                1,
-
-              borderColor:
-                'rgba(255,255,255,0.72)',
-            }}
-          >
-            <Text
-              style={{
-                color:
-                  '#123D26',
-
-                fontSize:
-                  9,
-
-                fontWeight:
-                  '900',
-
-                letterSpacing:
-                  0.45,
-              }}
-            >
-              OPEN POST
-            </Text>
-
+        </SquareMediaFrame>
+      ) : !photo ? (
+        <SquareMediaFrame>
+          <View style={styles.stateInner}>
             <MaterialCommunityIcons
-              name="arrow-top-right"
-              size={14}
-              color="#123D26"
-              style={{
-                marginLeft:
-                  5,
-              }}
+              name="image-outline"
+              size={25}
+              color={
+                colors.muted
+              }
             />
+
+            <Text
+              style={
+                styles.stateText
+              }
+            >
+              No Public Community photo post yet.
+            </Text>
           </View>
-        </Pressable>
+        </SquareMediaFrame>
+      ) : (
+        <SquareMediaCard
+          uri={photo.mediaUrl}
+          kenBurns
+          accessibilityLabel="Open Community post"
+          onPress={openPost}
+          overlay={
+            <>
+              {/*
+               * HOME PREVIEW = PHOTO ONLY.
+               *
+               * Deliberately omitted:
+               * - author
+               * - date/meta
+               * - caption/body
+               * - reactions
+               * - comments
+               */}
+              <View
+                style={styles.scrimTop}
+              />
+              <View
+                style={styles.scrimBottom}
+              />
+              <View
+                style={styles.communityChip}
+              >
+                <MaterialCommunityIcons
+                  name="image-multiple-outline"
+                  size={14}
+                  color={colors.white}
+                />
+                <Text
+                  style={[
+                    styles.communityChipText,
+                    { color: colors.white },
+                  ]}
+                >
+                  BUKLOD COMMUNITY
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.openChip,
+                  { backgroundColor: colors.white },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.openChipText,
+                    { color: colors.greenDark },
+                  ]}
+                >
+                  OPEN POST
+                </Text>
+                <MaterialCommunityIcons
+                  name="arrow-top-right"
+                  size={14}
+                  color={colors.greenDark}
+                  style={{ marginLeft: 5 }}
+                />
+              </View>
+            </>
+          }
+        />
       )}
     </View>
   );
 }
 
-const styles =
-  StyleSheet.create({
+function createStyles(
+  colors: ReturnType<
+    typeof useBuklodPresentation
+  >['colors']
+) {
+  return StyleSheet.create({
     section: {
       marginTop: 12,
       marginBottom: 12,
+      width: '100%',
+      alignSelf: 'stretch',
+      paddingHorizontal: 0,
+      marginHorizontal: 0,
     },
 
     header: {
-      minHeight: 34,
+      minHeight: 44,
       marginBottom: 8,
+      paddingHorizontal: 12,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent:
@@ -772,9 +489,9 @@ const styles =
     },
 
     shuffle: {
-      width: 34,
-      height: 34,
-      borderRadius: 11,
+      width: 44,
+      height: 44,
+      borderRadius: 12,
       alignItems: 'center',
       justifyContent:
         'center',
@@ -782,36 +499,70 @@ const styles =
         colors.greenSoft,
     },
 
-    photoCard: {
-      width: '100%',
-      overflow: 'hidden',
-      borderRadius: 16,
-      backgroundColor:
-        '#EEF1EF',
-    },
-
-    photo: {
-      width: '100%',
-      aspectRatio: 4 / 3,
-      backgroundColor:
-        '#EEF1EF',
-    },
-
-    state: {
-      minHeight: 190,
-      borderWidth:
-        StyleSheet
-          .hairlineWidth,
-      borderColor:
-        colors.line,
-      borderRadius: 16,
+    stateInner: {
+      ...StyleSheet.absoluteFill,
       alignItems: 'center',
-      justifyContent:
-        'center',
+      justifyContent: 'center',
       gap: 8,
       padding: 16,
-      backgroundColor:
-        colors.white,
+    },
+
+    scrimTop: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: 0,
+      height: 88,
+      backgroundColor: 'rgba(4,20,12,0.14)',
+    },
+
+    scrimBottom: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      height: 116,
+      backgroundColor: 'rgba(4,20,12,0.28)',
+    },
+
+    communityChip: {
+      position: 'absolute',
+      left: 12,
+      top: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 10,
+      paddingVertical: 7,
+      borderRadius: 999,
+      backgroundColor: 'rgba(9,36,22,0.68)',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.18)',
+    },
+
+    communityChipText: {
+      marginLeft: 6,
+      fontSize: 9,
+      fontWeight: '900',
+      letterSpacing: 0.55,
+    },
+
+    openChip: {
+      position: 'absolute',
+      right: 12,
+      bottom: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 11,
+      paddingVertical: 8,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.72)',
+    },
+
+    openChipText: {
+      fontSize: 9,
+      fontWeight: '900',
+      letterSpacing: 0.45,
     },
 
     stateText: {
@@ -820,3 +571,4 @@ const styles =
       textAlign: 'center',
     },
   });
+}

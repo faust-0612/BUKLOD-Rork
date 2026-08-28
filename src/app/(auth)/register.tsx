@@ -18,10 +18,12 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
+import { recordReferral } from '@/lib/buklodRewards';
 import { colors } from '@/lib/theme';
+import { useBuklodDrawerBottomInset } from '@/lib/buklodSafeArea';
 
 type Church = {
   id: string;
@@ -112,6 +114,9 @@ function buildFullName(
 }
 
 export default function RegisterScreen() {
+  const params = useLocalSearchParams<{ ref?: string; referral?: string }>();
+  const drawerBottomInset = useBuklodDrawerBottomInset();
+
   const [churches, setChurches] =
     useState<Church[]>([]);
   const [groups, setGroups] =
@@ -189,6 +194,14 @@ export default function RegisterScreen() {
 
   const [password, setPassword] =
     useState('');
+
+  const [referralCode, setReferralCode] =
+    useState(
+      () =>
+        String(params.ref ?? params.referral ?? '')
+          .trim()
+          .toUpperCase(),
+    );
 
   const [
     showPassword,
@@ -613,6 +626,19 @@ useEffect(() => {
         data.user?.id ??
         data.session.user.id;
 
+      if (referralCode.trim()) {
+        try {
+          await recordReferral(referralCode);
+        } catch (referralError: unknown) {
+          console.warn(
+            'Referral record failed:',
+            referralError instanceof Error
+              ? referralError.message
+              : referralError,
+          );
+        }
+      }
+
       const onboardingDb =
         supabase as any;
 
@@ -898,6 +924,18 @@ useEffect(() => {
           CHOOSE YOUR LOGIN
         </Text>
 
+        <View style={styles.advisoryCard}>
+          <Text style={styles.advisoryTitle}>
+            Tip: Email is recommended
+          </Text>
+          <Text style={styles.advisoryText}>
+            Using your real email makes it easier to confirm
+            your account and recover access if you forget your
+            password. Mobile and username still work across all
+            BUKLOD apps.
+          </Text>
+        </View>
+
         <View
           style={
             styles.loginChoices
@@ -1126,6 +1164,22 @@ useEffect(() => {
             />
           </Pressable>
         </View>
+
+        <Text style={styles.fieldTitle}>
+          Invite code (optional)
+        </Text>
+
+        <TextInput
+          style={styles.input}
+          placeholder="Friend's BUKLOD invite code"
+          value={referralCode}
+          onChangeText={(value) =>
+            setReferralCode(value.trim().toUpperCase())
+          }
+          autoCapitalize="characters"
+          autoCorrect={false}
+        />
+
         {/* PATCH_164A_REG2_PRIVATE_ADDRESS */}
 
         <Text style={styles.label}>
@@ -1252,7 +1306,7 @@ useEffect(() => {
                   >
                     {note}
                     {value === 'CHRISTIAN'
-                      ? ' Â· Fixed'
+                      ? ' · Fixed'
                       : ''}
                   </Text>
                 </View>
@@ -1306,6 +1360,43 @@ useEffect(() => {
             BACK TO LOGIN
           </Text>
         </Pressable>
+
+        <Pressable
+          onPress={() => router.push('/privacy' as any)}
+          disabled={busy}
+          accessibilityRole="link"
+          accessibilityLabel="BUKLOD Privacy Policy"
+          style={{ alignSelf: 'center', paddingVertical: 12 }}
+        >
+          <Text
+            style={{
+              color: colors.greenDark,
+              fontSize: 13,
+              fontWeight: '800',
+              textDecorationLine: 'underline',
+            }}
+          >
+            Privacy Policy
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => router.push('/delete-account' as any)}
+          disabled={busy}
+          accessibilityRole="link"
+          accessibilityLabel="BUKLOD account deletion"
+          style={{ alignSelf: 'center', paddingBottom: 24 }}
+        >
+          <Text
+            style={{
+              color: colors.greenDark,
+              fontSize: 13,
+              fontWeight: '800',
+              textDecorationLine: 'underline',
+            }}
+          >
+            Delete Account
+          </Text>
+        </Pressable>
       </ScrollView>
 
       <Modal
@@ -1324,7 +1415,7 @@ useEffect(() => {
             }
           />
 
-          <View style={styles.drawer}>
+          <View style={[styles.drawer, { paddingBottom: drawerBottomInset + 12 }]}>
             <View style={styles.drawerHandle} />
 
             <View style={styles.drawerHeader}>
@@ -1488,6 +1579,25 @@ const styles =
     loginChoices: {
       flexDirection: 'row',
       gap: 5,
+    },
+    advisoryCard: {
+      marginBottom: 10,
+      padding: 12,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.green,
+      backgroundColor: colors.greenSoft,
+    },
+    advisoryTitle: {
+      fontSize: 11,
+      fontWeight: '900',
+      color: colors.greenDark,
+      marginBottom: 4,
+    },
+    advisoryText: {
+      fontSize: 10.5,
+      lineHeight: 16,
+      color: colors.text,
     },
     loginChoice: {
       flex: 1,

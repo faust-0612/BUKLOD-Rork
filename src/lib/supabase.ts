@@ -16,12 +16,36 @@ export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
     persistSession: true,
     detectSessionInUrl: false,
   },
+  global: {
+    headers: {
+      'x-buklod-client': 'mobile',
+    },
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 8,
+    },
+  },
 });
 
-AppState.addEventListener('change', (state) => {
+let realtimeConnected = true;
+
+AppState.addEventListener('change', state => {
   if (state === 'active') {
     supabase.auth.startAutoRefresh();
-  } else {
-    supabase.auth.stopAutoRefresh();
+
+    if (!realtimeConnected) {
+      supabase.realtime.connect();
+      realtimeConnected = true;
+    }
+
+    return;
+  }
+
+  supabase.auth.stopAutoRefresh();
+
+  if (realtimeConnected) {
+    supabase.realtime.disconnect();
+    realtimeConnected = false;
   }
 });

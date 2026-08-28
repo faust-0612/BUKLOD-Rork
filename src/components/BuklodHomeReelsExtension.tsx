@@ -20,6 +20,7 @@ import {
 import {
   supabase,
 } from '@/lib/supabase';
+import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 
 import {
   colors,
@@ -31,6 +32,7 @@ import {
 
 type ReelRow = {
   id: string;
+  user_id?: string | null;
   author_name: string;
   audience: string;
   body: string;
@@ -228,8 +230,10 @@ export default function BuklodHomeReelsExtension() {
                     numberOfLines={1}
                     style={styles.author}
                   >
-                    {row.author_name ||
-                      'BUKLOD Member'}
+                    {resolvePersonDisplayName(
+                      row.author_name,
+                      row.user_id,
+                    )}
                   </Text>
 
                   <Text style={styles.audience}>

@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import type { BuklodScope } from '@/lib/buklodScope';
+import type { ScopeCommercialEntitlements } from '@/lib/buklodScopeEntitlements';
 
 export type BuklodEntitlement =
   | 'bayanihan'
@@ -47,27 +48,61 @@ export function scopeHasRole(
   return normalizedScopeRoles(scope).includes(normalize(role));
 }
 
-export function isScopeAdmin(scope: BuklodScope | null) {
+/**
+ * Exact-scope administrator roles.
+ * These never imply System Admin. Parent Organization
+ * admin is not inherited here; the active/exact scope
+ * must carry the role itself.
+ *
+ * `church_admin` remains a legacy alias only.
+ */
+export const EXACT_SCOPE_ADMIN_ROLES = [
+  'admin',
+  'cluster_admin',
+  'church_admin',
+  'org_admin',
+  'organization_admin',
+  'sub_org_admin',
+  'suborganization_admin',
+  'faculty_admin',
+  'school_admin',
+  'attendance_admin',
+  'giving_admin',
+  'business_admin',
+  'government_admin',
+  'barangay_admin',
+] as const;
+
+export function isExactScopeAdmin(scope: BuklodScope | null) {
   if (!scope) return false;
   if (scope.is_admin) return true;
 
   const roles = normalizedScopeRoles(scope);
 
-  return [
-    'admin',
-    'cluster_admin',
-    'church_admin',
-    'org_admin',
-    'organization_admin',
-    'system_admin',
-  ].some((role) => roles.includes(role));
+  return EXACT_SCOPE_ADMIN_ROLES.some((role) =>
+    roles.includes(role)
+  );
+}
+
+export function isScopeAdmin(scope: BuklodScope | null) {
+  if (!scope) return false;
+
+  return (
+    isExactScopeAdmin(scope) ||
+    scopeHasRole(scope, 'system_admin')
+  );
 }
 
 export function scopeHasEntitlement(
   scope: BuklodScope | null,
-  entitlement: BuklodEntitlement
+  entitlement: BuklodEntitlement,
+  commercial?: ScopeCommercialEntitlements | null
 ) {
   if (!scope) return false;
+
+  if (commercial?.paid_features_exempt) {
+    return true;
+  }
 
   const available = new Set(
     (scope.feature_keys ?? []).map(normalize)
@@ -103,9 +138,14 @@ function rpcResultToBoolean(data: any) {
 
 export async function verifyScopeEntitlement(
   scope: BuklodScope | null,
-  entitlement: BuklodEntitlement
+  entitlement: BuklodEntitlement,
+  commercial?: ScopeCommercialEntitlements | null
 ): Promise<boolean> {
   if (!scope) return false;
+
+  if (commercial?.paid_features_exempt) {
+    return true;
+  }
 
   const featureKey =
     FEATURE_ALIASES[entitlement][0];

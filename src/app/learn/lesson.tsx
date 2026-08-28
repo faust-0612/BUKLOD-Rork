@@ -1,7 +1,11 @@
 import { LearningQuestionResponse } from '@/components/LearningQuestionResponse';
+import {
+  BuklodAnswerValidationGate,
+} from '@/components/education/BuklodAnswerValidationGate';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Pressable,
   ScrollView,
@@ -15,15 +19,35 @@ import { supabase } from '@/lib/supabase';
 import { Button, Card, SectionTitle, shared } from '@/components/UI';
 import { VoiceReader } from '@/components/VoiceReader';
 import { colors } from '@/lib/theme';
+import {
+  canAccessFormationLesson,
+  canAccessFormationTrackLesson,
+  loadFormationEngineEnabled,
+  loadFormationTrackLesson,
+} from '@/lib/buklodFormationProgress';
+import {
+  isEarlyFormationStage,
+  mergeLessonAccessWithLegacySequentialLock,
+  requiresFormationSequentialLock,
+} from '@/lib/formationPacing';
+import {
+  buildLessonAssignmentContext,
+  buildLessonReflectionContext,
+} from '@/lib/buklodAiResponseValidation';
+import { useBuklodAnswerValidation } from '@/hooks/useBuklodAnswerValidation';
+import { friendlyLessonBlockingReason, formationCopy, lessonBlockingGuide } from '@/lib/formationCopy';
+import type { FormationLessonAccess } from '@/types/buklodFormation';
 
 export default function LessonDetail() {
-  const { lessonId, enrollmentId } =
+  const { lessonId, enrollmentId, trackLessonId } =
     useLocalSearchParams<{
       lessonId: string;
       enrollmentId: string;
+      trackLessonId: string;
     }>();
 
   const [lesson, setLesson] = useState<any>(null);
+  const [formationLesson, setFormationLesson] = useState<any>(null);
   const [track, setTrack] = useState<any>(null);
   const [reflection, setReflection] = useState('');
   const [assignment, setAssignment] = useState('');
@@ -32,9 +56,142 @@ export default function LessonDetail() {
   const [formationStatus, setFormationStatus] = useState<any>(null);
   const [busy, setBusy] = useState(false);
   const [readerScale, setReaderScale] = useState(1);
+  const [lessonAccess, setLessonAccess] = useState<FormationLessonAccess | null>(
+    null,
+  );
+  const [loadState, setLoadState] = useState<
+    'loading' | 'ready' | 'unavailable'
+  >('loading');
+  const [loadMessage, setLoadMessage] = useState<string | null>(null);
+
+  const reflectionQuestionContext = useMemo(() => {
+    if (!lesson?.id) {
+      return null;
+    }
+
+    return buildLessonReflectionContext({
+      lessonId: lesson.id,
+      trackId: lesson.track_id ?? track?.id ?? null,
+      enrollmentId: enrollmentId ?? null,
+      stageCode:
+        track?.stage_code == null ? null : Number(track.stage_code),
+      questionText:
+        lesson.reflection_question ??
+        'Write your reflection on this lesson.',
+      lessonTitle: lesson.title ?? null,
+      scriptureReference: lesson.scripture_reference ?? null,
+      aiValidationContext: lesson.ai_validation_context,
+    });
+  }, [lesson, track, enrollmentId]);
+
+  const assignmentQuestionContext = useMemo(() => {
+    if (!lesson?.id) {
+      return null;
+    }
+
+    return buildLessonAssignmentContext({
+      lessonId: lesson.id,
+      trackId: lesson.track_id ?? track?.id ?? null,
+      enrollmentId: enrollmentId ?? null,
+      prompt: lesson.assignment_prompt || 'Complete the assignment.',
+      lessonTitle: lesson.title ?? null,
+    });
+  }, [lesson, track, enrollmentId]);
+
+  const reflectionValidation = useBuklodAnswerValidation(
+    reflectionQuestionContext ?? {
+      questionId: 'lesson:pending:reflection',
+      module: 'lesson',
+      questionText: 'Reflection',
+    },
+    reflection,
+  );
+
+  const assignmentValidation = useBuklodAnswerValidation(
+    assignmentQuestionContext ?? {
+      questionId: 'lesson:pending:assignment',
+      module: 'lesson',
+      questionText: 'Assignment',
+    },
+    assignment,
+  );
 
   const load = useCallback(async () => {
-    if (!lessonId) return;
+    if (!lessonId && !trackLessonId) {
+      setLoadState('unavailable');
+      setLoadMessage(formationCopy.lessonCouldNotOpenGuide);
+      return;
+    }
+
+    setLoadState('loading');
+    setLoadMessage(null);
+    let resolvedAccess: FormationLessonAccess | null = null;
+    let engineOn = false;
+    let trackStageCode: number | null = null;
+
+    try {
+      engineOn = await loadFormationEngineEnabled();
+      if (engineOn) {
+        if (trackLessonId) {
+          const access = await canAccessFormationTrackLesson(trackLessonId);
+          resolvedAccess = access;
+          setLessonAccess(access);
+          if (!access || !access.allowed) {
+            setLoadState('unavailable');
+            return;
+          }
+
+          const payload = await loadFormationTrackLesson(trackLessonId);
+          if (!payload) {
+            setLoadState('unavailable');
+            setLoadMessage(formationCopy.lessonCouldNotOpenGuide);
+            return;
+          }
+
+          setFormationLesson(payload);
+          setLesson({
+            id: trackLessonId,
+            title: payload?.title ?? 'Formation Lesson',
+            content:
+              typeof payload?.lesson_content === 'object'
+                ? String(
+                    (payload.lesson_content as Record<string, unknown>)
+                      .core_teaching ??
+                      (payload.lesson_content as Record<string, unknown>)
+                        .content ??
+                      JSON.stringify(payload.lesson_content, null, 2),
+                  )
+                : '',
+            track_id: null,
+          });
+          setTrack({
+            stage_code: payload?.stage_code,
+            title: payload?.role_track_title_en ?? 'Formation',
+          });
+          setLoadState('ready');
+          return;
+        }
+
+        if (lessonId) {
+          const access = await canAccessFormationLesson(lessonId);
+          resolvedAccess = access;
+          setLessonAccess(access);
+        }
+      } else {
+        setLessonAccess(null);
+      }
+    } catch {
+      setLessonAccess(null);
+      setLoadState('unavailable');
+      setLoadMessage(formationCopy.lessonCouldNotOpenGuide);
+      return;
+    }
+
+    if (!lessonId) {
+      setLoadState('unavailable');
+      setLoadMessage(formationCopy.lessonCouldNotOpenGuide);
+      return;
+    }
 
     const { data: l, error: lessonError } = await supabase
       .from('learning_lessons')
@@ -43,7 +200,8 @@ export default function LessonDetail() {
       .single();
 
     if (lessonError) {
-      Alert.alert('Lesson', lessonError.message);
+      setLoadState('unavailable');
+      setLoadMessage(formationCopy.lessonCouldNotOpenGuide);
       return;
     }
 
@@ -57,23 +215,71 @@ export default function LessonDetail() {
         .single();
 
       setTrack(t);
+      trackStageCode =
+        t?.stage_code == null ? null : Number(t.stage_code);
 
       if (
         t?.formation_program === 'ccp' ||
         t?.formation_program === 'discipleship'
       ) {
-        const { data: statusData } = await supabase.rpc(
-          'get_my_formation_track_lesson_status',
-          {
+        const [{ data: statusData }, { data: trackLessons }] = await Promise.all([
+          supabase.rpc('get_my_formation_track_lesson_status', {
             p_track_id: l.track_id,
-          }
-        );
+          }),
+          supabase
+            .from('learning_lessons')
+            .select('id,lesson_number')
+            .eq('track_id', l.track_id)
+            .order('lesson_number'),
+        ]);
 
         const current = (statusData ?? []).find(
           (x: any) => x.lesson_id === lessonId
         );
 
         setFormationStatus(current ?? null);
+
+        const applySequentialLock = requiresFormationSequentialLock(
+          trackStageCode,
+          engineOn,
+        );
+
+        if (applySequentialLock) {
+          const statusByLessonId = new Map<string, { official_status?: string }>(
+            (statusData ?? []).map((row: any) => [row.lesson_id, row]),
+          );
+          const merged = mergeLessonAccessWithLegacySequentialLock(
+            resolvedAccess,
+            {
+              engineEnabled: engineOn,
+              isFormation: true,
+              lessonId,
+              stageCode: trackStageCode,
+              lessons: (trackLessons ?? []).map(
+                (row: { id: string; lesson_number: number }) => ({
+                  id: row.id,
+                  lesson_number: row.lesson_number,
+                }),
+              ),
+              statusByLessonId,
+            },
+          );
+
+          if (merged) {
+            resolvedAccess = merged;
+            setLessonAccess(merged);
+            if (!merged.allowed) {
+              setLoadState('unavailable');
+              return;
+            }
+          } else if (!resolvedAccess && isEarlyFormationStage(trackStageCode)) {
+            setLoadState('unavailable');
+            return;
+          }
+        } else if (engineOn && resolvedAccess && !resolvedAccess.allowed) {
+          setLoadState('unavailable');
+          return;
+        }
       }
     }
 
@@ -101,7 +307,9 @@ export default function LessonDetail() {
         setReflection(existing.reflection_text);
       }
     }
-  }, [lessonId, enrollmentId]);
+
+    setLoadState('ready');
+  }, [lessonId, enrollmentId, trackLessonId]);
 
   useEffect(() => {
     load();
@@ -113,12 +321,6 @@ export default function LessonDetail() {
 
   const officialStatus =
     formationStatus?.official_status ?? 'awaiting_pastor';
-
-  const reward = Number(
-    formationStatus?.bayanihan_reward ??
-      lesson?.bayanihan_reward ??
-      0
-  );
 
   const statusInfo = useMemo(() => {
     switch (officialStatus) {
@@ -162,6 +364,20 @@ export default function LessonDetail() {
       return;
     }
 
+    if (reflection.trim()) {
+      const validated = await reflectionValidation.validateBeforeSubmit({
+        response: reflection,
+      });
+
+      if (!validated) {
+        Alert.alert(
+          'Review your reflection',
+          'Please improve your reflection using the guidance shown, then try again.',
+        );
+        return;
+      }
+    }
+
     setBusy(true);
 
     const { error } = await supabase.rpc(
@@ -191,6 +407,20 @@ export default function LessonDetail() {
   const completeLegacyLesson = async () => {
     if (!lesson || !enrollmentId) return;
 
+    if (reflection.trim()) {
+      const validated = await reflectionValidation.validateBeforeSubmit({
+        response: reflection,
+      });
+
+      if (!validated) {
+        Alert.alert(
+          'Review your reflection',
+          'Please improve your reflection using the guidance shown, then try again.',
+        );
+        return;
+      }
+    }
+
     setBusy(true);
 
     const { error } = await supabase.rpc(
@@ -216,6 +446,18 @@ export default function LessonDetail() {
   const submitAssignment = async () => {
     if (!lesson || !enrollmentId || !assignment.trim()) {
       Alert.alert('Assignment', 'Write your response first.');
+      return;
+    }
+
+    const validated = await assignmentValidation.validateBeforeSubmit({
+      response: assignment,
+    });
+
+    if (!validated) {
+      Alert.alert(
+        'Review your assignment',
+        'Please improve your answer using the guidance shown, then try again.',
+      );
       return;
     }
 
@@ -272,7 +514,56 @@ export default function LessonDetail() {
     }
   };
 
-  if (!lesson) return null;
+  if (loadState === 'loading') {
+    return (
+      <SafeAreaView style={shared.screen} edges={['top', 'bottom']}>
+        <View style={[shared.content, styles.centered]}>
+          <ActivityIndicator color={colors.green} size="large" />
+          <Text style={shared.h1}>{formationCopy.lessonOpeningTitle}</Text>
+          <Text style={shared.body}>
+            Please wait while we prepare your lesson.
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (lessonAccess && !lessonAccess.allowed) {
+    return (
+      <SafeAreaView style={shared.screen} edges={['top', 'bottom']}>
+        <View style={shared.content}>
+          <Text style={shared.h1}>{formationCopy.lessonUnavailableTitle}</Text>
+          <Card>
+            <Text style={shared.body}>
+              {friendlyLessonBlockingReason(lessonAccess.blocking_reason)}
+            </Text>
+            {lessonBlockingGuide(lessonAccess.blocking_reason) ? (
+              <Text style={[shared.muted, styles.guideSpacing]}>
+                {lessonBlockingGuide(lessonAccess.blocking_reason)}
+              </Text>
+            ) : null}
+          </Card>
+          <Button title="BACK" onPress={() => router.back()} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (loadState === 'unavailable' || !lesson) {
+    return (
+      <SafeAreaView style={shared.screen} edges={['top', 'bottom']}>
+        <View style={shared.content}>
+          <Text style={shared.h1}>{formationCopy.lessonUnavailableTitle}</Text>
+          <Card>
+            <Text style={shared.body}>
+              {loadMessage ?? formationCopy.lessonCouldNotOpenGuide}
+            </Text>
+          </Card>
+          <Button title="BACK" onPress={() => router.back()} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <>
@@ -329,12 +620,8 @@ export default function LessonDetail() {
 
             <View style={styles.statusDivider} />
 
-            <Text style={styles.reward}>
-              Bayanihan Value: ?{reward.toFixed(2)}
-            </Text>
-
             <Text style={styles.note}>
-              Bayanihan is credited only after Pastor validation and
+              BUKLOD Points are awarded only after Pastor validation and
               System Admin final approval.
             </Text>
           </Card>
@@ -435,14 +722,23 @@ export default function LessonDetail() {
               </Text>
             )}
 
-            <TextInput
-              multiline
-              value={reflection}
-              onChangeText={setReflection}
-              style={styles.area}
-              placeholder="Write your reflection or personal notes..."
-              placeholderTextColor={colors.muted}
-            />
+            <BuklodAnswerValidationGate
+              isValidating={reflectionValidation.isValidating}
+              lastResult={reflectionValidation.lastResult}
+              error={reflectionValidation.error}
+            >
+              <TextInput
+                multiline
+                value={reflection}
+                onChangeText={(value) => {
+                  setReflection(value);
+                  reflectionValidation.reset();
+                }}
+                style={styles.area}
+                placeholder="Write your reflection or personal notes..."
+                placeholderTextColor={colors.muted}
+              />
+            </BuklodAnswerValidationGate>
 
             <Text style={styles.note}>
               Saving your study does not mark this lesson as officially
@@ -468,10 +764,32 @@ export default function LessonDetail() {
               <Text style={shared.body}>
                 After studying this lesson, your Pastor validates your
                 official completion. System Admin gives the final approval
-                before Bayanihan credit is posted.
+                before BUKLOD Points are posted.
               </Text>
             </Card>
           )}
+
+          <SectionTitle>HAMON SA LINGGONG ITO</SectionTitle>
+          <Card>
+            <Text style={shared.body}>
+              Complete the practical challenge connected to this lesson. Mark
+              your service action for mentor verification when done.
+            </Text>
+            <View style={{ marginTop: 10 }}>
+              <Button
+                title="SUBMIT BAYANIHAN / MISSION ACTION"
+                onPress={() =>
+                  router.push({
+                    pathname: '/formation/bayanihan-action',
+                    params: {
+                      stage: String(track?.stage_code ?? 106),
+                      lessonId: lesson.id,
+                    },
+                  } as any)
+                }
+              />
+            </View>
+          </Card>
         </>
       )}
 
@@ -484,14 +802,23 @@ export default function LessonDetail() {
               {lesson.reflection_question}
             </Text>
 
-            <TextInput
-              multiline
-              value={reflection}
-              onChangeText={setReflection}
-              style={styles.area}
-              placeholder="Write your reflection..."
-              placeholderTextColor={colors.muted}
-            />
+            <BuklodAnswerValidationGate
+              isValidating={reflectionValidation.isValidating}
+              lastResult={reflectionValidation.lastResult}
+              error={reflectionValidation.error}
+            >
+              <TextInput
+                multiline
+                value={reflection}
+                onChangeText={(value) => {
+                  setReflection(value);
+                  reflectionValidation.reset();
+                }}
+                style={styles.area}
+                placeholder="Write your reflection..."
+                placeholderTextColor={colors.muted}
+              />
+            </BuklodAnswerValidationGate>
           </Card>
         </>
       )}
@@ -549,14 +876,23 @@ export default function LessonDetail() {
               {lesson.assignment_prompt || 'Complete the assignment.'}
             </Text>
 
-            <TextInput
-              multiline
-              value={assignment}
-              onChangeText={setAssignment}
-              style={styles.area}
-              placeholder="Write your assignment response..."
-              placeholderTextColor={colors.muted}
-            />
+            <BuklodAnswerValidationGate
+              isValidating={assignmentValidation.isValidating}
+              lastResult={assignmentValidation.lastResult}
+              error={assignmentValidation.error}
+            >
+              <TextInput
+                multiline
+                value={assignment}
+                onChangeText={(value) => {
+                  setAssignment(value);
+                  assignmentValidation.reset();
+                }}
+                style={styles.area}
+                placeholder="Write your assignment response..."
+                placeholderTextColor={colors.muted}
+              />
+            </BuklodAnswerValidationGate>
           </Card>
 
           <Button
@@ -724,6 +1060,17 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: colors.green,
     marginBottom: 6,
+  },
+
+  centered: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingTop: 48,
+  },
+
+  guideSpacing: {
+    marginTop: 10,
   },
 });
 

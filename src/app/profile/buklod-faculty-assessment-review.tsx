@@ -12,6 +12,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
+import { FacultyGate } from '@/components/faculty/FacultyGate';
 
 type ReviewRow = {
   attempt_id: string;
@@ -109,6 +110,7 @@ export default function FacultyAssessmentReviewScreen() {
   }, {});
 
   return (
+    <FacultyGate>
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Pressable style={styles.back} onPress={() => router.back()}>
         <MaterialCommunityIcons name="arrow-left" size={22} color="#17311f" />
@@ -133,7 +135,7 @@ export default function FacultyAssessmentReviewScreen() {
 
             {attemptRows.map(row => (
               <View key={row.response_id} style={styles.responseCard}>
-                <Text style={styles.questionType}>{row.question_type} â€¢ {row.points} pt(s)</Text>
+                <Text style={styles.questionType}>{row.question_type} • {row.points} pt(s)</Text>
                 <Text style={styles.prompt}>{row.prompt}</Text>
                 <Text style={styles.answerLabel}>Student answer</Text>
                 <Text style={styles.answer}>{row.answer_text || '(No answer)'}</Text>
@@ -171,6 +173,7 @@ export default function FacultyAssessmentReviewScreen() {
         ))
       )}
     </ScrollView>
+    </FacultyGate>
   );
 }
 

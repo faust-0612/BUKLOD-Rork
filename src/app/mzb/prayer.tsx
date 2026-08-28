@@ -1,14 +1,6 @@
 import React from 'react';
+import { Redirect } from 'expo-router';
 
-import PublicPrayerScreen
-  from '../(tabs)/prayer';
-
-
-export default function
-MzbPrayerScreen() {
-  return (
-    
-      <PublicPrayerScreen />
-    
-  );
+export default function MzbPrayerRedirect() {
+  return <Redirect href="/(tabs)/prayer" />;
 }

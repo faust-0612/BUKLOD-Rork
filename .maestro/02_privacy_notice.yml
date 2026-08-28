@@ -1,0 +1,7 @@
+appId: org.mzbministry.buklod
+---
+- launchApp
+- tapOn: "CREATE ACCOUNT"
+- tapOn: "Read BUKLOD Privacy Notice"
+- assertVisible: "Privacy Notice"
+- assertVisible: "BUKLOD PRIVACY NOTICE"

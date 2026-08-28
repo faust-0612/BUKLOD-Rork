@@ -2,7 +2,6 @@
 import React from 'react';
 import {
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -12,6 +11,8 @@ import {
   useRouter,
 } from 'expo-router';
 
+import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
+
 export default function OrganizationsIndexScreen() {
   const router = useRouter();
 
@@ -19,10 +20,9 @@ export default function OrganizationsIndexScreen() {
     <>
       <Stack.Screen options={{ title: 'Organization' }} />
 
-      <ScrollView
-                contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}>
+      <BuklodPortalScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <Text style={styles.eyebrow}>BUKLOD ORGANIZATION</Text>
           <Text style={styles.title}>Organization</Text>
@@ -65,7 +65,7 @@ export default function OrganizationsIndexScreen() {
           </View>
           <Text style={styles.chevron}>{'>'}</Text>
         </Pressable>
-      </ScrollView>
+      </BuklodPortalScrollView>
     </>
   );
 }

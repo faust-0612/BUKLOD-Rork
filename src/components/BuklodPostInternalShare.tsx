@@ -17,6 +17,10 @@ import {
   ToastAndroid,
   View,
 } from 'react-native';
+import {
+  BUKLOD_HIT_SLOP,
+  BUKLOD_HIT_SLOP_TIGHT,
+} from '@/lib/buklodTouch';
 
 import {
   MaterialCommunityIcons,
@@ -738,7 +742,7 @@ BuklodPostInternalShare({
                         '',
                       )
                     }
-                    hitSlop={8}
+                    hitSlop={BUKLOD_HIT_SLOP}
                     accessibilityLabel="Clear destination search"
                   >
                     <MaterialCommunityIcons

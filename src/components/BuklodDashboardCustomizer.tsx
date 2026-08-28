@@ -11,6 +11,10 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
+import {
+  BUKLOD_HIT_SLOP,
+  BUKLOD_HIT_SLOP_TIGHT,
+} from '@/lib/buklodTouch';
 
 export type DashboardTheme = {
   backgroundColor: string;
@@ -75,7 +79,7 @@ export function BuklodDashboardCustomizer({
       <Pressable
         onPress={() => setMenuOpen(true)}
         style={styles.threeDots}
-        hitSlop={15}
+        hitSlop={BUKLOD_HIT_SLOP}
       >
         <MaterialCommunityIcons
           name="dots-vertical"

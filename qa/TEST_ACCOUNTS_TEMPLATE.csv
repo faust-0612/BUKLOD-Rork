@@ -1,0 +1,8 @@
+﻿Persona,Email,Church,BUKLOD Group,Role,Purpose,Disposable?
+Member A,,Pilot Church,Pilot Group A,member,Privacy/community/devotional,Yes
+Member B,,Pilot Church,Pilot Group A,member,Same-group access tests,Yes
+Other Church Member,,Other Pilot Church,Pilot Group B,member,Cross-church denial tests,Yes
+Group Leader,,Pilot Church,Pilot Group A,leader,Group monitoring/RLS,Yes
+Pastor,,Pilot Church,,pastor,Church scope/member care,Yes
+Local Admin,,Pilot Church,,local_admin,Approvals/events/admin scope,Yes
+System Admin QA,,,,system_admin,System scope/admin/moderation,Yes

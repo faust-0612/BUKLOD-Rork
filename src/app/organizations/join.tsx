@@ -11,7 +11,6 @@ import {
   ActivityIndicator,
   Alert,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -26,6 +25,8 @@ import {
   router,
 } from 'expo-router';
 
+import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
+
 import {
   supabase,
 } from '@/lib/supabase';
@@ -33,6 +34,10 @@ import {
 import {
   colors,
 } from '@/lib/theme';
+
+import {
+  enterScopedWorkspace,
+} from '@/lib/buklodScopeRoute';
 
 import {
   useBuklodScope,
@@ -67,6 +72,7 @@ JoinOrganizationScreen() {
   const {
     refresh:
       refreshBuklodScopes,
+    selectScope,
   } =
     useBuklodScope();
 
@@ -186,6 +192,26 @@ JoinOrganizationScreen() {
     ],
   );
 
+  const openWorkspace =
+    async (
+      scopeId: string,
+    ) => {
+      try {
+        await enterScopedWorkspace(
+          selectScope,
+          scopeId,
+          { fromPortal: true }
+        );
+      }
+      catch (error: any) {
+        Alert.alert(
+          'Organization Workspace',
+          error?.message ??
+            'Could not open this workspace.',
+        );
+      }
+    };
+
   const join =
     async (
       row: OrganizationRow,
@@ -224,6 +250,18 @@ JoinOrganizationScreen() {
           Alert.alert(
             'Organization joined',
             `You are now an active member of ${row.organization_name}.`,
+            [
+              {
+                text: 'OPEN WORKSPACE',
+                onPress: () =>
+                  void openWorkspace(
+                    row.scope_id,
+                  ),
+              },
+              {
+                text: 'OK',
+              },
+            ],
           );
         }
         else if (
@@ -290,6 +328,18 @@ JoinOrganizationScreen() {
         Alert.alert(
           'Invitation accepted',
           `You are now a member of ${row.organization_name}.`,
+          [
+            {
+              text: 'OPEN WORKSPACE',
+              onPress: () =>
+                void openWorkspace(
+                  row.scope_id,
+                ),
+            },
+            {
+              text: 'OK',
+            },
+          ],
         );
 
         await load(
@@ -318,7 +368,7 @@ JoinOrganizationScreen() {
     );
 
   return (
-    <ScrollView
+    <BuklodPortalScrollView
       style={
         styles.screen
       }
@@ -526,7 +576,7 @@ JoinOrganizationScreen() {
 
             if (active) {
               buttonText =
-                'ACTIVE MEMBER';
+                'OPEN WORKSPACE';
             }
             else if (pending) {
               buttonText =
@@ -671,12 +721,15 @@ JoinOrganizationScreen() {
                 <Pressable
                   disabled={
                     busy ||
-                    active ||
                     pending ||
                     unavailable
                   }
                   onPress={() =>
-                    invited
+                    active
+                      ? void openWorkspace(
+                          row.scope_id,
+                        )
+                      : invited
                       ? void acceptInvitation(
                           row
                         )
@@ -687,7 +740,6 @@ JoinOrganizationScreen() {
                   style={[
                     styles.joinButton,
                     (
-                      active ||
                       pending ||
                       unavailable
                     ) &&
@@ -714,7 +766,7 @@ JoinOrganizationScreen() {
           }
         )
       )}
-    </ScrollView>
+    </BuklodPortalScrollView>
   );
 }
 
@@ -728,7 +780,7 @@ const styles =
 
     content: {
       padding: 16,
-      paddingBottom: 54,
+      paddingBottom: 16,
     },
 
     back: {

@@ -1,0 +1,39 @@
+{
+  "product": "BUKLOD",
+  "release": "1.0",
+  "version": "1.0.0",
+  "starter_package": "v16",
+  "generated_date": "2026-08-10",
+  "production_app": {
+    "name": "BUKLOD",
+    "android_package": "org.mzbministry.buklod",
+    "ios_bundle_id": "org.mzbministry.buklod",
+    "eas_environment": "production"
+  },
+  "database": {
+    "canonical_migrations": 13,
+    "production_seed": "supabase/seed.production.sql",
+    "staging_seed": "supabase/seed.staging.sql",
+    "include_seed_on_production_push": false
+  },
+  "release_controls": {
+    "production_preflight": "scripts/production-preflight.mjs",
+    "migration_verifier": "scripts/verify-production-migrations.mjs",
+    "cutover_shell": "scripts/production-cutover.sh",
+    "cutover_powershell": "scripts/production-cutover.ps1",
+    "command_center_required": true,
+    "human_go_live_decision_required": true
+  },
+  "external_requirements_embedded": false,
+  "automatic_crash_telemetry_connected": false,
+  "privacy_placeholders_must_be_replaced": true,
+  "execution_pack": {
+    "android_first": true,
+    "google_play_draft_profile": true,
+    "google_play_internal_profile": true,
+    "production_eas_setup_script": true,
+    "production_supabase_link_script": true,
+    "android_smoke_test": true,
+    "external_actions_completed": false
+  }
+}

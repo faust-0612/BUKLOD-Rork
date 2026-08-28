@@ -2,17 +2,12 @@ import {
   TestIds,
 } from 'react-native-google-mobile-ads';
 
-const APP_ENV =
-  (
-    process.env.EXPO_PUBLIC_APP_ENV
-    ?? 'development'
-  )
-    .trim()
-    .toLowerCase();
+import {
+  buklodAdsTestMode,
+} from '@/lib/buklodAdUnits';
 
 export const BUKLOD_AD_TEST_MODE =
-  __DEV__ ||
-  APP_ENV !== 'production';
+  buklodAdsTestMode;
 
 function productionUnit(
   value: string | undefined

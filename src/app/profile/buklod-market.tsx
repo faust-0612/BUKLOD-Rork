@@ -3,9 +3,8 @@ import BuklodFoundationPortalShell from '@/components/BuklodFoundationPortalShel
 export default function BuklodMarketPortal() {
   return (
     <BuklodFoundationPortalShell
-      title="BUKLOD MARKET"
+      integrationAppId="palengke"
       icon="store-search-outline"
-      description="BUKLOD marketplace portal."
     />
   );
 }

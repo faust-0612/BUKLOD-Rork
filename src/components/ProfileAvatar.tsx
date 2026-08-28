@@ -43,6 +43,11 @@ type ProfileAvatarProps = {
     | null;
 
   size?: number;
+
+  fallbackSource?:
+    | number
+    | { uri: string }
+    | null;
 };
 
 
@@ -229,370 +234,205 @@ export function ProfileAvatarStatusIndicator({
   );
 }
 
+function normalizeAvatarUrl(
+  raw: string | null | undefined
+) {
+  const value = String(raw ?? '').trim();
+  if (!value) {
+    return null;
+  }
+  if (/^https?:\/\//i.test(value)) {
+    return value;
+  }
+  const objectPath = value
+    .replace(/^\/+/, '')
+    .replace(/^profile-avatars\//i, '')
+    .split('?')[0];
+  if (!objectPath) {
+    return null;
+  }
+  const { data: publicData } = supabase.storage
+    .from('profile-avatars')
+    .getPublicUrl(objectPath);
+  return publicData?.publicUrl ?? null;
+}
+
 export function ProfileAvatar({
   userId,
   uri,
   name,
   size = 38,
+  fallbackSource,
 }: ProfileAvatarProps) {
-
-  const [
-    remoteUrl,
-    setRemoteUrl,
-  ] =
-    useState<string | null>(
-      uri ?? null
-    );
-
-  /* PATCH_180A_R2_CONNECT_REAL_PROFILE_PICTURES */
-  const [
-    imageFailed,
-    setImageFailed,
-  ] =
-    useState(false);
-
-  useEffect(
-    () => {
-      setImageFailed(false);
-    },
-    [
-      remoteUrl,
-      userId,
-    ]
+  const [remoteUrl, setRemoteUrl] = useState<string | null>(
+    normalizeAvatarUrl(uri)
   );
+  const [imageFailed, setImageFailed] = useState(false);
+  const [imageReady, setImageReady] = useState(false);
 
-
-
-      /* PATCH_180A_R6_CANONICAL_PROFILE_PHOTO_FIRST */
   useEffect(() => {
     let active = true;
-
     setImageFailed(false);
 
-    if (userId) {
-      const canonicalPath =
-        `${userId}/avatar.jpg`;
-
-      const {
-        data:
-          canonicalData,
-      } =
-        supabase.storage
-          .from(
-            'profile-avatars'
-          )
-          .getPublicUrl(
-            canonicalPath
-          );
-
-      const canonicalBase =
-        canonicalData
-          ?.publicUrl ??
-        null;
-
-      const canonicalUrl =
-        canonicalBase
-          ? `${canonicalBase}?v=${Date.now()}`
-          : null;
-
-      avatarCache.set(
-        userId,
-        {
-          url:
-            canonicalUrl,
-          at:
-            Date.now(),
-        }
+    const directUri = normalizeAvatarUrl(uri);
+    if (directUri) {
+      setRemoteUrl(current =>
+        current === directUri ? current : directUri
       );
-
-      setRemoteUrl(
-        canonicalUrl
-      );
+      return () => {
+        active = false;
+      };
     }
-    else {
-      setRemoteUrl(
-        uri ?? null
-      );
+
+    if (userId) {
+      const cached = avatarCache.get(userId);
+      if (cached?.url && active) {
+        setRemoteUrl(current =>
+          current === cached.url ? current : cached.url
+        );
+      }
+
+      const { data: canonicalData } = supabase.storage
+        .from('profile-avatars')
+        .getPublicUrl(`${userId}/avatar.jpg`);
+      const canonicalUrl = canonicalData?.publicUrl ?? null;
+      if (canonicalUrl && active) {
+        avatarCache.set(userId, {
+          url: canonicalUrl,
+          at: Date.now(),
+        });
+        setRemoteUrl(current =>
+          current === canonicalUrl ? current : canonicalUrl
+        );
+      }
+    } else if (active) {
+      setRemoteUrl(null);
     }
 
     return () => {
       active = false;
-      void active;
     };
-  }, [
-    userId,
-    uri,
-  ]);
+  }, [userId, uri]);
 
+  const initial = (name?.trim()?.[0] || 'B').toUpperCase();
 
-  const initial =
-    (
-      name?.trim()?.[0] ||
-      'B'
-    ).toUpperCase();
+  const circleStyle = {
+    width: size,
+    height: size,
+    borderRadius: size / 2,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.greenSoft,
+  };
 
+  const placeholder = fallbackSource ? (
+    <ExpoImage
+      source={fallbackSource}
+      style={circleStyle}
+      contentFit="cover"
+      cachePolicy="memory-disk"
+    />
+  ) : (
+    <View
+      style={{
+        ...circleStyle,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <Text
+        style={{
+          fontSize: Math.max(11, size * 0.38),
+          fontWeight: '900',
+          color: colors.greenDark,
+        }}
+      >
+        {initial}
+      </Text>
+    </View>
+  );
 
   return (
     <View
       style={{
         width: size,
         height: size,
-        position:
-          'relative',
-        overflow:
-          'visible',
+        position: 'relative',
+        overflow: 'visible',
       }}
     >
-      {remoteUrl && !imageFailed
-        ? (
-          <ExpoImage
-            source={{
-              uri:
-                remoteUrl,
-            }}
+      {placeholder}
+      {remoteUrl && !imageFailed ? (
+        <ExpoImage
+          source={{
+            uri: remoteUrl,
+            cacheKey: userId ? `avatar:${userId}` : remoteUrl,
+          }}
+          style={{
+            ...circleStyle,
+            position: 'absolute',
+            left: 0,
+            top: 0,
+          }}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+          recyclingKey={userId || remoteUrl || undefined}
+          transition={0}
+          onLoad={() => {
+            setImageReady(true);
+          }}
+          onError={() => {
+            void (async () => {
+              let fallback = normalizeAvatarUrl(uri);
+              if (fallback === remoteUrl) {
+                fallback = null;
+              }
 
-            style={{
-              width: size,
-              height: size,
-              borderRadius:
-                size / 2,
-
-              borderWidth: 1,
-              borderColor:
-                colors.line,
-
-              backgroundColor:
-                colors.greenSoft,
-            }}
-
-            contentFit="cover"
-            cachePolicy="memory-disk"
-            transition={60}
-          
-            onError={() => {
-              void (
-                async () => {
-                  /*
-                   * PATCH_180A_R6_LEGACY_AVATAR_FALLBACK
-                   */
-                  const normalizeFallback =
-                    (
-                      raw:
-                        | string
-                        | null
-                        | undefined
-                    ) => {
-                      const value =
-                        String(
-                          raw ?? ''
-                        ).trim();
-
-                      if (!value) {
-                        return null;
-                      }
-
-                      if (
-                        /^https?:\/\//i.test(
-                          value
-                        )
-                      ) {
-                        return value;
-                      }
-
-                      const objectPath =
-                        value
-                          .replace(
-                            /^\/+/, ''
-                          )
-                          .replace(
-                            /^profile-avatars\//i,
-                            ''
-                          )
-                          .split('?')[0];
-
-                      if (!objectPath) {
-                        return null;
-                      }
-
-                      const {
-                        data:
-                          publicData,
-                      } =
-                        supabase.storage
-                          .from(
-                            'profile-avatars'
-                          )
-                          .getPublicUrl(
-                            objectPath
-                          );
-
-                      return (
-                        publicData
-                          ?.publicUrl ??
-                        null
-                      );
-                    };
-
-                  let fallback =
-                    normalizeFallback(
-                      uri
-                    );
-
-                  if (
-                    fallback ===
-                    remoteUrl
-                  ) {
-                    fallback = null;
+              if (!fallback && userId) {
+                try {
+                  const { data: rpcData, error: rpcError } = await (
+                    supabase as any
+                  ).rpc('get_buklod_profile_avatars_v1', {
+                    p_user_ids: [userId],
+                  });
+                  if (!rpcError) {
+                    const row = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+                    fallback = normalizeAvatarUrl(row?.avatar_url);
                   }
-
-                  if (
-                    !fallback &&
-                    userId
-                  ) {
-                    try {
-                      const {
-                        data:
-                          rpcData,
-                        error:
-                          rpcError,
-                      } =
-                        await (
-                          supabase as any
-                        ).rpc(
-                          'get_buklod_profile_avatars_v1',
-                          {
-                            p_user_ids: [
-                              userId,
-                            ],
-                          }
-                        );
-
-                      if (!rpcError) {
-                        const row =
-                          Array.isArray(
-                            rpcData
-                          )
-                            ? rpcData[0]
-                            : rpcData;
-
-                        fallback =
-                          normalizeFallback(
-                            row
-                              ?.avatar_url
-                          );
-                      }
-                    }
-                    catch {
-                      fallback = null;
-                    }
-                  }
-
-                  if (
-                    !fallback &&
-                    userId
-                  ) {
-                    try {
-                      const {
-                        data:
-                          profileRow,
-                        error:
-                          profileError,
-                      } =
-                        await (
-                          supabase as any
-                        )
-                          .from(
-                            'profiles'
-                          )
-                          .select(
-                            'avatar_url'
-                          )
-                          .eq(
-                            'id',
-                            userId
-                          )
-                          .maybeSingle();
-
-                      if (
-                        !profileError
-                      ) {
-                        fallback =
-                          normalizeFallback(
-                            profileRow
-                              ?.avatar_url
-                          );
-                      }
-                    }
-                    catch {
-                      fallback = null;
-                    }
-                  }
-
-                  if (
-                    fallback &&
-                    fallback !==
-                      remoteUrl
-                  ) {
-                    setImageFailed(
-                      false
-                    );
-
-                    setRemoteUrl(
-                      fallback
-                    );
-
-                    return;
-                  }
-
-                  setImageFailed(
-                    true
-                  );
+                } catch {
+                  fallback = null;
                 }
-              )();
-            }}
-/>
-        )
-        : (
-          <View
-            style={{
-              width: size,
-              height: size,
-              borderRadius:
-                size / 2,
+              }
 
-              alignItems:
-                'center',
+              if (!fallback && userId) {
+                try {
+                  const { data: profileRow, error: profileError } = await (
+                    supabase as any
+                  )
+                    .from('profiles')
+                    .select('avatar_url')
+                    .eq('id', userId)
+                    .maybeSingle();
+                  if (!profileError) {
+                    fallback = normalizeAvatarUrl(profileRow?.avatar_url);
+                  }
+                } catch {
+                  fallback = null;
+                }
+              }
 
-              justifyContent:
-                'center',
+              if (fallback && fallback !== remoteUrl) {
+                setImageFailed(false);
+                setImageReady(false);
+                setRemoteUrl(fallback);
+                return;
+              }
 
-              borderWidth: 1,
-              borderColor:
-                colors.line,
-
-              backgroundColor:
-                colors.greenSoft,
-            }}
-          >
-            <Text
-              style={{
-                fontSize:
-                  Math.max(
-                    11,
-                    size * 0.38
-                  ),
-
-                fontWeight:
-                  '900',
-
-                color:
-                  colors.greenDark,
-              }}
-            >
-              {initial}
-            </Text>
-          </View>
-        )}
+              setImageFailed(true);
+            })();
+          }}
+        />
+      ) : null}
 
       <ProfileAvatarStatusIndicator
         userId={userId}

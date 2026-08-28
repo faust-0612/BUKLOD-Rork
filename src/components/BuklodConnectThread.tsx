@@ -2,12 +2,20 @@
 /* PATCH_185A_R5_DIRECT_THREAD_LOADING_SAFE: existing direct guard retained */
 /* PATCH_180A_R7_EXACT_CHAT_BODY_MOJIBAKE */
 ﻿import { ensureBuklodStreamVideoClient } from '@/lib/buklodStreamVideoClient';
+import {
+  buildBuklodPersonalCallId,
+  formatBuklodCallStartError,
+} from '@/lib/buklodStreamCall';
 import { repairMojibakeText } from '@/lib/repairMojibakeText';
+import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useConnectComposerKeyboardInset, CONNECT_COMPOSER_RESERVED_HEIGHT } from '@/lib/useConnectComposerKeyboardInset';
+import { useBuklodPersistentNavOccupiedHeight } from '@/lib/buklodSafeArea';
 import BuklodScopeCallLauncher from '@/components/BuklodScopeCallLauncher';
 import React, {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -16,9 +24,11 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Keyboard,
   Modal,
+  Platform,
   Pressable,
-  ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -36,35 +46,86 @@ import {
 import {
   Image as ExpoImage,
 } from 'expo-image';
+import * as Clipboard from 'expo-clipboard';
 import {
   useStreamVideoClient,
 } from '@/lib/streamVideoSdk';
-import {
-  supabase,
-} from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
+import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
+import { useNetwork } from '@/providers/NetworkProvider';
 
 import {
   useAuth,
 } from '@/providers/AuthProvider';
 
 import {
-  colors,
-} from '@/lib/theme';
-
+  type ConnectThemeRoles,
+} from '@/lib/connectTheme';
 import {
-  ProfileAvatar,
-} from '@/components/ProfileAvatar';
+  ConnectThemeProvider,
+  useConnectTheme,
+} from '@/providers/ConnectThemeProvider';
+import {
+  ChatBackgroundProvider,
+} from '@/providers/ChatBackgroundProvider';
+import { ConnectComposer } from '@/components/connect/ConnectComposer';
+import { ConnectComposerPicker } from '@/components/connect/ConnectComposerPicker';
+import { ConnectMessageActionSheet, type ConnectMessageActionAnchor } from '@/components/connect/ConnectMessageActionSheet';
+import { ConnectMessageBubble } from '@/components/connect/ConnectMessageBubble';
+import { ConnectPressable } from '@/components/connect/ConnectPressable';
+import { ConnectThreadBackground } from '@/components/connect/ConnectThreadBackground';
+import { ConnectThemeSelectorButton } from '@/components/connect/ConnectThemeSelector';
+import { ConnectThreadHeader } from '@/components/connect/ConnectThreadHeader';
 import {
   type ConnectPickedFile,
+  encodeConnectAlbumBody,
   formatConnectBytes,
   formatConnectTimestamp,
+  getConnectMessageImagePaths,
+  isConnectStoragePath,
   openConnectAttachment,
+  parseConnectAlbumBody,
   pickConnectFile,
-  pickConnectGif,
-  pickConnectPhoto,
+  pickConnectPhotos,
   uploadConnectFile,
 } from '@/lib/buklodConnect';
+import {
+  setConnectMessageReaction,
+} from '@/lib/buklodConnectSetReaction';
+import {
+  CONNECT_MESSAGE_REACTIONS,
+  CONNECT_MESSAGE_REACTION_KEYS,
+  emptyConnectMessageReactionCounts,
+  type ConnectMessageReactionKey,
+} from '@/lib/buklodConnectMessageReactions';
+import {
+  CONNECT_GIF_CATALOG,
+  downloadConnectCatalogGif,
+} from '@/lib/buklodConnectGifCatalog';
+import {
+  buildConnectReplyBody,
+  CONNECT_DELETED_BODY,
+  getConnectForwardText,
+  getConnectMessageCopyText,
+  getConnectMessagePreview,
+  isConnectDeletedMessage,
+  clearHiddenConnectMessageIds,
+  loadHiddenConnectMessageIds,
+  parseConnectReplyBody,
+  saveHiddenConnectMessageIds,
+} from '@/lib/connectMessageActions';
+import {
+  fetchDirectConnectMessages,
+  fetchScopeConnectMessages,
+} from '@/lib/buklodConnectMessageHistory';
+import {
+  FLATLIST_TUNING,
+} from '@/lib/performanceInstrumentation';
+import {
+  SCALE_LIMITS,
+} from '@/lib/performanceScale';
 import { BuklodPhotoEditor } from '@/components/BuklodPhotoEditor';
+import { ConnectPhotoViewer } from '@/components/connect/ConnectPhotoViewer';
 /* PATCH_186B_PHOTO_EDITOR_IMPORT */
 
 /* PATCH_167L_R5_COMPACT_INLINE_REACTION_DRAWER */
@@ -75,6 +136,11 @@ type Props = {
     | 'direct'
     | 'scope';
   containerId: string;
+  initialTitle?: string;
+  initialSubtitle?: string;
+  initialOtherUserId?: string;
+  pendingTargetUserId?: string;
+  onBackOverride?: () => void;
 };
 
 /* PATCH_173E_R3_SHARED_POST_RECEIVER
@@ -112,6 +178,7 @@ function BuklodSharedPostPhotoPreview185AR5({
 }: {
   body: string;
 }) {
+  const { theme } = useConnectTheme();
   const postId =
     getBuklodSharedPostId185AR5(body);
 
@@ -201,7 +268,7 @@ function BuklodSharedPostPhotoPreview185AR5({
         marginBottom:7,
         borderRadius:12,
         overflow:'hidden',
-        backgroundColor:'#E9F2ED',
+        backgroundColor: theme.surface,
       }}
     >
       {mediaUrl ? (
@@ -228,12 +295,12 @@ function BuklodSharedPostPhotoPreview185AR5({
           <MaterialCommunityIcons
             name="image-outline"
             size={20}
-            color={colors.greenDark}
+            color={theme.accent}
           />
           <Text
             style={{
               flex:1,
-              color:colors.greenDark,
+              color:theme.accent,
               fontSize:11,
               fontWeight:'800',
             }}
@@ -246,26 +313,29 @@ function BuklodSharedPostPhotoPreview185AR5({
   );
 }
 
+type ComposerPhoto = ConnectPickedFile & {
+  id: string;
+};
+
 type Message = {
   id: string;
   sender_id: string;
-  sender_name?: string;
+  sender_name?: string | null;
   body: string;
-  attachment_path: string | null;
-  attachment_name: string | null;
-  attachment_mime: string | null;
-  attachment_size: number | null;
+  attachment_path?: string | null;
+  attachment_name?: string | null;
+  attachment_mime?: string | null;
+  attachment_size?: number | null;
   created_at: string;
+  deleted_at?: string | null;
   delivery_state?:
+    | 'pending'
     | 'sent'
     | 'not_sent';
+  pending_album?: ComposerPhoto[] | null;
 };
 
-type ReactionKey =
-  | 'love'
-  | 'amen'
-  | 'haha'
-  | 'praying';
+type ReactionKey = ConnectMessageReactionKey;
 
 type ReactionSummary = {
   counts: Record<
@@ -277,54 +347,11 @@ type ReactionSummary = {
     | null;
 };
 
-/*
- * ASCII-only source escapes prevent mojibake while still
- * rendering native Unicode emoji at runtime.
- */
-const REACTIONS: Array<{
-  key: ReactionKey;
-  emoji: string;
-  label: string;
-}> = [
-  {
-    key: 'love',
-    emoji: '\u2764\uFE0F',
-    label: 'Love',
-  },
-  {
-    key: 'amen',
-    emoji: '\uD83D\uDE4F',
-    label: 'Amen',
-  },
-  {
-    key: 'haha',
-    emoji: '\uD83D\uDE02',
-    label: 'Haha',
-  },
-  {
-    key: 'praying',
-    emoji: '\uD83E\uDD32',
-    label: 'Praying',
-  },
-];
+const REACTIONS = CONNECT_MESSAGE_REACTIONS;
+const REACTION_KEYS = CONNECT_MESSAGE_REACTION_KEYS;
 
-const REACTION_KEYS:
-  readonly ReactionKey[] =
-    REACTIONS.map(
-      item => item.key
-    );
-
-function emptyCounts():
-  Record<
-    ReactionKey,
-    number
-  > {
-  return {
-    love: 0,
-    amen: 0,
-    haha: 0,
-    praying: 0,
-  };
+function emptyCounts() {
+  return emptyConnectMessageReactionCounts();
 }
 
 
@@ -542,14 +569,88 @@ function repairBuklodMessageText(
   );
 }
 
-export default function
-BuklodConnectThread({
+function mergeServerMessages(
+  server: Message[],
+  current: Message[],
+): Message[] {
+  const locals = current.filter(item =>
+    String(item.id).startsWith('local-')
+  );
+
+  const kept = locals.filter(local => {
+    if (local.delivery_state === 'not_sent') {
+      return true;
+    }
+
+    if (local.delivery_state !== 'pending') {
+      return false;
+    }
+
+    const localTime =
+      new Date(local.created_at).getTime();
+    const localCaption =
+      parseConnectAlbumBody(local.body).caption;
+    const localHasMedia =
+      !!(
+        local.attachment_path ||
+        local.pending_album?.length
+      );
+
+    return !server.some(row => {
+      const rowCaption =
+        parseConnectAlbumBody(row.body).caption;
+      const rowHasMedia = !!row.attachment_path;
+
+      return (
+        row.sender_id === local.sender_id &&
+        rowCaption === localCaption &&
+        rowHasMedia === localHasMedia &&
+        Math.abs(
+          new Date(row.created_at).getTime() -
+            localTime
+        ) < 120000
+      );
+    });
+  });
+
+  if (!kept.length) {
+    return server;
+  }
+
+  return [...server, ...kept].sort(
+    (a, b) =>
+      new Date(a.created_at).getTime() -
+      new Date(b.created_at).getTime()
+  );
+}
+
+function BuklodConnectThreadInner({
   mode,
   containerId,
+  initialTitle,
+  initialSubtitle,
+  initialOtherUserId,
+  pendingTargetUserId,
+  onBackOverride,
 }: Props) {
   /* PATCH_169G_CONNECT_SAFE_INSETS */
   const insets =
     useSafeAreaInsets();
+  const navOccupied =
+    useBuklodPersistentNavOccupiedHeight();
+  const threadBodyRef =
+    useRef<View | null>(null);
+  const {
+    composerBottom,
+    clearComposerInset,
+    resyncComposerInset,
+  } = useConnectComposerKeyboardInset(threadBodyRef);
+
+  const { theme } = useConnectTheme();
+  const styles = useMemo(
+    () => createThreadStyles(theme),
+    [theme]
+  );
 
   const {
     profile,
@@ -561,11 +662,22 @@ BuklodConnectThread({
       | string
       | undefined;
 
+  const [
+    resolvedContainerId,
+    setResolvedContainerId,
+  ] = useState(containerId);
+
+  const effectiveContainerId =
+    resolvedContainerId || containerId;
+
+  /* BUKLOD_OFFLINE_R2_CONNECT_THREAD */
+  const { online } =
+    useNetwork();
   const [title, setTitle] =
-    useState('Connect');
+    useState(initialTitle || 'Connect');
 
   const [subtitle, setSubtitle] =
-    useState('');
+    useState(initialSubtitle || '');
 
   const [
     otherUserId,
@@ -573,7 +685,7 @@ BuklodConnectThread({
   ] =
     useState<
       string | null
-    >(null);
+    >(initialOtherUserId ?? null);
 
     /* PATCH_171E_DIRECT_CALLS_NO_LEGACY_ROUTE */
   const directVideoClient =
@@ -689,7 +801,7 @@ BuklodConnectThread({
         if (
           !profileId ||
           !otherUserId ||
-          !containerId
+          !effectiveContainerId
         ) {
           Alert.alert(
             'Call',
@@ -710,34 +822,10 @@ BuklodConnectThread({
             directVideoClient ??
             await ensureBuklodStreamVideoClient();
 
-          const safeThread =
-            String(
-              containerId
-            )
-              .replace(
-                /[^a-zA-Z0-9_-]/g,
-                ''
-              )
-              .slice(
-                0,
-                28
-              );
-
           const callId =
-            [
-              'buklod',
-              'personal',
-              safeThread ||
-                'thread',
-              Date.now()
-                .toString(36),
-              Math.random()
-                .toString(36)
-                .slice(
-                  2,
-                  9
-                ),
-            ].join('-');
+            buildBuklodPersonalCallId(
+              effectiveContainerId
+            );
 
           const call =
             callClient.call(
@@ -774,7 +862,7 @@ BuklodConnectThread({
                   callMode,
 
                 buklod_thread_id:
-                  containerId,
+                  effectiveContainerId,
 
                 buklod_call_title:
                   title ||
@@ -834,8 +922,9 @@ BuklodConnectThread({
               ? 'Video Call'
               : 'Audio Call',
 
-            error?.message ??
-              'Could not start the call.'
+            formatBuklodCallStartError(
+              error
+            )
           );
         }
         finally {
@@ -845,7 +934,7 @@ BuklodConnectThread({
         }
       },
       [
-        containerId,
+        effectiveContainerId,
         directCallStarting,
         directVideoClient,
         mode,
@@ -879,12 +968,6 @@ const [
     useRef<TextInput | null>(
       null
     );
-
-  const [
-    composerQuickOpen,
-    setComposerQuickOpen,
-  ] =
-    useState(false);
 
   const [
     composerPickerOpen,
@@ -921,17 +1004,123 @@ const [
       ConnectPickedFile | null
     >(null);
 
+  const [
+    photos,
+    setPhotos,
+  ] =
+    useState<ComposerPhoto[]>([]);
+
   /* PATCH_186B_PHOTO_EDITOR_CONNECT_STATE */
   const [
     photoEditorSource,
     setPhotoEditorSource,
   ] = useState<ConnectPickedFile | null>(null);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [
+    photoEditorTargetId,
+    setPhotoEditorTargetId,
+  ] = useState<string | null>(null);
 
-  const [sending, setSending] =
-    useState(false);
+  const [
+    photoViewer,
+    setPhotoViewer,
+  ] = useState<{
+    uris: string[];
+    index: number;
+  } | null>(null);
+
+  const [
+    uploadingAttachment,
+    setUploadingAttachment,
+  ] = useState(false);
+
+  const inflightTextSendsRef =
+    useRef(new Set<string>());
+
+  const sendInFlightRef =
+    useRef(false);
+
+  const draftRef =
+    useRef(draft);
+
+  const fileRef =
+    useRef(file);
+  const photosRef =
+    useRef(photos);
+
+  draftRef.current = draft;
+  fileRef.current = file;
+  photosRef.current = photos;
+
+  useEffect(() => {
+    if (containerId) {
+      setResolvedContainerId(containerId);
+    }
+  }, [containerId]);
+
+  useEffect(() => {
+    if (
+      !pendingTargetUserId ||
+      containerId
+    ) {
+      return;
+    }
+
+    let active = true;
+
+    void (async () => {
+      const result =
+        await (supabase as any).rpc(
+          'buklod_connect_get_or_create_direct_thread',
+          {
+            _target_user_id:
+              pendingTargetUserId,
+          }
+        );
+
+      if (!active) {
+        return;
+      }
+
+      if (result.error) {
+        Alert.alert(
+          'Connect',
+          result.error.message
+        );
+        router.back();
+        return;
+      }
+
+      const raw = Array.isArray(result.data)
+        ? result.data[0]
+        : result.data;
+      const threadId =
+        typeof raw === 'string'
+          ? raw
+          : raw?.thread_id ?? raw?.id;
+
+      if (!threadId) {
+        Alert.alert(
+          'Connect',
+          'Could not open conversation.'
+        );
+        router.back();
+        return;
+      }
+
+      setResolvedContainerId(
+        String(threadId)
+      );
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [
+    pendingTargetUserId,
+    containerId,
+  ]);
+
   /* PATCH_168D_OFFICE_ORGANIZER */
   const [
     officeEnabled,
@@ -944,7 +1133,7 @@ const [
 
     if (
       mode !== 'scope' ||
-      !containerId
+      !effectiveContainerId
     ) {
       setOfficeEnabled(false);
       return () => {
@@ -960,7 +1149,7 @@ const [
           'buklod_connect_room_details',
           {
             _scope_id:
-              containerId,
+              effectiveContainerId,
           }
         );
 
@@ -1003,7 +1192,7 @@ const [
       active = false;
     };
   }, [
-    containerId,
+    effectiveContainerId,
     mode,
   ]);
 
@@ -1024,16 +1213,228 @@ const [
       string | null
     >(null);
 
+  const [
+    actionTargetMessage,
+    setActionTargetMessage,
+  ] = useState<Message | null>(null);
+
+  const [
+    actionAnchor,
+    setActionAnchor,
+  ] = useState<
+    ConnectMessageActionAnchor | null
+  >(null);
+
+  const [
+    replyTo,
+    setReplyTo,
+  ] = useState<Message | null>(null);
+
+  const [
+    hiddenMessageIds,
+    setHiddenMessageIds,
+  ] = useState<Set<string>>(new Set());
+
+  const replyToRef =
+    useRef<Message | null>(null);
+
+  replyToRef.current = replyTo;
+
+  const visibleMessages =
+    useMemo(
+      () => {
+        const filtered = messages.filter(
+          item =>
+            !hiddenMessageIds.has(
+              item.id
+            )
+        );
+
+        if (
+          filtered.length <=
+          SCALE_LIMITS.connectRenderWindow
+        ) {
+          return filtered;
+        }
+
+        return filtered.slice(
+          filtered.length -
+            SCALE_LIMITS.connectRenderWindow
+        );
+      },
+      [
+        hiddenMessageIds,
+        messages,
+      ]
+    );
+
+  const hiddenMessageCount =
+    messages.length -
+    visibleMessages.length;
+
+  const messageById =
+    useMemo(() => {
+      const map = new Map<
+        string,
+        Message
+      >();
+
+      for (const item of messages) {
+        map.set(item.id, item);
+      }
+
+      return map;
+    }, [messages]);
+
   const listRef =
     useRef<
       FlatList<Message>
     >(null);
 
+  const connectThreadOfflineCacheKey =
+    `connect-thread:${mode}:${effectiveContainerId}`;
+
+  useEffect(() => {
+    if (
+      !profileId ||
+      !effectiveContainerId
+    ) {
+      return;
+    }
+
+    let active = true;
+
+    void getOfflineCache<{
+      messages: Message[];
+      title: string;
+      subtitle: string;
+      otherUserId: string | null;
+      draft: string;
+    }>(
+      connectThreadOfflineCacheKey,
+      {
+        userId: profileId,
+        allowStale: true,
+      }
+    )
+      .then(cached => {
+        if (
+          !active ||
+          !cached?.data
+        ) {
+          return;
+        }
+
+        const value =
+          cached.data;
+
+        if (
+          value.messages?.length
+        ) {
+          setMessages(current =>
+            current.length
+              ? current
+              : value.messages
+          );
+        }
+
+        if (
+          value.title
+        ) {
+          setTitle(current =>
+            current &&
+            current !== 'Connect'
+              ? current
+              : value.title
+          );
+        }
+
+        if (
+          value.subtitle
+        ) {
+          setSubtitle(current =>
+            current
+              ? current
+              : value.subtitle
+          );
+        }
+
+        if (
+          value.otherUserId
+        ) {
+          setOtherUserId(current =>
+            current ??
+            value.otherUserId
+          );
+        }
+
+        if (
+          value.draft
+        ) {
+          setDraft(current =>
+            current
+              ? current
+              : value.draft
+          );
+        }
+
+      })
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+    };
+  }, [
+    connectThreadOfflineCacheKey,
+    effectiveContainerId,
+    profileId,
+  ]);
+
+  useEffect(() => {
+    if (
+      !profileId ||
+      !effectiveContainerId
+    ) {
+      return;
+    }
+
+    const timer =
+      setTimeout(() => {
+        void setOfflineCache(
+          connectThreadOfflineCacheKey,
+          {
+            messages,
+            title,
+            subtitle,
+            otherUserId,
+            draft,
+          },
+          {
+            userId: profileId,
+            ttlMs: 7 * 24 * 60 * 60 * 1000,
+          }
+        ).catch(
+          () => undefined
+        );
+      }, 250);
+
+    return () =>
+      clearTimeout(timer);
+  }, [
+    connectThreadOfflineCacheKey,
+    effectiveContainerId,
+    draft,
+    messages,
+    otherUserId,
+    profileId,
+    subtitle,
+    title,
+  ]);
   const loadReactions =
     useCallback(
       async () => {
         if (
-          !containerId ||
+          !effectiveContainerId ||
           !profileId
         ) {
           return;
@@ -1057,9 +1458,11 @@ const [
             )
             .eq(
               containerField,
-              containerId
+              effectiveContainerId
             )
-            .limit(5000);
+            .limit(
+              SCALE_LIMITS.connectReactions
+            );
 
         if (result.error) {
           setReactions({});
@@ -1123,7 +1526,7 @@ const [
         setReactions(next);
       },
       [
-        containerId,
+        effectiveContainerId,
         mode,
         profileId,
       ]
@@ -1134,7 +1537,7 @@ const [
       async () => {
         if (
           mode !== 'direct' ||
-          !containerId ||
+          !effectiveContainerId ||
           !profileId
         ) {
           setDirectPeerReadAt(
@@ -1150,7 +1553,7 @@ const [
             'buklod_connect_direct_peer_read_v1',
             {
               _thread_id:
-                containerId,
+                effectiveContainerId,
             }
           );
 
@@ -1182,7 +1585,7 @@ const [
         );
       },
       [
-        containerId,
+        effectiveContainerId,
         mode,
         profileId,
       ]
@@ -1192,12 +1595,13 @@ const [
     useCallback(
       async () => {
         if (
-          !containerId ||
+          !effectiveContainerId ||
           !profileId
         ) {
           return;
         }
 
+        try {
         if (
           mode === 'direct'
         ) {
@@ -1208,7 +1612,7 @@ const [
               'buklod_connect_direct_thread_details',
               {
                 _thread_id:
-                  containerId,
+                  effectiveContainerId,
               }
             );
 
@@ -1244,42 +1648,34 @@ const [
           );
 
           const rows =
+            await fetchDirectConnectMessages(
+              effectiveContainerId
+            );
+
+          setMessages(current =>
+            mergeServerMessages(
+              rows,
+              current
+            )
+          );
+
+          const readResult =
             await (
               supabase as any
-            )
-              .from(
-                'buklod_connect_direct_messages'
-              )
-              .select(
-                'id,sender_id,body,attachment_path,attachment_name,attachment_mime,attachment_size,created_at'
-              )
-              .eq(
-                'thread_id',
-                containerId
-              )
-              .order(
-                'created_at',
-                {
-                  ascending: true,
-                }
-              )
-              .limit(300);
+            ).rpc(
+              'buklod_connect_mark_direct_read',
+              {
+                _thread_id:
+                  effectiveContainerId,
+              }
+            );
 
-          if (!rows.error) {
-            setMessages(
-              rows.data ?? []
+          if (readResult.error) {
+            console.warn(
+              'Connect mark direct read:',
+              readResult.error.message
             );
           }
-
-          await (
-            supabase as any
-          ).rpc(
-            'buklod_connect_mark_direct_read',
-            {
-              _thread_id:
-                containerId,
-            }
-          );
         }
         else {
           const details =
@@ -1289,7 +1685,7 @@ const [
               'buklod_connect_room_details',
               {
                 _scope_id:
-                  containerId,
+                  effectiveContainerId,
               }
             );
 
@@ -1326,37 +1722,37 @@ const [
           );
 
           const rows =
+            await fetchScopeConnectMessages(
+              effectiveContainerId
+            );
+
+          setMessages(current =>
+            mergeServerMessages(
+              rows,
+              current
+            )
+          );
+
+          const readResult =
             await (
               supabase as any
             ).rpc(
-              'buklod_connect_scope_messages_v1',
+              'buklod_connect_mark_scope_read',
               {
                 _scope_id:
-                  containerId,
-                _limit: 300,
+                  effectiveContainerId,
               }
             );
 
-          if (!rows.error) {
-            setMessages(
-              rows.data ?? []
+          if (readResult.error) {
+            console.warn(
+              'Connect mark scope read:',
+              readResult.error.message
             );
           }
-
-          await (
-            supabase as any
-          ).rpc(
-            'buklod_connect_mark_scope_read',
-            {
-              _scope_id:
-                containerId,
-            }
-          );
         }
 
         await loadReactions();
-
-        setLoading(false);
 
         requestAnimationFrame(
           () =>
@@ -1365,9 +1761,20 @@ const [
                 animated: false,
               })
         );
+      } catch (error: any) {
+        console.warn(
+          'Connect history load:',
+          error?.message ?? error
+        );
+
+        Alert.alert(
+          'Connect',
+          'Could not load message history. Pull to reopen this chat or try again.',
+        );
+      }
       },
       [
-        containerId,
+        effectiveContainerId,
         loadReactions,
         mode,
         profileId,
@@ -1375,10 +1782,35 @@ const [
     );
 
   useEffect(() => {
+    if (!effectiveContainerId) {
+      setHiddenMessageIds(new Set());
+      return;
+    }
+
+    let active = true;
+
+    void loadHiddenConnectMessageIds(
+      mode,
+      effectiveContainerId
+    ).then(ids => {
+      if (active) {
+        setHiddenMessageIds(ids);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    effectiveContainerId,
+    mode,
+  ]);
+
+  useEffect(() => {
     void load();
 
     if (
-      !containerId ||
+      !effectiveContainerId ||
       !profileId
     ) {
       return;
@@ -1391,8 +1823,8 @@ const [
 
     const messageFilter =
       mode === 'direct'
-        ? `thread_id=eq.${containerId}`
-        : `scope_id=eq.${containerId}`;
+        ? `thread_id=eq.${effectiveContainerId}`
+        : `scope_id=eq.${effectiveContainerId}`;
 
     const reactionTable =
       mode === 'direct'
@@ -1401,40 +1833,55 @@ const [
 
     const reactionFilter =
       mode === 'direct'
-        ? `thread_id=eq.${containerId}`
-        : `scope_id=eq.${containerId}`;
+        ? `thread_id=eq.${effectiveContainerId}`
+        : `scope_id=eq.${effectiveContainerId}`;
 
-    const channel =
-      supabase
-        .channel(
-          `connect-${mode}-${containerId}`
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table:
-              messageTable,
-            filter:
-              messageFilter,
-          },
-          () => void load()
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table:
-              reactionTable,
-            filter:
-              reactionFilter,
-          },
-          () =>
-            void loadReactions()
-        )
-        .subscribe();
+    const sessionKey = `${Date.now()}:${Math.random()
+      .toString(36)
+      .slice(2)}`;
+
+    const channel = supabase
+      .channel(
+        `connect-${mode}-${effectiveContainerId}:${sessionKey}`
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table:
+            messageTable,
+          filter:
+            messageFilter,
+        },
+        () => void load()
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table:
+            messageTable,
+          filter:
+            messageFilter,
+        },
+        () => void load()
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table:
+            reactionTable,
+          filter:
+            reactionFilter,
+        },
+        () =>
+          void loadReactions()
+      )
+      .subscribe();
 
     return () => {
       void supabase
@@ -1443,7 +1890,7 @@ const [
         );
     };
   }, [
-    containerId,
+    effectiveContainerId,
     load,
     loadReactions,
     mode,
@@ -1464,7 +1911,7 @@ const [
         () => {
           void loadPeerRead();
         },
-        4000
+        SCALE_LIMITS.connectPeerReadPollMs
       );
 
     return () =>
@@ -1477,28 +1924,29 @@ const [
   useEffect(() => {
     let active = true;
 
-    const pending =
-      messages.filter(
-        item =>
-          !!item.attachment_path &&
-          String(
-            item.attachment_mime ??
-            ''
-          ).startsWith(
-            'image/'
-          ) &&
-          !attachmentUrls[
-            item.attachment_path!
-          ]
-      );
+    const pendingPaths = Array.from(
+      new Set(
+        messages.flatMap(item => {
+          if (item.pending_album?.length) {
+            return [];
+          }
 
-    if (!pending.length) {
+          return getConnectMessageImagePaths(
+            item
+          ).filter(path =>
+            isConnectStoragePath(path)
+          );
+        })
+      )
+    ).filter(path => !attachmentUrls[path]);
+
+    if (!pendingPaths.length) {
       return;
     }
 
     void Promise.all(
-      pending.map(
-        async item => {
+      pendingPaths.map(
+        async path => {
           const result =
             await supabase
               .storage
@@ -1506,15 +1954,12 @@ const [
                 'connect-files'
               )
               .createSignedUrl(
-                item
-                  .attachment_path!,
+                path,
                 3600
               );
 
           return {
-            path:
-              item
-                .attachment_path!,
+            path,
             url:
               result.data
                 ?.signedUrl ??
@@ -1574,6 +2019,7 @@ const [
           await pickConnectFile();
 
         if (picked) {
+          setPhotos([]);
           setFile(picked);
         }
       }
@@ -1592,13 +2038,34 @@ const [
 
       try {
         const picked =
-          await pickConnectPhoto();
+          await pickConnectPhotos();
 
-        if (picked) {
-          setPhotoEditorSource(
-            picked
-          );
+        if (!picked.length) {
+          return;
         }
+
+        setFile(null);
+        setPhotos(current => {
+          const remaining =
+            Math.max(
+              0,
+              12 - current.length
+            );
+
+          if (!remaining) {
+            return current;
+          }
+
+          return [
+            ...current,
+            ...picked.slice(0, remaining).map(photo => ({
+              ...photo,
+              id: `photo-${Date.now()}-${Math.random()
+                .toString(36)
+                .slice(2, 8)}`,
+            })),
+          ];
+        });
       }
       catch (e: any) {
         Alert.alert(
@@ -1609,83 +2076,200 @@ const [
       }
     };
 
-  const attachLongPress =
-    useRef(false);
-  const attachResetTimer =
-    useRef<
-      ReturnType<
-        typeof setTimeout
-      > | null
-    >(null);
-  const [
-    attachPopoverOpen,
-    setAttachPopoverOpen,
-  ] =
-    useState(false);
-  /* PATCH_172A_R7_INLINE_ATTACH_POPOVER */
-  const openAttachMenu =
-    () => {
-      attachLongPress.current =
-        true;
-
-      if (
-        attachResetTimer.current
-      ) {
-        clearTimeout(
-          attachResetTimer.current
-        );
-      }
-
-      attachResetTimer.current =
-        setTimeout(
-          () => {
-            attachLongPress.current =
-              false;
-            attachResetTimer.current =
-              null;
-          },
-          900
-        );
-
-      setAttachPopoverOpen(
-        true
-      );
-    };
-
   const handleAttachPress =
     () => {
-      if (
-        attachLongPress.current
-      ) {
-        attachLongPress.current =
-          false;
-        return;
-      }
-
-      if (
-        attachPopoverOpen
-      ) {
-        setAttachPopoverOpen(
-          false
-        );
-        return;
-      }
-
       void chooseFile();
     };
 
-  const openReactionMenu =
+  const openMessageActions =
     (
-      messageId: string
+      message: Message,
+      anchor: ConnectMessageActionAnchor,
     ) => {
       setOptionMenu(null);
-      setReactionTargetId(
-        current =>
-          current ===
-          messageId
-            ? null
-            : messageId
+      setReactionTargetId(message.id);
+      setActionTargetMessage(message);
+      setActionAnchor(anchor);
+    };
+
+  const closeMessageActions =
+    () => {
+      setActionTargetMessage(null);
+      setActionAnchor(null);
+      setReactionTargetId(null);
+    };
+
+  const clearReply =
+    () => {
+      setReplyTo(null);
+    };
+
+  const handleMessageReply =
+    () => {
+      if (!actionTargetMessage) {
+        return;
+      }
+
+      setReplyTo(actionTargetMessage);
+      setReactionTargetId(null);
+      setActionTargetMessage(null);
+      setActionAnchor(null);
+
+      requestAnimationFrame(() =>
+        composerInputRef.current?.focus()
       );
+    };
+
+  const handleMessageCopy =
+    async () => {
+      if (!actionTargetMessage) {
+        return;
+      }
+
+      const text =
+        getConnectMessageCopyText(
+          actionTargetMessage
+        );
+
+      if (!text) {
+        Alert.alert(
+          'Copy',
+          'Nothing to copy for this message.'
+        );
+        return;
+      }
+
+      await Clipboard.setStringAsync(
+        text
+      );
+    };
+
+  const handleMessageForward =
+    async () => {
+      if (!actionTargetMessage) {
+        return;
+      }
+
+      try {
+        await Share.share({
+          message:
+            getConnectForwardText(
+              actionTargetMessage
+            ),
+        });
+      }
+      catch {
+        /* User dismissed share sheet. */
+      }
+    };
+
+  const handleRestoreHiddenMessages =
+    async () => {
+      if (!effectiveContainerId) {
+        return;
+      }
+
+      setHiddenMessageIds(new Set());
+
+      await clearHiddenConnectMessageIds(
+        mode,
+        effectiveContainerId
+      );
+    };
+
+  const handleDeleteForMe =
+    async () => {
+      if (
+        !actionTargetMessage ||
+        !effectiveContainerId
+      ) {
+        return;
+      }
+
+      const next = new Set(
+        hiddenMessageIds
+      );
+
+      next.add(
+        actionTargetMessage.id
+      );
+      setHiddenMessageIds(next);
+      setReactionTargetId(null);
+      setActionAnchor(null);
+
+      await saveHiddenConnectMessageIds(
+        mode,
+        effectiveContainerId,
+        next
+      );
+    };
+
+  const handleDeleteForEveryone =
+    async () => {
+      if (!actionTargetMessage) {
+        return;
+      }
+
+      const target =
+        actionTargetMessage;
+
+      setReactionTargetId(null);
+      setActionAnchor(null);
+
+      try {
+        const result =
+          await (
+            supabase as any
+          ).rpc(
+            'buklod_connect_delete_message_for_everyone_v1',
+            {
+              p_message_id:
+                target.id,
+            }
+          );
+
+        if (result.error) {
+          throw result.error;
+        }
+
+        setMessages(current =>
+          current.map(item =>
+            item.id === target.id
+              ? {
+                  ...item,
+                  body:
+                    CONNECT_DELETED_BODY,
+                  attachment_path:
+                    null,
+                  attachment_name:
+                    null,
+                  attachment_mime:
+                    null,
+                  attachment_size:
+                    null,
+                  deleted_at:
+                    new Date().toISOString(),
+                }
+              : item
+          )
+        );
+      }
+      catch (e: any) {
+        const message =
+          String(
+            e?.message ?? e ?? ''
+          );
+
+        Alert.alert(
+          'Delete',
+          /function.*does not exist/i.test(
+            message
+          )
+            ? 'Delete for everyone needs the latest database update.'
+            : message ||
+                'Could not delete message.'
+        );
+      }
     };
 
   /* PATCH_167L_R7_OPTIMISTIC_REACTION */
@@ -1782,18 +2366,13 @@ const [
 
       try {
         const result =
-          await (
-            supabase as any
-          ).rpc(
-            'buklod_connect_set_reaction',
+          await setConnectMessageReaction(
             {
-              _mode: mode,
-              _container_id:
-                containerId,
-              _message_id:
-                messageId,
-              _reaction:
-                reaction,
+              mode,
+              containerId:
+                effectiveContainerId,
+              messageId,
+              reaction,
             }
           );
 
@@ -1820,16 +2399,101 @@ const [
           );
 
         const backendMissing =
-          /buklod_connect_set_reaction|schema cache|does not exist|could not find the function/i
+          /buklod_connect_set_reaction|unsupported reaction|schema cache|does not exist|could not find the function/i
             .test(message);
 
         Alert.alert(
           'Reaction',
           backendMissing
-            ? 'Reaction database update is not active yet. Run the Supabase database migration, then try again.'
+            ? 'Reaction update is not active yet. Apply the latest Supabase migrations, then try again.'
             : message
         );
       }
+    };
+
+  const makeLocalMessageId =
+    () =>
+      `local-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2, 8)}`;
+
+  const appendOptimisticMessage =
+    (
+      text: string,
+      localId: string
+    ) => {
+      if (!profileId) {
+        return;
+      }
+
+      setMessages(
+        current => [
+          ...current,
+          {
+            id: localId,
+            sender_id:
+              profileId,
+            body: text,
+            attachment_path:
+              null,
+            attachment_name:
+              null,
+            attachment_mime:
+              null,
+            attachment_size:
+              null,
+            created_at:
+              new Date()
+                .toISOString(),
+            delivery_state:
+              'pending',
+          },
+        ]
+      );
+
+      requestAnimationFrame(
+        () =>
+          listRef.current
+            ?.scrollToEnd({
+              animated: true,
+            })
+      );
+    };
+
+  const markLocalMessageSent =
+    (localId: string) => {
+      setMessages(
+        current =>
+          current.map(
+            item =>
+              item.id ===
+              localId
+                ? {
+                    ...item,
+                    delivery_state:
+                      'sent',
+                  }
+                : item
+          )
+      );
+    };
+
+  const markLocalMessageFailed =
+    (localId: string) => {
+      setMessages(
+        current =>
+          current.map(
+            item =>
+              item.id ===
+              localId
+                ? {
+                    ...item,
+                    delivery_state:
+                      'not_sent',
+                  }
+                : item
+          )
+      );
     };
 
   const appendNotSent =
@@ -1873,6 +2537,23 @@ const [
       );
     };
 
+  const insertDraftEmoji =
+    (
+      emoji: string
+    ) => {
+      const next =
+        `${draftRef.current ?? ''}${emoji}`;
+
+      draftRef.current =
+        next;
+
+      setDraft(next);
+
+      setComposerPickerOpen(
+        false
+      );
+    };
+
   const sendQuickBody =
     async (
       text: string
@@ -1880,19 +2561,40 @@ const [
       if (
         mode !== 'direct' ||
         !profileId ||
-        sending ||
+        !effectiveContainerId ||
         !text.trim()
       ) {
         return;
       }
 
-      setComposerQuickOpen(
-        false
+      const trimmed =
+        text.trim();
+      const inflightKey =
+        `quick:${trimmed}`;
+
+      if (
+        inflightTextSendsRef.current.has(
+          inflightKey
+        )
+      ) {
+        return;
+      }
+
+      inflightTextSendsRef.current.add(
+        inflightKey
       );
+
       setComposerPickerOpen(
         false
       );
-      setSending(true);
+
+      const localId =
+        makeLocalMessageId();
+
+      appendOptimisticMessage(
+        trimmed,
+        localId
+      );
 
       try {
         const result =
@@ -1904,11 +2606,11 @@ const [
             )
             .insert({
               thread_id:
-                containerId,
+                effectiveContainerId,
               sender_id:
                 profileId,
               body:
-                text.trim(),
+                trimmed,
               attachment_path:
                 null,
               attachment_name:
@@ -1923,64 +2625,47 @@ const [
           throw result.error;
         }
 
-        await load();
-      }
-      catch (e: any) {
-        appendNotSent(
-          text
+        markLocalMessageSent(
+          localId
         );
-
-        Alert.alert(
-          'Send Message',
-          e?.message ||
-            String(e)
+      }
+      catch {
+        markLocalMessageFailed(
+          localId
         );
       }
       finally {
-        setSending(false);
+        inflightTextSendsRef.current.delete(
+          inflightKey
+        );
       }
     };
 
-  const chooseAndSendGif =
-    async () => {
+  const sendConnectGifFile =
+    async (
+      picked: ConnectPickedFile
+    ) => {
       if (
         mode !== 'direct' ||
         !profileId ||
-        sending
+        !effectiveContainerId ||
+        uploadingAttachment
       ) {
         return;
       }
 
-      setComposerPickerOpen(
-        false
-      );
-      setComposerQuickOpen(
-        false
-      );
+      setComposerPickerOpen(false);
 
-      let picked:
-        ConnectPickedFile | null =
-          null;
+      setUploadingAttachment(true);
 
       try {
-        picked =
-          await pickConnectGif();
-
-        if (!picked) {
-          return;
-        }
-
-        setSending(true);
-
         const uploaded =
-          await uploadConnectFile(
-            {
-              mode: 'direct',
-              containerId,
-              file:
-                picked,
-            }
-          );
+          await uploadConnectFile({
+            mode: 'direct',
+            containerId:
+              effectiveContainerId,
+            file: picked,
+          });
 
         const result =
           await (
@@ -1991,7 +2676,7 @@ const [
             )
             .insert({
               thread_id:
-                containerId,
+                effectiveContainerId,
               sender_id:
                 profileId,
               body: '',
@@ -2008,14 +2693,11 @@ const [
         if (result.error) {
           throw result.error;
         }
-
-        await load();
       }
       catch (e: any) {
         appendNotSent(
           'GIF',
-          picked?.name ??
-            null
+          picked.name
         );
 
         Alert.alert(
@@ -2025,7 +2707,37 @@ const [
         );
       }
       finally {
-        setSending(false);
+        setUploadingAttachment(
+          false
+        );
+      }
+    };
+
+  const sendCatalogGif =
+    async (gifId: string) => {
+      const item =
+        CONNECT_GIF_CATALOG.find(
+          entry => entry.id === gifId
+        );
+
+      if (!item) {
+        return;
+      }
+
+      try {
+        const picked =
+          await downloadConnectCatalogGif(
+            item
+          );
+
+        await sendConnectGifFile(picked);
+      }
+      catch (e: any) {
+        Alert.alert(
+          'GIF',
+          e?.message ||
+            String(e)
+        );
       }
     };
 
@@ -2037,111 +2749,633 @@ const [
         `${AVATAR_REACTION_PREFIX}${key}]]`
       );
 
-  const send =
-    async () => {
+  const sendCapturedText =
+    (
+      trimmed: string,
+      replyMessage?: Message | null
+    ) => {
       if (
         !profileId ||
-        sending
+        !effectiveContainerId ||
+        !trimmed
       ) {
         return;
       }
 
+      const reply =
+        replyMessage ??
+        replyToRef.current;
+      const outbound =
+        reply?.id &&
+        !/^\[\[BUKLOD_REPLY:v1:/i.test(
+          trimmed
+        )
+          ? buildConnectReplyBody(
+              reply.id,
+              trimmed
+            )
+          : trimmed;
+
+      const localId =
+        makeLocalMessageId();
+
+      inflightTextSendsRef.current.add(
+        localId
+      );
+
+      appendOptimisticMessage(
+        outbound,
+        localId
+      );
+
+      void (async () => {
+        try {
+          const table =
+            mode === 'direct'
+              ? 'buklod_connect_direct_messages'
+              : 'buklod_connect_scope_messages';
+
+          const payload: any = {
+            sender_id:
+              profileId,
+            body:
+              outbound,
+            attachment_path:
+              null,
+            attachment_name:
+              null,
+            attachment_mime:
+              null,
+            attachment_size:
+              null,
+          };
+
+          if (
+            mode === 'direct'
+          ) {
+            payload.thread_id =
+              effectiveContainerId;
+          }
+          else {
+            payload.scope_id =
+              effectiveContainerId;
+          }
+
+          const result =
+            await (
+              supabase as any
+            )
+              .from(table)
+              .insert(payload);
+
+          if (result.error) {
+            throw result.error;
+          }
+
+          markLocalMessageSent(
+            localId
+          );
+        }
+        catch {
+          markLocalMessageFailed(
+            localId
+          );
+        }
+        finally {
+          inflightTextSendsRef.current.delete(
+            localId
+          );
+        }
+      })();
+    };
+
+  const sendAlbum =
+    (
+      album: ComposerPhoto[],
+      caption: string,
+      replyMessage?: Message | null
+    ) => {
+      if (
+        !profileId ||
+        !effectiveContainerId ||
+        !album.length
+      ) {
+        return;
+      }
+
+      const localId =
+        makeLocalMessageId();
+      const snapshot =
+        album.map(photo => ({
+          ...photo,
+        }));
+      const first =
+        snapshot[0];
+      const reply =
+        replyMessage ??
+        replyToRef.current;
+      const outboundCaption =
+        reply?.id
+          ? buildConnectReplyBody(
+              reply.id,
+              caption
+            )
+          : caption;
+
+      setAttachmentUrls(
+        current => {
+          const next = {
+            ...current,
+          };
+
+          for (const photo of snapshot) {
+            next[photo.uri] =
+              photo.uri;
+          }
+
+          return next;
+        }
+      );
+
+      setMessages(
+        current => [
+          ...current,
+          {
+            id: localId,
+            sender_id:
+              profileId,
+            body: outboundCaption,
+            attachment_path:
+              first.uri,
+            attachment_name:
+              first.name,
+            attachment_mime:
+              first.mimeType,
+            attachment_size:
+              first.size,
+            created_at:
+              new Date()
+                .toISOString(),
+            delivery_state:
+              'pending',
+            pending_album:
+              snapshot,
+          },
+        ]
+      );
+
+      requestAnimationFrame(
+        () =>
+          listRef.current
+            ?.scrollToEnd({
+              animated: true,
+            })
+      );
+
+      void (async () => {
+        try {
+          const uploaded: Array<{
+            path: string;
+            name: string;
+            mimeType: string;
+            size: number;
+          }> = [];
+
+          for (
+            let index = 0;
+            index < snapshot.length;
+            index += 1
+          ) {
+            const photo =
+              snapshot[index];
+            const row =
+              await uploadConnectFile(
+                {
+                  mode,
+                  containerId:
+                    effectiveContainerId,
+                  file: photo,
+                  uniqueKey: `${Date.now()}-${index}-${Math.random()
+                    .toString(36)
+                    .slice(2, 8)}`,
+                }
+              );
+
+            uploaded.push(row);
+
+            setAttachmentUrls(
+              current => ({
+                ...current,
+                [row.path]:
+                  photo.uri,
+              })
+            );
+          }
+
+          const paths =
+            uploaded.map(
+              row => row.path
+            );
+          const body =
+            encodeConnectAlbumBody(
+              paths,
+              caption
+            );
+          const outbound =
+            reply?.id
+              ? buildConnectReplyBody(
+                  reply.id,
+                  body
+                )
+              : body;
+          const table =
+            mode === 'direct'
+              ? 'buklod_connect_direct_messages'
+              : 'buklod_connect_scope_messages';
+          const payload: any = {
+            sender_id:
+              profileId,
+            body: outbound,
+            attachment_path:
+              uploaded[0].path,
+            attachment_name:
+              uploaded[0].name,
+            attachment_mime:
+              uploaded[0].mimeType,
+            attachment_size:
+              uploaded[0].size,
+          };
+
+          if (mode === 'direct') {
+            payload.thread_id =
+              effectiveContainerId;
+          }
+          else {
+            payload.scope_id =
+              effectiveContainerId;
+          }
+
+          const result =
+            await (
+              supabase as any
+            )
+              .from(table)
+              .insert(payload);
+
+          if (result.error) {
+            throw result.error;
+          }
+
+          setMessages(
+            current =>
+              current.map(
+                item =>
+                  item.id ===
+                  localId
+                    ? {
+                        ...item,
+                        body: outbound,
+                        attachment_path:
+                          uploaded[0]
+                            .path,
+                        attachment_name:
+                          uploaded[0]
+                            .name,
+                        attachment_mime:
+                          uploaded[0]
+                            .mimeType,
+                        attachment_size:
+                          uploaded[0]
+                            .size,
+                        delivery_state:
+                          'sent',
+                      }
+                    : item
+              )
+          );
+        }
+        catch {
+          markLocalMessageFailed(
+            localId
+          );
+        }
+      })();
+    };
+
+  const retryFailedMessage =
+    (
+      item: Message
+    ) => {
+      if (
+        item.delivery_state !==
+        'not_sent'
+      ) {
+        return;
+      }
+
+      const caption =
+        parseConnectAlbumBody(
+          item.body
+        ).caption.trim();
+
+      setMessages(
+        current =>
+          current.filter(
+            row =>
+              row.id !==
+              item.id
+          )
+      );
+
+      if (item.pending_album?.length) {
+        sendAlbum(
+          item.pending_album,
+          caption
+        );
+        return;
+      }
+
+      if (!caption) {
+        return;
+      }
+
+      sendCapturedText(caption);
+    };
+
+  const send =
+    () => {
+      if (
+        sendInFlightRef.current
+      ) {
+        return;
+      }
+
+      if (
+        !profileId ||
+        !effectiveContainerId
+      ) {
+        return;
+      }
+
+      const currentPhotos =
+        photosRef.current;
+      const currentFile =
+        fileRef.current;
       const text =
-        draft.trim();
+        String(
+          draftRef.current ??
+            ''
+        ).trim();
 
       if (
         !text &&
-        !file
+        !currentFile &&
+        !currentPhotos.length
       ) {
         return;
       }
 
-      setSending(true);
+      if (!online) {
+        Alert.alert(
+          'Offline',
+          'Your message draft is saved on this device. Reconnect to send it.'
+        );
+        return;
+      }
 
-      try {
-        const uploaded =
-          file
-            ? await uploadConnectFile(
-                {
-                  mode,
-                  containerId,
-                  file,
-                }
+      clearComposerInset();
+      Keyboard.dismiss();
+      composerInputRef.current?.blur();
+
+      sendInFlightRef.current =
+        true;
+      const activeReply =
+        replyToRef.current;
+      setReplyTo(null);
+
+      if (currentPhotos.length) {
+        const savedPhotos =
+          currentPhotos.map(
+            photo => ({
+              ...photo,
+            })
+          );
+        const savedText =
+          text;
+
+        draftRef.current = '';
+        photosRef.current = [];
+        fileRef.current = null;
+        setDraft('');
+        setPhotos([]);
+        setFile(null);
+        sendAlbum(
+          savedPhotos,
+          savedText,
+          activeReply
+        );
+        sendInFlightRef.current =
+          false;
+        return;
+      }
+
+      if (currentFile) {
+        const savedFile =
+          currentFile;
+        const savedText =
+          activeReply?.id
+            ? buildConnectReplyBody(
+                activeReply.id,
+                text
               )
-            : null;
+            : text;
+        const localId =
+          makeLocalMessageId();
+        const isImage =
+          savedFile.mimeType
+            .toLowerCase()
+            .startsWith(
+              'image/'
+            );
 
-        const table =
-          mode === 'direct'
-            ? 'buklod_connect_direct_messages'
-            : 'buklod_connect_scope_messages';
-
-        const payload: any = {
-          sender_id:
-            profileId,
-          body: text,
-          attachment_path:
-            uploaded?.path ??
-            null,
-          attachment_name:
-            uploaded?.name ??
-            null,
-          attachment_mime:
-            uploaded?.mimeType ??
-            null,
-          attachment_size:
-            uploaded?.size ??
-            null,
-        };
-
-        if (
-          mode === 'direct'
-        ) {
-          payload.thread_id =
-            containerId;
-        }
-        else {
-          payload.scope_id =
-            containerId;
-        }
-
-        const result =
-          await (
-            supabase as any
-          )
-            .from(table)
-            .insert(payload);
-
-        if (result.error) {
-          throw result.error;
-        }
-
+        draftRef.current = '';
+        fileRef.current = null;
         setDraft('');
         setFile(null);
 
-        await load();
-      }
-      catch (e: any) {
-        /* PATCH_172A_NORMAL_SEND_FAILURE */
-        appendNotSent(
-          text ||
-            (
-              file
-                ? 'Attachment'
-                : 'Message'
-            ),
-          file?.name ??
-            null
+        if (isImage) {
+          setAttachmentUrls(
+            current => ({
+              ...current,
+              [savedFile.uri]:
+                savedFile.uri,
+            })
+          );
+        }
+
+        setMessages(
+          current => [
+            ...current,
+            {
+              id: localId,
+              sender_id:
+                profileId,
+              body: savedText,
+              attachment_path:
+                savedFile.uri,
+              attachment_name:
+                savedFile.name,
+              attachment_mime:
+                savedFile.mimeType,
+              attachment_size:
+                savedFile.size,
+              created_at:
+                new Date()
+                  .toISOString(),
+              delivery_state:
+                'pending',
+              pending_album:
+                isImage
+                  ? [
+                      {
+                        ...savedFile,
+                        id: localId,
+                      },
+                    ]
+                  : null,
+            },
+          ]
         );
 
-        Alert.alert(
-          'Send Message',
-          e?.message ||
-            String(e)
+        requestAnimationFrame(
+          () =>
+            listRef.current
+              ?.scrollToEnd({
+                animated: true,
+              })
         );
+
+        void (async () => {
+          try {
+            const uploaded =
+              await uploadConnectFile(
+                {
+                  mode,
+                  containerId:
+                    effectiveContainerId,
+                  file:
+                    savedFile,
+                }
+              );
+
+            if (isImage) {
+              setAttachmentUrls(
+                current => ({
+                  ...current,
+                  [uploaded.path]:
+                    savedFile.uri,
+                })
+              );
+            }
+
+            const table =
+              mode === 'direct'
+                ? 'buklod_connect_direct_messages'
+                : 'buklod_connect_scope_messages';
+
+            const payload: any = {
+              sender_id:
+                profileId,
+              body:
+                savedText,
+              attachment_path:
+                uploaded.path,
+              attachment_name:
+                uploaded.name,
+              attachment_mime:
+                uploaded.mimeType,
+              attachment_size:
+                uploaded.size,
+            };
+
+            if (
+              mode === 'direct'
+            ) {
+              payload.thread_id =
+                effectiveContainerId;
+            }
+            else {
+              payload.scope_id =
+                effectiveContainerId;
+            }
+
+            const result =
+              await (
+                supabase as any
+              )
+                .from(table)
+                .insert(payload);
+
+            if (result.error) {
+              throw result.error;
+            }
+
+            setMessages(
+              current =>
+                current.map(
+                  item =>
+                    item.id ===
+                    localId
+                      ? {
+                          ...item,
+                          attachment_path:
+                            uploaded.path,
+                          attachment_name:
+                            uploaded.name,
+                          attachment_mime:
+                            uploaded.mimeType,
+                          attachment_size:
+                            uploaded.size,
+                          delivery_state:
+                            'sent',
+                        }
+                      : item
+                )
+            );
+          }
+          catch (e: any) {
+            markLocalMessageFailed(
+              localId
+            );
+
+            Alert.alert(
+              'Send Message',
+              e?.message ||
+                String(e)
+            );
+          }
+          finally {
+            sendInFlightRef.current =
+              false;
+          }
+        })();
+
+        return;
       }
-      finally {
-        setSending(false);
-      }
+
+      draftRef.current = '';
+      setDraft('');
+      sendCapturedText(
+        text,
+        activeReply
+      );
+      setTimeout(
+        () => {
+          sendInFlightRef.current =
+            false;
+        },
+        450
+      );
     };
 
   /* PATCH_172H_ORGANIZATION_SCOPE_FLAG */
@@ -2193,249 +3427,78 @@ const [
     organizationScope ||
     clusterScope;
 
-  if (loading && mode !== 'direct' /* PATCH_185A_R2_DIRECT_THREAD_NO_BLOCKING_SPINNER */) {
-    return (
-      <View
-        style={
-          styles.center
-        }
-      >
-        <ActivityIndicator
-          color={
-            colors.green
-          }
-        />
-      </View>
-    );
-  }
+  const embeddedInWorkspace =
+    managedCompactScope &&
+    Boolean(onBackOverride);
 
   return (
-    <View
-      /* PATCH_169H_TOP_SAFE_AREA */
-      style={[
-        {
-          /* UI_002_R10_TINY_BOTTOM_CLEARANCE */
-          height: Math.min(Math.max(insets.bottom, 0), 6),
-          backgroundColor: '#FFFFFF',
-        },
-        {
-          /* UI_002_R10_R3_PARENT_FILL */
-          flex: 1,
-        },
-      ]}
+    <ConnectThreadBackground
+      style={{
+        paddingBottom:
+          navOccupied > 0
+            ? 0
+            : Math.max(
+                insets.bottom,
+                6
+              ),
+      }}
     >
-      <View
-        style={
-          [
-        styles.header,
-        {
-          /* UI_002_R13_R3_MESSAGES_TOP_SAFE */
-          paddingTop: Math.max(insets.top, 12),
-          paddingBottom: 8,
-          minHeight: 58 + Math.max(insets.top, 12),
-          overflow: 'visible',
-        },
-      ]
+      <ConnectThreadHeader
+        title={title}
+        subtitle={subtitle}
+        showSubtitle={!managedCompactScope}
+        compactEmbedded={embeddedInWorkspace}
+        paddingTop={
+          embeddedInWorkspace
+            ? 4
+            : Math.max(insets.top, 12)
         }
-      >
-        <Pressable
-          onPress={
-            () =>
-              router.back()
+        otherUserId={mode === 'direct' ? otherUserId : null}
+        showDirectCalls={mode === 'direct' && !!otherUserId}
+        callStarting={directCallStarting}
+        onBack={() => {
+          if (onBackOverride) {
+            onBackOverride();
+            return;
           }
-          style={
-            styles.headerButton
-          }
-        >
-          <MaterialCommunityIcons
-            name="arrow-left"
-            size={23}
-            color={
-              colors.greenDark
-            }
+
+          router.back();
+        }}
+        onAudioCall={() => void startDirectCall('audio')}
+        onVideoCall={() => void startDirectCall('video')}
+        appearanceSlot={
+          <ConnectThemeSelectorButton
+            threadId={effectiveContainerId}
           />
-        </Pressable>
-
-        <View
-          style={
-            styles.headerCopy
-          }
-        >
-          <Text
-            numberOfLines={1}
-            style={
-              styles.headerTitle
-            }
-          >
-            {title}
-          </Text>
-
-                  {/* PATCH_172G_ORG_HEADER_SUBTITLE */}
-        {/* PATCH_172I_CLUSTER_SUBTITLE_MATCH */}
-        {!managedCompactScope && (
-          <Text
-            style={
-              styles.headerSub
-            }
-          >
-            {subtitle}
-          </Text>
-        )}
-        </View>
-
-        {mode === 'direct' &&
-        !!otherUserId ? (
-          <View
-            style={{
-              flexDirection:
-                'row',
-              alignItems:
-                'center',
-              gap: 3,
-              flexShrink: 0,
-       marginLeft: 'auto',
-            }}
-          >
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Start voice call"
-              disabled={
-                directCallStarting !==
-                null
-              }
-              onPress={() =>
-                void startDirectCall(
-                  'audio'
-                )
-              }
-              hitSlop={8}
-              style={[
-                styles.headerButton,
-                directCallStarting !==
-                  null && {
-                  opacity: 0.45,
-                },
-              ]}
-            >
-              {directCallStarting ===
-              'audio' ? (
-                <ActivityIndicator
-                  size="small"
-                  color={
-                    colors.greenDark
-                  }
-                />
-              ) : (
+        }
+        rightSlot={
+          managedCompactScope && officeEnabled ? (
+            <View style={styles.headerActions}>
+              <ConnectPressable
+                accessibilityLabel="Open Organizer Office"
+                onPress={() =>
+                  router.push({
+                    pathname: '/office/[scopeId]',
+                    params: { scopeId: effectiveContainerId },
+                  } as any)
+                }
+                style={styles.headerButton}
+              >
                 <MaterialCommunityIcons
-                  name="phone"
-                  size={22}
-                  color={
-                    colors.greenDark
-                  }
+                  name="briefcase-outline"
+                  size={23}
+                  color={theme.accent}
                 />
-              )}
-            </Pressable>
-
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Start video call"
-              disabled={
-                directCallStarting !==
-                null
-              }
-              onPress={() =>
-                void startDirectCall(
-                  'video'
-                )
-              }
-              hitSlop={8}
-              style={[
-                styles.headerButton,
-                directCallStarting !==
-                  null && {
-                  opacity: 0.45,
-                },
-              ]}
-            >
-              {directCallStarting ===
-              'video' ? (
-                <ActivityIndicator
-                  size="small"
-                  color={
-                    colors.greenDark
-                  }
-                />
-              ) : (
-                <MaterialCommunityIcons
-                  name="video-outline"
-                  size={24}
-                  color={
-                    colors.greenDark
-                  }
-                />
-              )}
-            </Pressable>
-          </View>
-        ) : (/* PATCH_172I_CLUSTER_HEADER_ACTIONS_MATCH */
-          managedCompactScope &&
-          officeEnabled) ? (
-          <View
-            /* PATCH_172H_HEADER_ACTIONS */
-            style={
-              styles.headerActions
-            }
-          >
-            <Pressable
-            accessibilityLabel="Open Organizer Office"
-            onPress={() =>
-              router.push({
-                pathname:
-                  '/office/[scopeId]',
-                params: {
-                  scopeId:
-                    containerId,
-                },
-              } as any)
-            }
-            style={
-              styles.headerButton
-            }
-          >
-            <MaterialCommunityIcons
-              name="briefcase-outline"
-              size={23}
-              color={
-                colors.greenDark
-              }
-            />
-          </Pressable>
-
-            <BuklodScopeCallLauncher
-              scopeId={
-                containerId
-              }
-              title={
-                title
-              }
-              compact
-            />
-          </View>
-        ) : (
-          <View
-            style={
-              styles.headerButton
-            }
-          >
-            <MaterialCommunityIcons
-              name="link-variant"
-              size={21}
-              color={
-                colors.greenDark
-              }
-            />
-          </View>
-        )}
-      </View>
+              </ConnectPressable>
+              <BuklodScopeCallLauncher
+                scopeId={effectiveContainerId}
+                title={title}
+                compact
+              />
+            </View>
+          ) : undefined
+        }
+      />
 
       {/* PATCH_172G_ORG_AUTOMATIC_NOTE */}
       {/* PATCH_172I_CLUSTER_AUTO_ROOM_MATCH */}
@@ -2458,7 +3521,7 @@ const [
             name="shield-check-outline"
             size={17}
             color={
-              colors.greenDark
+              theme.accent
             }
           />
 
@@ -2487,7 +3550,7 @@ const [
                 '/office/[scopeId]',
               params: {
                 scopeId:
-                  containerId,
+                  effectiveContainerId,
               },
             } as any)
           }
@@ -2499,7 +3562,7 @@ const [
             name="folder-multiple-outline"
             size={18}
             color={
-              colors.greenDark
+              theme.accent
             }
           />
 
@@ -2515,7 +3578,7 @@ const [
             name="chevron-right"
             size={19}
             color={
-              colors.greenDark
+              theme.accent
             }
           />
         </Pressable>
@@ -2528,21 +3591,50 @@ const [
         mode === 'scope' &&
       !organizationScope ? (
         <BuklodScopeCallLauncher
-          scopeId={containerId}
+          scopeId={effectiveContainerId}
           title={title}
         />
       ) : null
       )}
+      <View
+        ref={threadBodyRef}
+        onLayout={() => {
+          resyncComposerInset();
+        }}
+        style={{ flex: 1 }}
+      >
 <FlatList
         ref={listRef}
-        data={messages}
+        style={{ flex: 1 }}
+        data={visibleMessages}
+        keyboardShouldPersistTaps="always"
+        keyboardDismissMode="none"
+        removeClippedSubviews={false}
+        initialNumToRender={
+          FLATLIST_TUNING.connectThread.initialNumToRender
+        }
+        maxToRenderPerBatch={
+          FLATLIST_TUNING.connectThread.maxToRenderPerBatch
+        }
+        updateCellsBatchingPeriod={
+          FLATLIST_TUNING.connectThread.updateCellsBatchingPeriod
+        }
+        windowSize={
+          FLATLIST_TUNING.connectThread.windowSize
+        }
         keyExtractor={
           item =>
             item.id
         }
-        contentContainerStyle={
-          styles.messages
-        }
+        contentContainerStyle={[
+          styles.messages,
+          {
+            paddingBottom:
+              CONNECT_COMPOSER_RESERVED_HEIGHT +
+              composerBottom +
+              18,
+          },
+        ]}
         onContentSizeChange={
           () =>
             listRef.current
@@ -2556,13 +3648,45 @@ const [
               styles.empty
             }
           >
-            <Text
-              style={
-                styles.emptyTitle
-              }
-            >
-              Start the conversation
-            </Text>
+            {hiddenMessageCount > 0 ? (
+              <>
+                <Text
+                  style={
+                    styles.emptyTitle
+                  }
+                >
+                  {hiddenMessageCount}{' '}
+                  hidden message
+                  {hiddenMessageCount === 1
+                    ? ''
+                    : 's'}
+                </Text>
+                <Pressable
+                  onPress={() =>
+                    void handleRestoreHiddenMessages()
+                  }
+                  style={
+                    styles.restoreButton
+                  }
+                >
+                  <Text
+                    style={
+                      styles.restoreButtonText
+                    }
+                  >
+                    Restore chat history
+                  </Text>
+                </Pressable>
+              </>
+            ) : (
+              <Text
+                style={
+                  styles.emptyTitle
+                }
+              >
+                Start the conversation
+              </Text>
+            )}
           </View>
         }
         renderItem={({
@@ -2571,6 +3695,47 @@ const [
           const own =
             item.sender_id ===
             profileId;
+
+          const messageDeleted =
+            isConnectDeletedMessage(
+              item
+            );
+
+          const parsedReply =
+            parseConnectReplyBody(
+              item.body
+            );
+          const messageBody =
+            parsedReply.text;
+          const replySource =
+            parsedReply.replyToId
+              ? messageById.get(
+                  parsedReply.replyToId
+                )
+              : null;
+          const replyQuote =
+            parsedReply.replyToId
+              ? {
+                  senderName:
+                    replySource?.sender_id ===
+                    profileId
+                      ? 'You'
+                      : resolvePersonDisplayName(
+                          replySource?.sender_name ??
+                            title,
+                          replySource?.sender_id,
+                        ),
+                  text:
+                    getConnectMessagePreview(
+                      replySource ?? {
+                        id:
+                          parsedReply.replyToId,
+                        sender_id: '',
+                        body: '',
+                      }
+                    ),
+                }
+              : null;
 
           const summary =
             reactions[
@@ -2617,29 +3782,64 @@ const [
                 ''
             ).startsWith(
               'image/'
-            );
+            ) ||
+            !!item.pending_album?.length ||
+            parseConnectAlbumBody(
+              messageBody
+            ).paths.length > 0;
+
+          const albumCaption =
+            parseConnectAlbumBody(
+              messageBody
+            ).caption;
+
+          const photoUrls =
+            item.pending_album?.length
+              ? item.pending_album.map(
+                  photo => photo.uri
+                )
+              : getConnectMessageImagePaths(
+                  item
+                )
+                  .map(path =>
+                    attachmentUrls[path] ??
+                    (
+                      isConnectStoragePath(
+                        path
+                      )
+                        ? null
+                        : path
+                    )
+                  )
+                  .filter(
+                    (uri): uri is string =>
+                      !!uri
+                  );
 
           /* PATCH_172A_AVATAR_BUBBLE */
           const avatarReaction =
-            parseAvatarReaction(
-              item.body
-            );
+            messageDeleted
+              ? null
+              : parseAvatarReaction(
+                  messageBody
+                );
 
           /* PATCH_172A_R5_STANDALONE_REACTION */
           const standaloneEmojiReaction =
             mode === 'direct' &&
+            !messageDeleted &&
             !avatarReaction &&
             !item.attachment_path &&
             (
               (
                 QUICK_SEND_EMOJIS as readonly string[]
               ).includes(
-                item.body.trim()
+                messageBody.trim()
               ) ||
               (
                 EXTENDED_SEND_EMOJIS as readonly string[]
               ).includes(
-                item.body.trim()
+                messageBody.trim()
               )
             );
 
@@ -2657,1234 +3857,404 @@ const [
                 ] ??
                 null
               : null;
+          const deliveryLabel =
+            own && mode === 'direct'
+              ? (
+                  item.delivery_state === 'not_sent'
+                    ? '\u2022 Not sent'
+                    : item.delivery_state === 'pending'
+                      ? '\u2022 Sending'
+                      : (
+                          directPeerReadAt &&
+                          new Date(directPeerReadAt).getTime() >=
+                            new Date(item.created_at).getTime()
+                        )
+                        ? '\u2022 Seen'
+                        : '\u2022 Sent'
+                )
+              : null;
+
+          void hasMine;
+
           return (
-            <View
-              style={[
-                styles.wrap,
+            <View>
+            <ConnectMessageBubble
+              own={own}
+              deleted={messageDeleted}
+              replyQuote={replyQuote}
+              showSenderAvatar={mode === 'direct'}
+              senderUserId={item.sender_id}
+              senderName={
                 own
-                  ? styles.own
-                  : styles.other,
-              ]}
-            >
-          {/* PATCH_180A_R4_CHAT_BUBBLE_PROFILE_PICTURE */}
-          {/* PATCH_180A_R6_CHAT_AVATARS_BOTH_SIDES */}
-          {mode === 'direct' && (
-            <View
-              pointerEvents="none"
-              style={[
-                styles.messageSenderAvatar,
-                own &&
-                  styles.messageSenderAvatarOwn,
-              ]}
-            >
-              <ProfileAvatar
-                userId={item.sender_id}
-                name={
-                  own
-                    ? (
-                        (profile as any)
-                          ?.full_name ||
-                        'You'
-                      )
-                    : (
-                        item.sender_name ||
-                        title ||
-                        'BUKLOD Member'
-                      )
-                }
-                size={36}
-              />
-            </View>
-          )}
-
-              <Pressable
-                style={[
-                  styles.bubble,
-                  own
-                    ? styles.bubbleOwn
-                    : styles.bubbleOther,
-                  standaloneReaction &&
-                    styles.standaloneReactionBubble,
-                  mode === 'direct' &&
-                    (
-                      own
-                        ? styles.bubbleWithSenderAvatarOwn
-                        : styles.bubbleWithSenderAvatar
-                    ),
-
-                ]}
-              
-                onLongPress={() => {
-                  /* UI_002_R11_R3_LONG_PRESS */
-                  openReactionMenu(
-                    item.id
-                  );
-                }}
-                delayLongPress={280}
-                accessibilityHint="Long press for reactions.">
-                {mode ===
-                  'scope' &&
-                !own &&
-                !!item.sender_name && (
-                  <Text
-                    style={
-                      styles.sender
-                    }
-                  >
-                    {
-                      repairBuklodMessageText(item.sender_name)
-                    }
-                  </Text>
-                )}
-
-                                {avatarReaction && (
-                  <View
-                    style={
-                      styles.avatarSticker
-                    }
-                  >
-                    <View
-                      style={
-                        styles.avatarStickerVisual
-                      }
-                    >
-                      <ProfileAvatar
-                        userId={
-                          item.sender_id
-                        }
-                        name={
-                          own
-                            ? (
-                                (profile as any)
-                                  ?.full_name ||
-                                'You'
-                              )
-                            : (
-                                item.sender_name ||
-                                title ||
-                                'BUKLOD Member'
-                              )
-                        }
-                        size={58}
-                      />
-
-                      <Text
-                        style={
-                          styles.avatarStickerEmoji
-                        }
-                      >
-                        {
-                          avatarReaction.emoji
-                        }
-                      </Text>
-                    </View>
-
-                    <Text
-                      style={[
-                        styles.avatarStickerLabel,
-                        own &&
-                          styles.avatarStickerLabelOwn,
-                      ]}
-                    >
-                      {
-                        avatarReaction.label
-                      }
-                    </Text>
-                  </View>
-                )}
-                {standaloneEmojiReaction && (
-                  <Text
-                    style={
-                      styles.standaloneReactionText
-                    }
-                  >
-                    {
-                      repairBuklodMessageText(item.body).trim()
-                    }
-                  </Text>
-                )}
-{!avatarReaction && !standaloneEmojiReaction && !!item.body && (
-                  <>
-                  
-                  <>
-                  {/* PATCH_185A_R5_SHARED_POST_PREVIEW_RENDER */}
-                  <BuklodSharedPostPhotoPreview185AR5
-                    body={item.body}
-                  />
-                  <Text
-                    style={[
-                      styles.body,
-                      own &&
-                        styles.bodyOwn,
-                    ]}
-                  >
-                    {repairMojibakeText(repairBuklodMessageText(cleanSharedPostBody(item.body)))}
-                  </Text>
-                </>
-                </>
-                )}
-
-                                {isPhoto &&
-                  !!item.attachment_path &&
-                  !!imageUrl && (
-                  <Pressable
-                    accessibilityLabel={
-                      item.attachment_mime ===
-                        'image/gif'
-                        ? 'Open animated GIF'
-                        : 'Open photo'
-                    }
-                    onPress={() =>
-                      void openConnectAttachment(
-                        item.attachment_path!
-                      )
-                    }
-                    style={
-                      styles.inlineMediaPress
-                    }
-                  
-                    onLongPress={() => {
-                      /* UI_002_R11_R4_NESTED_REACTIVE */
-                      openReactionMenu(
-                        item.id
-                      );
-                    }}
-                    delayLongPress={280}>
-                    <ExpoImage
-                      source={{
-                        uri: imageUrl,
-                      }}
-                      style={
-                        styles.inlineMedia
-                      }
-                      contentFit="cover"
-                      transition={120}
-                    />
-
-                    {item.attachment_mime ===
-                      'image/gif' && (
-                      <View
-                        style={
-                          styles.gifBadge
-                        }
-                      >
-                        <Text
-                          style={
-                            styles.gifBadgeText
-                          }
-                        >
-                          GIF
-                        </Text>
-                      </View>
-                    )}
-                  </Pressable>
-                )}
-{!!item.attachment_path && !isPhoto && (
-                  <Pressable
-                    accessibilityLabel={
-                      isPhoto
-                        ? 'Open photo'
-                        : 'Open attachment'
-                    }
-                    onPress={() =>
-                      void openConnectAttachment(
-                        item
-                          .attachment_path!
-                      ).catch(
-                        (e: any) =>
-                          Alert.alert(
-                            isPhoto
-                              ? 'Photo'
-                              : 'Attachment',
-                            e?.message ||
-                              String(
-                                e
-                              )
-                          )
-                      )
-                    }
-                    style={[
-                      styles.fileChip,
-                      own &&
-                        styles
-                          .fileChipOwn,
-                    ]}
-                  
-                    onLongPress={() => {
-                      /* UI_002_R11_R4_NESTED_REACTIVE */
-                      openReactionMenu(
-                        item.id
-                      );
-                    }}
-                    delayLongPress={280}>
-                    <MaterialCommunityIcons
-                      name={
-                        isPhoto
-                          ? 'image-outline'
-                          : 'paperclip'
-                      }
-                      size={18}
-                      color={
-                        own
-                          ? '#FFFFFF'
-                          : colors
-                              .greenDark
-                      }
-                    />
-
-                    <View
-                      style={{
-                        flex: 1,
-                      }}
-                    >
-                      <Text
-                        numberOfLines={
-                          1
-                        }
-                        style={[
-                          styles
-                            .fileName,
-                          own &&
-                            styles
-                              .white,
-                        ]}
-                      >
-                        {
-                          item
-                            .attachment_name ||
-                          (
-                            isPhoto
-                              ? 'Photo'
-                              : 'Attachment'
-                          )
-                        }
-                      </Text>
-
-                      <Text
-                        style={[
-                          styles
-                            .fileSize,
-                          own &&
-                            styles
-                              .whiteSoft,
-                        ]}
-                      >
-                        {
-                          formatConnectBytes(
-                            item
-                              .attachment_size
-                          )
-                        }
-                      </Text>
-                    </View>
-                  </Pressable>
-                )}
-
-                                <View
-                  style={
-                    styles.timeRow
-                  }
-                >
-                  <Text
-                    style={[
-                      styles.time,
-                      own &&
-                        !standaloneReaction &&
-                        styles.whiteSoft,
-                    ]}
-                  >
-                    {
-                      formatConnectTimestamp(
-                        item.created_at
-                      )
-                    }
-                  </Text>
-
-                  {own &&
-                    mode ===
-                      'direct' && (
-                    <Text
-                      style={[
-                        styles.deliveryState,
-                        standaloneReaction &&
-                          styles.deliveryStandalone,
-                        item.delivery_state ===
-                          'not_sent' &&
-                          styles.deliveryNotSent,
-                      ]}
-                    >
-                      {
-                        item.delivery_state ===
-                          'not_sent'
-                          ? '\u2022 Not sent'
-                          : (
-                              directPeerReadAt &&
-                              new Date(
-                                directPeerReadAt
-                              ).getTime() >=
-                                new Date(
-                                  item.created_at
-                                ).getTime()
-                            )
-                          ? '\u2022 Seen'
-                          : '\u2022 Sent'
-                      }
-                    </Text>
-                  )}
-                </View>
-              </Pressable>
-
-              <View
-                style={[
-                  styles
-                    .reactionRow,
-                  own
-                    ? styles
-                        .reactionRowOwn
-                    : styles
-                        .reactionRowOther,
-                , {
-          /* UI_002_R11_R3_FAR_CORNER */
-          position: 'absolute',
-          bottom: -5,
-          overflow: 'visible',
-          zIndex: 70,
-          ...(own
-            ? {
-                right: 0,
-                alignItems: 'flex-end',
+                  ? ((profile as any)?.full_name || 'You')
+                  : resolvePersonDisplayName(
+                      item.sender_name ?? title,
+                      item.sender_id,
+                    )
               }
-            : {
-                left: 0,
-                alignItems: 'flex-start',
-              }),
-        }]}
+              senderLabel={
+                mode === 'scope' && !own && item.sender_name
+                  ? repairBuklodMessageText(item.sender_name)
+                  : null
+              }
+              standaloneReaction={standaloneReaction}
+              avatarReaction={avatarReaction}
+              standaloneEmoji={
+                standaloneEmojiReaction
+                  ? repairBuklodMessageText(messageBody).trim()
+                  : null
+              }
+              bodyText={
+                !messageDeleted &&
+                !avatarReaction &&
+                !standaloneEmojiReaction &&
+                albumCaption
+                  ? repairMojibakeText(
+                      repairBuklodMessageText(
+                        cleanSharedPostBody(albumCaption)
+                      )
+                    )
+                  : null
+              }
+              sharedPostSlot={
+                !messageDeleted &&
+                !avatarReaction &&
+                !standaloneEmojiReaction &&
+                messageBody ? (
+                  <BuklodSharedPostPhotoPreview185AR5
+                    body={messageBody}
+                  />
+                ) : null
+              }
+              photoUrl={!messageDeleted && isPhoto ? imageUrl : null}
+              photoUrls={!messageDeleted && isPhoto ? photoUrls : []}
+              isGif={
+                photoUrls.length <= 1 &&
+                item.attachment_mime === 'image/gif'
+              }
+              fileName={
+                !messageDeleted &&
+                item.attachment_path &&
+                !isPhoto
+                  ? (item.attachment_name || 'Attachment')
+                  : null
+              }
+              fileSizeLabel={
+                !messageDeleted &&
+                item.attachment_path &&
+                !isPhoto
+                  ? formatConnectBytes(item.attachment_size)
+                  : null
+              }
+              timeLabel={formatConnectTimestamp(item.created_at)}
+              deliveryLabel={deliveryLabel}
+              deliveryNotSent={item.delivery_state === 'not_sent'}
+              stampEmoji={
+                (
+                  mineReaction ??
+                  REACTIONS.find(
+                    reaction =>
+                      (summary.counts[reaction.key] ?? 0) > 0
+                  )
+                )?.emoji
+              }
+              totalReactions={totalReactions}
+              pickerOpen={false}
+              reactionOptions={REACTIONS.map(reaction => ({
+                key: reaction.key,
+                emoji: reaction.emoji,
+                label: reaction.label,
+                count: summary.counts[reaction.key] ?? 0,
+                selected: summary.mine === reaction.key,
+              }))}
+              onLongPress={anchor =>
+                openMessageActions(
+                  item,
+                  anchor,
+                )
+              }
+              onReact={key =>
+                void reactToMessage(
+                  item.id,
+                  key as ReactionKey
+                )
+              }
+              onOpenPhoto={index => {
+                if (photoUrls.length) {
+                  setPhotoViewer({
+                    uris: photoUrls,
+                    index: Math.max(
+                      0,
+                      Math.min(
+                        index ?? 0,
+                        photoUrls.length - 1
+                      )
+                    ),
+                  });
+                  return;
+                }
+
+                if (item.attachment_path) {
+                  void openConnectAttachment(
+                    item.attachment_path
+                  );
+                }
+              }}
+              onOpenFile={() =>
+                item.attachment_path
+                  ? void openConnectAttachment(
+                      item.attachment_path
+                    ).catch((e: any) =>
+                      Alert.alert(
+                        'Attachment',
+                        e?.message || String(e)
+                      )
+                    )
+                  : undefined
+              }
+            />
+            {own && item.delivery_state === 'not_sent' ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Retry send"
+                onPress={() => retryFailedMessage(item)}
+                style={{
+                  alignSelf: 'flex-end',
+                  minHeight: 44,
+                  marginTop: -6,
+                  marginBottom: 8,
+                  paddingHorizontal: 12,
+                  justifyContent: 'center',
+                }}
               >
-                {/* UI_002_R11_R3_PASSIVE_STAMP */}
-                {totalReactions > 0 && (
-                  <View
-                    pointerEvents="none"
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      minHeight: 22,
-                      paddingHorizontal: 2,
-                      gap: 1,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 18,
-                        lineHeight: 22,
-                        textAlign: 'center',
-                      }}
-                    >
-                      {
-                        (
-                          summary.mine
-                            ? REACTIONS.find(
-                                r =>
-                                  r.key ===
-                                  summary.mine
-                              )
-                            : REACTIONS.find(
-                                r =>
-                                  (
-                                    summary.counts[
-                                      r.key
-                                    ] ?? 0
-                                  ) > 0
-                              )
-                        )?.emoji ?? ''
-                      }
-                    </Text>
-                
-                    {totalReactions > 1 && (
-                      <Text
-                        style={{
-                          fontSize: 8,
-                          lineHeight: 10,
-                          fontWeight: '900',
-                          color: '#59665F',
-                          marginLeft: -1,
-                        }}
-                      >
-                        {
-                          totalReactions > 99
-                            ? '99+'
-                            : totalReactions
-                        }
-                      </Text>
-                    )}
-                  </View>
-                )}
-
-                {reactionTargetId ===
-                  item.id && (
-                  <View
-                    style={[
-                      styles
-                        .reactionInlinePicker,
-                      own
-                        ? styles
-                            .reactionInlinePickerOwn
-                        : styles
-                            .reactionInlinePickerOther,
-                    ]}
-                  >
-                    {REACTIONS.map(
-                      reaction => {
-                        const selected =
-                          summary.mine ===
-                          reaction.key;
-
-                        const count =
-                          summary.counts[
-                            reaction.key
-                          ] ?? 0;
-
-                        return (
-                          <Pressable
-                            key={
-                              reaction.key
-                            }
-                            accessibilityRole="button"
-                            accessibilityLabel={
-                              reaction.label
-                            }
-                            onPressIn={() =>
-                              void reactToMessage(
-                                item.id,
-                                reaction.key
-                              )
-                            }
-                            style={({
-                              pressed,
-                            }) => [
-                              styles
-                                .reactionInlineOption,
-                              selected &&
-                                styles
-                                  .reactionInlineOptionSelected,
-                              pressed && {
-                                opacity:
-                                  0.58,
-                              },
-                            ]}
-                          >
-                            <Text
-                              style={
-                                styles
-                                  .reactionInlineEmoji
-                              }
-                            >
-                              {
-                                reaction.emoji
-                              }
-                            </Text>
-
-                            {count >
-                              0 && (
-                              <Text
-                                style={[
-                                  styles
-                                    .reactionInlineCount,
-                                  selected &&
-                                    styles
-                                      .reactionInlineCountSelected,
-                                ]}
-                              >
-                                {count}
-                              </Text>
-                            )}
-                          </Pressable>
-                        );
-                      }
-                    )}
-                  </View>
-                )}
-              </View>
+                <Text
+                  style={{
+                    color: theme.accent,
+                    fontSize: 12.5,
+                    fontWeight: '800',
+                  }}
+                >
+                  Retry
+                </Text>
+              </Pressable>
+            ) : null}
             </View>
           );
         }}
       />
 
-      {!!file && (
-        <View
-          style={
-            styles.selectedFile
-          }
-        >
-          <MaterialCommunityIcons
-            name={
-              file.mimeType
-                .toLowerCase()
-                .startsWith(
-                  'image/'
-                )
-                ? 'image-outline'
-                : 'file-outline'
-            }
-            size={19}
-            color={
-              colors.greenDark
-            }
-          />
-
-          <View
-            style={{
-              flex: 1,
-            }}
-          >
-            <Text
-              numberOfLines={1}
-              style={
-                styles.selectedName
-              }
-            >
-              {file.name}
-            </Text>
-
-            <Text
-              style={
-                styles.selectedSize
-              }
-            >
-              {
-                formatConnectBytes(
-                  file.size
-                )
-              }
-            </Text>
-          </View>
-
-          <Pressable
-            onPress={() =>
-              setFile(null)
-            }
-          >
-            <MaterialCommunityIcons
-              name="close"
-              size={21}
-              color={
-                colors.muted
-              }
-            />
-          </Pressable>
-        </View>
-      )}
-
-      <View
-        /* PATCH_169H_COMPACT_COMPOSER */
-        style={
-          [
-        styles.composer,
-        {
-          /* UI_002_R10_R3_COMPOSER_BOTTOM */
-          marginTop: 'auto',
-        },
-      ]
-        }
-      >
-                <View
-          style={
-            styles.attachPopoverWrap
-          }
-        >
-          <Pressable
-            onPress={
-              handleAttachPress
-            }
-            onLongPress={
-              openAttachMenu
-            }
-            delayLongPress={360}
-            accessibilityLabel="Attach"
-            accessibilityHint="Tap for a file. Long press for Photo or File beside this button without closing the keyboard."
-            style={
-              styles.attach
-            }
-          >
-            <MaterialCommunityIcons
-              name="paperclip"
-              size={22}
-              color={
-                colors.greenDark
-              }
-            />
-          </Pressable>
-
-          {attachPopoverOpen && (
-            <View
-              style={
-                styles.attachInlinePopover
-              }
-            >
-              <Pressable
-                accessibilityLabel="Attach photo"
-                onPress={() => {
-                  setAttachPopoverOpen(
-                    false
-                  );
-                  void choosePhoto();
-                }}
-                style={
-                  styles.attachPopoverAction
-                }
-              >
-                <MaterialCommunityIcons
-                  name="image-outline"
-                  size={19}
-                  color={
-                    colors.greenDark
-                  }
-                />
-                <Text
-                  style={
-                    styles.attachPopoverText
-                  }
-                >
-                  Photo
-                </Text>
-              </Pressable>
-
-              <View
-                style={
-                  styles.attachPopoverDivider
-                }
-              />
-
-              <Pressable
-                accessibilityLabel="Attach file"
-                onPress={() => {
-                  setAttachPopoverOpen(
-                    false
-                  );
-                  void chooseFile();
-                }}
-                style={
-                  styles.attachPopoverAction
-                }
-              >
-                <MaterialCommunityIcons
-                  name="file-outline"
-                  size={19}
-                  color={
-                    colors.greenDark
-                  }
-                />
-                <Text
-                  style={
-                    styles.attachPopoverText
-                  }
-                >
-                  File
-                </Text>
-              </Pressable>
-            </View>
-          )}
-        </View>
-
-        {mode ===
-          'direct' && (
-          <View
-            style={
-              styles
-                .composerReactionWrap
-            }
-          >
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Emoji, GIF and avatar reactions"
-              accessibilityHint="Tap for quick emoji. Long press for the full Emoji, GIF and Avatar Reaction picker."
-              onPress={() =>
-                setComposerQuickOpen(
-                  current =>
-                    !current
-                )
-              }
-              onLongPress={() => {
-                setComposerQuickOpen(
-                  false
-                );
-                setComposerPickerTab(
-                  'emoji'
-                );
-                setComposerPickerOpen(
-                  true
-                );
-              }}
-              delayLongPress={330}
-              style={
-                styles
-                  .composerReactionButton
-              }
-            >
-              <Text
-                style={
-                  styles
-                    .composerReactionEmoji
-                }
-              >
-                {'\u{1F642}'}
-              </Text>
-            </Pressable>
-
-            {composerQuickOpen && (
-              <View
-                style={
-                  styles.quickEmojiTray
-                }
-              >
-                {QUICK_SEND_EMOJIS
-                  .map(emoji => (
-                    <Pressable
-                      key={emoji}
-                      onPress={() =>
-                        void sendQuickBody(
-                          emoji
-                        )
-                      }
-                      style={
-                        styles
-                          .quickEmojiButton
-                      }
-                    >
-                      <Text
-                        style={
-                          styles
-                            .quickEmojiText
-                        }
-                      >
-                        {emoji}
-                      </Text>
-                    </Pressable>
-                  ))}
-
-                <Pressable
-                  accessibilityLabel="More reactions"
-                  onPress={() => {
-                    setComposerQuickOpen(
-                      false
-                    );
-                    setComposerPickerOpen(
-                      true
-                    );
-                  }}
-                  style={
-                    styles
-                      .quickEmojiMore
-                  }
-                >
-                  <MaterialCommunityIcons
-                    name="dots-horizontal"
-                    size={19}
-                    color={
-                      colors.greenDark
-                    }
-                  />
-                </Pressable>
-              </View>
-            )}
-          </View>
-        )}
-        <TextInput
-          ref={composerInputRef}
-          value={draft}
-          onChangeText={
-            setDraft
-          }
-          placeholder={
-            mode === 'direct'
-              ? 'Message...'
-              : 'Message community...'
-          }
-          multiline
-          style={
-            styles.input
-          }
-        />
-
-        <Pressable
-          disabled={
-            sending
-          }
-          onPress={
-            () =>
-              void send()
-          }
-          style={[
-            styles.send,
-            sending && {
-              opacity: 0.5,
-            },
-          ]}
-        >
-          {sending ? (
-            <ActivityIndicator
-              size="small"
-              color="#FFFFFF"
-            />
-          ) : (
-            <MaterialCommunityIcons
-              name="send"
-              size={20}
-              color="#FFFFFF"
-            />
-          )}
-        </Pressable>
-      </View>
-      {/* PATCH_169H_BOTTOM_SAFE_SPACER */}
       <View
         style={{
-          height: Math.min(Math.max(insets.bottom, 0), 6),
-          backgroundColor:
-            '#FFFFFF',
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: composerBottom,
+          zIndex: 20,
+        }}
+      >
+      <ConnectComposer
+        mode={mode}
+        draft={draft}
+        selectedFile={
+          file
+            ? {
+                name: file.name,
+                sizeLabel: formatConnectBytes(file.size),
+                isImage: file.mimeType
+                  .toLowerCase()
+                  .startsWith('image/'),
+              }
+            : null
+        }
+        selectedPhotos={photos.map(photo => ({
+          id: photo.id,
+          uri: photo.uri,
+        }))}
+        inputRef={composerInputRef}
+        replyToName={
+          replyTo
+            ? replyTo.sender_id === profileId
+              ? 'You'
+              : resolvePersonDisplayName(
+                  replyTo.sender_name ?? title,
+                  replyTo.sender_id,
+                )
+            : null
+        }
+        replyToPreview={
+          replyTo
+            ? getConnectMessagePreview(replyTo)
+            : null
+        }
+        onClearReply={clearReply}
+        onChangeDraft={value => {
+          draftRef.current = value;
+          setDraft(value);
+        }}
+        onSend={send}
+        onAttachPress={handleAttachPress}
+        onChoosePhoto={() => void choosePhoto()}
+        onClearFile={() => {
+          fileRef.current = null;
+          setFile(null);
+        }}
+        onPhotoPress={id => {
+          const index = photos.findIndex(
+            photo => photo.id === id
+          );
+          if (index < 0) return;
+          setPhotoViewer({
+            uris: photos.map(photo => photo.uri),
+            index,
+          });
+        }}
+        onPhotoLongPress={id => {
+          const photo = photos.find(
+            item => item.id === id
+          );
+          if (!photo) return;
+          const index = photos.findIndex(
+            item => item.id === id
+          );
+
+          Alert.alert('Photo', undefined, [
+            {
+              text: 'Edit',
+              onPress: () => {
+                setPhotoEditorTargetId(id);
+                setPhotoEditorSource(photo);
+              },
+            },
+            {
+              text: 'View full screen',
+              onPress: () =>
+                setPhotoViewer({
+                  uris: photos.map(item => item.uri),
+                  index: Math.max(0, index),
+                }),
+            },
+            {
+              text: 'Remove',
+              style: 'destructive',
+              onPress: () =>
+                setPhotos(current =>
+                  current.filter(item => item.id !== id)
+                ),
+            },
+            {
+              text: 'Cancel',
+              style: 'cancel',
+            },
+          ]);
+        }}
+        onRemovePhoto={id => {
+          setPhotos(current =>
+            current.filter(item => item.id !== id)
+          );
+        }}
+        onMovePhoto={(id, direction) => {
+          setPhotos(current => {
+            const index = current.findIndex(
+              item => item.id === id
+            );
+            const nextIndex = index + direction;
+            if (
+              index < 0 ||
+              nextIndex < 0 ||
+              nextIndex >= current.length
+            ) {
+              return current;
+            }
+
+            const next = [...current];
+            const [moved] = next.splice(index, 1);
+            next.splice(nextIndex, 0, moved);
+            return next;
+          });
+        }}
+        onOpenComposerPicker={() => {
+          setComposerPickerTab('emoji');
+          setComposerPickerOpen(true);
         }}
       />
+      </View>
+      </View>
 
-      {/* PATCH_172A_FULL_REACTION_PICKER */}
-      <Modal
-        visible={
-          composerPickerOpen
+      <ConnectMessageActionSheet
+        visible={!!actionTargetMessage}
+        anchor={actionAnchor}
+        own={
+          actionTargetMessage?.sender_id ===
+          profileId
         }
-        transparent
-        animationType="slide"
-        onRequestClose={() =>
-          setComposerPickerOpen(
-            false
-          )
+        reactionOptions={
+          actionTargetMessage
+            ? REACTIONS.map(reaction => {
+                const summary =
+                  reactions[
+                    actionTargetMessage.id
+                  ] ?? {
+                    counts: emptyCounts(),
+                    mine: null,
+                  };
+
+                return {
+                  key: reaction.key,
+                  emoji: reaction.emoji,
+                  label: reaction.label,
+                  count:
+                    summary.counts[reaction.key] ?? 0,
+                  selected:
+                    summary.mine === reaction.key,
+                };
+              })
+            : []
         }
-      >
-        <Pressable
-          style={
-            styles.modernPickerBackdrop
+        onReact={key => {
+          if (!actionTargetMessage) {
+            return;
           }
-          onPress={() =>
-            setComposerPickerOpen(
-              false
-            )
-          }
-        >
-          <Pressable
-            style={
-              styles.modernPickerSheet
-            }
-            onPress={event =>
-              event.stopPropagation()
-            }
-          >
-            <View
-              style={
-                styles.modernPickerHandle
-              }
-            />
 
-            <View
-              style={
-                styles.modernPickerHeader
-              }
-            >
-              <View
-                style={{flex: 1}}
-              >
-                <Text
-                  style={
-                    styles.modernPickerTitle
-                  }
-                >
-                  Reactions
-                </Text>
+          void reactToMessage(
+            actionTargetMessage.id,
+            key as ReactionKey
+          );
+        }}
+        onClose={closeMessageActions}
+        onReply={handleMessageReply}
+        onCopy={() => void handleMessageCopy()}
+        onForward={() => void handleMessageForward()}
+        onDeleteForMe={() =>
+          void handleDeleteForMe()
+        }
+        onDeleteForEveryone={() =>
+          void handleDeleteForEveryone()
+        }
+      />
 
-                <Text
-                  style={
-                    styles.modernPickerSub
-                  }
-                >
-                  Tap an item to send it instantly.
-                </Text>
-              </View>
-
-              <Pressable
-                onPress={() =>
-                  setComposerPickerOpen(
-                    false
-                  )
-                }
-                style={
-                  styles.modernPickerClose
-                }
-              >
-                <MaterialCommunityIcons
-                  name="close"
-                  size={22}
-                  color={
-                    colors.text
-                  }
-                />
-              </Pressable>
-            </View>
-
-            <View
-              style={
-                styles.modernPickerTabs
-              }
-            >
-              {(
-                [
-                  ['emoji','Emoji'],
-                  ['gif','GIF'],
-                  ['avatar','Avatar'],
-                ] as const
-              ).map(
-                ([key,label]) => (
-                  <Pressable
-                    key={key}
-                    onPress={() =>
-                      setComposerPickerTab(
-                        key
-                      )
-                    }
-                    style={[
-                      styles.modernPickerTab,
-                      composerPickerTab ===
-                        key &&
-                        styles.modernPickerTabOn,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.modernPickerTabText,
-                        composerPickerTab ===
-                          key &&
-                          styles.modernPickerTabTextOn,
-                      ]}
-                    >
-                      {label}
-                    </Text>
-                  </Pressable>
-                )
-              )}
-            </View>
-
-            {composerPickerTab ===
-              'emoji' && (
-              <>
-                <Pressable
-                  onPress={() => {
-                    setComposerPickerOpen(
-                      false
-                    );
-
-                    requestAnimationFrame(
-                      () =>
-                        composerInputRef
-                          .current
-                          ?.focus()
-                    );
-                  }}
-                  style={
-                    styles.nativeEmojiRow
-                  }
-                >
-                  <MaterialCommunityIcons
-                    name="keyboard-outline"
-                    size={21}
-                    color={
-                      colors.greenDark
-                    }
-                  />
-
-                  <View
-                    style={{flex: 1}}
-                  >
-                    <Text
-                      style={
-                        styles.nativeEmojiTitle
-                      }
-                    >
-                      Native device keyboard
-                    </Text>
-
-                    <Text
-                      style={
-                        styles.nativeEmojiSub
-                      }
-                    >
-                      Access the complete emoji set available on this device.
-                    </Text>
-                  </View>
-                </Pressable>
-
-                <ScrollView
-                  style={
-                    styles.extendedEmojiScroll
-                  }
-                  contentContainerStyle={
-                    styles.extendedEmojiGrid
-                  }
-                  keyboardShouldPersistTaps="handled"
-                >
-                  {EXTENDED_SEND_EMOJIS
-                    .map(
-                      (
-                        emoji,
-                        index
-                      ) => (
-                        <Pressable
-                          key={
-                            `${emoji}-${index}`
-                          }
-                          onPress={() =>
-                            void sendQuickBody(
-                              emoji
-                            )
-                          }
-                          style={
-                            styles.extendedEmojiButton
-                          }
-                        >
-                          <Text
-                            style={
-                              styles.extendedEmojiText
-                            }
-                          >
-                            {emoji}
-                          </Text>
-                        </Pressable>
-                      )
-                    )}
-                </ScrollView>
-              </>
-            )}
-
-            {composerPickerTab ===
-              'gif' && (
-              <View
-                style={
-                  styles.gifPickerPanel
-                }
-              >
-                <Text
-                  style={
-                    styles.gifPickerIcon
-                  }
-                >
-                  {'\u{1F3AC}'}
-                </Text>
-
-                <Text
-                  style={
-                    styles.gifPickerTitle
-                  }
-                >
-                  Animated GIF
-                </Text>
-
-                <Text
-                  style={
-                    styles.gifPickerText
-                  }
-                >
-                  Choose an animated GIF from your phone. Animation is preserved and sent through the private Connect media bucket.
-                </Text>
-
-                <Pressable
-                  disabled={
-                    sending
-                  }
-                  onPress={() =>
-                    void chooseAndSendGif()
-                  }
-                  style={[
-                    styles.gifPickerButton,
-                    sending && {
-                      opacity: 0.5,
-                    },
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name="file-gif-box"
-                    size={22}
-                    color="#FFFFFF"
-                  />
-
-                  <Text
-                    style={
-                      styles.gifPickerButtonText
-                    }
-                  >
-                    CHOOSE GIF
-                  </Text>
-                </Pressable>
-              </View>
-            )}
-
-            {composerPickerTab ===
-              'avatar' && (
-              <ScrollView
-                style={
-                  styles.avatarReactionScroll
-                }
-                contentContainerStyle={
-                  styles.avatarReactionGrid
-                }
-                keyboardShouldPersistTaps="handled"
-              >
-                {AVATAR_SEND_REACTIONS
-                  .map(item => (
-                    <Pressable
-                      key={item.key}
-                      onPress={() =>
-                        sendAvatarReaction(
-                          item.key
-                        )
-                      }
-                      style={
-                        styles.avatarReactionChoice
-                      }
-                    >
-                      <View
-                        style={
-                          styles.avatarReactionPreview
-                        }
-                      >
-                        <ProfileAvatar
-                          userId={
-                            profileId
-                          }
-                          name={
-                            (profile as any)
-                              ?.full_name ||
-                            'You'
-                          }
-                          size={52}
-                        />
-
-                        <Text
-                          style={
-                            styles.avatarReactionBadge
-                          }
-                        >
-                          {item.emoji}
-                        </Text>
-                      </View>
-
-                      <Text
-                        style={
-                          styles.avatarReactionChoiceLabel
-                        }
-                      >
-                        {item.label}
-                      </Text>
-                    </Pressable>
-                  ))}
-              </ScrollView>
-            )}
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <ConnectComposerPicker
+        visible={composerPickerOpen}
+        tab={composerPickerTab}
+        sending={uploadingAttachment}
+        emojis={EXTENDED_SEND_EMOJIS}
+        avatarChoices={AVATAR_SEND_REACTIONS}
+        profileId={profileId}
+        profileName={(profile as any)?.full_name || 'You'}
+        gifs={CONNECT_GIF_CATALOG}
+        onClose={() => setComposerPickerOpen(false)}
+        onTabChange={setComposerPickerTab}
+        onNativeKeyboard={() => {
+          setComposerPickerOpen(false);
+          requestAnimationFrame(() =>
+            composerInputRef.current?.focus()
+          );
+        }}
+        onSendEmoji={insertDraftEmoji}
+        onSendGif={gifId => {
+          void sendCatalogGif(gifId);
+        }}
+        onSendAvatar={key => sendAvatarReaction(key)}
+      />
       <Modal
         visible={
           optionMenu ===
@@ -3939,7 +4309,7 @@ const [
                 name="image-edit-outline"
                 size={23}
                 color={
-                  colors.greenDark
+                  theme.accent
                 }
               />
 
@@ -3978,7 +4348,7 @@ const [
                 name="file-outline"
                 size={23}
                 color={
-                  colors.greenDark
+                  theme.accent
                 }
               />
 
@@ -4029,30 +4399,51 @@ const [
         <BuklodPhotoEditor
           visible={!!photoEditorSource}
           sourceUri={photoEditorSource?.uri ?? null}
-          onCancel={() =>
-            setPhotoEditorSource(null)
-          }
+          onCancel={() => {
+            setPhotoEditorSource(null);
+            setPhotoEditorTargetId(null);
+          }}
           onDone={edited => {
-            setFile({
+            const nextPhoto: ConnectPickedFile = {
               uri: edited.uri,
               name: `photo-${Date.now()}.jpg`,
               mimeType: edited.mimeType,
               size: edited.sizeBytes,
-            });
+            };
+
+            if (photoEditorTargetId) {
+              setPhotos(current =>
+                current.map(photo =>
+                  photo.id === photoEditorTargetId
+                    ? {
+                        ...photo,
+                        ...nextPhoto,
+                      }
+                    : photo
+                )
+              );
+            }
 
             setPhotoEditorSource(null);
+            setPhotoEditorTargetId(null);
           }}
         />
-</View>
+        <ConnectPhotoViewer
+          visible={!!photoViewer}
+          uris={photoViewer?.uris ?? []}
+          initialIndex={photoViewer?.index ?? 0}
+          onClose={() => setPhotoViewer(null)}
+        />
+    </ConnectThreadBackground>
   );
 }
 
-const styles =
-  StyleSheet.create({
+function createThreadStyles(theme: ConnectThemeRoles) {
+  return StyleSheet.create({
     screen: {
       flex: 1,
       backgroundColor:
-        '#F5F7F6',
+        theme.canvas,
     },
 
     center: {
@@ -4061,6 +4452,8 @@ const styles =
         'center',
       justifyContent:
         'center',
+      backgroundColor:
+        theme.canvas,
     },
 
     header: {
@@ -4076,9 +4469,9 @@ const styles =
         StyleSheet
           .hairlineWidth,
       borderBottomColor:
-        colors.line,
+        theme.border,
       backgroundColor:
-        '#FFFFFF',
+        theme.headerSurface,
     },
 
     /* PATCH_172H_HEADER_ACTION_STYLE */
@@ -4098,7 +4491,7 @@ const styles =
       justifyContent:
         'center',
       backgroundColor:
-        colors.greenSoft,
+        theme.accentMuted,
     },
 
     headerCopy: {
@@ -4107,14 +4500,14 @@ const styles =
     },
 
     headerTitle: {
-      color: colors.text,
+      color: theme.textPrimary,
       fontSize: 15,
       fontWeight: '900',
     },
 
     headerSub: {
       marginTop: 1,
-      color: colors.green,
+      color: theme.accent,
       fontSize: 12,
       fontWeight: '900',
     },
@@ -4130,13 +4523,13 @@ const styles =
         'center',
       gap: 8,
       backgroundColor:
-        '#ECF7F0',
+        theme.accentMuted,
     },
 
     noteText: {
       flex: 1,
       color:
-        colors.greenDark,
+        theme.accent,
       fontSize: 12,
       lineHeight: 18,
       fontWeight: '800',
@@ -4157,8 +4550,26 @@ const styles =
     },
 
     emptyTitle: {
-      color: colors.text,
+      color: theme.textPrimary,
       fontSize: 15.5,
+      fontWeight: '900',
+    },
+
+    restoreButton: {
+      marginTop: 10,
+      minHeight: 38,
+      paddingHorizontal: 14,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.accentMuted,
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+
+    restoreButtonText: {
+      color: theme.accent,
+      fontSize: 12,
       fontWeight: '900',
     },
 
@@ -4189,7 +4600,7 @@ const styles =
 
     bubbleOwn: {
       backgroundColor:
-        colors.greenDark,
+        theme.accent,
       borderBottomRightRadius:
         5,
     },
@@ -4199,20 +4610,20 @@ const styles =
         '#FFFFFF',
       borderWidth: 1,
       borderColor:
-        colors.line,
+        theme.border,
       borderBottomLeftRadius:
         5,
     },
 
     sender: {
       marginBottom: 4,
-      color: colors.green,
+      color: theme.accent,
       fontSize: 12,
       fontWeight: '900',
     },
 
     body: {
-      color: colors.text,
+      color: theme.textPrimary,
       fontSize: 14.5,
       lineHeight: 21,
     },
@@ -4222,7 +4633,7 @@ const styles =
     },
 
     time: {
-      color: colors.muted,
+      color: theme.textMuted,
       fontSize: 12,
       lineHeight: 12,
     },
@@ -4257,14 +4668,14 @@ const styles =
 
     fileName: {
       color:
-        colors.greenDark,
+        theme.accent,
       fontSize: 12.5,
       fontWeight: '900',
     },
 
     fileSize: {
       marginTop: 2,
-      color: colors.muted,
+      color: theme.textMuted,
       fontSize: 12,
     },
 
@@ -4331,7 +4742,7 @@ const styles =
       paddingHorizontal: 4,
       borderRadius: 9,
       backgroundColor:
-        colors.greenDark,
+        theme.accent,
       borderWidth: 1.5,
       borderColor:
         '#FFFFFF',
@@ -4360,7 +4771,7 @@ const styles =
       gap: 2,
       borderWidth: 1,
       borderColor:
-        colors.line,
+        theme.border,
       borderRadius: 13,
       backgroundColor:
         '#FFFFFF',
@@ -4392,10 +4803,10 @@ const styles =
 
     reactionInlineOptionSelected: {
       backgroundColor:
-        colors.greenSoft,
+        theme.accentMuted,
       borderWidth: 1,
       borderColor:
-        colors.greenDark,
+        theme.accent,
     },
 
     reactionInlineEmoji: {
@@ -4404,14 +4815,14 @@ const styles =
     },
 
     reactionInlineCount: {
-      color: colors.muted,
+      color: theme.textMuted,
       fontSize: 12,
       fontWeight: '900',
     },
 
     reactionInlineCountSelected: {
       color:
-        colors.greenDark,
+        theme.accent,
     },
 
     timeRow: {
@@ -4493,13 +4904,13 @@ const styles =
 
     avatarStickerLabel: {
       marginTop: 3,
-      color: colors.greenDark,
+      color: theme.accent,
       fontSize: 12.5,
       fontWeight: '900',
     },
 
     avatarStickerLabelOwn: {
-      color: colors.greenDark,
+      color: theme.accent,
     },
 
     composerReactionWrap: {
@@ -4536,7 +4947,7 @@ const styles =
       gap: 1,
       borderRadius: 22,
       borderWidth: 1,
-      borderColor: colors.line,
+      borderColor: theme.border,
       backgroundColor: '#FFFFFF',
       elevation: 18,
       zIndex: 120,
@@ -4562,7 +4973,7 @@ const styles =
       justifyContent: 'center',
       borderRadius: 17,
       backgroundColor:
-        colors.greenSoft,
+        theme.accentMuted,
     },
 
     modernPickerBackdrop: {
@@ -4600,14 +5011,14 @@ const styles =
     },
 
     modernPickerTitle: {
-      color: colors.text,
+      color: theme.textPrimary,
       fontSize: 17,
       fontWeight: '900',
     },
 
     modernPickerSub: {
       marginTop: 2,
-      color: colors.muted,
+      color: theme.textMuted,
       fontSize: 12,
     },
 
@@ -4645,13 +5056,13 @@ const styles =
     },
 
     modernPickerTabText: {
-      color: colors.muted,
+      color: theme.textMuted,
       fontSize: 12.5,
       fontWeight: '900',
     },
 
     modernPickerTabTextOn: {
-      color: colors.greenDark,
+      color: theme.accent,
     },
 
     nativeEmojiRow: {
@@ -4663,21 +5074,21 @@ const styles =
       alignItems: 'center',
       gap: 7,
       borderWidth: 1,
-      borderColor: colors.line,
+      borderColor: theme.border,
       borderRadius: 15,
       backgroundColor:
         '#F8FAF9',
     },
 
     nativeEmojiTitle: {
-      color: colors.text,
+      color: theme.textPrimary,
       fontSize: 13.5,
       fontWeight: '900',
     },
 
     nativeEmojiSub: {
       marginTop: 2,
-      color: colors.muted,
+      color: theme.textMuted,
       fontSize: 12,
       lineHeight: 11,
     },
@@ -4722,7 +5133,7 @@ const styles =
 
     gifPickerTitle: {
       marginTop: 5,
-      color: colors.text,
+      color: theme.textPrimary,
       fontSize: 16,
       fontWeight: '900',
     },
@@ -4730,7 +5141,7 @@ const styles =
     gifPickerText: {
       maxWidth: 330,
       marginTop: 6,
-      color: colors.muted,
+      color: theme.textMuted,
       fontSize: 12.5,
       lineHeight: 18,
       textAlign: 'center',
@@ -4747,7 +5158,7 @@ const styles =
       gap: 8,
       borderRadius: 14,
       backgroundColor:
-        colors.greenDark,
+        theme.accent,
     },
 
     gifPickerButtonText: {
@@ -4774,7 +5185,7 @@ const styles =
       alignItems: 'center',
       justifyContent: 'center',
       borderWidth: 1,
-      borderColor: colors.line,
+      borderColor: theme.border,
       borderRadius: 17,
       backgroundColor:
         '#F9FBFA',
@@ -4798,7 +5209,7 @@ const styles =
 
     avatarReactionChoiceLabel: {
       marginTop: 4,
-      color: colors.greenDark,
+      color: theme.accent,
       fontSize: 12.5,
       fontWeight: '900',
     },
@@ -4822,7 +5233,7 @@ const styles =
     },
 
     deliveryStandalone: {
-      color: colors.muted,
+      color: theme.textMuted,
     },
 
     attachPopoverWrap: {
@@ -4846,7 +5257,7 @@ const styles =
       flexDirection: 'row',
       alignItems: 'center',
       borderWidth: 1,
-      borderColor: colors.line,
+      borderColor: theme.border,
       borderRadius: 14,
       backgroundColor: '#FFFFFF',
       zIndex: 260,
@@ -4872,7 +5283,7 @@ const styles =
     },
 
     attachPopoverText: {
-      color: colors.greenDark,
+      color: theme.accent,
       fontSize: 12.5,
       fontWeight: '900',
     },
@@ -4880,7 +5291,7 @@ const styles =
     attachPopoverDivider: {
       width: 1,
       height: 22,
-      backgroundColor: colors.line,
+      backgroundColor: theme.border,
     },
     selectedFile: {
       minHeight: 48,
@@ -4895,21 +5306,21 @@ const styles =
       gap: 8,
       borderWidth: 1,
       borderColor:
-        colors.line,
+        theme.border,
       borderRadius: 13,
       backgroundColor:
         '#FFFFFF',
     },
 
     selectedName: {
-      color: colors.text,
+      color: theme.textPrimary,
       fontSize: 12.5,
       fontWeight: '900',
     },
 
     selectedSize: {
       marginTop: 2,
-      color: colors.muted,
+      color: theme.textMuted,
       fontSize: 12,
     },
 
@@ -4925,7 +5336,7 @@ const styles =
         StyleSheet
           .hairlineWidth,
       borderTopColor:
-        colors.line,
+        theme.border,
       backgroundColor:
         '#FFFFFF',
       paddingVertical: 5,
@@ -4941,7 +5352,7 @@ const styles =
       justifyContent:
         'center',
       backgroundColor:
-        colors.greenSoft,
+        theme.accentMuted,
     },
 
     input: {
@@ -4953,11 +5364,11 @@ const styles =
       paddingVertical: 6,
       borderWidth: 1,
       borderColor:
-        colors.line,
+        theme.border,
       borderRadius: 16,
       backgroundColor:
         '#F8FAF9',
-      color: colors.text,
+      color: theme.textPrimary,
       fontSize: 14.5,
       textAlignVertical:
         'top',
@@ -4972,7 +5383,7 @@ const styles =
       justifyContent:
         'center',
       backgroundColor:
-        colors.greenDark,
+        theme.accent,
     },
 
     modalBackdrop: {
@@ -4980,7 +5391,7 @@ const styles =
       justifyContent:
         'flex-end',
       backgroundColor:
-        'rgba(0,0,0,0.28)',
+        'rgba(0,0,0,0.55)',
     },
 
     optionSheet: {
@@ -4993,7 +5404,7 @@ const styles =
       borderTopRightRadius:
         24,
       backgroundColor:
-        '#FFFFFF',
+        theme.surfaceElevated,
     },
 
     sheetHandle: {
@@ -5004,12 +5415,12 @@ const styles =
       marginBottom: 10,
       borderRadius: 2,
       backgroundColor:
-        '#D9DEDB',
+        theme.border,
     },
 
     sheetTitle: {
       marginBottom: 8,
-      color: colors.text,
+      color: theme.textPrimary,
       fontSize: 15.5,
       fontWeight: '900',
       textAlign: 'center',
@@ -5028,17 +5439,17 @@ const styles =
       gap: 7,
       borderWidth: 1,
       borderColor:
-        colors.line,
+        theme.border,
       borderRadius: 13,
       backgroundColor:
-        '#F9FBFA',
+        theme.surface,
     },
 
     optionRowSelected: {
       borderColor:
-        colors.greenDark,
+        theme.accent,
       backgroundColor:
-        colors.greenSoft,
+        theme.accentMuted,
       borderWidth: 2,
     },
 
@@ -5049,14 +5460,14 @@ const styles =
     },
 
     optionTitle: {
-      color: colors.text,
+      color: theme.textPrimary,
       fontSize: 14,
       fontWeight: '900',
     },
 
     optionSub: {
       marginTop: 2,
-      color: colors.muted,
+      color: theme.textMuted,
       fontSize: 12,
       lineHeight: 12,
     },
@@ -5071,7 +5482,7 @@ const styles =
     },
 
     cancelText: {
-      color: colors.muted,
+      color: theme.textMuted,
       fontSize: 13.5,
       fontWeight: '900',
     },
@@ -5093,4 +5504,19 @@ const styles =
     marginRight: 44,
   },
 });
+}
 
+
+
+
+export default function BuklodConnectThread(props: Props) {
+  return (
+    <ConnectThemeProvider>
+      <ChatBackgroundProvider
+        threadId={props.containerId}
+      >
+        <BuklodConnectThreadInner {...props} />
+      </ChatBackgroundProvider>
+    </ConnectThemeProvider>
+  );
+}

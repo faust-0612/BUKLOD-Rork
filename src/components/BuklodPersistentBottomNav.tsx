@@ -3,21 +3,24 @@ import React, {
 } from 'react';
 
 import {
-  Pressable,
+  Keyboard,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { Keyboard } from 'react-native';
 
 import {
   MaterialCommunityIcons,
 } from '@expo/vector-icons';
 
 import {
-  router,
   usePathname,
 } from 'expo-router';
+
+import BuklodPressable from '@/components/BuklodPressable';
+import {
+  buklodInstantReplace,
+} from '@/lib/buklodInstantNavigation';
 
 import {
   useSafeAreaInsets,
@@ -36,8 +39,13 @@ import {
 } from '@/providers/NotificationProvider';
 
 import {
-  colors,
-} from '@/lib/theme';
+  useBuklodTheme,
+} from '@/providers/BuklodThemeProvider';
+
+import {
+  normalizeBuklodPathname,
+  shouldShowBuklodPublicBottomNav,
+} from '@/lib/buklodSafeArea';
 
 /* PATCH_167I_R2_PROFILE_SLOT_TO_NOTIFICATIONS */
 
@@ -147,25 +155,27 @@ function routeKey(
   return null;
 }
 
-function shouldHide(
+function isOnGlobalNavDestination(
   pathname: string,
+  route: NavItem['route']
 ) {
-  /* PATCH_177A_R6_ICON_ONLY_ACTIVE_NAV */
-  return (
-    /* PATCH_169B_HIDE_PUBLIC_NAV_IN_ORG */
-    pathname === '/mzb' ||
-    pathname.startsWith('/mzb/') ||
-    pathname === '/' ||
-    pathname.startsWith('/(auth)') ||
-    pathname.startsWith('/login') ||
-    pathname.startsWith('/register') ||
-    pathname.startsWith('/onboarding') ||
-    pathname.startsWith('/privacy/consent') ||
-    pathname.startsWith('/system/') ||
-    pathname.startsWith('/admin/') ||
-    pathname.startsWith('/pilot/') ||
-    pathname.startsWith('/dev/')
-  );
+  if (route === '/home') {
+    return pathname === '/home';
+  }
+
+  if (route === '/messages') {
+    return pathname === '/messages';
+  }
+
+  if (route === '/buklod') {
+    return pathname === '/buklod';
+  }
+
+  if (route === '/prayer') {
+    return pathname === '/prayer';
+  }
+
+  return pathname === '/notifications';
 }
 
 export default function
@@ -173,6 +183,10 @@ BuklodPersistentBottomNav() {
   /* PATCH_167K_HIDE_NAV_ON_KEYBOARD */
   const [keyboardVisible, setKeyboardVisible] =
     React.useState(false);
+  const [pendingRoute, setPendingRoute] =
+    React.useState<
+      NavItem['route'] | null
+    >(null);
 
   React.useEffect(() => {
     const showSubscription =
@@ -199,6 +213,24 @@ BuklodPersistentBottomNav() {
   const pathname =
     usePathname();
 
+  const normalizedPath =
+    normalizeBuklodPathname(pathname);
+
+  React.useEffect(() => {
+    if (
+      pendingRoute &&
+      isOnGlobalNavDestination(
+        normalizedPath,
+        pendingRoute
+      )
+    ) {
+      setPendingRoute(null);
+    }
+  }, [
+    normalizedPath,
+    pendingRoute,
+  ]);
+
   const insets =
     useSafeAreaInsets();
 
@@ -219,6 +251,8 @@ BuklodPersistentBottomNav() {
     unreadCount,
   } =
     useNotifications();
+
+  const { theme } = useBuklodTheme();
 
   const showPrayer =
     Boolean(
@@ -249,7 +283,7 @@ BuklodPersistentBottomNav() {
    * Scoped Organization navigation stays in the TOP bar.
    */
   const openGlobalDestination =
-    async (
+    (
       route:
         | '/home'
         | '/messages'
@@ -258,9 +292,26 @@ BuklodPersistentBottomNav() {
         | '/notifications'
     ) => {
       if (
-        activeScope?.scope_type ===
-        'ORGANIZATION'
+        isOnGlobalNavDestination(
+          normalizedPath,
+          route
+        )
       ) {
+        return;
+      }
+
+      setPendingRoute(route);
+      buklodInstantReplace(
+        route as any
+      );
+
+      const needsScopeReset =
+        activeScope?.scope_type ===
+          'ORGANIZATION' ||
+        activeScope?.scope_type ===
+          'CLUSTER';
+
+      if (needsScopeReset) {
         const publicScope =
           scopes.find(
             scope =>
@@ -269,25 +320,20 @@ BuklodPersistentBottomNav() {
           );
 
         if (publicScope) {
-          try {
-            await selectScope(
+          queueMicrotask(() => {
+            void selectScope(
               publicScope.scope_id
+            ).catch(
+              error => {
+                console.warn(
+                  'BUKLOD global nav scope reset:',
+                  error
+                );
+              }
             );
-          }
-          catch (error) {
-            console.warn(
-              'BUKLOD global nav scope reset:',
-              error
-            );
-
-            return;
-          }
+          });
         }
       }
-
-      router.replace(
-        route as any
-      );
     };
 
 
@@ -295,34 +341,28 @@ BuklodPersistentBottomNav() {
     keyboardVisible ||
     !session ||
     !profile ||
-    shouldHide(pathname)
+    !shouldShowBuklodPublicBottomNav(pathname)
   ) {
     return null;
   }
-  /* PATCH_170B_HIDE_BOTTOM_NAV_IN_CLUSTER
-   * SMOOTH_NAV_R2:
-   * Hide only when the Cluster workspace route is actually visible.
+  /*
+   * Global bottom nav stays visible in Cluster. Tapping it restores
+   * Public and opens the personal BUKLOD destination.
    */
-  if (
-    activeScope?.scope_type ===
-      'CLUSTER' &&
-    (
-      pathname === '/scope' ||
-      pathname.startsWith('/scope/')
-    )
-  ) {
-    return null;
-  }
   /* PATCH_173A_R4_GATE_NAV_HIDE */
   if (
-    pathname === '/privacy/consent' ||
-    pathname.startsWith('/privacy/consent/')
+    normalizedPath === '/privacy' ||
+    normalizedPath.startsWith('/privacy/') ||
+    normalizedPath === '/delete-account' ||
+    normalizedPath.startsWith('/delete-account/')
   ) {
     return null;
   }
 
   const active =
-    routeKey(pathname);
+    pendingRoute
+      ? routeKey(pendingRoute)
+      : routeKey(normalizedPath);
 
   const badgeText =
     unreadCount > 99
@@ -340,6 +380,9 @@ BuklodPersistentBottomNav() {
               insets.bottom,
               7
             ),
+          backgroundColor: theme.navBackground,
+          borderTopColor: theme.navBorder,
+          shadowColor: theme.navShadow,
         },
       ]}
     >
@@ -352,7 +395,7 @@ BuklodPersistentBottomNav() {
             'notifications' &&
           unreadCount > 0;
 return (
-          <Pressable
+          <BuklodPressable
             key={item.key}
             accessibilityRole="button"
             accessibilityLabel={item.label}
@@ -363,8 +406,9 @@ return (
                   : 'Open Notification Center'
                 : undefined
             }
+            instant
             onPress={() =>
-              void openGlobalDestination(
+              openGlobalDestination(
                 item.route
               )
             }
@@ -373,12 +417,16 @@ return (
               pressed &&
                 styles.itemPressed,
             ]}
+            android_ripple={{
+              color: 'transparent',
+            }}
           >
             <View
               style={[
                 styles.capsule,
-                selected &&
-                  styles.capsuleActive,
+                selected && {
+                  backgroundColor: theme.navActive,
+                },
               ]}
             >
               <MaterialCommunityIcons
@@ -390,21 +438,29 @@ return (
                 }
                 color={
                   selected
-                    ? colors.greenDark
-                    : colors.muted
+                    ? theme.navIconActive
+                    : theme.navIconInactive
                 }
               />
 
 
               {showBadge && (
-                <View style={styles.badge}>
+                <View
+                  style={[
+                    styles.badge,
+                    {
+                      borderColor: theme.navBackground,
+                      backgroundColor: theme.warning,
+                    },
+                  ]}
+                >
                   <Text style={styles.badgeText}>
                     {badgeText}
                   </Text>
                 </View>
               )}
             </View>
-          </Pressable>
+          </BuklodPressable>
         );
       })}
     </View>
@@ -422,9 +478,6 @@ const styles =
       paddingHorizontal: 7,
       borderTopWidth:
         StyleSheet.hairlineWidth,
-      borderTopColor: colors.line,
-      backgroundColor: colors.white,
-      shadowColor: '#000000',
       shadowOffset: {
         width: 0,
         height: -2,
@@ -443,12 +496,7 @@ const styles =
     },
 
     itemPressed: {
-      opacity: 0.68,
-      transform: [
-        {
-          scale: 0.96,
-        },
-      ],
+      opacity: 0.82,
     },
 
     capsule: {
@@ -462,12 +510,6 @@ const styles =
       paddingHorizontal: 10,
     },
 
-    capsuleActive: {
-      minWidth: 48,
-      backgroundColor:
-        colors.greenSoft,
-    },
-
     badge: {
       position: 'absolute',
       right: -4,
@@ -478,9 +520,7 @@ const styles =
       borderRadius: 10,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: '#B98219',
       borderWidth: 2,
-      borderColor: colors.white,
     },
 
     badgeText: {

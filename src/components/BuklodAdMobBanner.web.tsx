@@ -1,30 +1,25 @@
-import type {
-  ComponentProps,
-} from 'react';
+﻿import React from 'react';
 
-import {
-  View,
-} from 'react-native';
+type BuklodAdPlacement =
+  | 'home'
+  | 'community'
+  | 'prayer'
+  | 'messages'
+  | 'bible'
+  | 'devotion'
+  | 'me'
+  | 'reels'
+  | 'test';
 
-export type BuklodAdMobBannerProps =
-  ComponentProps<typeof View> & {
-    unitId?: string;
-    adUnitId?: string;
-    placement?: string;
-    testID?: string;
-  };
+type Props = {
+  placement: BuklodAdPlacement;
+  compact?: boolean;
+  format?: 'adaptive' | 'inline' | 'mediumRectangle';
+  diagnosticName?: 'home_bottom_banner' | 'community_inline' | 'reels_inline' | 'test';
+  requireViewport?: boolean;
+  showLabel?: boolean;
+};
 
-export function BuklodAdMobBanner(
-  _props: BuklodAdMobBannerProps
-) {
-  /*
-   * AdMob is native-only in BUKLOD.
-   * Web intentionally renders no AdMob banner.
-   *
-   * Android continues using:
-   * BuklodAdMobBanner.tsx
-   */
+export default function BuklodAdMobBanner(_props: Props) {
   return null;
 }
-
-export default BuklodAdMobBanner;

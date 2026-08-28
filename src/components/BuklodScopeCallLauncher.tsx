@@ -1,4 +1,8 @@
 ﻿import { ensureBuklodStreamVideoClient } from '@/lib/buklodStreamVideoClient';
+import {
+  buildBuklodScopeCallId,
+  formatBuklodCallStartError,
+} from '@/lib/buklodStreamCall';
 import React, {
   useCallback,
   useEffect,
@@ -28,8 +32,11 @@ import {
 } from '@/lib/supabase';
 
 import {
-  colors,
-} from '@/lib/theme';
+  type ConnectThemeRoles,
+} from '@/lib/connectTheme';
+import {
+  useConnectTheme,
+} from '@/providers/ConnectThemeProvider';
 
 /* PATCH_168E_SCOPE_CONNECT_CALLS */
 
@@ -51,28 +58,9 @@ type RosterRow = {
 function safeCallId(
   scopeId: string,
 ) {
-  const scopePart =
+  return buildBuklodScopeCallId(
     scopeId
-      .replace(
-        /[^a-zA-Z0-9]/g,
-        '',
-      )
-      .slice(
-        0,
-        18,
-      );
-
-  const randomPart =
-    Math.random()
-      .toString(36)
-      .slice(2, 10);
-
-  return [
-    'buklod',
-    scopePart || 'scope',
-    Date.now().toString(36),
-    randomPart,
-  ].join('-');
+  );
 }
 
 export default function
@@ -81,6 +69,11 @@ BuklodScopeCallLauncher({
   title,
   compact = false,
 }: Props) {
+  const { theme } = useConnectTheme();
+  const styles = useMemo(
+    () => createCallStyles(theme),
+    [theme]
+  );
   const videoClient =
     useStreamVideoClient();
 
@@ -159,7 +152,12 @@ BuklodScopeCallLauncher({
 
           const canCall =
             type === 'CLUSTER' ||
-            type === 'ORGANIZATION';
+            type === 'ORGANIZATION' ||
+            type === 'SUB_ORGANIZATION' ||
+            type === 'SUB-ORGANIZATION' ||
+            type === 'SUBORGANIZATION' ||
+            type === 'SUB_ORG' ||
+            type === 'SUB-ORG';
 
           setScopeType(type);
           setEnabled(canCall);
@@ -271,6 +269,21 @@ BuklodScopeCallLauncher({
           'CLUSTER'
         ) {
           return 'Cluster Call';
+        }
+
+        if (
+          scopeType ===
+            'SUB_ORGANIZATION' ||
+          scopeType ===
+            'SUB-ORGANIZATION' ||
+          scopeType ===
+            'SUBORGANIZATION' ||
+          scopeType ===
+            'SUB_ORG' ||
+          scopeType ===
+            'SUB-ORG'
+        ) {
+          return 'Sub-organization Call';
         }
 
         return 'Organization Call';
@@ -476,8 +489,9 @@ BuklodScopeCallLauncher({
 
           Alert.alert(
             'Call could not start',
-            error?.message ??
-            'Please check the connection and try again.'
+            formatBuklodCallStartError(
+              error
+            )
           );
         }
         finally {
@@ -533,7 +547,7 @@ BuklodScopeCallLauncher({
             <ActivityIndicator
               size="small"
               color={
-                colors.greenDark
+                theme.accent
               }
             />
           ) : (
@@ -541,7 +555,7 @@ BuklodScopeCallLauncher({
               name="phone-outline"
               size={21}
               color={
-                colors.greenDark
+                theme.accent
               }
             />
           )}
@@ -574,7 +588,7 @@ BuklodScopeCallLauncher({
             <ActivityIndicator
               size="small"
               color={
-                colors.greenDark
+                theme.accent
               }
             />
           ) : (
@@ -582,7 +596,7 @@ BuklodScopeCallLauncher({
               name="video-outline"
               size={22}
               color={
-                colors.greenDark
+                theme.accent
               }
             />
           )}
@@ -612,7 +626,7 @@ BuklodScopeCallLauncher({
             name="phone-in-talk-outline"
             size={18}
             color={
-              colors.greenDark
+              theme.accent
             }
           />
 
@@ -628,7 +642,7 @@ BuklodScopeCallLauncher({
             <ActivityIndicator
               size="small"
               color={
-                colors.greenDark
+                theme.accent
               }
             />
           ) : (
@@ -759,8 +773,8 @@ BuklodScopeCallLauncher({
   );
 }
 
-const styles =
-  StyleSheet.create({
+function createCallStyles(theme: ConnectThemeRoles) {
+  return StyleSheet.create({
     /* PATCH_172H_COMPACT_CALL_STYLES */
     compactActions: {
       flexDirection: 'row',
@@ -771,15 +785,15 @@ const styles =
     compactButton: {
       width: 42,
       height: 42,
-      borderRadius: 13,
+      borderRadius: 21,
       alignItems: 'center',
       justifyContent: 'center',
       borderWidth:
         StyleSheet.hairlineWidth,
       borderColor:
-        colors.line,
+        theme.border,
       backgroundColor:
-        colors.greenSoft,
+        theme.accentMuted,
     },
 
     card: {
@@ -792,9 +806,9 @@ const styles =
         StyleSheet
           .hairlineWidth,
       borderColor:
-        colors.line,
+        theme.border,
       backgroundColor:
-        colors.white,
+        theme.callControlSurface,
       flexDirection:
         'row',
       alignItems:
@@ -819,7 +833,7 @@ const styles =
       fontSize: 12,
       fontWeight: '900',
       color:
-        colors.text,
+        theme.textPrimary,
     },
 
     count: {
@@ -827,7 +841,7 @@ const styles =
       fontSize: 9,
       fontWeight: '800',
       color:
-        colors.muted,
+        theme.textMuted,
     },
 
     hint: {
@@ -835,7 +849,7 @@ const styles =
       fontSize: 9.5,
       lineHeight: 13,
       color:
-        colors.muted,
+        theme.textMuted,
     },
 
     actions: {
@@ -859,12 +873,12 @@ const styles =
 
     audioButton: {
       backgroundColor:
-        colors.greenDark,
+        theme.accent,
     },
 
     videoButton: {
       backgroundColor:
-        colors.green,
+        theme.accentSoft,
     },
 
     buttonText: {
@@ -886,4 +900,5 @@ const styles =
       opacity: 0.55,
     },
   });
+}
 

@@ -9,17 +9,22 @@ import {
   Alert,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
 
+import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
+
 import {
   router,
   useLocalSearchParams,
 } from 'expo-router';
+
+import { enterScopedWorkspace } from '@/lib/buklodScopeRoute';
+
+import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 
 import {
   ClusterDetails,
@@ -96,12 +101,22 @@ function ActionButton({
 
 export default function ClusterDetailScreen() {
   const params =
-    useLocalSearchParams<{ id?: string }>();
+    useLocalSearchParams<{
+      id?: string;
+      fromInvite?: string;
+    }>();
 
   const scopeId =
     typeof params.id === 'string'
       ? params.id
       : '';
+
+  const fromInvite =
+    params.fromInvite === '1' ||
+    params.fromInvite === 'true';
+
+  const { selectScope } =
+    useBuklodScope();
 
   const [cluster, setCluster] =
     useState<ClusterDetails | null>(null);
@@ -163,20 +178,8 @@ export default function ClusterDetailScreen() {
             info.description || ''
           );
           setVisibility(info.visibility);
-
-          if (info.is_admin) {
-            const [memberRows, requestRows] =
-              await Promise.all([
-                getClusterMembers(scopeId),
-                getClusterRequests(scopeId),
-              ]);
-
-            setMembers(memberRows);
-            setRequests(requestRows);
-          } else {
-            setMembers([]);
-            setRequests([]);
-          }
+          setMembers([]);
+          setRequests([]);
         }
       } catch (error) {
         Alert.alert(
@@ -327,6 +330,17 @@ export default function ClusterDetailScreen() {
     );
   };
 
+  const openClusterHome = async () => {
+    await enterScopedWorkspace(
+      selectScope,
+      scopeId,
+      {
+        section: 'home',
+        navigation: 'replace',
+      }
+    );
+  };
+
   const confirmLeave = () => {
     Alert.alert(
       'Leave Cluster',
@@ -388,7 +402,7 @@ export default function ClusterDetailScreen() {
     cluster.membership_status;
 
   return (
-    <ScrollView
+    <BuklodPortalScrollView
       style={styles.screen}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
@@ -403,7 +417,9 @@ export default function ClusterDetailScreen() {
     >
       <View style={styles.hero}>
         <Text style={styles.eyebrow}>
-          CLUSTER HOME
+          {fromInvite
+            ? 'CLUSTER INVITATION'
+            : 'CLUSTER HOME'}
         </Text>
 
         <Text style={styles.title}>
@@ -440,22 +456,8 @@ export default function ClusterDetailScreen() {
 
           {!!membership && (
             <View style={styles.status}>
-              <Text
-                style={styles.statusText}
-              >
+              <Text style={styles.statusText}>
                 {membership}
-              </Text>
-            </View>
-          )}
-
-          {cluster.is_admin && (
-            <View style={styles.adminStatus}>
-              <Text
-                style={
-                  styles.adminStatusText
-                }
-              >
-                ADMIN
               </Text>
             </View>
           )}
@@ -488,10 +490,30 @@ export default function ClusterDetailScreen() {
                       'Request sent',
                       'Your request is waiting for Cluster Admin approval.'
                     );
+                    return;
+                  }
+
+                  if (
+                    result === 'ACTIVE'
+                  ) {
+                    await openClusterHome();
                   }
                 })
               }
             />
+          )}
+
+        {!membership &&
+          cluster.scope_status !==
+            'ARCHIVED' &&
+          cluster.visibility ===
+            'INVITE_ONLY' && (
+            <Text style={styles.inviteOnly}>
+              This Cluster is invite-only.
+              Ask a Cluster Admin to send
+              you an invitation, then open
+              this link again to accept.
+            </Text>
           )}
 
         {membership === 'INVITED' && (
@@ -505,6 +527,8 @@ export default function ClusterDetailScreen() {
                     scopeId,
                     true
                   );
+
+                  await openClusterHome();
                 })
               }
             />
@@ -544,370 +568,41 @@ export default function ClusterDetailScreen() {
           />
         )}
 
-        {membership === 'ACTIVE' &&
-          !cluster.is_admin && (
+        {membership === 'ACTIVE' && (
+          <View style={styles.actions}>
+            <ActionButton
+              title="OPEN CLUSTER HOME"
+              disabled={busy}
+              onPress={() =>
+                void openClusterHome()
+              }
+            />
+
+            <ActionButton
+              title="CLUSTER PROGRESS REPORT"
+              outline
+              disabled={busy}
+              onPress={() =>
+                router.push({
+                  pathname: '/clusters/progress' as any,
+                  params: { id: scopeId },
+                } as any)
+              }
+            />
+
             <ActionButton
               title="LEAVE CLUSTER"
               danger
+              outline
               disabled={busy}
               onPress={confirmLeave}
             />
-          )}
+          </View>
+        )}
       </View>
 
-      {cluster.is_admin && (
-        <>
-          <Text style={styles.sectionTitle}>
-            ADMIN SETTINGS
-          </Text>
-
-          <View style={styles.card}>
-            <Text style={styles.label}>
-              CLUSTER NAME
-            </Text>
-
-            <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-              maxLength={120}
-            />
-
-            <Text style={styles.label}>
-              CATEGORY
-            </Text>
-
-            <TextInput
-              style={styles.input}
-              value={category}
-              onChangeText={setCategory}
-              placeholder="Association, Friends, School..."
-              maxLength={80}
-            />
-
-            <Text style={styles.label}>
-              DESCRIPTION
-            </Text>
-
-            <TextInput
-              style={[
-                styles.input,
-                styles.multiline,
-              ]}
-              value={description}
-              onChangeText={setDescription}
-              multiline
-              textAlignVertical="top"
-              maxLength={1000}
-            />
-
-            <Text style={styles.label}>
-              PRIVACY
-            </Text>
-
-            {(
-              [
-                'PUBLIC',
-                'PRIVATE',
-                'INVITE_ONLY',
-              ] as ClusterVisibility[]
-            ).map((option) => (
-              <Pressable
-                key={option}
-                onPress={() =>
-                  setVisibility(option)
-                }
-                style={[
-                  styles.visibilityRow,
-                  visibility === option &&
-                    styles.visibilityActive,
-                ]}
-              >
-                <Text
-                  style={
-                    styles.visibilityText
-                  }
-                >
-                  {option.replace(
-                    '_',
-                    ' '
-                  )}
-                </Text>
-
-                {visibility === option && (
-                  <Text
-                    style={
-                      styles.checkText
-                    }
-                  >
-                    SELECTED
-                  </Text>
-                )}
-              </Pressable>
-            ))}
-
-            <ActionButton
-              title="SAVE SETTINGS"
-              disabled={busy}
-              onPress={() =>
-                void saveSettings()
-              }
-            />
-          </View>
-
-          <Text style={styles.sectionTitle}>
-            JOIN REQUESTS
-          </Text>
-
-          {requests.length === 0 ? (
-            <View style={styles.empty}>
-              <Text style={styles.muted}>
-                No pending requests.
-              </Text>
-            </View>
-          ) : (
-            requests.map((request) => (
-              <View
-                key={request.user_id}
-                style={styles.personCard}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={
-                      styles.personName
-                    }
-                  >
-                    {request.full_name}
-                  </Text>
-
-                  <Text
-                    style={styles.muted}
-                  >
-                    Requesting membership
-                  </Text>
-                </View>
-
-                <View
-                  style={styles.actions}
-                >
-                  <ActionButton
-                    title="APPROVE"
-                    disabled={busy}
-                    onPress={() =>
-                      void run(
-                        async () => {
-                          await reviewClusterRequest(
-                            scopeId,
-                            request.user_id,
-                            true
-                          );
-                        }
-                      )
-                    }
-                  />
-
-                  <ActionButton
-                    title="REJECT"
-                    outline
-                    disabled={busy}
-                    onPress={() =>
-                      void run(
-                        async () => {
-                          await reviewClusterRequest(
-                            scopeId,
-                            request.user_id,
-                            false
-                          );
-                        }
-                      )
-                    }
-                  />
-                </View>
-              </View>
-            ))
-          )}
-
-          <Text style={styles.sectionTitle}>
-            INVITE MEMBERS
-          </Text>
-
-          <View style={styles.card}>
-            <View style={styles.searchRow}>
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search member name..."
-                value={inviteSearch}
-                onChangeText={
-                  setInviteSearch
-                }
-                returnKeyType="search"
-                onSubmitEditing={() =>
-                  void searchPeople()
-                }
-              />
-
-              <ActionButton
-                title="SEARCH"
-                onPress={() =>
-                  void searchPeople()
-                }
-              />
-            </View>
-
-            {candidates.map(
-              (candidate) => (
-                <View
-                  key={
-                    candidate.user_id
-                  }
-                  style={
-                    styles.personCard
-                  }
-                >
-                  <Text
-                    style={[
-                      styles.personName,
-                      { flex: 1 },
-                    ]}
-                  >
-                    {candidate.full_name}
-                  </Text>
-
-                  <ActionButton
-                    title="INVITE"
-                    disabled={busy}
-                    onPress={() =>
-                      void run(
-                        async () => {
-                          await inviteClusterMember(
-                            scopeId,
-                            candidate.user_id
-                          );
-
-                          setCandidates(
-                            (current) =>
-                              current.filter(
-                                (item) =>
-                                  item.user_id !==
-                                  candidate.user_id
-                              )
-                          );
-                        }
-                      )
-                    }
-                  />
-                </View>
-              )
-            )}
-          </View>
-
-          <Text style={styles.sectionTitle}>
-            MEMBERS
-          </Text>
-
-          {members.map((member) => (
-            <View
-              key={member.user_id}
-              style={styles.personCard}
-            >
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={styles.personName}
-                >
-                  {member.full_name}
-                </Text>
-
-                <Text style={styles.muted}>
-                  {member.is_admin
-                    ? 'Cluster Admin'
-                    : 'Member'}
-                </Text>
-              </View>
-
-              {!member.is_admin && (
-                <View
-                  style={styles.actions}
-                >
-                  <ActionButton
-                    title="MAKE ADMIN"
-                    outline
-                    disabled={busy}
-                    onPress={() =>
-                      confirmTransfer(
-                        member
-                      )
-                    }
-                  />
-
-                  <ActionButton
-                    title="REMOVE"
-                    danger
-                    disabled={busy}
-                    onPress={() =>
-                      confirmRemove(
-                        member
-                      )
-                    }
-                  />
-                </View>
-              )}
-            </View>
-          ))}
-
-          <Text style={styles.sectionTitle}>
-            CLUSTER LIFECYCLE
-          </Text>
-
-          <View style={styles.card}>
-            {cluster.scope_status ===
-            'ARCHIVED' ? (
-              <>
-                <Text
-                  style={styles.description}
-                >
-                  This Cluster is archived.
-                  Restore it to resume normal
-                  activity.
-                </Text>
-
-                <ActionButton
-                  title="RESTORE CLUSTER"
-                  disabled={busy}
-                  onPress={() =>
-                    void run(async () => {
-                      await restoreCluster(
-                        scopeId
-                      );
-                    })
-                  }
-                />
-              </>
-            ) : (
-              <>
-                <Text
-                  style={styles.description}
-                >
-                  Archive the Cluster if it
-                  is no longer active. It can
-                  be restored later.
-                </Text>
-
-                <ActionButton
-                  title="ARCHIVE CLUSTER"
-                  danger
-                  disabled={busy}
-                  onPress={
-                    confirmArchive
-                  }
-                />
-              </>
-            )}
-          </View>
-        </>
-      )}
-
       <View style={{ height: 50 }} />
-    </ScrollView>
+    </BuklodPortalScrollView>
   );
 }
 
@@ -963,6 +658,12 @@ const styles = StyleSheet.create({
   description: {
     color: '#526259',
     lineHeight: 20,
+  },
+
+  inviteOnly: {
+    color: '#617068',
+    lineHeight: 20,
+    fontSize: 13,
   },
 
   statusRow: {

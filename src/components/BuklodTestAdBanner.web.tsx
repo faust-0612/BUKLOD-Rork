@@ -1,12 +1,5 @@
-export type BuklodTestAdBannerProps = {
-  [key: string]: unknown;
-};
+﻿import React from 'react';
 
-export function BuklodTestAdBanner(
-  _props: BuklodTestAdBannerProps
-) {
-  // Native AdMob test banner is intentionally disabled on web.
+export function BuklodTestAdBanner() {
   return null;
 }
-
-export default BuklodTestAdBanner;

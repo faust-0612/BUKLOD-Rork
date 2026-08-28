@@ -11,9 +11,9 @@ export function AdminGate({
 }: {
   children: ReactNode;
 }) {
-  const { loading, hasRole } = useAuth();
+  const { loading, hasRole, session } = useAuth();
 
-  if (loading) {
+  if (loading && !session) {
     return (
       <View
         style={[

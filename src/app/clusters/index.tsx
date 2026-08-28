@@ -10,7 +10,6 @@ import {
   Alert,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -19,6 +18,8 @@ import {
 
 import { router } from 'expo-router';
 
+import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
+
 import {
   ClusterSummary,
   discoverClusters,
@@ -26,6 +27,7 @@ import {
   joinCluster,
   respondClusterInvite,
 } from '@/lib/buklodClusters';
+import { clusterScopeManageRoute } from '@/lib/buklodCluster';
 
 function messageOf(error: unknown) {
   if (
@@ -295,7 +297,7 @@ export default function ClustersScreen() {
   };
 
   return (
-    <ScrollView
+    <BuklodPortalScrollView
       style={styles.screen}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
@@ -366,17 +368,27 @@ export default function ClustersScreen() {
               >
                 <View style={styles.actions}>
                   <ActionButton
-                    title={
-                      item.is_admin
-                        ? 'OPEN / MANAGE'
-                        : 'OPEN'
-                    }
+                    title="OPEN"
                     onPress={() =>
                       openCluster(
                         item.scope_id
                       )
                     }
                   />
+                  {item.is_admin && (
+                    <ActionButton
+                      title="MANAGE"
+                      outline
+                      onPress={() =>
+                        router.push(
+                          clusterScopeManageRoute(
+                            item.scope_id,
+                            item.name
+                          ) as any
+                        )
+                      }
+                    />
+                  )}
                 </View>
               </ClusterCard>
             ))
@@ -551,7 +563,7 @@ export default function ClustersScreen() {
           <View style={{ height: 40 }} />
         </>
       )}
-    </ScrollView>
+    </BuklodPortalScrollView>
   );
 }
 

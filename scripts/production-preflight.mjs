@@ -1,0 +1,87 @@
+import fs from 'node:fs';
+
+const failures = [];
+const warnings = [];
+
+const env = process.env.EXPO_PUBLIC_APP_ENV || '';
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+const publishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '';
+const easProjectId = process.env.EAS_PROJECT_ID || process.env.EXPO_PUBLIC_EAS_PROJECT_ID || '';
+
+const read = (path) => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+
+if (env !== 'production') {
+  failures.push('EXPO_PUBLIC_APP_ENV must be production.');
+}
+
+if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(supabaseUrl)) {
+  failures.push('EXPO_PUBLIC_SUPABASE_URL is not a hosted Supabase project URL.');
+}
+
+if (!/^sb_publishable_/i.test(publishableKey)) {
+  failures.push('Production Expo client must use a Supabase publishable key.');
+}
+
+if (/sb_secret_|service_role/i.test(publishableKey)) {
+  failures.push('A secret/service-role key is present in the client key variable.');
+}
+
+if (!easProjectId) {
+  failures.push('EAS_PROJECT_ID is required for the production build.');
+}
+
+const appConfig = read('app.config.js');
+if (!appConfig.includes("'org.mzbministry.buklod'")) {
+  failures.push('Production package/bundle identifier is missing.');
+}
+
+const legal = read('src/lib/legal.ts');
+if (legal.includes('REQUIRED BEFORE LAUNCH')) {
+  failures.push('Privacy notice still contains REQUIRED BEFORE LAUNCH placeholders.');
+}
+
+if (legal.includes('[OFFICIAL PRIVACY/DPO EMAIL')) {
+  failures.push('Privacy notice still contains the privacy/DPO email placeholder.');
+}
+
+if (legal.includes('[OFFICIAL ORGANIZATION ADDRESS')) {
+  failures.push('Privacy notice still contains the organization-address placeholder.');
+}
+
+const seedProd = read('supabase/seed.production.sql');
+if (/Leadership Pilot|Pilot Week|QA Church|test user/i.test(seedProd)) {
+  failures.push('Production seed appears to contain staging/pilot/demo data.');
+}
+
+const migrations = fs.readdirSync(new URL('../supabase/migrations/', import.meta.url))
+  .filter(x => x.endsWith('.sql'))
+  .sort();
+
+if (migrations.length !== 43) {
+  failures.push(`Expected 43 canonical production migrations; found ${migrations.length}.`);
+}
+
+for (let i=1;i<migrations.length;i++) {
+  if (migrations[i] <= migrations[i-1]) {
+    failures.push('Migration filenames are not strictly ordered.');
+    break;
+  }
+}
+
+const releaseManifest = JSON.parse(read('release/PRODUCTION_RELEASE_MANIFEST.json'));
+if (releaseManifest.version !== '1.0.0') {
+  warnings.push(`Release manifest version is ${releaseManifest.version}, expected 1.0.0 for initial release.`);
+}
+
+console.log('BUKLOD Production Preflight');
+console.log('===========================');
+
+for (const w of warnings) console.log(`WARN: ${w}`);
+for (const f of failures) console.error(`FAIL: ${f}`);
+
+if (failures.length) {
+  console.error(`\nPRODUCTION PREFLIGHT FAILED with ${failures.length} blocker(s).`);
+  process.exit(1);
+}
+
+console.log('\nPRODUCTION PREFLIGHT PASSED.');

@@ -35,7 +35,9 @@ export async function registerPushToken(userId: string) {
     status = requested.status;
   }
 
-  if (status !== 'granted') return null;
+  if (status !== 'granted') {
+    return null;
+  }
 
   const projectId =
     Constants?.expoConfig?.extra?.eas?.projectId ??
@@ -46,27 +48,7 @@ export async function registerPushToken(userId: string) {
     return null;
   }
 
-    /* PATCH_171C_PERMISSION_BEFORE_PUSH_TOKEN */
-  const existingPermission =
-    await Notifications.getPermissionsAsync();
-
-  let pushPermissionStatus =
-    existingPermission.status;
-
-  if (pushPermissionStatus !== 'granted') {
-    const requestedPermission =
-      await Notifications.requestPermissionsAsync();
-
-    pushPermissionStatus =
-      requestedPermission.status;
-  }
-
-  if (pushPermissionStatus !== 'granted') {
-    throw new Error(
-      'BUKLOD notification permission was not granted.'
-    );
-  }
-const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+  const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
 
   /* PATCH_171H_DEVICE_TOKEN_CLAIM_RPC
  * A physical Expo token can survive account switches on the same device.

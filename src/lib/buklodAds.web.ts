@@ -9,23 +9,20 @@ export async function getBuklodAdsDiagnostics() {
     canRequestAds: false,
     consentStatus: null,
     interstitialConfigured: false,
+    fill: null,
   };
 }
 
 export function warmBuklodInterstitial() {
-  // Google Mobile Ads is native-only in BUKLOD.
-  // Web intentionally performs no ad warm-up.
+  // AdMob is native-only. No-op on web.
 }
 
 export async function maybeShowBuklodInterstitial(
-  reason:
+  _reason:
     | 'devotional_completed'
     | 'lesson_completed'
     | 'reading_session_completed'
     | 'content_session_completed'
 ): Promise<boolean> {
-  void reason;
-
-  // No native Google Mobile Ads SDK on web.
   return false;
 }

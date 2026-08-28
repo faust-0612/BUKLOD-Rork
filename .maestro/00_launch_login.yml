@@ -1,0 +1,6 @@
+appId: org.mzbministry.buklod
+---
+- launchApp
+- assertVisible: "BUKLOD"
+- assertVisible: "LOG IN"
+- assertVisible: "CREATE ACCOUNT"

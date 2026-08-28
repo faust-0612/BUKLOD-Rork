@@ -1,4 +1,5 @@
 ﻿import { supabase } from '@/lib/supabase';
+import { fetchScopeMembers } from '@/lib/buklodScopeMembers';
 
 export type ClusterVisibility =
   | 'PUBLIC'
@@ -116,9 +117,10 @@ export async function createCluster(input: {
   description?: string;
   category?: string;
   visibility: ClusterVisibility;
+  organizationId: string;
 }) {
   const data = await rpc<string>(
-    'buklod_create_cluster',
+    'buklod_create_cluster_v2',
     {
       _name: input.name.trim(),
       _description:
@@ -126,6 +128,7 @@ export async function createCluster(input: {
       _category:
         input.category?.trim() || null,
       _visibility: input.visibility,
+      _organization_id: input.organizationId,
     }
   );
 
@@ -198,14 +201,56 @@ export async function reviewClusterRequest(
 export async function getClusterMembers(
   scopeId: string
 ) {
-  const data = await rpc<unknown>(
-    'buklod_cluster_members',
-    {
-      _scope_id: scopeId,
-    }
-  );
+  try {
+    const data = await rpc<unknown>(
+      'buklod_cluster_members',
+      {
+        _scope_id: scopeId,
+      }
+    );
 
-  return rows<ClusterMember>(data);
+    return rows<ClusterMember>(data);
+  } catch (error: any) {
+    const message = String(error?.message ?? '');
+
+    if (
+      !/could not find the function|function.*does not exist|schema cache/i.test(
+        message
+      )
+    ) {
+      try {
+        const members = await fetchScopeMembers({
+          scopeId,
+          status: 'ACTIVE',
+          limit: 200,
+          offset: 0,
+        });
+
+        return members.map(member => ({
+          user_id: member.user_id,
+          full_name: member.full_name,
+          is_admin: member.is_admin,
+          joined_at: member.joined_at,
+        }));
+      } catch {
+        throw error;
+      }
+    }
+
+    const members = await fetchScopeMembers({
+      scopeId,
+      status: 'ACTIVE',
+      limit: 200,
+      offset: 0,
+    });
+
+    return members.map(member => ({
+      user_id: member.user_id,
+      full_name: member.full_name,
+      is_admin: member.is_admin,
+      joined_at: member.joined_at,
+    }));
+  }
 }
 
 export async function searchClusterInviteCandidates(

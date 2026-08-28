@@ -14,7 +14,11 @@ import {
   View,
 } from 'react-native';
 import { useWindowDimensions } from 'react-native';
-import { router, usePathname } from 'expo-router';
+import {
+  router,
+  useLocalSearchParams,
+  usePathname,
+} from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
@@ -28,11 +32,27 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { supabase } from '@/lib/supabase';
+import {
+  buildScopedWorkspacePath,
+  firstRouteParam,
+} from '@/lib/buklodScopeRoute';
+import {
+  isBuklodProfileRoute,
+  isBuklodScopedWorkspacePath,
+  isBuklodScopedWorkspaceScopeType,
+} from '@/lib/buklodSafeArea';
 import { useNotifications } from '@/providers/NotificationProvider';
 import { useAuth } from '@/providers/AuthProvider';
+import { useBuklodScope } from '@/providers/BuklodScopeProvider';
+import {
+  BUKLOD_LONG_PRESS_MS,
+  BUKLOD_PAN_MIN_DISTANCE_PX,
+} from '@/lib/buklodTouch';
 
 type Pose = 'wave' | 'celebrate' | 'think';
+
+const GUIDE_AVATAR_SIZE = 50;
+const GUIDE_STATUS_DOT = 10;
 
 const GUIDE = {
   wave: require('../../assets/buklod-guide/wave.png'),
@@ -51,38 +71,72 @@ function routePose(pathname: string): Pose {
   return 'wave';
 }
 
-function routeMessage(pathname: string) {
-  if (pathname.includes('prayer')) {
-    return "I'm with you. Let's pray.";
-  }
-  if (pathname.includes('buklod')) {
-    return 'Your community is active. Stay connected.';
-  }
-  if (pathname.includes('learn')) {
-    return 'One lesson at a time. Keep growing.';
-  }
-  if (pathname.includes('word')) {
-    return "Ready for today's Word?";
-  }
-  if (pathname.includes('me')) {
-    return 'Your BUKLOD tools are all here.';
-  }
-  return "I'm here. Let's check what matters today.";
-}
-
 export function BuklodGuideAvatar() {
   const pathname = usePathname();
+  const params =
+    useLocalSearchParams<{
+      returnScopeId?:
+        | string
+        | string[];
+    }>();
   const {
     width: screenWidth,
     height: screenHeight,
   } = useWindowDimensions();
   const { unreadCount } = useNotifications();
   const { session, profile } = useAuth();
+  const {
+    activeScope,
+    scopes,
+    selectScope,
+  } = useBuklodScope();
+  const isProfileRoute = isBuklodProfileRoute(pathname);
+  const scopedWorkspaceActive =
+    isBuklodScopedWorkspaceScopeType(
+      activeScope?.scope_type
+    );
+  const profileReturnScopeId =
+    useMemo(() => {
+      const fromParam =
+        firstRouteParam(
+          params.returnScopeId
+        );
+
+      if (fromParam) {
+        return fromParam;
+      }
+
+      if (
+        isProfileRoute &&
+        scopedWorkspaceActive
+      ) {
+        return (
+          activeScope?.scope_id ??
+          ''
+        );
+      }
+
+      return '';
+    }, [
+      params.returnScopeId,
+      isProfileRoute,
+      scopedWorkspaceActive,
+      activeScope?.scope_id,
+    ]);
+  const profileReturnMode =
+    isProfileRoute &&
+    Boolean(profileReturnScopeId);
+  const guideBubbleText = profileReturnMode
+    ? 'Tap to return to your organization home.'
+    : '';
   /* PATCH_163A_R_MEMBER_ROUTE_GUARD */
   /* PATCH_167M_ALL_DASHBOARDS_EXCEPT_PROFILE */
   const guideVisible =
     Boolean(session) &&
-    !/^\/(me|profile)(?:\/|$)/.test(pathname);
+    !pathname.includes('points') &&
+    !pathname.includes('/privacy') &&
+    !pathname.includes('/delete-account') &&
+    (!isProfileRoute || profileReturnMode);
 
 
   const basePose = useMemo(
@@ -91,11 +145,9 @@ export function BuklodGuideAvatar() {
   );
 
   const [pose, setPose] = useState<Pose>(basePose);
-  const [bubbleText, setBubbleText] = useState(
-    routeMessage(pathname)
-  );
+  const [bubbleText, setBubbleText] = useState('');
   const [bubbleMounted, setBubbleMounted] =
-    useState(true);
+    useState(false);
   const [reduceMotion, setReduceMotion] =
     useState(false);
 
@@ -103,18 +155,13 @@ export function BuklodGuideAvatar() {
   const [guideOpen, setGuideOpen] =
     useState(true);
 
-  const previousUnread = useRef(unreadCount);
   const bubbleTimer = useRef<
-    ReturnType<typeof setTimeout> | null
-  >(null);
-  const reactionTimer = useRef<
     ReturnType<typeof setTimeout> | null
   >(null);
 
   const guideHideTimer = useRef<
     ReturnType<typeof setTimeout> | null
   >(null);
-  const lastRealtimeReaction = useRef(0);
 
   const entryOpacity = useSharedValue(0);
   const entryY = useSharedValue(22);
@@ -127,7 +174,8 @@ export function BuklodGuideAvatar() {
   const dragGesture = useMemo(
     () =>
       Gesture.Pan()
-        .minDistance(6)
+        .activateAfterLongPress(BUKLOD_LONG_PRESS_MS)
+        .minDistance(BUKLOD_PAN_MIN_DISTANCE_PX)
         .maxPointers(1)
         .onBegin(() => {
           dragStartX.value = dragX.value;
@@ -135,19 +183,19 @@ export function BuklodGuideAvatar() {
         })
         .onUpdate((event) => {
           const baseX =
-            screenWidth - 12 - 94;
+            screenWidth - 12 - GUIDE_AVATAR_SIZE;
           const baseY =
-            screenHeight - 88 - 104;
+            screenHeight - 88 - GUIDE_AVATAR_SIZE;
 
           const minX =
             8 - baseX;
           const maxX =
-            screenWidth - 8 - 94 - baseX;
+            screenWidth - 8 - GUIDE_AVATAR_SIZE - baseX;
 
           const minY =
             58 - baseY;
           const maxY =
-            screenHeight - 92 - 104 - baseY;
+            screenHeight - 92 - GUIDE_AVATAR_SIZE - baseY;
 
           const wantedX =
             dragStartX.value +
@@ -179,6 +227,7 @@ export function BuklodGuideAvatar() {
     ]
   );
   const floatY = useSharedValue(0);
+  const swayX = useSharedValue(0);
   const breath = useSharedValue(1);
   const tilt = useSharedValue(0);
   const pop = useSharedValue(1);
@@ -314,10 +363,12 @@ export function BuklodGuideAvatar() {
           );
       }
 
-      showBubble(
-        routeMessage(pathname),
-        2600
-      );
+      if (profileReturnMode && guideBubbleText) {
+        showBubble(
+          guideBubbleText,
+          2600
+        );
+      }
 
       scheduleGuideHide(3600);
     }, [
@@ -325,7 +376,8 @@ export function BuklodGuideAvatar() {
       clearGuideHideTimer,
       entryOpacity,
       entryY,
-      pathname,
+      guideBubbleText,
+      profileReturnMode,
       reduceMotion,
       scheduleGuideHide,
       showBubble,
@@ -348,44 +400,6 @@ export function BuklodGuideAvatar() {
       })
     );
   }, [pop, reduceMotion]);
-
-  const triggerReaction = useCallback(
-    (
-      nextPose: Pose,
-      message: string,
-      duration = 3900
-    ) => {
-      const now = Date.now();
-
-      // Avoid a noisy guide when multiple realtime events
-      // arrive almost simultaneously.
-      if (
-        now - lastRealtimeReaction.current <
-        900
-      ) {
-        return;
-      }
-
-      lastRealtimeReaction.current = now;
-
-      if (reactionTimer.current) {
-        clearTimeout(reactionTimer.current);
-      }
-
-      setPose(nextPose);
-      animateTap();
-      showBubble(message, duration);
-
-      reactionTimer.current = setTimeout(() => {
-        setPose(basePose);
-      }, duration);
-    },
-    [
-      animateTap,
-      basePose,
-      showBubble,
-    ]
-  );
 
   useEffect(() => {
     let active = true;
@@ -423,8 +437,10 @@ export function BuklodGuideAvatar() {
 
     if (reduceMotion) {
       floatY.value = 0;
+      swayX.value = 0;
       breath.value = 1;
       tilt.value = 0;
+      pop.value = 1;
       ringScale.value = 1;
       ringOpacity.value = 0.34;
       blinkOpacity.value = 0;
@@ -433,12 +449,12 @@ export function BuklodGuideAvatar() {
 
     floatY.value = withRepeat(
       withSequence(
-        withTiming(-5, {
-          duration: 1750,
+        withTiming(-14, {
+          duration: 900,
           easing: Easing.inOut(Easing.quad),
         }),
-        withTiming(0, {
-          duration: 1750,
+        withTiming(4, {
+          duration: 900,
           easing: Easing.inOut(Easing.quad),
         })
       ),
@@ -446,14 +462,29 @@ export function BuklodGuideAvatar() {
       false
     );
 
+    swayX.value = withRepeat(
+      withSequence(
+        withTiming(-8, {
+          duration: 1100,
+          easing: Easing.inOut(Easing.sin),
+        }),
+        withTiming(8, {
+          duration: 1100,
+          easing: Easing.inOut(Easing.sin),
+        })
+      ),
+      -1,
+      true
+    );
+
     breath.value = withRepeat(
       withSequence(
-        withTiming(1.018, {
-          duration: 1450,
+        withTiming(1.08, {
+          duration: 700,
           easing: Easing.inOut(Easing.quad),
         }),
         withTiming(1, {
-          duration: 1450,
+          duration: 700,
           easing: Easing.inOut(Easing.quad),
         })
       ),
@@ -463,13 +494,28 @@ export function BuklodGuideAvatar() {
 
     tilt.value = withRepeat(
       withSequence(
-        withTiming(-1.2, {
-          duration: 1900,
+        withTiming(-10, {
+          duration: 800,
           easing: Easing.inOut(Easing.quad),
         }),
-        withTiming(1.2, {
-          duration: 1900,
+        withTiming(10, {
+          duration: 800,
           easing: Easing.inOut(Easing.quad),
+        })
+      ),
+      -1,
+      true
+    );
+
+    pop.value = withRepeat(
+      withSequence(
+        withTiming(1.06, {
+          duration: 420,
+          easing: Easing.out(Easing.quad),
+        }),
+        withTiming(0.96, {
+          duration: 420,
+          easing: Easing.in(Easing.quad),
         })
       ),
       -1,
@@ -520,8 +566,10 @@ export function BuklodGuideAvatar() {
 
     return () => {
       cancelAnimation(floatY);
+      cancelAnimation(swayX);
       cancelAnimation(breath);
       cancelAnimation(tilt);
+      cancelAnimation(pop);
       cancelAnimation(ringScale);
       cancelAnimation(ringOpacity);
       cancelAnimation(blinkOpacity);
@@ -532,81 +580,47 @@ export function BuklodGuideAvatar() {
     entryOpacity,
     entryY,
     floatY,
+    pop,
     reduceMotion,
     ringOpacity,
     ringScale,
+    swayX,
     tilt,
   ]);
 
   useEffect(() => {
-    setPose(basePose);
-    showBubble(routeMessage(pathname), 2600);
-  }, [basePose, pathname, showBubble]);
-
-  useEffect(() => {
-    const before = previousUnread.current;
-
-    if (unreadCount > before) {
-      const added = unreadCount - before;
-      triggerReaction(
-        'celebrate',
-        added === 1
-          ? 'You have a new BUKLOD update.'
-          : `You have ${added} new BUKLOD updates.`
-      );
+    if (!profileReturnMode || !guideBubbleText) {
+      return;
     }
 
-    previousUnread.current = unreadCount;
-  }, [triggerReaction, unreadCount]);
+    showBubble(guideBubbleText, 2600);
+  }, [guideBubbleText, profileReturnMode, showBubble]);
 
   useEffect(() => {
-    // Prayer-aware realtime reaction. This is display-only:
-    // the guide never exposes prayer text or member identity.
-    const channel = supabase
-      .channel('buklod-guide-prayer-activity')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'prayer_requests',
-        },
-        () => {
-          triggerReaction(
-            'think',
-            'A new prayer request just came in.'
-          );
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'prayer_responses',
-        },
-        () => {
-          triggerReaction(
-            'celebrate',
-            'Someone just prayed with the community.'
-          );
-        }
-      )
-      .subscribe();
+    if (reduceMotion || !guideOpen) {
+      setPose(basePose);
+      return;
+    }
 
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [triggerReaction]);
+    const poses: Pose[] =
+      basePose === 'think'
+        ? ['think', 'wave']
+        : ['wave', 'celebrate'];
+    let index = 0;
+    setPose(poses[0]);
+
+    const timer = setInterval(() => {
+      index = (index + 1) % poses.length;
+      setPose(poses[index]);
+    }, 1600);
+
+    return () => clearInterval(timer);
+  }, [basePose, guideOpen, reduceMotion]);
 
   useEffect(
     () => () => {
       clearBubbleTimer();
       clearGuideHideTimer();
-
-      if (reactionTimer.current) {
-        clearTimeout(reactionTimer.current);
-      }
     },
     [
       clearBubbleTimer,
@@ -627,16 +641,10 @@ export function BuklodGuideAvatar() {
 
   const motionStyle = useAnimatedStyle(() => ({
     transform: [
+      { translateX: swayX.value },
       { translateY: floatY.value },
       { rotate: `${tilt.value}deg` },
       { scale: breath.value * pop.value },
-    ],
-  }));
-
-  const ringStyle = useAnimatedStyle(() => ({
-    opacity: ringOpacity.value,
-    transform: [
-      { scale: ringScale.value },
     ],
   }));
 
@@ -667,6 +675,77 @@ export function BuklodGuideAvatar() {
     animateTap();
     scheduleGuideHide(3600);
 
+    if (
+      profileReturnMode &&
+      profileReturnScopeId
+    ) {
+      void (async () => {
+        try {
+          await selectScope(
+            profileReturnScopeId
+          );
+        } catch (error) {
+          console.warn(
+            'BUKLOD profile return scope select:',
+            error
+          );
+        }
+
+        router.replace(
+          buildScopedWorkspacePath(
+            'home',
+            profileReturnScopeId
+          ) as any
+        );
+      })();
+
+      return;
+    }
+
+    const openingProfileFromScopedWorkspace =
+      !isProfileRoute &&
+      scopedWorkspaceActive &&
+      isBuklodScopedWorkspacePath(
+        pathname
+      );
+
+    if (
+      openingProfileFromScopedWorkspace &&
+      activeScope?.scope_id
+    ) {
+      const returnScopeId =
+        activeScope.scope_id;
+
+      void (async () => {
+        const publicScope =
+          scopes.find(
+            (scope) =>
+              scope.scope_type ===
+              'PUBLIC'
+          );
+
+        if (publicScope) {
+          try {
+            await selectScope(
+              publicScope.scope_id
+            );
+          } catch (error) {
+            console.warn(
+              'BUKLOD profile public scope reset:',
+              error
+            );
+          }
+        }
+
+        ((router as any).canDismiss?.() ? router.dismissAll() : undefined);
+        router.replace(
+          `/me?returnScopeId=${encodeURIComponent(returnScopeId)}` as any
+        );
+      })();
+
+      return;
+    }
+
     router.navigate(
       '/me' as any
     );
@@ -686,20 +765,22 @@ export function BuklodGuideAvatar() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={
-            unreadCount > 0
-              ? `Open BUKLOD Profile. ${unreadCount} unread updates.`
-              : 'Open BUKLOD Profile'
+            profileReturnMode
+              ? 'Return to organization home'
+              : unreadCount > 0
+                ? `Open BUKLOD Profile. ${unreadCount} unread updates.`
+                : 'Open BUKLOD Profile'
           }
           accessibilityHint="Shows the BUKLOD Profile avatar temporarily."
           onPress={revealGuide}
-          hitSlop={10}
+          hitSlop={0}
           style={({ pressed }) => [
             styles.touchActivator,
             pressed && styles.touchActivatorPressed,
           ]}
         >
           <Text style={styles.touchActivatorText}>
-            PROFILE
+            {profileReturnMode ? 'HOME' : 'PROFILE'}
           </Text>
 
           {unreadCount > 0 && (
@@ -755,44 +836,38 @@ export function BuklodGuideAvatar() {
 {/* PATCH_173G_R4_PROFILE_STATUS_LONG_PRESS */}<Pressable
         accessibilityRole="button"
         accessibilityLabel={
-          unreadCount > 0
-            ? `BUKLOD Guide. ${unreadCount} unread updates.`
-            : 'BUKLOD Profile'
+          profileReturnMode
+            ? 'Return to organization home'
+            : unreadCount > 0
+              ? `BUKLOD Guide. ${unreadCount} unread updates.`
+              : 'BUKLOD Profile'
         }
         accessibilityHint={
-          unreadCount > 0
-            ? 'Opens the Notification Center.'
-            : 'Opens your Profile and My BUKLOD.'
+          profileReturnMode
+            ? 'Returns to your organization workspace home.'
+            : unreadCount > 0
+              ? 'Opens the Notification Center.'
+              : 'Opens your Profile and My BUKLOD.'
         }
 onPress={onPress}
-        hitSlop={10}
-        style={styles.pressable}
+        hitSlop={0}
+        style={[
+          styles.pressable,
+          {
+            width: GUIDE_AVATAR_SIZE,
+            height: GUIDE_AVATAR_SIZE,
+          },
+        ]}
       >
         <Animated.View
-          pointerEvents="none"
           style={[
-            styles.statusPulse,
+            styles.avatarClip,
             unreadCount > 0
-              ? styles.statusPulseUnread
-              : styles.statusPulseReady,
-            ringStyle,
-          ]}
-        />
-
-        <Animated.View
-          style={[
-            styles.avatarShell,
+              ? styles.avatarClipUnread
+              : styles.avatarClipReady,
             motionStyle,
           ]}
         >
-          <View
-            style={[
-              styles.avatarClip,
-              unreadCount > 0
-                ? styles.avatarClipUnread
-                : styles.avatarClipReady,
-            ]}
-          >
             <Image
               source={
                 profile?.sex === 'female'
@@ -825,7 +900,6 @@ onPress={onPress}
                 />
               </Animated.View>
             )}
-          </View>
 
           <View
             style={[
@@ -835,6 +909,7 @@ onPress={onPress}
                 : styles.statusDotReady,
             ]}
           />
+        </Animated.View>
 
           {unreadCount > 0 && (
             <View style={styles.badge}>
@@ -843,7 +918,6 @@ onPress={onPress}
               </Text>
             </View>
           )}
-        </Animated.View>
       </Pressable>
               </View></GestureDetector>
     </Animated.View>
@@ -917,62 +991,28 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 12,
     bottom: 88,
-    width: 220,
-    height: 200,
+    width: 168,
+    height: GUIDE_AVATAR_SIZE + 6,
     zIndex: 999,
     elevation: 24,
     alignItems: 'flex-end',
     justifyContent: 'flex-end',
-    overflow: 'visible',  },
+    overflow: 'visible',
+  },
 
   pressable: {
-    width: 94,
-    height: 94,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-
-  statusPulse: {
-    position: 'absolute',
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    borderWidth: 2,
-  },
-
-  statusPulseReady: {
-    borderColor: '#6DA77E',
-    backgroundColor: 'rgba(39,93,69,0.05)',
-  },
-
-  statusPulseUnread: {
-    borderColor: '#D6A83F',
-    backgroundColor: 'rgba(214,168,63,0.08)',
-  },
-
-  avatarShell: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#0F2F22',
-    shadowOpacity: 0.24,
-    shadowRadius: 10,
-    shadowOffset: {
-      width: 0,
-      height: 5,
-    },
-    elevation: 12,
+    overflow: 'visible',
   },
 
   avatarClip: {
-    width: 78,
-    height: 78,
-    borderRadius: 39,
+    width: GUIDE_AVATAR_SIZE,
+    height: GUIDE_AVATAR_SIZE,
+    borderRadius: GUIDE_AVATAR_SIZE / 2,
     overflow: 'hidden',
     backgroundColor: '#F8F4E8',
-    borderWidth: 2.2,
+    borderWidth: 2,
   },
 
   avatarClipReady: {
@@ -999,16 +1039,16 @@ const styles = StyleSheet.create({
   },
 
   leftEyelid: {
-    left: 25,
-    top: 28,
+    left: 16,
+    top: 18,
     transform: [
       { rotate: '4deg' },
     ],
   },
 
   rightEyelid: {
-    left: 43,
-    top: 28,
+    left: 28,
+    top: 18,
     transform: [
       { rotate: '-4deg' },
     ],
@@ -1016,12 +1056,12 @@ const styles = StyleSheet.create({
 
   statusDot: {
     position: 'absolute',
-    right: 5,
-    bottom: 7,
-    width: 13,
-    height: 13,
-    borderRadius: 7,
-    borderWidth: 2,
+    right: 3,
+    bottom: 3,
+    width: GUIDE_STATUS_DOT,
+    height: GUIDE_STATUS_DOT,
+    borderRadius: GUIDE_STATUS_DOT / 2,
+    borderWidth: 1.5,
     borderColor: '#FFFFFF',
   },
 
@@ -1035,14 +1075,14 @@ const styles = StyleSheet.create({
 
   badge: {
     position: 'absolute',
-    right: -1,
-    top: -2,
-    minWidth: 23,
-    height: 23,
-    paddingHorizontal: 5,
-    borderRadius: 12,
+    right: -4,
+    top: -4,
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 4,
+    borderRadius: 9,
     backgroundColor: '#B98219',
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1050,14 +1090,14 @@ const styles = StyleSheet.create({
 
   badgeText: {
     color: '#FFFFFF',
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: '900',
   },
 
   bubble: {
     position: 'absolute',
-    right: 82,
-    bottom: 45,
+    right: GUIDE_AVATAR_SIZE + 10,
+    bottom: 4,
     width: 218,
     paddingHorizontal: 13,
     paddingVertical: 11,

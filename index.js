@@ -1,7 +1,7 @@
 ﻿import { setFirebaseListeners } from './src/utils/setFirebaseListeners';
 import { setPushConfig } from './src/utils/setPushConfig';
 
-setPushConfig();setFirebaseListeners();
+setPushConfig();
+setFirebaseListeners();
 
 import 'expo-router/entry';
-

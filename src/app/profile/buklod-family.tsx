@@ -3,9 +3,8 @@ import BuklodFoundationPortalShell from '@/components/BuklodFoundationPortalShel
 export default function BuklodFamilyPortal() {
   return (
     <BuklodFoundationPortalShell
-      title="BUKLOD FAMILY"
+      integrationAppId="family"
       icon="home-heart"
-      description="Family-centered BUKLOD portal."
     />
   );
 }

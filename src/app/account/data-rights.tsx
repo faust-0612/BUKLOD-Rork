@@ -65,6 +65,8 @@ export default function DataRightsScreen(){
             </Card>
 
             <Button title="ACCOUNT DELETION" outline onPress={()=>router.push('/account/delete')}/>
+            <Button title="HOW ACCOUNT DELETION WORKS" outline onPress={()=>router.push('/delete-account' as any)}/>
+            <Button title="READ PRIVACY POLICY" outline onPress={()=>router.push('/privacy' as any)}/>
             <Button title="READ PRIVACY NOTICE" outline onPress={()=>router.push('/privacy/notice')}/>
             <SectionTitle>MY REQUESTS</SectionTitle>
           </View>

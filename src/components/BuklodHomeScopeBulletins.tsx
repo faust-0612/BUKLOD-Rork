@@ -1,6 +1,7 @@
 import React, {
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from 'react';
 
@@ -8,7 +9,6 @@ import React, {
 import { useFocusEffect } from 'expo-router';
 import {
   ActivityIndicator,
-  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -28,8 +28,8 @@ import {
 } from '@/lib/supabase';
 
 import {
-  colors,
-} from '@/lib/theme';
+  useBuklodPresentation,
+} from '@/hooks/useBuklodPresentation';
 
 import {
   useBuklodScope,
@@ -37,6 +37,8 @@ import {
 
 import BuklodBulletinVideo
   from '@/components/BuklodBulletinVideo';
+
+import SquareMediaCard from '@/components/SquareMediaCard';
 
 type MyScope = {
   scope_id: string;
@@ -152,6 +154,8 @@ function shouldIncludeScope(
     return (
       scope.scope_type ===
         'CLUSTER' &&
+      scope.scope_id ===
+        active.scope_id &&
       isActiveMember(scope)
     );
   }
@@ -215,6 +219,14 @@ function sortScopes(
 }
 
 export default function BuklodHomeScopeBulletins() {
+  const {
+    colors,
+  } = useBuklodPresentation();
+  const styles = useMemo(
+    () => createStyles(colors),
+    [colors]
+  );
+
   const {
     activeScope,
   } = useBuklodScope();
@@ -723,29 +735,38 @@ export default function BuklodHomeScopeBulletins() {
                   {!!bulletin.media_url &&
                     bulletin.media_kind ===
                       'image' && (
-                      <Image
-                        source={{
-                          uri:
-                            bulletin.media_url,
-                        }}
-                        resizeMode="cover"
-                        style={styles.media}
+                      <SquareMediaCard
+                        uri={
+                          bulletin.media_url
+                        }
+                        accessibilityLabel={
+                          bulletin.title
+                        }
+                        style={{ marginBottom: 6 }}
                       />
                     )}
 
                   {!!bulletin.media_url &&
                     bulletin.media_kind ===
                       'video' && (
+                      <SquareMediaCard
+                        accessibilityLabel={
+                          bulletin.title
+                        }
+                        style={{ marginBottom: 6 }}
+                      >
                       <BuklodBulletinVideo
                         uri={
                           bulletin.media_url
                         }
+                        style={styles.mediaVideo}
                       />
+                      </SquareMediaCard>
                     )}
 
                   <Text style={styles.bulletinTitle}>
                     {bulletin.is_pinned
-                      ? 'Ã°Å¸â€œÅ’ '
+                      ? '\uD83D\uDCCC '
                       : ''}
                     {bulletin.title}
                   </Text>
@@ -767,10 +788,19 @@ export default function BuklodHomeScopeBulletins() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(
+  colors: ReturnType<
+    typeof useBuklodPresentation
+  >['colors']
+) {
+  return StyleSheet.create({
   section: {
     marginTop: 6,
     gap: 6,
+    width: '100%',
+    alignSelf: 'stretch',
+    paddingHorizontal: 0,
+    marginHorizontal: 0,
     paddingLeft: 0,
     marginLeft: 0,
     paddingStart: 0,
@@ -782,6 +812,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 0.75,
+    paddingHorizontal: 12,
   },
 
   loading: {
@@ -791,11 +822,15 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    padding: 13,
+    paddingHorizontal: 0,
+    paddingVertical: 8,
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: 0,
     backgroundColor: colors.white,
+    width: '100%',
+    alignSelf: 'stretch',
+    marginHorizontal: 0,
     paddingLeft: 0,
     marginLeft: 0,
     paddingStart: 0,
@@ -807,6 +842,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     marginBottom: 6,
+    paddingHorizontal: 12,
   },
 
   scopeIcon: {
@@ -838,8 +874,8 @@ const styles = StyleSheet.create({
   },
 
   edit: {
-    width: 38,
-    height: 38,
+    width: 44,
+    height: 44,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.line,
@@ -849,16 +885,12 @@ const styles = StyleSheet.create({
       colors.greenSoft,
   },
 
-  media: {
+  mediaVideo: {
     width: '100%',
-    aspectRatio: 16 / 9,
+    height: '100%',
+    aspectRatio: 1,
+    marginBottom: 0,
     borderRadius: 0,
-    marginBottom: 6,
-    backgroundColor: '#EEF1EF',
-    paddingLeft: 0,
-    marginLeft: 0,
-    paddingStart: 0,
-    marginStart: 0,
   },
 
   bulletinTitle: {
@@ -866,6 +898,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '900',
     lineHeight: 21,
+    paddingHorizontal: 12,
   },
 
   body: {
@@ -873,6 +906,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 13,
     lineHeight: 20,
+    paddingHorizontal: 12,
   },
 
   empty: {
@@ -880,5 +914,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     paddingVertical: 8,
+    paddingHorizontal: 12,
   },
-});
+  });
+}

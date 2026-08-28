@@ -1,0 +1,8 @@
+appId: org.mzbministry.buklod
+---
+- launchApp
+- tapOn: "CREATE ACCOUNT"
+- assertVisible: "Create BUKLOD Account"
+- assertVisible: "Member Registration & Church Request"
+- assertVisible: "SUBMIT REGISTRATION"
+- assertVisible: "BACK TO LOGIN"

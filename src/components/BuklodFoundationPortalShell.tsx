@@ -1,31 +1,52 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 import {
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 
+import BuklodFocusAppGate from '@/components/BuklodFocusAppGate';
+import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 import { Card, shared } from '@/components/UI';
+import type { BuklodFocusApp } from '@/lib/buklodFoundation';
+import {
+  getIntegrationApp,
+  integrationAvailabilityLabel,
+  type BuklodIntegrationAppId,
+} from '@/lib/buklodFocusAppIntegration';
 import { colors } from '@/lib/theme';
 
 type Props = {
-  title: string;
-  icon: keyof typeof MaterialCommunityIcons.glyphMap;
-  description: string;
+  integrationAppId: BuklodIntegrationAppId;
+  title?: string;
+  icon?: keyof typeof MaterialCommunityIcons.glyphMap;
+  description?: string;
+  focusApp?: BuklodFocusApp;
 };
 
 export default function BuklodFoundationPortalShell({
+  integrationAppId,
   title,
   icon,
   description,
+  focusApp,
 }: Props) {
-  return (
-    <>
-      <Stack.Screen options={{ title }} />
+  const integration = getIntegrationApp(integrationAppId);
+  const resolvedTitle = title ?? integration.displayName;
+  const resolvedIcon = icon ?? 'apps';
+  const resolvedDescription =
+    description ?? integration.fallbackMessage;
+  const gateApp = focusApp ?? integration.foundationApp ?? undefined;
+  const availabilityLabel = integrationAvailabilityLabel(
+    integration.availability
+  );
 
-      <ScrollView
+  const body = (
+    <>
+      <Stack.Screen options={{ title: resolvedTitle }} />
+
+      <BuklodPortalScrollView
         style={shared.screen}
         contentContainerStyle={[
           shared.content,
@@ -36,7 +57,7 @@ export default function BuklodFoundationPortalShell({
         <View style={styles.header}>
           <View style={styles.icon}>
             <MaterialCommunityIcons
-              name={icon}
+              name={resolvedIcon}
               size={28}
               color={colors.green}
             />
@@ -44,30 +65,46 @@ export default function BuklodFoundationPortalShell({
 
           <View style={{ flex: 1 }}>
             <Text style={styles.eyebrow}>
-              BUKLOD FOUNDATION PORTAL
+              BUKLOD INTEGRATION PORTAL
             </Text>
             <Text style={styles.title}>
-              {title}
+              {resolvedTitle}
             </Text>
           </View>
         </View>
 
         <Card>
           <Text style={styles.status}>
-            Foundation linked
+            {availabilityLabel}
           </Text>
           <Text style={styles.description}>
-            {description}
+            {resolvedDescription}
           </Text>
           <Text style={styles.note}>
-            The portal route is connected to the shared
-            BUKLOD Foundation. Full portal features are
-            intentionally not being built yet.
+            Shared BUKLOD identity only — no duplicate login or organization
+            system. Deep links and notifications use namespace{' '}
+            {integration.notificationNamespace}.
           </Text>
+          {integration.availability === 'INTEGRATION_READY' ? (
+            <Text style={styles.note}>
+              This portal is integration-ready. Full focus-app features are
+              intentionally not built inside the main app update yet.
+            </Text>
+          ) : null}
         </Card>
-      </ScrollView>
+      </BuklodPortalScrollView>
     </>
   );
+
+  if (gateApp) {
+    return (
+      <BuklodFocusAppGate app={gateApp}>
+        {body}
+      </BuklodFocusAppGate>
+    );
+  }
+
+  return body;
 }
 
 const styles = StyleSheet.create({

@@ -43,6 +43,54 @@ BuklodPolicyScreen() {
         style={styles.row}
         onPress={() =>
           router.push(
+            '/privacy' as any
+          )
+        }
+      >
+        <MaterialCommunityIcons
+          name="shield-account-outline"
+          size={23}
+          color={colors.green}
+        />
+
+        <View style={styles.copy}>
+          <Text style={styles.rowTitle}>
+            Privacy Policy
+          </Text>
+          <Text style={styles.rowBody}>
+            Public Google Play privacy policy. No login required.
+          </Text>
+        </View>
+      </Pressable>
+
+      <Pressable
+        style={styles.row}
+        onPress={() =>
+          router.push(
+            '/delete-account' as any
+          )
+        }
+      >
+        <MaterialCommunityIcons
+          name="account-remove-outline"
+          size={23}
+          color={colors.green}
+        />
+
+        <View style={styles.copy}>
+          <Text style={styles.rowTitle}>
+            Account Deletion
+          </Text>
+          <Text style={styles.rowBody}>
+            Public Google Play deletion instructions. No login required.
+          </Text>
+        </View>
+      </Pressable>
+
+      <Pressable
+        style={styles.row}
+        onPress={() =>
+          router.push(
             '/privacy/notice' as any
           )
         }

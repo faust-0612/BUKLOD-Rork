@@ -12,6 +12,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
+import { FacultyGate } from '@/components/faculty/FacultyGate';
 
 type Category = {
   id: string;
@@ -140,6 +141,7 @@ export default function FacultyAssessmentGradebookScreen() {
   };
 
   return (
+    <FacultyGate>
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Pressable style={styles.back} onPress={() => router.back()}>
         <MaterialCommunityIcons name="arrow-left" size={22} color="#17311f" />
@@ -156,7 +158,7 @@ export default function FacultyAssessmentGradebookScreen() {
         <Text style={styles.statusLabel}>Current link</Text>
         <Text style={styles.statusValue}>
           {status?.sync_to_gradebook
-            ? `${status.category_name || 'Category'} â€¢ ${status.grade_item_title || assessmentName}`
+            ? `${status.category_name || 'Category'} • ${status.grade_item_title || assessmentName}`
             : 'Not linked'}
         </Text>
         <Text style={styles.meta}>
@@ -214,7 +216,7 @@ export default function FacultyAssessmentGradebookScreen() {
         onPress={link}
       >
         <MaterialCommunityIcons name="link-variant" size={20} color="#fff" />
-        <Text style={styles.primaryText}>{saving ? 'Linkingâ€¦' : 'Link & Sync Released Results'}</Text>
+        <Text style={styles.primaryText}>{saving ? 'Linking…' : 'Link & Sync Released Results'}</Text>
       </Pressable>
 
       {!!status?.sync_to_gradebook && (
@@ -242,6 +244,7 @@ export default function FacultyAssessmentGradebookScreen() {
         </Text>
       </View>
     </ScrollView>
+    </FacultyGate>
   );
 }
 

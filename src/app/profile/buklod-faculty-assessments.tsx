@@ -14,6 +14,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
+import { FacultyGate } from '@/components/faculty/FacultyGate';
 
 type Assessment = {
   id: string;
@@ -42,8 +43,8 @@ type Question = {
 };
 
 export default function FacultyAssessmentsScreen() {
-  const params = useLocalSearchParams<{ id?: string; name?: string }>();
-  const classroomId = String(params.id ?? '');
+  const params = useLocalSearchParams<{ id?: string; classroomId?: string; name?: string }>();
+  const classroomId = String(params.id ?? params.classroomId ?? '');
   const classroomName = String(params.name ?? 'Classroom');
 
   const [assessments, setAssessments] = useState<Assessment[]>([]);
@@ -250,6 +251,7 @@ export default function FacultyAssessmentsScreen() {
   };
 
   return (
+    <FacultyGate>
     <>
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         <Pressable style={styles.back} onPress={() => router.back()}>
@@ -284,7 +286,7 @@ export default function FacultyAssessmentsScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.assessmentTitle}>{item.title}</Text>
                 <Text style={styles.meta}>
-                  {item.assessment_type} â€¢ {item.duration_minutes} min â€¢ {item.max_attempts} attempt(s)
+                  {item.assessment_type} • {item.duration_minutes} min • {item.max_attempts} attempt(s)
                 </Text>
               </View>
               <Text style={item.status === 'PUBLISHED' ? styles.live : styles.draft}>{item.status}</Text>
@@ -298,7 +300,7 @@ export default function FacultyAssessmentsScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.sectionTitle}>{selectedAssessment.title}</Text>
                 <Text style={styles.meta}>
-                  {questions.length} question(s) â€¢ {selectedQuestionPoints} pts
+                  {questions.length} question(s) • {selectedQuestionPoints} pts
                 </Text>
               </View>
               <Pressable style={styles.smallButton} onPress={() => setShowQuestion(true)}>
@@ -331,10 +333,10 @@ export default function FacultyAssessmentsScreen() {
 
             {questions.map((item, index) => (
               <View key={item.id} style={styles.questionCard}>
-                <Text style={styles.questionNumber}>Q{index + 1} â€¢ {item.question_type} â€¢ {item.points} pt(s)</Text>
+                <Text style={styles.questionNumber}>Q{index + 1} • {item.question_type} • {item.points} pt(s)</Text>
                 <Text style={styles.questionPrompt}>{item.prompt}</Text>
                 {item.question_type === 'MCQ' && Array.isArray(item.options) && (
-                  <Text style={styles.optionsText}>{item.options.join(' â€¢ ')}</Text>
+                  <Text style={styles.optionsText}>{item.options.join(' • ')}</Text>
                 )}
                 {['MCQ', 'TRUE_FALSE', 'SHORT_TEXT', 'NUMERIC'].includes(item.question_type) && (
                   <Text style={styles.answerKey}>Key: {String(item.correct_answer ?? '')}</Text>
@@ -402,6 +404,7 @@ export default function FacultyAssessmentsScreen() {
         </View>
       </Modal>
     </>
+    </FacultyGate>
   );
 }
 

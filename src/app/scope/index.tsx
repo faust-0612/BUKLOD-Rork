@@ -12,6 +12,8 @@ import { useBuklodAccess } from '@/hooks/useBuklodAccess';
 // PATCH_170A_SCOPE_THEME
 import BuklodHomeScopeBulletins from '@/components/BuklodHomeScopeBulletins';
 import BuklodHomeFaithPanel from '@/components/BuklodHomeFaithPanel';
+import BuklodScopeBuklodLessonPanel from '@/components/BuklodScopeBuklodLessonPanel';
+import BuklodScopeFaithMonitoringSummary from '@/components/BuklodScopeFaithMonitoringSummary';
 import React, {
   useCallback,
   useEffect,
@@ -22,6 +24,8 @@ import React, {
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -51,12 +55,14 @@ import {
   ScopeFeedMode,
   ScopePerson,
   ScopePost,
+  type BuklodScope,
 } from '@/lib/buklodScope';
 
 import BuklodScopeBar from '@/components/BuklodScopeBar';
 import BuklodScopedDashboardHeader from '@/components/BuklodScopedDashboardHeader';
 
 import { colors } from '@/lib/theme';
+import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 
 import BuklodCommunityBulletin from '@/components/BuklodCommunityBulletin';
 import BuklodExclusiveScopeCommunity from '@/components/BuklodExclusiveScopeCommunity';
@@ -65,12 +71,24 @@ import {
   saveScopeDashboardTheme,
 } from '@/lib/buklodDashboardTheme';
 import BuklodClusterHomeCommandCenter from '@/components/BuklodClusterHomeCommandCenter';
+import BuklodScopeHomeDashboard from '@/components/BuklodScopeHomeDashboard';
+import BuklodScreenBottomBanner from '@/components/BuklodScreenBottomBanner';
+import BuklodScopeRouteState from '@/components/BuklodScopeRouteState';
+import {
+  exitScopedWorkspace,
+  readRouteScopeId,
+} from '@/lib/buklodScopeRoute';
+import {
+  useBuklodScrollBottomInset,
+} from '@/lib/buklodSafeArea';
+import { useResolvedScope } from '@/hooks/useResolvedScope';
 
 import BuklodConnectThread
   from '@/components/BuklodConnectThread';
 
 
 import BuklodScopeAttendanceCard from '@/components/BuklodScopeAttendanceCard';
+import { BuklodTappableAvatar } from '@/components/BuklodTappableAvatar';
 // PATCH_170B_R3_SCOPE_PERSISTENCE
 
 type Section =
@@ -116,7 +134,12 @@ ScopeWorkspaceScreen() {
   const params =
     useLocalSearchParams<{
       section?: string;
+      scopeId?: string | string[];
+      scope_id?: string | string[];
     }>();
+
+  const routeScopeId =
+    readRouteScopeId(params);
 
   const {
     activeScope,
@@ -128,6 +151,15 @@ ScopeWorkspaceScreen() {
   } =
     useBuklodScope();
 
+  const resolution =
+    useResolvedScope({
+      routeScopeId,
+      requireMembership: true,
+    });
+
+  const workspaceScope =
+    resolution.scope ?? activeScope;
+
   ReactDashboardTheme.useEffect(
     () => {
       let mounted = true;
@@ -136,14 +168,14 @@ ScopeWorkspaceScreen() {
         DEFAULT_DASHBOARD_THEME
       );
 
-      if (!activeScope?.scope_id) {
+      if (!workspaceScope?.scope_id) {
         return () => {
           mounted = false;
         };
       }
 
       void loadScopeDashboardTheme(
-        activeScope.scope_id
+        workspaceScope.scope_id
       )
         .then(nextTheme => {
           if (mounted) {
@@ -163,7 +195,7 @@ ScopeWorkspaceScreen() {
         mounted = false;
       };
     },
-    [activeScope?.scope_id]
+    [workspaceScope?.scope_id]
   );
 
 
@@ -198,10 +230,6 @@ ScopeWorkspaceScreen() {
     }
   }, [params.section]);
 
-  const isCluster =
-    activeScope?.scope_type ===
-    'CLUSTER';
-
   /* PATCH_172I_R3_CLUSTER_TOP_NAV_ALL_SECTIONS */
   const visibleSections =
     SECTIONS;
@@ -221,9 +249,14 @@ ScopeWorkspaceScreen() {
       (nextSection: Section) => {
         setSection(nextSection);
 
-        router.setParams({ section: nextSection } as any);
+        router.setParams({
+          section: nextSection,
+          ...(routeScopeId
+            ? { scopeId: routeScopeId }
+            : {}),
+        } as any);
       },
-      []
+      [routeScopeId]
     );
 
   
@@ -236,48 +269,90 @@ ScopeWorkspaceScreen() {
   const exitWorkspace =
     useCallback(
       async () => {
+        if (router.canGoBack()) {
+          router.back();
+          return;
+        }
+
         if (
-          activeScope?.scope_type ===
-          'CLUSTER'
+          workspaceScope?.scope_type ===
+            'CLUSTER' ||
+          workspaceScope?.scope_type ===
+            'ORGANIZATION'
         ) {
-          const publicScope =
-            scopes.find(
-              item =>
-                item.scope_type ===
-                'PUBLIC'
-            );
-
-          if (publicScope) {
-            try {
-              await selectScope(
-                publicScope.scope_id
-              );
-
-              router.replace(
-                '/home' as any
-              );
-
-              return;
-            }
-            catch (error) {
-              console.warn(
-                'Cluster exit:',
-                error
-              );
-            }
-          }
+          await exitScopedWorkspace(
+            selectScope,
+            scopes,
+            '/home'
+          );
+          return;
         }
 
         router.back();
       },
       [
-        activeScope?.scope_type,
+        workspaceScope?.scope_type,
         scopes,
         selectScope,
       ]
     );
 
-if (loading) {
+  const handleWorkspaceBack =
+    useCallback(() => {
+      if (section !== 'home') {
+        openSection('home');
+        return;
+      }
+
+      void exitWorkspace();
+    }, [
+      section,
+      openSection,
+      exitWorkspace,
+    ]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') {
+      return;
+    }
+
+    if (
+      resolution.access !==
+        'authorized' ||
+      !workspaceScope
+    ) {
+      return;
+    }
+
+    const subscription =
+      BackHandler.addEventListener(
+        'hardwareBackPress',
+        () => {
+          if (section !== 'home') {
+            openSection('home');
+            return true;
+          }
+
+          void handleWorkspaceBack();
+          return true;
+        }
+      );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [
+    section,
+    handleWorkspaceBack,
+    openSection,
+    resolution.access,
+    workspaceScope,
+  ]);
+
+if (
+    !workspaceScope &&
+    (resolution.access === 'loading' || loading)
+  ) {
     return (
       <View style={styles.center}>
         <ActivityIndicator
@@ -285,44 +360,41 @@ if (loading) {
           color={colors.green}
         />
         <Text style={styles.muted}>
-          Loading community...
+          Loading workspace...
         </Text>
-      </View>
-    );
-  }
-
-  if (!activeScope) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.title}>
-          Community unavailable
-        </Text>
-
-        <Text style={styles.muted}>
-          {error ??
-            'No active BUKLOD scope is available.'}
-        </Text>
-
-        <Pressable
-          style={styles.primary}
-          onPress={() =>
-            void refresh()
-          }
-        >
-          <Text
-            style={
-              styles.primaryText
-            }
-          >
-            REFRESH
-          </Text>
-        </Pressable>
       </View>
     );
   }
 
   if (
-    activeScope.scope_type ===
+    resolution.access !== 'authorized' ||
+    !workspaceScope
+  ) {
+    return (
+      <BuklodScopeRouteState
+        access={
+          resolution.access === 'authorized'
+            ? 'unauthorized'
+            : resolution.access
+        }
+        title="Workspace unavailable"
+        message={
+          resolution.message ??
+          error ??
+          'No active BUKLOD scope is available.'
+        }
+        onRetry={() => {
+          void refresh();
+        }}
+        onBack={() => {
+          void exitWorkspace();
+        }}
+      />
+    );
+  }
+
+  if (
+    workspaceScope.scope_type ===
     'PUBLIC'
   ) {
     return (
@@ -344,7 +416,7 @@ return (
           backgroundColor:
             dashboardTheme.backgroundColor,
         },
-      ], (/* PATCH_172I_CLUSTER_CONNECT_FLUSH */ (activeScope.scope_type === 'ORGANIZATION' || activeScope.scope_type === 'CLUSTER') && section === 'connect') && { /* PATCH_172H_CONTENT_WRAPPER_FLUSH */ marginTop: 0, paddingTop: 0 }], (/* PATCH_172I_CLUSTER_CONNECT_FLUSH */ (activeScope.scope_type === 'ORGANIZATION' || activeScope.scope_type === 'CLUSTER') && section === 'connect') && { /* PATCH_172H_WORKSPACE_GAP_ZERO */ gap: 0 }]}
+      ], (/* PATCH_172I_CLUSTER_CONNECT_FLUSH */ (workspaceScope.scope_type === 'ORGANIZATION' || workspaceScope.scope_type === 'CLUSTER') && section === 'connect') && { /* PATCH_172H_CONTENT_WRAPPER_FLUSH */ marginTop: 0, paddingTop: 0 }], (/* PATCH_172I_CLUSTER_CONNECT_FLUSH */ (workspaceScope.scope_type === 'ORGANIZATION' || workspaceScope.scope_type === 'CLUSTER') && section === 'connect') && { /* PATCH_172H_WORKSPACE_GAP_ZERO */ gap: 0 }]}
     >
       {!!dashboardTheme.backgroundImage && (
         <DashboardImageBackground
@@ -356,17 +428,16 @@ return (
         />
       )}
       <BuklodScopedDashboardHeader
-        scopeName={activeScope.name}
-        scopeType={activeScope.scope_type}
+        scopeName={workspaceScope.name}
+        scopeType={workspaceScope.scope_type}
+        geoLevel={workspaceScope.geo_level}
         section={section}
-        onBack={() =>
-          void exitWorkspace()
-        }
+        onBack={handleWorkspaceBack}
         theme={dashboardTheme}
         canCustomize={canCustomizeDashboard}
         onThemeChange={async nextTheme => {
           await saveScopeDashboardTheme(
-            activeScope.scope_id,
+            workspaceScope.scope_id,
             nextTheme
           );
 
@@ -375,66 +446,10 @@ return (
           );
         }}
       />
-      {/* PATCH_174B_R2_DELETE_MANAGED_SCOPE_ENTRY */}
-      {canCustomizeDashboard &&
-        (
-          activeScope.scope_type ===
-            'ORGANIZATION' ||
-          activeScope.scope_type ===
-            'CLUSTER'
-        ) && (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Delete managed scope"
-            onPress={() =>
-              router.push(
-                '/scope/delete' as any
-              )
-            }
-            style={({ pressed }) => ({
-              minHeight: 36,
-              marginHorizontal: 14,
-              marginTop: 8,
-              marginBottom: 4,
-              paddingHorizontal: 12,
-              borderRadius: 11,
-              borderWidth: 1,
-              borderColor:
-                '#E5B8B4',
-              backgroundColor:
-                pressed
-                  ? '#FDE7E5'
-                  : '#FFF6F5',
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent:
-                'center',
-              gap: 6,
-            })}
-          >
-            <MaterialCommunityIcons
-              name="trash-can-outline"
-              size={16}
-              color="#B42318"
-            />
-
-            <Text
-              style={{
-                fontSize: 9,
-                fontWeight: '900',
-                letterSpacing: 0.35,
-                color: '#B42318',
-              }}
-            >
-              DELETE THIS SCOPE
-            </Text>
-          </Pressable>
-        )}
-
       {/* PATCH_172F_ORG_STATIC_TITLE_NO_SELECTOR */}
       {/* PATCH_172I_R3_CLUSTER_NO_SCOPE_SELECTOR */}
-      {activeScope.scope_type !== 'ORGANIZATION' &&
-       activeScope.scope_type !== 'CLUSTER' && (
+      {workspaceScope.scope_type !== 'ORGANIZATION' &&
+       workspaceScope.scope_type !== 'CLUSTER' && (
         <BuklodScopeBar />
       )}
 
@@ -445,12 +460,11 @@ return (
       <View
         style={[[
           styles.tabs,
-          isCluster && { display: 'none' },
           {
             backgroundColor:
               dashboardTheme.cardColor,
           },
-        ], (/* PATCH_172I_CLUSTER_CONNECT_FLUSH */ (activeScope.scope_type === 'ORGANIZATION' || activeScope.scope_type === 'CLUSTER') && section === 'connect') && { /* PATCH_172H_TOP_NAV_FLUSH */ marginBottom: 0 }]}
+        ], (/* PATCH_172I_CLUSTER_CONNECT_FLUSH */ (workspaceScope.scope_type === 'ORGANIZATION' || workspaceScope.scope_type === 'CLUSTER') && section === 'connect') && { /* PATCH_172H_TOP_NAV_FLUSH */ marginBottom: 0 }]}
       >
         {visibleSections.map(
           (item) => {
@@ -494,89 +508,108 @@ return (
             );
           }
         )}
+
       </View>
 
-      {section === 'home' && (
+      {section === 'home' && workspaceScope ? (
+        <View style={{ flex: 1, minHeight: 0 }}>
         <ScopeHome
+          scope={workspaceScope}
           onOpenCommunity={() =>
             openSection('community')
           }
+          onOpenConnect={() =>
+            openSection('connect')
+          }
         />
-      )}
+        </View>
+      ) : null}
 
       {section ===
-        'community' && (
-        <ScopeCommunity />
-      )}
+        'community' && workspaceScope ? (
+        <View style={{ flex: 1, minHeight: 0 }}>
+        <ScopeCommunity scope={workspaceScope} />
+        </View>
+      ) : null}
 
-      {!isCluster &&
-        section === 'connect' && (
-          activeScope.scope_type ===
-            'ORGANIZATION'
+      {section === 'connect' && workspaceScope ? (
+        <View style={{ flex: 1, minHeight: 0 }}>
+          {workspaceScope.scope_type ===
+            'ORGANIZATION' ||
+          workspaceScope.scope_type ===
+            'CLUSTER'
             ? (
-                <OrganizationCommunityConnect />
+                <OrganizationCommunityConnect
+                  scope={workspaceScope}
+                  onBack={() => openSection('home')}
+                />
               )
             : (
-                <ScopeConnect />
-              )
-        )}
+                <ScopeConnect scope={workspaceScope} />
+              )}
+        </View>
+        ) : null}
     </View>
   );
 }
 
 /* PATCH_170B_CLUSTER_HOME_ROUTER
- * CLUSTER uses the dedicated operational command center.
- * Other scopes keep the previous Home implementation unchanged.
+ * Cluster keeps the approved member command center (no manageMode on Home).
+ * Organization / Sub-organization use the shared Phase 1 dashboard.
  */
 function ScopeHome({
+  scope,
   onOpenCommunity,
+  onOpenConnect,
 }: {
+  scope: BuklodScope;
   onOpenCommunity?: () => void;
+  onOpenConnect?: () => void;
 }) {
-  const {
-    activeScope,
-  } = useBuklodScope();
-
-  if (!activeScope) {
-    return null;
-  }
-
-  if (
-    activeScope.scope_type ===
-    'CLUSTER'
-  ) {
+  if (scope.scope_type === 'CLUSTER') {
     return (
       <BuklodClusterHomeCommandCenter
-        scope={activeScope}
+        scope={scope}
         onOpenCommunity={onOpenCommunity}
+        onOpenConnect={onOpenConnect}
+        manageMode={false}
       />
     );
   }
 
-  return <LegacyScopeHome />;
-}
-
-function LegacyScopeHome() {
-  const {
-    activeScope,
-  } =
-    useBuklodScope();
-
-  if (!activeScope) {
-    return null;
+  if (scope.scope_type === 'ORGANIZATION') {
+    return (
+      <BuklodScopeHomeDashboard
+        scope={scope}
+        onOpenCommunity={onOpenCommunity}
+        onOpenConnect={onOpenConnect}
+      />
+    );
   }
 
+  return <LegacyScopeHome scope={scope} />;
+}
+
+function LegacyScopeHome({
+  scope,
+}: {
+  scope: BuklodScope;
+}) {
+  const scrollBottomInset =
+    useBuklodScrollBottomInset({
+      extra: 12,
+    });
   const showFaithContent =
-    Boolean(
-      activeScope
-        .show_faith_content
-    );
+    Boolean(scope.show_faith_content);
 
   return (
     <ScrollView
-      contentContainerStyle={
-        styles.content
-      }
+      contentContainerStyle={[
+        styles.content,
+        {
+          paddingBottom: scrollBottomInset,
+        },
+      ]}
     >
       <View style={styles.hero}>
         <Text
@@ -584,9 +617,9 @@ function LegacyScopeHome() {
             styles.heroType
           }
         >
-          {activeScope.scope_type}
-          {activeScope.geo_level
-            ? ` \u2022 ${activeScope.geo_level}`
+          {scope.scope_type}
+          {scope.geo_level
+            ? ` \u2022 ${scope.geo_level}`
             : ''}
         </Text>
 
@@ -595,7 +628,7 @@ function LegacyScopeHome() {
             styles.heroTitle
           }
         >
-          {activeScope.name}
+          {scope.name}
         </Text>
 
         <Text
@@ -603,27 +636,36 @@ function LegacyScopeHome() {
             styles.heroText
           }
         >
-          {activeScope.scope_type ===
+          {scope.scope_type ===
           'CLUSTER'
             ? 'Your Cluster Home'
-            : activeScope.scope_type ===
+            : scope.scope_type ===
               'CHURCH'
-            ? 'Your Church Home'
+            ? 'Your Location Home'
             : 'Your BUKLOD Home'}
         </Text>
       </View>
 
       {showFaithContent && (
-        <BuklodHomeFaithPanel />
+        <>
+          <BuklodScopeFaithMonitoringSummary scope={scope} />
+          <BuklodScopeBuklodLessonPanel scope={scope} />
+          <BuklodHomeFaithPanel scopeId={scope.scope_id} />
+        </>
       )}
 
       <BuklodHomeScopeBulletins />
       {/* PATCH_177A_SCOPE_ATTENDANCE_CARD */}
-      <BuklodScopeAttendanceCard />
+      <BuklodScopeAttendanceCard
+        scopeId={scope.scope_id}
+        scopeType={scope.scope_type}
+      />
 
-      {activeScope.scope_type !== 'CLUSTER' && (
+      {scope.scope_type !== 'CLUSTER' && (
         <BuklodCommunityBulletin />
       )}
+
+      <BuklodScreenBottomBanner placement="home" variant="large" />
     </ScrollView>
   );
 }
@@ -634,34 +676,30 @@ function LegacyScopeHome() {
  * use one exact-scope social Community implementation.
  * PUBLIC / LOCAL / CHURCH keep the previous implementation below.
  */
-function ScopeCommunity() {
-  const {
-    activeScope,
-  } = useBuklodScope();
-
-  if (!activeScope) {
-    return null;
-  }
-
+function ScopeCommunity({
+  scope,
+}: {
+  scope: BuklodScope;
+}) {
   if (
-activeScope.scope_type === 'ORGANIZATION' ||
-    activeScope.scope_type === 'CLUSTER'
+    scope.scope_type === 'ORGANIZATION' ||
+    scope.scope_type === 'CLUSTER'
   ) {
     return (
       <BuklodExclusiveScopeCommunity
-        scope={activeScope}
+        scope={scope}
       />
     );
   }
 
-  return <LegacyScopeCommunity />;
+  return <LegacyScopeCommunity scope={scope} />;
 }
 
-function LegacyScopeCommunity() {
-  const {
-    activeScope,
-  } =
-    useBuklodScope();
+function LegacyScopeCommunity({
+  scope,
+}: {
+  scope: BuklodScope;
+}) {
 
   const [posts, setPosts] =
     useState<ScopePost[]>([]);
@@ -698,16 +736,12 @@ function LegacyScopeCommunity() {
 
   const load =
     useCallback(async () => {
-      if (!activeScope) {
-        return;
-      }
-
       setLoading(true);
 
       try {
         setPosts(
           await getBuklodScopeFeed(
-            activeScope!.scope_id,
+            scope.scope_id,
             60
           )
         );
@@ -723,16 +757,12 @@ function LegacyScopeCommunity() {
         setLoading(false);
       }
     }, [
-      activeScope?.scope_id,
+      scope.scope_id,
     ]);
 
   useEffect(() => {
     void load();
   }, [load]);
-
-  if (!activeScope) {
-    return null;
-  }
 
   async function publish() {
     const text =
@@ -746,7 +776,7 @@ function LegacyScopeCommunity() {
 
     try {
       await createBuklodScopePost(
-        activeScope!.scope_id,
+        scope.scope_id,
         text,
         'general'
       );
@@ -854,7 +884,7 @@ function LegacyScopeCommunity() {
             styles.cardTitle
           }
         >
-          Share with {activeScope.name}
+          Share with {scope.name}
         </Text>
 
         <TextInput
@@ -926,8 +956,10 @@ function LegacyScopeCommunity() {
                 styles.postAuthor
               }
             >
-              {post.author_name ??
-                'BUKLOD Member'}
+              {resolvePersonDisplayName(
+                post.author_name,
+                post.user_id,
+              )}
             </Text>
 
             <Text
@@ -966,16 +998,18 @@ function LegacyScopeCommunity() {
  * COMMUNITY conversations only. Personal messages stay exclusively
  * in the global bottom Connect (/messages).
  */
-function OrganizationCommunityConnect() {
-  const {
-    activeScope,
-  } =
-    useBuklodScope();
-
+function OrganizationCommunityConnect({
+  scope,
+  onBack,
+}: {
+  scope: BuklodScope;
+  onBack?: () => void;
+}) {
   if (
-    !activeScope ||
-    activeScope.scope_type !==
-      'ORGANIZATION'
+    scope.scope_type !==
+      'ORGANIZATION' &&
+    scope.scope_type !==
+      'CLUSTER'
   ) {
     return null;
   }
@@ -990,18 +1024,23 @@ function OrganizationCommunityConnect() {
       <BuklodConnectThread
         mode="scope"
         containerId={
-          activeScope.scope_id
+          scope.scope_id
         }
+        onBackOverride={onBack}
       />
     </View>
   );
 }
 
-function ScopeConnect() {
-  const {
-    activeScope,
-  } =
-    useBuklodScope();
+function ScopeConnect({
+  scope,
+}: {
+  scope: BuklodScope;
+}) {
+  const scrollBottomInset =
+    useBuklodScrollBottomInset({
+      extra: 12,
+    });
 
   const [query, setQuery] =
     useState('');
@@ -1014,16 +1053,12 @@ function ScopeConnect() {
 
   const load =
     useCallback(async () => {
-      if (!activeScope) {
-        return;
-      }
-
       setLoading(true);
 
       try {
         setPeople(
           await getBuklodScopePeople(
-            activeScope!.scope_id,
+            scope.scope_id,
             query.trim(),
             60
           )
@@ -1040,32 +1075,36 @@ function ScopeConnect() {
         setLoading(false);
       }
     }, [
-      activeScope?.scope_id,
+      scope.scope_id,
       query,
     ]);
 
   useEffect(() => {
+    const delay =
+      query.trim().length > 0
+        ? 250
+        : 0;
+
     const timer =
       setTimeout(
         () => {
           void load();
         },
-        250
+        delay
       );
 
     return () =>
       clearTimeout(timer);
   }, [load]);
 
-  if (!activeScope) {
-    return null;
-  }
-
   return (
     <ScrollView
-      contentContainerStyle={
-        styles.content
-      }
+      contentContainerStyle={[
+        styles.content,
+        {
+          paddingBottom: scrollBottomInset,
+        },
+      ]}
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.card}>
@@ -1074,7 +1113,7 @@ function ScopeConnect() {
             styles.cardTitle
           }
         >
-          Connect in {activeScope.name}
+          Connect in {scope.name}
         </Text>
 
         <TextInput
@@ -1109,36 +1148,48 @@ function ScopeConnect() {
 
       {people.map(
         (person) => (
-          <Pressable
+          <View
             key={
               person.user_id
             }
-            onPress={() =>
-              router.push(
-                `/connect/${person.user_id}` as any
-              )
-            }
             style={styles.person}
           >
-            <View
-              style={
-                styles.avatar
-              }
-            >
-              <Text
-                style={
-                  styles.avatarText
-                }
-              >
-                {person.full_name
-                  ?.trim()
-                  ?.charAt(0)
-                  ?.toUpperCase() ||
-                  '?'}
-              </Text>
-            </View>
+                    <BuklodTappableAvatar
+                      userId={person.user_id}
+                      uri={person.avatar_url}
+                      name={person.full_name}
+                      size={42}
+                      onPress={() =>
+                        router.push({
+                          pathname:
+                            '/connect/personal/[threadId]',
+                          params: {
+                            threadId: 'new',
+                            targetUserId:
+                              person.user_id,
+                            otherUserName:
+                              person.full_name ??
+                              '',
+                          },
+                        } as any)
+                      }
+                    />
 
-            <View
+                    <Pressable
+                      onPress={() =>
+                        router.push({
+                          pathname:
+                            '/connect/personal/[threadId]',
+                          params: {
+                            threadId: 'new',
+                            targetUserId:
+                              person.user_id,
+                            otherUserName:
+                              person.full_name ??
+                              '',
+                          },
+                        } as any)
+                      }
               style={{
                 flex: 1,
               }}
@@ -1158,16 +1209,17 @@ function ScopeConnect() {
               >
                 Open private messaging
               </Text>
-            </View>
+            </Pressable>
 
             <MaterialCommunityIcons
               name="chevron-right"
               size={21}
               color={colors.muted}
             />
-          </Pressable>
+          </View>
         )
       )}
+
     </ScrollView>
   );
 }
@@ -1290,7 +1342,6 @@ const styles =
     content: {
       padding: 12,
       gap: 6,
-      paddingBottom: 40,
       paddingLeft: 0,
       marginLeft: 0,
       paddingStart: 0,

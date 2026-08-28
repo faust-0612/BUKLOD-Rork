@@ -3,9 +3,8 @@ import BuklodFoundationPortalShell from '@/components/BuklodFoundationPortalShel
 export default function BuklodHealthPortal() {
   return (
     <BuklodFoundationPortalShell
-      title="BUKLOD Health"
+      integrationAppId="health"
       icon="heart-pulse"
-      description="Health and wellness BUKLOD portal."
     />
   );
 }

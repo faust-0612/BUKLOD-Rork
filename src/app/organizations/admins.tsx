@@ -4,16 +4,18 @@ import {
   ActivityIndicator,
   Alert,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+
+import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
+import { readOrganizationScopeId } from '@/lib/buklodOrganization';
 
 type AdminRow = {
   user_id: string;
@@ -41,7 +43,7 @@ type LogRow = {
 
 export default function OrganizationAdminsScreen() {
   const params = useLocalSearchParams<{ organization?: string; action?: string }>();
-  const scopeId = typeof params.organization === 'string' ? params.organization : '';
+  const scopeId = readOrganizationScopeId(params as Record<string, unknown>);
   const requestedAction = String(params.action ?? 'list');
   const [action, setAction] = useState(requestedAction === 'activity' ? 'activity' : requestedAction === 'add' ? 'add' : 'list');
   const [admins, setAdmins] = useState<AdminRow[]>([]);
@@ -153,7 +155,7 @@ export default function OrganizationAdminsScreen() {
     );
 
   return (
-    <ScrollView
+    <BuklodPortalScrollView
       style={styles.screen}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
@@ -281,13 +283,13 @@ export default function OrganizationAdminsScreen() {
           ))}
         </View>
       )}
-    </ScrollView>
+    </BuklodPortalScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 16, paddingBottom: 44 },
+  content: { padding: 16, paddingBottom: 16 },
   back: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
   backText: { fontSize: 10.5, fontWeight: '800', color: colors.greenDark },
   hero: { borderRadius: 20, padding: 17, backgroundColor: colors.greenDark, marginBottom: 12 },

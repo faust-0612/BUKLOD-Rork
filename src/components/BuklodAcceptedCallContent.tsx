@@ -15,6 +15,7 @@ import {
 import {
   CallContent,
   CallControls,
+  CallingState,
   OwnCapability,
   ScreenShareToggleButton,
   useCall,
@@ -331,6 +332,7 @@ BuklodAcceptedCallContent() {
   const {
     useParticipants,
     useCallSession,
+    useCallCallingState,
   } =
     useCallStateHooks();
 
@@ -339,6 +341,16 @@ BuklodAcceptedCallContent() {
 
   const session =
     useCallSession();
+
+  const callingState =
+    useCallCallingState();
+
+  const reconnecting =
+    callingState ===
+      CallingState.RECONNECTING ||
+    String(callingState ?? '')
+      .toLowerCase()
+      .includes('reconnect');
 
   const startedAt =
     useMemo(
@@ -428,14 +440,16 @@ BuklodAcceptedCallContent() {
             styles.statusText
           }
         >
-          {elapsed}
-          {'  \u2022  '}
-          {participants.length}
-          {' '}
-          participant
-          {participants.length === 1
+          {reconnecting
+            ? 'Reconnecting...'
+            : elapsed}
+          {reconnecting
             ? ''
-            : 's'}
+            : `  \u2022  ${participants.length} participant${
+                participants.length === 1
+                  ? ''
+                  : 's'
+              }`}
         </Text>
       </View>
     </View>

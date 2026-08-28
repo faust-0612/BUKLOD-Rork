@@ -14,6 +14,15 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
+import {
+  FACULTY_AUTOPILOT_MODULES,
+  openFacultyAutopilotModule,
+  type FacultyAutopilotModule,
+  type FacultyClassroomRef,
+} from '@/lib/education/facultyAutopilot';
+import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
+
+import { FacultyGate } from '@/components/faculty/FacultyGate';
 
 type Classroom = {
   id: string;
@@ -44,10 +53,13 @@ export default function BuklodFacultyScreen() {
   const [stats, setStats] = useState<DashboardStats>(EMPTY_STATS);
   const [refreshing, setRefreshing] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
+  const [showClassPick, setShowClassPick] = useState(false);
+  const [pendingModule, setPendingModule] = useState<FacultyAutopilotModule | null>(null);
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [section, setSection] = useState('');
   const [busy, setBusy] = useState(false);
+  const { theme } = useBuklodPresentation();
 
   const activeClasses = useMemo(
     () => classes.filter(item => item.status === 'ACTIVE'),
@@ -120,6 +132,30 @@ export default function BuklodFacultyScreen() {
     setRefreshing(false);
   };
 
+  const openModule = (module: FacultyAutopilotModule) => {
+    if (activeClasses.length === 0) {
+      Alert.alert(
+        'Select a class',
+        'Create a class first. Autopilot tools stay inside that classroom.'
+      );
+      return;
+    }
+
+    if (activeClasses.length === 1) {
+      openFacultyAutopilotModule(module, activeClasses[0]);
+      return;
+    }
+
+    setPendingModule(module);
+    setShowClassPick(true);
+  };
+
+  const pickClass = (classroom: FacultyClassroomRef) => {
+    setShowClassPick(false);
+    if (pendingModule) openFacultyAutopilotModule(pendingModule, classroom);
+    setPendingModule(null);
+  };
+
   const createClass = async () => {
     if (!name.trim()) {
       return Alert.alert('Create Class', 'Enter a class/subject name.');
@@ -151,9 +187,10 @@ export default function BuklodFacultyScreen() {
   };
 
   return (
+    <FacultyGate>
     <>
       <ScrollView
-        style={styles.screen}
+        style={[styles.screen, { backgroundColor: theme.canvas }]}
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
       >
@@ -215,7 +252,7 @@ export default function BuklodFacultyScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.classTitle}>{item.name}</Text>
                 <Text style={styles.classMeta}>
-                  {[item.subject_code, item.section_name].filter(Boolean).join(' â€¢ ') || 'Active classroom'}
+                  {[item.subject_code, item.section_name].filter(Boolean).join(' • ') || 'Active classroom'}
                 </Text>
               </View>
             </Pressable>
@@ -223,24 +260,25 @@ export default function BuklodFacultyScreen() {
         )}
 
         <Text style={styles.sectionTitle}>Faculty Autopilot</Text>
+        <Text style={styles.toolText}>
+          {activeClasses.length > 1
+            ? 'Choose a class, then open the tool. Work stays inside that classroom.'
+            : 'Each card opens the live classroom tool. No placeholder metrics.'}
+        </Text>
 
-        {[
-          ['account-group-outline', 'Roster & Groups', 'Enroll students, form groups, and track individual contribution.'],
-          ['folder-multiple-outline', 'Materials', 'Share PDF, PPT, Word, video, and downloadable files.'],
-          ['calendar-check-outline', 'Attendance', 'Time in/out, location/QR verification, and exception handling.'],
-          ['clipboard-text-outline', 'Assessments', 'Quizzes, exams, paper scans, rubrics, and review queues.'],
-          ['chart-box-outline', 'Gradebook', 'Automatic totals, manual entries, weighted categories, audit trail.'],
-          ['account-star-outline', 'Participation & Conduct', 'Recitation, engagement, group work, and rubric-based professional conduct.'],
-          ['chart-timeline-variant', 'Progress & Reports', 'Current standing, final grades, consultation, and Excel-ready reports.'],
-          ['alert-circle-outline', 'Exception Queue', 'Review only uncertain grades, anomalies, and student cases needing attention.'],
-        ].map(([icon, title, desc]) => (
-          <View key={String(title)} style={styles.toolCard}>
-            <MaterialCommunityIcons name={icon as any} size={24} color="#1f7a3f" />
+        {FACULTY_AUTOPILOT_MODULES.map(module => (
+          <Pressable
+            key={module.key}
+            style={({ pressed }) => [styles.toolCard, pressed && { opacity: 0.88 }]}
+            onPress={() => openModule(module)}
+          >
+            <MaterialCommunityIcons name={module.icon as any} size={24} color={theme.accent} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.toolTitle}>{title}</Text>
-              <Text style={styles.toolText}>{desc}</Text>
+              <Text style={styles.toolTitle}>{module.title}</Text>
+              <Text style={styles.toolText}>{module.description}</Text>
             </View>
-          </View>
+            <MaterialCommunityIcons name="chevron-right" size={22} color="#9aa59c" />
+          </Pressable>
         ))}
       </ScrollView>
 
@@ -269,7 +307,39 @@ export default function BuklodFacultyScreen() {
           </View>
         </View>
       </Modal>
+
+      <Modal visible={showClassPick} transparent animationType="fade" onRequestClose={() => setShowClassPick(false)}>
+        <View style={styles.modalShade}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Choose class</Text>
+            <Text style={styles.toolText}>
+              {pendingModule?.title ?? 'Autopilot'} will open inside the class you select.
+            </Text>
+            {activeClasses.map(item => (
+              <Pressable
+                key={item.id}
+                style={({ pressed }) => [styles.classCard, pressed && { opacity: 0.88 }]}
+                onPress={() => pickClass(item)}
+              >
+                <View style={styles.classIcon}>
+                  <MaterialCommunityIcons name="google-classroom" size={22} color="#1f7a3f" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.classTitle}>{item.name}</Text>
+                  <Text style={styles.classMeta}>
+                    {[item.subject_code, item.section_name].filter(Boolean).join(' • ') || 'Active classroom'}
+                  </Text>
+                </View>
+              </Pressable>
+            ))}
+            <Pressable style={styles.secondary} onPress={() => setShowClassPick(false)}>
+              <Text style={styles.secondaryText}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </>
+    </FacultyGate>
   );
 }
 

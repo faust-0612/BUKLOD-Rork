@@ -1,53 +1,33 @@
 import React from 'react';
 import {
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
 } from 'react-native';
+
+import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 import {
   Stack,
   useLocalSearchParams,
   useRouter,
 } from 'expo-router';
-
-function firstString(value: unknown) {
-  if (typeof value === 'string') {
-    return value.trim();
-  }
-
-  if (
-    Array.isArray(value) &&
-    typeof value[0] === 'string'
-  ) {
-    return value[0].trim();
-  }
-
-  return '';
-}
+import {
+  organizationScopeParams,
+  readOrganizationScopeId,
+} from '@/lib/buklodOrganization';
 
 export default function MembersRequestsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
 
-  const scopeId =
-    firstString(params.scopeId) ||
-    firstString(params.scope_id) ||
-    firstString(params.organizationId) ||
-    firstString(params.organization_id) ||
-    firstString(params.id);
+  const scopeId = readOrganizationScopeId(
+    params as Record<string, unknown>,
+  );
 
   const open = (pathname: string) => {
     router.push({
       pathname: pathname as any,
-      params: {
-        scopeId,
-        scope_id: scopeId,
-        organizationId: scopeId,
-        organization_id: scopeId,
-        id: scopeId,
-        organization: scopeId,
-      },
+      params: organizationScopeParams(scopeId),
     } as any);
   };
 
@@ -59,7 +39,7 @@ export default function MembersRequestsScreen() {
         }}
       />
 
-      <ScrollView
+      <BuklodPortalScrollView
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.content}>
         <Pressable
@@ -89,7 +69,7 @@ export default function MembersRequestsScreen() {
           </Text>
           <Text style={styles.chevron}>›</Text>
         </Pressable>
-      </ScrollView>
+      </BuklodPortalScrollView>
     </>
   );
 }
@@ -98,7 +78,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 18,
     paddingTop: 24,
-    paddingBottom: 42,
+    paddingBottom: 16,
     gap: 10,
     backgroundColor: '#F4F7F5',
   },

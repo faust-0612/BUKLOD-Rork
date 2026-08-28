@@ -1,41 +1,36 @@
 import React from 'react';
 
 import {
+  Redirect,
   useLocalSearchParams,
 } from 'expo-router';
 
-import BuklodConnectThread
-  from '@/components/BuklodConnectThread';
+import {
+  firstRouteParam,
+} from '@/lib/buklodScopeRoute';
 
-
-/* PATCH_169C_MZB_SCOPE_THREAD */
-
-export default function
-MzbCommunityThreadScreen() {
+export default function MzbCommunityThreadRedirect() {
   const params =
     useLocalSearchParams<{
-      scopeId?: string;
+      scopeId?: string | string[];
+      conversationId?: string | string[];
+      scopeName?: string | string[];
+      scopeType?: string | string[];
     }>();
 
-  const scopeId =
-    Array.isArray(
-      params.scopeId
-    )
-      ? params.scopeId[0]
-      : params.scopeId;
-
-  if (!scopeId) {
-    return null;
-  }
+  const scopeId = firstRouteParam(params.scopeId);
 
   return (
-    
-      <BuklodConnectThread
-        mode="scope"
-        containerId={
-          scopeId
-        }
-      />
-    
+    <Redirect
+      href={{
+        pathname: '/connect/community/[scopeId]',
+        params: {
+          scopeId,
+          conversationId: firstRouteParam(params.conversationId),
+          scopeName: firstRouteParam(params.scopeName),
+          scopeType: firstRouteParam(params.scopeType),
+        },
+      } as any}
+    />
   );
 }

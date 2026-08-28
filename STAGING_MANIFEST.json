@@ -1,0 +1,68 @@
+{
+  "version": "v16",
+  "purpose": "Final BUKLOD 1.0 production execution pack with Android-first build and Google Play draft/internal workflow",
+  "generated_date": "2026-08-10",
+  "staging": {
+    "app_name": "BUKLOD Staging",
+    "android_package": "org.mzbministry.buklod.staging",
+    "ios_bundle_id": "org.mzbministry.buklod.staging",
+    "eas_environment": "preview",
+    "requires_separate_supabase_project": true
+  },
+  "production": {
+    "app_name": "BUKLOD",
+    "android_package": "org.mzbministry.buklod",
+    "ios_bundle_id": "org.mzbministry.buklod",
+    "eas_environment": "production"
+  },
+  "canonical_migrations": 13,
+  "staging_seed_sources": [
+    "03_seed.sql",
+    "08_learning_seed.sql",
+    "10_church_life_seed.sql",
+    "12_member_care_seed.sql"
+  ],
+  "edge_functions": [
+    "push",
+    "delete-account"
+  ],
+  "external_credentials_embedded": false,
+  "pilot_operations": {
+    "pilot_access_control": true,
+    "maintenance_mode": true,
+    "version_gate": true,
+    "feature_flags": true,
+    "feedback_queue": true
+  },
+  "pilot_launch_content": {
+    "seven_day_devotional": true,
+    "help_center": true,
+    "announcement_templates": true,
+    "pilot_checklist": true,
+    "membership_course_seed": true,
+    "tester_guides": true
+  },
+  "command_center": {
+    "pilot_health": true,
+    "support_summary": true,
+    "incident_registry": true,
+    "readiness_checks": true,
+    "release_candidates": true,
+    "decision_log": true,
+    "automatic_crash_telemetry_connected": false
+  },
+  "production_cutover_package": {
+    "production_seed_separated": true,
+    "preflight_script": true,
+    "dry_run_first_cutover": true,
+    "first_admin_bootstrap": true,
+    "store_release_checklists": true,
+    "production_credentials_embedded": false,
+    "production_deployed": false
+  },
+  "production_execution": {
+    "android_first": true,
+    "external_execution_completed": false,
+    "production_credentials_embedded": false
+  }
+}

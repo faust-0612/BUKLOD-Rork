@@ -3,6 +3,8 @@ import React from 'react';
 import {
   StyleSheet,
   View,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
 
 import {
@@ -13,8 +15,10 @@ import {
 export default function
 BuklodBulletinVideo({
   uri,
+  style,
 }: {
   uri: string;
+  style?: StyleProp<ViewStyle>;
 }) {
   const player =
     useVideoPlayer(
@@ -27,9 +31,10 @@ BuklodBulletinVideo({
 
   return (
     <View
-      style={
-        styles.wrap
-      }
+      style={[
+        styles.wrap,
+        style,
+      ]}
     >
       <VideoView
         style={

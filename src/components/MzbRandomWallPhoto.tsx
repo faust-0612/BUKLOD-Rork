@@ -23,8 +23,16 @@ import {
 } from 'expo-router';
 
 import {
+  buildScopedWorkspacePath,
+} from '@/lib/buklodScopeRoute';
+
+import {
   supabase,
 } from '@/lib/supabase';
+
+import {
+  findActiveMzbMemberScope,
+} from '@/lib/buklodMzbOrganization';
 
 import {
   colors,
@@ -125,7 +133,11 @@ function isImagePost(
 }
 
 export default function
-MzbRandomWallPhoto() {
+MzbRandomWallPhoto({
+  onOpenCommunity,
+}: {
+  onOpenCommunity?: () => void;
+} = {}) {
   const {
     scopes,
     loading: scopesLoading,
@@ -134,41 +146,8 @@ MzbRandomWallPhoto() {
 
   const mzbScope =
     useMemo(
-      () =>
-        (
-          scopes as any[]
-        ).find(
-          scope =>
-            scope?.scope_type ===
-              'ORGANIZATION' &&
-            (
-              String(
-                scope?.name ??
-                  '',
-              )
-                .toLowerCase()
-                .includes(
-                  'mzb ministry',
-                ) ||
-              String(
-                scope?.metadata
-                  ?.is_mzb ??
-                  '',
-              )
-                .toLowerCase() ===
-                'true'
-            ) &&
-            (
-              !scope
-                ?.membership_status ||
-              scope
-                ?.membership_status ===
-                'ACTIVE'
-            ),
-        ) ?? null,
-      [
-        scopes,
-      ],
+      () => findActiveMzbMemberScope(scopes),
+      [scopes],
     );
 
   const mzbScopeId =
@@ -325,11 +304,27 @@ MzbRandomWallPhoto() {
   const openWall =
     useCallback(
       () => {
-        router.push(
-          '/mzb/community' as any,
-        );
+        if (onOpenCommunity) {
+          onOpenCommunity();
+          return;
+        }
+
+        if (mzbScopeId) {
+          router.push(
+            buildScopedWorkspacePath(
+              'community',
+              mzbScopeId
+            ) as any
+          );
+          return;
+        }
+
+        router.push('/scope?section=community' as any);
       },
-      [],
+      [
+        mzbScopeId,
+        onOpenCommunity,
+      ],
     );
 
   return (
