@@ -1,0 +1,35 @@
+BUKLOD MOJIBAKE R12B EXACT AUDIT
+READ ONLY - NO FILES MODIFIED
+
+FILE: src\app\prayer\[id].tsx
+TARGET_LINE: 487
+   LINE 485: 
+   LINE 486:           <Text style={styles.prayedText}>
+>> LINE 487:             \u00F0\u0178\u2122\u008F {responders.length} prayed
+   LINE 488:             {
+   LINE 489:               responders.length > 0
+
+TARGET_LINE: 543
+   LINE 541:                         }
+   LINE 542:                       >
+>> LINE 543:                         \u00F0\u0178\u2122\u008F {person.full_name}
+   LINE 544:                       </Text>
+   LINE 545: 
+
+TARGET_LINE: 563
+   LINE 561:         <>
+   LINE 562:           <Button
+>> LINE 563:             title="\u00F0\u0178\u2122\u008F I PRAYED"
+   LINE 564:             onPress={prayed}
+   LINE 565:           />
+
+
+FILE: src\components\BuklodHomeScopeBulletins.tsx
+TARGET_LINE: 769
+   LINE 767:                   <Text style={styles.bulletinTitle}>
+   LINE 768:                     {bulletin.is_pinned
+>> LINE 769:                       ? '\u00F0\u0178\uFFFDS\uFFFD\u0019 '
+   LINE 770:                       : ''}
+   LINE 771:                     {bulletin.title}
+
+

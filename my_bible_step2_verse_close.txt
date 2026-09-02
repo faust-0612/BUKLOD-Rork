@@ -1,0 +1,51 @@
+﻿                    </Text>
+
+
+                    {annotation
+                      ?.note_text && (
+
+                      <View
+                        style={{
+                          alignSelf:
+                            'flex-start',
+
+                          marginTop:
+                            4,
+
+                          paddingHorizontal:
+                            5,
+
+                          paddingVertical:
+                            3,
+
+                          borderRadius:
+                            7,
+
+                          backgroundColor:
+                            '#E8F2EC',
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize:
+                              7,
+
+                            fontWeight:
+                              '900',
+
+                            color:
+                              colors.greenDark,
+
+                            letterSpacing:
+                              0.3,
+                          }}
+                        >
+                          NOTE
+                        </Text>
+                      </View>
+
+                    )}
+
+
+                  </Pressable>
+                );

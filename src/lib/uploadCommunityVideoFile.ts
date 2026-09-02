@@ -1,15 +1,27 @@
-import * as FileSystem
+/*
+ * PATCH_191G_R5_COMPATIBILITY_SAFE_VIDEO_FINALIZER
+ * Current helper contract preserved intentionally:
+ * video + photo upload, bounded concurrency, progress callbacks,
+ * signed native binary transfer, and existing caller compatibility.
+ */import * as FileSystem
   from 'expo-file-system/legacy';
 
 import {
   BUKLOD_VIDEO_MAX_SIZE_BYTES,
+  classifyCommunityUploadFailure,
+  communityUploadFailureMessage,
   communityVideoTooLargeMessage,
-  communityVideoUploadRejectedMessage,
   readVideoSizeBytes,
+  type CommunityUploadFailureReason,
 } from '@/lib/buklodCommunityWallMedia';
 import {
   supabase,
 } from '@/lib/supabase';
+import {
+  shouldUseResumableUpload,
+  toDirectStorageUrl,
+  uploadCommunityFileResumableTus,
+} from '@/lib/uploadCommunityResumableTus';
 
 export type CommunityVideoUploadProgress = {
   sentBytes: number;
@@ -17,9 +29,42 @@ export type CommunityVideoUploadProgress = {
   ratio: number;
 };
 
+function throwClassifiedUploadError({
+  failureLabel,
+  sizeBytes,
+  status,
+  body,
+  message,
+  aborted,
+}: {
+  failureLabel: string;
+  sizeBytes?: number;
+  status?: number | null;
+  body?: string | null;
+  message?: string | null;
+  aborted?: boolean;
+}): never {
+  const reason: CommunityUploadFailureReason =
+    classifyCommunityUploadFailure({
+      status,
+      body,
+      message,
+      aborted,
+    });
+
+  throw new Error(
+    communityUploadFailureMessage(reason, {
+      sizeBytes,
+      failureLabel,
+      serverBody: body || message || '',
+    })
+  );
+}
+
 /*
  * Memory-safe community video upload:
- * signed URL + Expo FileSystem binary PUT (no base64 / ArrayBuffer copy).
+ * 1) TUS resumable chunks (6 MiB) for large files — no full-file JS copy
+ * 2) signed URL + Expo FileSystem binary PUT for smaller files
  */
 export async function uploadCommunityVideoFile({
   path,
@@ -66,8 +111,7 @@ export async function uploadCommunityVideoFile({
     onProgress,
     sizeBytes,
     failureLabel: 'Video',
-    tooLargeMessage:
-      communityVideoUploadRejectedMessage(sizeBytes),
+    preferResumable: true,
   });
 }
 
@@ -149,6 +193,7 @@ export async function uploadCommunityPhotoFile({
     onProgress,
     sizeBytes: prepared.sizeBytes,
     failureLabel: 'Photo',
+    preferResumable: false,
   });
 
   return {
@@ -163,7 +208,7 @@ async function uploadCommunityBinaryFile({
   onProgress,
   sizeBytes = 0,
   failureLabel,
-  tooLargeMessage,
+  preferResumable = false,
 }: {
   path: string;
   uri: string;
@@ -173,7 +218,69 @@ async function uploadCommunityBinaryFile({
   ) => void;
   sizeBytes?: number;
   failureLabel: string;
-  tooLargeMessage?: string;
+  preferResumable?: boolean;
+}): Promise<void> {
+  const useResumable =
+    preferResumable &&
+    shouldUseResumableUpload(sizeBytes);
+
+  if (useResumable) {
+    try {
+      await uploadCommunityFileResumableTus({
+        path,
+        uri,
+        contentType,
+        sizeBytes,
+        onProgress,
+      });
+      return;
+    } catch (error: any) {
+      const message = String(error?.message ?? error ?? '');
+      const sliceUnsupported =
+        /position|length|not supported|invalid option/i.test(message);
+
+      if (!sliceUnsupported) {
+        throwClassifiedUploadError({
+          failureLabel,
+          sizeBytes,
+          status: error.status,
+          body: error.body || message,
+          message,
+          aborted: Boolean(error.aborted) || /timeout/i.test(message),
+        });
+      }
+
+      // Slice reads are unavailable (some content:// URIs). Fall through
+      // to a native streamed PUT instead of loading the file into JS.
+    }
+  }
+
+  await uploadCommunitySignedPut({
+    path,
+    uri,
+    contentType,
+    onProgress,
+    sizeBytes,
+    failureLabel,
+  });
+}
+
+async function uploadCommunitySignedPut({
+  path,
+  uri,
+  contentType,
+  onProgress,
+  sizeBytes = 0,
+  failureLabel,
+}: {
+  path: string;
+  uri: string;
+  contentType: string;
+  onProgress?: (
+    progress: CommunityVideoUploadProgress
+  ) => void;
+  sizeBytes?: number;
+  failureLabel: string;
 }): Promise<void> {
   const bucket =
     supabase.storage.from(
@@ -192,11 +299,15 @@ async function uploadCommunityBinaryFile({
     );
 
   if (signedError) {
-    throw signedError;
+    throwClassifiedUploadError({
+      failureLabel,
+      sizeBytes,
+      message: String(signedError.message ?? signedError),
+    });
   }
 
-  const signedUrl = String(
-    signed?.signedUrl ?? '',
+  const signedUrl = toDirectStorageUrl(
+    String(signed?.signedUrl ?? ''),
   );
 
   if (!signedUrl) {
@@ -217,45 +328,61 @@ async function uploadCommunityBinaryFile({
     },
   };
 
-  const result = onProgress
-    ? await (async () => {
-        const task =
-          FileSystem.createUploadTask(
-            signedUrl,
-            uri,
-            uploadOptions,
-            (progress) => {
-              const sentBytes = Number(
-                progress.totalBytesSent ?? 0,
-              );
-              const totalBytes = Number(
-                progress.totalBytesExpectedToSend ??
-                  sizeBytes ??
-                  0,
-              );
-              const ratio =
-                totalBytes > 0
-                  ? Math.min(
-                      1,
-                      sentBytes / totalBytes,
-                    )
-                  : 0;
+  let result: {
+    status: number;
+    body?: string | null;
+  } | null | undefined;
 
-              onProgress({
-                sentBytes,
-                totalBytes,
-                ratio,
-              });
-            },
-          );
+  try {
+    result = onProgress
+      ? await (async () => {
+          const task =
+            FileSystem.createUploadTask(
+              signedUrl,
+              uri,
+              uploadOptions,
+              (progress) => {
+                const sentBytes = Number(
+                  progress.totalBytesSent ?? 0,
+                );
+                const totalBytes = Number(
+                  progress.totalBytesExpectedToSend ??
+                    sizeBytes ??
+                    0,
+                );
+                const ratio =
+                  totalBytes > 0
+                    ? Math.min(
+                        1,
+                        sentBytes / totalBytes,
+                      )
+                    : 0;
 
-        return task.uploadAsync();
-      })()
-    : await FileSystem.uploadAsync(
-        signedUrl,
-        uri,
-        uploadOptions,
-      );
+                onProgress({
+                  sentBytes,
+                  totalBytes,
+                  ratio,
+                });
+              },
+            );
+
+          return task.uploadAsync();
+        })()
+      : await FileSystem.uploadAsync(
+          signedUrl,
+          uri,
+          uploadOptions,
+        );
+  } catch (error: any) {
+    throwClassifiedUploadError({
+      failureLabel,
+      sizeBytes,
+      message: String(error?.message ?? error ?? ''),
+      aborted: /timeout|timed out|abort/i.test(
+        String(error?.message ?? ''),
+      ),
+    });
+  }
 
   if (!result) {
     throw new Error(
@@ -274,32 +401,12 @@ async function uploadCommunityBinaryFile({
       .trim()
       .slice(0, 300);
 
-    const normalized = serverBody.toLowerCase();
-
-    if (
-      normalized.includes(
-        'maximum size',
-      ) ||
-      normalized.includes(
-        'exceeded the maximum',
-      ) ||
-      normalized.includes(
-        'payload too large',
-      ) ||
-      normalized.includes(
-        'entity too large',
-      )
-    ) {
-      throw new Error(
-        tooLargeMessage ||
-          `${failureLabel} is too large to upload.`,
-      );
-    }
-
-    throw new Error(
-      serverBody
-        ? `${failureLabel} upload failed (${result.status}): ${serverBody}`
-        : `${failureLabel} upload failed (${result.status}).`,
-    );
+    throwClassifiedUploadError({
+      failureLabel,
+      sizeBytes,
+      status: result.status,
+      body: serverBody,
+      message: serverBody,
+    });
   }
 }

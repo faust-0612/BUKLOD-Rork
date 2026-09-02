@@ -7,7 +7,10 @@ import {
   BUKLOD_PUBLIC_COMMUNITY_REACTIONS,
 } from '@/components/BuklodReactionAction';
 import { CommunityVideo } from '@/components/CommunityVideo';
-import { BuklodCachedMediaImage } from '@/components/BuklodCachedMediaImage';
+import {
+  BuklodCommunityPhotoCollage,
+  communityPhotoCollageItems,
+} from '@/components/BuklodCommunityPhotoCollage';
 import { resolveCommunityMediaUrl } from '@/lib/buklodMediaUrl';
 import {
   useCallback,
@@ -45,6 +48,7 @@ import {
   communityPostEditPhotos,
   communityPostIsVideo,
 } from '@/lib/buklodCommunityPostOwnerActions';
+import { COMMUNITY_MAX_PHOTOS } from '@/lib/buklodCommunityMediaLimits';
 import {
   type BuklodCommunityReactionKey,
 } from '@/lib/buklodCommunityReactions';
@@ -68,6 +72,7 @@ export default function PostDetail(){
  const [comment,setComment]=useState(''),[busy,setBusy]=useState(false);
  const [replyTo,setReplyTo]=useState<any>(null);
  const [photoViewerOpen,setPhotoViewerOpen]=useState(false);
+ const [photoViewerIndex,setPhotoViewerIndex]=useState(0);
 
  const load=useCallback(async()=>{if(!id)return;
   const [{data:p,error:pe},{data:c,error:ce}]=await Promise.all([
@@ -402,7 +407,7 @@ export default function PostDetail(){
       authorOnly={!!post.author_only}
       iconColor={colors.muted}
       allowPhotoEdit={!communityPostIsVideo(post)}
-      maxPhotos={20}
+      maxPhotos={COMMUNITY_MAX_PHOTOS}
       photos={communityPostEditPhotos(post)}
       onEdit={async (nextBody, nextPhotos) => {
        const saved = await saveCommunityPostEdit({
@@ -455,16 +460,24 @@ export default function PostDetail(){
    </Text>
   }<Text style={s.meta}>{String(post.audience).toUpperCase()} | {formatSpecificDateTime(post.created_at)}</Text>
    <Text style={s.body}>{post.body}</Text>{!!mentions.length&&<Text style={s.mentions}>{mentions.map((x:any)=>`@${x.full_name}`).join(' ')}</Text>}{/* PATCH_155C_POST_VIDEO */}
-  {!!(post.media_url || post.media_path) &&
+  {!!(post.media_url || post.media_path || (Array.isArray(post.media_items) && post.media_items.length)) &&
    !String(post.media_mime_type||'').startsWith('video/') &&
-   <Pressable onPress={()=>setPhotoViewerOpen(true)}>
-   <BuklodCachedMediaImage
-   uri={post.media_url}
-   mediaPath={post.media_path}
-   style={s.image}
-   contentFit="cover"
-  />
-   </Pressable>}
+   <BuklodCommunityPhotoCollage
+    items={communityPhotoCollageItems(
+     post.media_items,
+     {
+      media_path: post.media_path,
+      media_url: post.media_url,
+      media_mime_type: post.media_mime_type,
+     }
+    )}
+    width={undefined}
+    height={280}
+    onPressPhoto={(index)=>{
+     setPhotoViewerIndex(index);
+     setPhotoViewerOpen(true);
+    }}
+   />}
 
   {!!post.media_url &&
    String(post.media_mime_type||'').startsWith('video/') &&
@@ -659,6 +672,7 @@ export default function PostDetail(){
  <ConnectPhotoViewer
   visible={photoViewerOpen}
   uris={photoUris}
+  initialIndex={photoViewerIndex}
   onClose={()=>setPhotoViewerOpen(false)}
  />
  {reportSheet}

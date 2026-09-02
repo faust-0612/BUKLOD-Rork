@@ -1,0 +1,54 @@
+﻿BUKLOD AVATAR TARGETED AUDIT R1
+
+=== 1. SKIA / AVATAR-RELATED PACKAGES ===
+"@shopify/react-native-skia": "2.6.2",
+"lottie-react-native": "~7.3.8",
+"react-native-reanimated": "4.5.1",
+"react-native-svg": "15.15.4",
+
+=== 2. PROFILE PHOTO / AVATAR FIELD REFERENCES ===
+src\app\(auth)\login.tsx:248  avatarUrl: string | null;
+src\app\(auth)\login.tsx:283  avatarUrl:
+src\app\(tabs)\buklod.tsx:41  /* PATCH_186H_SINGLE_COMMUNITY_AUTHOR_AVATAR */
+src\app\(tabs)\buklod.tsx:47  /* PATCH_160_COMMUNITY_AVATARS_TIME */
+src\app\(tabs)\buklod.tsx.before-001E1R3-20260818-221533.bak:13  /* PATCH_186H_SINGLE_COMMUNITY_AUTHOR_AVATAR */
+src\app\(tabs)\buklod.tsx.before-001E1R3-20260818-221533.bak:21  /* PATCH_160_COMMUNITY_AVATARS_TIME */
+src\app\(tabs)\buklod.tsx.before-community-scale-20260818-210131.bak:13  /* PATCH_186H_SINGLE_COMMUNITY_AUTHOR_AVATAR */
+src\app\(tabs)\buklod.tsx.before-community-scale-20260818-210131.bak:21  /* PATCH_160_COMMUNITY_AVATARS_TIME */
+
+=== 3. EDIT PROFILE / MY BUKLOD SCREEN CANDIDATES ===
+src\app\(auth)\forgot-password.tsx:212  ? 'You create this 6-digit PIN while signed in: Profile > My BUKLOD > Recovery PIN. It is not sent by SMS or email, and BUKLOD never displays it again after saving.'
+src\app\(tabs)\me.tsx:39  import * as ImagePicker from 'expo-image-picker';
+src\app\(tabs)\me.tsx:658  await ImagePicker
+src\app\admin\mission-bulletins.tsx:118  const ImagePicker =
+src\app\admin\mission-bulletins.tsx:131  await ImagePicker
+src\app\advertise\index.tsx:5  import * as ImagePicker from 'expo-image-picker';
+src\app\advertise\index.tsx:18  function secs(a:ImagePicker.ImagePickerAsset){const n=Number(a.duration??0);return !Number.isFinite(n)||n<=0?0:n>1000?n/1000:n;}
+src\app\bible\index.tsx:283  const ImagePicker = await import('expo-image-picker');
+
+=== 4. PROFILE UPDATE / STORAGE PATH ===
+src\app\(auth)\login.tsx:349  '/storage/v1/object/public/profile-avatars/',
+src\app\(auth)\login.tsx:350  '/storage/v1/object/sign/profile-avatars/',
+src\app\account\personal-information.tsx:224  .from('profiles')
+src\app\account\personal-information.tsx:437  .from('profiles')
+src\app\account\security.tsx:185  .from('profiles')
+src\app\admin\formation\track-assignment.tsx:59  .from('profiles')
+src\app\admin\giving\treasurers.tsx:117  .from('profiles')
+src\app\admin\giving\treasurers.tsx:184  .from('profiles')
+
+=== 5. CURRENT AVATAR DISPLAY SITES ===
+src\app\(tabs)\buklod.tsx:41  /* PATCH_186H_SINGLE_COMMUNITY_AUTHOR_AVATAR */
+src\app\(tabs)\buklod.tsx:47  /* PATCH_160_COMMUNITY_AVATARS_TIME */
+src\app\(tabs)\messages.tsx:97  avatar_url: string | null;
+src\app\(tabs)\messages.tsx:212  /^\[\[BUKLOD_AVATAR_REACTION:[a-z_]+\]\]$/.test(
+src\components\BuklodClusterHomeCommandCenter.tsx:18  import{BuklodTappableAvatar}from'@/components/BuklodTappableAvatar';
+src\components\BuklodClusterHomeCommandCenter.tsx:29  type Member={user_id:string;full_name:string;avatar_url:string|null;is_admin:boolean};
+src\components\BuklodCommunityCommentPreview.tsx:10  BuklodTappableAvatar,
+src\components\BuklodCommunityCommentPreview.tsx:11  } from '@/components/BuklodTappableAvatar';
+
+=== 6. TYPESCRIPT ===
+TypeScript CLEAN
+
+DONE
+Report: C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\BUKLOD_AVATAR_TARGETED_AUDIT_R1.txt
+No source files changed.

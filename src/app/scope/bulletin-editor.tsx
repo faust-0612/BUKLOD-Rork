@@ -47,6 +47,7 @@ import {
 
 import BuklodBulletinVideo
   from '@/components/BuklodBulletinVideo';
+import { ensureImagePickerLibraryAccess } from '@/lib/buklodImagePickerAccess';
 
 type ScopeRow = {
   scope_id: string;
@@ -453,12 +454,13 @@ ScopeBulletinEditor() {
 
   const pickMedia =
     async () => {
-      const permission =
-        await ImagePicker
-          .requestMediaLibraryPermissionsAsync();
+      const permissionGranted =
+        await ensureImagePickerLibraryAccess(
+          ImagePicker.requestMediaLibraryPermissionsAsync
+        );
 
       if (
-        !permission.granted
+        !permissionGranted
       ) {
         Alert.alert(
           'Media',

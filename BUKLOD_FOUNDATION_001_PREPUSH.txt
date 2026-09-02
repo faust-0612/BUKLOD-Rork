@@ -1,0 +1,120 @@
+BUKLOD FOUNDATION 001 PRE-PUSH CHECK
+
+FOUNDATION QA
+Foundation audit writes: 2
+Legacy audit writes: 1
+TypeScript: CLEAN
+
+====================================================
+OTHER PENDING MIGRATION
+FILE: 20260817150444_patch186n_community_multi_photo_storage_access.sql
+====================================================
+begin;
+
+-- ============================================================
+-- PATCH 186N
+-- COMMUNITY MULTI-PHOTO STORAGE ACCESS
+-- ============================================================
+--
+-- Existing legacy storage policy only knows community_posts.media_path.
+-- Multi-photo objects also live in public.community_post_media.
+--
+-- This adds ONE secure visibility helper and ONE additive SELECT policy.
+-- Upload/delete policies are untouched.
+-- Existing Community audience rules remain authoritative through
+-- public.can_view_community_post_v2(post_id).
+-- ============================================================
+
+create or replace function
+public.can_view_buklod_community_media_path_v1(
+  p_media_path text
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select
+    coalesce(
+      nullif(
+        trim(
+          p_media_path
+        ),
+        ''
+      ),
+      ''
+    ) <> ''
+    and (
+      exists (
+        select 1
+        from
+          public.community_posts cp
+        where
+          cp.media_path =
+            p_media_path
+          and
+          public.can_view_community_post_v2(
+            cp.id
+          )
+      )
+      or
+      exists (
+        select 1
+        from
+          public.community_post_media pm
+        join
+          public.community_posts cp
+            on cp.id =
+               pm.post_id
+        where
+          pm.media_path =
+            p_media_path
+          and
+          public.can_view_community_post_v2(
+            cp.id
+          )
+      )
+    );
+$$;
+
+revoke all
+on function
+public.can_view_buklod_community_media_path_v1(
+  text
+)
+from public;
+
+grant execute
+on function
+public.can_view_buklod_community_media_path_v1(
+  text
+)
+to authenticated;
+
+drop policy if exists
+"Community media all post photos v3"
+on storage.objects;
+
+create policy
+"Community media all post photos v3"
+on storage.objects
+for select
+to authenticated
+using (
+  bucket_id =
+    'community-media'
+  and
+  public.can_view_buklod_community_media_path_v1(
+    name
+  )
+);
+
+comment on function
+public.can_view_buklod_community_media_path_v1(
+  text
+)
+is
+'PATCH 186N: authorizes Community media object reads when the object belongs to a Community post the current authenticated user may view, including legacy first-photo media_path and multi-photo rows in public.community_post_media.';
+
+commit;

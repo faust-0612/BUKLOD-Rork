@@ -371,10 +371,10 @@ export default function LessonDetail() {
 
       if (!validated) {
         Alert.alert(
-          'Review your reflection',
-          'Please improve your reflection using the guidance shown, then try again.',
+          'Balikan ang iyong sagot',
+          'Para tanggapin ang sagot: direktang sagutin ang tanong, ipaliwanag ang natutuhan sa sariling salita, at magbigay ng personal na aplikasyon. Tinatanggap ang Filipino, Taglish, o English; hindi kailangang eksaktong kopya ng aralin.',
         );
-        return;
+        // R1.3: advisory feedback only during draft save; server submit rules still apply.
       }
     }
 
@@ -392,15 +392,15 @@ export default function LessonDetail() {
     setBusy(false);
 
     if (error) {
-      Alert.alert('Could not save study', error.message);
+      Alert.alert('Hindi ma-save ang draft', error.message);
       return;
     }
 
     await load();
 
     Alert.alert(
-      'Study saved',
-      'Your study progress has been saved. Pastor validation and System Admin approval are still required for official completion.'
+      'Na-save ang draft',
+      'Na-save ang draft. Kumpletuhin ang Quick Check at gamitin ang ISUMITE PARA SA PAGPAPATUNAY kapag handa na.'
     );
   };
 
@@ -414,10 +414,10 @@ export default function LessonDetail() {
 
       if (!validated) {
         Alert.alert(
-          'Review your reflection',
-          'Please improve your reflection using the guidance shown, then try again.',
+          'Balikan ang iyong sagot',
+          'Para tanggapin ang sagot: direktang sagutin ang tanong, ipaliwanag ang natutuhan sa sariling salita, at magbigay ng personal na aplikasyon. Tinatanggap ang Filipino, Taglish, o English; hindi kailangang eksaktong kopya ng aralin.',
         );
-        return;
+        // R1.3: advisory feedback only during draft save; server submit rules still apply.
       }
     }
 
@@ -752,7 +752,7 @@ export default function LessonDetail() {
                 ? 'SAVING...'
                 : formationStatus?.studied
                   ? 'UPDATE STUDY'
-                  : 'SAVE STUDY'
+                  : 'I-SAVE ANG DRAFT'
             }
             onPress={saveFormationStudy}
           />
@@ -815,7 +815,7 @@ export default function LessonDetail() {
                   reflectionValidation.reset();
                 }}
                 style={styles.area}
-                placeholder="Write your reflection..."
+                placeholder="Ano ang natutuhan mo, at paano mo ito isasabuhay?"
                 placeholderTextColor={colors.muted}
               />
             </BuklodAnswerValidationGate>

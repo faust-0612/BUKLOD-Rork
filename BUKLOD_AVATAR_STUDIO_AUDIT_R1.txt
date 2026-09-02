@@ -1,0 +1,6257 @@
+﻿BUKLOD AVATAR STUDIO FOUNDATION AUDIT R1
+Generated: 2026-08-23T02:14:06
+
+
+=== 1. PACKAGE / SKIA / ANIMATION STACK ===
+    "@shopify/react-native-skia": "2.6.2",
+    "lottie-react-native": "~7.3.8",
+    "react-native-reanimated": "4.5.1",
+    "react-native-svg": "15.15.4",
+
+=== 2. CURRENT AVATAR / PROFILE PHOTO COMPONENTS ===
+
+FILE: src\app\(auth)\login.tsx
+LINE: 248
+  userId: string;
+  identifier: string;
+  displayName: string;
+>>   avatarUrl: string | null;
+  lastUsedAt: string;
+  hasPassword: boolean;
+};
+
+const SUGGESTED_LOGINS_KEY =
+  'buklod.suggested_logins.v2';
+
+function suggestedLoginPasswordKey(
+
+FILE: src\app\(auth)\login.tsx
+LINE: 283
+      )
+      .map(item => ({
+        ...item,
+>>         avatarUrl:
+          typeof item.avatarUrl === 'string'
+            ? item.avatarUrl
+            : null,
+        lastUsedAt:
+          typeof item.lastUsedAt === 'string'
+            ? item.lastUsedAt
+            : new Date(0).toISOString(),
+        hasPassword:
+
+FILE: src\app\(auth)\login.tsx
+LINE: 284
+      .map(item => ({
+        ...item,
+        avatarUrl:
+>>           typeof item.avatarUrl === 'string'
+            ? item.avatarUrl
+            : null,
+        lastUsedAt:
+          typeof item.lastUsedAt === 'string'
+            ? item.lastUsedAt
+            : new Date(0).toISOString(),
+        hasPassword:
+          item.hasPassword === true,
+
+FILE: src\app\(auth)\login.tsx
+LINE: 285
+        ...item,
+        avatarUrl:
+          typeof item.avatarUrl === 'string'
+>>             ? item.avatarUrl
+            : null,
+        lastUsedAt:
+          typeof item.lastUsedAt === 'string'
+            ? item.lastUsedAt
+            : new Date(0).toISOString(),
+        hasPassword:
+          item.hasPassword === true,
+      }))
+
+FILE: src\app\(auth)\login.tsx
+LINE: 332
+  return result;
+}
+
+>> /* PATCH_174C_R5_SUGGESTED_LOGIN_AVATAR_EXACT_AST_FIX */
+const SUGGESTED_LOGIN_BUKLOD_LOGO =
+  require('../../../assets/release/buklod-generic.png');
+
+function normalizeSuggestedAvatarUrl(
+  rawAvatarUrl: unknown
+): string | null {
+  const value =
+    typeof rawAvatarUrl === 'string'
+
+FILE: src\app\(auth)\login.tsx
+LINE: 336
+const SUGGESTED_LOGIN_BUKLOD_LOGO =
+  require('../../../assets/release/buklod-generic.png');
+
+>> function normalizeSuggestedAvatarUrl(
+  rawAvatarUrl: unknown
+): string | null {
+  const value =
+    typeof rawAvatarUrl === 'string'
+      ? rawAvatarUrl.trim()
+      : '';
+
+  if (!value) {
+
+FILE: src\app\(auth)\login.tsx
+LINE: 337
+  require('../../../assets/release/buklod-generic.png');
+
+function normalizeSuggestedAvatarUrl(
+>>   rawAvatarUrl: unknown
+): string | null {
+  const value =
+    typeof rawAvatarUrl === 'string'
+      ? rawAvatarUrl.trim()
+      : '';
+
+  if (!value) {
+    return null;
+
+FILE: src\app\(auth)\login.tsx
+LINE: 340
+  rawAvatarUrl: unknown
+): string | null {
+  const value =
+>>     typeof rawAvatarUrl === 'string'
+      ? rawAvatarUrl.trim()
+      : '';
+
+  if (!value) {
+    return null;
+  }
+
+  const markers = [
+
+FILE: src\app\(auth)\login.tsx
+LINE: 341
+): string | null {
+  const value =
+    typeof rawAvatarUrl === 'string'
+>>       ? rawAvatarUrl.trim()
+      : '';
+
+  if (!value) {
+    return null;
+  }
+
+  const markers = [
+    '/storage/v1/object/public/profile-avatars/',
+
+FILE: src\app\(auth)\login.tsx
+LINE: 349
+  }
+
+  const markers = [
+>>     '/storage/v1/object/public/profile-avatars/',
+    '/storage/v1/object/sign/profile-avatars/',
+    '/storage/v1/object/authenticated/profile-avatars/',
+  ];
+
+  for (const marker of markers) {
+    const index =
+      value.indexOf(marker);
+
+
+FILE: src\app\(auth)\login.tsx
+LINE: 350
+
+  const markers = [
+    '/storage/v1/object/public/profile-avatars/',
+>>     '/storage/v1/object/sign/profile-avatars/',
+    '/storage/v1/object/authenticated/profile-avatars/',
+  ];
+
+  for (const marker of markers) {
+    const index =
+      value.indexOf(marker);
+
+    if (index < 0) {
+
+FILE: src\app\(auth)\login.tsx
+LINE: 351
+  const markers = [
+    '/storage/v1/object/public/profile-avatars/',
+    '/storage/v1/object/sign/profile-avatars/',
+>>     '/storage/v1/object/authenticated/profile-avatars/',
+  ];
+
+  for (const marker of markers) {
+    const index =
+      value.indexOf(marker);
+
+    if (index < 0) {
+      continue;
+
+FILE: src\app\(auth)\login.tsx
+LINE: 393
+    } =
+      supabase
+        .storage
+>>         .from('profile-avatars')
+        .getPublicUrl(
+          objectPath
+        );
+
+    return (
+      data?.publicUrl ||
+      null
+    );
+
+FILE: src\app\(auth)\login.tsx
+LINE: 415
+  const objectPath =
+    value
+      .replace(
+>>         /^profile-avatars\//i,
+        ''
+      )
+      .replace(
+        /^\/+/, 
+        ''
+      );
+
+  if (!objectPath) {
+
+FILE: src\app\(auth)\login.tsx
+LINE: 432
+  } =
+    supabase
+      .storage
+>>       .from('profile-avatars')
+      .getPublicUrl(
+        objectPath
+      );
+
+  return (
+    data?.publicUrl ||
+    null
+  );
+
+FILE: src\app\(auth)\login.tsx
+LINE: 443
+  );
+}
+
+>> function canonicalSuggestedAvatarUrl(
+  userId: string
+): string | null {
+  const clean =
+    String(
+      userId ||
+      ''
+    ).trim();
+
+
+FILE: src\app\(auth)\login.tsx
+LINE: 465
+  } =
+    supabase
+      .storage
+>>       .from('profile-avatars')
+      .getPublicUrl(
+        `${clean}/avatar.jpg`
+      );
+
+  return (
+    data?.publicUrl ||
+    null
+  );
+
+FILE: src\app\(auth)\login.tsx
+LINE: 467
+      .storage
+      .from('profile-avatars')
+      .getPublicUrl(
+>>         `${clean}/avatar.jpg`
+      );
+
+  return (
+    data?.publicUrl ||
+    null
+  );
+}
+
+
+FILE: src\app\(auth)\login.tsx
+LINE: 476
+  );
+}
+
+>> function SuggestedLoginAvatar({
+  avatarUrl,
+  userId,
+  style,
+}: {
+  avatarUrl: string | null;
+  userId: string;
+  style: any;
+}) {
+
+FILE: src\app\(auth)\login.tsx
+LINE: 477
+}
+
+function SuggestedLoginAvatar({
+>>   avatarUrl,
+  userId,
+  style,
+}: {
+  avatarUrl: string | null;
+  userId: string;
+  style: any;
+}) {
+  const savedUrl =
+
+FILE: src\app\(auth)\login.tsx
+LINE: 481
+  userId,
+  style,
+}: {
+>>   avatarUrl: string | null;
+  userId: string;
+  style: any;
+}) {
+  const savedUrl =
+    normalizeSuggestedAvatarUrl(
+      avatarUrl
+    );
+
+
+FILE: src\app\(auth)\login.tsx
+LINE: 486
+  style: any;
+}) {
+  const savedUrl =
+>>     normalizeSuggestedAvatarUrl(
+      avatarUrl
+    );
+
+  const canonicalUrl =
+    canonicalSuggestedAvatarUrl(
+      userId
+    );
+
+
+FILE: src\app\(auth)\login.tsx
+LINE: 487
+}) {
+  const savedUrl =
+    normalizeSuggestedAvatarUrl(
+>>       avatarUrl
+    );
+
+  const canonicalUrl =
+    canonicalSuggestedAvatarUrl(
+      userId
+    );
+
+  const candidates =
+
+FILE: src\app\(auth)\login.tsx
+LINE: 491
+    );
+
+  const canonicalUrl =
+>>     canonicalSuggestedAvatarUrl(
+      userId
+    );
+
+  const candidates =
+    Array.from(
+      new Set(
+        [
+          savedUrl,
+
+FILE: src\app\(auth)\login.tsx
+LINE: 796
+        await (supabase as any)
+          .from('profiles')
+          .select(
+>>             'full_name,avatar_url,username,mobile'
+          )
+          .eq('id', userId)
+          .maybeSingle();
+
+      const displayName =
+        String(
+          profileRow?.full_name ||
+          profileRow?.username ||
+
+FILE: src\app\(auth)\login.tsx
+LINE: 815
+        displayName:
+          displayName ||
+          loginIdentifier.trim(),
+>>         avatarUrl:
+          typeof profileRow?.avatar_url ===
+          'string'
+            ? profileRow.avatar_url
+            : null,
+        lastUsedAt:
+          new Date().toISOString(),
+        hasPassword:
+          rememberPassword,
+
+FILE: src\app\(auth)\login.tsx
+LINE: 816
+          displayName ||
+          loginIdentifier.trim(),
+        avatarUrl:
+>>           typeof profileRow?.avatar_url ===
+          'string'
+            ? profileRow.avatar_url
+            : null,
+        lastUsedAt:
+          new Date().toISOString(),
+        hasPassword:
+          rememberPassword,
+      };
+
+FILE: src\app\(auth)\login.tsx
+LINE: 818
+        avatarUrl:
+          typeof profileRow?.avatar_url ===
+          'string'
+>>             ? profileRow.avatar_url
+            : null,
+        lastUsedAt:
+          new Date().toISOString(),
+        hasPassword:
+          rememberPassword,
+      };
+
+      const stored =
+
+FILE: src\app\(auth)\login.tsx
+LINE: 1195
+                    accessibilityRole="button"
+                    accessibilityLabel={`Use ${item.displayName} login`}
+                  >
+>>                     <View style={styles.suggestedAvatarWrap}>
+                      {<SuggestedLoginAvatar
+                          avatarUrl={item.avatarUrl}
+                          userId={item.userId}
+                          style={styles.suggestedAvatar}
+                        />}
+
+                      {item.hasPassword ? (
+                        <View style={styles.suggestedKeyBadge}>
+
+FILE: src\app\(auth)\login.tsx
+LINE: 1196
+                    accessibilityLabel={`Use ${item.displayName} login`}
+                  >
+                    <View style={styles.suggestedAvatarWrap}>
+>>                       {<SuggestedLoginAvatar
+                          avatarUrl={item.avatarUrl}
+                          userId={item.userId}
+                          style={styles.suggestedAvatar}
+                        />}
+
+                      {item.hasPassword ? (
+                        <View style={styles.suggestedKeyBadge}>
+                          <Ionicons
+
+FILE: src\app\(auth)\login.tsx
+LINE: 1197
+                  >
+                    <View style={styles.suggestedAvatarWrap}>
+                      {<SuggestedLoginAvatar
+>>                           avatarUrl={item.avatarUrl}
+                          userId={item.userId}
+                          style={styles.suggestedAvatar}
+                        />}
+
+                      {item.hasPassword ? (
+                        <View style={styles.suggestedKeyBadge}>
+                          <Ionicons
+                            name="key"
+
+FILE: src\app\(auth)\login.tsx
+LINE: 1199
+                      {<SuggestedLoginAvatar
+                          avatarUrl={item.avatarUrl}
+                          userId={item.userId}
+>>                           style={styles.suggestedAvatar}
+                        />}
+
+                      {item.hasPassword ? (
+                        <View style={styles.suggestedKeyBadge}>
+                          <Ionicons
+                            name="key"
+                            size={10}
+                            color="#FFFFFF"
+
+FILE: src\app\(auth)\login.tsx
+LINE: 1488
+    backgroundColor: '#EEF8F1',
+    borderColor: '#A8D5B5',
+  },
+>>   suggestedAvatarWrap: {
+    position: 'relative',
+    width: 58,
+    height: 58,
+    marginBottom: 6,
+  },
+  suggestedAvatar: {
+    width: 58,
+    height: 58,
+
+FILE: src\app\(auth)\login.tsx
+LINE: 1494
+    height: 58,
+    marginBottom: 6,
+  },
+>>   suggestedAvatar: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    borderWidth: 2,
+    borderColor: '#D7E7DC',
+  },
+  suggestedAvatarFallback: {
+    alignItems: 'center',
+
+FILE: src\app\(auth)\login.tsx
+LINE: 1501
+    borderWidth: 2,
+    borderColor: '#D7E7DC',
+  },
+>>   suggestedAvatarFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EEF5F0',
+  },
+  suggestedKeyBadge: {
+    position: 'absolute',
+    right: -1,
+    bottom: -1,
+
+FILE: src\app\(tabs)\buklod.tsx
+LINE: 41
+  buildCommunityFeedWithInlineAds,
+  isCommunityFeedInlineAdRow,
+} from '@/lib/buklodAdPlacements';
+>> /* PATCH_186H_SINGLE_COMMUNITY_AUTHOR_AVATAR */
+/* PATCH_179D_FIX_COMMUNITY_IMAGE_STABLE_CACHE */
+import BuklodPublicLocationChips from '@/components/BuklodPublicLocationChips';
+import BuklodMaritesBoard from '@/components/BuklodMaritesBoard';
+import { repairMojibakeText } from '@/lib/repairMojibakeText';
+import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
+/* PATCH_160_COMMUNITY_AVATARS_TIME */
+import { formatSpecificDateTime } from '@/lib/dateTime';
+import { BuklodTappableAvatar } from '@/components/BuklodTappableAvatar';
+
+FILE: src\app\(tabs)\buklod.tsx
+LINE: 47
+import BuklodMaritesBoard from '@/components/BuklodMaritesBoard';
+import { repairMojibakeText } from '@/lib/repairMojibakeText';
+import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
+>> /* PATCH_160_COMMUNITY_AVATARS_TIME */
+import { formatSpecificDateTime } from '@/lib/dateTime';
+import { BuklodTappableAvatar } from '@/components/BuklodTappableAvatar';
+import BuklodTappablePersonName from '@/components/BuklodTappablePersonName';
+import {
+  BuklodReactionAction,
+  BUKLOD_PUBLIC_COMMUNITY_REACTIONS,
+} from '@/components/BuklodReactionAction';
+import {
+
+FILE: src\app\(tabs)\buklod.tsx
+LINE: 49
+import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
+/* PATCH_160_COMMUNITY_AVATARS_TIME */
+import { formatSpecificDateTime } from '@/lib/dateTime';
+>> import { BuklodTappableAvatar } from '@/components/BuklodTappableAvatar';
+import BuklodTappablePersonName from '@/components/BuklodTappablePersonName';
+import {
+  BuklodReactionAction,
+  BUKLOD_PUBLIC_COMMUNITY_REACTIONS,
+} from '@/components/BuklodReactionAction';
+import {
+  BuklodCommunityPostEngagement,
+} from '@/components/BuklodCommunityPostEngagement';
+
+FILE: src\app\(tabs)\buklod.tsx
+LINE: 3889
+     
+
+     
+>>    {/* PATCH_185A_R2_COMMUNITY_AUTHOR_PROFILE_PHOTO */}
+   <View
+    style={{
+     flexDirection:'row',
+     alignItems:'center',
+     gap:10,
+     marginBottom:6
+    }}
+   >
+
+FILE: src\app\(tabs)\buklod.tsx
+LINE: 3901
+    
+    <View style={{flex:1}}>
+     
+>>    {/* PATCH_185A_R5_COMMUNITY_AUTHOR_PROFILE_PHOTO */}
+   <View
+    style={{
+     flexDirection:'row',
+     alignItems:'center',
+     gap:10,
+     marginBottom:6
+    }}
+   >
+
+FILE: src\app\(tabs)\buklod.tsx
+LINE: 3910
+     marginBottom:6
+    }}
+   >
+>>     <BuklodTappableAvatar
+     userId={item.user_id}
+     name={resolvePersonDisplayName(item.author_name, item.user_id)}
+     size={42}
+    />
+    <View style={{flex:1}}>
+     <BuklodTappablePersonName
+       userId={item.user_id}
+       displayName={resolvePersonDisplayName(
+
+FILE: src\app\(tabs)\buklod.tsx
+LINE: 4308
+           s.communityReplyItem
+         ]}
+        >
+>>          <BuklodTappableAvatar
+          userId={c.user_id}
+          name={resolvePersonDisplayName(
+           c.commenter_name,
+           c.user_id,
+          )}
+          size={34}
+         />
+
+
+FILE: src\app\(tabs)\buklod.tsx.before-001E1R3-20260818-221533.bak
+LINE: 13
+} from 'react-native';
+
+import BuklodCommunityInlineAd from '@/components/BuklodCommunityInlineAd';
+>> /* PATCH_186H_SINGLE_COMMUNITY_AUTHOR_AVATAR */
+/* PATCH_179D_FIX_COMMUNITY_IMAGE_STABLE_CACHE */
+import BuklodPublicLocationChips from '@/components/BuklodPublicLocationChips';
+import { repairMojibakeText } from '@/lib/repairMojibakeText';
+import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
+import BuklodSponsorSlot from '@/components/BuklodSponsorSlot';
+import {
+ Image as ExpoImage } from 'expo-image';
+/* PATCH_160_COMMUNITY_AVATARS_TIME */
+
+FILE: src\app\(tabs)\buklod.tsx.before-001E1R3-20260818-221533.bak
+LINE: 21
+import BuklodSponsorSlot from '@/components/BuklodSponsorSlot';
+import {
+ Image as ExpoImage } from 'expo-image';
+>> /* PATCH_160_COMMUNITY_AVATARS_TIME */
+import { formatSpecificDateTime } from '@/lib/dateTime';
+import { BuklodTappableAvatar } from '@/components/BuklodTappableAvatar';
+import {
+  BuklodReactionAction,
+  BUKLOD_PUBLIC_COMMUNITY_REACTIONS,
+} from '@/components/BuklodReactionAction';
+import {
+  useCallback,
+
+FILE: src\app\(tabs)\buklod.tsx.before-001E1R3-20260818-221533.bak
+LINE: 23
+ Image as ExpoImage } from 'expo-image';
+/* PATCH_160_COMMUNITY_AVATARS_TIME */
+import { formatSpecificDateTime } from '@/lib/dateTime';
+>> import { BuklodTappableAvatar } from '@/components/BuklodTappableAvatar';
+import {
+  BuklodReactionAction,
+  BUKLOD_PUBLIC_COMMUNITY_REACTIONS,
+} from '@/components/BuklodReactionAction';
+import {
+  useCallback,
+ useEffect,
+ useState,
+
+FILE: src\app\(tabs)\buklod.tsx.before-001E1R3-20260818-221533.bak
+LINE: 3421
+     
+
+     
+>>    {/* PATCH_185A_R2_COMMUNITY_AUTHOR_PROFILE_PHOTO */}
+   <View
+    style={{
+     flexDirection:'row',
+     alignItems:'center',
+     gap:10,
+     marginBottom:6
+   >
+
+FILE: src\app\(tabs)\buklod.tsx.before-001E1R3-20260818-221533.bak
+LINE: 3433
+    
+    <View style={{flex:1}}>
+     
+>>    {/* PATCH_185A_R5_COMMUNITY_AUTHOR_PROFILE_PHOTO */}
+   <View
+    style={{
+     flexDirection:'row',
+     alignItems:'center',
+     gap:10,
+     marginBottom:6
+    }}
+   >
+
+FILE: src\app\(tabs)\buklod.tsx.before-001E1R3-20260818-221533.bak
+LINE: 3442
+     marginBottom:6
+    }}
+   >
+>>     <BuklodTappableAvatar
+     userId={item.user_id}
+     name={item.author_name||'BUKLOD Member'}
+     size={42}
+    />
+    <View style={{flex:1}}>
+     <Text
+       style={[
+         s.author,
+
+FILE: src\app\(tabs)\buklod.tsx.before-001E1R3-20260818-221533.bak
+LINE: 3745
+         ]}
+        >
+
+>>          <BuklodTappableAvatar
+          userId={c.user_id}
+          name={
+           c.commenter_name||
+           'BUKLOD Member'
+          }
+          size={34}
+         />
+
+
+FILE: src\app\(tabs)\buklod.tsx.before-community-scale-20260818-210131.bak
+LINE: 13
+} from 'react-native';
+
+import BuklodCommunityInlineAd from '@/components/BuklodCommunityInlineAd';
+>> /* PATCH_186H_SINGLE_COMMUNITY_AUTHOR_AVATAR */
+/* PATCH_179D_FIX_COMMUNITY_IMAGE_STABLE_CACHE */
+import BuklodPublicLocationChips from '@/components/BuklodPublicLocationChips';
+import { repairMojibakeText } from '@/lib/repairMojibakeText';
+import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
+import BuklodSponsorSlot from '@/components/BuklodSponsorSlot';
+import {
+ Image as ExpoImage } from 'expo-image';
+/* PATCH_160_COMMUNITY_AVATARS_TIME */
+
+FILE: src\app\(tabs)\buklod.tsx.before-community-scale-20260818-210131.bak
+LINE: 21
+import BuklodSponsorSlot from '@/components/BuklodSponsorSlot';
+import {
+ Image as ExpoImage } from 'expo-image';
+>> /* PATCH_160_COMMUNITY_AVATARS_TIME */
+import { formatSpecificDateTime } from '@/lib/dateTime';
+import { BuklodTappableAvatar } from '@/components/BuklodTappableAvatar';
+import {
+  BuklodReactionAction,
+  BUKLOD_PUBLIC_COMMUNITY_REACTIONS,
+} from '@/components/BuklodReactionAction';
+import {
+  useCallback,
+
+FILE: src\app\(tabs)\buklod.tsx.before-community-scale-20260818-210131.bak
+LINE: 23
+ Image as ExpoImage } from 'expo-image';
+/* PATCH_160_COMMUNITY_AVATARS_TIME */
+import { formatSpecificDateTime } from '@/lib/dateTime';
+>> import { BuklodTappableAvatar } from '@/components/BuklodTappableAvatar';
+import {
+  BuklodReactionAction,
+  BUKLOD_PUBLIC_COMMUNITY_REACTIONS,
+} from '@/components/BuklodReactionAction';
+import {
+  useCallback,
+ useEffect,
+ useState,
+
+FILE: src\app\(tabs)\buklod.tsx.before-community-scale-20260818-210131.bak
+LINE: 3449
+     
+
+     
+>>    {/* PATCH_185A_R2_COMMUNITY_AUTHOR_PROFILE_PHOTO */}
+   <View
+    style={{
+     flexDirection:'row',
+     alignItems:'center',
+     gap:10,
+     marginBottom:6
+    }}
+   >
+
+FILE: src\app\(tabs)\buklod.tsx.before-community-scale-20260818-210131.bak
+LINE: 3461
+    
+    <View style={{flex:1}}>
+     
+>>    {/* PATCH_185A_R5_COMMUNITY_AUTHOR_PROFILE_PHOTO */}
+   <View
+    style={{
+     flexDirection:'row',
+     alignItems:'center',
+     gap:10,
+     marginBottom:6
+    }}
+   >
+
+FILE: src\app\(tabs)\buklod.tsx.before-community-scale-20260818-210131.bak
+LINE: 3470
+     marginBottom:6
+    }}
+   >
+>>     <BuklodTappableAvatar
+     userId={item.user_id}
+     name={item.author_name||'BUKLOD Member'}
+     size={42}
+    />
+    <View style={{flex:1}}>
+     <Text
+       style={[
+         s.author,
+
+FILE: src\app\(tabs)\buklod.tsx.before-community-scale-20260818-210131.bak
+LINE: 3773
+         ]}
+        >
+
+>>          <BuklodTappableAvatar
+          userId={c.user_id}
+          name={
+           c.commenter_name||
+           'BUKLOD Member'
+          }
+          size={34}
+         />
+
+
+FILE: src\app\(tabs)\buklod.tsx.before-community-scale-r2-20260818-211342.bak
+LINE: 13
+} from 'react-native';
+
+import BuklodCommunityInlineAd from '@/components/BuklodCommunityInlineAd';
+>> /* PATCH_186H_SINGLE_COMMUNITY_AUTHOR_AVATAR */
+/* PATCH_179D_FIX_COMMUNITY_IMAGE_STABLE_CACHE */
+import BuklodPublicLocationChips from '@/components/BuklodPublicLocationChips';
+import { repairMojibakeText } from '@/lib/repairMojibakeText';
+import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
+import BuklodSponsorSlot from '@/components/BuklodSponsorSlot';
+import {
+ Image as ExpoImage } from 'expo-image';
+/* PATCH_160_COMMUNITY_AVATARS_TIME */
+
+FILE: src\app\(tabs)\buklod.tsx.before-community-scale-r2-20260818-211342.bak
+LINE: 21
+import BuklodSponsorSlot from '@/components/BuklodSponsorSlot';
+import {
+ Image as ExpoImage } from 'expo-image';
+>> /* PATCH_160_COMMUNITY_AVATARS_TIME */
+import { formatSpecificDateTime } from '@/lib/dateTime';
+import { BuklodTappableAvatar } from '@/components/BuklodTappableAvatar';
+import {
+  BuklodReactionAction,
+  BUKLOD_PUBLIC_COMMUNITY_REACTIONS,
+} from '@/components/BuklodReactionAction';
+import {
+  useCallback,
+
+FILE: src\app\(tabs)\buklod.tsx.before-community-scale-r2-20260818-211342.bak
+LINE: 23
+ Image as ExpoImage } from 'expo-image';
+/* PATCH_160_COMMUNITY_AVATARS_TIME */
+import { formatSpecificDateTime } from '@/lib/dateTime';
+>> import { BuklodTappableAvatar } from '@/components/BuklodTappableAvatar';
+import {
+  BuklodReactionAction,
+  BUKLOD_PUBLIC_COMMUNITY_REACTIONS,
+} from '@/components/BuklodReactionAction';
+import {
+  useCallback,
+ useEffect,
+ useState,
+
+FILE: src\app\(tabs)\buklod.tsx.before-community-scale-r2-20260818-211342.bak
+LINE: 3449
+     
+
+     
+>>    {/* PATCH_185A_R2_COMMUNITY_AUTHOR_PROFILE_PHOTO */}
+   <View
+    style={{
+     flexDirection:'row',
+     alignItems:'center',
+     gap:10,
+     marginBottom:6
+    }}
+   >
+
+FILE: src\app\(tabs)\buklod.tsx.before-community-scale-r2-20260818-211342.bak
+LINE: 3461
+    
+    <View style={{flex:1}}>
+     
+>>    {/* PATCH_185A_R5_COMMUNITY_AUTHOR_PROFILE_PHOTO */}
+   <View
+    style={{
+     flexDirection:'row',
+     alignItems:'center',
+     gap:10,
+     marginBottom:6
+    }}
+   >
+
+FILE: src\app\(tabs)\buklod.tsx.before-community-scale-r2-20260818-211342.bak
+LINE: 3470
+     marginBottom:6
+    }}
+   >
+>>     <BuklodTappableAvatar
+     userId={item.user_id}
+     name={item.author_name||'BUKLOD Member'}
+     size={42}
+    />
+    <View style={{flex:1}}>
+     <Text
+       style={[
+         s.author,
+
+FILE: src\app\(tabs)\buklod.tsx.before-community-scale-r2-20260818-211342.bak
+LINE: 3773
+         ]}
+        >
+
+>>          <BuklodTappableAvatar
+          userId={c.user_id}
+          name={
+           c.commenter_name||
+           'BUKLOD Member'
+          }
+          size={34}
+         />
+
+
+FILE: src\app\(tabs)\buklod.tsx.before-perf-001e1-20260818-220040.bak
+LINE: 13
+} from 'react-native';
+
+import BuklodCommunityInlineAd from '@/components/BuklodCommunityInlineAd';
+>> /* PATCH_186H_SINGLE_COMMUNITY_AUTHOR_AVATAR */
+/* PATCH_179D_FIX_COMMUNITY_IMAGE_STABLE_CACHE */
+import BuklodPublicLocationChips from '@/components/BuklodPublicLocationChips';
+import { repairMojibakeText } from '@/lib/repairMojibakeText';
+import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
+import BuklodSponsorSlot from '@/components/BuklodSponsorSlot';
+import {
+ Image as ExpoImage } from 'expo-image';
+/* PATCH_160_COMMUNITY_AVATARS_TIME */
+
+FILE: src\app\(tabs)\buklod.tsx.before-perf-001e1-20260818-220040.bak
+LINE: 21
+import BuklodSponsorSlot from '@/components/BuklodSponsorSlot';
+import {
+ Image as ExpoImage } from 'expo-image';
+>> /* PATCH_160_COMMUNITY_AVATARS_TIME */
+import { formatSpecificDateTime } from '@/lib/dateTime';
+import { BuklodTappableAvatar } from '@/components/BuklodTappableAvatar';
+import {
+  BuklodReactionAction,
+  BUKLOD_PUBLIC_COMMUNITY_REACTIONS,
+} from '@/components/BuklodReactionAction';
+import {
+  useCallback,
+
+FILE: src\app\(tabs)\buklod.tsx.before-perf-001e1-20260818-220040.bak
+LINE: 23
+ Image as ExpoImage } from 'expo-image';
+/* PATCH_160_COMMUNITY_AVATARS_TIME */
+import { formatSpecificDateTime } from '@/lib/dateTime';
+>> import { BuklodTappableAvatar } from '@/components/BuklodTappableAvatar';
+import {
+  BuklodReactionAction,
+  BUKLOD_PUBLIC_COMMUNITY_REACTIONS,
+} from '@/components/BuklodReactionAction';
+import {
+  useCallback,
+ useEffect,
+ useState,
+
+FILE: src\app\(tabs)\buklod.tsx.before-perf-001e1-20260818-220040.bak
+LINE: 3421
+     
+
+     
+>>    {/* PATCH_185A_R2_COMMUNITY_AUTHOR_PROFILE_PHOTO */}
+   <View
+    style={{
+     flexDirection:'row',
+     alignItems:'center',
+     gap:10,
+     marginBottom:6
+    }}
+   >
+
+FILE: src\app\(tabs)\buklod.tsx.before-perf-001e1-20260818-220040.bak
+LINE: 3433
+    
+    <View style={{flex:1}}>
+     
+>>    {/* PATCH_185A_R5_COMMUNITY_AUTHOR_PROFILE_PHOTO */}
+   <View
+    style={{
+     flexDirection:'row',
+     alignItems:'center',
+     gap:10,
+     marginBottom:6
+    }}
+   >
+
+FILE: src\app\(tabs)\buklod.tsx.before-perf-001e1-20260818-220040.bak
+LINE: 3442
+     marginBottom:6
+    }}
+   >
+>>     <BuklodTappableAvatar
+     userId={item.user_id}
+     name={item.author_name||'BUKLOD Member'}
+     size={42}
+    />
+    <View style={{flex:1}}>
+     <Text
+       style={[
+         s.author,
+
+FILE: src\app\(tabs)\buklod.tsx.before-perf-001e1-20260818-220040.bak
+LINE: 3745
+         ]}
+        >
+
+>>          <BuklodTappableAvatar
+          userId={c.user_id}
+          name={
+           c.commenter_name||
+           'BUKLOD Member'
+          }
+          size={34}
+         />
+
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 9
+import { BuklodSystemAnnouncementBoard } from '@/components/BuklodSystemAnnouncementBoard';
+import BuklodFoundationWorkspaceNav from '@/components/BuklodFoundationWorkspaceNav';
+import {
+>>   BuklodTappableAvatar,
+} from '@/components/BuklodTappableAvatar';
+import {
+  BuklodProfileGlassCard,
+  BuklodProfileGlassRow,
+} from '@/components/BuklodProfileGlassCard';
+import {
+  BuklodProfileCustomizeSheet,
+} from '@/components/BuklodProfileCustomizeSheet';
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 10
+import BuklodFoundationWorkspaceNav from '@/components/BuklodFoundationWorkspaceNav';
+import {
+  BuklodTappableAvatar,
+>> } from '@/components/BuklodTappableAvatar';
+import {
+  BuklodProfileGlassCard,
+  BuklodProfileGlassRow,
+} from '@/components/BuklodProfileGlassCard';
+import {
+  BuklodProfileCustomizeSheet,
+} from '@/components/BuklodProfileCustomizeSheet';
+import {
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 19
+  BuklodProfileCustomizeSheet,
+} from '@/components/BuklodProfileCustomizeSheet';
+import {
+>>   ProfileMotionAvatar,
+  ProfileMotionCover,
+  ProfileMotionFadeUp,
+  ProfilePressable,
+} from '@/components/BuklodProfileMotion';
+import BuklodProfileCharacterCard from '@/components/points/BuklodProfileCharacterCard';
+import BuklodReferralInviteCard from '@/components/BuklodReferralInviteCard';
+import {
+  resolveContrastPaint,
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 635
+
+  /* PATCH_169D_ACTIVE_MZB_PROFILE_GATE */
+
+>>   /* PATCH_160_EDITABLE_AVATAR */
+  const [
+    avatarBusy,
+    setAvatarBusy,
+  ] =
+    useState(false);
+
+  const changeProfilePhoto =
+    async () => {
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 637
+
+  ] =
+    useState(false);
+
+  const changeProfilePhoto =
+    async () => {
+
+      if (
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 638
+  /* PATCH_160_EDITABLE_AVATAR */
+  const [
+    avatarBusy,
+>>     setAvatarBusy,
+  ] =
+    useState(false);
+
+  const changeProfilePhoto =
+    async () => {
+
+      if (
+        !profile?.id ||
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 642
+  ] =
+    useState(false);
+
+>>   const changeProfilePhoto =
+    async () => {
+
+      if (
+        !profile?.id ||
+        avatarBusy
+      ) {
+        return;
+      }
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 647
+
+      if (
+        !profile?.id ||
+>>         avatarBusy
+      ) {
+        return;
+      }
+
+      try {
+        setAvatarBusy(
+          true
+        );
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 653
+      }
+
+      try {
+>>         setAvatarBusy(
+          true
+        );
+
+        const permission =
+          await ImagePicker
+            .requestMediaLibraryPermissionsAsync();
+
+        if (
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 665
+          !permission.granted
+        ) {
+          Alert.alert(
+>>             'Profile Photo',
+            'Please allow photo access to change your profile picture.'
+          );
+
+          return;
+        }
+
+
+        const result =
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 736
+          !prepared.base64
+        ) {
+          throw new Error(
+>>             'Could not prepare profile photo.'
+          );
+        }
+
+
+        const objectPath =
+          `${profile.id}/avatar.jpg`;
+
+
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 742
+
+
+        const objectPath =
+>>           `${profile.id}/avatar.jpg`;
+
+
+        const {
+          error:
+            uploadError,
+        } =
+          await supabase
+            .storage
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 752
+          await supabase
+            .storage
+            .from(
+>>               'profile-avatars'
+            )
+            .upload(
+              objectPath,
+
+              decode(
+                prepared.base64
+              ),
+
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 788
+          supabase
+            .storage
+            .from(
+>>               'profile-avatars'
+            )
+            .getPublicUrl(
+              objectPath
+            );
+
+
+        const avatarUrl =
+          `${publicData.publicUrl}?v=${Date.now()}`;
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 795
+            );
+
+
+>>         const avatarUrl =
+          `${publicData.publicUrl}?v=${Date.now()}`;
+
+
+        const {
+          error:
+            updateError,
+        } =
+          await supabase
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 808
+              'profiles'
+            )
+            .update({
+>>               avatar_url:
+                avatarUrl,
+            })
+            .eq(
+              'id',
+              profile.id
+            );
+
+
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 809
+            )
+            .update({
+              avatar_url:
+>>                 avatarUrl,
+            })
+            .eq(
+              'id',
+              profile.id
+            );
+
+
+        if (
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 834
+          });
+        } catch (shareError: any) {
+          console.warn(
+>>             'Profile photo community post:',
+            shareError?.message || shareError
+          );
+        }
+
+        Alert.alert(
+          'Profile Photo',
+          'Profile picture updated.'
+        );
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 840
+        }
+
+        Alert.alert(
+>>           'Profile Photo',
+          'Profile picture updated.'
+        );
+      }
+      catch (error: any) {
+        console.error(
+          'Profile avatar:',
+          error
+        );
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 846
+      }
+      catch (error: any) {
+        console.error(
+>>           'Profile avatar:',
+          error
+        );
+
+        Alert.alert(
+          'Profile Photo',
+          error?.message ||
+          'Could not update profile picture.'
+        );
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 851
+        );
+
+        Alert.alert(
+>>           'Profile Photo',
+          error?.message ||
+          'Could not update profile picture.'
+        );
+      }
+      finally {
+        setAvatarBusy(
+          false
+        );
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 857
+        );
+      }
+      finally {
+>>         setAvatarBusy(
+          false
+        );
+      }
+    };
+
+
+  const [
+    profileBackgroundUrl,
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 1013
+          await supabase
+            .storage
+            .from(
+>>               'profile-avatars'
+            )
+            .upload(
+              objectPath,
+
+              decode(
+                prepared.base64
+              ),
+
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 1047
+          supabase
+            .storage
+            .from(
+>>               'profile-avatars'
+            )
+            .getPublicUrl(
+              objectPath
+            );
+
+        const backgroundUrl =
+          `${publicData.publicUrl}?v=${Date.now()}`;
+
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 1672
+          />
+        </Pressable>
+
+>>         <ProfileMotionAvatar>
+          <View
+            style={[
+              styles.avatarRing,
+              {
+                borderColor: withAlpha(
+                  identityPaint.edgeColor,
+                  0.72
+                ),
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 1675
+        <ProfileMotionAvatar>
+          <View
+            style={[
+>>               styles.avatarRing,
+              {
+                borderColor: withAlpha(
+                  identityPaint.edgeColor,
+                  0.72
+                ),
+                backgroundColor: withAlpha(
+                  theme.surface,
+                  0.88
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 1688
+              },
+            ]}
+          >
+>>             <BuklodTappableAvatar
+              userId={profile?.id}
+              uri={profile?.avatar_url}
+              name={profile?.full_name}
+              size={108}
+              fallbackSource={fallbackPortrait}
+              enableLongPressSheet={false}
+              onPress={() => {
+                if (!avatarBusy) {
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 1690
+          >
+            <BuklodTappableAvatar
+              userId={profile?.id}
+>>               uri={profile?.avatar_url}
+              name={profile?.full_name}
+              size={108}
+              fallbackSource={fallbackPortrait}
+              enableLongPressSheet={false}
+              onPress={() => {
+                if (!avatarBusy) {
+                  void changeProfilePhoto();
+                }
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 1696
+              fallbackSource={fallbackPortrait}
+              enableLongPressSheet={false}
+              onPress={() => {
+>>                 if (!avatarBusy) {
+                  void changeProfilePhoto();
+                }
+              }}
+            />
+            <View
+              pointerEvents="box-none"
+              style={styles.avatarEditBadge}
+            >
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 1697
+              enableLongPressSheet={false}
+              onPress={() => {
+                if (!avatarBusy) {
+>>                   void changeProfilePhoto();
+                }
+              }}
+            />
+            <View
+              pointerEvents="box-none"
+              style={styles.avatarEditBadge}
+            >
+              <Pressable
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 1703
+            />
+            <View
+              pointerEvents="box-none"
+>>               style={styles.avatarEditBadge}
+            >
+              <Pressable
+                onPress={() => {
+                  if (!avatarBusy) {
+                    void changeProfilePhoto();
+                  }
+                }}
+                style={styles.avatarEditHit}
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 1707
+            >
+              <Pressable
+                onPress={() => {
+>>                   if (!avatarBusy) {
+                    void changeProfilePhoto();
+                  }
+                }}
+                style={styles.avatarEditHit}
+              >
+                <MaterialCommunityIcons
+                  name={
+                    avatarBusy
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 1708
+              <Pressable
+                onPress={() => {
+                  if (!avatarBusy) {
+>>                     void changeProfilePhoto();
+                  }
+                }}
+                style={styles.avatarEditHit}
+              >
+                <MaterialCommunityIcons
+                  name={
+                    avatarBusy
+                      ? 'progress-clock'
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 1711
+                    void changeProfilePhoto();
+                  }
+                }}
+>>                 style={styles.avatarEditHit}
+              >
+                <MaterialCommunityIcons
+                  name={
+                    avatarBusy
+                      ? 'progress-clock'
+                      : 'camera-outline'
+                  }
+                  size={17}
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 1715
+              >
+                <MaterialCommunityIcons
+                  name={
+>>                     avatarBusy
+                      ? 'progress-clock'
+                      : 'camera-outline'
+                  }
+                  size={17}
+                  color={theme.white}
+                />
+              </Pressable>
+            </View>
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 1725
+              </Pressable>
+            </View>
+          </View>
+>>         </ProfileMotionAvatar>
+
+        <ProfileMotionFadeUp delay={40}>
+          <Text
+            style={[
+              styles.avatarHint,
+              identityShadow,
+            ]}
+          >
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 1730
+        <ProfileMotionFadeUp delay={40}>
+          <Text
+            style={[
+>>               styles.avatarHint,
+              identityShadow,
+            ]}
+          >
+            {avatarBusy
+              ? 'UPLOADING...'
+              : 'Tap photo to change'}
+          </Text>
+        </ProfileMotionFadeUp>
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 1734
+              identityShadow,
+            ]}
+          >
+>>             {avatarBusy
+              ? 'UPLOADING...'
+              : 'Tap photo to change'}
+          </Text>
+        </ProfileMotionFadeUp>
+
+        <ProfileMotionFadeUp delay={70} duration={240} fromY={10} fromOpacity={0}>
+          <Text style={[styles.name, identityShadow]}>
+            {resolvePersonDisplayName(profile, profile?.id)}
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 2085
+      fontSize: 12,
+      lineHeight: 16,
+    },
+>>     avatarEditBadge: {
+      position: 'absolute',
+      right: 0,
+      bottom: 0,
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      overflow: 'hidden',
+      backgroundColor: theme.accent,
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 2105
+      shadowRadius: 5,
+      elevation: 3,
+    },
+>>     avatarEditHit: {
+      width: 32,
+      height: 32,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    avatarHint: {
+      marginTop: 6,
+      fontSize: 12,
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 2111
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+>>     avatarHint: {
+      marginTop: 6,
+      fontSize: 12,
+      lineHeight: 18,
+      fontWeight: '900',
+      letterSpacing: 0.15,
+      textAlign: 'center',
+    },
+    avatarRing: {
+
+FILE: src\app\(tabs)\me.tsx
+LINE: 2119
+      letterSpacing: 0.15,
+      textAlign: 'center',
+    },
+>>     avatarRing: {
+      position: 'relative',
+      padding: 5,
+      borderWidth: 1.5,
+      borderRadius: 64,
+      zIndex: 2,
+    },
+    name: {
+      marginTop: 6,
+
+FILE: src\app\(tabs)\messages.tsx
+LINE: 97
+type Person = {
+  user_id: string;
+  full_name: string;
+>>   avatar_url: string | null;
+};
+type CommunityRoom = {
+  scope_id: string;
+  scope_type: 'LOCAL' | 'CLUSTER' | 'CHURCH' | 'ORGANIZATION';
+  scope_name: string;
+  geo_level: string | null;
+  last_message: string | null;
+  last_message_at: string | null;
+
+FILE: src\app\(tabs)\messages.tsx
+LINE: 212
+  const text = repairBuklodPreviewText(value);
+
+  if (
+>>     /^\[\[BUKLOD_AVATAR_REACTION:[a-z_]+\]\]$/.test(
+      text.trim()
+    )
+  ) {
+    return 'Avatar reaction';
+  }
+
+  const albumPreview = connectAlbumInboxPreview(text);
+  if (albumPreview) {
+
+FILE: src\app\(tabs)\messages.tsx
+LINE: 216
+      text.trim()
+    )
+  ) {
+>>     return 'Avatar reaction';
+  }
+
+  const albumPreview = connectAlbumInboxPreview(text);
+  if (albumPreview) {
+    return albumPreview;
+  }
+
+  return text || 'No messages yet';
+
+FILE: src\app\(tabs)\messages.tsx
+LINE: 580
+          .map((thread: any) => ({
+            user_id: String(thread.other_user_id ?? ''),
+            full_name: String(thread.other_user_name ?? 'BUKLOD Member'),
+>>             avatar_url: thread.other_avatar_url
+            thread_id: thread.thread_id
+              ? String(thread.thread_id)
+              : null,
+            unread_count: Number(thread.unread_count ?? 0),
+
+FILE: src\app\(tabs)\messages.tsx
+LINE: 581
+            user_id: String(thread.other_user_id ?? ''),
+            full_name: String(thread.other_user_name ?? 'BUKLOD Member'),
+            avatar_url: thread.other_avatar_url
+>>               ? String(thread.other_avatar_url)
+              : null,
+            shared_scope_label: 'Recent chat',
+            rank_name: null,
+            thread_id: thread.thread_id
+              ? String(thread.thread_id)
+              : null,
+            unread_count: Number(thread.unread_count ?? 0),
+            quick_note: null,
+
+FILE: src\app\(tabs)\messages.tsx
+LINE: 1050
+                            (profile as any)?.full_name ??
+                              'You'
+                          ),
+>>                           avatar_url:
+                            (profile as any)?.avatar_url ??
+                            null,
+                        }
+                      : null
+                  }
+                  contacts={suggestedContacts}
+                  onOpenContact={openSuggestedContact}
+                  onStatusNoteSaved={() => {
+
+FILE: src\app\(tabs)\messages.tsx
+LINE: 1051
+                              'You'
+                          ),
+                          avatar_url:
+>>                             (profile as any)?.avatar_url ??
+                            null,
+                        }
+                      : null
+                  }
+                  contacts={suggestedContacts}
+                  onOpenContact={openSuggestedContact}
+                  onStatusNoteSaved={() => {
+                    void loadRef.current();
+
+FILE: src\app\(tabs)\messages.tsx
+LINE: 1128
+                        ? item.full_name
+                        : item.other_user_name
+                    }
+>>                     avatarUri={
+                      isPerson ? item.avatar_url : null
+                    }
+                    preview={
+                      isPerson
+                        ? 'Start personal conversation'
+                        : connectMessagePreview(
+                            item.last_message
+                          )
+
+FILE: src\app\(tabs)\messages.tsx
+LINE: 1129
+                        : item.other_user_name
+                    }
+                    avatarUri={
+>>                       isPerson ? item.avatar_url : null
+                    }
+                    preview={
+                      isPerson
+                        ? 'Start personal conversation'
+                        : connectMessagePreview(
+                            item.last_message
+                          )
+                    }
+
+FILE: src\app\(tabs)\messages.tsx.before-scale-perf-20260818-205754.bak
+LINE: 81
+type Person = {
+  user_id: string;
+  full_name: string;
+>>   avatar_url: string | null;
+};
+type CommunityRoom = {
+  scope_id: string;
+  scope_type: 'LOCAL' | 'CLUSTER' | 'CHURCH' | 'ORGANIZATION';
+  scope_name: string;
+  geo_level: string | null;
+  last_message: string | null;
+  last_message_at: string | null;
+
+FILE: src\app\(tabs)\messages.tsx.before-scale-perf-20260818-205754.bak
+LINE: 199
+  const text = repairBuklodPreviewText(value);
+
+  if (
+>>     /^\[\[BUKLOD_AVATAR_REACTION:[a-z_]+\]\]$/.test(
+      text.trim()
+    )
+  ) {
+    return 'Avatar reaction';
+  }
+
+  const albumPreview = connectAlbumInboxPreview(text);
+  if (albumPreview) {
+
+FILE: src\app\(tabs)\messages.tsx.before-scale-perf-20260818-205754.bak
+LINE: 203
+      text.trim()
+    )
+  ) {
+>>     return 'Avatar reaction';
+  }
+
+  const albumPreview = connectAlbumInboxPreview(text);
+  if (albumPreview) {
+    return albumPreview;
+  }
+
+  return text || 'No messages yet';
+
+FILE: src\app\(tabs)\messages.tsx.before-scale-perf-20260818-205754.bak
+LINE: 785
+                        ? item.full_name
+                        : item.other_user_name
+                    }
+>>                     avatarUri={
+                      isPerson ? item.avatar_url : null
+                    }
+                    preview={
+                      isPerson
+                        ? 'Start personal conversation'
+                        : connectMessagePreview(
+                            item.last_message
+                          )
+
+FILE: src\app\(tabs)\messages.tsx.before-scale-perf-20260818-205754.bak
+LINE: 786
+                        : item.other_user_name
+                    }
+                    avatarUri={
+>>                       isPerson ? item.avatar_url : null
+                    }
+                    preview={
+                      isPerson
+                        ? 'Start personal conversation'
+                        : connectMessagePreview(
+                            item.last_message
+                          )
+                    }
+
+FILE: src\app\_layout.tsx
+LINE: 3
+import BuklodNavSafeShell from '@/components/BuklodNavSafeShell';
+import BuklodRootKeyboardAvoidingView from '@/components/BuklodRootKeyboardAvoidingView';
+>> import { BuklodGuideAvatar } from '@/components/BuklodGuideAvatar';
+import '@/lib/performanceBoot';
+import { Stack, type ErrorBoundaryProps } from 'expo-router';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AuthProvider } from '@/providers/AuthProvider';
+import { BuklodScopeProvider } from '@/providers/BuklodScopeProvider';
+import { BuklodFoundationProvider } from '@/providers/BuklodFoundationProvider';
+import { NetworkProvider } from '@/providers/NetworkProvider';
+
+FILE: src\app\_layout.tsx
+LINE: 25
+import { StreamVideoProvider } from '@/providers/StreamVideoProvider';
+import { BuklodThemeProvider } from '@/providers/BuklodThemeProvider';
+import { BuklodCharacterEventProvider } from '@/components/character/BuklodCharacterEventProvider';
+>> import RorkAvatarOnboardingGate from '@/components/character/RorkAvatarOnboardingGate';
+
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  return (
+    <View style={styles.error}>
+      <Text style={styles.errorTitle}>Something went wrong</Text>
+      <Text style={styles.errorText}>{error.message}</Text>
+      <Pressable onPress={retry} style={styles.retry}>
+        <Text style={styles.retryText}>TRY AGAIN</Text>
+
+FILE: src\app\_layout.tsx
+LINE: 68
+      <AuthProvider>
+        <BuklodThemeProvider>
+        <BuklodCharacterEventProvider>
+>>         <RorkAvatarOnboardingGate />
+        <BuklodScopeProvider>
+        <BuklodFoundationProvider>
+      <NetworkProvider>
+        <BuklodOfflineSyncProvider>
+        <ComplianceProvider>
+          <RuntimeConfigProvider>
+          <AdsProvider>
+      <NotificationProvider>
+
+FILE: src\app\_layout.tsx
+LINE: 229
+            </BuklodRootKeyboardAvoidingView>
+            </StreamVideoProvider>
+                      {/* PATCH_163A_R_ROOT_GUIDE */}
+>>             <BuklodGuideAvatar />
+          </NotificationProvider>
+    </AdsProvider>
+          </RuntimeConfigProvider>
+        </ComplianceProvider>
+        </BuklodOfflineSyncProvider>
+      </NetworkProvider>
+            </BuklodFoundationProvider>
+            </BuklodScopeProvider>
+
+FILE: src\app\admin\member\[id].tsx
+LINE: 41
+  mobile: string | null;
+  birth_date: string | null;
+  sex: string | null;
+>>   avatar_url: string | null;
+
+  church_id: string | null;
+  church_name: string | null;
+
+  legacy_role: string | null;
+  active_roles: string | null;
+
+  is_active: boolean;
+
+FILE: src\app\admin\member-master.tsx
+LINE: 179
+      ] = await Promise.all([
+        fetchAll(
+          'profiles',
+>>           'id,full_name,mobile,birth_date,sex,avatar_url,church_id,role,is_active,created_at'
+        ),
+        fetchAll('churches', 'id,name,is_active'),
+        fetchAll('buklod_groups', 'id,name,church_id,leader_id,is_active'),
+        fetchAll('group_members', 'group_id,user_id,is_active'),
+        fetchAll(
+          'user_roles',
+          'user_id,role,is_active,granted_by,granted_at,revoked_by,revoked_at'
+        ),
+
+FILE: src\app\advertise\index.tsx
+LINE: 121
+       short_text:shortText.trim()||null,
+       destination_url:url.trim()||null,
+       creative_type:creative,
+>>        image_url:creative==='photo'?uploaded.url:null,
+       video_url:creative==='video'?uploaded.url:null,
+       media_path:uploaded.path,
+       media_mime_type:uploaded.mime,
+       media_duration_seconds:creative==='video'?duration:null,
+       placement:creative==='photo'?'all':'community',
+       coverage_level:coverage,
+       barangay:coverage==='barangay'?geo.barangay:null,
+       city_municipality:coverage==='barangay'||coverage==='city'?geo.city:null,
+
+FILE: src\app\member\[id].tsx
+LINE: 25
+
+import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
+import { BuklodSystemAnnouncementBoard } from '@/components/BuklodSystemAnnouncementBoard';
+>> import { ProfileAvatar } from '@/components/ProfileAvatar';
+import { Button } from '@/components/UI';
+import {
+  loadMemberCommunityPosts,
+  loadMemberPublicProfile,
+  openMemberConnect,
+  type MemberPublicPost,
+  type MemberPublicProfile,
+} from '@/lib/buklodMemberProfile';
+
+FILE: src\app\member\[id].tsx
+LINE: 355
+        ) : (
+          <>
+            <View style={styles.hero}>
+>>               <ProfileAvatar
+                userId={profile.user_id}
+                uri={profile.avatar_url}
+                name={profile.display_name}
+                size={92}
+              />
+              <Text style={styles.name}>{profile.display_name}</Text>
+              {!!profile.username && (
+                <Text style={styles.username}>
+
+FILE: src\app\member\[id].tsx
+LINE: 357
+            <View style={styles.hero}>
+              <ProfileAvatar
+                userId={profile.user_id}
+>>                 uri={profile.avatar_url}
+                name={profile.display_name}
+                size={92}
+              />
+              <Text style={styles.name}>{profile.display_name}</Text>
+              {!!profile.username && (
+                <Text style={styles.username}>
+                  @{profile.username.replace(/^@/, '')}
+                </Text>
+
+FILE: src\app\organizations\admins.tsx
+LINE: 213
+                String(row.membership_status ?? '').toUpperCase() === 'ACTIVE';
+              return (
+                <View key={row.user_id} style={styles.row}>
+>>                   <View style={styles.avatar}>
+                    <MaterialCommunityIcons name="account-outline" size={20} color={colors.greenDark} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.name}>{row.full_name}</Text>
+                    <Text style={styles.meta}>
+                      {row.username ? `@${row.username}` : row.mobile ?? row.email ?? 'BUKLOD user'}
+                      {row.membership_status ? `  •  ${row.membership_status}` : ''}
+                    </Text>
+
+FILE: src\app\organizations\admins.tsx
+LINE: 266
+            <Text style={styles.empty}>No Organization Admin found.</Text>
+          ) : admins.map(row => (
+            <View key={row.user_id} style={styles.row}>
+>>               <View style={styles.avatar}>
+                <MaterialCommunityIcons name="shield-account-outline" size={20} color={colors.greenDark} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.name}>{row.full_name}</Text>
+                <Text style={styles.meta}>
+                  {row.username ? `@${row.username}` : 'Organization Admin'}
+                  {row.membership_status ? `  •  ${row.membership_status}` : ''}
+                </Text>
+
+FILE: src\app\organizations\admins.tsx
+LINE: 309
+  loading: { minHeight: 160, alignItems: 'center', justifyContent: 'center' },
+  card: { marginTop: 12, borderWidth: 1, borderColor: colors.line, borderRadius: 18, paddingHorizontal: 12, backgroundColor: colors.white, overflow: 'hidden' },
+  row: { minHeight: 66, flexDirection: 'row', alignItems: 'center', gap: 10, borderBottomWidth: 1, borderBottomColor: colors.line, paddingVertical: 9 },
+>>   avatar: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.greenSoft },
+  name: { fontSize: 11, fontWeight: '900', color: colors.text },
+  meta: { marginTop: 3, fontSize: 8.5, color: colors.muted },
+  activeTag: { fontSize: 8, fontWeight: '900', color: '#166534' },
+  memberFirstTag: { maxWidth: 92, textAlign: 'center', fontSize: 7.2, lineHeight: 10, fontWeight: '900', color: '#92400E' },
+  addButton: { minWidth: 78, minHeight: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8, backgroundColor: colors.greenDark },
+  addText: { fontSize: 7.8, fontWeight: '900', color: '#FFFFFF' },
+  removeButton: { minHeight: 32, borderWidth: 1, borderColor: '#FCA5A5', borderRadius: 9, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8, backgroundColor: '#FEE2E2' },
+  removeText: { fontSize: 7.8, fontWeight: '900', color: '#991B1B' },
+
+FILE: src\app\organizations\join-requests.tsx
+LINE: 364
+                style={styles.card}
+              >
+                <View style={styles.identityRow}>
+>>                   <View style={styles.avatar}>
+                    <MaterialCommunityIcons
+                      name="account-outline"
+                      size={24}
+                      color={
+                        colors.greenDark
+                      }
+                    />
+                  </View>
+
+FILE: src\app\organizations\join-requests.tsx
+LINE: 583
+      gap: 10,
+    },
+
+>>     avatar: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      alignItems: 'center',
+      justifyContent:
+        'center',
+      backgroundColor:
+        '#EEF5F0',
+
+FILE: src\app\post\[id].tsx
+LINE: 3
+import { Image as ExpoImage } from 'expo-image';
+/* PATCH_161A_COMMENT_REPLIES */
+>> /* PATCH_160_POST_AVATARS_TIME */
+import { formatSpecificDateTime } from '@/lib/dateTime';
+import { BuklodTappableAvatar } from '@/components/BuklodTappableAvatar';
+import {
+  BuklodReactionAction,
+  BUKLOD_PUBLIC_COMMUNITY_REACTIONS,
+} from '@/components/BuklodReactionAction';
+import { CommunityVideo } from '@/components/CommunityVideo';
+import {
+import { formatSpecificDateTime } from '@/lib/dateTime';
+>> import { BuklodTappableAvatar } from '@/components/BuklodTappableAvatar';
+import {
+  BuklodReactionAction,
+  BUKLOD_PUBLIC_COMMUNITY_REACTIONS,
+} from '@/components/BuklodReactionAction';
+import { CommunityVideo } from '@/components/CommunityVideo';
+import {
+  useCallback,
+  useEffect,
+
+FILE: src\app\post\[id].tsx
+LINE: 425
+     gap: 9,
+   }}
+  >
+>>    <BuklodTappableAvatar
+     userId={
+       post.user_id
+     }
+     name={
+       post.author_name
+     }
+     size={42}
+   />
+
+FILE: src\app\profile\buklod-faculty-class.tsx
+LINE: 260
+            style={styles.studentCard}
+            onPress={() => setSelectedStudentId(student.student_user_id)}
+          >
+>>             <View style={styles.avatar}>
+              <MaterialCommunityIcons name="account" size={23} color="#1f7a3f" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.studentName}>{student.display_name || student.username || 'BUKLOD Student'}</Text>
+              <Text style={styles.studentMeta}>{student.username ? `@${student.username}` : student.student_user_id.slice(0, 8)}</Text>
+            </View>
+            {selectedStudentId === student.student_user_id && <MaterialCommunityIcons name="check-circle" size={21} color="#1f7a3f" />}
+          </Pressable>
+
+FILE: src\app\profile\buklod-faculty-class.tsx
+LINE: 448
+  smallButtonText: { color: '#fff', fontWeight: '900' },
+  search: { backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 10 },
+  studentCard: { flexDirection: 'row', alignItems: 'center', gap: 11, backgroundColor: '#fff', borderRadius: 15, padding: 13, marginBottom: 8 },
+>>   avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#e8f4ea', alignItems: 'center', justifyContent: 'center' },
+  studentName: { color: '#24362b', fontWeight: '900' },
+  studentMeta: { color: '#778178', marginTop: 2, fontSize: 12 },
+  actionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9, marginBottom: 20 },
+  actionCard: { width: '48%', backgroundColor: '#fff', borderRadius: 16, padding: 14, minHeight: 100 },
+  actionTitle: { color: '#24362b', fontWeight: '900', marginTop: 8 },
+  actionHint: { color: '#7a847d', fontSize: 11, marginTop: 5, lineHeight: 15 },
+  categoryRow: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: '#fff', borderRadius: 14, padding: 13, marginBottom: 7 },
+  categoryName: { color: '#26392d', fontWeight: '800' },
+
+FILE: src\app\profile\buklod-faculty-roster.tsx
+LINE: 166
+        ) : (
+          filtered.map(student => (
+            <View key={student.id} style={[styles.card, { backgroundColor: theme.surface }]}>
+>>               <View style={[styles.avatar, { backgroundColor: theme.accentSoft }]}>
+                <MaterialCommunityIcons name="account" size={22} color={theme.accent} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.name, { color: theme.textPrimary }]}>
+                  {student.display_name || student.username || 'BUKLOD Student'}
+                </Text>
+                <Text style={[styles.meta, { color: theme.textMuted }]}>
+                  {student.username ? `@${student.username}` : student.student_user_id.slice(0, 8)} • {student.status}
+
+FILE: src\app\profile\buklod-faculty-roster.tsx
+LINE: 256
+  search: { borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 10 },
+  empty: { borderRadius: 16, padding: 16, marginBottom: 10 },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 11, borderRadius: 15, padding: 13, marginBottom: 8 },
+>>   avatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  name: { fontWeight: '900' },
+  meta: { marginTop: 2, fontSize: 12 },
+  primary: { borderRadius: 12, paddingVertical: 13, alignItems: 'center', marginTop: 12 },
+  primaryText: { color: '#fff', fontWeight: '900' },
+  pressed: { opacity: 0.88 },
+  modalShade: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', padding: 20 },
+  modalCard: { borderRadius: 22, padding: 20 },
+  modalTitle: { fontSize: 21, fontWeight: '900', marginBottom: 14 },
+
+FILE: src\app\reels\index.tsx
+LINE: 16
+import { useBuklodDrawerBottomInset } from '@/lib/buklodSafeArea';
+
+import {
+>>   BuklodTappableAvatar,
+} from '@/components/BuklodTappableAvatar';
+import {
+  useBuklodContentReport,
+} from '@/components/BuklodContentReportSheet';
+import BuklodMentionText from '@/components/BuklodMentionText';
+
+import {
+  BuklodCommunityCommentPreview,
+
+FILE: src\app\reels\index.tsx
+LINE: 17
+
+import {
+  BuklodTappableAvatar,
+>> } from '@/components/BuklodTappableAvatar';
+import {
+  useBuklodContentReport,
+} from '@/components/BuklodContentReportSheet';
+import BuklodMentionText from '@/components/BuklodMentionText';
+
+import {
+  BuklodCommunityCommentPreview,
+} from '@/components/BuklodCommunityCommentPreview';
+
+FILE: src\app\reels\index.tsx
+LINE: 1978
+                    }
+                  >
+
+>>                     <BuklodTappableAvatar
+                      userId={
+                        item.user_id
+                      }
+                      name={resolvePersonDisplayName(
+                        item.author_name,
+                        item.user_id,
+                      )}
+                      size={38}
+
+FILE: src\app\reels\index.tsx
+LINE: 2989
+                      }
+                    >
+
+>>                       <BuklodTappableAvatar
+                        userId={
+                          item.user_id
+                        }
+                        name={
+                          item
+                            .commenter_name
+                        }
+                        size={32}
+
+FILE: src\app\scope\index.tsx
+LINE: 91
+
+
+import BuklodScopeAttendanceCard from '@/components/BuklodScopeAttendanceCard';
+>> import { BuklodTappableAvatar } from '@/components/BuklodTappableAvatar';
+// PATCH_170B_R3_SCOPE_PERSISTENCE
+
+type Section =
+  | 'home'
+  | 'community'
+  | 'connect';
+
+const SECTIONS: Array<{
+
+FILE: src\app\scope\index.tsx
+LINE: 1157
+            }
+            style={styles.person}
+          >
+>>                     <BuklodTappableAvatar
+                      userId={person.user_id}
+                      uri={person.avatar_url}
+                      name={person.full_name}
+                      size={42}
+                      onPress={() =>
+                        router.push({
+                          pathname:
+                            '/connect/personal/[threadId]',
+
+FILE: src\app\scope\index.tsx
+LINE: 1159
+          >
+                    <BuklodTappableAvatar
+                      userId={person.user_id}
+>>                       uri={person.avatar_url}
+                      name={person.full_name}
+                      size={42}
+                      onPress={() =>
+                        router.push({
+                          pathname:
+                            '/connect/personal/[threadId]',
+                          params: {
+                            threadId: 'new',
+
+FILE: src\app\scope\index.tsx
+LINE: 1533
+      backgroundColor:
+        colors.white,
+    },
+>>     avatar: {
+      width: 42,
+      height: 42,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 14,
+      backgroundColor:
+        'rgba(39,93,69,0.10)',
+    },
+
+FILE: src\app\scope\index.tsx
+LINE: 1542
+      backgroundColor:
+        'rgba(39,93,69,0.10)',
+    },
+>>     avatarText: {
+      color:
+        colors.greenDark,
+      fontSize: 16,
+      fontWeight: '900',
+    },
+    personName: {
+      color: colors.text,
+      fontSize: 12,
+
+FILE: src\components\BuklodClusterHomeCommandCenter.tsx
+LINE: 18
+import BuklodScopeBuklodLessonPanel from'@/components/BuklodScopeBuklodLessonPanel';
+import BuklodScopeFaithMonitoringSummary from'@/components/BuklodScopeFaithMonitoringSummary';
+import BuklodScopeCallLauncher from'@/components/BuklodScopeCallLauncher';
+>> import{BuklodTappableAvatar}from'@/components/BuklodTappableAvatar';
+import{CommunityVideo}from'@/components/CommunityVideo';
+import{BuklodQrMatrix}from'@/components/BuklodQrMatrix';
+import BuklodScreenBottomBanner from '@/components/BuklodScreenBottomBanner';
+import{buildClusterInviteUrl}from'@/lib/buklodClusterInvite';
+import{fetchClusterHomeMembers}from'@/lib/buklodScopeMembers';
+import{scopeRouteParams}from'@/lib/buklodScopeManage';
+import{useBuklodScrollBottomInset,useBuklodDrawerBottomInset}from'@/lib/buklodSafeArea';
+import type{BuklodScope}from'@/lib/buklodScope';
+
+FILE: src\components\BuklodClusterHomeCommandCenter.tsx
+LINE: 29
+import type{BuklodScope}from'@/lib/buklodScope';
+
+type Props={scope:BuklodScope;onOpenCommunity?:()=>void;onOpenConnect?:()=>void;manageMode?:boolean};
+>> type Member={user_id:string;full_name:string;avatar_url:string|null;is_admin:boolean};
+type Notice={id:string;title:string;body:string|null;priority:string;expires_at:string|null;created_at:string};
+type Event={id:string;title:string;description:string|null;starts_at:string;location:string|null};
+type Rsvp={event_id:string;status:string};
+type Task={id:string;title:string;description:string|null;assigned_to:string|null;due_at:string|null;status:string};
+type Poll={id:string;question:string;closes_at:string|null;is_active:boolean};
+type Option={id:string;poll_id:string;label:string;sort_order:number};
+type Vote={poll_id:string;option_id:string;user_id:string};
+type Resource={id:string;title:string;description:string|null;resource_url:string};
+
+FILE: src\components\BuklodClusterHomeCommandCenter.tsx
+LINE: 265
+  {show('today')&&<Card icon="calendar-today-outline" title="TODAY / THIS WEEK">{filteredWeek.length?filteredWeek.slice(0,4).map(x=><View key={x.id} style={s.row}><View style={s.badge}><Text style={s.badgeText}>{sd(x.starts_at)}</Text></View><View style={{flex:1}}><Text style={s.item}>{x.title}</Text><Text style={s.meta}>{dt(x.starts_at)}</Text></View></View>):<Empty>{q?'No matching activity in the next 7 days.':'No scheduled activity in the next 7 days.'}</Empty>}</Card>}
+  {show('events')&&<Card icon="calendar-star" title="UPCOMING EVENTS" action={isAdmin?'ADD':undefined} onAction={isAdmin?()=>edit('event'):undefined}>{filteredUpcoming.length?filteredUpcoming.slice(0,6).map(x=>{const mine=rsvps.find(y=>y.event_id===x.id)?.status;return <View key={x.id} style={s.block}><Text style={s.item}>{x.title}</Text><Text style={s.meta}>{dt(x.starts_at)}{x.location?` · ${x.location}`:''}</Text>{x.description?<Text style={s.body}>{x.description}</Text>:null}<View style={s.chips}>{['GOING','MAYBE','NOT_GOING'].map(z=><Pressable key={z} onPress={()=>void rsvp(x.id,z)} style={[s.chip,mine===z&&s.chipOn]}><Text style={[s.chipText,mine===z&&s.chipTextOn]}>{z.replace('_',' ')}</Text></Pressable>)}</View></View>}):<Empty>{q?'No matching upcoming event.':'No upcoming event.'}</Empty>}</Card>}
+  <Card icon="lightning-bolt-outline" title="QUICK ACTIONS"><View style={s.grid}><Quick icon="account-group-outline" text="Community" onPress={openCommunity}/><Quick icon="message-text-outline" text="Connect" onPress={openConnect}/><Quick icon="clipboard-check-outline" text="Attendance" onPress={()=>router.push({pathname:'/scope/attendance',params:scopeRouteParams(scope.scope_id,{scopeType:'CLUSTER'})} as any)}/>{isAdmin?<><Quick icon="clipboard-plus-outline" text="Add Task" onPress={()=>edit('task')}/><Quick icon="poll" text="New Poll" onPress={()=>edit('poll')}/><Quick icon="folder-plus-outline" text="Resource" onPress={()=>edit('resource')}/><Quick icon="alert-octagon-outline" text="Emergency" onPress={()=>edit('notice')}/></>:null}</View></Card>
+>>   {show('members')&&<Card icon="account-multiple-outline" title="MEMBER SNAPSHOT"><View style={s.stats}><Stat v={scope.member_count??members.length} l="MEMBERS"/><Stat v={officers.length} l="ADMINS"/><Stat v={attendance.length} l="CHECKED IN"/></View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.people}>{filteredMembers.slice(0,12).map(x=><View key={x.user_id} style={s.person}><BuklodTappableAvatar userId={x.user_id} uri={x.avatar_url} name={x.full_name} size={42}/><Text numberOfLines={1} style={s.personName}>{x.full_name}</Text></View>)}</ScrollView></Card>}
+  {show('officers')&&<Card icon="shield-account-outline" title="CLUSTER OFFICERS / ADMINS">{officers.length?officers.map(x=><View key={x.user_id} style={s.row}><BuklodTappableAvatar userId={x.user_id} uri={x.avatar_url} name={x.full_name} size={36}/><Text style={s.item}>{x.full_name}</Text></View>):<Empty>No officer information available.</Empty>}</Card>}
+  {show('tasks')&&<Card icon="clipboard-check-outline" title="TASKS & ASSIGNMENTS" action={isAdmin?'ADD':undefined} onAction={isAdmin?()=>edit('task'):undefined}>{filteredTasks.length?filteredTasks.slice(0,8).map(x=><View key={x.id} style={s.block}><View style={s.between}><Text style={[s.item,x.status==='DONE'&&s.done]}>{x.title}</Text><Text style={s.status}>{x.status}</Text></View>{x.description?<Text style={s.body}>{x.description}</Text>:null}{x.due_at?<Text style={s.meta}>Due {dt(x.due_at)}</Text>:null}{x.status!=='DONE'?<Pressable onPress={()=>void taskDone(x)} style={s.small}><Text style={s.smallText}>MARK DONE</Text></Pressable>:null}</View>):<Empty>{q?'No matching tasks assigned.':'No tasks assigned.'}</Empty>}</Card>}
+  {show('poll')&&<Card icon="poll" title="POLL / QUICK VOTE" action={isAdmin?'NEW':undefined} onAction={isAdmin?()=>edit('poll'):undefined}>{poll?<><Text style={s.big}>{poll.question}</Text>{pollOptions.map(o=>{const count=votes.filter(v=>v.option_id===o.id).length,sel=myVote?.option_id===o.id;return <Pressable key={o.id} onPress={()=>void vote(o.id)} style={[s.poll,sel&&s.pollOn]}><Text style={[s.item,sel&&{color:colors.white}]}>{o.label}</Text><Text style={[s.status,sel&&{color:colors.white}]}>{count}</Text></Pressable>})}</>:<Empty>No active poll.</Empty>}</Card>}
+  {show('community')&&<Card icon="post-outline" title="COMMUNITY POSTS" action="VIEW COMMUNITY" onAction={openCommunity}>{filteredPosts.length?filteredPosts.slice(0,4).map(x=><View key={x.id} style={s.post}><View style={s.between}><Text style={s.author}>{x.author_name??'Cluster Member'}</Text><Text style={s.meta}>{sd(x.created_at)}</Text></View>{x.body?<Text numberOfLines={4} style={s.body}>{x.body}</Text>:null}{x.media_url&&String(x.media_mime_type??'').toLowerCase().startsWith('image/')?<Image source={{uri:x.media_url}} style={s.postImage}/>:null}{x.media_url&&String(x.media_mime_type??'').toLowerCase().startsWith('video/')?<View style={s.video}><CommunityVideo uri={x.media_url}/></View>:null}<View style={s.postMeta}><Text style={s.meta}>Reactions {total(x.reaction_counts)}</Text><Text style={s.meta}>Comments {x.comment_count??0}</Text></View></View>):<Empty>{q?'No matching member posts.':'No member posts yet.'}</Empty>}</Card>}
+  {/* PATCH_177B_R2_CLUSTER_ATTENDANCE */}
+ {show('attendance')&&<Card
+   icon="clipboard-check-outline"
+   title="ATTENDANCE SNAPSHOT"
+
+FILE: src\components\BuklodClusterHomeCommandCenter.tsx
+LINE: 266
+  {show('events')&&<Card icon="calendar-star" title="UPCOMING EVENTS" action={isAdmin?'ADD':undefined} onAction={isAdmin?()=>edit('event'):undefined}>{filteredUpcoming.length?filteredUpcoming.slice(0,6).map(x=>{const mine=rsvps.find(y=>y.event_id===x.id)?.status;return <View key={x.id} style={s.block}><Text style={s.item}>{x.title}</Text><Text style={s.meta}>{dt(x.starts_at)}{x.location?` · ${x.location}`:''}</Text>{x.description?<Text style={s.body}>{x.description}</Text>:null}<View style={s.chips}>{['GOING','MAYBE','NOT_GOING'].map(z=><Pressable key={z} onPress={()=>void rsvp(x.id,z)} style={[s.chip,mine===z&&s.chipOn]}><Text style={[s.chipText,mine===z&&s.chipTextOn]}>{z.replace('_',' ')}</Text></Pressable>)}</View></View>}):<Empty>{q?'No matching upcoming event.':'No upcoming event.'}</Empty>}</Card>}
+  <Card icon="lightning-bolt-outline" title="QUICK ACTIONS"><View style={s.grid}><Quick icon="account-group-outline" text="Community" onPress={openCommunity}/><Quick icon="message-text-outline" text="Connect" onPress={openConnect}/><Quick icon="clipboard-check-outline" text="Attendance" onPress={()=>router.push({pathname:'/scope/attendance',params:scopeRouteParams(scope.scope_id,{scopeType:'CLUSTER'})} as any)}/>{isAdmin?<><Quick icon="clipboard-plus-outline" text="Add Task" onPress={()=>edit('task')}/><Quick icon="poll" text="New Poll" onPress={()=>edit('poll')}/><Quick icon="folder-plus-outline" text="Resource" onPress={()=>edit('resource')}/><Quick icon="alert-octagon-outline" text="Emergency" onPress={()=>edit('notice')}/></>:null}</View></Card>
+  {show('members')&&<Card icon="account-multiple-outline" title="MEMBER SNAPSHOT"><View style={s.stats}><Stat v={scope.member_count??members.length} l="MEMBERS"/><Stat v={officers.length} l="ADMINS"/><Stat v={attendance.length} l="CHECKED IN"/></View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.people}>{filteredMembers.slice(0,12).map(x=><View key={x.user_id} style={s.person}><BuklodTappableAvatar userId={x.user_id} uri={x.avatar_url} name={x.full_name} size={42}/><Text numberOfLines={1} style={s.personName}>{x.full_name}</Text></View>)}</ScrollView></Card>}
+>>   {show('officers')&&<Card icon="shield-account-outline" title="CLUSTER OFFICERS / ADMINS">{officers.length?officers.map(x=><View key={x.user_id} style={s.row}><BuklodTappableAvatar userId={x.user_id} uri={x.avatar_url} name={x.full_name} size={36}/><Text style={s.item}>{x.full_name}</Text></View>):<Empty>No officer information available.</Empty>}</Card>}
+  {show('tasks')&&<Card icon="clipboard-check-outline" title="TASKS & ASSIGNMENTS" action={isAdmin?'ADD':undefined} onAction={isAdmin?()=>edit('task'):undefined}>{filteredTasks.length?filteredTasks.slice(0,8).map(x=><View key={x.id} style={s.block}><View style={s.between}><Text style={[s.item,x.status==='DONE'&&s.done]}>{x.title}</Text><Text style={s.status}>{x.status}</Text></View>{x.description?<Text style={s.body}>{x.description}</Text>:null}{x.due_at?<Text style={s.meta}>Due {dt(x.due_at)}</Text>:null}{x.status!=='DONE'?<Pressable onPress={()=>void taskDone(x)} style={s.small}><Text style={s.smallText}>MARK DONE</Text></Pressable>:null}</View>):<Empty>{q?'No matching tasks assigned.':'No tasks assigned.'}</Empty>}</Card>}
+  {show('poll')&&<Card icon="poll" title="POLL / QUICK VOTE" action={isAdmin?'NEW':undefined} onAction={isAdmin?()=>edit('poll'):undefined}>{poll?<><Text style={s.big}>{poll.question}</Text>{pollOptions.map(o=>{const count=votes.filter(v=>v.option_id===o.id).length,sel=myVote?.option_id===o.id;return <Pressable key={o.id} onPress={()=>void vote(o.id)} style={[s.poll,sel&&s.pollOn]}><Text style={[s.item,sel&&{color:colors.white}]}>{o.label}</Text><Text style={[s.status,sel&&{color:colors.white}]}>{count}</Text></Pressable>})}</>:<Empty>No active poll.</Empty>}</Card>}
+  {show('community')&&<Card icon="post-outline" title="COMMUNITY POSTS" action="VIEW COMMUNITY" onAction={openCommunity}>{filteredPosts.length?filteredPosts.slice(0,4).map(x=><View key={x.id} style={s.post}><View style={s.between}><Text style={s.author}>{x.author_name??'Cluster Member'}</Text><Text style={s.meta}>{sd(x.created_at)}</Text></View>{x.body?<Text numberOfLines={4} style={s.body}>{x.body}</Text>:null}{x.media_url&&String(x.media_mime_type??'').toLowerCase().startsWith('image/')?<Image source={{uri:x.media_url}} style={s.postImage}/>:null}{x.media_url&&String(x.media_mime_type??'').toLowerCase().startsWith('video/')?<View style={s.video}><CommunityVideo uri={x.media_url}/></View>:null}<View style={s.postMeta}><Text style={s.meta}>Reactions {total(x.reaction_counts)}</Text><Text style={s.meta}>Comments {x.comment_count??0}</Text></View></View>):<Empty>{q?'No matching member posts.':'No member posts yet.'}</Empty>}</Card>}
+  {/* PATCH_177B_R2_CLUSTER_ATTENDANCE */}
+ {show('attendance')&&<Card
+   icon="clipboard-check-outline"
+   title="ATTENDANCE SNAPSHOT"
+   action="OPEN"
+
+FILE: src\components\BuklodClusterHomeCommandCenter.tsx
+LINE: 448
+function Stat({v,l}:{v:number|string;l:string}){return <View style={s.stat}><Text style={s.statV}>{v}</Text><Text style={s.statL}>{l}</Text></View>}
+
+const s=StyleSheet.create({
+>>  content:{paddingHorizontal:12,paddingTop:10,paddingBottom:30,gap:10},topBar:{flexDirection:'row',alignItems:'center',gap:8,marginBottom:2},topSearch:{flex:1,minHeight:44,maxHeight:44,borderRadius:12,borderWidth:1,borderColor:colors.line,paddingHorizontal:12,color:colors.text,backgroundColor:colors.white,fontSize:12},topInvite:{minHeight:48,minWidth:48,paddingHorizontal:14,borderRadius:12,backgroundColor:colors.greenDark,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6},topInviteText:{color:'#fff',fontSize:10,fontWeight:'900',letterSpacing:.2},loading:{flex:1,alignItems:'center',justifyContent:'center',gap:9,padding:30},card:{borderWidth:StyleSheet.hairlineWidth,borderColor:colors.line,borderRadius:18,padding:12,backgroundColor:colors.white},head:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:10},hleft:{flex:1,flexDirection:'row',alignItems:'center',gap:8},ico:{width:31,height:31,borderRadius:10,alignItems:'center',justifyContent:'center',backgroundColor:colors.greenSoft},ht:{flex:1,color:colors.text,fontSize:12,fontWeight:'900'},action:{paddingHorizontal:9,paddingVertical:6,borderRadius:999,backgroundColor:colors.greenSoft},actionText:{color:colors.greenDark,fontSize:8,fontWeight:'900'},empty:{color:colors.muted,fontSize:11,lineHeight:17},big:{color:colors.text,fontSize:13,fontWeight:'900',marginBottom:5},body:{color:colors.text,fontSize:11.5,lineHeight:18},meta:{color:colors.muted,fontSize:9,lineHeight:14},row:{flexDirection:'row',alignItems:'center',gap:9,paddingVertical:7},block:{paddingVertical:9,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:colors.line,gap:5},between:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:9},badge:{width:52,minHeight:38,borderRadius:10,alignItems:'center',justifyContent:'center',backgroundColor:colors.greenSoft},badgeText:{color:colors.greenDark,fontSize:9,fontWeight:'900'},item:{flex:1,color:colors.text,fontSize:11,fontWeight:'900'},chips:{flexDirection:'row',flexWrap:'wrap',gap:6,marginTop:6},chip:{paddingHorizontal:9,paddingVertical:6,borderRadius:999,borderWidth:1,borderColor:colors.line,flexDirection:'row',alignItems:'center',gap:4},chipOn:{backgroundColor:colors.greenDark,borderColor:colors.greenDark},chipText:{color:colors.muted,fontSize:7.5,fontWeight:'900'},chipTextOn:{color:colors.white},grid:{flexDirection:'row',flexWrap:'wrap',gap:8},quick:{width:'30%',minWidth:88,flexGrow:1,minHeight:70,padding:8,borderRadius:14,alignItems:'center',justifyContent:'center',gap:5,backgroundColor:colors.greenSoft},quickText:{color:colors.greenDark,fontSize:8,fontWeight:'900',textAlign:'center'},stats:{flexDirection:'row',flexWrap:'wrap',gap:8},stat:{minWidth:78,flex:1,padding:10,borderRadius:13,alignItems:'center',backgroundColor:colors.greenSoft},statV:{color:colors.greenDark,fontSize:20,fontWeight:'900'},statL:{marginTop:2,color:colors.muted,fontSize:7,fontWeight:'900'},people:{gap:10,paddingTop:12},person:{width:64,alignItems:'center',gap:4},avatar:{width:42,height:42,borderRadius:21,backgroundColor:colors.greenSoft},avFallback:{alignItems:'center',justifyContent:'center'},personName:{width:'100%',color:colors.text,fontSize:8,fontWeight:'800',textAlign:'center'},status:{color:colors.greenDark,fontSize:8,fontWeight:'900'},done:{textDecorationLine:'line-through',color:colors.muted},small:{alignSelf:'flex-start',paddingHorizontal:9,paddingVertical:6,borderRadius:999,backgroundColor:colors.greenSoft},smallText:{color:colors.greenDark,fontSize:8,fontWeight:'900'},poll:{minHeight:42,paddingHorizontal:12,paddingVertical:9,borderRadius:12,borderWidth:1,borderColor:colors.line,flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginTop:6},pollOn:{backgroundColor:colors.greenDark,borderColor:colors.greenDark},post:{borderTopWidth:StyleSheet.hairlineWidth,borderTopColor:colors.line,paddingVertical:10,gap:7},author:{flex:1,color:colors.text,fontSize:10.5,fontWeight:'900'},postImage:{width:'100%',height:180,borderRadius:13,backgroundColor:colors.greenSoft},video:{minHeight:200,borderRadius:13,overflow:'hidden'},postMeta:{flexDirection:'row',gap:14},cal:{width:49,height:49,borderRadius:12,alignItems:'center',justifyContent:'center',backgroundColor:colors.greenDark},calDay:{color:'#fff',fontSize:17,fontWeight:'900'},calMonth:{color:'#fff',fontSize:7,fontWeight:'900'},primary:{minHeight:42,paddingHorizontal:14,paddingVertical:9,borderRadius:12,backgroundColor:colors.greenDark,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7},primaryText:{color:'#fff',fontSize:9,fontWeight:'900'},recipient:{color:'#8A6214',fontSize:9,fontWeight:'900'},invite:{flexDirection:'row',alignItems:'center',gap:12,marginBottom:10},inviteLink:{color:colors.greenDark,textDecorationLine:'underline'},inviteActions:{flexDirection:'row',flexWrap:'wrap',gap:8},secondary:{minHeight:42,paddingHorizontal:14,paddingVertical:9,borderRadius:12,borderWidth:1,borderColor:colors.greenDark,backgroundColor:colors.white,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,flex:1},secondaryText:{color:colors.greenDark,fontSize:9,fontWeight:'900'},qr:{width:82,height:82,borderRadius:14,alignItems:'center',justifyContent:'center',backgroundColor:colors.greenSoft},code:{marginVertical:4,color:colors.greenDark,fontSize:17,fontWeight:'900',letterSpacing:2},help:{color:colors.muted,fontSize:9,lineHeight:14,marginTop:8},
+ customizeLauncher:{minHeight:76,borderWidth:StyleSheet.hairlineWidth,borderColor:colors.line,borderRadius:18,paddingHorizontal:13,paddingVertical:12,backgroundColor:colors.white,flexDirection:'row',alignItems:'center',gap:11},
+ customizeIcon:{width:44,height:44,borderRadius:14,alignItems:'center',justifyContent:'center',backgroundColor:colors.greenSoft},
+ customizeCopy:{flex:1,gap:3},
+ customizeTitle:{color:colors.text,fontSize:11.5,fontWeight:'900'},
+ customizeSub:{color:colors.muted,fontSize:9,lineHeight:14},
+ drawer:{maxHeight:'84%',borderTopLeftRadius:26,borderTopRightRadius:26,paddingTop:9,paddingHorizontal:14,paddingBottom:16,backgroundColor:colors.white},
+ drawerHandle:{width:42,height:4,borderRadius:999,alignSelf:'center',marginBottom:11,backgroundColor:colors.line},
+ drawerHeader:{flexDirection:'row',alignItems:'flex-start',gap:10,paddingBottom:12,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:colors.line},
+
+FILE: src\components\BuklodCommunityBulletin.tsx
+LINE: 33
+  summary: string | null;
+  source_name: string | null;
+  source_url: string | null;
+>>   image_url: string | null;
+  published_at: string | null;
+  barangay: string | null;
+  city_municipality: string | null;
+  province: string | null;
+  country: string | null;
+};
+
+function text(
+
+FILE: src\components\BuklodCommunityBulletin.tsx
+LINE: 254
+                  'summary',
+                  'source_name',
+                  'source_url',
+>>                   'image_url',
+                  'published_at',
+                  'barangay',
+                  'city_municipality',
+                  'province',
+                  'country',
+                ].join(','),
+              )
+              .eq(
+
+FILE: src\components\BuklodCommunityBulletin.tsx
+LINE: 555
+                  },
+                ]}
+              >
+>>                 {item.image_url &&
+                !failedImages[item.id] ? (
+                  <Image
+                    source={{
+                      uri: item.image_url,
+                    }}
+                    style={styles.image}
+                    resizeMode="cover"
+                    onError={() =>
+
+FILE: src\components\BuklodCommunityBulletin.tsx
+LINE: 559
+                !failedImages[item.id] ? (
+                  <Image
+                    source={{
+>>                       uri: item.image_url,
+                    }}
+                    style={styles.image}
+                    resizeMode="cover"
+                    onError={() =>
+                      setFailedImages(
+                        current => ({
+                          ...current,
+                          [item.id]: true,
+
+FILE: src\components\BuklodCommunityCommentPreview.tsx
+LINE: 10
+} from 'react-native';
+
+import {
+>>   BuklodTappableAvatar,
+} from '@/components/BuklodTappableAvatar';
+import {
+  formatSpecificDateTime,
+} from '@/lib/dateTime';
+import {
+  repairMojibakeText,
+} from '@/lib/repairMojibakeText';
+import {
+
+FILE: src\components\BuklodCommunityCommentPreview.tsx
+LINE: 11
+
+import {
+  BuklodTappableAvatar,
+>> } from '@/components/BuklodTappableAvatar';
+import {
+  formatSpecificDateTime,
+} from '@/lib/dateTime';
+import {
+  repairMojibakeText,
+} from '@/lib/repairMojibakeText';
+import {
+  colors,
+
+FILE: src\components\BuklodCommunityCommentPreview.tsx
+LINE: 66
+            },
+      ]}
+    >
+>>       <BuklodTappableAvatar
+        userId={preview.user_id}
+        name={preview.author_name}
+        size={isReel ? 24 : 28}
+      />
+
+      <View style={styles.copy}>
+        <View style={styles.metaRow}>
+          <Text
+
+FILE: src\components\BuklodCommunityReactionDetailsSheet.tsx
+LINE: 22
+import { useBuklodDrawerBottomInset } from '@/lib/buklodSafeArea';
+
+import {
+>>   BuklodTappableAvatar,
+} from '@/components/BuklodTappableAvatar';
+import {
+  BUKLOD_COMMUNITY_REACTION_OPTIONS,
+  type BuklodReactionOption,
+} from '@/components/BuklodReactionAction';
+import {
+  type CommunityReactionDetailRow,
+  type CommunityReactionDetailsTarget,
+
+FILE: src\components\BuklodCommunityReactionDetailsSheet.tsx
+LINE: 23
+
+import {
+  BuklodTappableAvatar,
+>> } from '@/components/BuklodTappableAvatar';
+import {
+  BUKLOD_COMMUNITY_REACTION_OPTIONS,
+  type BuklodReactionOption,
+} from '@/components/BuklodReactionAction';
+import {
+  type CommunityReactionDetailRow,
+  type CommunityReactionDetailsTarget,
+  fetchCommunityReactionDetails,
+
+FILE: src\components\BuklodCommunityReactionDetailsSheet.tsx
+LINE: 418
+              }
+              renderItem={({ item }) => (
+                <View style={styles.row}>
+>>                   <BuklodTappableAvatar
+                    userId={item.user_id}
+                    name={item.display_name}
+                    size={36}
+                  />
+
+                  <Text
+                    numberOfLines={1}
+                    style={[
+
+FILE: src\components\BuklodCommunitySponsoredAd.tsx
+LINE: 8
+import {supabase} from '@/lib/supabase';
+import {useAuth} from '@/providers/AuthProvider';
+import {useBuklodScope} from '@/providers/BuklodScopeProvider';
+>> type Campaign={id:string;advertiser_name:string;headline:string;short_text:string|null;image_url:string|null;video_url:string|null;destination_url:string|null;creative_type:'photo'|'video';coverage_level:'barangay'|'city'|'province'|'nationwide';barangay:string|null;city_municipality:string|null;province:string|null;priority:number|null};
+function norm(v:any){return String(v??'').trim().toLowerCase().replace(/\s+/g,' ')}
+function text(s:any,keys:string[]){for(const k of keys){const v=s?.[k];if(typeof v==='string'&&v.trim())return v.trim();}return ''}
+function match(c:Campaign,p:any){if(c.coverage_level==='nationwide')return true;const prov=text(p,['province','province_name','address_province']);const city=text(p,['city_municipality','municipality','municipality_name','city','city_name','address_city','address_municipality']);const brgy=text(p,['barangay','barangay_name','address_barangay']);if(c.coverage_level==='province')return !!prov&&norm(prov)===norm(c.province);if(c.coverage_level==='city')return !!prov&&!!city&&norm(prov)===norm(c.province)&&norm(city)===norm(c.city_municipality);return !!prov&&!!city&&!!brgy&&norm(prov)===norm(c.province)&&norm(city)===norm(c.city_municipality)&&norm(brgy)===norm(c.barangay)}
+function AdVideo({uri}:{uri:string}){const player=useVideoPlayer(uri,p=>{p.loop=true;p.muted=true;});return <VideoView player={player} style={s.media} contentFit="cover" nativeControls/>}
+export default function BuklodCommunitySponsoredAd({audience}:{audience:'public'|'scope'}){
+ const {profile}=useAuth(); const {activeScope}=useBuklodScope(); const [rows,setRows]=useState<Campaign[]>([]); const [index,setIndex]=useState(0);
+ const coverage=useMemo(()=>{if(audience==='public')return 'nationwide';if(activeScope?.scope_type!=='LOCAL')return null;const l=String((activeScope as any)?.geo_level??'').toUpperCase();return l==='BARANGAY'?'barangay':l==='MUNICIPALITY_CITY'?'city':l==='PROVINCE'?'province':l==='COUNTRY'?'nationwide':null;},[audience,activeScope]);
+ useEffect(()=>{let alive=true;(async()=>{if(!coverage){setRows([]);return;}const {data,error}=await supabase.from('buklod_paid_ad_campaigns').select('id,advertiser_name,headline,short_text,image_url,video_url,destination_url,creative_type,coverage_level,barangay,city_municipality,province,priority').in('placement',['all','community']).eq('coverage_level',coverage).order('priority',{ascending:false}).limit(30);if(!alive)return;if(error){setRows([]);return;}setRows(((data??[]) as Campaign[]).filter(x=>match(x,profile)).filter(x=>(x.creative_type==='photo'&&!!x.image_url)||(x.creative_type==='video'&&!!x.video_url)));setIndex(0);})();return()=>{alive=false}},[coverage,profile]);
+
+FILE: src\components\BuklodCommunitySponsoredAd.tsx
+LINE: 16
+export default function BuklodCommunitySponsoredAd({audience}:{audience:'public'|'scope'}){
+ const {profile}=useAuth(); const {activeScope}=useBuklodScope(); const [rows,setRows]=useState<Campaign[]>([]); const [index,setIndex]=useState(0);
+ const coverage=useMemo(()=>{if(audience==='public')return 'nationwide';if(activeScope?.scope_type!=='LOCAL')return null;const l=String((activeScope as any)?.geo_level??'').toUpperCase();return l==='BARANGAY'?'barangay':l==='MUNICIPALITY_CITY'?'city':l==='PROVINCE'?'province':l==='COUNTRY'?'nationwide':null;},[audience,activeScope]);
+>>  useEffect(()=>{let alive=true;(async()=>{if(!coverage){setRows([]);return;}const {data,error}=await supabase.from('buklod_paid_ad_campaigns').select('id,advertiser_name,headline,short_text,image_url,video_url,destination_url,creative_type,coverage_level,barangay,city_municipality,province,priority').in('placement',['all','community']).eq('coverage_level',coverage).order('priority',{ascending:false}).limit(30);if(!alive)return;if(error){setRows([]);return;}setRows(((data??[]) as Campaign[]).filter(x=>match(x,profile)).filter(x=>(x.creative_type==='photo'&&!!x.image_url)||(x.creative_type==='video'&&!!x.video_url)));setIndex(0);})();return()=>{alive=false}},[coverage,profile]);
+ useEffect(()=>{if(rows.length<=1)return;const t=setInterval(()=>setIndex(i=>(i+1)%rows.length),12000);return()=>clearInterval(t)},[rows.length]);
+ const c=rows.length?rows[index%rows.length]:null; useEffect(()=>{if(c?.id)void supabase.from('buklod_paid_ad_events').insert({campaign_id:c.id,event_type:'impression',placement:'community'});},[c?.id]); if(!c)return null;
+ async function open(){const current=c;if(!current)return;const u=current.destination_url?.trim();if(!u)return;void supabase.from('buklod_paid_ad_events').insert({campaign_id:current.id,event_type:'click',placement:'community'});try{await Linking.openURL(u)}catch{}}
+ return <View style={s.shell}><View style={s.top}><View style={s.badge}><MaterialCommunityIcons name="bullhorn-outline" size={13} color="#25573F"/><Text style={s.badgeText}>SPONSORED</Text></View><Text style={s.scope}>{c.coverage_level==='nationwide'?'Public':c.coverage_level==='city'?'Town / City':c.coverage_level}</Text></View>{c.creative_type==='video'&&c.video_url?<AdVideo uri={c.video_url}/>:c.image_url?<Image source={{uri:c.image_url}} style={s.media}/>:null}<View style={s.copy}><Text style={s.advertiser}>{c.advertiser_name}</Text><Text style={s.headline}>{c.headline}</Text>{c.short_text?<Text style={s.body}>{c.short_text}</Text>:null}{c.destination_url?<Pressable onPress={open} style={s.cta}><Text style={s.ctaText}>Learn more</Text><MaterialCommunityIcons name="arrow-right" size={16} color="#fff"/></Pressable>:null}</View></View>;
+}
+const s=StyleSheet.create({shell:{marginHorizontal:12,marginVertical:10,borderRadius:18,overflow:'hidden',backgroundColor:'#fff',borderWidth:1,borderColor:'#DCE7E0'},top:{minHeight:38,paddingHorizontal:12,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},badge:{flexDirection:'row',alignItems:'center',gap:5},badgeText:{fontSize:9,fontWeight:'900',letterSpacing:.8,color:'#25573F'},scope:{fontSize:10,fontWeight:'700',color:'#7A877F'},media:{width:'100%',height:220,backgroundColor:'#E7ECE9'},copy:{padding:14},advertiser:{fontSize:11,fontWeight:'800',color:'#557064'},headline:{marginTop:3,fontSize:18,lineHeight:23,fontWeight:'900',color:'#173C2C'},body:{marginTop:6,fontSize:12,lineHeight:18,color:'#617168'},cta:{alignSelf:'flex-start',marginTop:12,minHeight:38,paddingHorizontal:14,borderRadius:12,flexDirection:'row',alignItems:'center',gap:7,backgroundColor:'#1E6B45'},ctaText:{fontSize:12,fontWeight:'900',color:'#fff'}});
+
+FILE: src\components\BuklodCommunitySponsoredAd.tsx
+LINE: 20
+ useEffect(()=>{if(rows.length<=1)return;const t=setInterval(()=>setIndex(i=>(i+1)%rows.length),12000);return()=>clearInterval(t)},[rows.length]);
+ const c=rows.length?rows[index%rows.length]:null; useEffect(()=>{if(c?.id)void supabase.from('buklod_paid_ad_events').insert({campaign_id:c.id,event_type:'impression',placement:'community'});},[c?.id]); if(!c)return null;
+ async function open(){const current=c;if(!current)return;const u=current.destination_url?.trim();if(!u)return;void supabase.from('buklod_paid_ad_events').insert({campaign_id:current.id,event_type:'click',placement:'community'});try{await Linking.openURL(u)}catch{}}
+>>  return <View style={s.shell}><View style={s.top}><View style={s.badge}><MaterialCommunityIcons name="bullhorn-outline" size={13} color="#25573F"/><Text style={s.badgeText}>SPONSORED</Text></View><Text style={s.scope}>{c.coverage_level==='nationwide'?'Public':c.coverage_level==='city'?'Town / City':c.coverage_level}</Text></View>{c.creative_type==='video'&&c.video_url?<AdVideo uri={c.video_url}/>:c.image_url?<Image source={{uri:c.image_url}} style={s.media}/>:null}<View style={s.copy}><Text style={s.advertiser}>{c.advertiser_name}</Text><Text style={s.headline}>{c.headline}</Text>{c.short_text?<Text style={s.body}>{c.short_text}</Text>:null}{c.destination_url?<Pressable onPress={open} style={s.cta}><Text style={s.ctaText}>Learn more</Text><MaterialCommunityIcons name="arrow-right" size={16} color="#fff"/></Pressable>:null}</View></View>;
+}
+const s=StyleSheet.create({shell:{marginHorizontal:12,marginVertical:10,borderRadius:18,overflow:'hidden',backgroundColor:'#fff',borderWidth:1,borderColor:'#DCE7E0'},top:{minHeight:38,paddingHorizontal:12,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},badge:{flexDirection:'row',alignItems:'center',gap:5},badgeText:{fontSize:9,fontWeight:'900',letterSpacing:.8,color:'#25573F'},scope:{fontSize:10,fontWeight:'700',color:'#7A877F'},media:{width:'100%',height:220,backgroundColor:'#E7ECE9'},copy:{padding:14},advertiser:{fontSize:11,fontWeight:'800',color:'#557064'},headline:{marginTop:3,fontSize:18,lineHeight:23,fontWeight:'900',color:'#173C2C'},body:{marginTop:6,fontSize:12,lineHeight:18,color:'#617168'},cta:{alignSelf:'flex-start',marginTop:12,minHeight:38,paddingHorizontal:14,borderRadius:12,flexDirection:'row',alignItems:'center',gap:7,backgroundColor:'#1E6B45'},ctaText:{fontSize:12,fontWeight:'900',color:'#fff'}});
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 362
+type ComposerPickerTab =
+  | 'emoji'
+  | 'gif'
+>>   | 'avatar';
+
+const QUICK_SEND_EMOJIS = [
+  '\u{1F44D}',
+  '\u2764\uFE0F',
+  '\u{1F602}',
+  '\u{1F64F}',
+  '\u{1F389}',
+  '\u{1F60D}',
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 414
+  '\u{1F4AF}','\u2705','\u{1F4A5}','\u{1F4AB}',
+] as const;
+
+>> const AVATAR_SEND_REACTIONS = [
+  { key: 'love', emoji: '\u2764\uFE0F', label: 'Love' },
+  { key: 'laugh', emoji: '\u{1F602}', label: 'Laugh' },
+  { key: 'pray', emoji: '\u{1F64F}', label: 'Pray' },
+  { key: 'yes', emoji: '\u{1F44D}', label: 'Yes' },
+  { key: 'celebrate', emoji: '\u{1F389}', label: 'Celebrate' },
+  { key: 'wow', emoji: '\u{1F62E}', label: 'Wow' },
+  { key: 'sad', emoji: '\u{1F622}', label: 'Sad' },
+  { key: 'with_you', emoji: '\u{1F91D}', label: 'With you' },
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 425
+  { key: 'with_you', emoji: '\u{1F91D}', label: 'With you' },
+] as const;
+
+>> const AVATAR_REACTION_PREFIX =
+  '[[BUKLOD_AVATAR_REACTION:';
+
+function parseAvatarReaction(
+  body: string
+) {
+  const match =
+    /^\[\[BUKLOD_AVATAR_REACTION:([a-z_]+)\]\]$/
+      .exec(
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 426
+] as const;
+
+  const match =
+    /^\[\[BUKLOD_AVATAR_REACTION:([a-z_]+)\]\]$/
+      .exec(
+        String(body ?? '')
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 428
+const AVATAR_REACTION_PREFIX =
+  '[[BUKLOD_AVATAR_REACTION:';
+
+>> function parseAvatarReaction(
+  body: string
+) {
+  const match =
+    /^\[\[BUKLOD_AVATAR_REACTION:([a-z_]+)\]\]$/
+      .exec(
+        String(body ?? '')
+          .trim()
+      );
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 432
+  body: string
+) {
+  const match =
+>>     /^\[\[BUKLOD_AVATAR_REACTION:([a-z_]+)\]\]$/
+      .exec(
+        String(body ?? '')
+          .trim()
+      );
+
+  if (!match) {
+    return null;
+  }
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 443
+  }
+
+  return (
+>>     AVATAR_SEND_REACTIONS.find(
+      item =>
+        item.key ===
+        match[1]
+    ) ??
+    null
+  );
+}
+
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 2744
+      }
+    };
+
+>>   const sendAvatarReaction =
+    (
+      key: string
+    ) =>
+      void sendQuickBody(
+        `${AVATAR_REACTION_PREFIX}${key}]]`
+      );
+
+  const sendCapturedText =
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 2749
+      key: string
+    ) =>
+      void sendQuickBody(
+>>         `${AVATAR_REACTION_PREFIX}${key}]]`
+      );
+
+  const sendCapturedText =
+    (
+      trimmed: string,
+      replyMessage?: Message | null
+    ) => {
+      if (
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 3819
+                      !!uri
+                  );
+
+>>           /* PATCH_172A_AVATAR_BUBBLE */
+          const avatarReaction =
+            messageDeleted
+              ? null
+              : parseAvatarReaction(
+                  messageBody
+                );
+
+          /* PATCH_172A_R5_STANDALONE_REACTION */
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 3820
+                  );
+
+          /* PATCH_172A_AVATAR_BUBBLE */
+>>           const avatarReaction =
+            messageDeleted
+              ? null
+              : parseAvatarReaction(
+                  messageBody
+                );
+
+          /* PATCH_172A_R5_STANDALONE_REACTION */
+          const standaloneEmojiReaction =
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 3823
+          const avatarReaction =
+            messageDeleted
+              ? null
+>>               : parseAvatarReaction(
+                  messageBody
+                );
+
+          /* PATCH_172A_R5_STANDALONE_REACTION */
+          const standaloneEmojiReaction =
+            mode === 'direct' &&
+            !messageDeleted &&
+            !avatarReaction &&
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 3831
+          const standaloneEmojiReaction =
+            mode === 'direct' &&
+            !messageDeleted &&
+>>             !avatarReaction &&
+            !item.attachment_path &&
+            (
+              (
+                QUICK_SEND_EMOJIS as readonly string[]
+              ).includes(
+                messageBody.trim()
+              ) ||
+              (
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 3849
+          const standaloneReaction =
+            mode === 'direct' &&
+            (
+>>               !!avatarReaction ||
+              standaloneEmojiReaction
+            );
+          const imageUrl =
+            item.attachment_path
+              ? attachmentUrls[
+                  item
+                    .attachment_path
+                ] ??
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 3885
+              own={own}
+              deleted={messageDeleted}
+              replyQuote={replyQuote}
+>>               showSenderAvatar={mode === 'direct'}
+              senderUserId={item.sender_id}
+              senderName={
+                own
+                  ? ((profile as any)?.full_name || 'You')
+                  : resolvePersonDisplayName(
+                      item.sender_name ?? title,
+                      item.sender_id,
+                    )
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 3901
+                  : null
+              }
+              standaloneReaction={standaloneReaction}
+>>               avatarReaction={avatarReaction}
+              standaloneEmoji={
+                standaloneEmojiReaction
+                  ? repairBuklodMessageText(messageBody).trim()
+                  : null
+              }
+              bodyText={
+                !messageDeleted &&
+                !avatarReaction &&
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 3909
+              }
+              bodyText={
+                !messageDeleted &&
+>>                 !avatarReaction &&
+                !standaloneEmojiReaction &&
+                albumCaption
+                  ? repairMojibakeText(
+                      repairBuklodMessageText(
+                        cleanSharedPostBody(albumCaption)
+                      )
+                    )
+                  : null
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 3921
+              }
+              sharedPostSlot={
+                !messageDeleted &&
+>>                 !avatarReaction &&
+                !standaloneEmojiReaction &&
+                messageBody ? (
+                  <BuklodSharedPostPhotoPreview185AR5
+                    body={messageBody}
+                  />
+                ) : null
+              }
+              photoUrl={!messageDeleted && isPhoto ? imageUrl : null}
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 4240
+        tab={composerPickerTab}
+        sending={uploadingAttachment}
+        emojis={EXTENDED_SEND_EMOJIS}
+>>         avatarChoices={AVATAR_SEND_REACTIONS}
+        profileId={profileId}
+        profileName={(profile as any)?.full_name || 'You'}
+        gifs={CONNECT_GIF_CATALOG}
+        onClose={() => setComposerPickerOpen(false)}
+        onTabChange={setComposerPickerTab}
+        onNativeKeyboard={() => {
+          setComposerPickerOpen(false);
+          requestAnimationFrame(() =>
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 4256
+        onSendGif={gifId => {
+          void sendCatalogGif(gifId);
+        }}
+>>         onSendAvatar={key => sendAvatarReaction(key)}
+      />
+      <Modal
+        visible={
+          optionMenu ===
+          'attach'
+        }
+        transparent
+        animationType="fade"
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 4883
+      fontWeight: '900',
+    },
+
+>>     avatarSticker: {
+      minWidth: 112,
+      alignItems: 'center',
+      paddingVertical: 3,
+    },
+
+    avatarStickerVisual: {
+      width: 90,
+      height: 76,
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 4889
+      paddingVertical: 3,
+    },
+
+>>     avatarStickerVisual: {
+      width: 90,
+      height: 76,
+      alignItems: 'center',
+      justifyContent: 'center',
+      position: 'relative',
+    },
+
+    avatarStickerEmoji: {
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 4897
+      position: 'relative',
+    },
+
+>>     avatarStickerEmoji: {
+      position: 'absolute',
+      right: 1,
+      bottom: 0,
+      fontSize: 32,
+      lineHeight: 36,
+    },
+
+    avatarStickerLabel: {
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 4905
+      lineHeight: 36,
+    },
+
+>>     avatarStickerLabel: {
+      marginTop: 3,
+      color: theme.accent,
+      fontSize: 12.5,
+      fontWeight: '900',
+    },
+
+    avatarStickerLabelOwn: {
+      color: theme.accent,
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 4912
+      fontWeight: '900',
+    },
+
+>>     avatarStickerLabelOwn: {
+      color: theme.accent,
+    },
+
+    composerReactionWrap: {
+      width: 38,
+      height: 38,
+      position: 'relative',
+      alignItems: 'center',
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 5170
+      fontWeight: '900',
+    },
+
+>>     avatarReactionScroll: {
+      maxHeight: 360,
+    },
+
+    avatarReactionGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+      paddingBottom: 14,
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 5174
+      maxHeight: 360,
+    },
+
+>>     avatarReactionGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+      paddingBottom: 14,
+    },
+
+    avatarReactionChoice: {
+      width: '47%',
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 5181
+      paddingBottom: 14,
+    },
+
+>>     avatarReactionChoice: {
+      width: '47%',
+      minHeight: 112,
+      padding: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: theme.border,
+      borderRadius: 17,
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 5194
+        '#F9FBFA',
+    },
+
+>>     avatarReactionPreview: {
+      width: 82,
+      height: 68,
+      alignItems: 'center',
+      justifyContent: 'center',
+      position: 'relative',
+    },
+
+    avatarReactionBadge: {
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 5202
+      position: 'relative',
+    },
+
+>>     avatarReactionBadge: {
+      position: 'absolute',
+      right: -2,
+      bottom: -2,
+      fontSize: 28,
+      lineHeight: 32,
+    },
+
+    avatarReactionChoiceLabel: {
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 5210
+      lineHeight: 32,
+    },
+
+>>     avatarReactionChoiceLabel: {
+      marginTop: 4,
+      color: theme.accent,
+      fontSize: 12.5,
+      fontWeight: '900',
+    },
+    standaloneReactionBubble: {
+      maxWidth: '92%',
+      paddingHorizontal: 0,
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 5490
+      fontWeight: '900',
+    },
+  
+>>   messageSenderAvatar: {
+    position: 'absolute',
+    left: 0,
+    top: 2,
+    zIndex: 6,
+  },
+  messageSenderAvatarOwn: {
+    left: undefined,
+    right: 0,
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 5496
+    top: 2,
+    zIndex: 6,
+  },
+>>   messageSenderAvatarOwn: {
+    left: undefined,
+    right: 0,
+  },
+  bubbleWithSenderAvatar: {
+    marginLeft: 44,
+  },
+  bubbleWithSenderAvatarOwn: {
+    marginRight: 44,
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 5500
+    left: undefined,
+    right: 0,
+  },
+>>   bubbleWithSenderAvatar: {
+    marginLeft: 44,
+  },
+  bubbleWithSenderAvatarOwn: {
+    marginRight: 44,
+  },
+});
+}
+
+
+FILE: src\components\BuklodConnectThread.tsx
+LINE: 5503
+  bubbleWithSenderAvatar: {
+    marginLeft: 44,
+  },
+>>   bubbleWithSenderAvatarOwn: {
+    marginRight: 44,
+  },
+});
+}
+
+
+
+
+
+FILE: src\components\BuklodExclusiveScopeCommunity.tsx
+LINE: 89
+  CommunityVideo,
+} from '@/components/CommunityVideo';
+import {
+>>   BuklodTappableAvatar,
+} from '@/components/BuklodTappableAvatar';
+import {
+  BUKLOD_SCOPE_COMMUNITY_REACTIONS,
+} from '@/components/BuklodReactionAction';
+import {
+  BuklodCommunityPostEngagement,
+} from '@/components/BuklodCommunityPostEngagement';
+import {
+
+FILE: src\components\BuklodExclusiveScopeCommunity.tsx
+LINE: 90
+} from '@/components/CommunityVideo';
+import {
+  BuklodTappableAvatar,
+>> } from '@/components/BuklodTappableAvatar';
+import {
+  BUKLOD_SCOPE_COMMUNITY_REACTIONS,
+} from '@/components/BuklodReactionAction';
+import {
+  BuklodCommunityPostEngagement,
+} from '@/components/BuklodCommunityPostEngagement';
+import {
+  BuklodCommunityReactionDetailsSheet,
+
+FILE: src\components\BuklodExclusiveScopeCommunity.tsx
+LINE: 2646
+                styles.publicReelHeader
+              }
+            >
+>>               <BuklodTappableAvatar
+                userId={item.user_id}
+                name={resolvePersonDisplayName(
+                  item.author_name,
+                  item.user_id,
+                )}
+                size={39}
+              />
+
+
+FILE: src\components\BuklodExclusiveScopeCommunity.tsx
+LINE: 2956
+              styles.postHeader
+            }
+          >
+>>             <BuklodTappableAvatar
+              userId={item.user_id}
+              name={resolvePersonDisplayName(
+                item.author_name,
+                item.user_id,
+              )}
+              size={39}
+            />
+
+
+FILE: src\components\BuklodExclusiveScopeCommunity.tsx
+LINE: 4835
+          9,
+      },
+
+>>       avatar: {
+        width:
+          39,
+        height:
+          39,
+        borderRadius:
+          20,
+        backgroundColor:
+          colors.greenDark,
+
+FILE: src\components\BuklodGuideAvatar.tsx
+LINE: 51
+
+type Pose = 'wave' | 'celebrate' | 'think';
+
+>> const GUIDE_AVATAR_SIZE = 50;
+const GUIDE_STATUS_DOT = 10;
+
+const GUIDE = {
+  wave: require('../../assets/buklod-guide/wave.png'),
+  celebrate: require('../../assets/buklod-guide/celebrate.png'),
+  think: require('../../assets/buklod-guide/think.png'),
+} as const;
+/* PATCH_167M_R2_GENDER_GUIDE */
+
+FILE: src\components\BuklodGuideAvatar.tsx
+LINE: 90
+  return "I'm here. Let's check what matters today.";
+}
+
+>> export function BuklodGuideAvatar() {
+  const pathname = usePathname();
+  const params =
+    useLocalSearchParams<{
+      returnScopeId?:
+        | string
+        | string[];
+    }>();
+  const {
+
+FILE: src\components\BuklodGuideAvatar.tsx
+LINE: 210
+        })
+        .onUpdate((event) => {
+          const baseX =
+>>             screenWidth - 12 - GUIDE_AVATAR_SIZE;
+          const baseY =
+            screenHeight - 88 - GUIDE_AVATAR_SIZE;
+
+          const minX =
+            8 - baseX;
+          const maxX =
+            screenWidth - 8 - GUIDE_AVATAR_SIZE - baseX;
+
+
+FILE: src\components\BuklodGuideAvatar.tsx
+LINE: 212
+          const baseX =
+            screenWidth - 12 - GUIDE_AVATAR_SIZE;
+          const baseY =
+>>             screenHeight - 88 - GUIDE_AVATAR_SIZE;
+
+          const minX =
+            8 - baseX;
+          const maxX =
+            screenWidth - 8 - GUIDE_AVATAR_SIZE - baseX;
+
+          const minY =
+            58 - baseY;
+
+FILE: src\components\BuklodGuideAvatar.tsx
+LINE: 217
+          const minX =
+            8 - baseX;
+          const maxX =
+>>             screenWidth - 8 - GUIDE_AVATAR_SIZE - baseX;
+
+          const minY =
+            58 - baseY;
+          const maxY =
+            screenHeight - 92 - GUIDE_AVATAR_SIZE - baseY;
+
+          const wantedX =
+            dragStartX.value +
+
+FILE: src\components\BuklodGuideAvatar.tsx
+LINE: 222
+          const minY =
+            58 - baseY;
+          const maxY =
+>>             screenHeight - 92 - GUIDE_AVATAR_SIZE - baseY;
+
+          const wantedX =
+            dragStartX.value +
+            event.translationX;
+
+          const wantedY =
+            dragStartY.value +
+            event.translationY;
+
+FILE: src\components\BuklodGuideAvatar.tsx
+LINE: 348
+  const scheduleGuideHide =
+    useCallback(
+      (delay = 3600) => {
+>>         /* PATCH_167M_KEEP_AVATAR_VISIBLE */
+        clearGuideHideTimer();
+        void delay;
+        void hideGuide;
+      },
+      [
+        clearGuideHideTimer,
+        hideGuide,
+      ]
+
+FILE: src\components\BuklodGuideAvatar.tsx
+LINE: 730
+        : 0,
+  }));
+
+>>   /* PATCH_167I_AVATAR_IS_PROFILE */
+  const onPress = () => {
+    animateTap();
+    scheduleGuideHide(3600);
+
+    if (
+      profileReturnMode &&
+      profileReturnScopeId
+    ) {
+
+FILE: src\components\BuklodGuideAvatar.tsx
+LINE: 831
+                ? `Open BUKLOD Profile. ${unreadCount} unread updates.`
+                : 'Open BUKLOD Profile'
+          }
+>>           accessibilityHint="Shows the BUKLOD Profile avatar temporarily."
+          onPress={revealGuide}
+          hitSlop={0}
+          style={({ pressed }) => [
+            styles.touchActivator,
+            pressed && styles.touchActivatorPressed,
+          ]}
+        >
+          <Text style={styles.touchActivatorText}>
+
+FILE: src\components\BuklodGuideAvatar.tsx
+LINE: 914
+        style={[
+          styles.pressable,
+          {
+>>             width: GUIDE_AVATAR_SIZE,
+            height: GUIDE_AVATAR_SIZE,
+          },
+        ]}
+      >
+        <Animated.View
+          style={[
+            styles.avatarClip,
+            unreadCount > 0
+
+FILE: src\components\BuklodGuideAvatar.tsx
+LINE: 915
+          styles.pressable,
+          {
+            width: GUIDE_AVATAR_SIZE,
+>>             height: GUIDE_AVATAR_SIZE,
+          },
+        ]}
+      >
+        <Animated.View
+          style={[
+            styles.avatarClip,
+            unreadCount > 0
+              ? styles.avatarClipUnread
+
+FILE: src\components\BuklodGuideAvatar.tsx
+LINE: 921
+      >
+        <Animated.View
+          style={[
+>>             styles.avatarClip,
+            unreadCount > 0
+              ? styles.avatarClipUnread
+              : styles.avatarClipReady,
+            motionStyle,
+          ]}
+        >
+            <Image
+              source={
+
+FILE: src\components\BuklodGuideAvatar.tsx
+LINE: 923
+          style={[
+            styles.avatarClip,
+            unreadCount > 0
+>>               ? styles.avatarClipUnread
+              : styles.avatarClipReady,
+            motionStyle,
+          ]}
+        >
+            <Image
+              source={
+                profile?.sex === 'female'
+                  ? FEMALE_GUIDE[pose]
+
+FILE: src\components\BuklodGuideAvatar.tsx
+LINE: 924
+            styles.avatarClip,
+            unreadCount > 0
+              ? styles.avatarClipUnread
+>>               : styles.avatarClipReady,
+            motionStyle,
+          ]}
+        >
+            <Image
+              source={
+                profile?.sex === 'female'
+                  ? FEMALE_GUIDE[pose]
+                  : GUIDE[pose]
+
+FILE: src\components\BuklodGuideAvatar.tsx
+LINE: 934
+                  ? FEMALE_GUIDE[pose]
+                  : GUIDE[pose]
+              }
+>>               style={styles.avatar}
+              resizeMode="cover"
+            />
+
+            {pose === 'wave' && (
+              <Animated.View
+                pointerEvents="none"
+                style={[
+                  StyleSheet.absoluteFill,
+
+FILE: src\components\BuklodGuideAvatar.tsx
+LINE: 1052
+    right: 12,
+    bottom: 88,
+    width: 168,
+>>     height: GUIDE_AVATAR_SIZE + 6,
+    zIndex: 999,
+    elevation: 24,
+    alignItems: 'flex-end',
+    justifyContent: 'flex-end',
+    overflow: 'visible',
+  },
+
+  pressable: {
+
+FILE: src\components\BuklodGuideAvatar.tsx
+LINE: 1066
+    overflow: 'visible',
+  },
+
+>>   avatarClip: {
+    width: GUIDE_AVATAR_SIZE,
+    height: GUIDE_AVATAR_SIZE,
+    borderRadius: GUIDE_AVATAR_SIZE / 2,
+    overflow: 'hidden',
+    backgroundColor: '#F8F4E8',
+    borderWidth: 2,
+  },
+
+
+FILE: src\components\BuklodGuideAvatar.tsx
+LINE: 1067
+  },
+
+  avatarClip: {
+>>     width: GUIDE_AVATAR_SIZE,
+    height: GUIDE_AVATAR_SIZE,
+    borderRadius: GUIDE_AVATAR_SIZE / 2,
+    overflow: 'hidden',
+    backgroundColor: '#F8F4E8',
+    borderWidth: 2,
+  },
+
+  avatarClipReady: {
+
+FILE: src\components\BuklodGuideAvatar.tsx
+LINE: 1068
+
+  avatarClip: {
+    width: GUIDE_AVATAR_SIZE,
+>>     height: GUIDE_AVATAR_SIZE,
+    borderRadius: GUIDE_AVATAR_SIZE / 2,
+    overflow: 'hidden',
+    backgroundColor: '#F8F4E8',
+    borderWidth: 2,
+  },
+
+  avatarClipReady: {
+    borderColor: '#275D45',
+
+FILE: src\components\BuklodGuideAvatar.tsx
+LINE: 1069
+  avatarClip: {
+    width: GUIDE_AVATAR_SIZE,
+    height: GUIDE_AVATAR_SIZE,
+>>     borderRadius: GUIDE_AVATAR_SIZE / 2,
+    overflow: 'hidden',
+    backgroundColor: '#F8F4E8',
+    borderWidth: 2,
+  },
+
+  avatarClipReady: {
+    borderColor: '#275D45',
+  },
+
+FILE: src\components\BuklodGuideAvatar.tsx
+LINE: 1075
+    borderWidth: 2,
+  },
+
+>>   avatarClipReady: {
+    borderColor: '#275D45',
+  },
+
+  avatarClipUnread: {
+    borderColor: '#D6A83F',
+  },
+
+  avatar: {
+
+FILE: src\components\BuklodGuideAvatar.tsx
+LINE: 1079
+    borderColor: '#275D45',
+  },
+
+>>   avatarClipUnread: {
+    borderColor: '#D6A83F',
+  },
+
+  avatar: {
+    width: '100%',
+    height: '100%',
+  },
+
+
+FILE: src\components\BuklodGuideAvatar.tsx
+LINE: 1083
+    borderColor: '#D6A83F',
+  },
+
+>>   avatar: {
+    width: '100%',
+    height: '100%',
+  },
+
+  eyelid: {
+    position: 'absolute',
+    width: 9,
+    height: 4,
+
+FILE: src\components\BuklodGuideAvatar.tsx
+LINE: 1156
+
+  bubble: {
+    position: 'absolute',
+>>     right: GUIDE_AVATAR_SIZE + 10,
+    bottom: 4,
+    width: 218,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#DDE8E1',
+
+FILE: src\components\BuklodMaritesBoard.tsx
+LINE: 33
+  BuklodFocusFadeUp,
+} from '@/components/HomeMotion';
+import {
+>>   BuklodTappableAvatar,
+} from '@/components/BuklodTappableAvatar';
+import BuklodMaritesPhotoCollage from '@/components/BuklodMaritesPhotoCollage';
+import { BuklodComposerPhotoEditSheet } from '@/components/BuklodComposerPhotoEditSheet';
+import {
+  BuklodPhotoEditor,
+  type BuklodPhotoEditorTool,
+} from '@/components/BuklodPhotoEditor';
+import {
+
+FILE: src\components\BuklodMaritesBoard.tsx
+LINE: 34
+} from '@/components/HomeMotion';
+import {
+  BuklodTappableAvatar,
+>> } from '@/components/BuklodTappableAvatar';
+import BuklodMaritesPhotoCollage from '@/components/BuklodMaritesPhotoCollage';
+import { BuklodComposerPhotoEditSheet } from '@/components/BuklodComposerPhotoEditSheet';
+import {
+  BuklodPhotoEditor,
+  type BuklodPhotoEditorTool,
+} from '@/components/BuklodPhotoEditor';
+import {
+  BuklodContentOverflowMenu,
+
+FILE: src\components\BuklodMaritesBoard.tsx
+LINE: 723
+        ]}
+        onStartShouldSetResponder={() => true}
+      >
+>>         <BuklodTappableAvatar
+          userId={story.user_id}
+          uri={story.avatar_url}
+          name={story.author_name}
+          size={24}
+        />
+        <Text
+          numberOfLines={1}
+          style={[
+
+FILE: src\components\BuklodMaritesBoard.tsx
+LINE: 725
+      >
+        <BuklodTappableAvatar
+          userId={story.user_id}
+>>           uri={story.avatar_url}
+          name={story.author_name}
+          size={24}
+        />
+        <Text
+          numberOfLines={1}
+          style={[
+            styles.authorName,
+            hasPhoto && styles.authorNameOnPhoto,
+
+FILE: src\components\BuklodMaritesBoard.tsx
+LINE: 1361
+        authorName:
+          profile?.full_name?.trim() ||
+          'Member',
+>>         avatarUrl: profile?.avatar_url ?? null,
+        body,
+        photoUris,
+      });
+
+      setStories((current) => [
+        story,
+        ...current.filter((row) => row.id !== story.id),
+      ]);
+
+FILE: src\components\BuklodMaritesBoard.tsx
+LINE: 1395
+    draft,
+    load,
+    photos,
+>>     profile?.avatar_url,
+    profile?.full_name,
+    resetComposer,
+    user?.id,
+  ]);
+
+  const appendEmoji = useCallback(
+    (emoji: string) => {
+      setDraft((current) => {
+
+FILE: src\components\BuklodMaritesBoard.tsx
+LINE: 1953
+                )}
+
+              <View style={styles.fullscreenMetaRow}>
+>>                 <BuklodTappableAvatar
+                  userId={viewStory.user_id}
+                  uri={viewStory.avatar_url}
+                  name={viewStory.author_name}
+                  size={34}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text
+                    numberOfLines={1}
+
+FILE: src\components\BuklodMaritesBoard.tsx
+LINE: 1955
+              <View style={styles.fullscreenMetaRow}>
+                <BuklodTappableAvatar
+                  userId={viewStory.user_id}
+>>                   uri={viewStory.avatar_url}
+                  name={viewStory.author_name}
+                  size={34}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text
+                    numberOfLines={1}
+                    style={styles.fullscreenAuthor}
+                  >
+
+FILE: src\components\BuklodOfficeOrganizer.tsx
+LINE: 97
+type Person = {
+  user_id: string;
+  full_name: string;
+>>   avatar_url: string | null;
+};
+
+type Section = 'ACTIVE' | 'STARRED' | 'ARCHIVED' | 'TRASHED' | 'ACTIVITY';
+
+const SECTION_ITEMS: Array<{
+  key: Section;
+  label: string;
+  icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+FILE: src\components\BuklodPaidHeaderAd.tsx
+LINE: 33
+  advertiser_name: string;
+  headline: string;
+  short_text: string | null;
+>>   image_url: string | null;
+  destination_url: string | null;
+  placement:
+    | 'all'
+    | Placement;
+  coverage_level:
+    | 'barangay'
+    | 'city'
+    | 'province'
+
+FILE: src\components\BuklodPaidHeaderAd.tsx
+LINE: 177
+              'advertiser_name',
+              'headline',
+              'short_text',
+>>               'image_url',
+              'destination_url',
+              'placement',
+              'coverage_level',
+              'barangay',
+              'city_municipality',
+              'province',
+              'priority',
+            ].join(','),
+
+FILE: src\components\BuklodPaidHeaderAd.tsx
+LINE: 350
+          : null,
+      ]}
+    >
+>>       {campaign.image_url ? (
+        <Image
+          source={{
+            uri:
+              campaign.image_url,
+          }}
+          resizeMode="cover"
+          style={
+            styles.image
+
+FILE: src\components\BuklodPaidHeaderAd.tsx
+LINE: 354
+        <Image
+          source={{
+            uri:
+>>               campaign.image_url,
+          }}
+          resizeMode="cover"
+          style={
+            styles.image
+          }
+        />
+      ) : (
+        <View
+
+FILE: src\components\BuklodPersistentBottomNav.tsx
+LINE: 153
+
+  /*
+   * /me intentionally has no bottom-nav active item.
+>>    * Profile / My BUKLOD is now opened by the avatar.
+   */
+  return null;
+}
+
+function isOnGlobalNavDestination(
+  pathname: string,
+  route: NavItem['route']
+) {
+
+FILE: src\components\BuklodPersonVisitSheet.tsx
+LINE: 29
+  visible: boolean;
+  userId?: string | null;
+  displayName?: string | null;
+>>   avatarUrl?: string | null;
+  onClose: () => void;
+};
+
+function canonicalPhotoUrl(
+  userId?: string | null,
+  uri?: string | null,
+) {
+  const direct = String(uri ?? '').trim();
+
+FILE: src\components\BuklodPersonVisitSheet.tsx
+LINE: 48
+  }
+
+  const { data } = supabase.storage
+>>     .from('profile-avatars')
+    .getPublicUrl(`${id}/avatar.jpg`);
+
+  return data?.publicUrl ?? null;
+}
+
+export default function BuklodPersonVisitSheet({
+  visible,
+  userId,
+
+FILE: src\components\BuklodPersonVisitSheet.tsx
+LINE: 49
+
+  const { data } = supabase.storage
+    .from('profile-avatars')
+>>     .getPublicUrl(`${id}/avatar.jpg`);
+
+  return data?.publicUrl ?? null;
+}
+
+export default function BuklodPersonVisitSheet({
+  visible,
+  userId,
+  displayName,
+
+FILE: src\components\BuklodPersonVisitSheet.tsx
+LINE: 58
+  visible,
+  userId,
+  displayName,
+>>   avatarUrl,
+  onClose,
+}: Props) {
+  const { theme } = useBuklodTheme();
+  const drawerBottomInset = useBuklodDrawerBottomInset();
+  const [photoOpen, setPhotoOpen] = React.useState(false);
+
+  const id = String(userId ?? '').trim();
+  const name = String(displayName ?? '').trim();
+
+FILE: src\components\BuklodPersonVisitSheet.tsx
+LINE: 67
+
+  const id = String(userId ?? '').trim();
+  const name = String(displayName ?? '').trim();
+>>   const photoUrl = canonicalPhotoUrl(id, avatarUrl);
+  const canViewPhoto = !!photoUrl;
+
+  const closeAll = () => {
+    setPhotoOpen(false);
+    onClose();
+  };
+
+  const handleVisit = () => {
+
+FILE: src\components\BuklodPersonVisitSheet.tsx
+LINE: 178
+                    { color: theme.textPrimary },
+                  ]}
+                >
+>>                   View Profile Photo
+                </Text>
+              </Pressable>
+            )}
+
+            <Pressable onPress={closeAll} style={styles.cancel}>
+              <Text
+                style={[
+                  styles.cancelText,
+
+FILE: src\components\BuklodProfileMotion.tsx
+LINE: 18
+} from 'react-native';
+
+import {
+>>   BuklodFocusAvatar,
+  BuklodFocusFadeUp,
+  useBuklodReduceMotion,
+} from '@/components/HomeMotion';
+
+const FOCUS_EASING = Easing.out(Easing.cubic);
+
+export function ProfileMotionCover({
+  active,
+
+FILE: src\components\BuklodProfileMotion.tsx
+LINE: 75
+  );
+}
+
+>> export function ProfileMotionAvatar({
+  children,
+  style,
+}: {
+  children: React.ReactNode;
+  style?: StyleProp<ViewStyle>;
+}) {
+  return (
+    <BuklodFocusAvatar style={style}>
+
+FILE: src\components\BuklodProfileMotion.tsx
+LINE: 83
+  style?: StyleProp<ViewStyle>;
+}) {
+  return (
+>>     <BuklodFocusAvatar style={style}>
+      {children}
+    </BuklodFocusAvatar>
+  );
+}
+
+export function ProfileMotionFadeUp({
+  delay = 0,
+  duration = 240,
+
+FILE: src\components\BuklodProfileMotion.tsx
+LINE: 85
+  return (
+    <BuklodFocusAvatar style={style}>
+      {children}
+>>     </BuklodFocusAvatar>
+  );
+}
+
+export function ProfileMotionFadeUp({
+  delay = 0,
+  duration = 240,
+  fromY = 10,
+  fromOpacity = 0,
+
+FILE: src\components\BuklodScopeFaithMonitoringAdminFeedbackCard.tsx
+LINE: 15
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useFocusEffect } from 'expo-router';
+
+>> import { BuklodTappableAvatar } from '@/components/BuklodTappableAvatar';
+import {
+  fetchScopeFaithMonitoringFeedbackAdminList,
+  upsertScopeFaithMonitoringFeedback,
+  type ScopeFaithMonitoringFeedbackItem,
+} from '@/lib/buklodScopeFaithMonitoringFeedback';
+import { fetchScopeMembers } from '@/lib/buklodScopeMembers';
+import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
+import { colors } from '@/lib/theme';
+
+FILE: src\components\BuklodScopeFaithMonitoringAdminFeedbackCard.tsx
+LINE: 297
+                        selectMember(member.user_id)
+                      }
+                    >
+>>                       <BuklodTappableAvatar
+                        userId={member.user_id}
+                        uri={member.avatar_url}
+                        name={member.full_name}
+                        size={34}
+                      />
+                      <Text
+                        numberOfLines={2}
+                        style={[
+
+FILE: src\components\BuklodScopeFaithMonitoringAdminFeedbackCard.tsx
+LINE: 299
+                    >
+                      <BuklodTappableAvatar
+                        userId={member.user_id}
+>>                         uri={member.avatar_url}
+                        name={member.full_name}
+                        size={34}
+                      />
+                      <Text
+                        numberOfLines={2}
+                        style={[
+                          styles.memberName,
+                          selected && styles.memberNameOn,
+
+FILE: src\components\BuklodScopeMemberRow.tsx
+LINE: 3
+import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+>> import { BuklodTappableAvatar } from '@/components/BuklodTappableAvatar';
+import BuklodTappablePersonName from '@/components/BuklodTappablePersonName';
+import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
+import type { ScopeMemberRow } from '@/lib/buklodScopeMembers';
+import { colors } from '@/lib/theme';
+
+type Props = {
+  member: ScopeMemberRow;
+  compact?: boolean;
+
+FILE: src\components\BuklodScopeMemberRow.tsx
+LINE: 31
+
+  return (
+    <View style={[styles.row, compact && styles.rowCompact]}>
+>>       <BuklodTappableAvatar
+        userId={member.user_id}
+        uri={member.avatar_url}
+        name={resolvePersonDisplayName(member, member.user_id)}
+        size={compact ? 38 : 44}
+      />
+
+      <View style={styles.copy}>
+        <View style={styles.titleRow}>
+
+FILE: src\components\BuklodScopeMemberRow.tsx
+LINE: 33
+    <View style={[styles.row, compact && styles.rowCompact]}>
+      <BuklodTappableAvatar
+        userId={member.user_id}
+>>         uri={member.avatar_url}
+        name={resolvePersonDisplayName(member, member.user_id)}
+        size={compact ? 38 : 44}
+      />
+
+      <View style={styles.copy}>
+        <View style={styles.titleRow}>
+          <View style={styles.nameWrap}>
+            <BuklodTappablePersonName
+
+FILE: src\components\BuklodScopeMemberRow.tsx
+LINE: 44
+            <BuklodTappablePersonName
+              userId={member.user_id}
+              displayName={resolvePersonDisplayName(member, member.user_id)}
+>>               avatarUrl={member.avatar_url}
+              style={styles.name}
+              numberOfLines={1}
+            >
+              {resolvePersonDisplayName(member, member.user_id)}
+            </BuklodTappablePersonName>
+          </View>
+          <View
+            style={[
+
+FILE: src\components\BuklodTappableAvatar.tsx
+LINE: 15
+
+import BuklodPersonVisitSheet from '@/components/BuklodPersonVisitSheet';
+} from '@/lib/buklodMemberProfile';
+import {
+  BUKLOD_HIT_SLOP_AVATAR,
+  BUKLOD_LONG_PRESS_MS,
+} from '@/lib/buklodTouch';
+
+FILE: src\components\BuklodTappableAvatar.tsx
+LINE: 16
+import BuklodPersonVisitSheet from '@/components/BuklodPersonVisitSheet';
+import {
+  ProfileAvatar,
+>> } from '@/components/ProfileAvatar';
+import {
+  visitMemberProfile,
+} from '@/lib/buklodMemberProfile';
+import {
+  BUKLOD_HIT_SLOP_AVATAR,
+  BUKLOD_LONG_PRESS_MS,
+} from '@/lib/buklodTouch';
+
+
+FILE: src\components\BuklodTappableAvatar.tsx
+LINE: 21
+  visitMemberProfile,
+} from '@/lib/buklodMemberProfile';
+import {
+>>   BUKLOD_HIT_SLOP_AVATAR,
+  BUKLOD_LONG_PRESS_MS,
+} from '@/lib/buklodTouch';
+
+type Props = {
+  userId?: string | null;
+  uri?: string | null;
+  name?: string | null;
+  size?: number;
+
+FILE: src\components\BuklodTappableAvatar.tsx
+LINE: 57
+  return dx * dx + dy * dy <= radius * radius;
+}
+
+>> export function isAvatarCircleHit(
+  event: GestureResponderEvent,
+  radius: number,
+  origin?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null
+
+FILE: src\components\BuklodTappableAvatar.tsx
+LINE: 92
+}
+
+/**
+>>  * Canonical tappable avatar for Community and global surfaces.
+ * Connect screens use ConnectTappableAvatar instead.
+ */
+export function BuklodTappableAvatar({
+  userId,
+  uri,
+  name,
+  size = 48,
+  fallbackSource,
+
+FILE: src\components\BuklodTappableAvatar.tsx
+LINE: 93
+
+/**
+ * Canonical tappable avatar for Community and global surfaces.
+>>  * Connect screens use ConnectTappableAvatar instead.
+ */
+export function BuklodTappableAvatar({
+  userId,
+  uri,
+  name,
+  size = 48,
+  fallbackSource,
+  onPress,
+
+FILE: src\components\BuklodTappableAvatar.tsx
+LINE: 95
+ * Canonical tappable avatar for Community and global surfaces.
+ * Connect screens use ConnectTappableAvatar instead.
+ */
+>> export function BuklodTappableAvatar({
+  userId,
+  uri,
+  name,
+  size = 48,
+  fallbackSource,
+  onPress,
+  enableLongPressSheet,
+}: Props) {
+
+FILE: src\components\BuklodTappableAvatar.tsx
+LINE: 144
+    !!pressHandler ||
+    !!openProfileSheet;
+
+>>   const avatar = (
+    <ProfileAvatar
+      userId={userId}
+      uri={uri}
+      name={name}
+      size={size}
+      fallbackSource={fallbackSource}
+    />
+  );
+
+FILE: src\components\BuklodTappableAvatar.tsx
+LINE: 145
+    !!openProfileSheet;
+
+  const avatar = (
+>>     <ProfileAvatar
+      userId={userId}
+      uri={uri}
+      name={name}
+      size={size}
+      fallbackSource={fallbackSource}
+    />
+  );
+
+
+FILE: src\components\BuklodTappableAvatar.tsx
+LINE: 163
+          height: size,
+        }}
+      >
+>>         {avatar}
+      </View>
+    );
+  }
+
+  return (
+    <>
+      <BuklodPressable
+        accessibilityRole="button"
+
+FILE: src\components\BuklodTappableAvatar.tsx
+LINE: 174
+        accessibilityRole="button"
+        accessibilityLabel={
+          name
+>>             ? `${name} avatar. Long press to view profile.`
+            : 'Member avatar. Long press to view profile.'
+        }
+        hitSlop={BUKLOD_HIT_SLOP_AVATAR}
+        instant
+        delayLongPress={BUKLOD_LONG_PRESS_MS}
+        onPress={
+          pressHandler
+            ? () => {
+
+FILE: src\components\BuklodTappableAvatar.tsx
+LINE: 175
+        accessibilityLabel={
+          name
+            ? `${name} avatar. Long press to view profile.`
+>>             : 'Member avatar. Long press to view profile.'
+        }
+        hitSlop={BUKLOD_HIT_SLOP_AVATAR}
+        instant
+        delayLongPress={BUKLOD_LONG_PRESS_MS}
+        onPress={
+          pressHandler
+            ? () => {
+                pressHandler();
+
+FILE: src\components\BuklodTappableAvatar.tsx
+LINE: 177
+            ? `${name} avatar. Long press to view profile.`
+            : 'Member avatar. Long press to view profile.'
+        }
+>>         hitSlop={BUKLOD_HIT_SLOP_AVATAR}
+        instant
+        delayLongPress={BUKLOD_LONG_PRESS_MS}
+        onPress={
+          pressHandler
+            ? () => {
+                pressHandler();
+              }
+            : undefined
+
+FILE: src\components\BuklodTappableAvatar.tsx
+LINE: 195
+          overflow: 'hidden',
+        }}
+      >
+>>         {avatar}
+      </BuklodPressable>
+
+      <BuklodPersonVisitSheet
+        visible={sheetOpen}
+        userId={userId}
+        displayName={name}
+        avatarUrl={uri}
+        onClose={() => setSheetOpen(false)}
+
+FILE: src\components\BuklodTappableAvatar.tsx
+LINE: 202
+        visible={sheetOpen}
+        userId={userId}
+        displayName={name}
+>>         avatarUrl={uri}
+        onClose={() => setSheetOpen(false)}
+      />
+    </>
+  );
+}
+
+export default BuklodTappableAvatar;
+
+FILE: src\components\BuklodTappableAvatar.tsx
+LINE: 209
+  );
+}
+
+>> export default BuklodTappableAvatar;
+
+FILE: src\components\BuklodTappablePersonName.tsx
+LINE: 20
+type Props = {
+  userId?: string | null;
+  displayName?: string | null;
+>>   avatarUrl?: string | null;
+  children: React.ReactNode;
+  style?: StyleProp<TextStyle>;
+  numberOfLines?: number;
+  disabled?: boolean;
+};
+
+export default function BuklodTappablePersonName({
+  userId,
+
+FILE: src\components\BuklodTappablePersonName.tsx
+LINE: 30
+export default function BuklodTappablePersonName({
+  userId,
+  displayName,
+>>   avatarUrl,
+  children,
+  style,
+  numberOfLines,
+  disabled = false,
+}: Props) {
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const id = String(userId ?? '').trim();
+  const canOpen = !!id && !disabled;
+
+FILE: src\components\BuklodTappablePersonName.tsx
+LINE: 76
+        visible={sheetOpen}
+        userId={id}
+        displayName={displayName}
+>>         avatarUrl={avatarUrl}
+        onClose={() => setSheetOpen(false)}
+      />
+    </>
+  );
+}
+
+FILE: src\components\character\RorkAvatarOnboardingGate.tsx
+LINE: 13
+  type BuklodCharacterState,
+} from '@/lib/buklodCharacter';
+import {
+>>   isRorkAvatarOnboardingCompleted,
+  markRorkAvatarOnboardingCompleted,
+  migrateLegacyRorkAvatarOnboardingIfNeeded,
+} from '@/lib/buklodRorkAvatarOnboarding';
+import type { BodyId } from '@/lib/character-lab-core/types';
+
+/**
+ * One-time Rork avatar chooser after authentication.
+ * Separate from Profile Picture, nav avatar, and Suggested Login avatar.
+
+FILE: src\components\character\RorkAvatarOnboardingGate.tsx
+LINE: 14
+} from '@/lib/buklodCharacter';
+import {
+  isRorkAvatarOnboardingCompleted,
+>>   markRorkAvatarOnboardingCompleted,
+  migrateLegacyRorkAvatarOnboardingIfNeeded,
+} from '@/lib/buklodRorkAvatarOnboarding';
+import type { BodyId } from '@/lib/character-lab-core/types';
+
+/**
+ * One-time Rork avatar chooser after authentication.
+ * Separate from Profile Picture, nav avatar, and Suggested Login avatar.
+ */
+
+FILE: src\components\character\RorkAvatarOnboardingGate.tsx
+LINE: 15
+import {
+  isRorkAvatarOnboardingCompleted,
+  markRorkAvatarOnboardingCompleted,
+>>   migrateLegacyRorkAvatarOnboardingIfNeeded,
+} from '@/lib/buklodRorkAvatarOnboarding';
+import type { BodyId } from '@/lib/character-lab-core/types';
+
+/**
+ * One-time Rork avatar chooser after authentication.
+ * Separate from Profile Picture, nav avatar, and Suggested Login avatar.
+ */
+export default function RorkAvatarOnboardingGate() {
+
+FILE: src\components\character\RorkAvatarOnboardingGate.tsx
+LINE: 16
+  isRorkAvatarOnboardingCompleted,
+  markRorkAvatarOnboardingCompleted,
+  migrateLegacyRorkAvatarOnboardingIfNeeded,
+>> } from '@/lib/buklodRorkAvatarOnboarding';
+import type { BodyId } from '@/lib/character-lab-core/types';
+
+/**
+ * One-time Rork avatar chooser after authentication.
+ * Separate from Profile Picture, nav avatar, and Suggested Login avatar.
+ */
+export default function RorkAvatarOnboardingGate() {
+  const { session } = useAuth();
+
+FILE: src\components\character\RorkAvatarOnboardingGate.tsx
+LINE: 20
+import type { BodyId } from '@/lib/character-lab-core/types';
+
+/**
+>>  * One-time Rork avatar chooser after authentication.
+ * Separate from Profile Picture, nav avatar, and Suggested Login avatar.
+ */
+export default function RorkAvatarOnboardingGate() {
+  const { session } = useAuth();
+  const userId = session?.user?.id ?? null;
+  const user = session?.user ?? null;
+
+  const [checking, setChecking] = useState(Boolean(userId));
+
+FILE: src\components\character\RorkAvatarOnboardingGate.tsx
+LINE: 21
+
+/**
+ * One-time Rork avatar chooser after authentication.
+>>  * Separate from Profile Picture, nav avatar, and Suggested Login avatar.
+ */
+export default function RorkAvatarOnboardingGate() {
+  const { session } = useAuth();
+  const userId = session?.user?.id ?? null;
+  const user = session?.user ?? null;
+
+  const [checking, setChecking] = useState(Boolean(userId));
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
+
+FILE: src\components\character\RorkAvatarOnboardingGate.tsx
+LINE: 23
+ * One-time Rork avatar chooser after authentication.
+ * Separate from Profile Picture, nav avatar, and Suggested Login avatar.
+ */
+>> export default function RorkAvatarOnboardingGate() {
+  const { session } = useAuth();
+  const userId = session?.user?.id ?? null;
+  const user = session?.user ?? null;
+
+  const [checking, setChecking] = useState(Boolean(userId));
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const [character, setCharacter] =
+    useState<BuklodCharacterState>(DEFAULT_CHARACTER);
+
+FILE: src\components\character\RorkAvatarOnboardingGate.tsx
+LINE: 46
+      setChecking(true);
+
+      try {
+>>         await migrateLegacyRorkAvatarOnboardingIfNeeded(userId, user);
+
+        const complete = await isRorkAvatarOnboardingCompleted(
+          userId,
+          user
+        );
+
+        const loaded = await loadBuklodCharacter(userId);
+
+
+FILE: src\components\character\RorkAvatarOnboardingGate.tsx
+LINE: 48
+      try {
+        await migrateLegacyRorkAvatarOnboardingIfNeeded(userId, user);
+
+>>         const complete = await isRorkAvatarOnboardingCompleted(
+          userId,
+          user
+        );
+
+        const loaded = await loadBuklodCharacter(userId);
+
+        if (cancelled) return;
+
+
+FILE: src\components\character\RorkAvatarOnboardingGate.tsx
+LINE: 82
+      };
+
+      await saveBuklodCharacter(saved, userId);
+>>       await markRorkAvatarOnboardingCompleted(userId, user);
+
+      setCharacter(saved);
+      setNeedsOnboarding(false);
+    },
+    [character, userId, user]
+  );
+
+  if (!userId || checking || !needsOnboarding) {
+
+FILE: src\components\connect\ConnectCommunityRow.tsx
+LINE: 56
+  ).toUpperCase();
+}
+
+>> const AVATAR_SIZE = 52;
+
+function createStyles(theme: ConnectThemeRoles) {
+  return StyleSheet.create({
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: connectSpacing.rowGap,
+      paddingHorizontal: connectSpacing.screenHorizontal,
+
+FILE: src\components\connect\ConnectCommunityRow.tsx
+LINE: 69
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: theme.borderSubtle,
+    },
+>>     avatar: {
+      width: AVATAR_SIZE,
+      height: AVATAR_SIZE,
+      borderRadius: AVATAR_SIZE / 2,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    avatarOrg: {
+      backgroundColor: theme.accentSoft,
+
+FILE: src\components\connect\ConnectCommunityRow.tsx
+LINE: 70
+      borderBottomColor: theme.borderSubtle,
+    },
+    avatar: {
+>>       width: AVATAR_SIZE,
+      height: AVATAR_SIZE,
+      borderRadius: AVATAR_SIZE / 2,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    avatarOrg: {
+      backgroundColor: theme.accentSoft,
+      borderWidth: 1,
+
+FILE: src\components\connect\ConnectCommunityRow.tsx
+LINE: 71
+    },
+    avatar: {
+      width: AVATAR_SIZE,
+>>       height: AVATAR_SIZE,
+      borderRadius: AVATAR_SIZE / 2,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    avatarOrg: {
+      backgroundColor: theme.accentSoft,
+      borderWidth: 1,
+      borderColor: theme.accent,
+
+FILE: src\components\connect\ConnectCommunityRow.tsx
+LINE: 72
+    avatar: {
+      width: AVATAR_SIZE,
+      height: AVATAR_SIZE,
+>>       borderRadius: AVATAR_SIZE / 2,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    avatarOrg: {
+      backgroundColor: theme.accentSoft,
+      borderWidth: 1,
+      borderColor: theme.accent,
+    },
+
+FILE: src\components\connect\ConnectCommunityRow.tsx
+LINE: 76
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+>>     avatarOrg: {
+      backgroundColor: theme.accentSoft,
+      borderWidth: 1,
+      borderColor: theme.accent,
+    },
+    avatarScope: {
+      backgroundColor: theme.surface,
+      borderWidth: 1,
+
+FILE: src\components\connect\ConnectCommunityRow.tsx
+LINE: 81
+      borderWidth: 1,
+      borderColor: theme.accent,
+    },
+>>     avatarScope: {
+      backgroundColor: theme.surface,
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    initials: {
+      color: theme.textPrimary,
+      fontSize: 16,
+      fontWeight: '900',
+
+FILE: src\components\connect\ConnectCommunityRow.tsx
+LINE: 164
+    >
+      <View
+        style={[
+>>           styles.avatar,
+          useInitials
+            ? styles.avatarOrg
+            : styles.avatarScope,
+        ]}
+      >
+        {useInitials ? (
+          <Text style={styles.initials}>
+            {initials}
+
+FILE: src\components\connect\ConnectCommunityRow.tsx
+LINE: 166
+        style={[
+          styles.avatar,
+          useInitials
+>>             ? styles.avatarOrg
+            : styles.avatarScope,
+        ]}
+      >
+        {useInitials ? (
+          <Text style={styles.initials}>
+            {initials}
+          </Text>
+        ) : (
+
+FILE: src\components\connect\ConnectCommunityRow.tsx
+LINE: 167
+          styles.avatar,
+          useInitials
+            ? styles.avatarOrg
+>>             : styles.avatarScope,
+        ]}
+      >
+        {useInitials ? (
+          <Text style={styles.initials}>
+            {initials}
+          </Text>
+        ) : (
+          <MaterialCommunityIcons
+
+FILE: src\components\connect\ConnectComposer.tsx
+LINE: 440
+        <View style={styles.emojiWrap}>
+          <ConnectPressable
+            accessibilityRole="button"
+>>             accessibilityLabel="Emoji, GIF, and avatar"
+            accessibilityHint="Opens emoji, GIF, and avatar options."
+            onPress={onOpenComposerPicker}
+            style={styles.iconHit}
+          >
+            <Text style={styles.emojiGlyph}>{'\u{1F642}'}</Text>
+          </ConnectPressable>
+        </View>
+
+
+FILE: src\components\connect\ConnectComposer.tsx
+LINE: 441
+          <ConnectPressable
+            accessibilityRole="button"
+            accessibilityLabel="Emoji, GIF, and avatar"
+>>             accessibilityHint="Opens emoji, GIF, and avatar options."
+            onPress={onOpenComposerPicker}
+            style={styles.iconHit}
+          >
+            <Text style={styles.emojiGlyph}>{'\u{1F642}'}</Text>
+          </ConnectPressable>
+        </View>
+
+        <TextInput
+
+FILE: src\components\connect\ConnectComposerPicker.tsx
+LINE: 31
+} from '@/providers/ConnectThemeProvider';
+import { useBuklodDrawerBottomInset } from '@/lib/buklodSafeArea';
+import {
+>>   ConnectTappableAvatar,
+} from '@/components/connect/ConnectTappableAvatar';
+
+type PickerTab = 'emoji' | 'gif' | 'avatar';
+
+type AvatarChoice = {
+  key: string;
+  emoji: string;
+  label: string;
+
+FILE: src\components\connect\ConnectComposerPicker.tsx
+LINE: 32
+import { useBuklodDrawerBottomInset } from '@/lib/buklodSafeArea';
+import {
+  ConnectTappableAvatar,
+>> } from '@/components/connect/ConnectTappableAvatar';
+
+type PickerTab = 'emoji' | 'gif' | 'avatar';
+
+type AvatarChoice = {
+  key: string;
+  emoji: string;
+  label: string;
+};
+
+FILE: src\components\connect\ConnectComposerPicker.tsx
+LINE: 34
+  ConnectTappableAvatar,
+} from '@/components/connect/ConnectTappableAvatar';
+
+>> type PickerTab = 'emoji' | 'gif' | 'avatar';
+
+type AvatarChoice = {
+  key: string;
+  emoji: string;
+  label: string;
+};
+
+type Props = {
+
+FILE: src\components\connect\ConnectComposerPicker.tsx
+LINE: 36
+
+type PickerTab = 'emoji' | 'gif' | 'avatar';
+
+>> type AvatarChoice = {
+  key: string;
+  emoji: string;
+  label: string;
+};
+
+type Props = {
+  visible: boolean;
+  tab: PickerTab;
+
+FILE: src\components\connect\ConnectComposerPicker.tsx
+LINE: 47
+  tab: PickerTab;
+  sending: boolean;
+  emojis: readonly string[];
+>>   avatarChoices: readonly AvatarChoice[];
+  profileId?: string;
+  profileName?: string;
+  onClose: () => void;
+  onTabChange: (tab: PickerTab) => void;
+  onNativeKeyboard: () => void;
+  onSendEmoji: (emoji: string) => void;
+  gifs: readonly ConnectGifCatalogItem[];
+  onSendGif: (gifId: string) => void;
+
+FILE: src\components\connect\ConnectComposerPicker.tsx
+LINE: 56
+  onSendEmoji: (emoji: string) => void;
+  gifs: readonly ConnectGifCatalogItem[];
+  onSendGif: (gifId: string) => void;
+>>   onSendAvatar: (key: string) => void;
+};
+
+function createStyles(theme: ConnectThemeRoles) {
+  return StyleSheet.create({
+    backdrop: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      backgroundColor: theme.overlay,
+
+FILE: src\components\connect\ConnectComposerPicker.tsx
+LINE: 217
+      textAlign: 'center',
+      backgroundColor: 'rgba(0,0,0,0.55)',
+    },
+>>     avatarScroll: {
+      maxHeight: 360,
+    },
+    avatarGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+      paddingBottom: 14,
+    },
+
+FILE: src\components\connect\ConnectComposerPicker.tsx
+LINE: 220
+    avatarScroll: {
+      maxHeight: 360,
+    },
+>>     avatarGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+      paddingBottom: 14,
+    },
+    avatarChoice: {
+LINE: 226
+      gap: 10,
+      paddingBottom: 14,
+    },
+>>     avatarChoice: {
+      width: '47%',
+      minHeight: 112,
+      padding: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: theme.border,
+      borderRadius: 17,
+
+FILE: src\components\connect\ConnectComposerPicker.tsx
+LINE: 237
+      borderRadius: 17,
+      backgroundColor: theme.surface,
+    },
+>>     avatarPreview: {
+      width: 82,
+      height: 68,
+      alignItems: 'center',
+      justifyContent: 'center',
+      position: 'relative',
+    },
+    avatarBadge: {
+      position: 'absolute',
+
+FILE: src\components\connect\ConnectComposerPicker.tsx
+LINE: 244
+      justifyContent: 'center',
+      position: 'relative',
+    },
+>>     avatarBadge: {
+      position: 'absolute',
+      right: -2,
+      bottom: -2,
+      fontSize: 28,
+      lineHeight: 32,
+    },
+    avatarLabel: {
+      marginTop: 4,
+
+FILE: src\components\connect\ConnectComposerPicker.tsx
+LINE: 251
+      fontSize: 28,
+      lineHeight: 32,
+    },
+>>     avatarLabel: {
+      marginTop: 4,
+      color: theme.accent,
+      fontSize: 12.5,
+      fontWeight: '900',
+    },
+  });
+}
+
+
+FILE: src\components\connect\ConnectComposerPicker.tsx
+LINE: 265
+  tab,
+  sending,
+  emojis,
+>>   avatarChoices,
+  profileId,
+  profileName,
+  onClose,
+  onTabChange,
+  onNativeKeyboard,
+  onSendEmoji,
+  gifs,
+  onSendGif,
+
+FILE: src\components\connect\ConnectComposerPicker.tsx
+LINE: 274
+  onSendEmoji,
+  gifs,
+  onSendGif,
+>>   onSendAvatar,
+}: Props) {
+  const { theme } = useConnectTheme();
+  const drawerBottomInset = useBuklodDrawerBottomInset();
+  const styles = useMemo(
+    () => createStyles(theme),
+    [theme]
+  );
+
+
+FILE: src\components\connect\ConnectComposerPicker.tsx
+LINE: 321
+              [
+                ['emoji', 'Emoji'],
+                ['gif', 'GIF'],
+>>                 ['avatar', 'Avatar'],
+              ] as const
+            ).map(([key, label]) => (
+              <Pressable
+                key={key}
+                onPress={() => onTabChange(key)}
+                style={[
+                  styles.tab,
+                  tab === key && styles.tabOn,
+
+FILE: src\components\connect\ConnectComposerPicker.tsx
+LINE: 417
+            </ScrollView>
+          )}
+
+>>           {tab === 'avatar' && (
+            <ScrollView
+              style={styles.avatarScroll}
+              contentContainerStyle={styles.avatarGrid}
+              keyboardShouldPersistTaps="handled"
+            >
+              {avatarChoices.map(item => (
+                <Pressable
+                  key={item.key}
+
+FILE: src\components\connect\ConnectComposerPicker.tsx
+LINE: 419
+
+          {tab === 'avatar' && (
+            <ScrollView
+>>               style={styles.avatarScroll}
+              contentContainerStyle={styles.avatarGrid}
+              keyboardShouldPersistTaps="handled"
+            >
+              {avatarChoices.map(item => (
+                <Pressable
+                  key={item.key}
+                  onPress={() => onSendAvatar(item.key)}
+                  style={styles.avatarChoice}
+
+FILE: src\components\connect\ConnectComposerPicker.tsx
+LINE: 420
+          {tab === 'avatar' && (
+            <ScrollView
+              style={styles.avatarScroll}
+>>               contentContainerStyle={styles.avatarGrid}
+              keyboardShouldPersistTaps="handled"
+            >
+              {avatarChoices.map(item => (
+                <Pressable
+                  key={item.key}
+                  onPress={() => onSendAvatar(item.key)}
+                  style={styles.avatarChoice}
+                >
+
+FILE: src\components\connect\ConnectComposerPicker.tsx
+LINE: 423
+              contentContainerStyle={styles.avatarGrid}
+              keyboardShouldPersistTaps="handled"
+            >
+>>               {avatarChoices.map(item => (
+                <Pressable
+                  key={item.key}
+                  onPress={() => onSendAvatar(item.key)}
+                  style={styles.avatarChoice}
+                >
+                  <View style={styles.avatarPreview}>
+                    <ConnectTappableAvatar
+                      userId={profileId}
+
+FILE: src\components\connect\ConnectComposerPicker.tsx
+LINE: 426
+              {avatarChoices.map(item => (
+                <Pressable
+                  key={item.key}
+>>                   onPress={() => onSendAvatar(item.key)}
+                  style={styles.avatarChoice}
+                >
+                  <View style={styles.avatarPreview}>
+                    <ConnectTappableAvatar
+                      userId={profileId}
+                      name={profileName || 'You'}
+                      size={52}
+                      onPress={null}
+
+FILE: src\components\connect\ConnectComposerPicker.tsx
+LINE: 427
+                <Pressable
+                  key={item.key}
+                  onPress={() => onSendAvatar(item.key)}
+>>                   style={styles.avatarChoice}
+                >
+                  <View style={styles.avatarPreview}>
+                    <ConnectTappableAvatar
+                      userId={profileId}
+                      name={profileName || 'You'}
+                      size={52}
+                      onPress={null}
+                      enableLongPressSheet={false}
+
+FILE: src\components\connect\ConnectComposerPicker.tsx
+LINE: 429
+                  onPress={() => onSendAvatar(item.key)}
+                  style={styles.avatarChoice}
+                >
+>>                   <View style={styles.avatarPreview}>
+                    <ConnectTappableAvatar
+                      userId={profileId}
+                      name={profileName || 'You'}
+                      size={52}
+                      onPress={null}
+                      enableLongPressSheet={false}
+                    />
+                    <Text style={styles.avatarBadge}>
+
+FILE: src\components\connect\ConnectComposerPicker.tsx
+LINE: 430
+                  style={styles.avatarChoice}
+                >
+                  <View style={styles.avatarPreview}>
+>>                     <ConnectTappableAvatar
+                      userId={profileId}
+                      name={profileName || 'You'}
+                      size={52}
+                      onPress={null}
+                      enableLongPressSheet={false}
+                    />
+                    <Text style={styles.avatarBadge}>
+                      {item.emoji}
+
+FILE: src\components\connect\ConnectComposerPicker.tsx
+LINE: 437
+                      onPress={null}
+                      enableLongPressSheet={false}
+                    />
+>>                     <Text style={styles.avatarBadge}>
+                      {item.emoji}
+                    </Text>
+                  </View>
+                  <Text style={styles.avatarLabel}>
+                    {item.label}
+                  </Text>
+                </Pressable>
+              ))}
+
+FILE: src\components\connect\ConnectComposerPicker.tsx
+LINE: 441
+                      {item.emoji}
+                    </Text>
+                  </View>
+>>                   <Text style={styles.avatarLabel}>
+                    {item.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          )}
+        </Pressable>
+      </Pressable>
+
+FILE: src\components\connect\ConnectInboxRow.tsx
+LINE: 25
+  ConnectPressable,
+} from '@/components/connect/ConnectPressable';
+import {
+>>   ConnectTappableAvatar,
+} from '@/components/connect/ConnectTappableAvatar';
+
+type Props = {
+  userId: string;
+  name: string;
+  avatarUri?: string | null;
+  preview: string;
+  timeLabel?: string;
+
+FILE: src\components\connect\ConnectInboxRow.tsx
+LINE: 26
+} from '@/components/connect/ConnectPressable';
+import {
+  ConnectTappableAvatar,
+>> } from '@/components/connect/ConnectTappableAvatar';
+
+type Props = {
+  userId: string;
+  name: string;
+  avatarUri?: string | null;
+  preview: string;
+  timeLabel?: string;
+  unreadCount?: number;
+
+FILE: src\components\connect\ConnectInboxRow.tsx
+LINE: 31
+type Props = {
+  userId: string;
+  name: string;
+>>   avatarUri?: string | null;
+  preview: string;
+  timeLabel?: string;
+  unreadCount?: number;
+  isSearchResult?: boolean;
+  showSentIndicator?: boolean;
+  onPressRow: () => void;
+};
+
+
+FILE: src\components\connect\ConnectInboxRow.tsx
+LINE: 111
+export function ConnectInboxRow({
+  userId,
+  name,
+>>   avatarUri,
+  preview,
+  timeLabel,
+  unreadCount = 0,
+  isSearchResult = false,
+  showSentIndicator = false,
+  onPressRow,
+}: Props) {
+  const { theme } = useConnectTheme();
+
+FILE: src\components\connect\ConnectInboxRow.tsx
+LINE: 129
+
+  return (
+    <View style={styles.row}>
+>>       <ConnectTappableAvatar
+        userId={userId}
+        uri={avatarUri}
+        name={name}
+        size={52}
+      />
+
+      <ConnectPressable
+        onPress={onPressRow}
+
+FILE: src\components\connect\ConnectInboxRow.tsx
+LINE: 131
+    <View style={styles.row}>
+      <ConnectTappableAvatar
+        userId={userId}
+>>         uri={avatarUri}
+        name={name}
+        size={52}
+      />
+
+      <ConnectPressable
+        onPress={onPressRow}
+        style={styles.copyHit}
+      >
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 27
+  useConnectTheme,
+} from '@/providers/ConnectThemeProvider';
+import {
+>>   ConnectTappableAvatar,
+} from '@/components/connect/ConnectTappableAvatar';
+import {
+  ConnectReactionPicker,
+  type ConnectReactionOption,
+} from '@/components/connect/ConnectReactionPicker';
+import {
+  type ConnectMessageActionAnchor,
+} from '@/components/connect/ConnectMessageActionSheet';
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 28
+} from '@/providers/ConnectThemeProvider';
+import {
+  ConnectTappableAvatar,
+>> } from '@/components/connect/ConnectTappableAvatar';
+import {
+  ConnectReactionPicker,
+  type ConnectReactionOption,
+} from '@/components/connect/ConnectReactionPicker';
+import {
+  type ConnectMessageActionAnchor,
+} from '@/components/connect/ConnectMessageActionSheet';
+import {
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 40
+  BUKLOD_LONG_PRESS_MS,
+} from '@/lib/buklodTouch';
+
+>> type AvatarReaction = {
+  emoji: string;
+  label: string;
+} | null;
+
+type Props = {
+  own: boolean;
+  showSenderAvatar: boolean;
+  senderUserId: string;
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 47
+
+type Props = {
+  own: boolean;
+>>   showSenderAvatar: boolean;
+  senderUserId: string;
+  senderName: string;
+  senderLabel?: string | null;
+  standaloneReaction: boolean;
+  avatarReaction: AvatarReaction;
+  standaloneEmoji?: string | null;
+  bodyText?: string | null;
+  sharedPostSlot?: React.ReactNode;
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 52
+  senderName: string;
+  senderLabel?: string | null;
+  standaloneReaction: boolean;
+>>   avatarReaction: AvatarReaction;
+  standaloneEmoji?: string | null;
+  bodyText?: string | null;
+  sharedPostSlot?: React.ReactNode;
+  photoUrl?: string | null;
+  photoUrls?: string[];
+  isGif?: boolean;
+  fileName?: string | null;
+  fileSizeLabel?: string | null;
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 95
+    other: {
+      alignItems: 'flex-start',
+    },
+>>     senderAvatar: {
+      position: 'absolute',
+      left: 0,
+      top: 2,
+      zIndex: 20,
+      elevation: 20,
+    },
+    senderAvatarOwn: {
+      left: undefined,
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 102
+      zIndex: 20,
+      elevation: 20,
+    },
+>>     senderAvatarOwn: {
+      left: undefined,
+      right: 0,
+    },
+    bubble: {
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderRadius: connectRadii.bubble,
+      overflow: 'visible',
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 137
+      borderWidth: 1,
+      borderColor: theme.borderSubtle,
+    },
+>>     bubbleWithAvatar: {
+      marginLeft: 40,
+    },
+    bubbleWithAvatarOwn: {
+      marginRight: 40,
+    },
+    standaloneBubble: {
+      maxWidth: '92%',
+      paddingHorizontal: 0,
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 140
+    bubbleWithAvatar: {
+      marginLeft: 40,
+    },
+>>     bubbleWithAvatarOwn: {
+      marginRight: 40,
+    },
+    standaloneBubble: {
+      maxWidth: '92%',
+      paddingHorizontal: 0,
+      paddingVertical: 0,
+      borderRadius: 0,
+      backgroundColor: 'transparent',
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 286
+    fileSizeOwn: {
+      color: 'rgba(255,255,255,0.72)',
+    },
+>>     avatarSticker: {
+      minWidth: 112,
+      alignItems: 'center',
+      paddingVertical: 3,
+    },
+      alignItems: 'center',
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 291
+      alignItems: 'center',
+      paddingVertical: 3,
+    },
+>>     avatarStickerVisual: {
+      width: 90,
+      height: 76,
+      alignItems: 'center',
+      justifyContent: 'center',
+      position: 'relative',
+    },
+    avatarStickerEmoji: {
+      position: 'absolute',
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 298
+      justifyContent: 'center',
+      position: 'relative',
+    },
+>>     avatarStickerEmoji: {
+      position: 'absolute',
+      right: 1,
+      bottom: 0,
+      fontSize: 32,
+      lineHeight: 36,
+    },
+    avatarStickerLabel: {
+      marginTop: 3,
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 305
+      fontSize: 32,
+      lineHeight: 36,
+    },
+>>     avatarStickerLabel: {
+      marginTop: 3,
+      color: theme.accent,
+      fontSize: 12.5,
+      fontWeight: '900',
+    },
+    avatarStickerLabelOwn: {
+      color: theme.accent,
+    },
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 311
+      fontSize: 12.5,
+      fontWeight: '900',
+    },
+>>     avatarStickerLabelOwn: {
+      color: theme.accent,
+    },
+    standaloneEmoji: {
+      fontSize: 42,
+      lineHeight: 50,
+      textAlign: 'center',
+      includeFontPadding: false,
+    },
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 347
+
+export function ConnectMessageBubble({
+  own,
+>>   showSenderAvatar,
+  senderUserId,
+  senderName,
+  senderLabel,
+  standaloneReaction,
+  avatarReaction,
+  standaloneEmoji,
+  bodyText,
+  sharedPostSlot,
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 352
+  senderName,
+  senderLabel,
+  standaloneReaction,
+>>   avatarReaction,
+  standaloneEmoji,
+  bodyText,
+  sharedPostSlot,
+  photoUrl,
+  photoUrls,
+  isGif,
+  fileName,
+  fileSizeLabel,
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 430
+        own ? styles.own : styles.other,
+      ]}
+    >
+>>       {showSenderAvatar && (
+        <View
+          style={[
+            styles.senderAvatar,
+            own && styles.senderAvatarOwn,
+          ]}
+        >
+          <ConnectTappableAvatar
+            userId={senderUserId}
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 433
+      {showSenderAvatar && (
+        <View
+          style={[
+>>             styles.senderAvatar,
+            own && styles.senderAvatarOwn,
+          ]}
+        >
+          <ConnectTappableAvatar
+            userId={senderUserId}
+            name={senderName}
+            size={32}
+          />
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 434
+        <View
+          style={[
+            styles.senderAvatar,
+>>             own && styles.senderAvatarOwn,
+          ]}
+        >
+          <ConnectTappableAvatar
+            userId={senderUserId}
+            name={senderName}
+            size={32}
+          />
+        </View>
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 437
+            own && styles.senderAvatarOwn,
+          ]}
+        >
+>>           <ConnectTappableAvatar
+            userId={senderUserId}
+            name={senderName}
+            size={32}
+          />
+        </View>
+      )}
+
+      <View
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 451
+          own
+            ? styles.bubbleColumnOwn
+            : styles.bubbleColumnOther,
+>>           showSenderAvatar &&
+            (own
+              ? styles.bubbleWithAvatarOwn
+              : styles.bubbleWithAvatar),
+        ]}
+      >
+        <View style={styles.bubbleAnchor}>
+          <Pressable
+            ref={bubbleRef}
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 453
+            : styles.bubbleColumnOther,
+          showSenderAvatar &&
+            (own
+>>               ? styles.bubbleWithAvatarOwn
+              : styles.bubbleWithAvatar),
+        ]}
+      >
+        <View style={styles.bubbleAnchor}>
+          <Pressable
+            ref={bubbleRef}
+            style={[
+              styles.bubble,
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 454
+          showSenderAvatar &&
+            (own
+              ? styles.bubbleWithAvatarOwn
+>>               : styles.bubbleWithAvatar),
+        ]}
+      >
+        <View style={styles.bubbleAnchor}>
+          <Pressable
+            ref={bubbleRef}
+            style={[
+              styles.bubble,
+              own ? styles.bubbleOwn : styles.bubbleOther,
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 502
+          </Text>
+        ) : (
+          <>
+>>         {!!avatarReaction && (
+          <View style={styles.avatarSticker}>
+            <View style={styles.avatarStickerVisual}>
+              <ConnectTappableAvatar
+                userId={senderUserId}
+                name={senderName}
+                size={58}
+              />
+              <Text style={styles.avatarStickerEmoji}>
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 503
+        ) : (
+          <>
+        {!!avatarReaction && (
+>>           <View style={styles.avatarSticker}>
+            <View style={styles.avatarStickerVisual}>
+              <ConnectTappableAvatar
+                userId={senderUserId}
+                name={senderName}
+                size={58}
+              />
+              <Text style={styles.avatarStickerEmoji}>
+                {avatarReaction.emoji}
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 504
+          <>
+        {!!avatarReaction && (
+          <View style={styles.avatarSticker}>
+>>             <View style={styles.avatarStickerVisual}>
+              <ConnectTappableAvatar
+                userId={senderUserId}
+                name={senderName}
+                size={58}
+              />
+              <Text style={styles.avatarStickerEmoji}>
+                {avatarReaction.emoji}
+              </Text>
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 505
+        {!!avatarReaction && (
+          <View style={styles.avatarSticker}>
+            <View style={styles.avatarStickerVisual}>
+>>               <ConnectTappableAvatar
+                userId={senderUserId}
+                name={senderName}
+                size={58}
+              />
+              <Text style={styles.avatarStickerEmoji}>
+                {avatarReaction.emoji}
+              </Text>
+            </View>
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 510
+                name={senderName}
+                size={58}
+              />
+>>               <Text style={styles.avatarStickerEmoji}>
+                {avatarReaction.emoji}
+              </Text>
+            </View>
+            <Text
+              style={[
+                styles.avatarStickerLabel,
+                own && styles.avatarStickerLabelOwn,
+              ]}
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 511
+                size={58}
+              />
+              <Text style={styles.avatarStickerEmoji}>
+>>                 {avatarReaction.emoji}
+              </Text>
+            </View>
+            <Text
+              style={[
+                styles.avatarStickerLabel,
+                own && styles.avatarStickerLabelOwn,
+              ]}
+            >
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 516
+            </View>
+            <Text
+              style={[
+>>                 styles.avatarStickerLabel,
+                own && styles.avatarStickerLabelOwn,
+              ]}
+            >
+              {avatarReaction.label}
+            </Text>
+          </View>
+        )}
+
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 517
+            <Text
+              style={[
+                styles.avatarStickerLabel,
+>>                 own && styles.avatarStickerLabelOwn,
+              ]}
+            >
+              {avatarReaction.label}
+            </Text>
+          </View>
+        )}
+
+        {!!standaloneEmoji && (
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 520
+                own && styles.avatarStickerLabelOwn,
+              ]}
+            >
+>>               {avatarReaction.label}
+            </Text>
+          </View>
+        )}
+
+        {!!standaloneEmoji && (
+          <Text style={styles.standaloneEmoji}>
+            {standaloneEmoji}
+          </Text>
+
+FILE: src\components\connect\ConnectMessageBubble.tsx
+LINE: 531
+          </Text>
+        )}
+
+>>         {!avatarReaction && !standaloneEmoji && !!bodyText && (
+          <>
+            {sharedPostSlot}
+            <Text
+              style={[
+                styles.body,
+                own && styles.bodyOwn,
+              ]}
+            >
+
+FILE: src\components\connect\ConnectQuickContacts.tsx
+LINE: 51
+  ConnectPressable,
+} from '@/components/connect/ConnectPressable';
+import {
+>>   ConnectTappableAvatar,
+} from '@/components/connect/ConnectTappableAvatar';
+
+const MAX_NOTE_CHARS = 80;
+const NOTE_LINE_HEIGHT = 12;
+const NOTE_MAX_LINES = 3;
+const NOTE_ZONE_HEIGHT =
+  NOTE_LINE_HEIGHT * NOTE_MAX_LINES + 12;
+const NOTE_ZONE_EDIT_HEIGHT =
+
+FILE: src\components\connect\ConnectQuickContacts.tsx
+LINE: 52
+} from '@/components/connect/ConnectPressable';
+import {
+  ConnectTappableAvatar,
+>> } from '@/components/connect/ConnectTappableAvatar';
+
+const MAX_NOTE_CHARS = 80;
+const NOTE_LINE_HEIGHT = 12;
+const NOTE_MAX_LINES = 3;
+const NOTE_ZONE_HEIGHT =
+  NOTE_LINE_HEIGHT * NOTE_MAX_LINES + 12;
+const NOTE_ZONE_EDIT_HEIGHT =
+  NOTE_ZONE_HEIGHT + 34;
+
+FILE: src\components\connect\ConnectQuickContacts.tsx
+LINE: 61
+  NOTE_LINE_HEIGHT * NOTE_MAX_LINES + 12;
+const NOTE_ZONE_EDIT_HEIGHT =
+  NOTE_ZONE_HEIGHT + 34;
+>> const AVATAR_SIZE = 56;
+const COLUMN_WIDTH = 78;
+
+type CurrentUser = {
+  user_id: string;
+  full_name: string;
+  avatar_url: string | null;
+};
+
+
+FILE: src\components\connect\ConnectQuickContacts.tsx
+LINE: 67
+type CurrentUser = {
+  user_id: string;
+  full_name: string;
+>>   avatar_url: string | null;
+};
+
+type Props = {
+  contacts: ConnectSuggestedContact[];
+  currentUser: CurrentUser | null;
+  onOpenContact: (
+    contact: ConnectSuggestedContact
+  ) => void;
+
+FILE: src\components\connect\ConnectQuickContacts.tsx
+LINE: 195
+      color: theme.textPrimary,
+      textAlign: 'center',
+    },
+>>     avatarWrap: {
+      width: AVATAR_SIZE,
+      height: AVATAR_SIZE,
+      position: 'relative',
+    },
+    unreadDot: {
+      position: 'absolute',
+      right: 2,
+      bottom: 2,
+
+FILE: src\components\connect\ConnectQuickContacts.tsx
+LINE: 196
+      textAlign: 'center',
+    },
+    avatarWrap: {
+>>       width: AVATAR_SIZE,
+      height: AVATAR_SIZE,
+      position: 'relative',
+    },
+    unreadDot: {
+      position: 'absolute',
+      right: 2,
+      bottom: 2,
+      width: 12,
+
+FILE: src\components\connect\ConnectQuickContacts.tsx
+LINE: 197
+    },
+    avatarWrap: {
+      width: AVATAR_SIZE,
+>>       height: AVATAR_SIZE,
+      position: 'relative',
+    },
+    unreadDot: {
+      position: 'absolute',
+      right: 2,
+      bottom: 2,
+      width: 12,
+      height: 12,
+
+FILE: src\components\connect\ConnectQuickContacts.tsx
+LINE: 509
+        />
+      )}
+
+>>       <View style={styles.avatarWrap}>
+        <ConnectTappableAvatar
+          userId={contact.user_id}
+          name={contact.full_name}
+          uri={contact.avatar_url}
+          size={AVATAR_SIZE}
+          enableLongPressSheet={!isSelf}
+          onPress={isSelf ? null : undefined}
+        />
+
+FILE: src\components\connect\ConnectQuickContacts.tsx
+LINE: 510
+      )}
+
+      <View style={styles.avatarWrap}>
+>>         <ConnectTappableAvatar
+          userId={contact.user_id}
+          name={contact.full_name}
+          uri={contact.avatar_url}
+          size={AVATAR_SIZE}
+          enableLongPressSheet={!isSelf}
+          onPress={isSelf ? null : undefined}
+        />
+
+
+FILE: src\components\connect\ConnectQuickContacts.tsx
+LINE: 513
+        <ConnectTappableAvatar
+          userId={contact.user_id}
+          name={contact.full_name}
+>>           uri={contact.avatar_url}
+          size={AVATAR_SIZE}
+          enableLongPressSheet={!isSelf}
+          onPress={isSelf ? null : undefined}
+        />
+
+        {!isSelf && unread > 0 && (
+          <View
+            pointerEvents="none"
+
+FILE: src\components\connect\ConnectQuickContacts.tsx
+LINE: 514
+          userId={contact.user_id}
+          name={contact.full_name}
+          uri={contact.avatar_url}
+>>           size={AVATAR_SIZE}
+          enableLongPressSheet={!isSelf}
+          onPress={isSelf ? null : undefined}
+        />
+
+        {!isSelf && unread > 0 && (
+          <View
+            pointerEvents="none"
+            style={styles.unreadDot}
+
+FILE: src\components\connect\ConnectQuickContacts.tsx
+LINE: 632
+    ? {
+        user_id: currentUser.user_id,
+        full_name: currentUser.full_name,
+>>         avatar_url: currentUser.avatar_url,
+        shared_scope_label: null,
+        thread_id: null,
+        unread_count: 0,
+        quick_note: selfNote?.quick_note ?? null,
+      }
+    : null;
+
+
+FILE: src\components\connect\ConnectQuickContacts.tsx
+LINE: 701
+    (contact) => ({
+      user_id: contact.other_user_id,
+      full_name: contact.other_user_name,
+>>       avatar_url: null,
+      shared_scope_label: null,
+      rank_name: null,
+      thread_id: contact.thread_id,
+      unread_count: contact.unread_count,
+      quick_note: null,
+    })
+  );
+
+
+FILE: src\components\connect\ConnectTappableAvatar.tsx
+LINE: 15
+  ConnectPressable,
+} from '@/components/connect/ConnectPressable';
+import {
+>>   ProfileAvatar,
+} from '@/components/ProfileAvatar';
+import {
+  visitMemberProfile,
+} from '@/lib/buklodMemberProfile';
+import {
+  BUKLOD_HIT_SLOP_AVATAR,
+  BUKLOD_LONG_PRESS_MS,
+} from '@/lib/buklodTouch';
+
+FILE: src\components\connect\ConnectTappableAvatar.tsx
+LINE: 16
+} from '@/components/connect/ConnectPressable';
+import {
+  ProfileAvatar,
+>> } from '@/components/ProfileAvatar';
+import {
+  visitMemberProfile,
+} from '@/lib/buklodMemberProfile';
+import {
+  BUKLOD_HIT_SLOP_AVATAR,
+  BUKLOD_LONG_PRESS_MS,
+} from '@/lib/buklodTouch';
+
+
+FILE: src\components\connect\ConnectTappableAvatar.tsx
+LINE: 21
+  visitMemberProfile,
+} from '@/lib/buklodMemberProfile';
+import {
+>>   BUKLOD_HIT_SLOP_AVATAR,
+  BUKLOD_LONG_PRESS_MS,
+} from '@/lib/buklodTouch';
+
+type Props = {
+  userId?: string | null;
+  uri?: string | null;
+  name?: string | null;
+  size?: number;
+
+FILE: src\components\connect\ConnectTappableAvatar.tsx
+LINE: 39
+};
+
+/**
+>>  * Connect-specific avatar tap target.
+ *
+ * Tap uses a normal press-up so it can open the profile sheet
+ * without jumping into a message on finger-down.
+ */
+export function ConnectTappableAvatar({
+  userId,
+  uri,
+  name,
+
+FILE: src\components\connect\ConnectTappableAvatar.tsx
+LINE: 44
+ * Tap uses a normal press-up so it can open the profile sheet
+ * without jumping into a message on finger-down.
+ */
+>> export function ConnectTappableAvatar({
+  userId,
+  uri,
+  name,
+  size = 48,
+  fallbackSource,
+  onPress,
+  enableLongPressSheet,
+}: Props) {
+
+FILE: src\components\connect\ConnectTappableAvatar.tsx
+LINE: 93
+    !!tapHandler ||
+    !!openProfileSheet;
+
+>>   const avatar = (
+    <ProfileAvatar
+      userId={userId}
+      uri={uri}
+      name={name}
+      size={size}
+      fallbackSource={fallbackSource}
+    />
+  );
+
+FILE: src\components\connect\ConnectTappableAvatar.tsx
+LINE: 94
+    !!openProfileSheet;
+
+  const avatar = (
+>>     <ProfileAvatar
+      userId={userId}
+      uri={uri}
+      name={name}
+      size={size}
+      fallbackSource={fallbackSource}
+    />
+  );
+
+
+FILE: src\components\connect\ConnectTappableAvatar.tsx
+LINE: 112
+          height: size,
+        }}
+      >
+>>         {avatar}
+      </View>
+    );
+  }
+
+  return (
+    <>
+      <ConnectPressable
+        accessibilityRole="button"
+
+FILE: src\components\connect\ConnectTappableAvatar.tsx
+LINE: 123
+        accessibilityRole="button"
+        accessibilityLabel={
+          name
+>>             ? `${name} avatar. Tap to view profile.`
+            : 'Member avatar. Tap to view profile.'
+        }
+        enableScale={false}
+        instant={false}
+        delayLongPress={BUKLOD_LONG_PRESS_MS}
+        hitSlop={BUKLOD_HIT_SLOP_AVATAR}
+        onPress={
+          tapHandler
+
+FILE: src\components\connect\ConnectTappableAvatar.tsx
+LINE: 124
+        accessibilityLabel={
+          name
+            ? `${name} avatar. Tap to view profile.`
+>>             : 'Member avatar. Tap to view profile.'
+        }
+        enableScale={false}
+        instant={false}
+        delayLongPress={BUKLOD_LONG_PRESS_MS}
+        hitSlop={BUKLOD_HIT_SLOP_AVATAR}
+        onPress={
+          tapHandler
+            ? () => {
+
+FILE: src\components\connect\ConnectTappableAvatar.tsx
+LINE: 129
+        enableScale={false}
+        instant={false}
+        delayLongPress={BUKLOD_LONG_PRESS_MS}
+>>         hitSlop={BUKLOD_HIT_SLOP_AVATAR}
+        onPress={
+          tapHandler
+            ? () => {
+                tapHandler();
+              }
+            : undefined
+        }
+        onLongPress={openProfileSheet}
+
+FILE: src\components\connect\ConnectTappableAvatar.tsx
+LINE: 145
+          overflow: 'hidden',
+        }}
+      >
+>>         {avatar}
+      </ConnectPressable>
+
+      <BuklodPersonVisitSheet
+        visible={sheetOpen}
+        userId={userId}
+        displayName={name}
+        avatarUrl={uri}
+        onClose={() => setSheetOpen(false)}
+
+FILE: src\components\connect\ConnectTappableAvatar.tsx
+LINE: 152
+        visible={sheetOpen}
+        userId={userId}
+        displayName={name}
+>>         avatarUrl={uri}
+        onClose={() => setSheetOpen(false)}
+      />
+    </>
+  );
+}
+
+FILE: src\components\connect\ConnectThreadHeader.tsx
+LINE: 26
+  ConnectPressable,
+} from '@/components/connect/ConnectPressable';
+import {
+>>   ConnectTappableAvatar,
+} from '@/components/connect/ConnectTappableAvatar';
+
+type Props = {
+  title: string;
+  subtitle?: string;
+  showSubtitle?: boolean;
+  /** When true, renders a compact action row for embedded workspace Connect. */
+  compactEmbedded?: boolean;
+
+FILE: src\components\connect\ConnectThreadHeader.tsx
+LINE: 27
+} from '@/components/connect/ConnectPressable';
+import {
+  ConnectTappableAvatar,
+>> } from '@/components/connect/ConnectTappableAvatar';
+
+type Props = {
+  title: string;
+  subtitle?: string;
+  showSubtitle?: boolean;
+  /** When true, renders a compact action row for embedded workspace Connect. */
+      </ConnectPressable>
+
+      {!!otherUserId && (
+>>         <ConnectTappableAvatar
+          userId={otherUserId}
+          name={title}
+          size={36}
+        />
+      )}
+
+      <View style={styles.copy}>
+        <Text numberOfLines={1} style={styles.title}>
+
+FILE: src\components\HomeMotion.tsx
+LINE: 265
+  );
+}
+
+>> export function BuklodFocusAvatar({
+  replayOnFocus = false,
+  children,
+  style,
+}: {
+  replayOnFocus?: boolean;
+  children: React.ReactNode;
+  style?: StyleProp<ViewStyle>;
+}) {
+
+FILE: src\components\MzbEnvironmentShell.tsx
+LINE: 217
+      {item.key === 'community' && (
+        <>
+          <View style={styles.previewComposer}>
+>>             <View style={styles.previewAvatar} />
+            <View style={styles.previewComposerInput}>
+              <Text style={styles.previewMuted}>
+                Share with MZB Community...
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.previewPost}>
+
+FILE: src\components\MzbEnvironmentShell.tsx
+LINE: 227
+
+          <View style={styles.previewPost}>
+            <View style={styles.previewPostTop}>
+>>               <View style={styles.previewAvatar} />
+              <View style={{ flex: 1 }}>
+                <View style={styles.previewNameLine} />
+                <View style={styles.previewTinyLine} />
+              </View>
+            </View>
+            <PreviewLines count={3} />
+            <View style={styles.previewMedia} />
+          </View>
+
+FILE: src\components\MzbEnvironmentShell.tsx
+LINE: 239
+
+          <View style={styles.previewPost}>
+            <View style={styles.previewPostTop}>
+>>               <View style={styles.previewAvatar} />
+              <View style={{ flex: 1 }}>
+                <View style={styles.previewNameLine} />
+                <View style={styles.previewTinyLine} />
+              </View>
+            </View>
+            <PreviewLines count={2} />
+          </View>
+        </>
+
+FILE: src\components\MzbEnvironmentShell.tsx
+LINE: 261
+              key={title}
+              style={styles.previewThread}
+            >
+>>               <View style={styles.previewAvatar}>
+                <Text style={styles.previewAvatarText}>
+                  {index + 1}
+                </Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.previewThreadTitle}>
+                  {title}
+                </Text>
+
+FILE: src\components\MzbEnvironmentShell.tsx
+LINE: 262
+              style={styles.previewThread}
+            >
+              <View style={styles.previewAvatar}>
+>>                 <Text style={styles.previewAvatarText}>
+                  {index + 1}
+                </Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.previewThreadTitle}>
+                  {title}
+                </Text>
+                <View style={styles.previewTinyLine} />
+
+FILE: src\components\MzbEnvironmentShell.tsx
+LINE: 1219
+        colors.white,
+    },
+
+>>     previewAvatar: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor:
+        colors.greenSoft,
+    },
+
+FILE: src\components\MzbEnvironmentShell.tsx
+LINE: 1229
+        colors.greenSoft,
+    },
+
+>>     previewAvatarText: {
+      fontSize: 8,
+      fontWeight: '900',
+      color:
+        colors.greenDark,
+    },
+
+    previewComposerInput: {
+      flex: 1,
+
+FILE: src\components\OwnProfileNoteMusicOverlay.tsx
+LINE: 116
+        position:
+          'absolute',
+
+>>         // Center the short bubble over the real Profile avatar.
+        left:
+          size / 2 -
+          bubbleWidth / 2,
+
+        top:
+          -42,
+
+        zIndex:
+
+FILE: src\components\points\BuklodCharacterCustomizeSheet.tsx
+LINE: 17
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import type { ComponentProps } from 'react';
+
+>> import BuklodCharacterFaceAvatar from '@/components/points/BuklodCharacterFaceAvatar';
+import BuklodCharacterItemThumb from '@/components/points/BuklodCharacterItemThumb';
+import BuklodCharacterSettingsRow from '@/components/points/BuklodCharacterSettingsRow';
+import { useBuklodCharacterEventsOptional } from '@/components/character/BuklodCharacterEventProvider';
+import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
+import { markRorkAvatarOnboardingCompleted } from '@/lib/buklodRorkAvatarOnboarding';
+import { withAlpha } from '@/lib/buklodContrast';
+import { useBuklodDrawerBottomInset } from '@/lib/buklodSafeArea';
+import {
+
+FILE: src\components\points\BuklodCharacterCustomizeSheet.tsx
+LINE: 22
+import BuklodCharacterSettingsRow from '@/components/points/BuklodCharacterSettingsRow';
+import { useBuklodCharacterEventsOptional } from '@/components/character/BuklodCharacterEventProvider';
+import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
+>> import { markRorkAvatarOnboardingCompleted } from '@/lib/buklodRorkAvatarOnboarding';
+import { withAlpha } from '@/lib/buklodContrast';
+import { useBuklodDrawerBottomInset } from '@/lib/buklodSafeArea';
+import {
+  buildUnlockContext,
+  CHARACTER_SLOT_LABELS,
+  CHARACTER_SLOT_ORDER,
+  DEFAULT_CHARACTER,
+  equipItem,
+
+FILE: src\components\points\BuklodCharacterCustomizeSheet.tsx
+LINE: 424
+    const toSave = { ...draft, bodyChosen: draft.bodyChosen ?? true };
+    await saveBuklodCharacter(toSave, userId);
+    if (userId) {
+>>       await markRorkAvatarOnboardingCompleted(userId);
+    }
+    setSavedSnapshot(toSave);
+    onSaved?.(toSave);
+    onClose();
+  };
+
+  const cancel = () => {
+    setDraft(savedSnapshot);
+
+FILE: src\components\points\BuklodCharacterCustomizeSheet.tsx
+LINE: 537
+                    {formatPoints(lifetimePoints)} BUKLOD pts
+                  </Text>
+                </View>
+>>                 <BuklodCharacterFaceAvatar
+                  body={draft.body}
+                  equipment={draft.equipment}
+                  size={56}
+                  reactionKey={swapKey}
+                />
+              </View>
+            </View>
+            <Pressable onPress={onClose} hitSlop={12}>
+
+FILE: src\components\points\BuklodCharacterFaceAvatar.tsx
+LINE: 25
+};
+
+/** Compact circular face — local figure, no remote crop. */
+>> export default function BuklodCharacterFaceAvatar({
+  body,
+  equipment,
+  size = 56,
+  border = true,
+}: Props) {
+  const { theme } = useBuklodPresentation();
+
+  return (
+
+FILE: src\components\points\BuklodCharacterNavigator.tsx
+LINE: 17
+  View,
+} from 'react-native';
+
+>> import BuklodCharacterFaceAvatar from '@/components/points/BuklodCharacterFaceAvatar';
+import { useBuklodCharacterEventsOptional } from '@/components/character/BuklodCharacterEventProvider';
+import { useBuklodReduceMotion } from '@/components/HomeMotion';
+import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
+import { withAlpha } from '@/lib/buklodContrast';
+import type { BuklodCharacterState } from '@/lib/buklodCharacter';
+import { CharacterEventType } from '@/lib/buklodCharacterEvents';
+
+type Props = {
+
+FILE: src\components\points\BuklodCharacterNavigator.tsx
+LINE: 220
+    });
+  }, [claimableCount, events, onOpenCustomize, showBubble]);
+
+>>   const avatarSize = 48;
+
+  return (
+    <Animated.View
+      pointerEvents="box-none"
+      style={[
+        styles.root,
+        {
+          opacity: entryOpacity,
+
+FILE: src\components\points\BuklodCharacterNavigator.tsx
+LINE: 293
+          </Text>
+        </View>
+
+>>         <View style={styles.avatarWrap}>
+          <Animated.View
+            style={[
+              styles.ring,
+              {

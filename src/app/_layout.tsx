@@ -1,4 +1,4 @@
-import BuklodNavSafeShell from '@/components/BuklodNavSafeShell';
+﻿import BuklodNavSafeShell from '@/components/BuklodNavSafeShell';
 import BuklodRootKeyboardAvoidingView from '@/components/BuklodRootKeyboardAvoidingView';
 import { BuklodGuideAvatar } from '@/components/BuklodGuideAvatar';
 import '@/lib/performanceBoot';
@@ -95,6 +95,7 @@ export default function RootLayout() {
                 }}
               >
                 <Stack.Screen name="index" />
+                <Stack.Screen name="child-safety" />
                 <Stack.Screen name="(auth)" />
                 <Stack.Screen name="privacy/index" />
                 <Stack.Screen name="delete-account/index" />
@@ -259,5 +260,6 @@ const styles=StyleSheet.create({
   retry:{marginTop:18,backgroundColor:colors.green,paddingVertical:12,paddingHorizontal:18,borderRadius:12},
   retryText:{color:colors.white,fontWeight:'900'}
 });
+
 
 

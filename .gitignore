@@ -80,3 +80,22 @@ native120-*.txt
 # Database/backend files are kept local during initial Rork UI redesign
 /supabase/
 
+
+credentials.json
+credentials/
+*.keystore
+*.jks
+*.apk
+*.aab
+*.zip
+android/.gradle/
+android/build/
+android/app/build/
+/-File
+.buklod-temp/
+.tmp-*/
+BUKLOD_PLAYSTORE_ARCHIVE_CHECK/
+BUKLOD_ANDROID_OTA_PREFLIGHT/
+BUKLOD_*_AUDIT_*/
+BUKLOD_STREAM_WEB_BACKUP_*/
+PATCH_*_BACKUP_*/

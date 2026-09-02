@@ -174,7 +174,6 @@ export function BuklodGuideAvatar() {
   const dragGesture = useMemo(
     () =>
       Gesture.Pan()
-        .activateAfterLongPress(BUKLOD_LONG_PRESS_MS)
         .minDistance(BUKLOD_PAN_MIN_DISTANCE_PX)
         .maxPointers(1)
         .onBegin(() => {

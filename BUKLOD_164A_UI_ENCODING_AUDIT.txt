@@ -1,0 +1,1361 @@
+﻿============================================================
+BUKLOD 164A-UI - UNIVERSAL HOME / NAVIGATION / ENCODING AUDIT
+Generated: 08/13/2026 23:54:34
+============================================================
+
+============================================================
+FILE: src\app\(tabs)\home.tsx
+============================================================
+55: church_id: string | null;
+65: church?:
+71: type HomeLeaderboardRow = {
+78: church_name?: string;
+81: function churchName(
+82: church: MissionBulletin['church']
+84: if (!church) return null;
+85: if (Array.isArray(church)) {
+86: return church[0]?.name ?? null;
+88: return church.name ?? null;
+91: export default function HomeScreen() {
+92: const { profile, hasRole } = useAuth();
+95: // HOME_CIRCLE_RANK_IDENTITY_V2
+96: const profileId =
+97: (profile as any)?.id as string | undefined;
+106: if (!profileId) {
+114: p_user_ids: [profileId],
+122: 'Home Circle Rank:',
+138: item?.user_id === profileId
+152: }, [profileId]);
+162: const [homeTop, setHomeTop] =
+163: useState<HomeLeaderboardRow[]>([]);
+170: hasRole('system_admin') ||
+171: hasRole('pastor') ||
+172: hasRole('local_admin');
+193: * Refreshing Home therefore does not randomly
+389: * the current staging/local app does not break.
+397: 'id,church_id,title,body,priority,is_pinned,starts_at,expires_at,church:church_id(name)'
+413: * Home should show:
+415: * - bulletin for member's own Local
+417: * A Pastor may manage several Locals,
+418: * but their personal Home remains based
+419: * on their own member Local.
+421: if (profile?.church_id) {
+424: `church_id.is.null,church_id.eq.${profile.church_id}`
+429: 'church_id',
+458: if (profile?.id) {
+475: profile.id
+493: profile?.id,
+494: profile?.church_id,
+500: const loadHomeLeaderboard = async () => {
+510: p_church_id: null,
+517: setHomeTop(
+518: (data ?? []) as HomeLeaderboardRow[]
+523: setHomeTop([]);
+532: loadHomeLeaderboard();
+554: const bulletinChurch =
+556: ? churchName(bulletin.church)
+572: {/* PATCH_154A_HOME_ACTIONS */}
+576: router.push('/points')
+601: {/* HOME_NAME_RANK_BADGE_V2 */}
+611: {profile?.full_name ||
+642: router.push('/word')
+664: {/* PATCH_154T_HOME_DAILY_BAYANIHAN_PAIR */}
+665: <HomeDailyBayanihanPair />
+682: <HomeMissionBulletins />
+684: {/* HOME_CHURCH_NEWS_CAROUSEL_V1 */}
+685: <HomeChurchNewsCarousel />
+709: {bulletin?.church_id
+711: bulletinChurch ||
+712: 'LOCAL MISSION UPDATE'
+780: Local Church announcements
+796: router.push(
+809: <HomeTopFiveCompact
+811: homeTop.slice(0, 5)
+819: {/* HOME_IMPORTANT_REMINDER_V1 */}
+820: <HomeImportantReminder />
+829: COMPACT HOME DAILY BIBLE
+835: HOME DAILY DEVOTION + BAYANIHAN CURRENT BALANCE
+838: function HomeDailyBayanihanPair() {
+839: /* MY_BIBLE_HOME_SPLIT_V2 */
+905: 'Home Bayanihan balance:',
+938: 'Home Daily/Bayanihan:',
+964: .toLocaleString(
+1002: router.push('/bible' as any)
+1004: accessibilityRole="button"
+1098: router.push({
+1105: accessibilityRole="button"
+1183: router.push('/bayanihan' as any)
+1185: accessibilityRole="button"
+1286: function HomeDailyBibleStrip() {
+1354: router.push({
+1366: router.push('/bible' as any);
+1372: accessibilityRole="button"
+1470: HOME_NEWS_COMPONENTS_V1
+1474: type HomeChurchNewsItem = {
+1503: type HomeImportantReminderRow = {
+1516: function homeNewsAge(
+1609: ).toLocaleDateString();
+1617: HOME_NEWS_LOCAL_TAGALOG_V1
+1625: Local BUKLOD Tagalog reconstruction
+1633: type LocalTagalogNews = {
+1650: type LocalTagalogNewsCache =
+1653: LocalTagalogNews
+1657: const HOME_NEWS_TAGALOG_CACHE_KEY =
+1658: 'buklod.home.church_news.tagalog.v10';
+1723: * locally translated Tagalog copy.
+1725: function reconstructChurchTagalog(
+1737: * Church terminology.
+2092: sanitizeHomeNewsText(
+2148: return reconstructChurchTagalog(
+2157: async function readHomeNewsTagalogCache() {
+2164: HOME_NEWS_TAGALOG_CACHE_KEY
+2191: LocalTagalogNewsCache;
+2203: async function saveHomeNewsTagalogCache(
+2205: LocalTagalogNewsCache
+2211: * Keep the local cache reasonably small.
+2226: ).localeCompare(
+2242: HOME_NEWS_TAGALOG_CACHE_KEY,
+2258: /* HOME_NEWS_READABILITY_V1 */
+2260: /* HOME_NEWS_NO_EXCESS_SPACE_V2 */
+2262: /* HOME_NEWS_RECENT_SOURCE_UI_V3 */
+2264: /* HOME_NEWS_RECENT_SOURCE_UI_V3 */
+2268: /* HOME_NEWS_CONTENT_SANITIZER_V1 */
+2270: function sanitizeHomeNewsText(
+2459: function HomeChurchNewsCarousel() {
+2466: HomeChurchNewsItem[]
+2496: /* HOME_NEWS_LOCAL_TRANSLATION_STATE_V1 */
+2499: localTagalog,
+2500: setLocalTagalog,
+2503: LocalTagalogNewsCache
+2540: 'church_news_items'
+2569: 'Home Church News:',
+2583: /* HOME_NEWS_MOUNT_GUARD_V1 */
+2589: ) as HomeChurchNewsItem[]
+2614: * 3-hour throttle so many Home
+2626: 'sync-church-news',
+2630: 'home',
+2680: HOME_NEWS_AUTO_TRANSLATE_EFFECT_V1
+2709: await readHomeNewsTagalogCache();
+2719: setLocalTagalog({
+2730: * Home currently shows up to 10 news.
+2829: setLocalTagalog({
+2836: await saveHomeNewsTagalogCache(
+2846: 'Home News Tagalog:',
+2948: CHURCH NEWS & UPDATES
+3106: Loading church news...
+3120: Church News is being prepared.
+3202: const localTranslation =
+3203: localTagalog[
+3212: item.tagalog_title || localTranslation?.title ||
+3224: item.tagalog_summary || localTranslation?.summary ||
+3232: sanitizeHomeNewsText(
+3237: sanitizeHomeNewsText(
+3321: homeNewsAge(
+3349: {sanitizeHomeNewsText(displayNewsTitle)}
+3370: {sanitizeHomeNewsText(displayNewsSummary)}
+3436: {/* HOME_NEWS_SOURCE_AFTER_ORIGINAL_V1 */}
+3591: function HomeImportantReminder() {
+3594: hasRole,
+3604: HomeImportantReminderRow |
+3625: 'home_important_reminders'
+3632: 'home_primary'
+3709: ...(data as HomeImportantReminderRow),
+3731: hasRole(
+3836: router.push(
+3837: '/admin/home-reminder' as any
+3883: function HomeMissionBulletins() {
+3886: profile,
+4030: 'id,church_id,title,body,priority,is_pinned,starts_at,expires_at,created_at,media_path,church:church_id(name)'
+4064: profile?.church_id
+4069: 'church_id.is.null,church_id.eq.' +
+4070: profile.church_id
+4077: 'church_id',
+4327: profile?.id
+4369: profileRows,
+4373: 'profiles'
+4385: profileRows ??
+4447: profile?.id
+4449: profile as any
+4482: profile?.church_id,
+4483: profile?.id,
+4499: !profile?.id
+4580: !profile?.id
+4619: profile.id,
+4767: const churchName =
+4769: item.church
+4771: ? item.church[
+4774: : item.church
+4862: {churchName ||
+4863: 'ALL LOCALS'}
+4906: ).toLocaleString()}
+5076: profile?.id;
+5215: ).toLocaleString()}
+5230: profile?.id;
+5584: HOME DAILY BIBLE REMINDER
+5587: type HomeBiblePlan = {
+5606: function HomeDailyBibleReminder() {
+5612: React.useState<HomeBiblePlan | null>(
+5657: 'Home Daily Bible:',
+5766: 'Home Daily Bible unavailable:',
+5806: router.push({
+5836: router.push(
+6001: /* PATCH_157C_HOME_TOP5 */
+6002: function HomeTopFiveCompact({
+6045: 'Home monthly Top 5:',
+6179: {points.toLocaleString()}
+
+============================================================
+FILE: src\app\(tabs)\_layout.tsx
+============================================================
+4: Redirect,
+59: | 'home'
+68: pathname==='/home'
+70: pathname.startsWith('/home/')
+72: title='Home';
+73: placement='home';
+233: '/home',
+277: const { session, loading, membershipState, profile } = useAuth();
+281: if (loading || complianceLoading || runtimeLoading || membershipState === 'loading') {
+284: if (!session) return <Redirect href="/(auth)/login" />;
+285: if (config?.maintenance_mode) return <Redirect href="/system/maintenance" />;
+286: if (config?.update_required) return <Redirect href="/system/update-required" />;
+287: if (config?.pilot_access_required && !config?.pilot_access_granted) return <Redirect href="/system/pilot-access" />;
+288: if (requiresAcceptance) return <Redirect href="/privacy/consent" />;
+290: profile?.is_active === true &&
+291: !!profile?.connection_type;
+293: if (membershipState !== 'ready' && !hasCommunityAccess) {
+294: return <Redirect href="/onboarding" />;
+349: <SwipeTabs.Screen
+366: <SwipeTabs.Screen name="learn" options={{ title: 'Learn',
+371: <SwipeTabs.Screen name="buklod" options={{ title: 'BUKLOD',
+377: <SwipeTabs.Screen
+391: <SwipeTabs.Screen name="me" options={{ title: 'Me', tabBarIcon: () => <I>ðŸ‘¤</I> }} />
+
+============================================================
+FILE: src\app\_layout.tsx
+============================================================
+64: <Stack.Screen name="index" />
+65: <Stack.Screen name="(auth)" />
+66: <Stack.Screen name="privacy/notice" />
+67: <Stack.Screen name="privacy/consent" />
+68: <Stack.Screen name="account/data-rights" />
+69: <Stack.Screen name="account/delete" />
+70: <Stack.Screen name="moderation/report" />
+71: <Stack.Screen name="onboarding/index" />
+72: <Stack.Screen name="(tabs)" />
+73: <Stack.Screen name="devotional/[id]" />
+74: <Stack.Screen name="reflection/[id]" />
+75: <Stack.Screen name="post/[id]" />
+76: <Stack.Screen name="connect/index" />
+77: <Stack.Screen name="connect/[id]" />
+78: <Stack.Screen name="prayer/new" />
+79: <Stack.Screen name="prayer/[id]" />
+80: <Stack.Screen name="notifications/index" />
+81: <Stack.Screen name="leader/index" />
+82: <Stack.Screen name="leader/follow-up/[id]" />
+83: <Stack.Screen name="learn/[id]" />
+84: <Stack.Screen name="learn/lesson" options={{ orientation: 'default' }} />
+85: <Stack.Screen name="bible/index" />
+87: <Stack.Screen name="mentoring/index" />
+88: <Stack.Screen name="reels/index" />
+89: <Stack.Screen name="leader/bible" />
+90: <Stack.Screen name="mentor/index" />
+91: <Stack.Screen name="mentor/disciple" />
+92: <Stack.Screen name="church/index" />
+93: <Stack.Screen name="church/event/[id]" />
+94: <Stack.Screen name="church/attendance/[id]" />
+95: <Stack.Screen name="church/ministries" />
+96: <Stack.Screen name="church/announcement/[id]" />
+97: <Stack.Screen name="church/directory/index" />
+98: <Stack.Screen name="church/directory/settings" />
+99: <Stack.Screen name="church/member/[id]" />
+100: <Stack.Screen name="church/household/index" />
+101: <Stack.Screen name="reports/index" />
+102: <Stack.Screen name="reports/devotional-trend" />
+103: <Stack.Screen name="reports/member-export" />
+104: <Stack.Screen name="reports/attendance-export" />
+105: <Stack.Screen name="reports/group-comparison" />
+106: <Stack.Screen name="reports/church-comparison" />
+107: <Stack.Screen name="pilot/welcome" />
+108: <Stack.Screen name="pilot/checklist" />
+109: <Stack.Screen name="support/index" />
+110: <Stack.Screen name="support/[slug]" />
+111: <Stack.Screen name="admin/pilot/content" />
+112: <Stack.Screen name="admin/pilot/checklist" />
+113: <Stack.Screen name="feedback/index" />
+114: <Stack.Screen name="feedback/mine" />
+115: <Stack.Screen name="system/maintenance" />
+116: <Stack.Screen name="system/update-required" />
+117: <Stack.Screen name="system/pilot-access" />
+118: <Stack.Screen name="system/release-notes" />
+119: <Stack.Screen name="admin/command-center/index" />
+120: <Stack.Screen name="admin/command-center/incidents" />
+121: <Stack.Screen name="admin/command-center/readiness" />
+122: <Stack.Screen name="admin/command-center/releases" />
+123: <Stack.Screen name="admin/command-center/decision" />
+124: <Stack.Screen name="admin/pilot/index" />
+125: <Stack.Screen name="admin/pilot/runtime" />
+126: <Stack.Screen name="admin/pilot/features" />
+127: <Stack.Screen name="admin/pilot/cohorts" />
+128: <Stack.Screen name="admin/pilot/feedback" />
+129: <Stack.Screen name="admin/index" />
+131: <Stack.Screen name="admin/sponsors" />
+132: <Stack.Screen name="admin/member-master" />
+133: <Stack.Screen name="admin/bible/index" />
+134: <Stack.Screen name="admin/bible/monitor" />
+135: <Stack.Screen name="admin/approvals" />
+136: <Stack.Screen name="admin/series" />
+137: <Stack.Screen name="admin/devotionals" />
+138: <Stack.Screen name="admin/devotional-editor" />
+139: <Stack.Screen name="admin/churches" />
+140: <Stack.Screen name="admin/groups" />
+141: <Stack.Screen name="admin/group/[id]" />
+142: <Stack.Screen name="admin/users" />
+143: <Stack.Screen name="admin/learning/index" />
+144: <Stack.Screen name="admin/learning/track-editor" />
+145: <Stack.Screen name="admin/learning/mentors" />
+146: <Stack.Screen name="admin/learning-approvals" />
+147: <Stack.Screen name="admin/bayanihan" />
+148: <Stack.Screen name="admin/church-life/index" />
+149: <Stack.Screen name="admin/church-life/event-editor" />
+150: <Stack.Screen name="admin/church-life/events" />
+151: <Stack.Screen name="admin/church-life/ministries" />
+152: <Stack.Screen name="admin/church-life/announcement-editor" />
+153: <Stack.Screen name="admin/member-care/index" />
+154: <Stack.Screen name="admin/member-care/[id]" />
+155: <Stack.Screen name="admin/visitors/index" />
+156: <Stack.Screen name="admin/visitors/[id]" />
+157: <Stack.Screen name="admin/reports/index" />
+158: <Stack.Screen name="admin/privacy/index" />
+
+============================================================
+FILE: src\app\(auth)\register.tsx
+============================================================
+26: type Church = {
+115: const [churches, setChurches] =
+116: useState<Church[]>([]);
+120: const [churchId, setChurchId] =
+125: useState<'local_member'|'invited'|'seeking_church'|'community'>('community');
+126: const wantsLocalMembership = connectionType === 'local_member';
+129: churchDrawerOpen,
+130: setChurchDrawerOpen,
+134: churchSearch,
+135: setChurchSearch,
+213: .from('churches')
+220: 'Could not load churches',
+225: setChurches(
+226: (data ?? []) as Church[]
+238: if (!churchId) {
+253: p_church_id:
+254: churchId,
+281: }, [churchId]);
+283: const selectedChurch =
+286: churches.find(
+287: (church) =>
+288: church.id === churchId
+290: [churches, churchId]
+293: const filteredChurches =
+296: churchSearch
+301: return churches;
+304: return churches.filter(
+305: (church) =>
+306: church.name
+309: (church.code || '')
+314: churches,
+315: churchSearch,
+325: const selectChurch = (
+326: church: Church
+328: setChurchId(church.id);
+329: setChurchSearch('');
+330: setChurchDrawerOpen(false);
+340: (wantsLocalMembership && !churchId)
+344: 'First Name, Surname, your chosen Login, Password, and Local Church are required. Middle Name, Suffix, and BUKLOD Cluster are optional.'
+364: let profileMobile:
+392: profileMobile = phone;
+432: profileMobile = phone;
+470: profileMobile = phone;
+507: profileMobile,
+517: requested_church_id:
+518: wantsLocalMembership ? churchId : null,
+520: wantsLocalMembership ? (groupId || null) : null,
+557: 'Your Community account is ready. Local Church and BUKLOD Group access still requires membership verification.'
+561: router.replace('/(tabs)/home');
+798: Optional. This is saved to your member profile but is not your login.
+928: You can join the Community even if you do not belong to a BUKLOD / MZB Local Church.
+931: ['local_member','I belong to a BUKLOD / MZB Local Church'],
+933: ['seeking_church','I am looking for a church or Christian community'],
+940: if(value!=='local_member'){
+941: setChurchId('');
+958: {wantsLocalMembership && (
+960: YOUR LOCAL CHURCH *
+964: Tap below to search and select your Local Church.
+970: churchId &&
+974: setChurchSearch('');
+975: setChurchDrawerOpen(true);
+984: SELECT YOUR LOCAL
+989: selectedChurch
+994: {selectedChurch
+995: ? selectedChurch.name
+996: : 'Tap to select Local Church'}
+1007: {!!churchId && (
+1259: Your Community account can enter BUKLOD immediately. Local Church and BUKLOD Group privileges remain protected until membership verification.
+1299: visible={churchDrawerOpen}
+1303: setChurchDrawerOpen(false)
+1310: setChurchDrawerOpen(false)
+1320: Select Your Local
+1323: Search by Local Church name or code.
+1329: setChurchDrawerOpen(false)
+1350: placeholder="Search Local Church..."
+1351: value={churchSearch}
+1352: onChangeText={setChurchSearch}
+1362: {filteredChurches.map(
+1363: (church) => {
+1365: church.id ===
+1366: churchId;
+1370: key={church.id}
+1372: selectChurch(
+1373: church
+1384: {church.name}
+1387: {!!church.code && (
+1389: {church.code}
+1406: {!filteredChurches.length && (
+1409: No Local Church matched your search.
+
+============================================================
+FILE: src\providers\AuthProvider.tsx
+============================================================
+5: export type AppRole =
+10: | 'local_admin'
+13: export type MembershipState =
+16: | 'pending'
+20: export type Profile = {
+32: church_id: string | null;
+34: connection_type?: 'local_member'|'invited'|'seeking_church'|'community'|null;
+37: // Legacy primary role.
+39: role: AppRole;
+47: profile: Profile | null;
+49: // Active simultaneous BUKLOD roles.
+50: roles: AppRole[];
+53: membershipState: MembershipState;
+55: hasRole: (role: AppRole) => boolean;
+56: hasAnyRole: (rolesToCheck: AppRole[]) => boolean;
+58: refreshProfile: () => Promise<void>;
+59: refreshRoles: () => Promise<void>;
+60: refreshMembership: () => Promise<void>;
+65: const VALID_ROLES: AppRole[] = [
+70: 'local_admin',
+74: const LEADERSHIP_ROLES: AppRole[] = [
+78: 'local_admin',
+90: const [profile, setProfile] = useState<Profile | null>(null);
+91: const [roles, setRoles] = useState<AppRole[]>([]);
+94: const [membershipState, setMembershipState] =
+95: useState<MembershipState>('loading');
+97: const loadRoles = async (
+99: legacyRole?: AppRole | null
+100: ): Promise<AppRole[]> => {
+102: setRoles([]);
+107: .from('user_roles')
+108: .select('role')
+113: console.warn('Role load failed:', error.message);
+115: // Compatibility fallback only if user_roles could not be read.
+116: const fallback: AppRole[] = ['member'];
+119: legacyRole &&
+120: VALID_ROLES.includes(legacyRole) &&
+121: !fallback.includes(legacyRole)
+123: fallback.push(legacyRole);
+126: setRoles(fallback);
+130: const nextRoles = Array.from(
+133: .map((row: any) => row.role as AppRole)
+134: .filter((role: AppRole) => VALID_ROLES.includes(role))
+138: // Every active BUKLOD account has Member as its baseline role.
+139: if (!nextRoles.includes('member')) {
+140: nextRoles.unshift('member');
+143: setRoles(nextRoles);
+145: return nextRoles;
+148: const loadMembership = async (
+150: _activeRoles: AppRole[] = []
+153: setMembershipState('none');
+158: // Role and group do not bypass System Admin verification.
+161: .from('profiles')
+171: setMembershipState('pending');
+176: setMembershipState('ready');
+181: .from('church_join_requests')
+189: setMembershipState('rejected');
+194: // keep the account on the onboarding/verification screen.
+195: setMembershipState('pending');
+198: const loadProfile = async (userId?: string) => {
+200: setProfile(null);
+201: setRoles([]);
+202: setMembershipState('none');
+207: .from('profiles')
+209: 'id,full_name,first_name,middle_name,surname,suffix,mobile,username,login_method,login_identifier,avatar_url,church_id,connection_type,trust_level,is_verified,role,is_active'
+215: console.warn('Profile load failed:', error.message);
+216: setProfile(null);
+217: setRoles([]);
+218: setMembershipState('none');
+222: const nextProfile = data as Profile;
+224: setProfile(nextProfile);
+226: const nextRoles = await loadRoles(
+228: nextProfile.role
+231: await loadMembership(userId, nextRoles);
+238: await loadProfile(data.session?.user.id);
+248: await loadProfile(nextSession?.user.id);
+260: const hasRole = (role: AppRole) =>
+261: roles.includes(role);
+263: const hasAnyRole = (
+264: rolesToCheck: AppRole[]
+266: rolesToCheck.some((role) =>
+267: roles.includes(role)
+273: profile,
+274: roles,
+276: membershipState,
+278: hasRole,
+279: hasAnyRole,
+281: refreshProfile: async () => {
+282: await loadProfile(session?.user.id);
+285: refreshRoles: async () => {
+286: const nextRoles = await loadRoles(
+288: profile?.role
+291: await loadMembership(
+293: nextRoles
+297: refreshMembership: async () => {
+298: await loadMembership(
+300: roles
+310: profile,
+311: roles,
+313: membershipState,
+
+============================================================
+ACTIVE SOURCE MOJIBAKE SCAN
+============================================================
+src\app\(auth)\register.tsx : 954: {connectionType===value?'âœ“ ':''}{label}
+src\app\(tabs)\_layout.tsx : 370: ), tabBarIcon: () => <I>ðŸŽ“</I> }} />
+src\app\(tabs)\_layout.tsx : 375: ), tabBarIcon: () => <I>ðŸ¤</I> }} />
+src\app\(tabs)\_layout.tsx : 387: <I>ðŸ™</I>
+src\app\(tabs)\_layout.tsx : 391: <SwipeTabs.Screen name="me" options={{ title: 'Me', tabBarIcon: () => <I>ðŸ‘¤</I> }} />
+src\app\reels\index.tsx : 1992: {'  â€¢  '}
+src\app\reels\index.tsx : 2420: Maximum 60 seconds â€¢ 50 MB
+src\app\reels\index.tsx : 2548: {' â€¢ '}
+
+============================================================
+HOME FILE FIRST 260 LINES
+============================================================
+1: 
+2: import BuklodSponsorSlot from '@/components/BuklodSponsorSlot';
+3: /* PATCH_161B_BULLETIN_SOCIAL_UI */
+4: import {
+5:   Alert as BulletinAlert,
+6:   TextInput as BulletinTextInput,
+7: } from 'react-native';
+8: 
+9: import {
+10:   useRef as useBulletinRef,
+11: } from 'react';
+12: 
+13: import {
+14:   Image as BulletinImage,
+15: } from 'expo-image';
+16: 
+17: import * as React from 'react';
+18: import {
+19:   useEffect,
+20:   useState,
+21:   } from 'react';
+22: import {
+23:   ActivityIndicator,
+24:   Pressable,
+25:   ScrollView,
+26:   Text,
+27:   View,
+28:   Linking,
+29:   Dimensions,
+30: } from 'react-native';
+31: import AsyncStorage from '@react-native-async-storage/async-storage';
+32: 
+33: import { router } from 'expo-router';
+34: import { MaterialCommunityIcons } from '@expo/vector-icons';
+35: import { supabase } from '@/lib/supabase';
+36: import { Card, Button, SectionTitle, shared } from '@/components/UI';
+37: import { useAuth } from '@/providers/AuthProvider';
+38: import { useNotifications } from '@/providers/NotificationProvider';
+39: import { EnvironmentBadge } from '@/components/EnvironmentBadge';
+40: import { colors } from '@/lib/theme';
+41: 
+42: type Devotional = {
+43:   id: string;
+44:   title: string;
+45:   bible_passage: string | null;
+46:   reflection_text: string;
+47: 
+48:   week_number?: number | null;
+49:   lesson_number?: number | null;
+50:   series_title?: string | null;
+51: };
+52: 
+53: type MissionBulletin = {
+54:   id: string;
+55:   church_id: string | null;
+56:   title: string;
+57:   body: string;
+58:   priority: number;
+59:   is_pinned: boolean;
+60:   starts_at: string;
+61:   expires_at: string | null;
+62:   created_at?: string;
+63:   media_path?: string | null;
+64:   media_url?: string | null;
+65:   church?:
+66:     | { name: string }
+67:     | { name: string }[]
+68:     | null;
+69: };
+70: 
+71: type HomeLeaderboardRow = {
+72:   user_id?: string;
+73:   full_name?: string;
+74:   member_name?: string;
+75:   name?: string;
+76:   total_points?: number;
+77:   points?: number;
+78:   church_name?: string;
+79:   rank?: number;
+80: };
+81: function churchName(
+82:   church: MissionBulletin['church']
+83: ): string | null {
+84:   if (!church) return null;
+85:   if (Array.isArray(church)) {
+86:     return church[0]?.name ?? null;
+87:   }
+88:   return church.name ?? null;
+89: }
+90: 
+91: export default function HomeScreen() {
+92:   const { profile, hasRole } = useAuth();
+93:   const { unreadCount } = useNotifications();
+94: 
+95:   // HOME_CIRCLE_RANK_IDENTITY_V2
+96:   const profileId =
+97:     (profile as any)?.id as string | undefined;
+98: 
+99:   const [circleRank, setCircleRank] =
+100:     useState('Circle Starter V');
+101: 
+102:   useEffect(() => {
+103:     let cancelled = false;
+104: 
+105:     const loadCircleRank = async () => {
+106:       if (!profileId) {
+107:         return;
+108:       }
+109: 
+110:       const { data, error } =
+111:         await (supabase as any).rpc(
+112:           'get_member_circle_ranks_v1',
+113:           {
+114:             p_user_ids: [profileId],
+115:           }
+116:         );
+117: 
+118:       if (cancelled) return;
+119: 
+120:       if (error) {
+121:         console.warn(
+122:           'Home Circle Rank:',
+123:           error.message
+124:         );
+125:         return;
+126:       }
+127: 
+128:       const rows =
+129:         Array.isArray(data)
+130:           ? data
+131:           : data
+132:             ? [data]
+133:             : [];
+134: 
+135:       const row =
+136:         rows.find(
+137:           (item: any) =>
+138:             item?.user_id === profileId
+139:         ) ?? rows[0];
+140: 
+141:       setCircleRank(
+142:         row?.rank_name ||
+143:         'Circle Starter V'
+144:       );
+145:     };
+146: 
+147:     void loadCircleRank();
+148: 
+149:     return () => {
+150:       cancelled = true;
+151:     };
+152:   }, [profileId]);
+153: 
+154:   const [devotional, setDevotional] =
+155:     useState<Devotional | null>(null);
+156: 
+157:   const [bulletin, setBulletin] =
+158:     useState<MissionBulletin | null>(null);
+159: 
+160:   const [count, setCount] = useState(0);
+161: 
+162:   const [homeTop, setHomeTop] =
+163:     useState<HomeLeaderboardRow[]>([]);
+164: 
+165:   const [topLoading, setTopLoading] =
+166:     useState(true);
+167:   const [loading, setLoading] = useState(true);
+168: 
+169:   const canManageBulletins =
+170:     hasRole('system_admin') ||
+171:     hasRole('pastor') ||
+172:     hasRole('local_admin');
+173: 
+174:   useEffect(() => {
+175:     (async () => {
+176:       try {
+177:         const today =
+178:           new Date().toISOString().slice(0, 10);
+179: 
+180:         const now =
+181:           new Date().toISOString();
+182: 
+183:         /*
+184:          * PATCH 153D-1C1
+185:          *
+186:          * Primary source:
+187:          * get_my_weekly_devotional()
+188:          *
+189:          * The backend chooses the lesson from the
+190:          * Member's active assigned Devotional Series
+191:          * using weekly progression.
+192:          *
+193:          * Refreshing Home therefore does not randomly
+194:          * change the assigned lesson.
+195:          *
+196:          * Until PATCH 153D is deployed, the existing
+197:          * latest-published devotional query remains
+198:          * as a temporary fallback.
+199:          */
+200: 
+201:         const devotionalDb =
+202:           supabase as any;
+203: 
+204:         let weeklyDevotional:
+205:           Devotional | null = null;
+206: 
+207:         let weeklyRpcAvailable =
+208:           true;
+209: 
+210: 
+211:         try {
+212:           const {
+213:             data: weeklyData,
+214:             error: weeklyError,
+215:           } =
+216:             await devotionalDb.rpc(
+217:               'get_my_weekly_devotional'
+218:             );
+219: 
+220: 
+221:           if (weeklyError) {
+222:             weeklyRpcAvailable =
+223:               false;
+224: 
+225:           } else {
+226:             const raw =
+227:               Array.isArray(
+228:                 weeklyData
+229:               )
+230:                 ? weeklyData[0] ??
+231:                   null
+232:                 : weeklyData ??
+233:                   null;
+234: 
+235: 
+236:             if (raw) {
+237:               const devotionalId =
+238:                 raw.devotional_id ??
+239:                 raw.id ??
+240:                 null;
+241: 
+242: 
+243:               if (devotionalId) {
+244:                 const rawWeek =
+245:                   raw.week_number ??
+246:                   raw.week_no ??
+247:                   raw.week ??
+248:                   null;
+249: 
+250: 
+251:                 const rawLesson =
+252:                   raw.lesson_number ??
+253:                   raw.lesson_no ??
+254:                   raw.lesson_order ??
+255:                   raw.sort_order ??
+256:                   raw.day_number ??
+257:                   null;
+258: 
+259: 
+260:                 const parsedWeek =
+
+============================================================
+TABS LAYOUT FULL CONTENT
+============================================================
+1: import { useMemo } from 'react';
+2: import BuklodHeaderSponsor from '@/components/BuklodHeaderSponsor';
+3: import {
+4:   Redirect,
+5:   router,
+6:   usePathname,
+7:   withLayoutContext,
+8: } from 'expo-router';
+9: import {
+10:   createMaterialTopTabNavigator,
+11:   } from 'expo-router/js-top-tabs';
+12: 
+13: import { ActivityIndicator,
+14:   Text,
+15:   View,
+16:   PanResponder,
+17:   Dimensions,
+18: } from 'react-native';
+19: import { MaterialCommunityIcons } from '@expo/vector-icons';
+20: import { useSafeAreaInsets } from 'react-native-safe-area-context';
+21: import { colors } from '@/lib/theme';
+22: 
+23: import { useAuth } from '@/providers/AuthProvider';
+24: import { useCompliance } from '@/providers/ComplianceProvider';
+25: import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
+26: 
+27: const I = ({ children }: { children: string }) => <Text style={{ fontSize: 22 }}>{children}</Text>;
+28: 
+29: 
+30: /* PATCH_162C_NATIVE_PAGER
+31:  *
+32:  * Native pager:
+33:  * the dashboard position follows the finger continuously.
+34:  */
+35: const MaterialPager=
+36:   createMaterialTopTabNavigator();
+37: 
+38: 
+39: const SwipeTabs=
+40:   withLayoutContext(
+41:     MaterialPager.Navigator as any,
+42:     undefined,
+43:     true
+44:   ) as any;
+45: 
+46: 
+47: function SwipeDashboardHeader(){
+48: 
+49:   const pathname=
+50:     usePathname();
+51: 
+52:   const insets=
+53:     useSafeAreaInsets();
+54: 
+55: 
+56:   let title='BUKLOD';
+57: 
+58:   let placement:
+59:     | 'home'
+60:     | 'messages'
+61:     | 'learn'
+62:     | 'community'
+63:     | null
+64:     =null;
+65: 
+66: 
+67:   if(
+68:     pathname==='/home'
+69:     ||
+70:     pathname.startsWith('/home/')
+71:   ){
+72:     title='Home';
+73:     placement='home';
+74:   }
+75:   else if(
+76:     pathname==='/messages'
+77:     ||
+78:     pathname.startsWith('/messages/')
+79:   ){
+80:     title='Messages';
+81:     placement='messages';
+82:   }
+83:   else if(
+84:     pathname==='/learn'
+85:     ||
+86:     pathname.startsWith('/learn/')
+87:   ){
+88:     title='Learn';
+89:     placement='learn';
+90:   }
+91:   else if(
+92:     pathname==='/buklod'
+93:     ||
+94:     pathname.startsWith('/buklod/')
+95:   ){
+96:     title='BUKLOD';
+97:     placement='community';
+98:   }
+99:   else if(
+100:     pathname==='/prayer'
+101:     ||
+102:     pathname.startsWith('/prayer/')
+103:   ){
+104:     title='Prayer';
+105:   }
+106:   else if(
+107:     pathname==='/me'
+108:     ||
+109:     pathname.startsWith('/me/')
+110:   ){
+111:     title='Me';
+112:   }
+113: 
+114: 
+115:   return(
+116:     <View
+117:       style={{
+118:         paddingTop:
+119:           insets.top,
+120:         minHeight:
+121:           54+
+122:           insets.top,
+123:         backgroundColor:
+124:           colors.greenDark,
+125:         flexDirection:
+126:           'row',
+127:         alignItems:
+128:           'center',
+129:         justifyContent:
+130:           'space-between',
+131:         paddingLeft:
+132:           16,
+133:       }}
+134:     >
+135: 
+136:       <Text
+137:         numberOfLines={1}
+138:         style={{
+139:           flex:1,
+140:           color:
+141:             colors.white,
+142:           fontSize:
+143:             20,
+144:           fontWeight:
+145:             '900',
+146:         }}
+147:       >
+148:         {title}
+149:       </Text>
+150: 
+151: 
+152:       {placement
+153:         ? (
+154:           <BuklodHeaderSponsor
+155:             placement={
+156:               placement
+157:             }
+158:           />
+159:         )
+160:         : (
+161:           <View
+162:             style={{
+163:               width:12,
+164:             }}
+165:           />
+166:         )
+167:       }
+168: 
+169:     </View>
+170:   );
+171: }
+172: 
+173: 
+174: export default function TabsLayout() {
+175:   const insets = useSafeAreaInsets();
+176: 
+177:   /* PATCH_154N_SWIPE_TABS */
+178:   const pathname =
+179:     usePathname();
+180: 
+181:   const swipeResponder =
+182:     useMemo(
+183:       () =>
+184:         PanResponder.create({
+185:           onStartShouldSetPanResponder:
+186:             () => false,
+187: 
+188:           onMoveShouldSetPanResponder:
+189:             (_, gesture) => {
+190:               const horizontal =
+191:                 Math.abs(
+192:                   gesture.dx
+193:                 );
+194: 
+195:               const vertical =
+196:                 Math.abs(
+197:                   gesture.dy
+198:                 );
+199: 
+200:               return (
+201:                 horizontal > 38 &&
+202:                 horizontal >
+203:                   vertical * 1.55
+204:               );
+205:             },
+206: 
+207:           onPanResponderTerminationRequest:
+208:             () => true,
+209: 
+210:           onShouldBlockNativeResponder:
+211:             () => false,
+212: 
+213:           onPanResponderRelease:
+214:             (_, gesture) => {
+215:               const distance =
+216:                 Math.abs(
+217:                   gesture.dx
+218:                 );
+219: 
+220:               const velocity =
+221:                 Math.abs(
+222:                   gesture.vx
+223:                 );
+224: 
+225:               if (
+226:                 distance < 72 &&
+227:                 velocity < 0.55
+228:               ) {
+229:                 return;
+230:               }
+231: 
+232:               const routes = [
+233:                 '/home',
+234:                 '/messages',
+235:                 '/learn',
+236:                 '/buklod',
+237:                 '/prayer',
+238:                 '/me',
+239:               ];
+240: 
+241:               const current =
+242:                 routes.indexOf(
+243:                   pathname
+244:                 );
+245: 
+246:               if (current < 0) {
+247:                 return;
+248:               }
+249: 
+250:               const direction =
+251:                 gesture.dx < 0
+252:                   ? 1
+253:                   : -1;
+254: 
+255:               const nextIndex =
+256:                 current +
+257:                 direction;
+258: 
+259:               if (
+260:                 nextIndex < 0 ||
+261:                 nextIndex >=
+262:                   routes.length
+263:               ) {
+264:                 return;
+265:               }
+266: 
+267:               router.navigate(
+268:                 routes[
+269:                   nextIndex
+270:                 ] as any
+271:               );
+272:             },
+273:         }),
+274:       [pathname]
+275:     );
+276: 
+277:   const { session, loading, membershipState, profile } = useAuth();
+278:   const { loading: complianceLoading, requiresAcceptance } = useCompliance();
+279:   const { loading: runtimeLoading, config } = useRuntimeConfig();
+280: 
+281:   if (loading || complianceLoading || runtimeLoading || membershipState === 'loading') {
+282:     return <View style={{flex:1,alignItems:'center',justifyContent:'center'}}><ActivityIndicator color={colors.green}/></View>;
+283:   }
+284:   if (!session) return <Redirect href="/(auth)/login" />;
+285:   if (config?.maintenance_mode) return <Redirect href="/system/maintenance" />;
+286:   if (config?.update_required) return <Redirect href="/system/update-required" />;
+287:   if (config?.pilot_access_required && !config?.pilot_access_granted) return <Redirect href="/system/pilot-access" />;
+288:   if (requiresAcceptance) return <Redirect href="/privacy/consent" />;
+289:   const hasCommunityAccess =
+290:     profile?.is_active === true &&
+291:     !!profile?.connection_type;
+292: 
+293:   if (membershipState !== 'ready' && !hasCommunityAccess) {
+294:     return <Redirect href="/onboarding" />;
+295:   }
+296: 
+297:   return (
+298:     <View
+299:       style={{ flex: 1 }}
+300:       {...swipeResponder.panHandlers}
+301:     >
+302:       <View
+303:       style={{
+304:         flex:1,
+305:         backgroundColor:
+306:           colors.white,
+307:       }}
+308:     >
+309: 
+310:       <SwipeDashboardHeader />
+311: 
+312:       <SwipeTabs
+313:       tabBarPosition="bottom"
+314:       swipeEnabled={true}
+315:       lazy={false}
+316:       keyboardDismissMode="on-drag"
+317:       initialLayout={{
+318:         width:
+319:           Dimensions
+320:             .get('window')
+321:             .width,
+322:       }}
+323:       screenOptions={{
+324:         tabBarIndicatorStyle: {
+325:           backgroundColor:
+326:             colors.green,
+327:           height:3,
+328:         },
+329:       tabBarActiveTintColor: colors.green,
+330:       tabBarInactiveTintColor: colors.muted,
+331:       tabBarLabelStyle: {
+332:         fontSize: 11,
+333:         fontWeight: '800',
+334:       },
+335:         /* PATCH_153E_1_PRIMARY_NAV */
+336:         tabBarStyle: {
+337:           height: 70 + insets.bottom,
+338:           paddingTop: 8,
+339:           paddingBottom: Math.max(insets.bottom, 9),
+340:           borderTopWidth: 1,
+341:           borderTopColor: colors.line,
+342:           backgroundColor: colors.white,
+343:         },
+344: 
+345:         tabBarItemStyle: {
+346:           paddingTop: 2,
+347:         },
+348:     }}>
+349:   <SwipeTabs.Screen
+350:     name="messages"
+351:     options={{
+352:       title: 'Messages',
+353:         /* PATCH_162C_HEADER_MESSAGES */
+354:         headerRight: () => (
+355:           <BuklodHeaderSponsor placement="messages" />
+356:         ),
+357:       tabBarIcon: ({ color }: { color: string }) => (
+358:         <MaterialCommunityIcons
+359:           name="message-text-outline"
+360:           size={23}
+361:           color={color}
+362:         />
+363:       ),
+364:     }}
+365:   />
+366:       <SwipeTabs.Screen name="learn" options={{ title: 'Learn',
+367:         /* PATCH_162C_HEADER_LEARN */
+368:         headerRight: () => (
+369:           <BuklodHeaderSponsor placement="learn" />
+370:         ), tabBarIcon: () => <I>ðŸŽ“</I> }} />
+371:       <SwipeTabs.Screen name="buklod" options={{ title: 'BUKLOD',
+372:         /* PATCH_162C_HEADER_COMMUNITY */
+373:         headerRight: () => (
+374:           <BuklodHeaderSponsor placement="community" />
+375:         ), tabBarIcon: () => <I>ðŸ¤</I> }} />
+376:             {/* PATCH_162F_HEADER_PRAYER */}
+377:       <SwipeTabs.Screen
+378:         name="prayer"
+379:         options={{
+380:           title: 'Prayer',
+381:           headerRight: () => (
+382:             <BuklodHeaderSponsor
+383:               placement="prayer"
+384:             />
+385:           ),
+386:           tabBarIcon: () => (
+387:             <I>ðŸ™</I>
+388:           ),
+389:         }}
+390:       />
+391:       <SwipeTabs.Screen name="me" options={{ title: 'Me', tabBarIcon: () => <I>ðŸ‘¤</I> }} />
+392:     </SwipeTabs>
+393:     </View>
+394:     </View>
+395:   );
+396: }
+
+============================================================
+REGISTER RELEVANT FIELDS
+============================================================
+39: | 'mobile'
+41: | 'email';
+43: function normalizePhilippinePhone(
+83: function mobileInternalEmail(
+84: phone: string
+86: return `m.${phone.replace(
+92: function usernameInternalEmail(
+99: firstName: string,
+100: middleName: string,
+101: surname: string,
+102: suffix: string
+105: firstName.trim(),
+106: middleName.trim(),
+107: surname.trim(),
+108: suffix.trim(),
+125: useState<'local_member'|'invited'|'seeking_church'|'community'>('community');
+126: const wantsLocalMembership = connectionType === 'local_member';
+139: proposeFirstGroup,
+140: setProposeFirstGroup,
+149: firstName,
+150: setFirstName,
+153: middleName,
+154: setMiddleName,
+157: surname,
+158: setSurname,
+161: suffix,
+162: setSuffix,
+169: 'mobile'
+178: contactMobile,
+179: setContactMobile,
+235: setProposeFirstGroup(false);
+336: !firstName.trim() ||
+337: !surname.trim() ||
+340: (wantsLocalMembership && !churchId)
+344: 'First Name, Surname, your chosen Login, Password, and Local Church are required. Middle Name, Suffix, and BUKLOD Cluster are optional.'
+357: firstName,
+358: middleName,
+359: surname,
+360: suffix
+363: let authEmail = '';
+364: let profileMobile:
+374: 'mobile'
+376: const phone =
+377: normalizePhilippinePhone(
+381: if (!phone) {
+383: 'Mobile Number',
+384: 'Enter a valid Philippine mobile number such as 09171234567.'
+388: authEmail =
+389: mobileInternalEmail(
+390: phone
+392: profileMobile = phone;
+393: publicLoginValue = phone;
+410: authEmail =
+411: usernameInternalEmail(
+418: contactMobile.trim()
+420: const phone =
+421: normalizePhilippinePhone(
+422: contactMobile
+425: if (!phone) {
+427: 'Contact Mobile',
+428: 'Enter a valid Philippine mobile number or leave it blank.'
+432: profileMobile = phone;
+435: const email =
+442: email
+446: 'Email',
+447: 'Enter a valid email address.'
+451: authEmail = email;
+453: email;
+456: contactMobile.trim()
+458: const phone =
+459: normalizePhilippinePhone(
+460: contactMobile
+463: if (!phone) {
+465: 'Contact Mobile',
+466: 'Enter a valid Philippine mobile number or leave it blank.'
+470: profileMobile = phone;
+475: proposeFirstGroup &&
+490: email: authEmail,
+494: full_name:
+496: first_name:
+497: firstName.trim(),
+498: middle_name:
+499: middleName.trim() ||
+501: surname:
+502: surname.trim(),
+503: suffix:
+504: suffix.trim() ||
+506: mobile:
+507: profileMobile,
+518: wantsLocalMembership ? churchId : null,
+520: wantsLocalMembership ? (groupId || null) : null,
+522: proposeFirstGroup
+551: 'BUKLOD does not use confirmation. In Supabase Auth > Providers > Email, keep Email ON and Confirm Email OFF. Phone provider stays OFF.'
+557: 'Your Community account is ready. Local Church and BUKLOD Group access still requires membership verification.'
+565: loginMethod === 'mobile'
+566: ? 'Mobile Number *'
+570: : 'Email Address *';
+573: loginMethod === 'mobile'
+581: loginMethod === 'mobile'
+586: : 'No confirmation email will be required.';
+619: Choose Mobile Number, Username, or Email for your login. No confirmation is required.
+632: First Name *
+636: placeholder="First Name"
+637: value={firstName}
+638: onChangeText={setFirstName}
+647: Middle Name
+654: placeholder="Middle Name (optional)"
+655: value={middleName}
+656: onChangeText={setMiddleName}
+665: Surname *
+669: placeholder="Surname"
+670: value={surname}
+671: onChangeText={setSurname}
+680: Suffix
+687: placeholder="Suffix (optional)"
+688: value={suffix}
+689: onChangeText={setSuffix}
+705: 'mobile',
+706: 'Mobile',
+712: ['email', 'Email'],
+771: 'mobile'
+772: ? 'phone-pad'
+774: 'email'
+775: ? 'email-address'
+783: 'mobile' && (
+790: Contact Mobile
+804: value={contactMobile}
+806: setContactMobile
+808: keyboardType="phone-pad"
+882: At least 6 characters. No OTP, SMS, or email confirmation.
+928: You can join the Community even if you do not belong to a BUKLOD / MZB Local Church.
+931: ['local_member','I belong to a BUKLOD / MZB Local Church'],
+940: if(value!=='local_member'){
+943: setProposeFirstGroup(false);
+958: {wantsLocalMembership && (
+960: YOUR LOCAL CHURCH *
+964: Tap below to search and select your Local Church.
+984: SELECT YOUR LOCAL
+996: : 'Tap to select Local Church'}
+1014: Request an existing group, let the admin assign one, or propose the first group when none exists.
+1141: styles.firstBox
+1146: styles.firstTitle
+1157: You can still register. You may propose the first group or let the admin create/assign one later.
+1162: setProposeFirstGroup(
+1169: proposeFirstGroup &&
+1178: {proposeFirstGroup
+1180: : 'PROPOSE FIRST BUKLOD GROUP'}
+1184: {proposeFirstGroup && (
+1259: Your Community account can enter BUKLOD immediately. Local Church and BUKLOD Group privileges remain protected until membership verification.
+1320: Select Your Local
+1323: Search by Local Church name or code.
+1350: placeholder="Search Local Church..."
+1409: No Local Church matched your search.
+1630: firstBox: {
+1637: firstTitle: {

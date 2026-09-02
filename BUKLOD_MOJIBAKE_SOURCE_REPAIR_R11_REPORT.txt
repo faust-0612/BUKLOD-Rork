@@ -1,0 +1,27 @@
+BUKLOD MOJIBAKE SOURCE REPAIR R11 REPORT
+
+repairMojibakeText.ts=EXCLUDED_INTENTIONAL
+initially_flagged_files=15
+changed_files=14
+unresolved_files=2
+
+FIXED src/app/(auth)/register.tsx markers 1 -> 0
+FIXED src/app/(tabs)/buklod.tsx markers 1 -> 0
+FIXED src/app/admin/configuration-center.tsx markers 6 -> 0
+FIXED src/app/admin/foundation-access.tsx markers 3 -> 0
+FIXED src/app/prayer/[id].tsx markers 4 -> 3
+FIXED src/app/profile/buklod-faculty-assessment-gradebook.tsx markers 2 -> 0
+FIXED src/app/profile/buklod-faculty-assessment-review.tsx markers 1 -> 0
+FIXED src/app/profile/buklod-faculty-assessments.tsx markers 6 -> 0
+FIXED src/app/profile/buklod-faculty-final-grades.tsx markers 2 -> 0
+FIXED src/app/profile/buklod-faculty-groups.tsx markers 2 -> 0
+FIXED src/app/profile/buklod-faculty-materials.tsx markers 3 -> 0
+FIXED src/components/OfflineBanner.tsx markers 5 -> 0
+FIXED src/components/points/BuklodCharacterCustomizeSheet.tsx markers 6 -> 0
+FIXED src/components/points/BuklodCharacterRewardRoadmap.tsx markers 1 -> 0
+
+=== UNRESOLVED ===
+UNRESOLVED src/app/prayer/[id].tsx markers=3 lines=487,543,563
+UNRESOLVED src/components/BuklodHomeScopeBulletins.tsx markers=3 lines=769
+
+MOJIBAKE_UI_SOURCE=FAIL

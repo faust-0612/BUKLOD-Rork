@@ -1,0 +1,265 @@
+
+  src\app\(tabs)\_layout.tsx:22:import { useAuth } from '@/providers/AuthProvider';
+  src\app\(tabs)\_layout.tsx:23:import { useBuklodScope } from '@/providers/BuklodScopeProvider';
+  src\app\(tabs)\_layout.tsx:24:import { useCompliance } from '@/providers/ComplianceProvider';
+> src\app\(tabs)\_layout.tsx:25:import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
+  src\app\(tabs)\_layout.tsx:26:
+  src\app\(tabs)\_layout.tsx:27:function SwipeDashboardHeader() {
+  src\app\(tabs)\_layout.tsx:28:  const pathname =
+  src\app\(tabs)\_layout.tsx:29:    usePathname();
+  src\app\(tabs)\_layout.tsx:30:
+  src\app\(tabs)\_layout.tsx:31:  const insets =
+  src\app\(tabs)\_layout.tsx:32:    useSafeAreaInsets();
+  src\app\(tabs)\_layout.tsx:33:
+  src\app\(tabs)\_layout.tsx:134:  const {
+  src\app\(tabs)\_layout.tsx:135:    loading: runtimeLoading,
+  src\app\(tabs)\_layout.tsx:136:    config,
+> src\app\(tabs)\_layout.tsx:137:  } = useRuntimeConfig();
+  src\app\(tabs)\_layout.tsx:138:
+  src\app\(tabs)\_layout.tsx:139:  useEffect(() => {
+  src\app\(tabs)\_layout.tsx:140:    warmBuklodInterstitial();
+  src\app\(tabs)\_layout.tsx:141:  }, []);
+  src\app\(tabs)\_layout.tsx:142:
+  src\app\(tabs)\_layout.tsx:143:  if (
+  src\app\(tabs)\_layout.tsx:144:    loading ||
+  src\app\(tabs)\_layout.tsx:145:    complianceLoading ||
+  src\lib\supabase.ts:32:
+  src\lib\supabase.ts:33:AppState.addEventListener('change', state => {
+  src\lib\supabase.ts:34:  if (state === 'active') {
+> src\lib\supabase.ts:35:    supabase.auth.startAutoRefresh();
+  src\lib\supabase.ts:36:
+  src\lib\supabase.ts:37:    if (!realtimeConnected) {
+  src\lib\supabase.ts:38:      supabase.realtime.connect();
+  src\lib\supabase.ts:39:      realtimeConnected = true;
+  src\lib\supabase.ts:40:    }
+  src\lib\supabase.ts:41:
+  src\lib\supabase.ts:42:    return;
+  src\lib\supabase.ts:43:  }
+  src\lib\supabase.ts:44:
+> src\lib\supabase.ts:45:  supabase.auth.stopAutoRefresh();
+  src\lib\supabase.ts:46:
+  src\lib\supabase.ts:47:  if (realtimeConnected) {
+  src\lib\supabase.ts:48:    supabase.realtime.disconnect();
+  src\lib\supabase.ts:49:    realtimeConnected = false;
+  src\lib\supabase.ts:50:  }
+  src\lib\supabase.ts:51:});
+  src\providers\AuthProvider.tsx:97:  const [session, setSession] = useState<Session | null>(null);
+  src\providers\AuthProvider.tsx:98:  const [profile, setProfile] = useState<Profile | null>(null);
+  src\providers\AuthProvider.tsx:99:  const [roles, setRoles] = useState<AppRole[]>([]);
+> src\providers\AuthProvider.tsx:100:  const [loading, setLoading] = useState(true);
+  src\providers\AuthProvider.tsx:101:
+  src\providers\AuthProvider.tsx:102:  const [membershipState, setMembershipState] =
+  src\providers\AuthProvider.tsx:103:    useState<MembershipState>('loading');
+  src\providers\AuthProvider.tsx:104:
+  src\providers\AuthProvider.tsx:105:  const bootstrappedRef = useRef(false);
+  src\providers\AuthProvider.tsx:106:  const sessionUserIdRef = useRef<string | null>(null);
+  src\providers\AuthProvider.tsx:107:
+  src\providers\AuthProvider.tsx:108:  const loadRoles = async (
+  src\providers\AuthProvider.tsx:249:  };
+  src\providers\AuthProvider.tsx:250:
+  src\providers\AuthProvider.tsx:251:  useEffect(() => {
+> src\providers\AuthProvider.tsx:252:    supabase.auth.getSession().then(async ({ data }) => {
+  src\providers\AuthProvider.tsx:253:      setSession(data.session);
+  src\providers\AuthProvider.tsx:254:      sessionUserIdRef.current =
+  src\providers\AuthProvider.tsx:255:        data.session?.user?.id ?? null;
+  src\providers\AuthProvider.tsx:256:
+  src\providers\AuthProvider.tsx:257:      await loadProfile(data.session?.user.id);
+  src\providers\AuthProvider.tsx:258:
+  src\providers\AuthProvider.tsx:259:      bootstrappedRef.current = true;
+> src\providers\AuthProvider.tsx:260:      setLoading(false);
+  src\providers\AuthProvider.tsx:261:    });
+  src\providers\AuthProvider.tsx:262:
+  src\providers\AuthProvider.tsx:263:    const { data: listener } =
+> src\providers\AuthProvider.tsx:264:      supabase.auth.onAuthStateChange(
+  src\providers\AuthProvider.tsx:265:        async (_event, nextSession) => {
+  src\providers\AuthProvider.tsx:266:          const nextUserId =
+  src\providers\AuthProvider.tsx:267:            nextSession?.user?.id ?? null;
+  src\providers\AuthProvider.tsx:268:
+  src\providers\AuthProvider.tsx:269:          /* PATCH_171C_SIGNIN_DIRECT_HOME_RACE_FIX
+  src\providers\AuthProvider.tsx:270:           * Only raise the full-screen gate for a real
+  src\providers\AuthProvider.tsx:271:           * account switch / fresh login — not every
+  src\providers\AuthProvider.tsx:272:           * session restore after boot or migration reload.
+  src\providers\AuthProvider.tsx:278:              nextUserId === sessionUserIdRef.current;
+  src\providers\AuthProvider.tsx:279:
+  src\providers\AuthProvider.tsx:280:            if (!sameUser) {
+> src\providers\AuthProvider.tsx:281:              setLoading(true);
+  src\providers\AuthProvider.tsx:282:            }
+  src\providers\AuthProvider.tsx:283:          }
+  src\providers\AuthProvider.tsx:284:
+  src\providers\AuthProvider.tsx:285:          setSession(nextSession);
+  src\providers\AuthProvider.tsx:286:          sessionUserIdRef.current = nextUserId;
+  src\providers\AuthProvider.tsx:287:
+  src\providers\AuthProvider.tsx:288:          await loadProfile(nextSession?.user.id);
+  src\providers\AuthProvider.tsx:289:
+  src\providers\AuthProvider.tsx:290:          bootstrappedRef.current = true;
+> src\providers\AuthProvider.tsx:291:          setLoading(false);
+  src\providers\AuthProvider.tsx:292:        }
+  src\providers\AuthProvider.tsx:293:      );
+  src\providers\AuthProvider.tsx:294:
+  src\providers\AuthProvider.tsx:295:    return () => {
+  src\providers\AuthProvider.tsx:296:      listener.subscription.unsubscribe();
+  src\providers\AuthProvider.tsx:297:    };
+  src\providers\AuthProvider.tsx:298:  }, []);
+  src\providers\AuthProvider.tsx:299:
+  src\providers\AuthProvider.tsx:343:      },
+  src\providers\AuthProvider.tsx:344:
+  src\providers\AuthProvider.tsx:345:      signOut: async () => {
+> src\providers\AuthProvider.tsx:346:        await supabase.auth.signOut();
+  src\providers\AuthProvider.tsx:347:      },
+  src\providers\AuthProvider.tsx:348:    };
+  src\providers\AuthProvider.tsx:349:  }, [
+  src\providers\AuthProvider.tsx:350:    session,
+  src\providers\AuthProvider.tsx:351:    profile,
+  src\providers\AuthProvider.tsx:352:    roles,
+  src\providers\AuthProvider.tsx:353:    loading,
+  src\providers\AuthProvider.tsx:354:    membershipState,
+  src\providers\BuklodScopeProvider.tsx:83:      null
+  src\providers\BuklodScopeProvider.tsx:84:    );
+  src\providers\BuklodScopeProvider.tsx:85:
+> src\providers\BuklodScopeProvider.tsx:86:  const [loading, setLoading] =
+  src\providers\BuklodScopeProvider.tsx:87:    useState(true);
+  src\providers\BuklodScopeProvider.tsx:88:
+  src\providers\BuklodScopeProvider.tsx:89:  const [error, setError] =
+  src\providers\BuklodScopeProvider.tsx:90:    useState<string | null>(null);
+  src\providers\BuklodScopeProvider.tsx:91:
+  src\providers\BuklodScopeProvider.tsx:92:  const scopesRef = useRef(scopes);
+  src\providers\BuklodScopeProvider.tsx:93:  scopesRef.current = scopes;
+  src\providers\BuklodScopeProvider.tsx:94:
+  src\providers\BuklodScopeProvider.tsx:98:        setScopes([]);
+  src\providers\BuklodScopeProvider.tsx:99:        setActiveScope(null);
+  src\providers\BuklodScopeProvider.tsx:100:        setError(null);
+> src\providers\BuklodScopeProvider.tsx:101:        setLoading(false);
+  src\providers\BuklodScopeProvider.tsx:102:        return;
+  src\providers\BuklodScopeProvider.tsx:103:      }
+  src\providers\BuklodScopeProvider.tsx:104:
+  src\providers\BuklodScopeProvider.tsx:105:      if (scopesRef.current.length === 0) {
+> src\providers\BuklodScopeProvider.tsx:106:        setLoading(true);
+  src\providers\BuklodScopeProvider.tsx:107:      }
+  src\providers\BuklodScopeProvider.tsx:108:
+  src\providers\BuklodScopeProvider.tsx:109:      try {
+  src\providers\BuklodScopeProvider.tsx:110:        /* PATCH_172A_SCOPE_HIERARCHY_ENRICHMENT */
+  src\providers\BuklodScopeProvider.tsx:111:        const baseRows =
+  src\providers\BuklodScopeProvider.tsx:112:          await getMyBuklodScopes();
+  src\providers\BuklodScopeProvider.tsx:113:
+  src\providers\BuklodScopeProvider.tsx:114:        let rows = baseRows;
+  src\providers\BuklodScopeProvider.tsx:448:          )
+  src\providers\BuklodScopeProvider.tsx:449:        );
+  src\providers\BuklodScopeProvider.tsx:450:      } finally {
+> src\providers\BuklodScopeProvider.tsx:451:        setLoading(false);
+  src\providers\BuklodScopeProvider.tsx:452:      }
+  src\providers\BuklodScopeProvider.tsx:453:    }, [user?.id]);
+  src\providers\BuklodScopeProvider.tsx:454:
+  src\providers\BuklodScopeProvider.tsx:455:  useEffect(() => {
+  src\providers\BuklodScopeProvider.tsx:456:    void refresh();
+  src\providers\BuklodScopeProvider.tsx:457:  }, [refresh]);
+  src\providers\BuklodScopeProvider.tsx:458:
+  src\providers\BuklodScopeProvider.tsx:459:  const selectScope =
+  src\providers\ComplianceProvider.tsx:34:export function ComplianceProvider({ children }: { children: React.ReactNode }) {
+  src\providers\ComplianceProvider.tsx:35:  const { user } = useAuth();
+  src\providers\ComplianceProvider.tsx:36:  const { isConnected, isInternetReachable } = useNetwork();
+> src\providers\ComplianceProvider.tsx:37:  const [loading,setLoading]=useState(true);
+  src\providers\ComplianceProvider.tsx:38:  const [policies,setPolicies]=useState<RequiredPolicy[]>([]);
+  src\providers\ComplianceProvider.tsx:39:  const online = isConnected && isInternetReachable !== false;
+  src\providers\ComplianceProvider.tsx:40:
+  src\providers\ComplianceProvider.tsx:41:  const cacheKey = user ? `buklod:policy-ok:${user.id}` : null;
+  src\providers\ComplianceProvider.tsx:42:
+  src\providers\ComplianceProvider.tsx:43:  const refresh=async()=>{
+  src\providers\ComplianceProvider.tsx:44:    if(!user){
+  src\providers\ComplianceProvider.tsx:45:      setPolicies([]);
+> src\providers\ComplianceProvider.tsx:46:      setLoading(false);
+  src\providers\ComplianceProvider.tsx:47:      return;
+  src\providers\ComplianceProvider.tsx:48:    }
+  src\providers\ComplianceProvider.tsx:49:
+  src\providers\ComplianceProvider.tsx:50:    if(!online){
+  src\providers\ComplianceProvider.tsx:51:      const cached = cacheKey ? await AsyncStorage.getItem(cacheKey) : null;
+  src\providers\ComplianceProvider.tsx:52:      setPolicies(cached === 'true' ? [] : [{
+  src\providers\ComplianceProvider.tsx:53:        policy_version_id:'offline',
+  src\providers\ComplianceProvider.tsx:54:        policy_type:'privacy_notice',
+  src\providers\ComplianceProvider.tsx:58:        acceptance_kind:'acknowledgement',
+  src\providers\ComplianceProvider.tsx:59:        accepted:false,
+  src\providers\ComplianceProvider.tsx:60:      }]);
+> src\providers\ComplianceProvider.tsx:61:      setLoading(false);
+  src\providers\ComplianceProvider.tsx:62:      return;
+  src\providers\ComplianceProvider.tsx:63:    }
+  src\providers\ComplianceProvider.tsx:64:
+  src\providers\ComplianceProvider.tsx:65:    const {data,error}=await supabase.rpc('current_required_policies');
+  src\providers\ComplianceProvider.tsx:66:    if(error){
+  src\providers\ComplianceProvider.tsx:67:      const cached = cacheKey ? await AsyncStorage.getItem(cacheKey) : null;
+  src\providers\ComplianceProvider.tsx:68:      setPolicies(cached === 'true' ? [] : []);
+> src\providers\ComplianceProvider.tsx:69:      setLoading(false);
+  src\providers\ComplianceProvider.tsx:70:      return;
+  src\providers\ComplianceProvider.tsx:71:    }
+  src\providers\ComplianceProvider.tsx:72:
+  src\providers\ComplianceProvider.tsx:73:    const rows=(data??[]) as RequiredPolicy[];
+  src\providers\ComplianceProvider.tsx:74:    setPolicies(rows);
+  src\providers\ComplianceProvider.tsx:75:    const ok=rows.every(p=>p.accepted);
+  src\providers\ComplianceProvider.tsx:76:    if(cacheKey) await AsyncStorage.setItem(cacheKey,ok?'true':'false');
+> src\providers\ComplianceProvider.tsx:77:    setLoading(false);
+  src\providers\ComplianceProvider.tsx:78:  };
+  src\providers\ComplianceProvider.tsx:79:
+  src\providers\ComplianceProvider.tsx:80:  useEffect(()=>{ refresh(); },[user?.id,online]);
+  src\providers\ComplianceProvider.tsx:81:
+  src\providers\ComplianceProvider.tsx:82:  const acceptAll=async()=>{
+  src\providers\ComplianceProvider.tsx:83:    if(!user) return {error:'Authentication required.'};
+  src\providers\ComplianceProvider.tsx:84:    if(!online) return {error:'Connect to the internet to save your acknowledgement.'};
+  src\providers\ComplianceProvider.tsx:85:
+  src\providers\RuntimeConfigProvider.tsx:40:export function RuntimeConfigProvider({children}:{children:React.ReactNode}){
+  src\providers\RuntimeConfigProvider.tsx:41:  const {user}=useAuth();
+  src\providers\RuntimeConfigProvider.tsx:42:  const {isConnected,isInternetReachable}=useNetwork();
+> src\providers\RuntimeConfigProvider.tsx:43:  const [loading,setLoading]=useState(true);
+  src\providers\RuntimeConfigProvider.tsx:44:  const [config,setConfig]=useState<RuntimeConfig|null>(null);
+  src\providers\RuntimeConfigProvider.tsx:45:
+  src\providers\RuntimeConfigProvider.tsx:46:  const online=isConnected && isInternetReachable!==false;
+  src\providers\RuntimeConfigProvider.tsx:47:  const version=Constants.expoConfig?.version ?? '0.0.0';
+  src\providers\RuntimeConfigProvider.tsx:48:  const cacheKey=user ? `buklod:runtime:${user.id}:${appEnvironment}` : null;
+  src\providers\RuntimeConfigProvider.tsx:49:
+  src\providers\RuntimeConfigProvider.tsx:50:  const refresh=async()=>{
+  src\providers\RuntimeConfigProvider.tsx:51:    if(!user){
+  src\providers\RuntimeConfigProvider.tsx:52:      setConfig(null);
+> src\providers\RuntimeConfigProvider.tsx:53:      setLoading(false);
+  src\providers\RuntimeConfigProvider.tsx:54:      return;
+  src\providers\RuntimeConfigProvider.tsx:55:    }
+  src\providers\RuntimeConfigProvider.tsx:56:
+  src\providers\RuntimeConfigProvider.tsx:57:    if(!online){
+  src\providers\RuntimeConfigProvider.tsx:58:      if(cacheKey){
+  src\providers\RuntimeConfigProvider.tsx:59:        const cached=await AsyncStorage.getItem(cacheKey);
+  src\providers\RuntimeConfigProvider.tsx:60:        if(cached){
+  src\providers\RuntimeConfigProvider.tsx:61:          try{ setConfig(JSON.parse(cached)); }catch{}
+  src\providers\RuntimeConfigProvider.tsx:62:        }
+  src\providers\RuntimeConfigProvider.tsx:63:      }
+> src\providers\RuntimeConfigProvider.tsx:64:      setLoading(false);
+  src\providers\RuntimeConfigProvider.tsx:65:      return;
+  src\providers\RuntimeConfigProvider.tsx:66:    }
+  src\providers\RuntimeConfigProvider.tsx:67:
+  src\providers\RuntimeConfigProvider.tsx:68:    const {data,error}=await supabase.rpc('get_client_runtime_config',{
+  src\providers\RuntimeConfigProvider.tsx:69:      p_environment:appEnvironment,
+  src\providers\RuntimeConfigProvider.tsx:70:      p_app_version:version,
+  src\providers\RuntimeConfigProvider.tsx:71:    });
+  src\providers\RuntimeConfigProvider.tsx:72:
+  src\providers\RuntimeConfigProvider.tsx:73:    if(error){
+  src\providers\RuntimeConfigProvider.tsx:74:      console.warn('BUKLOD runtime config:',error.message);
+> src\providers\RuntimeConfigProvider.tsx:75:      setLoading(false);
+  src\providers\RuntimeConfigProvider.tsx:76:      return;
+  src\providers\RuntimeConfigProvider.tsx:77:    }
+  src\providers\RuntimeConfigProvider.tsx:78:
+  src\providers\RuntimeConfigProvider.tsx:79:    const next=data as RuntimeConfig;
+  src\providers\RuntimeConfigProvider.tsx:80:    setConfig(next);
+  src\providers\RuntimeConfigProvider.tsx:81:    if(cacheKey)await AsyncStorage.setItem(cacheKey,JSON.stringify(next));
+> src\providers\RuntimeConfigProvider.tsx:82:    setLoading(false);
+  src\providers\RuntimeConfigProvider.tsx:83:  };
+  src\providers\RuntimeConfigProvider.tsx:84:
+  src\providers\RuntimeConfigProvider.tsx:85:  useEffect(()=>{refresh()},[user?.id,online,appEnvironment]);
+  src\providers\RuntimeConfigProvider.tsx:86:
+  src\providers\RuntimeConfigProvider.tsx:87:  const value=useMemo(()=>({
+  src\providers\RuntimeConfigProvider.tsx:88:    loading,
+  src\providers\RuntimeConfigProvider.tsx:89:    config,
+  src\providers\RuntimeConfigProvider.tsx:90:    refresh,
+  src\providers\RuntimeConfigProvider.tsx:94:  return <RuntimeContext.Provider value={value}>{children}</RuntimeContext.Provider>
+  src\providers\RuntimeConfigProvider.tsx:95:}
+  src\providers\RuntimeConfigProvider.tsx:96:
+> src\providers\RuntimeConfigProvider.tsx:97:export function useRuntimeConfig(){
+  src\providers\RuntimeConfigProvider.tsx:98:  return useContext(RuntimeContext);
+  src\providers\RuntimeConfigProvider.tsx:99:}
+
+
+

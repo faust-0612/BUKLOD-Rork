@@ -1,0 +1,67 @@
+---
+description: BUKLOD non-negotiable product and engineering rules — always enforce
+alwaysApply: true
+---
+
+# BUKLOD Non-Negotiable Rules
+
+These rules override convenience shortcuts. When in conflict with a local pattern, follow these rules.
+
+## Platform & safety
+
+- **No new native dependency** unless explicitly approved by the product owner.
+- **Never destroy existing production data.** Migrations must be additive and backward-safe (`IF NOT EXISTS`, `CREATE OR REPLACE`, backfill as `legacy` where semantics change).
+- **System Admin canonical account:** `efmagaj@gmail.com` (bootstrap / break-glass only when documented).
+
+## Security & permissions
+
+- **Enforce permissions in backend + RLS**, never UI-only hiding.
+- **Ordinary users** see only features relevant to their role and scope membership.
+- Scope Pastor/Mentor/Admin capabilities must be backed by server checks (RPC + RLS), not client flags alone.
+
+## UX & i18n
+
+- **User-friendly, non-technical UI** — plain language, no internal jargon in member-facing copy.
+- **Global / i18n ready** — avoid hard-coded user-facing strings without a path to translation; no layout that breaks with longer locales.
+
+## Economics (Cost Guard)
+
+- **Revenue-first Cost Guard** — features that increase infra or payout liability need explicit justification; prefer config + caps over open-ended rewards.
+
+## Rewards integration (preserve)
+
+- **BUKLOD Points ⭐** and **BUKLOD Bayanihan / Earnings ₱** stay **separate ledgers** — never convert points to cash in product logic.
+- Use the **canonical points ledger** (`buklod_points_ledger`) with **Lifetime** (monotonic) + **Available** (spendable) + **pending → CLAIM** flow.
+- **Bayanihan ₱** credits go through `bayanihan_ledger`; lifetime earnings tracked separately from spendable balance.
+- Do not bypass ledger/RPC for rewards (no client-only balance bumps).
+
+## Learning Progress
+
+- **Strict sequential stages** — learners advance in order; no skipping unless System Admin config explicitly allows.
+- **Never delete historical learning completion** — append-only / status history; corrections add new rows or audit entries.
+- **Pastor/Mentor reset** creates **repeat history**, not a destructive wipe of prior completion records.
+- **All advanced curriculum parameters** (prices, lesson counts, progression thresholds, points, Bayanihan amounts, schedules) must be **System Admin configurable** when they affect behavior — use config tables / admin RPCs, not permanent hard-codes in UI or one-off magic numbers in triggers.
+
+## Configuration over hard-coding
+
+Do **not** hard-code when config exists or should exist:
+
+| Area | Config surface |
+|------|----------------|
+| Point amounts | `buklod_point_rules` + admin RPC |
+| Bayanihan amounts | track/reward config + verification payout config |
+| Character tiers | `buklod_character_progression_tiers` |
+| Revenue split | `buklod_revenue_split_config` |
+| Referral rewards | `buklod_referral_rewards_config` |
+| Redeem catalog | `buklod_redeem_catalog` |
+
+Migrations may **seed defaults**; runtime behavior must read from config.
+
+## Verification rewards (reference)
+
+| Activity | Learner | Pastor/Mentor (approver) |
+|----------|---------|--------------------------|
+| Daily Reading approval | +2 ⭐ (config) | — |
+| Learning Progress approval | +5 ⭐ + ₱5 Bayanihan (config) | +5 ⭐ + ₱5 Bayanihan (config) |
+
+Amounts above are **defaults** — adjust via admin config, not code edits.

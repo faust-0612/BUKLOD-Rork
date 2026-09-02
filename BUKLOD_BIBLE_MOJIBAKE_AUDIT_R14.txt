@@ -1,0 +1,30 @@
+BUKLOD BIBLE MOJIBAKE AUDIT R14
+READ ONLY - NO SOURCE OR DATABASE MODIFIED
+
+bible_related_source_files=34
+local_source_mojibake_hits=0
+verse_text_usage_count=12
+
+=== LOCAL BIBLE SOURCE MOJIBAKE ===
+PASS: no suspicious mojibake markers in Bible-related local source.
+
+=== VERSE_TEXT DISPLAY PATHS ===
+NOT_NORMALIZED src/app/bible/index.tsx:1564             verse_text:string;
+NOT_NORMALIZED src/app/bible/index.tsx:1590                     verse.verse_text ??
+NOT_NORMALIZED src/app/bible/read.tsx:92   verse_text: string;
+NOT_NORMALIZED src/app/bible/read.tsx:2718                       verse.verse_text ??
+NOT_NORMALIZED src/app/bible/read.tsx:4087                     verse.verse_text
+NOT_NORMALIZED src/app/bible/search.tsx:56   verse_text: string;
+NOT_NORMALIZED src/app/bible/search.tsx:567                   result.verse_text
+NOT_NORMALIZED src/lib/buklodBibleNarration.ts:41   verse_text: string;
+NOT_NORMALIZED src/lib/buklodBibleNarration.ts:426   const displayText = displayVerseText(verse.verse_text);
+NOT_NORMALIZED src/lib/buklodBibleNarration.ts:432     verse.verse_text,
+NOT_NORMALIZED src/lib/buklodBibleNarration.ts:552         verse_text: String(item.verse_text ?? ''),
+NOT_NORMALIZED src/lib/buklodBibleNarration.ts:558         displayVerseText(verse.verse_text).length > 0
+
+=== IMPORTANT LIMIT ===
+This local audit cannot prove that Supabase Bible verse_text rows are clean.
+If the app shows A-with-mark or question/replacement characters inside the actual verse words,
+the corruption may be in database verse_text or in decoding before display.
+Do not rewrite canonical Bible rows automatically.
+Preferred repair: normalize display text when reversible; flag U+FFFD for exact source correction.

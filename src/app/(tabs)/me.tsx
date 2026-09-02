@@ -38,6 +38,7 @@ import { decode } from 'base64-arraybuffer';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { Alert } from 'react-native';
+import { ensureImagePickerLibraryAccess } from '@/lib/buklodImagePickerAccess';
 import {
   BUKLOD_HIT_SLOP,
   BUKLOD_HIT_SLOP_TIGHT,
@@ -659,12 +660,13 @@ export default function MeScreen() {
           true
         );
 
-        const permission =
-          await ImagePicker
-            .requestMediaLibraryPermissionsAsync();
+        const permissionGranted =
+          await ensureImagePickerLibraryAccess(
+            ImagePicker.requestMediaLibraryPermissionsAsync
+          );
 
         if (
-          !permission.granted
+          !permissionGranted
         ) {
           Alert.alert(
             'Profile Photo',
@@ -932,13 +934,13 @@ export default function MeScreen() {
       }
 
       try {
-        const permission =
-          await ImagePicker
-            .requestMediaLibraryPermissionsAsync();
+        const permissionGranted =
+          await ensureImagePickerLibraryAccess(
+            ImagePicker.requestMediaLibraryPermissionsAsync
+          );
 
         if (
-          permission.status !==
-          'granted'
+          !permissionGranted
         ) {
           Alert.alert(
             'Photo Permission',

@@ -1,0 +1,38 @@
+BUKLOD SHOW FAITH ABC + HYMNS + POINTS R2
+Timestamp: 2026-09-02T18:02:31.2266992+08:00
+Project: C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16
+
+SHOW FAITH
+- ABC Study and Hymns are personal/public Show Faith resources.
+- No Organization / Cluster / Premium / purchase gate on these two resources.
+- Existing Show Faith preference remains the parent visibility behavior.
+- Existing Daily Reading / Devotion access logic was not rewritten.
+
+ABC
+- Source library: Panimula + 2 preliminary + 26 regular lessons.
+- Rewardable: 2 preliminary + 26 regular = 28 lessons.
+- Reward: +5 BUKLOD Points once per rewardable lesson.
+- Maximum core ABC reward: 140 BUKLOD Points.
+- Answer fields must be nonblank before client completion.
+- Canonical server source key prevents repeat/farming reward.
+- Reward enters existing Ready-to-Claim BUKLOD Points flow.
+- Answers/notes stay local; server stores completion/reward linkage only.
+- Bible references deep-link to the existing BUKLOD Bible reader.
+- Source/page citations preserved.
+
+HYMNS
+- 98 source song entries.
+- Search, selectable viewer, A-/A+, zoom, find-in-song, previous/next.
+
+BACKEND
+- Production migration already deployed: 20260902095300_show_faith_abc_points_v1
+- Local migration mirror written to supabase/migrations.
+- This installer performed NO Supabase DB push.
+
+BUILD
+- No package install.
+- No native dependency.
+- No APK/AAB build.
+- TypeScript CLEAN.
+
+Backup: C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\.buklod-backups\show_faith_abc_hymns_points_192A_R2_20260902_180051

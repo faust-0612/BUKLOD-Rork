@@ -1,0 +1,2218 @@
+﻿  /* ==========================================================
+     PATCH 161B
+     FULL-SCREEN REELS
+     ========================================================== */
+
+  type ReelComment = {
+    id: string;
+    user_id: string;
+    commenter_name: string;
+    body: string;
+    created_at: string;
+    parent_id: string | null;
+    parent_commenter_name:
+      string | null;
+  };
+
+
+  const insets =
+    useSafeAreaInsets();
+
+
+  const pageWidth =
+    Dimensions
+      .get('window')
+      .width;
+
+
+  const pageHeight =
+    Dimensions
+      .get('window')
+      .height;
+
+
+  const [
+    activeIndex,
+    setActiveIndex,
+  ] =
+    useState(0);
+
+
+  const [
+    autoplay,
+    setAutoplay,
+  ] =
+    useState(true);
+
+
+  const [
+    createOpen,
+    setCreateOpen,
+  ] =
+    useState(false);
+
+
+  const [
+    commentsOpen,
+    setCommentsOpen,
+  ] =
+    useState(false);
+
+
+  const [
+    selectedReel,
+    setSelectedReel,
+  ] =
+    useState<ReelRow | null>(
+      null
+    );
+
+
+  const [
+    comments,
+    setComments,
+  ] =
+    useState<ReelComment[]>(
+      []
+    );
+
+
+  const [
+    commentsLoading,
+    setCommentsLoading,
+  ] =
+    useState(false);
+
+
+  const [
+    commentBusy,
+    setCommentBusy,
+  ] =
+    useState(false);
+
+
+  const [
+    commentBody,
+    setCommentBody,
+  ] =
+    useState('');
+
+
+  const [
+    replyTo,
+    setReplyTo,
+  ] =
+    useState<ReelComment | null>(
+      null
+    );
+
+
+  const autoplayKey =
+    'buklod.reels.autoplay.v1';
+
+
+  useEffect(
+    () => {
+
+      let mounted =
+        true;
+
+
+      void AsyncStorage
+        .getItem(
+          autoplayKey
+        )
+        .then(
+          value => {
+
+            if (!mounted) {
+              return;
+            }
+
+
+            if (
+              value === '0'
+            ) {
+              setAutoplay(
+                false
+              );
+            }
+
+          }
+        )
+        .catch(
+          () => {}
+        );
+
+
+      return () => {
+        mounted =
+          false;
+      };
+
+    },
+    []
+  );
+
+
+  useEffect(
+    () => {
+
+      if (
+        activeIndex >=
+        rows.length
+      ) {
+        setActiveIndex(
+          0
+        );
+      }
+
+    },
+    [
+      activeIndex,
+      rows.length,
+    ]
+  );
+
+
+  const toggleAutoplay =
+    async () => {
+
+      const next =
+        !autoplay;
+
+
+      setAutoplay(
+        next
+      );
+
+
+      try {
+
+        await AsyncStorage
+          .setItem(
+            autoplayKey,
+            next
+              ? '1'
+              : '0'
+          );
+
+      }
+      catch {}
+
+    };
+
+
+  const react =
+    async (
+      postId: string,
+      reaction:
+        'love'
+        | 'haha'
+        | 'praying'
+    ) => {
+
+      const target =
+        rows.find(
+          item =>
+            item.id ===
+            postId
+        );
+
+
+      if (!target) {
+        return;
+      }
+
+
+      const previous =
+        target.my_reaction;
+
+
+      const nextReaction =
+        previous === reaction
+          ? null
+          : reaction;
+
+
+      /*
+       * Optimistic local update.
+       * No full Reel reload just to
+       * display a reaction.
+       */
+      setRows(
+        current =>
+          current.map(
+            item => {
+
+              if (
+                item.id !==
+                postId
+              ) {
+                return item;
+              }
+
+
+              const counts = {
+                ...(
+                  item
+                    .reaction_counts
+                  ?? {}
+                ),
+              };
+
+
+              if (previous) {
+
+                counts[
+                  previous
+                ] =
+                  Math.max(
+                    0,
+                    Number(
+                      counts[
+                        previous
+                      ] ?? 0
+                    ) - 1
+                  );
+
+              }
+
+
+              if (
+                nextReaction
+              ) {
+
+                counts[
+                  nextReaction
+                ] =
+                  Number(
+                    counts[
+                      nextReaction
+                    ] ?? 0
+                  ) + 1;
+
+              }
+
+
+              return {
+                ...item,
+
+                my_reaction:
+                  nextReaction,
+
+                reaction_counts:
+                  counts,
+
+                reaction_count:
+                  Math.max(
+                    0,
+                    Number(
+                      item
+                        .reaction_count
+                      ?? 0
+                    )
+                    -
+                    (
+                      previous
+                        ? 1
+                        : 0
+                    )
+                    +
+                    (
+                      nextReaction
+                        ? 1
+                        : 0
+                    )
+                  ),
+              };
+
+            }
+          )
+      );
+
+
+      const {
+        data,
+        error,
+      } =
+        await (
+          supabase as any
+        ).rpc(
+          'set_buklod_post_reaction_v4',
+          {
+            p_post_id:
+              postId,
+
+            p_reaction:
+              reaction,
+          }
+        );
+
+
+      if (error) {
+
+        /*
+         * Compatibility fallback
+         * until migration reaches
+         * staging.
+         */
+        const fallback =
+          await (
+            supabase as any
+          ).rpc(
+            'set_buklod_post_reaction_v3',
+            {
+              p_post_id:
+                postId,
+
+              p_reaction:
+                reaction,
+            }
+          );
+
+
+        if (
+          fallback.error
+        ) {
+
+          await load();
+
+          Alert.alert(
+            'Reaction',
+            fallback
+              .error
+              .message
+          );
+
+          return;
+        }
+
+
+        return;
+      }
+
+
+      const serverReaction =
+        typeof data ===
+          'string'
+          ? data
+          : null;
+
+
+      if (
+        serverReaction !==
+        nextReaction
+      ) {
+        await load();
+      }
+
+    };
+
+
+  const loadComments =
+    async (
+      postId: string
+    ) => {
+
+      setCommentsLoading(
+        true
+      );
+
+
+      try {
+
+        const result =
+          await (
+            supabase as any
+          ).rpc(
+            'get_buklod_post_comments_v4',
+            {
+              p_post_id:
+                postId,
+            }
+          );
+
+
+        if (
+          !result.error
+        ) {
+
+          setComments(
+            (
+              result.data ??
+              []
+            ) as ReelComment[]
+          );
+
+          return;
+        }
+
+
+        /*
+         * Read-only fallback for
+         * staging before V4 migration.
+         */
+        const fallback =
+          await (
+            supabase as any
+          ).rpc(
+            'get_buklod_post_comments_v3',
+            {
+              p_post_id:
+                postId,
+            }
+          );
+
+
+        if (
+          fallback.error
+        ) {
+          throw fallback
+            .error;
+        }
+
+
+        setComments(
+          (
+            fallback.data ??
+            []
+          ).map(
+            (item: any) => ({
+              ...item,
+
+              parent_id:
+                null,
+
+              parent_commenter_name:
+                null,
+            })
+          )
+        );
+
+      }
+      catch (
+        error: any
+      ) {
+
+        Alert.alert(
+          'Comments',
+          error?.message ??
+            'Could not load comments.'
+        );
+
+      }
+      finally {
+
+        setCommentsLoading(
+          false
+        );
+
+      }
+
+    };
+
+
+  const openComments =
+    async (
+      reel: ReelRow
+    ) => {
+
+      setSelectedReel(
+        reel
+      );
+
+      setReplyTo(
+        null
+      );
+
+      setCommentBody(
+        ''
+      );
+
+      setCommentsOpen(
+        true
+      );
+
+
+      await loadComments(
+        reel.id
+      );
+
+    };
+
+
+  const startReply =
+    (
+      comment:
+        ReelComment
+    ) => {
+
+      setReplyTo(
+        comment
+      );
+
+
+      setCommentBody(
+        '@' +
+        comment.commenter_name +
+        ' '
+      );
+
+    };
+
+
+  const submitComment =
+    async () => {
+
+      const reel =
+        selectedReel;
+
+
+      if (
+        !reel ||
+        !commentBody.trim() ||
+        commentBusy
+      ) {
+        return;
+      }
+
+
+      let body =
+        commentBody.trim();
+
+
+      if (replyTo) {
+
+        const mention =
+          '@' +
+          replyTo
+            .commenter_name;
+
+
+        if (
+          !body
+            .toLowerCase()
+            .startsWith(
+              mention
+                .toLowerCase()
+            )
+        ) {
+
+          body =
+            mention +
+            ' ' +
+            body;
+
+        }
+
+      }
+
+
+      setCommentBusy(
+        true
+      );
+
+
+      try {
+
+        const {
+          error,
+        } =
+          await (
+            supabase as any
+          ).rpc(
+            'add_buklod_post_comment_v4',
+            {
+              p_post_id:
+                reel.id,
+
+              p_body:
+                body,
+
+              p_parent_id:
+                replyTo?.id ??
+                null,
+            }
+          );
+
+
+        if (error) {
+          throw error;
+        }
+
+
+        setCommentBody(
+          ''
+        );
+
+        setReplyTo(
+          null
+        );
+
+
+        setRows(
+          current =>
+            current.map(
+              item =>
+                item.id ===
+                  reel.id
+                  ? {
+                      ...item,
+
+                      comment_count:
+                        Number(
+                          item
+                            .comment_count
+                          ?? 0
+                        ) + 1,
+                    }
+                  : item
+            )
+        );
+
+
+        await loadComments(
+          reel.id
+        );
+
+      }
+      catch (
+        error: any
+      ) {
+
+        Alert.alert(
+          'Comment',
+          error?.message ??
+            'Could not post comment.'
+        );
+
+      }
+      finally {
+
+        setCommentBusy(
+          false
+        );
+
+      }
+
+    };
+
+
+  const shareReel =
+    async (
+      reel: ReelRow
+    ) => {
+
+      try {
+
+        /*
+         * Preserve BUKLOD's
+         * outside-sharing approval
+         * rule.
+         */
+        const {
+          data,
+          error,
+        } =
+          await (
+            supabase as any
+          ).rpc(
+            'request_external_post_share_v2',
+            {
+              p_post_id:
+                reel.id,
+            }
+          );
+
+
+        if (error) {
+          throw error;
+        }
+
+
+        const decision =
+          Array.isArray(
+            data
+          )
+            ? data[0]
+            : data;
+
+
+        if (
+          !decision
+            ?.share_allowed
+        ) {
+
+          Alert.alert(
+            'Approval Requested',
+            'The Reel owner was notified. Sharing outside BUKLOD becomes available after approval.'
+          );
+
+          return;
+        }
+
+
+        const shareAvailable =
+          await Sharing
+            .isAvailableAsync();
+
+
+        if (
+          shareAvailable &&
+          reel.media_url &&
+          FileSystem
+            .cacheDirectory
+        ) {
+
+          const extension =
+            extensionForMime(
+              reel
+                .media_mime_type
+              ||
+              'video/mp4'
+            );
+
+
+          const localUri =
+            FileSystem
+              .cacheDirectory +
+            'buklod-reel-' +
+            reel.id +
+            '.' +
+            extension;
+
+
+          await FileSystem
+            .downloadAsync(
+              reel.media_url,
+              localUri
+            );
+
+
+          await Sharing
+            .shareAsync(
+              localUri,
+              {
+                mimeType:
+                  reel
+                    .media_mime_type
+                  ||
+                  'video/mp4',
+
+                dialogTitle:
+                  'Share BUKLOD Reel',
+              }
+            );
+
+
+          return;
+        }
+
+
+        await Share.share({
+          message:
+            reel.author_name +
+            '\n\n' +
+            (
+              reel.body ||
+              'BUKLOD Reel'
+            ) +
+            '\n\nShared from BUKLOD',
+        });
+
+      }
+      catch (
+        error: any
+      ) {
+
+        Alert.alert(
+          'Share Reel',
+          error?.message ??
+            'Could not share this Reel.'
+        );
+
+      }
+
+    };
+
+
+  return (
+    <View
+      style={
+        styles.screen
+      }
+    >
+
+      <FlatList
+        data={
+          rows
+        }
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={
+          false
+        }
+        bounces={
+          false
+        }
+        decelerationRate="fast"
+
+        keyExtractor={
+          item =>
+            item.id
+        }
+
+        initialNumToRender={
+          2
+        }
+
+        maxToRenderPerBatch={
+          2
+        }
+
+        updateCellsBatchingPeriod={
+          80
+        }
+
+        windowSize={
+          3
+        }
+
+        getItemLayout={(
+          _,
+          index
+        ) => ({
+          length:
+            pageWidth,
+
+          offset:
+            pageWidth *
+            index,
+
+          index,
+        })}
+
+        onMomentumScrollEnd={
+          event => {
+
+            const nextIndex =
+              Math.round(
+                event
+                  .nativeEvent
+                  .contentOffset
+                  .x /
+                pageWidth
+              );
+
+
+            setActiveIndex(
+              Math.max(
+                0,
+                Math.min(
+                  nextIndex,
+                  rows.length - 1
+                )
+              )
+            );
+
+          }
+        }
+
+        renderItem={({
+          item,
+          index,
+        }) => {
+
+          const active =
+            index ===
+            activeIndex;
+
+
+          const preparePlayer =
+            Math.abs(
+              index -
+              activeIndex
+            ) <= 1;
+
+
+          const counts =
+            item
+              .reaction_counts
+            ?? {};
+
+
+          return (
+            <View
+              style={[
+                styles.reelPage,
+                {
+                  width:
+                    pageWidth,
+
+                  height:
+                    pageHeight,
+
+                  paddingTop:
+                    insets.top +
+                    52,
+
+                  paddingBottom:
+                    Math.max(
+                      insets.bottom,
+                      10
+                    ) + 8,
+                },
+              ]}
+            >
+
+              <View
+                style={
+                  styles.videoStage
+                }
+              >
+
+                {!!item.media_url &&
+                  preparePlayer ? (
+
+                  <ReelVideo
+                    uri={
+                      item.media_url
+                    }
+                    active={
+                      active
+                    }
+                    autoplay={
+                      autoplay
+                    }
+                    onDoubleLove={() => {
+
+                      if (
+                        item
+                          .my_reaction !==
+                        'love'
+                      ) {
+
+                        void react(
+                          item.id,
+                          'love'
+                        );
+
+                      }
+
+                    }}
+                  />
+
+                ) : (
+
+                  <View
+                    style={
+                      styles.videoPlaceholder
+                    }
+                  >
+                    <ActivityIndicator
+                      color="#FFFFFF"
+                    />
+                  </View>
+
+                )}
+
+
+                <View
+                  style={
+                    styles.bottomInfo
+                  }
+                >
+
+                  <View
+                    style={
+                      styles.authorRow
+                    }
+                  >
+
+                    <ProfileAvatar
+                      userId={
+                        item.user_id
+                      }
+                      name={
+                        item.author_name ||
+                        'BUKLOD Member'
+                      }
+                      size={38}
+                    />
+
+
+                    <View
+                      style={{
+                        flex: 1,
+                      }}
+                    >
+
+                      <Text
+                        style={
+                          styles.authorName
+                        }
+                        numberOfLines={
+                          1
+                        }
+                      >
+                        {
+                          item.author_name ||
+                          'BUKLOD Member'
+                        }
+                      </Text>
+
+
+                      <Text
+                        style={
+                          styles.reelMeta
+                        }
+                      >
+                        {
+                          String(
+                            item.audience ||
+                            'public'
+                          )
+                            .toUpperCase()
+                        }
+                        {'  •  '}
+                        {
+                          formatSpecificDateTime(
+                            item.created_at
+                          )
+                        }
+                      </Text>
+
+                    </View>
+
+                  </View>
+
+
+                  {!!item.body && (
+
+                    <Text
+                      style={
+                        styles.captionText
+                      }
+                      numberOfLines={
+                        4
+                      }
+                    >
+                      {item.body}
+                    </Text>
+
+                  )}
+
+
+                  <Text
+                    style={
+                      styles.doubleTapHint
+                    }
+                  >
+                    Double-tap video to Love
+                  </Text>
+
+                </View>
+
+
+                <View
+                  style={
+                    styles.actionRail
+                  }
+                >
+
+                  {RX.map(
+                    reaction => {
+
+                      const activeReaction =
+                        item
+                          .my_reaction ===
+                        reaction.key;
+
+
+                      const count =
+                        Number(
+                          counts[
+                            reaction.key
+                          ] ?? 0
+                        );
+
+
+                      return (
+                        <Pressable
+                          key={
+                            reaction.key
+                          }
+                          onPress={() =>
+                            void react(
+                              item.id,
+                              reaction.key
+                            )
+                          }
+                          style={
+                            styles.actionButton
+                          }
+                        >
+
+                          <View
+                            style={[
+                              styles.actionCircle,
+
+                              activeReaction &&
+                                styles.actionCircleOn,
+                            ]}
+                          >
+                            <MaterialCommunityIcons
+                              name={
+                                reaction.icon
+                              }
+                              size={25}
+                              color={
+                                activeReaction
+                                  ? '#FFFFFF'
+                                  : '#FFFFFF'
+                              }
+                            />
+                          </View>
+
+
+                          <Text
+                            style={
+                              styles.actionCount
+                            }
+                          >
+                            {count}
+                          </Text>
+
+                        </Pressable>
+                      );
+
+                    }
+                  )}
+
+
+                  <Pressable
+                    onPress={() =>
+                      void openComments(
+                        item
+                      )
+                    }
+                    style={
+                      styles.actionButton
+                    }
+                  >
+
+                    <View
+                      style={
+                        styles.actionCircle
+                      }
+                    >
+                      <MaterialCommunityIcons
+                        name="comment-outline"
+                        size={25}
+                        color="#FFFFFF"
+                      />
+                    </View>
+
+                    <Text
+                      style={
+                        styles.actionCount
+                      }
+                    >
+                      {
+                        Number(
+                          item
+                            .comment_count
+                          ?? 0
+                        )
+                      }
+                    </Text>
+
+                  </Pressable>
+
+
+                  <Pressable
+                    onPress={() =>
+                      void shareReel(
+                        item
+                      )
+                    }
+                    style={
+                      styles.actionButton
+                    }
+                  >
+
+                    <View
+                      style={
+                        styles.actionCircle
+                      }
+                    >
+                      <MaterialCommunityIcons
+                        name="share-variant-outline"
+                        size={25}
+                        color="#FFFFFF"
+                      />
+                    </View>
+
+                    <Text
+                      style={
+                        styles.actionCount
+                      }
+                    >
+                      Share
+                    </Text>
+
+                  </Pressable>
+
+                </View>
+
+              </View>
+
+            </View>
+          );
+
+        }}
+      />
+
+
+      <View
+        style={[
+          styles.topBar,
+          {
+            paddingTop:
+              insets.top +
+              5,
+          },
+        ]}
+      >
+
+        <Pressable
+          onPress={() =>
+            router.back()
+          }
+          style={
+            styles.topIconButton
+          }
+        >
+          <MaterialCommunityIcons
+            name="arrow-left"
+            size={23}
+            color="#FFFFFF"
+          />
+        </Pressable>
+
+
+        <View
+          style={
+            styles.topTitleWrap
+          }
+        >
+          <Text
+            style={
+              styles.topTitle
+            }
+          >
+            BUKLOD REELS
+          </Text>
+
+          <Text
+            style={
+              styles.topSub
+            }
+          >
+            Swipe left / right
+          </Text>
+        </View>
+
+
+        <Pressable
+          onPress={() =>
+            void toggleAutoplay()
+          }
+          style={
+            styles.topControl
+          }
+        >
+          <MaterialCommunityIcons
+            name={
+              autoplay
+                ? 'play-circle-outline'
+                : 'pause-circle-outline'
+            }
+            size={20}
+            color="#FFFFFF"
+          />
+
+          <Text
+            style={
+              styles.topControlText
+            }
+          >
+            {
+              autoplay
+                ? 'AUTO'
+                : 'MANUAL'
+            }
+          </Text>
+        </Pressable>
+
+
+        <Pressable
+          onPress={() =>
+            setCreateOpen(
+              true
+            )
+          }
+          style={
+            styles.topIconButton
+          }
+        >
+          <MaterialCommunityIcons
+            name="plus"
+            size={25}
+            color="#FFFFFF"
+          />
+        </Pressable>
+
+      </View>
+
+
+      {loading && (
+
+        <View
+          pointerEvents="none"
+          style={
+            styles.loadingOverlay
+          }
+        >
+          <ActivityIndicator
+            size="large"
+            color="#FFFFFF"
+          />
+
+          <Text
+            style={
+              styles.loadingText
+            }
+          >
+            Loading Reels...
+          </Text>
+        </View>
+
+      )}
+
+
+      {!loading &&
+        rows.length === 0 && (
+
+        <View
+          style={
+            styles.empty
+          }
+        >
+          <MaterialCommunityIcons
+            name="movie-open-outline"
+            size={46}
+            color="#FFFFFF"
+          />
+
+          <Text
+            style={
+              styles.emptyTitle
+            }
+          >
+            No BUKLOD Reels yet.
+          </Text>
+
+          <Pressable
+            onPress={() =>
+              setCreateOpen(
+                true
+              )
+            }
+            style={
+              styles.emptyButton
+            }
+          >
+            <Text
+              style={
+                styles.emptyButtonText
+              }
+            >
+              CREATE FIRST REEL
+            </Text>
+          </Pressable>
+        </View>
+
+      )}
+
+
+      {/* ====================================================
+          CREATE REEL
+          Existing upload functions are retained.
+          ==================================================== */}
+
+      <Modal
+        visible={
+          createOpen
+        }
+        transparent
+        animationType="slide"
+        onRequestClose={() =>
+          setCreateOpen(
+            false
+          )
+        }
+      >
+
+        <View
+          style={
+            styles.modalBackdrop
+          }
+        >
+
+          <View
+            style={[
+              styles.createSheet,
+              {
+                paddingBottom:
+                  Math.max(
+                    insets.bottom,
+                    16
+                  ),
+              },
+            ]}
+          >
+
+            <View
+              style={
+                styles.sheetHeader
+              }
+            >
+              <View>
+                <Text
+                  style={
+                    styles.sheetTitle
+                  }
+                >
+                  CREATE REEL
+                </Text>
+
+                <Text
+                  style={
+                    styles.sheetSub
+                  }
+                >
+                  Maximum 60 seconds • 50 MB
+                </Text>
+              </View>
+
+
+              <Pressable
+                onPress={() =>
+                  setCreateOpen(
+                    false
+                  )
+                }
+                style={
+                  styles.sheetClose
+                }
+              >
+                <MaterialCommunityIcons
+                  name="close"
+                  size={23}
+                  color={colors.text}
+                />
+              </Pressable>
+
+            </View>
+
+
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={
+                styles.createContent
+              }
+            >
+
+              <View
+                style={
+                  styles.pickRow
+                }
+              >
+
+                <Pressable
+                  onPress={
+                    recordVideo
+                  }
+                  disabled={
+                    busy
+                  }
+                  style={
+                    styles.pickButton
+                  }
+                >
+                  <MaterialCommunityIcons
+                    name="camera-outline"
+                    size={27}
+                    color={
+                      colors.greenDark
+                    }
+                  />
+
+                  <Text
+                    style={
+                      styles.pickText
+                    }
+                  >
+                    CAMERA
+                  </Text>
+                </Pressable>
+
+
+                <Pressable
+                  onPress={
+                    pickFromGallery
+                  }
+                  disabled={
+                    busy
+                  }
+                  style={
+                    styles.pickButton
+                  }
+                >
+                  <MaterialCommunityIcons
+                    name="folder-video-outline"
+                    size={27}
+                    color={
+                      colors.greenDark
+                    }
+                  />
+
+                  <Text
+                    style={
+                      styles.pickText
+                    }
+                  >
+                    GALLERY
+                  </Text>
+                </Pressable>
+
+              </View>
+
+
+              {!!draft && (
+
+                <View
+                  style={
+                    styles.selected
+                  }
+                >
+
+                  <View
+                    style={{
+                      flex: 1,
+                    }}
+                  >
+                    <Text
+                      style={
+                        styles.selectedTitle
+                      }
+                    >
+                      VIDEO READY
+                    </Text>
+
+                    <Text
+                      style={
+                        styles.selectedText
+                      }
+                    >
+                      {
+                        draft
+                          .durationSeconds
+                      }s
+                      {' • '}
+                      {
+                        (
+                          draft
+                            .sizeBytes /
+                          1024 /
+                          1024
+                        ).toFixed(
+                          1
+                        )
+                      } MB
+                    </Text>
+                  </View>
+
+
+                  <Pressable
+                    onPress={() =>
+                      setDraft(
+                        null
+                      )
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.removeText
+                      }
+                    >
+                      REMOVE
+                    </Text>
+                  </Pressable>
+
+                </View>
+
+              )}
+
+
+              <Text
+                style={
+                  styles.label
+                }
+              >
+                CAPTION
+              </Text>
+
+
+              <TextInput
+                multiline
+                value={
+                  caption
+                }
+                onChangeText={
+                  setCaption
+                }
+                placeholder="Say something about your Reel..."
+                placeholderTextColor={
+                  colors.muted
+                }
+                style={
+                  styles.captionInput
+                }
+                maxLength={
+                  2000
+                }
+              />
+
+
+              <Text
+                style={
+                  styles.label
+                }
+              >
+                AUDIENCE
+              </Text>
+
+
+              <View
+                style={
+                  styles.audienceRow
+                }
+              >
+
+                {(
+                  [
+                    'group',
+                    'local',
+                    'public',
+                  ] as Audience[]
+                ).map(
+                  item => {
+
+                    const disabled =
+                      item ===
+                        'group' &&
+                      !groupId;
+
+
+                    return (
+                      <Pressable
+                        key={
+                          item
+                        }
+                        disabled={
+                          disabled
+                        }
+                        onPress={() =>
+                          setAudience(
+                            item
+                          )
+                        }
+                        style={[
+                          styles.audienceButton,
+
+                          audience ===
+                            item &&
+                            styles.audienceButtonOn,
+
+                          disabled &&
+                            styles.audienceButtonDisabled,
+                        ]}
+                      >
+
+                        <Text
+                          style={[
+                            styles.audienceText,
+
+                            audience ===
+                              item &&
+                              styles.audienceTextOn,
+                          ]}
+                        >
+                          {
+                            item ===
+                              'group'
+                              ? 'CLUSTER'
+                              : item
+                                  .toUpperCase()
+                          }
+                        </Text>
+
+                      </Pressable>
+                    );
+
+                  }
+                )}
+
+              </View>
+
+
+              <Pressable
+                disabled={
+                  busy ||
+                  !draft
+                }
+                onPress={
+                  publish
+                }
+                style={[
+                  styles.publishButton,
+
+                  (
+                    busy ||
+                    !draft
+                  ) &&
+                    styles.publishButtonDisabled,
+                ]}
+              >
+
+                {busy ? (
+
+                  <ActivityIndicator
+                    color="#FFFFFF"
+                  />
+
+                ) : (
+
+                  <Text
+                    style={
+                      styles.publishText
+                    }
+                  >
+                    PUBLISH REEL
+                  </Text>
+
+                )}
+
+              </Pressable>
+
+            </ScrollView>
+
+          </View>
+
+        </View>
+
+      </Modal>
+
+
+      {/* ====================================================
+          COMMENTS + REPLIES
+          ==================================================== */}
+
+      <Modal
+        visible={
+          commentsOpen
+        }
+        transparent
+        animationType="slide"
+        onRequestClose={() =>
+          setCommentsOpen(
+            false
+          )
+        }
+      >
+
+        <View
+          style={
+            styles.modalBackdrop
+          }
+        >
+
+          <View
+            style={[
+              styles.commentsSheet,
+              {
+                paddingBottom:
+                  Math.max(
+                    insets.bottom,
+                    12
+                  ),
+              },
+            ]}
+          >
+
+            <View
+              style={
+                styles.sheetHeader
+              }
+            >
+              <View>
+                <Text
+                  style={
+                    styles.sheetTitle
+                  }
+                >
+                  COMMENTS
+                </Text>
+
+                <Text
+                  style={
+                    styles.sheetSub
+                  }
+                >
+                  {
+                    selectedReel
+                      ?.author_name
+                    ??
+                    'BUKLOD Reel'
+                  }
+                </Text>
+              </View>
+
+
+              <Pressable
+                onPress={() =>
+                  setCommentsOpen(
+                    false
+                  )
+                }
+                style={
+                  styles.sheetClose
+                }
+              >
+                <MaterialCommunityIcons
+                  name="close"
+                  size={23}
+                  color={colors.text}
+                />
+              </Pressable>
+
+            </View>
+
+
+            {commentsLoading ? (
+
+              <View
+                style={
+                  styles.commentsLoading
+                }
+              >
+                <ActivityIndicator
+                  color={
+                    colors.green
+                  }
+                />
+              </View>
+
+            ) : (
+
+              <FlatList
+                data={
+                  comments
+                }
+                keyExtractor={
+                  item =>
+                    item.id
+                }
+                keyboardShouldPersistTaps="handled"
+                initialNumToRender={
+                  10
+                }
+                maxToRenderPerBatch={
+                  8
+                }
+                windowSize={
+                  7
+                }
+                contentContainerStyle={
+                  styles.commentsList
+                }
+
+                ListEmptyComponent={
+                  <Text
+                    style={
+                      styles.noComments
+                    }
+                  >
+                    No comments yet. Be the first to comment.
+                  </Text>
+                }
+
+                renderItem={({
+                  item,
+                }) => (
+
+                  <View
+                    style={[
+                      styles.commentCard,
+
+                      item.parent_id &&
+                        styles.commentReply,
+                    ]}
+                  >
+
+                    <View
+                      style={
+                        styles.commentHeader
+                      }
+                    >
+
+                      <ProfileAvatar
+                        userId={
+                          item.user_id
+                        }
+                        name={
+                          item
+                            .commenter_name
+                        }
+                        size={32}
+                      />
+
+
+                      <View
+                        style={{
+                          flex: 1,
+                        }}
+                      >
+
+                        <Text
+                          style={
+                            styles.commentName
+                          }
+                        >
+                          {
+                            item
+                              .commenter_name
+                          }
+                        </Text>
+
+
+                        <Text
+                          style={
+                            styles.commentMeta
+                          }
+                        >
+                          {
+                            formatSpecificDateTime(
+                              item
+                                .created_at
+                            )
+                          }
+                        </Text>
+
+                      </View>
+
+                    </View>
+
+
+                    {!!item.parent_id &&
+                      !!item
+                        .parent_commenter_name && (
+
+                      <Text
+                        style={
+                          styles.replyingTo
+                        }
+                      >
+                        Replying to @
+                        {
+                          item
+                            .parent_commenter_name
+                        }
+                      </Text>
+
+                    )}
+
+
+                    <Text
+                      style={
+                        styles.commentBody
+                      }
+                    >
+                      {item.body}
+                    </Text>
+
+
+                    <Pressable
+                      onPress={() =>
+                        startReply(
+                          item
+                        )
+                      }
+                      style={
+                        styles.replyButton
+                      }
+                    >
+                      <MaterialCommunityIcons
+                        name="reply-outline"
+                        size={15}
+                        color={
+                          colors.greenDark
+                        }
+                      />
+
+                      <Text
+                        style={
+                          styles.replyText
+                        }
+                      >
+                        Reply
+                      </Text>
+                    </Pressable>
+
+                  </View>
+
+                )}
+              />
+
+            )}
+
+
+            {!!replyTo && (
+
+              <View
+                style={
+                  styles.replyBanner
+                }
+              >
+                <Text
+                  style={
+                    styles.replyBannerText
+                  }
+                  numberOfLines={
+                    1
+                  }
+                >
+                  Replying to @
+                  {
+                    replyTo
+                      .commenter_name
+                  }
+                </Text>
+
+                <Pressable
+                  onPress={() => {
+                    setReplyTo(
+                      null
+                    );
+
+                    setCommentBody(
+                      ''
+                    );
+                  }}
+                >
+                  <MaterialCommunityIcons
+                    name="close-circle"
+                    size={19}
+                    color={
+                      colors.muted
+                    }
+                  />
+                </Pressable>
+              </View>
+
+            )}
+
+
+            <View
+              style={
+                styles.commentComposer
+              }
+            >
+
+              <TextInput
+                value={
+                  commentBody
+                }
+                onChangeText={
+                  setCommentBody
+                }
+                placeholder={
+                  replyTo
+                    ? 'Write a reply...'
+                    : 'Write a comment...'
+                }
+                placeholderTextColor={
+                  colors.muted
+                }
+                multiline
+                maxLength={
+                  2000
+                }
+                style={
+                  styles.commentInput
+                }
+              />
+
+
+              <Pressable
+                disabled={
+                  commentBusy ||
+                  !commentBody
+                    .trim()
+                }
+                onPress={() =>
+                  void submitComment()
+                }
+                style={[
+                  styles.sendButton,
+
+                  (
+                    commentBusy ||
+                    !commentBody
+                      .trim()
+                  ) &&
+                    styles.sendButtonDisabled,
+                ]}
+              >
+                {commentBusy ? (
+
+                  <ActivityIndicator
+                    size="small"
+                    color="#FFFFFF"
+                  />
+
+                ) : (
+
+                  <MaterialCommunityIcons
+                    name="send"
+                    size={20}
+                    color="#FFFFFF"
+                  />
+
+                )}
+              </Pressable>
+
+            </View>
+
+          </View>
+
+        </View>
+
+      </Modal>
+
+    </View>
+  );
+}

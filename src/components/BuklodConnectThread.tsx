@@ -1291,6 +1291,89 @@ const [
       FlatList<Message>
     >(null);
 
+  /* PATCH_191B_CONNECT_SCROLL_ANCHOR */
+  const connectScrollOffsetRef =
+    useRef(0);
+
+  const connectReadingOlderRef =
+    useRef(false);
+
+  const connectPreserveScrollRef =
+    useRef(false);
+
+  const connectPreserveOffsetRef =
+    useRef(0);
+
+  const connectPreserveTimerRef =
+    useRef<ReturnType<typeof setTimeout> | null>(
+      null
+    );
+
+  const armConnectScrollPreservation =
+    () => {
+      if (!connectReadingOlderRef.current) {
+        return;
+      }
+
+      connectPreserveOffsetRef.current =
+        connectScrollOffsetRef.current;
+
+      connectPreserveScrollRef.current =
+        true;
+
+      if (connectPreserveTimerRef.current) {
+        clearTimeout(
+          connectPreserveTimerRef.current
+        );
+      }
+
+      connectPreserveTimerRef.current =
+        setTimeout(
+          () => {
+            connectPreserveScrollRef.current =
+              false;
+            connectPreserveTimerRef.current =
+              null;
+          },
+          8000
+        );
+    };
+
+  useEffect(
+    () => {
+      if (!connectPreserveScrollRef.current) {
+        return;
+      }
+
+      const offset =
+        connectPreserveOffsetRef.current;
+
+      requestAnimationFrame(
+        () => {
+          listRef.current
+            ?.scrollToOffset({
+              offset,
+              animated: false,
+            });
+
+          connectPreserveScrollRef.current =
+            false;
+
+          if (
+            connectPreserveTimerRef.current
+          ) {
+            clearTimeout(
+              connectPreserveTimerRef.current
+            );
+            connectPreserveTimerRef.current =
+              null;
+          }
+        }
+      );
+    },
+    [messages]
+  );
+
   const connectThreadOfflineCacheKey =
     `connect-thread:${mode}:${effectiveContainerId}`;
 
@@ -2086,6 +2169,7 @@ const [
       message: Message,
       anchor: ConnectMessageActionAnchor,
     ) => {
+      armConnectScrollPreservation();
       setOptionMenu(null);
       setReactionTargetId(message.id);
       setActionTargetMessage(message);
@@ -3689,6 +3773,31 @@ const [
             )}
           </View>
         }
+        
+        onScroll={(event) => {
+          const {
+            contentOffset,
+            contentSize,
+            layoutMeasurement,
+          } = event.nativeEvent;
+
+          connectScrollOffsetRef.current =
+            contentOffset.y;
+
+          const distanceFromBottom =
+            contentSize.height -
+            (
+              contentOffset.y +
+              layoutMeasurement.height
+            );
+
+          connectReadingOlderRef.current =
+            distanceFromBottom > 120;
+        }}
+        scrollEventThrottle={16}
+        maintainVisibleContentPosition={{
+          minIndexForVisible: 0,
+        }}
         renderItem={({
           item,
         }) => {

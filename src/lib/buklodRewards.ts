@@ -1,0 +1,271 @@
+import { supabase } from '@/lib/supabase';
+
+export type BuklodPointsDashboard = {
+  total_points: number;
+  lifetime_points: number;
+  available_points: number;
+  pending_claimable_points: number;
+  weekly_points: number;
+  monthly_points: number;
+  weekly_rank: number | null;
+  monthly_rank: number | null;
+  all_time_rank: number | null;
+};
+
+export type BuklodRewardEvent = {
+  id: string;
+  event_type: 'points' | 'rank_up' | 'achievement';
+  points: number | null;
+  activity_type: string | null;
+  rank_code: string | null;
+  rank_name: string | null;
+  title: string;
+  message: string | null;
+  spoken_message: string | null;
+  created_at: string;
+};
+
+export type BuklodClaimResult = {
+  claimed_points: number;
+  lifetime_points: number;
+  available_points: number;
+  rank_up: boolean;
+  rank_name: string | null;
+  ack_only?: boolean;
+};
+
+function toNumber(value: unknown, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+export function normalizePointsDashboard(
+  data: Record<string, unknown> | null | undefined,
+): BuklodPointsDashboard {
+  const lifetime = toNumber(
+    data?.lifetime_points ?? data?.total_points,
+  );
+
+  return {
+    total_points: lifetime,
+    lifetime_points: lifetime,
+    available_points: toNumber(data?.available_points, lifetime),
+    pending_claimable_points: toNumber(data?.pending_claimable_points),
+    weekly_points: toNumber(data?.weekly_points),
+    monthly_points: toNumber(data?.monthly_points),
+    weekly_rank:
+      data?.weekly_rank == null
+        ? null
+        : toNumber(data.weekly_rank),
+    monthly_rank:
+      data?.monthly_rank == null
+        ? null
+        : toNumber(data.monthly_rank),
+    all_time_rank:
+      data?.all_time_rank == null
+        ? null
+        : toNumber(data.all_time_rank),
+  };
+}
+
+export async function loadBuklodPointsDashboard(): Promise<BuklodPointsDashboard | null> {
+  const { data, error } = await (supabase as any).rpc(
+    'get_my_buklod_points_dashboard',
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data || typeof data !== 'object') {
+    return null;
+  }
+
+  return normalizePointsDashboard(data as Record<string, unknown>);
+}
+
+export async function loadPendingBuklodRewardEvent(): Promise<BuklodRewardEvent | null> {
+  const { data, error } = await supabase.rpc(
+    'get_my_pending_buklod_reward_event',
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? null) as BuklodRewardEvent | null;
+}
+
+export async function claimBuklodRewardEvent(
+  eventId: string,
+): Promise<BuklodClaimResult> {
+  const { data, error } = await (supabase as any).rpc(
+    'claim_my_buklod_reward_event',
+    { p_event_id: eventId },
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  const row = (data ?? {}) as Record<string, unknown>;
+
+  return {
+    claimed_points: toNumber(row.claimed_points),
+    lifetime_points: toNumber(row.lifetime_points),
+    available_points: toNumber(row.available_points),
+    rank_up: Boolean(row.rank_up),
+    rank_name: row.rank_name ? String(row.rank_name) : null,
+    ack_only: Boolean(row.ack_only),
+  };
+}
+
+export async function loadUnclaimedBuklodRewardCount(): Promise<number> {
+  const { data, error } = await supabase.rpc(
+    'get_my_unclaimed_buklod_reward_count',
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  return toNumber(data);
+}
+
+export type BuklodRedeemCatalogItem = {
+  id: string;
+  title: string;
+  description: string | null;
+  cost_points: number;
+  category: string;
+  sort_order: number;
+};
+
+export type BuklodRedeemResult = {
+  catalog_id: string;
+  title: string;
+  redeemed_points: number;
+  lifetime_points: number;
+  available_points: number;
+};
+
+export async function loadRedeemCatalog(): Promise<BuklodRedeemCatalogItem[]> {
+  const { data, error } = await (supabase as any).rpc(
+    'get_buklod_redeem_catalog_v1',
+  );
+
+  if (error || !Array.isArray(data)) {
+    return [];
+  }
+
+  return data.map((row: Record<string, unknown>) => ({
+    id: String(row.id ?? ''),
+    title: String(row.title ?? ''),
+    description: row.description ? String(row.description) : null,
+    cost_points: toNumber(row.cost_points),
+    category: String(row.category ?? 'general'),
+    sort_order: toNumber(row.sort_order),
+  }));
+}
+
+export async function redeemCatalogItem(
+  catalogId: string,
+): Promise<BuklodRedeemResult> {
+  const { data, error } = await (supabase as any).rpc(
+    'redeem_buklod_catalog_item_v1',
+    { p_catalog_id: catalogId },
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  const row = (data ?? {}) as Record<string, unknown>;
+
+  return {
+    catalog_id: String(row.catalog_id ?? catalogId),
+    title: String(row.title ?? ''),
+    redeemed_points: toNumber(row.redeemed_points),
+    lifetime_points: toNumber(row.lifetime_points),
+    available_points: toNumber(row.available_points),
+  };
+}
+
+export type RevenueSplitConfig = {
+  creator_pool_pct: number;
+  referral_pool_pct: number;
+  points_budget_pct: number;
+  operations_pct: number;
+};
+
+export async function loadRevenueSplitConfig(): Promise<RevenueSplitConfig | null> {
+  const { data, error } = await (supabase as any).rpc(
+    'get_buklod_revenue_split_config_v1',
+  );
+
+  if (error || !data || typeof data !== 'object') {
+    return null;
+  }
+
+  const row = data as Record<string, unknown>;
+
+  return {
+    creator_pool_pct: toNumber(row.creator_pool_pct, 40),
+    referral_pool_pct: toNumber(row.referral_pool_pct, 5),
+    points_budget_pct: toNumber(row.points_budget_pct, 10),
+    operations_pct: toNumber(row.operations_pct, 45),
+  };
+}
+
+export async function saveRevenueSplitConfig(input: RevenueSplitConfig) {
+  const { error } = await (supabase as any).rpc(
+    'admin_set_buklod_revenue_split_config_v1',
+    {
+      p_creator_pool_pct: input.creator_pool_pct,
+      p_referral_pool_pct: input.referral_pool_pct,
+      p_points_budget_pct: input.points_budget_pct,
+      p_operations_pct: input.operations_pct,
+    },
+  );
+
+  if (error) {
+    throw error;
+  }
+}
+
+export type ReferralSummary = {
+  referral_code: string;
+  invited_count: number;
+  qualified_count: number;
+  was_referred: boolean;
+};
+
+export async function loadReferralSummary(): Promise<ReferralSummary | null> {
+  const { data, error } = await (supabase as any).rpc(
+    'get_my_buklod_referral_summary_v1',
+  );
+
+  if (error || !data || typeof data !== 'object') {
+    return null;
+  }
+
+  const row = data as Record<string, unknown>;
+
+  return {
+    referral_code: String(row.referral_code ?? ''),
+    invited_count: toNumber(row.invited_count),
+    qualified_count: toNumber(row.qualified_count),
+    was_referred: Boolean(row.was_referred),
+  };
+}
+
+export async function recordReferral(referrerCode: string) {
+  const { error } = await (supabase as any).rpc(
+    'buklod_record_referral_v1',
+    { p_referrer_code: referrerCode.trim() },
+  );
+
+  if (error) {
+    throw error;
+  }
+}

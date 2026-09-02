@@ -683,6 +683,56 @@ export default function HomeScreen() {
             </View>
           </View>
           <BuklodPublicWordShortcut />
+          {/* PATCH_191F_PUBLIC_HOME_MY_CLUSTER */}
+          {/* PATCH_191I_A_MY_CLUSTER_COMPACT_HOME_TILE */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open My Cluster"
+            onPress={() => router.push('/clusters' as any)}
+            style={({ pressed }) => ({
+              width: 104,
+              maxWidth: 104,
+              minWidth: 0,
+              minHeight: 92,
+              flexShrink: 1,
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: 'rgba(39,93,69,0.14)',
+              backgroundColor: '#EEF8F1',
+              paddingHorizontal: 8,
+              paddingVertical: 10,
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+              opacity: pressed ? 0.76 : 1,
+            })}
+          >
+            <Text
+              style={{
+                fontSize: 23,
+                lineHeight: 27,
+                fontWeight: '900',
+                color: '#168347',
+              }}
+            >
+              ⌂
+            </Text>
+
+            <Text
+              numberOfLines={2}
+              style={{
+                marginTop: 5,
+                width: '100%',
+                textAlign: 'center',
+                fontSize: 10.5,
+                lineHeight: 13,
+                fontWeight: '900',
+                color: '#168347',
+              }}
+            >
+              MY CLUSTER
+            </Text>
+          </Pressable>
         </View>
       </HomeMotionSection>
 

@@ -1,0 +1,232 @@
+﻿function ReelVideo({
+  uri,
+  active,
+  autoplay,
+  onDoubleLove,
+}: {
+  uri: string;
+  active: boolean;
+  autoplay: boolean;
+  onDoubleLove: () => void;
+}) {
+
+  const [
+    manualPlaying,
+    setManualPlaying,
+  ] =
+    useState(false);
+
+
+  const lastTapRef =
+    useRef(0);
+
+
+  const tapTimerRef =
+    useRef<
+      ReturnType<typeof setTimeout>
+      | null
+    >(null);
+
+
+  const player =
+    useVideoPlayer(
+      uri,
+      (instance) => {
+        instance.loop =
+          true;
+      }
+    );
+
+
+  useEffect(
+    () => {
+
+      if (!active) {
+
+        try {
+          player.pause();
+        }
+        catch {}
+
+        setManualPlaying(
+          false
+        );
+
+        return;
+      }
+
+
+      if (
+        autoplay ||
+        manualPlaying
+      ) {
+
+        try {
+          player.play();
+        }
+        catch {}
+
+      }
+      else {
+
+        try {
+          player.pause();
+        }
+        catch {}
+
+      }
+
+    },
+    [
+      active,
+      autoplay,
+      manualPlaying,
+      player,
+    ]
+  );
+
+
+  useEffect(
+    () => {
+
+      return () => {
+
+        if (
+          tapTimerRef.current
+        ) {
+          clearTimeout(
+            tapTimerRef.current
+          );
+        }
+
+
+        try {
+          player.pause();
+        }
+        catch {}
+
+      };
+
+    },
+    [player]
+  );
+
+
+  const handleTap =
+    () => {
+
+      const now =
+        Date.now();
+
+
+      if (
+        now -
+          lastTapRef.current <
+        280
+      ) {
+
+        if (
+          tapTimerRef.current
+        ) {
+          clearTimeout(
+            tapTimerRef.current
+          );
+
+          tapTimerRef.current =
+            null;
+        }
+
+
+        lastTapRef.current =
+          0;
+
+
+        onDoubleLove();
+
+        return;
+      }
+
+
+      lastTapRef.current =
+        now;
+
+
+      tapTimerRef.current =
+        setTimeout(
+          () => {
+
+            tapTimerRef.current =
+              null;
+
+
+            /*
+             * When Autoplay is OFF,
+             * one tap plays/pauses.
+             *
+             * When Autoplay is ON,
+             * one tap does nothing so
+             * accidental taps don't stop
+             * the Reel.
+             */
+            if (!autoplay) {
+
+              setManualPlaying(
+                current =>
+                  !current
+              );
+
+            }
+
+          },
+          290
+        );
+
+    };
+
+
+  return (
+    <Pressable
+      style={
+        styles.videoWrap
+      }
+      onPress={
+        handleTap
+      }
+    >
+
+      <VideoView
+        player={
+          player
+        }
+        style={
+          styles.video
+        }
+        nativeControls={
+          false
+        }
+        contentFit="cover"
+      />
+
+
+      {active &&
+        !autoplay &&
+        !manualPlaying && (
+
+        <View
+          pointerEvents="none"
+          style={
+            styles.manualPlay
+          }
+        >
+          <MaterialCommunityIcons
+            name="play"
+            size={38}
+            color="#FFFFFF"
+          />
+        </View>
+
+      )}
+
+    </Pressable>
+  );
+}

@@ -1,0 +1,638 @@
+﻿  /* ==========================================================
+     MY_BIBLE_ANNOTATIONS_V1
+     Personal highlights + notes + chapter search
+  ========================================================== */
+
+  const [
+    bibleAnnotations,
+    setBibleAnnotations,
+  ] =
+    useState<
+      Record<
+        number,
+        {
+          id?: string;
+          highlight_color:
+            string | null;
+          note_text:
+            string | null;
+        }
+      >
+    >({});
+
+
+  const [
+    annotationModalVisible,
+    setAnnotationModalVisible,
+  ] =
+    useState(false);
+
+
+  const [
+    selectedVerseNo,
+    setSelectedVerseNo,
+  ] =
+    useState<number | null>(
+      null
+    );
+
+
+  const [
+    selectedVerseText,
+    setSelectedVerseText,
+  ] =
+    useState('');
+
+
+  const [
+    annotationColor,
+    setAnnotationColor,
+  ] =
+    useState<string | null>(
+      null
+    );
+
+
+  const [
+    annotationNote,
+    setAnnotationNote,
+  ] =
+    useState('');
+
+
+  const [
+    annotationSaving,
+    setAnnotationSaving,
+  ] =
+    useState(false);
+
+
+  const [
+    chapterQuery,
+    setChapterQuery,
+  ] =
+    useState('');
+
+
+  const myBibleHighlightColors =
+    [
+      '#FFF3A3',
+      '#CFEFD6',
+      '#CFE8FF',
+      '#FFD7E5',
+      '#E6D7FF',
+    ];
+
+
+  const loadMyBibleAnnotations =
+    useCallback(
+      async () => {
+
+        if (
+          !translation ||
+          !bookNo ||
+          !chapterNo
+        ) {
+          setBibleAnnotations(
+            {}
+          );
+
+          return;
+        }
+
+
+        const {
+          data,
+          error,
+        } =
+          await (
+            supabase as any
+          ).rpc(
+            'get_my_bible_annotations_v1',
+            {
+              p_translation_code:
+                translation,
+
+              p_book_no:
+                bookNo,
+
+              p_chapter_no:
+                chapterNo,
+            }
+          );
+
+
+        if (error) {
+
+          console.warn(
+            'MY BIBLE annotations:',
+            error.message
+          );
+
+          return;
+        }
+
+
+        const next:
+          Record<
+            number,
+            {
+              id?: string;
+              highlight_color:
+                string | null;
+              note_text:
+                string | null;
+            }
+          > =
+          {};
+
+
+        (
+          Array.isArray(data)
+            ? data
+            : []
+        ).forEach(
+          (
+            item: any
+          ) => {
+
+            const verseNo =
+              Number(
+                item.verse_no
+              );
+
+
+            if (
+              verseNo > 0
+            ) {
+
+              next[
+                verseNo
+              ] = {
+                id:
+                  item.id,
+
+                highlight_color:
+                  item
+                    .highlight_color ??
+                  null,
+
+                note_text:
+                  item
+                    .note_text ??
+                  null,
+              };
+
+            }
+
+          }
+        );
+
+
+        setBibleAnnotations(
+          next
+        );
+
+      },
+      [
+        translation,
+        bookNo,
+        chapterNo,
+      ]
+    );
+
+
+  useEffect(
+    () => {
+
+      void loadMyBibleAnnotations();
+
+    },
+    [
+      loadMyBibleAnnotations,
+    ]
+  );
+
+
+  const openBibleAnnotation =
+    (
+      verseNo:
+        number,
+
+      verseText:
+        string
+    ) => {
+
+      const existing =
+        bibleAnnotations[
+          verseNo
+        ];
+
+
+      setSelectedVerseNo(
+        verseNo
+      );
+
+      setSelectedVerseText(
+        verseText
+      );
+
+      setAnnotationColor(
+        existing
+          ?.highlight_color ??
+        null
+      );
+
+      setAnnotationNote(
+        existing
+          ?.note_text ??
+        ''
+      );
+
+      setAnnotationModalVisible(
+        true
+      );
+
+    };
+
+
+  const saveBibleAnnotation =
+    async () => {
+
+      if (
+        !selectedVerseNo
+      ) {
+        return;
+      }
+
+
+      setAnnotationSaving(
+        true
+      );
+
+
+      try {
+
+        const cleanNote =
+          annotationNote
+            .trim();
+
+
+        const {
+          error,
+        } =
+          await (
+            supabase as any
+          ).rpc(
+            'save_my_bible_annotation_v1',
+            {
+              p_translation_code:
+                translation,
+
+              p_book_no:
+                bookNo,
+
+              p_chapter_no:
+                chapterNo,
+
+              p_verse_no:
+                selectedVerseNo,
+
+              p_highlight_color:
+                annotationColor,
+
+              p_note_text:
+                cleanNote ||
+                null,
+            }
+          );
+
+
+        if (error) {
+          throw error;
+        }
+
+
+        if (
+          !annotationColor &&
+          !cleanNote
+        ) {
+
+          setBibleAnnotations(
+            current => {
+
+              const next = {
+                ...current,
+              };
+
+
+              delete next[
+                selectedVerseNo
+              ];
+
+
+              return next;
+
+            }
+          );
+
+        }
+        else {
+
+          setBibleAnnotations(
+            current => ({
+              ...current,
+
+              [
+                selectedVerseNo
+              ]: {
+                highlight_color:
+                  annotationColor,
+
+                note_text:
+                  cleanNote ||
+                  null,
+              },
+            })
+          );
+
+        }
+
+
+        setAnnotationModalVisible(
+          false
+        );
+
+      }
+      catch (
+        error: any
+      ) {
+
+        Alert.alert(
+          'MY BIBLE',
+          error?.message ??
+          'Could not save your Bible note.'
+        );
+
+      }
+      finally {
+
+        setAnnotationSaving(
+          false
+        );
+
+      }
+
+    };
+
+
+  const removeBibleAnnotation =
+    async () => {
+
+      if (
+        !selectedVerseNo
+      ) {
+        return;
+      }
+
+
+      setAnnotationSaving(
+        true
+      );
+
+
+      try {
+
+        const {
+          error,
+        } =
+          await (
+            supabase as any
+          ).rpc(
+            'delete_my_bible_annotation_v1',
+            {
+              p_translation_code:
+                translation,
+
+              p_book_no:
+                bookNo,
+
+              p_chapter_no:
+                chapterNo,
+
+              p_verse_no:
+                selectedVerseNo,
+            }
+          );
+
+
+        if (error) {
+          throw error;
+        }
+
+
+        setBibleAnnotations(
+          current => {
+
+            const next = {
+              ...current,
+            };
+
+
+            delete next[
+              selectedVerseNo
+            ];
+
+
+            return next;
+
+          }
+        );
+
+
+        setAnnotationModalVisible(
+          false
+        );
+
+      }
+      catch (
+        error: any
+      ) {
+
+        Alert.alert(
+          'MY BIBLE',
+          error?.message ??
+          'Could not remove annotation.'
+        );
+
+      }
+      finally {
+
+        setAnnotationSaving(
+          false
+        );
+
+      }
+
+    };
+
+
+  const normalizeBibleBookName =
+    (
+      value:
+        string
+    ) =>
+      value
+        .toLowerCase()
+        .replace(
+          /[.\-]/g,
+          ' '
+        )
+        .replace(
+          /\s+/g,
+          ' '
+        )
+        .trim();
+
+
+  const searchBibleChapter =
+    () => {
+
+      const raw =
+        chapterQuery
+          .trim();
+
+
+      const match =
+        raw.match(
+          /^(.+?)\s+(\d+)$/
+        );
+
+
+      if (!match) {
+
+        Alert.alert(
+          'Chapter Search',
+          'Type a book and chapter, for example: Juan 3 or John 3.'
+        );
+
+        return;
+      }
+
+
+      const requestedBook =
+        normalizeBibleBookName(
+          match[1]
+        );
+
+
+      const requestedChapter =
+        Number(
+          match[2]
+        );
+
+
+      const exactBook =
+        books.find(
+          (
+            item
+          ) =>
+            normalizeBibleBookName(
+              String(
+                item.book_name
+              )
+            ) ===
+            requestedBook
+        );
+
+
+      const partialBooks =
+        books.filter(
+          (
+            item
+          ) =>
+            normalizeBibleBookName(
+              String(
+                item.book_name
+              )
+            ).startsWith(
+              requestedBook
+            )
+        );
+
+
+      const matchedBook =
+        exactBook ??
+        (
+          partialBooks
+            .length ===
+          1
+            ? partialBooks[
+                0
+              ]
+            : null
+        );
+
+
+      if (
+        !matchedBook
+      ) {
+
+        Alert.alert(
+          'Chapter Search',
+          'Book not found. Use the book name shown in the Bible book list.'
+        );
+
+        return;
+      }
+
+
+      const maxChapter =
+        Number(
+          matchedBook
+            .chapter_count
+        );
+
+
+      if (
+        !Number.isFinite(
+          requestedChapter
+        ) ||
+        requestedChapter <
+          1 ||
+        requestedChapter >
+          maxChapter
+      ) {
+
+        Alert.alert(
+          'Chapter Search',
+          `${matchedBook.book_name} has ${maxChapter} chapters.`
+        );
+
+        return;
+      }
+
+
+      setBookNo(
+        Number(
+          matchedBook.book_no
+        )
+      );
+
+      setChapterNo(
+        requestedChapter
+      );
+
+      setShowBooks(
+        false
+      );
+
+      setShowChapters(
+        false
+      );
+
+      setChapterQuery(
+        ''
+      );
+
+    };

@@ -1,0 +1,222 @@
+﻿      {/* =====================================================
+          MY_BIBLE_CHAPTER_SEARCH_V1
+      ====================================================== */}
+
+      <View
+        style={{
+          marginBottom:
+            10,
+
+          padding:
+            10,
+
+          borderWidth:
+            1,
+
+          borderColor:
+            colors.line,
+
+          borderRadius:
+            14,
+
+          backgroundColor:
+            '#F7FBF8',
+        }}
+      >
+
+        <Text
+          style={{
+            marginBottom:
+              6,
+
+            fontSize:
+              9,
+
+            fontWeight:
+              '900',
+
+            letterSpacing:
+              0.7,
+
+            color:
+              colors.greenDark,
+          }}
+        >
+          QUICK CHAPTER SEARCH
+        </Text>
+
+
+        <View
+          style={{
+            flexDirection:
+              'row',
+
+            alignItems:
+              'center',
+
+            gap:
+              7,
+          }}
+        >
+
+          <TextInput
+            value={
+              chapterQuery
+            }
+            onChangeText={
+              setChapterQuery
+            }
+            onSubmitEditing={
+              searchBibleChapter
+            }
+            returnKeyType="search"
+            autoCorrect={
+              false
+            }
+            placeholder="Juan 3 / John 3"
+            placeholderTextColor="#89958F"
+            style={{
+              flex:
+                1,
+
+              minHeight:
+                42,
+
+              borderWidth:
+                1,
+
+              borderColor:
+                '#CBD8D1',
+
+              borderRadius:
+                11,
+
+              backgroundColor:
+                '#FFFFFF',
+
+              paddingHorizontal:
+                11,
+
+              fontSize:
+                14,
+
+              color:
+                colors.text,
+            }}
+          />
+
+
+          <Pressable
+            onPress={
+              searchBibleChapter
+            }
+            style={({
+              pressed,
+            }) => ({
+              minWidth:
+                48,
+
+              minHeight:
+                42,
+
+              paddingHorizontal:
+                10,
+
+              borderRadius:
+                11,
+
+              backgroundColor:
+                colors.greenDark,
+
+              alignItems:
+                'center',
+
+              justifyContent:
+                'center',
+
+              opacity:
+                pressed
+                  ? 0.75
+                  : 1,
+            })}
+          >
+            <Text
+              style={{
+                fontSize:
+                  10,
+
+                fontWeight:
+                  '900',
+
+                color:
+                  '#FFFFFF',
+              }}
+            >
+              GO
+            </Text>
+          </Pressable>
+
+        </View>
+
+
+        <Pressable
+          onPress={() =>
+            router.push(
+              '/bible/search'
+            )
+          }
+          style={({
+            pressed,
+          }) => ({
+            marginTop:
+              7,
+
+            minHeight:
+              34,
+
+            borderRadius:
+              10,
+
+            borderWidth:
+              1,
+
+            borderColor:
+              '#CBD8D1',
+
+            backgroundColor:
+              '#FFFFFF',
+
+            alignItems:
+              'center',
+
+            justifyContent:
+              'center',
+
+            opacity:
+              pressed
+                ? 0.7
+                : 1,
+          })}
+        >
+          <Text
+            style={{
+              fontSize:
+                9,
+
+              fontWeight:
+                '900',
+
+              letterSpacing:
+                0.4,
+
+              color:
+                colors.greenDark,
+            }}
+          >
+            SEARCH WORD / PHRASE
+          </Text>
+        </Pressable>
+
+      </View>
+
+

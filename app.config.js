@@ -74,6 +74,8 @@ module.exports = ({ config }) => {
     android: {
       package: packageId,
 
+      versionCode: isStaging ? undefined : 20,
+
       googleServicesFile: isStaging
         ? './google-services.staging.json'
         : './google-services.production.json',
@@ -87,6 +89,13 @@ module.exports = ({ config }) => {
         'android.permission.MODIFY_AUDIO_SETTINGS',
         'android.permission.BLUETOOTH',
         'android.permission.BLUETOOTH_CONNECT',
+      ],
+
+      blockedPermissions: [
+        'android.permission.READ_MEDIA_IMAGES',
+        'android.permission.READ_MEDIA_VIDEO',
+        'android.permission.READ_MEDIA_VISUAL_USER_SELECTED',
+        'android.permission.READ_EXTERNAL_STORAGE',
       ],
 
       adaptiveIcon: {
@@ -213,16 +222,10 @@ module.exports = ({ config }) => {
       [
         'expo-media-library',
         {
-          photosPermission:
-            'Allow BUKLOD to access your photos and videos.',
-
           savePhotosPermission:
-            'Allow BUKLOD to save media to your device.',
+            'Allow BUKLOD to save photos to your device gallery.',
 
-          granularPermissions: [
-            'photo',
-            'video',
-          ],
+          granularPermissions: [],
         },
       ],
 

@@ -42,6 +42,7 @@ import {
 
 import { useAuth } from '@/providers/AuthProvider';
 import { colors } from '@/lib/theme';
+import { ensureImagePickerLibraryAccess } from '@/lib/buklodImagePickerAccess';
 
 type Church = {
   church_id: string;
@@ -127,13 +128,14 @@ export default function MissionBulletinsScreen() {
           );
 
 
-        const permission =
-          await ImagePicker
-            .requestMediaLibraryPermissionsAsync();
+        const permissionGranted =
+          await ensureImagePickerLibraryAccess(
+            ImagePicker.requestMediaLibraryPermissionsAsync
+          );
 
 
         if (
-          !permission.granted
+          !permissionGranted
         ) {
 
           Alert.alert(

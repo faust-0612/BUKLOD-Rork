@@ -431,7 +431,24 @@ export function LearningQuestionResponse({
       await onSubmitted?.();
 
     } catch (error: any) {
+      
+    // BUKLOD_QUICK_CHECK_SUBMIT_VALIDATION_R1
+    const { error: formationSubmitError } = await (supabase as any).rpc(
+      'submit_my_formation_lesson_for_validation_v1',
+      {
+        p_enrollment_id: enrollmentId,
+        p_lesson_id: lesson.id,
+      }
+    );
+
+    if (formationSubmitError) {
       Alert.alert(
+        'Hindi naisumite para sa pagpapatunay',
+        formationSubmitError.message
+      );
+      return;
+    }
+Alert.alert(
         'Could Not Submit Study',
         error?.message ??
           'Please try again.'
@@ -483,7 +500,7 @@ export function LearningQuestionResponse({
 
       <Card>
         <Text style={styles.intro}>
-          Answer all questions based on what you learned.
+          Sagutin ang lahat ng tanong sa sariling salita batay sa aralin. Bawat sagot ay dapat direktang tumugon sa tanong at may maikling paliwanag.
         </Text>
 
         {questions.map(
@@ -517,7 +534,7 @@ export function LearningQuestionResponse({
                     value
                   )
                 }
-                placeholder="Write your answer..."
+                placeholder="Direktang sagot + maikling paliwanag..."
                 placeholderTextColor={
                   colors.muted
                 }
@@ -594,7 +611,7 @@ export function LearningQuestionResponse({
               : 'SUBMITTING...'
             : previouslySubmitted
               ? 'UPDATE & RESUBMIT STUDY'
-              : 'SUBMIT FOR VALIDATION'
+              : 'ISUMITE PARA SA PAGPAPATUNAY'
         }
         onPress={submit}
       />

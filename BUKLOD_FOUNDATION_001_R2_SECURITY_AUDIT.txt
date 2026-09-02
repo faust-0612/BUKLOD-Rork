@@ -1,0 +1,223 @@
+====================================================
+ BUKLOD FOUNDATION 001-R2 SECURITY AUDIT
+ READ ONLY - NO DATABASE CHANGE
+====================================================
+
+Latest migration files scanned: 198
+
+SECURITY DEFINER FUNCTIONS WITH DIRECT FACULTY OWNERSHIP:
+26
+
+FUNCTION: buklod_education_assessment_gradebook_status_v1
+SOURCE:   20260817145500_buklod_education_phase7_gradebook_integration.sql
+CHECK:    c.faculty_user_id = auth.uid()
+
+FUNCTION: buklod_education_assessment_review_queue_v1
+SOURCE:   20260817143000_buklod_education_phase6_assessment_engine.sql
+CHECK:    c.faculty_user_id = auth.uid()
+
+FUNCTION: buklod_education_class_report_v1
+SOURCE:   20260817140500_buklod_education_phase5_materials_gradeflow.sql
+CHECK:    c.faculty_user_id = auth.uid()
+
+FUNCTION: buklod_education_compute_final_grade_v1
+SOURCE:   20260817153000_buklod_education_phase8_final_grade_engine.sql
+CHECK:    c.faculty_user_id = auth.uid()
+
+FUNCTION: buklod_education_delete_grade_category_v1
+SOURCE:   20260817153000_buklod_education_phase8_final_grade_engine.sql
+CHECK:    c.faculty_user_id = auth.uid()
+
+FUNCTION: buklod_education_enroll_by_username_v1
+SOURCE:   20260817132000_buklod_education_phase4_productivity.sql
+CHECK:    c.faculty_user_id = auth.uid()
+
+FUNCTION: buklod_education_faculty_final_grade_summary_v1
+SOURCE:   20260817153000_buklod_education_phase8_final_grade_engine.sql
+CHECK:    c.faculty_user_id = auth.uid()
+
+FUNCTION: buklod_education_finalize_assessment_attempt_v1
+SOURCE:   20260817143000_buklod_education_phase6_assessment_engine.sql
+CHECK:    c.faculty_user_id = auth.uid()
+
+FUNCTION: buklod_education_link_assessment_gradebook_v1
+SOURCE:   20260817145500_buklod_education_phase7_gradebook_integration.sql
+CHECK:    c.faculty_user_id = auth.uid()
+
+FUNCTION: buklod_education_lock_final_grade_v1
+SOURCE:   20260817153000_buklod_education_phase8_final_grade_engine.sql
+CHECK:    c.faculty_user_id = auth.uid()
+CHECK:    c.faculty_user_id = auth.uid()
+
+FUNCTION: buklod_education_lock_grade_v1
+SOURCE:   20260817140500_buklod_education_phase5_materials_gradeflow.sql
+CHECK:    c.faculty_user_id = auth.uid()
+
+FUNCTION: buklod_education_publish_assessment_v1
+SOURCE:   20260817143000_buklod_education_phase6_assessment_engine.sql
+CHECK:    c.faculty_user_id = auth.uid()
+
+FUNCTION: buklod_education_release_assessment_attempt_v1
+SOURCE:   20260817145500_buklod_education_phase7_gradebook_integration.sql
+CHECK:    c.faculty_user_id = auth.uid()
+
+FUNCTION: buklod_education_release_final_grade_v1
+SOURCE:   20260817153000_buklod_education_phase8_final_grade_engine.sql
+CHECK:    c.faculty_user_id = auth.uid()
+CHECK:    c.faculty_user_id = auth.uid()
+
+FUNCTION: buklod_education_release_grade_v1
+SOURCE:   20260817140500_buklod_education_phase5_materials_gradeflow.sql
+CHECK:    c.faculty_user_id = v_uid
+
+FUNCTION: buklod_education_release_group_score_v1
+SOURCE:   20260817140500_buklod_education_phase5_materials_gradeflow.sql
+CHECK:    c.faculty_user_id = auth.uid()
+
+FUNCTION: buklod_education_reopen_final_grade_v1
+SOURCE:   20260817153000_buklod_education_phase8_final_grade_engine.sql
+CHECK:    c.faculty_user_id = auth.uid()
+
+FUNCTION: buklod_education_review_assessment_response_v1
+SOURCE:   20260817143000_buklod_education_phase6_assessment_engine.sql
+CHECK:    c.faculty_user_id = auth.uid()
+
+FUNCTION: buklod_education_roster_v1
+SOURCE:   20260817132000_buklod_education_phase4_productivity.sql
+CHECK:    c.faculty_user_id = auth.uid()
+
+FUNCTION: buklod_education_save_grade_category_v1
+SOURCE:   20260817153000_buklod_education_phase8_final_grade_engine.sql
+CHECK:    c.faculty_user_id = auth.uid()
+
+FUNCTION: buklod_education_set_group_score_v1
+SOURCE:   20260817140500_buklod_education_phase5_materials_gradeflow.sql
+CHECK:    c.faculty_user_id = auth.uid()
+
+FUNCTION: buklod_education_set_manual_grade_v1
+SOURCE:   20260817132000_buklod_education_phase4_productivity.sql
+CHECK:    c.faculty_user_id = v_uid
+
+FUNCTION: buklod_education_sync_assessment_attempt_grade_v1
+SOURCE:   20260817145500_buklod_education_phase7_gradebook_integration.sql
+CHECK:    c.faculty_user_id = auth.uid()
+
+FUNCTION: buklod_education_unlink_assessment_gradebook_v1
+SOURCE:   20260817145500_buklod_education_phase7_gradebook_integration.sql
+CHECK:    c.faculty_user_id = auth.uid()
+
+FUNCTION: buklod_education_unlock_grade_v1
+SOURCE:   20260817140500_buklod_education_phase5_materials_gradeflow.sql
+CHECK:    c.faculty_user_id = auth.uid()
+
+FUNCTION: buklod_education_unpublish_assessment_v1
+SOURCE:   20260817143000_buklod_education_phase6_assessment_engine.sql
+CHECK:    c.faculty_user_id = auth.uid()
+
+
+====================================================
+ACTIVE RLS/STORAGE POLICIES WITH DIRECT FACULTY OWNERSHIP:
+24
+
+POLICY: buklod_edu_assessment_attempt_faculty_select_v6
+TABLE:  public.buklod_education_assessment_attempts
+SOURCE: 20260817143000_buklod_education_phase6_assessment_engine.sql
+
+POLICY: buklod_edu_assessment_question_faculty_all_v6
+TABLE:  public.buklod_education_assessment_questions
+SOURCE: 20260817143000_buklod_education_phase6_assessment_engine.sql
+
+POLICY: buklod_edu_assessment_response_faculty_select_v6
+TABLE:  public.buklod_education_assessment_responses
+SOURCE: 20260817143000_buklod_education_phase6_assessment_engine.sql
+
+POLICY: buklod_edu_assessment_faculty_all_v6
+TABLE:  public.buklod_education_assessments
+SOURCE: 20260817143000_buklod_education_phase6_assessment_engine.sql
+
+POLICY: buklod_edu_assessment_faculty_write
+TABLE:  public.buklod_education_assessments
+SOURCE: 20260817113000_buklod_education_phase1.sql
+
+POLICY: buklod_edu_attendance_log_faculty_read
+TABLE:  public.buklod_education_attendance_log
+SOURCE: 20260817125500_buklod_education_phase3_functional.sql
+
+POLICY: buklod_edu_attendance_session_faculty_all
+TABLE:  public.buklod_education_attendance_sessions
+SOURCE: 20260817125500_buklod_education_phase3_functional.sql
+
+POLICY: buklod_edu_classroom_faculty_write
+TABLE:  public.buklod_education_classrooms
+SOURCE: 20260817165600_buklod_foundation_001_r1.sql
+
+POLICY: buklod_edu_exam_event_faculty_select_v6
+TABLE:  public.buklod_education_exam_events
+SOURCE: 20260817143000_buklod_education_phase6_assessment_engine.sql
+
+POLICY: buklod_edu_final_grade_audit_faculty_read
+TABLE:  public.buklod_education_final_grade_audit
+SOURCE: 20260817153000_buklod_education_phase8_final_grade_engine.sql
+
+POLICY: buklod_edu_final_grade_faculty_all
+TABLE:  public.buklod_education_final_grades
+SOURCE: 20260817153000_buklod_education_phase8_final_grade_engine.sql
+
+POLICY: buklod_edu_category_faculty_all
+TABLE:  public.buklod_education_grade_categories
+SOURCE: 20260817123500_buklod_education_phase2_core.sql
+
+POLICY: buklod_edu_grade_item_faculty_all
+TABLE:  public.buklod_education_grade_items
+SOURCE: 20260817125500_buklod_education_phase3_functional.sql
+
+POLICY: buklod_edu_grade_faculty_all
+TABLE:  public.buklod_education_grades
+SOURCE: 20260817123500_buklod_education_phase2_core.sql
+
+POLICY: buklod_edu_group_activity_faculty_all
+TABLE:  public.buklod_education_group_activities
+SOURCE: 20260817125500_buklod_education_phase3_functional.sql
+
+POLICY: buklod_edu_group_score_faculty_all_v5
+TABLE:  public.buklod_education_group_activity_scores
+SOURCE: 20260817140500_buklod_education_phase5_materials_gradeflow.sql
+
+POLICY: buklod_edu_material_faculty_all_v5
+TABLE:  public.buklod_education_materials
+SOURCE: 20260817140500_buklod_education_phase5_materials_gradeflow.sql
+
+POLICY: buklod_edu_material_faculty_write
+TABLE:  public.buklod_education_materials
+SOURCE: 20260817113000_buklod_education_phase1.sql
+
+POLICY: buklod_edu_material_read
+TABLE:  public.buklod_education_materials
+SOURCE: 20260817113000_buklod_education_phase1.sql
+
+POLICY: buklod_edu_observation_faculty_all
+TABLE:  public.buklod_education_observations
+SOURCE: 20260817123500_buklod_education_phase2_core.sql
+
+POLICY: buklod_edu_storage_material_faculty_delete_v5
+TABLE:  storage.objects
+SOURCE: 20260817140500_buklod_education_phase5_materials_gradeflow.sql
+
+POLICY: buklod_edu_storage_material_faculty_insert_v5
+TABLE:  storage.objects
+SOURCE: 20260817140500_buklod_education_phase5_materials_gradeflow.sql
+
+POLICY: buklod_edu_storage_material_faculty_select_v5
+TABLE:  storage.objects
+SOURCE: 20260817140500_buklod_education_phase5_materials_gradeflow.sql
+
+POLICY: buklod_edu_storage_material_faculty_update_v5
+TABLE:  storage.objects
+SOURCE: 20260817140500_buklod_education_phase5_materials_gradeflow.sql
+
+
+====================================================
+FOUNDATION HELPER
+====================================================
+Foundation Faculty helper: PRESENT
+TypeScript: CLEAN

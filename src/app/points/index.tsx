@@ -1323,7 +1323,7 @@ useState<any[]>([]);
   // PATCH_154H_LEADERBOARD_STATE
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [leaderboardPeriod, setLeaderboardPeriod] =
-    useState<'weekly' | 'monthly' | 'all_time'>('weekly');
+    useState<'weekly' | 'monthly' | 'all_time'>('all_time');
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [leaderboardBusy, setLeaderboardBusy] = useState(false);
 
@@ -1344,7 +1344,50 @@ useState<any[]>([]);
         console.warn('BUKLOD leaderboard:', error.message);
         setLeaderboard([]);
       } else {
-        setLeaderboard(Array.isArray(data) ? data : []);
+        const rankingRows =
+          Array.isArray(data)
+            ? [...data]
+            : [];
+
+        rankingRows.sort((a: any, b: any) => {
+          const aPoints = Number(
+            a?.points ??
+            a?.total_points ??
+            a?.lifetime_points ??
+            a?.score ??
+            0
+          );
+          const bPoints = Number(
+            b?.points ??
+            b?.total_points ??
+            b?.lifetime_points ??
+            b?.score ??
+            0
+          );
+
+          if (bPoints !== aPoints) {
+            return bPoints - aPoints;
+          }
+
+          const aName = String(
+            a?.full_name ??
+            a?.name ??
+            a?.display_name ??
+            a?.user_id ??
+            ''
+          );
+          const bName = String(
+            b?.full_name ??
+            b?.name ??
+            b?.display_name ??
+            b?.user_id ??
+            ''
+          );
+
+          return aName.localeCompare(bName);
+        });
+
+        setLeaderboard(rankingRows);
       }
 
       setLeaderboardBusy(false);

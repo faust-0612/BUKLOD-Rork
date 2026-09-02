@@ -1,0 +1,1757 @@
+﻿BUKLOD FOUNDATION 001 ACCESS AUDIT
+Generated: 08/17/2026 16:42:20
+Root: C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16
+
+====================================================
+TYPESCRIPT BASELINE
+====================================================
+Exit code: 0
+
+====================================================
+PROFILE / MY BUKLOD CANDIDATE FILES
+====================================================
+src\app\admin\account-recovery.tsx
+src\app\church\directory\settings.tsx
+src\app\organizations\settings.tsx
+src\app\scope-giving-settings.tsx
+src\components\AdminDeleteAccountButton.tsx
+src\components\BuklodDashboardAdRail.tsx
+src\components\BuklodDashboardContextBar.tsx
+src\components\BuklodDashboardCustomizer.tsx
+src\components\BuklodGivingSettingsButton.tsx
+src\components\BuklodProfileMembershipNav.tsx
+src\components\BuklodProfileStatusBubble.tsx
+src\components\BuklodScopedDashboardHeader.tsx
+src\components\OwnProfileNoteMusicOverlay.tsx
+src\components\ProfileAvatar.tsx
+src\lib\buklodDashboardTheme.ts
+supabase\migrations\20260810013200_multi_role_accounts.sql
+supabase\migrations\20260810013900_member_read_active_giving_accounts.sql
+supabase\migrations\20260812024500_patch154v_auto_dashboard_four_questions.sql
+supabase\migrations\20260812133000_patch160_profile_avatars.sql
+supabase\migrations\20260814053000_patch166d_one_church_account_security.sql
+supabase\migrations\20260814235353_patch170b_r3_dashboard_theme_persistence.sql
+supabase\migrations\20260815002000_patch170d_public_community_active_account.sql
+supabase\migrations\20260815022226_profile_card_background.sql
+supabase\migrations\20260815022903_repair_profile_background.sql
+supabase\migrations\20260815023155_profile_background_rpc_fix.sql
+supabase\migrations\20260815023519_profile_background_getter.sql
+supabase\migrations\20260815145200_patch172j_r4_mzb_admin_profile_portal_sync.sql
+supabase\migrations\20260815212524_patch174b_profile_self_edit_rls_recursion_fix.sql
+supabase\migrations\20260815213159_patch174b_profile_self_edit_rls_recursion_fix.sql
+supabase\migrations\20260815213800_patch173g_r4_profile_note_music.sql
+supabase\migrations\20260815222000_patch174b_r1_note_music_profile_stability.sql
+supabase\migrations\20260815225000_patch174c_r1_profile_avatar_music_library.sql
+supabase\migrations\20260816010000_patch174c_account_lifecycle.sql
+supabase\migrations\20260816010001_patch174c_account_lifecycle.sql
+supabase\migrations\20260816163000_patch177e_profile_attendance_qr.sql
+supabase\migrations\20260816191000_patch177h_profile_qr_face_bootstrap.sql
+
+====================================================
+PROFILE BUTTON / ROLE ENTRY HITS
+====================================================
+src\app\(auth)\forgot-password.tsx:7: Pressable,
+src\app\(auth)\forgot-password.tsx:49: 'Enter the one-time recovery code issued by a BUKLOD System Admin.'
+src\app\(auth)\forgot-password.tsx:126: 'If the username exists, the request is now available to a BUKLOD System Admin.'
+src\app\(auth)\forgot-password.tsx:150: <Pressable onPress={() => router.back()} style={styles.back}>
+src\app\(auth)\forgot-password.tsx:153: </Pressable>
+src\app\(auth)\forgot-password.tsx:175: <Pressable
+src\app\(auth)\forgot-password.tsx:185: </Pressable>
+src\app\(auth)\forgot-password.tsx:187: <Pressable
+src\app\(auth)\forgot-password.tsx:197: </Pressable>
+src\app\(auth)\forgot-password.tsx:212: ? 'You create this 6-digit PIN while signed in: Profile > My BUKLOD > Recovery PIN. It is not sent by SMS or email, and BUKLOD never displays it again after saving.'
+src\app\(auth)\forgot-password.tsx:213: : 'Request Admin Assistance below. After a System Admin verifies your identity, the admin can issue a one-time recovery code. The code expires after 30 minutes and works only once.'}
+src\app\(auth)\forgot-password.tsx:254: <Pressable
+src\app\(auth)\forgot-password.tsx:264: </Pressable>
+src\app\(auth)\forgot-password.tsx:269: Submit a recovery request. A System Admin must verify your identity before issuing a temporary one-time code.
+src\app\(auth)\forgot-password.tsx:272: <Pressable
+src\app\(auth)\forgot-password.tsx:282: </Pressable>
+src\app\(auth)\login.tsx:7: Pressable,
+src\app\(auth)\login.tsx:907: // unverified account on /onboarding until System Admin approval.
+src\app\(auth)\login.tsx:983: <Pressable
+src\app\(auth)\login.tsx:1036: </Pressable>
+src\app\(auth)\login.tsx:1038: <Pressable
+src\app\(auth)\login.tsx:1054: </Pressable>
+src\app\(auth)\login.tsx:1090: <Pressable
+src\app\(auth)\login.tsx:1099: </Pressable>
+src\app\(auth)\login.tsx:1101: <Pressable
+src\app\(auth)\login.tsx:1143: </Pressable>
+src\app\(auth)\login.tsx:1145: <Pressable
+src\app\(auth)\login.tsx:1153: </Pressable>
+src\app\(auth)\login.tsx:1157: <Pressable
+src\app\(auth)\login.tsx:1179: </Pressable>
+src\app\(auth)\login.tsx:1180: <Pressable
+src\app\(auth)\login.tsx:1188: </Pressable>
+src\app\(auth)\register.tsx:14: Pressable,
+src\app\(auth)\register.tsx:207: barangay,
+src\app\(auth)\register.tsx:208: setBarangay,
+src\app\(auth)\register.tsx:381: !barangay.trim() ||
+src\app\(auth)\register.tsx:388: 'First Name, Surname, your chosen Login, Password, Barangay, Municipality/City, Province, and Country are required.'
+src\app\(auth)\register.tsx:659: barangay:
+src\app\(auth)\register.tsx:660: barangay.trim(),
+src\app\(auth)\register.tsx:705: p_barangay:
+src\app\(auth)\register.tsx:706: barangay.trim(),
+src\app\(auth)\register.tsx:725: p_barangay_code: null,
+src\app\(auth)\register.tsx:923: <Pressable
+src\app\(auth)\register.tsx:947: </Pressable>
+src\app\(auth)\register.tsx:1055: <Pressable
+src\app\(auth)\register.tsx:1077: </Pressable>
+src\app\(auth)\register.tsx:1108: <Pressable
+src\app\(auth)\register.tsx:1127: </Pressable>
+src\app\(auth)\register.tsx:1140: Barangay *
+src\app\(auth)\register.tsx:1145: placeholder="Barangay"
+src\app\(auth)\register.tsx:1146: value={barangay}
+src\app\(auth)\register.tsx:1147: onChangeText={setBarangay}
+src\app\(auth)\register.tsx:1224: <Pressable
+src\app\(auth)\register.tsx:1271: </Pressable>
+src\app\(auth)\register.tsx:1276: <Pressable
+src\app\(auth)\register.tsx:1290: </Pressable>
+src\app\(auth)\register.tsx:1292: <Pressable
+src\app\(auth)\register.tsx:1308: </Pressable>
+src\app\(auth)\register.tsx:1320: <Pressable
+src\app\(auth)\register.tsx:1340: <Pressable
+src\app\(auth)\register.tsx:1351: </Pressable>
+src\app\(auth)\register.tsx:1382: <Pressable
+src\app\(auth)\register.tsx:1414: </Pressable>
+src\app\(tabs)\buklod.tsx:35: Pressable,
+src\app\(tabs)\buklod.tsx:2747: <Pressable
+src\app\(tabs)\buklod.tsx:2792: </Pressable>
+src\app\(tabs)\buklod.tsx:2797: <Pressable
+src\app\(tabs)\buklod.tsx:2830: </Pressable>
+src\app\(tabs)\buklod.tsx:3042: <Pressable
+src\app\(tabs)\buklod.tsx:3064: </Pressable>
+src\app\(tabs)\buklod.tsx:3291: <Pressable
+src\app\(tabs)\buklod.tsx:3317: </Pressable>
+src\app\(tabs)\buklod.tsx:3345: ><Pressable style={s.tool} onPress={async()=>{setMentionOpen(true);setMentionSearch('');await searchMentions('')}}><MaterialCommunityIcons name="account-plus-outline" size={17} color={colors.green}/><Text style={s.toolText}>Mention</Text></Pressable>
+src\app\(tabs)\buklod.tsx:3346: <Pressable style={s.tool} onPress={()=>{setWallVideo186O(null);void pickPhoto();}}><MaterialCommunityIcons name="image-plus" size={17} color={colors.green}/><Text style={s.toolText}>{photoBusy
+src\app\(tabs)\buklod.tsx:3350: : 'Add Photos'}</Text></Pressable>
+src\app\(tabs)\buklod.tsx:3351: <Pressable
+src\app\(tabs)\buklod.tsx:3373: </Pressable></View>
+src\app\(tabs)\buklod.tsx:3424: <Pressable
+src\app\(tabs)\buklod.tsx:3435: </Pressable>
+src\app\(tabs)\buklod.tsx:3450: <Pressable
+src\app\(tabs)\buklod.tsx:3459: </Pressable>
+src\app\(tabs)\buklod.tsx:3595: <Pressable
+src\app\(tabs)\buklod.tsx:3628: </Pressable>
+src\app\(tabs)\buklod.tsx:3632: <View style={s.footer}><Pressable onPress={e=>{e.stopPropagation();openComments(item)}} style={s.footBtn}><MaterialCommunityIcons name="comment-outline" size={19} color={colors.greenDark}/><Text style={s.footText}>Comments {Number(item.comment_count??0)}</Text></Pressable>
+src\app\(tabs)\buklod.tsx:3633: <Pressable onPress={e=>{e.stopPropagation();void shareOutside(item)}} style={s.footBtn}><MaterialCommunityIcons name="share-variant-outline" size={19} color={colors.greenDark}/><Text style={s.footText}>Share Outside</Text></Pressable><BuklodPostInternalShare
+src\app\(tabs)\buklod.tsx:3726: <Pressable
+src\app\(tabs)\buklod.tsx:3737: </Pressable>
+src\app\(tabs)\buklod.tsx:3784: <Pressable
+src\app\(tabs)\buklod.tsx:3816: <Pressable
+src\app\(tabs)\buklod.tsx:3825: </Pressable>
+src\app\(tabs)\buklod.tsx:3908: <Pressable
+src\app\(tabs)\buklod.tsx:3916: </Pressable>
+src\app\(tabs)\buklod.tsx:3918: <Pressable
+src\app\(tabs)\buklod.tsx:3961: </Pressable>
+src\app\(tabs)\buklod.tsx:3985: <Pressable
+src\app\(tabs)\buklod.tsx:3995: </Pressable>
+src\app\(tabs)\buklod.tsx:4025: <Pressable
+src\app\(tabs)\buklod.tsx:4048: </Pressable>
+src\app\(tabs)\buklod.tsx:4069: <Pressable
+src\app\(tabs)\buklod.tsx:4079: <Pressable
+src\app\(tabs)\buklod.tsx:4103: </Pressable>
+src\app\(tabs)\buklod.tsx:4110: <Modal visible={mentionOpen} transparent animationType="slide" onRequestClose={()=>setMentionOpen(false)}><View style={s.overlay}><Pressable style={{flex:1}} onPress={()=>setMentionOpen(false)}/><View style={s.drawer}><Text style={s.drawerTitle}>Mention Members</Text>
+src\app\(tabs)\buklod.tsx:4112: <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{gap:7,paddingVertical:10}}>{mentionRows.map(m=>{const on=mentions.some(x=>x.user_id===m.user_id);return <Pressable key={m.user_id} onPress={()=>toggleMention(m)} style={[s.member,on&&s.memberOn]}><View style={{flex:1}}><Text style={s.memberName}>{m.full_name}</Text><Text style={s.memberMeta}>{m.church_name}{m.group_name?` | ${m.group_name}`:''}</Text></View>{on&&<MaterialCommunityIcons name="check-circle" size={21} color={colors.green}/>}</Pressable>})}</ScrollView>
+src\app\(tabs)\home.tsx:40: Pressable,
+src\app\(tabs)\home.tsx:754: <Pressable
+src\app\(tabs)\home.tsx:776: </Pressable>
+src\app\(tabs)\home.tsx:1297: <Pressable
+src\app\(tabs)\home.tsx:1388: </Pressable>
+src\app\(tabs)\home.tsx:1393: <Pressable
+src\app\(tabs)\home.tsx:1468: </Pressable>
+src\app\(tabs)\home.tsx:1479: <Pressable
+src\app\(tabs)\home.tsx:1576: </Pressable>
+src\app\(tabs)\home.tsx:1677: <Pressable
+src\app\(tabs)\home.tsx:1765: </Pressable>
+src\app\(tabs)\home.tsx:3296: <Pressable
+src\app\(tabs)\home.tsx:3338: </Pressable>
+src\app\(tabs)\home.tsx:3341: <Pressable
+src\app\(tabs)\home.tsx:3383: </Pressable>
+src\app\(tabs)\home.tsx:3683: <Pressable
+src\app\(tabs)\home.tsx:3741: </Pressable>
+src\app\(tabs)\home.tsx:4141: <Pressable
+src\app\(tabs)\home.tsx:4177: </Pressable>
+src\app\(tabs)\home.tsx:5267: <Pressable
+src\app\(tabs)\home.tsx:5326: </Pressable>
+src\app\(tabs)\home.tsx:5451: <Pressable
+src\app\(tabs)\home.tsx:5481: </Pressable>
+src\app\(tabs)\home.tsx:5486: <Pressable
+src\app\(tabs)\home.tsx:5505: </Pressable>
+src\app\(tabs)\home.tsx:5596: <Pressable
+src\app\(tabs)\home.tsx:5619: </Pressable>
+src\app\(tabs)\home.tsx:5697: <Pressable
+src\app\(tabs)\home.tsx:5727: </Pressable>
+src\app\(tabs)\home.tsx:5730: <Pressable
+src\app\(tabs)\home.tsx:5761: </Pressable>
+src\app\(tabs)\home.tsx:5834: <Pressable
+src\app\(tabs)\home.tsx:5870: </Pressable>
+src\app\(tabs)\home.tsx:6150: <Pressable
+src\app\(tabs)\home.tsx:6303: </Pressable>
+src\app\(tabs)\learn.tsx:4: Pressable,
+src\app\(tabs)\learn.tsx:488: System Admin final approval.
+src\app\(tabs)\learn.tsx:657: When a Pastor or System Admin
+src\app\(tabs)\learn.tsx:835: <Pressable
+src\app\(tabs)\learn.tsx:891: </Pressable>
+src\app\(tabs)\me.tsx:15: Pressable,
+src\app\(tabs)\me.tsx:49: system_admin: 'System Admin',
+src\app\(tabs)\me.tsx:72: <Pressable
+src\app\(tabs)\me.tsx:102: </Pressable>
+src\app\(tabs)\me.tsx:125: <Pressable
+src\app\(tabs)\me.tsx:155: </Pressable>
+src\app\(tabs)\me.tsx:300: System Admin must never lose the MZB Ministry portal. */
+src\app\(tabs)\me.tsx:960: <Pressable
+src\app\(tabs)\me.tsx:999: </Pressable>
+src\app\(tabs)\me.tsx:1016: <Pressable
+src\app\(tabs)\me.tsx:1055: </Pressable>
+src\app\(tabs)\me.tsx:1105: <Pressable
+src\app\(tabs)\me.tsx:1155: </Pressable>
+src\app\(tabs)\me.tsx:1172: <Pressable
+src\app\(tabs)\me.tsx:1222: </Pressable>
+src\app\(tabs)\me.tsx:1317: title="System Administration"
+src\app\(tabs)\me.tsx:1360: title="My BUKLOD"
+src\app\(tabs)\me.tsx:1429: title="Deactivate Account"
+src\app\(tabs)\me.tsx:1438: title="Delete Account"
+src\app\(tabs)\me.tsx:1482: {/* BUKLOD_EDUCATION_FACULTY_ENTRY */}
+src\app\(tabs)\me.tsx:1494: onPress={() => router.push('/profile/buklod-faculty' as any)}
+src\app\(tabs)\me.tsx:1503: BUKLOD Faculty
+src\app\(tabs)\messages.tsx:6: Pressable,
+src\app\(tabs)\messages.tsx:486: <Pressable
+src\app\(tabs)\messages.tsx:493: </Pressable>
+src\app\(tabs)\messages.tsx:494: <Pressable
+src\app\(tabs)\messages.tsx:501: </Pressable>
+src\app\(tabs)\messages.tsx:524: <Pressable
+src\app\(tabs)\messages.tsx:599: </Pressable>
+src\app\(tabs)\messages.tsx:632: <Pressable
+src\app\(tabs)\messages.tsx:691: <Pressable
+src\app\(tabs)\messages.tsx:733: </Pressable>
+src\app\(tabs)\messages.tsx:735: <Pressable
+src\app\(tabs)\messages.tsx:769: </Pressable>
+src\app\(tabs)\messages.tsx:771: </Pressable>
+src\app\(tabs)\messages.tsx:784: Automatic rooms stay while you belong to the Barangay, Cluster, Church, or MZB community.
+src\app\(tabs)\messages.tsx:791: Barangay and active memberships create these rooms automatically.
+src\app\(tabs)\messages.tsx:796: <Pressable
+src\app\(tabs)\messages.tsx:821: {item.scope_type === 'LOCAL' ? 'BARANGAY' : item.scope_type}
+src\app\(tabs)\messages.tsx:837: </Pressable>
+src\app\(tabs)\prayer.tsx:3: import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+src\app\(tabs)\prayer.tsx:101: <Pressable onPress={()=>router.push('/prayer/new')} style={styles.add}><Text style={styles.addText}>+ REQUEST</Text></Pressable>
+src\app\(tabs)\prayer.tsx:112: <Pressable onPress={()=>router.push(`/prayer/${item.id}`)}>
+src\app\(tabs)\prayer.tsx:118: <Pressable
+src\app\(tabs)\prayer.tsx:123: ><Text style={styles.pray}>{'\uD83D\uDE4F'} I PRAYED</Text></Pressable>
+src\app\(tabs)\prayer.tsx:125: </Pressable>
+src\app\(tabs)\word.tsx:11: Pressable,
+src\app\(tabs)\word.tsx:373: <Pressable
+src\app\(tabs)\word.tsx:458: </Pressable>
+src\app\(tabs)\word.tsx:494: <Pressable
+src\app\(tabs)\word.tsx:531: </Pressable>
+src\app\account\data-rights.tsx:2: import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+src\app\account\data-rights.tsx:54: <Pressable key={value} onPress={()=>setType(value)}
+src\app\account\data-rights.tsx:57: </Pressable>
+src\app\account\deactivate.tsx:36: text: 'Deactivate Account',
+src\app\account\deactivate.tsx:75: <Text style={shared.h1}>Deactivate Account</Text>
+src\app\account\delete.tsx:31: 'Permanently delete account?',
+src\app\account\delete.tsx:69: 'Could Not Delete Account',
+src\app\account\delete.tsx:87: <Text style={shared.h1}>Delete Account</Text>
+src\app\account\personal-information.tsx:9: Pressable,
+src\app\account\personal-information.tsx:111: const [barangay,setBarangay] =
+src\app\account\personal-information.tsx:239: 'address_line,barangay,city_municipality,province,country,postal_code,address_completed'
+src\app\account\personal-information.tsx:314: setBarangay(
+src\app\account\personal-information.tsx:316: a.barangay ?? ''
+src\app\account\personal-information.tsx:384: barangay.trim();
+src\app\account\personal-information.tsx:414: 'Barangay, Town / City, Province and Country are required so BUKLOD can determine your correct Local community.'
+src\app\account\personal-information.tsx:494: barangay:
+src\app\account\personal-information.tsx:638: <Pressable
+src\app\account\personal-information.tsx:649: </Pressable>
+src\app\account\personal-information.tsx:675: Barangay, Town / City, Province and Country are used to determine your correct BUKLOD Local communities. Your exact residential address remains private.
+src\app\account\personal-information.tsx:851: <Pressable
+src\app\account\personal-information.tsx:948: </Pressable>
+src\app\account\personal-information.tsx:1034: label="Barangay"
+src\app\account\personal-information.tsx:1036: value={barangay}
+src\app\account\personal-information.tsx:1037: onChangeText={setBarangay}
+src\app\account\personal-information.tsx:1075: <Pressable
+src\app\account\personal-information.tsx:1096: </Pressable>
+src\app\account\recovery-pin.tsx:7: Pressable,
+src\app\account\recovery-pin.tsx:82: <Pressable onPress={() => router.back()} style={styles.back}>
+src\app\account\recovery-pin.tsx:85: </Pressable>
+src\app\account\recovery-pin.tsx:129: <Pressable
+src\app\account\recovery-pin.tsx:139: </Pressable>
+src\app\account\reset-password.tsx:10: Pressable,
+src\app\account\reset-password.tsx:326: <Pressable
+src\app\account\reset-password.tsx:343: </Pressable>
+src\app\account\reset-password.tsx:395: <Pressable
+src\app\account\reset-password.tsx:425: </Pressable>
+src\app\account\security.tsx:10: Pressable,
+src\app\account\security.tsx:628: <Pressable
+src\app\account\security.tsx:650: </Pressable>
+src\app\account\security.tsx:677: <Pressable
+src\app\account\security.tsx:700: </Pressable>
+src\app\account\security.tsx:728: <Pressable
+src\app\account\security.tsx:748: </Pressable>
+src\app\account\security.tsx:786: <Pressable
+src\app\account\security.tsx:801: </Pressable>
+src\app\admin\bible\index.tsx:20: Pressable,
+src\app\admin\bible\index.tsx:583: <Pressable
+src\app\admin\bible\index.tsx:596: </Pressable>
+src\app\admin\bible\index.tsx:717: <Pressable
+src\app\admin\bible\index.tsx:742: </Pressable>
+src\app\admin\church-life\announcement-editor.tsx:2: import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+src\app\admin\church-life\announcement-editor.tsx:42: <Pressable key={c.id} onPress={()=>setChurchId(c.id)} style={[styles.chip,churchId===c.id&&styles.chipOn]}>
+src\app\admin\church-life\announcement-editor.tsx:44: </Pressable>
+src\app\admin\church-life\announcement-editor.tsx:54: <Pressable key={p} onPress={()=>setPriority(p)} style={[styles.chip,priority===p&&styles.chipOn]}><Text>{p}</Text></Pressable>
+src\app\admin\church-life\event-editor.tsx:2: import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+src\app\admin\church-life\event-editor.tsx:59: <Pressable key={s} onPress={()=>{setScope(s);setGroupId('')}} style={[styles.chip,scope===s&&styles.chipOn]}>
+src\app\admin\church-life\event-editor.tsx:61: </Pressable>
+src\app\admin\church-life\event-editor.tsx:69: <Pressable key={c.id} onPress={()=>{setChurchId(c.id);setGroupId('')}} style={[styles.chip,churchId===c.id&&styles.chipOn]}>
+src\app\admin\church-life\event-editor.tsx:71: </Pressable>
+src\app\admin\church-life\event-editor.tsx:80: <Pressable key={g.id} onPress={()=>setGroupId(g.id)} style={[styles.chip,groupId===g.id&&styles.chipOn]}>
+src\app\admin\church-life\event-editor.tsx:82: </Pressable>
+src\app\admin\church-life\event-editor.tsx:99: <Pressable key={t} onPress={()=>setType(t)} style={[styles.chip,type===t&&styles.chipOn]}>
+src\app\admin\church-life\event-editor.tsx:101: </Pressable>
+src\app\admin\church-life\events.tsx:2: import { FlatList, Pressable, Text, View } from 'react-native';
+src\app\admin\church-life\events.tsx:20: <Pressable onPress={()=>router.push(`/church/event/${item.id}`)}>
+src\app\admin\church-life\events.tsx:25: </Pressable>
+src\app\admin\church-life\ministries.tsx:2: import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+src\app\admin\church-life\ministries.tsx:45: <Pressable key={c.id} onPress={()=>setChurchId(c.id)} style={[styles.chip,churchId===c.id&&styles.chipOn]}>
+src\app\admin\church-life\ministries.tsx:47: </Pressable>
+src\app\admin\command-center\decision.tsx:2: import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+src\app\admin\command-center\decision.tsx:84: <Pressable key={r.id} onPress={()=>setReleaseId(r.id)}
+src\app\admin\command-center\decision.tsx:87: </Pressable>
+src\app\admin\command-center\decision.tsx:94: <Pressable key={value} onPress={()=>setDecision(value)}
+src\app\admin\command-center\decision.tsx:97: </Pressable>
+src\app\admin\command-center\incidents.tsx:2: import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+src\app\admin\command-center\incidents.tsx:63: <Pressable key={s} onPress={()=>setSeverity(s)}
+src\app\admin\command-center\incidents.tsx:66: </Pressable>
+src\app\admin\command-center\incidents.tsx:87: <Pressable key={s} onPress={()=>update(item,s)}
+src\app\admin\command-center\incidents.tsx:90: </Pressable>
+src\app\admin\command-center\readiness.tsx:2: import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+src\app\admin\command-center\readiness.tsx:57: <Pressable key={s} onPress={()=>setCheck(item,s)}
+src\app\admin\command-center\readiness.tsx:60: </Pressable>
+src\app\admin\command-center\releases.tsx:2: import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+src\app\admin\command-center\releases.tsx:64: <Pressable key={p} onPress={()=>setPlatform(p)}
+src\app\admin\command-center\releases.tsx:67: </Pressable>
+src\app\admin\command-center\releases.tsx:82: <Pressable key={s} onPress={()=>status(item,s)}
+src\app\admin\command-center\releases.tsx:85: </Pressable>
+src\app\admin\giving\index.tsx:4: Pressable,
+src\app\admin\giving\index.tsx:268: 'Deactivate Account',
+src\app\admin\giving\index.tsx:310: <Pressable
+src\app\admin\giving\index.tsx:317: </Pressable>
+src\app\admin\giving\index.tsx:350: <Pressable
+src\app\admin\giving\index.tsx:370: </Pressable>
+src\app\admin\giving\index.tsx:499: <Pressable
+src\app\admin\giving\index.tsx:508: </Pressable>
+src\app\admin\giving\index.tsx:511: <Pressable
+src\app\admin\giving\index.tsx:524: </Pressable>
+src\app\admin\giving\index.tsx:548: <Pressable
+src\app\admin\giving\index.tsx:570: </Pressable>
+src\app\admin\giving\treasurers.tsx:4: Pressable,
+src\app\admin\giving\treasurers.tsx:342: <Pressable
+src\app\admin\giving\treasurers.tsx:349: </Pressable>
+src\app\admin\giving\treasurers.tsx:372: <Pressable
+src\app\admin\giving\treasurers.tsx:392: </Pressable>
+src\app\admin\giving\treasurers.tsx:429: <Pressable
+src\app\admin\giving\treasurers.tsx:444: </Pressable>
+src\app\admin\giving\treasurers.tsx:473: <Pressable
+src\app\admin\giving\treasurers.tsx:496: </Pressable>
+src\app\admin\group\[id].tsx:11: Pressable,
+src\app\admin\group\[id].tsx:1415: <Pressable
+src\app\admin\group\[id].tsx:1440: </Pressable>
+src\app\admin\group\[id].tsx:1599: <Pressable
+src\app\admin\group\[id].tsx:1623: </Pressable>
+src\app\admin\group\[id].tsx:1697: <Pressable
+src\app\admin\group\[id].tsx:1766: </Pressable>
+src\app\admin\learning\index.tsx:2: import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+src\app\admin\learning\index.tsx:51: <Pressable key={c} onPress={()=>setCategory(c)} style={[styles.chip,category===c&&styles.chipOn]}>
+src\app\admin\learning\index.tsx:53: </Pressable>
+src\app\admin\learning\index.tsx:62: <Pressable onPress={()=>router.push({pathname:'/admin/learning/track-editor',params:{id:item.id}})}>
+src\app\admin\learning\index.tsx:68: </Pressable>
+src\app\admin\learning\mentors.tsx:2: import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+src\app\admin\learning\mentors.tsx:40: <Pressable key={x.id} onPress={()=>setMentorId(x.id)} style={[styles.chip,mentorId===x.id&&styles.chipOn]}>
+src\app\admin\learning\mentors.tsx:42: </Pressable>
+src\app\admin\learning\mentors.tsx:49: <Pressable key={x.id} onPress={()=>setDiscipleId(x.id)} style={[styles.chip,discipleId===x.id&&styles.chipOn]}>
+src\app\admin\learning\mentors.tsx:51: </Pressable>
+src\app\admin\learning\track-editor.tsx:9: Pressable,
+src\app\admin\learning\track-editor.tsx:524: <Pressable
+src\app\admin\learning\track-editor.tsx:548: </Pressable>
+src\app\admin\learning\track-editor.tsx:639: <Pressable
+src\app\admin\learning\track-editor.tsx:663: </Pressable>
+src\app\admin\learning\track-editor.tsx:736: <Pressable
+src\app\admin\learning\track-editor.tsx:754: </Pressable>
+src\app\admin\learning\track-editor.tsx:821: <Pressable
+src\app\admin\learning\track-editor.tsx:838: </Pressable>
+src\app\admin\member\[id].tsx:10: Pressable,
+src\app\admin\member\[id].tsx:901: System Admin action. A reason is required and
+src\app\admin\member\[id].tsx:1010: <Pressable
+src\app\admin\member\[id].tsx:1063: </Pressable>
+src\app\admin\member\[id].tsx:1143: <Pressable
+src\app\admin\member\[id].tsx:1198: </Pressable>
+src\app\admin\member\[id].tsx:1266: <Pressable
+src\app\admin\member\[id].tsx:1315: </Pressable>
+src\app\admin\member-care\index.tsx:2: import { FlatList, Pressable, Text, View } from 'react-native';
+src\app\admin\member-care\index.tsx:26: <Pressable onPress={()=>router.push(`/admin/member-care/${item.user_id}`)}>
+src\app\admin\member-care\index.tsx:31: </Pressable>
+src\app\admin\member-care\[id].tsx:2: import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+src\app\admin\member-care\[id].tsx:69: <Pressable onPress={()=>setFollowUp(v=>!v)}>
+src\app\admin\member-care\[id].tsx:71: </Pressable>
+src\app\admin\pilot\cohorts.tsx:2: import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+src\app\admin\pilot\cohorts.tsx:79: <Pressable key={c.id} onPress={()=>setSelectedCohort(c.id)}
+src\app\admin\pilot\cohorts.tsx:82: </Pressable>
+src\app\admin\pilot\cohorts.tsx:89: <Pressable key={u.id} onPress={()=>setSelectedUser(u.id)}
+src\app\admin\pilot\cohorts.tsx:92: </Pressable>
+src\app\admin\pilot\cohorts.tsx:108: <Pressable onPress={()=>remove(item)}><Text style={{fontWeight:'900',color:colors.danger}}>REMOVE</Text></Pressable>}
+src\app\admin\pilot\feedback.tsx:2: import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+src\app\admin\pilot\runtime.tsx:61: <Text style={shared.muted}>System Admin bypass remains available.</Text>
+
+====================================================
+IDENTITY / ROLE / SCOPE / PERMISSION HITS
+====================================================
+src\app\(auth)\login.tsx:396: // applies the canonical profile/membership/community access rules.
+src\app\(auth)\login.tsx:1191: New accounts can enter the BUKLOD Community immediately. Local Church and BUKLOD Group access requires membership verification.
+src\app\(auth)\register.tsx:126: const wantsLocalMembership = connectionType === 'local_member';
+src\app\(auth)\register.tsx:267: * Church / Cluster / Organization membership discovery and joining
+src\app\(auth)\register.tsx:564: * Church, Cluster and Organization memberships
+src\app\(auth)\register.tsx:761: 'Your BUKLOD account is ready. You can enter the Public Community immediately. Local, Cluster, Church, and Organization memberships can be added separately.'
+src\app\(tabs)\buklod.tsx:682: p_location_scope_id:publicLocationScopeId,
+src\app\(tabs)\buklod.tsx:1193: .requestCameraPermissionsAsync();
+src\app\(tabs)\buklod.tsx:1197: 'Camera Permission',
+src\app\(tabs)\buklod.tsx:1249: .requestMediaLibraryPermissionsAsync();
+src\app\(tabs)\buklod.tsx:1253: 'Photo Permission',
+src\app\(tabs)\buklod.tsx:1313: .requestMediaLibraryPermissionsAsync();
+src\app\(tabs)\buklod.tsx:1499: const permission=
+src\app\(tabs)\buklod.tsx:1501: .requestMediaLibraryPermissionsAsync();
+src\app\(tabs)\buklod.tsx:1503: if(!permission.granted){
+src\app\(tabs)\buklod.tsx:1505: 'Video Permission',
+src\app\(tabs)\buklod.tsx:2596: const permission=
+src\app\(tabs)\buklod.tsx:2598: .requestPermissionsAsync(
+src\app\(tabs)\buklod.tsx:2604: if(!permission.granted){
+src\app\(tabs)\buklod.tsx:2970: * Prefer storage path because signed URLs
+src\app\(tabs)\home.tsx:267: hasRole('system_admin') ||
+src\app\(tabs)\home.tsx:1134: /* PATCH_165H_HOME_ENTITLEMENT */
+src\app\(tabs)\home.tsx:1135: const { hasEntitlement } = useBuklodAccess();
+src\app\(tabs)\home.tsx:1136: const canUseBayanihan = hasEntitlement('bayanihan');
+src\app\(tabs)\home.tsx:2607: * 2. NORMAL RAW URLs
+src\app\(tabs)\home.tsx:2626: * 3. MANGLED / TRANSLATED URLS
+src\app\(tabs)\home.tsx:4039: 'system_admin'
+src\app\(tabs)\learn.tsx:60: 'Membership • Understanding the importance and work of the church',
+src\app\(tabs)\learn.tsx:107: const canManageLearning = hasRole('system_admin');
+src\app\(tabs)\me.tsx:6: import BuklodProfileMembershipNav
+src\app\(tabs)\me.tsx:7: from '@/components/BuklodProfileMembershipNav';
+src\app\(tabs)\me.tsx:49: system_admin: 'System Admin',
+src\app\(tabs)\me.tsx:176: roles,
+src\app\(tabs)\me.tsx:259: const hasActiveMzbMembership =
+src\app\(tabs)\me.tsx:264: scope?.membership_status ===
+src\app\(tabs)\me.tsx:302: hasActiveMzbMembership ||
+src\app\(tabs)\me.tsx:303: hasRole('system_admin');
+src\app\(tabs)\me.tsx:304: /* PATCH_165H_ME_ENTITLEMENTS */
+src\app\(tabs)\me.tsx:305: const { hasEntitlement } = useBuklodAccess();
+src\app\(tabs)\me.tsx:306: const canUseBayanihan = hasEntitlement('bayanihan');
+src\app\(tabs)\me.tsx:307: const canUseTithes = hasEntitlement('tithes');
+src\app\(tabs)\me.tsx:332: const permission =
+src\app\(tabs)\me.tsx:334: .requestMediaLibraryPermissionsAsync();
+src\app\(tabs)\me.tsx:337: !permission.granted
+src\app\(tabs)\me.tsx:593: const permission =
+src\app\(tabs)\me.tsx:595: .requestMediaLibraryPermissionsAsync();
+src\app\(tabs)\me.tsx:598: permission.status !==
+src\app\(tabs)\me.tsx:602: 'Photo Permission',
+src\app\(tabs)\me.tsx:826: const isSystemAdmin = hasRole('system_admin');
+src\app\(tabs)\me.tsx:834: 'system_admin',
+src\app\(tabs)\me.tsx:841: 'system_admin',
+src\app\(tabs)\me.tsx:1057: {/* PATCH_169D_MEMBERSHIP_NAV_MOUNT */}
+src\app\(tabs)\me.tsx:1058: <BuklodProfileMembershipNav />
+src\app\(tabs)\me.tsx:1228: subtitle="Tools shown according to your active roles"
+src\app\(tabs)\me.tsx:1305: title="Church Membership Requests"
+src\app\(tabs)\me.tsx:1306: subtitle="Review pending Church membership requests within your authorized scope"
+src\app\(tabs)\me.tsx:1482: {/* BUKLOD_EDUCATION_FACULTY_ENTRY */}
+src\app\(tabs)\me.tsx:1494: onPress={() => router.push('/profile/buklod-faculty' as any)}
+src\app\(tabs)\me.tsx:1503: BUKLOD Faculty
+src\app\(tabs)\me.tsx:1793: rolesWrap: {
+src\app\(tabs)\messages.tsx:35: scope_id: string;
+src\app\(tabs)\messages.tsx:470: room.scope_id ===
+src\app\(tabs)\messages.tsx:779: keyExtractor={item => item.scope_id}
+src\app\(tabs)\messages.tsx:791: Barangay and active memberships create these rooms automatically.
+src\app\(tabs)\messages.tsx:806: params: { scopeId: item.scope_id },
+src\app\(tabs)\_layout.tsx:222: const { session, loading, membershipState, profile } = useAuth();
+src\app\(tabs)\_layout.tsx:226: if (loading || complianceLoading || runtimeLoading || membershipState === 'loading') {
+src\app\(tabs)\_layout.tsx:236: // a valid connection_type. Local/managed membership remains gated
+src\app\(tabs)\_layout.tsx:237: // by membershipState === 'ready'.
+src\app\(tabs)\_layout.tsx:242: if (membershipState !== 'ready' && !hasCommunityAccess) {
+src\app\admin\group\[id].tsx:99: 'system_admin',
+src\app\admin\group\[id].tsx:104: hasRole('system_admin');
+src\app\admin\group\[id].tsx:1185: leader management and membership
+src\app\admin\group\[id].tsx:1490: membership history and records. An
+src\app\admin\group\[id].tsx:1520: Membership management becomes
+src\app\admin\learning\index.tsx:42: <Text style={shared.muted}>Create and manage Bible study, membership, discipleship, and leadership tracks.</Text>
+src\app\admin\learning\index.tsx:50: {['new_believer','membership','discipleship','leadership','bible_study'].map(c=>(
+src\app\admin\learning\mentors.tsx:16: supabase.from('profiles').select('id,full_name,role').in('role',['leader','pastor','local_admin','system_admin']).eq('is_active',true).order('full_name'),
+src\app\admin\member\[id].tsx:47: active_roles: string | null;
+src\app\admin\member\[id].tsx:93: 'system_admin',
+src\app\admin\member\[id].tsx:97: hasRole('system_admin');
+src\app\admin\member\[id].tsx:564: 'manage_set_group_membership',
+src\app\admin\member\[id].tsx:794: ACCOUNT & MEMBERSHIP
+src\app\admin\member\[id].tsx:821: label="ACTIVE ROLES"
+src\app\admin\member\[id].tsx:823: member.active_roles ||
+src\app\admin\visitors\index.tsx:11: const STATUSES=['new_visitor','returning','follow_up','bible_study','membership_interest','onboarding','member','inactive'];
+src\app\admin\visitors\index.tsx:55: <Text style={shared.muted}>Track welcome, follow-up, Bible study, membership interest, and onboarding.</Text>
+src\app\admin\visitors\[id].tsx:8: const STATUSES=['new_visitor','returning','follow_up','bible_study','membership_interest','onboarding','member','inactive'];
+src\app\admin\visitors\[id].tsx:27: .in('role',['leader','pastor','local_admin','system_admin'])
+src\app\admin\account-recovery.tsx:53: if (hasRole('system_admin')) {
+src\app\admin\account-recovery.tsx:89: if (!hasRole('system_admin')) {
+src\app\admin\approvals.tsx:32: hasRole('system_admin');
+src\app\admin\approvals.tsx:35: const canReviewLocalMembership =
+src\app\admin\approvals.tsx:63: if (!canReviewLocalMembership) {
+src\app\admin\approvals.tsx:126: 'Local Membership Requests',
+src\app\admin\approvals.tsx:145: }, [canReviewLocalMembership]);
+src\app\admin\approvals.tsx:162: 'Only System Admin can create a new BUKLOD Group during Local membership review.'
+src\app\admin\approvals.tsx:211: ? `approve this Local membership and assign ${group?.name || 'the selected group'}`
+src\app\admin\approvals.tsx:212: : `create "${newGroupName}" and approve this Local membership`;
+src\app\admin\approvals.tsx:215: 'Local Membership Review',
+src\app\admin\approvals.tsx:227: 'review_local_membership_request_v5',
+src\app\admin\approvals.tsx:288: 'reject_local_membership_request_v5',
+src\app\admin\approvals.tsx:332: if (!canReviewLocalMembership) {
+src\app\admin\approvals.tsx:341: Local Membership Requests
+src\app\admin\approvals.tsx:346: Pastor and Local Admin may review requests within their authorized Local Church. System Admin may review all Local membership requests.
+src\app\admin\approvals.tsx:375: Local Membership Requests
+src\app\admin\dev-role-lab.tsx:24: | 'SYSTEM_ADMIN';
+src\app\admin\dev-role-lab.tsx:29: scope_id: string;
+src\app\admin\dev-role-lab.tsx:35: membership_status?: string | null;
+src\app\admin\dev-role-lab.tsx:37: is_admin: boolean;
+src\app\admin\dev-role-lab.tsx:60: { key: 'SYSTEM_ADMIN', label: 'System Admin', group: 'System' },
+src\app\admin\dev-role-lab.tsx:73: function buildPermissions(
+src\app\admin\dev-role-lab.tsx:80: const system = role === 'SYSTEM_ADMIN';
+src\app\admin\dev-role-lab.tsx:111: const { roles, hasRole } = useAuth();
+src\app\admin\dev-role-lab.tsx:129: const isSystemAdmin = hasRole('system_admin');
+src\app\admin\dev-role-lab.tsx:157: rows.some((item: ScopeRow) => item.scope_id === previous)
+src\app\admin\dev-role-lab.tsx:159: : current?.scope_id ?? null
+src\app\admin\dev-role-lab.tsx:183: () => scopes.find((item: ScopeRow) => item.scope_id === scopeId) ?? activeScope ?? null,
+src\app\admin\dev-role-lab.tsx:188: if (!scopeId && activeScope) setScopeId(activeScope.scope_id);
+src\app\admin\dev-role-lab.tsx:196: }, [simulatedScope?.scope_id]);
+src\app\admin\dev-role-lab.tsx:266: const permissions = buildPermissions(
+src\app\admin\dev-role-lab.tsx:281: _scope_id: simulatedScope.scope_id,
+src\app\admin\dev-role-lab.tsx:309: Test roles, scopes, faith, entitlements and AdMob without changing real database roles.
+src\app\admin\dev-role-lab.tsx:316: View As Role affects only this lab's expected permission matrix. It does not grant or impersonate a real Supabase role.
+src\app\admin\dev-role-lab.tsx:322: <Info label="Actual roles" value={roles.length ? roles.join(', ') : 'None'} />
+src\app\admin\dev-role-lab.tsx:346: const on = simulatedScope?.scope_id === scope.scope_id;
+src\app\admin\dev-role-lab.tsx:349: key={scope.scope_id}
+src\app\admin\dev-role-lab.tsx:351: onPress={() => setScopeId(scope.scope_id)}
+src\app\admin\dev-role-lab.tsx:358: {scope.is_admin ? ' | ADMIN' : ''}
+src\app\admin\dev-role-lab.tsx:402: <Card title="4. Entitlement Simulation">
+src\app\admin\dev-role-lab.tsx:408: <Card title="5. Expected Permission Matrix">
+src\app\admin\dev-role-lab.tsx:409: {permissions.map(([label, allowed]) => (
+src\app\admin\dev-role-lab.tsx:410: <View key={label} style={styles.permissionRow}>
+src\app\admin\dev-role-lab.tsx:411: <Text style={[styles.permissionMark, allowed ? styles.allow : styles.deny]}>
+src\app\admin\dev-role-lab.tsx:414: <Text style={styles.permissionLabel}>{label}</Text>
+src\app\admin\dev-role-lab.tsx:421: These open the real app with your actual System Admin permissions.
+src\app\admin\dev-role-lab.tsx:565: <Text style={styles.permissionLabel}>{label}</Text>
+src\app\admin\dev-role-lab.tsx:676: permissionRow: {
+src\app\admin\dev-role-lab.tsx:684: permissionMark: { width: 34, fontSize: 9, fontWeight: '900' },
+src\app\admin\dev-role-lab.tsx:687: permissionLabel: { flex: 1, color: '#394D43', fontWeight: '800', fontSize: 11 },
+src\app\admin\groups.tsx:71: 'system_admin',
+src\app\admin\groups.tsx:75: hasRole('system_admin');
+src\app\admin\home-reminder.tsx:181: 'system_admin'
+src\app\admin\index.tsx:408: subtitle="Membership, churches, clusters, pastors and roles"
+src\app\admin\local-devotional-assignments.tsx:49: 'system_admin',
+src\app\admin\local-members.tsx:48: 'system_admin',
+src\app\admin\member-master.tsx:31: system_admin: 'System Admin',
+src\app\admin\member-master.tsx:41: 'system_admin',
+src\app\admin\member-master.tsx:128: const [userRoles, setUserRoles] = useState<Row[]>([]);
+src\app\admin\member-master.tsx:183: 'user_roles',
+src\app\admin\member-master.tsx:236: setUserRoles(roleRows);
+src\app\admin\member-master.tsx:300: const rolesMap = useMemo(() => {
+src\app\admin\member-master.tsx:307: for (const row of userRoles) {
+src\app\admin\member-master.tsx:323: }, [profiles, userRoles]);
+src\app\admin\member-master.tsx:363: (membership) =>
+src\app\admin\member-master.tsx:364: membership.user_id === person.id &&
+src\app\admin\member-master.tsx:365: membership.group_id === groupFilter &&
+src\app\admin\member-master.tsx:366: membership.is_active
+src\app\admin\member-master.tsx:371: return (rolesMap.get(person.id) ?? ['member']).includes(roleFilter);
+src\app\admin\member-master.tsx:383: rolesMap,
+src\app\admin\member-master.tsx:405: 'Active Roles': (rolesMap.get(person.id) ?? ['member'])
+src\app\admin\member-master.tsx:415: for (const role of userRoles) {
+src\app\admin\member-master.tsx:431: for (const membership of groupMembers) {
+src\app\admin\member-master.tsx:432: if (!memberIds.has(membership.user_id)) continue;
+src\app\admin\member-master.tsx:434: 'Record Type': 'BUKLOD Cluster Membership',
+src\app\admin\member-master.tsx:435: 'Member ID': membership.user_id,
+src\app\admin\member-master.tsx:436: 'Member Name': profileMap.get(membership.user_id)?.full_name || '',
+src\app\admin\member-master.tsx:437: Assignment: groupMap.get(membership.group_id)?.name || membership.group_id,
+src\app\admin\member-master.tsx:439: churchMap.get(groupMap.get(membership.group_id)?.church_id) || '',
+src\app\admin\member-master.tsx:440: Status: membership.is_active ? 'Active' : 'Inactive',
+src\app\admin\member-master.tsx:562: for (const membership of bibleMembers) {
+src\app\admin\member-master.tsx:563: if (!memberIds.has(membership.user_id)) continue;
+src\app\admin\member-master.tsx:564: const assignment = bibleAssignmentMap.get(membership.assignment_id);
+src\app\admin\member-master.tsx:568: `${membership.assignment_id}:${membership.user_id}`
+src\app\admin\member-master.tsx:577: const person = profileMap.get(membership.user_id);
+src\app\admin\member-master.tsx:580: 'Member ID': membership.user_id,
+src\app\admin\member-master.tsx:706: (rolesMap.get(person.id) ?? ['member']).includes(role)
+src\app\admin\member-master.tsx:731: { Field: 'Role Filter', Value: roleFilter === 'all' ? 'All Roles' : ROLE_LABELS[roleFilter] },
+src\app\admin\member-master.tsx:757: XLSX.utils.book_append_sheet(workbook, safeSheet(assignmentRows), 'Roles & Assignments');
+src\app\admin\member-master.tsx:847: label={role === 'all' ? 'All Roles' : ROLE_LABELS[role]}
+src\app\admin\member-master.tsx:884: <Metric label="Roles" value={userRoles.filter((r) => r.is_active && memberIds.has(r.user_id)).length} />
+src\app\admin\member-master.tsx:901: Masterlist, roles and assignments, learning, Daily Bible status, BUKLOD Points,
+src\app\admin\mission-bulletins.tsx:130: const permission =
+src\app\admin\mission-bulletins.tsx:132: .requestMediaLibraryPermissionsAsync();
+src\app\admin\mission-bulletins.tsx:136: !permission.granted
+src\app\admin\mission-bulletins.tsx:140: 'Photo Permission',
+src\app\admin\mission-bulletins.tsx:244: hasRole('system_admin');
+src\app\admin\users.tsx:19: const ROLES: AppRole[] = [
+src\app\admin\users.tsx:20: 'system_admin',
+src\app\admin\users.tsx:29: system_admin: 'System Admin',
+src\app\admin\users.tsx:33: member: 'Baseline BUKLOD membership',
+src\app\admin\users.tsx:38: system_admin: 'System-wide administrative authority',
+src\app\admin\users.tsx:50: roles: AppRole[];
+src\app\admin\users.tsx:56: refreshRoles,
+src\app\admin\users.tsx:65: { data: userRoles, error: rolesError },
+src\app\admin\users.tsx:75: .from('user_roles')
+src\app\admin\users.tsx:85: if (rolesError) {
+src\app\admin\users.tsx:86: Alert.alert('Roles', rolesError.message);
+src\app\admin\users.tsx:92: for (const row of userRoles ?? []) {
+src\app\admin\users.tsx:105: const activeRoles =
+src\app\admin\users.tsx:109: !activeRoles.includes('system_admin') &&
+src\app\admin\users.tsx:110: !activeRoles.includes('member')
+src\app\admin\users.tsx:112: activeRoles.unshift('member');
+src\app\admin\users.tsx:117: roles: activeRoles,
+src\app\admin\users.tsx:144: role === 'system_admin' &&
+src\app\admin\users.tsx:158: 'admin_set_user_role',
+src\app\admin\users.tsx:179: await refreshRoles();
+src\app\admin\users.tsx:221: Users & Roles
+src\app\admin\users.tsx:225: One account may hold multiple active roles at the same time.
+src\app\admin\users.tsx:226: Roles are independent and administrator-controlled.
+src\app\admin\users.tsx:238: Organization, Church and Cluster roles are managed
+src\app\admin\users.tsx:277: ACTIVE ROLES
+src\app\admin\users.tsx:280: <View style={styles.rolesGrid}>
+src\app\admin\users.tsx:281: {ROLES.map((role) => {
+src\app\admin\users.tsx:284: item.roles.includes(role);
+src\app\admin\users.tsx:290: role === 'system_admin'
+src\app\admin\users.tsx:374: {item.roles
+src\app\admin\users.tsx:514: rolesGrid: {
+src\app\advertise\index.tsx:71: if(busy)return; const p=await ImagePicker.requestMediaLibraryPermissionsAsync();
+src\app\advertise\index.tsx:72: if(!p.granted){Alert.alert('Media Permission','Please allow media access.'); return;}
+src\app\advertise\index.tsx:80: if(busy)return; const p=await ImagePicker.requestMediaLibraryPermissionsAsync();
+src\app\advertise\index.tsx:81: if(!p.granted){Alert.alert('Photo Permission','Please allow access to your payment screenshot.'); return;}
+src\app\bible\index.tsx:286: const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+src\app\bible\index.tsx:287: if (!permission.granted) {
+src\app\bible\index.tsx:289: 'Photo Permission',
+src\app\bible\index.tsx:1139: * Even if direct table SELECT is restricted by RLS,
+src\app\church\event\[id].tsx:57: const canManage=hasAnyRole(['pastor','local_admin','system_admin','leader']);
+src\app\church\household\index.tsx:13: const canManage=hasAnyRole(['pastor','local_admin','system_admin']);
+src\app\church\member\[id].tsx:35: const pastoral=hasAnyRole(['pastor','local_admin','system_admin']);
+src\app\church\ministries.tsx:9: const [memberships,setMemberships]=useState<any[]>([]);
+src\app\church\ministries.tsx:22: setMemberships(m??[]);setAssignments(a??[]);
+src\app\church\ministries.tsx:34: <SectionTitle>MINISTRY MEMBERSHIP</SectionTitle>
+src\app\church\ministries.tsx:35: {memberships.length?memberships.map((m:any)=>(
+src\app\church\ministries.tsx:41: )):<Card><Text style={shared.muted}>No ministry membership assigned yet.</Text></Card>}
+src\app\churches\index.tsx:117: {!!item.membership_status &&
+src\app\churches\index.tsx:118: `  |  ${item.membership_status}`}
+src\app\churches\index.tsx:170: setBusy(item.scope_id);
+src\app\churches\index.tsx:173: const status = await joinChurch(item.scope_id);
+src\app\churches\index.tsx:177: 'Church membership',
+src\app\churches\index.tsx:184: Alert.alert('Church membership', msg(e));
+src\app\churches\index.tsx:194: setBusy(item.scope_id);
+src\app\churches\index.tsx:198: item.scope_id,
+src\app\churches\index.tsx:249: You do not have a Church membership yet.
+src\app\churches\index.tsx:254: <Card key={item.scope_id} item={item}>
+src\app\churches\index.tsx:256: {item.membership_status ===
+src\app\churches\index.tsx:261: disabled={busy === item.scope_id}
+src\app\churches\index.tsx:270: disabled={busy === item.scope_id}
+src\app\churches\index.tsx:279: item.is_admin
+src\app\churches\index.tsx:284: openChurch(item.scope_id)
+src\app\churches\index.tsx:318: <Card key={item.scope_id} item={item}>
+src\app\churches\index.tsx:320: {item.membership_status ===
+src\app\churches\index.tsx:325: openChurch(item.scope_id)
+src\app\churches\index.tsx:328: ) : item.membership_status ===
+src\app\churches\index.tsx:335: ) : item.membership_status ===
+src\app\churches\index.tsx:345: title="REQUEST MEMBERSHIP"
+src\app\churches\index.tsx:346: disabled={busy === item.scope_id}
+src\app\churches\index.tsx:357: openChurch(item.scope_id)
+src\app\churches\[id].tsx:149: if (info.is_admin) {
+src\app\churches\[id].tsx:294: {church.is_admin && (
+src\app\churches\[id].tsx:304: !church.membership_status &&
+src\app\churches\[id].tsx:308: title="REQUEST CHURCH MEMBERSHIP"
+src\app\churches\[id].tsx:318: {church.membership_status ===
+src\app\churches\[id].tsx:354: {church.membership_status ===
+src\app\churches\[id].tsx:357: Membership request is awaiting
+src\app\churches\[id].tsx:362: {church.membership_status ===
+src\app\churches\[id].tsx:364: !church.is_admin && (
+src\app\churches\[id].tsx:396: {church.is_admin && verification && (
+src\app\churches\[id].tsx:455: {church.is_admin && (
+src\app\churches\[id].tsx:534: MEMBERSHIP REQUESTS
+src\app\churches\[id].tsx:668: {m.is_admin
+src\app\churches\[id].tsx:674: {!m.is_admin && (
+src\app\clusters\index.tsx:112: item.membership_status === 'ACTIVE'
+src\app\clusters\index.tsx:113: ? openCluster(item.scope_id)
+src\app\clusters\index.tsx:148: {!!item.membership_status && (
+src\app\clusters\index.tsx:149: <Text style={styles.membership}>
+src\app\clusters\index.tsx:150: Status: {item.membership_status}
+src\app\clusters\index.tsx:151: {item.is_admin ? '  |  ADMIN' : ''}
+src\app\clusters\index.tsx:217: item.membership_status ===
+src\app\clusters\index.tsx:227: item.membership_status ===
+src\app\clusters\index.tsx:237: item.membership_status ===
+src\app\clusters\index.tsx:247: setBusyId(item.scope_id);
+src\app\clusters\index.tsx:251: item.scope_id,
+src\app\clusters\index.tsx:269: setBusyId(item.scope_id);
+src\app\clusters\index.tsx:273: await joinCluster(item.scope_id);
+src\app\clusters\index.tsx:285: openCluster(item.scope_id);
+src\app\clusters\index.tsx:364: key={item.scope_id}
+src\app\clusters\index.tsx:370: item.is_admin
+src\app\clusters\index.tsx:376: item.scope_id
+src\app\clusters\index.tsx:395: key={item.scope_id}
+src\app\clusters\index.tsx:403: item.scope_id
+src\app\clusters\index.tsx:418: item.scope_id
+src\app\clusters\index.tsx:443: key={item.scope_id}
+src\app\clusters\index.tsx:491: item.membership_status;
+src\app\clusters\index.tsx:495: key={item.scope_id}
+src\app\clusters\index.tsx:506: item.scope_id
+src\app\clusters\index.tsx:538: item.scope_id
+src\app\clusters\index.tsx:639: membership: {
+src\app\clusters\[id].tsx:167: if (info.is_admin) {
+src\app\clusters\[id].tsx:387: const membership =
+src\app\clusters\[id].tsx:388: cluster.membership_status;
+src\app\clusters\[id].tsx:441: {!!membership && (
+src\app\clusters\[id].tsx:446: {membership}
+src\app\clusters\[id].tsx:451: {cluster.is_admin && (
+src\app\clusters\[id].tsx:464: {!membership &&
+src\app\clusters\[id].tsx:497: {membership === 'INVITED' && (
+src\app\clusters\[id].tsx:532: {membership === 'PENDING' && (
+src\app\clusters\[id].tsx:547: {membership === 'ACTIVE' &&
+src\app\clusters\[id].tsx:548: !cluster.is_admin && (
+src\app\clusters\[id].tsx:558: {cluster.is_admin && (
+src\app\clusters\[id].tsx:686: Requesting membership
+src\app\clusters\[id].tsx:821: {member.is_admin
+src\app\clusters\[id].tsx:827: {!member.is_admin && (
+src\app\giving\review.tsx:214: * generate temporary signed URLs only for proofs
+src\app\giving\review.tsx:217: const withProofUrls = await Promise.all(
+src\app\giving\review.tsx:245: withProofUrls.sort((a, b) => {
+src\app\giving\review.tsx:266: setRows(withProofUrls);
+src\app\leader\formation.tsx:12: const {hasRole}=useAuth(); const allowed=hasRole('pastor')||hasRole('system_admin');
+src\app\leader\index.tsx:15: const allowed=hasAnyRole(['leader','pastor','local_admin','system_admin']);
+src\app\mzb\admin.tsx:100: const [roles, setRoles] =
+src\app\mzb\admin.tsx:147: setRoles(
+src\app\mzb\admin.tsx:244: Organization membership and
+src\app\mzb\admin.tsx:245: ministry roles without changing
+src\app\mzb\admin.tsx:365: MEMBERS & ROLES
+src\app\mzb\admin.tsx:404: member.membership_status
+src\app\mzb\admin.tsx:409: {member.membership_status ===
+src\app\mzb\admin.tsx:453: {member.membership_status ===
+src\app\mzb\admin.tsx:461: SCOPED MZB ROLES
+src\app\mzb\admin.tsx:469: {roles.map(
+src\app\mzb\community.tsx:71: ?.membership_status ||
+src\app\mzb\community.tsx:73: ?.membership_status ===
+src\app\mzb\community.tsx:116: ? 'Your MZB membership is refreshing in the background. Navigation is already active.'
+src\app\mzb\index.tsx:21: MzbEntitlement,
+src\app\mzb\index.tsx:24: getMyMzbEntitlements,
+src\app\mzb\index.tsx:147: entitlements,
+src\app\mzb\index.tsx:148: setEntitlements,
+src\app\mzb\index.tsx:150: MzbEntitlement[]
+src\app\mzb\index.tsx:179: info?.membership_status ===
+src\app\mzb\index.tsx:181: info?.is_admin
+src\app\mzb\index.tsx:183: setEntitlements(
+src\app\mzb\index.tsx:184: await getMyMzbEntitlements()
+src\app\mzb\index.tsx:187: setEntitlements([]);
+src\app\mzb\index.tsx:305: {!!status.membership_status && (
+src\app\mzb\index.tsx:313: status.membership_status
+src\app\mzb\index.tsx:319: {status.is_admin && (
+src\app\mzb\index.tsx:347: {!status.membership_status && (
+src\app\mzb\index.tsx:354: Controlled Membership
+src\app\mzb\index.tsx:358: MZB Ministry membership is
+src\app\mzb\index.tsx:367: {status.membership_status ===
+src\app\mzb\index.tsx:421: {status.membership_status ===
+src\app\mzb\index.tsx:429: MY MZB ROLES
+src\app\mzb\index.tsx:486: {entitlements
+src\app\mzb\index.tsx:533: {status.is_admin && (
+src\app\mzb\index.tsx:561: Manage MZB membership and
+src\app\mzb\index.tsx:562: scoped ministry roles.
+src\app\mzb\index.tsx:578: {!status.is_admin && (
+src\app\mzb\index.tsx:594: 'Remove your MZB organization membership from BUKLOD?',
+src\app\mzb\messages.tsx:61: .membership_status ||
+src\app\mzb\messages.tsx:63: .membership_status ===
+src\app\mzb\messages.tsx:120: mzbScope.scope_id
+src\app\onboarding\index.tsx:30: membershipState,
+src\app\onboarding\index.tsx:115: membershipState === 'ready'
+src\app\onboarding\index.tsx:137: membershipState,
+src\app\onboarding\index.tsx:160: membershipState === 'ready';
+src\app\onboarding\index.tsx:163: membershipState ===
+src\app\organizations\admin-module.tsx:82: _scope_id: scopeId,
+src\app\organizations\admin-module.tsx:86: _scope_id: scopeId,
+src\app\organizations\admin-module.tsx:142: _scope_id: scopeId,
+src\app\organizations\admin-module.tsx:183: { _scope_id: scopeId, _record_id: row.id },
+src\app\organizations\admins.tsx:22: membership_status: string | null;
+src\app\organizations\admins.tsx:31: membership_status: string | null;
+src\app\organizations\admins.tsx:61: (supabase as any).rpc('buklod_org_list_admins_v1', { _scope_id: scopeId }),
+src\app\organizations\admins.tsx:62: (supabase as any).rpc('buklod_org_admin_log_v1', { _scope_id: scopeId, _limit: 100 }),
+src\app\organizations\admins.tsx:69: Alert.alert('Admins & Roles', String(error?.message ?? error));
+src\app\organizations\admins.tsx:94: { _scope_id: scopeId, _query: q },
+src\app\organizations\admins.tsx:123: { _scope_id: scopeId, _user_id: userId, _enabled: enabled },
+src\app\organizations\admins.tsx:144: `${row.full_name} will lose Organization Admin controls but their membership is not automatically deleted.`,
+src\app\organizations\admins.tsx:163: <Text style={styles.backText}>Admins & Roles</Text>
+src\app\organizations\admins.tsx:168: <Text style={styles.title}>Admins & Roles</Text>
+src\app\organizations\admins.tsx:208: String(row.membership_status ?? '').toUpperCase() === 'ACTIVE';
+src\app\organizations\admins.tsx:218: {row.membership_status ? `  •  ${row.membership_status}` : ''}
+src\app\organizations\admins.tsx:271: {row.membership_status ? `  •  ${row.membership_status}` : ''}
+src\app\organizations\create.tsx:85: { key: 'membership_rules', label: 'MEMBERSHIP RULES', placeholder: 'Membership qualifications and rules', multiline: true },
+src\app\organizations\events-attendance.tsx:35: firstString(params.scope_id) ||
+src\app\organizations\events-attendance.tsx:37: firstString(params.organization_id) ||
+src\app\organizations\events-attendance.tsx:45: scope_id: scopeId,
+src\app\organizations\events-attendance.tsx:47: organization_id: scopeId,
+src\app\organizations\join-requests.tsx:37: scope_id: string;
+src\app\organizations\join-requests.tsx:124: _scope_id:
+src\app\organizations\join-requests.tsx:173: _scope_id:
+src\app\organizations\join-requests.tsx:315: Review users requesting to join {organizationName}. Approval creates normal ACTIVE membership only in this exact scope.
+src\app\organizations\join.tsx:42: scope_id: string;
+src\app\organizations\join.tsx:44: parent_scope_id: string | null;
+src\app\organizations\join.tsx:49: membership_status: string | null;
+src\app\organizations\join.tsx:194: row.scope_id
+src\app\organizations\join.tsx:205: _scope_id:
+src\app\organizations\join.tsx:206: row.scope_id,
+src\app\organizations\join.tsx:267: row.scope_id
+src\app\organizations\join.tsx:277: _scope_id:
+src\app\organizations\join.tsx:278: row.scope_id,
+src\app\organizations\join.tsx:482: const membership =
+src\app\organizations\join.tsx:484: row.membership_status
+src\app\organizations\join.tsx:499: row.scope_id;
+src\app\organizations\join.tsx:502: membership ===
+src\app\organizations\join.tsx:506: membership ===
+src\app\organizations\join.tsx:510: membership ===
+src\app\organizations\join.tsx:547: row.scope_id
+src\app\organizations\join.tsx:659: {!!membership && (
+src\app\organizations\join.tsx:662: styles.membership
+src\app\organizations\join.tsx:666: membership
+src\app\organizations\join.tsx:908: membership: {
+src\app\organizations\manage-feature.tsx:58: { label: 'Membership status', route: membersRoute(scope, 'status') },
+src\app\organizations\manage-feature.tsx:62: 'Admins & Roles': {
+src\app\organizations\manage-feature.tsx:69: { label: 'Role permissions', route: settingsRoute(scope, 'permissions') },
+src\app\organizations\manage-feature.tsx:123: { label: 'Membership report', route: moduleRoute(scope, 'reports_membership', 'Membership Report', 'report') },
+src\app\organizations\manage-feature.tsx:160: { label: 'Post permissions', route: settingsRoute(scope, 'permissions') },
+src\app\organizations\manage-feature.tsx:162: { label: 'Member communication', route: settingsRoute(scope, 'permissions') },
+src\app\organizations\manage.tsx:27: parent_scope_id?: string | null;
+src\app\organizations\manage.tsx:35: scope_id?: string | null;
+src\app\organizations\manage.tsx:51: const membership =
+src\app\organizations\manage.tsx:52: metadata.membership &&
+src\app\organizations\manage.tsx:53: typeof metadata.membership === 'object' &&
+src\app\organizations\manage.tsx:54: !Array.isArray(metadata.membership)
+src\app\organizations\manage.tsx:55: ? (metadata.membership as Record<string, unknown>)
+src\app\organizations\manage.tsx:68: metadata.membership_policy ??
+src\app\organizations\manage.tsx:69: metadata.membershipPolicy ??
+src\app\organizations\manage.tsx:70: membership.join_policy ??
+src\app\organizations\manage.tsx:71: membership.joinPolicy ??
+src\app\organizations\manage.tsx:137: membershipsResult,
+src\app\organizations\manage.tsx:149: .from('buklod_scope_memberships')
+src\app\organizations\manage.tsx:185: row.scope_id || row.id || '',
+src\app\organizations\manage.tsx:196: const nextMemberships = new Set<string>();
+src\app\organizations\manage.tsx:198: if (!membershipsResult.error && userId) {
+src\app\organizations\manage.tsx:200: (membershipsResult.data || []) as any[]
+src\app\organizations\manage.tsx:210: row.scope_id ?? '',
+src\app\organizations\manage.tsx:219: nextMemberships.add(scopeId);
+src\app\organizations\manage.tsx:224: setActiveMemberIds(nextMemberships);
+src\app\organizations\manage.tsx:244: scope => !scope.parent_scope_id,
+src\app\organizations\manage.tsx:253: if (!scope.parent_scope_id) return;
+src\app\organizations\manage.tsx:256: map.get(scope.parent_scope_id) || [];
+src\app\organizations\manage.tsx:263: map.set(scope.parent_scope_id, current);
+src\app\organizations\manage.tsx:274: scope_id: scope.id,
+src\app\organizations\manage.tsx:276: organization_id: scope.id,
+src\app\organizations\manage.tsx:289: scope_id: scope.id,
+src\app\organizations\manage.tsx:291: organization_id: scope.id,
+src\app\organizations\manage.tsx:307: parent_scope_id: scope.id,
+src\app\organizations\manage.tsx:309: organization_id: scope.id,
+src\app\organizations\members-requests.tsx:35: firstString(params.scope_id) ||
+src\app\organizations\members-requests.tsx:37: firstString(params.organization_id) ||
+src\app\organizations\members-requests.tsx:45: scope_id: scopeId,
+src\app\organizations\members-requests.tsx:47: organization_id: scopeId,
+src\app\organizations\members.tsx:48: membership_status:
+src\app\organizations\members.tsx:58: membership_status: string;
+src\app\organizations\members.tsx:59: roles: string[];
+src\app\organizations\members.tsx:101: return 'Membership Status';
+src\app\organizations\members.tsx:240: _scope_id:
+src\app\organizations\members.tsx:251: 'Organization Membership',
+src\app\organizations\members.tsx:275: .membership_status
+src\app\organizations\members.tsx:346: _scope_id:
+src\app\organizations\members.tsx:434: _scope_id:
+src\app\organizations\members.tsx:478: 'buklod_org_set_membership_status',
+src\app\organizations\members.tsx:480: _scope_id:
+src\app\organizations\members.tsx:493: 'Organization Membership',
+src\app\organizations\members.tsx:520: 'Organization Membership',
+src\app\organizations\members.tsx:634: Organization Membership
+src\app\organizations\members.tsx:664: Manage membership for this organization.
+src\app\organizations\members.tsx:723: .membership_status ??
+src\app\organizations\members.tsx:866: .membership_status
+src\app\organizations\members.tsx:871: row.roles ??
+src\app\organizations\scope-manage.tsx:42: firstString(params.scope_id) ||
+src\app\organizations\scope-manage.tsx:44: firstString(params.organization_id) ||
+src\app\organizations\scope-manage.tsx:85: row.scope_id || row.id || '',
+src\app\organizations\scope-manage.tsx:118: scope_id: scopeId,
+src\app\organizations\scope-manage.tsx:120: organization_id: scopeId,
+src\app\organizations\scope-manage.tsx:174: 'Members, pending requests, approvals, and membership administration.',
+src\app\organizations\settings.tsx:32: parent_scope_id?: string | null;
+src\app\organizations\settings.tsx:170: const membership =
+src\app\organizations\settings.tsx:171: metadata.membership &&
+src\app\organizations\settings.tsx:172: typeof metadata.membership === 'object' &&
+src\app\organizations\settings.tsx:173: !Array.isArray(metadata.membership)
+src\app\organizations\settings.tsx:174: ? (metadata.membership as Record<
+src\app\organizations\settings.tsx:183: metadata.membership_policy ??
+src\app\organizations\settings.tsx:184: metadata.membershipPolicy ??
+src\app\organizations\settings.tsx:185: membership.join_policy ??
+src\app\organizations\settings.tsx:186: membership.joinPolicy ??
+src\app\organizations\settings.tsx:249: firstString(params.scope_id) ||
+src\app\organizations\settings.tsx:251: firstString(params.organization_id) ||
+src\app\organizations\settings.tsx:316: row.scope_id || row.id || '',
+src\app\organizations\settings.tsx:492: {scope.parent_scope_id
+src\app\organizations\settings.tsx:543: ACCESS & MEMBERSHIP
+src\app\organizations\suborganizations.tsx:25: parent_scope_id?: string | null;
+src\app\organizations\suborganizations.tsx:99: firstString(params.parent_scope_id) ||
+src\app\organizations\suborganizations.tsx:101: firstString(params.organization_id) ||
+src\app\organizations\suborganizations.tsx:155: .eq('parent_scope_id', parentScopeId),
+src\app\organizations\suborganizations.tsx:173: row.scope_id || row.id || '',
+src\app\organizations\suborganizations.tsx:259: p_parent_scope_id: parentScopeId,
+src\app\organizations\suborganizations.tsx:270: rpcResult.data?.scope_id ||
+src\app\organizations\suborganizations.tsx:301: parent_scope_id: parentScopeId,
+src\app\organizations\suborganizations.tsx:308: parent_scope_id:
+src\app\pilot\welcome.tsx:31: <Text style={shared.h2}>4. Test with other roles</Text>
+src\app\post\[id].tsx:407: {user?.id===post.user_id&&requests.length>0&&<><SectionTitle>SHARE REQUESTS</SectionTitle>{requests.map((r:any)=><Card key={r.request_id}><Text style={s.commentName}>{r.requester_name}</Text><Text style={s.commentMeta}>wants permission to share this post outside BUKLOD.</Text><View style={s.review}><View style={{flex:1}}><Button title="APPROVE" onPress={()=>review(r.request_id,true)}/></View><View style={{flex:1}}><Button title="DECLINE" outline onPress={()=>review(r.request_id,false)}/></View></View></Card>)}</>}
+src\app\privacy\consent.tsx:251: Your acknowledgement is saved using the existing BUKLOD compliance process. After acceptance, the current root routing flow determines the correct destination based on your account, membership, and active scope.
+src\app\profile\buklod-faculty-assessment-gradebook.tsx:35: export default function FacultyAssessmentGradebookScreen() {
+src\app\profile\buklod-faculty-assessment-gradebook.tsx:152: Faculty chooses where this assessment belongs. Only faculty-released assessment results are copied to the normal gradebook.
+src\app\profile\buklod-faculty-assessment-gradebook.tsx:241: Student exam scores cannot write directly to final grades. The server sync runs only after faculty releases the assessment result, and each grade change is audit logged.
+src\app\profile\buklod-faculty-assessment-review.tsx:31: export default function FacultyAssessmentReviewScreen() {
+src\app\profile\buklod-faculty-assessment-review.tsx:92: Alert.alert('Attempt Finalized', 'All reviewed items were calculated. Result remains faculty-controlled until released.');
+src\app\profile\buklod-faculty-assessment-review.tsx:118: <Text style={styles.eyebrow}>FACULTY REVIEW QUEUE</Text>
+src\app\profile\buklod-faculty-assessment-review.tsx:120: <Text style={styles.subtitle}>Essay/manual items require faculty scoring. Objective items are already server-checked.</Text>
+src\app\profile\buklod-faculty-assessments.tsx:44: export default function FacultyAssessmentsScreen() {
+src\app\profile\buklod-faculty-assessments.tsx:232: pathname: '/profile/buklod-faculty-assessment-review' as any,
+src\app\profile\buklod-faculty-assessments.tsx:243: pathname: '/profile/buklod-faculty-assessment-gradebook' as any,
+src\app\profile\buklod-faculty-class.tsx:39: export default function BuklodFacultyClassScreen() {
+src\app\profile\buklod-faculty-class.tsx:54: const [gradeReason, setGradeReason] = useState('Manual faculty entry');
+src\app\profile\buklod-faculty-class.tsx:138: p_reason: gradeReason.trim() || 'Manual faculty entry',
+src\app\profile\buklod-faculty-class.tsx:155: p_reason: 'Faculty released grade to student',
+src\app\profile\buklod-faculty-class.tsx:192: Alert.alert('Observation', 'Saved as faculty-only draft.');
+src\app\profile\buklod-faculty-class.tsx:230: <Text style={styles.backText}>BUKLOD Faculty</Text>
+src\app\profile\buklod-faculty-class.tsx:233: <Text style={styles.eyebrow}>FACULTY OPERATIONS</Text>
+src\app\profile\buklod-faculty-class.tsx:268: <Text style={styles.sectionTitle}>Faculty Tools</Text>
+src\app\profile\buklod-faculty-class.tsx:272: onPress={() => router.push({ pathname: '/profile/buklod-faculty-materials' as any, params: { id: classroomId, name: classroomName } })}
+src\app\profile\buklod-faculty-class.tsx:281: onPress={() => router.push({ pathname: '/profile/buklod-faculty-groups' as any, params: { id: classroomId, name: classroomName } })}
+src\app\profile\buklod-faculty-class.tsx:289: onPress={() => router.push({ pathname: '/profile/buklod-faculty-assessments' as any, params: { id: classroomId, name: classroomName } })}
+src\app\profile\buklod-faculty-class.tsx:341: pathname: '/profile/buklod-faculty-final-grades' as any,
+src\app\profile\buklod-faculty-final-grades.tsx:38: export default function BuklodFacultyFinalGradesScreen() {
+src\app\profile\buklod-faculty-final-grades.tsx:66: supabase.rpc('buklod_education_faculty_final_grade_summary_v1', {
+src\app\profile\buklod-faculty-final-grades.tsx:374: Released and locked item grades are the only inputs to the final-grade calculation. Reopening a released final grade returns it to faculty review before any recomputation or re-release.
+src\app\profile\buklod-faculty-groups.tsx:31: export default function FacultyGroupsScreen() {
+src\app\profile\buklod-faculty-materials.tsx:35: export default function FacultyMaterialsScreen() {
+src\app\profile\buklod-faculty-materials.tsx:123: Alert.alert('Material Uploaded', releaseNow ? 'Uploaded and released to students.' : 'Uploaded as faculty-only draft.');
+src\app\profile\buklod-faculty-materials.tsx:190: <Text style={styles.eyebrow}>FACULTY MATERIALS</Text>
+src\app\profile\buklod-faculty.tsx:42: export default function BuklodFacultyScreen() {
+src\app\profile\buklod-faculty.tsx:65: .eq('faculty_user_id', uid)
+src\app\profile\buklod-faculty.tsx:69: Alert.alert('BUKLOD Faculty', error.message);
+src\app\profile\buklod-faculty.tsx:137: faculty_user_id: uid,
+src\app\profile\buklod-faculty.tsx:168: <Text style={styles.title}>BUKLOD Faculty</Text>
+src\app\profile\buklod-faculty.tsx:212: pathname: '/profile/buklod-faculty-class' as any,
+src\app\profile\buklod-faculty.tsx:230: <Text style={styles.sectionTitle}>Faculty Autopilot</Text>
+src\app\reels\index.tsx:491: data: membership,
+src\app\reels\index.tsx:507: membership?.group_id ??
+src\app\reels\index.tsx:532: p_location_scope_id:
+src\app\reels\index.tsx:774: const permission =
+src\app\reels\index.tsx:776: .requestCameraPermissionsAsync();
+src\app\reels\index.tsx:778: if (!permission.granted) {
+src\app\reels\index.tsx:780: 'Camera Permission',
+src\app\reports\index.tsx:24: const isSystem=hasRole('system_admin');
+src\app\reports\index.tsx:25: const isChurchLeader=hasAnyRole(['pastor','local_admin','system_admin']);
+src\app\reports\index.tsx:133: <Line label="Membership pipeline" value={overview.visitors.membership_pipeline}/>
+src\app\scope\attendance\index.tsx:31: scope_id: string;
+src\app\scope\attendance\index.tsx:122: : activeScope?.parent_scope_id
+src\app\scope\attendance\index.tsx:127: if (!activeScope?.scope_id) {
+src\app\scope\attendance\index.tsx:136: 'id,scope_id,title,location,starts_at,ends_at,attendance_open_at,attendance_close_at,late_after,allowed_methods,is_active,created_at'
+src\app\scope\attendance\index.tsx:138: .eq('scope_id', activeScope.scope_id)
+src\app\scope\attendance\index.tsx:156: }, [activeScope?.scope_id]);
+src\app\scope\attendance\index.tsx:220: activeScope?.scope_id;
+src\app\scope\attendance\index.tsx:264: p_scope_id: scopeId,
+src\app\scope\bulletin-editor.tsx:50: scope_id: string;
+src\app\scope\bulletin-editor.tsx:56: is_admin?: boolean;
+src\app\scope\bulletin-editor.tsx:291: item.scope_id ===
+src\app\scope\bulletin-editor.tsx:312: !selected.is_admin
+src\app\scope\bulletin-editor.tsx:341: 'scope_id',
+src\app\scope\bulletin-editor.tsx:454: const permission =
+src\app\scope\bulletin-editor.tsx:456: .requestMediaLibraryPermissionsAsync();
+src\app\scope\bulletin-editor.tsx:459: !permission.granted
+src\app\scope\bulletin-editor.tsx:528: !scope.is_admin
+src\app\scope\bulletin-editor.tsx:634: scope_id:
+src\app\scope\delete.tsx:43: scope_id?: string;
+src\app\scope\delete.tsx:46: parent_scope_id?: string | null;
+src\app\scope\delete.tsx:99: !activeScope?.scope_id
+src\app\scope\delete.tsx:118: _scope_id:
+src\app\scope\delete.tsx:119: activeScope.scope_id,
+src\app\scope\delete.tsx:152: activeScope?.scope_id,
+src\app\scope\delete.tsx:194: )?.scope_id ??
+src\app\scope\delete.tsx:204: !activeScope?.scope_id ||
+src\app\scope\delete.tsx:226: _scope_id:
+src\app\scope\delete.tsx:227: activeScope.scope_id,
+src\app\scope\delete.tsx:312: `This removes the scope from BUKLOD and closes its active memberships, roles, Community posts, and Connect messages.${childWarning}`,
+src\app\scope\delete.tsx:647: 'You do not have delete permission for this scope.'
+src\app\scope\index.tsx:139: if (!activeScope?.scope_id) {
+src\app\scope\index.tsx:146: activeScope.scope_id
+src\app\scope\index.tsx:166: [activeScope?.scope_id]
+src\app\scope\index.tsx:253: publicScope.scope_id
+src\app\scope\index.tsx:369: activeScope.scope_id,
+src\app\scope\index.tsx:710: activeScope!.scope_id,
+src\app\scope\index.tsx:726: activeScope?.scope_id,
+src\app\scope\index.tsx:749: activeScope!.scope_id,
+src\app\scope\index.tsx:993: activeScope.scope_id
+src\app\scope\index.tsx:1026: activeScope!.scope_id,
+src\app\scope\index.tsx:1043: activeScope?.scope_id,
+src\app\giving.tsx:39: firstString(params.scope_id) ||
+src\app\giving.tsx:41: firstString(params.organization_id) ||
+src\app\index.tsx:16: const { session, loading, membershipState, profile } = useAuth();
+src\app\index.tsx:83: activeScope?.scope_id ===
+src\app\index.tsx:84: publicScope.scope_id
+src\app\index.tsx:100: publicScope.scope_id
+src\app\index.tsx:130: activeScope?.scope_id,
+src\app\index.tsx:135: if (loading || complianceLoading || runtimeLoading || membershipState === 'loading') {
+src\app\index.tsx:152: if (membershipState !== 'ready' && !hasCommunityAccess) {
+src\app\scope-giving-settings.tsx:15: scope_id: string;
+src\app\scope-giving-settings.tsx:58: { p_scope_id: scopeId },
+src\app\scope-giving-settings.tsx:67: 'You do not have permission to manage Giving for this scope.',
+
+====================================================
+SUPABASE MIGRATIONS
+====================================================
+20260810010000_initial_schema.sql
+20260810010100_initial_rls.sql
+20260810010200_onboarding.sql
+20260810010300_admin_cms.sql
+20260810010400_realtime_notifications.sql
+20260810010500_discipleship_learning.sql
+20260810010600_church_life.sql
+20260810010700_member_care_directory.sql
+20260810010800_reporting_analytics.sql
+20260810010900_production_hardening.sql
+20260810011000_pilot_operations.sql
+20260810011100_launch_content_support.sql
+20260810011200_go_live_command_center.sql
+20260810011300_community_social_upgrade.sql
+20260810011400_community_media_storage.sql
+20260810011500_community_activity_notifications.sql
+20260810011600_member_followup_safe_read.sql
+20260810011700_buklod_formation_bayanihan_foundation.sql
+20260810011800_buklod_formation_bayanihan_workflow.sql
+20260810011900_lesson_reward_admin_control.sql
+20260810012000_devotional_daily_bible_bayanihan.sql
+20260810012100_weekly_leaderboard_recognition.sql
+20260810012200_flexible_groups_mentor_attendance.sql
+20260810012300_buklod_stages_agreements_progress.sql
+20260810012400_mentoring_lesson_releases_bayanihan.sql
+20260810012500_official_curriculum_draft_tracks.sql
+20260810012600_verified_curriculum_content_phase1.sql
+20260810012700_formation_study_vs_official_completion.sql
+20260810012800_publish_verified_buklod_curriculum.sql
+20260810012900_fix_stage_progress_type_alignment.sql
+20260810013000_pastor_formation_validation_queue.sql
+20260810013100_pastor_local_assignments.sql
+20260810013200_multi_role_accounts.sql
+20260810013300_multi_role_authorization.sql
+20260810013400_buklod_points_foundation.sql
+20260810013500_buklod_points_approved_activities.sql
+20260810013600_buklod_rank_system.sql
+20260810013700_buklod_reward_celebration_events.sql
+20260810013800_tithes_and_giving_system.sql
+20260810013900_member_read_active_giving_accounts.sql
+20260810014000_community_post_display_styles.sql
+20260810014100_daily_bible_weekly_ui_support.sql
+20260810014200_daily_bible_evidence_pastor_review.sql
+20260810014300_onboarding_field_test_fixes.sql
+20260810014400_phone_auth_optional_group_proposals.sql
+20260810014500_admin_verification_identity_names.sql
+20260810014600_system_admin_pastor_operations.sql
+20260810014700_community_audience_bayanihan_prayer.sql
+20260810014800_community_connect_notifications.sql
+20260811030000_patch153a_mission_bulletins.sql
+20260811033000_patch153b_pastor_member_scope.sql
+20260811034500_patch153b_member_master_viewer.sql
+20260811040000_patch153b_member_assignment_controls.sql
+20260811043000_patch153d_weekly_devotional_engine.sql
+20260811044500_patch153g_unified_rewards_circle_ranks.sql
+20260811050000_patch153g3_attendance_prayer_rewards.sql
+20260811051500_patch153g3b_verified_ministry_service.sql
+20260811053000_patch153g4a_weekly_consistency.sql
+20260811054500_patch153g4b_reflection_quality_bonus.sql
+20260811060000_patch153g5_circle_rank_history.sql
+20260811061500_patch153b5_pastor_buklod_group_control.sql
+20260811062000_patch153b5_group_member_transfer.sql
+20260811070000_patch153h1a_automatic_bible_plan_engine.sql
+20260811071500_patch153h1b1_automatic_bible_materialization.sql
+20260811073000_patch153h2a_full_bible_infrastructure.sql
+20260811074500_patch153h2a2_bible_search_free_reading_report.sql
+20260811080000_patch153h2b_asd_full_text.sql
+20260811080500_patch153h2b_kjv_full_text.sql
+20260811082000_patch153h1b3_disable_manual_bible_upsert.sql
+20260811083500_patch153g6_stage_completion_rewards.sql
+20260811085000_patch153f1a_payment_transaction_foundation.sql
+20260811090000_patch153f1b_paid_giving_bridge.sql
+20260811091500_patch153f4a_payment_audit_trail.sql
+20260811100000_patch153p_prayer_identity.sql
+20260811101500_patch153g7_admin_manual_points_award.sql
+20260811182000_patch153g8_member_circle_rank_identity.sql
+20260811191000_patch153g9_connect_message_reactions.sql
+20260811191500_patch153h6_bible_answer_before_points.sql
+20260811193500_patch153g10_connect_messaging_suite.sql
+20260811221000_patch154a_cluster_labels.sql
+20260812014000_patch154q_any_participant_message_reactions.sql
+20260812022000_patch154t_my_bayanihan_current_balance.sql
+20260812024500_patch154v_auto_dashboard_four_questions.sql
+20260812025500_patch154v_fix3_safe_automatic_week.sql
+20260812030500_patch154v_fix4_schema_cache.sql
+20260812031500_patch154v_fix5_materializer_variable.sql
+20260812032500_patch154v_c_bible_any_reviewer.sql
+20260812033500_patch154v_d_bible_review_questions.sql
+20260812062000_patch155a_modern_learning_audio_reels.sql
+20260812072000_patch155b_mentoring_reels_rpc.sql
+20260812122500_patch157_bayanihan_top5.sql
+20260812133000_patch160_profile_avatars.sql
+20260812135500_patch161a_comment_replies.sql
+20260812151500_patch161b_reels_replies.sql
+20260813004000_my_bible_annotations.sql
+20260813025000_home_church_news_reminder.sql
+20260813040000_patch162a_sponsor_ads.sql
+20260813095000_patch161a_bulletin_engagement_media.sql
+20260813110500_patch161h_community_media_comment_reactions.sql
+20260813112500_patch161h_photo_reactions.sql
+20260813121500_patch162d_sponsor_approval_policy.sql
+20260813144500_patch156a_v2_public_community_foundation.sql
+20260813150000_patch162f_advertising_expansion.sql
+20260813150500_patch156b_local_membership_review.sql
+20260813155000_patch164a_buklod_scope_engine_foundation.sql
+20260813162500_patch164a_reg_user_preferences_address.sql
+20260813165100_patch164b_automatic_local_scope_assignment.sql
+20260814010500_patch164c1_cluster_core_workflow.sql
+20260814011000_patch164c2_cluster_complete_management.sql
+20260814012500_patch164d_church_complete_workflow.sql
+20260814013500_patch164e_mzb_organization_integration.sql
+20260814024500_patch165e_feed_modes_ranking.sql
+20260814033500_patch165i_registration_local_final.sql
+20260814041000_patch165k_compatibility_cleanup.sql
+20260814042500_patch165l_r_canonical_scope_rpcs.sql
+20260814043000_patch165l_structure_qa_and_final_cleanup.sql
+20260814050000_patch166b_scope_bulletins_video.sql
+20260814051500_patch166c_connect_messaging.sql
+20260814053000_patch166d_one_church_account_security.sql
+20260814070000_patch168a_paid_features.sql
+20260814073000_patch167b_hybrid_local_ads.sql
+20260814081500_patch168b_gcash_autodebit_provider_guard.sql
+20260814101500_patch167g_local_news.sql
+20260814114000_patch167l_connect_photo_reactions.sql
+20260814115500_patch167lr2_connect_photo_reactions.sql
+20260814130000_organization_creator_admin_mzb_admin.sql
+20260814131500_organization_type_engine.sql
+20260814133000_patch169d_exclusive_scope_community.sql
+20260814140000_patch169e_self_service_advertise.sql
+20260814144500_patch169f_explicit_organization_membership.sql
+20260814145500_patch169g_public_location_filter_only.sql
+20260814195500_patch168d_office_organizer.sql
+20260814203000_patch168e_scope_connect_calls.sql
+20260814230500_patch169g_org_member_directory.sql
+20260814235353_patch170b_r3_dashboard_theme_persistence.sql
+20260815002000_patch170d_public_community_active_account.sql
+20260815021200_patch170b_cluster_home_command_center.sql
+20260815022226_profile_card_background.sql
+20260815022903_repair_profile_background.sql
+20260815023155_profile_background_rpc_fix.sql
+20260815023519_profile_background_getter.sql
+20260815033000_org_membership_actions.sql
+20260815034435_patch171b_true_closed_app_push.sql
+20260815054500_patch171j_cluster_home_members_rpc_execute.sql
+20260815113000_patch172b_parent_org_suborganization_engine.sql
+20260815122500_patch171h_device_token_claim.sql
+20260815145200_patch172j_r4_mzb_admin_profile_portal_sync.sql
+20260815154500_patch172j_r7_org_invite_live_search.sql
+20260815180000_patch174a_username_pin_admin_recovery.sql
+20260815194500_patch172a_modern_personal_messages.sql
+20260815195300_patch173d_mzb_scope_post_audience_fix.sql
+20260815200500_patch173e_internal_post_share.sql
+20260815202500_patch173e_r3_universal_share_receivers.sql
+20260815204000_patch172l_r2_join_organization_discovery.sql
+20260815212524_patch174b_profile_self_edit_rls_recursion_fix.sql
+20260815213159_patch174b_profile_self_edit_rls_recursion_fix.sql
+20260815213800_patch173g_r4_profile_note_music.sql
+20260815220000_patch174b_r2_admin_delete_managed_scope.sql
+20260815220500_patch173g_r5_staging_note_music_live_fix.sql
+20260815222000_patch174b_r1_note_music_profile_stability.sql
+20260815223500_patch173h_r4_localization_strict_wall_isolation.sql
+20260815225000_patch174c_r1_profile_avatar_music_library.sql
+20260815230000_patch175a_complete_organization_create_manage.sql
+20260815234418_patch176a_daily_bible_joshua15_one_chapter.sql
+20260815235900_patch172l_system_admin_authority.sql
+20260816010000_patch174c_account_lifecycle.sql
+20260816010001_patch174c_account_lifecycle.sql
+20260816020955_patch176b_r2_today_joshua15.sql
+20260816021047_patch176b_r3_today_joshua15.sql
+20260816021830_patch176c_force_daily_bible_live_plan.sql
+20260816140000_buklod_attendance_core.sql
+20260816143000_patch177a_exact_scope_attendance.sql
+20260816150500_patch177c_shared_phone_face_registry.sql
+20260816160000_patch177d_universal_attendee_registry.sql
+20260816160200_patch175b_organization_join_approval.sql
+20260816161500_patch176a_buklod_giving_quick_flow.sql
+20260816163000_patch177e_profile_attendance_qr.sql
+20260816170000_buklod_giving_standalone.sql
+20260816190000_giving_for_scope_selector.sql
+20260816191000_patch177h_profile_qr_face_bootstrap.sql
+20260816194500_patch177j_duplicate_safe_attendance.sql
+20260816202000_giving_scope_gcash_receivers.sql
+20260816204500_giving_scope_admin_receiver_permissions.sql
+20260816210000_patch178a_independent_attendance_foundation.sql
+20260817011929_patch184c_giving_canonical_scope_admin.sql
+20260817113000_buklod_education_phase1.sql
+20260817122500_giving_xendit_gcash_checkout.sql
+20260817123500_buklod_education_phase2_core.sql
+20260817125500_buklod_education_phase3_functional.sql
+20260817132000_buklod_education_phase4_productivity.sql
+20260817135149_patch186l_r3_strict_public_paged_feed.sql
+20260817140500_buklod_education_phase5_materials_gradeflow.sql
+20260817143000_buklod_education_phase6_assessment_engine.sql
+20260817145500_buklod_education_phase7_gradebook_integration.sql
+20260817150444_patch186n_community_multi_photo_storage_access.sql
+20260817153000_buklod_education_phase8_final_grade_engine.sql
+20260817162000_buklod_education_rls_recursion_fix.sql
+
+====================================================
+SUPABASE ACCESS POLICY / FUNCTION HITS
+====================================================
+supabase\migrations\20260810010000_initial_schema.sql:7: create type public.app_role as enum ('member','leader','pastor','local_admin','system_admin');
+supabase\migrations\20260810010000_initial_schema.sql:33: role public.app_role not null default 'member',
+supabase\migrations\20260810010000_initial_schema.sql:247: security definer
+supabase\migrations\20260810010100_initial_rls.sql:3: -- Role-aware RLS. Test in staging before production.
+supabase\migrations\20260810010100_initial_rls.sql:5: -- Helper functions use SECURITY DEFINER to avoid policy recursion.
+supabase\migrations\20260810010100_initial_rls.sql:6: create or replace function public.current_role()
+supabase\migrations\20260810010100_initial_rls.sql:7: returns public.app_role
+supabase\migrations\20260810010100_initial_rls.sql:10: security definer
+supabase\migrations\20260810010100_initial_rls.sql:14: (select p.role from public.profiles p where p.id = (select auth.uid())),
+supabase\migrations\20260810010100_initial_rls.sql:15: 'member'::public.app_role
+supabase\migrations\20260810010100_initial_rls.sql:18: create or replace function public.is_admin()
+supabase\migrations\20260810010100_initial_rls.sql:22: security definer
+supabase\migrations\20260810010100_initial_rls.sql:25: select public.current_role() in ('system_admin','local_admin','pastor');
+supabase\migrations\20260810010100_initial_rls.sql:27: create or replace function public.is_system_admin()
+supabase\migrations\20260810010100_initial_rls.sql:31: security definer
+supabase\migrations\20260810010100_initial_rls.sql:34: select public.current_role() = 'system_admin';
+supabase\migrations\20260810010100_initial_rls.sql:40: security definer
+supabase\migrations\20260810010100_initial_rls.sql:43: select p.church_id from public.profiles p where p.id = (select auth.uid());
+supabase\migrations\20260810010100_initial_rls.sql:49: security definer
+supabase\migrations\20260810010100_initial_rls.sql:55: and gm.user_id = coalesce(target_user, (select auth.uid()))
+supabase\migrations\20260810010100_initial_rls.sql:63: security definer
+supabase\migrations\20260810010100_initial_rls.sql:71: g.leader_id = (select auth.uid())
+supabase\migrations\20260810010100_initial_rls.sql:72: or public.is_system_admin()
+supabase\migrations\20260810010100_initial_rls.sql:74: public.current_role() in ('pastor','local_admin')
+supabase\migrations\20260810010100_initial_rls.sql:84: security definer
+supabase\migrations\20260810010100_initial_rls.sql:88: target_user = (select auth.uid())
+supabase\migrations\20260810010100_initial_rls.sql:89: or public.is_system_admin()
+supabase\migrations\20260810010100_initial_rls.sql:91: public.current_role() in ('pastor','local_admin')
+supabase\migrations\20260810010100_initial_rls.sql:102: where mine.user_id = (select auth.uid())
+supabase\migrations\20260810010100_initial_rls.sql:105: g.leader_id = (select auth.uid())
+supabase\migrations\20260810010100_initial_rls.sql:106: or target_user = (select auth.uid())
+supabase\migrations\20260810010100_initial_rls.sql:110: grant execute on function public.current_role() to authenticated;
+supabase\migrations\20260810010100_initial_rls.sql:111: grant execute on function public.is_admin() to authenticated;
+supabase\migrations\20260810010100_initial_rls.sql:112: grant execute on function public.is_system_admin() to authenticated;
+supabase\migrations\20260810010100_initial_rls.sql:118: alter table public.churches enable row level security;
+supabase\migrations\20260810010100_initial_rls.sql:119: alter table public.profiles enable row level security;
+supabase\migrations\20260810010100_initial_rls.sql:120: alter table public.buklod_groups enable row level security;
+supabase\migrations\20260810010100_initial_rls.sql:121: alter table public.group_members enable row level security;
+supabase\migrations\20260810010100_initial_rls.sql:122: alter table public.devotional_series enable row level security;
+supabase\migrations\20260810010100_initial_rls.sql:123: alter table public.devotionals enable row level security;
+supabase\migrations\20260810010100_initial_rls.sql:124: alter table public.devotional_completions enable row level security;
+supabase\migrations\20260810010100_initial_rls.sql:125: alter table public.reflections enable row level security;
+supabase\migrations\20260810010100_initial_rls.sql:126: alter table public.prayer_requests enable row level security;
+supabase\migrations\20260810010100_initial_rls.sql:127: alter table public.prayer_responses enable row level security;
+supabase\migrations\20260810010100_initial_rls.sql:128: alter table public.community_posts enable row level security;
+supabase\migrations\20260810010100_initial_rls.sql:129: alter table public.comments enable row level security;
+supabase\migrations\20260810010100_initial_rls.sql:130: alter table public.reactions enable row level security;
+supabase\migrations\20260810010100_initial_rls.sql:131: alter table public.follow_ups enable row level security;
+supabase\migrations\20260810010100_initial_rls.sql:132: alter table public.announcements enable row level security;
+supabase\migrations\20260810010100_initial_rls.sql:133: alter table public.notifications enable row level security;
+supabase\migrations\20260810010100_initial_rls.sql:134: alter table public.device_tokens enable row level security;
+supabase\migrations\20260810010100_initial_rls.sql:135: alter table public.audit_logs enable row level security;
+supabase\migrations\20260810010100_initial_rls.sql:137: create policy "Authenticated users can view active churches"
+supabase\migrations\20260810010100_initial_rls.sql:139: using (is_active = true or public.is_system_admin());
+supabase\migrations\20260810010100_initial_rls.sql:140: create policy "System admin manages churches"
+supabase\migrations\20260810010100_initial_rls.sql:142: using (public.is_system_admin())
+supabase\migrations\20260810010100_initial_rls.sql:143: with check (public.is_system_admin());
+supabase\migrations\20260810010100_initial_rls.sql:145: create policy "Users and authorized leaders can view profiles"
+supabase\migrations\20260810010100_initial_rls.sql:148: create policy "Users update own basic profile"
+supabase\migrations\20260810010100_initial_rls.sql:150: using (id = (select auth.uid()))
+supabase\migrations\20260810010100_initial_rls.sql:152: id = (select auth.uid())
+supabase\migrations\20260810010100_initial_rls.sql:153: and role = (select p.role from public.profiles p where p.id = (select auth.uid()))
+supabase\migrations\20260810010100_initial_rls.sql:155: create policy "System admin manages profiles"
+supabase\migrations\20260810010100_initial_rls.sql:157: using (public.is_system_admin())
+supabase\migrations\20260810010100_initial_rls.sql:158: with check (public.is_system_admin());
+supabase\migrations\20260810010100_initial_rls.sql:160: create policy "Members can view their groups; church leaders can view church groups"
+supabase\migrations\20260810010100_initial_rls.sql:165: or public.is_system_admin()
+supabase\migrations\20260810010100_initial_rls.sql:167: create policy "Authorized leaders manage groups"
+supabase\migrations\20260810010100_initial_rls.sql:171: create policy "System admin creates/deletes groups"
+supabase\migrations\20260810010100_initial_rls.sql:173: using (public.is_system_admin())
+supabase\migrations\20260810010100_initial_rls.sql:174: with check (public.is_system_admin());
+supabase\migrations\20260810010100_initial_rls.sql:176: create policy "Group participants can view membership"
+supabase\migrations\20260810010100_initial_rls.sql:179: user_id = (select auth.uid())
+supabase\migrations\20260810010100_initial_rls.sql:183: create policy "Group managers manage membership"
+supabase\migrations\20260810010100_initial_rls.sql:188: create policy "Published series are readable"
+supabase\migrations\20260810010100_initial_rls.sql:190: using (is_published = true or public.is_admin());
+supabase\migrations\20260810010100_initial_rls.sql:191: create policy "Admins manage series"
+supabase\migrations\20260810010100_initial_rls.sql:193: using (public.is_admin())
+supabase\migrations\20260810010100_initial_rls.sql:194: with check (public.is_admin());
+supabase\migrations\20260810010100_initial_rls.sql:196: create policy "Published devotionals are readable"
+supabase\migrations\20260810010100_initial_rls.sql:198: using (is_published = true or public.is_admin());
+supabase\migrations\20260810010100_initial_rls.sql:199: create policy "Admins manage devotionals"
+supabase\migrations\20260810010100_initial_rls.sql:201: using (public.is_admin())
+supabase\migrations\20260810010100_initial_rls.sql:202: with check (public.is_admin());
+supabase\migrations\20260810010100_initial_rls.sql:204: create policy "Users read own completions; leaders read managed members"
+supabase\migrations\20260810010100_initial_rls.sql:207: user_id = (select auth.uid())
+supabase\migrations\20260810010100_initial_rls.sql:210: create policy "Users create own completion"
+supabase\migrations\20260810010100_initial_rls.sql:212: with check (user_id = (select auth.uid()));
+supabase\migrations\20260810010100_initial_rls.sql:213: create policy "Users update own completion"
+supabase\migrations\20260810010100_initial_rls.sql:215: using (user_id = (select auth.uid()))
+supabase\migrations\20260810010100_initial_rls.sql:216: with check (user_id = (select auth.uid()));
+supabase\migrations\20260810010100_initial_rls.sql:218: create policy "Reflection visibility"
+supabase\migrations\20260810010100_initial_rls.sql:221: user_id = (select auth.uid())
+supabase\migrations\20260810010100_initial_rls.sql:222: or public.is_system_admin()
+supabase\migrations\20260810010100_initial_rls.sql:230: and g.leader_id = (select auth.uid())
+supabase\migrations\20260810010100_initial_rls.sql:240: and viewer_gm.user_id = (select auth.uid())
+supabase\migrations\20260810010100_initial_rls.sql:253: create policy "Users create own reflections"
+supabase\migrations\20260810010100_initial_rls.sql:255: with check (user_id = (select auth.uid()));
+supabase\migrations\20260810010100_initial_rls.sql:256: create policy "Users update own reflections"
+supabase\migrations\20260810010100_initial_rls.sql:258: using (user_id = (select auth.uid()))
+supabase\migrations\20260810010100_initial_rls.sql:259: with check (user_id = (select auth.uid()));
+supabase\migrations\20260810010100_initial_rls.sql:260: create policy "Users delete own reflections"
+supabase\migrations\20260810010100_initial_rls.sql:262: using (user_id = (select auth.uid()));
+supabase\migrations\20260810010100_initial_rls.sql:264: create policy "Prayer visibility"
+supabase\migrations\20260810010100_initial_rls.sql:267: user_id = (select auth.uid())
+supabase\migrations\20260810010100_initial_rls.sql:268: or public.is_system_admin()
+supabase\migrations\20260810010100_initial_rls.sql:276: and g.leader_id = (select auth.uid())
+supabase\migrations\20260810010100_initial_rls.sql:286: and viewer_gm.user_id = (select auth.uid())
+supabase\migrations\20260810010100_initial_rls.sql:299: create policy "Users create own prayers"
+supabase\migrations\20260810010100_initial_rls.sql:301: with check (user_id = (select auth.uid()));
+supabase\migrations\20260810010100_initial_rls.sql:302: create policy "Users update own prayers"
+supabase\migrations\20260810010100_initial_rls.sql:304: using (user_id = (select auth.uid()))
+supabase\migrations\20260810010100_initial_rls.sql:305: with check (user_id = (select auth.uid()));
+supabase\migrations\20260810010100_initial_rls.sql:306: create policy "Users delete own prayers"
+supabase\migrations\20260810010100_initial_rls.sql:308: using (user_id = (select auth.uid()));
+supabase\migrations\20260810010100_initial_rls.sql:309: create policy "Visible prayer responses are readable"
+supabase\migrations\20260810010100_initial_rls.sql:312: user_id = (select auth.uid())
+supabase\migrations\20260810010100_initial_rls.sql:317: pr.user_id = (select auth.uid())
+supabase\migrations\20260810010100_initial_rls.sql:322: create policy "Users record own prayer response"
+supabase\migrations\20260810010100_initial_rls.sql:324: with check (user_id = (select auth.uid()));
+supabase\migrations\20260810010100_initial_rls.sql:325: create policy "Users remove own prayer response"
+supabase\migrations\20260810010100_initial_rls.sql:327: using (user_id = (select auth.uid()));
+supabase\migrations\20260810010100_initial_rls.sql:329: create policy "Group/church posts readable by audience"
+supabase\migrations\20260810010100_initial_rls.sql:337: or public.is_system_admin()
+supabase\migrations\20260810010100_initial_rls.sql:340: create policy "Members create posts within their audience"
+supabase\migrations\20260810010100_initial_rls.sql:343: user_id = (select auth.uid())
+supabase\migrations\20260810010100_initial_rls.sql:350: create policy "Authors update own posts"
+supabase\migrations\20260810010100_initial_rls.sql:352: using (user_id = (select auth.uid()) or public.is_admin())
+supabase\migrations\20260810010100_initial_rls.sql:353: with check (user_id = (select auth.uid()) or public.is_admin());
+supabase\migrations\20260810010100_initial_rls.sql:354: create policy "Authors/admins delete posts"
+supabase\migrations\20260810010100_initial_rls.sql:356: using (user_id = (select auth.uid()) or public.is_admin());
+supabase\migrations\20260810010100_initial_rls.sql:358: create policy "Comments readable when post is visible"
+supabase\migrations\20260810010100_initial_rls.sql:368: or public.is_system_admin()
+supabase\migrations\20260810010100_initial_rls.sql:372: create policy "Users comment on visible posts"
+supabase\migrations\20260810010100_initial_rls.sql:375: user_id = (select auth.uid())
+supabase\migrations\20260810010100_initial_rls.sql:385: create policy "Authors/admins modify comments"
+supabase\migrations\20260810010100_initial_rls.sql:387: using (user_id = (select auth.uid()) or public.is_admin())
+supabase\migrations\20260810010100_initial_rls.sql:388: with check (user_id = (select auth.uid()) or public.is_admin());
+supabase\migrations\20260810010100_initial_rls.sql:389: create policy "Authors/admins delete comments"
+supabase\migrations\20260810010100_initial_rls.sql:391: using (user_id = (select auth.uid()) or public.is_admin());
+supabase\migrations\20260810010100_initial_rls.sql:393: create policy "Reactions readable when post is visible"
+supabase\migrations\20260810010100_initial_rls.sql:402: or public.is_system_admin()
+supabase\migrations\20260810010100_initial_rls.sql:406: create policy "Users add own reactions"
+supabase\migrations\20260810010100_initial_rls.sql:408: with check (user_id = (select auth.uid()));
+supabase\migrations\20260810010100_initial_rls.sql:409: create policy "Users remove own reactions"
+supabase\migrations\20260810010100_initial_rls.sql:411: using (user_id = (select auth.uid()));
+supabase\migrations\20260810010100_initial_rls.sql:413: create policy "Member and authorized leader read followups"
+supabase\migrations\20260810010100_initial_rls.sql:416: member_id = (select auth.uid())
+supabase\migrations\20260810010100_initial_rls.sql:417: or leader_id = (select auth.uid())
+supabase\migrations\20260810010100_initial_rls.sql:419: or public.is_system_admin()
+supabase\migrations\20260810010100_initial_rls.sql:421: create policy "Authorized leaders create followups"
+supabase\migrations\20260810010100_initial_rls.sql:424: leader_id = (select auth.uid())
+supabase\migrations\20260810010100_initial_rls.sql:427: or public.current_role() in ('pastor','local_admin','system_admin')
+supabase\migrations\20260810010100_initial_rls.sql:430: create policy "Authorized leaders update followups"
+supabase\migrations\20260810010100_initial_rls.sql:433: leader_id = (select auth.uid())
+supabase\migrations\20260810010100_initial_rls.sql:435: or public.is_system_admin()
+supabase\migrations\20260810010100_initial_rls.sql:438: leader_id = (select auth.uid())
+supabase\migrations\20260810010100_initial_rls.sql:440: or public.is_system_admin()
+supabase\migrations\20260810010100_initial_rls.sql:443: create policy "Audience reads announcements"
+supabase\migrations\20260810010100_initial_rls.sql:448: or public.is_system_admin()
+supabase\migrations\20260810010100_initial_rls.sql:450: create policy "Authorized leaders manage announcements"
+supabase\migrations\20260810010100_initial_rls.sql:453: author_id = (select auth.uid())
+supabase\migrations\20260810010100_initial_rls.sql:455: or public.is_admin()
+supabase\migrations\20260810010100_initial_rls.sql:458: author_id = (select auth.uid())
+supabase\migrations\20260810010100_initial_rls.sql:463: and public.current_role() in ('pastor','local_admin','system_admin'))
+supabase\migrations\20260810010100_initial_rls.sql:467: create policy "Users read own notifications"
+supabase\migrations\20260810010100_initial_rls.sql:469: using (user_id = (select auth.uid()));
+supabase\migrations\20260810010100_initial_rls.sql:470: create policy "Users mark own notifications read"
+supabase\migrations\20260810010100_initial_rls.sql:472: using (user_id = (select auth.uid()))
+supabase\migrations\20260810010100_initial_rls.sql:473: with check (user_id = (select auth.uid()));
+supabase\migrations\20260810010100_initial_rls.sql:475: create policy "Users manage own device tokens"
+supabase\migrations\20260810010100_initial_rls.sql:477: using (user_id = (select auth.uid()))
+supabase\migrations\20260810010100_initial_rls.sql:478: with check (user_id = (select auth.uid()));
+supabase\migrations\20260810010100_initial_rls.sql:479: -- AUDIT LOGS: only system admin can read through the client API.
+supabase\migrations\20260810010100_initial_rls.sql:480: create policy "System admin reads audit logs"
+supabase\migrations\20260810010100_initial_rls.sql:482: using (public.is_system_admin());
+supabase\migrations\20260810010200_onboarding.sql:26: alter table public.church_join_requests enable row level security;
+supabase\migrations\20260810010200_onboarding.sql:29: create policy "Anon can view active churches"
+supabase\migrations\20260810010200_onboarding.sql:35: create policy "Users view own join requests"
+supabase\migrations\20260810010200_onboarding.sql:37: using (user_id = (select auth.uid()));
+supabase\migrations\20260810010200_onboarding.sql:39: create policy "Authorized reviewers view join requests"
+supabase\migrations\20260810010200_onboarding.sql:42: public.is_system_admin()
+supabase\migrations\20260810010200_onboarding.sql:44: public.current_role() in ('pastor','local_admin')
+supabase\migrations\20260810010200_onboarding.sql:48: public.current_role() = 'leader'
+supabase\migrations\20260810010200_onboarding.sql:54: create policy "Users create own join request"
+supabase\migrations\20260810010200_onboarding.sql:57: user_id = (select auth.uid())
+supabase\migrations\20260810010200_onboarding.sql:63: -- Prevent members from changing role/church/is_active directly on their own profile.
+supabase\migrations\20260810010200_onboarding.sql:71: security definer
+supabase\migrations\20260810010200_onboarding.sql:109: security definer
+supabase\migrations\20260810010200_onboarding.sql:117: public.is_system_admin()
+supabase\migrations\20260810010200_onboarding.sql:119: public.current_role() in ('pastor','local_admin')
+supabase\migrations\20260810010200_onboarding.sql:123: public.current_role() = 'leader'
+supabase\migrations\20260810010200_onboarding.sql:139: security definer
+supabase\migrations\20260810010200_onboarding.sql:172: -- Local pastor/admin can approve within their church.
+supabase\migrations\20260810010200_onboarding.sql:173: -- A group leader can approve only if an admin preassigned this exact group.
+supabase\migrations\20260810010200_onboarding.sql:175: public.is_system_admin()
+supabase\migrations\20260810010200_onboarding.sql:177: public.current_role() in ('pastor','local_admin')
+supabase\migrations\20260810010200_onboarding.sql:181: public.current_role() = 'leader'
+supabase\migrations\20260810010200_onboarding.sql:202: reviewed_by = (select auth.uid()),
+supabase\migrations\20260810010200_onboarding.sql:210: 'Your church membership request has been approved and your BUKLOD group has been assigned.',
+supabase\migrations\20260810010200_onboarding.sql:211: 'membership_approved',
+supabase\migrations\20260810010200_onboarding.sql:217: (select auth.uid()),
+supabase\migrations\20260810010200_onboarding.sql:233: security definer
+supabase\migrations\20260810010200_onboarding.sql:259: reviewed_by = (select auth.uid()),
+supabase\migrations\20260810010200_onboarding.sql:266: 'BUKLOD membership update',
+supabase\migrations\20260810010200_onboarding.sql:267: 'Your church membership request needs review. Please contact your local church leader.',
+supabase\migrations\20260810010200_onboarding.sql:268: 'membership_rejected',
+supabase\migrations\20260810010200_onboarding.sql:274: (select auth.uid()),
+supabase\migrations\20260810010200_onboarding.sql:284: -- System-admin-only role assignment. Roles can never be self-selected in registration.
+supabase\migrations\20260810010200_onboarding.sql:285: create or replace function public.set_user_role(
+supabase\migrations\20260810010200_onboarding.sql:287: p_role public.app_role
+supabase\migrations\20260810010200_onboarding.sql:291: security definer
+supabase\migrations\20260810010200_onboarding.sql:295: if not public.is_system_admin() then
+supabase\migrations\20260810010200_onboarding.sql:296: raise exception 'Only the system administrator can change roles';
+supabase\migrations\20260810010200_onboarding.sql:300: set role = p_role
+supabase\migrations\20260810010200_onboarding.sql:305: (select auth.uid()),
+supabase\migrations\20260810010200_onboarding.sql:306: 'set_user_role',
+supabase\migrations\20260810010200_onboarding.sql:309: jsonb_build_object('role', p_role)
+supabase\migrations\20260810010200_onboarding.sql:313: revoke all on function public.set_user_role(uuid, public.app_role) from public;
+supabase\migrations\20260810010200_onboarding.sql:314: grant execute on function public.set_user_role(uuid, public.app_role) to authenticated;
+supabase\migrations\20260810010300_admin_cms.sql:2: -- 05_admin_cms.sql
+supabase\migrations\20260810010300_admin_cms.sql:3: -- Global Admin Dashboard + Devotional CMS + church/group/user administration.
+supabase\migrations\20260810010300_admin_cms.sql:7: -- 1. Tighten GLOBAL devotional authoring to system_admin only.
+supabase\migrations\20260810010300_admin_cms.sql:8: -- Pastors/local admins can still read published devotionals.
+supabase\migrations\20260810010300_admin_cms.sql:12: create policy "Published series are readable"
+supabase\migrations\20260810010300_admin_cms.sql:14: using (is_published = true or public.is_system_admin());
+supabase\migrations\20260810010300_admin_cms.sql:15: drop policy if exists "Admins manage series" on public.devotional_series;
+supabase\migrations\20260810010300_admin_cms.sql:16: create policy "System admin manages series"
+supabase\migrations\20260810010300_admin_cms.sql:18: using (public.is_system_admin())
+supabase\migrations\20260810010300_admin_cms.sql:19: with check (public.is_system_admin());
+supabase\migrations\20260810010300_admin_cms.sql:21: create policy "Published devotionals are readable"
+supabase\migrations\20260810010300_admin_cms.sql:23: using (is_published = true or public.is_system_admin());
+supabase\migrations\20260810010300_admin_cms.sql:24: drop policy if exists "Admins manage devotionals" on public.devotionals;
+supabase\migrations\20260810010300_admin_cms.sql:25: create policy "System admin manages devotionals"
+supabase\migrations\20260810010300_admin_cms.sql:27: using (public.is_system_admin())
+supabase\migrations\20260810010300_admin_cms.sql:28: with check (public.is_system_admin());
+supabase\migrations\20260810010300_admin_cms.sql:30: -- 2. Admin dashboard aggregate.
+supabase\migrations\20260810010300_admin_cms.sql:33: create or replace function public.admin_dashboard_stats()
+supabase\migrations\20260810010300_admin_cms.sql:37: security definer
+supabase\migrations\20260810010300_admin_cms.sql:50: if not public.is_system_admin() then
+supabase\migrations\20260810010300_admin_cms.sql:51: raise exception 'System administrator access required';
+supabase\migrations\20260810010300_admin_cms.sql:99: revoke all on function public.admin_dashboard_stats() from public;
+supabase\migrations\20260810010300_admin_cms.sql:100: grant execute on function public.admin_dashboard_stats() to authenticated;
+supabase\migrations\20260810010300_admin_cms.sql:103: -- Pastor/local_admin may manage groups only in their own church.
+supabase\migrations\20260810010300_admin_cms.sql:104: -- system_admin may manage all groups.
+supabase\migrations\20260810010300_admin_cms.sql:116: security definer
+supabase\migrations\20260810010300_admin_cms.sql:124: public.is_system_admin()
+supabase\migrations\20260810010300_admin_cms.sql:126: public.current_role() in ('pastor','local_admin')
+supabase\migrations\20260810010300_admin_cms.sql:146: if leader_record.role not in ('leader','pastor','local_admin','system_admin') then
+supabase\migrations\20260810010300_admin_cms.sql:147: raise exception 'Selected user must have an authorized leadership role';
+supabase\migrations\20260810010300_admin_cms.sql:150: if leader_record.role <> 'system_admin'
+supabase\migrations\20260810010300_admin_cms.sql:167: (select auth.uid()),
+supabase\migrations\20260810010300_admin_cms.sql:185: security definer
+supabase\migrations\20260810010300_admin_cms.sql:201: public.is_system_admin()
+supabase\migrations\20260810010300_admin_cms.sql:203: public.current_role() in ('pastor','local_admin')
+supabase\migrations\20260810010300_admin_cms.sql:218: if leader_record.role not in ('leader','pastor','local_admin','system_admin') then
+supabase\migrations\20260810010300_admin_cms.sql:219: raise exception 'Selected user must have an authorized leadership role';
+supabase\migrations\20260810010300_admin_cms.sql:222: if leader_record.role <> 'system_admin'
+supabase\migrations\20260810010300_admin_cms.sql:242: (select auth.uid()),
+supabase\migrations\20260810010300_admin_cms.sql:253: -- 4. Account activation/deactivation. System admin only.
+supabase\migrations\20260810010300_admin_cms.sql:262: security definer
+supabase\migrations\20260810010300_admin_cms.sql:266: if not public.is_system_admin() then
+supabase\migrations\20260810010300_admin_cms.sql:267: raise exception 'Only the system administrator can change account status';
+supabase\migrations\20260810010300_admin_cms.sql:270: if p_user_id = (select auth.uid()) and p_active = false then
+supabase\migrations\20260810010300_admin_cms.sql:271: raise exception 'You cannot deactivate your own administrator profile';
+supabase\migrations\20260810010300_admin_cms.sql:280: (select auth.uid()),
+supabase\migrations\20260810010300_admin_cms.sql:300: security definer
+supabase\migrations\20260810010300_admin_cms.sql:306: if not public.is_system_admin() then
+supabase\migrations\20260810010300_admin_cms.sql:307: raise exception 'Only the system administrator can create a church';
+supabase\migrations\20260810010300_admin_cms.sql:320: (select auth.uid()),
+supabase\migrations\20260810010400_realtime_notifications.sql:5: -- Run AFTER 05_admin_cms.sql.
+supabase\migrations\20260810010400_realtime_notifications.sql:20: alter table public.notification_preferences enable row level security;
+supabase\migrations\20260810010400_realtime_notifications.sql:21: create policy "Users view own notification preferences"
+supabase\migrations\20260810010400_realtime_notifications.sql:23: using (user_id = (select auth.uid()));
+supabase\migrations\20260810010400_realtime_notifications.sql:24: create policy "Users create own notification preferences"
+supabase\migrations\20260810010400_realtime_notifications.sql:26: with check (user_id = (select auth.uid()));
+supabase\migrations\20260810010400_realtime_notifications.sql:27: create policy "Users update own notification preferences"
+supabase\migrations\20260810010400_realtime_notifications.sql:29: using (user_id = (select auth.uid()))
+supabase\migrations\20260810010400_realtime_notifications.sql:30: with check (user_id = (select auth.uid()));
+supabase\migrations\20260810010400_realtime_notifications.sql:51: alter table public.engagement_settings enable row level security;
+supabase\migrations\20260810010400_realtime_notifications.sql:52: create policy "Authenticated users read engagement settings"
+supabase\migrations\20260810010400_realtime_notifications.sql:55: create policy "System admin updates engagement settings"
+supabase\migrations\20260810010400_realtime_notifications.sql:57: using (public.is_system_admin())
+supabase\migrations\20260810010400_realtime_notifications.sql:58: with check (public.is_system_admin());
+supabase\migrations\20260810010400_realtime_notifications.sql:116: security definer
+supabase\migrations\20260810010400_realtime_notifications.sql:164: security definer
+supabase\migrations\20260810010400_realtime_notifications.sql:202: security definer
+supabase\migrations\20260810010400_realtime_notifications.sql:244: security definer
+supabase\migrations\20260810010400_realtime_notifications.sql:283: security definer
+supabase\migrations\20260810010400_realtime_notifications.sql:350: security definer
+supabase\migrations\20260810010400_realtime_notifications.sql:415: security definer
+supabase\migrations\20260810010400_realtime_notifications.sql:439: p_member_id, (select auth.uid()), p_group_id,
+supabase\migrations\20260810010400_realtime_notifications.sql:448: where p.id = (select auth.uid());
+supabase\migrations\20260810010400_realtime_notifications.sql:460: (select auth.uid()),
+supabase\migrations\20260810010400_realtime_notifications.sql:480: security definer
+supabase\migrations\20260810010400_realtime_notifications.sql:489: -- It may also be invoked by system_admin for testing.
+supabase\migrations\20260810010400_realtime_notifications.sql:490: if (select auth.uid()) is not null and not public.is_system_admin() then
+supabase\migrations\20260810010400_realtime_notifications.sql:491: raise exception 'System administrator access required';
+supabase\migrations\20260810010500_discipleship_learning.sql:29: check (category in ('new_believer','membership','discipleship','leadership','bible_study')),
+supabase\migrations\20260810010500_discipleship_learning.sql:186: alter table public.learning_tracks enable row level security;
+supabase\migrations\20260810010500_discipleship_learning.sql:187: alter table public.learning_lessons enable row level security;
+supabase\migrations\20260810010500_discipleship_learning.sql:188: alter table public.quiz_questions enable row level security;
+supabase\migrations\20260810010500_discipleship_learning.sql:189: alter table public.quiz_choices enable row level security;
+supabase\migrations\20260810010500_discipleship_learning.sql:190: alter table public.mentor_assignments enable row level security;
+supabase\migrations\20260810010500_discipleship_learning.sql:191: alter table public.track_enrollments enable row level security;
+supabase\migrations\20260810010500_discipleship_learning.sql:192: alter table public.lesson_progress enable row level security;
+supabase\migrations\20260810010500_discipleship_learning.sql:193: alter table public.quiz_attempts enable row level security;
+supabase\migrations\20260810010500_discipleship_learning.sql:194: alter table public.assignment_submissions enable row level security;
+supabase\migrations\20260810010500_discipleship_learning.sql:195: alter table public.learning_milestones enable row level security;
+supabase\migrations\20260810010500_discipleship_learning.sql:196: alter table public.user_milestones enable row level security;
+supabase\migrations\20260810010500_discipleship_learning.sql:197: alter table public.certificates enable row level security;
+supabase\migrations\20260810010500_discipleship_learning.sql:198: create policy "Published learning tracks readable"
+supabase\migrations\20260810010500_discipleship_learning.sql:200: using (status = 'published' or public.is_system_admin());
+supabase\migrations\20260810010500_discipleship_learning.sql:201: create policy "System admin manages learning tracks"
+supabase\migrations\20260810010500_discipleship_learning.sql:203: using (public.is_system_admin())
+supabase\migrations\20260810010500_discipleship_learning.sql:204: with check (public.is_system_admin());
+supabase\migrations\20260810010500_discipleship_learning.sql:205: create policy "Lessons readable for published tracks"
+supabase\migrations\20260810010500_discipleship_learning.sql:211: and (t.status = 'published' or public.is_system_admin())
+supabase\migrations\20260810010500_discipleship_learning.sql:214: create policy "System admin manages lessons"
+supabase\migrations\20260810010500_discipleship_learning.sql:216: using (public.is_system_admin())
+supabase\migrations\20260810010500_discipleship_learning.sql:217: with check (public.is_system_admin());
+supabase\migrations\20260810010500_discipleship_learning.sql:218: create policy "Quiz questions readable for published lessons"
+supabase\migrations\20260810010500_discipleship_learning.sql:226: and (t.status = 'published' or public.is_system_admin())
+supabase\migrations\20260810010500_discipleship_learning.sql:229: create policy "System admin manages quiz questions"
+supabase\migrations\20260810010500_discipleship_learning.sql:231: using (public.is_system_admin())
+supabase\migrations\20260810010500_discipleship_learning.sql:232: with check (public.is_system_admin());
+supabase\migrations\20260810010500_discipleship_learning.sql:233: create policy "Quiz choices readable for published questions"
+supabase\migrations\20260810010500_discipleship_learning.sql:242: and (t.status = 'published' or public.is_system_admin())
+supabase\migrations\20260810010500_discipleship_learning.sql:245: create policy "System admin manages quiz choices"
+supabase\migrations\20260810010500_discipleship_learning.sql:247: using (public.is_system_admin())
+supabase\migrations\20260810010500_discipleship_learning.sql:248: with check (public.is_system_admin());
+supabase\migrations\20260810010500_discipleship_learning.sql:249: create policy "Mentor/disciple can view relationship"
+supabase\migrations\20260810010500_discipleship_learning.sql:252: mentor_id = (select auth.uid())
+supabase\migrations\20260810010500_discipleship_learning.sql:253: or disciple_id = (select auth.uid())
+supabase\migrations\20260810010500_discipleship_learning.sql:254: or public.is_system_admin()
+supabase\migrations\20260810010500_discipleship_learning.sql:256: create policy "System admin manages mentor assignments"
+supabase\migrations\20260810010500_discipleship_learning.sql:258: using (public.is_system_admin())
+supabase\migrations\20260810010500_discipleship_learning.sql:259: with check (public.is_system_admin());
+supabase\migrations\20260810010500_discipleship_learning.sql:260: create policy "Users and mentors view enrollments"
+supabase\migrations\20260810010500_discipleship_learning.sql:263: user_id = (select auth.uid())
+supabase\migrations\20260810010500_discipleship_learning.sql:264: or mentor_id = (select auth.uid())
+supabase\migrations\20260810010500_discipleship_learning.sql:265: or public.is_system_admin()
+supabase\migrations\20260810010500_discipleship_learning.sql:267: create policy "Users self-enroll in published tracks"
+supabase\migrations\20260810010500_discipleship_learning.sql:270: user_id = (select auth.uid())
+supabase\migrations\20260810010500_discipleship_learning.sql:277: create policy "System admin manages enrollments"
+supabase\migrations\20260810010500_discipleship_learning.sql:279: using (public.is_system_admin())
+supabase\migrations\20260810010500_discipleship_learning.sql:280: with check (public.is_system_admin());
+supabase\migrations\20260810010500_discipleship_learning.sql:281: create policy "Users and mentors view lesson progress"
+supabase\migrations\20260810010500_discipleship_learning.sql:284: user_id = (select auth.uid())
+supabase\migrations\20260810010500_discipleship_learning.sql:288: and e.mentor_id = (select auth.uid())
+supabase\migrations\20260810010500_discipleship_learning.sql:290: or public.is_system_admin()
+supabase\migrations\20260810010500_discipleship_learning.sql:292: create policy "Users create own lesson progress"
+supabase\migrations\20260810010500_discipleship_learning.sql:294: with check (user_id = (select auth.uid()));
+supabase\migrations\20260810010500_discipleship_learning.sql:295: create policy "Users update own lesson progress"
+supabase\migrations\20260810010500_discipleship_learning.sql:297: using (user_id = (select auth.uid()))
+supabase\migrations\20260810010500_discipleship_learning.sql:298: with check (user_id = (select auth.uid()));
+supabase\migrations\20260810010500_discipleship_learning.sql:299: create policy "Users and mentors view quiz attempts"
+supabase\migrations\20260810010500_discipleship_learning.sql:302: user_id = (select auth.uid())
+supabase\migrations\20260810010500_discipleship_learning.sql:306: and e.mentor_id = (select auth.uid())
+supabase\migrations\20260810010500_discipleship_learning.sql:308: or public.is_system_admin()
+supabase\migrations\20260810010500_discipleship_learning.sql:310: create policy "Users submit own quiz attempts"
+supabase\migrations\20260810010500_discipleship_learning.sql:312: with check (user_id = (select auth.uid()));
+supabase\migrations\20260810010500_discipleship_learning.sql:313: create policy "Users and mentors view assignments"
+supabase\migrations\20260810010500_discipleship_learning.sql:316: user_id = (select auth.uid())
+supabase\migrations\20260810010500_discipleship_learning.sql:317: or reviewer_id = (select auth.uid())
+supabase\migrations\20260810010500_discipleship_learning.sql:321: and e.mentor_id = (select auth.uid())
+supabase\migrations\20260810010500_discipleship_learning.sql:323: or public.is_system_admin()
+supabase\migrations\20260810010500_discipleship_learning.sql:325: create policy "Users create own assignments"
+supabase\migrations\20260810010500_discipleship_learning.sql:327: with check (user_id = (select auth.uid()));
+supabase\migrations\20260810010500_discipleship_learning.sql:328: create policy "Users update own draft/submitted assignments"
+supabase\migrations\20260810010500_discipleship_learning.sql:330: using (user_id = (select auth.uid()))
+supabase\migrations\20260810010500_discipleship_learning.sql:331: with check (user_id = (select auth.uid()));
+supabase\migrations\20260810010500_discipleship_learning.sql:332: create policy "Milestones readable"
+supabase\migrations\20260810010500_discipleship_learning.sql:335: create policy "System admin manages milestones"
+supabase\migrations\20260810010500_discipleship_learning.sql:337: using (public.is_system_admin())
+supabase\migrations\20260810010500_discipleship_learning.sql:338: with check (public.is_system_admin());
+supabase\migrations\20260810010500_discipleship_learning.sql:339: create policy "Users view own milestones"
+supabase\migrations\20260810010500_discipleship_learning.sql:341: using (user_id = (select auth.uid()) or public.is_system_admin());
+supabase\migrations\20260810010500_discipleship_learning.sql:342: create policy "Users view own certificates"
+supabase\migrations\20260810010500_discipleship_learning.sql:344: using (user_id = (select auth.uid()) or public.is_system_admin());
+supabase\migrations\20260810010500_discipleship_learning.sql:366: security definer
+supabase\migrations\20260810010500_discipleship_learning.sql:374: if (select auth.uid()) is null then
+supabase\migrations\20260810010500_discipleship_learning.sql:387: where e.user_id = (select auth.uid())
+supabase\migrations\20260810010500_discipleship_learning.sql:396: where ma.disciple_id = (select auth.uid())
+supabase\migrations\20260810010500_discipleship_learning.sql:405: (select auth.uid()), p_track_id, assigned_mentor, 'active'
+supabase\migrations\20260810010500_discipleship_learning.sql:410: (select auth.uid()),
+supabase\migrations\20260810010500_discipleship_learning.sql:433: security definer
+supabase\migrations\20260810010500_discipleship_learning.sql:447: if owner_id is null or owner_id <> (select auth.uid()) then
+supabase\migrations\20260810010500_discipleship_learning.sql:522: security definer
+supabase\migrations\20260810010500_discipleship_learning.sql:538: if owner_id is null or owner_id <> (select auth.uid()) then
+supabase\migrations\20260810010500_discipleship_learning.sql:600: security definer
+supabase\migrations\20260810010500_discipleship_learning.sql:613: if owner_id is null or owner_id <> (select auth.uid()) then
+supabase\migrations\20260810010500_discipleship_learning.sql:660: security definer
+supabase\migrations\20260810010500_discipleship_learning.sql:681: public.is_system_admin()
+supabase\migrations\20260810010500_discipleship_learning.sql:682: or enroll.mentor_id = (select auth.uid())
+supabase\migrations\20260810010500_discipleship_learning.sql:689: reviewer_id = (select auth.uid()),
+supabase\migrations\20260810010500_discipleship_learning.sql:727: security definer
+supabase\migrations\20260810010500_discipleship_learning.sql:741: and e.mentor_id = (select auth.uid())
+supabase\migrations\20260810010500_discipleship_learning.sql:744: where ma.mentor_id = (select auth.uid())
+supabase\migrations\20260810010600_church_life.sql:21: create type public.event_scope as enum ('system','church','group');
+supabase\migrations\20260810010600_church_life.sql:47: scope public.event_scope not null default 'church',
+supabase\migrations\20260810010600_church_life.sql:67: (scope = 'system' and church_id is null and group_id is null)
+supabase\migrations\20260810010600_church_life.sql:69: (scope = 'church' and church_id is not null and group_id is null)
+supabase\migrations\20260810010600_church_life.sql:71: (scope = 'group' and church_id is not null and group_id is not null)
+supabase\migrations\20260810010600_church_life.sql:111: -- Ministries and ministry membership
+supabase\migrations\20260810010600_church_life.sql:128: ministry_role text,
+supabase\migrations\20260810010600_church_life.sql:176: security definer
+supabase\migrations\20260810010600_church_life.sql:184: e.scope = 'system'
+supabase\migrations\20260810010600_church_life.sql:186: e.scope = 'church'
+supabase\migrations\20260810010600_church_life.sql:190: e.scope = 'group'
+supabase\migrations\20260810010600_church_life.sql:193: or public.is_system_admin()
+supabase\migrations\20260810010600_church_life.sql:201: security definer
+supabase\migrations\20260810010600_church_life.sql:209: public.is_system_admin()
+supabase\migrations\20260810010600_church_life.sql:211: e.scope = 'church'
+supabase\migrations\20260810010600_church_life.sql:212: and public.current_role() in ('pastor','local_admin')
+supabase\migrations\20260810010600_church_life.sql:216: e.scope = 'group'
+supabase\migrations\20260810010600_church_life.sql:226: security definer
+supabase\migrations\20260810010600_church_life.sql:234: public.is_system_admin()
+supabase\migrations\20260810010600_church_life.sql:235: or m.leader_id = (select auth.uid())
+supabase\migrations\20260810010600_church_life.sql:237: public.current_role() in ('pastor','local_admin')
+supabase\migrations\20260810010600_church_life.sql:250: alter table public.church_events enable row level security;
+supabase\migrations\20260810010600_church_life.sql:251: alter table public.event_rsvps enable row level security;
+supabase\migrations\20260810010600_church_life.sql:252: alter table public.event_attendance enable row level security;
+supabase\migrations\20260810010600_church_life.sql:253: alter table public.ministries enable row level security;
+supabase\migrations\20260810010600_church_life.sql:254: alter table public.ministry_members enable row level security;
+supabase\migrations\20260810010600_church_life.sql:255: alter table public.event_service_assignments enable row level security;
+supabase\migrations\20260810010600_church_life.sql:256: alter table public.announcement_reads enable row level security;
+supabase\migrations\20260810010600_church_life.sql:257: create policy "Visible church events readable"
+supabase\migrations\20260810010600_church_life.sql:260: create policy "System admins create system events"
+supabase\migrations\20260810010600_church_life.sql:263: organizer_id = (select auth.uid())
+supabase\migrations\20260810010600_church_life.sql:265: public.is_system_admin()
+supabase\migrations\20260810010600_church_life.sql:267: scope = 'church'
+supabase\migrations\20260810010600_church_life.sql:268: and public.current_role() in ('pastor','local_admin')
+supabase\migrations\20260810010600_church_life.sql:272: scope = 'group'
+supabase\migrations\20260810010600_church_life.sql:277: create policy "Authorized event managers update events"
+supabase\migrations\20260810010600_church_life.sql:281: create policy "Authorized event managers delete events"
+supabase\migrations\20260810010600_church_life.sql:284: create policy "Users view own RSVP and visible event RSVPs"
+supabase\migrations\20260810010600_church_life.sql:287: user_id = (select auth.uid())
+supabase\migrations\20260810010600_church_life.sql:290: create policy "Users create own RSVP"
+supabase\migrations\20260810010600_church_life.sql:293: user_id = (select auth.uid())
+supabase\migrations\20260810010600_church_life.sql:296: create policy "Users update own RSVP"
+supabase\migrations\20260810010600_church_life.sql:298: using (user_id = (select auth.uid()))
+supabase\migrations\20260810010600_church_life.sql:299: with check (user_id = (select auth.uid()));
+supabase\migrations\20260810010600_church_life.sql:300: create policy "Users delete own RSVP"
+supabase\migrations\20260810010600_church_life.sql:302: using (user_id = (select auth.uid()));
+supabase\migrations\20260810010600_church_life.sql:303: create policy "Users and event managers view attendance"
+supabase\migrations\20260810010600_church_life.sql:306: user_id = (select auth.uid())
+supabase\migrations\20260810010600_church_life.sql:309: create policy "Visible ministries readable"
+supabase\migrations\20260810010600_church_life.sql:315: or public.is_system_admin()
+supabase\migrations\20260810010600_church_life.sql:318: create policy "System/church admins manage ministries"
+supabase\migrations\20260810010600_church_life.sql:321: public.is_system_admin()
+supabase\migrations\20260810010600_church_life.sql:323: public.current_role() in ('pastor','local_admin')
+supabase\migrations\20260810010600_church_life.sql:328: public.is_system_admin()
+supabase\migrations\20260810010600_church_life.sql:330: public.current_role() in ('pastor','local_admin')
+supabase\migrations\20260810010600_church_life.sql:334: create policy "Ministry participants view membership"
+supabase\migrations\20260810010600_church_life.sql:337: user_id = (select auth.uid())
+supabase\migrations\20260810010600_church_life.sql:340: create policy "Ministry managers manage membership"
+supabase\migrations\20260810010600_church_life.sql:344: create policy "Users view own service assignments"
+supabase\migrations\20260810010600_church_life.sql:347: user_id = (select auth.uid())
+supabase\migrations\20260810010600_church_life.sql:351: create policy "Users update own service assignment response"
+supabase\migrations\20260810010600_church_life.sql:353: using (user_id = (select auth.uid()))
+supabase\migrations\20260810010600_church_life.sql:354: with check (user_id = (select auth.uid()));
+supabase\migrations\20260810010600_church_life.sql:355: create policy "Authorized managers create service assignments"
+supabase\migrations\20260810010600_church_life.sql:358: assigned_by = (select auth.uid())
+supabase\migrations\20260810010600_church_life.sql:364: create policy "Authorized managers delete service assignments"
+supabase\migrations\20260810010600_church_life.sql:370: create policy "Users view own announcement reads"
+supabase\migrations\20260810010600_church_life.sql:373: user_id = (select auth.uid())
+supabase\migrations\20260810010600_church_life.sql:374: or public.is_admin()
+supabase\migrations\20260810010600_church_life.sql:376: create policy "Users mark own announcements read"
+supabase\migrations\20260810010600_church_life.sql:378: with check (user_id = (select auth.uid()));
+supabase\migrations\20260810010600_church_life.sql:398: p_scope public.event_scope,
+supabase\migrations\20260810010600_church_life.sql:411: security definer
+supabase\migrations\20260810010600_church_life.sql:425: if p_scope = 'system' then
+supabase\migrations\20260810010600_church_life.sql:426: if not public.is_system_admin() then
+supabase\migrations\20260810010600_church_life.sql:427: raise exception 'Only the system administrator can create system events';
+supabase\migrations\20260810010600_church_life.sql:429: elsif p_scope = 'church' then
+supabase\migrations\20260810010600_church_life.sql:431: public.is_system_admin()
+supabase\migrations\20260810010600_church_life.sql:433: public.current_role() in ('pastor','local_admin')
+supabase\migrations\20260810010600_church_life.sql:439: elsif p_scope = 'group' then
+supabase\migrations\20260810010600_church_life.sql:453: scope, church_id, group_id, event_type, title, description, location,
+supabase\migrations\20260810010600_church_life.sql:457: p_scope,
+supabase\migrations\20260810010600_church_life.sql:458: case when p_scope = 'system' then null else p_church_id end,
+supabase\migrations\20260810010600_church_life.sql:459: case when p_scope = 'group' then p_group_id else null end,
+supabase\migrations\20260810010600_church_life.sql:462: (select auth.uid()), p_requires_rsvp
+supabase\migrations\20260810010600_church_life.sql:468: (select auth.uid()), 'create_church_event', 'church_event', new_id::text,
+supabase\migrations\20260810010600_church_life.sql:469: jsonb_build_object('scope', p_scope, 'church_id', p_church_id, 'group_id', p_group_id)
+supabase\migrations\20260810010600_church_life.sql:476: public.event_scope,uuid,uuid,public.event_type,text,text,text,timestamptz,timestamptz,boolean
+supabase\migrations\20260810010600_church_life.sql:479: public.event_scope,uuid,uuid,public.event_type,text,text,text,timestamptz,timestamptz,boolean
+supabase\migrations\20260810010600_church_life.sql:491: security definer
+supabase\migrations\20260810010600_church_life.sql:500: values (p_event_id,(select auth.uid()),p_status,now())
+supabase\migrations\20260810010600_church_life.sql:518: security definer
+supabase\migrations\20260810010600_church_life.sql:553: security definer
+supabase\migrations\20260810010600_church_life.sql:587: p_event_id,(select auth.uid()),
+supabase\migrations\20260810010600_church_life.sql:590: now(),(select auth.uid()),'Self check-in'
+supabase\migrations\20260810010600_church_life.sql:614: security definer
+supabase\migrations\20260810010600_church_life.sql:622: if not public.can_view_profile(p_user_id) and not public.is_system_admin() then
+supabase\migrations\20260810010600_church_life.sql:623: raise exception 'Member is outside your management scope';
+supabase\migrations\20260810010600_church_life.sql:632: (select auth.uid()),nullif(trim(p_note),'')
+supabase\migrations\20260810010600_church_life.sql:657: security definer
+supabase\migrations\20260810010600_church_life.sql:664: public.is_system_admin()
+
+====================================================
+EDGE FUNCTIONS
+====================================================
+account-recovery
+account-recovery-v2
+admin-delete-user
+delete-account
+giving-payment-webhook
+push
+stream-token
+subscription-gcash
+subscription-gcash-webhook
+subscription-renew
+sync-church-news
+sync-local-news
+
+====================================================
+FOUNDATION 001 TARGET
+====================================================
+SYSTEM ADMIN: efmagaj@gmail.com
+
+ACCESS MODEL:
+User -> Role -> Scope -> Permissions -> Visible Features
+
+INITIAL ROLE WORKSPACE ORDER:
+10 Personal
+20 Faculty
+30 School Administration
+40 My Business
+50 Barangay Office
+60 Organization Admin
+100 System Administration
+
+SECURITY REQUIREMENTS:
+- UI visibility is NOT authorization
+- Backend/RLS/function authorization required
+- Exact scope enforcement
+- Role active/inactive/revoked state
+- Audit high-impact operations
+- Confirmation for destructive operations
+- Protected core records should deactivate instead of unsafe hard-delete
+- System Admin cross-app authority
+- Scoped admins limited to assigned scope
+
+NO CHANGES WERE MADE BY THIS AUDIT.

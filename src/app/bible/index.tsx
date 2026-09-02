@@ -22,6 +22,7 @@ import {
 } from '@/lib/buklodBibleNarration';
 import { Card, SectionTitle, shared } from '@/components/UI';
 import BuklodClusterMembershipGate from '@/components/BuklodClusterMembershipGate';
+import { ensureImagePickerLibraryAccess } from '@/lib/buklodImagePickerAccess';
 
 type Assignment = {
   id: string;
@@ -289,8 +290,10 @@ async function chooseEvidencePhoto(): Promise<PhotoDraft | null> {
   const ImagePicker = await import('expo-image-picker');
   const ImageManipulator = await import('expo-image-manipulator');
 
-  const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!permission.granted) {
+  const permissionGranted = await ensureImagePickerLibraryAccess(
+    ImagePicker.requestMediaLibraryPermissionsAsync
+  );
+  if (!permissionGranted) {
     Alert.alert(
       'Photo Permission',
       'Please allow BUKLOD to access your photos so you can attach handwritten Bible Reading evidence.'

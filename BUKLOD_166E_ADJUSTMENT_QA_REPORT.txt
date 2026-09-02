@@ -1,0 +1,49 @@
+============================================================
+BUKLOD 166E - ADJUSTMENT QA + EXISTING ADMOB AUDIT
+Generated: 2026-08-14 05:57:20
+============================================================
+
+NO APK BUILD WAS RUN.
+NO EAS BUILD WAS RUN.
+NO EXPO PREBUILD WAS RUN.
+
+RESULTS:
+[INFO] Bottom navigation labels - Legacy tab-label config exists but the visible persistent navigation is icon-only.
+[PASS] Persistent navigation - One global user navigation shell is mounted.
+[PASS] User nav flow - Home / Connect / Community / Prayer(if faith) / Me; Learn excluded.
+[PASS] Bottom overlap protection - Persistent nav occupies layout space instead of being an absolute overlay.
+[PASS] Community header - Old BUKLOD Community wording removed.
+[PASS] Community scope notice - Redundant Showing Public text removed.
+[PASS] My BUKLOD cleanup - Directory Privacy / My Churches / MZB Ministry / What's New removed.
+[PASS] My Account - Account section renamed and Password & Recovery added.
+[PASS] Policy / Contact - BUKLOD Policy and Contact Us are present.
+[PASS] Pilot Checklist - System Admin test navigation only.
+[PASS] Ordinary Home - No Mission Bulletin / Bayanihan; faith content is conditional.
+[PASS] Reels extension - Old News block replaced by Reels entry.
+[PASS] Cluster Home - Cluster bulletin layer present.
+[PASS] Church Home - Church + Cluster bulletin layer present with admin edit control.
+[PASS] Bulletin video - Video media support is present.
+[PASS] Connect split - Personal and Community Connect are separate.
+[PASS] File sending - Private file attachment flow exists.
+[PASS] Unread bubble - Canonical unread RPC is wired to persistent Connect icon.
+[PASS] Automatic rooms - Barangay / Cluster / Church / Organization are membership-derived.
+[PASS] Private messaging ads - No ad component is mounted inside private threads.
+[PASS] One Church - One ACTIVE Church per user enforced in DB.
+[PASS] Church creation email - Real confirmed auth email required for Church creation.
+[PASS] Password recovery - Email recovery, change-password, and offline recovery-code fallback are present.
+[PASS] Existing AdMob plugin - react-native-google-mobile-ads is already configured in app config.
+[PASS] Android AdMob App ID - Existing Android App ID/config reference detected.
+[INFO] iOS AdMob App ID - Not required for the current Android-first staging APK work.
+[INFO] Existing ad implementation - 14 source file(s) reference AdMob/sponsor components.
+[PASS] No duplicate ad system - 166A/166E reuse the existing ad strip and existing AdMob dependency; no second SDK was added.
+[DEFERRED] Block other social-media notifications - Requires Android notification-listener / special system access. Kept out of source-only 166E because you explicitly said NO NEW APK for now.
+[INFO] Native build status - No APK, EAS build, prebuild, or native regeneration is executed by this patch.
+[PASS] TypeScript - npx tsc --noEmit passed.
+[PASS] Expo dependencies - npx expo install --check passed.
+[PASS] Expo Doctor - All Expo Doctor checks passed.
+
+============================================================
+NEXT
+============================================================
+Apply any new user adjustments.
+Keep native Focus Mode / notification blocking deferred until the user explicitly authorizes a new native build.

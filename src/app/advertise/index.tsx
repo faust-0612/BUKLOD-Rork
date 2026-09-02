@@ -7,6 +7,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import {decode} from 'base64-arraybuffer';
 import {supabase} from '@/lib/supabase';
 import {useAuth} from '@/providers/AuthProvider';
+import { ensureImagePickerLibraryAccess } from '@/lib/buklodImagePickerAccess';
 
 type Creative='photo'|'video';
 type Coverage='barangay'|'city'|'province'|'nationwide';
@@ -68,8 +69,9 @@ export default function AdvertiseScreen(){
  }
 
  async function pickCreative(){
-   if(busy)return; const p=await ImagePicker.requestMediaLibraryPermissionsAsync();
-   if(!p.granted){Alert.alert('Media Permission','Please allow media access.'); return;}
+   if(busy)return;
+   const allowed = await ensureImagePickerLibraryAccess(ImagePicker.requestMediaLibraryPermissionsAsync);
+   if(!allowed){Alert.alert('Media Permission','Please allow media access.'); return;}
    const r=await ImagePicker.launchImageLibraryAsync(creative==='photo'?{mediaTypes:['images'] as any,allowsEditing:true,aspect:[16,9],quality:0.85}:{mediaTypes:['videos'] as any,allowsEditing:false,videoMaxDuration:30,quality:1});
    if(r.canceled||!r.assets?.length)return; const a=r.assets[0];
    if(creative==='video'){ const s=secs(a); if(!s||s>30.05){Alert.alert('Video Limit','Advertising videos must be 30 seconds or shorter.'); return;} }
@@ -77,8 +79,9 @@ export default function AdvertiseScreen(){
  }
 
  async function pickProof(){
-   if(busy)return; const p=await ImagePicker.requestMediaLibraryPermissionsAsync();
-   if(!p.granted){Alert.alert('Photo Permission','Please allow access to your payment screenshot.'); return;}
+   if(busy)return;
+   const allowed = await ensureImagePickerLibraryAccess(ImagePicker.requestMediaLibraryPermissionsAsync);
+   if(!allowed){Alert.alert('Photo Permission','Please allow access to your payment screenshot.'); return;}
    const r=await ImagePicker.launchImageLibraryAsync({mediaTypes:['images'] as any,allowsEditing:false,quality:0.8});
    if(r.canceled||!r.assets?.length)return; setProof(r.assets[0]);
  }

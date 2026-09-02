@@ -1,0 +1,31 @@
+BUKLOD Migration Gap Reconciliation Log
+Started: 2026-08-20
+
+[2026-08-20 00:48:30] DIRECT SHELL RECONCILIATION START
+
+RECONCILIATION COMPLETE - 2026-08-20
+
+Successfully executed and repaired (24 gap migrations):
+20260818280000 through 20260820131800
+
+Special handling:
+- 20260819210000: ORIGINAL FILE NOT EXECUTED - SAFE SEED SPLICE scripts/db-reconcile/20260819210000_seeds_only.sql
+- 20260819220000: applied + scripts/db-reconcile/20131900_repatch_after_gap.sql (cash_funcs=0)
+- 20260820100000: applied + repatch (formation ok, cash_funcs=0, learning_pts=true)
+
+Re-applied after intermittent auth failures (history already marked):
+- 20260818300000, 20260819140000, 20260819160000, 20260820131500, 20260820131700
+
+Final verification:
+- Migration history contiguous 20260818270000 -> 20260820131900
+- db push --dry-run: upToDate true
+- cash_funcs inserting bayanihan_ledger: 0
+- bayanihan_ledger rows: 1 (preserved)
+- trg_sync_buklod_points_from_bayanihan: absent
+- Phase1 points: buklod_user_points_balances, claim_state, dashboard, claim RPCs present
+- Circle Rank 410: Circle Starter IV (verified separately)
+
+Warnings:
+- Intermittent Supabase CLI auth (cli_login_postgres password / auth_query timeout) during run
+- Nested PowerShell runner failed (npx resolution); used direct shell commands
+- Supabase telemetry EPERM on Windows (non-blocking)

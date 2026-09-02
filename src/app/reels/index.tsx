@@ -110,6 +110,7 @@ import {
   BUKLOD_REEL_MAX_DURATION_SECONDS,
   formatVideoBytes,
   readVideoSizeBytes,
+  validateCommunityVideoUpload,
 } from '@/lib/buklodCommunityWallMedia';
 type Audience =
   | 'group'
@@ -715,6 +716,20 @@ export default function ReelsScreen() {
             options as any
           )
       );
+
+    const validationError =
+      validateCommunityVideoUpload({
+        durationSeconds,
+        sizeBytes,
+        isReel: true,
+      });
+
+    if (validationError) {
+      return Alert.alert(
+        'BUKLOD Reel',
+        validationError
+      );
+    }
 
     const mimeType =
       inferMime(asset);

@@ -1,0 +1,551 @@
+﻿      {/* =====================================================
+          MY_BIBLE_ANNOTATION_MODAL_V1
+      ====================================================== */}
+
+      <Modal
+        visible={
+          annotationModalVisible
+        }
+        transparent
+        animationType="fade"
+        onRequestClose={() =>
+          setAnnotationModalVisible(
+            false
+          )
+        }
+      >
+
+        <View
+          style={{
+            flex:
+              1,
+
+            backgroundColor:
+              'rgba(0,0,0,0.42)',
+
+            justifyContent:
+              'center',
+
+            padding:
+              18,
+          }}
+        >
+
+          <View
+            style={{
+              maxHeight:
+                '86%',
+
+              borderRadius:
+                20,
+
+              backgroundColor:
+                '#FFFFFF',
+
+              padding:
+                16,
+            }}
+          >
+
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+            >
+
+              <View
+                style={{
+                  flexDirection:
+                    'row',
+
+                  alignItems:
+                    'center',
+
+                  gap:
+                    8,
+                }}
+              >
+
+                <View
+                  style={{
+                    flex:
+                      1,
+                  }}
+                >
+
+                  <Text
+                    style={{
+                      fontSize:
+                        10,
+
+                      fontWeight:
+                        '900',
+
+                      letterSpacing:
+                        0.7,
+
+                      color:
+                        colors.greenDark,
+                    }}
+                  >
+                    MY BIBLE
+                  </Text>
+
+
+                  <Text
+                    style={{
+                      marginTop:
+                        2,
+
+                      fontSize:
+                        18,
+
+                      fontWeight:
+                        '900',
+
+                      color:
+                        colors.text,
+                    }}
+                  >
+                    {
+                      currentBook
+                        ?.book_name ??
+                      'Bible'
+                    }{' '}
+                    {chapterNo}:
+                    {selectedVerseNo}
+                  </Text>
+
+                </View>
+
+
+                <Pressable
+                  onPress={() =>
+                    setAnnotationModalVisible(
+                      false
+                    )
+                  }
+                  style={{
+                    width:
+                      38,
+
+                    height:
+                      38,
+
+                    borderRadius:
+                      19,
+
+                    backgroundColor:
+                      '#F1F4F2',
+
+                    alignItems:
+                      'center',
+
+                    justifyContent:
+                      'center',
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize:
+                        18,
+
+                      fontWeight:
+                        '700',
+
+                      color:
+                        colors.text,
+                    }}
+                  >
+                    ×
+                  </Text>
+                </Pressable>
+
+              </View>
+
+
+              <Text
+                style={{
+                  marginTop:
+                    13,
+
+                  fontSize:
+                    15,
+
+                  lineHeight:
+                    23,
+
+                  color:
+                    colors.text,
+                }}
+              >
+                {
+                  selectedVerseText
+                }
+              </Text>
+
+
+              <Text
+                style={{
+                  marginTop:
+                    18,
+
+                  marginBottom:
+                    8,
+
+                  fontSize:
+                    9,
+
+                  fontWeight:
+                    '900',
+
+                  letterSpacing:
+                    0.7,
+
+                  color:
+                    colors.greenDark,
+                }}
+              >
+                HIGHLIGHT
+              </Text>
+
+
+              <View
+                style={{
+                  flexDirection:
+                    'row',
+
+                  flexWrap:
+                    'wrap',
+
+                  gap:
+                    9,
+                }}
+              >
+
+                {myBibleHighlightColors
+                  .map(
+                    color => {
+
+                      const active =
+                        annotationColor ===
+                        color;
+
+
+                      return (
+                        <Pressable
+                          key={
+                            color
+                          }
+                          onPress={() =>
+                            setAnnotationColor(
+                              active
+                                ? null
+                                : color
+                            )
+                          }
+                          style={{
+                            width:
+                              43,
+
+                            height:
+                              43,
+
+                            borderRadius:
+                              13,
+
+                            backgroundColor:
+                              color,
+
+                            borderWidth:
+                              active
+                                ? 3
+                                : 1,
+
+                            borderColor:
+                              active
+                                ? colors
+                                    .greenDark
+                                : '#CCD5D0',
+                          }}
+                        />
+                      );
+
+                    }
+                  )}
+
+
+                <Pressable
+                  onPress={() =>
+                    setAnnotationColor(
+                      null
+                    )
+                  }
+                  style={{
+                    minWidth:
+                      54,
+
+                    height:
+                      43,
+
+                    borderRadius:
+                      13,
+
+                    borderWidth:
+                      1,
+
+                    borderColor:
+                      '#CCD5D0',
+
+                    backgroundColor:
+                      '#FFFFFF',
+
+                    alignItems:
+                      'center',
+
+                    justifyContent:
+                      'center',
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize:
+                        8,
+
+                      fontWeight:
+                        '900',
+
+                      color:
+                        colors.muted,
+                    }}
+                  >
+                    NONE
+                  </Text>
+                </Pressable>
+
+              </View>
+
+
+              <Text
+                style={{
+                  marginTop:
+                    18,
+
+                  marginBottom:
+                    8,
+
+                  fontSize:
+                    9,
+
+                  fontWeight:
+                    '900',
+
+                  letterSpacing:
+                    0.7,
+
+                  color:
+                    colors.greenDark,
+                }}
+              >
+                PERSONAL NOTE
+              </Text>
+
+
+              <TextInput
+                value={
+                  annotationNote
+                }
+                onChangeText={
+                  setAnnotationNote
+                }
+                multiline
+                maxLength={
+                  4000
+                }
+                textAlignVertical="top"
+                placeholder="Write your personal note, reflection, insight, or reminder..."
+                placeholderTextColor="#89958F"
+                style={{
+                  minHeight:
+                    130,
+
+                  borderWidth:
+                    1,
+
+                  borderColor:
+                    '#CBD8D1',
+
+                  borderRadius:
+                    14,
+
+                  backgroundColor:
+                    '#FAFCFB',
+
+                  padding:
+                    12,
+
+                  fontSize:
+                    14,
+
+                  lineHeight:
+                    21,
+
+                  color:
+                    colors.text,
+                }}
+              />
+
+
+              <Text
+                style={{
+                  marginTop:
+                    4,
+
+                  textAlign:
+                    'right',
+
+                  fontSize:
+                    8,
+
+                  color:
+                    colors.muted,
+                }}
+              >
+                {
+                  annotationNote
+                    .length
+                } / 4000
+              </Text>
+
+
+              <Pressable
+                disabled={
+                  annotationSaving
+                }
+                onPress={
+                  saveBibleAnnotation
+                }
+                style={({
+                  pressed,
+                }) => ({
+                  marginTop:
+                    14,
+
+                  minHeight:
+                    48,
+
+                  borderRadius:
+                    13,
+
+                  backgroundColor:
+                    colors.greenDark,
+
+                  alignItems:
+                    'center',
+
+                  justifyContent:
+                    'center',
+
+                  opacity:
+                    annotationSaving
+                      ? 0.5
+                      : pressed
+                        ? 0.75
+                        : 1,
+                })}
+              >
+                <Text
+                  style={{
+                    fontSize:
+                      11,
+
+                    fontWeight:
+                      '900',
+
+                    color:
+                      '#FFFFFF',
+
+                    letterSpacing:
+                      0.5,
+                  }}
+                >
+                  {
+                    annotationSaving
+                      ? 'SAVING...'
+                      : 'SAVE HIGHLIGHT / NOTE'
+                  }
+                </Text>
+              </Pressable>
+
+
+              {selectedVerseNo !==
+                null &&
+                bibleAnnotations[
+                  selectedVerseNo
+                ] && (
+
+                <Pressable
+                  disabled={
+                    annotationSaving
+                  }
+                  onPress={
+                    removeBibleAnnotation
+                  }
+                  style={({
+                    pressed,
+                  }) => ({
+                    marginTop:
+                      8,
+
+                    minHeight:
+                      42,
+
+                    borderRadius:
+                      12,
+
+                    borderWidth:
+                      1,
+
+                    borderColor:
+                      '#D9B8B8',
+
+                    backgroundColor:
+                      '#FFF8F8',
+
+                    alignItems:
+                      'center',
+
+                    justifyContent:
+                      'center',
+
+                    opacity:
+                      pressed
+                        ? 0.7
+                        : 1,
+                  })}
+                >
+                  <Text
+                    style={{
+                      fontSize:
+                        9,
+
+                      fontWeight:
+                        '900',
+
+                      color:
+                        '#934848',
+                    }}
+                  >
+                    REMOVE HIGHLIGHT & NOTE
+                  </Text>
+                </Pressable>
+
+              )}
+
+            </ScrollView>
+
+          </View>
+
+        </View>
+
+      </Modal>
+
+

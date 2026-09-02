@@ -65,6 +65,7 @@ type Props = {
   postId: string;
   initialCount?: number;
   compact?: boolean;
+  iconOnly?: boolean;
 };
 
 const PUBLIC_TARGET: Target = {
@@ -143,6 +144,7 @@ BuklodPostInternalShare({
   postId,
   initialCount = 0,
   compact = false,
+  iconOnly = false,
 }: Props) {
   const [
     open,
@@ -565,6 +567,8 @@ BuklodPostInternalShare({
           styles.button,
           compact &&
             styles.buttonCompact,
+          iconOnly &&
+            styles.buttonIconOnly,
           pressed && {
             opacity: 0.56,
           },
@@ -589,7 +593,9 @@ BuklodPostInternalShare({
             styles.buttonText
           }
         >
-          Share {count}
+          {iconOnly
+            ? count
+            : `Share ${count}`}
         </Text>
       </Pressable>
 
@@ -930,6 +936,15 @@ const styles =
       minHeight: 38,
       paddingHorizontal: 9,
       flex: 1,
+    },
+
+    buttonIconOnly: {
+      flex: 0,
+      minHeight: 32,
+      paddingHorizontal: 4,
+      gap: 3,
+      borderWidth: 0,
+      backgroundColor: 'transparent',
     },
 
     buttonText: {

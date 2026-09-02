@@ -1,0 +1,22 @@
+BUKLOD CHARACTER FIT + MOJIBAKE R9 REPORT
+Generated: 2026-08-22T20:21:41.822Z
+
+=== CHARACTER FIT ===
+Wearable rows checked: 99
+Fit failures: 0
+
+=== BODY COMPATIBILITY ===
+itemsForSlot body filter: PASS
+wrong-body reconciliation: PASS
+
+=== MOJIBAKE ===
+Files initially flagged: 2
+Files safely repaired: 2
+Files unresolved after safe repair: 0
+FIXED: src/components/BuklodHomeScopeBulletins.tsx markers 1 -> 0
+FIXED: src/lib/repairMojibakeText.ts markers 1 -> 0
+
+=== RESULT ===
+CHARACTER_FIT=PASS
+MOJIBAKE=PASS
+FINAL=PASS

@@ -1,0 +1,4086 @@
+BUKLOD FOUNDATION 001 - EXACT SOURCE
+
+====================================================
+FILE: .\src\app\(tabs)\me.tsx
+====================================================
+/* PATCH_184F_R3_PROFILE_CLEANUP */
+/* PATCH_179C_R1_PREMIUM_CURRENT_PROFILE */
+import { useCallback as useProfileFocusCallback, useRef as useProfileScrollRef } from 'react';
+import { useFocusEffect as useProfileFocusEffect } from 'expo-router';
+import { useBuklodScope } from '@/providers/BuklodScopeProvider';
+import BuklodProfileMembershipNav
+  from '@/components/BuklodProfileMembershipNav';
+import { decode } from 'base64-arraybuffer';
+import * as ImageManipulator from 'expo-image-manipulator';
+import * as ImagePicker from 'expo-image-picker';
+import { Alert } from 'react-native';
+import React, { ReactNode, useEffect, useState } from 'react';
+import {
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+import { Button, shared } from '@/components/UI';
+import { AppRole, useAuth } from '@/providers/AuthProvider';
+import { supabase } from '@/lib/supabase';
+import { useBuklodAccess } from '@/hooks/useBuklodAccess';
+import {
+  BuklodDashboardCustomizer,
+  DEFAULT_DASHBOARD_THEME,
+  type DashboardTheme,
+} from '@/components/BuklodDashboardCustomizer';
+import {
+  loadProfileDashboardTheme,
+  saveProfileDashboardTheme,
+} from '@/lib/buklodDashboardTheme';
+// PATCH_170B_R3_PERSONAL_PROFILE_THEME
+
+
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+function roleLabel(role: AppRole) {
+  const labels: Record<AppRole, string> = {
+    member: 'Member',
+    leader: 'Leader',
+    mentor: 'Mentor',
+    pastor: 'Pastor',
+    local_admin: 'Local Admin',
+    system_admin: 'System Admin',
+  };
+
+  return labels[role];
+}
+
+function DrawerSection({
+  title,
+  subtitle,
+  icon,
+  open,
+  onToggle,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  icon: IconName;
+  open: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <View style={styles.drawer}>
+      <Pressable
+        onPress={onToggle}
+        style={({ pressed }) => [
+          styles.drawerHeader,
+          pressed && { opacity: 0.78 },
+        ]}
+      >
+        <View style={styles.drawerIcon}>
+          <MaterialCommunityIcons
+            name={icon}
+            size={18}
+            color="#275D45"
+          />
+        </View>
+
+        <View style={{ flex: 1 }}>
+          <Text style={styles.drawerTitle}>{title}</Text>
+
+          {!!subtitle && (
+            <Text style={styles.drawerSubtitle}>
+              {subtitle}
+            </Text>
+          )}
+        </View>
+
+        <MaterialCommunityIcons
+          name={open ? 'chevron-up' : 'chevron-down'}
+          size={20}
+          color="#68756E"
+        />
+      </Pressable>
+
+      {open && (
+        <View style={styles.drawerBody}>
+          {children}
+        </View>
+      )}
+    </View>
+  );
+}
+
+function MenuRow({
+  icon,
+  title,
+  subtitle,
+  onPress,
+}: {
+  icon: IconName;
+  title: string;
+  subtitle?: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.menuRow,
+        pressed && { opacity: 0.72 },
+      ]}
+    >
+      <View style={styles.menuIcon}>
+        <MaterialCommunityIcons
+          name={icon}
+          size={18}
+          color="#275D45"
+        />
+      </View>
+
+      <View style={{ flex: 1 }}>
+        <Text style={styles.menuTitle}>{title}</Text>
+
+        {!!subtitle && (
+          <Text style={styles.menuSubtitle}>
+            {subtitle}
+          </Text>
+        )}
+      </View>
+
+      <MaterialCommunityIcons
+        name="chevron-right"
+        size={18}
+        color="#8A948F"
+      />
+    </Pressable>
+  );
+}
+
+export default function MeScreen() {
+  /* PATCH_174B_R2_PROFILE_FOCUS_STABILITY */
+  const profileScrollRef =
+    useProfileScrollRef(null as ScrollView | null);
+
+  useProfileFocusEffect(
+    useProfileFocusCallback(() => {
+      profileScrollRef.current?.scrollTo({
+        x: 0,
+        y: 0,
+        animated: false,
+      });
+    }, [])
+  );
+
+  const {
+    profile,
+    roles,
+    hasRole,
+    hasAnyRole,
+    signOut,
+    refreshProfile,
+  } = useAuth();
+
+  const [
+    personalDashboardTheme,
+    setPersonalDashboardTheme,
+  ] = useState<DashboardTheme>(
+    DEFAULT_DASHBOARD_THEME
+  );
+
+  useEffect(
+    () => {
+      let mounted = true;
+
+      if (!profile?.id) {
+        setPersonalDashboardTheme(
+          DEFAULT_DASHBOARD_THEME
+        );
+
+        return () => {
+          mounted = false;
+        };
+      }
+
+      void loadProfileDashboardTheme(
+        profile.id
+      )
+        .then(nextTheme => {
+          if (mounted) {
+            setPersonalDashboardTheme(
+              nextTheme
+            );
+          }
+        })
+        .catch(error => {
+          console.warn(
+            'Profile theme load failed:',
+            error
+          );
+        });
+
+      return () => {
+        mounted = false;
+      };
+    },
+    [profile?.id]
+  );
+
+  const savePersonalDashboardTheme =
+    async (
+      nextTheme: DashboardTheme
+    ) => {
+      if (!profile?.id) return;
+
+      try {
+        await saveProfileDashboardTheme(
+          profile.id,
+          nextTheme
+        );
+
+        setPersonalDashboardTheme(
+          nextTheme
+        );
+      } catch (error: any) {
+        Alert.alert(
+          'Profile Theme',
+          error?.message ||
+            'Could not save your profile theme.'
+        );
+
+        throw error;
+      }
+    };
+
+  /* PATCH_169D_ACTIVE_MZB_PROFILE_GATE */
+  const {
+    scopes: buklodScopes,
+  } = useBuklodScope();
+
+  const hasActiveMzbMembership =
+    (buklodScopes as any[]).some(
+      scope =>
+        scope?.scope_type ===
+          'ORGANIZATION' &&
+        scope?.membership_status ===
+          'ACTIVE' &&
+        (
+          String(
+            scope?.name ?? ''
+          )
+            .toLowerCase()
+            .includes(
+              'mzb ministry'
+            ) ||
+          String(
+            scope?.metadata
+              ?.organization_code ??
+              ''
+          )
+            .toLowerCase() ===
+            'mzb' ||
+          String(
+            scope?.metadata
+              ?.is_mzb ??
+              ''
+          )
+            .toLowerCase() ===
+            'true' ||
+          String(
+            scope?.metadata
+              ?.organization_type ??
+              ''
+          )
+            .toUpperCase() ===
+            'MZB_MINISTRY'
+        )
+    );
+
+  /* PATCH_172J_MZB_ADMIN_PORTAL_ACCESS
+     Active MZB members keep normal access.
+     System Admin must never lose the MZB Ministry portal. */
+  const hasMzbPortalAccess =
+    hasActiveMzbMembership ||
+    hasRole('system_admin');
+  /* PATCH_165H_ME_ENTITLEMENTS */
+  const { hasEntitlement } = useBuklodAccess();
+  const canUseBayanihan = hasEntitlement('bayanihan');
+  const canUseTithes = hasEntitlement('tithes');
+
+  /* PATCH_160_EDITABLE_AVATAR */
+  const [
+    avatarBusy,
+    setAvatarBusy,
+  ] =
+    useState(false);
+
+
+  const changeProfilePhoto =
+    async () => {
+
+      if (
+        !profile?.id ||
+        avatarBusy
+      ) {
+        return;
+      }
+
+      try {
+        setAvatarBusy(
+          true
+        );
+
+        const permission =
+          await ImagePicker
+            .requestMediaLibraryPermissionsAsync();
+
+        if (
+          !permission.granted
+        ) {
+          Alert.alert(
+            'Profile Photo',
+            'Please allow photo access to change your profile picture.'
+          );
+
+          return;
+        }
+
+
+        const result =
+          await ImagePicker
+            .launchImageLibraryAsync(
+              {
+                mediaTypes:
+                  [
+                    'images',
+                  ] as any,
+
+                allowsEditing:
+                  true,
+
+                aspect:
+                  [1, 1],
+
+                quality:
+                  0.82,
+              }
+            );
+
+
+        if (
+          result.canceled ||
+          !result.assets?.[0]
+        ) {
+          return;
+        }
+
+
+        const prepared =
+          await ImageManipulator
+            .manipulateAsync(
+              result.assets[0]
+                .uri,
+
+              [
+                {
+                  resize: {
+                    width:
+                      900,
+                  },
+                },
+              ],
+
+              {
+                compress:
+                  0.8,
+
+                format:
+                  ImageManipulator
+                    .SaveFormat
+                    .JPEG,
+
+                base64:
+                  true,
+              }
+            );
+
+
+        if (
+          !prepared.base64
+        ) {
+          throw new Error(
+            'Could not prepare profile photo.'
+          );
+        }
+
+
+        const objectPath =
+          `${profile.id}/avatar.jpg`;
+
+
+        const {
+          error:
+            uploadError,
+        } =
+          await supabase
+            .storage
+            .from(
+              'profile-avatars'
+            )
+            .upload(
+              objectPath,
+
+              decode(
+                prepared.base64
+              ),
+
+              {
+                contentType:
+                  'image/jpeg',
+
+                upsert:
+                  true,
+
+                cacheControl:
+                  '3600',
+              }
+            );
+
+
+        if (
+          uploadError
+        ) {
+          throw uploadError;
+        }
+
+
+        const {
+          data:
+            publicData,
+        } =
+          supabase
+            .storage
+            .from(
+              'profile-avatars'
+            )
+            .getPublicUrl(
+              objectPath
+            );
+
+
+        const avatarUrl =
+          `${publicData.publicUrl}?v=${Date.now()}`;
+
+
+        const {
+          error:
+            updateError,
+        } =
+          await supabase
+            .from(
+              'profiles'
+            )
+            .update({
+              avatar_url:
+                avatarUrl,
+            })
+            .eq(
+              'id',
+              profile.id
+            );
+
+
+        if (
+          updateError
+        ) {
+          throw updateError;
+        }
+
+
+        await refreshProfile();
+
+
+        Alert.alert(
+          'Profile Photo',
+          'Profile picture updated.'
+        );
+      }
+      catch (error: any) {
+        console.error(
+          'Profile avatar:',
+          error
+        );
+
+        Alert.alert(
+          'Profile Photo',
+          error?.message ||
+          'Could not update profile picture.'
+        );
+      }
+      finally {
+        setAvatarBusy(
+          false
+        );
+      }
+    };
+
+
+  const [
+    profileBackgroundUrl,
+    setProfileBackgroundUrl,
+  ] = useState<string | null>(
+    null
+  );
+
+  useEffect(() => {
+    let active = true;
+
+    const loadProfileBackground =
+      async () => {
+        if (!profile?.id) {
+          if (active) {
+            setProfileBackgroundUrl(
+              null
+            );
+          }
+
+          return;
+        }
+
+        const {
+          data,
+          error,
+        } =
+          await (supabase as any)
+            .rpc(
+              'get_my_profile_background_url'
+            );
+
+        if (!active) {
+          return;
+        }
+
+        if (error) {
+          console.warn(
+            'Profile background load:',
+            error
+          );
+
+          return;
+        }
+
+        setProfileBackgroundUrl(
+          typeof data === 'string' &&
+          data.trim()
+            ? data
+            : null
+        );
+      };
+
+    void loadProfileBackground();
+
+    return () => {
+      active = false;
+    };
+  }, [profile?.id]);
+
+  const changeProfileBackground =
+    async () => {
+      if (!profile?.id) {
+        return;
+      }
+
+      try {
+        const permission =
+          await ImagePicker
+            .requestMediaLibraryPermissionsAsync();
+
+        if (
+          permission.status !==
+          'granted'
+        ) {
+          Alert.alert(
+            'Photo Permission',
+            'Please allow photo access to change your profile background.'
+          );
+
+          return;
+        }
+
+        const picked =
+          await ImagePicker
+            .launchImageLibraryAsync({
+              mediaTypes:
+                ['images'],
+              allowsEditing:
+                true,
+              aspect:
+                [16, 9],
+              quality:
+                0.9,
+            });
+
+        if (
+          picked.canceled ||
+          !picked.assets?.length
+        ) {
+          return;
+        }
+
+        const asset =
+          picked.assets[0];
+
+        const prepared =
+          await ImageManipulator
+            .manipulateAsync(
+              asset.uri,
+              [
+                {
+                  resize: {
+                    width:
+                      1400,
+                  },
+                },
+              ],
+              {
+                compress:
+                  0.8,
+
+                format:
+                  ImageManipulator
+                    .SaveFormat
+                    .JPEG,
+
+                base64:
+                  true,
+              }
+            );
+
+        if (
+          !prepared.base64
+        ) {
+          throw new Error(
+            'Could not prepare profile background.'
+          );
+        }
+
+        const objectPath =
+          `${profile.id}/cover.jpg`;
+
+        const {
+          error:
+            uploadError,
+        } =
+          await supabase
+            .storage
+            .from(
+              'profile-avatars'
+            )
+            .upload(
+              objectPath,
+
+              decode(
+                prepared.base64
+              ),
+
+              {
+                contentType:
+                  'image/jpeg',
+
+                upsert:
+                  true,
+
+                cacheControl:
+                  '3600',
+              }
+            );
+
+        if (
+          uploadError
+        ) {
+          throw uploadError;
+        }
+
+        const {
+          data:
+            publicData,
+        } =
+          supabase
+            .storage
+            .from(
+              'profile-avatars'
+            )
+            .getPublicUrl(
+              objectPath
+            );
+
+        const backgroundUrl =
+          `${publicData.publicUrl}?v=${Date.now()}`;
+
+        const {
+          error:
+            updateError,
+        } =
+          await (supabase as any)
+            .rpc(
+              'set_my_profile_background_url',
+              {
+                p_url:
+                  backgroundUrl,
+              }
+            );
+
+        if (
+          updateError
+        ) {
+          throw updateError;
+        }
+        setProfileBackgroundUrl(
+          backgroundUrl
+        );
+
+        await refreshProfile();
+
+        Alert.alert(
+          'Profile Background',
+          'Profile background updated.'
+        );
+      }
+      catch (error: any) {
+        console.error(
+          'Profile background:',
+          error
+        );
+
+        Alert.alert(
+          'Profile Background',
+          error?.message ||
+          'Could not update profile background.'
+        );
+      }
+    };
+
+
+  // PROFILE_CIRCLE_RANK_IDENTITY
+  const [circleRank, setCircleRank] =
+    useState<string | null>('Circle Starter V');
+
+  useEffect(() => {
+    let active = true;
+
+    const loadCircleRank = async () => {
+      if (!profile?.id) {
+        if (active) setCircleRank('Circle Starter V');
+        return;
+      }
+
+      const { data, error } = await (supabase as any).rpc(
+        'get_member_circle_ranks_v1',
+        {
+          p_user_ids: [profile.id],
+        }
+      );
+
+      if (!active) return;
+
+      if (error) {
+        setCircleRank('Circle Starter V');
+        return;
+      }
+
+      const row =
+        Array.isArray(data) && data.length
+          ? data[0]
+          : null;
+
+      setCircleRank(
+        row?.rank_name ?? 'Circle Starter V'
+      );
+    };
+
+    void loadCircleRank();
+
+    return () => {
+      active = false;
+    };
+  }, [profile?.id]);
+
+
+  const [openSection, setOpenSection] = useState<'buklod' | 'organizations' | 'ministry' | 'admin' | 'account' | null>('buklod');
+
+  /* PATCH_166L_MY_BUKLOD_DEEPLINK */
+  const myBuklodParams =
+    useLocalSearchParams<{
+      section?: string;
+    }>();
+
+  useEffect(() => {
+    if (
+      String(
+        myBuklodParams.section ?? ''
+      ).toLowerCase() === 'buklod'
+    ) {
+      setOpenSection('buklod');
+    }
+  }, [myBuklodParams.section]);
+
+  const isSystemAdmin = hasRole('system_admin');
+  const isPastor = hasRole('pastor');
+  const isMentor = hasRole('mentor');
+
+  const canLead = hasAnyRole([
+    'leader',
+    'pastor',
+    'local_admin',
+    'system_admin',
+  ]);
+
+  const canReview = hasAnyRole([
+    // PATCH_156B_LOCAL_REVIEW_MENU
+    'pastor',
+    'local_admin',
+    'system_admin',
+  ]);
+
+  const hasMinistryTools =
+    canLead || isMentor || isPastor;
+
+  const toggle = (
+    section: 'buklod' | 'organizations' | 'ministry' | 'admin' | 'account'
+  ) => {
+    setOpenSection((current) =>
+      current === section ? null : section
+    );
+  };
+
+  const fallbackPortrait = isSystemAdmin
+    ? require('../../../assets/branding/admin-profile.jpg')
+    : require('../../../assets/release/buklod-generic-photo.jpg');
+
+  return (
+    <ScrollView
+      ref={profileScrollRef}
+      style={[shared.screen, { backgroundColor: personalDashboardTheme.backgroundColor }]}
+      contentContainerStyle={[
+        shared.content,
+        styles.content,
+      ]}
+      showsVerticalScrollIndicator={false}
+    >
+
+      {!!personalDashboardTheme.backgroundImage && (
+        <View
+          pointerEvents="none"
+          style={StyleSheet.absoluteFill}
+        >
+          <Image
+            source={{
+              uri:
+                personalDashboardTheme.backgroundImage,
+            }}
+            resizeMode="cover"
+            style={StyleSheet.absoluteFill}
+          />
+        </View>
+      )}
+
+      <View
+        style={[
+          styles.profileCard,
+          !!(
+            profileBackgroundUrl ||
+            (profile as any)?.profile_background_url
+          ) && {
+            backgroundColor: 'transparent',
+          },
+        ]}
+      >
+        {!!(profileBackgroundUrl || (profile as any)?.profile_background_url) && (
+          <View
+            pointerEvents="none"
+            style={styles.profileCardCover}
+          >
+            <Image
+              source={{
+                uri:
+                  profileBackgroundUrl ||
+                  (profile as any)?.profile_background_url,
+              }}
+              resizeMode="cover"
+              style={styles.profileCardBackground}
+              onLoad={() => {
+                console.log(
+                  'PROFILE COVER LOADED:',
+                  profileBackgroundUrl ||
+                    (profile as any)?.profile_background_url
+                );
+              }}
+              onError={(event) => {
+                console.error(
+                  'PROFILE COVER IMAGE ERROR:',
+                  event.nativeEvent?.error,
+                  profileBackgroundUrl ||
+                    (profile as any)?.profile_background_url
+                );
+              }}
+            />
+
+            <View
+              style={styles.profileCardWash}
+            />
+          </View>
+        )}
+        <View
+          style={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            zIndex: 20,
+            backgroundColor: '#FFFFFF',
+            borderRadius: 22,
+            shadowColor: '#000000',
+            shadowOpacity: 0.18,
+            shadowRadius: 5,
+            shadowOffset: {
+              width: 0,
+              height: 2,
+            },
+            elevation: 4,
+          }}
+        >
+          <BuklodDashboardCustomizer
+            theme={personalDashboardTheme}
+            canCustomize={!!profile?.id}
+            onSave={
+              savePersonalDashboardTheme
+            }          onEditProfileBackground={() =>
+            void changeProfileBackground()
+          }
+        />
+        </View>
+        <Pressable
+          style={
+            styles.avatarRing
+          }
+          disabled={
+            avatarBusy
+          }
+          onPress={() =>
+            void changeProfilePhoto()
+          }
+        >
+          <Image
+            source={
+              profile?.avatar_url
+                ? {
+                    uri:
+                      profile.avatar_url,
+                  }
+                : fallbackPortrait
+            }
+            style={
+              styles.avatar
+            }
+          />
+<View
+            style={
+              styles.avatarEditBadge
+            }
+          >
+            <MaterialCommunityIcons
+              name={
+                avatarBusy
+                  ? 'progress-clock'
+                  : 'camera-outline'
+              }
+              size={17}
+              color="#FFFFFF"
+            />
+          </View>
+        </Pressable>
+
+        <Text
+          style={
+            styles.avatarHint
+          }
+        >
+          {avatarBusy
+            ? 'UPLOADING...'
+            : 'Tap photo to change'}
+        </Text>
+
+        <Text style={styles.name}>
+          {profile?.full_name || 'BUKLOD Member'}
+        </Text>
+
+        {!!circleRank && (
+          <Pressable
+            onPress={() =>
+              router.push('/points')
+            }
+            style={{
+              marginTop: 9,
+              paddingHorizontal: 20,
+              paddingVertical: 10,
+              borderRadius: 999,
+              backgroundColor: '#0B5D2A',
+              borderWidth: 2,
+              borderColor: '#FFFFFF',
+              shadowColor: '#000000',
+              shadowOpacity: 0.55,
+              shadowRadius: 9,
+              shadowOffset: {
+                width: 0,
+                height: 3,
+              },
+              elevation: 9,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 18,
+                lineHeight: 23,
+                fontWeight: '900',
+                letterSpacing: 0.5,
+                color: '#FFFFFF',
+                textShadowColor: '#000000',
+                textShadowOffset: {
+                  width: 0,
+                  height: 2,
+                },
+                textShadowRadius: 7,
+              }}
+            >
+              {circleRank}
+            </Text>
+          </Pressable>
+        )}
+{/* PATCH_169D_MEMBERSHIP_NAV_MOUNT */}
+        <BuklodProfileMembershipNav />
+      </View>
+      {/* PATCH_166M_MY_BUKLOD_CONTENT_PRESERVED */}
+      <View>
+
+
+
+        
+
+        <MenuRow
+          icon="account-group-outline"
+          title="My Clusters"
+          subtitle="Create, discover, join and manage your BUKLOD Clusters"
+          onPress={() => router.push('/clusters' as any)}
+        />
+
+                <MenuRow
+          icon="bullhorn-outline"
+          title="Advertise"
+          subtitle="Photo or 30-second video ads for Public or your locality"
+          onPress={() => router.push('/advertise' as any)}
+        />
+<MenuRow
+          icon="lifebuoy"
+          title="BUKLOD Policy"
+          subtitle="Read BUKLOD policies and community standards"
+          onPress={() => router.push('/policy' as any)}
+        />
+
+                <MenuRow
+          icon="email-outline"
+          title="Contact Us"
+          subtitle="Send a message to the BUKLOD team"
+          onPress={() =>
+            router.push(
+              '/contact-us' as any
+            )
+          }
+        />
+<MenuRow
+          icon="message-text-outline"
+          title="Send Feedback"
+          subtitle="Share your BUKLOD experience"
+          onPress={() => router.push('/feedback')}
+        />
+      </View>
+      {/* PATCH_168C_ORGANIZATIONS_BUTTON */}
+      <Pressable
+        onPress={() =>
+          router.push('/organizations' as any)
+        }
+        style={({ pressed }) => [
+          styles.organizationMainButton,
+          pressed && {
+            opacity: 0.72,
+          },
+        ]}
+      >
+        <View
+          style={
+            styles.organizationMainButtonIcon
+          }
+        >
+          <MaterialCommunityIcons
+            name="domain"
+            size={22}
+            color="#FFFFFF"
+          />
+        </View>
+
+        <View
+          style={{
+            flex: 1,
+          }}
+        >
+          <Text
+            style={
+              styles.organizationMainButtonTitle
+            }
+          >
+            Organizations
+          </Text>
+
+          <Text
+            style={
+              styles.organizationMainButtonText
+            }
+          >
+            Create and manage organization environments
+          </Text>
+        </View>
+
+        <MaterialCommunityIcons
+          name="chevron-right"
+          size={21}
+          color="#275D45"
+        />
+      </Pressable>
+
+      {/* PATCH_168A_R3_ORGANIZATION_PORTALS */}
+      {hasMzbPortalAccess && (
+      <View
+        style={
+          styles.organizationPortalSection
+        }
+      >
+        <Text
+          style={
+            styles.organizationPortalEyebrow
+          }
+        >
+          MY ORGANIZATIONS
+        </Text>
+
+        <Pressable
+          onPress={() =>
+            router.push('/mzb/home' as any)
+          }
+          style={({ pressed }) => [
+            styles.organizationPortal,
+            pressed && {
+              opacity: 0.72,
+            },
+          ]}
+        >
+          <View
+            style={
+              styles.organizationPortalIcon
+            }
+          >
+            <MaterialCommunityIcons
+              name="church"
+              size={22}
+              color="#FFFFFF"
+            />
+          </View>
+
+          <View
+            style={{
+              flex: 1,
+            }}
+          >
+            <Text
+              style={
+                styles.organizationPortalTitle
+              }
+            >
+              MZB Ministry
+            </Text>
+
+            <Text
+              style={
+                styles.organizationPortalText
+              }
+            >
+              Open MZB Ministry environment
+            </Text>
+          </View>
+
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={21}
+            color="#275D45"
+          />
+        </Pressable>
+      </View>
+      )}
+{hasMinistryTools && (
+        <DrawerSection
+          title="Ministry & Leadership"
+          subtitle="Tools shown according to your active roles"
+          icon="account-group-outline"
+          open={openSection === 'ministry'}
+          onToggle={() => toggle('ministry')}
+        >
+          {(canLead && !isSystemAdmin) && (
+            <MenuRow
+              icon="view-dashboard-outline"
+              title="Leader Dashboard"
+              subtitle="Member care, clusters and follow-up"
+              onPress={() => router.push('/leader')}
+            />
+          )}
+
+          {isPastor && (
+            <MenuRow
+              icon="check-decagram-outline"
+              title="Formation Validation"
+              subtitle="Validate member lesson completion"
+              onPress={() =>
+                router.push('/leader/formation')
+              }
+            />
+          )}
+          {(isPastor && !isSystemAdmin) && (
+            <>
+              <MenuRow
+                icon="account-group-outline"
+                title="Local Member Management"
+                subtitle="View master records and manage members of your assigned Locals"
+                onPress={() =>
+                  router.push('/admin/local-members' as any)
+                }
+              />
+
+              <MenuRow
+                icon="book-open-variant"
+                title="Local Devotional Assignment"
+                subtitle="Assign a Devotional Series to an individual member or whole Local"
+                onPress={() =>
+                  router.push(
+                    '/admin/local-devotional-assignments' as any
+                  )
+                }
+              />
+            </>
+          )}
+          {isPastor && (
+            <MenuRow
+              icon="book-check-outline"
+              title="Bible Reading Validation"
+              subtitle="Review Bible passage and reflection evidence"
+              onPress={() => router.push('/leader/bible')}
+            />
+          )}
+
+          {(isMentor && !isSystemAdmin) && (
+            <MenuRow
+              icon="account-tie-outline"
+              title="Mentor Dashboard"
+              subtitle="Mentoring and teaching responsibilities"
+              onPress={() => router.push('/mentor')}
+            />
+          )}
+
+          {canLead && (
+            <MenuRow
+              icon="chart-box-outline"
+              title="Reports & Analytics"
+              subtitle="Participation and ministry insights"
+              onPress={() => router.push('/reports')}
+            />
+          )}
+
+          {(canReview && !isSystemAdmin) && (
+            <MenuRow
+              icon="account-check-outline"
+              title="Church Membership Requests"
+              subtitle="Review pending Church membership requests within your authorized scope"
+              onPress={() =>
+                router.push('/admin/approvals')
+              }
+            />
+          )}
+        </DrawerSection>
+      )}
+
+      {isSystemAdmin && (
+        <DrawerSection
+          title="System Administration"
+          subtitle="Executive governance and BUKLOD management"
+          icon="shield-crown-outline"
+          open={openSection === 'admin'}
+          onToggle={() => toggle('admin')}
+        >
+          <View style={styles.adminBanner}>
+            <MaterialCommunityIcons
+              name="shield-check-outline"
+              size={25}
+              color="#275D45"
+            />
+
+            <View style={{ flex: 1 }}>
+              <Text style={styles.adminBannerTitle}>
+                Executive Administration
+              </Text>
+
+              <Text style={styles.adminBannerText}>
+                Organization, formation, users, operations and governance.
+              </Text>
+            </View>
+          </View>
+
+          
+                    
+          {/* PATCH_174A_R2_ADMIN_RECOVERY_MENU */}
+          <MenuRow
+            icon="lock-reset"
+            title="Account Recovery Requests"
+            subtitle="Verify users and issue one-time recovery codes"
+            onPress={() =>
+              router.push('/admin/account-recovery' as any)
+            }
+          />
+<Button
+            title="OPEN BUKLOD ADMIN"
+            onPress={() => router.push('/admin')}
+          />
+        </DrawerSection>
+      )}
+
+      <DrawerSection
+        title="My BUKLOD"
+        subtitle="Account, policy and personal controls"
+        icon="lock-outline"
+        open={openSection === 'account'}
+        onToggle={() => toggle('account')}
+      >
+
+        {/* PATCH_172K_R4_PERSONAL_INFORMATION */}
+        <MenuRow
+          icon="account-edit-outline"
+          title="Edit My Personal Information"
+          subtitle="Update personal details and address for localization"
+          onPress={() =>
+            router.push(
+              '/account/personal-information' as any
+            )
+          }
+        />
+
+
+
+                        <MenuRow
+          icon="crown-outline"
+          title="Paid Features"
+          subtitle="Subscriptions and premium access"
+          onPress={() => router.push('/premium' as any)}
+        />
+        {/* PATCH_173G_R4_PROFILE_STATUS_ENTRY */}
+                {/* PATCH_177E_R2_ATTENDANCE_QR_ENTRY */}
+        <MenuRow
+          icon="qrcode"
+          title="My Attendance QR"
+          subtitle="Show your BUKLOD QR for fast attendance check-in"
+          onPress={() =>
+            router.push(
+              '/profile/attendance-qr' as any
+            )
+          }
+        />
+<MenuRow
+          icon="note-text-outline"
+          title="Profile Note"
+          subtitle="Edit the short note beside your Profile picture"
+          onPress={() =>
+            router.push('/profile/status' as any)
+          }
+        />
+<MenuRow
+          icon="lock-reset"
+          title="Password & Recovery"
+          subtitle="Change password, recovery email and emergency recovery codes"
+          onPress={() =>
+            router.push(
+              '/account/security' as any
+            )
+          }
+        />
+        {/* PATCH_174A_R2_RECOVERY_PIN_MENU */}
+        <MenuRow
+          icon="shield-lock-outline"
+          title="Recovery PIN"
+          subtitle="Create or replace your 6-digit account recovery PIN"
+          onPress={() =>
+            router.push('/account/recovery-pin' as any)
+          }
+        />
+        {/* PATCH_174C_ACCOUNT_DEACTIVATE_MENU */}
+        <MenuRow
+          icon="account-off-outline"
+          title="Deactivate Account"
+          subtitle="Temporarily disable your account and reactivate it later"
+          onPress={() =>
+            router.push('/account/deactivate' as any)
+          }
+        />
+        {/* PATCH_174C_ACCOUNT_DELETE_MENU */}
+        <MenuRow
+          icon="delete-outline"
+          title="Delete Account"
+          subtitle="Permanently delete your BUKLOD account"
+          onPress={() =>
+            router.push('/account/delete' as any)
+          }
+        />
+<MenuRow
+          icon="file-document-outline"
+          title="Privacy Notice"
+          subtitle="Read the BUKLOD privacy notice"
+          onPress={() => router.push('/privacy/notice')}
+        />
+                {isSystemAdmin && (
+          <MenuRow
+            icon="crown-outline"
+            title="Subscription Admin"
+            subtitle="Create paid features and monthly plans"
+            onPress={() => router.push('/system/paid-features' as any)}
+          />
+        )}
+{isSystemAdmin && (
+          
+
+        <MenuRow
+          icon="test-tube"
+          title="Pilot Checklist"
+          subtitle="Review pilot readiness items"
+          onPress={() => router.push('/pilot/checklist')}
+        />
+        )}
+
+        <View style={styles.signOutWrap}>
+          <Button
+            title="SIGN OUT"
+            outline
+            onPress={signOut}
+          />
+        </View>
+      </DrawerSection>
+
+      <Text style={styles.footer}>
+        Samahang Binuklod ng Pag-ibig
+      </Text>
+    
+        {/* BUKLOD_EDUCATION_FACULTY_ENTRY */}
+        <View
+          style={{
+            marginHorizontal: 16,
+            marginTop: 12,
+            marginBottom: 4,
+            borderRadius: 18,
+            backgroundColor: '#ffffff',
+            overflow: 'hidden',
+          }}
+        >
+          <Text
+            onPress={() => router.push('/profile/buklod-faculty' as any)}
+            style={{
+              paddingHorizontal: 18,
+              paddingVertical: 16,
+              color: '#17311f',
+              fontSize: 16,
+              fontWeight: '800',
+            }}
+          >
+            BUKLOD Faculty
+          </Text>
+        </View></ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  content: {
+    paddingTop: 10,
+    paddingBottom: 46,
+    gap: 11,
+  },
+
+  organizationMainButton: {
+    minHeight: 72,
+    borderWidth: 1,
+    borderColor: 'rgba(39,93,69,0.13)',
+    borderRadius: 21,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#FFFFFF',
+    marginBottom: 12,
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.045,
+    shadowRadius: 11,
+    elevation: 2,
+  },
+
+  organizationMainButtonIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#275D45',
+    shadowColor: '#275D45',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.16,
+    shadowRadius: 7,
+    elevation: 2,
+  },
+
+  organizationMainButtonTitle: {
+    fontSize: 13.5,
+    lineHeight: 18,
+    fontWeight: '900',
+    letterSpacing: -0.1,
+    color: '#17231D',
+  },
+
+  organizationMainButtonText: {
+    marginTop: 3,
+    fontSize: 9.5,
+    lineHeight: 13,
+    color: '#6B7280',
+  },
+  organizationPortalSection: {
+    marginBottom: 14,
+  },
+
+  organizationPortalEyebrow: {
+    marginBottom: 7,
+    marginLeft: 4,
+    fontSize: 8.5,
+    fontWeight: '900',
+    letterSpacing: 0.95,
+    color: '#275D45',
+  },
+
+  organizationPortal: {
+    minHeight: 72,
+    borderWidth: 1,
+    borderColor: 'rgba(39,93,69,0.13)',
+    borderRadius: 21,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.045,
+    shadowRadius: 11,
+    elevation: 2,
+  },
+
+  organizationPortalIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#275D45',
+  },
+
+  organizationPortalTitle: {
+    fontSize: 13.5,
+    lineHeight: 18,
+    fontWeight: '900',
+    letterSpacing: -0.1,
+    color: '#17231D',
+  },
+
+  organizationPortalText: {
+    marginTop: 3,
+    fontSize: 9.5,
+    lineHeight: 13,
+    color: '#6B7280',
+  },
+  profileCard: {
+    /* PATCH_174B_R2_PROFILE_STABLE_FOOTPRINT */
+    minHeight: 320,
+    position: 'relative',
+    alignItems: 'center',
+    paddingTop: 25,
+    paddingBottom: 23,
+    paddingHorizontal: 18,
+    marginBottom: 12,
+    borderRadius: 28,
+    backgroundColor: 'rgba(39,93,69,0.055)',
+    borderWidth: 1,
+    borderColor: 'rgba(39,93,69,0.13)',
+    overflow: 'hidden',
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 4,
+  },
+
+  profileCardCover: {
+    ...StyleSheet.absoluteFill,
+    overflow: 'hidden',
+  },
+
+  profileCardBackground: {
+    ...StyleSheet.absoluteFill,
+  },
+
+  profileCardWash: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor:
+      'rgba(0,0,0,0.16)',
+  },
+
+rankTextStrong: {
+    fontSize: 18,
+    lineHeight: 23,
+    fontWeight: '900',
+    letterSpacing: 0.25,
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0,0,0,0.95)',
+    textShadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    textShadowRadius: 7,
+  },
+
+rankPill: {
+    alignSelf: 'flex-start',
+    marginTop: 4,
+    paddingHorizontal: 15,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.45)',
+    backgroundColor: 'rgba(11,93,42,0.92)',
+    shadowColor: '#000000',
+    shadowOpacity: 0.28,
+    shadowRadius: 8,
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    elevation: 5,
+  },
+
+avatarEditBadge: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#275D45',
+    borderWidth: 2.5,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.20,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+
+  avatarHint: {
+    marginTop: 7,
+    fontSize: 9,
+    lineHeight: 12,
+    fontWeight: '900',
+    letterSpacing: 0.15,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.90)',
+    textShadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    textShadowRadius: 4,
+  },
+
+  avatarRing: {
+    padding: 5,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.72)',
+    borderRadius: 64,
+    backgroundColor: '#FFFFFF',
+    zIndex: 2,
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: 5,
+    },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+
+  avatar: {
+    width: 108,
+    height: 108,
+    borderRadius: 54,
+    backgroundColor: '#EEF4F0',
+  },
+
+  name: {
+    marginTop: 14,
+    paddingHorizontal: 8,
+    fontSize: 25,
+    lineHeight: 31,
+    fontWeight: '900',
+    letterSpacing: -0.4,
+    textAlign: 'center',
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0,0,0,0.95)',
+    textShadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    textShadowRadius: 7,
+  },
+
+  identity: {
+    marginTop: 5,
+    fontSize: 10.5,
+    lineHeight: 14,
+    fontWeight: '900',
+    letterSpacing: 1.35,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.95)',
+    textShadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    textShadowRadius: 5,
+  },
+
+  rolesWrap: {
+    marginTop: 14,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 7,
+  },
+
+  roleBadge: {
+    minHeight: 29,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.96)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.72)',
+    justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 1,
+  },
+
+  roleBadgeExecutive: {
+    backgroundColor: '#275D45',
+    borderColor: 'rgba(255,255,255,0.72)',
+  },
+
+  roleText: {
+    fontSize: 10.5,
+    fontWeight: '900',
+    letterSpacing: 0.1,
+    color: '#275D45',
+  },
+
+  roleTextExecutive: {
+    color: '#FFFFFF',
+  },
+
+  executiveLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 5,
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+
+  executiveEyebrow: {
+    fontSize: 9,
+    lineHeight: 12,
+    fontWeight: '900',
+    letterSpacing: 1.5,
+    color: '#7A867F',
+  },
+
+  executiveTitle: {
+    marginTop: 2,
+    fontSize: 23,
+    lineHeight: 29,
+    fontWeight: '900',
+    letterSpacing: -0.35,
+    color: '#1C2822',
+  },
+
+  drawer: {
+    marginBottom: 9,
+    borderWidth: 1,
+    borderColor: 'rgba(25,45,35,0.09)',
+    borderRadius: 21,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.045,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+
+  /* PATCH_153E_1_SECONDARY_DRAWER */
+  drawerHeader: {
+    minHeight: 62,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 13,
+    paddingVertical: 10,
+    gap: 10,
+    backgroundColor: '#FFFFFF',
+  },
+
+  drawerIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EAF4ED',
+    borderWidth: 1,
+    borderColor: 'rgba(39,93,69,0.08)',
+  },
+
+  drawerTitle: {
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '900',
+    letterSpacing: -0.05,
+    color: '#1C2822',
+  },
+
+  drawerSubtitle: {
+    marginTop: 2,
+    fontSize: 10.5,
+    lineHeight: 14,
+    color: '#7A867F',
+  },
+
+  drawerBody: {
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(25,45,35,0.07)',
+    paddingHorizontal: 9,
+    paddingTop: 5,
+    paddingBottom: 7,
+    backgroundColor: '#FCFDFC',
+  },
+
+  menuRow: {
+    minHeight: 54,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 7,
+    paddingVertical: 7,
+    marginVertical: 2,
+    borderRadius: 13,
+    gap: 9,
+    backgroundColor: '#FFFFFF',
+  },
+
+  menuIcon: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+    backgroundColor: '#EFF6F1',
+  },
+
+  menuTitle: {
+    fontSize: 12.5,
+    lineHeight: 16,
+    fontWeight: '900',
+    letterSpacing: -0.03,
+    color: '#25312B',
+  },
+
+  menuSubtitle: {
+    marginTop: 1,
+    fontSize: 9.8,
+    lineHeight: 13,
+    color: '#7A867F',
+  },
+
+  adminBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    marginVertical: 7,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(39,93,69,0.10)',
+    backgroundColor: '#EEF6F1',
+  },
+
+  adminBannerTitle: {
+    fontSize: 13.5,
+    lineHeight: 18,
+    fontWeight: '900',
+    color: '#275D45',
+  },
+
+  adminBannerText: {
+    marginTop: 3,
+    fontSize: 10.5,
+    lineHeight: 15,
+    color: '#66736C',
+  },
+
+  signOutWrap: {
+    paddingTop: 12,
+    paddingHorizontal: 4,
+    paddingBottom: 5,
+  },
+
+  footer: {
+    marginTop: 14,
+    marginBottom: 4,
+    textAlign: 'center',
+    fontSize: 10,
+    lineHeight: 14,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    color: '#909B95',
+  },
+});
+
+
+
+
+
+
+
+
+
+====================================================
+FILE: .\src\app\admin\users.tsx
+====================================================
+import { useCallback, useEffect, useState } from 'react';
+import {
+  Alert,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+import { AdminGate } from '@/components/AdminGate';
+import { shared } from '@/components/UI';
+import { supabase } from '@/lib/supabase';
+import { AppRole, useAuth } from '@/providers/AuthProvider';
+import AdminDeleteAccountButton from '@/components/AdminDeleteAccountButton';
+
+const ROLES: AppRole[] = [
+  'system_admin',
+];
+
+const ROLE_LABELS: Record<AppRole, string> = {
+  member: 'Member',
+  leader: 'Leader',
+  mentor: 'Mentor',
+  pastor: 'Pastor',
+  local_admin: 'Local Admin',
+  system_admin: 'System Admin',
+};
+
+const ROLE_DESCRIPTIONS: Record<AppRole, string> = {
+  member: 'Baseline BUKLOD membership',
+  leader: 'Cluster and member-care leadership',
+  mentor: 'Mentoring and teaching access',
+  pastor: 'Pastoral and formation validation access',
+  local_admin: 'Local church administrative access',
+  system_admin: 'System-wide administrative authority',
+};
+
+type UserItem = {
+  id: string;
+  full_name: string | null;
+  mobile: string | null;
+  role: AppRole;
+  is_active: boolean;
+  church?: {
+    name?: string | null;
+  } | null;
+  roles: AppRole[];
+};
+
+export default function UsersScreen() {
+  const {
+    profile,
+    refreshRoles,
+  } = useAuth();
+
+  const [items, setItems] = useState<UserItem[]>([]);
+  const [busyKey, setBusyKey] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    const [
+      { data: profiles, error: profileError },
+      { data: userRoles, error: rolesError },
+    ] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select(
+          'id,full_name,mobile,role,is_active,church:church_id(name)'
+        )
+        .order('full_name'),
+
+      supabase
+        .from('user_roles')
+        .select('user_id,role,is_active')
+        .eq('is_active', true),
+    ]);
+
+    if (profileError) {
+      Alert.alert('Users', profileError.message);
+      return;
+    }
+
+    if (rolesError) {
+      Alert.alert('Roles', rolesError.message);
+      return;
+    }
+
+    const roleMap = new Map<string, AppRole[]>();
+
+    for (const row of userRoles ?? []) {
+      const role = row.role as AppRole;
+      const current = roleMap.get(row.user_id) ?? [];
+
+      if (!current.includes(role)) {
+        current.push(role);
+      }
+
+      roleMap.set(row.user_id, current);
+    }
+
+    const merged: UserItem[] = (profiles ?? []).map(
+      (user: any) => {
+        const activeRoles =
+          roleMap.get(user.id) ?? [];
+
+        if (
+          !activeRoles.includes('system_admin') &&
+          !activeRoles.includes('member')
+        ) {
+          activeRoles.unshift('member');
+        }
+
+        return {
+          ...user,
+          roles: activeRoles,
+        };
+      }
+    );
+
+    setItems(merged);
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const setRole = async (
+    user: UserItem,
+    role: AppRole,
+    active: boolean
+  ) => {
+    if (role === 'member' && !active) {
+      Alert.alert(
+        'Member role',
+        'Member is the baseline role of every active BUKLOD account.'
+      );
+      return;
+    }
+
+    if (
+      user.id === profile?.id &&
+      role === 'system_admin' &&
+      !active
+    ) {
+      Alert.alert(
+        'Protected account',
+        'You cannot remove your own System Admin role.'
+      );
+      return;
+    }
+
+    const key = `${user.id}:${role}`;
+    setBusyKey(key);
+
+    const { error } = await supabase.rpc(
+      'admin_set_user_role',
+      {
+        p_user_id: user.id,
+        p_role: role,
+        p_active: active,
+      }
+    );
+
+    setBusyKey(null);
+
+    if (error) {
+      Alert.alert(
+        'Role update failed',
+        error.message
+      );
+      return;
+    }
+
+    await load();
+
+    if (user.id === profile?.id) {
+      await refreshRoles();
+    }
+  };
+
+  const setActive = async (
+    user: UserItem,
+    value: boolean
+  ) => {
+    const { error } = await supabase.rpc(
+      'set_user_active',
+      {
+        p_user_id: user.id,
+        p_active: value,
+      }
+    );
+
+    if (error) {
+      Alert.alert(
+        'Status change failed',
+        error.message
+      );
+      return;
+    }
+
+    await load();
+  };
+
+  return (
+    <AdminGate>
+      <FlatList
+        style={shared.screen}
+        contentContainerStyle={styles.content}
+        data={items}
+        keyExtractor={(item) => item.id}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <View style={styles.header}>
+            <Text style={styles.eyebrow}>
+              PEOPLE & ACCESS
+            </Text>
+
+            <Text style={styles.title}>
+              Users & Roles
+            </Text>
+
+            <Text style={styles.subtitle}>
+              One account may hold multiple active roles at the same time.
+              Roles are independent and administrator-controlled.
+            </Text>
+
+            <View style={styles.infoBox}>
+              <MaterialCommunityIcons
+                name="shield-account-outline"
+                size={22}
+                color="#275D45"
+              />
+
+              <Text style={styles.infoText}>
+                App-wide role control now uses System Admin only.
+                Organization, Church and Cluster roles are managed
+                inside their own scopes.
+              </Text>
+            </View>
+          </View>
+        }
+        renderItem={({ item }) => (
+          <View style={styles.userCard}>
+            <View style={styles.userTop}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.userName}>
+                  {item.full_name || 'Unnamed Member'}
+                </Text>
+
+                <Text style={styles.meta}>
+                  {item.church?.name || 'No approved church'}
+                  {'  |  '}
+                  {item.mobile || 'No mobile'}
+                </Text>
+              </View>
+
+              <View style={styles.statusBox}>
+                <Text style={styles.statusLabel}>
+                  ACTIVE
+                </Text>
+
+                <Switch
+                  value={item.is_active}
+                  onValueChange={(value) =>
+                    setActive(item, value)
+                  }
+                  disabled={item.id === profile?.id}
+                />
+              </View>
+            </View>
+
+            <View style={styles.divider} />
+
+            <Text style={styles.roleHeading}>
+              ACTIVE ROLES
+            </Text>
+
+            <View style={styles.rolesGrid}>
+              {ROLES.map((role) => {
+                const active =
+                  role === 'member' ||
+                  item.roles.includes(role);
+
+                const locked =
+                  role === 'member' ||
+                  (
+                    item.id === profile?.id &&
+                    role === 'system_admin'
+                  );
+
+                const busy =
+                  busyKey === `${item.id}:${role}`;
+
+                return (
+                  <Pressable
+                    key={role}
+                    disabled={locked || busy}
+                    onPress={() =>
+                      setRole(
+                        item,
+                        role,
+                        !active
+                      )
+                    }
+                    style={({ pressed }) => [
+                      styles.roleCard,
+                      active && styles.roleCardOn,
+                      locked && styles.roleCardLocked,
+                      pressed && !locked && {
+                        opacity: 0.72,
+                      },
+                    ]}
+                  >
+                    <View style={styles.roleTop}>
+                      <View
+                        style={[
+                          styles.checkBox,
+                          active &&
+                            styles.checkBoxOn,
+                        ]}
+                      >
+                        {active && (
+                          <MaterialCommunityIcons
+                            name="check"
+                            size={15}
+                            color="#FFFFFF"
+                          />
+                        )}
+                      </View>
+
+                      <Text
+                        style={[
+                          styles.roleName,
+                          active &&
+                            styles.roleNameOn,
+                        ]}
+                      >
+                        {ROLE_LABELS[role]}
+                      </Text>
+                    </View>
+
+                    <Text style={styles.roleDescription}>
+                      {ROLE_DESCRIPTIONS[role]}
+                    </Text>
+
+                    {locked && (
+                      <View style={styles.lockRow}>
+                        <MaterialCommunityIcons
+                          name="lock-outline"
+                          size={13}
+                          color="#7A867F"
+                        />
+
+                        <Text style={styles.lockText}>
+                          {role === 'member'
+                            ? 'Baseline role'
+                            : 'Protected'}
+                        </Text>
+                      </View>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <View style={styles.summary}>
+              <Text style={styles.summaryLabel}>
+                CURRENT ACCESS
+              </Text>
+
+              <Text style={styles.summaryText}>
+                {item.roles
+                  .map(
+                    (role) =>
+                      ROLE_LABELS[role]
+                  )
+                  .join('  |  ')}
+              </Text>
+            </View>
+          
+
+            <AdminDeleteAccountButton
+              userId={item.id}
+              userName={
+                item.full_name ||
+                'Unnamed Member'
+              }
+              disabled={
+                busyKey !== null
+              }
+              onDeleted={() =>
+                void load()
+              }
+            />
+</View>
+        )}
+        ListFooterComponent={
+          <View style={{ height: 70 }} />
+        }
+      />
+    </AdminGate>
+  );
+}
+
+const styles = StyleSheet.create({
+  content: {
+    paddingHorizontal: 16,
+    paddingTop: 18,
+
+    // Keeps final controls above the bottom tab/navigation pane.
+    paddingBottom: 130,
+  },
+
+  header: {
+    marginBottom: 18,
+  },
+
+  eyebrow: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1.8,
+    color: '#78857E',
+  },
+
+  title: {
+    marginTop: 4,
+    fontSize: 29,
+    fontWeight: '900',
+    color: '#1C2822',
+  },
+
+  subtitle: {
+    marginTop: 7,
+    fontSize: 13,
+    lineHeight: 19,
+    color: '#6F7C75',
+  },
+
+  infoBox: {
+    marginTop: 15,
+    flexDirection: 'row',
+    gap: 11,
+    alignItems: 'flex-start',
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: 'rgba(39,93,69,0.07)',
+    borderWidth: 1,
+    borderColor: 'rgba(39,93,69,0.12)',
+  },
+
+  infoText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 17,
+    color: '#526159',
+  },
+
+  userCard: {
+    marginBottom: 15,
+    padding: 16,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: 'rgba(25,45,35,0.10)',
+  },
+
+  userTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+
+  userName: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#1D2923',
+  },
+
+  meta: {
+    marginTop: 4,
+    fontSize: 11.5,
+    lineHeight: 16,
+    color: '#7C8881',
+  },
+
+  statusBox: {
+    alignItems: 'center',
+  },
+
+  statusLabel: {
+    marginBottom: 2,
+    fontSize: 8,
+    fontWeight: '900',
+    letterSpacing: 1,
+    color: '#87918C',
+  },
+
+  divider: {
+    height: 1,
+    marginVertical: 14,
+    backgroundColor: 'rgba(25,45,35,0.08)',
+  },
+
+  roleHeading: {
+    marginBottom: 10,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1.4,
+    color: '#738078',
+  },
+
+  rolesGrid: {
+    gap: 8,
+  },
+
+  roleCard: {
+    paddingHorizontal: 13,
+    paddingVertical: 11,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(25,45,35,0.10)',
+    backgroundColor: '#FAFBFA',
+  },
+
+  roleCardOn: {
+    borderColor: 'rgba(39,93,69,0.35)',
+    backgroundColor: 'rgba(39,93,69,0.065)',
+  },
+
+  roleCardLocked: {
+    opacity: 0.82,
+  },
+
+  roleTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+  },
+
+  checkBox: {
+    width: 22,
+    height: 22,
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#B9C1BD',
+    backgroundColor: '#FFFFFF',
+  },
+
+  checkBoxOn: {
+    borderColor: '#275D45',
+    backgroundColor: '#275D45',
+  },
+
+  roleName: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#536058',
+  },
+
+  roleNameOn: {
+    color: '#275D45',
+  },
+
+  roleDescription: {
+    marginTop: 5,
+    marginLeft: 31,
+    fontSize: 11,
+    lineHeight: 15,
+    color: '#839088',
+  },
+
+  lockRow: {
+    marginTop: 6,
+    marginLeft: 31,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+
+  lockText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#7A867F',
+  },
+
+  summary: {
+    marginTop: 13,
+    paddingTop: 11,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(25,45,35,0.07)',
+  },
+
+  summaryLabel: {
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 1.2,
+    color: '#849089',
+  },
+
+  summaryText: {
+    marginTop: 4,
+    fontSize: 11.5,
+    fontWeight: '700',
+    lineHeight: 17,
+    color: '#536058',
+  },
+});
+
+
+====================================================
+FILE: .\supabase\migrations\20260810013200_multi_role_accounts.sql
+====================================================
+-- ============================================================================
+-- BUKLOD MULTI-ROLE ACCOUNT MODEL
+-- Migration 33
+--
+-- One account may hold multiple simultaneous active roles.
+-- profiles.role is retained only for backward compatibility.
+-- ============================================================================
+
+
+create table if not exists public.user_roles (
+  user_id uuid not null
+    references public.profiles(id)
+    on delete cascade,
+
+  role text not null
+    check (
+      role in (
+        'member',
+        'leader',
+        'mentor',
+        'pastor',
+        'local_admin',
+        'system_admin'
+      )
+    ),
+
+  is_active boolean not null default true,
+
+  granted_by uuid
+    references public.profiles(id)
+    on delete set null,
+
+  granted_at timestamptz not null default now(),
+
+  revoked_by uuid
+    references public.profiles(id)
+    on delete set null,
+
+  revoked_at timestamptz,
+
+  primary key (user_id, role)
+);
+create index if not exists
+user_roles_active_idx
+on public.user_roles(user_id, role)
+where is_active = true;
+-- Seed every active account as a member.
+insert into public.user_roles (
+  user_id,
+  role,
+  is_active,
+  granted_at
+)
+select
+  p.id,
+  'member',
+  true,
+  now()
+from public.profiles p
+where p.is_active = true
+on conflict (user_id, role)
+do update set
+  is_active = true,
+  revoked_by = null,
+  revoked_at = null;
+-- Preserve existing primary roles as active multi-roles.
+insert into public.user_roles (
+  user_id,
+  role,
+  is_active,
+  granted_at
+)
+select
+  p.id,
+  p.role::text,
+  true,
+  now()
+from public.profiles p
+where p.is_active = true
+  and p.role::text in (
+    'member',
+    'leader',
+    'pastor',
+    'local_admin',
+    'system_admin'
+  )
+on conflict (user_id, role)
+do update set
+  is_active = true,
+  revoked_by = null,
+  revoked_at = null;
+-- Preserve existing mentor/pastor capabilities.
+insert into public.user_roles (
+  user_id,
+  role,
+  is_active,
+  granted_by,
+  granted_at
+)
+select
+  uc.user_id,
+  uc.capability,
+  uc.is_active,
+  uc.granted_by,
+  uc.granted_at
+from public.user_capabilities uc
+where uc.capability in ('mentor','pastor')
+on conflict (user_id, role)
+do update set
+  is_active = excluded.is_active,
+  granted_by = excluded.granted_by,
+  granted_at = excluded.granted_at;
+-- ============================================================================
+-- ROLE CHECK HELPER
+-- ============================================================================
+
+create or replace function public.has_app_role(
+  p_user_id uuid,
+  p_role text
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select
+    p_user_id is not null
+    and p_role in (
+      'member',
+      'leader',
+      'mentor',
+      'pastor',
+      'local_admin',
+      'system_admin'
+    )
+    and exists (
+      select 1
+      from public.profiles p
+      where p.id = p_user_id
+        and p.is_active = true
+    )
+    and (
+      p_role = 'member'
+
+      or exists (
+        select 1
+        from public.user_roles ur
+        where ur.user_id = p_user_id
+          and ur.role = p_role
+          and ur.is_active = true
+      )
+
+      -- Legacy fallback while older policies are migrated.
+      or exists (
+        select 1
+        from public.profiles p
+        where p.id = p_user_id
+          and p.role::text = p_role
+      )
+    );
+$$;
+revoke all on function
+public.has_app_role(uuid,text)
+from public;
+grant execute on function
+public.has_app_role(uuid,text)
+to authenticated;
+-- ============================================================================
+-- ADMIN ROLE MANAGEMENT
+-- ============================================================================
+
+create or replace function public.admin_set_user_role(
+  p_user_id uuid,
+  p_role text,
+  p_active boolean
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  actor uuid := (select auth.uid());
+begin
+
+  if actor is null then
+    raise exception 'Authentication required';
+  end if;
+
+  if not public.is_system_admin() then
+    raise exception 'System Admin access required';
+  end if;
+
+  if p_role not in (
+    'member',
+    'leader',
+    'mentor',
+    'pastor',
+    'local_admin',
+    'system_admin'
+  ) then
+    raise exception 'Invalid BUKLOD role';
+  end if;
+
+
+  -- Every active BUKLOD account remains a member.
+  if p_role = 'member' and p_active = false then
+    raise exception
+      'Member is the baseline role of an active BUKLOD account';
+  end if;
+
+
+  -- Prevent accidental removal of own System Admin access.
+  if p_user_id = actor
+     and p_role = 'system_admin'
+     and p_active = false then
+    raise exception
+      'You cannot remove your own System Admin role';
+  end if;
+
+
+  insert into public.user_roles (
+    user_id,
+    role,
+    is_active,
+    granted_by,
+    granted_at,
+    revoked_by,
+    revoked_at
+  )
+  values (
+    p_user_id,
+    p_role,
+    p_active,
+    case when p_active then actor else null end,
+    case when p_active then now() else now() end,
+    case when p_active then null else actor end,
+    case when p_active then null else now() end
+  )
+
+  on conflict (user_id, role)
+  do update set
+    is_active = excluded.is_active,
+
+    granted_by =
+      case
+        when excluded.is_active
+        then actor
+        else public.user_roles.granted_by
+      end,
+
+    granted_at =
+      case
+        when excluded.is_active
+        then now()
+        else public.user_roles.granted_at
+      end,
+
+    revoked_by =
+      case
+        when excluded.is_active
+        then null
+        else actor
+      end,
+
+    revoked_at =
+      case
+        when excluded.is_active
+        then null
+        else now()
+      end;
+
+
+  -- Keep legacy capability records synchronized
+  -- during the transition.
+  if p_role in ('mentor','pastor') then
+
+    insert into public.user_capabilities (
+      user_id,
+      capability,
+      granted_by,
+      granted_at,
+      is_active
+    )
+    values (
+      p_user_id,
+      p_role,
+      actor,
+      now(),
+      p_active
+    )
+
+    on conflict (user_id, capability)
+    do update set
+      is_active = excluded.is_active,
+      granted_by = actor,
+      granted_at =
+        case
+          when excluded.is_active
+          then now()
+          else public.user_capabilities.granted_at
+        end;
+
+  end if;
+
+end;
+$$;
+revoke all on function
+public.admin_set_user_role(uuid,text,boolean)
+from public;
+grant execute on function
+public.admin_set_user_role(uuid,text,boolean)
+to authenticated;
+-- ============================================================================
+-- RLS
+-- ============================================================================
+
+alter table public.user_roles
+enable row level security;
+drop policy if exists
+"Users read own roles"
+on public.user_roles;
+create policy
+"Users read own roles"
+on public.user_roles
+for select
+to authenticated
+using (
+  user_id = (select auth.uid())
+  or public.is_system_admin()
+);
+revoke all on public.user_roles
+from authenticated;
+grant select on public.user_roles
+to authenticated;
+
+====================================================
+FILE: .\supabase\migrations\20260810010100_initial_rls.sql
+====================================================
+-- BUKLOD 1.0
+-- 02_rls.sql
+-- Role-aware RLS. Test in staging before production.
+
+-- Helper functions use SECURITY DEFINER to avoid policy recursion.
+create or replace function public.current_role()
+returns public.app_role
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select coalesce(
+    (select p.role from public.profiles p where p.id = (select auth.uid())),
+    'member'::public.app_role
+  );
+$$;
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select public.current_role() in ('system_admin','local_admin','pastor');
+$$;
+create or replace function public.is_system_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select public.current_role() = 'system_admin';
+$$;
+create or replace function public.my_church_id()
+returns uuid
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select p.church_id from public.profiles p where p.id = (select auth.uid());
+$$;
+create or replace function public.is_group_member(target_group uuid, target_user uuid default null)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1 from public.group_members gm
+    where gm.group_id = target_group
+      and gm.user_id = coalesce(target_user, (select auth.uid()))
+      and gm.is_active = true
+  );
+$$;
+create or replace function public.can_manage_group(target_group uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.buklod_groups g
+    where g.id = target_group
+      and (
+        g.leader_id = (select auth.uid())
+        or public.is_system_admin()
+        or (
+          public.current_role() in ('pastor','local_admin')
+          and g.church_id = public.my_church_id()
+        )
+      )
+  );
+$$;
+create or replace function public.can_view_profile(target_user uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select
+    target_user = (select auth.uid())
+    or public.is_system_admin()
+    or (
+      public.current_role() in ('pastor','local_admin')
+      and exists (
+        select 1 from public.profiles p
+        where p.id = target_user and p.church_id = public.my_church_id()
+      )
+    )
+    or exists (
+      select 1
+      from public.group_members mine
+      join public.buklod_groups g on g.id = mine.group_id
+      join public.group_members theirs on theirs.group_id = mine.group_id
+      where mine.user_id = (select auth.uid())
+        and theirs.user_id = target_user
+        and (
+          g.leader_id = (select auth.uid())
+          or target_user = (select auth.uid())
+        )
+    );
+$$;
+grant execute on function public.current_role() to authenticated;
+grant execute on function public.is_admin() to authenticated;
+grant execute on function public.is_system_admin() to authenticated;
+grant execute on function public.my_church_id() to authenticated;
+grant execute on function public.is_group_member(uuid, uuid) to authenticated;
+grant execute on function public.can_manage_group(uuid) to authenticated;
+grant execute on function public.can_view_profile(uuid) to authenticated;
+-- Enable RLS
+alter table public.churches enable row level security;
+alter table public.profiles enable row level security;
+alter table public.buklod_groups enable row level security;
+alter table public.group_members enable row level security;
+alter table public.devotional_series enable row level security;
+alter table public.devotionals enable row level security;
+alter table public.devotional_completions enable row level security;
+alter table public.reflections enable row level security;
+alter table public.prayer_requests enable row level security;
+alter table public.prayer_responses enable row level security;
+alter table public.community_posts enable row level security;
+alter table public.comments enable row level security;
+alter table public.reactions enable row level security;
+alter table public.follow_ups enable row level security;
+alter table public.announcements enable row level security;
+alter table public.notifications enable row level security;
+alter table public.device_tokens enable row level security;
+alter table public.audit_logs enable row level security;
+-- CHURCHES
+create policy "Authenticated users can view active churches"
+on public.churches for select to authenticated
+using (is_active = true or public.is_system_admin());
+create policy "System admin manages churches"
+on public.churches for all to authenticated
+using (public.is_system_admin())
+with check (public.is_system_admin());
+-- PROFILES
+create policy "Users and authorized leaders can view profiles"
+on public.profiles for select to authenticated
+using (public.can_view_profile(id));
+create policy "Users update own basic profile"
+on public.profiles for update to authenticated
+using (id = (select auth.uid()))
+with check (
+  id = (select auth.uid())
+  and role = (select p.role from public.profiles p where p.id = (select auth.uid()))
+);
+create policy "System admin manages profiles"
+on public.profiles for all to authenticated
+using (public.is_system_admin())
+with check (public.is_system_admin());
+-- GROUPS
+create policy "Members can view their groups; church leaders can view church groups"
+on public.buklod_groups for select to authenticated
+using (
+  public.is_group_member(id)
+  or public.can_manage_group(id)
+  or public.is_system_admin()
+);
+create policy "Authorized leaders manage groups"
+on public.buklod_groups for update to authenticated
+using (public.can_manage_group(id))
+with check (public.can_manage_group(id));
+create policy "System admin creates/deletes groups"
+on public.buklod_groups for all to authenticated
+using (public.is_system_admin())
+with check (public.is_system_admin());
+-- GROUP MEMBERS
+create policy "Group participants can view membership"
+on public.group_members for select to authenticated
+using (
+  user_id = (select auth.uid())
+  or public.is_group_member(group_id)
+  or public.can_manage_group(group_id)
+);
+create policy "Group managers manage membership"
+on public.group_members for all to authenticated
+using (public.can_manage_group(group_id))
+with check (public.can_manage_group(group_id));
+-- DEVOTIONAL SERIES
+create policy "Published series are readable"
+on public.devotional_series for select to authenticated
+using (is_published = true or public.is_admin());
+create policy "Admins manage series"
+on public.devotional_series for all to authenticated
+using (public.is_admin())
+with check (public.is_admin());
+-- DEVOTIONALS
+create policy "Published devotionals are readable"
+on public.devotionals for select to authenticated
+using (is_published = true or public.is_admin());
+create policy "Admins manage devotionals"
+on public.devotionals for all to authenticated
+using (public.is_admin())
+with check (public.is_admin());
+-- COMPLETIONS
+create policy "Users read own completions; leaders read managed members"
+on public.devotional_completions for select to authenticated
+using (
+  user_id = (select auth.uid())
+  or public.can_view_profile(user_id)
+);
+create policy "Users create own completion"
+on public.devotional_completions for insert to authenticated
+with check (user_id = (select auth.uid()));
+create policy "Users update own completion"
+on public.devotional_completions for update to authenticated
+using (user_id = (select auth.uid()))
+with check (user_id = (select auth.uid()));
+-- REFLECTIONS
+create policy "Reflection visibility"
+on public.reflections for select to authenticated
+using (
+  user_id = (select auth.uid())
+  or public.is_system_admin()
+  or (
+    privacy = 'leader'
+    and exists (
+      select 1
+      from public.group_members gm
+      join public.buklod_groups g on g.id = gm.group_id
+      where gm.user_id = reflections.user_id
+        and g.leader_id = (select auth.uid())
+    )
+  )
+  or (
+    privacy = 'group'
+    and exists (
+      select 1
+      from public.group_members author_gm
+      join public.group_members viewer_gm on viewer_gm.group_id = author_gm.group_id
+      where author_gm.user_id = reflections.user_id
+        and viewer_gm.user_id = (select auth.uid())
+        and viewer_gm.is_active = true
+    )
+  )
+  or (
+    privacy = 'church'
+    and exists (
+      select 1 from public.profiles author_p
+      where author_p.id = reflections.user_id
+        and author_p.church_id = public.my_church_id()
+    )
+  )
+);
+create policy "Users create own reflections"
+on public.reflections for insert to authenticated
+with check (user_id = (select auth.uid()));
+create policy "Users update own reflections"
+on public.reflections for update to authenticated
+using (user_id = (select auth.uid()))
+with check (user_id = (select auth.uid()));
+create policy "Users delete own reflections"
+on public.reflections for delete to authenticated
+using (user_id = (select auth.uid()));
+-- PRAYERS
+create policy "Prayer visibility"
+on public.prayer_requests for select to authenticated
+using (
+  user_id = (select auth.uid())
+  or public.is_system_admin()
+  or (
+    privacy = 'leader'
+    and exists (
+      select 1
+      from public.group_members gm
+      join public.buklod_groups g on g.id = gm.group_id
+      where gm.user_id = prayer_requests.user_id
+        and g.leader_id = (select auth.uid())
+    )
+  )
+  or (
+    privacy = 'group'
+    and exists (
+      select 1
+      from public.group_members author_gm
+      join public.group_members viewer_gm on viewer_gm.group_id = author_gm.group_id
+      where author_gm.user_id = prayer_requests.user_id
+        and viewer_gm.user_id = (select auth.uid())
+        and viewer_gm.is_active = true
+    )
+  )
+  or (
+    privacy = 'church'
+    and exists (
+      select 1 from public.profiles p
+      where p.id = prayer_requests.user_id
+        and p.church_id = public.my_church_id()
+    )
+  )
+);
+create policy "Users create own prayers"
+on public.prayer_requests for insert to authenticated
+with check (user_id = (select auth.uid()));
+create policy "Users update own prayers"
+on public.prayer_requests for update to authenticated
+using (user_id = (select auth.uid()))
+with check (user_id = (select auth.uid()));
+create policy "Users delete own prayers"
+on public.prayer_requests for delete to authenticated
+using (user_id = (select auth.uid()));
+create policy "Visible prayer responses are readable"
+on public.prayer_responses for select to authenticated
+using (
+  user_id = (select auth.uid())
+  or exists (
+    select 1 from public.prayer_requests pr
+    where pr.id = prayer_request_id
+      and (
+        pr.user_id = (select auth.uid())
+        or pr.privacy <> 'private'
+      )
+  )
+);
+create policy "Users record own prayer response"
+on public.prayer_responses for insert to authenticated
+with check (user_id = (select auth.uid()));
+create policy "Users remove own prayer response"
+on public.prayer_responses for delete to authenticated
+using (user_id = (select auth.uid()));
+-- COMMUNITY POSTS
+create policy "Group/church posts readable by audience"
+on public.community_posts for select to authenticated
+using (
+  is_hidden = false
+  and (
+    (group_id is not null and public.is_group_member(group_id))
+    or
+    (church_id is not null and church_id = public.my_church_id())
+    or public.is_system_admin()
+  )
+);
+create policy "Members create posts within their audience"
+on public.community_posts for insert to authenticated
+with check (
+  user_id = (select auth.uid())
+  and (
+    (group_id is not null and public.is_group_member(group_id))
+    or
+    (church_id is not null and church_id = public.my_church_id())
+  )
+);
+create policy "Authors update own posts"
+on public.community_posts for update to authenticated
+using (user_id = (select auth.uid()) or public.is_admin())
+with check (user_id = (select auth.uid()) or public.is_admin());
+create policy "Authors/admins delete posts"
+on public.community_posts for delete to authenticated
+using (user_id = (select auth.uid()) or public.is_admin());
+-- COMMENTS
+create policy "Comments readable when post is visible"
+on public.comments for select to authenticated
+using (
+  is_hidden = false
+  and exists (
+    select 1 from public.community_posts p
+    where p.id = post_id
+      and (
+        (p.group_id is not null and public.is_group_member(p.group_id))
+        or (p.church_id is not null and p.church_id = public.my_church_id())
+        or public.is_system_admin()
+      )
+  )
+);
+create policy "Users comment on visible posts"
+on public.comments for insert to authenticated
+with check (
+  user_id = (select auth.uid())
+  and exists (
+    select 1 from public.community_posts p
+    where p.id = post_id
+      and (
+        (p.group_id is not null and public.is_group_member(p.group_id))
+        or (p.church_id is not null and p.church_id = public.my_church_id())
+      )
+  )
+);
+create policy "Authors/admins modify comments"
+on public.comments for update to authenticated
+using (user_id = (select auth.uid()) or public.is_admin())
+with check (user_id = (select auth.uid()) or public.is_admin());
+create policy "Authors/admins delete comments"
+on public.comments for delete to authenticated
+using (user_id = (select auth.uid()) or public.is_admin());
+-- REACTIONS
+create policy "Reactions readable when post is visible"
+on public.reactions for select to authenticated
+using (
+  exists (
+    select 1 from public.community_posts p
+    where p.id = post_id
+      and (
+        (p.group_id is not null and public.is_group_member(p.group_id))
+        or (p.church_id is not null and p.church_id = public.my_church_id())
+        or public.is_system_admin()
+      )
+  )
+);
+create policy "Users add own reactions"
+on public.reactions for insert to authenticated
+with check (user_id = (select auth.uid()));
+create policy "Users remove own reactions"
+on public.reactions for delete to authenticated
+using (user_id = (select auth.uid()));
+-- FOLLOW UPS
+create policy "Member and authorized leader read followups"
+on public.follow_ups for select to authenticated
+using (
+  member_id = (select auth.uid())
+  or leader_id = (select auth.uid())
+  or (group_id is not null and public.can_manage_group(group_id))
+  or public.is_system_admin()
+);
+create policy "Authorized leaders create followups"
+on public.follow_ups for insert to authenticated
+with check (
+  leader_id = (select auth.uid())
+  and (
+    (group_id is not null and public.can_manage_group(group_id))
+    or public.current_role() in ('pastor','local_admin','system_admin')
+  )
+);
+create policy "Authorized leaders update followups"
+on public.follow_ups for update to authenticated
+using (
+  leader_id = (select auth.uid())
+  or (group_id is not null and public.can_manage_group(group_id))
+  or public.is_system_admin()
+)
+with check (
+  leader_id = (select auth.uid())
+  or (group_id is not null and public.can_manage_group(group_id))
+  or public.is_system_admin()
+);
+-- ANNOUNCEMENTS
+create policy "Audience reads announcements"
+on public.announcements for select to authenticated
+using (
+  (group_id is not null and public.is_group_member(group_id))
+  or (church_id is not null and church_id = public.my_church_id())
+  or public.is_system_admin()
+);
+create policy "Authorized leaders manage announcements"
+on public.announcements for all to authenticated
+using (
+  author_id = (select auth.uid())
+  or (group_id is not null and public.can_manage_group(group_id))
+  or public.is_admin()
+)
+with check (
+  author_id = (select auth.uid())
+  and (
+    (group_id is not null and public.can_manage_group(group_id))
+    or
+    (church_id is not null and church_id = public.my_church_id()
+      and public.current_role() in ('pastor','local_admin','system_admin'))
+  )
+);
+-- NOTIFICATIONS
+create policy "Users read own notifications"
+on public.notifications for select to authenticated
+using (user_id = (select auth.uid()));
+create policy "Users mark own notifications read"
+on public.notifications for update to authenticated
+using (user_id = (select auth.uid()))
+with check (user_id = (select auth.uid()));
+-- DEVICE TOKENS
+create policy "Users manage own device tokens"
+on public.device_tokens for all to authenticated
+using (user_id = (select auth.uid()))
+with check (user_id = (select auth.uid()));
+-- AUDIT LOGS: only system admin can read through the client API.
+create policy "System admin reads audit logs"
+on public.audit_logs for select to authenticated
+using (public.is_system_admin());
+-- Explicit table grants for authenticated users; RLS still filters rows.
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on all tables in schema public to authenticated;
+grant usage, select on all sequences in schema public to authenticated;
+
+====================================================
+AUTH / ACCESS DEFINITIONS
+====================================================
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\home.tsx:54: import { useBuklodAccess } from '@/hooks/useBuklodAccess';
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\home.tsx:187: const { profile, hasRole } = useAuth();
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\home.tsx:267: hasRole('system_admin') ||
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\home.tsx:268: hasRole('pastor') ||
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\home.tsx:269: hasRole('local_admin');
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\home.tsx:1135: const { hasEntitlement } = useBuklodAccess();
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\home.tsx:3901: hasRole,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\home.tsx:4038: hasRole(
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\learn.tsx:104: const { user , hasRole} = useAuth();
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\learn.tsx:107: const canManageLearning = hasRole('system_admin');
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\me.tsx:25: import { AppRole, useAuth } from '@/providers/AuthProvider';
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\me.tsx:27: import { useBuklodAccess } from '@/hooks/useBuklodAccess';
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\me.tsx:42: function roleLabel(role: AppRole) {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\me.tsx:43: const labels: Record<AppRole, string> = {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\me.tsx:177: hasRole,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\me.tsx:178: hasAnyRole,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\me.tsx:303: hasRole('system_admin');
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\me.tsx:305: const { hasEntitlement } = useBuklodAccess();
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\me.tsx:826: const isSystemAdmin = hasRole('system_admin');
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\me.tsx:827: const isPastor = hasRole('pastor');
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\me.tsx:828: const isMentor = hasRole('mentor');
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\me.tsx:830: const canLead = hasAnyRole([
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\me.tsx:837: const canReview = hasAnyRole([
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\group\[id].tsx:90: hasAnyRole,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\group\[id].tsx:91: hasRole,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\group\[id].tsx:96: hasAnyRole([
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\group\[id].tsx:104: hasRole('system_admin');
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\member\[id].tsx:88: const { hasAnyRole, hasRole } = useAuth();
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\member\[id].tsx:90: const allowed = hasAnyRole([
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\member\[id].tsx:97: hasRole('system_admin');
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\account-recovery.tsx:28: const { hasRole } = useAuth();
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\account-recovery.tsx:53: if (hasRole('system_admin')) {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\account-recovery.tsx:58: }, [hasRole, load]);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\account-recovery.tsx:89: if (!hasRole('system_admin')) {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\approvals.tsx:29: const { hasRole } = useAuth();
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\approvals.tsx:32: hasRole('system_admin');
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\approvals.tsx:37: hasRole('pastor') ||
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\approvals.tsx:38: hasRole('local_admin');
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\dev-role-lab.tsx:111: const { roles, hasRole } = useAuth();
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\dev-role-lab.tsx:129: const isSystemAdmin = hasRole('system_admin');
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\groups.tsx:64: hasAnyRole,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\groups.tsx:65: hasRole,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\groups.tsx:68: const allowed = hasAnyRole([
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\groups.tsx:75: hasRole('system_admin');
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\home-reminder.tsx:39: hasRole,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\home-reminder.tsx:180: !hasRole(
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\local-devotional-assignments.tsx:44: const { hasAnyRole } = useAuth();
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\local-devotional-assignments.tsx:46: const allowed = hasAnyRole([
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\local-members.tsx:43: const { hasAnyRole } = useAuth();
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\local-members.tsx:45: const allowed = hasAnyRole([
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\member-master.tsx:20: import { AppRole, useAuth } from '@/providers/AuthProvider';
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\member-master.tsx:23: type FilterRole = 'all' | AppRole;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\member-master.tsx:25: const ROLE_LABELS: Record<AppRole, string> = {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\member-master.tsx:301: const map = new Map<string, AppRole[]>();
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\member-master.tsx:309: const role = row.role as AppRole;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\member-master.tsx:316: const legacy = person.role as AppRole;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\member-master.tsx:422: Assignment: ROLE_LABELS[role.role as AppRole] || role.role,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\member-master.tsx:702: for (const role of ROLE_OPTIONS.filter((role) => role !== 'all') as AppRole[]) {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\mission-bulletins.tsx:240: hasRole,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\mission-bulletins.tsx:244: hasRole('system_admin');
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\mission-bulletins.tsx:248: hasRole('pastor') ||
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\mission-bulletins.tsx:249: hasRole('local_admin');
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\users.tsx:16: import { AppRole, useAuth } from '@/providers/AuthProvider';
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\users.tsx:19: const ROLES: AppRole[] = [
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\users.tsx:23: const ROLE_LABELS: Record<AppRole, string> = {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\users.tsx:32: const ROLE_DESCRIPTIONS: Record<AppRole, string> = {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\users.tsx:45: role: AppRole;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\users.tsx:50: roles: AppRole[];
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\users.tsx:90: const roleMap = new Map<string, AppRole[]>();
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\users.tsx:93: const role = row.role as AppRole;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\users.tsx:131: role: AppRole,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\church\event\[id].tsx:11: const {user,profile,hasAnyRole}=useAuth();
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\church\event\[id].tsx:57: const canManage=hasAnyRole(['pastor','local_admin','system_admin','leader']);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\church\household\index.tsx:9: const {profile,user,hasAnyRole}=useAuth();
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\church\household\index.tsx:13: const canManage=hasAnyRole(['pastor','local_admin','system_admin']);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\church\member\[id].tsx:10: const {profile,hasAnyRole}=useAuth();
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\church\member\[id].tsx:35: const pastoral=hasAnyRole(['pastor','local_admin','system_admin']);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\leader\formation.tsx:12: const {hasRole}=useAuth(); const allowed=hasRole('pastor')||hasRole('system_admin');
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\leader\index.tsx:10: const {hasAnyRole}=useAuth();
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\leader\index.tsx:15: const allowed=hasAnyRole(['leader','pastor','local_admin','system_admin']);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\mentor\index.tsx:9: const {hasRole}=useAuth();
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\mentor\index.tsx:20: const canMentor=hasRole('mentor');
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\reports\index.tsx:15: const {profile,hasRole,hasAnyRole}=useAuth();
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\reports\index.tsx:24: const isSystem=hasRole('system_admin');
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\reports\index.tsx:25: const isChurchLeader=hasAnyRole(['pastor','local_admin','system_admin']);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\attendance\index.tsx:18: import { useBuklodAccess } from '@/hooks/useBuklodAccess';
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\attendance\index.tsx:90: const { isAdmin } = useBuklodAccess();
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:11: import { useBuklodAccess } from '@/hooks/useBuklodAccess';
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:107: } = useBuklodAccess();
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\AdminGate.tsx:14: const { loading, hasRole } = useAuth();
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\AdminGate.tsx:29: if (!hasRole('system_admin')) {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BibleReadingMonitor.tsx:172: hasRole,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BibleReadingMonitor.tsx:237: hasRole('system_admin')
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BibleReadingMonitor.tsx:239: : hasRole('mentor')
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodClusterHomeCommandCenter.tsx:10: import{useBuklodAccess}from'@/hooks/useBuklodAccess';
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodClusterHomeCommandCenter.tsx:42: const{user}=useAuth();const{isAdmin}=useBuklodAccess();
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodEntitlementGate.tsx:8: useBuklodAccess,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodEntitlementGate.tsx:9: } from '@/hooks/useBuklodAccess';
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodEntitlementGate.tsx:23: } = useBuklodAccess();
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodEntitlementRouteGuard.tsx:17: useBuklodAccess,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodEntitlementRouteGuard.tsx:18: } from '@/hooks/useBuklodAccess';
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodEntitlementRouteGuard.tsx:61: } = useBuklodAccess();
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\hooks\useBuklodAccess.ts:14: scopeHasRole,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\hooks\useBuklodAccess.ts:18: export function useBuklodAccess() {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\hooks\useBuklodAccess.ts:19: const { hasRole: hasAppRole } = useAuth();
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\hooks\useBuklodAccess.ts:27: hasAppRole('system_admin');
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\hooks\useBuklodAccess.ts:35: const hasRole =
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\hooks\useBuklodAccess.ts:39: scopeHasRole(activeScope, role),
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\hooks\useBuklodAccess.ts:80: hasRole,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\lib\buklodAccess.ts:43: export function scopeHasRole(
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\AuthProvider.tsx:5: export type AppRole =
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\AuthProvider.tsx:40: role: AppRole;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\AuthProvider.tsx:51: roles: AppRole[];
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\AuthProvider.tsx:56: hasRole: (role: AppRole) => boolean;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\AuthProvider.tsx:57: hasAnyRole: (rolesToCheck: AppRole[]) => boolean;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\AuthProvider.tsx:66: const VALID_ROLES: AppRole[] = [
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\AuthProvider.tsx:75: const LEADERSHIP_ROLES: AppRole[] = [
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\AuthProvider.tsx:92: const [roles, setRoles] = useState<AppRole[]>([]);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\AuthProvider.tsx:100: legacyRole?: AppRole | null
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\AuthProvider.tsx:101: ): Promise<AppRole[]> => {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\AuthProvider.tsx:117: const fallback: AppRole[] =
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\AuthProvider.tsx:137: .map((row: any) => row.role as AppRole)
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\AuthProvider.tsx:138: .filter((role: AppRole) => VALID_ROLES.includes(role))
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\AuthProvider.tsx:157: _activeRoles: AppRole[] = []
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\AuthProvider.tsx:275: const hasRole = (role: AppRole) =>
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\AuthProvider.tsx:278: const hasAnyRole = (
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\AuthProvider.tsx:279: rolesToCheck: AppRole[]
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\AuthProvider.tsx:293: hasRole,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\AuthProvider.tsx:294: hasAnyRole,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\AuthProvider.tsx:338: export function useAuth() {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\types\app.ts:1: export type AppRole = 'member' | 'leader' | 'pastor' | 'local_admin' | 'system_admin';
+
+====================================================
+SCOPE DEFINITIONS
+====================================================
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\buklod.tsx:478: activeScope,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\buklod.tsx:500: if(!activeScope){
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\buklod.tsx:534: if(activeScope.scope_type!=='PUBLIC'){
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\buklod.tsx:561: activeScope,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\home.tsx:188: const { activeScope } = useBuklodScope();
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\home.tsx:189: const showFaithContent = Boolean(activeScope?.show_faith_content);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\me.tsx:262: scope?.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\me.tsx:264: scope?.membership_status ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\messages.tsx:36: scope_type: 'LOCAL' | 'CLUSTER' | 'CHURCH' | 'ORGANIZATION';
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\messages.tsx:457: const iconFor = (type: CommunityRoom['scope_type']) =>
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\messages.tsx:813: name={iconFor(item.scope_type) as any}
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\messages.tsx:821: {item.scope_type === 'LOCAL' ? 'BARANGAY' : item.scope_type}
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\_layout.tsx:215: const { activeScope } = useBuklodScope();
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\(tabs)\_layout.tsx:216: const showPrayer = Boolean(activeScope?.show_faith_content);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\dev-role-lab.tsx:28: type ScopeRow = {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\dev-role-lab.tsx:30: scope_type: string;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\dev-role-lab.tsx:35: membership_status?: string | null;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\dev-role-lab.tsx:37: is_admin: boolean;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\dev-role-lab.tsx:113: const [scopes, setScopes] = useState<ScopeRow[]>([]);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\dev-role-lab.tsx:114: const [activeScope, setActiveScope] = useState<ScopeRow | null>(null);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\dev-role-lab.tsx:143: const rows = (Array.isArray(data) ? data : []) as ScopeRow[];
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\dev-role-lab.tsx:148: rows.find((item: ScopeRow) => item.is_active_scope) ??
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\dev-role-lab.tsx:149: rows.find((item: ScopeRow) => item.scope_type === 'PUBLIC') ??
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\dev-role-lab.tsx:153: setActiveScope(current);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\dev-role-lab.tsx:157: rows.some((item: ScopeRow) => item.scope_id === previous)
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\dev-role-lab.tsx:168: setActiveScope(null);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\dev-role-lab.tsx:183: () => scopes.find((item: ScopeRow) => item.scope_id === scopeId) ?? activeScope ?? null,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\dev-role-lab.tsx:184: [scopes, scopeId, activeScope]
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\dev-role-lab.tsx:188: if (!scopeId && activeScope) setScopeId(activeScope.scope_id);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\dev-role-lab.tsx:189: }, [scopeId, activeScope]);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\dev-role-lab.tsx:263: simulatedScope?.scope_type === 'CHURCH' ||
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\dev-role-lab.tsx:264: simulatedScope?.scope_type === 'ORGANIZATION';
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\dev-role-lab.tsx:268: simulatedScope?.scope_type ?? null,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\dev-role-lab.tsx:289: setActiveScope(simulatedScope);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\dev-role-lab.tsx:323: <Info label="Actual scope" value={activeScope?.name ?? 'Public'} />
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\dev-role-lab.tsx:345: {scopes.map((scope: ScopeRow) => {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\dev-role-lab.tsx:350: style={[styles.scopeRow, on && styles.scopeRowOn]}
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\dev-role-lab.tsx:356: {scope.scope_type}
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\dev-role-lab.tsx:358: {scope.is_admin ? ' | ADMIN' : ''}
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\dev-role-lab.tsx:629: scopeRow: {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\admin\dev-role-lab.tsx:640: scopeRowOn: { borderColor: '#5A9975', backgroundColor: '#EDF6F1' },
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\churches\index.tsx:117: {!!item.membership_status &&
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\churches\index.tsx:118: `  |  ${item.membership_status}`}
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\churches\index.tsx:256: {item.membership_status ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\churches\index.tsx:279: item.is_admin
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\churches\index.tsx:320: {item.membership_status ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\churches\index.tsx:328: ) : item.membership_status ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\churches\index.tsx:335: ) : item.membership_status ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\churches\[id].tsx:149: if (info.is_admin) {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\churches\[id].tsx:294: {church.is_admin && (
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\churches\[id].tsx:304: !church.membership_status &&
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\churches\[id].tsx:318: {church.membership_status ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\churches\[id].tsx:354: {church.membership_status ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\churches\[id].tsx:362: {church.membership_status ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\churches\[id].tsx:364: !church.is_admin && (
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\churches\[id].tsx:396: {church.is_admin && verification && (
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\churches\[id].tsx:455: {church.is_admin && (
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\churches\[id].tsx:668: {m.is_admin
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\churches\[id].tsx:674: {!m.is_admin && (
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\clusters\index.tsx:112: item.membership_status === 'ACTIVE'
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\clusters\index.tsx:148: {!!item.membership_status && (
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\clusters\index.tsx:150: Status: {item.membership_status}
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\clusters\index.tsx:151: {item.is_admin ? '  |  ADMIN' : ''}
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\clusters\index.tsx:217: item.membership_status ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\clusters\index.tsx:227: item.membership_status ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\clusters\index.tsx:237: item.membership_status ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\clusters\index.tsx:370: item.is_admin
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\clusters\index.tsx:491: item.membership_status;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\clusters\[id].tsx:167: if (info.is_admin) {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\clusters\[id].tsx:388: cluster.membership_status;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\clusters\[id].tsx:451: {cluster.is_admin && (
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\clusters\[id].tsx:548: !cluster.is_admin && (
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\clusters\[id].tsx:558: {cluster.is_admin && (
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\clusters\[id].tsx:821: {member.is_admin
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\clusters\[id].tsx:827: {!member.is_admin && (
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\inspire\index.tsx:56: activeScope,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\inspire\index.tsx:134: if (!activeScope) {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\inspire\index.tsx:157: activeScope.scope_type !==
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\inspire\index.tsx:160: activeScope
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\mzb\admin.tsx:404: member.membership_status
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\mzb\admin.tsx:409: {member.membership_status ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\mzb\admin.tsx:453: {member.membership_status ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\mzb\community.tsx:50: scope?.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\mzb\community.tsx:71: ?.membership_status ||
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\mzb\community.tsx:73: ?.membership_status ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\mzb\index.tsx:179: info?.membership_status ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\mzb\index.tsx:181: info?.is_admin
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\mzb\index.tsx:305: {!!status.membership_status && (
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\mzb\index.tsx:313: status.membership_status
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\mzb\index.tsx:319: {status.is_admin && (
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\mzb\index.tsx:347: {!status.membership_status && (
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\mzb\index.tsx:367: {status.membership_status ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\mzb\index.tsx:421: {status.membership_status ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\mzb\index.tsx:533: {status.is_admin && (
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\mzb\index.tsx:578: {!status.is_admin && (
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\mzb\messages.tsx:41: scope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\mzb\messages.tsx:61: .membership_status ||
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\mzb\messages.tsx:63: .membership_status ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\admins.tsx:22: membership_status: string | null;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\admins.tsx:31: membership_status: string | null;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\admins.tsx:208: String(row.membership_status ?? '').toUpperCase() === 'ACTIVE';
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\admins.tsx:218: {row.membership_status ? `  •  ${row.membership_status}` : ''}
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\admins.tsx:271: {row.membership_status ? `  •  ${row.membership_status}` : ''}
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\join.tsx:44: parent_scope_id: string | null;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\join.tsx:49: membership_status: string | null;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\join.tsx:484: row.membership_status
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\manage.tsx:23: type ScopeRow = {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\manage.tsx:27: parent_scope_id?: string | null;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\manage.tsx:30: scope_type?: string | null;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\manage.tsx:43: function readJoinPolicy(scope: ScopeRow) {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\manage.tsx:78: function joinLabel(scope: ScopeRow, short = false) {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\manage.tsx:96: scope: ScopeRow,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\manage.tsx:117: const [scopes, setScopes] = useState<ScopeRow[]>([]);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\manage.tsx:162: (scopesResult.data || []) as ScopeRow[];
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\manage.tsx:167: upper(row.scope_type) ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\manage.tsx:244: scope => !scope.parent_scope_id,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\manage.tsx:250: const map = new Map<string, ScopeRow[]>();
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\manage.tsx:253: if (!scope.parent_scope_id) return;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\manage.tsx:256: map.get(scope.parent_scope_id) || [];
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\manage.tsx:263: map.set(scope.parent_scope_id, current);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\manage.tsx:269: const openJoin = (scope: ScopeRow) => {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\manage.tsx:283: const openManage = (scope: ScopeRow) => {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\manage.tsx:299: scope: ScopeRow,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\manage.tsx:307: parent_scope_id: scope.id,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\manage.tsx:317: scope: ScopeRow,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\members.tsx:48: membership_status:
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\members.tsx:58: membership_status: string;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\members.tsx:275: .membership_status
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\members.tsx:478: 'buklod_org_set_membership_status',
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\members.tsx:723: .membership_status ??
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\members.tsx:866: .membership_status
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\settings.tsx:25: type ScopeRow = {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\settings.tsx:31: scope_type?: string | null;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\settings.tsx:32: parent_scope_id?: string | null;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\settings.tsx:259: useState<ScopeRow | null>(null);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\settings.tsx:322: const row = scopeResult.data as ScopeRow;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\settings.tsx:492: {scope.parent_scope_id
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\suborganizations.tsx:22: type ScopeRow = {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\suborganizations.tsx:25: parent_scope_id?: string | null;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\suborganizations.tsx:26: scope_type?: string | null;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\suborganizations.tsx:99: firstString(params.parent_scope_id) ||
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\suborganizations.tsx:112: useState<ScopeRow | null>(null);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\suborganizations.tsx:114: useState<ScopeRow[]>([]);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\suborganizations.tsx:155: .eq('parent_scope_id', parentScopeId),
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\suborganizations.tsx:178: setParent(parentResult.data as ScopeRow);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\suborganizations.tsx:182: ) as ScopeRow[];
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\suborganizations.tsx:188: upper(row.scope_type) ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\suborganizations.tsx:259: p_parent_scope_id: parentScopeId,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\suborganizations.tsx:300: scope_type: 'ORGANIZATION',
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\suborganizations.tsx:301: parent_scope_id: parentScopeId,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\organizations\suborganizations.tsx:308: parent_scope_id:
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\attendance\index.tsx:89: const { activeScope } = useBuklodScope();
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\attendance\index.tsx:120: activeScope?.scope_type === 'CLUSTER'
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\attendance\index.tsx:122: : activeScope?.parent_scope_id
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\attendance\index.tsx:127: if (!activeScope?.scope_id) {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\attendance\index.tsx:138: .eq('scope_id', activeScope.scope_id)
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\attendance\index.tsx:156: }, [activeScope?.scope_id]);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\attendance\index.tsx:196: !activeScope ||
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\attendance\index.tsx:197: !['ORGANIZATION', 'CLUSTER'].includes(activeScope.scope_type)
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\attendance\index.tsx:220: activeScope?.scope_id;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\attendance\index.tsx:362: {scopeKind} • {activeScope.name}
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\bulletin-editor.tsx:49: type ScopeRow = {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\bulletin-editor.tsx:51: scope_type:
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\bulletin-editor.tsx:56: is_admin?: boolean;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\bulletin-editor.tsx:157: ScopeRow | null
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\bulletin-editor.tsx:244: ?.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\bulletin-editor.tsx:250: ?.scope_type,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\bulletin-editor.tsx:269: scopeRows,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\bulletin-editor.tsx:285: scopeRows ??
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\bulletin-editor.tsx:289: item: ScopeRow
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\bulletin-editor.tsx:294: | ScopeRow
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\bulletin-editor.tsx:303: selected.scope_type
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\bulletin-editor.tsx:312: !selected.is_admin
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\bulletin-editor.tsx:528: !scope.is_admin
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\bulletin-editor.tsx:759: {scope.scope_type}
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\delete.tsx:45: scope_type?: string;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\delete.tsx:46: parent_scope_id?: string | null;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\delete.tsx:63: preview?.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\delete.tsx:74: activeScope,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\delete.tsx:99: !activeScope?.scope_id
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\delete.tsx:119: activeScope.scope_id,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\delete.tsx:152: activeScope?.scope_id,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\delete.tsx:168: activeScope?.name ??
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\delete.tsx:192: scope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\delete.tsx:204: !activeScope?.scope_id ||
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\delete.tsx:227: activeScope.scope_id,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\delete.tsx:334: !activeScope
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:122: activeScope,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:139: if (!activeScope?.scope_id) {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:146: activeScope.scope_id
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:166: [activeScope?.scope_id]
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:202: activeScope?.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:240: activeScope?.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:246: item.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:274: activeScope?.scope_type,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:294: if (!activeScope) {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:325: activeScope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:347: ], (/* PATCH_172I_CLUSTER_CONNECT_FLUSH */ (activeScope.scope_type === 'ORGANIZATION' || activeScope.scope_type === 'CLUSTER') && section === 'connect') && { /* PATCH_172H_CONTENT_WRAPPER_FLUSH */ marginTop: 0, paddingTop: 0 }], (/* PATCH_172I_CLUSTER_CONNECT_FLUSH */ (activeScope.scope_type === 'ORGANIZATION' || activeScope.scope_type === 'CLUSTER') && section === 'connect') && { /* PATCH_172H_WORKSPACE_GAP_ZERO */ gap: 0 }]}
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:359: scopeName={activeScope.name}
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:360: scopeType={activeScope.scope_type}
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:369: activeScope.scope_id,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:381: activeScope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:383: activeScope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:436: {activeScope.scope_type !== 'ORGANIZATION' &&
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:437: activeScope.scope_type !== 'CLUSTER' && (
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:453: ], (/* PATCH_172I_CLUSTER_CONNECT_FLUSH */ (activeScope.scope_type === 'ORGANIZATION' || activeScope.scope_type === 'CLUSTER') && section === 'connect') && { /* PATCH_172H_TOP_NAV_FLUSH */ marginBottom: 0 }]}
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:514: activeScope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:537: activeScope,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:540: if (!activeScope) {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:545: activeScope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:550: scope={activeScope}
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:561: activeScope,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:565: if (!activeScope) {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:571: activeScope
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:587: {activeScope.scope_type}
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:588: {activeScope.geo_level
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:589: ? ` \u2022 ${activeScope.geo_level}`
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:598: {activeScope.name}
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:606: {activeScope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:609: : activeScope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:624: {activeScope.scope_type !== 'CLUSTER' && (
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:639: activeScope,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:642: if (!activeScope) {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:647: activeScope.scope_type === 'ORGANIZATION' ||
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:648: activeScope.scope_type === 'CLUSTER'
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:652: scope={activeScope}
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:662: activeScope,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:701: if (!activeScope) {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:710: activeScope!.scope_id,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:726: activeScope?.scope_id,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:733: if (!activeScope) {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:749: activeScope!.scope_id,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:857: Share with {activeScope.name}
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:971: activeScope,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:976: !activeScope ||
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:977: activeScope.scope_type !==
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:993: activeScope.scope_id
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:1002: activeScope,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:1017: if (!activeScope) {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:1026: activeScope!.scope_id,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:1043: activeScope?.scope_id,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:1060: if (!activeScope) {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\scope\index.tsx:1077: Connect in {activeScope.name}
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\giving.tsx:54: firstString(params.scope_type) ||
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\index.tsx:35: activeScope,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\index.tsx:68: scope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\index.tsx:83: activeScope?.scope_id ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\app\index.tsx:130: activeScope?.scope_id,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodCanonicalNavigationGuard.tsx:95: activeScope,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodCanonicalNavigationGuard.tsx:118: !activeScope
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodCanonicalNavigationGuard.tsx:129: activeScope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodCanonicalNavigationGuard.tsx:159: `${activeScope.scope_id}|${pathname}|${target}`;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodCanonicalNavigationGuard.tsx:177: activeScope?.scope_id,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodCanonicalNavigationGuard.tsx:178: activeScope?.scope_type,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodClusterHomeCommandCenter.tsx:17: type Member={user_id:string;full_name:string;avatar_url:string|null;is_admin:boolean};
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodClusterHomeCommandCenter.tsx:49: if(scope.scope_type!=='CLUSTER')return;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodClusterHomeCommandCenter.tsx:72: },[scope.scope_id,scope.scope_type,user?.id]);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodClusterHomeCommandCenter.tsx:77: const notice=notices.find(x=>!x.expires_at||new Date(x.expires_at).getTime()>Date.now())??null,upcoming=events.filter(x=>new Date(x.starts_at).getTime()>=Date.now()-3600000),week=upcoming.filter(x=>new Date(x.starts_at).getTime()<=Date.now()+7*86400000),officers=members.filter(x=>x.is_admin),myTasks=tasks.filter(x=>!x.assigned_to||x.assigned_to===user?.id||isAdmin),openTasks=myTasks.filter(x=>x.status!=='DONE'),poll=polls[0]??null,pollOptions=poll?options.filter(x=>x.poll_id===poll.id):[],myVote=poll&&user?.id?votes.find(x=>x.poll_id===poll.id&&x.user_id===user.id):null,myChecked=!!user?.id&&attendance.some(x=>x.user_id===user.id);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodCommunityAudienceSelector.tsx:30: scope_type: string;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodCommunityAudienceSelector.tsx:38: membership_status?:
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodCommunityAudienceSelector.tsx:137: scope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodCommunityAudienceSelector.tsx:140: !scope.membership_status ||
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodCommunityAudienceSelector.tsx:141: scope.membership_status ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodCommunitySponsoredAd.tsx:14: const {profile}=useAuth(); const {activeScope}=useBuklodScope(); const [rows,setRows]=useState<Campaign[]>([]); const [index,setIndex]=useState(0);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodCommunitySponsoredAd.tsx:15: const coverage=useMemo(()=>{if(audience==='public')return 'nationwide';if(activeScope?.scope_type!=='LOCAL')return null;const l=String((activeScope as any)?.geo_level??'').toUpperCase();return l==='BARANGAY'?'barangay':l==='MUNICIPALITY_CITY'?'city':l==='PROVINCE'?'province':l==='COUNTRY'?'nationwide':null;},[audience,activeScope]);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodConnectThread.tsx:985: d?.scope_type ??
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodConnectThread.tsx:1319: d?.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodConnectThread.tsx:1323: d?.scope_type ??
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodDashboardContextBar.tsx:27: activeScope,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodDashboardContextBar.tsx:48: activeScope?.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodEntitlementRouteGuard.tsx:58: activeScope,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodEntitlementRouteGuard.tsx:78: !activeScope ||
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodEntitlementRouteGuard.tsx:85: `${pathname}|${activeScope.scope_id}|${rule.entitlement}`;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodEntitlementRouteGuard.tsx:108: activeScope,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodExclusiveScopeCommunity.tsx:303: scope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodExclusiveScopeCommunity.tsx:2272: {scope.scope_type !== 'ORGANIZATION' && (
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodExclusiveScopeCommunity.tsx:2274: style={[styles.scopeNotice, scope.scope_type === 'CLUSTER' && { display: 'none' }]}
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:43: scope_type:
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:51: is_admin?: boolean | null;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:52: membership_status?:
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:108: scope.membership_status ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:123: active.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:131: scope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:139: scope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:149: active.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:153: scope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:160: active.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:165: scope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:171: scope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:189: scope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:196: scope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:219: activeScope,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:229: activeScope
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:232: activeScope.scope_id,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:233: scope_type:
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:234: activeScope.scope_type,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:236: activeScope.name,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:237: is_admin:
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:238: activeScope.is_admin,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:239: membership_status:
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:240: activeScope
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:241: .membership_status,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:247: activeScope
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:254: active.scope_type,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:276: active.scope_type
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:318: data: scopeRows,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:332: scopeRows ?? []
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:620: active.scope_type
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:655: <View style={styles.scopeRow}>
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:659: scope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:671: {scope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:685: {!!scope.is_admin && (
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodHomeScopeBulletins.tsx:790: scopeRow: {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodOfficeOrganizer.tsx:43: scope_type: 'CLUSTER' | 'ORGANIZATION';
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodOfficeOrganizer.tsx:44: parent_scope_id: string | null;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodOfficeOrganizer.tsx:163: if (info.scope_type === 'CLUSTER') return 'CLUSTER OFFICE';
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodPersistentBottomNav.tsx:212: activeScope,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodPersistentBottomNav.tsx:225: activeScope
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodPersistentBottomNav.tsx:261: activeScope?.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodPersistentBottomNav.tsx:267: scope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodPersistentBottomNav.tsx:307: activeScope?.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodProfileMembershipNav.tsx:36: type ScopeRow = {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodProfileMembershipNav.tsx:38: scope_type: string;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodProfileMembershipNav.tsx:45: membership_status?:
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodProfileMembershipNav.tsx:253: activeScope,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodProfileMembershipNav.tsx:267: const scopeRows =
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodProfileMembershipNav.tsx:270: ) as ScopeRow[];
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodProfileMembershipNav.tsx:272: const activeScopes =
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodProfileMembershipNav.tsx:275: scopeRows.filter(
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodProfileMembershipNav.tsx:281: * may not require a membership_status.
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodProfileMembershipNav.tsx:287: scope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodProfileMembershipNav.tsx:289: scope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodProfileMembershipNav.tsx:301: scope.scope_type
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodProfileMembershipNav.tsx:306: .membership_status ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodProfileMembershipNav.tsx:314: [scopeRows],
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodProfileMembershipNav.tsx:320: activeScopes
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodProfileMembershipNav.tsx:328: scope.scope_type
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodProfileMembershipNav.tsx:338: a.scope_type
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodProfileMembershipNav.tsx:341: b.scope_type
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodProfileMembershipNav.tsx:356: scope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodProfileMembershipNav.tsx:379: scope.scope_type === 'CLUSTER'
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodProfileMembershipNav.tsx:385: scope.scope_type as
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodProfileMembershipNav.tsx:395: [activeScopes],
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodProfileMembershipNav.tsx:401: activeScopes
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodProfileMembershipNav.tsx:404: scope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodProfileMembershipNav.tsx:419: [activeScopes],
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodProfileMembershipNav.tsx:568: activeScope
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodProfileMembershipNav.tsx:669: activeScope
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodPublicDailyMessageBar.tsx:52: activeScope,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodPublicDailyMessageBar.tsx:103: activeScope?.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodPublicDailyMessageBar.tsx:108: activeScope
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodPublicLocationChips.tsx:6: * It never changes activeScope and never enters a LOCAL dashboard.
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodPublicLocationChips.tsx:29: scope_type: string;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodPublicLocationChips.tsx:38: membership_status?:
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodPublicLocationChips.tsx:93: scope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodPublicLocationChips.tsx:106: .membership_status ||
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodPublicLocationChips.tsx:108: .membership_status ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodPublicWordShortcut.tsx:28: activeScope,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodPublicWordShortcut.tsx:33: if (!activeScope) {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodPublicWordShortcut.tsx:39: activeScope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodPublicWordShortcut.tsx:45: activeScope
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeAttendanceCard.tsx:17: const { activeScope } = useBuklodScope();
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeAttendanceCard.tsx:21: if (!activeScope?.scope_id) {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeAttendanceCard.tsx:29: .eq('scope_id', activeScope.scope_id)
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeAttendanceCard.tsx:41: }, [activeScope?.scope_id]);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeAttendanceCard.tsx:48: !activeScope ||
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeAttendanceCard.tsx:49: !['ORGANIZATION', 'CLUSTER'].includes(activeScope.scope_type)
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeAttendanceCard.tsx:55: activeScope.scope_type === 'CLUSTER'
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeAttendanceCard.tsx:57: : activeScope.parent_scope_id
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeBar.tsx:38: switch (scope.scope_type) {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeBar.tsx:57: scope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeBar.tsx:64: scope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeBar.tsx:87: scope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeBar.tsx:94: scope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeBar.tsx:101: scope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeBar.tsx:114: scope.scope_type === 'LOCAL' &&
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeBar.tsx:122: return scope.scope_type;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeBar.tsx:133: activeScope,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeBar.tsx:182: scope.scope_type !== 'SYSTEM' &&
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeBar.tsx:183: scope.scope_type !== 'LOCAL'
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeBar.tsx:202: activeScope?.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeBar.tsx:207: scope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeBar.tsx:213: : activeScope;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeBar.tsx:233: if (!activeScope) {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeBar.tsx:318: {displayScope!.is_admin
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeBar.tsx:415: scope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeBar.tsx:419: .parent_scope_id
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeBar.tsx:423: scope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeBar.tsx:427: .parent_scope_id
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeBar.tsx:431: scope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeBar.tsx:449: styles.scopeRow,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeBar.tsx:451: styles.scopeRowOn,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeBar.tsx:516: {scope.is_admin
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeBar.tsx:686: scopeRow: {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeBar.tsx:748: scopeRowOn: {
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeCallLauncher.tsx:48: is_admin?: boolean | null;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeCallLauncher.tsx:156: d?.scope_type ??
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeCallLauncher.tsx:222: is_admin:
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeCallLauncher.tsx:224: row.is_admin
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeCallLauncher.tsx:350: is_admin:
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeCallLauncher.tsx:352: row.is_admin
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeCallLauncher.tsx:395: (row: { user_id: string; is_admin: boolean }) => ({
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeCallLauncher.tsx:405: row.is_admin
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\BuklodScopeCallLauncher.tsx:415: buklod_scope_type:
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\MzbRandomWallPhoto.tsx:142: scope?.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\MzbRandomWallPhoto.tsx:163: ?.membership_status ||
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\components\MzbRandomWallPhoto.tsx:165: ?.membership_status ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\hooks\useBuklodAccess.ts:22: activeScope,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\hooks\useBuklodAccess.ts:31: () => normalizedScopeRoles(activeScope),
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\hooks\useBuklodAccess.ts:32: [activeScope]
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\hooks\useBuklodAccess.ts:39: scopeHasRole(activeScope, role),
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\hooks\useBuklodAccess.ts:40: [activeScope, systemAdmin]
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\hooks\useBuklodAccess.ts:48: activeScope,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\hooks\useBuklodAccess.ts:51: [activeScope, systemAdmin]
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\hooks\useBuklodAccess.ts:62: activeScope,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\hooks\useBuklodAccess.ts:66: [activeScope, systemAdmin]
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\hooks\useBuklodAccess.ts:71: activeScope,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\hooks\useBuklodAccess.ts:73: activeScope?.scope_type ?? null,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\hooks\useBuklodAccess.ts:79: isScopeAdmin(activeScope),
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\lib\buklodAccess.ts:52: if (scope.is_admin) return true;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\lib\buklodChurches.ts:20: membership_status: string | null;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\lib\buklodChurches.ts:22: is_admin?: boolean;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\lib\buklodChurches.ts:52: is_admin: boolean;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\lib\buklodClusters.ts:24: membership_status: ClusterMembershipStatus;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\lib\buklodClusters.ts:26: is_admin: boolean;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\lib\buklodClusters.ts:43: is_admin: boolean;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\lib\buklodMzb.ts:9: membership_status:
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\lib\buklodMzb.ts:19: is_admin: boolean;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\lib\buklodMzb.ts:41: membership_status: string;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\lib\buklodScope.ts:13: scope_type: BuklodScopeType;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\lib\buklodScope.ts:15: parent_scope_id?: string | null;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\lib\buklodScope.ts:19: membership_status?: string | null;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\lib\buklodScope.ts:21: is_admin: boolean;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\lib\buklodScope.ts:165: * getBuklodScopeFeed(activeScope),
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\lib\buklodScope.ts:333: scope_type:
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\lib\buklodScope.ts:334: row.scope_type as BuklodScopeType,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\lib\buklodScope.ts:343: membership_status:
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\lib\buklodScope.ts:344: row.membership_status ?? null,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\lib\buklodScope.ts:349: is_admin:
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\lib\buklodScope.ts:350: Boolean(row.is_admin),
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\lib\buklodScope.ts:375: export async function setBuklodActiveScope(
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:15: setBuklodActiveScope,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:30: activeScope: BuklodScope | null;
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:43: function pickActiveScope(
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:50: scope.scope_type !== 'LOCAL'
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:55: scope.scope_type === 'PUBLIC'
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:74: activeScope,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:75: setActiveScope,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:91: setActiveScope(null);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:118: .select('id,parent_scope_id')
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:127: row.parent_scope_id
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:128: ? String(row.parent_scope_id)
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:136: parent_scope_id:
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:138: scope.parent_scope_id ??
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:169: 'membership_status',
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:202: data: activeManagedScopeRows,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:208: 'id,name,scope_type,status,visibility,geo_level,parent_scope_id'
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:215: 'scope_type',
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:238: activeManagedScopeRows ??
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:263: membership_status:
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:265: parent_scope_id:
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:267: .parent_scope_id
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:270: .parent_scope_id
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:302: scope_type:
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:304: .scope_type as
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:306: 'scope_type'
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:322: parent_scope_id:
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:324: .parent_scope_id
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:327: .parent_scope_id
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:330: membership_status:
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:333: is_admin: false,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:366: scope.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:376: setActiveScope(
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:387: void setBuklodActiveScope(
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:406: setActiveScope(
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:407: pickActiveScope(rows)
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:418: setActiveScope(null);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:452: target.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:465: target.scope_type ===
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:473: await setBuklodActiveScope(
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:477: setActiveScope(target);
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:498: activeScope
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:504: [activeScope]
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:511: activeScope,
+C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\src\providers\BuklodScopeProvider.tsx:520: activeScope,

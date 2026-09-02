@@ -240,15 +240,30 @@ async function requestStreamToken(
     api_key: string;
   } | null => {
     const token = String(
-      raw?.token ?? raw?.data?.token ?? ''
+      raw?.token ??
+      raw?.data?.token ??
+      ''
     ).trim();
-    const apiKey = String(
+
+    /*
+     * PATCH_190A_STREAM_TOKEN_PAYLOAD_FALLBACK
+     *
+     * Accept a valid Stream token even when api_key is not
+     * duplicated in the token response. The public API key can
+     * come from the production build/update environment or a
+     * previously resolved value.
+     */
+    const serverApiKey = String(
       raw?.api_key ??
-        raw?.data?.api_key ??
-        BUILD_STREAM_API_KEY ??
-        resolvedApiKey ??
-        ''
+      raw?.data?.api_key ??
+      ''
     ).trim();
+
+    const apiKey =
+      serverApiKey ||
+      resolvedApiKey ||
+      BUILD_STREAM_API_KEY ||
+      '';
 
     if (!token || !apiKey) {
       return null;

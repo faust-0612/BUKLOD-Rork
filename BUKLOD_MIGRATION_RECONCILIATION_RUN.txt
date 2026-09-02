@@ -1,0 +1,33 @@
+﻿[2026-08-20 00:47:40] === RECONCILIATION START ===
+powershell : db query failed: node.exe : npm error could not determine executable to run
+At C:\Users\Jose Solis\AppData\Local\Temp\ps-script-313c0121-93a2-4f66-88b0-fdc5d6a99233.ps1:110 char:107
++ ... arter_v16"; powershell -NoProfile -ExecutionPolicy Bypass -File "scri ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (db query failed...ecutable to run:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm error could...ecutable to run:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+npm error A complete log of this run can be found in: C:\Users\JOSESO~1\AppData\Local\Temp\cursor-sandbox-cache\e8ecaa4
+0628f30716aba19216ed1ec01\npm\_logs\2026-08-19T16_47_42_731Z-debug-0.log
+At C:\Users\Jose Solis\Downloads\BUKLOD_Production_Starter_v16\BUKLOD_Production_Starter_v16\scripts\db-reconcile\run-g
+ap-reconciliation.ps1:28 char:30
++   if ($LASTEXITCODE -ne 0) { throw "db query failed: $out" }
++                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (db query failed...Z-debug-0.log
+:String) [], RuntimeException
+    + FullyQualifiedErrorId : db query failed: node.exe : npm error could not determine executable to run
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm error could...ecutable to run:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+    npm error A complete log of this run can be found in: C:\Users\JOSESO~1\AppData\Local\Temp\cursor-sandbox-cache\e8 
+   ecaa4
+0628f30716aba19216ed1ec01\npm\_logs\2026-08-19T16_47_42_731Z-debug-0.log
+ 

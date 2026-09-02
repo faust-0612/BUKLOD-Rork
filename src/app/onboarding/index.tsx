@@ -108,6 +108,17 @@ export default function OnboardingScreen() {
   useEffect(() => {
     void load();
   }, [load]);
+  /*
+   * PATCH_191J_SILENT_VERIFIED_REDIRECT
+   * Verified accounts never stop on the legacy verification page.
+   */
+  useEffect(() => {
+    if (membershipState !== 'ready') {
+      return;
+    }
+
+    router.replace('/(tabs)/home');
+  }, [membershipState]);
 
   useEffect(() => {
     if (
@@ -158,6 +169,23 @@ export default function OnboardingScreen() {
 
   const verified =
     membershipState === 'ready';
+
+  // Never flash ADMIN VERIFIED / ENTER BUKLOD while redirecting.
+  if (verified) {
+    return (
+      <View
+        style={[
+          shared.screen,
+          {
+            justifyContent: 'center',
+            alignItems: 'center',
+          },
+        ]}
+      >
+        <ActivityIndicator color={colors.green} />
+      </View>
+    );
+  }
 
   const rejected =
     membershipState ===

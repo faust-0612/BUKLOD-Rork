@@ -1,0 +1,33 @@
+﻿                  <Pressable
+                    key={
+                      verse.verse_no
+                    }
+                    onPress={() =>
+                      openBibleAnnotation(
+                        Number(
+                          verse.verse_no
+                        ),
+                        cleanText
+                      )
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      'Open options for verse ' +
+                      verse.verse_no
+                    }
+                    style={[
+                      styles.verseRow,
+
+                      focused &&
+                        styles.focusVerse,
+
+                      annotation
+                        ?.highlight_color
+                        ? {
+                            backgroundColor:
+                              annotation
+                                .highlight_color,
+                          }
+                        : null,
+                    ]}
+                  >

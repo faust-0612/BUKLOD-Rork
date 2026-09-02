@@ -1,0 +1,2835 @@
+﻿===== PROFILE CHARACTER CARD =====
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
+
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+import BuklodCharacterCustomizeSheet from '@/components/points/BuklodCharacterCustomizeSheet';
+import BuklodCharacterFaceAvatar from '@/components/points/BuklodCharacterFaceAvatar';
+import { ProfileMotionFadeUp } from '@/components/BuklodProfileMotion';
+import {
+  useBuklodCharacterEventsOptional,
+} from '@/components/character/BuklodCharacterEventProvider';
+import { useAuth } from '@/providers/AuthProvider';
+import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
+import {
+  DEFAULT_CHARACTER,
+  loadBuklodCharacter,
+  reconcileCharacterForPoints,
+  type BuklodCharacterState,
+} from '@/lib/buklodCharacter';
+import { formatPoints } from '@/lib/character-lab-core/tiers';
+import { CharacterEventType } from '@/lib/buklodCharacterEvents';
+import { withAlpha } from '@/lib/buklodContrast';
+import { BuklodCharacterStageV2 } from '@/components/points/BuklodCharacterStageV2';
+import BuklodCharacterCompactFullBody from '@/components/points/BuklodCharacterCompactFullBody';
+
+type Props = {
+  lifetimePoints?: number;
+  rankName?: string | null;
+};
+
+/** Profile card â€” MY BUKLOD CHARACTER with ranking, points, and one Customize. */
+export default function BuklodProfileCharacterCard({
+  lifetimePoints = 0,
+  rankName = null,
+}: Props) {
+  const { theme } = useBuklodPresentation();
+  const { session } = useAuth();
+  const [focused, setFocused] = useState(false);
+  const characterEvents = useBuklodCharacterEventsOptional();
+  const greetedRef = useRef(false);
+  const userId = session?.user?.id ?? null;
+  const [config, setConfig] =
+    useState<BuklodCharacterState>({
+      ...DEFAULT_CHARACTER,
+    });
+  const [customizeOpen, setCustomizeOpen] =
+    useState(false);
+
+  useEffect(() => {
+    void loadBuklodCharacter(userId).then((loaded) => {
+      const reconciled = reconcileCharacterForPoints(loaded, lifetimePoints);
+      setConfig(reconciled);
+    });
+  }, [lifetimePoints, userId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      setFocused(true);
+      return () => setFocused(false);
+    }, [])
+  );
+
+  useEffect(() => {
+    if (!focused || greetedRef.current) return;
+    greetedRef.current = true;
+    characterEvents?.emit({
+      type: CharacterEventType.PROFILE_CHARACTER_VISIBLE,
+      success: true,
+    });
+  }, [characterEvents, focused]);
+
+  const rankLabel = String(rankName ?? '').trim();
+
+  const styles = StyleSheet.create({
+    wrap: {
+      marginHorizontal: 12,
+      marginBottom: 6,
+    },
+    card: {
+      padding: 14,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: theme.border,
+      backgroundColor: withAlpha(theme.cardSurface, 0.82),
+    },
+    eyebrow: {
+      fontSize: 9,
+      fontWeight: '900',
+      letterSpacing: 1.2,
+      color: theme.textMuted,
+      marginBottom: 10,
+    },
+    body: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    avatarPress: {
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    copyCol: {
+      flex: 1,
+      minWidth: 0,
+      justifyContent: 'center',
+      gap: 8,
+    },
+    rankTitle: {
+      fontSize: 15,
+      fontWeight: '900',
+      color: theme.textPrimary,
+    },
+    pointsMeta: {
+      marginTop: 2,
+      fontSize: 12,
+      fontWeight: '800',
+      color: theme.textSecondary,
+    },
+    customize: {
+      alignSelf: 'flex-start',
+      minHeight: 36,
+      paddingHorizontal: 12,
+      borderRadius: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      backgroundColor: theme.accentSoft,
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    customizeText: {
+      fontSize: 11,
+      fontWeight: '900',
+      color: theme.accent,
+    },
+  });
+
+  return (
+    <>
+      <ProfileMotionFadeUp delay={55}>
+        <View style={styles.wrap}>
+          <View style={styles.card}>
+            <Text style={styles.eyebrow}>
+              MY BUKLOD CHARACTER
+            </Text>
+
+            <View style={styles.body}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Open ranking and BUKLOD Points"
+                onPress={() => router.push('/points')}
+                style={({ pressed }) => [
+                  styles.avatarPress,
+                  pressed && { opacity: 0.92 },
+                ]}
+              >
+                /* BUKLOD_CHARACTER_ENGINE_2_NATIVE_SKIA_R1 */
+/* BUKLOD_PROFILE_FULL_BODY_R2 */
+<BuklodCharacterCompactFullBody
+  body={config.body}
+  equipment={config.equipment}
+  size={88}
+  
+/>
+              </Pressable>
+
+              <View style={styles.copyCol}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Open ranking and BUKLOD Points"
+                  onPress={() => router.push('/points')}
+                >
+                  <Text style={styles.rankTitle} numberOfLines={1}>
+                    {rankLabel || 'BUKLOD Points'}
+                  </Text>
+                  <Text style={styles.pointsMeta}>
+                    {formatPoints(lifetimePoints)} pts
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={() => setCustomizeOpen(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Customize character"
+                  style={({ pressed }) => [
+                    styles.customize,
+                    pressed && { opacity: 0.88 },
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="palette-outline"
+                    size={16}
+                    color={theme.accent}
+                  />
+                  <Text style={styles.customizeText}>
+                    Customize
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </View>
+      </ProfileMotionFadeUp>
+
+      <BuklodCharacterCustomizeSheet
+        visible={customizeOpen}
+        onClose={() => setCustomizeOpen(false)}
+        userId={userId}
+        lifetimePoints={lifetimePoints}
+        onSaved={setConfig}
+      />
+    </>
+  );
+}
+
+===== CUSTOMIZE SHEET =====
+import React, { useEffect, useMemo, useState } from 'react';
+
+import {
+  Alert,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
+
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import type { ComponentProps } from 'react';
+
+import BuklodCharacterFaceAvatar from '@/components/points/BuklodCharacterFaceAvatar';
+import BuklodCharacterItemThumb from '@/components/points/BuklodCharacterItemThumb';
+import BuklodCharacterSettingsRow from '@/components/points/BuklodCharacterSettingsRow';
+import { useBuklodCharacterEventsOptional } from '@/components/character/BuklodCharacterEventProvider';
+import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
+import { markRorkAvatarOnboardingCompleted } from '@/lib/buklodRorkAvatarOnboarding';
+import { withAlpha } from '@/lib/buklodContrast';
+import { useBuklodDrawerBottomInset } from '@/lib/buklodSafeArea';
+import {
+  buildUnlockContext,
+  CHARACTER_SLOT_LABELS,
+  CHARACTER_SLOT_ORDER,
+  DEFAULT_CHARACTER,
+  equipItem,
+  loadBuklodCharacter,
+  reconcileCharacterForPoints,
+  saveBuklodCharacter,
+  type BuklodCharacterState,
+  reactionForEquip,
+} from '@/lib/buklodCharacter';
+import { getItem } from '@/lib/character-lab-core/catalog';
+import { CharacterEventType } from '@/lib/buklodCharacterEvents';
+import { formatPoints } from '@/lib/character-lab-core/tiers';
+import {
+  itemPointsLabel,
+} from '@/lib/character-lab-core/warrior';
+import { resolveSlot, nextUnlock } from '@/lib/character-lab-core/unlock';
+import type { ResolvedItem, SlotId } from '@/lib/character-lab-core/types';
+import { BuklodCharacterStageV2 } from '@/components/points/BuklodCharacterStageV2';
+import BuklodCharacterCompactFullBody from '@/components/points/BuklodCharacterCompactFullBody';
+
+type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+const SLOT_ICONS: Record<SlotId, IconName> = {
+  base: 'account-outline',
+  face: 'emoticon-happy-outline',
+  hair: 'content-cut',
+  top: 'tshirt-crew-outline',
+  bottom: 'human-male-height-variant',
+  shoes: 'shoe-formal',
+  accessory: 'bag-personal-outline',
+  badge: 'medal-outline',
+  special: 'shimmer',
+  background: 'image-outline',
+};
+
+type Props = {
+  visible: boolean;
+  onClose: () => void;
+  userId?: string | null;
+  lifetimePoints: number;
+  onSaved?: (config: BuklodCharacterState) => void;
+};
+
+function equippedId(
+  equipment: BuklodCharacterState['equipment'],
+  slot: SlotId
+): string | null {
+  const raw = equipment[slot];
+  if (slot === 'accessory' && !raw) return 'acc_none';
+  return raw;
+}
+
+export default function BuklodCharacterCustomizeSheet({
+  visible,
+  onClose,
+  userId,
+  lifetimePoints,
+  onSaved,
+}: Props) {
+  const { theme } = useBuklodPresentation();
+  const drawerBottomInset = useBuklodDrawerBottomInset();
+  const { width: screenWidth } = useWindowDimensions();
+  const stackVertical = screenWidth < 360;
+  const tileWidth = stackVertical
+    ? (screenWidth - 56) / 2
+    : Math.max(96, (screenWidth - 48) / 2);
+  const characterEvents = useBuklodCharacterEventsOptional();
+  const [draft, setDraft] = useState<BuklodCharacterState>({
+    ...DEFAULT_CHARACTER,
+  });
+  const [savedSnapshot, setSavedSnapshot] =
+    useState<BuklodCharacterState>({
+      ...DEFAULT_CHARACTER,
+    });
+  const [slot, setSlot] = useState<SlotId>('hair');
+  const [swapKey, setSwapKey] = useState(0);
+
+  useEffect(() => {
+    if (!visible) return;
+
+    void loadBuklodCharacter(userId).then((loaded) => {
+      const reconciled = reconcileCharacterForPoints(
+        loaded,
+        lifetimePoints
+      );
+      setDraft(reconciled);
+      setSavedSnapshot(reconciled);
+    });
+  }, [lifetimePoints, userId, visible]);
+
+  const unlockCtx = useMemo(
+    () => buildUnlockContext(lifetimePoints, draft),
+    [draft, lifetimePoints]
+  );
+
+  const resolvedItems = useMemo(
+    () => resolveSlot(slot, draft.body, unlockCtx),
+    [draft.body, slot, unlockCtx]
+  );
+
+  const slotStats = useMemo(() => {
+    const unlocked = resolvedItems.filter((row) => row.isUnlocked).length;
+    return { unlocked, total: resolvedItems.length };
+  }, [resolvedItems]);
+
+  const nextWarriorUnlock = useMemo(
+    () => nextUnlock(lifetimePoints, draft.body),
+    [draft.body, lifetimePoints]
+  );
+
+  const styles = StyleSheet.create({
+    overlay: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      backgroundColor: theme.overlay,
+    },
+    sheet: {
+      maxHeight: '92%',
+      borderTopLeftRadius: 22,
+      borderTopRightRadius: 22,
+      backgroundColor: theme.surface,
+      paddingBottom: 28,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 18,
+      paddingTop: 16,
+      paddingBottom: 10,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: '900',
+      color: theme.textPrimary,
+    },
+    localNote: {
+      marginTop: 2,
+      fontSize: 10,
+      color: theme.textMuted,
+    },
+    identityRow: {
+      marginTop: 8,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    pointsPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 999,
+      backgroundColor: theme.accentSoft,
+      borderWidth: 1,
+      borderColor: withAlpha(theme.accent, 0.2),
+    },
+    pointsText: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: theme.accent,
+    },
+    customizeCol: {
+      flex: 1,
+      minWidth: 0,
+    },
+    categories: {
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      gap: 8,
+    },
+    catRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    catChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      paddingHorizontal: 11,
+      paddingVertical: 7,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: theme.border,
+      backgroundColor: theme.surface,
+    },
+    catChipOn: {
+      borderColor: theme.accent,
+      backgroundColor: theme.accentSoft,
+    },
+    catText: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: theme.textSecondary,
+    },
+    catTextOn: {
+      color: theme.accent,
+    },
+    slotHeader: {
+      paddingHorizontal: 14,
+      paddingBottom: 6,
+    },
+    slotTitle: {
+      fontSize: 12,
+      fontWeight: '900',
+      color: theme.textPrimary,
+      letterSpacing: 0.4,
+    },
+    slotMeta: {
+      marginTop: 2,
+      fontSize: 10,
+      color: theme.textMuted,
+    },
+    grid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+      paddingHorizontal: 12,
+      paddingBottom: 8,
+    },
+    tile: {
+      width: tileWidth,
+      alignItems: 'center',
+      gap: 5,
+      padding: 8,
+      borderRadius: 14,
+      borderWidth: 1.5,
+      borderColor: theme.border,
+      backgroundColor: theme.surfaceElevated,
+    },
+    tileOn: {
+      borderColor: theme.accent,
+      backgroundColor: theme.accentSoft,
+    },
+    tileNew: {
+      borderColor: theme.warning,
+    },
+    tileLocked: {
+      opacity: 0.82,
+    },
+    thumbWrap: {
+      position: 'relative',
+    },
+    badge: {
+      position: 'absolute',
+      right: -4,
+      top: -4,
+      width: 18,
+      height: 18,
+      borderRadius: 9,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.accent,
+    },
+    badgeNew: {
+      backgroundColor: theme.warning,
+    },
+    tileName: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: theme.textPrimary,
+      textAlign: 'center',
+      lineHeight: 14,
+    },
+    tileNameLocked: {
+      color: theme.textMuted,
+    },
+    tileStatus: {
+      fontSize: 9,
+      fontWeight: '800',
+      letterSpacing: 0.5,
+      textTransform: 'uppercase',
+      color: theme.textMuted,
+      textAlign: 'center',
+    },
+    tileStatusOn: {
+      color: theme.accent,
+    },
+    tileStatusNew: {
+      color: theme.warning,
+    },
+    nextUnlock: {
+      marginHorizontal: 12,
+      marginBottom: 6,
+      padding: 10,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: withAlpha(theme.accent, 0.25),
+      backgroundColor: withAlpha(theme.accent, 0.08),
+    },
+    nextUnlockTitle: {
+      fontSize: 10,
+      fontWeight: '900',
+      color: theme.accent,
+      letterSpacing: 0.4,
+    },
+    nextUnlockBody: {
+      marginTop: 3,
+      fontSize: 10,
+      lineHeight: 14,
+      color: theme.textSecondary,
+    },
+    bodyRow: {
+      flexDirection: 'row',
+      gap: 10,
+      paddingHorizontal: 12,
+      paddingBottom: 8,
+    },
+    bodyTile: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      padding: 10,
+      borderRadius: 14,
+      borderWidth: 1.5,
+      borderColor: theme.border,
+      backgroundColor: theme.surfaceElevated,
+    },
+    cancel: {
+      flex: 1,
+      minHeight: 48,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: theme.border,
+      backgroundColor: theme.surface,
+    },
+    cancelText: {
+      fontSize: 12,
+      fontWeight: '900',
+      letterSpacing: 0.8,
+      color: theme.textSecondary,
+    },
+    actions: {
+      flexDirection: 'row',
+      gap: 10,
+      marginHorizontal: 14,
+      marginTop: 12,
+    },
+    save: {
+      flex: 1,
+      minHeight: 48,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.buttonPrimary,
+    },
+    saveText: {
+      fontSize: 12,
+      fontWeight: '900',
+      letterSpacing: 0.8,
+      color: theme.white,
+    },
+  });
+
+  const showLockedAlert = (resolved: ResolvedItem) => {
+    Alert.alert(
+      resolved.item.name,
+      `${resolved.item.blurb}\n\nNeeds ${formatPoints(resolved.pointsRemaining)} more lifetime BUKLOD Points (${formatPoints(resolved.item.unlockAtLifetime)} total).`,
+      [{ text: 'OK' }]
+    );
+  };
+
+  const selectItem = (resolved: ResolvedItem) => {
+    if (resolved.state === 'locked') {
+      showLockedAlert(resolved);
+      return;
+    }
+
+    const itemId = resolved.item.id;
+    const item = getItem(itemId);
+    setDraft((prev) => {
+      const next = equipItem(prev, slot, itemId, lifetimePoints);
+      setSwapKey((key) => key + 1);
+
+      const reaction = reactionForEquip(itemId, prev);
+      characterEvents?.emit({
+        type:
+          reaction === 'new_item'
+            ? CharacterEventType.ITEM_UNLOCKED
+            : CharacterEventType.ITEM_EQUIPPED,
+        success: true,
+        itemId,
+        itemName: item?.name,
+      });
+
+      return next;
+    });
+  };
+
+  const save = async () => {
+    const toSave = { ...draft, bodyChosen: draft.bodyChosen ?? true };
+    await saveBuklodCharacter(toSave, userId);
+    if (userId) {
+      await markRorkAvatarOnboardingCompleted(userId);
+    }
+    setSavedSnapshot(toSave);
+    onSaved?.(toSave);
+    onClose();
+  };
+
+  const cancel = () => {
+    setDraft(savedSnapshot);
+    onClose();
+  };
+
+  const renderTile = (resolved: ResolvedItem) => {
+    const selected = equippedId(draft.equipment, slot) === resolved.item.id;
+    const locked = resolved.state === 'locked';
+    const isNew = resolved.state === 'newly_unlocked';
+    const pointsLabel = itemPointsLabel(
+      resolved.item,
+      locked,
+      resolved.pointsRemaining
+    );
+
+    return (
+      <Pressable
+        key={resolved.item.id}
+        onPress={() => selectItem(resolved)}
+        style={[
+          styles.tile,
+          selected && styles.tileOn,
+          isNew && !selected && styles.tileNew,
+          locked && styles.tileLocked,
+        ]}
+      >
+        <View style={styles.thumbWrap}>
+          <BuklodCharacterItemThumb
+            item={resolved.item}
+            body={draft.body}
+            locked={locked}
+            size={56}
+          />
+          {selected ? (
+            <View style={styles.badge}>
+              <MaterialCommunityIcons
+                name="check"
+                size={12}
+                color={theme.white}
+              />
+            </View>
+          ) : isNew ? (
+            <View style={[styles.badge, styles.badgeNew]}>
+              <MaterialCommunityIcons
+                name="star-four-points"
+                size={11}
+                color={theme.white}
+              />
+            </View>
+          ) : null}
+        </View>
+        <Text
+          style={[styles.tileName, locked && styles.tileNameLocked]}
+          numberOfLines={2}
+        >
+          {resolved.item.name}
+        </Text>
+        <Text
+          style={[
+            styles.tileStatus,
+            selected && styles.tileStatusOn,
+            isNew && !selected && styles.tileStatusNew,
+          ]}
+        >
+          {selected
+            ? 'Equipped'
+            : isNew
+              ? 'New'
+              : pointsLabel}
+        </Text>
+      </Pressable>
+    );
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <Pressable style={styles.overlay} onPress={onClose}>
+        <Pressable
+          style={[
+            styles.sheet,
+            { paddingBottom: drawerBottomInset + 16 },
+          ]}
+          onPress={(event) => event.stopPropagation()}
+        >
+          <View style={styles.header}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.title}>Customize Character</Text>
+              <Text style={styles.localNote}>
+                Unlock looks with Lifetime BUKLOD Points
+              </Text>
+              <View style={styles.identityRow}>
+                <View style={styles.pointsPill}>
+                  <MaterialCommunityIcons
+                    name="star-circle"
+                    size={12}
+                    color={theme.accent}
+                  />
+                  <Text style={styles.pointsText}>
+                    {formatPoints(lifetimePoints)} BUKLOD pts
+                  </Text>
+                </View>
+                /* BUKLOD_CHARACTER_ENGINE_2_NATIVE_SKIA_R1 */
+/* BUKLOD_STUDIO_FULL_BODY_R2 */
+<BuklodCharacterCompactFullBody
+  body={draft.body}
+  equipment={draft.equipment}
+  size={116}
+  studio
+/>
+              </View>
+            </View>
+            <Pressable onPress={onClose} hitSlop={12}>
+              <MaterialCommunityIcons
+                name="close"
+                size={22}
+                color={theme.textMuted}
+              />
+            </Pressable>
+          </View>
+
+          <View style={styles.customizeCol}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.categories}
+              >
+                <View style={styles.catRow}>
+                  {CHARACTER_SLOT_ORDER.map((row) => (
+                    <Pressable
+                      key={row}
+                      onPress={() => setSlot(row)}
+                      style={[
+                        styles.catChip,
+                        slot === row && styles.catChipOn,
+                      ]}
+                    >
+                      <MaterialCommunityIcons
+                        name={SLOT_ICONS[row]}
+                        size={14}
+                        color={
+                          slot === row ? theme.accent : theme.textMuted
+                        }
+                      />
+                      <Text
+                        style={[
+                          styles.catText,
+                          slot === row && styles.catTextOn,
+                        ]}
+                      >
+                        {CHARACTER_SLOT_LABELS[row]}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </ScrollView>
+
+              {slot !== 'base' ? (
+                <View style={styles.slotHeader}>
+                  <Text style={styles.slotTitle}>
+                    {CHARACTER_SLOT_LABELS[slot]} Styles
+                  </Text>
+                  <Text style={styles.slotMeta}>
+                    {slotStats.unlocked}/{slotStats.total} unlocked Â· tap locked
+                    items for points needed
+                  </Text>
+                </View>
+              ) : null}
+
+              {nextWarriorUnlock ? (
+                <View style={styles.nextUnlock}>
+                  <Text style={styles.nextUnlockTitle}>
+                    Next unlock Â· {formatPoints(nextWarriorUnlock.threshold)} pts
+                  </Text>
+                  <Text style={styles.nextUnlockBody}>
+                    {formatPoints(nextWarriorUnlock.pointsAway)} pts away:{' '}
+                    {nextWarriorUnlock.items
+                      .slice(0, 3)
+                      .map((item) => item.name)
+                      .join(', ')}
+                    {nextWarriorUnlock.items.length > 3 ? 'â€¦' : ''}
+                  </Text>
+                </View>
+              ) : null}
+
+              <ScrollView
+                style={{ maxHeight: stackVertical ? 260 : 280 }}
+                contentContainerStyle={
+                  slot === 'base' ? styles.bodyRow : styles.grid
+                }
+                showsVerticalScrollIndicator={false}
+              >
+                {slot === 'base'
+                  ? (['female', 'male'] as const).map((bodyOption) => {
+                      const selected = draft.body === bodyOption;
+                      const baseItem = getItem(
+                        bodyOption === 'female'
+                          ? 'base_female'
+                          : 'base_male'
+                      );
+                      if (!baseItem) return null;
+
+                      return (
+                        <Pressable
+                          key={bodyOption}
+                          onPress={() => {
+                            setDraft((prev) => {
+                              const next = equipItem(
+                                prev,
+                                'base',
+                                bodyOption === 'female'
+                                  ? 'base_female'
+                                  : 'base_male',
+                                lifetimePoints
+                              );
+                              return { ...next, bodyChosen: true };
+                            });
+                            setSwapKey((key) => key + 1);
+                          }}
+                          style={[
+                            styles.bodyTile,
+                            selected && styles.tileOn,
+                          ]}
+                        >
+                          <BuklodCharacterItemThumb
+                            item={baseItem}
+                            body={bodyOption}
+                            locked={false}
+                            size={48}
+                          />
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.tileName}>
+                              {bodyOption === 'female'
+                                ? 'Feminine Build'
+                                : 'Masculine Build'}
+                            </Text>
+                            <Text
+                              style={[
+                                styles.tileStatus,
+                                selected && styles.tileStatusOn,
+                              ]}
+                            >
+                              {selected ? 'Selected' : 'Available'}
+                            </Text>
+                          </View>
+                        </Pressable>
+                      );
+                    })
+                  : resolvedItems.map(renderTile)}
+              </ScrollView>
+          </View>
+
+          <BuklodCharacterSettingsRow compact />
+
+          <View style={styles.actions}>
+            <Pressable
+              onPress={cancel}
+              style={({ pressed }) => [
+                styles.cancel,
+                pressed && { opacity: 0.88 },
+              ]}
+            >
+              <Text style={styles.cancelText}>CANCEL</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => void save()}
+              style={({ pressed }) => [
+                styles.save,
+                pressed && { opacity: 0.88 },
+              ]}
+            >
+              <Text style={styles.saveText}>SAVE CHARACTER</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+===== ITEM THUMB =====
+import React, { memo } from 'react';
+
+import { LinearGradient } from 'expo-linear-gradient';
+import { StyleSheet, View } from 'react-native';
+
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
+import { catalogItemGlyph } from '@/lib/character-lab-core/localLooks';
+import type { BodyId, CatalogItem } from '@/lib/character-lab-core/types';
+
+type Props = {
+  item: CatalogItem;
+  body: BodyId;
+  locked: boolean;
+  size?: number;
+};
+
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+/** Wardrobe tile â€” catalog swatch + glyph, unlocked by lifetime points. */
+function BuklodCharacterItemThumbImpl({
+  item,
+  locked,
+  size = 56,
+}: Props) {
+  const { theme } = useBuklodPresentation();
+  const [from, to] = item.swatch;
+  const glyph = catalogItemGlyph(item) as IconName;
+
+  return (
+    <View
+      style={[
+        styles.root,
+        {
+          width: size,
+          height: size,
+          borderColor: theme.border,
+          backgroundColor: theme.surfaceMuted,
+        },
+      ]}
+    >
+      <LinearGradient colors={[`${from}CC`, `${to}99`]} style={styles.fill}>
+        <View style={styles.fallback}>
+          <MaterialCommunityIcons
+            name={glyph}
+            size={Math.round(size * 0.38)}
+            color={locked ? theme.textMuted : to}
+          />
+        </View>
+      </LinearGradient>
+      {locked ? (
+        <View style={styles.lockedOverlay}>
+          <MaterialCommunityIcons
+            name="lock-outline"
+            size={18}
+            color={theme.white}
+          />
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+export default memo(BuklodCharacterItemThumbImpl);
+
+const styles = StyleSheet.create({
+  root: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+  },
+  fill: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  fallback: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lockedOverlay: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.38)',
+  },
+});
+
+===== CHARACTER CORE EXPORTS / RANK / UNLOCK =====
+
+--- assets.ts ---
+ *
+ * Every wardrobe layer was painted on the same canvas as its base body, then
+ * alpha-trimmed by the asset pipeline. The builder restored each layer's
+ * position by silhouette fitting, so these rectangles are percentages of the
+ * base body box and need no runtime measurement.
+ * position by silhouette fitting, so these rectangles are percentages of the
+ * base body box and need no runtime measurement.
+ */
+
+import type { BodyId } from './types';
+
+import type { BodyId } from './types';
+
+export interface LayerPlacement {
+  /** Percent of the base body box. */
+
+export interface LayerPlacement {
+  /** Percent of the base body box. */
+  readonly left: number;
+  readonly top: number;
+export interface LayerPlacement {
+  /** Percent of the base body box. */
+  readonly left: number;
+  readonly top: number;
+  readonly width: number;
+
+/** Anatomy landmarks per body, as percentages of the base body box. */
+export interface FaceRig {
+  readonly eyeY: number;
+  readonly browY: number;
+/** Anatomy landmarks per body, as percentages of the base body box. */
+export interface FaceRig {
+  readonly eyeY: number;
+  readonly browY: number;
+  readonly eyeBandTop: number;
+  readonly feetY: number;
+  readonly bodyCenterX: number;
+}
+
+export const ASSET_URLS: Record<string, string> = {
+
+export const ASSET_URLS: Record<string, string> = {
+  char_base_female: 'https://r2-pub.rork.com/projects/68yf74vhsnrqbpn79vghw/assets/970dcb45-c576-45f4-be3e-20b48e92a5cc.png',
+  char_base_male: 'https://r2-pub.rork.com/projects/68yf74vhsnrqbpn79vghw/assets/349e3cf0-e155-4e94-ac15-62067087efb8.png',
+  env_covenant_plaza: 'https://r2-pub.rork.com/projects/68yf74vhsnrqbpn79vghw/assets/d57d1f28-7b7f-4561-9712-d1c21f316b94.png',
+
+export const LAYER_PLACEMENTS: Record<string, LayerPlacement> = {
+  acc_f_bracer: { left: 14.793, top: 36.577, width: 64.892, height: 14.062 },
+  acc_f_lenses: { left: 33.728, top: 5.824, width: 28.402, height: 3.693 },
+  acc_f_satchel: { left: 17.554, top: 16.974, width: 59.172, height: 42.401 },
+
+export const BASE_ASPECT: Record<BodyId, number> = {
+  female: 0.36009,
+  male: 0.37557,
+};
+
+export const FACE_RIG: Record<BodyId, FaceRig> = {
+  female: {
+    eyeY: 5.966,
+    browY: 4.688,
+    feetY: 99.858,
+    bodyCenterX: 49.112,
+  },
+  male: {
+    eyeY: 4.962,
+    feetY: 99.847,
+    bodyCenterX: 49.39,
+  },
+};
+
+
+export const STAGE_KEYS: readonly string[] = [
+  'env_covenant_plaza',
+  'env_verdant_ruins',
+  'env_skyward_bastion',
+
+export const EMBLEM_KEYS: readonly string[] = [
+  'badge_seed',
+  'badge_hands',
+  'badge_crown',
+/** Resolves a manifest key to its hosted URL. */
+export function assetUrl(key: string | null | undefined): string | null {
+  if (!key) return null;
+  return ASSET_URLS[key] ?? null;
+}
+/** Placement for a layer key, or null for non-composited assets. */
+export function placementFor(key: string | null | undefined): LayerPlacement | null {
+  if (!key) return null;
+  return LAYER_PLACEMENTS[key] ?? null;
+}
+
+--- catalog.ts ---
+import type { BodyId, CatalogItem, Equipment, SlotId } from './types';
+
+/**
+ * Composite order, back to front. The renderer walks this array so both
+ */
+export const LAYER_ORDER: readonly SlotId[] = [
+  'base',
+  'bottom',
+  'shoes',
+
+/** Slots offered in the customizer rail, in display order. */
+export const CATEGORY_ORDER: readonly SlotId[] = [
+  'base',
+  'face',
+/** Slots offered in the customizer rail, in display order. */
+export const CATEGORY_ORDER: readonly SlotId[] = [
+  'base',
+  'face',
+  'hair',
+
+export const SLOT_LABELS: Record<SlotId, string> = {
+  base: 'Body',
+  face: 'Face',
+  hair: 'Hair',
+export const SLOT_LABELS: Record<SlotId, string> = {
+  base: 'Body',
+  face: 'Face',
+  hair: 'Hair',
+  top: 'Top',
+/**
+ * THE CATALOG. Every unlock rule lives here as data — the UI never hardcodes a
+ * threshold. Prototype values only.
+ */
+export const CATALOG: readonly CatalogItem[] = [
+ */
+export const CATALOG: readonly CatalogItem[] = [
+  // ── BASE ────────────────────────────────────────────────────────────────
+  {
+    id: 'base_female',
+    id: 'base_female',
+    slot: 'base',
+    name: 'Feminine Build',
+    blurb: 'Base body. Both builds are always available.',
+    unlockAtLifetime: 0,
+    name: 'Feminine Build',
+    blurb: 'Base body. Both builds are always available.',
+    unlockAtLifetime: 0,
+    group: 'clothing',
+    bodies: ['female'],
+    blurb: 'Base body. Both builds are always available.',
+    unlockAtLifetime: 0,
+    group: 'clothing',
+    bodies: ['female'],
+    asset: { female: 'char_base_female' },
+    id: 'base_male',
+    slot: 'base',
+    name: 'Masculine Build',
+    blurb: 'Base body. Both builds are always available.',
+    unlockAtLifetime: 0,
+    name: 'Masculine Build',
+    blurb: 'Base body. Both builds are always available.',
+    unlockAtLifetime: 0,
+    group: 'clothing',
+    bodies: ['male'],
+    blurb: 'Base body. Both builds are always available.',
+    unlockAtLifetime: 0,
+    group: 'clothing',
+    bodies: ['male'],
+    asset: { male: 'char_base_male' },
+    id: 'face_natural',
+    slot: 'face',
+    name: 'Natural',
+    blurb: 'No markings.',
+    unlockAtLifetime: 0,
+    blurb: 'No markings.',
+    unlockAtLifetime: 0,
+    group: 'special',
+    swatch: LINEN,
+  },
+    id: 'face_marks',
+    slot: 'face',
+    name: 'Verdant Marks',
+    blurb: 'Soft green ceremonial marks worn at community gatherings.',
+    unlockAtLifetime: 250,
+    blurb: 'Soft green ceremonial marks worn at community gatherings.',
+    unlockAtLifetime: 250,
+    group: 'special',
+    asset: { female: 'face_f_marks', male: 'face_m_marks' },
+    attach: 'head',
+    id: 'face_sigil',
+    slot: 'face',
+    name: 'Radiant Sigil',
+    blurb: 'A luminous mark given at a major milestone.',
+    unlockAtLifetime: 2500,
+    blurb: 'A luminous mark given at a major milestone.',
+    unlockAtLifetime: 2500,
+    group: 'special',
+    asset: { female: 'face_f_sigil', male: 'face_m_sigil' },
+    attach: 'head',
+    id: 'f_hair_knot',
+    slot: 'hair',
+    name: 'Service Knot',
+    blurb: 'Practical, tied back and ready to work.',
+    unlockAtLifetime: 0,
+    blurb: 'Practical, tied back and ready to work.',
+    unlockAtLifetime: 0,
+    group: 'clothing',
+    bodies: ['female'],
+    swatch: SLATE,
+    id: 'f_hair_braid',
+    slot: 'hair',
+    name: 'Bayanihan Braid',
+    blurb: 'A long braid woven with a thin green cord.',
+    unlockAtLifetime: 100,
+    blurb: 'A long braid woven with a thin green cord.',
+    unlockAtLifetime: 100,
+    warriorRank: 1,
+    group: 'clothing',
+    bodies: ['female'],
+    unlockAtLifetime: 100,
+    warriorRank: 1,
+    group: 'clothing',
+    bodies: ['female'],
+    asset: { female: 'hair_f_braid' },
+    id: 'f_hair_waves',
+    slot: 'hair',
+    name: 'Dawnflow Waves',
+    blurb: 'Loose waves lit by the horizon.',
+    unlockAtLifetime: 250,
+    blurb: 'Loose waves lit by the horizon.',
+    unlockAtLifetime: 250,
+    warriorRank: 1,
+    group: 'clothing',
+    bodies: ['female'],
+    unlockAtLifetime: 250,
+    warriorRank: 1,
+    group: 'clothing',
+    bodies: ['female'],
+    asset: { female: 'hair_f_waves' },
+    id: 'f_hair_crest',
+    slot: 'hair',
+    name: 'Verdant Crest',
+    blurb: 'A sculpted crest with faint emerald light in the strands.',
+    unlockAtLifetime: 1000,
+    blurb: 'A sculpted crest with faint emerald light in the strands.',
+    unlockAtLifetime: 1000,
+    warriorRank: 3,
+    group: 'clothing',
+    bodies: ['female'],
+    unlockAtLifetime: 1000,
+    warriorRank: 3,
+    group: 'clothing',
+    bodies: ['female'],
+    asset: { female: 'hair_f_crest' },
+    id: 'm_hair_crop',
+    slot: 'hair',
+    name: 'Steward Crop',
+    blurb: 'Clean, short, no fuss.',
+    unlockAtLifetime: 0,
+    blurb: 'Clean, short, no fuss.',
+    unlockAtLifetime: 0,
+    group: 'clothing',
+    bodies: ['male'],
+    swatch: SLATE,
+    id: 'm_hair_sweep',
+    slot: 'hair',
+    name: 'Covenant Sweep',
+    blurb: 'Swept back for the evening assembly.',
+    unlockAtLifetime: 100,
+    blurb: 'Swept back for the evening assembly.',
+    unlockAtLifetime: 100,
+    warriorRank: 1,
+    group: 'clothing',
+    bodies: ['male'],
+    unlockAtLifetime: 100,
+    warriorRank: 1,
+    group: 'clothing',
+    bodies: ['male'],
+    asset: { male: 'hair_m_sweep' },
+    id: 'm_hair_locs',
+    slot: 'hair',
+    name: 'Highland Locs',
+    blurb: 'Shoulder-length locs bound with a leather tie.',
+    unlockAtLifetime: 250,
+    blurb: 'Shoulder-length locs bound with a leather tie.',
+    unlockAtLifetime: 250,
+    warriorRank: 1,
+    group: 'clothing',
+    bodies: ['male'],
+    unlockAtLifetime: 250,
+    warriorRank: 1,
+    group: 'clothing',
+    bodies: ['male'],
+    asset: { male: 'hair_m_locs' },
+    id: 'm_hair_warden',
+    slot: 'hair',
+    name: 'Warden Tail',
+    blurb: 'Undercut and tied high, with a faint emerald sheen.',
+    unlockAtLifetime: 1000,
+    blurb: 'Undercut and tied high, with a faint emerald sheen.',
+    unlockAtLifetime: 1000,
+    warriorRank: 3,
+    group: 'clothing',
+    bodies: ['male'],
+    unlockAtLifetime: 1000,
+    warriorRank: 3,
+    group: 'clothing',
+    bodies: ['male'],
+    asset: { male: 'hair_m_warden' },
+    id: 'top_warrior',
+    slot: 'top',
+    name: 'Warrior Frame',
+    blurb: 'Approved Rork body only — no garment layer. Clean youthful warrior silhouette.',
+    unlockAtLifetime: 0,
+    name: 'Warrior Frame',
+    blurb: 'Approved Rork body only — no garment layer. Clean youthful warrior silhouette.',
+    unlockAtLifetime: 0,
+    warriorRank: 0,
+    group: 'clothing',
+    blurb: 'Approved Rork body only — no garment layer. Clean youthful warrior silhouette.',
+    unlockAtLifetime: 0,
+    warriorRank: 0,
+    group: 'clothing',
+    swatch: SLATE,
+    unlockAtLifetime: 0,
+    warriorRank: 0,
+    group: 'clothing',
+    swatch: SLATE,
+  },
+    id: 'top_tunic',
+    slot: 'top',
+    name: 'Linen Service Tunic',
+    blurb: 'First garment layer — emerald-trim service tunic.',
+    unlockAtLifetime: 50,
+    blurb: 'First garment layer — emerald-trim service tunic.',
+    unlockAtLifetime: 50,
+    warriorRank: 0,
+    group: 'clothing',
+    asset: { female: 'top_f_tunic', male: 'top_m_tunic' },
+    unlockAtLifetime: 50,
+    warriorRank: 0,
+    group: 'clothing',
+    asset: { female: 'top_f_tunic', male: 'top_m_tunic' },
+    swatch: LINEN,
+    id: 'top_jacket',
+    slot: 'top',
+    name: 'Fieldwork Jacket',
+    blurb: 'Reinforced warrior jacket with structured shoulders.',
+    unlockAtLifetime: 100,
+    blurb: 'Reinforced warrior jacket with structured shoulders.',
+    unlockAtLifetime: 100,
+    warriorRank: 1,
+    group: 'clothing',
+    asset: { female: 'top_f_jacket', male: 'top_m_jacket' },
+    unlockAtLifetime: 100,
+    warriorRank: 1,
+    group: 'clothing',
+    asset: { female: 'top_f_jacket', male: 'top_m_jacket' },
+    swatch: SLATE,
+    id: 'top_mantle',
+    slot: 'top',
+    name: 'Emerald Mantle',
+    blurb: 'Layered mantle in deep BUKLOD green with gold trim.',
+    unlockAtLifetime: 500,
+    blurb: 'Layered mantle in deep BUKLOD green with gold trim.',
+    unlockAtLifetime: 500,
+    warriorRank: 2,
+    group: 'clothing',
+    asset: { female: 'top_f_mantle', male: 'top_m_mantle' },
+    unlockAtLifetime: 500,
+    warriorRank: 2,
+    group: 'clothing',
+    asset: { female: 'top_f_mantle', male: 'top_m_mantle' },
+    swatch: GREEN,
+    id: 'top_regalia',
+    slot: 'top',
+    name: 'Covenant Regalia',
+    blurb: 'Rare ceremonial armour-cloth for elite warriors.',
+    unlockAtLifetime: 2500,
+    blurb: 'Rare ceremonial armour-cloth for elite warriors.',
+    unlockAtLifetime: 2500,
+    warriorRank: 4,
+    group: 'clothing',
+    asset: { female: 'top_f_regalia', male: 'top_m_regalia' },
+    unlockAtLifetime: 2500,
+    warriorRank: 4,
+    group: 'clothing',
+    asset: { female: 'top_f_regalia', male: 'top_m_regalia' },
+    swatch: GOLD,
+    id: 'bottom_warrior',
+    slot: 'bottom',
+    name: 'Warrior Leggings',
+    blurb: 'Base warrior legs — no wrap layer. Shows approved body proportions.',
+    unlockAtLifetime: 0,
+    name: 'Warrior Leggings',
+    blurb: 'Base warrior legs — no wrap layer. Shows approved body proportions.',
+    unlockAtLifetime: 0,
+    warriorRank: 0,
+    group: 'clothing',
+    blurb: 'Base warrior legs — no wrap layer. Shows approved body proportions.',
+    unlockAtLifetime: 0,
+    warriorRank: 0,
+    group: 'clothing',
+    swatch: SLATE,
+    unlockAtLifetime: 0,
+    warriorRank: 0,
+    group: 'clothing',
+    swatch: SLATE,
+  },
+    id: 'bottom_wrap',
+    slot: 'bottom',
+    name: 'Field Wrap Trousers',
+    blurb: 'Wrapped trousers for long outreach days.',
+    unlockAtLifetime: 50,
+    blurb: 'Wrapped trousers for long outreach days.',
+    unlockAtLifetime: 50,
+    warriorRank: 0,
+    group: 'clothing',
+    asset: { female: 'bottom_f_wrap', male: 'bottom_m_wrap' },
+    unlockAtLifetime: 50,
+    warriorRank: 0,
+    group: 'clothing',
+    asset: { female: 'bottom_f_wrap', male: 'bottom_m_wrap' },
+    swatch: LINEN,
+    id: 'bottom_long',
+    slot: 'bottom',
+    name: 'Terrace Layers',
+    blurb: 'Layered panels cut for stone terrace patrols.',
+    unlockAtLifetime: 250,
+    blurb: 'Layered panels cut for stone terrace patrols.',
+    unlockAtLifetime: 250,
+    warriorRank: 1,
+    group: 'clothing',
+    asset: { female: 'bottom_f_long', male: 'bottom_m_long' },
+    unlockAtLifetime: 250,
+    warriorRank: 1,
+    group: 'clothing',
+    asset: { female: 'bottom_f_long', male: 'bottom_m_long' },
+    swatch: TEAL,
+    id: 'bottom_greaves',
+    slot: 'bottom',
+    name: 'Warden Greaves',
+    blurb: 'Guarded trousers with engraved plating — true warrior lower armor.',
+    unlockAtLifetime: 1000,
+    blurb: 'Guarded trousers with engraved plating — true warrior lower armor.',
+    unlockAtLifetime: 1000,
+    warriorRank: 3,
+    group: 'clothing',
+    asset: { female: 'bottom_f_greaves', male: 'bottom_m_greaves' },
+    unlockAtLifetime: 1000,
+    warriorRank: 3,
+    group: 'clothing',
+    asset: { female: 'bottom_f_greaves', male: 'bottom_m_greaves' },
+    swatch: SLATE,
+    id: 'shoes_warrior',
+    slot: 'shoes',
+    name: 'Bare Warrior Feet',
+    blurb: 'Base feet — no footwear layer.',
+    unlockAtLifetime: 0,
+    blurb: 'Base feet — no footwear layer.',
+    unlockAtLifetime: 0,
+    warriorRank: 0,
+    group: 'clothing',
+    swatch: SLATE,
+    unlockAtLifetime: 0,
+    warriorRank: 0,
+    group: 'clothing',
+    swatch: SLATE,
+  },
+    id: 'shoes_sandals',
+    slot: 'shoes',
+    name: 'Pilgrim Sandals',
+    blurb: 'Simple leather straps, well travelled.',
+    unlockAtLifetime: 50,
+    blurb: 'Simple leather straps, well travelled.',
+    unlockAtLifetime: 50,
+    warriorRank: 0,
+    group: 'clothing',
+    asset: { female: 'shoes_f_sandals', male: 'shoes_m_sandals' },
+    unlockAtLifetime: 50,
+    warriorRank: 0,
+    group: 'clothing',
+    asset: { female: 'shoes_f_sandals', male: 'shoes_m_sandals' },
+    swatch: LINEN,
+    id: 'shoes_boots',
+    slot: 'shoes',
+    name: 'Trailkeeper Boots',
+    blurb: 'Broken-in boots for highland warrior paths.',
+    unlockAtLifetime: 250,
+    blurb: 'Broken-in boots for highland warrior paths.',
+    unlockAtLifetime: 250,
+    warriorRank: 1,
+    group: 'clothing',
+    asset: { female: 'shoes_f_boots', male: 'shoes_m_boots' },
+    unlockAtLifetime: 250,
+    warriorRank: 1,
+    group: 'clothing',
+    asset: { female: 'shoes_f_boots', male: 'shoes_m_boots' },
+    swatch: SLATE,
+    id: 'shoes_gilded',
+    slot: 'shoes',
+    name: 'Gilded Wardens',
+    blurb: 'Gold-chased boots with a faint glow — champion footwear.',
+    unlockAtLifetime: 2500,
+    blurb: 'Gold-chased boots with a faint glow — champion footwear.',
+    unlockAtLifetime: 2500,
+    warriorRank: 4,
+    group: 'clothing',
+    asset: { female: 'shoes_f_gilded', male: 'shoes_m_gilded' },
+    unlockAtLifetime: 2500,
+    warriorRank: 4,
+    group: 'clothing',
+    asset: { female: 'shoes_f_gilded', male: 'shoes_m_gilded' },
+    swatch: GOLD,
+    id: 'acc_none',
+    slot: 'accessory',
+    name: 'No Accessory',
+    blurb: 'Travel light — nothing extra equipped.',
+    unlockAtLifetime: 0,
+    name: 'No Accessory',
+    blurb: 'Travel light — nothing extra equipped.',
+    unlockAtLifetime: 0,
+    group: 'accessories',
+    swatch: SLATE,
+    blurb: 'Travel light — nothing extra equipped.',
+    unlockAtLifetime: 0,
+    group: 'accessories',
+    swatch: SLATE,
+  },
+    id: 'acc_satchel',
+    slot: 'accessory',
+    name: "Servant's Satchel",
+    blurb: 'Carries what other people need.',
+    unlockAtLifetime: 100,
+    blurb: 'Carries what other people need.',
+    unlockAtLifetime: 100,
+    warriorRank: 1,
+    group: 'accessories',
+    asset: { female: 'acc_f_satchel', male: 'acc_m_satchel' },
+    unlockAtLifetime: 100,
+    warriorRank: 1,
+    group: 'accessories',
+    asset: { female: 'acc_f_satchel', male: 'acc_m_satchel' },
+    swatch: LINEN,
+    id: 'acc_stole',
+    slot: 'accessory',
+    name: 'Unity Stole',
+    blurb: 'Emerald stole for warriors who lift communities together.',
+    unlockAtLifetime: 250,
+    blurb: 'Emerald stole for warriors who lift communities together.',
+    unlockAtLifetime: 250,
+    warriorRank: 1,
+    group: 'accessories',
+    asset: { female: 'acc_f_stole', male: 'acc_m_stole' },
+    unlockAtLifetime: 250,
+    warriorRank: 1,
+    group: 'accessories',
+    asset: { female: 'acc_f_stole', male: 'acc_m_stole' },
+    swatch: GREEN,
+    id: 'acc_lenses',
+    slot: 'accessory',
+    name: 'Scholar Lenses',
+    blurb: 'Brass frames — tactical eyewear for study and field work.',
+    unlockAtLifetime: 500,
+    blurb: 'Brass frames — tactical eyewear for study and field work.',
+    unlockAtLifetime: 500,
+    warriorRank: 2,
+    group: 'accessories',
+    asset: { female: 'acc_f_lenses', male: 'acc_m_lenses' },
+    unlockAtLifetime: 500,
+    warriorRank: 2,
+    group: 'accessories',
+    asset: { female: 'acc_f_lenses', male: 'acc_m_lenses' },
+    attach: 'head',
+    id: 'acc_bracer',
+    slot: 'accessory',
+    name: 'Growth Bracer',
+    blurb: 'Engraved emerald bracer — marks seasons of warrior service.',
+    unlockAtLifetime: 1000,
+    blurb: 'Engraved emerald bracer — marks seasons of warrior service.',
+    unlockAtLifetime: 1000,
+    warriorRank: 3,
+    group: 'accessories',
+    asset: { female: 'acc_f_bracer', male: 'acc_m_bracer' },
+    unlockAtLifetime: 1000,
+    warriorRank: 3,
+    group: 'accessories',
+    asset: { female: 'acc_f_bracer', male: 'acc_m_bracer' },
+    swatch: TEAL,
+    id: 'badge_none',
+    slot: 'badge',
+    name: 'No Badge',
+    blurb: 'Nothing displayed.',
+    unlockAtLifetime: 0,
+    blurb: 'Nothing displayed.',
+    unlockAtLifetime: 0,
+    group: 'badges',
+    swatch: SLATE,
+  },
+    id: 'badge_seed',
+    slot: 'badge',
+    name: 'Seed of Service',
+    blurb: 'For the first season of consistent service.',
+    unlockAtLifetime: 500,
+    blurb: 'For the first season of consistent service.',
+    unlockAtLifetime: 500,
+    group: 'badges',
+    asset: { shared: 'badge_seed' },
+    swatch: GREEN,
+    id: 'badge_hands',
+    slot: 'badge',
+    name: 'Bayanihan Hands',
+    blurb: 'For lifting a community effort with others.',
+    unlockAtLifetime: 1000,
+    blurb: 'For lifting a community effort with others.',
+    unlockAtLifetime: 1000,
+    group: 'badges',
+    asset: { shared: 'badge_hands' },
+    swatch: TEAL,
+    id: 'badge_crown',
+    slot: 'badge',
+    name: 'Milestone Crown',
+    blurb: 'The highest prototype recognition.',
+    unlockAtLifetime: 5000,
+    blurb: 'The highest prototype recognition.',
+    unlockAtLifetime: 5000,
+    group: 'badges',
+    asset: { shared: 'badge_crown' },
+    swatch: GOLD,
+    id: 'fx_none',
+    slot: 'special',
+    name: 'No Effect',
+    blurb: 'A calm stage.',
+    unlockAtLifetime: 0,
+    blurb: 'A calm stage.',
+    unlockAtLifetime: 0,
+    group: 'special',
+    effect: 'none',
+    swatch: SLATE,
+    id: 'fx_aura',
+    slot: 'special',
+    name: 'Verdant Aura',
+    blurb: 'A living ground ring with rising motes of light.',
+    unlockAtLifetime: 1000,
+    blurb: 'A living ground ring with rising motes of light.',
+    unlockAtLifetime: 1000,
+    group: 'special',
+    effect: 'aura',
+    swatch: GREEN,
+    id: 'fx_ascend',
+    slot: 'special',
+    name: 'Ascendant Halo',
+    blurb: 'Orbiting stars and a slow light sweep. Milestone effect.',
+    unlockAtLifetime: 5000,
+    blurb: 'Orbiting stars and a slow light sweep. Milestone effect.',
+    unlockAtLifetime: 5000,
+    group: 'special',
+    effect: 'ascend',
+    swatch: VIOLET,
+    id: 'bg_covenant',
+    slot: 'background',
+    name: 'Covenant Plaza',
+    blurb: 'Golden hour over the ceremonial plaza.',
+    unlockAtLifetime: 0,
+    blurb: 'Golden hour over the ceremonial plaza.',
+    unlockAtLifetime: 0,
+    group: 'backgrounds',
+    stage: 'env_covenant_plaza',
+    swatch: GOLD,
+    id: 'bg_verdant',
+    slot: 'background',
+    name: 'Verdant Ruins',
+    blurb: 'Cool dawn mist over the overgrown ruins.',
+    unlockAtLifetime: 500,
+    blurb: 'Cool dawn mist over the overgrown ruins.',
+    unlockAtLifetime: 500,
+    group: 'backgrounds',
+    stage: 'env_verdant_ruins',
+    swatch: TEAL,
+    id: 'bg_skyward',
+    slot: 'background',
+    name: 'Skyward Bastion',
+    blurb: 'The high terrace above the floating islands.',
+    unlockAtLifetime: 1000,
+    blurb: 'The high terrace above the floating islands.',
+    unlockAtLifetime: 1000,
+    group: 'backgrounds',
+    stage: 'env_skyward_bastion',
+    swatch: VIOLET,
+
+const BY_ID: Record<string, CatalogItem> = CATALOG.reduce<Record<string, CatalogItem>>(
+  (acc, item) => {
+    acc[item.id] = item;
+    return acc;
+const BY_ID: Record<string, CatalogItem> = CATALOG.reduce<Record<string, CatalogItem>>(
+  (acc, item) => {
+    acc[item.id] = item;
+    return acc;
+  },
+  (acc, item) => {
+    acc[item.id] = item;
+    return acc;
+  },
+  {},
+
+export function getItem(id: string | null): CatalogItem | null {
+  if (!id) return null;
+  return BY_ID[id] ?? null;
+}
+
+/** Items offered for a slot, filtered to the selected body. */
+export function itemsForSlot(slot: SlotId, body: BodyId): CatalogItem[] {
+  return CATALOG.filter(
+    (item) => item.slot === slot && (!item.bodies || item.bodies.includes(body)),
+/** Items offered for a slot, filtered to the selected body. */
+export function itemsForSlot(slot: SlotId, body: BodyId): CatalogItem[] {
+  return CATALOG.filter(
+    (item) => item.slot === slot && (!item.bodies || item.bodies.includes(body)),
+  );
+export function itemsForSlot(slot: SlotId, body: BodyId): CatalogItem[] {
+  return CATALOG.filter(
+    (item) => item.slot === slot && (!item.bodies || item.bodies.includes(body)),
+  );
+}
+  return CATALOG.filter(
+    (item) => item.slot === slot && (!item.bodies || item.bodies.includes(body)),
+  );
+}
+
+
+/** Resolves the manifest asset key for an item on a given body. */
+export function assetKeyFor(item: CatalogItem, body: BodyId): string | null {
+  if (!item.asset) return null;
+  return item.asset[body] ?? item.asset.shared ?? null;
+/** Resolves the manifest asset key for an item on a given body. */
+export function assetKeyFor(item: CatalogItem, body: BodyId): string | null {
+  if (!item.asset) return null;
+  return item.asset[body] ?? item.asset.shared ?? null;
+}
+export function assetKeyFor(item: CatalogItem, body: BodyId): string | null {
+  if (!item.asset) return null;
+  return item.asset[body] ?? item.asset.shared ?? null;
+}
+
+  if (!item.asset) return null;
+  return item.asset[body] ?? item.asset.shared ?? null;
+}
+
+/** Starter loadout: approved warrior body, no misaligned garment layers. */
+
+/** Starter loadout: approved warrior body, no misaligned garment layers. */
+export function defaultEquipment(body: BodyId): Equipment {
+  return {
+    background: 'bg_covenant',
+/** Starter loadout: approved warrior body, no misaligned garment layers. */
+export function defaultEquipment(body: BodyId): Equipment {
+  return {
+    background: 'bg_covenant',
+    base: body === 'female' ? 'base_female' : 'base_male',
+    background: 'bg_covenant',
+    base: body === 'female' ? 'base_female' : 'base_male',
+    bottom: 'bottom_warrior',
+    shoes: 'shoes_warrior',
+    top: 'top_warrior',
+    face: 'face_natural',
+    hair: body === 'female' ? 'f_hair_knot' : 'm_hair_crop',
+    accessory: 'acc_none',
+    badge: 'badge_none',
+    special: 'fx_none',
+
+--- index.ts ---
+export * from './types';
+export * from './catalog';
+export * from './assets';
+export * from './unlock';
+export * from './types';
+export * from './catalog';
+export * from './assets';
+export * from './unlock';
+export * from './tiers';
+export * from './catalog';
+export * from './assets';
+export * from './unlock';
+export * from './tiers';
+export * from './motion';
+export * from './assets';
+export * from './unlock';
+export * from './tiers';
+export * from './motion';
+export * from './particles';
+export * from './unlock';
+export * from './tiers';
+export * from './motion';
+export * from './particles';
+export * from './warrior';
+export * from './tiers';
+export * from './motion';
+export * from './particles';
+export * from './warrior';
+export * from './motion';
+export * from './particles';
+export * from './warrior';
+export * from './particles';
+export * from './warrior';
+
+--- localLooks.ts ---
+import type { BodyId, CatalogItem, Equipment, SlotId } from './types';
+import { getItem } from './catalog';
+
+export type HairSilhouette =
+import type { BodyId, CatalogItem, Equipment, SlotId } from './types';
+import { getItem } from './catalog';
+
+export type HairSilhouette =
+  | 'knot'
+
+export type HairSilhouette =
+  | 'knot'
+  | 'braid'
+  | 'waves'
+
+const SLOT_GLYPH: Record<SlotId, string> = {
+  base: 'account-outline',
+  face: 'emoticon-happy-outline',
+  hair: 'content-cut',
+
+const ITEM_GLYPH: Record<string, string> = {
+  base_female: 'human-female',
+  base_male: 'human-male',
+  face_natural: 'emoticon-happy-outline',
+  face_marks: 'flower-outline',
+  face_sigil: 'star-four-points',
+  f_hair_knot: 'hair-dryer',
+  f_hair_braid: 'content-cut',
+  f_hair_waves: 'waves',
+
+export function catalogItemGlyph(item: CatalogItem): string {
+  return ITEM_GLYPH[item.id] ?? SLOT_GLYPH[item.slot];
+}
+
+export function catalogItemGlyph(item: CatalogItem): string {
+  return ITEM_GLYPH[item.id] ?? SLOT_GLYPH[item.slot];
+}
+
+export function hairSilhouette(itemId: string | null, body: BodyId): HairSilhouette {
+
+export function hairSilhouette(itemId: string | null, body: BodyId): HairSilhouette {
+  switch (itemId) {
+    case 'f_hair_braid':
+      return 'braid';
+export function hairSilhouette(itemId: string | null, body: BodyId): HairSilhouette {
+  switch (itemId) {
+    case 'f_hair_braid':
+      return 'braid';
+    case 'f_hair_waves':
+    default:
+      return body === 'female' ? 'knot' : 'crop';
+  }
+}
+
+
+export function equippedLook(equipment: Equipment, body: BodyId) {
+  const base = getItem(equipment.base);
+  const face = getItem(equipment.face);
+  const hair = getItem(equipment.hair);
+export function equippedLook(equipment: Equipment, body: BodyId) {
+  const base = getItem(equipment.base);
+  const face = getItem(equipment.face);
+  const hair = getItem(equipment.hair);
+  const top = getItem(equipment.top);
+  const base = getItem(equipment.base);
+  const face = getItem(equipment.face);
+  const hair = getItem(equipment.hair);
+  const top = getItem(equipment.top);
+  const bottom = getItem(equipment.bottom);
+  const face = getItem(equipment.face);
+  const hair = getItem(equipment.hair);
+  const top = getItem(equipment.top);
+  const bottom = getItem(equipment.bottom);
+  const shoes = getItem(equipment.shoes);
+  const hair = getItem(equipment.hair);
+  const top = getItem(equipment.top);
+  const bottom = getItem(equipment.bottom);
+  const shoes = getItem(equipment.shoes);
+  const accessory = getItem(equipment.accessory);
+  const top = getItem(equipment.top);
+  const bottom = getItem(equipment.bottom);
+  const shoes = getItem(equipment.shoes);
+  const accessory = getItem(equipment.accessory);
+  const badge = getItem(equipment.badge);
+  const bottom = getItem(equipment.bottom);
+  const shoes = getItem(equipment.shoes);
+  const accessory = getItem(equipment.accessory);
+  const badge = getItem(equipment.badge);
+  const special = getItem(equipment.special);
+  const shoes = getItem(equipment.shoes);
+  const accessory = getItem(equipment.accessory);
+  const badge = getItem(equipment.badge);
+  const special = getItem(equipment.special);
+  const background = getItem(equipment.background);
+  const accessory = getItem(equipment.accessory);
+  const badge = getItem(equipment.badge);
+  const special = getItem(equipment.special);
+  const background = getItem(equipment.background);
+
+  const badge = getItem(equipment.badge);
+  const special = getItem(equipment.special);
+  const background = getItem(equipment.background);
+
+  return {
+  const special = getItem(equipment.special);
+  const background = getItem(equipment.background);
+
+  return {
+    body,
+  return {
+    body,
+    skin: body === 'female'
+      ? { fill: '#E7C19C', shade: '#C48A62', line: '#8C5A3A' }
+      : { fill: '#D6AE84', shade: '#B07F55', line: '#7A4F32' },
+    body,
+    skin: body === 'female'
+      ? { fill: '#E7C19C', shade: '#C48A62', line: '#8C5A3A' }
+      : { fill: '#D6AE84', shade: '#B07F55', line: '#7A4F32' },
+    baseSwatch: base?.swatch ?? (['#3A4A44', '#8AA398'] as const),
+    faceId: face?.id ?? 'face_natural',
+    hairId: hair?.id ?? (body === 'female' ? 'f_hair_knot' : 'm_hair_crop'),
+    hairStyle: hairSilhouette(hair?.id ?? null, body),
+    hairColor: hair?.swatch?.[1] ?? '#3A4A44',
+    hairShade: hair?.swatch?.[0] ?? '#2A3531',
+    hairId: hair?.id ?? (body === 'female' ? 'f_hair_knot' : 'm_hair_crop'),
+    hairStyle: hairSilhouette(hair?.id ?? null, body),
+    hairColor: hair?.swatch?.[1] ?? '#3A4A44',
+    hairShade: hair?.swatch?.[0] ?? '#2A3531',
+    topId: top?.id ?? 'top_warrior',
+    badgeId: badge?.id ?? 'badge_none',
+    badgeGlyph: badge ? catalogItemGlyph(badge) : 'medal-outline',
+    badgeColor: badge?.swatch?.[1] ?? '#4FBF6B',
+    effect: special?.effect ?? 'none',
+    effectColor: special?.swatch?.[1] ?? '#4FBF6B',
+
+--- motion.ts ---
+ */
+export const MOTION = {
+  /** Hero entrance. Total stays under 900ms; UI is tappable from frame 1. */
+  entrance: {
+    stageFadeMs: 420,
+  },
+  /** Item swapping. Preview updates immediately, then settles. */
+  swap: {
+    crossFadeMs: 180,
+    layerSettleMs: 220,
+  /** Threshold celebration. */
+  unlock: {
+    totalMs: 1250,
+    bannerInMs: 260,
+    bannerHoldMs: 620,
+    bannerOutMs: 240,
+    itemRevealDelayMs: 260,
+    itemRevealMs: 360,
+    stageFlashMs: 420,
+  },
+    itemRevealDelayMs: 260,
+    itemRevealMs: 360,
+    stageFlashMs: 420,
+  },
+  easing: {
+
+export interface ReactionSpec {
+  readonly id: ReactionId;
+  readonly label: string;
+  /** Total length of the pose change before returning to idle. */
+  readonly scaleTo: number;
+  /** Body lean in degrees at the peak. */
+  readonly leanDeg: number;
+  /** Stage light response, 0..1. */
+  readonly stageFlash: number;
+/**
+ * Reusable reactions. CLAIM uses `celebrate`, a new item uses `new_item`, and a
+ * threshold crossing uses `milestone`.
+ */
+export const REACTIONS: Record<ReactionId, ReactionSpec> = {
+ */
+export const REACTIONS: Record<ReactionId, ReactionSpec> = {
+  neutral: {
+    id: 'neutral',
+    label: 'Neutral',
+  },
+  new_item: {
+    id: 'new_item',
+    label: 'New Item',
+    durationMs: 780,
+  new_item: {
+    id: 'new_item',
+    label: 'New Item',
+    durationMs: 780,
+    particles: 10,
+    id: 'new_item',
+    label: 'New Item',
+    durationMs: 780,
+    particles: 10,
+    hopPx: 6,
+
+--- particles.ts ---
+
+export type ParticleTone = 'gold' | 'star' | 'mint' | 'teal';
+
+export interface ParticleSpec {
+  readonly id: number;
+
+export interface ParticleSpec {
+  readonly id: number;
+  /** Launch angle in degrees, 0 = straight up, positive = clockwise. */
+  readonly angleDeg: number;
+
+export interface BurstOptions {
+  /** 8–12 for ordinary events, 18–24 for a major milestone. */
+  readonly count: number;
+  readonly seed?: number;
+
+export function makeBurst(options: BurstOptions): ParticleSpec[] {
+  const {
+    count,
+    seed = 1,
+
+export interface OrbitSpec {
+  readonly id: number;
+  readonly radius: number;
+  readonly startDeg: number;
+/** Slow orbiting stars used by the Ascendant Halo special effect. */
+export function makeOrbit(count: number, seed = 7): OrbitSpec[] {
+  const random = rng(seed * 40503);
+  return Array.from({ length: count }, (_, i) => ({
+    id: i,
+
+export interface MoteSpec {
+  readonly id: number;
+  readonly x: number;
+  readonly durationMs: number;
+/** Ambient rising motes for the stage atmosphere and the Verdant Aura. */
+export function makeMotes(count: number, seed = 3): MoteSpec[] {
+  const random = rng(seed * 668265263);
+  return Array.from({ length: count }, (_, i) => ({
+    id: i,
+
+--- tiers.ts ---
+export {
+  DEFAULT_TIERS,
+  TIERS,
+  UNLOCK_THRESHOLDS,
+  TIERS,
+  UNLOCK_THRESHOLDS,
+  SIMULATOR_STEPS,
+  getActiveTiers,
+  setRuntimeTiers,
+  tierProgress,
+  formatPoints,
+} from '@/lib/buklodCharacterProgression';
+
+--- types.ts ---
+
+/** Wardrobe slots, in the order they are composited (see LAYER_ORDER). */
+export type SlotId =
+  | 'background'
+  | 'base'
+/** Wardrobe slots, in the order they are composited (see LAYER_ORDER). */
+export type SlotId =
+  | 'background'
+  | 'base'
+  | 'bottom'
+/** Selectable base bodies. */
+export type BodyId = 'female' | 'male';
+
+/** Filter groups used by MY COLLECTION. */
+export type CollectionGroup =
+/** Filter groups used by MY COLLECTION. */
+export type CollectionGroup =
+  | 'clothing'
+  | 'accessories'
+  | 'badges'
+/**
+ * Visual state of a single wardrobe item for the current progression context.
+ * Every state is carried by text + icon in the UI, never by colour alone.
+ */
+export type ItemVisualState = 'equipped' | 'available' | 'newly_unlocked' | 'locked';
+ */
+export type ItemVisualState = 'equipped' | 'available' | 'newly_unlocked' | 'locked';
+
+/** Reactions the character can play. Driven by events, never looped. */
+export type ReactionId =
+/** Reactions the character can play. Driven by events, never looped. */
+export type ReactionId =
+  | 'neutral'
+  | 'happy'
+  | 'proud'
+  | 'celebrate'
+  | 'new_item'
+  | 'milestone';
+
+/**
+/**
+ * A code-driven visual effect attached to the SPECIAL slot. These are rendered
+ * by the renderer (glow rings, orbiting stars) rather than by an image layer.
+ */
+export type SpecialEffectId = 'none' | 'aura' | 'ascend';
+ */
+export type SpecialEffectId = 'none' | 'aura' | 'ascend';
+
+/** One customization item in the data-driven catalog. */
+export interface CatalogItem {
+
+/** One customization item in the data-driven catalog. */
+export interface CatalogItem {
+  readonly id: string;
+  readonly slot: SlotId;
+/** One customization item in the data-driven catalog. */
+export interface CatalogItem {
+  readonly id: string;
+  readonly slot: SlotId;
+  readonly name: string;
+  readonly id: string;
+  readonly slot: SlotId;
+  readonly name: string;
+  /** Short, truthful flavour line shown in the collection detail sheet. */
+  readonly blurb: string;
+  readonly blurb: string;
+  /** Lifetime BUKLOD Points required. 0 = starter item, always unlocked. */
+  readonly unlockAtLifetime: number;
+  readonly group: CollectionGroup;
+  /** Bodies this item is offered for. Omitted = offered for every body. */
+  /** Lifetime BUKLOD Points required. 0 = starter item, always unlocked. */
+  readonly unlockAtLifetime: number;
+  readonly group: CollectionGroup;
+  /** Bodies this item is offered for. Omitted = offered for every body. */
+  readonly bodies?: readonly BodyId[];
+  readonly group: CollectionGroup;
+  /** Bodies this item is offered for. Omitted = offered for every body. */
+  readonly bodies?: readonly BodyId[];
+  /**
+   * Asset manifest key per body for body-specific layers (garments, hair),
+  /** Bodies this item is offered for. Omitted = offered for every body. */
+  readonly bodies?: readonly BodyId[];
+  /**
+   * Asset manifest key per body for body-specific layers (garments, hair),
+   * or a single `shared` key for body-agnostic layers (badges, face marks).
+  /**
+   * Asset manifest key per body for body-specific layers (garments, hair),
+   * or a single `shared` key for body-agnostic layers (badges, face marks).
+   */
+  readonly asset?: Partial<Record<BodyId, string>> & { readonly shared?: string };
+   * Asset manifest key per body for body-specific layers (garments, hair),
+   * or a single `shared` key for body-agnostic layers (badges, face marks).
+   */
+  readonly asset?: Partial<Record<BodyId, string>> & { readonly shared?: string };
+  /**
+   */
+  readonly asset?: Partial<Record<BodyId, string>> & { readonly shared?: string };
+  /**
+   * Layers flagged `head` ride with the head group, so they follow the idle
+   * head movement instead of sliding against it (face marks, eyewear).
+  readonly attach?: 'head';
+  /** SPECIAL slot only: which code-driven effect this item enables. */
+  readonly effect?: SpecialEffectId;
+  /** BACKGROUND slot only: which stage environment this item selects. */
+  readonly stage?: string;
+  readonly effect?: SpecialEffectId;
+  /** BACKGROUND slot only: which stage environment this item selects. */
+  readonly stage?: string;
+  /** Palette hint used for thumbnails and locked-state placeholders. */
+  readonly swatch: readonly [string, string];
+  readonly stage?: string;
+  /** Palette hint used for thumbnails and locked-state placeholders. */
+  readonly swatch: readonly [string, string];
+  /** Optional warrior rank 0 (Novice) .. 5 (Legend) for sort + UI badges. */
+  readonly warriorRank?: number;
+  readonly swatch: readonly [string, string];
+  /** Optional warrior rank 0 (Novice) .. 5 (Legend) for sort + UI badges. */
+  readonly warriorRank?: number;
+}
+
+  /** Optional warrior rank 0 (Novice) .. 5 (Legend) for sort + UI badges. */
+  readonly warriorRank?: number;
+}
+
+/** The currently equipped item id per slot. `null` = nothing equipped. */
+
+/** The currently equipped item id per slot. `null` = nothing equipped. */
+export type Equipment = Record<SlotId, string | null>;
+
+/** A progression tier derived purely from lifetime points. */
+/** The currently equipped item id per slot. `null` = nothing equipped. */
+export type Equipment = Record<SlotId, string | null>;
+
+/** A progression tier derived purely from lifetime points. */
+export interface Tier {
+
+/** A progression tier derived purely from lifetime points. */
+export interface Tier {
+  readonly index: number;
+  readonly name: string;
+/** A progression tier derived purely from lifetime points. */
+export interface Tier {
+  readonly index: number;
+  readonly name: string;
+  readonly minLifetime: number;
+/** Progression snapshot. Lifetime is permanent; available is spendable. */
+export interface ProgressionState {
+  /** Permanent progression. Only this value gates unlocks. */
+  readonly lifetimePoints: number;
+  /** Spendable balance. May decrease; never affects unlocks. */
+export interface ProgressionState {
+  /** Permanent progression. Only this value gates unlocks. */
+  readonly lifetimePoints: number;
+  /** Spendable balance. May decrease; never affects unlocks. */
+  readonly availablePoints: number;
+  /** Permanent progression. Only this value gates unlocks. */
+  readonly lifetimePoints: number;
+  /** Spendable balance. May decrease; never affects unlocks. */
+  readonly availablePoints: number;
+}
+  readonly lifetimePoints: number;
+  /** Spendable balance. May decrease; never affects unlocks. */
+  readonly availablePoints: number;
+}
+
+  /** Spendable balance. May decrease; never affects unlocks. */
+  readonly availablePoints: number;
+}
+
+/** An item resolved against a progression context, ready to render. */
+
+/** An item resolved against a progression context, ready to render. */
+export interface ResolvedItem {
+  readonly item: CatalogItem;
+  readonly state: ItemVisualState;
+/** An item resolved against a progression context, ready to render. */
+export interface ResolvedItem {
+  readonly item: CatalogItem;
+  readonly state: ItemVisualState;
+  readonly isUnlocked: boolean;
+export interface ResolvedItem {
+  readonly item: CatalogItem;
+  readonly state: ItemVisualState;
+  readonly isUnlocked: boolean;
+  /** Points still needed, 0 when unlocked. */
+  readonly item: CatalogItem;
+  readonly state: ItemVisualState;
+  readonly isUnlocked: boolean;
+  /** Points still needed, 0 when unlocked. */
+  readonly pointsRemaining: number;
+  readonly state: ItemVisualState;
+  readonly isUnlocked: boolean;
+  /** Points still needed, 0 when unlocked. */
+  readonly pointsRemaining: number;
+  /** Pre-formatted requirement line, e.g. "Unlock at 500 Lifetime Points". */
+  readonly isUnlocked: boolean;
+  /** Points still needed, 0 when unlocked. */
+  readonly pointsRemaining: number;
+  /** Pre-formatted requirement line, e.g. "Unlock at 500 Lifetime Points". */
+  readonly requirementLabel: string;
+  /** Points still needed, 0 when unlocked. */
+  readonly pointsRemaining: number;
+  /** Pre-formatted requirement line, e.g. "Unlock at 500 Lifetime Points". */
+  readonly requirementLabel: string;
+}
+  readonly pointsRemaining: number;
+  /** Pre-formatted requirement line, e.g. "Unlock at 500 Lifetime Points". */
+  readonly requirementLabel: string;
+}
+
+--- unlock.ts ---
+import { CATALOG, itemsForSlot } from './catalog';
+import { formatPoints } from './tiers';
+import { warriorRankFor } from './warrior';
+import type {
+import { CATALOG, itemsForSlot } from './catalog';
+import { formatPoints } from './tiers';
+import { warriorRankFor } from './warrior';
+import type {
+  BodyId,
+import { formatPoints } from './tiers';
+import { warriorRankFor } from './warrior';
+import type {
+  BodyId,
+  CatalogItem,
+import type {
+  BodyId,
+  CatalogItem,
+  Equipment,
+  ItemVisualState,
+  BodyId,
+  CatalogItem,
+  Equipment,
+  ItemVisualState,
+  ResolvedItem,
+  CatalogItem,
+  Equipment,
+  ItemVisualState,
+  ResolvedItem,
+  SlotId,
+  Equipment,
+  ItemVisualState,
+  ResolvedItem,
+  SlotId,
+} from './types';
+  ItemVisualState,
+  ResolvedItem,
+  SlotId,
+} from './types';
+
+  ResolvedItem,
+  SlotId,
+} from './types';
+
+/**
+/**
+ * The unlock engine. Everything is derived from LIFETIME points — the spendable
+ * balance is never consulted here, so redeeming points can never take a
+ * permanent unlock away.
+ */
+ * The unlock engine. Everything is derived from LIFETIME points — the spendable
+ * balance is never consulted here, so redeeming points can never take a
+ * permanent unlock away.
+ */
+export interface UnlockContext {
+ * balance is never consulted here, so redeeming points can never take a
+ * permanent unlock away.
+ */
+export interface UnlockContext {
+  readonly lifetimePoints: number;
+ */
+export interface UnlockContext {
+  readonly lifetimePoints: number;
+  readonly equipment: Equipment;
+  /** Item ids unlocked since the user last acknowledged them. */
+export interface UnlockContext {
+  readonly lifetimePoints: number;
+  readonly equipment: Equipment;
+  /** Item ids unlocked since the user last acknowledged them. */
+  readonly newlyUnlocked: ReadonlySet<string>;
+  readonly lifetimePoints: number;
+  readonly equipment: Equipment;
+  /** Item ids unlocked since the user last acknowledged them. */
+  readonly newlyUnlocked: ReadonlySet<string>;
+}
+  readonly equipment: Equipment;
+  /** Item ids unlocked since the user last acknowledged them. */
+  readonly newlyUnlocked: ReadonlySet<string>;
+}
+
+  /** Item ids unlocked since the user last acknowledged them. */
+  readonly newlyUnlocked: ReadonlySet<string>;
+}
+
+export function isUnlocked(item: CatalogItem, lifetimePoints: number): boolean {
+
+export function isUnlocked(item: CatalogItem, lifetimePoints: number): boolean {
+  return lifetimePoints >= item.unlockAtLifetime;
+}
+
+export function isUnlocked(item: CatalogItem, lifetimePoints: number): boolean {
+  return lifetimePoints >= item.unlockAtLifetime;
+}
+
+export function requirementLabel(item: CatalogItem): string {
+
+export function requirementLabel(item: CatalogItem): string {
+  if (item.unlockAtLifetime <= 0) return 'Starter item';
+  return `Unlock at ${formatPoints(item.unlockAtLifetime)} Lifetime Points`;
+}
+export function requirementLabel(item: CatalogItem): string {
+  if (item.unlockAtLifetime <= 0) return 'Starter item';
+  return `Unlock at ${formatPoints(item.unlockAtLifetime)} Lifetime Points`;
+}
+
+  if (item.unlockAtLifetime <= 0) return 'Starter item';
+  return `Unlock at ${formatPoints(item.unlockAtLifetime)} Lifetime Points`;
+}
+
+export function resolveItem(item: CatalogItem, ctx: UnlockContext): ResolvedItem {
+
+export function resolveItem(item: CatalogItem, ctx: UnlockContext): ResolvedItem {
+  const unlocked = isUnlocked(item, ctx.lifetimePoints);
+  const equipped = ctx.equipment[item.slot] === item.id;
+  let state: ItemVisualState;
+export function resolveItem(item: CatalogItem, ctx: UnlockContext): ResolvedItem {
+  const unlocked = isUnlocked(item, ctx.lifetimePoints);
+  const equipped = ctx.equipment[item.slot] === item.id;
+  let state: ItemVisualState;
+  if (!unlocked) state = 'locked';
+  const unlocked = isUnlocked(item, ctx.lifetimePoints);
+  const equipped = ctx.equipment[item.slot] === item.id;
+  let state: ItemVisualState;
+  if (!unlocked) state = 'locked';
+  else if (equipped) state = 'equipped';
+  const equipped = ctx.equipment[item.slot] === item.id;
+  let state: ItemVisualState;
+  if (!unlocked) state = 'locked';
+  else if (equipped) state = 'equipped';
+  else if (ctx.newlyUnlocked.has(item.id)) state = 'newly_unlocked';
+  let state: ItemVisualState;
+  if (!unlocked) state = 'locked';
+  else if (equipped) state = 'equipped';
+  else if (ctx.newlyUnlocked.has(item.id)) state = 'newly_unlocked';
+  else state = 'available';
+  if (!unlocked) state = 'locked';
+  else if (equipped) state = 'equipped';
+  else if (ctx.newlyUnlocked.has(item.id)) state = 'newly_unlocked';
+  else state = 'available';
+  return {
+  else if (equipped) state = 'equipped';
+  else if (ctx.newlyUnlocked.has(item.id)) state = 'newly_unlocked';
+  else state = 'available';
+  return {
+    item,
+  return {
+    item,
+    state,
+    isUnlocked: unlocked,
+    pointsRemaining: unlocked ? 0 : item.unlockAtLifetime - ctx.lifetimePoints,
+    state,
+    isUnlocked: unlocked,
+    pointsRemaining: unlocked ? 0 : item.unlockAtLifetime - ctx.lifetimePoints,
+    requirementLabel: requirementLabel(item),
+  };
+    isUnlocked: unlocked,
+    pointsRemaining: unlocked ? 0 : item.unlockAtLifetime - ctx.lifetimePoints,
+    requirementLabel: requirementLabel(item),
+  };
+}
+    pointsRemaining: unlocked ? 0 : item.unlockAtLifetime - ctx.lifetimePoints,
+    requirementLabel: requirementLabel(item),
+  };
+}
+
+
+/** All items for one customizer category, resolved and ordered by threshold. */
+export function resolveSlot(slot: SlotId, body: BodyId, ctx: UnlockContext): ResolvedItem[] {
+  return itemsForSlot(slot, body)
+    .slice()
+/** All items for one customizer category, resolved and ordered by threshold. */
+export function resolveSlot(slot: SlotId, body: BodyId, ctx: UnlockContext): ResolvedItem[] {
+  return itemsForSlot(slot, body)
+    .slice()
+    .sort((a, b) => {
+export function resolveSlot(slot: SlotId, body: BodyId, ctx: UnlockContext): ResolvedItem[] {
+  return itemsForSlot(slot, body)
+    .slice()
+    .sort((a, b) => {
+      const rankDiff = warriorRankFor(a) - warriorRankFor(b);
+    .sort((a, b) => {
+      const rankDiff = warriorRankFor(a) - warriorRankFor(b);
+      if (rankDiff !== 0) return rankDiff;
+      return a.unlockAtLifetime - b.unlockAtLifetime;
+    })
+      const rankDiff = warriorRankFor(a) - warriorRankFor(b);
+      if (rankDiff !== 0) return rankDiff;
+      return a.unlockAtLifetime - b.unlockAtLifetime;
+    })
+    .map((item) => resolveItem(item, ctx));
+      if (rankDiff !== 0) return rankDiff;
+      return a.unlockAtLifetime - b.unlockAtLifetime;
+    })
+    .map((item) => resolveItem(item, ctx));
+}
+    })
+    .map((item) => resolveItem(item, ctx));
+}
+
+/** Every item in the catalog, resolved. Used by MY COLLECTION. */
+
+/** Every item in the catalog, resolved. Used by MY COLLECTION. */
+export function resolveAll(body: BodyId, ctx: UnlockContext): ResolvedItem[] {
+  return CATALOG.filter((item) => !item.bodies || item.bodies.includes(body)).map((item) =>
+    resolveItem(item, ctx),
+/** Every item in the catalog, resolved. Used by MY COLLECTION. */
+export function resolveAll(body: BodyId, ctx: UnlockContext): ResolvedItem[] {
+  return CATALOG.filter((item) => !item.bodies || item.bodies.includes(body)).map((item) =>
+    resolveItem(item, ctx),
+  );
+export function resolveAll(body: BodyId, ctx: UnlockContext): ResolvedItem[] {
+  return CATALOG.filter((item) => !item.bodies || item.bodies.includes(body)).map((item) =>
+    resolveItem(item, ctx),
+  );
+}
+  return CATALOG.filter((item) => !item.bodies || item.bodies.includes(body)).map((item) =>
+    resolveItem(item, ctx),
+  );
+}
+
+/**
+ * Items that become unlocked when lifetime points move from `from` to `to`.
+ * Drives the unlock celebration. Body-filtered so a male player is never told
+ * they unlocked a feminine hairstyle.
+ */
+ * Items that become unlocked when lifetime points move from `from` to `to`.
+ * Drives the unlock celebration. Body-filtered so a male player is never told
+ * they unlocked a feminine hairstyle.
+ */
+export function itemsUnlockedBetween(from: number, to: number, body: BodyId): CatalogItem[] {
+ * Drives the unlock celebration. Body-filtered so a male player is never told
+ * they unlocked a feminine hairstyle.
+ */
+export function itemsUnlockedBetween(from: number, to: number, body: BodyId): CatalogItem[] {
+  if (to <= from) return [];
+ */
+export function itemsUnlockedBetween(from: number, to: number, body: BodyId): CatalogItem[] {
+  if (to <= from) return [];
+  return CATALOG.filter(
+    (item) =>
+  if (to <= from) return [];
+  return CATALOG.filter(
+    (item) =>
+      (!item.bodies || item.bodies.includes(body)) &&
+      item.unlockAtLifetime > from &&
+  return CATALOG.filter(
+    (item) =>
+      (!item.bodies || item.bodies.includes(body)) &&
+      item.unlockAtLifetime > from &&
+      item.unlockAtLifetime <= to &&
+    (item) =>
+      (!item.bodies || item.bodies.includes(body)) &&
+      item.unlockAtLifetime > from &&
+      item.unlockAtLifetime <= to &&
+      item.unlockAtLifetime > 0,
+      (!item.bodies || item.bodies.includes(body)) &&
+      item.unlockAtLifetime > from &&
+      item.unlockAtLifetime <= to &&
+      item.unlockAtLifetime > 0,
+  ).sort((a, b) => a.unlockAtLifetime - b.unlockAtLifetime);
+      item.unlockAtLifetime > from &&
+      item.unlockAtLifetime <= to &&
+      item.unlockAtLifetime > 0,
+  ).sort((a, b) => a.unlockAtLifetime - b.unlockAtLifetime);
+}
+      item.unlockAtLifetime <= to &&
+      item.unlockAtLifetime > 0,
+  ).sort((a, b) => a.unlockAtLifetime - b.unlockAtLifetime);
+}
+
+      item.unlockAtLifetime > 0,
+  ).sort((a, b) => a.unlockAtLifetime - b.unlockAtLifetime);
+}
+
+/** The next threshold that unlocks anything, with the items it will grant. */
+
+/** The next threshold that unlocks anything, with the items it will grant. */
+export function nextUnlock(
+  lifetimePoints: number,
+  body: BodyId,
+/** The next threshold that unlocks anything, with the items it will grant. */
+export function nextUnlock(
+  lifetimePoints: number,
+  body: BodyId,
+): { threshold: number; items: CatalogItem[]; pointsAway: number } | null {
+export function nextUnlock(
+  lifetimePoints: number,
+  body: BodyId,
+): { threshold: number; items: CatalogItem[]; pointsAway: number } | null {
+  const upcoming = CATALOG.filter(
+  lifetimePoints: number,
+  body: BodyId,
+): { threshold: number; items: CatalogItem[]; pointsAway: number } | null {
+  const upcoming = CATALOG.filter(
+    (item) =>
+  body: BodyId,
+): { threshold: number; items: CatalogItem[]; pointsAway: number } | null {
+  const upcoming = CATALOG.filter(
+    (item) =>
+      (!item.bodies || item.bodies.includes(body)) && item.unlockAtLifetime > lifetimePoints,
+): { threshold: number; items: CatalogItem[]; pointsAway: number } | null {
+  const upcoming = CATALOG.filter(
+    (item) =>
+      (!item.bodies || item.bodies.includes(body)) && item.unlockAtLifetime > lifetimePoints,
+  ).sort((a, b) => a.unlockAtLifetime - b.unlockAtLifetime);
+  const upcoming = CATALOG.filter(
+    (item) =>
+      (!item.bodies || item.bodies.includes(body)) && item.unlockAtLifetime > lifetimePoints,
+  ).sort((a, b) => a.unlockAtLifetime - b.unlockAtLifetime);
+  const first = upcoming[0];
+    (item) =>
+      (!item.bodies || item.bodies.includes(body)) && item.unlockAtLifetime > lifetimePoints,
+  ).sort((a, b) => a.unlockAtLifetime - b.unlockAtLifetime);
+  const first = upcoming[0];
+  if (!first) return null;
+      (!item.bodies || item.bodies.includes(body)) && item.unlockAtLifetime > lifetimePoints,
+  ).sort((a, b) => a.unlockAtLifetime - b.unlockAtLifetime);
+  const first = upcoming[0];
+  if (!first) return null;
+  const threshold = first.unlockAtLifetime;
+  if (!first) return null;
+  const threshold = first.unlockAtLifetime;
+  return {
+    threshold,
+    items: upcoming.filter((item) => item.unlockAtLifetime === threshold),
+    threshold,
+    items: upcoming.filter((item) => item.unlockAtLifetime === threshold),
+    pointsAway: threshold - lifetimePoints,
+  };
+}
+    items: upcoming.filter((item) => item.unlockAtLifetime === threshold),
+    pointsAway: threshold - lifetimePoints,
+  };
+}
+
+
+/** Counts for the collection header: owned vs total for this body. */
+export function collectionTally(
+  body: BodyId,
+  lifetimePoints: number,
+/** Counts for the collection header: owned vs total for this body. */
+export function collectionTally(
+  body: BodyId,
+  lifetimePoints: number,
+): { owned: number; total: number } {
+export function collectionTally(
+  body: BodyId,
+  lifetimePoints: number,
+): { owned: number; total: number } {
+  const relevant = CATALOG.filter((item) => !item.bodies || item.bodies.includes(body));
+  body: BodyId,
+  lifetimePoints: number,
+): { owned: number; total: number } {
+  const relevant = CATALOG.filter((item) => !item.bodies || item.bodies.includes(body));
+  return {
+  lifetimePoints: number,
+): { owned: number; total: number } {
+  const relevant = CATALOG.filter((item) => !item.bodies || item.bodies.includes(body));
+  return {
+    owned: relevant.filter((item) => isUnlocked(item, lifetimePoints)).length,
+): { owned: number; total: number } {
+  const relevant = CATALOG.filter((item) => !item.bodies || item.bodies.includes(body));
+  return {
+    owned: relevant.filter((item) => isUnlocked(item, lifetimePoints)).length,
+    total: relevant.length,
+  return {
+    owned: relevant.filter((item) => isUnlocked(item, lifetimePoints)).length,
+    total: relevant.length,
+  };
+}
+/**
+ * Keeps equipment legal after lifetime points drop in the simulator: anything
+ * no longer unlocked falls back to the slot's starter item.
+ */
+export function reconcileEquipment(
+ * Keeps equipment legal after lifetime points drop in the simulator: anything
+ * no longer unlocked falls back to the slot's starter item.
+ */
+export function reconcileEquipment(
+  equipment: Equipment,
+ */
+export function reconcileEquipment(
+  equipment: Equipment,
+  body: BodyId,
+  lifetimePoints: number,
+export function reconcileEquipment(
+  equipment: Equipment,
+  body: BodyId,
+  lifetimePoints: number,
+  fallback: Equipment,
+  equipment: Equipment,
+  body: BodyId,
+  lifetimePoints: number,
+  fallback: Equipment,
+): Equipment {
+  body: BodyId,
+  lifetimePoints: number,
+  fallback: Equipment,
+): Equipment {
+  const next: Equipment = { ...equipment };
+  lifetimePoints: number,
+  fallback: Equipment,
+): Equipment {
+  const next: Equipment = { ...equipment };
+  (Object.keys(equipment) as SlotId[]).forEach((slot) => {
+  fallback: Equipment,
+): Equipment {
+  const next: Equipment = { ...equipment };
+  (Object.keys(equipment) as SlotId[]).forEach((slot) => {
+    const id = equipment[slot];
+): Equipment {
+  const next: Equipment = { ...equipment };
+  (Object.keys(equipment) as SlotId[]).forEach((slot) => {
+    const id = equipment[slot];
+    if (!id) return;
+  const next: Equipment = { ...equipment };
+  (Object.keys(equipment) as SlotId[]).forEach((slot) => {
+    const id = equipment[slot];
+    if (!id) return;
+    const item = CATALOG.find((entry) => entry.id === id);
+  (Object.keys(equipment) as SlotId[]).forEach((slot) => {
+    const id = equipment[slot];
+    if (!id) return;
+    const item = CATALOG.find((entry) => entry.id === id);
+    const wrongBody = item?.bodies && !item.bodies.includes(body);
+    if (!id) return;
+    const item = CATALOG.find((entry) => entry.id === id);
+    const wrongBody = item?.bodies && !item.bodies.includes(body);
+    if (!item || wrongBody || !isUnlocked(item, lifetimePoints)) {
+      next[slot] = fallback[slot];
+    const item = CATALOG.find((entry) => entry.id === id);
+    const wrongBody = item?.bodies && !item.bodies.includes(body);
+    if (!item || wrongBody || !isUnlocked(item, lifetimePoints)) {
+      next[slot] = fallback[slot];
+    }
+    const wrongBody = item?.bodies && !item.bodies.includes(body);
+    if (!item || wrongBody || !isUnlocked(item, lifetimePoints)) {
+      next[slot] = fallback[slot];
+    }
+  });
+    if (!item || wrongBody || !isUnlocked(item, lifetimePoints)) {
+      next[slot] = fallback[slot];
+    }
+  });
+  return next;
+
+--- warrior.ts ---
+import type { CatalogItem, SlotId } from './types';
+import { formatPoints } from './tiers';
+
+/** Warrior visual progression labels — higher rank = more elite gear. */
+import type { CatalogItem, SlotId } from './types';
+import { formatPoints } from './tiers';
+
+/** Warrior visual progression labels — higher rank = more elite gear. */
+export const WARRIOR_RANKS = [
+
+/** Warrior visual progression labels — higher rank = more elite gear. */
+export const WARRIOR_RANKS = [
+  'Novice',
+  'Scout',
+/** Warrior visual progression labels — higher rank = more elite gear. */
+export const WARRIOR_RANKS = [
+  'Novice',
+  'Scout',
+  'Guardian',
+
+export type WarriorRank = (typeof WARRIOR_RANKS)[number];
+
+/** Infers rank from unlock threshold when `warriorRank` is not set on the item. */
+export function warriorRankFor(item: CatalogItem): number {
+
+/** Infers rank from unlock threshold when `warriorRank` is not set on the item. */
+export function warriorRankFor(item: CatalogItem): number {
+  if (item.warriorRank != null) return item.warriorRank;
+  const p = item.unlockAtLifetime;
+/** Infers rank from unlock threshold when `warriorRank` is not set on the item. */
+export function warriorRankFor(item: CatalogItem): number {
+  if (item.warriorRank != null) return item.warriorRank;
+  const p = item.unlockAtLifetime;
+  if (p >= 5000) return 5;
+export function warriorRankFor(item: CatalogItem): number {
+  if (item.warriorRank != null) return item.warriorRank;
+  const p = item.unlockAtLifetime;
+  if (p >= 5000) return 5;
+  if (p >= 2500) return 4;
+  if (item.warriorRank != null) return item.warriorRank;
+  const p = item.unlockAtLifetime;
+  if (p >= 5000) return 5;
+  if (p >= 2500) return 4;
+  if (p >= 1000) return 3;
+
+export function warriorRankLabel(item: CatalogItem): WarriorRank {
+  return WARRIOR_RANKS[Math.min(warriorRankFor(item), WARRIOR_RANKS.length - 1)];
+}
+
+export function warriorRankLabel(item: CatalogItem): WarriorRank {
+  return WARRIOR_RANKS[Math.min(warriorRankFor(item), WARRIOR_RANKS.length - 1)];
+}
+
+/** Short label for customize tiles — always shows the lifetime points cost. */
+
+/** Short label for customize tiles — always shows the lifetime points cost. */
+export function itemPointsLabel(item: CatalogItem, locked: boolean, pointsRemaining: number): string {
+  if (item.unlockAtLifetime <= 0) return 'FREE';
+  if (locked) return `${formatPoints(pointsRemaining)} more`;
+/** Short label for customize tiles — always shows the lifetime points cost. */
+export function itemPointsLabel(item: CatalogItem, locked: boolean, pointsRemaining: number): string {
+  if (item.unlockAtLifetime <= 0) return 'FREE';
+  if (locked) return `${formatPoints(pointsRemaining)} more`;
+  return `${formatPoints(item.unlockAtLifetime)} pts`;
+export function itemPointsLabel(item: CatalogItem, locked: boolean, pointsRemaining: number): string {
+  if (item.unlockAtLifetime <= 0) return 'FREE';
+  if (locked) return `${formatPoints(pointsRemaining)} more`;
+  return `${formatPoints(item.unlockAtLifetime)} pts`;
+}
+  if (item.unlockAtLifetime <= 0) return 'FREE';
+  if (locked) return `${formatPoints(pointsRemaining)} more`;
+  return `${formatPoints(item.unlockAtLifetime)} pts`;
+}
+
+  if (locked) return `${formatPoints(pointsRemaining)} more`;
+  return `${formatPoints(item.unlockAtLifetime)} pts`;
+}
+
+/** Slots that contribute to the warrior look progression. */
+
+/** Slots that contribute to the warrior look progression. */
+export const WARRIOR_STYLE_SLOTS: readonly SlotId[] = [
+  'hair',
+  'top',
+/** Slots that contribute to the warrior look progression. */
+export const WARRIOR_STYLE_SLOTS: readonly SlotId[] = [
+  'hair',
+  'top',
+  'bottom',
