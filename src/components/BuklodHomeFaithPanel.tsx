@@ -279,6 +279,8 @@ export default function BuklodHomeFaithPanel({
     useState(true);
   const [access, setAccess] =
     useState<ScopeFaithAccessStatus | null>(null);
+  const [accessLoading, setAccessLoading] =
+    useState(Boolean(scopeId));
 
   const opacity = useRef(
     new RNAnimated.Value(1)
@@ -327,8 +329,11 @@ export default function BuklodHomeFaithPanel({
   );
 
   const loadFaithAccess = useCallback(async () => {
+    setAccessLoading(true);
+
     if (!scopeId) {
       setAccess(null);
+      setAccessLoading(false);
       return;
     }
 
@@ -341,6 +346,8 @@ export default function BuklodHomeFaithPanel({
         error instanceof Error ? error.message : error
       );
       setAccess(buildDefaultScopeFaithAccessStatus(scopeId));
+    } finally {
+      setAccessLoading(false);
     }
   }, [scopeId]);
 
@@ -499,7 +506,9 @@ export default function BuklodHomeFaithPanel({
             "Today's reading"
           }
           meta={
-            !access?.has_active_cluster
+            Boolean(scopeId) && (accessLoading || !access)
+              ? 'Checking Cluster access…'
+              : Boolean(scopeId) && !access.has_active_cluster
               ? 'Join a Cluster first'
               : dailyReadingLocked
               ? access?.daily_reading.pending_request_id
@@ -516,10 +525,13 @@ export default function BuklodHomeFaithPanel({
           }
           icon="calendar-text-outline"
           tone="reading"
-          loading={loading}
+          loading={loading || (Boolean(scopeId) && accessLoading)}
           locked={dailyReadingLocked}
           onPress={() => {
-            if (!access?.has_active_cluster) {
+            if (scopeId && (accessLoading || !access)) {
+              return;
+            }
+            if (scopeId && !access?.has_active_cluster) {
               router.push('/clusters' as any);
               return;
             }
@@ -562,7 +574,9 @@ export default function BuklodHomeFaithPanel({
           label="Word"
           title="Daily devotional"
           meta={
-            !access?.has_active_cluster
+            Boolean(scopeId) && (accessLoading || !access)
+              ? 'Checking Cluster access…'
+              : Boolean(scopeId) && !access.has_active_cluster
               ? 'Join a Cluster first'
               : devotionLocked
               ? access?.devotion_word.pending_request_id
@@ -572,9 +586,13 @@ export default function BuklodHomeFaithPanel({
           }
           icon="book-open-page-variant-outline"
           tone="word"
+          loading={Boolean(scopeId) && accessLoading}
           locked={devotionLocked}
           onPress={() => {
-            if (!access?.has_active_cluster) {
+            if (scopeId && (accessLoading || !access)) {
+              return;
+            }
+            if (scopeId && !access?.has_active_cluster) {
               router.push('/clusters' as any);
               return;
             }
