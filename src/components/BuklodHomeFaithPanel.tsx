@@ -508,7 +508,7 @@ export default function BuklodHomeFaithPanel({
           meta={
             Boolean(scopeId) && (accessLoading || !access)
               ? 'Checking Cluster access…'
-              : Boolean(scopeId) && !access.has_active_cluster
+              : Boolean(scopeId) && !access?.has_active_cluster
               ? 'Join a Cluster first'
               : dailyReadingLocked
               ? access?.daily_reading.pending_request_id
@@ -576,7 +576,7 @@ export default function BuklodHomeFaithPanel({
           meta={
             Boolean(scopeId) && (accessLoading || !access)
               ? 'Checking Cluster access…'
-              : Boolean(scopeId) && !access.has_active_cluster
+              : Boolean(scopeId) && !access?.has_active_cluster
               ? 'Join a Cluster first'
               : devotionLocked
               ? access?.devotion_word.pending_request_id
