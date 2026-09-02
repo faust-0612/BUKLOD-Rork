@@ -1,0 +1,811 @@
+name: BUKLOD 191T Community GIF Direct
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/buklod-191t-community-gif-direct.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  integrate-community-gif:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout current production source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Verify expected production baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          PARENT="$(git rev-parse HEAD^)"
+          case "$PARENT" in
+            9a76634*) ;;
+            *)
+              echo "Unexpected baseline parent: $PARENT"
+              exit 1
+              ;;
+          esac
+
+      - name: Integrate Community GIF directly
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+
+          ROOT = Path('.')
+          pub_path = ROOT / 'src/app/(tabs)/buklod.tsx'
+          scope_path = ROOT / 'src/components/BuklodExclusiveScopeCommunity.tsx'
+          uploader_path = ROOT / 'src/lib/uploadCommunityVideoFile.ts'
+          picker_path = ROOT / 'src/components/BuklodCommunityGifPicker.tsx'
+
+          def read(path: Path) -> str:
+              return path.read_text(encoding='utf-8')
+
+          def write(path: Path, text: str) -> None:
+              path.parent.mkdir(parents=True, exist_ok=True)
+              path.write_text(text, encoding='utf-8', newline='\n')
+
+          def require(text: str, needle: str, label: str) -> None:
+              if needle not in text:
+                  raise RuntimeError(f'{label}: required source shape not found: {needle[:120]!r}')
+
+          def replace_once(text: str, old: str, new: str, label: str) -> str:
+              count = text.count(old)
+              if count != 1:
+                  raise RuntimeError(f'{label}: expected exactly 1 match, found {count}: {old[:120]!r}')
+              return text.replace(old, new, 1)
+
+          # ------------------------------------------------------------------
+          # 1) Raw GIF uploader: preserve image/gif bytes; never JPEG-convert.
+          # ------------------------------------------------------------------
+          uploader = read(uploader_path)
+          require(uploader, 'export async function uploadCommunityPhotoFile', 'uploader')
+          require(uploader, 'async function uploadCommunityBinaryFile', 'uploader')
+
+          if 'export async function uploadCommunityGifFile' not in uploader:
+              marker = 'async function uploadCommunityBinaryFile({\n'
+              gif_uploader = '''export async function uploadCommunityGifFile({
+            path,
+            uri,
+            sizeBytes = 0,
+            onProgress,
+          }: {
+            path: string;
+            uri: string;
+            sizeBytes?: number;
+            onProgress?: (
+              progress: CommunityVideoUploadProgress
+            ) => void;
+          }): Promise<{ sizeBytes: number }> {
+            let resolvedSizeBytes = Math.max(
+              0,
+              Number(sizeBytes ?? 0),
+            );
+
+            if (!resolvedSizeBytes) {
+              const info: any = await FileSystem.getInfoAsync(
+                uri,
+                { size: true } as any,
+              );
+              resolvedSizeBytes = Number(info?.size ?? 0);
+            }
+
+            if (!resolvedSizeBytes) {
+              throw new Error('Could not read the GIF file size.');
+            }
+
+            if (resolvedSizeBytes > 25 * 1024 * 1024) {
+              throw new Error('Maximum GIF size is 25 MB.');
+            }
+
+            await uploadCommunityBinaryFile({
+              path,
+              uri,
+              contentType: 'image/gif',
+              onProgress,
+              sizeBytes: resolvedSizeBytes,
+              failureLabel: 'GIF',
+              preferResumable: false,
+            });
+
+            return {
+              sizeBytes: resolvedSizeBytes,
+            };
+          }
+
+          '''
+              uploader = replace_once(
+                  uploader,
+                  marker,
+                  gif_uploader + marker,
+                  'uploader GIF function',
+              )
+              write(uploader_path, uploader)
+
+          # ------------------------------------------------------------------
+          # 2) Shared Community GIF picker + animated local preview.
+          # ------------------------------------------------------------------
+          picker = '''import React, { useMemo, useState } from 'react';
+          import {
+            ActivityIndicator,
+            Alert,
+            Modal,
+            Pressable,
+            ScrollView,
+            StyleSheet,
+            Text,
+            TextInput,
+            View,
+          } from 'react-native';
+          import { Image as ExpoImage } from 'expo-image';
+          import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+          import {
+            CONNECT_GIF_CATALOG,
+            downloadConnectCatalogGif,
+            type ConnectGifCatalogItem,
+          } from '@/lib/buklodConnectGifCatalog';
+
+          export type BuklodCommunityGifFile = {
+            uri: string;
+            name: string;
+            mimeType: 'image/gif';
+            size: number;
+          };
+
+          const CATEGORIES = [
+            'All',
+            'Happy',
+            'Love',
+            'Laugh',
+            'Sad',
+            'Angry',
+            'Celebrate',
+            'Prayer',
+            'Encourage',
+          ] as const;
+
+          type GifCategory = (typeof CATEGORIES)[number];
+
+          function searchableText(item: ConnectGifCatalogItem) {
+            return `${item.id} ${item.label}`.toLowerCase();
+          }
+
+          function categoryFor(item: ConnectGifCatalogItem): GifCategory {
+            const text = searchableText(item);
+
+            if (/pray|amen|bless|faith/.test(text)) return 'Prayer';
+            if (/love|heart|hug|kiss/.test(text)) return 'Love';
+            if (/laugh|haha|lol|funny/.test(text)) return 'Laugh';
+            if (/sad|cry|tear|sorry/.test(text)) return 'Sad';
+            if (/angry|mad|rage|annoy/.test(text)) return 'Angry';
+            if (/celebrat|clap|congrat|party|thanks|wow/.test(text)) return 'Celebrate';
+            if (/peace|yes|hope|strong|support|encourag/.test(text)) return 'Encourage';
+            return 'Happy';
+          }
+
+          export function BuklodCommunityGifPreview({
+            file,
+            onRemove,
+          }: {
+            file: BuklodCommunityGifFile;
+            onRemove: () => void;
+          }) {
+            return (
+              <View style={styles.previewFrame}>
+                <ExpoImage
+                  source={{ uri: file.uri }}
+                  style={styles.previewImage}
+                  contentFit="cover"
+                  autoplay
+                />
+                <Pressable
+                  onPress={onRemove}
+                  hitSlop={10}
+                  accessibilityRole="button"
+                  accessibilityLabel="Remove selected GIF"
+                  style={styles.previewRemove}
+                >
+                  <MaterialCommunityIcons name="close" size={18} color="#FFFFFF" />
+                </Pressable>
+              </View>
+            );
+          }
+
+          export function BuklodCommunityGifPicker({
+            visible,
+            onClose,
+            onPick,
+          }: {
+            visible: boolean;
+            onClose: () => void;
+            onPick: (file: BuklodCommunityGifFile) => void;
+          }) {
+            const [query, setQuery] = useState('');
+            const [category, setCategory] = useState<GifCategory>('All');
+            const [limit, setLimit] = useState(18);
+            const [busyId, setBusyId] = useState<string | null>(null);
+
+            const rows = useMemo(() => {
+              const normalized = query.trim().toLowerCase();
+
+              return CONNECT_GIF_CATALOG.filter(item => {
+                const matchesCategory =
+                  category === 'All' || categoryFor(item) === category;
+                const matchesQuery =
+                  !normalized || searchableText(item).includes(normalized);
+                return matchesCategory && matchesQuery;
+              });
+            }, [query, category]);
+
+            const choose = async (item: ConnectGifCatalogItem) => {
+              if (busyId) return;
+
+              try {
+                setBusyId(item.id);
+                const file = await downloadConnectCatalogGif(item);
+                const size = Number(file.size ?? 0);
+
+                if (!size) {
+                  throw new Error('Could not read the downloaded GIF.');
+                }
+
+                onPick({
+                  uri: file.uri,
+                  name: file.name || `${item.id}.gif`,
+                  mimeType: 'image/gif',
+                  size,
+                });
+              } catch (error: any) {
+                Alert.alert(
+                  'GIF',
+                  String(error?.message ?? 'Could not download that GIF.'),
+                );
+              } finally {
+                setBusyId(null);
+              }
+            };
+
+            return (
+              <Modal
+                visible={visible}
+                transparent
+                animationType="fade"
+                onRequestClose={onClose}
+              >
+                <View style={styles.backdrop}>
+                  <View style={styles.sheet}>
+                    <View style={styles.header}>
+                      <View>
+                        <Text style={styles.title}>GIF</Text>
+                        <Text style={styles.subtitle}>Add an animated GIF to Community</Text>
+                      </View>
+                      <Pressable onPress={onClose} hitSlop={10}>
+                        <MaterialCommunityIcons name="close" size={24} color="#1F4B3A" />
+                      </Pressable>
+                    </View>
+
+                    <TextInput
+                      value={query}
+                      onChangeText={value => {
+                        setQuery(value);
+                        setLimit(18);
+                      }}
+                      placeholder="Search GIF"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      style={styles.search}
+                    />
+
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.categories}
+                    >
+                      {CATEGORIES.map(item => (
+                        <Pressable
+                          key={item}
+                          onPress={() => {
+                            setCategory(item);
+                            setLimit(18);
+                          }}
+                          style={[
+                            styles.category,
+                            category === item && styles.categoryOn,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.categoryText,
+                              category === item && styles.categoryTextOn,
+                            ]}
+                          >
+                            {item}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+
+                    <ScrollView contentContainerStyle={styles.grid}>
+                      {rows.slice(0, limit).map(item => (
+                        <Pressable
+                          key={item.id}
+                          disabled={!!busyId}
+                          onPress={() => void choose(item)}
+                          style={styles.tile}
+                        >
+                          <ExpoImage
+                            source={{ uri: item.url }}
+                            style={styles.image}
+                            contentFit="cover"
+                            autoplay
+                          />
+                          {busyId === item.id && (
+                            <View style={styles.loading}>
+                              <ActivityIndicator color="#FFFFFF" />
+                            </View>
+                          )}
+                        </Pressable>
+                      ))}
+
+                      {!rows.length && (
+                        <View style={styles.empty}>
+                          <Text style={styles.subtitle}>No GIF found.</Text>
+                        </View>
+                      )}
+
+                      {limit < rows.length && (
+                        <Pressable
+                          onPress={() => setLimit(current => current + 18)}
+                          style={styles.more}
+                        >
+                          <Text style={styles.moreText}>Load more GIFs</Text>
+                        </Pressable>
+                      )}
+                    </ScrollView>
+                  </View>
+                </View>
+              </Modal>
+            );
+          }
+
+          const styles = StyleSheet.create({
+            backdrop: {
+              flex: 1,
+              backgroundColor: 'rgba(0,0,0,0.48)',
+              justifyContent: 'flex-end',
+            },
+            sheet: {
+              maxHeight: '82%',
+              minHeight: 480,
+              backgroundColor: '#FFFFFF',
+              borderTopLeftRadius: 22,
+              borderTopRightRadius: 22,
+              padding: 16,
+            },
+            header: {
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            },
+            title: {
+              color: '#173E30',
+              fontSize: 19,
+              fontWeight: '900',
+            },
+            subtitle: {
+              color: '#60756D',
+              fontSize: 12,
+            },
+            search: {
+              marginTop: 13,
+              height: 44,
+              borderWidth: 1,
+              borderColor: '#D8E4DE',
+              borderRadius: 13,
+              paddingHorizontal: 12,
+            },
+            categories: {
+              gap: 7,
+              paddingVertical: 12,
+            },
+            category: {
+              height: 34,
+              paddingHorizontal: 12,
+              borderRadius: 17,
+              borderWidth: 1,
+              borderColor: '#CFE0D8',
+              alignItems: 'center',
+              justifyContent: 'center',
+            },
+            categoryOn: {
+              backgroundColor: '#1F6B4F',
+              borderColor: '#1F6B4F',
+            },
+            categoryText: {
+              color: '#315D4C',
+              fontSize: 12,
+              fontWeight: '800',
+            },
+            categoryTextOn: {
+              color: '#FFFFFF',
+            },
+            grid: {
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              gap: 8,
+              paddingBottom: 28,
+            },
+            tile: {
+              width: '48%',
+              aspectRatio: 1.35,
+              overflow: 'hidden',
+              borderRadius: 13,
+              backgroundColor: '#EEF4F1',
+            },
+            image: {
+              width: '100%',
+              height: '100%',
+            },
+            loading: {
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              top: 0,
+              bottom: 0,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'rgba(0,0,0,0.35)',
+            },
+            empty: {
+              width: '100%',
+              minHeight: 160,
+              alignItems: 'center',
+              justifyContent: 'center',
+            },
+            more: {
+              width: '100%',
+              height: 42,
+              borderWidth: 1,
+              borderColor: '#1F6B4F',
+              borderRadius: 13,
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginTop: 4,
+            },
+            moreText: {
+              color: '#1F6B4F',
+              fontWeight: '900',
+            },
+            previewFrame: {
+              width: 190,
+              height: 140,
+              marginBottom: 10,
+              borderRadius: 14,
+              overflow: 'hidden',
+              backgroundColor: '#EEF4F1',
+              position: 'relative',
+            },
+            previewImage: {
+              width: '100%',
+              height: '100%',
+            },
+            previewRemove: {
+              position: 'absolute',
+              top: 7,
+              right: 7,
+              width: 30,
+              height: 30,
+              borderRadius: 15,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'rgba(0,0,0,0.68)',
+            },
+          });
+
+          export default BuklodCommunityGifPicker;
+          '''
+          write(picker_path, picker)
+
+          # ------------------------------------------------------------------
+          # 3) Public Community wiring.
+          # ------------------------------------------------------------------
+          pub = read(pub_path)
+          require(pub, 'const publish=async()=>{', 'Public Community')
+          require(pub, "<SectionTitle>SHARE SOMETHING</SectionTitle><Card>", 'Public Community')
+
+          if "BuklodCommunityGifPicker" not in pub:
+              pub = replace_once(
+                  pub,
+                  "import { uploadCommunityVideoFile, uploadCommunityPhotoFile, mapWithConcurrency } from '@/lib/uploadCommunityVideoFile';",
+                  "import { uploadCommunityVideoFile, uploadCommunityPhotoFile, uploadCommunityGifFile, mapWithConcurrency } from '@/lib/uploadCommunityVideoFile';",
+                  'Public uploader import',
+              )
+              anchor = "import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';\n"
+              pub = replace_once(
+                  pub,
+                  anchor,
+                  anchor + "import { BuklodCommunityGifPicker, BuklodCommunityGifPreview, type BuklodCommunityGifFile } from '@/components/BuklodCommunityGifPicker';\n",
+                  'Public GIF import',
+              )
+
+              state_anchor = " const [publishNotice,setPublishNotice]=useState<string|null>(null);\n"
+              pub = replace_once(
+                  pub,
+                  state_anchor,
+                  state_anchor + " const [communityGif,setCommunityGif]=useState<BuklodCommunityGifFile|null>(null);\n const [communityGifPickerOpen,setCommunityGifPickerOpen]=useState(false);\n",
+                  'Public GIF state',
+              )
+
+              pub = replace_once(
+                  pub,
+                  "    setPhotos(current=>\n     [...current,...picked].slice(\n      0,\n      COMMUNITY_MAX_PHOTOS\n     )\n    );",
+                  "    setCommunityGif(null);\n    setPhotos(current=>\n     [...current,...picked].slice(\n      0,\n      COMMUNITY_MAX_PHOTOS\n     )\n    );",
+                  'Public photo/GIF exclusivity',
+              )
+
+              pub = replace_once(
+                  pub,
+                  "   setPhotos([]);\n   setWallVideo186O({",
+                  "   setCommunityGif(null);\n   setPhotos([]);\n   setWallVideo186O({",
+                  'Public video/GIF exclusivity',
+              )
+
+              pub = replace_once(
+                  pub,
+                  "    !body.trim() &&\n    !photos.length &&\n    !wallVideo186O",
+                  "    !body.trim() &&\n    !photos.length &&\n    !wallVideo186O &&\n    !communityGif",
+                  'Public GIF-only validation',
+              )
+              pub = replace_once(
+                  pub,
+                  "     'Write a message, add photos, or add a video.'",
+                  "     'Write a message, add a GIF, photos, or a video.'",
+                  'Public validation copy',
+              )
+              pub = replace_once(
+                  pub,
+                  "    wallVideo186O &&\n    photos.length\n   ){\n    return Alert.alert(\n     'BUKLOD',\n     'Choose either photos or one video for this post.'\n    );\n   }",
+                  "    (wallVideo186O && photos.length) ||\n    (communityGif && (photos.length || wallVideo186O))\n   ){\n    return Alert.alert(\n     'BUKLOD',\n     'Choose one media type: GIF, photos, or one video.'\n    );\n   }",
+                  'Public media exclusivity guard',
+              )
+
+              pub = replace_once(
+                  pub,
+                  "   wallVideo:\n    wallVideo186O,\n   mentions:",
+                  "   wallVideo:\n    wallVideo186O,\n   communityGif,\n   mentions:",
+                  'Public GIF snapshot',
+              )
+              pub = replace_once(
+                  pub,
+                  " setWallVideo186O(null);\n setMentions([]);",
+                  " setWallVideo186O(null);\n setCommunityGif(null);\n setMentions([]);",
+                  'Public GIF clear after snapshot',
+              )
+              pub = replace_once(
+                  pub,
+                  " const startNotice=\n  snapshot.wallVideo\n   ? 'Uploading video in the background…'",
+                  " const startNotice=\n  snapshot.communityGif\n   ? 'Uploading GIF in the background…'\n   : snapshot.wallVideo\n   ? 'Uploading video in the background…'",
+                  'Public GIF background notice',
+              )
+              pub = replace_once(
+                  pub,
+                  "        snapshot.wallVideo\n         ? 'Shared a video.'\n         : snapshot.photos.length",
+                  "        snapshot.wallVideo\n         ? 'Shared a video.'\n         : snapshot.communityGif\n          ? 'Shared a GIF.'\n          : snapshot.photos.length",
+                  'Public GIF fallback body',
+              )
+
+              try_anchor = "  try{\n   setNotice(startNotice);\n\n   if(snapshot.wallVideo){"
+              try_insert = """  try{\n   setNotice(startNotice);\n\n   if(snapshot.communityGif){\n    const gifPath=\n     `${snapshot.userId}/post-gif-${Date.now()}-${Math.random().toString(36).slice(2)}.gif`;\n\n    setNotice('Uploading GIF in the background…');\n    setPublishNotice('Uploading GIF in the background…');\n\n    const uploadedGif=\n     await uploadCommunityGifFile({\n      path:gifPath,\n      uri:snapshot.communityGif.uri,\n      sizeBytes:snapshot.communityGif.size,\n     });\n\n    uploaded.push({\n     media_path:gifPath,\n     media_mime_type:'image/gif',\n     media_size_bytes:uploadedGif.sizeBytes\n    });\n   }\n\n   if(snapshot.wallVideo){"""
+              pub = replace_once(pub, try_anchor, try_insert, 'Public GIF upload flow')
+
+              pub = replace_once(
+                  pub,
+                  "   setWallVideo186O(snapshot.wallVideo);\n   setMentions(snapshot.mentions);",
+                  "   setWallVideo186O(snapshot.wallVideo);\n   setCommunityGif(snapshot.communityGif);\n   setMentions(snapshot.mentions);",
+                  'Public GIF restore on failure',
+              )
+
+              photo_button = """    <Pressable style={s.tool} onPress={()=>{setWallVideo186O(null);void pickPhoto();}}><MaterialCommunityIcons name=\"image-plus\" size={17} color={colors.green}/><Text style={s.toolText}>{photoBusy\n ? 'Preparing...'\n : photos.length\n ? `${photos.length}/${COMMUNITY_MAX_PHOTOS} Photos`\n : 'Add Photos'}</Text></Pressable>"""
+              gif_button = photo_button + """\n    <Pressable\n     style={s.tool}\n     disabled={busy}\n     onPress={()=>{\n      setPhotos([]);\n      setWallVideo186O(null);\n      setCommunityGifPickerOpen(true);\n     }}\n    >\n     <MaterialCommunityIcons name=\"file-gif-box\" size={17} color={colors.green}/>\n     <Text style={s.toolText}>{communityGif?'GIF Ready':'Add GIF'}</Text>\n    </Pressable>"""
+              pub = replace_once(pub, photo_button, gif_button, 'Public GIF button')
+
+              actions_close = """    </Pressable></View>\n    {!!publishNotice&&(\n"""
+              actions_with_gif = """    </Pressable></View>\n    {!!communityGif&&(\n     <BuklodCommunityGifPreview\n      file={communityGif}\n      onRemove={()=>setCommunityGif(null)}\n     />\n    )}\n    <BuklodCommunityGifPicker\n     visible={communityGifPickerOpen}\n     onClose={()=>setCommunityGifPickerOpen(false)}\n     onPick={file=>{\n      setCommunityGif(file);\n      setPhotos([]);\n      setWallVideo186O(null);\n      setCommunityGifPickerOpen(false);\n     }}\n    />\n    {!!publishNotice&&(\n"""
+              pub = replace_once(pub, actions_close, actions_with_gif, 'Public GIF picker mount')
+
+              write(pub_path, pub)
+
+          # ------------------------------------------------------------------
+          # 4) Exact scoped Community wiring.
+          # ------------------------------------------------------------------
+          scope = read(scope_path)
+          require(scope, 'const publish =\n    async () => {', 'Scoped Community')
+          require(scope, 'styles.composerActions', 'Scoped Community')
+
+          if 'BuklodCommunityGifPicker' not in scope:
+              scope = replace_once(
+                  scope,
+                  "  uploadCommunityVideoFile,\n  uploadCommunityPhotoFile,\n  mapWithConcurrency,",
+                  "  uploadCommunityVideoFile,\n  uploadCommunityPhotoFile,\n  uploadCommunityGifFile,\n  mapWithConcurrency,",
+                  'Scoped uploader import',
+              )
+              import_anchor = "import BuklodPostInternalShare\n  from '@/components/BuklodPostInternalShare';\n"
+              scope = replace_once(
+                  scope,
+                  import_anchor,
+                  import_anchor + "import {\n  BuklodCommunityGifPicker,\n  BuklodCommunityGifPreview,\n  type BuklodCommunityGifFile,\n} from '@/components/BuklodCommunityGifPicker';\n",
+                  'Scoped GIF import',
+              )
+
+              state_anchor = """  const photo =\n    photos[0] ??\n    null;\n"""
+              scope = replace_once(
+                  scope,
+                  state_anchor,
+                  state_anchor + """\n  const [\n    communityGif,\n    setCommunityGif,\n  ] = useState<BuklodCommunityGifFile | null>(null);\n\n  const [\n    communityGifPickerOpen,\n    setCommunityGifPickerOpen,\n  ] = useState(false);\n""",
+                  'Scoped GIF state',
+              )
+
+              scope = replace_once(
+                  scope,
+                  """        setPhotos(current =>\n          [\n            ...current,\n            ...picked.map(item => ({\n              id: item.id,\n              uri: item.uri,\n              sizeBytes: 0,\n            })),\n          ].slice(0, COMMUNITY_MAX_PHOTOS)\n        );\n        setReel(null);\n        setWallVideo(null);""",
+                  """        setCommunityGif(null);\n        setPhotos(current =>\n          [\n            ...current,\n            ...picked.map(item => ({\n              id: item.id,\n              uri: item.uri,\n              sizeBytes: 0,\n            })),\n          ].slice(0, COMMUNITY_MAX_PHOTOS)\n        );\n        setReel(null);\n        setWallVideo(null);""",
+                  'Scoped photo/GIF exclusivity',
+              )
+
+              scope = replace_once(
+                  scope,
+                  """      setPhotos(\n        []\n      );\n\n      setWallVideo(\n        null\n      );\n};""",
+                  """      setCommunityGif(null);\n\n      setPhotos(\n        []\n      );\n\n      setWallVideo(\n        null\n      );\n};""",
+                  'Scoped Reel/GIF exclusivity',
+              )
+              scope = replace_once(
+                  scope,
+                  """      setPhotos(\n        []\n      );\n\n      setReel(\n        null\n      );\n    };""",
+                  """      setCommunityGif(null);\n\n      setPhotos(\n        []\n      );\n\n      setReel(\n        null\n      );\n    };""",
+                  'Scoped wall video/GIF exclusivity',
+              )
+
+              scope = replace_once(
+                  scope,
+                  """  const clearMedia =\n    () => {\n      setPhotos(\n        []\n      );\n\n      setReel(\n        null\n      );\n\n      setWallVideo(\n        null\n      );\n    };""",
+                  """  const clearMedia =\n    () => {\n      setPhotos(\n        []\n      );\n\n      setReel(\n        null\n      );\n\n      setWallVideo(\n        null\n      );\n\n      setCommunityGif(null);\n    };""",
+                  'Scoped clear GIF',
+              )
+
+              scope = replace_once(
+                  scope,
+                  """        !cleanBody &&\n        !photos.length &&\n        !wallVideo""",
+                  """        !cleanBody &&\n        !photos.length &&\n        !wallVideo &&\n        !communityGif""",
+                  'Scoped GIF-only validation',
+              )
+              scope = replace_once(
+                  scope,
+                  "'Write a message, add photos, or add a video first.'",
+                  "'Write a message, add a GIF, photos, or a video first.'",
+                  'Scoped validation copy',
+              )
+              scope = replace_once(
+                  scope,
+                  """      if (\n        !publishingReel &&\n        photos.length &&\n        wallVideo\n      ) {\n        Alert.alert(\n          'BUKLOD',\n          'Choose either photos or one video for this post.'\n        );\n\n        return;\n      }""",
+                  """      if (\n        !publishingReel &&\n        (\n          (photos.length && wallVideo) ||\n          (communityGif && (photos.length || wallVideo))\n        )\n      ) {\n        Alert.alert(\n          'BUKLOD',\n          'Choose one media type: GIF, photos, or one video.'\n        );\n\n        return;\n      }""",
+                  'Scoped media exclusivity guard',
+              )
+
+              scope = replace_once(
+                  scope,
+                  """        wallVideo,\n        reel,\n        cleanBody,""",
+                  """        wallVideo,\n        reel,\n        communityGif,\n        cleanBody,""",
+                  'Scoped GIF snapshot',
+              )
+              scope = replace_once(
+                  scope,
+                  """      setPublishNotice(\n        snapshot.publishingReel || snapshot.wallVideo\n          ? 'Uploading video in the background…'\n          : snapshot.photos.length""",
+                  """      setPublishNotice(\n        snapshot.communityGif\n          ? 'Uploading GIF in the background…'\n          : snapshot.publishingReel || snapshot.wallVideo\n          ? 'Uploading video in the background…'\n          : snapshot.photos.length""",
+                  'Scoped GIF background notice',
+              )
+
+              scoped_try_anchor = """        if (\n          snapshot.photos.length &&\n          !snapshot.publishingReel\n        ) {"""
+              scoped_gif_upload = """        if (\n          snapshot.communityGif &&\n          !snapshot.publishingReel\n        ) {\n          uploadedPath =\n            `scope/${snapshot.scopeId}/${snapshot.userId}/post-gif-${Date.now()}-${Math.random()\n              .toString(36)\n              .slice(2)}.gif`;\n\n          setPublishNotice(\n            'Uploading GIF in the background…'\n          );\n\n          const uploadedGif =\n            await uploadCommunityGifFile({\n              path: uploadedPath,\n              uri: snapshot.communityGif.uri,\n              sizeBytes: snapshot.communityGif.size,\n            });\n\n          mediaMime = 'image/gif';\n          mediaSize = uploadedGif.sizeBytes;\n          extraMedia = [\n            {\n              media_path: uploadedPath,\n              media_mime_type: 'image/gif',\n              media_size_bytes: uploadedGif.sizeBytes,\n            },\n          ];\n        }\n\n        if (\n          snapshot.photos.length &&\n          !snapshot.publishingReel\n        ) {"""
+              scope = replace_once(scope, scoped_try_anchor, scoped_gif_upload, 'Scoped GIF upload flow')
+
+              scope = replace_once(
+                  scope,
+                  """            : snapshot.wallVideo\n            ? 'Shared a video.'\n            : snapshot.photos.length""",
+                  """            : snapshot.wallVideo\n            ? 'Shared a video.'\n            : snapshot.communityGif\n            ? 'Shared a GIF.'\n            : snapshot.photos.length""",
+                  'Scoped GIF fallback body',
+              )
+              scope = replace_once(
+                  scope,
+                  """        setWallVideo(snapshot.wallVideo);\n        setReel(snapshot.reel);""",
+                  """        setWallVideo(snapshot.wallVideo);\n        setReel(snapshot.reel);\n        setCommunityGif(snapshot.communityGif);""",
+                  'Scoped GIF restore on failure',
+              )
+
+              scope = replace_once(
+                  scope,
+                  """              setPhotos(\n                []\n              );\n            }}""",
+                  """              setPhotos(\n                []\n              );\n              setCommunityGif(null);\n            }}""",
+                  'Scoped Reel mode clears GIF',
+              )
+
+              preview_anchor = """          {mode === 'reels' && (\n            <View"""
+              preview_insert = """          {mode === 'wall' && communityGif && (\n            <BuklodCommunityGifPreview\n              file={communityGif}\n              onRemove={() => setCommunityGif(null)}\n            />\n          )}\n\n          {mode === 'reels' && (\n            <View"""
+              scope = replace_once(scope, preview_anchor, preview_insert, 'Scoped GIF preview')
+
+              photos_button_end = """                </Pressable>\n\n                <Pressable\n                  disabled={\n                    busy ||\n                    wallVideoBusy\n                  }"""
+              gif_action = """                </Pressable>\n\n                <Pressable\n                  disabled={busy}\n                  onPress={() => {\n                    clearMedia();\n                    setCommunityGifPickerOpen(true);\n                  }}\n                  style={styles.mediaButton}\n                >\n                  <MaterialCommunityIcons\n                    name=\"file-gif-box\"\n                    size={19}\n                    color={colors.greenDark}\n                  />\n                  <Text style={styles.mediaButtonText}>\n                    {communityGif ? 'GIF Ready' : 'Add GIF'}\n                  </Text>\n                </Pressable>\n\n                <Pressable\n                  disabled={\n                    busy ||\n                    wallVideoBusy\n                  }"""
+              scope = replace_once(scope, photos_button_end, gif_action, 'Scoped GIF action')
+
+              actions_end = """          </View>\n\n          <Pressable\n            disabled={"""
+              picker_mount = """          </View>\n\n          <BuklodCommunityGifPicker\n            visible={communityGifPickerOpen}\n            onClose={() => setCommunityGifPickerOpen(false)}\n            onPick={file => {\n              clearMedia();\n              setCommunityGif(file);\n              setCommunityGifPickerOpen(false);\n            }}\n          />\n\n          <Pressable\n            disabled={"""
+              scope = replace_once(scope, actions_end, picker_mount, 'Scoped GIF picker mount')
+
+              scope = scope.replace(
+                  "!body.trim() &&\n                      !photo &&\n                      !wallVideo",
+                  "!body.trim() &&\n                      !photo &&\n                      !wallVideo &&\n                      !communityGif",
+              )
+              if scope.count('!communityGif') < 3:
+                  raise RuntimeError('Scoped publish disabled state was not fully updated for GIF')
+
+              write(scope_path, scope)
+
+          # ------------------------------------------------------------------
+          # Static QA.
+          # ------------------------------------------------------------------
+          final_uploader = read(uploader_path)
+          final_pub = read(pub_path)
+          final_scope = read(scope_path)
+          final_picker = read(picker_path)
+
+          checks = [
+              ('uploader', final_uploader, 'uploadCommunityGifFile'),
+              ('uploader', final_uploader, "contentType: 'image/gif'"),
+              ('picker', final_picker, 'downloadConnectCatalogGif(item)'),
+              ('picker', final_picker, 'Search GIF'),
+              ('picker', final_picker, 'Load more GIFs'),
+              ('public', final_pub, 'communityGifPickerOpen'),
+              ('public', final_pub, "media_mime_type:'image/gif'"),
+              ('public', final_pub, 'BuklodCommunityGifPreview'),
+              ('scoped', final_scope, 'communityGifPickerOpen'),
+              ('scoped', final_scope, "mediaMime = 'image/gif'"),
+              ('scoped', final_scope, 'BuklodCommunityGifPreview'),
+          ]
+          for label, text, needle in checks:
+              require(text, needle, label)
+
+          print('BUKLOD_191T_STATIC_QA=PASS')
+          print('PUBLIC_COMMUNITY_GIF=WIRED')
+          print('SCOPED_COMMUNITY_GIF=WIRED')
+          print('ANIMATED_GIF_RAW_UPLOAD=YES')
+          print('NO_NEW_NATIVE_DEPENDENCY=YES')
+          PY
+
+      - name: TypeScript QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx tsc --noEmit
+
+      - name: Commit completed integration and remove one-time workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "BUKLOD Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git rm --ignore-unmatch .github/workflows/buklod-191t-community-gif-direct.yml
+          git add src/app/'(tabs)'/buklod.tsx \
+                  src/components/BuklodExclusiveScopeCommunity.tsx \
+                  src/components/BuklodCommunityGifPicker.tsx \
+                  src/lib/uploadCommunityVideoFile.ts
+          git diff --cached --check
+          git commit -m "feat: add Community GIF to public and scoped walls"
+          git push origin HEAD:main
