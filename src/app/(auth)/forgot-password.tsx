@@ -119,6 +119,9 @@ export default function ForgotPasswordScreen() {
       );
 
       if (error) throw error;
+      if (!data?.ok) {
+        throw new Error(data?.message ?? 'Could not submit the request.');
+      }
 
       Alert.alert(
         'Request Received',
