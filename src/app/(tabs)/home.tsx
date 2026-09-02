@@ -1139,8 +1139,16 @@ function HomeDailyBayanihanPair({
             flex:1,
             minHeight: 44,
           }}
-          onPress={()=>
-            router.push('/bible' as any)
+          onPress={() =>
+            router.push({
+              pathname: '/bible/read',
+              params: {
+                source: 'daily_plan',
+                assignedDate: new Date(
+                  Date.now() + 8 * 60 * 60 * 1000
+                ).toISOString().slice(0, 10),
+              },
+            } as any)
           }
           accessibilityRole="button"
           accessibilityLabel="Open Daily Devotion"
@@ -5953,11 +5961,18 @@ function HomeDailyBibleReminder() {
 
 
       /*
-       * Pre-deployment fallback.
+       * Open the canonical Daily Reading doorway even when the
+       * assignment RPC has not returned a plan row yet.
        */
-      router.push(
-        '/bible'
-      );
+      router.push({
+        pathname: '/bible/read',
+        params: {
+          source: 'daily_plan',
+          assignedDate: new Date(
+            Date.now() + 8 * 60 * 60 * 1000
+          ).toISOString().slice(0, 10),
+        },
+      } as any);
     };
 
 
