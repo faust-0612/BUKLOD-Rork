@@ -122,7 +122,17 @@ export default function BuklodMzbHomeWidgets({
           <FaithLink
             icon="book-open-page-variant"
             label="Daily Bible"
-            onPress={() => router.push('/bible' as any)}
+            onPress={() =>
+              router.push({
+                pathname: '/bible/read',
+                params: {
+                  source: 'daily_plan',
+                  assignedDate: new Date(
+                    Date.now() + 8 * 60 * 60 * 1000
+                  ).toISOString().slice(0, 10),
+                },
+              } as any)
+            }
           />
           <FaithLink
             icon="hands-pray"
