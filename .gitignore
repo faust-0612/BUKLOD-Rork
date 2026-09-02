@@ -77,8 +77,7 @@ native120-*.txt
 *.orig
 *.tmp
 
-# Database/backend files are kept local during initial Rork UI redesign
-/supabase/
+# Supabase source is version-controlled; local CLI state and .env files stay ignored above.
 
 
 credentials.json
