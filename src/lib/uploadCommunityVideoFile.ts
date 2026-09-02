@@ -201,6 +201,55 @@ export async function uploadCommunityPhotoFile({
   };
 }
 
+export async function uploadCommunityGifFile({
+  path,
+  uri,
+  sizeBytes = 0,
+  onProgress,
+}: {
+  path: string;
+  uri: string;
+  sizeBytes?: number;
+  onProgress?: (
+    progress: CommunityVideoUploadProgress
+  ) => void;
+}): Promise<{ sizeBytes: number }> {
+  let resolvedSizeBytes = Math.max(
+    0,
+    Number(sizeBytes ?? 0),
+  );
+
+  if (!resolvedSizeBytes) {
+    const info: any = await FileSystem.getInfoAsync(
+      uri,
+      { size: true } as any,
+    );
+    resolvedSizeBytes = Number(info?.size ?? 0);
+  }
+
+  if (!resolvedSizeBytes) {
+    throw new Error('Could not read the GIF file size.');
+  }
+
+  if (resolvedSizeBytes > 25 * 1024 * 1024) {
+    throw new Error('Maximum GIF size is 25 MB.');
+  }
+
+  await uploadCommunityBinaryFile({
+    path,
+    uri,
+    contentType: 'image/gif',
+    onProgress,
+    sizeBytes: resolvedSizeBytes,
+    failureLabel: 'GIF',
+    preferResumable: false,
+  });
+
+  return {
+    sizeBytes: resolvedSizeBytes,
+  };
+}
+
 async function uploadCommunityBinaryFile({
   path,
   uri,

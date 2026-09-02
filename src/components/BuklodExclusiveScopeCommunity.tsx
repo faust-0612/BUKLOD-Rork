@@ -136,6 +136,11 @@ import {
 } from '@/lib/buklodSafeArea';
 import BuklodPostInternalShare
   from '@/components/BuklodPostInternalShare';
+import {
+  BuklodCommunityGifPicker,
+  BuklodCommunityGifPreview,
+  type BuklodCommunityGifFile,
+} from '@/components/BuklodCommunityGifPicker';
 
 import {
   VideoView,
@@ -145,6 +150,7 @@ import {
 import {
   uploadCommunityVideoFile,
   uploadCommunityPhotoFile,
+  uploadCommunityGifFile,
   mapWithConcurrency,
 } from '@/lib/uploadCommunityVideoFile';
 import { COMMUNITY_MAX_PHOTOS } from '@/lib/buklodCommunityMediaLimits';
@@ -485,6 +491,16 @@ export default function BuklodExclusiveScopeCommunity({
   const photo =
     photos[0] ??
     null;
+
+  const [
+    communityGif,
+    setCommunityGif,
+  ] = useState<BuklodCommunityGifFile | null>(null);
+
+  const [
+    communityGifPickerOpen,
+    setCommunityGifPickerOpen,
+  ] = useState(false);
 
   /* PATCH_186B_PHOTO_EDITOR_SCOPE_STATE */
   const [
@@ -1033,6 +1049,7 @@ export default function BuklodExclusiveScopeCommunity({
           return;
         }
 
+        setCommunityGif(null);
         setPhotos(current =>
           [
             ...current,
@@ -1114,6 +1131,8 @@ export default function BuklodExclusiveScopeCommunity({
         }
       );
 
+      setCommunityGif(null);
+
       setPhotos(
         []
       );
@@ -1182,6 +1201,8 @@ export default function BuklodExclusiveScopeCommunity({
           durationSeconds,
         }
       );
+
+      setCommunityGif(null);
 
       setPhotos(
         []
@@ -1375,6 +1396,8 @@ export default function BuklodExclusiveScopeCommunity({
       setWallVideo(
         null
       );
+
+      setCommunityGif(null);
     };
 
   const publish =
@@ -1407,11 +1430,12 @@ export default function BuklodExclusiveScopeCommunity({
         !publishingReel &&
         !cleanBody &&
         !photos.length &&
-        !wallVideo
+        !wallVideo &&
+        !communityGif
       ) {
         Alert.alert(
           'Nothing to Post',
-          'Write a message, add photos, or add a video first.'
+          'Write a message, add a GIF, photos, or a video first.'
         );
 
         return;
@@ -1419,12 +1443,14 @@ export default function BuklodExclusiveScopeCommunity({
 
       if (
         !publishingReel &&
-        photos.length &&
-        wallVideo
+        (
+          (photos.length && wallVideo) ||
+          (communityGif && (photos.length || wallVideo))
+        )
       ) {
         Alert.alert(
           'BUKLOD',
-          'Choose either photos or one video for this post.'
+          'Choose one media type: GIF, photos, or one video.'
         );
 
         return;
@@ -1434,6 +1460,7 @@ export default function BuklodExclusiveScopeCommunity({
         photos: [...photos],
         wallVideo,
         reel,
+        communityGif,
         cleanBody,
         publishingReel,
         userId: user.id,
@@ -1444,7 +1471,9 @@ export default function BuklodExclusiveScopeCommunity({
       clearMedia();
       setBusy(false);
       setPublishNotice(
-        snapshot.publishingReel || snapshot.wallVideo
+        snapshot.communityGif
+          ? 'Uploading GIF in the background…'
+          : snapshot.publishingReel || snapshot.wallVideo
           ? 'Uploading video in the background…'
           : snapshot.photos.length
             ? 'Uploading photos in the background…'
@@ -1486,6 +1515,37 @@ export default function BuklodExclusiveScopeCommunity({
 
         let isReel =
           false;
+
+        if (
+          snapshot.communityGif &&
+          !snapshot.publishingReel
+        ) {
+          uploadedPath =
+            `scope/${snapshot.scopeId}/${snapshot.userId}/post-gif-${Date.now()}-${Math.random()
+              .toString(36)
+              .slice(2)}.gif`;
+
+          setPublishNotice(
+            'Uploading GIF in the background…'
+          );
+
+          const uploadedGif =
+            await uploadCommunityGifFile({
+              path: uploadedPath,
+              uri: snapshot.communityGif.uri,
+              sizeBytes: snapshot.communityGif.size,
+            });
+
+          mediaMime = 'image/gif';
+          mediaSize = uploadedGif.sizeBytes;
+          extraMedia = [
+            {
+              media_path: uploadedPath,
+              media_mime_type: 'image/gif',
+              media_size_bytes: uploadedGif.sizeBytes,
+            },
+          ];
+        }
 
         if (
           snapshot.photos.length &&
@@ -1640,6 +1700,8 @@ export default function BuklodExclusiveScopeCommunity({
             ? 'Shared a Reel.'
             : snapshot.wallVideo
             ? 'Shared a video.'
+            : snapshot.communityGif
+            ? 'Shared a GIF.'
             : snapshot.photos.length
             ? 'Shared photos.'
             : snapshot.cleanBody;
@@ -1719,6 +1781,7 @@ export default function BuklodExclusiveScopeCommunity({
         setPhotos(snapshot.photos);
         setWallVideo(snapshot.wallVideo);
         setReel(snapshot.reel);
+        setCommunityGif(snapshot.communityGif);
 
         Alert.alert(
           'Could Not Post',
@@ -3469,6 +3532,7 @@ return (
               setPhotos(
                 []
               );
+              setCommunityGif(null);
             }}
             style={[
               styles.modeButton,
@@ -3596,6 +3660,13 @@ return (
                 </View>
               ))}
             </ScrollView>
+          )}
+
+          {mode === 'wall' && communityGif && (
+            <BuklodCommunityGifPreview
+              file={communityGif}
+              onRemove={() => setCommunityGif(null)}
+            />
           )}
 
           {mode === 'reels' && (
@@ -3918,6 +3989,24 @@ return (
                 </Pressable>
 
                 <Pressable
+                  disabled={busy}
+                  onPress={() => {
+                    clearMedia();
+                    setCommunityGifPickerOpen(true);
+                  }}
+                  style={styles.mediaButton}
+                >
+                  <MaterialCommunityIcons
+                    name="file-gif-box"
+                    size={19}
+                    color={colors.greenDark}
+                  />
+                  <Text style={styles.mediaButtonText}>
+                    {communityGif ? 'GIF Ready' : 'Add GIF'}
+                  </Text>
+                </Pressable>
+
+                <Pressable
                   disabled={
                     busy ||
                     wallVideoBusy
@@ -4008,6 +4097,16 @@ return (
             )}
           </View>
 
+          <BuklodCommunityGifPicker
+            visible={communityGifPickerOpen}
+            onClose={() => setCommunityGifPickerOpen(false)}
+            onPick={file => {
+              clearMedia();
+              setCommunityGif(file);
+              setCommunityGifPickerOpen(false);
+            }}
+          />
+
           <Pressable
             disabled={
               busy ||
@@ -4017,7 +4116,8 @@ return (
                   : (
                       !body.trim() &&
                       !photo &&
-                      !wallVideo
+                      !wallVideo &&
+                      !communityGif
                     )
               )
             }
@@ -4034,7 +4134,8 @@ return (
                   : (
                       !body.trim() &&
                       !photo &&
-                      !wallVideo
+                      !wallVideo &&
+                      !communityGif
                     )
                 )
               ) &&

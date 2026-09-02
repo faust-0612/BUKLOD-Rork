@@ -13,7 +13,7 @@ import {
   createVideoPlayer as createIncomingShareVideoPlayer187A,
 } from 'expo-video';
 import { useIncomingShare as useBuklodIncomingShare187A } from '@/lib/buklodIncomingShare';
-import { uploadCommunityVideoFile, uploadCommunityPhotoFile, mapWithConcurrency } from '@/lib/uploadCommunityVideoFile';
+import { uploadCommunityVideoFile, uploadCommunityPhotoFile, uploadCommunityGifFile, mapWithConcurrency } from '@/lib/uploadCommunityVideoFile';
 import { COMMUNITY_MAX_PHOTOS } from '@/lib/buklodCommunityMediaLimits';
 import { pickCommunityPhotos } from '@/lib/buklodPickCommunityPhotos';
 import { ensureImagePickerLibraryAccess } from '@/lib/buklodImagePickerAccess';
@@ -55,6 +55,7 @@ import BuklodPublicLocationChips from '@/components/BuklodPublicLocationChips';
 import BuklodMaritesBoard from '@/components/BuklodMaritesBoard';
 import { repairMojibakeText } from '@/lib/repairMojibakeText';
 import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
+import { BuklodCommunityGifPicker, BuklodCommunityGifPreview, type BuklodCommunityGifFile } from '@/components/BuklodCommunityGifPicker';
 /* PATCH_160_COMMUNITY_AVATARS_TIME */
 import { formatSpecificDateTime } from '@/lib/dateTime';
 import { BuklodTappableAvatar } from '@/components/BuklodTappableAvatar';
@@ -636,6 +637,8 @@ function LegacyPublicBuklodScreen(){
  const [audience]=useState<Audience>('public');
  const [busy,setBusy]=useState(false),[photos,setPhotos]=useState<Photo[]>([]),[photoBusy,setPhotoBusy]=useState(false);
  const [publishNotice,setPublishNotice]=useState<string|null>(null);
+ const [communityGif,setCommunityGif]=useState<BuklodCommunityGifFile|null>(null);
+ const [communityGifPickerOpen,setCommunityGifPickerOpen]=useState(false);
 
  /* PATCH_186B_PHOTO_EDITOR_PUBLIC_STATE */
  const [
@@ -1372,6 +1375,7 @@ const load=useCallback(async(options?:{
      return;
     }
 
+    setCommunityGif(null);
     setPhotos(current=>
      [...current,...picked].slice(
       0,
@@ -1469,6 +1473,7 @@ const load=useCallback(async(options?:{
        ? 'video/quicktime'
        : 'video/mp4';
 
+   setCommunityGif(null);
    setPhotos([]);
    setWallVideo186O({
     uri,
@@ -1598,21 +1603,22 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
   if(
     !body.trim() &&
     !photos.length &&
-    !wallVideo186O
+    !wallVideo186O &&
+    !communityGif
    ){
     return Alert.alert(
      'BUKLOD',
-     'Write a message, add photos, or add a video.'
+     'Write a message, add a GIF, photos, or a video.'
     );
    }
 
   if(
-    wallVideo186O &&
-    photos.length
+    (wallVideo186O && photos.length) ||
+    (communityGif && (photos.length || wallVideo186O))
    ){
     return Alert.alert(
      'BUKLOD',
-     'Choose either photos or one video for this post.'
+     'Choose one media type: GIF, photos, or one video.'
     );
    }
 
@@ -1623,6 +1629,7 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
     [...photos],
    wallVideo:
     wallVideo186O,
+   communityGif,
    mentions:
     [...mentions],
    audience,
@@ -1636,10 +1643,13 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
  setBody('');
  setPhotos([]);
  setWallVideo186O(null);
+ setCommunityGif(null);
  setMentions([]);
  setBusy(false);
  const startNotice=
-  snapshot.wallVideo
+  snapshot.communityGif
+   ? 'Uploading GIF in the background…'
+   : snapshot.wallVideo
    ? 'Uploading video in the background…'
    : snapshot.photos.length
     ? 'Uploading photos in the background…'
@@ -1689,7 +1699,9 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
        (
         snapshot.wallVideo
          ? 'Shared a video.'
-         : snapshot.photos.length
+         : snapshot.communityGif
+          ? 'Shared a GIF.'
+          : snapshot.photos.length
           ? ''
           : 'Shared an update.'
        ),
@@ -1732,6 +1744,27 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
 
   try{
    setNotice(startNotice);
+
+   if(snapshot.communityGif){
+    const gifPath=
+     `${snapshot.userId}/post-gif-${Date.now()}-${Math.random().toString(36).slice(2)}.gif`;
+
+    setNotice('Uploading GIF in the background…');
+    setPublishNotice('Uploading GIF in the background…');
+
+    const uploadedGif=
+     await uploadCommunityGifFile({
+      path:gifPath,
+      uri:snapshot.communityGif.uri,
+      sizeBytes:snapshot.communityGif.size,
+     });
+
+    uploaded.push({
+     media_path:gifPath,
+     media_mime_type:'image/gif',
+     media_size_bytes:uploadedGif.sizeBytes
+    });
+   }
 
    if(snapshot.wallVideo){
     const lowerMime=
@@ -1859,6 +1892,7 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
    setBody(snapshot.body);
    setPhotos(snapshot.photos);
    setWallVideo186O(snapshot.wallVideo);
+   setCommunityGif(snapshot.communityGif);
    setMentions(snapshot.mentions);
 
    Alert.alert(
@@ -3206,6 +3240,18 @@ const refreshCommunity186L=
  : 'Add Photos'}</Text></Pressable>
     <Pressable
      style={s.tool}
+     disabled={busy}
+     onPress={()=>{
+      setPhotos([]);
+      setWallVideo186O(null);
+      setCommunityGifPickerOpen(true);
+     }}
+    >
+     <MaterialCommunityIcons name="file-gif-box" size={17} color={colors.green}/>
+     <Text style={s.toolText}>{communityGif?'GIF Ready':'Add GIF'}</Text>
+    </Pressable>
+    <Pressable
+     style={s.tool}
      disabled={
       busy||
       videoBusy186O
@@ -3227,6 +3273,22 @@ const refreshCommunity186L=
         : 'Add Video'}
      </Text>
     </Pressable></View>
+    {!!communityGif&&(
+     <BuklodCommunityGifPreview
+      file={communityGif}
+      onRemove={()=>setCommunityGif(null)}
+     />
+    )}
+    <BuklodCommunityGifPicker
+     visible={communityGifPickerOpen}
+     onClose={()=>setCommunityGifPickerOpen(false)}
+     onPick={file=>{
+      setCommunityGif(file);
+      setPhotos([]);
+      setWallVideo186O(null);
+      setCommunityGifPickerOpen(false);
+     }}
+    />
     {!!publishNotice&&(
      <Text style={[shared.muted,{marginBottom:8,fontSize:12}]}>
       {publishNotice}
