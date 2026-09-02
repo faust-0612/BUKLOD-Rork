@@ -1,6 +1,6 @@
 import { BuklodGivingSettingsButton } from './BuklodGivingSettingsButton';
 /* PATCH_170B_CLUSTER_HOME_COMMAND_CENTER */
-import React,{useCallback,useMemo,useRef,useState}from'react';
+import React,{useCallback,useMemo,useState}from'react';
 import{ActivityIndicator,Alert,Image,Linking,Modal,Pressable,RefreshControl,ScrollView,Share,StyleSheet,Text,TextInput,View}from'react-native';
 import*as Clipboard from'expo-clipboard';
 import{MaterialCommunityIcons}from'@expo/vector-icons';
@@ -136,7 +136,6 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
  const{user}=useAuth();const characterEvents=useBuklodCharacterEventsOptional();
  const isAdmin=manageMode;
  const[loading,setLoading]=useState(true),[refreshing,setRefreshing]=useState(false),[members,setMembers]=useState<Member[]>([]),[notices,setNotices]=useState<Notice[]>([]),[events,setEvents]=useState<Event[]>([]),[rsvps,setRsvps]=useState<Rsvp[]>([]),[tasks,setTasks]=useState<Task[]>([]),[polls,setPolls]=useState<Poll[]>([]),[options,setOptions]=useState<Option[]>([]),[votes,setVotes]=useState<Vote[]>([]),[resources,setResources]=useState<Resource[]>([]),[recognitions,setRecognitions]=useState<Recognition[]>([]),[settings,setSettings]=useState<Settings|null>(null),[posts,setPosts]=useState<Post[]>([]),[attendance,setAttendance]=useState<any[]>([]),[description,setDescription]=useState('');
- const reloadTimerRef=useRef<ReturnType<typeof setTimeout>|null>(null);
  const applySnapshot=useCallback((snapshot:ClusterHomeSnapshot)=>{setMembers(snapshot.members);setNotices(snapshot.notices);setEvents(snapshot.events);setRsvps(snapshot.rsvps);setTasks(snapshot.tasks);setPolls(snapshot.polls);setOptions(snapshot.options);setVotes(snapshot.votes);setResources(snapshot.resources);setRecognitions(snapshot.recognitions);setSettings(snapshot.settings);setPosts(snapshot.posts);setAttendance(snapshot.attendance);setDescription(snapshot.description);},[]);
  const[kind,setKind]=useState<Kind>(null),[title,setTitle]=useState(''),[body,setBody]=useState(''),[extra,setExtra]=useState(''),[when,setWhen]=useState(''),[saving,setSaving]=useState(false);
  const[customizeOpen,setCustomizeOpen]=useState(false),[searchQuery,setSearchQuery]=useState('');
@@ -191,9 +190,7 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
   }catch(err:any){console.warn('Cluster Home:',err);if(!cached)Alert.alert('Cluster Home',err?.message??'Could not load Cluster Home.')}finally{setLoading(false);setRefreshing(false)}
  },[applySnapshot,manageMode,scope.scope_id,scope.scope_type,user?.id]);
 
- const scheduleReload=useCallback(()=>{if(reloadTimerRef.current){clearTimeout(reloadTimerRef.current);}reloadTimerRef.current=setTimeout(()=>{void load({background:true});},1200);},[load]);
-
- useFocusEffect(useCallback(()=>{void load();const c=supabase.channel(`cluster-home:${scope.scope_id}:${(0)}:${(0).toString(36).slice(2)}`).on('postgres_changes',{event:'*',schema:'public',table:'buklod_cluster_home_notices',filter:`scope_id=eq.${scope.scope_id}`},()=>scheduleReload()).on('postgres_changes',{event:'*',schema:'public',table:'buklod_cluster_events',filter:`scope_id=eq.${scope.scope_id}`},()=>scheduleReload()).on('postgres_changes',{event:'*',schema:'public',table:'buklod_cluster_tasks',filter:`scope_id=eq.${scope.scope_id}`},()=>scheduleReload()).on('postgres_changes',{event:'*',schema:'public',table:'community_posts',filter:`scope_id=eq.${scope.scope_id}`},()=>scheduleReload()).subscribe();return()=>{if(reloadTimerRef.current){clearTimeout(reloadTimerRef.current);reloadTimerRef.current=null;}void supabase.removeChannel(c)}},[load,scheduleReload,scope.scope_id]));
+ useFocusEffect(useCallback(()=>{void load();},[load]));
 
  const notice=notices.find(x=>!x.expires_at||new Date(x.expires_at).getTime()>Date.now())??null,upcoming=events.filter(x=>new Date(x.starts_at).getTime()>=Date.now()-3600000),week=upcoming.filter(x=>new Date(x.starts_at).getTime()<=Date.now()+7*86400000),officers=members.filter(x=>x.is_admin),myTasks=tasks.filter(x=>!x.assigned_to||x.assigned_to===user?.id||isAdmin),openTasks=myTasks.filter(x=>x.status!=='DONE'),poll=polls[0]??null,pollOptions=poll?options.filter(x=>x.poll_id===poll.id):[],myVote=poll&&user?.id?votes.find(x=>x.poll_id===poll.id&&x.user_id===user.id):null,myChecked=!!user?.id&&attendance.some(x=>x.user_id===user.id);
  const q=searchQuery.trim().toLowerCase();
