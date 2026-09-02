@@ -474,7 +474,7 @@ export default function BuklodHomeFaithPanel({
           </Text>
 
           <Text style={[styles.sectionSubtitle, { color: colors.muted }]}>
-            Your daily space for Scripture, devotion and prayer.
+            Scripture, devotion, prayer, Christian growth and hymns.
           </Text>
         </View>
 
@@ -527,7 +527,15 @@ export default function BuklodHomeFaithPanel({
               return;
             }
 
-            router.push('/bible' as any);
+            router.push({
+  pathname: '/bible/read',
+  params: {
+    source: 'daily_plan',
+    assignedDate: new Date(
+      Date.now() + 8 * 60 * 60 * 1000
+    ).toISOString().slice(0, 10),
+  },
+} as any);
           }}
         />
 
@@ -590,7 +598,39 @@ export default function BuklodHomeFaithPanel({
             )
           }
         />
-      </View>
+      
+        {/* PATCH_192A_R2_SHOW_FAITH_ABC_HYMNS_POINTS_ALL_ACCESS
+            Public/personal Show Faith resources.
+            ABC + Hymns have NO Organization / Cluster / Premium / purchase gate.
+            ABC lesson completion uses the existing BUKLOD Points claim flow.
+        */}
+        <FaithAction
+          label="ABC Study"
+          title="ABCâ€™s ng Paglagong Kristyano"
+          meta="Lessons â€¢ Bible links â€¢ +5 points"
+          icon="school-outline"
+          tone="bible"
+          onPress={() =>
+            router.push(
+              '/faith/abc' as any
+            )
+          }
+        />
+
+        <FaithAction
+          label="Hymns"
+          title="Samahang Binuklod ng Pag-ibig"
+          meta="Search â€¢ Select â€¢ Font â€¢ Zoom"
+          icon="music-note-outline"
+          tone="prayer"
+          onPress={() =>
+            router.push(
+              '/faith/hymns' as any
+            )
+          }
+        />
+
+</View>
 
       <View style={{ marginTop: 6 }}>
         <BuklodFindAChurchDoorway />
