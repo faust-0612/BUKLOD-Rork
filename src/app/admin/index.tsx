@@ -547,6 +547,13 @@ export default function AdminDashboard() {
               />
 
               <AdminRow
+                icon="account-key-outline"
+                title="Account Recovery"
+                subtitle="Verify assistance requests and issue one-time recovery codes"
+                path="/admin/account-recovery"
+              />
+
+              <AdminRow
                 icon="flag-outline"
                 title="Reported Posts & Comments"
                 subtitle="Reason, post or comment, and System Admin review"
