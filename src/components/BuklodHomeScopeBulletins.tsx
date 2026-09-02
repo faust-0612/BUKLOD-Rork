@@ -564,63 +564,6 @@ export default function BuklodHomeScopeBulletins() {
     }, [load])
   );
 
-  /*
-   * Also refresh if another Cluster admin publishes/updates
-   * a bulletin while this Home is already open.
-   *
-   * The topic is unique per mount to avoid Supabase Realtime
-   * "callbacks after subscribe()" channel collisions.
-   */
-  useEffect(() => {
-    if (!active?.scope_id) {
-      return;
-    }
-
-    const channel =
-      supabase
-        .channel(
-          `scope-bulletin-home:${active.scope_id}:${(0)}:${(0).toString(36).slice(2)}`
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table:
-              'buklod_scope_bulletins',
-          },
-          payload => {
-            const row =
-              (
-                payload.new ??
-                payload.old ??
-                null
-              ) as
-                | {
-                    scope_id?: string;
-                  }
-                | null;
-
-            if (
-              !row?.scope_id ||
-              row.scope_id ===
-                active.scope_id
-            ) {
-              void load();
-            }
-          }
-        )
-        .subscribe();
-
-    return () => {
-      void supabase.removeChannel(
-        channel
-      );
-    };
-  }, [
-    active?.scope_id,
-    load,
-  ]);
 
   if (
     !active ||
