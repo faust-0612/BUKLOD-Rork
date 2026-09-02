@@ -1,4 +1,5 @@
-﻿import BuklodSponsorSlot from '@/components/BuklodSponsorSlot';
+/* BUKLOD_ROOT_PERFORMANCE_R3_PRAYER_REALTIME: stable topic; existing cleanup preserved */
+import BuklodSponsorSlot from '@/components/BuklodSponsorSlot';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
@@ -32,7 +33,7 @@ export default function PrayerScreen() {
 
   useEffect(()=>{
     const ch=supabase.channel(
-        `prayer-wall:${Date.now()}:${Math.random().toString(36).slice(2)}`
+        `prayer-wall`
       )
       .on('postgres_changes',{event:'*',schema:'public',table:'prayer_requests'},load)
       .subscribe();

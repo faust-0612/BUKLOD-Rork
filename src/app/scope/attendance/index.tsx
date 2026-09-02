@@ -403,7 +403,7 @@ export default function ScopeAttendanceScreen() {
 
     const channel = supabase
       .channel(
-        `scope-attendance:${workspaceScope.scope_id}:${Date.now()}`
+        `scope-attendance:${workspaceScope.scope_id}:${(0)}`
       )
       .on(
         'postgres_changes',

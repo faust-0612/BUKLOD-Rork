@@ -1,3 +1,8 @@
+/* BUKLOD_ROOT_PERFORMANCE_R3_COMMUNITY_REALTIME: existing broadcast implementation preserved */
+/* PERF_EMERGENCY_R2_VISIBLE_POSTS: list-shape-drift-safely-skipped */
+/* PERF_EMERGENCY_R2_MULTI_MEDIA_CACHE: existing-community-media-url-cache-preserved */
+/* PERF_EMERGENCY_R2_POSTS_ONLY_REALTIME: existing Broadcast optimization preserved */
+/* PERF_EMERGENCY_R2_STALE_LOAD: existing PATCH_166H guard preserved */
 /* BUKLOD_SHARE_TARGET_187A */
 import {
   useEffect as useIncomingShareEffect187A,
@@ -11,8 +16,10 @@ import { useIncomingShare as useBuklodIncomingShare187A } from '@/lib/buklodInco
 import { uploadCommunityVideoFile, uploadCommunityPhotoFile, mapWithConcurrency } from '@/lib/uploadCommunityVideoFile';
 import { COMMUNITY_MAX_PHOTOS } from '@/lib/buklodCommunityMediaLimits';
 import { pickCommunityPhotos } from '@/lib/buklodPickCommunityPhotos';
+import { ensureImagePickerLibraryAccess } from '@/lib/buklodImagePickerAccess';
 import {
   attachCommunityPostMedia,
+  discardIncompleteCommunityPost,
   extractCreatedRecordId,
 } from '@/lib/buklodCommunityPostMedia';
 import { enqueueCommunityPublish } from '@/lib/buklodCommunityPublishQueue';
@@ -29,8 +36,10 @@ import {
   BUKLOD_LONG_PRESS_MS,
 } from '@/lib/buklodTouch';
 import { CommunityVideo } from '@/components/CommunityVideo';
-/* PATCH_186M_RESTORE_COMMUNITY_POST_PHOTOS */
-import { BuklodCachedMediaImage } from '@/components/BuklodCachedMediaImage';
+import {
+  BuklodCommunityPhotoCollage,
+  communityPhotoCollageItems,
+} from '@/components/BuklodCommunityPhotoCollage';
 import { peekCommunityMediaUrl } from '@/lib/buklodMediaUrl';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 
@@ -166,7 +175,6 @@ import {
   BuklodZoomablePhoto,
 } from '@/components/BuklodZoomablePhoto';
 import {
-  maritesCollageTileLayout,
   isMaritesCommunityPost,
 } from '@/lib/buklodMaritesBoard';
 /* PATCH_186B_PHOTO_EDITOR_IMPORT */
@@ -212,26 +220,6 @@ function CommunityZoomPhoto({
 
 const COMMUNITY_VIEWER_HEIGHT=
  Dimensions.get('window').height;
-
-// PATCH_161H_SINGLE_SCREEN_COMMUNITY
-/* PATCH_173H_R4_STRICT_PUBLIC_LOCALIZATION */
-/* PATCH_186M_COMMUNITY_MEDIA_PATH_FALLBACK */
-function BuklodCommunityMediaImage186M({
-  photo,
-  style,
-}:{
-  photo:any;
-  style:any;
-}) {
-  return (
-    <BuklodCachedMediaImage
-      uri={photo?.media_url}
-      mediaPath={photo?.media_path}
-      style={style}
-      contentFit="cover"
-    />
-  );
-}
 
 export default function BuklodScreen(){
  const {
@@ -1509,11 +1497,12 @@ const load=useCallback(async(options?:{
       'expo-image-picker'
      );
 
-    const permission=
-     await P
-      .requestMediaLibraryPermissionsAsync();
+    const permissionGranted =
+     await ensureImagePickerLibraryAccess(
+      P.requestMediaLibraryPermissionsAsync
+     );
 
-    if(!permission.granted){
+    if(!permissionGranted){
      Alert.alert(
       'Video Permission',
       'Please allow BUKLOD to access your videos.'
@@ -1700,11 +1689,9 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
        (
         snapshot.wallVideo
          ? 'Shared a video.'
-         : snapshot.photos.length>1
-          ? 'Shared photos.'
-          : snapshot.photos.length
-           ? 'Shared a photo.'
-           : 'Shared an update.'
+         : snapshot.photos.length
+          ? ''
+          : 'Shared an update.'
        ),
       p_media_path:
        first?.media_path??
@@ -1745,7 +1732,6 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
 
   try{
    setNotice(startNotice);
-   await createPost(null);
 
    if(snapshot.wallVideo){
     const lowerMime=
@@ -1851,6 +1837,8 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
     );
    }
 
+   await createPost(uploaded[0]??null);
+
    if(uploaded.length && createdPostId){
     setNotice('Finishing your post…');
     setPublishNotice('Finishing your post…');
@@ -1863,25 +1851,15 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
    await load();
   }
   catch(e:any){
-   if(!createdPostId){
-    if(uploaded.length){
-     await supabase
-      .storage
-      .from(
-       'community-media'
-      )
-      .remove(
-       uploaded.map(
-        x=>x.media_path
-       )
-      );
-    }
+   await discardIncompleteCommunityPost({
+    postId:createdPostId,
+    mediaPaths:uploaded.map(x=>x.media_path),
+   });
 
-    setBody(snapshot.body);
-    setPhotos(snapshot.photos);
-    setWallVideo186O(snapshot.wallVideo);
-    setMentions(snapshot.mentions);
-   }
+   setBody(snapshot.body);
+   setPhotos(snapshot.photos);
+   setWallVideo186O(snapshot.wallVideo);
+   setMentions(snapshot.mentions);
 
    Alert.alert(
     'Could Not Post',
@@ -2654,8 +2632,7 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
     const permission=
      await ML
       .requestPermissionsAsync(
-       true,
-       ['photo']
+       true
       );
 
 
@@ -2903,252 +2880,36 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
      );
     }
 
-   const mediaItems186M=
-    Array.isArray(
-      item?.media_items
-    )
-      ? item.media_items
-      : [];
-
-   /*
-    * Legacy first-photo fallback:
-    * community_posts.media_path remains the canonical first photo.
-    * This keeps old posts visible even if multi-photo hydration
-    * is late or temporarily unavailable.
-    */
-   const legacyMedia186M=
-    (
-      item?.media_path ||
-      item?.media_url
-    )
-      ? [
-          {
-            post_id:
-              item?.id,
-            media_position:
-              0,
-            media_path:
-              item?.media_path ??
-              null,
-            media_mime_type:
-              item?.media_mime_type ??
-              'image/jpeg',
-            media_size_bytes:
-              item?.media_size_bytes ??
-              null,
-            media_url:
-              item?.media_url ??
-              null,
-          },
-        ]
-      : [];
-
-   const rawMedia=
-    (
-      mediaItems186M.length
-        ? mediaItems186M
-        : legacyMedia186M
-    )
-      .filter(
-        (x:any)=>
-          (
-            !!x?.media_url ||
-            !!x?.media_path
-          ) &&
-          !String(
-            x?.media_mime_type ??
-            ''
-          )
-            .toLowerCase()
-            .startsWith(
-              'video/'
-            )
-      );
-
-
-   const seenMedia=
-    new Set<string>();
-
-
    const media=
-    rawMedia
-     .filter(
-      (x:any)=>{
+    communityPhotoCollageItems(
+     item?.media_items,
+     {
+      media_path:
+       item?.media_path ??
+       null,
+      media_url:
+       item?.media_url ??
+       null,
+      media_mime_type:
+       item?.media_mime_type ??
+       'image/jpeg',
+     }
+    );
 
-       /*
-        * Prefer storage path because signed URLs
-        * may differ even for the same file.
-        */
-       const key=
-        String(
-         x?.media_path||
-         x?.media_url||
-         ''
-        )
-         .trim();
-
-
-       if(!key){
-        return false;
-       }
-
-
-       if(
-        seenMedia.has(
-         key
-        )
-       ){
-        return false;
-       }
-
-
-       seenMedia.add(
-        key
-       );
-
-       return true;
-      }
-     )
-     .slice(
-      0,
-      COMMUNITY_MAX_PHOTOS
-     );
-
-   const count=
-    media.length;
-
-   if(!count){
+   if(!media.length){
     return null;
    }
 
-   /* PATCH_COMMUNITY_TRUE_EDGE_R5 */
-   const collageWidth=
-    Dimensions.get('window').width;
-   const collageHeight=
-    count===1?310:280;
-
-   if(count===1){
-    return (
-     <Pressable
-      onPress={()=>
-       openPhotoViewer(
-        media,
-        0
-       )
-      }
-      style={[
-        s.communityMediaTile,
-        s.communityMediaOne,
-        {
-         width:
-          Dimensions
-           .get('window')
-           .width,
-         alignSelf:'center',
-         borderRadius:0,
-         overflow:'hidden'
-        }
-       ]}
-     >
-      <BuklodCommunityMediaImage186M
-       photo={media[0]}
-       style={
-        s.communityMediaImage
-       }
-      />
-     </Pressable>
-    );
-   }
-
-   const visible=
-    media.slice(0,4);
-   const extraCount=
-    count-4;
-
    return (
-    <View
-     style={[
-      s.communityMediaGrid,
-       {
-        width:collageWidth,
-        alignSelf:'center',
-        marginHorizontal:0,
-        borderRadius:0,
-        overflow:'hidden'
-       },
-      {
-       height:collageHeight
-      }
-     ]}
-    >
-     {visible.map(
-      (
-       photo:any,
-       index:number
-      )=>{
-       const tileStyle=
-        maritesCollageTileLayout(
-         visible.length,
-         index,
-         collageWidth,
-         collageHeight,
-         2
-        );
-       const showMore=
-        extraCount>0&&
-        index===
-         visible.length-1;
-
-       return (
-        <Pressable
-         key={
-          photo.media_path||
-          String(index)
-         }
-         onPress={()=>
-          openPhotoViewer(
-           media,
-           index
-          )
-         }
-         style={[
-          s.communityMediaTile,
-          tileStyle
-         ]}
-        >
-         <BuklodCommunityMediaImage186M
-          photo={photo}
-          style={
-           s.communityMediaImage
-          }
-         />
-         {showMore?(
-          <View
-           style={{
-            ...StyleSheet.absoluteFill,
-            alignItems:'center',
-            justifyContent:'center',
-            backgroundColor:
-             'rgba(0,0,0,0.48)'
-           }}
-           pointerEvents="none"
-          >
-           <Text
-            style={{
-             color:'#FFFFFF',
-             fontSize:18,
-             fontWeight:'900'
-            }}
-           >
-            +{extraCount}
-           </Text>
-          </View>
-         ):null}
-        </Pressable>
-       );
-      }
-     )}
-    </View>
+    <BuklodCommunityPhotoCollage
+     items={media}
+     onPressPhoto={(index, photos)=>
+      openPhotoViewer(
+       photos,
+       index
+      )
+     }
+    />
    );
   };
 
@@ -3805,17 +3566,15 @@ String(repairMojibakeText(item.body) ?? '').replace(
      onOpenComments={() =>
       openComments(item)
      }
-     onReport={
-      user?.id && item.user_id !== user.id
-       ? () => openReport('post', item.id)
-       : undefined
+     showCommentAction
+     rightAction={
+      <BuklodPostInternalShare
+       postId={item.id}
+       compact
+       iconOnly
+      />
      }
     />
-   <View style={s.footer}><ConnectPressable nested instant={false} onPress={e=>{e.stopPropagation();openComments(item)}} style={s.footBtn}><MaterialCommunityIcons name="comment-outline" size={19} color={colors.greenDark}/><Text style={s.footText}>Comments {Number(item.comment_count??0)}</Text></ConnectPressable>
-   <BuklodPostInternalShare
-          postId={item.id}
-          compact
-        /></View>
   </Card>
       </BuklodFocusVisibleRow>
     );}}/>

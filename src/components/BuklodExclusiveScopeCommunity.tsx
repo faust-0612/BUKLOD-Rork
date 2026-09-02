@@ -68,7 +68,11 @@ import {
 import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
 import { keepStableCommunityMedia } from '@/lib/buklodOfflineSync';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
-import { BuklodCachedMediaImage } from '@/components/BuklodCachedMediaImage';
+import {
+  BuklodCommunityPhotoCollage,
+  communityPhotoCollageItems,
+} from '@/components/BuklodCommunityPhotoCollage';
+import { peekCommunityMediaUrl } from '@/lib/buklodMediaUrl';
 import { useNetwork } from '@/providers/NetworkProvider';
 
 import {
@@ -98,6 +102,7 @@ import {
 import {
   BuklodCommunityReactionDetailsSheet,
 } from '@/components/BuklodCommunityReactionDetailsSheet';
+import { ensureImagePickerLibraryAccess } from '@/lib/buklodImagePickerAccess';
 import {
   fetchBuklodPostCommentPreviews,
   type BuklodPostCommentPreview,
@@ -146,7 +151,9 @@ import { COMMUNITY_MAX_PHOTOS } from '@/lib/buklodCommunityMediaLimits';
 import { pickCommunityPhotos } from '@/lib/buklodPickCommunityPhotos';
 import {
   attachCommunityPostMedia,
+  discardIncompleteCommunityPost,
   extractCreatedRecordId,
+  loadCommunityPostMediaByPostIds,
 } from '@/lib/buklodCommunityPostMedia';
 import { enqueueCommunityPublish } from '@/lib/buklodCommunityPublishQueue';
 import { BuklodPhotoEditor } from '@/components/BuklodPhotoEditor';
@@ -195,6 +202,14 @@ type SocialPost = {
   can_manage: boolean;
   author_only?: boolean;
   media_url?: string | null;
+  media_items?: Array<{
+    post_id?: string;
+    media_position?: number;
+    media_path?: string | null;
+    media_mime_type?: string | null;
+    media_size_bytes?: number | null;
+    media_url?: string | null;
+  }>;
   comment_preview?: BuklodPostCommentPreview | null;
 };
 
@@ -760,6 +775,52 @@ export default function BuklodExclusiveScopeCommunity({
               'Scoped names'
             ).catch(() => rows);
 
+          const mediaMap =
+            await withBuklodTimeout(
+              loadCommunityPostMediaByPostIds(
+                rows.map(row => row.id)
+              ),
+              5000,
+              'Scoped photos'
+            ).catch(() => ({} as Record<string, any[]>));
+
+          rows = rows.map(row => {
+            const loaded = mediaMap[row.id] ?? [];
+            const mediaItems = loaded.length
+              ? loaded
+                  .slice()
+                  .sort(
+                    (a: any, b: any) =>
+                      Number(a.media_position ?? 0) -
+                      Number(b.media_position ?? 0)
+                  )
+                  .map((item: any) => ({
+                    ...item,
+                    media_url:
+                      peekCommunityMediaUrl(
+                        item.media_path,
+                        item.media_url
+                      ) ?? item.media_url,
+                  }))
+              : row.media_path || row.media_url
+                ? [
+                    {
+                      post_id: row.id,
+                      media_position: 0,
+                      media_path: row.media_path,
+                      media_mime_type: row.media_mime_type,
+                      media_size_bytes: row.media_size_bytes,
+                      media_url: row.media_url,
+                    },
+                  ]
+                : [];
+
+            return {
+              ...row,
+              media_items: mediaItems,
+            };
+          });
+
           const previewMap =
             await withBuklodTimeout(
               fetchBuklodPostCommentPreviews(
@@ -1025,6 +1086,21 @@ export default function BuklodExclusiveScopeCommunity({
             )
         );
 
+      const validationError =
+        validateCommunityVideoUpload({
+          durationSeconds,
+          sizeBytes,
+          isReel: true,
+        });
+
+      if (validationError) {
+        Alert.alert(
+          'Reel',
+          validationError
+        );
+        return;
+      }
+
       setReel(
         {
           uri:
@@ -1130,12 +1206,13 @@ export default function BuklodExclusiveScopeCommunity({
           true
         );
 
-        const permission =
-          await ImagePicker
-            .requestMediaLibraryPermissionsAsync();
+        const permissionGranted =
+          await ensureImagePickerLibraryAccess(
+            ImagePicker.requestMediaLibraryPermissionsAsync
+          );
 
         if (
-          !permission.granted
+          !permissionGranted
         ) {
           Alert.alert(
             'Video Permission',
@@ -1190,12 +1267,13 @@ export default function BuklodExclusiveScopeCommunity({
         return;
       }
 
-      const permission =
-        await ImagePicker
-          .requestMediaLibraryPermissionsAsync();
+      const permissionGranted =
+        await ensureImagePickerLibraryAccess(
+          ImagePicker.requestMediaLibraryPermissionsAsync
+        );
 
       if (
-        !permission.granted
+        !permissionGranted
       ) {
         Alert.alert(
           'Video Permission',
@@ -1375,6 +1453,10 @@ export default function BuklodExclusiveScopeCommunity({
 
       void (async () => {
       let uploadedPath:
+        string |
+        null =
+          null;
+      let createdPostId:
         string |
         null =
           null;
@@ -1601,6 +1683,8 @@ export default function BuklodExclusiveScopeCommunity({
         const createdId =
           extractCreatedRecordId(created);
 
+        createdPostId = createdId;
+
         if (
           createdId &&
           extraMedia.length
@@ -1618,25 +1702,17 @@ export default function BuklodExclusiveScopeCommunity({
       ) {
         if (
           uploadedPath ||
-          extraMedia.length
+          extraMedia.length ||
+          createdPostId
         ) {
-          await supabase
-            .storage
-            .from(
-              'community-media'
-            )
-            .remove(
-              [
-                ...(
-                  uploadedPath
-                    ? [uploadedPath]
-                    : []
-                ),
-                ...extraMedia.map(
-                  item => item.media_path
-                ),
-              ]
-            );
+          await discardIncompleteCommunityPost({
+            postId: createdPostId,
+            scopeId: snapshot.scopeId,
+            mediaPaths: [
+              ...(uploadedPath ? [uploadedPath] : []),
+              ...extraMedia.map(item => item.media_path),
+            ],
+          });
         }
 
         setBody(snapshot.cleanBody);
@@ -1928,7 +2004,7 @@ export default function BuklodExclusiveScopeCommunity({
       const channel =
         supabase
           .channel(
-            `exclusive-scope-comments:${postId}:${Date.now()}:${Math.random().toString(36).slice(2)}`
+            `exclusive-scope-comments:${postId}:${(0)}:${(0).toString(36).slice(2)}`
           )
           .on(
             'postgres_changes',
@@ -2239,7 +2315,7 @@ export default function BuklodExclusiveScopeCommunity({
           !isScopedReelPost(item) &&
           !communityPostIsVideo(item)
         }
-        maxPhotos={20}
+        maxPhotos={COMMUNITY_MAX_PHOTOS}
         photos={communityPostEditPhotos(item)}
         onEdit={
           item.is_owner
@@ -3051,30 +3127,40 @@ return (
             </Text>
           )}
 
-          {!!item.media_path &&
-            !isVideo && (
-              <Pressable
-                onPress={() =>
+          {!isVideo &&
+            communityPhotoCollageItems(
+              item.media_items,
+              {
+                media_path: item.media_path,
+                media_url: item.media_url,
+                media_mime_type: item.media_mime_type,
+              }
+            ).length > 0 && (
+              <BuklodCommunityPhotoCollage
+                items={communityPhotoCollageItems(
+                  item.media_items,
+                  {
+                    media_path: item.media_path,
+                    media_url: item.media_url,
+                    media_mime_type: item.media_mime_type,
+                  }
+                )}
+                width={
+                  CommunityEdgeDimensionsR5.get('window').width
+                }
+                height={330}
+                onPressPhoto={(index, photos) =>
                   setPhotoViewer({
-                    uris: [
-                      String(item.media_url ?? ''),
-                    ],
-                    paths: [
-                      String(item.media_path ?? ''),
-                    ],
-                    index: 0,
+                    uris: photos.map(photo =>
+                      String(photo.media_url ?? '')
+                    ),
+                    paths: photos.map(photo =>
+                      String(photo.media_path ?? '')
+                    ),
+                    index,
                   })
                 }
-              >
-                <BuklodCachedMediaImage
-                  uri={item.media_url}
-                  mediaPath={item.media_path}
-                  style={
-                    styles.photo
-                  }
-                  contentFit="cover"
-                />
-              </Pressable>
+              />
             )}
 
           {!!item.media_url &&

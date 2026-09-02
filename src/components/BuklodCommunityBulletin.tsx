@@ -1,3 +1,4 @@
+/* BUKLOD_ROOT_PERFORMANCE_R3_BULLETIN_REALTIME: stable topic; existing cleanup preserved */
 import React, {
   useCallback,
   useEffect,
@@ -393,9 +394,7 @@ export default function BuklodCommunityBulletin() {
       const channel =
         supabase
           .channel(
-            `community-bulletin:${Date.now()}:${Math.random()
-              .toString(36)
-              .slice(2, 8)}`,
+            `community-bulletin`,
           )
           .on(
             'postgres_changes',

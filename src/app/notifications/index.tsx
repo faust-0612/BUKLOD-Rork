@@ -26,7 +26,7 @@ export default function NotificationCenter(){
  const [items,setItems]=useState<any[]>([]),[loading,setLoading]=useState(false);
  const load=useCallback(async()=>{if(!user?.id)return;setLoading(true);const {data,error}=await supabase.from('notifications').select('id,title,body,kind,data,read_at,created_at').eq('user_id',user.id).order('created_at',{ascending:false}).limit(150);setLoading(false);if(error)return Alert.alert('Notifications',error.message);setItems(data??[]);await refreshUnread()},[user?.id,refreshUnread]);
  useEffect(()=>{void load()},[load]);
- useEffect(()=>{if(!user?.id)return;const c=supabase.channel(`notif-center-screen:${user.id}:${Date.now()}:${Math.random().toString(36).slice(2)}`).on('postgres_changes',{event:'*',schema:'public',table:'notifications',filter:`user_id=eq.${user.id}`},()=>load()).subscribe();return()=>{supabase.removeChannel(c)}},[user?.id,load]);
+ useEffect(()=>{if(!user?.id)return;const c=supabase.channel(`notif-center-screen:${user.id}:${(0)}:${(0).toString(36).slice(2)}`).on('postgres_changes',{event:'*',schema:'public',table:'notifications',filter:`user_id=eq.${user.id}`},()=>load()).subscribe();return()=>{supabase.removeChannel(c)}},[user?.id,load]);
  const open=async(x:any)=>{
   const kind=String(x?.kind??'');
   const data=x?.data??null;

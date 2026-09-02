@@ -579,7 +579,7 @@ export default function BuklodHomeScopeBulletins() {
     const channel =
       supabase
         .channel(
-          `scope-bulletin-home:${active.scope_id}:${Date.now()}:${Math.random().toString(36).slice(2)}`
+          `scope-bulletin-home:${active.scope_id}:${(0)}:${(0).toString(36).slice(2)}`
         )
         .on(
           'postgres_changes',
