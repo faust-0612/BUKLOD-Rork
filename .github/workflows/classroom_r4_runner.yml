@@ -45,7 +45,10 @@ jobs:
           grep -F 'TERM BREAKDOWN R4' 'apps/buklod-classroom/app/class/[id]/[section].tsx'
           grep -F 'buklod_classroom_faculty_apply_academic_setup_v1' 'src/app/profile/buklod-faculty-academic-control.tsx'
           grep -F '/profile/buklod-faculty-syllabus' 'src/app/profile/buklod-faculty-academic-control.tsx'
+          grep -F '/profile/buklod-faculty-rle' 'src/app/profile/buklod-faculty-academic-control.tsx'
           grep -F 'buklod-classroom-syllabus-plan' 'src/app/profile/buklod-faculty-syllabus.tsx'
+          grep -F 'buklod_classroom_faculty_review_journal_v1' 'src/app/profile/buklod-faculty-rle.tsx'
+          grep -F 'buklod-classroom-journal-auto-grade' 'apps/buklod-classroom/app/class/[id]/journal.tsx'
           grep -F 'buklod_classroom_student_released_grade_items_v2' 'apps/buklod-classroom/src/core.ts'
           grep -F 'exam_ids: examIds' 'apps/buklod-classroom/src/core.ts'
           grep -F 'BUKLOD_QUIZ_DEDICATED' 'apps/buklod-classroom/app/class/[id]/[section].tsx'
@@ -59,6 +62,6 @@ jobs:
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add 'src/app/(tabs)/me.tsx' 'src/app/profile/buklod-faculty-class.tsx' 'src/app/profile/buklod-faculty-academic-control.tsx' 'apps/buklod-classroom/src/core.ts' 'apps/buklod-classroom/app/class/[id]/[section].tsx'
+          git add 'src/app/(tabs)/me.tsx' 'src/app/profile/buklod-faculty-class.tsx' 'src/app/profile/buklod-faculty-academic-control.tsx' 'apps/buklod-classroom/src/core.ts' 'apps/buklod-classroom/app/class/[id]/[section].tsx' 'apps/buklod-classroom/app/class/[id]/journal.tsx'
           git commit -m 'feat(classroom): separate student app and wire faculty control'
           git push
