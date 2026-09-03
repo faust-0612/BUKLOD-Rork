@@ -65,6 +65,16 @@ function createStyles(theme: ConnectThemeRoles) {
       justifyContent: 'center',
       backgroundColor: theme.accentMuted,
     },
+    callButton: {
+      width: 44,
+      height: 44,
+      borderRadius: connectRadii.headerButton,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.accentMuted,
+      zIndex: 20,
+      elevation: 20,
+    },
     copy: {
       flex: 1,
       minWidth: 0,
@@ -84,6 +94,8 @@ function createStyles(theme: ConnectThemeRoles) {
       gap: 3,
       flexShrink: 0,
       marginLeft: 'auto',
+      zIndex: 30,
+      elevation: 30,
     },
     disabled: {
       opacity: 0.45,
@@ -104,7 +116,7 @@ export function ConnectThreadHeader({
   paddingTop,
   otherUserId,
   showDirectCalls = false,
-  callStarting,
+  callStarting = null,
   onBack,
   onAudioCall,
   onVideoCall,
@@ -116,6 +128,8 @@ export function ConnectThreadHeader({
     () => createStyles(theme),
     [theme]
   );
+
+  const callBusy = callStarting !== null;
 
   if (compactEmbedded) {
     return (
@@ -181,14 +195,19 @@ export function ConnectThreadHeader({
       {showDirectCalls ? (
         <View style={styles.actions}>
           {appearanceSlot}
+
           <ConnectPressable
             accessibilityRole="button"
             accessibilityLabel="Start voice call"
-            disabled={callStarting !== null}
+            testID="buklod-direct-audio-call"
+            instant
+            nested={false}
+            compact
+            disabled={callBusy || !onAudioCall}
             onPress={onAudioCall}
             style={[
-              styles.headerButton,
-              callStarting !== null && styles.disabled,
+              styles.callButton,
+              (callBusy || !onAudioCall) && styles.disabled,
             ]}
           >
             {callStarting === 'audio' ? (
@@ -205,7 +224,33 @@ export function ConnectThreadHeader({
             )}
           </ConnectPressable>
 
-
+          <ConnectPressable
+            accessibilityRole="button"
+            accessibilityLabel="Start video call"
+            testID="buklod-direct-video-call"
+            instant
+            nested={false}
+            compact
+            disabled={callBusy || !onVideoCall}
+            onPress={onVideoCall}
+            style={[
+              styles.callButton,
+              (callBusy || !onVideoCall) && styles.disabled,
+            ]}
+          >
+            {callStarting === 'video' ? (
+              <ActivityIndicator
+                size="small"
+                color={theme.accent}
+              />
+            ) : (
+              <MaterialCommunityIcons
+                name="video"
+                size={22}
+                color={theme.accent}
+              />
+            )}
+          </ConnectPressable>
         </View>
       ) : rightSlot ? (
         <View style={styles.actions}>
