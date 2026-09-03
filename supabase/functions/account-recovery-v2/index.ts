@@ -2,7 +2,9 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-buklod-client, x-retry-count, traceparent, tracestate, baggage',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Max-Age': '3600',
 };
 
 function response(body: unknown, status = 200) {
@@ -155,6 +157,10 @@ Deno.serve(async (request) => {
     return await sha256(`buklod-admin-code-v1:${userId}:${code.toUpperCase()}:${serviceRoleKey}`);
   }
 
+  async function codeLookupHash(code: string) {
+    return await sha256(`buklod-admin-code-lookup-v2:${code.toUpperCase()}:${serviceRoleKey}`);
+  }
+
   if (action === 'set_pin') {
     const user = await getUserFromAuthorization();
 
@@ -258,8 +264,6 @@ Deno.serve(async (request) => {
 
         writeError = error;
 
-        // Two near-simultaneous taps can race on the pending-only unique index.
-        // Treat that as an existing request instead of showing a false failure.
         if (writeError?.code === '23505') {
           const { error: retryError } = await admin
             .from('buklod_account_recovery_requests')
@@ -441,6 +445,7 @@ Deno.serve(async (request) => {
 
     const code = randomCode();
     const hash = await codeHash(recoveryRequest.user_id, code);
+    const lookupHash = await codeLookupHash(code);
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
 
     await admin
@@ -455,6 +460,7 @@ Deno.serve(async (request) => {
         request_id: recoveryRequest.id,
         user_id: recoveryRequest.user_id,
         code_hash: hash,
+        code_lookup_hash: lookupHash,
         expires_at: expiresAt,
         created_by: user.id,
       });
