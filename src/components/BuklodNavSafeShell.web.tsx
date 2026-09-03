@@ -1,6 +1,4 @@
-import React, {
-  useMemo,
-} from 'react';
+import React, { useMemo } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -8,46 +6,24 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import {
-  MaterialCommunityIcons,
-} from '@expo/vector-icons';
-import {
-  usePathname,
-} from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { usePathname } from 'expo-router';
 
-import BuklodSponsorSlot
-  from '@/components/BuklodSponsorSlot';
-import {
-  buklodInstantReplace,
-} from '@/lib/buklodInstantNavigation';
+import BuklodSponsorSlot from '@/components/BuklodSponsorSlot';
+import { buklodInstantReplace } from '@/lib/buklodInstantNavigation';
 import {
   normalizeBuklodPathname,
   shouldShowBuklodPublicBottomNav,
 } from '@/lib/buklodSafeArea';
-import {
-  useAuth,
-} from '@/providers/AuthProvider';
-import {
-  useBuklodScope,
-} from '@/providers/BuklodScopeProvider';
-import {
-  useNotifications,
-} from '@/providers/NotificationProvider';
-import {
-  useBuklodTheme,
-} from '@/providers/BuklodThemeProvider';
+import { useAuth } from '@/providers/AuthProvider';
+import { useBuklodScope } from '@/providers/BuklodScopeProvider';
+import { useNotifications } from '@/providers/NotificationProvider';
+import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 
 /*
  * BUKLOD_WEB_DESKTOP_SHELL_R2
- *
- * Web-only desktop social shell:
- * - persistent top bar
- * - Facebook-style left navigation column
- * - centered content/feed lane
- * - sponsored right rail on wide screens
- *
- * Native Android/iOS still resolve BuklodNavSafeShell.tsx, so APK navigation,
- * spacing, bottom tabs, and touch behavior are not changed by this file.
+ * Web-only social desktop shell. Android/iOS continue resolving the native
+ * BuklodNavSafeShell.tsx, so APK bottom navigation and spacing stay unchanged.
  */
 
 type Route =
@@ -59,72 +35,28 @@ type Route =
   | '/me';
 
 type NavItem = {
-  key:
-    | 'home'
-    | 'connect'
-    | 'community'
-    | 'prayer'
-    | 'notifications'
-    | 'me';
+  key: 'home' | 'connect' | 'community' | 'prayer' | 'notifications';
   route: Route;
   label: string;
   icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 };
 
-type SponsorPlacement =
-  | 'home'
-  | 'messages'
-  | 'community'
-  | 'prayer';
+type SponsorPlacement = 'home' | 'messages' | 'community' | 'prayer';
 
-const BASE_ITEMS: NavItem[] = [
-  {
-    key: 'home',
-    route: '/home',
-    label: 'Home',
-    icon: 'home-variant-outline',
-  },
-  {
-    key: 'connect',
-    route: '/messages',
-    label: 'Connect',
-    icon: 'message-processing-outline',
-  },
-  {
-    key: 'community',
-    route: '/buklod',
-    label: 'Community',
-    icon: 'account-group-outline',
-  },
-  {
-    key: 'prayer',
-    route: '/prayer',
-    label: 'Prayer',
-    icon: 'hands-pray',
-  },
-  {
-    key: 'notifications',
-    route: '/notifications',
-    label: 'Notifications',
-    icon: 'bell-outline',
-  },
+const NAV_ITEMS: NavItem[] = [
+  { key: 'home', route: '/home', label: 'Home', icon: 'home-variant-outline' },
+  { key: 'connect', route: '/messages', label: 'Connect', icon: 'message-processing-outline' },
+  { key: 'community', route: '/buklod', label: 'Community', icon: 'account-group-outline' },
+  { key: 'prayer', route: '/prayer', label: 'Prayer', icon: 'hands-pray' },
+  { key: 'notifications', route: '/notifications', label: 'Notifications', icon: 'bell-outline' },
 ];
 
-const TOP_ITEMS = BASE_ITEMS.filter(
-  item =>
-    item.key === 'home' ||
-    item.key === 'connect' ||
-    item.key === 'community'
-);
+const TOP_KEYS = new Set(['home', 'connect', 'community']);
 
-function isActiveRoute(
-  pathname: string,
-  route: Route,
-) {
+function isActiveRoute(pathname: string, route: Route) {
   if (route === '/home') {
     return pathname === '/home' || pathname.startsWith('/home/');
   }
-
   if (route === '/messages') {
     return (
       pathname === '/messages' ||
@@ -133,7 +65,6 @@ function isActiveRoute(
       pathname.startsWith('/connect/')
     );
   }
-
   if (route === '/buklod') {
     return (
       pathname === '/buklod' ||
@@ -142,21 +73,16 @@ function isActiveRoute(
       pathname.startsWith('/reels')
     );
   }
-
   if (route === '/prayer') {
     return pathname === '/prayer' || pathname.startsWith('/prayer/');
   }
-
   if (route === '/notifications') {
     return pathname === '/notifications' || pathname.startsWith('/notifications/');
   }
-
   return pathname === '/me' || pathname.startsWith('/me/');
 }
 
-function resolveSponsorPlacement(
-  pathname: string,
-): SponsorPlacement {
+function sponsorPlacement(pathname: string): SponsorPlacement {
   if (
     pathname === '/messages' ||
     pathname.startsWith('/messages/') ||
@@ -165,7 +91,6 @@ function resolveSponsorPlacement(
   ) {
     return 'messages';
   }
-
   if (
     pathname === '/buklod' ||
     pathname.startsWith('/buklod/') ||
@@ -174,18 +99,13 @@ function resolveSponsorPlacement(
   ) {
     return 'community';
   }
-
-  if (
-    pathname === '/prayer' ||
-    pathname.startsWith('/prayer/')
-  ) {
+  if (pathname === '/prayer' || pathname.startsWith('/prayer/')) {
     return 'prayer';
   }
-
   return 'home';
 }
 
-function isFeedLikeRoute(pathname: string) {
+function isFeedRoute(pathname: string) {
   return (
     pathname === '/home' ||
     pathname.startsWith('/home/') ||
@@ -206,32 +126,24 @@ export default function BuklodNavSafeShell({
   const pathname = usePathname();
   const normalizedPath = normalizeBuklodPathname(pathname);
   const { width } = useWindowDimensions();
+  const { session, profile } = useAuth();
+  const { activeScope, scopes, selectScope } = useBuklodScope();
+  const { unreadCount } = useNotifications();
+  const { theme } = useBuklodTheme();
 
   const compactLeft = width < 1120;
   const showRightRail = width >= 1280;
-  const feedLikeRoute = isFeedLikeRoute(normalizedPath);
+  const feedRoute = isFeedRoute(normalizedPath);
+  const showPrayer = Boolean(activeScope?.show_faith_content);
 
-  const {
-    session,
-    profile,
-  } = useAuth();
+  const items = useMemo(
+    () => NAV_ITEMS.filter(item => item.key !== 'prayer' || showPrayer),
+    [showPrayer]
+  );
 
-  const {
-    activeScope,
-    scopes,
-    selectScope,
-  } = useBuklodScope();
-
-  const {
-    unreadCount,
-  } = useNotifications();
-
-  const {
-    theme,
-  } = useBuklodTheme();
-
-  const showPrayer = Boolean(
-    activeScope?.show_faith_content
+  const topItems = useMemo(
+    () => items.filter(item => TOP_KEYS.has(item.key)),
+    [items]
   );
 
   const showNavigation = Boolean(
@@ -244,51 +156,21 @@ export default function BuklodNavSafeShell({
     !normalizedPath.startsWith('/delete-account/')
   );
 
-  const items = useMemo(
-    () => BASE_ITEMS.filter(
-      item => item.key !== 'prayer' || showPrayer
-    ),
-    [showPrayer]
-  );
-
-  const topItems = useMemo(
-    () => TOP_ITEMS.filter(
-      item => item.key !== 'prayer' || showPrayer
-    ),
-    [showPrayer]
-  );
-
-  const sponsorPlacement =
-    resolveSponsorPlacement(normalizedPath);
-
-  const openGlobalDestination = (
-    route: Route,
-  ) => {
-    if (isActiveRoute(normalizedPath, route)) {
-      return;
-    }
+  const openGlobalDestination = (route: Route) => {
+    if (isActiveRoute(normalizedPath, route)) return;
 
     buklodInstantReplace(route as any);
 
-    if (route === '/me') {
-      return;
-    }
+    if (route === '/me') return;
 
-    const needsScopeReset =
+    const scoped =
       activeScope?.scope_type === 'ORGANIZATION' ||
       activeScope?.scope_type === 'CLUSTER';
 
-    if (!needsScopeReset) {
-      return;
-    }
+    if (!scoped) return;
 
-    const publicScope = scopes.find(
-      scope => scope.scope_type === 'PUBLIC'
-    );
-
-    if (!publicScope) {
-      return;
-    }
+    const publicScope = scopes.find(scope => scope.scope_type === 'PUBLIC');
+    if (!publicScope) return;
 
     queueMicrotask(() => {
       void selectScope(publicScope.scope_id).catch(error => {
@@ -298,22 +180,11 @@ export default function BuklodNavSafeShell({
   };
 
   if (!showNavigation) {
-    return (
-      <View style={styles.fullScreen}>
-        {children}
-      </View>
-    );
+    return <View style={styles.fullScreen}>{children}</View>;
   }
 
   return (
-    <View
-      style={[
-        styles.root,
-        {
-          backgroundColor: theme.canvas,
-        },
-      ]}
-    >
+    <View style={[styles.root, { backgroundColor: theme.canvas }]}>
       <View
         style={[
           styles.topBar,
@@ -328,67 +199,27 @@ export default function BuklodNavSafeShell({
             accessibilityRole="button"
             accessibilityLabel="BUKLOD Home"
             onPress={() => openGlobalDestination('/home')}
-            style={({ pressed }) => [
-              styles.brandButton,
-              pressed && styles.pressed,
-            ]}
+            style={({ pressed }) => [styles.brand, pressed && styles.pressed]}
           >
-            <View
-              style={[
-                styles.brandMark,
-                {
-                  backgroundColor: theme.accent,
-                },
-              ]}
-            >
+            <View style={[styles.brandMark, { backgroundColor: theme.accent }]}>
               <Text style={styles.brandLetter}>B</Text>
             </View>
             {width >= 760 ? (
-              <Text
-                style={[
-                  styles.brandText,
-                  { color: theme.accent },
-                ]}
-              >
-                BUKLOD
-              </Text>
+              <Text style={[styles.brandText, { color: theme.accent }]}>BUKLOD</Text>
             ) : null}
           </Pressable>
 
           {width >= 940 ? (
-            <View
-              style={[
-                styles.searchPill,
-                {
-                  backgroundColor: theme.inputSurface,
-                },
-              ]}
-            >
-              <MaterialCommunityIcons
-                name="magnify"
-                size={20}
-                color={theme.textMuted}
-              />
-              <Text
-                numberOfLines={1}
-                style={[
-                  styles.searchText,
-                  { color: theme.textMuted },
-                ]}
-              >
-                Search BUKLOD
-              </Text>
+            <View style={[styles.searchPill, { backgroundColor: theme.inputSurface }]}>
+              <MaterialCommunityIcons name="magnify" size={20} color={theme.textMuted} />
+              <Text style={[styles.searchText, { color: theme.textMuted }]}>Search BUKLOD</Text>
             </View>
           ) : null}
         </View>
 
         <View style={styles.topCenter}>
           {topItems.map(item => {
-            const active = isActiveRoute(
-              normalizedPath,
-              item.route
-            );
-
+            const active = isActiveRoute(normalizedPath, item.route);
             return (
               <Pressable
                 key={`top-${item.key}`}
@@ -396,10 +227,8 @@ export default function BuklodNavSafeShell({
                 accessibilityLabel={item.label}
                 onPress={() => openGlobalDestination(item.route)}
                 style={({ pressed }) => [
-                  styles.topNavButton,
-                  active && {
-                    borderBottomColor: theme.accent,
-                  },
+                  styles.topNav,
+                  active ? { borderBottomColor: theme.accent } : null,
                   pressed && styles.pressed,
                 ]}
               >
@@ -424,21 +253,10 @@ export default function BuklodNavSafeShell({
               pressed && styles.pressed,
             ]}
           >
-            <MaterialCommunityIcons
-              name="bell-outline"
-              size={23}
-              color={theme.textPrimary}
-            />
+            <MaterialCommunityIcons name="bell-outline" size={23} color={theme.textPrimary} />
             {unreadCount > 0 ? (
-              <View
-                style={[
-                  styles.topBadge,
-                  { backgroundColor: theme.danger },
-                ]}
-              >
-                <Text style={styles.badgeText}>
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </Text>
+              <View style={[styles.topBadge, { backgroundColor: theme.danger }]}>
+                <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
               </View>
             ) : null}
           </Pressable>
@@ -453,26 +271,17 @@ export default function BuklodNavSafeShell({
               pressed && styles.pressed,
             ]}
           >
-            <MaterialCommunityIcons
-              name="account-circle"
-              size={28}
-              color={theme.accent}
-            />
+            <MaterialCommunityIcons name="account-circle" size={28} color={theme.accent} />
           </Pressable>
         </View>
       </View>
 
-      <View style={styles.desktopBody}>
+      <View style={styles.body}>
         <View
           style={[
             styles.leftRail,
-            compactLeft
-              ? styles.leftRailCompact
-              : styles.leftRailWide,
-            {
-              backgroundColor: theme.canvas,
-              borderRightColor: theme.border,
-            },
+            compactLeft ? styles.leftCompact : styles.leftWide,
+            { borderRightColor: theme.border, backgroundColor: theme.canvas },
           ]}
         >
           <Pressable
@@ -481,49 +290,25 @@ export default function BuklodNavSafeShell({
             onPress={() => openGlobalDestination('/me')}
             style={({ pressed }) => [
               styles.profileRow,
-              compactLeft && styles.navButtonCompact,
-              isActiveRoute(normalizedPath, '/me') && {
-                backgroundColor: theme.accentSoft,
-              },
+              compactLeft && styles.compactButton,
+              isActiveRoute(normalizedPath, '/me')
+                ? { backgroundColor: theme.accentSoft }
+                : null,
               pressed && styles.pressed,
             ]}
           >
-            <MaterialCommunityIcons
-              name="account-circle"
-              size={34}
-              color={theme.accent}
-            />
+            <MaterialCommunityIcons name="account-circle" size={34} color={theme.accent} />
             {!compactLeft ? (
               <View style={styles.profileCopy}>
-                <Text
-                  numberOfLines={1}
-                  style={[
-                    styles.profileName,
-                    { color: theme.textPrimary },
-                  ]}
-                >
-                  My BUKLOD
-                </Text>
-                <Text
-                  numberOfLines={1}
-                  style={[
-                    styles.profileSub,
-                    { color: theme.textMuted },
-                  ]}
-                >
-                  Profile & settings
-                </Text>
+                <Text style={[styles.profileName, { color: theme.textPrimary }]}>My BUKLOD</Text>
+                <Text style={[styles.profileSub, { color: theme.textMuted }]}>Profile & settings</Text>
               </View>
             ) : null}
           </Pressable>
 
           <View style={styles.navList}>
             {items.map(item => {
-              const active = isActiveRoute(
-                normalizedPath,
-                item.route
-              );
-
+              const active = isActiveRoute(normalizedPath, item.route);
               return (
                 <Pressable
                   key={item.key}
@@ -532,10 +317,8 @@ export default function BuklodNavSafeShell({
                   onPress={() => openGlobalDestination(item.route)}
                   style={({ pressed }) => [
                     styles.navButton,
-                    compactLeft && styles.navButtonCompact,
-                    active && {
-                      backgroundColor: theme.accentSoft,
-                    },
+                    compactLeft && styles.compactButton,
+                    active ? { backgroundColor: theme.accentSoft } : null,
                     pressed && styles.pressed,
                   ]}
                 >
@@ -546,29 +329,17 @@ export default function BuklodNavSafeShell({
                       color={active ? theme.accent : theme.textSecondary}
                     />
                     {item.key === 'notifications' && unreadCount > 0 ? (
-                      <View
-                        style={[
-                          styles.badge,
-                          { backgroundColor: theme.danger },
-                        ]}
-                      >
-                        <Text style={styles.badgeText}>
-                          {unreadCount > 99 ? '99+' : unreadCount}
-                        </Text>
+                      <View style={[styles.badge, { backgroundColor: theme.danger }]}>
+                        <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
                       </View>
                     ) : null}
                   </View>
-
                   {!compactLeft ? (
                     <Text
                       numberOfLines={1}
                       style={[
                         styles.navLabel,
-                        {
-                          color: active
-                            ? theme.accent
-                            : theme.textPrimary,
-                        },
+                        { color: active ? theme.accent : theme.textPrimary },
                       ]}
                     >
                       {item.label}
@@ -579,100 +350,45 @@ export default function BuklodNavSafeShell({
             })}
           </View>
 
-          {!compactLeft && activeScope?.scope_name ? (
+          {!compactLeft && activeScope?.name ? (
             <View
               style={[
                 styles.scopeCard,
-                {
-                  backgroundColor: theme.surface,
-                  borderColor: theme.border,
-                },
+                { backgroundColor: theme.surface, borderColor: theme.border },
               ]}
             >
-              <Text
-                style={[
-                  styles.scopeEyebrow,
-                  { color: theme.textMuted },
-                ]}
-              >
-                CURRENT SPACE
-              </Text>
-              <Text
-                numberOfLines={2}
-                style={[
-                  styles.scopeName,
-                  { color: theme.textPrimary },
-                ]}
-              >
-                {activeScope.scope_name}
+              <Text style={[styles.scopeEyebrow, { color: theme.textMuted }]}>CURRENT SPACE</Text>
+              <Text numberOfLines={2} style={[styles.scopeName, { color: theme.textPrimary }]}>
+                {activeScope.name}
               </Text>
             </View>
           ) : null}
         </View>
 
         <View style={styles.mainLane}>
-          <View
-            style={[
-              styles.content,
-              feedLikeRoute && styles.feedContent,
-            ]}
-          >
-            {children}
-          </View>
+          <View style={[styles.content, feedRoute && styles.feedContent]}>{children}</View>
         </View>
 
         {showRightRail ? (
           <View
             style={[
               styles.rightRail,
-              {
-                backgroundColor: theme.canvas,
-                borderLeftColor: theme.border,
-              },
+              { backgroundColor: theme.canvas, borderLeftColor: theme.border },
             ]}
           >
-            <Text
-              style={[
-                styles.rightHeading,
-                { color: theme.textSecondary },
-              ]}
-            >
-              Sponsored
-            </Text>
-
-            <BuklodSponsorSlot
-              placement={sponsorPlacement}
-            />
+            <Text style={[styles.rightHeading, { color: theme.textSecondary }]}>Sponsored</Text>
+            <BuklodSponsorSlot placement={sponsorPlacement(normalizedPath)} />
 
             <View
               style={[
-                styles.rightInfoCard,
-                {
-                  backgroundColor: theme.surface,
-                  borderColor: theme.border,
-                },
+                styles.rightCard,
+                { backgroundColor: theme.surface, borderColor: theme.border },
               ]}
             >
-              <MaterialCommunityIcons
-                name="account-group-outline"
-                size={23}
-                color={theme.accent}
-              />
-              <View style={styles.rightInfoCopy}>
-                <Text
-                  style={[
-                    styles.rightInfoTitle,
-                    { color: theme.textPrimary },
-                  ]}
-                >
-                  BUKLOD Community
-                </Text>
-                <Text
-                  style={[
-                    styles.rightInfoText,
-                    { color: theme.textMuted },
-                  ]}
-                >
+              <MaterialCommunityIcons name="account-group-outline" size={23} color={theme.accent} />
+              <View style={styles.rightCardCopy}>
+                <Text style={[styles.rightCardTitle, { color: theme.textPrimary }]}>BUKLOD Community</Text>
+                <Text style={[styles.rightCardText, { color: theme.textMuted }]}>
                   Connect, serve, learn, and grow together.
                 </Text>
               </View>
@@ -685,16 +401,8 @@ export default function BuklodNavSafeShell({
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    minWidth: 0,
-    minHeight: 0,
-  },
-  fullScreen: {
-    flex: 1,
-    minWidth: 0,
-    minHeight: 0,
-  },
+  root: { flex: 1, minWidth: 0, minHeight: 0 },
+  fullScreen: { flex: 1, minWidth: 0, minHeight: 0 },
   topBar: {
     height: 64,
     flexShrink: 0,
@@ -705,17 +413,13 @@ const styles = StyleSheet.create({
     zIndex: 300,
   },
   topLeft: {
-    minWidth: 250,
+    minWidth: 240,
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-  brandButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   brandMark: {
     width: 42,
     height: 42,
@@ -723,16 +427,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  brandLetter: {
-    color: '#FFFFFF',
-    fontWeight: '900',
-    fontSize: 23,
-  },
-  brandText: {
-    fontSize: 20,
-    fontWeight: '900',
-    letterSpacing: 0.2,
-  },
+  brandLetter: { color: '#FFFFFF', fontWeight: '900', fontSize: 23 },
+  brandText: { fontSize: 20, fontWeight: '900', letterSpacing: 0.2 },
   searchPill: {
     height: 42,
     minWidth: 180,
@@ -744,19 +440,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  searchText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  searchText: { fontSize: 14, fontWeight: '600' },
   topCenter: {
     flex: 1.1,
     maxWidth: 520,
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    justifyContent: 'center',
     height: '100%',
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
-  topNavButton: {
+  topNav: {
     width: 104,
     height: '100%',
     alignItems: 'center',
@@ -765,7 +457,7 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   topRight: {
-    minWidth: 250,
+    minWidth: 240,
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
@@ -791,12 +483,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  desktopBody: {
-    flex: 1,
-    minWidth: 0,
-    minHeight: 0,
-    flexDirection: 'row',
-  },
+  body: { flex: 1, minWidth: 0, minHeight: 0, flexDirection: 'row' },
   leftRail: {
     flexShrink: 0,
     borderRightWidth: StyleSheet.hairlineWidth,
@@ -805,12 +492,8 @@ const styles = StyleSheet.create({
     minHeight: '100%',
     zIndex: 90,
   },
-  leftRailWide: {
-    width: 280,
-  },
-  leftRailCompact: {
-    width: 78,
-  },
+  leftWide: { width: 280 },
+  leftCompact: { width: 78 },
   profileRow: {
     minHeight: 58,
     borderRadius: 14,
@@ -820,22 +503,10 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 8,
   },
-  profileCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  profileName: {
-    fontSize: 14,
-    fontWeight: '900',
-  },
-  profileSub: {
-    marginTop: 2,
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  navList: {
-    gap: 4,
-  },
+  profileCopy: { flex: 1, minWidth: 0 },
+  profileName: { fontSize: 14, fontWeight: '900' },
+  profileSub: { marginTop: 2, fontSize: 10, fontWeight: '600' },
+  navList: { gap: 4 },
   navButton: {
     minHeight: 54,
     borderRadius: 14,
@@ -844,18 +515,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  navButtonCompact: {
-    justifyContent: 'center',
-    paddingHorizontal: 0,
-  },
-  iconWrap: {
-    position: 'relative',
-  },
-  navLabel: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '800',
-  },
+  compactButton: { justifyContent: 'center', paddingHorizontal: 0 },
+  iconWrap: { position: 'relative' },
+  navLabel: { flex: 1, fontSize: 14, fontWeight: '800' },
   badge: {
     position: 'absolute',
     right: -12,
@@ -867,45 +529,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badgeText: {
-    color: '#FFFFFF',
-    fontSize: 9,
-    fontWeight: '900',
-  },
+  badgeText: { color: '#FFFFFF', fontSize: 9, fontWeight: '900' },
   scopeCard: {
     marginTop: 18,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 14,
     padding: 12,
   },
-  scopeEyebrow: {
-    fontSize: 9,
-    fontWeight: '900',
-    letterSpacing: 1,
-  },
-  scopeName: {
-    marginTop: 5,
-    fontSize: 13,
-    fontWeight: '900',
-    lineHeight: 18,
-  },
+  scopeEyebrow: { fontSize: 9, fontWeight: '900', letterSpacing: 1 },
+  scopeName: { marginTop: 5, fontSize: 13, fontWeight: '900', lineHeight: 18 },
   mainLane: {
     flex: 1,
     minWidth: 0,
     minHeight: 0,
     alignItems: 'center',
   },
-  content: {
-    flex: 1,
-    width: '100%',
-    minWidth: 0,
-    minHeight: 0,
-  },
-  feedContent: {
-    width: '100%',
-    maxWidth: 940,
-    alignSelf: 'center',
-  },
+  content: { flex: 1, width: '100%', minWidth: 0, minHeight: 0 },
+  feedContent: { width: '100%', maxWidth: 940, alignSelf: 'center' },
   rightRail: {
     width: 330,
     flexShrink: 0,
@@ -914,12 +554,8 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     minHeight: '100%',
   },
-  rightHeading: {
-    fontSize: 16,
-    fontWeight: '900',
-    marginBottom: 7,
-  },
-  rightInfoCard: {
+  rightHeading: { fontSize: 16, fontWeight: '900', marginBottom: 7 },
+  rightCard: {
     marginTop: 20,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 14,
@@ -928,21 +564,8 @@ const styles = StyleSheet.create({
     gap: 10,
     alignItems: 'flex-start',
   },
-  rightInfoCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  rightInfoTitle: {
-    fontSize: 13,
-    fontWeight: '900',
-  },
-  rightInfoText: {
-    marginTop: 4,
-    fontSize: 11,
-    lineHeight: 16,
-    fontWeight: '600',
-  },
-  pressed: {
-    opacity: 0.68,
-  },
+  rightCardCopy: { flex: 1, minWidth: 0 },
+  rightCardTitle: { fontSize: 13, fontWeight: '900' },
+  rightCardText: { marginTop: 4, fontSize: 11, lineHeight: 16, fontWeight: '600' },
+  pressed: { opacity: 0.68 },
 });
