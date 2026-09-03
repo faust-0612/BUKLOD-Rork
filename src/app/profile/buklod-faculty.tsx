@@ -259,6 +259,28 @@ export default function BuklodFacultyScreen() {
           ))
         )}
 
+        {/* BUKLOD_FACULTY_ACADEMIC_FLOW_R2 */}
+        <Text style={styles.sectionTitle}>Academic Control Center</Text>
+        <Pressable
+          style={({ pressed }) => [
+            styles.toolCard,
+            { backgroundColor: '#e8f4ea', borderWidth: 1, borderColor: '#c9e2cf' },
+            pressed && { opacity: 0.88 },
+          ]}
+          onPress={() => router.push('/profile/buklod-faculty-academic-flow' as any)}
+        >
+          <View style={[styles.classIcon, { backgroundColor: '#fff' }]}>
+            <MaterialCommunityIcons name="school-outline" size={25} color="#1f7a3f" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.toolTitle}>Faculty × Quiz × Attendance × Grades</Text>
+            <Text style={styles.toolText}>
+              Start here: roster import, grading weights and rubrics, attendance, BUKLOD Quiz exams, released-score sync, and controlled final-grade release.
+            </Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={22} color="#1f7a3f" />
+        </Pressable>
+
         <Text style={styles.sectionTitle}>Faculty Autopilot</Text>
         <Text style={styles.toolText}>
           {activeClasses.length > 1

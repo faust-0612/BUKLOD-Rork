@@ -144,12 +144,26 @@ export default function FacultyRosterScreen() {
 
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Enrolled students</Text>
-          <Pressable
-            style={({ pressed }) => [styles.smallButton, { backgroundColor: theme.buttonPrimary }, pressed && styles.pressed]}
-            onPress={() => setShowEnroll(true)}
-          >
-            <Text style={styles.smallButtonText}>+ Enroll</Text>
-          </Pressable>
+          {/* BUKLOD_FACULTY_ROSTER_IMPORT_R2 */}
+          <View style={{ flexDirection: 'row', gap: 7 }}>
+            <Pressable
+              style={({ pressed }) => [styles.smallButton, { backgroundColor: theme.accentSoft }, pressed && styles.pressed]}
+              onPress={() =>
+                router.push({
+                  pathname: '/profile/buklod-faculty-import-roster' as any,
+                  params: { id: classroomId, name: classroomName },
+                })
+              }
+            >
+              <Text style={[styles.smallButtonText, { color: theme.accent }]}>Import</Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.smallButton, { backgroundColor: theme.buttonPrimary }, pressed && styles.pressed]}
+              onPress={() => setShowEnroll(true)}
+            >
+              <Text style={styles.smallButtonText}>+ Enroll</Text>
+            </Pressable>
+          </View>
         </View>
 
         <TextInput
