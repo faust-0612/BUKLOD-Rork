@@ -1,0 +1,96 @@
+name: One-time formation submission R2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/one_time_fix_formation_submission_r2.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Fix lesson submit flow
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('src/components/LearningQuestionResponse.tsx')
+          text = path.read_text(encoding='utf-8')
+
+          pattern = re.compile(r"      if \(studyError\) \{\n        throw studyError;\n      \}\n\n      setPreviouslySubmitted\(true\);.*?    \} finally \{\n", re.S)
+
+          replacement = """      if (studyError) {
+        throw studyError;
+      }
+
+      const {
+        error: formationSubmitError,
+      } = await (
+        supabase as any
+      ).rpc(
+        'submit_my_formation_lesson_for_validation_v1',
+        {
+          p_enrollment_id: enrollmentId,
+          p_lesson_id: lesson.id,
+        }
+      );
+
+      if (formationSubmitError) {
+        throw formationSubmitError;
+      }
+
+      setPreviouslySubmitted(true);
+
+      Alert.alert(
+        'Submitted for Validation',
+        'Your study was submitted successfully. Your Cluster Admin will review it for final approval. Once approved, your BUKLOD Points will be posted automatically.'
+      );
+
+      await onSubmitted?.();
+
+    } catch (error: any) {
+      Alert.alert(
+        'Could Not Submit Study',
+        error?.message ??
+          'Please try again.'
+      );
+    } finally {
+"""
+
+          updated, count = pattern.subn(replacement, text, count=1)
+          if count != 1:
+            raise SystemExit(f'Expected exactly one submit block, found {count}')
+
+          if 'ready for Pastor validation' in updated or 'formationSubmitError } = await' in updated:
+            raise SystemExit('Legacy submission flow remains after patch')
+
+          path.write_text(updated, encoding='utf-8')
+          print('Formation submission flow patched')
+          PY
+      - name: Install dependencies
+        run: npm ci
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+      - name: Commit source fix and remove one-time workflow
+        shell: bash
+        run: |
+          git config user.name "BUKLOD Automation"
+          git config user.email "actions@users.noreply.github.com"
+          rm -f .github/workflows/one_time_fix_formation_submission_r2.yml
+          git add src/components/LearningQuestionResponse.tsx .github/workflows/one_time_fix_formation_submission_r2.yml
+          git commit -m "fix(formation): submit directly to Cluster Admin validation"
+          git push origin HEAD:main
