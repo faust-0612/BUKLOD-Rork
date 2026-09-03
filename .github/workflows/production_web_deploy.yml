@@ -22,6 +22,8 @@ on:
       - 'src/app/profile/buklod-faculty-class.tsx'
       - 'src/app/profile/buklod-classroom*.tsx'
       - 'src/components/classroom/**'
+      - 'src/components/BuklodNavSafeShell.web.tsx'
+      - 'src/components/connect/ConnectThreadHeader.tsx'
       - 'src/components/BuklodAcceptedCallContent.web.tsx'
       - 'src/components/BuklodScopeCallLauncher.web.tsx'
       - 'src/components/BuklodConnectThread.tsx'
@@ -88,12 +90,15 @@ jobs:
           grep -F 'buklod_classroom_start_live_v1' 'src/app/profile/buklod-classroom.tsx'
           grep -F 'The full BUKLOD Classroom video room uses the native BUKLOD app' 'src/components/classroom/ClassroomLiveView.web.tsx'
           grep -F 'buklod_classroom_record_performance_v1' 'src/app/profile/buklod-classroom-monitor.tsx'
+          grep -F 'BUKLOD_WEB_DESKTOP_SHELL_R1' 'src/components/BuklodNavSafeShell.web.tsx'
           grep -F 'BUKLOD_WEB_CALLING_R1' 'src/lib/buklodStreamVideoClient.web.ts'
           grep -F "from '@stream-io/video-client'" 'src/lib/buklodStreamVideoClient.web.ts'
           grep -F 'call.bindVideoElement' 'src/components/BuklodAcceptedCallContent.web.tsx'
           grep -F 'await call.join()' 'src/components/RingingCalls.web.tsx'
           grep -F 'buildBuklodScopeCallId' 'src/components/BuklodScopeCallLauncher.web.tsx'
           grep -F 'installBuklodCallLifecycle' 'src/providers/StreamVideoProvider.web.tsx'
+          grep -F 'buklod-direct-audio-call' 'src/components/connect/ConnectThreadHeader.tsx'
+          grep -F 'buklod-direct-video-call' 'src/components/connect/ConnectThreadHeader.tsx'
 
       - name: Expo credential preflight
         id: expo
