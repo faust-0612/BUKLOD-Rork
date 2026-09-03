@@ -1,0 +1,110 @@
+name: BUKLOD Classroom R1 Safe Integration
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/buklod_classroom_r1_integration.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  integrate-and-qa:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fresh integration branch
+        uses: actions/checkout@v4
+        with:
+          ref: integration/buklod-classroom-r1-20260904
+          fetch-depth: 0
+
+      - name: Import QA-tested Classroom-only files
+        shell: bash
+        run: |
+          git fetch origin feature/buklod-classroom-r1
+          git checkout origin/feature/buklod-classroom-r1 -- \
+            'src/app/profile/buklod-classroom-chat.tsx' \
+            'src/app/profile/buklod-classroom-discuss.tsx' \
+            'src/app/profile/buklod-classroom-live.tsx' \
+            'src/app/profile/buklod-classroom-materials.tsx' \
+            'src/app/profile/buklod-classroom-monitor.tsx' \
+            'src/app/profile/buklod-classroom-work.tsx' \
+            'src/app/profile/buklod-classroom.tsx' \
+            'src/app/profile/buklod-classrooms.tsx' \
+            'src/components/classroom/ClassroomLiveView.native.tsx' \
+            'src/components/classroom/ClassroomLiveView.tsx' \
+            'src/components/classroom/ClassroomLiveView.web.tsx'
+
+      - name: Wire Classroom into latest Faculty and My BUKLOD
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          faculty = Path('src/app/profile/buklod-faculty-class.tsx')
+          text = faculty.read_text(encoding='utf-8-sig')
+          if 'BUKLOD_CLASSROOM_R1_FACULTY_ENTRY' not in text:
+              anchor = '''        </View>\n\n        <View style={styles.sectionHeader}>\n          <Text style={styles.sectionTitle}>Roster</Text>\n'''
+              block = '''        </View>\n\n        {/* BUKLOD_CLASSROOM_R1_FACULTY_ENTRY */}\n        <Pressable\n          onPress={() =>\n            router.push({\n              pathname: '/profile/buklod-classroom' as any,\n              params: { id: classroomId, name: classroomName },\n            })\n          }\n          style={({ pressed }) => ({\n            backgroundColor: '#174c2b',\n            borderRadius: 18,\n            padding: 16,\n            marginBottom: 18,\n            flexDirection: 'row',\n            alignItems: 'center',\n            gap: 12,\n            opacity: pressed ? 0.84 : 1,\n          })}\n        >\n          <View style={{ width: 48, height: 48, borderRadius: 15, backgroundColor: '#e7f4e9', alignItems: 'center', justifyContent: 'center' }}>\n            <MaterialCommunityIcons name=\"google-classroom\" size={27} color=\"#1f7a3f\" />\n          </View>\n          <View style={{ flex: 1 }}>\n            <Text style={{ color: '#fff', fontWeight: '900', fontSize: 17 }}>Open BUKLOD Classroom</Text>\n            <Text style={{ color: '#d4e5d8', lineHeight: 17, fontSize: 11, marginTop: 3 }}>Live class, discussions, messages, activities, submissions, materials and asynchronous monitoring.</Text>\n          </View>\n          <MaterialCommunityIcons name=\"chevron-right\" size={23} color=\"#fff\" />\n        </Pressable>\n\n        <View style={styles.sectionHeader}>\n          <Text style={styles.sectionTitle}>Roster</Text>\n'''
+              if anchor not in text:
+                  raise SystemExit('STOP: latest Faculty roster anchor moved; no write performed.')
+              faculty.write_text(text.replace(anchor, block, 1), encoding='utf-8')
+
+          me = Path('src/app/(tabs)/me.tsx')
+          text = me.read_text(encoding='utf-8-sig')
+          if "key: 'classrooms'" not in text:
+              anchor = '''      {\n        key: 'attendance-qr',\n        icon: 'qrcode',\n        label: 'Attendance QR',\n        onPress: () => router.push('/profile/attendance-qr' as any),\n      },\n'''
+              block = anchor + '''      {\n        key: 'classrooms',\n        icon: 'google-classroom',\n        label: 'My Classrooms',\n        onPress: () => router.push('/profile/buklod-classrooms' as any),\n      },\n'''
+              if anchor not in text:
+                  raise SystemExit('STOP: latest My BUKLOD quick-action anchor moved; no write performed.')
+              me.write_text(text.replace(anchor, block, 1), encoding='utf-8')
+          PY
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Verify Classroom R1 anchors
+        shell: bash
+        run: |
+          grep -F 'BUKLOD_CLASSROOM_R1_FACULTY_ENTRY' 'src/app/profile/buklod-faculty-class.tsx'
+          grep -F "key: 'classrooms'" 'src/app/(tabs)/me.tsx'
+          grep -F 'BUKLOD_CLASSROOM_AUTO_GRADE_R1' 'src/app/profile/buklod-classroom-work.tsx'
+          grep -F 'buklod_classroom_start_live_v1' 'src/app/profile/buklod-classroom.tsx'
+          grep -F 'StreamVideoClient.getOrCreateInstance' 'src/components/classroom/ClassroomLiveView.native.tsx'
+          grep -F "entity_type: 'SUBMISSION'" 'src/app/profile/buklod-classroom-work.tsx'
+          grep -F 'buklod_classroom_record_performance_v1' 'src/app/profile/buklod-classroom-monitor.tsx'
+
+      - name: Commit safe integration branch
+        shell: bash
+        run: |
+          git config user.name 'BUKLOD Production Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add \
+            'src/app/(tabs)/me.tsx' \
+            'src/app/profile/buklod-faculty-class.tsx' \
+            'src/app/profile/buklod-classroom-chat.tsx' \
+            'src/app/profile/buklod-classroom-discuss.tsx' \
+            'src/app/profile/buklod-classroom-live.tsx' \
+            'src/app/profile/buklod-classroom-materials.tsx' \
+            'src/app/profile/buklod-classroom-monitor.tsx' \
+            'src/app/profile/buklod-classroom-work.tsx' \
+            'src/app/profile/buklod-classroom.tsx' \
+            'src/app/profile/buklod-classrooms.tsx' \
+            'src/components/classroom/ClassroomLiveView.native.tsx' \
+            'src/components/classroom/ClassroomLiveView.tsx' \
+            'src/components/classroom/ClassroomLiveView.web.tsx'
+          git diff --cached --check
+          git commit -m 'feat(classroom): integrate Classroom R1 on latest production main'
+          git push origin HEAD:integration/buklod-classroom-r1-20260904
