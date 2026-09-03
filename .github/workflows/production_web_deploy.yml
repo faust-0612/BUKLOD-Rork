@@ -1,0 +1,102 @@
+name: BUKLOD Production Web Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/production_web_deploy.yml'
+      - 'src/app/(auth)/forgot-password.tsx'
+      - 'src/app/account/recovery-pin.tsx'
+      - 'src/app/account/security.tsx'
+      - 'src/app/admin/account-recovery.tsx'
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+jobs:
+  qa-export-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout production source
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Verify Account Recovery R2 anchors
+        shell: bash
+        run: |
+          grep -F "account-recovery-v3" 'src/app/(auth)/forgot-password.tsx'
+          grep -F "resetPasswordForEmail" 'src/app/(auth)/forgot-password.tsx'
+          grep -F "I forgot my login too" 'src/app/(auth)/forgot-password.tsx'
+          grep -F "recover_with_admin_code" 'src/app/(auth)/forgot-password.tsx'
+          grep -F "recovery_status" 'src/app/account/recovery-pin.tsx'
+          grep -F "admin_reject_request" 'src/app/admin/account-recovery.tsx'
+
+      - name: Expo credential preflight
+        id: expo
+        shell: bash
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "Production web not deployed: repository secret EXPO_TOKEN is not configured."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          npx eas-cli@latest whoami --non-interactive
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
+      - name: Export production web
+        if: steps.expo.outputs.ready == 'true'
+        shell: bash
+        run: |
+          npx eas-cli@latest env:exec production "npx expo export --platform web" --non-interactive
+          test -f dist/index.html
+
+      - name: Deploy production web
+        if: steps.expo.outputs.ready == 'true'
+        shell: bash
+        run: |
+          npx eas-cli@latest deploy \
+            --prod \
+            --non-interactive \
+            --environment production \
+            --export-dir=dist \
+            --json | tee eas-deploy.json
+
+      - name: Preserve deploy result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-production-web-deploy-result
+          path: |
+            eas-deploy.json
+            dist/metadata.json
+          if-no-files-found: ignore
+          retention-days: 3
+
+      - name: Deployment status
+        shell: bash
+        env:
+          EXPO_READY: ${{ steps.expo.outputs.ready }}
+        run: |
+          if [ "$EXPO_READY" = "true" ]; then
+            echo "BUKLOD production web deployment completed."
+          else
+            echo "BUKLOD web QA passed; production deploy skipped because EXPO_TOKEN is unavailable."
+          fi
