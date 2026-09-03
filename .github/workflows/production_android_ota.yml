@@ -22,6 +22,9 @@ on:
       - 'src/app/profile/buklod-classroom*.tsx'
       - 'src/components/classroom/**'
       - 'src/components/BuklodScopeCallLauncher.tsx'
+      - 'src/components/BuklodConnectThread.tsx'
+      - 'src/components/connect/ConnectComposerPicker.tsx'
+      - 'src/lib/buklodConnectGifCatalog.ts'
       - 'src/lib/buklodStreamCall.ts'
       - 'src/lib/buklodCallLifecycle.ts'
       - 'src/providers/StreamVideoProvider.tsx'
@@ -82,6 +85,9 @@ jobs:
           grep -F 'installBuklodCallLifecycle' 'src/providers/StreamVideoProvider.tsx'
           grep -F 'firebase-video-production' 'src/utils/setPushConfig.ts'
           grep -F 'call.missed' 'src/utils/setFirebaseListeners.android.ts'
+          grep -F 'PATCH_191D_LIVE_GIPHY_COMPACT_PICKER' 'src/components/connect/ConnectComposerPicker.tsx'
+          grep -F 'searchConnectGifs' 'src/lib/buklodConnectGifCatalog.ts'
+          grep -F 'CONNECT_GIF_CATEGORIES' 'src/lib/buklodConnectGifCatalog.ts'
 
       - name: Expo credential preflight
         id: expo
@@ -103,7 +109,7 @@ jobs:
             --channel production \
             --platform android \
             --environment production \
-            --message "BUKLOD Call Lifecycle R1 + latest production fixes" \
+            --message "BUKLOD Connect Live GIF Library R1" \
             --non-interactive
 
       - name: Deployment status
