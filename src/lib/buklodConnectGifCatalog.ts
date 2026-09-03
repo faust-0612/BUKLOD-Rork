@@ -59,9 +59,10 @@ const CATEGORY_SEARCH: Record<
 };
 
 /**
- * Small offline-safe starter set. Live GIPHY results are merged into this
- * registry at runtime so the existing Connect send path can send any result
- * without changing the message schema.
+ * Offline-safe starter set. These give every BUKLOD reaction category real
+ * content even when the live provider is unavailable. Live GIPHY results are
+ * merged into this same registry at runtime so the existing send path can send
+ * any result without changing the Connect message schema.
  */
 export const CONNECT_GIF_CATALOG: ConnectGifCatalogItem[] = [
   {
@@ -79,11 +80,46 @@ export const CONNECT_GIF_CATALOG: ConnectGifCatalogItem[] = [
     url: 'https://media.giphy.com/media/l0MYGb1LuZ3n7sYnC/giphy.gif',
   },
   {
+    id: 'church-amen',
+    label: 'Church Amen',
+    category: 'Prayer',
+    provider: 'fallback',
+    url: 'https://media.giphy.com/media/xUOwG2e035ksoCIQlq/giphy.gif',
+  },
+  {
+    id: 'yes-and-amen',
+    label: 'Yes & Amen',
+    category: 'Prayer',
+    provider: 'fallback',
+    url: 'https://media.giphy.com/media/MEZYpoUW6SYv3Bw9Lg/giphy.gif',
+  },
+  {
     id: 'celebrate',
     label: 'Celebrate',
     category: 'Celebrate',
     provider: 'fallback',
     url: 'https://media.giphy.com/media/26u4cqiYI30juCOGY/giphy.gif',
+  },
+  {
+    id: 'celebrate-cheers',
+    label: 'Cheers',
+    category: 'Celebrate',
+    provider: 'fallback',
+    url: 'https://media.giphy.com/media/tkBWaxF2LhcwJ9omwx/giphy.gif',
+  },
+  {
+    id: 'celebrate-winner',
+    label: 'Winner',
+    category: 'Celebrate',
+    provider: 'fallback',
+    url: 'https://media.giphy.com/media/26u4exk4zsAqPcq08/giphy.gif',
+  },
+  {
+    id: 'great-job',
+    label: 'Great Job',
+    category: 'Celebrate',
+    provider: 'fallback',
+    url: 'https://media.giphy.com/media/26gss0Ef1YwPS1JdK/giphy.gif',
   },
   {
     id: 'love',
@@ -100,11 +136,60 @@ export const CONNECT_GIF_CATALOG: ConnectGifCatalogItem[] = [
     url: 'https://media.giphy.com/media/3o7abKh0pu8N47KJ32/giphy.gif',
   },
   {
+    id: 'support-hug',
+    label: 'Support Hug',
+    category: 'Love',
+    provider: 'fallback',
+    url: 'https://media.giphy.com/media/qgkRhggrlm5SqZGuMy/giphy.gif',
+  },
+  {
+    id: 'hugs-for-you',
+    label: 'Hugs For You',
+    category: 'Love',
+    provider: 'fallback',
+    url: 'https://media.giphy.com/media/gHKnFHkGPUmG4GTzUt/giphy.gif',
+  },
+  {
+    id: 'love-you-hug',
+    label: 'Love You Hug',
+    category: 'Love',
+    provider: 'fallback',
+    url: 'https://media.giphy.com/media/Y1vXQrJoTtYRxkbQrl/giphy.gif',
+  },
+  {
     id: 'thanks',
     label: 'Thanks',
     category: 'Encourage',
     provider: 'fallback',
     url: 'https://media.giphy.com/media/3o7TKSjRrfIPjeiVyM/giphy.gif',
+  },
+  {
+    id: 'keep-going',
+    label: 'Keep Going',
+    category: 'Encourage',
+    provider: 'fallback',
+    url: 'https://media.giphy.com/media/clcHPGpHqS209KA3b0/giphy.gif',
+  },
+  {
+    id: 'you-got-this',
+    label: 'You Got This',
+    category: 'Encourage',
+    provider: 'fallback',
+    url: 'https://media.giphy.com/media/JBFHdCAR5cjkwLt6dd/giphy.gif',
+  },
+  {
+    id: 'bless',
+    label: 'Bless',
+    category: 'Prayer',
+    provider: 'fallback',
+    url: 'https://media.giphy.com/media/l0HlBO7eyXzSZkJri/giphy.gif',
+  },
+  {
+    id: 'peace',
+    label: 'Peace',
+    category: 'Encourage',
+    provider: 'fallback',
+    url: 'https://media.giphy.com/media/xUPGcguWZHRC2BXBFO/giphy.gif',
   },
   {
     id: 'yes',
@@ -121,11 +206,60 @@ export const CONNECT_GIF_CATALOG: ConnectGifCatalogItem[] = [
     url: 'https://media.giphy.com/media/5VKbvrjxpVJCM/giphy.gif',
   },
   {
+    id: 'happy-clap',
+    label: 'So Happy',
+    category: 'Happy',
+    provider: 'fallback',
+    url: 'https://media.giphy.com/media/l4HodBpDmoMA5p9bG/giphy.gif',
+  },
+  {
     id: 'laugh',
     label: 'Laugh',
     category: 'Laugh',
     provider: 'fallback',
     url: 'https://media.giphy.com/media/13Co7iaSlZnhzG/giphy.gif',
+  },
+  {
+    id: 'try-not-laugh',
+    label: 'Try Not To Laugh',
+    category: 'Laugh',
+    provider: 'fallback',
+    url: 'https://media.giphy.com/media/pk2SjAFWICrgcBuPCN/giphy.gif',
+  },
+  {
+    id: 'sad-cry',
+    label: 'Sad Cry',
+    category: 'Sad',
+    provider: 'fallback',
+    url: 'https://media.giphy.com/media/yL9R0Bv2acS7M5zAHG/giphy.gif',
+  },
+  {
+    id: 'sad-tears',
+    label: 'Tears',
+    category: 'Sad',
+    provider: 'fallback',
+    url: 'https://media.giphy.com/media/rWlLdCPTZNvWKHwclr/giphy.gif',
+  },
+  {
+    id: 'sad-phone',
+    label: 'Sad',
+    category: 'Sad',
+    provider: 'fallback',
+    url: 'https://media.giphy.com/media/dTTt9Oeomo02KlfZAA/giphy.gif',
+  },
+  {
+    id: 'angry-reaction',
+    label: 'Angry',
+    category: 'Angry',
+    provider: 'fallback',
+    url: 'https://media.giphy.com/media/l49K18UjXYJJ3ecCY/giphy.gif',
+  },
+  {
+    id: 'angry-mad',
+    label: 'Mad',
+    category: 'Angry',
+    provider: 'fallback',
+    url: 'https://media.giphy.com/media/NTHx4T5Mgc3ogmXSL8/giphy.gif',
   },
   {
     id: 'clap',
@@ -134,24 +268,11 @@ export const CONNECT_GIF_CATALOG: ConnectGifCatalogItem[] = [
     provider: 'fallback',
     url: 'https://media.giphy.com/media/7rj2ZgTvgovYDJMpUq/giphy.gif',
   },
-  {
-    id: 'bless',
-    label: 'Bless',
-    category: 'Prayer',
-    provider: 'fallback',
-    url: 'https://media.giphy.com/media/l0HlBO7eyXzSZkJri/giphy.gif',
-  },
-  {
-    id: 'peace',
-    label: 'Peace',
-    category: 'Encourage',
-    provider: 'fallback',
-    url: 'https://media.giphy.com/media/xUPGcguWZHRC2BXBFO/giphy.gif',
-  },
 ];
 
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
 const DEFAULT_PAGE_SIZE = 24;
+const MAX_RUNTIME_GIFS = 360;
 
 function giphyApiKey() {
   const generic =
@@ -245,7 +366,6 @@ function bestGiphyUri(
       ? [
           images?.fixed_width_small?.url,
           images?.fixed_width?.url,
-          images?.downsized_small?.mp4,
           images?.downsized?.url,
           images?.original?.url,
         ]
@@ -276,6 +396,30 @@ function registerLiveItems(
     }
     else {
       CONNECT_GIF_CATALOG.push(item);
+    }
+  }
+
+  const liveIndexes = CONNECT_GIF_CATALOG
+    .map((item, index) => ({ item, index }))
+    .filter(row => row.item.provider === 'giphy');
+
+  if (liveIndexes.length > MAX_RUNTIME_GIFS) {
+    const removeCount =
+      liveIndexes.length - MAX_RUNTIME_GIFS;
+    const idsToRemove = new Set(
+      liveIndexes
+        .slice(0, removeCount)
+        .map(row => row.item.id)
+    );
+
+    for (
+      let index = CONNECT_GIF_CATALOG.length - 1;
+      index >= 0;
+      index -= 1
+    ) {
+      if (idsToRemove.has(CONNECT_GIF_CATALOG[index].id)) {
+        CONNECT_GIF_CATALOG.splice(index, 1);
+      }
     }
   }
 }
