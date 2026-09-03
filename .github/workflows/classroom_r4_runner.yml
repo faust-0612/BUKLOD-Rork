@@ -42,6 +42,9 @@ jobs:
           grep -F 'BUKLOD_CLASSROOM_R4_ACADEMIC_CONTROL' 'src/app/profile/buklod-faculty-class.tsx'
           grep -F 'TERM BREAKDOWN R4' 'apps/buklod-classroom/app/class/[id]/[section].tsx'
           grep -F 'buklod_classroom_faculty_apply_academic_setup_v1' 'src/app/profile/buklod-faculty-academic-control.tsx'
+          grep -F 'buklod_classroom_student_released_grade_items_v2' 'apps/buklod-classroom/src/core.ts'
+          grep -F 'exam_ids: examIds' 'apps/buklod-classroom/src/core.ts'
+          grep -F "BUKLOD_QUIZ_DEDICATED" 'apps/buklod-classroom/app/class/[id]/[section].tsx'
 
       - name: Commit safe wiring
         shell: bash
@@ -52,6 +55,6 @@ jobs:
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add 'src/app/(tabs)/me.tsx' 'src/app/profile/buklod-faculty-class.tsx' 'apps/buklod-classroom/app/class/[id]/[section].tsx'
+          git add 'src/app/(tabs)/me.tsx' 'src/app/profile/buklod-faculty-class.tsx' 'src/app/profile/buklod-faculty-academic-control.tsx' 'apps/buklod-classroom/src/core.ts' 'apps/buklod-classroom/app/class/[id]/[section].tsx'
           git commit -m 'feat(classroom): separate student app and wire faculty control'
           git push
