@@ -190,4 +190,5 @@ jobs:
           rm -f .github/workflows/one_time_buklod_performance_r4.yml
           git add src/lib/buklodPerformanceFetch.ts src/components/BuklodClusterHomeCommandCenter.tsx .github/workflows/one_time_buklod_performance_r4.yml
           git commit -m "perf: harden BUKLOD Home request coalescing R4"
+          git pull --rebase origin main
           git push origin HEAD:main
