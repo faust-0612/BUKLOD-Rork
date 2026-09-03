@@ -1,0 +1,126 @@
+name: One-time BUKLOD auth resilience R2
+
+on:
+  push:
+    paths:
+      - '.github/workflows/one_time_auth_resilience_r2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Finalize auth resilience R2
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          login_path = Path('src/app/(auth)/login.tsx')
+          supabase_path = Path('src/lib/supabase.ts')
+
+          login = login_path.read_text(encoding='utf-8-sig')
+          supabase = supabase_path.read_text(encoding='utf-8-sig')
+
+          def replace_once(text, old, new, label):
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected exactly 1 match, found {count}')
+              return text.replace(old, new, 1)
+
+          # R1 intentionally rewired all SecureStore call sites, but that global
+          # replacement also touched the native branches inside the wrappers.
+          # Restore the native implementation while keeping web on AsyncStorage.
+          login = replace_once(
+              login,
+              "  return readLoginSecret(key);\n",
+              "  return SecureStore.getItemAsync(key);\n",
+              'native secure read',
+          )
+          login = replace_once(
+              login,
+              "  await writeLoginSecret(key, value);\n",
+              "  await SecureStore.setItemAsync(key, value);\n",
+              'native secure write',
+          )
+          login = replace_once(
+              login,
+              "  await deleteLoginSecret(key);\n",
+              "  await SecureStore.deleteItemAsync(key);\n",
+              'native secure delete',
+          )
+
+          login = replace_once(
+              login,
+              "    if (accountLifecycle?.deactivated === true) {\n",
+              "    const accountWasSelfDeactivated =\n      accountLifecycle?.deactivated === true;\n    const accountIsInactive =\n      accountLifecycle?.is_active === false;\n\n    if (\n      accountWasSelfDeactivated ||\n      accountIsInactive\n    ) {\n",
+              'inactive account gate',
+          )
+
+          login = replace_once(
+              login,
+              "        'Account Deactivated',\n",
+              "        accountWasSelfDeactivated\n          ? 'Account Deactivated'\n          : 'Account Inactive',\n",
+              'inactive account title',
+          )
+
+          login = replace_once(
+              login,
+              """        accountLifecycle?.can_self_reactivate === true\n          ? 'This account is currently deactivated. Reactivate it to continue using BUKLOD.'\n          : 'This account cannot be self-reactivated. Please contact a BUKLOD administrator.',\n""",
+              """        accountWasSelfDeactivated\n          ? (\n              accountLifecycle?.can_self_reactivate === true\n                ? 'This account is currently deactivated. Reactivate it to continue using BUKLOD.'\n                : 'This account cannot be self-reactivated. Please contact a BUKLOD administrator.'\n            )\n          : 'This account is inactive. Please contact a BUKLOD administrator.',\n""",
+              'inactive account message',
+          )
+
+          supabase = replace_once(
+              supabase,
+              "import { AppState } from 'react-native';\n",
+              "import { AppState, Platform } from 'react-native';\n",
+              'web platform import',
+          )
+          supabase = replace_once(
+              supabase,
+              "      'x-buklod-client': 'mobile',\n",
+              "      'x-buklod-client':\n        Platform.OS === 'web'\n          ? 'web'\n          : 'mobile',\n",
+              'web client header',
+          )
+
+          login_path.write_text(login, encoding='utf-8')
+          supabase_path.write_text(supabase, encoding='utf-8')
+          PY
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Verify auth R2
+        shell: bash
+        run: |
+          grep -q "return SecureStore.getItemAsync(key);" "src/app/(auth)/login.tsx"
+          grep -q "accountIsInactive" "src/app/(auth)/login.tsx"
+          grep -q "Platform.OS === 'web'" "src/lib/supabase.ts"
+
+      - name: Commit R2 and remove workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -f .github/workflows/one_time_auth_resilience_r2.yml
+          git add src/app/'(auth)'/login.tsx src/lib/supabase.ts src/lib/buklodAuthResilience.ts .github/workflows/one_time_auth_resilience_r2.yml
+          git commit -m "fix(auth): finalize resilient login logout gates"
+          git pull --rebase origin main
+          git push origin HEAD:main
