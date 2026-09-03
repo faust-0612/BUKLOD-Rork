@@ -1,18 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Dimensions,
   Pressable,
   StyleSheet,
   Text,
   View,
-  type StyleProp,
   type ImageStyle,
+  type LayoutChangeEvent,
+  type StyleProp,
   type ViewStyle,
 } from 'react-native';
 
 import { BuklodCachedMediaImage } from '@/components/BuklodCachedMediaImage';
 import { COMMUNITY_MAX_PHOTOS } from '@/lib/buklodCommunityMediaLimits';
-import { maritesCollageTileLayout } from '@/lib/buklodMaritesBoard';
 
 export type CommunityPhotoCollageItem = {
   media_path?: string | null;
@@ -26,7 +26,10 @@ type Props = {
   height?: number;
   style?: StyleProp<ViewStyle>;
   imageStyle?: StyleProp<ImageStyle>;
-  onPressPhoto?: (index: number, items: CommunityPhotoCollageItem[]) => void;
+  onPressPhoto?: (
+    index: number,
+    items: CommunityPhotoCollageItem[]
+  ) => void;
 };
 
 function isPhotoItem(item: CommunityPhotoCollageItem) {
@@ -54,14 +57,100 @@ export function communityPhotoCollageItems(
 
   return raw
     .filter(item => {
-      const key = String(item.media_path || item.media_url || '').trim();
+      const key = String(
+        item.media_path || item.media_url || ''
+      ).trim();
+
       if (!key || seen.has(key)) {
         return false;
       }
+
       seen.add(key);
       return true;
     })
     .slice(0, COMMUNITY_MAX_PHOTOS);
+}
+
+/**
+ * Canonical Community Wall collage geometry.
+ *
+ * The previous implementation returned tile sizes only while every tile was
+ * absolutely positioned. That stacked all photos at 0,0, so a 10-photo post
+ * looked like one photo with +6 on top. Every tile now gets an explicit
+ * left/top coordinate.
+ */
+export function communityPhotoCollageTileLayout(
+  count: number,
+  index: number,
+  width: number,
+  height: number,
+  gap = 2
+): ViewStyle {
+  const visibleCount = Math.max(1, Math.min(4, count));
+  const safeIndex = Math.max(
+    0,
+    Math.min(index, visibleCount - 1)
+  );
+
+  if (visibleCount === 1) {
+    return {
+      left: 0,
+      top: 0,
+      width,
+      height,
+    };
+  }
+
+  if (visibleCount === 2) {
+    const tileWidth = (width - gap) / 2;
+
+    return {
+      left: safeIndex === 0 ? 0 : tileWidth + gap,
+      top: 0,
+      width: tileWidth,
+      height,
+    };
+  }
+
+  if (visibleCount === 3) {
+    const topHeight = Math.round((height - gap) * 0.58);
+    const bottomHeight = Math.max(
+      1,
+      height - gap - topHeight
+    );
+    const bottomWidth = (width - gap) / 2;
+
+    if (safeIndex === 0) {
+      return {
+        left: 0,
+        top: 0,
+        width,
+        height: topHeight,
+      };
+    }
+
+    return {
+      left:
+        safeIndex === 1
+          ? 0
+          : bottomWidth + gap,
+      top: topHeight + gap,
+      width: bottomWidth,
+      height: bottomHeight,
+    };
+  }
+
+  const tileWidth = (width - gap) / 2;
+  const tileHeight = (height - gap) / 2;
+  const column = safeIndex % 2;
+  const row = Math.floor(safeIndex / 2);
+
+  return {
+    left: column * (tileWidth + gap),
+    top: row * (tileHeight + gap),
+    width: tileWidth,
+    height: tileHeight,
+  };
 }
 
 export function BuklodCommunityPhotoCollage({
@@ -74,21 +163,49 @@ export function BuklodCommunityPhotoCollage({
 }: Props) {
   const photos = communityPhotoCollageItems(items);
   const count = photos.length;
+  const [measuredWidth, setMeasuredWidth] = useState(
+    Math.max(1, Dimensions.get('window').width - 24)
+  );
 
   if (!count) {
     return null;
   }
 
-  const collageWidth = width ?? Dimensions.get('window').width;
-  const collageHeight = height ?? (count === 1 ? 310 : 280);
+  const collageWidth = Math.max(
+    1,
+    width ?? measuredWidth
+  );
+  const collageHeight =
+    height ?? (count === 1 ? 310 : 280);
+
+  const handleLayout = (event: LayoutChangeEvent) => {
+    if (width != null) {
+      return;
+    }
+
+    const nextWidth = Number(
+      event.nativeEvent.layout.width ?? 0
+    );
+
+    if (
+      nextWidth > 0 &&
+      Math.abs(nextWidth - measuredWidth) > 0.5
+    ) {
+      setMeasuredWidth(nextWidth);
+    }
+  };
 
   if (count === 1) {
     return (
       <Pressable
+        onLayout={handleLayout}
         onPress={() => onPressPhoto?.(0, photos)}
         style={[
           styles.one,
-          { width: collageWidth, height: collageHeight },
+          {
+            width: width ?? '100%',
+            height: collageHeight,
+          },
           style,
         ]}
       >
@@ -107,26 +224,38 @@ export function BuklodCommunityPhotoCollage({
 
   return (
     <View
+      onLayout={handleLayout}
       style={[
         styles.grid,
-        { width: collageWidth, height: collageHeight },
+        {
+          width: width ?? '100%',
+          height: collageHeight,
+        },
         style,
       ]}
     >
       {visible.map((photo, index) => {
-        const tileStyle = maritesCollageTileLayout(
+        const tileStyle = communityPhotoCollageTileLayout(
           visible.length,
           index,
           collageWidth,
           collageHeight,
           2
         );
-        const showMore = extraCount > 0 && index === visible.length - 1;
+        const showMore =
+          extraCount > 0 &&
+          index === visible.length - 1;
 
         return (
           <Pressable
-            key={photo.media_path || String(index)}
-            onPress={() => onPressPhoto?.(index, photos)}
+            key={
+              photo.media_path ||
+              photo.media_url ||
+              String(index)
+            }
+            onPress={() =>
+              onPressPhoto?.(index, photos)
+            }
             style={[styles.tile, tileStyle]}
           >
             <BuklodCachedMediaImage
@@ -135,9 +264,15 @@ export function BuklodCommunityPhotoCollage({
               style={[styles.image, imageStyle]}
               contentFit="cover"
             />
+
             {showMore ? (
-              <View style={styles.more} pointerEvents="none">
-                <Text style={styles.moreText}>+{extraCount}</Text>
+              <View
+                style={styles.more}
+                pointerEvents="none"
+              >
+                <Text style={styles.moreText}>
+                  +{extraCount}
+                </Text>
               </View>
             ) : null}
           </Pressable>
@@ -149,12 +284,12 @@ export function BuklodCommunityPhotoCollage({
 
 const styles = StyleSheet.create({
   one: {
-    alignSelf: 'center',
+    alignSelf: 'stretch',
     borderRadius: 0,
     overflow: 'hidden',
   },
   grid: {
-    alignSelf: 'center',
+    alignSelf: 'stretch',
     position: 'relative',
     overflow: 'hidden',
   },
@@ -167,14 +302,14 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   more: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.48)',
   },
   moreText: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: '900',
   },
 });
