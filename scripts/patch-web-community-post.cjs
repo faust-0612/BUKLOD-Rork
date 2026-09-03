@@ -33,9 +33,10 @@ if (markerIndex < 0) {
 }
 
 const openStart = source.lastIndexOf('<Pressable', markerIndex);
-const openEnd = source.indexOf('>', markerIndex);
+const openEndMarker = '\n          >';
+const openEndStart = source.indexOf(openEndMarker, markerIndex);
 
-if (openStart < 0 || openEnd < 0) {
+if (openStart < 0 || openEndStart < 0) {
   fail('Could not isolate the scoped Community Post button opening tag.');
 }
 
@@ -57,7 +58,10 @@ const fixedOpening = `<Pressable
             ]}
           >`;
 
-source = source.slice(0, openStart) + fixedOpening + source.slice(openEnd + 1);
+source =
+  source.slice(0, openStart) +
+  fixedOpening +
+  source.slice(openEndStart + openEndMarker.length);
 
 if (!source.includes("clearMedia();\n      setBusy(true);\n      setPublishNotice(")) {
   fail('Busy-state fix verification failed.');
