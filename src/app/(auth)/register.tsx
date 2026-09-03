@@ -1,6 +1,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { Ionicons } from '@expo/vector-icons';
@@ -274,6 +275,13 @@ export default function RegisterScreen() {
 
   const [busy, setBusy] =
     useState(false);
+  const createAccountInFlight =
+    useRef(false);
+
+  const finishCreateAccount = () => {
+    createAccountInFlight.current = false;
+    setBusy(false);
+  };
 /* PATCH_183B_NO_REGISTRATION_CHURCH_FETCH
  *
  * Registration creates a universal BUKLOD account only.
@@ -539,6 +547,11 @@ useEffect(() => {
         );
       }
 
+      if (createAccountInFlight.current) {
+        return;
+      }
+
+      createAccountInFlight.current = true;
       setBusy(true);
 
       const { data, error } =
@@ -587,14 +600,32 @@ useEffect(() => {
                   null,
                 member_note:
                   null,
+                /* PATCH_193A_ATOMIC_REGISTRATION */
+                buklod_registration_version:
+                  '193A',
+                registration_barangay:
+                  barangay.trim(),
+                registration_city_municipality:
+                  cityMunicipality.trim(),
+                registration_province:
+                  province.trim(),
+                registration_country:
+                  country.trim() ||
+                  'Philippines',
+                registration_postal_code:
+                  postalCode.trim() ||
+                  null,
+                registration_faith_identity:
+                  faithIdentity,
+                registration_show_faith_content:
+                  showFaithContent,
               },
             },
           }
         );
 
-      setBusy(false);
-
       if (error) {
+        finishCreateAccount();
         const duplicate =
           /already registered|already been registered|duplicate/i.test(
             error.message
@@ -609,6 +640,7 @@ useEffect(() => {
       }
 
       if (!data.session) {
+        finishCreateAccount();
         return Alert.alert(
           'Confirmation setting',
           'BUKLOD does not use confirmation. In Supabase Auth > Providers > Email, keep Email ON and Confirm Email OFF. Phone provider stays OFF.'
@@ -617,19 +649,86 @@ useEffect(() => {
 
 
       /*
-       * PATCH_164A_REG2B_PRIVATE_ONBOARDING
+       * PATCH_193A_REGISTRATION_HARDENING
        *
-       * Exact address and faith preference are stored
-       * outside the public profile.
+       * Auth signup atomically persists private address + faith onboarding
+       * when the 193A marker is present. This RPC remains the one idempotent
+       * completion path for local-scope synchronization.
        */
-      const newUserId =
-        data.user?.id ??
-        data.session.user.id;
+      let localSetupError: any = null;
+
+      for (
+        let attempt = 0;
+        attempt < 2;
+        attempt += 1
+      ) {
+        const result = await (
+          supabase as any
+        ).rpc(
+          'buklod_complete_registration_v1',
+          {
+            p_barangay:
+              barangay.trim(),
+            p_city_municipality:
+              cityMunicipality.trim(),
+            p_province:
+              province.trim(),
+            p_country:
+              country.trim() ||
+              'Philippines',
+            p_postal_code:
+              postalCode.trim() ||
+              null,
+            p_faith_identity:
+              faithIdentity,
+            p_show_faith_content:
+              showFaithContent,
+            p_country_code: null,
+            p_province_code: null,
+            p_city_municipality_code:
+              null,
+            p_barangay_code: null,
+          }
+        );
+
+        localSetupError =
+          result.error;
+
+        if (!localSetupError) {
+          break;
+        }
+
+        if (attempt == 0) {
+          await new Promise(
+            (resolve) =>
+              setTimeout(resolve, 350)
+          );
+        }
+      }
+
+      if (localSetupError) {
+        finishCreateAccount();
+
+        Alert.alert(
+          'Account created - local setup pending',
+          'Your BUKLOD account and private onboarding were saved, but Local assignment could not finish. You may continue to Public Home and retry your address setup later.'
+        );
+
+        router.replace(
+          '/(tabs)/home'
+        );
+
+        return;
+      }
 
       if (referralCode.trim()) {
         try {
-          await recordReferral(referralCode);
-        } catch (referralError: unknown) {
+          await recordReferral(
+            referralCode
+          );
+        } catch (
+          referralError: unknown
+        ) {
           console.warn(
             'Referral record failed:',
             referralError instanceof Error
@@ -639,148 +738,7 @@ useEffect(() => {
         }
       }
 
-      const onboardingDb =
-        supabase as any;
-
-      const [
-        preferenceResult,
-        addressResult,
-      ] = await Promise.all([
-        onboardingDb
-          .from(
-            'buklod_user_preferences'
-          )
-          .upsert(
-            {
-              user_id:
-                newUserId,
-
-              faith_identity:
-                faithIdentity,
-
-              show_faith_content:
-                showFaithContent,
-
-              onboarding_version:
-                1,
-
-              preferences_completed:
-                true,
-            },
-            {
-              onConflict:
-                'user_id',
-            }
-          ),
-
-        onboardingDb
-          .from(
-            'buklod_user_addresses'
-          )
-          .upsert(
-            {
-              user_id:
-                newUserId,
-
-              barangay:
-                barangay.trim(),
-
-              city_municipality:
-                cityMunicipality.trim(),
-
-              province:
-                province.trim(),
-
-              country:
-                country.trim(),
-
-              postal_code:
-                postalCode.trim() ||
-                null,
-
-              address_completed:
-                true,
-            },
-            {
-              onConflict:
-                'user_id',
-            }
-          ),
-      ]);
-
-      if (
-        preferenceResult.error ||
-        addressResult.error
-      ) {
-        console.warn(
-          'BUKLOD onboarding save:',
-          preferenceResult.error?.message ||
-            addressResult.error?.message
-        );
-
-  
-      /* PATCH_165I_PRIVATE_REGISTRATION */
-      const {
-        data: localSetup,
-        error: localSetupError,
-      } = await (
-        supabase as any
-      ).rpc(
-        'buklod_complete_registration_v1',
-        {
-          p_barangay:
-            barangay.trim(),
-          p_city_municipality:
-            cityMunicipality.trim(),
-          p_province:
-            province.trim(),
-          p_country:
-            country.trim() ||
-            'Philippines',
-          p_postal_code:
-            postalCode.trim() ||
-            null,
-          p_faith_identity:
-            faithIdentity,
-          p_show_faith_content:
-            showFaithContent,
-          p_country_code: null,
-          p_province_code: null,
-          p_city_municipality_code:
-            null,
-          p_barangay_code: null,
-        }
-      );
-
-      if (localSetupError) {
-        return Alert.alert(
-          'Account created - setup incomplete',
-          localSetupError.message
-        );
-      }
-
-      const setupRow =
-        Array.isArray(localSetup)
-          ? localSetup[0]
-          : localSetup;
-
-      const localScopeCount =
-        Number(
-          setupRow?.local_scope_count ??
-          0
-        );
-
-      Alert.alert(
-          'Account created',
-          'Your account was created, but some onboarding information could not be saved. You can complete it later.'
-        );
-
-        router.replace(
-          '/(tabs)/home'
-        );
-
-        return;
-      }
+      finishCreateAccount();
 
       Alert.alert(
         'Account created',
