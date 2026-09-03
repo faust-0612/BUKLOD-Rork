@@ -9,6 +9,7 @@ on:
       - '.github/workflows/production_web_deploy.yml'
       - 'scripts/patch-web-community-post.cjs'
       - 'src/components/BuklodExclusiveScopeCommunity.tsx'
+      - 'src/components/BuklodCommunityPhotoCollage.tsx'
       - 'src/app/(auth)/forgot-password.tsx'
       - 'src/app/account/recovery-pin.tsx'
       - 'src/app/account/security.tsx'
