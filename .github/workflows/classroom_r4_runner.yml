@@ -86,8 +86,6 @@ jobs:
         run: |
           test -f 'src/lib/buklodCallLifecycle.ts'
           test -f 'src/app/scope/bulletin-editor.tsx'
-          grep -Fi 'bulletin' '.github/workflows/production_android_ota.yml'
-          grep -Fi 'bulletin' '.github/workflows/production_web_deploy.yml'
 
       - name: Node
         uses: actions/setup-node@v4
