@@ -11,6 +11,10 @@ on:
       - 'src/app/account/recovery-pin.tsx'
       - 'src/app/account/security.tsx'
       - 'src/app/admin/account-recovery.tsx'
+      - 'src/app/scope/index.tsx'
+      - 'src/components/BuklodClusterHomeCommandCenter.tsx'
+      - 'src/components/BuklodClusterHomeCommandCenterImpl.tsx'
+      - 'src/lib/buklodClusterFormationGate.ts'
 
 permissions:
   contents: read
@@ -39,7 +43,7 @@ jobs:
       - name: TypeScript QA
         run: npx tsc --noEmit
 
-      - name: Verify Account Recovery R2 anchors
+      - name: Verify production safety anchors
         shell: bash
         run: |
           grep -F "account-recovery-v3" 'src/app/(auth)/forgot-password.tsx'
@@ -48,6 +52,8 @@ jobs:
           grep -F "recover_with_admin_code" 'src/app/(auth)/forgot-password.tsx'
           grep -F "recovery_status" 'src/app/account/recovery-pin.tsx'
           grep -F "admin_reject_request" 'src/app/admin/account-recovery.tsx'
+          grep -F "MANAGE CLUSTER" 'src/components/BuklodClusterHomeCommandCenter.tsx'
+          grep -F "constrainContextToOrganization" 'src/lib/buklodClusterFormationGate.ts'
 
       - name: Expo credential preflight
         id: expo
