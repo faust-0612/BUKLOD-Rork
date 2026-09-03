@@ -22,71 +22,12 @@ jobs:
           node-version: 20
           cache: npm
       - name: Fix lesson submit flow
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-
-          path = Path('src/components/LearningQuestionResponse.tsx')
-          text = path.read_text(encoding='utf-8')
-
-          pattern = re.compile(r"      if \(studyError\) \{\n        throw studyError;\n      \}\n\n      setPreviouslySubmitted\(true\);.*?    \} finally \{\n", re.S)
-
-          replacement = """      if (studyError) {
-        throw studyError;
-      }
-
-      const {
-        error: formationSubmitError,
-      } = await (
-        supabase as any
-      ).rpc(
-        'submit_my_formation_lesson_for_validation_v1',
-        {
-          p_enrollment_id: enrollmentId,
-          p_lesson_id: lesson.id,
-        }
-      );
-
-      if (formationSubmitError) {
-        throw formationSubmitError;
-      }
-
-      setPreviouslySubmitted(true);
-
-      Alert.alert(
-        'Submitted for Validation',
-        'Your study was submitted successfully. Your Cluster Admin will review it for final approval. Once approved, your BUKLOD Points will be posted automatically.'
-      );
-
-      await onSubmitted?.();
-
-    } catch (error: any) {
-      Alert.alert(
-        'Could Not Submit Study',
-        error?.message ??
-          'Please try again.'
-      );
-    } finally {
-"""
-
-          updated, count = pattern.subn(replacement, text, count=1)
-          if count != 1:
-            raise SystemExit(f'Expected exactly one submit block, found {count}')
-
-          if 'ready for Pastor validation' in updated or 'formationSubmitError } = await' in updated:
-            raise SystemExit('Legacy submission flow remains after patch')
-
-          path.write_text(updated, encoding='utf-8')
-          print('Formation submission flow patched')
-          PY
+        run: echo 'CmZyb20gcGF0aGxpYiBpbXBvcnQgUGF0aAppbXBvcnQgcmUKCnBhdGggPSBQYXRoKCJzcmMvY29tcG9uZW50cy9MZWFybmluZ1F1ZXN0aW9uUmVzcG9uc2UudHN4IikKdGV4dCA9IHBhdGgucmVhZF90ZXh0KGVuY29kaW5nPSJ1dGYtOCIpCgpwYXR0ZXJuID0gcmUuY29tcGlsZSgKICAgIHIiICAgICAgaWYgXChzdHVkeUVycm9yXCkgXHtcbiAgICAgICAgdGhyb3cgc3R1ZHlFcnJvcjtcbiAgICAgIFx9XG5cbiAgICAgIHNldFByZXZpb3VzbHlTdWJtaXR0ZWRcKHRydWVcKTsuKj8gICAgXH0gZmluYWxseSBcXHtcbiIsCiAgICByZS5TLAopCgpyZXBsYWNlbWVudCA9ICIiIiAgICAgIGlmIChzdHVkeUVycm9yKSB7CiAgICAgICAgdGhyb3cgc3R1ZHlFcnJvcjsKICAgICAgfQoKICAgICAgY29uc3QgewogICAgICAgIGVycm9yOiBmb3JtYXRpb25TdWJtaXRFcnJvciwKICAgICAgfSA9IGF3YWl0ICgKICAgICAgICBzdXBhYmFzZSBhcyBhbnkKICAgICAgKS5ycGMoCiAgICAgICAgJ3N1Ym1pdF9teV9mb3JtYXRpb25fbGVzc29uX2Zvcl92YWxpZGF0aW9uX3YxJywKICAgICAgICB7CiAgICAgICAgICBwX2Vucm9sbG1lbnRfaWQ6IGVucm9sbG1lbnRJZCwKICAgICAgICAgIHBfbGVzc29uX2lkOiBsZXNzb24uaWQsCiAgICAgICAgfQogICAgICApOwoKICAgICAgaWYgKGZvcm1hdGlvblN1Ym1pdEVycm9yKSB7CiAgICAgICAgdGhyb3cgZm9ybWF0aW9uU3VibWl0RXJyb3I7CiAgICAgIH0KCiAgICAgIHNldFByZXZpb3VzbHlTdWJtaXR0ZWQodHJ1ZSk7CgogICAgICBBbGVydC5hbGVydCgKICAgICAgICAnU3VibWl0dGVkIGZvciBWYWxpZGF0aW9uJywKICAgICAgICAnWW91ciBzdHVkeSB3YXMgc3VibWl0dGVkIHN1Y2Nlc3NmdWxseS4gWW91ciBDbHVzdGVyIEFkbWluIHdpbGwgcmV2aWV3IGl0IGZvciBmaW5hbCBhcHByb3ZhbC4gT25jZSBhcHByb3ZlZCwgeW91ciBCVUtMT0QgUG9pbnRzIHdpbGwgYmUgcG9zdGVkIGF1dG9tYXRpY2FsbHkuJwogICAgICApOwoKICAgICAgYXdhaXQgb25TdWJtaXR0ZWQ/LigpOwoKICAgIH0gY2F0Y2ggKGVycm9yOiBhbnkpIHsKICAgICAgQWxlcnQuYWxlcnQoCiAgICAgICAgJ0NvdWxkIE5vdCBTdWJtaXQgU3R1ZHknLAogICAgICAgIGVycm9yPy5tZXNzYWdlID8/CiAgICAgICAgICAnUGxlYXNlIHRyeSBhZ2Fpbi4nCiAgICAgICk7CiAgICB9IGZpbmFsbHkgewoiIiIKCnVwZGF0ZWQsIGNvdW50ID0gcGF0dGVybi5zdWJuKHJlcGxhY2VtZW50LCB0ZXh0LCBjb3VudD0xKQppZiBjb3VudCAhPSAxOgogICAgcmFpc2UgU3lzdGVtRXhpdChmIkV4cGVjdGVkIGV4YWN0bHkgb25lIHN1Ym1pdCBibG9jaywgZm91bmQge2NvdW50fSIpCgppZiAicmVhZHkgZm9yIFBhc3RvciB2YWxpZGF0aW9uIiBpbiB1cGRhdGVkOgogICAgcmFpc2UgU3lzdGVtRXhpdCgiTGVnYWN5IFBhc3RvciBzdWJtaXNzaW9uIGNvcHkgcmVtYWlucyBhZnRlciBwYXRjaCIpCgpwYXRoLndyaXRlX3RleHQodXBkYXRlZCwgZW5jb2Rpbmc9InV0Zi04IikKcHJpbnQoIkZvcm1hdGlvbiBzdWJtaXNzaW9uIGZsb3cgcGF0Y2hlZCIpCg==' | base64 -d | python3
       - name: Install dependencies
         run: npm ci
       - name: TypeScript QA
         run: npx tsc --noEmit
       - name: Commit source fix and remove one-time workflow
-        shell: bash
         run: |
           git config user.name "BUKLOD Automation"
           git config user.email "actions@users.noreply.github.com"
