@@ -1,0 +1,101 @@
+name: BUKLOD Classroom R1 QA
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/buklod_classroom_r1_qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-qa:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Classroom R1 branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/buklod-classroom-r1
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Wire Classroom into Faculty, My BUKLOD, and auto grading
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          # 1) Faculty class -> Open BUKLOD Classroom
+          faculty = Path('src/app/profile/buklod-faculty-class.tsx')
+          text = faculty.read_text(encoding='utf-8-sig')
+          token = 'BUKLOD_CLASSROOM_R1_FACULTY_ENTRY'
+          if token not in text:
+              anchor = '''        </View>\n\n        <View style={styles.sectionHeader}>\n          <Text style={styles.sectionTitle}>Roster</Text>\n'''
+              block = '''        </View>\n\n        {/* BUKLOD_CLASSROOM_R1_FACULTY_ENTRY */}\n        <Pressable\n          onPress={() =>\n            router.push({\n              pathname: '/profile/buklod-classroom' as any,\n              params: { id: classroomId, name: classroomName },\n            })\n          }\n          style={({ pressed }) => ({\n            backgroundColor: '#174c2b',\n            borderRadius: 18,\n            padding: 16,\n            marginBottom: 18,\n            flexDirection: 'row',\n            alignItems: 'center',\n            gap: 12,\n            opacity: pressed ? 0.84 : 1,\n          })}\n        >\n          <View style={{ width: 48, height: 48, borderRadius: 15, backgroundColor: '#e7f4e9', alignItems: 'center', justifyContent: 'center' }}>\n            <MaterialCommunityIcons name="google-classroom" size={27} color="#1f7a3f" />\n          </View>\n          <View style={{ flex: 1 }}>\n            <Text style={{ color: '#fff', fontWeight: '900', fontSize: 17 }}>Open BUKLOD Classroom</Text>\n            <Text style={{ color: '#d4e5d8', lineHeight: 17, fontSize: 11, marginTop: 3 }}>Live class, discussions, messages, activities, submissions, materials and asynchronous monitoring.</Text>\n          </View>\n          <MaterialCommunityIcons name="chevron-right" size={23} color="#fff" />\n        </Pressable>\n\n        <View style={styles.sectionHeader}>\n          <Text style={styles.sectionTitle}>Roster</Text>\n'''
+              if anchor not in text:
+                  raise SystemExit('STOP: Faculty roster anchor missing.')
+              text = text.replace(anchor, block, 1)
+              faculty.write_text(text, encoding='utf-8')
+
+          # 2) My BUKLOD quick actions -> My Classrooms
+          me = Path('src/app/(tabs)/me.tsx')
+          text = me.read_text(encoding='utf-8-sig')
+          token = "key: 'classrooms'"
+          if token not in text:
+              anchor = '''      {\n        key: 'attendance-qr',\n        icon: 'qrcode',\n        label: 'Attendance QR',\n        onPress: () => router.push('/profile/attendance-qr' as any),\n      },\n'''
+              block = anchor + '''      {\n        key: 'classrooms',\n        icon: 'google-classroom',\n        label: 'My Classrooms',\n        onPress: () => router.push('/profile/buklod-classrooms' as any),\n      },\n'''
+              if anchor not in text:
+                  raise SystemExit('STOP: My BUKLOD quick action anchor missing.')
+              text = text.replace(anchor, block, 1)
+              me.write_text(text, encoding='utf-8')
+
+          # 3) Student submission -> AI rubric suggestion when enabled
+          work = Path('src/app/profile/buklod-classroom-work.tsx')
+          text = work.read_text(encoding='utf-8-sig')
+          token = 'BUKLOD_CLASSROOM_AUTO_GRADE_R1'
+          if token not in text:
+              anchor = "      await supabase.from('buklod_education_classroom_engagement_events').insert({ classroom_id: classroomId, user_id: uid, event_type: 'ASSIGNMENT_SUBMITTED', source_type: 'ASSIGNMENT', source_id: assignment.id });\n"
+              block = anchor + '''      // BUKLOD_CLASSROOM_AUTO_GRADE_R1\n      if (assignment.auto_grading_mode === 'RUBRIC_SUGGEST' && text) {\n        const { error: autoGradeError } = await supabase.functions.invoke('buklod-classroom-auto-grade', {\n          body: { submission_id: String(submission.id) },\n        });\n        if (autoGradeError) {\n          console.warn('BUKLOD Classroom auto-grade suggestion:', autoGradeError.message);\n        }\n      }\n'''
+              if anchor not in text:
+                  raise SystemExit('STOP: Classroom submission anchor missing.')
+              text = text.replace(anchor, block, 1)
+              work.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Verify Classroom R1 anchors
+        shell: bash
+        run: |
+          grep -F 'BUKLOD_CLASSROOM_R1_FACULTY_ENTRY' 'src/app/profile/buklod-faculty-class.tsx'
+          grep -F "key: 'classrooms'" 'src/app/(tabs)/me.tsx'
+          grep -F 'BUKLOD_CLASSROOM_AUTO_GRADE_R1' 'src/app/profile/buklod-classroom-work.tsx'
+          grep -F 'buklod_classroom_start_live_v1' 'src/app/profile/buklod-classroom.tsx'
+          grep -F 'StreamVideoClient.getOrCreateInstance' 'src/components/classroom/ClassroomLiveView.native.tsx'
+          grep -F "entity_type: 'SUBMISSION'" 'src/app/profile/buklod-classroom-work.tsx'
+          grep -F 'buklod_classroom_record_performance_v1' 'src/app/profile/buklod-classroom-monitor.tsx'
+
+      - name: Commit tested wiring to feature branch
+        shell: bash
+        run: |
+          git config user.name 'BUKLOD Production Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add 'src/app/profile/buklod-faculty-class.tsx' 'src/app/(tabs)/me.tsx' 'src/app/profile/buklod-classroom-work.tsx'
+          if git diff --cached --quiet; then
+            echo 'No wiring changes to commit.'
+          else
+            git commit -m 'feat(classroom): wire Classroom R1 into BUKLOD Main and Faculty'
+            git push origin HEAD:feature/buklod-classroom-r1
+          fi
