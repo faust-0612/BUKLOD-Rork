@@ -1,0 +1,162 @@
+name: BUKLOD My BUKLOD Return + Safe Area R1
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/fix_my_buklod_return_safe_area_r1.yml'
+
+permissions:
+  contents: write
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+jobs:
+  patch-qa-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Apply My BUKLOD R1 patch
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          me = Path('src/app/(tabs)/me.tsx')
+          text = me.read_text(encoding='utf-8-sig')
+          old = """      profileScrollRef.current?.scrollTo({\n        x: 0,\n        y: 0,\n        animated: false,\n      });\n\n"""
+          if old not in text:
+              raise SystemExit('STOP: My BUKLOD forced scroll-to-top anchor not found.')
+          text = text.replace(old, '', 1)
+          me.write_text(text, encoding='utf-8')
+
+          shell = Path('src/components/BuklodNavSafeShell.tsx')
+          text = shell.read_text(encoding='utf-8')
+          old_import = """import BuklodPersistentBottomNav from '@/components/BuklodPersistentBottomNav';\nimport {\n  useBuklodPersistentNavOccupiedHeight,\n} from '@/lib/buklodSafeArea';\n"""
+          new_import = """import { usePathname } from 'expo-router';\nimport { useSafeAreaInsets } from 'react-native-safe-area-context';\n\nimport BuklodPersistentBottomNav from '@/components/BuklodPersistentBottomNav';\nimport {\n  normalizeBuklodPathname,\n  useBuklodPersistentNavOccupiedHeight,\n} from '@/lib/buklodSafeArea';\n\nfunction isMyBuklodDoorPath(pathname: string): boolean {\n  const normalized = normalizeBuklodPathname(pathname);\n\n  return (\n    normalized.startsWith('/account/') ||\n    normalized === '/about-buklod' ||\n    normalized.startsWith('/premium') ||\n    normalized === '/delete-account' ||\n    normalized.startsWith('/delete-account/') ||\n    normalized === '/privacy' ||\n    normalized.startsWith('/privacy/') ||\n    normalized.startsWith('/policy') ||\n    normalized.startsWith('/contact-us') ||\n    normalized.startsWith('/feedback') ||\n    normalized.startsWith('/admin/account-recovery') ||\n    normalized.startsWith('/system/paid-features') ||\n    normalized.startsWith('/pilot/checklist')\n  );\n}\n"""
+          if old_import not in text:
+              raise SystemExit('STOP: BuklodNavSafeShell import anchor not found.')
+          text = text.replace(old_import, new_import, 1)
+
+          old_state = """  const navOccupied =\n    useBuklodPersistentNavOccupiedHeight();\n  const [keyboardVisible, setKeyboardVisible] =\n    useState(false);\n"""
+          new_state = """  const navOccupied =\n    useBuklodPersistentNavOccupiedHeight();\n  const insets = useSafeAreaInsets();\n  const pathname = usePathname();\n  const reserveMyBuklodSystemInsets =\n    isMyBuklodDoorPath(pathname);\n  const [keyboardVisible, setKeyboardVisible] =\n    useState(false);\n"""
+          if old_state not in text:
+              raise SystemExit('STOP: BuklodNavSafeShell state anchor not found.')
+          text = text.replace(old_state, new_state, 1)
+
+          old_bottom = """  const contentBottomInset =\n    keyboardVisible ? 0 : navOccupied;\n"""
+          new_bottom = """  const contentTopInset =\n    reserveMyBuklodSystemInsets\n      ? Math.max(insets.top, 0)\n      : 0;\n  const contentBottomInset =\n    keyboardVisible\n      ? 0\n      : navOccupied > 0\n        ? navOccupied\n        : reserveMyBuklodSystemInsets\n          ? Math.max(insets.bottom, 0)\n          : 0;\n"""
+          if old_bottom not in text:
+              raise SystemExit('STOP: BuklodNavSafeShell bottom inset anchor not found.')
+          text = text.replace(old_bottom, new_bottom, 1)
+
+          old_style = """          {\n            paddingBottom: contentBottomInset,\n          },\n"""
+          new_style = """          {\n            paddingTop: contentTopInset,\n            paddingBottom: contentBottomInset,\n          },\n"""
+          if old_style not in text:
+              raise SystemExit('STOP: BuklodNavSafeShell content style anchor not found.')
+          text = text.replace(old_style, new_style, 1)
+          shell.write_text(text, encoding='utf-8')
+
+          for workflow_name in [
+              '.github/workflows/production_android_ota.yml',
+              '.github/workflows/production_web_deploy.yml',
+          ]:
+              path = Path(workflow_name)
+              text = path.read_text(encoding='utf-8')
+              anchor = "      - 'src/app/account/security.tsx'\n"
+              addition = (
+                  anchor +
+                  "      - 'src/app/(tabs)/me.tsx'\n" +
+                  "      - 'src/components/BuklodNavSafeShell.tsx'\n"
+              )
+              if "src/app/(tabs)/me.tsx" not in text:
+                  if anchor not in text:
+                      raise SystemExit(f'STOP: workflow path anchor missing: {workflow_name}')
+                  text = text.replace(anchor, addition, 1)
+              path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Verify R1 anchors
+        shell: bash
+        run: |
+          if grep -F "profileScrollRef.current?.scrollTo" 'src/app/(tabs)/me.tsx'; then
+            echo 'Forced profile scroll-to-top still exists.'
+            exit 1
+          fi
+          grep -F "reserveMyBuklodSystemInsets" 'src/components/BuklodNavSafeShell.tsx'
+          grep -F "paddingTop: contentTopInset" 'src/components/BuklodNavSafeShell.tsx'
+          grep -F "src/app/(tabs)/me.tsx" '.github/workflows/production_android_ota.yml'
+          grep -F "src/components/BuklodNavSafeShell.tsx" '.github/workflows/production_web_deploy.yml'
+
+      - name: Commit tested source and remove one-time workflow
+        shell: bash
+        run: |
+          rm -f '.github/workflows/fix_my_buklod_return_safe_area_r1.yml'
+          git config user.name 'BUKLOD Production Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add 'src/app/(tabs)/me.tsx' \
+                  'src/components/BuklodNavSafeShell.tsx' \
+                  '.github/workflows/production_android_ota.yml' \
+                  '.github/workflows/production_web_deploy.yml' \
+                  '.github/workflows/fix_my_buklod_return_safe_area_r1.yml'
+          git commit -m 'fix(profile): preserve My BUKLOD position and system safe areas'
+          git push origin HEAD:main
+
+      - name: Expo credential preflight
+        id: expo
+        shell: bash
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          npx eas-cli@latest whoami --non-interactive
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
+      - name: Publish production Android OTA
+        if: steps.expo.outputs.ready == 'true'
+        shell: bash
+        run: |
+          npx eas-cli@latest update \
+            --channel production \
+            --platform android \
+            --environment production \
+            --message "BUKLOD My BUKLOD Return Position + Safe Area R1" \
+            --non-interactive
+
+      - name: Export production web
+        if: steps.expo.outputs.ready == 'true'
+        shell: bash
+        run: |
+          npx eas-cli@latest env:exec production "npx expo export --platform web" --non-interactive
+          test -f dist/index.html
+
+      - name: Deploy production web
+        if: steps.expo.outputs.ready == 'true'
+        shell: bash
+        run: |
+          npx eas-cli@latest deploy \
+            --prod \
+            --non-interactive \
+            --environment production \
+            --export-dir=dist \
+            --json | tee eas-deploy.json
