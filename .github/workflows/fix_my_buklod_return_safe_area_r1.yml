@@ -69,24 +69,6 @@ jobs:
               raise SystemExit('STOP: BuklodNavSafeShell content style anchor not found.')
           text = text.replace(old_style, new_style, 1)
           shell.write_text(text, encoding='utf-8')
-
-          for workflow_name in [
-              '.github/workflows/production_android_ota.yml',
-              '.github/workflows/production_web_deploy.yml',
-          ]:
-              path = Path(workflow_name)
-              text = path.read_text(encoding='utf-8')
-              anchor = "      - 'src/app/account/security.tsx'\n"
-              addition = (
-                  anchor +
-                  "      - 'src/app/(tabs)/me.tsx'\n" +
-                  "      - 'src/components/BuklodNavSafeShell.tsx'\n"
-              )
-              if "src/app/(tabs)/me.tsx" not in text:
-                  if anchor not in text:
-                      raise SystemExit(f'STOP: workflow path anchor missing: {workflow_name}')
-                  text = text.replace(anchor, addition, 1)
-              path.write_text(text, encoding='utf-8')
           PY
 
       - name: Install dependencies
@@ -104,20 +86,13 @@ jobs:
           fi
           grep -F "reserveMyBuklodSystemInsets" 'src/components/BuklodNavSafeShell.tsx'
           grep -F "paddingTop: contentTopInset" 'src/components/BuklodNavSafeShell.tsx'
-          grep -F "src/app/(tabs)/me.tsx" '.github/workflows/production_android_ota.yml'
-          grep -F "src/components/BuklodNavSafeShell.tsx" '.github/workflows/production_web_deploy.yml'
 
-      - name: Commit tested source and remove one-time workflow
+      - name: Commit tested source
         shell: bash
         run: |
-          rm -f '.github/workflows/fix_my_buklod_return_safe_area_r1.yml'
           git config user.name 'BUKLOD Production Bot'
           git config user.email 'actions@users.noreply.github.com'
-          git add 'src/app/(tabs)/me.tsx' \
-                  'src/components/BuklodNavSafeShell.tsx' \
-                  '.github/workflows/production_android_ota.yml' \
-                  '.github/workflows/production_web_deploy.yml' \
-                  '.github/workflows/fix_my_buklod_return_safe_area_r1.yml'
+          git add 'src/app/(tabs)/me.tsx' 'src/components/BuklodNavSafeShell.tsx'
           git commit -m 'fix(profile): preserve My BUKLOD position and system safe areas'
           git push origin HEAD:main
 
