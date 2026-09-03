@@ -421,39 +421,37 @@ export function LearningQuestionResponse({
         throw studyError;
       }
 
+      const {
+        error: formationSubmitError,
+      } = await (
+        supabase as any
+      ).rpc(
+        'submit_my_formation_lesson_for_validation_v1',
+        {
+          p_enrollment_id: enrollmentId,
+          p_lesson_id: lesson.id,
+        }
+      );
+
+      if (formationSubmitError) {
+        throw formationSubmitError;
+      }
+
       setPreviouslySubmitted(true);
 
       Alert.alert(
-        'Study Submitted',
-        'Your four answers and Personal Reflection were saved. This learning progress is now ready for Pastor validation.'
+        'Submitted for Validation',
+        'Your study was submitted successfully. Your Cluster Admin will review it for final approval. Once approved, your BUKLOD Points will be posted automatically.'
       );
 
       await onSubmitted?.();
 
     } catch (error: any) {
-      
-    // BUKLOD_QUICK_CHECK_SUBMIT_VALIDATION_R1
-    const { error: formationSubmitError } = await (supabase as any).rpc(
-      'submit_my_formation_lesson_for_validation_v1',
-      {
-        p_enrollment_id: enrollmentId,
-        p_lesson_id: lesson.id,
-      }
-    );
-
-    if (formationSubmitError) {
       Alert.alert(
-        'Hindi naisumite para sa pagpapatunay',
-        formationSubmitError.message
-      );
-      return;
-    }
-Alert.alert(
         'Could Not Submit Study',
         error?.message ??
           'Please try again.'
       );
-
     } finally {
       setBusy(false);
     }
