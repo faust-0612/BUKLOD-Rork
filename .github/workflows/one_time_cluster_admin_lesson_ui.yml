@@ -1,0 +1,83 @@
+name: One-time Cluster Admin lesson UI fix
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: contains(github.event.head_commit.message, 'trigger(cluster-admin-lesson-ui)')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch stale formation approval copy
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('src/app/learn/lesson.tsx')
+          text = path.read_text(encoding='utf-8')
+
+          replacements = [
+              ("formationStatus?.official_status ?? 'awaiting_pastor';",
+               "formationStatus?.official_status ?? 'awaiting_cluster_admin';"),
+              ("title: 'ADMIN APPROVED',",
+               "title: 'CLUSTER ADMIN APPROVED',"),
+              ("title: 'PASTOR VALIDATED',\n          detail: 'Waiting for System Admin final approval.',",
+               "title: 'AWAITING CLUSTER ADMIN',\n          detail: 'This legacy submission is awaiting final Cluster Admin approval.',"),
+              ("'The previous validation was not approved. Please coordinate with your Pastor.',",
+               "'The previous validation was not approved. Please coordinate with your Cluster Admin.',"),
+              ("? 'Your study progress is saved. Pastor validation is still required for official completion.'\n            : 'Read and study the lesson. Official completion requires Pastor validation.',",
+               "? 'Your study progress is saved. Submit it for validation; your Cluster Admin gives the final approval.'\n            : 'Read and study the lesson. Your Cluster Admin gives the final approval after submission.',"),
+              ("BUKLOD Points are awarded only after Pastor validation and\n              System Admin final approval.",
+               "BUKLOD Points are posted automatically after final Cluster Admin approval."),
+              ("{officialStatus === 'awaiting_pastor' && (",
+               "{(officialStatus === 'awaiting_pastor' ||\n            officialStatus === 'awaiting_cluster_admin') && ("),
+              ("After studying this lesson, your Pastor validates your\n                official completion. System Admin gives the final approval\n                before BUKLOD Points are posted.",
+               "After studying this lesson, submit it for validation. Your\n                Cluster Admin will review and approve your official completion.\n                Once approved, your BUKLOD Points will be posted automatically."),
+          ]
+
+          for old, new in replacements:
+              if old not in text:
+                  raise SystemExit(f'Expected text not found: {old[:120]!r}')
+              text = text.replace(old, new, 1)
+
+          stale = [
+              'Pastor validation',
+              'Pastor validates',
+              'System Admin final approval',
+              'Waiting for System Admin final approval',
+          ]
+          remaining = [needle for needle in stale if needle in text]
+          if remaining:
+              raise SystemExit(f'Stale lesson-approval copy remains: {remaining}')
+
+          path.write_text(text, encoding='utf-8')
+
+          workflow = Path('.github/workflows/one_time_cluster_admin_lesson_ui.yml')
+          if workflow.exists():
+              workflow.unlink()
+
+      - name: Verify targeted copy
+        shell: bash
+        run: |
+          grep -q "CLUSTER ADMIN APPROVED" src/app/learn/lesson.tsx
+          grep -q "Cluster Admin will review and approve your official completion" src/app/learn/lesson.tsx
+          grep -q "BUKLOD Points will be posted automatically" src/app/learn/lesson.tsx
+          ! grep -q "System Admin final approval" src/app/learn/lesson.tsx
+
+      - name: Commit patch
+        shell: bash
+        run: |
+          git config user.name "BUKLOD Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add src/app/learn/lesson.tsx .github/workflows/one_time_cluster_admin_lesson_ui.yml
+          git commit -m "fix(formation): Cluster Admin is final lesson approver"
+          git push origin HEAD:main
