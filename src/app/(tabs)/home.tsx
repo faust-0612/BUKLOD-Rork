@@ -528,7 +528,7 @@ export default function HomeScreen() {
           await (supabase as any).rpc(
             'get_buklod_points_leaderboard',
             {
-              p_period: 'week',
+              p_period: 'weekly',
               p_limit: 10,
               p_church_id: null,
             }
