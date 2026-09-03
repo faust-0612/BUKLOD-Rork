@@ -26,37 +26,40 @@ jobs:
           cache: npm
 
       - name: Apply conflict-safe Classroom doorways
-        shell: python
+        shell: bash
         run: |
+          python - <<'PY'
           from pathlib import Path
 
           me_path = Path('src/app/(tabs)/me.tsx')
           me = me_path.read_text(encoding='utf-8')
           if "key: 'classrooms'" not in me:
-              anchor = """      {
-        key: 'attendance-qr',
-        icon: 'qrcode',
-        label: 'Attendance QR',
-        onPress: () => router.push('/profile/attendance-qr' as any),
-      },
-      {
-        key: 'organization',
-"""
-              replacement = """      {
-        key: 'attendance-qr',
-        icon: 'qrcode',
-        label: 'Attendance QR',
-        onPress: () => router.push('/profile/attendance-qr' as any),
-      },
-      {
-        key: 'classrooms',
-        icon: 'google-classroom',
-        label: 'My Classrooms',
-        onPress: () => router.push('/profile/buklod-classrooms' as any),
-      },
-      {
-        key: 'organization',
-"""
+              anchor = (
+                  "      {\n"
+                  "        key: 'attendance-qr',\n"
+                  "        icon: 'qrcode',\n"
+                  "        label: 'Attendance QR',\n"
+                  "        onPress: () => router.push('/profile/attendance-qr' as any),\n"
+                  "      },\n"
+                  "      {\n"
+                  "        key: 'organization',\n"
+              )
+              replacement = (
+                  "      {\n"
+                  "        key: 'attendance-qr',\n"
+                  "        icon: 'qrcode',\n"
+                  "        label: 'Attendance QR',\n"
+                  "        onPress: () => router.push('/profile/attendance-qr' as any),\n"
+                  "      },\n"
+                  "      {\n"
+                  "        key: 'classrooms',\n"
+                  "        icon: 'google-classroom',\n"
+                  "        label: 'My Classrooms',\n"
+                  "        onPress: () => router.push('/profile/buklod-classrooms' as any),\n"
+                  "      },\n"
+                  "      {\n"
+                  "        key: 'organization',\n"
+              )
               if me.count(anchor) != 1:
                   raise SystemExit(f'My BUKLOD anchor count was {me.count(anchor)}, expected 1')
               me = me.replace(anchor, replacement, 1)
@@ -66,49 +69,52 @@ jobs:
           faculty = faculty_path.read_text(encoding='utf-8')
           marker = 'BUKLOD_CLASSROOM_R1_FACULTY_ENTRY'
           if marker not in faculty:
-              anchor = """          <View style={styles.metricCard}><Text style={styles.metricValue}>{gradeItems.length}</Text><Text style={styles.metricLabel}>Grade Items</Text></View>
-        </View>
-
-        <View style={styles.sectionHeader}>
-"""
-              replacement = """          <View style={styles.metricCard}><Text style={styles.metricValue}>{gradeItems.length}</Text><Text style={styles.metricLabel}>Grade Items</Text></View>
-        </View>
-
-        {/* BUKLOD_CLASSROOM_R1_FACULTY_ENTRY */}
-        <Pressable
-          onPress={() =>
-            router.push({
-              pathname: '/profile/buklod-classroom' as any,
-              params: { id: classroomId, name: classroomName },
-            })
-          }
-          style={({ pressed }) => ({
-            backgroundColor: '#174c2b',
-            borderRadius: 18,
-            padding: 16,
-            marginBottom: 18,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 12,
-            opacity: pressed ? 0.84 : 1,
-          })}
-        >
-          <View style={{ width: 48, height: 48, borderRadius: 15, backgroundColor: '#e7f4e9', alignItems: 'center', justifyContent: 'center' }}>
-            <MaterialCommunityIcons name=\"google-classroom\" size={27} color=\"#1f7a3f\" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: '#fff', fontWeight: '900', fontSize: 17 }}>Open BUKLOD Classroom</Text>
-            <Text style={{ color: '#d4e5d8', lineHeight: 17, fontSize: 11, marginTop: 3 }}>Live class, discussions, messages, activities, submissions, materials and asynchronous monitoring.</Text>
-          </View>
-          <MaterialCommunityIcons name=\"chevron-right\" size={23} color=\"#fff\" />
-        </Pressable>
-
-        <View style={styles.sectionHeader}>
-"""
+              anchor = (
+                  "          <View style={styles.metricCard}><Text style={styles.metricValue}>{gradeItems.length}</Text><Text style={styles.metricLabel}>Grade Items</Text></View>\n"
+                  "        </View>\n"
+                  "\n"
+                  "        <View style={styles.sectionHeader}>\n"
+              )
+              replacement = (
+                  "          <View style={styles.metricCard}><Text style={styles.metricValue}>{gradeItems.length}</Text><Text style={styles.metricLabel}>Grade Items</Text></View>\n"
+                  "        </View>\n"
+                  "\n"
+                  "        {/* BUKLOD_CLASSROOM_R1_FACULTY_ENTRY */}\n"
+                  "        <Pressable\n"
+                  "          onPress={() =>\n"
+                  "            router.push({\n"
+                  "              pathname: '/profile/buklod-classroom' as any,\n"
+                  "              params: { id: classroomId, name: classroomName },\n"
+                  "            })\n"
+                  "          }\n"
+                  "          style={({ pressed }) => ({\n"
+                  "            backgroundColor: '#174c2b',\n"
+                  "            borderRadius: 18,\n"
+                  "            padding: 16,\n"
+                  "            marginBottom: 18,\n"
+                  "            flexDirection: 'row',\n"
+                  "            alignItems: 'center',\n"
+                  "            gap: 12,\n"
+                  "            opacity: pressed ? 0.84 : 1,\n"
+                  "          })}\n"
+                  "        >\n"
+                  "          <View style={{ width: 48, height: 48, borderRadius: 15, backgroundColor: '#e7f4e9', alignItems: 'center', justifyContent: 'center' }}>\n"
+                  "            <MaterialCommunityIcons name=\"google-classroom\" size={27} color=\"#1f7a3f\" />\n"
+                  "          </View>\n"
+                  "          <View style={{ flex: 1 }}>\n"
+                  "            <Text style={{ color: '#fff', fontWeight: '900', fontSize: 17 }}>Open BUKLOD Classroom</Text>\n"
+                  "            <Text style={{ color: '#d4e5d8', lineHeight: 17, fontSize: 11, marginTop: 3 }}>Live class, discussions, messages, activities, submissions, materials and asynchronous monitoring.</Text>\n"
+                  "          </View>\n"
+                  "          <MaterialCommunityIcons name=\"chevron-right\" size={23} color=\"#fff\" />\n"
+                  "        </Pressable>\n"
+                  "\n"
+                  "        <View style={styles.sectionHeader}>\n"
+              )
               if faculty.count(anchor) != 1:
                   raise SystemExit(f'Faculty anchor count was {faculty.count(anchor)}, expected 1')
               faculty = faculty.replace(anchor, replacement, 1)
               faculty_path.write_text(faculty, encoding='utf-8')
+          PY
 
       - name: Verify Classroom wiring anchors
         shell: bash
