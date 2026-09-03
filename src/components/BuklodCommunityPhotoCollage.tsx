@@ -73,11 +73,7 @@ export function communityPhotoCollageItems(
 
 /**
  * Canonical Community Wall collage geometry.
- *
- * The previous implementation returned tile sizes only while every tile was
- * absolutely positioned. That stacked all photos at 0,0, so a 10-photo post
- * looked like one photo with +6 on top. Every tile now gets an explicit
- * left/top coordinate.
+ * Every absolute tile gets an explicit left/top coordinate.
  */
 export function communityPhotoCollageTileLayout(
   count: number,
@@ -93,12 +89,7 @@ export function communityPhotoCollageTileLayout(
   );
 
   if (visibleCount === 1) {
-    return {
-      left: 0,
-      top: 0,
-      width,
-      height,
-    };
+    return { left: 0, top: 0, width, height };
   }
 
   if (visibleCount === 2) {
@@ -302,7 +293,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   more: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.48)',
