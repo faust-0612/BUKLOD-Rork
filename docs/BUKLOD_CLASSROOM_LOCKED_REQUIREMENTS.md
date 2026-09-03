@@ -216,6 +216,99 @@ Faculty dashboard should surface student and class-level indicators such as:
 - pending journals/evaluations
 - students at risk of failing or not being eligible for final release
 
+## Behavior, conduct, violations, commendations and grade-impact governance
+
+BUKLOD Classroom must support structured recording of specific student behaviors, conduct incidents, violations, commendations, professionalism events, safety events, and exceptional performance when these are relevant to the course, laboratory, clinical area, RLE, OJT, practicum, fieldwork, or institutional policy.
+
+A behavior/conduct record may contain:
+- student
+- classroom / rotation / duty / activity context
+- date/time
+- category and policy/rubric reference
+- severity or level when configured
+- factual description
+- reporter
+- witnesses when applicable
+- supporting evidence/attachment when appropriate
+- student acknowledgment/comment when applicable
+- faculty/CI/preceptor action
+- resolution / appeal status
+- whether it affects grade, completion eligibility, attendance, professionalism, safety clearance, or no academic score at all
+- audit timestamps and all later edits
+
+Examples include:
+- attendance/tardiness events
+- classroom conduct
+- professionalism
+- laboratory safety
+- clinical/OJT safety or policy violations
+- academic integrity incidents
+- missed required procedure or duty
+- commendation / exemplary behavior
+- leadership / initiative
+- approved extracurricular or institutional contribution
+
+### Grade-deduction safeguards
+
+Conduct records MUST NOT automatically deduct academic points unless the grading policy, published rubric, syllabus, or authorized institutional rule explicitly defines that impact.
+
+If a violation may affect a grade:
+- the applicable rule/rubric must be identified;
+- the deduction formula or maximum deduction must be configured in advance when reasonably possible;
+- the system must prevent accidental double counting, such as penalizing the same absence under both Attendance and Conduct unless policy explicitly allows both;
+- deduction must show original score, adjustment, resulting score, reason code, rule/rubric reference, actor, date/time, and approval history;
+- large or exceptional manual deductions may require a second authorized reviewer according to institution/class settings;
+- sensitive incident narrative can remain permission-restricted even when the student can see the released academic effect and reason category;
+- students must have an acknowledgment/dispute/appeal route when enabled by policy.
+
+Clinical/RLE/OJT safety or professionalism events may also be configured as completion/clearance gates instead of numerical deductions when that better matches the program policy.
+
+### Additional points, extra credit and exceptions
+
+The system must support positive adjustments such as:
+- approved extra credit
+- bonus activity
+- remedial/recovery points
+- competition/academic representation
+- extracurricular contribution
+- leadership/service credit
+- exceptional performance
+- authorized make-up or alternate requirement
+- individual accommodation or documented exception
+
+However, these adjustments must be governed to reduce bias and favoritism.
+
+Default safeguards:
+- No hidden manual points.
+- Every grade-impacting positive adjustment requires a reason code and audit record.
+- Faculty should normally define the opportunity, eligibility, point value/weight, deadline, and maximum cap before awarding it.
+- When an opportunity is intended for the whole class, the same published criteria must be available to all eligible students.
+- If an extracurricular opportunity is not equally accessible, faculty should provide an equivalent alternative path when appropriate rather than rewarding access alone.
+- Individual exceptions must identify why the exception exists (e.g. documented accommodation, excused event, approved make-up, institutional representation, verified special circumstance) and who approved it.
+- Course/institution settings may require second approval above a configured manual-adjustment threshold.
+- The system may cap bonus/extra-credit contribution by term, component, or whole course so manual bonuses cannot silently dominate the official grading model.
+- Adjustments cannot bypass mandatory completion gates unless the exception explicitly authorizes that gate override.
+- Released student grade details should show the existence, amount, and non-sensitive reason/category of grade adjustments.
+
+### Anti-bias / anti-favoritism controls
+
+BUKLOD Classroom should actively make inconsistent grading visible without replacing faculty judgment.
+
+Controls may include:
+- rubric-first scoring for subjective work;
+- optional anonymous/blind grading where the activity permits it;
+- standard reason codes for deductions, bonus points, overrides, and exceptions;
+- side-by-side rubric criteria during grading;
+- audit history for every manual score change;
+- detection/flagging of unusually large manual adjustments or repeated exceptions for review;
+- class-level adjustment summaries showing how many students received deductions/bonuses/exceptions and under which categories;
+- configurable second-review requirement for major grade changes, conduct penalties, final-grade overrides, or exceptional bonuses;
+- no ability to delete a finalized adjustment without leaving an audit event;
+- role-based permissions so supervisors/preceptors can only adjust the components they are authorized to assess;
+- final grade lock and controlled reopen with a mandatory reason.
+
+The system must not assume that equal treatment always means identical treatment: documented accommodations, excused absences, make-up work, disability/access accommodations, approved institutional duties, and other legitimate exceptions may require individualized handling. The requirement is that individualized decisions are rule-based, documented, reviewable, and not secret favoritism.
+
 ## Finalization and audit
 
 Support:
@@ -231,7 +324,10 @@ Support:
 - export/print grade sheet and reports
 - student acknowledgment when configured
 - semester/classroom archive
+- conduct/violation/commendation history with permission controls
+- manual adjustment / bonus / deduction / exception audit trail
+- appeal/dispute status where institution policy enables it
 
 ## Non-regression rule
 
-Future Classroom changes MUST preserve this adaptive architecture. Do not hardcode the product around a single program, a single grading sheet, nursing-only terminology, or a fixed Prelim/Final structure. The uploaded grading workbook remains the default grading preset, while the engine remains fully configurable for other institutions, programs, subjects, and course types.
+Future Classroom changes MUST preserve this adaptive architecture and ALL requirements locked in this document. Do not hardcode the product around a single program, a single grading sheet, nursing-only terminology, a fixed Prelim/Final structure, or unrestricted faculty point adjustments. The uploaded grading workbook remains the default grading preset, while the engine remains fully configurable for other institutions, programs, subjects, and course types. Behavior/violation deductions, bonus points, extracurricular credit, and exceptions must remain transparent, rule-based, auditable, and protected against hidden favoritism.
