@@ -320,27 +320,27 @@ export default function LessonDetail() {
     track?.formation_program === 'discipleship';
 
   const officialStatus =
-    formationStatus?.official_status ?? 'awaiting_pastor';
+    formationStatus?.official_status ?? 'awaiting_cluster_admin';
 
   const statusInfo = useMemo(() => {
     switch (officialStatus) {
       case 'approved':
         return {
-          title: 'ADMIN APPROVED',
+          title: 'CLUSTER ADMIN APPROVED',
           detail: 'This lesson is officially completed.',
         };
 
       case 'pending_admin':
         return {
-          title: 'PASTOR VALIDATED',
-          detail: 'Waiting for System Admin final approval.',
+          title: 'AWAITING CLUSTER ADMIN',
+          detail: 'This legacy submission is awaiting final Cluster Admin approval.',
         };
 
       case 'rejected':
         return {
           title: 'REVIEW REQUIRED',
           detail:
-            'The previous validation was not approved. Please coordinate with your Pastor.',
+            'The previous validation was not approved. Please coordinate with your Cluster Admin.',
         };
 
       default:
@@ -349,8 +349,8 @@ export default function LessonDetail() {
             ? 'STUDIED'
             : 'NOT YET VALIDATED',
           detail: formationStatus?.studied
-            ? 'Your study progress is saved. Pastor validation is still required for official completion.'
-            : 'Read and study the lesson. Official completion requires Pastor validation.',
+            ? 'Your study progress is saved. Submit it for validation; your Cluster Admin gives the final approval.'
+            : 'Read and study the lesson. Your Cluster Admin gives the final approval after submission.',
         };
     }
   }, [officialStatus, formationStatus?.studied]);
@@ -621,8 +621,7 @@ export default function LessonDetail() {
             <View style={styles.statusDivider} />
 
             <Text style={styles.note}>
-              BUKLOD Points are awarded only after Pastor validation and
-              System Admin final approval.
+              BUKLOD Points are posted automatically after final Cluster Admin approval.
             </Text>
           </Card>
         </>
@@ -757,14 +756,15 @@ export default function LessonDetail() {
             onPress={saveFormationStudy}
           />
 
-          {officialStatus === 'awaiting_pastor' && (
+          {(officialStatus === 'awaiting_pastor' ||
+            officialStatus === 'awaiting_cluster_admin') && (
             <Card>
               <Text style={styles.waitingTitle}>NEXT STEP</Text>
 
               <Text style={shared.body}>
-                After studying this lesson, your Pastor validates your
-                official completion. System Admin gives the final approval
-                before BUKLOD Points are posted.
+                After studying this lesson, submit it for validation. Your
+                Cluster Admin will review and approve your official completion.
+                Once approved, your BUKLOD Points will be posted automatically.
               </Text>
             </Card>
           )}
