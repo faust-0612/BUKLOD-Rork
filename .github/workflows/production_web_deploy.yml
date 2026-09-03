@@ -62,7 +62,8 @@ jobs:
           grep -F 'BUKLOD_CLASSROOM_R1_FACULTY_ENTRY' 'src/app/profile/buklod-faculty-class.tsx'
           grep -F 'BUKLOD_CLASSROOM_AUTO_GRADE_R1' 'src/app/profile/buklod-classroom-work.tsx'
           grep -F 'buklod_classroom_start_live_v1' 'src/app/profile/buklod-classroom.tsx'
-          grep -F 'StreamVideoClient.getOrCreateInstance' 'src/components/classroom/ClassroomLiveView.web.tsx'
+          grep -F 'The full BUKLOD Classroom video room uses the native BUKLOD app' 'src/components/classroom/ClassroomLiveView.web.tsx'
+          grep -F 'buklod_classroom_record_performance_v1' 'src/app/profile/buklod-classroom-monitor.tsx'
 
       - name: Expo credential preflight
         id: expo
