@@ -203,7 +203,9 @@ export async function resolveBuklodAccountLifecycleAfterLogin():
     await withBuklodTimeout<any>(
       (supabase as any)
         .from('profiles')
-        .select('is_active')
+        .select(
+          'is_active,user_deactivated_at,user_deactivation_prev_active'
+        )
         .eq('id', userId)
         .maybeSingle(),
       AUTH_PROFILE_FALLBACK_TIMEOUT_MS,
@@ -226,13 +228,21 @@ export async function resolveBuklodAccountLifecycleAfterLogin():
     };
   }
 
+  const deactivated =
+    profileStatus.data.user_deactivated_at != null;
+
   return {
     data: {
-      deactivated:
-        profileStatus.data.is_active === false,
-      // The fallback can safely allow an active account through, but it
-      // never grants self-reactivation without the canonical lifecycle RPC.
-      can_self_reactivate: false,
+      is_active:
+        profileStatus.data.is_active === true,
+      deactivated,
+      deactivated_at:
+        profileStatus.data.user_deactivated_at ??
+        null,
+      can_self_reactivate:
+        deactivated &&
+        profileStatus.data.user_deactivation_prev_active ===
+          true,
     },
     error: null,
     usedProfileFallback: true,
