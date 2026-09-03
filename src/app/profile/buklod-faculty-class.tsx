@@ -242,6 +242,19 @@ export default function BuklodFacultyClassScreen() {
           <View style={styles.metricCard}><Text style={styles.metricValue}>{gradeItems.length}</Text><Text style={styles.metricLabel}>Grade Items</Text></View>
         </View>
 
+        {/* BUKLOD_CLASSROOM_R4_ACADEMIC_CONTROL */}
+        <Pressable
+          onPress={() => router.push({ pathname: '/profile/buklod-faculty-academic-control' as any, params: { id: classroomId, classroomId, name: classroomName } })}
+          style={({ pressed }) => [styles.academicControl, pressed && { opacity: 0.84 }]}
+        >
+          <View style={styles.academicControlIcon}><MaterialCommunityIcons name="school-outline" size={27} color="#1f7a3f" /></View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.academicControlTitle}>Academic Control Center</Text>
+            <Text style={styles.academicControlText}>Adaptive terms, grading, syllabus flow, RLE/OJT, monitoring, interventions and grade governance.</Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={23} color="#fff" />
+        </Pressable>
+
         {/* BUKLOD_CLASSROOM_R1_FACULTY_ENTRY */}
         <Pressable
           onPress={() =>
@@ -468,6 +481,10 @@ const styles = StyleSheet.create({
   metricCard: { flex: 1, backgroundColor: '#fff', borderRadius: 16, padding: 13 },
   metricValue: { color: '#17311f', fontSize: 22, fontWeight: '900' },
   metricLabel: { color: '#68736b', marginTop: 2, fontSize: 12 },
+  academicControl: { backgroundColor: '#17311f', borderRadius: 18, padding: 16, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  academicControlIcon: { width: 48, height: 48, borderRadius: 15, backgroundColor: '#e7f4e9', alignItems: 'center', justifyContent: 'center' },
+  academicControlTitle: { color: '#fff', fontWeight: '900', fontSize: 17 },
+  academicControlText: { color: '#d4e5d8', lineHeight: 17, fontSize: 11, marginTop: 3 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   sectionTitle: { color: '#17311f', fontSize: 17, fontWeight: '900', marginTop: 6, marginBottom: 10 },
   smallButton: { backgroundColor: '#1f7a3f', borderRadius: 11, paddingHorizontal: 12, paddingVertical: 8 },

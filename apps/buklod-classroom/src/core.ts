@@ -106,18 +106,18 @@ export async function loadAttendance(classroomId: string) {
 }
 
 export async function loadReleasedGradeItems(classroomId: string) {
-  const { data, error } = await supabase.rpc('buklod_classroom_student_released_grade_items_v1', { p_classroom_id: classroomId });
+  const { data, error } = await supabase.rpc('buklod_classroom_student_released_grade_items_v2', { p_classroom_id: classroomId });
   if (error) throw error;
   return (data ?? []) as any[];
 }
 
-export async function loadReleasedQuizResults() {
+export async function loadReleasedQuizResults(examIds: string[] = []) {
   const session = await getSession();
   if (!session?.access_token) throw new Error('Sign in required.');
   const response = await fetch(`${QUIZ_URL}/functions/v1/buklod-quiz-student-bridge-v1`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'released_results', limit: 500 }),
+    body: JSON.stringify({ action: 'released_results', limit: 500, exam_ids: examIds }),
   });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(body?.error || 'Could not load BUKLOD Quiz records.');
