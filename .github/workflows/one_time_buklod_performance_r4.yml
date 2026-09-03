@@ -1,0 +1,193 @@
+name: One-time BUKLOD Performance Hardening R4
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/one_time_buklod_performance_r4.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Apply targeted performance hardening
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          perf = Path('src/lib/buklodPerformanceFetch.ts')
+          text = perf.read_text(encoding='utf-8')
+
+          rpc_anchor = "  get_my_formation_stage_catalog_v1: 20_000,\n};"
+          rpc_replacement = "  get_my_formation_stage_catalog_v1: 20_000,\n  buklod_scope_social_feed_v1: 2_500,\n};"
+          if rpc_anchor not in text:
+              raise SystemExit('R4 STOPPED: RPC TTL anchor not found')
+          text = text.replace(rpc_anchor, rpc_replacement, 1)
+
+          old_tables = """const restTableTtlMs: Record<string, number> = {
+  buklod_scope_bulletins: 5_000,
+  buklod_profile_status: 10_000,
+  buklod_system_announcement_boards: 30_000,
+  buklod_music_library: 2 * 60_000,
+  buklod_user_addresses: 30_000,
+  buklod_dashboard_themes: 30_000,
+  profiles: 5_000,
+};"""
+          new_tables = """const restTableTtlMs: Record<string, number> = {
+  buklod_scope_bulletins: 5_000,
+  buklod_profile_status: 10_000,
+  buklod_system_announcement_boards: 30_000,
+  buklod_music_library: 2 * 60_000,
+  buklod_user_addresses: 30_000,
+  buklod_dashboard_themes: 30_000,
+  profiles: 5_000,
+  mission_bulletins: 10_000,
+  devotional_completions: 10_000,
+  buklod_scopes: 10_000,
+  buklod_cluster_home_notices: 10_000,
+  buklod_cluster_events: 10_000,
+  buklod_cluster_event_rsvps: 5_000,
+  buklod_cluster_tasks: 10_000,
+  buklod_cluster_polls: 10_000,
+  buklod_cluster_poll_options: 10_000,
+  buklod_cluster_poll_votes: 5_000,
+  buklod_cluster_resources: 30_000,
+  buklod_cluster_recognitions: 20_000,
+  buklod_cluster_home_settings: 30_000,
+  buklod_cluster_attendance: 5_000,
+};"""
+          if old_tables not in text:
+              raise SystemExit('R4 STOPPED: table TTL block not found')
+          text = text.replace(old_tables, new_tables, 1)
+
+          old_invalidation = """const mutationInvalidationTables = new Set([
+  'buklod_scope_bulletins',
+  'buklod_profile_status',
+  'buklod_music_library',
+  'buklod_system_announcement_boards',
+  'buklod_dashboard_themes',
+  'profiles',
+]);"""
+          new_invalidation = """const mutationInvalidationTables = new Set([
+  'buklod_scope_bulletins',
+  'buklod_profile_status',
+  'buklod_music_library',
+  'buklod_system_announcement_boards',
+  'buklod_dashboard_themes',
+  'profiles',
+  'mission_bulletins',
+  'devotional_completions',
+  'buklod_scopes',
+  'buklod_cluster_home_notices',
+  'buklod_cluster_events',
+  'buklod_cluster_event_rsvps',
+  'buklod_cluster_tasks',
+  'buklod_cluster_polls',
+  'buklod_cluster_poll_options',
+  'buklod_cluster_poll_votes',
+  'buklod_cluster_resources',
+  'buklod_cluster_recognitions',
+  'buklod_cluster_home_settings',
+  'buklod_cluster_attendance',
+]);"""
+          if old_invalidation not in text:
+              raise SystemExit('R4 STOPPED: mutation invalidation block not found')
+          text = text.replace(old_invalidation, new_invalidation, 1)
+          perf.write_text(text, encoding='utf-8')
+
+          cluster = Path('src/components/BuklodClusterHomeCommandCenter.tsx')
+          text = cluster.read_text(encoding='utf-8')
+
+          signature_old = "const load=useCallback(async(options?:{background?:boolean})=>{"
+          signature_new = "const load=useCallback(async(options?:{background?:boolean;force?:boolean})=>{"
+          if text.count(signature_old) != 1:
+              raise SystemExit(f'R4 STOPPED: Cluster load signature count={text.count(signature_old)}')
+          text = text.replace(signature_old, signature_new, 1)
+
+          cache_old = """  if(cached&&!options?.background){
+   applySnapshot(cached);
+   setLoading(false);
+  }
+  try{"""
+          cache_new = """  if(cached&&!options?.force){
+   applySnapshot(cached);
+   setLoading(false);
+   setRefreshing(false);
+   return;
+  }
+  try{"""
+          if text.count(cache_old) != 1:
+              raise SystemExit(f'R4 STOPPED: fresh-cache block count={text.count(cache_old)}')
+          text = text.replace(cache_old, cache_new, 1)
+
+          refresh_old = "onRefresh={()=>{setRefreshing(true);void load({background:true})}}"
+          refresh_new = "onRefresh={()=>{setRefreshing(true);void load({background:true,force:true})}}"
+          if text.count(refresh_old) != 1:
+              raise SystemExit(f'R4 STOPPED: refresh anchor count={text.count(refresh_old)}')
+          text = text.replace(refresh_old, refresh_new, 1)
+
+          save_old = "setKind(null);await load();"
+          save_new = "setKind(null);await load({force:true});"
+          if text.count(save_old) != 1:
+              raise SystemExit(f'R4 STOPPED: save reload count={text.count(save_old)}')
+          text = text.replace(save_old, save_new, 1)
+
+          action_old = "else await load()};"
+          action_count = text.count(action_old)
+          if action_count != 3:
+              raise SystemExit(f'R4 STOPPED: action reload count={action_count}')
+          text = text.replace(action_old, "else await load({force:true})};")
+
+          checkin_old = "else{characterEvents?.emit({type:CharacterEventType.ATTENDANCE_RECORDED,success:true});await load()}};"
+          checkin_new = "else{characterEvents?.emit({type:CharacterEventType.ATTENDANCE_RECORDED,success:true});await load({force:true})}};"
+          if text.count(checkin_old) != 1:
+              raise SystemExit(f'R4 STOPPED: checkin reload count={text.count(checkin_old)}')
+          text = text.replace(checkin_old, checkin_new, 1)
+
+          toggle_old = "if(q.error){Alert.alert('Customize',q.error.message);void load()}};"
+          toggle_new = "if(q.error){Alert.alert('Customize',q.error.message);void load({force:true})}};"
+          if text.count(toggle_old) != 1:
+              raise SystemExit(f'R4 STOPPED: toggle reload count={text.count(toggle_old)}')
+          text = text.replace(toggle_old, toggle_new, 1)
+
+          cluster.write_text(text, encoding='utf-8')
+          print('R4 source patch applied.')
+          PY
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Verify performance anchors
+        shell: bash
+        run: |
+          grep -F "buklod_scope_social_feed_v1: 2_500" src/lib/buklodPerformanceFetch.ts
+          grep -F "buklod_cluster_home_notices: 10_000" src/lib/buklodPerformanceFetch.ts
+          grep -F "cached&&!options?.force" src/components/BuklodClusterHomeCommandCenter.tsx
+          grep -F "background:true,force:true" src/components/BuklodClusterHomeCommandCenter.tsx
+
+      - name: Commit R4 and remove one-time workflow
+        shell: bash
+        run: |
+          git config user.name "BUKLOD Automation"
+          git config user.email "actions@users.noreply.github.com"
+          rm -f .github/workflows/one_time_buklod_performance_r4.yml
+          git add src/lib/buklodPerformanceFetch.ts src/components/BuklodClusterHomeCommandCenter.tsx .github/workflows/one_time_buklod_performance_r4.yml
+          git commit -m "perf: harden BUKLOD Home request coalescing R4"
+          git push origin HEAD:main
