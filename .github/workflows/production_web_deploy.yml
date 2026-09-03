@@ -12,12 +12,14 @@ on:
       - 'src/app/account/security.tsx'
       - 'src/app/admin/account-recovery.tsx'
       - 'src/app/scope/index.tsx'
-      - 'src/app/scope/bulletin-editor.tsx'
       - 'src/components/BuklodClusterHomeCommandCenter.tsx'
       - 'src/components/BuklodClusterHomeCommandCenterImpl.tsx'
       - 'src/lib/buklodClusterFormationGate.ts'
       - 'src/app/(tabs)/me.tsx'
       - 'src/app/profile/buklod-faculty-class.tsx'
+      - 'src/app/profile/buklod-faculty-academic-control.tsx'
+      - 'src/app/profile/buklod-faculty-syllabus.tsx'
+      - 'src/app/profile/buklod-faculty-rle.tsx'
       - 'src/app/profile/buklod-classroom*.tsx'
       - 'src/components/classroom/**'
 
@@ -59,9 +61,14 @@ jobs:
           grep -F "admin_reject_request" 'src/app/admin/account-recovery.tsx'
           grep -F "MANAGE CLUSTER" 'src/components/BuklodClusterHomeCommandCenter.tsx'
           grep -F "constrainContextToOrganization" 'src/lib/buklodClusterFormationGate.ts'
-          grep -F "readMediaForUpload" 'src/app/scope/bulletin-editor.tsx'
-          grep -F "Title and message are required before publishing." 'src/app/scope/bulletin-editor.tsx'
-          grep -F "key: 'classrooms'" 'src/app/(tabs)/me.tsx'
+          if grep -F "key: 'classrooms'" 'src/app/(tabs)/me.tsx'; then
+            echo "My Classrooms must remain removed from the BUKLOD Main Profile dashboard."
+            exit 1
+          fi
+          grep -F 'BUKLOD_CLASSROOM_R4_ACADEMIC_CONTROL' 'src/app/profile/buklod-faculty-class.tsx'
+          grep -F 'buklod_classroom_faculty_apply_academic_setup_v1' 'src/app/profile/buklod-faculty-academic-control.tsx'
+          grep -F 'buklod-classroom-syllabus-plan' 'src/app/profile/buklod-faculty-syllabus.tsx'
+          grep -F 'buklod_classroom_faculty_review_journal_v1' 'src/app/profile/buklod-faculty-rle.tsx'
           grep -F 'BUKLOD_CLASSROOM_R1_FACULTY_ENTRY' 'src/app/profile/buklod-faculty-class.tsx'
           grep -F 'BUKLOD_CLASSROOM_AUTO_GRADE_R1' 'src/app/profile/buklod-classroom-work.tsx'
           grep -F 'buklod_classroom_start_live_v1' 'src/app/profile/buklod-classroom.tsx'

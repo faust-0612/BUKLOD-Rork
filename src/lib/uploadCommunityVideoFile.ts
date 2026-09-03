@@ -1,10 +1,6 @@
-/*
- * PATCH_191G_R5_COMPATIBILITY_SAFE_VIDEO_FINALIZER
- * Current helper contract preserved intentionally:
- * video + photo upload, bounded concurrency, progress callbacks,
- * signed native binary transfer, and existing caller compatibility.
- */import * as FileSystem
-  from 'expo-file-system/legacy';
+/* BUKLOD_COMMUNITY_WEB_UPLOAD_R2 */
+import * as FileSystem from 'expo-file-system/legacy';
+import { Platform } from 'react-native';
 
 import {
   BUKLOD_VIDEO_MAX_SIZE_BYTES,
@@ -14,9 +10,7 @@ import {
   readVideoSizeBytes,
   type CommunityUploadFailureReason,
 } from '@/lib/buklodCommunityWallMedia';
-import {
-  supabase,
-} from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import {
   shouldUseResumableUpload,
   toDirectStorageUrl,
@@ -28,6 +22,27 @@ export type CommunityVideoUploadProgress = {
   totalBytes: number;
   ratio: number;
 };
+
+async function readWebBlob(uri: string): Promise<Blob> {
+  const response = await fetch(uri);
+  if (!response.ok) {
+    throw new Error(`Could not read selected media (${response.status}).`);
+  }
+  return response.blob();
+}
+
+async function readBinarySizeBytes(uri: string): Promise<number> {
+  if (Platform.OS === 'web') {
+    const blob = await readWebBlob(uri);
+    return Number(blob.size ?? 0);
+  }
+
+  const info: any = await FileSystem.getInfoAsync(
+    uri,
+    { size: true } as any,
+  );
+  return Number(info?.size ?? 0);
+}
 
 function throwClassifiedUploadError({
   failureLabel,
@@ -62,9 +77,12 @@ function throwClassifiedUploadError({
 }
 
 /*
- * Memory-safe community video upload:
- * 1) TUS resumable chunks (6 MiB) for large files — no full-file JS copy
- * 2) signed URL + Expo FileSystem binary PUT for smaller files
+ * Native:
+ *  - TUS resumable chunks for large files
+ *  - signed FileSystem binary PUT for smaller files
+ * Web:
+ *  - browser Blob slices for TUS large uploads
+ *  - signed fetch PUT for smaller files
  */
 export async function uploadCommunityVideoFile({
   path,
@@ -79,21 +97,25 @@ export async function uploadCommunityVideoFile({
     progress: CommunityVideoUploadProgress
   ) => void;
 }): Promise<void> {
-  const sizeBytes = await readVideoSizeBytes(
+  let sizeBytes = await readVideoSizeBytes(
     { uri },
-    async (fileUri) => {
-      const info: any =
-        await FileSystem.getInfoAsync(
-          fileUri,
-          { size: true } as any,
-        );
-
-      return {
-        exists: Boolean(info?.exists),
-        size: Number(info?.size ?? 0),
-      };
-    },
+    Platform.OS === 'web'
+      ? undefined
+      : async (fileUri) => {
+          const info: any = await FileSystem.getInfoAsync(
+            fileUri,
+            { size: true } as any,
+          );
+          return {
+            exists: Boolean(info?.exists),
+            size: Number(info?.size ?? 0),
+          };
+        },
   );
+
+  if (!sizeBytes && Platform.OS === 'web') {
+    sizeBytes = await readBinarySizeBytes(uri);
+  }
 
   if (
     sizeBytes > 0 &&
@@ -135,11 +157,9 @@ export async function mapWithConcurrency<T, R>(
     while (true) {
       const index = nextIndex;
       nextIndex += 1;
-
       if (index >= items.length) {
         return;
       }
-
       results[index] = await mapper(items[index], index);
     }
   }
@@ -147,7 +167,6 @@ export async function mapWithConcurrency<T, R>(
   await Promise.all(
     Array.from({ length: workerCount }, () => worker()),
   );
-
   return results;
 }
 
@@ -162,15 +181,13 @@ export async function prepareCommunityJpegUri(
     compress: 0.86,
   });
   const fileUri = String(image.uri ?? uri).trim() || uri;
-  const info: any = await FileSystem.getInfoAsync(
-    fileUri,
-    { size: true } as any,
-  );
+  const sizeBytes = await readBinarySizeBytes(fileUri);
 
-  return {
-    uri: fileUri,
-    sizeBytes: Number(info?.size ?? 0),
-  };
+  if (!sizeBytes) {
+    throw new Error('Could not read the prepared photo size.');
+  }
+
+  return { uri: fileUri, sizeBytes };
 }
 
 export async function uploadCommunityPhotoFile({
@@ -196,11 +213,10 @@ export async function uploadCommunityPhotoFile({
     preferResumable: false,
   });
 
-  return {
-    sizeBytes: prepared.sizeBytes,
-  };
+  return { sizeBytes: prepared.sizeBytes };
 }
 
+/* Kept only for rendering/legacy compatibility. New Wall composer no longer exposes GIF upload. */
 export async function uploadCommunityGifFile({
   path,
   uri,
@@ -214,23 +230,13 @@ export async function uploadCommunityGifFile({
     progress: CommunityVideoUploadProgress
   ) => void;
 }): Promise<{ sizeBytes: number }> {
-  let resolvedSizeBytes = Math.max(
-    0,
-    Number(sizeBytes ?? 0),
-  );
-
+  let resolvedSizeBytes = Math.max(0, Number(sizeBytes ?? 0));
   if (!resolvedSizeBytes) {
-    const info: any = await FileSystem.getInfoAsync(
-      uri,
-      { size: true } as any,
-    );
-    resolvedSizeBytes = Number(info?.size ?? 0);
+    resolvedSizeBytes = await readBinarySizeBytes(uri);
   }
-
   if (!resolvedSizeBytes) {
     throw new Error('Could not read the GIF file size.');
   }
-
   if (resolvedSizeBytes > 25 * 1024 * 1024) {
     throw new Error('Maximum GIF size is 25 MB.');
   }
@@ -245,9 +251,7 @@ export async function uploadCommunityGifFile({
     preferResumable: false,
   });
 
-  return {
-    sizeBytes: resolvedSizeBytes,
-  };
+  return { sizeBytes: resolvedSizeBytes };
 }
 
 async function uploadCommunityBinaryFile({
@@ -270,8 +274,7 @@ async function uploadCommunityBinaryFile({
   preferResumable?: boolean;
 }): Promise<void> {
   const useResumable =
-    preferResumable &&
-    shouldUseResumableUpload(sizeBytes);
+    preferResumable && shouldUseResumableUpload(sizeBytes);
 
   if (useResumable) {
     try {
@@ -286,6 +289,7 @@ async function uploadCommunityBinaryFile({
     } catch (error: any) {
       const message = String(error?.message ?? error ?? '');
       const sliceUnsupported =
+        Platform.OS !== 'web' &&
         /position|length|not supported|invalid option/i.test(message);
 
       if (!sliceUnsupported) {
@@ -298,9 +302,7 @@ async function uploadCommunityBinaryFile({
           aborted: Boolean(error.aborted) || /timeout/i.test(message),
         });
       }
-
-      // Slice reads are unavailable (some content:// URIs). Fall through
-      // to a native streamed PUT instead of loading the file into JS.
+      // Native content:// slicing can be unavailable. Fall back to signed streamed PUT.
     }
   }
 
@@ -331,21 +333,9 @@ async function uploadCommunitySignedPut({
   sizeBytes?: number;
   failureLabel: string;
 }): Promise<void> {
-  const bucket =
-    supabase.storage.from(
-      'community-media',
-    );
-
-  const {
-    data: signed,
-    error: signedError,
-  } =
-    await bucket.createSignedUploadUrl(
-      path,
-      {
-        upsert: false,
-      },
-    );
+  const bucket = supabase.storage.from('community-media');
+  const { data: signed, error: signedError } =
+    await bucket.createSignedUploadUrl(path, { upsert: false });
 
   if (signedError) {
     throwClassifiedUploadError({
@@ -365,63 +355,78 @@ async function uploadCommunitySignedPut({
     );
   }
 
-  const uploadOptions = {
-    httpMethod: 'PUT' as const,
-    uploadType:
-      FileSystem.FileSystemUploadType
-        .BINARY_CONTENT,
-    headers: {
-      'content-type': contentType,
-      'cache-control': '3600',
-      'x-upsert': 'false',
-    },
-  };
-
   let result: {
     status: number;
     body?: string | null;
   } | null | undefined;
 
   try {
-    result = onProgress
-      ? await (async () => {
-          const task =
-            FileSystem.createUploadTask(
+    if (Platform.OS === 'web') {
+      const blob = await readWebBlob(uri);
+      const totalBytes = Number(blob.size ?? sizeBytes ?? 0);
+      onProgress?.({ sentBytes: 0, totalBytes, ratio: 0 });
+
+      const response = await fetch(signedUrl, {
+        method: 'PUT',
+        headers: {
+          'content-type': contentType,
+          'cache-control': '3600',
+          'x-upsert': 'false',
+        },
+        body: blob,
+      });
+
+      result = {
+        status: response.status,
+        body: await response.text().catch(() => ''),
+      };
+
+      if (response.ok) {
+        onProgress?.({
+          sentBytes: totalBytes,
+          totalBytes,
+          ratio: 1,
+        });
+      }
+    } else {
+      const uploadOptions = {
+        httpMethod: 'PUT' as const,
+        uploadType:
+          FileSystem.FileSystemUploadType.BINARY_CONTENT,
+        headers: {
+          'content-type': contentType,
+          'cache-control': '3600',
+          'x-upsert': 'false',
+        },
+      };
+
+      result = onProgress
+        ? await (async () => {
+            const task = FileSystem.createUploadTask(
               signedUrl,
               uri,
               uploadOptions,
-              (progress) => {
+              progress => {
                 const sentBytes = Number(
                   progress.totalBytesSent ?? 0,
                 );
                 const totalBytes = Number(
-                  progress.totalBytesExpectedToSend ??
-                    sizeBytes ??
-                    0,
+                  progress.totalBytesExpectedToSend ?? sizeBytes ?? 0,
                 );
-                const ratio =
-                  totalBytes > 0
-                    ? Math.min(
-                        1,
-                        sentBytes / totalBytes,
-                      )
-                    : 0;
-
-                onProgress({
-                  sentBytes,
-                  totalBytes,
-                  ratio,
-                });
+                const ratio = totalBytes > 0
+                  ? Math.min(1, sentBytes / totalBytes)
+                  : 0;
+                onProgress({ sentBytes, totalBytes, ratio });
               },
             );
-
-          return task.uploadAsync();
-        })()
-      : await FileSystem.uploadAsync(
-          signedUrl,
-          uri,
-          uploadOptions,
-        );
+            return task.uploadAsync();
+          })()
+        : await FileSystem.uploadAsync(
+            signedUrl,
+            uri,
+            uploadOptions,
+          );
+    }
   } catch (error: any) {
     throwClassifiedUploadError({
       failureLabel,
@@ -434,18 +439,11 @@ async function uploadCommunitySignedPut({
   }
 
   if (!result) {
-    throw new Error(
-      `${failureLabel} upload failed (no response).`,
-    );
+    throw new Error(`${failureLabel} upload failed (no response).`);
   }
 
-  if (
-    result.status < 200 ||
-    result.status >= 300
-  ) {
-    const serverBody = String(
-      result.body ?? '',
-    )
+  if (result.status < 200 || result.status >= 300) {
+    const serverBody = String(result.body ?? '')
       .replace(/\s+/g, ' ')
       .trim()
       .slice(0, 300);
