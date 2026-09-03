@@ -1,0 +1,143 @@
+name: BUKLOD Classroom Integration QA
+
+on:
+  push:
+    branches:
+      - integration/buklod-classroom-r1
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-qa:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout integration branch
+        uses: actions/checkout@v4
+        with:
+          ref: integration/buklod-classroom-r1
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Apply conflict-safe Classroom doorways
+        shell: python
+        run: |
+          from pathlib import Path
+
+          me_path = Path('src/app/(tabs)/me.tsx')
+          me = me_path.read_text(encoding='utf-8')
+          if "key: 'classrooms'" not in me:
+              anchor = """      {
+        key: 'attendance-qr',
+        icon: 'qrcode',
+        label: 'Attendance QR',
+        onPress: () => router.push('/profile/attendance-qr' as any),
+      },
+      {
+        key: 'organization',
+"""
+              replacement = """      {
+        key: 'attendance-qr',
+        icon: 'qrcode',
+        label: 'Attendance QR',
+        onPress: () => router.push('/profile/attendance-qr' as any),
+      },
+      {
+        key: 'classrooms',
+        icon: 'google-classroom',
+        label: 'My Classrooms',
+        onPress: () => router.push('/profile/buklod-classrooms' as any),
+      },
+      {
+        key: 'organization',
+"""
+              if me.count(anchor) != 1:
+                  raise SystemExit(f'My BUKLOD anchor count was {me.count(anchor)}, expected 1')
+              me = me.replace(anchor, replacement, 1)
+              me_path.write_text(me, encoding='utf-8')
+
+          faculty_path = Path('src/app/profile/buklod-faculty-class.tsx')
+          faculty = faculty_path.read_text(encoding='utf-8')
+          marker = 'BUKLOD_CLASSROOM_R1_FACULTY_ENTRY'
+          if marker not in faculty:
+              anchor = """          <View style={styles.metricCard}><Text style={styles.metricValue}>{gradeItems.length}</Text><Text style={styles.metricLabel}>Grade Items</Text></View>
+        </View>
+
+        <View style={styles.sectionHeader}>
+"""
+              replacement = """          <View style={styles.metricCard}><Text style={styles.metricValue}>{gradeItems.length}</Text><Text style={styles.metricLabel}>Grade Items</Text></View>
+        </View>
+
+        {/* BUKLOD_CLASSROOM_R1_FACULTY_ENTRY */}
+        <Pressable
+          onPress={() =>
+            router.push({
+              pathname: '/profile/buklod-classroom' as any,
+              params: { id: classroomId, name: classroomName },
+            })
+          }
+          style={({ pressed }) => ({
+            backgroundColor: '#174c2b',
+            borderRadius: 18,
+            padding: 16,
+            marginBottom: 18,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 12,
+            opacity: pressed ? 0.84 : 1,
+          })}
+        >
+          <View style={{ width: 48, height: 48, borderRadius: 15, backgroundColor: '#e7f4e9', alignItems: 'center', justifyContent: 'center' }}>
+            <MaterialCommunityIcons name=\"google-classroom\" size={27} color=\"#1f7a3f\" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: '#fff', fontWeight: '900', fontSize: 17 }}>Open BUKLOD Classroom</Text>
+            <Text style={{ color: '#d4e5d8', lineHeight: 17, fontSize: 11, marginTop: 3 }}>Live class, discussions, messages, activities, submissions, materials and asynchronous monitoring.</Text>
+          </View>
+          <MaterialCommunityIcons name=\"chevron-right\" size={23} color=\"#fff\" />
+        </Pressable>
+
+        <View style={styles.sectionHeader}>
+"""
+              if faculty.count(anchor) != 1:
+                  raise SystemExit(f'Faculty anchor count was {faculty.count(anchor)}, expected 1')
+              faculty = faculty.replace(anchor, replacement, 1)
+              faculty_path.write_text(faculty, encoding='utf-8')
+
+      - name: Verify Classroom wiring anchors
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(grep -c "key: 'classrooms'" 'src/app/(tabs)/me.tsx')" -eq 1
+          test "$(grep -c 'BUKLOD_CLASSROOM_R1_FACULTY_ENTRY' src/app/profile/buklod-faculty-class.tsx)" -eq 1
+          test -f src/app/profile/buklod-classroom.tsx
+          test -f src/app/profile/buklod-classrooms.tsx
+          test -f src/components/classroom/ClassroomLiveView.native.tsx
+          test -f src/components/classroom/ClassroomLiveView.web.tsx
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Commit validated doorways and remove one-time workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/classroom_integration_qa.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add 'src/app/(tabs)/me.tsx' src/app/profile/buklod-faculty-class.tsx .github/workflows/classroom_integration_qa.yml
+          if git diff --cached --quiet; then
+            echo 'No integration changes to commit.'
+            exit 0
+          fi
+          git commit -m 'feat(classroom): wire Classroom R1 into current UI'
+          git push origin HEAD:integration/buklod-classroom-r1
