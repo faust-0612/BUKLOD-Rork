@@ -202,7 +202,7 @@ export function ConnectThreadHeader({
             testID="buklod-direct-audio-call"
             instant
             nested={false}
-            compact
+            hitSlop={8}
             disabled={callBusy || !onAudioCall}
             onPress={onAudioCall}
             style={[
@@ -230,7 +230,7 @@ export function ConnectThreadHeader({
             testID="buklod-direct-video-call"
             instant
             nested={false}
-            compact
+            hitSlop={8}
             disabled={callBusy || !onVideoCall}
             onPress={onVideoCall}
             style={[
