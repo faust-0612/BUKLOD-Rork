@@ -1,0 +1,19 @@
+name: Classroom R4 Runner
+
+on:
+  push:
+    branches:
+      - feature/classroom-student-native-r4
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Smoke
+        shell: bash
+        run: echo "Classroom R4 runner active"
