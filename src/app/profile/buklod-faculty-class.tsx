@@ -242,6 +242,35 @@ export default function BuklodFacultyClassScreen() {
           <View style={styles.metricCard}><Text style={styles.metricValue}>{gradeItems.length}</Text><Text style={styles.metricLabel}>Grade Items</Text></View>
         </View>
 
+        {/* BUKLOD_CLASSROOM_R1_FACULTY_ENTRY */}
+        <Pressable
+          onPress={() =>
+            router.push({
+              pathname: '/profile/buklod-classroom' as any,
+              params: { id: classroomId, name: classroomName },
+            })
+          }
+          style={({ pressed }) => ({
+            backgroundColor: '#174c2b',
+            borderRadius: 18,
+            padding: 16,
+            marginBottom: 18,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 12,
+            opacity: pressed ? 0.84 : 1,
+          })}
+        >
+          <View style={{ width: 48, height: 48, borderRadius: 15, backgroundColor: '#e7f4e9', alignItems: 'center', justifyContent: 'center' }}>
+            <MaterialCommunityIcons name="google-classroom" size={27} color="#1f7a3f" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: '#fff', fontWeight: '900', fontSize: 17 }}>Open BUKLOD Classroom</Text>
+            <Text style={{ color: '#d4e5d8', lineHeight: 17, fontSize: 11, marginTop: 3 }}>Live class, discussions, messages, activities, submissions, materials and asynchronous monitoring.</Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={23} color="#fff" />
+        </Pressable>
+
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Roster</Text>
           <Pressable style={styles.smallButton} onPress={() => setShowEnroll(true)}>
