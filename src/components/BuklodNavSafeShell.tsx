@@ -10,10 +10,34 @@ import {
   View,
 } from 'react-native';
 
+import { usePathname } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import BuklodPersistentBottomNav from '@/components/BuklodPersistentBottomNav';
 import {
+  normalizeBuklodPathname,
   useBuklodPersistentNavOccupiedHeight,
 } from '@/lib/buklodSafeArea';
+
+function isMyBuklodDoorPath(pathname: string): boolean {
+  const normalized = normalizeBuklodPathname(pathname);
+
+  return (
+    normalized.startsWith('/account/') ||
+    normalized === '/about-buklod' ||
+    normalized.startsWith('/premium') ||
+    normalized === '/delete-account' ||
+    normalized.startsWith('/delete-account/') ||
+    normalized === '/privacy' ||
+    normalized.startsWith('/privacy/') ||
+    normalized.startsWith('/policy') ||
+    normalized.startsWith('/contact-us') ||
+    normalized.startsWith('/feedback') ||
+    normalized.startsWith('/admin/account-recovery') ||
+    normalized.startsWith('/system/paid-features') ||
+    normalized.startsWith('/pilot/checklist')
+  );
+}
 
 /**
  * Root shell: shrinks routed content above the global bottom nav so door
@@ -26,6 +50,10 @@ export default function BuklodNavSafeShell({
 }) {
   const navOccupied =
     useBuklodPersistentNavOccupiedHeight();
+  const insets = useSafeAreaInsets();
+  const pathname = usePathname();
+  const reserveMyBuklodSystemInsets =
+    isMyBuklodDoorPath(pathname);
   const [keyboardVisible, setKeyboardVisible] =
     useState(false);
 
@@ -72,8 +100,18 @@ export default function BuklodNavSafeShell({
     };
   }, []);
 
+  const contentTopInset =
+    reserveMyBuklodSystemInsets
+      ? Math.max(insets.top, 0)
+      : 0;
   const contentBottomInset =
-    keyboardVisible ? 0 : navOccupied;
+    keyboardVisible
+      ? 0
+      : navOccupied > 0
+        ? navOccupied
+        : reserveMyBuklodSystemInsets
+          ? Math.max(insets.bottom, 0)
+          : 0;
 
   return (
     <View style={styles.root}>
@@ -81,6 +119,7 @@ export default function BuklodNavSafeShell({
         style={[
           styles.content,
           {
+            paddingTop: contentTopInset,
             paddingBottom: contentBottomInset,
           },
         ]}

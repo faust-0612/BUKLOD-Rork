@@ -1,4 +1,4 @@
-﻿/* PATCH_184F_R3_PROFILE_CLEANUP */
+/* PATCH_184F_R3_PROFILE_CLEANUP */
 /* PATCH_179C_R1_PREMIUM_CURRENT_PROFILE */
 import { useCallback as useProfileFocusCallback, useRef as useProfileScrollRef } from 'react';
 import { useFocusEffect as useProfileFocusEffect } from 'expo-router';
@@ -397,12 +397,6 @@ export default function MeScreen() {
 
   useProfileFocusEffect(
     useProfileFocusCallback(() => {
-      profileScrollRef.current?.scrollTo({
-        x: 0,
-        y: 0,
-        animated: false,
-      });
-
       const returnScopeId =
         firstRouteParam(
           params.returnScopeId
