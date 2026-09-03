@@ -8,6 +8,10 @@ on:
     paths:
       - '.github/workflows/production_android_ota.yml'
       - 'src/app/(auth)/register.tsx'
+      - 'src/app/(auth)/forgot-password.tsx'
+      - 'src/app/account/recovery-pin.tsx'
+      - 'src/app/account/security.tsx'
+      - 'src/app/admin/account-recovery.tsx'
 
 permissions:
   contents: read
@@ -36,12 +40,17 @@ jobs:
       - name: TypeScript QA
         run: npx tsc --noEmit
 
-      - name: Verify registration hardening anchors
+      - name: Verify production safety anchors
         shell: bash
         run: |
           grep -F "buklod_registration_version:" 'src/app/(auth)/register.tsx'
           grep -F "createAccountInFlight.current" 'src/app/(auth)/register.tsx'
           grep -F "buklod_complete_registration_v1" 'src/app/(auth)/register.tsx'
+          grep -F "account-recovery-v3" 'src/app/(auth)/forgot-password.tsx'
+          grep -F "I forgot my login too" 'src/app/(auth)/forgot-password.tsx'
+          grep -F "recover_with_admin_code" 'src/app/(auth)/forgot-password.tsx'
+          grep -F "recovery_status" 'src/app/account/recovery-pin.tsx'
+          grep -F "admin_reject_request" 'src/app/admin/account-recovery.tsx'
 
       - name: Expo credential preflight
         id: expo
@@ -63,7 +72,7 @@ jobs:
             --channel production \
             --platform android \
             --environment production \
-            --message "BUKLOD Create Account Hardening 193A" \
+            --message "BUKLOD Account Recovery R2 + Create Account 193A" \
             --non-interactive
 
       - name: Deployment status
