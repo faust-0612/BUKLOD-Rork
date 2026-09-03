@@ -5,6 +5,7 @@ import {
   prewarmBuklodStreamVideoClient,
   subscribeBuklodStreamVideoClient,
 } from '@/lib/buklodStreamVideoClient';
+import { installBuklodCallLifecycle } from '@/lib/buklodCallLifecycle';
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import {
   rememberStreamPushUser,
@@ -137,6 +138,21 @@ export function StreamVideoProvider({
     },
     [
       user?.id,
+    ]
+  );
+
+  useEffect(
+    () => {
+      if (!client) {
+        return;
+      }
+
+      return installBuklodCallLifecycle(
+        client
+      );
+    },
+    [
+      client,
     ]
   );
 

@@ -1,4 +1,5 @@
 ﻿import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 import {
   StreamVideoClient,
@@ -16,12 +17,45 @@ import {
   resolveStreamApiKey,
 } from '@/lib/buklodStreamPushStorage';
 
-const androidPushProviderName =
+/*
+ * PATCH_CALL_LIFECYCLE_R1
+ *
+ * Public Stream push provider names are configuration identifiers, not secrets.
+ * Keep a runtime fallback because EAS Update does not inherit eas.json build.env
+ * when the remote production environment has no EXPO_PUBLIC_* variables. Without
+ * this fallback an OTA can accidentally disable killed/background call push.
+ */
+const explicitAndroidPushProviderName =
   (
     process.env
       .EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME
     ?? ''
   ).trim();
+
+const appEnvironment =
+  (
+    process.env
+      .EXPO_PUBLIC_APP_ENV
+    ?? ''
+  )
+    .trim()
+    .toLowerCase();
+
+const productionRuntime =
+  !__DEV__ &&
+  appEnvironment !== 'development' &&
+  appEnvironment !== 'preview' &&
+  appEnvironment !== 'staging';
+
+const androidPushProviderName =
+  explicitAndroidPushProviderName ||
+  (
+    Platform.OS === 'android'
+      ? productionRuntime
+        ? 'firebase-video-production'
+        : 'firebase-video-staging'
+      : ''
+  );
 
 const iosPushProviderName =
   (
@@ -286,8 +320,14 @@ export function setPushConfig() {
               androidPushProviderName,
 
             incomingChannel: {
+              /*
+               * v2 intentionally creates a fresh Android channel so devices
+               * that cached an older silent channel get the SDK's current
+               * ringing behavior again. Users can still control it in system
+               * notification settings.
+               */
               id:
-                'buklod_incoming_calls',
+                'buklod_incoming_calls_v2',
 
               name:
                 'Incoming BUKLOD Calls',
@@ -318,6 +358,12 @@ export function setPushConfig() {
           ios: {
             pushProviderName:
               iosPushProviderName,
+
+            callsHistory:
+              true,
+
+            enableOngoingCalls:
+              true,
           },
         }
       : {}),

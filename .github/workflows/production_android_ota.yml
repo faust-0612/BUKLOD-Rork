@@ -21,9 +21,18 @@ on:
       - 'src/app/profile/buklod-faculty-class.tsx'
       - 'src/app/profile/buklod-classroom*.tsx'
       - 'src/components/classroom/**'
+      - 'src/components/BuklodScopeCallLauncher.tsx'
+      - 'src/lib/buklodStreamCall.ts'
+      - 'src/lib/buklodCallLifecycle.ts'
+      - 'src/providers/StreamVideoProvider.tsx'
+      - 'src/utils/setFirebaseListeners.android.ts'
+      - 'src/utils/setPushConfig.ts'
+      - 'supabase/migrations/*buklod_call_lifecycle*.sql'
 
 env:
   EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  EXPO_PUBLIC_APP_ENV: production
+  EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-production
 
 permissions:
   contents: read
@@ -69,6 +78,10 @@ jobs:
           grep -F 'BUKLOD_CLASSROOM_AUTO_GRADE_R1' 'src/app/profile/buklod-classroom-work.tsx'
           grep -F 'buklod_classroom_start_live_v1' 'src/app/profile/buklod-classroom.tsx'
           grep -F 'StreamVideoClient.getOrCreateInstance' 'src/components/classroom/ClassroomLiveView.native.tsx'
+          grep -F 'PATCH_CALL_LIFECYCLE_R1' 'src/lib/buklodStreamCall.ts'
+          grep -F 'installBuklodCallLifecycle' 'src/providers/StreamVideoProvider.tsx'
+          grep -F 'firebase-video-production' 'src/utils/setPushConfig.ts'
+          grep -F 'call.missed' 'src/utils/setFirebaseListeners.android.ts'
 
       - name: Expo credential preflight
         id: expo
@@ -90,7 +103,7 @@ jobs:
             --channel production \
             --platform android \
             --environment production \
-            --message "BUKLOD Classroom R1 + latest production fixes" \
+            --message "BUKLOD Call Lifecycle R1 + latest production fixes" \
             --non-interactive
 
       - name: Deployment status
