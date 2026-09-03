@@ -85,6 +85,50 @@ function parseContext(raw: unknown): FormationContext {
   };
 }
 
+function normalizeOrganizationId(value?: string | null) {
+  const id = String(value ?? '').trim();
+  return id || null;
+}
+
+/**
+ * Organization Home must never borrow a user's Cluster from another
+ * Organization. This also prevents legacy/fallback data from making an
+ * unrelated Cluster look like a child/sub-organization of the current Org.
+ */
+function constrainContextToOrganization(
+  context: FormationContext,
+  organizationId?: string | null,
+): FormationContext {
+  const requestedOrganizationId = normalizeOrganizationId(organizationId);
+
+  if (!requestedOrganizationId) {
+    return context;
+  }
+
+  const matchingClusters = context.clusters.filter(
+    (cluster) =>
+      normalizeOrganizationId(cluster.organization_id) ===
+      requestedOrganizationId,
+  );
+
+  const primaryMatches =
+    context.primary_cluster &&
+    normalizeOrganizationId(context.primary_cluster.organization_id) ===
+      requestedOrganizationId
+      ? context.primary_cluster
+      : null;
+
+  const primaryCluster = primaryMatches ?? matchingClusters[0] ?? null;
+
+  return {
+    ...context,
+    organization_id: requestedOrganizationId,
+    has_active_cluster: Boolean(primaryCluster),
+    primary_cluster: primaryCluster,
+    clusters: matchingClusters,
+  };
+}
+
 export async function fetchFormationContext(
   organizationId?: string | null,
 ): Promise<FormationContext> {
@@ -99,7 +143,10 @@ export async function fetchFormationContext(
     throw error;
   }
 
-  return parseContext(data);
+  return constrainContextToOrganization(
+    parseContext(data),
+    organizationId,
+  );
 }
 
 function formationContextFromClusterTruth(
@@ -108,13 +155,25 @@ function formationContextFromClusterTruth(
 ): FormationContext | null {
   if (!truth) return null;
 
+  const requestedOrganizationId = normalizeOrganizationId(organizationId);
+  const truthOrganizationId = normalizeOrganizationId(truth.organization_id);
+
+  /*
+   * Critical hierarchy guard: when an Organization dashboard requested the
+   * fallback, the active Cluster must explicitly belong to that same Org.
+   * Never manufacture the parent relationship from the requested Org ID.
+   */
+  if (
+    requestedOrganizationId &&
+    truthOrganizationId !== requestedOrganizationId
+  ) {
+    return null;
+  }
+
   const cluster: FormationClusterRow = {
     cluster_id: truth.scope_id,
     cluster_name: truth.name,
-    organization_id:
-      truth.organization_id ??
-      organizationId ??
-      null,
+    organization_id: truthOrganizationId,
     organization_name: null,
     membership_status: 'ACTIVE',
     cluster_status:
@@ -126,9 +185,8 @@ function formationContextFromClusterTruth(
 
   return {
     organization_id:
-      truth.organization_id ??
-      organizationId ??
-      null,
+      requestedOrganizationId ??
+      truthOrganizationId,
     has_active_cluster: true,
     primary_cluster: cluster,
     clusters: [cluster],
