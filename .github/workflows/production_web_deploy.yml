@@ -24,6 +24,8 @@ on:
       - 'src/components/classroom/**'
       - 'src/components/BuklodNavSafeShell.web.tsx'
       - 'src/components/connect/ConnectThreadHeader.tsx'
+      - 'src/components/connect/ConnectComposerPicker.tsx'
+      - 'src/lib/buklodConnectGifCatalog.ts'
       - 'src/components/BuklodAcceptedCallContent.web.tsx'
       - 'src/components/BuklodScopeCallLauncher.web.tsx'
       - 'src/components/BuklodConnectThread.tsx'
@@ -99,6 +101,9 @@ jobs:
           grep -F 'installBuklodCallLifecycle' 'src/providers/StreamVideoProvider.web.tsx'
           grep -F 'buklod-direct-audio-call' 'src/components/connect/ConnectThreadHeader.tsx'
           grep -F 'buklod-direct-video-call' 'src/components/connect/ConnectThreadHeader.tsx'
+          grep -F 'PATCH_191D_LIVE_GIPHY_COMPACT_PICKER' 'src/components/connect/ConnectComposerPicker.tsx'
+          grep -F 'searchConnectGifs' 'src/lib/buklodConnectGifCatalog.ts'
+          grep -F 'CONNECT_GIF_CATEGORIES' 'src/lib/buklodConnectGifCatalog.ts'
 
       - name: Expo credential preflight
         id: expo
