@@ -240,7 +240,7 @@ export default function BuklodNavSafeShell({
             : styles.sidebarWide,
           {
             backgroundColor: theme.headerSurface,
-            borderRightColor: theme.borderSubtle,
+            borderRightColor: theme.navBorder,
           },
         ]}
       >
@@ -290,7 +290,7 @@ export default function BuklodNavSafeShell({
                   styles.navButton,
                   compact && styles.navButtonCompact,
                   active && {
-                    backgroundColor: theme.accentMuted,
+                    backgroundColor: theme.accentSoft,
                   },
                   pressed && styles.pressed,
                 ]}
@@ -344,7 +344,7 @@ export default function BuklodNavSafeShell({
               styles.navButton,
               compact && styles.navButtonCompact,
               isActiveRoute(normalizedPath, '/me') && {
-                backgroundColor: theme.accentMuted,
+                backgroundColor: theme.accentSoft,
               },
               pressed && styles.pressed,
             ]}
