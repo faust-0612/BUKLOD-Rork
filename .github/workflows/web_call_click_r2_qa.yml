@@ -1,0 +1,32 @@
+name: BUKLOD Web Call Click R2 QA
+
+on:
+  push:
+    branches:
+      - fix/web-call-click-r2
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+      - name: Web export QA
+        run: |
+          npx expo export --platform web
+          test -f dist/index.html
+      - name: Verify click anchors
+        run: |
+          grep -F 'instant' 'src/components/connect/ConnectThreadHeader.tsx'
+          grep -F 'nested={false}' 'src/components/connect/ConnectThreadHeader.tsx'
+          grep -F 'buklod-direct-audio-call' 'src/components/connect/ConnectThreadHeader.tsx'
+          grep -F 'buklod-direct-video-call' 'src/components/connect/ConnectThreadHeader.tsx'
