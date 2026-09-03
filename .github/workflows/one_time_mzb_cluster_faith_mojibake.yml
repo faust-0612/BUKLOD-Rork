@@ -1,0 +1,86 @@
+name: One-time MZB Cluster faith + mojibake fix
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/one_time_mzb_cluster_faith_mojibake.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Fix SHOW FAITH mojibake
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/components/BuklodHomeFaithPanel.tsx')
+          text = path.read_text(encoding='utf-8')
+
+          replacements = {
+              'Read â€¢ Highlight â€¢ Notes': 'Read • Highlight • Notes',
+              'Read â€¢ Reflect â€¢ Apply': 'Read • Reflect • Apply',
+              'Pray â€¢ Share â€¢ Encourage': 'Pray • Share • Encourage',
+              'ABCÃ¢â‚¬â„¢s ng Paglagong Kristyano': 'ABC’s ng Paglagong Kristyano',
+              'Lessons Ã¢â‚¬Â¢ Bible links Ã¢â‚¬Â¢ +5 points': 'Lessons • Bible links • +5 points',
+              'Search Ã¢â‚¬Â¢ Select Ã¢â‚¬Â¢ Font Ã¢â‚¬Â¢ Zoom': 'Search • Select • Font • Zoom',
+          }
+
+          missing = [old for old in replacements if old not in text]
+          if missing:
+              raise SystemExit('Expected mojibake strings not found: ' + repr(missing))
+
+          for old, new in replacements.items():
+              text = text.replace(old, new)
+
+          path.write_text(text, encoding='utf-8')
+          print('SHOW FAITH mojibake replacements applied:', len(replacements))
+          PY
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Commit production source fix and remove one-time workflow
+        shell: bash
+        run: |
+          git config user.name "BUKLOD Automation"
+          git config user.email "actions@users.noreply.github.com"
+          rm -f .github/workflows/one_time_mzb_cluster_faith_mojibake.yml
+          git add src/components/BuklodHomeFaithPanel.tsx .github/workflows/one_time_mzb_cluster_faith_mojibake.yml
+          git commit -m "fix(faith): inherit MZB Cluster access and repair Show Faith text"
+          git push origin HEAD:main
+
+      - name: Production Android OTA
+        continue-on-error: true
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        shell: bash
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "EXPO_TOKEN is not configured; source fix is committed but OTA was skipped."
+            exit 0
+          fi
+          npx eas-cli@latest update \
+            --channel production \
+            --platform android \
+            --environment production \
+            --message "BUKLOD MZB Cluster Faith + Mojibake R1" \
+            --non-interactive
