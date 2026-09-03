@@ -6,14 +6,52 @@ on:
       - feature/classroom-student-native-r4
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  smoke:
+  qa:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Smoke
+        with:
+          fetch-depth: 0
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install
+        run: npm ci --ignore-scripts
+
+      - name: Apply safe integration
+        run: python scripts/classroom_r4_integrate.py
+
+      - name: Main TypeScript
+        run: npx tsc --noEmit
+
+      - name: Student app TypeScript
+        run: npx tsc -p apps/buklod-classroom/tsconfig.json --noEmit
+
+      - name: Verify anchors
         shell: bash
-        run: echo "Classroom R4 runner active"
+        run: |
+          if grep -F "key: 'classrooms'" 'src/app/(tabs)/me.tsx'; then exit 1; fi
+          grep -F 'BUKLOD_CLASSROOM_R4_ACADEMIC_CONTROL' 'src/app/profile/buklod-faculty-class.tsx'
+          grep -F 'TERM BREAKDOWN R4' 'apps/buklod-classroom/app/class/[id]/[section].tsx'
+          grep -F 'buklod_classroom_faculty_apply_academic_setup_v1' 'src/app/profile/buklod-faculty-academic-control.tsx'
+
+      - name: Commit safe wiring
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo 'No wiring changes needed.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add 'src/app/(tabs)/me.tsx' 'src/app/profile/buklod-faculty-class.tsx' 'apps/buklod-classroom/app/class/[id]/[section].tsx'
+          git commit -m 'feat(classroom): separate student app and wire faculty control'
+          git push
