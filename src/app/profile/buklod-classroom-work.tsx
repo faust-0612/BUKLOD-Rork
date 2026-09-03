@@ -240,6 +240,15 @@ export default function BuklodClassroomWorkScreen() {
       if (error || !submission?.id) throw error ?? new Error('Submission record was not created.');
       if (file) await uploadSubmissionFile(String(submission.id), file, uid);
       await supabase.from('buklod_education_classroom_engagement_events').insert({ classroom_id: classroomId, user_id: uid, event_type: 'ASSIGNMENT_SUBMITTED', source_type: 'ASSIGNMENT', source_id: assignment.id });
+      // BUKLOD_CLASSROOM_AUTO_GRADE_R1
+      if (assignment.auto_grading_mode === 'RUBRIC_SUGGEST' && text) {
+        const { error: autoGradeError } = await supabase.functions.invoke('buklod-classroom-auto-grade', {
+          body: { submission_id: String(submission.id) },
+        });
+        if (autoGradeError) {
+          console.warn('BUKLOD Classroom auto-grade suggestion:', autoGradeError.message);
+        }
+      }
       setResponseText(prev => ({ ...prev, [assignment.id]: '' }));
       setResponseLink(prev => ({ ...prev, [assignment.id]: '' }));
       setFiles(prev => ({ ...prev, [assignment.id]: null }));
