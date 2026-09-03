@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { createBuklodPerformanceFetch } from './buklodPerformanceFetch';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
@@ -27,7 +27,10 @@ export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
   },
   global: {
     headers: {
-      'x-buklod-client': 'mobile',
+      'x-buklod-client':
+        Platform.OS === 'web'
+          ? 'web'
+          : 'mobile',
     },
 
   fetch: buklodRootPerformanceFetch

@@ -279,7 +279,7 @@ async function readLoginSecret(key: string) {
     return AsyncStorage.getItem(key);
   }
 
-  return readLoginSecret(key);
+  return SecureStore.getItemAsync(key);
 }
 
 async function writeLoginSecret(
@@ -291,7 +291,7 @@ async function writeLoginSecret(
     return;
   }
 
-  await writeLoginSecret(key, value);
+  await SecureStore.setItemAsync(key, value);
 }
 
 async function deleteLoginSecret(key: string) {
@@ -300,7 +300,7 @@ async function deleteLoginSecret(key: string) {
     return;
   }
 
-  await deleteLoginSecret(key);
+  await SecureStore.deleteItemAsync(key);
 }
 
 function parseSuggestedLogins(
@@ -1038,14 +1038,28 @@ const chooseSuggestedLogin =
       return;
     }
 
-    if (accountLifecycle?.deactivated === true) {
+    const accountWasSelfDeactivated =
+      accountLifecycle?.deactivated === true;
+    const accountIsInactive =
+      accountLifecycle?.is_active === false;
+
+    if (
+      accountWasSelfDeactivated ||
+      accountIsInactive
+    ) {
       setBusy(false);
 
       Alert.alert(
-        'Account Deactivated',
-        accountLifecycle?.can_self_reactivate === true
-          ? 'This account is currently deactivated. Reactivate it to continue using BUKLOD.'
-          : 'This account cannot be self-reactivated. Please contact a BUKLOD administrator.',
+        accountWasSelfDeactivated
+          ? 'Account Deactivated'
+          : 'Account Inactive',
+        accountWasSelfDeactivated
+          ? (
+              accountLifecycle?.can_self_reactivate === true
+                ? 'This account is currently deactivated. Reactivate it to continue using BUKLOD.'
+                : 'This account cannot be self-reactivated. Please contact a BUKLOD administrator.'
+            )
+          : 'This account is inactive. Please contact a BUKLOD administrator.',
         accountLifecycle?.can_self_reactivate === true
           ? [
               {
