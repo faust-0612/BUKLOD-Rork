@@ -17,6 +17,78 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Configure reconciliation
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin main
+          if git merge-base --is-ancestor origin/main HEAD; then
+            echo 'Classroom R4 already contains latest main.'
+          else
+            echo 'Reconciling latest production main into Classroom R4...'
+            git merge --no-commit --no-ff -X theirs origin/main
+          fi
+
+      - name: Preserve production workflows and reapply Classroom R4 gates
+        shell: bash
+        run: |
+          python scripts/classroom_r4_integrate.py
+          python scripts/classroom_r4_finalize.py
+          python - <<'PY'
+          from pathlib import Path
+
+          for raw_path in [
+              '.github/workflows/production_android_ota.yml',
+              '.github/workflows/production_web_deploy.yml',
+          ]:
+              p = Path(raw_path)
+              s = p.read_text(encoding='utf-8')
+
+              path_anchor = "      - 'src/app/profile/buklod-faculty-class.tsx'\n"
+              path_rows = (
+                  "      - 'src/app/profile/buklod-faculty-academic-control.tsx'\n"
+                  "      - 'src/app/profile/buklod-faculty-syllabus.tsx'\n"
+                  "      - 'src/app/profile/buklod-faculty-rle.tsx'\n"
+              )
+              if "buklod-faculty-academic-control.tsx" not in s:
+                  if path_anchor not in s:
+                      raise SystemExit(f'{raw_path}: faculty path anchor missing')
+                  s = s.replace(path_anchor, path_anchor + path_rows, 1)
+
+              old = "          grep -F \"key: 'classrooms'\" 'src/app/(tabs)/me.tsx'\n"
+              gate = (
+                  "          if grep -F \"key: 'classrooms'\" 'src/app/(tabs)/me.tsx'; then\n"
+                  "            echo \"My Classrooms must remain removed from the BUKLOD Main Profile dashboard.\"\n"
+                  "            exit 1\n"
+                  "          fi\n"
+                  "          grep -F 'BUKLOD_CLASSROOM_R4_ACADEMIC_CONTROL' 'src/app/profile/buklod-faculty-class.tsx'\n"
+                  "          grep -F 'buklod_classroom_faculty_apply_academic_setup_v1' 'src/app/profile/buklod-faculty-academic-control.tsx'\n"
+                  "          grep -F 'buklod-classroom-syllabus-plan' 'src/app/profile/buklod-faculty-syllabus.tsx'\n"
+                  "          grep -F 'buklod_classroom_faculty_review_journal_v1' 'src/app/profile/buklod-faculty-rle.tsx'\n"
+              )
+              if "My Classrooms must remain removed" not in s:
+                  if old not in s:
+                      raise SystemExit(f'{raw_path}: My Classrooms production gate anchor missing')
+                  s = s.replace(old, gate, 1)
+
+              if raw_path.endswith('production_android_ota.yml'):
+                  s = s.replace(
+                      '--message "BUKLOD Classroom R1 + latest production fixes"',
+                      '--message "BUKLOD Faculty Classroom R4 + latest production fixes"',
+                  )
+
+              p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Verify latest production fixes survived reconciliation
+        shell: bash
+        run: |
+          test -f 'src/lib/buklodCallLifecycle.ts'
+          test -f 'src/app/scope/bulletin-editor.tsx'
+          grep -Fi 'bulletin' '.github/workflows/production_android_ota.yml'
+          grep -Fi 'bulletin' '.github/workflows/production_web_deploy.yml'
+
       - name: Node
         uses: actions/setup-node@v4
         with:
@@ -28,11 +100,6 @@ jobs:
           npm ci --ignore-scripts
           npm install --no-save --ignore-scripts --legacy-peer-deps --package-lock=false tus-js-client@4.3.1
 
-      - name: Apply safe integration
-        run: |
-          python scripts/classroom_r4_integrate.py
-          python scripts/classroom_r4_finalize.py
-
       - name: Main TypeScript
         run: npx tsc --noEmit
 
@@ -42,6 +109,7 @@ jobs:
       - name: Verify anchors
         shell: bash
         run: |
+          git diff --check
           if grep -F "key: 'classrooms'" 'src/app/(tabs)/me.tsx'; then exit 1; fi
           grep -F 'BUKLOD_CLASSROOM_R4_ACADEMIC_CONTROL' 'src/app/profile/buklod-faculty-class.tsx'
           grep -F 'TERM BREAKDOWN R4' 'apps/buklod-classroom/app/class/[id]/[section].tsx'
@@ -54,16 +122,19 @@ jobs:
           grep -F 'buklod_classroom_student_released_grade_items_v2' 'apps/buklod-classroom/src/core.ts'
           grep -F 'exam_ids: examIds' 'apps/buklod-classroom/src/core.ts'
           grep -F 'BUKLOD_QUIZ_DEDICATED' 'apps/buklod-classroom/app/class/[id]/[section].tsx'
+          grep -F 'My Classrooms must remain removed' '.github/workflows/production_android_ota.yml'
+          grep -F 'My Classrooms must remain removed' '.github/workflows/production_web_deploy.yml'
 
-      - name: Commit safe wiring
+      - name: Commit reconciled branch only after green QA
         shell: bash
         run: |
-          if git diff --quiet; then
-            echo 'No wiring changes needed.'
+          git add -A
+          if git rev-parse -q --verify MERGE_HEAD >/dev/null; then
+            git commit -m 'merge: reconcile Classroom R4 with latest production main'
+          elif ! git diff --cached --quiet; then
+            git commit -m 'feat(classroom): preserve R4 integration on latest production main'
+          else
+            echo 'No reconciliation changes needed.'
             exit 0
           fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add 'src/app/(tabs)/me.tsx' 'src/app/profile/buklod-faculty-class.tsx' 'src/app/profile/buklod-faculty-academic-control.tsx' 'apps/buklod-classroom/src/core.ts' 'apps/buklod-classroom/app/class/[id]/[section].tsx' 'apps/buklod-classroom/app/class/[id]/journal.tsx'
-          git commit -m 'feat(classroom): separate student app and wire faculty control'
-          git push
+          git push origin HEAD:feature/classroom-student-native-r4
