@@ -1,0 +1,86 @@
+name: BUKLOD Faculty Academic Flow R2 QA
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/faculty_academic_flow_r2_qa.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-qa:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Faculty R2 branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/faculty-academic-flow-r2
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Wire Academic Control Center into Faculty Home and Roster
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          faculty = Path('src/app/profile/buklod-faculty.tsx')
+          text = faculty.read_text(encoding='utf-8-sig')
+          token = 'BUKLOD_FACULTY_ACADEMIC_FLOW_R2'
+          if token not in text:
+              anchor = '        <Text style={styles.sectionTitle}>Faculty Autopilot</Text>\n'
+              if anchor not in text:
+                  raise SystemExit('STOP: Faculty Autopilot anchor missing.')
+              block = '''        {/* BUKLOD_FACULTY_ACADEMIC_FLOW_R2 */}\n        <Text style={styles.sectionTitle}>Academic Control Center</Text>\n        <Pressable\n          style={({ pressed }) => [\n            styles.toolCard,\n            { backgroundColor: '#e8f4ea', borderWidth: 1, borderColor: '#c9e2cf' },\n            pressed && { opacity: 0.88 },\n          ]}\n          onPress={() => router.push('/profile/buklod-faculty-academic-flow' as any)}\n        >\n          <View style={[styles.classIcon, { backgroundColor: '#fff' }]}>\n            <MaterialCommunityIcons name="school-outline" size={25} color="#1f7a3f" />\n          </View>\n          <View style={{ flex: 1 }}>\n            <Text style={styles.toolTitle}>Faculty × Quiz × Attendance × Grades</Text>\n            <Text style={styles.toolText}>\n              Start here: roster import, grading weights and rubrics, attendance, BUKLOD Quiz exams, released-score sync, and controlled final-grade release.\n            </Text>\n          </View>\n          <MaterialCommunityIcons name="chevron-right" size={22} color="#1f7a3f" />\n        </Pressable>\n\n'''
+              text = text.replace(anchor, block + anchor, 1)
+              faculty.write_text(text, encoding='utf-8')
+
+          roster = Path('src/app/profile/buklod-faculty-roster.tsx')
+          text = roster.read_text(encoding='utf-8-sig')
+          token = 'BUKLOD_FACULTY_ROSTER_IMPORT_R2'
+          if token not in text:
+              old = '''          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Enrolled students</Text>\n          <Pressable\n            style={({ pressed }) => [styles.smallButton, { backgroundColor: theme.buttonPrimary }, pressed && styles.pressed]}\n            onPress={() => setShowEnroll(true)}\n          >\n            <Text style={styles.smallButtonText}>+ Enroll</Text>\n          </Pressable>\n'''
+              new = '''          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Enrolled students</Text>\n          {/* BUKLOD_FACULTY_ROSTER_IMPORT_R2 */}\n          <View style={{ flexDirection: 'row', gap: 7 }}>\n            <Pressable\n              style={({ pressed }) => [styles.smallButton, { backgroundColor: theme.accentSoft }, pressed && styles.pressed]}\n              onPress={() =>\n                router.push({\n                  pathname: '/profile/buklod-faculty-import-roster' as any,\n                  params: { id: classroomId, name: classroomName },\n                })\n              }\n            >\n              <Text style={[styles.smallButtonText, { color: theme.accent }]}>Import</Text>\n            </Pressable>\n            <Pressable\n              style={({ pressed }) => [styles.smallButton, { backgroundColor: theme.buttonPrimary }, pressed && styles.pressed]}\n              onPress={() => setShowEnroll(true)}\n            >\n              <Text style={styles.smallButtonText}>+ Enroll</Text>\n            </Pressable>\n          </View>\n'''
+              if old not in text:
+                  raise SystemExit('STOP: Roster enroll anchor missing.')
+              text = text.replace(old, new, 1)
+              roster.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Verify Faculty Academic Flow R2 anchors
+        shell: bash
+        run: |
+          grep -F 'BUKLOD_FACULTY_ACADEMIC_FLOW_R2' 'src/app/profile/buklod-faculty.tsx'
+          grep -F 'BUKLOD_FACULTY_ROSTER_IMPORT_R2' 'src/app/profile/buklod-faculty-roster.tsx'
+          grep -F 'buklod_education_preview_roster_import_v2' 'src/app/profile/buklod-faculty-import-roster.tsx'
+          grep -F 'buklod_education_sync_quiz_exam_to_gradebook_v2' 'src/app/profile/buklod-faculty-quiz-sync.tsx'
+          grep -F 'buklod_education_bulk_final_grade_action_v2' 'src/app/profile/buklod-faculty-academic-flow.tsx'
+          grep -F 'Reference Grading Sheet' 'src/app/profile/buklod-faculty-academic-flow.tsx'
+          grep -F 'buklod-attendance://' 'src/app/profile/buklod-faculty-academic-flow.tsx'
+
+      - name: Commit tested source to feature branch
+        shell: bash
+        run: |
+          git config user.name 'BUKLOD Production Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add 'src/app/profile/buklod-faculty.tsx' 'src/app/profile/buklod-faculty-roster.tsx'
+          if git diff --cached --quiet; then
+            echo 'No wiring changes to commit.'
+          else
+            git commit -m 'feat(faculty): wire Academic Flow R2 into Faculty home and roster'
+            git push origin HEAD:feature/faculty-academic-flow-r2
+          fi
