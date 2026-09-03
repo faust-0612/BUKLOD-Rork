@@ -1,4 +1,8 @@
-import React from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useState,
+} from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -6,10 +10,14 @@ import {
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import {
+  router,
+  useFocusEffect,
+} from 'expo-router';
 
 import BuklodClusterHomeCommandCenterImpl from '@/components/BuklodClusterHomeCommandCenterImpl';
 import { clusterScopeManageRoute } from '@/lib/buklodCluster';
+import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
 import type { BuklodScope } from '@/lib/buklodScope';
 
@@ -23,10 +31,12 @@ type Props = {
 /**
  * Canonical Cluster Home entry point.
  *
- * Cluster admin authority belongs to the scope itself. Older callers passed
- * manageMode={false} for the normal Home route, which accidentally downgraded
- * real Cluster admins to the member-only command center. Keep the legacy prop
- * for dedicated manage previews, but never hide admin tools from a scope admin.
+ * Never rely only on cached scope.is_admin for Cluster management. Older
+ * cached/supplemental scope rows can temporarily carry is_admin=false even
+ * while the signed-in user is an ACTIVE admin in the exact Cluster. The
+ * backend remains authoritative, so re-check scoped admin authority whenever
+ * this Home is focused and promote the command center to admin mode when the
+ * server confirms it.
  */
 export default function BuklodClusterHomeCommandCenter({
   scope,
@@ -34,8 +44,74 @@ export default function BuklodClusterHomeCommandCenter({
   onOpenConnect,
   manageMode = false,
 }: Props) {
-  const canManageCluster = Boolean(
+  const localCanManage = Boolean(
     manageMode || scope.is_admin
+  );
+  const [serverCanManage, setServerCanManage] =
+    useState(false);
+
+  useEffect(() => {
+    setServerCanManage(false);
+  }, [scope.scope_id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+
+      if (
+        scope.scope_type !== 'CLUSTER' ||
+        !scope.scope_id
+      ) {
+        return () => {
+          active = false;
+        };
+      }
+
+      void (async () => {
+        try {
+          const { data, error } = await (supabase as any).rpc(
+            'buklod_is_scope_admin',
+            {
+              _scope_id: scope.scope_id,
+            }
+          );
+
+          if (!active) {
+            return;
+          }
+
+          if (error) {
+            console.warn(
+              'Cluster Home admin verification:',
+              error
+            );
+            return;
+          }
+
+          setServerCanManage(data === true);
+        } catch (error) {
+          if (active) {
+            console.warn(
+              'Cluster Home admin verification:',
+              error
+            );
+          }
+        }
+      })();
+
+      return () => {
+        active = false;
+      };
+    }, [scope.scope_id, scope.scope_type])
+  );
+
+  /*
+   * A locally-known admin remains an admin immediately; a stale member-only
+   * cache can be upgraded by the backend check above. Canonical Manage routes
+   * still perform their own server-side exact-Cluster authorization check.
+   */
+  const canManageCluster = Boolean(
+    localCanManage || serverCanManage
   );
 
   return (
