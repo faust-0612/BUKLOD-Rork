@@ -39,29 +39,46 @@ jobs:
           grep -F "buklod_cluster_home_notices" src/lib/buklodR4RequestShield.ts
           grep -F "buklod_scope_social_feed_v1" src/lib/buklodR4RequestShield.ts
 
-      - name: Verify Expo authentication
-        shell: bash
-        run: |
-          test -n "$EXPO_TOKEN"
-          npx eas-cli@latest whoami --non-interactive
-
       - name: Publish production Android OTA
+        id: ota
         shell: bash
         run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "status=missing_expo_token" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if ! npx eas-cli@latest whoami --non-interactive; then
+            echo "status=expo_auth_failed" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          set +e
           npx eas-cli@latest update \
             --channel production \
             --platform android \
             --environment production \
             --message "BUKLOD Performance R4 request shield" \
             --non-interactive
+          code=$?
+          set -e
 
-      - name: Record OTA success and remove workflow
+          if [ "$code" -eq 0 ]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=eas_update_failed" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Record OTA result and remove workflow
+        if: always()
         shell: bash
+        env:
+          OTA_STATUS: ${{ steps.ota.outputs.status }}
         run: |
           git config user.name "BUKLOD Automation"
           git config user.email "actions@users.noreply.github.com"
           rm -f .github/workflows/one_time_deploy_performance_r4_android_ota.yml
           git add .github/workflows/one_time_deploy_performance_r4_android_ota.yml
-          git commit -m "chore: confirm BUKLOD Performance R4 Android OTA"
+          git commit -m "chore: BUKLOD Performance R4 Android OTA ${OTA_STATUS:-workflow_failed}"
           git pull --rebase origin main
           git push origin HEAD:main
