@@ -554,7 +554,7 @@ export default function BuklodHomeFaithPanel({
         <FaithAction
           label="My Bible"
           title="Read the Bible"
-          meta="Read â€¢ Highlight â€¢ Notes"
+          meta="Read • Highlight • Notes"
           icon="book-heart-outline"
           tone="bible"
           onPress={() =>
@@ -582,7 +582,7 @@ export default function BuklodHomeFaithPanel({
               ? access?.devotion_word.pending_request_id
                 ? 'Payment pending verification'
                 : 'This feature is available through your Cluster Premium.'
-              : 'Read â€¢ Reflect â€¢ Apply'
+              : 'Read • Reflect • Apply'
           }
           icon="book-open-page-variant-outline"
           tone="word"
@@ -607,7 +607,7 @@ export default function BuklodHomeFaithPanel({
         <FaithAction
           label="Prayer"
           title="Prayer"
-          meta="Pray â€¢ Share â€¢ Encourage"
+          meta="Pray • Share • Encourage"
           icon="hands-pray"
           tone="prayer"
           onPress={() =>
@@ -624,8 +624,8 @@ export default function BuklodHomeFaithPanel({
         */}
         <FaithAction
           label="ABC Study"
-          title="ABCÃ¢â‚¬â„¢s ng Paglagong Kristyano"
-          meta="Lessons Ã¢â‚¬Â¢ Bible links Ã¢â‚¬Â¢ +5 points"
+          title="ABC’s ng Paglagong Kristyano"
+          meta="Lessons • Bible links • +5 points"
           icon="school-outline"
           tone="bible"
           onPress={() =>
@@ -638,7 +638,7 @@ export default function BuklodHomeFaithPanel({
         <FaithAction
           label="Hymns"
           title="Samahang Binuklod ng Pag-ibig"
-          meta="Search Ã¢â‚¬Â¢ Select Ã¢â‚¬Â¢ Font Ã¢â‚¬Â¢ Zoom"
+          meta="Search • Select • Font • Zoom"
           icon="music-note-outline"
           tone="prayer"
           onPress={() =>
