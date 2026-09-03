@@ -27,7 +27,9 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Apply safe integration
-        run: python scripts/classroom_r4_integrate.py
+        run: |
+          python scripts/classroom_r4_integrate.py
+          python scripts/classroom_r4_finalize.py
 
       - name: Main TypeScript
         run: npx tsc --noEmit
@@ -42,9 +44,11 @@ jobs:
           grep -F 'BUKLOD_CLASSROOM_R4_ACADEMIC_CONTROL' 'src/app/profile/buklod-faculty-class.tsx'
           grep -F 'TERM BREAKDOWN R4' 'apps/buklod-classroom/app/class/[id]/[section].tsx'
           grep -F 'buklod_classroom_faculty_apply_academic_setup_v1' 'src/app/profile/buklod-faculty-academic-control.tsx'
+          grep -F '/profile/buklod-faculty-syllabus' 'src/app/profile/buklod-faculty-academic-control.tsx'
+          grep -F 'buklod-classroom-syllabus-plan' 'src/app/profile/buklod-faculty-syllabus.tsx'
           grep -F 'buklod_classroom_student_released_grade_items_v2' 'apps/buklod-classroom/src/core.ts'
           grep -F 'exam_ids: examIds' 'apps/buklod-classroom/src/core.ts'
-          grep -F "BUKLOD_QUIZ_DEDICATED" 'apps/buklod-classroom/app/class/[id]/[section].tsx'
+          grep -F 'BUKLOD_QUIZ_DEDICATED' 'apps/buklod-classroom/app/class/[id]/[section].tsx'
 
       - name: Commit safe wiring
         shell: bash
