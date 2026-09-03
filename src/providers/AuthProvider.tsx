@@ -9,6 +9,7 @@ import React, {
 } from 'react';
 import { supabase } from '@/lib/supabase';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
+import { signOutBuklodResilient } from '@/lib/buklodAuthResilience';
 import {
   clearAuthSnapshot,
   readAuthSnapshot,
@@ -583,7 +584,35 @@ export function AuthProvider({
       },
 
       signOut: async () => {
-        await supabase.auth.signOut();
+        const currentUserId =
+          session?.user?.id ?? null;
+
+        // Make logout immediate in the UI even when Supabase /logout is slow.
+        // The helper also clears the persisted browser/app auth token.
+        sessionUserIdRef.current = null;
+        setSession(null);
+        setProfile(null);
+        setRoles([]);
+        setMembershipState('none');
+        setLoading(false);
+
+        await clearAuthSnapshot(
+          currentUserId
+        );
+
+        const { error } =
+          await signOutBuklodResilient();
+
+        if (error) {
+          console.warn(
+            'BUKLOD sign out fallback:',
+            String(
+              error?.message ??
+                error ??
+                'Local sign out fallback used.'
+            )
+          );
+        }
       },
     };
   }, [

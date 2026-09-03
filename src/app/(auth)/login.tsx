@@ -27,6 +27,13 @@ import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
 import { useAuth } from '@/providers/AuthProvider';
 import {
+  isBuklodInvalidCredentialsError,
+  isBuklodTransientAuthError,
+  resolveBuklodAccountLifecycleAfterLogin,
+  signInWithPasswordResilient,
+  signOutBuklodResilient,
+} from '@/lib/buklodAuthResilience';
+import {
   HomePressable,
   useBuklodReduceMotion,
 } from '@/components/HomeMotion';
@@ -263,6 +270,39 @@ function suggestedLoginPasswordKey(
   return `buklod.suggested_login.password.${userId}`;
 }
 
+/* PATCH_AUTH_RESILIENCE_R1_WEB_SECRET_STORAGE
+ * SecureStore is native-only. Web uses the app's existing AsyncStorage
+ * adapter so Suggested Login never crashes the browser login screen.
+ */
+async function readLoginSecret(key: string) {
+  if (Platform.OS === 'web') {
+    return AsyncStorage.getItem(key);
+  }
+
+  return readLoginSecret(key);
+}
+
+async function writeLoginSecret(
+  key: string,
+  value: string
+) {
+  if (Platform.OS === 'web') {
+    await AsyncStorage.setItem(key, value);
+    return;
+  }
+
+  await writeLoginSecret(key, value);
+}
+
+async function deleteLoginSecret(key: string) {
+  if (Platform.OS === 'web') {
+    await AsyncStorage.removeItem(key);
+    return;
+  }
+
+  await deleteLoginSecret(key);
+}
+
 function parseSuggestedLogins(
   raw: string | null
 ): SuggestedLogin[] {
@@ -319,10 +359,9 @@ async function signInForFreshPublicHome(
   );
 
   const result =
-    await supabase.auth
-      .signInWithPassword(
-        credentials
-      );
+    await signInWithPasswordResilient(
+      credentials
+    );
 
   if (result.error) {
     await AsyncStorage.removeItem(
@@ -673,7 +712,7 @@ const chooseSuggestedLogin =
 
       try {
         const savedPassword =
-          await SecureStore.getItemAsync(
+          await readLoginSecret(
             suggestedLoginPasswordKey(
               item.userId
             )
@@ -732,7 +771,7 @@ const chooseSuggestedLogin =
           SUGGESTED_LOGINS_KEY,
           JSON.stringify(next)
         ),
-        SecureStore.deleteItemAsync(
+        deleteLoginSecret(
           suggestedLoginPasswordKey(
             item.userId
           )
@@ -848,7 +887,7 @@ const chooseSuggestedLogin =
       );
 
       if (rememberPassword) {
-        await SecureStore.setItemAsync(
+        await writeLoginSecret(
           suggestedLoginPasswordKey(
             userId
           ),
@@ -856,7 +895,7 @@ const chooseSuggestedLogin =
         );
       }
       else {
-        await SecureStore.deleteItemAsync(
+        await deleteLoginSecret(
           suggestedLoginPasswordKey(
             userId
           )
@@ -911,8 +950,15 @@ const chooseSuggestedLogin =
           password: effectivePassword,
         });
 
-        // Patch 147 backward compatibility.
-        if (result.error) {
+        // Patch 147 backward compatibility. Only probe the legacy
+        // identifier after a real credential miss. Do not double auth traffic
+        // when Supabase itself is returning a transient 5xx/timeout.
+        if (
+          result.error &&
+          isBuklodInvalidCredentialsError(
+            result.error
+          )
+        ) {
           result = await signInForFreshPublicHome({
             email: legacyMobileInternalEmail(phone),
             password: effectivePassword,
@@ -945,9 +991,16 @@ const chooseSuggestedLogin =
       setBusy(false);
       triggerShake();
 
+      const temporaryFailure =
+        isBuklodTransientAuthError(error);
+
       return Alert.alert(
-        'Login failed',
-        'Invalid login identifier or password.'
+        temporaryFailure
+          ? 'BUKLOD is temporarily busy'
+          : 'Login failed',
+        temporaryFailure
+          ? 'Your password was not rejected. The BUKLOD server did not finish the sign-in request. Please try again in a moment.'
+          : 'Invalid login identifier or password.'
       );
     }
 
@@ -962,14 +1015,25 @@ const chooseSuggestedLogin =
     const {
       data: accountLifecycle,
       error: accountLifecycleError,
-    } = await (supabase as any).rpc('buklod_my_account_lifecycle');
+    } =
+      await resolveBuklodAccountLifecycleAfterLogin();
 
     if (accountLifecycleError) {
-      await supabase.auth.signOut();
+      await signOutBuklodResilient();
       setBusy(false);
+
+      const temporaryFailure =
+        isBuklodTransientAuthError(
+          accountLifecycleError
+        );
+
       Alert.alert(
-        'Account Status',
-        'BUKLOD could not verify this account status. Sign-in was stopped safely. Please try again.'
+        temporaryFailure
+          ? 'BUKLOD is temporarily busy'
+          : 'Account Status',
+        temporaryFailure
+          ? 'Your password was accepted, but BUKLOD could not safely finish the account-status check. Please try again in a moment.'
+          : 'BUKLOD could not verify this account status. Sign-in was stopped safely. Please try again.'
       );
       return;
     }
@@ -988,7 +1052,7 @@ const chooseSuggestedLogin =
                 text: 'CANCEL',
                 style: 'cancel',
                 onPress: () => {
-                  void supabase.auth.signOut();
+                  void signOutBuklodResilient();
                 },
               },
               {
@@ -1010,14 +1074,14 @@ const chooseSuggestedLogin =
 
                     // Refresh cleanly through the same successful Login path so
                     // AuthProvider reloads the now-active profile before Home.
-                    await supabase.auth.signOut();
+                    await signOutBuklodResilient();
                     setBusy(false);
                     void login({
                       identifier: raw,
                       password: effectivePassword,
                     });
                   } catch (error: any) {
-                    await supabase.auth.signOut();
+                    await signOutBuklodResilient();
                     setBusy(false);
                     Alert.alert(
                       'Could Not Reactivate',
@@ -1031,7 +1095,7 @@ const chooseSuggestedLogin =
               {
                 text: 'OK',
                 onPress: () => {
-                  void supabase.auth.signOut();
+                  void signOutBuklodResilient();
                 },
               },
             ]
