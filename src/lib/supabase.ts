@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import { AppState, Platform } from 'react-native';
 import { createBuklodPerformanceFetch } from './buklodPerformanceFetch';
+import { createBuklodR4RequestShield } from './buklodR4RequestShield';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
@@ -18,6 +19,13 @@ if (!supabaseUrl || !supabasePublishableKey) {
 const buklodRootPerformanceFetch =
   createBuklodPerformanceFetch(fetch);
 
+/* BUKLOD_ROOT_PERFORMANCE_R4
+ * Add targeted coalescing/cache windows for the heaviest Home/Cluster reads.
+ * Writes still bypass caching and invalidate affected R4 table entries.
+ */
+const buklodR4PerformanceFetch =
+  createBuklodR4RequestShield(buklodRootPerformanceFetch);
+
 export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
   auth: {
     storage: AsyncStorage,
@@ -33,7 +41,7 @@ export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
           : 'mobile',
     },
 
-  fetch: buklodRootPerformanceFetch
+  fetch: buklodR4PerformanceFetch
 },
   realtime: {
     params: {
