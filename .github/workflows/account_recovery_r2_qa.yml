@@ -11,6 +11,8 @@ on:
       - 'src/app/admin/account-recovery.tsx'
       - 'supabase/functions/account-recovery-v3/**'
       - '.github/workflows/account_recovery_r2_qa.yml'
+      - '.github/workflows/production_android_ota.yml'
+      - '.github/workflows/production_web_deploy.yml'
   workflow_dispatch:
 
 permissions:
@@ -44,7 +46,9 @@ jobs:
           grep -F "recover_with_admin_code" 'src/app/(auth)/forgot-password.tsx'
           grep -F "recovery_status" 'src/app/account/recovery-pin.tsx'
           grep -F "admin_reject_request" 'src/app/admin/account-recovery.tsx'
-          grep -F "code_lookup_hash" 'supabase/functions/account-recovery-v3/index.ts'
+          grep -F "account-recovery-v3" '.github/workflows/production_android_ota.yml'
+          grep -F "eas-cli@latest deploy" '.github/workflows/production_web_deploy.yml'
+          grep -F -- "--prod" '.github/workflows/production_web_deploy.yml'
           if grep -Fq "account-recovery-v2" 'src/app/(auth)/forgot-password.tsx' 'src/app/account/recovery-pin.tsx' 'src/app/admin/account-recovery.tsx'; then
             echo "R2 STOPPED: old v2 endpoint remains in active recovery UI"
             exit 1
