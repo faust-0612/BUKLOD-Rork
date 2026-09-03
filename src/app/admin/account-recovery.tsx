@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -59,6 +59,7 @@ export default function AdminAccountRecoveryScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [issuedCode, setIssuedCode] = useState<IssuedRecoveryCode | null>(null);
+  const issuingRef = useRef<string | null>(null);
 
   const load = useCallback(async (refresh = false) => {
     refresh ? setRefreshing(true) : setLoading(true);
@@ -83,6 +84,8 @@ export default function AdminAccountRecoveryScreen() {
   }, [hasRole, load]);
 
   const issueCode = async (row: RecoveryRequest) => {
+    if (issuingRef.current) return;
+    issuingRef.current = row.id;
     setBusyId(row.id);
     try {
       const { data, error } = await supabase.functions.invoke('account-recovery-v3', {
@@ -92,7 +95,7 @@ export default function AdminAccountRecoveryScreen() {
       if (!data?.ok) throw new Error(data?.message ?? 'Could not issue recovery code.');
 
       const nextCode = String(data.code ?? '').trim();
-      if (!nextCode) throw new Error('Recovery code was not returned. Generate a new request and try again.');
+      if (!nextCode) throw new Error('Recovery code was not returned. Refresh the request and try again.');
 
       setIssuedCode({
         code: nextCode,
@@ -101,30 +104,13 @@ export default function AdminAccountRecoveryScreen() {
         loginHint: row.login_hint || null,
       });
 
-      Alert.alert(
-        'Code Generated',
-        'The one-time recovery code is now shown at the top of this screen. Give it only to the verified account owner. The member must open Forgot Password → Admin Help, enter the code, and set a new password.'
-      );
       await load();
     } catch (error: any) {
       Alert.alert('Account Recovery', String(error?.message ?? error ?? 'Could not issue code.'));
     } finally {
+      issuingRef.current = null;
       setBusyId(null);
     }
-  };
-
-  const confirmIssueCode = (row: RecoveryRequest) => {
-    Alert.alert(
-      'Identity Verified?',
-      `Generate a one-time recovery code for ${row.full_name || 'this BUKLOD member'} only if you have already verified the account owner using the saved mobile/contact information or another trusted channel.`,
-      [
-        { text: 'NOT YET', style: 'cancel' },
-        {
-          text: 'VERIFIED — GENERATE CODE',
-          onPress: () => void issueCode(row),
-        },
-      ]
-    );
   };
 
   const rejectRequest = (row: RecoveryRequest) => {
@@ -169,6 +155,7 @@ export default function AdminAccountRecoveryScreen() {
     <ScrollView
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} />}
+      keyboardShouldPersistTaps="handled"
     >
       <Pressable onPress={() => router.back()} style={styles.back}>
         <MaterialCommunityIcons name="arrow-left" size={22} color={colors.text} />
@@ -182,7 +169,7 @@ export default function AdminAccountRecoveryScreen() {
 
       <View style={styles.stepsCard}>
         <StepRow number="1" text="Verify the member using the saved mobile/contact information or another trusted channel." />
-        <StepRow number="2" text="Tap VERIFIED — GENERATE ONE-TIME CODE." />
+        <StepRow number="2" text="Tap VERIFIED — GENERATE ONE-TIME CODE once. The code will appear on this screen." />
         <StepRow number="3" text="Give the code only to the verified member. It expires in 30 minutes and works once." />
         <StepRow number="4" text="Member: Forgot Password → Admin Help → enter code → create new password → Sign In." />
       </View>
@@ -257,13 +244,19 @@ export default function AdminAccountRecoveryScreen() {
             </View>
 
             <Text style={styles.verifyPrompt}>
-              If you have already verified this person using the saved mobile/contact information, the next step is to generate the one-time recovery code below.
+              If you have already verified this person using the saved mobile/contact information, tap the button below once. The new recovery code will appear above.
             </Text>
 
             <Pressable
-              onPress={() => confirmIssueCode(row)}
-              disabled={busyId === row.id}
-              style={[styles.primary, busyId === row.id && styles.disabled]}
+              accessibilityRole="button"
+              onPress={() => void issueCode(row)}
+              disabled={busyId !== null}
+              hitSlop={8}
+              style={({ pressed }) => [
+                styles.primary,
+                pressed && busyId === null && styles.primaryPressed,
+                busyId !== null && styles.disabled,
+              ]}
             >
               {busyId === row.id ? (
                 <ActivityIndicator color="#FFFFFF" />
@@ -277,8 +270,8 @@ export default function AdminAccountRecoveryScreen() {
 
             <Pressable
               onPress={() => rejectRequest(row)}
-              disabled={busyId === row.id}
-              style={[styles.reject, busyId === row.id && styles.disabled]}
+              disabled={busyId !== null}
+              style={[styles.reject, busyId !== null && styles.disabled]}
             >
               <MaterialCommunityIcons name="close-circle-outline" size={18} color="#A62828" />
               <Text style={styles.rejectText}>REJECT / CANNOT VERIFY</Text>
@@ -361,7 +354,8 @@ const styles = StyleSheet.create({
   detailLabel: { color: '#78827B', fontSize: 10.5, fontWeight: '800' },
   detailValue: { marginTop: 1, color: colors.text, fontSize: 12.5, fontWeight: '800' },
   verifyPrompt: { marginTop: 11, color: '#506157', fontSize: 11.5, lineHeight: 17, fontWeight: '700' },
-  primary: { marginTop: 12, minHeight: 46, borderRadius: 10, backgroundColor: colors.green, flexDirection: 'row', gap: 7, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+  primary: { marginTop: 12, minHeight: 50, borderRadius: 10, backgroundColor: colors.green, flexDirection: 'row', gap: 7, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 },
+  primaryPressed: { opacity: 0.82 },
   primaryText: { color: '#FFFFFF', fontSize: 10.5, fontWeight: '900', textAlign: 'center' },
   reject: { marginTop: 8, minHeight: 43, borderRadius: 10, borderWidth: 1, borderColor: '#E5BABA', backgroundColor: '#FFF8F8', flexDirection: 'row', gap: 7, alignItems: 'center', justifyContent: 'center' },
   rejectText: { color: '#A62828', fontSize: 10.5, fontWeight: '900' },
