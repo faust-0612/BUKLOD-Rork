@@ -1,5 +1,11 @@
 /**
  * Stream call ID helpers and user-facing call error text.
+ *
+ * PATCH_CALL_LIFECYCLE_R1
+ * Ringing calls MUST use a fresh call ID for every attempt. Stream allows a
+ * room ID to be reused for joining, but ringing/push behavior is one-shot per
+ * call ID. Reusing the old stable thread/scope IDs caused silent repeated
+ * calls, unreliable push, and stale ringing state.
  */
 
 export function sanitizeBuklodCallSegment(
@@ -11,20 +17,40 @@ export function sanitizeBuklodCallSegment(
     .slice(0, maxLength);
 }
 
-/** Stable 1:1 personal call room for a Connect thread. */
+function buklodCallNonce() {
+  const cryptoApi =
+    (globalThis as any)?.crypto;
+
+  const randomUuid =
+    typeof cryptoApi?.randomUUID === 'function'
+      ? String(cryptoApi.randomUUID())
+      : '';
+
+  const fallback =
+    `${Date.now().toString(36)}${Math.random()
+      .toString(36)
+      .slice(2, 9)}`;
+
+  return sanitizeBuklodCallSegment(
+    randomUuid || fallback,
+    14
+  );
+}
+
+/** Fresh 1:1 ringing call for a Connect thread. */
 export function buildBuklodPersonalCallId(
   threadId: string
 ) {
   const safe =
     sanitizeBuklodCallSegment(
       threadId,
-      40
+      18
     );
 
-  return `buklod-personal-${safe || 'thread'}`;
+  return `buklod-personal-${safe || 'thread'}-${buklodCallNonce()}`;
 }
 
-/** Scoped group call room keyed to the exact scope id. */
+/** Fresh scoped/group ringing call for the exact scope. */
 export function buildBuklodScopeCallId(
   scopeId: string
 ) {
@@ -34,7 +60,7 @@ export function buildBuklodScopeCallId(
       18
     );
 
-  return `buklod-scope-${safe || 'scope'}`;
+  return `buklod-scope-${safe || 'scope'}-${buklodCallNonce()}`;
 }
 
 export function formatBuklodCallStartError(

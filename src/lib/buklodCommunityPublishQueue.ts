@@ -62,7 +62,11 @@ export function enqueueCommunityPublish(
           ? error.message
           : 'Posting failed.';
       notify();
-      throw error;
+
+      // This job is intentionally detached from the composer. Do not rethrow here:
+      // on web that becomes an unhandled rejected Promise even though the composer
+      // already restores the draft and surfaces the actual upload error.
+      console.error('Community publish failed:', error);
     } finally {
       setTimeout(() => {
         jobs = jobs.filter(item => item.id !== id);

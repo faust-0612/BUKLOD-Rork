@@ -1,19 +1,21 @@
-/* PATCH_COMMUNITY_VIDEO_5G_R2C */
+/* BUKLOD_COMMUNITY_WALL_MEDIA_CONTRACT_R1 */
 /**
  * Wall vs Reel video rules — shared by Public and scoped Community composers.
+ * Canonical product contract:
+ * - Wall: one video, max 1 GiB / 30 minutes
+ * - Reels: short-form, max 60 seconds
  */
 
-/** 5 GiB product maximum for community video uploads (1024-based). */
-export const BUKLOD_VIDEO_MAX_SIZE_BYTES =
-  5 * 1024 * 1024 * 1024;
+/** 1 GiB product maximum for community video uploads (1024-based). */
+export const BUKLOD_VIDEO_MAX_SIZE_BYTES = 1_073_741_824;
 
-export const BUKLOD_VIDEO_MAX_SIZE_LABEL = '5 GB';
+export const BUKLOD_VIDEO_MAX_SIZE_LABEL = '1 GB';
 
 /** @deprecated Prefer communityVideoTooLargeMessage(sizeBytes). */
 export const BUKLOD_VIDEO_TOO_LARGE_MESSAGE =
   `Maximum video size is ${BUKLOD_VIDEO_MAX_SIZE_LABEL}.`;
 
-/** Reels remain short-form (product rule unchanged). */
+/** Reels remain short-form. */
 export const BUKLOD_REEL_MAX_DURATION_SECONDS = 60;
 
 /** Wall / general community video duration ceiling. */
@@ -80,9 +82,7 @@ export function classifyCommunityUploadFailure(input: {
     return 'timeout';
   }
 
-  if (
-    /timed? out|timeout|aborted|deadline exceeded/.test(text)
-  ) {
+  if (/timed? out|timeout|aborted|deadline exceeded/.test(text)) {
     return 'timeout';
   }
 
@@ -111,9 +111,7 @@ export function classifyCommunityUploadFailure(input: {
     return 'platform_api_limit';
   }
 
-  if (
-    /maximum size|too large to upload|file too large/.test(text)
-  ) {
+  if (/maximum size|too large to upload|file too large/.test(text)) {
     return 'storage_bucket_limit';
   }
 
@@ -144,13 +142,13 @@ export function communityUploadFailureMessage(
       return (
         `${label} upload was rejected by the storage bucket size limit.` +
         sizePart +
-        ' The file is within the 5 GB app limit, but storage is still enforcing a lower ceiling.'
+        ' The file is within the 1 GB app limit, but storage is still enforcing a lower ceiling.'
       );
     case 'platform_api_limit':
       return (
         `${label} upload was rejected by the upload API size limit.` +
         sizePart +
-        ' The file is within the 5 GB app limit, but the current hosting plan or gateway cap is lower.'
+        ' The file is within the 1 GB app limit, but the current hosting plan or gateway cap is lower.'
       );
     case 'network':
       return (
@@ -172,7 +170,7 @@ export function communityUploadFailureMessage(
 }
 
 /**
- * Server/storage rejected the upload. Do not claim the file itself is over 5 GB
+ * Server/storage rejected the upload. Do not claim the file itself is over 1 GB
  * when the measured size is smaller than the product maximum.
  */
 export function communityVideoUploadRejectedMessage(

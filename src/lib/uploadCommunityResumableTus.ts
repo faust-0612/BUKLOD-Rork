@@ -1,5 +1,6 @@
 import { decode as decodeBase64, encode as encodeBase64 } from 'base64-arraybuffer';
 import * as FileSystem from 'expo-file-system/legacy';
+import { Platform } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
 
@@ -53,11 +54,25 @@ export function encodeTusMetadata(fields: Record<string, string>): string {
     .join(',');
 }
 
+async function readWebBlob(uri: string): Promise<Blob> {
+  const response = await fetch(uri);
+  if (!response.ok) {
+    throw new Error(`Could not read selected media (${response.status}).`);
+  }
+  return response.blob();
+}
+
 async function readFileSlice(
   uri: string,
   position: number,
-  length: number
+  length: number,
+  webBlob?: Blob | null
 ): Promise<ArrayBuffer> {
+  if (Platform.OS === 'web') {
+    const blob = webBlob ?? (await readWebBlob(uri));
+    return blob.slice(position, position + length).arrayBuffer();
+  }
+
   const base64 = await FileSystem.readAsStringAsync(uri, {
     encoding: FileSystem.EncodingType.Base64,
     position,
@@ -177,6 +192,20 @@ export async function uploadCommunityFileResumableTus({
     throw new Error('Storage is not configured for resumable uploads.');
   }
 
+  let webBlob: Blob | null = null;
+  let totalSize = Math.max(0, Number(sizeBytes ?? 0));
+
+  if (Platform.OS === 'web') {
+    webBlob = await readWebBlob(uri);
+    if (!totalSize) {
+      totalSize = Number(webBlob.size ?? 0);
+    }
+  }
+
+  if (!totalSize) {
+    throw new Error('Could not determine the selected media size.');
+  }
+
   const auth = await readTusAuth();
   const metadata = encodeTusMetadata({
     bucketName: 'community-media',
@@ -190,7 +219,7 @@ export async function uploadCommunityFileResumableTus({
     timeoutMs: 60000,
     headers: {
       'Tus-Resumable': '1.0.0',
-      'Upload-Length': String(sizeBytes),
+      'Upload-Length': String(totalSize),
       'Upload-Metadata': metadata,
       authorization: `Bearer ${auth.accessToken}`,
       apikey: auth.apiKey,
@@ -224,16 +253,24 @@ export async function uploadCommunityFileResumableTus({
   const report = (sent: number) => {
     onProgress?.({
       sentBytes: sent,
-      totalBytes: sizeBytes,
-      ratio: sizeBytes > 0 ? Math.min(1, sent / sizeBytes) : 0,
+      totalBytes: totalSize,
+      ratio: totalSize > 0 ? Math.min(1, sent / totalSize) : 0,
     });
   };
 
   report(offset);
 
-  while (offset < sizeBytes) {
-    const chunkLength = Math.min(BUKLOD_TUS_CHUNK_SIZE_BYTES, sizeBytes - offset);
-    const chunk = await readFileSlice(uri, offset, chunkLength);
+  while (offset < totalSize) {
+    const chunkLength = Math.min(
+      BUKLOD_TUS_CHUNK_SIZE_BYTES,
+      totalSize - offset
+    );
+    const chunk = await readFileSlice(
+      uri,
+      offset,
+      chunkLength,
+      webBlob
+    );
 
     const patchResponse = await tusFetch(uploadUrl, {
       method: 'PATCH',
