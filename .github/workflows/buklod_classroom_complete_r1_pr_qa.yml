@@ -1,0 +1,53 @@
+name: BUKLOD Classroom Complete R1 PR QA
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'src/app/profile/buklod-classroom*.tsx'
+      - 'src/app/profile/buklod-faculty-class.tsx'
+      - 'src/app/profile/buklod-faculty-attendance.tsx'
+      - 'src/app/profile/buklod-faculty-final-grades.tsx'
+      - 'src/app/profile/buklod-faculty-grading-setup.tsx'
+      - 'src/components/classroom/**'
+      - 'src/hooks/useClassroomTheme.ts'
+      - 'src/lib/education/classroomTheme.ts'
+      - 'src/lib/education/facultyAutopilot.ts'
+      - 'supabase/migrations/*buklod_classroom*.sql'
+      - '.github/workflows/buklod_classroom_complete_r1_pr_qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  typecheck-and-anchors:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: TypeScript
+        run: npx tsc --noEmit
+
+      - name: Verify Classroom Complete R1 anchors
+        shell: bash
+        run: |
+          grep -F 'ClassroomDrawer' 'src/app/profile/buklod-classroom.tsx'
+          grep -F 'CLASSROOM_THEME_OPTIONS' 'src/components/classroom/ClassroomDrawer.tsx'
+          grep -F 'buklod_classroom_toggle_reaction_v1' 'src/app/profile/buklod-classroom-discuss.tsx'
+          grep -F 'buklod_education_time_in_v1' 'src/app/profile/buklod-classroom-attendance.tsx'
+          grep -F 'buklod_education_close_attendance_session_v2' 'src/app/profile/buklod-faculty-attendance.tsx'
+          grep -F 'buklod_education_save_grading_setup_v1' 'src/app/profile/buklod-faculty-grading-setup.tsx'
+          grep -F 'TRANSMUTED_50_BASE' 'supabase/migrations/20260904195500_buklod_classroom_term_grading_r1.sql'
+          grep -F 'buklod_education_classroom_reactions' 'supabase/migrations/20260904213000_buklod_classroom_reactions_r1.sql'
