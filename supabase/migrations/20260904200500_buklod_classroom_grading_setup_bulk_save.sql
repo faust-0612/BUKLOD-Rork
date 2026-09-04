@@ -111,6 +111,7 @@ begin
     v_term := upper(btrim(v_item->>'term_key'));
     v_name := btrim(v_item->>'name');
     v_weight := (v_item->>'weight_percent')::numeric;
+    v_existing_id := null;
 
     if v_id is not null then
       update public.buklod_education_grade_categories
