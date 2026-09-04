@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -21,9 +21,13 @@ import { useNotifications } from '@/providers/NotificationProvider';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 
 /*
- * BUKLOD_DESKTOP_WEB_SHELL_R3
+ * BUKLOD_DESKTOP_WEB_SHELL_R4
  * Desktop-only social layout. It is mounted only by BuklodNavSafeShell.web
  * when the browser viewport is desktop-sized. Phone web and APK never mount it.
+ *
+ * R4 adds an OPTIONAL user-triggered Full Screen / Focus View. It never turns
+ * on automatically. When active, BUKLOD desktop rails/header are hidden and
+ * the current screen gets the full usable canvas. Route changes reset it.
  */
 
 type Route =
@@ -128,6 +132,8 @@ export default function BuklodDesktopWebShell({
   const { activeScope, scopes, selectScope } = useBuklodScope();
   const { unreadCount } = useNotifications();
   const { theme } = useBuklodTheme();
+  const [focusMode, setFocusMode] = useState(false);
+  const browserFullscreenOwned = useRef(false);
 
   const compactLeft = width < 1240;
   const showRightRail = width >= 1320;
@@ -153,6 +159,76 @@ export default function BuklodDesktopWebShell({
     normalizedPath !== '/delete-account' &&
     !normalizedPath.startsWith('/delete-account/')
   );
+
+  const leaveBrowserFullscreenIfOwned = async () => {
+    const doc = (globalThis as any)?.document;
+
+    if (
+      browserFullscreenOwned.current &&
+      doc?.fullscreenElement &&
+      typeof doc?.exitFullscreen === 'function'
+    ) {
+      try {
+        await doc.exitFullscreen();
+      } catch {
+        // App-level focus mode still exits even if browser fullscreen rejects.
+      }
+    }
+
+    browserFullscreenOwned.current = false;
+  };
+
+  const enterFocusMode = async () => {
+    setFocusMode(true);
+
+    const doc = (globalThis as any)?.document;
+    const root = doc?.documentElement;
+
+    if (!root || typeof root.requestFullscreen !== 'function') {
+      return;
+    }
+
+    try {
+      await root.requestFullscreen();
+      browserFullscreenOwned.current = true;
+    } catch {
+      // Browser fullscreen is an enhancement; app-level focus view still works.
+      browserFullscreenOwned.current = false;
+    }
+  };
+
+  const exitFocusMode = async () => {
+    setFocusMode(false);
+    await leaveBrowserFullscreenIfOwned();
+  };
+
+  useEffect(() => {
+    setFocusMode(false);
+    void leaveBrowserFullscreenIfOwned();
+    // Route changes must always restore the normal BUKLOD desktop shell.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [normalizedPath]);
+
+  useEffect(() => {
+    const doc = (globalThis as any)?.document;
+
+    if (!doc || typeof doc.addEventListener !== 'function') {
+      return;
+    }
+
+    const handleFullscreenChange = () => {
+      if (browserFullscreenOwned.current && !doc.fullscreenElement) {
+        browserFullscreenOwned.current = false;
+        setFocusMode(false);
+      }
+    };
+
+    doc.addEventListener('fullscreenchange', handleFullscreenChange);
+
+    return () => {
+      doc.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
 
   /*
    * PATCH_20260904_DESKTOP_PROFILE_SCOPE_EXIT
@@ -182,6 +258,35 @@ export default function BuklodDesktopWebShell({
 
   if (!showNavigation) {
     return <View style={styles.fullScreen}>{children}</View>;
+  }
+
+  if (focusMode) {
+    return (
+      <View style={[styles.focusRoot, { backgroundColor: theme.canvas }]}>
+        <View style={styles.focusContent}>{children}</View>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Exit Full Screen"
+          onPress={() => void exitFocusMode()}
+          style={({ pressed }) => [
+            styles.exitFocusButton,
+            {
+              backgroundColor: theme.surface,
+              borderColor: theme.border,
+            },
+            pressed && styles.pressed,
+          ]}
+        >
+          <MaterialCommunityIcons
+            name="fullscreen-exit"
+            size={20}
+            color={theme.accent}
+          />
+          <Text style={[styles.exitFocusText, { color: theme.textPrimary }]}>Exit Full Screen</Text>
+        </Pressable>
+      </View>
+    );
   }
 
   return (
@@ -242,6 +347,19 @@ export default function BuklodDesktopWebShell({
         </View>
 
         <View style={styles.topRight}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Full Screen"
+            onPress={() => void enterFocusMode()}
+            style={({ pressed }) => [
+              styles.roundAction,
+              { backgroundColor: theme.surfaceMuted },
+              pressed && styles.pressed,
+            ]}
+          >
+            <MaterialCommunityIcons name="fullscreen" size={24} color={theme.textPrimary} />
+          </Pressable>
+
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Notifications"
@@ -388,6 +506,37 @@ export default function BuklodDesktopWebShell({
 const styles = StyleSheet.create({
   root: { flex: 1, minWidth: 0, minHeight: 0 },
   fullScreen: { flex: 1, minWidth: 0, minHeight: 0 },
+  focusRoot: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 0,
+    position: 'relative',
+  },
+  focusContent: {
+    flex: 1,
+    width: '100%',
+    minWidth: 0,
+    minHeight: 0,
+  },
+  exitFocusButton: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    minHeight: 42,
+    paddingHorizontal: 13,
+    borderRadius: 22,
+    borderWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    zIndex: 1000,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 7,
+  },
+  exitFocusText: { fontSize: 12, fontWeight: '900' },
   topBar: {
     height: 64,
     flexShrink: 0,
@@ -423,7 +572,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 3,
     borderBottomColor: 'transparent',
   },
-  topRight: { minWidth: 180, flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8 },
+  topRight: { minWidth: 220, flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8 },
   roundAction: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', position: 'relative' },
   topBadge: { position: 'absolute', right: -2, top: -3, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center' },
   body: { flex: 1, minWidth: 0, minHeight: 0, flexDirection: 'row' },
