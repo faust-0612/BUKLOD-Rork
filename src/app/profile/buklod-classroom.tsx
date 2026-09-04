@@ -10,8 +10,11 @@ import {
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 
+import { ClassroomDrawer } from '@/components/classroom/ClassroomDrawer';
+import { useClassroomTheme } from '@/hooks/useClassroomTheme';
 import { supabase } from '@/lib/supabase';
 
 type Context = {
@@ -52,18 +55,21 @@ type Overview = {
 type ModuleCard = {
   key: string;
   title: string;
+  short: string;
   description: string;
   icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
   route: string;
+  tone: 'primary' | 'secondary' | 'accent' | 'neutral';
 };
 
 const MODULES: ModuleCard[] = [
-  { key: 'discuss', title: 'Discussions', description: 'Announcements, questions, recitation threads and asynchronous class conversations.', icon: 'forum-outline', route: '/profile/buklod-classroom-discuss' },
-  { key: 'chat', title: 'Class Messages', description: 'General classroom messaging with room for group and activity threads.', icon: 'message-text-outline', route: '/profile/buklod-classroom-chat' },
-  { key: 'work', title: 'Activities & Submissions', description: 'Activities, rubrics, deadlines, student submissions, feedback and grading.', icon: 'clipboard-text-outline', route: '/profile/buklod-classroom-work' },
-  { key: 'materials', title: 'Materials & Media', description: 'Files, photos, videos, links and learning resources for this class.', icon: 'folder-multiple-image', route: '/profile/buklod-classroom-materials' },
-  { key: 'grades', title: 'My Grades', description: 'Prelim, Midterm, Semifinals, Finals, released category grades and final grade consultation.', icon: 'school-outline', route: '/profile/buklod-classroom-grades' },
-  { key: 'monitor', title: 'Class Monitor', description: 'Track participation, recitation, presentations, live presence and asynchronous engagement.', icon: 'chart-timeline-variant-shimmer', route: '/profile/buklod-classroom-monitor' },
+  { key: 'discuss', title: 'Discussions', short: 'Feed', description: 'Announcements, questions, recitation threads and reactions.', icon: 'forum-outline', route: '/profile/buklod-classroom-discuss', tone: 'secondary' },
+  { key: 'chat', title: 'Class Messages', short: 'Talk', description: 'Fast classroom messaging for the people inside this class.', icon: 'message-text-outline', route: '/profile/buklod-classroom-chat', tone: 'primary' },
+  { key: 'work', title: 'Activities', short: 'Work', description: 'Tasks, rubrics, deadlines, submissions and faculty feedback.', icon: 'clipboard-text-outline', route: '/profile/buklod-classroom-work', tone: 'accent' },
+  { key: 'materials', title: 'Materials', short: 'Library', description: 'Files, videos, links, readings and class resources.', icon: 'bookshelf', route: '/profile/buklod-classroom-materials', tone: 'neutral' },
+  { key: 'attendance', title: 'Attendance', short: 'Time in', description: 'Open class sessions, verified time-in and attendance history.', icon: 'calendar-check-outline', route: '/profile/buklod-classroom-attendance', tone: 'secondary' },
+  { key: 'grades', title: 'My Grades', short: 'Standing', description: 'Prelim to Finals, released components and consultation.', icon: 'school-outline', route: '/profile/buklod-classroom-grades', tone: 'accent' },
+  { key: 'monitor', title: 'Class Monitor', short: 'Pulse', description: 'Participation, recitation, presentation and engagement trail.', icon: 'chart-timeline-variant-shimmer', route: '/profile/buklod-classroom-monitor', tone: 'primary' },
 ];
 
 function formatRemaining(hardStopAt: string | null) {
@@ -79,12 +85,14 @@ export default function BuklodClassroomScreen() {
   const params = useLocalSearchParams<{ id?: string; classroomId?: string; name?: string }>();
   const classroomId = String(params.id ?? params.classroomId ?? '');
   const fallbackName = String(params.name ?? 'Classroom');
+  const { theme, themeId, setThemeId } = useClassroomTheme();
 
   const [context, setContext] = useState<Context | null>(null);
   const [overview, setOverview] = useState<Overview | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [liveTitle, setLiveTitle] = useState('Live Class');
   const [liveBusy, setLiveBusy] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!classroomId) return;
@@ -112,10 +120,11 @@ export default function BuklodClassroomScreen() {
 
   const activeLive = overview?.live_session ?? null;
   const className = context?.name || fallbackName;
-  const isFaculty = context?.role === 'FACULTY';
+  const role = context?.role ?? 'STUDENT';
+  const isFaculty = role === 'FACULTY';
 
   const meta = useMemo(
-    () => [context?.subject_code, context?.section_name, context?.term].filter(Boolean).join(' • '),
+    () => [context?.subject_code, context?.section_name, context?.term].filter(Boolean).join('  /  '),
     [context]
   );
 
@@ -154,160 +163,271 @@ export default function BuklodClassroomScreen() {
     router.push({ pathname: route as any, params: { id: classroomId, classroomId, name: className } });
   };
 
+  const toneFor = (tone: ModuleCard['tone']) => {
+    if (tone === 'primary') return theme.primary;
+    if (tone === 'secondary') return theme.secondary;
+    if (tone === 'accent') return theme.accent;
+    return theme.muted;
+  };
+
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={async () => {
-            setRefreshing(true);
-            await load();
-            setRefreshing(false);
-          }}
-        />
-      }
-    >
-      <Pressable style={styles.back} onPress={() => router.back()}>
-        <MaterialCommunityIcons name="arrow-left" size={22} color="#fff" />
-        <Text style={styles.backText}>My Classrooms</Text>
-      </Pressable>
-
-      <View style={styles.hero}>
-        <View style={styles.heroTop}>
-          <View style={styles.heroIcon}>
-            <MaterialCommunityIcons name="google-classroom" size={31} color="#1f7a3f" />
-          </View>
-          <View style={styles.rolePill}><Text style={styles.roleText}>{context?.role ?? 'CLASSROOM'}</Text></View>
-        </View>
-        <Text style={styles.eyebrow}>BUKLOD CLASSROOM</Text>
-        <Text style={styles.title}>{className}</Text>
-        {!!meta && <Text style={styles.meta}>{meta}</Text>}
-        <Text style={styles.subtitle}>
-          {context?.description || 'One place for live and asynchronous learning, class interaction, activities, materials and monitoring.'}
-        </Text>
-        <View style={styles.planRow}>
-          <View style={styles.planPill}><Text style={styles.planText}>{context?.classroom_mode ?? 'HYBRID'}</Text></View>
-          <View style={[styles.planPill, context?.classroom_plan === 'PREMIUM' && styles.premiumPlan]}>
-            <Text style={styles.planText}>{context?.classroom_plan ?? 'FREE'}</Text>
-          </View>
-          {context?.classroom_plan !== 'PREMIUM' && (
-            <Text style={styles.freeNote}>Live room: up to {context?.free_live_minutes ?? 120} min/session</Text>
-          )}
-        </View>
-      </View>
-
-      <View style={styles.metrics}>
-        <View style={styles.metric}><Text style={styles.metricValue}>{overview?.students ?? 0}</Text><Text style={styles.metricLabel}>Students</Text></View>
-        <View style={styles.metric}><Text style={styles.metricValue}>{overview?.posts ?? 0}</Text><Text style={styles.metricLabel}>Posts</Text></View>
-        <View style={styles.metric}><Text style={styles.metricValue}>{overview?.assignments ?? 0}</Text><Text style={styles.metricLabel}>Activities</Text></View>
-      </View>
-
-      <View style={[styles.liveCard, activeLive ? styles.liveActive : null]}>
-        <View style={styles.liveHeader}>
-          <View style={[styles.liveDot, activeLive && styles.liveDotActive]} />
+    <View style={[styles.root, { backgroundColor: theme.background }]}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            tintColor={theme.primary}
+            onRefresh={async () => {
+              setRefreshing(true);
+              await load();
+              setRefreshing(false);
+            }}
+          />
+        }
+      >
+        <View style={styles.topBar}>
+          <Pressable
+            onPress={() => setDrawerOpen(true)}
+            style={[styles.menuButton, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}
+          >
+            <MaterialCommunityIcons name="menu" size={22} color={theme.ink} />
+          </Pressable>
           <View style={{ flex: 1 }}>
-            <Text style={styles.liveTitle}>{activeLive ? activeLive.title : 'Live Classroom'}</Text>
-            <Text style={styles.liveMeta}>
-              {activeLive ? formatRemaining(activeLive.hard_stop_at) : 'Video class, presentation and recitation room'}
+            <Text style={[styles.topKicker, { color: theme.muted }]}>MY CLASSROOM</Text>
+            <Text numberOfLines={1} style={[styles.topName, { color: theme.ink }]}>{className}</Text>
+          </View>
+          <Pressable
+            onPress={() => router.back()}
+            style={[styles.exitButton, { borderColor: theme.border }]}
+          >
+            <MaterialCommunityIcons name="arrow-left" size={18} color={theme.ink} />
+            <Text style={[styles.exitText, { color: theme.ink }]}>Classes</Text>
+          </Pressable>
+        </View>
+
+        <LinearGradient
+          colors={[theme.heroStart, theme.heroEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.hero}
+        >
+          <View style={styles.heroTape} />
+          <View style={styles.heroTop}>
+            <View style={[styles.bookMark, { backgroundColor: theme.accent }]}>
+              <MaterialCommunityIcons name="book-open-page-variant-outline" size={25} color={theme.drawer} />
+            </View>
+            <View style={styles.roleBlock}>
+              <Text style={styles.heroSmall}>{role}</Text>
+              <Text style={styles.heroSmall}>{context?.classroom_mode ?? 'HYBRID'}</Text>
+            </View>
+          </View>
+          <Text style={styles.heroKicker}>BUKLOD CLASSROOM</Text>
+          <Text style={styles.heroTitle}>{className}</Text>
+          {!!meta && <Text style={styles.heroMeta}>{meta}</Text>}
+          <Text style={styles.heroDescription}>
+            {context?.description || 'Live learning, discussions, submissions, resources and grade consultation in one class space.'}
+          </Text>
+
+          <View style={styles.heroBottom}>
+            <View style={styles.heroStat}>
+              <Text style={styles.heroStatValue}>{overview?.students ?? 0}</Text>
+              <Text style={styles.heroStatLabel}>people</Text>
+            </View>
+            <View style={styles.heroDivider} />
+            <View style={styles.heroStat}>
+              <Text style={styles.heroStatValue}>{overview?.assignments ?? 0}</Text>
+              <Text style={styles.heroStatLabel}>activities</Text>
+            </View>
+            <View style={styles.heroDivider} />
+            <View style={styles.heroStat}>
+              <Text style={styles.heroStatValue}>{overview?.posts ?? 0}</Text>
+              <Text style={styles.heroStatLabel}>posts</Text>
+            </View>
+          </View>
+        </LinearGradient>
+
+        <View style={[styles.liveCard, { backgroundColor: theme.surfaceRaised, borderColor: activeLive ? theme.secondary : theme.border }]}>
+          <View style={[styles.liveFlag, { backgroundColor: activeLive ? theme.secondary : theme.primary }]}>
+            <MaterialCommunityIcons name={activeLive ? 'broadcast' : 'video-outline'} size={19} color="#fff" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.liveTitle, { color: theme.ink }]}>{activeLive ? activeLive.title : 'Live room'}</Text>
+            <Text style={[styles.liveMeta, { color: theme.muted }]}>
+              {activeLive ? formatRemaining(activeLive.hard_stop_at) : 'Video class, presentation and recitation space'}
             </Text>
           </View>
-          <MaterialCommunityIcons name="video-outline" size={26} color={activeLive ? '#b62828' : '#1f7a3f'} />
+          {activeLive ? (
+            <Pressable onPress={joinLive} style={[styles.liveAction, { backgroundColor: theme.secondary }]}>
+              <Text style={styles.liveActionText}>{isFaculty ? 'Return' : 'Join'}</Text>
+              <MaterialCommunityIcons name="arrow-right" size={17} color="#fff" />
+            </Pressable>
+          ) : isFaculty ? (
+            <Pressable onPress={startLive} disabled={liveBusy} style={[styles.liveAction, { backgroundColor: theme.primary }, liveBusy && styles.disabled]}>
+              <Text style={styles.liveActionText}>{liveBusy ? 'Starting' : 'Start'}</Text>
+              <MaterialCommunityIcons name="video-plus-outline" size={17} color="#fff" />
+            </Pressable>
+          ) : (
+            <View style={[styles.offlinePill, { backgroundColor: theme.chip }]}>
+              <Text style={[styles.offlineText, { color: theme.muted }]}>OFFLINE</Text>
+            </View>
+          )}
         </View>
 
-        {activeLive ? (
-          <Pressable style={styles.liveButton} onPress={joinLive}>
-            <MaterialCommunityIcons name="video" size={20} color="#fff" />
-            <Text style={styles.liveButtonText}>{isFaculty ? 'Return to Live Class' : 'Join Live Class'}</Text>
-          </Pressable>
-        ) : isFaculty ? (
-          <>
-            <TextInput value={liveTitle} onChangeText={setLiveTitle} placeholder="Live class title" style={styles.liveInput} />
-            <Pressable disabled={liveBusy} style={[styles.liveButton, liveBusy && styles.disabled]} onPress={startLive}>
-              <MaterialCommunityIcons name="video-plus" size={20} color="#fff" />
-              <Text style={styles.liveButtonText}>{liveBusy ? 'Starting…' : 'Start Live Class'}</Text>
-            </Pressable>
-          </>
-        ) : (
-          <Text style={styles.waitingText}>No live class right now. You can continue with discussions, messages and activities asynchronously.</Text>
+        {!activeLive && isFaculty && (
+          <TextInput
+            value={liveTitle}
+            onChangeText={setLiveTitle}
+            placeholder="Name the next live class"
+            placeholderTextColor={theme.muted}
+            style={[styles.liveInput, { backgroundColor: theme.surface, color: theme.ink, borderColor: theme.border }]}
+          />
         )}
-      </View>
 
-      <Text style={styles.sectionTitle}>Classroom Spaces</Text>
-      {MODULES.filter(module => module.key !== 'grades' || !isFaculty).map(module => (
-        <Pressable key={module.key} style={({ pressed }) => [styles.moduleCard, pressed && styles.pressed]} onPress={() => openModule(module.route)}>
-          <View style={styles.moduleIcon}>
-            <MaterialCommunityIcons name={module.icon} size={25} color="#1f7a3f" />
+        <View style={styles.sectionHeading}>
+          <View>
+            <Text style={[styles.sectionKicker, { color: theme.secondary }]}>CLASS DESK</Text>
+            <Text style={[styles.sectionTitle, { color: theme.ink }]}>Pick up where you left off</Text>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.moduleTitle}>{module.title}</Text>
-            <Text style={styles.moduleText}>{module.description}</Text>
-          </View>
-          <MaterialCommunityIcons name="chevron-right" size={22} color="#839087" />
-        </Pressable>
-      ))}
-
-      {isFaculty && (
-        <>
-          <Text style={styles.sectionTitle}>Faculty Connection</Text>
-          <Pressable
-            style={styles.facultyCard}
-            onPress={() => router.push({ pathname: '/profile/buklod-faculty-class' as any, params: { id: classroomId, classroomId, name: className } })}
-          >
-            <MaterialCommunityIcons name="human-male-board" size={25} color="#1f7a3f" />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.moduleTitle}>Open Faculty Command Center</Text>
-              <Text style={styles.moduleText}>Roster, attendance, assessments, BUKLOD Quiz, grading setup, gradebook and final grades stay connected to this same class.</Text>
-            </View>
-            <MaterialCommunityIcons name="open-in-new" size={20} color="#1f7a3f" />
+          <Pressable onPress={() => setDrawerOpen(true)} style={[styles.customize, { backgroundColor: theme.chip }]}>
+            <MaterialCommunityIcons name="palette-outline" size={16} color={theme.ink} />
+            <Text style={[styles.customizeText, { color: theme.ink }]}>Theme</Text>
           </Pressable>
-        </>
-      )}
-    </ScrollView>
+        </View>
+
+        <View style={styles.moduleGrid}>
+          {MODULES.filter(module => {
+            if (module.key === 'grades' || module.key === 'attendance') return !isFaculty;
+            return true;
+          }).map((module, index) => {
+            const tone = toneFor(module.tone);
+            const wide = index === 0 || index % 4 === 3;
+            return (
+              <Pressable
+                key={module.key}
+                onPress={() => openModule(module.route)}
+                style={({ pressed }) => [
+                  styles.moduleCard,
+                  wide ? styles.moduleWide : styles.moduleHalf,
+                  { backgroundColor: theme.surfaceRaised, borderColor: theme.border },
+                  index % 3 === 1 && { transform: [{ rotate: '0.6deg' }] },
+                  pressed && { opacity: 0.76, transform: [{ scale: 0.985 }] },
+                ]}
+              >
+                <View style={styles.moduleTop}>
+                  <View style={[styles.moduleIcon, { backgroundColor: `${tone}1A` }]}>
+                    <MaterialCommunityIcons name={module.icon} size={24} color={tone} />
+                  </View>
+                  <Text style={[styles.moduleShort, { color: tone }]}>{module.short.toUpperCase()}</Text>
+                </View>
+                <Text style={[styles.moduleTitle, { color: theme.ink }]}>{module.title}</Text>
+                <Text style={[styles.moduleText, { color: theme.muted }]}>{module.description}</Text>
+                <View style={styles.moduleFooter}>
+                  <View style={[styles.moduleLine, { backgroundColor: tone }]} />
+                  <MaterialCommunityIcons name="arrow-top-right" size={17} color={theme.muted} />
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {isFaculty && (
+          <Pressable
+            onPress={() => router.push({ pathname: '/profile/buklod-faculty-class' as any, params: { id: classroomId, classroomId, name: className } })}
+            style={[styles.facultyStrip, { backgroundColor: theme.drawer }]}
+          >
+            <View style={[styles.facultyNumber, { backgroundColor: theme.accent }]}>
+              <Text style={[styles.facultyNumberText, { color: theme.drawer }]}>F</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.facultyKicker, { color: theme.accent }]}>FACULTY ONLY</Text>
+              <Text style={[styles.facultyTitle, { color: theme.drawerInk }]}>Command Center</Text>
+              <Text style={[styles.facultyText, { color: theme.muted }]}>Roster, attendance, Quiz sync, grading setup, reports and final grades.</Text>
+            </View>
+            <MaterialCommunityIcons name="arrow-right" size={22} color={theme.drawerInk} />
+          </Pressable>
+        )}
+
+        <View style={[styles.themeNote, { borderColor: theme.border }]}>
+          <View style={[styles.themeDot, { backgroundColor: theme.primary }]} />
+          <View style={[styles.themeDot, { backgroundColor: theme.secondary }]} />
+          <View style={[styles.themeDot, { backgroundColor: theme.accent }]} />
+          <Text style={[styles.themeNoteText, { color: theme.muted }]}>Using {theme.name}. Change it anytime from the drawer.</Text>
+        </View>
+      </ScrollView>
+
+      <ClassroomDrawer
+        visible={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        classroomId={classroomId}
+        classroomName={className}
+        role={role}
+        theme={theme}
+        themeId={themeId}
+        onThemeChange={setThemeId}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#123d24' },
-  content: { padding: 20, paddingTop: 44, paddingBottom: 80 },
-  back: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 16 },
-  backText: { color: '#fff', fontWeight: '900' },
-  hero: { backgroundColor: '#fff', borderRadius: 26, padding: 20 },
-  heroTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 15 },
-  heroIcon: { width: 56, height: 56, borderRadius: 18, backgroundColor: '#e7f4e9', alignItems: 'center', justifyContent: 'center' },
-  rolePill: { backgroundColor: '#eef5ef', borderRadius: 20, paddingHorizontal: 11, paddingVertical: 7 },
-  roleText: { color: '#1f7a3f', fontSize: 10, fontWeight: '900', letterSpacing: 0.6 },
-  eyebrow: { color: '#1f7a3f', fontSize: 10, fontWeight: '900', letterSpacing: 1.2 },
-  title: { color: '#17311f', fontSize: 28, fontWeight: '900', marginTop: 2 },
-  meta: { color: '#526159', fontWeight: '800', marginTop: 4 },
-  subtitle: { color: '#6a756d', lineHeight: 19, marginTop: 7 },
-  planRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 13 },
-  planPill: { backgroundColor: '#edf4ee', borderRadius: 20, paddingHorizontal: 9, paddingVertical: 5 },
-  premiumPlan: { backgroundColor: '#fff0c9' },
-  planText: { color: '#4f6055', fontSize: 9, fontWeight: '900' },
-  freeNote: { color: '#758078', fontSize: 10, marginLeft: 4 },
-  metrics: { flexDirection: 'row', gap: 9, marginTop: 12 },
-  metric: { flex: 1, backgroundColor: '#fff', borderRadius: 16, padding: 12, alignItems: 'center' },
-  metricValue: { color: '#17311f', fontSize: 22, fontWeight: '900' },
-  metricLabel: { color: '#718077', fontSize: 10, fontWeight: '800' },
-  liveCard: { backgroundColor: '#fff', borderRadius: 20, padding: 16, marginTop: 12 },
-  liveActive: { borderWidth: 2, borderColor: '#e9b0b0' },
-  liveHeader: { flexDirection: 'row', gap: 9, alignItems: 'center' },
-  liveDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#9ba89e' },
-  liveDotActive: { backgroundColor: '#d93535' },
-  liveTitle: { color: '#203328', fontWeight: '900', fontSize: 16 },
-  liveMeta: { color: '#748078', fontSize: 11, marginTop: 2 },
-  liveInput: { backgroundColor: '#f2f6f2', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 11, marginTop: 13, color: '#24362b' },
-  liveButton: { backgroundColor: '#1f7a3f', borderRadius: 12, paddingVertical: 12, marginTop: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
-  liveButtonText: { color: '#fff', fontWeight: '900' },
-  disabled: { opacity: 0.55 },
-  waitingText: { color: '#6e7a71', lineHeight: 18, marginTop: 12 },
-  sectionTitle: { color: '#fff', fontWeight: '900', fontSize: 17, marginTop: 22, marginBottom: 10 },
-  moduleCard: { backgroundColor: '#fff', borderRadius: 18, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 11, marginBottom: 9 },
-  moduleIcon: { width: 46, height: 46, borderRadius: 14, backgroundColor: '#e7f4e9', alignItems: 'center', justifyContent: 'center' },
-  moduleTitle: { color: '#25372b', fontWeight: '900' },
-  moduleText: { color: '#6b776e', lineHeight: 17, marginTop: 3, fontSize: 11 },
-  facultyCard: { backgroundColor: '#e8f4ea', borderRadius: 18, padding: 15, flexDirection: 'row', alignItems: 'center', gap: 11 },
-  pressed: { opacity: 0.84 },
+  root: { flex: 1 },
+  content: { paddingHorizontal: 18, paddingTop: 42, paddingBottom: 72 },
+  topBar: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+  menuButton: { width: 44, height: 44, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  topKicker: { fontSize: 8, fontWeight: '900', letterSpacing: 1.2 },
+  topName: { fontSize: 15, fontWeight: '900', marginTop: 1 },
+  exitButton: { height: 40, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  exitText: { fontSize: 10, fontWeight: '900' },
+  hero: { borderRadius: 26, padding: 20, overflow: 'hidden', position: 'relative' },
+  heroTape: { position: 'absolute', width: 86, height: 20, top: 9, right: -17, backgroundColor: 'rgba(255,255,255,0.13)', transform: [{ rotate: '15deg' }] },
+  heroTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  bookMark: { width: 46, height: 46, borderRadius: 8, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '-3deg' }] },
+  roleBlock: { alignItems: 'flex-end', gap: 2 },
+  heroSmall: { color: 'rgba(255,255,255,0.72)', fontSize: 8, fontWeight: '900', letterSpacing: 1 },
+  heroKicker: { color: 'rgba(255,255,255,0.70)', fontSize: 9, fontWeight: '900', letterSpacing: 1.7, marginTop: 22 },
+  heroTitle: { color: '#fff', fontSize: 29, fontWeight: '900', lineHeight: 33, marginTop: 2 },
+  heroMeta: { color: 'rgba(255,255,255,0.80)', fontSize: 10, fontWeight: '800', marginTop: 5 },
+  heroDescription: { color: 'rgba(255,255,255,0.78)', lineHeight: 18, fontSize: 11, marginTop: 10, maxWidth: '94%' },
+  heroBottom: { flexDirection: 'row', alignItems: 'center', marginTop: 20 },
+  heroStat: { minWidth: 68 },
+  heroStatValue: { color: '#fff', fontWeight: '900', fontSize: 18 },
+  heroStatLabel: { color: 'rgba(255,255,255,0.60)', fontSize: 8, marginTop: 1 },
+  heroDivider: { height: 28, width: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.24)', marginHorizontal: 13 },
+  liveCard: { flexDirection: 'row', gap: 10, alignItems: 'center', borderWidth: 1, borderRadius: 18, padding: 11, marginTop: 12 },
+  liveFlag: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  liveTitle: { fontWeight: '900', fontSize: 14 },
+  liveMeta: { fontSize: 9, marginTop: 2 },
+  liveAction: { minHeight: 36, borderRadius: 11, paddingHorizontal: 11, flexDirection: 'row', gap: 5, alignItems: 'center' },
+  liveActionText: { color: '#fff', fontWeight: '900', fontSize: 10 },
+  offlinePill: { paddingHorizontal: 9, paddingVertical: 7, borderRadius: 10 },
+  offlineText: { fontSize: 8, fontWeight: '900', letterSpacing: 0.8 },
+  liveInput: { borderWidth: 1, borderRadius: 13, paddingHorizontal: 13, paddingVertical: 10, marginTop: 7 },
+  disabled: { opacity: 0.45 },
+  sectionHeading: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 24, marginBottom: 10 },
+  sectionKicker: { fontSize: 8, fontWeight: '900', letterSpacing: 1.2 },
+  sectionTitle: { fontSize: 19, fontWeight: '900', marginTop: 2 },
+  customize: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 7, borderRadius: 10 },
+  customizeText: { fontSize: 9, fontWeight: '900' },
+  moduleGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
+  moduleCard: { borderRadius: 17, borderWidth: 1, padding: 13, minHeight: 144 },
+  moduleWide: { width: '100%' },
+  moduleHalf: { width: '48.5%' },
+  moduleTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  moduleIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  moduleShort: { fontSize: 8, fontWeight: '900', letterSpacing: 1 },
+  moduleTitle: { fontSize: 15, fontWeight: '900', marginTop: 11 },
+  moduleText: { fontSize: 10, lineHeight: 15, marginTop: 4, flex: 1 },
+  moduleFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 },
+  moduleLine: { width: 34, height: 3, borderRadius: 3 },
+  facultyStrip: { borderRadius: 18, padding: 15, marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 11 },
+  facultyNumber: { width: 43, height: 51, borderRadius: 7, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '-2deg' }] },
+  facultyNumberText: { fontWeight: '900', fontSize: 22 },
+  facultyKicker: { fontSize: 8, fontWeight: '900', letterSpacing: 1.2 },
+  facultyTitle: { fontWeight: '900', fontSize: 15, marginTop: 2 },
+  facultyText: { fontSize: 9, lineHeight: 13, marginTop: 3 },
+  themeNote: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 15, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth },
+  themeDot: { width: 8, height: 8, borderRadius: 3 },
+  themeNoteText: { marginLeft: 4, fontSize: 9 },
 });
