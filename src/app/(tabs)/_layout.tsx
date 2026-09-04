@@ -73,11 +73,6 @@ function SwipeDashboardHeader() {
   ) {
     title = 'Buklod';
   } else if (
-    pathname === '/classroom' ||
-    pathname.startsWith('/classroom/')
-  ) {
-    title = 'Buklod';
-  } else if (
     pathname === '/me' ||
     pathname.startsWith('/me/')
   ) {
@@ -244,7 +239,6 @@ export default function TabsLayout() {
           ) : null}
           <Stack.Screen name="me" />
           <Stack.Screen name="learn" />
-          <Stack.Screen name="classroom" />
         </Stack>
       </View>
     </View>
