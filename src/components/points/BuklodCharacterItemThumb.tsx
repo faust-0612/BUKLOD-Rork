@@ -1,7 +1,4 @@
-/* BUKLOD_CHARACTER_500K_REWARDS_R1 */
-import BuklodLocalCharacterFigure
-  from '@/components/points/BuklodLocalCharacterFigure';
-
+/* BUKLOD_CHARACTER_R25_REAL_WARDROBE_PREVIEWS */
 import React, {
   memo,
 } from 'react';
@@ -20,6 +17,9 @@ import {
   MaterialCommunityIcons,
 } from '@expo/vector-icons';
 
+import BuklodCharacterLayeredArt
+  from '@/components/points/BuklodCharacterLayeredArt';
+
 import {
   useBuklodPresentation,
 } from '@/hooks/useBuklodPresentation';
@@ -30,16 +30,20 @@ import {
 
 import {
   assetKeyFor,
-  defaultEquipment,
 } from '@/lib/character-lab-core/catalog';
 
 import {
   catalogItemGlyph,
 } from '@/lib/character-lab-core/localLooks';
 
+import {
+  equipmentForRankLook,
+} from '@/lib/buklodCharacter';
+
 import type {
   BodyId,
   CatalogItem,
+  Equipment,
 } from '@/lib/character-lab-core/types';
 
 type Props = {
@@ -53,6 +57,16 @@ type IconName =
   React.ComponentProps<
     typeof MaterialCommunityIcons
   >['name'];
+
+const CHARACTER_PREVIEW_SLOTS = new Set([
+  'base',
+  'face',
+  'hair',
+  'top',
+  'bottom',
+  'shoes',
+  'accessory',
+]);
 
 function BuklodCharacterItemThumbImpl({
   item,
@@ -79,6 +93,17 @@ function BuklodCharacterItemThumbImpl({
   const prestige =
     item.id.startsWith('prestige_');
 
+  const useCharacterPreview =
+    CHARACTER_PREVIEW_SLOTS.has(item.slot);
+
+  const previewEquipment: Equipment = {
+    ...equipmentForRankLook(
+      body,
+      item.unlockAtLifetime,
+    ),
+    [item.slot]: item.id,
+  };
+
   return (
     <View
       style={[
@@ -100,7 +125,17 @@ function BuklodCharacterItemThumbImpl({
         style={StyleSheet.absoluteFill}
       />
 
-      {url ? (
+      {useCharacterPreview ? (
+        <View style={styles.characterPreview}>
+          <BuklodCharacterLayeredArt
+            body={body}
+            equipment={previewEquipment}
+            height={Math.round(size * 1.08)}
+            showStage={false}
+            showEffects={false}
+          />
+        </View>
+      ) : url ? (
         <>
           <Image
             source={{ uri: url }}
@@ -146,25 +181,7 @@ function BuklodCharacterItemThumbImpl({
         </>
       ) : (
         <View style={styles.fallback}>
-          {/* BUKLOD_REAL_HAIR_FALLBACK_R7 */}
-          {item.slot === 'hair' ? (
-            <BuklodLocalCharacterFigure
-              body={body}
-              equipment={{
-                ...defaultEquipment(
-                  body,
-                ),
-                hair: item.id,
-              }}
-              width={
-                Math.round(
-                  size * 0.92,
-                )
-              }
-              mode="face"
-            />
-          ) : (
-            <MaterialCommunityIcons
+          <MaterialCommunityIcons
             name={glyph}
             size={Math.round(
               size * 0.38,
@@ -175,7 +192,6 @@ function BuklodCharacterItemThumbImpl({
                 : to
             }
           />
-          )}
         </View>
       )}
 
@@ -211,6 +227,13 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: 'hidden',
     borderWidth: 1,
+  },
+
+  characterPreview: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
   },
 
   realArt: {
