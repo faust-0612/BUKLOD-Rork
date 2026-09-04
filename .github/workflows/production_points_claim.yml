@@ -10,6 +10,7 @@ on:
       - 'src/app/points/**'
       - 'src/components/points/**'
       - 'assets/sounds/**'
+      - 'scripts/inject-adsense-web-head.cjs'
 
 env:
   EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
@@ -49,6 +50,7 @@ jobs:
           grep -F "setOptimisticClaimed(true)" 'src/components/points/BuklodClaimRewardCard.tsx'
           grep -F "claimBuklodRewardEvent(eventId)" 'src/app/points/index.tsx'
           grep -F "if (!rewardEvent || claimBusy)" 'src/app/points/index.tsx'
+          grep -F "'--clear'" 'scripts/inject-adsense-web-head.cjs'
           test -f 'assets/sounds/buklod-points-claim.wav'
           if grep -F "CLAIMING…" 'src/components/points/BuklodClaimRewardCard.tsx'; then
             echo 'Visible CLAIMING spinner/text must not return to BUKLOD Points claim.'
