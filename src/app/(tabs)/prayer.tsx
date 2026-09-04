@@ -1,8 +1,8 @@
-/* BUKLOD_ROOT_PERFORMANCE_R3_PRAYER_REALTIME: stable topic; existing cleanup preserved */
+/* BUKLOD_5K_SCALE_R1_PRAYER_NO_CDC: refresh on focus; no permanent Postgres Changes channel */
 import BuklodSponsorSlot from '@/components/BuklodSponsorSlot';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import { getClusterLabels, formatClusterName } from '@/lib/clusterLabels'; // PATCH_154A_CLUSTER_LABELS
@@ -29,16 +29,12 @@ export default function PrayerScreen() {
     setMyAnswered(count??0);
   },[user?.id]);
 
-  useEffect(()=>{load()},[load]);
-
-  useEffect(()=>{
-    const ch=supabase.channel(
-        `prayer-wall`
-      )
-      .on('postgres_changes',{event:'*',schema:'public',table:'prayer_requests'},load)
-      .subscribe();
-    return()=>{supabase.removeChannel(ch)};
-  },[load]);
+  useFocusEffect(
+    useCallback(()=>{
+      void load();
+      return undefined;
+    },[load])
+  );
 
   const prayed=async(id:string)=>{
     if(!user)return;
@@ -87,8 +83,6 @@ export default function PrayerScreen() {
       'Prayer',
       'Prayer recorded. Thank you for praying.'
     );
-
-    
   };
 
   return(
@@ -135,6 +129,3 @@ const styles=StyleSheet.create({
   addText:{color:colors.white,fontSize:11,fontWeight:'900'},
   pray:{color:colors.green,fontWeight:'900'}
 });
-
-
-
