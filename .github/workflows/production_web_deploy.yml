@@ -1,3 +1,4 @@
+# R25 Organization Home door deploy trigger
 name: BUKLOD Production Web Deploy
 
 on:
@@ -202,62 +203,37 @@ jobs:
           grep -F 'BUKLOD 5K SCALE HARDENING R1' 'supabase/migrations/20260904131000_buklod_5k_scale_hardening_r1.sql'
 
       - name: Expo credential preflight
-        id: expo
         shell: bash
         run: |
-          if [ -z "$EXPO_TOKEN" ]; then
-            echo "Expo web deploy not published: repository secret EXPO_TOKEN is not configured."
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            exit 0
+          if [ -z "${EXPO_TOKEN:-}" ]; then
+            echo 'EXPO_TOKEN repository secret is missing.'
+            exit 1
           fi
-          npx eas-cli@latest whoami --non-interactive
-          echo "ready=true" >> "$GITHUB_OUTPUT"
 
       - name: Export production web
-        if: steps.expo.outputs.ready == 'true'
-        shell: bash
-        env:
-          NODE_ENV: production
-          EXPO_PUBLIC_APP_ENV: production
-        run: |
-          npx expo export --platform web --output-dir dist
-          node scripts/inject-adsense-web-head.cjs dist
+        run: npx expo export --platform web --output-dir dist
 
       - name: Deploy production web
         id: deploy
-        if: steps.expo.outputs.ready == 'true'
         shell: bash
-        env:
-          NODE_ENV: production
-          EXPO_PUBLIC_APP_ENV: production
         run: |
-          set +e
-          npx eas-cli@latest deploy --prod --non-interactive
-          rc=$?
-          echo "rc=$rc" >> "$GITHUB_OUTPUT"
-          exit 0
+          set -o pipefail
+          npx eas-cli@latest deploy --prod --non-interactive 2>&1 | tee deploy-output.txt
 
       - name: Preserve deploy result
-        shell: bash
-        env:
-          EXPO_READY: ${{ steps.expo.outputs.ready }}
-          DEPLOY_RC: ${{ steps.deploy.outputs.rc }}
-        run: |
-          echo "EXPO_READY=$EXPO_READY" > /tmp/buklod_web_deploy_status
-          echo "DEPLOY_RC=${DEPLOY_RC:-not-run}" >> /tmp/buklod_web_deploy_status
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-web-deploy-output-${{ github.run_number }}
+          path: deploy-output.txt
+          if-no-files-found: ignore
 
       - name: Deployment status
+        if: always()
         shell: bash
-        env:
-          EXPO_READY: ${{ steps.expo.outputs.ready }}
-          DEPLOY_RC: ${{ steps.deploy.outputs.rc }}
         run: |
-          if [ "$EXPO_READY" != "true" ]; then
-            echo "BUKLOD production web deploy skipped because EXPO_TOKEN is unavailable."
-            exit 0
-          fi
-          if [ "$DEPLOY_RC" != "0" ]; then
-            echo "BUKLOD production web deploy failed (eas deploy rc=$DEPLOY_RC)."
+          if [ "${{ steps.deploy.outcome }}" != "success" ]; then
+            echo 'BUKLOD web deployment did not succeed.'
             exit 1
           fi
-          echo "BUKLOD production web deployed successfully."
+          echo 'BUKLOD web deployment succeeded.'
