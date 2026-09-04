@@ -265,7 +265,7 @@ export default function BuklodFacultyClassScreen() {
             <MaterialCommunityIcons name="google-classroom" size={27} color="#1f7a3f" />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: '#fff', fontWeight: '900', fontSize: 17 }}>Open BUKLOD Classroom</Text>
+            <Text style={{ color: '#fff', fontWeight: '900', fontSize: 17 }}>Open My Class</Text>
             <Text style={{ color: '#d4e5d8', lineHeight: 17, fontSize: 11, marginTop: 3 }}>Live class, discussions, messages, activities, submissions, materials and asynchronous monitoring.</Text>
           </View>
           <MaterialCommunityIcons name="chevron-right" size={23} color="#fff" />
