@@ -219,7 +219,7 @@ export default function BuklodFacultyScreen() {
         </View>
 
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>My Classes</Text>
+          <Text style={styles.sectionTitle}>My Class</Text>
           <Pressable style={styles.primarySmall} onPress={() => setShowCreate(true)}>
             <MaterialCommunityIcons name="plus" size={19} color="#fff" />
             <Text style={styles.primarySmallText}>Create</Text>
@@ -373,9 +373,9 @@ const styles = StyleSheet.create({
   modalTitle: { color: '#17311f', fontSize: 22, fontWeight: '900', marginBottom: 18 },
   label: { color: '#283b2e', fontWeight: '800', marginBottom: 6 },
   input: { backgroundColor: '#fff', borderRadius: 13, paddingHorizontal: 14, paddingVertical: 13, marginBottom: 14, color: '#203026' },
-  modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 9, marginTop: 6 },
-  secondary: { paddingHorizontal: 16, paddingVertical: 12 },
-  secondaryText: { color: '#526057', fontWeight: '800' },
-  primary: { backgroundColor: '#1f7a3f', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12 },
+  modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 9, marginTop: 4 },
+  primary: { backgroundColor: '#1f7a3f', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 11 },
   primaryText: { color: '#fff', fontWeight: '900' },
+  secondary: { backgroundColor: '#e8eee9', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 11 },
+  secondaryText: { color: '#2e4235', fontWeight: '900' },
 });
