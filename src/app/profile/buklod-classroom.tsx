@@ -235,7 +235,7 @@ export default function BuklodClassroomScreen() {
       </View>
 
       <Text style={styles.sectionTitle}>Classroom Spaces</Text>
-      {MODULES.map(module => (
+      {MODULES.filter(module => module.key !== 'grades' || !isFaculty).map(module => (
         <Pressable key={module.key} style={({ pressed }) => [styles.moduleCard, pressed && styles.pressed]} onPress={() => openModule(module.route)}>
           <View style={styles.moduleIcon}>
             <MaterialCommunityIcons name={module.icon} size={25} color="#1f7a3f" />
