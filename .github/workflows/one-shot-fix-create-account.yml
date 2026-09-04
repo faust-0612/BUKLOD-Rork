@@ -1,0 +1,81 @@
+name: One-shot Create Account Touch Repair
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/one-shot-fix-create-account.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Make CREATE ACCOUNT independent from login busy state
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('src/app/(auth)/login.tsx')
+          text = path.read_text(encoding='utf-8')
+
+          old = """          <Pressable
+            onPress={() => router.push('/(auth)/register')}
+            disabled={busy}
+            style={styles.secondary}
+          >
+            <Text style={styles.secondaryText}>
+              CREATE ACCOUNT
+            </Text>
+          </Pressable>"""
+
+          new = """          {/* PATCH_CREATE_ACCOUNT_TOUCH_R1
+              Registration navigation must stay available even when a previous
+              sign-in request left the login screen in a busy state. */}
+          <Pressable
+            onPress={() => router.push('/(auth)/register')}
+            style={styles.secondary}
+            accessibilityRole=\"button\"
+            accessibilityLabel=\"Create BUKLOD account\"
+            hitSlop={8}
+          >
+            <Text style={styles.secondaryText}>
+              CREATE ACCOUNT
+            </Text>
+          </Pressable>"""
+
+          count = text.count(old)
+          if count != 1:
+              raise SystemExit(f'Expected exactly one CREATE ACCOUNT block; found {count}. No file changed.')
+
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+      - name: Verify targeted repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F "PATCH_CREATE_ACCOUNT_TOUCH_R1" "src/app/(auth)/login.tsx"
+          if grep -A8 -F "PATCH_CREATE_ACCOUNT_TOUCH_R1" "src/app/(auth)/login.tsx" | grep -F "disabled={busy}"; then
+            echo "CREATE ACCOUNT is still tied to busy state" >&2
+            exit 1
+          fi
+          git diff --check
+          git diff -- "src/app/(auth)/login.tsx"
+
+      - name: Commit repair and remove one-shot workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/one-shot-fix-create-account.yml
+          git config user.name "BUKLOD Repair Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add "src/app/(auth)/login.tsx" .github/workflows/one-shot-fix-create-account.yml
+          git commit -m "fix(auth): keep Create Account button clickable"
+          git push origin HEAD:main
