@@ -58,7 +58,7 @@ export const FACULTY_AUTOPILOT_MODULES: FacultyAutopilotModule[] = [
     icon: 'database-sync-outline',
     title: 'Quiz Dedicated Sync',
     description: 'Import only officially released BUKLOD Quiz Dedicated scores into the selected term and grade category.',
-    pathname: '/profile/buklod-faculty-quiz-dedicated',
+    pathname: '/profile/buklod-classroom-faculty-quiz-dedicated',
   },
   {
     key: 'gradingSetup',
