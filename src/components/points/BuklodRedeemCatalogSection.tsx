@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Pressable,
   StyleSheet,
@@ -132,11 +131,14 @@ export default function BuklodRedeemCatalogSection({
       fontWeight: '900',
       color: '#fff',
     },
-    muted: {
-      fontSize: 13,
-      color: theme.textMuted,
-    },
   });
+
+  // The redeem surface stays completely hidden until the backend exposes
+  // a real active catalog item with an end-to-end entitlement/fulfillment.
+  // Loading the catalog never blocks the Points dashboard.
+  if (loading || items.length === 0) {
+    return null;
+  }
 
   return (
     <View style={styles.card}>
@@ -145,43 +147,37 @@ export default function BuklodRedeemCatalogSection({
         Spend available points only. Lifetime progression is never reduced.
       </Text>
 
-      {loading ? (
-        <ActivityIndicator color={theme.accent} />
-      ) : items.length === 0 ? (
-        <Text style={styles.muted}>No redeem rewards available yet.</Text>
-      ) : (
-        items.map((item) => (
-          <View key={item.id} style={styles.row}>
-            <MaterialCommunityIcons
-              name="gift-outline"
-              size={20}
-              color={theme.accent}
-            />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.title}>{item.title}</Text>
-              {!!item.description && (
-                <Text style={styles.sub}>{item.description}</Text>
-              )}
-              <Text style={styles.cost}>{item.cost_points} pts</Text>
-            </View>
-            <Pressable
-              disabled={busyId === item.id}
-              onPress={() => handleRedeem(item)}
-              style={[
-                styles.redeemBtn,
-                (busyId === item.id ||
-                  availablePoints < item.cost_points) && {
-                  opacity: 0.5,
-                },
-              ]}
-            >
-              <Text style={styles.redeemText}>
-                {busyId === item.id ? '...' : 'REDEEM'}
-              </Text>
-            </Pressable>
+      {items.map((item) => (
+        <View key={item.id} style={styles.row}>
+          <MaterialCommunityIcons
+            name="gift-outline"
+            size={20}
+            color={theme.accent}
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.title}>{item.title}</Text>
+            {!!item.description && (
+              <Text style={styles.sub}>{item.description}</Text>
+            )}
+            <Text style={styles.cost}>{item.cost_points} pts</Text>
           </View>
-        ))
-      )}
+          <Pressable
+            disabled={busyId === item.id}
+            onPress={() => handleRedeem(item)}
+            style={[
+              styles.redeemBtn,
+              (busyId === item.id ||
+                availablePoints < item.cost_points) && {
+                opacity: 0.5,
+              },
+            ]}
+          >
+            <Text style={styles.redeemText}>
+              {busyId === item.id ? '...' : 'REDEEM'}
+            </Text>
+          </Pressable>
+        </View>
+      ))}
     </View>
   );
 }
