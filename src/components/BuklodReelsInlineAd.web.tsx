@@ -1,8 +1,22 @@
 import React from 'react';
 
-export default function BuklodReelsInlineAd(_props: {
+import BuklodWebAdSlot from '@/components/BuklodWebAdSlot.web';
+
+export default function BuklodReelsInlineAd({
+  active = true,
+}: {
   slotId?: string;
   active?: boolean;
 }) {
-  return null;
+  if (!active) {
+    return null;
+  }
+
+  return (
+    <BuklodWebAdSlot
+      placement="reels"
+      compact
+      format="inline"
+    />
+  );
 }

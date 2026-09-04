@@ -14,6 +14,7 @@ export type BuklodAdPlacement =
   | 'devotion'
   | 'me'
   | 'reels'
+  | 'focus'
   | 'test';
 
 /* Standard AdMob BANNER creative is 320x50. Dashboard chrome
@@ -166,12 +167,14 @@ export function getBuklodBannerUnitId(
 
     case 'bible':
     case 'devotion':
+    case 'focus':
       placementId =
         clean(
           process.env
             .EXPO_PUBLIC_ADMOB_CONTENT_BANNER_UNIT_ID
         );
       break;
+
     case 'me':
       placementId =
         genericBanner;

@@ -7,6 +7,7 @@
   | 'devotion'
   | 'me'
   | 'reels'
+  | 'focus'
   | 'test';
 
 export const BUKLOD_DASHBOARD_BANNER_AD_HEIGHT = 50;
