@@ -1321,7 +1321,7 @@ useState<any[]>([]);
     useState<Filter>('all');
 
   // PATCH_154H_LEADERBOARD_STATE
-  const [leaderboardOpen, setLeaderboardOpen] = useState(false);
+  const [leaderboardOpen, setLeaderboardOpen] = useState(true);
   const [leaderboardPeriod, setLeaderboardPeriod] =
     useState<'weekly' | 'monthly' | 'all_time'>('all_time');
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
@@ -1394,6 +1394,11 @@ useState<any[]>([]);
     },
     []
   );
+
+  // RESTORE_TOP10_VISIBLE_R1
+  useEffect(() => {
+    void loadLeaderboard('all_time');
+  }, [loadLeaderboard]);
 
   const loadCircleRank =
     useCallback(async () => {
@@ -2193,11 +2198,11 @@ const load = useCallback(async () => {
               if (next) void loadLeaderboard(leaderboardPeriod);
             }}
             accessibilityRole="button"
-            accessibilityLabel="Open Top Notchers leaderboard"
+            accessibilityLabel="Open Top 10 Members leaderboard"
           >
             <Text style={styles.sectionEyebrow}>MY RANKING</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Text style={styles.sectionTitle}>Top Notchers Position</Text>
+              <Text style={styles.sectionTitle}>Top 10 Members</Text>
               <MaterialCommunityIcons name={leaderboardOpen ? 'chevron-up' : 'chevron-down'} size={23} color={"#275D45"} />
             </View>
           </Pressable>
