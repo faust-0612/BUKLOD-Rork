@@ -600,6 +600,8 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
+  // HIGH_CONCURRENCY_LOGIN_R1: React state alone cannot stop same-tick double taps.
+  const loginInFlightRef = useRef(false);
   const [
     suggestedLogins,
     setSuggestedLogins,
@@ -812,41 +814,51 @@ const chooseSuggestedLogin =
   const saveSuggestedLogin =
     async (
       loginIdentifier: string,
-      loginPassword: string
+      loginPassword: string,
+      authenticatedUser: any
     ) => {
-      const {
-        data: authData,
-        error: authError,
-      } =
-        await supabase.auth.getUser();
+      /*
+       * HIGH_CONCURRENCY_LOGIN_R1
+       * signInWithPassword already returned the authenticated user. Do not
+       * call auth.getUser() and profiles again just to paint a local bubble.
+       */
+      const userId =
+        String(authenticatedUser?.id ?? '').trim();
 
-      if (
-        authError ||
-        !authData.user?.id
-      ) {
+      if (!userId) {
         return;
       }
 
-      const userId =
-        authData.user.id;
-
-      const {
-        data: profileRow,
-      } =
-        await (supabase as any)
-          .from('profiles')
-          .select(
-            'full_name,avatar_url,username,mobile'
+      const stored =
+        parseSuggestedLogins(
+          await AsyncStorage.getItem(
+            SUGGESTED_LOGINS_KEY
           )
-          .eq('id', userId)
-          .maybeSingle();
+        );
+
+      const existing =
+        stored.find(
+          item => item.userId === userId
+        );
+
+      const metadata =
+        authenticatedUser?.user_metadata ?? {};
 
       const displayName =
         String(
-          profileRow?.full_name ||
-          profileRow?.username ||
+          metadata?.full_name ||
+          metadata?.display_name ||
+          metadata?.name ||
+          metadata?.username ||
+          existing?.displayName ||
           loginIdentifier
         ).trim();
+
+      const rawAvatar =
+        metadata?.avatar_url ||
+        metadata?.picture ||
+        existing?.avatarUrl ||
+        null;
 
       const nextItem: SuggestedLogin = {
         userId,
@@ -856,22 +868,15 @@ const chooseSuggestedLogin =
           displayName ||
           loginIdentifier.trim(),
         avatarUrl:
-          typeof profileRow?.avatar_url ===
-          'string'
-            ? profileRow.avatar_url
+          typeof rawAvatar === 'string' &&
+          rawAvatar.trim()
+            ? rawAvatar.trim()
             : null,
         lastUsedAt:
           new Date().toISOString(),
         hasPassword:
           rememberPassword,
       };
-
-      const stored =
-        parseSuggestedLogins(
-          await AsyncStorage.getItem(
-            SUGGESTED_LOGINS_KEY
-          )
-        );
 
       const next = [
         nextItem,
@@ -930,9 +935,20 @@ const chooseSuggestedLogin =
       );
     }
 
+    if (loginInFlightRef.current) {
+      return;
+    }
+
+    loginInFlightRef.current = true;
     setBusy(true);
 
+    const releaseLogin = () => {
+      loginInFlightRef.current = false;
+      setBusy(false);
+    };
+
     let error: any = null;
+    let authenticatedUser: any = null;
 
     if (raw.includes('@')) {
       const result = await signInForFreshPublicHome({
@@ -941,6 +957,13 @@ const chooseSuggestedLogin =
       });
 
       error = result.error;
+
+      authenticatedUser =
+
+        result.data?.user ??
+
+
+        null;
     } else {
       const phone = normalizePhilippinePhone(raw);
 
@@ -966,11 +989,18 @@ const chooseSuggestedLogin =
         }
 
         error = result.error;
+
+        authenticatedUser =
+
+          result.data?.user ??
+
+
+          null;
       } else {
         const username = normalizeUsername(raw);
 
         if (!username) {
-          setBusy(false);
+          releaseLogin();
 
           return Alert.alert(
             'BUKLOD',
@@ -984,11 +1014,18 @@ const chooseSuggestedLogin =
         });
 
         error = result.error;
+
+        authenticatedUser =
+
+          result.data?.user ??
+
+
+          null;
       }
     }
 
     if (error) {
-      setBusy(false);
+      releaseLogin();
       triggerShake();
 
       const temporaryFailure =
@@ -1020,7 +1057,7 @@ const chooseSuggestedLogin =
 
     if (accountLifecycleError) {
       await signOutBuklodResilient();
-      setBusy(false);
+      releaseLogin();
 
       const temporaryFailure =
         isBuklodTransientAuthError(
@@ -1047,7 +1084,7 @@ const chooseSuggestedLogin =
       accountWasSelfDeactivated ||
       accountIsInactive
     ) {
-      setBusy(false);
+      releaseLogin();
 
       Alert.alert(
         accountWasSelfDeactivated
@@ -1089,14 +1126,14 @@ const chooseSuggestedLogin =
                     // Refresh cleanly through the same successful Login path so
                     // AuthProvider reloads the now-active profile before Home.
                     await signOutBuklodResilient();
-                    setBusy(false);
+                    releaseLogin();
                     void login({
                       identifier: raw,
                       password: effectivePassword,
                     });
                   } catch (error: any) {
                     await signOutBuklodResilient();
-                    setBusy(false);
+                    releaseLogin();
                     Alert.alert(
                       'Could Not Reactivate',
                       String(error?.message ?? error ?? 'Please try again.')
@@ -1148,7 +1185,8 @@ const chooseSuggestedLogin =
      */
     void saveSuggestedLogin(
       raw,
-      effectivePassword
+      effectivePassword,
+      authenticatedUser
     ).catch(error => {
       console.warn(
         'Could not save suggested BUKLOD login.',

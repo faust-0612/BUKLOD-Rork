@@ -3,8 +3,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { supabase } from '@/lib/supabase';
 
-const AUTH_TRANSIENT_RETRY_MIN_MS = 700;
-const AUTH_TRANSIENT_RETRY_JITTER_MS = 350;
 const AUTH_LIFECYCLE_TIMEOUT_MS = 5_500;
 const AUTH_PROFILE_FALLBACK_TIMEOUT_MS = 3_500;
 const AUTH_LOCAL_SIGN_OUT_TIMEOUT_MS = 2_500;
@@ -99,42 +97,20 @@ export function isBuklodTransientAuthError(
   );
 }
 
-function wait(ms: number) {
-  return new Promise<void>(resolve => {
-    setTimeout(resolve, ms);
-  });
-}
-
 export async function signInWithPasswordResilient(
   credentials: Parameters<
     typeof supabase.auth.signInWithPassword
   >[0]
 ) {
-  let result =
-    await supabase.auth.signInWithPassword(
-      credentials
-    );
-
-  if (
-    result.error &&
-    isBuklodTransientAuthError(result.error)
-  ) {
-    const retryDelay =
-      AUTH_TRANSIENT_RETRY_MIN_MS +
-      Math.floor(
-        Math.random() *
-          AUTH_TRANSIENT_RETRY_JITTER_MS
-      );
-
-    await wait(retryDelay);
-
-    result =
-      await supabase.auth.signInWithPassword(
-        credentials
-      );
-  }
-
-  return result;
+  /*
+   * HIGH_CONCURRENCY_LOGIN_R1
+   * Never auto-retry a password request after a timeout/5xx/429. During a
+   * synchronized login wave, automatic retries amplify overload (N -> 2N).
+   * Legacy identifier compatibility remains an explicit caller decision.
+   */
+  return supabase.auth.signInWithPassword(
+    credentials
+  );
 }
 
 export type BuklodAccountLifecycleResult = {
