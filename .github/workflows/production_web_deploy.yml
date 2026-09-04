@@ -8,10 +8,13 @@ on:
     paths:
       - '.github/workflows/production_web_deploy.yml'
       - 'scripts/patch-web-community-post.cjs'
+      - 'scripts/patch-home-identity-action-row.cjs'
       - 'scripts/inject-adsense-web-head.cjs'
       - 'src/app/+html.tsx'
       - 'src/app/index.tsx'
       - 'src/app/onboarding/index.tsx'
+      - 'src/app/(tabs)/home.tsx'
+      - 'src/components/BuklodPublicWordShortcut.tsx'
       - 'src/components/BuklodExclusiveScopeCommunity.tsx'
       - 'src/components/BuklodCommunityPhotoCollage.tsx'
       - 'src/app/(auth)/login.tsx'
@@ -96,6 +99,20 @@ jobs:
           grep -F "setBusy(true);" 'src/components/BuklodExclusiveScopeCommunity.tsx'
           grep -F "disabled={busy}" 'src/components/BuklodExclusiveScopeCommunity.tsx'
           grep -F "Post to this community" 'src/components/BuklodExclusiveScopeCommunity.tsx'
+
+      - name: Apply Home identity action row
+        run: node scripts/patch-home-identity-action-row.cjs
+
+      - name: Verify Classroom and Home separation
+        shell: bash
+        run: |
+          grep -F 'HOME_IDENTITY_ACTION_ROW_R2' 'src/app/(tabs)/home.tsx'
+          grep -F 'BUKLOD_CLASSROOM_ACCOUNT_ISOLATION_R2' 'src/app/profile/buklod-classrooms.tsx'
+          grep -F "row.role_key === 'STUDENT'" 'src/app/profile/buklod-classrooms.tsx'
+          if grep -F "row.role_key === 'FACULTY'" 'src/app/profile/buklod-classrooms.tsx'; then
+            echo 'Faculty rows are still rendered in student My Classroom.'
+            exit 1
+          fi
 
       - name: TypeScript QA
         run: npx tsc --noEmit
