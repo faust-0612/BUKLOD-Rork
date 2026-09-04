@@ -1,4 +1,5 @@
 /* BUKLOD_CHARACTER_R25_REAL_WARDROBE_PREVIEWS */
+/* BUKLOD_CHARACTER_R25B_DEPLOY_TRIGGER */
 import React, {
   memo,
 } from 'react';
@@ -130,7 +131,7 @@ function BuklodCharacterItemThumbImpl({
           <BuklodCharacterLayeredArt
             body={body}
             equipment={previewEquipment}
-            height={Math.round(size * 1.08)}
+            height={Math.round(size * 1.16)}
             showStage={false}
             showEffects={false}
           />
