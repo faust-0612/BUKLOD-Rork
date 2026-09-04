@@ -45,20 +45,12 @@ export default function BuklodPublicWordShortcut() {
 
   /*
    * PUBLIC:
+   * Show Faith ON  -> Word
+   * Show Faith OFF -> Inspire
    *
-   * Show Faith ON
-   *   -> Word
-   *   -> /word
-   *
-   * Show Faith OFF
-   *   -> Inspire
-   *   -> /inspire
-   *
-   * NON-PUBLIC:
-   * Preserve previous faith-content behavior for the Word tile.
-   *
-   * My Classroom is account-scoped rather than faith/scope-gated, so it
-   * remains available to every signed-in student from BUKLOD Main.
+   * My Classroom remains account-scoped and is always available.
+   * HOME_IDENTITY_ACTION_ROW_R1 keeps these as equal horizontal tiles so
+   * the member name can use the full width above the action row.
    */
   const showWord =
     Boolean(activeScope) &&
@@ -70,17 +62,32 @@ export default function BuklodPublicWordShortcut() {
     !showFaithContent;
 
   const label = inspire
-    ? 'Inspire'
-    : 'Word';
+    ? 'INSPIRE'
+    : 'WORD';
+
+  const tileStyle = ({ pressed }: { pressed: boolean }) => ({
+    flex: 1,
+    minWidth: 0,
+    minHeight: 58,
+    paddingHorizontal: 5,
+    paddingVertical: 7,
+    borderRadius: 14,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    backgroundColor: colors.greenSoft,
+    borderWidth: 1,
+    borderColor: colors.line,
+    opacity: pressed ? 0.65 : 1,
+  });
 
 
   return (
     <View
       style={{
-        width: 68,
-        minHeight: 92,
-        gap: 5,
-        justifyContent: 'center',
+        flex: showWord ? 2 : 1,
+        minWidth: 0,
+        flexDirection: 'row',
+        gap: 6,
       }}
     >
       {showWord ? (
@@ -100,56 +107,33 @@ export default function BuklodPublicWordShortcut() {
               ) as any
             )
           }
-          style={({
-            pressed,
-          }) => ({
-            width: '100%',
-            minHeight: 42,
-            paddingHorizontal: 5,
-            borderRadius: 12,
-            alignItems:
-              'center',
-            justifyContent:
-              'center',
-            backgroundColor:
-              colors.greenSoft,
-            borderWidth: 1,
-            borderColor:
-              colors.line,
-            opacity:
-              pressed
-                ? 0.65
-                : 1,
-          })}
+          style={tileStyle}
         >
-
           <MaterialCommunityIcons
             name={
               inspire
                 ? 'book-open-outline'
                 : 'book-open-page-variant-outline'
             }
-            size={16}
-            color={
-              colors.greenDark
-            }
+            size={20}
+            color={colors.greenDark}
           />
 
           <Text
             allowFontScaling={false}
             numberOfLines={1}
             style={{
-              marginTop: 1,
+              marginTop: 3,
+              width: '100%',
+              textAlign: 'center',
               fontSize: 8.5,
               lineHeight: 10,
               fontWeight: '900',
-              color:
-                colors.greenDark,
+              color: colors.greenDark,
             }}
           >
             {label}
           </Text>
-
         </Pressable>
       ) : null}
 
@@ -161,24 +145,11 @@ export default function BuklodPublicWordShortcut() {
             '/profile/buklod-classrooms' as any
           )
         }
-        style={({
-          pressed,
-        }) => ({
-          width: '100%',
-          minHeight: showWord ? 45 : 92,
-          paddingHorizontal: 4,
-          borderRadius: 12,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: colors.greenSoft,
-          borderWidth: 1,
-          borderColor: colors.line,
-          opacity: pressed ? 0.65 : 1,
-        })}
+        style={tileStyle}
       >
         <MaterialCommunityIcons
           name="school-outline"
-          size={showWord ? 17 : 22}
+          size={20}
           color={colors.greenDark}
         />
 
@@ -186,11 +157,11 @@ export default function BuklodPublicWordShortcut() {
           allowFontScaling={false}
           numberOfLines={2}
           style={{
-            marginTop: 1,
+            marginTop: 3,
             width: '100%',
             textAlign: 'center',
-            fontSize: showWord ? 7.8 : 9.5,
-            lineHeight: showWord ? 9 : 11,
+            fontSize: 8.2,
+            lineHeight: 10,
             fontWeight: '900',
             color: colors.greenDark,
           }}
