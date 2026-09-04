@@ -27,8 +27,9 @@ function buildQuizSessionUrl(input: {
   const expiresIn = Math.max(1, expiresAt - nowSeconds);
 
   // BUKLOD Quiz R12+/R14 uses the same BUKLOD Connect Supabase project.
-  // Supabase's browser implicit-session detector reads these values from the
-  // fragment and persists the existing central session locally for Quiz.
+  // Send the central session directly to the Quiz login route instead of the
+  // site root. The root route can redirect unauthenticated visitors to /login;
+  // that redirect may discard the URL fragment before Supabase can consume it.
   // A URL fragment is not sent to the Expo hosting server in the HTTP request.
   const fragment = [
     `access_token=${encodeURIComponent(input.accessToken)}`,
@@ -36,9 +37,10 @@ function buildQuizSessionUrl(input: {
     `expires_in=${expiresIn}`,
     `expires_at=${expiresAt}`,
     'token_type=bearer',
+    'buklod_handoff=classroom',
   ].join('&');
 
-  return `${QUIZ_WEB_URL}/#${fragment}`;
+  return `${QUIZ_WEB_URL}/login#${fragment}`;
 }
 
 export default function BuklodQuizStudentEntry() {
