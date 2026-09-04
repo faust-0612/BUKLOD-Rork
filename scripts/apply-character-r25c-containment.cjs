@@ -1,3 +1,4 @@
+// BUKLOD_CHARACTER_R25C_DEPLOY_TRIGGER_2
 const fs = require('fs');
 
 const renderer = 'src/components/points/BuklodCharacterLayeredArt.tsx';
