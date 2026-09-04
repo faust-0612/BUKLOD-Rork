@@ -11,7 +11,8 @@ if 'get_my_daily_devotional' not in home:
     home = home.replace('get_my_weekly_devotional', 'get_my_daily_devotional')
 
 home = home.replace("'Weekly Devotional'", "'Daily Devotional'")
-home = home.replace('WEEKLY DEVOTIONAL', "TODAY'S DEVOTIONAL")
+# Keep apostrophe-safe JSX/TS string literals.
+home = home.replace(".join('  •  ') || 'WEEKLY DEVOTIONAL'", ".join('  •  ') || \"TODAY'S DEVOTIONAL\"")
 home = home.replace('OPEN WEEKLY DEVOTIONAL', "OPEN TODAY'S DEVOTIONAL")
 home = home.replace('weekly devotional query remains', 'daily devotional query remains')
 home = home.replace('weekly devotional, keep null.', 'daily devotional, keep null.')
@@ -20,6 +21,8 @@ if 'get_my_daily_devotional' not in home:
     raise SystemExit('Daily devotional RPC not installed in Home')
 if 'OPEN WEEKLY DEVOTIONAL' in home:
     raise SystemExit('Old weekly devotional button still present')
+if "'TODAY'S DEVOTIONAL'" in home:
+    raise SystemExit('Unsafe apostrophe-delimited devotional label detected')
 
 home_path.write_text(home, encoding='utf-8')
 
