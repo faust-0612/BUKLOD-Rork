@@ -1,3 +1,4 @@
+# R25 source-fix trigger
 name: BUKLOD Organization Directory Home Door R25 Fix
 
 on:
@@ -58,13 +59,11 @@ jobs:
           elif 'OPEN ORGANIZATION HOME' not in text:
               raise SystemExit('Root Organization home button label anchor not found.')
 
-          # The compact sub-organization OPEN remains a workspace door, but make the destination explicit.
           sub_open_anchor = """                      <Text style={styles.subOpenText}>\n                        OPEN\n                      </Text>"""
           sub_open_new = """                      <Text style={styles.subOpenText}>\n                        OPEN HOME\n                      </Text>"""
           if sub_open_anchor in text:
               text = text.replace(sub_open_anchor, sub_open_new, 1)
 
-          # Safety assertions: admins who are also active members must retain both Home and Manage controls.
           if '{isMember && !canManage ? (' in text:
               raise SystemExit('Admin exclusion still blocks the Organization Home door.')
           if "{ section: 'home', fromPortal: true }" not in text:
