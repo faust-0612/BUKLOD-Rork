@@ -22,6 +22,9 @@ on:
       - 'src/components/BuklodClusterHomeCommandCenterImpl.tsx'
       - 'src/lib/buklodClusterFormationGate.ts'
       - 'src/app/(tabs)/me.tsx'
+      - 'src/app/(tabs)/prayer.tsx'
+      - 'src/app/(tabs)/messages.tsx'
+      - 'src/providers/NotificationProvider.tsx'
       - 'src/app/profile/buklod-faculty-class.tsx'
       - 'src/app/profile/buklod-classroom*.tsx'
       - 'src/components/classroom/**'
@@ -54,6 +57,7 @@ on:
       - 'src/lib/buklodCommunityPostMedia.ts'
       - 'src/lib/buklodMediaUrl.ts'
       - 'supabase/migrations/*community_external_video_storage_aws*.sql'
+      - 'supabase/migrations/*buklod_5k_scale_hardening*.sql'
 
 permissions:
   contents: read
@@ -151,6 +155,9 @@ jobs:
           grep -F 'BUKLOD_AWS_WALL_VIDEO_ROUTE_R1' 'src/lib/uploadCommunityVideoFile.ts'
           grep -F 'set_buklod_post_media_v5' 'src/lib/buklodCommunityPostMedia.ts'
           grep -F 'BUKLOD_AWS_SIGNED_MEDIA_CACHE_R2_BATCHED' 'src/lib/buklodMediaUrl.ts'
+          grep -F 'BUKLOD_5K_SCALE_R1_NOTIFICATION_NO_CDC' 'src/providers/NotificationProvider.tsx'
+          grep -F 'BUKLOD_5K_SCALE_R1_PRAYER_NO_CDC' 'src/app/(tabs)/prayer.tsx'
+          grep -F 'BUKLOD 5K SCALE HARDENING R1' 'supabase/migrations/20260904131000_buklod_5k_scale_hardening_r1.sql'
 
       - name: Expo credential preflight
         id: expo
