@@ -1,0 +1,47 @@
+name: BUKLOD Recovery OTP Provider Probe
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/recovery_otp_provider_probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch recovery service status
+        id: status
+        shell: bash
+        run: |
+          set -euo pipefail
+          BODY="$(curl --fail --silent --show-error \
+            -X POST 'https://yhanxndaqbmuzbdqlblu.supabase.co/functions/v1/account-recovery-otp-v1' \
+            -H 'content-type: application/json' \
+            --data '{"action":"service_status"}')"
+          node -e "const x=JSON.parse(process.argv[1]); if(!x.ok) process.exit(2); console.log('status response received');" "$BODY"
+          SMS_READY="$(node -e "const x=JSON.parse(process.argv[1]); process.stdout.write(String(x.smsReady===true))" "$BODY")"
+          EMAIL_READY="$(node -e "const x=JSON.parse(process.argv[1]); process.stdout.write(String(x.emailReady===true))" "$BODY")"
+          echo "sms_ready=$SMS_READY" >> "$GITHUB_OUTPUT"
+          echo "email_ready=$EMAIL_READY" >> "$GITHUB_OUTPUT"
+
+      - name: SMS provider ready
+        if: steps.status.outputs.sms_ready == 'true'
+        run: echo 'SMS provider is configured.'
+
+      - name: SMS provider not ready
+        if: steps.status.outputs.sms_ready != 'true'
+        run: echo 'SMS provider is not configured.'
+
+      - name: Email provider ready
+        if: steps.status.outputs.email_ready == 'true'
+        run: echo 'Email provider is configured.'
+
+      - name: Email provider not ready
+        if: steps.status.outputs.email_ready != 'true'
+        run: echo 'Email provider is not configured.'
