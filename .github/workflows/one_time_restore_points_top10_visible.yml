@@ -1,0 +1,85 @@
+name: One-time restore visible Top 10 ranking
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/one_time_restore_points_top10_visible.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Restore visible all-time Top 10 on Points ranking
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/app/points/index.tsx')
+          text = path.read_text(encoding='utf-8')
+
+          old_state = "  const [leaderboardOpen, setLeaderboardOpen] = useState(false);"
+          new_state = "  const [leaderboardOpen, setLeaderboardOpen] = useState(true);"
+          if text.count(old_state) != 1:
+              raise SystemExit(f'Expected exactly one collapsed leaderboard state, found {text.count(old_state)}')
+          text = text.replace(old_state, new_state, 1)
+
+          anchor = """  const loadCircleRank =\n    useCallback(async () => {"""
+          effect = """  // RESTORE_TOP10_VISIBLE_R1\n  useEffect(() => {\n    void loadLeaderboard('all_time');\n  }, [loadLeaderboard]);\n\n  const loadCircleRank =\n    useCallback(async () => {"""
+          if text.count(anchor) != 1:
+              raise SystemExit(f'Expected exactly one loadCircleRank anchor, found {text.count(anchor)}')
+          text = text.replace(anchor, effect, 1)
+
+          old_title = "<Text style={styles.sectionTitle}>Top Notchers Position</Text>"
+          new_title = "<Text style={styles.sectionTitle}>Top 10 Members</Text>"
+          if text.count(old_title) != 1:
+              raise SystemExit(f'Expected exactly one Top Notchers title, found {text.count(old_title)}')
+          text = text.replace(old_title, new_title, 1)
+
+          old_accessibility = 'accessibilityLabel="Open Top Notchers leaderboard"'
+          new_accessibility = 'accessibilityLabel="Open Top 10 Members leaderboard"'
+          if text.count(old_accessibility) != 1:
+              raise SystemExit(f'Expected exactly one leaderboard accessibility label, found {text.count(old_accessibility)}')
+          text = text.replace(old_accessibility, new_accessibility, 1)
+
+          path.write_text(text, encoding='utf-8')
+          print('Restored visible all-time Top 10 ranking on Points screen')
+          PY
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Verify Top 10 restoration anchors
+        shell: bash
+        run: |
+          grep -F "useState(true);" 'src/app/points/index.tsx' >/dev/null
+          grep -F "RESTORE_TOP10_VISIBLE_R1" 'src/app/points/index.tsx' >/dev/null
+          grep -F "Top 10 Members" 'src/app/points/index.tsx' >/dev/null
+          grep -F "loadLeaderboard('all_time')" 'src/app/points/index.tsx' >/dev/null
+
+      - name: Commit source fix and remove one-time workflow
+        shell: bash
+        run: |
+          git config user.name "BUKLOD Automation"
+          git config user.email "actions@users.noreply.github.com"
+          rm -f .github/workflows/one_time_restore_points_top10_visible.yml
+          git add 'src/app/points/index.tsx' .github/workflows/one_time_restore_points_top10_visible.yml
+          git commit -m "fix(points): restore visible all-time Top 10 ranking"
+          git push origin HEAD:main
