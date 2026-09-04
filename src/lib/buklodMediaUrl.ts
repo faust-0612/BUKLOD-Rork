@@ -1,27 +1,46 @@
-/* BUKLOD_AWS_SIGNED_MEDIA_CACHE_R1 */
+/* BUKLOD_AWS_SIGNED_MEDIA_CACHE_R2_BATCHED */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image as ExpoImage } from 'expo-image';
 
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { supabase } from '@/lib/supabase';
 
-const SIGN_STORAGE_KEY = '@buklod/media-sign/v2';
-const SIGN_TIMEOUT_MS = 4000;
+const SIGN_STORAGE_KEY = '@buklod/media-sign/v3';
+const SIGN_TIMEOUT_MS = 6000;
+const SIGN_CACHE_TTL_MS = 50 * 60 * 1000;
+const NEGATIVE_CACHE_TTL_MS = 45 * 1000;
+const SIGN_BATCH_DELAY_MS = 20;
+const PREFETCH_BURST_LIMIT = 12;
 
 type SignedHit = {
   url: string;
   at: number;
 };
 
+type SignWaiter = {
+  resolve: (url: string | null) => void;
+};
+
 const signedCache = new Map<string, SignedHit>();
+const negativeCache = new Map<string, number>();
 const inFlight = new Map<string, Promise<string | null>>();
+const signQueue = new Map<string, SignWaiter[]>();
 
 let hydratePromise: Promise<void> | null = null;
 let hydrateCompleted = false;
 let persistTimer: ReturnType<typeof setTimeout> | null = null;
+let signBatchTimer: ReturnType<typeof setTimeout> | null = null;
 
 function isAwsExternalMediaPath(path?: string | null) {
   return String(path ?? '').trim().toLowerCase().startsWith('aws:');
+}
+
+function isFresh(hit?: SignedHit | null) {
+  return Boolean(
+    hit?.url &&
+      Number(hit.at ?? 0) > 0 &&
+      Date.now() - Number(hit.at) < SIGN_CACHE_TTL_MS,
+  );
 }
 
 export function isLocalMediaUri(uri: string) {
@@ -67,7 +86,11 @@ function schedulePersist() {
   persistTimer = setTimeout(() => {
     const payload: Record<string, SignedHit> = {};
     for (const [path, hit] of signedCache) {
-      if (path && hit?.url && !isAwsExternalMediaPath(path)) {
+      if (
+        path &&
+        isFresh(hit) &&
+        !isAwsExternalMediaPath(path)
+      ) {
         payload[path] = hit;
       }
     }
@@ -76,7 +99,7 @@ function schedulePersist() {
       SIGN_STORAGE_KEY,
       JSON.stringify(payload),
     ).catch(() => undefined);
-  }, 350);
+  }, 500);
 }
 
 export function rememberSignedCommunityMediaUrl(
@@ -89,13 +112,14 @@ export function rememberSignedCommunityMediaUrl(
   if (!path || !signed || isAwsExternalMediaPath(path)) return;
 
   const existing = signedCache.get(path);
-  if (!force && existing?.url) return;
-  if (existing?.url === signed) return;
+  if (!force && isFresh(existing)) return;
+  if (existing?.url === signed && isFresh(existing)) return;
 
   signedCache.set(path, {
     url: signed,
     at: Date.now(),
   });
+  negativeCache.delete(path);
   schedulePersist();
 }
 
@@ -115,12 +139,13 @@ export function peekCommunityMediaUrl(
 
   if (path) {
     const hit = signedCache.get(path);
-    if (hit?.url) return hit.url;
+    if (isFresh(hit)) return hit!.url;
+    if (hit) signedCache.delete(path);
   }
 
   if (preferred) {
     if (path && hydrateCompleted) {
-      rememberSignedCommunityMediaUrl(path, preferred);
+      rememberSignedCommunityMediaUrl(path, preferred, true);
     }
     return preferred;
   }
@@ -140,7 +165,7 @@ export async function hydrateCommunityMediaUrlCache() {
       for (const [path, hit] of Object.entries(parsed ?? {})) {
         if (
           !path ||
-          !hit?.url ||
+          !isFresh(hit) ||
           signedCache.has(path) ||
           isAwsExternalMediaPath(path)
         ) {
@@ -149,7 +174,7 @@ export async function hydrateCommunityMediaUrlCache() {
 
         signedCache.set(path, {
           url: String(hit.url),
-          at: Number(hit.at) || 0,
+          at: Number(hit.at) || Date.now(),
         });
       }
     } catch {
@@ -160,6 +185,74 @@ export async function hydrateCommunityMediaUrlCache() {
   })();
 
   return hydratePromise;
+}
+
+async function flushCommunityMediaSignBatch() {
+  signBatchTimer = null;
+  const entries = [...signQueue.entries()];
+  signQueue.clear();
+  if (!entries.length) return;
+
+  const paths = entries.map(([path]) => path);
+  const resolvePath = (path: string, url: string | null) => {
+    const waiters = entries.find(([candidate]) => candidate === path)?.[1] ?? [];
+    for (const waiter of waiters) waiter.resolve(url);
+  };
+
+  try {
+    const storage: any = supabase.storage.from('community-media');
+    const { data, error } = await withBuklodTimeout<any>(
+      storage.createSignedUrls(paths, 3600),
+      SIGN_TIMEOUT_MS,
+      'Community media batch',
+    );
+
+    if (error) throw error;
+
+    const byPath = new Map<string, string>();
+    for (const row of Array.isArray(data) ? data : []) {
+      const path = String(row?.path ?? '').trim();
+      const url = String(row?.signedUrl ?? row?.signedURL ?? '').trim();
+      if (path && url) byPath.set(path, url);
+    }
+
+    for (const path of paths) {
+      const url = byPath.get(path) ?? '';
+      if (url) {
+        rememberSignedCommunityMediaUrl(path, url, true);
+        resolvePath(path, url);
+      } else {
+        negativeCache.set(path, Date.now() + NEGATIVE_CACHE_TTL_MS);
+        resolvePath(path, null);
+      }
+    }
+  } catch {
+    const until = Date.now() + NEGATIVE_CACHE_TTL_MS;
+    for (const path of paths) {
+      negativeCache.set(path, until);
+      resolvePath(path, null);
+    }
+  }
+}
+
+function queueCommunityMediaSign(path: string) {
+  const blockedUntil = Number(negativeCache.get(path) ?? 0);
+  if (blockedUntil > Date.now()) {
+    return Promise.resolve<string | null>(null);
+  }
+  if (blockedUntil) negativeCache.delete(path);
+
+  return new Promise<string | null>(resolve => {
+    const waiters = signQueue.get(path) ?? [];
+    waiters.push({ resolve });
+    signQueue.set(path, waiters);
+
+    if (!signBatchTimer) {
+      signBatchTimer = setTimeout(() => {
+        void flushCommunityMediaSignBatch();
+      }, SIGN_BATCH_DELAY_MS);
+    }
+  });
 }
 
 export async function resolveCommunityMediaUrl(
@@ -181,31 +274,7 @@ export async function resolveCommunityMediaUrl(
   const pending = inFlight.get(path);
   if (pending) return pending;
 
-  const task = (async () => {
-    try {
-      const { data, error } = await withBuklodTimeout(
-        supabase.storage
-          .from('community-media')
-          .createSignedUrl(path, 3600),
-        SIGN_TIMEOUT_MS,
-        'Community photo',
-      );
-
-      const signed = !error
-        ? String(data?.signedUrl ?? '').trim()
-        : '';
-
-      if (signed) {
-        rememberSignedCommunityMediaUrl(path, signed);
-        return signed;
-      }
-    } catch {
-      // Keep last known URL so disk-cached photos can still render.
-    }
-
-    return peekCommunityMediaUrl(path, preferred);
-  })();
-
+  const task = queueCommunityMediaSign(path);
   inFlight.set(path, task);
 
   try {
@@ -222,6 +291,7 @@ export async function resignCommunityMediaUrl(
   if (!path || isAwsExternalMediaPath(path)) return null;
 
   signedCache.delete(path);
+  negativeCache.delete(path);
   inFlight.delete(path);
   return resolveCommunityMediaUrl(path, null);
 }
@@ -229,10 +299,15 @@ export async function resignCommunityMediaUrl(
 export function prefetchCommunityMedia(
   urls: Array<string | null | undefined>,
 ) {
-  for (const url of urls) {
-    const value = String(url ?? '').trim();
-    if (!value || isLocalMediaUri(value)) continue;
+  const unique = [
+    ...new Set(
+      urls
+        .map(url => String(url ?? '').trim())
+        .filter(value => value && !isLocalMediaUri(value)),
+    ),
+  ].slice(0, PREFETCH_BURST_LIMIT);
 
+  for (const value of unique) {
     void ExpoImage.prefetch(value).catch(() => undefined);
   }
 }
