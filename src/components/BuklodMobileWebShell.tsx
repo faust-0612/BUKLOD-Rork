@@ -18,9 +18,12 @@ import {
 
 /*
  * BUKLOD_MOBILE_WEB_SHELL_R3
+ * BUKLOD_MOBILE_WEB_TOUCH_R5
  * Phone/small-browser web intentionally keeps the original BUKLOD mobile-web
  * layout: routed content plus the persistent bottom navigation. This is a web
  * component only and does not change the Android/iOS APK implementation.
+ * R5 is the deployment anchor for the dedicated web avatar drag and tolerant
+ * web press target implementations.
  */
 
 function isMyBuklodDoorPath(pathname: string): boolean {
