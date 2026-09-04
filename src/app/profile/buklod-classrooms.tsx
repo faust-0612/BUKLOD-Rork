@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Pressable,
@@ -12,6 +12,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/providers/AuthProvider';
 import BuklodQuizStudentEntry from '@/components/classroom/BuklodQuizStudentEntry';
 
 type ClassroomRow = {
@@ -29,17 +30,46 @@ type ClassroomRow = {
 };
 
 export default function BuklodClassroomsScreen() {
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
+
   const [rows, setRows] = useState<ClassroomRow[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
+  /*
+   * BUKLOD_CLASSROOM_ACCOUNT_ISOLATION_R1
+   * Never let a slow request from user A repaint My Classroom after user B
+   * becomes the active account.
+   */
+  const activeUserIdRef = useRef<string | null>(userId);
+
+  useEffect(() => {
+    activeUserIdRef.current = userId;
+    setRows([]);
+    setRefreshing(false);
+  }, [userId]);
+
   const load = useCallback(async () => {
+    const requestedUserId = userId;
+
+    if (!requestedUserId) {
+      setRows([]);
+      return;
+    }
+
     const { data, error } = await supabase.rpc('buklod_classroom_my_classes_v1');
+
+    if (activeUserIdRef.current !== requestedUserId) {
+      return;
+    }
+
     if (error) {
       Alert.alert('BUKLOD Classroom', error.message);
       return;
     }
+
     setRows((data ?? []) as ClassroomRow[]);
-  }, []);
+  }, [userId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -60,7 +90,9 @@ export default function BuklodClassroomsScreen() {
           onRefresh={async () => {
             setRefreshing(true);
             await load();
-            setRefreshing(false);
+            if (activeUserIdRef.current === userId) {
+              setRefreshing(false);
+            }
           }}
         />
       }
