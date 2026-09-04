@@ -8,6 +8,7 @@ on:
     paths:
       - '.github/workflows/production_web_deploy.yml'
       - 'scripts/patch-web-community-post.cjs'
+      - 'src/app/+html.tsx'
       - 'src/components/BuklodExclusiveScopeCommunity.tsx'
       - 'src/components/BuklodCommunityPhotoCollage.tsx'
       - 'src/app/(auth)/forgot-password.tsx'
@@ -120,6 +121,9 @@ jobs:
           grep -F 'BUKLOD_WEB_ADS_R1' 'src/components/BuklodWebAdSlot.web.tsx'
           grep -F 'EXPO_PUBLIC_ADSENSE_CLIENT_ID' 'src/components/BuklodWebAdSlot.web.tsx'
           grep -F 'pagead2.googlesyndication.com/pagead/js/adsbygoogle.js' 'src/components/BuklodWebAdSlot.web.tsx'
+          grep -F 'BUKLOD_ADSENSE_SITE_VERIFICATION_R1' 'src/app/+html.tsx'
+          grep -F 'ca-pub-6260135521836249' 'src/app/+html.tsx'
+          grep -F 'google-adsense-account' 'src/app/+html.tsx'
           grep -F 'BUKLOD_WEB_ADMOB_BRIDGE_R1' 'src/components/BuklodAdMobBanner.web.tsx'
           grep -F 'BUKLOD_FOCUS_APP_ADS_R1' 'src/components/BuklodFocusAppAdStrip.tsx'
           grep -F 'placement="focus"' 'src/components/BuklodFocusAppAdStrip.tsx'
@@ -163,6 +167,8 @@ jobs:
         run: |
           npx eas-cli@latest env:exec production "npx expo export --platform web" --non-interactive
           test -f dist/index.html
+          grep -F 'ca-pub-6260135521836249' dist/index.html
+          grep -F 'pagead2.googlesyndication.com/pagead/js/adsbygoogle.js' dist/index.html
 
       - name: Deploy production web
         if: steps.expo.outputs.ready == 'true'
