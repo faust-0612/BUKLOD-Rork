@@ -1,0 +1,113 @@
+name: One-time Home Rank All-Time R1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/one_time_home_rank_alltime_r1.yml'
+
+permissions:
+  contents: write
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  EXPO_PUBLIC_APP_ENV: production
+
+jobs:
+  patch-qa-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Patch Home Top 10 to all-time primary ranking
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('src/app/(tabs)/home.tsx')
+          s = p.read_text(encoding='utf-8')
+
+          reps = [
+            ("p_period: 'weekly',", "p_period: 'all_time',"),
+            ("setMyWeeklyRank(dashboard.weekly_rank);", "setMyWeeklyRank(dashboard.all_time_rank);"),
+            ("setMyWeeklyPoints(dashboard.weekly_points);", "setMyWeeklyPoints(dashboard.lifetime_points);"),
+            (">\n        THIS WEEK\n      </Text>", ">\n        ALL TIME\n      </Text>"),
+          ]
+          for old, new in reps:
+            count = s.count(old)
+            if count != 1:
+              raise SystemExit(f'Expected exactly one occurrence of {old!r}, found {count}')
+            s = s.replace(old, new, 1)
+
+          marker = '/* HOME_TOP10_ALL_TIME_PRIMARY_R1 */\n'
+          anchor = '/* PATCH_157C_HOME_TOP10 */\n'
+          if marker not in s:
+            if s.count(anchor) != 1:
+              raise SystemExit('Top 10 component anchor missing or duplicated')
+            s = s.replace(anchor, anchor + marker, 1)
+
+          p.write_text(s, encoding='utf-8')
+          print('Home Top 10 now uses all-time leaderboard and lifetime Your Rank points.')
+          PY
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Verify Home all-time rank anchors
+        shell: bash
+        run: |
+          grep -F "HOME_TOP10_ALL_TIME_PRIMARY_R1" 'src/app/(tabs)/home.tsx'
+          grep -F "p_period: 'all_time'" 'src/app/(tabs)/home.tsx'
+          grep -F "setMyWeeklyRank(dashboard.all_time_rank);" 'src/app/(tabs)/home.tsx'
+          grep -F "setMyWeeklyPoints(dashboard.lifetime_points);" 'src/app/(tabs)/home.tsx'
+          grep -F "ALL TIME" 'src/app/(tabs)/home.tsx'
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Expo credential preflight
+        run: |
+          test -n "$EXPO_TOKEN"
+          npx eas-cli@latest whoami --non-interactive
+
+      - name: Export production web
+        env:
+          NODE_ENV: production
+        run: |
+          npx expo export --platform web --output-dir dist
+          node scripts/inject-adsense-web-head.cjs dist
+
+      - name: Deploy production web
+        env:
+          NODE_ENV: production
+        run: npx eas-cli@latest deploy --prod --non-interactive
+
+      - name: Publish production Android OTA
+        run: |
+          npx eas-cli@latest update \
+            --channel production \
+            --platform android \
+            --environment production \
+            --message "BUKLOD Home Rank All-Time Primary R1" \
+            --non-interactive
+
+      - name: Commit source fix and remove one-time workflow
+        shell: bash
+        run: |
+          git config user.name "BUKLOD Automation"
+          git config user.email "actions@users.noreply.github.com"
+          rm -f .github/workflows/one_time_home_rank_alltime_r1.yml
+          git add 'src/app/(tabs)/home.tsx' .github/workflows/one_time_home_rank_alltime_r1.yml
+          git commit -m "fix(home): show all-time Top 10 and lifetime rank [skip ci]"
+          git push origin HEAD:main
+
+      - name: Final status
+        run: echo "BUKLOD Home Top 10 all-time primary ranking deployed to Web and Android OTA."
