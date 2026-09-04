@@ -37,9 +37,12 @@ export default function BuklodClassroomsScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   /*
-   * BUKLOD_CLASSROOM_ACCOUNT_ISOLATION_R1
-   * Never let a slow request from user A repaint My Classroom after user B
-   * becomes the active account.
+   * BUKLOD_CLASSROOM_ACCOUNT_ISOLATION_R2
+   *
+   * My Classroom is the STUDENT doorway only. Faculty-owned classrooms live
+   * in BUKLOD Faculty -> My Class and must never leak into this screen.
+   * Also reject any request that finishes after the active auth identity has
+   * changed.
    */
   const activeUserIdRef = useRef<string | null>(userId);
 
@@ -63,12 +66,26 @@ export default function BuklodClassroomsScreen() {
       return;
     }
 
+    const { data: authCheck } = await supabase.auth.getUser();
+
+    if (
+      activeUserIdRef.current !== requestedUserId ||
+      authCheck.user?.id !== requestedUserId
+    ) {
+      setRows([]);
+      return;
+    }
+
     if (error) {
       Alert.alert('BUKLOD Classroom', error.message);
       return;
     }
 
-    setRows((data ?? []) as ClassroomRow[]);
+    const studentRows = ((data ?? []) as ClassroomRow[]).filter(
+      row => row.role_key === 'STUDENT'
+    );
+
+    setRows(studentRows);
   }, [userId]);
 
   useFocusEffect(
@@ -76,9 +93,6 @@ export default function BuklodClassroomsScreen() {
       void load();
     }, [load])
   );
-
-  const facultyCount = rows.filter(row => row.role_key === 'FACULTY').length;
-  const studentCount = rows.filter(row => row.role_key === 'STUDENT').length;
 
   return (
     <ScrollView
@@ -106,17 +120,22 @@ export default function BuklodClassroomsScreen() {
         <View style={styles.heroIcon}>
           <MaterialCommunityIcons name="google-classroom" size={30} color="#1f7a3f" />
         </View>
-        <Text style={styles.eyebrow}>LEARN • TEACH • INTERACT</Text>
+        <Text style={styles.eyebrow}>LEARN • INTERACT</Text>
         <Text style={styles.title}>My Classroom</Text>
         <Text style={styles.subtitle}>
-          Your classes, discussions, live sessions, activities, submissions, materials, grades and BUKLOD Quiz entry in one student doorway.
+          Your enrolled classes, discussions, live sessions, activities, submissions, materials, grades and BUKLOD Quiz entry in one student doorway.
         </Text>
       </View>
 
       <View style={styles.metrics}>
-        <View style={styles.metric}><Text style={styles.metricValue}>{rows.length}</Text><Text style={styles.metricLabel}>Active</Text></View>
-        <View style={styles.metric}><Text style={styles.metricValue}>{facultyCount}</Text><Text style={styles.metricLabel}>Teaching</Text></View>
-        <View style={styles.metric}><Text style={styles.metricValue}>{studentCount}</Text><Text style={styles.metricLabel}>Enrolled</Text></View>
+        <View style={styles.metric}>
+          <Text style={styles.metricValue}>{rows.length}</Text>
+          <Text style={styles.metricLabel}>Enrolled Classes</Text>
+        </View>
+        <View style={styles.metric}>
+          <MaterialCommunityIcons name="account-school-outline" size={24} color="#1f7a3f" />
+          <Text style={styles.metricLabel}>Student View</Text>
+        </View>
       </View>
 
       <BuklodQuizStudentEntry />
@@ -124,9 +143,9 @@ export default function BuklodClassroomsScreen() {
       {rows.length === 0 ? (
         <View style={styles.empty}>
           <MaterialCommunityIcons name="school-outline" size={34} color="#6b786e" />
-          <Text style={styles.emptyTitle}>No active classroom yet</Text>
+          <Text style={styles.emptyTitle}>No enrolled classroom yet</Text>
           <Text style={styles.emptyText}>
-            Students can still enter BUKLOD Quiz above and use the live class code provided by the examiner. Classroom enrollment will appear here once active.
+            You can still enter BUKLOD Quiz above and use the live class code provided by your examiner. Your classroom will appear here once you are actively enrolled.
           </Text>
         </View>
       ) : (
@@ -143,7 +162,7 @@ export default function BuklodClassroomsScreen() {
           >
             <View style={styles.cardIcon}>
               <MaterialCommunityIcons
-                name={row.role_key === 'FACULTY' ? 'human-male-board' : 'account-school-outline'}
+                name="account-school-outline"
                 size={25}
                 color="#1f7a3f"
               />
@@ -154,7 +173,7 @@ export default function BuklodClassroomsScreen() {
                 {[row.subject_code, row.section_name, row.term].filter(Boolean).join(' • ') || 'Active classroom'}
               </Text>
               <View style={styles.pills}>
-                <View style={styles.pill}><Text style={styles.pillText}>{row.role_key}</Text></View>
+                <View style={styles.pill}><Text style={styles.pillText}>ENROLLED</Text></View>
                 <View style={styles.pill}><Text style={styles.pillText}>{row.classroom_mode}</Text></View>
                 <View style={[styles.pill, row.classroom_plan === 'PREMIUM' && styles.premiumPill]}>
                   <Text style={styles.pillText}>{row.classroom_plan}</Text>
@@ -180,9 +199,9 @@ const styles = StyleSheet.create({
   title: { color: '#17311f', fontSize: 30, fontWeight: '900', marginTop: 2 },
   subtitle: { color: '#68736b', lineHeight: 20, marginTop: 7 },
   metrics: { flexDirection: 'row', gap: 9, marginBottom: 14 },
-  metric: { flex: 1, backgroundColor: '#fff', borderRadius: 15, padding: 12, alignItems: 'center' },
+  metric: { flex: 1, minHeight: 70, backgroundColor: '#fff', borderRadius: 15, padding: 12, alignItems: 'center', justifyContent: 'center' },
   metricValue: { color: '#17311f', fontSize: 22, fontWeight: '900' },
-  metricLabel: { color: '#758078', fontSize: 11, fontWeight: '700' },
+  metricLabel: { color: '#758078', fontSize: 11, fontWeight: '700', marginTop: 2, textAlign: 'center' },
   card: { backgroundColor: '#fff', borderRadius: 19, padding: 15, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 12 },
   cardIcon: { width: 48, height: 48, borderRadius: 15, backgroundColor: '#e7f4e9', alignItems: 'center', justifyContent: 'center' },
   cardTitle: { color: '#203328', fontWeight: '900', fontSize: 16 },
