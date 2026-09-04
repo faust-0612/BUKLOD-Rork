@@ -1,0 +1,123 @@
+name: BUKLOD Live Web Runtime Smoke
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/web_live_runtime_smoke.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  live-runtime-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check production HTTP and assets
+        shell: bash
+        run: |
+          set -euxo pipefail
+          curl -fsSIL --max-time 30 https://buklod.expo.app/
+          html="$(curl -fsSL --max-time 30 -H 'Cache-Control: no-cache' https://buklod.expo.app/)"
+          printf '%s' "$html" > /tmp/buklod-index.html
+          echo "HTML_BYTES=$(wc -c < /tmp/buklod-index.html)"
+          grep -oE 'src="[^"]+\.js[^\"]*"' /tmp/buklod-index.html || true
+          mapfile -t assets < <(grep -oE 'src="[^"]+\.js[^\"]*"' /tmp/buklod-index.html | sed -E 's/^src="//; s/"$//' | grep '^/' || true)
+          for asset in "${assets[@]}"; do
+            echo "ASSET $asset"
+            curl -fsSIL --max-time 45 "https://buklod.expo.app${asset}"
+          done
+
+      - name: Locate Chrome
+        id: chrome
+        shell: bash
+        run: |
+          set -euxo pipefail
+          BROWSER="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$BROWSER" ]; then
+            echo 'No Chrome/Chromium found on runner.'
+            exit 1
+          fi
+          echo "browser=$BROWSER" >> "$GITHUB_OUTPUT"
+          "$BROWSER" --version
+
+      - name: Desktop live render
+        shell: bash
+        run: |
+          set +e
+          BROWSER='${{ steps.chrome.outputs.browser }}'
+          timeout 40s "$BROWSER" \
+            --headless=new \
+            --no-sandbox \
+            --disable-gpu \
+            --disable-extensions \
+            --disable-background-networking \
+            --disable-component-update \
+            --disable-default-apps \
+            --no-first-run \
+            --window-size=1440,1000 \
+            --virtual-time-budget=20000 \
+            --enable-logging=stderr \
+            --v=0 \
+            --dump-dom \
+            https://buklod.expo.app/ \
+            > /tmp/desktop-dom.html \
+            2> /tmp/desktop-browser.log
+          rc=$?
+          echo "DESKTOP_RC=$rc"
+          echo "DESKTOP_DOM_BYTES=$(wc -c < /tmp/desktop-dom.html)"
+          echo '--- DESKTOP BODY TEXT ---'
+          sed -E 's/<script[^>]*>[\s\S]*<\/script>//g; s/<style[^>]*>[\s\S]*<\/style>//g; s/<[^>]+>/ /g; s/&nbsp;/ /g; s/[[:space:]]+/ /g' /tmp/desktop-dom.html | head -c 5000 || true
+          echo
+          echo '--- DESKTOP RELEVANT ERRORS ---'
+          grep -Ei 'Uncaught|TypeError|ReferenceError|SyntaxError|ERR_|FATAL|exception|failed to load|net::' /tmp/desktop-browser.log | head -100 || true
+          test -s /tmp/desktop-dom.html
+
+      - name: Mobile live render
+        shell: bash
+        run: |
+          set +e
+          BROWSER='${{ steps.chrome.outputs.browser }}'
+          MOBILE_UA='Mozilla/5.0 (Linux; Android 15; Pixel 8 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36'
+          timeout 40s "$BROWSER" \
+            --headless=new \
+            --no-sandbox \
+            --disable-gpu \
+            --disable-extensions \
+            --disable-background-networking \
+            --disable-component-update \
+            --disable-default-apps \
+            --no-first-run \
+            --window-size=390,844 \
+            --user-agent="$MOBILE_UA" \
+            --virtual-time-budget=20000 \
+            --enable-logging=stderr \
+            --v=0 \
+            --dump-dom \
+            https://buklod.expo.app/ \
+            > /tmp/mobile-dom.html \
+            2> /tmp/mobile-browser.log
+          rc=$?
+          echo "MOBILE_RC=$rc"
+          echo "MOBILE_DOM_BYTES=$(wc -c < /tmp/mobile-dom.html)"
+          echo '--- MOBILE BODY TEXT ---'
+          sed -E 's/<script[^>]*>[\s\S]*<\/script>//g; s/<style[^>]*>[\s\S]*<\/style>//g; s/<[^>]+>/ /g; s/&nbsp;/ /g; s/[[:space:]]+/ /g' /tmp/mobile-dom.html | head -c 5000 || true
+          echo
+          echo '--- MOBILE RELEVANT ERRORS ---'
+          grep -Ei 'Uncaught|TypeError|ReferenceError|SyntaxError|ERR_|FATAL|exception|failed to load|net::' /tmp/mobile-browser.log | head -100 || true
+          test -s /tmp/mobile-dom.html
+
+      - name: Upload runtime diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-live-web-runtime-smoke
+          path: |
+            /tmp/buklod-index.html
+            /tmp/desktop-dom.html
+            /tmp/desktop-browser.log
+            /tmp/mobile-dom.html
+            /tmp/mobile-browser.log
+          if-no-files-found: ignore
