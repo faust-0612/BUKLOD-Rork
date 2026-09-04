@@ -1,0 +1,119 @@
+name: BUKLOD Production Web R21 Navigation Fix
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/production_web_r21_navigation_fix.yml'
+      - 'src/app/index.tsx'
+      - 'src/components/BuklodCanonicalNavigationGuard.tsx'
+      - 'src/components/BuklodGuideAvatar.tsx'
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+jobs:
+  qa-export-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout production main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Preserve current web Community Post hotfix
+        run: node scripts/patch-web-community-post.cjs
+
+      - name: Verify R21 navigation source
+        shell: bash
+        run: |
+          grep -F 'BUKLOD_PUBLIC_BOOT_R21' 'src/app/index.tsx'
+          grep -F "scope.scope_type ===" 'src/app/index.tsx'
+          grep -F "'PUBLIC'" 'src/app/index.tsx'
+          grep -F 'BUKLOD_PROFILE_ROUTE_EXEMPT_R21' 'src/components/BuklodCanonicalNavigationGuard.tsx'
+          grep -F 'isBuklodProfileRoute(normalized)' 'src/components/BuklodCanonicalNavigationGuard.tsx'
+          grep -F "router.navigate(" 'src/components/BuklodGuideAvatar.tsx'
+          grep -F "'/me' as any" 'src/components/BuklodGuideAvatar.tsx'
+          grep -F 'BUKLOD_WEB_RESPONSIVE_SPLIT_R3' 'src/components/BuklodNavSafeShell.web.tsx'
+          grep -F 'BUKLOD_DESKTOP_WEB_SHELL_R3' 'src/components/BuklodDesktopWebShell.tsx'
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Expo credential preflight
+        id: expo
+        shell: bash
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "Production web not deployed: EXPO_TOKEN is unavailable."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          npx eas-cli@latest whoami --non-interactive
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
+      - name: Export production web
+        if: steps.expo.outputs.ready == 'true'
+        shell: bash
+        run: |
+          npx eas-cli@latest env:exec production "npx expo export --platform web" --non-interactive
+          test -f dist/index.html
+          node scripts/inject-adsense-web-head.cjs
+          grep -F 'ca-pub-6260135521836249' dist/index.html
+          grep -F 'google-adsense-account' dist/index.html
+          grep -F 'pagead2.googlesyndication.com/pagead/js/adsbygoogle.js' dist/index.html
+
+      - name: Verify exported R21 bundle
+        if: steps.expo.outputs.ready == 'true'
+        shell: bash
+        run: |
+          grep -R -F 'BUKLOD_PUBLIC_BOOT_R21' dist >/dev/null
+          grep -R -F 'BUKLOD_PROFILE_ROUTE_EXEMPT_R21' dist >/dev/null
+
+      - name: Deploy production web
+        if: steps.expo.outputs.ready == 'true'
+        shell: bash
+        run: |
+          npx eas-cli@latest deploy \
+            --prod \
+            --non-interactive \
+            --environment production \
+            --export-dir=dist \
+            --json | tee eas-deploy-r21.json
+
+      - name: Preserve deploy result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-production-web-r21-navigation-result
+          path: |
+            eas-deploy-r21.json
+            dist/index.html
+            dist/metadata.json
+          if-no-files-found: ignore
+          retention-days: 3
+
+      - name: Deployment status
+        shell: bash
+        env:
+          EXPO_READY: ${{ steps.expo.outputs.ready }}
+        run: |
+          if [ "$EXPO_READY" = "true" ]; then
+            echo "BUKLOD R21 production web deployment completed."
+          else
+            echo "R21 QA passed; deploy skipped because EXPO_TOKEN is unavailable."
+          fi
