@@ -7,6 +7,8 @@ on:
       - main
     paths:
       - '.github/workflows/production_android_ota.yml'
+      - 'src/app/(auth)/login.tsx'
+      - 'src/lib/buklodAuthResilience.ts'
       - 'src/app/(auth)/register.tsx'
       - 'src/app/(auth)/forgot-password.tsx'
       - 'src/app/account/recovery-pin.tsx'
@@ -77,6 +79,10 @@ jobs:
       - name: Verify production safety anchors
         shell: bash
         run: |
+          grep -F "HIGH_CONCURRENCY_LOGIN_R1" 'src/app/(auth)/login.tsx'
+          grep -F "loginInFlightRef.current" 'src/app/(auth)/login.tsx'
+          grep -F "HIGH_CONCURRENCY_LOGIN_R1" 'src/lib/buklodAuthResilience.ts'
+          test "$(grep -c "supabase.auth.signInWithPassword(" 'src/lib/buklodAuthResilience.ts')" -eq 1
           grep -F "buklod_registration_version:" 'src/app/(auth)/register.tsx'
           grep -F "createAccountInFlight.current" 'src/app/(auth)/register.tsx'
           grep -F "buklod_complete_registration_v1" 'src/app/(auth)/register.tsx'
@@ -132,7 +138,7 @@ jobs:
             --channel production \
             --platform android \
             --environment production \
-            --message "BUKLOD 5K Scale Hardening R1" \
+            --message "BUKLOD Main Login High-Concurrency R1" \
             --non-interactive
 
       - name: Deployment status
