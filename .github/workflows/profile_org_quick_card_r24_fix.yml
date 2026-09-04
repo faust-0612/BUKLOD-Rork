@@ -1,0 +1,98 @@
+name: BUKLOD Profile Organization Quick Card R24 Fix
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/profile_org_quick_card_r24_fix.yml'
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  patch-and-dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Patch Profile Organization quick card
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/app/(tabs)/me.tsx')
+          text = path.read_text(encoding='utf-8')
+
+          old_import = "import { firstRouteParam, enterScopedWorkspace } from '@/lib/buklodScopeRoute';"
+          new_import = "import { firstRouteParam } from '@/lib/buklodScopeRoute';"
+          if old_import not in text:
+              raise SystemExit('Expected buklodScopeRoute import anchor not found.')
+          text = text.replace(old_import, new_import, 1)
+
+          old_org_import = "import { isActiveMembershipStatus } from '@/lib/buklodOrganization';\n"
+          if old_org_import not in text:
+              raise SystemExit('Expected buklodOrganization import anchor not found.')
+          text = text.replace(old_org_import, '', 1)
+
+          old_fn = """  const openUserOrganization = () => {\n    const organization = scopes.find(\n      (scope) =>\n        scope.scope_type === 'ORGANIZATION' &&\n        isActiveMembershipStatus(scope.membership_status),\n    );\n\n    if (organization) {\n      void enterScopedWorkspace(selectScope, organization.scope_id, {\n        section: 'home',\n      });\n      return;\n    }\n\n    router.push('/organizations/manage' as any);\n  };"""
+          new_fn = """  /* PATCH_ORG_PROFILE_QUICK_CARD_R24 */\n  const openUserOrganization = () => {\n    router.push('/organizations' as any);\n  };"""
+          if old_fn not in text:
+              raise SystemExit('Expected openUserOrganization implementation not found.')
+          text = text.replace(old_fn, new_fn, 1)
+
+          if "section: 'home'" in text[text.find('const openUserOrganization'):text.find('const highlightsSection')]:
+              raise SystemExit('Organization quick card still targets organization home.')
+          if "router.push('/organizations' as any);" not in text:
+              raise SystemExit('Organization setup hub route was not installed.')
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Verify quick card route
+        shell: bash
+        run: |
+          grep -F "PATCH_ORG_PROFILE_QUICK_CARD_R24" 'src/app/(tabs)/me.tsx'
+          grep -F "router.push('/organizations' as any);" 'src/app/(tabs)/me.tsx'
+          if grep -A20 -F "const openUserOrganization" 'src/app/(tabs)/me.tsx' | grep -F "section: 'home'"; then
+            echo 'Organization quick card still opens organization home.' >&2
+            exit 1
+          fi
+
+      - name: Commit profile route fix
+        shell: bash
+        run: |
+          if git diff --quiet -- 'src/app/(tabs)/me.tsx'; then
+            echo 'Profile Organization quick card is already fixed.'
+          else
+            git config user.name 'BUKLOD Production Bot'
+            git config user.email 'actions@users.noreply.github.com'
+            git add 'src/app/(tabs)/me.tsx'
+            git commit -m 'fix(profile): open Organization setup hub from quick card'
+            git push origin HEAD:main
+          fi
+
+      - name: Dispatch production web
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: gh workflow run production_web_deploy.yml --repo "$GITHUB_REPOSITORY" --ref main
+
+      - name: Dispatch production Android OTA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: gh workflow run production_android_ota.yml --repo "$GITHUB_REPOSITORY" --ref main
+
+      - name: Summary
+        run: |
+          echo 'Profile Organization quick card now routes to /organizations.'
+          echo 'It no longer auto-enters the first active organization home.'
+          echo 'Production web and Android OTA workflows dispatched.'
