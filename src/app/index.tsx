@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useRef,
   useState,
 } from 'react';
 import { Redirect } from 'expo-router';
@@ -18,49 +19,96 @@ export default function Index() {
   const { loading: runtimeLoading, config } = useRuntimeConfig();
 
   /*
-   * Boot should not force Public. Forcing Public here yanked the user
-   * out of Organization / Cluster as soon as they opened it.
+   * BUKLOD_PUBLIC_BOOT_R21
+   *
+   * A fresh app/web boot with an existing session is PERSONAL/GLOBAL.
+   * Never restore a stale Organization/Cluster/Mission Worker workspace as
+   * the automatic landing context. Reset to PUBLIC first, then open Connect.
+   * Managed workspaces remain available only when the user explicitly opens
+   * them again from the scope/workspace controls.
    */
   const {
     activeScope,
+    scopes,
+    selectScope,
     loading: scopeLoading,
-  } =
-    useBuklodScope();
+  } = useBuklodScope();
 
   const [
     bootReady,
     setBootReady,
-  ] =
-    useState(false);
+  ] = useState(false);
+
+  const publicResetInFlight =
+    useRef(false);
 
   useEffect(() => {
     if (
       !session?.user?.id ||
       (loading && !profile)
     ) {
+      publicResetInFlight.current = false;
       setBootReady(false);
       return;
     }
 
-    if (activeScope || !scopeLoading) {
+    if (
+      activeScope?.scope_type ===
+      'PUBLIC'
+    ) {
+      publicResetInFlight.current = false;
       setBootReady(true);
       return;
     }
 
-    const readyWatchdog =
-      setTimeout(() => {
-        setBootReady(true);
-      }, 2500);
+    const publicScope =
+      scopes.find(
+        scope =>
+          scope.scope_type ===
+          'PUBLIC'
+      );
 
-    return () => {
-      clearTimeout(readyWatchdog);
-    };
+    if (publicScope) {
+      setBootReady(false);
+
+      if (
+        !publicResetInFlight.current
+      ) {
+        publicResetInFlight.current = true;
+
+        void selectScope(
+          publicScope.scope_id
+        )
+          .catch(error => {
+            console.warn(
+              'BUKLOD boot Public scope reset:',
+              error
+            );
+          })
+          .finally(() => {
+            publicResetInFlight.current = false;
+          });
+      }
+
+      return;
+    }
+
+    if (!scopeLoading) {
+      /*
+       * Defensive fallback for accounts where PUBLIC scope could not be
+       * loaded. Do not hold the whole app forever.
+       */
+      setBootReady(true);
+    }
   }, [
     session?.user?.id,
     loading,
     profile,
     scopeLoading,
-    activeScope,
+    activeScope?.scope_id,
+    activeScope?.scope_type,
+    scopes,
+    selectScope,
   ]);
 
 
@@ -89,11 +137,8 @@ export default function Index() {
   if (membershipState !== 'ready' && !hasCommunityAccess) {
     return <Redirect href="/onboarding" />;
   }
-  if (
-    scopeLoading &&
-    !bootReady &&
-    !activeScope
-  ) {
+
+  if (!bootReady) {
     return (
       <View
         style={{
