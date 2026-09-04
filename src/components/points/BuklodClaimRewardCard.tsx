@@ -1,7 +1,10 @@
-import React from 'react';
+import React, {
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 
 import {
-  ActivityIndicator,
   Animated,
   Pressable,
   StyleSheet,
@@ -10,6 +13,8 @@ import {
 } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAudioPlayer } from 'expo-audio';
+import * as Haptics from 'expo-haptics';
 
 import {
   useClaimButtonGlow,
@@ -17,6 +22,8 @@ import {
 import { useBuklodReduceMotion } from '@/components/HomeMotion';
 import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
 import { withAlpha } from '@/lib/buklodContrast';
+
+const CLAIM_SUCCESS_SOUND = require('../../../assets/sounds/buklod-points-claim.wav');
 
 export type ClaimRewardItem = {
   id: string;
@@ -40,11 +47,53 @@ export default function BuklodClaimRewardCard({
 }: Props) {
   const { theme } = useBuklodPresentation();
   const reduceMotion = useBuklodReduceMotion();
-  const isClaimable = reward.status === 'claimable';
+  const claimSound = useAudioPlayer(CLAIM_SUCCESS_SOUND);
+  const tapLockedRef = useRef(false);
+  const [optimisticClaimed, setOptimisticClaimed] =
+    useState(false);
+
+  useEffect(() => {
+    tapLockedRef.current = false;
+    setOptimisticClaimed(false);
+  }, [reward.id]);
+
+  useEffect(() => {
+    if (reward.status === 'claimed') {
+      tapLockedRef.current = true;
+      setOptimisticClaimed(true);
+      return;
+    }
+
+    if (reward.status === 'failed') {
+      tapLockedRef.current = false;
+      setOptimisticClaimed(false);
+    }
+  }, [reward.status]);
+
+  const effectiveStatus = optimisticClaimed
+    ? 'claimed'
+    : reward.status === 'claiming'
+      ? 'claimed'
+      : reward.status;
+
+  const isClaimable = effectiveStatus === 'claimable';
   const { scale, glow } = useClaimButtonGlow(
     isClaimable,
     reduceMotion
   );
+
+  const playClaimFeedback = () => {
+    void Haptics.notificationAsync(
+      Haptics.NotificationFeedbackType.Success
+    ).catch(() => undefined);
+
+    try {
+      void claimSound.seekTo(0).catch(() => undefined);
+      claimSound.play();
+    } catch {
+      // Feedback must never block or fail the points claim.
+    }
+  };
 
   const styles = StyleSheet.create({
     card: {
@@ -125,21 +174,32 @@ export default function BuklodClaimRewardCard({
   });
 
   const buttonLabel =
-    reward.status === 'claimed'
+    effectiveStatus === 'claimed'
       ? 'CLAIMED'
-      : reward.status === 'failed'
+      : effectiveStatus === 'failed'
         ? 'RETRY'
-        : reward.status === 'claiming'
-          ? 'CLAIMING…'
-          : 'CLAIM';
+        : 'CLAIM';
 
   const onPress = () => {
-    if (reward.status === 'claimable') {
+    if (
+      effectiveStatus === 'claimable' &&
+      !tapLockedRef.current
+    ) {
+      tapLockedRef.current = true;
+      setOptimisticClaimed(true);
+      playClaimFeedback();
       onClaim(reward.id);
       return;
     }
 
-    if (reward.status === 'failed' && onRetry) {
+    if (
+      effectiveStatus === 'failed' &&
+      onRetry &&
+      !tapLockedRef.current
+    ) {
+      tapLockedRef.current = true;
+      setOptimisticClaimed(true);
+      playClaimFeedback();
       onRetry(reward.id);
     }
   };
@@ -188,44 +248,41 @@ export default function BuklodClaimRewardCard({
           style={{ transform: [{ scale: isClaimable ? scale : 1 }] }}
         >
           <Pressable
-            disabled={
-              reward.status === 'claiming' ||
-              reward.status === 'claimed'
-            }
+            disabled={effectiveStatus === 'claimed'}
             onPress={onPress}
             style={({ pressed }) => [
               styles.button,
-              reward.status === 'claimed' &&
+              effectiveStatus === 'claimed' &&
                 styles.buttonClaimed,
-              reward.status === 'failed' &&
+              effectiveStatus === 'failed' &&
                 styles.buttonFailed,
               pressed && { opacity: 0.86 },
             ]}
           >
-            {reward.status === 'claiming' ? (
-              <ActivityIndicator
-                size="small"
+            <Text
+              style={[
+                styles.buttonText,
+                effectiveStatus === 'claimed' &&
+                  styles.buttonTextMuted,
+              ]}
+            >
+              {buttonLabel}
+            </Text>
+
+            {isClaimable && (
+              <MaterialCommunityIcons
+                name="star-four-points"
+                size={14}
                 color={theme.white}
               />
-            ) : (
-              <>
-                <Text
-                  style={[
-                    styles.buttonText,
-                    reward.status === 'claimed' &&
-                      styles.buttonTextMuted,
-                  ]}
-                >
-                  {buttonLabel}
-                </Text>
-                {isClaimable && (
-                  <MaterialCommunityIcons
-                    name="star-four-points"
-                    size={14}
-                    color={theme.white}
-                  />
-                )}
-              </>
+            )}
+
+            {effectiveStatus === 'claimed' && (
+              <MaterialCommunityIcons
+                name="check-circle"
+                size={15}
+                color={theme.textMuted}
+              />
             )}
           </Pressable>
         </Animated.View>
