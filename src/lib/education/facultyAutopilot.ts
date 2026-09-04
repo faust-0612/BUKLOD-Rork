@@ -12,6 +12,7 @@ export type FacultyAutopilotModule = {
     | 'materials'
     | 'attendance'
     | 'assessments'
+    | 'gradingSetup'
     | 'gradebook'
     | 'participation'
     | 'progress'
@@ -52,10 +53,17 @@ export const FACULTY_AUTOPILOT_MODULES: FacultyAutopilotModule[] = [
     pathname: '/profile/buklod-faculty-assessments',
   },
   {
+    key: 'gradingSetup',
+    icon: 'tune-variant',
+    title: 'Grading Setup',
+    description: 'Edit Prelim, Midterm, Semifinals, Finals, category weights, formula, and passing grade.',
+    pathname: '/profile/buklod-faculty-grading-setup',
+  },
+  {
     key: 'gradebook',
     icon: 'chart-box-outline',
     title: 'Gradebook',
-    description: 'Automatic totals, manual entries, weighted categories, audit trail.',
+    description: 'Term-aware automatic totals, manual entries, release controls, and audit trail.',
     pathname: '/profile/buklod-faculty-final-grades',
   },
   {
