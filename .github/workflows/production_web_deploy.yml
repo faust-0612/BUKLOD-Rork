@@ -47,6 +47,11 @@ on:
       - 'src/lib/buklodStreamCall.ts'
       - 'src/lib/buklodCallLifecycle.ts'
       - 'src/providers/StreamVideoProvider.web.tsx'
+      - 'src/lib/buklodAwsWallVideo.ts'
+      - 'src/lib/uploadCommunityVideoFile.ts'
+      - 'src/lib/buklodCommunityPostMedia.ts'
+      - 'src/lib/buklodMediaUrl.ts'
+      - 'supabase/migrations/*community_external_video_storage_aws*.sql'
 
 permissions:
   contents: read
@@ -135,6 +140,10 @@ jobs:
           grep -F 'PATCH_191D_LIVE_GIPHY_COMPACT_PICKER' 'src/components/connect/ConnectComposerPicker.tsx'
           grep -F 'searchConnectGifs' 'src/lib/buklodConnectGifCatalog.ts'
           grep -F 'CONNECT_GIF_CATEGORIES' 'src/lib/buklodConnectGifCatalog.ts'
+          grep -F 'BUKLOD_AWS_WALL_VIDEO_R1' 'src/lib/buklodAwsWallVideo.ts'
+          grep -F 'BUKLOD_AWS_WALL_VIDEO_ROUTE_R1' 'src/lib/uploadCommunityVideoFile.ts'
+          grep -F 'set_buklod_post_media_v5' 'src/lib/buklodCommunityPostMedia.ts'
+          grep -F 'BUKLOD_AWS_SIGNED_MEDIA_CACHE_R1' 'src/lib/buklodMediaUrl.ts'
 
       - name: Expo credential preflight
         id: expo
