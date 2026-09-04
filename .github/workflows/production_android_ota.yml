@@ -30,6 +30,10 @@ on:
       - 'src/providers/StreamVideoProvider.tsx'
       - 'src/utils/setFirebaseListeners.android.ts'
       - 'src/utils/setPushConfig.ts'
+      - 'src/components/BuklodNavSafeShell.tsx'
+      - 'src/components/BuklodFocusAppAdStrip.tsx'
+      - 'src/components/BuklodAdMobBanner.tsx'
+      - 'src/lib/buklodAdUnits.ts'
       - 'supabase/migrations/*buklod_call_lifecycle*.sql'
 
 env:
@@ -88,6 +92,9 @@ jobs:
           grep -F 'PATCH_191D_LIVE_GIPHY_COMPACT_PICKER' 'src/components/connect/ConnectComposerPicker.tsx'
           grep -F 'searchConnectGifs' 'src/lib/buklodConnectGifCatalog.ts'
           grep -F 'CONNECT_GIF_CATEGORIES' 'src/lib/buklodConnectGifCatalog.ts'
+          grep -F 'BUKLOD_FOCUS_APP_ADS_R1' 'src/components/BuklodFocusAppAdStrip.tsx'
+          grep -F 'placement="focus"' 'src/components/BuklodFocusAppAdStrip.tsx'
+          grep -F "case 'focus':" 'src/lib/buklodAdUnits.ts'
 
       - name: Expo credential preflight
         id: expo
@@ -109,7 +116,7 @@ jobs:
             --channel production \
             --platform android \
             --environment production \
-            --message "BUKLOD Connect Live GIF Library R1" \
+            --message "BUKLOD Web + Focus App Ads R1" \
             --non-interactive
 
       - name: Deployment status
