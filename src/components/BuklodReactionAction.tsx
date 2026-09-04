@@ -223,7 +223,9 @@ function createStyles(
       position: 'absolute',
       left: overlay ? -168 : 0,
       right: overlay ? 0 : undefined,
-      bottom: overlay ? actionSize + 6 : actionSize + 6,
+      // Deliberately overlap the action by 8px on web so there is no
+      // dead hover gap while the pointer travels from the icon to the drawer.
+      bottom: actionSize - 8,
       height: compact ? 44 : 46,
       paddingHorizontal: 6,
       flexDirection: 'row',
@@ -325,10 +327,12 @@ export function BuklodReactionAction({
     }
 
     clearHoverClose();
+    // Give the pointer enough time to move naturally from the action to the
+    // drawer, including trackpad/mouse movement that briefly exits both boxes.
     hoverCloseTimerRef.current = setTimeout(() => {
       setPickerOpen(false);
       hoverCloseTimerRef.current = null;
-    }, 160);
+    }, 520);
   };
 
   const selected = options.find(option => option.key === mine) ?? null;
