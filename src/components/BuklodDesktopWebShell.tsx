@@ -21,7 +21,8 @@ import { useNotifications } from '@/providers/NotificationProvider';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 
 /*
- * BUKLOD_DESKTOP_WEB_SHELL_R4
+ * BUKLOD_DESKTOP_WEB_SHELL_R3
+ * BUKLOD_DESKTOP_FULL_SCREEN_R4
  * Desktop-only social layout. It is mounted only by BuklodNavSafeShell.web
  * when the browser viewport is desktop-sized. Phone web and APK never mount it.
  *
