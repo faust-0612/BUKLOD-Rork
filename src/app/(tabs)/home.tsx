@@ -528,7 +528,7 @@ export default function HomeScreen() {
           await (supabase as any).rpc(
             'get_buklod_points_leaderboard',
             {
-              p_period: 'weekly',
+              p_period: 'all_time',
               p_limit: 10,
               p_church_id: null,
             }
@@ -6173,6 +6173,7 @@ function HomeDailyBibleReminder() {
 
 
 /* PATCH_157C_HOME_TOP10 */
+/* HOME_TOP10_ALL_TIME_PRIMARY_R1 */
 function HomeTopTenCompact({
   weekly,
   weeklyLoading,
@@ -6276,9 +6277,9 @@ function HomeTopTenCompact({
           return;
         }
 
-        setMyWeeklyRank(dashboard.weekly_rank);
+        setMyWeeklyRank(dashboard.all_time_rank);
         setMyMonthlyRank(dashboard.monthly_rank);
-        setMyWeeklyPoints(dashboard.weekly_points);
+        setMyWeeklyPoints(dashboard.lifetime_points);
         setMyMonthlyPoints(dashboard.monthly_points);
       } catch (error: any) {
         console.warn(
@@ -6478,7 +6479,7 @@ function HomeTopTenCompact({
           color: colors.greenDark,
         }}
       >
-        THIS WEEK
+        ALL TIME
       </Text>
 
       {renderRows(weekly, weeklyLoading)}
