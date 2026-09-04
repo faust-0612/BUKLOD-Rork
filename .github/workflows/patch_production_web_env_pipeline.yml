@@ -23,53 +23,45 @@ jobs:
       - name: Patch production web workflow
         shell: bash
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          path = Path('.github/workflows/production_web_deploy.yml')
-          text = path.read_text(encoding='utf-8-sig')
-
-          marker = "      - name: Export production web\n"
-          if marker not in text:
-              raise SystemExit('Export production web marker not found.')
-
-          if 'Pull EAS production environment' not in text:
-              insert = '''      - name: Pull EAS production environment
-        if: steps.expo.outputs.ready == 'true'
-        shell: bash
-        run: |
           set -euo pipefail
-          rm -f .env.local
-          npx eas-cli@latest env:pull --environment production --path .env.local --non-interactive
-          test -s .env.local
-          set -a
-          . ./.env.local
-          set +a
-          test -n "${EXPO_PUBLIC_SUPABASE_URL:-}"
-          test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}"
-          case "$EXPO_PUBLIC_SUPABASE_URL" in
-            https://*.supabase.co) ;;
-            *) echo 'Invalid production Supabase URL shape.'; exit 1 ;;
-          esac
-          echo 'EAS production Supabase public config: READY'
+          file='.github/workflows/production_web_deploy.yml'
 
-'''
-              text = text.replace(marker, insert + marker, 1)
+          if ! grep -Fq 'Pull EAS production environment' "$file"; then
+            tmp="$(mktemp)"
+            awk '
+              /^      - name: Export production web$/ && !done {
+                print "      - name: Pull EAS production environment"
+                print "        if: steps.expo.outputs.ready == '\''true'\''"
+                print "        shell: bash"
+                print "        run: |"
+                print "          set -euo pipefail"
+                print "          rm -f .env.local"
+                print "          npx eas-cli@latest env:pull --environment production --path .env.local --non-interactive"
+                print "          test -s .env.local"
+                print "          set -a"
+                print "          . ./.env.local"
+                print "          set +a"
+                print "          test -n \"${EXPO_PUBLIC_SUPABASE_URL:-}\""
+                print "          test -n \"${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}\""
+                print "          case \"$EXPO_PUBLIC_SUPABASE_URL\" in"
+                print "            https://*.supabase.co) ;;"
+                print "            *) echo '\''Invalid production Supabase URL shape.'\''; exit 1 ;;"
+                print "          esac"
+                print "          echo '\''EAS production Supabase public config: READY'\''"
+                print ""
+                done=1
+              }
+              { print }
+            ' "$file" > "$tmp"
+            mv "$tmp" "$file"
+          fi
 
-          old = '          npx eas-cli@latest deploy --prod --non-interactive\n'
-          new = '          npx eas-cli@latest deploy --prod --environment production --non-interactive\n'
-          if old in text:
-              text = text.replace(old, new, 1)
-          elif new not in text:
-              raise SystemExit('EAS deploy command marker not found.')
+          sed -i 's#npx eas-cli@latest deploy --prod --non-interactive#npx eas-cli@latest deploy --prod --environment production --non-interactive#' "$file"
 
-          path.write_text(text, encoding='utf-8')
-          PY
-
-          grep -F 'Pull EAS production environment' .github/workflows/production_web_deploy.yml
-          grep -F 'EXPO_PUBLIC_SUPABASE_URL' .github/workflows/production_web_deploy.yml
-          grep -F 'EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY' .github/workflows/production_web_deploy.yml
-          grep -F 'deploy --prod --environment production --non-interactive' .github/workflows/production_web_deploy.yml
+          grep -F 'Pull EAS production environment' "$file"
+          grep -F 'EXPO_PUBLIC_SUPABASE_URL' "$file"
+          grep -F 'EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY' "$file"
+          grep -F 'deploy --prod --environment production --non-interactive' "$file"
 
       - name: Commit permanent pipeline fix
         shell: bash
