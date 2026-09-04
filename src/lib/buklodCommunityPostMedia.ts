@@ -1,14 +1,23 @@
+/* BUKLOD_COMMUNITY_EXTERNAL_MEDIA_AWS_R1 */
 import { supabase } from '@/lib/supabase';
 
 import {
   COMMUNITY_MAX_PHOTOS,
   COMMUNITY_MEDIA_POSITION_MIN,
 } from '@/lib/buklodCommunityMediaLimits';
+import {
+  clearPendingAwsWallVideo,
+  deleteAwsWallVideo,
+  getAwsWallVideoViewUrl,
+  peekPendingAwsWallVideo,
+} from '@/lib/buklodAwsWallVideo';
 
 export type CommunityPostMediaItem = {
   media_path: string;
   media_mime_type: string;
   media_size_bytes: number;
+  storage_provider?: 'SUPABASE' | 'AWS';
+  external_object_key?: string | null;
 };
 
 export type CommunityPostMediaRow = CommunityPostMediaItem & {
@@ -19,14 +28,34 @@ export type CommunityPostMediaRow = CommunityPostMediaItem & {
 
 function isMissingRpcError(message: string) {
   return /could not find the function|function.*does not exist|schema cache|pgrst202/i.test(
-    message
+    message,
   );
+}
+
+function materializePendingExternalMedia(
+  item: CommunityPostMediaItem,
+): CommunityPostMediaItem {
+  const pending = peekPendingAwsWallVideo(item.media_path);
+  if (!pending) {
+    return {
+      ...item,
+      storage_provider: item.storage_provider ?? 'SUPABASE',
+      external_object_key: item.external_object_key ?? null,
+    };
+  }
+
+  return {
+    ...item,
+    media_path: pending.media_path,
+    storage_provider: 'AWS',
+    external_object_key: pending.external_object_key,
+  };
 }
 
 export function buildCommunityPostMediaRows(
   postId: string,
   media: CommunityPostMediaItem[],
-  startPosition = COMMUNITY_MEDIA_POSITION_MIN
+  startPosition = COMMUNITY_MEDIA_POSITION_MIN,
 ) {
   return media.slice(0, COMMUNITY_MAX_PHOTOS).map((item, index) => ({
     post_id: postId,
@@ -34,30 +63,29 @@ export function buildCommunityPostMediaRows(
     media_path: item.media_path,
     media_mime_type: item.media_mime_type,
     media_size_bytes: item.media_size_bytes,
+    storage_provider: item.storage_provider ?? 'SUPABASE',
+    external_object_key: item.external_object_key ?? null,
   }));
 }
 
 async function insertCommunityPostMediaRows(
   postId: string,
-  media: CommunityPostMediaItem[]
+  media: CommunityPostMediaItem[],
 ) {
-  if (!media.length) {
-    return;
-  }
+  if (!media.length) return;
 
   const rows = buildCommunityPostMediaRows(postId, media);
+  const { error } = await supabase
+    .from('community_post_media')
+    .insert(rows);
 
-  const { error } = await supabase.from('community_post_media').insert(rows);
-
-  if (error) {
-    throw error;
-  }
+  if (error) throw error;
 }
 
 async function invokeSetMedia(
   name: string,
   postId: string,
-  media: CommunityPostMediaItem[]
+  media: CommunityPostMediaItem[],
 ) {
   return (supabase as any).rpc(name, {
     p_post_id: postId,
@@ -67,22 +95,28 @@ async function invokeSetMedia(
 
 /**
  * Replace every media row for a post in one request.
- * Positions are always 0-based (0..9). Partial 5-then-extra inserts are not used.
+ * Large videos are transparently materialized as AWS media by reading the
+ * pending upload mapping created by uploadCommunityVideoFile(). Existing call
+ * sites therefore do not need native or screen-level changes.
  */
 export async function attachCommunityPostMedia(
   postId: string,
-  media: CommunityPostMediaItem[]
+  media: CommunityPostMediaItem[],
 ) {
   const id = String(postId ?? '').trim();
-  const items = media
+  const originalItems = media
     .filter(item => String(item.media_path ?? '').trim())
     .slice(0, COMMUNITY_MAX_PHOTOS);
+  const items = originalItems.map(materializePendingExternalMedia);
 
-  if (!id || !items.length) {
-    return;
-  }
+  if (!id || !items.length) return;
+
+  const hasExternal = items.some(
+    item => item.storage_provider === 'AWS',
+  );
 
   const rpcNames = [
+    'set_buklod_post_media_v5',
     'set_buklod_post_media_v4',
     'set_buklod_post_media_v3',
     'set_buklod_post_media_v2',
@@ -92,9 +126,16 @@ export async function attachCommunityPostMedia(
   let lastError: { message?: string } | null = null;
 
   for (const name of rpcNames) {
+    if (hasExternal && name !== 'set_buklod_post_media_v5') {
+      break;
+    }
+
     const { error } = await invokeSetMedia(name, id, items);
 
     if (!error) {
+      for (const original of originalItems) {
+        clearPendingAwsWallVideo(original.media_path);
+      }
       return;
     }
 
@@ -104,6 +145,10 @@ export async function attachCommunityPostMedia(
     if (!isMissingRpcError(message)) {
       throw error;
     }
+  }
+
+  if (hasExternal) {
+    throw lastError ?? new Error('External Wall video media RPC is unavailable.');
   }
 
   try {
@@ -125,39 +170,85 @@ export async function attachCommunityPostMedia(
     .eq('id', id);
 }
 
-export async function loadCommunityPostMediaByPostIds(postIds: string[]) {
-  const ids = [...new Set(postIds.map(id => String(id ?? '').trim()).filter(Boolean))];
-  const mediaMap: Record<string, CommunityPostMediaRow[]> = {};
-
-  if (!ids.length) {
-    return mediaMap;
-  }
-
-  const { data, error } = await (supabase as any).rpc('get_buklod_post_media_v1', {
+async function loadMediaRpc(ids: string[]) {
+  const v2 = await (supabase as any).rpc('get_buklod_post_media_v2', {
     p_post_ids: ids,
   });
 
-  if (error) {
-    throw error;
+  if (!v2?.error) {
+    return v2.data ?? [];
   }
 
-  for (const row of data ?? []) {
-    const postId = String(row?.post_id ?? '').trim();
-    if (!postId) {
-      continue;
-    }
-
-    if (!mediaMap[postId]) {
-      mediaMap[postId] = [];
-    }
-
-    mediaMap[postId].push(row);
+  if (!isMissingRpcError(String(v2.error?.message ?? ''))) {
+    throw v2.error;
   }
+
+  const v1 = await (supabase as any).rpc('get_buklod_post_media_v1', {
+    p_post_ids: ids,
+  });
+  if (v1?.error) throw v1.error;
+  return (v1.data ?? []).map((row: any) => ({
+    ...row,
+    storage_provider: 'SUPABASE',
+    external_object_key: null,
+  }));
+}
+
+export async function loadCommunityPostMediaByPostIds(
+  postIds: string[],
+) {
+  const ids = [
+    ...new Set(
+      postIds
+        .map(id => String(id ?? '').trim())
+        .filter(Boolean),
+    ),
+  ];
+  const mediaMap: Record<string, CommunityPostMediaRow[]> = {};
+
+  if (!ids.length) return mediaMap;
+
+  const rows: any[] = await loadMediaRpc(ids);
+
+  await Promise.all(
+    rows.map(async row => {
+      const postId = String(row?.post_id ?? '').trim();
+      if (!postId) return;
+
+      const provider = String(
+        row?.storage_provider ?? 'SUPABASE',
+      ).toUpperCase();
+      const externalKey = String(
+        row?.external_object_key ?? '',
+      ).trim();
+
+      let mediaUrl = row?.media_url ?? null;
+      if (provider === 'AWS' && externalKey) {
+        mediaUrl = await getAwsWallVideoViewUrl(
+          postId,
+          externalKey,
+        ).catch(() => null);
+      }
+
+      const normalized: CommunityPostMediaRow = {
+        ...row,
+        post_id: postId,
+        storage_provider:
+          provider === 'AWS' ? 'AWS' : 'SUPABASE',
+        external_object_key: externalKey || null,
+        media_url: mediaUrl,
+      };
+
+      if (!mediaMap[postId]) mediaMap[postId] = [];
+      mediaMap[postId].push(normalized);
+    }),
+  );
 
   for (const postId of Object.keys(mediaMap)) {
     mediaMap[postId].sort(
       (a, b) =>
-        Number(a.media_position ?? 0) - Number(b.media_position ?? 0)
+        Number(a.media_position ?? 0) -
+        Number(b.media_position ?? 0),
     );
   }
 
@@ -183,18 +274,19 @@ export async function discardIncompleteCommunityPost(options: {
           {
             p_scope_id: scopeId,
             p_post_id: postId,
-          }
+          },
         );
 
         if (scoped?.error) {
-          await (supabase as any).rpc('delete_buklod_community_post_v1', {
-            p_post_id: postId,
-          });
+          await (supabase as any).rpc(
+            'delete_buklod_community_post_v1',
+            { p_post_id: postId },
+          );
         }
       } else {
         const { error } = await (supabase as any).rpc(
           'delete_buklod_community_post_v1',
-          { p_post_id: postId }
+          { p_post_id: postId },
         );
 
         if (error) {
@@ -205,13 +297,29 @@ export async function discardIncompleteCommunityPost(options: {
         }
       }
     } catch {
-      // Best-effort rollback. The caller still surfaces the original error.
+      // Best-effort rollback. Caller surfaces the original error.
     }
   }
 
-  if (mediaPaths.length) {
+  const supabasePaths: string[] = [];
+
+  for (const path of mediaPaths) {
+    const pending = peekPendingAwsWallVideo(path);
+    if (pending?.external_object_key) {
+      await deleteAwsWallVideo(
+        pending.external_object_key,
+      ).catch(() => undefined);
+      clearPendingAwsWallVideo(path);
+    } else {
+      supabasePaths.push(path);
+    }
+  }
+
+  if (supabasePaths.length) {
     try {
-      await supabase.storage.from('community-media').remove(mediaPaths);
+      await supabase.storage
+        .from('community-media')
+        .remove(supabasePaths);
     } catch {
       // Storage cleanup is best-effort.
     }
@@ -240,7 +348,7 @@ export function extractCreatedRecordId(data: unknown): string | null {
         row.create_buklod_community_post_v3 ??
         row.create_buklod_community_post_v4 ??
         row.buklod_scope_social_create_post_v1 ??
-        null
+        null,
     );
   }
 
