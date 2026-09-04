@@ -154,27 +154,30 @@ export default function BuklodDesktopWebShell({
     !normalizedPath.startsWith('/delete-account/')
   );
 
+  /*
+   * PATCH_20260904_DESKTOP_PROFILE_SCOPE_EXIT
+   * Every desktop-global destination, including My BUKLOD/avatar, exits an
+   * Organization/Cluster scope. Scope reset must also run when the pathname is
+   * already the destination (for example /me while a stale Cluster is active).
+   */
   const openGlobalDestination = (route: Route) => {
-    if (isActiveRoute(normalizedPath, route)) return;
-
-    buklodInstantReplace(route as any);
-
-    if (route === '/me') return;
-
     const scoped =
       activeScope?.scope_type === 'ORGANIZATION' ||
       activeScope?.scope_type === 'CLUSTER';
 
-    if (!scoped) return;
+    if (scoped) {
+      const publicScope = scopes.find(scope => scope.scope_type === 'PUBLIC');
 
-    const publicScope = scopes.find(scope => scope.scope_type === 'PUBLIC');
-    if (!publicScope) return;
+      if (publicScope && publicScope.scope_id !== activeScope?.scope_id) {
+        void selectScope(publicScope.scope_id).catch(error => {
+          console.warn('BUKLOD desktop web scope reset:', error);
+        });
+      }
+    }
 
-    queueMicrotask(() => {
-      void selectScope(publicScope.scope_id).catch(error => {
-        console.warn('BUKLOD desktop web scope reset:', error);
-      });
-    });
+    if (isActiveRoute(normalizedPath, route)) return;
+
+    buklodInstantReplace(route as any);
   };
 
   if (!showNavigation) {
