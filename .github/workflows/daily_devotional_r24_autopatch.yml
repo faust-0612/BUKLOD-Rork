@@ -1,0 +1,158 @@
+name: BUKLOD Daily Devotional R24 Auto Patch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/daily_devotional_r24_autopatch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-test-commit-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Patch Home to daily devotional
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('src/app/(tabs)/home.tsx')
+          s = p.read_text(encoding='utf-8')
+          before = s
+
+          if 'get_my_weekly_devotional' not in s:
+              raise SystemExit('Expected weekly devotional RPC marker not found')
+          s = s.replace('get_my_weekly_devotional', 'get_my_daily_devotional')
+          s = s.replace("'Weekly Devotional'", "'Daily Devotional'")
+          s = s.replace('WEEKLY DEVOTIONAL', "TODAY'S DEVOTIONAL")
+          s = s.replace('OPEN WEEKLY DEVOTIONAL', "OPEN TODAY'S DEVOTIONAL")
+          s = s.replace('weekly devotional query remains', 'daily devotional query remains')
+          s = s.replace('weekly devotional, keep null.', 'daily devotional, keep null.')
+
+          if s == before:
+              raise SystemExit('Home patch produced no changes')
+          if 'get_my_daily_devotional' not in s:
+              raise SystemExit('Daily devotional RPC not installed in Home')
+          if 'OPEN WEEKLY DEVOTIONAL' in s:
+              raise SystemExit('Old weekly devotional button still present')
+
+          p.write_text(s, encoding='utf-8')
+
+      - name: Upgrade devotional detail presentation
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('src/app/devotional/[id].tsx')
+          s = p.read_text(encoding='utf-8')
+
+          if 'BUKLOD_DAILY_DEVOTIONAL_R24_DETAIL' in s:
+              raise SystemExit(0)
+
+          old = '''      <Text style={shared.muted}>{item.bible_passage}</Text>
+      <Text style={shared.h1}>{item.title}</Text>
+      <S title="📖 SCRIPTURE">{item.scripture_text || item.key_verse}</S>
+      <S title="✍️ REFLECTION">{item.reflection_text}</S>
+      <S title="❓ THINK ABOUT IT">{item.think_about_it}</S>
+      <S title="✅ LIVE IT TODAY">{item.live_it_today}</S>
+      <S title="🙏 PRAY">{item.prayer_text}</S>
+      <Button title="CONTINUE TO REFLECTION" onPress={()=>router.push(`/reflection/${item.id}`)} />'''
+
+          new = '''      {/* BUKLOD_DAILY_DEVOTIONAL_R24_DETAIL */}
+      <Text style={[shared.muted,{fontWeight:'800'}]}>{item.bible_passage}</Text>
+      <Text style={[shared.h1,{marginTop:4}]}>{item.title}</Text>
+
+      <S title="📖 SCRIPTURE">{item.scripture_text || item.key_verse}</S>
+      <S title="✍️ REFLECTION">{item.reflection_text}</S>
+      <S title="🌱 STORY / ILLUSTRATION">{item.illustration_text}</S>
+
+      {item.quotation_text ? (
+        <Card>
+          <Text style={shared.h2}>💬 QUOTATION</Text>
+          <Text style={[shared.body,{marginTop:7,fontStyle:'italic'}]}>
+            “{item.quotation_text}”
+          </Text>
+          {item.quotation_author ? (
+            <Text style={[shared.muted,{marginTop:7,fontWeight:'800'}]}>
+              — {item.quotation_author}
+            </Text>
+          ) : null}
+        </Card>
+      ) : null}
+
+      <S title="❓ THINK ABOUT IT">{item.think_about_it}</S>
+      <S title="🛠️ PRACTICAL TODAY">{item.live_it_today || item.application_text}</S>
+      <S title="🙏 PRAY">{item.prayer_text}</S>
+      <Button title="CONTINUE TO REFLECTION" onPress={()=>router.push(`/reflection/${item.id}`)} />'''
+
+          if old not in s:
+              raise SystemExit('Expected devotional detail block not found')
+          s = s.replace(old, new, 1)
+          p.write_text(s, encoding='utf-8')
+
+      - name: Verify exact scope
+        run: |
+          grep -q "get_my_daily_devotional" 'src/app/(tabs)/home.tsx'
+          ! grep -q "OPEN WEEKLY DEVOTIONAL" 'src/app/(tabs)/home.tsx'
+          grep -q "BUKLOD_DAILY_DEVOTIONAL_R24_DETAIL" 'src/app/devotional/[id].tsx'
+          grep -q "STORY / ILLUSTRATION" 'src/app/devotional/[id].tsx'
+          grep -q "QUOTATION" 'src/app/devotional/[id].tsx'
+          grep -q "PRACTICAL TODAY" 'src/app/devotional/[id].tsx'
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Commit patched source to main
+        run: |
+          git config user.name "faust-0612"
+          git config user.email "efmagaj@gmail.com"
+          git add 'src/app/(tabs)/home.tsx' 'src/app/devotional/[id].tsx'
+          git diff --cached --quiet && exit 0
+          git commit -m "Make faith devotional fresh daily with richer content"
+          git push origin main
+
+      - name: Expo credential preflight
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          test -n "$EXPO_TOKEN"
+          npx eas-cli whoami
+
+      - name: Export production web
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: npx expo export --platform web --clear
+
+      - name: Deploy production web
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          CI: '1'
+        run: npx eas-cli deploy --prod
+
+      - name: Publish Android production OTA
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          CI: '1'
+        run: npx eas-cli update --channel production --platform android --environment production --message "BUKLOD Daily Devotional R24"
+
+      - name: Final status
+        run: |
+          echo "BUKLOD Daily Devotional R24 complete"
+          echo "Daily Manila-midnight rotation"
+          echo "Richer biblical reflection + illustration + practical application + attributed quotation"
+          echo "No DB reset / no APK / no AAB"
