@@ -12,109 +12,76 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { useAuth } from '@/providers/AuthProvider';
 
-const QUIZ_ENTRY_ENDPOINT =
-  'https://cjtehbfspgimyhifnjon.supabase.co/functions/v1/buklod-quiz-main-entry-v1';
+const QUIZ_WEB_URL = 'https://buklod-quiz.expo.app';
 
-const QUIZ_PUBLISHABLE_KEY =
-  'sb_publishable_06d3QBjV_26E8Rk9rS4GMw_SCJ6P8sO';
+function buildQuizSessionUrl(input: {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt?: number | null;
+}) {
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const expiresAt =
+    typeof input.expiresAt === 'number' && input.expiresAt > nowSeconds
+      ? Math.floor(input.expiresAt)
+      : nowSeconds + 3600;
+  const expiresIn = Math.max(1, expiresAt - nowSeconds);
 
-type QuizEntryPayload = {
-  ok?: boolean;
-  error?: string;
-  message?: string;
-  launch_url?: string;
-  quiz_url?: string;
-  one_time_code?: string | null;
-};
+  // BUKLOD Quiz R12+/R14 uses the same BUKLOD Connect Supabase project.
+  // Supabase's browser implicit-session detector reads these values from the
+  // fragment and persists the existing central session locally for Quiz.
+  // A URL fragment is not sent to the Expo hosting server in the HTTP request.
+  const fragment = [
+    `access_token=${encodeURIComponent(input.accessToken)}`,
+    `refresh_token=${encodeURIComponent(input.refreshToken)}`,
+    `expires_in=${expiresIn}`,
+    `expires_at=${expiresAt}`,
+    'token_type=bearer',
+  ].join('&');
+
+  return `${QUIZ_WEB_URL}/#${fragment}`;
+}
 
 export default function BuklodQuizStudentEntry() {
   const { session } = useAuth();
   const [opening, setOpening] = React.useState(false);
-  const [fallbackCode, setFallbackCode] = React.useState<string | null>(null);
   const inFlight = React.useRef(false);
 
   const openQuiz = React.useCallback(async () => {
     if (inFlight.current || opening) return;
 
     const accessToken = session?.access_token;
-    if (!accessToken) {
+    const refreshToken = session?.refresh_token;
+
+    if (!accessToken || !refreshToken) {
       Alert.alert(
         'BUKLOD session required',
-        'Please sign in to BUKLOD Main again.',
+        'Please sign in to BUKLOD Main again before opening BUKLOD Quiz.',
       );
       return;
     }
 
     inFlight.current = true;
     setOpening(true);
-    setFallbackCode(null);
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000);
 
     try {
-      const response = await fetch(QUIZ_ENTRY_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          apikey: QUIZ_PUBLISHABLE_KEY,
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ source: 'buklod_main_my_classroom' }),
-        signal: controller.signal,
+      const launchUrl = buildQuizSessionUrl({
+        accessToken,
+        refreshToken,
+        expiresAt: session?.expires_at,
       });
 
-      const payload =
-        (await response.json().catch(() => ({}))) as QuizEntryPayload;
-
-      if (!response.ok || !payload.ok || !payload.launch_url) {
-        if (
-          response.status === 409 &&
-          payload.error === 'entry_already_in_progress'
-        ) {
-          Alert.alert(
-            'Quiz entry already in progress',
-            'Tap only once. Your previous entry request is still being processed.',
-          );
-          return;
-        }
-
-        throw new Error(
-          payload.message || 'BUKLOD Quiz entry could not be created.',
-        );
-      }
-
-      try {
-        await Linking.openURL(payload.launch_url);
-      } catch (linkError) {
-        if (payload.one_time_code) {
-          setFallbackCode(String(payload.one_time_code));
-        }
-
-        if (payload.quiz_url) {
-          await Linking.openURL(payload.quiz_url);
-          return;
-        }
-
-        throw linkError;
-      }
+      await Linking.openURL(launchUrl);
     } catch (error: any) {
-      const timedOut =
-        error?.name === 'AbortError' ||
-        String(error?.message ?? '').toLowerCase().includes('abort');
-
       Alert.alert(
-        timedOut ? 'Quiz entry timed out' : 'Cannot enter BUKLOD Quiz',
-        timedOut
-          ? 'No repeated request was sent. Check your connection, then tap Enter BUKLOD Quiz once.'
-          : error?.message || 'Please check your connection and try once again.',
+        'Cannot open BUKLOD Quiz',
+        error?.message ||
+          'The Quiz page could not be opened. Check your connection, then tap once again.',
       );
     } finally {
-      clearTimeout(timeoutId);
       inFlight.current = false;
       setOpening(false);
     }
-  }, [opening, session?.access_token]);
+  }, [opening, session?.access_token, session?.expires_at, session?.refresh_token]);
 
   return (
     <View style={styles.card}>
@@ -131,7 +98,8 @@ export default function BuklodQuizStudentEntry() {
           <Text style={styles.eyebrow}>LIVE EXAM</Text>
           <Text style={styles.title}>BUKLOD Quiz</Text>
           <Text style={styles.body}>
-            Your signed-in BUKLOD Main account is your identity proof. Inside BUKLOD Quiz, enter the live class code given by your examiner.
+            Your signed-in BUKLOD Main account is already your identity proof.
+            Open Quiz directly, then enter only the live class code given by your examiner.
           </Text>
         </View>
       </View>
@@ -152,23 +120,14 @@ export default function BuklodQuizStudentEntry() {
           <MaterialCommunityIcons name="login-variant" size={20} color="#fff" />
         )}
         <Text style={styles.buttonText}>
-          {opening ? 'VERIFYING MAIN SESSION...' : 'ENTER BUKLOD QUIZ'}
+          {opening ? 'OPENING BUKLOD QUIZ...' : 'ENTER BUKLOD QUIZ'}
         </Text>
       </Pressable>
 
       <Text style={styles.notice}>
-        One tap = one handoff request. No email/SMS OTP send, no Quiz password re-check, and no automatic retry loop.
+        Direct central-session handoff. No email/SMS OTP, no one-time-code request,
+        no second password check, and no automatic retry loop.
       </Text>
-
-      {fallbackCode ? (
-        <View style={styles.fallback}>
-          <Text style={styles.fallbackLabel}>ONE-TIME QUIZ CODE</Text>
-          <Text selectable style={styles.fallbackCode}>{fallbackCode}</Text>
-          <Text style={styles.fallbackHelp}>
-            Use this only if the one-tap handoff could not open automatically.
-          </Text>
-        </View>
-      ) : null}
     </View>
   );
 }
@@ -238,29 +197,5 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 14,
     marginTop: 8,
-  },
-  fallback: {
-    backgroundColor: '#eef7f0',
-    borderRadius: 14,
-    padding: 12,
-    marginTop: 12,
-  },
-  fallbackLabel: {
-    color: '#6f7b72',
-    fontSize: 9,
-    fontWeight: '900',
-  },
-  fallbackCode: {
-    color: '#1f7a3f',
-    fontSize: 22,
-    fontWeight: '900',
-    letterSpacing: 3,
-    marginTop: 4,
-  },
-  fallbackHelp: {
-    color: '#758078',
-    fontSize: 9.5,
-    lineHeight: 14,
-    marginTop: 4,
   },
 });
