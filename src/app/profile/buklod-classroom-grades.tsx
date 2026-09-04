@@ -9,8 +9,11 @@ import {
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 
+import { ClassroomDrawer } from '@/components/classroom/ClassroomDrawer';
+import { useClassroomTheme } from '@/hooks/useClassroomTheme';
 import { supabase } from '@/lib/supabase';
 
 type TermKey = 'PRELIM' | 'MIDTERM' | 'SEMIFINALS' | 'FINALS';
@@ -55,9 +58,11 @@ export default function BuklodClassroomGradesScreen() {
   const params = useLocalSearchParams<{ id?: string; classroomId?: string; name?: string }>();
   const classroomId = String(params.id ?? params.classroomId ?? '');
   const fallbackName = String(params.name ?? 'Classroom');
+  const { theme, themeId, setThemeId } = useClassroomTheme();
 
   const [gradebook, setGradebook] = useState<GradebookRow | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!classroomId) return;
@@ -112,136 +117,150 @@ export default function BuklodClassroomGradesScreen() {
   const releasedFinal = gradebook?.final_grade == null ? null : num(gradebook.final_grade);
 
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
-    >
-      <Pressable style={styles.back} onPress={() => router.back()}>
-        <MaterialCommunityIcons name="arrow-left" size={22} color="#17311f" />
-        <Text style={styles.backText}>{className}</Text>
-      </Pressable>
-
-      <Text style={styles.eyebrow}>GRADE CONSULTATION</Text>
-      <Text style={styles.title}>My Grades</Text>
-      <Text style={styles.subtitle}>
-        Only faculty-released or locked item grades are included here. Draft grades stay private to faculty until released.
-      </Text>
-
-      <View style={styles.summaryCard}>
-        <View style={styles.summaryMain}>
-          <Text style={styles.summaryLabel}>{releasedFinal == null ? 'CURRENT STANDING' : 'RELEASED FINAL GRADE'}</Text>
-          <Text style={styles.summaryValue}>
-            {(releasedFinal ?? currentOverall) == null ? '—' : (releasedFinal ?? currentOverall)!.toFixed(2)}
-          </Text>
-          <Text style={styles.summaryMeta}>
-            Released coverage: {num(gradebook?.covered_weight).toFixed(1)}%
-          </Text>
-        </View>
-        <View style={styles.statusBox}>
-          <MaterialCommunityIcons
-            name={releasedFinal == null ? 'progress-clock' : 'check-decagram-outline'}
-            size={23}
-            color="#1f7a3f"
-          />
-          <Text style={styles.statusTitle}>{gradebook?.final_status || 'IN PROGRESS'}</Text>
-          <Text style={styles.statusHint}>{releasedFinal == null ? 'Not final yet' : 'Faculty released'}</Text>
-        </View>
-      </View>
-
-      <View style={styles.formulaCard}>
-        <Text style={styles.formulaLabel}>GRADE EQUIVALENT</Text>
-        <Text style={styles.formula}>50 + (Raw Score ÷ Highest Possible × 50)</Text>
-        <Text style={styles.formulaHint}>Term and category weights are set by your faculty.</Text>
-      </View>
-
-      <Text style={styles.sectionTitle}>Grading Periods</Text>
-
-      {termSummaries.map(term => (
-        <View key={term.key} style={styles.termCard}>
-          <View style={styles.termHeader}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.termTitle}>{term.label}</Text>
-              <Text style={styles.termMeta}>{term.termWeight.toFixed(1)}% of final grade</Text>
-            </View>
-            <View style={[styles.termStatus, term.complete && styles.termStatusComplete]}>
-              <Text style={[styles.termStatusText, term.complete && styles.termStatusTextComplete]}>
-                {term.current == null ? '—' : term.current.toFixed(2)}
-              </Text>
-              <Text style={styles.termStatusHint}>{term.complete ? 'Complete' : `${term.coveredCategoryWeight.toFixed(0)}% covered`}</Text>
-            </View>
+    <View style={[styles.root, { backgroundColor: theme.background }]}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} tintColor={theme.primary} onRefresh={refresh} />}
+      >
+        <View style={styles.topBar}>
+          <Pressable onPress={() => setDrawerOpen(true)} style={[styles.menuButton, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}>
+            <MaterialCommunityIcons name="menu" size={22} color={theme.ink} />
+          </Pressable>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.topKicker, { color: theme.muted }]}>GRADE CONSULTATION</Text>
+            <Text numberOfLines={1} style={[styles.topName, { color: theme.ink }]}>{className}</Text>
           </View>
+          <Pressable onPress={() => router.back()} style={[styles.backButton, { borderColor: theme.border }]}>
+            <MaterialCommunityIcons name="arrow-left" size={18} color={theme.ink} />
+          </Pressable>
+        </View>
 
-          {term.items.length === 0 ? (
-            <Text style={styles.noItems}>No grading categories available.</Text>
-          ) : (
-            term.items.map(item => (
-              <View key={item.category_id} style={styles.categoryRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.categoryName}>{item.category_name}</Text>
-                  <Text style={styles.categoryMeta}>{num(item.category_weight_percent).toFixed(1)}% inside {term.label}</Text>
+        <LinearGradient colors={[theme.heroStart, theme.heroEnd]} style={styles.hero}>
+          <View style={[styles.reportTab, { backgroundColor: theme.accent }]}>
+            <Text style={[styles.reportTabText, { color: theme.drawer }]}>REPORT</Text>
+          </View>
+          <Text style={styles.heroKicker}>{releasedFinal == null ? 'CURRENT ACADEMIC STANDING' : 'FACULTY-RELEASED FINAL'}</Text>
+          <Text style={styles.heroGrade}>{(releasedFinal ?? currentOverall) == null ? '—' : (releasedFinal ?? currentOverall)!.toFixed(2)}</Text>
+          <View style={styles.heroRow}>
+            <Text style={styles.heroText}>Released coverage {num(gradebook?.covered_weight).toFixed(1)}%</Text>
+            <Text style={styles.heroText}>{gradebook?.final_status || 'IN PROGRESS'}</Text>
+          </View>
+        </LinearGradient>
+
+        <View style={[styles.formulaStrip, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}>
+          <View style={[styles.formulaIcon, { backgroundColor: theme.chip }]}>
+            <MaterialCommunityIcons name="function-variant" size={20} color={theme.primary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.formulaKicker, { color: theme.muted }]}>GRADE EQUIVALENT</Text>
+            <Text style={[styles.formula, { color: theme.ink }]}>50 + (Raw ÷ Highest Possible × 50)</Text>
+          </View>
+        </View>
+
+        <View style={styles.sectionHeading}>
+          <Text style={[styles.sectionKicker, { color: theme.muted }]}>FOUR GRADING PERIODS</Text>
+          <Text style={[styles.sectionCount, { color: theme.ink }]}>4</Text>
+        </View>
+
+        {termSummaries.map((term, index) => {
+          const tone = index % 2 === 0 ? theme.primary : theme.secondary;
+          return (
+            <View key={term.key} style={[styles.termCard, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}>
+              <View style={[styles.termSpine, { backgroundColor: tone }]} />
+              <View style={styles.termHeader}>
+                <View style={[styles.termNumber, { backgroundColor: `${tone}1C` }]}>
+                  <Text style={[styles.termNumberText, { color: tone }]}>{index + 1}</Text>
                 </View>
-                <View style={styles.categoryNumbers}>
-                  <Text style={styles.categoryScore}>
-                    {item.represented ? `${num(item.earned).toFixed(0)}/${num(item.possible).toFixed(0)}` : '—'}
-                  </Text>
-                  <Text style={styles.categoryEquivalent}>
-                    {item.equivalent_percent == null ? 'Not released' : `Eq ${num(item.equivalent_percent).toFixed(2)}`}
-                  </Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.termTitle, { color: theme.ink }]}>{term.label}</Text>
+                  <Text style={[styles.termMeta, { color: theme.muted }]}>{term.termWeight.toFixed(1)}% of final grade</Text>
+                </View>
+                <View style={[styles.termScoreBox, { backgroundColor: term.complete ? `${theme.success}1E` : theme.chip }]}>
+                  <Text style={[styles.termScore, { color: term.complete ? theme.success : theme.ink }]}>{term.current == null ? '—' : term.current.toFixed(2)}</Text>
+                  <Text style={[styles.termCoverage, { color: theme.muted }]}>{term.complete ? 'complete' : `${term.coveredCategoryWeight.toFixed(0)}% covered`}</Text>
                 </View>
               </View>
-            ))
-          )}
-        </View>
-      ))}
 
-      <View style={styles.note}>
-        <MaterialCommunityIcons name="information-outline" size={20} color="#1f7a3f" />
-        <Text style={styles.noteText}>
-          A current standing can change while more activities, quizzes, attendance records, or exams are being released. The final grade shown here appears only after faculty release.
-        </Text>
-      </View>
-    </ScrollView>
+              {term.items.length === 0 ? (
+                <Text style={[styles.noItems, { color: theme.muted }]}>No released grading categories yet.</Text>
+              ) : (
+                term.items.map((item, itemIndex) => (
+                  <View key={item.category_id} style={[styles.categoryRow, itemIndex > 0 && { borderTopColor: theme.border, borderTopWidth: StyleSheet.hairlineWidth }]}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.categoryName, { color: theme.ink }]}>{item.category_name}</Text>
+                      <Text style={[styles.categoryMeta, { color: theme.muted }]}>{num(item.category_weight_percent).toFixed(1)}% inside {term.label}</Text>
+                    </View>
+                    <View style={styles.categoryNumbers}>
+                      <Text style={[styles.categoryScore, { color: theme.ink }]}>{item.represented ? `${num(item.earned).toFixed(0)}/${num(item.possible).toFixed(0)}` : '—'}</Text>
+                      <Text style={[styles.categoryEquivalent, { color: item.equivalent_percent == null ? theme.muted : tone }]}>{item.equivalent_percent == null ? 'not released' : `Eq ${num(item.equivalent_percent).toFixed(2)}`}</Text>
+                    </View>
+                  </View>
+                ))
+              )}
+            </View>
+          );
+        })}
+
+        <View style={[styles.note, { borderColor: theme.border }]}>
+          <MaterialCommunityIcons name="information-outline" size={19} color={theme.primary} />
+          <Text style={[styles.noteText, { color: theme.muted }]}>Draft faculty grades never appear here. A current standing can still move as Attendance, activities, Quiz results, recitation and exams are released. Final grade appears only after faculty release.</Text>
+        </View>
+      </ScrollView>
+
+      <ClassroomDrawer
+        visible={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        classroomId={classroomId}
+        classroomName={className}
+        role="STUDENT"
+        theme={theme}
+        themeId={themeId}
+        onThemeChange={setThemeId}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#f4f7f2' },
-  content: { padding: 20, paddingTop: 42, paddingBottom: 70 },
-  back: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 18 },
-  backText: { color: '#17311f', fontWeight: '900' },
-  eyebrow: { color: '#1f7a3f', fontSize: 10, fontWeight: '900', letterSpacing: 1.2 },
-  title: { color: '#17311f', fontSize: 28, fontWeight: '900', marginTop: 2 },
-  subtitle: { color: '#68736b', lineHeight: 19, marginTop: 6, marginBottom: 16 },
-  summaryCard: { flexDirection: 'row', gap: 10, backgroundColor: '#fff', borderRadius: 18, padding: 15, borderWidth: 1, borderColor: '#dfe8e1' },
-  summaryMain: { flex: 1 },
-  summaryLabel: { color: '#738078', fontSize: 10, fontWeight: '900', letterSpacing: 0.7 },
-  summaryValue: { color: '#17311f', fontSize: 34, fontWeight: '900', marginTop: 2 },
-  summaryMeta: { color: '#748078', fontSize: 11, marginTop: 2 },
-  statusBox: { width: 112, backgroundColor: '#edf5ee', borderRadius: 13, padding: 10, alignItems: 'center', justifyContent: 'center' },
-  statusTitle: { color: '#1f7a3f', fontSize: 10, fontWeight: '900', marginTop: 4 },
-  statusHint: { color: '#748078', fontSize: 9, marginTop: 2 },
-  formulaCard: { backgroundColor: '#17311f', borderRadius: 15, padding: 14, marginTop: 12 },
-  formulaLabel: { color: '#9fc3a7', fontSize: 10, fontWeight: '900', letterSpacing: 0.8 },
-  formula: { color: '#fff', fontWeight: '900', fontSize: 15, marginTop: 4 },
-  formulaHint: { color: '#c5d5c8', fontSize: 10, marginTop: 4 },
-  sectionTitle: { color: '#26392d', fontWeight: '900', fontSize: 17, marginTop: 20, marginBottom: 10 },
-  termCard: { backgroundColor: '#fff', borderRadius: 17, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: '#e0e7e1' },
-  termHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 9 },
-  termTitle: { color: '#273a2e', fontWeight: '900', fontSize: 17 },
-  termMeta: { color: '#748078', fontSize: 10, marginTop: 2 },
-  termStatus: { minWidth: 84, borderRadius: 11, paddingHorizontal: 9, paddingVertical: 7, backgroundColor: '#fff1df', alignItems: 'center' },
-  termStatusComplete: { backgroundColor: '#e8f4e9' },
-  termStatusText: { color: '#9b6c32', fontWeight: '900', fontSize: 15 },
-  termStatusTextComplete: { color: '#1f7a3f' },
-  termStatusHint: { color: '#748078', fontSize: 8, marginTop: 1 },
-  categoryRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 9, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#e6ebe7' },
-  categoryName: { color: '#324238', fontWeight: '800', fontSize: 12 },
-  categoryMeta: { color: '#879087', fontSize: 9, marginTop: 2 },
+  root: { flex: 1 },
+  content: { paddingHorizontal: 18, paddingTop: 42, paddingBottom: 80 },
+  topBar: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+  menuButton: { width: 44, height: 44, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  topKicker: { fontSize: 8, fontWeight: '900', letterSpacing: 1.1 },
+  topName: { fontSize: 14, fontWeight: '900', marginTop: 1 },
+  backButton: { width: 40, height: 40, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  hero: { borderRadius: 22, padding: 18, position: 'relative', overflow: 'hidden' },
+  reportTab: { position: 'absolute', top: 14, right: -11, paddingHorizontal: 18, paddingVertical: 6, transform: [{ rotate: '8deg' }] },
+  reportTabText: { fontSize: 8, fontWeight: '900', letterSpacing: 1.1 },
+  heroKicker: { color: 'rgba(255,255,255,0.68)', fontSize: 8, fontWeight: '900', letterSpacing: 1.2 },
+  heroGrade: { color: '#fff', fontSize: 52, lineHeight: 58, fontWeight: '900', marginTop: 5 },
+  heroRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 8, marginTop: 6 },
+  heroText: { color: 'rgba(255,255,255,0.72)', fontSize: 9, fontWeight: '800' },
+  formulaStrip: { borderWidth: 1, borderRadius: 15, padding: 11, marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 9 },
+  formulaIcon: { width: 37, height: 37, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  formulaKicker: { fontSize: 8, fontWeight: '900', letterSpacing: 0.9 },
+  formula: { fontSize: 11, fontWeight: '900', marginTop: 2 },
+  sectionHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 23, marginBottom: 8 },
+  sectionKicker: { fontSize: 8, fontWeight: '900', letterSpacing: 1.1 },
+  sectionCount: { fontSize: 18, fontWeight: '900' },
+  termCard: { position: 'relative', overflow: 'hidden', borderWidth: 1, borderRadius: 17, padding: 13, paddingLeft: 17, marginBottom: 9 },
+  termSpine: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4 },
+  termHeader: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  termNumber: { width: 38, height: 45, borderRadius: 9, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '-2deg' }] },
+  termNumberText: { fontSize: 18, fontWeight: '900' },
+  termTitle: { fontSize: 16, fontWeight: '900' },
+  termMeta: { fontSize: 8, marginTop: 2 },
+  termScoreBox: { minWidth: 82, borderRadius: 10, padding: 8, alignItems: 'center' },
+  termScore: { fontSize: 15, fontWeight: '900' },
+  termCoverage: { fontSize: 7, marginTop: 1 },
+  categoryRow: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 7, marginLeft: 47 },
+  categoryName: { fontSize: 10, fontWeight: '900' },
+  categoryMeta: { fontSize: 8, marginTop: 2 },
   categoryNumbers: { alignItems: 'flex-end' },
-  categoryScore: { color: '#33443a', fontWeight: '900', fontSize: 11 },
-  categoryEquivalent: { color: '#1f7a3f', fontSize: 9, marginTop: 2 },
-  noItems: { color: '#879087', fontSize: 11, paddingVertical: 8 },
-  note: { flexDirection: 'row', gap: 9, backgroundColor: '#eaf4eb', borderRadius: 14, padding: 13, marginTop: 10 },
-  noteText: { flex: 1, color: '#435349', lineHeight: 18, fontSize: 11 },
+  categoryScore: { fontSize: 10, fontWeight: '900' },
+  categoryEquivalent: { fontSize: 8, marginTop: 2, fontWeight: '800' },
+  noItems: { marginLeft: 47, paddingVertical: 10, fontSize: 9 },
+  note: { borderTopWidth: StyleSheet.hairlineWidth, marginTop: 12, paddingTop: 12, flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  noteText: { flex: 1, fontSize: 9, lineHeight: 14 },
 });
