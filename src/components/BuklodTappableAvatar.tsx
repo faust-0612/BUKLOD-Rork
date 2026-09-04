@@ -108,10 +108,29 @@ export function BuklodTappableAvatar({
     enableLongPressSheet !== false &&
     !!resolvedUserId;
 
+  /*
+   * PATCH_20260904_AVATAR_TAP_PROFILE
+   * A normal avatar tap must never be dead just because long-press actions
+   * are enabled. Callers may still pass onPress={null} to intentionally
+   * suppress single-tap navigation while preserving the long-press sheet.
+   */
+  const defaultPressHandler =
+    resolvedUserId
+      ? () => {
+          void Haptics
+            .selectionAsync()
+            .catch(() => undefined);
+          visitMemberProfile(
+            resolvedUserId,
+            name
+          );
+        }
+      : undefined;
+
   const pressHandler =
     onPress === null
       ? undefined
-      : onPress;
+      : onPress ?? defaultPressHandler;
 
   const [
     sheetOpen,
@@ -125,17 +144,7 @@ export function BuklodTappableAvatar({
           .catch(() => undefined);
         setSheetOpen(true);
       }
-    : resolvedUserId
-      ? () => {
-          void Haptics
-            .selectionAsync()
-            .catch(() => undefined);
-          visitMemberProfile(
-            resolvedUserId,
-            name
-          );
-        }
-      : undefined;
+    : undefined;
 
   const interactive =
     !!pressHandler ||
@@ -171,8 +180,12 @@ export function BuklodTappableAvatar({
         accessibilityRole="button"
         accessibilityLabel={
           name
-            ? `${name} avatar. Long press to view profile.`
-            : 'Member avatar. Long press to view profile.'
+            ? longPressEnabled
+              ? `${name} avatar. Tap to view profile. Long press for profile actions.`
+              : `${name} avatar. Tap to view profile.`
+            : longPressEnabled
+              ? 'Member avatar. Tap to view profile. Long press for profile actions.'
+              : 'Member avatar. Tap to view profile.'
         }
         hitSlop={BUKLOD_HIT_SLOP_AVATAR}
         instant={false}
