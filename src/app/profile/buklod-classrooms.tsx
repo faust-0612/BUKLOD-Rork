@@ -12,6 +12,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
+import BuklodQuizStudentEntry from '@/components/classroom/BuklodQuizStudentEntry';
 
 type ClassroomRow = {
   classroom_id: string;
@@ -74,9 +75,9 @@ export default function BuklodClassroomsScreen() {
           <MaterialCommunityIcons name="google-classroom" size={30} color="#1f7a3f" />
         </View>
         <Text style={styles.eyebrow}>LEARN • TEACH • INTERACT</Text>
-        <Text style={styles.title}>My Classrooms</Text>
+        <Text style={styles.title}>My Classroom</Text>
         <Text style={styles.subtitle}>
-          Discussions, live classes, messages, activities, submissions, materials, presentations and academic monitoring in one classroom.
+          Your classes, discussions, live sessions, activities, submissions, materials, grades and BUKLOD Quiz entry in one student doorway.
         </Text>
       </View>
 
@@ -86,16 +87,15 @@ export default function BuklodClassroomsScreen() {
         <View style={styles.metric}><Text style={styles.metricValue}>{studentCount}</Text><Text style={styles.metricLabel}>Enrolled</Text></View>
       </View>
 
+      <BuklodQuizStudentEntry />
+
       {rows.length === 0 ? (
         <View style={styles.empty}>
           <MaterialCommunityIcons name="school-outline" size={34} color="#6b786e" />
           <Text style={styles.emptyTitle}>No active classroom yet</Text>
           <Text style={styles.emptyText}>
-            Faculty can create a class from BUKLOD Faculty. Students will see a classroom here as soon as they are actively enrolled.
+            Students can still enter BUKLOD Quiz above and use the live class code provided by the examiner. Classroom enrollment will appear here once active.
           </Text>
-          <Pressable style={styles.primary} onPress={() => router.push('/profile/buklod-faculty' as any)}>
-            <Text style={styles.primaryText}>Open BUKLOD Faculty</Text>
-          </Pressable>
         </View>
       ) : (
         rows.map(row => (
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
   eyebrow: { color: '#1f7a3f', fontSize: 10, fontWeight: '900', letterSpacing: 1.1 },
   title: { color: '#17311f', fontSize: 30, fontWeight: '900', marginTop: 2 },
   subtitle: { color: '#68736b', lineHeight: 20, marginTop: 7 },
-  metrics: { flexDirection: 'row', gap: 9, marginBottom: 18 },
+  metrics: { flexDirection: 'row', gap: 9, marginBottom: 14 },
   metric: { flex: 1, backgroundColor: '#fff', borderRadius: 15, padding: 12, alignItems: 'center' },
   metricValue: { color: '#17311f', fontSize: 22, fontWeight: '900' },
   metricLabel: { color: '#758078', fontSize: 11, fontWeight: '700' },
@@ -162,7 +162,5 @@ const styles = StyleSheet.create({
   empty: { backgroundColor: '#fff', borderRadius: 20, padding: 22, alignItems: 'center' },
   emptyTitle: { color: '#24362b', fontWeight: '900', fontSize: 17, marginTop: 10 },
   emptyText: { color: '#6c786f', textAlign: 'center', lineHeight: 19, marginTop: 6 },
-  primary: { backgroundColor: '#1f7a3f', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 11, marginTop: 16 },
-  primaryText: { color: '#fff', fontWeight: '900' },
   pressed: { opacity: 0.84 },
 });
