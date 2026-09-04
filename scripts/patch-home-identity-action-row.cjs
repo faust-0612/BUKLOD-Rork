@@ -198,8 +198,12 @@ const final = fs.readFileSync(file, 'utf8');
 if (!final.includes(marker)) {
   throw new Error('Home identity action row marker missing after patch.');
 }
-if (!final.includes('MY CLASSROOM') || !final.includes('MY CLUSTER')) {
-  throw new Error('Home action row labels missing after patch.');
+if (
+  !final.includes('accessibilityLabel="BUKLOD Rewards"') ||
+  !final.includes('<BuklodPublicWordShortcut />') ||
+  !final.includes('MY CLUSTER')
+) {
+  throw new Error('Home identity action row anchors missing after patch.');
 }
 
 console.log(`${marker}: applied`);
