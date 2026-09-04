@@ -75,3 +75,91 @@ if (!source.includes(': \'Post to this community\'')) {
 
 fs.writeFileSync(file, source, 'utf8');
 console.log('BUKLOD web scoped Community Post hotfix applied and verified.');
+
+/*
+ * PATCH_20260904_WEB_SCOPED_GUIDE_PROFILE_EXIT
+ *
+ * On desktop web the floating illustrated guide/avatar is mounted outside the
+ * routed scope screen. The old handler opened /me with returnScopeId and also
+ * dismissed the router stack. That return-mode contract can put the guide back
+ * into the Cluster workspace instead of leaving the scoped environment cleanly.
+ *
+ * Web rule: tapping the guide/avatar from /scope always means My BUKLOD.
+ * Restore PUBLIC first, then replace the scoped route with /me. Do not carry a
+ * returnScopeId and do not dismiss the stack. Native source remains unchanged;
+ * this patch is applied only by the production web export workflow.
+ */
+const guideFile = 'src/components/BuklodGuideAvatar.tsx';
+let guideSource = fs.readFileSync(guideFile, 'utf8');
+const guideStartMarker = '  /* PATCH_167I_AVATAR_IS_PROFILE */';
+const guideEndMarker = '  const badgeText =';
+const guideStart = guideSource.indexOf(guideStartMarker);
+const guideEnd = guideSource.indexOf(guideEndMarker, guideStart);
+
+if (guideStart < 0 || guideEnd < 0) {
+  fail('Could not locate the BUKLOD Guide avatar profile handler.');
+}
+
+const fixedGuideHandler = `  /* PATCH_167I_AVATAR_IS_PROFILE */
+  /* PATCH_20260904_WEB_SCOPED_GUIDE_PROFILE_EXIT */
+  const onPress = () => {
+    animateTap();
+    scheduleGuideHide(3600);
+
+    const openingProfileFromScopedWorkspace =
+      !isProfileRoute &&
+      scopedWorkspaceActive &&
+      isBuklodScopedWorkspacePath(
+        pathname
+      );
+
+    if (openingProfileFromScopedWorkspace) {
+      void (async () => {
+        const publicScope =
+          scopes.find(
+            (scope) =>
+              scope.scope_type ===
+              'PUBLIC'
+          );
+
+        if (publicScope) {
+          try {
+            await selectScope(
+              publicScope.scope_id
+            );
+          } catch (error) {
+            console.warn(
+              'BUKLOD web guide public scope reset:',
+              error
+            );
+          }
+        }
+
+        router.replace(
+          '/me' as any
+        );
+      })();
+
+      return;
+    }
+
+    router.navigate(
+      '/me' as any
+    );
+  };
+`;
+
+guideSource =
+  guideSource.slice(0, guideStart) +
+  fixedGuideHandler +
+  guideSource.slice(guideEnd);
+
+if (!guideSource.includes('PATCH_20260904_WEB_SCOPED_GUIDE_PROFILE_EXIT')) {
+  fail('Guide avatar profile-exit marker verification failed.');
+}
+if (!guideSource.includes("router.replace(\n          '/me' as any")) {
+  fail('Guide avatar /me replacement verification failed.');
+}
+
+fs.writeFileSync(guideFile, guideSource, 'utf8');
+console.log('BUKLOD web scoped Guide avatar -> My BUKLOD exit applied and verified.');
