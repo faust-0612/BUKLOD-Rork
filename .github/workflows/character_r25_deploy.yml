@@ -1,0 +1,111 @@
+name: BUKLOD Character R25 Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/character_r25_deploy.yml'
+      - 'src/components/points/BuklodCharacterItemThumb.tsx'
+      - 'src/components/points/BuklodCharacterLayeredArt.tsx'
+      - 'src/components/points/BuklodCharacterCustomizeSheet.tsx'
+      - 'src/components/points/BuklodProfileCharacterCard.tsx'
+      - 'src/lib/buklodCharacter.ts'
+      - 'src/lib/character-lab-core/**'
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  EXPO_PUBLIC_APP_ENV: production
+
+jobs:
+  qa-web-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout production source
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Verify Character R25 architecture
+        shell: bash
+        run: |
+          grep -F 'BUKLOD_CHARACTER_R25_COHESIVE_RANK_LOOKS' 'src/lib/buklodCharacter.ts'
+          grep -F 'equipmentForRankLook' 'src/lib/buklodCharacter.ts'
+          grep -F "rankLookMode: 'manual'" 'src/lib/buklodCharacter.ts'
+          grep -F 'BUKLOD_CHARACTER_R25_REAL_WARDROBE_PREVIEWS' 'src/components/points/BuklodCharacterItemThumb.tsx'
+          grep -F 'BuklodCharacterLayeredArt' 'src/components/points/BuklodCharacterItemThumb.tsx'
+          if grep -F 'BuklodLocalCharacterFigure' 'src/components/points/BuklodCharacterItemThumb.tsx'; then
+            echo 'Cartoon/vector wardrobe thumbnail fallback is still present.'
+            exit 1
+          fi
+          grep -F 'BUKLOD_CHARACTER_R25_PROPORTION_SAFE_LAYERING' 'src/components/points/BuklodCharacterLayeredArt.tsx'
+          if grep -F 'resizeMode="stretch"' 'src/components/points/BuklodCharacterLayeredArt.tsx'; then
+            echo 'Stretch distortion is still present in the character layer renderer.'
+            exit 1
+          fi
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Expo credential preflight
+        id: expo
+        shell: bash
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "Character R25 QA passed, but deploy is pending because EXPO_TOKEN is unavailable."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          npx eas-cli@latest whoami --non-interactive
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
+      - name: Export production web
+        if: steps.expo.outputs.ready == 'true'
+        shell: bash
+        env:
+          NODE_ENV: production
+          EXPO_PUBLIC_APP_ENV: production
+        run: npx expo export --platform web --output-dir dist
+
+      - name: Deploy production web
+        if: steps.expo.outputs.ready == 'true'
+        shell: bash
+        env:
+          NODE_ENV: production
+          EXPO_PUBLIC_APP_ENV: production
+        run: npx eas-cli@latest deploy --prod --non-interactive
+
+      - name: Publish production Android OTA
+        if: steps.expo.outputs.ready == 'true'
+        shell: bash
+        run: |
+          npx eas-cli@latest update \
+            --channel production \
+            --platform android \
+            --environment production \
+            --message "BUKLOD Character R25 Cohesive Rank Looks" \
+            --non-interactive
+
+      - name: Deployment status
+        shell: bash
+        env:
+          EXPO_READY: ${{ steps.expo.outputs.ready }}
+        run: |
+          if [ "$EXPO_READY" = "true" ]; then
+            echo "BUKLOD Character R25 production web + Android OTA completed."
+          else
+            echo "BUKLOD Character R25 source QA passed; deployment is pending only because EXPO_TOKEN is unavailable."
+          fi
