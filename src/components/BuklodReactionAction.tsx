@@ -1,10 +1,12 @@
 import React, {
+  useEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
 import {
   Animated,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -289,6 +291,45 @@ export function BuklodReactionAction({
   const [pickerOpen, setPickerOpen] = useState(false);
   const scale = useRef(new Animated.Value(1)).current;
   const reactingRef = useRef(false);
+  const hoverCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const canHover = Platform.OS === 'web' && !disabled;
+
+  useEffect(() => {
+    return () => {
+      if (hoverCloseTimerRef.current) {
+        clearTimeout(hoverCloseTimerRef.current);
+        hoverCloseTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  const clearHoverClose = () => {
+    if (hoverCloseTimerRef.current) {
+      clearTimeout(hoverCloseTimerRef.current);
+      hoverCloseTimerRef.current = null;
+    }
+  };
+
+  const openPickerFromHover = () => {
+    if (!canHover) {
+      return;
+    }
+
+    clearHoverClose();
+    setPickerOpen(true);
+  };
+
+  const schedulePickerCloseFromHover = () => {
+    if (!canHover) {
+      return;
+    }
+
+    clearHoverClose();
+    hoverCloseTimerRef.current = setTimeout(() => {
+      setPickerOpen(false);
+      hoverCloseTimerRef.current = null;
+    }, 160);
+  };
 
   const selected = options.find(option => option.key === mine) ?? null;
   const preview =
@@ -318,6 +359,7 @@ export function BuklodReactionAction({
     reactingRef.current = true;
     rememberCommunityReaction(key);
     bounce();
+    clearHoverClose();
     setPickerOpen(false);
     onSelect(key);
 
@@ -327,7 +369,7 @@ export function BuklodReactionAction({
   };
 
   const onTap = () => {
-    if (pickerOpen) {
+    if (pickerOpen && Platform.OS !== 'web') {
       setPickerOpen(false);
       return;
     }
@@ -347,8 +389,8 @@ export function BuklodReactionAction({
             accessibilityRole="button"
             accessibilityLabel={
               selected
-                ? `${selected.label} reaction. Long press for more reactions.`
-                : 'Add reaction. Long press for more reactions.'
+                ? `${selected.label} reaction. Hover or long press for more reactions.`
+                : 'Add reaction. Hover or long press for more reactions.'
             }
             disabled={disabled}
             nested
@@ -356,6 +398,8 @@ export function BuklodReactionAction({
             delayLongPress={BUKLOD_LONG_PRESS_MS}
             onPress={onTap}
             onLongPress={() => setPickerOpen(true)}
+            onHoverIn={openPickerFromHover}
+            onHoverOut={schedulePickerCloseFromHover}
             style={({ pressed }) => [
               styles.action,
               !!selected && styles.actionSelected,
@@ -425,7 +469,11 @@ export function BuklodReactionAction({
       </View>
 
       {pickerOpen && (
-        <View style={styles.picker}>
+        <Pressable
+          onHoverIn={openPickerFromHover}
+          onHoverOut={schedulePickerCloseFromHover}
+          style={styles.picker}
+        >
           {options.map(option => (
             <Pressable
               key={option.key}
@@ -442,7 +490,7 @@ export function BuklodReactionAction({
               <Text style={styles.optionEmoji}>{option.emoji}</Text>
             </Pressable>
           ))}
-        </View>
+        </Pressable>
       )}
     </View>
   );
