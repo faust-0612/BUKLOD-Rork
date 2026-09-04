@@ -592,147 +592,184 @@ export default function HomeScreen() {
       ) : null}
       <EnvironmentBadge />
 
+      {/* BUKLOD_HOME_IDENTITY_R23_CLEAN_TWO_ROW */}
       <HomeMotionSection delay={0}>
         <View
-          style={[
-            shared.row,
-            {
-              marginHorizontal: 12,
-              marginTop: 8,
-              marginBottom: 4,
-              paddingHorizontal: 12,
-              paddingVertical: 10,
-              borderRadius: 18,
-              backgroundColor: theme.cardSurface,
-              borderWidth: 1,
-              borderColor: theme.border,
-              overflow: 'hidden',
-            },
-          ]}
+          style={{
+            marginHorizontal: 12,
+            marginTop: 8,
+            marginBottom: 4,
+            paddingHorizontal: 16,
+            paddingTop: 15,
+            paddingBottom: 13,
+            borderRadius: 22,
+            backgroundColor: theme.cardSurface,
+            borderWidth: 1,
+            borderColor: theme.border,
+            overflow: 'hidden',
+          }}
         >
-          <HomePressable
-            accessibilityLabel="BUKLOD Rewards"
-            onPress={() =>
-              router.push('/points')
-            }
-            style={({ pressed }) => ({
-              width: 44,
-              height: 44,
-              borderRadius: 14,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: theme.accentSoft,
-              borderWidth: 1,
-              borderColor: theme.border,
-              opacity: pressed ? 0.72 : 1,
-            })}
-          >
-            <MaterialCommunityIcons
-              name="trophy-outline"
-              size={22}
-              color={theme.accent}
-            />
-          </HomePressable>
-          <View style={{ flex: 1 }}>
-            <Text style={[shared.muted, { fontSize: 12 }]}>
+          <View style={{ width: '100%', minWidth: 0 }}>
+            <Text
+              allowFontScaling={false}
+              style={[
+                shared.muted,
+                {
+                  fontSize: 13,
+                  lineHeight: 17,
+                },
+              ]}
+            >
               Good day,
+            </Text>
+
+            <Text
+              allowFontScaling={false}
+              numberOfLines={2}
+              ellipsizeMode="tail"
+              style={[
+                shared.h1,
+                {
+                  marginTop: 2,
+                  width: '100%',
+                  fontSize: 27,
+                  lineHeight: 31,
+                  fontWeight: '900',
+                  flexShrink: 1,
+                },
+              ]}
+            >
+              {resolvePersonDisplayName(
+                profile,
+                profile?.id,
+              )}
             </Text>
 
             <View
               style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: 6,
+                alignSelf: 'flex-start',
+                maxWidth: '100%',
+                marginTop: 8,
+                paddingHorizontal: 12,
+                paddingVertical: 5,
+                minHeight: 28,
+                borderRadius: 999,
+                borderWidth: 1,
+                borderColor: theme.accent,
+                backgroundColor: theme.accentSoft,
+                justifyContent: 'center',
               }}
             >
               <Text
-                style={[
-                  shared.h1,
-                  { fontSize: 18, lineHeight: 22 },
-                ]}
-              >
-                {resolvePersonDisplayName(
-                  profile,
-                  profile?.id,
-                )}
-              </Text>
-
-              <View
+                allowFontScaling={false}
+                numberOfLines={1}
+                ellipsizeMode="tail"
                 style={{
-                  paddingHorizontal: 10,
-                  paddingVertical: 4,
-                  minHeight: 28,
-                  borderRadius: 999,
-                  borderWidth: 1,
-                  borderColor: theme.accent,
-                  backgroundColor: theme.accentSoft,
-                  justifyContent: 'center',
+                  maxWidth: '100%',
+                  fontSize: 11,
+                  lineHeight: 14,
+                  fontWeight: '900',
+                  color: theme.accent,
                 }}
               >
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: '900',
-                    color: theme.accent,
-                  }}
-                >
-                  {circleRank}
-                </Text>
-              </View>
+                {circleRank}
+              </Text>
             </View>
           </View>
-          <BuklodPublicWordShortcut />
-          {/* PATCH_191F_PUBLIC_HOME_MY_CLUSTER */}
-          {/* PATCH_191I_A_MY_CLUSTER_COMPACT_HOME_TILE */}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Open My Cluster"
-            onPress={() => router.push('/clusters' as any)}
-            style={({ pressed }) => ({
-              width: 104,
-              maxWidth: 104,
-              minWidth: 0,
-              minHeight: 92,
-              flexShrink: 1,
-              borderRadius: 16,
-              borderWidth: 1,
-              borderColor: 'rgba(39,93,69,0.14)',
-              backgroundColor: '#EEF8F1',
-              paddingHorizontal: 8,
-              paddingVertical: 10,
-              alignItems: 'center',
-              justifyContent: 'center',
-              overflow: 'hidden',
-              opacity: pressed ? 0.76 : 1,
-            })}
-          >
-            <Text
-              style={{
-                fontSize: 23,
-                lineHeight: 27,
-                fontWeight: '900',
-                color: '#168347',
-              }}
-            >
-              ⌂
-            </Text>
 
-            <Text
-              numberOfLines={2}
-              style={{
-                marginTop: 5,
-                width: '100%',
-                textAlign: 'center',
-                fontSize: 10.5,
-                lineHeight: 13,
-                fontWeight: '900',
-                color: '#168347',
-              }}
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'stretch',
+              gap: 7,
+              marginTop: 13,
+              width: '100%',
+            }}
+          >
+            <HomePressable
+              accessibilityLabel="BUKLOD Rewards"
+              onPress={() => router.push('/points')}
+              style={({ pressed }) => ({
+                flex: 1,
+                minWidth: 0,
+                minHeight: 70,
+                borderRadius: 15,
+                alignItems: 'center',
+                justifyContent: 'center',
+                paddingHorizontal: 4,
+                paddingVertical: 8,
+                backgroundColor: theme.accentSoft,
+                borderWidth: 1,
+                borderColor: theme.border,
+                opacity: pressed ? 0.72 : 1,
+              })}
             >
-              MY CLUSTER
-            </Text>
-          </Pressable>
+              <MaterialCommunityIcons
+                name="trophy-outline"
+                size={22}
+                color={theme.accent}
+              />
+              <Text
+                allowFontScaling={false}
+                numberOfLines={1}
+                style={{
+                  marginTop: 4,
+                  width: '100%',
+                  textAlign: 'center',
+                  fontSize: 8.6,
+                  lineHeight: 10,
+                  fontWeight: '900',
+                  color: theme.accent,
+                }}
+              >
+                REWARDS
+              </Text>
+            </HomePressable>
+
+            <BuklodPublicWordShortcut />
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open My Cluster"
+              onPress={() => router.push('/clusters' as any)}
+              style={({ pressed }) => ({
+                flex: 1,
+                minWidth: 0,
+                minHeight: 70,
+                borderRadius: 15,
+                borderWidth: 1,
+                borderColor: theme.border,
+                backgroundColor: theme.accentSoft,
+                paddingHorizontal: 4,
+                paddingVertical: 8,
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+                opacity: pressed ? 0.72 : 1,
+              })}
+            >
+              <MaterialCommunityIcons
+                name="home-outline"
+                size={22}
+                color={theme.accent}
+              />
+              <Text
+                allowFontScaling={false}
+                numberOfLines={2}
+                style={{
+                  marginTop: 4,
+                  width: '100%',
+                  textAlign: 'center',
+                  fontSize: 8.2,
+                  lineHeight: 10,
+                  fontWeight: '900',
+                  color: theme.accent,
+                }}
+              >
+                MY CLUSTER
+              </Text>
+            </Pressable>
+          </View>
         </View>
       </HomeMotionSection>
 
