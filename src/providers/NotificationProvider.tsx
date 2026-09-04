@@ -1,5 +1,5 @@
 import {createContext,ReactNode,useCallback,useContext,useEffect,useMemo,useState} from 'react';
-import {Platform} from 'react-native';
+import {AppState,Platform} from 'react-native';
 import * as Notifications from 'expo-notifications';
 import {router} from 'expo-router';
 import {supabase} from '@/lib/supabase';
@@ -57,20 +57,40 @@ export function NotificationProvider({children}:{children:ReactNode}){
  useEffect(()=>{void (async()=>{try{if(Platform.OS==='android')await Notifications.setNotificationChannelAsync('buklod-activity-v2',{
     name:'BUKLOD Activity Alerts',
     importance:Notifications.AndroidImportance.MAX,
-    
     vibrationPattern:[0,250,250,250],
     enableVibrate:true,
     showBadge:true
 });
   const p=await Notifications.getPermissionsAsync();if(p.status!=='granted')await Notifications.requestPermissionsAsync()}catch(e){console.warn('Notification permission',e)}})()},[]);
  useEffect(()=>{void refreshUnread()},[refreshUnread]);
- useEffect(()=>{if(!user?.id)return;const c=supabase.channel(`notifs:${user.id}`)
-  /* PATCH_171C_REMOTE_PUSH_SINGLE_SOURCE
-   Remote Expo push is the only user-visible notification source.
-   Realtime only refreshes unread count. */
-  .on('postgres_changes',{event:'INSERT',schema:'public',table:'notifications',filter:`user_id=eq.${user.id}`},async()=>{await refreshUnread()})
-.on('postgres_changes',{event:'UPDATE',schema:'public',table:'notifications',filter:`user_id=eq.${user.id}`},()=>refreshUnread()).subscribe();
-  return()=>{supabase.removeChannel(c)}},[user?.id,refreshUnread]);
+
+ /* BUKLOD_5K_SCALE_R1_NOTIFICATION_NO_CDC
+  * Remote push is already the user-visible notification source, so keeping
+  * one Postgres Changes subscription open for every signed-in member was
+  * unnecessary database pressure. Refresh the authoritative unread count
+  * on foreground, and update the local badge immediately when a push arrives.
+  */
+ useEffect(()=>{
+  if(!user?.id)return;
+
+  const appStateSub=AppState.addEventListener('change',state=>{
+   if(state==='active')void refreshUnread();
+  });
+
+  const receivedSub=Notifications.addNotificationReceivedListener(()=>{
+   setUnreadCount(current=>{
+    const next=current+1;
+    void badge(next);
+    return next;
+   });
+  });
+
+  return()=>{
+   appStateSub.remove();
+   receivedSub.remove();
+  };
+ },[user?.id,refreshUnread,badge]);
+
  /* PATCH_171B_COLD_START_NOTIFICATION_RESPONSE */
  useEffect(()=>{
   let active=true;
