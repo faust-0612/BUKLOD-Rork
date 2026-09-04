@@ -310,8 +310,9 @@ function normalizeAdminCenter(
     data?.config && typeof data.config === 'object'
       ? (data.config as Record<string, unknown>)
       : {};
-  const requests = Array.isArray(data?.requests)
-    ? data!.requests
+  const rawRequests = data?.requests;
+  const requests = Array.isArray(rawRequests)
+    ? rawRequests
         .filter(
           (item): item is Record<string, unknown> =>
             !!item && typeof item === 'object',
