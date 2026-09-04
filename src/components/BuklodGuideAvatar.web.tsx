@@ -1,12 +1,17 @@
 import React, {
+  useEffect,
   useMemo,
+  useRef,
 } from 'react';
 
 import {
+  Animated,
   Image,
+  PanResponder,
   Pressable,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 
@@ -25,6 +30,7 @@ import {
   isBuklodProfileRoute,
   isBuklodScopedWorkspacePath,
   isBuklodScopedWorkspaceScopeType,
+  useBuklodPersistentNavOccupiedHeight,
 } from '@/lib/buklodSafeArea';
 
 import {
@@ -39,47 +45,165 @@ import {
   useNotifications,
 } from '@/providers/NotificationProvider';
 
+const GUIDE_SIZE = 58;
+const MOBILE_WEB_MAX_WIDTH = 1099;
+const MOBILE_DRAG_START_PX = 4;
+const EDGE_GAP = 8;
+const TOP_GAP = 52;
+
 const GUIDE = {
   male: require('../../assets/buklod-guide/wave.png'),
   female: require('../../assets/buklod-guide/female-wave.png'),
 } as const;
 
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
 /*
- * BUKLOD_WEB_PROFILE_AVATAR_R22
+ * BUKLOD_WEB_PROFILE_AVATAR_R23_MOBILE_TOUCH
  *
- * Desktop/web deliberately avoids the native GestureDetector/Pan wrapper.
- * A normal Pressable owns the pointer event so mouse/touch click always opens
- * Profile / My BUKLOD. Native drag/animation behavior remains unchanged in
- * BuklodGuideAvatar.tsx.
+ * Web uses a lightweight avatar instead of the continuously animated native
+ * GestureDetector version. R23 restores drag specifically for phone/small web
+ * with PanResponder, keeps the hit surface equal to the visible avatar, and
+ * lifts the default position above the persistent mobile navigation.
+ *
+ * Native Android/iOS still resolve BuklodGuideAvatar.tsx and are untouched.
  */
 export function BuklodGuideAvatar() {
-  const pathname =
-    usePathname();
-
+  const pathname = usePathname();
   const params =
     useLocalSearchParams<{
-      returnScopeId?:
-        | string
-        | string[];
+      returnScopeId?: string | string[];
     }>();
+  const { width, height } = useWindowDimensions();
+  const navOccupied = useBuklodPersistentNavOccupiedHeight();
 
   const {
     session,
     profile,
-  } =
-    useAuth();
+  } = useAuth();
 
   const {
     activeScope,
     scopes,
     selectScope,
-  } =
-    useBuklodScope();
+  } = useBuklodScope();
 
   const {
     unreadCount,
-  } =
-    useNotifications();
+  } = useNotifications();
+
+  const isMobileWeb = width <= MOBILE_WEB_MAX_WIDTH;
+  const baseBottom = isMobileWeb
+    ? Math.max(navOccupied, 0) + 12
+    : 18;
+
+  const drag = useRef(
+    new Animated.ValueXY({ x: 0, y: 0 })
+  ).current;
+  const dragValueRef = useRef({ x: 0, y: 0 });
+  const dragStartRef = useRef({ x: 0, y: 0 });
+  const draggedRef = useRef(false);
+
+  const clampDrag = (
+    wantedX: number,
+    wantedY: number,
+  ) => {
+    const baseX = width - 18 - GUIDE_SIZE;
+    const baseY = height - baseBottom - GUIDE_SIZE;
+
+    const minX = EDGE_GAP - baseX;
+    const maxX = width - EDGE_GAP - GUIDE_SIZE - baseX;
+    const minY = TOP_GAP - baseY;
+    const maxY =
+      height -
+      Math.max(navOccupied, 0) -
+      EDGE_GAP -
+      GUIDE_SIZE -
+      baseY;
+
+    return {
+      x: clamp(
+        wantedX,
+        Math.min(minX, maxX),
+        Math.max(minX, maxX),
+      ),
+      y: clamp(
+        wantedY,
+        Math.min(minY, maxY),
+        Math.max(minY, maxY),
+      ),
+    };
+  };
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => false,
+        onMoveShouldSetPanResponder: (_event, gesture) =>
+          isMobileWeb &&
+          Math.hypot(gesture.dx, gesture.dy) >= MOBILE_DRAG_START_PX,
+        onPanResponderGrant: () => {
+          dragStartRef.current = dragValueRef.current;
+          draggedRef.current = false;
+        },
+        onPanResponderMove: (_event, gesture) => {
+          if (!isMobileWeb) return;
+
+          draggedRef.current = true;
+          const next = clampDrag(
+            dragStartRef.current.x + gesture.dx,
+            dragStartRef.current.y + gesture.dy,
+          );
+          dragValueRef.current = next;
+          drag.setValue(next);
+        },
+        onPanResponderRelease: () => {
+          if (!draggedRef.current) return;
+          setTimeout(() => {
+            draggedRef.current = false;
+          }, 0);
+        },
+        onPanResponderTerminate: () => {
+          if (!draggedRef.current) return;
+          setTimeout(() => {
+            draggedRef.current = false;
+          }, 0);
+        },
+        onPanResponderTerminationRequest: () => false,
+      }),
+    [
+      baseBottom,
+      height,
+      isMobileWeb,
+      navOccupied,
+      width,
+      drag,
+    ],
+  );
+
+  useEffect(() => {
+    if (!isMobileWeb) {
+      dragValueRef.current = { x: 0, y: 0 };
+      drag.setValue({ x: 0, y: 0 });
+      return;
+    }
+
+    const next = clampDrag(
+      dragValueRef.current.x,
+      dragValueRef.current.y,
+    );
+    dragValueRef.current = next;
+    drag.setValue(next);
+  }, [
+    baseBottom,
+    height,
+    isMobileWeb,
+    navOccupied,
+    width,
+    drag,
+  ]);
 
   const isProfileRoute =
     isBuklodProfileRoute(pathname);
@@ -128,6 +252,10 @@ export function BuklodGuideAvatar() {
   }
 
   const openProfileOrReturn = () => {
+    if (draggedRef.current) {
+      return;
+    }
+
     if (
       profileReturnMode &&
       profileReturnScopeId
@@ -228,9 +356,15 @@ export function BuklodGuideAvatar() {
       : GUIDE.male;
 
   return (
-    <View
-      pointerEvents="box-none"
-      style={styles.root}
+    <Animated.View
+      {...(isMobileWeb ? panResponder.panHandlers : {})}
+      style={[
+        styles.root,
+        {
+          bottom: baseBottom,
+          transform: drag.getTranslateTransform(),
+        },
+      ]}
     >
       <Pressable
         accessibilityRole="button"
@@ -240,11 +374,14 @@ export function BuklodGuideAvatar() {
             : 'Open BUKLOD Profile'
         }
         accessibilityHint={
-          profileReturnMode
-            ? 'Returns to your organization workspace.'
-            : 'Opens Profile and My BUKLOD.'
+          isMobileWeb
+            ? 'Tap for Profile or drag to reposition.'
+            : profileReturnMode
+              ? 'Returns to your organization workspace.'
+              : 'Opens Profile and My BUKLOD.'
         }
         onPress={openProfileOrReturn}
+        hitSlop={0}
         style={({ pressed }) => [
           styles.pressable,
           pressed && styles.pressed,
@@ -275,7 +412,7 @@ export function BuklodGuideAvatar() {
           ? 'HOME'
           : 'PROFILE'}
       </Text>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -284,16 +421,20 @@ const styles =
     root: {
       position: 'absolute',
       right: 18,
-      bottom: 18,
       zIndex: 9999,
+      width: GUIDE_SIZE,
       alignItems: 'center',
       gap: 4,
+      ...({
+        touchAction: 'none',
+        userSelect: 'none',
+      } as any),
     },
 
     pressable: {
-      width: 58,
-      height: 58,
-      borderRadius: 29,
+      width: GUIDE_SIZE,
+      height: GUIDE_SIZE,
+      borderRadius: GUIDE_SIZE / 2,
       borderWidth: 3,
       borderColor: '#FFFFFF',
       backgroundColor: '#FFFFFF',
@@ -309,16 +450,16 @@ const styles =
     },
 
     pressed: {
-      opacity: 0.72,
+      opacity: 0.78,
       transform: [
-        { scale: 0.96 },
+        { scale: 0.97 },
       ],
     },
 
     avatar: {
       width: '100%',
       height: '100%',
-      borderRadius: 29,
+      borderRadius: GUIDE_SIZE / 2,
     },
 
     badge: {
