@@ -1461,9 +1461,12 @@ const chooseSuggestedLogin =
               FORGOT PASSWORD?
             </Text>
           </Pressable>
+          {/* PATCH_CREATE_ACCOUNT_TOUCH_R1 */}
           <Pressable
             onPress={() => router.push('/(auth)/register')}
-            disabled={busy}
+            accessibilityRole="button"
+            accessibilityLabel="Create BUKLOD account"
+            hitSlop={8}
             style={styles.secondary}
           >
             <Text style={styles.secondaryText}>
