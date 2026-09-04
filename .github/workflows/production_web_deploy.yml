@@ -12,6 +12,8 @@ on:
       - 'src/app/+html.tsx'
       - 'src/components/BuklodExclusiveScopeCommunity.tsx'
       - 'src/components/BuklodCommunityPhotoCollage.tsx'
+      - 'src/app/(auth)/login.tsx'
+      - 'src/lib/buklodAuthResilience.ts'
       - 'src/app/(auth)/forgot-password.tsx'
       - 'src/app/account/recovery-pin.tsx'
       - 'src/app/account/security.tsx'
@@ -99,6 +101,10 @@ jobs:
       - name: Verify production safety anchors
         shell: bash
         run: |
+          grep -F "HIGH_CONCURRENCY_LOGIN_R1" 'src/app/(auth)/login.tsx'
+          grep -F "loginInFlightRef.current" 'src/app/(auth)/login.tsx'
+          grep -F "HIGH_CONCURRENCY_LOGIN_R1" 'src/lib/buklodAuthResilience.ts'
+          test "$(grep -c "supabase.auth.signInWithPassword(" 'src/lib/buklodAuthResilience.ts')" -eq 1
           grep -F "account-recovery-otp-v1" 'src/app/(auth)/forgot-password.tsx'
           grep -F "action: 'request_otp'" 'src/app/(auth)/forgot-password.tsx'
           grep -F "action: 'verify_otp'" 'src/app/(auth)/forgot-password.tsx'
