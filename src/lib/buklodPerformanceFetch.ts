@@ -1,10 +1,11 @@
 /* BUKLOD_ROOT_PERFORMANCE_R3
- * BUKLOD_ROOT_PERFORMANCE_R3_5
+ * BUKLOD_ROOT_PERFORMANCE_R3_6
  *
- * R3.5 targets the remaining request amplification seen after R3.4:
+ * R3.6 targets the remaining request amplification seen after R3.5:
  * - safe read RPCs that were not yet allowlisted
- * - near-identical bulletin reads whose "starts_at=lte.<now>" differs by milliseconds
+ * - near-identical time-window reads whose starts_at filter differs by milliseconds
  * - repeated safe-read 400/404/405 probes
+ * - short backoff for transient upstream 5xx/52x failures on safe reads
  * - repeated stable table reads such as profile note / music library
  *
  * Mutations, auth calls, uploads, and unknown RPCs still bypass this cache.
@@ -41,7 +42,13 @@ const MAX_CACHE_ENTRIES = 500;
 const restReadTtlMs = 1_000;
 const storageSignTtlMs = 45 * 60_000;
 const negativeReadTtlMs = 10_000;
-const BULLETIN_TIME_BUCKET_MS = 5_000;
+const transientReadFailureTtlMs = 3_000;
+
+const TIME_BUCKET_MS_BY_TABLE: Record<string, number> = {
+  buklod_scope_bulletins: 5_000,
+  app_sponsors: 30_000,
+  buklod_cluster_events: 30_000,
+};
 
 const rpcReadTtlMs: Record<string, number> = {
   buklod_has_permission: 10_000,
@@ -71,6 +78,8 @@ const rpcReadTtlMs: Record<string, number> = {
 
 const restTableTtlMs: Record<string, number> = {
   buklod_scope_bulletins: 5_000,
+  app_sponsors: 30_000,
+  buklod_cluster_events: 10_000,
   buklod_profile_status: 10_000,
   buklod_system_announcement_boards: 30_000,
   buklod_music_library: 2 * 60_000,
@@ -79,7 +88,7 @@ const restTableTtlMs: Record<string, number> = {
   profiles: 5_000,
 };
 
-const GLOBAL_STATE_KEY = '__BUKLOD_ROOT_PERF_FETCH_R3_5__';
+const GLOBAL_STATE_KEY = '__BUKLOD_ROOT_PERF_FETCH_R3_6__';
 
 function getState(): PerfState {
   const root = globalThis as any;
@@ -202,21 +211,24 @@ function restTableFromUrl(rawUrl: string): string | null {
 }
 
 function canonicalUrlForKey(rawUrl: string): string {
-  if (!rawUrl.includes('/rest/v1/buklod_scope_bulletins')) {
+  const table = restTableFromUrl(rawUrl);
+  const bucketMs = table
+    ? TIME_BUCKET_MS_BY_TABLE[table]
+    : undefined;
+
+  if (!bucketMs) {
     return rawUrl;
   }
 
   return rawUrl.replace(
-    /(starts_at=lte\.)([^&]+)/i,
+    /(starts_at=(?:lte|gte)\.)([^&]+)/gi,
     (_full, prefix: string, encodedValue: string) => {
       try {
         const decoded = decodeURIComponent(encodedValue);
         const ms = Date.parse(decoded);
         if (!Number.isFinite(ms)) return `${prefix}${encodedValue}`;
 
-        const bucketed =
-          Math.floor(ms / BULLETIN_TIME_BUCKET_MS) *
-          BULLETIN_TIME_BUCKET_MS;
+        const bucketed = Math.floor(ms / bucketMs) * bucketMs;
 
         return `${prefix}${encodeURIComponent(
           new Date(bucketed).toISOString()
@@ -259,8 +271,27 @@ function shouldNegativeCache(status: number): boolean {
   return status === 400 || status === 404 || status === 405;
 }
 
+function shouldTransientFailureCache(status: number): boolean {
+  return [
+    408,
+    425,
+    429,
+    500,
+    502,
+    503,
+    504,
+    520,
+    521,
+    522,
+    523,
+    524,
+  ].includes(status);
+}
+
 const mutationInvalidationTables = new Set([
   'buklod_scope_bulletins',
+  'app_sponsors',
+  'buklod_cluster_events',
   'buklod_profile_status',
   'buklod_music_library',
   'buklod_system_announcement_boards',
@@ -408,7 +439,9 @@ export function createBuklodPerformanceFetch(
         ? ttlMs
         : shouldNegativeCache(response.status)
           ? Math.min(ttlMs, negativeReadTtlMs)
-          : 0;
+          : shouldTransientFailureCache(response.status)
+            ? Math.min(ttlMs, transientReadFailureTtlMs)
+            : 0;
 
       if (cacheTtl > 0) {
         state.cache.set(key, {
