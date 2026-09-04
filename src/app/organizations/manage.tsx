@@ -1,4 +1,5 @@
 /* PATCH_185D_ORG_MOJIBAKE */
+/* PATCH_ORG_DIRECTORY_HOME_DOOR_R25 */
 import React, {
   useCallback,
   useEffect,
@@ -291,7 +292,7 @@ export default function OrganizationsManageListScreen() {
       await enterScopedWorkspace(
         selectScope,
         scope.id,
-        { fromPortal: true },
+        { section: 'home', fromPortal: true },
       );
     } catch (error: unknown) {
       Alert.alert(
@@ -386,7 +387,7 @@ export default function OrganizationsManageListScreen() {
             </Pressable>
           ) : null}
 
-                  {isMember && !canManage ? (
+                  {isMember ? (
                     <Pressable
                       onPress={() =>
                         void openWorkspace(scope)
@@ -396,7 +397,7 @@ export default function OrganizationsManageListScreen() {
                         pressed && styles.pressed,
                       ]}>
                       <Text style={styles.subOpenText}>
-                        OPEN
+                        OPEN HOME
                       </Text>
                     </Pressable>
                   ) : null}
@@ -531,7 +532,7 @@ export default function OrganizationsManageListScreen() {
                     </Pressable>
                   ) : null}
 
-                  {isMember && !canManage ? (
+                  {isMember ? (
                     <Pressable
                       onPress={() =>
                         void openWorkspace(scope)
@@ -544,7 +545,7 @@ export default function OrganizationsManageListScreen() {
                         style={
                           styles.openButtonText
                         }>
-                        OPEN WORKSPACE
+                        OPEN ORGANIZATION HOME
                       </Text>
                     </Pressable>
                   ) : null}
