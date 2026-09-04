@@ -272,12 +272,20 @@ BuklodProfileMembershipNav() {
     );
 
   const openTile = (tile: NavTile) => {
+    /* PATCH_ORG_PROFILE_SETUP_HUB_R24
+     * Root Organization tiles in Profile are management/setup doors.
+     * The Organization home is opened deliberately from the Organization
+     * directory after the user chooses the exact organization.
+     */
+    if (tile.kind === 'organization') {
+      router.push('/organizations' as any);
+      return;
+    }
+
     if (
       tile.scopeId &&
       (
-        tile.isMzb ||
         tile.kind === 'cluster' ||
-        tile.kind === 'organization' ||
         tile.kind === 'suborg'
       )
     ) {
@@ -347,10 +355,14 @@ BuklodProfileMembershipNav() {
                 <BuklodProfileGlassRow
                   icon={tileIcon(tile)}
                   title={tile.label}
-                  subtitle={kindLabel(tile.kind)}
+                  subtitle={
+                    tile.kind === 'organization'
+                      ? 'Organization · Setup & management'
+                      : kindLabel(tile.kind)
+                  }
                   onPress={() => openTile(tile)}
                   trailing={
-                    selected ? (
+                    selected && tile.kind !== 'organization' ? (
                       <MaterialCommunityIcons
                         name="check-circle"
                         size={18}

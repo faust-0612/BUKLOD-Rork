@@ -115,6 +115,17 @@ export default function BuklodFoundationWorkspaceNav() {
   const openApp = useCallback(
     async (app: BuklodFocusApp, item: BuklodFocusAppAccess | null) => {
       if (openingKey) return;
+
+      /* PATCH_ORG_PROFILE_SETUP_HUB_R24
+       * Organization in Profile is a setup/management doorway.
+       * Never allow an organization-specific workspace route (for example
+       * MZB Home) to override this canonical entry point.
+       */
+      if (app === 'organization') {
+        router.push('/organizations' as any);
+        return;
+      }
+
       if (locked[app]) {
         router.push('/profile/focus-apps' as any);
         return;
@@ -190,7 +201,13 @@ export default function BuklodFoundationWorkspaceNav() {
                       'apps'
                     }
                     title={title}
-                    subtitle={isLocked ? 'Locked · subscription required' : 'Open portal'}
+                    subtitle={
+                      row.app === 'organization'
+                        ? 'Setup Organization, Sub-organization, Cluster and structure'
+                        : isLocked
+                          ? 'Locked · subscription required'
+                          : 'Open portal'
+                    }
                     disabled={!!openingKey}
                     onPress={() => void openApp(row.app, row.access)}
                     trailing={
@@ -198,7 +215,7 @@ export default function BuklodFoundationWorkspaceNav() {
                         <ActivityIndicator size="small" color={theme.accent} />
                       ) : (
                         <MaterialCommunityIcons
-                          name={isLocked ? 'lock-outline' : 'chevron-right'}
+                          name={row.app === 'organization' ? 'chevron-right' : isLocked ? 'lock-outline' : 'chevron-right'}
                           size={20}
                           color={theme.textMuted}
                         />
