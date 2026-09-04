@@ -55,7 +55,7 @@ function statusLabel(status: BuklodPointsRedemptionRecord['status']) {
     case 'cancelled':
       return 'CANCELLED';
     default:
-      return status.toUpperCase();
+      return 'UNKNOWN';
   }
 }
 
