@@ -100,10 +100,10 @@ jobs:
           grep -F 'BUKLOD_FOCUS_APP_ADS_R1' 'src/components/BuklodFocusAppAdStrip.tsx'
           grep -F 'placement="focus"' 'src/components/BuklodFocusAppAdStrip.tsx'
           grep -F "case 'focus':" 'src/lib/buklodAdUnits.ts'
-          grep -F 'BUKLOD_AWS_WALL_VIDEO_R1' 'src/lib/buklodAwsWallVideo.ts'
+          grep -F 'BUKLOD_AWS_WALL_VIDEO_R2_FAST_MULTIPART' 'src/lib/buklodAwsWallVideo.ts'
           grep -F 'BUKLOD_AWS_WALL_VIDEO_ROUTE_R1' 'src/lib/uploadCommunityVideoFile.ts'
           grep -F 'set_buklod_post_media_v5' 'src/lib/buklodCommunityPostMedia.ts'
-          grep -F 'BUKLOD_AWS_SIGNED_MEDIA_CACHE_R1' 'src/lib/buklodMediaUrl.ts'
+          grep -F 'BUKLOD_AWS_SIGNED_MEDIA_CACHE_R2_BATCHED' 'src/lib/buklodMediaUrl.ts'
 
       - name: Expo credential preflight
         id: expo
@@ -125,7 +125,7 @@ jobs:
             --channel production \
             --platform android \
             --environment production \
-            --message "BUKLOD AWS Wall Video R1 - No Native Build" \
+            --message "BUKLOD Performance R4 - Fast AWS Video + Batched Media" \
             --non-interactive
 
       - name: Deployment status
