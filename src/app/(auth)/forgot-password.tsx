@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -18,6 +18,11 @@ import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
 
 type RecoveryPath = 'pin' | 'admin';
+type RecoverySession = {
+  requestId: string;
+  requestToken: string;
+  sessionExpiresAt?: string | null;
+};
 
 function cleanCode(value: string) {
   return value.toUpperCase().replace(/[^A-Z2-9]/g, '').slice(0, 10);
@@ -29,6 +34,13 @@ function formatLoginMethod(value: unknown) {
   if (method === 'email') return 'Email';
   if (method === 'username') return 'Username';
   return 'Login';
+}
+
+function formatExpiry(value: string | null) {
+  if (!value) return '30 minutes after verification';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '30 minutes after verification';
+  return date.toLocaleString();
 }
 
 export default function ForgotPasswordScreen() {
@@ -48,6 +60,10 @@ export default function ForgotPasswordScreen() {
   const [birthDate, setBirthDate] = useState('');
   const [requestBusy, setRequestBusy] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
+  const [recoverySession, setRecoverySession] = useState<RecoverySession | null>(null);
+  const [recoveryStateText, setRecoveryStateText] = useState('');
+  const [receivedCode, setReceivedCode] = useState('');
+  const [receivedCodeExpiresAt, setReceivedCodeExpiresAt] = useState<string | null>(null);
 
   const [code, setCode] = useState('');
   const [codePassword, setCodePassword] = useState('');
@@ -57,11 +73,72 @@ export default function ForgotPasswordScreen() {
   const pinInFlight = useRef(false);
   const requestInFlight = useRef(false);
   const codeInFlight = useRef(false);
+  const pollInFlight = useRef(false);
 
   const selectPath = (next: RecoveryPath) => {
     if (pinBusy || requestBusy || codeBusy) return;
     setPath(next);
   };
+
+  useEffect(() => {
+    if (!recoverySession) return;
+    let cancelled = false;
+
+    const poll = async () => {
+      if (pollInFlight.current || cancelled) return;
+      pollInFlight.current = true;
+      try {
+        const { data, error } = await supabase.functions.invoke('account-recovery-v4', {
+          body: {
+            action: 'recovery_request_status',
+            requestId: recoverySession.requestId,
+            requestToken: recoverySession.requestToken,
+          },
+        });
+        if (cancelled) return;
+        if (error) throw error;
+        if (!data?.ok) throw new Error(data?.message ?? 'Could not check recovery status.');
+
+        const state = String(data?.state ?? 'waiting');
+        if (state === 'waiting') {
+          setRecoveryStateText('Waiting for System Admin verification…');
+          return;
+        }
+        if (state === 'verified') {
+          const nextCode = cleanCode(String(data?.code ?? ''));
+          if (!/^[A-Z2-9]{10}$/.test(nextCode)) throw new Error('Verified recovery code was not returned correctly.');
+          setReceivedCode(nextCode);
+          setReceivedCodeExpiresAt(data?.codeExpiresAt ? String(data.codeExpiresAt) : null);
+          setRecoveryStateText('ACCOUNT VERIFIED — your one-time recovery code is ready below.');
+          setRecoverySession(null);
+          if (Platform.OS !== 'web') {
+            Alert.alert('ACCOUNT VERIFIED', 'BUKLOD generated your recovery code automatically. Enter the code shown on this screen with your new password.');
+          }
+          return;
+        }
+        if (state === 'rejected') {
+          setRecoveryStateText(data?.message ?? 'This request could not be verified.');
+          setRecoverySession(null);
+          return;
+        }
+        if (state === 'session_expired' || state === 'code_expired' || state === 'completed') {
+          setRecoveryStateText(data?.message ?? 'This recovery session is no longer active. Submit a new request if needed.');
+          setRecoverySession(null);
+        }
+      } catch (error: any) {
+        if (!cancelled) setRecoveryStateText(`Status check: ${String(error?.message ?? error ?? 'temporarily unavailable')}`);
+      } finally {
+        pollInFlight.current = false;
+      }
+    };
+
+    void poll();
+    const timer = setInterval(() => void poll(), 4000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [recoverySession]);
 
   const recoverWithPin = async () => {
     const cleanIdentifier = identifier.trim();
@@ -133,9 +210,14 @@ export default function ForgotPasswordScreen() {
     if (requestInFlight.current) return;
     requestInFlight.current = true;
     setRequestBusy(true);
+    setRecoverySession(null);
+    setRequestSent(false);
+    setReceivedCode('');
+    setReceivedCodeExpiresAt(null);
+    setRecoveryStateText('Submitting recovery request…');
 
     try {
-      const { data, error } = await supabase.functions.invoke('account-recovery-v3', {
+      const { data, error } = await supabase.functions.invoke('account-recovery-v4', {
         body: forgotLogin
           ? {
               action: 'request_admin_recovery',
@@ -154,11 +236,32 @@ export default function ForgotPasswordScreen() {
       if (!data?.ok) throw new Error(data?.message ?? 'Could not submit the recovery request.');
 
       setRequestSent(true);
-      Alert.alert(
-        'Recovery Request Received',
-        'Your request was sent to BUKLOD System Admin. After the admin verifies the existing account owner, BUKLOD automatically generates a one-time recovery code.'
-      );
+      if (data?.rateLimited) {
+        setRecoveryStateText('Too many recent recovery requests. Please wait before trying again.');
+        return;
+      }
+
+      const requestId = String(data?.requestId ?? '').trim();
+      const requestToken = String(data?.requestToken ?? '').trim();
+      if (!requestId || !/^[0-9a-f]{64}$/i.test(requestToken)) {
+        throw new Error('Recovery request was received but the private waiting session could not be started. Please submit again.');
+      }
+
+      setRecoveryStateText('Waiting for System Admin verification… Keep this recovery screen open.');
+      setRecoverySession({
+        requestId,
+        requestToken: requestToken.toLowerCase(),
+        sessionExpiresAt: data?.sessionExpiresAt ? String(data.sessionExpiresAt) : null,
+      });
+
+      if (Platform.OS !== 'web') {
+        Alert.alert(
+          'Recovery Request Received',
+          'Your request is now waiting for System Admin verification. Keep this screen open. Once verified, your one-time recovery code will appear here automatically.'
+        );
+      }
     } catch (error: any) {
+      setRecoveryStateText('');
       Alert.alert('Admin Assistance', String(error?.message ?? error ?? 'Could not submit the request.'));
     } finally {
       requestInFlight.current = false;
@@ -169,7 +272,7 @@ export default function ForgotPasswordScreen() {
   const recoverWithCode = async () => {
     const clean = cleanCode(code);
     if (!/^[A-Z2-9]{10}$/.test(clean)) {
-      return Alert.alert('One-Time Code', 'Enter the 10-character one-time code generated after admin verification.');
+      return Alert.alert('One-Time Code', 'Enter the 10-character one-time code shown after admin verification.');
     }
     if (codePassword.length < 8) {
       return Alert.alert('New Password', 'Use at least 8 characters.');
@@ -182,7 +285,7 @@ export default function ForgotPasswordScreen() {
     setCodeBusy(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('account-recovery-v3', {
+      const { data, error } = await supabase.functions.invoke('account-recovery-v4', {
         body: {
           action: 'recover_with_admin_code',
           code: clean,
@@ -231,7 +334,7 @@ export default function ForgotPasswordScreen() {
 
         <Text style={styles.title}>Recover Your BUKLOD Account</Text>
         <Text style={styles.subtitle}>
-          No SMS service is required. Use your Recovery PIN, or ask a System Admin to verify your account and generate a one-time code.
+          No SMS service is required. Use your Recovery PIN, or request Admin verification. After approval, BUKLOD sends the one-time code directly to this recovery screen.
         </Text>
 
         <View style={styles.pathRow}>
@@ -277,13 +380,17 @@ export default function ForgotPasswordScreen() {
             <View style={styles.card}>
               <Text style={styles.cardTitle}>Request Account Verification</Text>
               <Text style={styles.help}>
-                Enter a login you remember. The System Admin verifies that you are the account owner. Once verified, BUKLOD automatically generates a one-time recovery code.
+                Enter a login you remember. Your request appears in the System Admin recovery center. After the admin verifies you, BUKLOD automatically generates the code and sends it back to this screen.
               </Text>
 
               <Pressable
                 onPress={() => {
                   setForgotLogin((value) => !value);
                   setRequestSent(false);
+                  setRecoverySession(null);
+                  setRecoveryStateText('');
+                  setReceivedCode('');
+                  setReceivedCodeExpiresAt(null);
                 }}
                 style={styles.toggleRow}
               >
@@ -330,15 +437,40 @@ export default function ForgotPasswordScreen() {
               <View style={styles.privacyCard}>
                 <MaterialCommunityIcons name="shield-check-outline" size={20} color={colors.green} />
                 <Text style={styles.privacyText}>
-                  BUKLOD does not give a recovery code merely because an account exists. The System Admin must verify the person first. After verification, code generation is automatic.
+                  The admin never needs to copy or send the code. A private recovery-session token ties this screen to your request, and only this waiting recovery session can retrieve the generated code after verification.
                 </Text>
               </View>
 
-              <PrimaryButton busy={requestBusy} label={requestSent ? 'REQUEST AGAIN' : 'REQUEST ADMIN ASSISTANCE'} onPress={requestAdminHelp} />
+              <PrimaryButton busy={requestBusy} label={requestSent ? 'SUBMIT NEW REQUEST' : 'REQUEST ADMIN ASSISTANCE'} onPress={requestAdminHelp} />
+
+              {!!recoveryStateText && (
+                <View style={[styles.waitingCard, !!receivedCode && styles.verifiedCard]}>
+                  {receivedCode ? (
+                    <MaterialCommunityIcons name="check-decagram" size={26} color="#176B39" />
+                  ) : recoverySession ? (
+                    <ActivityIndicator color={colors.green} />
+                  ) : (
+                    <MaterialCommunityIcons name="information-outline" size={24} color={colors.green} />
+                  )}
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.waitingTitle}>{receivedCode ? 'ACCOUNT VERIFIED' : 'RECOVERY STATUS'}</Text>
+                    <Text style={styles.waitingText}>{recoveryStateText}</Text>
+                  </View>
+                </View>
+              )}
+
+              {!!receivedCode && (
+                <View style={styles.receivedCodeCard}>
+                  <Text style={styles.receivedCodeLabel}>YOUR ONE-TIME RECOVERY CODE</Text>
+                  <Text selectable style={styles.receivedCodeText}>{receivedCode}</Text>
+                  <Text style={styles.receivedCodeExpiry}>Expires: {formatExpiry(receivedCodeExpiresAt)}</Text>
+                  <Text style={styles.receivedCodeHelp}>Enter this code in the field below, then create your new password.</Text>
+                </View>
+              )}
             </View>
 
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>Already verified and received a code?</Text>
+              <Text style={styles.cardTitle}>{receivedCode ? 'Enter your received code' : 'Already verified and received a code?'}</Text>
               <Text style={styles.help}>
                 Enter the automatically generated code below. It expires after 30 minutes and works only once.
               </Text>
@@ -481,4 +613,30 @@ const styles = StyleSheet.create({
     padding: 11,
   },
   privacyText: { flex: 1, color: '#405347', fontSize: 11.5, lineHeight: 17 },
+  waitingCard: {
+    marginTop: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#C9DDD0',
+    backgroundColor: '#F4F8F5',
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  verifiedCard: { borderColor: '#76AD87', backgroundColor: '#EDF8F0' },
+  waitingTitle: { color: colors.text, fontSize: 11.5, fontWeight: '900' },
+  waitingText: { marginTop: 3, color: '#56645B', fontSize: 11.5, lineHeight: 17 },
+  receivedCodeCard: {
+    marginTop: 12,
+    borderRadius: 13,
+    borderWidth: 2,
+    borderColor: '#4F9C67',
+    backgroundColor: '#F1F8F3',
+    padding: 13,
+  },
+  receivedCodeLabel: { textAlign: 'center', color: '#176B39', fontSize: 11, fontWeight: '900' },
+  receivedCodeText: { marginTop: 8, textAlign: 'center', color: '#102B1A', fontSize: 29, fontWeight: '900', letterSpacing: 4 },
+  receivedCodeExpiry: { marginTop: 7, textAlign: 'center', color: '#5C6C61', fontSize: 10.5, fontWeight: '800' },
+  receivedCodeHelp: { marginTop: 8, textAlign: 'center', color: '#405347', fontSize: 11.5, lineHeight: 17 },
 });
