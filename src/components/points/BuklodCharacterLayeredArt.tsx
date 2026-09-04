@@ -1,4 +1,4 @@
-/* BUKLOD_CHARACTER_500K_REWARDS_R1 */
+/* BUKLOD_CHARACTER_R25_PROPORTION_SAFE_LAYERING */
 import React, {
   Fragment,
   useMemo,
@@ -317,7 +317,7 @@ export default function BuklodCharacterLayeredArt({
       >
         <Image
           source={{ uri: baseUrl }}
-          resizeMode="stretch"
+          resizeMode="contain"
           fadeDuration={0}
           onError={() => setBaseFailed(true)}
           style={StyleSheet.absoluteFill}
@@ -333,7 +333,7 @@ export default function BuklodCharacterLayeredArt({
             <Fragment key={key}>
               <Image
                 source={{ uri: url }}
-                resizeMode="stretch"
+                resizeMode="contain"
                 fadeDuration={0}
                 style={{
                   position: 'absolute',
@@ -347,7 +347,7 @@ export default function BuklodCharacterLayeredArt({
               {tintColor ? (
                 <Image
                   source={{ uri: url }}
-                  resizeMode="stretch"
+                  resizeMode="contain"
                   fadeDuration={0}
                   style={{
                     position: 'absolute',
