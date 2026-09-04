@@ -29,13 +29,12 @@ jobs:
         run: npm ci
 
       - name: Patch Home to daily devotional
-        shell: python
         run: |
+          python - <<'PY'
           from pathlib import Path
           p = Path('src/app/(tabs)/home.tsx')
           s = p.read_text(encoding='utf-8')
           before = s
-
           if 'get_my_weekly_devotional' not in s:
               raise SystemExit('Expected weekly devotional RPC marker not found')
           s = s.replace('get_my_weekly_devotional', 'get_my_daily_devotional')
@@ -44,26 +43,23 @@ jobs:
           s = s.replace('OPEN WEEKLY DEVOTIONAL', "OPEN TODAY'S DEVOTIONAL")
           s = s.replace('weekly devotional query remains', 'daily devotional query remains')
           s = s.replace('weekly devotional, keep null.', 'daily devotional, keep null.')
-
           if s == before:
               raise SystemExit('Home patch produced no changes')
           if 'get_my_daily_devotional' not in s:
               raise SystemExit('Daily devotional RPC not installed in Home')
           if 'OPEN WEEKLY DEVOTIONAL' in s:
               raise SystemExit('Old weekly devotional button still present')
-
           p.write_text(s, encoding='utf-8')
+          PY
 
       - name: Upgrade devotional detail presentation
-        shell: python
         run: |
+          python - <<'PY'
           from pathlib import Path
           p = Path('src/app/devotional/[id].tsx')
           s = p.read_text(encoding='utf-8')
-
           if 'BUKLOD_DAILY_DEVOTIONAL_R24_DETAIL' in s:
               raise SystemExit(0)
-
           old = '''      <Text style={shared.muted}>{item.bible_passage}</Text>
       <Text style={shared.h1}>{item.title}</Text>
       <S title="📖 SCRIPTURE">{item.scripture_text || item.key_verse}</S>
@@ -72,15 +68,12 @@ jobs:
       <S title="✅ LIVE IT TODAY">{item.live_it_today}</S>
       <S title="🙏 PRAY">{item.prayer_text}</S>
       <Button title="CONTINUE TO REFLECTION" onPress={()=>router.push(`/reflection/${item.id}`)} />'''
-
           new = '''      {/* BUKLOD_DAILY_DEVOTIONAL_R24_DETAIL */}
       <Text style={[shared.muted,{fontWeight:'800'}]}>{item.bible_passage}</Text>
       <Text style={[shared.h1,{marginTop:4}]}>{item.title}</Text>
-
       <S title="📖 SCRIPTURE">{item.scripture_text || item.key_verse}</S>
       <S title="✍️ REFLECTION">{item.reflection_text}</S>
       <S title="🌱 STORY / ILLUSTRATION">{item.illustration_text}</S>
-
       {item.quotation_text ? (
         <Card>
           <Text style={shared.h2}>💬 QUOTATION</Text>
@@ -94,16 +87,15 @@ jobs:
           ) : null}
         </Card>
       ) : null}
-
       <S title="❓ THINK ABOUT IT">{item.think_about_it}</S>
       <S title="🛠️ PRACTICAL TODAY">{item.live_it_today || item.application_text}</S>
       <S title="🙏 PRAY">{item.prayer_text}</S>
       <Button title="CONTINUE TO REFLECTION" onPress={()=>router.push(`/reflection/${item.id}`)} />'''
-
           if old not in s:
               raise SystemExit('Expected devotional detail block not found')
           s = s.replace(old, new, 1)
           p.write_text(s, encoding='utf-8')
+          PY
 
       - name: Verify exact scope
         run: |
