@@ -3,7 +3,7 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 
 /*
- * BUKLOD_WEB_EAS_ENV_EXPORT_RECOVERY_R2
+ * BUKLOD_WEB_EAS_ENV_EXPORT_RECOVERY_R3
  *
  * The production web workflow historically ran `expo export` directly on the
  * GitHub runner. EAS production variables therefore were not guaranteed to be
@@ -13,10 +13,10 @@ const { spawnSync } = require('child_process');
  *
  * This post-export guard verifies that the exported browser bundle contains
  * BOTH the production Supabase URL and publishable key. If they are absent in
- * CI, it pulls the EAS production environment, re-exports once, and explicitly
- * injects the two public Supabase values into the Metro child environment.
- * The temporary .env.local is removed before deployment and key values are
- * never printed.
+ * CI, it pulls the EAS production environment, clears Metro's transform cache,
+ * re-exports once, and explicitly injects the two public Supabase values into
+ * the Metro child environment. The temporary .env.local is removed before
+ * deployment and key values are never printed.
  */
 
 const root = process.cwd();
@@ -161,7 +161,7 @@ function recoverProductionEnvironmentExport() {
     fs.rmSync(distDir, { recursive: true, force: true });
     run(
       npx,
-      ['expo', 'export', '--platform', 'web', '--output-dir', 'dist'],
+      ['expo', 'export', '--clear', '--platform', 'web', '--output-dir', 'dist'],
       'Production web re-export',
       {
         EXPO_PUBLIC_SUPABASE_URL: supabaseUrl,
