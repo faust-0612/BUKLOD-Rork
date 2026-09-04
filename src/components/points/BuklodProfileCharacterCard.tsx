@@ -1,4 +1,5 @@
 /* BUKLOD_CHARACTER_STUDIO3_REAL_ART_R1 */
+/* BUKLOD_PROFILE_POINTS_CLAIM_R1 */
 import React, {
   useCallback,
   useEffect,
@@ -27,6 +28,10 @@ import BuklodCharacterCustomizeSheet
 
 import BuklodCharacterLayeredArt
   from '@/components/points/BuklodCharacterLayeredArt';
+
+import BuklodClaimRewardCard, {
+  type ClaimRewardItem,
+} from '@/components/points/BuklodClaimRewardCard';
 
 import {
   ProfileMotionFadeUp,
@@ -58,6 +63,12 @@ import {
 import {
   CharacterEventType,
 } from '@/lib/buklodCharacterEvents';
+
+import {
+  claimBuklodRewardEvent,
+  loadPendingBuklodRewardEvent,
+  type BuklodRewardEvent,
+} from '@/lib/buklodRewards';
 
 import {
   withAlpha,
@@ -110,6 +121,41 @@ BuklodProfileCharacterCard({
   ] =
     useState(false);
 
+  const [
+    displayPoints,
+    setDisplayPoints,
+  ] = useState(lifetimePoints);
+
+  const [
+    displayRank,
+    setDisplayRank,
+  ] = useState<string | null>(rankName);
+
+  const [
+    rewardEvent,
+    setRewardEvent,
+  ] = useState<BuklodRewardEvent | null>(null);
+
+  const [
+    claimBusy,
+    setClaimBusy,
+  ] = useState(false);
+
+  const [
+    claimStatus,
+    setClaimStatus,
+  ] = useState<
+    'claimable' | 'claiming' | 'claimed' | 'failed'
+  >('claimable');
+
+  useEffect(() => {
+    setDisplayPoints(lifetimePoints);
+  }, [lifetimePoints]);
+
+  useEffect(() => {
+    setDisplayRank(rankName);
+  }, [rankName]);
+
   useEffect(() => {
     void loadBuklodCharacter(
       userId,
@@ -118,7 +164,7 @@ BuklodProfileCharacterCard({
         const reconciled =
           reconcileCharacterForPoints(
             loaded,
-            lifetimePoints,
+            displayPoints,
           );
 
         setConfig(
@@ -127,19 +173,43 @@ BuklodProfileCharacterCard({
       },
     );
   }, [
-    lifetimePoints,
+    displayPoints,
     userId,
   ]);
+
+  const loadPendingReward =
+    useCallback(async () => {
+      if (!userId) {
+        setRewardEvent(null);
+        return;
+      }
+
+      try {
+        const pending =
+          await loadPendingBuklodRewardEvent();
+
+        setRewardEvent(pending);
+        setClaimStatus('claimable');
+      } catch (error: unknown) {
+        console.warn(
+          'Profile BUKLOD reward:',
+          error instanceof Error
+            ? error.message
+            : error,
+        );
+      }
+    }, [userId]);
 
   useFocusEffect(
     useCallback(
       () => {
         setFocused(true);
+        void loadPendingReward();
 
         return () =>
           setFocused(false);
       },
-      [],
+      [loadPendingReward],
     ),
   );
 
@@ -165,10 +235,76 @@ BuklodProfileCharacterCard({
     focused,
   ]);
 
+  const claimReward = async () => {
+    if (!rewardEvent || claimBusy) {
+      return;
+    }
+
+    const eventId = rewardEvent.id;
+    const fallbackPoints = Number(rewardEvent.points ?? 0);
+
+    setClaimBusy(true);
+    setClaimStatus('claiming');
+
+    try {
+      const result =
+        await claimBuklodRewardEvent(eventId);
+
+      const earnedPoints =
+        result.claimed_points > 0
+          ? result.claimed_points
+          : fallbackPoints;
+
+      setDisplayPoints(result.lifetime_points);
+
+      if (result.rank_name) {
+        setDisplayRank(result.rank_name);
+      }
+
+      if (earnedPoints > 0) {
+        characterEvents?.emit({
+          type: CharacterEventType.POINTS_CLAIMED,
+          success: true,
+          points: earnedPoints,
+          spokenText:
+            rewardEvent.spoken_message ??
+            rewardEvent.message ??
+            undefined,
+        });
+      }
+
+      setClaimStatus('claimed');
+      setRewardEvent(null);
+    } catch (error: unknown) {
+      console.warn(
+        'Profile BUKLOD claim:',
+        error instanceof Error
+          ? error.message
+          : error,
+      );
+
+      setClaimStatus('failed');
+    } finally {
+      setClaimBusy(false);
+    }
+  };
+
   const rankLabel =
     String(
-      rankName ?? '',
+      displayRank ?? '',
     ).trim();
+
+  const pendingClaim: ClaimRewardItem | null =
+    rewardEvent
+      ? {
+          id: rewardEvent.id,
+          title: rewardEvent.title,
+          message: rewardEvent.message,
+          points: rewardEvent.points,
+          eventType: rewardEvent.event_type,
+          status: claimStatus,
+        }
+      : null;
 
   const styles =
     StyleSheet.create({
@@ -274,6 +410,65 @@ BuklodProfileCharacterCard({
         color:
           theme.accent,
       },
+
+      pointsSection: {
+        marginTop: 10,
+        paddingTop: 11,
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: theme.border,
+      },
+
+      pointsHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 8,
+        marginBottom: 8,
+      },
+
+      pointsHeaderTitle: {
+        fontSize: 10,
+        fontWeight: '900',
+        letterSpacing: 0.8,
+        color: theme.textMuted,
+      },
+
+      fullRankingText: {
+        fontSize: 10,
+        fontWeight: '900',
+        color: theme.accent,
+      },
+
+      summaryRow: {
+        flexDirection: 'row',
+        gap: 8,
+        marginBottom: pendingClaim ? 10 : 0,
+      },
+
+      summaryChip: {
+        flex: 1,
+        minHeight: 54,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        borderRadius: 12,
+        backgroundColor: theme.surface,
+        borderWidth: 1,
+        borderColor: theme.border,
+      },
+
+      summaryLabel: {
+        fontSize: 8,
+        fontWeight: '900',
+        letterSpacing: 0.7,
+        color: theme.textMuted,
+      },
+
+      summaryValue: {
+        marginTop: 3,
+        fontSize: 12,
+        fontWeight: '900',
+        color: theme.textPrimary,
+      },
     });
 
   return (
@@ -368,7 +563,7 @@ BuklodProfileCharacterCard({
                     }
                   >
                     {formatPoints(
-                      lifetimePoints,
+                      displayPoints,
                     )}{' '}
                     lifetime pts
                   </Text>
@@ -378,9 +573,7 @@ BuklodProfileCharacterCard({
                       styles.helper
                     }
                   >
-                    Your whole character
-                    grows with BUKLOD
-                    rank and points.
+                    Rank, points, and ready rewards are now visible directly in Profile.
                   </Text>
                 </Pressable>
 
@@ -419,6 +612,58 @@ BuklodProfileCharacterCard({
                 </Pressable>
               </View>
             </View>
+
+            <View style={styles.pointsSection}>
+              <View style={styles.pointsHeader}>
+                <Text style={styles.pointsHeaderTitle}>
+                  RANK & POINTS
+                </Text>
+
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Open full ranking dashboard"
+                  onPress={() => router.push('/points')}
+                >
+                  <Text style={styles.fullRankingText}>
+                    Full ranking →
+                  </Text>
+                </Pressable>
+              </View>
+
+              <View style={styles.summaryRow}>
+                <View style={styles.summaryChip}>
+                  <Text style={styles.summaryLabel}>
+                    CURRENT RANK
+                  </Text>
+                  <Text
+                    numberOfLines={1}
+                    style={styles.summaryValue}
+                  >
+                    {rankLabel || 'Loading rank…'}
+                  </Text>
+                </View>
+
+                <View style={styles.summaryChip}>
+                  <Text style={styles.summaryLabel}>
+                    LIFETIME POINTS
+                  </Text>
+                  <Text style={styles.summaryValue}>
+                    {formatPoints(displayPoints)}
+                  </Text>
+                </View>
+              </View>
+
+              {pendingClaim ? (
+                <BuklodClaimRewardCard
+                  reward={pendingClaim}
+                  onClaim={() => void claimReward()}
+                  onRetry={() => {
+                    setClaimStatus('claimable');
+                    void claimReward();
+                  }}
+                />
+              ) : null}
+            </View>
           </View>
         </View>
       </ProfileMotionFadeUp>
@@ -434,7 +679,7 @@ BuklodProfileCharacterCard({
         }
         userId={userId}
         lifetimePoints={
-          lifetimePoints
+          displayPoints
         }
         onSaved={
           setConfig
