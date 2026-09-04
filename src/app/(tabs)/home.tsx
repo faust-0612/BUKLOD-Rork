@@ -207,7 +207,7 @@ export default function HomeScreen() {
          * PATCH 153D-1C1
          *
          * Primary source:
-         * get_my_weekly_devotional()
+         * get_my_daily_devotional()
          *
          * The backend chooses the lesson from the
          * Member's active assigned Devotional Series
@@ -237,7 +237,7 @@ export default function HomeScreen() {
             error: weeklyError,
           } =
             await devotionalDb.rpc(
-              'get_my_weekly_devotional'
+              'get_my_daily_devotional'
             );
 
 
@@ -306,7 +306,7 @@ export default function HomeScreen() {
                     String(
                       raw.lesson_title ??
                       raw.title ??
-                      'Weekly Devotional'
+                      'Daily Devotional'
                     ),
 
                   bible_passage:
@@ -361,7 +361,7 @@ export default function HomeScreen() {
          * is not yet available.
          *
          * If the RPC works but the Member has no
-         * assigned weekly devotional, keep null.
+         * assigned daily devotional, keep null.
          */
         if (!weeklyRpcAvailable) {
           const {
@@ -812,7 +812,7 @@ export default function HomeScreen() {
                     : null,
                 ]
                   .filter(Boolean)
-                  .join('  •  ') || 'WEEKLY DEVOTIONAL'}
+                  .join('  •  ') || "TODAY'S DEVOTIONAL"}
               </Text>
 
               {!!devotional.series_title && (
@@ -868,7 +868,7 @@ export default function HomeScreen() {
 
               <View style={{ marginTop: 12 }}>
                 <Button
-                  title="OPEN WEEKLY DEVOTIONAL"
+                  title="OPEN TODAY'S DEVOTIONAL"
                   onPress={() =>
                     router.push(
                       `/devotional/${devotional.id}` as any
