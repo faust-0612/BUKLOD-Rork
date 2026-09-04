@@ -107,6 +107,11 @@ BuklodCanonicalNavigationGuard() {
     /*
      * PATCH_177B_R4_ATTENDANCE_ROUTE_EXEMPT
      * Attendance is an exact-scope utility route.
+     *
+     * BUKLOD_PROFILE_ROUTE_EXEMPT_R21
+     * Profile / My BUKLOD is always personal/global. Never let a stale
+     * Organization/Cluster active scope hijack an avatar tap back into a
+     * Mission Worker or managed workspace.
      */
     if (
       normalized === '/scope/attendance' ||
@@ -119,14 +124,7 @@ BuklodCanonicalNavigationGuard() {
       isFormationLearningRoute(normalized) ||
       isBuklodFaithPersonalRoute(normalized) ||
       isBuklodCirclePersonalRoute(normalized) ||
-      (
-        isBuklodProfileRoute(normalized) &&
-        Boolean(
-          firstRouteParam(
-            params.returnScopeId
-          )
-        )
-      )
+      isBuklodProfileRoute(normalized)
     ) {
       lastRedirectRef.current = '';
       return;
@@ -221,7 +219,7 @@ BuklodCanonicalNavigationGuard() {
   }, [
     pathname,
     params.section,
-    params.returnScopeId,
+    params.scopeId,
     activeScope?.scope_id,
     activeScope?.scope_type,
     loading,
