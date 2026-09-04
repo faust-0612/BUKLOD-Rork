@@ -34,6 +34,11 @@ on:
       - 'src/components/BuklodFocusAppAdStrip.tsx'
       - 'src/components/BuklodAdMobBanner.tsx'
       - 'src/lib/buklodAdUnits.ts'
+      - 'src/lib/buklodAwsWallVideo.ts'
+      - 'src/lib/uploadCommunityVideoFile.ts'
+      - 'src/lib/buklodCommunityPostMedia.ts'
+      - 'src/lib/buklodMediaUrl.ts'
+      - 'supabase/migrations/*community_external_video_storage_aws*.sql'
       - 'supabase/migrations/*buklod_call_lifecycle*.sql'
 
 env:
@@ -95,6 +100,10 @@ jobs:
           grep -F 'BUKLOD_FOCUS_APP_ADS_R1' 'src/components/BuklodFocusAppAdStrip.tsx'
           grep -F 'placement="focus"' 'src/components/BuklodFocusAppAdStrip.tsx'
           grep -F "case 'focus':" 'src/lib/buklodAdUnits.ts'
+          grep -F 'BUKLOD_AWS_WALL_VIDEO_R1' 'src/lib/buklodAwsWallVideo.ts'
+          grep -F 'BUKLOD_AWS_WALL_VIDEO_ROUTE_R1' 'src/lib/uploadCommunityVideoFile.ts'
+          grep -F 'set_buklod_post_media_v5' 'src/lib/buklodCommunityPostMedia.ts'
+          grep -F 'BUKLOD_AWS_SIGNED_MEDIA_CACHE_R1' 'src/lib/buklodMediaUrl.ts'
 
       - name: Expo credential preflight
         id: expo
@@ -116,7 +125,7 @@ jobs:
             --channel production \
             --platform android \
             --environment production \
-            --message "BUKLOD Web + Focus App Ads R1" \
+            --message "BUKLOD AWS Wall Video R1 - No Native Build" \
             --non-interactive
 
       - name: Deployment status
