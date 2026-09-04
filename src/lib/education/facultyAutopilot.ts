@@ -12,6 +12,7 @@ export type FacultyAutopilotModule = {
     | 'materials'
     | 'attendance'
     | 'assessments'
+    | 'quizDedicated'
     | 'gradingSetup'
     | 'gradebook'
     | 'participation'
@@ -49,8 +50,15 @@ export const FACULTY_AUTOPILOT_MODULES: FacultyAutopilotModule[] = [
     key: 'assessments',
     icon: 'clipboard-text-outline',
     title: 'Assessments',
-    description: 'Quizzes, exams, paper scans, rubrics, and review queues.',
+    description: 'Native Classroom quizzes, exams, paper scans, rubrics, and review queues.',
     pathname: '/profile/buklod-faculty-assessments',
+  },
+  {
+    key: 'quizDedicated',
+    icon: 'database-sync-outline',
+    title: 'Quiz Dedicated Sync',
+    description: 'Import only officially released BUKLOD Quiz Dedicated scores into the selected term and grade category.',
+    pathname: '/profile/buklod-faculty-quiz-dedicated',
   },
   {
     key: 'gradingSetup',
