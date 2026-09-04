@@ -60,8 +60,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Button } from '@/components/UI';
 import { AppRole, useAuth } from '@/providers/AuthProvider';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
-import { firstRouteParam, enterScopedWorkspace } from '@/lib/buklodScopeRoute';
-import { isActiveMembershipStatus } from '@/lib/buklodOrganization';
+import { firstRouteParam } from '@/lib/buklodScopeRoute';
 import { supabase } from '@/lib/supabase';
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import {
@@ -1253,21 +1252,9 @@ export default function MeScreen() {
     [theme]
   );
 
+  /* PATCH_ORG_PROFILE_QUICK_CARD_R24 */
   const openUserOrganization = () => {
-    const organization = scopes.find(
-      (scope) =>
-        scope.scope_type === 'ORGANIZATION' &&
-        isActiveMembershipStatus(scope.membership_status),
-    );
-
-    if (organization) {
-      void enterScopedWorkspace(selectScope, organization.scope_id, {
-        section: 'home',
-      });
-      return;
-    }
-
-    router.push('/organizations/manage' as any);
+    router.push('/organizations' as any);
   };
 
   const highlightsSection =
