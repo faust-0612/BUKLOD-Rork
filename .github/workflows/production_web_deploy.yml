@@ -10,6 +10,8 @@ on:
       - 'scripts/patch-web-community-post.cjs'
       - 'scripts/inject-adsense-web-head.cjs'
       - 'src/app/+html.tsx'
+      - 'src/app/index.tsx'
+      - 'src/app/onboarding/index.tsx'
       - 'src/components/BuklodExclusiveScopeCommunity.tsx'
       - 'src/components/BuklodCommunityPhotoCollage.tsx'
       - 'src/app/(auth)/login.tsx'
@@ -105,6 +107,16 @@ jobs:
           grep -F "loginInFlightRef.current" 'src/app/(auth)/login.tsx'
           grep -F "HIGH_CONCURRENCY_LOGIN_R1" 'src/lib/buklodAuthResilience.ts'
           test "$(grep -c "supabase.auth.signInWithPassword(" 'src/lib/buklodAuthResilience.ts')" -eq 1
+          grep -F 'BUKLOD_LEGACY_VERIFICATION_REMOVAL_R22' 'src/app/index.tsx'
+          grep -F 'BUKLOD_LEGACY_VERIFICATION_REMOVAL_R22' 'src/app/onboarding/index.tsx'
+          if grep -F 'WAITING FOR ADMIN VERIFICATION' 'src/app/onboarding/index.tsx'; then
+            echo 'Legacy verification interstitial text is still present.'
+            exit 1
+          fi
+          if grep -F 'Redirect href="/onboarding"' 'src/app/index.tsx'; then
+            echo 'Legacy verification redirect is still present in app boot.'
+            exit 1
+          fi
           grep -F "account-recovery-v3" 'src/app/(auth)/forgot-password.tsx'
           grep -F "action: 'recover_with_pin'" 'src/app/(auth)/forgot-password.tsx'
           grep -F "account-recovery-v4" 'src/app/(auth)/forgot-password.tsx'
