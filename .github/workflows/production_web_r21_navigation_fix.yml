@@ -50,6 +50,7 @@ jobs:
           grep -F "'/me' as any" 'src/components/BuklodGuideAvatar.tsx'
           grep -F 'BUKLOD_WEB_RESPONSIVE_SPLIT_R3' 'src/components/BuklodNavSafeShell.web.tsx'
           grep -F 'BUKLOD_DESKTOP_WEB_SHELL_R3' 'src/components/BuklodDesktopWebShell.tsx'
+          grep -F "openGlobalDestination('/me')" 'src/components/BuklodDesktopWebShell.tsx'
 
       - name: TypeScript QA
         run: npx tsc --noEmit
@@ -77,12 +78,13 @@ jobs:
           grep -F 'google-adsense-account' dist/index.html
           grep -F 'pagead2.googlesyndication.com/pagead/js/adsbygoogle.js' dist/index.html
 
-      - name: Verify exported R21 bundle
+      - name: Verify exported navigation runtime
         if: steps.expo.outputs.ready == 'true'
         shell: bash
         run: |
-          grep -R -F 'BUKLOD_PUBLIC_BOOT_R21' dist >/dev/null
-          grep -R -F 'BUKLOD_PROFILE_ROUTE_EXEMPT_R21' dist >/dev/null
+          grep -R -F 'BUKLOD boot Public scope reset:' dist >/dev/null
+          grep -R -F 'BUKLOD desktop web scope reset:' dist >/dev/null
+          grep -R -F 'My BUKLOD' dist >/dev/null
 
       - name: Deploy production web
         if: steps.expo.outputs.ready == 'true'
