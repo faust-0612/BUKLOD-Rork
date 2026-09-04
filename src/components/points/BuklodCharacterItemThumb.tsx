@@ -231,7 +231,11 @@ const styles = StyleSheet.create({
   },
 
   characterPreview: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
     alignItems: 'center',
     justifyContent: 'flex-end',
     overflow: 'hidden',
