@@ -1,0 +1,124 @@
+name: BUKLOD Emergency Web Supabase Env Restore
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/emergency_web_supabase_env_restore.yml'
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+jobs:
+  restore-production-web:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current production source
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Expo credential preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN"
+          npx eas-cli@latest whoami --non-interactive >/dev/null
+          echo 'Expo authentication: READY'
+
+      - name: Pull EAS production environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .env.local
+          npx eas-cli@latest env:pull --environment production --path .env.local --non-interactive
+          test -s .env.local
+          set -a
+          . ./.env.local
+          set +a
+          test -n "${EXPO_PUBLIC_SUPABASE_URL:-}"
+          test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}"
+          case "$EXPO_PUBLIC_SUPABASE_URL" in
+            https://*.supabase.co) ;;
+            *) echo 'Invalid production Supabase URL shape.'; exit 1 ;;
+          esac
+          echo 'EAS production Supabase public config: READY'
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Export production web with EAS environment
+        shell: bash
+        env:
+          NODE_ENV: production
+          EXPO_PUBLIC_APP_ENV: production
+        run: |
+          set -euo pipefail
+          rm -rf dist
+          npx expo export --platform web --output-dir dist
+          node scripts/inject-adsense-web-head.cjs dist
+          test -s dist/index.html
+          echo 'Production web export: READY'
+
+      - name: Deploy and promote production web
+        shell: bash
+        env:
+          NODE_ENV: production
+          EXPO_PUBLIC_APP_ENV: production
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest deploy --prod --environment production --non-interactive
+
+      - name: Verify live production runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          BROWSER="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$BROWSER"
+          sleep 2
+          curl -fsSIL --max-time 30 https://buklod.expo.app/ >/dev/null
+          timeout 45s "$BROWSER" \
+            --headless=new \
+            --no-sandbox \
+            --disable-gpu \
+            --disable-extensions \
+            --no-first-run \
+            --window-size=390,844 \
+            --virtual-time-budget=20000 \
+            --enable-logging=stderr \
+            --v=0 \
+            --dump-dom \
+            https://buklod.expo.app/ \
+            > /tmp/buklod-mobile-dom.html \
+            2> /tmp/buklod-mobile-browser.log
+          if grep -qi 'supabaseUrl is required' /tmp/buklod-mobile-browser.log; then
+            echo 'LIVE CHECK FAILED: Supabase URL is still missing from browser bundle.'
+            exit 1
+          fi
+          if grep -Eqi 'Uncaught (Error|TypeError|ReferenceError|SyntaxError)' /tmp/buklod-mobile-browser.log; then
+            echo 'LIVE CHECK FAILED: uncaught browser runtime error detected.'
+            grep -Ei 'Uncaught (Error|TypeError|ReferenceError|SyntaxError)' /tmp/buklod-mobile-browser.log | head -20
+            exit 1
+          fi
+          if ! grep -q '<div id="root"><' /tmp/buklod-mobile-dom.html; then
+            echo 'LIVE CHECK FAILED: React root did not mount.'
+            exit 1
+          fi
+          echo 'BUKLOD production mobile-web runtime: HEALTHY'
+
+      - name: Restore status
+        run: echo 'BUKLOD production web restored with EAS production Supabase environment.'
