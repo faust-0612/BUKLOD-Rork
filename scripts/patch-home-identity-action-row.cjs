@@ -10,6 +10,45 @@ if (source.includes(marker)) {
   process.exit(0);
 }
 
+/*
+ * BUKLOD_HOME_IDENTITY_R23_COMPAT_R1
+ *
+ * R23 is a newer Home identity layout than the historical R2 patch below.
+ * Do not replace/downgrade it. If the newer card still contains the three
+ * required actions (Rewards, Word shortcut, My Cluster), add only the legacy
+ * compatibility marker so older CI safety checks can recognize the feature.
+ */
+const newerMarker = 'BUKLOD_HOME_IDENTITY_R23_CLEAN_TWO_ROW';
+if (source.includes(newerMarker)) {
+  const hasRewards =
+    source.includes('REWARDS') &&
+    source.includes("router.push('/points')");
+  const hasWord = source.includes('<BuklodPublicWordShortcut />');
+  const hasMyCluster =
+    source.includes('MY CLUSTER') &&
+    source.includes("router.push('/clusters' as any)");
+
+  if (!hasRewards || !hasWord || !hasMyCluster) {
+    throw new Error(
+      'Newer Home identity layout exists but required Rewards/Word/My Cluster actions are incomplete.'
+    );
+  }
+
+  source = source.replace(
+    `/* ${newerMarker} */`,
+    `/* ${newerMarker} */\n      {/* ${marker} — compatibility marker; R23 remains authoritative */}`
+  );
+  fs.writeFileSync(file, source, 'utf8');
+
+  const final = fs.readFileSync(file, 'utf8');
+  if (!final.includes(marker)) {
+    throw new Error('Home identity compatibility marker was not written.');
+  }
+
+  console.log(`${marker}: satisfied by newer R23 layout`);
+  process.exit(0);
+}
+
 const startNeedle = '      <HomeMotionSection delay={0}>';
 const endNeedle = '      </HomeMotionSection>';
 const start = source.indexOf(startNeedle);
