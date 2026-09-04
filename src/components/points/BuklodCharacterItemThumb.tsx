@@ -1,5 +1,6 @@
 /* BUKLOD_CHARACTER_R25_REAL_WARDROBE_PREVIEWS */
 /* BUKLOD_CHARACTER_R25B_DEPLOY_TRIGGER */
+/* BUKLOD_CHARACTER_R25D_THUMB_VIEWPORT */
 import React, {
   memo,
 } from 'react';
@@ -132,6 +133,7 @@ function BuklodCharacterItemThumbImpl({
             body={body}
             equipment={previewEquipment}
             height={Math.round(size * 1.16)}
+            viewportWidth={Math.max(44, Math.round(size * 0.92))}
             showStage={false}
             showEffects={false}
           />

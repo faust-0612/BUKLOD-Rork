@@ -1,5 +1,6 @@
 /* BUKLOD_CHARACTER_R25_PROPORTION_SAFE_LAYERING */
 /* BUKLOD_CHARACTER_R25C_CONTAINMENT */
+/* BUKLOD_CHARACTER_R25D_CONTEXT_VIEWPORT */
 import React, {
   Fragment,
   useMemo,
@@ -37,6 +38,7 @@ type Props = {
   body: BodyId;
   equipment: Equipment;
   height: number;
+  viewportWidth?: number;
   showStage?: boolean;
   showEffects?: boolean;
 };
@@ -97,6 +99,7 @@ export default function BuklodCharacterLayeredArt({
   body,
   equipment,
   height,
+  viewportWidth,
   showStage = false,
   showEffects = true,
 }: Props) {
@@ -108,6 +111,22 @@ export default function BuklodCharacterLayeredArt({
     1,
     Math.round(height * aspect),
   );
+
+  // R25D: compact surfaces get a hard viewport without distorting the
+  // character. The full layered figure keeps its native proportions and is
+  // centered inside the context-specific frame.
+  const resolvedViewportWidth =
+    typeof viewportWidth === 'number' &&
+    Number.isFinite(viewportWidth) &&
+    viewportWidth > 0
+      ? Math.max(1, Math.round(viewportWidth))
+      : null;
+
+  const frameWidth =
+    resolvedViewportWidth ??
+    (showStage
+      ? Math.max(116, artWidth * 2.25)
+      : artWidth);
 
   const baseItem =
     getItem(equipment.base) ??
@@ -184,7 +203,7 @@ export default function BuklodCharacterLayeredArt({
       <View
         style={[
           styles.fallback,
-          { width: artWidth, height },
+          { width: frameWidth, height },
         ]}
         pointerEvents="none"
       >
@@ -203,10 +222,11 @@ export default function BuklodCharacterLayeredArt({
       style={[
         styles.outer,
         {
-          width: showStage
-            ? Math.max(116, artWidth * 2.25)
-            : artWidth,
+          width: frameWidth,
           height,
+          overflow: resolvedViewportWidth
+            ? 'hidden'
+            : 'visible',
         },
       ]}
       pointerEvents="none"

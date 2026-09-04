@@ -1,5 +1,6 @@
 /* BUKLOD_CHARACTER_STUDIO3_REAL_ART_R1 */
 /* BUKLOD_PROFILE_POINTS_CLAIM_R1 */
+/* BUKLOD_CHARACTER_R25D_PROFILE_VIEWPORT */
 import React, {
   useCallback,
   useEffect,
@@ -347,10 +348,12 @@ BuklodProfileCharacterCard({
       artPress: {
         width: 82,
         height: 130,
+        flexShrink: 0,
         alignItems: 'center',
         justifyContent:
           'flex-end',
-        overflow: 'visible',
+        overflow: 'hidden',
+        borderRadius: 14,
       },
 
       copyCol: {
@@ -524,10 +527,11 @@ BuklodProfileCharacterCard({
                     config.equipment
                   }
                   height={124}
+                  viewportWidth={82}
                   showStage={
                     false
                   }
-                  showEffects
+                  showEffects={false}
                 />
               </Pressable>
 
