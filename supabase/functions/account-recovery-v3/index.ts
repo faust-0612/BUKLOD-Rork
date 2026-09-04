@@ -180,7 +180,7 @@ Deno.serve(async (req) => {
       return (data ?? []).length === 1 ? data![0] : null;
     }
     if (id.kind === 'email') {
-      const { data, error } = await admin.from('profiles').select(profileSelect).eq('login_method', 'email').eq('login_identifier', id.value).eq('is_active', true).limit(2);
+      const { data, error } = await admin.from('profiles').select(profileSelect).eq('login_method', 'email').ilike('login_identifier', id.value).eq('is_active', true).limit(2);
       if (error) throw error;
       return (data ?? []).length === 1 ? data![0] : null;
     }
@@ -242,33 +242,88 @@ Deno.serve(async (req) => {
 
   if (action === 'request_admin_recovery') {
     const raw = text(body?.identifier || body?.username);
-    const identityKey = `${lower(body?.firstName)}|${lower(body?.middleName)}|${lower(body?.surname)}|${text(body?.birthDate)}`;
+    const first = namePart(body?.firstName);
+    const middle = namePart(body?.middleName);
+    const surname = namePart(body?.surname);
+    const birth = text(body?.birthDate);
+    const identityKey = `${lower(first)}|${lower(middle)}|${lower(surname)}|${birth}`;
     const gate = await rate('request_admin_recovery', raw || identityKey || 'invalid', 60, 3, 12);
-    const generic = 'Your request was received. If we can match the account, a BUKLOD System Admin can assist after identity verification.';
+    const generic = 'Your request was received. A BUKLOD System Admin can review it and verify the account owner.';
     if (gate.blocked) return json({ ok: true, message: generic });
 
     let profile: any = null;
     try { profile = raw ? await byIdentifier(raw) : await byIdentity(); }
     catch (e) { console.error('Recovery match failed', e); return json({ ok: false, message: 'Could not submit the recovery request right now.' }, 500); }
 
+    const now = new Date().toISOString();
     if (profile?.id) {
-      const now = new Date().toISOString();
       const { data: rows, error: le } = await admin.from('buklod_account_recovery_requests').select('id,status').eq('user_id', profile.id).in('status', ['pending','code_issued']).order('created_at', { ascending: false }).limit(1);
       if (le) return json({ ok: false, message: 'Could not submit the recovery request right now.' }, 500);
       if (rows?.[0]?.status === 'code_issued') await admin.from('buklod_admin_recovery_codes').update({ used_at: now }).eq('user_id', profile.id).is('used_at', null);
       const snapshot = lower(profile.username) || loginIdentifier(profile) || 'buklod-account';
+      const write = {
+        user_id: profile.id,
+        username: snapshot,
+        status: 'pending',
+        requested_at: now,
+        created_at: now,
+        reviewed_by: null,
+        reviewed_at: null,
+        completed_at: null,
+        match_status: 'matched',
+        submitted_identifier: raw || null,
+        submitted_first_name: first || null,
+        submitted_middle_name: middle || null,
+        submitted_surname: surname || null,
+        submitted_birth_date: validDate(birth) ? birth : null,
+        subject_hash: gate.subjectHash,
+      };
       let requestId = rows?.[0]?.id ?? null;
       if (requestId) {
-        const { error } = await admin.from('buklod_account_recovery_requests').update({ username: snapshot, status: 'pending', requested_at: now, created_at: now, reviewed_by: null, reviewed_at: null, completed_at: null }).eq('id', requestId);
+        const { error } = await admin.from('buklod_account_recovery_requests').update(write).eq('id', requestId);
         if (error) return json({ ok: false, message: 'Could not submit the recovery request right now.' }, 500);
       } else {
-        const { data, error } = await admin.from('buklod_account_recovery_requests').insert({ user_id: profile.id, username: snapshot, status: 'pending', requested_at: now, created_at: now }).select('id').maybeSingle();
+        const { data, error } = await admin.from('buklod_account_recovery_requests').insert(write).select('id').maybeSingle();
         if (error && error.code !== '23505') return json({ ok: false, message: 'Could not submit the recovery request right now.' }, 500);
         requestId = data?.id ?? null;
       }
       await event('request_admin_recovery_result', 'matched', { userId: profile.id, requestId, subjectHash: gate.subjectHash });
     } else {
-      await event('request_admin_recovery_result', 'no_unique_match', { subjectHash: gate.subjectHash });
+      const pendingPayload = {
+        user_id: null,
+        username: raw || null,
+        status: 'pending',
+        requested_at: now,
+        created_at: now,
+        reviewed_by: null,
+        reviewed_at: null,
+        completed_at: null,
+        match_status: 'needs_match',
+        submitted_identifier: raw || null,
+        submitted_first_name: first || null,
+        submitted_middle_name: middle || null,
+        submitted_surname: surname || null,
+        submitted_birth_date: validDate(birth) ? birth : null,
+        subject_hash: gate.subjectHash,
+      };
+      const { data: existing } = await admin.from('buklod_account_recovery_requests').select('id').eq('subject_hash', gate.subjectHash).eq('status', 'pending').maybeSingle();
+      let requestId = existing?.id ?? null;
+      let writeError: any = null;
+      if (requestId) {
+        const { error } = await admin.from('buklod_account_recovery_requests').update(pendingPayload).eq('id', requestId);
+        writeError = error;
+      } else {
+        const { data, error } = await admin.from('buklod_account_recovery_requests').insert(pendingPayload).select('id').maybeSingle();
+        requestId = data?.id ?? null;
+        writeError = error;
+        if (writeError?.code === '23505') {
+          const { data: retry, error: retryError } = await admin.from('buklod_account_recovery_requests').update(pendingPayload).eq('subject_hash', gate.subjectHash).eq('status', 'pending').select('id').maybeSingle();
+          requestId = retry?.id ?? requestId;
+          writeError = retryError;
+        }
+      }
+      if (writeError) return json({ ok: false, message: 'Could not submit the recovery request right now.' }, 500);
+      await event('request_admin_recovery_result', 'queued_for_admin_match', { requestId, subjectHash: gate.subjectHash });
     }
     return json({ ok: true, message: generic });
   }
@@ -308,14 +363,26 @@ Deno.serve(async (req) => {
   if (action === 'admin_list_requests') {
     const user = await authUser();
     if (!user || !(await systemAdmin(user.id))) return json({ ok: false, message: 'System Admin access required.' }, 403);
-    const { data: rows, error } = await admin.from('buklod_account_recovery_requests').select('id,user_id,username,status,created_at,requested_at').eq('status', 'pending').order('created_at', { ascending: true });
+    const { data: rows, error } = await admin.from('buklod_account_recovery_requests')
+      .select('id,user_id,username,status,created_at,requested_at,match_status,submitted_identifier,submitted_first_name,submitted_middle_name,submitted_surname,submitted_birth_date')
+      .eq('status', 'pending').order('created_at', { ascending: true });
     if (error) return json({ ok: false, message: 'Could not load recovery requests.' }, 500);
-    const ids = [...new Set((rows ?? []).map((r: any) => r.user_id))];
+    const ids = [...new Set((rows ?? []).map((r: any) => r.user_id).filter(Boolean))];
     const { data: profiles } = ids.length ? await admin.from('profiles').select(profileSelect).in('id', ids) : { data: [] as any[] };
     const map = new Map((profiles ?? []).map((p: any) => [p.id, p]));
     return json({ ok: true, requests: (rows ?? []).map((r: any) => {
-      const p: any = map.get(r.user_id);
-      return { ...r, full_name: p?.full_name ?? null, login_method: lower(p?.login_method) || 'unknown', login_hint: p ? loginHint(p) : 'BUKLOD account', mobile_hint: p?.mobile ? maskMobile(phone(p.mobile) || p.mobile) : null, birth_date: p?.birth_date ?? null };
+      const p: any = r.user_id ? map.get(r.user_id) : null;
+      const submittedName = [r.submitted_first_name, r.submitted_middle_name, r.submitted_surname].filter(Boolean).join(' ').trim();
+      const needsMatch = !r.user_id || r.match_status === 'needs_match';
+      return {
+        ...r,
+        needs_match: needsMatch,
+        full_name: p?.full_name ?? (submittedName || (needsMatch ? 'NEEDS ACCOUNT MATCH' : null)),
+        login_method: p ? (lower(p.login_method) || 'unknown') : 'needs_match',
+        login_hint: p ? loginHint(p) : (r.submitted_identifier ? `Submitted: ${r.submitted_identifier}` : 'Submitted identity details require admin matching'),
+        mobile_hint: p?.mobile ? maskMobile(phone(p.mobile) || p.mobile) : null,
+        birth_date: p?.birth_date ?? r.submitted_birth_date ?? null,
+      };
     }) });
   }
 
@@ -323,8 +390,9 @@ Deno.serve(async (req) => {
     const user = await authUser();
     if (!user || !(await systemAdmin(user.id))) return json({ ok: false, message: 'System Admin access required.' }, 403);
     const requestId = text(body?.requestId);
-    const { data: rr } = await admin.from('buklod_account_recovery_requests').select('id,user_id,status').eq('id', requestId).maybeSingle();
+    const { data: rr } = await admin.from('buklod_account_recovery_requests').select('id,user_id,status,match_status').eq('id', requestId).maybeSingle();
     if (!rr || rr.status !== 'pending') return json({ ok: false, message: 'Pending recovery request not found.' }, 404);
+    if (!rr.user_id || rr.match_status === 'needs_match') return json({ ok: false, message: 'This request reached Admin but the account could not be matched automatically. Verify the submitted details and match the member account before issuing a code.' }, 409);
     const code = randomCode();
     const now = new Date().toISOString();
     const expiresAt = new Date(Date.now() + 1800000).toISOString();
@@ -343,7 +411,7 @@ Deno.serve(async (req) => {
     const now = new Date().toISOString();
     const { data: rr, error } = await admin.from('buklod_account_recovery_requests').update({ status: 'rejected', reviewed_by: user.id, reviewed_at: now, completed_at: now }).eq('id', requestId).eq('status', 'pending').select('id,user_id').maybeSingle();
     if (error || !rr) return json({ ok: false, message: 'Pending recovery request not found.' }, 404);
-    await admin.from('buklod_admin_recovery_codes').update({ used_at: now }).eq('user_id', rr.user_id).is('used_at', null);
+    if (rr.user_id) await admin.from('buklod_admin_recovery_codes').update({ used_at: now }).eq('user_id', rr.user_id).is('used_at', null);
     await event('admin_reject_request', 'success', { userId: rr.user_id, requestId, actorId: user.id });
     return json({ ok: true });
   }
