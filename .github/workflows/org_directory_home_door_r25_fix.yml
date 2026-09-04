@@ -1,0 +1,115 @@
+name: BUKLOD Organization Directory Home Door R25 Fix
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/org_directory_home_door_r25_fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Patch Organization directory home door
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/app/organizations/manage.tsx')
+          text = path.read_text(encoding='utf-8')
+
+          marker = '/* PATCH_ORG_DIRECTORY_HOME_DOOR_R25 */'
+          if marker not in text:
+              text = text.replace(
+                  '/* PATCH_185D_ORG_MOJIBAKE */',
+                  '/* PATCH_185D_ORG_MOJIBAKE */\n' + marker,
+                  1,
+              )
+
+          old_open = """      await enterScopedWorkspace(\n        selectScope,\n        scope.id,\n        { fromPortal: true },\n      );"""
+          new_open = """      await enterScopedWorkspace(\n        selectScope,\n        scope.id,\n        { section: 'home', fromPortal: true },\n      );"""
+          if old_open in text:
+              text = text.replace(old_open, new_open, 1)
+          elif new_open not in text:
+              raise SystemExit('Expected openWorkspace route anchor not found.')
+
+          old_gate = '{isMember && !canManage ? ('
+          gate_count = text.count(old_gate)
+          if gate_count:
+              if gate_count != 2:
+                  raise SystemExit(f'Expected exactly 2 member/admin home-door gates, found {gate_count}.')
+              text = text.replace(old_gate, '{isMember ? (')
+          elif text.count('{isMember ? (') < 2:
+              raise SystemExit('Expected member home-door gates were not found.')
+
+          if 'OPEN WORKSPACE' in text:
+              text = text.replace('OPEN WORKSPACE', 'OPEN ORGANIZATION HOME', 1)
+          elif 'OPEN ORGANIZATION HOME' not in text:
+              raise SystemExit('Root Organization home button label anchor not found.')
+
+          # The compact sub-organization OPEN remains a workspace door, but make the destination explicit.
+          sub_open_anchor = """                      <Text style={styles.subOpenText}>\n                        OPEN\n                      </Text>"""
+          sub_open_new = """                      <Text style={styles.subOpenText}>\n                        OPEN HOME\n                      </Text>"""
+          if sub_open_anchor in text:
+              text = text.replace(sub_open_anchor, sub_open_new, 1)
+
+          # Safety assertions: admins who are also active members must retain both Home and Manage controls.
+          if '{isMember && !canManage ? (' in text:
+              raise SystemExit('Admin exclusion still blocks the Organization Home door.')
+          if "{ section: 'home', fromPortal: true }" not in text:
+              raise SystemExit('Organization home section is not explicit.')
+          if 'OPEN ORGANIZATION HOME' not in text:
+              raise SystemExit('Root Organization Home button is missing.')
+          if 'MANAGE ORGANIZATION' not in text:
+              raise SystemExit('Manage Organization control was accidentally removed.')
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Verify route separation
+        shell: bash
+        run: |
+          grep -F 'PATCH_ORG_DIRECTORY_HOME_DOOR_R25' 'src/app/organizations/manage.tsx'
+          grep -F "{ section: 'home', fromPortal: true }" 'src/app/organizations/manage.tsx'
+          grep -F 'OPEN ORGANIZATION HOME' 'src/app/organizations/manage.tsx'
+          grep -F 'MANAGE ORGANIZATION' 'src/app/organizations/manage.tsx'
+          grep -F "router.push('/organizations' as any);" 'src/app/(tabs)/me.tsx'
+          if grep -F '{isMember && !canManage ? (' 'src/app/organizations/manage.tsx'; then
+            echo 'Organization admins are still blocked from the Home door.' >&2
+            exit 1
+          fi
+
+      - name: TypeScript QA
+        run: |
+          npm ci --ignore-scripts
+          npx tsc --noEmit
+
+      - name: Commit source fix
+        shell: bash
+        run: |
+          if git diff --quiet -- 'src/app/organizations/manage.tsx'; then
+            echo 'Organization directory Home-door fix is already installed.'
+            exit 0
+          fi
+          git config user.name 'BUKLOD Production Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add 'src/app/organizations/manage.tsx'
+          git commit -m 'fix(org): separate Organization Home from Manage door'
+          git push origin HEAD:main
+
+      - name: Summary
+        run: |
+          echo 'Profile Organization quick card remains /organizations setup hub.'
+          echo 'Organization directory member/admin Home door now explicitly opens section=home.'
+          echo 'Manage Organization remains a separate structure/settings action.'
