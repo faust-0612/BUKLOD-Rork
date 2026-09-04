@@ -16,6 +16,7 @@ on:
       - 'src/lib/education/facultyAutopilot.ts'
       - 'supabase/migrations/*buklod_classroom*.sql'
       - '.github/workflows/buklod_classroom_complete_r1_pr_qa.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
