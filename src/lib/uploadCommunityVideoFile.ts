@@ -1,4 +1,5 @@
 /* BUKLOD_COMMUNITY_WEB_UPLOAD_R2 */
+/* BUKLOD_AWS_WALL_VIDEO_ROUTE_R1 */
 import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
 
@@ -16,6 +17,11 @@ import {
   toDirectStorageUrl,
   uploadCommunityFileResumableTus,
 } from '@/lib/uploadCommunityResumableTus';
+import {
+  registerPendingAwsWallVideo,
+  shouldUseAwsWallVideo,
+  uploadAwsWallVideo,
+} from '@/lib/buklodAwsWallVideo';
 
 export type CommunityVideoUploadProgress = {
   sentBytes: number;
@@ -72,17 +78,16 @@ function throwClassifiedUploadError({
       sizeBytes,
       failureLabel,
       serverBody: body || message || '',
-    })
+    }),
   );
 }
 
 /*
- * Native:
- *  - TUS resumable chunks for large files
- *  - signed FileSystem binary PUT for smaller files
- * Web:
- *  - browser Blob slices for TUS large uploads
- *  - signed fetch PUT for smaller files
+ * Wall videos above 45 MiB are stored in private AWS S3 so the Supabase Free
+ * 50 MB global object ceiling is never hit. This is pure JS/TS and keeps the
+ * existing installed native runtime/APK.
+ *
+ * Smaller videos stay on Supabase to avoid unnecessary cross-provider traffic.
  */
 export async function uploadCommunityVideoFile({
   path,
@@ -101,7 +106,7 @@ export async function uploadCommunityVideoFile({
     { uri },
     Platform.OS === 'web'
       ? undefined
-      : async (fileUri) => {
+      : async fileUri => {
           const info: any = await FileSystem.getInfoAsync(
             fileUri,
             { size: true } as any,
@@ -117,13 +122,19 @@ export async function uploadCommunityVideoFile({
     sizeBytes = await readBinarySizeBytes(uri);
   }
 
-  if (
-    sizeBytes > 0 &&
-    sizeBytes > BUKLOD_VIDEO_MAX_SIZE_BYTES
-  ) {
-    throw new Error(
-      communityVideoTooLargeMessage(sizeBytes),
-    );
+  if (sizeBytes > 0 && sizeBytes > BUKLOD_VIDEO_MAX_SIZE_BYTES) {
+    throw new Error(communityVideoTooLargeMessage(sizeBytes));
+  }
+
+  if (sizeBytes > 0 && shouldUseAwsWallVideo(sizeBytes)) {
+    const objectKey = await uploadAwsWallVideo({
+      uri,
+      contentType,
+      sizeBytes,
+      onProgress,
+    });
+    registerPendingAwsWallVideo(path, objectKey);
+    return;
   }
 
   await uploadCommunityBinaryFile({
@@ -142,9 +153,7 @@ export async function mapWithConcurrency<T, R>(
   concurrency: number,
   mapper: (item: T, index: number) => Promise<R>,
 ): Promise<R[]> {
-  if (!items.length) {
-    return [];
-  }
+  if (!items.length) return [];
 
   const results: R[] = new Array(items.length);
   let nextIndex = 0;
@@ -155,11 +164,8 @@ export async function mapWithConcurrency<T, R>(
 
   async function worker() {
     while (true) {
-      const index = nextIndex;
-      nextIndex += 1;
-      if (index >= items.length) {
-        return;
-      }
+      const index = nextIndex++;
+      if (index >= items.length) return;
       results[index] = await mapper(items[index], index);
     }
   }
@@ -216,7 +222,7 @@ export async function uploadCommunityPhotoFile({
   return { sizeBytes: prepared.sizeBytes };
 }
 
-/* Kept only for rendering/legacy compatibility. New Wall composer no longer exposes GIF upload. */
+/* Legacy compatibility only. Community Wall no longer exposes GIF upload. */
 export async function uploadCommunityGifFile({
   path,
   uri,
@@ -302,7 +308,6 @@ async function uploadCommunityBinaryFile({
           aborted: Boolean(error.aborted) || /timeout/i.test(message),
         });
       }
-      // Native content:// slicing can be unavailable. Fall back to signed streamed PUT.
     }
   }
 
@@ -401,26 +406,23 @@ async function uploadCommunitySignedPut({
       };
 
       result = onProgress
-        ? await (async () => {
-            const task = FileSystem.createUploadTask(
-              signedUrl,
-              uri,
-              uploadOptions,
-              progress => {
-                const sentBytes = Number(
-                  progress.totalBytesSent ?? 0,
-                );
-                const totalBytes = Number(
-                  progress.totalBytesExpectedToSend ?? sizeBytes ?? 0,
-                );
-                const ratio = totalBytes > 0
-                  ? Math.min(1, sentBytes / totalBytes)
-                  : 0;
-                onProgress({ sentBytes, totalBytes, ratio });
-              },
-            );
-            return task.uploadAsync();
-          })()
+        ? await FileSystem.createUploadTask(
+            signedUrl,
+            uri,
+            uploadOptions,
+            progress => {
+              const sentBytes = Number(
+                progress.totalBytesSent ?? 0,
+              );
+              const totalBytes = Number(
+                progress.totalBytesExpectedToSend ?? sizeBytes ?? 0,
+              );
+              const ratio = totalBytes > 0
+                ? Math.min(1, sentBytes / totalBytes)
+                : 0;
+              onProgress({ sentBytes, totalBytes, ratio });
+            },
+          ).uploadAsync()
         : await FileSystem.uploadAsync(
             signedUrl,
             uri,
