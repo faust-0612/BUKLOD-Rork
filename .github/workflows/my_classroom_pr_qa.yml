@@ -1,0 +1,47 @@
+name: My Classroom PR QA
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'src/app/profile/buklod-classrooms.tsx'
+      - 'src/components/BuklodPublicWordShortcut.tsx'
+      - 'src/components/classroom/BuklodQuizStudentEntry.tsx'
+      - '.github/workflows/my_classroom_pr_qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: TypeScript
+        run: npx tsc --noEmit
+
+      - name: Verify My Classroom direct-session anchors
+        shell: bash
+        run: |
+          grep -F "BuklodQuizStudentEntry" 'src/app/profile/buklod-classrooms.tsx'
+          grep -F "'/profile/buklod-classrooms'" 'src/components/BuklodPublicWordShortcut.tsx'
+          grep -F "https://buklod-quiz.expo.app" 'src/components/classroom/BuklodQuizStudentEntry.tsx'
+          grep -F 'access_token=' 'src/components/classroom/BuklodQuizStudentEntry.tsx'
+          grep -F 'refresh_token=' 'src/components/classroom/BuklodQuizStudentEntry.tsx'
+          grep -F 'inFlight.current' 'src/components/classroom/BuklodQuizStudentEntry.tsx'
+          ! grep -F "cjtehbfspgimyhifnjon" 'src/components/classroom/BuklodQuizStudentEntry.tsx'
+          ! grep -F "buklod-quiz-main-entry-v1" 'src/components/classroom/BuklodQuizStudentEntry.tsx'
+          ! grep -F "one_time_code" 'src/components/classroom/BuklodQuizStudentEntry.tsx'
+          ! grep -F "VERIFYING MAIN SESSION" 'src/components/classroom/BuklodQuizStudentEntry.tsx'
