@@ -3,7 +3,7 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 
 /*
- * BUKLOD_WEB_EAS_ENV_EXPORT_RECOVERY_R1
+ * BUKLOD_WEB_EAS_ENV_EXPORT_RECOVERY_R2
  *
  * The production web workflow historically ran `expo export` directly on the
  * GitHub runner. EAS production variables therefore were not guaranteed to be
@@ -11,12 +11,12 @@ const { spawnSync } = require('child_process');
  * could then serve a bundle that crashed immediately with:
  *   "supabaseUrl is required"
  *
- * This post-export guard is intentionally placed in a script that the existing
- * production workflow already runs and watches. It verifies that the exported
- * browser bundle contains BOTH the production Supabase URL and publishable key.
- * If they are absent in CI, it pulls the EAS production environment, re-exports
- * web once, verifies the exact public values were inlined, then removes the
- * temporary .env.local before deployment. It never prints key values.
+ * This post-export guard verifies that the exported browser bundle contains
+ * BOTH the production Supabase URL and publishable key. If they are absent in
+ * CI, it pulls the EAS production environment, re-exports once, and explicitly
+ * injects the two public Supabase values into the Metro child environment.
+ * The temporary .env.local is removed before deployment and key values are
+ * never printed.
  */
 
 const root = process.cwd();
@@ -90,10 +90,13 @@ function parseEnvValue(text, key) {
   return value.trim();
 }
 
-function run(command, args, label) {
+function run(command, args, label, extraEnv = {}) {
   const result = spawnSync(command, args, {
     cwd: root,
-    env: process.env,
+    env: {
+      ...process.env,
+      ...extraEnv,
+    },
     encoding: 'utf8',
     stdio: ['ignore', 'inherit', 'inherit'],
   });
@@ -159,7 +162,13 @@ function recoverProductionEnvironmentExport() {
     run(
       npx,
       ['expo', 'export', '--platform', 'web', '--output-dir', 'dist'],
-      'Production web re-export'
+      'Production web re-export',
+      {
+        EXPO_PUBLIC_SUPABASE_URL: supabaseUrl,
+        EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: publishableKey,
+        EXPO_PUBLIC_APP_ENV: 'production',
+        NODE_ENV: 'production',
+      }
     );
 
     if (!bundleContains(supabaseUrl) || !bundleContains(publishableKey)) {
