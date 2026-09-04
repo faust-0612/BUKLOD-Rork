@@ -1,0 +1,81 @@
+name: BUKLOD Web Deployment Runtime Verify
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/web_deployment_runtime_verify.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify deployment and production runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          BROWSER="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$BROWSER"
+
+          check_target() {
+            label="$1"
+            url="$2"
+            html="/tmp/${label}.html"
+            dom="/tmp/${label}.dom.html"
+            log="/tmp/${label}.browser.log"
+
+            echo "===== $label : $url ====="
+            curl -fsSL --max-time 30 -H 'Cache-Control: no-cache' "$url/" > "$html"
+            echo "HTML_BYTES=$(wc -c < "$html")"
+            grep -oE '/_expo/static/js/web/index-[a-f0-9]+\.js' "$html" | sort -u || true
+
+            timeout 45s "$BROWSER" \
+              --headless=new \
+              --no-sandbox \
+              --disable-gpu \
+              --disable-extensions \
+              --no-first-run \
+              --window-size=390,844 \
+              --virtual-time-budget=20000 \
+              --enable-logging=stderr \
+              --v=0 \
+              --dump-dom \
+              "$url/" > "$dom" 2> "$log" || true
+
+            echo "DOM_BYTES=$(wc -c < "$dom")"
+            echo 'RUNTIME_ERRORS:'
+            grep -Ei 'supabaseUrl is required|Uncaught (Error|TypeError|ReferenceError|SyntaxError)' "$log" | head -30 || true
+
+            if grep -qi 'supabaseUrl is required' "$log"; then
+              echo "RESULT_${label}=SUPABASE_URL_MISSING"
+              return 10
+            fi
+            if grep -Eqi 'Uncaught (Error|TypeError|ReferenceError|SyntaxError)' "$log"; then
+              echo "RESULT_${label}=RUNTIME_ERROR"
+              return 11
+            fi
+            if ! grep -q '<div id="root"><' "$dom"; then
+              echo "RESULT_${label}=ROOT_NOT_MOUNTED"
+              return 12
+            fi
+            echo "RESULT_${label}=HEALTHY"
+            return 0
+          }
+
+          set +e
+          check_target DEPLOYMENT https://buklod--yrfe0oe1f4.expo.app
+          deploy_rc=$?
+          check_target PRODUCTION https://buklod.expo.app
+          prod_rc=$?
+          set -e
+
+          echo "DEPLOYMENT_RC=$deploy_rc"
+          echo "PRODUCTION_RC=$prod_rc"
+          if [ "$deploy_rc" -ne 0 ] || [ "$prod_rc" -ne 0 ]; then
+            exit 1
+          fi
