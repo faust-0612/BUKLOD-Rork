@@ -1,3 +1,4 @@
+/* BUKLOD_CHARACTER_R25_COHESIVE_RANK_LOOKS */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import {
@@ -22,20 +23,14 @@ import type {
 export const BUKLOD_CHARACTER_STORAGE_KEY = 'buklod_character_v2';
 
 /** Bump when persisted equipment shape or defaults change. */
-export const CHARACTER_STORAGE_VERSION = 3;
+export const CHARACTER_STORAGE_VERSION = 4;
 
-/** Legacy starter garments (pre–warrior-frame defaults) migrated on load. */
-const LEGACY_STARTER_BY_SLOT: Partial<Record<SlotId, string>> = {
-  top: 'top_tunic',
-  bottom: 'bottom_wrap',
-  shoes: 'shoes_sandals',
-};
-
-const WARRIOR_REPLACEMENT_BY_SLOT: Partial<Record<SlotId, string>> = {
-  top: 'top_warrior',
-  bottom: 'bottom_warrior',
-  shoes: 'shoes_warrior',
-};
+/**
+ * R25 stops treating progression as isolated shirt / pants swaps.
+ * Auto mode equips one coherent visual look for the user's current milestone.
+ * Manual mode still lets the user mix any owned items without being overwritten.
+ */
+export type BuklodRankLookMode = 'auto' | 'manual';
 
 export type BuklodCharacterState = {
   body: BodyId;
@@ -44,8 +39,10 @@ export type BuklodCharacterState = {
   newlyUnlocked: string[];
   /** True once the user explicitly picks Male or Female. */
   bodyChosen?: boolean;
-  /** Tracks one-time equipment migrations (legacy starter → warrior frame). */
+  /** Tracks one-time equipment migrations. */
   storageVersion?: number;
+  /** Auto = cohesive milestone outfit; manual = preserve individual choices. */
+  rankLookMode?: BuklodRankLookMode;
 };
 
 /** @deprecated Use BuklodCharacterState — kept for gradual migration. */
@@ -53,6 +50,293 @@ export type BuklodCharacterConfig = BuklodCharacterState;
 
 export const CHARACTER_SLOT_ORDER = CATEGORY_ORDER;
 export const CHARACTER_SLOT_LABELS = SLOT_LABELS;
+
+function baseId(body: BodyId) {
+  return body === 'female' ? 'base_female' : 'base_male';
+}
+
+function starterHairId(body: BodyId) {
+  return body === 'female' ? 'f_hair_knot' : 'm_hair_crop';
+}
+
+function hairId(
+  body: BodyId,
+  female: string,
+  male: string,
+) {
+  return body === 'female' ? female : male;
+}
+
+function withRankLook(
+  body: BodyId,
+  patch: Partial<Equipment>,
+): Equipment {
+  return {
+    ...defaultEquipment(body),
+    base: baseId(body),
+    ...patch,
+  };
+}
+
+/**
+ * The authoritative cohesive wardrobe ladder.
+ * Each milestone changes the whole silhouette, not just one sticker-like layer.
+ */
+export function equipmentForRankLook(
+  body: BodyId,
+  lifetimePoints: number,
+): Equipment {
+  const points = Math.max(0, Number(lifetimePoints) || 0);
+
+  let equipment = withRankLook(body, {
+    hair: starterHairId(body),
+    top: 'top_warrior',
+    bottom: 'bottom_warrior',
+    shoes: 'shoes_warrior',
+    accessory: 'acc_none',
+    face: 'face_natural',
+    badge: 'badge_none',
+    special: 'fx_none',
+    background: 'bg_covenant',
+  });
+
+  if (points >= 50) {
+    equipment = withRankLook(body, {
+      hair: starterHairId(body),
+      top: 'top_tunic',
+      bottom: 'bottom_wrap',
+      shoes: 'shoes_sandals',
+      accessory: 'acc_none',
+      face: 'face_natural',
+      badge: 'badge_none',
+      special: 'fx_none',
+      background: 'bg_covenant',
+    });
+  }
+
+  if (points >= 100) {
+    equipment = withRankLook(body, {
+      hair: hairId(body, 'f_hair_braid', 'm_hair_sweep'),
+      top: 'top_jacket',
+      bottom: 'bottom_wrap',
+      shoes: 'shoes_sandals',
+      accessory: 'acc_satchel',
+      face: 'face_natural',
+      badge: 'badge_none',
+      special: 'fx_none',
+      background: 'bg_covenant',
+    });
+  }
+
+  if (points >= 250) {
+    equipment = withRankLook(body, {
+      hair: hairId(body, 'f_hair_waves', 'm_hair_locs'),
+      top: 'top_jacket',
+      bottom: 'bottom_long',
+      shoes: 'shoes_boots',
+      accessory: 'acc_stole',
+      face: 'face_marks',
+      badge: 'badge_none',
+      special: 'fx_none',
+      background: 'bg_covenant',
+    });
+  }
+
+  if (points >= 500) {
+    equipment = withRankLook(body, {
+      hair: hairId(body, 'f_hair_waves', 'm_hair_locs'),
+      top: 'top_mantle',
+      bottom: 'bottom_long',
+      shoes: 'shoes_boots',
+      accessory: 'acc_lenses',
+      face: 'face_marks',
+      badge: 'badge_seed',
+      special: 'fx_none',
+      background: 'bg_verdant',
+    });
+  }
+
+  if (points >= 1000) {
+    equipment = withRankLook(body, {
+      hair: hairId(body, 'f_hair_crest', 'm_hair_warden'),
+      top: 'top_mantle',
+      bottom: 'bottom_greaves',
+      shoes: 'shoes_boots',
+      accessory: 'acc_bracer',
+      face: 'face_marks',
+      badge: 'badge_hands',
+      special: 'fx_aura',
+      background: 'bg_skyward',
+    });
+  }
+
+  if (points >= 2500) {
+    equipment = withRankLook(body, {
+      hair: hairId(body, 'f_hair_crest', 'm_hair_warden'),
+      top: 'top_regalia',
+      bottom: 'bottom_greaves',
+      shoes: 'shoes_gilded',
+      accessory: 'acc_bracer',
+      face: 'face_sigil',
+      badge: 'badge_hands',
+      special: 'fx_aura',
+      background: 'bg_skyward',
+    });
+  }
+
+  if (points >= 5000) {
+    equipment = {
+      ...equipment,
+      badge: 'badge_crown',
+      special: 'fx_ascend',
+    };
+  }
+
+  if (points >= 10000) {
+    equipment = withRankLook(body, {
+      hair: hairId(body, 'prestige_f_hair_vanguard', 'prestige_m_hair_vanguard'),
+      top: 'prestige_top_vanguard',
+      bottom: 'bottom_greaves',
+      shoes: 'shoes_gilded',
+      accessory: 'prestige_acc_vanguard',
+      face: 'prestige_face_covenant',
+      badge: 'prestige_badge_vanguard',
+      special: 'prestige_fx_vanguard',
+      background: 'prestige_bg_vanguard',
+    });
+  }
+
+  if (points >= 25000) {
+    equipment = {
+      ...equipment,
+      bottom: 'prestige_bottom_pathfinder',
+      shoes: 'prestige_shoes_pathfinder',
+      special: 'prestige_fx_pathfinder',
+      background: 'prestige_bg_pathfinder',
+    };
+  }
+
+  if (points >= 50000) {
+    equipment = {
+      ...equipment,
+      hair: hairId(body, 'prestige_f_hair_pathfinder', 'prestige_m_hair_pathfinder'),
+      top: 'prestige_top_pathfinder',
+      accessory: 'prestige_acc_pathfinder',
+      face: 'prestige_face_radiant',
+      badge: 'prestige_badge_pathfinder',
+    };
+  }
+
+  if (points >= 75000) {
+    equipment = {
+      ...equipment,
+      bottom: 'prestige_bottom_veteran',
+      special: 'prestige_fx_veteran',
+      background: 'prestige_bg_veteran',
+    };
+  }
+
+  if (points >= 100000) {
+    equipment = {
+      ...equipment,
+      top: 'prestige_top_luminary',
+      shoes: 'prestige_shoes_luminary',
+      face: 'prestige_face_luminary',
+      badge: 'prestige_badge_luminary',
+    };
+  }
+
+  if (points >= 150000) {
+    equipment = {
+      ...equipment,
+      hair: hairId(body, 'prestige_f_hair_luminary', 'prestige_m_hair_luminary'),
+      accessory: 'prestige_acc_luminary',
+      special: 'prestige_fx_luminary',
+      background: 'prestige_bg_luminary',
+    };
+  }
+
+  if (points >= 200000) {
+    equipment = {
+      ...equipment,
+      bottom: 'prestige_bottom_covenant',
+    };
+  }
+
+  if (points >= 250000) {
+    equipment = {
+      ...equipment,
+      top: 'prestige_top_covenant',
+      face: 'prestige_face_legacy',
+      badge: 'prestige_badge_legacy',
+    };
+  }
+
+  if (points >= 300000) {
+    equipment = {
+      ...equipment,
+      shoes: 'prestige_shoes_legacy',
+      accessory: 'prestige_acc_legacy',
+      special: 'prestige_fx_legacy',
+      background: 'prestige_bg_legacy',
+    };
+  }
+
+  if (points >= 350000) {
+    equipment = {
+      ...equipment,
+      hair: hairId(body, 'prestige_f_hair_legacy', 'prestige_m_hair_legacy'),
+    };
+  }
+
+  if (points >= 400000) {
+    equipment = {
+      ...equipment,
+      bottom: 'prestige_bottom_summit',
+    };
+  }
+
+  if (points >= 450000) {
+    equipment = {
+      ...equipment,
+      accessory: 'prestige_acc_summit',
+    };
+  }
+
+  if (points >= 500000) {
+    equipment = {
+      ...equipment,
+      top: 'prestige_top_summit',
+      shoes: 'prestige_shoes_summit',
+      face: 'prestige_face_summit',
+      badge: 'prestige_badge_summit',
+      special: 'prestige_fx_summit',
+      background: 'prestige_bg_summit',
+    };
+  }
+
+  return equipment;
+}
+
+function shouldAdoptAutoRankLook(equipment: Equipment) {
+  const starterTop =
+    equipment.top === 'top_warrior' ||
+    equipment.top === 'top_tunic';
+  const starterBottom =
+    equipment.bottom === 'bottom_warrior' ||
+    equipment.bottom === 'bottom_wrap';
+  const starterShoes =
+    equipment.shoes === 'shoes_warrior' ||
+    equipment.shoes === 'shoes_sandals';
+
+  const starterCount = [
+    starterTop,
+    starterBottom,
+    starterShoes,
+  ].filter(Boolean).length;
+
+  return starterCount >= 2;
+}
 
 export function defaultCharacterState(
   body: BodyId = 'female'
@@ -63,26 +347,18 @@ export function defaultCharacterState(
     newlyUnlocked: [],
     bodyChosen: false,
     storageVersion: CHARACTER_STORAGE_VERSION,
+    rankLookMode: 'auto',
   };
 }
 
-/** One-time migration: old starter garment ids → warrior frame slots (no PNG layers). */
+/**
+ * Kept as an exported compatibility hook. R25 deliberately does not downgrade
+ * legacy starter garments back to the bare Warrior frame.
+ */
 export function migrateLegacyStarterGarments(
   equipment: Equipment
 ): Equipment {
-  const next: Equipment = { ...equipment };
-  let changed = false;
-
-  (['top', 'bottom', 'shoes'] as const).forEach((slot) => {
-    const legacy = LEGACY_STARTER_BY_SLOT[slot];
-    const replacement = WARRIOR_REPLACEMENT_BY_SLOT[slot];
-    if (legacy && replacement && next[slot] === legacy) {
-      next[slot] = replacement;
-      changed = true;
-    }
-  });
-
-  return changed ? next : equipment;
+  return equipment;
 }
 
 export const DEFAULT_CHARACTER = defaultCharacterState('female');
@@ -132,13 +408,19 @@ export async function loadBuklodCharacter(
     let needsPersist = false;
 
     if (storageVersion < CHARACTER_STORAGE_VERSION) {
-      const migrated = migrateLegacyStarterGarments(equipment);
-      if (migrated !== equipment) {
-        equipment = migrated;
-      }
+      equipment = migrateLegacyStarterGarments(equipment);
       storageVersion = CHARACTER_STORAGE_VERSION;
       needsPersist = true;
     }
+
+    const rankLookMode: BuklodRankLookMode =
+      parsed.rankLookMode === 'manual'
+        ? 'manual'
+        : parsed.rankLookMode === 'auto'
+          ? 'auto'
+          : shouldAdoptAutoRankLook(equipment)
+            ? 'auto'
+            : 'manual';
 
     const state: BuklodCharacterState = {
       body,
@@ -150,6 +432,7 @@ export async function loadBuklodCharacter(
         : [],
       bodyChosen: parsed.bodyChosen ?? true,
       storageVersion,
+      rankLookMode,
     };
 
     if (needsPersist) {
@@ -195,15 +478,50 @@ export function reconcileCharacterForPoints(
   lifetimePoints: number
 ): BuklodCharacterState {
   const fallback = defaultEquipment(state.body);
+  const reconciled = reconcileEquipment(
+    state.equipment,
+    state.body,
+    lifetimePoints,
+    fallback
+  );
+
+  const rankLookMode: BuklodRankLookMode =
+    state.rankLookMode ??
+    (shouldAdoptAutoRankLook(reconciled) ? 'auto' : 'manual');
+
+  const equipment =
+    rankLookMode === 'auto'
+      ? reconcileEquipment(
+          equipmentForRankLook(state.body, lifetimePoints),
+          state.body,
+          lifetimePoints,
+          fallback,
+        )
+      : reconciled;
+
   return {
     ...state,
+    equipment,
+    rankLookMode,
+    storageVersion: CHARACTER_STORAGE_VERSION,
+  };
+}
+
+export function applyBestRankLook(
+  state: BuklodCharacterState,
+  lifetimePoints: number,
+): BuklodCharacterState {
+  const fallback = defaultEquipment(state.body);
+  return {
+    ...state,
+    rankLookMode: 'auto',
     equipment: reconcileEquipment(
-      state.equipment,
+      equipmentForRankLook(state.body, lifetimePoints),
       state.body,
       lifetimePoints,
-      fallback
+      fallback,
     ),
-    storageVersion: state.storageVersion ?? CHARACTER_STORAGE_VERSION,
+    storageVersion: CHARACTER_STORAGE_VERSION,
   };
 }
 
@@ -214,17 +532,25 @@ export function setBody(
 ): BuklodCharacterState {
   const fallback = defaultEquipment(body);
   const equipment = reconcileEquipment(
-  {
+    {
       ...state.equipment,
-      base: body === 'female' ? 'base_female' : 'base_male',
-      hair: body === 'female' ? 'f_hair_knot' : 'm_hair_crop',
+      base: baseId(body),
+      hair: starterHairId(body),
     },
     body,
     lifetimePoints,
     fallback
   );
 
-  return { ...state, body, equipment, bodyChosen: true };
+  return reconcileCharacterForPoints(
+    {
+      ...state,
+      body,
+      equipment,
+      bodyChosen: true,
+    },
+    lifetimePoints,
+  );
 }
 
 export function equipItem(
@@ -241,6 +567,7 @@ export function equipItem(
 
   const next: BuklodCharacterState = {
     ...state,
+    rankLookMode: 'manual',
     equipment: {
       ...state.equipment,
       [slot]: itemId,
