@@ -69,27 +69,25 @@ function isValidSlot(value: string) {
 function slotForPlacement(
   placement: BuklodAdPlacement
 ) {
-  const env = process.env;
-
   const placementSlot =
     placement === 'home'
-      ? clean(env.EXPO_PUBLIC_ADSENSE_HOME_SLOT_ID)
+      ? clean(process.env.EXPO_PUBLIC_ADSENSE_HOME_SLOT_ID)
       : placement === 'community'
-        ? clean(env.EXPO_PUBLIC_ADSENSE_COMMUNITY_SLOT_ID)
+        ? clean(process.env.EXPO_PUBLIC_ADSENSE_COMMUNITY_SLOT_ID)
         : placement === 'messages'
-          ? clean(env.EXPO_PUBLIC_ADSENSE_MESSAGES_SLOT_ID)
+          ? clean(process.env.EXPO_PUBLIC_ADSENSE_MESSAGES_SLOT_ID)
           : placement === 'prayer'
-            ? clean(env.EXPO_PUBLIC_ADSENSE_PRAYER_SLOT_ID)
+            ? clean(process.env.EXPO_PUBLIC_ADSENSE_PRAYER_SLOT_ID)
             : placement === 'reels'
-              ? clean(env.EXPO_PUBLIC_ADSENSE_REELS_SLOT_ID)
+              ? clean(process.env.EXPO_PUBLIC_ADSENSE_REELS_SLOT_ID)
               : placement === 'bible'
-                ? clean(env.EXPO_PUBLIC_ADSENSE_BIBLE_SLOT_ID)
+                ? clean(process.env.EXPO_PUBLIC_ADSENSE_BIBLE_SLOT_ID)
                 : placement === 'devotion'
-                  ? clean(env.EXPO_PUBLIC_ADSENSE_DEVOTION_SLOT_ID)
+                  ? clean(process.env.EXPO_PUBLIC_ADSENSE_DEVOTION_SLOT_ID)
                   : placement === 'me'
-                    ? clean(env.EXPO_PUBLIC_ADSENSE_ME_SLOT_ID)
+                    ? clean(process.env.EXPO_PUBLIC_ADSENSE_ME_SLOT_ID)
                     : placement === 'focus'
-                      ? clean(env.EXPO_PUBLIC_ADSENSE_FOCUS_SLOT_ID)
+                      ? clean(process.env.EXPO_PUBLIC_ADSENSE_FOCUS_SLOT_ID)
                       : '';
 
   return placementSlot || GENERIC_SLOT;
