@@ -1,4 +1,5 @@
 /* BUKLOD_CHARACTER_STUDIO3_REAL_ART_R1 */
+/* BUKLOD_CHARACTER_R25C_CONTAINMENT */
 import React, {
   useEffect,
   useMemo,
@@ -386,7 +387,7 @@ BuklodCharacterCustomizeSheet({
         marginTop: 12,
         marginHorizontal:
           14,
-        minHeight: 182,
+        minHeight: 188,
         flexDirection: 'row',
         alignItems:
           'center',
@@ -405,15 +406,18 @@ BuklodCharacterCustomizeSheet({
             theme.accentSoft,
             0.34,
           ),
+        overflow: 'hidden',
       },
 
       heroArt: {
-        width: 118,
-        height: 166,
+        width: 128,
+        height: 170,
+        flexShrink: 0,
         alignItems: 'center',
         justifyContent:
           'flex-end',
-        overflow: 'visible',
+        overflow: 'hidden',
+        borderRadius: 18,
       },
 
       heroMeta: {
@@ -1202,7 +1206,7 @@ BuklodCharacterCustomizeSheet({
                   equipment={
                     draft.equipment
                   }
-                  height={160}
+                  height={154}
                   showStage
                   showEffects
                 />

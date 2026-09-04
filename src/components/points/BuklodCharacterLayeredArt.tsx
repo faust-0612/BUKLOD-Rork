@@ -1,4 +1,5 @@
 /* BUKLOD_CHARACTER_R25_PROPORTION_SAFE_LAYERING */
+/* BUKLOD_CHARACTER_R25C_CONTAINMENT */
 import React, {
   Fragment,
   useMemo,
@@ -391,13 +392,13 @@ const styles = StyleSheet.create({
   art: {
     zIndex: 3,
     position: 'relative',
-    overflow: 'visible',
+    overflow: 'hidden',
   },
 
   fallback: {
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'visible',
+    overflow: 'hidden',
   },
 
   stage: {
