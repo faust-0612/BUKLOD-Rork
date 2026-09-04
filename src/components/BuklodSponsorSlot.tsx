@@ -44,6 +44,14 @@ type Sponsor = {
 };
 
 
+/* BUKLOD_WEB_REQUEST_STORM_R1
+ * All sponsor slots ask for the same sponsor set. Bucket the moving
+ * starts_at boundary so simultaneous mounts produce one identical safe read
+ * that the global request shield can coalesce instead of one request per slot.
+ */
+const SPONSOR_QUERY_BUCKET_MS = 30_000;
+
+
 export default function BuklodSponsorSlot({
   placement,
 }: {
@@ -190,8 +198,15 @@ export default function BuklodSponsorSlot({
     const load =
       async () => {
 
+        const nowMs = Date.now();
         const now =
-          new Date().toISOString();
+          new Date(
+            Math.floor(
+              nowMs /
+                SPONSOR_QUERY_BUCKET_MS
+            ) *
+              SPONSOR_QUERY_BUCKET_MS
+          ).toISOString();
 
 
         const {
@@ -253,10 +268,6 @@ export default function BuklodSponsorSlot({
 
           return;
         }
-
-
-        const nowMs =
-          Date.now();
 
 
         const next =
