@@ -1,4 +1,4 @@
-name: BUKLOD Production Web R21 Navigation Fix
+name: BUKLOD Production Web R22 Navigation Fix
 
 on:
   workflow_dispatch:
@@ -9,7 +9,10 @@ on:
       - '.github/workflows/production_web_r21_navigation_fix.yml'
       - 'src/app/index.tsx'
       - 'src/components/BuklodCanonicalNavigationGuard.tsx'
+      - 'src/components/BuklodCanonicalNavigationGuard.web.tsx'
       - 'src/components/BuklodGuideAvatar.tsx'
+      - 'src/components/BuklodGuideAvatar.web.tsx'
+      - 'src/components/BuklodDesktopWebShell.tsx'
 
 permissions:
   contents: read
@@ -38,16 +41,16 @@ jobs:
       - name: Preserve current web Community Post hotfix
         run: node scripts/patch-web-community-post.cjs
 
-      - name: Verify R21 navigation source
+      - name: Verify R22 navigation source
         shell: bash
         run: |
           grep -F 'BUKLOD_PUBLIC_BOOT_R21' 'src/app/index.tsx'
-          grep -F "scope.scope_type ===" 'src/app/index.tsx'
-          grep -F "'PUBLIC'" 'src/app/index.tsx'
           grep -F 'BUKLOD_PROFILE_ROUTE_EXEMPT_R21' 'src/components/BuklodCanonicalNavigationGuard.tsx'
-          grep -F 'isBuklodProfileRoute(normalized)' 'src/components/BuklodCanonicalNavigationGuard.tsx'
-          grep -F "router.navigate(" 'src/components/BuklodGuideAvatar.tsx'
-          grep -F "'/me' as any" 'src/components/BuklodGuideAvatar.tsx'
+          grep -F 'BUKLOD_WEB_SCOPE_BOOT_R22' 'src/components/BuklodCanonicalNavigationGuard.web.tsx'
+          grep -F "router.replace(" 'src/components/BuklodCanonicalNavigationGuard.web.tsx'
+          grep -F "'/messages' as any" 'src/components/BuklodCanonicalNavigationGuard.web.tsx'
+          grep -F 'BUKLOD_WEB_PROFILE_AVATAR_R22' 'src/components/BuklodGuideAvatar.web.tsx'
+          grep -F "'/me' as any" 'src/components/BuklodGuideAvatar.web.tsx'
           grep -F 'BUKLOD_WEB_RESPONSIVE_SPLIT_R3' 'src/components/BuklodNavSafeShell.web.tsx'
           grep -F 'BUKLOD_DESKTOP_WEB_SHELL_R3' 'src/components/BuklodDesktopWebShell.tsx'
           grep -F "openGlobalDestination('/me')" 'src/components/BuklodDesktopWebShell.tsx'
@@ -78,13 +81,13 @@ jobs:
           grep -F 'google-adsense-account' dist/index.html
           grep -F 'pagead2.googlesyndication.com/pagead/js/adsbygoogle.js' dist/index.html
 
-      - name: Verify exported navigation runtime
+      - name: Verify exported R22 navigation runtime
         if: steps.expo.outputs.ready == 'true'
         shell: bash
         run: |
-          grep -R -F 'BUKLOD boot Public scope reset:' dist >/dev/null
-          grep -R -F 'BUKLOD desktop web scope reset:' dist >/dev/null
-          grep -R -F 'My BUKLOD' dist >/dev/null
+          grep -R -F 'BUKLOD web boot Public reset:' dist >/dev/null
+          grep -R -F 'BUKLOD web avatar Public reset:' dist >/dev/null
+          grep -R -F 'Open BUKLOD Profile' dist >/dev/null
 
       - name: Deploy production web
         if: steps.expo.outputs.ready == 'true'
@@ -95,15 +98,15 @@ jobs:
             --non-interactive \
             --environment production \
             --export-dir=dist \
-            --json | tee eas-deploy-r21.json
+            --json | tee eas-deploy-r22.json
 
       - name: Preserve deploy result
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: buklod-production-web-r21-navigation-result
+          name: buklod-production-web-r22-navigation-result
           path: |
-            eas-deploy-r21.json
+            eas-deploy-r22.json
             dist/index.html
             dist/metadata.json
           if-no-files-found: ignore
@@ -115,7 +118,7 @@ jobs:
           EXPO_READY: ${{ steps.expo.outputs.ready }}
         run: |
           if [ "$EXPO_READY" = "true" ]; then
-            echo "BUKLOD R21 production web deployment completed."
+            echo "BUKLOD R22 production web deployment completed."
           else
-            echo "R21 QA passed; deploy skipped because EXPO_TOKEN is unavailable."
+            echo "R22 QA passed; deploy skipped because EXPO_TOKEN is unavailable."
           fi
