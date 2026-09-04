@@ -62,6 +62,7 @@ const MODULES: ModuleCard[] = [
   { key: 'chat', title: 'Class Messages', description: 'General classroom messaging with room for group and activity threads.', icon: 'message-text-outline', route: '/profile/buklod-classroom-chat' },
   { key: 'work', title: 'Activities & Submissions', description: 'Activities, rubrics, deadlines, student submissions, feedback and grading.', icon: 'clipboard-text-outline', route: '/profile/buklod-classroom-work' },
   { key: 'materials', title: 'Materials & Media', description: 'Files, photos, videos, links and learning resources for this class.', icon: 'folder-multiple-image', route: '/profile/buklod-classroom-materials' },
+  { key: 'grades', title: 'My Grades', description: 'Prelim, Midterm, Semifinals, Finals, released category grades and final grade consultation.', icon: 'school-outline', route: '/profile/buklod-classroom-grades' },
   { key: 'monitor', title: 'Class Monitor', description: 'Track participation, recitation, presentations, live presence and asynchronous engagement.', icon: 'chart-timeline-variant-shimmer', route: '/profile/buklod-classroom-monitor' },
 ];
 
@@ -150,7 +151,7 @@ export default function BuklodClassroomScreen() {
   };
 
   const openModule = (route: string) => {
-    router.push({ pathname: route as any, params: { id: classroomId, name: className } });
+    router.push({ pathname: route as any, params: { id: classroomId, classroomId, name: className } });
   };
 
   return (
@@ -252,12 +253,12 @@ export default function BuklodClassroomScreen() {
           <Text style={styles.sectionTitle}>Faculty Connection</Text>
           <Pressable
             style={styles.facultyCard}
-            onPress={() => router.push({ pathname: '/profile/buklod-faculty-class' as any, params: { id: classroomId, name: className } })}
+            onPress={() => router.push({ pathname: '/profile/buklod-faculty-class' as any, params: { id: classroomId, classroomId, name: className } })}
           >
             <MaterialCommunityIcons name="human-male-board" size={25} color="#1f7a3f" />
             <View style={{ flex: 1 }}>
               <Text style={styles.moduleTitle}>Open Faculty Command Center</Text>
-              <Text style={styles.moduleText}>Roster, attendance, assessments, BUKLOD Quiz, gradebook and final grades stay connected to this same class.</Text>
+              <Text style={styles.moduleText}>Roster, attendance, assessments, BUKLOD Quiz, grading setup, gradebook and final grades stay connected to this same class.</Text>
             </View>
             <MaterialCommunityIcons name="open-in-new" size={20} color="#1f7a3f" />
           </Pressable>
