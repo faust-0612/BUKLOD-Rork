@@ -1,3 +1,4 @@
+// R25 Organization Home door OTA trigger — no ad behavior change.
 import Constants from 'expo-constants';
 import {
   TestIds,
