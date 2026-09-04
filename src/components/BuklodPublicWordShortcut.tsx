@@ -158,7 +158,7 @@ export default function BuklodPublicWordShortcut() {
         accessibilityLabel="Open My Classroom"
         onPress={() =>
           router.push(
-            '/classroom' as any
+            '/profile/buklod-classrooms' as any
           )
         }
         style={({
