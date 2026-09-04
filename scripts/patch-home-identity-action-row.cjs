@@ -35,8 +35,8 @@ if (source.includes(newerMarker)) {
   }
 
   source = source.replace(
-    `/* ${newerMarker} */`,
-    `/* ${newerMarker} */\n      {/* ${marker} — compatibility marker; R23 remains authoritative */}`
+    `{/* ${newerMarker} */}`,
+    `{/* ${newerMarker} */}\n      {/* ${marker} — compatibility marker; R23 remains authoritative */}`
   );
   fs.writeFileSync(file, source, 'utf8');
 
