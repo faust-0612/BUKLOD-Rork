@@ -1,3 +1,4 @@
+/* BUKLOD_AWS_SIGNED_MEDIA_CACHE_R1 */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image as ExpoImage } from 'expo-image';
 
@@ -19,6 +20,10 @@ let hydratePromise: Promise<void> | null = null;
 let hydrateCompleted = false;
 let persistTimer: ReturnType<typeof setTimeout> | null = null;
 
+function isAwsExternalMediaPath(path?: string | null) {
+  return String(path ?? '').trim().toLowerCase().startsWith('aws:');
+}
+
 export function isLocalMediaUri(uri: string) {
   return /^(file|content|data|blob|ph|assets-library):/i.test(
     String(uri ?? '').trim(),
@@ -27,30 +32,21 @@ export function isLocalMediaUri(uri: string) {
 
 export function isSignedStorageUri(uri: string) {
   const value = String(uri ?? '').trim();
-  if (!value) {
-    return false;
-  }
+  if (!value) return false;
 
   return (
     value.includes('/storage/v1/object/sign/') ||
-    /[?&]token=/.test(value)
+    /[?&]token=/.test(value) ||
+    /[?&]X-Amz-(?:Algorithm|Signature|Credential)=/i.test(value)
   );
 }
 
 export function isUsableDirectMediaUri(uri: string) {
   const value = String(uri ?? '').trim();
-  if (!value) {
-    return false;
-  }
+  if (!value) return false;
 
-  if (isLocalMediaUri(value)) {
-    return true;
-  }
-
-  if (isSignedStorageUri(value)) {
-    return false;
-  }
-
+  if (isLocalMediaUri(value)) return true;
+  if (isSignedStorageUri(value)) return false;
   return /^https?:\/\//i.test(value);
 }
 
@@ -59,23 +55,19 @@ export function communityMediaCacheKey(
   uri?: string | null,
 ) {
   const path = String(mediaPath ?? '').trim();
-  if (path) {
-    return `community-media:${path}`;
-  }
+  if (path) return `community-media:${path}`;
 
   const value = String(uri ?? '').trim();
   return value || undefined;
 }
 
 function schedulePersist() {
-  if (persistTimer) {
-    clearTimeout(persistTimer);
-  }
+  if (persistTimer) clearTimeout(persistTimer);
 
   persistTimer = setTimeout(() => {
     const payload: Record<string, SignedHit> = {};
     for (const [path, hit] of signedCache) {
-      if (path && hit?.url) {
+      if (path && hit?.url && !isAwsExternalMediaPath(path)) {
         payload[path] = hit;
       }
     }
@@ -94,18 +86,11 @@ export function rememberSignedCommunityMediaUrl(
 ) {
   const path = String(mediaPath ?? '').trim();
   const signed = String(url ?? '').trim();
-  if (!path || !signed) {
-    return;
-  }
+  if (!path || !signed || isAwsExternalMediaPath(path)) return;
 
   const existing = signedCache.get(path);
-  if (!force && existing?.url) {
-    return;
-  }
-
-  if (existing?.url === signed) {
-    return;
-  }
+  if (!force && existing?.url) return;
+  if (existing?.url === signed) return;
 
   signedCache.set(path, {
     url: signed,
@@ -119,14 +104,20 @@ export function peekCommunityMediaUrl(
   preferredUri?: string | null,
 ) {
   const path = String(mediaPath ?? '').trim();
-  if (path) {
-    const hit = signedCache.get(path);
-    if (hit?.url) {
-      return hit.url;
-    }
+  const preferred = String(preferredUri ?? '').trim();
+
+  /* AWS view URLs expire after a few minutes. Never let a disk/in-memory
+   * Supabase signing cache override the fresh URL returned by the secure
+   * AWS media API. */
+  if (isAwsExternalMediaPath(path)) {
+    return preferred || null;
   }
 
-  const preferred = String(preferredUri ?? '').trim();
+  if (path) {
+    const hit = signedCache.get(path);
+    if (hit?.url) return hit.url;
+  }
+
   if (preferred) {
     if (path && hydrateCompleted) {
       rememberSignedCommunityMediaUrl(path, preferred);
@@ -138,20 +129,21 @@ export function peekCommunityMediaUrl(
 }
 
 export async function hydrateCommunityMediaUrlCache() {
-  if (hydratePromise) {
-    return hydratePromise;
-  }
+  if (hydratePromise) return hydratePromise;
 
   hydratePromise = (async () => {
     try {
       const raw = await AsyncStorage.getItem(SIGN_STORAGE_KEY);
-      if (!raw) {
-        return;
-      }
+      if (!raw) return;
 
       const parsed = JSON.parse(raw) as Record<string, SignedHit>;
       for (const [path, hit] of Object.entries(parsed ?? {})) {
-        if (!path || !hit?.url || signedCache.has(path)) {
+        if (
+          !path ||
+          !hit?.url ||
+          signedCache.has(path) ||
+          isAwsExternalMediaPath(path)
+        ) {
           continue;
         }
 
@@ -176,20 +168,18 @@ export async function resolveCommunityMediaUrl(
 ): Promise<string | null> {
   await hydrateCommunityMediaUrlCache();
 
-  const peeked = peekCommunityMediaUrl(mediaPath, preferredUri);
-  if (peeked) {
-    return peeked;
+  const path = String(mediaPath ?? '').trim();
+  const preferred = String(preferredUri ?? '').trim();
+  if (isAwsExternalMediaPath(path)) {
+    return preferred || null;
   }
 
-  const path = String(mediaPath ?? '').trim();
-  if (!path) {
-    return null;
-  }
+  const peeked = peekCommunityMediaUrl(path, preferred);
+  if (peeked) return peeked;
+  if (!path) return null;
 
   const pending = inFlight.get(path);
-  if (pending) {
-    return pending;
-  }
+  if (pending) return pending;
 
   const task = (async () => {
     try {
@@ -213,7 +203,7 @@ export async function resolveCommunityMediaUrl(
       // Keep last known URL so disk-cached photos can still render.
     }
 
-    return peekCommunityMediaUrl(path, preferredUri);
+    return peekCommunityMediaUrl(path, preferred);
   })();
 
   inFlight.set(path, task);
@@ -229,9 +219,7 @@ export async function resignCommunityMediaUrl(
   mediaPath?: string | null,
 ): Promise<string | null> {
   const path = String(mediaPath ?? '').trim();
-  if (!path) {
-    return null;
-  }
+  if (!path || isAwsExternalMediaPath(path)) return null;
 
   signedCache.delete(path);
   inFlight.delete(path);
@@ -243,9 +231,7 @@ export function prefetchCommunityMedia(
 ) {
   for (const url of urls) {
     const value = String(url ?? '').trim();
-    if (!value || isLocalMediaUri(value)) {
-      continue;
-    }
+    if (!value || isLocalMediaUri(value)) continue;
 
     void ExpoImage.prefetch(value).catch(() => undefined);
   }
