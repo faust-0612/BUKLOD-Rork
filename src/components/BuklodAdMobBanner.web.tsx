@@ -1,15 +1,7 @@
 ﻿import React from 'react';
 
-type BuklodAdPlacement =
-  | 'home'
-  | 'community'
-  | 'prayer'
-  | 'messages'
-  | 'bible'
-  | 'devotion'
-  | 'me'
-  | 'reels'
-  | 'test';
+import BuklodWebAdSlot from '@/components/BuklodWebAdSlot.web';
+import type { BuklodAdPlacement } from '@/lib/buklodAdUnits';
 
 type Props = {
   placement: BuklodAdPlacement;
@@ -20,6 +12,23 @@ type Props = {
   showLabel?: boolean;
 };
 
-export default function BuklodAdMobBanner(_props: Props) {
-  return null;
+/*
+ * BUKLOD_WEB_ADMOB_BRIDGE_R1
+ * Native resolves BuklodAdMobBanner.tsx (AdMob). Web resolves this file and
+ * serves AdSense / approved BUKLOD sponsors through the same placement API.
+ */
+export default function BuklodAdMobBanner({
+  placement,
+  compact = false,
+  format = 'adaptive',
+  showLabel = true,
+}: Props) {
+  return (
+    <BuklodWebAdSlot
+      placement={placement}
+      compact={compact}
+      format={format}
+      showLabel={showLabel}
+    />
+  );
 }
