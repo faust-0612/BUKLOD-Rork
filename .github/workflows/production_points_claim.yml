@@ -9,6 +9,10 @@ on:
       - '.github/workflows/production_points_claim.yml'
       - 'src/app/points/**'
       - 'src/components/points/**'
+      - 'src/lib/buklodPointsRedemption.ts'
+      - 'src/app/admin/points-redemptions.tsx'
+      - 'src/app/admin/bayanihan.tsx'
+      - 'supabase/migrations/*buklod_points_redemption*'
       - 'assets/sounds/**'
       - 'scripts/inject-adsense-web-head.cjs'
 
@@ -50,7 +54,15 @@ jobs:
           grep -F "setOptimisticClaimed(true)" 'src/components/points/BuklodClaimRewardCard.tsx'
           grep -F "claimBuklodRewardEvent(eventId)" 'src/app/points/index.tsx'
           grep -F "if (!rewardEvent || claimBusy)" 'src/app/points/index.tsx'
+          grep -F "get_my_buklod_redemption_center_v1" 'src/lib/buklodPointsRedemption.ts'
+          grep -F "convert_my_buklod_points_to_bayanihan_v1" 'src/lib/buklodPointsRedemption.ts'
+          grep -F "request_my_buklod_cash_reward_v1" 'src/lib/buklodPointsRedemption.ts'
+          grep -F "admin_mark_buklod_cash_reward_paid_v1" 'src/lib/buklodPointsRedemption.ts'
+          grep -F "Lifetime Points are permanent achievement history" 'src/components/points/BuklodRedeemCatalogSection.tsx'
+          grep -F "Points are deducted only at PAID" 'src/components/points/BuklodRedeemCatalogSection.tsx'
+          grep -F "Legacy reward catalog is retired" supabase/migrations/*buklod_points_redemption*.sql
           grep -F "'--clear'" 'scripts/inject-adsense-web-head.cjs'
+          test -f 'src/app/admin/points-redemptions.tsx'
           test -f 'assets/sounds/buklod-points-claim.wav'
           if grep -F "CLAIMING…" 'src/components/points/BuklodClaimRewardCard.tsx'; then
             echo 'Visible CLAIMING spinner/text must not return to BUKLOD Points claim.'
@@ -89,9 +101,9 @@ jobs:
             --channel production \
             --platform android \
             --environment production \
-            --message "BUKLOD Points One-Tap Claim + Reward Sound" \
+            --message "BUKLOD Points Redemption End-to-End R1" \
             --non-interactive
 
       - name: Deployment status
         run: |
-          echo 'BUKLOD Points one-tap claim is published to production web and Android OTA.'
+          echo 'BUKLOD Points redemption end-to-end is published to production web and Android OTA.'

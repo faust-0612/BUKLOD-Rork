@@ -56,24 +56,35 @@ export default function AdminBayanihanScreen() {
         <Text style={shared.h1}>BUKLOD Bayanihan</Text>
 
         <Text style={shared.muted}>
-          Participation, recognition and BUKLOD progress. Bayanihan
-          cash operations have been retired; use the links below for
-          points, learning verification, and formation oversight.
+          Participation, recognition and BUKLOD progress. Available
+          BUKLOD Points may now be transferred to Bayanihan credit or,
+          when System Admin explicitly enables a PHP conversion rate,
+          submitted through the audited Cash Reward payout workflow.
         </Text>
 
         <SectionTitle>OVERVIEW</SectionTitle>
 
         <Card>
           <Text style={styles.infoTitle}>
-            Non-cash participation system
+            Lifetime points stay permanent
           </Text>
           <Text style={styles.infoText}>
-            BUKLOD Bayanihan now reflects member participation through
-            BUKLOD Points, Circle Rank, Learning Progress verification,
-            and formation actions. Historical Bayanihan ledger records
-            remain in the database for audit only.
+            BUKLOD Bayanihan transfer and Cash Reward are the only
+            supported point-spend destinations. Lifetime Points and
+            Rank never decrease. Cash requests reserve points first;
+            Available Points are deducted only after the real payout is
+            recorded as PAID with a transaction/reference.
           </Text>
         </Card>
+
+        <SectionTitle>REDEMPTION CONTROL</SectionTitle>
+
+        <AdminLinkCard
+          icon="wallet-giftcard"
+          title="Points Redemption Center"
+          subtitle="Set Bayanihan conversion, Cash Reward PHP rate, review requests, and mark actual payouts PAID"
+          path="/admin/points-redemptions"
+        />
 
         <SectionTitle>RELATED ADMIN TOOLS</SectionTitle>
 
