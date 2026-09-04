@@ -13,6 +13,7 @@ import {
 import { usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import BuklodFocusAppAdStrip from '@/components/BuklodFocusAppAdStrip';
 import BuklodPersistentBottomNav from '@/components/BuklodPersistentBottomNav';
 import {
   normalizeBuklodPathname,
@@ -42,6 +43,7 @@ function isMyBuklodDoorPath(pathname: string): boolean {
 /**
  * Root shell: shrinks routed content above the global bottom nav so door
  * screens and dashboard pushes never sit underneath the phone nav pane.
+ * Focus App routes also receive one normal-flow AdMob banner above that pane.
  */
 export default function BuklodNavSafeShell({
   children,
@@ -124,7 +126,10 @@ export default function BuklodNavSafeShell({
           },
         ]}
       >
-        {children}
+        <View style={styles.routedContent}>
+          {children}
+        </View>
+        <BuklodFocusAppAdStrip />
       </View>
 
       <View
@@ -143,6 +148,11 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  routedContent: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 0,
   },
   navOverlay: {
     position: 'absolute',
