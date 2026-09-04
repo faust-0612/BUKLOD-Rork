@@ -42,6 +42,33 @@ function methodLabel(value: string | null | undefined) {
   return 'BUKLOD account';
 }
 
+async function functionErrorMessage(error: any, fallback: string) {
+  const context = error?.context;
+  if (context) {
+    try {
+      const response = typeof context.clone === 'function' ? context.clone() : context;
+      if (typeof response?.text === 'function') {
+        const raw = String(await response.text()).trim();
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw);
+            const message = String(parsed?.message ?? parsed?.error ?? '').trim();
+            if (message) return message;
+          } catch {
+            if (!raw.startsWith('<')) return raw;
+          }
+        }
+      }
+    } catch {
+      // Fall through to the safe UI message below.
+    }
+  }
+
+  const message = String(error?.message ?? '').trim();
+  if (message && !/edge function returned a non-2xx status code/i.test(message)) return message;
+  return fallback;
+}
+
 export default function AdminAccountRecoveryScreen() {
   const { hasRole } = useAuth();
   const verifyInFlight = useRef(false);
@@ -57,7 +84,9 @@ export default function AdminAccountRecoveryScreen() {
       const { data, error } = await supabase.functions.invoke('account-recovery-v4', {
         body: { action: 'admin_list_requests' },
       });
-      if (error) throw error;
+      if (error) {
+        throw new Error(await functionErrorMessage(error, 'Could not load recovery requests. Please refresh and try again.'));
+      }
       if (!data?.ok) throw new Error(data?.message ?? 'Could not load recovery requests.');
       setRows(Array.isArray(data.requests) ? data.requests : []);
       if (refresh) setStatusText('Recovery requests refreshed.');
@@ -80,14 +109,16 @@ export default function AdminAccountRecoveryScreen() {
     if (verifyInFlight.current || busyId) return;
 
     if (row.needs_match || !row.user_id) {
-      const message = 'This request still needs an account match. Verify the submitted identity and match the correct BUKLOD account first.';
+      const message = row.birth_date
+        ? `Hindi ma-verify: ang submitted name + birthday (${row.birth_date}) ay hindi nag-match nang eksakto sa isang BUKLOD account. Ang birthday na nakikita rito ay SUBMITTED BIRTHDAY lamang, hindi patunay na iyon ang birthday na naka-save sa account. Hindi pinapayagan ang name-only approval. Mag-submit ulit gamit ang registered username, mobile number, o email kung available.`
+        : 'Hindi ma-verify: hindi uniquely matched ang submitted identity sa isang BUKLOD account. Hindi pinapayagan ang name-only approval. Mag-submit ulit gamit ang registered username, mobile number, o email kung available.';
       setStatusText(`ERROR: ${message}`);
       if (Platform.OS !== 'web') Alert.alert('Account Match Required', message);
       return;
     }
 
     if (!row.auto_delivery_ready) {
-      const message = 'This is a legacy or expired recovery request. Ask the member to open the updated Forgot Password → Admin Help screen and submit a new request so automatic code delivery can be secured to that waiting screen.';
+      const message = 'Hindi ma-verify: lumang o expired recovery request ito at walang active private auto-delivery session. Buksan ng member ang updated Forgot Password → Admin Help at mag-submit ulit; panatilihin ang lumang record para sa audit history.';
       setStatusText(`ERROR: ${message}`);
       if (Platform.OS !== 'web') Alert.alert('New Request Required', message);
       return;
@@ -102,7 +133,12 @@ export default function AdminAccountRecoveryScreen() {
         const { data, error } = await supabase.functions.invoke('account-recovery-v4', {
           body: { action: 'admin_verify_request', requestId: row.id },
         });
-        if (error) throw error;
+        if (error) {
+          throw new Error(await functionErrorMessage(
+            error,
+            'Hindi ma-verify ang request. Posibleng hindi matched ang account, expired/legacy ang recovery session, o hindi na naghihintay ang member recovery screen. Refresh the request list for the exact current status.'
+          ));
+        }
         if (!data?.ok) throw new Error(data?.message ?? 'Could not verify recovery request.');
         if (data?.deliveredAutomatically !== true) {
           throw new Error('Verification completed without confirming automatic code delivery.');
@@ -146,7 +182,9 @@ export default function AdminAccountRecoveryScreen() {
         const { data, error } = await supabase.functions.invoke('account-recovery-v4', {
           body: { action: 'admin_reject_request', requestId: row.id },
         });
-        if (error) throw error;
+        if (error) {
+          throw new Error(await functionErrorMessage(error, 'Could not reject this recovery request. Refresh the list and try again.'));
+        }
         if (!data?.ok) throw new Error(data?.message ?? 'Could not reject request.');
         setRows((current) => current.filter((item) => item.id !== row.id));
         setStatusText('Recovery request rejected. The waiting recovery screen will receive the rejection status automatically.');
@@ -248,7 +286,11 @@ export default function AdminAccountRecoveryScreen() {
               <View style={styles.detailBox}>
                 <DetailRow icon="account-key-outline" label="Saved login" value={row.login_hint || 'Not available'} />
                 {!!row.mobile_hint && <DetailRow icon="phone-outline" label="Mobile on profile" value={row.mobile_hint} />}
-                <DetailRow icon="cake-variant-outline" label="Birthday" value={row.birth_date || 'Not recorded'} />
+                <DetailRow
+                  icon="cake-variant-outline"
+                  label={needsMatch ? 'Submitted birthday (not yet matched to account)' : 'Birthday on matched account'}
+                  value={row.birth_date || 'Not recorded'}
+                />
                 <DetailRow icon="clock-outline" label="Requested" value={new Date(row.requested_at || row.created_at).toLocaleString()} />
                 <DetailRow
                   icon={autoReady ? 'cellphone-check' : 'cellphone-off'}
@@ -262,8 +304,10 @@ export default function AdminAccountRecoveryScreen() {
                   <MaterialCommunityIcons name="alert-circle-outline" size={20} color="#8A5A00" />
                   <Text style={styles.warningCardText}>
                     {needsMatch
-                      ? 'Do not approve yet. This request is not uniquely matched to an account.'
-                      : 'This request predates the automatic-delivery session or its private waiting session expired. Keep the record; ask the member to submit a new Admin Help request.'}
+                      ? row.birth_date
+                        ? `HINDI MA-VERIFY: ang submitted name + birthday (${row.birth_date}) ay hindi uniquely matched sa account records. Name-only approval is blocked. Ang birthday na ito ay galing sa request at hindi nangangahulugang naka-save ito sa member profile.`
+                        : 'HINDI MA-VERIFY: ang submitted identity ay hindi uniquely matched sa account records. Name-only approval is blocked.'
+                      : 'HINDI MA-VERIFY: legacy/expired request ito at walang active private auto-delivery session. Keep the record; ask the member to submit a new Admin Help request from the updated recovery screen.'}
                   </Text>
                 </View>
               )}
