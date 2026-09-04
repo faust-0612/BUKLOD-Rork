@@ -11,6 +11,7 @@ import BuklodMobileWebShell from '@/components/BuklodMobileWebShell';
 
 /*
  * BUKLOD_WEB_RESPONSIVE_SPLIT_R3
+ * BUKLOD_WEB_BOOT_RECOVERY_R1: keep the outer shell passive during auth hydration.
  *
  * One Expo web build serves both phone browsers and desktop browsers.
  * Do not infer "web" as "desktop": small viewports keep the original
