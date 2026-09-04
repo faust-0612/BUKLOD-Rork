@@ -28,6 +28,7 @@ import {
 import {
   useBuklodScope,
 } from '@/providers/BuklodScopeProvider';
+import { useAuth } from '@/providers/AuthProvider';
 
 type CanonicalSection =
   | 'home'
@@ -97,10 +98,80 @@ BuklodCanonicalNavigationGuard() {
   } =
     useBuklodScope();
 
+  const {
+    user,
+    loading: authLoading,
+  } = useAuth();
+
   const lastRedirectRef =
     useRef('');
 
+  /*
+   * BUKLOD_ACCOUNT_ISOLATION_R1
+   *
+   * Expo Router keeps the currently mounted route while Supabase swaps the
+   * authenticated identity. A real account change must never inherit the
+   * previous user's classroom/thread/workspace route.
+   *
+   * Ignore the first hydrated identity. After that, any identity transition
+   * resets navigation to a neutral route before normal canonical routing runs.
+   */
+  const previousAuthUserIdRef =
+    useRef<string | null | undefined>(undefined);
+  const accountResetInFlightRef =
+    useRef(false);
+
   useEffect(() => {
+    if (authLoading) {
+      return;
+    }
+
+    const nextUserId =
+      user?.id ?? null;
+    const previousUserId =
+      previousAuthUserIdRef.current;
+
+    if (previousUserId === undefined) {
+      previousAuthUserIdRef.current =
+        nextUserId;
+      return;
+    }
+
+    if (previousUserId === nextUserId) {
+      return;
+    }
+
+    previousAuthUserIdRef.current =
+      nextUserId;
+    lastRedirectRef.current = '';
+    accountResetInFlightRef.current = true;
+
+    router.replace(
+      nextUserId
+        ? ('/' as any)
+        : ('/(auth)/login' as any)
+    );
+  }, [
+    authLoading,
+    user?.id,
+  ]);
+
+  useEffect(() => {
+    if (accountResetInFlightRef.current) {
+      const normalizedAfterReset =
+        normalizeBuklodPathname(pathname);
+
+      if (
+        normalizedAfterReset === '/' ||
+        normalizedAfterReset === '/login' ||
+        normalizedAfterReset === '/(auth)/login'
+      ) {
+        accountResetInFlightRef.current = false;
+      }
+
+      return;
+    }
+
     const normalized =
       normalizeBuklodPathname(pathname);
 
