@@ -13,6 +13,7 @@ import { normalizeBuklodPathname } from '@/lib/buklodSafeArea';
  * One visible ad placement for every Focus App route family. Native resolves
  * AdMob; web resolves the AdSense/BUKLOD-sponsor bridge. The ad is a normal
  * layout element (never hidden behind content and never auto-refreshed).
+ * Release trigger: includes the shared Community reaction hover-drawer update.
  */
 
 const FOCUS_APP_ROUTE_PREFIXES = [
