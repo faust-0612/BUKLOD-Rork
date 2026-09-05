@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { supabase } from '@/lib/supabase';
 
+/* BUKLOD_AUTH_INFLIGHT_SHIELD_R1_RELEASE */
 /*
  * BUKLOD_LOGIN_LATENCY_GUARD_R2
  * Normal lifecycle checks are sub-second. Keep the safety gate authoritative,
