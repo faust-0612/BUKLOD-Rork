@@ -1,5 +1,6 @@
 /* BUKLOD_ROOT_PERFORMANCE_R3
  * BUKLOD_ROOT_PERFORMANCE_R3_6
+ * BUKLOD_AUTH_INFLIGHT_SHIELD_R1
  *
  * R3.6 targets the remaining request amplification seen after R3.5:
  * - safe read RPCs that were not yet allowlisted
@@ -8,7 +9,10 @@
  * - short backoff for transient upstream 5xx/52x failures on safe reads
  * - repeated stable table reads such as profile note / music library
  *
- * Mutations, auth calls, uploads, and unknown RPCs still bypass this cache.
+ * Auth requests are never cached. The narrow auth shield below only coalesces
+ * simultaneous identical GET /auth/v1/user checks and refresh-token requests
+ * inside the same runtime. Password logins, signups, user mutations, uploads,
+ * and unknown RPCs still bypass the cache and are never automatically retried.
  * Authorization remains server-side through Supabase RLS/RPC rules.
  */
 
@@ -184,6 +188,57 @@ function headerKey(input: FetchInput, init?: FetchInit): string {
   } catch {
     return '';
   }
+}
+
+function stableRuntimeHash(value: string): string {
+  let hash = 2166136261;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return (hash >>> 0).toString(36);
+}
+
+function isAuthInFlightOnlyRequest(
+  rawUrl: string,
+  method: string
+): boolean {
+  if (
+    method === 'GET' &&
+    /\/auth\/v1\/user(?:[?#]|$)/i.test(rawUrl)
+  ) {
+    return true;
+  }
+
+  return (
+    method === 'POST' &&
+    /\/auth\/v1\/token(?:[?#]|$)/i.test(rawUrl) &&
+    /(?:[?&])grant_type=refresh_token(?:&|$)/i.test(rawUrl)
+  );
+}
+
+async function authInFlightKey(
+  rawUrl: string,
+  method: string,
+  input: FetchInput,
+  init?: FetchInit
+): Promise<string> {
+  const headers = headerKey(input, init);
+  const body = await bodyKey(input, init);
+
+  /*
+   * Keep bearer/refresh-token material out of the in-memory Map key while
+   * still distinguishing different sessions and request payloads.
+   */
+  return [
+    'BUKLOD_AUTH_INFLIGHT_SHIELD_R1',
+    method,
+    rawUrl,
+    stableRuntimeHash(headers),
+    stableRuntimeHash(body),
+  ].join('::');
 }
 
 function rpcNameFromUrl(rawUrl: string): string | null {
@@ -395,6 +450,46 @@ export function createBuklodPerformanceFetch(
   ): Promise<Response> => {
     const rawUrl = rawUrlOf(input);
     const method = methodOf(input, init);
+
+    /*
+     * BUKLOD_AUTH_INFLIGHT_SHIELD_R1
+     *
+     * Supabase can legitimately have several consumers asking for the same
+     * current user or trying to refresh the same session at nearly the same
+     * instant. Under database pressure those duplicates amplify Auth work and
+     * can race refresh-token rotation. Collapse only identical requests that
+     * are concurrently in flight. Never cache them and never auto-retry them.
+     */
+    if (isAuthInFlightOnlyRequest(rawUrl, method)) {
+      const key = await authInFlightKey(
+        rawUrl,
+        method,
+        input,
+        init
+      );
+      const pending = state.inFlight.get(key);
+
+      if (pending) {
+        state.stats.inFlightHits += 1;
+        return fromSnapshot(await pending);
+      }
+
+      state.stats.network += 1;
+
+      const task = (async () => {
+        const response = await baseFetch(input, init);
+        return toSnapshot(response);
+      })();
+
+      state.inFlight.set(key, task);
+
+      try {
+        return fromSnapshot(await task);
+      } finally {
+        state.inFlight.delete(key);
+      }
+    }
+
     const ttlMs = ttlFor(rawUrl, method);
 
     /*
