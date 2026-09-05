@@ -23,11 +23,12 @@ export const SCALE_LIMITS = {
   /**
    * Inbox list safety poll (ms).
    *
-   * Direct/scope inboxes are realtime-first. Keep a slower fallback poll for
-   * missed reconnect events without making every mounted inbox hit Supabase
-   * every 90 seconds indefinitely.
+   * Direct/scope inboxes are realtime-first and reload immediately when their
+   * shared realtime channels receive a message. Keep only a five-minute
+   * fallback for missed reconnect events instead of repeatedly reloading every
+   * three minutes while an inbox stays mounted.
    */
-  messagesInboxPollMs: 180_000,
+  messagesInboxPollMs: 300_000,
   /**
    * Direct peer-read safety refresh while a thread is open (ms).
    * Read receipts are live-state data, but an 8s database poll is too
