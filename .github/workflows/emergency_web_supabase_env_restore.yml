@@ -122,3 +122,5 @@ jobs:
 
       - name: Restore status
         run: echo 'BUKLOD production web restored with EAS production Supabase environment.'
+
+# retrigger 2026-09-05 web env recovery
