@@ -1,3 +1,4 @@
+# Emergency restore retriggered 2026-09-05 for web-only production recovery.
 name: BUKLOD Emergency Web Restore Known Good
 
 on:
