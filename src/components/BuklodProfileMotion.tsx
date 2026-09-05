@@ -19,6 +19,7 @@ import {
   BuklodFocusFadeUp,
   useBuklodReduceMotion,
 } from '@/components/HomeMotion';
+import { useFacultyEntitlement } from '@/hooks/useFacultyEntitlement';
 
 const FOCUS_EASING = Easing.out(Easing.cubic);
 
@@ -119,7 +120,23 @@ type ProfilePressableProps = PressableProps & {
   wrapStyle?: StyleProp<ViewStyle>;
 };
 
-export function ProfilePressable({
+function nodeContainsText(node: React.ReactNode, target: string): boolean {
+  if (typeof node === 'string' || typeof node === 'number') {
+    return String(node).trim() === target;
+  }
+
+  if (Array.isArray(node)) {
+    return node.some(child => nodeContainsText(child, target));
+  }
+
+  if (React.isValidElement(node)) {
+    return nodeContainsText((node.props as { children?: React.ReactNode }).children, target);
+  }
+
+  return false;
+}
+
+function ProfilePressableBase({
   onPressIn,
   onPressOut,
   style,
@@ -169,4 +186,28 @@ export function ProfilePressable({
       </BuklodPressable>
     </Animated.View>
   );
+}
+
+function ClassroomLauncherProfilePressable(props: ProfilePressableProps) {
+  const { show_launcher: showLauncher, loading } = useFacultyEntitlement();
+
+  if (loading || !showLauncher) {
+    return null;
+  }
+
+  return <ProfilePressableBase {...props} />;
+}
+
+export function ProfilePressable(props: ProfilePressableProps) {
+  /* BUKLOD_CLASSROOM_LAUNCHER_GATE_R2
+   * The legacy Profile quick-action list still owns the visual placement of
+   * “My Classrooms”. Gate only that compatibility door here so ordinary users
+   * never see it while avoiding a risky rewrite of the large Profile screen.
+   * Classroom itself remains authorized server-side as well.
+   */
+  if (nodeContainsText(props.children, 'My Classrooms')) {
+    return <ClassroomLauncherProfilePressable {...props} />;
+  }
+
+  return <ProfilePressableBase {...props} />;
 }
