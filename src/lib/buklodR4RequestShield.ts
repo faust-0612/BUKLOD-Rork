@@ -48,6 +48,24 @@ const tableTtlMs: Record<string, number> = {
   buklod_cluster_attendance: 5_000,
 };
 
+/*
+ * PERF R1 HOT RPC SHIELD
+ *
+ * These are read-only RPCs that are repeatedly requested by Home / scope
+ * remounts. The request key already includes Authorization + request body,
+ * so user-scoped results cannot be shared across accounts.
+ *
+ * Keep TTLs intentionally short. This layer is for burst collapse and quick
+ * remounts, not long-lived application state.
+ */
+const rpcTtlMs: Record<string, number> = {
+  buklod_my_scopes: 30_000,
+  get_member_circle_ranks_v1: 60_000,
+  get_automatic_bible_today: 60_000,
+  get_buklod_points_leaderboard: 30_000,
+  get_my_daily_devotional: 60_000,
+};
+
 const invalidatedTables = new Set(Object.keys(tableTtlMs));
 
 function state(): ShieldState {
@@ -105,8 +123,13 @@ function rpcFromUrl(rawUrl: string): string | null {
 
 function ttlFor(rawUrl: string, method: string): number {
   const rpc = rpcFromUrl(rawUrl);
-  if (method === 'POST' && rpc === 'buklod_scope_social_feed_v1') {
-    return 2_500;
+
+  if (method === 'POST' && rpc) {
+    if (rpc === 'buklod_scope_social_feed_v1') {
+      return 2_500;
+    }
+
+    return rpcTtlMs[rpc] ?? 0;
   }
 
   if (method !== 'GET' && method !== 'HEAD') return 0;
