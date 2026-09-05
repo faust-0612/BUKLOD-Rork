@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
+  Linking,
   Alert,
   Pressable,
   RefreshControl,
@@ -92,6 +93,7 @@ export default function BuklodClassroomScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveTitle, setLiveTitle] = useState('Live Class');
   const [liveBusy, setLiveBusy] = useState(false);
+  const [quizBusy, setQuizBusy] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const load = useCallback(async () => {
@@ -157,6 +159,56 @@ export default function BuklodClassroomScreen() {
       pathname: '/profile/buklod-classroom-live' as any,
       params: { id: classroomId, sessionId: activeLive.id, name: className },
     });
+  };
+
+  /*
+   * BUKLOD_MAIN_CLASSROOM_QUIZ_ZERO_LOGIN_R15E
+   *
+   * R15C/R15D contract:
+   * Main is already authenticated to the canonical BUKLOD Connect project.
+   * The current Central session is handed to Quiz once; Quiz adopts it and
+   * immediately clears credentials from the browser address bar/history state.
+   * Manual Quiz Sign In remains fallback only for a direct standalone launch.
+   */
+  const openBuklodQuiz = async () => {
+    if (quizBusy) return;
+
+    setQuizBusy(true);
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) throw error;
+
+      const session = data.session;
+      const accessToken = String(session?.access_token ?? '');
+      const refreshToken = String(session?.refresh_token ?? '');
+
+      if (!accessToken || !refreshToken) {
+        Alert.alert(
+          'BUKLOD Quiz',
+          'Your BUKLOD Main session is not available. Sign in to BUKLOD Main again, then press ENTER BUKLOD QUIZ.',
+        );
+        return;
+      }
+
+      const query = [
+        'buklod_handoff=1',
+        'access_token=' + encodeURIComponent(accessToken),
+        'refresh_token=' + encodeURIComponent(refreshToken),
+      ].join('&');
+
+      await Linking.openURL(
+        'https://buklod-quiz.expo.app/?' + query,
+      );
+    } catch (error) {
+      Alert.alert(
+        'BUKLOD Quiz',
+        error instanceof Error
+          ? error.message
+          : 'Could not open BUKLOD Quiz with your current BUKLOD session.',
+      );
+    } finally {
+      setQuizBusy(false);
+    }
   };
 
   const openModule = (route: string) => {
@@ -284,6 +336,48 @@ export default function BuklodClassroomScreen() {
             style={[styles.liveInput, { backgroundColor: theme.surface, color: theme.ink, borderColor: theme.border }]}
           />
         )}
+
+        {/* BUKLOD_MAIN_CLASSROOM_QUIZ_ZERO_LOGIN_R15E */}
+        <Pressable
+          disabled={quizBusy}
+          onPress={() => void openBuklodQuiz()}
+          style={[
+            styles.liveCard,
+            {
+              backgroundColor: theme.drawer,
+              borderColor: theme.accent,
+              opacity: quizBusy ? 0.72 : 1,
+            },
+          ]}
+        >
+          <View style={[styles.liveFlag, { backgroundColor: theme.accent }]}>
+            <MaterialCommunityIcons
+              name="clipboard-check-outline"
+              size={20}
+              color={theme.drawer}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.liveTitle, { color: theme.drawerInk }]}>
+              {quizBusy ? 'OPENING BUKLOD QUIZ...' : 'ENTER BUKLOD QUIZ'}
+            </Text>
+            <Text style={[styles.liveMeta, { color: theme.drawerInk }]}>
+              {isFaculty
+                ? 'Examiner access uses your signed-in BUKLOD account automatically. No second login.'
+                : 'Your signed-in BUKLOD account is used automatically. Enter only the live class code in Quiz.'}
+            </Text>
+          </View>
+          <View style={[styles.liveAction, { backgroundColor: theme.accent }]}>
+            <Text style={[styles.liveActionText, { color: theme.drawer }]}>
+              {isFaculty ? 'Examiner' : 'Enter'}
+            </Text>
+            <MaterialCommunityIcons
+              name="arrow-right"
+              size={17}
+              color={theme.drawer}
+            />
+          </View>
+        </Pressable>
 
         <View style={styles.sectionHeading}>
           <View>
