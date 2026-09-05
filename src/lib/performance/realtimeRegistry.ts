@@ -7,7 +7,7 @@ type RegistryEntry = {
 };
 
 type SharedRegistryEntry<T = unknown> = RegistryEntry & {
-  listeners: Set<(payload: T) => void>;
+  listeners: Map<symbol, (payload: T) => void>;
 };
 
 const registry = new Map<string, RegistryEntry>();
@@ -45,18 +45,36 @@ export function acquireRealtimeSubscription(
     }
 
     existing.refs += 1;
-    return () =>
+
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
       releaseRealtimeSubscription(key, teardownGraceMs);
+    };
   }
 
-  registry.set(key, {
+  const entry: RegistryEntry = {
     refs: 1,
-    unsubscribe: subscribe(),
+    unsubscribe: () => {},
     teardownTimer: null,
-  });
+  };
 
-  return () =>
+  registry.set(key, entry);
+
+  try {
+    entry.unsubscribe = subscribe();
+  } catch (error) {
+    registry.delete(key);
+    throw error;
+  }
+
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
     releaseRealtimeSubscription(key, teardownGraceMs);
+  };
 }
 
 export function releaseRealtimeSubscription(
@@ -97,9 +115,9 @@ export function acquireSharedRealtimeSubscription<T>(
     | undefined;
 
   if (!entry) {
-    const listeners = new Set<(payload: T) => void>();
+    const listeners = new Map<symbol, (payload: T) => void>();
     const emit = (payload: T) => {
-      for (const nextListener of [...listeners]) {
+      for (const nextListener of [...listeners.values()]) {
         try {
           nextListener(payload);
         } catch {
@@ -111,11 +129,18 @@ export function acquireSharedRealtimeSubscription<T>(
     entry = {
       refs: 0,
       listeners,
-      unsubscribe: subscribe(emit),
+      unsubscribe: () => {},
       teardownTimer: null,
     };
 
     sharedRegistry.set(key, entry);
+
+    try {
+      entry.unsubscribe = subscribe(emit);
+    } catch (error) {
+      sharedRegistry.delete(key);
+      throw error;
+    }
   }
 
   if (entry.teardownTimer) {
@@ -123,8 +148,9 @@ export function acquireSharedRealtimeSubscription<T>(
     entry.teardownTimer = null;
   }
 
+  const listenerToken = Symbol(key);
   entry.refs += 1;
-  entry.listeners.add(listener);
+  entry.listeners.set(listenerToken, listener);
 
   let released = false;
 
@@ -138,7 +164,7 @@ export function acquireSharedRealtimeSubscription<T>(
 
     if (!current) return;
 
-    current.listeners.delete(listener);
+    current.listeners.delete(listenerToken);
     current.refs = Math.max(0, current.refs - 1);
 
     if (current.refs > 0 || current.teardownTimer) return;
