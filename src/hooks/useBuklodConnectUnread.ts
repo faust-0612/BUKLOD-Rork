@@ -1,4 +1,5 @@
 ﻿import { useCallback, useEffect, useState } from 'react';
+import { acquireSharedRealtimeSubscription } from '@/lib/performance';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { SCALE_LIMITS } from '@/lib/performanceScale';
@@ -104,7 +105,9 @@ export function useBuklodConnectUnread() {
       }
 
       let active = true;
-      let channel: any = null;
+      let releaseRealtime:
+        (() => void)
+        | null = null;
       let pollTimer:
         ReturnType<typeof setInterval>
         | null = null;
@@ -144,7 +147,7 @@ export function useBuklodConnectUnread() {
                 (row: any) =>
                   row?.thread_id
               )
-            );
+            ).sort();
 
           const scopeIds =
             uniqueIds(
@@ -152,65 +155,80 @@ export function useBuklodConnectUnread() {
                 (row: any) =>
                   row?.scope_id
               )
-            );
-
-          const sessionKey = `${Date.now()}:${Math.random()
-            .toString(36)
-            .slice(2)}`;
-
-          let nextChannel: any =
-            supabase.channel(
-              `connect-unread-filtered-${profileId}:${sessionKey}`
-            );
-
-          for (
-            const ids of
-            chunkIds(threadIds)
-          ) {
-            nextChannel =
-              nextChannel.on(
-                'postgres_changes',
-                {
-                  event: 'INSERT',
-                  schema: 'public',
-                  table:
-                    'buklod_connect_direct_messages',
-                  filter:
-                    `thread_id=in.(${ids.join(',')})`,
-                },
-                () => {
-                  void refresh();
-                }
-              );
-          }
-
-          for (
-            const ids of
-            chunkIds(scopeIds)
-          ) {
-            nextChannel =
-              nextChannel.on(
-                'postgres_changes',
-                {
-                  event: 'INSERT',
-                  schema: 'public',
-                  table:
-                    'buklod_connect_scope_messages',
-                  filter:
-                    `scope_id=in.(${ids.join(',')})`,
-                },
-                () => {
-                  void refresh();
-                }
-              );
-          }
+            ).sort();
 
           if (
             threadIds.length > 0 ||
             scopeIds.length > 0
           ) {
-            channel =
-              nextChannel.subscribe();
+            const registryKey =
+              `connect-unread-filtered:${profileId}:threads=${threadIds.join(',')}:scopes=${scopeIds.join(',')}`;
+
+            releaseRealtime =
+              acquireSharedRealtimeSubscription(
+                registryKey,
+                () => {
+                  void refresh();
+                },
+                emit => {
+                  let nextChannel: any =
+                    supabase.channel(
+                      registryKey
+                    );
+
+                  for (
+                    const ids of
+                    chunkIds(threadIds)
+                  ) {
+                    nextChannel =
+                      nextChannel.on(
+                        'postgres_changes',
+                        {
+                          event: 'INSERT',
+                          schema: 'public',
+                          table:
+                            'buklod_connect_direct_messages',
+                          filter:
+                            `thread_id=in.(${ids.join(',')})`,
+                        },
+                        (payload: unknown) => {
+                          emit(payload);
+                        }
+                      );
+                  }
+
+                  for (
+                    const ids of
+                    chunkIds(scopeIds)
+                  ) {
+                    nextChannel =
+                      nextChannel.on(
+                        'postgres_changes',
+                        {
+                          event: 'INSERT',
+                          schema: 'public',
+                          table:
+                            'buklod_connect_scope_messages',
+                          filter:
+                            `scope_id=in.(${ids.join(',')})`,
+                        },
+                        (payload: unknown) => {
+                          emit(payload);
+                        }
+                      );
+                  }
+
+                  const subscribed =
+                    nextChannel.subscribe();
+
+                  return () => {
+                    void supabase
+                      .removeChannel(
+                        subscribed
+                      );
+                  };
+                }
+              );
           }
 
           /*
@@ -239,11 +257,8 @@ export function useBuklodConnectUnread() {
           );
         }
 
-        if (channel) {
-          void supabase
-            .removeChannel(
-              channel
-            );
+        if (releaseRealtime) {
+          releaseRealtime();
         }
       };
     },
