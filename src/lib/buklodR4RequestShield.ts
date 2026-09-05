@@ -32,6 +32,15 @@ const GLOBAL_KEY = '__BUKLOD_R4_REQUEST_SHIELD__';
 const MAX_ENTRIES = 300;
 
 const tableTtlMs: Record<string, number> = {
+  /*
+   * PERF R1 PROFILE/AVATAR SHIELD
+   *
+   * Profile display/avatar lookups are a very hot read path. Keep this TTL
+   * short enough for UI freshness while collapsing repeated remount/list
+   * reads. Any successful profile write invalidates all cached profile reads
+   * through invalidatedTables below.
+   */
+  profiles: 60_000,
   mission_bulletins: 10_000,
   devotional_completions: 10_000,
   buklod_scopes: 10_000,
