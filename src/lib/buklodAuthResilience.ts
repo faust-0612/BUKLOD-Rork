@@ -3,8 +3,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { supabase } from '@/lib/supabase';
 
-const AUTH_LIFECYCLE_TIMEOUT_MS = 5_500;
-const AUTH_PROFILE_FALLBACK_TIMEOUT_MS = 3_500;
+/*
+ * BUKLOD_LOGIN_LATENCY_GUARD_R2
+ * Normal lifecycle checks are sub-second. Keep the safety gate authoritative,
+ * but do not let a saturated database hold an already-authenticated login for
+ * 5.5s plus another 3.5s fallback window.
+ */
+const AUTH_LIFECYCLE_TIMEOUT_MS = 1_800;
+const AUTH_PROFILE_FALLBACK_TIMEOUT_MS = 1_500;
+const AUTH_LOCAL_SESSION_TIMEOUT_MS = 1_200;
 const AUTH_LOCAL_SIGN_OUT_TIMEOUT_MS = 2_500;
 
 function authErrorText(error: any): string {
@@ -156,7 +163,7 @@ export async function resolveBuklodAccountLifecycleAfterLogin():
   const sessionResult =
     await withBuklodTimeout<any>(
       supabase.auth.getSession(),
-      1_500,
+      AUTH_LOCAL_SESSION_TIMEOUT_MS,
       'BUKLOD local session'
     ).catch(() => ({
       data: null,
