@@ -43,6 +43,7 @@ const ITEMS: DrawerItem[] = [
   { key: 'materials', label: 'Materials', icon: 'bookshelf', route: '/profile/buklod-classroom-materials' },
   { key: 'attendance', label: 'Attendance', icon: 'calendar-check-outline', route: '/profile/buklod-classroom-attendance', roles: ['STUDENT'] },
   { key: 'grades', label: 'My Grades', icon: 'school-outline', route: '/profile/buklod-classroom-grades', roles: ['STUDENT'] },
+  { key: 'student-plus', label: 'Student Plus', icon: 'star-four-points-outline', route: '/profile/buklod-classroom-student-plus', roles: ['STUDENT'] },
   { key: 'monitor', label: 'Class Monitor', icon: 'chart-timeline-variant-shimmer', route: '/profile/buklod-classroom-monitor' },
   { key: 'faculty', label: 'Faculty Command Center', icon: 'human-male-board', route: '/profile/buklod-faculty-class', roles: ['FACULTY'] },
 ];
@@ -136,9 +137,9 @@ export function ClassroomDrawer({
                 ]}
               >
                 <View style={[styles.menuIcon, { backgroundColor: `${theme.drawerInk}12` }]}>
-                  <MaterialCommunityIcons name={item.icon} size={20} color={theme.drawerInk} />
+                  <MaterialCommunityIcons name={item.icon} size={20} color={item.key === 'student-plus' ? theme.accent : theme.drawerInk} />
                 </View>
-                <Text style={[styles.menuText, { color: theme.drawerInk }]}>{item.label}</Text>
+                <Text style={[styles.menuText, { color: item.key === 'student-plus' ? theme.accent : theme.drawerInk }]}>{item.label}</Text>
                 <MaterialCommunityIcons name="arrow-top-right" size={16} color={`${theme.drawerInk}88`} />
               </Pressable>
             ))}
@@ -179,7 +180,7 @@ export function ClassroomDrawer({
 
           <View style={[styles.footer, { borderTopColor: `${theme.drawerInk}18` }]}>
             <MaterialCommunityIcons name="gesture-tap" size={18} color={theme.accent} />
-            <Text style={[styles.footerText, { color: theme.muted }]}>Drawer navigation • classroom-only theme • no change to global BUKLOD colors</Text>
+            <Text style={[styles.footerText, { color: theme.muted }]}>Drawer navigation • classroom-only theme • Student Plus never blocks core class access</Text>
           </View>
         </Animated.View>
       </View>
