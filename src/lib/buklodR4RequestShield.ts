@@ -78,6 +78,10 @@ const rpcTtlMs: Record<string, number> = {
   // Authorization remains part of the request key and no writes are cached.
   buklod_connect_personal_threads: 10_000,
   buklod_connect_community_rooms: 10_000,
+  // Suggested contacts is a read-only, user-scoped Connect discovery query.
+  // Keep it short so membership/note changes surface quickly while remount
+  // bursts share one request instead of recomputing the same peer graph.
+  buklod_connect_suggested_contacts_v1: 10_000,
   // Runtime config controls maintenance/update/pilot gates, so keep this very
   // short: enough to collapse bootstrap/remount bursts without masking a new
   // server-side gate for more than a few seconds on an already-open client.
