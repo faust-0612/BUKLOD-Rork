@@ -19,6 +19,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: perf/r2-connect-unread-shared-realtime
+          fetch-depth: 2
 
       - name: Set up Node
         uses: actions/setup-node@v4
