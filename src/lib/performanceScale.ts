@@ -31,11 +31,13 @@ export const SCALE_LIMITS = {
   messagesInboxPollMs: 300_000,
   /**
    * Direct peer-read safety refresh while a thread is open (ms).
-   * Read receipts are live-state data, but an 8s database poll is too
-   * aggressive at scale. Keep a 30s fallback window for missed realtime or
-   * reconnect events without turning each open chat into a request loop.
+   *
+   * Keep an initial authoritative refresh when the thread opens, then use a
+   * one-minute safety poll. This cuts steady-state read-receipt RPC traffic in
+   * half versus the previous 30s loop while preserving eventual "seen" state
+   * recovery when no dedicated read-receipt realtime event is available.
    */
-  connectPeerReadPollMs: 30_000,
+  connectPeerReadPollMs: 60_000,
   /** Supabase realtime events per second cap. */
   realtimeEventsPerSecond: 8,
   /** Max community posts kept in local cache. */
