@@ -46,7 +46,7 @@ jobs:
             post_share_requests \
             reactions
           do
-            count="$((grep -RIl --exclude-dir=node_modules --exclude-dir=.git --include='*.ts' --include='*.tsx' "$t" src || true) | wc -l | tr -d ' ')"
+            count="$( (grep -RIl --exclude-dir=node_modules --exclude-dir=.git --include='*.ts' --include='*.tsx' "$t" src || true) | wc -l | tr -d ' ')"
             echo "$t files=$count"
             if [ "$count" -gt 0 ]; then
               grep -RIn --exclude-dir=node_modules --exclude-dir=.git --include='*.ts' --include='*.tsx' "$t" src || true
