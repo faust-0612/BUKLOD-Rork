@@ -16,6 +16,7 @@ import {
   readPersistedSupabaseSession,
   writeAuthSnapshot,
 } from '@/lib/buklodAuthSnapshot';
+import { cachedQuery } from '@/lib/performance';
 
 export type AppRole =
   | 'member'
@@ -101,6 +102,12 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 const AUTH_SESSION_TIMEOUT_MS = 8000;
 const AUTH_QUERY_TIMEOUT_MS = 4500;
 
+/* BUKLOD_PERFORMANCE_AUTH_CACHE_R1 */
+const AUTH_PROFILE_TTL_MS = 60_000;
+const AUTH_ROLES_TTL_MS = 60_000;
+const AUTH_MEMBERSHIP_TTL_MS = 30_000;
+const AUTH_STALE_MS = 5 * 60_000;
+
 export function AuthProvider({
   children,
 }: {
@@ -119,36 +126,50 @@ export function AuthProvider({
 
   const loadRoles = async (
     userId?: string,
-    legacyRole?: AppRole | null
+    legacyRole?: AppRole | null,
+    force = false,
   ): Promise<AppRole[]> => {
     if (!userId) {
       setRoles([]);
       return [];
     }
 
-    const { data, error } =
-      await withBuklodTimeout(
-        supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', userId)
-          .eq('is_active', true),
-        AUTH_QUERY_TIMEOUT_MS,
-        'BUKLOD roles'
-      ).catch((nextError: any) => ({
-        data: null,
-        error: {
-          message: String(
-            nextError?.message ??
-              nextError ??
-              'Role request timed out.'
-          ),
+    let data: any[] | null = null;
+
+    try {
+      data = await cachedQuery<any[]>(
+        `auth:roles:${userId}`,
+        async () => {
+          const result = await withBuklodTimeout(
+            supabase
+              .from('user_roles')
+              .select('role')
+              .eq('user_id', userId)
+              .eq('is_active', true),
+            AUTH_QUERY_TIMEOUT_MS,
+            'BUKLOD roles'
+          );
+
+          if (result.error) {
+            throw new Error(result.error.message);
+          }
+
+          return result.data ?? [];
         },
-      }));
+        {
+          ttlMs: AUTH_ROLES_TTL_MS,
+          staleMs: AUTH_STALE_MS,
+          force,
+        },
+      );
+    } catch (error: any) {
+      console.warn(
+        'Role load failed:',
+        String(error?.message ?? error ?? 'Role request failed.')
+      );
+    }
 
-    if (error) {
-      console.warn('Role load failed:', error.message);
-
+    if (!data) {
       const fallback: AppRole[] =
         legacyRole === 'system_admin'
           ? ['system_admin']
@@ -168,7 +189,7 @@ export function AuthProvider({
 
     const nextRoles = Array.from(
       new Set(
-        (data ?? [])
+        data
           .map((row: any) => row.role as AppRole)
           .filter((role: AppRole) => VALID_ROLES.includes(role))
       )
@@ -188,7 +209,8 @@ export function AuthProvider({
   const loadMembership = async (
     userId?: string,
     _activeRoles: AppRole[] = [],
-    knownVerified?: boolean | null
+    knownVerified?: boolean | null,
+    force = false,
   ) => {
     if (!userId) {
       setMembershipState('none');
@@ -202,39 +224,40 @@ export function AuthProvider({
      * Do not repeat the same profiles query during normal bootstrap.
      */
     if (isVerified == null) {
-      const {
-        data: verification,
-        error: verificationError,
-      } = await withBuklodTimeout(
-        supabase
-          .from('profiles')
-          .select('is_verified')
-          .eq('id', userId)
-          .maybeSingle(),
-        AUTH_QUERY_TIMEOUT_MS,
-        'BUKLOD verification'
-      ).catch((nextError: any) => ({
-        data: null,
-        error: {
-          message: String(
-            nextError?.message ??
-              nextError ??
-              'Verification request timed out.'
-          ),
-        },
-      }));
+      try {
+        isVerified = await cachedQuery<boolean>(
+          `auth:verified:${userId}`,
+          async () => {
+            const verification = await withBuklodTimeout(
+              supabase
+                .from('profiles')
+                .select('is_verified')
+                .eq('id', userId)
+                .maybeSingle(),
+              AUTH_QUERY_TIMEOUT_MS,
+              'BUKLOD verification'
+            );
 
-      if (verificationError) {
+            if (verification.error) {
+              throw new Error(verification.error.message);
+            }
+
+            return verification.data?.is_verified === true;
+          },
+          {
+            ttlMs: AUTH_PROFILE_TTL_MS,
+            staleMs: AUTH_STALE_MS,
+            force,
+          },
+        );
+      } catch (error: any) {
         console.warn(
           'Verification load failed:',
-          verificationError.message
+          String(error?.message ?? error ?? 'Verification request failed.')
         );
         setMembershipState('pending');
         return;
       }
-
-      isVerified =
-        verification?.is_verified === true;
     }
 
     if (isVerified === true) {
@@ -242,50 +265,56 @@ export function AuthProvider({
       return;
     }
 
-    const {
-      data: request,
-      error: requestError,
-    } = await withBuklodTimeout(
-      supabase
-        .from('church_join_requests')
-        .select('status')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      AUTH_QUERY_TIMEOUT_MS,
-      'BUKLOD membership'
-    ).catch((nextError: any) => ({
-      data: null,
-      error: {
-        message: String(
-          nextError?.message ??
-            nextError ??
-            'Membership request timed out.'
-        ),
-      },
-    }));
+    try {
+      const status = await cachedQuery<string | null>(
+        `auth:membership:${userId}`,
+        async () => {
+          const request = await withBuklodTimeout(
+            supabase
+              .from('church_join_requests')
+              .select('status')
+              .eq('user_id', userId)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle(),
+            AUTH_QUERY_TIMEOUT_MS,
+            'BUKLOD membership'
+          );
 
-    if (requestError) {
+          if (request.error) {
+            throw new Error(request.error.message);
+          }
+
+          return request.data?.status ?? null;
+        },
+        {
+          ttlMs: AUTH_MEMBERSHIP_TTL_MS,
+          staleMs: AUTH_STALE_MS,
+          force,
+        },
+      );
+
+      if (status === 'rejected') {
+        setMembershipState('rejected');
+        return;
+      }
+
+      setMembershipState('pending');
+    } catch (error: any) {
       console.warn(
         'Membership load failed:',
-        requestError.message
+        String(error?.message ?? error ?? 'Membership request failed.')
       );
       setMembershipState((current) =>
         current === 'loading' ? 'pending' : current
       );
-      return;
     }
-
-    if (request?.status === 'rejected') {
-      setMembershipState('rejected');
-      return;
-    }
-
-    setMembershipState('pending');
   };
 
-  const loadProfile = async (userId?: string) => {
+  const loadProfile = async (
+    userId?: string,
+    force = false,
+  ) => {
     if (!userId) {
       setProfile(null);
       setRoles([]);
@@ -306,32 +335,42 @@ export function AuthProvider({
       );
     }
 
-    const { data, error } =
-      await withBuklodTimeout(
-        supabase
-          .from('profiles')
-          .select(
-            'id,full_name,first_name,middle_name,surname,suffix,mobile,sex,username,login_method,login_identifier,avatar_url,church_id,connection_type,trust_level,is_verified,role,is_active'
-          )
-          .eq('id', userId)
-          .single(),
-        AUTH_QUERY_TIMEOUT_MS,
-        'BUKLOD profile'
-      ).catch((nextError: any) => ({
-        data: null,
-        error: {
-          message: String(
-            nextError?.message ??
-              nextError ??
-              'Profile request timed out.'
-          ),
-        },
-      }));
+    let nextProfile: Profile | null = null;
 
-    if (error || !data) {
+    try {
+      nextProfile = await cachedQuery<Profile>(
+        `auth:profile:${userId}`,
+        async () => {
+          const result = await withBuklodTimeout(
+            supabase
+              .from('profiles')
+              .select(
+                'id,full_name,first_name,middle_name,surname,suffix,mobile,sex,username,login_method,login_identifier,avatar_url,church_id,connection_type,trust_level,is_verified,role,is_active'
+              )
+              .eq('id', userId)
+              .single(),
+            AUTH_QUERY_TIMEOUT_MS,
+            'BUKLOD profile'
+          );
+
+          if (result.error || !result.data) {
+            throw new Error(
+              result.error?.message ?? 'Profile not available.'
+            );
+          }
+
+          return result.data as Profile;
+        },
+        {
+          ttlMs: AUTH_PROFILE_TTL_MS,
+          staleMs: AUTH_STALE_MS,
+          force,
+        },
+      );
+    } catch (error: any) {
       console.warn(
         'Profile load failed:',
-        error?.message ?? 'Profile not available.'
+        String(error?.message ?? error ?? 'Profile request failed.')
       );
 
       if (cachedSnapshot) {
@@ -344,22 +383,24 @@ export function AuthProvider({
       return;
     }
 
-    const nextProfile = data as Profile;
     setProfile(nextProfile);
 
     /*
      * Roles and membership are independent after the profile row
      * is known. Run them together instead of serially.
+     * cachedQuery collapses concurrent callers for this same user.
      */
     const [nextRoles] = await Promise.all([
       loadRoles(
         userId,
-        nextProfile.role
+        nextProfile.role,
+        force,
       ),
       loadMembership(
         userId,
         [],
-        nextProfile.is_verified ?? null
+        nextProfile.is_verified ?? null,
+        force,
       ),
     ]);
 
@@ -395,16 +436,16 @@ export function AuthProvider({
           return;
         }
 
-        const session =
+        const nextSession =
           data.session ??
           (await readPersistedSupabaseSession());
 
-        setSession(session);
+        setSession(nextSession);
         sessionUserIdRef.current =
-          session?.user?.id ?? null;
+          nextSession?.user?.id ?? null;
 
         await loadProfile(
-          session?.user.id
+          nextSession?.user.id
         );
       })
       .catch(async (error: any) => {
@@ -496,7 +537,8 @@ export function AuthProvider({
 
           /*
            * Keep the auth callback synchronous. Defer database
-           * hydration outside the auth event callback.
+           * hydration outside the auth event callback. Repeated
+           * same-user events share the same cached/in-flight reads.
            */
           setTimeout(() => {
             if (disposed) {
@@ -561,25 +603,33 @@ export function AuthProvider({
       hasAnyRole,
 
       refreshProfile: async () => {
-        await loadProfile(session?.user.id);
+        await loadProfile(
+          session?.user.id,
+          true,
+        );
       },
 
       refreshRoles: async () => {
         const nextRoles = await loadRoles(
           session?.user.id,
-          profile?.role
+          profile?.role,
+          true,
         );
 
         await loadMembership(
           session?.user.id,
-          nextRoles
+          nextRoles,
+          profile?.is_verified ?? null,
+          true,
         );
       },
 
       refreshMembership: async () => {
         await loadMembership(
           session?.user.id,
-          roles
+          roles,
+          profile?.is_verified ?? null,
+          true,
         );
       },
 
