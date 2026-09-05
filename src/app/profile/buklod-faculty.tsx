@@ -21,7 +21,6 @@ import {
   type FacultyClassroomRef,
 } from '@/lib/education/facultyAutopilot';
 import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
-
 import { FacultyGate } from '@/components/faculty/FacultyGate';
 
 type Classroom = {
@@ -32,6 +31,8 @@ type Classroom = {
   school_year: string | null;
   term: string | null;
   status: string;
+  faculty_role: 'PRIMARY' | 'TEACHER' | 'CO_TEACHER' | 'ASSISTANT';
+  faculty_permissions: Record<string, boolean>;
 };
 
 type DashboardStats = {
@@ -47,6 +48,13 @@ const EMPTY_STATS: DashboardStats = {
   pendingGrades: 0,
   openAttendance: 0,
 };
+
+function facultyRoleLabel(role: Classroom['faculty_role']) {
+  if (role === 'PRIMARY') return 'Primary Faculty';
+  if (role === 'CO_TEACHER') return 'Co-Teacher';
+  if (role === 'ASSISTANT') return 'Assistant';
+  return 'Teacher';
+}
 
 export default function BuklodFacultyScreen() {
   const [classes, setClasses] = useState<Classroom[]>([]);
@@ -67,63 +75,34 @@ export default function BuklodFacultyScreen() {
   );
 
   const load = useCallback(async () => {
-    const { data: auth } = await supabase.auth.getUser();
-    const uid = auth.user?.id;
-    if (!uid) return;
+    const [classesRes, statsRes] = await Promise.all([
+      (supabase as any).rpc('buklod_education_faculty_my_classrooms_v1'),
+      (supabase as any).rpc('buklod_education_faculty_dashboard_stats_v1'),
+    ]);
 
-    const { data: classroomRows, error } = await supabase
-      .from('buklod_education_classrooms')
-      .select('id,name,subject_code,section_name,school_year,term,status')
-      .eq('faculty_user_id', uid)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      Alert.alert('BUKLOD Faculty', error.message);
+    if (classesRes.error) {
+      Alert.alert('BUKLOD Faculty', classesRes.error.message);
+      return;
+    }
+    if (statsRes.error) {
+      Alert.alert('BUKLOD Faculty', statsRes.error.message);
       return;
     }
 
-    const rows = (classroomRows ?? []) as Classroom[];
+    const rows = (classesRes.data ?? []) as Classroom[];
+    const nextStats = statsRes.data ?? {};
+
     setClasses(rows);
-
-    const ids = rows.map(item => item.id);
-    let students = 0;
-    let pendingGrades = 0;
-    let openAttendance = 0;
-
-    if (ids.length > 0) {
-      const [enrollmentRes, gradesRes, attendanceRes] = await Promise.all([
-        supabase
-          .from('buklod_education_enrollments')
-          .select('id', { count: 'exact', head: true })
-          .in('classroom_id', ids)
-          .eq('status', 'ACTIVE'),
-        supabase
-          .from('buklod_education_grades')
-          .select('id', { count: 'exact', head: true })
-          .in('classroom_id', ids)
-          .in('status', ['DRAFT', 'COMPUTED', 'REVIEWED']),
-        supabase
-          .from('buklod_education_attendance_sessions')
-          .select('id', { count: 'exact', head: true })
-          .in('classroom_id', ids)
-          .is('closed_at', null),
-      ]);
-
-      students = enrollmentRes.count ?? 0;
-      pendingGrades = gradesRes.count ?? 0;
-      openAttendance = attendanceRes.count ?? 0;
-    }
-
     setStats({
-      classrooms: rows.filter(item => item.status === 'ACTIVE').length,
-      students,
-      pendingGrades,
-      openAttendance,
+      classrooms: Number(nextStats.classrooms ?? rows.length),
+      students: Number(nextStats.students ?? 0),
+      pendingGrades: Number(nextStats.pending_grades ?? 0),
+      openAttendance: Number(nextStats.open_attendance ?? 0),
     });
   }, []);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   const refresh = async () => {
@@ -136,7 +115,7 @@ export default function BuklodFacultyScreen() {
     if (activeClasses.length === 0) {
       Alert.alert(
         'Select a class',
-        'Create a class first. Autopilot tools stay inside that classroom.'
+        'Create a class or wait until you are actively assigned to a classroom.'
       );
       return;
     }
@@ -188,194 +167,202 @@ export default function BuklodFacultyScreen() {
 
   return (
     <FacultyGate>
-    <>
-      <ScrollView
-        style={[styles.screen, { backgroundColor: theme.canvas }]}
-        contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
-      >
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.eyebrow}>ACADEMIC OPERATIONS</Text>
-            <Text style={styles.title}>BUKLOD Faculty</Text>
-            <Text style={styles.subtitle}>
-              Teach more. Let BUKLOD handle routine academic operations.
+      <>
+        <ScrollView
+          style={[styles.screen, { backgroundColor: theme.canvas }]}
+          contentContainerStyle={styles.content}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+        >
+          <View style={styles.header}>
+            <Text style={[styles.eyebrow, { color: theme.accent }]}>ACADEMIC OPERATIONS</Text>
+            <Text style={[styles.title, { color: theme.textPrimary }]}>BUKLOD Faculty</Text>
+            <Text style={[styles.subtitle, { color: theme.textMuted }]}> 
+              One Faculty entitlement covers Classroom, Attendance, and Quiz examiner access. Specific classroom controls still follow your active assignment and faculty role.
             </Text>
           </View>
-        </View>
 
-        <View style={styles.statsGrid}>
-          {[
-            ['Active Classes', stats.classrooms],
-            ['Active Students', stats.students],
-            ['Grades to Review', stats.pendingGrades],
-            ['Open Attendance', stats.openAttendance],
-          ].map(([label, value]) => (
-            <View key={String(label)} style={styles.statCard}>
-              <Text style={styles.statValue}>{String(value)}</Text>
-              <Text style={styles.statLabel}>{String(label)}</Text>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>My Class</Text>
-          <Pressable style={styles.primarySmall} onPress={() => setShowCreate(true)}>
-            <MaterialCommunityIcons name="plus" size={19} color="#fff" />
-            <Text style={styles.primarySmallText}>Create</Text>
-          </Pressable>
-        </View>
-
-        {activeClasses.length === 0 ? (
-          <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>No active class yet</Text>
-            <Text style={styles.emptyText}>
-              Create a class. Students, materials, attendance, assessments, and grades
-              will be tied to that classroom.
-            </Text>
+          <View style={styles.statsGrid}>
+            {[
+              ['Assigned Classes', stats.classrooms],
+              ['Active Students', stats.students],
+              ['Grades to Review', stats.pendingGrades],
+              ['Open Attendance', stats.openAttendance],
+            ].map(([label, value]) => (
+              <View key={String(label)} style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                <Text style={[styles.statValue, { color: theme.textPrimary }]}>{String(value)}</Text>
+                <Text style={[styles.statLabel, { color: theme.textMuted }]}>{String(label)}</Text>
+              </View>
+            ))}
           </View>
-        ) : (
-          activeClasses.map(item => (
-            <Pressable
-              key={item.id}
-              style={styles.classCard}
-              onPress={() =>
-                router.push({
-                  pathname: '/profile/buklod-faculty-class' as any,
-                  params: { id: item.id, name: item.name },
-                })
-              }
-            >
-              <View style={styles.classIcon}>
-                <MaterialCommunityIcons name="google-classroom" size={26} color="#1f7a3f" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.classTitle}>{item.name}</Text>
-                <Text style={styles.classMeta}>
-                  {[item.subject_code, item.section_name].filter(Boolean).join(' • ') || 'Active classroom'}
-                </Text>
-              </View>
+
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>My Classes</Text>
+            <Pressable style={[styles.primarySmall, { backgroundColor: theme.accent }]} onPress={() => setShowCreate(true)}>
+              <MaterialCommunityIcons name="plus" size={19} color="#fff" />
+              <Text style={styles.primarySmallText}>Create</Text>
             </Pressable>
-          ))
-        )}
-
-        <Text style={styles.sectionTitle}>Faculty Autopilot</Text>
-        <Text style={styles.toolText}>
-          {activeClasses.length > 1
-            ? 'Choose a class, then open the tool. Work stays inside that classroom.'
-            : 'Each card opens the live classroom tool. No placeholder metrics.'}
-        </Text>
-
-        {FACULTY_AUTOPILOT_MODULES.map(module => (
-          <Pressable
-            key={module.key}
-            style={({ pressed }) => [styles.toolCard, pressed && { opacity: 0.88 }]}
-            onPress={() => openModule(module)}
-          >
-            <MaterialCommunityIcons name={module.icon as any} size={24} color={theme.accent} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.toolTitle}>{module.title}</Text>
-              <Text style={styles.toolText}>{module.description}</Text>
-            </View>
-            <MaterialCommunityIcons name="chevron-right" size={22} color="#9aa59c" />
-          </Pressable>
-        ))}
-      </ScrollView>
-
-      <Modal visible={showCreate} transparent animationType="fade" onRequestClose={() => setShowCreate(false)}>
-        <View style={styles.modalShade}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Create Class</Text>
-
-            <Text style={styles.label}>Class / Subject Name</Text>
-            <TextInput value={name} onChangeText={setName} placeholder="e.g. Community Health Nursing II" style={styles.input} />
-
-            <Text style={styles.label}>Subject Code</Text>
-            <TextInput value={code} onChangeText={setCode} placeholder="e.g. CHN 2" style={styles.input} />
-
-            <Text style={styles.label}>Section</Text>
-            <TextInput value={section} onChangeText={setSection} placeholder="e.g. BSN 3A" style={styles.input} />
-
-            <View style={styles.modalActions}>
-              <Pressable style={styles.secondary} onPress={() => setShowCreate(false)}>
-                <Text style={styles.secondaryText}>Cancel</Text>
-              </Pressable>
-              <Pressable disabled={busy} style={styles.primary} onPress={createClass}>
-                <Text style={styles.primaryText}>{busy ? 'Creating...' : 'Create Class'}</Text>
-              </Pressable>
-            </View>
           </View>
-        </View>
-      </Modal>
 
-      <Modal visible={showClassPick} transparent animationType="fade" onRequestClose={() => setShowClassPick(false)}>
-        <View style={styles.modalShade}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Choose class</Text>
-            <Text style={styles.toolText}>
-              {pendingModule?.title ?? 'Autopilot'} will open inside the class you select.
-            </Text>
-            {activeClasses.map(item => (
+          {activeClasses.length === 0 ? (
+            <View style={[styles.empty, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>No assigned class yet</Text>
+              <Text style={[styles.emptyText, { color: theme.textMuted }]}> 
+                Create a class as Primary Faculty, or wait until a Primary Faculty assigns you as Teacher, Co-Teacher, or Assistant.
+              </Text>
+            </View>
+          ) : (
+            activeClasses.map(item => (
               <Pressable
                 key={item.id}
-                style={({ pressed }) => [styles.classCard, pressed && { opacity: 0.88 }]}
-                onPress={() => pickClass(item)}
+                style={[styles.classCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
+                onPress={() =>
+                  router.push({
+                    pathname: '/profile/buklod-faculty-class' as any,
+                    params: { id: item.id, classroomId: item.id, name: item.name },
+                  })
+                }
               >
-                <View style={styles.classIcon}>
-                  <MaterialCommunityIcons name="google-classroom" size={22} color="#1f7a3f" />
+                <View style={[styles.classIcon, { backgroundColor: theme.accentSoft }]}>
+                  <MaterialCommunityIcons name="google-classroom" size={26} color={theme.accent} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.classTitle}>{item.name}</Text>
-                  <Text style={styles.classMeta}>
+                  <Text style={[styles.classTitle, { color: theme.textPrimary }]}>{item.name}</Text>
+                  <Text style={[styles.classMeta, { color: theme.textMuted }]}> 
                     {[item.subject_code, item.section_name].filter(Boolean).join(' • ') || 'Active classroom'}
                   </Text>
+                  <View style={[styles.rolePill, { backgroundColor: theme.accentSoft }]}>
+                    <Text style={[styles.rolePillText, { color: theme.accent }]}>{facultyRoleLabel(item.faculty_role)}</Text>
+                  </View>
                 </View>
+                <MaterialCommunityIcons name="chevron-right" size={22} color={theme.textMuted} />
               </Pressable>
-            ))}
-            <Pressable style={styles.secondary} onPress={() => setShowClassPick(false)}>
-              <Text style={styles.secondaryText}>Cancel</Text>
+            ))
+          )}
+
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Faculty Autopilot</Text>
+          <Text style={[styles.toolText, { color: theme.textMuted }]}> 
+            {activeClasses.length > 1
+              ? 'Choose an assigned class, then open the tool. Permissions follow your role in that classroom.'
+              : 'Each tool stays inside the classroom and respects your assigned permissions.'}
+          </Text>
+
+          {FACULTY_AUTOPILOT_MODULES.map(module => (
+            <Pressable
+              key={module.key}
+              style={({ pressed }) => [
+                styles.toolCard,
+                { backgroundColor: theme.surface, borderColor: theme.border },
+                pressed && { opacity: 0.88 },
+              ]}
+              onPress={() => openModule(module)}
+            >
+              <MaterialCommunityIcons name={module.icon as any} size={24} color={theme.accent} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.toolTitle, { color: theme.textPrimary }]}>{module.title}</Text>
+                <Text style={[styles.toolText, { color: theme.textMuted }]}>{module.description}</Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={22} color={theme.textMuted} />
             </Pressable>
+          ))}
+        </ScrollView>
+
+        <Modal visible={showCreate} transparent animationType="fade" onRequestClose={() => setShowCreate(false)}>
+          <View style={styles.modalShade}>
+            <View style={[styles.modalCard, { backgroundColor: theme.surface }]}>
+              <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Create Class</Text>
+
+              <Text style={[styles.label, { color: theme.textPrimary }]}>Class / Subject Name</Text>
+              <TextInput value={name} onChangeText={setName} placeholder="e.g. Community Health Nursing II" placeholderTextColor={theme.textMuted} style={[styles.input, { color: theme.textPrimary, backgroundColor: theme.surfaceElevated, borderColor: theme.border }]} />
+
+              <Text style={[styles.label, { color: theme.textPrimary }]}>Subject Code</Text>
+              <TextInput value={code} onChangeText={setCode} placeholder="e.g. CHN 2" placeholderTextColor={theme.textMuted} style={[styles.input, { color: theme.textPrimary, backgroundColor: theme.surfaceElevated, borderColor: theme.border }]} />
+
+              <Text style={[styles.label, { color: theme.textPrimary }]}>Section</Text>
+              <TextInput value={section} onChangeText={setSection} placeholder="e.g. BSN 3A" placeholderTextColor={theme.textMuted} style={[styles.input, { color: theme.textPrimary, backgroundColor: theme.surfaceElevated, borderColor: theme.border }]} />
+
+              <View style={styles.modalActions}>
+                <Pressable style={[styles.secondary, { backgroundColor: theme.surfaceElevated }]} onPress={() => setShowCreate(false)}>
+                  <Text style={[styles.secondaryText, { color: theme.textPrimary }]}>Cancel</Text>
+                </Pressable>
+                <Pressable disabled={busy} style={[styles.primary, { backgroundColor: theme.accent }, busy && styles.disabled]} onPress={createClass}>
+                  <Text style={styles.primaryText}>{busy ? 'Creating...' : 'Create Class'}</Text>
+                </Pressable>
+              </View>
+            </View>
           </View>
-        </View>
-      </Modal>
-    </>
+        </Modal>
+
+        <Modal visible={showClassPick} transparent animationType="fade" onRequestClose={() => setShowClassPick(false)}>
+          <View style={styles.modalShade}>
+            <View style={[styles.modalCard, { backgroundColor: theme.surface }]}>
+              <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Choose class</Text>
+              <Text style={[styles.toolText, { color: theme.textMuted }]}> 
+                {pendingModule?.title ?? 'Autopilot'} will open inside the assigned class you select.
+              </Text>
+              {activeClasses.map(item => (
+                <Pressable
+                  key={item.id}
+                  style={({ pressed }) => [styles.classCard, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }, pressed && { opacity: 0.88 }]}
+                  onPress={() => pickClass(item)}
+                >
+                  <View style={[styles.classIcon, { backgroundColor: theme.accentSoft }]}>
+                    <MaterialCommunityIcons name="google-classroom" size={22} color={theme.accent} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.classTitle, { color: theme.textPrimary }]}>{item.name}</Text>
+                    <Text style={[styles.classMeta, { color: theme.textMuted }]}> 
+                      {[item.subject_code, item.section_name].filter(Boolean).join(' • ') || facultyRoleLabel(item.faculty_role)}
+                    </Text>
+                  </View>
+                </Pressable>
+              ))}
+              <Pressable style={[styles.secondary, { backgroundColor: theme.surfaceElevated }]} onPress={() => setShowClassPick(false)}>
+                <Text style={[styles.secondaryText, { color: theme.textPrimary }]}>Cancel</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
+      </>
     </FacultyGate>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#f4f7f2' },
+  screen: { flex: 1 },
   content: { padding: 20, paddingTop: 48, paddingBottom: 60 },
   header: { marginBottom: 20 },
-  eyebrow: { color: '#1f7a3f', fontSize: 11, fontWeight: '900', letterSpacing: 1.4 },
-  title: { color: '#17311f', fontSize: 30, fontWeight: '900', marginTop: 2 },
-  subtitle: { color: '#667169', marginTop: 5, lineHeight: 19, maxWidth: 520 },
+  eyebrow: { fontSize: 11, fontWeight: '900', letterSpacing: 1.4 },
+  title: { fontSize: 30, fontWeight: '900', marginTop: 2 },
+  subtitle: { marginTop: 5, lineHeight: 19, maxWidth: 520 },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
-  statCard: { width: '48%', backgroundColor: '#fff', borderRadius: 17, padding: 15 },
-  statValue: { fontSize: 26, fontWeight: '900', color: '#17311f' },
-  statLabel: { color: '#6a756d', marginTop: 2, fontWeight: '700' },
+  statCard: { width: '48%', borderRadius: 17, padding: 15, borderWidth: 1 },
+  statValue: { fontSize: 26, fontWeight: '900' },
+  statLabel: { marginTop: 2, fontWeight: '700' },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  sectionTitle: { color: '#17311f', fontSize: 17, fontWeight: '900', marginBottom: 10, marginTop: 4 },
-  primarySmall: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#1f7a3f', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 },
+  sectionTitle: { fontSize: 17, fontWeight: '900', marginBottom: 10, marginTop: 4 },
+  primarySmall: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 },
   primarySmallText: { color: '#fff', fontWeight: '900' },
-  empty: { backgroundColor: '#fff', borderRadius: 18, padding: 18, marginBottom: 22 },
-  emptyTitle: { color: '#22352a', fontWeight: '900', fontSize: 16 },
-  emptyText: { color: '#68736b', marginTop: 5, lineHeight: 19 },
-  classCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#fff', borderRadius: 18, padding: 15, marginBottom: 10 },
-  classIcon: { width: 46, height: 46, borderRadius: 14, backgroundColor: '#e8f4ea', alignItems: 'center', justifyContent: 'center' },
-  classTitle: { color: '#203328', fontWeight: '900', fontSize: 16 },
-  classMeta: { color: '#68736b', marginTop: 3 },
-  toolCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, backgroundColor: '#fff', borderRadius: 17, padding: 15, marginBottom: 9 },
-  toolTitle: { color: '#24362b', fontWeight: '900' },
-  toolText: { color: '#68736b', lineHeight: 18, marginTop: 3 },
+  empty: { borderRadius: 18, padding: 18, marginBottom: 22, borderWidth: 1 },
+  emptyTitle: { fontWeight: '900', fontSize: 16 },
+  emptyText: { marginTop: 5, lineHeight: 19 },
+  classCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 18, padding: 15, marginBottom: 10, borderWidth: 1 },
+  classIcon: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  classTitle: { fontWeight: '900', fontSize: 16 },
+  classMeta: { marginTop: 2 },
+  rolePill: { alignSelf: 'flex-start', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4, marginTop: 7 },
+  rolePillText: { fontSize: 9, fontWeight: '900', letterSpacing: 0.4 },
+  toolCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, borderRadius: 17, padding: 15, marginBottom: 9, borderWidth: 1 },
+  toolTitle: { fontWeight: '900' },
+  toolText: { lineHeight: 18, marginTop: 3 },
   modalShade: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', padding: 20 },
-  modalCard: { backgroundColor: '#f7f8f6', borderRadius: 22, padding: 20 },
-  modalTitle: { color: '#17311f', fontSize: 22, fontWeight: '900', marginBottom: 18 },
-  label: { color: '#283b2e', fontWeight: '800', marginBottom: 6 },
-  input: { backgroundColor: '#fff', borderRadius: 13, paddingHorizontal: 14, paddingVertical: 13, marginBottom: 14, color: '#203026' },
+  modalCard: { borderRadius: 22, padding: 20 },
+  modalTitle: { fontSize: 22, fontWeight: '900', marginBottom: 18 },
+  label: { fontWeight: '800', marginBottom: 6 },
+  input: { borderRadius: 13, paddingHorizontal: 14, paddingVertical: 13, marginBottom: 14, borderWidth: 1 },
   modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 9, marginTop: 4 },
-  primary: { backgroundColor: '#1f7a3f', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 11 },
+  primary: { borderRadius: 12, paddingHorizontal: 16, paddingVertical: 11 },
   primaryText: { color: '#fff', fontWeight: '900' },
-  secondary: { backgroundColor: '#e8eee9', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 11 },
-  secondaryText: { color: '#2e4235', fontWeight: '900' },
+  secondary: { borderRadius: 12, paddingHorizontal: 16, paddingVertical: 11 },
+  secondaryText: { fontWeight: '900' },
+  disabled: { opacity: 0.55 },
 });
