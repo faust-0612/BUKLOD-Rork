@@ -60,24 +60,66 @@ export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
   },
 });
 
-let realtimeConnected = true;
+/*
+ * BUKLOD_MAIN_AUTH_STORM_R21
+ * React Native needs AppState-controlled auth refresh, but the listener must
+ * exist exactly once per runtime. A module-level addEventListener can be
+ * duplicated by Fast Refresh / bundle re-evaluation and create overlapping
+ * startAutoRefresh/stopAutoRefresh cycles. Web does not need this native
+ * AppState bridge at all.
+ */
+type BuklodSupabaseLifecycleState = {
+  installed: boolean;
+  realtimeConnected: boolean;
+};
 
-AppState.addEventListener('change', state => {
-  if (state === 'active') {
-    supabase.auth.startAutoRefresh();
+const SUPABASE_LIFECYCLE_STATE_KEY =
+  '__BUKLOD_SUPABASE_LIFECYCLE_R21__';
 
-    if (!realtimeConnected) {
-      supabase.realtime.connect();
-      realtimeConnected = true;
+function getBuklodSupabaseLifecycleState(): BuklodSupabaseLifecycleState {
+  const root = globalThis as any;
+  const existing = root[SUPABASE_LIFECYCLE_STATE_KEY] as
+    | BuklodSupabaseLifecycleState
+    | undefined;
+
+  if (existing) {
+    return existing;
+  }
+
+  const created: BuklodSupabaseLifecycleState = {
+    installed: false,
+    realtimeConnected: true,
+  };
+
+  root[SUPABASE_LIFECYCLE_STATE_KEY] = created;
+  return created;
+}
+
+const lifecycleState = getBuklodSupabaseLifecycleState();
+
+if (
+  Platform.OS !== 'web' &&
+  !lifecycleState.installed
+) {
+  lifecycleState.installed = true;
+
+  AppState.addEventListener('change', state => {
+    if (state === 'active') {
+      supabase.auth.startAutoRefresh();
+
+      if (!lifecycleState.realtimeConnected) {
+        supabase.realtime.connect();
+        lifecycleState.realtimeConnected = true;
+      }
+
+      return;
     }
 
-    return;
-  }
+    supabase.auth.stopAutoRefresh();
 
-  supabase.auth.stopAutoRefresh();
-
-  if (realtimeConnected) {
-    supabase.realtime.disconnect();
-    realtimeConnected = false;
-  }
-});
+    if (lifecycleState.realtimeConnected) {
+      supabase.realtime.disconnect();
+      lifecycleState.realtimeConnected = false;
+    }
+  });
+}
