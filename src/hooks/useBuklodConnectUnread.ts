@@ -191,7 +191,7 @@ export function useBuklodConnectUnread() {
                           filter:
                             `thread_id=in.(${ids.join(',')})`,
                         },
-                        payload => {
+                        (payload: unknown) => {
                           emit(payload);
                         }
                       );
@@ -212,7 +212,7 @@ export function useBuklodConnectUnread() {
                           filter:
                             `scope_id=in.(${ids.join(',')})`,
                         },
-                        payload => {
+                        (payload: unknown) => {
                           emit(payload);
                         }
                       );
