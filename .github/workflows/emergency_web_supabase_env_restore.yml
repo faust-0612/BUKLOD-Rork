@@ -40,7 +40,7 @@ jobs:
           npx eas-cli@latest whoami --non-interactive >/dev/null
           echo 'Expo authentication: READY'
 
-      - name: Pull EAS production environment
+      - name: Pull and persist EAS production public environment
         shell: bash
         run: |
           set -euo pipefail
@@ -56,23 +56,49 @@ jobs:
             https://*.supabase.co) ;;
             *) echo 'Invalid production Supabase URL shape.'; exit 1 ;;
           esac
-          echo 'EAS production Supabase public config: READY'
+
+          # GitHub Actions steps run in separate shells. Persist every Expo
+          # public variable into later steps so Metro can inline them into the
+          # browser bundle. Do not print values to the log.
+          while IFS='=' read -r name _; do
+            case "$name" in
+              EXPO_PUBLIC_*)
+                value="${!name-}"
+                {
+                  echo "${name}<<__BUKLOD_ENV__"
+                  printf '%s\n' "$value"
+                  echo '__BUKLOD_ENV__'
+                } >> "$GITHUB_ENV"
+                ;;
+            esac
+          done < <(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env.local)
+
+          echo 'EAS production public config persisted for web export.'
 
       - name: TypeScript QA
         run: npx tsc --noEmit
 
-      - name: Export production web with EAS environment
+      - name: Export production web with persisted EAS environment
         shell: bash
         env:
           NODE_ENV: production
           EXPO_PUBLIC_APP_ENV: production
         run: |
           set -euo pipefail
+          test -n "${EXPO_PUBLIC_SUPABASE_URL:-}"
+          test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}"
           rm -rf dist
           npx expo export --platform web --output-dir dist
           node scripts/inject-adsense-web-head.cjs dist
           test -s dist/index.html
-          echo 'Production web export: READY'
+
+          # Verify compile-time injection without exposing the URL or key.
+          SUPABASE_HOST="$(printf '%s' "$EXPO_PUBLIC_SUPABASE_URL" | sed -E 's#https?://([^/]+).*#\1#')"
+          grep -RFl --include='*.js' "$SUPABASE_HOST" dist/_expo/static/js/web >/dev/null || {
+            echo 'WEB EXPORT FAILED: production Supabase host was not embedded in JavaScript.'
+            exit 1
+          }
+          echo 'Production web export contains Supabase runtime config: READY'
 
       - name: Deploy and promote production web
         shell: bash
@@ -81,6 +107,7 @@ jobs:
           EXPO_PUBLIC_APP_ENV: production
         run: |
           set -euo pipefail
+          test -n "${EXPO_PUBLIC_SUPABASE_URL:-}"
           npx eas-cli@latest deploy --prod --environment production --non-interactive
 
       - name: Verify live production runtime
@@ -89,7 +116,7 @@ jobs:
           set -euo pipefail
           BROWSER="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
           test -n "$BROWSER"
-          sleep 2
+          sleep 3
           curl -fsSIL --max-time 30 https://buklod.expo.app/ >/dev/null
           timeout 45s "$BROWSER" \
             --headless=new \
@@ -121,6 +148,4 @@ jobs:
           echo 'BUKLOD production mobile-web runtime: HEALTHY'
 
       - name: Restore status
-        run: echo 'BUKLOD production web restored with EAS production Supabase environment.'
-
-# retrigger 2026-09-05 web env recovery
+        run: echo 'BUKLOD production web restored with persisted EAS production environment.'
