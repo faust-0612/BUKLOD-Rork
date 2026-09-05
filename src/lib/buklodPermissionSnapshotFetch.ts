@@ -126,6 +126,28 @@ function sourceHeaders(input: FetchInput, init?: FetchInit): Headers {
   }
 }
 
+function hasAuthenticatedSession(headers: Headers): boolean {
+  const authorization = String(headers.get('authorization') ?? '').trim();
+  if (!authorization) return false;
+
+  const token = authorization.replace(/^Bearer\s+/i, '').trim();
+  if (!token) return false;
+
+  const apiKey = String(headers.get('apikey') ?? '').trim();
+
+  /*
+   * Supabase may send the publishable/anon key as the Authorization bearer
+   * while no user session exists. That request is still anon and must never
+   * call the authenticated-only snapshot RPC. A real session access token is
+   * distinct from the project API key.
+   */
+  if (apiKey && token === apiKey) {
+    return false;
+  }
+
+  return true;
+}
+
 function stableRuntimeHash(value: string): string {
   let hash = 2166136261;
 
@@ -318,6 +340,11 @@ export function createBuklodPermissionSnapshotFetch(
     const method = methodOf(input, init);
 
     if (!isPermissionRpc(rawUrl, method)) {
+      return baseFetch(input, init);
+    }
+
+    const headers = sourceHeaders(input, init);
+    if (!hasAuthenticatedSession(headers)) {
       return baseFetch(input, init);
     }
 
