@@ -73,6 +73,10 @@ const rpcTtlMs: Record<string, number> = {
   get_automatic_bible_today: 60_000,
   get_buklod_points_leaderboard: 30_000,
   get_my_daily_devotional: 60_000,
+  // Connect/status surfaces can remount repeatedly. Keep this especially short
+  // because viewer_count and expiry are live-ish UI details, while still
+  // collapsing duplicate bursts from the same signed-in user.
+  get_buklod_messages_status_note_v1: 10_000,
 };
 
 /*
