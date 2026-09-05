@@ -75,6 +75,19 @@ const rpcTtlMs: Record<string, number> = {
   get_my_daily_devotional: 60_000,
 };
 
+/*
+ * PERF R1 STORAGE SIGNED URL SHIELD
+ *
+ * createSignedUrl() mints a short-lived read credential but does not mutate
+ * the stored object. Cache only this exact Storage endpoint for a very short
+ * window so parallel/remount callers share one minting request.
+ *
+ * Upload, update, move, copy, remove, bucket, and normal object requests stay
+ * uncached. The request key includes Authorization + full URL + request body,
+ * so bucket/path/expiry/user differences remain isolated.
+ */
+const STORAGE_SIGNED_URL_TTL_MS = 30_000;
+
 const invalidatedTables = new Set(Object.keys(tableTtlMs));
 
 function state(): ShieldState {
@@ -130,7 +143,18 @@ function rpcFromUrl(rawUrl: string): string | null {
   }
 }
 
+function isStorageSignedUrlRequest(rawUrl: string, method: string): boolean {
+  return (
+    method === 'POST' &&
+    /\/storage\/v1\/object\/sign\//i.test(rawUrl)
+  );
+}
+
 function ttlFor(rawUrl: string, method: string): number {
+  if (isStorageSignedUrlRequest(rawUrl, method)) {
+    return STORAGE_SIGNED_URL_TTL_MS;
+  }
+
   const rpc = rpcFromUrl(rawUrl);
 
   if (method === 'POST' && rpc) {
