@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { cachedQuery, invalidateCache } from '@/lib/performance';
 
 export type BuklodPointsDashboard = {
   total_points: number;
@@ -33,6 +34,22 @@ export type BuklodClaimResult = {
   rank_name: string | null;
   ack_only?: boolean;
 };
+
+const POINTS_CACHE_PREFIX = 'buklod:points:';
+
+async function getAuthScopedPointsCacheKey(suffix: string) {
+  const { data } = await supabase.auth.getSession();
+  const userId = data.session?.user?.id ?? 'anonymous';
+  return `${POINTS_CACHE_PREFIX}${userId}:${suffix}`;
+}
+
+async function invalidateMyPointsCache() {
+  const { data } = await supabase.auth.getSession();
+  const userId = data.session?.user?.id;
+  if (userId) {
+    invalidateCache(`${POINTS_CACHE_PREFIX}${userId}:`);
+  }
+}
 
 function toNumber(value: unknown, fallback = 0) {
   const parsed = Number(value);
@@ -69,31 +86,47 @@ export function normalizePointsDashboard(
 }
 
 export async function loadBuklodPointsDashboard(): Promise<BuklodPointsDashboard | null> {
-  const { data, error } = await (supabase as any).rpc(
-    'get_my_buklod_points_dashboard',
+  const cacheKey = await getAuthScopedPointsCacheKey('dashboard');
+
+  return cachedQuery(
+    cacheKey,
+    async () => {
+      const { data, error } = await (supabase as any).rpc(
+        'get_my_buklod_points_dashboard',
+      );
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data || typeof data !== 'object') {
+        return null;
+      }
+
+      return normalizePointsDashboard(data as Record<string, unknown>);
+    },
+    { ttlMs: 15_000, staleMs: 45_000 },
   );
-
-  if (error) {
-    throw error;
-  }
-
-  if (!data || typeof data !== 'object') {
-    return null;
-  }
-
-  return normalizePointsDashboard(data as Record<string, unknown>);
 }
 
 export async function loadPendingBuklodRewardEvent(): Promise<BuklodRewardEvent | null> {
-  const { data, error } = await supabase.rpc(
-    'get_my_pending_buklod_reward_event',
+  const cacheKey = await getAuthScopedPointsCacheKey('pending-reward');
+
+  return cachedQuery(
+    cacheKey,
+    async () => {
+      const { data, error } = await supabase.rpc(
+        'get_my_pending_buklod_reward_event',
+      );
+
+      if (error) {
+        throw error;
+      }
+
+      return (data ?? null) as BuklodRewardEvent | null;
+    },
+    { ttlMs: 8_000, staleMs: 20_000 },
   );
-
-  if (error) {
-    throw error;
-  }
-
-  return (data ?? null) as BuklodRewardEvent | null;
 }
 
 export async function claimBuklodRewardEvent(
@@ -108,6 +141,8 @@ export async function claimBuklodRewardEvent(
     throw error;
   }
 
+  await invalidateMyPointsCache();
+
   const row = (data ?? {}) as Record<string, unknown>;
 
   return {
@@ -121,15 +156,23 @@ export async function claimBuklodRewardEvent(
 }
 
 export async function loadUnclaimedBuklodRewardCount(): Promise<number> {
-  const { data, error } = await supabase.rpc(
-    'get_my_unclaimed_buklod_reward_count',
+  const cacheKey = await getAuthScopedPointsCacheKey('unclaimed-count');
+
+  return cachedQuery(
+    cacheKey,
+    async () => {
+      const { data, error } = await supabase.rpc(
+        'get_my_unclaimed_buklod_reward_count',
+      );
+
+      if (error) {
+        throw error;
+      }
+
+      return toNumber(data);
+    },
+    { ttlMs: 8_000, staleMs: 20_000 },
   );
-
-  if (error) {
-    throw error;
-  }
-
-  return toNumber(data);
 }
 
 export type BuklodRedeemCatalogItem = {
@@ -179,6 +222,8 @@ export async function redeemCatalogItem(
   if (error) {
     throw error;
   }
+
+  await invalidateMyPointsCache();
 
   const row = (data ?? {}) as Record<string, unknown>;
 

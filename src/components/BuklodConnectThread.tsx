@@ -124,6 +124,7 @@ import {
 import {
   SCALE_LIMITS,
 } from '@/lib/performanceScale';
+import { acquireSharedRealtimeSubscription } from '@/lib/performance';
 import { BuklodPhotoEditor } from '@/components/BuklodPhotoEditor';
 import { ConnectPhotoViewer } from '@/components/connect/ConnectPhotoViewer';
 /* PATCH_186B_PHOTO_EDITOR_IMPORT */
@@ -1919,59 +1920,76 @@ const [
         ? `thread_id=eq.${effectiveContainerId}`
         : `scope_id=eq.${effectiveContainerId}`;
 
-    const sessionKey = `${Date.now()}:${Math.random()
-      .toString(36)
-      .slice(2)}`;
+    const registryKey =
+      `connect-thread:${mode}:${profileId}:${effectiveContainerId}`;
 
-    const channel = supabase
-      .channel(
-        `connect-${mode}-${effectiveContainerId}:${sessionKey}`
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table:
-            messageTable,
-          filter:
-            messageFilter,
-        },
-        () => void load()
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table:
-            messageTable,
-          filter:
-            messageFilter,
-        },
-        () => void load()
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table:
-            reactionTable,
-          filter:
-            reactionFilter,
-        },
-        () =>
-          void loadReactions()
-      )
-      .subscribe();
+    const release =
+      acquireSharedRealtimeSubscription<
+        'message' | 'reaction'
+      >(
+        registryKey,
+        eventKind => {
+          if (eventKind === 'reaction') {
+            void loadReactions();
+            return;
+          }
 
-    return () => {
-      void supabase
-        .removeChannel(
-          channel
-        );
-    };
+          void load();
+        },
+        emit => {
+          const channel = supabase
+            .channel(
+              `connect-thread-${mode}-${effectiveContainerId}`
+            )
+            .on(
+              'postgres_changes',
+              {
+                event: 'INSERT',
+                schema: 'public',
+                table:
+                  messageTable,
+                filter:
+                  messageFilter,
+              },
+              () => emit('message')
+            )
+            .on(
+              'postgres_changes',
+              {
+                event: 'UPDATE',
+                schema: 'public',
+                table:
+                  messageTable,
+                filter:
+                  messageFilter,
+              },
+              () => emit('message')
+            )
+            .on(
+              'postgres_changes',
+              {
+                event: '*',
+                schema: 'public',
+                table:
+                  reactionTable,
+                filter:
+                  reactionFilter,
+              },
+              () => emit('reaction')
+            );
+
+          const subscribed =
+            channel.subscribe();
+
+          return () => {
+            void supabase.removeChannel(
+              subscribed
+            );
+          };
+        },
+      );
+
+    return release;
   }, [
     effectiveContainerId,
     load,

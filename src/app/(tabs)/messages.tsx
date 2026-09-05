@@ -30,6 +30,9 @@ import {
   useBuklodScrollBottomInset,
 } from '@/lib/buklodSafeArea';
 import { supabase } from '@/lib/supabase';
+import {
+  acquireSharedRealtimeSubscription,
+} from '@/lib/performance';
 import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
 import { useAuth } from '@/providers/AuthProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
@@ -712,100 +715,78 @@ function ConnectScreenInner({
       return;
     }
 
-    const threadIds =
-      personalRealtimeKey
-        ? personalRealtimeKey.split(',')
-        : [];
+    const threadIds = personalRealtimeKey
+      ? personalRealtimeKey.split(',')
+      : [];
+    const scopeIds = scopeRealtimeKey
+      ? scopeRealtimeKey.split(',')
+      : [];
 
-    const scopeIds =
-      scopeRealtimeKey
-        ? scopeRealtimeKey.split(',')
-        : [];
-
-    const channels: any[] = [];
-    const sessionKey = `${Date.now()}:${Math.random()
-      .toString(36)
-      .slice(2)}`;
-
-    const chunks = (
-      ids: string[],
-      size = 100
-    ) => {
+    const chunks = (ids: string[], size = 100) => {
       const result: string[][] = [];
-
-      for (
-        let index = 0;
-        index < ids.length;
-        index += size
-      ) {
-        result.push(
-          ids.slice(
-            index,
-            index + size
-          )
-        );
+      for (let index = 0; index < ids.length; index += size) {
+        result.push(ids.slice(index, index + size));
       }
-
       return result;
     };
 
-    const threadChunks = chunks(threadIds);
+    const releases: Array<() => void> = [];
 
-    if (threadChunks.length > 0) {
-      let directChannel = supabase.channel(
-        `connect-hub-direct:${profileId}:${sessionKey}`
+    const registerSharedChannel = (
+      kind: 'direct' | 'scope',
+      ids: string[],
+    ) => {
+      if (!ids.length) return;
+
+      const stableIds = [...ids].sort();
+      const registryKey =
+        `connect-hub:${kind}:${profileId}:${stableIds.join(',')}`;
+
+      const release = acquireSharedRealtimeSubscription(
+        registryKey,
+        () => {
+          void loadRef.current();
+        },
+        emit => {
+          const channelName =
+            `connect-hub:${kind}:${profileId}:${stableIds.join('-')}`;
+          let channel = supabase.channel(channelName);
+
+          for (const idChunk of chunks(stableIds)) {
+            channel = channel.on(
+              'postgres_changes',
+              {
+                event: 'INSERT',
+                schema: 'public',
+                table:
+                  kind === 'direct'
+                    ? 'buklod_connect_direct_messages'
+                    : 'buklod_connect_scope_messages',
+                filter:
+                  kind === 'direct'
+                    ? `thread_id=in.(${idChunk.join(',')})`
+                    : `scope_id=in.(${idChunk.join(',')})`,
+              },
+              payload => emit(payload),
+            );
+          }
+
+          const subscribed = channel.subscribe();
+          return () => {
+            void supabase.removeChannel(subscribed);
+          };
+        },
       );
 
-      for (const ids of threadChunks) {
-        directChannel = directChannel.on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table:
-              'buklod_connect_direct_messages',
-            filter:
-              `thread_id=in.(${ids.join(',')})`,
-          },
-          () => {
-            void loadRef.current();
-          }
-        );
-      }
+      releases.push(release);
+    };
 
-      channels.push(directChannel.subscribe());
-    }
-
-    const scopeChunks = chunks(scopeIds);
-
-    if (scopeChunks.length > 0) {
-      let scopeChannel = supabase.channel(
-        `connect-hub-scope:${profileId}:${sessionKey}`
-      );
-
-      for (const ids of scopeChunks) {
-        scopeChannel = scopeChannel.on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table:
-              'buklod_connect_scope_messages',
-            filter:
-              `scope_id=in.(${ids.join(',')})`,
-          },
-          () => {
-            void loadRef.current();
-          }
-        );
-      }
-
-      channels.push(scopeChannel.subscribe());
-    }
+    registerSharedChannel('direct', threadIds);
+    registerSharedChannel('scope', scopeIds);
 
     return () => {
-      for (const channel of channels) {
-        void supabase.removeChannel(channel);
+      for (const release of releases) {
+        release();
       }
     };
   }, [
@@ -813,6 +794,7 @@ function ConnectScreenInner({
     personalRealtimeKey,
     scopeRealtimeKey,
   ]);
+
   useEffect(() => {
     const clean = query.trim();
 
@@ -1271,4 +1253,3 @@ function ConnectScreenInner({
     </ConnectThreadBackground>
   );
 }
-

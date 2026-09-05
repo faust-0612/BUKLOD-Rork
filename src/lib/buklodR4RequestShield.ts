@@ -32,6 +32,15 @@ const GLOBAL_KEY = '__BUKLOD_R4_REQUEST_SHIELD__';
 const MAX_ENTRIES = 300;
 
 const tableTtlMs: Record<string, number> = {
+  /*
+   * PERF R1 PROFILE/AVATAR SHIELD
+   *
+   * Profile display/avatar lookups are a very hot read path. Keep this TTL
+   * short enough for UI freshness while collapsing repeated remount/list
+   * reads. Any successful profile write invalidates all cached profile reads
+   * through invalidatedTables below.
+   */
+  profiles: 60_000,
   mission_bulletins: 10_000,
   devotional_completions: 10_000,
   buklod_scopes: 10_000,
@@ -47,6 +56,54 @@ const tableTtlMs: Record<string, number> = {
   buklod_cluster_home_settings: 30_000,
   buklod_cluster_attendance: 5_000,
 };
+
+/*
+ * PERF R1 HOT RPC SHIELD
+ *
+ * These are read-only RPCs that are repeatedly requested by Home / scope
+ * remounts. The request key already includes Authorization + request body,
+ * so user-scoped results cannot be shared across accounts.
+ *
+ * Keep TTLs intentionally short. This layer is for burst collapse and quick
+ * remounts, not long-lived application state.
+ */
+const rpcTtlMs: Record<string, number> = {
+  buklod_my_scopes: 30_000,
+  get_member_circle_ranks_v1: 60_000,
+  get_automatic_bible_today: 60_000,
+  get_buklod_points_leaderboard: 30_000,
+  get_my_daily_devotional: 60_000,
+  // Connect inbox summaries are realtime-first and already have a bounded
+  // fallback refresh. A 10s shield only collapses remount/burst duplicates;
+  // Authorization remains part of the request key and no writes are cached.
+  buklod_connect_personal_threads: 10_000,
+  buklod_connect_community_rooms: 10_000,
+  // Suggested contacts is a read-only, user-scoped Connect discovery query.
+  // Keep it short so membership/note changes surface quickly while remount
+  // bursts share one request instead of recomputing the same peer graph.
+  buklod_connect_suggested_contacts_v1: 10_000,
+  // Runtime config controls maintenance/update/pilot gates, so keep this very
+  // short: enough to collapse bootstrap/remount bursts without masking a new
+  // server-side gate for more than a few seconds on an already-open client.
+  get_client_runtime_config: 10_000,
+  // Connect/status surfaces can remount repeatedly. Keep this especially short
+  // because viewer_count and expiry are live-ish UI details, while still
+  // collapsing duplicate bursts from the same signed-in user.
+  get_buklod_messages_status_note_v1: 10_000,
+};
+
+/*
+ * PERF R1 STORAGE SIGNED URL SHIELD
+ *
+ * createSignedUrl() mints a short-lived read credential but does not mutate
+ * the stored object. Cache only this exact Storage endpoint for a very short
+ * window so parallel/remount callers share one minting request.
+ *
+ * Upload, update, move, copy, remove, bucket, and normal object requests stay
+ * uncached. The request key includes Authorization + full URL + request body,
+ * so bucket/path/expiry/user differences remain isolated.
+ */
+const STORAGE_SIGNED_URL_TTL_MS = 30_000;
 
 const invalidatedTables = new Set(Object.keys(tableTtlMs));
 
@@ -103,10 +160,26 @@ function rpcFromUrl(rawUrl: string): string | null {
   }
 }
 
+function isStorageSignedUrlRequest(rawUrl: string, method: string): boolean {
+  return (
+    method === 'POST' &&
+    /\/storage\/v1\/object\/sign\//i.test(rawUrl)
+  );
+}
+
 function ttlFor(rawUrl: string, method: string): number {
+  if (isStorageSignedUrlRequest(rawUrl, method)) {
+    return STORAGE_SIGNED_URL_TTL_MS;
+  }
+
   const rpc = rpcFromUrl(rawUrl);
-  if (method === 'POST' && rpc === 'buklod_scope_social_feed_v1') {
-    return 2_500;
+
+  if (method === 'POST' && rpc) {
+    if (rpc === 'buklod_scope_social_feed_v1') {
+      return 2_500;
+    }
+
+    return rpcTtlMs[rpc] ?? 0;
   }
 
   if (method !== 'GET' && method !== 'HEAD') return 0;

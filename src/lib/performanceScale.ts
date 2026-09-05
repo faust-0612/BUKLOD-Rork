@@ -20,10 +20,24 @@ export const SCALE_LIMITS = {
   scopeMembersAdminCap: 200,
   /** Unread badge safety poll (ms). */
   connectUnreadPollMs: 90_000,
-  /** Inbox list safety poll (ms). */
-  messagesInboxPollMs: 90_000,
-  /** Direct peer-read refresh while thread open (ms). */
-  connectPeerReadPollMs: 8_000,
+  /**
+   * Inbox list safety poll (ms).
+   *
+   * Direct/scope inboxes are realtime-first and reload immediately when their
+   * shared realtime channels receive a message. Keep only a five-minute
+   * fallback for missed reconnect events instead of repeatedly reloading every
+   * three minutes while an inbox stays mounted.
+   */
+  messagesInboxPollMs: 300_000,
+  /**
+   * Direct peer-read safety refresh while a thread is open (ms).
+   *
+   * Keep an initial authoritative refresh when the thread opens, then use a
+   * one-minute safety poll. This cuts steady-state read-receipt RPC traffic in
+   * half versus the previous 30s loop while preserving eventual "seen" state
+   * recovery when no dedicated read-receipt realtime event is available.
+   */
+  connectPeerReadPollMs: 60_000,
   /** Supabase realtime events per second cap. */
   realtimeEventsPerSecond: 8,
   /** Max community posts kept in local cache. */

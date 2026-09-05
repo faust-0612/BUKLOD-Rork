@@ -126,6 +126,7 @@ import {
  FlatList as GestureFlatList,
 } from 'react-native-gesture-handler';
 import {supabase} from '@/lib/supabase';
+import { acquireSharedRealtimeSubscription } from '@/lib/performance';
 import {getClusterLabels,formatClusterName} from '@/lib/clusterLabels'; // PATCH_154A_CLUSTER_LABELS
 import {Button,Card,SectionTitle} from '@/components/UI';
 import {useAuth} from '@/providers/AuthProvider';
@@ -2955,7 +2956,8 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
   ()=>{
    if(
     !commentOpen ||
-    !commentPost?.id
+    !commentPost?.id ||
+    !user?.id
    ){
     return;
    }
@@ -2965,39 +2967,49 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
      commentPost.id
     );
 
-   const channel=
-    supabase
-     .channel(
-      `community-drawer:${postId}`
-     )
-     .on(
-      'postgres_changes',
-      {
-       event:'*',
-       schema:'public',
-       table:'comments',
-       filter:
-        `post_id=eq.${postId}`
-      },
-      ()=>{
-       void loadComments(
-        postId
-       );
-      }
-     )
-     .subscribe();
+   const release=
+    acquireSharedRealtimeSubscription(
+     `community-drawer:${user.id}:${postId}`,
+     ()=>{
+      void loadComments(
+       postId
+      );
+     },
+     emit=>{
+      const channel=
+       supabase
+        .channel(
+         `community-drawer:${user.id}:${postId}`
+        )
+        .on(
+         'postgres_changes',
+         {
+          event:'*',
+          schema:'public',
+          table:'comments',
+          filter:
+           `post_id=eq.${postId}`
+         },
+         payload=>emit(payload)
+        )
+        .subscribe();
 
-   return ()=>{
-    supabase
-     .removeChannel(
-      channel
-     );
-   };
+      return ()=>{
+       void supabase
+        .removeChannel(
+         channel
+        );
+      };
+     }
+    );
+
+   return release;
   },
   [
    commentOpen,
    commentPost?.id,
-   loadComments
+   loadComments,
+   user?.id
   ]
  );
 
