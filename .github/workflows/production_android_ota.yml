@@ -101,7 +101,9 @@ jobs:
           grep -F "HIGH_CONCURRENCY_LOGIN_R1" 'src/app/(auth)/login.tsx'
           grep -F "loginInFlightRef.current" 'src/app/(auth)/login.tsx'
           grep -F "HIGH_CONCURRENCY_LOGIN_R1" 'src/lib/buklodAuthResilience.ts'
-          test "$(grep -c "supabase.auth.signInWithPassword(" 'src/lib/buklodAuthResilience.ts')" -eq 1
+          grep -F "BUKLOD_MAIN_AUTH_STORM_R21" 'src/lib/buklodAuthResilience.ts'
+          grep -F "authRuntimeState.passwordSignInInFlight" 'src/lib/buklodAuthResilience.ts'
+          test "$(grep -cF '.signInWithPassword(credentials)' 'src/lib/buklodAuthResilience.ts')" -eq 1
           grep -F 'BUKLOD_LEGACY_VERIFICATION_REMOVAL_R22' 'src/app/index.tsx'
           grep -F 'BUKLOD_LEGACY_VERIFICATION_REMOVAL_R22' 'src/app/onboarding/index.tsx'
           if grep -F 'WAITING FOR ADMIN VERIFICATION' 'src/app/onboarding/index.tsx'; then
@@ -115,6 +117,10 @@ jobs:
           grep -F "buklod_registration_version:" 'src/app/(auth)/register.tsx'
           grep -F "createAccountInFlight.current" 'src/app/(auth)/register.tsx'
           grep -F "buklod_complete_registration_v1" 'src/app/(auth)/register.tsx'
+          grep -F "account-recovery-otp-v1" 'src/app/(auth)/forgot-password.tsx'
+          grep -F "action: 'request_otp'" 'src/app/(auth)/forgot-password.tsx'
+          grep -F "action: 'verify_otp'" 'src/app/(auth)/forgot-password.tsx'
+          grep -F "action: 'reset_password'" 'src/app/(auth)/forgot-password.tsx'
           grep -F "account-recovery-v3" 'src/app/(auth)/forgot-password.tsx'
           grep -F "I forgot my login too" 'src/app/(auth)/forgot-password.tsx'
           grep -F "recover_with_admin_code" 'src/app/(auth)/forgot-password.tsx'
@@ -167,7 +173,7 @@ jobs:
             --channel production \
             --platform android \
             --environment production \
-            --message "BUKLOD My Classroom Student Isolation + Home Layout R23" \
+            --message "BUKLOD Email OTP Recovery No Birthday" \
             --non-interactive
 
       - name: Deployment status
