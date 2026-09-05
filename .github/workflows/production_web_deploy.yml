@@ -124,7 +124,9 @@ jobs:
           grep -F "HIGH_CONCURRENCY_LOGIN_R1" 'src/app/(auth)/login.tsx'
           grep -F "loginInFlightRef.current" 'src/app/(auth)/login.tsx'
           grep -F "HIGH_CONCURRENCY_LOGIN_R1" 'src/lib/buklodAuthResilience.ts'
-          test "$(grep -c "supabase.auth.signInWithPassword(" 'src/lib/buklodAuthResilience.ts')" -eq 1
+          grep -F "BUKLOD_MAIN_AUTH_STORM_R21" 'src/lib/buklodAuthResilience.ts'
+          grep -F "authRuntimeState.passwordSignInInFlight" 'src/lib/buklodAuthResilience.ts'
+          test "$(grep -cF '.signInWithPassword(credentials)' 'src/lib/buklodAuthResilience.ts')" -eq 1
           grep -F 'BUKLOD_LEGACY_VERIFICATION_REMOVAL_R22' 'src/app/index.tsx'
           grep -F 'BUKLOD_LEGACY_VERIFICATION_REMOVAL_R22' 'src/app/onboarding/index.tsx'
           if grep -F 'WAITING FOR ADMIN VERIFICATION' 'src/app/onboarding/index.tsx'; then
@@ -135,6 +137,10 @@ jobs:
             echo 'Legacy verification redirect is still present in app boot.'
             exit 1
           fi
+          grep -F "account-recovery-otp-v1" 'src/app/(auth)/forgot-password.tsx'
+          grep -F "action: 'request_otp'" 'src/app/(auth)/forgot-password.tsx'
+          grep -F "action: 'verify_otp'" 'src/app/(auth)/forgot-password.tsx'
+          grep -F "action: 'reset_password'" 'src/app/(auth)/forgot-password.tsx'
           grep -F "account-recovery-v3" 'src/app/(auth)/forgot-password.tsx'
           grep -F "action: 'recover_with_pin'" 'src/app/(auth)/forgot-password.tsx'
           grep -F "account-recovery-v4" 'src/app/(auth)/forgot-password.tsx'
