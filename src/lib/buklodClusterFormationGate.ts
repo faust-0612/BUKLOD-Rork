@@ -260,3 +260,5 @@ export function clusterRoleLabel(roleKeys: string[] | null | undefined) {
   if (keys.includes('MENTOR')) return 'Cluster Mentor';
   return 'Member';
 }
+
+// FOUNDATION_PERMISSION_SNAPSHOT_FASTPATH_R1_RELEASE_TRIGGER
