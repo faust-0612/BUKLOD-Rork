@@ -25,7 +25,9 @@ const GRID_X = 190;
 const GRID_WIDTH = 1235;
 const CELL_WIDTH = GRID_WIDTH / 20;
 
-const SHEET = require('../../../assets/characters/buklod_progression_r26.png');
+// Compressed from the approved R26 full-body progression master sheet.
+// Coordinates remain in the original 1536x1024 art space so crops stay stable.
+const SHEET = require('../../../assets/characters/buklod_progression_r26.jpg');
 
 export default function BuklodProgressiveCharacterArt({
   characterId,
