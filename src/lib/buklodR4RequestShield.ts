@@ -73,6 +73,11 @@ const rpcTtlMs: Record<string, number> = {
   get_automatic_bible_today: 60_000,
   get_buklod_points_leaderboard: 30_000,
   get_my_daily_devotional: 60_000,
+  // Connect inbox summaries are realtime-first and already have a bounded
+  // fallback refresh. A 10s shield only collapses remount/burst duplicates;
+  // Authorization remains part of the request key and no writes are cached.
+  buklod_connect_personal_threads: 10_000,
+  buklod_connect_community_rooms: 10_000,
   // Runtime config controls maintenance/update/pilot gates, so keep this very
   // short: enough to collapse bootstrap/remount bursts without masking a new
   // server-side gate for more than a few seconds on an already-open client.
