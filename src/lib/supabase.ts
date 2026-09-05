@@ -60,6 +60,58 @@ export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
   },
 });
 
+/* BUKLOD_REALTIME_TOPIC_R1
+ * Connect hub channels can encode many UUIDs in their logical identity.
+ * Keep short topics untouched, but compact oversized transport topics to a
+ * deterministic 64-bit-ish fingerprint so Phoenix/Supabase does not carry a
+ * multi-kilobyte topic through joins/rejoins.
+ *
+ * This changes only the transport topic name. postgres_changes filters,
+ * registry keys, authorization, payload delivery, and subscription semantics
+ * remain unchanged.
+ */
+const BUKLOD_REALTIME_TOPIC_MAX = 180;
+
+function buklodTopicFingerprint(value: string) {
+  let hashA = 0x811c9dc5;
+  let hashB = 0x9e3779b9;
+
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+
+    hashA ^= code;
+    hashA = Math.imul(hashA, 0x01000193);
+
+    hashB ^= code + index;
+    hashB = Math.imul(hashB, 0x85ebca6b);
+    hashB ^= hashB >>> 13;
+  }
+
+  return [hashA, hashB]
+    .map(part => (part >>> 0).toString(16).padStart(8, '0'))
+    .join('');
+}
+
+function compactBuklodRealtimeTopic(topic: string) {
+  if (topic.length <= BUKLOD_REALTIME_TOPIC_MAX) {
+    return topic;
+  }
+
+  const prefix = topic
+    .slice(0, 48)
+    .replace(/[^a-zA-Z0-9:_-]/g, '_');
+
+  return `${prefix}:n${topic.length}:h${buklodTopicFingerprint(topic)}`;
+}
+
+const baseSupabaseChannel = supabase.channel.bind(supabase);
+
+supabase.channel = ((topic: string, params?: any) =>
+  baseSupabaseChannel(
+    compactBuklodRealtimeTopic(String(topic ?? '')),
+    params,
+  )) as typeof supabase.channel;
+
 /*
  * BUKLOD_MAIN_AUTH_STORM_R21
  * React Native needs AppState-controlled auth refresh, but the listener must
