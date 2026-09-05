@@ -1,0 +1,84 @@
+name: BUKLOD Performance R1 Thread Patch
+
+on:
+  push:
+    branches:
+      - perf/r1-cache-dedupe
+    paths:
+      - '.github/workflows/performance_r1_thread_patch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  targeted-thread-realtime-patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout performance branch
+        uses: actions/checkout@v4
+        with:
+          ref: perf/r1-cache-dedupe
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Apply exact targeted patch
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('src/components/BuklodConnectThread.tsx')
+          text = path.read_text(encoding='utf-8-sig')
+          original = text
+
+          import_anchor = "import {\n  SCALE_LIMITS,\n} from '@/lib/performanceScale';\n"
+          import_replacement = import_anchor + "import { acquireSharedRealtimeSubscription } from '@/lib/performance';\n"
+          if text.count(import_anchor) != 1:
+              raise SystemExit(f'STOP: expected exactly one performanceScale import anchor, found {text.count(import_anchor)}')
+          if "acquireSharedRealtimeSubscription" not in text:
+              text = text.replace(import_anchor, import_replacement, 1)
+
+          old = """    const sessionKey = `${Date.now()}:${Math.random()\n      .toString(36)\n      .slice(2)}`;\n\n    const channel = supabase\n      .channel(\n        `connect-${mode}-${effectiveContainerId}:${sessionKey}`\n      )\n      .on(\n        'postgres_changes',\n        {\n          event: 'INSERT',\n          schema: 'public',\n          table:\n            messageTable,\n          filter:\n            messageFilter,\n        },\n        () => void load()\n      )\n      .on(\n        'postgres_changes',\n        {\n          event: 'UPDATE',\n          schema: 'public',\n          table:\n            messageTable,\n          filter:\n            messageFilter,\n        },\n        () => void load()\n      )\n      .on(\n        'postgres_changes',\n        {\n          event: '*',\n          schema: 'public',\n          table:\n            reactionTable,\n          filter:\n            reactionFilter,\n        },\n        () =>\n          void loadReactions()\n      )\n      .subscribe();\n\n    return () => {\n      void supabase\n        .removeChannel(\n          channel\n        );\n    };\n"""
+
+          new = """    const registryKey =\n      `connect-thread:${mode}:${profileId}:${effectiveContainerId}`;\n\n    const release =\n      acquireSharedRealtimeSubscription<\n        'message' | 'reaction'\n      >(\n        registryKey,\n        eventKind => {\n          if (eventKind === 'reaction') {\n            void loadReactions();\n            return;\n          }\n\n          void load();\n        },\n        emit => {\n          const channel = supabase\n            .channel(\n              `connect-thread-${mode}-${effectiveContainerId}`\n            )\n            .on(\n              'postgres_changes',\n              {\n                event: 'INSERT',\n                schema: 'public',\n                table:\n                  messageTable,\n                filter:\n                  messageFilter,\n              },\n              () => emit('message')\n            )\n            .on(\n              'postgres_changes',\n              {\n                event: 'UPDATE',\n                schema: 'public',\n                table:\n                  messageTable,\n                filter:\n                  messageFilter,\n              },\n              () => emit('message')\n            )\n            .on(\n              'postgres_changes',\n              {\n                event: '*',\n                schema: 'public',\n                table:\n                  reactionTable,\n                filter:\n                  reactionFilter,\n              },\n              () => emit('reaction')\n            );\n\n          const subscribed =\n            channel.subscribe();\n\n          return () => {\n            void supabase.removeChannel(\n              subscribed\n            );\n          };\n        },\n      );\n\n    return release;\n"""
+
+          count = text.count(old)
+          if count != 1:
+              raise SystemExit(f'STOP: expected exactly one realtime block, found {count}')
+          text = text.replace(old, new, 1)
+
+          if text == original:
+              raise SystemExit('STOP: patch produced no change')
+          if 'sessionKey' in text:
+              raise SystemExit('STOP: random Connect thread sessionKey still present')
+          if text.count("acquireSharedRealtimeSubscription") < 2:
+              raise SystemExit('STOP: shared realtime import/use verification failed')
+
+          path.write_text(text, encoding='utf-8')
+
+      - name: TypeScript gate
+        run: npx tsc --noEmit
+
+      - name: Diff guard
+        shell: bash
+        run: |
+          git diff --check
+          git diff -- src/components/BuklodConnectThread.tsx
+          test "$(git diff --name-only | wc -l)" -eq 1
+          test "$(git diff --name-only)" = "src/components/BuklodConnectThread.tsx"
+
+      - name: Commit targeted patch
+        shell: bash
+        run: |
+          git config user.name "BUKLOD Performance QA"
+          git config user.email "actions@users.noreply.github.com"
+          git add src/components/BuklodConnectThread.tsx
+          git commit -m "perf: share open Connect thread realtime channel"
+          git push origin HEAD:perf/r1-cache-dedupe
