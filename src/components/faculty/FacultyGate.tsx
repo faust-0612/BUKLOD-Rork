@@ -3,11 +3,15 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
-import BuklodFocusAppGate from '@/components/BuklodFocusAppGate';
 import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
 
+/**
+ * BUKLOD Faculty is a free faculty-side workspace.
+ * Classroom-specific authority remains enforced by backend assignment/permission RPCs.
+ * There is intentionally no subscription/paywall gate here.
+ */
 export function FacultyGate({ children }: { children: ReactNode }) {
-  return <BuklodFocusAppGate app="faculty">{children}</BuklodFocusAppGate>;
+  return <>{children}</>;
 }
 
 export function FacultyClassHeader({
