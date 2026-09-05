@@ -15,7 +15,7 @@ import type {
   BuklodFoundationSnapshot,
   BuklodFoundationWorkspace,
 } from '@/lib/buklodFoundation';
-import { resolveFoundationFocusApps } from '@/lib/buklodFoundation';
+import { resolveFoundationFocusAppsFast } from '@/lib/buklodFoundationFast';
 import type { BuklodScope } from '@/lib/buklodScope';
 import {
   AppRole,
@@ -188,7 +188,7 @@ export function BuklodFoundationProvider({
       }
 
       try {
-        const snapshot = await resolveFoundationFocusApps({
+        const snapshot = await resolveFoundationFocusAppsFast({
           isSystemAdmin,
           scopes,
           activeScope,
