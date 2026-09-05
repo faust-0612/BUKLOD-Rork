@@ -16,6 +16,50 @@ const AUTH_LIFECYCLE_TIMEOUT_MS = 1_800;
 const AUTH_PROFILE_FALLBACK_TIMEOUT_MS = 1_500;
 const AUTH_LOCAL_SESSION_TIMEOUT_MS = 1_200;
 const AUTH_LOCAL_SIGN_OUT_TIMEOUT_MS = 2_500;
+const AUTH_FRESH_SIGN_IN_USER_TTL_MS = 60_000;
+
+/*
+ * BUKLOD_MAIN_AUTH_STORM_R21
+ * Keep the login lock on globalThis rather than component state so route
+ * remounts / Fast Refresh cannot start a second password grant while the
+ * first one is still running. One app runtime can only authenticate one
+ * account at a time, so sharing the in-flight promise is the safest behavior.
+ *
+ * We also remember the user id from a successful password grant briefly.
+ * The account-lifecycle gate can then query the profile fallback directly
+ * without calling auth.getSession(), which can otherwise trigger another
+ * refresh-token request when Auth is already under pressure.
+ */
+type BuklodAuthRuntimeState = {
+  passwordSignInInFlight: Promise<any> | null;
+  lastSignedInUserId: string | null;
+  lastSignedInAt: number;
+};
+
+const AUTH_RUNTIME_STATE_KEY =
+  '__BUKLOD_MAIN_AUTH_RUNTIME_R21__';
+
+function getBuklodAuthRuntimeState(): BuklodAuthRuntimeState {
+  const root = globalThis as any;
+  const existing = root[AUTH_RUNTIME_STATE_KEY] as
+    | BuklodAuthRuntimeState
+    | undefined;
+
+  if (existing) {
+    return existing;
+  }
+
+  const created: BuklodAuthRuntimeState = {
+    passwordSignInInFlight: null,
+    lastSignedInUserId: null,
+    lastSignedInAt: 0,
+  };
+
+  root[AUTH_RUNTIME_STATE_KEY] = created;
+  return created;
+}
+
+const authRuntimeState = getBuklodAuthRuntimeState();
 
 function authErrorText(error: any): string {
   return String(
@@ -113,14 +157,43 @@ export async function signInWithPasswordResilient(
   >[0]
 ) {
   /*
-   * HIGH_CONCURRENCY_LOGIN_R1
-   * Never auto-retry a password request after a timeout/5xx/429. During a
-   * synchronized login wave, automatic retries amplify overload (N -> 2N).
-   * Legacy identifier compatibility remains an explicit caller decision.
+   * HIGH_CONCURRENCY_LOGIN_R1 + BUKLOD_MAIN_AUTH_STORM_R21
+   * Never auto-retry a password request after a timeout/5xx/429, and never
+   * allow two password grants from the same runtime at the same time.
+   * This prevents same-tick taps, route remounts, and suggested-login races
+   * from amplifying a synchronized login wave.
    */
-  return supabase.auth.signInWithPassword(
-    credentials
-  );
+  if (authRuntimeState.passwordSignInInFlight) {
+    return authRuntimeState.passwordSignInInFlight;
+  }
+
+  const task = supabase.auth
+    .signInWithPassword(credentials)
+    .then((result: any) => {
+      const userId = String(
+        result?.data?.user?.id ?? ''
+      ).trim();
+
+      if (!result?.error && userId) {
+        authRuntimeState.lastSignedInUserId = userId;
+        authRuntimeState.lastSignedInAt = Date.now();
+      }
+
+      return result;
+    });
+
+  authRuntimeState.passwordSignInInFlight = task;
+
+  try {
+    return await task;
+  }
+  finally {
+    if (
+      authRuntimeState.passwordSignInInFlight === task
+    ) {
+      authRuntimeState.passwordSignInInFlight = null;
+    }
+  }
 }
 
 export type BuklodAccountLifecycleResult = {
@@ -163,19 +236,35 @@ export async function resolveBuklodAccountLifecycleAfterLogin():
     };
   }
 
-  const sessionResult =
-    await withBuklodTimeout<any>(
-      supabase.auth.getSession(),
-      AUTH_LOCAL_SESSION_TIMEOUT_MS,
-      'BUKLOD local session'
-    ).catch(() => ({
-      data: null,
-      error: null,
-    }));
+  const freshUserId =
+    authRuntimeState.lastSignedInUserId &&
+    Date.now() - authRuntimeState.lastSignedInAt <=
+      AUTH_FRESH_SIGN_IN_USER_TTL_MS
+      ? authRuntimeState.lastSignedInUserId
+      : null;
 
-  const userId =
-    sessionResult?.data?.session?.user?.id ??
-    null;
+  let userId = freshUserId;
+
+  /*
+   * A successful password grant already returned the authenticated user id.
+   * Reuse it during the immediate lifecycle fallback instead of asking Auth
+   * for the session again. Only older/non-login callers need getSession().
+   */
+  if (!userId) {
+    const sessionResult =
+      await withBuklodTimeout<any>(
+        supabase.auth.getSession(),
+        AUTH_LOCAL_SESSION_TIMEOUT_MS,
+        'BUKLOD local session'
+      ).catch(() => ({
+        data: null,
+        error: null,
+      }));
+
+    userId =
+      sessionResult?.data?.session?.user?.id ??
+      null;
+  }
 
   if (!userId) {
     return {
@@ -276,6 +365,9 @@ export async function clearBuklodPersistedAuthStorage() {
 
 export async function signOutBuklodResilient() {
   let signOutError: any = null;
+
+  authRuntimeState.lastSignedInUserId = null;
+  authRuntimeState.lastSignedInAt = 0;
 
   try {
     const result =
