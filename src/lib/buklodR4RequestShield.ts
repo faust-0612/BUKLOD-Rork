@@ -73,6 +73,10 @@ const rpcTtlMs: Record<string, number> = {
   get_automatic_bible_today: 60_000,
   get_buklod_points_leaderboard: 30_000,
   get_my_daily_devotional: 60_000,
+  // Runtime config controls maintenance/update/pilot gates, so keep this very
+  // short: enough to collapse bootstrap/remount bursts without masking a new
+  // server-side gate for more than a few seconds on an already-open client.
+  get_client_runtime_config: 10_000,
   // Connect/status surfaces can remount repeatedly. Keep this especially short
   // because viewer_count and expiry are live-ish UI details, while still
   // collapsing duplicate bursts from the same signed-in user.
