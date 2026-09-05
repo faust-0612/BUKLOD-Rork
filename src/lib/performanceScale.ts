@@ -20,8 +20,14 @@ export const SCALE_LIMITS = {
   scopeMembersAdminCap: 200,
   /** Unread badge safety poll (ms). */
   connectUnreadPollMs: 90_000,
-  /** Inbox list safety poll (ms). */
-  messagesInboxPollMs: 90_000,
+  /**
+   * Inbox list safety poll (ms).
+   *
+   * Direct/scope inboxes are realtime-first. Keep a slower fallback poll for
+   * missed reconnect events without making every mounted inbox hit Supabase
+   * every 90 seconds indefinitely.
+   */
+  messagesInboxPollMs: 180_000,
   /** Direct peer-read refresh while thread open (ms). */
   connectPeerReadPollMs: 8_000,
   /** Supabase realtime events per second cap. */
