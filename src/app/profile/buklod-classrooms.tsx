@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Pressable,
   RefreshControl,
@@ -48,9 +49,11 @@ export default function BuklodClassroomsScreen() {
   const { user } = useAuth();
   const userId = user?.id ?? null;
   const {
+    show_launcher: showLauncher,
     has_faculty_entitlement: hasFacultyEntitlement,
     has_student_enrollment: hasStudentEnrollment,
     dual_role: accountDualRole,
+    loading: accessLoading,
     refresh: refreshAccess,
   } = useFacultyEntitlement();
 
@@ -139,6 +142,33 @@ export default function BuklodClassroomsScreen() {
       params: { id: row.classroom_id, name: row.classroom_name },
     });
   };
+
+  if (accessLoading) {
+    return (
+      <View style={styles.routeLoading}>
+        <ActivityIndicator size="large" color="#5C3927" />
+        <Text style={styles.routeLoadingText}>Checking Classroom access…</Text>
+      </View>
+    );
+  }
+
+  if (!showLauncher) {
+    return (
+      <View style={styles.routeDenied}>
+        <View style={styles.routeDeniedIcon}>
+          <MaterialCommunityIcons name="school-lock-outline" size={34} color="#756F64" />
+        </View>
+        <Text style={styles.routeDeniedTitle}>My Classroom is not active for this account</Text>
+        <Text style={styles.routeDeniedText}>
+          This doorway is only available to actively enrolled students or users with an active BUKLOD Faculty entitlement. Student enrollment is free; Faculty access uses the Faculty bundle.
+        </Text>
+        <Pressable style={styles.routeBackButton} onPress={() => router.back()}>
+          <MaterialCommunityIcons name="arrow-left" size={18} color="#fff" />
+          <Text style={styles.routeBackText}>Back to BUKLOD</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   return (
     <ScrollView
@@ -289,6 +319,14 @@ export default function BuklodClassroomsScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#F3F0E9' },
   content: { padding: 20, paddingTop: 44, paddingBottom: 70 },
+  routeLoading: { flex: 1, backgroundColor: '#F3F0E9', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 24 },
+  routeLoadingText: { color: '#716D66', fontWeight: '800' },
+  routeDenied: { flex: 1, backgroundColor: '#F3F0E9', alignItems: 'center', justifyContent: 'center', padding: 28 },
+  routeDeniedIcon: { width: 66, height: 66, borderRadius: 22, backgroundColor: '#E7E1D7', alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
+  routeDeniedTitle: { color: '#353A36', fontWeight: '900', fontSize: 19, textAlign: 'center' },
+  routeDeniedText: { color: '#716D66', textAlign: 'center', lineHeight: 20, marginTop: 7, maxWidth: 470 },
+  routeBackButton: { marginTop: 18, backgroundColor: '#5C3927', borderRadius: 13, minHeight: 44, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  routeBackText: { color: '#fff', fontWeight: '900' },
   back: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 16 },
   backText: { color: '#2D342F', fontWeight: '900' },
   hero: { borderRadius: 27, padding: 20, marginBottom: 12, borderWidth: 1 },
