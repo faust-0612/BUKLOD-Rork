@@ -2,6 +2,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { supabase } from '@/lib/supabase';
+import {
+  clearInflight,
+  clearRealtimeRegistry,
+  invalidateCache,
+} from '@/lib/performance';
 
 /* BUKLOD_AUTH_INFLIGHT_SHIELD_R1_RELEASE */
 /* BUKLOD_PERMISSION_SNAPSHOT_R1_RELEASE */
@@ -385,6 +390,13 @@ export async function signOutBuklodResilient() {
     signOutError = error;
   }
   finally {
+    // Auth is a hard isolation boundary. Never let one account's cached
+    // profile/points/scope state or realtime listeners survive into the next
+    // signed-in account in the same app runtime.
+    invalidateCache();
+    clearInflight();
+    clearRealtimeRegistry();
+
     // Browser/app navigation must never be held hostage by a slow /logout
     // request. Removing the persisted token guarantees a clean next boot.
     await clearBuklodPersistedAuthStorage();
