@@ -43,7 +43,7 @@ jobs:
       - name: Verify exact Main production environment
         shell: bash
         run: |
-          npx eas-cli@latest env:exec --environment production \
+          npx eas-cli@latest env:exec production \
             'node -e "const u=process.env.EXPO_PUBLIC_SUPABASE_URL||\"\"; const k=process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY||\"\"; const e=process.env.EXPO_PUBLIC_APP_ENV||\"\"; const p=process.env.EAS_PROJECT_ID||process.env.EXPO_PUBLIC_EAS_PROJECT_ID||\"23dad7d0-389a-406e-8dec-08965dab85d8\"; if(e!==\"production\") throw new Error(\"Wrong app environment: \"+e); if(u!==\"https://yhanxndaqbmuzbdqlblu.supabase.co\") throw new Error(\"Wrong Supabase project URL\"); if(!/^sb_publishable_/i.test(k)||/sb_secret_|service_role/i.test(k)) throw new Error(\"Unsafe/missing Supabase publishable key\"); if(p!==\"23dad7d0-389a-406e-8dec-08965dab85d8\") throw new Error(\"Wrong EAS project ID\"); console.log(\"MAIN_PRODUCTION_ENV_OK\")"' \
             --non-interactive
 
@@ -59,14 +59,14 @@ jobs:
       - name: TypeScript gate inside production env
         shell: bash
         run: |
-          npx eas-cli@latest env:exec --environment production \
+          npx eas-cli@latest env:exec production \
             'npx tsc --noEmit' \
             --non-interactive
 
       - name: Export web inside production env
         shell: bash
         run: |
-          npx eas-cli@latest env:exec --environment production \
+          npx eas-cli@latest env:exec production \
             'rm -rf dist-web && npx expo export --platform web --output-dir dist-web --clear' \
             --non-interactive
 
@@ -85,7 +85,7 @@ jobs:
       - name: Export Android JS bundle inside production env
         shell: bash
         run: |
-          npx eas-cli@latest env:exec --environment production \
+          npx eas-cli@latest env:exec production \
             'rm -rf dist-android && npx expo export --platform android --output-dir dist-android --clear' \
             --non-interactive
 
