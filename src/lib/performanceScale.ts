@@ -28,8 +28,13 @@ export const SCALE_LIMITS = {
    * every 90 seconds indefinitely.
    */
   messagesInboxPollMs: 180_000,
-  /** Direct peer-read refresh while thread open (ms). */
-  connectPeerReadPollMs: 8_000,
+  /**
+   * Direct peer-read safety refresh while a thread is open (ms).
+   * Read receipts are live-state data, but an 8s database poll is too
+   * aggressive at scale. Keep a 30s fallback window for missed realtime or
+   * reconnect events without turning each open chat into a request loop.
+   */
+  connectPeerReadPollMs: 30_000,
   /** Supabase realtime events per second cap. */
   realtimeEventsPerSecond: 8,
   /** Max community posts kept in local cache. */
