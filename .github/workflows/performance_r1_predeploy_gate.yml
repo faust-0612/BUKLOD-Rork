@@ -1,0 +1,107 @@
+name: BUKLOD Performance R1 Predeploy Gate
+
+on:
+  push:
+    branches:
+      - perf/r1-cache-dedupe
+    paths:
+      - '.github/workflows/performance_r1_predeploy_gate.yml'
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  CI: '1'
+
+jobs:
+  production-predeploy-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout exact performance branch
+        uses: actions/checkout@v4
+        with:
+          ref: perf/r1-cache-dedupe
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Expo credential preflight
+        shell: bash
+        run: |
+          test -n "$EXPO_TOKEN"
+          npx eas-cli@latest whoami --non-interactive
+
+      - name: Verify exact Main production environment
+        shell: bash
+        run: |
+          npx eas-cli@latest env:exec --environment production \
+            'node -e "const u=process.env.EXPO_PUBLIC_SUPABASE_URL||\"\"; const k=process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY||\"\"; const e=process.env.EXPO_PUBLIC_APP_ENV||\"\"; const p=process.env.EAS_PROJECT_ID||process.env.EXPO_PUBLIC_EAS_PROJECT_ID||\"23dad7d0-389a-406e-8dec-08965dab85d8\"; if(e!==\"production\") throw new Error(\"Wrong app environment: \"+e); if(u!==\"https://yhanxndaqbmuzbdqlblu.supabase.co\") throw new Error(\"Wrong Supabase project URL\"); if(!/^sb_publishable_/i.test(k)||/sb_secret_|service_role/i.test(k)) throw new Error(\"Unsafe/missing Supabase publishable key\"); if(p!==\"23dad7d0-389a-406e-8dec-08965dab85d8\") throw new Error(\"Wrong EAS project ID\"); console.log(\"MAIN_PRODUCTION_ENV_OK\")"' \
+            --non-interactive
+
+      - name: Protected source anchors
+        shell: bash
+        run: |
+          grep -F "acquireSharedRealtimeSubscription" src/components/BuklodConnectThread.tsx
+          grep -F "acquireSharedRealtimeSubscription" 'src/app/(tabs)/messages.tsx'
+          grep -F "createBuklodR4RequestShield" src/lib/supabase.ts
+          grep -F "org.mzbministry.buklod" app.config.js
+          grep -F "runtimeVersion: isStaging ? '1.3.2' : '1.3.0'" app.config.js
+
+      - name: TypeScript gate inside production env
+        shell: bash
+        run: |
+          npx eas-cli@latest env:exec --environment production \
+            'npx tsc --noEmit' \
+            --non-interactive
+
+      - name: Export web inside production env
+        shell: bash
+        run: |
+          npx eas-cli@latest env:exec --environment production \
+            'rm -rf dist-web && npx expo export --platform web --output-dir dist-web --clear' \
+            --non-interactive
+
+      - name: Verify web bundle authority
+        shell: bash
+        run: |
+          test -f dist-web/index.html
+          test -n "$(find dist-web/_expo/static/js/web -type f -name '*.js' -print -quit)"
+          grep -R -F 'yhanxndaqbmuzbdqlblu' dist-web/_expo/static/js/web >/dev/null
+          grep -R -F 'sb_publishable_' dist-web/_expo/static/js/web >/dev/null
+          if grep -R -E 'cjtehbfspgimyhifnjon|oppswibwjrruxkrpiwej' dist-web/_expo/static/js/web >/dev/null; then
+            echo 'STOP: non-Main Supabase project reference found in web bundle.'
+            exit 1
+          fi
+
+      - name: Export Android JS bundle inside production env
+        shell: bash
+        run: |
+          npx eas-cli@latest env:exec --environment production \
+            'rm -rf dist-android && npx expo export --platform android --output-dir dist-android --clear' \
+            --non-interactive
+
+      - name: Verify Android bundle authority
+        shell: bash
+        run: |
+          test -n "$(find dist-android -type f -name '*.js' -print -quit)"
+          grep -R -F 'yhanxndaqbmuzbdqlblu' dist-android >/dev/null
+          grep -R -F 'sb_publishable_' dist-android >/dev/null
+          if grep -R -E 'cjtehbfspgimyhifnjon|oppswibwjrruxkrpiwej' dist-android >/dev/null; then
+            echo 'STOP: non-Main Supabase project reference found in Android export.'
+            exit 1
+          fi
+
+      - name: Final no-deploy gate
+        shell: bash
+        run: |
+          echo 'R1 PREDEPLOY GATES PASSED'
+          echo 'NO DEPLOY / NO OTA / NO APK / NO AAB performed by this workflow.'
