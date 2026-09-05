@@ -303,3 +303,14 @@ export async function loadReferralSummary(): Promise<ReferralSummary | null> {
     was_referred: Boolean(row.was_referred),
   };
 }
+
+export async function recordReferral(referrerCode: string) {
+  const { error } = await (supabase as any).rpc(
+    'buklod_record_referral_v1',
+    { p_referrer_code: referrerCode.trim() },
+  );
+
+  if (error) {
+    throw error;
+  }
+}
