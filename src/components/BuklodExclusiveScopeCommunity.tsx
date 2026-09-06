@@ -65,6 +65,7 @@ import * as FileSystem
 import {
   supabase,
 } from '@/lib/supabase';
+import { acquireSharedRealtimeSubscription } from '@/lib/performance';
 import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
 import { keepStableCommunityMedia } from '@/lib/buklodOfflineSync';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
@@ -2053,55 +2054,45 @@ export default function BuklodExclusiveScopeCommunity({
     };
 
   useEffect(
-    () => {
-      if (
-        !commentOpen ||
-        !commentPost?.id
-      ) {
-        return;
-      }
+  () => {
+    if (
+      !commentOpen ||
+      !commentPost?.id
+    ) {
+      return;
+    }
 
-      const postId =
-        commentPost.id;
+    const postId =
+      commentPost.id;
 
-      const channel =
-        supabase
-          .channel(
-            `exclusive-scope-comments:${postId}:${(0)}:${(0).toString(36).slice(2)}`
-          )
+    return acquireSharedRealtimeSubscription(
+      `exclusive-scope-comments:${postId}`,
+      () => {
+        void loadComments(postId);
+      },
+      emit => {
+        const channel = supabase
+          .channel(`exclusive-scope-comments:${postId}`)
           .on(
             'postgres_changes',
             {
-              event:
-                '*',
-              schema:
-                'public',
-              table:
-                'comments',
-              filter:
-                `post_id=eq.${postId}`,
+              event: '*',
+              schema: 'public',
+              table: 'comments',
+              filter: `post_id=eq.${postId}`,
             },
-            () => {
-              void loadComments(
-                postId
-              );
-            }
+            () => emit(undefined)
           )
           .subscribe();
 
-      return () => {
-        void supabase
-          .removeChannel(
-            channel
-          );
-      };
-    },
-    [
-      commentOpen,
-      commentPost?.id,
-      loadComments,
-    ]
-  );
+        return () => {
+          void supabase.removeChannel(channel);
+        };
+      }
+    );
+  },
+  [commentOpen, commentPost?.id, loadComments]
+);
 
   const addComment =
     async () => {
