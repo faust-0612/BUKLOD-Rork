@@ -47,6 +47,7 @@ type Submission = {
   submitted_at: string;
   submitted_on_time: boolean;
   admin_note: string | null;
+  question_answers: string[] | null;
 };
 
 type PhotoDraft = {
@@ -1619,6 +1620,16 @@ export default function DailyBibleScreen() {
   useEffect(()=>{
     setBibleText(submission?.bible_text ?? '');
     setAnswer(submission?.answer_text ?? '');
+    setQuestionAnswers(
+      Array.from(
+        {length:4},
+        (_,index)=>
+          String(
+            submission?.question_answers?.[index] ??
+            ''
+          )
+      )
+    );
     setLanguage(submission?.answer_language ?? 'fil');
     setBiblePhotoPath(submission?.bible_photo_path ?? null);
     setReflectionPhotoPath(submission?.reflection_photo_path ?? null);
@@ -1779,6 +1790,9 @@ export default function DailyBibleScreen() {
         p_language:language,
         p_bible_photo_path:finalBiblePath,
         p_reflection_photo_path:finalReflectionPath,
+        p_question_answers:questionAnswers
+          .slice(0,4)
+          .map(value=>String(value ?? '').trim()),
       });
       if (error) throw error;
 
