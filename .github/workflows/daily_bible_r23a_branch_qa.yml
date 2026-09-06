@@ -1,0 +1,144 @@
+name: BUKLOD Daily Bible R23A Isolated Patch QA
+
+on:
+  push:
+    branches:
+      - fix/daily-bible-four-answer-flow-20260907
+    paths:
+      - '.github/workflows/daily_bible_r23a_branch_qa.yml'
+
+permissions:
+  contents: write
+
+env:
+  CI: '1'
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout isolated branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/daily-bible-four-answer-flow-20260907
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Prove exact source anchors and apply minimal patch
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/app/bible/index.tsx')
+          text = path.read_text(encoding='utf-8')
+
+          replacements = [
+              (
+                  "  submitted_on_time: boolean;\n  admin_note: string | null;\n};",
+                  "  submitted_on_time: boolean;\n  admin_note: string | null;\n  question_answers: string[] | null;\n};",
+              ),
+              (
+                  "  setAnswer(submission?.answer_text ?? '');\n    setLanguage(submission?.answer_language ?? 'fil');",
+                  "  setAnswer(submission?.answer_text ?? '');\n    setQuestionAnswers(\n      Array.from(\n        {length:4},\n        (_,index)=>\n          String(\n            submission?.question_answers?.[index] ??\n            ''\n          )\n      )\n    );\n    setLanguage(submission?.answer_language ?? 'fil');",
+              ),
+              (
+                  "        p_reflection_photo_path:finalReflectionPath,\n      });",
+                  "        p_reflection_photo_path:finalReflectionPath,\n        p_question_answers:questionAnswers\n          .slice(0,4)\n          .map(value=>String(value ?? '').trim()),\n      });",
+              ),
+          ]
+
+          for old, new in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'Expected exact anchor once, found {count}: {old[:80]!r}')
+              text = text.replace(old, new, 1)
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Exact regression anchors
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          text = Path('src/app/bible/index.tsx').read_text(encoding='utf-8')
+
+          required = [
+              "question_answers: string[] | null;",
+              "setQuestionAnswers(",
+              "submission?.question_answers?.[index]",
+              "p_question_answers:questionAnswers",
+              ".slice(0,4)",
+              ".map(value=>String(value ?? '').trim())",
+              "const chapterAnswersOkay =",
+              "questionAnswers[index] ?? ''",
+              "trim().length >= 10",
+              "submit_daily_bible_evidence_v2",
+              "status: 'pending_admin' | 'approved' | 'rejected';",
+          ]
+          for marker in required:
+              if marker not in text:
+                  raise SystemExit(f'Missing protected/target marker: {marker}')
+
+          rpc = re.search(r"supabase\.rpc\('submit_daily_bible_evidence_v2',\{(?P<body>.*?)\}\);", text, re.S)
+          if not rpc:
+              raise SystemExit('Daily Bible v2 submit RPC not found')
+          body = rpc.group('body')
+          if body.count('p_question_answers:') != 1:
+              raise SystemExit('Daily Bible RPC must contain p_question_answers exactly once')
+
+          select_match = re.search(r"\.from\('daily_bible_submissions'\).*?\.select\(\s*'([^']+)'\s*\)", text, re.S)
+          if not select_match or 'question_answers' not in select_match.group(1):
+              raise SystemExit('Submission reload must continue selecting question_answers')
+          PY
+          git diff --check
+
+      - name: Assert only Daily Bible source changed in working tree
+        shell: bash
+        run: |
+          changed="$(git diff --name-only)"
+          test "$changed" = 'src/app/bible/index.tsx'
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Expo production-environment preflight
+        shell: bash
+        run: |
+          test -n "$EXPO_TOKEN"
+          npx eas-cli@latest whoami --non-interactive
+
+      - name: Clean web export inside EAS production environment
+        shell: bash
+        run: |
+          npx eas-cli@latest env:exec --environment production \
+            'rm -rf dist-r23a && npx expo export --platform web --output-dir dist-r23a --clear' \
+            --non-interactive
+
+      - name: Verify BUKLOD Main production identity and bundle
+        shell: bash
+        run: |
+          test -f dist-r23a/index.html
+          grep -R -F 'yhanxndaqbmuzbdqlblu' dist-r23a/_expo/static/js/web >/dev/null
+          grep -R -F 'sb_publishable_' dist-r23a/_expo/static/js/web >/dev/null
+          grep -R -F 'submit_daily_bible_evidence_v2' dist-r23a/_expo/static/js/web >/dev/null
+
+      - name: Commit verified source patch to isolated branch
+        shell: bash
+        run: |
+          git config user.name 'BUKLOD Stability Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add src/app/bible/index.tsx
+          git commit -m 'fix: send and restore Daily Bible question answers'
+          git push origin HEAD:fix/daily-bible-four-answer-flow-20260907
