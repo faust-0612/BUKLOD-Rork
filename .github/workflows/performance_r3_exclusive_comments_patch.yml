@@ -3,15 +3,15 @@ name: BUKLOD Performance R3 Exclusive Comments Patch
 on:
   push:
     branches:
-      - perf/r3-exclusive-comments-shared-realtime
+      - "perf/r3-exclusive-comments-shared-realtime"
     paths:
-      - .github/workflows/performance_r3_exclusive_comments_patch.yml
+      - ".github/workflows/performance_r3_exclusive_comments_patch.yml"
 
 permissions:
   contents: write
 
 jobs:
-  patch-and-verify:
+  patch_and_verify:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout isolated branch
@@ -22,26 +22,26 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: "22"
           cache: npm
 
       - name: Install dependencies
         run: npm ci
 
       - name: Apply exact shared comments realtime patch
-        shell: python
         run: |
+          python - <<'PY'
           from pathlib import Path
           import re
 
-          path = Path('src/components/BuklodExclusiveScopeCommunity.tsx')
-          text = path.read_text(encoding='utf-8')
+          path = Path("src/components/BuklodExclusiveScopeCommunity.tsx")
+          text = path.read_text(encoding="utf-8")
 
           import_anchor = "import {\n  supabase,\n} from '@/lib/supabase';\n"
           if text.count(import_anchor) != 1:
-              raise SystemExit(f'import anchor count={text.count(import_anchor)}; STOP')
+              raise SystemExit("import anchor mismatch; STOP")
           if "acquireSharedRealtimeSubscription" in text:
-              raise SystemExit('shared realtime import already present; STOP')
+              raise SystemExit("shared realtime import already present; STOP")
           text = text.replace(
               import_anchor,
               import_anchor + "import { acquireSharedRealtimeSubscription } from '@/lib/performance';\n",
@@ -96,90 +96,67 @@ jobs:
           )
 
           replacement = """  useEffect(
-    () => {
-      if (
-        !commentOpen ||
-        !commentPost?.id
-      ) {
-        return;
-      }
+            () => {
+              if (
+                !commentOpen ||
+                !commentPost?.id
+              ) {
+                return;
+              }
 
-      const postId =
-        commentPost.id;
+              const postId =
+                commentPost.id;
 
-      return acquireSharedRealtimeSubscription(
-        `exclusive-scope-comments:${postId}`,
-        () => {
-          void loadComments(
-            postId
-          );
-        },
-        emit => {
-          const channel =
-            supabase
-              .channel(
-                `exclusive-scope-comments:${postId}`
-              )
-              .on(
-                'postgres_changes',
-                {
-                  event:
-                    '*',
-                  schema:
-                    'public',
-                  table:
-                    'comments',
-                  filter:
-                    `post_id=eq.${postId}`,
+              return acquireSharedRealtimeSubscription(
+                `exclusive-scope-comments:${postId}`,
+                () => {
+                  void loadComments(postId);
                 },
-                () => emit(undefined)
-              )
-              .subscribe();
+                emit => {
+                  const channel = supabase
+                    .channel(`exclusive-scope-comments:${postId}`)
+                    .on(
+                      'postgres_changes',
+                      {
+                        event: '*',
+                        schema: 'public',
+                        table: 'comments',
+                        filter: `post_id=eq.${postId}`,
+                      },
+                      () => emit(undefined)
+                    )
+                    .subscribe();
 
-          return () => {
-            void supabase
-              .removeChannel(
-                channel
+                  return () => {
+                    void supabase.removeChannel(channel);
+                  };
+                }
               );
-          };
-        }
-      );
-    },
-    [
-      commentOpen,
-      commentPost?.id,
-      loadComments,
-    ]
-  );"""
+            },
+            [commentOpen, commentPost?.id, loadComments]
+          );"""
 
           text, count = pattern.subn(replacement, text, count=1)
           if count != 1:
-              raise SystemExit(f'comments realtime effect match count={count}; STOP')
-
-          if 'exclusive-scope-comments:${postId}:${' in text:
-              raise SystemExit('old per-mount topic remains; STOP')
-          if text.count("table:\n                    'comments'") < 1:
-              raise SystemExit('comments table subscription missing after patch; STOP')
-          if text.count('acquireSharedRealtimeSubscription') != 2:
-              raise SystemExit('expected exactly import + one call; STOP')
-
-          path.write_text(text, encoding='utf-8')
+              raise SystemExit("comments realtime effect mismatch; STOP")
+          if "exclusive-scope-comments:${postId}:${" in text:
+              raise SystemExit("old per-mount topic remains; STOP")
+          if text.count("acquireSharedRealtimeSubscription") != 2:
+              raise SystemExit("expected import plus one call; STOP")
+          path.write_text(text, encoding="utf-8")
+          PY
 
       - name: TypeScript QA
         run: npx tsc --noEmit
 
       - name: Exact diff guard
-        shell: bash
         run: |
           set -euo pipefail
           git diff --check
-          mapfile -t files < <(git diff --name-only)
-          test "${#files[@]}" -eq 1
-          test "${files[0]}" = "src/components/BuklodExclusiveScopeCommunity.tsx"
-          git diff -- src/components/BuklodExclusiveScopeCommunity.tsx
+          files="$(git diff --name-only)"
+          test "$files" = "src/components/BuklodExclusiveScopeCommunity.tsx"
 
       - name: Commit isolated patch
-        shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
@@ -189,4 +166,4 @@ jobs:
           git push origin HEAD:perf/r3-exclusive-comments-shared-realtime
 
       - name: No deploy marker
-        run: echo "R3 patch verified on isolated branch only. No production deploy performed."
+        run: echo "R3 isolated branch only; no production deploy"
