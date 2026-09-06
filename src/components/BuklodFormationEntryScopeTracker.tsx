@@ -53,11 +53,22 @@ export default function BuklodFormationEntryScopeTracker() {
 
     previousPathRef.current = pathname;
 
-    if (!feature || previousPath === null) {
+    if (!feature) {
       return;
     }
 
-    const cameFromScopedWorkspace = isScopedWorkspacePath(previousPath);
+    const directScopedLesson = pathname.startsWith('/scope/buklod-lesson');
+
+    // A direct reload inside the mature Bible/Word/Learn screens keeps the
+    // previously captured short-lived context instead of guessing a new scope.
+    if (previousPath === null && !directScopedLesson) {
+      return;
+    }
+
+    const cameFromScopedWorkspace =
+      directScopedLesson ||
+      (previousPath !== null && isScopedWorkspacePath(previousPath));
+
     const exactScope =
       cameFromScopedWorkspace &&
       activeScope &&
