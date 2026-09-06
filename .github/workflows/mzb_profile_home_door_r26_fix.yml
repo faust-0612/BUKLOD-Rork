@@ -1,7 +1,9 @@
 # R26 guarded source-only fix: MZB Ministry Inc profile door -> Organization Home
+# retrigger after workflow registration
 name: BUKLOD MZB Profile Home Door R26 Fix
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
