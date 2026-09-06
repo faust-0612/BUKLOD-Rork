@@ -22,6 +22,7 @@ import {Alert,Pressable,ScrollView,Share,StyleSheet,Text,TextInput,View} from 'r
 import {router,useLocalSearchParams} from 'expo-router';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {supabase} from '@/lib/supabase';
+import { acquireSharedRealtimeSubscription } from '@/lib/performance';
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import {getClusterLabels,formatClusterName} from '@/lib/clusterLabels'; // PATCH_154A_CLUSTER_LABELS
 import {Button,Card,SectionTitle,shared} from '@/components/UI';
@@ -171,11 +172,23 @@ export default function PostDetail(){
  },[id,user?.id]);
 
  useEffect(()=>{void load()},[load]);
- useEffect(()=>{if(!id)return;const ch=supabase.channel(`post:${id}`)
-  .on('postgres_changes',{event:'*',schema:'public',table:'comments',filter:`post_id=eq.${id}`},()=>load())
-  .on('postgres_changes',{event:'*',schema:'public',table:'reactions',filter:`post_id=eq.${id}`},()=>load())
-  .on('postgres_changes',{event:'*',schema:'public',table:'post_share_requests',filter:`post_id=eq.${id}`},()=>load()).subscribe();
-  return()=>{supabase.removeChannel(ch)}},[id,load]);
+ useEffect(()=>{
+  if(!id)return;
+
+  return acquireSharedRealtimeSubscription(
+   `post-detail:${id}`,
+   ()=>{void load()},
+   emit=>{
+    const ch=supabase.channel(`post:${id}`)
+     .on('postgres_changes',{event:'*',schema:'public',table:'comments',filter:`post_id=eq.${id}`},()=>emit(undefined))
+     .on('postgres_changes',{event:'*',schema:'public',table:'reactions',filter:`post_id=eq.${id}`},()=>emit(undefined))
+     .on('postgres_changes',{event:'*',schema:'public',table:'post_share_requests',filter:`post_id=eq.${id}`},()=>emit(undefined))
+     .subscribe();
+
+    return()=>{void supabase.removeChannel(ch)};
+   }
+  );
+ },[id,load]);
 
  const add=async()=>{
   if(!comment.trim())return;
