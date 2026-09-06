@@ -1,0 +1,198 @@
+name: BUKLOD Daily Bible R23A Web + APK Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/daily_bible_r23a_web_apk_deploy.yml'
+
+concurrency:
+  group: buklod-daily-bible-r23a-production
+  cancel-in-progress: false
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  CI: '1'
+
+permissions:
+  contents: read
+
+jobs:
+  web-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Verify targeted Daily Bible patch only
+        shell: bash
+        run: |
+          grep -F "submit_daily_bible_evidence_v2" 'src/app/bible/index.tsx'
+          grep -F "p_question_answers:questionAnswers" 'src/app/bible/index.tsx'
+          grep -F "question_answers: string[] | null" 'src/app/bible/index.tsx'
+          grep -F "setQuestionAnswers" 'src/app/bible/index.tsx'
+          grep -F '"production-apk"' eas.json
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Expo credential preflight
+        run: |
+          test -n "$EXPO_TOKEN"
+          npx eas-cli@latest whoami --non-interactive
+
+      - name: Export web inside EAS production environment
+        shell: bash
+        run: |
+          npx eas-cli@latest env:exec production \
+            'rm -rf dist && npx expo export --platform web --output-dir dist --clear && node scripts/inject-adsense-web-head.cjs dist' \
+            --non-interactive
+
+      - name: Verify production web bundle identity and fix
+        shell: bash
+        run: |
+          test -f dist/index.html
+          grep -R -aF 'yhanxndaqbmuzbdqlblu' dist/_expo/static/js/web >/dev/null
+          grep -R -aF 'sb_publishable_' dist/_expo/static/js/web >/dev/null
+          grep -R -aF 'submit_daily_bible_evidence_v2' dist/_expo/static/js/web >/dev/null
+          grep -R -aF 'p_question_answers' dist/_expo/static/js/web >/dev/null
+          grep -F 'google-adsense-account' dist/index.html >/dev/null
+
+      - name: Deploy production web
+        run: npx eas-cli@latest deploy --prod --non-interactive
+
+      - name: Verify live web contains deployed Daily Bible fix
+        shell: bash
+        run: |
+          node <<'NODE'
+          const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+          async function verify() {
+            for (let attempt = 1; attempt <= 12; attempt++) {
+              const html = await fetch('https://buklod.expo.app', { cache: 'no-store' }).then(r => {
+                if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                return r.text();
+              });
+              const srcs = [...html.matchAll(/<script[^>]+src=["']([^"']+)["']/g)].map(m => m[1]);
+              const bodies = [];
+              for (const src of srcs) {
+                const url = new URL(src, 'https://buklod.expo.app').href;
+                try {
+                  const text = await fetch(url, { cache: 'no-store' }).then(r => r.ok ? r.text() : '');
+                  bodies.push(text);
+                } catch {}
+              }
+              const all = html + '\n' + bodies.join('\n');
+              const ok = all.includes('yhanxndaqbmuzbdqlblu') &&
+                all.includes('submit_daily_bible_evidence_v2') &&
+                all.includes('p_question_answers');
+              if (ok) {
+                console.log(`LIVE WEB VERIFIED on attempt ${attempt}`);
+                return;
+              }
+              console.log(`Live verification attempt ${attempt} not yet propagated.`);
+              await sleep(10000);
+            }
+            throw new Error('Live web did not expose the expected Daily Bible production anchors within the verification window.');
+          }
+          verify().catch(err => { console.error(err); process.exit(1); });
+          NODE
+
+  production-apk:
+    needs: web-deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Expo credential preflight
+        run: |
+          test -n "$EXPO_TOKEN"
+          npx eas-cli@latest whoami --non-interactive
+
+      - name: Verify Android bundle inside production environment
+        shell: bash
+        run: |
+          npx eas-cli@latest env:exec production \
+            'rm -rf .buklod-apk-verify && npx expo export --platform android --output-dir .buklod-apk-verify --clear' \
+            --non-interactive
+          grep -R -aF 'yhanxndaqbmuzbdqlblu' .buklod-apk-verify >/dev/null
+          grep -R -aF 'submit_daily_bible_evidence_v2' .buklod-apk-verify >/dev/null
+          grep -R -aF 'p_question_answers' .buklod-apk-verify >/dev/null
+
+      - name: Build signed production APK on EAS
+        shell: bash
+        run: |
+          npx eas-cli@latest build \
+            --platform android \
+            --profile production-apk \
+            --non-interactive \
+            --wait \
+            --json > eas-build.json
+          node <<'NODE'
+          const fs = require('fs');
+          const raw = JSON.parse(fs.readFileSync('eas-build.json','utf8'));
+          const build = Array.isArray(raw) ? raw[0] : raw;
+          if (!build || !build.id) throw new Error('EAS build result has no build id.');
+          const url = build?.artifacts?.buildUrl || build?.artifacts?.applicationArchiveUrl || '';
+          if (!url) throw new Error('EAS build result has no APK artifact URL.');
+          fs.writeFileSync('apk-url.txt', url);
+          fs.writeFileSync('build-id.txt', String(build.id));
+          console.log(`EAS_BUILD_ID=${build.id}`);
+          NODE
+
+      - name: Download and verify APK artifact
+        shell: bash
+        run: |
+          APK_URL="$(cat apk-url.txt)"
+          curl -fL "$APK_URL" -o BUKLOD-Main-R23A-Daily-Bible.apk
+          test -s BUKLOD-Main-R23A-Daily-Bible.apk
+          unzip -t BUKLOD-Main-R23A-Daily-Bible.apk >/dev/null
+          BUNDLE_PATH="$(unzip -Z1 BUKLOD-Main-R23A-Daily-Bible.apk | grep -E '(^|/)index\.android\.bundle$' | head -n1)"
+          test -n "$BUNDLE_PATH"
+          unzip -p BUKLOD-Main-R23A-Daily-Bible.apk "$BUNDLE_PATH" > deployed-index.android.bundle
+          grep -aF 'yhanxndaqbmuzbdqlblu' deployed-index.android.bundle >/dev/null
+          grep -aF 'submit_daily_bible_evidence_v2' deployed-index.android.bundle >/dev/null
+          grep -aF 'p_question_answers' deployed-index.android.bundle >/dev/null
+          sha256sum BUKLOD-Main-R23A-Daily-Bible.apk | tee apk-sha256.txt
+
+      - name: Upload verified APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: BUKLOD-Main-R23A-Daily-Bible-APK
+          path: |
+            BUKLOD-Main-R23A-Daily-Bible.apk
+            apk-sha256.txt
+            build-id.txt
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Final deployment status
+        run: |
+          echo 'WEB: DEPLOYED + LIVE VERIFIED'
+          echo 'APK: EAS PRODUCTION APK BUILT + ARTIFACT VERIFIED'
