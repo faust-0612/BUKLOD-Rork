@@ -14,7 +14,6 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 
 import { Card, shared } from '@/components/UI';
-import { useBuklodAccess } from '@/hooks/useBuklodAccess';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
@@ -40,19 +39,17 @@ function itemLabel(kind: ApprovalRow['item_kind']) {
 
 export default function ScopeFormationApprovalsScreen() {
   const { activeScope } = useBuklodScope();
-  const { isExactScopeAdmin, isSystemAdmin } = useBuklodAccess();
   const [rows, setRows] = useState<ApprovalRow[]>([]);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
-
-  const isAdmin =
-    Boolean(activeScope?.is_admin) || isExactScopeAdmin || isSystemAdmin;
+  const [accessDenied, setAccessDenied] = useState(false);
 
   const load = useCallback(async () => {
     if (!activeScope?.scope_id) {
       setRows([]);
+      setAccessDenied(false);
       setLoading(false);
       setRefreshing(false);
       return;
@@ -64,13 +61,20 @@ export default function ScopeFormationApprovalsScreen() {
     );
 
     if (error) {
+      const denied = /exact-scope approval authority required/i.test(
+        String(error.message ?? '')
+      );
       setRows([]);
+      setAccessDenied(denied);
       setLoading(false);
       setRefreshing(false);
-      Alert.alert('Formation Approvals', error.message);
+      if (!denied) {
+        Alert.alert('Formation Approvals', error.message);
+      }
       return;
     }
 
+    setAccessDenied(false);
     setRows(Array.isArray(data) ? (data as ApprovalRow[]) : []);
     setLoading(false);
     setRefreshing(false);
@@ -145,18 +149,6 @@ export default function ScopeFormationApprovalsScreen() {
     );
   }
 
-  if (!isAdmin) {
-    return (
-      <View style={[shared.screen, styles.center]}>
-        <Text style={shared.h2}>Admin access required</Text>
-        <Text style={shared.muted}>
-          Only the authorized admin of this exact scope can review these
-          submissions.
-        </Text>
-      </View>
-    );
-  }
-
   return (
     <ScrollView
       style={shared.screen}
@@ -199,6 +191,16 @@ export default function ScopeFormationApprovalsScreen() {
           <ActivityIndicator color={colors.green} />
           <Text style={shared.muted}>Loading approvals...</Text>
         </View>
+      ) : accessDenied ? (
+        <Card>
+          <Text style={shared.h2}>Approval access required</Text>
+          <Text style={shared.muted}>
+            Only the authorized approver of this exact scope can review these
+            submissions. Cluster authority may include Cluster Admin/Head,
+            Pastor, Mentor, or the parent Organization Admin according to the
+            existing governance rules.
+          </Text>
+        </Card>
       ) : rows.length === 0 ? (
         <Card>
           <Text style={shared.h2}>No pending approvals</Text>
