@@ -1,0 +1,192 @@
+name: BUKLOD Performance R3 Exclusive Comments Patch
+
+on:
+  push:
+    branches:
+      - perf/r3-exclusive-comments-shared-realtime
+    paths:
+      - .github/workflows/performance_r3_exclusive_comments_patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout isolated branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply exact shared comments realtime patch
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          path = Path('src/components/BuklodExclusiveScopeCommunity.tsx')
+          text = path.read_text(encoding='utf-8')
+
+          import_anchor = "import {\n  supabase,\n} from '@/lib/supabase';\n"
+          if text.count(import_anchor) != 1:
+              raise SystemExit(f'import anchor count={text.count(import_anchor)}; STOP')
+          if "acquireSharedRealtimeSubscription" in text:
+              raise SystemExit('shared realtime import already present; STOP')
+          text = text.replace(
+              import_anchor,
+              import_anchor + "import { acquireSharedRealtimeSubscription } from '@/lib/performance';\n",
+              1,
+          )
+
+          pattern = re.compile(
+              r"  useEffect\(\n"
+              r"    \(\) => \{\n"
+              r"      if \(\n"
+              r"        !commentOpen \|\|\n"
+              r"        !commentPost\?\.id\n"
+              r"      \) \{\n"
+              r"        return;\n"
+              r"      \}\n\n"
+              r"      const postId =\n"
+              r"        commentPost\.id;\n\n"
+              r"      const channel =\n"
+              r"        supabase\n"
+              r"          \.channel\(\n"
+              r"            `exclusive-scope-comments:\$\{postId\}:[^`]+`\n"
+              r"          \)\n"
+              r"          \.on\(\n"
+              r"            'postgres_changes',\n"
+              r"            \{\n"
+              r"              event:\n"
+              r"                '\*',\n"
+              r"              schema:\n"
+              r"                'public',\n"
+              r"              table:\n"
+              r"                'comments',\n"
+              r"              filter:\n"
+              r"                `post_id=eq\.\$\{postId\}`,\n"
+              r"            \},\n"
+              r"            \(\) => \{\n"
+              r"              void loadComments\(\n"
+              r"                postId\n"
+              r"              \);\n"
+              r"            \}\n"
+              r"          \)\n"
+              r"          \.subscribe\(\);\n\n"
+              r"      return \(\) => \{\n"
+              r"        void supabase\n"
+              r"          \.removeChannel\(\n"
+              r"            channel\n"
+              r"          \);\n"
+              r"      \};\n"
+              r"    \},\n"
+              r"    \[.*?\]\n"
+              r"  \);",
+              re.S,
+          )
+
+          replacement = """  useEffect(
+    () => {
+      if (
+        !commentOpen ||
+        !commentPost?.id
+      ) {
+        return;
+      }
+
+      const postId =
+        commentPost.id;
+
+      return acquireSharedRealtimeSubscription(
+        `exclusive-scope-comments:${postId}`,
+        () => {
+          void loadComments(
+            postId
+          );
+        },
+        emit => {
+          const channel =
+            supabase
+              .channel(
+                `exclusive-scope-comments:${postId}`
+              )
+              .on(
+                'postgres_changes',
+                {
+                  event:
+                    '*',
+                  schema:
+                    'public',
+                  table:
+                    'comments',
+                  filter:
+                    `post_id=eq.${postId}`,
+                },
+                () => emit(undefined)
+              )
+              .subscribe();
+
+          return () => {
+            void supabase
+              .removeChannel(
+                channel
+              );
+          };
+        }
+      );
+    },
+    [
+      commentOpen,
+      commentPost?.id,
+      loadComments,
+    ]
+  );"""
+
+          text, count = pattern.subn(replacement, text, count=1)
+          if count != 1:
+              raise SystemExit(f'comments realtime effect match count={count}; STOP')
+
+          if 'exclusive-scope-comments:${postId}:${' in text:
+              raise SystemExit('old per-mount topic remains; STOP')
+          if text.count("table:\n                    'comments'") < 1:
+              raise SystemExit('comments table subscription missing after patch; STOP')
+          if text.count('acquireSharedRealtimeSubscription') != 2:
+              raise SystemExit('expected exactly import + one call; STOP')
+
+          path.write_text(text, encoding='utf-8')
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Exact diff guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          mapfile -t files < <(git diff --name-only)
+          test "${#files[@]}" -eq 1
+          test "${files[0]}" = "src/components/BuklodExclusiveScopeCommunity.tsx"
+          git diff -- src/components/BuklodExclusiveScopeCommunity.tsx
+
+      - name: Commit isolated patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/BuklodExclusiveScopeCommunity.tsx
+          git commit -m "perf: share exclusive comments realtime channel"
+          git push origin HEAD:perf/r3-exclusive-comments-shared-realtime
+
+      - name: No deploy marker
+        run: echo "R3 patch verified on isolated branch only. No production deploy performed."
