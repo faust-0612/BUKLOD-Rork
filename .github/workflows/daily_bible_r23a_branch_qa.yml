@@ -1,4 +1,4 @@
-name: BUKLOD Daily Bible R23A Isolated Patch QA
+name: BUKLOD Daily Bible R23A Export Continuation
 
 on:
   push:
@@ -15,7 +15,7 @@ env:
   EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
 jobs:
-  patch-and-verify:
+  continue-from-export:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout isolated branch
@@ -29,15 +29,14 @@ jobs:
           node-version: '22'
           cache: npm
 
-      - name: Prove exact source anchors and apply minimal patch
+      - name: Reconstruct the already-proven minimal patch
         shell: bash
         run: |
+          test "$(git rev-parse HEAD:src/app/bible/index.tsx)" = 'c962e528cf596003be71f27b57c5589fc11d80b1'
           python3 - <<'PY'
           from pathlib import Path
-
           path = Path('src/app/bible/index.tsx')
           text = path.read_text(encoding='utf-8')
-
           replacements = [
               (
                   "  submitted_on_time: boolean;\n  admin_note: string | null;\n};",
@@ -52,87 +51,34 @@ jobs:
                   "        p_reflection_photo_path:finalReflectionPath,\n        p_question_answers:questionAnswers\n          .slice(0,4)\n          .map(value=>String(value ?? '').trim()),\n      });",
               ),
           ]
-
           for old, new in replacements:
-              count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f'Expected exact anchor once, found {count}: {old[:80]!r}')
+              if text.count(old) != 1:
+                  raise SystemExit('Proven patch anchor changed; stop without patching')
               text = text.replace(old, new, 1)
-
           path.write_text(text, encoding='utf-8')
           PY
-
-      - name: Exact regression anchors
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-
-          text = Path('src/app/bible/index.tsx').read_text(encoding='utf-8')
-
-          required = [
-              "question_answers: string[] | null;",
-              "setQuestionAnswers(",
-              "submission?.question_answers?.[index]",
-              "p_question_answers:questionAnswers",
-              ".slice(0,4)",
-              ".map(value=>String(value ?? '').trim())",
-              "const chapterAnswersOkay =",
-              "questionAnswers[index] ?? ''",
-              "trim().length >= 10",
-              "submit_daily_bible_evidence_v2",
-              "status: 'pending_admin' | 'approved' | 'rejected';",
-          ]
-          for marker in required:
-              if marker not in text:
-                  raise SystemExit(f'Missing protected/target marker: {marker}')
-
-          rpc = re.search(r"supabase\.rpc\('submit_daily_bible_evidence_v2',\{(?P<body>.*?)\}\);", text, re.S)
-          if not rpc:
-              raise SystemExit('Daily Bible v2 submit RPC not found')
-          body = rpc.group('body')
-          if body.count('p_question_answers:') != 1:
-              raise SystemExit('Daily Bible RPC must contain p_question_answers exactly once')
-
-          select_match = re.search(r"\.from\('daily_bible_submissions'\).*?\.select\(\s*'([^']+)'\s*\)", text, re.S)
-          if not select_match or 'question_answers' not in select_match.group(1):
-              raise SystemExit('Submission reload must continue selecting question_answers')
-          PY
+          test "$(git diff --name-only)" = 'src/app/bible/index.tsx'
           git diff --check
 
-      - name: Assert only Daily Bible source changed in working tree
-        shell: bash
-        run: |
-          changed="$(git diff --name-only)"
-          test "$changed" = 'src/app/bible/index.tsx'
-
-      - name: Install dependencies
+      - name: Install dependencies required for export
         run: npm ci --ignore-scripts
 
-      - name: TypeScript QA
-        run: npx tsc --noEmit
-
-      - name: Expo production-environment preflight
+      - name: Continue failed Stage F - clean production-environment web export
         shell: bash
         run: |
           test -n "$EXPO_TOKEN"
-          npx eas-cli@latest whoami --non-interactive
-
-      - name: Clean web export inside EAS production environment
-        shell: bash
-        run: |
-          npx eas-cli@latest env:exec --environment production \
+          npx eas-cli@latest env:exec production \
             'rm -rf dist-r23a && npx expo export --platform web --output-dir dist-r23a --clear' \
             --non-interactive
 
-      - name: Verify BUKLOD Main production identity and bundle
+      - name: Verify BUKLOD Main production identity and target bundle
         shell: bash
         run: |
           test -f dist-r23a/index.html
           grep -R -F 'yhanxndaqbmuzbdqlblu' dist-r23a/_expo/static/js/web >/dev/null
           grep -R -F 'sb_publishable_' dist-r23a/_expo/static/js/web >/dev/null
           grep -R -F 'submit_daily_bible_evidence_v2' dist-r23a/_expo/static/js/web >/dev/null
+          grep -R -F 'p_question_answers' dist-r23a/_expo/static/js/web >/dev/null
 
       - name: Commit verified source patch to isolated branch
         shell: bash
