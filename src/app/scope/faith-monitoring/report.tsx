@@ -188,6 +188,17 @@ export default function ScopeFaithMonitoringReportScreen() {
         </View>
         <Pressable
           style={styles.exportBtn}
+          onPress={() => router.push('/scope/formation-approvals' as any)}
+        >
+          <MaterialCommunityIcons
+            name="clipboard-check-outline"
+            size={18}
+            color={colors.greenDark}
+          />
+          <Text style={styles.exportText}>Approvals</Text>
+        </Pressable>
+        <Pressable
+          style={styles.exportBtn}
           disabled={!summary || exporting}
           onPress={() => void exportReport()}
         >
