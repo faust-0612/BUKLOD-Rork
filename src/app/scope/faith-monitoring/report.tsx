@@ -24,6 +24,7 @@ import {
   formatFaithMonitoringRate,
   type ScopeFaithMonitoringSummary,
 } from '@/lib/buklodScopeFaithMonitoring';
+import { canViewClusterProgress } from '@/lib/buklodOrgGovernance';
 import { shareCsv } from '@/lib/reports/export';
 import { colors } from '@/lib/theme';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
@@ -52,20 +53,29 @@ export default function ScopeFaithMonitoringReportScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [canLeadership, setCanLeadership] = useState(false);
 
   const isAdmin =
     Boolean(activeScope?.is_admin) ||
     isExactScopeAdmin ||
-    isSystemAdmin;
+    isSystemAdmin ||
+    canLeadership;
 
   const load = useCallback(async () => {
     if (!activeScope?.scope_id) {
       setSummary(null);
+      setCanLeadership(false);
       setLoading(false);
       return;
     }
 
     try {
+      if (activeScope.scope_type === 'CLUSTER') {
+        setCanLeadership(await canViewClusterProgress(activeScope.scope_id));
+      } else {
+        setCanLeadership(false);
+      }
+
       const result = await fetchScopeFaithMonitoringSummaryResilient({
         scopeId: activeScope.scope_id,
         scopeName: activeScope.name,
@@ -85,7 +95,7 @@ export default function ScopeFaithMonitoringReportScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [activeScope?.name, activeScope?.scope_id]);
+  }, [activeScope?.name, activeScope?.scope_id, activeScope?.scope_type]);
 
   useFocusEffect(
     useCallback(() => {
@@ -148,9 +158,9 @@ export default function ScopeFaithMonitoringReportScreen() {
         style={shared.screen}
         contentContainerStyle={shared.content}
       >
-        <Text style={shared.h2}>Admin access required</Text>
+        <Text style={shared.h2}>Leadership access required</Text>
         <Text style={shared.muted}>
-          Faith monitoring reports are limited to exact-scope admins.
+          Faith monitoring reports are limited to authorized scope leadership.
         </Text>
       </BuklodScopedWorkspaceScrollView>
     );
