@@ -41,6 +41,7 @@ import {
 } from '@/components/BuklodProfileMotion';
 
 /* PATCH_169D_PROFILE_MEMBERSHIP_NAV */
+/* PATCH_MZB_PROFILE_HOME_DOOR_R26 */
 
 type ScopeRow = {
   scope_id: string;
@@ -273,10 +274,29 @@ BuklodProfileMembershipNav() {
 
   const openTile = (tile: NavTile) => {
     /* PATCH_ORG_PROFILE_SETUP_HUB_R24
-     * Root Organization tiles in Profile are management/setup doors.
-     * The Organization home is opened deliberately from the Organization
-     * directory after the user chooses the exact organization.
+     * Non-MZB root Organization tiles remain management/setup doors.
+     * MZB Ministry Inc is the protected exception: its Profile door opens
+     * that exact Organization Home directly.
      */
+    if (
+      tile.kind === 'organization' &&
+      tile.isMzb &&
+      tile.scopeId
+    ) {
+      void enterScopedWorkspace(
+        selectScope,
+        tile.scopeId,
+        { section: 'home' },
+      ).catch((error) => {
+        console.warn(
+          'BUKLOD MZB organization home:',
+          error,
+        );
+      });
+
+      return;
+    }
+
     if (tile.kind === 'organization') {
       router.push('/organizations' as any);
       return;
@@ -357,7 +377,9 @@ BuklodProfileMembershipNav() {
                   title={tile.label}
                   subtitle={
                     tile.kind === 'organization'
-                      ? 'Organization · Setup & management'
+                      ? tile.isMzb
+                        ? 'Organization · Home'
+                        : 'Organization · Setup & management'
                       : kindLabel(tile.kind)
                   }
                   onPress={() => openTile(tile)}
