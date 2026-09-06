@@ -1,0 +1,66 @@
+name: BUKLOD R3 Android OTA Trigger Patch
+
+on:
+  push:
+    branches:
+      - ops/r3-android-ota-trigger-coverage
+    paths:
+      - .github/workflows/performance_r3_android_trigger_patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch_and_verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout isolated branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Apply exact trigger-path patch
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('.github/workflows/production_android_ota.yml')
+          text = path.read_text(encoding='utf-8')
+          anchor = "      - 'src/components/BuklodConnectThread.tsx'\n"
+          addition = "      - 'src/components/BuklodExclusiveScopeCommunity.tsx'\n"
+
+          if text.count(anchor) != 1:
+              raise SystemExit(f'anchor count={text.count(anchor)}; STOP')
+          if addition in text:
+              raise SystemExit('R3 trigger path already present; STOP')
+
+          text = text.replace(anchor, anchor + addition, 1)
+
+          if text.count(addition) != 1:
+              raise SystemExit('expected exactly one R3 trigger path; STOP')
+
+          path.write_text(text, encoding='utf-8')
+
+      - name: Exact diff guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          mapfile -t files < <(git diff --name-only)
+          test "${#files[@]}" -eq 1
+          test "${files[0]}" = ".github/workflows/production_android_ota.yml"
+          grep -F "src/components/BuklodExclusiveScopeCommunity.tsx" .github/workflows/production_android_ota.yml
+          git diff -- .github/workflows/production_android_ota.yml
+
+      - name: Commit isolated trigger coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/production_android_ota.yml
+          git commit -m "chore: include R3 community component in Android OTA trigger"
+          git push origin HEAD:ops/r3-android-ota-trigger-coverage
+
+      - name: No deploy marker
+        run: echo "Trigger coverage patched on isolated branch only. No Android OTA published by this temporary workflow."
