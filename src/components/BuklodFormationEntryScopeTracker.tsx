@@ -50,6 +50,7 @@ export default function BuklodFormationEntryScopeTracker() {
   useEffect(() => {
     const previousPath = previousPathRef.current;
     const feature = featureForPath(pathname);
+    const previousFeature = previousPath ? featureForPath(previousPath) : null;
 
     previousPathRef.current = pathname;
 
@@ -57,10 +58,15 @@ export default function BuklodFormationEntryScopeTracker() {
       return;
     }
 
+    // Never change the captured scope while navigating inside the same feature.
+    if (previousFeature === feature) {
+      return;
+    }
+
     const directScopedLesson = pathname.startsWith('/scope/buklod-lesson');
 
-    // A direct reload inside the mature Bible/Word/Learn screens keeps the
-    // previously captured short-lived context instead of guessing a new scope.
+    // A direct reload inside mature generic feature screens keeps the existing
+    // short-lived server context instead of guessing a scope from stale UI state.
     if (previousPath === null && !directScopedLesson) {
       return;
     }
