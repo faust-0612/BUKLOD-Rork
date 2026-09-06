@@ -57,6 +57,13 @@ jobs:
             *) echo 'Invalid production Supabase URL shape.'; exit 1 ;;
           esac
 
+          EXPECTED_MAIN_URL='https://yhanxndaqbmuzbdqlblu.supabase.co'
+          if [ "$EXPO_PUBLIC_SUPABASE_URL" != "$EXPECTED_MAIN_URL" ]; then
+            echo 'STOP: EAS production Supabase URL is not the protected BUKLOD Connect/Main project.'
+            exit 1
+          fi
+          echo 'Protected BUKLOD Main Supabase project: VERIFIED'
+
           # GitHub Actions steps run in separate shells. Persist every Expo
           # public variable into later steps so Metro can inline them into the
           # browser bundle. Do not print values to the log.
@@ -75,6 +82,18 @@ jobs:
 
           echo 'EAS production public config persisted for web export.'
 
+      - name: Verify MZB Home-door source contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE='src/components/BuklodProfileMembershipNav.tsx'
+          grep -F "tile.isMzb &&" "$FILE"
+          grep -F "{ section: 'home' }," "$FILE"
+          grep -F "router.push('/organizations' as any);" "$FILE"
+          grep -F "? 'Organization · Home'" "$FILE"
+          grep -F "'Organization · Setup & management'" "$FILE"
+          echo 'MZB-only Home door and non-MZB setup route: VERIFIED'
+
       - name: TypeScript QA
         run: npx tsc --noEmit
 
@@ -87,18 +106,19 @@ jobs:
           set -euo pipefail
           test -n "${EXPO_PUBLIC_SUPABASE_URL:-}"
           test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}"
+          test "$EXPO_PUBLIC_SUPABASE_URL" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
           rm -rf dist
           npx expo export --platform web --output-dir dist
           node scripts/inject-adsense-web-head.cjs dist
           test -s dist/index.html
 
-          # Verify compile-time injection without exposing the URL or key.
+          # Verify compile-time injection without exposing the key.
           SUPABASE_HOST="$(printf '%s' "$EXPO_PUBLIC_SUPABASE_URL" | sed -E 's#https?://([^/]+).*#\1#')"
           grep -RFl --include='*.js' "$SUPABASE_HOST" dist/_expo/static/js/web >/dev/null || {
             echo 'WEB EXPORT FAILED: production Supabase host was not embedded in JavaScript.'
             exit 1
           }
-          echo 'Production web export contains Supabase runtime config: READY'
+          echo 'Production web export contains protected Main Supabase runtime config: READY'
 
       - name: Deploy and promote production web
         shell: bash
@@ -108,6 +128,7 @@ jobs:
         run: |
           set -euo pipefail
           test -n "${EXPO_PUBLIC_SUPABASE_URL:-}"
+          test "$EXPO_PUBLIC_SUPABASE_URL" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
           npx eas-cli@latest deploy --prod --environment production --non-interactive
 
       - name: Verify live production runtime
@@ -148,4 +169,4 @@ jobs:
           echo 'BUKLOD production mobile-web runtime: HEALTHY'
 
       - name: Restore status
-        run: echo 'BUKLOD production web restored with persisted EAS production environment.'
+        run: echo 'BUKLOD production web restored with protected Main environment and MZB Home-door route.'
