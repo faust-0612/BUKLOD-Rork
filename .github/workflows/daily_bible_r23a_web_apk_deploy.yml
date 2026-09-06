@@ -1,4 +1,4 @@
-name: BUKLOD Daily Bible R23A APK Failure Diagnosis
+name: BUKLOD Daily Bible R23A APK Failure Diagnosis 2
 
 on:
   push:
@@ -33,6 +33,13 @@ jobs:
           node-version: '22'
           cache: npm
 
+      - name: CI-only config-path placeholder for read-only metadata command
+        shell: bash
+        run: |
+          test ! -f google-services.production.json
+          printf '{}\n' > google-services.production.json
+          echo 'Created CI-only placeholder; it will NOT be committed or used for an APK build.'
+
       - name: Expo credential preflight
         run: |
           test -n "$EXPO_TOKEN"
@@ -41,16 +48,34 @@ jobs:
       - name: Fetch failed EAS build metadata
         shell: bash
         run: |
-          npx eas-cli@latest build:view ef2c2aee-ca46-44ff-a397-53e78b09f28b --json > build-view.json
+          set +e
+          npx eas-cli@latest build:view ef2c2aee-ca46-44ff-a397-53e78b09f28b --json > build-view.json 2> build-view.err
+          VIEW_CODE=$?
+          set -e
+          echo "build:view exit=$VIEW_CODE"
+          cat build-view.err || true
+          if [ "$VIEW_CODE" -ne 0 ]; then
+            npx eas-cli@latest build:list --platform android --limit 10 --json --non-interactive > build-list.json
+          fi
           node <<'NODE'
           const fs = require('fs');
-          const build = JSON.parse(fs.readFileSync('build-view.json','utf8'));
+          const target = 'ef2c2aee-ca46-44ff-a397-53e78b09f28b';
+          let build = null;
+          if (fs.existsSync('build-view.json') && fs.statSync('build-view.json').size) {
+            try { build = JSON.parse(fs.readFileSync('build-view.json','utf8')); } catch {}
+          }
+          if ((!build || !build.id) && fs.existsSync('build-list.json')) {
+            const raw = JSON.parse(fs.readFileSync('build-list.json','utf8'));
+            const rows = Array.isArray(raw) ? raw : (raw.builds || raw.data || []);
+            build = rows.find(x => x?.id === target) || rows[0] || null;
+          }
+          if (!build) throw new Error('Could not retrieve failed build metadata.');
           console.log('BUILD_ID=' + (build.id || ''));
           console.log('STATUS=' + (build.status || ''));
           console.log('ERROR_CODE=' + (build.error?.errorCode || build.error?.code || ''));
           console.log('ERROR_MESSAGE=' + (build.error?.message || ''));
-          const raw = Array.isArray(build.logFiles) ? build.logFiles : [];
-          const urls = raw.map(x => typeof x === 'string' ? x : (x?.url || x?.downloadUrl || '')).filter(Boolean);
+          const rawLogs = Array.isArray(build.logFiles) ? build.logFiles : [];
+          const urls = rawLogs.map(x => typeof x === 'string' ? x : (x?.url || x?.downloadUrl || '')).filter(Boolean);
           fs.writeFileSync('log-urls.txt', urls.join('\n'));
           console.log('LOG_FILE_COUNT=' + urls.length);
           NODE
@@ -66,13 +91,16 @@ jobs:
             curl -fsSL "$url" -o "eas-logs/log-$n.txt" || true
           done < log-urls.txt
           echo '--- FAILURE EVIDENCE ---'
-          grep -R -i -E 'error|failed|failure|google-services|google services|firebase|gradle|exception' eas-logs | tail -n 120 || true
+          grep -R -i -E 'error|failed|failure|google-services|google services|firebase|gradle|exception|ENOENT|no such file' eas-logs | tail -n 160 || true
 
       - name: Upload diagnostic logs
         uses: actions/upload-artifact@v4
         with:
-          name: BUKLOD-R23A-EAS-APK-failure-diagnostics
+          name: BUKLOD-R23A-EAS-APK-failure-diagnostics-2
           path: |
             build-view.json
+            build-view.err
+            build-list.json
             eas-logs/
+          if-no-files-found: warn
           retention-days: 7
