@@ -1,0 +1,87 @@
+name: BUKLOD Formation R27 Autopatch QA
+
+on:
+  push:
+    branches:
+      - formation-r27-autovalidation-reminders
+    paths:
+      - '.github/workflows/formation_r27_autopatch_qa.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-qa:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout isolated R27 branch
+        uses: actions/checkout@v4
+        with:
+          ref: formation-r27-autovalidation-reminders
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Verify protected baseline before patch
+        shell: bash
+        run: |
+          grep -F 'BUKLOD_LEGACY_VERIFICATION_REMOVAL_R22' 'src/app/index.tsx'
+          grep -F 'HIGH_CONCURRENCY_LOGIN_R1' 'src/app/(auth)/login.tsx'
+          grep -F 'BUKLOD_MAIN_AUTH_STORM_R21' 'src/lib/buklodAuthResilience.ts'
+          grep -F 'context_scope_formation_approval_r22b_hardening' <(find supabase/migrations -maxdepth 1 -type f -printf '%f\n') || true
+          test -f supabase/migrations/20260907074000_context_scope_formation_approval_r22b_hardening.sql
+
+      - name: Apply deterministic R27 source patch
+        run: node scripts/patch-formation-r27.cjs
+
+      - name: Verify R27 source anchors
+        shell: bash
+        run: |
+          grep -F 'BUKLOD_FORMATION_AI_R27' 'src/lib/buklodAiResponseValidation.ts'
+          grep -F "buklod-ai-validate-response" 'src/lib/buklodAiResponseValidation.ts'
+          grep -F "wasAutoApproved" 'src/components/LearningQuestionResponse.tsx'
+          grep -F "PENDING REVIEW" 'src/app/learn/lesson.tsx'
+          grep -F "PENDING SCOPE REVIEW" 'src/app/bible/index.tsx'
+          grep -F "SUBMIT FOR REVIEW" 'src/app/bible/index.tsx'
+          grep -F "buklod_try_auto_approve_lesson_v1" 'supabase/migrations/20260907143000_formation_auto_validation_notifications_reminders_r27.sql'
+          grep -F "buklod-formation-daily-reminders-r27" 'supabase/migrations/20260907143000_formation_auto_validation_notifications_reminders_r27.sql'
+          test -f supabase/functions/buklod-ai-validate-response/index.ts
+
+      - name: Verify no native or protected config drift
+        shell: bash
+        run: |
+          if ! git diff --quiet -- package.json package-lock.json app.config.js eas.json .env.example .env.production.example .env.staging.example; then
+            echo 'Protected native/config file changed unexpectedly.'
+            git diff -- package.json package-lock.json app.config.js eas.json .env.example .env.production.example .env.staging.example
+            exit 1
+          fi
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Web export QA
+        run: npx expo export --platform web --output-dir dist-r27
+
+      - name: Commit verified source patch to isolated branch
+        shell: bash
+        run: |
+          git config user.name 'BUKLOD R27 Automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add src/lib/buklodAiResponseValidation.ts \
+                  src/components/LearningQuestionResponse.tsx \
+                  src/app/learn/lesson.tsx \
+                  src/app/bible/index.tsx
+          git rm scripts/patch-formation-r27.cjs .github/workflows/formation_r27_autopatch_qa.yml
+          git commit -m 'R27: contextual formation validation and scope-aware approval UX'
+          git push origin HEAD:formation-r27-autovalidation-reminders
+
+      - name: Final branch state
+        run: |
+          echo 'BUKLOD_FORMATION_R27_QA=PASS'
