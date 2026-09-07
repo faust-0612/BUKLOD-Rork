@@ -1,0 +1,102 @@
+name: BUKLOD R22-B Android OTA Continue
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/r22b_android_ota_continue.yml'
+
+concurrency:
+  group: buklod-r22b-android-ota-continue
+  cancel-in-progress: false
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  CI: '1'
+
+permissions:
+  contents: read
+
+jobs:
+  android-ota:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Confirm live web already contains R22-B
+        shell: bash
+        run: |
+          node <<'NODE'
+          async function main() {
+            const base = 'https://buklod.expo.app';
+            const html = await fetch(base, { cache: 'no-store' }).then(r => {
+              if (!r.ok) throw new Error(`HTTP ${r.status}`);
+              return r.text();
+            });
+            const srcs = [...html.matchAll(/<script[^>]+src=["']([^"']+)["']/g)].map(m => m[1]);
+            let all = html;
+            for (const src of srcs) {
+              const url = new URL(src, base).href;
+              try { all += '\n' + await fetch(url, { cache: 'no-store' }).then(r => r.ok ? r.text() : ''); } catch {}
+            }
+            for (const marker of [
+              'yhanxndaqbmuzbdqlblu',
+              'buklod_set_formation_entry_scope_v1',
+              'buklod_scope_formation_approval_queue_v2',
+              'buklod_review_scope_formation_approval_v2',
+              'buklod_scope_faith_monitoring_summary_v2'
+            ]) {
+              if (!all.includes(marker)) throw new Error('Missing live marker: ' + marker);
+            }
+            console.log('LIVE WEB R22-B VERIFIED');
+          }
+          main().catch(e => { console.error(e); process.exit(1); });
+          NODE
+
+      - name: TypeScript QA on current main
+        run: npx tsc --noEmit
+
+      - name: Expo credential preflight
+        run: |
+          test -n "$EXPO_TOKEN"
+          npx eas-cli@latest whoami --non-interactive
+
+      - name: Export Android JS bundle in production environment
+        shell: bash
+        run: |
+          npx eas-cli@latest env:exec production \
+            'rm -rf .buklod-r22b-android && npx expo export --platform android --output-dir .buklod-r22b-android --clear' \
+            --non-interactive
+          grep -R -aF 'yhanxndaqbmuzbdqlblu' .buklod-r22b-android >/dev/null
+          grep -R -aF 'buklod_set_formation_entry_scope_v1' .buklod-r22b-android >/dev/null
+          grep -R -aF 'buklod_scope_formation_approval_queue_v2' .buklod-r22b-android >/dev/null
+          grep -R -aF 'buklod_review_scope_formation_approval_v2' .buklod-r22b-android >/dev/null
+          grep -R -aF 'buklod_scope_faith_monitoring_summary_v2' .buklod-r22b-android >/dev/null
+
+      - name: Publish production Android OTA to current APK
+        shell: bash
+        run: |
+          npx eas-cli@latest update \
+            --channel production \
+            --platform android \
+            --environment production \
+            --message 'BUKLOD R22-B Exact Scope Formation Approval' \
+            --non-interactive
+
+      - name: Final Android status
+        run: |
+          echo 'ANDROID APK USERS: PRODUCTION OTA PUBLISHED'
+          echo 'NATIVE APK REBUILD: NOT REQUIRED FOR R22-B JS/DB PATCH'
