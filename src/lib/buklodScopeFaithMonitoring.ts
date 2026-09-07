@@ -260,6 +260,19 @@ export function formatFaithMonitoringRate(
 export async function fetchScopeFaithMonitoringSummary(
   scopeId: string
 ): Promise<ScopeFaithMonitoringSummary | null> {
+  const exact = await supabase.rpc(
+    'buklod_scope_faith_monitoring_summary_v2' as any,
+    { p_scope_id: scopeId } as any
+  );
+
+  if (!exact.error) {
+    return parseSummary(exact.data);
+  }
+
+  if (!isMissingRpcError(String(exact.error.message ?? ''))) {
+    throw exact.error;
+  }
+
   const { data, error } = await supabase.rpc(
     'buklod_scope_faith_monitoring_summary_v1',
     { p_scope_id: scopeId }

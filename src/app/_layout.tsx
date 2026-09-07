@@ -1,6 +1,7 @@
-﻿import BuklodNavSafeShell from '@/components/BuklodNavSafeShell';
+import BuklodNavSafeShell from '@/components/BuklodNavSafeShell';
 import BuklodRootKeyboardAvoidingView from '@/components/BuklodRootKeyboardAvoidingView';
 import { BuklodGuideAvatar } from '@/components/BuklodGuideAvatar';
+import BuklodFormationEntryScopeTracker from '@/components/BuklodFormationEntryScopeTracker';
 import '@/lib/performanceBoot';
 import { Stack, type ErrorBoundaryProps } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -70,6 +71,7 @@ export default function RootLayout() {
         <BuklodCharacterEventProvider>
         <RorkAvatarOnboardingGate />
         <BuklodScopeProvider>
+        <BuklodFormationEntryScopeTracker />
         <BuklodFoundationProvider>
       <NetworkProvider>
         <BuklodOfflineSyncProvider>
@@ -110,6 +112,7 @@ export default function RootLayout() {
                 <Stack.Screen name="(tabs)" />
                 <Stack.Screen name="scope/index" />
                 <Stack.Screen name="scope/buklod-lesson/index" />
+                <Stack.Screen name="scope/formation-approvals" />
                 <Stack.Screen name="devotional/[id]" />
                 <Stack.Screen name="reflection/[id]" />
                 <Stack.Screen name="post/[id]" />
@@ -260,6 +263,4 @@ const styles=StyleSheet.create({
   retry:{marginTop:18,backgroundColor:colors.green,paddingVertical:12,paddingHorizontal:18,borderRadius:12},
   retryText:{color:colors.white,fontWeight:'900'}
 });
-
-
 
