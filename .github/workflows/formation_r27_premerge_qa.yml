@@ -1,0 +1,65 @@
+name: BUKLOD Formation R27 Premerge QA
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/formation_r27_premerge_qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout isolated R27 branch
+        uses: actions/checkout@v4
+        with:
+          ref: formation-r27-autovalidation-reminders
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Verify protected baseline
+        shell: bash
+        run: |
+          grep -F 'BUKLOD_LEGACY_VERIFICATION_REMOVAL_R22' 'src/app/index.tsx'
+          grep -F 'HIGH_CONCURRENCY_LOGIN_R1' 'src/app/(auth)/login.tsx'
+          grep -F 'BUKLOD_MAIN_AUTH_STORM_R21' 'src/lib/buklodAuthResilience.ts'
+          test -f supabase/migrations/20260907074000_context_scope_formation_approval_r22b_hardening.sql
+          test -f supabase/migrations/20260907143000_formation_auto_validation_notifications_reminders_r27.sql
+          test -f supabase/functions/buklod-ai-validate-response/index.ts
+
+      - name: Apply deterministic R27 patch
+        run: node scripts/patch-formation-r27.cjs
+
+      - name: Verify expected R27 changes only
+        shell: bash
+        run: |
+          grep -F 'BUKLOD_FORMATION_AI_R27' 'src/lib/buklodAiResponseValidation.ts'
+          grep -F 'wasAutoApproved' 'src/components/LearningQuestionResponse.tsx'
+          grep -F 'PENDING REVIEW' 'src/app/learn/lesson.tsx'
+          grep -F 'PENDING SCOPE REVIEW' 'src/app/bible/index.tsx'
+          grep -F 'SUBMIT FOR REVIEW' 'src/app/bible/index.tsx'
+          if ! git diff --quiet -- package.json package-lock.json app.config.js eas.json .env.example .env.production.example .env.staging.example; then
+            echo 'Protected native/config drift detected.'
+            exit 1
+          fi
+          git diff --check
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Production web export QA
+        run: npx expo export --platform web --output-dir dist-r27
+
+      - name: QA result
+        run: echo 'BUKLOD_FORMATION_R27_PREMERGE_QA=PASS'
