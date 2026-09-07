@@ -17,16 +17,15 @@ export function ClassroomVideoPlayer({ uri, title, onClose }: { uri: string; tit
         style={styles.video}
         nativeControls
         contentFit="contain"
-        allowsFullscreen
         allowsPictureInPicture
       />
-      <Text style={styles.note}>Authorized Classroom stream. Playback is on demand; closing this view stops the visible player.</Text>
+      <Text style={styles.note}>Authorized Classroom stream. Playback is on demand; native controls provide playback and supported device presentation actions.</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: { ...StyleSheet.absoluteFillObject, zIndex: 1000, backgroundColor: '#050806', justifyContent: 'center' },
+  overlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, zIndex: 1000, backgroundColor: '#050806', justifyContent: 'center' },
   header: { position: 'absolute', left: 14, right: 14, top: 44, zIndex: 2, flexDirection: 'row', alignItems: 'center', gap: 10 },
   title: { flex: 1, color: '#fff', fontWeight: '900' },
   close: { backgroundColor: 'rgba(255,255,255,0.16)', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 8 },
