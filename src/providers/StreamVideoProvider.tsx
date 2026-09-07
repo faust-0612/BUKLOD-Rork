@@ -156,6 +156,47 @@ export function StreamVideoProvider({
     ]
   );
 
+  useEffect(
+    () => {
+      if (!client) {
+        return;
+      }
+
+      /*
+       * DIAG_STREAM_DEVICE_REGISTRATION_R1
+       * Read-only diagnostic only. Never log push token, API key,
+       * Stream token, or user identifiers.
+       */
+      void client
+        .getDevices()
+        .then(({ devices }) => {
+          console.log(
+            'BUKLOD_STREAM_DEVICES',
+            {
+              count: devices.length,
+              devices: devices.map(device => ({
+                push_provider:
+                  device.push_provider,
+                push_provider_name:
+                  device.push_provider_name ?? null,
+                disabled:
+                  device.disabled ?? false,
+              })),
+            }
+          );
+        })
+        .catch(error => {
+          console.warn(
+            'BUKLOD_STREAM_DEVICES_ERROR',
+            error
+          );
+        });
+    },
+    [
+      client,
+    ]
+  );
+
   if (!client) {
     return (
       <>
