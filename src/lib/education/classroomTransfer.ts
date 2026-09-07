@@ -69,7 +69,7 @@ function resumableEndpoint() {
 
 async function fileSize(uri: string, supplied?: number | null) {
   if (Number.isFinite(supplied) && Number(supplied) >= 0) return Number(supplied);
-  const info = await FileSystem.getInfoAsync(uri, { size: true });
+  const info = await FileSystem.getInfoAsync(uri);
   if (!info.exists) throw new Error('Selected file is no longer available.');
   return Number((info as any).size ?? 0);
 }
