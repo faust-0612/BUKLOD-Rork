@@ -18,6 +18,10 @@ env:
   APP_VARIANT: production
   EXPO_PUBLIC_APP_ENV: production
   CLASSROOM_GOOGLE_SERVICES_FILE: ./google-services.classroom.json
+  # These are public client runtime values, not privileged service credentials.
+  # They are the same protected values used by the proven white-screen recovery.
+  EXPO_PUBLIC_SUPABASE_URL: https://yhanxndaqbmuzbdqlblu.supabase.co
+  EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_RWvrYHzgLMvBousgwn4dTg_QawYzwRS
 
 jobs:
   restore-classroom-and-deploy:
@@ -29,26 +33,32 @@ jobs:
           ref: feature/classroom-harmonized-r4-current-main-20260908
           fetch-depth: 0
 
-      - name: Apply deterministic Classroom identity repair
+      - name: Apply Classroom identity repair only when not already locked
         shell: bash
         run: |
           set -euo pipefail
-          python3 scripts/apply-classroom-identity-restore.py
-          # The GitHub App token intentionally has no workflows scope. Keep
-          # the existing R4 QA workflow unchanged here; this release executor
-          # independently runs the required identity/type/test/export/runtime gates.
-          git checkout -- .github/workflows/classroom_r4_qa.yml
+          if [ -f .classroom-source-lock ]; then
+            echo 'CLASSROOM_SOURCE_ALREADY_LOCKED=YES'
+          else
+            python3 scripts/apply-classroom-identity-restore.py
+            # GitHub App has no workflows scope; leave the existing QA workflow unchanged.
+            git checkout -- .github/workflows/classroom_r4_qa.yml
+          fi
 
-      - name: Commit repaired Classroom source
+      - name: Persist repaired Classroom source when needed
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add app.config.js package.json src/app/index.tsx 'src/app/(tabs)/_layout.tsx' 'src/app/(auth)/login.tsx' src/app/+html.tsx src/app/classroom/index.tsx src/lib/appTarget.ts scripts/verify-classroom-identity.mjs .classroom-source-lock
+          git add app.config.js package.json src/app/index.tsx 'src/app/(tabs)/_layout.tsx' 'src/app/(auth)/login.tsx' src/app/+html.tsx src/app/classroom/index.tsx src/lib/appTarget.ts scripts/verify-classroom-identity.mjs .classroom-source-lock 2>/dev/null || true
           git diff --cached --check
-          git commit -m 'classroom: permanently restore standalone app identity'
-          git push origin HEAD:feature/classroom-harmonized-r4-current-main-20260908
+          if git diff --cached --quiet; then
+            echo 'No new source patch required.'
+          else
+            git commit -m 'classroom: permanently restore standalone app identity'
+            git push origin HEAD:feature/classroom-harmonized-r4-current-main-20260908
+          fi
           echo "CLASSROOM_REPAIR_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
       - name: Set up Node
@@ -60,43 +70,20 @@ jobs:
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
-      - name: Verify Classroom source/config/Firebase identity
+      - name: Verify Classroom source config Firebase identity
         run: node scripts/verify-classroom-identity.mjs
 
-      - name: Expo authentication
+      - name: Verify protected web runtime environment
         shell: bash
         run: |
           set -euo pipefail
+          test "$EXPO_PUBLIC_SUPABASE_URL" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
+          test -n "$EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
           test -n "$EXPO_TOKEN"
           npx eas-cli@latest whoami --non-interactive >/dev/null
+          echo 'CLASSROOM_WEB_RUNTIME_ENV=PASS'
 
-      - name: Pull Classroom production public environment
-        shell: bash
-        run: |
-          set -euo pipefail
-          rm -f .env.local
-          npx eas-cli@latest env:pull --environment production --path .env.local --non-interactive
-          test -s .env.local
-          set -a
-          . ./.env.local
-          set +a
-          test -n "${EXPO_PUBLIC_SUPABASE_URL:-}"
-          test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}"
-          test "$EXPO_PUBLIC_SUPABASE_URL" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
-          while IFS='=' read -r name _; do
-            case "$name" in
-              EXPO_PUBLIC_*)
-                value="${!name-}"
-                {
-                  echo "${name}<<__CLASSROOM_ENV__"
-                  printf '%s\n' "$value"
-                  echo '__CLASSROOM_ENV__'
-                } >> "$GITHUB_ENV"
-                ;;
-            esac
-          done < <(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env.local)
-
-      - name: TypeScript and Classroom live-state tests
+      - name: TypeScript and Classroom live state tests
         shell: bash
         run: |
           set -euo pipefail
@@ -112,11 +99,11 @@ jobs:
           const fs=require('fs');
           const c=JSON.parse(fs.readFileSync('/tmp/classroom-expo.json','utf8'));
           const ok=c.name==='BUKLOD Classroom' && c.slug==='buklod-classroom' && c.scheme==='buklod-classroom' && c.android?.package==='org.mzbministry.buklod.classroom' && c.extra?.appTarget==='classroom' && c.extra?.eas?.projectId==='14100ed1-7f25-4551-9627-09d280498241';
-          if(!ok){ console.error(c); process.exit(1); }
+          if(!ok){ console.error('STOP: Classroom Expo identity mismatch'); process.exit(1); }
           console.log('EXPO_CLASSROOM_IDENTITY=PASS');
           NODE
 
-      - name: Export Classroom web
+      - name: Export exact Classroom production web
         shell: bash
         run: |
           set -euo pipefail
@@ -124,10 +111,31 @@ jobs:
           npx expo export --platform web --output-dir dist
           test -s dist/index.html
           grep -RFl --include='*.js' 'BUKLOD Classroom' dist >/dev/null
+          grep -RFl --include='*.js' 'yhanxndaqbmuzbdqlblu.supabase.co' dist/_expo/static/js/web >/dev/null
           echo 'CLASSROOM_WEB_EXPORT=PASS'
 
-      - name: Deploy Classroom web production
-        run: npx eas-cli@latest deploy --prod --environment production --non-interactive
+      - name: Local browser boot gate before deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          BROWSER="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$BROWSER"
+          python3 -m http.server 4173 --directory dist >/tmp/classroom-local-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          for i in $(seq 1 20); do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep 1; done
+          timeout 45s "$BROWSER" --headless=new --no-sandbox --disable-gpu --virtual-time-budget=16000 --enable-logging=stderr --log-level=0 --dump-dom http://127.0.0.1:4173/ > /tmp/classroom-local-dom.html 2> /tmp/classroom-local-browser.log || true
+          grep -q '<div id="root"><' /tmp/classroom-local-dom.html
+          grep -q 'BUKLOD Classroom' /tmp/classroom-local-dom.html
+          ! grep -Eqi 'supabaseUrl is required|supabaseKey is required|Missing Supabase environment variables|Uncaught (Error|TypeError|ReferenceError|SyntaxError)' /tmp/classroom-local-browser.log
+          ! grep -q 'Samahang Binuklod ng Pag-ibig' /tmp/classroom-local-dom.html
+          echo 'LOCAL_CLASSROOM_RUNTIME=PASS'
+
+      - name: Deploy exact verified export to Classroom production
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest deploy --prod --environment production --non-interactive --export-dir dist 2>&1 | tee /tmp/classroom-deploy.log
 
       - name: Verify live Classroom web runtime
         shell: bash
@@ -136,14 +144,20 @@ jobs:
           URL='https://buklod-classroom.expo.app/'
           BROWSER="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
           test -n "$BROWSER"
-          sleep 4
-          curl -fsSIL --max-time 30 "$URL" >/dev/null
-          timeout 50s "$BROWSER" --headless=new --no-sandbox --disable-gpu --disable-extensions --no-first-run --window-size=390,844 --virtual-time-budget=22000 --enable-logging=stderr --v=0 --dump-dom "$URL" > /tmp/classroom-dom.html 2> /tmp/classroom-browser.log
-          ! grep -qi 'supabaseUrl is required' /tmp/classroom-browser.log
-          ! grep -Eqi 'Uncaught (Error|TypeError|ReferenceError|SyntaxError)' /tmp/classroom-browser.log
-          grep -q '<div id="root"><' /tmp/classroom-dom.html
-          grep -q 'BUKLOD Classroom' /tmp/classroom-dom.html
+          success=0
+          for attempt in $(seq 1 8); do
+            timeout 45s "$BROWSER" --headless=new --no-sandbox --disable-gpu --disable-extensions --no-first-run --window-size=390,844 --virtual-time-budget=18000 --enable-logging=stderr --log-level=0 --dump-dom "${URL}?classroom_identity_verify=${attempt}" > /tmp/classroom-dom.html 2> /tmp/classroom-browser.log || true
+            if grep -q '<div id="root"><' /tmp/classroom-dom.html && grep -q 'BUKLOD Classroom' /tmp/classroom-dom.html; then
+              success=1
+              break
+            fi
+            sleep 4
+          done
+          test "$success" = 1
+          ! grep -Eqi 'supabaseUrl is required|supabaseKey is required|Missing Supabase environment variables|Uncaught (Error|TypeError|ReferenceError|SyntaxError)' /tmp/classroom-browser.log
           ! grep -q 'Samahang Binuklod ng Pag-ibig' /tmp/classroom-dom.html
+          status="$(curl -L -sS -o /tmp/classroom-live.html -w '%{http_code}' "$URL")"
+          test "$status" = 200
           echo 'LIVE_BUKLOD_CLASSROOM_RUNTIME=PASS'
 
       - name: Final status
