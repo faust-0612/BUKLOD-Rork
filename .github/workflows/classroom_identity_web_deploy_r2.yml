@@ -1,0 +1,129 @@
+name: BUKLOD Classroom Standalone Web Deploy R2
+
+on:
+  push:
+    branches:
+      - feature/classroom-harmonized-r4-current-main-20260908
+    paths:
+      - '.github/workflows/classroom_identity_web_deploy_r2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  BUKLOD_APP_TARGET: classroom
+  EXPO_PUBLIC_BUKLOD_APP_TARGET: classroom
+  APP_VARIANT: production
+  EXPO_PUBLIC_APP_ENV: production
+  CLASSROOM_GOOGLE_SERVICES_FILE: ./google-services.classroom.json
+  EXPO_PUBLIC_SUPABASE_URL: https://yhanxndaqbmuzbdqlblu.supabase.co
+  EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_RWvrYHzgLMvBousgwn4dTg_QawYzwRS
+
+jobs:
+  verify-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact current Classroom branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/classroom-harmonized-r4-current-main-20260908
+          fetch-depth: 1
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install
+        run: npm ci --ignore-scripts
+
+      - name: Identity and runtime env guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/verify-classroom-identity.mjs
+          test -f .classroom-source-lock
+          test "$EXPO_PUBLIC_SUPABASE_URL" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
+          test -n "$EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+          test -n "$EXPO_TOKEN"
+          npx eas-cli@latest whoami --non-interactive >/dev/null
+          echo 'CLASSROOM_IDENTITY_ENV=PASS'
+
+      - name: TypeScript and Classroom tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx tsc --noEmit
+          npx jest src/lib/education/classroomLiveState.test.ts --runInBand
+
+      - name: Expo config audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx expo config --type public --json > /tmp/classroom-expo.json
+          node <<'NODE'
+          const c=require('/tmp/classroom-expo.json');
+          const assert=require('node:assert/strict');
+          assert.equal(c.name,'BUKLOD Classroom');
+          assert.equal(c.slug,'buklod-classroom');
+          assert.equal(c.scheme,'buklod-classroom');
+          assert.equal(c.android.package,'org.mzbministry.buklod.classroom');
+          assert.equal(c.extra.appTarget,'classroom');
+          assert.equal(c.extra.eas.projectId,'14100ed1-7f25-4551-9627-09d280498241');
+          console.log('EXPO_CLASSROOM_IDENTITY=PASS');
+          NODE
+
+      - name: Export exact production web
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf dist
+          npx expo export --platform web --output-dir dist
+          test -s dist/index.html
+          grep -RFl --include='*.js' 'BUKLOD Classroom' dist >/dev/null
+          grep -RFl --include='*.js' 'yhanxndaqbmuzbdqlblu.supabase.co' dist/_expo/static/js/web >/dev/null
+          echo 'CLASSROOM_WEB_EXPORT=PASS'
+
+      - name: Local browser runtime gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          python3 -m http.server 4173 --directory dist >/tmp/http.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true' EXIT
+          for i in $(seq 1 20); do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep 1; done
+          timeout 45s "$CHROME" --headless=new --no-sandbox --disable-gpu --virtual-time-budget=18000 --enable-logging=stderr --log-level=0 --dump-dom http://127.0.0.1:4173/ > /tmp/local-dom.html 2>/tmp/local-browser.log || true
+          grep -q '<div id="root"><' /tmp/local-dom.html
+          grep -q 'BUKLOD Classroom' /tmp/local-dom.html
+          ! grep -q 'Samahang Binuklod ng Pag-ibig' /tmp/local-dom.html
+          ! grep -Eqi 'supabaseUrl is required|supabaseKey is required|Missing Supabase environment variables|Uncaught (Error|TypeError|ReferenceError|SyntaxError)' /tmp/local-browser.log
+          echo 'LOCAL_CLASSROOM_BROWSER=PASS'
+
+      - name: Deploy verified export
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest deploy --prod --environment production --non-interactive --export-dir dist 2>&1 | tee /tmp/deploy.log
+
+      - name: Verify live production runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          ok=0
+          for attempt in $(seq 1 8); do
+            timeout 45s "$CHROME" --headless=new --no-sandbox --disable-gpu --virtual-time-budget=18000 --enable-logging=stderr --log-level=0 --dump-dom "https://buklod-classroom.expo.app/?standalone_verify=$attempt" > /tmp/live-dom.html 2>/tmp/live-browser.log || true
+            if grep -q '<div id="root"><' /tmp/live-dom.html && grep -q 'BUKLOD Classroom' /tmp/live-dom.html; then ok=1; break; fi
+            sleep 4
+          done
+          test "$ok" = 1
+          ! grep -q 'Samahang Binuklod ng Pag-ibig' /tmp/live-dom.html
+          ! grep -Eqi 'supabaseUrl is required|supabaseKey is required|Missing Supabase environment variables|Uncaught (Error|TypeError|ReferenceError|SyntaxError)' /tmp/live-browser.log
+          test "$(curl -L -sS -o /tmp/live.html -w '%{http_code}' https://buklod-classroom.expo.app/)" = 200
+          echo 'LIVE_BUKLOD_CLASSROOM_STANDALONE=PASS'
