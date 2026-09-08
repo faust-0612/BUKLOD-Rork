@@ -53,20 +53,34 @@ jobs:
           npx eas-cli@latest whoami --non-interactive >/dev/null
           echo 'Expo authentication: READY'
 
-      - name: Pull shared BUKLOD production public environment
+      - name: Pull shared BUKLOD production public environment from Main authority
         shell: bash
         run: |
           set -euo pipefail
-          rm -f .env.local
-          npx eas-cli@latest env:pull --environment production --path .env.local --non-interactive
-          test -s .env.local
+          rm -f .env.main-shared
+
+          # Classroom is an extension of BUKLOD Main. Public account/backend
+          # runtime variables are intentionally inherited from the Main Expo
+          # project, while the subsequent export/build target remains Classroom.
+          BUKLOD_APP_TARGET=main \
+          APP_VARIANT=production \
+          EXPO_PUBLIC_APP_ENV=production \
+          npx eas-cli@latest env:pull \
+            --environment production \
+            --path .env.main-shared \
+            --non-interactive
+
+          test -s .env.main-shared
           set -a
-          . ./.env.local
+          . ./.env.main-shared
           set +a
           test -n "${EXPO_PUBLIC_SUPABASE_URL:-}"
           test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}"
           test "$EXPO_PUBLIC_SUPABASE_URL" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
 
+          # Do not print public runtime values. Persist EXPO_PUBLIC variables
+          # only into this workflow job so Metro can inline the same BUKLOD
+          # backend/account configuration into the Classroom web bundle.
           while IFS='=' read -r name _; do
             case "$name" in
               EXPO_PUBLIC_*)
@@ -78,14 +92,16 @@ jobs:
                 } >> "$GITHUB_ENV"
                 ;;
             esac
-          done < <(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env.local)
+          done < <(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env.main-shared)
 
-          echo 'Shared BUKLOD account/backend environment: VERIFIED'
+          rm -f .env.main-shared
+          echo 'Shared BUKLOD Main account/backend environment: VERIFIED'
 
       - name: Fail-closed Classroom identity and separation gate
         shell: bash
         run: |
           set -euo pipefail
+          test "$BUKLOD_APP_TARGET" = 'classroom'
           node scripts/verify-classroom-target.mjs
 
       - name: Runtime architecture static guard
@@ -114,8 +130,10 @@ jobs:
           NODE_ENV: production
         run: |
           set -euo pipefail
+          test "$BUKLOD_APP_TARGET" = 'classroom'
           test -n "${EXPO_PUBLIC_SUPABASE_URL:-}"
           test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}"
+          test "$EXPO_PUBLIC_SUPABASE_URL" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
           rm -rf dist-classroom-r5
           npx expo export --platform web --output-dir dist-classroom-r5
           test -s dist-classroom-r5/index.html
@@ -138,6 +156,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$BUKLOD_APP_TARGET" = 'classroom'
+          test "$EXPO_PUBLIC_SUPABASE_URL" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
           node scripts/verify-classroom-target.mjs
           npx eas-cli@latest deploy --prod --environment production --non-interactive
 
