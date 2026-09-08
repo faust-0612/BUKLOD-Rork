@@ -12,6 +12,7 @@ import {
 import { useCompliance } from '@/providers/ComplianceProvider';
 import { colors } from '@/lib/theme';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
+import { IS_CLASSROOM_APP } from '@/lib/appIdentity';
 
 export default function Index() {
   const { session, loading, profile } = useAuth();
@@ -43,6 +44,13 @@ export default function Index() {
     useRef(false);
 
   useEffect(() => {
+    /* CLASSROOM_SEPARATION_R1: Classroom never boots through Main PUBLIC/Connect routing. */
+    if (IS_CLASSROOM_APP) {
+      publicResetInFlight.current = false;
+      setBootReady(Boolean(session?.user?.id && !(loading && !profile)));
+      return;
+    }
+
     if (
       !session?.user?.id ||
       (loading && !profile)
@@ -157,7 +165,7 @@ export default function Index() {
 
   return (
     <Redirect
-      href="/(tabs)/messages"
+      href={IS_CLASSROOM_APP ? '/classroom' : '/(tabs)/messages'}
     />
   );
 }

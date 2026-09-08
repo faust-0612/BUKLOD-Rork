@@ -22,6 +22,7 @@ import BuklodCanonicalNavigationGuard from '@/components/BuklodCanonicalNavigati
 import BuklodClusterInviteDeepLinkHandler from '@/components/BuklodClusterInviteDeepLinkHandler';
 import BuklodAttendanceDeepLinkHandler from '@/components/BuklodAttendanceDeepLinkHandler';
 import { colors } from '@/lib/theme';
+import { APP_DISPLAY_NAME, IS_CLASSROOM_APP } from '@/lib/appIdentity';
 import { StreamVideoProvider } from '@/providers/StreamVideoProvider';
 import { BuklodThemeProvider } from '@/providers/BuklodThemeProvider';
 import { BuklodCharacterEventProvider } from '@/components/character/BuklodCharacterEventProvider';
@@ -49,7 +50,7 @@ export function SuspenseFallback() {
           color: colors.muted,
         }}
       >
-        Loading BUKLOD...
+        {IS_CLASSROOM_APP ? `Loading ${APP_DISPLAY_NAME}...` : 'Loading BUKLOD...'}
       </Text>
     </View>
   );
@@ -69,9 +70,9 @@ export default function RootLayout() {
         <BuklodBibleNarrationProvider>
         <BuklodThemeProvider>
         <BuklodCharacterEventProvider>
-        <RorkAvatarOnboardingGate />
+        {!IS_CLASSROOM_APP && <RorkAvatarOnboardingGate />}
         <BuklodScopeProvider>
-        <BuklodFormationEntryScopeTracker />
+        {!IS_CLASSROOM_APP && <BuklodFormationEntryScopeTracker />}
         <BuklodFoundationProvider>
       <NetworkProvider>
         <BuklodOfflineSyncProvider>
@@ -82,12 +83,12 @@ export default function RootLayout() {
             <StreamVideoProvider>
             <BuklodRootKeyboardAvoidingView style={{ flex: 1 }}>
               <OfflineBanner/>
-              <BuklodPublishBanner />
-              <BuklodEntitlementRouteGuard />
-              <BuklodFocusAppRouteGuard />
-              <BuklodCanonicalNavigationGuard />
-              <BuklodClusterInviteDeepLinkHandler />
-              <BuklodAttendanceDeepLinkHandler />
+              {!IS_CLASSROOM_APP && <BuklodPublishBanner />}
+              {!IS_CLASSROOM_APP && <BuklodEntitlementRouteGuard />}
+              {!IS_CLASSROOM_APP && <BuklodFocusAppRouteGuard />}
+              {!IS_CLASSROOM_APP && <BuklodCanonicalNavigationGuard />}
+              {!IS_CLASSROOM_APP && <BuklodClusterInviteDeepLinkHandler />}
+              {!IS_CLASSROOM_APP && <BuklodAttendanceDeepLinkHandler />}
               <BuklodNavSafeShell>
               <Stack
                 screenOptions={{
@@ -237,7 +238,7 @@ export default function RootLayout() {
             </BuklodRootKeyboardAvoidingView>
             </StreamVideoProvider>
                       {/* PATCH_163A_R_ROOT_GUIDE */}
-            <BuklodGuideAvatar />
+            {!IS_CLASSROOM_APP && <BuklodGuideAvatar />}
           </NotificationProvider>
     </AdsProvider>
           </RuntimeConfigProvider>

@@ -25,6 +25,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
+import { APP_DISPLAY_NAME, APP_LOGIN_TAGLINE, IS_CLASSROOM_APP } from '@/lib/appIdentity';
 import { useAuth } from '@/providers/AuthProvider';
 import {
   isBuklodInvalidCredentialsError,
@@ -1167,7 +1168,7 @@ const chooseSuggestedLogin =
      * and remains global/personal Connect.
      */
     router.replace(
-      '/(tabs)/home'
+      IS_CLASSROOM_APP ? '/classroom' : '/(tabs)/home'
     );
 
 
@@ -1241,18 +1242,22 @@ const chooseSuggestedLogin =
         <View style={styles.brand}>
           <LoginMotionScale>
             <Image
-              source={require('../../../assets/release/buklod-generic-photo.jpg')}
+              source={
+                IS_CLASSROOM_APP
+                  ? require('../../../assets/classroom/app-icon.png')
+                  : require('../../../assets/release/buklod-generic-photo.jpg')
+              }
               style={styles.logo}
             />
           </LoginMotionScale>
 
           <LoginMotionFadeUp delay={60} duration={240}>
-            <Text style={styles.title}>BUKLOD</Text>
+            <Text style={styles.title}>{APP_DISPLAY_NAME}</Text>
           </LoginMotionFadeUp>
 
           <LoginMotionFadeUp delay={100} duration={240}>
             <Text style={styles.tagline}>
-              Samahang Binuklod ng Pag-ibig
+              {APP_LOGIN_TAGLINE}
             </Text>
           </LoginMotionFadeUp>
         </View>

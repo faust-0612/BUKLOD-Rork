@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import BuklodFocusAppAdStrip from '@/components/BuklodFocusAppAdStrip';
 import BuklodPersistentBottomNav from '@/components/BuklodPersistentBottomNav';
+import { IS_CLASSROOM_APP } from '@/lib/appIdentity';
 import {
   normalizeBuklodPathname,
   useBuklodPersistentNavOccupiedHeight,
@@ -114,6 +115,11 @@ export default function BuklodNavSafeShell({
         : reserveMyBuklodSystemInsets
           ? Math.max(insets.bottom, 0)
           : 0;
+
+  /* CLASSROOM_SEPARATION_R1: never render Main persistent nav/ad shell in Classroom. */
+  if (IS_CLASSROOM_APP) {
+    return <View style={styles.root}>{children}</View>;
+  }
 
   return (
     <View style={styles.root}>
