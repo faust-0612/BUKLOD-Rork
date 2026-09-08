@@ -30,7 +30,14 @@ jobs:
           fetch-depth: 0
 
       - name: Apply deterministic Classroom identity repair
-        run: python3 scripts/apply-classroom-identity-restore.py
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/apply-classroom-identity-restore.py
+          # The GitHub App token intentionally has no workflows scope. Keep
+          # the existing R4 QA workflow unchanged here; this release executor
+          # independently runs the required identity/type/test/export/runtime gates.
+          git checkout -- .github/workflows/classroom_r4_qa.yml
 
       - name: Commit repaired Classroom source
         shell: bash
@@ -38,7 +45,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add app.config.js package.json src/app/index.tsx 'src/app/(tabs)/_layout.tsx' 'src/app/(auth)/login.tsx' src/app/+html.tsx src/app/classroom/index.tsx src/lib/appTarget.ts scripts/verify-classroom-identity.mjs .classroom-source-lock .github/workflows/classroom_r4_qa.yml
+          git add app.config.js package.json src/app/index.tsx 'src/app/(tabs)/_layout.tsx' 'src/app/(auth)/login.tsx' src/app/+html.tsx src/app/classroom/index.tsx src/lib/appTarget.ts scripts/verify-classroom-identity.mjs .classroom-source-lock
           git diff --cached --check
           git commit -m 'classroom: permanently restore standalone app identity'
           git push origin HEAD:feature/classroom-harmonized-r4-current-main-20260908
