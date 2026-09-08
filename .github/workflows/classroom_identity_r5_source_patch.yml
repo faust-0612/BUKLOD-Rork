@@ -1,0 +1,164 @@
+name: BUKLOD Classroom R5 Source Separation Patch
+
+on:
+  push:
+    branches:
+      - fix/classroom-separate-identity-r5-20260909
+    paths:
+      - '.github/workflows/classroom_identity_r5_source_patch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  guarded-patch:
+    runs-on: ubuntu-latest
+    env:
+      BUKLOD_APP_TARGET: classroom
+      APP_VARIANT: production
+      EXPO_PUBLIC_APP_ENV: production
+      CLASSROOM_GOOGLE_SERVICES_FILE: ./google-services.classroom.json
+    steps:
+      - name: Checkout isolated Classroom fix branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/classroom-separate-identity-r5-20260909
+          fetch-depth: 0
+
+      - name: Apply exact runtime/config separation patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          def replace_once(path, old, new, label):
+              p = Path(path)
+              text = p.read_text(encoding='utf-8')
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected exactly 1 match in {path}, got {count}')
+              p.write_text(text.replace(old, new, 1), encoding='utf-8')
+              print(f'{label}=PATCHED')
+
+          login = 'src/app/(auth)/login.tsx'
+          replace_once(
+              login,
+              "import { useAuth } from '@/providers/AuthProvider';\n",
+              "import { useAuth } from '@/providers/AuthProvider';\nimport { isClassroomApp } from '@/lib/appIdentity';\n",
+              'LOGIN_IDENTITY_IMPORT',
+          )
+          replace_once(
+              login,
+              "  await AsyncStorage.setItem(\n    BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY,\n    '1'\n  );",
+              "  if (!isClassroomApp) {\n    await AsyncStorage.setItem(\n      BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY,\n      '1'\n    );\n  }",
+              'LOGIN_MAIN_PUBLIC_INTENT_SET',
+          )
+          replace_once(
+              login,
+              "  if (result.error) {\n    await AsyncStorage.removeItem(\n      BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY\n    );\n  }",
+              "  if (result.error && !isClassroomApp) {\n    await AsyncStorage.removeItem(\n      BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY\n    );\n  }",
+              'LOGIN_MAIN_PUBLIC_INTENT_REMOVE',
+          )
+          replace_once(
+              login,
+              "const SUGGESTED_LOGIN_BUKLOD_LOGO =\n  require('../../../assets/release/buklod-generic.png');",
+              "const SUGGESTED_LOGIN_BUKLOD_LOGO =\n  isClassroomApp\n    ? require('../../../assets/classroom/app-icon.png')\n    : require('../../../assets/release/buklod-generic.png');",
+              'LOGIN_FALLBACK_ICON',
+          )
+          replace_once(
+              login,
+              "    router.replace(\n      '/(tabs)/home'\n    );",
+              "    router.replace(\n      (isClassroomApp ? '/classroom' : '/(tabs)/home') as any\n    );",
+              'LOGIN_SUCCESS_ROUTE',
+          )
+          replace_once(
+              login,
+              "              source={require('../../../assets/release/buklod-generic-photo.jpg')}",
+              "              source={\n                isClassroomApp\n                  ? require('../../../assets/classroom/app-icon.png')\n                  : require('../../../assets/release/buklod-generic-photo.jpg')\n              }",
+              'LOGIN_BRAND_IMAGE',
+          )
+          replace_once(
+              login,
+              "            <Text style={styles.title}>BUKLOD</Text>",
+              "            <Text style={styles.title}>\n              {isClassroomApp ? 'BUKLOD Classroom' : 'BUKLOD'}\n            </Text>",
+              'LOGIN_BRAND_TITLE',
+          )
+          replace_once(
+              login,
+              "              Samahang Binuklod ng Pag-ibig",
+              "              {isClassroomApp\n                ? 'Learn • Teach • Connect'\n                : 'Samahang Binuklod ng Pag-ibig'}",
+              'LOGIN_BRAND_TAGLINE',
+          )
+
+          layout = 'src/app/_layout.tsx'
+          replace_once(
+              layout,
+              "import RorkAvatarOnboardingGate from '@/components/character/RorkAvatarOnboardingGate';\n",
+              "import RorkAvatarOnboardingGate from '@/components/character/RorkAvatarOnboardingGate';\nimport ClassroomAppRouteGuard from '@/components/classroom/ClassroomAppRouteGuard';\nimport { isClassroomApp } from '@/lib/appIdentity';\n",
+              'ROOT_IDENTITY_IMPORTS',
+          )
+          replace_once(layout, '        <RorkAvatarOnboardingGate />', '        {!isClassroomApp ? <RorkAvatarOnboardingGate /> : null}', 'ROOT_AVATAR_GATE')
+          replace_once(layout, '        <BuklodFormationEntryScopeTracker />', '        {!isClassroomApp ? <BuklodFormationEntryScopeTracker /> : null}', 'ROOT_FORMATION_TRACKER')
+          replace_once(layout, '              <OfflineBanner/>', '              <OfflineBanner/>\n              <ClassroomAppRouteGuard />', 'ROOT_CLASSROOM_ROUTE_GUARD')
+          replace_once(layout, '              <BuklodPublishBanner />', '              {!isClassroomApp ? <BuklodPublishBanner /> : null}', 'ROOT_PUBLISH_BANNER')
+          replace_once(layout, '              <BuklodEntitlementRouteGuard />', '              {!isClassroomApp ? <BuklodEntitlementRouteGuard /> : null}', 'ROOT_ENTITLEMENT_GUARD')
+          replace_once(layout, '              <BuklodFocusAppRouteGuard />', '              {!isClassroomApp ? <BuklodFocusAppRouteGuard /> : null}', 'ROOT_FOCUS_GUARD')
+          replace_once(layout, '              <BuklodCanonicalNavigationGuard />', '              {!isClassroomApp ? <BuklodCanonicalNavigationGuard /> : null}', 'ROOT_CANONICAL_GUARD')
+          replace_once(layout, '              <BuklodClusterInviteDeepLinkHandler />', '              {!isClassroomApp ? <BuklodClusterInviteDeepLinkHandler /> : null}', 'ROOT_CLUSTER_LINK')
+          replace_once(layout, '              <BuklodAttendanceDeepLinkHandler />', '              {!isClassroomApp ? <BuklodAttendanceDeepLinkHandler /> : null}', 'ROOT_ATTENDANCE_LINK')
+          replace_once(layout, '                <Stack.Screen name="index" />', '                <Stack.Screen name="index" />\n                <Stack.Screen name="classroom/index" />', 'ROOT_CLASSROOM_SCREEN')
+          replace_once(layout, '            <BuklodGuideAvatar />', '            {!isClassroomApp ? <BuklodGuideAvatar /> : null}', 'ROOT_GUIDE_AVATAR')
+
+          config = Path('app.config.js')
+          text = config.read_text(encoding='utf-8')
+          marker = "  const isClassroom = appTarget === 'classroom';\n"
+          if text.count(marker) != 1:
+              raise SystemExit('APP_CONFIG_TARGET_MARKER mismatch')
+          guard = marker + "  const easBuildProfile = (process.env.EAS_BUILD_PROFILE || '').trim();\n  if (easBuildProfile.startsWith('classroom-') && !isClassroom) {\n    throw new Error(`Classroom EAS profile ${easBuildProfile} requires BUKLOD_APP_TARGET=classroom`);\n  }\n  if (isClassroom && easBuildProfile && !easBuildProfile.startsWith('classroom-')) {\n    throw new Error(`Classroom target cannot build with non-Classroom EAS profile ${easBuildProfile}`);\n  }\n"
+          text = text.replace(marker, guard, 1)
+          text, permission_count = re.subn(
+              r"'Allow BUKLOD([^']*)'",
+              lambda m: '`Allow ${appName}' + m.group(1) + '`',
+              text,
+          )
+          if permission_count < 1:
+              raise SystemExit('APP_CONFIG_PERMISSION_IDENTITY: expected BUKLOD permission strings')
+          config.write_text(text, encoding='utf-8')
+          print(f'APP_CONFIG_PERMISSION_IDENTITY=PATCHED:{permission_count}')
+          print('APP_CONFIG_EAS_PROFILE_GUARD=PATCHED')
+          PY
+
+      - name: Install dependencies without lifecycle scripts
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci --ignore-scripts
+
+      - name: Fail-closed Classroom identity check
+        run: npm run classroom:identity:check
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Relevant Classroom reducer tests
+        run: npx jest src/lib/education/classroomLiveState.test.ts --runInBand
+
+      - name: Commit only verified source/config patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git status --short
+          git diff --check
+          git config user.name 'BUKLOD Classroom Automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add app.config.js src/app/_layout.tsx 'src/app/(auth)/login.tsx'
+          if git diff --cached --quiet; then
+            echo 'No patch changes to commit.'
+            exit 0
+          fi
+          git commit -m 'classroom: restore standalone runtime identity shell'
+          git push origin HEAD:fix/classroom-separate-identity-r5-20260909
