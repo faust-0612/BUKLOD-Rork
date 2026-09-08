@@ -11,6 +11,7 @@ on:
       - 'src/app/profile/buklod-classroom*.tsx'
       - 'src/app/profile/buklod-faculty-live-review.tsx'
       - 'src/components/classroom/**'
+      - 'src/components/BuklodAcceptedCallContent.tsx'
       - 'src/lib/education/classroomLiveState*'
       - 'src/lib/education/classroomTransfer.ts'
       - 'supabase/functions/buklod-classroom-stream-access/**'
@@ -50,6 +51,11 @@ jobs:
           grep -F "desiredStudentMedia" src/lib/education/classroomLiveState.ts
           grep -F "ignores stale, duplicate and cross-session commands" src/lib/education/classroomLiveState.test.ts
           grep -F "BuklodAcceptedCallContent" src/components/classroom/ClassroomLiveView.native.tsx
+          grep -F "hideControls={access.role === 'STUDENT'}" src/components/classroom/ClassroomLiveView.native.tsx
+          grep -F "desiredStudentMedia(authority, access.user_id, manualMedia)" src/components/classroom/ClassroomLiveView.native.tsx
+          grep -F "toggleStudentMicrophone" src/components/classroom/ClassroomLiveView.native.tsx
+          grep -F "toggleStudentCamera" src/components/classroom/ClassroomLiveView.native.tsx
+          grep -F "React.ComponentProps<typeof CallContent>" src/components/BuklodAcceptedCallContent.tsx
           grep -F "ClassroomLiveAutomationLayer" src/components/classroom/ClassroomLiveView.native.tsx
           grep -F "CameraView" src/components/classroom/ClassroomLiveView.native.tsx
           grep -F "create_breakouts" src/components/classroom/ClassroomLiveView.native.tsx
