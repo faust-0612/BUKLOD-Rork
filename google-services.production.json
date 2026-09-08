@@ -1,0 +1,67 @@
+{
+  "project_info": {
+    "project_number": "1014299074416",
+    "project_id": "buklod-efa4a",
+    "storage_bucket": "buklod-efa4a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1014299074416:android:bd8d04868e7f2c67ab39b5",
+        "android_client_info": {
+          "package_name": "org.mzbministry.buklod"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBkqfQDurfed3O7MaJqM5ABxkdfVtvWqVU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1014299074416:android:e17af906838496f0ab39b5",
+        "android_client_info": {
+          "package_name": "org.mzbministry.buklod.classroom"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBkqfQDurfed3O7MaJqM5ABxkdfVtvWqVU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1014299074416:android:9e58885eb54ca57cab39b5",
+        "android_client_info": {
+          "package_name": "org.mzbministry.buklod.staging"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBkqfQDurfed3O7MaJqM5ABxkdfVtvWqVU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
