@@ -79,29 +79,7 @@ jobs:
             # added. Preserve the entire current production file and insert only
             # the verified local Quiz section before Faculty Autopilot.
             if [ "$f" = "src/app/profile/buklod-faculty.tsx" ]; then
-              python - "$f" "$theirs" <<'PYMERGE'
-import sys
-from pathlib import Path
-
-current_path = Path(sys.argv[1])
-theirs_path = Path(sys.argv[2])
-current = current_path.read_text()
-theirs = theirs_path.read_text()
-marker = '        {/* BUKLOD_FACULTY_QUIZ_INTEGRATION_R1 */}'
-anchor = '<Text style={styles.sectionTitle}>Faculty Autopilot</Text>'
-
-if marker in current:
-    raise SystemExit(0)
-if marker not in theirs:
-    raise SystemExit('REFUSED: Faculty Quiz integration marker missing from local overlay.')
-start = theirs.index(marker)
-end = theirs.index(anchor, start)
-block = theirs[start:end]
-if anchor not in current:
-    raise SystemExit('REFUSED: Faculty Autopilot anchor missing from current production source.')
-current = current.replace(anchor, block + anchor, 1)
-current_path.write_text(current)
-PYMERGE
+              python scripts/merge-visible-progress-faculty.py "$f" "$theirs"
               continue
             fi
 
