@@ -43,62 +43,17 @@ jobs:
               print(f'{label}=PATCHED')
 
           login = 'src/app/(auth)/login.tsx'
-          replace_once(
-              login,
-              "import { useAuth } from '@/providers/AuthProvider';\n",
-              "import { useAuth } from '@/providers/AuthProvider';\nimport { isClassroomApp } from '@/lib/appIdentity';\n",
-              'LOGIN_IDENTITY_IMPORT',
-          )
-          replace_once(
-              login,
-              "  await AsyncStorage.setItem(\n    BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY,\n    '1'\n  );",
-              "  if (!isClassroomApp) {\n    await AsyncStorage.setItem(\n      BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY,\n      '1'\n    );\n  }",
-              'LOGIN_MAIN_PUBLIC_INTENT_SET',
-          )
-          replace_once(
-              login,
-              "  if (result.error) {\n    await AsyncStorage.removeItem(\n      BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY\n    );\n  }",
-              "  if (result.error && !isClassroomApp) {\n    await AsyncStorage.removeItem(\n      BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY\n    );\n  }",
-              'LOGIN_MAIN_PUBLIC_INTENT_REMOVE',
-          )
-          replace_once(
-              login,
-              "const SUGGESTED_LOGIN_BUKLOD_LOGO =\n  require('../../../assets/release/buklod-generic.png');",
-              "const SUGGESTED_LOGIN_BUKLOD_LOGO =\n  isClassroomApp\n    ? require('../../../assets/classroom/app-icon.png')\n    : require('../../../assets/release/buklod-generic.png');",
-              'LOGIN_FALLBACK_ICON',
-          )
-          replace_once(
-              login,
-              "    router.replace(\n      '/(tabs)/home'\n    );",
-              "    router.replace(\n      (isClassroomApp ? '/classroom' : '/(tabs)/home') as any\n    );",
-              'LOGIN_SUCCESS_ROUTE',
-          )
-          replace_once(
-              login,
-              "              source={require('../../../assets/release/buklod-generic-photo.jpg')}",
-              "              source={\n                isClassroomApp\n                  ? require('../../../assets/classroom/app-icon.png')\n                  : require('../../../assets/release/buklod-generic-photo.jpg')\n              }",
-              'LOGIN_BRAND_IMAGE',
-          )
-          replace_once(
-              login,
-              "            <Text style={styles.title}>BUKLOD</Text>",
-              "            <Text style={styles.title}>\n              {isClassroomApp ? 'BUKLOD Classroom' : 'BUKLOD'}\n            </Text>",
-              'LOGIN_BRAND_TITLE',
-          )
-          replace_once(
-              login,
-              "              Samahang Binuklod ng Pag-ibig",
-              "              {isClassroomApp\n                ? 'Learn • Teach • Connect'\n                : 'Samahang Binuklod ng Pag-ibig'}",
-              'LOGIN_BRAND_TAGLINE',
-          )
+          replace_once(login, "import { useAuth } from '@/providers/AuthProvider';\n", "import { useAuth } from '@/providers/AuthProvider';\nimport { isClassroomApp } from '@/lib/appIdentity';\n", 'LOGIN_IDENTITY_IMPORT')
+          replace_once(login, "  await AsyncStorage.setItem(\n    BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY,\n    '1'\n  );", "  if (!isClassroomApp) {\n    await AsyncStorage.setItem(\n      BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY,\n      '1'\n    );\n  }", 'LOGIN_MAIN_PUBLIC_INTENT_SET')
+          replace_once(login, "  if (result.error) {\n    await AsyncStorage.removeItem(\n      BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY\n    );\n  }", "  if (result.error && !isClassroomApp) {\n    await AsyncStorage.removeItem(\n      BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY\n    );\n  }", 'LOGIN_MAIN_PUBLIC_INTENT_REMOVE')
+          replace_once(login, "const SUGGESTED_LOGIN_BUKLOD_LOGO =\n  require('../../../assets/release/buklod-generic.png');", "const SUGGESTED_LOGIN_BUKLOD_LOGO =\n  isClassroomApp\n    ? require('../../../assets/classroom/app-icon.png')\n    : require('../../../assets/release/buklod-generic.png');", 'LOGIN_FALLBACK_ICON')
+          replace_once(login, "    router.replace(\n      '/(tabs)/home'\n    );", "    router.replace(\n      (isClassroomApp ? '/classroom' : '/(tabs)/home') as any\n    );", 'LOGIN_SUCCESS_ROUTE')
+          replace_once(login, "              source={require('../../../assets/release/buklod-generic-photo.jpg')}", "              source={\n                isClassroomApp\n                  ? require('../../../assets/classroom/app-icon.png')\n                  : require('../../../assets/release/buklod-generic-photo.jpg')\n              }", 'LOGIN_BRAND_IMAGE')
+          replace_once(login, "            <Text style={styles.title}>BUKLOD</Text>", "            <Text style={styles.title}>\n              {isClassroomApp ? 'BUKLOD Classroom' : 'BUKLOD'}\n            </Text>", 'LOGIN_BRAND_TITLE')
+          replace_once(login, "              Samahang Binuklod ng Pag-ibig", "              {isClassroomApp\n                ? 'Learn • Teach • Connect'\n                : 'Samahang Binuklod ng Pag-ibig'}", 'LOGIN_BRAND_TAGLINE')
 
           layout = 'src/app/_layout.tsx'
-          replace_once(
-              layout,
-              "import RorkAvatarOnboardingGate from '@/components/character/RorkAvatarOnboardingGate';\n",
-              "import RorkAvatarOnboardingGate from '@/components/character/RorkAvatarOnboardingGate';\nimport ClassroomAppRouteGuard from '@/components/classroom/ClassroomAppRouteGuard';\nimport { isClassroomApp } from '@/lib/appIdentity';\n",
-              'ROOT_IDENTITY_IMPORTS',
-          )
+          replace_once(layout, "import RorkAvatarOnboardingGate from '@/components/character/RorkAvatarOnboardingGate';\n", "import RorkAvatarOnboardingGate from '@/components/character/RorkAvatarOnboardingGate';\nimport ClassroomAppRouteGuard from '@/components/classroom/ClassroomAppRouteGuard';\nimport { isClassroomApp } from '@/lib/appIdentity';\n", 'ROOT_IDENTITY_IMPORTS')
           replace_once(layout, '        <RorkAvatarOnboardingGate />', '        {!isClassroomApp ? <RorkAvatarOnboardingGate /> : null}', 'ROOT_AVATAR_GATE')
           replace_once(layout, '        <BuklodFormationEntryScopeTracker />', '        {!isClassroomApp ? <BuklodFormationEntryScopeTracker /> : null}', 'ROOT_FORMATION_TRACKER')
           replace_once(layout, '              <OfflineBanner/>', '              <OfflineBanner/>\n              <ClassroomAppRouteGuard />', 'ROOT_CLASSROOM_ROUTE_GUARD')
@@ -118,11 +73,7 @@ jobs:
               raise SystemExit('APP_CONFIG_TARGET_MARKER mismatch')
           guard = marker + "  const easBuildProfile = (process.env.EAS_BUILD_PROFILE || '').trim();\n  if (easBuildProfile.startsWith('classroom-') && !isClassroom) {\n    throw new Error(`Classroom EAS profile ${easBuildProfile} requires BUKLOD_APP_TARGET=classroom`);\n  }\n  if (isClassroom && easBuildProfile && !easBuildProfile.startsWith('classroom-')) {\n    throw new Error(`Classroom target cannot build with non-Classroom EAS profile ${easBuildProfile}`);\n  }\n"
           text = text.replace(marker, guard, 1)
-          text, permission_count = re.subn(
-              r"'Allow BUKLOD([^']*)'",
-              lambda m: '`Allow ${appName}' + m.group(1) + '`',
-              text,
-          )
+          text, permission_count = re.subn(r"'Allow BUKLOD([^']*)'", lambda m: '`Allow ${appName}' + m.group(1) + '`', text)
           if permission_count < 1:
               raise SystemExit('APP_CONFIG_PERMISSION_IDENTITY: expected BUKLOD permission strings')
           config.write_text(text, encoding='utf-8')
@@ -130,24 +81,49 @@ jobs:
           print('APP_CONFIG_EAS_PROFILE_GUARD=PATCHED')
           PY
 
-      - name: Install dependencies without lifecycle scripts
+      - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
 
-      - run: npm ci --ignore-scripts
+      - name: Install dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
 
       - name: Fail-closed Classroom identity check
         run: npm run classroom:identity:check
 
       - name: TypeScript check
-        run: npx tsc --noEmit
+        id: tsc
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          npx tsc --noEmit > /tmp/classroom-r5-tsc.log 2>&1
+          code=$?
+          cat /tmp/classroom-r5-tsc.log
+          exit $code
+
+      - name: Persist TypeScript diagnostic only when blocked
+        if: steps.tsc.outcome == 'failure'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git restore app.config.js src/app/_layout.tsx 'src/app/(auth)/login.tsx'
+          mkdir -p .diagnostics
+          cp /tmp/classroom-r5-tsc.log .diagnostics/classroom-r5-tsc.log
+          git config user.name 'BUKLOD Classroom Automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add .diagnostics/classroom-r5-tsc.log
+          git commit -m 'diagnostic: capture Classroom R5 TypeScript blocker'
+          git push origin HEAD:fix/classroom-separate-identity-r5-20260909
 
       - name: Relevant Classroom reducer tests
+        if: steps.tsc.outcome == 'success'
         run: npx jest src/lib/education/classroomLiveState.test.ts --runInBand
 
       - name: Commit only verified source/config patch
+        if: steps.tsc.outcome == 'success'
         shell: bash
         run: |
           set -euo pipefail
@@ -162,3 +138,7 @@ jobs:
           fi
           git commit -m 'classroom: restore standalone runtime identity shell'
           git push origin HEAD:fix/classroom-separate-identity-r5-20260909
+
+      - name: Fail job after diagnostic capture
+        if: steps.tsc.outcome == 'failure'
+        run: exit 1
