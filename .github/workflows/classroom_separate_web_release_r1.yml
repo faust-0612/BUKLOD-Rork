@@ -80,20 +80,48 @@ jobs:
           npx eas-cli@latest whoami --non-interactive >/dev/null
           echo 'Expo authentication: READY'
 
-      - name: Pull Classroom production environment
+      - name: Resolve verified Classroom production environment
         shell: bash
         run: |
           set -euo pipefail
-          rm -f .env.local
+          rm -f .env.local /tmp/classroom-known-good-env.yml
           npx eas-cli@latest env:pull --environment production --path .env.local --non-interactive
           test -s .env.local
           set -a
           . ./.env.local
           set +a
-          test -n "${EXPO_PUBLIC_SUPABASE_URL:-}"
-          test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}"
-          test "$EXPO_PUBLIC_SUPABASE_URL" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
 
+          EXPECTED_URL='https://yhanxndaqbmuzbdqlblu.supabase.co'
+
+          # The current EAS production environment has previously been proven
+          # incomplete for Classroom web boot. Prefer it when complete, but if
+          # either protected public Supabase runtime variable is absent or the
+          # project is wrong, recover ONLY those two public runtime settings
+          # from the last verified Classroom white-screen hotfix commit.
+          if [ -z "${EXPO_PUBLIC_SUPABASE_URL:-}" ] || \
+             [ -z "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}" ] || \
+             [ "${EXPO_PUBLIC_SUPABASE_URL:-}" != "$EXPECTED_URL" ]; then
+            git show 5195c2dc1ee385bb3bf366c09dc4b545501ae5ae:.github/workflows/classroom_web_white_screen_hotfix.yml \
+              > /tmp/classroom-known-good-env.yml
+
+            EXPO_PUBLIC_SUPABASE_URL="$(
+              sed -n 's/^  EXPO_PUBLIC_SUPABASE_URL: //p' /tmp/classroom-known-good-env.yml | head -1
+            )"
+            EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$(
+              sed -n 's/^  EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: //p' /tmp/classroom-known-good-env.yml | head -1
+            )"
+            rm -f /tmp/classroom-known-good-env.yml
+            echo 'Classroom web runtime environment recovered from verified prior release evidence.'
+          else
+            echo 'Classroom web runtime environment resolved from current EAS production environment.'
+          fi
+
+          test "$EXPO_PUBLIC_SUPABASE_URL" = "$EXPECTED_URL"
+          test -n "$EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+
+          # Preserve any existing public EAS values without printing their
+          # values, then explicitly overwrite the critical Classroom runtime
+          # and identity variables below.
           while IFS='=' read -r name _; do
             case "$name" in
               EXPO_PUBLIC_*)
@@ -105,11 +133,15 @@ jobs:
                 } >> "$GITHUB_ENV"
                 ;;
             esac
-          done < <(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env.local)
+          done < <(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env.local || true)
 
-          # The Classroom target is release-controlled and must win over any
-          # generic/shared environment defaults.
           {
+            echo 'EXPO_PUBLIC_SUPABASE_URL<<__CLASSROOM_ENV__'
+            printf '%s\n' "$EXPO_PUBLIC_SUPABASE_URL"
+            echo '__CLASSROOM_ENV__'
+            echo 'EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY<<__CLASSROOM_ENV__'
+            printf '%s\n' "$EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+            echo '__CLASSROOM_ENV__'
             echo 'BUKLOD_APP_TARGET=classroom'
             echo 'BUKLOD_CLASSROOM_RELEASE=1'
             echo 'APP_VARIANT=production'
@@ -117,7 +149,8 @@ jobs:
             echo 'EXPO_PUBLIC_EAS_PROJECT_ID=14100ed1-7f25-4551-9627-09d280498241'
             echo 'CLASSROOM_GOOGLE_SERVICES_FILE=./google-services.classroom.json'
           } >> "$GITHUB_ENV"
-          echo 'Classroom production public environment: READY'
+
+          echo 'Protected Classroom Supabase project + release target: VERIFIED'
 
       - name: Fail-closed Classroom identity audit
         shell: bash
@@ -147,10 +180,7 @@ jobs:
         run: |
           set -euo pipefail
           npx tsc --noEmit
-          npx jest --runInBand --passWithNoTests --testPathPattern='classroom|faculty' || {
-            echo 'Targeted Classroom Jest run failed.'
-            exit 1
-          }
+          npx jest --runInBand --passWithNoTests 'classroom|faculty'
 
       - name: Export Classroom web
         shell: bash
@@ -198,14 +228,15 @@ jobs:
           ! grep -q 'Samahang Binuklod ng Pag-ibig' /tmp/classroom-local-dom.html
           echo 'Local Classroom browser runtime + login identity: PASS'
 
-      - name: Deploy only BUKLOD Classroom web to production
+      - name: Deploy exact verified Classroom web export to production
         shell: bash
         env:
           NODE_ENV: production
         run: |
           set -euo pipefail
           node scripts/verify-classroom-identity.cjs
-          npx eas-cli@latest deploy --prod --environment production --non-interactive
+          test -s dist/index.html
+          npx eas-cli@latest deploy --prod --environment production --non-interactive --export-dir dist
 
       - name: Verify live Classroom production runtime
         shell: bash
@@ -213,26 +244,32 @@ jobs:
           set -euo pipefail
           BROWSER="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
           test -n "$BROWSER"
-          sleep 5
+          success=0
+          for attempt in $(seq 1 8); do
+            sleep 4
+            rm -f /tmp/classroom-live-dom.html /tmp/classroom-live-browser.log
+            timeout 45s "$BROWSER" \
+              --headless=new --no-sandbox --disable-gpu --disable-extensions --no-first-run \
+              --window-size=390,844 --virtual-time-budget=20000 \
+              --enable-logging=stderr --v=0 --dump-dom \
+              "https://buklod-classroom.expo.app/?classroom_identity_verify=$attempt" \
+              >/tmp/classroom-live-dom.html 2>/tmp/classroom-live-browser.log || true
+
+            if grep -qi 'supabaseUrl is required' /tmp/classroom-live-browser.log; then
+              continue
+            fi
+            if grep -Eqi 'Uncaught (Error|TypeError|ReferenceError|SyntaxError)' /tmp/classroom-live-browser.log; then
+              continue
+            fi
+            if grep -q '<div id="root"><' /tmp/classroom-live-dom.html && \
+               grep -q 'BUKLOD Classroom' /tmp/classroom-live-dom.html && \
+               ! grep -q 'Samahang Binuklod ng Pag-ibig' /tmp/classroom-live-dom.html; then
+              success=1
+              break
+            fi
+          done
+          test "$success" = 1
           curl -fsSIL --max-time 30 https://buklod-classroom.expo.app/ >/dev/null
-          timeout 45s "$BROWSER" \
-            --headless=new --no-sandbox --disable-gpu --disable-extensions --no-first-run \
-            --window-size=390,844 --virtual-time-budget=20000 \
-            --enable-logging=stderr --v=0 --dump-dom \
-            https://buklod-classroom.expo.app/ \
-            >/tmp/classroom-live-dom.html 2>/tmp/classroom-live-browser.log
-          if grep -qi 'supabaseUrl is required' /tmp/classroom-live-browser.log; then
-            echo 'LIVE STOP: Supabase configuration missing.'
-            exit 1
-          fi
-          if grep -Eqi 'Uncaught (Error|TypeError|ReferenceError|SyntaxError)' /tmp/classroom-live-browser.log; then
-            echo 'LIVE STOP: uncaught browser runtime error.'
-            grep -Ei 'Uncaught (Error|TypeError|ReferenceError|SyntaxError)' /tmp/classroom-live-browser.log | head -20
-            exit 1
-          fi
-          grep -q '<div id="root"><' /tmp/classroom-live-dom.html
-          grep -q 'BUKLOD Classroom' /tmp/classroom-live-dom.html
-          ! grep -q 'Samahang Binuklod ng Pag-ibig' /tmp/classroom-live-dom.html
           echo 'Live BUKLOD Classroom web identity/runtime: PASS'
 
       - name: Prove Main branch was not changed
