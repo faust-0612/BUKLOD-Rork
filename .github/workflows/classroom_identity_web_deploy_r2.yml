@@ -52,15 +52,82 @@ jobs:
           npx eas-cli@latest whoami --non-interactive >/dev/null
           echo 'CLASSROOM_IDENTITY_ENV=PASS'
 
-      - name: TypeScript and Classroom tests
+      - name: TypeScript and Classroom reducer tests
         shell: bash
         run: |
           set -euo pipefail
           npx tsc --noEmit
-          # Baseline package.json has Jest config but omits the Jest runtime/preset.
-          # Install test tooling transiently only; do not mutate app dependencies/lockfile.
-          npm install --no-save --ignore-scripts jest@29.7.0 jest-expo@~57.0.0
-          npx jest src/lib/education/classroomLiveState.test.ts --runInBand
+
+          # Keep the production dependency graph untouched. Compile the pure
+          # Classroom authority reducer with the already-installed TypeScript
+          # compiler, then exercise the critical state transitions with Node's
+          # built-in assertions instead of installing a mismatched Jest preset.
+          rm -rf /tmp/classroom-live-state-test
+          npx tsc src/lib/education/classroomLiveState.ts \
+            --target ES2022 \
+            --module commonjs \
+            --moduleResolution node \
+            --skipLibCheck \
+            --outDir /tmp/classroom-live-state-test
+          TEST_JS="$(find /tmp/classroom-live-state-test -name classroomLiveState.js -print -quit)"
+          test -n "$TEST_JS"
+          TEST_JS="$TEST_JS" node <<'NODE'
+          const assert = require('node:assert/strict');
+          const {
+            applyClassroomInteractionEvent,
+            createClassroomLiveAuthorityState,
+            desiredStudentMedia,
+          } = require(process.env.TEST_JS);
+
+          const sessionId = 'session-a';
+          const now = () => new Date().toISOString();
+          let state = createClassroomLiveAuthorityState(sessionId);
+          state = applyClassroomInteractionEvent(state, {
+            sessionId,
+            interactionId: 'call-1',
+            version: 1,
+            type: 'CALL_STUDENT',
+            targetUserId: 'student-1',
+            sentAt: now(),
+          });
+          assert.deepEqual(state.activeUserIds, ['student-1']);
+          assert.deepEqual(desiredStudentMedia(state, 'student-1'), {
+            microphone: true,
+            camera: true,
+            reason: 'ACTIVE_RECITATION',
+          });
+
+          const stale = applyClassroomInteractionEvent(state, {
+            sessionId,
+            interactionId: 'stale',
+            version: 0,
+            type: 'RETURN_TO_LISTENING',
+            sentAt: now(),
+          });
+          assert.equal(stale, state);
+
+          state = applyClassroomInteractionEvent(state, {
+            sessionId,
+            interactionId: 'mute',
+            version: 2,
+            type: 'MUTE_ALL',
+            sentAt: now(),
+          });
+          assert.equal(desiredStudentMedia(state, 'student-1').microphone, false);
+          assert.equal(desiredStudentMedia(state, 'student-1').camera, false);
+
+          state = applyClassroomInteractionEvent(state, {
+            sessionId,
+            interactionId: 'end',
+            version: 3,
+            type: 'CLASS_ENDED',
+            sentAt: now(),
+          });
+          assert.equal(state.ended, true);
+          assert.equal(state.muteAll, true);
+          assert.deepEqual(state.activeUserIds, []);
+          console.log('CLASSROOM_LIVE_REDUCER_TESTS=PASS');
+          NODE
 
       - name: Expo config audit
         shell: bash
