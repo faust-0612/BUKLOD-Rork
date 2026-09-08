@@ -16,6 +16,7 @@ import { supabase } from '@/lib/supabase';
 import { isBuklodClassroomApp } from '@/lib/buklodAppTarget';
 
 type HandoffState = 'idle' | 'working' | 'done' | 'failed';
+type ClassroomMode = 'STUDENT' | 'FACULTY' | null;
 
 export default function Index() {
   const { session, loading, profile } = useAuth();
@@ -26,8 +27,16 @@ export default function Index() {
     buklod_handoff?: string;
     access_token?: string;
     refresh_token?: string;
+    classroom_mode?: string;
   }>();
   const [handoffState, setHandoffState] = useState<HandoffState>('idle');
+
+  const requestedMode: ClassroomMode =
+    String(handoff.classroom_mode ?? '').toUpperCase() === 'FACULTY'
+      ? 'FACULTY'
+      : String(handoff.classroom_mode ?? '').toUpperCase() === 'STUDENT'
+        ? 'STUDENT'
+        : null;
 
   const handoffRequested =
     classroomApp &&
@@ -37,17 +46,13 @@ export default function Index() {
 
   /*
    * BUKLOD_CLASSROOM_EXTENSION_SSO_R5
-   * Main remains the account/session authority. A Classroom launch may carry
-   * the current BUKLOD Supabase session once; Classroom adopts the same user
-   * instead of creating or authenticating a separate account.
+   * Main remains the account/session authority. Always adopt the explicit
+   * Main handoff, even when Classroom already has a cached session. This
+   * prevents a stale Classroom user from overriding the currently signed-in
+   * BUKLOD Main account.
    */
   useEffect(() => {
     if (!handoffRequested || handoffState !== 'idle') {
-      return;
-    }
-
-    if (session?.user?.id) {
-      setHandoffState('done');
       return;
     }
 
@@ -74,7 +79,6 @@ export default function Index() {
     handoff.refresh_token,
     handoffRequested,
     handoffState,
-    session?.user?.id,
   ]);
 
   /*
@@ -172,7 +176,7 @@ export default function Index() {
   ]);
 
   if (
-    (handoffRequested && !session && (handoffState === 'idle' || handoffState === 'working')) ||
+    (handoffRequested && (handoffState === 'idle' || handoffState === 'working')) ||
     (loading && !session && !profile) ||
     (complianceLoading && !session) ||
     (runtimeLoading && !config)
@@ -209,6 +213,14 @@ export default function Index() {
   }
 
   if (classroomApp) {
+    if (handoffRequested && handoffState === 'done' && requestedMode === 'FACULTY') {
+      return <Redirect href="/profile/buklod-faculty" />;
+    }
+
+    if (handoffRequested && handoffState === 'done' && requestedMode === 'STUDENT') {
+      return <Redirect href="/profile/buklod-classrooms" />;
+    }
+
     return <Redirect href="/classroom" />;
   }
 
