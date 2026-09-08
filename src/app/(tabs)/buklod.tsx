@@ -3113,14 +3113,8 @@ const refreshCommunity186L=
       const visiblePosts =
         posts.filter(
           (post: any) =>
-            /* PATCH_MARITES_STORYLINE_ONLY_R2C */
-            !isMaritesCommunityPost(post) &&
-            !String(
-              post.media_mime_type ||
-                '',
-            ).startsWith(
-              'video/',
-            ),
+            /* BUKLOD_WALL_VIDEO_VISIBLE_R2D */
+            !isMaritesCommunityPost(post),
         );
 
       return buildCommunityFeedWithInlineAds(
