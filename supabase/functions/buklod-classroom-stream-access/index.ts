@@ -59,19 +59,25 @@ Deno.serve(async (req: Request) => {
       const joined = new Date(participant.joined_at).getTime();
       const left = Date.now();
       const totalSeconds = Math.max(0, Math.round((left - joined) / 1000));
-      await admin.from("buklod_education_classroom_live_participants").update({ left_at: new Date(left).toISOString(), total_seconds: totalSeconds }).eq("id", participantId).eq("user_id", user.id);
+      await admin.from("buklod_education_classroom_live_participants").update({ left_at: new Date(left).toISOString(), total_seconds: totalSeconds }).eq("id", participantId).eq("user_id", user.id).is("left_at", null);
       return json({ ok: true, total_seconds: totalSeconds });
     }
 
     if (action === "state") {
       const sessionId = String(body?.session_id || "");
+      const participantId = String(body?.participant_id || "");
       const access = await loadSessionAccess(sessionId);
       if ("error" in access) return json({ error: access.error, code: (access as any).code }, access.status);
       const { data: state } = await admin.from("buklod_education_classroom_live_state").select("session_id,version,interaction_id,mode,active_user_id,active_user_ids,mute_all,ended,updated_at").eq("session_id", sessionId).maybeSingle();
+      let participantActive = true;
+      if (participantId) {
+        const { data: participant } = await admin.from("buklod_education_classroom_live_participants").select("id,session_id,user_id,left_at").eq("id", participantId).eq("user_id", user.id).maybeSingle();
+        participantActive = !!participant && participant.session_id === sessionId && participant.left_at == null;
+      }
       const { data: breakout } = access.isFaculty
         ? await admin.from("buklod_education_classroom_breakout_rooms").select("id,name,status,timer_ends_at,call_id").eq("live_session_id", sessionId).eq("status", "OPEN")
         : await admin.from("buklod_education_classroom_breakout_members").select("room_id,buklod_education_classroom_breakout_rooms!inner(id,name,status,timer_ends_at,call_id,live_session_id)").eq("user_id", user.id).eq("buklod_education_classroom_breakout_rooms.live_session_id", sessionId).eq("buklod_education_classroom_breakout_rooms.status", "OPEN");
-      return json({ state, breakout_rooms: breakout ?? [] });
+      return json({ state, participant_active: participantActive, breakout_rooms: breakout ?? [] });
     }
 
     if (action === "interaction") {
@@ -180,6 +186,15 @@ Deno.serve(async (req: Request) => {
 
     let participantId: string | null = null;
     if (action === "access") {
+      if (access.isStudent) {
+        const { data: openRows } = await admin.from("buklod_education_classroom_live_participants").select("id,joined_at").eq("session_id", access.session.id).eq("user_id", user.id).is("left_at", null);
+        const takeoverAt = Date.now();
+        for (const row of openRows ?? []) {
+          const joinedAt = new Date(row.joined_at).getTime();
+          const totalSeconds = Number.isFinite(joinedAt) ? Math.max(0, Math.round((takeoverAt - joinedAt) / 1000)) : 0;
+          await admin.from("buklod_education_classroom_live_participants").update({ left_at: new Date(takeoverAt).toISOString(), total_seconds: totalSeconds }).eq("id", row.id).is("left_at", null);
+        }
+      }
       const { data: participant, error: participantError } = await admin.from("buklod_education_classroom_live_participants").insert({ session_id: access.session.id, classroom_id: access.classroom.id, user_id: user.id, participant_role: access.isFaculty ? "FACULTY" : "STUDENT" }).select("id,joined_at").single();
       if (participantError) console.error("participant insert", participantError.message);
       participantId = participant?.id || null;
