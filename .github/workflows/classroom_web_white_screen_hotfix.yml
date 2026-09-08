@@ -1,0 +1,160 @@
+name: BUKLOD Classroom Web White Screen Hotfix
+
+on:
+  push:
+    branches:
+      - hotfix/classroom-web-white-screen-env-20260908
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  BUKLOD_APP_TARGET: classroom
+  APP_VARIANT: production
+  EXPO_PUBLIC_APP_ENV: production
+  EXPO_PUBLIC_SUPABASE_URL: https://yhanxndaqbmuzbdqlblu.supabase.co
+  EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_RWvrYHzgLMvBousgwn4dTg_QawYzwRS
+  APP_SOURCE_SHA: 7e4c17717b372ae623629ff1d7e4f10ab705fd81
+
+jobs:
+  diagnose-fix-deploy-verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact deployed Classroom source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.APP_SOURCE_SHA }}
+          fetch-depth: 1
+
+      - name: Exact source and env contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$APP_SOURCE_SHA"
+          test -n "$EXPO_PUBLIC_SUPABASE_URL"
+          test -n "$EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+          grep -q 'process.env.EXPO_PUBLIC_SUPABASE_URL' src/lib/supabase.ts
+          grep -q 'process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY' src/lib/supabase.ts
+          echo 'RUNTIME_ENV_CONTRACT=PASS'
+          echo 'Referenced EXPO_PUBLIC variables:'
+          grep -RhoE 'process\.env\.EXPO_PUBLIC_[A-Z0-9_]+' src app.config.js 2>/dev/null | sed 's/.*process\.env\.//' | sort -u || true
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: TypeScript gate
+        run: npx tsc --noEmit
+
+      - name: Browser-diagnose currently deployed production
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          timeout 35s "$CHROME" --headless=new --no-sandbox --disable-gpu --virtual-time-budget=12000 --enable-logging=stderr --log-level=0 --dump-dom https://buklod-classroom.expo.app/ > current-production-dom.html 2> current-production-browser.log || true
+          python3 - <<'PY'
+          import re
+          html=open('current-production-dom.html',encoding='utf-8',errors='ignore').read()
+          m=re.search(r'<div[^>]+id=["\']root["\'][^>]*>(.*?)</div>',html,re.S|re.I)
+          content=(m.group(1).strip() if m else '')
+          print('CURRENT_PRODUCTION_ROOT_CHARS='+str(len(content)))
+          print('CURRENT_PRODUCTION_ROOT_EMPTY='+('YES' if len(content)==0 else 'NO'))
+          PY
+          grep -Ei 'supabase|uncaught|error|exception|invalid|missing' current-production-browser.log | tail -80 || true
+
+      - name: Fresh web export with production runtime env
+        run: |
+          rm -rf dist-classroom-hotfix
+          npx expo export --platform web --output-dir dist-classroom-hotfix
+          test -s dist-classroom-hotfix/index.html
+          grep -R -q 'yhanxndaqbmuzbdqlblu.supabase.co' dist-classroom-hotfix/_expo/static/js/web
+          echo 'FRESH_EXPORT_ENV_EMBED=PASS'
+
+      - name: Headless browser runtime gate before deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          python3 -m http.server 4173 --directory dist-classroom-hotfix >/tmp/classroom-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          for i in $(seq 1 20); do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep 1; done
+          timeout 35s "$CHROME" --headless=new --no-sandbox --disable-gpu --virtual-time-budget=15000 --enable-logging=stderr --log-level=0 --dump-dom http://127.0.0.1:4173/ > local-fixed-dom.html 2> local-fixed-browser.log || true
+          python3 - <<'PY'
+          import re,sys
+          html=open('local-fixed-dom.html',encoding='utf-8',errors='ignore').read()
+          m=re.search(r'<div[^>]+id=["\']root["\'][^>]*>(.*?)</div>',html,re.S|re.I)
+          content=(m.group(1).strip() if m else '')
+          print('LOCAL_FIXED_ROOT_CHARS='+str(len(content)))
+          if len(content)==0:
+              print('LOCAL_FIXED_BROWSER_BOOT=FAIL')
+              sys.exit(1)
+          print('LOCAL_FIXED_BROWSER_BOOT=PASS')
+          PY
+          if grep -Eqi 'supabaseUrl is required|supabaseKey is required|Missing Supabase environment variables' local-fixed-browser.log; then
+            echo 'LOCAL_FIXED_SUPABASE_BOOT_ERROR=FAIL'
+            tail -120 local-fixed-browser.log
+            exit 1
+          fi
+
+      - name: Deploy exact fixed export to Classroom production
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest deploy --prod --non-interactive --environment production --export-dir dist-classroom-hotfix 2>&1 | tee classroom-hotfix-deploy.txt
+
+      - name: Production headless browser runtime verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          success=0
+          for attempt in $(seq 1 8); do
+            rm -f fixed-production-dom.html fixed-production-browser.log
+            timeout 35s "$CHROME" --headless=new --no-sandbox --disable-gpu --virtual-time-budget=15000 --enable-logging=stderr --log-level=0 --dump-dom "https://buklod-classroom.expo.app/?runtime_verify=$attempt" > fixed-production-dom.html 2> fixed-production-browser.log || true
+            if python3 - <<'PY'
+          import re,sys
+          html=open('fixed-production-dom.html',encoding='utf-8',errors='ignore').read()
+          m=re.search(r'<div[^>]+id=["\']root["\'][^>]*>(.*?)</div>',html,re.S|re.I)
+          content=(m.group(1).strip() if m else '')
+          print('PRODUCTION_FIXED_ROOT_CHARS='+str(len(content)))
+          sys.exit(0 if len(content)>0 else 1)
+          PY
+            then success=1; break; fi
+            sleep 5
+          done
+          test "$success" = 1
+          if grep -Eqi 'supabaseUrl is required|supabaseKey is required|Missing Supabase environment variables' fixed-production-browser.log; then
+            echo 'PRODUCTION_SUPABASE_BOOT_ERROR=FAIL'
+            tail -120 fixed-production-browser.log
+            exit 1
+          fi
+          status="$(curl -L -sS -o /tmp/live.html -w '%{http_code}' https://buklod-classroom.expo.app/)"
+          test "$status" = 200
+          echo 'CLASSROOM_WEB_WHITE_SCREEN_HOTFIX=PASS'
+
+      - name: Preserve diagnosis evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: classroom-web-white-screen-hotfix-evidence
+          if-no-files-found: ignore
+          retention-days: 30
+          path: |
+            current-production-dom.html
+            current-production-browser.log
+            local-fixed-dom.html
+            local-fixed-browser.log
+            fixed-production-dom.html
+            fixed-production-browser.log
+            classroom-hotfix-deploy.txt
