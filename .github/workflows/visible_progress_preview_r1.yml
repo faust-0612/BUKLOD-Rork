@@ -146,6 +146,13 @@ jobs:
             fi
           done < /tmp/buklod-visible-overlay/OVERLAY_FILES.txt
 
+          # Snapshot overlay was produced on Windows; normalize only files that
+          # are actually forward-ported so CRLF does not masquerade as trailing
+          # whitespace or create an all-lines-changed diff on Linux runners.
+          sed -i 's/\r$//' 'src/app/(tabs)/buklod.tsx'
+          sed -i 's/\r$//' 'src/app/profile/buklod-faculty.tsx'
+          sed -i 's/\r$//' 'src/app/profile/buklod-faculty-quiz-results.tsx'
+
           git diff --check
           if git diff | grep -E '^\+(<<<<<<<|=======|>>>>>>>)'; then
             echo 'REFUSED: conflict marker detected.'
