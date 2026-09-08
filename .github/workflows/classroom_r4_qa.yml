@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/classroom-harmonized-r4-current-main-20260908
+      - release/classroom-r4-assets-20260908-r1
   pull_request:
     branches:
       - main
@@ -77,10 +78,22 @@ jobs:
           assert.equal(eas.build['classroom-production-apk'].extends, 'classroom-production');
           console.log('CLASSROOM_APP_TARGET_ISOLATION=PASS');
           NODE
+      - name: Classroom release asset integrity
+        shell: bash
+        run: |
+          test -f assets/classroom/app-icon.png
+          test -f assets/classroom/adaptive-icon.png
+          test -f assets/classroom/favicon.png
+          test -f assets/classroom/splash-icon.png
+          echo '2f0a40e44945027ea8d8054ec99481ccefc5ee36cabd0426fcb39560ef91b9b5  assets/classroom/app-icon.png' | sha256sum -c -
+          echo '23e477cdbdfc633b486bdf790d61074dff726b9d525cd5a817f079c8fc57a332  assets/classroom/adaptive-icon.png' | sha256sum -c -
+          echo 'a49624e43f1e261412f555edab32f2d5247fc67b3e85c7f48c1e5ebb6fd6bfad  assets/classroom/favicon.png' | sha256sum -c -
+          echo 'a8d9a717faaebb81e1d3a3e2beff3fa5fff2f983d9a442d324136364fd6e6a73  assets/classroom/splash-icon.png' | sha256sum -c -
+          file assets/classroom/app-icon.png assets/classroom/adaptive-icon.png assets/classroom/favicon.png assets/classroom/splash-icon.png
       - name: Web export
         env:
           EXPO_NO_TELEMETRY: '1'
-        run: npx expo export --platform web --output-dir dist-classroom-r4-qa
+        run: BUKLOD_APP_TARGET=classroom APP_VARIANT=production EXPO_PUBLIC_APP_ENV=production npx expo export --platform web --output-dir dist-classroom-r4-qa
       - name: Classroom R4 anchors
         shell: bash
         run: |
