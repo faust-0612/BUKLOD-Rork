@@ -1,0 +1,85 @@
+name: BUKLOD Report Web Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/app/reports/**'
+      - 'src/components/BuklodWeeklyReportForm.tsx'
+      - 'src/components/BuklodReportDoorCard.tsx'
+      - 'src/components/BuklodClusterHomeCommandCenter.tsx'
+      - 'src/components/BuklodScopeHomeDashboard.tsx'
+      - 'src/lib/buklodReportDomain.ts'
+      - 'src/lib/buklodReportFiles.ts'
+      - 'assets/branding/buklod-report-icon.png'
+      - '.github/workflows/buklod_report_web_deploy.yml'
+  workflow_dispatch:
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  CI: '1'
+
+permissions:
+  contents: read
+
+jobs:
+  qa-export-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Verify BUKLOD Report source anchors
+        shell: bash
+        run: |
+          grep -F 'IMPORT & AUTO-DETECT' 'src/components/BuklodWeeklyReportForm.tsx'
+          grep -F 'MARK REMINDER DONE' 'src/components/BuklodWeeklyReportForm.tsx'
+          grep -F 'PDF / PRINT' 'src/components/BuklodWeeklyReportForm.tsx'
+          grep -F 'buklod-report-import-v1' 'src/lib/buklodReportFiles.ts'
+          grep -F 'buklod-report-api-v1' 'src/lib/buklodReportDomain.ts'
+          test -f 'assets/branding/buklod-report-icon.png'
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Expo credential preflight
+        run: |
+          test -n "$EXPO_TOKEN"
+          npx eas-cli@latest whoami --non-interactive
+
+      - name: Export web inside EAS production environment
+        shell: bash
+        run: |
+          npx eas-cli@latest env:exec --environment production \
+            'rm -rf dist && npx expo export --platform web --output-dir dist --clear && node scripts/inject-adsense-web-head.cjs dist' \
+            --non-interactive
+
+      - name: Verify production web bundle
+        shell: bash
+        run: |
+          test -f dist/index.html
+          grep -R -F 'yhanxndaqbmuzbdqlblu' dist/_expo/static/js/web >/dev/null
+          grep -R -F 'IMPORT & AUTO-DETECT' dist/_expo/static/js/web >/dev/null
+          grep -R -F 'MARK REMINDER DONE' dist/_expo/static/js/web >/dev/null
+          grep -R -F 'buklod-report-import-v1' dist/_expo/static/js/web >/dev/null
+          grep -F 'google-adsense-account' dist/index.html
+
+      - name: Deploy production web
+        run: npx eas-cli@latest deploy --prod --non-interactive
+
+      - name: Final status
+        run: |
+          echo 'BUKLOD REPORT WEB DEPLOYED'
+          echo 'Production URL: https://buklod.expo.app'
