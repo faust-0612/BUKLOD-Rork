@@ -1,0 +1,1 @@
+Release overlay staging directory. Temporary chunks are verified by release workflow before any production action.
