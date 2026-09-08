@@ -1,127 +1,158 @@
-﻿{
-    "cli":  {
-                "version":  "\u003e= 21.0.0",
-                "appVersionSource":  "local"
-            },
-    "build":  {
-                  "development":  {
-                                      "developmentClient":  true,
-                                      "distribution":  "internal",
-                                      "channel":  "development",
-                                      "environment":  "development",
-                                      "env":  {
-                                                  "APP_VARIANT":  "development",
-                                                  "EXPO_PUBLIC_APP_ENV":  "development",
-                                                  "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME":  "firebase-video-staging"
-                                              }
-                                  },
-                  "preview":  {
-                                  "distribution":  "internal",
-                                  "channel":  "preview",
-                                  "environment":  "preview",
-                                  "env":  {
-                                              "APP_VARIANT":  "staging",
-                                              "EXPO_PUBLIC_APP_ENV":  "staging",
-                                              "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME":  "firebase-video-staging"
-                                          },
-                                  "autoIncrement":  true
-                              },
-                  "production":  {
-                                     "channel":  "production",
-                                     "environment":  "production",
-                                     "env":  {
-                                                 "APP_VARIANT":  "production",
-                                                 "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME":  "firebase-video-production",
-                                                 "EXPO_PUBLIC_APP_ENV":  "production"
-                                             },
-                                     "android":  {
-                                                     "buildType":  "app-bundle"
-                                                 }
-                                 },
-                  "production-apk":  {
-                                         "extends":  "production",
-                                         "distribution":  "internal",
-                                         "android":  {
-                                                         "buildType":  "apk"
-                                                     }
-                                     },
-                  "e2e-test":  {
-                                   "withoutCredentials":  true,
-                                   "ios":  {
-                                               "simulator":  true
-                                           },
-                                   "android":  {
-                                                   "buildType":  "apk"
-                                               },
-                                   "environment":  "preview",
-                                   "env":  {
-                                               "APP_VARIANT":  "staging",
-                                               "EXPO_PUBLIC_APP_ENV":  "staging"
-                                           }
-                               },
-                  "direct":  {
-                                 "extends":  "production",
-                                 "distribution":  "internal",
-                                 "android":  {
-                                                 "buildType":  "apk"
-                                             }
-                             },
-                  "dev-native-120":  {
-                                         "developmentClient":  true,
-                                         "distribution":  "internal",
-                                         "env":  {
-                                                     "APP_VARIANT":  "staging",
-                                                     "EXPO_PUBLIC_APP_ENV":  "staging",
-                                                     "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME":  "firebase-video-staging"
-                                                 },
-                                         "android":  {
-                                                         "buildType":  "apk"
-                                                     }
-                                     },
-                  "staging-user":  {
-                                       "env":  {
-                                                   "APP_VARIANT":  "staging",
-                                                   "EXPO_PUBLIC_APP_ENV":  "staging",
-                                                   "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME":  "firebase-video-staging"
-                                               },
-                                       "distribution":  "internal",
-                                       "channel":  "staging-user",
-                                       "environment":  "preview",
-                                       "autoIncrement":  true,
-                                       "android":  {
-                                                       "buildType":  "apk"
-                                                   }
-                                   },
-                  "staging-dev":  {
-                                      "env":  {
-                                                  "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME":  "firebase-video-staging",
-                                                  "APP_VARIANT":  "staging",
-                                                  "EXPO_PUBLIC_APP_ENV":  "staging"
-                                              },
-                                      "autoIncrement":  true,
-                                      "android":  {
-                                                      "buildType":  "apk"
-                                                  },
-                                      "developmentClient":  true,
-                                      "distribution":  "internal",
-                                      "channel":  "staging-dev",
-                                      "environment":  "preview"
-                                  }
-              },
-    "submit":  {
-                   "production":  {
-
-                                  },
-                   "google-play-draft":  {
-                                             "android":  {
-                                                             "releaseStatus":  "draft"
-                                                         }
-                                         },
-                   "google-play-internal":  {
-                                                "android":  {
-                                                                "track":  "internal",
-                                                                "releaseStatus":  "completed"
-                                                            }
-                                            }
-               }
+{
+  "cli": {
+    "version": ">= 21.0.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development",
+      "environment": "development",
+      "env": {
+        "APP_VARIANT": "development",
+        "EXPO_PUBLIC_APP_ENV": "development",
+        "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME": "firebase-video-staging"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "channel": "preview",
+      "environment": "preview",
+      "env": {
+        "APP_VARIANT": "staging",
+        "EXPO_PUBLIC_APP_ENV": "staging",
+        "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME": "firebase-video-staging"
+      },
+      "autoIncrement": true
+    },
+    "production": {
+      "channel": "production",
+      "environment": "production",
+      "env": {
+        "APP_VARIANT": "production",
+        "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME": "firebase-video-production",
+        "EXPO_PUBLIC_APP_ENV": "production"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      }
+    },
+    "production-apk": {
+      "extends": "production",
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "e2e-test": {
+      "withoutCredentials": true,
+      "ios": {
+        "simulator": true
+      },
+      "android": {
+        "buildType": "apk"
+      },
+      "environment": "preview",
+      "env": {
+        "APP_VARIANT": "staging",
+        "EXPO_PUBLIC_APP_ENV": "staging"
+      }
+    },
+    "direct": {
+      "extends": "production",
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "dev-native-120": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "APP_VARIANT": "staging",
+        "EXPO_PUBLIC_APP_ENV": "staging",
+        "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME": "firebase-video-staging"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "staging-user": {
+      "env": {
+        "APP_VARIANT": "staging",
+        "EXPO_PUBLIC_APP_ENV": "staging",
+        "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME": "firebase-video-staging"
+      },
+      "distribution": "internal",
+      "channel": "staging-user",
+      "environment": "preview",
+      "autoIncrement": true,
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "staging-dev": {
+      "env": {
+        "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME": "firebase-video-staging",
+        "APP_VARIANT": "staging",
+        "EXPO_PUBLIC_APP_ENV": "staging"
+      },
+      "autoIncrement": true,
+      "android": {
+        "buildType": "apk"
+      },
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "staging-dev",
+      "environment": "preview"
+    },
+    "classroom-preview": {
+      "distribution": "internal",
+      "channel": "classroom-preview",
+      "environment": "preview",
+      "autoIncrement": true,
+      "env": {
+        "BUKLOD_APP_TARGET": "classroom",
+        "APP_VARIANT": "staging",
+        "EXPO_PUBLIC_APP_ENV": "staging"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "classroom-production": {
+      "channel": "classroom-production",
+      "environment": "production",
+      "env": {
+        "BUKLOD_APP_TARGET": "classroom",
+        "APP_VARIANT": "production",
+        "EXPO_PUBLIC_APP_ENV": "production"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      }
+    },
+    "classroom-production-apk": {
+      "extends": "classroom-production",
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    }
+  },
+  "submit": {
+    "production": {},
+    "google-play-draft": {
+      "android": {
+        "releaseStatus": "draft"
+      }
+    },
+    "google-play-internal": {
+      "android": {
+        "track": "internal",
+        "releaseStatus": "completed"
+      }
+    }
+  }
 }

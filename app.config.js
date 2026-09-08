@@ -4,10 +4,16 @@ const googleMapsAndroidApiKey =
     ''
   ).trim();
 module.exports = ({ config }) => {
-  const projectId =
-    process.env.EAS_PROJECT_ID ||
-    process.env.EXPO_PUBLIC_EAS_PROJECT_ID ||
-    '23dad7d0-389a-406e-8dec-08965dab85d8';
+  /* BUKLOD_CLASSROOM_APP_TARGET_R4 — standalone identity without mutating Main defaults */
+  const appTarget = (process.env.BUKLOD_APP_TARGET || 'main').trim().toLowerCase();
+  const isClassroom = appTarget === 'classroom';
+  const classroomProjectId = '14100ed1-7f25-4551-9627-09d280498241';
+  const classroomGoogleServicesFile = (process.env.CLASSROOM_GOOGLE_SERVICES_FILE || '').trim();
+  const projectId = isClassroom
+    ? classroomProjectId
+    : (process.env.EAS_PROJECT_ID ||
+       process.env.EXPO_PUBLIC_EAS_PROJECT_ID ||
+       '23dad7d0-389a-406e-8dec-08965dab85d8');
 
   const variant =
     process.env.APP_VARIANT ||
@@ -19,26 +25,23 @@ module.exports = ({ config }) => {
     variant === 'preview' ||
     variant === 'development';
 
-  const appName =
-    isStaging
-      ? 'BUKLOD Staging'
-      : 'BUKLOD';
+  const appName = isClassroom
+    ? (isStaging ? 'BUKLOD Classroom Staging' : 'BUKLOD Classroom')
+    : (isStaging ? 'BUKLOD Staging' : 'BUKLOD');
 
-  const packageId =
-    isStaging
-      ? 'org.mzbministry.buklod.staging'
-      : 'org.mzbministry.buklod';
+  const packageId = isClassroom
+    ? 'org.mzbministry.buklod.classroom'
+    : (isStaging ? 'org.mzbministry.buklod.staging' : 'org.mzbministry.buklod');
 
-  const scheme =
-    isStaging
-      ? 'buklod-staging'
-      : 'buklod';
+  const scheme = isClassroom
+    ? 'buklod-classroom'
+    : (isStaging ? 'buklod-staging' : 'buklod');
 
   return {
     ...config,
 
     name: appName,
-    slug: 'buklod',
+    slug: isClassroom ? 'buklod-classroom' : 'buklod',
     version: '1.3.0',
 
     orientation: 'default',
@@ -46,7 +49,7 @@ module.exports = ({ config }) => {
 
     userInterfaceStyle: 'automatic',
 
-    icon: './assets/release/app-icon.png',
+    icon: isClassroom ? './assets/classroom/app-icon.png' : './assets/release/app-icon.png',
 
     assetBundlePatterns: [
       'assets/**',
@@ -76,9 +79,10 @@ module.exports = ({ config }) => {
 
       versionCode: isStaging ? undefined : 20,
 
-      googleServicesFile: isStaging
-        ? './google-services.staging.json'
-        : './google-services.production.json',
+      // Never silently reuse Main Firebase credentials for the standalone Classroom package.
+      googleServicesFile: isClassroom
+        ? (classroomGoogleServicesFile || undefined)
+        : (isStaging ? './google-services.staging.json' : './google-services.production.json'),
 
       permissions: [
         'android.permission.CAMERA',
@@ -99,8 +103,9 @@ module.exports = ({ config }) => {
       ],
 
       adaptiveIcon: {
-        foregroundImage:
-          './assets/release/app-icon.png',
+        foregroundImage: isClassroom
+          ? './assets/classroom/adaptive-icon.png'
+          : './assets/release/app-icon.png',
 
         backgroundColor:
           '#FFFFFF',
@@ -111,8 +116,9 @@ module.exports = ({ config }) => {
     web: {
       bundler: 'metro',
 
-      favicon:
-        './assets/release/app-icon.png',
+      favicon: isClassroom
+        ? './assets/classroom/favicon.png'
+        : './assets/release/app-icon.png',
     },
 
 
@@ -333,8 +339,9 @@ module.exports = ({ config }) => {
           backgroundColor:
             '#FFFFFF',
 
-          image:
-            './assets/release/splash-icon.png',
+          image: isClassroom
+            ? './assets/classroom/splash-icon.png'
+            : './assets/release/splash-icon.png',
 
           imageWidth: 200,
 
@@ -342,8 +349,9 @@ module.exports = ({ config }) => {
             backgroundColor:
               '#0E4F20',
 
-            image:
-              './assets/release/splash-icon.png',
+            image: isClassroom
+              ? './assets/classroom/splash-icon.png'
+              : './assets/release/splash-icon.png',
           },
         },
       ],
@@ -356,6 +364,8 @@ module.exports = ({ config }) => {
       appEnvironment:
         process.env.EXPO_PUBLIC_APP_ENV ||
         variant,
+
+      appTarget: isClassroom ? 'classroom' : 'main',
 
       eas:
         projectId
@@ -375,7 +385,7 @@ module.exports = ({ config }) => {
         : undefined,
 
 
-    runtimeVersion: isStaging ? '1.3.2' : '1.3.0',
+    runtimeVersion: isClassroom ? '1.3.0' : (isStaging ? '1.3.2' : '1.3.0'),
   };
 };
 
