@@ -26,6 +26,10 @@ import { StreamVideoProvider } from '@/providers/StreamVideoProvider';
 import { BuklodThemeProvider } from '@/providers/BuklodThemeProvider';
 import { BuklodCharacterEventProvider } from '@/components/character/BuklodCharacterEventProvider';
 import RorkAvatarOnboardingGate from '@/components/character/RorkAvatarOnboardingGate';
+import {
+  BUKLOD_APP_DISPLAY_NAME,
+  IS_BUKLOD_CLASSROOM,
+} from '@/lib/appTarget';
 
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   return (
@@ -49,7 +53,7 @@ export function SuspenseFallback() {
           color: colors.muted,
         }}
       >
-        Loading BUKLOD...
+        Loading {BUKLOD_APP_DISPLAY_NAME}...
       </Text>
     </View>
   );
@@ -69,9 +73,9 @@ export default function RootLayout() {
         <BuklodBibleNarrationProvider>
         <BuklodThemeProvider>
         <BuklodCharacterEventProvider>
-        <RorkAvatarOnboardingGate />
+        {!IS_BUKLOD_CLASSROOM ? <RorkAvatarOnboardingGate /> : null}
         <BuklodScopeProvider>
-        <BuklodFormationEntryScopeTracker />
+        {!IS_BUKLOD_CLASSROOM ? <BuklodFormationEntryScopeTracker /> : null}
         <BuklodFoundationProvider>
       <NetworkProvider>
         <BuklodOfflineSyncProvider>
@@ -82,12 +86,12 @@ export default function RootLayout() {
             <StreamVideoProvider>
             <BuklodRootKeyboardAvoidingView style={{ flex: 1 }}>
               <OfflineBanner/>
-              <BuklodPublishBanner />
-              <BuklodEntitlementRouteGuard />
-              <BuklodFocusAppRouteGuard />
-              <BuklodCanonicalNavigationGuard />
-              <BuklodClusterInviteDeepLinkHandler />
-              <BuklodAttendanceDeepLinkHandler />
+              {!IS_BUKLOD_CLASSROOM ? <BuklodPublishBanner /> : null}
+              {!IS_BUKLOD_CLASSROOM ? <BuklodEntitlementRouteGuard /> : null}
+              {!IS_BUKLOD_CLASSROOM ? <BuklodFocusAppRouteGuard /> : null}
+              {!IS_BUKLOD_CLASSROOM ? <BuklodCanonicalNavigationGuard /> : null}
+              {!IS_BUKLOD_CLASSROOM ? <BuklodClusterInviteDeepLinkHandler /> : null}
+              {!IS_BUKLOD_CLASSROOM ? <BuklodAttendanceDeepLinkHandler /> : null}
               <BuklodNavSafeShell>
               <Stack
                 screenOptions={{
@@ -97,6 +101,7 @@ export default function RootLayout() {
                 }}
               >
                 <Stack.Screen name="index" />
+                <Stack.Screen name="classroom" />
                 <Stack.Screen name="child-safety" />
                 <Stack.Screen name="(auth)" />
                 <Stack.Screen name="privacy/index" />
@@ -237,7 +242,7 @@ export default function RootLayout() {
             </BuklodRootKeyboardAvoidingView>
             </StreamVideoProvider>
                       {/* PATCH_163A_R_ROOT_GUIDE */}
-            <BuklodGuideAvatar />
+            {!IS_BUKLOD_CLASSROOM ? <BuklodGuideAvatar /> : null}
           </NotificationProvider>
     </AdsProvider>
           </RuntimeConfigProvider>

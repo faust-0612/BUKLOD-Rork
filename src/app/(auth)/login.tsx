@@ -25,6 +25,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
+import {
+  BUKLOD_APP_DISPLAY_NAME,
+  BUKLOD_FRESH_LOGIN_HOME,
+  IS_BUKLOD_CLASSROOM,
+} from '@/lib/appTarget';
 import { useAuth } from '@/providers/AuthProvider';
 import {
   isBuklodInvalidCredentialsError,
@@ -353,17 +358,19 @@ async function signInForFreshPublicHome(
       typeof supabase.auth.signInWithPassword
     >[0]
 ) {
-  await AsyncStorage.setItem(
-    BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY,
-    '1'
-  );
+  if (!IS_BUKLOD_CLASSROOM) {
+    await AsyncStorage.setItem(
+      BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY,
+      '1'
+    );
+  }
 
   const result =
     await signInWithPasswordResilient(
       credentials
     );
 
-  if (result.error) {
+  if (result.error && !IS_BUKLOD_CLASSROOM) {
     await AsyncStorage.removeItem(
       BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY
     );
@@ -930,7 +937,7 @@ const chooseSuggestedLogin =
     if (!raw || !effectivePassword) {
       triggerShake();
       return Alert.alert(
-        'BUKLOD',
+        BUKLOD_APP_DISPLAY_NAME,
         'Enter your Mobile Number, Username, or Email and your password.'
       );
     }
@@ -1003,7 +1010,7 @@ const chooseSuggestedLogin =
           releaseLogin();
 
           return Alert.alert(
-            'BUKLOD',
+            BUKLOD_APP_DISPLAY_NAME,
             'Enter a valid Mobile Number, Username, or Email.'
           );
         }
@@ -1167,7 +1174,7 @@ const chooseSuggestedLogin =
      * and remains global/personal Connect.
      */
     router.replace(
-      '/(tabs)/home'
+      BUKLOD_FRESH_LOGIN_HOME as any
     );
 
 
@@ -1241,18 +1248,24 @@ const chooseSuggestedLogin =
         <View style={styles.brand}>
           <LoginMotionScale>
             <Image
-              source={require('../../../assets/release/buklod-generic-photo.jpg')}
+              source={
+                IS_BUKLOD_CLASSROOM
+                  ? require('../../../assets/classroom/app-icon.png')
+                  : require('../../../assets/release/buklod-generic-photo.jpg')
+              }
               style={styles.logo}
             />
           </LoginMotionScale>
 
           <LoginMotionFadeUp delay={60} duration={240}>
-            <Text style={styles.title}>BUKLOD</Text>
+            <Text style={styles.title}>{BUKLOD_APP_DISPLAY_NAME}</Text>
           </LoginMotionFadeUp>
 
           <LoginMotionFadeUp delay={100} duration={240}>
             <Text style={styles.tagline}>
-              Samahang Binuklod ng Pag-ibig
+              {IS_BUKLOD_CLASSROOM
+                ? 'Dedicated teaching and learning'
+                : 'Samahang Binuklod ng Pag-ibig'}
             </Text>
           </LoginMotionFadeUp>
         </View>

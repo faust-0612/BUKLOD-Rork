@@ -24,6 +24,10 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { recordReferral } from '@/lib/buklodRewards';
 import { colors } from '@/lib/theme';
+import {
+  BUKLOD_FRESH_LOGIN_HOME,
+  IS_BUKLOD_CLASSROOM,
+} from '@/lib/appTarget';
 import { useBuklodDrawerBottomInset } from '@/lib/buklodSafeArea';
 
 type Church = {
@@ -711,11 +715,13 @@ useEffect(() => {
 
         Alert.alert(
           'Account created - local setup pending',
-          'Your BUKLOD account and private onboarding were saved, but Local assignment could not finish. You may continue to Public Home and retry your address setup later.'
+          IS_BUKLOD_CLASSROOM
+            ? 'Your BUKLOD account and private onboarding were saved, but Local assignment could not finish. You may continue to BUKLOD Classroom and retry your address setup later.'
+            : 'Your BUKLOD account and private onboarding were saved, but Local assignment could not finish. You may continue to Public Home and retry your address setup later.'
         );
 
         router.replace(
-          '/(tabs)/home'
+          BUKLOD_FRESH_LOGIN_HOME as any
         );
 
         return;
@@ -742,11 +748,13 @@ useEffect(() => {
 
       Alert.alert(
         'Account created',
-        'Your BUKLOD account is ready. You can enter the Public Community immediately. Local, Cluster, Church, and Organization memberships can be added separately.'
+        IS_BUKLOD_CLASSROOM
+          ? 'Your BUKLOD account is ready. Continue to BUKLOD Classroom. Your account remains usable across approved BUKLOD apps.'
+          : 'Your BUKLOD account is ready. You can enter the Public Community immediately. Local, Cluster, Church, and Organization memberships can be added separately.'
       );
 
       /* PATCH_156A_V2_COMMUNITY_SUCCESS */
-      router.replace('/(tabs)/home');
+      router.replace(BUKLOD_FRESH_LOGIN_HOME as any);
     };
 
   const loginMethodLabel =
@@ -795,12 +803,18 @@ useEffect(() => {
           }}
         >
           <Image
-            source={require('../../../assets/release/buklod-generic-photo.jpg')}
+            source={
+              IS_BUKLOD_CLASSROOM
+                ? require('../../../assets/classroom/app-icon.png')
+                : require('../../../assets/release/buklod-generic-photo.jpg')
+            }
             style={styles.logo}
           />
 
           <Text style={styles.title}>
-            Create BUKLOD Account
+            {IS_BUKLOD_CLASSROOM
+              ? 'Create BUKLOD Account for Classroom'
+              : 'Create BUKLOD Account'}
           </Text>
 
           <Text style={styles.subtitle}>
