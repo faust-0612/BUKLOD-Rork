@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import BuklodFocusAppAdStrip from '@/components/BuklodFocusAppAdStrip';
 import BuklodPersistentBottomNav from '@/components/BuklodPersistentBottomNav';
+import { isClassroomApp } from '@/lib/appIdentity';
 import {
   normalizeBuklodPathname,
   useBuklodPersistentNavOccupiedHeight,
@@ -44,6 +45,10 @@ function isMyBuklodDoorPath(pathname: string): boolean {
  * Root shell: shrinks routed content above the global bottom nav so door
  * screens and dashboard pushes never sit underneath the phone nav pane.
  * Focus App routes also receive one normal-flow AdMob banner above that pane.
+ *
+ * The standalone Classroom target intentionally bypasses this Main shell.
+ * Classroom owns its navigation and must never inherit Main's persistent
+ * bottom navigation or Focus App ad strip merely because both apps share code.
  */
 export default function BuklodNavSafeShell({
   children,
@@ -101,6 +106,10 @@ export default function BuklodNavSafeShell({
       didHideSub.remove();
     };
   }, []);
+
+  if (isClassroomApp) {
+    return <View style={styles.root}>{children}</View>;
+  }
 
   const contentTopInset =
     reserveMyBuklodSystemInsets
