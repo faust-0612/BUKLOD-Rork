@@ -1,0 +1,142 @@
+name: BUKLOD ChatGPT Protected Web + Android OTA Release 2026-09-08
+
+on:
+  push:
+    branches:
+      - chatgpt-release-20260908-web-ota
+    paths:
+      - '.github/workflows/chatgpt_release_20260908_web_ota.yml'
+
+concurrency:
+  group: buklod-chatgpt-production-release-20260908
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  CI: '1'
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  EXPO_PUBLIC_APP_ENV: production
+  EXPECTED_MAIN_SHA: '5d1d82e7fc274da66e6c66fbd2372b5325eaf3a7'
+  SNAPSHOT_BASE_SHA: '9a76634bc69bf08b33057a19a1b31271f5237bd5'
+
+jobs:
+  protected-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout release trigger branch with history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify production main has not moved
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          ACTUAL="$(git rev-parse origin/main)"
+          echo "EXPECTED_MAIN_SHA=$EXPECTED_MAIN_SHA"
+          echo "ACTUAL_MAIN_SHA=$ACTUAL"
+          test "$ACTUAL" = "$EXPECTED_MAIN_SHA"
+          git merge-base --is-ancestor "$SNAPSHOT_BASE_SHA" "$EXPECTED_MAIN_SHA"
+
+      - name: Restore release overlay
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .github/release-overlay-xz/part-00.txt .github/release-overlay-xz/part-01.txt .github/release-overlay-xz/part-02.txt .github/release-overlay-xz/part-03.txt > /tmp/buklod-overlay.b64
+          base64 -d /tmp/buklod-overlay.b64 > /tmp/buklod-overlay.tar.xz
+          mkdir -p /tmp/buklod-overlay
+          tar -xJf /tmp/buklod-overlay.tar.xz -C /tmp/buklod-overlay
+          test -f /tmp/buklod-overlay/OVERLAY_FILES.txt
+          test -f /tmp/buklod-overlay/OVERLAY_SHA256.txt
+
+      - name: Rebase overlay onto latest production main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout -B chatgpt-release-merged origin/main
+          while IFS= read -r rel; do
+            [ -n "$rel" ] || continue
+            test -f "/tmp/buklod-overlay/$rel"
+            mkdir -p "$(dirname "$rel")"
+            cp "/tmp/buklod-overlay/$rel" "$rel"
+          done < /tmp/buklod-overlay/OVERLAY_FILES.txt
+          sha256sum -c /tmp/buklod-overlay/OVERLAY_SHA256.txt
+
+      - name: Reject native or production-config drift
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHANGED="$(git diff --name-only origin/main --)"
+          echo "$CHANGED"
+          if echo "$CHANGED" | grep -E '^(android/|ios/|package.json$|package-lock.json$|app.config.js$|app.json$|eas.json$|index.js$|google-services.*json$|GoogleService-Info.*plist$|\.env)'; then
+            echo 'Native/config drift detected; OTA release blocked.'
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Export production web
+        shell: bash
+        env:
+          NODE_ENV: production
+          EXPO_PUBLIC_APP_ENV: production
+        run: |
+          set -euo pipefail
+          rm -rf dist
+          npx expo export --platform web --output-dir dist --clear
+          node scripts/inject-adsense-web-head.cjs dist
+          test -f dist/index.html
+          grep -R -F 'yhanxndaqbmuzbdqlblu' dist/_expo/static/js/web >/dev/null
+          grep -F 'google-adsense-account' dist/index.html >/dev/null
+
+      - name: Expo credential preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          npx eas-cli@latest whoami --non-interactive
+
+      - name: Commit verified merged source to production main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'BUKLOD Release Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -- $(cat /tmp/buklod-overlay/OVERLAY_FILES.txt)
+          if git diff --cached --quiet; then
+            echo 'No source changes after latest-main reconciliation.'
+          else
+            git commit -m 'release: reconcile current BUKLOD Main updates for web and Android OTA'
+            git push origin HEAD:main
+          fi
+
+      - name: Deploy production web
+        shell: bash
+        env:
+          NODE_ENV: production
+          EXPO_PUBLIC_APP_ENV: production
+        run: npx eas-cli@latest deploy --prod --non-interactive
+
+      - name: Publish production Android OTA
+        shell: bash
+        run: |
+          npx eas-cli@latest update \
+            --channel production \
+            --platform android \
+            --environment production \
+            --message 'BUKLOD Main 2026-09-08 consolidated update' \
+            --non-interactive
+
+      - name: Final status
+        run: |
+          echo 'BUKLOD production web deploy completed.'
+          echo 'BUKLOD Android production OTA published.'
+          echo 'No APK/AAB/native rebuild was performed.'
