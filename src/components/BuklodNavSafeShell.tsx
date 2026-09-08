@@ -19,6 +19,7 @@ import {
   normalizeBuklodPathname,
   useBuklodPersistentNavOccupiedHeight,
 } from '@/lib/buklodSafeArea';
+import { isBuklodClassroomApp } from '@/lib/buklodAppTarget';
 
 function isMyBuklodDoorPath(pathname: string): boolean {
   const normalized = normalizeBuklodPathname(pathname);
@@ -41,15 +42,18 @@ function isMyBuklodDoorPath(pathname: string): boolean {
 }
 
 /**
- * Root shell: shrinks routed content above the global bottom nav so door
- * screens and dashboard pushes never sit underneath the phone nav pane.
- * Focus App routes also receive one normal-flow AdMob banner above that pane.
+ * Main root shell: shrinks routed content above the global BUKLOD bottom nav.
+ *
+ * BUKLOD Classroom is a separate focused install/web target on the same BUKLOD
+ * account/backend. It must not inherit Main's persistent bottom navigation or
+ * Main Focus-App ad strip merely because both targets share source/providers.
  */
 export default function BuklodNavSafeShell({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const classroomApp = isBuklodClassroomApp();
   const navOccupied =
     useBuklodPersistentNavOccupiedHeight();
   const insets = useSafeAreaInsets();
@@ -60,6 +64,11 @@ export default function BuklodNavSafeShell({
     useState(false);
 
   useEffect(() => {
+    if (classroomApp) {
+      setKeyboardVisible(false);
+      return;
+    }
+
     const showEvent =
       Platform.OS === 'ios'
         ? 'keyboardWillShow'
@@ -100,7 +109,17 @@ export default function BuklodNavSafeShell({
       didShowSub.remove();
       didHideSub.remove();
     };
-  }, []);
+  }, [classroomApp]);
+
+  if (classroomApp) {
+    return (
+      <View style={styles.root}>
+        <View style={styles.routedContent}>
+          {children}
+        </View>
+      </View>
+    );
+  }
 
   const contentTopInset =
     reserveMyBuklodSystemInsets
