@@ -3,7 +3,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Redirect } from 'expo-router';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 import { useAuth } from '@/providers/AuthProvider';
 import {
@@ -12,20 +12,77 @@ import {
 import { useCompliance } from '@/providers/ComplianceProvider';
 import { colors } from '@/lib/theme';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
+import { supabase } from '@/lib/supabase';
+import { isBuklodClassroomApp } from '@/lib/buklodAppTarget';
+
+type HandoffState = 'idle' | 'working' | 'done' | 'failed';
 
 export default function Index() {
   const { session, loading, profile } = useAuth();
   const { loading: complianceLoading, requiresAcceptance } = useCompliance();
   const { loading: runtimeLoading, config } = useRuntimeConfig();
+  const classroomApp = isBuklodClassroomApp();
+  const handoff = useLocalSearchParams<{
+    buklod_handoff?: string;
+    access_token?: string;
+    refresh_token?: string;
+  }>();
+  const [handoffState, setHandoffState] = useState<HandoffState>('idle');
+
+  const handoffRequested =
+    classroomApp &&
+    String(handoff.buklod_handoff ?? '') === '1' &&
+    Boolean(String(handoff.access_token ?? '')) &&
+    Boolean(String(handoff.refresh_token ?? ''));
+
+  /*
+   * BUKLOD_CLASSROOM_EXTENSION_SSO_R5
+   * Main remains the account/session authority. A Classroom launch may carry
+   * the current BUKLOD Supabase session once; Classroom adopts the same user
+   * instead of creating or authenticating a separate account.
+   */
+  useEffect(() => {
+    if (!handoffRequested || handoffState !== 'idle') {
+      return;
+    }
+
+    if (session?.user?.id) {
+      setHandoffState('done');
+      return;
+    }
+
+    setHandoffState('working');
+
+    void supabase.auth
+      .setSession({
+        access_token: String(handoff.access_token),
+        refresh_token: String(handoff.refresh_token),
+      })
+      .then(({ error }) => {
+        if (error) throw error;
+        setHandoffState('done');
+      })
+      .catch(error => {
+        console.warn(
+          'BUKLOD Classroom session handoff:',
+          String(error?.message ?? error ?? 'Session handoff failed.')
+        );
+        setHandoffState('failed');
+      });
+  }, [
+    handoff.access_token,
+    handoff.refresh_token,
+    handoffRequested,
+    handoffState,
+    session?.user?.id,
+  ]);
 
   /*
    * BUKLOD_PUBLIC_BOOT_R21
    *
-   * A fresh app/web boot with an existing session is PERSONAL/GLOBAL.
-   * Never restore a stale Organization/Cluster/Mission Worker workspace as
-   * the automatic landing context. Reset to PUBLIC first, then open Connect.
-   * Managed workspaces remain available only when the user explicitly opens
-   * them again from the scope/workspace controls.
+   * A fresh Main app/web boot with an existing session is PERSONAL/GLOBAL.
+   * Classroom is different: it shares the same BUKLOD account/backend but
+   * owns a focused classroom shell, so it must never reset into Main tabs.
    */
   const {
     activeScope,
@@ -43,6 +100,12 @@ export default function Index() {
     useRef(false);
 
   useEffect(() => {
+    if (classroomApp) {
+      publicResetInFlight.current = false;
+      setBootReady(Boolean(session?.user?.id));
+      return;
+    }
+
     if (
       !session?.user?.id ||
       (loading && !profile)
@@ -94,13 +157,10 @@ export default function Index() {
     }
 
     if (!scopeLoading) {
-      /*
-       * Defensive fallback for accounts where PUBLIC scope could not be
-       * loaded. Do not hold the whole app forever.
-       */
       setBootReady(true);
     }
   }, [
+    classroomApp,
     session?.user?.id,
     loading,
     profile,
@@ -112,6 +172,7 @@ export default function Index() {
   ]);
 
   if (
+    (handoffRequested && !session && (handoffState === 'idle' || handoffState === 'working')) ||
     (loading && !session && !profile) ||
     (complianceLoading && !session) ||
     (runtimeLoading && !config)
@@ -129,14 +190,6 @@ export default function Index() {
   if (config?.pilot_access_required && !config?.pilot_access_granted) return <Redirect href="/system/pilot-access" />;
   if (requiresAcceptance) return <Redirect href="/privacy/consent" />;
 
-  /*
-   * BUKLOD_LEGACY_VERIFICATION_REMOVAL_R22
-   * Account/admin verification is no longer an application-wide gate.
-   * A valid signed-in BUKLOD account enters the normal app immediately.
-   * Organization/Cluster membership and feature-specific permissions remain
-   * enforced only where those features actually require them.
-   */
-
   if (!bootReady) {
     return (
       <View
@@ -153,6 +206,10 @@ export default function Index() {
         />
       </View>
     );
+  }
+
+  if (classroomApp) {
+    return <Redirect href="/classroom" />;
   }
 
   return (
