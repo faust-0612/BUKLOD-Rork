@@ -23,6 +23,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import { useCompliance } from '@/providers/ComplianceProvider';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
+import { isClassroomApp } from '@/lib/appTarget';
 
 function SwipeDashboardHeader() {
   const pathname =
@@ -137,7 +138,9 @@ export default function TabsLayout() {
   } = useRuntimeConfig();
 
   useEffect(() => {
-    warmBuklodInterstitial();
+    if (!isClassroomApp) {
+      warmBuklodInterstitial();
+    }
   }, []);
 
   /*
@@ -182,6 +185,9 @@ export default function TabsLayout() {
   }
   if (requiresAcceptance) {
     return <Redirect href="/privacy/consent" />;
+  }
+  if (isClassroomApp) {
+    return <Redirect href="/classroom" />;
   }
 
   const hasCommunityAccess =

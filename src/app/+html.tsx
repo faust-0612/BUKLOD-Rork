@@ -19,6 +19,8 @@ export default function Root({
     <html lang="en">
       <head>
         <meta charSet="utf-8" />
+        <title>BUKLOD Classroom</title>
+        <meta name="application-name" content="BUKLOD Classroom" />
         <meta
           httpEquiv="X-UA-Compatible"
           content="IE=edge"

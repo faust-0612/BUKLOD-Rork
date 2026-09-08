@@ -5,8 +5,12 @@ const googleMapsAndroidApiKey =
   ).trim();
 module.exports = ({ config }) => {
   /* BUKLOD_CLASSROOM_APP_TARGET_R4 — standalone identity without mutating Main defaults */
-  const appTarget = (process.env.BUKLOD_APP_TARGET || 'main').trim().toLowerCase();
-  const isClassroom = appTarget === 'classroom';
+  /* BUKLOD_CLASSROOM_SOURCE_LOCK_R5 — protected Classroom source cannot silently become Main. */
+  const appTarget = (process.env.BUKLOD_APP_TARGET || 'classroom').trim().toLowerCase();
+  if (appTarget !== 'classroom') {
+    throw new Error('BUKLOD Classroom source lock: refusing a non-Classroom build target.');
+  }
+  const isClassroom = true;
   const classroomProjectId = '14100ed1-7f25-4551-9627-09d280498241';
   const classroomGoogleServicesFile = (process.env.CLASSROOM_GOOGLE_SERVICES_FILE || '').trim();
   const projectId = isClassroom

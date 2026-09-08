@@ -37,6 +37,7 @@ import {
   HomePressable,
   useBuklodReduceMotion,
 } from '@/components/HomeMotion';
+import { isClassroomApp } from '@/lib/appTarget';
 
 const LOGIN_EASING = Easing.out(Easing.cubic);
 
@@ -1167,7 +1168,9 @@ const chooseSuggestedLogin =
      * and remains global/personal Connect.
      */
     router.replace(
-      '/(tabs)/home'
+      isClassroomApp
+        ? '/classroom'
+        : '/(tabs)/home'
     );
 
 
@@ -1241,18 +1244,26 @@ const chooseSuggestedLogin =
         <View style={styles.brand}>
           <LoginMotionScale>
             <Image
-              source={require('../../../assets/release/buklod-generic-photo.jpg')}
+              source={
+                isClassroomApp
+                  ? require('../../../assets/classroom/app-icon.png')
+                  : require('../../../assets/release/buklod-generic-photo.jpg')
+              }
               style={styles.logo}
             />
           </LoginMotionScale>
 
           <LoginMotionFadeUp delay={60} duration={240}>
-            <Text style={styles.title}>BUKLOD</Text>
+            <Text style={styles.title}>
+              {isClassroomApp ? 'BUKLOD Classroom' : 'BUKLOD'}
+            </Text>
           </LoginMotionFadeUp>
 
           <LoginMotionFadeUp delay={100} duration={240}>
             <Text style={styles.tagline}>
-              Samahang Binuklod ng Pag-ibig
+              {isClassroomApp
+                ? 'Classes • Faculty • Students • One BUKLOD Login'
+                : 'Samahang Binuklod ng Pag-ibig'}
             </Text>
           </LoginMotionFadeUp>
         </View>

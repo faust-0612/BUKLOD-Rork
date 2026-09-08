@@ -12,6 +12,7 @@ import {
 import { useCompliance } from '@/providers/ComplianceProvider';
 import { colors } from '@/lib/theme';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
+import { isClassroomApp } from '@/lib/appTarget';
 
 export default function Index() {
   const { session, loading, profile } = useAuth();
@@ -43,6 +44,11 @@ export default function Index() {
     useRef(false);
 
   useEffect(() => {
+    if (isClassroomApp) {
+      setBootReady(Boolean(session?.user?.id));
+      return;
+    }
+
     if (
       !session?.user?.id ||
       (loading && !profile)
@@ -128,6 +134,7 @@ export default function Index() {
   if (config?.update_required) return <Redirect href="/system/update-required" />;
   if (config?.pilot_access_required && !config?.pilot_access_granted) return <Redirect href="/system/pilot-access" />;
   if (requiresAcceptance) return <Redirect href="/privacy/consent" />;
+  if (isClassroomApp) return <Redirect href="/classroom" />;
 
   /*
    * BUKLOD_LEGACY_VERIFICATION_REMOVAL_R22
