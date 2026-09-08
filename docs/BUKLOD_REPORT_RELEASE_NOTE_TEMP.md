@@ -1,0 +1,1 @@
+Corrected Report candidate: stale missing PNG dependency removed; both Report landing and doorway use the official embedded Crown-of-Thorns branding URI.
