@@ -115,7 +115,8 @@
       "env": {
         "BUKLOD_APP_TARGET": "classroom",
         "APP_VARIANT": "staging",
-        "EXPO_PUBLIC_APP_ENV": "staging"
+        "EXPO_PUBLIC_APP_ENV": "staging",
+        "CLASSROOM_GOOGLE_SERVICES_FILE": "./google-services.classroom.json"
       },
       "android": {
         "buildType": "apk"
@@ -127,7 +128,8 @@
       "env": {
         "BUKLOD_APP_TARGET": "classroom",
         "APP_VARIANT": "production",
-        "EXPO_PUBLIC_APP_ENV": "production"
+        "EXPO_PUBLIC_APP_ENV": "production",
+        "CLASSROOM_GOOGLE_SERVICES_FILE": "./google-services.classroom.json"
       },
       "android": {
         "buildType": "app-bundle"
