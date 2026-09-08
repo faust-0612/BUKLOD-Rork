@@ -42,27 +42,44 @@ jobs:
           python - <<'PY'
           from pathlib import Path
 
-          generated = Path('scripts/verify-classroom-identity.cjs')
-          text = generated.read_text()
-          bad = "process.stderr.write(resolved.stderr || 'Expo config failed.\n');"
-          good = "process.stderr.write(resolved.stderr || 'Expo config failed.');"
-          if bad not in text:
-              raise SystemExit('Generated verifier syntax anchor missing')
-          generated.write_text(text.replace(bad, good, 1))
+          verify_block = '''const rootIndex = fs.readFileSync(path.join(root, 'src/app/index.tsx'), 'utf8');
+          const login = fs.readFileSync(path.join(root, 'src/app/(auth)/login.tsx'), 'utf8');
+          const shell = fs.readFileSync(path.join(root, 'src/components/BuklodNavSafeShell.tsx'), 'utf8');
+          const layout = fs.readFileSync(path.join(root, 'src/app/_layout.tsx'), 'utf8');
+          assert.ok(rootIndex.includes("href={isClassroomApp ? '/classroom' : '/(tabs)/messages'}"));
+          assert.ok(login.includes("(isClassroomApp ? '/classroom' : '/(tabs)/home')"));
+          assert.ok(login.includes('<Text style={styles.title}>{appDisplayName}</Text>'));
+          assert.ok(shell.includes('if (isClassroomApp)'));
+          assert.ok(layout.includes('{!isClassroomApp && <BuklodCanonicalNavigationGuard />}'));
+          assert.ok(layout.includes('<Stack.Screen name="classroom/index" />'));'''
 
-          source = Path('scripts/patch-classroom-separate-app-r1.cjs')
-          source_text = source.read_text()
-          source_bad = "process.stderr.write(resolved.stderr || 'Expo config failed.\\n');"
-          if source_bad not in source_text:
-              raise SystemExit('Patch source verifier anchor missing')
-          source.write_text(source_text.replace(source_bad, good, 1))
+          def harden(path, source_generator=False):
+              p = Path(path)
+              text = p.read_text()
+              if source_generator:
+                  bad = "process.stderr.write(resolved.stderr || 'Expo config failed.\\n');"
+              else:
+                  bad = "process.stderr.write(resolved.stderr || 'Expo config failed.\n');"
+              good = "process.stderr.write(resolved.stderr || 'Expo config failed.');"
+              if bad not in text:
+                  raise SystemExit(f'{path}: verifier error-output anchor missing')
+              text = text.replace(bad, good, 1)
+              start_marker = "const rootIndex = fs.readFileSync(path.join(root, 'src/app/index.tsx'), 'utf8');"
+              end_marker = "\n\nconsole.log('CLASSROOM_IDENTITY_GUARD=PASS');"
+              start = text.find(start_marker)
+              end = text.find(end_marker, start)
+              if start < 0 or end < 0:
+                  raise SystemExit(f'{path}: verifier source-check block missing')
+              text = text[:start] + verify_block + text[end:]
+              p.write_text(text)
+
+          harden('scripts/verify-classroom-identity.cjs', False)
+          harden('scripts/patch-classroom-separate-app-r1.cjs', True)
           PY
 
       - name: Diff safety gate
         shell: bash
         run: |
-          # Intent-to-add makes newly created source files visible to git diff
-          # without staging their contents before the safety comparison.
           git add -N -- \
             scripts/verify-classroom-identity.cjs \
             src/app/classroom/index.tsx \
