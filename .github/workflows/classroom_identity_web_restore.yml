@@ -1,0 +1,474 @@
+name: BUKLOD Classroom Identity Restore + Web Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/classroom-harmonized-r4-current-main-20260908
+    paths:
+      - '.github/workflows/classroom_identity_web_restore.yml'
+
+permissions:
+  contents: write
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  BUKLOD_APP_TARGET: classroom
+  EXPO_PUBLIC_BUKLOD_APP_TARGET: classroom
+  APP_VARIANT: production
+  EXPO_PUBLIC_APP_ENV: production
+  CLASSROOM_GOOGLE_SERVICES_FILE: ./google-services.classroom.json
+
+jobs:
+  restore-classroom-identity-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout protected Classroom source
+        uses: actions/checkout@v4
+        with:
+          ref: feature/classroom-harmonized-r4-current-main-20260908
+          fetch-depth: 0
+
+      - name: Apply smallest standalone-identity repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+          import json
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              if text.count(old) != 1:
+                  raise SystemExit(f'{path}: expected exactly one match, found {text.count(old)}')
+              p.write_text(text.replace(old, new, 1))
+
+          # Permanently lock this Classroom source branch to the Classroom target.
+          replace_once(
+              'app.config.js',
+              "  const appTarget = (process.env.BUKLOD_APP_TARGET || 'main').trim().toLowerCase();\n  const isClassroom = appTarget === 'classroom';",
+              "  /* BUKLOD_CLASSROOM_SOURCE_LOCK_R5 — this protected Classroom source must never silently become Main. */\n  const appTarget = (process.env.BUKLOD_APP_TARGET || 'classroom').trim().toLowerCase();\n  if (appTarget !== 'classroom') {\n    throw new Error('BUKLOD Classroom source lock: refusing a non-Classroom build target.');\n  }\n  const isClassroom = true;"
+          )
+
+          # Runtime target is taken from generated Expo config, not from a guessed route/name.
+          Path('src/lib/appTarget.ts').write_text("""import Constants from 'expo-constants';
+
+export type BuklodAppTarget = 'main' | 'classroom';
+
+const rawTarget = String(
+  Constants.expoConfig?.extra?.appTarget ?? 'main'
+).trim().toLowerCase();
+
+export const buklodAppTarget: BuklodAppTarget =
+  rawTarget === 'classroom' ? 'classroom' : 'main';
+
+export const isClassroomApp = buklodAppTarget === 'classroom';
+export const buklodAppDisplayName = isClassroomApp
+  ? 'BUKLOD Classroom'
+  : 'BUKLOD';
+""")
+
+          # Root boot: Classroom sessions enter the Classroom shell, never Main tabs/Public Connect.
+          replace_once(
+              'src/app/index.tsx',
+              "import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';",
+              "import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';\nimport { isClassroomApp } from '@/lib/appTarget';"
+          )
+          replace_once(
+              'src/app/index.tsx',
+              "  useEffect(() => {\n    if (\n      !session?.user?.id ||",
+              "  useEffect(() => {\n    if (isClassroomApp) {\n      setBootReady(Boolean(session?.user?.id));\n      return;\n    }\n\n    if (\n      !session?.user?.id ||"
+          )
+          replace_once(
+              'src/app/index.tsx',
+              "  if (requiresAcceptance) return <Redirect href=\"/privacy/consent\" />;\n\n  /*",
+              "  if (requiresAcceptance) return <Redirect href=\"/privacy/consent\" />;\n  if (isClassroomApp) return <Redirect href=\"/classroom\" />;\n\n  /*"
+          )
+
+          # Main tab shell is fail-closed inside Classroom, including stale/deep links.
+          replace_once(
+              'src/app/(tabs)/_layout.tsx',
+              "import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';",
+              "import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';\nimport { isClassroomApp } from '@/lib/appTarget';"
+          )
+          replace_once(
+              'src/app/(tabs)/_layout.tsx',
+              "  useEffect(() => {\n    warmBuklodInterstitial();\n  }, []);",
+              "  useEffect(() => {\n    if (!isClassroomApp) {\n      warmBuklodInterstitial();\n    }\n  }, []);"
+          )
+          replace_once(
+              'src/app/(tabs)/_layout.tsx',
+              "  if (requiresAcceptance) {\n    return <Redirect href=\"/privacy/consent\" />;\n  }\n\n  const hasCommunityAccess =",
+              "  if (requiresAcceptance) {\n    return <Redirect href=\"/privacy/consent\" />;\n  }\n  if (isClassroomApp) {\n    return <Redirect href=\"/classroom\" />;\n  }\n\n  const hasCommunityAccess ="
+          )
+
+          # Keep the proven auth engine, but make Classroom branding/routing target-aware.
+          replace_once(
+              'src/app/(auth)/login.tsx',
+              "} from '@/components/HomeMotion';",
+              "} from '@/components/HomeMotion';\nimport { isClassroomApp } from '@/lib/appTarget';"
+          )
+          replace_once(
+              'src/app/(auth)/login.tsx',
+              "    router.replace(\n      '/(tabs)/home'\n    );",
+              "    router.replace(\n      isClassroomApp\n        ? '/classroom'\n        : '/(tabs)/home'\n    );"
+          )
+          replace_once(
+              'src/app/(auth)/login.tsx',
+              "              source={require('../../../assets/release/buklod-generic-photo.jpg')}",
+              "              source={\n                isClassroomApp\n                  ? require('../../../assets/classroom/app-icon.png')\n                  : require('../../../assets/release/buklod-generic-photo.jpg')\n              }"
+          )
+          replace_once(
+              'src/app/(auth)/login.tsx',
+              "            <Text style={styles.title}>BUKLOD</Text>",
+              "            <Text style={styles.title}>\n              {isClassroomApp ? 'BUKLOD Classroom' : 'BUKLOD'}\n            </Text>"
+          )
+          replace_once(
+              'src/app/(auth)/login.tsx',
+              "            <Text style={styles.tagline}>\n              Samahang Binuklod ng Pag-ibig\n            </Text>",
+              "            <Text style={styles.tagline}>\n              {isClassroomApp\n                ? 'Classes • Faculty • Students • One BUKLOD Login'\n                : 'Samahang Binuklod ng Pag-ibig'}\n            </Text>"
+          )
+
+          # Dedicated Classroom home uses existing student/faculty modules; no Main shell copy.
+          Path('src/app/classroom').mkdir(parents=True, exist_ok=True)
+          Path('src/app/classroom/index.tsx').write_text("""import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Redirect, router } from 'expo-router';
+
+import { useAuth } from '@/providers/AuthProvider';
+import { supabase } from '@/lib/supabase';
+import { isClassroomApp } from '@/lib/appTarget';
+
+export default function ClassroomAppHome() {
+  const { session, loading, profile } = useAuth();
+
+  if (!isClassroomApp) {
+    return <Redirect href="/" />;
+  }
+  if (loading && !session) {
+    return <View style={styles.loading}><Text style={styles.loadingText}>Opening BUKLOD Classroom...</Text></View>;
+  }
+  if (!session) {
+    return <Redirect href="/(auth)/login" />;
+  }
+
+  const displayName = String(
+    profile?.full_name || profile?.display_name || profile?.username || 'BUKLOD Learner'
+  );
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    router.replace('/(auth)/login');
+  };
+
+  return (
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      <View style={styles.brandRow}>
+        <Image source={require('../../../assets/classroom/app-icon.png')} style={styles.logo} />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.eyebrow}>STANDALONE LEARNING APP</Text>
+          <Text style={styles.title}>BUKLOD Classroom</Text>
+          <Text style={styles.subtitle}>Welcome, {displayName}</Text>
+        </View>
+      </View>
+
+      <View style={styles.hero}>
+        <MaterialCommunityIcons name="google-classroom" size={34} color="#1f7a3f" />
+        <Text style={styles.heroTitle}>Your classroom, not BUKLOD Main</Text>
+        <Text style={styles.heroText}>
+          Classes, live sessions, attendance, activities, submissions, materials, grading and results stay inside the dedicated Classroom experience. Your BUKLOD account remains shared intentionally.
+        </Text>
+      </View>
+
+      <Pressable style={styles.card} onPress={() => router.push('/profile/buklod-classrooms' as any)}>
+        <View style={styles.cardIcon}><MaterialCommunityIcons name="account-school-outline" size={28} color="#1f7a3f" /></View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.cardTitle}>My Classroom</Text>
+          <Text style={styles.cardText}>Student classes, discussions, live sessions, activities, materials and grades.</Text>
+        </View>
+        <MaterialCommunityIcons name="chevron-right" size={24} color="#7d8b81" />
+      </Pressable>
+
+      <Pressable style={styles.card} onPress={() => router.push('/profile/buklod-faculty' as any)}>
+        <View style={styles.cardIcon}><MaterialCommunityIcons name="teach" size={28} color="#1f7a3f" /></View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.cardTitle}>Faculty</Text>
+          <Text style={styles.cardText}>Create/manage classes, roster, attendance, assessments, grading, files and live teaching.</Text>
+        </View>
+        <MaterialCommunityIcons name="chevron-right" size={24} color="#7d8b81" />
+      </Pressable>
+
+      <Text style={styles.integration}>BUKLOD ecosystem account • Classroom-specific app identity</Text>
+      <Pressable style={styles.signOut} onPress={() => void signOut()}>
+        <MaterialCommunityIcons name="logout" size={18} color="#6d2f2f" />
+        <Text style={styles.signOutText}>Sign out</Text>
+      </Pressable>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: '#f2f6f1' },
+  content: { width: '100%', maxWidth: 760, alignSelf: 'center', padding: 20, paddingTop: 42, paddingBottom: 64 },
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f2f6f1' },
+  loadingText: { color: '#526159', fontWeight: '800' },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 20 },
+  logo: { width: 72, height: 72, borderRadius: 20 },
+  eyebrow: { color: '#1f7a3f', fontSize: 10, fontWeight: '900', letterSpacing: 1.2 },
+  title: { color: '#17311f', fontSize: 30, fontWeight: '900', marginTop: 2 },
+  subtitle: { color: '#68736b', marginTop: 3 },
+  hero: { backgroundColor: '#ffffff', borderRadius: 24, padding: 20, marginBottom: 14 },
+  heroTitle: { color: '#17311f', fontSize: 20, fontWeight: '900', marginTop: 10 },
+  heroText: { color: '#68736b', lineHeight: 20, marginTop: 6 },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 13, backgroundColor: '#ffffff', borderRadius: 20, padding: 16, marginBottom: 11 },
+  cardIcon: { width: 50, height: 50, borderRadius: 15, backgroundColor: '#e7f4e9', alignItems: 'center', justifyContent: 'center' },
+  cardTitle: { color: '#203328', fontSize: 17, fontWeight: '900' },
+  cardText: { color: '#6b776e', lineHeight: 18, marginTop: 3 },
+  integration: { textAlign: 'center', color: '#7b877e', fontSize: 11, fontWeight: '700', marginTop: 16 },
+  signOut: { alignSelf: 'center', flexDirection: 'row', gap: 7, alignItems: 'center', padding: 12, marginTop: 8 },
+  signOutText: { color: '#6d2f2f', fontWeight: '800' },
+});
+""")
+
+          # Browser/app shell identity for the Classroom web target.
+          replace_once(
+              'src/app/+html.tsx',
+              "        <meta charSet=\"utf-8\" />",
+              "        <meta charSet=\"utf-8\" />\n        <title>BUKLOD Classroom</title>\n        <meta name=\"application-name\" content=\"BUKLOD Classroom\" />"
+          )
+
+          # Build guard: package, Expo project, scheme, target, icon and Firebase client must all match Classroom.
+          Path('scripts/verify-classroom-identity.mjs').write_text("""import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+process.env.BUKLOD_APP_TARGET = 'classroom';
+process.env.APP_VARIANT = process.env.APP_VARIANT || 'production';
+process.env.EXPO_PUBLIC_APP_ENV = process.env.EXPO_PUBLIC_APP_ENV || 'production';
+process.env.CLASSROOM_GOOGLE_SERVICES_FILE = process.env.CLASSROOM_GOOGLE_SERVICES_FILE || './google-services.classroom.json';
+
+const profile = String(process.env.EAS_BUILD_PROFILE || '');
+if (profile && !profile.startsWith('classroom-')) {
+  throw new Error(`BUKLOD Classroom source lock: refused EAS profile ${profile}`);
+}
+
+const factory = require('../app.config.js');
+const config = factory({ config: { extra: {} } });
+assert.equal(config.name, 'BUKLOD Classroom');
+assert.equal(config.slug, 'buklod-classroom');
+assert.equal(config.scheme, 'buklod-classroom');
+assert.equal(config.android.package, 'org.mzbministry.buklod.classroom');
+assert.equal(config.extra?.appTarget, 'classroom');
+assert.equal(config.extra?.eas?.projectId, '14100ed1-7f25-4551-9627-09d280498241');
+assert.equal(config.icon, './assets/classroom/app-icon.png');
+assert.equal(config.android.adaptiveIcon.foregroundImage, './assets/classroom/adaptive-icon.png');
+assert.equal(config.web.favicon, './assets/classroom/favicon.png');
+assert.equal(config.android.googleServicesFile, './google-services.classroom.json');
+
+const google = JSON.parse(fs.readFileSync('google-services.classroom.json', 'utf8'));
+const packages = (google.client || []).map((item) => item?.client_info?.android_client_info?.package_name).filter(Boolean);
+assert.ok(packages.includes('org.mzbministry.buklod.classroom'), 'Classroom Firebase Android client missing');
+
+const eas = JSON.parse(fs.readFileSync('eas.json', 'utf8'));
+for (const key of ['classroom-preview', 'classroom-production']) {
+  assert.equal(eas.build[key].env.BUKLOD_APP_TARGET, 'classroom');
+  assert.equal(eas.build[key].env.CLASSROOM_GOOGLE_SERVICES_FILE, './google-services.classroom.json');
+}
+assert.equal(eas.build['classroom-production-apk'].extends, 'classroom-production');
+
+if (config.android.package === 'org.mzbministry.buklod' || config.slug === 'buklod') {
+  throw new Error('Main identity leaked into Classroom config');
+}
+console.log('BUKLOD_CLASSROOM_IDENTITY_GUARD=PASS');
+""")
+
+          # EAS automatically invokes this lifecycle hook on this Classroom branch.
+          package = json.loads(Path('package.json').read_text())
+          package.setdefault('scripts', {})['classroom:identity'] = 'node scripts/verify-classroom-identity.mjs'
+          package['scripts']['eas-build-pre-install'] = 'node scripts/verify-classroom-identity.mjs'
+          Path('package.json').write_text(json.dumps(package, indent=2) + '\n')
+
+          # Update existing Classroom QA so default config is expected to be locked to Classroom.
+          qa = Path('.github/workflows/classroom_r4_qa.yml')
+          q = qa.read_text()
+          start = q.index('      - name: Classroom app target isolation')
+          end = q.index('      - name: Web export', start)
+          replacement = """      - name: Classroom source identity lock
+        shell: bash
+        env:
+          BUKLOD_APP_TARGET: classroom
+          APP_VARIANT: production
+          EXPO_PUBLIC_APP_ENV: production
+          CLASSROOM_GOOGLE_SERVICES_FILE: ./google-services.classroom.json
+        run: node scripts/verify-classroom-identity.mjs
+"""
+          q = q[:start] + replacement + q[end:]
+          q = q.replace(
+              "      - name: Web export\n        env:\n          EXPO_NO_TELEMETRY: '1'\n        run: npx expo export --platform web --output-dir dist-classroom-r4-qa",
+              "      - name: Web export\n        env:\n          EXPO_NO_TELEMETRY: '1'\n          BUKLOD_APP_TARGET: classroom\n          EXPO_PUBLIC_BUKLOD_APP_TARGET: classroom\n          APP_VARIANT: production\n          EXPO_PUBLIC_APP_ENV: production\n          CLASSROOM_GOOGLE_SERVICES_FILE: ./google-services.classroom.json\n        run: npx expo export --platform web --output-dir dist-classroom-r4-qa"
+          )
+          qa.write_text(q)
+
+          Path('.classroom-source-lock').write_text('BUKLOD Classroom\norg.mzbministry.buklod.classroom\n14100ed1-7f25-4551-9627-09d280498241\n')
+          PY
+
+      - name: Commit protected Classroom identity repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app.config.js package.json src/app/index.tsx 'src/app/(tabs)/_layout.tsx' 'src/app/(auth)/login.tsx' src/app/+html.tsx src/app/classroom/index.tsx src/lib/appTarget.ts scripts/verify-classroom-identity.mjs .classroom-source-lock .github/workflows/classroom_r4_qa.yml
+          git diff --cached --check
+          git commit -m 'classroom: permanently restore standalone app identity'
+          git push origin HEAD:feature/classroom-harmonized-r4-current-main-20260908
+          echo "CLASSROOM_REPAIR_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Classroom identity guard
+        run: node scripts/verify-classroom-identity.mjs
+
+      - name: Expo credential preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN"
+          npx eas-cli@latest whoami --non-interactive >/dev/null
+          echo 'Expo authentication: READY'
+
+      - name: Pull Classroom production public environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .env.local
+          npx eas-cli@latest env:pull --environment production --path .env.local --non-interactive
+          test -s .env.local
+          set -a
+          . ./.env.local
+          set +a
+          test -n "${EXPO_PUBLIC_SUPABASE_URL:-}"
+          test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}"
+          test "$EXPO_PUBLIC_SUPABASE_URL" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
+          while IFS='=' read -r name _; do
+            case "$name" in
+              EXPO_PUBLIC_*)
+                value="${!name-}"
+                {
+                  echo "${name}<<__CLASSROOM_ENV__"
+                  printf '%s\n' "$value"
+                  echo '__CLASSROOM_ENV__'
+                } >> "$GITHUB_ENV"
+                ;;
+            esac
+          done < <(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env.local)
+          echo 'Classroom public runtime environment: READY'
+
+      - name: TypeScript + Classroom reducer tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx tsc --noEmit
+          npx jest src/lib/education/classroomLiveState.test.ts --runInBand
+
+      - name: Expo config identity audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx expo config --type public --json > /tmp/classroom-expo.json
+          node <<'NODE'
+          const fs = require('fs');
+          const c = JSON.parse(fs.readFileSync('/tmp/classroom-expo.json','utf8'));
+          const expected = {
+            name: 'BUKLOD Classroom',
+            slug: 'buklod-classroom',
+            scheme: 'buklod-classroom',
+            package: 'org.mzbministry.buklod.classroom',
+            project: '14100ed1-7f25-4551-9627-09d280498241'
+          };
+          if (c.name !== expected.name || c.slug !== expected.slug || c.scheme !== expected.scheme || c.android?.package !== expected.package || c.extra?.eas?.projectId !== expected.project || c.extra?.appTarget !== 'classroom') {
+            console.error('STOP: Classroom Expo identity mismatch');
+            process.exit(1);
+          }
+          console.log('EXPO_CLASSROOM_IDENTITY=PASS');
+          NODE
+
+      - name: Export Classroom production web
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_PUBLIC_SUPABASE_URL:-}"
+          test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}"
+          rm -rf dist
+          npx expo export --platform web --output-dir dist
+          test -s dist/index.html
+          grep -RFl --include='*.js' 'BUKLOD Classroom' dist >/dev/null || {
+            echo 'STOP: Classroom branding not present in web bundle.'
+            exit 1
+          }
+          if grep -RFl --include='*.js' "href:\"/(tabs)/messages\"" dist >/dev/null 2>&1; then
+            echo 'NOTE: Main source routes exist in shared source, but Classroom target guard remains authoritative.'
+          fi
+          echo 'CLASSROOM_WEB_EXPORT=PASS'
+
+      - name: Deploy Classroom web production
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/verify-classroom-identity.mjs
+          npx eas-cli@latest deploy --prod --environment production --non-interactive
+
+      - name: Verify live Classroom runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL='https://buklod-classroom.expo.app/'
+          BROWSER="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$BROWSER"
+          sleep 4
+          curl -fsSIL --max-time 30 "$URL" >/dev/null
+          timeout 50s "$BROWSER" \
+            --headless=new \
+            --no-sandbox \
+            --disable-gpu \
+            --disable-extensions \
+            --no-first-run \
+            --window-size=390,844 \
+            --virtual-time-budget=22000 \
+            --enable-logging=stderr \
+            --v=0 \
+            --dump-dom \
+            "$URL" \
+            > /tmp/classroom-dom.html \
+            2> /tmp/classroom-browser.log
+          if grep -qi 'supabaseUrl is required' /tmp/classroom-browser.log; then
+            echo 'LIVE FAILED: Supabase runtime configuration missing.'
+            exit 1
+          fi
+          if grep -Eqi 'Uncaught (Error|TypeError|ReferenceError|SyntaxError)' /tmp/classroom-browser.log; then
+            echo 'LIVE FAILED: uncaught browser runtime error.'
+            grep -Ei 'Uncaught (Error|TypeError|ReferenceError|SyntaxError)' /tmp/classroom-browser.log | head -20
+            exit 1
+          fi
+          grep -q '<div id="root"><' /tmp/classroom-dom.html
+          grep -q 'BUKLOD Classroom' /tmp/classroom-dom.html
+          if grep -q 'Samahang Binuklod ng Pag-ibig' /tmp/classroom-dom.html; then
+            echo 'LIVE FAILED: Main login branding leaked into Classroom.'
+            exit 1
+          fi
+          echo 'LIVE_BUKLOD_CLASSROOM_RUNTIME=PASS'
+
+      - name: Result
+        run: |
+          echo "ROOT_CAUSE=Classroom shared source defaulted to Main when BUKLOD_APP_TARGET was absent, and login/root routing explicitly entered Main tabs."
+          echo "CLASSROOM_REPAIR_SHA=$CLASSROOM_REPAIR_SHA"
+          echo 'BUKLOD Classroom standalone identity + web production restore: VERIFIED'
