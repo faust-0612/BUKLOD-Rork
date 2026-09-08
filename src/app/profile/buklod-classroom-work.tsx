@@ -11,14 +11,14 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system/legacy';
-import { decode } from 'base64-arraybuffer';
+import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 
+import { uploadClassroomObject } from '@/lib/education/classroomTransfer';
 import { supabase } from '@/lib/supabase';
 
 const CLASSROOM_BUCKET = 'buklod-classroom';
-const R1_UPLOAD_LIMIT = 40 * 1024 * 1024;
+const MAX_UPLOAD_BYTES = 1024 * 1024 * 1024;
 
 type Context = { role: 'FACULTY' | 'STUDENT'; allow_student_uploads: boolean };
 type Category = { id: string; name: string; weight_percent: number };
@@ -53,7 +53,6 @@ type Submission = {
   faculty_feedback: string | null;
 };
 type NameMap = Record<string, string>;
-
 type PickedFile = { uri: string; name: string; mimeType?: string | null; size?: number | null };
 
 function parseRubric(raw: string) {
@@ -75,6 +74,14 @@ function rubricLabel(rubric: any) {
   return criteria.map((row: any) => `${row.criterion}${row.points ? ` (${row.points})` : ''}`).join(' • ');
 }
 
+function normalizePickedFile(file: PickedFile) {
+  if (file.size && file.size > MAX_UPLOAD_BYTES) {
+    Alert.alert('Attachment Too Large', 'BUKLOD Classroom private storage accepts up to 1 GB per submission attachment.');
+    return null;
+  }
+  return file;
+}
+
 export default function BuklodClassroomWorkScreen() {
   const params = useLocalSearchParams<{ id?: string; name?: string }>();
   const classroomId = String(params.id ?? '');
@@ -87,6 +94,7 @@ export default function BuklodClassroomWorkScreen() {
   const [names, setNames] = useState<NameMap>({});
   const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
 
   const [title, setTitle] = useState('');
   const [instructions, setInstructions] = useState('');
@@ -182,23 +190,51 @@ export default function BuklodClassroomWorkScreen() {
     const picked = await DocumentPicker.getDocumentAsync({ type: '*/*', multiple: false, copyToCacheDirectory: true });
     if (picked.canceled || !picked.assets[0]) return;
     const asset = picked.assets[0];
-    if (asset.size && asset.size > R1_UPLOAD_LIMIT) {
-      return Alert.alert('Attachment Too Large', 'R1 direct mobile submission is limited to 40 MB per attachment. The Classroom storage backend is already prepared for larger media; resumable large-video upload will use the same private bucket.');
-    }
-    setFiles(prev => ({ ...prev, [assignmentId]: { uri: asset.uri, name: asset.name, mimeType: asset.mimeType, size: asset.size } }));
+    const file = normalizePickedFile({ uri: asset.uri, name: asset.name, mimeType: asset.mimeType, size: asset.size });
+    if (file) setFiles(prev => ({ ...prev, [assignmentId]: file }));
   };
 
-  const uploadSubmissionFile = async (submissionId: string, file: PickedFile, uid: string) => {
-    const base64 = await FileSystem.readAsStringAsync(file.uri, { encoding: FileSystem.EncodingType.Base64 });
+  const chooseMedia = async (assignmentId: string) => {
+    const picked = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images', 'videos'], quality: 1 });
+    if (picked.canceled || !picked.assets[0]) return;
+    const asset = picked.assets[0];
+    const file = normalizePickedFile({
+      uri: asset.uri,
+      name: asset.fileName || `classroom-media-${Date.now()}`,
+      mimeType: asset.mimeType,
+      size: asset.fileSize,
+    });
+    if (file) setFiles(prev => ({ ...prev, [assignmentId]: file }));
+  };
+
+  const captureEvidence = async (assignmentId: string, video = false) => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) return Alert.alert('Camera', 'Camera permission is required to capture submission evidence.');
+    const picked = await ImagePicker.launchCameraAsync({ mediaTypes: video ? ['videos'] : ['images'], quality: 0.9, videoMaxDuration: 300 });
+    if (picked.canceled || !picked.assets[0]) return;
+    const asset = picked.assets[0];
+    const file = normalizePickedFile({
+      uri: asset.uri,
+      name: asset.fileName || `${video ? 'video' : 'photo'}-evidence-${Date.now()}`,
+      mimeType: asset.mimeType,
+      size: asset.fileSize,
+    });
+    if (file) setFiles(prev => ({ ...prev, [assignmentId]: file }));
+  };
+
+  const uploadSubmissionFile = async (submissionId: string, file: PickedFile, uid: string, assignmentId: string) => {
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, '_').slice(-120);
     const path = `${classroomId}/${uid}/submission/${submissionId}_${Date.now()}_${safeName}`;
-    const { error: uploadError } = await supabase.storage.from(CLASSROOM_BUCKET).upload(path, decode(base64), {
-      contentType: file.mimeType ?? 'application/octet-stream',
-      cacheControl: '3600',
-      upsert: false,
+    const transfer = await uploadClassroomObject({
+      uri: file.uri,
+      bucket: CLASSROOM_BUCKET,
+      path,
+      name: file.name,
+      mimeType: file.mimeType,
+      size: file.size,
+      onProgress: progress => setUploadProgress(prev => ({ ...prev, [assignmentId]: progress.percent })),
     });
-    if (uploadError) throw uploadError;
-    const fileKind = file.mimeType?.startsWith('image/') ? 'PHOTO' : file.mimeType?.startsWith('video/') ? 'VIDEO' : 'FILE';
+    const fileKind = file.mimeType?.startsWith('image/') ? 'PHOTO' : file.mimeType?.startsWith('video/') ? 'VIDEO' : file.mimeType?.startsWith('audio/') ? 'AUDIO' : 'FILE';
     const { error: metadataError } = await supabase.from('buklod_education_classroom_files').insert({
       classroom_id: classroomId,
       owner_user_id: uid,
@@ -209,9 +245,13 @@ export default function BuklodClassroomWorkScreen() {
       storage_path: path,
       original_name: file.name,
       mime_type: file.mimeType ?? null,
-      file_size: file.size ?? null,
+      file_size: transfer.size,
     });
-    if (metadataError) throw metadataError;
+    if (metadataError) {
+      try { await supabase.storage.from(CLASSROOM_BUCKET).remove([path]); } catch { /* best-effort rollback */ }
+      throw metadataError;
+    }
+    return path;
   };
 
   const submitAssignment = async (assignment: Assignment) => {
@@ -221,6 +261,9 @@ export default function BuklodClassroomWorkScreen() {
     const file = files[assignment.id];
     if (!text && !link && !file) return Alert.alert('Submit Activity', 'Add a response, link or attachment first.');
     setBusy(true);
+    setUploadProgress(prev => ({ ...prev, [assignment.id]: 0 }));
+    let submissionId = '';
+    let uploadedPath = '';
     try {
       const { data: auth } = await supabase.auth.getUser();
       const uid = auth.user?.id;
@@ -238,24 +281,27 @@ export default function BuklodClassroomWorkScreen() {
         submitted_at: new Date().toISOString(),
       }).select('id').single();
       if (error || !submission?.id) throw error ?? new Error('Submission record was not created.');
-      if (file) await uploadSubmissionFile(String(submission.id), file, uid);
+      submissionId = String(submission.id);
+      if (file) uploadedPath = await uploadSubmissionFile(submissionId, file, uid, assignment.id);
       await supabase.from('buklod_education_classroom_engagement_events').insert({ classroom_id: classroomId, user_id: uid, event_type: 'ASSIGNMENT_SUBMITTED', source_type: 'ASSIGNMENT', source_id: assignment.id });
-      // BUKLOD_CLASSROOM_AUTO_GRADE_R1
       if (assignment.auto_grading_mode === 'RUBRIC_SUGGEST' && text) {
-        const { error: autoGradeError } = await supabase.functions.invoke('buklod-classroom-auto-grade', {
-          body: { submission_id: String(submission.id) },
-        });
-        if (autoGradeError) {
-          console.warn('BUKLOD Classroom auto-grade suggestion:', autoGradeError.message);
-        }
+        const { error: autoGradeError } = await supabase.functions.invoke('buklod-classroom-auto-grade', { body: { submission_id: submissionId } });
+        if (autoGradeError) console.warn('BUKLOD Classroom auto-grade suggestion:', autoGradeError.message);
       }
       setResponseText(prev => ({ ...prev, [assignment.id]: '' }));
       setResponseLink(prev => ({ ...prev, [assignment.id]: '' }));
       setFiles(prev => ({ ...prev, [assignment.id]: null }));
+      setUploadProgress(prev => ({ ...prev, [assignment.id]: 0 }));
       await load();
       Alert.alert('Submitted', 'Your activity was submitted to the classroom.');
     } catch (error) {
-      Alert.alert('Submit Activity', error instanceof Error ? error.message : 'Submission failed.');
+      if (uploadedPath) {
+        try { await supabase.storage.from(CLASSROOM_BUCKET).remove([uploadedPath]); } catch { /* best-effort rollback */ }
+      }
+      if (submissionId) {
+        try { await supabase.from('buklod_education_classroom_submissions').delete().eq('id', submissionId); } catch { /* best-effort rollback */ }
+      }
+      Alert.alert('Submit Activity', error instanceof Error ? error.message : 'Submission failed. Retry the same attachment to safely resume when applicable.');
     } finally {
       setBusy(false);
     }
@@ -291,7 +337,7 @@ export default function BuklodClassroomWorkScreen() {
       </Pressable>
       <Text style={styles.eyebrow}>ACTIVITIES & SUBMISSIONS</Text>
       <Text style={styles.title}>{isFaculty ? 'Class Work' : 'My Class Work'}</Text>
-      <Text style={styles.subtitle}>Rubrics, attachments, feedback and grades connect to the same Faculty gradebook.</Text>
+      <Text style={styles.subtitle}>Rubrics, resumable attachments, captured evidence, feedback and grades connect to the same Faculty gradebook.</Text>
 
       {isFaculty && (
         <View style={styles.createCard}>
@@ -328,6 +374,7 @@ export default function BuklodClassroomWorkScreen() {
         <View style={styles.empty}><Text style={styles.emptyText}>No classroom activity yet.</Text></View>
       ) : published.map(assignment => {
         const rows = submissionsFor(assignment.id);
+        const progress = uploadProgress[assignment.id] ?? 0;
         return (
           <View key={assignment.id} style={styles.assignmentCard}>
             <View style={styles.assignmentTop}>
@@ -344,13 +391,17 @@ export default function BuklodClassroomWorkScreen() {
               <>
                 <TextInput value={responseText[assignment.id] ?? ''} onChangeText={value => setResponseText(prev => ({ ...prev, [assignment.id]: value }))} placeholder="Write your response…" multiline style={[styles.input, styles.multiline]} />
                 <TextInput value={responseLink[assignment.id] ?? ''} onChangeText={value => setResponseLink(prev => ({ ...prev, [assignment.id]: value }))} placeholder="Optional link / URL" autoCapitalize="none" style={styles.input} />
-                <Pressable style={styles.attach} onPress={() => chooseFile(assignment.id)}>
-                  <MaterialCommunityIcons name="paperclip" size={19} color="#1f7a3f" />
-                  <Text style={styles.attachText}>{files[assignment.id]?.name || 'Attach file / photo / video'}</Text>
-                </Pressable>
+                <View style={styles.evidenceRow}>
+                  <Pressable style={styles.evidenceAction} onPress={() => chooseFile(assignment.id)}><MaterialCommunityIcons name="paperclip" size={18} color="#1f7a3f" /><Text style={styles.evidenceActionText}>File</Text></Pressable>
+                  <Pressable style={styles.evidenceAction} onPress={() => chooseMedia(assignment.id)}><MaterialCommunityIcons name="image-multiple-outline" size={18} color="#1f7a3f" /><Text style={styles.evidenceActionText}>Media</Text></Pressable>
+                  <Pressable style={styles.evidenceAction} onPress={() => captureEvidence(assignment.id, false)}><MaterialCommunityIcons name="camera-outline" size={18} color="#1f7a3f" /><Text style={styles.evidenceActionText}>Photo</Text></Pressable>
+                  <Pressable style={styles.evidenceAction} onPress={() => captureEvidence(assignment.id, true)}><MaterialCommunityIcons name="video-outline" size={18} color="#1f7a3f" /><Text style={styles.evidenceActionText}>Video</Text></Pressable>
+                </View>
+                {!!files[assignment.id] && <View style={styles.attach}><MaterialCommunityIcons name="check-circle-outline" size={19} color="#1f7a3f" /><Text style={styles.attachText}>{files[assignment.id]?.name}</Text></View>}
                 <Pressable disabled={busy} style={[styles.primary, busy && styles.disabled]} onPress={() => submitAssignment(assignment)}>
-                  <Text style={styles.primaryText}>Submit Activity</Text>
+                  <Text style={styles.primaryText}>{busy && progress > 0 ? `Uploading ${progress}%` : 'Submit Activity'}</Text>
                 </Pressable>
+                <Text style={styles.uploadNote}>Private Classroom storage • up to 1 GB • large attachments resume in chunks after connection interruption.</Text>
                 {rows.map(row => (
                   <View key={row.id} style={styles.mySubmission}>
                     <Text style={styles.submissionName}>Attempt {row.attempt_no} • {row.status}</Text>
@@ -425,8 +476,12 @@ const styles = StyleSheet.create({
   statusText: { color: '#1f7a3f', fontSize: 8, fontWeight: '900' },
   instructions: { color: '#4f5e55', lineHeight: 18, marginTop: 9 },
   rubricLabel: { color: '#768178', fontSize: 10, lineHeight: 15, marginTop: 7, marginBottom: 10 },
+  evidenceRow: { flexDirection: 'row', gap: 6, marginBottom: 8 },
+  evidenceAction: { flex: 1, backgroundColor: '#edf5ee', borderRadius: 10, alignItems: 'center', paddingVertical: 8 },
+  evidenceActionText: { color: '#1f7a3f', fontWeight: '900', fontSize: 8, marginTop: 2 },
   attach: { flexDirection: 'row', gap: 7, alignItems: 'center', backgroundColor: '#edf5ee', borderRadius: 11, padding: 11, marginBottom: 8 },
   attachText: { color: '#1f7a3f', fontWeight: '800', fontSize: 11, flex: 1 },
+  uploadNote: { color: '#7c877f', fontSize: 9, lineHeight: 13, marginTop: 6 },
   mySubmission: { backgroundColor: '#f2f6f2', borderRadius: 12, padding: 11, marginTop: 9 },
   submissionName: { color: '#304238', fontWeight: '900', fontSize: 11 },
   score: { color: '#1f7a3f', fontWeight: '900', marginTop: 5 },
