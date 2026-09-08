@@ -1,0 +1,70 @@
+name: BUKLOD Classroom Identity Config Patch
+
+on:
+  push:
+    branches:
+      - hotfix/classroom-separate-app-identity-20260908-authoritative5
+    paths:
+      - .github/workflows/classroom_identity_config_patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: hotfix/classroom-separate-app-identity-20260908-authoritative5
+          fetch-depth: 0
+
+      - name: Apply fail-closed config changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          app = Path('app.config.js')
+          text = app.read_text(encoding='utf-8')
+          old = "  const isClassroom = appTarget === 'classroom';\n  const classroomProjectId = '14100ed1-7f25-4551-9627-09d280498241';"
+          new = "  const isClassroom = appTarget === 'classroom';\n  const classroomIdentityRequired = process.env.CLASSROOM_IDENTITY_REQUIRED === '1';\n\n  if (classroomIdentityRequired && !isClassroom) {\n    throw new Error('BUKLOD Classroom identity guard: BUKLOD_APP_TARGET must be classroom.');\n  }\n\n  const classroomProjectId = '14100ed1-7f25-4551-9627-09d280498241';"
+          if text.count(old) != 1:
+              raise SystemExit('app.config.js identity insertion point mismatch')
+          app.write_text(text.replace(old, new), encoding='utf-8')
+
+          eas_path = Path('eas.json')
+          eas = json.loads(eas_path.read_text(encoding='utf-8'))
+          public_key = 'sb_publishable_RWvrYHzgLMvBousgwn4dTg_QawYzwRS'
+          for profile_name in ('classroom-preview', 'classroom-production'):
+              env = eas['build'][profile_name].setdefault('env', {})
+              env['BUKLOD_APP_TARGET'] = 'classroom'
+              env['CLASSROOM_IDENTITY_REQUIRED'] = '1'
+              env['CLASSROOM_GOOGLE_SERVICES_FILE'] = './google-services.classroom.json'
+              env['EXPO_PUBLIC_SUPABASE_URL'] = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
+              env['EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY'] = public_key
+          eas_path.write_text(json.dumps(eas, indent=2) + '\n', encoding='utf-8')
+
+          package_path = Path('package.json')
+          package = json.loads(package_path.read_text(encoding='utf-8'))
+          scripts = package.setdefault('scripts', {})
+          scripts['classroom:identity:check'] = 'node scripts/assert-classroom-identity.mjs'
+          scripts['classroom:config'] = 'node scripts/run-classroom-command.mjs config'
+          scripts['classroom:export:web'] = 'node scripts/run-classroom-command.mjs export-web'
+          scripts['classroom:prebuild:android'] = 'node scripts/run-classroom-command.mjs prebuild-android'
+          scripts['eas-build-pre-install'] = 'node scripts/assert-classroom-identity.mjs'
+          package_path.write_text(json.dumps(package, indent=2) + '\n', encoding='utf-8')
+          PY
+
+      - name: Commit config hardening
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "BUKLOD Classroom Identity Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add app.config.js eas.json package.json
+          git diff --cached --check
+          git commit -m "[classroom-identity-config] classroom: fail closed on target mismatch"
+          git push origin HEAD:hotfix/classroom-separate-app-identity-20260908-authoritative5
