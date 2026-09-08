@@ -1,0 +1,104 @@
+name: BUKLOD Production Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/production_android_apk.yml'
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+jobs:
+  qa-and-build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout canonical main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Verify Main Android identity and APK profile
+        shell: bash
+        run: |
+          grep -F "mainPackage: process.env.MAIN_ANDROID_PACKAGE || 'com.faust.buklod'" app.config.js
+          grep -F '"production-apk"' eas.json
+          grep -F '"buildType": "apk"' eas.json
+          grep -F '"environment": "production"' eas.json
+          grep -F 'firebase-video-production' eas.json
+
+      - name: Expo credential preflight
+        shell: bash
+        run: |
+          if [ -z "${EXPO_TOKEN:-}" ]; then
+            echo 'EXPO_TOKEN repository secret is missing.'
+            exit 1
+          fi
+          npx eas-cli@latest whoami --non-interactive
+
+      - name: Build production APK
+        shell: bash
+        run: |
+          set -o pipefail
+          npx eas-cli@latest build \
+            --platform android \
+            --profile production-apk \
+            --non-interactive \
+            --wait \
+            --json > eas-apk-build.json
+          cat eas-apk-build.json
+
+      - name: Extract APK build result
+        id: apk
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const raw = fs.readFileSync('eas-apk-build.json', 'utf8').trim();
+          const parsed = JSON.parse(raw);
+          const build = Array.isArray(parsed) ? parsed[0] : parsed;
+          const url = build?.artifacts?.buildUrl || build?.artifacts?.applicationArchiveUrl || '';
+          const id = build?.id || '';
+          const status = build?.status || '';
+          if (!url) {
+            console.error('No APK artifact URL returned by EAS Build.');
+            process.exit(1);
+          }
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `build_id=${id}\nstatus=${status}\napk_url=${url}\n`);
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## BUKLOD Production APK\n\n- EAS build: ${id}\n- Status: ${status}\n- APK: ${url}\n`);
+          console.log(`EAS build: ${id}`);
+          console.log(`Status: ${status}`);
+          console.log(`APK: ${url}`);
+          NODE
+
+      - name: Preserve build metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-production-apk-metadata-${{ github.run_number }}
+          path: eas-apk-build.json
+          if-no-files-found: ignore
+
+      - name: APK status
+        shell: bash
+        run: |
+          echo 'BUKLOD production APK build succeeded.'
+          echo 'EAS build ID: ${{ steps.apk.outputs.build_id }}'
+          echo 'APK URL: ${{ steps.apk.outputs.apk_url }}'
