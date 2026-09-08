@@ -2,6 +2,7 @@ import BuklodNavSafeShell from '@/components/BuklodNavSafeShell';
 import BuklodRootKeyboardAvoidingView from '@/components/BuklodRootKeyboardAvoidingView';
 import { BuklodGuideAvatar } from '@/components/BuklodGuideAvatar';
 import BuklodFormationEntryScopeTracker from '@/components/BuklodFormationEntryScopeTracker';
+import ClassroomExtensionRouteGuard from '@/components/classroom/ClassroomExtensionRouteGuard';
 import '@/lib/performanceBoot';
 import { Stack, type ErrorBoundaryProps } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -26,6 +27,7 @@ import { StreamVideoProvider } from '@/providers/StreamVideoProvider';
 import { BuklodThemeProvider } from '@/providers/BuklodThemeProvider';
 import { BuklodCharacterEventProvider } from '@/components/character/BuklodCharacterEventProvider';
 import RorkAvatarOnboardingGate from '@/components/character/RorkAvatarOnboardingGate';
+import { isBuklodClassroomApp } from '@/lib/buklodAppTarget';
 
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   return (
@@ -40,6 +42,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 }
 
 export function SuspenseFallback() {
+  const classroomApp = isBuklodClassroomApp();
   return (
     <View style={styles.loading}>
       <ActivityIndicator color={colors.green} />
@@ -49,7 +52,7 @@ export function SuspenseFallback() {
           color: colors.muted,
         }}
       >
-        Loading BUKLOD...
+        {classroomApp ? 'Loading BUKLOD Classroom...' : 'Loading BUKLOD...'}
       </Text>
     </View>
   );
@@ -60,6 +63,8 @@ import { BuklodOfflineSyncProvider } from '@/providers/BuklodOfflineSyncProvider
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 export default function RootLayout() {
+  const classroomApp = isBuklodClassroomApp();
+
   return (
     <SafeAreaProvider>
     <GestureHandlerRootView
@@ -69,9 +74,9 @@ export default function RootLayout() {
         <BuklodBibleNarrationProvider>
         <BuklodThemeProvider>
         <BuklodCharacterEventProvider>
-        <RorkAvatarOnboardingGate />
+        {!classroomApp ? <RorkAvatarOnboardingGate /> : null}
         <BuklodScopeProvider>
-        <BuklodFormationEntryScopeTracker />
+        {!classroomApp ? <BuklodFormationEntryScopeTracker /> : null}
         <BuklodFoundationProvider>
       <NetworkProvider>
         <BuklodOfflineSyncProvider>
@@ -82,12 +87,13 @@ export default function RootLayout() {
             <StreamVideoProvider>
             <BuklodRootKeyboardAvoidingView style={{ flex: 1 }}>
               <OfflineBanner/>
-              <BuklodPublishBanner />
-              <BuklodEntitlementRouteGuard />
-              <BuklodFocusAppRouteGuard />
-              <BuklodCanonicalNavigationGuard />
-              <BuklodClusterInviteDeepLinkHandler />
-              <BuklodAttendanceDeepLinkHandler />
+              {!classroomApp ? <BuklodPublishBanner /> : null}
+              {!classroomApp ? <BuklodEntitlementRouteGuard /> : null}
+              {!classroomApp ? <BuklodFocusAppRouteGuard /> : null}
+              {!classroomApp ? <BuklodCanonicalNavigationGuard /> : null}
+              {!classroomApp ? <BuklodClusterInviteDeepLinkHandler /> : null}
+              {!classroomApp ? <BuklodAttendanceDeepLinkHandler /> : null}
+              <ClassroomExtensionRouteGuard />
               <BuklodNavSafeShell>
               <Stack
                 screenOptions={{
@@ -97,6 +103,7 @@ export default function RootLayout() {
                 }}
               >
                 <Stack.Screen name="index" />
+                <Stack.Screen name="classroom/index" />
                 <Stack.Screen name="child-safety" />
                 <Stack.Screen name="(auth)" />
                 <Stack.Screen name="privacy/index" />
@@ -152,12 +159,6 @@ export default function RootLayout() {
                 <Stack.Screen name="church/directory/settings" />
                 <Stack.Screen name="church/member/[id]" />
                 <Stack.Screen name="church/household/index" />
-                
-                
-                
-                
-                
-                
                 <Stack.Screen name="pilot/welcome" />
                 <Stack.Screen name="pilot/checklist" />
                 <Stack.Screen name="support/index" />
@@ -225,7 +226,6 @@ export default function RootLayout() {
                 <Stack.Screen name="admin/member-care/[id]" />
                 <Stack.Screen name="admin/visitors/index" />
                 <Stack.Screen name="admin/visitors/[id]" />
-                
                 <Stack.Screen name="admin/privacy/index" />
                 <Stack.Screen name="admin/content-reports" />
                 <Stack.Screen name="admin/system-announcement-boards" />
@@ -236,8 +236,7 @@ export default function RootLayout() {
               </BuklodNavSafeShell>
             </BuklodRootKeyboardAvoidingView>
             </StreamVideoProvider>
-                      {/* PATCH_163A_R_ROOT_GUIDE */}
-            <BuklodGuideAvatar />
+            {!classroomApp ? <BuklodGuideAvatar /> : null}
           </NotificationProvider>
     </AdsProvider>
           </RuntimeConfigProvider>
@@ -263,4 +262,3 @@ const styles=StyleSheet.create({
   retry:{marginTop:18,backgroundColor:colors.green,paddingVertical:12,paddingHorizontal:18,borderRadius:12},
   retryText:{color:colors.white,fontWeight:'900'}
 });
-
