@@ -1,0 +1,53 @@
+name: BUKLOD Visible Progress Cluster Delta Diagnostic
+
+on:
+  push:
+    branches:
+      - visible-progress-20260908-r1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  SNAPSHOT_BASE: 9a76634bc69bf08b33057a19a1b31271f5237bd5
+  OVERLAY_B64_SHA256: 8e2dd0c322953d9705345b4c11024aaf6f1ef877ff37252eeae7b783b89ccaa5
+  OVERLAY_XZ_SHA256: b9bd83105b7d38e4ed64cc68eada6c2f785d8654b3d9263bfe487bdb871cf9b5
+
+jobs:
+  cluster-local-delta:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: visible-progress-20260908-r1
+      - name: Reconstruct verified overlay
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat \
+            .github/visible-progress-overlay/part-00.txt \
+            .github/visible-progress-overlay/part-01.txt \
+            .github/visible-progress-overlay/p-10.txt \
+            .github/visible-progress-overlay/p-11.txt \
+            .github/visible-progress-overlay/p-12.txt \
+            .github/visible-progress-overlay/p-13a.txt \
+            .github/visible-progress-overlay/p-13b.txt \
+            .github/visible-progress-overlay/p-14a.txt \
+            .github/visible-progress-overlay/p-14b.txt \
+            .github/visible-progress-overlay/part-03.txt > /tmp/overlay.b64
+          test "$(sha256sum /tmp/overlay.b64 | awk '{print $1}')" = "$OVERLAY_B64_SHA256"
+          base64 -d /tmp/overlay.b64 > /tmp/overlay.xz
+          test "$(sha256sum /tmp/overlay.xz | awk '{print $1}')" = "$OVERLAY_XZ_SHA256"
+          mkdir -p /tmp/overlay
+          xz -dc /tmp/overlay.xz | tar -xf - -C /tmp/overlay
+      - name: Print exact Cluster Home local-only delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          git show "$SNAPSHOT_BASE:src/components/BuklodClusterHomeCommandCenter.tsx" > /tmp/base.tsx
+          test -f /tmp/overlay/src/components/BuklodClusterHomeCommandCenter.tsx
+          diff -u --label SNAPSHOT_BASE --label LOCAL_WIP \
+            /tmp/base.tsx \
+            /tmp/overlay/src/components/BuklodClusterHomeCommandCenter.tsx || true
