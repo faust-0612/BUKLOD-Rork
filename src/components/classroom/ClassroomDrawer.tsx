@@ -44,6 +44,7 @@ const ITEMS: DrawerItem[] = [
   { key: 'attendance', label: 'Attendance', icon: 'calendar-check-outline', route: '/profile/buklod-classroom-attendance', roles: ['STUDENT'] },
   { key: 'grades', label: 'My Grades', icon: 'school-outline', route: '/profile/buklod-classroom-grades', roles: ['STUDENT'] },
   { key: 'monitor', label: 'Class Monitor', icon: 'chart-timeline-variant-shimmer', route: '/profile/buklod-classroom-monitor' },
+  { key: 'live-review', label: 'Live Review', icon: 'clipboard-alert-outline', route: '/profile/buklod-faculty-live-review', roles: ['FACULTY'] },
   { key: 'faculty', label: 'Faculty Command Center', icon: 'human-male-board', route: '/profile/buklod-faculty-class', roles: ['FACULTY'] },
 ];
 
