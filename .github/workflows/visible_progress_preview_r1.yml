@@ -74,6 +74,37 @@ jobs:
             test -f "$theirs"
             mkdir -p "$(dirname "$f")"
 
+            # Targeted semantic reconciliation: production changed the Faculty
+            # dashboard in the same region where the local Quiz integration was
+            # added. Preserve the entire current production file and insert only
+            # the verified local Quiz section before Faculty Autopilot.
+            if [ "$f" = "src/app/profile/buklod-faculty.tsx" ]; then
+              python - "$f" "$theirs" <<'PYMERGE'
+import sys
+from pathlib import Path
+
+current_path = Path(sys.argv[1])
+theirs_path = Path(sys.argv[2])
+current = current_path.read_text()
+theirs = theirs_path.read_text()
+marker = '        {/* BUKLOD_FACULTY_QUIZ_INTEGRATION_R1 */}'
+anchor = '<Text style={styles.sectionTitle}>Faculty Autopilot</Text>'
+
+if marker in current:
+    raise SystemExit(0)
+if marker not in theirs:
+    raise SystemExit('REFUSED: Faculty Quiz integration marker missing from local overlay.')
+start = theirs.index(marker)
+end = theirs.index(anchor, start)
+block = theirs[start:end]
+if anchor not in current:
+    raise SystemExit('REFUSED: Faculty Autopilot anchor missing from current production source.')
+current = current.replace(anchor, block + anchor, 1)
+current_path.write_text(current)
+PYMERGE
+              continue
+            fi
+
             if git cat-file -e "$SNAPSHOT_BASE:$f" 2>/dev/null; then
               if [ ! -f "$f" ]; then
                 echo "REFUSED: newer production deleted $f; no resurrection without semantic review."
@@ -122,7 +153,7 @@ jobs:
           grep -F 'BUKLOD_5K_SCALE_R1_NOTIFICATION_NO_CDC' src/providers/NotificationProvider.tsx
           grep -F 'HIGH_CONCURRENCY_LOGIN_R1' 'src/app/(auth)/login.tsx'
           grep -F 'BUKLOD_CLASSROOM_ACCOUNT_ISOLATION_R2' src/app/profile/buklod-classrooms.tsx
-          grep -F 'HOME_IDENTITY_ACTION_ROW_R2' 'src/app/(tabs)/home.tsx'
+          grep -F 'HOME_IDENTITY_ACTION_ROW_R2' 'src/app/(tabs)/home.tsx
           if grep -F 'postgres_changes' 'src/app/notifications/index.tsx'; then
             echo 'REFUSED: stale notification-center CDC was reintroduced.'
             exit 1
