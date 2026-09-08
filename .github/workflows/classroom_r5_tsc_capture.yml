@@ -1,0 +1,48 @@
+name: BUKLOD Classroom R5 TypeScript Capture
+
+on:
+  push:
+    branches:
+      - fix/classroom-separate-identity-r5-20260909
+    paths:
+      - '.github/workflows/classroom_r5_tsc_capture.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/classroom-separate-identity-r5-20260909
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Capture TypeScript result
+        shell: bash
+        run: |
+          set +e
+          npx tsc --noEmit > /tmp/tsc.log 2>&1
+          code=$?
+          mkdir -p .diagnostics
+          if [ "$code" -eq 0 ]; then
+            echo 'TSC_PASS' > .diagnostics/classroom-r5-tsc.log
+          else
+            cp /tmp/tsc.log .diagnostics/classroom-r5-tsc.log
+          fi
+          printf '\nTSC_EXIT_CODE=%s\n' "$code" >> .diagnostics/classroom-r5-tsc.log
+          cat .diagnostics/classroom-r5-tsc.log
+          exit 0
+      - name: Commit diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'BUKLOD Classroom Automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add .diagnostics/classroom-r5-tsc.log
+          git commit -m 'diagnostic: capture Classroom R5 TypeScript result'
+          git push origin HEAD:fix/classroom-separate-identity-r5-20260909
