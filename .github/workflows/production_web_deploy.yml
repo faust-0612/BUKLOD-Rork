@@ -37,6 +37,8 @@ on:
       - 'src/hooks/useBuklodConnectUnread.ts'
       - 'src/providers/NotificationProvider.tsx'
       - 'src/app/profile/buklod-faculty-class.tsx'
+      - 'src/app/profile/buklod-faculty.tsx'
+      - 'src/app/profile/buklod-faculty-quiz-results.tsx'
       - 'src/app/profile/buklod-classroom*.tsx'
       - 'src/components/classroom/**'
       - 'src/components/BuklodNavSafeShell.web.tsx'

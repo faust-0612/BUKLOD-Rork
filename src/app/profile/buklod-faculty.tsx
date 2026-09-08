@@ -259,7 +259,85 @@ export default function BuklodFacultyScreen() {
           ))
         )}
 
-        <Text style={styles.sectionTitle}>Faculty Autopilot</Text>
+                {/* BUKLOD_FACULTY_QUIZ_INTEGRATION_R1 */}
+        <Text style={styles.sectionTitle}>BUKLOD Quiz</Text>
+
+        <Pressable
+          onPress={async () => {
+            const { data,error } = await supabase.rpc(
+              'buklod_quiz_examiner_access_status_v1',
+            );
+
+            if (error) {
+              Alert.alert('BUKLOD Quiz Examiner',error.message);
+              return;
+            }
+
+            const access:any = Array.isArray(data) ? data[0] : data;
+
+            if (!access?.can_conduct) {
+              Alert.alert(
+                'BUKLOD Quiz Examiner Locked',
+                'Examiner access requires: (1) an active BUKLOD Faculty Focus App purchased in My Focus Apps, (2) Faculty admin ownership of an active classroom, and (3) an active Quiz examiner role. System Admin retains emergency platform access.',
+                [
+                  { text:'Cancel',style:'cancel' },
+                  {
+                    text:'Open My Focus Apps',
+                    onPress:() => router.push('/profile/focus-apps' as any),
+                  },
+                ],
+              );
+              return;
+            }
+
+            const Linking = require('react-native').Linking;
+            await Linking.openURL('https://buklod-quiz.expo.app');
+          }}
+          style={{
+            flexDirection:'row',
+            alignItems:'center',
+            gap:12,
+            backgroundColor:'#e8f4ea',
+            borderRadius:17,
+            padding:15,
+            marginBottom:9,
+          }}
+        >
+          <MaterialCommunityIcons name="shield-account-outline" size={25} color="#1f7a3f" />
+          <View style={{ flex:1 }}>
+            <Text style={{ color:'#24362b',fontWeight:'900' }}>Open BUKLOD Quiz Examiner</Text>
+            <Text style={{ color:'#68736b',lineHeight:18,marginTop:3 }}>
+              Available only to an eligible BUKLOD Faculty Focus App admin/examiner.
+            </Text>
+          </View>
+          <MaterialCommunityIcons name="open-in-new" size={20} color="#1f7a3f" />
+        </Pressable>
+
+        <Pressable
+          onPress={() =>
+            router.push('/profile/buklod-faculty-quiz-results' as any)
+          }
+          style={{
+            flexDirection:'row',
+            alignItems:'center',
+            gap:12,
+            backgroundColor:'#fff',
+            borderRadius:17,
+            padding:15,
+            marginBottom:18,
+          }}
+        >
+          <MaterialCommunityIcons name="file-chart-outline" size={25} color="#1f7a3f" />
+          <View style={{ flex:1 }}>
+            <Text style={{ color:'#24362b',fontWeight:'900' }}>Released Quiz Results</Text>
+            <Text style={{ color:'#68736b',lineHeight:18,marginTop:3 }}>
+              View BUKLOD Quiz results only after the examiner has officially released them.
+            </Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={22} color="#1f7a3f" />
+        </Pressable>
+
+<Text style={styles.sectionTitle}>Faculty Autopilot</Text>
         <Text style={styles.toolText}>
           {activeClasses.length > 1
             ? 'Choose a class, then open the tool. Work stays inside that classroom.'
