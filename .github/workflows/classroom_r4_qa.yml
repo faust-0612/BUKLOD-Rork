@@ -53,6 +53,7 @@ jobs:
           grep -F "ClassroomLiveAutomationLayer" src/components/classroom/ClassroomLiveView.native.tsx
           grep -F "CameraView" src/components/classroom/ClassroomLiveView.native.tsx
           grep -F "create_breakouts" src/components/classroom/ClassroomLiveView.native.tsx
+          grep -F "participant_active" src/components/classroom/ClassroomLiveView.native.tsx
           grep -F "NO_RESPONSE_NETWORK_REVIEW" src/components/classroom/ClassroomLiveAutomationLayer.tsx
           grep -F "BUKLOD_CLASSROOM_NATIVE_ROLLING" src/components/classroom/ClassroomLiveAutomationLayer.tsx
           grep -F "sustained_degraded" src/components/classroom/ClassroomLiveAutomationLayer.tsx
@@ -67,3 +68,5 @@ jobs:
           grep -F "proposal_only" supabase/migrations/20260908004000_classroom_live_attendance_isolation_r4.sql
           grep -F "buklod_classroom_live_policy_v1" supabase/migrations/20260908005000_classroom_live_policy_r4.sql
           grep -F "create_breakouts" supabase/functions/buklod-classroom-stream-access/index.ts
+          grep -F "participant_active" supabase/functions/buklod-classroom-stream-access/index.ts
+          grep -F "openRows" supabase/functions/buklod-classroom-stream-access/index.ts
