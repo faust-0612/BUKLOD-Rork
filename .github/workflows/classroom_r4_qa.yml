@@ -26,6 +26,14 @@ jobs:
           grep -F "uploadClassroomObject" src/lib/education/classroomTransfer.ts
           grep -F "desiredStudentMedia" src/lib/education/classroomLiveState.ts
           grep -F "BuklodAcceptedCallContent" src/components/classroom/ClassroomLiveView.native.tsx
+          grep -F "ClassroomLiveAutomationLayer" src/components/classroom/ClassroomLiveView.native.tsx
           grep -F "CameraView" src/components/classroom/ClassroomLiveView.native.tsx
           grep -F "create_breakouts" src/components/classroom/ClassroomLiveView.native.tsx
+          grep -F "NO_RESPONSE_NETWORK_REVIEW" src/components/classroom/ClassroomLiveAutomationLayer.tsx
+          grep -F "NoiseCancellationProvider" src/components/classroom/ClassroomLiveAutomationLayer.tsx
           grep -F "saveClassroomFileToDevice" src/app/profile/buklod-classroom-materials.tsx
+          grep -F "buklod_classroom_finalize_live_attendance_v1" src/app/profile/buklod-faculty-live-review.tsx
+          grep -F "buklod_classroom_live_attendance_proposals_v1" supabase/migrations/20260908001000_classroom_live_native_completion_r4.sql
+          grep -F "buklod_classroom_interaction_reviews_v1" supabase/migrations/20260908002000_classroom_interaction_review_queue_r4.sql
+          grep -F "buklod_classroom_finalize_live_attendance_v1" supabase/migrations/20260908003000_classroom_live_attendance_finalize_r4.sql
+          grep -F "create_breakouts" supabase/functions/buklod-classroom-stream-access/index.ts
