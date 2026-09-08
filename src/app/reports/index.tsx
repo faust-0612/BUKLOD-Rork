@@ -174,7 +174,7 @@ export default function BuklodReportLandingScreen() {
                 style={({ pressed }) => [styles.manageButton, pressed && styles.pressed]}
               >
                 <MaterialCommunityIcons
-                  name="clipboard-text-cog-outline"
+                  name="clipboard-text-clock-outline"
                   size={20}
                   color={colors.greenDark}
                 />
