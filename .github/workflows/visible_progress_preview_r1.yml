@@ -1,0 +1,208 @@
+name: BUKLOD Visible Progress Preview R1
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - visible-progress-20260908-r1
+
+permissions:
+  contents: write
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  PROTECTED_BASELINE: 7b87f5da60950518cd9dbc2a38db40137cdc268e
+  SNAPSHOT_BASE: 9a76634bc69bf08b33057a19a1b31271f5237bd5
+  OVERLAY_B64_SHA256: 8e2dd0c322953d9705345b4c11024aaf6f1ef877ff37252eeae7b783b89ccaa5
+  OVERLAY_XZ_SHA256: b9bd83105b7d38e4ed64cc68eada6c2f785d8654b3d9263bfe487bdb871cf9b5
+
+jobs:
+  visible-progress-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout visible-progress branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: visible-progress-20260908-r1
+
+      - name: Verify branch starts from protected production baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor "$PROTECTED_BASELINE" HEAD
+          git cat-file -e "$SNAPSHOT_BASE^{commit}"
+          echo "Protected baseline and snapshot base are available."
+
+      - name: Reconstruct and verify current-work overlay
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat \
+            .github/visible-progress-overlay/part-00.txt \
+            .github/visible-progress-overlay/part-01.txt \
+            .github/visible-progress-overlay/p-10.txt \
+            .github/visible-progress-overlay/p-11.txt \
+            .github/visible-progress-overlay/p-12.txt \
+            .github/visible-progress-overlay/p-13a.txt \
+            .github/visible-progress-overlay/p-13b.txt \
+            .github/visible-progress-overlay/p-14a.txt \
+            .github/visible-progress-overlay/p-14b.txt \
+            .github/visible-progress-overlay/part-03.txt \
+            > /tmp/buklod-visible-overlay.b64
+          ACTUAL_B64="$(sha256sum /tmp/buklod-visible-overlay.b64 | awk '{print $1}')"
+          test "$ACTUAL_B64" = "$OVERLAY_B64_SHA256"
+          base64 -d /tmp/buklod-visible-overlay.b64 > /tmp/buklod-visible-overlay.xz
+          ACTUAL_XZ="$(sha256sum /tmp/buklod-visible-overlay.xz | awk '{print $1}')"
+          test "$ACTUAL_XZ" = "$OVERLAY_XZ_SHA256"
+          mkdir -p /tmp/buklod-visible-overlay
+          xz -dc /tmp/buklod-visible-overlay.xz | tar -xf - -C /tmp/buklod-visible-overlay
+          test -s /tmp/buklod-visible-overlay/OVERLAY_FILES.txt
+          test -s /tmp/buklod-visible-overlay/OMITTED_STALE.txt
+          echo "Overlay archive verified byte-for-byte."
+          cat /tmp/buklod-visible-overlay/OVERLAY_FILES.txt
+          echo "Deliberately omitted stale source:"
+          cat /tmp/buklod-visible-overlay/OMITTED_STALE.txt
+
+      - name: Forward-reconcile current work onto protected production
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r f || [ -n "$f" ]; do
+            [ -z "$f" ] && continue
+            theirs="/tmp/buklod-visible-overlay/$f"
+            test -f "$theirs"
+            mkdir -p "$(dirname "$f")"
+
+            if git cat-file -e "$SNAPSHOT_BASE:$f" 2>/dev/null; then
+              if [ ! -f "$f" ]; then
+                echo "REFUSED: newer production deleted $f; no resurrection without semantic review."
+                exit 1
+              fi
+              base_tmp="$(mktemp)"
+              current_tmp="$(mktemp)"
+              merged_tmp="$(mktemp)"
+              git show "$SNAPSHOT_BASE:$f" > "$base_tmp"
+              cp "$f" "$current_tmp"
+              set +e
+              git merge-file -p "$current_tmp" "$base_tmp" "$theirs" > "$merged_tmp"
+              rc=$?
+              set -e
+              if [ "$rc" -ne 0 ]; then
+                echo "REFUSED: three-way conflict in $f (merge-file rc=$rc)."
+                exit 1
+              fi
+              cp "$merged_tmp" "$f"
+              rm -f "$base_tmp" "$current_tmp" "$merged_tmp"
+            else
+              if [ -e "$f" ]; then
+                if ! cmp -s "$f" "$theirs"; then
+                  echo "REFUSED: $f is new in both current production and local overlay with different content."
+                  exit 1
+                fi
+              else
+                cp "$theirs" "$f"
+              fi
+            fi
+          done < /tmp/buklod-visible-overlay/OVERLAY_FILES.txt
+
+          git diff --check
+          if git diff | grep -E '^\+(<<<<<<<|=======|>>>>>>>)'; then
+            echo 'REFUSED: conflict marker detected.'
+            exit 1
+          fi
+
+      - name: Zero-regression and no-native-drift gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git diff --name-only "$PROTECTED_BASELINE" -- package.json package-lock.json app.config.js eas.json android ios)"
+          test -z "$(git diff --name-only "$PROTECTED_BASELINE" -- supabase)"
+          test -z "$(git diff --name-only "$PROTECTED_BASELINE" -- 'src/app/notifications/index.tsx')"
+          grep -F 'BUKLOD_5K_SCALE_R1_NOTIFICATION_NO_CDC' src/providers/NotificationProvider.tsx
+          grep -F 'HIGH_CONCURRENCY_LOGIN_R1' 'src/app/(auth)/login.tsx'
+          grep -F 'BUKLOD_CLASSROOM_ACCOUNT_ISOLATION_R2' src/app/profile/buklod-classrooms.tsx
+          grep -F 'HOME_IDENTITY_ACTION_ROW_R2' 'src/app/(tabs)/home.tsx'
+          if grep -F 'postgres_changes' 'src/app/notifications/index.tsx'; then
+            echo 'REFUSED: stale notification-center CDC was reintroduced.'
+            exit 1
+          fi
+          echo 'No native/config/DB drift and protected anchors preserved.'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: TypeScript safety gate
+        run: npx tsc --noEmit
+
+      - name: Fresh preview web export
+        run: npx expo export --platform web --output-dir dist
+
+      - name: Expo credential preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          npx eas-cli@latest whoami
+
+      - name: Freeze exact visible-progress source on branch
+        id: freeze
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'buklod-release-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          while IFS= read -r f || [ -n "$f" ]; do
+            [ -z "$f" ] && continue
+            git add -- "$f"
+          done < /tmp/buklod-visible-overlay/OVERLAY_FILES.txt
+          if git diff --cached --quiet; then
+            echo 'No source delta after reconciliation.'
+          else
+            git commit -m 'preview: forward-reconcile current visible progress R1'
+            git push origin HEAD:visible-progress-20260908-r1
+          fi
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          git status --short
+
+      - name: Deploy preview web alias
+        id: web
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest deploy --alias visible-progress-r1 --environment preview --non-interactive 2>&1 | tee visible-web-output.txt
+
+      - name: Publish Android test OTA
+        id: ota
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest update \
+            --channel preview \
+            --platform android \
+            --environment preview \
+            --message "BUKLOD visible progress R1 ${{ steps.freeze.outputs.sha }}" \
+            --non-interactive 2>&1 | tee visible-ota-output.txt
+
+      - name: Preserve preview delivery outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-visible-progress-r1-${{ github.run_number }}
+          path: |
+            visible-web-output.txt
+            visible-ota-output.txt
+          if-no-files-found: ignore
+
+      - name: Visible progress completion marker
+        shell: bash
+        run: |
+          echo "VISIBLE_PROGRESS_SOURCE=${{ steps.freeze.outputs.sha }}"
+          echo 'Preview web deploy and Android preview OTA both completed.'
+          echo 'Protected production main was not modified.'
