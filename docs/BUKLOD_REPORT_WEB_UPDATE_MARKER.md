@@ -1,0 +1,1 @@
+BUKLOD Report web update scope: smart import, reminder card, export, authenticated weekly persistence, official branding, end-to-end QA and production web deployment.
