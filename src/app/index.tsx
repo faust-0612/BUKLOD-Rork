@@ -12,20 +12,21 @@ import {
 import { useCompliance } from '@/providers/ComplianceProvider';
 import { colors } from '@/lib/theme';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
+import { CLASSROOM_APP_IDENTITY, isClassroomApp } from '@/lib/appTarget';
 
 export default function Index() {
   const { session, loading, profile } = useAuth();
   const { loading: complianceLoading, requiresAcceptance } = useCompliance();
   const { loading: runtimeLoading, config } = useRuntimeConfig();
+  const classroomApp = isClassroomApp();
 
   /*
    * BUKLOD_PUBLIC_BOOT_R21
    *
-   * A fresh app/web boot with an existing session is PERSONAL/GLOBAL.
-   * Never restore a stale Organization/Cluster/Mission Worker workspace as
-   * the automatic landing context. Reset to PUBLIC first, then open Connect.
-   * Managed workspaces remain available only when the user explicitly opens
-   * them again from the scope/workspace controls.
+   * Main keeps its existing PUBLIC/global boot behavior.
+   * The standalone Classroom target must never inherit Main's automatic
+   * Public -> Connect landing path; once auth/compliance are ready it opens
+   * the dedicated Classroom shell instead.
    */
   const {
     activeScope,
@@ -49,6 +50,12 @@ export default function Index() {
     ) {
       publicResetInFlight.current = false;
       setBootReady(false);
+      return;
+    }
+
+    if (classroomApp) {
+      publicResetInFlight.current = false;
+      setBootReady(true);
       return;
     }
 
@@ -94,16 +101,13 @@ export default function Index() {
     }
 
     if (!scopeLoading) {
-      /*
-       * Defensive fallback for accounts where PUBLIC scope could not be
-       * loaded. Do not hold the whole app forever.
-       */
       setBootReady(true);
     }
   }, [
     session?.user?.id,
     loading,
     profile,
+    classroomApp,
     scopeLoading,
     activeScope?.scope_id,
     activeScope?.scope_type,
@@ -129,14 +133,6 @@ export default function Index() {
   if (config?.pilot_access_required && !config?.pilot_access_granted) return <Redirect href="/system/pilot-access" />;
   if (requiresAcceptance) return <Redirect href="/privacy/consent" />;
 
-  /*
-   * BUKLOD_LEGACY_VERIFICATION_REMOVAL_R22
-   * Account/admin verification is no longer an application-wide gate.
-   * A valid signed-in BUKLOD account enters the normal app immediately.
-   * Organization/Cluster membership and feature-specific permissions remain
-   * enforced only where those features actually require them.
-   */
-
   if (!bootReady) {
     return (
       <View
@@ -153,6 +149,10 @@ export default function Index() {
         />
       </View>
     );
+  }
+
+  if (classroomApp) {
+    return <Redirect href={CLASSROOM_APP_IDENTITY.homeRoute as any} />;
   }
 
   return (
