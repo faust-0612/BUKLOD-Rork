@@ -7,6 +7,12 @@ module.exports = ({ config }) => {
   /* BUKLOD_CLASSROOM_APP_TARGET_R4 — standalone identity without mutating Main defaults */
   const appTarget = (process.env.BUKLOD_APP_TARGET || 'main').trim().toLowerCase();
   const isClassroom = appTarget === 'classroom';
+  const classroomIdentityRequired = process.env.CLASSROOM_IDENTITY_REQUIRED === '1';
+
+  if (classroomIdentityRequired && !isClassroom) {
+    throw new Error('BUKLOD Classroom identity guard: BUKLOD_APP_TARGET must be classroom.');
+  }
+
   const classroomProjectId = '14100ed1-7f25-4551-9627-09d280498241';
   const classroomGoogleServicesFile = (process.env.CLASSROOM_GOOGLE_SERVICES_FILE || '').trim();
   const projectId = isClassroom

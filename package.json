@@ -22,7 +22,12 @@
     "production:dry-run": "bash scripts/production-cutover.sh",
     "production:android": "bash scripts/build-android-production.sh",
     "play:draft": "bash scripts/submit-google-play-draft.sh",
-    "play:internal": "bash scripts/submit-google-play-internal.sh"
+    "play:internal": "bash scripts/submit-google-play-internal.sh",
+    "classroom:identity:check": "node scripts/assert-classroom-identity.mjs",
+    "classroom:config": "node scripts/run-classroom-command.mjs config",
+    "classroom:export:web": "node scripts/run-classroom-command.mjs export-web",
+    "classroom:prebuild:android": "node scripts/run-classroom-command.mjs prebuild-android",
+    "eas-build-pre-install": "node scripts/assert-classroom-identity.mjs"
   },
   "jest": {
     "preset": "jest-expo",

@@ -116,7 +116,10 @@
         "BUKLOD_APP_TARGET": "classroom",
         "APP_VARIANT": "staging",
         "EXPO_PUBLIC_APP_ENV": "staging",
-        "CLASSROOM_GOOGLE_SERVICES_FILE": "./google-services.classroom.json"
+        "CLASSROOM_GOOGLE_SERVICES_FILE": "./google-services.classroom.json",
+        "CLASSROOM_IDENTITY_REQUIRED": "1",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://yhanxndaqbmuzbdqlblu.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_RWvrYHzgLMvBousgwn4dTg_QawYzwRS"
       },
       "android": {
         "buildType": "apk"
@@ -129,7 +132,10 @@
         "BUKLOD_APP_TARGET": "classroom",
         "APP_VARIANT": "production",
         "EXPO_PUBLIC_APP_ENV": "production",
-        "CLASSROOM_GOOGLE_SERVICES_FILE": "./google-services.classroom.json"
+        "CLASSROOM_GOOGLE_SERVICES_FILE": "./google-services.classroom.json",
+        "CLASSROOM_IDENTITY_REQUIRED": "1",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://yhanxndaqbmuzbdqlblu.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_RWvrYHzgLMvBousgwn4dTg_QawYzwRS"
       },
       "android": {
         "buildType": "app-bundle"
