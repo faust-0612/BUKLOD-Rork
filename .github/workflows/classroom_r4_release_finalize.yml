@@ -1,0 +1,139 @@
+name: BUKLOD Classroom R4 Release Finalize
+
+on:
+  push:
+    branches:
+      - release/classroom-r4-apk-rc1-20260908
+    paths:
+      - '.github/workflows/classroom_r4_release_finalize.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  BUKLOD_APP_TARGET: classroom
+  APP_VARIANT: production
+  EXPO_PUBLIC_APP_ENV: production
+  CLASSROOM_GOOGLE_SERVICES_FILE: ./google-services.classroom.json
+  APP_SOURCE_SHA: 7e4c17717b372ae623629ff1d7e4f10ab705fd81
+  APK_BUILD_ID: 4d4a2bb2-fbb8-4468-9414-25c0623160da
+  APK_URL: https://expo.dev/artifacts/eas/Y3RVI1FFFYPx7XyDJjUczLos54YQ19nF_HqUT7e_lCU.apk
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact verified Classroom source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.APP_SOURCE_SHA }}
+          fetch-depth: 1
+
+      - name: Exact source guard
+        shell: bash
+        run: |
+          actual="$(git rev-parse HEAD)"
+          echo "SOURCE_SHA=${actual}"
+          test "$actual" = "$APP_SOURCE_SHA"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Final source identity and TypeScript gate
+        shell: bash
+        run: |
+          npx expo config --type public --json > /tmp/classroom-config.json
+          node <<'NODE'
+          const fs = require('fs');
+          const assert = require('node:assert/strict');
+          const c = JSON.parse(fs.readFileSync('/tmp/classroom-config.json','utf8'));
+          assert.equal(c.name, 'BUKLOD Classroom');
+          assert.equal(c.slug, 'buklod-classroom');
+          assert.equal(c.android.package, 'org.mzbministry.buklod.classroom');
+          assert.equal(c.extra?.eas?.projectId, '14100ed1-7f25-4551-9627-09d280498241');
+          console.log('FINAL_CLASSROOM_IDENTITY=PASS');
+          NODE
+          npx tsc --noEmit
+
+      - name: Fresh production web export
+        run: npx expo export --platform web --output-dir dist-classroom-release
+
+      - name: Deploy exact Classroom web export to production
+        shell: bash
+        run: |
+          set -o pipefail
+          npx eas-cli@latest deploy --prod --non-interactive --environment production --export-dir dist-classroom-release 2>&1 | tee classroom-web-deploy.txt
+
+      - name: Verify production Classroom web runtime
+        shell: bash
+        run: |
+          status="$(curl -L -sS --retry 12 --retry-delay 5 --retry-all-errors -o /tmp/classroom-live.html -w '%{http_code}' https://buklod-classroom.expo.app/)"
+          echo "CLASSROOM_WEB_HTTP=${status}" | tee classroom-web-runtime.txt
+          test "$status" = '200'
+          test -s /tmp/classroom-live.html
+          grep -Eq '<script|_expo' /tmp/classroom-live.html
+
+      - name: Download exact finished APK artifact
+        shell: bash
+        run: |
+          curl -L --fail --retry 8 --retry-delay 5 --retry-all-errors "$APK_URL" -o BUKLOD-Classroom-1.3.0-v20.apk
+          test -s BUKLOD-Classroom-1.3.0-v20.apk
+          unzip -tq BUKLOD-Classroom-1.3.0-v20.apk
+          sha256sum BUKLOD-Classroom-1.3.0-v20.apk | tee classroom-apk-sha256.txt
+          stat -c 'APK_SIZE_BYTES=%s' BUKLOD-Classroom-1.3.0-v20.apk | tee classroom-apk-size.txt
+
+      - name: Inspect APK package, version and signature
+        shell: bash
+        run: |
+          AAPT="$(find "${ANDROID_HOME}/build-tools" -type f -name aapt 2>/dev/null | sort -V | tail -1)"
+          APKSIGNER="$(find "${ANDROID_HOME}/build-tools" -type f -name apksigner 2>/dev/null | sort -V | tail -1)"
+          test -n "$AAPT" && test -x "$AAPT"
+          test -n "$APKSIGNER" && test -x "$APKSIGNER"
+          "$AAPT" dump badging BUKLOD-Classroom-1.3.0-v20.apk > classroom-apk-badging.txt
+          cat classroom-apk-badging.txt | head -40
+          grep -q "package: name='org.mzbministry.buklod.classroom'" classroom-apk-badging.txt
+          grep -q "versionCode='20'" classroom-apk-badging.txt
+          grep -q "versionName='1.3.0'" classroom-apk-badging.txt
+          "$APKSIGNER" verify --verbose --print-certs BUKLOD-Classroom-1.3.0-v20.apk > classroom-apk-signature.txt
+          grep -q 'Verifies' classroom-apk-signature.txt
+          echo 'APK_PACKAGE_VERSION_SIGNATURE=PASS' | tee classroom-apk-verification.txt
+
+      - name: Write final release evidence
+        shell: bash
+        run: |
+          {
+            echo "STATUS=APK_BUILT_AND_VERIFIED"
+            echo "SOURCE_SHA=${APP_SOURCE_SHA}"
+            echo "EAS_BUILD_ID=${APK_BUILD_ID}"
+            echo "APP_IDENTIFIER=org.mzbministry.buklod.classroom"
+            echo "APP_VERSION=1.3.0"
+            echo "VERSION_CODE=20"
+            echo "WEB_URL=https://buklod-classroom.expo.app"
+            echo "EAS_BUILD_PAGE=https://expo.dev/accounts/faust_0612/projects/buklod-classroom/builds/${APK_BUILD_ID}"
+          } | tee classroom-release-evidence.txt
+
+      - name: Upload verified APK and evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: BUKLOD-Classroom-1.3.0-v20-verified
+          path: |
+            BUKLOD-Classroom-1.3.0-v20.apk
+            classroom-apk-sha256.txt
+            classroom-apk-size.txt
+            classroom-apk-badging.txt
+            classroom-apk-signature.txt
+            classroom-apk-verification.txt
+            classroom-web-deploy.txt
+            classroom-web-runtime.txt
+            classroom-release-evidence.txt
+          if-no-files-found: error
+          retention-days: 30
