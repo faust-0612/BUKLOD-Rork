@@ -79,14 +79,40 @@ jobs:
               continue
             fi
 
-            # Local Cluster Home delta only randomized an obsolete realtime
-            # channel name. Current production intentionally removed that
-            # per-screen CDC subscription for scale stability. Preserve current
-            # architecture; the local delta is superseded, not missing.
-            if [ "$f" = "src/components/BuklodClusterHomeCommandCenter.tsx" ]; then
-              echo "SUPERSEDED: local Cluster Home channel-name edit is replaced by current no-CDC architecture."
-              continue
-            fi
+            case "$f" in
+              src/components/BuklodClusterHomeCommandCenter.tsx)
+                echo "SUPERSEDED: Cluster Home local channel-name edit is replaced by current no-CDC architecture."
+                continue
+                ;;
+              src/components/BuklodCommunityPhotoCollage.tsx)
+                echo "ALREADY_CURRENT: responsive Community collage behavior is already present in protected production."
+                continue
+                ;;
+              src/components/BuklodExclusiveScopeCommunity.tsx)
+                echo "SUPERSEDED: per-instance comment channel randomization is replaced by current shared realtime subscription."
+                continue
+                ;;
+              src/components/BuklodHomeScopeBulletins.tsx)
+                echo "SUPERSEDED: bulletin per-screen CDC channel is replaced by current focus-refresh architecture."
+                continue
+                ;;
+              src/lib/buklodCommunityPublishQueue.ts)
+                echo "ALREADY_CURRENT: detached publish failure handling is already present in protected production."
+                continue
+                ;;
+              src/lib/buklodCommunityWallMedia.ts)
+                echo "ALREADY_CURRENT: 1 GiB wall-media contract is already present in protected production."
+                continue
+                ;;
+              src/lib/uploadCommunityResumableTus.ts)
+                echo "ALREADY_CURRENT: web Blob/TUS support is already present in protected production."
+                continue
+                ;;
+              src/lib/uploadCommunityVideoFile.ts)
+                echo "ALREADY_CURRENT_PLUS_NEWER: web binary upload support is already present; preserve newer AWS wall-video routing."
+                continue
+                ;;
+            esac
 
             if git cat-file -e "$SNAPSHOT_BASE:$f" 2>/dev/null; then
               if [ ! -f "$f" ]; then
