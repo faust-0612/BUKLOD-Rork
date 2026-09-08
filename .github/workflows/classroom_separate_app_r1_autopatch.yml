@@ -1,0 +1,98 @@
+name: BUKLOD Classroom Separate App R1 Autopatch
+
+on:
+  push:
+    branches:
+      - fix/classroom-separate-app-r1-20260908
+    paths:
+      - 'scripts/patch-classroom-separate-app-r1.cjs'
+      - '.github/workflows/classroom_separate_app_r1_autopatch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  guarded-separation-patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout isolated Classroom fix branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/classroom-separate-app-r1-20260908
+          fetch-depth: 0
+
+      - name: Verify immutable starting ancestry
+        shell: bash
+        run: |
+          git merge-base --is-ancestor 7e4c17717b372ae623629ff1d7e4f10ab705fd81 HEAD
+          git status --short
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Apply smallest guarded separation patch
+        run: node scripts/patch-classroom-separate-app-r1.cjs
+
+      - name: Diff safety gate
+        shell: bash
+        run: |
+          git diff --name-only | sort > /tmp/changed.txt
+          cat /tmp/changed.txt
+          cat > /tmp/allowed.txt <<'EOF'
+          app.config.js
+          package.json
+          scripts/verify-classroom-identity.cjs
+          src/app/(auth)/login.tsx
+          src/app/_layout.tsx
+          src/app/classroom/index.tsx
+          src/app/index.tsx
+          src/app/profile/buklod-classroom.tsx
+          src/app/profile/buklod-classrooms.tsx
+          src/app/profile/buklod-faculty.tsx
+          src/components/BuklodNavSafeShell.tsx
+          src/lib/classroomAppIdentity.ts
+          EOF
+          sort -o /tmp/allowed.txt /tmp/allowed.txt
+          diff -u /tmp/allowed.txt /tmp/changed.txt
+          if grep -Eq '(^|/)(supabase|\.env|google-services|GoogleService-Info)|src/lib/supabase|AuthProvider' /tmp/changed.txt; then
+            echo 'Protected backend/auth/credential file changed unexpectedly.' >&2
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Fail-closed Classroom identity gate
+        env:
+          BUKLOD_APP_TARGET: classroom
+          APP_VARIANT: production
+          EXPO_PUBLIC_APP_ENV: production
+          CLASSROOM_GOOGLE_SERVICES_FILE: ./google-services.classroom.json
+        run: npm run classroom:identity
+
+      - name: TypeScript gate
+        env:
+          BUKLOD_APP_TARGET: classroom
+          APP_VARIANT: production
+          EXPO_PUBLIC_APP_ENV: production
+          CLASSROOM_GOOGLE_SERVICES_FILE: ./google-services.classroom.json
+        run: npx tsc --noEmit
+
+      - name: Existing Classroom reducer regression test
+        env:
+          BUKLOD_APP_TARGET: classroom
+        run: npx jest src/lib/education/classroomLiveState.test.ts --runInBand
+
+      - name: Commit only verified Classroom separation files
+        shell: bash
+        run: |
+          git config user.name 'BUKLOD Classroom Automation'
+          git config user.email 'actions@users.noreply.github.com'
+          while IFS= read -r file; do git add -- "$file"; done < /tmp/changed.txt
+          git diff --cached --name-only | sort > /tmp/staged.txt
+          diff -u /tmp/allowed.txt /tmp/staged.txt
+          git commit -m 'classroom: restore standalone runtime identity and shell'
+          git push origin HEAD:fix/classroom-separate-app-r1-20260908
