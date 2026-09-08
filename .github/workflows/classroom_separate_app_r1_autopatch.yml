@@ -39,6 +39,12 @@ jobs:
       - name: Diff safety gate
         shell: bash
         run: |
+          # Intent-to-add makes newly created source files visible to git diff
+          # without staging their contents before the safety comparison.
+          git add -N -- \
+            scripts/verify-classroom-identity.cjs \
+            src/app/classroom/index.tsx \
+            src/lib/classroomAppIdentity.ts
           git diff --name-only | sort > /tmp/changed.txt
           cat /tmp/changed.txt
           cat > /tmp/allowed.txt <<'EOF'
