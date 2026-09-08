@@ -1,6 +1,6 @@
 /**
  * Report domain API — thin client over canonical backend RPCs.
- * Workflows return empty until Phase 3+; resolver enforces backend auth.
+ * ONE backend for Main BUKLOD and the BUKLOD Report focus app.
  */
 
 import { supabase } from '@/lib/supabase';
@@ -10,11 +10,48 @@ import {
   readReportResolvedContext,
   type BuklodReportPhase,
   type ReportAssignmentCard,
+  type ReportAssignmentStatus,
   type ReportDefinitionRow,
   type ReportDefinitionStatus,
   type ReportDefinitionUpsertInput,
+  type ReportHomeCardStatus,
   type ReportRecurrenceKind,
+  type ReportSubmissionStatus,
 } from '@/lib/buklodReportContracts';
+
+export type QuickWeeklyReportContext = {
+  scope_id: string;
+  scope_name: string;
+  scope_type: string;
+  report_definition_id: string;
+  report_period_id: string;
+  report_assignment_id: string;
+  period_title: string;
+  period_key: string;
+  deadline_at: string;
+  assignment_status: ReportAssignmentStatus;
+  submission_id: string | null;
+  submission_status: ReportSubmissionStatus | null;
+  content: Record<string, unknown>;
+};
+
+export type QuickWeeklySaveResult = {
+  scope_id: string;
+  report_definition_id: string;
+  report_period_id: string;
+  report_assignment_id: string;
+  submission_id: string;
+  assignment_status: ReportAssignmentStatus;
+  submission_status: ReportSubmissionStatus;
+  submitted_at: string | null;
+  content: Record<string, unknown>;
+};
+
+function readObject(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
 
 export async function fetchReportDomainStatus(): Promise<{
   domain: string;
@@ -27,14 +64,9 @@ export async function fetchReportDomainStatus(): Promise<{
     'buklod_report_domain_status_v1'
   );
 
-  if (error) {
-    throw error;
-  }
+  if (error) throw error;
 
-  const raw =
-    data && typeof data === 'object'
-      ? (data as Record<string, unknown>)
-      : {};
+  const raw = readObject(data);
 
   return {
     domain: String(raw.domain ?? 'BUKLOD_ORGANIZATIONAL_REPORTS'),
@@ -61,10 +93,7 @@ export async function resolveReportContext(args: {
     }
   );
 
-  if (error) {
-    throw error;
-  }
-
+  if (error) throw error;
   return readReportResolvedContext(data);
 }
 
@@ -74,26 +103,145 @@ export async function isReportScopeEntitled(scopeId: string): Promise<boolean> {
     { p_scope_id: scopeId }
   );
 
-  if (error) {
-    throw error;
-  }
-
+  if (error) throw error;
   return Boolean(data);
 }
 
-/**
- * Phase 4: paginated actionable assignments for Home "Reports to Submit".
- * Foundation stub — returns empty until Phase 3 assignment generation ships.
- */
-export async function fetchMyActionableReportAssignments(
-  _limit = 10
-): Promise<ReportAssignmentCard[]> {
-  return [];
+export async function ensureQuickWeeklyReport(
+  scopeId: string
+): Promise<QuickWeeklyReportContext> {
+  const { data, error } = await (supabase as any).rpc(
+    'buklod_report_weekly_bootstrap_v1',
+    { p_scope_id: scopeId }
+  );
+
+  if (error) throw error;
+
+  const raw = readObject(data);
+  if (!raw.report_assignment_id || !raw.report_definition_id || !raw.report_period_id) {
+    throw new Error('Weekly report context is incomplete.');
+  }
+
+  return {
+    scope_id: String(raw.scope_id ?? scopeId),
+    scope_name: String(raw.scope_name ?? 'Selected scope'),
+    scope_type: String(raw.scope_type ?? ''),
+    report_definition_id: String(raw.report_definition_id),
+    report_period_id: String(raw.report_period_id),
+    report_assignment_id: String(raw.report_assignment_id),
+    period_title: String(raw.period_title ?? 'Quick Weekly Report'),
+    period_key: String(raw.period_key ?? ''),
+    deadline_at: String(raw.deadline_at ?? ''),
+    assignment_status: String(raw.assignment_status ?? 'OPEN') as ReportAssignmentStatus,
+    submission_id: raw.submission_id ? String(raw.submission_id) : null,
+    submission_status: raw.submission_status
+      ? (String(raw.submission_status) as ReportSubmissionStatus)
+      : null,
+    content: readObject(raw.content),
+  };
+}
+
+export async function saveQuickWeeklyReport(args: {
+  assignmentId: string;
+  content: Record<string, unknown>;
+  submit?: boolean;
+  idempotencyKey?: string | null;
+}): Promise<QuickWeeklySaveResult> {
+  const { data, error } = await (supabase as any).rpc(
+    'buklod_report_submission_save_v1',
+    {
+      p_assignment_id: args.assignmentId,
+      p_content: args.content,
+      p_submit: Boolean(args.submit),
+      p_idempotency_key: args.idempotencyKey ?? null,
+    }
+  );
+
+  if (error) throw error;
+
+  const raw = readObject(data);
+  if (!raw.submission_id) {
+    throw new Error('Report submission could not be saved.');
+  }
+
+  return {
+    scope_id: String(raw.scope_id ?? ''),
+    report_definition_id: String(raw.report_definition_id ?? ''),
+    report_period_id: String(raw.report_period_id ?? ''),
+    report_assignment_id: String(raw.report_assignment_id ?? args.assignmentId),
+    submission_id: String(raw.submission_id),
+    assignment_status: String(raw.assignment_status ?? 'OPEN') as ReportAssignmentStatus,
+    submission_status: String(raw.submission_status ?? 'DRAFT') as ReportSubmissionStatus,
+    submitted_at: raw.submitted_at ? String(raw.submitted_at) : null,
+    content: readObject(raw.content),
+  };
 }
 
 /**
- * Phase 5: reviewer inbox count for Action Center.
- * Foundation stub — returns zero until review RPCs ship.
+ * Paginated/actionable assignments for Home and Report doorway badges.
+ */
+export async function fetchMyActionableReportAssignments(
+  limit = 10,
+  scopeId?: string | null
+): Promise<ReportAssignmentCard[]> {
+  const { data, error } = await (supabase as any).rpc(
+    'buklod_report_my_assignments_v1',
+    {
+      p_scope_id: scopeId ?? null,
+      p_limit: Math.max(1, Math.min(100, limit)),
+    }
+  );
+
+  if (error) {
+    // Compatibility with deployments that still expose only Phase 3.
+    const message = String(error?.message ?? '').toLowerCase();
+    if (
+      message.includes('buklod_report_my_assignments_v1') ||
+      message.includes('function') && message.includes('does not exist')
+    ) {
+      return [];
+    }
+    throw error;
+  }
+
+  const raw = readObject(data);
+  const rows = Array.isArray(raw.assignments) ? raw.assignments : [];
+
+  return rows.flatMap((value) => {
+    const row = readObject(value);
+    if (
+      !row.report_assignment_id ||
+      !row.report_definition_id ||
+      !row.report_period_id ||
+      !row.scope_id
+    ) {
+      return [];
+    }
+
+    return [
+      {
+        report_assignment_id: String(row.report_assignment_id),
+        report_definition_id: String(row.report_definition_id),
+        report_period_id: String(row.report_period_id),
+        scope_id: String(row.scope_id),
+        scope_label: row.scope_label ? String(row.scope_label) : undefined,
+        report_title: String(row.report_title ?? 'Report'),
+        period_label: String(row.period_label ?? ''),
+        deadline_at: String(row.deadline_at ?? ''),
+        assignment_status: String(row.assignment_status ?? 'OPEN') as ReportAssignmentStatus,
+        submission_status: row.submission_status
+          ? (String(row.submission_status) as ReportSubmissionStatus)
+          : null,
+        home_status: String(row.home_status ?? 'DUE') as ReportHomeCardStatus,
+        submission_id: row.submission_id ? String(row.submission_id) : null,
+        has_unread_remarks: Boolean(row.has_unread_remarks),
+      },
+    ];
+  });
+}
+
+/**
+ * Phase 5 reviewer inbox count remains zero until review workflow is wired.
  */
 export async function fetchReportsNeedingReviewCount(): Promise<number> {
   return 0;
@@ -102,17 +250,9 @@ export async function fetchReportsNeedingReviewCount(): Promise<number> {
 function buildRecurrenceConfig(input: ReportDefinitionUpsertInput) {
   const base = { ...(input.recurrenceConfig ?? {}) };
 
-  if (input.effectiveFrom) {
-    base.effective_from = input.effectiveFrom;
-  }
-
-  if (input.effectiveTo) {
-    base.effective_to = input.effectiveTo;
-  }
-
-  if (input.dueRule) {
-    base.due_rule = input.dueRule;
-  }
+  if (input.effectiveFrom) base.effective_from = input.effectiveFrom;
+  if (input.effectiveTo) base.effective_to = input.effectiveTo;
+  if (input.dueRule) base.due_rule = input.dueRule;
 
   return base;
 }
@@ -129,15 +269,9 @@ export async function listReportDefinitions(
     }
   );
 
-  if (error) {
-    throw error;
-  }
+  if (error) throw error;
 
-  const raw =
-    data && typeof data === 'object'
-      ? (data as Record<string, unknown>)
-      : {};
-
+  const raw = readObject(data);
   const rows = Array.isArray(raw.definitions) ? raw.definitions : [];
 
   return rows
@@ -153,16 +287,10 @@ export async function getReportDefinition(
     { p_definition_id: definitionId }
   );
 
-  if (error) {
-    throw error;
-  }
+  if (error) throw error;
 
   const row = readReportDefinitionRow(data);
-
-  if (!row) {
-    throw new Error('Report definition not found');
-  }
-
+  if (!row) throw new Error('Report definition not found');
   return row;
 }
 
@@ -193,16 +321,10 @@ export async function upsertReportDefinition(
     }
   );
 
-  if (error) {
-    throw error;
-  }
+  if (error) throw error;
 
   const row = readReportDefinitionRow(data);
-
-  if (!row) {
-    throw new Error('Report definition could not be saved');
-  }
-
+  if (!row) throw new Error('Report definition could not be saved');
   return row;
 }
 
@@ -218,16 +340,10 @@ export async function setReportDefinitionStatus(
     }
   );
 
-  if (error) {
-    throw error;
-  }
+  if (error) throw error;
 
   const row = readReportDefinitionRow(data);
-
-  if (!row) {
-    throw new Error('Report definition status could not be updated');
-  }
-
+  if (!row) throw new Error('Report definition status could not be updated');
   return row;
 }
 
