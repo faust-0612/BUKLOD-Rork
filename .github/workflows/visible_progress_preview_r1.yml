@@ -79,27 +79,12 @@ jobs:
               continue
             fi
 
-            # Newer production split the old monolithic Cluster Home into
-            # a secure wrapper + Impl. Port local old-file behavior into Impl,
-            # never overwrite the newer wrapper.
+            # Local Cluster Home delta only randomized an obsolete realtime
+            # channel name. Current production intentionally removed that
+            # per-screen CDC subscription for scale stability. Preserve current
+            # architecture; the local delta is superseded, not missing.
             if [ "$f" = "src/components/BuklodClusterHomeCommandCenter.tsx" ]; then
-              target="src/components/BuklodClusterHomeCommandCenterImpl.tsx"
-              test -f "$target"
-              base_tmp="$(mktemp)"
-              current_tmp="$(mktemp)"
-              merged_tmp="$(mktemp)"
-              git show "$SNAPSHOT_BASE:$f" > "$base_tmp"
-              cp "$target" "$current_tmp"
-              set +e
-              git merge-file -p "$current_tmp" "$base_tmp" "$theirs" > "$merged_tmp"
-              rc=$?
-              set -e
-              if [ "$rc" -ne 0 ]; then
-                echo "REFUSED: three-way conflict while porting Cluster Home local work into Impl (rc=$rc)."
-                exit 1
-              fi
-              cp "$merged_tmp" "$target"
-              rm -f "$base_tmp" "$current_tmp" "$merged_tmp"
+              echo "SUPERSEDED: local Cluster Home channel-name edit is replaced by current no-CDC architecture."
               continue
             fi
 
@@ -191,7 +176,6 @@ jobs:
             [ -z "$f" ] && continue
             git add -- "$f"
           done < /tmp/buklod-visible-overlay/OVERLAY_FILES.txt
-          git add -- src/components/BuklodClusterHomeCommandCenterImpl.tsx
           if git diff --cached --quiet; then
             echo 'No source delta after reconciliation.'
           else
