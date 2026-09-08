@@ -1,0 +1,11 @@
+{
+  "appTarget": "classroom",
+  "displayName": "BUKLOD Classroom",
+  "slug": "buklod-classroom",
+  "scheme": "buklod-classroom",
+  "androidPackage": "org.mzbministry.buklod.classroom",
+  "expoProjectId": "14100ed1-7f25-4551-9627-09d280498241",
+  "firebaseConfig": "./google-services.classroom.json",
+  "supabaseProjectRef": "yhanxndaqbmuzbdqlblu",
+  "homeRoute": "/profile/buklod-classroom-home"
+}
