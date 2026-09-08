@@ -194,7 +194,7 @@ export default function BuklodFacultyLiveReviewScreen() {
         </View>
 
         <View style={[styles.hero, { backgroundColor: theme.drawer }]}>
-          <MaterialCommunityIcons name="shield-search-outline" size={31} color={theme.accent} />
+          <MaterialCommunityIcons name="shield-check-outline" size={31} color={theme.accent} />
           <Text style={[styles.heroTitle, { color: theme.drawerInk }]}>Review before consequence</Text>
           <Text style={[styles.heroText, { color: `${theme.drawerInk}B8` }]}>BUKLOD records live attendance and no-response/network evidence automatically, but it does not automatically deduct grades. Faculty confirms the final classification here.</Text>
         </View>
