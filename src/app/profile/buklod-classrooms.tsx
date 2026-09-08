@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
+  Linking,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -14,6 +17,11 @@ import { router, useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import BuklodQuizStudentEntry from '@/components/classroom/BuklodQuizStudentEntry';
+import { isBuklodClassroomApp } from '@/lib/buklodAppTarget';
+import {
+  getBuklodClassroomLauncherAccess,
+  type BuklodClassroomLauncherAccess,
+} from '@/lib/classroomLauncherAccess';
 
 type ClassroomRow = {
   classroom_id: string;
@@ -29,7 +37,171 @@ type ClassroomRow = {
   updated_at: string;
 };
 
+type ClassroomMode = 'STUDENT' | 'FACULTY';
+
+function MainClassroomDoor() {
+  const { user } = useAuth();
+  const [access, setAccess] = useState<BuklodClassroomLauncherAccess | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [opening, setOpening] = useState<ClassroomMode | null>(null);
+
+  const loadAccess = useCallback(async () => {
+    if (!user?.id) {
+      setAccess(null);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      setAccess(await getBuklodClassroomLauncherAccess());
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadAccess();
+    }, [loadAccess])
+  );
+
+  const openClassroom = async (mode: ClassroomMode) => {
+    if (opening) return;
+    setOpening(mode);
+
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) throw error;
+
+      const accessToken = data.session?.access_token;
+      const refreshToken = data.session?.refresh_token;
+      if (!accessToken || !refreshToken) {
+        throw new Error('Your BUKLOD session is not available. Please sign in again.');
+      }
+
+      const query = [
+        'buklod_handoff=1',
+        `access_token=${encodeURIComponent(accessToken)}`,
+        `refresh_token=${encodeURIComponent(refreshToken)}`,
+        `classroom_mode=${encodeURIComponent(mode)}`,
+      ].join('&');
+
+      if (Platform.OS !== 'web') {
+        try {
+          const nativeUrl = `buklod-classroom://?${query}`;
+          if (await Linking.canOpenURL(nativeUrl)) {
+            await Linking.openURL(nativeUrl);
+            return;
+          }
+        } catch {
+          // Fall through to the canonical Classroom web app.
+        }
+      }
+
+      await Linking.openURL(`https://buklod-classroom.expo.app/?${query}`);
+    } catch (error: any) {
+      Alert.alert(
+        'BUKLOD Classroom',
+        String(error?.message ?? 'Could not open BUKLOD Classroom.')
+      );
+    } finally {
+      setOpening(null);
+    }
+  };
+
+  return (
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      <Pressable style={styles.back} onPress={() => router.back()}>
+        <MaterialCommunityIcons name="arrow-left" size={22} color="#17311f" />
+        <Text style={styles.backText}>BUKLOD Main</Text>
+      </Pressable>
+
+      <View style={styles.hero}>
+        <View style={styles.heroIcon}>
+          <MaterialCommunityIcons name="google-classroom" size={30} color="#1f7a3f" />
+        </View>
+        <Text style={styles.eyebrow}>BUKLOD EXTENSION</Text>
+        <Text style={styles.title}>My Classroom</Text>
+        <Text style={styles.subtitle}>
+          BUKLOD Main is your account and session doorway. Classroom opens as its focused extension using this same BUKLOD account and connected academic records.
+        </Text>
+      </View>
+
+      {loading ? (
+        <View style={styles.empty}>
+          <ActivityIndicator color="#1f7a3f" />
+          <Text style={styles.emptyText}>Checking Classroom access…</Text>
+        </View>
+      ) : !access?.can_open ? (
+        <View style={styles.empty}>
+          <MaterialCommunityIcons name="school-outline" size={34} color="#6b786e" />
+          <Text style={styles.emptyTitle}>My Classroom unavailable</Text>
+          <Text style={styles.emptyText}>
+            My Classroom is available only to an actively enrolled Student or an active BUKLOD Faculty user.
+          </Text>
+        </View>
+      ) : (
+        <>
+          {access.is_student ? (
+            <Pressable
+              style={({ pressed }) => [styles.launchCard, pressed && styles.pressed]}
+              disabled={!!opening}
+              onPress={() => void openClassroom('STUDENT')}
+            >
+              <View style={styles.cardIcon}>
+                <MaterialCommunityIcons name="account-school-outline" size={25} color="#1f7a3f" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardTitle}>Enter as Student</Text>
+                <Text style={styles.cardMeta}>
+                  {access.student_class_count} active enrollment{access.student_class_count === 1 ? '' : 's'} • no second login
+                </Text>
+              </View>
+              {opening === 'STUDENT' ? (
+                <ActivityIndicator color="#1f7a3f" />
+              ) : (
+                <MaterialCommunityIcons name="open-in-new" size={22} color="#839087" />
+              )}
+            </Pressable>
+          ) : null}
+
+          {access.is_faculty ? (
+            <Pressable
+              style={({ pressed }) => [styles.launchCard, pressed && styles.pressed]}
+              disabled={!!opening}
+              onPress={() => void openClassroom('FACULTY')}
+            >
+              <View style={styles.cardIcon}>
+                <MaterialCommunityIcons name="human-male-board" size={25} color="#1f7a3f" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardTitle}>Enter as Faculty</Text>
+                <Text style={styles.cardMeta}>
+                  {access.faculty_class_count} active class{access.faculty_class_count === 1 ? '' : 'es'} • same BUKLOD session
+                </Text>
+              </View>
+              {opening === 'FACULTY' ? (
+                <ActivityIndicator color="#1f7a3f" />
+              ) : (
+                <MaterialCommunityIcons name="open-in-new" size={22} color="#839087" />
+              )}
+            </Pressable>
+          ) : null}
+
+          {access.is_student && access.is_faculty ? (
+            <Text style={styles.dualNote}>
+              Dual-role account: choose Student or Faculty here. The role changes the Classroom context, not your BUKLOD account.
+            </Text>
+          ) : null}
+        </>
+      )}
+    </ScrollView>
+  );
+}
+
 export default function BuklodClassroomsScreen() {
+  const classroomTarget = isBuklodClassroomApp();
   const { user } = useAuth();
   const userId = user?.id ?? null;
 
@@ -39,10 +211,10 @@ export default function BuklodClassroomsScreen() {
   /*
    * BUKLOD_CLASSROOM_ACCOUNT_ISOLATION_R2
    *
-   * My Classroom is the STUDENT doorway only. Faculty-owned classrooms live
-   * in BUKLOD Faculty -> My Class and must never leak into this screen.
-   * Also reject any request that finishes after the active auth identity has
-   * changed.
+   * In the Classroom target, My Classroom is the STUDENT doorway only.
+   * Faculty-owned classrooms live in BUKLOD Faculty -> My Class and must never
+   * leak into the student list. In Main, this route is only a zero-login door
+   * to the extension app; Main does not own Classroom feature screens.
    */
   const activeUserIdRef = useRef<string | null>(userId);
 
@@ -55,7 +227,7 @@ export default function BuklodClassroomsScreen() {
   const load = useCallback(async () => {
     const requestedUserId = userId;
 
-    if (!requestedUserId) {
+    if (!classroomTarget || !requestedUserId) {
       setRows([]);
       return;
     }
@@ -86,13 +258,17 @@ export default function BuklodClassroomsScreen() {
     );
 
     setRows(studentRows);
-  }, [userId]);
+  }, [classroomTarget, userId]);
 
   useFocusEffect(
     useCallback(() => {
       void load();
     }, [load])
   );
+
+  if (!classroomTarget) {
+    return <MainClassroomDoor />;
+  }
 
   return (
     <ScrollView
@@ -113,7 +289,7 @@ export default function BuklodClassroomsScreen() {
     >
       <Pressable style={styles.back} onPress={() => router.back()}>
         <MaterialCommunityIcons name="arrow-left" size={22} color="#17311f" />
-        <Text style={styles.backText}>BUKLOD</Text>
+        <Text style={styles.backText}>BUKLOD Classroom</Text>
       </Pressable>
 
       <View style={styles.hero}>
@@ -203,6 +379,7 @@ const styles = StyleSheet.create({
   metricValue: { color: '#17311f', fontSize: 22, fontWeight: '900' },
   metricLabel: { color: '#758078', fontSize: 11, fontWeight: '700', marginTop: 2, textAlign: 'center' },
   card: { backgroundColor: '#fff', borderRadius: 19, padding: 15, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  launchCard: { backgroundColor: '#fff', borderRadius: 19, padding: 15, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 12 },
   cardIcon: { width: 48, height: 48, borderRadius: 15, backgroundColor: '#e7f4e9', alignItems: 'center', justifyContent: 'center' },
   cardTitle: { color: '#203328', fontWeight: '900', fontSize: 16 },
   cardMeta: { color: '#6f7b72', marginTop: 3, fontSize: 12 },
@@ -213,5 +390,6 @@ const styles = StyleSheet.create({
   empty: { backgroundColor: '#fff', borderRadius: 20, padding: 22, alignItems: 'center' },
   emptyTitle: { color: '#24362b', fontWeight: '900', fontSize: 17, marginTop: 10 },
   emptyText: { color: '#6c786f', textAlign: 'center', lineHeight: 19, marginTop: 6 },
+  dualNote: { color: '#68736b', fontSize: 12, lineHeight: 18, textAlign: 'center', paddingHorizontal: 10, marginTop: 4 },
   pressed: { opacity: 0.84 },
 });
