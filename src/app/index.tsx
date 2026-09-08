@@ -12,6 +12,10 @@ import {
 import { useCompliance } from '@/providers/ComplianceProvider';
 import { colors } from '@/lib/theme';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
+import {
+  BUKLOD_AUTHENTICATED_HOME,
+  IS_BUKLOD_CLASSROOM,
+} from '@/lib/appTarget';
 
 export default function Index() {
   const { session, loading, profile } = useAuth();
@@ -21,11 +25,9 @@ export default function Index() {
   /*
    * BUKLOD_PUBLIC_BOOT_R21
    *
-   * A fresh app/web boot with an existing session is PERSONAL/GLOBAL.
-   * Never restore a stale Organization/Cluster/Mission Worker workspace as
-   * the automatic landing context. Reset to PUBLIC first, then open Connect.
-   * Managed workspaces remain available only when the user explicitly opens
-   * them again from the scope/workspace controls.
+   * Main only: a fresh app/web boot with an existing session is PERSONAL/GLOBAL.
+   * Classroom has a dedicated landing shell and must not inherit Main's PUBLIC
+   * scope-reset/navigation behavior merely because account infrastructure is shared.
    */
   const {
     activeScope,
@@ -49,6 +51,12 @@ export default function Index() {
     ) {
       publicResetInFlight.current = false;
       setBootReady(false);
+      return;
+    }
+
+    if (IS_BUKLOD_CLASSROOM) {
+      publicResetInFlight.current = false;
+      setBootReady(true);
       return;
     }
 
@@ -157,7 +165,7 @@ export default function Index() {
 
   return (
     <Redirect
-      href="/(tabs)/messages"
+      href={BUKLOD_AUTHENTICATED_HOME as any}
     />
   );
 }
