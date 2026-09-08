@@ -29,7 +29,7 @@ import {
 
 /* PATCH_168E_SCOPE_CONNECT_CALLS */
 
-type Props = {
+type Props = React.ComponentProps<typeof CallContent> & {
   /** Classroom can hide the generic conference cockpit without changing Connect defaults. */
   hideControls?: boolean;
 };
@@ -337,7 +337,7 @@ const endForAll =
 }
 
 export default function
-BuklodAcceptedCallContent({ hideControls = false }: Props) {
+BuklodAcceptedCallContent({ hideControls = false, ...callContentProps }: Props) {
   const {
     useParticipants,
     useCallSession,
@@ -433,6 +433,7 @@ BuklodAcceptedCallContent({ hideControls = false }: Props) {
       }
     >
       <CallContent
+        {...callContentProps}
         CallControls={
           hideControls
             ? EmptyCallControls
