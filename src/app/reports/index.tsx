@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -10,14 +11,12 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
+import BuklodWeeklyReportForm from '@/components/BuklodWeeklyReportForm';
 import { colors } from '@/lib/theme';
 import {
   fetchReportDomainStatus,
   isReportScopeEntitled,
 } from '@/lib/buklodReportDomain';
-import {
-  BUKLOD_REPORT_INTEGRATION,
-} from '@/lib/buklodFocusAppIntegration';
 import {
   buklodReportDefinitionsPath,
   readReportScopeId,
@@ -25,24 +24,27 @@ import {
 import { verifyOrganizationManageAccess } from '@/lib/buklodOrganization';
 import { supabase } from '@/lib/supabase';
 
+const REPORT_ICON = require('../../../assets/branding/buklod-report-icon.png');
+
 export default function BuklodReportLandingScreen() {
   const params = useLocalSearchParams();
   const scopeId = readReportScopeId(params as Record<string, unknown>);
 
   const [loading, setLoading] = useState(true);
   const [phase, setPhase] = useState('');
-  const [nextPhase, setNextPhase] = useState('');
   const [scopeName, setScopeName] = useState<string | null>(null);
+  const [scopeType, setScopeType] = useState<string | null>(null);
   const [entitled, setEntitled] = useState(false);
   const [canManage, setCanManage] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError('');
 
     try {
       const status = await fetchReportDomainStatus();
       setPhase(status.implementation_phase);
-      setNextPhase(status.next_phase);
 
       if (scopeId) {
         const [entitlement, manageAccess, scopeResult] = await Promise.all([
@@ -50,21 +52,24 @@ export default function BuklodReportLandingScreen() {
           verifyOrganizationManageAccess(scopeId),
           (supabase as any)
             .from('buklod_scopes')
-            .select('name')
+            .select('name, scope_type')
             .eq('id', scopeId)
             .maybeSingle(),
         ]);
 
         setEntitled(entitlement);
         setCanManage(manageAccess.allowed);
-        setScopeName(scopeResult.data?.name ?? manageAccess.scopeName);
+        setScopeName(scopeResult.data?.name ?? manageAccess.scopeName ?? null);
+        setScopeType(scopeResult.data?.scope_type ?? null);
       } else {
         setEntitled(false);
         setCanManage(false);
         setScopeName(null);
+        setScopeType(null);
       }
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.warn('BUKLOD Report landing:', error);
+      setLoadError(error?.message || 'BUKLOD Report could not be opened.');
     } finally {
       setLoading(false);
     }
@@ -80,92 +85,125 @@ export default function BuklodReportLandingScreen() {
 
       <BuklodPortalScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
-          <MaterialCommunityIcons
-            name="file-document-check-outline"
-            size={30}
-            color="#FFFFFF"
-          />
-          <Text style={styles.heroTitle}>BUKLOD Report</Text>
-          <Text style={styles.heroSubtitle}>
-            Official organizational reporting for required submissions, due dates,
-            and review. This is separate from generic Organization admin records.
-          </Text>
+          <Image source={REPORT_ICON} resizeMode="cover" style={styles.heroIcon} />
+          <View style={styles.heroCopy}>
+            <Text style={styles.heroEyebrow}>REPORT → EVIDENCE → ACTION</Text>
+            <Text style={styles.heroTitle}>BUKLOD Report</Text>
+            <Text style={styles.heroSubtitle}>
+              Simple reporting in front. Intelligent monitoring and follow-up behind it.
+            </Text>
+          </View>
         </View>
 
         {loading ? (
           <View style={styles.center}>
             <ActivityIndicator color={colors.green} />
+            <Text style={styles.muted}>Opening your report workspace…</Text>
           </View>
         ) : (
           <>
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>SYSTEM STATUS</Text>
-          <Text style={styles.line}>
-            Integration: <Text style={styles.strong}>{BUKLOD_REPORT_INTEGRATION.status}</Text>
-          </Text>
-          <Text style={styles.line}>
-            Current phase: <Text style={styles.strong}>{phase || BUKLOD_REPORT_INTEGRATION.phase}</Text>
-          </Text>
-              <Text style={styles.line}>
-                Next phase: <Text style={styles.strong}>{nextPhase || 'PHASE_4_SUBMISSION'}</Text>
-              </Text>
-              <Text style={styles.note}>
-                Submission, review, reminders, and analytics are not live yet.
-                Admins can configure report definitions now.
-              </Text>
-            </View>
+            {loadError ? (
+              <View style={styles.errorCard}>
+                <Text style={styles.errorText}>{loadError}</Text>
+                <Pressable onPress={() => void load()} style={styles.retryButton}>
+                  <Text style={styles.retryText}>TRY AGAIN</Text>
+                </Pressable>
+              </View>
+            ) : null}
 
             {scopeId ? (
-              <View style={styles.card}>
-                <Text style={styles.cardTitle}>SCOPE</Text>
-                <Text style={styles.line}>
-                  {scopeName || 'Selected organization or cluster'}
-                </Text>
-                <Text style={styles.meta}>
-                  {entitled
-                    ? 'Reporting is enabled for this scope.'
-                    : 'Reporting entitlement is not active for this scope yet.'}
-                </Text>
+              <View style={styles.scopeCard}>
+                <View style={styles.scopeIcon}>
+                  <MaterialCommunityIcons
+                    name={scopeType === 'CLUSTER' ? 'account-group' : 'domain'}
+                    size={22}
+                    color={colors.greenDark}
+                  />
+                </View>
+                <View style={styles.scopeCopy}>
+                  <Text style={styles.scopeLabel}>ACTIVE CONTEXT</Text>
+                  <Text style={styles.scopeName}>{scopeName || 'Selected scope'}</Text>
+                  <Text style={styles.scopeMeta}>
+                    {scopeType || 'Organization / Cluster'} · Same BUKLOD account · No second sign-in
+                  </Text>
+                </View>
+                {entitled ? (
+                  <View style={styles.enabledPill}>
+                    <Text style={styles.enabledText}>ENABLED</Text>
+                  </View>
+                ) : null}
               </View>
             ) : (
-              <View style={styles.card}>
-                <Text style={styles.cardTitle}>SELECT A SCOPE</Text>
-                <Text style={styles.note}>
-                  Open BUKLOD Report from an Organization or Cluster manage screen
-                  so submissions stay exact-scope.
-                </Text>
+              <View style={styles.infoCard}>
+                <MaterialCommunityIcons
+                  name="door-open"
+                  size={24}
+                  color={colors.greenDark}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.cardTitle}>Open from Organization or Cluster Home</Text>
+                  <Text style={styles.note}>
+                    The BUKLOD Report doorway carries the exact active scope automatically so you do
+                    not need to choose it again.
+                  </Text>
+                </View>
               </View>
             )}
 
+            {scopeId && entitled ? (
+              <BuklodWeeklyReportForm scopeId={scopeId} onSubmitted={() => void load()} />
+            ) : scopeId ? (
+              <View style={styles.warningCard}>
+                <MaterialCommunityIcons
+                  name="lock-outline"
+                  size={22}
+                  color="#92400E"
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.warningTitle}>Reporting is not enabled for this scope</Text>
+                  <Text style={styles.warningText}>
+                    Ask the Organization or Cluster administrator to activate BUKLOD Report access.
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+
             {scopeId && canManage ? (
               <Pressable
-                onPress={() =>
-                  router.push(buklodReportDefinitionsPath(scopeId) as any)
-                }
-                style={({ pressed }) => [
-                  styles.primaryButton,
-                  pressed && styles.pressed,
-                ]}
+                onPress={() => router.push(buklodReportDefinitionsPath(scopeId) as any)}
+                style={({ pressed }) => [styles.manageButton, pressed && styles.pressed]}
               >
                 <MaterialCommunityIcons
-                  name="clipboard-text-outline"
+                  name="clipboard-text-clock-outline"
                   size={20}
-                  color="#FFFFFF"
+                  color={colors.greenDark}
                 />
-                <Text style={styles.primaryButtonText}>
-                  Manage report definitions
-                </Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.manageTitle}>Report settings</Text>
+                  <Text style={styles.manageMeta}>
+                    Manage definitions and scope reporting rules
+                  </Text>
+                </View>
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={20}
+                  color={colors.greenDark}
+                />
               </Pressable>
             ) : null}
 
+            <View style={styles.footerLine}>
+              <Text style={styles.footerText}>
+                {phase || 'PHASE_4_SUBMISSION'} · Scope-isolated · Evidence preserved
+              </Text>
+            </View>
+
             <Pressable
               onPress={() => router.back()}
-              style={({ pressed }) => [
-                styles.secondaryButton,
-                pressed && styles.pressed,
-              ]}
+              style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
             >
-              <Text style={styles.secondaryButtonText}>Go back</Text>
+              <MaterialCommunityIcons name="arrow-left" size={17} color={colors.greenDark} />
+              <Text style={styles.backText}>Back to BUKLOD Main</Text>
             </Pressable>
           </>
         )}
@@ -181,10 +219,29 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   hero: {
-    borderRadius: 18,
-    padding: 18,
+    borderRadius: 20,
+    padding: 15,
     backgroundColor: colors.greenDark,
-    gap: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 13,
+  },
+  heroIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+  },
+  heroCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 4,
+  },
+  heroEyebrow: {
+    color: 'rgba(255,255,255,0.72)',
+    fontSize: 8,
+    fontWeight: '900',
+    letterSpacing: 0.8,
   },
   heroTitle: {
     fontSize: 24,
@@ -192,74 +249,180 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   heroSubtitle: {
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 11,
+    lineHeight: 16,
     color: 'rgba(255,255,255,0.86)',
   },
-  card: {
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.white,
-    padding: 14,
-    gap: 6,
-  },
-  cardTitle: {
-    fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 0.4,
-    color: colors.greenDark,
-  },
-  line: {
-    fontSize: 13,
-    color: colors.text,
-  },
-  strong: {
-    fontWeight: '900',
-  },
-  meta: {
-    fontSize: 12,
-    lineHeight: 18,
-    color: colors.muted,
-  },
-  note: {
-    marginTop: 4,
-    fontSize: 12,
-    lineHeight: 18,
-    color: colors.muted,
-  },
   center: {
-    paddingVertical: 24,
+    paddingVertical: 32,
     alignItems: 'center',
+    gap: 8,
   },
-  primaryButton: {
-    minHeight: 48,
-    borderRadius: 12,
-    backgroundColor: colors.greenDark,
+  muted: {
+    color: colors.muted,
+    fontSize: 11,
+  },
+  scopeCard: {
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: '#DCE5E0',
+    backgroundColor: '#FFFFFF',
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingHorizontal: 14,
+    gap: 10,
   },
-  primaryButtonText: {
-    color: '#FFFFFF',
+  scopeIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: '#E8F5EE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scopeCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  scopeLabel: {
+    color: '#61766C',
+    fontSize: 8,
+    fontWeight: '900',
+    letterSpacing: 0.6,
+  },
+  scopeName: {
+    color: '#173B2F',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  scopeMeta: {
+    marginTop: 2,
+    color: '#6C7B73',
+    fontSize: 9,
+    lineHeight: 13,
+  },
+  enabledPill: {
+    borderRadius: 999,
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  enabledText: {
+    color: '#166534',
+    fontSize: 8,
+    fontWeight: '900',
+  },
+  infoCard: {
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: '#DCE5E0',
+    backgroundColor: '#FFFFFF',
+    padding: 13,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  cardTitle: {
+    color: '#173B2F',
     fontSize: 13,
     fontWeight: '900',
   },
-  secondaryButton: {
+  note: {
+    marginTop: 3,
+    color: '#6C7B73',
+    fontSize: 10,
+    lineHeight: 15,
+  },
+  warningCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#F4D8A6',
+    backgroundColor: '#FFFBEB',
+    padding: 13,
+    flexDirection: 'row',
+    gap: 9,
+  },
+  warningTitle: {
+    color: '#92400E',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  warningText: {
+    marginTop: 2,
+    color: '#8A5A12',
+    fontSize: 10,
+    lineHeight: 14,
+  },
+  errorCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    backgroundColor: '#FEF2F2',
+    padding: 12,
+    gap: 8,
+  },
+  errorText: {
+    color: '#991B1B',
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  retryButton: {
+    alignSelf: 'flex-start',
+    borderRadius: 9,
+    backgroundColor: '#991B1B',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  retryText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '900',
+  },
+  manageButton: {
+    minHeight: 58,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#DCE5E0',
+    backgroundColor: '#FFFFFF',
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  manageTitle: {
+    color: '#173B2F',
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  manageMeta: {
+    marginTop: 2,
+    color: '#6C7B73',
+    fontSize: 9,
+  },
+  footerLine: {
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  footerText: {
+    color: '#7B8982',
+    fontSize: 8,
+    fontWeight: '700',
+  },
+  backButton: {
     minHeight: 44,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#DCE5E0',
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.white,
+    gap: 6,
   },
-  secondaryButtonText: {
+  backText: {
     color: colors.greenDark,
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: 11,
+    fontWeight: '900',
   },
   pressed: {
     opacity: 0.74,
