@@ -135,7 +135,8 @@ jobs:
           grep -F "Title and message are required before publishing." 'src/app/scope/bulletin-editor.tsx'
           grep -F "key: 'classrooms'" 'src/app/(tabs)/me.tsx'
           grep -F "import { FacultyClassroomHeader } from '@/components/classroom/FacultyClassroomHeader';" 'src/app/profile/buklod-faculty-class.tsx'
-          grep -F 'BUKLOD_CLASSROOM_AUTO_GRADE_R1' 'src/app/profile/buklod-classroom-work.tsx'
+          grep -F 'auto_grading_mode: string;' 'src/app/profile/buklod-classroom-work.tsx'
+          grep -F 'ai_suggested_score: number | null;' 'src/app/profile/buklod-classroom-work.tsx'
           grep -F 'buklod_classroom_start_live_v1' 'src/app/profile/buklod-classroom.tsx'
           grep -F 'StreamVideoClient.getOrCreateInstance' 'src/components/classroom/ClassroomLiveView.native.tsx'
           grep -F 'PATCH_CALL_LIFECYCLE_R1' 'src/lib/buklodStreamCall.ts'
@@ -176,7 +177,7 @@ jobs:
             --channel production \
             --platform android \
             --environment production \
-            --message "BUKLOD Email OTP Recovery No Birthday" \
+            --message "BUKLOD Classroom R4 canonical release" \
             --non-interactive
 
       - name: Deployment status
