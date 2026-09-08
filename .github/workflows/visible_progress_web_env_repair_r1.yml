@@ -1,0 +1,138 @@
+name: BUKLOD Visible Progress Web Env Repair R1
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - visible-progress-20260908-r1
+    paths:
+      - '.github/workflows/visible_progress_web_env_repair_r1.yml'
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  PROTECTED_MAIN: 7b87f5da60950518cd9dbc2a38db40137cdc268e
+  REQUIRED_VISIBLE_SOURCE: 4400283f5e3ca449ec180a1fdb569b50e4656b23
+  PREVIEW_ALIAS_URL: https://buklod--visible-progress-r1.expo.app
+
+jobs:
+  repair-preview-web:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout visible-progress source
+        uses: actions/checkout@v4
+        with:
+          ref: visible-progress-20260908-r1
+          fetch-depth: 0
+
+      - name: Verify protected ancestry and source freeze
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor "$PROTECTED_MAIN" HEAD
+          git merge-base --is-ancestor "$REQUIRED_VISIBLE_SOURCE" HEAD
+          test -z "$(git diff --name-only "$PROTECTED_MAIN" -- package.json package-lock.json app.config.js eas.json android ios supabase)"
+          echo 'Protected production ancestry and no native/DB drift confirmed.'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: TypeScript safety gate
+        run: npx tsc --noEmit
+
+      - name: Expo authentication preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          npx eas-cli@latest whoami
+
+      - name: Pull EAS preview environment before web export
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .env.local
+          npx eas-cli@latest env:pull --environment preview --path .env.local --non-interactive
+          test -s .env.local
+          grep -q '^EXPO_PUBLIC_SUPABASE_URL=.' .env.local
+          grep -q '^EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=.' .env.local
+          grep -q '^EXPO_PUBLIC_APP_ENV=.' .env.local
+          grep -q '^APP_VARIANT=.' .env.local
+          git check-ignore -q .env.local
+          echo 'Required preview client environment is present and gitignored.'
+
+      - name: Fresh preview web export with preview environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf dist
+          npx expo export --platform web --output-dir dist
+          test -s dist/index.html
+          test -n "$(find dist/_expo/static/js/web -type f -name '*.js' -print -quit)"
+
+      - name: Prove Supabase preview URL was inlined into web bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          env_text = Path('.env.local').read_text(encoding='utf-8')
+          m = re.search(r'^EXPO_PUBLIC_SUPABASE_URL=(.*)$', env_text, re.M)
+          if not m or not m.group(1).strip():
+              raise SystemExit('Preview Supabase URL missing from .env.local')
+          expected = m.group(1).strip().strip('"').strip("'")
+          bundles = list(Path('dist/_expo/static/js/web').glob('*.js'))
+          if not bundles:
+              raise SystemExit('No web JS bundle found')
+          if not any(expected in p.read_text(encoding='utf-8', errors='ignore') for p in bundles):
+              raise SystemExit('Preview Supabase URL was not inlined into web bundle')
+          print('Preview Supabase client URL is inlined in the exported web bundle.')
+          PY
+
+      - name: Redeploy visible-progress preview alias
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest deploy --alias visible-progress-r1 --environment preview --non-interactive 2>&1 | tee visible-web-repair-output.txt
+
+      - name: Live HTTP and bundle smoke check
+        shell: bash
+        run: |
+          set -euo pipefail
+          ok=0
+          for attempt in 1 2 3 4 5 6; do
+            if curl -fsSL --max-time 30 "$PREVIEW_ALIAS_URL/" -o /tmp/preview-index.html; then
+              ok=1
+              break
+            fi
+            sleep 5
+          done
+          test "$ok" -eq 1
+          test -s /tmp/preview-index.html
+          grep -q '_expo/static/js/web/' /tmp/preview-index.html
+          echo 'Preview alias returns the exported app shell and web bundle reference.'
+
+      - name: Preserve repair deployment output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-visible-progress-web-env-repair-${{ github.run_number }}
+          path: visible-web-repair-output.txt
+          if-no-files-found: ignore
+
+      - name: Completion marker
+        shell: bash
+        run: |
+          echo 'VISIBLE_PROGRESS_WEB_ENV_REPAIR=SUCCESS'
+          echo "$PREVIEW_ALIAS_URL"
+          echo 'Production main was not modified.'
