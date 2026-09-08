@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 
+import BuklodReportDoorCard from '@/components/BuklodReportDoorCard';
 import {
   clusterRoleLabel,
   fetchFormationContextResilient,
@@ -9,6 +10,7 @@ import {
 } from '@/lib/buklodClusterFormationGate';
 import { enterScopedWorkspace } from '@/lib/buklodScopeRoute';
 import { canViewClusterProgress } from '@/lib/buklodOrgGovernance';
+import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 
@@ -21,11 +23,25 @@ export default function BuklodOrgHomeClusterCard({
   const [loading, setLoading] = useState(true);
   const [context, setContext] = useState<FormationContext | null>(null);
   const [canReport, setCanReport] = useState(false);
+  const [organizationName, setOrganizationName] = useState('Current Organization');
 
   const load = useCallback(async () => {
     setLoading(true);
-    const next = await fetchFormationContextResilient(organizationId);
+
+    const [next, scopeResult] = await Promise.all([
+      fetchFormationContextResilient(organizationId),
+      (supabase as any)
+        .from('buklod_scopes')
+        .select('name')
+        .eq('id', organizationId)
+        .maybeSingle(),
+    ]);
+
     setContext(next);
+    if (scopeResult.data?.name) {
+      setOrganizationName(String(scopeResult.data.name));
+    }
+
     if (next.primary_cluster?.cluster_id) {
       setCanReport(await canViewClusterProgress(next.primary_cluster.cluster_id));
     } else {
@@ -43,65 +59,76 @@ export default function BuklodOrgHomeClusterCard({
   const cluster = context?.primary_cluster ?? null;
 
   return (
-    <View style={styles.card}>
-      <Text style={styles.eyebrow}>MY CLUSTER</Text>
-      {loading ? (
-        <ActivityIndicator color={colors.green} />
-      ) : cluster && context?.has_active_cluster ? (
-        <>
-          <Text style={styles.title}>{cluster.cluster_name}</Text>
-          <Text style={styles.meta}>
-            Role: {clusterRoleLabel(cluster.role_keys)}
-          </Text>
-          <Pressable
-            onPress={() =>
-              void enterScopedWorkspace(selectScope, cluster.cluster_id, {
-                section: 'home',
-              })
-            }
-            style={styles.button}
-          >
-            <Text style={styles.buttonText}>OPEN CLUSTER HOME</Text>
-          </Pressable>
-          {canReport ? (
+    <View style={styles.stack}>
+      <BuklodReportDoorCard
+        scopeId={organizationId}
+        scopeName={organizationName}
+        scopeType="ORGANIZATION"
+      />
+
+      <View style={styles.card}>
+        <Text style={styles.eyebrow}>MY CLUSTER</Text>
+        {loading ? (
+          <ActivityIndicator color={colors.green} />
+        ) : cluster && context?.has_active_cluster ? (
+          <>
+            <Text style={styles.title}>{cluster.cluster_name}</Text>
+            <Text style={styles.meta}>
+              Role: {clusterRoleLabel(cluster.role_keys)}
+            </Text>
             <Pressable
               onPress={() =>
-                router.push({
-                  pathname: '/clusters/progress' as any,
-                  params: { id: cluster.cluster_id },
-                } as any)
+                void enterScopedWorkspace(selectScope, cluster.cluster_id, {
+                  section: 'home',
+                })
               }
-              style={styles.secondary}
+              style={styles.button}
             >
-              <Text style={styles.secondaryText}>CLUSTER PROGRESS REPORT</Text>
+              <Text style={styles.buttonText}>OPEN CLUSTER HOME</Text>
             </Pressable>
-          ) : null}
-        </>
-      ) : (
-        <>
-          <Text style={styles.title}>You are not in a Cluster yet</Text>
-          <Text style={styles.body}>
-            Daily Bible Reading, Daily Devotion, and BUKLOD Lessons are
-            Cluster features. Join or request to join a Cluster to continue.
-          </Text>
-          {context?.pending_clusters[0] ? (
-            <Text style={styles.pending}>
-              Request pending: {context.pending_clusters[0].cluster_name}
+            {canReport ? (
+              <Pressable
+                onPress={() =>
+                  router.push({
+                    pathname: '/clusters/progress' as any,
+                    params: { id: cluster.cluster_id },
+                  } as any)
+                }
+                style={styles.secondary}
+              >
+                <Text style={styles.secondaryText}>CLUSTER PROGRESS REPORT</Text>
+              </Pressable>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <Text style={styles.title}>You are not in a Cluster yet</Text>
+            <Text style={styles.body}>
+              Daily Bible Reading, Daily Devotion, and BUKLOD Lessons are
+              Cluster features. Join or request to join a Cluster to continue.
             </Text>
-          ) : null}
-          <Pressable
-            onPress={() => router.push('/clusters' as any)}
-            style={styles.button}
-          >
-            <Text style={styles.buttonText}>JOIN A CLUSTER</Text>
-          </Pressable>
-        </>
-      )}
+            {context?.pending_clusters[0] ? (
+              <Text style={styles.pending}>
+                Request pending: {context.pending_clusters[0].cluster_name}
+              </Text>
+            ) : null}
+            <Pressable
+              onPress={() => router.push('/clusters' as any)}
+              style={styles.button}
+            >
+              <Text style={styles.buttonText}>JOIN A CLUSTER</Text>
+            </Pressable>
+          </>
+        )}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  stack: {
+    gap: 12,
+  },
   card: {
     borderRadius: 16,
     borderWidth: 1,
