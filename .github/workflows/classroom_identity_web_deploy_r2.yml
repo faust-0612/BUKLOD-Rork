@@ -57,6 +57,9 @@ jobs:
         run: |
           set -euo pipefail
           npx tsc --noEmit
+          # Baseline package.json has Jest config but omits the Jest runtime/preset.
+          # Install test tooling transiently only; do not mutate app dependencies/lockfile.
+          npm install --no-save --ignore-scripts jest@29.7.0 jest-expo@~57.0.0
           npx jest src/lib/education/classroomLiveState.test.ts --runInBand
 
       - name: Expo config audit
