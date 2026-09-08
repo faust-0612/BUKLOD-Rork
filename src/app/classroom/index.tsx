@@ -14,53 +14,45 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 
-import { supabase } from '@/lib/supabase';
+import {
+  getBuklodClassroomLauncherAccess,
+  type BuklodClassroomLauncherAccess,
+} from '@/lib/classroomLauncherAccess';
 import { useAuth } from '@/providers/AuthProvider';
 
-type ClassroomRow = {
-  classroom_id: string;
-  role_key: 'FACULTY' | 'STUDENT';
-  status: string;
-};
-
-type ClassroomContext = 'STUDENT' | 'FACULTY' | 'DUAL ROLE';
+type ClassroomMode = 'STUDENT' | 'FACULTY';
 
 export default function ClassroomExtensionHome() {
   const { user, profile, signOut } = useAuth();
   const userId = user?.id ?? null;
-  const [studentClasses, setStudentClasses] = useState(0);
-  const [facultyClasses, setFacultyClasses] = useState(0);
+  const [access, setAccess] = useState<BuklodClassroomLauncherAccess | null>(null);
+  const [selectedMode, setSelectedMode] = useState<ClassroomMode | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
     if (!userId) {
-      setStudentClasses(0);
-      setFacultyClasses(0);
+      setAccess(null);
+      setSelectedMode(null);
       setLoading(false);
       return;
     }
 
     setLoading(true);
     try {
-      const [studentRes, facultyRes] = await Promise.all([
-        supabase.rpc('buklod_classroom_my_classes_v1'),
-        supabase
-          .from('buklod_education_classrooms')
-          .select('id', { count: 'exact', head: true })
-          .eq('faculty_user_id', userId)
-          .eq('status', 'ACTIVE'),
-      ]);
+      const next = await getBuklodClassroomLauncherAccess();
+      setAccess(next);
 
-      if (!studentRes.error) {
-        const rows = (studentRes.data ?? []) as ClassroomRow[];
-        setStudentClasses(
-          rows.filter(row => row.role_key === 'STUDENT' && row.status === 'ACTIVE').length
-        );
-      }
-
-      if (!facultyRes.error) {
-        setFacultyClasses(facultyRes.count ?? 0);
+      if (next.default_mode === 'FACULTY') {
+        setSelectedMode('FACULTY');
+      } else if (next.default_mode === 'STUDENT') {
+        setSelectedMode('STUDENT');
+      } else if (!next.is_faculty && next.is_student) {
+        setSelectedMode('STUDENT');
+      } else if (next.is_faculty && !next.is_student) {
+        setSelectedMode('FACULTY');
+      } else {
+        setSelectedMode(null);
       }
     } finally {
       setLoading(false);
@@ -73,11 +65,12 @@ export default function ClassroomExtensionHome() {
     }, [load])
   );
 
-  const context: ClassroomContext = useMemo(() => {
-    if (facultyClasses > 0 && studentClasses > 0) return 'DUAL ROLE';
-    if (facultyClasses > 0) return 'FACULTY';
+  const roleLabel = useMemo(() => {
+    if (!access?.can_open) return 'CLASSROOM ACCESS';
+    if (access.is_faculty && access.is_student) return 'DUAL ROLE';
+    if (access.is_faculty) return 'FACULTY';
     return 'STUDENT';
-  }, [facultyClasses, studentClasses]);
+  }, [access]);
 
   const openMain = async () => {
     if (Platform.OS === 'web') {
@@ -98,13 +91,20 @@ export default function ClassroomExtensionHome() {
     await Linking.openURL('https://buklod.expo.app/');
   };
 
-  const openReports = () => {
-    if (context === 'FACULTY') {
-      router.push('/profile/buklod-faculty' as any);
-      return;
-    }
+  const openMode = (mode: ClassroomMode) => {
+    setSelectedMode(mode);
+    router.push(
+      mode === 'FACULTY'
+        ? '/profile/buklod-faculty' as any
+        : '/profile/buklod-classrooms' as any
+    );
+  };
 
-    router.push('/profile/buklod-classrooms' as any);
+  const openReports = () => {
+    const mode =
+      selectedMode ??
+      (access?.is_faculty && !access?.is_student ? 'FACULTY' : 'STUDENT');
+    openMode(mode);
   };
 
   return (
@@ -142,94 +142,115 @@ export default function ClassroomExtensionHome() {
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.accountName}>{profile?.full_name || 'BUKLOD Account'}</Text>
-          <Text style={styles.accountMeta}>{context}</Text>
+          <Text style={styles.accountMeta}>{roleLabel}</Text>
         </View>
         <View style={styles.connectedPill}>
           <View style={styles.connectedDot} />
-          <Text style={styles.connectedText}>CONNECTED</Text>
+          <Text style={styles.connectedText}>SAME ACCOUNT</Text>
         </View>
       </View>
 
-      <Text style={styles.sectionLabel}>CONTINUE</Text>
-
-      {context !== 'FACULTY' && (
-        <Pressable
-          onPress={() => router.push('/profile/buklod-classrooms' as any)}
-          style={({ pressed }) => [styles.primaryCard, pressed && styles.pressed]}
-        >
-          <View style={styles.primaryIcon}>
-            <MaterialCommunityIcons name="account-school-outline" size={27} color="#fff" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.primaryTitle}>Student Classroom</Text>
-            <Text style={styles.primaryText}>
-              {studentClasses > 0
-                ? `${studentClasses} enrolled ${studentClasses === 1 ? 'class' : 'classes'} • resume activities, live class, materials and results`
-                : 'Your enrolled classes will appear here automatically.'}
-            </Text>
-          </View>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#fff" />
-        </Pressable>
-      )}
-
-      {context !== 'STUDENT' && (
-        <Pressable
-          onPress={() => router.push('/profile/buklod-faculty' as any)}
-          style={({ pressed }) => [styles.facultyCard, pressed && styles.pressed]}
-        >
-          <View style={styles.secondaryIcon}>
-            <MaterialCommunityIcons name="human-male-board" size={26} color="#17311f" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.secondaryTitle}>Faculty Classroom</Text>
-            <Text style={styles.secondaryText}>
-              {facultyClasses} active {facultyClasses === 1 ? 'class' : 'classes'} • roster, attendance, assessments, grading and monitoring
-            </Text>
-          </View>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#17311f" />
-        </Pressable>
-      )}
-
-      {loading && (
-        <View style={styles.loadingRow}>
+      {loading ? (
+        <View style={styles.loadingCard}>
           <ActivityIndicator color="#1f7a3f" />
-          <Text style={styles.loadingText}>Syncing Classroom access…</Text>
+          <Text style={styles.loadingText}>Checking Classroom access…</Text>
         </View>
+      ) : !access?.can_open ? (
+        <View style={styles.deniedCard}>
+          <MaterialCommunityIcons name="school-outline" size={34} color="#647269" />
+          <Text style={styles.deniedTitle}>My Classroom is not available for this account</Text>
+          <Text style={styles.deniedText}>
+            Classroom opens only for an actively enrolled Student or an active BUKLOD Faculty user. Your BUKLOD Main account remains unchanged.
+          </Text>
+          <Pressable onPress={() => void openMain()} style={styles.mainButton}>
+            <Text style={styles.mainButtonText}>OPEN BUKLOD MAIN</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <>
+          <Text style={styles.sectionLabel}>
+            {access.is_faculty && access.is_student ? 'CHOOSE WORKSPACE' : 'CONTINUE'}
+          </Text>
+
+          {access.is_student ? (
+            <Pressable
+              onPress={() => openMode('STUDENT')}
+              style={({ pressed }) => [
+                styles.primaryCard,
+                selectedMode === 'STUDENT' && styles.selectedCard,
+                pressed && styles.pressed,
+              ]}
+            >
+              <View style={styles.primaryIcon}>
+                <MaterialCommunityIcons name="account-school-outline" size={27} color="#fff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.primaryTitle}>Student Classroom</Text>
+                <Text style={styles.primaryText}>
+                  {access.student_class_count} enrolled {access.student_class_count === 1 ? 'class' : 'classes'} • resume work, live class, materials, attendance and results
+                </Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={24} color="#fff" />
+            </Pressable>
+          ) : null}
+
+          {access.is_faculty ? (
+            <Pressable
+              onPress={() => openMode('FACULTY')}
+              style={({ pressed }) => [
+                styles.facultyCard,
+                selectedMode === 'FACULTY' && styles.selectedFacultyCard,
+                pressed && styles.pressed,
+              ]}
+            >
+              <View style={styles.secondaryIcon}>
+                <MaterialCommunityIcons name="human-male-board" size={26} color="#17311f" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.secondaryTitle}>Faculty Classroom</Text>
+                <Text style={styles.secondaryText}>
+                  {access.faculty_class_count} active {access.faculty_class_count === 1 ? 'class' : 'classes'} • roster, attendance, assessments, grading and monitoring
+                </Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={24} color="#17311f" />
+            </Pressable>
+          ) : null}
+
+          <Text style={styles.sectionLabel}>MORE</Text>
+
+          <Pressable
+            onPress={openReports}
+            style={({ pressed }) => [styles.moreCard, pressed && styles.pressed]}
+          >
+            <View style={styles.moreIcon}>
+              <MaterialCommunityIcons name="file-chart-outline" size={24} color="#1f7a3f" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.moreTitle}>Reports & Results</Text>
+              <Text style={styles.moreText}>
+                Classroom reads the same connected BUKLOD attendance, released grades, assessments and submissions; it does not create a second account or reset academic records.
+              </Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={22} color="#819087" />
+          </Pressable>
+
+          <Pressable
+            onPress={() => void openMain()}
+            style={({ pressed }) => [styles.moreCard, pressed && styles.pressed]}
+          >
+            <View style={styles.moreIcon}>
+              <MaterialCommunityIcons name="link-variant" size={24} color="#1f7a3f" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.moreTitle}>Open BUKLOD Main</Text>
+              <Text style={styles.moreText}>
+                Return to the Main BUKLOD ecosystem while keeping this app focused on Classroom work.
+              </Text>
+            </View>
+            <MaterialCommunityIcons name="open-in-new" size={21} color="#819087" />
+          </Pressable>
+        </>
       )}
-
-      <Text style={styles.sectionLabel}>MORE</Text>
-
-      <Pressable
-        onPress={openReports}
-        style={({ pressed }) => [styles.moreCard, pressed && styles.pressed]}
-      >
-        <View style={styles.moreIcon}>
-          <MaterialCommunityIcons name="file-chart-outline" size={24} color="#1f7a3f" />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.moreTitle}>Reports & Results</Text>
-          <Text style={styles.moreText}>
-            Attendance, released grades, assessments and submissions stay tied to the same BUKLOD records.
-          </Text>
-        </View>
-        <MaterialCommunityIcons name="chevron-right" size={22} color="#819087" />
-      </Pressable>
-
-      <Pressable
-        onPress={() => void openMain()}
-        style={({ pressed }) => [styles.moreCard, pressed && styles.pressed]}
-      >
-        <View style={styles.moreIcon}>
-          <MaterialCommunityIcons name="link-variant" size={24} color="#1f7a3f" />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.moreTitle}>Open BUKLOD Main</Text>
-          <Text style={styles.moreText}>
-            Return to the main BUKLOD app without converting Classroom into the Main navigation shell.
-          </Text>
-        </View>
-        <MaterialCommunityIcons name="open-in-new" size={21} color="#819087" />
-      </Pressable>
 
       <Pressable
         onPress={async () => {
@@ -243,7 +264,7 @@ export default function ClassroomExtensionHome() {
       </Pressable>
 
       <Text style={styles.footer}>
-        BUKLOD Main remains the ecosystem doorway and account authority. Classroom owns the focused classroom experience.
+        BUKLOD Main is the structure, doorway and session authority. BUKLOD Classroom owns the focused classroom experience.
       </Text>
     </ScrollView>
   );
@@ -266,15 +287,22 @@ const styles = StyleSheet.create({
   connectedText: { color: '#287e41', fontSize: 9, fontWeight: '900' },
   sectionLabel: { color: '#66756b', fontSize: 10, fontWeight: '900', letterSpacing: 1.25, marginBottom: 8, marginTop: 4 },
   primaryCard: { backgroundColor: '#1f7a3f', borderRadius: 21, padding: 17, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
+  selectedCard: { borderWidth: 2, borderColor: '#bce0c3' },
   primaryIcon: { width: 48, height: 48, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center' },
   primaryTitle: { color: '#fff', fontSize: 17, fontWeight: '900' },
   primaryText: { color: '#e3f3e6', lineHeight: 18, fontSize: 12, marginTop: 3 },
   facultyCard: { backgroundColor: '#dcebdc', borderRadius: 21, padding: 17, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
+  selectedFacultyCard: { borderWidth: 2, borderColor: '#6faf7a' },
   secondaryIcon: { width: 48, height: 48, borderRadius: 15, backgroundColor: '#f4faf4', alignItems: 'center', justifyContent: 'center' },
   secondaryTitle: { color: '#17311f', fontSize: 17, fontWeight: '900' },
   secondaryText: { color: '#4f6556', lineHeight: 18, fontSize: 12, marginTop: 3 },
-  loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 9 },
+  loadingCard: { backgroundColor: '#fff', borderRadius: 18, minHeight: 90, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, marginBottom: 14 },
   loadingText: { color: '#6c786f', fontSize: 12 },
+  deniedCard: { backgroundColor: '#fff', borderRadius: 20, padding: 22, alignItems: 'center', marginBottom: 14 },
+  deniedTitle: { color: '#24362b', fontWeight: '900', fontSize: 17, textAlign: 'center', marginTop: 10 },
+  deniedText: { color: '#6c786f', textAlign: 'center', lineHeight: 19, marginTop: 6, maxWidth: 520 },
+  mainButton: { backgroundColor: '#1f7a3f', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 11, marginTop: 16 },
+  mainButtonText: { color: '#fff', fontSize: 11, fontWeight: '900' },
   moreCard: { backgroundColor: '#fff', borderRadius: 18, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 11, marginBottom: 9 },
   moreIcon: { width: 43, height: 43, borderRadius: 13, backgroundColor: '#edf5ed', alignItems: 'center', justifyContent: 'center' },
   moreTitle: { color: '#24372b', fontSize: 14, fontWeight: '900' },
