@@ -36,6 +36,28 @@ jobs:
       - name: Apply smallest guarded separation patch
         run: node scripts/patch-classroom-separate-app-r1.cjs
 
+      - name: Harden generated verifier and its patch source
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          generated = Path('scripts/verify-classroom-identity.cjs')
+          text = generated.read_text()
+          bad = "process.stderr.write(resolved.stderr || 'Expo config failed.\n');"
+          good = "process.stderr.write(resolved.stderr || 'Expo config failed.');"
+          if bad not in text:
+              raise SystemExit('Generated verifier syntax anchor missing')
+          generated.write_text(text.replace(bad, good, 1))
+
+          source = Path('scripts/patch-classroom-separate-app-r1.cjs')
+          source_text = source.read_text()
+          source_bad = "process.stderr.write(resolved.stderr || 'Expo config failed.\\n');"
+          if source_bad not in source_text:
+              raise SystemExit('Patch source verifier anchor missing')
+          source.write_text(source_text.replace(source_bad, good, 1))
+          PY
+
       - name: Diff safety gate
         shell: bash
         run: |
@@ -50,6 +72,7 @@ jobs:
           cat > /tmp/allowed.txt <<'EOF'
           app.config.js
           package.json
+          scripts/patch-classroom-separate-app-r1.cjs
           scripts/verify-classroom-identity.cjs
           src/app/(auth)/login.tsx
           src/app/_layout.tsx
