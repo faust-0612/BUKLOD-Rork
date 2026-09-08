@@ -153,7 +153,7 @@ PYMERGE
           grep -F 'BUKLOD_5K_SCALE_R1_NOTIFICATION_NO_CDC' src/providers/NotificationProvider.tsx
           grep -F 'HIGH_CONCURRENCY_LOGIN_R1' 'src/app/(auth)/login.tsx'
           grep -F 'BUKLOD_CLASSROOM_ACCOUNT_ISOLATION_R2' src/app/profile/buklod-classrooms.tsx
-          grep -F 'HOME_IDENTITY_ACTION_ROW_R2' 'src/app/(tabs)/home.tsx
+          grep -F 'HOME_IDENTITY_ACTION_ROW_R2' 'src/app/(tabs)/home.tsx'
           if grep -F 'postgres_changes' 'src/app/notifications/index.tsx'; then
             echo 'REFUSED: stale notification-center CDC was reintroduced.'
             exit 1
