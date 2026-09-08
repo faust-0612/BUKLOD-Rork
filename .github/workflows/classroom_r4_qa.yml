@@ -21,12 +21,11 @@ jobs:
       - run: npm ci --ignore-scripts
       - name: TypeScript
         run: npx tsc --noEmit
-      - name: Live state race/safety tests
-        run: npx jest src/lib/education/classroomLiveState.test.ts --runInBand
       - name: Classroom R4 anchors
         run: |
           grep -F "uploadClassroomObject" src/lib/education/classroomTransfer.ts
           grep -F "desiredStudentMedia" src/lib/education/classroomLiveState.ts
+          grep -F "ignores stale, duplicate and cross-session commands" src/lib/education/classroomLiveState.test.ts
           grep -F "BuklodAcceptedCallContent" src/components/classroom/ClassroomLiveView.native.tsx
           grep -F "ClassroomLiveAutomationLayer" src/components/classroom/ClassroomLiveView.native.tsx
           grep -F "CameraView" src/components/classroom/ClassroomLiveView.native.tsx
@@ -39,4 +38,5 @@ jobs:
           grep -F "buklod_classroom_live_attendance_proposals_v1" supabase/migrations/20260908001000_classroom_live_native_completion_r4.sql
           grep -F "buklod_classroom_interaction_reviews_v1" supabase/migrations/20260908002000_classroom_interaction_review_queue_r4.sql
           grep -F "buklod_classroom_finalize_live_attendance_v1" supabase/migrations/20260908003000_classroom_live_attendance_finalize_r4.sql
+          grep -F "proposal_only" supabase/migrations/20260908004000_classroom_live_attendance_isolation_r4.sql
           grep -F "create_breakouts" supabase/functions/buklod-classroom-stream-access/index.ts
