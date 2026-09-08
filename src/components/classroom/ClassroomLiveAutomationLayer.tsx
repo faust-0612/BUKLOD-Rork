@@ -143,9 +143,14 @@ function ClassroomAutomationInner({ role, userId, sessionId, authority, onAuthor
   // adaptive_config JSON. No new settings table or client-only punitive rule.
   useEffect(() => {
     let cancelled = false;
-    void supabase.rpc('buklod_classroom_live_policy_v1', { p_session_id: sessionId }).then(({ data, error }) => {
-      if (!cancelled && !error) setLivePolicy(normalizePolicy(data));
-    }).catch(() => undefined);
+    void (async () => {
+      try {
+        const { data, error } = await supabase.rpc('buklod_classroom_live_policy_v1', { p_session_id: sessionId });
+        if (!cancelled && !error) setLivePolicy(normalizePolicy(data));
+      } catch {
+        // Defaults are intentionally safe when the read-only policy lookup is unavailable.
+      }
+    })();
     return () => { cancelled = true; };
   }, [sessionId]);
 
