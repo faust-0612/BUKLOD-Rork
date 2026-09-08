@@ -17,6 +17,7 @@ on:
       - 'src/lib/education/classroomLiveState*'
       - 'src/lib/education/classroomTransfer.ts'
       - 'supabase/functions/buklod-classroom-stream-access/**'
+      - 'supabase/functions/buklod-classroom-roster-import/**'
       - 'supabase/migrations/*classroom*.sql'
       - 'app.config.js'
       - 'eas.json'
@@ -110,8 +111,19 @@ jobs:
           grep -F "uploadClassroomObject" src/app/profile/buklod-classroom-work.tsx
           grep -F "launchCameraAsync" src/app/profile/buklod-classroom-work.tsx
           grep -F "DocumentPicker.getDocumentAsync" src/app/profile/buklod-faculty-roster.tsx
-          grep -F "workbookUsernames" src/app/profile/buklod-faculty-roster.tsx
+          grep -F "application/pdf" src/app/profile/buklod-faculty-roster.tsx
+          grep -F "application/msword" src/app/profile/buklod-faculty-roster.tsx
+          grep -F "buklod-classroom-roster-import" src/app/profile/buklod-faculty-roster.tsx
+          grep -F "buklod_classroom_roster_pending_v1" src/app/profile/buklod-faculty-roster.tsx
+          grep -F "buklod_classroom_roster_confirm_match_v1" src/app/profile/buklod-faculty-roster.tsx
           grep -F "buklod_education_enroll_by_username_v1" src/app/profile/buklod-faculty-roster.tsx
+          grep -F "AUTO_SCORE = 0.90" supabase/functions/buklod-classroom-roster-import/index.ts
+          grep -F "AUTO_MARGIN = 0.10" supabase/functions/buklod-classroom-roster-import/index.ts
+          grep -F "legacyDocText" supabase/functions/buklod-classroom-roster-import/index.ts
+          grep -F "dedupeAndSort" supabase/functions/buklod-classroom-roster-import/index.ts
+          grep -F "buklod_classroom_roster_import_service_v1" supabase/functions/buklod-classroom-roster-import/index.ts
+          grep -F "buklod_classroom_roster_profile_arrival_sync_r4" supabase/migrations/20260908033000_classroom_roster_name_sync_r4.sql
+          grep -F "NEEDS_REVIEW" supabase/migrations/20260908033000_classroom_roster_name_sync_r4.sql
           grep -F "uploadClassroomObject" src/app/profile/buklod-faculty-materials.tsx
           grep -F "MAX_BYTES = 1024 * 1024 * 1024" src/app/profile/buklod-faculty-materials.tsx
           grep -F "1073741824" supabase/migrations/20260908011500_classroom_faculty_materials_1gb_r4.sql
