@@ -32,6 +32,8 @@ on:
       - 'src/hooks/useBuklodConnectUnread.ts'
       - 'src/providers/NotificationProvider.tsx'
       - 'src/app/profile/buklod-faculty-class.tsx'
+      - 'src/app/profile/buklod-faculty.tsx'
+      - 'src/app/profile/buklod-faculty-quiz-results.tsx'
       - 'src/app/profile/buklod-classroom*.tsx'
       - 'src/components/classroom/**'
       - 'src/components/BuklodScopeCallLauncher.tsx'
@@ -177,7 +179,7 @@ jobs:
             --channel production \
             --platform android \
             --environment production \
-            --message "BUKLOD Classroom R4 canonical release" \
+            --message "BUKLOD canonical v16 reconciled release" \
             --non-interactive
 
       - name: Deployment status
