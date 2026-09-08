@@ -17,7 +17,7 @@ const DOORS = [
     key: 'faculty',
     title: 'Faculty',
     description: 'Manage classes, students, roster, attendance, assessments, grading, resources and live classroom tools.',
-    icon: 'teach' as const,
+    icon: 'school-outline' as const,
     route: '/profile/buklod-faculty',
   },
   {
