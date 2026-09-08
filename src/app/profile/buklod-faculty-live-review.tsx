@@ -109,6 +109,17 @@ export default function BuklodFacultyLiveReviewScreen() {
     () => interactions.filter(row => row.review_status !== 'RESOLVED'),
     [interactions],
   );
+  const readyLiveSessions = useMemo(() => {
+    const groups = new Map<string, AttendanceProposal[]>();
+    for (const row of attendance) {
+      const list = groups.get(row.live_session_id) ?? [];
+      list.push(row);
+      groups.set(row.live_session_id, list);
+    }
+    return Array.from(groups.entries())
+      .filter(([, rows]) => rows.length > 0 && rows.every(row => row.review_status === 'APPROVED'))
+      .map(([liveSessionId, rows]) => ({ liveSessionId, rows, createdAt: rows[0]?.created_at ?? null }));
+  }, [attendance]);
 
   const approveAttendance = async (row: AttendanceProposal, status: string) => {
     if (busyId) return;
@@ -120,15 +131,28 @@ export default function BuklodFacultyLiveReviewScreen() {
         p_note: `Faculty approved from Live Review. Proposed: ${row.proposed_status}`,
       });
       if (error) throw error;
-      // The auto-created live attendance session is already closed when proposals
-      // are generated; refresh that session's gradebook only after faculty approval.
-      const { error: syncError } = await supabase.rpc('buklod_education_sync_attendance_session_to_gradebook_v1', {
-        p_session_id: row.attendance_session_id,
-      });
-      if (syncError) console.warn('Live attendance gradebook sync', syncError.message);
       await load();
     } catch (error) {
       Alert.alert('Attendance Review', error instanceof Error ? error.message : 'Could not approve attendance evidence.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const finalizeAttendance = async (liveSessionId: string) => {
+    if (busyId) return;
+    const key = `finalize-${liveSessionId}`;
+    setBusyId(key);
+    try {
+      const { data, error } = await supabase.rpc('buklod_classroom_finalize_live_attendance_v1', {
+        p_live_session_id: liveSessionId,
+      });
+      if (error) throw error;
+      const result = data as any;
+      Alert.alert('Live attendance finalized', `${Number(result?.synced_students ?? 0)} student attendance grades synchronized after full faculty review.`);
+      await load();
+    } catch (error) {
+      Alert.alert('Finalize Attendance', error instanceof Error ? error.message : 'Could not finalize live attendance.');
     } finally {
       setBusyId(null);
     }
@@ -192,7 +216,7 @@ export default function BuklodFacultyLiveReviewScreen() {
               <View style={[styles.proposal, { backgroundColor: `${theme.warning}1C` }]}><Text style={[styles.proposalText, { color: theme.warning }]}>{row.proposed_status}</Text></View>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.actionRow}>
-              {['PRESENT','LATE','INCOMPLETE','ABSENT','EXCUSED'].map(status => (
+              {['PRESENT','LATE','ABSENT','EXCUSED'].map(status => (
                 <Pressable key={status} disabled={busyId === row.id} onPress={() => approveAttendance(row, status)} style={[styles.action, { backgroundColor: status === 'ABSENT' ? `${theme.danger}18` : theme.chip }]}>
                   <Text style={[styles.actionText, { color: status === 'ABSENT' ? theme.danger : theme.ink }]}>{status}</Text>
                 </Pressable>
@@ -200,6 +224,23 @@ export default function BuklodFacultyLiveReviewScreen() {
             </ScrollView>
           </View>
         ))}
+
+        {readyLiveSessions.length > 0 && (
+          <View style={[styles.finalizePanel, { backgroundColor: theme.surfaceRaised, borderColor: theme.success }]}>
+            <View style={styles.finalizeHead}>
+              <MaterialCommunityIcons name="check-decagram-outline" size={21} color={theme.success} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.finalizeTitle, { color: theme.ink }]}>Fully reviewed live sessions</Text>
+                <Text style={[styles.meta, { color: theme.muted }]}>Sync only after every student's proposal in that live session has a faculty decision.</Text>
+              </View>
+            </View>
+            {readyLiveSessions.map(session => (
+              <Pressable key={session.liveSessionId} disabled={!!busyId} onPress={() => finalizeAttendance(session.liveSessionId)} style={[styles.finalizeButton, { backgroundColor: theme.success }, !!busyId && styles.disabled]}>
+                <Text style={styles.finalizeButtonText}>{busyId === `finalize-${session.liveSessionId}` ? 'Finalizing…' : `Finalize ${shortDate(session.createdAt)} • ${session.rows.length} students`}</Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
 
         <View style={styles.sectionHead}>
           <Text style={[styles.sectionTitle, { color: theme.ink }]}>Recitation / response reviews</Text>
@@ -263,6 +304,12 @@ const styles = StyleSheet.create({
   actionRow: { gap: 6, paddingTop: 10 },
   action: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8 },
   actionText: { fontSize: 8, fontWeight: '900' },
+  finalizePanel: { borderWidth: 1, borderRadius: 16, padding: 12, marginBottom: 12 },
+  finalizeHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  finalizeTitle: { fontSize: 12, fontWeight: '900' },
+  finalizeButton: { minHeight: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10, marginTop: 8 },
+  finalizeButtonText: { color: '#fff', fontSize: 9, fontWeight: '900' },
+  disabled: { opacity: 0.5 },
   footerNote: { borderTopWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: 8, paddingTop: 12, marginTop: 10 },
   footerText: { flex: 1, fontSize: 9, lineHeight: 14 },
 });
