@@ -1,0 +1,57 @@
+name: BUKLOD Classroom R4 Native Files Completion Autopatch
+
+on:
+  push:
+    branches:
+      - feature/classroom-harmonized-r4-current-main-20260908
+    paths:
+      - 'scripts/patch-classroom-r4-native-files-completion.cjs'
+      - '.github/workflows/classroom_r4_native_files_completion_autopatch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  guarded-patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/classroom-harmonized-r4-current-main-20260908
+          fetch-depth: 1
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Apply guarded native-files patch
+        run: node scripts/patch-classroom-r4-native-files-completion.cjs
+
+      - name: Diff safety gate
+        shell: bash
+        run: |
+          git diff --check
+          CHANGED="$(git status --porcelain | awk '{print $2}' | sort)"
+          printf '%s\n' "$CHANGED"
+          echo "$CHANGED" | grep -Fx 'src/app/profile/buklod-faculty-materials.tsx'
+          echo "$CHANGED" | grep -Fx 'src/app/profile/buklod-faculty-roster.tsx'
+          test "$(printf '%s\n' "$CHANGED" | sed '/^$/d' | wc -l)" -eq 2
+          git diff -- src/app/profile/buklod-faculty-materials.tsx src/app/profile/buklod-faculty-roster.tsx
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: TypeScript gate before commit
+        run: npx tsc --noEmit
+
+      - name: Commit guarded patch
+        shell: bash
+        run: |
+          git config user.name "BUKLOD Classroom Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add src/app/profile/buklod-faculty-materials.tsx src/app/profile/buklod-faculty-roster.tsx
+          git commit -m "classroom: complete native roster and resumable faculty uploads"
+          git push origin HEAD:feature/classroom-harmonized-r4-current-main-20260908
