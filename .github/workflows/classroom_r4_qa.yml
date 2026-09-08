@@ -12,10 +12,13 @@ on:
       - 'src/app/profile/buklod-faculty-live-review.tsx'
       - 'src/app/profile/buklod-faculty-roster.tsx'
       - 'src/app/profile/buklod-faculty-materials.tsx'
+      - 'src/app/classroom/**'
       - 'src/components/classroom/**'
       - 'src/components/BuklodAcceptedCallContent.tsx'
+      - 'src/lib/appTarget.ts'
       - 'src/lib/education/classroomLiveState*'
       - 'src/lib/education/classroomTransfer.ts'
+      - 'scripts/verify-classroom-identity.mjs'
       - 'supabase/functions/buklod-classroom-stream-access/**'
       - 'supabase/functions/buklod-classroom-roster-import/**'
       - 'supabase/migrations/*classroom*.sql'
@@ -27,6 +30,15 @@ on:
 
 permissions:
   contents: read
+
+env:
+  BUKLOD_APP_TARGET: classroom
+  EXPO_PUBLIC_BUKLOD_APP_TARGET: classroom
+  APP_VARIANT: production
+  EXPO_PUBLIC_APP_ENV: production
+  CLASSROOM_GOOGLE_SERVICES_FILE: ./google-services.classroom.json
+  EXPO_PUBLIC_SUPABASE_URL: https://yhanxndaqbmuzbdqlblu.supabase.co
+  EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_RWvrYHzgLMvBousgwn4dTg_QawYzwRS
 
 jobs:
   source-web-gates:
@@ -41,54 +53,48 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci --ignore-scripts
+      - name: Classroom standalone identity lock
+        run: node scripts/verify-classroom-identity.mjs
       - name: TypeScript
         run: npx tsc --noEmit
+      - name: Classroom reducer tests
+        run: npx jest src/lib/education/classroomLiveState.test.ts --runInBand
       - name: Expo public config
-        run: npx expo config --type public --json > /tmp/buklod-r4-expo-config.json
-      - name: Classroom app target isolation
         shell: bash
         run: |
+          npx expo config --type public --json > /tmp/buklod-r4-expo-config.json
           node <<'NODE'
+          const c = require('/tmp/buklod-r4-expo-config.json');
           const assert = require('node:assert/strict');
-          const factory = require('./app.config.js');
-          const clean = ['BUKLOD_APP_TARGET','APP_VARIANT','EXPO_PUBLIC_APP_ENV','EAS_PROJECT_ID','EXPO_PUBLIC_EAS_PROJECT_ID','CLASSROOM_GOOGLE_SERVICES_FILE'];
-          for (const key of clean) delete process.env[key];
-          const main = factory({ config: { extra: {} } });
-          assert.equal(main.name, 'BUKLOD');
-          assert.equal(main.slug, 'buklod');
-          assert.equal(main.android.package, 'org.mzbministry.buklod');
-          assert.equal(main.extra.eas.projectId, '23dad7d0-389a-406e-8dec-08965dab85d8');
-          assert.equal(main.icon, './assets/release/app-icon.png');
-          process.env.BUKLOD_APP_TARGET = 'classroom';
-          const classroom = factory({ config: { extra: {} } });
-          assert.equal(classroom.name, 'BUKLOD Classroom');
-          assert.equal(classroom.slug, 'buklod-classroom');
-          assert.equal(classroom.scheme, 'buklod-classroom');
-          assert.equal(classroom.android.package, 'org.mzbministry.buklod.classroom');
-          assert.equal(classroom.extra.eas.projectId, '14100ed1-7f25-4551-9627-09d280498241');
-          assert.equal(classroom.android.googleServicesFile, undefined);
-          assert.equal(classroom.icon, './assets/classroom/app-icon.png');
-          assert.equal(classroom.android.adaptiveIcon.foregroundImage, './assets/classroom/adaptive-icon.png');
-          assert.equal(classroom.web.favicon, './assets/classroom/favicon.png');
-          assert.equal(classroom.extra.appTarget, 'classroom');
-          const eas = require('./eas.json');
-          assert.equal(eas.build['classroom-preview'].env.BUKLOD_APP_TARGET, 'classroom');
-          assert.equal(eas.build['classroom-production'].env.BUKLOD_APP_TARGET, 'classroom');
-          assert.equal(eas.build['classroom-production-apk'].extends, 'classroom-production');
-          console.log('CLASSROOM_APP_TARGET_ISOLATION=PASS');
+          assert.equal(c.name, 'BUKLOD Classroom');
+          assert.equal(c.slug, 'buklod-classroom');
+          assert.equal(c.scheme, 'buklod-classroom');
+          assert.equal(c.android.package, 'org.mzbministry.buklod.classroom');
+          assert.equal(c.extra.appTarget, 'classroom');
+          assert.equal(c.extra.eas.projectId, '14100ed1-7f25-4551-9627-09d280498241');
+          console.log('CLASSROOM_EXPO_CONFIG=PASS');
           NODE
       - name: Web export
         env:
           EXPO_NO_TELEMETRY: '1'
-        run: npx expo export --platform web --output-dir dist-classroom-r4-qa
+        run: |
+          rm -rf dist-classroom-r4-qa
+          npx expo export --platform web --output-dir dist-classroom-r4-qa
+          test -s dist-classroom-r4-qa/index.html
+          grep -RFl --include='*.js' 'BUKLOD Classroom' dist-classroom-r4-qa >/dev/null
+          grep -RFl --include='*.js' 'yhanxndaqbmuzbdqlblu.supabase.co' dist-classroom-r4-qa/_expo/static/js/web >/dev/null
       - name: Classroom R4 anchors
         shell: bash
         run: |
           test ! -e __placeholder__
-          grep -F "BUKLOD_CLASSROOM_APP_TARGET_R4" app.config.js
+          grep -F "BUKLOD_CLASSROOM_SOURCE_LOCK_R5" app.config.js
           grep -F "org.mzbministry.buklod.classroom" app.config.js
           grep -F "14100ed1-7f25-4551-9627-09d280498241" app.config.js
           grep -F '"classroom-production-apk"' eas.json
+          grep -F "isClassroomApp" src/app/index.tsx
+          grep -F "isClassroomApp" 'src/app/(tabs)/_layout.tsx'
+          grep -F "BUKLOD Classroom" 'src/app/(auth)/login.tsx'
+          grep -F "BUKLOD Classroom" src/app/classroom/index.tsx
           grep -F "uploadClassroomObject" src/lib/education/classroomTransfer.ts
           grep -F "desiredStudentMedia" src/lib/education/classroomLiveState.ts
           grep -F "ignores stale, duplicate and cross-session commands" src/lib/education/classroomLiveState.test.ts
