@@ -12,7 +12,7 @@ on:
       - 'src/components/BuklodScopeHomeDashboard.tsx'
       - 'src/lib/buklodReportDomain.ts'
       - 'src/lib/buklodReportFiles.ts'
-      - 'assets/branding/buklod-report-icon.png'
+      - 'src/lib/buklodReportBranding.ts'
       - '.github/workflows/buklod_report_web_deploy.yml'
   workflow_dispatch:
 
@@ -49,7 +49,8 @@ jobs:
           grep -F 'PDF / PRINT' 'src/components/BuklodWeeklyReportForm.tsx'
           grep -F 'buklod-report-import-v1' 'src/lib/buklodReportFiles.ts'
           grep -F 'buklod-report-api-v1' 'src/lib/buklodReportDomain.ts'
-          test -f 'assets/branding/buklod-report-icon.png'
+          grep -F 'BUKLOD_REPORT_ICON_URI' 'src/lib/buklodReportBranding.ts'
+          grep -F 'BUKLOD_REPORT_ICON_URI' 'src/app/reports/index.tsx'
 
       - name: TypeScript QA
         run: npx tsc --noEmit
