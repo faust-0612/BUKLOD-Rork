@@ -1,0 +1,3 @@
+src/app/classroom/index.tsx(80,35): error TS2820: Type '"teach"' is not assignable to type '"symbol" | "function" | "solid" | "filter" | "label" | "wrap" | "chip" | "memory" | "sort" | "map" | "at" | "key" | "android" | "web" | "blur" | "loading" | "phone" | "star" | "numeric" | ... 7429 more ... | undefined'. Did you mean '"beach"'?
+
+TSC_EXIT_CODE=2
