@@ -332,8 +332,17 @@ export default function ClassroomLiveView({ classroomId, sessionId, classroomNam
 
   const refreshBreakouts = useCallback(async () => {
     if (!access) return;
-    const { data, error } = await supabase.functions.invoke('buklod-classroom-stream-access', { body: { action: 'state', session_id: sessionId } });
+    const { data, error } = await supabase.functions.invoke('buklod-classroom-stream-access', { body: { action: 'state', session_id: sessionId, participant_id: participantId.current } });
     if (error) return;
+    if (data?.participant_active === false && !left.current) {
+      left.current = true;
+      await call?.microphone?.disable?.().catch(() => undefined);
+      await call?.camera?.disable?.().catch(() => undefined);
+      await call?.leave?.().catch(() => undefined);
+      Alert.alert('Classroom moved to another device', 'This student account continued the same live class on another device. This older Classroom connection was closed to prevent duplicate attendance, microphone, camera, or recitation activity.');
+      onExit();
+      return;
+    }
     if (data?.state) {
       const next = stateFromServer(sessionId, data.state);
       setAuthority(current => next.version > current.version ? next : current);
@@ -341,7 +350,7 @@ export default function ClassroomLiveView({ classroomId, sessionId, classroomNam
     const raw = Array.isArray(data?.breakout_rooms) ? data.breakout_rooms : [];
     const rooms: BreakoutRoom[] = raw.map((item: any) => item?.buklod_education_classroom_breakout_rooms || item).filter((item: any) => item?.id);
     setBreakouts(rooms);
-  }, [access, sessionId]);
+  }, [access, call, onExit, sessionId]);
 
   const broadcast = useCallback(async (payload: ClassroomInteractionEvent | { kind: 'BREAKOUT_REFRESH' }) => {
     await channelRef.current?.send?.({ type: 'broadcast', event: 'classroom-control', payload });
