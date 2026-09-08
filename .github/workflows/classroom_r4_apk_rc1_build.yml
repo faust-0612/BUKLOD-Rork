@@ -110,7 +110,11 @@ jobs:
           assert(packages.includes('org.mzbministry.buklod.classroom'));
           console.log('ANDROID_GOOGLE_SERVICES=PASS');
           NODE
-          grep -R -F 'org.mzbministry.buklod.classroom' android/app/build.gradle android/app/src/main/AndroidManifest.xml android/app/src/main/java android/app/src/main/kotlin 2>/dev/null | head -20
+          grep -F "namespace 'org.mzbministry.buklod.classroom'" android/app/build.gradle
+          grep -F "applicationId 'org.mzbministry.buklod.classroom'" android/app/build.gradle
+          test -f android/app/src/main/java/org/mzbministry/buklod/classroom/MainActivity.kt
+          test -f android/app/src/main/java/org/mzbministry/buklod/classroom/MainApplication.kt
+          echo 'CLASSROOM_NATIVE_PACKAGE=PASS'
           grep -R -E 'google-services|com.google.gms.google-services' android/app/build.gradle android/build.gradle android/settings.gradle 2>/dev/null | head -20 || true
 
       - name: TypeScript recheck after prebuild
