@@ -1,0 +1,181 @@
+name: BUKLOD Classroom R4 Release Executor
+
+on:
+  push:
+    branches:
+      - release/classroom-r4-assets-20260908-r1
+    paths:
+      - '.github/workflows/classroom_r4_release_executor.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  BUKLOD_APP_TARGET: classroom
+  APP_VARIANT: production
+  EXPO_PUBLIC_APP_ENV: production
+  CI: '1'
+  EXPECTED_SOURCE_SHA: e02f68fb8162aa79b4da51ebc71ccbf3516cc550
+  CLASSROOM_SOURCE_BRANCH: feature/classroom-harmonized-r4-current-main-20260908
+
+jobs:
+  web-production-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify protected branch did not move
+        shell: bash
+        run: |
+          actual="$(git ls-remote https://github.com/${GITHUB_REPOSITORY}.git "refs/heads/${CLASSROOM_SOURCE_BRANCH}" | awk '{print $1}')"
+          echo "protected_branch_sha=${actual}"
+          test "$actual" = "$EXPECTED_SOURCE_SHA"
+
+      - name: Checkout exact protected Classroom source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_SOURCE_SHA }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Expo credential preflight
+        shell: bash
+        run: |
+          test -n "${EXPO_TOKEN:-}"
+          npx eas-cli@latest whoami --non-interactive
+
+      - name: Classroom identity and release asset gate
+        shell: bash
+        run: |
+          npx expo config --type public --json > /tmp/classroom-config.json
+          node <<'NODE'
+          const fs = require('fs');
+          const assert = require('node:assert/strict');
+          const c = JSON.parse(fs.readFileSync('/tmp/classroom-config.json','utf8'));
+          assert.equal(c.name, 'BUKLOD Classroom');
+          assert.equal(c.slug, 'buklod-classroom');
+          assert.equal(c.scheme, 'buklod-classroom');
+          assert.equal(c.android.package, 'org.mzbministry.buklod.classroom');
+          assert.equal(c.extra?.eas?.projectId, '14100ed1-7f25-4551-9627-09d280498241');
+          assert.equal(c.icon, './assets/classroom/app-icon.png');
+          assert.equal(c.android.adaptiveIcon.foregroundImage, './assets/classroom/adaptive-icon.png');
+          assert.equal(c.web.favicon, './assets/classroom/favicon.png');
+          assert.equal(c.extra?.appTarget, 'classroom');
+          console.log('CLASSROOM_PRODUCTION_IDENTITY=PASS');
+          NODE
+          echo '2f0a40e44945027ea8d8054ec99481ccefc5ee36cabd0426fcb39560ef91b9b5  assets/classroom/app-icon.png' | sha256sum -c -
+          echo '23e477cdbdfc633b486bdf790d61074dff726b9d525cd5a817f079c8fc57a332  assets/classroom/adaptive-icon.png' | sha256sum -c -
+          echo 'a49624e43f1e261412f555edab32f2d5247fc67b3e85c7f48c1e5ebb6fd6bfad  assets/classroom/favicon.png' | sha256sum -c -
+          echo 'a8d9a717faaebb81e1d3a3e2beff3fa5fff2f983d9a442d324136364fd6e6a73  assets/classroom/splash-icon.png' | sha256sum -c -
+
+      - name: TypeScript gate
+        run: npx tsc --noEmit
+
+      - name: Export exact Classroom production web
+        run: npx expo export --platform web --output-dir dist
+
+      - name: Deploy Classroom production web
+        id: deploy
+        shell: bash
+        run: |
+          set -o pipefail
+          npx eas-cli@latest deploy --prod --non-interactive 2>&1 | tee classroom-web-deploy.txt
+
+      - name: Runtime smoke
+        shell: bash
+        run: |
+          status="$(curl -L -sS --retry 12 --retry-delay 5 --retry-all-errors -o /tmp/classroom-live.html -w '%{http_code}' https://buklod-classroom.expo.app/)"
+          echo "CLASSROOM_WEB_HTTP=${status}"
+          test "$status" = '200'
+          test -s /tmp/classroom-live.html
+          grep -Eq '<script|_expo' /tmp/classroom-live.html
+
+      - name: Preserve web release evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: classroom-r4-web-release-${{ github.run_number }}
+          path: classroom-web-deploy.txt
+          if-no-files-found: ignore
+
+  android-production-apk:
+    needs: web-production-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify protected branch did not move
+        shell: bash
+        run: |
+          actual="$(git ls-remote https://github.com/${GITHUB_REPOSITORY}.git "refs/heads/${CLASSROOM_SOURCE_BRANCH}" | awk '{print $1}')"
+          echo "protected_branch_sha=${actual}"
+          test "$actual" = "$EXPECTED_SOURCE_SHA"
+
+      - name: Checkout exact protected Classroom source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_SOURCE_SHA }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Expo credential preflight
+        shell: bash
+        run: |
+          test -n "${EXPO_TOKEN:-}"
+          npx eas-cli@latest whoami --non-interactive
+
+      - name: Native config prebuild gate
+        shell: bash
+        run: |
+          npx expo config --type public --json > /tmp/classroom-native-config.json
+          node <<'NODE'
+          const fs = require('fs');
+          const assert = require('node:assert/strict');
+          const c = JSON.parse(fs.readFileSync('/tmp/classroom-native-config.json','utf8'));
+          assert.equal(c.android.package, 'org.mzbministry.buklod.classroom');
+          assert.equal(c.extra?.eas?.projectId, '14100ed1-7f25-4551-9627-09d280498241');
+          assert.equal(c.runtimeVersion, '1.3.0');
+          console.log('CLASSROOM_NATIVE_CONFIG=PASS');
+          NODE
+          npx expo prebuild --platform android --clean --no-install
+          grep -R -F 'org.mzbministry.buklod.classroom' android/app/build.gradle android/app/src/main/AndroidManifest.xml android/app/src/main/java android/app/src/main/kotlin 2>/dev/null | head -20
+          find android/app/src/main/res -type f \( -name 'ic_launcher*' -o -name 'splashscreen_logo*' \) | head -40
+
+      - name: TypeScript recheck
+        run: npx tsc --noEmit
+
+      - name: Build Classroom production APK and wait
+        id: build
+        shell: bash
+        run: |
+          set -o pipefail
+          npx eas-cli@latest build --platform android --profile classroom-production-apk --non-interactive 2>&1 | tee classroom-apk-build.txt
+
+      - name: Capture latest Classroom build metadata
+        if: always()
+        shell: bash
+        run: |
+          npx eas-cli@latest build:list --platform android --limit 5 --json --non-interactive > classroom-builds.json || true
+          cat classroom-builds.json || true
+
+      - name: Preserve Android build evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: classroom-r4-android-build-${{ github.run_number }}
+          path: |
+            classroom-apk-build.txt
+            classroom-builds.json
+          if-no-files-found: ignore
