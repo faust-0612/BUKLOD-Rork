@@ -65,6 +65,7 @@ jobs:
           rm -rf /tmp/classroom-live-state-test
           npx tsc src/lib/education/classroomLiveState.ts \
             --ignoreConfig \
+            --ignoreDeprecations 6.0 \
             --target ES2022 \
             --module commonjs \
             --moduleResolution node \
