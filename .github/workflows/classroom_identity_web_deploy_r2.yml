@@ -64,6 +64,7 @@ jobs:
           # built-in assertions instead of installing a mismatched Jest preset.
           rm -rf /tmp/classroom-live-state-test
           npx tsc src/lib/education/classroomLiveState.ts \
+            --ignoreConfig \
             --target ES2022 \
             --module commonjs \
             --moduleResolution node \
