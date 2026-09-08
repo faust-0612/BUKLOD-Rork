@@ -1,0 +1,246 @@
+name: BUKLOD Classroom Separate Web Release R1
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - hotfix/classroom-separate-web-20260909-r5
+    paths:
+      - '.github/workflows/classroom_separate_web_release_r1.yml'
+
+permissions:
+  contents: write
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  BUKLOD_APP_TARGET: classroom
+  BUKLOD_CLASSROOM_RELEASE: '1'
+  APP_VARIANT: production
+  EXPO_PUBLIC_APP_ENV: production
+  EXPO_PUBLIC_EAS_PROJECT_ID: 14100ed1-7f25-4551-9627-09d280498241
+  CLASSROOM_GOOGLE_SERVICES_FILE: ./google-services.classroom.json
+
+jobs:
+  release-classroom-web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout isolated Classroom hotfix
+        uses: actions/checkout@v4
+        with:
+          ref: hotfix/classroom-separate-web-20260909-r5
+          fetch-depth: 0
+
+      - name: Protect baseline and Main branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 7e4c17717b372ae623629ff1d7e4f10ab705fd81 HEAD
+          MAIN_BEFORE="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test -n "$MAIN_BEFORE"
+          echo "MAIN_BRANCH_BEFORE=$MAIN_BEFORE" >> "$GITHUB_ENV"
+          echo 'Protected Classroom baseline ancestry: VERIFIED'
+          echo 'Main branch SHA captured without modifying Main.'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Apply smallest target-aware source repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/apply-classroom-separation-r1.cjs
+          git diff --check
+          git status --short
+
+      - name: Persist repaired Classroom source on isolated branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'buklod-release-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add src/app/index.tsx 'src/app/(auth)/login.tsx' src/app/_layout.tsx src/components/BuklodNavSafeShell.tsx
+          if ! git diff --cached --quiet; then
+            git commit -m 'classroom: restore standalone runtime shell and routing'
+            git push origin HEAD:hotfix/classroom-separate-web-20260909-r5
+          fi
+          echo "CLASSROOM_RELEASE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Expo authentication preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN"
+          npx eas-cli@latest whoami --non-interactive >/dev/null
+          echo 'Expo authentication: READY'
+
+      - name: Pull Classroom production environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .env.local
+          npx eas-cli@latest env:pull --environment production --path .env.local --non-interactive
+          test -s .env.local
+          set -a
+          . ./.env.local
+          set +a
+          test -n "${EXPO_PUBLIC_SUPABASE_URL:-}"
+          test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}"
+          test "$EXPO_PUBLIC_SUPABASE_URL" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
+
+          while IFS='=' read -r name _; do
+            case "$name" in
+              EXPO_PUBLIC_*)
+                value="${!name-}"
+                {
+                  echo "${name}<<__CLASSROOM_ENV__"
+                  printf '%s\n' "$value"
+                  echo '__CLASSROOM_ENV__'
+                } >> "$GITHUB_ENV"
+                ;;
+            esac
+          done < <(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env.local)
+
+          # The Classroom target is release-controlled and must win over any
+          # generic/shared environment defaults.
+          {
+            echo 'BUKLOD_APP_TARGET=classroom'
+            echo 'BUKLOD_CLASSROOM_RELEASE=1'
+            echo 'APP_VARIANT=production'
+            echo 'EXPO_PUBLIC_APP_ENV=production'
+            echo 'EXPO_PUBLIC_EAS_PROJECT_ID=14100ed1-7f25-4551-9627-09d280498241'
+            echo 'CLASSROOM_GOOGLE_SERVICES_FILE=./google-services.classroom.json'
+          } >> "$GITHUB_ENV"
+          echo 'Classroom production public environment: READY'
+
+      - name: Fail-closed Classroom identity audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/verify-classroom-identity.cjs
+          npx expo config --json > /tmp/classroom-expo-config.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const c = JSON.parse(fs.readFileSync('/tmp/classroom-expo-config.json','utf8'));
+          const out = {
+            name: c.name,
+            slug: c.slug,
+            scheme: c.scheme,
+            androidPackage: c.android?.package,
+            iosBundle: c.ios?.bundleIdentifier,
+            appTarget: c.extra?.appTarget,
+            expoProject: c.extra?.eas?.projectId,
+            icon: c.icon,
+            favicon: c.web?.favicon,
+          };
+          console.log(JSON.stringify(out, null, 2));
+          NODE
+
+      - name: TypeScript and Classroom tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx tsc --noEmit
+          npx jest --runInBand --passWithNoTests --testPathPattern='classroom|faculty' || {
+            echo 'Targeted Classroom Jest run failed.'
+            exit 1
+          }
+
+      - name: Export Classroom web
+        shell: bash
+        env:
+          NODE_ENV: production
+        run: |
+          set -euo pipefail
+          node scripts/verify-classroom-identity.cjs
+          rm -rf dist
+          npx expo export --platform web --output-dir dist
+          test -s dist/index.html
+          test -d dist/_expo/static/js/web
+          SUPABASE_HOST="$(printf '%s' "$EXPO_PUBLIC_SUPABASE_URL" | sed -E 's#https?://([^/]+).*#\1#')"
+          grep -RFl --include='*.js' "$SUPABASE_HOST" dist/_expo/static/js/web >/dev/null || {
+            echo 'STOP: protected Supabase host is missing from Classroom web bundle.'
+            exit 1
+          }
+          grep -RFl --include='*.js' 'BUKLOD Classroom' dist/_expo/static/js/web >/dev/null || {
+            echo 'STOP: Classroom identity text is missing from web bundle.'
+            exit 1
+          }
+          echo 'Classroom web export: PASS'
+
+      - name: Local browser startup and identity smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          BROWSER="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$BROWSER"
+          python3 -m http.server 4173 -d dist >/tmp/classroom-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          sleep 2
+          curl -fsS http://127.0.0.1:4173/ >/dev/null
+          timeout 45s "$BROWSER" \
+            --headless=new --no-sandbox --disable-gpu --disable-extensions --no-first-run \
+            --window-size=390,844 --virtual-time-budget=20000 \
+            --enable-logging=stderr --v=0 --dump-dom \
+            http://127.0.0.1:4173/ \
+            >/tmp/classroom-local-dom.html 2>/tmp/classroom-local-browser.log
+          ! grep -qi 'supabaseUrl is required' /tmp/classroom-local-browser.log
+          ! grep -Eqi 'Uncaught (Error|TypeError|ReferenceError|SyntaxError)' /tmp/classroom-local-browser.log
+          grep -q '<div id="root"><' /tmp/classroom-local-dom.html
+          grep -q 'BUKLOD Classroom' /tmp/classroom-local-dom.html
+          ! grep -q 'Samahang Binuklod ng Pag-ibig' /tmp/classroom-local-dom.html
+          echo 'Local Classroom browser runtime + login identity: PASS'
+
+      - name: Deploy only BUKLOD Classroom web to production
+        shell: bash
+        env:
+          NODE_ENV: production
+        run: |
+          set -euo pipefail
+          node scripts/verify-classroom-identity.cjs
+          npx eas-cli@latest deploy --prod --environment production --non-interactive
+
+      - name: Verify live Classroom production runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          BROWSER="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$BROWSER"
+          sleep 5
+          curl -fsSIL --max-time 30 https://buklod-classroom.expo.app/ >/dev/null
+          timeout 45s "$BROWSER" \
+            --headless=new --no-sandbox --disable-gpu --disable-extensions --no-first-run \
+            --window-size=390,844 --virtual-time-budget=20000 \
+            --enable-logging=stderr --v=0 --dump-dom \
+            https://buklod-classroom.expo.app/ \
+            >/tmp/classroom-live-dom.html 2>/tmp/classroom-live-browser.log
+          if grep -qi 'supabaseUrl is required' /tmp/classroom-live-browser.log; then
+            echo 'LIVE STOP: Supabase configuration missing.'
+            exit 1
+          fi
+          if grep -Eqi 'Uncaught (Error|TypeError|ReferenceError|SyntaxError)' /tmp/classroom-live-browser.log; then
+            echo 'LIVE STOP: uncaught browser runtime error.'
+            grep -Ei 'Uncaught (Error|TypeError|ReferenceError|SyntaxError)' /tmp/classroom-live-browser.log | head -20
+            exit 1
+          fi
+          grep -q '<div id="root"><' /tmp/classroom-live-dom.html
+          grep -q 'BUKLOD Classroom' /tmp/classroom-live-dom.html
+          ! grep -q 'Samahang Binuklod ng Pag-ibig' /tmp/classroom-live-dom.html
+          echo 'Live BUKLOD Classroom web identity/runtime: PASS'
+
+      - name: Prove Main branch was not changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          MAIN_AFTER="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test "$MAIN_AFTER" = "$MAIN_BRANCH_BEFORE"
+          echo 'BUKLOD Main branch unchanged: VERIFIED'
+          echo "Classroom released source: $CLASSROOM_RELEASE_SHA"
+          echo 'Production URL: https://buklod-classroom.expo.app'
