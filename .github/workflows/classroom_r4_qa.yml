@@ -1,0 +1,138 @@
+name: BUKLOD Classroom R4 QA
+
+on:
+  push:
+    branches:
+      - feature/classroom-harmonized-r4-current-main-20260908
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'src/app/profile/buklod-classroom*.tsx'
+      - 'src/app/profile/buklod-faculty-live-review.tsx'
+      - 'src/app/profile/buklod-faculty-roster.tsx'
+      - 'src/app/profile/buklod-faculty-materials.tsx'
+      - 'src/components/classroom/**'
+      - 'src/components/BuklodAcceptedCallContent.tsx'
+      - 'src/lib/education/classroomLiveState*'
+      - 'src/lib/education/classroomTransfer.ts'
+      - 'supabase/functions/buklod-classroom-stream-access/**'
+      - 'supabase/functions/buklod-classroom-roster-import/**'
+      - 'supabase/migrations/*classroom*.sql'
+      - 'app.config.js'
+      - 'eas.json'
+      - 'assets/classroom/**'
+      - '.github/workflows/classroom_r4_qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-web-gates:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Expo public config
+        run: npx expo config --type public --json > /tmp/buklod-r4-expo-config.json
+      - name: Classroom app target isolation
+        shell: bash
+        run: |
+          node <<'NODE'
+          const assert = require('node:assert/strict');
+          const factory = require('./app.config.js');
+          const clean = ['BUKLOD_APP_TARGET','APP_VARIANT','EXPO_PUBLIC_APP_ENV','EAS_PROJECT_ID','EXPO_PUBLIC_EAS_PROJECT_ID','CLASSROOM_GOOGLE_SERVICES_FILE'];
+          for (const key of clean) delete process.env[key];
+          const main = factory({ config: { extra: {} } });
+          assert.equal(main.name, 'BUKLOD');
+          assert.equal(main.slug, 'buklod');
+          assert.equal(main.android.package, 'org.mzbministry.buklod');
+          assert.equal(main.extra.eas.projectId, '23dad7d0-389a-406e-8dec-08965dab85d8');
+          assert.equal(main.icon, './assets/release/app-icon.png');
+          process.env.BUKLOD_APP_TARGET = 'classroom';
+          const classroom = factory({ config: { extra: {} } });
+          assert.equal(classroom.name, 'BUKLOD Classroom');
+          assert.equal(classroom.slug, 'buklod-classroom');
+          assert.equal(classroom.scheme, 'buklod-classroom');
+          assert.equal(classroom.android.package, 'org.mzbministry.buklod.classroom');
+          assert.equal(classroom.extra.eas.projectId, '14100ed1-7f25-4551-9627-09d280498241');
+          assert.equal(classroom.android.googleServicesFile, undefined);
+          assert.equal(classroom.icon, './assets/classroom/app-icon.png');
+          assert.equal(classroom.android.adaptiveIcon.foregroundImage, './assets/classroom/adaptive-icon.png');
+          assert.equal(classroom.web.favicon, './assets/classroom/favicon.png');
+          assert.equal(classroom.extra.appTarget, 'classroom');
+          const eas = require('./eas.json');
+          assert.equal(eas.build['classroom-preview'].env.BUKLOD_APP_TARGET, 'classroom');
+          assert.equal(eas.build['classroom-production'].env.BUKLOD_APP_TARGET, 'classroom');
+          assert.equal(eas.build['classroom-production-apk'].extends, 'classroom-production');
+          console.log('CLASSROOM_APP_TARGET_ISOLATION=PASS');
+          NODE
+      - name: Web export
+        env:
+          EXPO_NO_TELEMETRY: '1'
+        run: npx expo export --platform web --output-dir dist-classroom-r4-qa
+      - name: Classroom R4 anchors
+        shell: bash
+        run: |
+          test ! -e __placeholder__
+          grep -F "BUKLOD_CLASSROOM_APP_TARGET_R4" app.config.js
+          grep -F "org.mzbministry.buklod.classroom" app.config.js
+          grep -F "14100ed1-7f25-4551-9627-09d280498241" app.config.js
+          grep -F '"classroom-production-apk"' eas.json
+          grep -F "uploadClassroomObject" src/lib/education/classroomTransfer.ts
+          grep -F "desiredStudentMedia" src/lib/education/classroomLiveState.ts
+          grep -F "ignores stale, duplicate and cross-session commands" src/lib/education/classroomLiveState.test.ts
+          grep -F "BuklodAcceptedCallContent" src/components/classroom/ClassroomLiveView.native.tsx
+          grep -F "hideControls={access.role === 'STUDENT'}" src/components/classroom/ClassroomLiveView.native.tsx
+          grep -F "desiredStudentMedia(authority, access.user_id, manualMedia)" src/components/classroom/ClassroomLiveView.native.tsx
+          grep -F "toggleStudentMicrophone" src/components/classroom/ClassroomLiveView.native.tsx
+          grep -F "toggleStudentCamera" src/components/classroom/ClassroomLiveView.native.tsx
+          grep -F "React.ComponentProps<typeof CallContent>" src/components/BuklodAcceptedCallContent.tsx
+          grep -F "ClassroomLiveAutomationLayer" src/components/classroom/ClassroomLiveView.native.tsx
+          grep -F "CameraView" src/components/classroom/ClassroomLiveView.native.tsx
+          grep -F "create_breakouts" src/components/classroom/ClassroomLiveView.native.tsx
+          grep -F "participant_active" src/components/classroom/ClassroomLiveView.native.tsx
+          grep -F "NO_RESPONSE_NETWORK_REVIEW" src/components/classroom/ClassroomLiveAutomationLayer.tsx
+          grep -F "BUKLOD_CLASSROOM_NATIVE_ROLLING" src/components/classroom/ClassroomLiveAutomationLayer.tsx
+          grep -F "sustained_degraded" src/components/classroom/ClassroomLiveAutomationLayer.tsx
+          grep -F "buklod_classroom_live_policy_v1" src/components/classroom/ClassroomLiveAutomationLayer.tsx
+          grep -F "NoiseCancellationProvider" src/components/classroom/ClassroomLiveAutomationLayer.tsx
+          grep -F "saveClassroomFileToDevice" src/app/profile/buklod-classroom-materials.tsx
+          grep -F "uploadClassroomObject" src/app/profile/buklod-classroom-work.tsx
+          grep -F "launchCameraAsync" src/app/profile/buklod-classroom-work.tsx
+          grep -F "DocumentPicker.getDocumentAsync" src/app/profile/buklod-faculty-roster.tsx
+          grep -F "application/pdf" src/app/profile/buklod-faculty-roster.tsx
+          grep -F "application/msword" src/app/profile/buklod-faculty-roster.tsx
+          grep -F "buklod-classroom-roster-import" src/app/profile/buklod-faculty-roster.tsx
+          grep -F "buklod_classroom_roster_pending_v1" src/app/profile/buklod-faculty-roster.tsx
+          grep -F "buklod_classroom_roster_confirm_match_v1" src/app/profile/buklod-faculty-roster.tsx
+          grep -F "buklod_education_enroll_by_username_v1" src/app/profile/buklod-faculty-roster.tsx
+          grep -F "AUTO_SCORE = 0.90" supabase/functions/buklod-classroom-roster-import/index.ts
+          grep -F "AUTO_MARGIN = 0.10" supabase/functions/buklod-classroom-roster-import/index.ts
+          grep -F "legacyDocText" supabase/functions/buklod-classroom-roster-import/index.ts
+          grep -F "dedupeAndSort" supabase/functions/buklod-classroom-roster-import/index.ts
+          grep -F "buklod_classroom_roster_import_service_v1" supabase/functions/buklod-classroom-roster-import/index.ts
+          grep -F "buklod_classroom_roster_profile_arrival_sync_r4" supabase/migrations/20260908033000_classroom_roster_name_sync_r4.sql
+          grep -F "NEEDS_REVIEW" supabase/migrations/20260908033000_classroom_roster_name_sync_r4.sql
+          grep -F "uploadClassroomObject" src/app/profile/buklod-faculty-materials.tsx
+          grep -F "MAX_BYTES = 1024 * 1024 * 1024" src/app/profile/buklod-faculty-materials.tsx
+          grep -F "1073741824" supabase/migrations/20260908011500_classroom_faculty_materials_1gb_r4.sql
+          grep -F "buklod_classroom_finalize_live_attendance_v1" src/app/profile/buklod-faculty-live-review.tsx
+          grep -F "buklod_classroom_live_attendance_proposals_v1" supabase/migrations/20260908001000_classroom_live_native_completion_r4.sql
+          grep -F "buklod_classroom_interaction_reviews_v1" supabase/migrations/20260908002000_classroom_interaction_review_queue_r4.sql
+          grep -F "buklod_classroom_finalize_live_attendance_v1" supabase/migrations/20260908003000_classroom_live_attendance_finalize_r4.sql
+          grep -F "proposal_only" supabase/migrations/20260908004000_classroom_live_attendance_isolation_r4.sql
+          grep -F "buklod_classroom_live_policy_v1" supabase/migrations/20260908005000_classroom_live_policy_r4.sql
+          grep -F "create_breakouts" supabase/functions/buklod-classroom-stream-access/index.ts
+          grep -F "participant_active" supabase/functions/buklod-classroom-stream-access/index.ts
+          grep -F "openRows" supabase/functions/buklod-classroom-stream-access/index.ts

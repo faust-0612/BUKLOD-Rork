@@ -1,4 +1,4 @@
-﻿import React, {
+import React, {
   useEffect,
   useMemo,
   useState,
@@ -28,6 +28,15 @@ import {
 
 
 /* PATCH_168E_SCOPE_CONNECT_CALLS */
+
+type Props = React.ComponentProps<typeof CallContent> & {
+  /** Classroom can hide the generic conference cockpit without changing Connect defaults. */
+  hideControls?: boolean;
+};
+
+function EmptyCallControls() {
+  return null;
+}
 
 function formatElapsed(
   seconds: number,
@@ -328,7 +337,7 @@ const endForAll =
 }
 
 export default function
-BuklodAcceptedCallContent() {
+BuklodAcceptedCallContent({ hideControls = false, ...callContentProps }: Props) {
   const {
     useParticipants,
     useCallSession,
@@ -424,8 +433,11 @@ BuklodAcceptedCallContent() {
       }
     >
       <CallContent
+        {...callContentProps}
         CallControls={
-          BuklodCallControls
+          hideControls
+            ? EmptyCallControls
+            : BuklodCallControls
         }
       />
 

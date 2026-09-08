@@ -11,15 +11,14 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system/legacy';
-import { decode } from 'base64-arraybuffer';
 import { router, useLocalSearchParams } from 'expo-router';
 
+import { uploadClassroomObject } from '@/lib/education/classroomTransfer';
 import { supabase } from '@/lib/supabase';
 import { FacultyGate } from '@/components/faculty/FacultyGate';
 
 const BUCKET = 'buklod-education-materials';
-const MAX_BYTES = 25 * 1024 * 1024;
+const MAX_BYTES = 1024 * 1024 * 1024;
 
 type MaterialRow = {
   id: string;
@@ -42,6 +41,7 @@ export default function FacultyMaterialsScreen() {
   const [title, setTitle] = useState('');
   const [releaseNow, setReleaseNow] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const load = async () => {
     const { data, error } = await supabase
@@ -71,7 +71,7 @@ export default function FacultyMaterialsScreen() {
     if (!asset) return;
 
     if (asset.size && asset.size > MAX_BYTES) {
-      return Alert.alert('Material Too Large', 'Phase 5 upload limit is 25 MB per file.');
+      return Alert.alert('Material Too Large', 'BUKLOD Classroom accepts up to 1 GB per material file when the storage bucket permits it.');
     }
 
     setUploading(true);
@@ -80,22 +80,17 @@ export default function FacultyMaterialsScreen() {
       const uid = auth.user?.id;
       if (!uid) throw new Error('Please sign in again.');
 
-      const base64 = await FileSystem.readAsStringAsync(asset.uri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-
       const safeName = asset.name.replace(/[^a-zA-Z0-9._-]+/g, '_').slice(-120);
       const storagePath = `${classroomId}/${Date.now()}_${safeName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from(BUCKET)
-        .upload(storagePath, decode(base64), {
-          contentType: asset.mimeType ?? 'application/octet-stream',
-          cacheControl: '3600',
-          upsert: false,
-        });
-
-      if (uploadError) throw uploadError;
+      const transfer = await uploadClassroomObject({
+        uri: asset.uri,
+        bucket: BUCKET,
+        path: storagePath,
+        name: asset.name,
+        mimeType: asset.mimeType,
+        size: asset.size,
+        onProgress: progress => setUploadProgress(progress.percent),
+      });
 
       const { error: rowError } = await supabase
         .from('buklod_education_materials')
@@ -107,7 +102,7 @@ export default function FacultyMaterialsScreen() {
           file_path: storagePath,
           storage_bucket: BUCKET,
           mime_type: asset.mimeType ?? null,
-          file_size: asset.size ?? null,
+          file_size: transfer.size,
           allow_download: true,
           is_released: releaseNow,
           released_at: releaseNow ? new Date().toISOString() : null,
@@ -126,6 +121,7 @@ export default function FacultyMaterialsScreen() {
       Alert.alert('Material Upload', error instanceof Error ? error.message : 'Upload failed.');
     } finally {
       setUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -212,9 +208,9 @@ export default function FacultyMaterialsScreen() {
 
         <Pressable style={styles.primary} onPress={upload} disabled={uploading}>
           <MaterialCommunityIcons name="file-upload-outline" size={21} color="#fff" />
-          <Text style={styles.primaryText}>{uploading ? 'Uploading…' : 'Choose & Upload File'}</Text>
+          <Text style={styles.primaryText}>{uploading ? `Uploading… ${uploadProgress}%` : 'Choose & Upload File'}</Text>
         </Pressable>
-        <Text style={styles.help}>PDF, Office files, images, videos and other classroom files • 25 MB Phase 5 limit.</Text>
+        <Text style={styles.help}>PDF, Office files, images, videos and other classroom files • up to 1 GB • larger uploads use resumable chunks and can retry from the saved offset.</Text>
       </View>
 
       <Text style={styles.sectionTitle}>Class Materials</Text>
