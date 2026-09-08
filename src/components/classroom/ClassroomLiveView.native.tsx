@@ -21,6 +21,7 @@ import {
 } from '@stream-io/video-react-native-sdk';
 
 import BuklodAcceptedCallContent from '@/components/BuklodAcceptedCallContent';
+import ClassroomLiveAutomationLayer from '@/components/classroom/ClassroomLiveAutomationLayer';
 import {
   applyClassroomInteractionEvent,
   ClassroomInteractionEvent,
@@ -506,6 +507,14 @@ export default function ClassroomLiveView({ classroomId, sessionId, classroomNam
     <View style={styles.screen}>
       <StreamVideo client={client}>
         <StreamCall call={call}>
+          <ClassroomLiveAutomationLayer
+            role={access.role}
+            userId={access.user_id}
+            sessionId={sessionId}
+            authority={authority}
+            onAuthority={setAuthority}
+            broadcast={async event => broadcast(event)}
+          />
           <ClassroomRoom access={access} sessionId={sessionId} authority={authority} onAuthority={setAuthority} broadcast={broadcast} breakouts={breakouts} currentBreakoutId={currentBreakoutId} onOpenBreakout={roomId => swapCall(roomId)} onReturnMain={() => swapCall(null)} onRefreshBreakouts={refreshBreakouts} />
         </StreamCall>
       </StreamVideo>
