@@ -248,7 +248,7 @@ export default function BuklodClassroomWorkScreen() {
       file_size: transfer.size,
     });
     if (metadataError) {
-      await supabase.storage.from(CLASSROOM_BUCKET).remove([path]).catch(() => undefined);
+      try { await supabase.storage.from(CLASSROOM_BUCKET).remove([path]); } catch { /* best-effort rollback */ }
       throw metadataError;
     }
     return path;
@@ -295,8 +295,12 @@ export default function BuklodClassroomWorkScreen() {
       await load();
       Alert.alert('Submitted', 'Your activity was submitted to the classroom.');
     } catch (error) {
-      if (uploadedPath) await supabase.storage.from(CLASSROOM_BUCKET).remove([uploadedPath]).catch(() => undefined);
-      if (submissionId) await supabase.from('buklod_education_classroom_submissions').delete().eq('id', submissionId).catch(() => undefined);
+      if (uploadedPath) {
+        try { await supabase.storage.from(CLASSROOM_BUCKET).remove([uploadedPath]); } catch { /* best-effort rollback */ }
+      }
+      if (submissionId) {
+        try { await supabase.from('buklod_education_classroom_submissions').delete().eq('id', submissionId); } catch { /* best-effort rollback */ }
+      }
       Alert.alert('Submit Activity', error instanceof Error ? error.message : 'Submission failed. Retry the same attachment to safely resume when applicable.');
     } finally {
       setBusy(false);
