@@ -1,0 +1,42 @@
+name: BUKLOD Report PR QA
+
+on:
+  pull_request:
+    paths:
+      - 'src/app/reports/**'
+      - 'src/components/BuklodWeeklyReportForm.tsx'
+      - 'src/lib/buklodReportDomain.ts'
+      - 'src/lib/buklodReportFiles.ts'
+      - 'src/lib/buklodReportBranding.ts'
+      - '.github/workflows/buklod_report_*'
+
+permissions:
+  contents: read
+
+jobs:
+  report-qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Source contract
+        run: |
+          grep -F 'IMPORT & AUTO-DETECT' src/components/BuklodWeeklyReportForm.tsx
+          grep -F 'MARK REMINDER DONE' src/components/BuklodWeeklyReportForm.tsx
+          grep -F 'PDF / PRINT' src/components/BuklodWeeklyReportForm.tsx
+          grep -F 'buklod-report-import-v1' src/lib/buklodReportFiles.ts
+          grep -F 'buklod-report-api-v1' src/lib/buklodReportDomain.ts
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Web export
+        run: npx expo export --platform web --output-dir dist --clear
+      - name: Bundle contract
+        run: |
+          test -f dist/index.html
+          grep -R -F 'IMPORT & AUTO-DETECT' dist/_expo/static/js/web >/dev/null
+          grep -R -F 'MARK REMINDER DONE' dist/_expo/static/js/web >/dev/null
+          grep -R -F 'buklod-report-import-v1' dist/_expo/static/js/web >/dev/null

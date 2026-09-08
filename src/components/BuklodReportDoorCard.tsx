@@ -10,6 +10,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 
+import { BUKLOD_REPORT_ICON_URI } from '@/lib/buklodReportBranding';
 import { fetchMyActionableReportAssignments } from '@/lib/buklodReportDomain';
 import { buklodReportLandingPath } from '@/lib/buklodReportRoutes';
 import { colors } from '@/lib/theme';
@@ -20,8 +21,6 @@ type Props = {
   scopeType: string;
   compact?: boolean;
 };
-
-const REPORT_ICON = require('../../assets/branding/buklod-report-icon.png');
 
 export default function BuklodReportDoorCard({
   scopeId,
@@ -87,7 +86,11 @@ export default function BuklodReportDoorCard({
       ]}
     >
       <View style={styles.iconWrap}>
-        <Image source={REPORT_ICON} resizeMode="cover" style={styles.icon} />
+        <Image
+          source={{ uri: BUKLOD_REPORT_ICON_URI }}
+          resizeMode="cover"
+          style={styles.icon}
+        />
       </View>
 
       <View style={styles.copy}>
