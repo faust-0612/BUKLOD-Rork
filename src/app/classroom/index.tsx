@@ -11,7 +11,7 @@ export default function ClassroomAppHome() {
   if (loading && !session) return <View style={styles.loading}><Text style={styles.loadingText}>Opening BUKLOD Classroom...</Text></View>;
   if (!session) return <Redirect href="/(auth)/login" />;
 
-  const displayName = String(profile?.full_name || profile?.display_name || profile?.username || 'BUKLOD Learner');
+  const displayName = String(profile?.full_name || profile?.username || 'BUKLOD Learner');
   const signOut = async () => { await supabase.auth.signOut(); router.replace('/(auth)/login'); };
 
   return (
@@ -35,7 +35,7 @@ export default function ClassroomAppHome() {
         <MaterialCommunityIcons name="chevron-right" size={24} color="#7d8b81" />
       </Pressable>
       <Pressable style={styles.card} onPress={() => router.push('/profile/buklod-faculty' as any)}>
-        <View style={styles.cardIcon}><MaterialCommunityIcons name="teach" size={28} color="#1f7a3f" /></View>
+        <View style={styles.cardIcon}><MaterialCommunityIcons name="account-tie" size={28} color="#1f7a3f" /></View>
         <View style={{ flex: 1 }}><Text style={styles.cardTitle}>Faculty</Text><Text style={styles.cardText}>Classes, roster, attendance, assessments, grading, files and live teaching.</Text></View>
         <MaterialCommunityIcons name="chevron-right" size={24} color="#7d8b81" />
       </Pressable>
