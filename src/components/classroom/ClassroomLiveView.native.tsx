@@ -128,6 +128,14 @@ function ClassroomRoom({
   const participants = useParticipants();
   const [sending, setSending] = useState(false);
   const responseSentFor = useRef<string | null>(null);
+  const [manualMedia, setManualMedia] = useState({ micOff: false, cameraOff: false });
+  const lastStudentInteraction = useRef<string | null>(null);
+
+  const studentActive =
+    access.role === 'STUDENT' &&
+    authority.activeUserIds.includes(access.user_id) &&
+    !authority.muteAll &&
+    !authority.ended;
 
   const students = useMemo(
     () => participants.filter((participant: any) => {
@@ -157,7 +165,7 @@ function ClassroomRoom({
 
   useEffect(() => {
     if (!call || access.role !== 'STUDENT') return;
-    const desired = desiredStudentMedia(authority, access.user_id);
+    const desired = desiredStudentMedia(authority, access.user_id, manualMedia);
     let cancelled = false;
     void (async () => {
       try {
@@ -171,7 +179,25 @@ function ClassroomRoom({
       }
     })();
     return () => { cancelled = true; };
-  }, [access.role, access.user_id, authority.version, authority.muteAll, authority.ended, call]);
+  }, [access.role, access.user_id, authority.version, authority.muteAll, authority.ended, call, manualMedia]);
+
+  useEffect(() => {
+    if (access.role !== 'STUDENT') return;
+    const interactionId = studentActive ? authority.interactionId : null;
+    if (!studentActive) {
+      lastStudentInteraction.current = null;
+      if (manualMedia.micOff || manualMedia.cameraOff) {
+        setManualMedia({ micOff: false, cameraOff: false });
+      }
+      return;
+    }
+    if (lastStudentInteraction.current !== interactionId) {
+      lastStudentInteraction.current = interactionId;
+      if (manualMedia.micOff || manualMedia.cameraOff) {
+        setManualMedia({ micOff: false, cameraOff: false });
+      }
+    }
+  }, [access.role, authority.interactionId, manualMedia.cameraOff, manualMedia.micOff, studentActive]);
 
   useEffect(() => {
     if (access.role !== 'STUDENT' || !authority.interactionId || !authority.activeUserIds.includes(access.user_id)) return;
@@ -188,6 +214,30 @@ function ClassroomRoom({
       },
     }).catch(() => undefined);
   }, [access.role, access.user_id, authority.interactionId, authority.activeUserIds, participants, sessionId]);
+
+  const toggleStudentMicrophone = async () => {
+    if (!call || access.role !== 'STUDENT' || !studentActive) return;
+    const nextOff = !manualMedia.micOff;
+    try {
+      if (nextOff) await call.microphone.disable();
+      else await call.microphone.enable();
+      setManualMedia(current => ({ ...current, micOff: nextOff }));
+    } catch (error) {
+      Alert.alert('Microphone', error instanceof Error ? error.message : 'Could not change the classroom microphone.');
+    }
+  };
+
+  const toggleStudentCamera = async () => {
+    if (!call || access.role !== 'STUDENT' || !studentActive) return;
+    const nextOff = !manualMedia.cameraOff;
+    try {
+      if (nextOff) await call.camera.disable();
+      else await call.camera.enable();
+      setManualMedia(current => ({ ...current, cameraOff: nextOff }));
+    } catch (error) {
+      Alert.alert('Camera', error instanceof Error ? error.message : 'Could not change the classroom camera.');
+    }
+  };
 
   const randomStudent = () => {
     if (!students.length) return Alert.alert('Random Student', 'No connected student is currently eligible.');
@@ -236,7 +286,7 @@ function ClassroomRoom({
 
   return (
     <View style={styles.roomRoot}>
-      <BuklodAcceptedCallContent />
+      <BuklodAcceptedCallContent hideControls={access.role === 'STUDENT'} />
 
       {access.role === 'FACULTY' && (
         <View style={styles.teacherDock}>
@@ -274,6 +324,28 @@ function ClassroomRoom({
         <View pointerEvents="none" style={styles.calledCue}>
           <Text style={styles.calledCueTitle}>YOU'RE BEING CALLED</Text>
           <Text style={styles.calledCueText}>Your classroom mic/camera are active for this interaction. You can still mute or turn camera off immediately.</Text>
+        </View>
+      )}
+
+      {access.role === 'STUDENT' && (
+        <View style={styles.studentDock}>
+          {studentActive ? (
+            <>
+              <Pressable accessibilityRole="button" accessibilityLabel={manualMedia.micOff ? 'Unmute classroom microphone' : 'Mute classroom microphone'} style={[styles.studentAction, manualMedia.micOff && styles.studentActionOff]} onPress={() => void toggleStudentMicrophone()}>
+                <MaterialCommunityIcons name={manualMedia.micOff ? 'microphone-off' : 'microphone'} size={19} color="#fff" />
+                <Text style={styles.studentActionText}>{manualMedia.micOff ? 'Unmute' : 'Mute'}</Text>
+              </Pressable>
+              <Pressable accessibilityRole="button" accessibilityLabel={manualMedia.cameraOff ? 'Turn classroom camera on' : 'Turn classroom camera off'} style={[styles.studentAction, manualMedia.cameraOff && styles.studentActionOff]} onPress={() => void toggleStudentCamera()}>
+                <MaterialCommunityIcons name={manualMedia.cameraOff ? 'video-off' : 'video'} size={19} color="#fff" />
+                <Text style={styles.studentActionText}>{manualMedia.cameraOff ? 'Camera on' : 'Camera off'}</Text>
+              </Pressable>
+            </>
+          ) : (
+            <View pointerEvents="none" style={styles.listeningPill}>
+              <MaterialCommunityIcons name="ear-hearing" size={16} color="#dce9df" />
+              <Text style={styles.listeningText}>Listening · mic & camera off</Text>
+            </View>
+          )}
         </View>
       )}
 
@@ -543,5 +615,7 @@ const styles = StyleSheet.create({
   prejoin: { flex: 1, backgroundColor: '#f2f6f1', padding: 22, paddingTop: 58 }, prejoinEyebrow: { color: '#1f7a3f', fontSize: 10, fontWeight: '900', letterSpacing: 1.2 }, prejoinTitle: { color: '#17311f', fontSize: 27, fontWeight: '900', marginTop: 4, marginBottom: 16 }, previewBox: { height: 260, borderRadius: 20, overflow: 'hidden', backgroundColor: '#dfe7e1', alignItems: 'center', justifyContent: 'center' }, permissionRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 11 }, permissionText: { color: '#526159', fontSize: 11, fontWeight: '800' }, permissionButton: { backgroundColor: '#e3eee5', borderRadius: 11, padding: 12, marginTop: 10, alignItems: 'center' }, permissionButtonText: { color: '#1f7a3f', fontWeight: '900' }, previewToggle: { flexDirection: 'row', gap: 7, alignItems: 'center', justifyContent: 'center', padding: 12, marginTop: 6 }, previewToggleText: { color: '#1f7a3f', fontWeight: '900' }, prejoinNote: { color: '#68756d', fontSize: 11, lineHeight: 17, marginTop: 8 }, joinButton: { backgroundColor: '#1f7a3f', borderRadius: 13, padding: 14, alignItems: 'center', marginTop: 16 }, joinButtonText: { color: '#fff', fontWeight: '900' }, cancelJoin: { alignItems: 'center', padding: 12 }, cancelJoinText: { color: '#68756d', fontWeight: '800' }, disabled: { opacity: 0.45 },
   topBar: { position: 'absolute', top: 42, left: 12, right: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }, infoPill: { flex: 1, minHeight: 40, borderRadius: 20, paddingHorizontal: 12, backgroundColor: 'rgba(15,25,18,0.82)', flexDirection: 'row', alignItems: 'center', gap: 7 }, liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#e34444' }, roomName: { color: '#fff', fontWeight: '900', flex: 1 }, timer: { color: '#dce9df', fontSize: 11, fontWeight: '900' }, endButton: { backgroundColor: '#b62828', borderRadius: 18, paddingHorizontal: 13, paddingVertical: 10 }, endText: { color: '#fff', fontWeight: '900', fontSize: 11 }, leaveButton: { position: 'absolute', left: 12, bottom: 28, borderRadius: 20, backgroundColor: 'rgba(15,25,18,0.86)', paddingHorizontal: 13, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 5 }, leaveText: { color: '#fff', fontWeight: '900', fontSize: 11 },
   teacherDock: { position: 'absolute', left: 10, right: 10, bottom: 92, backgroundColor: 'rgba(6,12,8,0.86)', borderRadius: 16, paddingVertical: 8 }, teacherDockRow: { paddingHorizontal: 8, gap: 7 }, controlChip: { minHeight: 34, borderRadius: 17, paddingHorizontal: 11, backgroundColor: '#245c38', flexDirection: 'row', alignItems: 'center', gap: 5 }, controlChipDanger: { minHeight: 34, borderRadius: 17, paddingHorizontal: 11, backgroundColor: '#9d3030', flexDirection: 'row', alignItems: 'center' }, controlText: { color: '#fff', fontSize: 10, fontWeight: '900' }, studentRail: { paddingHorizontal: 8, paddingTop: 7, gap: 6 }, studentChip: { maxWidth: 140, minHeight: 30, borderRadius: 15, paddingHorizontal: 10, backgroundColor: 'rgba(255,255,255,0.13)', flexDirection: 'row', alignItems: 'center', gap: 4 }, studentChipActive: { backgroundColor: '#1f7a3f' }, studentChipText: { color: '#fff', fontSize: 10, fontWeight: '800', maxWidth: 105 },
-  calledCue: { position: 'absolute', top: 96, alignSelf: 'center', maxWidth: '86%', backgroundColor: 'rgba(31,122,63,0.95)', borderRadius: 14, paddingHorizontal: 16, paddingVertical: 11 }, calledCueTitle: { color: '#fff', fontWeight: '900', textAlign: 'center' }, calledCueText: { color: 'rgba(255,255,255,0.88)', fontSize: 10, lineHeight: 14, textAlign: 'center', marginTop: 3 }, breakoutTray: { position: 'absolute', right: 10, top: 94, gap: 6 }, breakoutButton: { backgroundColor: 'rgba(35,69,47,0.94)', borderRadius: 14, paddingHorizontal: 11, paddingVertical: 8 }, breakoutButtonText: { color: '#fff', fontSize: 10, fontWeight: '900' },
+  calledCue: { position: 'absolute', top: 96, alignSelf: 'center', maxWidth: '86%', backgroundColor: 'rgba(31,122,63,0.95)', borderRadius: 14, paddingHorizontal: 16, paddingVertical: 11 }, calledCueTitle: { color: '#fff', fontWeight: '900', textAlign: 'center' }, calledCueText: { color: 'rgba(255,255,255,0.88)', fontSize: 10, lineHeight: 14, textAlign: 'center', marginTop: 3 },
+  studentDock: { position: 'absolute', left: 12, right: 12, bottom: 84, minHeight: 46, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 }, studentAction: { minHeight: 42, borderRadius: 21, paddingHorizontal: 14, backgroundColor: 'rgba(31,122,63,0.94)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }, studentActionOff: { backgroundColor: 'rgba(156,48,48,0.94)' }, studentActionText: { color: '#fff', fontSize: 10, fontWeight: '900' }, listeningPill: { minHeight: 38, borderRadius: 19, paddingHorizontal: 13, backgroundColor: 'rgba(15,25,18,0.82)', flexDirection: 'row', alignItems: 'center', gap: 6 }, listeningText: { color: '#dce9df', fontSize: 10, fontWeight: '800' },
+  breakoutTray: { position: 'absolute', right: 10, top: 94, gap: 6 }, breakoutButton: { backgroundColor: 'rgba(35,69,47,0.94)', borderRadius: 14, paddingHorizontal: 11, paddingVertical: 8 }, breakoutButtonText: { color: '#fff', fontSize: 10, fontWeight: '900' },
 });
