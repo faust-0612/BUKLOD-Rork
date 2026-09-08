@@ -1,0 +1,204 @@
+name: BUKLOD Classroom Extension R5 Web Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - fix/classroom-extension-runtime-r5-20260909
+    paths:
+      - 'src/app/index.tsx'
+      - 'src/app/_layout.tsx'
+      - 'src/app/classroom/**'
+      - 'src/app/profile/buklod-classrooms.tsx'
+      - 'src/components/BuklodNavSafeShell.tsx'
+      - 'src/components/classroom/ClassroomExtensionRouteGuard.tsx'
+      - 'src/lib/buklodAppTarget.ts'
+      - 'src/lib/classroomLauncherAccess.ts'
+      - 'scripts/verify-classroom-target.mjs'
+      - '.github/workflows/classroom_extension_r5_web_release.yml'
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  BUKLOD_APP_TARGET: classroom
+  APP_VARIANT: production
+  EXPO_PUBLIC_APP_ENV: production
+  CLASSROOM_GOOGLE_SERVICES_FILE: ./google-services.classroom.json
+
+jobs:
+  classroom-web-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact Classroom extension source
+        uses: actions/checkout@v4
+        with:
+          ref: fix/classroom-extension-runtime-r5-20260909
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Expo authentication preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN"
+          npx eas-cli@latest whoami --non-interactive >/dev/null
+          echo 'Expo authentication: READY'
+
+      - name: Pull shared BUKLOD production public environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .env.local
+          npx eas-cli@latest env:pull --environment production --path .env.local --non-interactive
+          test -s .env.local
+          set -a
+          . ./.env.local
+          set +a
+          test -n "${EXPO_PUBLIC_SUPABASE_URL:-}"
+          test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}"
+          test "$EXPO_PUBLIC_SUPABASE_URL" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
+
+          while IFS='=' read -r name _; do
+            case "$name" in
+              EXPO_PUBLIC_*)
+                value="${!name-}"
+                {
+                  echo "${name}<<__BUKLOD_ENV__"
+                  printf '%s\n' "$value"
+                  echo '__BUKLOD_ENV__'
+                } >> "$GITHUB_ENV"
+                ;;
+            esac
+          done < <(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env.local)
+
+          echo 'Shared BUKLOD account/backend environment: VERIFIED'
+
+      - name: Fail-closed Classroom identity and separation gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/verify-classroom-target.mjs
+
+      - name: Runtime architecture static guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F "return <Redirect href=\"/classroom\"" src/app/index.tsx
+          grep -F "BUKLOD_CLASSROOM_EXTENSION_SSO_R5" src/app/index.tsx
+          grep -F "Always adopt the explicit" src/app/index.tsx
+          grep -F "if (classroomApp)" src/components/BuklodNavSafeShell.tsx
+          grep -F "ClassroomExtensionRouteGuard" src/app/_layout.tsx
+          grep -F "buklod_classroom_launcher_access_v1" src/lib/classroomLauncherAccess.ts
+          grep -F "https://buklod-classroom.expo.app/?" src/app/profile/buklod-classrooms.tsx
+          grep -F "BUKLOD Main is the structure, doorway and session authority" src/app/classroom/index.tsx
+          echo 'Classroom extension runtime contract: VERIFIED'
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Relevant Classroom reducer tests
+        run: npx jest --runInBand src/lib/education/classroomLiveState.test.ts
+
+      - name: Export Classroom production web
+        shell: bash
+        env:
+          NODE_ENV: production
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_PUBLIC_SUPABASE_URL:-}"
+          test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}"
+          rm -rf dist-classroom-r5
+          npx expo export --platform web --output-dir dist-classroom-r5
+          test -s dist-classroom-r5/index.html
+
+          SUPABASE_HOST="$(printf '%s' "$EXPO_PUBLIC_SUPABASE_URL" | sed -E 's#https?://([^/]+).*#\1#')"
+          grep -RFl --include='*.js' "$SUPABASE_HOST" dist-classroom-r5/_expo/static/js/web >/dev/null || {
+            echo 'STOP: shared BUKLOD Supabase runtime config was not embedded.'
+            exit 1
+          }
+          grep -RFl --include='*.js' 'BUKLOD Classroom' dist-classroom-r5/_expo/static/js/web >/dev/null || {
+            echo 'STOP: Classroom runtime identity was not embedded.'
+            exit 1
+          }
+          echo 'Classroom web export: VERIFIED'
+
+      - name: Deploy Classroom production web only
+        shell: bash
+        env:
+          NODE_ENV: production
+        run: |
+          set -euo pipefail
+          test "$BUKLOD_APP_TARGET" = 'classroom'
+          node scripts/verify-classroom-target.mjs
+          npx eas-cli@latest deploy --prod --environment production --non-interactive
+
+      - name: Verify live Classroom startup and runtime containment
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL='https://buklod-classroom.expo.app/'
+          BROWSER="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$BROWSER"
+          sleep 4
+          curl -fsSIL --max-time 30 "$URL" >/dev/null
+
+          timeout 50s "$BROWSER" \
+            --headless=new \
+            --no-sandbox \
+            --disable-gpu \
+            --disable-extensions \
+            --no-first-run \
+            --window-size=390,844 \
+            --virtual-time-budget=22000 \
+            --enable-logging=stderr \
+            --v=0 \
+            --dump-dom \
+            "$URL" \
+            > /tmp/classroom-root.html \
+            2> /tmp/classroom-root.log
+
+          if grep -qi 'supabaseUrl is required' /tmp/classroom-root.log; then
+            echo 'STOP: Classroom production lost shared Supabase environment.'
+            exit 1
+          fi
+          if grep -Eqi 'Uncaught (Error|TypeError|ReferenceError|SyntaxError)' /tmp/classroom-root.log; then
+            echo 'STOP: uncaught Classroom browser runtime error.'
+            grep -Ei 'Uncaught (Error|TypeError|ReferenceError|SyntaxError)' /tmp/classroom-root.log | head -20
+            exit 1
+          fi
+          grep -q '<div id="root"><' /tmp/classroom-root.html
+
+          # Direct focused route proves the deployed runtime contains Classroom
+          # identity/chrome. No academic data is expected without authentication.
+          timeout 50s "$BROWSER" \
+            --headless=new \
+            --no-sandbox \
+            --disable-gpu \
+            --disable-extensions \
+            --no-first-run \
+            --window-size=390,844 \
+            --virtual-time-budget=18000 \
+            --dump-dom \
+            'https://buklod-classroom.expo.app/classroom' \
+            > /tmp/classroom-focused.html \
+            2> /tmp/classroom-focused.log
+          grep -q 'BUKLOD Classroom' /tmp/classroom-focused.html
+          if grep -q 'BUKLOD FOCUS APPS' /tmp/classroom-focused.html; then
+            echo 'STOP: Main Focus Apps shell leaked into Classroom runtime.'
+            exit 1
+          fi
+          echo 'LIVE_CLASSROOM_WEB_RUNTIME=PASS'
+
+      - name: Release status
+        run: |
+          echo 'BUKLOD Classroom extension web deployed.'
+          echo 'Shared account/backend preserved; Main persistent shell contained.'
