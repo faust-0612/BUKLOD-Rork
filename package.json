@@ -22,7 +22,9 @@
     "production:dry-run": "bash scripts/production-cutover.sh",
     "production:android": "bash scripts/build-android-production.sh",
     "play:draft": "bash scripts/submit-google-play-draft.sh",
-    "play:internal": "bash scripts/submit-google-play-internal.sh"
+    "play:internal": "bash scripts/submit-google-play-internal.sh",
+    "classroom:identity:check": "node scripts/assert-classroom-identity.cjs",
+    "eas-build-pre-install": "node scripts/eas-classroom-preinstall.cjs"
   },
   "jest": {
     "preset": "jest-expo",
