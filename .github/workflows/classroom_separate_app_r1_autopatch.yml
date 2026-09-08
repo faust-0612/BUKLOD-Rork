@@ -71,10 +71,18 @@ jobs:
               if start < 0 or end < 0:
                   raise SystemExit(f'{path}: verifier source-check block missing')
               text = text[:start] + verify_block + text[end:]
+              if 'name=\\"teach\\"' in text:
+                  text = text.replace('name=\\"teach\\"', 'name=\\"school-outline\\"')
               p.write_text(text)
 
           harden('scripts/verify-classroom-identity.cjs', False)
           harden('scripts/patch-classroom-separate-app-r1.cjs', True)
+
+          home = Path('src/app/classroom/index.tsx')
+          home_text = home.read_text()
+          if 'name="teach"' not in home_text:
+              raise SystemExit('Classroom home faculty icon anchor missing')
+          home.write_text(home_text.replace('name="teach"', 'name="school-outline"', 1))
           PY
 
       - name: Diff safety gate
