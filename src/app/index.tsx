@@ -12,8 +12,35 @@ import {
 import { useCompliance } from '@/providers/ComplianceProvider';
 import { colors } from '@/lib/theme';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
+import { isClassroomApp } from '@/lib/appIdentity';
 
-export default function Index() {
+function ClassroomIndex() {
+  const { session, loading, profile } = useAuth();
+  const { loading: complianceLoading, requiresAcceptance } = useCompliance();
+  const { loading: runtimeLoading, config } = useRuntimeConfig();
+
+  if (
+    (loading && !session && !profile) ||
+    (complianceLoading && !session) ||
+    (runtimeLoading && !config)
+  ) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white }}>
+        <ActivityIndicator color={colors.green} />
+      </View>
+    );
+  }
+
+  if (!session) return <Redirect href="/(auth)/login" />;
+  if (config?.maintenance_mode) return <Redirect href="/system/maintenance" />;
+  if (config?.update_required) return <Redirect href="/system/update-required" />;
+  if (config?.pilot_access_required && !config?.pilot_access_granted) return <Redirect href="/system/pilot-access" />;
+  if (requiresAcceptance) return <Redirect href="/privacy/consent" />;
+
+  return <Redirect href="/classroom" />;
+}
+
+function MainIndex() {
   const { session, loading, profile } = useAuth();
   const { loading: complianceLoading, requiresAcceptance } = useCompliance();
   const { loading: runtimeLoading, config } = useRuntimeConfig();
@@ -160,4 +187,8 @@ export default function Index() {
       href="/(tabs)/messages"
     />
   );
+}
+
+export default function Index() {
+  return isClassroomApp ? <ClassroomIndex /> : <MainIndex />;
 }
