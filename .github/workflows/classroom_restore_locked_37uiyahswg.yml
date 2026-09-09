@@ -49,6 +49,23 @@ jobs:
           test -n "$GOLDEN_JS"
           echo "GOLDEN_JS=$GOLDEN_JS" >> "$GITHUB_ENV"
           echo "Locked golden JS: $GOLDEN_JS"
+          curl -fsSL --retry 3 --retry-delay 2 "https://buklod-classroom--37uiyahswg.expo.app${GOLDEN_JS}" -o /tmp/golden.js
+
+      - name: Validate locked Faculty Classroom UI contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          for required in 'FACULTY CLASSROOM' 'Active Students' 'Active Faculty' 'ENROLL STUDENT' 'ADD FACULTY' 'Faculty Team' 'Classroom Tools' 'Materials' 'Assessments' 'Group Activities'; do
+            grep -Fq "$required" /tmp/golden.js || { echo "Missing locked UI marker: $required" >&2; exit 1; }
+          done
+          for forbidden in 'BUKLOD EXTENSION APP' 'Open BUKLOD Main' 'Return to the Main BUKLOD ecosystem' 'BUKLOD Main is the structure, doorway and session authority'; do
+            if grep -Fq "$forbidden" /tmp/golden.js; then
+              echo "Forbidden Main/Extension marker found in locked deployment: $forbidden" >&2
+              exit 1
+            fi
+          done
+          sha256sum /tmp/golden.js
+          echo 'PASS: locked deployment matches the direct Faculty Classroom contract and excludes Main/Extension shell markers.'
 
       - name: Reassert exact locked deployment as production
         shell: bash
@@ -68,10 +85,13 @@ jobs:
             PROD_JS=$(grep -oE 'src="[^"]+\.js[^"]*"' /tmp/prod.html | head -1 | sed -E 's/^src="|"$//g' || true)
             echo "Attempt $i production JS: $PROD_JS"
             if [ "$PROD_JS" = "$GOLDEN_JS" ]; then
-              echo "PASS: production now serves the exact locked deployment 37uiyahswg asset."
-              exit 0
+              curl -fsSL --retry 3 --retry-delay 2 "https://buklod-classroom.expo.app${PROD_JS}?$BUST" -o /tmp/prod.js
+              if cmp -s /tmp/golden.js /tmp/prod.js; then
+                echo "PASS: production now serves the exact locked deployment 37uiyahswg asset byte-for-byte."
+                exit 0
+              fi
             fi
             sleep 10
           done
-          echo "FAIL: alias promotion succeeded but production edge still did not expose the locked asset within verification window." >&2
+          echo "FAIL: production did not expose the locked asset within verification window." >&2
           exit 1
