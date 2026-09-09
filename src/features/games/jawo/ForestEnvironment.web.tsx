@@ -1,10 +1,19 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, type DimensionValue } from 'react-native';
 
 type Props = {
   intensity: 1 | 2 | 3;
   progress: number;
 };
+
+const FIREFLIES: ReadonlyArray<readonly [DimensionValue, DimensionValue]> = [
+  ['19%', '31%'],
+  ['72%', '27%'],
+  ['83%', '43%'],
+  ['14%', '51%'],
+  ['54%', '22%'],
+  ['62%', '55%'],
+];
 
 export function ForestEnvironment({ intensity, progress }: Props) {
   const glowOpacity = 0.16 + Math.min(0.22, progress / 500);
@@ -20,14 +29,7 @@ export function ForestEnvironment({ intensity, progress }: Props) {
       <View style={[styles.trunk, { right: '20%', height: '52%', opacity: 0.55 }]} />
       <View style={[styles.fog, { top: '42%', opacity: fogOpacity }]} />
       <View style={[styles.fog, { top: '59%', opacity: fogOpacity * 0.78 }]} />
-      {[
-        ['19%', '31%'],
-        ['72%', '27%'],
-        ['83%', '43%'],
-        ['14%', '51%'],
-        ['54%', '22%'],
-        ['62%', '55%'],
-      ].map(([left, top], index) => (
+      {FIREFLIES.map(([left, top], index) => (
         <View key={index} style={[styles.firefly, { left, top, opacity: glowOpacity }]}>
           <View style={styles.fireflyCore} />
         </View>
