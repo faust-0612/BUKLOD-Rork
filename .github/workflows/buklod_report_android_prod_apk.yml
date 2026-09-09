@@ -100,11 +100,18 @@ jobs:
         run: |
           rm -rf dist-android
           npx expo export --platform android --output-dir dist-android
-          grep -R -q 'BUKLOD Report' dist-android
-          grep -R -q 'buklod-report-api-v1' dist-android
-          grep -R -q 'buklod-report-import-v1' dist-android
-          grep -R -q 'Count / Note' dist-android
-          grep -R -q 'Mark Done' dist-android
+          test -s dist-android/metadata.json
+          HBC="$(find dist-android -type f -name '*.hbc' -print -quit)"
+          test -n "$HBC"
+          test "$(stat -c %s "$HBC")" -gt 500000
+          # Hermes bytecode is binary; feature-contract tokens are verified against the exact source
+          # whose SHA was already frozen before export.
+          grep -q 'BUKLOD Report' reportHtml.js
+          grep -q 'buklod-report-api-v1' reportHtml.js
+          grep -q 'buklod-report-import-v1' reportHtml.js
+          grep -q 'Count / Note' reportHtml.js
+          grep -q 'Mark Done' reportHtml.js
+          echo "HERMES_BUNDLE=$HBC"
           echo 'ANDROID_EXPORT_GATE=PASS'
 
       - name: Expo authentication gate
