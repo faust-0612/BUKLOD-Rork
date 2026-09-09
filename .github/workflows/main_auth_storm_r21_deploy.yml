@@ -1,4 +1,4 @@
-name: BUKLOD Main Auth Storm R21 Deploy
+name: BUKLOD Main Auth Storm R21 + Concurrency R32 Deploy
 
 on:
   workflow_dispatch:
@@ -8,6 +8,7 @@ on:
     paths:
       - '.github/workflows/main_auth_storm_r21_deploy.yml'
       - 'src/lib/buklodAuthResilience.ts'
+      - 'src/lib/buklodR4RequestShield.ts'
       - 'src/lib/supabase.ts'
 
 permissions:
@@ -35,7 +36,7 @@ jobs:
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
-      - name: Verify auth storm fix markers
+      - name: Verify auth + concurrency hardening markers
         shell: bash
         run: |
           grep -F 'BUKLOD_MAIN_AUTH_STORM_R21' 'src/lib/buklodAuthResilience.ts'
@@ -43,6 +44,10 @@ jobs:
           grep -F 'AUTH_FRESH_SIGN_IN_USER_TTL_MS' 'src/lib/buklodAuthResilience.ts'
           grep -F 'BUKLOD_MAIN_AUTH_STORM_R21' 'src/lib/supabase.ts'
           grep -F "Platform.OS !== 'web'" 'src/lib/supabase.ts'
+          grep -F 'BUKLOD_MASS_CONCURRENCY_R32' 'src/lib/buklodR4RequestShield.ts'
+          grep -F 'get_buklod_public_community_feed_v7_page' 'src/lib/buklodR4RequestShield.ts'
+          grep -F 'get_buklod_post_media_v1' 'src/lib/buklodR4RequestShield.ts'
+          grep -F 'buklod_my_permission_snapshot_v1' 'src/lib/buklodR4RequestShield.ts'
 
       - name: TypeScript QA
         run: npx tsc --noEmit
@@ -52,7 +57,7 @@ jobs:
         shell: bash
         run: |
           if [ -z "$EXPO_TOKEN" ]; then
-            echo "Auth R21 QA passed, but deploy is pending because EXPO_TOKEN is unavailable."
+            echo "R32 QA passed, but deploy is pending because EXPO_TOKEN is unavailable."
             echo "ready=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -83,7 +88,7 @@ jobs:
             --channel production \
             --platform android \
             --environment production \
-            --message "BUKLOD Main Auth Storm R21" \
+            --message "BUKLOD Main Concurrency R32" \
             --non-interactive
 
       - name: Deployment status
@@ -92,7 +97,7 @@ jobs:
           EXPO_READY: ${{ steps.expo.outputs.ready }}
         run: |
           if [ "$EXPO_READY" = "true" ]; then
-            echo "BUKLOD Main Auth Storm R21 production web + Android OTA completed."
+            echo "BUKLOD Main R32 production web + Android OTA completed."
           else
-            echo "BUKLOD Main Auth Storm R21 source QA passed; deployment is pending only because EXPO_TOKEN is unavailable."
+            echo "BUKLOD Main R32 source QA passed; deployment is pending only because EXPO_TOKEN is unavailable."
           fi
