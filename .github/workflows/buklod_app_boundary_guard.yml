@@ -1,0 +1,42 @@
+name: BUKLOD App Boundary Guard
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/**'
+      - '.buklod/**'
+      - 'scripts/verify-buklod-app-boundaries.cjs'
+      - 'docs/BUKLOD_APP_BOUNDARIES.md'
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+      - '.buklod/**'
+      - 'scripts/verify-buklod-app-boundaries.cjs'
+      - 'docs/BUKLOD_APP_BOUNDARIES.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  enforce-app-identity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Enforce BUKLOD product and deployment boundaries
+        run: node scripts/verify-buklod-app-boundaries.cjs
+
+      - name: Boundary contract
+        run: |
+          echo 'BUKLOD Main = ROOT/HUB only for this repository'
+          echo 'BUKLOD Report = standalone Focus App; Main door allowed; Main production fallback forbidden'
+          echo 'BUKLOD Classroom = standalone Focus App; Main door allowed; Main production fallback forbidden'
