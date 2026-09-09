@@ -1,4 +1,4 @@
-name: BUKLOD R31 Phase 1 Character World Web Deploy V2
+name: BUKLOD R31 Emergency Restore via Proven Runner
 
 on:
   push:
@@ -13,204 +13,51 @@ permissions:
 
 env:
   EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-  R31_DEPLOYMENT: https://buklod--pl674gipyn.expo.app
-  PRODUCTION_URL: https://buklod.expo.app
-  R31_BASE_SHA: bdc61c6da0244e5f72d68416da2d486684a0572e
 
 jobs:
   web-only:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
           ref: phase1/r31-character-world-v2
-          fetch-depth: 0
-
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
-
-      - name: Prove no native change
-        shell: bash
-        run: |
-          set -euo pipefail
-          changed="$(git diff --name-only "$R31_BASE_SHA" HEAD)"
-          printf '%s\n' "$changed"
-          if printf '%s\n' "$changed" | grep -E '^(android/|ios/|package\.json$|package-lock\.json$|app\.config\.|app\.json$|eas\.json$)'; then
-            echo 'Native/dependency/app identity drift. STOP.'
-            exit 1
-          fi
-          echo 'PASS: WEB ONLY.'
-
       - name: Install existing dependencies
         run: npm ci --ignore-scripts
-
-      - name: Recover exact R31 art from immutable deployment
+      - name: Restore exact R31 production alias
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p assets/images/characters /tmp/r31
-          curl -fsSL -H 'Cache-Control: no-cache' "$R31_DEPLOYMENT/" -o /tmp/r31/index.html
-          grep -oE '_expo/static/js/web/[^"'"'"'< >]+\.js' /tmp/r31/index.html | sort -u > /tmp/r31/jsrefs
-          : > /tmp/r31/all.js
-          while read -r ref; do
-            curl -fsSL -H 'Cache-Control: no-cache' "$R31_DEPLOYMENT/$ref" >> /tmp/r31/all.js
-          done < /tmp/r31/jsrefs
-
-          fetch_exact() {
-            local short="$1" fullstem="${1}_r26" hashed="$2" expected="$3"
-            local out="assets/images/characters/${fullstem}.jpg"
-            local hashpart
-            hashpart="$(printf '%s' "$hashed" | sed -E 's/.*\.([0-9a-f]{32})\.jpg/\1/')"
-            local ok=0
-            for rel in \
-              "assets/images/characters/$hashed" \
-              "assets/$hashed" \
-              "_expo/static/media/$hashed" \
-              "_expo/static/media/${fullstem}.${hashpart}.jpg" \
-              "_expo/static/media/${hashpart}.jpg" \
-              "assets/${hashpart}.jpg" \
-              "$hashed"; do
-              url="$R31_DEPLOYMENT/$rel"
-              if curl -fsSL -H 'Cache-Control: no-cache' "$url" -o "$out.tmp" 2>/dev/null; then
-                got="$(sha256sum "$out.tmp" | awk '{print toupper($1)}')"
-                if [ "$got" = "$expected" ]; then
-                  mv "$out.tmp" "$out"
-                  echo "PASS: $fullstem <- $rel"
-                  ok=1
-                  break
-                fi
-              fi
-            done
-            if [ "$ok" -ne 1 ]; then
-              echo "Bundle context for $fullstem:"
-              grep -oE ".{0,180}${fullstem}.{0,260}" /tmp/r31/all.js | head -n 8 || true
-              python -c "import re,sys; s=open('/tmp/r31/all.js',errors='ignore').read(); stem=sys.argv[1]; xs=re.findall(r'[^\"\\x27<> ]*'+re.escape(stem)+r'[^\"\\x27<> ]*\\.jpg',s,re.I); print('\\n'.join(dict.fromkeys(x.replace('\\\\/','/').replace('\\/','/') for x in xs)))" "$fullstem" > /tmp/r31/paths.txt || true
-              while read -r rel; do
-                [ -n "$rel" ] || continue
-                case "$rel" in
-                  http*) url="$rel" ;;
-                  *) url="$R31_DEPLOYMENT/${rel#/}" ;;
-                esac
-                if curl -fsSL -H 'Cache-Control: no-cache' "$url" -o "$out.tmp" 2>/dev/null; then
-                  got="$(sha256sum "$out.tmp" | awk '{print toupper($1)}')"
-                  if [ "$got" = "$expected" ]; then
-                    mv "$out.tmp" "$out"
-                    echo "PASS discovered: $fullstem <- $rel"
-                    ok=1
-                    break
-                  fi
-                fi
-              done < /tmp/r31/paths.txt
+          [ -n "${EXPO_TOKEN:-}" ] || { echo 'EXPO_TOKEN missing'; exit 1; }
+          npx eas-cli@latest deploy:alias --prod --id=pl674gipyn --non-interactive
+      - name: Verify production alias is exact R31
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROD='https://buklod.expo.app'
+          R31='https://buklod--pl674gipyn.expo.app'
+          ok=0
+          for i in $(seq 1 48); do
+            stamp="$(date +%s)-$i"
+            curl -fsSL -H 'Cache-Control: no-cache' "$PROD/?restore=$stamp" -o /tmp/prod.html || true
+            curl -fsSL -H 'Cache-Control: no-cache' "$R31/?restore=$stamp" -o /tmp/r31.html || true
+            grep -oE '_expo/static/js/web/[^"'"'"'< >]+\.js' /tmp/prod.html | sort -u > /tmp/prod.refs || true
+            grep -oE '_expo/static/js/web/[^"'"'"'< >]+\.js' /tmp/r31.html | sort -u > /tmp/r31.refs || true
+            if [ -s /tmp/prod.refs ] && cmp -s /tmp/prod.refs /tmp/r31.refs; then
+              ok=1
+              break
             fi
-            rm -f "$out.tmp"
-            [ "$ok" -eq 1 ] || { echo "Could not recover exact R31 $fullstem"; exit 1; }
-          }
-
-          fetch_exact phan 'phan_r26.1d7b0bb56aafa03b0f1d2a67f7367985.jpg' '1598EF159BFC4AB784A681BEF7BC53FF839DBEA92CB729EE03A15BAA4F31CCDB'
-          fetch_exact quin 'quin_r26.032357dddb95c74e741bbae577f30f32.jpg' '769BCF6F61DEB70E1D52E7515AF9C69CC6562545E86D2DD390355770E5C33892'
-          fetch_exact van 'van_r26.4f96c8d09489f6afc55bd10968f15eab.jpg' 'B52B6B7E3562B2D884CC677D67C67CC71898273BF5BF5068A077B10B5DC87C66'
-          fetch_exact christian 'christian_r26.a0585eec39d4c8d3fb010ee73caf896e.jpg' '1AE9C03466876CEFC443FF55641D7EAD516DF82FF340A632EE852D7DD8B07739'
-          fetch_exact lhen 'lhen_r26.919a061f4da1bd025a71280ccd9c29af.jpg' '17A2FDB2FB18252AB494589E689E5044C27B86065A988D70094997971D9D66EB'
-
-      - name: Static Phase 1 contract
-        shell: bash
-        run: |
-          set -euo pipefail
-          grep -F 'R31 GOLDEN CHARACTER BASELINE PROTECTED' src/components/points/BuklodCharacterCustomizeSheet.tsx
-          grep -F 'MY BUKLOD WORLD' src/components/points/BuklodCharacterCustomizeSheet.tsx
-          grep -F 'START YOUR CHARACTER JOURNEY' src/components/points/BuklodCharacterCustomizeSheet.tsx
-          grep -F 'FULL CHARACTER MODE' src/components/points/BuklodCharacterCustomizeSheet.tsx
-          grep -F 'ENVIRONMENT PREVIEW' src/components/points/BuklodCharacterCustomizeSheet.tsx
-          grep -F "elesur: 'ELESUR'" src/lib/buklodCharacterWorldV3.ts
-          grep -F 'get_my_buklod_character_world_v3' src/lib/buklodCharacterWorldV3.ts
-          grep -F 'unlock_my_buklod_character_v3' src/lib/buklodCharacterWorldV3.ts
-          grep -F 'set_my_buklod_character_active_v3' src/lib/buklodCharacterWorldV3.ts
-
-      - name: TypeScript
-        run: npx tsc --noEmit
-
-      - name: Export Web
-        run: npx expo export --platform web --output-dir dist-phase1
-
-      - name: Verify export before deployment
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -f dist-phase1/index.html
-          cat dist-phase1/_expo/static/js/web/*.js > /tmp/phase1.js
-          for token in 'MY BUKLOD WORLD' 'START YOUR CHARACTER JOURNEY' 'FULL CHARACTER MODE' 'ENVIRONMENT PREVIEW' 'ELESUR' 'get_my_buklod_character_world_v3'; do
-            grep -F "$token" /tmp/phase1.js >/dev/null || { echo "Missing export token $token"; exit 1; }
+            sleep 5
           done
-          : > /tmp/export-assets
-          verify_asset() {
-            local stem="$1" expected="$2"
-            file="$(find dist-phase1 -type f -name "${stem}*.jpg" | head -n1)"
-            [ -n "$file" ] || exit 1
-            got="$(sha256sum "$file" | awk '{print toupper($1)}')"
-            [ "$got" = "$expected" ] || { echo "$stem hash $got"; exit 1; }
-            echo "$file" >> /tmp/export-assets
-          }
-          verify_asset phan_r26 '1598EF159BFC4AB784A681BEF7BC53FF839DBEA92CB729EE03A15BAA4F31CCDB'
-          verify_asset quin_r26 '769BCF6F61DEB70E1D52E7515AF9C69CC6562545E86D2DD390355770E5C33892'
-          verify_asset van_r26 'B52B6B7E3562B2D884CC677D67C67CC71898273BF5BF5068A077B10B5DC87C66'
-          verify_asset christian_r26 '1AE9C03466876CEFC443FF55641D7EAD516DF82FF340A632EE852D7DD8B07739'
-          verify_asset lhen_r26 '17A2FDB2FB18252AB494589E689E5044C27B86065A988D70094997971D9D66EB'
-          echo 'PASS: PRE-DEPLOY.'
-
-      - name: Credential check
-        shell: bash
-        run: |
-          [ -n "${EXPO_TOKEN:-}" ] || exit 1
-          npx eas-cli@latest whoami
-
-      - name: Deploy Web only
-        shell: bash
-        run: |
-          set -euo pipefail
-          npx eas-cli@latest deploy --prod --export-dir dist-phase1 --non-interactive 2>&1 | tee phase1-v2-deploy-output.txt
-
-      - name: Live verify with automatic R31 rollback
-        shell: bash
-        run: |
-          set -euo pipefail
-          rollback() {
-            echo 'Verification failed. Restoring R31.'
-            npx eas-cli@latest deploy:alias --prod --id=pl674gipyn --non-interactive || true
-            exit 1
-          }
-          local_refs="$(grep -oE '_expo/static/js/web/[^"'"'"'< >]+\.js' dist-phase1/index.html | sort -u)"
-          matched=0
-          for i in $(seq 1 45); do
-            curl -fsSL -H 'Cache-Control: no-cache' "$PRODUCTION_URL/?v=$i-$(date +%s)" -o /tmp/prod.html || true
-            prod_refs="$(grep -oE '_expo/static/js/web/[^"'"'"'< >]+\.js' /tmp/prod.html 2>/dev/null | sort -u || true)"
-            if [ -n "$prod_refs" ] && [ "$prod_refs" = "$local_refs" ]; then matched=1; break; fi
-            sleep 8
-          done
-          [ "$matched" -eq 1 ] || rollback
-          : > /tmp/prod.js
+          [ "$ok" -eq 1 ] || { echo 'Production alias did not converge to R31'; exit 1; }
           while read -r ref; do
             [ -n "$ref" ] || continue
-            curl -fsSL "$PRODUCTION_URL/$ref?v=$(date +%s)" >> /tmp/prod.js || rollback
-          done <<< "$local_refs"
-          for token in 'MY BUKLOD WORLD' 'START YOUR CHARACTER JOURNEY' 'FULL CHARACTER MODE' 'ENVIRONMENT PREVIEW' 'ELESUR' 'get_my_buklod_character_world_v3'; do
-            grep -F "$token" /tmp/prod.js >/dev/null || rollback
-          done
-          while read -r file; do
-            rel="${file#dist-phase1/}"
-            expected="$(sha256sum "$file" | awk '{print toupper($1)}')"
-            curl -fsSL "$PRODUCTION_URL/$rel?v=$(date +%s)" -o /tmp/prodasset || rollback
-            got="$(sha256sum /tmp/prodasset | awk '{print toupper($1)}')"
-            [ "$got" = "$expected" ] || rollback
-          done < /tmp/export-assets
-          echo 'PASS: LIVE PHASE 1 + EXACT R31 ART.'
-
-      - name: Save deploy output
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: buklod-r31-phase1-web-v2-${{ github.run_number }}
-          path: phase1-v2-deploy-output.txt
-          if-no-files-found: ignore
+            curl -fsSL -H 'Cache-Control: no-cache' "$PROD/$ref?restore=$(date +%s)" -o /tmp/prod.js
+            curl -fsSL -H 'Cache-Control: no-cache' "$R31/$ref?restore=$(date +%s)" -o /tmp/r31.js
+            cmp /tmp/prod.js /tmp/r31.js
+          done < /tmp/r31.refs
+          echo 'PASS: production is exact R31.'
