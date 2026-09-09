@@ -30,6 +30,7 @@ if (-not (Test-Path 'package.json')) { throw 'Run this script from the BUKLOD pr
 if (-not (Test-Path 'app.config.js')) { throw 'app.config.js not found.' }
 if (-not (Test-Path 'eas.json')) { throw 'eas.json not found.' }
 if (-not (Test-Path 'scripts\RESTORE_CANONICAL_R31_R40.ps1')) { throw 'Canonical R31/R40 recovery script is missing.' }
+if (-not (Test-Path 'scripts\game-kingdom-release-contract.mjs')) { throw 'Kingdom game release contract is missing.' }
 
 $env:APP_VARIANT = 'production'
 $env:EXPO_PUBLIC_APP_ENV = 'production'
@@ -75,6 +76,12 @@ Write-Host 'Checking canonical R31/R40 character release lock...' -ForegroundCol
 npm run character:contract
 if ($LASTEXITCODE -ne 0) {
   throw 'R31/R40 character release lock failed. Deployment stopped before TypeScript/export.'
+}
+
+Write-Host 'Checking BUKLOD Kingdom game release lock...' -ForegroundColor Yellow
+npm run game:contract
+if ($LASTEXITCODE -ne 0) {
+  throw 'BUKLOD Kingdom game release lock failed. Deployment stopped before TypeScript/export.'
 }
 
 Write-Host 'Running TypeScript QA...' -ForegroundColor Yellow
@@ -134,10 +141,16 @@ if ($routeShellCount -ne $gameRoutes.Count) {
 Write-Host "Verified Game Lab route shells: $routeShellCount/$($gameRoutes.Count)" -ForegroundColor Green
 Write-Host 'Verified exported Game Lab route: dist\games\index.html' -ForegroundColor Green
 
+Write-Host 'Checking Kingdom contract inside compiled web artifact...' -ForegroundColor Yellow
+npm run game:contract:dist
+if ($LASTEXITCODE -ne 0) {
+  throw 'Compiled web artifact failed the BUKLOD Kingdom release lock. Deployment stopped.'
+}
+
 Write-Host 'Publishing to existing Expo Hosting production target...' -ForegroundColor Yellow
 npx eas-cli@latest deploy --prod --environment production --non-interactive
 if ($LASTEXITCODE -ne 0) { throw 'EAS web deployment failed.' }
 
 Write-Host 'DEPLOY COMPLETE' -ForegroundColor Green
 Write-Host 'Verify BUKLOD Main: https://buklod.expo.app' -ForegroundColor Green
-Write-Host 'Verify Game Lab: https://buklod.expo.app/games' -ForegroundColor Green
+Write-Host 'Verify BUKLOD Kingdom: https://buklod.expo.app/games' -ForegroundColor Green
