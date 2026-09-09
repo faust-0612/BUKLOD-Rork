@@ -7,7 +7,6 @@ import {
 
 import BuklodCharacterLayeredArt
   from '@/components/points/BuklodCharacterLayeredArt';
-
 import {
   createPhan3DManifest,
   type Phan3DAnimation,
@@ -31,11 +30,9 @@ export type BuklodPhan3DSlotProps = {
 };
 
 /**
- * Stable integration point for Phan 3D.
- *
- * This shared implementation deliberately keeps today's proven layered art as
- * the fallback. A platform-specific `BuklodPhan3DSlot.web.tsx` can replace the
- * viewport with the real GLB renderer without changing Profile/rank logic.
+ * Stable cross-platform integration point for Phan 3D.
+ * Native/non-web platforms intentionally keep the proven layered character.
+ * The web-specific sibling loads the real GLB only when the asset is present.
  */
 export default function BuklodPhan3DSlot({
   level,
@@ -45,8 +42,6 @@ export default function BuklodPhan3DSlot({
   width = 82,
   style,
 }: BuklodPhan3DSlotProps) {
-  // Resolve/validate the level now so the integration contract is exercised
-  // even while the real GLB asset is being authored.
   createPhan3DManifest(level);
 
   return (
@@ -54,10 +49,7 @@ export default function BuklodPhan3DSlot({
       pointerEvents="none"
       style={[
         styles.viewport,
-        {
-          width,
-          height,
-        },
+        { width, height },
         style,
       ]}
     >
