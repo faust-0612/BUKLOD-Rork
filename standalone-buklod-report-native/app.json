@@ -4,11 +4,11 @@
     "slug": "buklod-report",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/source-icon.jpg",
     "userInterfaceStyle": "light",
     "scheme": "buklodreport",
     "splash": {
-      "image": "./assets/icon.png",
+      "image": "./assets/source-icon.jpg",
       "resizeMode": "contain",
       "backgroundColor": "#08A8EE"
     },
@@ -16,7 +16,7 @@
       "package": "app.buklod.report",
       "versionCode": 1,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.png",
+        "foregroundImage": "./assets/source-icon.jpg",
         "backgroundColor": "#08A8EE"
       },
       "permissions": []
