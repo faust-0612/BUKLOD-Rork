@@ -41,12 +41,26 @@ buklod-efa4a-firebase-adminsdk-fbsvc-5e9b3893ea.json
 .expo/
 .cache/
 
+# Canonical local recovery / retired / temporary workspaces
+.buklod-backups/
+.buklod-migration-hold/
+.buklod-retired/
+.buklod-temp/
+.tmp-*/
+.patch*/
+.patch_backups/
+patch_backups/
+BUKLOD_PATCH_BACKUPS/
+native_backups/
+
 # Generated OTA/preflight exports
 BUKLOD_ANDROID_OTA_PREFLIGHT/
+BUKLOD_PLAYSTORE_ARCHIVE_CHECK/
 
 # Local audits/reports
 BUKLOD_SCOPE_ENGINE_AUDIT.txt
 BUKLOD_SIZE_AUDIT_*/
+BUKLOD_*_AUDIT_*/
 
 # Database history is not required to compile Android
 # Files remain locally and are NOT deleted.
@@ -56,12 +70,16 @@ supabase/migrations/
 *.bak
 *.before_*
 *.before-*
+*.bak*
+*.orig
+*.tmp
 
 # TypeScript/build scratch
 *.tsbuildinfo
 
 # Local web exports
 dist/
+web-build/
 
 # ==================================================
 # BUKLOD PLAY STORE - DEVELOPMENT/BACKUP EXCLUSIONS
@@ -75,11 +93,7 @@ dist/
 /*_SNAPSHOT.txt
 /*_AUDIT.txt
 
-# All backup copies
-*.bak*
-*.before_*
-*.before-*
-
 # Generated backup directories
 BUKLOD_*_BACKUP_*/
 BUKLOD_STREAM_WEB_BACKUP_*/
+PATCH_*_BACKUP_*/
