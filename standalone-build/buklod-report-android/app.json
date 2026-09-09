@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "BUKLOD Report",
+    "slug": "buklod-report",
+    "version": "1.0.1",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "buklodreport",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#08AEF3"
+    },
+    "android": {
+      "package": "org.mzbministry.buklod.report",
+      "versionCode": 2,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-foreground.png",
+        "backgroundColor": "#08AEF3"
+      },
+      "permissions": [],
+      "softwareKeyboardLayoutMode": "resize"
+    },
+    "extra": {
+      "appIdentity": "buklod-report",
+      "baseline": "BUKLOD_REPORT_ANDROID_V1_0_1_PERFORMANCE_ICON",
+      "webEngineSha256": "b6fb53cfb33e539453022a537db67558822b6e34fa364873a45dfae92255856e"
+    },
+    "jsEngine": "hermes"
+  }
+}
