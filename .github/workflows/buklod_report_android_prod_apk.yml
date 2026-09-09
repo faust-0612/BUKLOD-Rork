@@ -1,0 +1,178 @@
+name: BUKLOD Report — Production Android APK
+
+on:
+  push:
+    branches:
+      - build/buklod-report-prod-apk-v101-source-ready
+    paths:
+      - 'standalone-build/buklod-report-android/**'
+      - '.github/workflows/buklod_report_android_prod_apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CI: '1'
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  REPORT_ROOT: standalone-build/buklod-report-android
+
+jobs:
+  build-report-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout isolated build branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Reconstruct protected Report engine and official icon
+        working-directory: ${{ env.REPORT_ROOT }}
+        run: |
+          python -m pip install --quiet pillow
+          python prepare_runtime.py
+          test -s reportHtml.js
+          test -s assets/icon.png
+          test -s assets/splash.png
+          test -s assets/adaptive-foreground.png
+          test "$(sha256sum reportHtml.js | awk '{print $1}')" = "b6fb53cfb33e539453022a537db67558822b6e34fa364873a45dfae92255856e"
+
+      - name: Enforce standalone BUKLOD Report identity boundary
+        working-directory: ${{ env.REPORT_ROOT }}
+        run: |
+          python - <<'PY'
+          import json
+          c=json.load(open('app.json'))['expo']
+          assert c['slug']=='buklod-report', c['slug']
+          assert c['owner']=='faust_0612', c.get('owner')
+          assert c['android']['package']=='org.mzbministry.buklod.report', c['android']['package']
+          assert c['android']['versionCode']==2
+          assert c['version']=='1.0.1'
+          assert c['extra']['appIdentity']=='buklod-report'
+          assert c['extra']['baseline']=='BUKLOD_REPORT_ANDROID_V1_0_1_PERFORMANCE_ICON'
+          forbidden=('buklod-classroom','buklod.expo.app','org.mzbministry.buklod.classroom','cjtehbfspgimyhifnjon')
+          blob=open('app.json').read()+open('eas.json').read()+open('App.js').read()
+          for x in forbidden:
+              assert x not in blob, f'Forbidden cross-app identity: {x}'
+          print('REPORT_IDENTITY_BOUNDARY=PASS')
+          PY
+
+      - name: Install exact app dependencies
+        working-directory: ${{ env.REPORT_ROOT }}
+        run: npm install --no-audit --no-fund
+
+      - name: Expo resolved-config and performance contract gate
+        working-directory: ${{ env.REPORT_ROOT }}
+        run: |
+          npx expo config --type public --json > /tmp/report-expo-config.json
+          python - <<'PY'
+          import json
+          c=json.load(open('/tmp/report-expo-config.json'))
+          assert c['slug']=='buklod-report'
+          assert c['android']['package']=='org.mzbministry.buklod.report'
+          assert c['version']=='1.0.1'
+          assert c['android']['versionCode']==2
+          assert c.get('jsEngine')=='hermes'
+          assert c.get('newArchEnabled') is True
+          print('EXPO_CONFIG_GATE=PASS')
+          PY
+          grep -q 'androidLayerType="hardware"' App.js
+          grep -q 'renderToHardwareTextureAndroid' App.js
+          grep -q 'content-visibility:auto' reportHtml.js
+          grep -q 'loadXLSX' reportHtml.js
+          if grep -q 'setTimeout.*loadXLSX' reportHtml.js; then
+            echo 'Speculative XLSX preload returned — BLOCK' >&2
+            exit 1
+          fi
+          echo 'PERFORMANCE_CONTRACT=PASS'
+
+      - name: Android JS export gate
+        working-directory: ${{ env.REPORT_ROOT }}
+        run: |
+          rm -rf dist-android
+          npx expo export --platform android --output-dir dist-android
+          grep -R -q 'BUKLOD Report' dist-android
+          grep -R -q 'buklod-report-api-v1' dist-android
+          grep -R -q 'buklod-report-import-v1' dist-android
+          grep -R -q 'Count / Note' dist-android
+          grep -R -q 'Mark Done' dist-android
+          echo 'ANDROID_EXPORT_GATE=PASS'
+
+      - name: Expo authentication gate
+        run: |
+          test -n "$EXPO_TOKEN"
+          npx eas-cli@latest whoami --non-interactive
+
+      - name: Create/link dedicated Report project and build signed production APK
+        working-directory: ${{ env.REPORT_ROOT }}
+        shell: bash
+        run: |
+          set -o pipefail
+          echo 'Starting BUKLOD Report-only EAS build. Main/Classroom/Quiz/Attendance are not build targets.'
+          set +e
+          yes | script -q -e -c "env CI=0 EXPO_TOKEN='$EXPO_TOKEN' npx eas-cli@latest build --platform android --profile production --wait --clear-cache" /tmp/eas-build.typescript
+          rc=$?
+          set -e
+          if [ "$rc" -ne 0 ]; then
+            echo "EAS production APK build failed with exit $rc" >&2
+            tail -n 160 /tmp/eas-build.typescript | sed -E 's/(token|secret|password|keystore)[^ ]*/[REDACTED]/Ig' >&2
+            exit "$rc"
+          fi
+          echo 'EAS_BUILD_COMMAND=PASS'
+
+      - name: Resolve exact successful build and download APK
+        working-directory: ${{ env.REPORT_ROOT }}
+        run: |
+          npx eas-cli@latest build:list --platform android --limit 10 --json --non-interactive > /tmp/builds.json
+          python - <<'PY' > /tmp/build.env
+          import json
+          rows=json.load(open('/tmp/builds.json'))
+          for b in rows:
+              status=str(b.get('status','')).upper()
+              prof=b.get('buildProfile') or b.get('buildProfileName')
+              appv=b.get('appVersion') or b.get('appVersionName')
+              vc=str(b.get('appBuildVersion') or b.get('appVersionCode') or '')
+              url=((b.get('artifacts') or {}).get('buildUrl') or (b.get('artifacts') or {}).get('applicationArchiveUrl'))
+              if status in ('FINISHED','COMPLETE','COMPLETED') and prof=='production' and appv=='1.0.1' and vc=='2' and url:
+                  print('BUILD_ID='+str(b['id']))
+                  print('APK_URL='+url)
+                  break
+          else:
+              raise SystemExit('Could not identify exact finished BUKLOD Report 1.0.1 (2) production build')
+          PY
+          cat /tmp/build.env | grep '^BUILD_ID='
+          source /tmp/build.env
+          curl --fail --location --retry 3 --output BUKLOD-Report-v1.0.1-production.apk "$APK_URL"
+          test -s BUKLOD-Report-v1.0.1-production.apk
+
+      - name: Verify actual APK artifact
+        working-directory: ${{ env.REPORT_ROOT }}
+        run: |
+          unzip -t BUKLOD-Report-v1.0.1-production.apk > /tmp/apk-test.txt
+          unzip -l BUKLOD-Report-v1.0.1-production.apk > /tmp/apk-list.txt
+          grep -q 'AndroidManifest.xml' /tmp/apk-list.txt
+          grep -q 'classes.dex' /tmp/apk-list.txt
+          sha256sum BUKLOD-Report-v1.0.1-production.apk | tee BUKLOD-Report-v1.0.1-production.apk.sha256
+          stat -c 'APK_BYTES=%s' BUKLOD-Report-v1.0.1-production.apk
+          echo 'APK_STRUCTURE=PASS'
+          echo 'TARGET_PACKAGE=org.mzbministry.buklod.report'
+          echo 'TARGET_APP=BUKLOD Report'
+
+      - name: Upload verified production APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BUKLOD-Report-v1.0.1-production-APK
+          path: |
+            ${{ env.REPORT_ROOT }}/BUKLOD-Report-v1.0.1-production.apk
+            ${{ env.REPORT_ROOT }}/BUKLOD-Report-v1.0.1-production.apk.sha256
+          if-no-files-found: error
+          retention-days: 30
