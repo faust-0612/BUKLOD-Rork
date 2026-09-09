@@ -42,13 +42,16 @@ jobs:
       - name: Identity and performance gates
         run: |
           test -n "$EXPO_TOKEN"
-          npx expo config --type public > /tmp/report-config.json
-          grep -q '"name": "BUKLOD Report"' /tmp/report-config.json
-          grep -q '"slug": "buklod-report"' /tmp/report-config.json
-          grep -q '"package": "app.buklod.report"' /tmp/report-config.json
-          grep -q 'source-icon.jpg' /tmp/report-config.json
+          npx expo config --type public --json > /tmp/report-config.json
           node - <<'NODE'
           const fs=require('fs');
+          const cfg=JSON.parse(fs.readFileSync('/tmp/report-config.json','utf8'));
+          const exp=cfg.expo || cfg;
+          if(exp.name!=='BUKLOD Report') throw new Error('Wrong app name: '+exp.name);
+          if(exp.slug!=='buklod-report') throw new Error('Wrong slug: '+exp.slug);
+          if(exp.android?.package!=='app.buklod.report') throw new Error('Wrong Android package: '+exp.android?.package);
+          if(!String(exp.icon||'').includes('source-icon.jpg')) throw new Error('Official icon not resolved');
+
           const s=fs.readFileSync('App.js','utf8');
           const required=[
             'androidLayerType="hardware"',
@@ -62,7 +65,7 @@ jobs:
           for (const x of required) if(!s.includes(x)) throw new Error('Missing contract marker: '+x);
           const forbidden=['react-native-google-mobile-ads','expo-camera','expo-notifications','@stream-io','firebase'];
           for (const x of forbidden) if(s.includes(x)) throw new Error('Unexpected heavy stack: '+x);
-          console.log('Identity/performance contract PASS');
+          console.log('Identity/performance contract PASS', {name:exp.name,slug:exp.slug,package:exp.android.package});
           NODE
           npx expo-doctor@latest || true
 
