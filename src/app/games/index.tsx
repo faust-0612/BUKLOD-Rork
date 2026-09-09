@@ -24,6 +24,13 @@ const GAME_CARDS = [
     title: 'Rescue Grid',
     mechanic: 'Tactical routing • limited energy • rescue beacons • extraction planning',
   },
+  {
+    href: '/games/mitch-restore-mural' as const,
+    character: 'Mitch',
+    world: 'Art Village',
+    title: 'Restore the Mural',
+    mechanic: 'Direct drag restoration • precision placement • combo scoring • staged visual reveal',
+  },
 ];
 
 export default function BuklodGameLabScreen() {
