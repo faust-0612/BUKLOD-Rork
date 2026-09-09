@@ -1,5 +1,6 @@
 import React, {
   useEffect,
+  useMemo,
   useState,
 } from 'react';
 
@@ -23,6 +24,8 @@ import {
   waitForBuklodTalkingCharacter,
 } from '@/lib/buklodAiCharacter';
 
+const sessionVideoCache = new Map<string, string>();
+
 type Props = {
   sourceUrl: string;
   fallbackImage: ImageSourcePropType;
@@ -44,9 +47,19 @@ export default function BuklodAiTalkingPortrait({
   autoPlayText = null,
   onError,
 }: Props) {
+  const cacheKey = useMemo(
+    () => `${sourceUrl}::${defaultText}`,
+    [defaultText, sourceUrl],
+  );
   const [busy, setBusy] = useState(false);
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(
+    () => sessionVideoCache.get(cacheKey) ?? null,
+  );
   const [status, setStatus] = useState('');
+
+  useEffect(() => {
+    setVideoUrl(sessionVideoCache.get(cacheKey) ?? null);
+  }, [cacheKey]);
 
   const player = useVideoPlayer(null, (instance) => {
     instance.loop = false;
@@ -101,6 +114,14 @@ export default function BuklodAiTalkingPortrait({
       return;
     }
 
+    const requestCacheKey = `${sourceUrl}::${text}`;
+    const cached = sessionVideoCache.get(requestCacheKey);
+    if (cached) {
+      setVideoUrl(cached);
+      setStatus('');
+      return;
+    }
+
     try {
       setBusy(true);
       setStatus('Binubuhay ang character...');
@@ -124,6 +145,7 @@ export default function BuklodAiTalkingPortrait({
         throw new Error('Character animation finished without a video URL.');
       }
 
+      sessionVideoCache.set(requestCacheKey, completed.resultUrl);
       setVideoUrl(completed.resultUrl);
       setStatus('');
     } catch (error: unknown) {
@@ -154,16 +176,28 @@ export default function BuklodAiTalkingPortrait({
       return;
     }
 
+    const requestedCacheKey = `${sourceUrl}::${autoPlayText}`;
+    const cached = sessionVideoCache.get(requestedCacheKey);
+
+    if (cached) {
+      if (videoUrl !== cached) {
+        setVideoUrl(cached);
+      } else {
+        replay();
+      }
+      return;
+    }
+
     if (replay()) {
       return;
     }
 
     void speak(autoPlayText);
-    // Intentionally key autoplay to the requested text/session. When the
-    // generated video arrives, the video effect starts it once; reopening the
-    // parent with a new autoPlayText transition replays the cached clip.
+    // Intentionally key autoplay to the requested text/session. Generated
+    // clips are cached for the current app session, so reopening the zoom
+    // replays instead of consuming another provider generation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoPlayText, accessToken]);
+  }, [autoPlayText, accessToken, sourceUrl]);
 
   return (
     <View style={{ width }}>
