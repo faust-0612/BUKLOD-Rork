@@ -68,6 +68,15 @@ Write-Host 'Installing locked dependencies...' -ForegroundColor Yellow
 npm ci --ignore-scripts
 if ($LASTEXITCODE -ne 0) { throw 'npm ci failed.' }
 
+# RELEASE INVARIANT: no unrelated push may silently replace the canonical R31 core
+# or R40 special-character package. This gate intentionally blocks deployment until
+# the complete forward-compatible R31/R40 family is present.
+Write-Host 'Checking canonical R31/R40 character release lock...' -ForegroundColor Yellow
+npm run character:contract
+if ($LASTEXITCODE -ne 0) {
+  throw 'R31/R40 character release lock failed. Deployment stopped before TypeScript/export.'
+}
+
 Write-Host 'Running TypeScript QA...' -ForegroundColor Yellow
 npx tsc --noEmit
 if ($LASTEXITCODE -ne 0) { throw 'TypeScript QA failed. Deployment stopped.' }
@@ -80,6 +89,14 @@ if ($LASTEXITCODE -ne 0) { throw 'Expo web export failed. Deployment stopped.' }
 
 if (-not (Test-Path 'dist\index.html')) {
   throw 'dist\index.html is missing. Deployment stopped.'
+}
+
+# Second release invariant: source may be correct while a stale export is wrong.
+# Refuse to publish unless the compiled bundle itself still contains R31 + R40.
+Write-Host 'Checking R31/R40 contract inside compiled web bundle...' -ForegroundColor Yellow
+npm run character:contract:dist
+if ($LASTEXITCODE -ne 0) {
+  throw 'Compiled web bundle failed the R31/R40 release lock. Deployment stopped.'
 }
 
 Write-Host 'Creating physical Game Lab SPA route shells...' -ForegroundColor Yellow
