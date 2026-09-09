@@ -28,7 +28,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          rm -rf /tmp/buklod-classroom-restore
           mkdir -p /tmp/buklod-classroom-restore
+          cat > /tmp/buklod-classroom-restore/package.json <<'JSON'
+          {
+            "name": "buklod-classroom-restore-context",
+            "version": "1.0.0",
+            "private": true,
+            "dependencies": {
+              "expo": "^54.0.0",
+              "react": "19.1.0",
+              "react-native": "0.81.4"
+            }
+          }
+          JSON
           cat > /tmp/buklod-classroom-restore/app.json <<'JSON'
           {
             "expo": {
@@ -44,6 +57,7 @@ jobs:
           }
           JSON
           cd /tmp/buklod-classroom-restore
+          git init -q
           npx eas-cli@latest project:info --non-interactive
 
       - name: Verify locked immutable deployment is reachable
