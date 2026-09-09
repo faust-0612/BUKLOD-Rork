@@ -1,0 +1,65 @@
+name: Classroom Earliest Web Deploy Discovery
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - hotfix/classroom-separate-web-20260909-r5
+    paths:
+      - '.github/workflows/classroom_earliest_web_deploy_discovery.yml'
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  BUKLOD_APP_TARGET: classroom
+  APP_VARIANT: production
+  EXPO_PUBLIC_APP_ENV: production
+  EXPO_PUBLIC_EAS_PROJECT_ID: 14100ed1-7f25-4551-9627-09d280498241
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: hotfix/classroom-separate-web-20260909-r5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Expo auth
+        run: |
+          test -n "$EXPO_TOKEN"
+          npx eas-cli@latest whoami --non-interactive >/dev/null
+      - name: Show deploy CLI help
+        shell: bash
+        run: |
+          set -o pipefail
+          npx eas-cli@latest deploy:list --help | tee /tmp/deploy-list-help.txt
+      - name: List Classroom hosting deployments
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest deploy:list --json --non-interactive > /tmp/classroom-deploys.json
+          cat /tmp/classroom-deploys.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const raw=JSON.parse(fs.readFileSync('/tmp/classroom-deploys.json','utf8'));
+          const list=Array.isArray(raw)?raw:(raw.deployments||raw.items||[]);
+          console.log('DEPLOY_COUNT='+list.length);
+          const normalized=list.map(d=>({
+            id:d.id||d.deploymentId||d.uuid||null,
+            createdAt:d.createdAt||d.created_at||d.created||null,
+            updatedAt:d.updatedAt||d.updated_at||null,
+            environment:d.environment||d.environmentName||null,
+            url:d.url||d.deploymentUrl||d.previewUrl||null,
+            production:d.production??d.isProduction??null,
+            status:d.status||null,
+            gitCommitHash:d.gitCommitHash||d.gitCommitSha||d.commitHash||d.commitSha||null,
+            metadata:d.metadata||null,
+          }));
+          normalized.sort((a,b)=>new Date(a.createdAt||0)-new Date(b.createdAt||0));
+          console.log('DEPLOYS_ASC='+JSON.stringify(normalized,null,2));
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,'\n```json\n'+JSON.stringify(normalized,null,2)+'\n```\n');
+          NODE
