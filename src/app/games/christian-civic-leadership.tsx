@@ -2,13 +2,16 @@ import React from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
 import { CivicLeadershipGameV1 } from '@/features/games/christian/CivicLeadershipGameV1';
+import { recordBuklodKingdomPreviewResult } from '@/features/games/kingdom/progress';
 import { BuklodGameStage } from '@/features/games/runtime/BuklodGameStage';
+
+const GAME_ID = 'christian-civic-leadership';
 
 export default function ChristianCivicLeadershipScreen() {
   return (
-    <BuklodGameStage biome="academy">
+    <BuklodGameStage biome="academy" gameId={GAME_ID}>
       <ScrollView contentContainerStyle={styles.page}>
-        <CivicLeadershipGameV1 />
+        <CivicLeadershipGameV1 onFinish={(result) => { void recordBuklodKingdomPreviewResult(result); }} />
       </ScrollView>
     </BuklodGameStage>
   );
