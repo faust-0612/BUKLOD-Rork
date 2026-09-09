@@ -1,0 +1,45 @@
+{
+  "contract_version": "R31_R40_FORWARD_LOCK_V1",
+  "status": "REQUIRED_FOR_ALL_PRODUCTION_RELEASES",
+  "policy": {
+    "deployment_branch": "main",
+    "main_is_not_sufficient_proof_of_feature_completeness": true,
+    "forward_port_only": true,
+    "whole_app_rollback_for_character_recovery": false,
+    "source_gate_required": true,
+    "compiled_bundle_gate_required": true,
+    "raw_eas_publish_without_contract_gate": "FORBIDDEN"
+  },
+  "r31_core": {
+    "characters": ["phan", "quin", "van", "christian", "lhen"],
+    "required_behavior": [
+      "20 independent character levels",
+      "Browse all 20 levels",
+      "Use This Character",
+      "character switch starts the selected character from Level 1 without resetting Circle Rank",
+      "collectibles and per-character progression preserved"
+    ],
+    "exact_assets": {
+      "assets/images/characters/phan_r26.jpg": "1598EF159BFC4AB784A681BEF7BC53FF839DBEA92CB729EE03A15BAA4F31CCDB",
+      "assets/images/characters/quin_r26.jpg": "769BCF6F61DEB70E1D52E7515AF9C69CC6562545E86D2DD390355770E5C33892",
+      "assets/images/characters/van_r26.jpg": "B52B6B7E3562B2D884CC677D67C67CC71898273BF5BF5068A077B10B5DC87C66",
+      "assets/images/characters/christian_r26.jpg": "1AE9C03466876CEFC443FF55641D7EAD516DF82FF340A632EE852D7DD8B07739",
+      "assets/images/characters/lhen_r26.jpg": "17A2FDB2FB18252AB494589E689E5044C27B86065A988D70094997971D9D66EB"
+    },
+    "known_recovery_ref": "phase1/r31-character-world-v2"
+  },
+  "r40_special": {
+    "characters": ["jawo", "trudice", "ace", "mitch", "niel", "angel", "vhen", "ellusur"],
+    "approved_display_names": ["Jawo", "Trudice", "Ace", "Mitch", "Niel", "Angel", "Vhen", "ELESUR"],
+    "required_component": "src/components/points/BuklodSpecialCharacterSeries.tsx",
+    "required_registry": "src/lib/buklodSpecialCharacterAssets.ts",
+    "asset_root": "assets/images/characters/special/batch1",
+    "minimum_jpg_count": 168,
+    "required_behavior_tokens": [
+      "Special Character Journey",
+      "get_my_buklod_special_collectibles_v2",
+      "set_my_buklod_special_character_pursuit_v1"
+    ]
+  },
+  "release_rule": "Every production release must prove this contract in source before build/export and again in the compiled bundle before publish. If the contract fails, stop; recover/forward-port R31/R40 into the current source instead of deploying or rolling the whole app backward."
+}
