@@ -1,0 +1,85 @@
+---
+description: BUKLOD Main canonical source-of-truth and deployment-path guard
+alwaysApply: true
+---
+
+# BUKLOD Main — Single Canonical Source
+
+This rule is mandatory for every BUKLOD Main edit, regardless of chat, prompt, branch, task name, restore request, or release request.
+
+## Canonical local workspace
+
+Default Windows workspace:
+
+`%USERPROFILE%\BUKLOD_WORKSPACE`
+
+Only this folder is the writable BUKLOD Main working copy:
+
+`%USERPROFILE%\BUKLOD_WORKSPACE\SOURCE\BUKLOD-MAIN`
+
+The expected Git remote is:
+
+`https://github.com/faust-0612/BUKLOD-Rork.git`
+
+All Downloads copies, ZIP extractions, R31/R40 snapshots, V16/INNER/RESTORE/FINAL/NEW copies, recovery folders, temporary clones, release staging folders, and other BUKLOD-Rork directories are **read-only reference/recovery sources**, never normal edit roots.
+
+## Before any edit
+
+Before changing source, the agent must verify:
+
+1. repository root is the canonical SOURCE path above;
+2. `.buklod-local-canonical.json` exists at repository root;
+3. marker `canonical_source` resolves to the current repository root;
+4. Git remote `origin` is the expected BUKLOD-Rork repository;
+5. current branch and `git status` are known;
+6. no unrelated dirty changes will be overwritten.
+
+If any check fails, do not edit that copy. Preserve/reconcile work into the canonical SOURCE instead.
+
+## One app, one editable repository
+
+For BUKLOD Main:
+
+> ONE APP → ONE CANONICAL FOLDER → ONE GIT REPOSITORY → MANY CHATS/BRANCHES ALLOWED → ONE RELEASE PATH.
+
+Multiple prompts are allowed. Multiple branches are allowed. A second editable BUKLOD Main clone is not allowed.
+
+## Recovery material
+
+R31/R40 and other approved recovery assets belong under:
+
+`%USERPROFILE%\BUKLOD_WORKSPACE\RECOVERY\R31_R40`
+
+Recovery files are protected reference material. If a valid newer or missing delta exists there or in another old copy, forward-port only the required delta into canonical SOURCE. Never resume feature development inside the recovery copy.
+
+## Release path
+
+Never deploy BUKLOD Main directly from Downloads, ZIP extracts, backups, recovery folders, ad-hoc clones, or feature branches.
+
+Canonical web release entry point:
+
+`scripts\RUN_CANONICAL_WEB_RELEASE.ps1`
+
+It must operate through:
+
+`%USERPROFILE%\BUKLOD_WORKSPACE\RELEASE\WEB\current`
+
+Release staging is disposable and must never become an editing source.
+
+## Zero-regression merge behavior
+
+- Never whole-file overwrite newer working code with an older snapshot merely to recover one feature.
+- Reconcile the smallest required delta.
+- Preserve unrelated completed features and protections.
+- R31/R40 approved character/recovery contracts remain protected unless the product owner explicitly supersedes them.
+- Current standalone Focus App doors/integrations must not be removed merely because their standalone implementation lives elsewhere.
+
+## Completion rule
+
+A commit/build/deploy command is not completion.
+
+For release-affecting changes use:
+
+`EDIT → QA → WEB BUILD → DEPLOY/PREVIEW → VISIBLE LIVE VERIFICATION → NEXT PHASE`
+
+If local path identity is uncertain, stop destructive work. Do not guess which clone is canonical.
