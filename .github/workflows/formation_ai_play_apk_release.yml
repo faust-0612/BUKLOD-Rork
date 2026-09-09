@@ -1,5 +1,6 @@
 name: BUKLOD Formation AI Play + APK Release
 
+# Release retrigger: 2026-09-09 current canonical main
 on:
   push:
     branches: [main]
