@@ -119,9 +119,6 @@ jobs:
           test "$EXPO_PUBLIC_SUPABASE_URL" = "$EXPECTED_URL"
           test -n "$EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
 
-          # Preserve any existing public EAS values without printing their
-          # values, then explicitly overwrite the critical Classroom runtime
-          # and identity variables below.
           while IFS='=' read -r name _; do
             case "$name" in
               EXPO_PUBLIC_*)
@@ -180,6 +177,10 @@ jobs:
         run: |
           set -euo pipefail
           npx tsc --noEmit
+          if ! node -e "require.resolve('jest-expo/package.json'); require.resolve('jest/package.json')" >/dev/null 2>&1; then
+            echo 'Installing Expo-compatible Jest test runtime for this release gate.'
+            npx expo install jest-expo jest
+          fi
           npx jest --runInBand --passWithNoTests 'classroom|faculty'
 
       - name: Export Classroom web
@@ -283,3 +284,4 @@ jobs:
           echo 'Production URL: https://buklod-classroom.expo.app'
 
 # Manual standalone Classroom redeploy requested 2026-09-09.
+# Release-gate fix: install Expo-compatible Jest runtime when the branch snapshot lacks it.
