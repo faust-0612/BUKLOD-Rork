@@ -21,6 +21,16 @@ export const BUKLOD_GAMES: Record<string, BuklodGameDefinition> = {
     objective: 'Watch a glowing route across the playground, then repeat the station sequence as each round becomes longer.',
     replayable: true,
   },
+  'ace-rescue-grid': {
+    id: 'ace-rescue-grid',
+    characterKey: 'ace',
+    mapType: 'strategy-city',
+    stationKey: 'rescue-grid-01',
+    title: 'Rescue Grid',
+    subtitle: 'Ace • Strategy District',
+    objective: 'Plan a low-cost route, secure three rescue beacons, avoid blocked corridors, and reach extraction before energy runs out.',
+    replayable: true,
+  },
 };
 
 export const getBuklodGameDefinition = (gameId: string) => BUKLOD_GAMES[gameId] ?? null;
