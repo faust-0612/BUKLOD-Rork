@@ -1,6 +1,7 @@
 #requires -Version 5.1
 param(
-  [string]$ProjectRoot = (Get-Location).Path
+  [string]$ProjectRoot = (Get-Location).Path,
+  [string[]]$RecoveryRoots = @()
 )
 
 Set-StrictMode -Version Latest
@@ -8,6 +9,22 @@ $ErrorActionPreference = 'Stop'
 $Stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
 $SafetyBackup = Join-Path $ProjectRoot ".buklod-backups\canonical_r31_r40_restore_$Stamp"
 $BackupRoot = Join-Path $ProjectRoot '.buklod-backups'
+
+$DefaultLegacyRoot = Join-Path $HOME 'Downloads\BUKLOD-Rork-current-20260905_131136'
+$DefaultLatestRoot = Join-Path $HOME 'Downloads\BUKLOD-Rork-LATEST'
+$ResolvedRecoveryRoots = @(
+  $BackupRoot,
+  $ProjectRoot,
+  (Join-Path $DefaultLegacyRoot '.buklod-backups'),
+  $DefaultLegacyRoot,
+  (Join-Path $DefaultLatestRoot '.buklod-backups'),
+  $DefaultLatestRoot
+) + $RecoveryRoots
+$ResolvedRecoveryRoots = @(
+  $ResolvedRecoveryRoots |
+    Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Container) } |
+    Select-Object -Unique
+)
 
 function Fail([string]$Message) { throw $Message }
 function Sha([string]$Path) {
@@ -22,9 +39,8 @@ function Backup-Current([string]$Relative) {
   Copy-Item -LiteralPath $src -Destination $dst -Force
 }
 function CandidateFiles([string]$Name) {
-  $roots = @($BackupRoot, $ProjectRoot) | Where-Object { Test-Path -LiteralPath $_ -PathType Container }
   $seen = @{}
-  foreach ($root in $roots) {
+  foreach ($root in $ResolvedRecoveryRoots) {
     Get-ChildItem -LiteralPath $root -Recurse -File -Filter $Name -ErrorAction SilentlyContinue |
       Where-Object {
         $_.FullName -notmatch '\\node_modules\\' -and
@@ -71,6 +87,7 @@ function Restore-File([string]$Relative, [string]$Source) {
   New-Item -ItemType Directory -Force -Path (Split-Path -Parent $dst) | Out-Null
   Copy-Item -LiteralPath $Source -Destination $dst -Force
   Write-Host " Restored: $Relative" -ForegroundColor Green
+  Write-Host "   from: $Source" -ForegroundColor DarkGray
 }
 
 Write-Host ''
@@ -81,6 +98,10 @@ Write-Host '====================================================================
 
 if (!(Test-Path -LiteralPath $ProjectRoot -PathType Container)) { Fail 'Project root missing.' }
 New-Item -ItemType Directory -Force -Path $SafetyBackup | Out-Null
+
+Write-Host 'Verified recovery roots:' -ForegroundColor Yellow
+$ResolvedRecoveryRoots | ForEach-Object { Write-Host " - $_" }
+if ($ResolvedRecoveryRoots.Count -lt 1) { Fail 'No verified recovery roots are available.' }
 
 # Preferred latest R31-compatible source family used before R40 integration.
 $R31Source = [ordered]@{
