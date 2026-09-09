@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 
 import { KingdomTreasuryGameV1 } from '@/features/games/angel/KingdomTreasuryGameV1';
 import { BuklodGameStage } from '@/features/games/runtime/BuklodGameStage';
@@ -7,17 +7,20 @@ import { BuklodGameStage } from '@/features/games/runtime/BuklodGameStage';
 export default function AngelKingdomTreasuryScreen() {
   return (
     <BuklodGameStage biome="treasury">
-      <View style={styles.page}>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.page}>
         <KingdomTreasuryGameV1 />
-      </View>
+      </ScrollView>
     </BuklodGameStage>
   );
 }
 
 const styles = StyleSheet.create({
-  page: {
+  scroll: {
     flex: 1,
+  },
+  page: {
+    flexGrow: 1,
     paddingTop: 18,
-    paddingBottom: 28,
+    paddingBottom: 36,
   },
 });
