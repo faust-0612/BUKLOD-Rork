@@ -1,7 +1,20 @@
 import fs from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 const failures = [];
 const warnings = [];
+
+// Mandatory release invariant: production may move forward only when the complete
+// forward-compatible R31 core + R40 special-character package is present.
+const characterContractPath = fileURLToPath(new URL('./character-release-contract.mjs', import.meta.url));
+const characterContract = spawnSync(process.execPath, [characterContractPath], {
+  cwd: fileURLToPath(new URL('../', import.meta.url)),
+  stdio: 'inherit',
+});
+if (characterContract.status !== 0) {
+  failures.push('Canonical R31/R40 character release contract failed.');
+}
 
 const env = process.env.EXPO_PUBLIC_APP_ENV || '';
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
