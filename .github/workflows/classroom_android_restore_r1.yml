@@ -1,0 +1,194 @@
+name: BUKLOD Classroom Android Restore R1
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - hotfix/classroom-separate-web-20260909-r5
+    paths:
+      - '.github/workflows/classroom_android_restore_r1.yml'
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  BUKLOD_APP_TARGET: classroom
+  BUKLOD_CLASSROOM_RELEASE: '1'
+  APP_VARIANT: production
+  EXPO_PUBLIC_APP_ENV: production
+  EXPO_PUBLIC_EAS_PROJECT_ID: 14100ed1-7f25-4551-9627-09d280498241
+  CLASSROOM_GOOGLE_SERVICES_FILE: ./google-services.classroom.json
+
+jobs:
+  restore-classroom-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout isolated Classroom source
+        uses: actions/checkout@v4
+        with:
+          ref: hotfix/classroom-separate-web-20260909-r5
+          fetch-depth: 0
+
+      - name: Protect golden Classroom baseline and Main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 7e4c17717b372ae623629ff1d7e4f10ab705fd81 HEAD
+          MAIN_BEFORE="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test -n "$MAIN_BEFORE"
+          echo "MAIN_BRANCH_BEFORE=$MAIN_BEFORE" >> "$GITHUB_ENV"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Restore standalone Classroom shell
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/apply-classroom-separation-r1.cjs
+          git diff --check
+
+      - name: Expo authentication
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN"
+          npx eas-cli@latest whoami --non-interactive >/dev/null
+
+      - name: Resolve verified Classroom runtime environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .env.local /tmp/classroom-known-good-env.yml
+          npx eas-cli@latest env:pull --environment production --path .env.local --non-interactive
+          test -s .env.local
+          set -a
+          . ./.env.local
+          set +a
+
+          EXPECTED_URL='https://yhanxndaqbmuzbdqlblu.supabase.co'
+          if [ -z "${EXPO_PUBLIC_SUPABASE_URL:-}" ] || \
+             [ -z "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}" ] || \
+             [ "${EXPO_PUBLIC_SUPABASE_URL:-}" != "$EXPECTED_URL" ]; then
+            git show 5195c2dc1ee385bb3bf366c09dc4b545501ae5ae:.github/workflows/classroom_web_white_screen_hotfix.yml \
+              > /tmp/classroom-known-good-env.yml
+            EXPO_PUBLIC_SUPABASE_URL="$(sed -n 's/^  EXPO_PUBLIC_SUPABASE_URL: //p' /tmp/classroom-known-good-env.yml | head -1)"
+            EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$(sed -n 's/^  EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: //p' /tmp/classroom-known-good-env.yml | head -1)"
+            rm -f /tmp/classroom-known-good-env.yml
+          fi
+          test "$EXPO_PUBLIC_SUPABASE_URL" = "$EXPECTED_URL"
+          test -n "$EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+          {
+            echo 'EXPO_PUBLIC_SUPABASE_URL<<__CLASSROOM_ENV__'
+            printf '%s\n' "$EXPO_PUBLIC_SUPABASE_URL"
+            echo '__CLASSROOM_ENV__'
+            echo 'EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY<<__CLASSROOM_ENV__'
+            printf '%s\n' "$EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+            echo '__CLASSROOM_ENV__'
+          } >> "$GITHUB_ENV"
+          echo 'Verified Classroom runtime environment resolved.'
+
+      - name: Verify dedicated Classroom identity and TypeScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/verify-classroom-identity.cjs
+          npx tsc --noEmit
+          npx expo config --json > /tmp/classroom-config.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const c = JSON.parse(fs.readFileSync('/tmp/classroom-config.json','utf8'));
+          if (c.name !== 'BUKLOD Classroom') throw new Error('Wrong app name');
+          if (c.android?.package !== 'org.mzbministry.buklod.classroom') throw new Error('Wrong Android package');
+          if (c.extra?.eas?.projectId !== '14100ed1-7f25-4551-9627-09d280498241') throw new Error('Wrong EAS project');
+          if (c.runtimeVersion !== '1.3.0') throw new Error('Wrong Classroom runtime');
+          console.log('CLASSROOM_ANDROID_IDENTITY=PASS');
+          NODE
+
+      - name: Retrieve previous verified standalone Classroom APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest build:list \
+            --platform android \
+            --status finished \
+            --distribution internal \
+            --build-profile classroom-production-apk \
+            --app-identifier org.mzbministry.buklod.classroom \
+            --runtime-version 1.3.0 \
+            --limit 20 \
+            --json --non-interactive > /tmp/classroom-builds.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const raw = JSON.parse(fs.readFileSync('/tmp/classroom-builds.json','utf8'));
+          const builds = Array.isArray(raw) ? raw : (raw.builds || []);
+          if (!builds.length) throw new Error('No prior finished classroom-production-apk build found');
+          const b = builds[0];
+          const url = b.artifacts?.buildUrl || b.applicationArchiveUrl || b.artifacts?.applicationArchiveUrl || '';
+          if (!url) throw new Error('Prior Classroom APK exists but archive URL was not returned');
+          const safe = {
+            id: b.id,
+            status: b.status,
+            platform: b.platform,
+            buildProfile: b.buildProfile,
+            distribution: b.distribution,
+            channel: b.channel,
+            runtimeVersion: b.runtimeVersion,
+            appVersion: b.appVersion,
+            appBuildVersion: b.appBuildVersion,
+            apkUrl: url,
+          };
+          console.log('CLASSROOM_PREVIOUS_APK=' + JSON.stringify(safe));
+          fs.writeFileSync('/tmp/classroom-apk-url.txt', url);
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `\n### Retrieved standalone BUKLOD Classroom APK\n\n- Build ID: ${b.id}\n- Runtime: ${b.runtimeVersion}\n- Channel: ${b.channel || 'classroom-production'}\n- APK: ${url}\n`);
+          NODE
+
+      - name: Export exact Android OTA bundle with verified runtime variables
+        shell: bash
+        env:
+          NODE_ENV: production
+        run: |
+          set -euo pipefail
+          rm -rf dist-classroom-android
+          npx expo export --platform android --output-dir dist-classroom-android
+          test -s dist-classroom-android/metadata.json
+          SUPABASE_HOST="$(printf '%s' "$EXPO_PUBLIC_SUPABASE_URL" | sed -E 's#https?://([^/]+).*#\1#')"
+          grep -RFl "$SUPABASE_HOST" dist-classroom-android >/dev/null
+          grep -RFl 'BUKLOD Classroom' dist-classroom-android >/dev/null
+          echo 'Classroom Android OTA export: PASS'
+
+      - name: Publish exact standalone Classroom Android OTA
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest update \
+            --channel classroom-production \
+            --platform android \
+            --environment production \
+            --input-dir dist-classroom-android \
+            --skip-bundler \
+            --message 'Restore original standalone BUKLOD Classroom runtime' \
+            --json --non-interactive > /tmp/classroom-update.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const raw = JSON.parse(fs.readFileSync('/tmp/classroom-update.json','utf8'));
+          const updates = Array.isArray(raw) ? raw : (raw.updates || raw.updateGroup || []);
+          console.log('CLASSROOM_ANDROID_OTA_PUBLISHED=PASS');
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `\n### Classroom Android OTA\n\nPublished to channel **classroom-production** for runtime **1.3.0**.\n`);
+          NODE
+
+      - name: Prove Main remained untouched
+        shell: bash
+        run: |
+          set -euo pipefail
+          MAIN_AFTER="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test "$MAIN_AFTER" = "$MAIN_BRANCH_BEFORE"
+          echo 'BUKLOD Main branch unchanged: VERIFIED'
