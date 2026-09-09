@@ -14,6 +14,7 @@
     "release:gate": "node scripts/release-gate.mjs",
     "quality": "npm run test && npm run test:db && npm run release:gate",
     "staging:gate": "node scripts/staging-gate.mjs",
+    "validate:phan-3d": "node scripts/validate-phan-glb.mjs",
     "supabase:local:reset": "supabase db reset",
     "supabase:test": "supabase test db",
     "build:android:preview": "eas build --platform android --profile preview",
