@@ -2,10 +2,12 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
+import { BuklodGameLanguageControl, BuklodGameLanguageProvider } from './BuklodGameLanguage';
 import type { BuklodGameBiome } from './quality';
 
 type Props = {
   biome: BuklodGameBiome;
+  gameId?: string;
   children: React.ReactNode;
 };
 
@@ -25,17 +27,20 @@ const palettes: Record<BuklodGameBiome, readonly [string, string, string]> = {
   discovery: ['#171a34', '#313b68', '#586bb1'],
 };
 
-export function BuklodGameStage({ biome, children }: Props) {
+export function BuklodGameStage({ biome, gameId, children }: Props) {
   const colors = palettes[biome];
 
   return (
-    <View style={styles.shell}>
-      <LinearGradient colors={colors} style={StyleSheet.absoluteFill} />
-      <View pointerEvents="none" style={styles.lightA} />
-      <View pointerEvents="none" style={styles.lightB} />
-      <View pointerEvents="none" style={styles.vignette} />
-      <View style={styles.content}>{children}</View>
-    </View>
+    <BuklodGameLanguageProvider gameId={gameId}>
+      <View style={styles.shell}>
+        <LinearGradient colors={colors} style={StyleSheet.absoluteFill} />
+        <View pointerEvents="none" style={styles.lightA} />
+        <View pointerEvents="none" style={styles.lightB} />
+        <View pointerEvents="none" style={styles.vignette} />
+        <View style={styles.content}>{children}</View>
+        <BuklodGameLanguageControl />
+      </View>
+    </BuklodGameLanguageProvider>
   );
 }
 
