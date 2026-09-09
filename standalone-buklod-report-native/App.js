@@ -13,6 +13,7 @@ import {
 import { WebView } from 'react-native-webview';
 
 const REPORT_URL = 'https://buklod-report-efmagaj-6311s-projects.vercel.app';
+const REPORT_ICON = require('./assets/source-icon.jpg');
 
 export default function App() {
   const webRef = useRef(null);
@@ -67,7 +68,7 @@ export default function App() {
 
       {!ready && (
         <View style={styles.splash} pointerEvents="none">
-          <Image source={require('./assets/icon.png')} style={styles.icon} />
+          <Image source={REPORT_ICON} style={styles.icon} />
           <Text style={styles.title}>BUKLOD Report</Text>
           <Text style={styles.subtitle}>Opening your reporting workspace…</Text>
           <ActivityIndicator style={styles.spinner} />
@@ -76,7 +77,7 @@ export default function App() {
 
       {failed && (
         <View style={styles.error} pointerEvents="none">
-          <Image source={require('./assets/icon.png')} style={styles.smallIcon} />
+          <Image source={REPORT_ICON} style={styles.smallIcon} />
           <Text style={styles.errorTitle}>BUKLOD Report</Text>
           <Text style={styles.errorText}>Unable to reach the report service. Check your internet connection and reopen the app.</Text>
         </View>
