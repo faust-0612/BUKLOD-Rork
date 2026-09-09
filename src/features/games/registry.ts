@@ -7,8 +7,8 @@ export const BUKLOD_GAMES: Record<string, BuklodGameDefinition> = {
     mapType: 'forest',
     stationKey: 'forest-trail-01',
     title: 'Forest Trail',
-    subtitle: 'Jawo Adventure Prototype',
-    objective: 'Choose the safest lane, avoid obstacles, and collect trail lights before the forest run ends.',
+    subtitle: 'Jawo • Whispering Forest',
+    objective: 'Swipe across three trails, avoid fallen rock, collect Trail Lights, and keep a clean-run combo as the forest speeds up.',
     replayable: true,
   },
   'trudice-playground-memory': {
@@ -16,9 +16,9 @@ export const BUKLOD_GAMES: Record<string, BuklodGameDefinition> = {
     characterKey: 'trudice',
     mapType: 'children-playground',
     stationKey: 'playground-memory-01',
-    title: 'Playground Memory',
-    subtitle: 'Trudice Children\'s Haven Prototype',
-    objective: 'Find all matching pairs in as few moves as possible.',
+    title: 'Wonder Path',
+    subtitle: 'Trudice • Children\'s Haven',
+    objective: 'Watch a glowing route across the playground, then repeat the station sequence as each round becomes longer.',
     replayable: true,
   },
 };
