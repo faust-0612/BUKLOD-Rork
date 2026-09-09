@@ -1,0 +1,81 @@
+name: Classroom Direct First Web Rollback V2
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - hotfix/classroom-separate-web-20260909-r5
+    paths:
+      - '.github/workflows/classroom_direct_first_web_rollback_v2.yml'
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  CLASSROOM_PROJECT_ID: 14100ed1-7f25-4551-9627-09d280498241
+  FIRST_DEPLOYMENT_ID: 37uiyahswg
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: hotfix/classroom-separate-web-20260909-r5
+      - name: Verify first immutable deployment and current production
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN"
+          cat > /tmp/pre.json <<'JSON'
+          {"query":"query Pre($appId:String!){app{byId(appId:$appId){id fullName workerDeployment(deploymentIdentifier:\"37uiyahswg\"){id deploymentIdentifier createdAt url} workerDeploymentAlias(aliasName:null){id aliasName updatedAt url workerDeployment{deploymentIdentifier createdAt url}}}}}","variables":{"appId":"14100ed1-7f25-4551-9627-09d280498241"}}
+          JSON
+          curl -fsS -X POST https://api.expo.dev/graphql -H 'Content-Type: application/json' -H "Authorization: Bearer $EXPO_TOKEN" --data-binary @/tmp/pre.json > /tmp/pre-response.json
+          node - <<'NODE'
+          const fs=require('fs'); const r=JSON.parse(fs.readFileSync('/tmp/pre-response.json','utf8'));
+          if(r.errors?.length) throw new Error(JSON.stringify(r.errors));
+          const a=r.data?.app?.byId; if(a?.id!=='14100ed1-7f25-4551-9627-09d280498241') throw new Error('Wrong project');
+          const d=a.workerDeployment; if(d?.deploymentIdentifier!=='37uiyahswg'||d?.createdAt!=='2026-09-05T17:15:03.636Z') throw new Error('Original first deployment mismatch');
+          console.log('FIRST_DEPLOYMENT_VERIFIED='+JSON.stringify(d));
+          console.log('PRODUCTION_BEFORE='+JSON.stringify(a.workerDeploymentAlias?.workerDeployment||null));
+          NODE
+      - name: Reassign production alias directly to first immutable deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/mutation.json <<'JSON'
+          {"query":"mutation Rollback($appId:ID!,$deploymentIdentifier:ID!){deployments{assignAlias(aliasName:null,appId:$appId,deploymentIdentifier:$deploymentIdentifier){id aliasName createdAt updatedAt url workerDeployment{id deploymentIdentifier createdAt url}}}}","variables":{"appId":"14100ed1-7f25-4551-9627-09d280498241","deploymentIdentifier":"37uiyahswg"}}
+          JSON
+          curl -fsS -X POST https://api.expo.dev/graphql -H 'Content-Type: application/json' -H "Authorization: Bearer $EXPO_TOKEN" --data-binary @/tmp/mutation.json > /tmp/mutation-response.json
+          node - <<'NODE'
+          const fs=require('fs'); const r=JSON.parse(fs.readFileSync('/tmp/mutation-response.json','utf8'));
+          if(r.errors?.length) throw new Error(JSON.stringify(r.errors));
+          const a=r.data?.deployments?.assignAlias;
+          if(a?.workerDeployment?.deploymentIdentifier!=='37uiyahswg') throw new Error('Production alias mutation did not target first deployment');
+          console.log('ROLLBACK_MUTATION=PASS'); console.log(JSON.stringify(a,null,2));
+          NODE
+      - name: Verify server-side production binding and live endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/post.json <<'JSON'
+          {"query":"query Post($appId:String!){app{byId(appId:$appId){workerDeploymentAlias(aliasName:null){id aliasName updatedAt url workerDeployment{id deploymentIdentifier createdAt url}}}}}","variables":{"appId":"14100ed1-7f25-4551-9627-09d280498241"}}
+          JSON
+          ok=0
+          for n in $(seq 1 10); do
+            curl -fsS -X POST https://api.expo.dev/graphql -H 'Content-Type: application/json' -H "Authorization: Bearer $EXPO_TOKEN" --data-binary @/tmp/post.json > /tmp/post-response.json
+            if node - <<'NODE'
+          const fs=require('fs'); const r=JSON.parse(fs.readFileSync('/tmp/post-response.json','utf8'));
+          if(r.errors?.length) process.exit(2); const a=r.data?.app?.byId?.workerDeploymentAlias; const d=a?.workerDeployment;
+          if(a?.url!=='https://buklod-classroom.expo.app') process.exit(1);
+          if(d?.deploymentIdentifier!=='37uiyahswg'||d?.createdAt!=='2026-09-05T17:15:03.636Z') process.exit(1);
+          console.log('SERVER_PRODUCTION_BINDING=FIRST_DEPLOYMENT'); console.log(JSON.stringify(a,null,2));
+          NODE
+            then ok=1; break; fi
+            sleep 1
+          done
+          test "$ok" = 1
+          curl -fsSIL --max-time 30 https://buklod-classroom.expo.app/ >/dev/null
+          curl -fsSIL --max-time 30 https://buklod-classroom--37uiyahswg.expo.app/ >/dev/null
+          echo 'LIVE_ENDPOINTS=PASS'
