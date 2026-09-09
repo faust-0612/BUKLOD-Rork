@@ -1,0 +1,60 @@
+name: Classroom Hosting History GraphQL V3
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - hotfix/classroom-separate-web-20260909-r5
+    paths:
+      - '.github/workflows/classroom_hosting_history_graphql_v3.yml'
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  CLASSROOM_PROJECT_ID: 14100ed1-7f25-4551-9627-09d280498241
+
+jobs:
+  history:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: hotfix/classroom-separate-web-20260909-r5
+      - name: Query immutable Classroom hosting history
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN"
+          cat > /tmp/query.json <<'JSON'
+          {
+            "query": "query ClassroomHostingHistory($appId: String!) { app { byId(appId: $appId) { id fullName workerDeployments(first: 100) { edges { cursor node { id deploymentIdentifier createdAt activityTimestamp deploymentDomain devDomainName subdomain url aliases { id aliasName createdAt updatedAt url } } } pageInfo { hasNextPage hasPreviousPage startCursor endCursor } } workerDeploymentAliases(first: 100) { edges { cursor node { id aliasName createdAt updatedAt url workerDeployment { id deploymentIdentifier createdAt url } } } pageInfo { hasNextPage hasPreviousPage startCursor endCursor } } } } }",
+            "variables": {"appId": "14100ed1-7f25-4551-9627-09d280498241"}
+          }
+          JSON
+          HTTP=$(curl -sS -o /tmp/history.json -w '%{http_code}' \
+            -X POST https://api.expo.dev/graphql \
+            -H 'Content-Type: application/json' \
+            -H "Authorization: Bearer $EXPO_TOKEN" \
+            --data-binary @/tmp/query.json)
+          echo "GRAPHQL_HTTP=$HTTP"
+          test "$HTTP" = "200"
+          node - <<'NODE'
+          const fs = require('fs');
+          const raw = JSON.parse(fs.readFileSync('/tmp/history.json','utf8'));
+          if (raw.errors?.length) {
+            console.error(JSON.stringify(raw.errors,null,2));
+            process.exit(2);
+          }
+          const app = raw.data?.app?.byId;
+          if (!app) throw new Error('Classroom project not returned');
+          const deployments = (app.workerDeployments?.edges || []).map(e => e.node).sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt));
+          const aliases = (app.workerDeploymentAliases?.edges || []).map(e => e.node).sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt));
+          const safe = {app:{id:app.id,fullName:app.fullName}, deployments, aliases};
+          console.log('CLASSROOM_HOSTING_HISTORY='+JSON.stringify(safe,null,2));
+          if (!deployments.length) throw new Error('No Classroom hosting deployments found');
+          const first = deployments[0];
+          console.log('EARLIEST_CLASSROOM_DEPLOYMENT='+JSON.stringify(first));
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `\n### Earliest immutable Classroom web deployment\n\n- Created: ${first.createdAt}\n- Deployment ID: ${first.deploymentIdentifier}\n- URL: ${first.url}\n\n### All Classroom deployments\n\n\`\`\`json\n${JSON.stringify(deployments,null,2)}\n\`\`\`\n`);
+          NODE
