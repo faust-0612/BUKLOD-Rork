@@ -41,6 +41,16 @@ export const BUKLOD_GAMES: Record<string, BuklodGameDefinition> = {
     objective: 'Drag six mural fragments into their true positions, restore the composition with precision, and build a clean restoration combo.',
     replayable: true,
   },
+  'niel-mission-trail': {
+    id: 'niel-mission-trail',
+    characterKey: 'niel',
+    mapType: 'mission-frontier',
+    stationKey: 'mission-trail-01',
+    title: 'Mission Trail',
+    subtitle: 'Niel • Mission Frontier',
+    objective: 'Lead an expedition through five route decisions, balance water, food, energy and morale, and reach the remote village without collapsing the team reserve.',
+    replayable: true,
+  },
 };
 
 export const getBuklodGameDefinition = (gameId: string) => BUKLOD_GAMES[gameId] ?? null;
