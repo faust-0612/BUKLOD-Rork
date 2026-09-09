@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { usePathname } from 'expo-router';
 
+import { recordBuklodKingdomPreviewResult } from '@/features/games/kingdom/progress';
+import type { BuklodGameResult } from '@/features/games/types';
 import { BuklodGameLanguageControl, BuklodGameLanguageProvider } from './BuklodGameLanguage';
+import { BuklodGameEntrance, BuklodGameVisualFX } from './BuklodGameVisualFX';
 import type { BuklodGameBiome } from './quality';
 
 type Props = {
@@ -34,19 +37,48 @@ function routeGameId(pathname: string) {
   return parts[parts.length - 1];
 }
 
+function withResultHandler(children: React.ReactNode, onFinish: (result: BuklodGameResult) => void) {
+  const array = React.Children.toArray(children);
+  let injected = false;
+  for (let index = array.length - 1; index >= 0; index -= 1) {
+    const child = array[index];
+    if (!React.isValidElement(child)) continue;
+    const previous = (child.props as any)?.onFinish as ((result: BuklodGameResult) => void) | undefined;
+    array[index] = React.cloneElement(child as React.ReactElement<any>, {
+      onFinish: (result: BuklodGameResult) => {
+        previous?.(result);
+        onFinish(result);
+      },
+    });
+    injected = true;
+    break;
+  }
+  return injected ? array : children;
+}
+
 export function BuklodGameStage({ biome, gameId, children }: Props) {
   const pathname = usePathname();
   const resolvedGameId = gameId ?? routeGameId(pathname);
   const colors = palettes[biome];
 
+  const recordResult = useCallback((result: BuklodGameResult) => {
+    if (resolvedGameId && result.gameId !== resolvedGameId) return;
+    recordBuklodKingdomPreviewResult(result).catch(() => undefined);
+  }, [resolvedGameId]);
+
+  const connectedChildren = withResultHandler(children, recordResult);
+
   return (
     <BuklodGameLanguageProvider gameId={resolvedGameId}>
       <View style={styles.shell}>
         <LinearGradient colors={colors} style={StyleSheet.absoluteFill} />
+        <BuklodGameVisualFX biome={biome} />
         <View pointerEvents="none" style={styles.lightA} />
         <View pointerEvents="none" style={styles.lightB} />
         <View pointerEvents="none" style={styles.vignette} />
-        <View style={styles.content}>{children}</View>
+        <View style={styles.content}>
+          <BuklodGameEntrance>{connectedChildren}</BuklodGameEntrance>
+        </View>
         <BuklodGameLanguageControl />
       </View>
     </BuklodGameLanguageProvider>
