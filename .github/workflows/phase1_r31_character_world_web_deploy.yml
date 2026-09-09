@@ -60,24 +60,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p assets/images/characters /tmp/r31
-          curl -fsSL -H 'Cache-Control: no-cache' "$R31_DEPLOYMENT/" -o /tmp/r31/index.html
-          grep -oE '_expo/static/js/web/[^"'"'"'< >]+\.js' /tmp/r31/index.html | sort -u > /tmp/r31/jsrefs || true
-          : > /tmp/r31/all.js
-          while read -r ref; do
-            [ -n "$ref" ] || continue
-            curl -fsSL -H 'Cache-Control: no-cache' "$R31_DEPLOYMENT/$ref" >> /tmp/r31/all.js
-          done < /tmp/r31/jsrefs
-
+          mkdir -p assets/images/characters
           fetch_asset() {
-            local stem="$1" hashed="$2" expected="$3" out="assets/images/characters/${stem}.jpg"
-            local candidates=(
-              "$R31_DEPLOYMENT/assets/images/characters/$hashed"
-              "$R31_DEPLOYMENT/assets/$hashed"
-              "$R31_DEPLOYMENT/$hashed"
-            )
+            local stem="$1" hashed="$2" expected="$3"
+            local out="assets/images/characters/${stem}.jpg"
             local ok=0
-            for url in "${candidates[@]}"; do
+            for url in \
+              "$R31_DEPLOYMENT/assets/images/characters/$hashed" \
+              "$R31_DEPLOYMENT/assets/$hashed" \
+              "$R31_DEPLOYMENT/$hashed"; do
               if curl -fsSL -H 'Cache-Control: no-cache' "$url" -o "$out.tmp" 2>/dev/null; then
                 got="$(sha256sum "$out.tmp" | awk '{print toupper($1)}')"
                 if [ "$got" = "$expected" ]; then
@@ -88,39 +79,9 @@ jobs:
                 fi
               fi
             done
-            if [ "$ok" -ne 1 ]; then
-              echo "Direct path not found for $stem; discovering exact R31 asset path from bundle."
-              python - "$stem" /tmp/r31/all.js > /tmp/r31/candidates.txt <<'PY'
-import re,sys
-stem=sys.argv[1]
-text=open(sys.argv[2],encoding='utf-8',errors='ignore').read()
-seen=[]
-for m in re.findall(r"[^\\\"'<> ]*"+re.escape(stem)+r"[^\\\"'<> ]*\\.jpg", text, re.I):
-    m=m.replace('\\\\/','/').replace('\\/','/')
-    if m not in seen:
-        seen.append(m)
-for m in seen:
-    print(m)
-PY
-              while read -r rel; do
-                [ -n "$rel" ] || continue
-                rel="${rel#./}"
-                url="$R31_DEPLOYMENT/${rel#/}"
-                if curl -fsSL -H 'Cache-Control: no-cache' "$url" -o "$out.tmp" 2>/dev/null; then
-                  got="$(sha256sum "$out.tmp" | awk '{print toupper($1)}')"
-                  if [ "$got" = "$expected" ]; then
-                    mv "$out.tmp" "$out"
-                    echo "PASS $stem from discovered $url"
-                    ok=1
-                    break
-                  fi
-                fi
-              done < /tmp/r31/candidates.txt
-            fi
             rm -f "$out.tmp"
             [ "$ok" -eq 1 ] || { echo "Exact R31 asset unavailable: $stem"; exit 1; }
           }
-
           fetch_asset phan 'phan_r26.1d7b0bb56aafa03b0f1d2a67f7367985.jpg' '1598EF159BFC4AB784A681BEF7BC53FF839DBEA92CB729EE03A15BAA4F31CCDB'
           fetch_asset quin 'quin_r26.032357dddb95c74e741bbae577f30f32.jpg' '769BCF6F61DEB70E1D52E7515AF9C69CC6562545E86D2DD390355770E5C33892'
           fetch_asset van 'van_r26.4f96c8d09489f6afc55bd10968f15eab.jpg' 'B52B6B7E3562B2D884CC677D67C67CC71898273BF5BF5068A077B10B5DC87C66'
@@ -182,7 +143,6 @@ PY
           npx eas-cli@latest whoami
 
       - name: Deploy Phase 1 Web only
-        id: deploy
         shell: bash
         run: |
           set -euo pipefail
@@ -212,7 +172,6 @@ PY
             sleep 8
           done
           [ "$matched" -eq 1 ] || rollback
-
           : > /tmp/prod.js
           while read -r ref; do
             [ -n "$ref" ] || continue
@@ -221,7 +180,6 @@ PY
           for token in 'MY BUKLOD WORLD' 'START YOUR CHARACTER JOURNEY' 'FULL CHARACTER MODE' 'ENVIRONMENT PREVIEW' 'ELESUR' 'get_my_buklod_character_world_v3'; do
             grep -F "$token" /tmp/prod.js >/dev/null || rollback
           done
-
           while read -r file; do
             [ -n "$file" ] || continue
             rel="${file#dist-phase1/}"
@@ -230,7 +188,6 @@ PY
             got="$(sha256sum /tmp/prod-asset | awk '{print toupper($1)}')"
             [ "$got" = "$expected" ] || rollback
           done < /tmp/r31_export_assets.txt
-
           echo 'PASS: buklod.expo.app serves Phase 1 and the exact five R31 golden character assets.'
 
       - name: Preserve deployment log
