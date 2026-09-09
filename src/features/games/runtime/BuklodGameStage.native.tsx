@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import { usePathname } from 'expo-router';
 import {
   BlurMask,
   Canvas,
@@ -35,11 +36,19 @@ const palettes: Record<BuklodGameBiome, readonly [string, string, string]> = {
   discovery: ['#11152e', '#303a68', '#5b6fb8'],
 };
 
+function routeGameId(pathname: string) {
+  const parts = pathname.split('/').filter(Boolean);
+  if (parts[0] !== 'games' || parts.length < 2) return undefined;
+  return parts[parts.length - 1];
+}
+
 export function BuklodGameStage({ biome, gameId, children }: Props) {
+  const pathname = usePathname();
+  const resolvedGameId = gameId ?? routeGameId(pathname);
   const colors = [...palettes[biome]];
 
   return (
-    <BuklodGameLanguageProvider gameId={gameId}>
+    <BuklodGameLanguageProvider gameId={resolvedGameId}>
       <View style={styles.shell}>
         <Canvas style={StyleSheet.absoluteFill}>
           <Fill>
