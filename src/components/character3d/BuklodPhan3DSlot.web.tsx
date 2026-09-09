@@ -115,6 +115,9 @@ export default function BuklodPhan3DSlot({
 
   useEffect(() => {
     let cancelled = false;
+    setReady(false);
+    setAvailable(false);
+    setRendererReady(false);
 
     void modelExists(manifest.modelUrl).then((exists) => {
       if (cancelled) return;
