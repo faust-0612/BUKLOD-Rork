@@ -1,0 +1,111 @@
+name: BUKLOD Report Standalone Production APK
+
+on:
+  push:
+    branches:
+      - standalone/buklod-report-native-v1
+    paths:
+      - 'standalone-buklod-report-native/**'
+      - '.github/workflows/buklod_report_native_apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  CI: '1'
+
+jobs:
+  build-report-apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: standalone-buklod-report-native
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Restore official BUKLOD Report icon
+        run: |
+          mkdir -p assets
+          base64 -d icon.jpg.b64 > /tmp/buklod-report-icon.jpg
+          if command -v magick >/dev/null 2>&1; then
+            magick /tmp/buklod-report-icon.jpg -resize 1024x1024 assets/icon.png
+          else
+            convert /tmp/buklod-report-icon.jpg -resize 1024x1024 assets/icon.png
+          fi
+          test -s assets/icon.png
+          file assets/icon.png
+
+      - name: Install minimal native stack
+        run: |
+          npm install --no-audit --no-fund
+          npx expo install react-native-webview
+          npx expo install --check
+
+      - name: Identity and performance gates
+        run: |
+          test -n "$EXPO_TOKEN"
+          npx expo config --type public > /tmp/report-config.json
+          grep -q '"name": "BUKLOD Report"' /tmp/report-config.json
+          grep -q '"slug": "buklod-report"' /tmp/report-config.json
+          grep -q '"package": "app.buklod.report"' /tmp/report-config.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const s=fs.readFileSync('App.js','utf8');
+          const required=[
+            'androidLayerType="hardware"',
+            'cacheEnabled',
+            'cacheMode="LOAD_DEFAULT"',
+            'setSupportMultipleWindows={false}',
+            'BUKLOD Report',
+            'buklod-report-efmagaj-6311s-projects.vercel.app'
+          ];
+          for (const x of required) if(!s.includes(x)) throw new Error('Missing contract marker: '+x);
+          const forbidden=['react-native-google-mobile-ads','expo-camera','expo-notifications','@stream-io','firebase'];
+          for (const x of forbidden) if(s.includes(x)) throw new Error('Unexpected heavy stack: '+x);
+          console.log('Identity/performance contract PASS');
+          NODE
+          npx expo-doctor@latest || true
+
+      - name: Resolve dedicated Expo project
+        run: |
+          npx eas-cli@latest whoami --non-interactive
+          npx eas-cli@latest project:init --non-interactive --force
+          npx eas-cli@latest project:info --non-interactive
+
+      - name: Build production APK
+        run: |
+          npx eas-cli@latest build --platform android --profile production-apk --non-interactive --wait --json > /tmp/eas-build.json
+          cat /tmp/eas-build.json
+
+      - name: Download and checksum APK
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const j=JSON.parse(fs.readFileSync('/tmp/eas-build.json','utf8'));
+          const b=Array.isArray(j)?j[0]:j;
+          const url=b?.artifacts?.buildUrl||b?.artifacts?.applicationArchiveUrl||b?.artifacts?.url;
+          if(!url) throw new Error('APK artifact URL not found');
+          fs.writeFileSync('/tmp/apk-url.txt',url);
+          fs.writeFileSync('BUKLOD-Report-Build-ID.txt',String(b.id||''));
+          console.log('Build ID:',b.id);
+          NODE
+          curl -fL "$(cat /tmp/apk-url.txt)" -o BUKLOD-Report-Production.apk
+          test -s BUKLOD-Report-Production.apk
+          sha256sum BUKLOD-Report-Production.apk | tee BUKLOD-Report-Production.apk.sha256
+          ls -lh BUKLOD-Report-Production.apk
+
+      - name: Upload verified production APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: BUKLOD-Report-Production-APK
+          path: |
+            standalone-buklod-report-native/BUKLOD-Report-Production.apk
+            standalone-buklod-report-native/BUKLOD-Report-Production.apk.sha256
+            standalone-buklod-report-native/BUKLOD-Report-Build-ID.txt
+          if-no-files-found: error
+          retention-days: 30
