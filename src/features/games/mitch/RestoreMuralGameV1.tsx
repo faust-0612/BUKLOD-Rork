@@ -1,12 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Animated,
-  PanResponder,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Animated, PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { playBuklodGameFeedback } from '../runtime/BuklodGameFeedback';
 import type { BuklodGameResult } from '../types';
@@ -20,86 +13,29 @@ type FragmentSpec = {
   motif: 'sun' | 'river' | 'mountain' | 'leaf' | 'flame' | 'path';
 };
 
-type PlacedFragment = {
-  id: string;
-  precision: number;
-};
+type PlacedFragment = { id: string; precision: number };
 
 const GAME_ID = 'mitch-restore-mural';
-const BOARD_WIDTH = 360;
-const BOARD_HEIGHT = 610;
-const PIECE_SIZE = 94;
 const DROP_RADIUS = 58;
 
 const FRAGMENTS: FragmentSpec[] = [
-  {
-    id: 'sunrise',
-    label: 'Dawn',
-    start: { x: 20, y: 390 },
-    target: { x: 74, y: 84 },
-    colors: ['#f1b94a', '#d96945'],
-    motif: 'sun',
-  },
-  {
-    id: 'ridge',
-    label: 'Ridge',
-    start: { x: 133, y: 390 },
-    target: { x: 172, y: 84 },
-    colors: ['#81556e', '#4c355d'],
-    motif: 'mountain',
-  },
-  {
-    id: 'canopy',
-    label: 'Canopy',
-    start: { x: 246, y: 390 },
-    target: { x: 74, y: 182 },
-    colors: ['#6a8b52', '#35573e'],
-    motif: 'leaf',
-  },
-  {
-    id: 'river',
-    label: 'River',
-    start: { x: 20, y: 500 },
-    target: { x: 172, y: 182 },
-    colors: ['#4a839c', '#30546f'],
-    motif: 'river',
-  },
-  {
-    id: 'ember',
-    label: 'Ember',
-    start: { x: 133, y: 500 },
-    target: { x: 74, y: 280 },
-    colors: ['#c86f48', '#7d3d39'],
-    motif: 'flame',
-  },
-  {
-    id: 'journey',
-    label: 'Journey',
-    start: { x: 246, y: 500 },
-    target: { x: 172, y: 280 },
-    colors: ['#d4b76d', '#7e6949'],
-    motif: 'path',
-  },
+  { id: 'sunrise', label: 'Dawn', start: { x: 20, y: 390 }, target: { x: 74, y: 84 }, colors: ['#f1b94a', '#d96945'], motif: 'sun' },
+  { id: 'ridge', label: 'Ridge', start: { x: 133, y: 390 }, target: { x: 172, y: 84 }, colors: ['#81556e', '#4c355d'], motif: 'mountain' },
+  { id: 'canopy', label: 'Canopy', start: { x: 246, y: 390 }, target: { x: 74, y: 182 }, colors: ['#6a8b52', '#35573e'], motif: 'leaf' },
+  { id: 'river', label: 'River', start: { x: 20, y: 500 }, target: { x: 172, y: 182 }, colors: ['#4a839c', '#30546f'], motif: 'river' },
+  { id: 'ember', label: 'Ember', start: { x: 133, y: 500 }, target: { x: 74, y: 280 }, colors: ['#c86f48', '#7d3d39'], motif: 'flame' },
+  { id: 'journey', label: 'Journey', start: { x: 246, y: 500 }, target: { x: 172, y: 280 }, colors: ['#d4b76d', '#7e6949'], motif: 'path' },
 ];
 
 const distance = (a: { x: number; y: number }, b: { x: number; y: number }) =>
-  Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
+  Math.hypot(a.x - b.x, a.y - b.y);
 
-const starsForScore = (score: number): 1 | 2 | 3 => {
-  if (score >= 1450) return 3;
-  if (score >= 1150) return 2;
-  return 1;
-};
+const starsForScore = (score: number): 1 | 2 | 3 => (score >= 1450 ? 3 : score >= 1150 ? 2 : 1);
 
 function FragmentArt({ spec, muted = false }: { spec: FragmentSpec; muted?: boolean }) {
   const accent = muted ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.42)';
   return (
-    <View
-      style={[
-        styles.fragmentArt,
-        { backgroundColor: muted ? '#3b343a' : spec.colors[0] },
-      ]}
-    >
+    <View style={[styles.fragmentArt, { backgroundColor: muted ? '#3b343a' : spec.colors[0] }]}>
       <View
         style={[
           styles.fragmentSweep,
@@ -128,15 +64,7 @@ type DraggableFragmentProps = {
   onMiss: () => void;
 };
 
-function DraggableFragment({
-  spec,
-  placed,
-  resetKey,
-  active,
-  onActive,
-  onPlaced,
-  onMiss,
-}: DraggableFragmentProps) {
+function DraggableFragment({ spec, placed, resetKey, active, onActive, onPlaced, onMiss }: DraggableFragmentProps) {
   const position = useRef(new Animated.ValueXY(spec.start)).current;
 
   useEffect(() => {
@@ -144,63 +72,55 @@ function DraggableFragment({
   }, [placed, position, resetKey, spec.start]);
 
   const responder = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => !placed,
-        onMoveShouldSetPanResponder: () => !placed,
-        onPanResponderGrant: () => {
-          onActive(spec.id);
-          position.stopAnimation();
-          position.setOffset({ x: (position.x as any)._value, y: (position.y as any)._value });
-          position.setValue({ x: 0, y: 0 });
-          void playBuklodGameFeedback('move');
-        },
-        onPanResponderMove: Animated.event([null, { dx: position.x, dy: position.y }], {
-          useNativeDriver: false,
-        }),
-        onPanResponderRelease: (_event, gesture) => {
-          position.flattenOffset();
-          const current = {
-            x: spec.start.x + gesture.dx,
-            y: spec.start.y + gesture.dy,
-          };
-          const missDistance = distance(current, spec.target);
+    () => PanResponder.create({
+      onStartShouldSetPanResponder: () => !placed,
+      onMoveShouldSetPanResponder: () => !placed,
+      onPanResponderGrant: () => {
+        onActive(spec.id);
+        position.stopAnimation();
+        position.setOffset(spec.start);
+        position.setValue({ x: 0, y: 0 });
+        void playBuklodGameFeedback('move');
+      },
+      onPanResponderMove: Animated.event([null, { dx: position.x, dy: position.y }], { useNativeDriver: false }),
+      onPanResponderRelease: (_event, gesture) => {
+        position.flattenOffset();
+        const current = { x: spec.start.x + gesture.dx, y: spec.start.y + gesture.dy };
+        const dropDistance = distance(current, spec.target);
 
-          if (missDistance <= DROP_RADIUS) {
-            const precision = Math.max(0, Math.round(100 - (missDistance / DROP_RADIUS) * 100));
-            Animated.spring(position, {
-              toValue: spec.target,
-              useNativeDriver: false,
-              stiffness: 210,
-              damping: 22,
-              mass: 0.8,
-            }).start(() => onPlaced(spec.id, precision));
-          } else {
-            Animated.spring(position, {
-              toValue: spec.start,
-              useNativeDriver: false,
-              stiffness: 190,
-              damping: 19,
-            }).start();
-            onMiss();
-          }
-          onActive(null);
-        },
-        onPanResponderTerminate: () => {
-          position.flattenOffset();
+        if (dropDistance <= DROP_RADIUS) {
+          const precision = Math.max(0, Math.round(100 - (dropDistance / DROP_RADIUS) * 100));
+          Animated.spring(position, {
+            toValue: spec.target,
+            useNativeDriver: false,
+            stiffness: 210,
+            damping: 22,
+            mass: 0.8,
+          }).start(() => onPlaced(spec.id, precision));
+        } else {
           Animated.spring(position, {
             toValue: spec.start,
             useNativeDriver: false,
+            stiffness: 190,
+            damping: 19,
           }).start();
-          onActive(null);
-        },
-      }),
+          onMiss();
+        }
+        onActive(null);
+      },
+      onPanResponderTerminate: () => {
+        position.flattenOffset();
+        Animated.spring(position, { toValue: spec.start, useNativeDriver: false }).start();
+        onActive(null);
+      },
+    }),
     [onActive, onMiss, onPlaced, placed, position, spec],
   );
 
   return (
     <Animated.View
       {...responder.panHandlers}
+      pointerEvents={placed ? 'none' : 'auto'}
       style={[
         styles.dragPiece,
         {
@@ -209,7 +129,6 @@ function DraggableFragment({
           zIndex: active ? 50 : 10,
         },
       ]}
-      pointerEvents={placed ? 'none' : 'auto'}
     >
       <FragmentArt spec={spec} />
       <Text style={styles.fragmentLabel}>{spec.label}</Text>
@@ -217,9 +136,7 @@ function DraggableFragment({
   );
 }
 
-type Props = {
-  onFinish?: (result: BuklodGameResult) => void;
-};
+type Props = { onFinish?: (result: BuklodGameResult) => void };
 
 export function RestoreMuralGameV1({ onFinish }: Props) {
   const [placed, setPlaced] = useState<PlacedFragment[]>([]);
@@ -234,53 +151,37 @@ export function RestoreMuralGameV1({ onFinish }: Props) {
   const placedIds = useMemo(() => new Set(placed.map((item) => item.id)), [placed]);
   const progress = placed.length / FRAGMENTS.length;
 
-  const finishGame = useCallback(
-    (finalScore: number, finalPlaced: PlacedFragment[]) => {
-      const averagePrecision = Math.round(
-        finalPlaced.reduce((sum, item) => sum + item.precision, 0) / finalPlaced.length,
-      );
-      const stars = starsForScore(finalScore);
-      setFinished(true);
-      setMessage(`Mural restored • ${averagePrecision}% average precision`);
-      void playBuklodGameFeedback('success');
-      onFinish?.({
-        gameId: GAME_ID,
-        status: 'won',
-        score: finalScore,
-        stars,
-        reward: {
-          xp: 130 + stars * 45,
-          kingdomXp: 55 + stars * 20,
-          collectibleKey: stars === 3 ? 'mitch-master-restorer-mark' : undefined,
-        },
-      });
-    },
-    [onFinish],
-  );
+  const finishGame = useCallback((finalScore: number, finalPlaced: PlacedFragment[]) => {
+    const averagePrecision = Math.round(finalPlaced.reduce((sum, item) => sum + item.precision, 0) / finalPlaced.length);
+    const stars = starsForScore(finalScore);
+    setFinished(true);
+    setMessage(`Mural restored • ${averagePrecision}% average precision`);
+    void playBuklodGameFeedback('success');
+    onFinish?.({
+      gameId: GAME_ID,
+      status: 'won',
+      score: finalScore,
+      stars,
+      reward: {
+        xp: 130 + stars * 45,
+        kingdomXp: 55 + stars * 20,
+        collectibleKey: stars === 3 ? 'mitch-master-restorer-mark' : undefined,
+      },
+    });
+  }, [onFinish]);
 
-  const handlePlaced = useCallback(
-    (id: string, precision: number) => {
-      if (placedIds.has(id) || finished) return;
-      const nextCombo = combo + 1;
-      const precisionPoints = 120 + precision;
-      const comboBonus = nextCombo * 20;
-      const nextScore = score + precisionPoints + comboBonus;
-      const nextPlaced = [...placed, { id, precision }];
-
-      setPlaced(nextPlaced);
-      setCombo(nextCombo);
-      setScore(nextScore);
-      setMessage(
-        precision >= 80
-          ? `Clean restoration • ${precision}% precision • combo ×${nextCombo}`
-          : `Fragment restored • ${precision}% precision`,
-      );
-      void playBuklodGameFeedback('collect');
-
-      if (nextPlaced.length === FRAGMENTS.length) finishGame(nextScore, nextPlaced);
-    },
-    [combo, finishGame, finished, placed, placedIds, score],
-  );
+  const handlePlaced = useCallback((id: string, precision: number) => {
+    if (placedIds.has(id) || finished) return;
+    const nextCombo = combo + 1;
+    const nextScore = score + 120 + precision + nextCombo * 20;
+    const nextPlaced = [...placed, { id, precision }];
+    setPlaced(nextPlaced);
+    setCombo(nextCombo);
+    setScore(nextScore);
+    setMessage(precision >= 80 ? `Clean restoration • ${precision}% precision • combo ×${nextCombo}` : `Fragment restored • ${precision}% precision`);
+    void playBuklodGameFeedback('collect');
+    if (nextPlaced.length === FRAGMENTS.length) finishGame(nextScore, nextPlaced);
+  }, [combo, finishGame, finished, placed, placedIds, score]);
 
   const handleMiss = useCallback(() => {
     if (finished) return;
@@ -320,11 +221,7 @@ export function RestoreMuralGameV1({ onFinish }: Props) {
         <Text style={styles.statusText}>Combo ×{combo}</Text>
         <Text style={styles.statusText}>Misses {mistakes}</Text>
       </View>
-
-      <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: `${Math.round(progress * 100)}%` }]} />
-      </View>
-
+      <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${Math.round(progress * 100)}%` }]} /></View>
       <Text style={styles.message}>{message}</Text>
 
       <View style={styles.board}>
@@ -344,9 +241,7 @@ export function RestoreMuralGameV1({ onFinish }: Props) {
           <View pointerEvents="none" style={[styles.revealGlow, { opacity: progress * 0.85 }]} />
         </View>
 
-        <View style={styles.paletteLabel}>
-          <Text style={styles.paletteText}>FRAGMENT TABLE • DRAG TO RESTORE</Text>
-        </View>
+        <View style={styles.paletteLabel}><Text style={styles.paletteText}>FRAGMENT TABLE • DRAG TO RESTORE</Text></View>
 
         {FRAGMENTS.map((fragment) => (
           <DraggableFragment
@@ -365,12 +260,8 @@ export function RestoreMuralGameV1({ onFinish }: Props) {
           <View style={styles.completionOverlay}>
             <Text style={styles.completeKicker}>ART VILLAGE RESTORATION</Text>
             <Text style={styles.completeTitle}>MURAL AWAKENED</Text>
-            <Text style={styles.completeCopy}>
-              Every restored fragment can later become a permanent visual upgrade inside Mitch's map region.
-            </Text>
-            <Pressable onPress={reset} style={styles.replayButton}>
-              <Text style={styles.replayText}>RESTORE AGAIN</Text>
-            </Pressable>
+            <Text style={styles.completeCopy}>Every restored fragment can later become a permanent visual upgrade inside Mitch's map region.</Text>
+            <Pressable onPress={reset} style={styles.replayButton}><Text style={styles.replayText}>RESTORE AGAIN</Text></Pressable>
           </View>
         ) : null}
       </View>
@@ -381,289 +272,44 @@ export function RestoreMuralGameV1({ onFinish }: Props) {
 }
 
 const styles = StyleSheet.create({
-  shell: {
-    width: '100%',
-    maxWidth: 820,
-    alignSelf: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 18,
-    gap: 12,
-  },
-  topBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: 16,
-  },
-  eyebrow: {
-    color: '#f2c98a',
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 1.1,
-  },
-  title: {
-    color: '#fff8ed',
-    fontSize: 30,
-    fontWeight: '900',
-    marginTop: 3,
-  },
-  scoreBlock: {
-    alignItems: 'flex-end',
-  },
-  score: {
-    color: '#fff3cf',
-    fontSize: 28,
-    fontWeight: '900',
-  },
-  scoreLabel: {
-    color: '#d9b987',
-    fontSize: 9,
-    fontWeight: '900',
-    letterSpacing: 1,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
-  statusText: {
-    color: '#ead8c5',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  progressTrack: {
-    height: 7,
-    borderRadius: 999,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 999,
-    backgroundColor: '#e5b35c',
-  },
-  message: {
-    minHeight: 38,
-    color: '#f0dfcf',
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  board: {
-    width: BOARD_WIDTH,
-    height: BOARD_HEIGHT,
-    alignSelf: 'center',
-    borderRadius: 28,
-    overflow: 'hidden',
-    backgroundColor: '#2b1d24',
-    borderWidth: 1,
-    borderColor: 'rgba(255,225,184,0.22)',
-    position: 'relative',
-  },
-  wallGlow: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(160,92,75,0.12)',
-  },
-  muralFrame: {
-    position: 'absolute',
-    left: 58,
-    top: 68,
-    width: 244,
-    height: 316,
-    borderRadius: 18,
-    padding: 10,
-    backgroundColor: '#5b403f',
-    borderWidth: 2,
-    borderColor: '#bd8e69',
-    shadowColor: '#000',
-    shadowOpacity: 0.32,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 9 },
-  },
-  muralGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 4,
-  },
-  muralSlot: {
-    width: 108,
-    height: 94,
-    borderRadius: 9,
-    overflow: 'hidden',
-    backgroundColor: '#3a3034',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  slotVeil: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(24,20,23,0.56)',
-  },
-  revealGlow: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,205,121,0.16)',
-    borderRadius: 14,
-  },
-  paletteLabel: {
-    position: 'absolute',
-    top: 360,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  paletteText: {
-    color: '#cda985',
-    fontSize: 9,
-    fontWeight: '900',
-    letterSpacing: 1.1,
-  },
-  dragPiece: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    width: PIECE_SIZE,
-    height: PIECE_SIZE,
-    borderRadius: 14,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: 'rgba(255,239,215,0.75)',
-    shadowColor: '#000',
-    shadowOpacity: 0.34,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 7,
-  },
-  fragmentArt: {
-    flex: 1,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  fragmentSweep: {
-    position: 'absolute',
-    width: '150%',
-    height: '58%',
-    left: '-20%',
-    bottom: '-10%',
-    transform: [{ rotate: '-12deg' }],
-    borderTopLeftRadius: 60,
-    borderTopRightRadius: 60,
-  },
-  riverSweep: {
-    height: '34%',
-    bottom: '20%',
-    transform: [{ rotate: '7deg' }],
-  },
-  mountainSweep: {
-    width: '80%',
-    height: '72%',
-    left: '28%',
-    bottom: '-18%',
-    transform: [{ rotate: '42deg' }],
-    borderRadius: 5,
-  },
-  leafSweep: {
-    width: '82%',
-    height: '78%',
-    left: '11%',
-    bottom: '2%',
-    transform: [{ rotate: '32deg' }],
-    borderRadius: 70,
-  },
-  flameSweep: {
-    width: '62%',
-    height: '94%',
-    left: '26%',
-    bottom: '-20%',
-    transform: [{ rotate: '18deg' }],
-    borderRadius: 70,
-  },
-  pathSweep: {
-    width: '36%',
-    height: '120%',
-    left: '34%',
-    bottom: '-10%',
-    transform: [{ rotate: '22deg' }],
-    borderRadius: 30,
-  },
-  sunCore: {
-    position: 'absolute',
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    top: 18,
-    left: 29,
-    borderWidth: 4,
-    backgroundColor: 'rgba(255,245,190,0.3)',
-  },
-  artLineA: {
-    position: 'absolute',
-    width: '70%',
-    height: 2,
-    top: '32%',
-    left: '15%',
-    transform: [{ rotate: '-18deg' }],
-  },
-  artLineB: {
-    position: 'absolute',
-    width: '58%',
-    height: 2,
-    bottom: '25%',
-    right: '10%',
-    transform: [{ rotate: '24deg' }],
-  },
-  fragmentLabel: {
-    position: 'absolute',
-    bottom: 5,
-    left: 7,
-    color: '#ffffff',
-    fontSize: 9,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-    textShadowColor: 'rgba(0,0,0,0.7)',
-    textShadowRadius: 3,
-  },
-  completionOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 90,
-    backgroundColor: 'rgba(30,18,24,0.82)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 30,
-    gap: 10,
-  },
-  completeKicker: {
-    color: '#f1c278',
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 1.4,
-  },
-  completeTitle: {
-    color: '#fff8eb',
-    fontSize: 28,
-    fontWeight: '900',
-    textAlign: 'center',
-  },
-  completeCopy: {
-    color: '#ead8c9',
-    fontSize: 13,
-    lineHeight: 20,
-    textAlign: 'center',
-  },
-  replayButton: {
-    marginTop: 8,
-    backgroundColor: '#d89a4d',
-    borderRadius: 999,
-    paddingHorizontal: 22,
-    paddingVertical: 12,
-  },
-  replayText: {
-    color: '#2b1a1d',
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 0.8,
-  },
-  tip: {
-    color: '#d5c1ae',
-    fontSize: 11,
-    textAlign: 'center',
-    lineHeight: 17,
-  },
+  shell: { width: '100%', maxWidth: 820, alignSelf: 'center', paddingHorizontal: 14, paddingVertical: 18, gap: 12 },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 },
+  eyebrow: { color: '#f2c98a', fontSize: 12, fontWeight: '900', letterSpacing: 1.1 },
+  title: { color: '#fff8ed', fontSize: 30, fontWeight: '900', marginTop: 3 },
+  scoreBlock: { alignItems: 'flex-end' },
+  score: { color: '#fff3cf', fontSize: 28, fontWeight: '900' },
+  scoreLabel: { color: '#d9b987', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
+  statusRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
+  statusText: { color: '#ead8c5', fontSize: 12, fontWeight: '800' },
+  progressTrack: { height: 7, borderRadius: 999, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.1)' },
+  progressFill: { height: '100%', borderRadius: 999, backgroundColor: '#e5b35c' },
+  message: { minHeight: 38, color: '#f0dfcf', fontSize: 14, lineHeight: 20 },
+  board: { width: 360, height: 610, alignSelf: 'center', borderRadius: 28, overflow: 'hidden', backgroundColor: '#2b1d24', borderWidth: 1, borderColor: 'rgba(255,225,184,0.22)', position: 'relative' },
+  wallGlow: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(160,92,75,0.12)' },
+  muralFrame: { position: 'absolute', left: 58, top: 68, width: 244, height: 316, borderRadius: 18, padding: 10, backgroundColor: '#5b403f', borderWidth: 2, borderColor: '#bd8e69', shadowColor: '#000', shadowOpacity: 0.32, shadowRadius: 16, shadowOffset: { width: 0, height: 9 } },
+  muralGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
+  muralSlot: { width: 108, height: 94, borderRadius: 9, overflow: 'hidden', backgroundColor: '#3a3034', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  slotVeil: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(24,20,23,0.56)' },
+  revealGlow: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,205,121,0.16)', borderRadius: 14 },
+  paletteLabel: { position: 'absolute', top: 360, left: 0, right: 0, alignItems: 'center' },
+  paletteText: { color: '#cda985', fontSize: 9, fontWeight: '900', letterSpacing: 1.1 },
+  dragPiece: { position: 'absolute', left: 0, top: 0, width: 94, height: 94, borderRadius: 14, overflow: 'hidden', borderWidth: 2, borderColor: 'rgba(255,239,215,0.75)', shadowColor: '#000', shadowOpacity: 0.34, shadowRadius: 10, shadowOffset: { width: 0, height: 6 }, elevation: 7 },
+  fragmentArt: { flex: 1, overflow: 'hidden', position: 'relative' },
+  fragmentSweep: { position: 'absolute', width: '150%', height: '58%', left: '-20%', bottom: '-10%', transform: [{ rotate: '-12deg' }], borderTopLeftRadius: 60, borderTopRightRadius: 60 },
+  riverSweep: { height: '34%', bottom: '20%', transform: [{ rotate: '7deg' }] },
+  mountainSweep: { width: '80%', height: '72%', left: '28%', bottom: '-18%', transform: [{ rotate: '42deg' }], borderRadius: 5 },
+  leafSweep: { width: '82%', height: '78%', left: '11%', bottom: '2%', transform: [{ rotate: '32deg' }], borderRadius: 70 },
+  flameSweep: { width: '62%', height: '94%', left: '26%', bottom: '-20%', transform: [{ rotate: '18deg' }], borderRadius: 70 },
+  pathSweep: { width: '36%', height: '120%', left: '34%', bottom: '-10%', transform: [{ rotate: '22deg' }], borderRadius: 30 },
+  sunCore: { position: 'absolute', width: 34, height: 34, borderRadius: 17, top: 18, left: 29, borderWidth: 4, backgroundColor: 'rgba(255,245,190,0.3)' },
+  artLineA: { position: 'absolute', width: '70%', height: 2, top: '32%', left: '15%', transform: [{ rotate: '-18deg' }] },
+  artLineB: { position: 'absolute', width: '58%', height: 2, bottom: '25%', right: '10%', transform: [{ rotate: '24deg' }] },
+  fragmentLabel: { position: 'absolute', bottom: 5, left: 7, color: '#ffffff', fontSize: 9, fontWeight: '900', letterSpacing: 0.5, textShadowColor: 'rgba(0,0,0,0.7)', textShadowRadius: 3 },
+  completionOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 90, backgroundColor: 'rgba(30,18,24,0.82)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 30, gap: 10 },
+  completeKicker: { color: '#f1c278', fontSize: 10, fontWeight: '900', letterSpacing: 1.4 },
+  completeTitle: { color: '#fff8eb', fontSize: 28, fontWeight: '900', textAlign: 'center' },
+  completeCopy: { color: '#ead8c9', fontSize: 13, lineHeight: 20, textAlign: 'center' },
+  replayButton: { marginTop: 8, backgroundColor: '#d89a4d', borderRadius: 999, paddingHorizontal: 22, paddingVertical: 12 },
+  replayText: { color: '#2b1a1d', fontSize: 12, fontWeight: '900', letterSpacing: 0.8 },
+  tip: { color: '#d5c1ae', fontSize: 11, textAlign: 'center', lineHeight: 17 },
 });
