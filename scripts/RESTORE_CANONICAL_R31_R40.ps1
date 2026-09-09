@@ -10,9 +10,11 @@ $Stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
 $SafetyBackup = Join-Path $ProjectRoot ".buklod-backups\canonical_r31_r40_restore_$Stamp"
 $BackupRoot = Join-Path $ProjectRoot '.buklod-backups'
 
+$DefaultCentralRoot = Join-Path $HOME 'BUKLOD_WORKSPACE\RECOVERY\R31_R40'
 $DefaultLegacyRoot = Join-Path $HOME 'Downloads\BUKLOD-Rork-current-20260905_131136'
 $DefaultLatestRoot = Join-Path $HOME 'Downloads\BUKLOD-Rork-LATEST'
 $ResolvedRecoveryRoots = @(
+  $DefaultCentralRoot,
   $BackupRoot,
   $ProjectRoot,
   (Join-Path $DefaultLegacyRoot '.buklod-backups'),
@@ -103,7 +105,6 @@ Write-Host 'Verified recovery roots:' -ForegroundColor Yellow
 $ResolvedRecoveryRoots | ForEach-Object { Write-Host " - $_" }
 if ($ResolvedRecoveryRoots.Count -lt 1) { Fail 'No verified recovery roots are available.' }
 
-# Preferred latest R31-compatible source family used before R40 integration.
 $R31Source = [ordered]@{
   'src\components\points\BuklodProfileCharacterCard.tsx' = '346AC998D09606702309B7B710152B7441767C364620AA0AF993596AEC661C76'
   'src\components\points\BuklodProgressiveCharacterSelector.tsx' = 'F12E9AEB14EA2E07BA79EC2BD58830169A89F570C41BD92FEE7750564BD544C5'
