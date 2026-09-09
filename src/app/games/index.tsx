@@ -38,6 +38,13 @@ const GAME_CARDS = [
     title: 'Mission Trail',
     mechanic: 'Expedition choices • resource management • risk/reward routes • mission arrival',
   },
+  {
+    href: '/games/angel-kingdom-treasury' as const,
+    character: 'Angel',
+    world: 'Treasury City',
+    title: 'Kingdom Treasury',
+    mechanic: 'Budget strategy • reserve planning • emergency response • kingdom health consequences',
+  },
 ];
 
 export default function BuklodGameLabScreen() {
