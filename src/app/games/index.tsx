@@ -8,14 +8,21 @@ const GAME_CARDS = [
     character: 'Jawo',
     world: 'Whispering Forest',
     title: 'Forest Trail',
-    mechanic: 'Lane movement • obstacle avoidance • trail-light collection',
+    mechanic: 'Swipe movement • obstacle reading • Trail Light collection • combo flow',
   },
   {
     href: '/games/trudice-playground-memory' as const,
     character: 'Trudice',
     world: "Children's Haven",
-    title: 'Playground Memory',
-    mechanic: 'Memory matching • move efficiency • star rating',
+    title: 'Wonder Path',
+    mechanic: 'Spatial sequence memory • progressive rounds • playground station interaction',
+  },
+  {
+    href: '/games/ace-rescue-grid' as const,
+    character: 'Ace',
+    world: 'Strategy District',
+    title: 'Rescue Grid',
+    mechanic: 'Tactical routing • limited energy • rescue beacons • extraction planning',
   },
 ];
 
@@ -26,7 +33,7 @@ export default function BuklodGameLabScreen() {
         <Text style={styles.kicker}>BUKLOD KINGDOM</Text>
         <Text style={styles.title}>Game Lab</Text>
         <Text style={styles.copy}>
-          Standalone web prototypes. These games intentionally do not write character XP, Kingdom progress, Circle Rank, or collectibles yet.
+          Standalone premium gameplay modules. They intentionally do not write character XP, Kingdom progress, Circle Rank, or collectibles yet.
         </Text>
       </View>
 
@@ -38,7 +45,7 @@ export default function BuklodGameLabScreen() {
               <Text style={styles.world}>{game.world}</Text>
               <Text style={styles.gameTitle}>{game.title}</Text>
               <Text style={styles.mechanic}>{game.mechanic}</Text>
-              <Text style={styles.play}>PLAY PROTOTYPE →</Text>
+              <Text style={styles.play}>PLAY GAME LAB →</Text>
             </View>
           </Link>
         ))}
@@ -47,7 +54,7 @@ export default function BuklodGameLabScreen() {
       <View style={styles.ruleCard}>
         <Text style={styles.ruleTitle}>Integration rule</Text>
         <Text style={styles.ruleText}>
-          Game Lab → verify gameplay → connect character art → connect result contract → attach to map station → persist rewards. No game is allowed to directly mutate Kingdom progress before that integration stage.
+          Game Lab → verify gameplay → connect final character art and animation → attach result contract → place the game at its Kingdom map station → persist rewards and visible world changes. No game directly mutates live Kingdom progress before that integration stage.
         </Text>
       </View>
     </ScrollView>
@@ -97,7 +104,7 @@ const styles = StyleSheet.create({
   link: {
     minWidth: 280,
     flexGrow: 1,
-    flexBasis: 360,
+    flexBasis: 300,
     textDecorationLine: 'none',
   },
   card: {
