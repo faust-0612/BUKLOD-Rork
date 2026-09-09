@@ -17,19 +17,21 @@ type Props = {
   progress: number;
 };
 
-const leftCanopy = Skia.Path.Make();
-leftCanopy.moveTo(0, 0);
-leftCanopy.lineTo(150, 0);
-leftCanopy.cubicTo(115, 105, 125, 210, 58, 330);
-leftCanopy.lineTo(0, 380);
-leftCanopy.close();
+const leftCanopy = Skia.PathBuilder.Make()
+  .moveTo(0, 0)
+  .lineTo(150, 0)
+  .cubicTo(115, 105, 125, 210, 58, 330)
+  .lineTo(0, 380)
+  .close()
+  .build();
 
-const rightCanopy = Skia.Path.Make();
-rightCanopy.moveTo(390, 0);
-rightCanopy.lineTo(260, 0);
-rightCanopy.cubicTo(294, 105, 280, 220, 346, 335);
-rightCanopy.lineTo(390, 385);
-rightCanopy.close();
+const rightCanopy = Skia.PathBuilder.Make()
+  .moveTo(390, 0)
+  .lineTo(260, 0)
+  .cubicTo(294, 105, 280, 220, 346, 335)
+  .lineTo(390, 385)
+  .close()
+  .build();
 
 export function ForestEnvironment({ intensity, progress }: Props) {
   const depthOpacity = 0.18 + intensity * 0.05;
