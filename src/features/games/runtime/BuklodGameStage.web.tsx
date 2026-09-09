@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { usePathname } from 'expo-router';
 
 import { BuklodGameLanguageControl, BuklodGameLanguageProvider } from './BuklodGameLanguage';
 import type { BuklodGameBiome } from './quality';
@@ -27,11 +28,19 @@ const palettes: Record<BuklodGameBiome, readonly [string, string, string]> = {
   discovery: ['#171a34', '#313b68', '#586bb1'],
 };
 
+function routeGameId(pathname: string) {
+  const parts = pathname.split('/').filter(Boolean);
+  if (parts[0] !== 'games' || parts.length < 2) return undefined;
+  return parts[parts.length - 1];
+}
+
 export function BuklodGameStage({ biome, gameId, children }: Props) {
+  const pathname = usePathname();
+  const resolvedGameId = gameId ?? routeGameId(pathname);
   const colors = palettes[biome];
 
   return (
-    <BuklodGameLanguageProvider gameId={gameId}>
+    <BuklodGameLanguageProvider gameId={resolvedGameId}>
       <View style={styles.shell}>
         <LinearGradient colors={colors} style={StyleSheet.absoluteFill} />
         <View pointerEvents="none" style={styles.lightA} />
