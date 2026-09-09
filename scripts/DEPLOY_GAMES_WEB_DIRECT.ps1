@@ -2,6 +2,12 @@ $ErrorActionPreference = 'Stop'
 
 Write-Host 'BUKLOD Game Lab — Direct Expo Web Deploy' -ForegroundColor Cyan
 
+$scriptPath = $PSCommandPath
+$scriptHashBefore = $null
+if ($scriptPath -and (Test-Path $scriptPath)) {
+  $scriptHashBefore = (Get-FileHash $scriptPath -Algorithm SHA256).Hash
+}
+
 $branch = (git rev-parse --abbrev-ref HEAD).Trim()
 if ($branch -ne 'main') {
   throw "Expected branch 'main' after Game Lab merge. Current branch: $branch"
@@ -9,6 +15,18 @@ if ($branch -ne 'main') {
 
 Write-Host 'Pulling canonical main...' -ForegroundColor Yellow
 git pull --ff-only origin main
+if ($LASTEXITCODE -ne 0) { throw 'git pull failed. Deployment stopped.' }
+
+# If this script changed during git pull, relaunch the updated file and stop the
+# stale in-memory copy. This prevents old deploy logic from continuing after a pull.
+if ($scriptPath -and (Test-Path $scriptPath) -and $scriptHashBefore) {
+  $scriptHashAfter = (Get-FileHash $scriptPath -Algorithm SHA256).Hash
+  if ($scriptHashAfter -ne $scriptHashBefore) {
+    Write-Host 'Deploy script updated during pull. Relaunching the latest copy...' -ForegroundColor Cyan
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $scriptPath
+    exit $LASTEXITCODE
+  }
+}
 
 if (-not (Test-Path 'package.json')) { throw 'Run this script from the BUKLOD project root.' }
 if (-not (Test-Path 'app.config.js')) { throw 'app.config.js not found.' }
