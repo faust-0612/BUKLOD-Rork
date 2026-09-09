@@ -10,10 +10,12 @@ import {
   vec,
 } from '@shopify/react-native-skia';
 
+import { BuklodGameLanguageControl, BuklodGameLanguageProvider } from './BuklodGameLanguage';
 import type { BuklodGameBiome } from './quality';
 
 type Props = {
   biome: BuklodGameBiome;
+  gameId?: string;
   children: React.ReactNode;
 };
 
@@ -33,31 +35,34 @@ const palettes: Record<BuklodGameBiome, readonly [string, string, string]> = {
   discovery: ['#11152e', '#303a68', '#5b6fb8'],
 };
 
-export function BuklodGameStage({ biome, children }: Props) {
+export function BuklodGameStage({ biome, gameId, children }: Props) {
   const colors = [...palettes[biome]];
 
   return (
-    <View style={styles.shell}>
-      <Canvas style={StyleSheet.absoluteFill}>
-        <Fill>
-          <LinearGradient start={vec(0, 0)} end={vec(0, 900)} colors={colors} />
-        </Fill>
+    <BuklodGameLanguageProvider gameId={gameId}>
+      <View style={styles.shell}>
+        <Canvas style={StyleSheet.absoluteFill}>
+          <Fill>
+            <LinearGradient start={vec(0, 0)} end={vec(0, 900)} colors={colors} />
+          </Fill>
 
-        <Group blendMode="screen" opacity={0.5}>
-          <Circle cx={310} cy={90} r={145} color="rgba(255,255,255,0.11)">
-            <BlurMask blur={28} style="normal" />
-          </Circle>
-          <Circle cx={40} cy={660} r={120} color="rgba(255,224,148,0.10)">
-            <BlurMask blur={34} style="normal" />
-          </Circle>
-          <Circle cx={250} cy={520} r={75} color="rgba(150,220,255,0.06)">
-            <BlurMask blur={26} style="normal" />
-          </Circle>
-        </Group>
-      </Canvas>
+          <Group blendMode="screen" opacity={0.5}>
+            <Circle cx={310} cy={90} r={145} color="rgba(255,255,255,0.11)">
+              <BlurMask blur={28} style="normal" />
+            </Circle>
+            <Circle cx={40} cy={660} r={120} color="rgba(255,224,148,0.10)">
+              <BlurMask blur={34} style="normal" />
+            </Circle>
+            <Circle cx={250} cy={520} r={75} color="rgba(150,220,255,0.06)">
+              <BlurMask blur={26} style="normal" />
+            </Circle>
+          </Group>
+        </Canvas>
 
-      <View style={styles.content}>{children}</View>
-    </View>
+        <View style={styles.content}>{children}</View>
+        <BuklodGameLanguageControl />
+      </View>
+    </BuklodGameLanguageProvider>
   );
 }
 
