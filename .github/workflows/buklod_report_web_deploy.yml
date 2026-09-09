@@ -80,7 +80,34 @@ jobs:
       - name: Deploy production web
         run: npx eas-cli@latest deploy --prod --non-interactive
 
+      - name: Verify live production web
+        shell: bash
+        run: |
+          LIVE_INDEX="$(mktemp)"
+          LIVE_BUNDLE="$(mktemp)"
+          for attempt in {1..12}; do
+            if curl --compressed -fsSL --max-time 20 \
+              "https://buklod.expo.app/?verify=${GITHUB_SHA}-${attempt}" \
+              -o "$LIVE_INDEX"; then
+              break
+            fi
+            sleep 5
+          done
+          test -s "$LIVE_INDEX"
+          grep -F 'google-adsense-account' "$LIVE_INDEX" >/dev/null
+          BUNDLE_PATH="$(grep -oE '/_expo/static/js/web/[^\" ]+\.js' "$LIVE_INDEX" | head -n 1)"
+          test -n "$BUNDLE_PATH"
+          curl --compressed -fsSL --max-time 40 \
+            "https://buklod.expo.app${BUNDLE_PATH}?verify=${GITHUB_SHA}" \
+            -o "$LIVE_BUNDLE"
+          grep -F 'IMPORT & AUTO-DETECT' "$LIVE_BUNDLE" >/dev/null
+          grep -F 'MARK REMINDER DONE' "$LIVE_BUNDLE" >/dev/null
+          grep -F 'PDF / PRINT' "$LIVE_BUNDLE" >/dev/null
+          grep -F 'buklod-report-import-v1' "$LIVE_BUNDLE" >/dev/null
+          grep -F 'buklod-report-api-v1' "$LIVE_BUNDLE" >/dev/null
+          echo "LIVE_PRODUCTION_VERIFIED https://buklod.expo.app${BUNDLE_PATH}"
+
       - name: Final status
         run: |
-          echo 'BUKLOD REPORT WEB DEPLOYED'
+          echo 'BUKLOD REPORT WEB DEPLOYED AND LIVE-VERIFIED'
           echo 'Production URL: https://buklod.expo.app'
