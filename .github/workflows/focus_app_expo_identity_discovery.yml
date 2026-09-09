@@ -31,48 +31,51 @@ jobs:
           test -n "$EXPO_TOKEN"
           npx eas-cli@latest whoami --non-interactive
 
-      - name: Read recent Expo account audit for Focus App identities
+      - name: Resolve original BUKLOD Report project by full name
         shell: bash
         run: |
-          set +e
-          npx eas-cli@latest account:audit faust_0612 --json > /tmp/eas-audit.json 2>/tmp/eas-audit.err
-          rc=$?
-          set -e
-          echo "account:audit exit=$rc"
-          if [ -s /tmp/eas-audit.err ]; then
-            sed -E 's/(token|authorization|secret|key)[^ ]*/[REDACTED]/Ig' /tmp/eas-audit.err | head -80
-          fi
-          if [ "$rc" -eq 0 ] && [ -s /tmp/eas-audit.json ]; then
-            python - <<'PY'
-          import json,re
-          p='/tmp/eas-audit.json'
-          try:
-              data=json.load(open(p,encoding='utf-8'))
-          except Exception as e:
-              print('AUDIT_JSON_PARSE_ERROR',e)
-              raise SystemExit(0)
-          rows=data if isinstance(data,list) else data.get('auditLogs') or data.get('data') or data.get('items') or []
-          print('AUDIT_ROWS',len(rows) if isinstance(rows,list) else 'unknown')
-          needles=('report','classroom','quiz','attendance','project')
-          count=0
-          for row in rows if isinstance(rows,list) else []:
-              s=json.dumps(row,ensure_ascii=False)
-              if any(n in s.lower() for n in needles):
-                  # print only non-sensitive project/audit metadata; redact token-like fields
-                  for k in list(row.keys()) if isinstance(row,dict) else []:
-                      if any(x in k.lower() for x in ('token','secret','key','authorization')):
-                          row[k]='[REDACTED]'
-                  print(json.dumps(row,ensure_ascii=False,sort_keys=True))
-                  count+=1
-                  if count>=120: break
-          print('MATCHED_ROWS',count)
+          python - <<'PY'
+          import json, os, urllib.request, urllib.error
+          endpoint='https://api.expo.dev/graphql'
+          names=[
+            '@faust_0612/BUKLOD_Report',
+            '@faust_0612/buklod_report',
+            '@faust_0612/buklod-report',
+            '@faust_0612/buklodreport',
+            '@faust_0612/BUKLOD-Report',
+          ]
+          token=os.environ['EXPO_TOKEN']
+          query='query Lookup($fullName:String!){ app { byFullName(fullName:$fullName){ id fullName name ownerAccount { name } } } }'
+          found=[]
+          for full in names:
+              payload=json.dumps({'query':query,'variables':{'fullName':full}}).encode()
+              req=urllib.request.Request(endpoint,data=payload,headers={'Content-Type':'application/json','Authorization':'Bearer '+token})
+              try:
+                  with urllib.request.urlopen(req,timeout=30) as r:
+                      data=json.load(r)
+              except urllib.error.HTTPError as e:
+                  print('LOOKUP_HTTP_ERROR',full,e.code)
+                  continue
+              except Exception as e:
+                  print('LOOKUP_ERROR',full,type(e).__name__)
+                  continue
+              app=((data.get('data') or {}).get('app') or {}).get('byFullName')
+              errors=data.get('errors') or []
+              if app:
+                  print('FOUND',json.dumps(app,sort_keys=True))
+                  found.append(app)
+              elif errors:
+                  clean=[{'message':x.get('message','')} for x in errors[:2]]
+                  print('NOT_FOUND_OR_ERROR',full,json.dumps(clean))
+              else:
+                  print('NOT_FOUND',full)
+          print('FOUND_COUNT',len(found))
           PY
-          fi
 
-      - name: Show available project/account commands
+      - name: Show available project commands
         shell: bash
         run: |
-          npx eas-cli@latest --help | grep -Ei 'project|account' | head -80 || true
+          npx eas-cli@latest help project --nested-commands | head -160 || true
 
       - name: Safety statement
         run: |
