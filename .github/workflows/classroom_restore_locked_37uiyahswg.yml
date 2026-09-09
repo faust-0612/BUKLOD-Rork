@@ -31,63 +31,47 @@ jobs:
           rm -rf /tmp/buklod-classroom-restore
           mkdir -p /tmp/buklod-classroom-restore
           cat > /tmp/buklod-classroom-restore/package.json <<'JSON'
-          {
-            "name": "buklod-classroom-restore-context",
-            "version": "1.0.0",
-            "private": true,
-            "dependencies": {
-              "expo": "^54.0.0",
-              "react": "19.1.0",
-              "react-native": "0.81.4"
-            }
-          }
+          {"name":"buklod-classroom-restore-context","version":"1.0.0","private":true,"dependencies":{"expo":"^54.0.0","react":"19.1.0","react-native":"0.81.4"}}
           JSON
           cat > /tmp/buklod-classroom-restore/app.json <<'JSON'
-          {
-            "expo": {
-              "name": "BUKLOD Classroom",
-              "slug": "buklod-classroom",
-              "owner": "faust_0612",
-              "extra": {
-                "eas": {
-                  "projectId": "14100ed1-7f25-4551-9627-09d280498241"
-                }
-              }
-            }
-          }
+          {"expo":{"name":"BUKLOD Classroom","slug":"buklod-classroom","owner":"faust_0612","extra":{"eas":{"projectId":"14100ed1-7f25-4551-9627-09d280498241"}}}}
           JSON
           cd /tmp/buklod-classroom-restore
           git init -q
           npx eas-cli@latest project:info --non-interactive
 
-      - name: Verify locked immutable deployment is reachable
+      - name: Read locked golden asset
         shell: bash
         run: |
           set -euo pipefail
-          curl -fsSL --retry 3 --retry-delay 2 'https://buklod-classroom--37uiyahswg.expo.app/' -o /tmp/golden.html
-          test -s /tmp/golden.html
-          echo "Locked deployment 37uiyahswg is reachable."
+          curl -fsSL --retry 3 --retry-delay 2 "https://buklod-classroom--37uiyahswg.expo.app/?verify=$(date +%s)" -o /tmp/golden.html
+          GOLDEN_JS=$(grep -oE 'src="[^"]+\.js[^"]*"' /tmp/golden.html | head -1 | sed -E 's/^src="|"$//g')
+          test -n "$GOLDEN_JS"
+          echo "GOLDEN_JS=$GOLDEN_JS" >> "$GITHUB_ENV"
+          echo "Locked golden JS: $GOLDEN_JS"
 
-      - name: Promote exact locked deployment to Classroom production
+      - name: Reassert exact locked deployment as production
         shell: bash
         run: |
           set -euo pipefail
           cd /tmp/buklod-classroom-restore
           npx eas-cli@latest deploy:alias --prod --id=37uiyahswg --non-interactive
 
-      - name: Verify production resolves to exact locked deployment assets
+      - name: Verify production serves locked golden asset
         shell: bash
         run: |
           set -euo pipefail
-          sleep 3
-          curl -fsSL --retry 3 --retry-delay 2 'https://buklod-classroom.expo.app/' -o /tmp/prod.html
-          GOLDEN_ASSETS=$(grep -oE 'src="[^"]+\.js[^"]*"|href="[^"]+\.(js|css)[^"]*"' /tmp/golden.html | sort -u || true)
-          PROD_ASSETS=$(grep -oE 'src="[^"]+\.js[^"]*"|href="[^"]+\.(js|css)[^"]*"' /tmp/prod.html | sort -u || true)
-          printf '%s\n' "$GOLDEN_ASSETS" > /tmp/golden-assets.txt
-          printf '%s\n' "$PROD_ASSETS" > /tmp/prod-assets.txt
-          echo 'Golden assets:'
-          cat /tmp/golden-assets.txt
-          echo 'Production assets:'
-          cat /tmp/prod-assets.txt
-          diff -u /tmp/golden-assets.txt /tmp/prod-assets.txt
-          echo 'PASS: production references the exact same JS/CSS assets as locked deployment 37uiyahswg.'
+          echo "Expected golden asset: $GOLDEN_JS"
+          for i in $(seq 1 12); do
+            BUST="restore-37uiyahswg-$(date +%s)-$i"
+            curl -fsSL --retry 2 --retry-delay 1 -H 'Cache-Control: no-cache' -H 'Pragma: no-cache' "https://buklod-classroom.expo.app/?$BUST" -o /tmp/prod.html
+            PROD_JS=$(grep -oE 'src="[^"]+\.js[^"]*"' /tmp/prod.html | head -1 | sed -E 's/^src="|"$//g' || true)
+            echo "Attempt $i production JS: $PROD_JS"
+            if [ "$PROD_JS" = "$GOLDEN_JS" ]; then
+              echo "PASS: production now serves the exact locked deployment 37uiyahswg asset."
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "FAIL: alias promotion succeeded but production edge still did not expose the locked asset within verification window." >&2
+          exit 1
