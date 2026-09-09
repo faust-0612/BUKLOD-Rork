@@ -1,0 +1,275 @@
+/* BUKLOD_CHARACTER_SELECTION_V2_WEB_RECOVERY */
+/* BUKLOD_CHARACTER_SELECTION_V2_SERVER_CONTRACT_R2 */
+import { supabase } from '@/lib/supabase';
+
+export type BuklodCoreCharacterId =
+  | 'phan'
+  | 'quin'
+  | 'van'
+  | 'christian'
+  | 'lhen';
+
+export type BuklodSpecialCharacterId =
+  | 'jawo'
+  | 'trudice'
+  | 'ace'
+  | 'mitch'
+  | 'niel'
+  | 'angel'
+  | 'vhen'
+  | 'ellusur';
+
+export type BuklodCharacterId =
+  | BuklodCoreCharacterId
+  | BuklodSpecialCharacterId;
+
+export type BuklodCharacterSelectionV2State = {
+  active_character_id: BuklodCharacterId;
+  character_level: number;
+  character_points_since_selection: number;
+  baseline_lifetime_points: number;
+  lifetime_points: number;
+  circle_rank_order: number;
+  circle_rank_name: string;
+  visible_special_character_ids: BuklodSpecialCharacterId[];
+  selection_model: string;
+  special_gate_model: string;
+};
+
+type ServerSpecialState = {
+  id?: unknown;
+  character_id?: unknown;
+  unlocked?: unknown;
+  required_rank_order?: unknown;
+};
+
+type ServerSelectionState = {
+  active_character_id?: unknown;
+  active_character_lifetime_points_at_selection?: unknown;
+  baseline_lifetime_points?: unknown;
+  lifetime_points?: unknown;
+  rank_order?: unknown;
+  circle_rank_order?: unknown;
+  rank_name?: unknown;
+  circle_rank_name?: unknown;
+  character_points_since_selection?: unknown;
+  character_level?: unknown;
+  next_character_level_points?: unknown;
+  base_character_ids?: unknown;
+  special_characters?: unknown;
+  visible_special_character_ids?: unknown;
+  selection_model?: unknown;
+  special_gate_model?: unknown;
+};
+
+export const CORE_CHARACTER_ORDER: readonly BuklodCoreCharacterId[] = [
+  'phan',
+  'quin',
+  'van',
+  'christian',
+  'lhen',
+] as const;
+
+export const SPECIAL_CHARACTER_ORDER: readonly BuklodSpecialCharacterId[] = [
+  'jawo',
+  'trudice',
+  'ace',
+  'mitch',
+  'niel',
+  'angel',
+  'vhen',
+  'ellusur',
+] as const;
+
+export const SPECIAL_REQUIRED_RANK_ORDER: Record<
+  BuklodSpecialCharacterId,
+  number
+> = {
+  jawo: 3,
+  trudice: 5,
+  ace: 7,
+  mitch: 9,
+  niel: 11,
+  angel: 13,
+  vhen: 15,
+  ellusur: 17,
+};
+
+export const CHARACTER_DISPLAY_NAME: Record<BuklodCharacterId, string> = {
+  phan: 'Phan',
+  quin: 'Quin',
+  van: 'Van',
+  christian: 'Christian',
+  lhen: 'Lhen',
+  jawo: 'Jawo',
+  trudice: 'Trudice',
+  ace: 'Ace',
+  mitch: 'Mitch',
+  niel: 'Niel',
+  angel: 'Angel',
+  vhen: 'Vhen',
+  // Keep the persisted/server id stable while using the approved display name.
+  ellusur: 'ELESUR',
+};
+
+const ALL_CHARACTER_IDS = new Set<string>([
+  ...CORE_CHARACTER_ORDER,
+  ...SPECIAL_CHARACTER_ORDER,
+]);
+
+const cache = new Map<string, BuklodCharacterSelectionV2State>();
+const inflight = new Map<string, Promise<BuklodCharacterSelectionV2State>>();
+const listeners = new Set<(
+  userId: string,
+  state: BuklodCharacterSelectionV2State,
+) => void>();
+
+function toSpecialId(value: unknown): BuklodSpecialCharacterId | null {
+  const id = String(value ?? '').toLowerCase();
+  return SPECIAL_CHARACTER_ORDER.includes(id as BuklodSpecialCharacterId)
+    ? (id as BuklodSpecialCharacterId)
+    : null;
+}
+
+function normalizeVisibleSpecials(row: ServerSelectionState) {
+  if (Array.isArray(row.visible_special_character_ids)) {
+    return row.visible_special_character_ids
+      .map(toSpecialId)
+      .filter((id): id is BuklodSpecialCharacterId => Boolean(id));
+  }
+
+  if (!Array.isArray(row.special_characters)) {
+    return [] as BuklodSpecialCharacterId[];
+  }
+
+  return (row.special_characters as ServerSpecialState[])
+    .filter((item) => Boolean(item?.unlocked))
+    .map((item) => toSpecialId(item?.id ?? item?.character_id))
+    .filter((id): id is BuklodSpecialCharacterId => Boolean(id));
+}
+
+function normalizeState(value: unknown): BuklodCharacterSelectionV2State {
+  const row = (value ?? {}) as ServerSelectionState;
+  const rawId = String(row.active_character_id ?? 'phan').toLowerCase();
+  const active = (
+    ALL_CHARACTER_IDS.has(rawId) ? rawId : 'phan'
+  ) as BuklodCharacterId;
+
+  return {
+    active_character_id: active,
+    character_level: Math.max(
+      1,
+      Math.min(20, Number(row.character_level ?? 1) || 1),
+    ),
+    character_points_since_selection: Math.max(
+      0,
+      Number(row.character_points_since_selection ?? 0) || 0,
+    ),
+    baseline_lifetime_points: Math.max(
+      0,
+      Number(
+        row.active_character_lifetime_points_at_selection ??
+          row.baseline_lifetime_points ??
+          0,
+      ) || 0,
+    ),
+    lifetime_points: Math.max(0, Number(row.lifetime_points ?? 0) || 0),
+    circle_rank_order: Math.max(
+      1,
+      Number(row.rank_order ?? row.circle_rank_order ?? 1) || 1,
+    ),
+    circle_rank_name: String(
+      row.rank_name ?? row.circle_rank_name ?? 'Circle Starter V',
+    ),
+    visible_special_character_ids: normalizeVisibleSpecials(row),
+    selection_model: String(
+      row.selection_model ?? 'ATOMIC_RESET_LEVEL_1_V2',
+    ),
+    special_gate_model: String(
+      row.special_gate_model ?? 'CANONICAL_CIRCLE_RANK_PLUS_2_STEPS',
+    ),
+  };
+}
+
+function publish(userId: string, state: BuklodCharacterSelectionV2State) {
+  cache.set(userId, state);
+  listeners.forEach((listener) => listener(userId, state));
+}
+
+export function getCachedBuklodCharacterSelectionV2(
+  userId?: string | null,
+): BuklodCharacterSelectionV2State | null {
+  if (!userId) return null;
+  return cache.get(userId) ?? null;
+}
+
+export async function getMyBuklodCharacterSelectionV2(
+  userId?: string | null,
+  force = false,
+): Promise<BuklodCharacterSelectionV2State> {
+  if (!userId) {
+    throw new Error('Authentication required');
+  }
+
+  if (!force) {
+    const cached = cache.get(userId);
+    if (cached) return cached;
+    const pending = inflight.get(userId);
+    if (pending) return pending;
+  }
+
+  const request = (async () => {
+    const { data, error } = await (supabase as any).rpc(
+      'get_my_buklod_character_selection_v2',
+    );
+
+    if (error) {
+      throw new Error(
+        error.message || 'Unable to load BUKLOD Character selection.',
+      );
+    }
+
+    const state = normalizeState(data);
+    publish(userId, state);
+    return state;
+  })();
+
+  inflight.set(userId, request);
+  try {
+    return await request;
+  } finally {
+    inflight.delete(userId);
+  }
+}
+
+export async function setMyBuklodCharacterActiveV2(
+  userId: string | null | undefined,
+  characterId: BuklodCharacterId,
+): Promise<BuklodCharacterSelectionV2State> {
+  if (!userId) {
+    throw new Error('Authentication required');
+  }
+
+  const { data, error } = await (supabase as any).rpc(
+    'set_my_buklod_character_active_v2',
+    { p_character_id: characterId },
+  );
+
+  if (error) {
+    throw new Error(error.message || 'Unable to change BUKLOD Character.');
+  }
+
+  const state = normalizeState(data);
+  publish(userId, state);
+  return state;
+}
+
+export function subscribeBuklodCharacterSelectionV2(
+  listener: (
+    userId: string,
+    state: BuklodCharacterSelectionV2State,
+  ) => void,
+) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
