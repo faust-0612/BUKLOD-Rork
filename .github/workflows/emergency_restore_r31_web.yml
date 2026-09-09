@@ -1,0 +1,59 @@
+name: EMERGENCY Restore Exact R31 Web
+
+on:
+  push:
+    branches:
+      - phase1/r31-character-world-v2
+    paths:
+      - '.github/workflows/emergency_restore_r31_web.yml'
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+jobs:
+  restore-r31:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase1/r31-character-world-v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install existing dependencies
+        run: npm ci --ignore-scripts
+      - name: Restore exact R31 production alias
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ -n "${EXPO_TOKEN:-}" ]
+          npx eas-cli@latest deploy:alias --prod --id=pl674gipyn --non-interactive
+      - name: Verify production alias equals immutable R31
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROD='https://buklod.expo.app'
+          R31='https://buklod--pl674gipyn.expo.app'
+          ok=0
+          for i in $(seq 1 40); do
+            stamp="$(date +%s)-$i"
+            curl -fsSL -H 'Cache-Control: no-cache' "$PROD/?r31=$stamp" -o prod.html || true
+            curl -fsSL -H 'Cache-Control: no-cache' "$R31/?r31=$stamp" -o r31.html || true
+            grep -oE '_expo/static/js/web/[^"'"'"'< >]+\.js' prod.html | sort -u > prod.refs || true
+            grep -oE '_expo/static/js/web/[^"'"'"'< >]+\.js' r31.html | sort -u > r31.refs || true
+            if [ -s prod.refs ] && cmp -s prod.refs r31.refs; then
+              ok=1
+              break
+            fi
+            sleep 5
+          done
+          [ "$ok" -eq 1 ] || { echo 'R31 alias verification failed'; exit 1; }
+          ref="$(head -n1 prod.refs)"
+          curl -fsSL -H 'Cache-Control: no-cache' "$PROD/$ref?x=$(date +%s)" -o prod.js
+          curl -fsSL -H 'Cache-Control: no-cache' "$R31/$ref?x=$(date +%s)" -o r31.js
+          cmp prod.js r31.js
+          echo 'PASS: production alias restored to exact R31.'
