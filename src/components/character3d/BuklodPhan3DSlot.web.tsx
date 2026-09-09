@@ -17,11 +17,15 @@ import {
   type Phan3DAnimation,
   type Phan3DQuality,
 } from '@/components/character3d/phan3dConfig';
+import type {
+  BodyId,
+  Equipment,
+} from '@/lib/character-lab-core/types';
 
 export type BuklodPhan3DSlotProps = {
   level: number;
-  body: string;
-  equipment: string;
+  body: BodyId;
+  equipment: Equipment;
   height?: number;
   width?: number;
   animation?: Phan3DAnimation;
@@ -173,8 +177,8 @@ export default function BuklodPhan3DSlot({
 
   const fallback = (
     <BuklodCharacterLayeredArt
-      body={body as any}
-      equipment={equipment as any}
+      body={body}
+      equipment={equipment}
       height={height}
       viewportWidth={width}
       showStage={false}
