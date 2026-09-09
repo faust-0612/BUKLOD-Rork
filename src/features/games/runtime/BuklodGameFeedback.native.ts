@@ -1,12 +1,6 @@
 import * as Haptics from 'expo-haptics';
 
-export type BuklodGameFeedbackEvent =
-  | 'move'
-  | 'collect'
-  | 'impact'
-  | 'success'
-  | 'failure'
-  | 'unlock';
+import type { BuklodGameFeedbackEvent } from './feedbackTypes';
 
 export async function playBuklodGameFeedback(event: BuklodGameFeedbackEvent) {
   try {
