@@ -17,12 +17,21 @@ jobs:
   restore-exact-locked-deployment:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout project context
+        uses: actions/checkout@v4
+
       - name: Expo credential preflight
         shell: bash
         run: |
           set -euo pipefail
           test -n "$EXPO_TOKEN"
           npx eas-cli@latest whoami --non-interactive
+
+      - name: Verify exact Classroom project identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e "const p=require('./app.json'); const id=p?.expo?.extra?.eas?.projectId; if(id!=='14100ed1-7f25-4551-9627-09d280498241') { console.error('Wrong EAS project:',id); process.exit(1) } console.log('Classroom EAS project identity verified:',id)"
 
       - name: Verify locked immutable deployment is reachable
         shell: bash
