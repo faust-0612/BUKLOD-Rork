@@ -25,6 +25,8 @@ module.exports = ({ config }) => {
     variant === 'preview' ||
     variant === 'development';
 
+  const webOutput = (process.env.BUKLOD_WEB_OUTPUT || 'single').trim();
+
   const appName = isClassroom
     ? (isStaging ? 'BUKLOD Classroom Staging' : 'BUKLOD Classroom')
     : (isStaging ? 'BUKLOD Staging' : 'BUKLOD');
@@ -115,6 +117,7 @@ module.exports = ({ config }) => {
 
     web: {
       bundler: 'metro',
+      output: webOutput,
 
       favicon: isClassroom
         ? './assets/classroom/favicon.png'
