@@ -1,0 +1,54 @@
+name: Classroom Lock Verify Current
+
+on:
+  push:
+    branches:
+      - hotfix/classroom-separate-web-20260909-r5
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      CLASSROOM_PROJECT_ID: 14100ed1-7f25-4551-9627-09d280498241
+      LOCKED_DEPLOYMENT_ID: 37uiyahswg
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: hotfix/classroom-separate-web-20260909-r5
+      - name: Verify Classroom production lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN"
+          cat > /tmp/query.json <<'JSON'
+          {"query":"query Verify($appId:String!){app{byId(appId:$appId){id fullName workerDeploymentAlias(aliasName:null){id url updatedAt workerDeployment{deploymentIdentifier createdAt url}}}}}","variables":{"appId":"14100ed1-7f25-4551-9627-09d280498241"}}
+          JSON
+          curl -fsS -X POST https://api.expo.dev/graphql \
+            -H 'Content-Type: application/json' \
+            -H "Authorization: Bearer $EXPO_TOKEN" \
+            --data-binary @/tmp/query.json > /tmp/response.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const r=JSON.parse(fs.readFileSync('/tmp/response.json','utf8'));
+          if(r.errors?.length) throw new Error(JSON.stringify(r.errors));
+          const a=r.data?.app?.byId;
+          if(a?.id!=='14100ed1-7f25-4551-9627-09d280498241') throw new Error('Wrong project');
+          const alias=a.workerDeploymentAlias;
+          const d=alias?.workerDeployment;
+          if(alias?.url!=='https://buklod-classroom.expo.app') throw new Error('Wrong production alias');
+          if(d?.deploymentIdentifier!=='37uiyahswg') throw new Error('LOCK VIOLATION: production is not on first immutable deployment');
+          if(d?.createdAt!=='2026-09-05T17:15:03.636Z') throw new Error('Locked deployment timestamp mismatch');
+          console.log('CLASSROOM_LOCK_VERIFIED=PASS');
+          console.log('PROJECT='+a.fullName);
+          console.log('PRODUCTION='+alias.url);
+          console.log('LOCKED_DEPLOYMENT='+d.deploymentIdentifier);
+          console.log('LOCKED_CREATED_AT='+d.createdAt);
+          console.log('IMMUTABLE_URL='+d.url);
+          NODE
+          curl -fsSIL --max-time 30 https://buklod-classroom.expo.app/ >/dev/null
+          curl -fsSIL --max-time 30 https://buklod-classroom--37uiyahswg.expo.app/ >/dev/null
+          echo 'LIVE_ENDPOINTS=PASS'
