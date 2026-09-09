@@ -79,6 +79,16 @@ export default function BuklodAiTalkingPortrait({
     };
   }, [onError, player, videoUrl]);
 
+  const replay = () => {
+    if (!videoUrl) {
+      return false;
+    }
+
+    player.currentTime = 0;
+    player.play();
+    return true;
+  };
+
   const speak = async (text: string) => {
     if (busy) {
       return;
@@ -127,19 +137,48 @@ export default function BuklodAiTalkingPortrait({
     }
   };
 
+  const activate = () => {
+    if (busy) {
+      return;
+    }
+
+    if (replay()) {
+      return;
+    }
+
+    void speak(defaultText);
+  };
+
   useEffect(() => {
     if (!autoPlayText || !accessToken) {
       return;
     }
 
+    if (replay()) {
+      return;
+    }
+
     void speak(autoPlayText);
-    // one requested autoplay per text value
+    // Intentionally key autoplay to the requested text/session. When the
+    // generated video arrives, the video effect starts it once; reopening the
+    // parent with a new autoPlayText transition replays the cached clip.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoPlayText, accessToken]);
 
   return (
     <View style={{ width }}>
-      <View style={[styles.stage, { width, height }]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Animate BUKLOD character"
+        disabled={busy}
+        onPress={activate}
+        style={({ pressed }) => [
+          styles.stage,
+          { width, height },
+          pressed && styles.stagePressed,
+          busy && styles.stageBusy,
+        ]}
+      >
         {videoUrl ? (
           <VideoView
             player={player}
@@ -161,22 +200,6 @@ export default function BuklodAiTalkingPortrait({
             <Text style={styles.busyText}>AI character animation...</Text>
           </View>
         ) : null}
-      </View>
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Make BUKLOD character speak"
-        disabled={busy}
-        onPress={() => void speak(defaultText)}
-        style={({ pressed }) => [
-          styles.button,
-          pressed && styles.buttonPressed,
-          busy && styles.buttonDisabled,
-        ]}
-      >
-        <Text style={styles.buttonText}>
-          {busy ? 'CREATING...' : 'SPEAK'}
-        </Text>
       </Pressable>
 
       {status ? (
@@ -192,6 +215,12 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: '#111',
   },
+  stagePressed: {
+    transform: [{ scale: 1.06 }],
+  },
+  stageBusy: {
+    opacity: 0.92,
+  },
   busyOverlay: {
     ...StyleSheet.absoluteFill,
     alignItems: 'center',
@@ -203,26 +232,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '800',
     fontSize: 12,
-  },
-  button: {
-    marginTop: 10,
-    minHeight: 42,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-    backgroundColor: '#1f6feb',
-  },
-  buttonPressed: {
-    opacity: 0.88,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 0.8,
   },
   status: {
     marginTop: 8,
