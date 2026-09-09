@@ -73,6 +73,22 @@ const rpcTtlMs: Record<string, number> = {
   get_automatic_bible_today: 60_000,
   get_buklod_points_leaderboard: 30_000,
   get_my_daily_devotional: 60_000,
+
+  /* BUKLOD_MASS_CONCURRENCY_R32
+   * Measured hot read RPCs. Keep windows short enough for UI freshness while
+   * collapsing rapid remount/focus/reconnect bursts from the same session.
+   * These are read-only presentation/query paths; protected mutations remain
+   * authoritative on Supabase through RLS/RPC rules.
+   */
+  buklod_my_permission_snapshot_v1: 30_000,
+  get_my_buklod_points_dashboard: 30_000,
+  get_buklod_public_community_feed_v7_page: 5_000,
+  get_buklod_post_media_v1: 3_000,
+  get_buklod_post_comment_previews_v1: 3_000,
+  buklod_scope_entitlements_v1: 30_000,
+  buklod_scope_home_summary_v1: 20_000,
+  buklod_scope_faith_access_status_v1: 30_000,
+
   // Connect inbox summaries are realtime-first and already have a bounded
   // fallback refresh. A 10s shield only collapses remount/burst duplicates;
   // Authorization remains part of the request key and no writes are cached.
