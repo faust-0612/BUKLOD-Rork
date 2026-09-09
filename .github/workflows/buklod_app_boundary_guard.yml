@@ -8,12 +8,14 @@ on:
       - '.github/workflows/**'
       - '.buklod/**'
       - 'scripts/verify-buklod-app-boundaries.cjs'
+      - 'scripts/test-buklod-app-boundaries.cjs'
       - 'docs/BUKLOD_APP_BOUNDARIES.md'
   pull_request:
     paths:
       - '.github/workflows/**'
       - '.buklod/**'
       - 'scripts/verify-buklod-app-boundaries.cjs'
+      - 'scripts/test-buklod-app-boundaries.cjs'
       - 'docs/BUKLOD_APP_BOUNDARIES.md'
   workflow_dispatch:
 
@@ -34,6 +36,9 @@ jobs:
 
       - name: Enforce BUKLOD product and deployment boundaries
         run: node scripts/verify-buklod-app-boundaries.cjs
+
+      - name: Prove fail-closed behavior
+        run: node scripts/test-buklod-app-boundaries.cjs
 
       - name: Boundary contract
         run: |
