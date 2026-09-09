@@ -64,7 +64,7 @@ const GUIDES: Record<string, Guide> = {
     controlsTl: 'Basahin ang bawat sitwasyon at piliin ang aksiyong pinakamainam para mapangalagaan ang reserba ng team.',
   },
   'angel-kingdom-treasury': {
-    titleEn: 'Kingdom Treasury', titleTl: 'Kab treasury ng Kaharian',
+    titleEn: 'Kingdom Treasury', titleTl: 'Ingat-Yaman ng Kaharian',
     objectiveEn: 'Build a balanced budget, keep an emergency reserve, and survive an unexpected crisis.',
     objectiveTl: 'Bumuo ng balanseng budget, magtira ng emergency reserve, at harapin ang biglaang krisis.',
     controlsEn: 'Adjust allocations, confirm the budget, then choose how the reserve will respond to the crisis.',
