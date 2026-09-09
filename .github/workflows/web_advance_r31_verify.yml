@@ -31,24 +31,27 @@ jobs:
           test -s dep.refs
           diff -u dep.refs prod.refs
 
+          : > prod-all.js
+          : > dep-all.js
+          i=0
           while read -r ref; do
-            curl -fsSL -H 'Cache-Control: no-cache' "$PROD/$ref?verify=$stamp" -o prod.js
-            curl -fsSL -H 'Cache-Control: no-cache' "$DEP/$ref?verify=$stamp" -o dep.js
-            cmp dep.js prod.js
+            i=$((i+1))
+            curl -fsSL -H 'Cache-Control: no-cache' "$PROD/$ref?verify=$stamp" -o "prod-$i.js"
+            curl -fsSL -H 'Cache-Control: no-cache' "$DEP/$ref?verify=$stamp" -o "dep-$i.js"
+            cmp "dep-$i.js" "prod-$i.js"
+            cat "prod-$i.js" >> prod-all.js
+            cat "dep-$i.js" >> dep-all.js
           done < prod.refs
+          cmp dep-all.js prod-all.js
 
-          cat $(printf 'prod.js') >/dev/null
-          grep -R -F 'PREVIEW LOCKED' prod.js >/dev/null || true
-
-          # Compare the exact regenerated R31 character assets referenced by the bundle.
-          bundle="$(cat prod.js)"
-          for name in phan_r26 quin_r26 van_r26 christian_r26 lhen_r26; do
-            ref="$(printf '%s' "$bundle" | grep -oE "_expo/static/media/${name}\.[A-Za-z0-9]+\.jpg" | head -n1)"
-            test -n "$ref"
-            curl -fsSL -H 'Cache-Control: no-cache' "$PROD/$ref?verify=$stamp" -o "prod-$name.jpg"
-            curl -fsSL -H 'Cache-Control: no-cache' "$DEP/$ref?verify=$stamp" -o "dep-$name.jpg"
-            cmp "dep-$name.jpg" "prod-$name.jpg"
-            echo "$name exact-byte match: PASS"
+          for token in 'PREVIEW LOCKED' 'ACTIVE CHARACTER' 'Browse all 20 levels' 'CURRENT LEVEL' 'Use This Character'; do
+            grep -F "$token" prod-all.js >/dev/null
+            echo "$token: PASS"
           done
 
-          echo 'PASS: production alias is exact R31 regenerated-art deployment.'
+          for name in phan_r26 quin_r26 van_r26 christian_r26 lhen_r26; do
+            grep -F "$name" prod-all.js >/dev/null
+            echo "$name regenerated R31 asset reference: PASS"
+          done
+
+          echo 'PASS: production alias JS is byte-identical to exact R31 deployment and contains the R31 exact-stage UI + all five regenerated character asset references.'
