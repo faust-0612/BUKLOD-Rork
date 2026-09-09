@@ -8,9 +8,35 @@ if ($scriptPath -and (Test-Path $scriptPath)) {
   $scriptHashBefore = (Get-FileHash $scriptPath -Algorithm SHA256).Hash
 }
 
-$branch = (git rev-parse --abbrev-ref HEAD).Trim()
+# Safe branch recovery. A detached HEAD can happen after prior verification/release
+# commands. Auto-return to main only when the working tree is clean; never reset,
+# force-checkout, or discard local/newer work.
+$branch = (git symbolic-ref --short -q HEAD 2>$null)
+if ($branch) { $branch = $branch.Trim() }
+
+if (-not $branch) {
+  Write-Host 'Detached HEAD detected. Checking whether it is safe to return to main...' -ForegroundColor Yellow
+  $dirty = @(git status --porcelain)
+  if ($dirty.Count -gt 0) {
+    Write-Host 'Detached HEAD has local changes. Refusing automatic branch switch to preserve work.' -ForegroundColor Red
+    git status --short
+    throw 'Working tree is not clean. No reset/checkout/deploy performed.'
+  }
+
+  git fetch origin main
+  if ($LASTEXITCODE -ne 0) { throw 'Could not fetch origin/main. Deployment stopped.' }
+
+  git switch main
+  if ($LASTEXITCODE -ne 0) {
+    throw "Detached HEAD recovery could not switch to existing local 'main'. No files were reset or discarded."
+  }
+
+  $branch = (git symbolic-ref --short -q HEAD).Trim()
+  Write-Host "Recovered branch: $branch" -ForegroundColor Green
+}
+
 if ($branch -ne 'main') {
-  throw "Expected branch 'main' after Game Lab merge. Current branch: $branch"
+  throw "Expected branch 'main'. Current branch: $branch. No automatic switch from a named feature branch was attempted."
 }
 
 Write-Host 'Pulling canonical main...' -ForegroundColor Yellow
