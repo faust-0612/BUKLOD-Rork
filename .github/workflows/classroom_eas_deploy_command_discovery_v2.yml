@@ -1,0 +1,43 @@
+name: Classroom EAS Deploy Command Discovery V2
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - hotfix/classroom-separate-web-20260909-r5
+    paths:
+      - '.github/workflows/classroom_eas_deploy_command_discovery_v2.yml'
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  BUKLOD_APP_TARGET: classroom
+  APP_VARIANT: production
+  EXPO_PUBLIC_APP_ENV: production
+  EXPO_PUBLIC_EAS_PROJECT_ID: 14100ed1-7f25-4551-9627-09d280498241
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: hotfix/classroom-separate-web-20260909-r5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Authenticate
+        run: |
+          test -n "$EXPO_TOKEN"
+          npx eas-cli@latest whoami --non-interactive >/dev/null
+      - name: Top-level command help
+        shell: bash
+        run: |
+          set +e
+          npx eas-cli@latest --help 2>&1 | tee /tmp/eas-help.txt
+          echo '--- DEPLOY HELP ---'
+          npx eas-cli@latest deploy --help 2>&1 | tee /tmp/eas-deploy-help.txt
+          echo '--- COMMANDS CONTAINING DEPLOY/HOST ---'
+          grep -Ei 'deploy|host' /tmp/eas-help.txt /tmp/eas-deploy-help.txt || true
