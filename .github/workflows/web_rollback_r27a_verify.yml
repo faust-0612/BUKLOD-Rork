@@ -1,0 +1,44 @@
+name: BUKLOD Web Rollback R27A Verify
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/web_rollback_r27a_verify.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-live-r27a:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify production alias matches exact R27A deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROD='https://buklod.expo.app'
+          DEP='https://buklod--hzza0jipvs.expo.app'
+          stamp="$(date +%s)"
+          curl -fsSL -H 'Cache-Control: no-cache' "$PROD/?verify=$stamp" -o prod.html
+          curl -fsSL -H 'Cache-Control: no-cache' "$DEP/?verify=$stamp" -o dep.html
+          grep -oE '_expo/static/js/web/[^"'"'"'< >]+\.js' prod.html | sort -u > prod.refs
+          grep -oE '_expo/static/js/web/[^"'"'"'< >]+\.js' dep.html | sort -u > dep.refs
+          test -s prod.refs
+          test -s dep.refs
+          echo 'Production refs:'
+          cat prod.refs
+          echo 'R27A immutable refs:'
+          cat dep.refs
+          diff -u dep.refs prod.refs
+          ref="$(head -n1 prod.refs)"
+          curl -fsSL -H 'Cache-Control: no-cache' "$PROD/$ref?verify=$stamp" -o prod.js
+          curl -fsSL -H 'Cache-Control: no-cache' "$DEP/$ref?verify=$stamp" -o dep.js
+          cmp dep.js prod.js
+          grep -F 'Phan' prod.js >/dev/null
+          grep -F 'Quin' prod.js >/dev/null
+          grep -F 'Van' prod.js >/dev/null
+          grep -F 'Christian' prod.js >/dev/null
+          grep -F 'Lhen' prod.js >/dev/null
+          echo 'PASS: production alias is exact R27A deployment and named-character tokens are present.'
