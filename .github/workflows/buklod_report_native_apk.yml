@@ -30,12 +30,11 @@ jobs:
 
       - name: Restore official BUKLOD Report icon
         run: |
-          mkdir -p assets
-          base64 -d icon.jpg.b64 > /tmp/buklod-report-icon.jpg
+          test -s assets/source-icon.jpg
           if command -v magick >/dev/null 2>&1; then
-            magick /tmp/buklod-report-icon.jpg -resize 1024x1024 assets/icon.png
+            magick assets/source-icon.jpg -resize 1024x1024 assets/icon.png
           else
-            convert /tmp/buklod-report-icon.jpg -resize 1024x1024 assets/icon.png
+            convert assets/source-icon.jpg -resize 1024x1024 assets/icon.png
           fi
           test -s assets/icon.png
           file assets/icon.png
