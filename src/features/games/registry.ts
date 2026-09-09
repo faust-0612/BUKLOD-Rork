@@ -51,6 +51,16 @@ export const BUKLOD_GAMES: Record<string, BuklodGameDefinition> = {
     objective: 'Lead an expedition through five route decisions, balance water, food, energy and morale, and reach the remote village without collapsing the team reserve.',
     replayable: true,
   },
+  'angel-kingdom-treasury': {
+    id: 'angel-kingdom-treasury',
+    characterKey: 'angel',
+    mapType: 'treasury-city',
+    stationKey: 'stewardship-council-01',
+    title: 'Kingdom Treasury',
+    subtitle: 'Angel • Treasury City',
+    objective: 'Build a balanced quarter budget, preserve an emergency reserve, absorb an unexpected crisis, and finish with healthy welfare, stability, growth and trust.',
+    replayable: true,
+  },
 };
 
 export const getBuklodGameDefinition = (gameId: string) => BUKLOD_GAMES[gameId] ?? null;
