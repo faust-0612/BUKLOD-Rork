@@ -31,6 +31,13 @@ const GAME_CARDS = [
     title: 'Restore the Mural',
     mechanic: 'Direct drag restoration • precision placement • combo scoring • staged visual reveal',
   },
+  {
+    href: '/games/niel-mission-trail' as const,
+    character: 'Niel',
+    world: 'Mission Frontier',
+    title: 'Mission Trail',
+    mechanic: 'Expedition choices • resource management • risk/reward routes • mission arrival',
+  },
 ];
 
 export default function BuklodGameLabScreen() {
