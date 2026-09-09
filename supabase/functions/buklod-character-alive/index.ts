@@ -14,6 +14,24 @@ function json(body: unknown, status = 200) {
   });
 }
 
+function readJwtPayload(req: Request) {
+  const auth = req.headers.get('authorization') ?? '';
+  const token = auth.replace(/^Bearer\s+/i, '').trim();
+
+  if (!token) return null;
+
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+
+  try {
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, '=');
+    return JSON.parse(atob(padded)) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -21,6 +39,14 @@ Deno.serve(async (req) => {
 
   if (req.method !== 'POST') {
     return json({ error: 'Method not allowed.' }, 405);
+  }
+
+  // Supabase gateway verifies the JWT signature (verify_jwt=true). This
+  // additional role check prevents the public anon key from consuming the
+  // paid avatar provider. Only a signed-in BUKLOD user session may continue.
+  const jwt = readJwtPayload(req);
+  if (!jwt || jwt.role !== 'authenticated' || !jwt.sub) {
+    return json({ error: 'Authenticated BUKLOD user required.' }, 401);
   }
 
   const didKey = Deno.env.get('DID_API_KEY')?.trim();
@@ -62,8 +88,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         source_url: sourceUrl,
-        // Lively gives the approved flat character stronger head/facial motion
-        // while the source artwork remains the identity anchor.
+        // Strong motion while the approved artwork remains the identity anchor.
         driver_url: 'bank://lively/driver-06',
         script: {
           type: 'text',
