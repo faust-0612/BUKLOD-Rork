@@ -17,8 +17,6 @@ Write-Host 'Pulling canonical main...' -ForegroundColor Yellow
 git pull --ff-only origin main
 if ($LASTEXITCODE -ne 0) { throw 'git pull failed. Deployment stopped.' }
 
-# If this script changed during git pull, relaunch the updated file and stop the
-# stale in-memory copy. This prevents old deploy logic from continuing after a pull.
 if ($scriptPath -and (Test-Path $scriptPath) -and $scriptHashBefore) {
   $scriptHashAfter = (Get-FileHash $scriptPath -Algorithm SHA256).Hash
   if ($scriptHashAfter -ne $scriptHashBefore) {
@@ -31,11 +29,10 @@ if ($scriptPath -and (Test-Path $scriptPath) -and $scriptHashBefore) {
 if (-not (Test-Path 'package.json')) { throw 'Run this script from the BUKLOD project root.' }
 if (-not (Test-Path 'app.config.js')) { throw 'app.config.js not found.' }
 if (-not (Test-Path 'eas.json')) { throw 'eas.json not found.' }
+if (-not (Test-Path 'scripts\RESTORE_CANONICAL_R31_R40.ps1')) { throw 'Canonical R31/R40 recovery script is missing.' }
 
 $env:APP_VARIANT = 'production'
 $env:EXPO_PUBLIC_APP_ENV = 'production'
-# Keep BUKLOD Main in its proven SPA export mode. We create physical Game Lab
-# route shells after export instead of prerendering the whole Supabase-backed app.
 $env:BUKLOD_WEB_OUTPUT = 'single'
 
 Write-Host 'Checking Expo authentication...' -ForegroundColor Yellow
@@ -68,9 +65,12 @@ Write-Host 'Installing locked dependencies...' -ForegroundColor Yellow
 npm ci --ignore-scripts
 if ($LASTEXITCODE -ne 0) { throw 'npm ci failed.' }
 
-# RELEASE INVARIANT: no unrelated push may silently replace the canonical R31 core
-# or R40 special-character package. This gate intentionally blocks deployment until
-# the complete forward-compatible R31/R40 family is present.
+Write-Host 'Forward-restoring canonical R31/R40 package from verified recovery roots...' -ForegroundColor Yellow
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File '.\scripts\RESTORE_CANONICAL_R31_R40.ps1' -ProjectRoot (Get-Location).Path
+if ($LASTEXITCODE -ne 0) {
+  throw 'Canonical R31/R40 recovery failed. No deployment attempted.'
+}
+
 Write-Host 'Checking canonical R31/R40 character release lock...' -ForegroundColor Yellow
 npm run character:contract
 if ($LASTEXITCODE -ne 0) {
@@ -91,8 +91,6 @@ if (-not (Test-Path 'dist\index.html')) {
   throw 'dist\index.html is missing. Deployment stopped.'
 }
 
-# Second release invariant: source may be correct while a stale export is wrong.
-# Refuse to publish unless the compiled bundle itself still contains R31 + R40.
 Write-Host 'Checking R31/R40 contract inside compiled web bundle...' -ForegroundColor Yellow
 npm run character:contract:dist
 if ($LASTEXITCODE -ne 0) {
