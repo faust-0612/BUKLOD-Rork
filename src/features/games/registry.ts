@@ -31,6 +31,16 @@ export const BUKLOD_GAMES: Record<string, BuklodGameDefinition> = {
     objective: 'Plan a low-cost route, secure three rescue beacons, avoid blocked corridors, and reach extraction before energy runs out.',
     replayable: true,
   },
+  'mitch-restore-mural': {
+    id: 'mitch-restore-mural',
+    characterKey: 'mitch',
+    mapType: 'art-village',
+    stationKey: 'mural-restoration-01',
+    title: 'Restore the Mural',
+    subtitle: 'Mitch • Art Village',
+    objective: 'Drag six mural fragments into their true positions, restore the composition with precision, and build a clean restoration combo.',
+    replayable: true,
+  },
 };
 
 export const getBuklodGameDefinition = (gameId: string) => BUKLOD_GAMES[gameId] ?? null;
