@@ -16,6 +16,7 @@ if (-not (Test-Path 'eas.json')) { throw 'eas.json not found.' }
 
 $env:APP_VARIANT = 'production'
 $env:EXPO_PUBLIC_APP_ENV = 'production'
+$env:BUKLOD_WEB_OUTPUT = 'static'
 
 Write-Host 'Checking Expo authentication...' -ForegroundColor Yellow
 npx eas-cli@latest whoami
@@ -33,9 +34,24 @@ if ($LASTEXITCODE -ne 0) { throw 'TypeScript QA failed. Deployment stopped.' }
 
 if (Test-Path 'dist') { Remove-Item 'dist' -Recurse -Force }
 
-Write-Host 'Exporting Expo web production bundle...' -ForegroundColor Yellow
+Write-Host 'Exporting Expo web production bundle with static route output...' -ForegroundColor Yellow
 npx expo export --platform web --output-dir dist
 if ($LASTEXITCODE -ne 0) { throw 'Expo web export failed. Deployment stopped.' }
+
+$gameLabCandidates = @(
+  'dist\games.html',
+  'dist\games\index.html'
+)
+$gameLabFile = $gameLabCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+if (-not $gameLabFile) {
+  Write-Host 'Game Lab route was NOT emitted by Expo export.' -ForegroundColor Red
+  Write-Host 'Deployment blocked to prevent another successful upload with /games missing.' -ForegroundColor Red
+  Write-Host 'Top-level dist entries:' -ForegroundColor Yellow
+  Get-ChildItem 'dist' | Select-Object Name, Mode
+  throw 'Static /games route verification failed.'
+}
+
+Write-Host "Verified exported Game Lab route: $gameLabFile" -ForegroundColor Green
 
 Write-Host 'Publishing to existing Expo Hosting production target...' -ForegroundColor Yellow
 npx eas-cli@latest deploy --prod --non-interactive
