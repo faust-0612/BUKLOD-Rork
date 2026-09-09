@@ -1,38 +1,25 @@
-/* BUKLOD_CHARACTER_R25_PROPORTION_SAFE_LAYERING */
-/* BUKLOD_CHARACTER_R25C_CONTAINMENT */
-/* BUKLOD_CHARACTER_R25D_CONTEXT_VIEWPORT */
-import React, {
-  Fragment,
-  useMemo,
-  useState,
-} from 'react';
+/* BUKLOD_R31_GOLDEN_ART_PRESERVED_PHASE1 */
+/* BUKLOD_CHARACTER_ENVIRONMENT_SYSTEM_PHASE1 */
+import React, { useEffect, useMemo, useState } from 'react';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { StyleSheet, Text, View } from 'react-native';
 
+import BuklodR31CharacterArt from '@/components/points/BuklodR31CharacterArt';
+import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
+import { useAuth } from '@/providers/AuthProvider';
+import type { BodyId, Equipment } from '@/lib/character-lab-core/types';
 import {
-  Image,
-  StyleSheet,
-  View,
-} from 'react-native';
-
-import BuklodLocalCharacterFigure
-  from '@/components/points/BuklodLocalCharacterFigure';
-
+  WORLD_NAMES,
+  getMyBuklodWorldV3,
+  isCoreWorldCharacter,
+  subscribeMyBuklodWorldV3,
+  type BuklodWorldState,
+} from '@/lib/buklodCharacterWorldV3';
 import {
-  assetUrl,
-  BASE_ASPECT,
-  placementFor,
-} from '@/lib/character-lab-core/assets';
-
-import {
-  assetKeyFor,
-  getItem,
-  LAYER_ORDER,
-} from '@/lib/character-lab-core/catalog';
-
-import type {
-  BodyId,
-  Equipment,
-  SlotId,
-} from '@/lib/character-lab-core/types';
+  loadProgressiveCharacter,
+  progressiveLevelForEquipment,
+  type ProgressiveCharacterId,
+} from '@/lib/buklodProgressiveCharacter';
 
 type Props = {
   body: BodyId;
@@ -43,458 +30,75 @@ type Props = {
   showEffects?: boolean;
 };
 
-type Layer = {
-  key: string;
-  url: string;
-  tintColor: string | null;
-  placement: {
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-  };
-};
-
-const pct = (value: number) =>
-  `${value}%` as `${number}%`;
-
-function alphaHex(
-  color: string,
-  alpha: string,
-) {
-  return /^#[0-9a-f]{6}$/i.test(color)
-    ? `${color}${alpha}`
-    : color;
-}
-
-function resolveLayer(
-  equipment: Equipment,
-  body: BodyId,
-  slot: SlotId,
-): Layer | null {
-  const item = getItem(equipment[slot]);
-
-  if (!item) return null;
-
-  const key = assetKeyFor(item, body);
-  if (!key) return null;
-
-  const url = assetUrl(key);
-  const placement = placementFor(key);
-
-  if (!url || !placement) return null;
-
-  return {
-    key: `${slot}:${item.id}:${key}`,
-    url,
-    placement,
-    tintColor:
-      item.id.startsWith('prestige_')
-        ? item.swatch[1]
-        : null,
-  };
-}
-
 export default function BuklodCharacterLayeredArt({
   body,
   equipment,
   height,
   viewportWidth,
   showStage = false,
-  showEffects = true,
 }: Props) {
-  const [baseFailed, setBaseFailed] =
-    useState(false);
+  const { theme } = useBuklodPresentation();
+  const { session } = useAuth();
+  const userId = session?.user?.id ?? null;
+  const [world, setWorld] = useState<BuklodWorldState | null>(null);
+  const [legacyId, setLegacyId] = useState<ProgressiveCharacterId>('phan');
 
-  const aspect = BASE_ASPECT[body] || 0.37;
-  const artWidth = Math.max(
-    1,
-    Math.round(height * aspect),
-  );
-
-  // R25D: compact surfaces get a hard viewport without distorting the
-  // character. The full layered figure keeps its native proportions and is
-  // centered inside the context-specific frame.
-  const resolvedViewportWidth =
-    typeof viewportWidth === 'number' &&
-    Number.isFinite(viewportWidth) &&
-    viewportWidth > 0
-      ? Math.max(1, Math.round(viewportWidth))
-      : null;
-
-  const frameWidth =
-    resolvedViewportWidth ??
-    (showStage
-      ? Math.max(116, artWidth * 2.25)
-      : artWidth);
-
-  const baseItem =
-    getItem(equipment.base) ??
-    getItem(
-      body === 'female'
-        ? 'base_female'
-        : 'base_male',
-    );
-
-  const baseKey = baseItem
-    ? assetKeyFor(baseItem, body)
-    : null;
-
-  const baseUrl = assetUrl(
-    baseKey ??
-      (body === 'female'
-        ? 'char_base_female'
-        : 'char_base_male'),
-  );
-
-  const layers = useMemo(
-    () =>
-      LAYER_ORDER
-        .filter(
-          (slot) =>
-            slot !== 'base' &&
-            slot !== 'background' &&
-            slot !== 'special' &&
-            slot !== 'badge',
-        )
-        .map((slot) =>
-          resolveLayer(equipment, body, slot),
-        )
-        .filter(
-          (row): row is Layer => Boolean(row),
-        ),
+  const legacyLevel = useMemo(
+    () => progressiveLevelForEquipment(body, equipment),
     [body, equipment],
   );
 
-  const backgroundItem = getItem(
-    equipment.background,
-  );
+  useEffect(() => {
+    let mounted = true;
+    const unsubscribe = subscribeMyBuklodWorldV3((next) => {
+      if (mounted) setWorld(next);
+    });
+    void getMyBuklodWorldV3().then(
+      (next) => { if (mounted) setWorld(next); },
+      () => undefined,
+    );
+    void loadProgressiveCharacter(userId).then((id) => {
+      if (mounted && id) setLegacyId(id);
+    });
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, [userId]);
 
-  const backgroundUrl = showStage
-    ? assetUrl(backgroundItem?.stage ?? null)
-    : null;
+  const width = viewportWidth ?? Math.max(82, Math.round(height * 0.65));
+  const activeId = world?.initialized ? world.active_character_id : legacyId;
+  const activeLevel = world?.initialized ? (world.character_level ?? 1) : legacyLevel;
 
-  const backgroundTint =
-    backgroundItem?.id.startsWith('prestige_')
-      ? backgroundItem.swatch[1]
-      : null;
-
-  const specialItem = getItem(
-    equipment.special,
-  );
-
-  const effect =
-    showEffects
-      ? specialItem?.effect
-      : 'none';
-
-  const effectColor =
-    specialItem?.swatch?.[1] ?? '#4FBF6B';
-
-  const badgeItem = getItem(
-    equipment.badge,
-  );
-
-  const badgeColor =
-    badgeItem?.swatch?.[1] ?? '#F0B429';
-
-  if (!baseUrl || baseFailed) {
+  if (activeId && isCoreWorldCharacter(activeId)) {
     return (
-      <View
-        style={[
-          styles.fallback,
-          { width: frameWidth, height },
-        ]}
-        pointerEvents="none"
-      >
-        <BuklodLocalCharacterFigure
-          body={body}
-          equipment={equipment}
-          width={artWidth}
-          mode="full"
+      <View style={[styles.frame, showStage && { backgroundColor: theme.accentSoft, borderColor: theme.border, borderWidth: 1, borderRadius: 18 }]}> 
+        <BuklodR31CharacterArt
+          characterId={activeId}
+          level={activeLevel}
+          height={height}
+          viewportWidth={width}
         />
       </View>
     );
   }
 
-  return (
-    <View
-      style={[
-        styles.outer,
-        {
-          width: frameWidth,
-          height,
-          overflow: resolvedViewportWidth
-            ? 'hidden'
-            : 'visible',
-        },
-      ]}
-      pointerEvents="none"
-    >
-      {showStage ? (
-        <View style={styles.stage}>
-          {backgroundUrl ? (
-            <Image
-              source={{ uri: backgroundUrl }}
-              resizeMode="cover"
-              fadeDuration={0}
-              style={StyleSheet.absoluteFill}
-            />
-          ) : null}
-
-          {backgroundTint ? (
-            <View
-              style={[
-                StyleSheet.absoluteFill,
-                {
-                  backgroundColor:
-                    alphaHex(backgroundTint, '24'),
-                },
-              ]}
-            />
-          ) : null}
-
-          <View style={styles.stageWash} />
-
-          {effect && effect !== 'none' ? (
-            <View
-              style={[
-                styles.effectGlow,
-                {
-                  backgroundColor:
-                    alphaHex(effectColor, '18'),
-                  borderColor:
-                    alphaHex(effectColor, '54'),
-                },
-              ]}
-            />
-          ) : null}
-
-          {effect === 'ascend' ? (
-            <>
-              <View
-                style={[
-                  styles.effectRing,
-                  styles.effectRingLarge,
-                  {
-                    borderColor:
-                      alphaHex(effectColor, '70'),
-                  },
-                ]}
-              />
-              <View
-                style={[
-                  styles.effectRing,
-                  styles.effectRingSmall,
-                  {
-                    borderColor:
-                      alphaHex(effectColor, '90'),
-                  },
-                ]}
-              />
-            </>
-          ) : effect === 'aura' ? (
-            <View
-              style={[
-                styles.effectRing,
-                styles.auraRing,
-                {
-                  borderColor:
-                    alphaHex(effectColor, '80'),
-                },
-              ]}
-            />
-          ) : null}
-
-          {badgeItem &&
-          badgeItem.id !== 'badge_none' ? (
-            <View
-              style={[
-                styles.badgeMark,
-                {
-                  borderColor:
-                    alphaHex(badgeColor, 'A0'),
-                  backgroundColor:
-                    alphaHex(badgeColor, '28'),
-                },
-              ]}
-            >
-              <View
-                style={[
-                  styles.badgeDot,
-                  { backgroundColor: badgeColor },
-                ]}
-              />
-            </View>
-          ) : null}
-        </View>
-      ) : null}
-
-      <View
-        style={[
-          styles.art,
-          { width: artWidth, height },
-        ]}
-      >
-        <Image
-          source={{ uri: baseUrl }}
-          resizeMode="contain"
-          fadeDuration={0}
-          onError={() => setBaseFailed(true)}
-          style={StyleSheet.absoluteFill}
-        />
-
-        {layers.map(
-          ({
-            key,
-            url,
-            placement,
-            tintColor,
-          }) => (
-            <Fragment key={key}>
-              <Image
-                source={{ uri: url }}
-                resizeMode="contain"
-                fadeDuration={0}
-                style={{
-                  position: 'absolute',
-                  left: pct(placement.left),
-                  top: pct(placement.top),
-                  width: pct(placement.width),
-                  height: pct(placement.height),
-                }}
-              />
-
-              {tintColor ? (
-                <Image
-                  source={{ uri: url }}
-                  resizeMode="contain"
-                  fadeDuration={0}
-                  style={{
-                    position: 'absolute',
-                    left: pct(placement.left),
-                    top: pct(placement.top),
-                    width: pct(placement.width),
-                    height: pct(placement.height),
-                    tintColor,
-                    opacity: 0.24,
-                  }}
-                />
-              ) : null}
-            </Fragment>
-          ),
-        )}
+  if (activeId) {
+    return (
+      <View style={[styles.special, { width, height, borderColor: theme.border, backgroundColor: theme.accentSoft }]} pointerEvents="none">
+        <MaterialCommunityIcons name="star-four-points-outline" size={Math.min(42, width * 0.42)} color={theme.accent} />
+        <Text style={[styles.name, { color: theme.textPrimary }]} numberOfLines={1}>{WORLD_NAMES[activeId]}</Text>
+        <Text style={[styles.level, { color: theme.textMuted }]}>LEVEL {activeLevel}</Text>
       </View>
+    );
+  }
 
-      <View
-        style={[
-          styles.shadow,
-          {
-            width: Math.max(
-              30,
-              artWidth * 0.75,
-            ),
-          },
-        ]}
-      />
-    </View>
-  );
+  return null;
 }
 
 const styles = StyleSheet.create({
-  outer: {
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    overflow: 'visible',
-  },
-
-  art: {
-    zIndex: 3,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-
-  fallback: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-
-  stage: {
-    ...StyleSheet.absoluteFill,
-    overflow: 'hidden',
-    borderRadius: 24,
-    backgroundColor: '#EAF2ED',
-  },
-
-  stageWash: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor:
-      'rgba(247,250,248,0.18)',
-  },
-
-  effectGlow: {
-    position: 'absolute',
-    alignSelf: 'center',
-    bottom: 4,
-    width: '82%',
-    height: '66%',
-    borderRadius: 999,
-    borderWidth: 1,
-  },
-
-  effectRing: {
-    position: 'absolute',
-    alignSelf: 'center',
-    bottom: 10,
-    borderRadius: 999,
-    borderWidth: 2,
-  },
-
-  auraRing: {
-    width: '66%',
-    height: 22,
-  },
-
-  effectRingLarge: {
-    width: '78%',
-    height: 30,
-  },
-
-  effectRingSmall: {
-    width: '52%',
-    height: 18,
-    bottom: 16,
-  },
-
-  badgeMark: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 25,
-    height: 25,
-    borderRadius: 13,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  badgeDot: {
-    width: 9,
-    height: 9,
-    borderRadius: 5,
-  },
-
-  shadow: {
-    position: 'absolute',
-    zIndex: 2,
-    alignSelf: 'center',
-    bottom: 1,
-    height: 9,
-    borderRadius: 999,
-    backgroundColor:
-      'rgba(22,48,31,0.15)',
-    transform: [{ scaleY: 0.55 }],
-  },
+  frame: { overflow: 'hidden', alignItems: 'center', justifyContent: 'flex-end' },
+  special: { borderWidth: 1, borderRadius: 16, alignItems: 'center', justifyContent: 'center', padding: 6 },
+  name: { marginTop: 5, fontSize: 10, fontWeight: '900' },
+  level: { marginTop: 2, fontSize: 8, fontWeight: '900' },
 });
