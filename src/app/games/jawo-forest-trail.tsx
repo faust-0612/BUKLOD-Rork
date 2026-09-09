@@ -3,32 +3,37 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ForestTrailGame } from '@/features/games/jawo/ForestTrailGame';
 import { getBuklodGameDefinition } from '@/features/games/registry';
+import { BuklodGameStage } from '@/features/games/runtime/BuklodGameStage';
 
 const definition = getBuklodGameDefinition('jawo-forest-trail');
 
 export default function JawoForestTrailScreen() {
   return (
-    <ScrollView contentContainerStyle={styles.page}>
-      <View style={styles.intro}>
-        <Text style={styles.kicker}>BUKLOD KINGDOM • STANDALONE GAME LAB</Text>
-        <Text style={styles.heading}>{definition?.title ?? 'Forest Trail'}</Text>
-        <Text style={styles.copy}>
-          {definition?.objective ?? 'Avoid obstacles and collect trail lights.'}
-        </Text>
-        <Text style={styles.note}>
-          Prototype only: no Kingdom Map, character art, Supabase progress, Circle Rank, or collectible write is connected yet.
-        </Text>
-      </View>
+    <BuklodGameStage biome="forest">
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.page}>
+        <View style={styles.intro}>
+          <Text style={styles.kicker}>BUKLOD KINGDOM • GAME LAB</Text>
+          <Text style={styles.heading}>{definition?.title ?? 'Forest Trail'}</Text>
+          <Text style={styles.copy}>
+            {definition?.objective ?? 'Avoid obstacles and collect trail lights.'}
+          </Text>
+          <Text style={styles.note}>
+            Gameplay prototype: Kingdom Map, final Jawo art, persistence, Circle Rank and collectible writes remain intentionally disconnected while the experience is tuned.
+          </Text>
+        </View>
 
-      <ForestTrailGame />
-    </ScrollView>
+        <ForestTrailGame />
+      </ScrollView>
+    </BuklodGameStage>
   );
 }
 
 const styles = StyleSheet.create({
+  scroll: {
+    flex: 1,
+  },
   page: {
     flexGrow: 1,
-    backgroundColor: '#07180f',
     paddingHorizontal: 16,
     paddingTop: 36,
     paddingBottom: 64,
@@ -41,7 +46,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   kicker: {
-    color: '#9dd7a8',
+    color: '#aee7b8',
     fontSize: 12,
     fontWeight: '900',
     letterSpacing: 1.2,
@@ -52,7 +57,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   copy: {
-    color: '#d9eadc',
+    color: '#e5f3e8',
     fontSize: 16,
     lineHeight: 24,
     maxWidth: 760,
