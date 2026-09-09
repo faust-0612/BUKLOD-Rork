@@ -57,4 +57,4 @@ jobs:
           echo 'Exact R31 deployment promoted to https://buklod.expo.app'
           echo 'Immutable deployment: https://buklod--pl674gipyn.expo.app'
 
-# restore-trigger: 2026-09-09-r31-emergency-2
+# restore-trigger: 2026-09-09-r31-emergency-3
