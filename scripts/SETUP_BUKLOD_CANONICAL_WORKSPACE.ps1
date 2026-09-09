@@ -15,9 +15,11 @@ $BackupRoot = Join-Path $WorkspaceRoot 'BACKUPS'
 $LogRoot = Join-Path $WorkspaceRoot 'LOGS'
 $ExportRoot = Join-Path $WorkspaceRoot 'EXPORTS'
 $ManifestPath = Join-Path $WorkspaceRoot 'BUKLOD_WORKSPACE.json'
+$CanonicalMarkerPath = Join-Path $SourceRoot '.buklod-local-canonical.json'
 
 function Fail([string]$Message) { throw $Message }
 function EnsureDir([string]$Path) { New-Item -ItemType Directory -Force -Path $Path | Out-Null }
+function Full([string]$Path) { return [System.IO.Path]::GetFullPath($Path).TrimEnd('\') }
 function Sha([string]$Path) {
   if (!(Test-Path -LiteralPath $Path -PathType Leaf)) { return $null }
   return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToUpperInvariant()
@@ -122,23 +124,42 @@ foreach ($entry in $ExpectedR31.GetEnumerator()) {
 }
 
 Write-Host ''
-Write-Host '4/5 WRITE WORKSPACE IDENTITY' -ForegroundColor Cyan
+Write-Host '4/5 WRITE WORKSPACE IDENTITY + LOCAL CANONICAL MARKER' -ForegroundColor Cyan
 $sourceHead = (& git -C $SourceRoot rev-parse HEAD).Trim()
 $manifest = [ordered]@{
   workspace_version = 1
   created_at = (Get-Date).ToString('o')
   repository = $RepoUrl
-  canonical_source = $SourceRoot
-  recovery_r31_r40 = $RecoveryRoot
-  release_web = $ReleaseRoot
-  backups = $BackupRoot
-  logs = $LogRoot
-  exports = $ExportRoot
+  canonical_source = Full $SourceRoot
+  recovery_r31_r40 = Full $RecoveryRoot
+  release_web = Full $ReleaseRoot
+  backups = Full $BackupRoot
+  logs = Full $LogRoot
+  exports = Full $ExportRoot
   source_head = $sourceHead
   rule = 'Deploy only through RELEASE staging created from canonical SOURCE. Never deploy directly from Downloads snapshots.'
 }
 $manifest | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $ManifestPath -Encoding UTF8
 Write-Host " Workspace manifest: $ManifestPath" -ForegroundColor Green
+
+$marker = [ordered]@{
+  marker_version = 1
+  app = 'BUKLOD MAIN'
+  repository = $RepoUrl
+  workspace_root = Full $WorkspaceRoot
+  canonical_source = Full $SourceRoot
+  created_at = (Get-Date).ToString('o')
+  source_head_at_mark = $sourceHead
+  rule = 'This is the single normal writable BUKLOD Main clone. Other matching clones are reference/recovery only.'
+}
+$marker | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $CanonicalMarkerPath -Encoding UTF8
+Write-Host " Canonical marker: $CanonicalMarkerPath" -ForegroundColor Green
+
+# The marker is intentionally gitignored. Confirm setup itself did not dirty the canonical source.
+$dirtyAfterIdentity = @(& git -C $SourceRoot status --porcelain)
+if ($dirtyAfterIdentity.Count -gt 0) {
+  Fail 'Canonical SOURCE became dirty while writing workspace identity. Verify .gitignore protection for .buklod-local-canonical.json.'
+}
 
 Write-Host ''
 Write-Host '5/5 FINAL STRUCTURE' -ForegroundColor Cyan
@@ -148,6 +169,8 @@ Write-Host " RELEASE  : $ReleaseRoot" -ForegroundColor Green
 Write-Host " BACKUPS  : $BackupRoot" -ForegroundColor Green
 Write-Host " LOGS     : $LogRoot" -ForegroundColor Green
 Write-Host " EXPORTS  : $ExportRoot" -ForegroundColor Green
+Write-Host " MARKER   : $CanonicalMarkerPath" -ForegroundColor Green
 Write-Host ''
 Write-Host 'CANONICAL WORKSPACE READY. NO DEPLOYMENT WAS PERFORMED.' -ForegroundColor Green
-Write-Host "Next: cd `"$SourceRoot`" then run .\scripts\RUN_CANONICAL_WEB_RELEASE.ps1" -ForegroundColor Cyan
+Write-Host "Next: cd `"$SourceRoot`" then run .\scripts\VERIFY_BUKLOD_CANONICAL_SOURCE.ps1 -RequireCurrentDirectory" -ForegroundColor Cyan
+Write-Host 'Release only through .\scripts\RUN_CANONICAL_WEB_RELEASE.ps1 after required QA.' -ForegroundColor Cyan
