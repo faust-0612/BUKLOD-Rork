@@ -12,12 +12,16 @@ import {
 import BuklodPhan3DSlot from '@/components/character3d/BuklodPhan3DSlot';
 import {
   PHAN_3D_ANIMATIONS,
+  PHAN_3D_LEVEL_COUNT,
   type Phan3DAnimation,
   type Phan3DQuality,
 } from '@/components/character3d/phan3dConfig';
 import { DEFAULT_CHARACTER } from '@/lib/buklodCharacter';
 
-const LEVELS = Array.from({ length: 20 }, (_, index) => index + 1);
+const LEVELS = Array.from(
+  { length: PHAN_3D_LEVEL_COUNT },
+  (_, index) => index + 1,
+);
 const QUALITIES: Phan3DQuality[] = ['low', 'medium', 'high'];
 
 export default function Phan3DPreviewScreen() {
@@ -60,8 +64,9 @@ export default function Phan3DPreviewScreen() {
         </View>
 
         <Text style={styles.status}>
-          Level {level} / 20 · {animation} · {quality.toUpperCase()} ·{' '}
-          {active ? 'PLAYING' : 'PAUSED'} · {Platform.OS.toUpperCase()}
+          Level {level} / {PHAN_3D_LEVEL_COUNT} · {animation} ·{' '}
+          {quality.toUpperCase()} · {active ? 'PLAYING' : 'PAUSED'} ·{' '}
+          {Platform.OS.toUpperCase()}
         </Text>
 
         <Section title="Level">
