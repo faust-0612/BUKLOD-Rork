@@ -17,7 +17,7 @@ import {
 } from '@/components/character3d/phan3dConfig';
 import { DEFAULT_CHARACTER } from '@/lib/buklodCharacter';
 
-const LEVELS = Array.from({ length: 25 }, (_, index) => index + 1);
+const LEVELS = Array.from({ length: 20 }, (_, index) => index + 1);
 const QUALITIES: Phan3DQuality[] = ['low', 'medium', 'high'];
 
 export default function Phan3DPreviewScreen() {
@@ -60,7 +60,7 @@ export default function Phan3DPreviewScreen() {
         </View>
 
         <Text style={styles.status}>
-          Level {level} · {animation} · {quality.toUpperCase()} ·{' '}
+          Level {level} / 20 · {animation} · {quality.toUpperCase()} ·{' '}
           {active ? 'PLAYING' : 'PAUSED'} · {Platform.OS.toUpperCase()}
         </Text>
 
