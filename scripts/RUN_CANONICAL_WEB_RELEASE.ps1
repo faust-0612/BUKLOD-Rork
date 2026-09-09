@@ -58,7 +58,7 @@ $env:BUKLOD_CANONICAL_RELEASE = '1'
 $env:BUKLOD_WORKSPACE_ROOT = [System.IO.Path]::GetFullPath($WorkspaceRoot)
 Push-Location $ReleaseWork
 try {
-  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File '.\scripts\DEPLOY_GAMES_WEB_DIRECT.ps1'
+  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File '.\scripts\DEPLOY_BUKLOD_WEB_CANONICAL.ps1'
   exit $LASTEXITCODE
 } finally {
   Pop-Location
