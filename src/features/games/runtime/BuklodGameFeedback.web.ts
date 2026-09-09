@@ -1,5 +1,5 @@
-import type { BuklodGameFeedbackEvent } from './BuklodGameFeedback.native';
+import type { BuklodGameFeedbackEvent } from './feedbackTypes';
 
 export async function playBuklodGameFeedback(_event: BuklodGameFeedbackEvent) {
-  // Web prototype intentionally has no vibration dependency.
+  // Web prototype intentionally avoids vibration dependencies.
 }
