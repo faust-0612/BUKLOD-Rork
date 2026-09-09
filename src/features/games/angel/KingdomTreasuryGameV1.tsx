@@ -8,13 +8,7 @@ type FundKey = 'relief' | 'infrastructure' | 'learning' | 'mission' | 'reserve';
 type Phase = 'planning' | 'event' | 'response' | 'result';
 
 type Allocation = Record<FundKey, number>;
-type KingdomHealth = {
-  welfare: number;
-  stability: number;
-  growth: number;
-  trust: number;
-};
-
+type KingdomHealth = { welfare: number; stability: number; growth: number; trust: number };
 type Emergency = {
   id: string;
   title: string;
@@ -30,31 +24,11 @@ const STARTING_TREASURY = 1000;
 const STEP = 50;
 
 const FUND_META: Record<FundKey, { label: string; purpose: string; accent: string }> = {
-  relief: {
-    label: 'People & Relief',
-    purpose: 'Food, emergency help, vulnerable families',
-    accent: '#d98469',
-  },
-  infrastructure: {
-    label: 'Infrastructure',
-    purpose: 'Roads, repairs, water access, community facilities',
-    accent: '#7da6b6',
-  },
-  learning: {
-    label: 'Learning',
-    purpose: 'Education, formation, youth development',
-    accent: '#b79ad6',
-  },
-  mission: {
-    label: 'Mission & Service',
-    purpose: 'Community outreach, care teams, mission support',
-    accent: '#8fb37c',
-  },
-  reserve: {
-    label: 'Emergency Reserve',
-    purpose: 'Protection against unexpected kingdom-wide shocks',
-    accent: '#d5b85a',
-  },
+  relief: { label: 'People & Relief', purpose: 'Food, emergency help, vulnerable families', accent: '#d98469' },
+  infrastructure: { label: 'Infrastructure', purpose: 'Roads, repairs, water access, community facilities', accent: '#7da6b6' },
+  learning: { label: 'Learning', purpose: 'Education, formation, youth development', accent: '#b79ad6' },
+  mission: { label: 'Mission & Service', purpose: 'Community outreach, care teams, mission support', accent: '#8fb37c' },
+  reserve: { label: 'Emergency Reserve', purpose: 'Protection against unexpected kingdom-wide shocks', accent: '#d5b85a' },
 };
 
 const EMERGENCIES: Emergency[] = [
@@ -88,12 +62,7 @@ const EMERGENCIES: Emergency[] = [
 ];
 
 const clamp = (value: number, min = 0, max = 100) => Math.min(max, Math.max(min, value));
-
-const starsForScore = (score: number): 1 | 2 | 3 => {
-  if (score >= 1450) return 3;
-  if (score >= 1125) return 2;
-  return 1;
-};
+const starsForScore = (score: number): 1 | 2 | 3 => (score >= 1450 ? 3 : score >= 1125 ? 2 : 1);
 
 const initialAllocation: Allocation = {
   relief: 150,
@@ -117,9 +86,7 @@ function Meter({ label, value }: { label: string; value: number }) {
   );
 }
 
-type Props = {
-  onFinish?: (result: BuklodGameResult) => void;
-};
+type Props = { onFinish?: (result: BuklodGameResult) => void };
 
 export function KingdomTreasuryGameV1({ onFinish }: Props) {
   const [allocation, setAllocation] = useState<Allocation>(initialAllocation);
@@ -130,29 +97,25 @@ export function KingdomTreasuryGameV1({ onFinish }: Props) {
   const [health, setHealth] = useState<KingdomHealth>({ welfare: 50, stability: 50, growth: 50, trust: 50 });
   const [message, setMessage] = useState('Build a balanced first budget. A kingdom with no reserve is fragile; a kingdom with no investment stops growing.');
   const [resultTitle, setResultTitle] = useState('');
+  const [quarterFailed, setQuarterFailed] = useState(false);
 
-  const totalAllocated = useMemo(
-    () => Object.values(allocation).reduce((sum, value) => sum + value, 0),
-    [allocation],
-  );
+  const totalAllocated = useMemo(() => Object.values(allocation).reduce((sum, value) => sum + value, 0), [allocation]);
   const unassigned = STARTING_TREASURY - totalAllocated;
   const emergency = EMERGENCIES[emergencyIndex];
   const reserveAvailable = allocation.reserve - responseSpend;
+  const resultStars = quarterFailed ? 0 : starsForScore(score);
 
-  const adjustFund = useCallback(
-    (key: FundKey, delta: number) => {
-      if (phase !== 'planning') return;
-      setAllocation((current) => {
-        const next = current[key] + delta;
-        if (next < 0) return current;
-        const currentTotal = Object.values(current).reduce((sum, value) => sum + value, 0);
-        if (delta > 0 && currentTotal + delta > STARTING_TREASURY) return current;
-        void playBuklodGameFeedback('move');
-        return { ...current, [key]: next };
-      });
-    },
-    [phase],
-  );
+  const adjustFund = useCallback((key: FundKey, delta: number) => {
+    if (phase !== 'planning') return;
+    setAllocation((current) => {
+      const next = current[key] + delta;
+      if (next < 0) return current;
+      const currentTotal = Object.values(current).reduce((sum, value) => sum + value, 0);
+      if (delta > 0 && currentTotal + delta > STARTING_TREASURY) return current;
+      void playBuklodGameFeedback('move');
+      return { ...current, [key]: next };
+    });
+  }, [phase]);
 
   const evaluatePlan = useCallback(() => {
     if (phase !== 'planning') return;
@@ -166,7 +129,7 @@ export function KingdomTreasuryGameV1({ onFinish }: Props) {
     const stability = clamp(25 + allocation.infrastructure * 0.15 + allocation.reserve * 0.08);
     const growth = clamp(25 + allocation.learning * 0.15 + allocation.infrastructure * 0.08 + allocation.mission * 0.04);
     const trust = clamp(30 + allocation.relief * 0.07 + allocation.learning * 0.06 + allocation.mission * 0.08);
-    const balance = Math.min(...Object.values(allocation).filter((_, index) => index < 4));
+    const balance = Math.min(allocation.relief, allocation.infrastructure, allocation.learning, allocation.mission);
     const reserveScore = allocation.reserve >= 200 ? 180 : allocation.reserve * 0.6;
     const planningScore = Math.round(welfare + stability + growth + trust + balance * 0.7 + reserveScore);
 
@@ -185,17 +148,14 @@ export function KingdomTreasuryGameV1({ onFinish }: Props) {
     void playBuklodGameFeedback('impact');
   }, [emergency, phase]);
 
-  const adjustResponse = useCallback(
-    (delta: number) => {
-      if (phase !== 'response') return;
-      setResponseSpend((current) => {
-        const next = Math.max(0, Math.min(allocation.reserve, current + delta));
-        if (next !== current) void playBuklodGameFeedback('move');
-        return next;
-      });
-    },
-    [allocation.reserve, phase],
-  );
+  const adjustResponse = useCallback((delta: number) => {
+    if (phase !== 'response') return;
+    setResponseSpend((current) => {
+      const next = Math.max(0, Math.min(allocation.reserve, current + delta));
+      if (next !== current) void playBuklodGameFeedback('move');
+      return next;
+    });
+  }, [allocation.reserve, phase]);
 
   const finishQuarter = useCallback(() => {
     if (phase !== 'response') return;
@@ -218,35 +178,42 @@ export function KingdomTreasuryGameV1({ onFinish }: Props) {
     const reserveBonus = reserveLeft >= 100 ? 180 : reserveLeft * 1.2;
     const diversityBonus = Math.min(allocation.relief, allocation.infrastructure, allocation.learning, allocation.mission) * 0.7;
     const finalScore = Math.round(score + healthAverage * 4.2 + responseBonus + reserveBonus + diversityBonus);
-    const stars = starsForScore(finalScore);
+    const failed = healthAverage < 42 || nextHealth.welfare < 30 || nextHealth.stability < 30;
+    const stars = failed ? 0 : starsForScore(finalScore);
 
     setHealth(nextHealth);
     setScore(finalScore);
+    setQuarterFailed(failed);
     setPhase('result');
 
     let title = 'BALANCED STEWARDSHIP';
-    if (healthAverage >= 78 && reserveLeft >= 100) title = 'KINGDOM THRIVES';
-    else if (healthAverage < 48) title = 'KINGDOM UNDER STRAIN';
+    if (failed) title = 'STEWARDSHIP BREAKDOWN';
+    else if (healthAverage >= 78 && reserveLeft >= 100) title = 'KINGDOM THRIVES';
+    else if (healthAverage < 55) title = 'KINGDOM UNDER STRAIN';
     else if (reserveLeft < 50) title = 'CRISIS SURVIVED • RESERVE EXHAUSTED';
     setResultTitle(title);
 
     setMessage(
-      shortfall === 0
-        ? `Emergency covered. ${reserveLeft} reserve remains for the next unknown challenge.`
-        : `The emergency response fell short by ${Math.round(shortfall)} coverage points. The kingdom absorbed the consequences.`,
+      failed
+        ? 'The quarter failed: critical kingdom health dropped below a safe level. Rebuild the budget with stronger balance and emergency protection.'
+        : shortfall === 0
+          ? `Emergency covered. ${reserveLeft} reserve remains for the next unknown challenge.`
+          : `The emergency response fell short by ${Math.round(shortfall)} coverage points. The kingdom absorbed the consequences.`,
     );
 
-    void playBuklodGameFeedback(stars >= 2 ? 'success' : 'impact');
+    void playBuklodGameFeedback(failed ? 'failure' : stars >= 2 ? 'success' : 'impact');
     onFinish?.({
       gameId: GAME_ID,
-      status: 'won',
+      status: failed ? 'lost' : 'won',
       score: finalScore,
       stars,
-      reward: {
-        xp: 135 + stars * 45,
-        kingdomXp: 60 + stars * 22,
-        collectibleKey: stars === 3 ? 'angel-balanced-steward-seal' : undefined,
-      },
+      reward: failed
+        ? { xp: 25, kingdomXp: 5 }
+        : {
+            xp: 135 + stars * 45,
+            kingdomXp: 60 + stars * 22,
+            collectibleKey: stars === 3 ? 'angel-balanced-steward-seal' : undefined,
+          },
     });
   }, [allocation, emergency, health, onFinish, phase, responseSpend, score]);
 
@@ -259,6 +226,7 @@ export function KingdomTreasuryGameV1({ onFinish }: Props) {
     setHealth({ welfare: 50, stability: 50, growth: 50, trust: 50 });
     setMessage('Build a balanced first budget. A kingdom with no reserve is fragile; a kingdom with no investment stops growing.');
     setResultTitle('');
+    setQuarterFailed(false);
   }, []);
 
   return (
@@ -298,21 +266,15 @@ export function KingdomTreasuryGameV1({ onFinish }: Props) {
                   <Text style={styles.fundPurpose}>{meta.purpose}</Text>
                 </View>
                 <View style={styles.controls}>
-                  <Pressable onPress={() => adjustFund(key, -STEP)} style={styles.stepButton}>
-                    <Text style={styles.stepText}>−</Text>
-                  </Pressable>
+                  <Pressable onPress={() => adjustFund(key, -STEP)} style={styles.stepButton}><Text style={styles.stepText}>−</Text></Pressable>
                   <Text style={styles.amount}>{allocation[key]}</Text>
-                  <Pressable onPress={() => adjustFund(key, STEP)} style={styles.stepButton}>
-                    <Text style={styles.stepText}>+</Text>
-                  </Pressable>
+                  <Pressable onPress={() => adjustFund(key, STEP)} style={styles.stepButton}><Text style={styles.stepText}>+</Text></Pressable>
                 </View>
               </View>
             );
           })}
 
-          <Pressable onPress={evaluatePlan} style={styles.primaryButton}>
-            <Text style={styles.primaryText}>APPROVE QUARTER BUDGET</Text>
-          </Pressable>
+          <Pressable onPress={evaluatePlan} style={styles.primaryButton}><Text style={styles.primaryText}>APPROVE QUARTER BUDGET</Text></Pressable>
         </View>
       ) : null}
 
@@ -321,9 +283,7 @@ export function KingdomTreasuryGameV1({ onFinish }: Props) {
           <Text style={styles.sectionKicker}>PHASE 2 • UNEXPECTED EVENT</Text>
           <Text style={styles.eventTitle}>The quarter does not go as planned.</Text>
           <Text style={styles.eventCopy}>Your original allocation created strengths and weaknesses. The reserve now becomes meaningful.</Text>
-          <Pressable onPress={revealEmergency} style={styles.dangerButton}>
-            <Text style={styles.dangerButtonText}>REVEAL EMERGENCY</Text>
-          </Pressable>
+          <Pressable onPress={revealEmergency} style={styles.dangerButton}><Text style={styles.dangerButtonText}>REVEAL EMERGENCY</Text></Pressable>
         </View>
       ) : null}
 
@@ -341,12 +301,8 @@ export function KingdomTreasuryGameV1({ onFinish }: Props) {
             <Text style={styles.responseAmount}>{responseSpend}</Text>
             <Text style={styles.responseRemaining}>{reserveAvailable} reserve remains</Text>
             <View style={styles.responseButtons}>
-              <Pressable onPress={() => adjustResponse(-STEP)} style={styles.responseStep}>
-                <Text style={styles.responseStepText}>−50</Text>
-              </Pressable>
-              <Pressable onPress={() => adjustResponse(STEP)} style={styles.responseStep}>
-                <Text style={styles.responseStepText}>+50</Text>
-              </Pressable>
+              <Pressable onPress={() => adjustResponse(-STEP)} style={styles.responseStep}><Text style={styles.responseStepText}>−50</Text></Pressable>
+              <Pressable onPress={() => adjustResponse(STEP)} style={styles.responseStep}><Text style={styles.responseStepText}>+50</Text></Pressable>
             </View>
           </View>
 
@@ -363,16 +319,14 @@ export function KingdomTreasuryGameV1({ onFinish }: Props) {
             </View>
           </View>
 
-          <Pressable onPress={finishQuarter} style={styles.primaryButton}>
-            <Text style={styles.primaryText}>COMMIT EMERGENCY RESPONSE</Text>
-          </Pressable>
+          <Pressable onPress={finishQuarter} style={styles.primaryButton}><Text style={styles.primaryText}>COMMIT EMERGENCY RESPONSE</Text></Pressable>
         </View>
       ) : null}
 
       {phase === 'result' ? (
-        <View style={[styles.panel, styles.resultPanel]}>
+        <View style={[styles.panel, styles.resultPanel, quarterFailed && styles.failedPanel]}>
           <Text style={styles.sectionKicker}>QUARTER RESULT</Text>
-          <Text style={styles.resultTitle}>{resultTitle}</Text>
+          <Text style={[styles.resultTitle, quarterFailed && styles.failedTitle]}>{resultTitle}</Text>
           <Text style={styles.finalScore}>{score}</Text>
           <Text style={styles.finalScoreLabel}>STEWARDSHIP SCORE</Text>
 
@@ -386,12 +340,10 @@ export function KingdomTreasuryGameV1({ onFinish }: Props) {
           <View style={styles.resultSummary}>
             <Text style={styles.summaryLine}>Reserve left: {allocation.reserve - responseSpend}</Text>
             <Text style={styles.summaryLine}>Emergency release: {responseSpend}</Text>
-            <Text style={styles.summaryLine}>Stars: {'★'.repeat(starsForScore(score))}</Text>
+            <Text style={styles.summaryLine}>{quarterFailed ? 'Quarter failed • no star awarded' : `Stars: ${'★'.repeat(resultStars)}`}</Text>
           </View>
 
-          <Pressable onPress={reset} style={styles.primaryButton}>
-            <Text style={styles.primaryText}>NEW QUARTER</Text>
-          </Pressable>
+          <Pressable onPress={reset} style={styles.primaryButton}><Text style={styles.primaryText}>NEW QUARTER</Text></Pressable>
         </View>
       ) : null}
     </View>
@@ -399,335 +351,65 @@ export function KingdomTreasuryGameV1({ onFinish }: Props) {
 }
 
 const styles = StyleSheet.create({
-  shell: {
-    width: '100%',
-    maxWidth: 900,
-    alignSelf: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 22,
-    gap: 16,
-  },
-  topRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: 16,
-  },
-  eyebrow: {
-    color: '#ecd28a',
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 1.1,
-  },
-  title: {
-    color: '#fff8e8',
-    fontSize: 31,
-    fontWeight: '900',
-    marginTop: 3,
-  },
-  treasuryBadge: {
-    alignItems: 'flex-end',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 16,
-    backgroundColor: 'rgba(19,13,5,0.64)',
-    borderWidth: 1,
-    borderColor: 'rgba(227,193,94,0.28)',
-  },
-  treasuryValue: {
-    color: '#ffe7a1',
-    fontSize: 27,
-    fontWeight: '900',
-  },
-  treasuryLabel: {
-    color: '#cfb874',
-    fontSize: 9,
-    fontWeight: '900',
-    letterSpacing: 0.9,
-  },
-  message: {
-    color: '#eadcc1',
-    fontSize: 14,
-    lineHeight: 21,
-  },
-  panel: {
-    borderRadius: 24,
-    padding: 18,
-    backgroundColor: 'rgba(18,13,7,0.74)',
-    borderWidth: 1,
-    borderColor: 'rgba(229,198,111,0.22)',
-    gap: 14,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-  },
-  sectionKicker: {
-    color: '#d8bd72',
-    fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 1,
-  },
-  sectionTitle: {
-    color: '#fff8e9',
-    fontSize: 23,
-    fontWeight: '900',
-    marginTop: 2,
-  },
-  unassignedPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: 'rgba(128,73,47,0.72)',
-  },
-  unassignedReady: {
-    backgroundColor: 'rgba(61,103,63,0.76)',
-  },
-  unassignedText: {
-    color: '#fff4de',
-    fontSize: 11,
-    fontWeight: '900',
-  },
-  fundRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderRadius: 18,
-    padding: 12,
-    backgroundColor: 'rgba(255,255,255,0.035)',
-  },
-  fundAccent: {
-    width: 7,
-    alignSelf: 'stretch',
-    borderRadius: 999,
-  },
-  fundCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  fundLabel: {
-    color: '#fff7e7',
-    fontSize: 15,
-    fontWeight: '900',
-  },
-  fundPurpose: {
-    color: '#c8bda7',
-    fontSize: 11,
-    lineHeight: 16,
-  },
-  controls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepButton: {
-    width: 35,
-    height: 35,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  stepText: {
-    color: '#ffe6a1',
-    fontSize: 21,
-    fontWeight: '900',
-  },
-  amount: {
-    minWidth: 40,
-    textAlign: 'center',
-    color: '#ffffff',
-    fontSize: 17,
-    fontWeight: '900',
-  },
-  primaryButton: {
-    minHeight: 50,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 18,
-    backgroundColor: '#b88a2f',
-  },
-  primaryText: {
-    color: '#160f05',
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 0.8,
-  },
-  eventPanel: {
-    minHeight: 280,
-    justifyContent: 'center',
-  },
-  eventTitle: {
-    color: '#fff5e3',
-    fontSize: 27,
-    fontWeight: '900',
-  },
-  eventCopy: {
-    color: '#ddceb7',
-    fontSize: 14,
-    lineHeight: 22,
-  },
-  dangerButton: {
-    minHeight: 50,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#7d4033',
-  },
-  dangerButtonText: {
-    color: '#fff0e9',
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 0.8,
-  },
-  responsePanel: {
-    gap: 16,
-  },
-  severityRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  severity: {
-    color: '#de8c75',
-    fontSize: 11,
-    fontWeight: '900',
-  },
-  responseCard: {
-    alignItems: 'center',
-    gap: 5,
-    borderRadius: 20,
-    padding: 18,
-    backgroundColor: 'rgba(228,190,92,0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(228,190,92,0.18)',
-  },
-  responseLabel: {
-    color: '#d7c392',
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.9,
-  },
-  responseAmount: {
-    color: '#fff0b5',
-    fontSize: 44,
-    fontWeight: '900',
-  },
-  responseRemaining: {
-    color: '#c8bda3',
-    fontSize: 12,
-  },
-  responseButtons: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 8,
-  },
-  responseStep: {
-    minWidth: 90,
-    minHeight: 42,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  responseStepText: {
-    color: '#ffe5a0',
-    fontWeight: '900',
-  },
-  contextRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  contextCard: {
-    flex: 1,
-    minHeight: 100,
-    borderRadius: 16,
-    padding: 12,
-    backgroundColor: 'rgba(255,255,255,0.035)',
-  },
-  contextLabel: {
-    color: '#ac9f88',
-    fontSize: 9,
-    fontWeight: '900',
-    letterSpacing: 0.7,
-  },
-  contextValue: {
-    color: '#fff7e8',
-    fontSize: 13,
-    fontWeight: '800',
-    marginTop: 5,
-  },
-  contextAmount: {
-    color: '#f1d27b',
-    fontSize: 24,
-    fontWeight: '900',
-    marginTop: 4,
-  },
-  resultPanel: {
-    alignItems: 'stretch',
-  },
-  resultTitle: {
-    color: '#fff3c9',
-    fontSize: 30,
-    fontWeight: '900',
-  },
-  finalScore: {
-    color: '#ffffff',
-    fontSize: 46,
-    fontWeight: '900',
-    marginTop: 4,
-  },
-  finalScoreLabel: {
-    color: '#bea96f',
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 1,
-  },
-  healthGrid: {
-    gap: 12,
-    marginTop: 6,
-  },
-  meterBlock: {
-    gap: 5,
-  },
-  meterLabelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  meterLabel: {
-    color: '#eadfc8',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  meterValue: {
-    color: '#fff0b3',
-    fontSize: 12,
-    fontWeight: '900',
-  },
-  meterTrack: {
-    height: 7,
-    borderRadius: 999,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.07)',
-  },
-  meterFill: {
-    height: '100%',
-    borderRadius: 999,
-    backgroundColor: '#d5b85a',
-  },
-  resultSummary: {
-    borderRadius: 16,
-    padding: 12,
-    backgroundColor: 'rgba(255,255,255,0.035)',
-    gap: 4,
-  },
-  summaryLine: {
-    color: '#d8ccb5',
-    fontSize: 12,
-  },
+  shell: { width: '100%', maxWidth: 900, alignSelf: 'center', paddingHorizontal: 16, paddingVertical: 22, gap: 16 },
+  topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 },
+  eyebrow: { color: '#ecd28a', fontSize: 12, fontWeight: '900', letterSpacing: 1.1 },
+  title: { color: '#fff8e8', fontSize: 31, fontWeight: '900', marginTop: 3 },
+  treasuryBadge: { alignItems: 'flex-end', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 16, backgroundColor: 'rgba(19,13,5,0.64)', borderWidth: 1, borderColor: 'rgba(227,193,94,0.28)' },
+  treasuryValue: { color: '#ffe7a1', fontSize: 27, fontWeight: '900' },
+  treasuryLabel: { color: '#cfb874', fontSize: 9, fontWeight: '900', letterSpacing: 0.9 },
+  message: { color: '#eadcc1', fontSize: 14, lineHeight: 21 },
+  panel: { borderRadius: 24, padding: 18, backgroundColor: 'rgba(18,13,7,0.74)', borderWidth: 1, borderColor: 'rgba(229,198,111,0.22)', gap: 14 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
+  sectionKicker: { color: '#d8bd72', fontSize: 11, fontWeight: '900', letterSpacing: 1 },
+  sectionTitle: { color: '#fff8e9', fontSize: 23, fontWeight: '900', marginTop: 2 },
+  unassignedPill: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, backgroundColor: 'rgba(128,73,47,0.72)' },
+  unassignedReady: { backgroundColor: 'rgba(61,103,63,0.76)' },
+  unassignedText: { color: '#fff4de', fontSize: 11, fontWeight: '900' },
+  fundRow: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 18, padding: 12, backgroundColor: 'rgba(255,255,255,0.035)', flexWrap: 'wrap' },
+  fundAccent: { width: 7, minHeight: 54, borderRadius: 999 },
+  fundCopy: { flex: 1, minWidth: 190, gap: 2 },
+  fundLabel: { color: '#fff7e7', fontSize: 15, fontWeight: '900' },
+  fundPurpose: { color: '#c8bda7', fontSize: 11, lineHeight: 16 },
+  controls: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  stepButton: { width: 35, height: 35, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.08)' },
+  stepText: { color: '#ffe6a1', fontSize: 21, fontWeight: '900' },
+  amount: { minWidth: 40, textAlign: 'center', color: '#ffffff', fontSize: 17, fontWeight: '900' },
+  primaryButton: { minHeight: 50, borderRadius: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18, backgroundColor: '#b88a2f' },
+  primaryText: { color: '#160f05', fontSize: 12, fontWeight: '900', letterSpacing: 0.8 },
+  eventPanel: { minHeight: 280, justifyContent: 'center' },
+  eventTitle: { color: '#fff5e3', fontSize: 27, fontWeight: '900' },
+  eventCopy: { color: '#ddceb7', fontSize: 14, lineHeight: 22 },
+  dangerButton: { minHeight: 50, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: '#7d4033' },
+  dangerButtonText: { color: '#fff0e9', fontSize: 12, fontWeight: '900', letterSpacing: 0.8 },
+  responsePanel: { gap: 16 },
+  severityRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
+  severity: { color: '#de8c75', fontSize: 11, fontWeight: '900' },
+  responseCard: { alignItems: 'center', gap: 5, borderRadius: 20, padding: 18, backgroundColor: 'rgba(228,190,92,0.08)', borderWidth: 1, borderColor: 'rgba(228,190,92,0.18)' },
+  responseLabel: { color: '#d7c392', fontSize: 10, fontWeight: '900', letterSpacing: 0.9 },
+  responseAmount: { color: '#fff0b5', fontSize: 44, fontWeight: '900' },
+  responseRemaining: { color: '#c8bda3', fontSize: 12 },
+  responseButtons: { flexDirection: 'row', gap: 10, marginTop: 8 },
+  responseStep: { minWidth: 90, minHeight: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.08)' },
+  responseStepText: { color: '#ffe5a0', fontWeight: '900' },
+  contextRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
+  contextCard: { flex: 1, minWidth: 180, minHeight: 100, borderRadius: 16, padding: 12, backgroundColor: 'rgba(255,255,255,0.035)' },
+  contextLabel: { color: '#ac9f88', fontSize: 9, fontWeight: '900', letterSpacing: 0.7 },
+  contextValue: { color: '#fff7e8', fontSize: 13, fontWeight: '800', marginTop: 5 },
+  contextAmount: { color: '#f1d27b', fontSize: 24, fontWeight: '900', marginTop: 4 },
+  resultPanel: { alignItems: 'stretch' },
+  failedPanel: { borderColor: 'rgba(205,93,70,0.48)' },
+  resultTitle: { color: '#fff3c9', fontSize: 30, fontWeight: '900' },
+  failedTitle: { color: '#ffb49d' },
+  finalScore: { color: '#ffffff', fontSize: 46, fontWeight: '900', marginTop: 4 },
+  finalScoreLabel: { color: '#bea96f', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+  healthGrid: { gap: 12, marginTop: 6 },
+  meterBlock: { gap: 5 },
+  meterLabelRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  meterLabel: { color: '#eadfc8', fontSize: 12, fontWeight: '800' },
+  meterValue: { color: '#fff0b3', fontSize: 12, fontWeight: '900' },
+  meterTrack: { height: 7, borderRadius: 999, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.07)' },
+  meterFill: { height: '100%', borderRadius: 999, backgroundColor: '#d5b85a' },
+  resultSummary: { borderRadius: 16, padding: 12, backgroundColor: 'rgba(255,255,255,0.035)', gap: 4 },
+  summaryLine: { color: '#d8ccb5', fontSize: 12 },
 });
