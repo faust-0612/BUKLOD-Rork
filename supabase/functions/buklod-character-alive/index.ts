@@ -62,6 +62,9 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         source_url: sourceUrl,
+        // Lively gives the approved flat character stronger head/facial motion
+        // while the source artwork remains the identity anchor.
+        driver_url: 'bank://lively/driver-06',
         script: {
           type: 'text',
           input: text,
