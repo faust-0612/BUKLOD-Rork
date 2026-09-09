@@ -25,8 +25,9 @@ export function LivingCityDispatchGameV1({onFinish}:Props){
  const available=useMemo(()=>Object.values(energy).reduce((a,b)=>a+b,0),[energy]);
  const dispatch=useCallback((team:TeamKey)=>{
   if(finished||!request)return;
-  if(energy[team]<=0){setMessage(`${TEAM_LABEL[team]} has no deployment capacity left.`);void playBuklodGameFeedback('impact');return;}
-  const match=team===request.need;const cost=request.distance;const nextEnergy={...energy,[team]:Math.max(0,energy[team]-cost)};
+  const cost=request.distance;
+  if(energy[team]<cost){setMessage(`${TEAM_LABEL[team]} needs ${cost} capacity for this distance but has only ${energy[team]}.`);void playBuklodGameFeedback('impact');return;}
+  const match=team===request.need;const nextEnergy={...energy,[team]:energy[team]-cost};
   const urgencyPoints=request.urgency*110;const fitBonus=match?180:-90;const distancePenalty=request.distance*25;
   const delta=Math.max(0,urgencyPoints+fitBonus-distancePenalty);const trustDelta=match?6+request.urgency*2:-8-request.urgency*2;
   const nextTrust=Math.max(0,Math.min(100,trust+trustDelta));const nextScore=score+delta;
