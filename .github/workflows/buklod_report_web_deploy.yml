@@ -63,7 +63,7 @@ jobs:
       - name: Export web inside EAS production environment
         shell: bash
         run: |
-          npx eas-cli@latest env:exec --environment production \
+          npx eas-cli@latest env:exec production \
             'rm -rf dist && npx expo export --platform web --output-dir dist --clear && node scripts/inject-adsense-web-head.cjs dist' \
             --non-interactive
 
