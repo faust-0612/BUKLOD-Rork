@@ -1,0 +1,54 @@
+name: BUKLOD Web Rollback R27A Exact
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/web_rollback_r27a_exact.yml'
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+jobs:
+  promote-exact-r27a:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current repository identity
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify rollback target
+        shell: bash
+        run: |
+          test "${{ github.repository }}" = "faust-0612/BUKLOD-Rork"
+          echo 'Rollback target: R27A named-character deployment hzza0jipvs'
+          echo 'Expected immutable URL: https://buklod--hzza0jipvs.expo.app'
+          echo 'Web alias only; no Android OTA, no DB migration, no source artifact rebuild.'
+
+      - name: Expo credential preflight
+        shell: bash
+        run: |
+          if [ -z "${EXPO_TOKEN:-}" ]; then
+            echo 'EXPO_TOKEN repository secret is missing.'
+            exit 1
+          fi
+
+      - name: Promote exact historical R27A deployment to production
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest deploy:alias --prod --id=hzza0jipvs --non-interactive
+
+      - name: Rollback status
+        shell: bash
+        run: |
+          echo 'Exact R27A deployment promoted to https://buklod.expo.app'
+          echo 'Immutable deployment: https://buklod--hzza0jipvs.expo.app'
