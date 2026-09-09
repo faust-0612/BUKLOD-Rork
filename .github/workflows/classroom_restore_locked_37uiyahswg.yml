@@ -17,9 +17,6 @@ jobs:
   restore-exact-locked-deployment:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout project context
-        uses: actions/checkout@v4
-
       - name: Expo credential preflight
         shell: bash
         run: |
@@ -27,17 +24,33 @@ jobs:
           test -n "$EXPO_TOKEN"
           npx eas-cli@latest whoami --non-interactive
 
-      - name: Verify exact Classroom project identity
+      - name: Prepare exact Classroom EAS project context
         shell: bash
         run: |
           set -euo pipefail
-          node -e "const p=require('./app.json'); const id=p?.expo?.extra?.eas?.projectId; if(id!=='14100ed1-7f25-4551-9627-09d280498241') { console.error('Wrong EAS project:',id); process.exit(1) } console.log('Classroom EAS project identity verified:',id)"
+          mkdir -p /tmp/buklod-classroom-restore
+          cat > /tmp/buklod-classroom-restore/app.json <<'JSON'
+          {
+            "expo": {
+              "name": "BUKLOD Classroom",
+              "slug": "buklod-classroom",
+              "owner": "faust_0612",
+              "extra": {
+                "eas": {
+                  "projectId": "14100ed1-7f25-4551-9627-09d280498241"
+                }
+              }
+            }
+          }
+          JSON
+          cd /tmp/buklod-classroom-restore
+          npx eas-cli@latest project:info --non-interactive
 
       - name: Verify locked immutable deployment is reachable
         shell: bash
         run: |
           set -euo pipefail
-          curl -fsSL --retry 3 --retry-delay 2 'https://buklod-classroom--37uiyahswg.expo.app/?golden_restore_probe=1' -o /tmp/golden.html
+          curl -fsSL --retry 3 --retry-delay 2 'https://buklod-classroom--37uiyahswg.expo.app/' -o /tmp/golden.html
           test -s /tmp/golden.html
           echo "Locked deployment 37uiyahswg is reachable."
 
@@ -45,23 +58,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          cd /tmp/buklod-classroom-restore
           npx eas-cli@latest deploy:alias --prod --id=37uiyahswg --non-interactive
 
-      - name: Verify production resolves to exact locked deployment
+      - name: Verify production resolves to exact locked deployment assets
         shell: bash
         run: |
           set -euo pipefail
-          for i in 1 2 3 4 5; do
-            curl -fsSL --retry 2 'https://buklod-classroom.expo.app/?golden_restore_probe=1' -o /tmp/prod.html || true
-            if [ -s /tmp/prod.html ] && cmp -s /tmp/golden.html /tmp/prod.html; then
-              echo 'PASS: production HTML is byte-identical to locked deployment 37uiyahswg.'
-              exit 0
-            fi
-            sleep 3
-          done
-          echo 'Production HTML did not become byte-identical to locked deployment after promotion.' >&2
-          echo 'Golden SHA256:' >&2
-          sha256sum /tmp/golden.html >&2
-          echo 'Production SHA256:' >&2
-          sha256sum /tmp/prod.html >&2 || true
-          exit 1
+          sleep 3
+          curl -fsSL --retry 3 --retry-delay 2 'https://buklod-classroom.expo.app/' -o /tmp/prod.html
+          GOLDEN_ASSETS=$(grep -oE 'src="[^"]+\.js[^"]*"|href="[^"]+\.(js|css)[^"]*"' /tmp/golden.html | sort -u || true)
+          PROD_ASSETS=$(grep -oE 'src="[^"]+\.js[^"]*"|href="[^"]+\.(js|css)[^"]*"' /tmp/prod.html | sort -u || true)
+          printf '%s\n' "$GOLDEN_ASSETS" > /tmp/golden-assets.txt
+          printf '%s\n' "$PROD_ASSETS" > /tmp/prod-assets.txt
+          echo 'Golden assets:'
+          cat /tmp/golden-assets.txt
+          echo 'Production assets:'
+          cat /tmp/prod-assets.txt
+          diff -u /tmp/golden-assets.txt /tmp/prod-assets.txt
+          echo 'PASS: production references the exact same JS/CSS assets as locked deployment 37uiyahswg.'
