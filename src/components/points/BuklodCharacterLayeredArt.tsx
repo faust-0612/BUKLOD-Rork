@@ -1,37 +1,25 @@
-/* BUKLOD_CHARACTER_R25_PROPORTION_SAFE_LAYERING */
-/* BUKLOD_CHARACTER_R25C_CONTAINMENT */
-/* BUKLOD_CHARACTER_R25D_CONTEXT_VIEWPORT */
-import React, {
-  Fragment,
-  useMemo,
-  useState,
-} from 'react';
+/* BUKLOD_CHARACTER_SELECTION_V2_ACTIVE_ART_WRAPPER */
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 
+import BuklodCharacterLayeredArtLegacy
+  from '@/components/points/BuklodCharacterLayeredArtLegacy';
+import BuklodSpecialCharacterArtV2
+  from '@/components/points/BuklodSpecialCharacterArtV2';
+import { useAuth } from '@/providers/AuthProvider';
 import {
-  Image,
-  StyleSheet,
-  View,
-} from 'react-native';
-
-import BuklodLocalCharacterFigure
-  from '@/components/points/BuklodLocalCharacterFigure';
-
-import {
-  assetUrl,
-  BASE_ASPECT,
-  placementFor,
-} from '@/lib/character-lab-core/assets';
-
-import {
-  assetKeyFor,
-  getItem,
-  LAYER_ORDER,
-} from '@/lib/character-lab-core/catalog';
+  CORE_CHARACTER_ORDER,
+  SPECIAL_CHARACTER_ORDER,
+  getCachedBuklodCharacterSelectionV2,
+  getMyBuklodCharacterSelectionV2,
+  subscribeBuklodCharacterSelectionV2,
+  type BuklodSpecialCharacterId,
+  type BuklodCharacterSelectionV2State,
+} from '@/lib/buklodCharacterSelectionV2';
 
 import type {
   BodyId,
   Equipment,
-  SlotId,
 } from '@/lib/character-lab-core/types';
 
 type Props = {
@@ -43,458 +31,99 @@ type Props = {
   showEffects?: boolean;
 };
 
-type Layer = {
-  key: string;
-  url: string;
-  tintColor: string | null;
-  placement: {
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-  };
-};
-
-const pct = (value: number) =>
-  `${value}%` as `${number}%`;
-
-function alphaHex(
-  color: string,
-  alpha: string,
-) {
-  return /^#[0-9a-f]{6}$/i.test(color)
-    ? `${color}${alpha}`
-    : color;
-}
-
-function resolveLayer(
-  equipment: Equipment,
-  body: BodyId,
-  slot: SlotId,
-): Layer | null {
-  const item = getItem(equipment[slot]);
-
-  if (!item) return null;
-
-  const key = assetKeyFor(item, body);
-  if (!key) return null;
-
-  const url = assetUrl(key);
-  const placement = placementFor(key);
-
-  if (!url || !placement) return null;
-
-  return {
-    key: `${slot}:${item.id}:${key}`,
-    url,
-    placement,
-    tintColor:
-      item.id.startsWith('prestige_')
-        ? item.swatch[1]
-        : null,
-  };
-}
-
-export default function BuklodCharacterLayeredArt({
-  body,
-  equipment,
-  height,
-  viewportWidth,
-  showStage = false,
-  showEffects = true,
-}: Props) {
-  const [baseFailed, setBaseFailed] =
-    useState(false);
-
-  const aspect = BASE_ASPECT[body] || 0.37;
-  const artWidth = Math.max(
-    1,
-    Math.round(height * aspect),
-  );
-
-  // R25D: compact surfaces get a hard viewport without distorting the
-  // character. The full layered figure keeps its native proportions and is
-  // centered inside the context-specific frame.
-  const resolvedViewportWidth =
-    typeof viewportWidth === 'number' &&
-    Number.isFinite(viewportWidth) &&
-    viewportWidth > 0
-      ? Math.max(1, Math.round(viewportWidth))
-      : null;
-
-  const frameWidth =
-    resolvedViewportWidth ??
-    (showStage
-      ? Math.max(116, artWidth * 2.25)
-      : artWidth);
-
-  const baseItem =
-    getItem(equipment.base) ??
-    getItem(
-      body === 'female'
-        ? 'base_female'
-        : 'base_male',
+export default function BuklodCharacterLayeredArt(props: Props) {
+  const { session } = useAuth();
+  const userId = session?.user?.id ?? null;
+  const [selection, setSelection] =
+    useState<BuklodCharacterSelectionV2State | null>(() =>
+      getCachedBuklodCharacterSelectionV2(userId),
     );
 
-  const baseKey = baseItem
-    ? assetKeyFor(baseItem, body)
-    : null;
+  useEffect(() => {
+    let mounted = true;
 
-  const baseUrl = assetUrl(
-    baseKey ??
-      (body === 'female'
-        ? 'char_base_female'
-        : 'char_base_male'),
-  );
+    if (!userId) {
+      setSelection(null);
+      return () => {
+        mounted = false;
+      };
+    }
 
-  const layers = useMemo(
-    () =>
-      LAYER_ORDER
-        .filter(
-          (slot) =>
-            slot !== 'base' &&
-            slot !== 'background' &&
-            slot !== 'special' &&
-            slot !== 'badge',
-        )
-        .map((slot) =>
-          resolveLayer(equipment, body, slot),
-        )
-        .filter(
-          (row): row is Layer => Boolean(row),
-        ),
-    [body, equipment],
-  );
+    const cached = getCachedBuklodCharacterSelectionV2(userId);
+    if (cached) setSelection(cached);
 
-  const backgroundItem = getItem(
-    equipment.background,
-  );
+    void getMyBuklodCharacterSelectionV2(userId).then(
+      (state) => {
+        if (mounted) setSelection(state);
+      },
+      () => {
+        // Keep legacy art as the safe fallback when V2 state is unavailable.
+      },
+    );
 
-  const backgroundUrl = showStage
-    ? assetUrl(backgroundItem?.stage ?? null)
-    : null;
+    const unsubscribe = subscribeBuklodCharacterSelectionV2(
+      (changedUserId, state) => {
+        if (mounted && changedUserId === userId) {
+          setSelection(state);
+        }
+      },
+    );
 
-  const backgroundTint =
-    backgroundItem?.id.startsWith('prestige_')
-      ? backgroundItem.swatch[1]
-      : null;
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, [userId]);
 
-  const specialItem = getItem(
-    equipment.special,
-  );
+  const activeId = selection?.active_character_id;
 
-  const effect =
-    showEffects
-      ? specialItem?.effect
-      : 'none';
+  if (
+    activeId &&
+    CORE_CHARACTER_ORDER.includes(activeId as any)
+  ) {
+    // Base-character selection/state is V2, while the existing layered
+    // wardrobe remains the safe visual renderer until its full progressive
+    // atlas is promoted separately. This preserves current production art
+    // and prevents a missing-asset regression.
+    return <BuklodCharacterLayeredArtLegacy {...props} />;
+  }
 
-  const effectColor =
-    specialItem?.swatch?.[1] ?? '#4FBF6B';
+  if (
+    activeId &&
+    SPECIAL_CHARACTER_ORDER.includes(activeId as BuklodSpecialCharacterId)
+  ) {
+    const frameWidth =
+      props.viewportWidth ?? Math.max(110, Math.round(props.height * 0.78));
 
-  const badgeItem = getItem(
-    equipment.badge,
-  );
-
-  const badgeColor =
-    badgeItem?.swatch?.[1] ?? '#F0B429';
-
-  if (!baseUrl || baseFailed) {
     return (
       <View
-        style={[
-          styles.fallback,
-          { width: frameWidth, height },
-        ]}
         pointerEvents="none"
+        style={[
+          styles.specialFrame,
+          {
+            width: frameWidth,
+            height: props.height,
+            backgroundColor: props.showStage ? '#EAF2ED' : 'transparent',
+          },
+        ]}
       >
-        <BuklodLocalCharacterFigure
-          body={body}
-          equipment={equipment}
-          width={artWidth}
-          mode="full"
+        <BuklodSpecialCharacterArtV2
+          characterId={activeId as BuklodSpecialCharacterId}
+          height={props.height}
+          viewportWidth={frameWidth}
         />
       </View>
     );
   }
 
-  return (
-    <View
-      style={[
-        styles.outer,
-        {
-          width: frameWidth,
-          height,
-          overflow: resolvedViewportWidth
-            ? 'hidden'
-            : 'visible',
-        },
-      ]}
-      pointerEvents="none"
-    >
-      {showStage ? (
-        <View style={styles.stage}>
-          {backgroundUrl ? (
-            <Image
-              source={{ uri: backgroundUrl }}
-              resizeMode="cover"
-              fadeDuration={0}
-              style={StyleSheet.absoluteFill}
-            />
-          ) : null}
-
-          {backgroundTint ? (
-            <View
-              style={[
-                StyleSheet.absoluteFill,
-                {
-                  backgroundColor:
-                    alphaHex(backgroundTint, '24'),
-                },
-              ]}
-            />
-          ) : null}
-
-          <View style={styles.stageWash} />
-
-          {effect && effect !== 'none' ? (
-            <View
-              style={[
-                styles.effectGlow,
-                {
-                  backgroundColor:
-                    alphaHex(effectColor, '18'),
-                  borderColor:
-                    alphaHex(effectColor, '54'),
-                },
-              ]}
-            />
-          ) : null}
-
-          {effect === 'ascend' ? (
-            <>
-              <View
-                style={[
-                  styles.effectRing,
-                  styles.effectRingLarge,
-                  {
-                    borderColor:
-                      alphaHex(effectColor, '70'),
-                  },
-                ]}
-              />
-              <View
-                style={[
-                  styles.effectRing,
-                  styles.effectRingSmall,
-                  {
-                    borderColor:
-                      alphaHex(effectColor, '90'),
-                  },
-                ]}
-              />
-            </>
-          ) : effect === 'aura' ? (
-            <View
-              style={[
-                styles.effectRing,
-                styles.auraRing,
-                {
-                  borderColor:
-                    alphaHex(effectColor, '80'),
-                },
-              ]}
-            />
-          ) : null}
-
-          {badgeItem &&
-          badgeItem.id !== 'badge_none' ? (
-            <View
-              style={[
-                styles.badgeMark,
-                {
-                  borderColor:
-                    alphaHex(badgeColor, 'A0'),
-                  backgroundColor:
-                    alphaHex(badgeColor, '28'),
-                },
-              ]}
-            >
-              <View
-                style={[
-                  styles.badgeDot,
-                  { backgroundColor: badgeColor },
-                ]}
-              />
-            </View>
-          ) : null}
-        </View>
-      ) : null}
-
-      <View
-        style={[
-          styles.art,
-          { width: artWidth, height },
-        ]}
-      >
-        <Image
-          source={{ uri: baseUrl }}
-          resizeMode="contain"
-          fadeDuration={0}
-          onError={() => setBaseFailed(true)}
-          style={StyleSheet.absoluteFill}
-        />
-
-        {layers.map(
-          ({
-            key,
-            url,
-            placement,
-            tintColor,
-          }) => (
-            <Fragment key={key}>
-              <Image
-                source={{ uri: url }}
-                resizeMode="contain"
-                fadeDuration={0}
-                style={{
-                  position: 'absolute',
-                  left: pct(placement.left),
-                  top: pct(placement.top),
-                  width: pct(placement.width),
-                  height: pct(placement.height),
-                }}
-              />
-
-              {tintColor ? (
-                <Image
-                  source={{ uri: url }}
-                  resizeMode="contain"
-                  fadeDuration={0}
-                  style={{
-                    position: 'absolute',
-                    left: pct(placement.left),
-                    top: pct(placement.top),
-                    width: pct(placement.width),
-                    height: pct(placement.height),
-                    tintColor,
-                    opacity: 0.24,
-                  }}
-                />
-              ) : null}
-            </Fragment>
-          ),
-        )}
-      </View>
-
-      <View
-        style={[
-          styles.shadow,
-          {
-            width: Math.max(
-              30,
-              artWidth * 0.75,
-            ),
-          },
-        ]}
-      />
-    </View>
-  );
+  return <BuklodCharacterLayeredArtLegacy {...props} />;
 }
 
 const styles = StyleSheet.create({
-  outer: {
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    overflow: 'visible',
-  },
-
-  art: {
-    zIndex: 3,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-
-  fallback: {
+  specialFrame: {
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-  },
-
-  stage: {
-    ...StyleSheet.absoluteFill,
-    overflow: 'hidden',
-    borderRadius: 24,
-    backgroundColor: '#EAF2ED',
-  },
-
-  stageWash: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor:
-      'rgba(247,250,248,0.18)',
-  },
-
-  effectGlow: {
-    position: 'absolute',
-    alignSelf: 'center',
-    bottom: 4,
-    width: '82%',
-    height: '66%',
-    borderRadius: 999,
-    borderWidth: 1,
-  },
-
-  effectRing: {
-    position: 'absolute',
-    alignSelf: 'center',
-    bottom: 10,
-    borderRadius: 999,
-    borderWidth: 2,
-  },
-
-  auraRing: {
-    width: '66%',
-    height: 22,
-  },
-
-  effectRingLarge: {
-    width: '78%',
-    height: 30,
-  },
-
-  effectRingSmall: {
-    width: '52%',
-    height: 18,
-    bottom: 16,
-  },
-
-  badgeMark: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 25,
-    height: 25,
-    borderRadius: 13,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  badgeDot: {
-    width: 9,
-    height: 9,
-    borderRadius: 5,
-  },
-
-  shadow: {
-    position: 'absolute',
-    zIndex: 2,
-    alignSelf: 'center',
-    bottom: 1,
-    height: 9,
-    borderRadius: 999,
-    backgroundColor:
-      'rgba(22,48,31,0.15)',
-    transform: [{ scaleY: 0.55 }],
+    borderRadius: 20,
   },
 });
