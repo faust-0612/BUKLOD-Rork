@@ -2,33 +2,36 @@ import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { getBuklodGameDefinition } from '@/features/games/registry';
+import { BuklodGameStage } from '@/features/games/runtime/BuklodGameStage';
 import { PlaygroundMemoryGame } from '@/features/games/trudice/PlaygroundMemoryGame';
 
 const definition = getBuklodGameDefinition('trudice-playground-memory');
 
 export default function TrudicePlaygroundMemoryScreen() {
   return (
-    <ScrollView contentContainerStyle={styles.page}>
-      <View style={styles.intro}>
-        <Text style={styles.kicker}>BUKLOD KINGDOM • STANDALONE GAME LAB</Text>
-        <Text style={styles.heading}>{definition?.title ?? 'Playground Memory'}</Text>
-        <Text style={styles.copy}>
-          {definition?.objective ?? 'Find all matching pairs.'}
-        </Text>
-        <Text style={styles.note}>
-          Prototype only: no character asset, Kingdom station unlock, XP persistence, or collectible write is connected yet.
-        </Text>
-      </View>
+    <BuklodGameStage biome="playground">
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.page}>
+        <View style={styles.intro}>
+          <Text style={styles.kicker}>BUKLOD KINGDOM • GAME LAB</Text>
+          <Text style={styles.heading}>{definition?.title ?? 'Playground Memory'}</Text>
+          <Text style={styles.copy}>{definition?.objective ?? 'Find all matching pairs.'}</Text>
+          <Text style={styles.note}>
+            Gameplay prototype: final Trudice art, Kingdom station unlocks, XP persistence and collectible writes remain intentionally disconnected while the experience is tuned.
+          </Text>
+        </View>
 
-      <PlaygroundMemoryGame />
-    </ScrollView>
+        <PlaygroundMemoryGame />
+      </ScrollView>
+    </BuklodGameStage>
   );
 }
 
 const styles = StyleSheet.create({
+  scroll: {
+    flex: 1,
+  },
   page: {
     flexGrow: 1,
-    backgroundColor: '#f5e6b8',
     paddingHorizontal: 16,
     paddingTop: 36,
     paddingBottom: 64,
@@ -41,24 +44,24 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   kicker: {
-    color: '#8a552b',
+    color: '#f5d7ff',
     fontSize: 12,
     fontWeight: '900',
     letterSpacing: 1.2,
   },
   heading: {
-    color: '#512e67',
+    color: '#ffffff',
     fontSize: 38,
     fontWeight: '900',
   },
   copy: {
-    color: '#5e4937',
+    color: '#f7eefe',
     fontSize: 16,
     lineHeight: 24,
     maxWidth: 760,
   },
   note: {
-    color: '#8b5d1f',
+    color: '#ffe3a2',
     fontSize: 13,
     lineHeight: 19,
     maxWidth: 760,
