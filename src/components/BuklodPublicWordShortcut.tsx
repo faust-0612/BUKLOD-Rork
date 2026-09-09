@@ -22,6 +22,7 @@ import {
   useBuklodScope,
 } from '@/providers/BuklodScopeProvider';
 
+/* BUKLOD_CHARACTER_V2_WEB_RELEASE_TRIGGER_R1 */
 /* BUKLOD_HOME_IDENTITY_R23_EQUAL_SHORTCUTS */
 export default function BuklodPublicWordShortcut() {
   const { colors } = useBuklodPresentation();
