@@ -28,16 +28,10 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Restore official BUKLOD Report icon
+      - name: Verify official BUKLOD Report icon
         run: |
           test -s assets/source-icon.jpg
-          if command -v magick >/dev/null 2>&1; then
-            magick assets/source-icon.jpg -resize 1024x1024 assets/icon.png
-          else
-            convert assets/source-icon.jpg -resize 1024x1024 assets/icon.png
-          fi
-          test -s assets/icon.png
-          file assets/icon.png
+          file assets/source-icon.jpg
 
       - name: Install minimal native stack
         run: |
@@ -52,6 +46,7 @@ jobs:
           grep -q '"name": "BUKLOD Report"' /tmp/report-config.json
           grep -q '"slug": "buklod-report"' /tmp/report-config.json
           grep -q '"package": "app.buklod.report"' /tmp/report-config.json
+          grep -q 'source-icon.jpg' /tmp/report-config.json
           node - <<'NODE'
           const fs=require('fs');
           const s=fs.readFileSync('App.js','utf8');
@@ -61,6 +56,7 @@ jobs:
             'cacheMode="LOAD_DEFAULT"',
             'setSupportMultipleWindows={false}',
             'BUKLOD Report',
+            'source-icon.jpg',
             'buklod-report-efmagaj-6311s-projects.vercel.app'
           ];
           for (const x of required) if(!s.includes(x)) throw new Error('Missing contract marker: '+x);
