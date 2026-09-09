@@ -1,4 +1,7 @@
-name: BUKLOD Report PR QA
+# MAIN-SIDE INTEGRATION QA ONLY.
+# BUKLOD Report is a standalone Focus App. This workflow must never deploy it,
+# use BUKLOD Main's Expo project as its release target, or promote it to buklod.expo.app.
+name: BUKLOD Main - Report Door and Legacy Integration PR QA
 
 on:
   pull_request:
@@ -9,12 +12,14 @@ on:
       - 'src/lib/buklodReportFiles.ts'
       - 'src/lib/buklodReportBranding.ts'
       - '.github/workflows/buklod_report_*'
+      - '.buklod/**'
+      - 'scripts/verify-buklod-app-boundaries.cjs'
 
 permissions:
   contents: read
 
 jobs:
-  report-qa:
+  main-report-integration-qa:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,8 +27,10 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - name: Enforce product boundary before Main-side Report QA
+        run: node scripts/verify-buklod-app-boundaries.cjs
       - run: npm ci --ignore-scripts
-      - name: Source contract
+      - name: Main-side source contract
         run: |
           grep -F 'IMPORT & AUTO-DETECT' src/components/BuklodWeeklyReportForm.tsx
           grep -F 'MARK REMINDER DONE' src/components/BuklodWeeklyReportForm.tsx
@@ -32,9 +39,9 @@ jobs:
           grep -F 'buklod-report-api-v1' src/lib/buklodReportDomain.ts
       - name: TypeScript
         run: npx tsc --noEmit
-      - name: Web export
+      - name: Main-side web compatibility export - NOT a Report deployment
         run: npx expo export --platform web --output-dir dist --clear
-      - name: Bundle contract
+      - name: Main-side bundle compatibility contract
         run: |
           test -f dist/index.html
           grep -R -F 'IMPORT & AUTO-DETECT' dist/_expo/static/js/web >/dev/null
