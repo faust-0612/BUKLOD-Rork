@@ -24,6 +24,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
+
+      - name: Install dependencies for Expo config resolution
+        run: npm ci --ignore-scripts
 
       - name: Verify rollback target
         shell: bash
