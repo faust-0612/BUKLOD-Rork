@@ -34,13 +34,13 @@ const palettes: Record<BuklodGameBiome, readonly [string, string, string]> = {
 };
 
 export function BuklodGameStage({ biome, children }: Props) {
-  const colors = palettes[biome];
+  const colors = [...palettes[biome]];
 
   return (
     <View style={styles.shell}>
       <Canvas style={StyleSheet.absoluteFill}>
         <Fill>
-          <LinearGradient start={vec(0, 0)} end={vec(0, 900)} colors={colors as string[]} />
+          <LinearGradient start={vec(0, 0)} end={vec(0, 900)} colors={colors} />
         </Fill>
 
         <Group blendMode="screen" opacity={0.5}>
