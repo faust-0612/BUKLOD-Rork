@@ -1,14 +1,17 @@
 import React from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
+import { recordBuklodKingdomPreviewResult } from '@/features/games/kingdom/progress';
 import { DiscoveryExpeditionGameV1 } from '@/features/games/quin/DiscoveryExpeditionGameV1';
 import { BuklodGameStage } from '@/features/games/runtime/BuklodGameStage';
 
+const GAME_ID = 'quin-discovery-expedition';
+
 export default function QuinDiscoveryExpeditionScreen() {
   return (
-    <BuklodGameStage biome="discovery">
+    <BuklodGameStage biome="discovery" gameId={GAME_ID}>
       <ScrollView contentContainerStyle={styles.page}>
-        <DiscoveryExpeditionGameV1 />
+        <DiscoveryExpeditionGameV1 onFinish={(result) => { void recordBuklodKingdomPreviewResult(result); }} />
       </ScrollView>
     </BuklodGameStage>
   );
