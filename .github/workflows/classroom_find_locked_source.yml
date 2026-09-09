@@ -1,0 +1,60 @@
+name: Locate Locked Classroom Source
+
+on:
+  push:
+    branches:
+      - ops/restore-classroom-golden-37uiyahswg-20260909
+    paths:
+      - '.github/workflows/classroom_find_locked_source.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  locate-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full repository history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch all branches
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --prune origin '+refs/heads/*:refs/remotes/origin/*'
+
+      - name: Find exact locked Faculty Classroom source fingerprint
+        shell: bash
+        run: |
+          set -euo pipefail
+          found=0
+          while IFS= read -r ref; do
+            branch="${ref#refs/remotes/origin/}"
+            [ "$branch" = "HEAD" ] && continue
+            while IFS= read -r file; do
+              [ -z "$file" ] && continue
+              blob="$(git show "$ref:$file" 2>/dev/null || true)"
+              [ -z "$blob" ] && continue
+              ok=1
+              for required in 'FACULTY CLASSROOM' 'Active Students' 'Active Faculty' 'ENROLL STUDENT' 'ADD FACULTY' 'Faculty Team' 'Classroom Tools' 'Materials' 'Assessments' 'Group Activities'; do
+                printf '%s' "$blob" | grep -Fq "$required" || ok=0
+              done
+              if [ "$ok" -eq 1 ]; then
+                bad=0
+                for forbidden in 'BUKLOD EXTENSION APP' 'Open BUKLOD Main' 'Return to the Main BUKLOD ecosystem' 'BUKLOD Main is the structure, doorway and session authority'; do
+                  printf '%s' "$blob" | grep -Fq "$forbidden" && bad=1 || true
+                done
+                if [ "$bad" -eq 0 ]; then
+                  sha="$(git rev-parse "$ref")"
+                  echo "MATCH branch=$branch sha=$sha file=$file"
+                  found=1
+                fi
+              fi
+            done < <(git grep -l -F 'ENROLL STUDENT' "$ref" -- '*.tsx' '*.ts' '*.jsx' '*.js' 2>/dev/null | sed -E "s#^$ref:##" || true)
+          done < <(git for-each-ref --format='%(refname)' refs/remotes/origin/)
+          if [ "$found" -ne 1 ]; then
+            echo 'No exact source fingerprint found in current remote branches.' >&2
+            exit 1
+          fi
