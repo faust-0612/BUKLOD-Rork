@@ -1,0 +1,54 @@
+name: BUKLOD Web Advance R31 Verify
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/web_advance_r31_verify.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-live-r31:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify production alias matches exact R31 deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROD='https://buklod.expo.app'
+          DEP='https://buklod--pl674gipyn.expo.app'
+          stamp="$(date +%s)"
+
+          curl -fsSL -H 'Cache-Control: no-cache' "$PROD/?verify=$stamp" -o prod.html
+          curl -fsSL -H 'Cache-Control: no-cache' "$DEP/?verify=$stamp" -o dep.html
+
+          grep -oE '_expo/static/js/web/[^"'"'"'< >]+\.js' prod.html | sort -u > prod.refs
+          grep -oE '_expo/static/js/web/[^"'"'"'< >]+\.js' dep.html | sort -u > dep.refs
+          test -s prod.refs
+          test -s dep.refs
+          diff -u dep.refs prod.refs
+
+          while read -r ref; do
+            curl -fsSL -H 'Cache-Control: no-cache' "$PROD/$ref?verify=$stamp" -o prod.js
+            curl -fsSL -H 'Cache-Control: no-cache' "$DEP/$ref?verify=$stamp" -o dep.js
+            cmp dep.js prod.js
+          done < prod.refs
+
+          cat $(printf 'prod.js') >/dev/null
+          grep -R -F 'PREVIEW LOCKED' prod.js >/dev/null || true
+
+          # Compare the exact regenerated R31 character assets referenced by the bundle.
+          bundle="$(cat prod.js)"
+          for name in phan_r26 quin_r26 van_r26 christian_r26 lhen_r26; do
+            ref="$(printf '%s' "$bundle" | grep -oE "_expo/static/media/${name}\.[A-Za-z0-9]+\.jpg" | head -n1)"
+            test -n "$ref"
+            curl -fsSL -H 'Cache-Control: no-cache' "$PROD/$ref?verify=$stamp" -o "prod-$name.jpg"
+            curl -fsSL -H 'Cache-Control: no-cache' "$DEP/$ref?verify=$stamp" -o "dep-$name.jpg"
+            cmp "dep-$name.jpg" "prod-$name.jpg"
+            echo "$name exact-byte match: PASS"
+          done
+
+          echo 'PASS: production alias is exact R31 regenerated-art deployment.'
