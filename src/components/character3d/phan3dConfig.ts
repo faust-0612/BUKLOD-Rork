@@ -1,4 +1,5 @@
 export const PHAN_3D_MODEL_ID = 'phan' as const;
+export const PHAN_3D_LEVEL_COUNT = 20 as const;
 
 export const PHAN_3D_ANIMATIONS = [
   'Idle',
@@ -24,15 +25,15 @@ export type Phan3DAssetManifest = {
   modelUrl: string;
   /** Character level is independent per selected character. */
   level: number;
-  /** Optional appearance/skin key for modular Phan outfits. */
-  appearanceKey?: string;
+  /** Appearance/skin key for the approved 20-step Phan progression. */
+  appearanceKey: string;
   animations: readonly Phan3DAnimation[];
 };
 
 /**
  * Canonical contract for the reusable Phan rig.
  *
- * One base humanoid rig is reused for every Phan level. Level progression
+ * One base humanoid rig is reused for all 20 Phan levels. Level progression
  * changes appearance/outfit modules; it must not duplicate the skeleton or
  * animation clips. The model must preserve the approved Phan identity.
  */
@@ -40,9 +41,11 @@ export function createPhan3DManifest(
   level: number,
   modelUrl = '/characters/phan/phan.glb',
 ): Phan3DAssetManifest {
-  const safeLevel = Math.max(
-    1,
-    Math.floor(Number.isFinite(level) ? level : 1),
+  const normalizedLevel =
+    Math.floor(Number.isFinite(level) ? level : 1);
+  const safeLevel = Math.min(
+    PHAN_3D_LEVEL_COUNT,
+    Math.max(1, normalizedLevel),
   );
 
   return {
