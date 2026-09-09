@@ -1,14 +1,17 @@
 import React from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
-import { FarmToMarketGameV1 } from '@/features/games/vhen/FarmToMarketGameV1';
+import { recordBuklodKingdomPreviewResult } from '@/features/games/kingdom/progress';
 import { BuklodGameStage } from '@/features/games/runtime/BuklodGameStage';
+import { FarmToMarketGameV1 } from '@/features/games/vhen/FarmToMarketGameV1';
+
+const GAME_ID = 'vhen-farm-to-market';
 
 export default function VhenFarmToMarketScreen() {
   return (
-    <BuklodGameStage biome="agriculture">
+    <BuklodGameStage biome="agriculture" gameId={GAME_ID}>
       <ScrollView contentContainerStyle={styles.page}>
-        <FarmToMarketGameV1 />
+        <FarmToMarketGameV1 onFinish={(result) => { void recordBuklodKingdomPreviewResult(result); }} />
       </ScrollView>
     </BuklodGameStage>
   );
