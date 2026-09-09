@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "policy": "BUKLOD_APP_BOUNDARIES_V1",
+  "rootApp": {
+    "appId": "buklod-main",
+    "displayName": "BUKLOD Main",
+    "kind": "ROOT_HUB_APP",
+    "repository": "faust-0612/BUKLOD-Rork",
+    "expoProjectId": "23dad7d0-389a-406e-8dec-08965dab85d8",
+    "productionWeb": "https://buklod.expo.app",
+    "focusAppRelationship": "DOOR_OR_INTEGRATION_ENTRY_ONLY",
+    "mayHostStandaloneFocusAppDeployment": false
+  },
+  "standaloneFocusApps": [
+    {
+      "appId": "buklod-report",
+      "displayName": "BUKLOD Report",
+      "kind": "STANDALONE_FOCUS_APP",
+      "mainDoorAllowed": true,
+      "dedicatedRepository": null,
+      "dedicatedExpoProjectId": null,
+      "dedicatedProductionWeb": null,
+      "deploymentState": "UNASSIGNED_BLOCK_PRODUCTION_DEPLOYMENT",
+      "forbiddenFallbackRepositories": ["faust-0612/BUKLOD-Rork"],
+      "forbiddenFallbackProductionWeb": ["https://buklod.expo.app"],
+      "focusTokens": ["buklod-report", "buklod_report", "buklod report", "src/app/reports", "BuklodWeeklyReportForm"]
+    },
+    {
+      "appId": "buklod-classroom",
+      "displayName": "BUKLOD Classroom",
+      "kind": "STANDALONE_FOCUS_APP",
+      "mainDoorAllowed": true,
+      "dedicatedRepository": null,
+      "dedicatedExpoProjectId": null,
+      "dedicatedProductionWeb": null,
+      "deploymentState": "UNASSIGNED_BLOCK_PRODUCTION_DEPLOYMENT",
+      "forbiddenFallbackRepositories": ["faust-0612/BUKLOD-Rork"],
+      "forbiddenFallbackProductionWeb": ["https://buklod.expo.app"],
+      "focusTokens": ["buklod-classroom", "buklod_classroom", "buklod classroom", "my classroom", "src/app/profile/buklod-classroom"]
+    }
+  ],
+  "rules": [
+    "BUKLOD Main is the root hub, not the deployment host for standalone Focus Apps.",
+    "A door in BUKLOD Main does not transfer repository, Expo project, database, hosting, or release ownership to BUKLOD Main.",
+    "Standalone Focus Apps require their own explicitly registered repository and production target before production deployment.",
+    "If a standalone Focus App has no dedicated target registered here, production deployment must stop. Never fall back to BUKLOD Main.",
+    "Main-side Focus App workflows may perform source checks, tests, and integration QA, but must not perform a standalone Focus App production release.",
+    "No app identity may be inferred from the current conversation topic, nearby source files, route names, or an existing Expo token. The registered app identity is authoritative."
+  ]
+}
