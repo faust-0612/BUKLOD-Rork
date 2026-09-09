@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Path, Stop } from 'react-native-svg';
 
 import {
@@ -67,13 +67,12 @@ const ROUTE_PATHS = [
   'M 1020 315 C 1080 250 1110 190 1115 105',
 ];
 
-function EmptyProgress(): BuklodKingdomPreviewProgress {
+function emptyProgress(): BuklodKingdomPreviewProgress {
   return { version: 1, stations: {} };
 }
 
 export default function BuklodKingdomMap() {
-  const { width } = useWindowDimensions();
-  const [progress, setProgress] = useState<BuklodKingdomPreviewProgress>(EmptyProgress());
+  const [progress, setProgress] = useState<BuklodKingdomPreviewProgress>(emptyProgress());
 
   useEffect(() => {
     let mounted = true;
@@ -83,12 +82,11 @@ export default function BuklodKingdomMap() {
     const unsubscribe = subscribeBuklodKingdomPreviewProgress((value) => {
       if (mounted) setProgress(value);
     });
-    return () => { mounted = false; unsubscribe(); };
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
   }, []);
-
-  const scale = useMemo(() => Math.max(0.78, Math.min(1, (width - 24) / WORLD_W)), [width]);
-  const worldWidth = Math.round(WORLD_W * scale);
-  const worldHeight = Math.round(WORLD_H * scale);
 
   return (
     <View style={styles.root}>
@@ -102,7 +100,10 @@ export default function BuklodKingdomMap() {
       <View pointerEvents="none" style={styles.skyGlowB} />
 
       <View style={styles.hero}>
-        <View style={styles.heroBadge}><MaterialCommunityIcons name="crown-outline" size={18} color="#f0cf70" /><Text style={styles.heroBadgeText}>BUKLOD KINGDOM</Text></View>
+        <View style={styles.heroBadge}>
+          <MaterialCommunityIcons name="crown-outline" size={18} color="#f0cf70" />
+          <Text style={styles.heroBadgeText}>BUKLOD KINGDOM</Text>
+        </View>
         <Text style={styles.heroTitle}>Your World Keeps Growing</Text>
         <Text style={styles.heroCopy}>WORLD → REGION / BIOME → CHARACTER STATION → GAME. Current stations are playable; future lands remain locked until a later expansion.</Text>
         <View style={styles.legendRow}>
@@ -113,8 +114,8 @@ export default function BuklodKingdomMap() {
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollPad}>
-        <View style={[styles.worldFrame, { width: worldWidth, height: worldHeight }]}> 
-          <View style={[styles.worldCanvas, { width: WORLD_W, height: WORLD_H, transform:[{ scale }], transformOrigin:'top left' as any }]}> 
+        <View style={styles.worldFrame}>
+          <View style={styles.worldCanvas}>
             <LinearGradient
               colors={['rgba(46,105,74,0.72)','rgba(22,48,56,0.72)','rgba(67,61,37,0.68)']}
               start={{x:0,y:0}}
@@ -135,8 +136,12 @@ export default function BuklodKingdomMap() {
                   <Stop offset="1" stopColor="#eed27a" stopOpacity="0.52" />
                 </SvgLinearGradient>
               </Defs>
-              {ROUTE_PATHS.map((d, index) => <Path key={index} d={d} fill="none" stroke="url(#route)" strokeWidth={8} strokeLinecap="round" strokeDasharray="8 12" />)}
-              {FUTURE.map((node,index) => <Circle key={`future-ring-${index}`} cx={node.x} cy={node.y} r={42} fill="rgba(89,99,108,0.10)" stroke="rgba(180,190,200,0.18)" strokeWidth={2} strokeDasharray="6 7" />)}
+              {ROUTE_PATHS.map((d, index) => (
+                <Path key={index} d={d} fill="none" stroke="url(#route)" strokeWidth={8} strokeLinecap="round" strokeDasharray="8 12" />
+              ))}
+              {FUTURE.map((node,index) => (
+                <Circle key={`future-ring-${index}`} cx={node.x} cy={node.y} r={42} fill="rgba(89,99,108,0.10)" stroke="rgba(180,190,200,0.18)" strokeWidth={2} strokeDasharray="6 7" />
+              ))}
             </Svg>
 
             {STATIONS.map((station) => {
@@ -202,7 +207,7 @@ const styles = StyleSheet.create({
   heroBadge:{alignSelf:'flex-start',flexDirection:'row',alignItems:'center',gap:7,paddingHorizontal:10,paddingVertical:6,borderRadius:999,borderWidth:1,borderColor:'rgba(240,207,112,0.28)',backgroundColor:'rgba(240,207,112,0.08)'},
   heroBadgeText:{color:'#f0cf70',fontSize:10,fontWeight:'900',letterSpacing:1.1},heroTitle:{color:'#fff',fontSize:34,fontWeight:'900',marginTop:11},heroCopy:{color:'#bfd0c3',fontSize:14,lineHeight:21,maxWidth:880,marginTop:7},
   legendRow:{flexDirection:'row',flexWrap:'wrap',gap:12,marginTop:12},legend:{flexDirection:'row',alignItems:'center',gap:6},legendDot:{width:8,height:8,borderRadius:4},legendText:{color:'#9fb2a6',fontSize:9,fontWeight:'900',letterSpacing:.8},
-  scrollPad:{paddingHorizontal:12,paddingBottom:4},worldFrame:{overflow:'hidden',borderRadius:28,borderWidth:1,borderColor:'rgba(214,236,220,0.14)',backgroundColor:'#10241c',shadowColor:'#000',shadowOpacity:.3,shadowRadius:24,shadowOffset:{width:0,height:14}},worldCanvas:{position:'relative',overflow:'hidden'},
+  scrollPad:{paddingHorizontal:12,paddingBottom:4},worldFrame:{width:WORLD_W,height:WORLD_H,overflow:'hidden',borderRadius:28,borderWidth:1,borderColor:'rgba(214,236,220,0.14)',backgroundColor:'#10241c',shadowColor:'#000',shadowOpacity:.3,shadowRadius:24,shadowOffset:{width:0,height:14}},worldCanvas:{width:WORLD_W,height:WORLD_H,position:'relative',overflow:'hidden'},
   forestMass:{position:'absolute',left:-100,top:110,width:520,height:620,borderRadius:260,backgroundColor:'rgba(24,92,58,0.32)',transform:[{rotate:'-9deg'}]},cityMass:{position:'absolute',right:100,top:80,width:450,height:510,borderRadius:90,backgroundColor:'rgba(35,77,98,0.26)',transform:[{rotate:'7deg'}]},highlandMass:{position:'absolute',right:-90,bottom:-120,width:540,height:390,borderRadius:210,backgroundColor:'rgba(116,105,68,0.22)'},river:{position:'absolute',left:510,top:-100,width:92,height:1060,borderRadius:46,backgroundColor:'rgba(94,159,178,0.15)',transform:[{rotate:'17deg'}]},fogA:{position:'absolute',left:925,top:-70,width:430,height:250,borderRadius:180,backgroundColor:'rgba(211,219,233,0.08)'},fogB:{position:'absolute',left:260,top:-80,width:350,height:230,borderRadius:170,backgroundColor:'rgba(211,219,233,0.06)'},
   stationWrap:{position:'absolute',width:156,alignItems:'center'},stationGlow:{position:'absolute',width:132,height:92,borderRadius:52,top:8},stationCard:{width:156,minHeight:118,borderRadius:18,borderWidth:1.5,padding:9,backgroundColor:'rgba(8,17,18,0.88)',flexDirection:'row',gap:8,shadowColor:'#000',shadowOpacity:.24,shadowRadius:12,shadowOffset:{width:0,height:7}},iconOrb:{width:42,height:42,borderRadius:21,borderWidth:1.5,alignItems:'center',justifyContent:'center'},stationBody:{flex:1,minWidth:0},stationTopRow:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:4},stationCharacter:{fontSize:11,fontWeight:'900',letterSpacing:.5},stationRegion:{marginTop:3,color:'#c8d7cd',fontSize:8.5,fontWeight:'800'},stationGame:{marginTop:6,color:'#fff',fontSize:10.5,fontWeight:'900'},stationState:{marginTop:6,color:'#aabbb0',fontSize:7.5,lineHeight:10,fontWeight:'900'},worldChange:{marginTop:5,width:148,textAlign:'center',color:'#e5d59d',fontSize:7.5,lineHeight:10,fontWeight:'700'},
   futureNode:{position:'absolute',width:84,height:84,borderRadius:42,borderWidth:1,borderColor:'rgba(177,188,196,0.24)',backgroundColor:'rgba(45,52,58,0.58)',alignItems:'center',justifyContent:'center'},futureTitle:{color:'#b2bcc1',fontSize:11,fontWeight:'900',marginTop:2},futureCopy:{color:'#7f8b91',fontSize:6.5,fontWeight:'900',letterSpacing:.6},
