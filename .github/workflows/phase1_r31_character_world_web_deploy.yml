@@ -1,0 +1,242 @@
+name: BUKLOD R31 Phase 1 Character World Web Deploy
+
+on:
+  push:
+    branches:
+      - phase1/r31-character-world-v2
+    paths:
+      - 'src/lib/buklodCharacterWorldV3.ts'
+      - 'src/lib/buklodR31Stages.ts'
+      - 'src/lib/buklodProgressiveCharacter.ts'
+      - 'src/components/points/BuklodR31CharacterArt.tsx'
+      - 'src/components/points/BuklodPhase1ActiveCharacterArt.tsx'
+      - 'src/components/points/BuklodCharacterLayeredArt.tsx'
+      - 'src/components/points/BuklodCharacterCustomizeSheet.tsx'
+      - '.github/workflows/phase1_r31_character_world_web_deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  R31_DEPLOYMENT: https://buklod--pl674gipyn.expo.app
+  PRODUCTION_URL: https://buklod.expo.app
+  R31_BASE_SHA: bdc61c6da0244e5f72d68416da2d486684a0572e
+
+jobs:
+  qa-export-deploy-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout exact Phase 1 source
+        uses: actions/checkout@v4
+        with:
+          ref: phase1/r31-character-world-v2
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Prove Web-only scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          changed="$(git diff --name-only "$R31_BASE_SHA" HEAD)"
+          printf '%s\n' "$changed"
+          if printf '%s\n' "$changed" | grep -E '^(android/|ios/|package\.json$|package-lock\.json$|app\.config\.|app\.json$|eas\.json$)'; then
+            echo 'Native/dependency/app-identity change detected. Web deployment blocked.'
+            exit 1
+          fi
+          echo 'PASS: no new native/dependency/app-identity changes.'
+
+      - name: Install existing dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Restore exact R31 golden character assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p assets/images/characters /tmp/r31
+          curl -fsSL -H 'Cache-Control: no-cache' "$R31_DEPLOYMENT/" -o /tmp/r31/index.html
+          grep -oE '_expo/static/js/web/[^"'"'"'< >]+\.js' /tmp/r31/index.html | sort -u > /tmp/r31/jsrefs || true
+          : > /tmp/r31/all.js
+          while read -r ref; do
+            [ -n "$ref" ] || continue
+            curl -fsSL -H 'Cache-Control: no-cache' "$R31_DEPLOYMENT/$ref" >> /tmp/r31/all.js
+          done < /tmp/r31/jsrefs
+
+          fetch_asset() {
+            local stem="$1" hashed="$2" expected="$3" out="assets/images/characters/${stem}.jpg"
+            local candidates=(
+              "$R31_DEPLOYMENT/assets/images/characters/$hashed"
+              "$R31_DEPLOYMENT/assets/$hashed"
+              "$R31_DEPLOYMENT/$hashed"
+            )
+            local ok=0
+            for url in "${candidates[@]}"; do
+              if curl -fsSL -H 'Cache-Control: no-cache' "$url" -o "$out.tmp" 2>/dev/null; then
+                got="$(sha256sum "$out.tmp" | awk '{print toupper($1)}')"
+                if [ "$got" = "$expected" ]; then
+                  mv "$out.tmp" "$out"
+                  echo "PASS $stem from $url"
+                  ok=1
+                  break
+                fi
+              fi
+            done
+            if [ "$ok" -ne 1 ]; then
+              echo "Direct path not found for $stem; discovering exact R31 asset path from bundle."
+              python - "$stem" /tmp/r31/all.js > /tmp/r31/candidates.txt <<'PY'
+import re,sys
+stem=sys.argv[1]
+text=open(sys.argv[2],encoding='utf-8',errors='ignore').read()
+seen=[]
+for m in re.findall(r"[^\\\"'<> ]*"+re.escape(stem)+r"[^\\\"'<> ]*\\.jpg", text, re.I):
+    m=m.replace('\\\\/','/').replace('\\/','/')
+    if m not in seen:
+        seen.append(m)
+for m in seen:
+    print(m)
+PY
+              while read -r rel; do
+                [ -n "$rel" ] || continue
+                rel="${rel#./}"
+                url="$R31_DEPLOYMENT/${rel#/}"
+                if curl -fsSL -H 'Cache-Control: no-cache' "$url" -o "$out.tmp" 2>/dev/null; then
+                  got="$(sha256sum "$out.tmp" | awk '{print toupper($1)}')"
+                  if [ "$got" = "$expected" ]; then
+                    mv "$out.tmp" "$out"
+                    echo "PASS $stem from discovered $url"
+                    ok=1
+                    break
+                  fi
+                fi
+              done < /tmp/r31/candidates.txt
+            fi
+            rm -f "$out.tmp"
+            [ "$ok" -eq 1 ] || { echo "Exact R31 asset unavailable: $stem"; exit 1; }
+          }
+
+          fetch_asset phan 'phan_r26.1d7b0bb56aafa03b0f1d2a67f7367985.jpg' '1598EF159BFC4AB784A681BEF7BC53FF839DBEA92CB729EE03A15BAA4F31CCDB'
+          fetch_asset quin 'quin_r26.032357dddb95c74e741bbae577f30f32.jpg' '769BCF6F61DEB70E1D52E7515AF9C69CC6562545E86D2DD390355770E5C33892'
+          fetch_asset van 'van_r26.4f96c8d09489f6afc55bd10968f15eab.jpg' 'B52B6B7E3562B2D884CC677D67C67CC71898273BF5BF5068A077B10B5DC87C66'
+          fetch_asset christian 'christian_r26.a0585eec39d4c8d3fb010ee73caf896e.jpg' '1AE9C03466876CEFC443FF55641D7EAD516DF82FF340A632EE852D7DD8B07739'
+          fetch_asset lhen 'lhen_r26.919a061f4da1bd025a71280ccd9c29af.jpg' '17A2FDB2FB18252AB494589E689E5044C27B86065A988D70094997971D9D66EB'
+
+      - name: Phase 1 source contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'BUKLOD_CHARACTER_ENVIRONMENT_SYSTEM_PHASE1' src/lib/buklodCharacterWorldV3.ts
+          grep -F 'R31 GOLDEN CHARACTER BASELINE PROTECTED' src/components/points/BuklodCharacterCustomizeSheet.tsx
+          grep -F "elesur: 'ELESUR'" src/lib/buklodCharacterWorldV3.ts
+          grep -F 'get_my_buklod_character_world_v3' src/lib/buklodCharacterWorldV3.ts
+          grep -F 'initialize_my_buklod_character_world_v3' src/lib/buklodCharacterWorldV3.ts
+          grep -F 'unlock_my_buklod_character_v3' src/lib/buklodCharacterWorldV3.ts
+          grep -F 'set_my_buklod_character_active_v3' src/lib/buklodCharacterWorldV3.ts
+          grep -F 'MY BUKLOD WORLD' src/components/points/BuklodCharacterCustomizeSheet.tsx
+          grep -F 'ENVIRONMENT PREVIEW' src/components/points/BuklodCharacterCustomizeSheet.tsx
+          grep -F 'FULL CHARACTER MODE' src/components/points/BuklodCharacterCustomizeSheet.tsx
+          grep -F 'SELECT → LEVEL 1' src/components/points/BuklodCharacterCustomizeSheet.tsx
+          echo 'PASS: Phase 1 contract present.'
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Fresh Web export
+        run: npx expo export --platform web --output-dir dist-phase1
+
+      - name: Verify exported Phase 1 bundle and exact R31 art
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f dist-phase1/index.html
+          cat dist-phase1/_expo/static/js/web/*.js > /tmp/phase1.js
+          for token in 'MY BUKLOD WORLD' 'START YOUR CHARACTER JOURNEY' 'FULL CHARACTER MODE' 'ENVIRONMENT PREVIEW' 'ELESUR' 'get_my_buklod_character_world_v3'; do
+            grep -F "$token" /tmp/phase1.js >/dev/null || { echo "Export missing: $token"; exit 1; }
+          done
+          verify_export_asset() {
+            local stem="$1" expected="$2"
+            file="$(find dist-phase1 -type f -name "${stem}*.jpg" | head -n1)"
+            [ -n "$file" ] || { echo "Export asset missing: $stem"; exit 1; }
+            got="$(sha256sum "$file" | awk '{print toupper($1)}')"
+            [ "$got" = "$expected" ] || { echo "Export asset hash mismatch: $stem $got"; exit 1; }
+            echo "$file" >> /tmp/r31_export_assets.txt
+          }
+          : > /tmp/r31_export_assets.txt
+          verify_export_asset phan_r26 '1598EF159BFC4AB784A681BEF7BC53FF839DBEA92CB729EE03A15BAA4F31CCDB'
+          verify_export_asset quin_r26 '769BCF6F61DEB70E1D52E7515AF9C69CC6562545E86D2DD390355770E5C33892'
+          verify_export_asset van_r26 'B52B6B7E3562B2D884CC677D67C67CC71898273BF5BF5068A077B10B5DC87C66'
+          verify_export_asset christian_r26 '1AE9C03466876CEFC443FF55641D7EAD516DF82FF340A632EE852D7DD8B07739'
+          verify_export_asset lhen_r26 '17A2FDB2FB18252AB494589E689E5044C27B86065A988D70094997971D9D66EB'
+          echo 'PASS: fresh Web export contains Phase 1 + exact R31 golden art.'
+
+      - name: Expo credential preflight
+        shell: bash
+        run: |
+          [ -n "${EXPO_TOKEN:-}" ] || { echo 'EXPO_TOKEN missing'; exit 1; }
+          npx eas-cli@latest whoami
+
+      - name: Deploy Phase 1 Web only
+        id: deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest deploy --prod --export-dir dist-phase1 --non-interactive 2>&1 | tee phase1-deploy-output.txt
+
+      - name: Verify live production or rollback to exact R31
+        shell: bash
+        run: |
+          set -euo pipefail
+          rollback() {
+            echo 'LIVE VERIFICATION FAILED — restoring exact R31 production alias.'
+            npx eas-cli@latest deploy:alias --prod --id=pl674gipyn --non-interactive || true
+            exit 1
+          }
+          local_refs="$(grep -oE '_expo/static/js/web/[^"'"'"'< >]+\.js' dist-phase1/index.html | sort -u)"
+          matched=0
+          for attempt in $(seq 1 45); do
+            stamp="$(date +%s)-$attempt"
+            if curl -fsSL -H 'Cache-Control: no-cache' "$PRODUCTION_URL/?phase1=$stamp" -o /tmp/prod.html; then
+              prod_refs="$(grep -oE '_expo/static/js/web/[^"'"'"'< >]+\.js' /tmp/prod.html | sort -u || true)"
+              if [ -n "$prod_refs" ] && [ "$prod_refs" = "$local_refs" ]; then
+                matched=1
+                echo "Production bundle converged on attempt $attempt."
+                break
+              fi
+            fi
+            sleep 8
+          done
+          [ "$matched" -eq 1 ] || rollback
+
+          : > /tmp/prod.js
+          while read -r ref; do
+            [ -n "$ref" ] || continue
+            curl -fsSL -H 'Cache-Control: no-cache' "$PRODUCTION_URL/$ref?phase1=$(date +%s)" >> /tmp/prod.js || rollback
+          done <<< "$local_refs"
+          for token in 'MY BUKLOD WORLD' 'START YOUR CHARACTER JOURNEY' 'FULL CHARACTER MODE' 'ENVIRONMENT PREVIEW' 'ELESUR' 'get_my_buklod_character_world_v3'; do
+            grep -F "$token" /tmp/prod.js >/dev/null || rollback
+          done
+
+          while read -r file; do
+            [ -n "$file" ] || continue
+            rel="${file#dist-phase1/}"
+            expected="$(sha256sum "$file" | awk '{print toupper($1)}')"
+            curl -fsSL -H 'Cache-Control: no-cache' "$PRODUCTION_URL/$rel?phase1=$(date +%s)" -o /tmp/prod-asset || rollback
+            got="$(sha256sum /tmp/prod-asset | awk '{print toupper($1)}')"
+            [ "$got" = "$expected" ] || rollback
+          done < /tmp/r31_export_assets.txt
+
+          echo 'PASS: buklod.expo.app serves Phase 1 and the exact five R31 golden character assets.'
+
+      - name: Preserve deployment log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-r31-phase1-web-${{ github.run_number }}
+          path: phase1-deploy-output.txt
+          if-no-files-found: ignore
