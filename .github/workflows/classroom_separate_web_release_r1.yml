@@ -281,3 +281,5 @@ jobs:
           echo 'BUKLOD Main branch unchanged: VERIFIED'
           echo "Classroom released source: $CLASSROOM_RELEASE_SHA"
           echo 'Production URL: https://buklod-classroom.expo.app'
+
+# Manual standalone Classroom redeploy requested 2026-09-09.
