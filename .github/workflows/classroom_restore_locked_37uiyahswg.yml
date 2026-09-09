@@ -1,0 +1,58 @@
+name: Classroom Restore Exact Locked 37uiyahswg
+
+on:
+  push:
+    branches:
+      - ops/restore-classroom-golden-37uiyahswg-20260909
+    paths:
+      - '.github/workflows/classroom_restore_locked_37uiyahswg.yml'
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+jobs:
+  restore-exact-locked-deployment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Expo credential preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN"
+          npx eas-cli@latest whoami --non-interactive
+
+      - name: Verify locked immutable deployment is reachable
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 3 --retry-delay 2 'https://buklod-classroom--37uiyahswg.expo.app/?golden_restore_probe=1' -o /tmp/golden.html
+          test -s /tmp/golden.html
+          echo "Locked deployment 37uiyahswg is reachable."
+
+      - name: Promote exact locked deployment to Classroom production
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest deploy:alias --prod --id=37uiyahswg --non-interactive
+
+      - name: Verify production resolves to exact locked deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in 1 2 3 4 5; do
+            curl -fsSL --retry 2 'https://buklod-classroom.expo.app/?golden_restore_probe=1' -o /tmp/prod.html || true
+            if [ -s /tmp/prod.html ] && cmp -s /tmp/golden.html /tmp/prod.html; then
+              echo 'PASS: production HTML is byte-identical to locked deployment 37uiyahswg.'
+              exit 0
+            fi
+            sleep 3
+          done
+          echo 'Production HTML did not become byte-identical to locked deployment after promotion.' >&2
+          echo 'Golden SHA256:' >&2
+          sha256sum /tmp/golden.html >&2
+          echo 'Production SHA256:' >&2
+          sha256sum /tmp/prod.html >&2 || true
+          exit 1
