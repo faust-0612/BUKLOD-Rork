@@ -1,0 +1,46 @@
+name: BUKLOD Web Advance R29 Verify
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/web_advance_r29_verify.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-live-r29:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify production alias matches exact R29 deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROD='https://buklod.expo.app'
+          DEP='https://buklod--ds0dizmatu.expo.app'
+          stamp="$(date +%s)"
+          curl -fsSL -H 'Cache-Control: no-cache' "$PROD/?verify=$stamp" -o prod.html
+          curl -fsSL -H 'Cache-Control: no-cache' "$DEP/?verify=$stamp" -o dep.html
+          grep -oE '_expo/static/js/web/[^"'"'"'< >]+\.js' prod.html | sort -u > prod.refs
+          grep -oE '_expo/static/js/web/[^"'"'"'< >]+\.js' dep.html | sort -u > dep.refs
+          test -s prod.refs
+          test -s dep.refs
+          echo 'Production refs:'
+          cat prod.refs
+          echo 'R29 immutable refs:'
+          cat dep.refs
+          diff -u dep.refs prod.refs
+          while read -r ref; do
+            curl -fsSL -H 'Cache-Control: no-cache' "$PROD/$ref?verify=$stamp" -o prod.js
+            curl -fsSL -H 'Cache-Control: no-cache' "$DEP/$ref?verify=$stamp" -o dep.js
+            cmp dep.js prod.js
+          done < prod.refs
+          cat $(printf 'prod.js') >/dev/null
+          mainref="$(grep 'index-' prod.refs | tail -n1)"
+          curl -fsSL -H 'Cache-Control: no-cache' "$PROD/$mainref?verify=$stamp" -o main.js
+          for token in 'Phan' 'Quin' 'Van' 'Christian' 'Lhen' 'LEVEL 1-20 PROGRESSION'; do
+            grep -F "$token" main.js >/dev/null
+          done
+          echo 'PASS: production alias is exact R29 deployment with five named characters and Level 1-20 progression token.'
