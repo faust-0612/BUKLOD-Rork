@@ -1,0 +1,110 @@
+name: BUKLOD Safe Size Reduction R1 QA
+
+on:
+  push:
+    branches:
+      - chore/safe-size-reduction-r1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout cleanup branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify cleanup branch and protected main base
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF_NAME}" = "chore/safe-size-reduction-r1"
+          git status --short
+          git rev-parse HEAD
+
+      - name: Verify deleted asset paths are absent
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e assets/bible-ambience
+          test ! -e assets/buklod-guide
+
+      - name: Verify no references to removed Bible ambience assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git grep -nEi 'bible-ambience|crowd\.wav|footsteps\.wav|night\.wav|rain\.wav|sea\.wav|thunder\.wav|wind\.wav' -- ':!assets' ':!.github/workflows/safe_size_reduction_r1_qa.yml'; then
+            echo 'Found a source/config reference to a removed Bible ambience asset.' >&2
+            exit 1
+          fi
+
+      - name: Verify no references to removed BUKLOD guide assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git grep -nEi 'buklod-guide|female-celebrate\.png|female-think\.png|female-wave\.png' -- ':!assets' ':!.github/workflows/safe_size_reduction_r1_qa.yml'; then
+            echo 'Found a source/config reference to a removed BUKLOD guide asset.' >&2
+            exit 1
+          fi
+
+      - name: Candidate audit - branding folder has no references
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git grep -nEi 'assets/branding|admin-profile\.jpg|buklod-report-icon\.png|mzb-ministry\.jpg|privacy-consent|zion-logo\.jpg' -- ':!assets' ':!.github/workflows/safe_size_reduction_r1_qa.yml'; then
+            echo 'Branding folder IS referenced.'
+            exit 1
+          fi
+          echo 'Branding folder has no repository references.'
+
+      - name: Candidate audit - advertise QR has no references
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git grep -nEi 'advertise-instapay-qr' -- ':!assets' ':!.github/workflows/safe_size_reduction_r1_qa.yml'; then
+            echo 'Advertise QR IS referenced.'
+            exit 1
+          fi
+          echo 'Advertise QR has no repository references.'
+
+      - name: Candidate audit - sounds folder has no references
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git grep -nEi 'assets/sounds|buklod-points-claim\.wav|buklod-reaction\.wav' -- ':!assets' ':!.github/workflows/safe_size_reduction_r1_qa.yml'; then
+            echo 'Sounds folder IS referenced.'
+            exit 1
+          fi
+          echo 'Sounds folder has no repository references.'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Release contracts
+        run: npm run release:gate
+
+      - name: Expo web export QA
+        env:
+          EXPO_NO_TELEMETRY: '1'
+        run: npx expo export --platform web --output-dir dist-safe-size-web
+
+      - name: Expo Android export QA
+        env:
+          EXPO_NO_TELEMETRY: '1'
+        run: npx expo export --platform android --output-dir dist-safe-size-android
+
+      - name: Cleanup summary
+        shell: bash
+        run: |
+          echo 'Safe-size branch QA passed: references, TypeScript, release contracts, web export, and Android export.'
