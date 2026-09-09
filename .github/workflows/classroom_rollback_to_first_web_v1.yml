@@ -1,0 +1,114 @@
+name: Classroom Rollback To First Web V1
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - hotfix/classroom-separate-web-20260909-r5
+    paths:
+      - '.github/workflows/classroom_rollback_to_first_web_v1.yml'
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  BUKLOD_APP_TARGET: classroom
+  APP_VARIANT: production
+  EXPO_PUBLIC_APP_ENV: production
+  EXPO_PUBLIC_EAS_PROJECT_ID: 14100ed1-7f25-4551-9627-09d280498241
+  FIRST_CLASSROOM_DEPLOYMENT_ID: 37uiyahswg
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout only for Classroom project identity
+        uses: actions/checkout@v4
+        with:
+          ref: hotfix/classroom-separate-web-20260909-r5
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Authenticate Expo
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN"
+          npx eas-cli@latest whoami --non-interactive >/dev/null
+      - name: Verify target is standalone Classroom project
+        shell: bash
+        run: |
+          set -euo pipefail
+          CONFIG="$(npx expo config --json)"
+          node -e 'const c=JSON.parse(process.argv[1]); if(c.name!=="BUKLOD Classroom") throw new Error("Wrong app target"); if(c.extra?.eas?.projectId!=="14100ed1-7f25-4551-9627-09d280498241") throw new Error("Wrong EAS project"); console.log("CLASSROOM_PROJECT_TARGET=PASS")' "$CONFIG"
+      - name: Confirm earliest immutable deployment before mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/query.json <<'JSON'
+          {
+            "query": "query VerifyFirst($appId: String!) { app { byId(appId: $appId) { workerDeployment(deploymentIdentifier: \"37uiyahswg\") { deploymentIdentifier createdAt url } workerDeploymentAlias(aliasName: null) { url workerDeployment { deploymentIdentifier createdAt url } } } } }",
+            "variables": {"appId": "14100ed1-7f25-4551-9627-09d280498241"}
+          }
+          JSON
+          curl -fsS -X POST https://api.expo.dev/graphql \
+            -H 'Content-Type: application/json' \
+            -H "Authorization: Bearer $EXPO_TOKEN" \
+            --data-binary @/tmp/query.json > /tmp/before.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const r=JSON.parse(fs.readFileSync('/tmp/before.json','utf8'));
+          if(r.errors?.length) throw new Error(JSON.stringify(r.errors));
+          const a=r.data?.app?.byId;
+          const first=a?.workerDeployment;
+          if(first?.deploymentIdentifier!=='37uiyahswg') throw new Error('Earliest deployment not found');
+          if(first?.createdAt!=='2026-09-05T17:15:03.636Z') throw new Error('Earliest deployment timestamp changed');
+          console.log('FIRST_IMMUTABLE_DEPLOYMENT=VERIFIED');
+          console.log('CURRENT_PRODUCTION='+JSON.stringify(a?.workerDeploymentAlias?.workerDeployment||null));
+          NODE
+      - name: Roll production alias back to the first Classroom deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest deploy:alias \
+            --prod \
+            --id "$FIRST_CLASSROOM_DEPLOYMENT_ID" \
+            --json \
+            --non-interactive > /tmp/rollback.json
+          cat /tmp/rollback.json
+      - name: Verify production alias is exactly first deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/query-after.json <<'JSON'
+          {
+            "query": "query VerifyRollback($appId: String!) { app { byId(appId: $appId) { workerDeployment(deploymentIdentifier: \"37uiyahswg\") { deploymentIdentifier createdAt url } workerDeploymentAlias(aliasName: null) { id aliasName updatedAt url workerDeployment { id deploymentIdentifier createdAt url } } } } }",
+            "variables": {"appId": "14100ed1-7f25-4551-9627-09d280498241"}
+          }
+          JSON
+          ok=0
+          for i in $(seq 1 10); do
+            curl -fsS -X POST https://api.expo.dev/graphql \
+              -H 'Content-Type: application/json' \
+              -H "Authorization: Bearer $EXPO_TOKEN" \
+              --data-binary @/tmp/query-after.json > /tmp/after.json
+            if node - <<'NODE'
+          const fs=require('fs');
+          const r=JSON.parse(fs.readFileSync('/tmp/after.json','utf8'));
+          if(r.errors?.length) process.exit(2);
+          const a=r.data?.app?.byId;
+          const p=a?.workerDeploymentAlias?.workerDeployment;
+          if(p?.deploymentIdentifier!=='37uiyahswg') process.exit(1);
+          if(p?.createdAt!=='2026-09-05T17:15:03.636Z') process.exit(1);
+          console.log('PRODUCTION_ALIAS_ROLLBACK=VERIFIED');
+          console.log('PRODUCTION='+JSON.stringify(a.workerDeploymentAlias));
+          NODE
+            then ok=1; break; fi
+            sleep 2
+          done
+          test "$ok" = 1
+          curl -fsSIL --max-time 30 https://buklod-classroom.expo.app/ >/dev/null
+          curl -fsSIL --max-time 30 https://buklod-classroom--37uiyahswg.expo.app/ >/dev/null
+          echo 'LIVE_HTTP=PASS'
