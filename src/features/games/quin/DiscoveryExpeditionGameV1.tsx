@@ -43,13 +43,13 @@ const clueHintFor=(clues:number,pos:Pos,language:'en'|'tl')=>{
  if(language==='en'){
   return clues===0?'No directional evidence yet.':clues===1?`First clue: the relic lies mostly ${RELIC.r<pos.r?'north':'south'} of your position.`:clues===2?`Second clue: move ${RELIC.c>pos.c?'east':'west'} while preserving energy.`:`Relic signature is close: ${distanceToRelic} grid steps away.`;
  }
- return clues===0?'Wala pang directional evidence.':clues===1?`Unang clue: ang relic ay higit na nasa ${RELIC.r<pos.r?'hilaga':'timog'} ng posisyon mo.`:clues===2?`Ikalawang clue: gumalaw pakan${RELIC.c>pos.c?'luran':'luran'} habang nagtitipid ng energy.`:`Malapit na ang relic signature: ${distanceToRelic} grid step na lang.`;
+ return clues===0?'Wala pang directional evidence.':clues===1?`Unang clue: ang relic ay higit na nasa ${RELIC.r<pos.r?'hilaga':'timog'} ng posisyon mo.`:clues===2?`Ikalawang clue: gumalaw ${RELIC.c>pos.c?'pasilangan':'pakanluran'} habang nagtitipid ng energy.`:`Malapit na ang relic signature: ${distanceToRelic} grid step na lang.`;
 };
 
 const tileLabel=(tile:TileType|null,here:boolean,visible:boolean,language:'en'|'tl')=>{
  if(here)return language==='tl'?'IKAW':'YOU';
  if(!visible)return '?';
- if(tile==='clue')return language==='tl'?'CLUE':'CLUE';
+ if(tile==='clue')return 'CLUE';
  if(tile==='cache')return language==='tl'?'SUPPLY':'CACHE';
  if(tile==='hazard')return language==='tl'?'PANGANIB':'RISK';
  if(tile==='relic')return 'RELIC';
