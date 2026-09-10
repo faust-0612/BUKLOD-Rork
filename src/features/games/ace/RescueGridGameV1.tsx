@@ -2,6 +2,7 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { playBuklodGameFeedback } from '../runtime/BuklodGameFeedback';
+import { useBuklodGameLanguage } from '../runtime/BuklodGameLanguage';
 import type { BuklodGameResult } from '../types';
 
 type Phase = 'ready' | 'playing' | 'won' | 'lost';
@@ -40,11 +41,34 @@ const starsForEnergy = (energy: number): 1 | 2 | 3 => {
   return 1;
 };
 
+const localizeMessage = (message: string, language: 'en' | 'tl') => {
+  if (language === 'en') return message;
+
+  const exact: Record<string, string> = {
+    'Plan a route through the district. Reach all three rescue beacons before extraction.': 'Planuhin ang ruta sa distrito. Maabot ang lahat ng tatlong rescue beacon bago ang extraction.',
+    'All rescue beacons secured. Extraction corridor is open.': 'Ligtas na ang lahat ng rescue beacon. Bukas na ang extraction corridor.',
+    'Energy depleted before extraction. Re-route and use fewer moves.': 'Naubos ang energy bago ang extraction. Magplano ng bagong ruta at gumamit ng mas kaunting galaw.',
+    'Route blocked. Find another corridor.': 'Sarado ang ruta. Humanap ng ibang corridor.',
+    'Move only to an adjacent district tile.': 'Lumipat lamang sa katabing tile ng distrito.',
+    'All beacons secured. Reach the extraction gate.': 'Ligtas na ang lahat ng beacon. Pumunta sa extraction gate.',
+    'Route clear. Keep energy in reserve.': 'Malinis ang ruta. Magtira ng energy.',
+    'Extraction locked: rescue every beacon first.': 'Naka-lock ang extraction: kunin muna ang lahat ng beacon.',
+    'Mission live. Secure all rescue beacons, then reach extraction.': 'Aktibo ang misyon. Kunin ang lahat ng rescue beacon, saka makarating sa extraction.',
+  };
+  if (exact[message]) return exact[message];
+
+  const beacon = message.match(/^Rescue beacon (\d+)\/3 secured\. Continue to extraction\.$/);
+  if (beacon) return `Nakuha ang rescue beacon ${beacon[1]}/3. Magpatuloy sa extraction.`;
+
+  return message;
+};
+
 type Props = {
   onFinish?: (result: BuklodGameResult) => void;
 };
 
 export function RescueGridGameV1({ onFinish }: Props) {
+  const { language, t } = useBuklodGameLanguage();
   const [phase, setPhase] = useState<Phase>('ready');
   const [position, setPosition] = useState(START);
   const [path, setPath] = useState<number[]>([START]);
@@ -193,7 +217,7 @@ export function RescueGridGameV1({ onFinish }: Props) {
             <Pressable
               key={cell.index}
               accessibilityRole="button"
-              accessibilityLabel={`Grid row ${cell.row + 1} column ${cell.col + 1}`}
+              accessibilityLabel={t(`Grid row ${cell.row + 1} column ${cell.col + 1}`, `Grid hanay ${cell.row + 1} kolum ${cell.col + 1}`)}
               disabled={phase !== 'playing'}
               onPress={() => moveTo(cell.index)}
               style={({ pressed }) => [
@@ -209,8 +233,8 @@ export function RescueGridGameV1({ onFinish }: Props) {
             >
               {blocked ? <View style={styles.blockCross}><View style={styles.blockBarA} /><View style={styles.blockBarB} /></View> : null}
               {beacon ? <View style={[styles.beaconCore, beaconDone && styles.beaconCoreDone]} /> : null}
-              {exit ? <Text style={styles.cellCode}>EXIT</Text> : null}
-              {startCell ? <Text style={styles.cellCode}>START</Text> : null}
+              {exit ? <Text style={styles.cellCode}>{t('EXIT', 'LABAS')}</Text> : null}
+              {startCell ? <Text style={styles.cellCode}>{t('START', 'SIMULA')}</Text> : null}
               {current ? <View style={styles.unit}><View style={styles.unitCore} /></View> : null}
             </Pressable>
           );
@@ -221,34 +245,37 @@ export function RescueGridGameV1({ onFinish }: Props) {
 
       <View style={styles.topHud}>
         <View>
-          <Text style={styles.kicker}>ACE • STRATEGY DISTRICT</Text>
-          <Text style={styles.title}>Rescue Grid</Text>
+          <Text style={styles.kicker}>{t('ACE • STRATEGY DISTRICT', 'ACE • DISTRITO NG ESTRATEHIYA')}</Text>
+          <Text style={styles.title}>{t('Rescue Grid', 'Grid ng Pagsagip')}</Text>
         </View>
         <View style={styles.stats}>
-          <View style={styles.stat}><Text style={styles.statLabel}>ENERGY</Text><Text style={styles.statValue}>{energy}</Text></View>
-          <View style={styles.stat}><Text style={styles.statLabel}>RESCUE</Text><Text style={styles.statValue}>{rescuedCount}/3</Text></View>
-          <View style={styles.stat}><Text style={styles.statLabel}>SCORE</Text><Text style={styles.statValue}>{score}</Text></View>
+          <View style={styles.stat}><Text style={styles.statLabel}>{t('ENERGY', 'ENERHIYA')}</Text><Text style={styles.statValue}>{energy}</Text></View>
+          <View style={styles.stat}><Text style={styles.statLabel}>{t('RESCUE', 'SAGIP')}</Text><Text style={styles.statValue}>{rescuedCount}/3</Text></View>
+          <View style={styles.stat}><Text style={styles.statLabel}>{t('SCORE', 'ISKOR')}</Text><Text style={styles.statValue}>{score}</Text></View>
         </View>
       </View>
 
       <View style={styles.missionPanel} pointerEvents="none">
-        <Text style={styles.message}>{message}</Text>
-        {phase === 'playing' ? <Text style={styles.mode}>{allRescued ? 'EXTRACTION AVAILABLE' : 'TACTICAL ROUTE ACTIVE'}</Text> : null}
+        <Text style={styles.message}>{localizeMessage(message, language)}</Text>
+        {phase === 'playing' ? <Text style={styles.mode}>{allRescued ? t('EXTRACTION AVAILABLE', 'BUKAS NA ANG EXTRACTION') : t('TACTICAL ROUTE ACTIVE', 'AKTIBO ANG TAKTIKAL NA RUTA')}</Text> : null}
       </View>
 
       {phase === 'ready' ? (
         <View style={styles.overlay}>
           <View style={styles.heroCard}>
-            <Text style={styles.heroEyebrow}>BUKLOD KINGDOM • ADVENTURE 03</Text>
-            <Text style={styles.heroTitle}>RESCUE GRID</Text>
-            <Text style={styles.heroCopy}>Navigate a tactical city grid with limited energy. Secure all three rescue beacons, avoid blocked corridors, then reach extraction.</Text>
+            <Text style={styles.heroEyebrow}>{t('BUKLOD KINGDOM • ADVENTURE 03', 'BUKLOD KINGDOM • PAKIKIPAGSAPALARAN 03')}</Text>
+            <Text style={styles.heroTitle}>{t('RESCUE GRID', 'GRID NG PAGSAGIP')}</Text>
+            <Text style={styles.heroCopy}>{t(
+              'Navigate a tactical city grid with limited energy. Secure all three rescue beacons, avoid blocked corridors, then reach extraction.',
+              'Mag-navigate sa taktikal na city grid gamit ang limitadong energy. Kunin ang tatlong rescue beacon, umiwas sa saradong corridor, saka makarating sa extraction.',
+            )}</Text>
             <View style={styles.rulesRow}>
-              <View style={styles.ruleChip}><Text style={styles.ruleTitle}>ROUTE</Text><Text style={styles.ruleCopy}>adjacent tiles</Text></View>
-              <View style={styles.ruleChip}><Text style={styles.ruleTitle}>RESCUE</Text><Text style={styles.ruleCopy}>3 beacons</Text></View>
-              <View style={styles.ruleChip}><Text style={styles.ruleTitle}>SAVE</Text><Text style={styles.ruleCopy}>energy</Text></View>
+              <View style={styles.ruleChip}><Text style={styles.ruleTitle}>{t('ROUTE', 'RUTA')}</Text><Text style={styles.ruleCopy}>{t('adjacent tiles', 'katabing tiles')}</Text></View>
+              <View style={styles.ruleChip}><Text style={styles.ruleTitle}>{t('RESCUE', 'SAGIP')}</Text><Text style={styles.ruleCopy}>{t('3 beacons', '3 beacon')}</Text></View>
+              <View style={styles.ruleChip}><Text style={styles.ruleTitle}>{t('SAVE', 'MAGTIRA')}</Text><Text style={styles.ruleCopy}>{t('energy', 'energy')}</Text></View>
             </View>
             <Pressable onPress={start} style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryPressed]}>
-              <Text style={styles.primaryText}>START MISSION</Text>
+              <Text style={styles.primaryText}>{t('START MISSION', 'SIMULAN ANG MISYON')}</Text>
             </Pressable>
           </View>
         </View>
@@ -257,13 +284,15 @@ export function RescueGridGameV1({ onFinish }: Props) {
       {phase === 'won' || phase === 'lost' ? (
         <View style={styles.overlay}>
           <View style={styles.resultCard}>
-            <Text style={styles.heroEyebrow}>{phase === 'won' ? 'MISSION CLEARED' : 'MISSION INCOMPLETE'}</Text>
-            <Text style={styles.resultTitle}>{phase === 'won' ? 'EXTRACTION SUCCESS' : 'REPLAN THE GRID'}</Text>
-            <Text style={styles.resultScore}>{score.toLocaleString()} pts</Text>
-            <Text style={styles.resultMeta}>Energy {energy} • Rescue {rescuedCount}/3 {phase === 'won' ? `• ${'★'.repeat(starsForEnergy(energy))}` : ''}</Text>
-            <Text style={styles.resultCopy}>{phase === 'won' ? 'Later this can unlock Ace’s next tactical district station and a visible city-state change.' : 'Replay without penalty and find a shorter, cleaner route.'}</Text>
+            <Text style={styles.heroEyebrow}>{phase === 'won' ? t('MISSION CLEARED', 'NATAPOS ANG MISYON') : t('MISSION INCOMPLETE', 'HINDI PA TAPOS ANG MISYON')}</Text>
+            <Text style={styles.resultTitle}>{phase === 'won' ? t('EXTRACTION SUCCESS', 'TAGUMPAY ANG EXTRACTION') : t('REPLAN THE GRID', 'PLANUHIN MULI ANG GRID')}</Text>
+            <Text style={styles.resultScore}>{score.toLocaleString()} {t('pts', 'puntos')}</Text>
+            <Text style={styles.resultMeta}>{t('Energy', 'Energy')} {energy} • {t('Rescue', 'Sagip')} {rescuedCount}/3 {phase === 'won' ? `• ${'★'.repeat(starsForEnergy(energy))}` : ''}</Text>
+            <Text style={styles.resultCopy}>{phase === 'won'
+              ? t('Your tactical clear is recorded. Return to the Kingdom Map to see Ace’s district progress reflected in the world.', 'Naitala ang taktikal mong tagumpay. Bumalik sa Mapa ng Kaharian para makita ang progreso ng distrito ni Ace sa mundo.')
+              : t('Replay without penalty and find a shorter, cleaner route.', 'Ulitin nang walang parusa at humanap ng mas maikli at mas malinis na ruta.')}</Text>
             <Pressable onPress={reset} style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryPressed]}>
-              <Text style={styles.primaryText}>REPLAY MISSION</Text>
+              <Text style={styles.primaryText}>{t('REPLAY MISSION', 'ULITIN ANG MISYON')}</Text>
             </Pressable>
           </View>
         </View>
