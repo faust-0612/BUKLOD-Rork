@@ -1,6 +1,19 @@
 $ErrorActionPreference = 'Stop'
 
-Write-Host 'BUKLOD Game Lab — Direct Expo Web Deploy' -ForegroundColor Cyan
+Write-Host 'BUKLOD Game Lab — Protected Canonical Expo Web Deploy' -ForegroundColor Cyan
+
+# Production deployment is intentionally impossible from random clones/snapshots.
+# RUN_CANONICAL_WEB_RELEASE.ps1 creates a fresh disposable staging clone and sets
+# these authorization variables after verifying the centralized workspace.
+if ($env:BUKLOD_CANONICAL_RELEASE -ne '1') {
+  throw 'Direct production deploy is blocked. Run SOURCE\BUKLOD-MAIN\scripts\RUN_CANONICAL_WEB_RELEASE.ps1 from the centralized BUKLOD_WORKSPACE.'
+}
+if ([string]::IsNullOrWhiteSpace($env:BUKLOD_WORKSPACE_ROOT)) {
+  throw 'BUKLOD_WORKSPACE_ROOT is missing. Canonical deployment authorization failed.'
+}
+if ([string]::IsNullOrWhiteSpace($env:BUKLOD_R31_R40_RECOVERY_ROOT)) {
+  throw 'BUKLOD_R31_R40_RECOVERY_ROOT is missing. Canonical R31/R40 recovery cannot be proven.'
+}
 
 $scriptPath = $PSCommandPath
 $scriptHashBefore = $null
@@ -8,51 +21,30 @@ if ($scriptPath -and (Test-Path $scriptPath)) {
   $scriptHashBefore = (Get-FileHash $scriptPath -Algorithm SHA256).Hash
 }
 
-# Safe branch recovery. A detached HEAD can happen after prior verification/release
-# commands. Auto-return to main only when the working tree is clean; never reset,
-# force-checkout, or discard local/newer work.
 $branch = (git symbolic-ref --short -q HEAD 2>$null)
 if ($branch) { $branch = $branch.Trim() }
-
 if (-not $branch) {
-  Write-Host 'Detached HEAD detected. Checking whether it is safe to return to main...' -ForegroundColor Yellow
-  $dirty = @(git status --porcelain)
-  if ($dirty.Count -gt 0) {
-    Write-Host 'Detached HEAD has local changes. Refusing automatic branch switch to preserve work.' -ForegroundColor Red
-    git status --short
-    throw 'Working tree is not clean. No reset/checkout/deploy performed.'
-  }
-
-  git fetch origin main
-  if ($LASTEXITCODE -ne 0) { throw 'Could not fetch origin/main. Deployment stopped.' }
-
-  git switch main
-  if ($LASTEXITCODE -ne 0) {
-    throw "Detached HEAD recovery could not switch to existing local 'main'. No files were reset or discarded."
-  }
-
-  $branch = (git symbolic-ref --short -q HEAD).Trim()
-  Write-Host "Recovered branch: $branch" -ForegroundColor Green
+  throw 'Canonical disposable release clone is unexpectedly detached. Deployment stopped; no reset performed.'
 }
-
 if ($branch -ne 'main') {
-  throw "Expected branch 'main'. Current branch: $branch. No automatic switch from a named feature branch was attempted."
+  throw "Production web release requires branch main. Current branch: $branch"
 }
 
-Write-Host 'Pulling canonical main...' -ForegroundColor Yellow
+Write-Host 'Refreshing canonical main inside disposable staging...' -ForegroundColor Yellow
 git pull --ff-only origin main
 if ($LASTEXITCODE -ne 0) { throw 'git pull failed. Deployment stopped.' }
 
 if ($scriptPath -and (Test-Path $scriptPath) -and $scriptHashBefore) {
   $scriptHashAfter = (Get-FileHash $scriptPath -Algorithm SHA256).Hash
   if ($scriptHashAfter -ne $scriptHashBefore) {
-    Write-Host 'Deploy script updated during pull. Relaunching the latest copy...' -ForegroundColor Cyan
+    Write-Host 'Deploy implementation updated during pull. Relaunching latest protected copy...' -ForegroundColor Cyan
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $scriptPath
     exit $LASTEXITCODE
   }
 }
 
-if (-not (Test-Path 'package.json')) { throw 'Run this script from the BUKLOD project root.' }
+if (-not (Test-Path 'package.json')) { throw 'package.json missing from canonical release staging.' }
+if (-not (Test-Path 'package-lock.json')) { throw 'package-lock.json missing from canonical release staging.' }
 if (-not (Test-Path 'app.config.js')) { throw 'app.config.js not found.' }
 if (-not (Test-Path 'eas.json')) { throw 'eas.json not found.' }
 if (-not (Test-Path 'scripts\RESTORE_CANONICAL_R31_R40.ps1')) { throw 'Canonical R31/R40 recovery script is missing.' }
@@ -92,8 +84,10 @@ Write-Host 'Installing locked dependencies...' -ForegroundColor Yellow
 npm ci --ignore-scripts
 if ($LASTEXITCODE -ne 0) { throw 'npm ci failed.' }
 
-Write-Host 'Forward-restoring canonical R31/R40 package from verified recovery roots...' -ForegroundColor Yellow
-& powershell.exe -NoProfile -ExecutionPolicy Bypass -File '.\scripts\RESTORE_CANONICAL_R31_R40.ps1' -ProjectRoot (Get-Location).Path
+Write-Host 'Overlaying approved R31/R40 recovery package into disposable release staging...' -ForegroundColor Yellow
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File '.\scripts\RESTORE_CANONICAL_R31_R40.ps1' `
+  -ProjectRoot (Get-Location).Path `
+  -RecoveryRoots @($env:BUKLOD_R31_R40_RECOVERY_ROOT)
 if ($LASTEXITCODE -ne 0) {
   throw 'Canonical R31/R40 recovery failed. No deployment attempted.'
 }
@@ -130,7 +124,7 @@ if ($LASTEXITCODE -ne 0) {
   throw 'Compiled web bundle failed the R31/R40 release lock. Deployment stopped.'
 }
 
-Write-Host 'Creating physical Game Lab SPA route shells...' -ForegroundColor Yellow
+Write-Host 'Creating physical BUKLOD Kingdom SPA route shells...' -ForegroundColor Yellow
 $gameRoutes = @(
   'games',
   'games\jawo-forest-trail',
@@ -156,16 +150,16 @@ foreach ($route in $gameRoutes) {
 
 $gameLabFile = 'dist\games\index.html'
 if (-not (Test-Path $gameLabFile)) {
-  throw 'Game Lab SPA shell verification failed. Deployment stopped.'
+  throw 'BUKLOD Kingdom SPA shell verification failed. Deployment stopped.'
 }
 
 $routeShellCount = ($gameRoutes | Where-Object { Test-Path (Join-Path (Join-Path 'dist' $_) 'index.html') }).Count
 if ($routeShellCount -ne $gameRoutes.Count) {
-  throw "Expected $($gameRoutes.Count) Game Lab route shells but found $routeShellCount. Deployment stopped."
+  throw "Expected $($gameRoutes.Count) Kingdom route shells but found $routeShellCount. Deployment stopped."
 }
 
-Write-Host "Verified Game Lab route shells: $routeShellCount/$($gameRoutes.Count)" -ForegroundColor Green
-Write-Host 'Verified exported Game Lab route: dist\games\index.html' -ForegroundColor Green
+Write-Host "Verified BUKLOD Kingdom route shells: $routeShellCount/$($gameRoutes.Count)" -ForegroundColor Green
+Write-Host 'Verified exported Kingdom route: dist\games\index.html' -ForegroundColor Green
 
 Write-Host 'Checking Kingdom contract inside compiled web artifact...' -ForegroundColor Yellow
 npm run game:contract:dist
@@ -173,10 +167,10 @@ if ($LASTEXITCODE -ne 0) {
   throw 'Compiled web artifact failed the BUKLOD Kingdom release lock. Deployment stopped.'
 }
 
-Write-Host 'Publishing to existing Expo Hosting production target...' -ForegroundColor Yellow
+Write-Host 'Publishing WEB ONLY to existing Expo Hosting production target...' -ForegroundColor Yellow
 npx eas-cli@latest deploy --prod --environment production --non-interactive
 if ($LASTEXITCODE -ne 0) { throw 'EAS web deployment failed.' }
 
-Write-Host 'DEPLOY COMPLETE' -ForegroundColor Green
+Write-Host 'DEPLOY COMPLETE — WEB ONLY' -ForegroundColor Green
 Write-Host 'Verify BUKLOD Main: https://buklod.expo.app' -ForegroundColor Green
 Write-Host 'Verify BUKLOD Kingdom: https://buklod.expo.app/games' -ForegroundColor Green
