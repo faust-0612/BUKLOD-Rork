@@ -85,10 +85,16 @@ export default function BuklodSpecialCharacterSeries({
       const next = await setMyBuklodCharacterActiveV2(userId, id);
       setState(next);
       onSelectionStateChange?.(next);
-      // Keep the R40 pursuit signal without using the obsolete V1 activation RPC.
-      await (supabase as any).rpc('set_my_buklod_special_character_pursuit_v1', {
-        p_character_id: id,
-      });
+
+      // Preserve the R40 pursuit signal, but never let this legacy-compatible auxiliary
+      // write undo a successful V2 character activation.
+      const pursuit = await (supabase as any).rpc(
+        'set_my_buklod_special_character_pursuit_v1',
+        { p_character_id: id },
+      );
+      if (pursuit?.error) {
+        console.warn('BUKLOD Special pursuit:', pursuit.error.message ?? pursuit.error);
+      }
     } finally {
       setBusyId(null);
     }
