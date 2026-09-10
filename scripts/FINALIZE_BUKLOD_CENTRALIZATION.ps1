@@ -24,9 +24,24 @@ function Fail([string]$Message) { throw $Message }
 function Full([string]$Path) { return [System.IO.Path]::GetFullPath($Path).TrimEnd('\') }
 function EnsureDir([string]$Path) { New-Item -ItemType Directory -Force -Path $Path | Out-Null }
 function GitOut([string]$Repo, [string[]]$GitArgs) {
-  $output = & git -C $Repo @GitArgs 2>$null
-  if ($LASTEXITCODE -ne 0) { return $null }
-  return (($output | Out-String).Trim())
+  $previousErrorActionPreference = $ErrorActionPreference
+  try {
+    # Some legacy Git folders are valid repositories but have no `origin` remote.
+    # Under global ErrorActionPreference=Stop, native git stderr can become a terminating
+    # PowerShell error before LASTEXITCODE is checked. Probe legacy repositories in a
+    # non-terminating scope and treat any non-zero git result as "no usable value".
+    $ErrorActionPreference = 'Continue'
+    try {
+      $output = & git -C $Repo @GitArgs 2>$null
+      $exitCode = $LASTEXITCODE
+    } catch {
+      return $null
+    }
+    if ($exitCode -ne 0) { return $null }
+    return (($output | Out-String).Trim())
+  } finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+  }
 }
 function FindGitRepos([string]$Root, [int]$Depth = 0, [int]$MaxDepth = 3) {
   $found = New-Object System.Collections.Generic.List[string]
@@ -127,6 +142,10 @@ $quarantineRoot = Join-Path $QuarantineBase (Get-Date -Format 'yyyyMMdd-HHmmss')
 foreach ($repo in $repoPaths) {
   if ($repo -eq (Full $SourceRoot)) { continue }
   $candidateOrigin = GitOut $repo @('remote','get-url','origin')
+  if (-not $candidateOrigin) {
+    Write-Host "SKIP_NO_ORIGIN : $repo" -ForegroundColor DarkYellow
+    continue
+  }
   if ($candidateOrigin -ne $ExpectedRepo) { continue }
   $head = GitOut $repo @('rev-parse','HEAD')
   $branch = GitOut $repo @('symbolic-ref','--short','-q','HEAD')
