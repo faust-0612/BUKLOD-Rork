@@ -1,5 +1,6 @@
 /* BUKLOD_CHARACTER_SELECTION_V2_WEB_RECOVERY */
 /* BUKLOD_CHARACTER_SELECTION_V2_SERVER_CONTRACT_R2 */
+/* R31/R40 forward-port rule: this V2 server contract remains the sole activation/reset authority. */
 import { supabase } from '@/lib/supabase';
 
 export type BuklodCoreCharacterId =
