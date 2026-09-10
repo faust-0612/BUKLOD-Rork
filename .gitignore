@@ -55,6 +55,9 @@ patch_backups/
 BUKLOD_PATCH_BACKUPS/
 native_backups/
 
+# Canonical workspace marker is local-only and identifies the single writable clone.
+.buklod-local-canonical.json
+
 # Backup copies
 *.bak
 *.before-*
@@ -71,14 +74,12 @@ native120-*.txt
 # Firebase files will be configured separately for production builds
 /google-services*.json
 
-
 # Extra Rork export safety
 *.bak*
 *.orig
 *.tmp
 
 # Supabase source is version-controlled; local CLI state and .env files stay ignored above.
-
 
 credentials.json
 credentials/
