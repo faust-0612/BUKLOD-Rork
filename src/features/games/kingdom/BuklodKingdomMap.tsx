@@ -11,6 +11,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, {
   Circle as SvgCircle,
   Defs,
@@ -241,6 +242,7 @@ function DecorativeLabel({
 export default function BuklodKingdomMap() {
   const [progress, setProgress] = useState<BuklodKingdomPreviewProgress>(emptyProgress());
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     let mounted = true;
@@ -268,7 +270,7 @@ export default function BuklodKingdomMap() {
     <View style={styles.root}>
       <LinearGradient colors={['#71c9f2', '#d8f3ff']} style={StyleSheet.absoluteFill} />
 
-      <View style={styles.topHud} pointerEvents="box-none">
+      <View style={[styles.topHud, { top: Math.max(12, insets.top + 6) }]} pointerEvents="box-none">
         <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.hudButton}>
           <MaterialCommunityIcons name="arrow-left" size={21} color="#173f62" />
         </Pressable>
@@ -364,7 +366,7 @@ export default function BuklodKingdomMap() {
 
             <View style={styles.brandBoard}>
               <View style={styles.brandShield}>
-                <MaterialCommunityIcons name="shield-cross-outline" size={32} color="#f4c64f" />
+                <MaterialCommunityIcons name="shield-outline" size={32} color="#f4c64f" />
               </View>
               <View>
                 <Text style={styles.brandTitle}>BUKLOD</Text>
@@ -406,7 +408,7 @@ export default function BuklodKingdomMap() {
 
             <DecorativeLabel left={360} top={185} icon="target" label="TRAINING GROUNDS" stage={stage} minimumStage={2} />
             <DecorativeLabel left={835} top={510} icon="stadium" label="IGPAT ARENA" stage={stage} minimumStage={3} />
-            <DecorativeLabel left={735} top={145} icon="tower-fire" label="MENTOR TOWER" stage={stage} minimumStage={3} />
+            <DecorativeLabel left={735} top={145} icon="castle" label="MENTOR TOWER" stage={stage} minimumStage={3} />
 
             {STATIONS.map((station, index) => (
               <StationNode key={station.id} station={station} index={index} progress={progress} />
@@ -416,7 +418,7 @@ export default function BuklodKingdomMap() {
 
             <View style={styles.compass}>
               <Text style={styles.compassN}>N</Text>
-              <MaterialCommunityIcons name="compass-rose" size={48} color="rgba(34,74,103,0.72)" />
+              <MaterialCommunityIcons name="compass-outline" size={48} color="rgba(34,74,103,0.72)" />
             </View>
 
             <View style={styles.mottoScroll}>
@@ -444,7 +446,6 @@ const styles = StyleSheet.create({
   topHud: {
     position: 'absolute',
     zIndex: 50,
-    top: 12,
     left: 12,
     right: 12,
     flexDirection: 'row',
@@ -478,7 +479,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.16,
     shadowRadius: 10,
   },
-  progressPillTitle: { fontSize: 12, fontWeight: '950', color: '#6f4a13', letterSpacing: 0.6 },
+  progressPillTitle: { fontSize: 12, fontWeight: '900', color: '#6f4a13', letterSpacing: 0.6 },
   progressPillMeta: { fontSize: 9.5, fontWeight: '900', color: '#5c6570' },
   explorePill: {
     marginLeft: 'auto',
@@ -522,8 +523,8 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#e0aa34',
   },
-  brandTitle: { color: '#f8d783', fontSize: 31, lineHeight: 32, fontWeight: '950', letterSpacing: 1 },
-  brandSubtitle: { color: '#fff0bc', fontSize: 13, fontWeight: '950', letterSpacing: 4 },
+  brandTitle: { color: '#f8d783', fontSize: 31, lineHeight: 32, fontWeight: '900', letterSpacing: 1 },
+  brandSubtitle: { color: '#fff0bc', fontSize: 13, fontWeight: '900', letterSpacing: 4 },
   stageRibbon: {
     position: 'absolute',
     left: 64,
@@ -537,8 +538,8 @@ const styles = StyleSheet.create({
     borderColor: '#8f6a31',
     borderRadius: 8,
   },
-  stageNumber: { color: '#50351b', fontSize: 12, fontWeight: '950' },
-  stageTitle: { color: '#46301a', fontSize: 10, fontWeight: '950', letterSpacing: 0.5 },
+  stageNumber: { color: '#50351b', fontSize: 12, fontWeight: '900' },
+  stageTitle: { color: '#46301a', fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
   stageSubtitle: { color: '#725638', fontSize: 7.5, fontWeight: '800', marginTop: 1 },
 
   signPost: { position: 'absolute', left: 30, top: 235, width: 150, gap: 5 },
@@ -556,7 +557,7 @@ const styles = StyleSheet.create({
   },
   signTiltA: { transform: [{ rotate: '-1.5deg' }] },
   signTiltB: { transform: [{ rotate: '1.5deg' }] },
-  signText: { color: '#f6deb2', fontSize: 9, fontWeight: '950', textAlign: 'center', letterSpacing: 0.5 },
+  signText: { color: '#f6deb2', fontSize: 9, fontWeight: '900', textAlign: 'center', letterSpacing: 0.5 },
 
   stationWrap: {
     position: 'absolute',
@@ -608,7 +609,7 @@ const styles = StyleSheet.create({
     borderColor: '#f5cf63',
   },
   numberBadgeCleared: { backgroundColor: '#2f7a43' },
-  numberText: { color: '#fff', fontSize: 12, fontWeight: '950' },
+  numberText: { color: '#fff', fontSize: 12, fontWeight: '900' },
   clearedBadge: {
     position: 'absolute',
     right: -7,
@@ -638,7 +639,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.23,
     shadowRadius: 5,
   },
-  stationCharacter: { color: '#3e2b18', fontSize: 13, fontWeight: '950', letterSpacing: 0.2 },
+  stationCharacter: { color: '#3e2b18', fontSize: 13, fontWeight: '900', letterSpacing: 0.2 },
   stationRegion: { width: '100%', color: '#5d452d', fontSize: 8.5, fontWeight: '900', textAlign: 'center' },
   stationGame: { width: '100%', marginTop: 1, color: '#7d6038', fontSize: 7.5, fontWeight: '800', textAlign: 'center' },
   progressRow: { marginTop: 4, flexDirection: 'row', alignItems: 'center', gap: 2 },
@@ -659,7 +660,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#818d90',
   },
-  futureTitle: { color: '#59646b', fontSize: 10, fontWeight: '950' },
+  futureTitle: { color: '#59646b', fontSize: 10, fontWeight: '900' },
   futureCopy: { color: '#727d82', fontSize: 5.5, fontWeight: '900', letterSpacing: 0.5 },
 
   decorativeLabel: {
@@ -677,7 +678,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#8b6734',
   },
-  decorativeLabelText: { color: '#513c24', fontSize: 8.5, fontWeight: '950' },
+  decorativeLabelText: { color: '#513c24', fontSize: 8.5, fontWeight: '900' },
   decorativeLabelLocked: { color: '#687074' },
 
   harborDecor: { position: 'absolute', left: 62, bottom: 42, zIndex: 5, alignItems: 'center' },
@@ -685,16 +686,16 @@ const styles = StyleSheet.create({
   treeCanopy: { width: 104, height: 82, borderRadius: 52, backgroundColor: '#4f9c45', borderWidth: 6, borderColor: '#36743d' },
   treeTrunk: { width: 18, height: 38, marginTop: -8, backgroundColor: '#754c2c', borderRadius: 8 },
   smallPlaque: { marginTop: 4, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 5, backgroundColor: '#f4e4b8', borderWidth: 1.5, borderColor: '#806037' },
-  smallPlaqueText: { color: '#4d3820', fontSize: 7.5, fontWeight: '950' },
+  smallPlaqueText: { color: '#4d3820', fontSize: 7.5, fontWeight: '900' },
 
   castleDecor: { position: 'absolute', right: 62, top: 74, zIndex: 6, alignItems: 'center' },
   castlePlaque: { marginTop: -6, minWidth: 150, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 7, alignItems: 'center', backgroundColor: '#f5e5b9', borderWidth: 2, borderColor: '#8b6531' },
-  castleTitle: { color: '#4d361d', fontSize: 9.5, fontWeight: '950' },
+  castleTitle: { color: '#4d361d', fontSize: 9.5, fontWeight: '900' },
   castleCopy: { color: '#6b5336', fontSize: 6.8, fontWeight: '800' },
 
   compass: { position: 'absolute', left: 40, bottom: 34, width: 58, height: 66, alignItems: 'center', justifyContent: 'center', opacity: 0.88 },
   compassN: { color: '#315673', fontSize: 8, fontWeight: '900', marginBottom: -2 },
   mottoScroll: { position: 'absolute', right: 28, bottom: 24, width: 210, paddingHorizontal: 14, paddingVertical: 11, borderRadius: 8, backgroundColor: '#e8cc91', borderWidth: 2, borderColor: '#8a6436', transform: [{ rotate: '-1deg' }] },
   motto: { color: '#5c4429', fontSize: 8, fontWeight: '900', textAlign: 'center', letterSpacing: 0.6 },
-  mottoStrong: { marginTop: 3, color: '#4a351f', fontSize: 7.6, fontWeight: '950', textAlign: 'center' },
+  mottoStrong: { marginTop: 3, color: '#4a351f', fontSize: 7.6, fontWeight: '900', textAlign: 'center' },
 });
