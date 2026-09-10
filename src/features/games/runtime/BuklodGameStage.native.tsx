@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { usePathname } from 'expo-router';
 import {
@@ -11,8 +11,13 @@ import {
   vec,
 } from '@shopify/react-native-skia';
 
-import { recordBuklodKingdomPreviewResult } from '@/features/games/kingdom/progress';
+import {
+  recordBuklodKingdomPreviewResult,
+  setBuklodKingdomProgressOwner,
+} from '@/features/games/kingdom/progress';
 import type { BuklodGameResult } from '@/features/games/types';
+import { useAuth } from '@/providers/AuthProvider';
+import BuklodGameChrome from './BuklodGameChrome';
 import { BuklodGameLanguageControl, BuklodGameLanguageProvider } from './BuklodGameLanguage';
 import { BuklodGameEntrance, BuklodGameVisualFX } from './BuklodGameVisualFX';
 import type { BuklodGameBiome } from './quality';
@@ -66,13 +71,19 @@ function withResultHandler(children: React.ReactNode, onFinish: (result: BuklodG
 
 export function BuklodGameStage({ biome, gameId, children }: Props) {
   const pathname = usePathname();
+  const { user } = useAuth();
+  const [lastResult, setLastResult] = useState<BuklodGameResult | null>(null);
   const resolvedGameId = gameId ?? routeGameId(pathname);
   const colors = [...palettes[biome]];
+  const ownerId = user?.id ?? null;
+
+  setBuklodKingdomProgressOwner(ownerId);
 
   const recordResult = useCallback((result: BuklodGameResult) => {
     if (resolvedGameId && result.gameId !== resolvedGameId) return;
-    recordBuklodKingdomPreviewResult(result).catch(() => undefined);
-  }, [resolvedGameId]);
+    setLastResult(result);
+    recordBuklodKingdomPreviewResult(result, ownerId).catch(() => undefined);
+  }, [ownerId, resolvedGameId]);
 
   const connectedChildren = withResultHandler(children, recordResult);
 
@@ -101,6 +112,11 @@ export function BuklodGameStage({ biome, gameId, children }: Props) {
         <View style={styles.content}>
           <BuklodGameEntrance>{connectedChildren}</BuklodGameEntrance>
         </View>
+        <BuklodGameChrome
+          gameId={resolvedGameId}
+          result={lastResult}
+          onDismissResult={() => setLastResult(null)}
+        />
         <BuklodGameLanguageControl />
       </View>
     </BuklodGameLanguageProvider>
