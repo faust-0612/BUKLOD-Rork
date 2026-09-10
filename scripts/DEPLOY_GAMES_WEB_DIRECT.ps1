@@ -54,6 +54,12 @@ $env:APP_VARIANT = 'production'
 $env:EXPO_PUBLIC_APP_ENV = 'production'
 $env:BUKLOD_WEB_OUTPUT = 'single'
 
+# IMPORTANT: install first. EAS env:pull resolves app.config.js and config plugins,
+# so a fresh disposable clone needs node_modules before env:pull can succeed.
+Write-Host 'Installing locked dependencies before Expo config resolution...' -ForegroundColor Yellow
+npm ci --ignore-scripts
+if ($LASTEXITCODE -ne 0) { throw 'npm ci failed.' }
+
 Write-Host 'Checking Expo authentication...' -ForegroundColor Yellow
 npx eas-cli@latest whoami
 if ($LASTEXITCODE -ne 0) {
@@ -79,10 +85,6 @@ if (-not $supabaseUrlLine -or -not $supabaseKeyLine) {
   throw 'Production environment preflight failed. Deployment stopped.'
 }
 Write-Host 'Production Supabase client environment verified.' -ForegroundColor Green
-
-Write-Host 'Installing locked dependencies...' -ForegroundColor Yellow
-npm ci --ignore-scripts
-if ($LASTEXITCODE -ne 0) { throw 'npm ci failed.' }
 
 Write-Host 'Overlaying approved R31/R40 recovery package into disposable release staging...' -ForegroundColor Yellow
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File '.\scripts\RESTORE_CANONICAL_R31_R40.ps1' `
