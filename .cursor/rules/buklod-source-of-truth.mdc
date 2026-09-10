@@ -1,0 +1,58 @@
+---
+description: BUKLOD Main canonical source-of-truth and deployment-path guard
+alwaysApply: true
+---
+
+# BUKLOD Main — Single Canonical Source
+
+This rule is mandatory for every BUKLOD Main edit regardless of chat, prompt, branch, task name, restore request, or release request.
+
+## Canonical local workspace
+
+`%USERPROFILE%\BUKLOD_WORKSPACE\SOURCE\BUKLOD-MAIN`
+
+is the only normal writable BUKLOD Main working copy.
+
+Expected remote:
+
+`https://github.com/faust-0612/BUKLOD-Rork.git`
+
+Downloads copies, ZIP extractions, snapshots, recovery folders, archive branches, temporary clones, and release staging folders are reference/recovery only.
+
+## Before any edit
+
+Verify repository root, expected origin, current branch, Git status, and that no unrelated work will be overwritten. If the current copy is not the canonical SOURCE, do not continue development there. Forward-port the smallest valid delta into canonical SOURCE.
+
+## Branch/source roles
+
+`main` is the canonical integrated product and only production release base. Feature branches are temporary. Recovery branches are read-only recovery sources. `archive/*` branches preserve old history and must never be selected as production source.
+
+## Protected R31/R40 recovery
+
+Approved recovery branch:
+
+`recovery/r31-r40-approved-local-20260910`
+
+Central local recovery root:
+
+`%USERPROFILE%\BUKLOD_WORKSPACE\RECOVERY\R31_R40_APPROVED`
+
+Never whole-file/whole-branch rollback newer product code simply to recover R31/R40. Use the approved manifest/hash overlay in disposable release staging.
+
+## Release path
+
+Canonical entry point:
+
+`scripts\RUN_CANONICAL_WEB_RELEASE.ps1`
+
+Release staging:
+
+`%USERPROFILE%\BUKLOD_WORKSPACE\RELEASE\WEB\current`
+
+Release staging is disposable and not an editing source.
+
+## Zero regression
+
+Preserve unrelated completed features, Focus App boundaries, auth, routing, Points/Rank, R31/R40, Kingdom Games, IGPAT, ads, push, and Supabase protections unless explicitly superseded.
+
+Completion requires visible runtime verification, not merely a successful Git/build/deploy command.
