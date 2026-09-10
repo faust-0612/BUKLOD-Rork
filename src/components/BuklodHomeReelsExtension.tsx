@@ -6,11 +6,16 @@ import React, {
 
 import {
   ActivityIndicator,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+
+import {
+  router,
+} from 'expo-router';
 
 import {
   VideoView,
@@ -30,7 +35,7 @@ import {
   useAuth,
 } from '@/providers/AuthProvider';
 
-type ReelRow = {
+type IgpatRow = {
   id: string;
   user_id?: string | null;
   author_name: string;
@@ -44,7 +49,7 @@ type ReelRow = {
   media_url?: string | null;
 };
 
-function HomeReelVideo({
+function HomeIgpatVideo({
   uri,
 }: {
   uri: string;
@@ -66,6 +71,10 @@ function HomeReelVideo({
   );
 }
 
+/**
+ * Backward-compatible component name retained so existing Home imports do not
+ * need a risky broad edit. User-facing product identity is now BUKLOD IGPAT.
+ */
 export default function BuklodHomeReelsExtension() {
   const {
     user,
@@ -73,7 +82,7 @@ export default function BuklodHomeReelsExtension() {
   } = useAuth();
 
   const [rows, setRows] =
-    useState<ReelRow[]>([]);
+    useState<IgpatRow[]>([]);
 
   const [loading, setLoading] =
     useState(true);
@@ -90,6 +99,8 @@ export default function BuklodHomeReelsExtension() {
         setLoading(true);
 
         try {
+          // Keep the proven legacy RPC name for database compatibility while
+          // the product surface migrates to the canonical IGPAT identity.
           const {
             data,
             error,
@@ -109,7 +120,7 @@ export default function BuklodHomeReelsExtension() {
           const visibleRows =
             (
               data ?? []
-            ) as ReelRow[];
+            ) as IgpatRow[];
 
           const signed =
             await Promise.all(
@@ -157,7 +168,7 @@ export default function BuklodHomeReelsExtension() {
           );
         } catch (error) {
           console.warn(
-            'Home reels:',
+            'Home IGPAT:',
             String(
               (error as any)
                 ?.message ??
@@ -189,15 +200,25 @@ export default function BuklodHomeReelsExtension() {
 
   return (
     <View style={styles.section}>
-      <View style={styles.headingRow}>
-        <Text style={styles.sectionTitle}>
-          REELS
-        </Text>
+      <Pressable
+        style={styles.headingRow}
+        onPress={() => router.push('/igpat' as any)}
+        accessibilityRole="button"
+        accessibilityLabel="Open BUKLOD IGPAT"
+      >
+        <View>
+          <Text style={styles.sectionTitle}>
+            BUKLOD IGPAT
+          </Text>
+          <Text style={styles.tagline}>
+            An Instant Bond.
+          </Text>
+        </View>
 
         <Text style={styles.sectionMeta}>
-          Latest content
+          Watch all ›
         </Text>
-      </View>
+      </Pressable>
 
       {loading ? (
         <View style={styles.loading}>
@@ -214,12 +235,15 @@ export default function BuklodHomeReelsExtension() {
           }
         >
           {rows.map(row => (
-            <View
+            <Pressable
               key={row.id}
               style={styles.reelCard}
+              onPress={() => router.push('/igpat' as any)}
+              accessibilityRole="button"
+              accessibilityLabel={`Open IGPAT by ${resolvePersonDisplayName(row.author_name, row.user_id)}`}
             >
               {!!row.media_url && (
-                <HomeReelVideo
+                <HomeIgpatVideo
                   uri={row.media_url}
                 />
               )}
@@ -264,7 +288,7 @@ export default function BuklodHomeReelsExtension() {
                   comments
                 </Text>
               </View>
-            </View>
+            </Pressable>
           ))}
         </ScrollView>
       )}
@@ -293,10 +317,17 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
 
-  sectionMeta: {
+  tagline: {
+    marginTop: 2,
     color: colors.muted,
-    fontSize: 9,
+    fontSize: 8.5,
     fontWeight: '700',
+  },
+
+  sectionMeta: {
+    color: colors.greenDark,
+    fontSize: 9,
+    fontWeight: '800',
   },
 
   loading: {
