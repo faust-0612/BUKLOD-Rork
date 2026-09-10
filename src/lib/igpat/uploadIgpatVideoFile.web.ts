@@ -9,47 +9,32 @@ export async function uploadIgpatVideoFile(input: {
 }) {
   input.onProgress?.(0.02);
 
-  const response = await fetch(input.uri);
-  if (!response.ok && !input.uri.startsWith('blob:')) {
-    throw new Error(`Could not read selected video (${response.status}).`);
+  const source = await fetch(input.uri);
+  if (!source.ok && !input.uri.startsWith('blob:')) {
+    throw new Error(`Could not read selected video (${source.status}).`);
   }
 
-  const blob = await response.blob();
+  const blob = await source.blob();
   if (!blob.size) throw new Error('Selected IGPAT video is empty.');
+  input.onProgress?.(0.12);
 
   const bucket = supabase.storage.from('community-media');
-  const { data, error } = await bucket.createSignedUploadUrl(input.path, { upsert: false });
-  if (error) throw error;
+  const { data: signed, error: signError } = await bucket.createSignedUploadUrl(input.path, { upsert: false });
+  if (signError) throw new Error(signError.message || 'Could not prepare IGPAT upload.');
 
-  const signedUrl = String(data?.signedUrl ?? '').trim();
-  if (!signedUrl) throw new Error('Could not prepare IGPAT upload URL.');
+  const token = String((signed as any)?.token ?? '').trim();
+  if (!token) throw new Error('The IGPAT upload token was not returned by Storage.');
 
-  input.onProgress?.(0.08);
-
-  await new Promise<void>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('PUT', signedUrl, true);
-    xhr.setRequestHeader('content-type', input.contentType || blob.type || 'video/mp4');
-    xhr.setRequestHeader('cache-control', '3600');
-    xhr.setRequestHeader('x-upsert', 'false');
-
-    xhr.upload.onprogress = event => {
-      if (!event.lengthComputable || event.total <= 0) return;
-      input.onProgress?.(0.08 + Math.min(0.91, (event.loaded / event.total) * 0.91));
-    };
-
-    xhr.onerror = () => reject(new Error('Network error while uploading IGPAT video.'));
-    xhr.onabort = () => reject(new Error('IGPAT upload was cancelled.'));
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        resolve();
-        return;
-      }
-      reject(new Error(`IGPAT upload failed (${xhr.status})${xhr.responseText ? `: ${String(xhr.responseText).slice(0, 220)}` : ''}`));
-    };
-
-    xhr.send(blob);
+  input.onProgress?.(0.25);
+  const { error: uploadError } = await bucket.uploadToSignedUrl(input.path, token, blob, {
+    contentType: input.contentType || blob.type || 'video/mp4',
+    cacheControl: '3600',
+    upsert: false,
   });
+
+  if (uploadError) {
+    throw new Error(uploadError.message || 'IGPAT video upload failed.');
+  }
 
   input.onProgress?.(1);
 }
