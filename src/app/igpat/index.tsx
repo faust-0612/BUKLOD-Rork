@@ -517,7 +517,7 @@ export default function IgpatScreen() {
                     style={[styles.utilityButton, dataSaver && styles.utilityButtonActive]}
                   >
                     <MaterialCommunityIcons
-                      name={dataSaver ? 'leaf' : 'leaf-outline'}
+                      name="leaf"
                       size={17}
                       color={dataSaver ? '#07100B' : '#FFFFFF'}
                     />
