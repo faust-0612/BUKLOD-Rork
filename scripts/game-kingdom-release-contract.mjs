@@ -136,7 +136,9 @@ requireTokens('src/features/games/runtime/BuklodGameStage.web.tsx', [
   'BuklodGameChrome',
   'recordBuklodKingdomPreviewResult',
   'setBuklodKingdomProgressOwner',
+  'useEffect',
   'withResultHandler',
+  'props?.children',
   'BuklodGameLanguageControl',
 ]);
 requireTokens('src/features/games/runtime/BuklodGameStage.native.tsx', [
@@ -145,7 +147,9 @@ requireTokens('src/features/games/runtime/BuklodGameStage.native.tsx', [
   'BuklodGameChrome',
   'recordBuklodKingdomPreviewResult',
   'setBuklodKingdomProgressOwner',
+  'useEffect',
   'withResultHandler',
+  'props?.children',
   'BuklodGameLanguageControl',
 ]);
 requireTokens('src/features/games/runtime/BuklodGameFeedback.web.ts', [
@@ -184,7 +188,25 @@ requireTokens('scripts/kingdom-native-readiness.mjs', [
 ]);
 
 for (const gameId of GAME_IDS) {
-  if (!exists(`src/app/games/${gameId}.tsx`)) failures.push(`Missing current game route: /games/${gameId}`);
+  const route = `src/app/games/${gameId}.tsx`;
+  if (!exists(route)) {
+    failures.push(`Missing current game route: /games/${gameId}`);
+    continue;
+  }
+
+  const routeText = read(route);
+  if (!routeText.includes('<BuklodGameStage')) {
+    failures.push(`${route} must render through BuklodGameStage.`);
+  }
+  if (!routeText.includes('gameId={GAME_ID}')) {
+    failures.push(`${route} must pass its exact GAME_ID to BuklodGameStage.`);
+  }
+  if (routeText.includes('recordBuklodKingdomPreviewResult')) {
+    failures.push(`${route} must not persist Kingdom progress directly; BuklodGameStage is the canonical recorder.`);
+  }
+  if (/onFinish\s*=/.test(routeText)) {
+    failures.push(`${route} must not own a route-level onFinish callback; completion is injected by BuklodGameStage.`);
+  }
 }
 
 if (distDir) {
