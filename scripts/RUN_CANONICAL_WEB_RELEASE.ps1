@@ -11,6 +11,7 @@ $RecoveryBranch = 'recovery/r31-r40-approved-local-20260910'
 $SourceRoot = Join-Path $WorkspaceRoot 'SOURCE\BUKLOD-MAIN'
 $RecoveryRepo = Join-Path $WorkspaceRoot 'RECOVERY\R31_R40_APPROVED'
 $RecoveryPackage = Join-Path $RecoveryRepo 'recovery-import\r31-r40'
+$RecoveryPreviousRoot = Join-Path $WorkspaceRoot 'RECOVERY\_previous'
 $ReleaseRoot = Join-Path $WorkspaceRoot 'RELEASE\WEB'
 $ReleaseWork = Join-Path $ReleaseRoot 'current'
 $PreviousReleaseRoot = Join-Path $ReleaseRoot '_previous'
@@ -29,9 +30,9 @@ function Rotate-Directory([string]$Path, [string]$ArchiveRoot, [string]$Prefix) 
   try {
     [System.IO.Directory]::Move((Full $Path), (Full $target))
   } catch {
-    Fail "Could not rotate disposable release staging. Source=$Path Error=$($_.Exception.Message)"
+    Fail "Could not rotate directory safely. Source=$Path Error=$($_.Exception.Message)"
   }
-  Write-Host "Previous disposable staging rotated to: $target" -ForegroundColor DarkGray
+  Write-Host "Rotated previous directory to: $target" -ForegroundColor DarkGray
   return $target
 }
 
@@ -45,37 +46,55 @@ Write-Host "RECOVERY : $RecoveryPackage"
 Write-Host "STAGING  : $ReleaseWork"
 Write-Host ''
 
-# 1. Normalize only the canonical SOURCE to current main. No reset/discard.
+Write-Host 'STEP 1/3 — VERIFY + NORMALIZE CANONICAL SOURCE' -ForegroundColor Cyan
 Push-Location $SourceRoot
 try {
   $origin = (& git remote get-url origin).Trim()
   if ($origin -ne $RepoUrl) { Fail "Canonical SOURCE origin mismatch: $origin" }
+
   $dirty = @(& git status --porcelain)
   if ($dirty.Count -gt 0) {
     git status --short
     Fail 'Canonical SOURCE is dirty. No reset/discard was attempted.'
   }
+
   & git fetch origin --prune
   if ($LASTEXITCODE -ne 0) { Fail 'Could not refresh canonical SOURCE.' }
+
   & git switch main
   if ($LASTEXITCODE -ne 0) { Fail 'Could not switch canonical SOURCE to main.' }
+
   & git pull --ff-only origin main
   if ($LASTEXITCODE -ne 0) { Fail 'Could not update canonical SOURCE main.' }
-  $sourceSha = (& git rev-parse HEAD).Trim()
-  Write-Host "Canonical source HEAD: $sourceSha" -ForegroundColor Green
 
-  $verifyScript = Join-Path $SourceRoot 'scripts\VERIFY_BUKLOD_CANONICAL_SOURCE.ps1'
-  if (!(Test-Path -LiteralPath $verifyScript -PathType Leaf)) { Fail 'Canonical source verification script is missing.' }
-  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $verifyScript -WorkspaceRoot $WorkspaceRoot -RequireCurrentDirectory -RequireClean -RequireMain
-  if ($LASTEXITCODE -ne 0) { Fail 'Canonical source verification failed. Deployment stopped.' }
+  $branch = (& git symbolic-ref --short -q HEAD).Trim()
+  $sourceSha = (& git rev-parse HEAD).Trim()
+  $originMain = (& git rev-parse origin/main).Trim()
+  $dirtyAfter = @(& git status --porcelain)
+
+  if ($branch -ne 'main') { Fail "Canonical SOURCE must be on main. Current branch: $branch" }
+  if ($dirtyAfter.Count -gt 0) { Fail 'Canonical SOURCE became dirty during verification. Deployment stopped.' }
+  if ($sourceSha -ne $originMain) { Fail "Canonical SOURCE is not identical to origin/main. HEAD=$sourceSha origin/main=$originMain" }
+
+  $manifestIdentity = Get-Content -LiteralPath $Manifest -Raw | ConvertFrom-Json
+  $markerIdentity = Get-Content -LiteralPath $Marker -Raw | ConvertFrom-Json
+  if ($manifestIdentity.repository -ne $RepoUrl -or $markerIdentity.repository -ne $RepoUrl) { Fail 'Canonical manifest/marker repository identity mismatch.' }
+  if ((Full ([string]$manifestIdentity.canonical_source)) -ne (Full $SourceRoot)) { Fail 'Canonical manifest source path mismatch.' }
+  if ((Full ([string]$markerIdentity.canonical_source)) -ne (Full $SourceRoot)) { Fail 'Canonical marker source path mismatch.' }
+
+  Write-Host 'BUKLOD_CANONICAL_SOURCE: PASS' -ForegroundColor Green
+  Write-Host "HEAD        : $sourceSha"
+  Write-Host "origin/main : $originMain"
+  Write-Host 'Dirty       : False'
 } finally {
   Pop-Location
 }
 
-# 2. Refresh approved R31/R40 recovery reference. Never merge this branch wholesale into main.
-if (Test-Path -LiteralPath $RecoveryRepo) {
-  Remove-Item -LiteralPath $RecoveryRepo -Recurse -Force
-}
+Write-Host ''
+Write-Host 'STEP 2/3 — REFRESH + VERIFY APPROVED R31/R40 RECOVERY' -ForegroundColor Cyan
+# Never recursively delete this Git clone on Windows. Rotate the top-level folder
+# atomically, then clone a fresh approved recovery reference.
+$null = Rotate-Directory $RecoveryRepo $RecoveryPreviousRoot 'r31_r40'
 EnsureDir (Split-Path -Parent $RecoveryRepo)
 & git clone --depth 1 --branch $RecoveryBranch --single-branch $RepoUrl $RecoveryRepo
 if ($LASTEXITCODE -ne 0) { Fail 'Could not clone approved R31/R40 recovery branch.' }
@@ -86,24 +105,39 @@ $recoveryIdentity = Get-Content -LiteralPath $RecoveryManifest -Raw | ConvertFro
 if ([int]$recoveryIdentity.r40_named_asset_count -lt 168) { Fail "Approved recovery manifest reports incomplete R40 assets: $($recoveryIdentity.r40_named_asset_count)" }
 if (@($recoveryIdentity.source_files).Count -lt 11) { Fail 'Approved recovery manifest does not contain the complete R31/R40 source family.' }
 Write-Host 'Approved R31/R40 recovery package: VERIFIED' -ForegroundColor Green
+Write-Host "R40 assets : $($recoveryIdentity.r40_named_asset_count)"
+Write-Host "Source set : $(@($recoveryIdentity.source_files).Count) files"
 
-# 3. Fresh disposable release staging. Rotate instead of recursively deleting node_modules.
+Write-Host ''
+Write-Host 'STEP 3/3 — CREATE FRESH RELEASE STAGING + RUN PROTECTED DEPLOY' -ForegroundColor Cyan
 $null = Rotate-Directory $ReleaseWork $PreviousReleaseRoot 'web'
 EnsureDir $ReleaseRoot
 & git clone --branch main --single-branch $RepoUrl $ReleaseWork
 if ($LASTEXITCODE -ne 0) { Fail 'Could not create disposable release staging clone.' }
 
+$stagingSha = (& git -C $ReleaseWork rev-parse HEAD).Trim()
+if ($stagingSha -ne $sourceSha) { Fail "Release staging SHA mismatch. Source=$sourceSha staging=$stagingSha" }
+Write-Host "Fresh staging HEAD: $stagingSha" -ForegroundColor Green
+
 $env:BUKLOD_CANONICAL_RELEASE = '1'
 $env:BUKLOD_WORKSPACE_ROOT = Full $WorkspaceRoot
 $env:BUKLOD_R31_R40_RECOVERY_ROOT = Full $RecoveryPackage
+$deployExit = 1
 
 Push-Location $ReleaseWork
 try {
   & powershell.exe -NoProfile -ExecutionPolicy Bypass -File '.\scripts\DEPLOY_BUKLOD_WEB_CANONICAL.ps1'
-  exit $LASTEXITCODE
+  $deployExit = $LASTEXITCODE
 } finally {
   Pop-Location
   Remove-Item Env:\BUKLOD_CANONICAL_RELEASE -ErrorAction SilentlyContinue
   Remove-Item Env:\BUKLOD_WORKSPACE_ROOT -ErrorAction SilentlyContinue
   Remove-Item Env:\BUKLOD_R31_R40_RECOVERY_ROOT -ErrorAction SilentlyContinue
 }
+
+if ($deployExit -ne 0) { Fail "Protected canonical web deploy failed with exit code $deployExit." }
+
+Write-Host ''
+Write-Host 'BUKLOD CANONICAL WEB RELEASE: COMPLETE' -ForegroundColor Green
+Write-Host "Released source SHA: $sourceSha" -ForegroundColor Green
+exit 0
