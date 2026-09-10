@@ -1,2 +1,2 @@
 import '@/lib/igpat/igpatAutoplay';
-export { default } from '@/components/igpat/IgpatExperience';
+export { default } from '@/components/igpat/IgpatExperienceComplete';
