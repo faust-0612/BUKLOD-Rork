@@ -13,6 +13,7 @@ $RecoveryRepo = Join-Path $WorkspaceRoot 'RECOVERY\R31_R40_APPROVED'
 $RecoveryPackage = Join-Path $RecoveryRepo 'recovery-import\r31-r40'
 $ReleaseRoot = Join-Path $WorkspaceRoot 'RELEASE\WEB'
 $ReleaseWork = Join-Path $ReleaseRoot 'current'
+$PreviousReleaseRoot = Join-Path $ReleaseRoot '_previous'
 $BackupRoot = Join-Path $WorkspaceRoot 'BACKUPS'
 $LogRoot = Join-Path $WorkspaceRoot 'LOGS'
 $ExportRoot = Join-Path $WorkspaceRoot 'EXPORTS'
@@ -21,6 +22,25 @@ $Manifest = Join-Path $WorkspaceRoot 'BUKLOD_WORKSPACE.json'
 function Fail([string]$Message) { throw $Message }
 function Full([string]$Path) { return [System.IO.Path]::GetFullPath($Path).TrimEnd('\') }
 function EnsureDir([string]$Path) { New-Item -ItemType Directory -Force -Path $Path | Out-Null }
+function Rotate-Directory([string]$Path, [string]$ArchiveRoot, [string]$Prefix) {
+  if (!(Test-Path -LiteralPath $Path -PathType Container)) { return $null }
+
+  EnsureDir $ArchiveRoot
+  $stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+  $suffix = [Guid]::NewGuid().ToString('N').Substring(0, 8)
+  $target = Join-Path $ArchiveRoot ("${Prefix}_${stamp}_${suffix}")
+
+  try {
+    # Atomic top-level directory move only. This deliberately avoids recursively
+    # traversing node_modules, which can fail on Windows generated JNI paths.
+    [System.IO.Directory]::Move((Full $Path), (Full $target))
+  } catch {
+    Fail "Could not rotate disposable release staging without recursive deletion. Source=$Path Error=$($_.Exception.Message)"
+  }
+
+  Write-Host "Previous disposable staging rotated to: $target" -ForegroundColor DarkGray
+  return $target
+}
 
 if (!(Test-Path -LiteralPath $SourceRoot -PathType Container)) {
   Fail "Canonical SOURCE missing: $SourceRoot"
@@ -133,10 +153,10 @@ if (@($recoveryIdentity.source_files).Count -lt 11) {
 }
 Write-Host 'Approved R31/R40 recovery package: VERIFIED' -ForegroundColor Green
 
-# 3. Build/deploy only from a fresh disposable clone of main.
-if (Test-Path -LiteralPath $ReleaseWork) {
-  Remove-Item -LiteralPath $ReleaseWork -Recurse -Force
-}
+# 3. Build/deploy only from a fresh disposable clone of main. Never recursively
+# delete a prior node_modules tree on Windows; rotate the whole staging directory
+# atomically, then clone a clean current directory.
+$rotatedRelease = Rotate-Directory $ReleaseWork $PreviousReleaseRoot 'web'
 EnsureDir $ReleaseRoot
 
 & git clone --branch main --single-branch $RepoUrl $ReleaseWork
