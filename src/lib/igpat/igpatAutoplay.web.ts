@@ -1,8 +1,12 @@
 /*
  * BUKLOD IGPAT browser autoplay controller.
- * Keeps exactly the most-visible IGPAT video playing as the user swipes.
- * Browser policy fallback retries muted. User pause is respected until the
- * video leaves the viewport and becomes active again on a later swipe.
+ *
+ * Stability goals:
+ * - exactly one predominantly visible feed video is allowed to play;
+ * - autoplay-policy failures retry muted instead of leaving a dead player;
+ * - videos that become ready after the swipe receive a bounded retry;
+ * - off-screen videos are paused to reduce CPU/network pressure;
+ * - no route/UI/points/social behavior is changed here.
  */
 
 declare global {
@@ -20,32 +24,73 @@ if (
   window.__buklodIgpatAutoplayPatched = true;
 
   const originalPlay = HTMLMediaElement.prototype.play;
-  const manuallyPaused = new WeakSet<HTMLMediaElement>();
-  const visibility = new Map<HTMLMediaElement, number>();
+  const originalPause = HTMLMediaElement.prototype.pause;
+  const visibility = new Map<HTMLVideoElement, number>();
+  const retryCount = new WeakMap<HTMLVideoElement, number>();
+  const retryTimers = new WeakMap<HTMLVideoElement, number>();
+  let activeVideo: HTMLVideoElement | null = null;
 
-  const safePlay = async (media: HTMLMediaElement) => {
+  const clearRetry = (video: HTMLVideoElement) => {
+    const timer = retryTimers.get(video);
+    if (timer != null) window.clearTimeout(timer);
+    retryTimers.delete(video);
+  };
+
+  const safePause = (video: HTMLVideoElement) => {
+    clearRetry(video);
     try {
-      const attempt = originalPlay.call(media);
+      if (!video.paused) originalPause.call(video);
+    } catch {}
+  };
+
+  const scheduleRetry = (video: HTMLVideoElement) => {
+    if (video !== activeVideo || document.hidden) return;
+    const count = retryCount.get(video) ?? 0;
+    if (count >= 4 || retryTimers.has(video)) return;
+    retryCount.set(video, count + 1);
+    const delay = 140 + count * 220;
+    const timer = window.setTimeout(() => {
+      retryTimers.delete(video);
+      if (video === activeVideo && (visibility.get(video) ?? 0) >= 0.5) {
+        void safePlay(video);
+      }
+    }, delay);
+    retryTimers.set(video, timer);
+  };
+
+  const safePlay = async (video: HTMLVideoElement) => {
+    if (video !== activeVideo || document.hidden) return;
+    try {
+      video.playsInline = true;
+      video.preload = 'auto';
+      const attempt = originalPlay.call(video);
       if (attempt && typeof attempt.then === 'function') await attempt;
+      retryCount.set(video, 0);
+      clearRetry(video);
+      return;
     } catch (error: any) {
       const name = String(error?.name ?? '');
       const message = String(error?.message ?? '').toLowerCase();
-      if (name === 'AbortError' || message.includes('interrupted by a call to pause')) return;
+
       if (name === 'NotAllowedError' || message.includes('autoplay')) {
-        media.muted = true;
         try {
-          const retry = originalPlay.call(media);
+          video.muted = true;
+          const retry = originalPlay.call(video);
           if (retry && typeof retry.then === 'function') await retry;
-        } catch (retryError: any) {
-          if (String(retryError?.name ?? '') !== 'AbortError') throw retryError;
-        }
+          retryCount.set(video, 0);
+          clearRetry(video);
+          return;
+        } catch {}
       }
+
+      // AbortError/NotSupportedError/early-ready races are retried only while
+      // this remains the active predominantly visible feed video.
+      scheduleRetry(video);
     }
   };
 
-  // Keep the old play hardening too, because expo-video may call play directly.
+  // Preserve Expo's direct play calls, but make browser-policy failure safe.
   HTMLMediaElement.prototype.play = function patchedPlay(this: HTMLMediaElement) {
-    manuallyPaused.delete(this);
     const attempt = originalPlay.call(this);
     if (!attempt || typeof attempt.catch !== 'function') return attempt;
     return attempt.catch(async (error: any) => {
@@ -66,72 +111,92 @@ if (
     });
   } as typeof HTMLMediaElement.prototype.play;
 
-  const originalPause = HTMLMediaElement.prototype.pause;
-  HTMLMediaElement.prototype.pause = function patchedPause(this: HTMLMediaElement) {
-    manuallyPaused.add(this);
-    return originalPause.call(this);
-  } as typeof HTMLMediaElement.prototype.pause;
-
   const chooseActiveVideo = () => {
-    let winner: HTMLMediaElement | null = null;
+    let winner: HTMLVideoElement | null = null;
     let winnerRatio = 0;
 
-    visibility.forEach((ratio, media) => {
-      if (!media.isConnected) {
-        visibility.delete(media);
+    visibility.forEach((ratio, video) => {
+      if (!video.isConnected) {
+        visibility.delete(video);
+        clearRetry(video);
         return;
       }
       if (ratio > winnerRatio) {
-        winner = media;
+        winner = video;
         winnerRatio = ratio;
       }
     });
 
-    visibility.forEach((ratio, media) => {
-      if (media === winner && winnerRatio >= 0.55) {
-        // Leaving and re-entering a page resets an earlier manual pause.
-        if (ratio >= 0.55) manuallyPaused.delete(media);
-        if (!manuallyPaused.has(media)) void safePlay(media);
-      } else if (!media.paused) {
-        originalPause.call(media);
-      }
+    const nextActive = winnerRatio >= 0.5 ? winner : null;
+    if (activeVideo !== nextActive) {
+      if (activeVideo) safePause(activeVideo);
+      activeVideo = nextActive;
+      if (activeVideo) retryCount.set(activeVideo, 0);
+    }
+
+    visibility.forEach((_ratio, video) => {
+      if (video !== activeVideo) safePause(video);
     });
+
+    if (activeVideo) void safePlay(activeVideo);
   };
 
   const observer = new IntersectionObserver(
     entries => {
       entries.forEach(entry => {
-        const media = entry.target as HTMLMediaElement;
-        const previous = visibility.get(media) ?? 0;
-        visibility.set(media, entry.isIntersecting ? entry.intersectionRatio : 0);
-        if (previous >= 0.55 && entry.intersectionRatio < 0.2) {
-          manuallyPaused.delete(media);
-        }
+        const video = entry.target as HTMLVideoElement;
+        visibility.set(video, entry.isIntersecting ? entry.intersectionRatio : 0);
       });
       chooseActiveVideo();
     },
-    { threshold: [0, 0.2, 0.55, 0.75, 0.9] },
+    { threshold: [0, 0.1, 0.35, 0.5, 0.7, 0.9] },
   );
 
   window.__buklodIgpatObserver = observer;
 
+  const attach = (video: HTMLVideoElement) => {
+    if (visibility.has(video)) return;
+    visibility.set(video, 0);
+    video.playsInline = true;
+    video.preload = 'metadata';
+    observer.observe(video);
+
+    const retryIfActive = () => {
+      if (video === activeVideo && (visibility.get(video) ?? 0) >= 0.5) void safePlay(video);
+    };
+    video.addEventListener('loadeddata', retryIfActive);
+    video.addEventListener('canplay', retryIfActive);
+    video.addEventListener('stalled', retryIfActive);
+  };
+
   const observeVideos = (root: ParentNode = document) => {
-    root.querySelectorAll?.('video').forEach(video => observer.observe(video));
+    root.querySelectorAll?.('video').forEach(node => attach(node as HTMLVideoElement));
   };
 
   const mutation = new MutationObserver(records => {
     records.forEach(record => {
       record.addedNodes.forEach(node => {
         if (!(node instanceof Element)) return;
-        if (node.tagName === 'VIDEO') observer.observe(node as HTMLVideoElement);
+        if (node.tagName === 'VIDEO') attach(node as HTMLVideoElement);
         observeVideos(node);
       });
     });
+    chooseActiveVideo();
   });
+
+  const onVisibilityChange = () => {
+    if (document.hidden) {
+      visibility.forEach((_ratio, video) => safePause(video));
+      return;
+    }
+    chooseActiveVideo();
+  };
 
   const start = () => {
     observeVideos();
     mutation.observe(document.documentElement, { childList: true, subtree: true });
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    chooseActiveVideo();
   };
 
   if (document.readyState === 'loading') {
