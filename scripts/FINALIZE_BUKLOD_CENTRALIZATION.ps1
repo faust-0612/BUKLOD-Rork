@@ -23,8 +23,8 @@ $ExportRoot = Join-Path $WorkspaceRoot 'EXPORTS'
 function Fail([string]$Message) { throw $Message }
 function Full([string]$Path) { return [System.IO.Path]::GetFullPath($Path).TrimEnd('\') }
 function EnsureDir([string]$Path) { New-Item -ItemType Directory -Force -Path $Path | Out-Null }
-function GitOut([string]$Repo, [string[]]$Args) {
-  $output = & git -C $Repo @Args 2>$null
+function GitOut([string]$Repo, [string[]]$GitArgs) {
+  $output = & git -C $Repo @GitArgs 2>$null
   if ($LASTEXITCODE -ne 0) { return $null }
   return (($output | Out-String).Trim())
 }
