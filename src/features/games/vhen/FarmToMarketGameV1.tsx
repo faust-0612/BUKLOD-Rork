@@ -2,6 +2,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { playBuklodGameFeedback } from '../runtime/BuklodGameFeedback';
+import { useBuklodGameLanguage } from '../runtime/BuklodGameLanguage';
 import type { BuklodGameResult } from '../types';
 
 type CropKey = 'rice' | 'vegetables' | 'fruit';
@@ -12,6 +13,7 @@ type Route = 'town' | 'hub';
 
 type CropMeta = {
   label: string;
+  labelTl: string;
   baseYield: number;
   basePrice: number;
   accent: string;
@@ -20,9 +22,9 @@ type CropMeta = {
 const GAME_ID = 'vhen-farm-to-market';
 const LAND_POINTS = 8;
 const CROPS: Record<CropKey, CropMeta> = {
-  rice: { label: 'Rice', baseYield: 5, basePrice: 12, accent: '#d8bf67' },
-  vegetables: { label: 'Vegetables', baseYield: 4, basePrice: 16, accent: '#69a56b' },
-  fruit: { label: 'Fruit', baseYield: 3, basePrice: 22, accent: '#d58a63' },
+  rice: { label: 'Rice', labelTl: 'Palay', baseYield: 5, basePrice: 12, accent: '#d8bf67' },
+  vegetables: { label: 'Vegetables', labelTl: 'Gulay', baseYield: 4, basePrice: 16, accent: '#69a56b' },
+  fruit: { label: 'Fruit', labelTl: 'Prutas', baseYield: 3, basePrice: 22, accent: '#d58a63' },
 };
 const WEATHER: Weather[] = ['ideal', 'dry', 'rain'];
 const DEMAND_SETS: Array<Record<CropKey, number>> = [
@@ -43,9 +45,46 @@ const timingMultiplier = (timing: Timing, weather: Weather) => {
   return timing === 'early' ? 0.88 : timing === 'peak' ? 1.02 : 0.72;
 };
 
+const localizeMessage = (message: string, language: 'en' | 'tl') => {
+  if (language === 'en') return message;
+  const exact: Record<string, string> = {
+    'Allocate eight field units. Diversification protects the farm, but over-spreading can reduce output efficiency.': 'Ilaan ang walong field unit. Pinoprotektahan ng diversification ang bukid, pero ang sobrang paghahati ay maaaring magpababa ng efficiency.',
+    'Fields planted. The season develops and weather starts shaping the harvest window.': 'Nataniman na ang mga bukid. Umuusad ang panahon at ang weather ay nagsisimulang magtakda ng tamang oras ng ani.',
+    'Ideal season. Peak harvest gives the strongest quality and yield.': 'Mainam ang season. Pinakamaganda ang kalidad at ani sa peak harvest.',
+    'Dry spell. Waiting too long increases crop loss; early harvest becomes safer.': 'Tagtuyot. Mas maraming ani ang mawawala kapag naghintay nang matagal; mas ligtas ang maagang pag-ani.',
+    'Heavy rain. Peak harvest is still possible, but late harvest risks spoilage.': 'Malakas ang ulan. Maaari pa rin ang peak harvest, pero mas mataas ang panganib ng pagkasira kapag late harvest.',
+    'Harvest is loaded. Choose the market route: shorter town delivery or farther trading hub with better prices but more spoilage risk.': 'Nakarga na ang ani. Piliin ang market route: mas maikling town delivery o mas malayong trading hub na mas mataas ang presyo pero mas mataas din ang spoilage risk.',
+    'The farm reached market, but losses were too high to sustain the next cycle.': 'Nakarating sa market ang ani, pero masyadong malaki ang lugi para masuportahan ang susunod na cycle.',
+  };
+  if (exact[message]) return exact[message];
+
+  let match = message.match(/^Use all (\d+) field units before planting\. (-?\d+) remain\.$/);
+  if (match) return `Gamitin ang lahat ng ${match[1]} field unit bago magtanim. ${match[2]} pa ang natitira.`;
+
+  match = message.match(/^Market run complete\. (\d+) crates arrived with (\d+) trade value\.$/);
+  if (match) return `Tapos ang market run. ${match[1]} crate ang nakarating na may ${match[2]} trade value.`;
+
+  return message;
+};
+
+const timingLabel = (timing: Timing, language: 'en' | 'tl') => {
+  if (language === 'en') return timing.toUpperCase();
+  if (timing === 'early') return 'MAAGA';
+  if (timing === 'peak') return 'TAMANG ORAS';
+  return 'HULI';
+};
+
+const weatherLabel = (weather: Weather, language: 'en' | 'tl') => {
+  if (language === 'en') return weather.toUpperCase();
+  if (weather === 'ideal') return 'MAINAM';
+  if (weather === 'dry') return 'TAGTUYOT';
+  return 'MAULAN';
+};
+
 type Props = { onFinish?: (result: BuklodGameResult) => void };
 
 export function FarmToMarketGameV1({ onFinish }: Props) {
+  const { language, t } = useBuklodGameLanguage();
   const [phase, setPhase] = useState<Phase>('planning');
   const [land, setLand] = useState<Record<CropKey, number>>({ rice: 3, vegetables: 3, fruit: 2 });
   const [weatherIndex, setWeatherIndex] = useState(0);
@@ -126,6 +165,12 @@ export function FarmToMarketGameV1({ onFinish }: Props) {
     void playBuklodGameFeedback('collect');
   }, [phase]);
 
+  const chooseRoute = useCallback((nextRoute: Route) => {
+    if (phase !== 'market') return;
+    setRoute(nextRoute);
+    void playBuklodGameFeedback('move');
+  }, [phase]);
+
   const finish = useCallback(() => {
     if (phase !== 'market') return;
     const routeMultiplier = route === 'town' ? 0.96 : 1.18;
@@ -173,52 +218,53 @@ export function FarmToMarketGameV1({ onFinish }: Props) {
   return (
     <View style={styles.shell}>
       <View style={styles.header}>
-        <View><Text style={styles.eyebrow}>VHEN • AGRICULTURAL VALLEY</Text><Text style={styles.title}>Farm to Market</Text></View>
-        <View style={styles.badge}><Text style={styles.badgeValue}>{phase === 'result' ? score : LAND_POINTS}</Text><Text style={styles.badgeLabel}>{phase === 'result' ? 'FINAL SCORE' : 'FIELD UNITS'}</Text></View>
+        <View><Text style={styles.eyebrow}>{t('VHEN • AGRICULTURAL VALLEY', 'VHEN • LAMBAK SAKAHAN')}</Text><Text style={styles.title}>{t('Farm to Market', 'Bukid Hanggang Pamilihan')}</Text></View>
+        <View style={styles.badge}><Text style={styles.badgeValue}>{phase === 'result' ? score : LAND_POINTS}</Text><Text style={styles.badgeLabel}>{phase === 'result' ? t('FINAL SCORE', 'HULING ISKOR') : t('FIELD UNITS', 'FIELD UNITS')}</Text></View>
       </View>
-      <Text style={styles.message}>{message}</Text>
+      <Text style={styles.message}>{localizeMessage(message, language)}</Text>
 
       {phase === 'planning' ? <View style={styles.panel}>
-        <Text style={styles.sectionTitle}>Planting Plan</Text>
+        <Text style={styles.sectionTitle}>{t('Planting Plan', 'Plano ng Pagtatanim')}</Text>
         {(Object.keys(CROPS) as CropKey[]).map((key) => <View key={key} style={styles.cropRow}>
           <View style={[styles.cropMark, { backgroundColor: CROPS[key].accent }]} />
-          <View style={styles.cropCopy}><Text style={styles.cropLabel}>{CROPS[key].label}</Text><Text style={styles.cropSub}>{CROPS[key].baseYield} base crates / field</Text></View>
+          <View style={styles.cropCopy}><Text style={styles.cropLabel}>{language === 'tl' ? CROPS[key].labelTl : CROPS[key].label}</Text><Text style={styles.cropSub}>{CROPS[key].baseYield} {t('base crates / field', 'base crate / field')}</Text></View>
           <Pressable style={styles.step} onPress={() => adjustLand(key, -1)}><Text style={styles.stepText}>−</Text></Pressable>
           <Text style={styles.amount}>{land[key]}</Text>
           <Pressable style={styles.step} onPress={() => adjustLand(key, 1)}><Text style={styles.stepText}>+</Text></Pressable>
         </View>)}
-        <Text style={styles.summary}>{freeLand} field units remaining</Text>
-        <Pressable style={styles.primary} onPress={lockPlan}><Text style={styles.primaryText}>PLANT THE SEASON</Text></Pressable>
+        <Text style={styles.summary}>{freeLand} {t('field units remaining', 'field unit ang natitira')}</Text>
+        <Pressable style={styles.primary} onPress={lockPlan}><Text style={styles.primaryText}>{t('PLANT THE SEASON', 'SIMULAN ANG PAGTATANIM')}</Text></Pressable>
       </View> : null}
 
       {phase === 'weather' ? <View style={[styles.panel, styles.centerPanel]}>
-        <Text style={styles.kicker}>SEASON EVENT</Text><Text style={styles.bigTitle}>Weather is changing.</Text>
-        <Text style={styles.copy}>Your field mix is locked. Harvest timing now determines how much of the season you save.</Text>
-        <Pressable style={styles.primary} onPress={revealWeather}><Text style={styles.primaryText}>REVEAL WEATHER</Text></Pressable>
+        <Text style={styles.kicker}>{t('SEASON EVENT', 'PANGYAYARI SA SEASON')}</Text><Text style={styles.bigTitle}>{t('Weather is changing.', 'Nagbabago ang panahon.')}</Text>
+        <Text style={styles.copy}>{t('Your field mix is locked. Harvest timing now determines how much of the season you save.', 'Naka-lock na ang halo ng pananim. Ang oras ng pag-ani ngayon ang magtatakda kung gaano karami ang masasagip sa season.')}</Text>
+        <Pressable style={styles.primary} onPress={revealWeather}><Text style={styles.primaryText}>{t('REVEAL WEATHER', 'TINGNAN ANG PANAHON')}</Text></Pressable>
       </View> : null}
 
       {phase === 'harvest' ? <View style={styles.panel}>
-        <Text style={styles.kicker}>{weather.toUpperCase()} WEATHER</Text><Text style={styles.sectionTitle}>Choose Harvest Timing</Text>
+        <Text style={styles.kicker}>{weatherLabel(weather, language)} {t('WEATHER', 'PANAHON')}</Text><Text style={styles.sectionTitle}>{t('Choose Harvest Timing', 'Piliin ang Oras ng Pag-ani')}</Text>
         {(Object.keys(CROPS) as CropKey[]).map((key) => <Pressable key={key} style={styles.timingRow} onPress={() => cycleTiming(key)}>
-          <View><Text style={styles.cropLabel}>{CROPS[key].label}</Text><Text style={styles.cropSub}>{land[key]} fields planted</Text></View>
-          <View style={styles.timingPill}><Text style={styles.timingText}>{timings[key].toUpperCase()}</Text></View>
-          <Text style={styles.projected}>{projected[key].crates} crates</Text>
+          <View><Text style={styles.cropLabel}>{language === 'tl' ? CROPS[key].labelTl : CROPS[key].label}</Text><Text style={styles.cropSub}>{land[key]} {t('fields planted', 'field ang nataniman')}</Text></View>
+          <View style={styles.timingPill}><Text style={styles.timingText}>{timingLabel(timings[key], language)}</Text></View>
+          <Text style={styles.projected}>{projected[key].crates} {t('crates', 'crate')}</Text>
         </Pressable>)}
-        <Text style={styles.summary}>Projected harvest: {totalCrates} crates</Text>
-        <Pressable style={styles.primary} onPress={goMarket}><Text style={styles.primaryText}>LOAD FOR MARKET</Text></Pressable>
+        <Text style={styles.summary}>{t('Projected harvest', 'Tinatayang ani')}: {totalCrates} {t('crates', 'crate')}</Text>
+        <Pressable style={styles.primary} onPress={goMarket}><Text style={styles.primaryText}>{t('LOAD FOR MARKET', 'IKARGA PARA SA PAMILIHAN')}</Text></Pressable>
       </View> : null}
 
       {phase === 'market' ? <View style={styles.panel}>
-        <Text style={styles.sectionTitle}>Choose Delivery Route</Text>
-        <View style={styles.demandRow}>{(Object.keys(CROPS) as CropKey[]).map((key) => <View key={key} style={styles.demandCard}><Text style={styles.demandLabel}>{CROPS[key].label}</Text><Text style={styles.demandValue}>×{demand[key].toFixed(2)}</Text></View>)}</View>
-        <Pressable style={[styles.routeCard, route === 'town' && styles.routeActive]} onPress={() => setRoute('town')}><Text style={styles.routeTitle}>Town Market</Text><Text style={styles.routeCopy}>Lower price • only 4% spoilage risk</Text></Pressable>
-        <Pressable style={[styles.routeCard, route === 'hub' && styles.routeActive]} onPress={() => setRoute('hub')}><Text style={styles.routeTitle}>Trading Hub</Text><Text style={styles.routeCopy}>Higher price • 13% spoilage risk</Text></Pressable>
-        <Pressable style={styles.primary} onPress={finish}><Text style={styles.primaryText}>SEND THE HARVEST</Text></Pressable>
+        <Text style={styles.sectionTitle}>{t('Choose Delivery Route', 'Piliin ang Ruta ng Delivery')}</Text>
+        <View style={styles.demandRow}>{(Object.keys(CROPS) as CropKey[]).map((key) => <View key={key} style={styles.demandCard}><Text style={styles.demandLabel}>{language === 'tl' ? CROPS[key].labelTl : CROPS[key].label}</Text><Text style={styles.demandValue}>×{demand[key].toFixed(2)}</Text></View>)}</View>
+        <Pressable style={[styles.routeCard, route === 'town' && styles.routeActive]} onPress={() => chooseRoute('town')}><Text style={styles.routeTitle}>{t('Town Market', 'Pamilihan ng Bayan')}</Text><Text style={styles.routeCopy}>{t('Lower price • only 4% spoilage risk', 'Mas mababang presyo • 4% lamang ang spoilage risk')}</Text></Pressable>
+        <Pressable style={[styles.routeCard, route === 'hub' && styles.routeActive]} onPress={() => chooseRoute('hub')}><Text style={styles.routeTitle}>{t('Trading Hub', 'Sentro ng Kalakalan')}</Text><Text style={styles.routeCopy}>{t('Higher price • 13% spoilage risk', 'Mas mataas na presyo • 13% spoilage risk')}</Text></Pressable>
+        <Pressable style={styles.primary} onPress={finish}><Text style={styles.primaryText}>{t('SEND THE HARVEST', 'IPADALA ANG ANI')}</Text></Pressable>
       </View> : null}
 
       {phase === 'result' ? <View style={[styles.panel, styles.centerPanel]}>
-        <Text style={styles.kicker}>SEASON COMPLETE</Text><Text style={styles.bigScore}>{score}</Text><Text style={styles.copy}>{message}</Text>
-        <Pressable style={styles.primary} onPress={reset}><Text style={styles.primaryText}>NEXT SEASON</Text></Pressable>
+        <Text style={styles.kicker}>{t('SEASON COMPLETE', 'TAPOS ANG SEASON')}</Text><Text style={styles.bigScore}>{score}</Text><Text style={styles.copy}>{localizeMessage(message, language)}</Text>
+        <Text style={styles.copy}>{t('Your season result is recorded in Vhen’s Kingdom station progress.', 'Naitala ang resulta ng season sa progreso ng Kingdom station ni Vhen.')}</Text>
+        <Pressable style={styles.primary} onPress={reset}><Text style={styles.primaryText}>{t('NEXT SEASON', 'SUSUNOD NA SEASON')}</Text></Pressable>
       </View> : null}
     </View>
   );
