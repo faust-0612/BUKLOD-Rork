@@ -18,6 +18,79 @@ function Copy-VerifiedFile([string]$Source, [string]$Destination) {
   New-Item -ItemType Directory -Force -Path (Split-Path -Parent $Destination) | Out-Null
   Copy-Item -LiteralPath $Source -Destination $Destination -Force
 }
+function Repair-R40SpecialCharacterUi([string]$Path) {
+  if (!(Test-Path -LiteralPath $Path -PathType Leaf)) {
+    Fail "R40 UI repair target missing: $Path"
+  }
+
+  $text = [System.IO.File]::ReadAllText($Path)
+  $original = $text
+
+  # The approved local R40 snapshot contains a duplicated native-details block
+  # between LEVEL 1-20 JOURNEY and COLLECTIBLES. That duplicate opens an extra
+  # fragment/conditional and leaves the root View unclosed, producing hundreds
+  # of cascading TypeScript JSX errors from one structural defect.
+  $toggleMarker = '      {nativeLayout ? ('
+  $firstToggle = $text.IndexOf($toggleMarker, [System.StringComparison]::Ordinal)
+  $secondToggle = if ($firstToggle -ge 0) {
+    $text.IndexOf($toggleMarker, $firstToggle + $toggleMarker.Length, [System.StringComparison]::Ordinal)
+  } else { -1 }
+
+  if ($secondToggle -ge 0) {
+    $collectibleSectionMarker = '      <View style={styles.sectionCard}>'
+    $collectibleSection = $text.IndexOf(
+      $collectibleSectionMarker,
+      $secondToggle,
+      [System.StringComparison]::Ordinal
+    )
+    if ($collectibleSection -lt 0) {
+      Fail 'R40 forward repair found the duplicated details block but could not locate the collectibles section.'
+    }
+    $text = $text.Remove($secondToggle, $collectibleSection - $secondToggle)
+    Write-Host ' Forward repair: removed duplicated malformed R40 native-details JSX block.' -ForegroundColor Green
+  }
+
+  # The recovered component also referenced old *_medium.webp files from a
+  # special-series1 folder that is not part of the approved 168-asset package.
+  # Remove that obsolete registry and use the verified R40 hero JPGs everywhere.
+  $thumbStartMarker = '/* BUKLOD_SPECIAL_R40K_ANDROID_PERF_R1 */'
+  $thumbStart = $text.IndexOf($thumbStartMarker, [System.StringComparison]::Ordinal)
+  if ($thumbStart -ge 0) {
+    $exportMarker = 'export default function BuklodSpecialCharacterSeries'
+    $exportIndex = $text.IndexOf($exportMarker, $thumbStart, [System.StringComparison]::Ordinal)
+    if ($exportIndex -lt 0) {
+      Fail 'R40 forward repair could not locate component export after obsolete native thumb registry.'
+    }
+    $text = $text.Remove($thumbStart, $exportIndex - $thumbStart)
+    Write-Host ' Forward repair: removed obsolete special-series1 medium WEBP registry.' -ForegroundColor Green
+  }
+
+  $text = $text.Replace(
+    'source={nativeLayout ? NATIVE_SPECIAL_THUMB[character.id] : SPECIAL_CHARACTER_HERO[character.id]}',
+    'source={SPECIAL_CHARACTER_HERO[character.id]}'
+  )
+
+  # Canonical display names. Internal IDs remain unchanged for compatibility.
+  $text = $text.Replace("name: 'JAVVO'", "name: 'JAWO'")
+  $text = $text.Replace("name: 'ELLUSUR'", "name: 'ELESUR'")
+
+  $remainingToggleCount = ([regex]::Matches($text, [regex]::Escape($toggleMarker))).Count
+  $detailsConditionMarker = '{(!nativeLayout || nativeDetailsOpen) ? ('
+  $detailsConditionCount = ([regex]::Matches($text, [regex]::Escape($detailsConditionMarker))).Count
+  if ($remainingToggleCount -ne 1) {
+    Fail "R40 forward repair expected exactly 1 native details toggle; found $remainingToggleCount."
+  }
+  if ($detailsConditionCount -ne 1) {
+    Fail "R40 forward repair expected exactly 1 details conditional; found $detailsConditionCount."
+  }
+  if ($text.Contains('NATIVE_SPECIAL_THUMB') -or $text.Contains('special-series1/')) {
+    Fail 'R40 forward repair did not fully remove obsolete native thumbnail dependencies.'
+  }
+
+  if ($text -ne $original) {
+    [System.IO.File]::WriteAllText($Path, $text, (New-Object System.Text.UTF8Encoding($false)))
+  }
+}
 
 $ProjectRoot = Full $ProjectRoot
 $WorkspaceRecoveryRepo = Join-Path $HOME 'BUKLOD_WORKSPACE\RECOVERY\R31_R40_APPROVED'
@@ -39,7 +112,7 @@ $CandidateRoots = @(
 Write-Host ''
 Write-Host '====================================================================' -ForegroundColor Cyan
 Write-Host ' BUKLOD CANONICAL CHARACTER RECOVERY — R31 CORE + R40 SPECIAL' -ForegroundColor Cyan
-Write-Host ' APPROVED MANIFEST ONLY / DISPOSABLE RELEASE OVERLAY' -ForegroundColor Cyan
+Write-Host ' APPROVED MANIFEST + VERIFIED FORWARD REPAIR / DISPOSABLE OVERLAY' -ForegroundColor Cyan
 Write-Host '====================================================================' -ForegroundColor Cyan
 
 if (!(Test-Path -LiteralPath $ProjectRoot -PathType Container)) { Fail "Project root missing: $ProjectRoot" }
@@ -81,7 +154,7 @@ $ExpectedCoreAssets = [ordered]@{
 }
 
 Write-Host ''
-Write-Host '1/5 VERIFY APPROVED R31 CORE ART' -ForegroundColor Cyan
+Write-Host '1/6 VERIFY APPROVED R31 CORE ART' -ForegroundColor Cyan
 foreach ($entry in $ExpectedCoreAssets.GetEnumerator()) {
   $source = Join-Path $RecoveryRoot $entry.Key
   $actual = Sha $source
@@ -92,7 +165,7 @@ foreach ($entry in $ExpectedCoreAssets.GetEnumerator()) {
 }
 
 Write-Host ''
-Write-Host '2/5 VERIFY APPROVED R40 ASSET FAMILY' -ForegroundColor Cyan
+Write-Host '2/6 VERIFY APPROVED R40 ASSET FAMILY' -ForegroundColor Cyan
 $specialSourceRoot = Join-Path $RecoveryRoot 'assets\images\characters\special\batch1'
 if (!(Test-Path -LiteralPath $specialSourceRoot -PathType Container)) {
   Fail "Approved R40 asset folder missing: $specialSourceRoot"
@@ -114,7 +187,7 @@ if ($expectedSpecial.Count -ne 168) { Fail "Internal R40 expectation error: $($e
 Write-Host ' Verified complete R40 asset family: 168/168' -ForegroundColor Green
 
 Write-Host ''
-Write-Host '3/5 OVERLAY APPROVED R31/R40 SOURCE FAMILY' -ForegroundColor Cyan
+Write-Host '3/6 OVERLAY APPROVED R31/R40 SOURCE FAMILY' -ForegroundColor Cyan
 foreach ($relativeRaw in @($RecoveryManifest.source_files)) {
   $relative = ([string]$relativeRaw) -replace '/', '\'
   $source = Join-Path $RecoveryRoot $relative
@@ -124,7 +197,13 @@ foreach ($relativeRaw in @($RecoveryManifest.source_files)) {
 }
 
 Write-Host ''
-Write-Host '4/5 OVERLAY IMMUTABLE CORE + SPECIAL ASSETS' -ForegroundColor Cyan
+Write-Host '4/6 APPLY REVIEWED R40 FORWARD REPAIR' -ForegroundColor Cyan
+$specialUiDestination = Join-Path $ProjectRoot 'src\components\points\BuklodSpecialCharacterSeries.tsx'
+Repair-R40SpecialCharacterUi $specialUiDestination
+Write-Host ' R40 UI structural repair: VERIFIED' -ForegroundColor Green
+
+Write-Host ''
+Write-Host '5/6 OVERLAY IMMUTABLE CORE + SPECIAL ASSETS' -ForegroundColor Cyan
 foreach ($entry in $ExpectedCoreAssets.GetEnumerator()) {
   $source = Join-Path $RecoveryRoot $entry.Key
   $destination = Join-Path $ProjectRoot $entry.Key
@@ -148,7 +227,7 @@ if ($destinationSpecialCount -lt 168) {
 Write-Host " Restored R40 assets: $destinationSpecialCount" -ForegroundColor Green
 
 Write-Host ''
-Write-Host '5/5 RUN CANONICAL CHARACTER RELEASE CONTRACT' -ForegroundColor Cyan
+Write-Host '6/6 RUN CANONICAL CHARACTER RELEASE CONTRACT' -ForegroundColor Cyan
 Push-Location $ProjectRoot
 try {
   & npm.cmd run character:contract
@@ -162,6 +241,6 @@ if ($contractExit -ne 0) {
 
 Write-Host ''
 Write-Host '====================================================================' -ForegroundColor Green
-Write-Host ' R31 + R40 APPROVED RELEASE OVERLAY: PASS' -ForegroundColor Green
+Write-Host ' R31 + R40 APPROVED RELEASE OVERLAY + FORWARD REPAIR: PASS' -ForegroundColor Green
 Write-Host '====================================================================' -ForegroundColor Green
 Write-Host 'No Git reset, no source-branch overwrite, and no deployment was performed by this recovery step.'
