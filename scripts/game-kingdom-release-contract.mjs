@@ -64,10 +64,14 @@ if ((registry.match(/replayable:\s*true/g) || []).length < 13) {
 requireTokens('src/app/games/index.tsx', ['BuklodKingdomMap']);
 const map = requireTokens('src/features/games/kingdom/BuklodKingdomMap.tsx', [
   'BUKLOD KINGDOM',
-  'WORLD → REGION / BIOME → CHARACTER STATION → GAME',
+  'A SMALL BEGINNING',
+  'A BRIGHTER TOMORROW',
   'COMING SOON',
-  'KINGDOM CITADEL',
-  'Major hub • never the ending',
+  'SCRIPTURE GARDEN',
+  'BUKLOD CITADEL',
+  'EXPLORE THE KINGDOM',
+  'stageFor',
+  'clearedCount',
 ]);
 for (const gameId of GAME_IDS) {
   if (!map.includes(gameId)) failures.push(`Kingdom Map missing station: ${gameId}`);
@@ -142,6 +146,7 @@ if (distDir) {
       .join('\n');
     for (const token of [
       'BUKLOD KINGDOM',
+      'A BRIGHTER TOMORROW',
       'COMING SOON',
       'TAGALOG GAME GUIDE',
       'PAANO LARUIN',
