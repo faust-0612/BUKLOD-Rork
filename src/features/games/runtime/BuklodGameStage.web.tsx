@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { usePathname } from 'expo-router';
@@ -42,23 +42,52 @@ function routeGameId(pathname: string) {
   return parts[parts.length - 1];
 }
 
+/**
+ * Inject the shared completion reporter into the deepest game component in the
+ * route tree. This lets routes keep layout wrappers such as ScrollView/View
+ * without owning Kingdom persistence themselves. The Game Stage remains the
+ * single canonical recorder for all 13 games.
+ */
 function withResultHandler(children: React.ReactNode, onFinish: (result: BuklodGameResult) => void) {
-  const array = React.Children.toArray(children);
-  let injected = false;
-  for (let index = array.length - 1; index >= 0; index -= 1) {
-    const child = array[index];
-    if (!React.isValidElement(child)) continue;
-    const previous = (child.props as any)?.onFinish as ((result: BuklodGameResult) => void) | undefined;
-    array[index] = React.cloneElement(child as React.ReactElement<any>, {
-      onFinish: (result: BuklodGameResult) => {
-        previous?.(result);
-        onFinish(result);
-      },
-    });
-    injected = true;
-    break;
-  }
-  return injected ? array : children;
+  const visit = (node: React.ReactNode): { node: React.ReactNode; wired: boolean } => {
+    const array = React.Children.toArray(node);
+
+    for (let index = array.length - 1; index >= 0; index -= 1) {
+      const child = array[index];
+      if (!React.isValidElement(child)) continue;
+
+      const props = child.props as any;
+      if (props?.children != null) {
+        const nested = visit(props.children);
+        if (nested.wired) {
+          array[index] = React.cloneElement(child as React.ReactElement<any>, {
+            children: nested.node,
+          });
+          return { node: array.length === 1 ? array[0] : array, wired: true };
+        }
+      }
+
+      const elementType = child.type as any;
+      const isCustomComponent =
+        typeof elementType === 'function' ||
+        (typeof elementType === 'object' && elementType !== null);
+
+      if (!isCustomComponent) continue;
+
+      const previous = props?.onFinish as ((result: BuklodGameResult) => void) | undefined;
+      array[index] = React.cloneElement(child as React.ReactElement<any>, {
+        onFinish: (result: BuklodGameResult) => {
+          previous?.(result);
+          onFinish(result);
+        },
+      });
+      return { node: array.length === 1 ? array[0] : array, wired: true };
+    }
+
+    return { node, wired: false };
+  };
+
+  return visit(children).node;
 }
 
 export function BuklodGameStage({ biome, gameId, children }: Props) {
@@ -69,7 +98,9 @@ export function BuklodGameStage({ biome, gameId, children }: Props) {
   const colors = palettes[biome];
   const ownerId = user?.id ?? null;
 
-  setBuklodKingdomProgressOwner(ownerId);
+  useEffect(() => {
+    setBuklodKingdomProgressOwner(ownerId);
+  }, [ownerId]);
 
   const recordResult = useCallback((result: BuklodGameResult) => {
     if (resolvedGameId && result.gameId !== resolvedGameId) return;
