@@ -12,26 +12,8 @@ export const PROGRESSIVE_CHARACTER_IDS: readonly ProgressiveCharacterId[] = [
 ] as const;
 
 export const PROGRESSIVE_LEVEL_THRESHOLDS: readonly number[] = [
-  0,
-  20,
-  50,
-  90,
-  140,
-  200,
-  275,
-  365,
-  470,
-  590,
-  725,
-  875,
-  1040,
-  1220,
-  1415,
-  1625,
-  1850,
-  2090,
-  2345,
-  2615,
+  0, 20, 50, 90, 140, 200, 275, 365, 470, 590,
+  725, 875, 1040, 1220, 1415, 1625, 1850, 2090, 2345, 2615,
 ] as const;
 
 export const collectibleNames: Record<ProgressiveCharacterId, readonly string[]> = {
@@ -49,7 +31,7 @@ export type ProgressiveCharacterState = {
 };
 
 export type BuklodProgressiveDisplayState = {
-  activeCharacterId: ProgressiveCharacterId;
+  activeCharacterId: ProgressiveCharacterId | null;
   currentLevel: number;
   characterPointsSinceSelection: number;
   characters: Array<{
@@ -78,7 +60,7 @@ export function getProgressiveLevelForPoints(characterPoints: number) {
 }
 
 export function getProgressiveCharacterDisplayState(input: {
-  activeCharacterId: ProgressiveCharacterId;
+  activeCharacterId?: ProgressiveCharacterId | null;
   characterLevel?: number;
   characterPointsSinceSelection?: number;
 }): BuklodProgressiveDisplayState {
@@ -88,12 +70,12 @@ export function getProgressiveCharacterDisplayState(input: {
   );
   const derivedLevel = getProgressiveLevelForPoints(characterPointsSinceSelection);
   const serverLevel = Math.max(1, Math.min(20, Number(input.characterLevel ?? 1) || 1));
-  const currentLevel = Math.max(derivedLevel, serverLevel);
+  const currentLevel = input.activeCharacterId ? Math.max(derivedLevel, serverLevel) : 1;
 
   return {
-    activeCharacterId: input.activeCharacterId,
+    activeCharacterId: input.activeCharacterId ?? null,
     currentLevel,
-    characterPointsSinceSelection,
+    characterPointsSinceSelection: input.activeCharacterId ? characterPointsSinceSelection : 0,
     characters: PROGRESSIVE_CHARACTER_IDS.map((id) => ({
       id,
       level: id === input.activeCharacterId ? currentLevel : 1,
@@ -102,14 +84,11 @@ export function getProgressiveCharacterDisplayState(input: {
   };
 }
 
-/**
- * Compatibility read for the R31 contract. Current V2 server state remains authoritative;
- * this function only returns a presentation model supplied by callers or the last showcase.
- */
+/** Compatibility read for the R31 contract. V2 server state remains authoritative. */
 export async function loadProgressiveCharacter(
   fallback?: ProgressiveCharacterState,
 ): Promise<ProgressiveCharacterState> {
-  if (latestShowcase) {
+  if (latestShowcase?.activeCharacterId) {
     return {
       characterId: latestShowcase.activeCharacterId,
       level: latestShowcase.currentLevel,
@@ -119,10 +98,7 @@ export async function loadProgressiveCharacter(
   return fallback ?? { characterId: 'phan', level: 1, characterPoints: 0 };
 }
 
-/**
- * Compatibility write for the R31 contract. It intentionally does not persist locally;
- * character activation/reset must go through set_my_buklod_character_active_v2.
- */
+/** Compatibility presentation write only; activation/reset must use V2 server RPC. */
 export async function saveProgressiveCharacter(state: ProgressiveCharacterState) {
   latestShowcase = getProgressiveCharacterDisplayState({
     activeCharacterId: state.characterId,
