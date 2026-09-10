@@ -1,0 +1,53 @@
+{
+  "version": 2,
+  "app": "BUKLOD MAIN",
+  "repository": "https://github.com/faust-0612/BUKLOD-Rork.git",
+  "workspace": {
+    "default_windows_root": "%USERPROFILE%\\BUKLOD_WORKSPACE",
+    "canonical_source": "%USERPROFILE%\\BUKLOD_WORKSPACE\\SOURCE\\BUKLOD-MAIN",
+    "approved_recovery_repo": "%USERPROFILE%\\BUKLOD_WORKSPACE\\RECOVERY\\R31_R40_APPROVED",
+    "approved_recovery_package": "%USERPROFILE%\\BUKLOD_WORKSPACE\\RECOVERY\\R31_R40_APPROVED\\recovery-import\\r31-r40",
+    "web_release_root": "%USERPROFILE%\\BUKLOD_WORKSPACE\\RELEASE\\WEB",
+    "web_release_staging": "%USERPROFILE%\\BUKLOD_WORKSPACE\\RELEASE\\WEB\\current",
+    "legacy_quarantine": "%USERPROFILE%\\BUKLOD_WORKSPACE\\LEGACY_QUARANTINE",
+    "logs": "%USERPROFILE%\\BUKLOD_WORKSPACE\\LOGS",
+    "local_marker": ".buklod-local-canonical.json",
+    "workspace_manifest": "BUKLOD_WORKSPACE.json"
+  },
+  "branches": {
+    "canonical_product": "main",
+    "approved_r31_r40_recovery": "recovery/r31-r40-approved-local-20260910",
+    "archive_prefix": "archive/",
+    "feature_policy": "temporary_only_forward_port_or_merge_verified_delta_to_main"
+  },
+  "operations": {
+    "initialize_workspace": "scripts/SETUP_BUKLOD_CANONICAL_WORKSPACE.ps1",
+    "finalize_and_inventory_duplicates": "scripts/FINALIZE_BUKLOD_CENTRALIZATION.ps1",
+    "verify_canonical_source": "scripts/VERIFY_BUKLOD_CANONICAL_SOURCE.ps1",
+    "canonical_web_release": "scripts/RUN_CANONICAL_WEB_RELEASE.ps1",
+    "canonical_web_release_guard": "scripts/DEPLOY_BUKLOD_WEB_CANONICAL.ps1",
+    "internal_web_deploy_implementation": "scripts/DEPLOY_GAMES_WEB_DIRECT.ps1"
+  },
+  "rules": {
+    "normal_edit_root": "canonical_source_only",
+    "production_release_base": "main_only",
+    "release_staging_is_editable": false,
+    "recovery_is_editable": false,
+    "archive_branches_are_release_sources": false,
+    "direct_internal_deploy_invocation_allowed": false,
+    "dirty_clone_policy": "preserve",
+    "unique_commit_clone_policy": "preserve_then_forward_port_smallest_verified_delta",
+    "unknown_or_unverified_clone_policy": "preserve",
+    "production_merge_requires_real_qa": true
+  },
+  "protected_contracts": [
+    "R31/R40 approved character recovery and release contract",
+    "BUKLOD Kingdom/Game contract",
+    "current standalone Focus App boundaries",
+    "current routing and auth",
+    "Points and Rank",
+    "IGPAT",
+    "ads and push integrations",
+    "Supabase protections"
+  ]
+}
