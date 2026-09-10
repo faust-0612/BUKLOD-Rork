@@ -2,7 +2,6 @@ import React from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
 import { VillageBuilderGameV1 } from '@/features/games/elesur/VillageBuilderGameV1';
-import { recordBuklodKingdomPreviewResult } from '@/features/games/kingdom/progress';
 import { BuklodGameStage } from '@/features/games/runtime/BuklodGameStage';
 
 const GAME_ID = 'elesur-village-builder';
@@ -11,7 +10,7 @@ export default function ElesurVillageBuilderScreen() {
   return (
     <BuklodGameStage biome="highlands" gameId={GAME_ID}>
       <ScrollView contentContainerStyle={styles.page}>
-        <VillageBuilderGameV1 onFinish={(result) => { void recordBuklodKingdomPreviewResult(result); }} />
+        <VillageBuilderGameV1 />
       </ScrollView>
     </BuklodGameStage>
   );
