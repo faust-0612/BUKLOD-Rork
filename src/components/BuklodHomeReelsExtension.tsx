@@ -145,7 +145,7 @@ export default function BuklodHomeReelsExtension() {
                     )
                     .createSignedUrl(
                       row.media_path,
-                      1800
+                      1200
                     );
 
                   return {
@@ -201,25 +201,39 @@ export default function BuklodHomeReelsExtension() {
 
   return (
     <View style={styles.section}>
-      <Pressable
-        style={styles.headingRow}
-        onPress={() => router.push('/igpat' as any)}
-        accessibilityRole="button"
-        accessibilityLabel="Open BUKLOD IGPAT"
-      >
-        <View>
+      <View style={styles.headingRow}>
+        <Pressable
+          style={styles.headingIdentity}
+          onPress={() => router.push('/igpat' as any)}
+          accessibilityRole="button"
+          accessibilityLabel="Open BUKLOD IGPAT"
+        >
           <Text style={styles.sectionTitle}>
             BUKLOD IGPAT
           </Text>
           <Text style={styles.tagline}>
             An Instant Bond.
           </Text>
-        </View>
+        </Pressable>
 
-        <Text style={styles.sectionMeta}>
-          Watch all ›
-        </Text>
-      </Pressable>
+        <View style={styles.headingActions}>
+          <Pressable
+            style={styles.createButton}
+            onPress={() => router.push('/igpat/create' as any)}
+            accessibilityRole="button"
+            accessibilityLabel="Create an IGPAT"
+          >
+            <Text style={styles.createButtonText}>CREATE</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => router.push('/igpat' as any)}
+            accessibilityRole="button"
+            accessibilityLabel="Watch all IGPAT videos"
+          >
+            <Text style={styles.sectionMeta}>WATCH ›</Text>
+          </Pressable>
+        </View>
+      </View>
 
       {loading ? (
         <View style={styles.loading}>
@@ -298,9 +312,33 @@ const styles = StyleSheet.create({
   headingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent:
-      'space-between',
+    justifyContent: 'space-between',
+    gap: 10,
     marginBottom: 8,
+  },
+
+  headingIdentity: {
+    flex: 1,
+  },
+
+  headingActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+
+  createButton: {
+    borderRadius: 999,
+    backgroundColor: colors.green,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+  },
+
+  createButtonText: {
+    color: '#FFFFFF',
+    fontSize: 8.5,
+    fontWeight: '900',
+    letterSpacing: 0.7,
   },
 
   sectionTitle: {
