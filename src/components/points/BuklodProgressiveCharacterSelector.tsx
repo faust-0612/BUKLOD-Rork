@@ -1,7 +1,6 @@
 /* BUKLOD_CHARACTER_R31_PROGRESSIVE_SELECTOR_V2_FORWARD_PORT */
 import React, { useMemo } from 'react';
 import {
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,6 +8,8 @@ import {
   View,
 } from 'react-native';
 
+import BuklodProgressiveCharacterArt
+  from '@/components/points/BuklodProgressiveCharacterArt';
 import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
 import {
   CHARACTER_DISPLAY_NAME,
@@ -20,14 +21,6 @@ import {
   type BuklodProgressiveDisplayState,
   type ProgressiveCharacterId,
 } from '@/lib/buklodProgressiveCharacter';
-
-const CHARACTER_ART: Record<ProgressiveCharacterId, any> = {
-  phan: require('../../../assets/images/characters/phan_r26.jpg'),
-  quin: require('../../../assets/images/characters/quin_r26.jpg'),
-  van: require('../../../assets/images/characters/van_r26.jpg'),
-  christian: require('../../../assets/images/characters/christian_r26.jpg'),
-  lhen: require('../../../assets/images/characters/lhen_r26.jpg'),
-};
 
 type Props = {
   displayState?: BuklodProgressiveDisplayState | null;
@@ -89,7 +82,12 @@ export default function BuklodProgressiveCharacterSelector({
                 },
               ]}
             >
-              <Image source={CHARACTER_ART[id]} resizeMode="contain" style={styles.characterArt} />
+              <BuklodProgressiveCharacterArt
+                characterId={id}
+                level={active ? state.currentLevel : 1}
+                height={104}
+                viewportWidth={76}
+              />
               <Text style={[styles.characterName, { color: theme.textPrimary }]}>{label}</Text>
               <Text style={[styles.meta, { color: theme.textMuted }]}>
                 {active ? `Level ${state.currentLevel}` : 'Starts Level 1'}
@@ -141,7 +139,6 @@ const styles = StyleSheet.create({
   helper: { fontSize: 11, lineHeight: 16 },
   characterRow: { gap: 10, paddingVertical: 8, paddingRight: 12 },
   characterCard: { width: 118, borderWidth: 1, borderRadius: 14, padding: 9, alignItems: 'center', gap: 4 },
-  characterArt: { width: 76, height: 104 },
   characterName: { fontSize: 12, fontWeight: '900' },
   meta: { fontSize: 9, fontWeight: '800' },
   usePill: { marginTop: 3, minHeight: 28, borderRadius: 9, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },
