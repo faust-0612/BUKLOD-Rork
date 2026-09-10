@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { playBuklodGameFeedback } from '../runtime/BuklodGameFeedback';
+import { useBuklodGameLanguage } from '../runtime/BuklodGameLanguage';
 import type { BuklodGameResult } from '../types';
 
 type Phase = 'ready' | 'watch' | 'input' | 'round-clear' | 'won' | 'lost';
@@ -10,7 +11,9 @@ type StationId = 0 | 1 | 2 | 3;
 type Station = {
   id: StationId;
   name: string;
+  nameTl: string;
   short: string;
+  shortTl: string;
   accent: string;
   soft: string;
 };
@@ -20,11 +23,36 @@ const MAX_ROUND = 5;
 const STARTING_HEARTS = 3;
 
 const STATIONS: Station[] = [
-  { id: 0, name: 'Story Tree', short: 'STORY', accent: '#f6c54a', soft: '#6f5421' },
-  { id: 1, name: 'Sky Slide', short: 'SLIDE', accent: '#69d7ff', soft: '#25586b' },
-  { id: 2, name: 'Hop Garden', short: 'HOP', accent: '#93ea88', soft: '#38643a' },
-  { id: 3, name: 'Wonder Wheel', short: 'WONDER', accent: '#f69ad7', soft: '#6c3159' },
+  { id: 0, name: 'Story Tree', nameTl: 'Puno ng Kuwento', short: 'STORY', shortTl: 'KUWENTO', accent: '#f6c54a', soft: '#6f5421' },
+  { id: 1, name: 'Sky Slide', nameTl: 'Dulasang Langit', short: 'SLIDE', shortTl: 'DULAS', accent: '#69d7ff', soft: '#25586b' },
+  { id: 2, name: 'Hop Garden', nameTl: 'Hardin ng Talon', short: 'HOP', shortTl: 'TALON', accent: '#93ea88', soft: '#38643a' },
+  { id: 3, name: 'Wonder Wheel', nameTl: 'Gulong ng Hiwaga', short: 'WONDER', shortTl: 'HIWAGA', accent: '#f69ad7', soft: '#6c3159' },
 ];
+
+const localizeMessage = (message: string, language: 'en' | 'tl') => {
+  if (language === 'en') return message;
+  const exact: Record<string, string> = {
+    'Watch the playground come alive, then repeat the path.': 'Panoorin mabuhay ang playground, saka ulitin ang landas.',
+    'Children’s Haven lights up. The path is remembered.': 'Nagliwanag ang Children’s Haven. Natandaan ang landas.',
+    'The path faded. Replay it slowly and rebuild the pattern.': 'Naglaho ang landas. Ulitin ito nang dahan-dahan at buuin muli ang pattern.',
+    'Your turn. Repeat the glowing path.': 'Ikaw naman. Ulitin ang kumikislap na landas.',
+    'The playground is adding one more step. Watch carefully.': 'Nagdagdag ng isang hakbang ang playground. Manood nang mabuti.',
+    'Not that station. Watch the same round once more.': 'Hindi iyon ang estasyon. Panoorin muli ang parehong round.',
+    'Round 1: watch the path.': 'Round 1: panoorin ang landas.',
+  };
+  if (exact[message]) return exact[message];
+
+  let match = message.match(/^Round (\d+): watch the path\. Do not tap yet\.$/);
+  if (match) return `Round ${match[1]}: panoorin ang landas. Huwag munang mag-tap.`;
+
+  match = message.match(/^Round (\d+) complete\. The playground grows brighter\.$/);
+  if (match) return `Tapos ang Round ${match[1]}. Mas nagliliwanag ang playground.`;
+
+  match = message.match(/^(\d+)\/(\d+) correct\. Keep the path in mind\.$/);
+  if (match) return `${match[1]}/${match[2]} tama. Panatilihin sa isip ang landas.`;
+
+  return message;
+};
 
 const buildSequence = (round: number): StationId[] => {
   const length = round + 2;
@@ -42,6 +70,7 @@ type Props = {
 };
 
 export function PlaygroundPathGameV2({ onFinish }: Props) {
+  const { language, t } = useBuklodGameLanguage();
   const [phase, setPhase] = useState<Phase>('ready');
   const [round, setRound] = useState(1);
   const [watchIndex, setWatchIndex] = useState(0);
@@ -265,7 +294,7 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
               <Pressable
                 key={station.id}
                 accessibilityRole="button"
-                accessibilityLabel={station.name}
+                accessibilityLabel={language === 'tl' ? station.nameTl : station.name}
                 disabled={phase !== 'input'}
                 onPress={() => chooseStation(station.id)}
                 style={({ pressed }) => [
@@ -280,7 +309,7 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
               >
                 <View style={[styles.stationGlow, { backgroundColor: station.accent, opacity: active ? 0.38 : 0.06 }]} />
                 <View style={[styles.stationMarker, { borderColor: station.accent, backgroundColor: active ? station.accent : 'rgba(255,255,255,0.06)' }]} />
-                <Text style={[styles.stationName, active && { color: '#ffffff' }]}>{station.short}</Text>
+                <Text style={[styles.stationName, active && { color: '#ffffff' }]}>{language === 'tl' ? station.shortTl : station.short}</Text>
               </Pressable>
             );
           })}
@@ -303,12 +332,12 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
 
       <View style={styles.topHud}>
         <View>
-          <Text style={styles.kicker}>TRUDICE • CHILDREN’S HAVEN</Text>
-          <Text style={styles.title}>Wonder Path</Text>
+          <Text style={styles.kicker}>{t('TRUDICE • CHILDREN’S HAVEN', 'TRUDICE • KANLUNGAN NG MGA BATA')}</Text>
+          <Text style={styles.title}>{t('Wonder Path', 'Landas ng Alaala')}</Text>
         </View>
         <View style={styles.statRow}>
-          <View style={styles.stat}><Text style={styles.statLabel}>ROUND</Text><Text style={styles.statValue}>{round}/{MAX_ROUND}</Text></View>
-          <View style={styles.stat}><Text style={styles.statLabel}>SCORE</Text><Text style={styles.statValue}>{score}</Text></View>
+          <View style={styles.stat}><Text style={styles.statLabel}>{t('ROUND', 'ROUND')}</Text><Text style={styles.statValue}>{round}/{MAX_ROUND}</Text></View>
+          <View style={styles.stat}><Text style={styles.statLabel}>{t('SCORE', 'ISKOR')}</Text><Text style={styles.statValue}>{score}</Text></View>
         </View>
       </View>
 
@@ -321,24 +350,27 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
       </View>
 
       <View style={styles.messagePanel} pointerEvents="none">
-        <Text style={styles.message}>{message}</Text>
-        {phase === 'watch' ? <Text style={styles.mode}>WATCH</Text> : null}
-        {phase === 'input' ? <Text style={styles.mode}>YOUR TURN • {inputIndex}/{sequence.length}</Text> : null}
+        <Text style={styles.message}>{localizeMessage(message, language)}</Text>
+        {phase === 'watch' ? <Text style={styles.mode}>{t('WATCH', 'MANOOD')}</Text> : null}
+        {phase === 'input' ? <Text style={styles.mode}>{t('YOUR TURN', 'IKAW NAMAN')} • {inputIndex}/{sequence.length}</Text> : null}
       </View>
 
       {phase === 'ready' ? (
         <View style={styles.overlay}>
           <View style={styles.heroCard}>
-            <Text style={styles.heroEyebrow}>BUKLOD KINGDOM • ADVENTURE 02</Text>
-            <Text style={styles.heroTitle}>WONDER PATH</Text>
-            <Text style={styles.heroCopy}>The playground lights a route across four stations. Watch the full sequence, then repeat it. Every round adds another step.</Text>
+            <Text style={styles.heroEyebrow}>{t('BUKLOD KINGDOM • ADVENTURE 02', 'BUKLOD KINGDOM • PAKIKIPAGSAPALARAN 02')}</Text>
+            <Text style={styles.heroTitle}>{t('WONDER PATH', 'LANDAS NG ALAALA')}</Text>
+            <Text style={styles.heroCopy}>{t(
+              'The playground lights a route across four stations. Watch the full sequence, then repeat it. Every round adds another step.',
+              'Magliliwanag ang ruta sa apat na estasyon ng playground. Panoorin ang buong sequence, saka ulitin ito. Bawat round ay may dagdag na hakbang.',
+            )}</Text>
             <View style={styles.rulesRow}>
-              <View style={styles.ruleChip}><Text style={styles.ruleTitle}>WATCH</Text><Text style={styles.ruleCopy}>follow the glow</Text></View>
-              <View style={styles.ruleChip}><Text style={styles.ruleTitle}>REPEAT</Text><Text style={styles.ruleCopy}>tap in order</Text></View>
-              <View style={styles.ruleChip}><Text style={styles.ruleTitle}>GROW</Text><Text style={styles.ruleCopy}>5 rounds</Text></View>
+              <View style={styles.ruleChip}><Text style={styles.ruleTitle}>{t('WATCH', 'MANOOD')}</Text><Text style={styles.ruleCopy}>{t('follow the glow', 'sundan ang liwanag')}</Text></View>
+              <View style={styles.ruleChip}><Text style={styles.ruleTitle}>{t('REPEAT', 'ULITIN')}</Text><Text style={styles.ruleCopy}>{t('tap in order', 'mag-tap ayon sa ayos')}</Text></View>
+              <View style={styles.ruleChip}><Text style={styles.ruleTitle}>{t('GROW', 'UMUSAD')}</Text><Text style={styles.ruleCopy}>{t('5 rounds', '5 round')}</Text></View>
             </View>
             <Pressable onPress={start} style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryPressed]}>
-              <Text style={styles.primaryText}>OPEN THE PLAYGROUND</Text>
+              <Text style={styles.primaryText}>{t('OPEN THE PLAYGROUND', 'BUKSAN ANG PLAYGROUND')}</Text>
             </Pressable>
           </View>
         </View>
@@ -346,21 +378,23 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
 
       {phase === 'round-clear' ? (
         <View pointerEvents="none" style={styles.roundBanner}>
-          <Text style={styles.roundBannerLabel}>PATH REMEMBERED</Text>
-          <Text style={styles.roundBannerTitle}>ROUND {round} CLEAR</Text>
+          <Text style={styles.roundBannerLabel}>{t('PATH REMEMBERED', 'NATANDAAN ANG LANDAS')}</Text>
+          <Text style={styles.roundBannerTitle}>{t('ROUND', 'ROUND')} {round} {t('CLEAR', 'TAPOS')}</Text>
         </View>
       ) : null}
 
       {phase === 'won' || phase === 'lost' ? (
         <View style={styles.overlay}>
           <View style={styles.resultCard}>
-            <Text style={styles.heroEyebrow}>{phase === 'won' ? 'STATION CLEARED' : 'PATH LOST'}</Text>
-            <Text style={styles.resultTitle}>{phase === 'won' ? 'CHILDREN’S HAVEN GLOWS' : 'TRY THE PATH AGAIN'}</Text>
-            <Text style={styles.resultScore}>{score.toLocaleString()} pts</Text>
-            <Text style={styles.resultMeta}>Mistakes {mistakes} • {'★'.repeat(starsForRun(mistakes))}</Text>
-            <Text style={styles.resultCopy}>{phase === 'won' ? 'Later, this clear can permanently brighten Trudice’s playground station on the Kingdom Map.' : 'The pattern is replayable with no penalty. Learn it visually and try again.'}</Text>
+            <Text style={styles.heroEyebrow}>{phase === 'won' ? t('STATION CLEARED', 'NALAMPASAN ANG ESTASYON') : t('PATH LOST', 'NAWALA ANG LANDAS')}</Text>
+            <Text style={styles.resultTitle}>{phase === 'won' ? t('CHILDREN’S HAVEN GLOWS', 'NAGLILIWANAG ANG KANLUNGAN NG MGA BATA') : t('TRY THE PATH AGAIN', 'SUBUKAN MULI ANG LANDAS')}</Text>
+            <Text style={styles.resultScore}>{score.toLocaleString()} {t('pts', 'puntos')}</Text>
+            <Text style={styles.resultMeta}>{t('Mistakes', 'Mga mali')} {mistakes} • {'★'.repeat(starsForRun(mistakes))}</Text>
+            <Text style={styles.resultCopy}>{phase === 'won'
+              ? t('Your clear is recorded. Return to the Kingdom Map to see Trudice’s station shine with your progress.', 'Naitala ang tagumpay mo. Bumalik sa Mapa ng Kaharian para makita ang estasyon ni Trudice na lumiwanag ayon sa progreso mo.')
+              : t('The pattern is replayable with no penalty. Learn it visually and try again.', 'Maaari mong ulitin ang pattern nang walang parusa. Tandaan ito sa paningin at subukan muli.')}</Text>
             <Pressable onPress={reset} style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryPressed]}>
-              <Text style={styles.primaryText}>PLAY AGAIN</Text>
+              <Text style={styles.primaryText}>{t('PLAY AGAIN', 'MAGLARO MULI')}</Text>
             </Pressable>
           </View>
         </View>
