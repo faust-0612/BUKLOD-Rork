@@ -2,13 +2,16 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { playBuklodGameFeedback } from '../runtime/BuklodGameFeedback';
+import { useBuklodGameLanguage } from '../runtime/BuklodGameLanguage';
 import type { BuklodGameResult } from '../types';
 
 type ProjectKey = 'water' | 'school' | 'farm' | 'clinic' | 'road';
 type Phase = 'build' | 'result';
+type HealthKey = 'care' | 'access' | 'learning' | 'livelihood';
 type Project = {
   key: ProjectKey;
   label: string;
+  labelTl: string;
   need: number;
   workerCost: number;
   materialCost: number;
@@ -19,18 +22,44 @@ const GAME_ID = 'elesur-village-builder';
 const START_WORKERS = 9;
 const START_MATERIALS = 14;
 const PROJECTS: Project[] = [
-  { key:'water', label:'Water Point', need:92, workerCost:2, materialCost:4, impact:{care:18,access:10,learning:2,livelihood:8}},
-  { key:'school', label:'Learning House', need:76, workerCost:2, materialCost:3, impact:{care:4,access:4,learning:22,livelihood:4}},
-  { key:'farm', label:'Community Farm', need:68, workerCost:2, materialCost:3, impact:{care:4,access:2,learning:3,livelihood:22}},
-  { key:'clinic', label:'Care Station', need:84, workerCost:2, materialCost:3, impact:{care:24,access:3,learning:2,livelihood:2}},
-  { key:'road', label:'Highland Path', need:72, workerCost:3, materialCost:4, impact:{care:3,access:24,learning:5,livelihood:9}},
+  { key:'water', label:'Water Point', labelTl:'Puntong Tubig', need:92, workerCost:2, materialCost:4, impact:{care:18,access:10,learning:2,livelihood:8}},
+  { key:'school', label:'Learning House', labelTl:'Bahay-Pagkatuto', need:76, workerCost:2, materialCost:3, impact:{care:4,access:4,learning:22,livelihood:4}},
+  { key:'farm', label:'Community Farm', labelTl:'Sakahan ng Komunidad', need:68, workerCost:2, materialCost:3, impact:{care:4,access:2,learning:3,livelihood:22}},
+  { key:'clinic', label:'Care Station', labelTl:'Istasyon ng Pangangalaga', need:84, workerCost:2, materialCost:3, impact:{care:24,access:3,learning:2,livelihood:2}},
+  { key:'road', label:'Highland Path', labelTl:'Landas sa Kabundukan', need:72, workerCost:3, materialCost:4, impact:{care:3,access:24,learning:5,livelihood:9}},
 ];
 
+const HEALTH_TL: Record<HealthKey, string> = {
+  care: 'PANGANGALAGA',
+  access: 'ACCESS',
+  learning: 'PAGKATUTO',
+  livelihood: 'KABUHAYAN',
+};
+
 const starsForScore = (score:number):1|2|3 => score >= 1450 ? 3 : score >= 1100 ? 2 : 1;
+
+const localizeMessage = (message:string, language:'en'|'tl') => {
+  if(language==='en') return message;
+  const exact:Record<string,string>={
+    'The highland village has more needs than resources. Build in the right order before the community enters crisis.':'Mas marami ang pangangailangan ng highland village kaysa resources. Magtayo sa tamang pagkakasunod bago pumasok sa krisis ang komunidad.',
+    'Not enough workers or materials for that project. Prioritize what the village can finish.':'Kulang ang workers o materials para sa proyektong iyon. Unahin ang kayang tapusin ng pamayanan.',
+    'The village improved, but too many urgent needs were left unresolved. Rebuild the intervention order.':'Umunlad ang pamayanan, pero napakarami pa ring agarang pangangailangang hindi nasagot. Ayusin muli ang pagkakasunod ng intervention.',
+  };
+  if(exact[message]) return exact[message];
+  let match=message.match(/^(.+) completed\. The village changed, but unresolved needs keep increasing pressure\.$/);
+  if(match){
+    const project=PROJECTS.find(p=>p.label===match[1]);
+    return `${project?.labelTl??match[1]} ay natapos. Nagbago ang pamayanan, pero tumataas pa rin ang pressure mula sa mga hindi pa nasasagot na pangangailangan.`;
+  }
+  match=message.match(/^Village cycle stabilized\. (\d+) priority projects now anchor the highland community\.$/);
+  if(match) return `Naging matatag ang village cycle. ${match[1]} priority project na ngayon ang pundasyon ng highland community.`;
+  return message;
+};
 
 type Props = { onFinish?: (result:BuklodGameResult)=>void };
 
 export function VillageBuilderGameV1({ onFinish }:Props) {
+  const { language,t }=useBuklodGameLanguage();
   const [phase,setPhase]=useState<Phase>('build');
   const [workers,setWorkers]=useState(START_WORKERS);
   const [materials,setMaterials]=useState(START_MATERIALS);
@@ -75,15 +104,15 @@ export function VillageBuilderGameV1({ onFinish }:Props) {
   const reset=useCallback(()=>{setPhase('build');setWorkers(START_WORKERS);setMaterials(START_MATERIALS);setBuilt([]);setRound(1);setScore(0);setHealth({care:38,access:32,learning:34,livelihood:36});setMessage('The highland village has more needs than resources. Build in the right order before the community enters crisis.');},[]);
 
   return <View style={styles.shell}>
-    <View style={styles.header}><View><Text style={styles.eyebrow}>ELESUR • HIGHLAND COMMUNITY</Text><Text style={styles.title}>Village Builder</Text></View><View style={styles.resourceBox}><Text style={styles.resource}>{workers}W • {materials}M</Text><Text style={styles.resourceLabel}>WORKERS / MATERIALS</Text></View></View>
-    <Text style={styles.message}>{message}</Text>
-    <View style={styles.healthRow}>{Object.entries(health).map(([k,v])=><View key={k} style={styles.healthCard}><Text style={styles.healthLabel}>{k.toUpperCase()}</Text><Text style={styles.healthValue}>{Math.round(v)}</Text></View>)}</View>
+    <View style={styles.header}><View><Text style={styles.eyebrow}>{t('ELESUR • HIGHLAND COMMUNITY','ELESUR • PAMAYANAN SA KABUNDUKAN')}</Text><Text style={styles.title}>{t('Village Builder','Tagapagtayo ng Pamayanan')}</Text></View><View style={styles.resourceBox}><Text style={styles.resource}>{workers}W • {materials}M</Text><Text style={styles.resourceLabel}>{t('WORKERS / MATERIALS','WORKERS / MATERIALS')}</Text></View></View>
+    <Text style={styles.message}>{localizeMessage(message,language)}</Text>
+    <View style={styles.healthRow}>{Object.entries(health).map(([k,v])=><View key={k} style={styles.healthCard}><Text style={styles.healthLabel}>{language==='tl'?HEALTH_TL[k as HealthKey]:k.toUpperCase()}</Text><Text style={styles.healthValue}>{Math.round(v)}</Text></View>)}</View>
 
     {phase==='build'?<>
-      <View style={styles.map}><Text style={styles.mapKicker}>HIGHLAND VILLAGE • ROUND {round}</Text><View style={styles.villageGrid}>{PROJECTS.map(project=>{
-        const done=builtSet.has(project.key);const rank=pressure.findIndex(p=>p.key===project.key);return <Pressable key={project.key} disabled={done} onPress={()=>buildProject(project)} style={[styles.site,done&&styles.siteDone,rank===0&&!done&&styles.siteUrgent]}><Text style={styles.siteName}>{project.label}</Text><Text style={styles.siteNeed}>{done?'BUILT':`Need ${project.need}`}</Text><Text style={styles.siteCost}>{project.workerCost}W • {project.materialCost}M</Text>{rank===0&&!done?<Text style={styles.urgent}>MOST URGENT</Text>:null}</Pressable>})}</View></View>
-      <Text style={styles.tip}>You can finish only a few projects this cycle. Highest need is not always the only factor—watch community health and remaining resources.</Text>
-    </>:<View style={styles.result}><Text style={styles.resultKicker}>COMMUNITY CYCLE COMPLETE</Text><Text style={styles.bigScore}>{score}</Text><Text style={styles.resultCopy}>{message}</Text><Pressable style={styles.primary} onPress={reset}><Text style={styles.primaryText}>REBUILD PLAN</Text></Pressable></View>}
+      <View style={styles.map}><Text style={styles.mapKicker}>{t('HIGHLAND VILLAGE','PAMAYANAN SA KABUNDUKAN')} • {t('ROUND','ROUND')} {round}</Text><View style={styles.villageGrid}>{PROJECTS.map(project=>{
+        const done=builtSet.has(project.key);const rank=pressure.findIndex(p=>p.key===project.key);return <Pressable key={project.key} disabled={done} onPress={()=>buildProject(project)} style={[styles.site,done&&styles.siteDone,rank===0&&!done&&styles.siteUrgent]}><Text style={styles.siteName}>{language==='tl'?project.labelTl:project.label}</Text><Text style={styles.siteNeed}>{done?t('BUILT','NAGAWA'):`${t('Need','Pangangailangan')} ${project.need}`}</Text><Text style={styles.siteCost}>{project.workerCost}W • {project.materialCost}M</Text>{rank===0&&!done?<Text style={styles.urgent}>{t('MOST URGENT','PINAKA-AGARAN')}</Text>:null}</Pressable>})}</View></View>
+      <Text style={styles.tip}>{t('You can finish only a few projects this cycle. Highest need is not always the only factor—watch community health and remaining resources.','Ilang proyekto lamang ang matatapos sa cycle na ito. Hindi laging pinakamataas na need lang ang batayan—bantayan ang community health at natitirang resources.')}</Text>
+    </>:<View style={styles.result}><Text style={styles.resultKicker}>{t('COMMUNITY CYCLE COMPLETE','TAPOS ANG COMMUNITY CYCLE')}</Text><Text style={styles.bigScore}>{score}</Text><Text style={styles.resultCopy}>{localizeMessage(message,language)}</Text><Text style={styles.resultCopy}>{t('This village cycle is recorded in ELESUR’s Kingdom station progress.','Naitala ang village cycle na ito sa progreso ng Kingdom station ni ELESUR.')}</Text><Pressable style={styles.primary} onPress={reset}><Text style={styles.primaryText}>{t('REBUILD PLAN','BUMUO MULI NG PLANO')}</Text></Pressable></View>}
   </View>;
 }
 
