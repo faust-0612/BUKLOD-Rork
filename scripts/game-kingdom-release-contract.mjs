@@ -61,15 +61,27 @@ if ((registry.match(/replayable:\s*true/g) || []).length < 13) {
   failures.push('Game registry no longer exposes 13 replayable current stations.');
 }
 
-requireTokens('src/app/games/index.tsx', ['BuklodKingdomMap']);
+requireTokens('src/app/games/index.tsx', [
+  'BuklodKingdomMap',
+  'setBuklodKingdomProgressOwner',
+]);
+
 const map = requireTokens('src/features/games/kingdom/BuklodKingdomMap.tsx', [
+  'BUKLOD_KINGDOM_ILLUSTRATED_MAP_R2',
   'BUKLOD KINGDOM',
+  'WORLD → REGION / BIOME → CHARACTER STATION → GAME',
   'A SMALL BEGINNING',
+  'STRONGER TOGETHER',
+  'A GROWING KINGDOM',
   'A BRIGHTER TOMORROW',
   'COMING SOON',
   'SCRIPTURE GARDEN',
-  'BUKLOD CITADEL',
+  'KINGDOM CITADEL',
+  'Major hub • never the ending',
   'EXPLORE THE KINGDOM',
+  'BuklodKingdomAtmosphere',
+  'BuklodKingdomAdminQa',
+  'playBuklodGameFeedback',
   'stageFor',
   'clearedCount',
 ]);
@@ -77,9 +89,24 @@ for (const gameId of GAME_IDS) {
   if (!map.includes(gameId)) failures.push(`Kingdom Map missing station: ${gameId}`);
 }
 
+requireTokens('src/features/games/kingdom/BuklodKingdomAtmosphere.tsx', [
+  'Animated.loop',
+  'DriftingCloud',
+  'waterShimmer',
+]);
+
+requireTokens('src/features/games/kingdom/BuklodKingdomAdminQa.tsx', [
+  'BUKLOD_KINGDOM_SYSTEM_ADMIN_QA_R1',
+  'SYSTEM ADMIN QA',
+  "hasRole('system_admin')",
+  'resetBuklodKingdomPreviewProgress',
+]);
+
 requireTokens('src/components/BuklodPublicWordShortcut.tsx', [
   'BUKLOD_KINGDOM_HOME_DOOR_R1',
+  'BUKLOD_KINGDOM_PREMIUM_DOOR_R2',
   'BUKLOD KINGDOM',
+  'EXPLORE • PLAY • GROW',
   "router.push('/games'",
 ]);
 
@@ -97,16 +124,27 @@ requireTokens('src/features/games/runtime/BuklodGameVisualFX.tsx', [
   'BuklodGameEntrance',
   'Animated.loop',
 ]);
+requireTokens('src/features/games/runtime/BuklodGameChrome.tsx', [
+  'BUKLOD_KINGDOM_PREMIUM_GAME_CHROME_R1',
+  'MISSION COMPLETE',
+  'VIEW KINGDOM',
+  'KEEP PLAYING',
+  'KINGDOM XP',
+]);
 requireTokens('src/features/games/runtime/BuklodGameStage.web.tsx', [
   'BuklodGameVisualFX',
+  'BuklodGameChrome',
   'recordBuklodKingdomPreviewResult',
+  'setBuklodKingdomProgressOwner',
   'withResultHandler',
   'BuklodGameLanguageControl',
 ]);
 requireTokens('src/features/games/runtime/BuklodGameStage.native.tsx', [
   '@shopify/react-native-skia',
   'BuklodGameVisualFX',
+  'BuklodGameChrome',
   'recordBuklodKingdomPreviewResult',
+  'setBuklodKingdomProgressOwner',
   'withResultHandler',
   'BuklodGameLanguageControl',
 ]);
@@ -124,10 +162,25 @@ requireTokens('src/features/games/runtime/BuklodGameFeedback.native.ts', [
   'expo-haptics',
 ]);
 requireTokens('src/features/games/kingdom/progress.ts', [
+  'STORAGE_PREFIX',
+  'setBuklodKingdomProgressOwner',
   'recordBuklodKingdomPreviewResult',
+  'resetBuklodKingdomPreviewProgress',
   'bestScore',
   'bestStars',
   'clears',
+  'DUPLICATE_RESULT_WINDOW_MS',
+]);
+requireTokens('scripts/RUN_KINGDOM_LOCALHOST.ps1', [
+  'VERIFIED LOCALHOST PREVIEW',
+  'NO EAS DEPLOY / NO PRODUCTION PROMOTION',
+  'kingdom-native-readiness.mjs',
+]);
+requireTokens('scripts/kingdom-native-readiness.mjs', [
+  'BUKLOD KINGDOM NATIVE READINESS',
+  '@shopify/react-native-skia',
+  'expo-audio',
+  'expo-haptics',
 ]);
 
 for (const gameId of GAME_IDS) {
@@ -150,6 +203,8 @@ if (distDir) {
       'COMING SOON',
       'TAGALOG GAME GUIDE',
       'PAANO LARUIN',
+      'MISSION COMPLETE',
+      'VIEW KINGDOM',
       'Special Character Journey',
     ]) {
       if (!compiled.includes(token)) failures.push(`Compiled bundle missing Kingdom token: ${token}`);
