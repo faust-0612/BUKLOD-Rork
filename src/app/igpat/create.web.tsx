@@ -1,1 +1,1 @@
-export { default } from '@/components/igpat/IgpatCreateWebR7';
+export { default } from '@/components/igpat/IgpatCreateWebComplete';
