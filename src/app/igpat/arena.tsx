@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -30,103 +30,29 @@ type Mode = {
   objective: string;
   winRule: string;
   missions: string[];
-  features: string[];
+  tools: string[];
 };
 
 const MODES: Mode[] = [
-  {
-    id: 'duel', title: 'Duel', subtitle: 'One creator. One opponent. One clear challenge.',
-    icon: 'sword-cross', accent: ['#3158FF', '#17214B'], metric: '1 VS 1',
-    objective: 'Answer the same challenge with one IGPAT each. The result is based on the defined skill or completion rule, not raw popularity.',
-    winRule: 'Best verified challenge completion wins. Ties can trigger a rematch.',
-    missions: ['60-second useful skill', 'One verse, one practical application', 'Before-and-after service task'],
-    features: ['Opponent card', 'Challenge timer', 'Side-by-side result', 'Rematch', 'Respect'],
-  },
-  {
-    id: 'prove_it', title: 'Prove It', subtitle: 'Show the skill, result or transformation.',
-    icon: 'shield-star-outline', accent: ['#8C43FF', '#301A52'], metric: 'SKILL',
-    objective: 'Upload clear evidence that a defined skill, service action, or transformation was completed.',
-    winRule: 'Completion evidence must satisfy the challenge rule. No popularity requirement.',
-    missions: ['Teach one useful technique', 'Show a completed community task', 'Demonstrate a learned skill'],
-    features: ['Evidence checklist', 'Completion badge', 'Skill category', 'Review state', 'Share result'],
-  },
-  {
-    id: 'squad_battle', title: 'Squad vs Squad', subtitle: 'Team effort and verified completion.',
-    icon: 'account-group-outline', accent: ['#00A66B', '#123D2E'], metric: 'TEAM',
-    objective: 'Two squads complete the same mission with every member contributing one valid action.',
-    winRule: 'Team completion, quality, and verified participation determine the result.',
-    missions: ['Community clean-up relay', 'Team learning challenge', 'Group service mission'],
-    features: ['Squad roster', 'Member contribution tracker', 'Team progress', 'Battle result', 'Respect vote'],
-  },
-  {
-    id: 'king_of_the_hill', title: 'King of the Hill', subtitle: 'Hold the challenge through consistent wins.',
-    icon: 'crown-outline', accent: ['#C98B00', '#4A3410'], metric: 'CROWN',
-    objective: 'Take the hill, then defend it against valid challengers.',
-    winRule: 'The current holder stays champion while completing each incoming challenge successfully.',
-    missions: ['7-day consistency hill', 'Skill mastery hill', 'Service streak hill'],
-    features: ['Current holder', 'Defense count', 'Challenger queue', 'Crown history', 'Respect'],
-  },
-  {
-    id: 'hard_mode', title: 'Hard Mode', subtitle: 'Higher-difficulty creative mission.',
-    icon: 'fire', accent: ['#D14A28', '#4B1C16'], metric: 'HARD',
-    objective: 'Take a normal Arena mission with stricter limits, stronger evidence, or a harder completion rule.',
-    winRule: 'Complete every hard condition. Partial completion does not count as a win.',
-    missions: ['No-cut 60-second explanation', 'Three-step service challenge', 'Timed skill demonstration'],
-    features: ['Hard conditions', 'Failure-safe retry', 'Mastery badge', 'Attempt record', 'Completion proof'],
-  },
-  {
-    id: 'iron_streak', title: 'Iron Streak', subtitle: 'Consistency and mastery streak.',
-    icon: 'link-variant', accent: ['#66717D', '#252B31'], metric: 'STREAK',
-    objective: 'Keep completing a defined Arena action across consecutive days or rounds.',
-    winRule: 'The streak continues only when each required action is completed within its window.',
-    missions: ['7-day learning streak', 'Daily encouragement streak', 'Service consistency streak'],
-    features: ['Streak counter', 'Current day', 'Best streak', 'Recovery rules', 'Iron badge'],
-  },
-  {
-    id: 'ranked_season', title: 'Ranked Season', subtitle: 'Seasonal skill competition with fair rules.',
-    icon: 'podium-gold', accent: ['#2B7FD5', '#17304A'], metric: 'RANKED',
-    objective: 'Compete across a season using completed Arena challenges and verified results.',
-    winRule: 'Season standing uses valid wins and completion records, never purchased points or fake engagement.',
-    missions: ['Weekly Duel set', 'Season service circuit', 'Multi-skill ranked ladder'],
-    features: ['Season tier', 'Placement matches', 'Win/loss', 'Season history', 'Champion badge'],
-  },
-  {
-    id: 'boss_challenge', title: 'Boss Challenge', subtitle: 'A shared high-difficulty target.',
-    icon: 'shield-crown-outline', accent: ['#B52C5C', '#4C1730'], metric: 'BOSS',
-    objective: 'One difficult mission is broken into clear objectives that can be completed individually or by a team.',
-    winRule: 'Beat every required objective before the challenge closes.',
-    missions: ['Community impact boss', 'Learning mastery boss', 'Team outreach boss'],
-    features: ['Boss health/progress', 'Objectives', 'Contributor list', 'Milestone rewards', 'Final clear'],
-  },
-  {
-    id: 'last_man_standing', title: 'Last Man Standing', subtitle: 'Advance by completed challenge, not popularity.',
-    icon: 'account-hard-hat-outline', accent: ['#7B5CFF', '#2D254D'], metric: 'LMS',
-    objective: 'Players advance round by round by completing the current challenge correctly.',
-    winRule: 'Missed or failed challenge removes a player from the active round. Final valid player wins.',
-    missions: ['Knowledge elimination', 'Skill round ladder', 'Service challenge rounds'],
-    features: ['Round board', 'Active players', 'Elimination state', 'Final round', 'Champion result'],
-  },
-  {
-    id: 'bounty_challenge', title: 'Bounty Challenge', subtitle: 'Complete a defined mission for recognition.',
-    icon: 'target', accent: ['#E06B00', '#4D2A12'], metric: 'MISSION',
-    objective: 'Accept a clearly defined mission and complete the required proof.',
-    winRule: 'First valid completion or all valid completions can receive recognition depending on mission rules.',
-    missions: ['Help-one-person mission', 'Creative teaching bounty', 'Community improvement bounty'],
-    features: ['Mission brief', 'Acceptance state', 'Proof upload', 'Completion review', 'Recognition'],
-  },
+  { id:'duel', title:'Duel', subtitle:'One creator versus one opponent.', icon:'sword-cross', accent:['#3158FF','#17214B'], metric:'1 VS 1', objective:'Complete the same challenge and beat the opponent by verified score.', winRule:'Highest valid score wins; ties go to rematch.', missions:['60-second useful skill','One verse, one application','Before-and-after service'], tools:['Opponent card','Timer','Score board','Rematch','Respect'] },
+  { id:'prove_it', title:'Prove It', subtitle:'Show the skill or result.', icon:'shield-star-outline', accent:['#8C43FF','#301A52'], metric:'SKILL', objective:'Complete a clear skill or proof mission.', winRule:'Evidence must satisfy the stated challenge.', missions:['Teach one technique','Show a completed service task','Demonstrate a learned skill'], tools:['Evidence checklist','Completion badge','Skill category','Review state','Share result'] },
+  { id:'squad_battle', title:'Squad vs Squad', subtitle:'Team effort and verified completion.', icon:'account-group-outline', accent:['#00A66B','#123D2E'], metric:'TEAM', objective:'Two squads complete the same mission together.', winRule:'Team quality and valid member contribution decide the result.', missions:['Community clean-up relay','Team learning challenge','Group service mission'], tools:['Squad roster','Contribution tracker','Team progress','Battle result','Respect vote'] },
+  { id:'king_of_the_hill', title:'King of the Hill', subtitle:'Take and defend the crown.', icon:'crown-outline', accent:['#C98B00','#4A3410'], metric:'CROWN', objective:'Win the hill then defend it from challengers.', winRule:'Holder remains champion while completing valid defenses.', missions:['7-day consistency hill','Skill mastery hill','Service streak hill'], tools:['Current holder','Defense count','Queue','Crown history','Respect'] },
+  { id:'hard_mode', title:'Hard Mode', subtitle:'Stricter creative mission.', icon:'fire', accent:['#D14A28','#4B1C16'], metric:'HARD', objective:'Complete a normal Arena mission under harder rules.', winRule:'All hard conditions must be met.', missions:['No-cut 60-second explanation','Three-step service challenge','Timed skill demo'], tools:['Hard conditions','Retry','Mastery badge','Attempt record','Completion proof'] },
+  { id:'iron_streak', title:'Iron Streak', subtitle:'Consistency and mastery streak.', icon:'link-variant', accent:['#66717D','#252B31'], metric:'STREAK', objective:'Keep completing the required action across rounds.', winRule:'The streak survives only when each round is completed on time.', missions:['7-day learning streak','Daily encouragement streak','Service consistency streak'], tools:['Streak counter','Current day','Best streak','Recovery rules','Iron badge'] },
+  { id:'ranked_season', title:'Ranked Season', subtitle:'Seasonal skill competition.', icon:'podium-gold', accent:['#2B7FD5','#17304A'], metric:'RANKED', objective:'Build season standing through valid Arena results.', winRule:'Standing uses wins and completion records, not purchased points.', missions:['Weekly Duel set','Season service circuit','Multi-skill ladder'], tools:['Season tier','Placements','Win/loss','History','Champion badge'] },
+  { id:'boss_challenge', title:'Boss Challenge', subtitle:'Shared high-difficulty target.', icon:'shield-crown-outline', accent:['#B52C5C','#4C1730'], metric:'BOSS', objective:'Break one hard mission into objectives and clear them all.', winRule:'Beat every required objective before close.', missions:['Community impact boss','Learning mastery boss','Team outreach boss'], tools:['Boss health','Objectives','Contributors','Milestones','Final clear'] },
+  { id:'last_man_standing', title:'Last Man Standing', subtitle:'Advance round by round.', icon:'account-hard-hat-outline', accent:['#7B5CFF','#2D254D'], metric:'LMS', objective:'Survive each challenge by completing it correctly.', winRule:'Missed challenge eliminates a player; final valid player wins.', missions:['Knowledge elimination','Skill ladder','Service rounds'], tools:['Round board','Active players','Elimination state','Final round','Champion result'] },
+  { id:'bounty_challenge', title:'Bounty Challenge', subtitle:'Complete a defined mission.', icon:'target', accent:['#E06B00','#4D2A12'], metric:'MISSION', objective:'Accept and complete a clearly defined mission.', winRule:'Valid completion earns recognition according to mission rules.', missions:['Help-one-person mission','Creative teaching bounty','Community improvement bounty'], tools:['Mission brief','Accept state','Proof upload','Review','Recognition'] },
 ];
 
-const FEATURED: Array<{
-  title: string;
-  copy: string;
-  mode: IgpatArenaMode;
-  icon: keyof typeof MaterialCommunityIcons.glyphMap;
-  tag: string;
-}> = [
-  { title: '60-Second Skill Duel', copy: 'Create one sharp IGPAT proving a useful skill in under one minute.', mode: 'duel', icon: 'sword-cross', tag: 'QUICK MATCH' },
-  { title: 'Community Impact', copy: 'Show a real before-and-after action that helped people or place.', mode: 'prove_it', icon: 'hand-heart-outline', tag: 'IMPACT' },
-  { title: 'Squad Mission', copy: 'Build a team challenge where every member contributes one verified action.', mode: 'squad_battle', icon: 'account-group-outline', tag: 'TEAM PLAY' },
+const FEATURED = [
+  { title:'60-Second Skill Duel', mode:'duel' as IgpatArenaMode, icon:'sword-cross' as const, tag:'QUICK MATCH', copy:'Prove one useful skill in under a minute.' },
+  { title:'Community Impact', mode:'prove_it' as IgpatArenaMode, icon:'hand-heart-outline' as const, tag:'IMPACT', copy:'Show a real action that helped a person or place.' },
+  { title:'Squad Mission', mode:'squad_battle' as IgpatArenaMode, icon:'account-group-outline' as const, tag:'TEAM PLAY', copy:'Every member contributes one verified action.' },
 ];
+
+type QaState = 'idle' | 'playing' | 'paused' | 'finished';
 
 export default function IgpatArenaScreen() {
   const insets = useSafeAreaInsets();
@@ -137,9 +63,33 @@ export default function IgpatArenaScreen() {
   const [title, setTitle] = useState('');
   const [busy, setBusy] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
+  const [qaOpen, setQaOpen] = useState(false);
+  const [qaState, setQaState] = useState<QaState>('idle');
+  const [timeLeft, setTimeLeft] = useState(20);
+  const [myScore, setMyScore] = useState(0);
+  const [botScore, setBotScore] = useState(0);
+  const [qaRound, setQaRound] = useState(1);
+  const [qaHistory, setQaHistory] = useState<string[]>([]);
 
   const selectedMode = useMemo(() => MODES.find(x => x.id === selected) ?? MODES[0], [selected]);
   const openMode = useMemo(() => MODES.find(x => x.id === openModeId) ?? null, [openModeId]);
+
+  useEffect(() => {
+    if (!qaOpen || qaState !== 'playing') return;
+    const timer = setInterval(() => {
+      setTimeLeft(value => {
+        if (value <= 1) {
+          setQaState('finished');
+          return 0;
+        }
+        return value - 1;
+      });
+    }, 1000);
+    const bot = setInterval(() => {
+      setBotScore(value => value + (Math.random() > 0.45 ? 1 : 0));
+    }, 1400);
+    return () => { clearInterval(timer); clearInterval(bot); };
+  }, [qaOpen, qaState]);
 
   const inspectMode = (mode: IgpatArenaMode, suggestedTitle?: string) => {
     setSelected(mode);
@@ -147,26 +97,47 @@ export default function IgpatArenaScreen() {
     setOpenModeId(mode);
   };
 
-  const prepare = (mode: IgpatArenaMode, suggestedTitle?: string) => {
+  const startQa = (mode = selected) => {
+    if (!isSystemAdmin) return;
     setSelected(mode);
-    if (suggestedTitle) setTitle(suggestedTitle);
-    setOpenModeId(null);
+    setQaOpen(true);
+    setQaState('playing');
+    setTimeLeft(20);
+    setMyScore(0);
+    setBotScore(0);
+    setQaRound(1);
+  };
+
+  const restartQa = () => {
+    setQaState('playing');
+    setTimeLeft(20);
+    setMyScore(0);
+    setBotScore(0);
+    setQaRound(value => value + 1);
+  };
+
+  const finishQa = () => {
+    setQaState('finished');
+    setTimeLeft(0);
+    const result = myScore === botScore ? 'DRAW' : myScore > botScore ? 'WIN' : 'LOSS';
+    setQaHistory(current => [`${selectedMode.title} · Round ${qaRound} · ${result} ${myScore}-${botScore}`, ...current].slice(0, 6));
   };
 
   const create = async () => {
     if (busy) return;
+    if (isSystemAdmin) {
+      setQaHistory(current => [`QA challenge created · ${selectedMode.title} · ${title.trim() || selectedMode.title}`, ...current].slice(0, 6));
+      Alert.alert('System Admin QA', 'QA challenge created locally. You can test it immediately without waiting for an opponent.');
+      setTitle('');
+      startQa(selected);
+      return;
+    }
     setBusy(true);
     try {
-      const result = await createIgpatArenaChallenge({
-        mode: selected,
-        title: title.trim() || selectedMode.title,
-      });
-      Alert.alert(
-        'Arena challenge created',
-        `${selectedMode.title} is ready. Skill, verified completion, teamwork and respect matter more than raw popularity.`,
-      );
-      setTitle('');
+      const result = await createIgpatArenaChallenge({ mode: selected, title: title.trim() || selectedMode.title });
       console.log('IGPAT Arena challenge:', result);
+      Alert.alert('Arena challenge created', `${selectedMode.title} is ready.`);
+      setTitle('');
     } catch (error) {
       Alert.alert('BUKLOD IGPAT Arena', String((error as any)?.message ?? error));
     } finally {
@@ -176,292 +147,70 @@ export default function IgpatArenaScreen() {
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={['#080B10', '#12151D', '#070908']} style={StyleSheet.absoluteFill} />
-
+      <LinearGradient colors={['#06080C','#101722','#050706']} style={StyleSheet.absoluteFill} />
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 12) }]}>
-        <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Back to IGPAT" style={styles.iconButton}>
-          <MaterialCommunityIcons name="arrow-left" size={23} color="#fff" />
-        </Pressable>
-        <View style={styles.headerCopy}>
-          <Text style={styles.eyebrow}>BUKLOD IGPAT</Text>
-          <Text style={styles.title}>ARENA</Text>
-          <Text style={styles.tagline}>Mastery · Challenge · Respect</Text>
-        </View>
-        <Pressable onPress={() => router.replace('/igpat' as any)} accessibilityRole="button" accessibilityLabel="Open IGPAT Watch" style={styles.iconButton}>
-          <MaterialCommunityIcons name="play-circle-outline" size={23} color="#fff" />
-        </Pressable>
+        <Pressable onPress={() => router.back()} style={styles.iconButton}><MaterialCommunityIcons name="arrow-left" size={23} color="#fff" /></Pressable>
+        <View style={styles.headerCopy}><Text style={styles.eyebrow}>BUKLOD IGPAT</Text><Text style={styles.title}>ARENA</Text><Text style={styles.tagline}>Mastery · Challenge · Respect</Text></View>
+        <Pressable onPress={() => router.replace('/igpat' as any)} style={styles.iconButton}><MaterialCommunityIcons name="play-circle-outline" size={23} color="#fff" /></Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 42 }]} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 44 }]} showsVerticalScrollIndicator={false}>
         {isSystemAdmin ? (
-          <LinearGradient colors={['#164E39', '#10261D']} style={styles.adminBanner}>
-            <MaterialCommunityIcons name="shield-key-outline" size={27} color="#BDF7D2" />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.adminTitle}>SYSTEM ADMIN · ARENA QA ACCESS</Text>
-              <Text style={styles.adminCopy}>All Arena modes and preview content are unlocked for inspection. No user-facing rank or progression lock blocks this account.</Text>
-            </View>
-            <MaterialCommunityIcons name="lock-open-check-outline" size={25} color="#BDF7D2" />
+          <LinearGradient colors={['#174A38','#0C251B']} style={styles.adminBanner}>
+            <MaterialCommunityIcons name="shield-key-outline" size={28} color="#C8F9D8" />
+            <View style={{flex:1}}><Text style={styles.adminTitle}>SYSTEM ADMIN · FULL QA ACCESS</Text><Text style={styles.adminCopy}>All Arena modes are unlocked. Solo simulation is enabled so every flow can be tested without another user.</Text></View>
+            <Pressable onPress={() => startQa(selected)} style={styles.qaQuick}><Text style={styles.qaQuickText}>PLAY QA</Text></Pressable>
           </LinearGradient>
         ) : null}
 
-        <LinearGradient colors={['#17335A', '#111A2D']} style={styles.hero}>
-          <View style={styles.heroIcon}><MaterialCommunityIcons name="shield-crown" size={42} color="#FFD76B" /></View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.heroKicker}>ARENA SEASON</Text>
-            <Text style={styles.heroTitle}>Prove skill. Build respect.</Text>
-            <Text style={styles.heroCopy}>Competitive IGPAT without fake viewers, gambling mechanics or humiliating popularity contests.</Text>
-            <View style={styles.heroActions}>
-              <Pressable onPress={() => inspectMode('ranked_season', 'Ranked Season Challenge')} style={styles.heroPrimary}>
-                <Text style={styles.heroPrimaryText}>ENTER SEASON</Text>
-              </Pressable>
-              <Pressable onPress={() => setRulesOpen(v => !v)} style={styles.heroSecondary}>
-                <Text style={styles.heroSecondaryText}>{rulesOpen ? 'HIDE RULES' : 'HOW IT WORKS'}</Text>
-              </Pressable>
-            </View>
+        <LinearGradient colors={['#173B6E','#141C30']} style={styles.hero}>
+          <View style={styles.heroOrb}><MaterialCommunityIcons name="shield-crown" size={46} color="#FFD76B" /></View>
+          <View style={{flex:1}}><Text style={styles.heroKicker}>ARENA SEASON</Text><Text style={styles.heroTitle}>Compete with skill, not fake popularity.</Text><Text style={styles.heroCopy}>Every mode has a real objective, tools, challenge flow and result state.</Text>
+            <View style={styles.row}><Pressable onPress={() => inspectMode('ranked_season','Ranked Season Challenge')} style={styles.goldButton}><Text style={styles.goldText}>ENTER SEASON</Text></Pressable><Pressable onPress={() => setRulesOpen(v=>!v)} style={styles.darkButton}><Text style={styles.darkText}>{rulesOpen?'HIDE RULES':'HOW IT WORKS'}</Text></Pressable></View>
           </View>
         </LinearGradient>
 
-        {rulesOpen ? (
-          <View style={styles.ruleCard}>
-            <MaterialCommunityIcons name="shield-check-outline" size={24} color="#9FE7BB" />
-            <Text style={styles.ruleText}>Arena is separate from Pure Watch. Wins require completed challenge evidence where supported. No fake scarcity, no pay-to-win points, no manufactured engagement. Respect and safety rules apply to every mode.</Text>
-          </View>
-        ) : null}
+        {rulesOpen ? <View style={styles.ruleCard}><MaterialCommunityIcons name="shield-check-outline" size={24} color="#9FE7BB"/><Text style={styles.ruleText}>Arena stays separate from Pure Watch. Results are based on challenge completion. No fake viewers, no gambling mechanics, no pay-to-win score.</Text></View> : null}
 
-        <View style={styles.sectionHead}>
-          <View><Text style={styles.section}>FEATURED CHALLENGES</Text><Text style={styles.sectionSub}>Tap a challenge to open its real Arena content.</Text></View>
-          <MaterialCommunityIcons name="lightning-bolt" size={20} color="#FFD76B" />
-        </View>
-
+        <SectionTitle title="FEATURED CHALLENGES" subtitle="Open and play a prepared challenge." />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featuredRow}>
-          {FEATURED.map(feature => (
-            <LinearGradient key={feature.title} colors={['#182234', '#0F141E']} style={styles.featuredCard}>
-              <View style={styles.featuredTop}>
-                <View style={styles.featuredIcon}><MaterialCommunityIcons name={feature.icon} size={26} color="#fff" /></View>
-                <Text style={styles.featuredTag}>{feature.tag}</Text>
-              </View>
-              <Text style={styles.featuredTitle}>{feature.title}</Text>
-              <Text style={styles.featuredCopy}>{feature.copy}</Text>
-              <Pressable onPress={() => inspectMode(feature.mode, feature.title)} style={styles.featuredButton} accessibilityRole="button" accessibilityLabel={`Open ${feature.title}`}>
-                <Text style={styles.featuredButtonText}>OPEN CHALLENGE</Text>
-                <MaterialCommunityIcons name="arrow-right" size={17} color="#07140D" />
-              </Pressable>
-            </LinearGradient>
-          ))}
+          {FEATURED.map(item => <LinearGradient key={item.title} colors={['#192638','#0D131D']} style={styles.featuredCard}><View style={styles.featuredTop}><View style={styles.featuredIcon}><MaterialCommunityIcons name={item.icon} size={27} color="#fff"/></View><Text style={styles.featuredTag}>{item.tag}</Text></View><Text style={styles.featuredTitle}>{item.title}</Text><Text style={styles.featuredCopy}>{item.copy}</Text><Pressable onPress={() => inspectMode(item.mode,item.title)} style={styles.featuredButton}><Text style={styles.featuredButtonText}>OPEN CHALLENGE</Text><MaterialCommunityIcons name="arrow-right" size={17} color="#07140D"/></Pressable></LinearGradient>)}
         </ScrollView>
 
-        <View style={styles.sectionHead}>
-          <View><Text style={styles.section}>CHOOSE MODE</Text><Text style={styles.sectionSub}>Every card opens its own objective, rules, missions and tools.</Text></View>
-          <Text style={styles.count}>{MODES.length} MODES</Text>
-        </View>
+        <SectionTitle title="CHOOSE MODE" subtitle="Tap any card to open full mode content." right={`${MODES.length} MODES`} />
+        <View style={styles.grid}>{MODES.map(mode => {
+          const active = mode.id === selected;
+          return <Pressable key={mode.id} onPress={() => inspectMode(mode.id)} style={[styles.modeCard, active && styles.modeCardOn]}><LinearGradient colors={active?mode.accent:['#14191D','#0D1012']} style={styles.modeGradient}><View style={styles.modeTop}><MaterialCommunityIcons name={mode.icon} size={29} color="#fff"/><Text style={styles.metric}>{mode.metric}</Text></View><Text style={styles.modeTitle}>{mode.title}</Text><Text style={styles.modeSubtitle}>{mode.subtitle}</Text><View style={styles.modeBottom}><Text style={styles.openText}>OPEN</Text><MaterialCommunityIcons name="chevron-right" size={17} color="#DDE5DF"/></View></LinearGradient></Pressable>;
+        })}</View>
 
-        <View style={styles.grid}>
-          {MODES.map(mode => {
-            const active = mode.id === selected;
-            return (
-              <Pressable key={mode.id} onPress={() => inspectMode(mode.id)} accessibilityRole="button" accessibilityLabel={`Open ${mode.title}`} style={[styles.card, active && styles.cardOn]}>
-                <LinearGradient colors={active ? mode.accent : ['#14191D', '#0D1012']} style={styles.cardGradient}>
-                  <View style={styles.cardTop}>
-                    <MaterialCommunityIcons name={mode.icon} size={27} color={active ? '#fff' : '#DDE5DF'} />
-                    <View style={styles.cardStatusRow}>
-                      {isSystemAdmin ? <Text style={styles.qaPill}>QA OPEN</Text> : null}
-                      <Text style={styles.metric}>{mode.metric}</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.cardTitle}>{mode.title}</Text>
-                  <Text style={styles.cardSubtitle}>{mode.subtitle}</Text>
-                  <View style={styles.selectRow}>
-                    <Text style={styles.selectText}>OPEN MODE</Text>
-                    <MaterialCommunityIcons name="arrow-top-right" size={16} color="#AAB3AD" />
-                  </View>
-                </LinearGradient>
-              </Pressable>
-            );
-          })}
-        </View>
+        <View style={styles.createCard}><View style={styles.createHead}><View style={[styles.selectedIcon,{backgroundColor:selectedMode.accent[0]}]}><MaterialCommunityIcons name={selectedMode.icon} size={25} color="#fff"/></View><View style={{flex:1}}><Text style={styles.createEyebrow}>CREATE / TEST</Text><Text style={styles.createTitle}>{selectedMode.title}</Text></View></View><TextInput value={title} onChangeText={setTitle} placeholder="Challenge title or goal" placeholderTextColor="#737D76" style={styles.input}/><Pressable disabled={busy} onPress={() => void create()} style={[styles.createButton,busy&&{opacity:.55}]}>{busy?<ActivityIndicator color="#07140D"/>:<MaterialCommunityIcons name={isSystemAdmin?'gamepad-variant-outline':'flag-checkered'} size={21} color="#07140D"/>}<Text style={styles.createText}>{isSystemAdmin?'CREATE + PLAY QA':'CREATE CHALLENGE'}</Text></Pressable></View>
 
-        <View style={styles.createCard}>
-          <View style={styles.createHeader}>
-            <View style={[styles.selectedIcon, { backgroundColor: selectedMode.accent[0] }]}>
-              <MaterialCommunityIcons name={selectedMode.icon} size={24} color="#fff" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.createEyebrow}>READY TO BUILD</Text>
-              <Text style={styles.createTitle}>{selectedMode.title}</Text>
-            </View>
-            <Pressable onPress={() => inspectMode(selectedMode.id)} style={styles.infoButton} accessibilityRole="button" accessibilityLabel={`Inspect ${selectedMode.title}`}>
-              <MaterialCommunityIcons name="information-outline" size={20} color="#fff" />
-            </Pressable>
-          </View>
-          <TextInput value={title} onChangeText={setTitle} maxLength={160} placeholder="Challenge title or goal" placeholderTextColor="#768078" style={styles.input} editable={!busy} />
-          <Pressable disabled={busy} onPress={() => void create()} style={[styles.createButton, busy && styles.disabled]} accessibilityRole="button" accessibilityLabel="Create Arena challenge">
-            {busy ? <ActivityIndicator color="#07140D" /> : <MaterialCommunityIcons name="flag-checkered" size={20} color="#07140D" />}
-            <Text style={styles.createText}>{busy ? 'CREATING…' : 'CREATE CHALLENGE'}</Text>
-          </Pressable>
-          <Text style={styles.createHint}>Mode previews work locally. Challenge persistence uses the Arena backend contract and shows an exact error if that backend is not active.</Text>
-        </View>
-
-        <View style={styles.statusPanel}>
-          <Text style={styles.section}>ARENA IDENTITY</Text>
-          <View style={styles.statusGrid}>
-            {[
-              ['medal-outline', 'Skill Badges'], ['crown-outline', 'Champion Status'], ['chart-timeline-variant', 'Win / Loss'],
-              ['reload', 'Rematch'], ['handshake-outline', 'Respect'], ['calendar-star', 'Ranked Seasons'],
-            ].map(([icon, label]) => (
-              <Pressable key={label} onPress={() => Alert.alert(label, `${label} is part of the Arena progression layer. System Admin can inspect it without user-facing locks.`)} style={styles.statusChip} accessibilityRole="button" accessibilityLabel={label}>
-                <MaterialCommunityIcons name={icon as any} size={18} color="#9FE7BB" />
-                <Text style={styles.statusText}>{label}</Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
+        {isSystemAdmin && qaHistory.length ? <View style={styles.historyCard}><Text style={styles.sectionLabel}>QA HISTORY</Text>{qaHistory.map((row,index)=><Text key={`${row}-${index}`} style={styles.historyText}>• {row}</Text>)}</View> : null}
       </ScrollView>
 
-      <Modal transparent visible={Boolean(openMode)} animationType="slide" onRequestClose={() => setOpenModeId(null)}>
-        <View style={styles.modalBackdrop}>
-          <Pressable style={styles.modalDismiss} onPress={() => setOpenModeId(null)} />
-          {openMode ? (
-            <View style={[styles.modeSheet, { paddingBottom: Math.max(insets.bottom, 16) + 14 }]}>
-              <LinearGradient colors={openMode.accent} style={styles.modeSheetHero}>
-                <Pressable onPress={() => setOpenModeId(null)} style={styles.modeClose} accessibilityRole="button" accessibilityLabel="Close Arena mode">
-                  <MaterialCommunityIcons name="close" size={21} color="#fff" />
-                </Pressable>
-                <View style={styles.modeHeroIcon}><MaterialCommunityIcons name={openMode.icon} size={42} color="#fff" /></View>
-                <Text style={styles.modeMetric}>{openMode.metric}</Text>
-                <Text style={styles.modeTitle}>{openMode.title}</Text>
-                <Text style={styles.modeSubtitle}>{openMode.subtitle}</Text>
-                {isSystemAdmin ? (
-                  <View style={styles.adminModePill}><MaterialCommunityIcons name="lock-open-check-outline" size={15} color="#D9FFE7" /><Text style={styles.adminModeText}>SYSTEM ADMIN · UNLOCKED</Text></View>
-                ) : null}
-              </LinearGradient>
+      <Modal visible={Boolean(openMode)} transparent animationType="slide" onRequestClose={()=>setOpenModeId(null)}>
+        <Pressable style={styles.backdrop} onPress={()=>setOpenModeId(null)}><Pressable style={styles.sheet} onPress={e=>e.stopPropagation()}>{openMode ? <ScrollView showsVerticalScrollIndicator={false}><View style={styles.sheetHead}><View style={[styles.sheetIcon,{backgroundColor:openMode.accent[0]}]}><MaterialCommunityIcons name={openMode.icon} size={31} color="#fff"/></View><View style={{flex:1}}><Text style={styles.sheetEyebrow}>{openMode.metric}</Text><Text style={styles.sheetTitle}>{openMode.title}</Text><Text style={styles.sheetSubtitle}>{openMode.subtitle}</Text></View><Pressable onPress={()=>setOpenModeId(null)}><MaterialCommunityIcons name="close" size={24} color="#fff"/></Pressable></View><InfoBlock label="OBJECTIVE" text={openMode.objective}/><InfoBlock label="WIN / COMPLETION RULE" text={openMode.winRule}/><Text style={styles.sectionLabel}>STARTER MISSIONS</Text>{openMode.missions.map((x,i)=><Pressable key={x} onPress={()=>{setTitle(x);setSelected(openMode.id);}} style={styles.actionRow}><View style={styles.number}><Text style={styles.numberText}>{i+1}</Text></View><Text style={styles.actionText}>{x}</Text><MaterialCommunityIcons name="plus-circle-outline" size={19} color="#9FE7BB"/></Pressable>)}<Text style={[styles.sectionLabel,{marginTop:14}]}>MODE TOOLS</Text><View style={styles.toolGrid}>{openMode.tools.map(tool=><Pressable key={tool} onPress={()=>Alert.alert(tool,`${tool} is enabled in ${openMode.title}.`)} style={styles.toolChip}><MaterialCommunityIcons name="check-circle-outline" size={17} color="#9FE7BB"/><Text style={styles.toolText}>{tool}</Text></Pressable>)}</View><View style={styles.sheetActions}>{isSystemAdmin?<Pressable onPress={()=>{setOpenModeId(null);startQa(openMode.id);}} style={styles.goldButton}><Text style={styles.goldText}>PLAY SOLO QA</Text></Pressable>:null}<Pressable onPress={()=>{setSelected(openMode.id);setOpenModeId(null);}} style={styles.darkButton}><Text style={styles.darkText}>USE THIS MODE</Text></Pressable></View></ScrollView>:null}</Pressable></Pressable>
+      </Modal>
 
-              <ScrollView contentContainerStyle={styles.modeBody} showsVerticalScrollIndicator={false}>
-                <Text style={styles.detailLabel}>OBJECTIVE</Text>
-                <Text style={styles.detailBody}>{openMode.objective}</Text>
-
-                <View style={styles.winRule}>
-                  <MaterialCommunityIcons name="trophy-outline" size={22} color="#FFD76B" />
-                  <View style={{ flex: 1 }}><Text style={styles.detailLabel}>WIN / COMPLETION RULE</Text><Text style={styles.detailBody}>{openMode.winRule}</Text></View>
-                </View>
-
-                <Text style={styles.detailLabel}>STARTER MISSIONS</Text>
-                <View style={styles.detailList}>
-                  {openMode.missions.map((mission, index) => (
-                    <Pressable key={mission} onPress={() => setTitle(mission)} style={styles.missionRow} accessibilityRole="button" accessibilityLabel={`Use ${mission}`}>
-                      <View style={styles.numberOrb}><Text style={styles.numberText}>{index + 1}</Text></View>
-                      <Text style={styles.missionText}>{mission}</Text>
-                      <MaterialCommunityIcons name="plus-circle-outline" size={19} color="#9FE7BB" />
-                    </Pressable>
-                  ))}
-                </View>
-
-                <Text style={styles.detailLabel}>MODE TOOLS</Text>
-                <View style={styles.toolGrid}>
-                  {openMode.features.map(feature => (
-                    <View key={feature} style={styles.toolChip}><MaterialCommunityIcons name="check-decagram-outline" size={16} color="#9FE7BB" /><Text style={styles.toolText}>{feature}</Text></View>
-                  ))}
-                </View>
-
-                <Pressable onPress={() => prepare(openMode.id, title.trim() || `${openMode.title} Challenge`)} style={styles.useModeButton} accessibilityRole="button" accessibilityLabel={`Use ${openMode.title} mode`}>
-                  <Text style={styles.useModeText}>USE THIS MODE</Text>
-                  <MaterialCommunityIcons name="arrow-down" size={18} color="#07140D" />
-                </Pressable>
-              </ScrollView>
-            </View>
-          ) : null}
-        </View>
+      <Modal visible={qaOpen} transparent animationType="fade" onRequestClose={()=>setQaOpen(false)}>
+        <View style={styles.qaBackdrop}><LinearGradient colors={selectedMode.accent} style={styles.qaPanel}><View style={styles.qaHeader}><View><Text style={styles.qaEyebrow}>SYSTEM ADMIN · QA SIMULATION</Text><Text style={styles.qaTitle}>{selectedMode.title}</Text></View><Pressable onPress={()=>setQaOpen(false)}><MaterialCommunityIcons name="close" size={25} color="#fff"/></Pressable></View><View style={styles.scoreBoard}><Score label="YOU" value={myScore}/><View style={styles.timerOrb}><Text style={styles.timer}>{timeLeft}</Text><Text style={styles.timerLabel}>SEC</Text></View><Score label="QA BOT" value={botScore}/></View><Text style={styles.roundLabel}>ROUND {qaRound} · {qaState.toUpperCase()}</Text><View style={styles.playField}><MaterialCommunityIcons name={selectedMode.icon} size={62} color="#fff"/><Text style={styles.playTitle}>{selectedMode.objective}</Text><Text style={styles.playHint}>Tap the target repeatedly while the timer runs. This is a QA-only simulator for checking Arena interactions without another account.</Text>{qaState==='playing'?<Pressable onPress={()=>setMyScore(v=>v+1)} style={styles.targetButton}><MaterialCommunityIcons name="target" size={38} color="#07140D"/><Text style={styles.targetText}>HIT TARGET</Text></Pressable>:null}{qaState==='finished'?<View style={styles.resultBox}><Text style={styles.resultTitle}>{myScore===botScore?'DRAW':myScore>botScore?'YOU WIN':'QA BOT WINS'}</Text><Text style={styles.resultScore}>{myScore} — {botScore}</Text></View>:null}</View><View style={styles.qaActions}>{qaState==='playing'?<><Pressable onPress={()=>setQaState('paused')} style={styles.darkButton}><Text style={styles.darkText}>PAUSE</Text></Pressable><Pressable onPress={finishQa} style={styles.darkButton}><Text style={styles.darkText}>FINISH NOW</Text></Pressable></>:qaState==='paused'?<Pressable onPress={()=>setQaState('playing')} style={styles.goldButton}><Text style={styles.goldText}>RESUME</Text></Pressable>:null}<Pressable onPress={restartQa} style={styles.goldButton}><Text style={styles.goldText}>{qaState==='finished'?'REMATCH':'RESTART'}</Text></Pressable></View></LinearGradient></View>
       </Modal>
     </View>
   );
 }
 
+function SectionTitle({title,subtitle,right}:{title:string;subtitle:string;right?:string}) { return <View style={styles.sectionHead}><View><Text style={styles.sectionLabel}>{title}</Text><Text style={styles.sectionSub}>{subtitle}</Text></View>{right?<Text style={styles.count}>{right}</Text>:null}</View>; }
+function InfoBlock({label,text}:{label:string;text:string}) { return <View style={styles.infoBlock}><Text style={styles.sectionLabel}>{label}</Text><Text style={styles.infoText}>{text}</Text></View>; }
+function Score({label,value}:{label:string;value:number}) { return <View style={styles.score}><Text style={styles.scoreLabel}>{label}</Text><Text style={styles.scoreValue}>{value}</Text></View>; }
+
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#070908' },
-  header: { zIndex: 3, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingBottom: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#28302B' },
-  iconButton: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#151A18', borderWidth: 1, borderColor: '#2C3430' },
-  headerCopy: { flex: 1, alignItems: 'center' },
-  eyebrow: { color: '#9FE7BB', fontSize: 9, fontWeight: '900', letterSpacing: 1.5 },
-  title: { marginTop: 1, color: '#fff', fontSize: 25, fontWeight: '900', letterSpacing: 1.1 },
-  tagline: { marginTop: 1, color: '#9DA69F', fontSize: 10, fontWeight: '700' },
-  content: { padding: 14, gap: 14 },
-  adminBanner: { padding: 13, borderRadius: 18, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: '#347A5B' },
-  adminTitle: { color: '#D8FFE6', fontSize: 10, fontWeight: '900', letterSpacing: .8 },
-  adminCopy: { marginTop: 3, color: '#A9D8BA', fontSize: 9.5, lineHeight: 14 },
-  hero: { minHeight: 210, borderRadius: 24, padding: 18, flexDirection: 'row', gap: 14, borderWidth: 1, borderColor: '#2E4F78', overflow: 'hidden' },
-  heroIcon: { width: 66, height: 66, borderRadius: 22, backgroundColor: 'rgba(0,0,0,.25)', alignItems: 'center', justifyContent: 'center' },
-  heroKicker: { color: '#FFD76B', fontSize: 9, fontWeight: '900', letterSpacing: 1.4 },
-  heroTitle: { marginTop: 5, color: '#fff', fontSize: 23, lineHeight: 27, fontWeight: '900' },
-  heroCopy: { marginTop: 7, color: '#C6D1DE', fontSize: 11, lineHeight: 16 },
-  heroActions: { marginTop: 14, flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  heroPrimary: { minHeight: 38, paddingHorizontal: 13, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFD76B' },
-  heroPrimaryText: { color: '#17130A', fontSize: 9, fontWeight: '900' },
-  heroSecondary: { minHeight: 38, paddingHorizontal: 13, borderRadius: 11, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#60718A', backgroundColor: 'rgba(0,0,0,.18)' },
-  heroSecondaryText: { color: '#fff', fontSize: 9, fontWeight: '900' },
-  ruleCard: { flexDirection: 'row', gap: 10, padding: 13, borderRadius: 16, backgroundColor: '#111713', borderWidth: 1, borderColor: '#26362C' },
-  ruleText: { flex: 1, color: '#B9C1BB', fontSize: 11, lineHeight: 16 },
-  sectionHead: { marginTop: 4, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 },
-  section: { color: '#9FE7BB', fontSize: 10, fontWeight: '900', letterSpacing: 1.1 },
-  sectionSub: { marginTop: 3, color: '#818B85', fontSize: 10 },
-  count: { color: '#737E77', fontSize: 9, fontWeight: '900' },
-  featuredRow: { gap: 10, paddingRight: 8 },
-  featuredCard: { width: 260, minHeight: 205, padding: 15, borderRadius: 20, borderWidth: 1, borderColor: '#283341' },
-  featuredTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  featuredIcon: { width: 46, height: 46, borderRadius: 14, backgroundColor: '#26364C', alignItems: 'center', justifyContent: 'center' },
-  featuredTag: { color: '#FFD76B', fontSize: 8, fontWeight: '900', letterSpacing: .8 },
-  featuredTitle: { marginTop: 14, color: '#fff', fontSize: 17, fontWeight: '900' },
-  featuredCopy: { marginTop: 6, color: '#AAB7C7', fontSize: 10.5, lineHeight: 15 },
-  featuredButton: { marginTop: 'auto', minHeight: 38, borderRadius: 11, backgroundColor: '#DDF5E5', paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  featuredButtonText: { color: '#07140D', fontSize: 9, fontWeight: '900' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
-  card: { width: '48.5%', minHeight: 170, borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: '#29302B' },
-  cardOn: { borderColor: '#8FBBA0' },
-  cardGradient: { flex: 1, padding: 13 },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cardStatusRow: { alignItems: 'flex-end', gap: 4 },
-  qaPill: { color: '#BDF7D2', fontSize: 6.5, fontWeight: '900', letterSpacing: .6 },
-  metric: { color: '#ADB7B1', fontSize: 8, fontWeight: '900', letterSpacing: .8 },
-  cardTitle: { marginTop: 10, color: '#fff', fontSize: 14, fontWeight: '900' },
-  cardSubtitle: { marginTop: 4, color: '#A2AAA5', fontSize: 10, lineHeight: 14 },
-  selectRow: { marginTop: 'auto', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  selectText: { color: '#D9E0DC', fontSize: 8, fontWeight: '900' },
-  createCard: { padding: 15, borderRadius: 20, backgroundColor: '#0F1311', borderWidth: 1, borderColor: '#2B3430' },
-  createHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
-  selectedIcon: { width: 48, height: 48, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
-  createEyebrow: { color: '#9FE7BB', fontSize: 8, fontWeight: '900', letterSpacing: 1 },
-  createTitle: { marginTop: 2, color: '#fff', fontSize: 18, fontWeight: '900' },
-  infoButton: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1B211D', borderWidth: 1, borderColor: '#323B35' },
-  input: { minHeight: 50, borderRadius: 13, borderWidth: 1, borderColor: '#333B35', paddingHorizontal: 12, color: '#fff', backgroundColor: '#090C0A' },
-  createButton: { marginTop: 10, minHeight: 50, borderRadius: 13, backgroundColor: '#DDF5E5', flexDirection: 'row', gap: 7, alignItems: 'center', justifyContent: 'center' },
-  createText: { color: '#07140D', fontSize: 10, fontWeight: '900' },
-  createHint: { marginTop: 9, color: '#747E78', fontSize: 9.5, lineHeight: 14 },
-  disabled: { opacity: .55 },
-  statusPanel: { padding: 15, borderRadius: 20, backgroundColor: '#0C100E', borderWidth: 1, borderColor: '#27302B' },
-  statusGrid: { marginTop: 10, flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  statusChip: { minWidth: '47%', flexGrow: 1, flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 11, paddingVertical: 11, borderRadius: 13, backgroundColor: '#151A17', borderWidth: 1, borderColor: '#29322D' },
-  statusText: { color: '#C7CEC9', fontSize: 10, fontWeight: '800' },
-  modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,.72)' },
-  modalDismiss: { ...StyleSheet.absoluteFillObject },
-  modeSheet: { maxHeight: '88%', backgroundColor: '#0B0F0D', borderTopLeftRadius: 26, borderTopRightRadius: 26, overflow: 'hidden', borderWidth: 1, borderColor: '#2A332E' },
-  modeSheetHero: { minHeight: 190, padding: 20, justifyContent: 'flex-end' },
-  modeClose: { position: 'absolute', right: 14, top: 14, width: 38, height: 38, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,.28)' },
-  modeHeroIcon: { width: 62, height: 62, borderRadius: 20, backgroundColor: 'rgba(0,0,0,.2)', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  modeMetric: { color: '#D9E1DD', fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
-  modeTitle: { marginTop: 2, color: '#fff', fontSize: 27, fontWeight: '900' },
-  modeSubtitle: { marginTop: 4, color: '#E4E9E6', fontSize: 11.5, lineHeight: 17 },
-  adminModePill: { marginTop: 10, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 999, backgroundColor: 'rgba(0,0,0,.24)' },
-  adminModeText: { color: '#D9FFE7', fontSize: 8, fontWeight: '900' },
-  modeBody: { padding: 17, paddingBottom: 30 },
-  detailLabel: { color: '#9FE7BB', fontSize: 9, fontWeight: '900', letterSpacing: 1, marginTop: 8 },
-  detailBody: { marginTop: 5, color: '#C4CCC7', fontSize: 11, lineHeight: 17 },
-  winRule: { marginTop: 15, padding: 13, borderRadius: 15, backgroundColor: '#16170F', borderWidth: 1, borderColor: '#3E3A1D', flexDirection: 'row', gap: 10 },
-  detailList: { marginTop: 7, gap: 7 },
-  missionRow: { minHeight: 50, paddingHorizontal: 10, borderRadius: 13, backgroundColor: '#131815', borderWidth: 1, borderColor: '#29332D', flexDirection: 'row', alignItems: 'center', gap: 9 },
-  numberOrb: { width: 27, height: 27, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#24362B' },
-  numberText: { color: '#BDF7D2', fontSize: 10, fontWeight: '900' },
-  missionText: { flex: 1, color: '#E7ECE9', fontSize: 10.5, fontWeight: '800' },
-  toolGrid: { marginTop: 8, flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
-  toolChip: { minWidth: '47%', flexGrow: 1, minHeight: 42, paddingHorizontal: 9, borderRadius: 12, backgroundColor: '#121714', borderWidth: 1, borderColor: '#28322C', flexDirection: 'row', alignItems: 'center', gap: 7 },
-  toolText: { color: '#C8D0CB', fontSize: 9.5, fontWeight: '800' },
-  useModeButton: { marginTop: 20, minHeight: 52, borderRadius: 14, backgroundColor: '#DDF5E5', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
-  useModeText: { color: '#07140D', fontSize: 10, fontWeight: '900' },
+  root:{flex:1,backgroundColor:'#060807'}, header:{flexDirection:'row',alignItems:'center',paddingHorizontal:14,paddingBottom:12,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:'#27302B'}, iconButton:{width:42,height:42,borderRadius:14,alignItems:'center',justifyContent:'center',backgroundColor:'#151A18',borderWidth:1,borderColor:'#2C3430'}, headerCopy:{flex:1,alignItems:'center'}, eyebrow:{color:'#9FE7BB',fontSize:9,fontWeight:'900',letterSpacing:1.5}, title:{color:'#fff',fontSize:25,fontWeight:'900',letterSpacing:1.1}, tagline:{color:'#9DA69F',fontSize:10,fontWeight:'700'}, content:{padding:14,gap:14},
+  adminBanner:{borderRadius:20,padding:14,flexDirection:'row',alignItems:'center',gap:11,borderWidth:1,borderColor:'#2B7A58'}, adminTitle:{color:'#C8F9D8',fontSize:10,fontWeight:'900',letterSpacing:.8}, adminCopy:{marginTop:3,color:'#A7D8B7',fontSize:10,lineHeight:14}, qaQuick:{paddingHorizontal:12,minHeight:38,borderRadius:12,backgroundColor:'#C8F9D8',alignItems:'center',justifyContent:'center'}, qaQuickText:{fontSize:9,fontWeight:'900',color:'#092117'},
+  hero:{minHeight:220,borderRadius:25,padding:18,flexDirection:'row',gap:14,borderWidth:1,borderColor:'#315A8A'}, heroOrb:{width:68,height:68,borderRadius:23,backgroundColor:'rgba(0,0,0,.23)',alignItems:'center',justifyContent:'center'}, heroKicker:{color:'#FFD76B',fontSize:9,fontWeight:'900',letterSpacing:1.4}, heroTitle:{marginTop:5,color:'#fff',fontSize:23,lineHeight:27,fontWeight:'900'}, heroCopy:{marginTop:7,color:'#CBD6E4',fontSize:11,lineHeight:16}, row:{marginTop:14,flexDirection:'row',gap:8,flexWrap:'wrap'}, goldButton:{minHeight:40,paddingHorizontal:14,borderRadius:12,backgroundColor:'#FFD76B',alignItems:'center',justifyContent:'center'}, goldText:{color:'#17130A',fontSize:9,fontWeight:'900'}, darkButton:{minHeight:40,paddingHorizontal:14,borderRadius:12,borderWidth:1,borderColor:'#60718A',backgroundColor:'rgba(0,0,0,.2)',alignItems:'center',justifyContent:'center'}, darkText:{color:'#fff',fontSize:9,fontWeight:'900'},
+  ruleCard:{flexDirection:'row',gap:10,padding:13,borderRadius:16,backgroundColor:'#111713',borderWidth:1,borderColor:'#26362C'}, ruleText:{flex:1,color:'#B9C1BB',fontSize:11,lineHeight:16}, sectionHead:{marginTop:3,flexDirection:'row',alignItems:'flex-end',justifyContent:'space-between',gap:12}, sectionLabel:{color:'#9FE7BB',fontSize:10,fontWeight:'900',letterSpacing:1.05}, sectionSub:{marginTop:3,color:'#818B85',fontSize:10}, count:{color:'#737E77',fontSize:9,fontWeight:'900'},
+  featuredRow:{gap:10,paddingRight:8}, featuredCard:{width:260,minHeight:205,borderRadius:20,padding:15,borderWidth:1,borderColor:'#2A3C51'}, featuredTop:{flexDirection:'row',justifyContent:'space-between',alignItems:'center'}, featuredIcon:{width:48,height:48,borderRadius:15,backgroundColor:'#243A58',alignItems:'center',justifyContent:'center'}, featuredTag:{color:'#FFD76B',fontSize:8,fontWeight:'900'}, featuredTitle:{marginTop:14,color:'#fff',fontSize:17,fontWeight:'900'}, featuredCopy:{marginTop:5,color:'#AEBBC8',fontSize:10,lineHeight:15}, featuredButton:{marginTop:'auto',minHeight:39,borderRadius:11,backgroundColor:'#DDF5E5',paddingHorizontal:12,flexDirection:'row',alignItems:'center',justifyContent:'space-between'}, featuredButtonText:{color:'#07140D',fontSize:9,fontWeight:'900'},
+  grid:{flexDirection:'row',flexWrap:'wrap',gap:9}, modeCard:{width:'48.5%',minHeight:164,borderRadius:19,overflow:'hidden',borderWidth:1,borderColor:'#29302B'}, modeCardOn:{borderColor:'#8FBBA0'}, modeGradient:{flex:1,padding:13}, modeTop:{flexDirection:'row',justifyContent:'space-between',alignItems:'center'}, metric:{color:'#D8E0DB',fontSize:8,fontWeight:'900',letterSpacing:.8}, modeTitle:{marginTop:11,color:'#fff',fontSize:14,fontWeight:'900'}, modeSubtitle:{marginTop:4,color:'#A2AAA5',fontSize:10,lineHeight:14}, modeBottom:{marginTop:'auto',flexDirection:'row',alignItems:'center',justifyContent:'space-between'}, openText:{color:'#D9E0DC',fontSize:8,fontWeight:'900'},
+  createCard:{padding:15,borderRadius:21,backgroundColor:'#0F1311',borderWidth:1,borderColor:'#2B3430'}, createHead:{flexDirection:'row',alignItems:'center',gap:10,marginBottom:12}, selectedIcon:{width:49,height:49,borderRadius:15,alignItems:'center',justifyContent:'center'}, createEyebrow:{color:'#9FE7BB',fontSize:8,fontWeight:'900',letterSpacing:1}, createTitle:{marginTop:2,color:'#fff',fontSize:18,fontWeight:'900'}, input:{minHeight:50,borderRadius:13,borderWidth:1,borderColor:'#333B35',paddingHorizontal:12,color:'#fff',backgroundColor:'#090C0A'}, createButton:{marginTop:10,minHeight:50,borderRadius:13,backgroundColor:'#DDF5E5',flexDirection:'row',gap:7,alignItems:'center',justifyContent:'center'}, createText:{color:'#07140D',fontSize:10,fontWeight:'900'}, historyCard:{padding:14,borderRadius:18,backgroundColor:'#0C100E',borderWidth:1,borderColor:'#27302B'}, historyText:{marginTop:7,color:'#C3CBC5',fontSize:10,lineHeight:15},
+  backdrop:{flex:1,justifyContent:'flex-end',backgroundColor:'rgba(0,0,0,.62)'}, sheet:{maxHeight:'88%',padding:18,paddingBottom:30,borderTopLeftRadius:25,borderTopRightRadius:25,backgroundColor:'#101512'}, sheetHead:{flexDirection:'row',alignItems:'center',gap:11,marginBottom:16}, sheetIcon:{width:56,height:56,borderRadius:18,alignItems:'center',justifyContent:'center'}, sheetEyebrow:{color:'#9FE7BB',fontSize:9,fontWeight:'900',letterSpacing:1}, sheetTitle:{color:'#fff',fontSize:23,fontWeight:'900'}, sheetSubtitle:{marginTop:2,color:'#9FA8A2',fontSize:10}, infoBlock:{padding:13,borderRadius:15,backgroundColor:'#171D19',borderWidth:1,borderColor:'#2A332D',marginBottom:9}, infoText:{marginTop:5,color:'#C8D0CB',fontSize:11,lineHeight:16}, actionRow:{minHeight:48,marginTop:7,paddingHorizontal:10,borderRadius:12,backgroundColor:'#161B18',flexDirection:'row',alignItems:'center',gap:9}, number:{width:27,height:27,borderRadius:9,backgroundColor:'#26362C',alignItems:'center',justifyContent:'center'}, numberText:{color:'#9FE7BB',fontSize:10,fontWeight:'900'}, actionText:{flex:1,color:'#fff',fontSize:11,fontWeight:'800'}, toolGrid:{flexDirection:'row',flexWrap:'wrap',gap:7,marginTop:8}, toolChip:{minWidth:'47%',flexGrow:1,padding:10,borderRadius:11,backgroundColor:'#161B18',flexDirection:'row',alignItems:'center',gap:6}, toolText:{color:'#C8D0CB',fontSize:9,fontWeight:'800'}, sheetActions:{marginTop:17,flexDirection:'row',gap:8,flexWrap:'wrap'},
+  qaBackdrop:{flex:1,backgroundColor:'rgba(0,0,0,.78)',alignItems:'center',justifyContent:'center',padding:16}, qaPanel:{width:'100%',maxWidth:560,borderRadius:28,padding:18,borderWidth:1,borderColor:'rgba(255,255,255,.25)'}, qaHeader:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'}, qaEyebrow:{color:'#EAF3FF',fontSize:8,fontWeight:'900',letterSpacing:1.1}, qaTitle:{marginTop:2,color:'#fff',fontSize:24,fontWeight:'900'}, scoreBoard:{marginTop:18,flexDirection:'row',alignItems:'center',justifyContent:'space-between'}, score:{minWidth:100,alignItems:'center'}, scoreLabel:{color:'#DCE5E0',fontSize:9,fontWeight:'900'}, scoreValue:{marginTop:2,color:'#fff',fontSize:35,fontWeight:'900'}, timerOrb:{width:78,height:78,borderRadius:39,backgroundColor:'rgba(0,0,0,.3)',alignItems:'center',justifyContent:'center',borderWidth:2,borderColor:'rgba(255,255,255,.5)'}, timer:{color:'#fff',fontSize:28,fontWeight:'900'}, timerLabel:{color:'#DCE5E0',fontSize:7,fontWeight:'900'}, roundLabel:{marginTop:8,color:'#E9F0EC',textAlign:'center',fontSize:9,fontWeight:'900',letterSpacing:1}, playField:{marginTop:14,minHeight:250,borderRadius:22,backgroundColor:'rgba(0,0,0,.28)',padding:18,alignItems:'center',justifyContent:'center'}, playTitle:{marginTop:10,color:'#fff',fontSize:16,lineHeight:21,fontWeight:'900',textAlign:'center'}, playHint:{marginTop:7,color:'#D5DDD8',fontSize:10,lineHeight:15,textAlign:'center'}, targetButton:{marginTop:20,width:150,height:150,borderRadius:75,backgroundColor:'#E9F8EE',alignItems:'center',justifyContent:'center',borderWidth:6,borderColor:'rgba(255,255,255,.45)'}, targetText:{marginTop:4,color:'#07140D',fontSize:10,fontWeight:'900'}, resultBox:{marginTop:20,padding:18,borderRadius:18,backgroundColor:'rgba(0,0,0,.35)',alignItems:'center',minWidth:220}, resultTitle:{color:'#FFD76B',fontSize:18,fontWeight:'900'}, resultScore:{marginTop:5,color:'#fff',fontSize:30,fontWeight:'900'}, qaActions:{marginTop:15,flexDirection:'row',justifyContent:'center',gap:8,flexWrap:'wrap'},
 });
