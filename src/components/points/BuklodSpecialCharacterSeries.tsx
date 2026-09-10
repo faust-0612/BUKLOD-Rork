@@ -30,6 +30,11 @@ type SpecialCollectibleRow = {
   earned?: boolean | null;
 };
 
+type SpecialCollectiblePayload = {
+  character_id?: string | null;
+  collectibles?: SpecialCollectibleRow[] | null;
+};
+
 type Props = {
   userId?: string | null;
   selectionState?: BuklodCharacterSelectionV2State | null;
@@ -53,15 +58,31 @@ export default function BuklodSpecialCharacterSeries({
     if (!userId) return;
     setLoading(true);
     try {
-      const [selection, collectibleResult] = await Promise.all([
-        getMyBuklodCharacterSelectionV2(userId, true),
-        (supabase as any).rpc('get_my_buklod_special_collectibles_v2'),
-      ]);
+      const selection = await getMyBuklodCharacterSelectionV2(userId, true);
       setState(selection);
       onSelectionStateChange?.(selection);
-      if (!collectibleResult?.error && Array.isArray(collectibleResult?.data)) {
-        setCollectibles(collectibleResult.data as SpecialCollectibleRow[]);
-      }
+
+      const collectibleGroups = await Promise.all(
+        selection.visible_special_character_ids.map(async (characterId) => {
+          const result = await (supabase as any).rpc(
+            'get_my_buklod_special_collectibles_v2',
+            { p_character_id: characterId },
+          );
+          if (result?.error) {
+            console.warn(
+              `BUKLOD Special collectibles ${characterId}:`,
+              result.error.message ?? result.error,
+            );
+            return [] as SpecialCollectibleRow[];
+          }
+          const payload = (result?.data ?? {}) as SpecialCollectiblePayload;
+          return (Array.isArray(payload.collectibles) ? payload.collectibles : []).map((row) => ({
+            ...row,
+            character_id: characterId,
+          }));
+        }),
+      );
+      setCollectibles(collectibleGroups.flat());
     } finally {
       setLoading(false);
     }
@@ -86,8 +107,8 @@ export default function BuklodSpecialCharacterSeries({
       setState(next);
       onSelectionStateChange?.(next);
 
-      // Preserve the R40 pursuit signal, but never let this legacy-compatible auxiliary
-      // write undo a successful V2 character activation.
+      // Preserve the R40 pursuit signal, but never let this auxiliary write undo a
+      // successful V2 activation.
       const pursuit = await (supabase as any).rpc(
         'set_my_buklod_special_character_pursuit_v1',
         { p_character_id: id },
@@ -102,8 +123,7 @@ export default function BuklodSpecialCharacterSeries({
 
   const collectibleCount = (id: BuklodSpecialCharacterId) => collectibles.filter((row) => {
     const same = String(row.character_id ?? '').toLowerCase() === id;
-    const earned = Boolean(row.unlocked ?? row.earned);
-    return same && earned;
+    return same && Boolean(row.earned ?? row.unlocked);
   }).length;
 
   if (!userId) return null;
