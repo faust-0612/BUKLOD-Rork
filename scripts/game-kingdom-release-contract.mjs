@@ -24,6 +24,32 @@ const GAME_IDS = [
   'quin-discovery-expedition',
 ];
 
+const INTERNAL_GAME_FILES = {
+  'jawo-forest-trail': 'src/features/games/jawo/ForestTrailGameV2.tsx',
+  'trudice-playground-memory': 'src/features/games/trudice/PlaygroundPathGameV2.tsx',
+  'ace-rescue-grid': 'src/features/games/ace/RescueGridGameV1.tsx',
+  'mitch-restore-mural': 'src/features/games/mitch/RestoreMuralGameV1.tsx',
+  'niel-mission-trail': 'src/features/games/niel/MissionTrailGameV1.tsx',
+  'angel-kingdom-treasury': 'src/features/games/angel/KingdomTreasuryGameV1.tsx',
+  'vhen-farm-to-market': 'src/features/games/vhen/FarmToMarketGameV1.tsx',
+  'elesur-village-builder': 'src/features/games/elesur/VillageBuilderGameV1.tsx',
+  'phan-enterprise-builder': 'src/features/games/phan/EnterpriseBuilderGameV1.tsx',
+  'van-living-city-dispatch': 'src/features/games/van/LivingCityDispatchGameV1.tsx',
+  'christian-civic-leadership': 'src/features/games/christian/CivicLeadershipGameV1.tsx',
+  'lhen-rhythm-journey': 'src/features/games/lhen/RhythmJourneyGameV1.tsx',
+  'quin-discovery-expedition': 'src/features/games/quin/DiscoveryExpeditionGameV1.tsx',
+};
+
+const STALE_PROTOTYPE_COPY = [
+  'once Kingdom persistence is connected',
+  'Later, this clear can permanently',
+  'Later this can unlock',
+  'can later become a permanent visual upgrade',
+  'Later, this result can permanently',
+  'audio stems plug into this same timing grid later',
+  'Final music stems and Lhen animation can synchronize',
+];
+
 function absolute(rel) { return path.join(ROOT, rel); }
 function exists(rel) {
   if (!fs.existsSync(absolute(rel))) {
@@ -117,6 +143,37 @@ const language = requireTokens('src/features/games/runtime/BuklodGameLanguage.ts
 ]);
 for (const gameId of GAME_IDS) {
   if (!language.includes(`'${gameId}'`)) failures.push(`EN/TL guide missing game: ${gameId}`);
+}
+
+for (const [gameId, componentFile] of Object.entries(INTERNAL_GAME_FILES)) {
+  const component = requireTokens(componentFile, [
+    'useBuklodGameLanguage',
+    'playBuklodGameFeedback',
+    'onFinish?.',
+    'gameId: GAME_ID',
+  ]);
+
+  if (!component.includes('language') || !component.includes('t(')) {
+    failures.push(`${componentFile} must render actual internal gameplay UI through the shared EN/TL language context.`);
+  }
+
+  for (const staleCopy of STALE_PROTOTYPE_COPY) {
+    if (component.includes(staleCopy)) {
+      failures.push(`${componentFile} still contains stale prototype/future copy: ${staleCopy}`);
+    }
+  }
+
+  if (!component.includes('Kingdom station progress') && !component.includes('Kingdom Map')) {
+    failures.push(`${componentFile} must describe current recorded Kingdom progress instead of future persistence.`);
+  }
+
+  if (!GAME_IDS.includes(gameId)) {
+    failures.push(`Internal game contract contains unknown game id: ${gameId}`);
+  }
+}
+
+if (Object.keys(INTERNAL_GAME_FILES).length !== GAME_IDS.length) {
+  failures.push('Internal gameplay EN/TL contract must cover exactly all 13 current games.');
 }
 
 requireTokens('src/features/games/runtime/BuklodGameVisualFX.tsx', [
@@ -228,6 +285,8 @@ if (distDir) {
       'MISSION COMPLETE',
       'VIEW KINGDOM',
       'Special Character Journey',
+      'INGAT-YAMAN NG KAHARIAN',
+      'PAGLALAKBAY SA RITMO',
     ]) {
       if (!compiled.includes(token)) failures.push(`Compiled bundle missing Kingdom token: ${token}`);
     }
