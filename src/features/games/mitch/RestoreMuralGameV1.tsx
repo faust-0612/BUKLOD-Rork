@@ -2,11 +2,13 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Animated, PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { playBuklodGameFeedback } from '../runtime/BuklodGameFeedback';
+import { useBuklodGameLanguage } from '../runtime/BuklodGameLanguage';
 import type { BuklodGameResult } from '../types';
 
 type FragmentSpec = {
   id: string;
   label: string;
+  labelTl: string;
   start: { x: number; y: number };
   target: { x: number; y: number };
   colors: readonly [string, string];
@@ -19,18 +21,38 @@ const GAME_ID = 'mitch-restore-mural';
 const DROP_RADIUS = 58;
 
 const FRAGMENTS: FragmentSpec[] = [
-  { id: 'sunrise', label: 'Dawn', start: { x: 20, y: 390 }, target: { x: 74, y: 84 }, colors: ['#f1b94a', '#d96945'], motif: 'sun' },
-  { id: 'ridge', label: 'Ridge', start: { x: 133, y: 390 }, target: { x: 172, y: 84 }, colors: ['#81556e', '#4c355d'], motif: 'mountain' },
-  { id: 'canopy', label: 'Canopy', start: { x: 246, y: 390 }, target: { x: 74, y: 182 }, colors: ['#6a8b52', '#35573e'], motif: 'leaf' },
-  { id: 'river', label: 'River', start: { x: 20, y: 500 }, target: { x: 172, y: 182 }, colors: ['#4a839c', '#30546f'], motif: 'river' },
-  { id: 'ember', label: 'Ember', start: { x: 133, y: 500 }, target: { x: 74, y: 280 }, colors: ['#c86f48', '#7d3d39'], motif: 'flame' },
-  { id: 'journey', label: 'Journey', start: { x: 246, y: 500 }, target: { x: 172, y: 280 }, colors: ['#d4b76d', '#7e6949'], motif: 'path' },
+  { id: 'sunrise', label: 'Dawn', labelTl: 'Bukang-Liwayway', start: { x: 20, y: 390 }, target: { x: 74, y: 84 }, colors: ['#f1b94a', '#d96945'], motif: 'sun' },
+  { id: 'ridge', label: 'Ridge', labelTl: 'Gulod', start: { x: 133, y: 390 }, target: { x: 172, y: 84 }, colors: ['#81556e', '#4c355d'], motif: 'mountain' },
+  { id: 'canopy', label: 'Canopy', labelTl: 'Lilim', start: { x: 246, y: 390 }, target: { x: 74, y: 182 }, colors: ['#6a8b52', '#35573e'], motif: 'leaf' },
+  { id: 'river', label: 'River', labelTl: 'Ilog', start: { x: 20, y: 500 }, target: { x: 172, y: 182 }, colors: ['#4a839c', '#30546f'], motif: 'river' },
+  { id: 'ember', label: 'Ember', labelTl: 'Baga', start: { x: 133, y: 500 }, target: { x: 74, y: 280 }, colors: ['#c86f48', '#7d3d39'], motif: 'flame' },
+  { id: 'journey', label: 'Journey', labelTl: 'Paglalakbay', start: { x: 246, y: 500 }, target: { x: 172, y: 280 }, colors: ['#d4b76d', '#7e6949'], motif: 'path' },
 ];
 
 const distance = (a: { x: number; y: number }, b: { x: number; y: number }) =>
   Math.hypot(a.x - b.x, a.y - b.y);
 
 const starsForScore = (score: number): 1 | 2 | 3 => (score >= 1450 ? 3 : score >= 1150 ? 2 : 1);
+
+const localizeMessage = (message: string, language: 'en' | 'tl') => {
+  if (language === 'en') return message;
+  const exact: Record<string, string> = {
+    'Drag each fragment into the faded mural. Precision builds your restoration score.': 'I-drag ang bawat piraso papunta sa kupas na mural. Mas eksaktong pagkakalagay, mas mataas ang restoration score.',
+    'That fragment does not belong there. Read the shape and color flow, then try again.': 'Hindi roon nababagay ang pirasong iyon. Basahin ang hugis at daloy ng kulay, saka subukan muli.',
+  };
+  if (exact[message]) return exact[message];
+
+  let match = message.match(/^Mural restored • (\d+)% average precision$/);
+  if (match) return `Naibalik ang mural • ${match[1]}% karaniwang precision`;
+
+  match = message.match(/^Clean restoration • (\d+)% precision • combo ×(\d+)$/);
+  if (match) return `Malinis na restoration • ${match[1]}% precision • combo ×${match[2]}`;
+
+  match = message.match(/^Fragment restored • (\d+)% precision$/);
+  if (match) return `Naibalik ang piraso • ${match[1]}% precision`;
+
+  return message;
+};
 
 function FragmentArt({ spec, muted = false }: { spec: FragmentSpec; muted?: boolean }) {
   const accent = muted ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.42)';
@@ -65,6 +87,7 @@ type DraggableFragmentProps = {
 };
 
 function DraggableFragment({ spec, placed, resetKey, active, onActive, onPlaced, onMiss }: DraggableFragmentProps) {
+  const { language } = useBuklodGameLanguage();
   const position = useRef(new Animated.ValueXY(spec.start)).current;
 
   useEffect(() => {
@@ -131,7 +154,7 @@ function DraggableFragment({ spec, placed, resetKey, active, onActive, onPlaced,
       ]}
     >
       <FragmentArt spec={spec} />
-      <Text style={styles.fragmentLabel}>{spec.label}</Text>
+      <Text style={styles.fragmentLabel}>{language === 'tl' ? spec.labelTl : spec.label}</Text>
     </Animated.View>
   );
 }
@@ -139,6 +162,7 @@ function DraggableFragment({ spec, placed, resetKey, active, onActive, onPlaced,
 type Props = { onFinish?: (result: BuklodGameResult) => void };
 
 export function RestoreMuralGameV1({ onFinish }: Props) {
+  const { language, t } = useBuklodGameLanguage();
   const [placed, setPlaced] = useState<PlacedFragment[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [mistakes, setMistakes] = useState(0);
@@ -207,22 +231,22 @@ export function RestoreMuralGameV1({ onFinish }: Props) {
     <View style={styles.shell}>
       <View style={styles.topBar}>
         <View>
-          <Text style={styles.eyebrow}>MITCH • ART VILLAGE</Text>
-          <Text style={styles.title}>Restore the Mural</Text>
+          <Text style={styles.eyebrow}>{t('MITCH • ART VILLAGE', 'MITCH • PAMAYANAN NG SINING')}</Text>
+          <Text style={styles.title}>{t('Restore the Mural', 'Ibalik ang Mural')}</Text>
         </View>
         <View style={styles.scoreBlock}>
           <Text style={styles.score}>{score}</Text>
-          <Text style={styles.scoreLabel}>RESTORE SCORE</Text>
+          <Text style={styles.scoreLabel}>{t('RESTORE SCORE', 'ISKOR SA RESTORATION')}</Text>
         </View>
       </View>
 
       <View style={styles.statusRow}>
-        <Text style={styles.statusText}>{Math.round(progress * 100)}% restored</Text>
+        <Text style={styles.statusText}>{Math.round(progress * 100)}% {t('restored', 'naibalik')}</Text>
         <Text style={styles.statusText}>Combo ×{combo}</Text>
-        <Text style={styles.statusText}>Misses {mistakes}</Text>
+        <Text style={styles.statusText}>{t('Misses', 'Mga mali')} {mistakes}</Text>
       </View>
       <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${Math.round(progress * 100)}%` }]} /></View>
-      <Text style={styles.message}>{message}</Text>
+      <Text style={styles.message}>{localizeMessage(message, language)}</Text>
 
       <View style={styles.board}>
         <View style={styles.wallGlow} />
@@ -241,7 +265,7 @@ export function RestoreMuralGameV1({ onFinish }: Props) {
           <View pointerEvents="none" style={[styles.revealGlow, { opacity: progress * 0.85 }]} />
         </View>
 
-        <View style={styles.paletteLabel}><Text style={styles.paletteText}>FRAGMENT TABLE • DRAG TO RESTORE</Text></View>
+        <View style={styles.paletteLabel}><Text style={styles.paletteText}>{t('FRAGMENT TABLE • DRAG TO RESTORE', 'MESA NG MGA PIRASO • I-DRAG PARA IBALIK')}</Text></View>
 
         {FRAGMENTS.map((fragment) => (
           <DraggableFragment
@@ -258,15 +282,21 @@ export function RestoreMuralGameV1({ onFinish }: Props) {
 
         {finished ? (
           <View style={styles.completionOverlay}>
-            <Text style={styles.completeKicker}>ART VILLAGE RESTORATION</Text>
-            <Text style={styles.completeTitle}>MURAL AWAKENED</Text>
-            <Text style={styles.completeCopy}>Every restored fragment can later become a permanent visual upgrade inside Mitch's map region.</Text>
-            <Pressable onPress={reset} style={styles.replayButton}><Text style={styles.replayText}>RESTORE AGAIN</Text></Pressable>
+            <Text style={styles.completeKicker}>{t('ART VILLAGE RESTORATION', 'RESTORATION NG PAMAYANAN NG SINING')}</Text>
+            <Text style={styles.completeTitle}>{t('MURAL AWAKENED', 'MULING NABUHAY ANG MURAL')}</Text>
+            <Text style={styles.completeCopy}>{t(
+              'Your restoration is recorded. Return to the Kingdom Map to see Mitch’s Art Village progress reflected in the world.',
+              'Naitala ang restoration mo. Bumalik sa Mapa ng Kaharian para makita ang progreso ng Art Village ni Mitch sa mundo.',
+            )}</Text>
+            <Pressable onPress={reset} style={styles.replayButton}><Text style={styles.replayText}>{t('RESTORE AGAIN', 'IBALIK MULI')}</Text></Pressable>
           </View>
         ) : null}
       </View>
 
-      <Text style={styles.tip}>Drag fragments directly. Near-center drops earn higher precision and stronger combo bonuses.</Text>
+      <Text style={styles.tip}>{t(
+        'Drag fragments directly. Near-center drops earn higher precision and stronger combo bonuses.',
+        'I-drag nang direkta ang mga piraso. Mas malapit sa gitna ang bagsak, mas mataas ang precision at combo bonus.',
+      )}</Text>
     </View>
   );
 }
