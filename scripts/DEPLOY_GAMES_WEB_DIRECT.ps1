@@ -56,8 +56,9 @@ $env:BUKLOD_WEB_OUTPUT = 'single'
 
 # IMPORTANT: install first. EAS env:pull resolves app.config.js and config plugins,
 # so a fresh disposable clone needs node_modules before env:pull can succeed.
+# Include dev dependencies explicitly because TypeScript QA requires @types/jest.
 Write-Host 'Installing locked dependencies before Expo config resolution...' -ForegroundColor Yellow
-npm ci --ignore-scripts
+npm ci --ignore-scripts --include=dev
 if ($LASTEXITCODE -ne 0) { throw 'npm ci failed.' }
 
 Write-Host 'Checking Expo authentication...' -ForegroundColor Yellow
