@@ -72,8 +72,6 @@ function walk(dir) {
 console.log('BUKLOD CHARACTER RELEASE CONTRACT — R31 + R40');
 console.log('================================================');
 
-// R31 current compatible family: progression remains independent from Circle Rank,
-// supports all 20 character levels, exact approved core art, and explicit activation.
 requireTokens('src/components/points/BuklodProgressiveCharacterSelector.tsx', [
   'Browse all 20 levels',
   'Use This Character',
@@ -90,13 +88,11 @@ requireTokens('src/lib/buklodProgressiveCharacter.ts', [
 mustExist('src/components/points/BuklodProgressiveCharacterArt.tsx');
 mustExist('src/components/points/BuklodProfileCharacterCard.tsx');
 
-// The Customize surface must expose both the R31 progressive selector and the R40 journey.
 requireTokens('src/components/points/BuklodCharacterCustomizeSheet.tsx', [
   'BuklodProgressiveCharacterSelector',
   'BuklodSpecialCharacterSeries',
 ]);
 
-// R40 premium special-character journey and server-backed collectible/progression contract.
 requireTokens('src/components/points/BuklodSpecialCharacterSeries.tsx', [
   'Special Character Journey',
   'get_my_buklod_special_collectibles_v2',
@@ -122,15 +118,12 @@ for (const id of SPECIAL_IDS) {
   }
 }
 
-// Exact five approved R31 strips are immutable release anchors. A future redesign must
-// deliberately version this contract instead of silently replacing them.
 for (const [rel, expected] of Object.entries(CORE_ASSETS)) {
   if (!mustExist(rel)) continue;
   const actual = sha256(rel);
   if (actual !== expected) failures.push(`R31 core art changed: ${rel} expected=${expected} actual=${actual}`);
 }
 
-// Require the full R40 special asset family: 8 characters × (1 hero + 20 levels) = 168.
 const specialRoot = full('assets/images/characters/special/batch1');
 if (!fs.existsSync(specialRoot)) {
   failures.push('Missing R40 special asset folder: assets/images/characters/special/batch1');
@@ -149,8 +142,6 @@ if (!fs.existsSync(specialRoot)) {
   info.push(`R40 special JPG count: ${jpgs.length}`);
 }
 
-// Optional second gate: prove the exported production bundle contains the preserved
-// R31/R40 behavior. This prevents a correct source tree from publishing a stale bundle.
 if (distDir) {
   if (!fs.existsSync(distDir)) {
     failures.push(`Compiled bundle directory does not exist: ${path.relative(ROOT, distDir)}`);

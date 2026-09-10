@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "app": "BUKLOD MAIN",
+  "repository": "https://github.com/faust-0612/BUKLOD-Rork.git",
+  "workspace": {
+    "default_windows_root": "%USERPROFILE%\\BUKLOD_WORKSPACE",
+    "canonical_source": "%USERPROFILE%\\BUKLOD_WORKSPACE\\SOURCE\\BUKLOD-MAIN",
+    "protected_recovery": "%USERPROFILE%\\BUKLOD_WORKSPACE\\RECOVERY\\R31_R40",
+    "web_release_root": "%USERPROFILE%\\BUKLOD_WORKSPACE\\RELEASE\\WEB",
+    "web_release_staging": "%USERPROFILE%\\BUKLOD_WORKSPACE\\RELEASE\\WEB\\current",
+    "legacy_quarantine": "%USERPROFILE%\\BUKLOD_WORKSPACE\\LEGACY_QUARANTINE",
+    "logs": "%USERPROFILE%\\BUKLOD_WORKSPACE\\LOGS",
+    "local_marker": ".buklod-local-canonical.json",
+    "workspace_manifest": "BUKLOD_WORKSPACE.json"
+  },
+  "operations": {
+    "initialize_workspace": "scripts/SETUP_BUKLOD_CANONICAL_WORKSPACE.ps1",
+    "finalize_and_inventory_duplicates": "scripts/FINALIZE_BUKLOD_CENTRALIZATION.ps1",
+    "verify_canonical_source": "scripts/VERIFY_BUKLOD_CANONICAL_SOURCE.ps1",
+    "canonical_web_release": "scripts/RUN_CANONICAL_WEB_RELEASE.ps1",
+    "canonical_web_release_guard": "scripts/DEPLOY_BUKLOD_WEB_CANONICAL.ps1",
+    "legacy_web_deploy_implementation": "scripts/DEPLOY_GAMES_WEB_DIRECT.ps1"
+  },
+  "rules": {
+    "normal_edit_root": "canonical_source_only",
+    "release_staging_is_editable": false,
+    "recovery_is_editable": false,
+    "legacy_clones_are_editable": false,
+    "direct_legacy_deploy_invocation_allowed": false,
+    "safe_duplicate_policy": "quarantine_only_when_clean_and_head_is_contained_in_origin_main",
+    "dirty_clone_policy": "preserve",
+    "unique_commit_clone_policy": "preserve",
+    "unknown_or_unverified_clone_policy": "preserve",
+    "production_merge_requires_real_qa": true
+  },
+  "protected_contracts": [
+    "R31_R40 approved recovery",
+    "current standalone Focus App doors",
+    "current character and game contracts",
+    "current routing and auth",
+    "Points and Rank",
+    "ads and push integrations",
+    "Supabase protections"
+  ]
+}

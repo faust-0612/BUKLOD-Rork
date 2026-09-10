@@ -55,6 +55,9 @@ patch_backups/
 BUKLOD_PATCH_BACKUPS/
 native_backups/
 
+# Canonical workspace marker is local-only and identifies the single writable clone.
+.buklod-local-canonical.json
+
 # Backup copies
 *.bak
 *.before-*
