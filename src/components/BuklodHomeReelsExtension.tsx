@@ -58,6 +58,7 @@ function HomeIgpatVideo({
     uri,
     instance => {
       instance.loop = false;
+      instance.muted = true;
     }
   );
 
@@ -65,7 +66,7 @@ function HomeIgpatVideo({
     <VideoView
       player={player}
       style={styles.video}
-      nativeControls
+      nativeControls={false}
       contentFit="cover"
     />
   );
@@ -144,7 +145,7 @@ export default function BuklodHomeReelsExtension() {
                     )
                     .createSignedUrl(
                       row.media_path,
-                      3600
+                      1800
                     );
 
                   return {
@@ -231,16 +232,16 @@ export default function BuklodHomeReelsExtension() {
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={
-            styles.reelRow
+            styles.igpatRow
           }
         >
           {rows.map(row => (
             <Pressable
               key={row.id}
-              style={styles.reelCard}
+              style={styles.igpatCard}
               onPress={() => router.push('/igpat' as any)}
               accessibilityRole="button"
-              accessibilityLabel={`Open IGPAT by ${resolvePersonDisplayName(row.author_name, row.user_id)}`}
+              accessibilityLabel="Watch in BUKLOD IGPAT"
             >
               {!!row.media_url && (
                 <HomeIgpatVideo
@@ -277,15 +278,7 @@ export default function BuklodHomeReelsExtension() {
                 )}
 
                 <Text style={styles.stats}>
-                  {Number(
-                    row.reaction_count ?? 0
-                  )}{' '}
-                  reactions
-                  {'  •  '}
-                  {Number(
-                    row.comment_count ?? 0
-                  )}{' '}
-                  comments
+                  Tap to watch in IGPAT
                 </Text>
               </View>
             </Pressable>
@@ -327,7 +320,7 @@ const styles = StyleSheet.create({
   sectionMeta: {
     color: colors.greenDark,
     fontSize: 9,
-    fontWeight: '800',
+    fontWeight: '900',
   },
 
   loading: {
@@ -336,12 +329,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  reelRow: {
+  igpatRow: {
     gap: 10,
     paddingRight: 4,
   },
 
-  reelCard: {
+  igpatCard: {
     width: 278,
     overflow: 'hidden',
     borderWidth: 1,
@@ -389,8 +382,8 @@ const styles = StyleSheet.create({
 
   stats: {
     marginTop: 7,
-    color: colors.muted,
+    color: colors.greenDark,
     fontSize: 8.5,
-    fontWeight: '700',
+    fontWeight: '800',
   },
 });
