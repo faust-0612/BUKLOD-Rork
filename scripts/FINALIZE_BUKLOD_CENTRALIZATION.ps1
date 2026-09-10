@@ -176,14 +176,18 @@ foreach ($repo in $repoPaths) {
 
 Write-Host '5/5 WRITE CENTRALIZATION REPORT + VERIFY CONTRACT' -ForegroundColor Cyan
 $reportPath = Join-Path $LogRoot ('BUKLOD_CENTRALIZATION_' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.json')
+# PowerShell 5.1 can throw "Argument types do not match" when a Generic.List is
+# expanded directly inside an ordered hashtable. Materialize plain objects first.
+$reportRows = @($results | ForEach-Object { $_ })
+$reportCanonicalSource = Full $SourceRoot
 $report = [ordered]@{
   generated_at = (Get-Date).ToString('o')
-  canonical_source = Full $SourceRoot
+  canonical_source = $reportCanonicalSource
   canonical_head = $canonicalHead
   repository = $ExpectedRepo
   canonical_branch = 'main'
   approved_recovery_branch = 'recovery/r31-r40-approved-local-20260910'
-  duplicate_repositories = @($results)
+  duplicate_repositories = $reportRows
   quarantine_enabled = [bool]$QuarantineSafeDuplicates
   safety_rule = 'Dirty, unverified, or unique-commit clones are preserved. Only clean clones already contained in origin/main may be quarantined automatically.'
 }
