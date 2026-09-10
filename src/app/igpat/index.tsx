@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Dimensions,
   FlatList,
+  Pressable,
   StyleSheet,
   Text,
   View,
@@ -25,7 +26,35 @@ type IgpatRow = {
   media_url?: string | null;
 };
 
+const IGPAT_INITIAL_LIMIT = 16;
+const SIGNED_URL_TTL_SECONDS = 1200;
+const SIGN_CONCURRENCY = 4;
+
+async function mapWithConcurrency<T, R>(
+  values: T[],
+  limit: number,
+  worker: (value: T) => Promise<R>
+): Promise<R[]> {
+  const results = new Array<R>(values.length);
+  let cursor = 0;
+
+  async function runWorker() {
+    while (true) {
+      const index = cursor++;
+      if (index >= values.length) return;
+      results[index] = await worker(values[index]);
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(limit, values.length) }, () => runWorker())
+  );
+
+  return results;
+}
+
 function IgpatVideo({ uri, active }: { uri: string; active: boolean }) {
+  const [pausedByUser, setPausedByUser] = useState(false);
   const player = useVideoPlayer(uri, instance => {
     instance.loop = true;
     instance.muted = false;
@@ -33,10 +62,14 @@ function IgpatVideo({ uri, active }: { uri: string; active: boolean }) {
 
   useEffect(() => {
     try {
-      if (active) player.play();
+      if (active && !pausedByUser) player.play();
       else player.pause();
     } catch {}
-  }, [active, player]);
+  }, [active, pausedByUser, player]);
+
+  useEffect(() => {
+    if (!active) setPausedByUser(false);
+  }, [active]);
 
   useEffect(() => {
     return () => {
@@ -46,13 +79,43 @@ function IgpatVideo({ uri, active }: { uri: string; active: boolean }) {
     };
   }, [player]);
 
+  const startFastPlayback = () => {
+    if (!active) return;
+    try {
+      player.playbackRate = 2;
+      player.play();
+    } catch {}
+  };
+
+  const stopFastPlayback = () => {
+    try {
+      player.playbackRate = 1;
+      if (pausedByUser) player.pause();
+    } catch {}
+  };
+
   return (
-    <VideoView
-      player={player}
+    <Pressable
       style={StyleSheet.absoluteFill}
-      nativeControls={false}
-      contentFit="cover"
-    />
+      onPress={() => active && setPausedByUser(current => !current)}
+      onLongPress={startFastPlayback}
+      onPressOut={stopFastPlayback}
+      delayLongPress={220}
+      accessibilityRole="button"
+      accessibilityLabel={pausedByUser ? 'Play IGPAT video' : 'Pause IGPAT video'}
+    >
+      <VideoView
+        player={player}
+        style={StyleSheet.absoluteFill}
+        nativeControls={false}
+        contentFit="cover"
+      />
+      {active && pausedByUser && (
+        <View pointerEvents="none" style={styles.pausedBadge}>
+          <Text style={styles.pausedBadgeText}>PAUSED</Text>
+        </View>
+      )}
+    </Pressable>
   );
 }
 
@@ -61,6 +124,7 @@ export default function IgpatScreen() {
   const insets = useSafeAreaInsets();
   const [rows, setRows] = useState<IgpatRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const viewportHeight = Dimensions.get('window').height;
 
@@ -72,27 +136,42 @@ export default function IgpatScreen() {
     }
 
     setLoading(true);
+    setLoadError(null);
+
     try {
       const { data, error } = await (supabase as any).rpc('get_buklod_reels_v1', {
-        p_limit: 40,
+        p_limit: IGPAT_INITIAL_LIMIT,
       });
       if (error) throw error;
 
-      const source = ((data ?? []) as IgpatRow[]).filter(row => Boolean(row.media_path));
-      const signed = await Promise.all(
-        source.map(async row => {
-          const { data: mediaData } = await supabase.storage
+      const source = ((data ?? []) as IgpatRow[])
+        .filter(row => Boolean(row.media_path))
+        .slice(0, IGPAT_INITIAL_LIMIT);
+
+      const signed = await mapWithConcurrency(
+        source,
+        SIGN_CONCURRENCY,
+        async row => {
+          const { data: mediaData, error: signError } = await supabase.storage
             .from('community-media')
-            .createSignedUrl(row.media_path, 1800);
+            .createSignedUrl(row.media_path, SIGNED_URL_TTL_SECONDS);
+
+          if (signError) {
+            console.warn('BUKLOD IGPAT sign:', signError.message);
+            return { ...row, media_url: null };
+          }
+
           return { ...row, media_url: mediaData?.signedUrl ?? null };
-        })
+        }
       );
 
       setRows(signed.filter(row => Boolean(row.media_url)));
       setActiveIndex(0);
     } catch (error) {
-      console.warn('BUKLOD IGPAT load:', String((error as any)?.message ?? error));
+      const message = String((error as any)?.message ?? error);
+      console.warn('BUKLOD IGPAT load:', message);
       setRows([]);
+      setLoadError(message);
     } finally {
       setLoading(false);
     }
@@ -110,7 +189,7 @@ export default function IgpatScreen() {
   ).current;
 
   const viewabilityConfig = useMemo(
-    () => ({ itemVisiblePercentThreshold: 80, minimumViewTime: 120 }),
+    () => ({ itemVisiblePercentThreshold: 82, minimumViewTime: 100 }),
     []
   );
 
@@ -128,7 +207,12 @@ export default function IgpatScreen() {
     return (
       <View style={styles.center}>
         <Text style={styles.emptyTitle}>BUKLOD IGPAT</Text>
-        <Text style={styles.emptyCopy}>No available IGPAT videos yet.</Text>
+        <Text style={styles.emptyCopy}>
+          {loadError ? 'IGPAT could not load right now.' : 'No available IGPAT videos yet.'}
+        </Text>
+        <Pressable style={styles.retryButton} onPress={() => void load()}>
+          <Text style={styles.retryText}>RETRY</Text>
+        </Pressable>
       </View>
     );
   }
@@ -140,8 +224,9 @@ export default function IgpatScreen() {
         keyExtractor={item => item.id}
         pagingEnabled
         showsVerticalScrollIndicator={false}
-        initialNumToRender={2}
+        initialNumToRender={1}
         maxToRenderPerBatch={2}
+        updateCellsBatchingPeriod={80}
         windowSize={3}
         removeClippedSubviews
         decelerationRate="fast"
@@ -193,6 +278,15 @@ const styles = StyleSheet.create({
   loadingTagline: { marginTop: 4, color: 'rgba(255,255,255,0.62)', fontSize: 11, fontWeight: '700' },
   emptyTitle: { color: '#FFFFFF', fontSize: 21, fontWeight: '900', letterSpacing: 1.1 },
   emptyCopy: { marginTop: 8, color: 'rgba(255,255,255,0.62)', fontSize: 12, textAlign: 'center' },
+  retryButton: {
+    marginTop: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.42)',
+    borderRadius: 999,
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+  },
+  retryText: { color: '#FFFFFF', fontSize: 10, fontWeight: '900', letterSpacing: 0.9 },
   scrim: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.08)',
@@ -203,4 +297,14 @@ const styles = StyleSheet.create({
   meta: { position: 'absolute', left: 18, right: 72 },
   author: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
   caption: { marginTop: 6, color: 'rgba(255,255,255,0.90)', fontSize: 12, lineHeight: 17, fontWeight: '600' },
+  pausedBadge: {
+    position: 'absolute',
+    alignSelf: 'center',
+    top: '48%',
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  pausedBadgeText: { color: '#FFFFFF', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
 });
