@@ -19,10 +19,6 @@ export type ClassroomUploadResult = {
   resumable: boolean;
 };
 
-function isBlobUrl(uri: string) {
-  return uri.startsWith('blob:') || uri.startsWith('data:');
-}
-
 async function uriToBlob(uri: string, signal?: AbortSignal): Promise<Blob> {
   const response = await fetch(uri, { signal });
   if (!response.ok) throw new Error(`Could not read selected file (${response.status}).`);
@@ -48,8 +44,9 @@ export async function uploadClassroomObject(
   if (total <= 0) throw new Error('The selected file is empty.');
   input.onProgress?.({ sent: 0, total, percent: 0 });
 
+  const contentType = input.mimeType ?? (blob.type || 'application/octet-stream');
   const { error } = await supabase.storage.from(input.bucket).upload(input.path, blob, {
-    contentType: input.mimeType ?? blob.type || 'application/octet-stream',
+    contentType,
     cacheControl: input.cacheControl ?? '3600',
     upsert: false,
   });
