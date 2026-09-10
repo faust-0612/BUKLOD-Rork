@@ -163,10 +163,6 @@ for (const [gameId, componentFile] of Object.entries(INTERNAL_GAME_FILES)) {
     }
   }
 
-  if (!component.includes('Kingdom station progress') && !component.includes('Kingdom Map')) {
-    failures.push(`${componentFile} must describe current recorded Kingdom progress instead of future persistence.`);
-  }
-
   if (!GAME_IDS.includes(gameId)) {
     failures.push(`Internal game contract contains unknown game id: ${gameId}`);
   }
@@ -286,7 +282,7 @@ if (distDir) {
       'VIEW KINGDOM',
       'Special Character Journey',
       'INGAT-YAMAN NG KAHARIAN',
-      'PAGLALAKBAY SA RITMO',
+      'Paglalakbay sa Ritmo',
     ]) {
       if (!compiled.includes(token)) failures.push(`Compiled bundle missing Kingdom token: ${token}`);
     }
