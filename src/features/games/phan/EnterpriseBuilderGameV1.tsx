@@ -2,6 +2,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { playBuklodGameFeedback } from '../runtime/BuklodGameFeedback';
+import { useBuklodGameLanguage } from '../runtime/BuklodGameLanguage';
 import type { BuklodGameResult } from '../types';
 
 type ActionKey = 'produce' | 'process' | 'sell' | 'upgrade';
@@ -13,9 +14,40 @@ const DEMANDS: Demand[] = ['local','town','premium','town','local','premium'];
 
 const starsForScore=(score:number):1|2|3=>score>=1700?3:score>=1250?2:1;
 
+const demandLabelFor=(demand:Demand,language:'en'|'tl')=>{
+  if(language==='en') return demand==='premium'?'Premium Contract':demand==='town'?'Town Demand':'Local Market';
+  return demand==='premium'?'Premium na Kontrata':demand==='town'?'Demand ng Bayan':'Lokal na Pamilihan';
+};
+
+const localizeMessage=(message:string,language:'en'|'tl')=>{
+  if(language==='en') return message;
+  const exact:Record<string,string>={
+    'Grow a small farmstead into a stable enterprise. Cash, production capacity, inventory and reputation must all survive six business cycles.':'Palaguin ang maliit na farmstead tungo sa matatag na enterprise. Kailangang mabuhay sa anim na business cycle ang cash, production capacity, inventory, at reputation.',
+    'Not enough cash to fund another production cycle.':'Kulang ang cash para pondohan ang isa pang production cycle.',
+    'Processing needs raw stock and working cash.':'Kailangan ng raw stock at working cash para sa processing.',
+    'No finished goods are ready for market. Production alone does not create revenue.':'Walang finished goods na handa sa market. Hindi sapat ang production lamang para magkaroon ng revenue.',
+    'Workshop expanded by 2 capacity. Short-term cash fell, but future production ceiling increased.':'Nadagdagan ng 2 ang capacity ng workshop. Bumaba ang cash sa maikling panahon pero tumaas ang future production ceiling.',
+    'The enterprise expanded too fast or lost market trust. Rebuild with stronger cash flow and reputation.':'Masyadong mabilis lumawak ang enterprise o nawala ang tiwala ng market. Bumuo muli gamit ang mas matatag na cash flow at reputation.',
+  };
+  if(exact[message]) return exact[message];
+
+  let match=message.match(/^Enterprise stabilized at (\d+) value with (\d+) reputation\.$/);
+  if(match) return `Naging matatag ang enterprise sa value na ${match[1]} at reputation na ${match[2]}.`;
+  match=message.match(/^Harvest cycle completed: \+(\d+) raw units\. Cash fell by (\d+), but the supply base grew\.$/);
+  if(match) return `Tapos ang harvest cycle: +${match[1]} raw units. Bumaba ang cash ng ${match[2]}, pero lumaki ang supply base.`;
+  match=message.match(/^Processed (\d+) raw units into higher-value goods\.$/);
+  if(match) return `Na-process ang ${match[1]} raw units tungo sa mas mataas na value na goods.`;
+  match=message.match(/^Sold (\d+) goods into (.+) for (\d+)\. Market trust increased\.$/);
+  if(match) return `Naibenta ang ${match[1]} goods sa ${match[2]} sa halagang ${match[3]}. Tumaas ang tiwala ng market.`;
+  match=message.match(/^Expansion costs (\d+)\. Growth without enough cash can break the enterprise\.$/);
+  if(match) return `Nagkakahalaga ng ${match[1]} ang expansion. Maaaring masira ang enterprise kapag lumago nang walang sapat na cash.`;
+  return message;
+};
+
 type Props={onFinish?:(result:BuklodGameResult)=>void};
 
 export function EnterpriseBuilderGameV1({onFinish}:Props){
+  const {language,t}=useBuklodGameLanguage();
   const [round,setRound]=useState(1);
   const [cash,setCash]=useState(320);
   const [raw,setRaw]=useState(4);
@@ -29,6 +61,7 @@ export function EnterpriseBuilderGameV1({onFinish}:Props){
   const demand=DEMANDS[Math.min(round-1,DEMANDS.length-1)];
   const sellPrice=demand==='premium'?90:demand==='town'?68:52;
   const demandLabel=demand==='premium'?'Premium Contract':demand==='town'?'Town Demand':'Local Market';
+  const displayDemandLabel=demandLabelFor(demand,language);
   const enterpriseValue=useMemo(()=>cash+raw*16+goods*48+capacity*55+reputation*4,[capacity,cash,goods,raw,reputation]);
 
   const endTurn=useCallback((next:{cash:number;raw:number;goods:number;capacity:number;reputation:number;scoreDelta:number;message:string})=>{
@@ -68,19 +101,19 @@ export function EnterpriseBuilderGameV1({onFinish}:Props){
   const reset=useCallback(()=>{setRound(1);setCash(320);setRaw(4);setGoods(0);setCapacity(4);setReputation(30);setScore(0);setFinished(false);setMessage('Grow a small farmstead into a stable enterprise. Cash, production capacity, inventory and reputation must all survive six business cycles.');},[]);
 
   return <View style={styles.shell}>
-    <View style={styles.header}><View><Text style={styles.eyebrow}>PHAN • FARMSTEAD TO ENTERPRISE</Text><Text style={styles.title}>Enterprise Builder</Text></View><View style={styles.valueBox}><Text style={styles.value}>{enterpriseValue}</Text><Text style={styles.valueLabel}>ENTERPRISE VALUE</Text></View></View>
-    <Text style={styles.message}>{message}</Text>
-    <View style={styles.dashboard}>{[['CASH',cash],['RAW',raw],['GOODS',goods],['CAPACITY',capacity],['REPUTATION',Math.round(reputation)]].map(([label,value])=><View key={String(label)} style={styles.stat}><Text style={styles.statLabel}>{label}</Text><Text style={styles.statValue}>{value}</Text></View>)}</View>
+    <View style={styles.header}><View><Text style={styles.eyebrow}>{t('PHAN • FARMSTEAD TO ENTERPRISE','PHAN • MULA FARMSTEAD TUNGO ENTERPRISE')}</Text><Text style={styles.title}>{t('Enterprise Builder','Tagapagtayo ng Enterprise')}</Text></View><View style={styles.valueBox}><Text style={styles.value}>{enterpriseValue}</Text><Text style={styles.valueLabel}>{t('ENTERPRISE VALUE','HALAGA NG ENTERPRISE')}</Text></View></View>
+    <Text style={styles.message}>{localizeMessage(message,language)}</Text>
+    <View style={styles.dashboard}>{[[t('CASH','CASH'),cash],[t('RAW','RAW'),raw],[t('GOODS','PRODUKTO'),goods],[t('CAPACITY','KAPASIDAD'),capacity],[t('REPUTATION','REPUTASYON'),Math.round(reputation)]].map(([label,value])=><View key={String(label)} style={styles.stat}><Text style={styles.statLabel}>{label}</Text><Text style={styles.statValue}>{value}</Text></View>)}</View>
     {!finished?<>
-      <View style={styles.market}><Text style={styles.round}>BUSINESS CYCLE {round}/{ROUNDS}</Text><Text style={styles.marketTitle}>{demandLabel}</Text><Text style={styles.marketCopy}>Finished-goods price this cycle: {sellPrice}. Decide whether to produce, process, sell, or invest in capacity.</Text></View>
+      <View style={styles.market}><Text style={styles.round}>{t('BUSINESS CYCLE','BUSINESS CYCLE')} {round}/{ROUNDS}</Text><Text style={styles.marketTitle}>{displayDemandLabel}</Text><Text style={styles.marketCopy}>{t(`Finished-goods price this cycle: ${sellPrice}. Decide whether to produce, process, sell, or invest in capacity.`,`Presyo ng finished goods sa cycle na ito: ${sellPrice}. Magpasya kung magpo-produce, magpo-process, magbebenta, o mag-iinvest sa capacity.`)}</Text></View>
       <View style={styles.actions}>
-        <Pressable style={styles.action} onPress={()=>act('produce')}><Text style={styles.actionTitle}>PRODUCE</Text><Text style={styles.actionCopy}>Spend cash → increase raw stock</Text></Pressable>
-        <Pressable style={styles.action} onPress={()=>act('process')}><Text style={styles.actionTitle}>PROCESS</Text><Text style={styles.actionCopy}>Convert raw stock → finished goods</Text></Pressable>
-        <Pressable style={styles.action} onPress={()=>act('sell')}><Text style={styles.actionTitle}>SELL</Text><Text style={styles.actionCopy}>Convert goods → cash + reputation</Text></Pressable>
-        <Pressable style={styles.action} onPress={()=>act('upgrade')}><Text style={styles.actionTitle}>EXPAND</Text><Text style={styles.actionCopy}>Invest cash → larger future capacity</Text></Pressable>
+        <Pressable style={styles.action} onPress={()=>act('produce')}><Text style={styles.actionTitle}>{t('PRODUCE','MAG-PRODUCE')}</Text><Text style={styles.actionCopy}>{t('Spend cash → increase raw stock','Gumastos ng cash → dagdagan ang raw stock')}</Text></Pressable>
+        <Pressable style={styles.action} onPress={()=>act('process')}><Text style={styles.actionTitle}>{t('PROCESS','MAG-PROCESS')}</Text><Text style={styles.actionCopy}>{t('Convert raw stock → finished goods','Gawing finished goods ang raw stock')}</Text></Pressable>
+        <Pressable style={styles.action} onPress={()=>act('sell')}><Text style={styles.actionTitle}>{t('SELL','MAGBENTA')}</Text><Text style={styles.actionCopy}>{t('Convert goods → cash + reputation','Gawing cash + reputation ang goods')}</Text></Pressable>
+        <Pressable style={styles.action} onPress={()=>act('upgrade')}><Text style={styles.actionTitle}>{t('EXPAND','PALAWAKIN')}</Text><Text style={styles.actionCopy}>{t('Invest cash → larger future capacity','Mag-invest ng cash → mas malaking future capacity')}</Text></Pressable>
       </View>
-      <Text style={styles.tip}>High demand is wasted if you have no finished goods. Too much inventory without cash can also trap the enterprise.</Text>
-    </>:<View style={styles.result}><Text style={styles.resultKicker}>SIX CYCLES COMPLETE</Text><Text style={styles.bigScore}>{score}</Text><Text style={styles.resultCopy}>{message}</Text><Pressable style={styles.primary} onPress={reset}><Text style={styles.primaryText}>START NEW ENTERPRISE</Text></Pressable></View>}
+      <Text style={styles.tip}>{t('High demand is wasted if you have no finished goods. Too much inventory without cash can also trap the enterprise.','Sayang ang mataas na demand kung wala kang finished goods. Maaari ring maipit ang enterprise sa sobrang inventory kapag kulang ang cash.')}</Text>
+    </>:<View style={styles.result}><Text style={styles.resultKicker}>{t('SIX CYCLES COMPLETE','TAPOS ANG ANIM NA CYCLE')}</Text><Text style={styles.bigScore}>{score}</Text><Text style={styles.resultCopy}>{localizeMessage(message,language)}</Text><Text style={styles.resultCopy}>{t('This enterprise result is recorded in Phan’s Kingdom station progress.','Naitala ang resulta ng enterprise sa progreso ng Kingdom station ni Phan.')}</Text><Pressable style={styles.primary} onPress={reset}><Text style={styles.primaryText}>{t('START NEW ENTERPRISE','MAGSIMULA NG BAGONG ENTERPRISE')}</Text></Pressable></View>}
   </View>;
 }
 
