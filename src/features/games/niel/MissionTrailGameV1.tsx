@@ -2,6 +2,7 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { playBuklodGameFeedback } from '../runtime/BuklodGameFeedback';
+import { useBuklodGameLanguage } from '../runtime/BuklodGameLanguage';
 import type { BuklodGameResult } from '../types';
 
 type ResourceKey = 'water' | 'food' | 'energy' | 'morale';
@@ -178,6 +179,69 @@ const LEGS: Leg[] = [
   },
 ];
 
+const COPY_TL: Record<string, string> = {
+  'River Pass': 'Tawiran ng Ilog',
+  'The direct trail is flooded. A ridge detour is safer, but it will cost time and supplies.': 'Baha ang direktang landas. Mas ligtas ang pagliko sa gulod, pero kakain ito ng oras at supplies.',
+  'Cross the ford': 'Tumawid sa mababaw na bahagi',
+  'Fast route through knee-deep water. Save food, spend energy.': 'Mabilis na ruta sa tubig na abot-tuhod. Makakatipid sa pagkain pero gagamit ng energy.',
+  'River crossing': 'Tawiran ng ilog',
+  'The team crosses quickly and reaches higher ground before the current rises.': 'Mabilis na nakatawid ang team at nakarating sa mataas na lugar bago lumakas ang agos.',
+  'Take the ridge': 'Dumaan sa gulod',
+  'Longer climb with dry footing and a good view of the next valley.': 'Mas mahabang akyat pero tuyong daan at malinaw ang tanaw sa susunod na lambak.',
+  'High ridge': 'Mataas na gulod',
+  'The ridge costs supplies, but the route ahead becomes easier to read.': 'Gumamit ng supplies ang gulod, pero naging mas malinaw ang susunod na ruta.',
+  'Broken Bridge': 'Sirang Tulay',
+  'A damaged footbridge blocks the shortest path. Nearby residents are trying to repair it.': 'Harang sa pinakamaikling daan ang sirang tulay. Sinusubukan itong ayusin ng mga kalapit na residente.',
+  'Help repair the bridge': 'Tumulong sa pag-ayos ng tulay',
+  'Spend energy now to open a safer route for everyone behind you.': 'Gumamit ng energy ngayon para magbukas ng mas ligtas na ruta para sa mga susunod.',
+  'Community crossing': 'Tawiran ng komunidad',
+  'The bridge is stabilized. The team leaves a safer crossing for the community.': 'Napatatag ang tulay. Nag-iwan ang team ng mas ligtas na tawiran para sa komunidad.',
+  'Use the ravine path': 'Dumaan sa landas ng bangin',
+  'Keep moving, but the narrow trail is slow and draining.': 'Magpatuloy, pero mabagal at nakakapagod ang makitid na landas.',
+  'Ravine path': 'Landas ng bangin',
+  'The ravine works, but the detour costs more strength than expected.': 'Nakadaan sa bangin, pero mas maraming lakas ang nagamit kaysa inaasahan.',
+  'Storm Front': 'Paparating na Bagyo',
+  'Dark clouds roll over the trail. A covered school building lies off-route while the open road remains passable.': 'Dumidilim ang ulap sa landas. May covered school sa labas ng ruta habang maaari pa ring daanan ang bukas na kalsada.',
+  'Shelter and regroup': 'Sumilong at magtipon muli',
+  'Lose travel time, recover energy, and check supplies before continuing.': 'Mawawalan ng oras sa biyahe pero makakabawi ng energy at masusuri ang supplies bago magpatuloy.',
+  'Mountain school': 'Paaralan sa bundok',
+  'The storm passes while the team rests. Everyone leaves stronger and organized.': 'Lumipas ang bagyo habang nagpapahinga ang team. Nagpatuloy silang mas malakas at organisado.',
+  'Push through the rain': 'Magpatuloy sa ulan',
+  'Maintain pace at the cost of energy and morale.': 'Panatilihin ang bilis kapalit ng energy at morale.',
+  'Open road': 'Bukas na kalsada',
+  'The team keeps its schedule, but the exposed march takes a toll.': 'Nasunod ng team ang iskedyul, pero mabigat ang naging epekto ng paglakad sa ulan.',
+  'Wayside Family': 'Pamilyang Nasa Daan',
+  'A family along the trail asks for drinking water. The village destination is still several kilometers away.': 'Humihingi ng inuming tubig ang isang pamilya sa tabi ng landas. Ilang kilometro pa ang destinasyong pamayanan.',
+  'Share supplies': 'Magbahagi ng supplies',
+  'Give part of the team reserve and continue with less margin.': 'Magbigay ng bahagi ng reserba ng team at magpatuloy na mas kaunti ang natitira.',
+  'Wayside settlement': 'Pamayanan sa tabi ng daan',
+  'The family is supplied, and the team leaves with renewed purpose despite a smaller reserve.': 'Nabigyan ang pamilya at nagpatuloy ang team na mas buo ang layunin kahit mas kaunti ang reserba.',
+  'Protect mission reserve': 'Pangalagaan ang reserba ng misyon',
+  'Keep critical supplies for the final climb and offer directions to the next water source.': 'Itira ang mahahalagang supplies para sa huling akyat at ituro ang susunod na mapagkukunan ng tubig.',
+  'The team preserves its reserve, but morale dips after the difficult decision.': 'Napangalagaan ang reserba pero bumaba ang morale matapos ang mahirap na desisyon.',
+  'Final Climb': 'Huling Akyat',
+  'The remote village is visible across the final slope. There is a steep shortcut and a longer shaded trail.': 'Tanaw na ang malayong pamayanan sa huling dalisdis. May matarik na shortcut at mas mahabang malilim na landas.',
+  'Take the steep ascent': 'Dumaan sa matarik na akyatan',
+  'Fast finish with a heavy energy cost.': 'Mabilis na pagtatapos pero malaking energy ang magagamit.',
+  'Stone ascent': 'Batong akyatan',
+  'The team crests the hill and reaches the village before sunset.': 'Naabot ng team ang tuktok at nakarating sa pamayanan bago lumubog ang araw.',
+  'Use the shaded trail': 'Dumaan sa malilim na landas',
+  'Safer arrival, but consume more water and food during the longer approach.': 'Mas ligtas ang pagdating pero mas maraming tubig at pagkain ang magagamit sa mas mahabang ruta.',
+  'Forest approach': 'Daan sa kagubatan',
+  'The team arrives steadily with enough strength left to begin serving immediately.': 'Maayos na nakarating ang team na may sapat pang lakas para agad magsimulang maglingkod.',
+  'Plan the expedition. Every decision changes the team reserve and the road ahead.': 'Planuhin ang ekspedisyon. Bawat desisyon ay nagbabago sa reserba ng team at sa susunod na landas.',
+  'Remote village reached. Mission route complete.': 'Narating ang malayong pamayanan. Kumpleto ang ruta ng misyon.',
+  'The expedition reserve collapsed before the village. Replan the route and protect every critical resource.': 'Naubos ang mahalagang reserba bago marating ang pamayanan. Planuhin muli ang ruta at pangalagaan ang bawat kritikal na resource.',
+};
+
+const localizeCopy = (value: string, language: 'en' | 'tl') => language === 'tl' ? (COPY_TL[value] ?? value) : value;
+const localizeRisk = (risk: RouteChoice['risk'], language: 'en' | 'tl') => {
+  if (language === 'en') return risk;
+  if (risk === 'LOW') return 'MABABA';
+  if (risk === 'MEDIUM') return 'KATAMTAMAN';
+  return 'MATAAS';
+};
+
 const clampResource = (value: number) => Math.max(0, Math.min(100, value));
 
 const starsFor = (score: number, resources: Resources): 1 | 2 | 3 => {
@@ -193,12 +257,19 @@ const resourceLabel: Record<ResourceKey, string> = {
   energy: 'ENERGY',
   morale: 'MORALE',
 };
+const resourceLabelTl: Record<ResourceKey, string> = {
+  water: 'TUBIG',
+  food: 'PAGKAIN',
+  energy: 'ENERHIYA',
+  morale: 'MORALE',
+};
 
 function ResourceMeter({ name, value }: { name: ResourceKey; value: number }) {
+  const { language } = useBuklodGameLanguage();
   return (
     <View style={styles.resourceMeter}>
       <View style={styles.resourceHeader}>
-        <Text style={styles.resourceName}>{resourceLabel[name]}</Text>
+        <Text style={styles.resourceName}>{language === 'tl' ? resourceLabelTl[name] : resourceLabel[name]}</Text>
         <Text style={styles.resourceValue}>{value}</Text>
       </View>
       <View style={styles.resourceTrack}>
@@ -213,6 +284,7 @@ type Props = {
 };
 
 export function MissionTrailGameV1({ onFinish }: Props) {
+  const { language, t } = useBuklodGameLanguage();
   const [legIndex, setLegIndex] = useState(0);
   const [resources, setResources] = useState<Resources>(STARTING_RESOURCES);
   const [score, setScore] = useState(0);
@@ -324,19 +396,19 @@ export function MissionTrailGameV1({ onFinish }: Props) {
     <View style={styles.shell}>
       <View style={styles.headerRow}>
         <View>
-          <Text style={styles.eyebrow}>NIEL • MISSION FRONTIER</Text>
-          <Text style={styles.title}>Mission Trail</Text>
+          <Text style={styles.eyebrow}>{t('NIEL • MISSION FRONTIER', 'NIEL • HANGGANAN NG MISYON')}</Text>
+          <Text style={styles.title}>{t('Mission Trail', 'Landas ng Misyon')}</Text>
         </View>
         <View style={styles.scoreBlock}>
           <Text style={styles.score}>{score}</Text>
-          <Text style={styles.scoreLabel}>MISSION SCORE</Text>
+          <Text style={styles.scoreLabel}>{t('MISSION SCORE', 'ISKOR NG MISYON')}</Text>
         </View>
       </View>
 
       <View style={styles.progressRow}>
-        <Text style={styles.progressText}>{finished ? 'ARRIVED' : `LEG ${Math.min(legIndex + 1, LEGS.length)} / ${LEGS.length}`}</Text>
-        <Text style={styles.progressText}>{progress}% route</Text>
-        <Text style={styles.progressText}>Reserve {reserveScore}</Text>
+        <Text style={styles.progressText}>{finished ? t('ARRIVED', 'NAKARATING') : `${t('LEG', 'YUGTO')} ${Math.min(legIndex + 1, LEGS.length)} / ${LEGS.length}`}</Text>
+        <Text style={styles.progressText}>{progress}% {t('route', 'ruta')}</Text>
+        <Text style={styles.progressText}>{t('Reserve', 'Reserba')} {reserveScore}</Text>
       </View>
       <View style={styles.progressTrack}>
         <View style={[styles.progressFill, { width: `${finished ? 100 : progress}%` }]} />
@@ -348,7 +420,7 @@ export function MissionTrailGameV1({ onFinish }: Props) {
         ))}
       </View>
 
-      <Text style={styles.message}>{message}</Text>
+      <Text style={styles.message}>{localizeCopy(message, language)}</Text>
 
       {!finished && !failed ? (
         <Animated.View
@@ -362,13 +434,13 @@ export function MissionTrailGameV1({ onFinish }: Props) {
         >
           <View style={styles.terrainHeader}>
             <View>
-              <Text style={styles.legName}>{leg.name}</Text>
+              <Text style={styles.legName}>{localizeCopy(leg.name, language)}</Text>
               <Text style={styles.distance}>{leg.distance}</Text>
             </View>
-            <Text style={styles.marker}>ROUTE {legIndex + 1}</Text>
+            <Text style={styles.marker}>{t('ROUTE', 'RUTA')} {legIndex + 1}</Text>
           </View>
 
-          <Text style={styles.narrative}>{leg.narrative}</Text>
+          <Text style={styles.narrative}>{localizeCopy(leg.narrative, language)}</Text>
 
           <View style={styles.routeLine}>
             <View style={styles.routeDot} />
@@ -384,44 +456,47 @@ export function MissionTrailGameV1({ onFinish }: Props) {
                 style={({ pressed }) => [styles.choiceCard, pressed && styles.choicePressed]}
               >
                 <View style={styles.choiceTop}>
-                  <Text style={styles.choiceTitle}>{choice.title}</Text>
+                  <Text style={styles.choiceTitle}>{localizeCopy(choice.title, language)}</Text>
                   <View style={styles.riskBadge}>
-                    <Text style={styles.riskText}>{choice.risk}</Text>
+                    <Text style={styles.riskText}>{localizeRisk(choice.risk, language)}</Text>
                   </View>
                 </View>
-                <Text style={styles.terrain}>{choice.terrain}</Text>
-                <Text style={styles.choiceDescription}>{choice.description}</Text>
+                <Text style={styles.terrain}>{localizeCopy(choice.terrain, language)}</Text>
+                <Text style={styles.choiceDescription}>{localizeCopy(choice.description, language)}</Text>
                 <View style={styles.deltaRow}>
                   {(Object.keys(choice.delta) as ResourceKey[]).map((key) => {
                     const value = choice.delta[key] ?? 0;
                     return (
                       <Text key={key} style={styles.deltaText}>
-                        {resourceLabel[key]} {value >= 0 ? '+' : ''}{value}
+                        {language === 'tl' ? resourceLabelTl[key] : resourceLabel[key]} {value >= 0 ? '+' : ''}{value}
                       </Text>
                     );
                   })}
                 </View>
-                <Text style={styles.chooseText}>TAKE THIS ROUTE →</Text>
+                <Text style={styles.chooseText}>{t('TAKE THIS ROUTE →', 'PILIIN ANG RUTANG ITO →')}</Text>
               </Pressable>
             ))}
           </View>
         </Animated.View>
       ) : (
         <View style={[styles.finishCard, failed && styles.failCard]}>
-          <Text style={styles.finishKicker}>{failed ? 'EXPEDITION INTERRUPTED' : 'MISSION FRONTIER'}</Text>
-          <Text style={styles.finishTitle}>{failed ? 'REPLAN THE TRAIL' : 'VILLAGE REACHED'}</Text>
+          <Text style={styles.finishKicker}>{failed ? t('EXPEDITION INTERRUPTED', 'NAPUTOL ANG EKSPEDISYON') : t('MISSION FRONTIER', 'HANGGANAN NG MISYON')}</Text>
+          <Text style={styles.finishTitle}>{failed ? t('REPLAN THE TRAIL', 'PLANUHIN MULI ANG LANDAS') : t('VILLAGE REACHED', 'NARATING ANG PAMAYANAN')}</Text>
           <Text style={styles.finishCopy}>
             {failed
-              ? 'A critical reserve reached zero. Route choice matters more than raw speed.'
-              : 'The route is complete. Later, this result can permanently open Niel’s next frontier station and change the Mission map.'}
+              ? t('A critical reserve reached zero. Route choice matters more than raw speed.', 'May mahalagang reserbang naubos. Mas mahalaga ang tamang pagpili ng ruta kaysa purong bilis.')
+              : t('Your expedition is recorded. Return to the Kingdom Map to see Niel’s frontier progress reflected in the Mission region.', 'Naitala ang ekspedisyon mo. Bumalik sa Mapa ng Kaharian para makita ang progreso ng frontier ni Niel sa Mission region.')}
           </Text>
           <View style={styles.historyBox}>
-            {history.map((item, index) => (
-              <Text key={`${item}-${index}`} style={styles.historyText}>• {item}</Text>
-            ))}
+            {history.map((item, index) => {
+              const [legName, choiceTitle] = item.split(': ');
+              return (
+                <Text key={`${item}-${index}`} style={styles.historyText}>• {localizeCopy(legName, language)}: {localizeCopy(choiceTitle, language)}</Text>
+              );
+            })}
           </View>
           <Pressable onPress={reset} style={styles.replayButton}>
-            <Text style={styles.replayText}>PLAN ANOTHER EXPEDITION</Text>
+            <Text style={styles.replayText}>{t('PLAN ANOTHER EXPEDITION', 'MAGPLANO NG PANIBAGONG EKSPEDISYON')}</Text>
           </Pressable>
         </View>
       )}
