@@ -150,8 +150,11 @@ for (const [gameId, componentFile] of Object.entries(INTERNAL_GAME_FILES)) {
     'useBuklodGameLanguage',
     'playBuklodGameFeedback',
     'onFinish?.',
-    'gameId: GAME_ID',
   ]);
+
+  if (!/\bgameId\s*:\s*GAME_ID\b/.test(component)) {
+    failures.push(`${componentFile} must return results with its canonical GAME_ID.`);
+  }
 
   if (!component.includes('language') || !component.includes('t(')) {
     failures.push(`${componentFile} must render actual internal gameplay UI through the shared EN/TL language context.`);
