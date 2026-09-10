@@ -6,11 +6,16 @@ import React, {
 
 import {
   ActivityIndicator,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+
+import {
+  router,
+} from 'expo-router';
 
 import {
   VideoView,
@@ -30,7 +35,7 @@ import {
   useAuth,
 } from '@/providers/AuthProvider';
 
-type ReelRow = {
+type IgpatRow = {
   id: string;
   user_id?: string | null;
   author_name: string;
@@ -44,7 +49,7 @@ type ReelRow = {
   media_url?: string | null;
 };
 
-function HomeReelVideo({
+function HomeIgpatVideo({
   uri,
 }: {
   uri: string;
@@ -53,6 +58,7 @@ function HomeReelVideo({
     uri,
     instance => {
       instance.loop = false;
+      instance.muted = true;
     }
   );
 
@@ -60,12 +66,16 @@ function HomeReelVideo({
     <VideoView
       player={player}
       style={styles.video}
-      nativeControls
+      nativeControls={false}
       contentFit="cover"
     />
   );
 }
 
+/**
+ * Backward-compatible component name retained so existing Home imports do not
+ * need a risky broad edit. User-facing product identity is now BUKLOD IGPAT.
+ */
 export default function BuklodHomeReelsExtension() {
   const {
     user,
@@ -73,7 +83,7 @@ export default function BuklodHomeReelsExtension() {
   } = useAuth();
 
   const [rows, setRows] =
-    useState<ReelRow[]>([]);
+    useState<IgpatRow[]>([]);
 
   const [loading, setLoading] =
     useState(true);
@@ -90,6 +100,8 @@ export default function BuklodHomeReelsExtension() {
         setLoading(true);
 
         try {
+          // Keep the proven legacy RPC name for database compatibility while
+          // the product surface migrates to the canonical IGPAT identity.
           const {
             data,
             error,
@@ -109,7 +121,7 @@ export default function BuklodHomeReelsExtension() {
           const visibleRows =
             (
               data ?? []
-            ) as ReelRow[];
+            ) as IgpatRow[];
 
           const signed =
             await Promise.all(
@@ -133,7 +145,7 @@ export default function BuklodHomeReelsExtension() {
                     )
                     .createSignedUrl(
                       row.media_path,
-                      3600
+                      1200
                     );
 
                   return {
@@ -157,7 +169,7 @@ export default function BuklodHomeReelsExtension() {
           );
         } catch (error) {
           console.warn(
-            'Home reels:',
+            'Home IGPAT:',
             String(
               (error as any)
                 ?.message ??
@@ -190,13 +202,37 @@ export default function BuklodHomeReelsExtension() {
   return (
     <View style={styles.section}>
       <View style={styles.headingRow}>
-        <Text style={styles.sectionTitle}>
-          REELS
-        </Text>
+        <Pressable
+          style={styles.headingIdentity}
+          onPress={() => router.push('/igpat' as any)}
+          accessibilityRole="button"
+          accessibilityLabel="Open BUKLOD IGPAT"
+        >
+          <Text style={styles.sectionTitle}>
+            BUKLOD IGPAT
+          </Text>
+          <Text style={styles.tagline}>
+            An Instant Bond.
+          </Text>
+        </Pressable>
 
-        <Text style={styles.sectionMeta}>
-          Latest content
-        </Text>
+        <View style={styles.headingActions}>
+          <Pressable
+            style={styles.createButton}
+            onPress={() => router.push('/igpat/create' as any)}
+            accessibilityRole="button"
+            accessibilityLabel="Create an IGPAT"
+          >
+            <Text style={styles.createButtonText}>CREATE</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => router.push('/igpat' as any)}
+            accessibilityRole="button"
+            accessibilityLabel="Watch all IGPAT videos"
+          >
+            <Text style={styles.sectionMeta}>WATCH ›</Text>
+          </Pressable>
+        </View>
       </View>
 
       {loading ? (
@@ -210,16 +246,19 @@ export default function BuklodHomeReelsExtension() {
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={
-            styles.reelRow
+            styles.igpatRow
           }
         >
           {rows.map(row => (
-            <View
+            <Pressable
               key={row.id}
-              style={styles.reelCard}
+              style={styles.igpatCard}
+              onPress={() => router.push('/igpat' as any)}
+              accessibilityRole="button"
+              accessibilityLabel="Watch in BUKLOD IGPAT"
             >
               {!!row.media_url && (
-                <HomeReelVideo
+                <HomeIgpatVideo
                   uri={row.media_url}
                 />
               )}
@@ -253,18 +292,10 @@ export default function BuklodHomeReelsExtension() {
                 )}
 
                 <Text style={styles.stats}>
-                  {Number(
-                    row.reaction_count ?? 0
-                  )}{' '}
-                  reactions
-                  {'  •  '}
-                  {Number(
-                    row.comment_count ?? 0
-                  )}{' '}
-                  comments
+                  Tap to watch in IGPAT
                 </Text>
               </View>
-            </View>
+            </Pressable>
           ))}
         </ScrollView>
       )}
@@ -281,9 +312,33 @@ const styles = StyleSheet.create({
   headingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent:
-      'space-between',
+    justifyContent: 'space-between',
+    gap: 10,
     marginBottom: 8,
+  },
+
+  headingIdentity: {
+    flex: 1,
+  },
+
+  headingActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+
+  createButton: {
+    borderRadius: 999,
+    backgroundColor: colors.green,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+  },
+
+  createButtonText: {
+    color: '#FFFFFF',
+    fontSize: 8.5,
+    fontWeight: '900',
+    letterSpacing: 0.7,
   },
 
   sectionTitle: {
@@ -293,10 +348,17 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
 
-  sectionMeta: {
+  tagline: {
+    marginTop: 2,
     color: colors.muted,
-    fontSize: 9,
+    fontSize: 8.5,
     fontWeight: '700',
+  },
+
+  sectionMeta: {
+    color: colors.greenDark,
+    fontSize: 9,
+    fontWeight: '900',
   },
 
   loading: {
@@ -305,12 +367,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  reelRow: {
+  igpatRow: {
     gap: 10,
     paddingRight: 4,
   },
 
-  reelCard: {
+  igpatCard: {
     width: 278,
     overflow: 'hidden',
     borderWidth: 1,
@@ -358,8 +420,8 @@ const styles = StyleSheet.create({
 
   stats: {
     marginTop: 7,
-    color: colors.muted,
+    color: colors.greenDark,
     fontSize: 8.5,
-    fontWeight: '700',
+    fontWeight: '800',
   },
 });
