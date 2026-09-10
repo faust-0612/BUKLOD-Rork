@@ -13,16 +13,60 @@ $RecoveryRepo = Join-Path $WorkspaceRoot 'RECOVERY\R31_R40_APPROVED'
 $RecoveryPackage = Join-Path $RecoveryRepo 'recovery-import\r31-r40'
 $ReleaseRoot = Join-Path $WorkspaceRoot 'RELEASE\WEB'
 $ReleaseWork = Join-Path $ReleaseRoot 'current'
+$BackupRoot = Join-Path $WorkspaceRoot 'BACKUPS'
+$LogRoot = Join-Path $WorkspaceRoot 'LOGS'
+$ExportRoot = Join-Path $WorkspaceRoot 'EXPORTS'
 $Manifest = Join-Path $WorkspaceRoot 'BUKLOD_WORKSPACE.json'
 
 function Fail([string]$Message) { throw $Message }
 function Full([string]$Path) { return [System.IO.Path]::GetFullPath($Path).TrimEnd('\') }
+function EnsureDir([string]$Path) { New-Item -ItemType Directory -Force -Path $Path | Out-Null }
 
-if (!(Test-Path -LiteralPath $Manifest -PathType Leaf)) {
-  Fail "Canonical workspace is not initialized. Missing: $Manifest"
-}
 if (!(Test-Path -LiteralPath $SourceRoot -PathType Container)) {
   Fail "Canonical SOURCE missing: $SourceRoot"
+}
+
+# Self-heal only a missing workspace identity when the already-centralized SOURCE
+# is provably the expected repository. This does NOT re-centralize files, touch
+# Downloads, reset Git, or overwrite source work.
+if (!(Test-Path -LiteralPath $Manifest -PathType Leaf)) {
+  Write-Host 'Canonical workspace manifest is missing. Verifying existing centralized SOURCE for safe self-initialization...' -ForegroundColor Yellow
+
+  $bootstrapOrigin = (& git -C $SourceRoot remote get-url origin).Trim()
+  if ($LASTEXITCODE -ne 0 -or $bootstrapOrigin -ne $RepoUrl) {
+    Fail "Cannot self-initialize manifest because canonical SOURCE origin is invalid: $bootstrapOrigin"
+  }
+
+  $bootstrapDirty = @(& git -C $SourceRoot status --porcelain)
+  if ($bootstrapDirty.Count -gt 0) {
+    & git -C $SourceRoot status --short
+    Fail 'Cannot self-initialize manifest because canonical SOURCE has local changes. No reset/discard performed.'
+  }
+
+  $bootstrapHead = (& git -C $SourceRoot rev-parse HEAD).Trim()
+  if ([string]::IsNullOrWhiteSpace($bootstrapHead)) {
+    Fail 'Cannot self-initialize manifest because canonical SOURCE HEAD could not be resolved.'
+  }
+
+  foreach ($dir in @($WorkspaceRoot,$ReleaseRoot,$RecoveryRepo,$BackupRoot,$LogRoot,$ExportRoot)) {
+    EnsureDir $dir
+  }
+
+  $newManifest = [ordered]@{
+    workspace_version = 2
+    created_at = (Get-Date).ToString('o')
+    repository = $RepoUrl
+    canonical_source = Full $SourceRoot
+    recovery_r31_r40 = Full $RecoveryRepo
+    release_web = Full $ReleaseRoot
+    backups = Full $BackupRoot
+    logs = Full $LogRoot
+    exports = Full $ExportRoot
+    source_head = $bootstrapHead
+    rule = 'Deploy only through disposable RELEASE staging created from canonical SOURCE. R31/R40 recovery comes only from the approved recovery branch/package. Never deploy from Downloads snapshots.'
+  }
+  $newManifest | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $Manifest -Encoding UTF8
+  Write-Host "Canonical workspace manifest created: $Manifest" -ForegroundColor Green
 }
 
 $workspaceIdentity = Get-Content -LiteralPath $Manifest -Raw | ConvertFrom-Json
@@ -71,7 +115,7 @@ try {
 if (Test-Path -LiteralPath $RecoveryRepo) {
   Remove-Item -LiteralPath $RecoveryRepo -Recurse -Force
 }
-New-Item -ItemType Directory -Force -Path (Split-Path -Parent $RecoveryRepo) | Out-Null
+EnsureDir (Split-Path -Parent $RecoveryRepo)
 
 & git clone --depth 1 --branch $RecoveryBranch --single-branch $RepoUrl $RecoveryRepo
 if ($LASTEXITCODE -ne 0) { Fail 'Could not clone approved R31/R40 recovery branch.' }
@@ -93,7 +137,7 @@ Write-Host 'Approved R31/R40 recovery package: VERIFIED' -ForegroundColor Green
 if (Test-Path -LiteralPath $ReleaseWork) {
   Remove-Item -LiteralPath $ReleaseWork -Recurse -Force
 }
-New-Item -ItemType Directory -Force -Path $ReleaseRoot | Out-Null
+EnsureDir $ReleaseRoot
 
 & git clone --branch main --single-branch $RepoUrl $ReleaseWork
 if ($LASTEXITCODE -ne 0) { Fail 'Could not create disposable release staging clone.' }
