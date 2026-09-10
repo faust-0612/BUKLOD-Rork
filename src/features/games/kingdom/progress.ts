@@ -17,8 +17,11 @@ export type BuklodKingdomPreviewProgress = {
 };
 
 const STORAGE_KEY = 'buklod.kingdom.preview.progress.v1';
+const DUPLICATE_RESULT_WINDOW_MS = 1800;
 const listeners = new Set<(progress: BuklodKingdomPreviewProgress) => void>();
 let cache: BuklodKingdomPreviewProgress | null = null;
+let lastResultSignature = '';
+let lastResultAt = 0;
 
 const emptyProgress = (): BuklodKingdomPreviewProgress => ({ version: 1, stations: {} });
 
@@ -34,6 +37,10 @@ function normalize(value: unknown): BuklodKingdomPreviewProgress {
 function publish(progress: BuklodKingdomPreviewProgress) {
   cache = progress;
   listeners.forEach((listener) => listener(progress));
+}
+
+function resultSignature(result: BuklodGameResult) {
+  return [result.gameId, result.status, result.score || 0, result.stars].join('|');
 }
 
 export function getCachedBuklodKingdomPreviewProgress() {
@@ -55,6 +62,17 @@ export async function loadBuklodKingdomPreviewProgress() {
 }
 
 export async function recordBuklodKingdomPreviewResult(result: BuklodGameResult) {
+  // Older route screens may still forward the same finish result while the shared
+  // BuklodGameStage also records it. Treat the same near-simultaneous result as one
+  // completion so one game finish can never add two Kingdom clears.
+  const signature = resultSignature(result);
+  const now = Date.now();
+  if (signature === lastResultSignature && now - lastResultAt < DUPLICATE_RESULT_WINDOW_MS) {
+    return loadBuklodKingdomPreviewProgress();
+  }
+  lastResultSignature = signature;
+  lastResultAt = now;
+
   const current = await loadBuklodKingdomPreviewProgress();
   const previous = current.stations[result.gameId];
   const won = result.status === 'won';
