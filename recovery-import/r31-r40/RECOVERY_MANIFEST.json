@@ -1,0 +1,29 @@
+﻿{
+    "schema_version":  1,
+    "purpose":  "Approved local R31/R40 recovery package staged for remote review only; not runtime source.",
+    "source_snapshot_label":  "BUKLOD-Rork-current-20260905_131136",
+    "imported_at":  "2026-09-10T14:21:05.4008055+08:00",
+    "parent_branch":  "chore/safe-size-reduction-r1",
+    "source_files":  [
+                         "src\\components\\points\\BuklodProfileCharacterCard.tsx",
+                         "src\\components\\points\\BuklodCharacterCustomizeSheet.tsx",
+                         "src\\components\\points\\BuklodProgressiveCharacterSelector.tsx",
+                         "src\\components\\points\\BuklodProgressiveCharacterArt.tsx",
+                         "src\\lib\\buklodProgressiveCharacter.ts",
+                         "src\\components\\points\\BuklodSpecialCharacterSeries.tsx",
+                         "src\\components\\points\\BuklodSpecialSeriesOne.tsx",
+                         "src\\components\\points\\BuklodCollectibleDetail.tsx",
+                         "src\\lib\\buklodSpecialCharacterAssets.ts",
+                         "src\\lib\\buklodSpecialCharacterServer.ts",
+                         "src\\lib\\buklodSpecialCharacters.ts"
+                     ],
+    "immutable_r31_sha256":  {
+                                 "assets\\images\\characters\\phan_r26.jpg":  "1598EF159BFC4AB784A681BEF7BC53FF839DBEA92CB729EE03A15BAA4F31CCDB",
+                                 "assets\\images\\characters\\quin_r26.jpg":  "769BCF6F61DEB70E1D52E7515AF9C69CC6562545E86D2DD390355770E5C33892",
+                                 "assets\\images\\characters\\van_r26.jpg":  "B52B6B7E3562B2D884CC677D67C67CC71898273BF5BF5068A077B10B5DC87C66",
+                                 "assets\\images\\characters\\christian_r26.jpg":  "1AE9C03466876CEFC443FF55641D7EAD516DF82FF340A632EE852D7DD8B07739",
+                                 "assets\\images\\characters\\lhen_r26.jpg":  "17A2FDB2FB18252AB494589E689E5044C27B86065A988D70094997971D9D66EB"
+                             },
+    "r40_named_asset_count":  168,
+    "safety":  "Do not merge this review branch directly to main. Forward-port reviewed files into the cleanup branch while preserving current V2."
+}
