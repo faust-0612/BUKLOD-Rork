@@ -1,7 +1,6 @@
 import React from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
-import { recordBuklodKingdomPreviewResult } from '@/features/games/kingdom/progress';
 import { EnterpriseBuilderGameV1 } from '@/features/games/phan/EnterpriseBuilderGameV1';
 import { BuklodGameStage } from '@/features/games/runtime/BuklodGameStage';
 
@@ -11,7 +10,7 @@ export default function PhanEnterpriseBuilderScreen() {
   return (
     <BuklodGameStage biome="farm" gameId={GAME_ID}>
       <ScrollView contentContainerStyle={styles.page}>
-        <EnterpriseBuilderGameV1 onFinish={(result) => { void recordBuklodKingdomPreviewResult(result); }} />
+        <EnterpriseBuilderGameV1 />
       </ScrollView>
     </BuklodGameStage>
   );
