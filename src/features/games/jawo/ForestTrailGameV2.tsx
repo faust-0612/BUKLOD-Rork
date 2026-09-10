@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 
 import { playBuklodGameFeedback } from '../runtime/BuklodGameFeedback';
+import { useBuklodGameLanguage } from '../runtime/BuklodGameLanguage';
 import type { BuklodGameResult } from '../types';
 
 type Lane = 0 | 1 | 2;
@@ -40,6 +41,50 @@ const ZONES = [
   'Ancient Tree Path',
   'Firefly Hollow',
 ] as const;
+
+const ZONE_TL: Record<string, string> = {
+  'Forest Edge': 'Gilid ng Kagubatan',
+  'Fern Corridor': 'Daanan ng Pako',
+  'Creek Bend': 'Liko ng Sapa',
+  'Whispering Pines': 'Bulong ng mga Pino',
+  'Moss Crossing': 'Tawiran ng Lumot',
+  'Hidden Grove': 'Nakatagong Punlaan',
+  'Old Ranger Trail': 'Lumang Landas ng Bantay-Gubat',
+  'Ancient Tree Path': 'Landas ng Sinaunang Puno',
+  'Firefly Hollow': 'Lambak ng Alitaptap',
+};
+
+const displayZone = (name: string, language: 'en' | 'tl') => language === 'tl' ? (ZONE_TL[name] ?? name) : name;
+
+const localizeMessage = (message: string, language: 'en' | 'tl') => {
+  if (language === 'en') return message;
+
+  const exact: Record<string, string> = {
+    'Swipe or tap to change trail. Stay alert.': 'Mag-swipe o mag-tap para lumipat ng landas. Manatiling alerto.',
+    'The trail opens into the Hidden Grove.': 'Bumukas ang landas patungo sa Nakatagong Punlaan.',
+    'The forest closes in. Regroup and try again.': 'Sumikip ang kagubatan. Maghanda muli at subukan ulit.',
+    'Run the trail. Read the forest, not the buttons.': 'Takbuhin ang landas. Basahin ang kagubatan, hindi ang mga button.',
+    'Listen. Watch the path. Move only when needed.': 'Makinig. Bantayan ang landas. Gumalaw lamang kapag kailangan.',
+  };
+  if (exact[message]) return exact[message];
+
+  let match = message.match(/^Impact at (.+)\. Recover and change trail\.$/);
+  if (match) return `Tumama sa ${displayZone(match[1], 'tl')}. Bumawi at lumipat ng landas.`;
+
+  match = message.match(/^Light chain x(\d+)\. The forest is responding\.$/);
+  if (match) return `Sunod-sunod na Liwanag x${match[1]}. Tumutugon ang kagubatan.`;
+
+  match = message.match(/^Trail Light secured at (.+)\.$/);
+  if (match) return `Nakuha ang Trail Light sa ${displayZone(match[1], 'tl')}.`;
+
+  match = message.match(/^Clean run x(\d+)\. Keep the rhythm\.$/);
+  if (match) return `Malinis na takbo x${match[1]}. Panatilihin ang ritmo.`;
+
+  match = message.match(/^Clear through (.+)\.$/);
+  if (match) return `Ligtas na nakadaan sa ${displayZone(match[1], 'tl')}.`;
+
+  return message;
+};
 
 const makeTrail = (): Encounter[] =>
   Array.from({ length: TRAIL_LENGTH }, (_, index) => {
@@ -74,6 +119,7 @@ type Props = {
 };
 
 export function ForestTrailGameV2({ onFinish }: Props) {
+  const { language, t } = useBuklodGameLanguage();
   const trail = useMemo(makeTrail, []);
   const [phase, setPhase] = useState<Phase>('ready');
   const [lane, setLane] = useState<Lane>(1);
@@ -348,13 +394,13 @@ export function ForestTrailGameV2({ onFinish }: Props) {
 
       <View style={styles.topHud}>
         <View style={styles.identityBlock}>
-          <Text style={styles.kicker}>JAWO • WHISPERING FOREST</Text>
-          <Text style={styles.zoneName}>{current?.name ?? 'Forest Trail'}</Text>
+          <Text style={styles.kicker}>{t('JAWO • WHISPERING FOREST', 'JAWO • BULONG NA KAGUBATAN')}</Text>
+          <Text style={styles.zoneName}>{displayZone(current?.name ?? 'Forest Trail', language)}</Text>
         </View>
         <View style={styles.hudRight}>
-          <View style={styles.statPill}><Text style={styles.statLabel}>LIGHT</Text><Text style={styles.statValue}>{lights}</Text></View>
+          <View style={styles.statPill}><Text style={styles.statLabel}>{t('LIGHT', 'LIWANAG')}</Text><Text style={styles.statValue}>{lights}</Text></View>
           <View style={styles.statPill}><Text style={styles.statLabel}>COMBO</Text><Text style={styles.statValue}>x{combo}</Text></View>
-          <View style={styles.statPill}><Text style={styles.statLabel}>SCORE</Text><Text style={styles.statValue}>{score}</Text></View>
+          <View style={styles.statPill}><Text style={styles.statLabel}>{t('SCORE', 'ISKOR')}</Text><Text style={styles.statValue}>{score}</Text></View>
         </View>
       </View>
 
@@ -369,8 +415,8 @@ export function ForestTrailGameV2({ onFinish }: Props) {
       </View>
 
       <View style={styles.messagePanel} pointerEvents="none">
-        <Text style={styles.message}>{message}</Text>
-        {phase === 'playing' ? <Text style={styles.speedText}>ZONE {intensity} • {progress}%</Text> : null}
+        <Text style={styles.message}>{localizeMessage(message, language)}</Text>
+        {phase === 'playing' ? <Text style={styles.speedText}>{t('ZONE', 'SONA')} {intensity} • {progress}%</Text> : null}
       </View>
 
       <View style={styles.playerArea} pointerEvents="none">
@@ -385,24 +431,27 @@ export function ForestTrailGameV2({ onFinish }: Props) {
 
       {phase === 'playing' ? (
         <View style={styles.touchZones}>
-          <Pressable accessibilityLabel="Move Jawo left" onPress={() => shiftLane(-1)} style={styles.touchZone} />
-          <Pressable accessibilityLabel="Move Jawo right" onPress={() => shiftLane(1)} style={styles.touchZone} />
+          <Pressable accessibilityLabel={t('Move Jawo left', 'Ilipat si Jawo pakaliwa')} onPress={() => shiftLane(-1)} style={styles.touchZone} />
+          <Pressable accessibilityLabel={t('Move Jawo right', 'Ilipat si Jawo pakanan')} onPress={() => shiftLane(1)} style={styles.touchZone} />
         </View>
       ) : null}
 
       {phase === 'ready' ? (
         <View style={styles.overlay}>
           <View style={styles.heroCard}>
-            <Text style={styles.heroEyebrow}>BUKLOD KINGDOM • ADVENTURE 01</Text>
-            <Text style={styles.heroTitle}>FOREST TRAIL</Text>
-            <Text style={styles.heroCopy}>Move across three forest trails. Avoid fallen rock, collect Trail Lights, and build a clean-run combo as the forest speeds up.</Text>
+            <Text style={styles.heroEyebrow}>{t('BUKLOD KINGDOM • ADVENTURE 01', 'BUKLOD KINGDOM • PAKIKIPAGSAPALARAN 01')}</Text>
+            <Text style={styles.heroTitle}>{t('FOREST TRAIL', 'LANDAS SA KAGUBATAN')}</Text>
+            <Text style={styles.heroCopy}>{t(
+              'Move across three forest trails. Avoid fallen rock, collect Trail Lights, and build a clean-run combo as the forest speeds up.',
+              'Lumipat sa tatlong landas ng kagubatan. Umiwas sa mga nahulog na bato, kolektahin ang Trail Lights, at bumuo ng malinis na combo habang bumibilis ang kagubatan.',
+            )}</Text>
             <View style={styles.instructionRow}>
-              <View style={styles.instructionChip}><Text style={styles.instructionTitle}>SWIPE</Text><Text style={styles.instructionCopy}>left / right</Text></View>
-              <View style={styles.instructionChip}><Text style={styles.instructionTitle}>READ</Text><Text style={styles.instructionCopy}>rock + light</Text></View>
-              <View style={styles.instructionChip}><Text style={styles.instructionTitle}>FLOW</Text><Text style={styles.instructionCopy}>keep combo</Text></View>
+              <View style={styles.instructionChip}><Text style={styles.instructionTitle}>{t('SWIPE', 'SWIPE')}</Text><Text style={styles.instructionCopy}>{t('left / right', 'kaliwa / kanan')}</Text></View>
+              <View style={styles.instructionChip}><Text style={styles.instructionTitle}>{t('READ', 'BASA')}</Text><Text style={styles.instructionCopy}>{t('rock + light', 'bato + liwanag')}</Text></View>
+              <View style={styles.instructionChip}><Text style={styles.instructionTitle}>{t('FLOW', 'RITMO')}</Text><Text style={styles.instructionCopy}>{t('keep combo', 'panatilihin ang combo')}</Text></View>
             </View>
             <Pressable onPress={start} style={({ pressed }) => [styles.startButton, pressed && styles.startButtonPressed]}>
-              <Text style={styles.startButtonText}>ENTER THE FOREST</Text>
+              <Text style={styles.startButtonText}>{t('ENTER THE FOREST', 'PUMASOK SA KAGUBATAN')}</Text>
             </Pressable>
           </View>
         </View>
@@ -410,21 +459,23 @@ export function ForestTrailGameV2({ onFinish }: Props) {
 
       {phase === 'countdown' ? (
         <Animated.View style={[styles.countdownOverlay, { opacity: startOpacity }]} pointerEvents="none">
-          <Text style={styles.countdownLabel}>TRAIL OPENS IN</Text>
-          <Text style={styles.countdownNumber}>{countdown > 0 ? countdown : 'GO'}</Text>
+          <Text style={styles.countdownLabel}>{t('TRAIL OPENS IN', 'BUBUKAS ANG LANDAS SA')}</Text>
+          <Text style={styles.countdownNumber}>{countdown > 0 ? countdown : t('GO', 'TAKBO')}</Text>
         </Animated.View>
       ) : null}
 
       {phase === 'won' || phase === 'lost' ? (
         <View style={styles.overlay}>
           <View style={styles.resultCard}>
-            <Text style={styles.heroEyebrow}>{phase === 'won' ? 'STATION CLEARED' : 'TRAIL INTERRUPTED'}</Text>
-            <Text style={styles.resultTitle}>{phase === 'won' ? 'HIDDEN GROVE FOUND' : 'RETURN TO THE TRAIL'}</Text>
-            <Text style={styles.resultScore}>{score.toLocaleString()} pts</Text>
-            <Text style={styles.resultMeta}>Best combo x{bestCombo} • Trail Lights {lights} • {'★'.repeat(starsForScore(score)) || 'No star yet'}</Text>
-            <Text style={styles.resultCopy}>{phase === 'won' ? 'This station is ready to unlock a permanent map change once Kingdom persistence is connected.' : 'No punishment. Replay, learn the rhythm, and push deeper into the forest.'}</Text>
+            <Text style={styles.heroEyebrow}>{phase === 'won' ? t('STATION CLEARED', 'NALAMPASAN ANG ESTASYON') : t('TRAIL INTERRUPTED', 'NAPUTOL ANG LANDAS')}</Text>
+            <Text style={styles.resultTitle}>{phase === 'won' ? t('HIDDEN GROVE FOUND', 'NATAGPUAN ANG NAKATAGONG PUNLAAN') : t('RETURN TO THE TRAIL', 'BUMALIK SA LANDAS')}</Text>
+            <Text style={styles.resultScore}>{score.toLocaleString()} {t('pts', 'puntos')}</Text>
+            <Text style={styles.resultMeta}>{t('Best combo', 'Pinakamahusay na combo')} x{bestCombo} • Trail Lights {lights} • {'★'.repeat(starsForScore(score)) || t('No star yet', 'Wala pang bituin')}</Text>
+            <Text style={styles.resultCopy}>{phase === 'won'
+              ? t('Your clear is recorded. Return to the Kingdom Map to see this station’s progress reflected in the living world.', 'Naitala ang tagumpay mo. Bumalik sa Mapa ng Kaharian para makita ang progreso ng estasyong ito sa buhay na mundo.')
+              : t('No punishment. Replay, learn the rhythm, and push deeper into the forest.', 'Walang parusa. Ulitin, aralin ang ritmo, at tumuloy nang mas malalim sa kagubatan.')}</Text>
             <Pressable onPress={reset} style={({ pressed }) => [styles.startButton, pressed && styles.startButtonPressed]}>
-              <Text style={styles.startButtonText}>{phase === 'won' ? 'RUN AGAIN' : 'TRY AGAIN'}</Text>
+              <Text style={styles.startButtonText}>{phase === 'won' ? t('RUN AGAIN', 'TAKBO MULI') : t('TRY AGAIN', 'SUBUKAN MULI')}</Text>
             </Pressable>
           </View>
         </View>
