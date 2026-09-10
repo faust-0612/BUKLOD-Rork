@@ -16,14 +16,25 @@ export type BuklodKingdomPreviewProgress = {
   stations: Record<string, BuklodKingdomStationProgress>;
 };
 
-const STORAGE_KEY = 'buklod.kingdom.preview.progress.v1';
+const STORAGE_PREFIX = 'buklod.kingdom.preview.progress.v2';
 const DUPLICATE_RESULT_WINDOW_MS = 1800;
-const listeners = new Set<(progress: BuklodKingdomPreviewProgress) => void>();
-let cache: BuklodKingdomPreviewProgress | null = null;
-let lastResultSignature = '';
-let lastResultAt = 0;
+
+type Listener = (progress: BuklodKingdomPreviewProgress) => void;
+
+const caches = new Map<string, BuklodKingdomPreviewProgress>();
+const listeners = new Map<string, Set<Listener>>();
+const lastResults = new Map<string, { signature: string; at: number }>();
 
 const emptyProgress = (): BuklodKingdomPreviewProgress => ({ version: 1, stations: {} });
+
+function ownerKey(ownerId?: string | null) {
+  const normalized = String(ownerId ?? '').trim();
+  return normalized ? normalized.replace(/[^a-zA-Z0-9_-]/g, '_') : 'guest';
+}
+
+function storageKey(ownerId?: string | null) {
+  return `${STORAGE_PREFIX}.${ownerKey(ownerId)}`;
+}
 
 function normalize(value: unknown): BuklodKingdomPreviewProgress {
   if (!value || typeof value !== 'object') return emptyProgress();
@@ -34,46 +45,58 @@ function normalize(value: unknown): BuklodKingdomPreviewProgress {
   };
 }
 
-function publish(progress: BuklodKingdomPreviewProgress) {
-  cache = progress;
-  listeners.forEach((listener) => listener(progress));
+function publish(ownerId: string | null | undefined, progress: BuklodKingdomPreviewProgress) {
+  const key = ownerKey(ownerId);
+  caches.set(key, progress);
+  listeners.get(key)?.forEach((listener) => listener(progress));
 }
 
 function resultSignature(result: BuklodGameResult) {
   return [result.gameId, result.status, result.score || 0, result.stars].join('|');
 }
 
-export function getCachedBuklodKingdomPreviewProgress() {
-  return cache;
+export function getCachedBuklodKingdomPreviewProgress(ownerId?: string | null) {
+  return caches.get(ownerKey(ownerId)) ?? null;
 }
 
-export async function loadBuklodKingdomPreviewProgress() {
-  if (cache) return cache;
+export async function loadBuklodKingdomPreviewProgress(ownerId?: string | null) {
+  const key = ownerKey(ownerId);
+  const cached = caches.get(key);
+  if (cached) return cached;
+
   try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
+    const raw = await AsyncStorage.getItem(storageKey(ownerId));
     const progress = raw ? normalize(JSON.parse(raw)) : emptyProgress();
-    publish(progress);
+    publish(ownerId, progress);
     return progress;
   } catch {
     const progress = emptyProgress();
-    publish(progress);
+    publish(ownerId, progress);
     return progress;
   }
 }
 
-export async function recordBuklodKingdomPreviewResult(result: BuklodGameResult) {
-  // Older route screens may still forward the same finish result while the shared
-  // BuklodGameStage also records it. Treat the same near-simultaneous result as one
-  // completion so one game finish can never add two Kingdom clears.
+export async function recordBuklodKingdomPreviewResult(
+  result: BuklodGameResult,
+  ownerId?: string | null,
+) {
+  const key = ownerKey(ownerId);
   const signature = resultSignature(result);
   const now = Date.now();
-  if (signature === lastResultSignature && now - lastResultAt < DUPLICATE_RESULT_WINDOW_MS) {
-    return loadBuklodKingdomPreviewProgress();
-  }
-  lastResultSignature = signature;
-  lastResultAt = now;
+  const previousResult = lastResults.get(key);
 
-  const current = await loadBuklodKingdomPreviewProgress();
+  // Legacy route screens may still forward the same finish result while the shared
+  // BuklodGameStage also records it. Treat the same near-simultaneous result as one
+  // completion so one game finish can never add two Kingdom clears.
+  if (
+    previousResult?.signature === signature &&
+    now - previousResult.at < DUPLICATE_RESULT_WINDOW_MS
+  ) {
+    return loadBuklodKingdomPreviewProgress(ownerId);
+  }
+  lastResults.set(key, { signature, at: now });
+
+  const current = await loadBuklodKingdomPreviewProgress(ownerId);
   const previous = current.stations[result.gameId];
   const won = result.status === 'won';
 
@@ -91,18 +114,46 @@ export async function recordBuklodKingdomPreviewResult(result: BuklodGameResult)
     stations: { ...current.stations, [result.gameId]: nextStation },
   };
 
-  cache = next;
+  caches.set(key, next);
   try {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    await AsyncStorage.setItem(storageKey(ownerId), JSON.stringify(next));
   } finally {
-    publish(next);
+    publish(ownerId, next);
+  }
+  return next;
+}
+
+/**
+ * System-admin QA only: clears the current account/device Kingdom preview state.
+ * The caller must enforce system_admin authorization and explicit confirmation.
+ */
+export async function resetBuklodKingdomPreviewProgress(ownerId?: string | null) {
+  const key = ownerKey(ownerId);
+  const next = emptyProgress();
+  caches.set(key, next);
+  lastResults.delete(key);
+  try {
+    await AsyncStorage.removeItem(storageKey(ownerId));
+  } finally {
+    publish(ownerId, next);
   }
   return next;
 }
 
 export function subscribeBuklodKingdomPreviewProgress(
-  listener: (progress: BuklodKingdomPreviewProgress) => void,
+  listener: Listener,
+  ownerId?: string | null,
 ) {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
+  const key = ownerKey(ownerId);
+  let bucket = listeners.get(key);
+  if (!bucket) {
+    bucket = new Set<Listener>();
+    listeners.set(key, bucket);
+  }
+  bucket.add(listener);
+  return () => {
+    const current = listeners.get(key);
+    current?.delete(listener);
+    if (current && current.size === 0) listeners.delete(key);
+  };
 }
