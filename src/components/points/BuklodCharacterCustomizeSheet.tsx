@@ -1,1 +1,1 @@
-export { default } from '@/components/points/BuklodCharacterCustomizeRestored';
+export { default } from '@/components/points/BuklodCharacterStudioFull';
