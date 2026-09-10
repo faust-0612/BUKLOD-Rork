@@ -24,11 +24,20 @@ type Listener = (progress: BuklodKingdomPreviewProgress) => void;
 const caches = new Map<string, BuklodKingdomPreviewProgress>();
 const listeners = new Map<string, Set<Listener>>();
 const lastResults = new Map<string, { signature: string; at: number }>();
+let activeOwnerId: string | null = null;
 
 const emptyProgress = (): BuklodKingdomPreviewProgress => ({ version: 1, stations: {} });
 
+export function setBuklodKingdomProgressOwner(ownerId?: string | null) {
+  activeOwnerId = String(ownerId ?? '').trim() || null;
+}
+
+function resolvedOwner(ownerId?: string | null) {
+  return ownerId === undefined ? activeOwnerId : ownerId;
+}
+
 function ownerKey(ownerId?: string | null) {
-  const normalized = String(ownerId ?? '').trim();
+  const normalized = String(resolvedOwner(ownerId) ?? '').trim();
   return normalized ? normalized.replace(/[^a-zA-Z0-9_-]/g, '_') : 'guest';
 }
 
