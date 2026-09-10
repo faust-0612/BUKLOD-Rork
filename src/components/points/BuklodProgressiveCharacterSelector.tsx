@@ -40,7 +40,7 @@ type Props = {
 
 export default function BuklodProgressiveCharacterSelector({
   displayState,
-  activeCharacterId,
+  activeCharacterId = null,
   characterLevel = 1,
   characterPointsSinceSelection = 0,
   onUseCharacter,
@@ -50,14 +50,13 @@ export default function BuklodProgressiveCharacterSelector({
 
   const state = useMemo(
     () => displayState ?? getProgressiveCharacterDisplayState({
-      activeCharacterId: activeCharacterId ?? 'phan',
+      activeCharacterId,
       characterLevel,
       characterPointsSinceSelection,
     }),
     [activeCharacterId, characterLevel, characterPointsSinceSelection, displayState],
   );
 
-  const previewId = state.activeCharacterId;
   const previewLevel = state.currentLevel;
   const pointsAtLevel = getProgressiveLevelPoints(previewLevel);
 
@@ -112,7 +111,7 @@ export default function BuklodProgressiveCharacterSelector({
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.levelRow}>
           {Array.from({ length: 20 }, (_, index) => index + 1).map((level) => {
-            const reached = level <= state.currentLevel;
+            const reached = Boolean(state.activeCharacterId) && level <= state.currentLevel;
             return (
               <View
                 key={level}
@@ -120,7 +119,7 @@ export default function BuklodProgressiveCharacterSelector({
                 style={[
                   styles.levelBadge,
                   {
-                    borderColor: level === state.currentLevel ? theme.accent : theme.border,
+                    borderColor: state.activeCharacterId && level === state.currentLevel ? theme.accent : theme.border,
                     backgroundColor: reached ? theme.accentSoft : theme.surface,
                   },
                 ]}
