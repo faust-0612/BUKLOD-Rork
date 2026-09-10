@@ -1,7 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { recordBuklodKingdomPreviewResult } from '@/features/games/kingdom/progress';
 import { BuklodGameStage } from '@/features/games/runtime/BuklodGameStage';
 import { PlaygroundPathGameV2 } from '@/features/games/trudice/PlaygroundPathGameV2';
 
@@ -11,7 +10,7 @@ export default function TrudicePlaygroundMemoryScreen() {
   return (
     <View style={styles.page}>
       <BuklodGameStage biome="playground" gameId={GAME_ID}>
-        <PlaygroundPathGameV2 onFinish={(result) => { void recordBuklodKingdomPreviewResult(result); }} />
+        <PlaygroundPathGameV2 />
       </BuklodGameStage>
     </View>
   );
