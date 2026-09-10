@@ -43,6 +43,10 @@ type Props = PressableProps & {
  * web taps feel stiff and occasionally disappear. Web keeps the same tap / long
  * press contract but tolerates up to 20px movement and a slightly wider release
  * retention area. Android/iOS continue to use BuklodPressable.tsx unchanged.
+ *
+ * IMPORTANT: do not forward native-only Pressable props (for example
+ * android_ripple) into react-native-web. They can surface as render-time web
+ * errors in nested Community controls and are not needed by the browser.
  */
 export default function BuklodPressable({
   instant = false,
@@ -54,9 +58,9 @@ export default function BuklodPressable({
   onLongPress,
   onTouchMove,
   disabled,
-  android_ripple,
+  android_ripple: _androidRipple,
   delayLongPress = BUKLOD_LONG_PRESS_MS,
-  unstable_pressDelay,
+  unstable_pressDelay: _unstablePressDelay,
   hitSlop,
   pressRetentionOffset,
   ...rest
@@ -66,9 +70,7 @@ export default function BuklodPressable({
   const fired = useRef(false);
   const longPressed = useRef(false);
 
-  const allowInstant =
-    instant &&
-    !onLongPress;
+  const allowInstant = instant && !onLongPress;
 
   const resolvedHitSlop =
     hitSlop ??
@@ -107,16 +109,6 @@ export default function BuklodPressable({
       hitSlop={resolvedHitSlop}
       pressRetentionOffset={
         pressRetentionOffset ?? WEB_PRESS_RETENTION
-      }
-      unstable_pressDelay={
-        typeof unstable_pressDelay === 'number'
-          ? unstable_pressDelay
-          : 0
-      }
-      android_ripple={
-        android_ripple ?? {
-          color: 'transparent',
-        }
       }
       onTouchMove={event => {
         trackMovement(event);
