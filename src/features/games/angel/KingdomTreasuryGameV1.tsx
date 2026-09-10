@@ -2,6 +2,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { playBuklodGameFeedback } from '../runtime/BuklodGameFeedback';
+import { useBuklodGameLanguage } from '../runtime/BuklodGameLanguage';
 import type { BuklodGameResult } from '../types';
 
 type FundKey = 'relief' | 'infrastructure' | 'learning' | 'mission' | 'reserve';
@@ -12,7 +13,9 @@ type KingdomHealth = { welfare: number; stability: number; growth: number; trust
 type Emergency = {
   id: string;
   title: string;
+  titleTl: string;
   description: string;
+  descriptionTl: string;
   severity: 1 | 2 | 3;
   primary: FundKey;
   secondary: FundKey;
@@ -23,19 +26,51 @@ const GAME_ID = 'angel-kingdom-treasury';
 const STARTING_TREASURY = 1000;
 const STEP = 50;
 
-const FUND_META: Record<FundKey, { label: string; purpose: string; accent: string }> = {
-  relief: { label: 'People & Relief', purpose: 'Food, emergency help, vulnerable families', accent: '#d98469' },
-  infrastructure: { label: 'Infrastructure', purpose: 'Roads, repairs, water access, community facilities', accent: '#7da6b6' },
-  learning: { label: 'Learning', purpose: 'Education, formation, youth development', accent: '#b79ad6' },
-  mission: { label: 'Mission & Service', purpose: 'Community outreach, care teams, mission support', accent: '#8fb37c' },
-  reserve: { label: 'Emergency Reserve', purpose: 'Protection against unexpected kingdom-wide shocks', accent: '#d5b85a' },
+const FUND_META: Record<FundKey, { label: string; labelTl: string; purpose: string; purposeTl: string; accent: string }> = {
+  relief: {
+    label: 'People & Relief',
+    labelTl: 'Tao at Tulong',
+    purpose: 'Food, emergency help, vulnerable families',
+    purposeTl: 'Pagkain, agarang tulong, at mga pamilyang nangangailangan',
+    accent: '#d98469',
+  },
+  infrastructure: {
+    label: 'Infrastructure',
+    labelTl: 'Imprastraktura',
+    purpose: 'Roads, repairs, water access, community facilities',
+    purposeTl: 'Kalsada, pagkukumpuni, tubig, at pasilidad ng komunidad',
+    accent: '#7da6b6',
+  },
+  learning: {
+    label: 'Learning',
+    labelTl: 'Pagkatuto',
+    purpose: 'Education, formation, youth development',
+    purposeTl: 'Edukasyon, formation, at pag-unlad ng kabataan',
+    accent: '#b79ad6',
+  },
+  mission: {
+    label: 'Mission & Service',
+    labelTl: 'Misyon at Paglilingkod',
+    purpose: 'Community outreach, care teams, mission support',
+    purposeTl: 'Community outreach, care teams, at suporta sa misyon',
+    accent: '#8fb37c',
+  },
+  reserve: {
+    label: 'Emergency Reserve',
+    labelTl: 'Emergency Reserve',
+    purpose: 'Protection against unexpected kingdom-wide shocks',
+    purposeTl: 'Proteksiyon laban sa biglaang pangangailangan ng buong kaharian',
+    accent: '#d5b85a',
+  },
 };
 
 const EMERGENCIES: Emergency[] = [
   {
     id: 'storm',
     title: 'Severe Storm Damage',
+    titleTl: 'Malubhang Pinsala ng Bagyo',
     description: 'Several homes were damaged and the eastern bridge is unsafe. Relief is urgent, but repairs are needed to keep supplies moving.',
+    descriptionTl: 'Nasira ang ilang tahanan at delikado ang silangang tulay. Kailangan ang agarang tulong at pagkukumpuni para magpatuloy ang supplies.',
     severity: 3,
     primary: 'relief',
     secondary: 'infrastructure',
@@ -44,7 +79,9 @@ const EMERGENCIES: Emergency[] = [
   {
     id: 'water',
     title: 'Water System Failure',
+    titleTl: 'Pagkasira ng Sistema ng Tubig',
     description: 'A major water line fails near the learning district. Repairs are costly and families need temporary support while access is restored.',
+    descriptionTl: 'Nasira ang pangunahing linya ng tubig malapit sa learning district. Mahal ang pagkukumpuni at kailangan ng pansamantalang tulong ng mga pamilya.',
     severity: 2,
     primary: 'infrastructure',
     secondary: 'relief',
@@ -53,13 +90,23 @@ const EMERGENCIES: Emergency[] = [
   {
     id: 'displacement',
     title: 'Families Arrive at the Frontier',
+    titleTl: 'Dumating ang mga Pamilya sa Frontier',
     description: 'Displaced families arrive with immediate needs while local service teams are already stretched.',
+    descriptionTl: 'Dumating ang mga pamilyang lumikas na may agarang pangangailangan habang abala na ang local service teams.',
     severity: 2,
     primary: 'relief',
     secondary: 'mission',
     minimumResponse: 200,
   },
 ];
+
+const RESULT_TL: Record<string, string> = {
+  'BALANCED STEWARDSHIP': 'BALANSENG PAMAMAHALA',
+  'STEWARDSHIP BREAKDOWN': 'BUMAGSAK ANG PAMAMAHALA',
+  'KINGDOM THRIVES': 'UMUUNLAD ANG KAHARIAN',
+  'KINGDOM UNDER STRAIN': 'NAHIHIRAPAN ANG KAHARIAN',
+  'CRISIS SURVIVED • RESERVE EXHAUSTED': 'NALAMPASAN ANG KRISIS • UBOS ANG RESERVE',
+};
 
 const clamp = (value: number, min = 0, max = 100) => Math.min(max, Math.max(min, value));
 const starsForScore = (score: number): 1 | 2 | 3 => (score >= 1450 ? 3 : score >= 1125 ? 2 : 1);
@@ -72,11 +119,38 @@ const initialAllocation: Allocation = {
   reserve: 250,
 };
 
-function Meter({ label, value }: { label: string; value: number }) {
+const localizeMessage = (message: string, language: 'en' | 'tl', emergency: Emergency) => {
+  if (language === 'en') return message;
+
+  const exact: Record<string, string> = {
+    'Build a balanced first budget. A kingdom with no reserve is fragile; a kingdom with no investment stops growing.': 'Bumuo ng balanseng unang budget. Marupok ang kahariang walang reserve; hindi uunlad ang kahariang walang investment.',
+    'Budget approved. The kingdom enters the quarter... then an emergency interrupts the plan.': 'Aprubado ang budget. Nagsimula ang quarter ng kaharian... ngunit may emergency na gumambala sa plano.',
+    'The quarter failed: critical kingdom health dropped below a safe level. Rebuild the budget with stronger balance and emergency protection.': 'Bumagsak ang quarter: bumaba sa ligtas na antas ang mahahalagang sukatan ng kaharian. Buuin muli ang budget na mas balanse at may proteksiyon sa emergency.',
+  };
+  if (exact[message]) return exact[message];
+
+  let match = message.match(/^Assign the remaining (-?\d+) treasury tokens before approving the budget\.$/);
+  if (match) return `Ilaan muna ang natitirang ${match[1]} treasury token bago aprubahan ang budget.`;
+
+  if (message.startsWith(`${emergency.title}: decide how much of the reserve to release.`)) {
+    return `${emergency.titleTl}: magpasya kung gaano karaming reserve ang ilalabas. Kapag kulang, lalala ang krisis; kapag sobra, magiging lantad ang kaharian sa susunod na panganib.`;
+  }
+
+  match = message.match(/^Emergency covered\. (\d+) reserve remains for the next unknown challenge\.$/);
+  if (match) return `Nasagot ang emergency. May ${match[1]} reserve pa para sa susunod na hindi inaasahang hamon.`;
+
+  match = message.match(/^The emergency response fell short by (\d+) coverage points\. The kingdom absorbed the consequences\.$/);
+  if (match) return `Kulang ng ${match[1]} coverage points ang emergency response. Hinarap ng kaharian ang epekto nito.`;
+
+  return message;
+};
+
+function Meter({ label, labelTl, value }: { label: string; labelTl: string; value: number }) {
+  const { language } = useBuklodGameLanguage();
   return (
     <View style={styles.meterBlock}>
       <View style={styles.meterLabelRow}>
-        <Text style={styles.meterLabel}>{label}</Text>
+        <Text style={styles.meterLabel}>{language === 'tl' ? labelTl : label}</Text>
         <Text style={styles.meterValue}>{Math.round(value)}</Text>
       </View>
       <View style={styles.meterTrack}>
@@ -89,6 +163,7 @@ function Meter({ label, value }: { label: string; value: number }) {
 type Props = { onFinish?: (result: BuklodGameResult) => void };
 
 export function KingdomTreasuryGameV1({ onFinish }: Props) {
+  const { language, t } = useBuklodGameLanguage();
   const [allocation, setAllocation] = useState<Allocation>(initialAllocation);
   const [phase, setPhase] = useState<Phase>('planning');
   const [emergencyIndex, setEmergencyIndex] = useState(0);
@@ -233,26 +308,26 @@ export function KingdomTreasuryGameV1({ onFinish }: Props) {
     <View style={styles.shell}>
       <View style={styles.topRow}>
         <View>
-          <Text style={styles.eyebrow}>ANGEL • KINGDOM TREASURY</Text>
-          <Text style={styles.title}>Stewardship Council</Text>
+          <Text style={styles.eyebrow}>{t('ANGEL • KINGDOM TREASURY', 'ANGEL • INGAT-YAMAN NG KAHARIAN')}</Text>
+          <Text style={styles.title}>{t('Stewardship Council', 'Konseho ng Pamamahala')}</Text>
         </View>
         <View style={styles.treasuryBadge}>
           <Text style={styles.treasuryValue}>{STARTING_TREASURY}</Text>
-          <Text style={styles.treasuryLabel}>QUARTER TREASURY</Text>
+          <Text style={styles.treasuryLabel}>{t('QUARTER TREASURY', 'PONDO NG QUARTER')}</Text>
         </View>
       </View>
 
-      <Text style={styles.message}>{message}</Text>
+      <Text style={styles.message}>{localizeMessage(message, language, emergency)}</Text>
 
       {phase === 'planning' ? (
         <View style={styles.panel}>
           <View style={styles.sectionHeader}>
             <View>
-              <Text style={styles.sectionKicker}>PHASE 1</Text>
-              <Text style={styles.sectionTitle}>Build the Budget</Text>
+              <Text style={styles.sectionKicker}>{t('PHASE 1', 'YUGTO 1')}</Text>
+              <Text style={styles.sectionTitle}>{t('Build the Budget', 'Bumuo ng Budget')}</Text>
             </View>
             <View style={[styles.unassignedPill, unassigned === 0 && styles.unassignedReady]}>
-              <Text style={styles.unassignedText}>{unassigned} unassigned</Text>
+              <Text style={styles.unassignedText}>{unassigned} {t('unassigned', 'hindi pa nailalaan')}</Text>
             </View>
           </View>
 
@@ -262,8 +337,8 @@ export function KingdomTreasuryGameV1({ onFinish }: Props) {
               <View key={key} style={styles.fundRow}>
                 <View style={[styles.fundAccent, { backgroundColor: meta.accent }]} />
                 <View style={styles.fundCopy}>
-                  <Text style={styles.fundLabel}>{meta.label}</Text>
-                  <Text style={styles.fundPurpose}>{meta.purpose}</Text>
+                  <Text style={styles.fundLabel}>{language === 'tl' ? meta.labelTl : meta.label}</Text>
+                  <Text style={styles.fundPurpose}>{language === 'tl' ? meta.purposeTl : meta.purpose}</Text>
                 </View>
                 <View style={styles.controls}>
                   <Pressable onPress={() => adjustFund(key, -STEP)} style={styles.stepButton}><Text style={styles.stepText}>−</Text></Pressable>
@@ -274,32 +349,32 @@ export function KingdomTreasuryGameV1({ onFinish }: Props) {
             );
           })}
 
-          <Pressable onPress={evaluatePlan} style={styles.primaryButton}><Text style={styles.primaryText}>APPROVE QUARTER BUDGET</Text></Pressable>
+          <Pressable onPress={evaluatePlan} style={styles.primaryButton}><Text style={styles.primaryText}>{t('APPROVE QUARTER BUDGET', 'APRUBAHAN ANG BUDGET NG QUARTER')}</Text></Pressable>
         </View>
       ) : null}
 
       {phase === 'event' ? (
         <View style={[styles.panel, styles.eventPanel]}>
-          <Text style={styles.sectionKicker}>PHASE 2 • UNEXPECTED EVENT</Text>
-          <Text style={styles.eventTitle}>The quarter does not go as planned.</Text>
-          <Text style={styles.eventCopy}>Your original allocation created strengths and weaknesses. The reserve now becomes meaningful.</Text>
-          <Pressable onPress={revealEmergency} style={styles.dangerButton}><Text style={styles.dangerButtonText}>REVEAL EMERGENCY</Text></Pressable>
+          <Text style={styles.sectionKicker}>{t('PHASE 2 • UNEXPECTED EVENT', 'YUGTO 2 • HINDI INAASAHANG PANGYAYARI')}</Text>
+          <Text style={styles.eventTitle}>{t('The quarter does not go as planned.', 'Hindi nasunod ang plano ng quarter.')}</Text>
+          <Text style={styles.eventCopy}>{t('Your original allocation created strengths and weaknesses. The reserve now becomes meaningful.', 'Ang unang allocation mo ay lumikha ng lakas at kahinaan. Ngayon mahalaga ang reserve.')}</Text>
+          <Pressable onPress={revealEmergency} style={styles.dangerButton}><Text style={styles.dangerButtonText}>{t('REVEAL EMERGENCY', 'ILABAS ANG EMERGENCY')}</Text></Pressable>
         </View>
       ) : null}
 
       {phase === 'response' ? (
         <View style={[styles.panel, styles.responsePanel]}>
           <View style={styles.severityRow}>
-            <Text style={styles.sectionKicker}>PHASE 3 • RESPONSE</Text>
-            <Text style={styles.severity}>{'●'.repeat(emergency.severity)} severity</Text>
+            <Text style={styles.sectionKicker}>{t('PHASE 3 • RESPONSE', 'YUGTO 3 • TUGON')}</Text>
+            <Text style={styles.severity}>{'●'.repeat(emergency.severity)} {t('severity', 'tindi')}</Text>
           </View>
-          <Text style={styles.eventTitle}>{emergency.title}</Text>
-          <Text style={styles.eventCopy}>{emergency.description}</Text>
+          <Text style={styles.eventTitle}>{language === 'tl' ? emergency.titleTl : emergency.title}</Text>
+          <Text style={styles.eventCopy}>{language === 'tl' ? emergency.descriptionTl : emergency.description}</Text>
 
           <View style={styles.responseCard}>
-            <Text style={styles.responseLabel}>RELEASE FROM RESERVE</Text>
+            <Text style={styles.responseLabel}>{t('RELEASE FROM RESERVE', 'ILABAS MULA SA RESERVE')}</Text>
             <Text style={styles.responseAmount}>{responseSpend}</Text>
-            <Text style={styles.responseRemaining}>{reserveAvailable} reserve remains</Text>
+            <Text style={styles.responseRemaining}>{reserveAvailable} {t('reserve remains', 'reserve ang natitira')}</Text>
             <View style={styles.responseButtons}>
               <Pressable onPress={() => adjustResponse(-STEP)} style={styles.responseStep}><Text style={styles.responseStepText}>−50</Text></Pressable>
               <Pressable onPress={() => adjustResponse(STEP)} style={styles.responseStep}><Text style={styles.responseStepText}>+50</Text></Pressable>
@@ -308,42 +383,42 @@ export function KingdomTreasuryGameV1({ onFinish }: Props) {
 
           <View style={styles.contextRow}>
             <View style={styles.contextCard}>
-              <Text style={styles.contextLabel}>PRIMARY FUND</Text>
-              <Text style={styles.contextValue}>{FUND_META[emergency.primary].label}</Text>
+              <Text style={styles.contextLabel}>{t('PRIMARY FUND', 'PANGUNAHING PONDO')}</Text>
+              <Text style={styles.contextValue}>{language === 'tl' ? FUND_META[emergency.primary].labelTl : FUND_META[emergency.primary].label}</Text>
               <Text style={styles.contextAmount}>{allocation[emergency.primary]}</Text>
             </View>
             <View style={styles.contextCard}>
-              <Text style={styles.contextLabel}>SECONDARY FUND</Text>
-              <Text style={styles.contextValue}>{FUND_META[emergency.secondary].label}</Text>
+              <Text style={styles.contextLabel}>{t('SECONDARY FUND', 'PANGALAWANG PONDO')}</Text>
+              <Text style={styles.contextValue}>{language === 'tl' ? FUND_META[emergency.secondary].labelTl : FUND_META[emergency.secondary].label}</Text>
               <Text style={styles.contextAmount}>{allocation[emergency.secondary]}</Text>
             </View>
           </View>
 
-          <Pressable onPress={finishQuarter} style={styles.primaryButton}><Text style={styles.primaryText}>COMMIT EMERGENCY RESPONSE</Text></Pressable>
+          <Pressable onPress={finishQuarter} style={styles.primaryButton}><Text style={styles.primaryText}>{t('COMMIT EMERGENCY RESPONSE', 'KUMPIRMAHIN ANG EMERGENCY RESPONSE')}</Text></Pressable>
         </View>
       ) : null}
 
       {phase === 'result' ? (
         <View style={[styles.panel, styles.resultPanel, quarterFailed && styles.failedPanel]}>
-          <Text style={styles.sectionKicker}>QUARTER RESULT</Text>
-          <Text style={[styles.resultTitle, quarterFailed && styles.failedTitle]}>{resultTitle}</Text>
+          <Text style={styles.sectionKicker}>{t('QUARTER RESULT', 'RESULTA NG QUARTER')}</Text>
+          <Text style={[styles.resultTitle, quarterFailed && styles.failedTitle]}>{language === 'tl' ? (RESULT_TL[resultTitle] ?? resultTitle) : resultTitle}</Text>
           <Text style={styles.finalScore}>{score}</Text>
-          <Text style={styles.finalScoreLabel}>STEWARDSHIP SCORE</Text>
+          <Text style={styles.finalScoreLabel}>{t('STEWARDSHIP SCORE', 'ISKOR SA PAMAMAHALA')}</Text>
 
           <View style={styles.healthGrid}>
-            <Meter label="Welfare" value={health.welfare} />
-            <Meter label="Stability" value={health.stability} />
-            <Meter label="Growth" value={health.growth} />
-            <Meter label="Trust" value={health.trust} />
+            <Meter label="Welfare" labelTl="Kapakanan" value={health.welfare} />
+            <Meter label="Stability" labelTl="Katatagan" value={health.stability} />
+            <Meter label="Growth" labelTl="Pag-unlad" value={health.growth} />
+            <Meter label="Trust" labelTl="Tiwala" value={health.trust} />
           </View>
 
           <View style={styles.resultSummary}>
-            <Text style={styles.summaryLine}>Reserve left: {allocation.reserve - responseSpend}</Text>
-            <Text style={styles.summaryLine}>Emergency release: {responseSpend}</Text>
-            <Text style={styles.summaryLine}>{quarterFailed ? 'Quarter failed • no star awarded' : `Stars: ${'★'.repeat(resultStars)}`}</Text>
+            <Text style={styles.summaryLine}>{t('Reserve left', 'Natitirang reserve')}: {allocation.reserve - responseSpend}</Text>
+            <Text style={styles.summaryLine}>{t('Emergency release', 'Inilabas sa emergency')}: {responseSpend}</Text>
+            <Text style={styles.summaryLine}>{quarterFailed ? t('Quarter failed • no star awarded', 'Bumagsak ang quarter • walang bituin') : `${t('Stars', 'Mga bituin')}: ${'★'.repeat(resultStars)}`}</Text>
           </View>
 
-          <Pressable onPress={reset} style={styles.primaryButton}><Text style={styles.primaryText}>NEW QUARTER</Text></Pressable>
+          <Pressable onPress={reset} style={styles.primaryButton}><Text style={styles.primaryText}>{t('NEW QUARTER', 'BAGONG QUARTER')}</Text></Pressable>
         </View>
       ) : null}
     </View>
