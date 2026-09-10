@@ -6,113 +6,73 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-$Stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
-$SafetyBackup = Join-Path $ProjectRoot ".buklod-backups\canonical_r31_r40_restore_$Stamp"
-$BackupRoot = Join-Path $ProjectRoot '.buklod-backups'
-
-$DefaultCentralRoot = Join-Path $HOME 'BUKLOD_WORKSPACE\RECOVERY\R31_R40'
-$DefaultLegacyRoot = Join-Path $HOME 'Downloads\BUKLOD-Rork-current-20260905_131136'
-$DefaultLatestRoot = Join-Path $HOME 'Downloads\BUKLOD-Rork-LATEST'
-$ResolvedRecoveryRoots = @(
-  $DefaultCentralRoot,
-  $BackupRoot,
-  $ProjectRoot,
-  (Join-Path $DefaultLegacyRoot '.buklod-backups'),
-  $DefaultLegacyRoot,
-  (Join-Path $DefaultLatestRoot '.buklod-backups'),
-  $DefaultLatestRoot
-) + $RecoveryRoots
-$ResolvedRecoveryRoots = @(
-  $ResolvedRecoveryRoots |
-    Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Container) } |
-    Select-Object -Unique
-)
 
 function Fail([string]$Message) { throw $Message }
+function Full([string]$Path) { return [System.IO.Path]::GetFullPath($Path).TrimEnd('\') }
 function Sha([string]$Path) {
   if (!(Test-Path -LiteralPath $Path -PathType Leaf)) { return $null }
   return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToUpperInvariant()
 }
-function Backup-Current([string]$Relative) {
-  $src = Join-Path $ProjectRoot $Relative
-  if (!(Test-Path -LiteralPath $src -PathType Leaf)) { return }
-  $dst = Join-Path $SafetyBackup $Relative
-  New-Item -ItemType Directory -Force -Path (Split-Path -Parent $dst) | Out-Null
-  Copy-Item -LiteralPath $src -Destination $dst -Force
+function Copy-VerifiedFile([string]$Source, [string]$Destination) {
+  if (!(Test-Path -LiteralPath $Source -PathType Leaf)) { Fail "Recovery source missing: $Source" }
+  New-Item -ItemType Directory -Force -Path (Split-Path -Parent $Destination) | Out-Null
+  Copy-Item -LiteralPath $Source -Destination $Destination -Force
 }
-function CandidateFiles([string]$Name) {
-  $seen = @{}
-  foreach ($root in $ResolvedRecoveryRoots) {
-    Get-ChildItem -LiteralPath $root -Recurse -File -Filter $Name -ErrorAction SilentlyContinue |
-      Where-Object {
-        $_.FullName -notmatch '\\node_modules\\' -and
-        $_.FullName -notmatch '\\dist(?:-|\\)' -and
-        $_.FullName -notmatch '\\.git\\'
-      } |
-      ForEach-Object {
-        if (!$seen.ContainsKey($_.FullName)) {
-          $seen[$_.FullName] = $true
-          $_
-        }
-      }
-  }
+
+$ProjectRoot = Full $ProjectRoot
+$WorkspaceRecoveryRepo = Join-Path $HOME 'BUKLOD_WORKSPACE\RECOVERY\R31_R40_APPROVED'
+$WorkspaceRecoveryPackage = Join-Path $WorkspaceRecoveryRepo 'recovery-import\r31-r40'
+
+$CandidateRoots = @()
+if (-not [string]::IsNullOrWhiteSpace($env:BUKLOD_R31_R40_RECOVERY_ROOT)) {
+  $CandidateRoots += $env:BUKLOD_R31_R40_RECOVERY_ROOT
 }
-function Find-ExactHash([string]$ExpectedHash, [string]$Name) {
-  foreach ($file in @(CandidateFiles $Name)) {
-    if ((Sha $file.FullName) -eq $ExpectedHash) { return $file.FullName }
-  }
-  return $null
-}
-function Find-TextContract([string]$Name, [string[]]$Required, [string[][]]$AnyGroups = @()) {
-  foreach ($file in @(CandidateFiles $Name)) {
-    try { $text = [IO.File]::ReadAllText($file.FullName) } catch { continue }
-    $ok = $true
-    foreach ($token in $Required) {
-      if (!$text.Contains($token)) { $ok = $false; break }
-    }
-    if (!$ok) { continue }
-    foreach ($group in $AnyGroups) {
-      $groupOk = $false
-      foreach ($token in $group) {
-        if ($text.Contains($token)) { $groupOk = $true; break }
-      }
-      if (!$groupOk) { $ok = $false; break }
-    }
-    if ($ok) { return $file.FullName }
-  }
-  return $null
-}
-function Restore-File([string]$Relative, [string]$Source) {
-  if (!$Source) { Fail "No verified recovery source found for $Relative" }
-  Backup-Current $Relative
-  $dst = Join-Path $ProjectRoot $Relative
-  New-Item -ItemType Directory -Force -Path (Split-Path -Parent $dst) | Out-Null
-  Copy-Item -LiteralPath $Source -Destination $dst -Force
-  Write-Host " Restored: $Relative" -ForegroundColor Green
-  Write-Host "   from: $Source" -ForegroundColor DarkGray
-}
+$CandidateRoots += $RecoveryRoots
+$CandidateRoots += $WorkspaceRecoveryPackage
+$CandidateRoots = @(
+  $CandidateRoots |
+    Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Container) } |
+    ForEach-Object { Full $_ } |
+    Select-Object -Unique
+)
 
 Write-Host ''
 Write-Host '====================================================================' -ForegroundColor Cyan
 Write-Host ' BUKLOD CANONICAL CHARACTER RECOVERY — R31 CORE + R40 SPECIAL' -ForegroundColor Cyan
-Write-Host ' EXACT VERIFIED R31 HASHES + R40 CONTRACT ONLY / NO WHOLE APP ROLLBACK' -ForegroundColor Cyan
+Write-Host ' APPROVED MANIFEST ONLY / DISPOSABLE RELEASE OVERLAY' -ForegroundColor Cyan
 Write-Host '====================================================================' -ForegroundColor Cyan
 
-if (!(Test-Path -LiteralPath $ProjectRoot -PathType Container)) { Fail 'Project root missing.' }
-New-Item -ItemType Directory -Force -Path $SafetyBackup | Out-Null
-
-Write-Host 'Verified recovery roots:' -ForegroundColor Yellow
-$ResolvedRecoveryRoots | ForEach-Object { Write-Host " - $_" }
-if ($ResolvedRecoveryRoots.Count -lt 1) { Fail 'No verified recovery roots are available.' }
-
-$R31Source = [ordered]@{
-  'src\components\points\BuklodProfileCharacterCard.tsx' = '346AC998D09606702309B7B710152B7441767C364620AA0AF993596AEC661C76'
-  'src\components\points\BuklodProgressiveCharacterSelector.tsx' = 'F12E9AEB14EA2E07BA79EC2BD58830169A89F570C41BD92FEE7750564BD544C5'
-  'src\components\points\BuklodProgressiveCharacterArt.tsx' = 'D8F05E3ED555538BFBFE091F1743A68D46EC4D2C5EC20C165765EB86ABFD77FC'
-  'src\lib\buklodProgressiveCharacter.ts' = 'E06F6787F3AFD45207D2723B59F11C3B0D9C22D8670D6FD075C3DD923CE48EB4'
+if (!(Test-Path -LiteralPath $ProjectRoot -PathType Container)) { Fail "Project root missing: $ProjectRoot" }
+if ($CandidateRoots.Count -lt 1) {
+  Fail 'No centralized approved R31/R40 recovery package is available.'
 }
 
-$R31Assets = [ordered]@{
+$RecoveryRoot = $null
+$RecoveryManifest = $null
+foreach ($candidate in $CandidateRoots) {
+  $manifestPath = Join-Path $candidate 'RECOVERY_MANIFEST.json'
+  if (!(Test-Path -LiteralPath $manifestPath -PathType Leaf)) { continue }
+  try {
+    $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+  } catch {
+    continue
+  }
+  if ([int]$manifest.r40_named_asset_count -lt 168) { continue }
+  if (@($manifest.source_files).Count -lt 11) { continue }
+  $RecoveryRoot = $candidate
+  $RecoveryManifest = $manifest
+  break
+}
+
+if (-not $RecoveryRoot -or -not $RecoveryManifest) {
+  Fail 'No recovery root passed the approved RECOVERY_MANIFEST contract.'
+}
+
+Write-Host "Approved recovery package: $RecoveryRoot" -ForegroundColor Green
+Write-Host "Snapshot label          : $($RecoveryManifest.source_snapshot_label)"
+Write-Host "R40 asset count         : $($RecoveryManifest.r40_named_asset_count)"
+
+$ExpectedCoreAssets = [ordered]@{
   'assets\images\characters\phan_r26.jpg' = '1598EF159BFC4AB784A681BEF7BC53FF839DBEA92CB729EE03A15BAA4F31CCDB'
   'assets\images\characters\quin_r26.jpg' = '769BCF6F61DEB70E1D52E7515AF9C69CC6562545E86D2DD390355770E5C33892'
   'assets\images\characters\van_r26.jpg' = 'B52B6B7E3562B2D884CC677D67C67CC71898273BF5BF5068A077B10B5DC87C66'
@@ -120,98 +80,88 @@ $R31Assets = [ordered]@{
   'assets\images\characters\lhen_r26.jpg' = '17A2FDB2FB18252AB494589E689E5044C27B86065A988D70094997971D9D66EB'
 }
 
-Write-Host '1/5 RESTORE EXACT R31 SOURCE FAMILY' -ForegroundColor Cyan
-foreach ($entry in $R31Source.GetEnumerator()) {
-  $dst = Join-Path $ProjectRoot $entry.Key
-  if ((Sha $dst) -eq $entry.Value) {
-    Write-Host " Already exact: $($entry.Key)" -ForegroundColor Green
-    continue
+Write-Host ''
+Write-Host '1/5 VERIFY APPROVED R31 CORE ART' -ForegroundColor Cyan
+foreach ($entry in $ExpectedCoreAssets.GetEnumerator()) {
+  $source = Join-Path $RecoveryRoot $entry.Key
+  $actual = Sha $source
+  if ($actual -ne $entry.Value) {
+    Fail "Approved R31 asset hash mismatch: $($entry.Key) expected=$($entry.Value) actual=$actual"
   }
-  $src = Find-ExactHash $entry.Value ([IO.Path]::GetFileName($entry.Key))
-  Restore-File $entry.Key $src
-  if ((Sha (Join-Path $ProjectRoot $entry.Key)) -ne $entry.Value) { Fail "R31 source hash verification failed: $($entry.Key)" }
+  Write-Host " Verified: $($entry.Key)" -ForegroundColor Green
 }
 
 Write-Host ''
-Write-Host '2/5 RESTORE EXACT FIVE R31 ART STRIPS' -ForegroundColor Cyan
-foreach ($entry in $R31Assets.GetEnumerator()) {
-  $dst = Join-Path $ProjectRoot $entry.Key
-  if ((Sha $dst) -eq $entry.Value) {
-    Write-Host " Already exact: $($entry.Key)" -ForegroundColor Green
-    continue
-  }
-  $src = Find-ExactHash $entry.Value ([IO.Path]::GetFileName($entry.Key))
-  Restore-File $entry.Key $src
-  if ((Sha (Join-Path $ProjectRoot $entry.Key)) -ne $entry.Value) { Fail "R31 asset hash verification failed: $($entry.Key)" }
+Write-Host '2/5 VERIFY APPROVED R40 ASSET FAMILY' -ForegroundColor Cyan
+$specialSourceRoot = Join-Path $RecoveryRoot 'assets\images\characters\special\batch1'
+if (!(Test-Path -LiteralPath $specialSourceRoot -PathType Container)) {
+  Fail "Approved R40 asset folder missing: $specialSourceRoot"
 }
-
-Write-Host ''
-Write-Host '3/5 RESTORE R40 PREMIUM SPECIAL SOURCE + R31/R40 CUSTOMIZE WIRING' -ForegroundColor Cyan
-$specialRel = 'src\components\points\BuklodSpecialCharacterSeries.tsx'
-$specialSource = Find-TextContract 'BuklodSpecialCharacterSeries.tsx' @(
-  'Special Character Journey',
-  'get_my_buklod_special_collectibles_v2',
-  'set_my_buklod_special_character_pursuit_v1',
-  'ACE','MITCH','NIEL','ANGEL','VHEN','TRUDICE'
-) @(
-  @('JAVVO','JAWO','Jawo'),
-  @('ELLUSUR','ELESUR')
-)
-Restore-File $specialRel $specialSource
-
-$registryRel = 'src\lib\buklodSpecialCharacterAssets.ts'
-$registryRequired = @('ace_hero.jpg','trudice_hero.jpg','mitch_hero.jpg','niel_hero.jpg','angel_hero.jpg','vhen_hero.jpg','jawo_hero.jpg','ellusur_hero.jpg')
-$registrySource = Find-TextContract 'buklodSpecialCharacterAssets.ts' $registryRequired
-Restore-File $registryRel $registrySource
-
-$customizeRel = 'src\components\points\BuklodCharacterCustomizeSheet.tsx'
-$customizeSource = Find-TextContract 'BuklodCharacterCustomizeSheet.tsx' @(
-  'BuklodProgressiveCharacterSelector',
-  'BuklodSpecialCharacterSeries'
-)
-Restore-File $customizeRel $customizeSource
-
-Write-Host ''
-Write-Host '4/5 RESTORE R40 168-ASSET FAMILY BY EXACT FILE NAME' -ForegroundColor Cyan
 $specialIds = @('ace','ellusur','jawo','mitch','niel','angel','vhen','trudice')
-$specialRoot = Join-Path $ProjectRoot 'assets\images\characters\special\batch1'
-New-Item -ItemType Directory -Force -Path $specialRoot | Out-Null
-
-$expectedFiles = New-Object System.Collections.Generic.List[string]
+$expectedSpecial = New-Object System.Collections.Generic.List[string]
 foreach ($id in $specialIds) {
-  $expectedFiles.Add("${id}_hero.jpg")
+  $expectedSpecial.Add("${id}_hero.jpg")
   for ($level = 1; $level -le 20; $level++) {
-    $expectedFiles.Add(("{0}_level_{1}.jpg" -f $id, $level.ToString('00')))
+    $expectedSpecial.Add(("{0}_level_{1}.jpg" -f $id, $level.ToString('00')))
   }
 }
-
-foreach ($name in $expectedFiles) {
-  $dst = Join-Path $specialRoot $name
-  if (Test-Path -LiteralPath $dst -PathType Leaf) { continue }
-  $src = $null
-  foreach ($file in @(CandidateFiles $name)) {
-    if ($file.FullName -ne $dst) { $src = $file.FullName; break }
+foreach ($name in $expectedSpecial) {
+  if (!(Test-Path -LiteralPath (Join-Path $specialSourceRoot $name) -PathType Leaf)) {
+    Fail "Approved R40 asset missing: $name"
   }
-  if (!$src) { Fail "Missing R40 asset recovery source: $name" }
-  Copy-Item -LiteralPath $src -Destination $dst -Force
 }
-
-$count = @(Get-ChildItem -LiteralPath $specialRoot -File -Filter '*.jpg' -ErrorAction Stop).Count
-if ($count -lt 168) { Fail "R40 special asset recovery incomplete: $count/168" }
-Write-Host " R40 special assets present: $count" -ForegroundColor Green
+if ($expectedSpecial.Count -ne 168) { Fail "Internal R40 expectation error: $($expectedSpecial.Count)" }
+Write-Host ' Verified complete R40 asset family: 168/168' -ForegroundColor Green
 
 Write-Host ''
-Write-Host '5/5 RUN CANONICAL RELEASE CONTRACT' -ForegroundColor Cyan
+Write-Host '3/5 OVERLAY APPROVED R31/R40 SOURCE FAMILY' -ForegroundColor Cyan
+foreach ($relativeRaw in @($RecoveryManifest.source_files)) {
+  $relative = ([string]$relativeRaw) -replace '/', '\'
+  $source = Join-Path $RecoveryRoot $relative
+  $destination = Join-Path $ProjectRoot $relative
+  Copy-VerifiedFile $source $destination
+  Write-Host " Restored source: $relative" -ForegroundColor Green
+}
+
+Write-Host ''
+Write-Host '4/5 OVERLAY IMMUTABLE CORE + SPECIAL ASSETS' -ForegroundColor Cyan
+foreach ($entry in $ExpectedCoreAssets.GetEnumerator()) {
+  $source = Join-Path $RecoveryRoot $entry.Key
+  $destination = Join-Path $ProjectRoot $entry.Key
+  Copy-VerifiedFile $source $destination
+  if ((Sha $destination) -ne $entry.Value) {
+    Fail "R31 destination hash verification failed: $($entry.Key)"
+  }
+}
+
+$specialDestinationRoot = Join-Path $ProjectRoot 'assets\images\characters\special\batch1'
+New-Item -ItemType Directory -Force -Path $specialDestinationRoot | Out-Null
+foreach ($name in $expectedSpecial) {
+  Copy-VerifiedFile (Join-Path $specialSourceRoot $name) (Join-Path $specialDestinationRoot $name)
+}
+$destinationSpecialCount = @(
+  Get-ChildItem -LiteralPath $specialDestinationRoot -File -Filter '*.jpg' -ErrorAction Stop
+).Count
+if ($destinationSpecialCount -lt 168) {
+  Fail "R40 destination asset family incomplete: $destinationSpecialCount/168"
+}
+Write-Host " Restored R40 assets: $destinationSpecialCount" -ForegroundColor Green
+
+Write-Host ''
+Write-Host '5/5 RUN CANONICAL CHARACTER RELEASE CONTRACT' -ForegroundColor Cyan
 Push-Location $ProjectRoot
 try {
   & npm.cmd run character:contract
   $contractExit = $LASTEXITCODE
-} finally { Pop-Location }
-if ($contractExit -ne 0) { Fail 'Canonical R31/R40 release contract still fails after recovery.' }
+} finally {
+  Pop-Location
+}
+if ($contractExit -ne 0) {
+  Fail 'Canonical R31/R40 release contract failed after approved recovery overlay.'
+}
 
 Write-Host ''
 Write-Host '====================================================================' -ForegroundColor Green
-Write-Host ' CANONICAL R31 + R40 RECOVERY COMPLETE — NO DEPLOY PERFORMED' -ForegroundColor Green
+Write-Host ' R31 + R40 APPROVED RELEASE OVERLAY: PASS' -ForegroundColor Green
 Write-Host '====================================================================' -ForegroundColor Green
-Write-Host "Safety backup: $SafetyBackup"
-Write-Host 'Next release may proceed only through a gated deployment script.'
+Write-Host 'No Git reset, no source-branch overwrite, and no deployment was performed by this recovery step.'
