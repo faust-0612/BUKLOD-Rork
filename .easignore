@@ -33,6 +33,12 @@ Thumbs.db
 buklod-efa4a-firebase-adminsdk-fbsvc-5e9b3893ea.json
 /ios
 
+# Canonical/local workspace identity and non-runtime archives
+.buklod-local-canonical.json
+.buklod-backups/
+.buklod-migration-hold/
+.buklod-retired/
+
 # ==================================================
 # BUKLOD PLAY STORE BUILD - LOCAL ARTIFACT EXCLUSIONS
 # ==================================================
