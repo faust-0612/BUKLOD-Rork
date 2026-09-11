@@ -92,6 +92,55 @@ function Repair-R40SpecialCharacterUi([string]$Path) {
   }
 }
 
+function Repair-R40SpecialSeriesOne([string]$Path) {
+  if (!(Test-Path -LiteralPath $Path -PathType Leaf)) {
+    Fail "R40 Series One repair target missing: $Path"
+  }
+
+  $text = [System.IO.File]::ReadAllText($Path)
+  $original = $text
+
+  # The approved snapshot's compact Series One surface still points at an older
+  # special-series1 WEBP family. That family is not part of the approved R40
+  # package, so Metro fails before the app can render. Forward-map those aliases
+  # to the verified R40 hero JPG family instead of reintroducing obsolete assets.
+  $assetAliases = [ordered]@{
+    'jawo'    = 'jawo'
+    'javvo'   = 'jawo'
+    'trudice' = 'trudice'
+    'ace'     = 'ace'
+    'mitch'   = 'mitch'
+    'niel'    = 'niel'
+    'angel'   = 'angel'
+    'vhen'    = 'vhen'
+    'elesur'  = 'ellusur'
+    'ellusur' = 'ellusur'
+  }
+
+  foreach ($legacyId in $assetAliases.Keys) {
+    $canonicalId = $assetAliases[$legacyId]
+    foreach ($variant in @('thumb', 'medium')) {
+      $legacyPath = "../../../assets/images/characters/special-series1/${legacyId}_${variant}.webp"
+      $canonicalPath = "../../../assets/images/characters/special/batch1/${canonicalId}_hero.jpg"
+      $text = $text.Replace($legacyPath, $canonicalPath)
+    }
+  }
+
+  $text = $text.Replace("'JAVVO'", "'JAWO'")
+  $text = $text.Replace('"JAVVO"', '"JAWO"')
+  $text = $text.Replace("'ELLUSUR'", "'ELESUR'")
+  $text = $text.Replace('"ELLUSUR"', '"ELESUR"')
+
+  if ($text.Contains('special-series1/')) {
+    Fail 'R40 Series One forward repair did not fully remove obsolete special-series1 asset dependencies.'
+  }
+
+  if ($text -ne $original) {
+    [System.IO.File]::WriteAllText($Path, $text, (New-Object System.Text.UTF8Encoding($false)))
+    Write-Host ' Forward repair: remapped legacy Series One WEBP art to approved R40 hero JPGs.' -ForegroundColor Green
+  }
+}
+
 $ProjectRoot = Full $ProjectRoot
 $WorkspaceRecoveryRepo = Join-Path $HOME 'BUKLOD_WORKSPACE\RECOVERY\R31_R40_APPROVED'
 $WorkspaceRecoveryPackage = Join-Path $WorkspaceRecoveryRepo 'recovery-import\r31-r40'
@@ -200,7 +249,9 @@ Write-Host ''
 Write-Host '4/6 APPLY REVIEWED R40 FORWARD REPAIR' -ForegroundColor Cyan
 $specialUiDestination = Join-Path $ProjectRoot 'src\components\points\BuklodSpecialCharacterSeries.tsx'
 Repair-R40SpecialCharacterUi $specialUiDestination
-Write-Host ' R40 UI structural repair: VERIFIED' -ForegroundColor Green
+$specialSeriesOneDestination = Join-Path $ProjectRoot 'src\components\points\BuklodSpecialSeriesOne.tsx'
+Repair-R40SpecialSeriesOne $specialSeriesOneDestination
+Write-Host ' R40 UI structural + legacy asset repair: VERIFIED' -ForegroundColor Green
 
 Write-Host ''
 Write-Host '5/6 OVERLAY IMMUTABLE CORE + SPECIAL ASSETS' -ForegroundColor Cyan
