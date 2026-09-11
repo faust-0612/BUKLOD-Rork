@@ -111,6 +111,22 @@ requireTokens('src/components/points/BuklodSpecialCharacterSeries.tsx', [
 requireOneOf('src/components/points/BuklodSpecialCharacterSeries.tsx', ['JAVVO', 'JAWO', 'Jawo'], 'Jawo identity');
 requireOneOf('src/components/points/BuklodSpecialCharacterSeries.tsx', ['ELLUSUR', 'ELESUR'], 'ELESUR identity');
 
+// The recovery snapshot may also restore the compact Series One surface. It must
+// never point back to the retired special-series1 WEBP family because Metro will
+// fail before the app renders. The forward-repair pipeline maps it to R40 batch1.
+const seriesOneRel = 'src/components/points/BuklodSpecialSeriesOne.tsx';
+if (fs.existsSync(full(seriesOneRel))) {
+  const seriesOne = fs.readFileSync(full(seriesOneRel), 'utf8');
+  for (const obsolete of ['special-series1/', '_thumb.webp', '_medium.webp']) {
+    if (seriesOne.includes(obsolete)) {
+      failures.push(`${seriesOneRel} still references obsolete asset family token: ${obsolete}`);
+    }
+  }
+  if (!seriesOne.includes('assets/images/characters/special/batch1/')) {
+    failures.push(`${seriesOneRel} must resolve artwork through the approved R40 batch1 asset family.`);
+  }
+}
+
 const registry = requireTokens('src/lib/buklodSpecialCharacterAssets.ts', ['ace_hero.jpg']);
 for (const id of SPECIAL_IDS) {
   if (!registry.includes(`${id}_hero.jpg`)) failures.push(`R40 registry is missing ${id}_hero.jpg`);
@@ -175,6 +191,9 @@ if (distDir) {
     }
     if (!(compiled.includes('ELLUSUR') || compiled.includes('ELESUR'))) {
       failures.push('Compiled bundle is missing ELESUR special-character identity.');
+    }
+    if (compiled.includes('special-series1/')) {
+      failures.push('Compiled bundle still contains obsolete special-series1 asset references.');
     }
     info.push(`Compiled bundle checked: ${path.relative(ROOT, distDir)}`);
   }
