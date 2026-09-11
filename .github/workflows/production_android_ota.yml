@@ -1,4 +1,4 @@
-# Release trigger: 2026-09-09 Formation AI OTA refresh
+# Release trigger: 2026-09-12 automatic Formation submission + community photo repair
 name: BUKLOD Production Android OTA
 
 on:
@@ -22,6 +22,11 @@ on:
       - 'src/app/admin/account-recovery.tsx'
       - 'src/app/scope/index.tsx'
       - 'src/app/scope/bulletin-editor.tsx'
+      - 'src/app/scope/faith-monitoring/report.tsx'
+      - 'src/app/scope/formation-approvals.tsx'
+      - 'src/app/reflection/[id].tsx'
+      - 'src/components/LearningQuestionResponse.tsx'
+      - 'src/lib/buklodScopeFaithMonitoring.ts'
       - 'src/components/BuklodClusterHomeCommandCenter.tsx'
       - 'src/components/BuklodClusterHomeCommandCenterImpl.tsx'
       - 'src/lib/buklodClusterFormationGate.ts'
@@ -57,6 +62,9 @@ on:
       - 'supabase/migrations/*community_external_video_storage_aws*.sql'
       - 'supabase/migrations/*buklod_call_lifecycle*.sql'
       - 'supabase/migrations/*buklod_5k_scale_hardening*.sql'
+      - 'supabase/migrations/*formation_auto_scope_uuid_aggregate_fix*.sql'
+      - 'supabase/migrations/*formation_daily_pipeline_repair*.sql'
+      - 'supabase/migrations/*formation_auto_submit_photo_report*.sql'
 
 env:
   EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
@@ -160,6 +168,20 @@ jobs:
           grep -F 'BUKLOD_5K_SCALE_R1_PRAYER_NO_CDC' 'src/app/(tabs)/prayer.tsx'
           grep -F 'BUKLOD 5K SCALE HARDENING R1' 'supabase/migrations/20260904131000_buklod_5k_scale_hardening_r1.sql'
 
+      - name: Verify automatic Formation completion anchors
+        shell: bash
+        run: |
+          grep -F "complete_my_devotional_v2" 'src/app/reflection/[id].tsx'
+          grep -F "complete_my_formation_lesson_v2" 'src/components/LearningQuestionResponse.tsx'
+          grep -F "buklod_scope_faith_monitoring_summary_v3" 'src/lib/buklodScopeFaithMonitoring.ts'
+          grep -F "Manual approval is no longer required." 'src/app/scope/formation-approvals.tsx'
+          grep -F "No separate manual submission or Admin approval is required." 'src/app/scope/faith-monitoring/report.tsx'
+          grep -F "security definer" 'supabase/migrations/20260912002000_formation_auto_submit_photo_report_r2.sql'
+          if grep -F "buklod_review_scope_formation_approval_v2" 'src/app/scope/formation-approvals.tsx'; then
+            echo 'Manual Formation approval action is still exposed.'
+            exit 1
+          fi
+
       - name: Expo credential preflight
         id: expo
         shell: bash
@@ -180,7 +202,7 @@ jobs:
             --channel production \
             --platform android \
             --environment production \
-            --message "BUKLOD canonical v16 reconciled release" \
+            --message "BUKLOD Formation automatic submission + photo access repair" \
             --non-interactive
 
       - name: Deployment status
