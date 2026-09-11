@@ -25,21 +25,25 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-          import re
 
           path = Path('src/app/bible/read.tsx')
           text = path.read_text(encoding='utf-8')
-          pattern = re.compile(
-              r"\n\s*/\* DAILY_BIBLE_REFLECTION_SUBMISSION_GATE_V2 \*/\s*\n"
-              r"\s*if \(source === 'daily_plan'\) \{.*?\n\s*setMarking\(true\);",
-              re.S,
-          )
-          replacement = "\n      /* DAILY_READING_COMPLETION_INDEPENDENT_OF_SUBMISSION_V1 */\n      // Reading completion is a lifecycle fact. Reflection/submission is validated\n      // separately by the existing Daily Bible response and Formation approval flow.\n      setMarking(true);"
-          updated, count = pattern.subn(replacement, text, count=1)
-          if count != 1:
-              raise SystemExit(f'Expected exactly one Daily Bible gate block; found {count}')
-          if "SUBMIT REFLECTION FIRST" in updated:
-              raise SystemExit('Legacy inverted completion gate still present')
+          marker = '/* DAILY_BIBLE_REFLECTION_SUBMISSION_GATE_V2 */'
+          start = text.find(marker)
+          if start < 0:
+              raise SystemExit('Daily Bible gate marker not found')
+          end_token = 'setMarking(true);'
+          end = text.find(end_token, start)
+          if end < 0:
+              raise SystemExit('marking boundary not found after Daily Bible gate')
+          end += len(end_token)
+          replacement = '''/* DAILY_READING_COMPLETION_INDEPENDENT_OF_SUBMISSION_V1 */
+      // Reading completion is a lifecycle fact. Reflection/submission is validated
+      // separately by the existing Daily Bible response and Formation approval flow.
+      setMarking(true);'''
+          updated = text[:start] + replacement + text[end:]
+          if marker in updated or 'SUBMIT REFLECTION FIRST' in updated:
+              raise SystemExit('Legacy inverted gate still present after targeted replacement')
           path.write_text(updated, encoding='utf-8')
           PY
 
@@ -47,9 +51,12 @@ jobs:
         shell: bash
         run: |
           git diff --check
-          git diff -- src/app/bible/read.tsx
           test "$(git diff --name-only | wc -l | tr -d ' ')" = "1"
           test "$(git diff --name-only)" = "src/app/bible/read.tsx"
+          grep -q "DAILY_READING_COMPLETION_INDEPENDENT_OF_SUBMISSION_V1" src/app/bible/read.tsx
+          ! grep -q "DAILY_BIBLE_REFLECTION_SUBMISSION_GATE_V2" src/app/bible/read.tsx
+          ! grep -q "SUBMIT REFLECTION FIRST" src/app/bible/read.tsx
+          grep -q "complete_bible_reading_session" src/app/bible/read.tsx
 
       - name: Commit targeted reader repair
         shell: bash
