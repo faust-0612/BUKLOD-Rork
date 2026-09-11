@@ -326,31 +326,33 @@ export default function LessonDetail() {
     switch (officialStatus) {
       case 'approved':
         return {
-          title: 'CLUSTER ADMIN APPROVED',
-          detail: 'This lesson is officially completed.',
+          title: 'AUTOMATICALLY APPROVED',
+          detail: 'This lesson is officially completed after automatic BUKLOD checking.',
         };
 
       case 'pending_admin':
+      case 'awaiting_pastor':
+      case 'awaiting_cluster_admin':
         return {
-          title: 'AWAITING CLUSTER ADMIN',
-          detail: 'This legacy submission is awaiting final Cluster Admin approval.',
+          title: 'AUTOMATIC CHECKING',
+          detail: 'This lesson is being checked automatically. No Pastor, Cluster Admin, or System Admin approval is required.',
         };
 
       case 'rejected':
         return {
-          title: 'REVIEW REQUIRED',
+          title: 'REVISION NEEDED',
           detail:
-            'The previous validation was not approved. Please coordinate with your Cluster Admin.',
+            'Improve the required response and complete the lesson again. BUKLOD will recheck it automatically.',
         };
 
       default:
         return {
           title: formationStatus?.studied
             ? 'STUDIED'
-            : 'NOT YET VALIDATED',
+            : 'NOT YET COMPLETED',
           detail: formationStatus?.studied
-            ? 'Your study progress is saved. Submit it for validation; your Cluster Admin gives the final approval.'
-            : 'Read and study the lesson. Your Cluster Admin gives the final approval after submission.',
+            ? 'Your study progress is saved. Complete the required response when ready; BUKLOD will save, submit, and check it automatically.'
+            : 'Read and study the lesson, then complete the required response. BUKLOD handles submission and checking automatically.',
         };
     }
   }, [officialStatus, formationStatus?.studied]);
@@ -400,7 +402,7 @@ export default function LessonDetail() {
 
     Alert.alert(
       'Na-save ang draft',
-      'Na-save ang draft. Kumpletuhin ang Quick Check at gamitin ang ISUMITE PARA SA PAGPAPATUNAY kapag handa na.'
+      'Na-save ang draft. Kumpletuhin ang Quick Check; kapag pinili ang COMPLETE LESSON, awtomatikong ise-save, isusumite, at iche-check ng BUKLOD.'
     );
   };
 
@@ -621,7 +623,7 @@ export default function LessonDetail() {
             <View style={styles.statusDivider} />
 
             <Text style={styles.note}>
-              BUKLOD Points are posted automatically after final Cluster Admin approval.
+              BUKLOD Points are posted automatically after automatic checking and approval.
             </Text>
           </Card>
         </>
@@ -757,14 +759,16 @@ export default function LessonDetail() {
           />
 
           {(officialStatus === 'awaiting_pastor' ||
-            officialStatus === 'awaiting_cluster_admin') && (
+            officialStatus === 'awaiting_cluster_admin' ||
+            officialStatus === 'pending_admin') && (
             <Card>
-              <Text style={styles.waitingTitle}>NEXT STEP</Text>
+              <Text style={styles.waitingTitle}>AUTOMATIC CHECKING</Text>
 
               <Text style={shared.body}>
-                After studying this lesson, submit it for validation. Your
-                Cluster Admin will review and approve your official completion.
-                Once approved, your BUKLOD Points will be posted automatically.
+                BUKLOD is checking this lesson automatically. No Pastor,
+                Cluster Admin, or System Admin needs to approve it manually.
+                If a revision is requested, improve the response and complete
+                the lesson again for automatic rechecking.
               </Text>
             </Card>
           )}
@@ -1073,5 +1077,4 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
 });
-
 
