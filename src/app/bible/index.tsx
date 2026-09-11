@@ -342,7 +342,7 @@ async function chooseEvidencePhoto(): Promise<PhotoDraft | null> {
    DAILY_READING_AUDIO_PREVIEW_V1
 
    Audio for the assigned Scripture appears BEFORE READ.
-   Listening here does NOT submit or complete the devotion.
+   Listening here does NOT complete the reading.
 ============================================================ */
 
 function DailyReadingAudioPreview({
@@ -463,14 +463,13 @@ function DailyReadingAudioPreview({
             --------------------------------------------- */
 
             const planResult =
-              await (supabase as any)
-                .rpc(
-                  'get_automatic_bible_reading',
-                  {
-                    p_reading_date:
-                      readingDate,
-                  }
-                );
+              await (supabase as any).rpc(
+                'get_automatic_bible_reading',
+                {
+                  p_reading_date:
+                    readingDate,
+                }
+              );
 
 
             const planRaw =
@@ -984,7 +983,7 @@ function DailyReadingAudioPreview({
             '#718078',
         }}
       >
-        Listening does not submit your Daily Devotion. Tap READ to continue to Scripture and Respond.
+        Listening alone does not complete this Daily Reading. Tap READ, answer the questions, then complete it for automatic checking.
       </Text>
 
     </View>
@@ -1701,14 +1700,14 @@ export default function DailyBibleScreen() {
     await supabase.storage.from(EVIDENCE_BUCKET).remove(unique);
   };
 
-  const submit = async () => {
+  const complete = async () => {
     if (!selected) return;
 
 
     if (!chapterAnswersOkay) {
       Alert.alert(
         'Chapter Questions Required',
-        'Answer all four questions before submitting your Daily Bible reflection.'
+        'Answer all four questions before completing your Daily Bible Reading.'
       );
       return;
     }
@@ -1748,7 +1747,6 @@ export default function DailyBibleScreen() {
         const generatedBibleText =
           await buildAssignedBibleEvidence();
 
-
         if (
           generatedBibleText
         ) {
@@ -1783,7 +1781,7 @@ export default function DailyBibleScreen() {
         newlyUploaded.push(finalReflectionPath);
       }
 
-      const {error} = await supabase.rpc('submit_daily_bible_evidence_v2',{
+      const {data,error} = await (supabase as any).rpc('complete_my_daily_bible_reading_v3',{
         p_assignment_id:selected.id,
         p_bible_text:finalBibleText,
         p_reflection_text:answer.trim() || null,
@@ -1803,13 +1801,15 @@ export default function DailyBibleScreen() {
       if(oldPaths.length) await removeUploaded(oldPaths);
 
       Alert.alert(
-        'Submitted',
-        'Your Daily Bible reflection is awaiting validation by an authorized Local Pastor or System Admin.'
+        data?.status === 'approved' ? 'Daily Reading completed' : 'Daily Reading completed',
+        data?.status === 'approved'
+          ? 'Your Daily Bible Reading is complete and already approved.'
+          : 'Your answers, reflection, completion, and validation submission were saved together. BUKLOD is checking them automatically; no Pastor or Admin approval is required.'
       );
       await load();
     } catch(e:any) {
       if(newlyUploaded.length) await removeUploaded(newlyUploaded);
-      Alert.alert('Submission',e?.message ?? 'Unable to submit.');
+      Alert.alert('Daily Reading',e?.message ?? 'Unable to complete this Daily Bible Reading.');
     } finally {
       setBusy(false);
     }
@@ -1819,6 +1819,7 @@ export default function DailyBibleScreen() {
     !!selected &&
     selectedDate <= today &&
     !locked &&
+    chapterAnswersOkay &&
     reflectionEvidenceOkay;
 
   if (loading) {
@@ -1844,7 +1845,7 @@ export default function DailyBibleScreen() {
       <View style={styles.header}>
         <View style={{flex:1}}>
           <Text style={shared.h1}>Daily Bible Reading</Text>
-          <Text style={shared.muted}>Read Scripture | Reflect | Submit for Validation</Text>
+          <Text style={shared.muted}>Read Scripture | Reflect | Complete | Automatic Checking</Text>
         </View>
         <Pressable onPress={()=>router.back()} style={styles.outline}>
           <Text style={styles.outlineText}>BACK</Text>
@@ -1854,7 +1855,7 @@ export default function DailyBibleScreen() {
       <Card>
         <Text style={styles.eyebrow}>THIS WEEK</Text>
         <Text style={styles.big}>{approved}/7 valid</Text>
-        <Text style={styles.meta}>{pending} pending Pastor approval | Points are awarded only after approval</Text>
+        <Text style={styles.meta}>{pending} being checked automatically | Points post automatically after approval</Text>
         <View style={styles.dots}>
           {days.map(date=>{
             const a=byDate[date];
@@ -1886,7 +1887,7 @@ export default function DailyBibleScreen() {
               </Text>
               <Text style={[styles.dayNum,active&&styles.white]}>{fromIso(date).getDate()}</Text>
               <Text style={[styles.dayState,active&&styles.white]}>
-                {!a?'-':s?.status==='approved'?'VALID':s?.status==='pending_admin'?'PEND':s?.status==='rejected'?'REVISE':'OPEN'}
+                {!a?'-':s?.status==='approved'?'VALID':s?.status==='pending_admin'?'CHECK':s?.status==='rejected'?'REVISE':'OPEN'}
               </Text>
             </Pressable>
           );
@@ -2008,7 +2009,7 @@ export default function DailyBibleScreen() {
             </Text>
 
             <Text style={styles.help}>
-              Answer all four questions before submitting your reflection.
+              Answer all four questions. Completing this reading saves and submits them automatically for BUKLOD checking.
             </Text>
 
             {chapterQuestions
@@ -2101,7 +2102,7 @@ export default function DailyBibleScreen() {
             />
 
             {selectedDate>today && <Text style={styles.warning}>This reading is not open yet.</Text>}
-            {submission?.status==='pending_admin' && <Text style={styles.warning}>PENDING PASTOR APPROVAL | No BUKLOD Points awarded yet.</Text>}
+            {submission?.status==='pending_admin' && <Text style={styles.warning}>AUTOMATIC CHECKING IN PROGRESS | No manual Pastor/Admin approval is required.</Text>}
             {submission?.status==='approved' && <Text style={styles.valid}>VALIDATED | +{points} BUKLOD Points</Text>}
             {submission?.status==='rejected' && (
               <Text style={styles.reject}>
@@ -2111,11 +2112,11 @@ export default function DailyBibleScreen() {
 
             <Pressable
               disabled={!canSubmit || busy}
-              onPress={submit}
+              onPress={complete}
               style={[styles.submit,(!canSubmit||busy)&&styles.submitOff]}
             >
               <Text style={styles.submitText}>
-                {busy?'SUBMITTING...':submission?.status==='rejected'?'RESUBMIT EVIDENCE':'SUBMIT FOR PASTOR APPROVAL'}
+                {busy?'COMPLETING...':submission?.status==='rejected'?'RECHECK & COMPLETE':'✓ COMPLETE DAILY READING'}
               </Text>
             </Pressable>
           </Card>
@@ -2258,4 +2259,3 @@ const styles=StyleSheet.create({
   submitOff:{opacity:.38},
   submitText:{fontSize:12,fontWeight:'900',color:'#FFF'},
 });
-
