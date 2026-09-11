@@ -46,13 +46,13 @@ const localizeMessage = (message:string, language:'en'|'tl') => {
     'The village improved, but too many urgent needs were left unresolved. Rebuild the intervention order.':'Umunlad ang pamayanan, pero napakarami pa ring agarang pangangailangang hindi nasagot. Ayusin muli ang pagkakasunod ng intervention.',
   };
   if(exact[message]) return exact[message];
-  let match=message.match(/^(.+) completed\. The village changed, but unresolved needs keep increasing pressure\.$/);
-  if(match){
-    const project=PROJECTS.find(p=>p.label===match[1]);
-    return `${project?.labelTl??match[1]} ay natapos. Nagbago ang pamayanan, pero tumataas pa rin ang pressure mula sa mga hindi pa nasasagot na pangangailangan.`;
+  const completedMatch=message.match(/^(.+) completed\. The village changed, but unresolved needs keep increasing pressure\.$/);
+  if(completedMatch){
+    const project=PROJECTS.find(p=>p.label===completedMatch[1]);
+    return `${project?.labelTl??completedMatch[1]} ay natapos. Nagbago ang pamayanan, pero tumataas pa rin ang pressure mula sa mga hindi pa nasasagot na pangangailangan.`;
   }
-  match=message.match(/^Village cycle stabilized\. (\d+) priority projects now anchor the highland community\.$/);
-  if(match) return `Naging matatag ang village cycle. ${match[1]} priority project na ngayon ang pundasyon ng highland community.`;
+  const stabilizedMatch=message.match(/^Village cycle stabilized\. (\d+) priority projects now anchor the highland community\.$/);
+  if(stabilizedMatch) return `Naging matatag ang village cycle. ${stabilizedMatch[1]} priority project na ngayon ang pundasyon ng highland community.`;
   return message;
 };
 
