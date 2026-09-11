@@ -1,6 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
-import * as MediaLibrary from 'expo-media-library';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 import { decode, encode } from 'base64-arraybuffer';
@@ -238,6 +237,10 @@ export async function saveClassroomFileToDevice(input: {
   const mime = input.mimeType ?? '';
 
   if (mime.startsWith('image/') || mime.startsWith('video/')) {
+    // expo-media-library initializes a native module at import time. Keep it
+    // out of the web startup path; this branch only runs after Platform.OS has
+    // already excluded web above.
+    const MediaLibrary = await import('expo-media-library');
     const permission = await MediaLibrary.requestPermissionsAsync();
     if (permission.granted) {
       await MediaLibrary.saveToLibraryAsync(downloaded.uri);
