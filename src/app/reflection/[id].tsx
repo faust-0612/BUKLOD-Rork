@@ -8,6 +8,14 @@ import { colors } from '@/lib/theme';
 
 type Privacy = 'private'|'leader'|'group'|'church';
 
+type DevotionalCompletionResult = {
+  ok?: boolean;
+  submission_id?: string;
+  status?: string;
+  already_completed?: boolean;
+  automatic?: boolean;
+};
+
 export default function ReflectionScreen() {
   const { id } = useLocalSearchParams<{id:string}>();
   const { user } = useAuth();
@@ -22,59 +30,42 @@ export default function ReflectionScreen() {
     const reflectionText = reflection.trim();
     const applicationText = application.trim();
 
-    if (!reflectionText) {
-      return Alert.alert('Reflection', 'Write a short reflection first.');
+    if (reflectionText.length < 20) {
+      return Alert.alert('Reflection', 'Write a reflection with at least 20 characters.');
     }
 
-    if (!applicationText) {
-      return Alert.alert('Application', 'Write one practical application before completing the devotional.');
+    if (applicationText.length < 20) {
+      return Alert.alert('Application', 'Write one practical application with at least 20 characters.');
     }
 
     setBusy(true);
 
     try {
-      const { error: reflectionError } = await supabase.from('reflections').upsert({
-        user_id:user.id,
-        devotional_id:id,
-        reflection_text:reflectionText,
-        application_text:applicationText,
-        privacy
-      }, { onConflict:'user_id,devotional_id' });
-
-      if (reflectionError) throw reflectionError;
-
-      const now = new Date();
-      const { error: completionError } = await supabase.from('devotional_completions').upsert({
-        user_id:user.id,
-        devotional_id:id,
-        completed_at:now.toISOString(),
-        completion_date:now.toISOString().slice(0,10)
-      }, { onConflict:'user_id,devotional_id' });
-
-      if (completionError) throw completionError;
-
-      const { error: submissionError } = await (supabase as any).rpc(
-        'submit_devotional_for_bayanihan',
-        { p_devotional_id:id }
+      const { data, error } = await (supabase as any).rpc(
+        'complete_my_devotional_v2',
+        {
+          p_devotional_id: id,
+          p_reflection: reflectionText,
+          p_application: applicationText,
+          p_privacy: privacy,
+        }
       );
 
-      if (submissionError) {
-        Alert.alert(
-          'Devotional saved',
-          `Your reflection and completion were saved, but the validation submission could not be finalized. Please tap COMPLETE DEVOTIONAL again.\n\n${submissionError.message}`
-        );
-        return;
-      }
+      if (error) throw error;
+
+      const result = (data ?? {}) as DevotionalCompletionResult;
 
       Alert.alert(
-        'Devotional completed',
-        'Your reflection and application were saved and submitted for BUKLOD validation.'
+        result.already_completed ? 'Devotional already completed' : 'Devotional completed',
+        result.status === 'approved'
+          ? 'Your devotional is complete and already approved.'
+          : 'Your reflection, application, completion, and validation submission were saved together. BUKLOD is checking it automatically; there is no separate manual submission step.'
       );
       router.replace('/(tabs)/home');
     } catch (error: any) {
       Alert.alert(
         'Could not complete devotional',
-        error?.message ?? 'Please try again.'
+        error?.message ?? 'Nothing was partially submitted. Please try again.'
       );
     } finally {
       setBusy(false);
@@ -85,7 +76,7 @@ export default function ReflectionScreen() {
     <ScrollView style={shared.screen} contentContainerStyle={shared.content}>
       <Text style={shared.h1}>Your Reflection</Text>
       <Text style={shared.muted}>What spoke to you today?</Text>
-      <TextInput multiline value={reflection} onChangeText={setReflection} style={styles.area} placeholder="Write a short reflection..." />
+      <TextInput multiline value={reflection} onChangeText={setReflection} style={styles.area} placeholder="Write your reflection..." />
       <Text style={shared.muted}>What will you do today?</Text>
       <TextInput multiline value={application} onChangeText={setApplication} style={[styles.area,{minHeight:90}]} placeholder="One practical step..." />
 
@@ -98,7 +89,10 @@ export default function ReflectionScreen() {
         ))}
       </View>
 
-      <Button title={busy?'SAVING...':'✓ COMPLETE DEVOTIONAL'} onPress={complete} />
+      <Text style={shared.muted}>
+        Completing this devotional automatically saves and submits it for BUKLOD checking.
+      </Text>
+      <Button title={busy?'COMPLETING...':'✓ COMPLETE DEVOTIONAL'} onPress={complete} />
     </ScrollView>
   );
 }
