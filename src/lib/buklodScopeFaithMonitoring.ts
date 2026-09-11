@@ -13,17 +13,25 @@ export type ScopeFaithMonitoringSummary = {
   summary_date: string;
   week_start: string;
   active_members: number;
+  submission_mode?: string;
+  human_approval_required?: boolean;
   daily_reading: {
     assignment_id: string | null;
     bible_reference: string | null;
     submitted_today: number;
     approved_today: number;
+    automatic_checking: number;
+    needs_revision: number;
     pending_review: number;
     not_submitted_today: number;
     approved_this_week: number;
   };
   devotion: {
     devotional_id: string | null;
+    submitted_today: number;
+    approved_today: number;
+    automatic_checking: number;
+    needs_revision: number;
     completed_today: number;
     completed_this_week: number;
     not_completed_today: number;
@@ -31,6 +39,10 @@ export type ScopeFaithMonitoringSummary = {
   buklod_lesson: {
     members_active: number;
     members_not_started: number;
+    submitted_today: number;
+    approved_today: number;
+    automatic_checking: number;
+    needs_revision: number;
     stages: ScopeFaithLessonStageSummary[];
   };
 };
@@ -79,7 +91,6 @@ function parseSummary(raw: unknown): ScopeFaithMonitoringSummary | null {
   const daily = (row.daily_reading ?? {}) as Record<string, unknown>;
   const devotion = (row.devotion ?? {}) as Record<string, unknown>;
   const lesson = (row.buklod_lesson ?? {}) as Record<string, unknown>;
-
   const scopeId = String(row.scope_id ?? '').trim();
   if (!scopeId) return null;
 
@@ -89,23 +100,28 @@ function parseSummary(raw: unknown): ScopeFaithMonitoringSummary | null {
     summary_date: String(row.summary_date ?? todayIsoDate()),
     week_start: String(row.week_start ?? todayIsoDate()),
     active_members: toNumber(row.active_members),
+    submission_mode: row.submission_mode ? String(row.submission_mode) : undefined,
+    human_approval_required:
+      typeof row.human_approval_required === 'boolean'
+        ? row.human_approval_required
+        : undefined,
     daily_reading: {
-      assignment_id: daily.assignment_id
-        ? String(daily.assignment_id)
-        : null,
-      bible_reference: daily.bible_reference
-        ? String(daily.bible_reference)
-        : null,
+      assignment_id: daily.assignment_id ? String(daily.assignment_id) : null,
+      bible_reference: daily.bible_reference ? String(daily.bible_reference) : null,
       submitted_today: toNumber(daily.submitted_today),
       approved_today: toNumber(daily.approved_today),
+      automatic_checking: toNumber(daily.automatic_checking ?? daily.pending_review),
+      needs_revision: toNumber(daily.needs_revision),
       pending_review: toNumber(daily.pending_review),
       not_submitted_today: toNumber(daily.not_submitted_today),
       approved_this_week: toNumber(daily.approved_this_week),
     },
     devotion: {
-      devotional_id: devotion.devotional_id
-        ? String(devotion.devotional_id)
-        : null,
+      devotional_id: devotion.devotional_id ? String(devotion.devotional_id) : null,
+      submitted_today: toNumber(devotion.submitted_today ?? devotion.completed_today),
+      approved_today: toNumber(devotion.approved_today),
+      automatic_checking: toNumber(devotion.automatic_checking),
+      needs_revision: toNumber(devotion.needs_revision),
       completed_today: toNumber(devotion.completed_today),
       completed_this_week: toNumber(devotion.completed_this_week),
       not_completed_today: toNumber(devotion.not_completed_today),
@@ -113,32 +129,25 @@ function parseSummary(raw: unknown): ScopeFaithMonitoringSummary | null {
     buklod_lesson: {
       members_active: toNumber(lesson.members_active),
       members_not_started: toNumber(lesson.members_not_started),
+      submitted_today: toNumber(lesson.submitted_today),
+      approved_today: toNumber(lesson.approved_today),
+      automatic_checking: toNumber(lesson.automatic_checking),
+      needs_revision: toNumber(lesson.needs_revision),
       stages: parseStageRows(lesson.stages),
     },
   };
 }
 
 function isMissingRpcError(message: string) {
-  return /could not find the function|function.*does not exist|schema cache/i.test(
-    message
-  );
+  return /could not find the function|function.*does not exist|schema cache/i.test(message);
 }
 
 export function extractRpcErrorMessage(error: unknown) {
-  if (error instanceof Error) {
-    return error.message.trim();
-  }
-
+  if (error instanceof Error) return error.message.trim();
   if (error && typeof error === 'object') {
-    const message = String(
-      (error as { message?: unknown }).message ?? ''
-    ).trim();
-
-    if (message) {
-      return message;
-    }
+    const message = String((error as { message?: unknown }).message ?? '').trim();
+    if (message) return message;
   }
-
   return String(error ?? '').trim();
 }
 
@@ -154,17 +163,25 @@ export function buildEmptyScopeFaithMonitoringSummary(
     summary_date: today,
     week_start: today,
     active_members: 0,
+    submission_mode: 'AUTOMATIC',
+    human_approval_required: false,
     daily_reading: {
       assignment_id: null,
       bible_reference: null,
       submitted_today: 0,
       approved_today: 0,
+      automatic_checking: 0,
+      needs_revision: 0,
       pending_review: 0,
       not_submitted_today: 0,
       approved_this_week: 0,
     },
     devotion: {
       devotional_id: null,
+      submitted_today: 0,
+      approved_today: 0,
+      automatic_checking: 0,
+      needs_revision: 0,
       completed_today: 0,
       completed_this_week: 0,
       not_completed_today: 0,
@@ -172,14 +189,16 @@ export function buildEmptyScopeFaithMonitoringSummary(
     buklod_lesson: {
       members_active: 0,
       members_not_started: 0,
+      submitted_today: 0,
+      approved_today: 0,
+      automatic_checking: 0,
+      needs_revision: 0,
       stages: [],
     },
   };
 }
 
-export function isFaithMonitoringEmpty(
-  summary: ScopeFaithMonitoringSummary
-) {
+export function isFaithMonitoringEmpty(summary: ScopeFaithMonitoringSummary) {
   const daily = summary.daily_reading;
   const devotion = summary.devotion;
   const lesson = summary.buklod_lesson;
@@ -187,72 +206,50 @@ export function isFaithMonitoringEmpty(
   const hasDailyActivity =
     daily.submitted_today > 0 ||
     daily.approved_today > 0 ||
-    daily.pending_review > 0 ||
+    daily.automatic_checking > 0 ||
+    daily.needs_revision > 0 ||
     daily.approved_this_week > 0;
-
   const hasDevotionActivity =
-    devotion.completed_today > 0 || devotion.completed_this_week > 0;
-
+    devotion.submitted_today > 0 ||
+    devotion.approved_today > 0 ||
+    devotion.automatic_checking > 0 ||
+    devotion.needs_revision > 0 ||
+    devotion.completed_this_week > 0;
   const hasLessonActivity =
     lesson.members_active > 0 ||
-    lesson.stages.some(
-      (stage) =>
-        stage.completed_count > 0 || stage.in_progress_count > 0
-    );
+    lesson.submitted_today > 0 ||
+    lesson.automatic_checking > 0 ||
+    lesson.needs_revision > 0 ||
+    lesson.stages.some((stage) => stage.completed_count > 0 || stage.in_progress_count > 0);
 
-  return (
-    summary.active_members <= 0 ||
-    (!hasDailyActivity && !hasDevotionActivity && !hasLessonActivity)
-  );
+  return summary.active_members <= 0 || (!hasDailyActivity && !hasDevotionActivity && !hasLessonActivity);
 }
 
 export function mapFaithMonitoringErrorMessage(message: string) {
   const normalized = message.trim();
-
-  if (!normalized) {
-    return 'Could not load faith monitoring. Please try again.';
-  }
-
-  if (/authentication required/i.test(normalized)) {
-    return 'Sign in again to view faith monitoring.';
-  }
-
+  if (!normalized) return 'Could not load faith monitoring. Please try again.';
+  if (/authentication required/i.test(normalized)) return 'Sign in again to view faith monitoring.';
   if (/active membership required/i.test(normalized)) {
     return 'You need active membership in this workspace to view monitoring.';
   }
-
   if (/faith content is not enabled/i.test(normalized)) {
     return 'Faith monitoring is not enabled for this workspace.';
   }
-
-  if (/scope not found/i.test(normalized)) {
-    return 'This workspace could not be found.';
-  }
-
+  if (/scope not found/i.test(normalized)) return 'This workspace could not be found.';
   if (
     isMissingRpcError(normalized) ||
-    /show_faith_content|column .* does not exist|undefined column/i.test(
-      normalized
-    )
+    /show_faith_content|column .* does not exist|undefined column/i.test(normalized)
   ) {
     return 'Faith monitoring is still being set up for this workspace.';
   }
-
   return normalized;
 }
 
 function isHardFaithMonitoringError(message: string) {
-  return (
-    /authentication required/i.test(message) ||
-    /active membership required/i.test(message) ||
-    /scope not found/i.test(message)
-  );
+  return /authentication required|active membership required|scope not found/i.test(message);
 }
 
-export function formatFaithMonitoringRate(
-  completed: number,
-  total: number
-) {
+export function formatFaithMonitoringRate(completed: number, total: number) {
   if (total <= 0) return '0%';
   return `${Math.round((completed / total) * 100)}%`;
 }
@@ -260,29 +257,26 @@ export function formatFaithMonitoringRate(
 export async function fetchScopeFaithMonitoringSummary(
   scopeId: string
 ): Promise<ScopeFaithMonitoringSummary | null> {
-  const exact = await supabase.rpc(
-    'buklod_scope_faith_monitoring_summary_v2' as any,
-    { p_scope_id: scopeId } as any
-  );
+  const v3 = await supabase.rpc('buklod_scope_faith_monitoring_summary_v3' as any, {
+    p_scope_id: scopeId,
+  } as any);
 
-  if (!exact.error) {
-    return parseSummary(exact.data);
-  }
+  if (!v3.error) return parseSummary(v3.data);
+  if (!isMissingRpcError(String(v3.error.message ?? ''))) throw v3.error;
 
-  if (!isMissingRpcError(String(exact.error.message ?? ''))) {
-    throw exact.error;
-  }
+  const v2 = await supabase.rpc('buklod_scope_faith_monitoring_summary_v2' as any, {
+    p_scope_id: scopeId,
+  } as any);
 
-  const { data, error } = await supabase.rpc(
-    'buklod_scope_faith_monitoring_summary_v1',
-    { p_scope_id: scopeId }
-  );
+  if (!v2.error) return parseSummary(v2.data);
+  if (!isMissingRpcError(String(v2.error.message ?? ''))) throw v2.error;
+
+  const { data, error } = await supabase.rpc('buklod_scope_faith_monitoring_summary_v1', {
+    p_scope_id: scopeId,
+  });
 
   if (error) {
-    if (isMissingRpcError(String(error.message ?? ''))) {
-      return null;
-    }
-
+    if (isMissingRpcError(String(error.message ?? ''))) return null;
     throw error;
   }
 
@@ -298,10 +292,7 @@ export async function fetchScopeFaithMonitoringSummaryResilient(input: {
   try {
     const summary =
       (await fetchScopeFaithMonitoringSummary(input.scopeId)) ??
-      buildEmptyScopeFaithMonitoringSummary(
-        input.scopeId,
-        fallbackName
-      );
+      buildEmptyScopeFaithMonitoringSummary(input.scopeId, fallbackName);
 
     return {
       summary,
@@ -312,39 +303,14 @@ export async function fetchScopeFaithMonitoringSummaryResilient(input: {
   } catch (error) {
     const rawMessage = extractRpcErrorMessage(error);
     const friendlyMessage = mapFaithMonitoringErrorMessage(rawMessage);
-
-    if (/faith content is not enabled/i.test(rawMessage)) {
-      return {
-        summary: buildEmptyScopeFaithMonitoringSummary(
-          input.scopeId,
-          fallbackName
-        ),
-        isEmpty: true,
-        warning: friendlyMessage,
-        isHardError: true,
-      };
-    }
-
-    if (isHardFaithMonitoringError(rawMessage)) {
-      return {
-        summary: buildEmptyScopeFaithMonitoringSummary(
-          input.scopeId,
-          fallbackName
-        ),
-        isEmpty: true,
-        warning: friendlyMessage,
-        isHardError: true,
-      };
-    }
+    const empty = buildEmptyScopeFaithMonitoringSummary(input.scopeId, fallbackName);
 
     return {
-      summary: buildEmptyScopeFaithMonitoringSummary(
-        input.scopeId,
-        fallbackName
-      ),
+      summary: empty,
       isEmpty: true,
       warning: friendlyMessage,
-      isHardError: false,
+      isHardError:
+        /faith content is not enabled/i.test(rawMessage) || isHardFaithMonitoringError(rawMessage),
     };
   }
 }
