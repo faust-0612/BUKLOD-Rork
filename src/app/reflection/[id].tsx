@@ -17,27 +17,68 @@ export default function ReflectionScreen() {
   const [busy, setBusy] = useState(false);
 
   const complete = async () => {
-    if (!user || !id) return;
-    if (!reflection.trim()) return Alert.alert('Reflection', 'Write a short reflection first.');
+    if (!user || !id || busy) return;
+
+    const reflectionText = reflection.trim();
+    const applicationText = application.trim();
+
+    if (!reflectionText) {
+      return Alert.alert('Reflection', 'Write a short reflection first.');
+    }
+
+    if (!applicationText) {
+      return Alert.alert('Application', 'Write one practical application before completing the devotional.');
+    }
+
     setBusy(true);
 
-    const { error: reflectionError } = await supabase.from('reflections').upsert({
-      user_id:user.id, devotional_id:id,
-      reflection_text:reflection.trim(), application_text:application.trim(), privacy
-    }, { onConflict:'user_id,devotional_id' });
+    try {
+      const { error: reflectionError } = await supabase.from('reflections').upsert({
+        user_id:user.id,
+        devotional_id:id,
+        reflection_text:reflectionText,
+        application_text:applicationText,
+        privacy
+      }, { onConflict:'user_id,devotional_id' });
 
-    if (reflectionError) { setBusy(false); return Alert.alert('Could not save', reflectionError.message); }
+      if (reflectionError) throw reflectionError;
 
-    const { error: completionError } = await supabase.from('devotional_completions').upsert({
-      user_id:user.id, devotional_id:id,
-      completed_at:new Date().toISOString(),
-      completion_date:new Date().toISOString().slice(0,10)
-    }, { onConflict:'user_id,devotional_id' });
+      const now = new Date();
+      const { error: completionError } = await supabase.from('devotional_completions').upsert({
+        user_id:user.id,
+        devotional_id:id,
+        completed_at:now.toISOString(),
+        completion_date:now.toISOString().slice(0,10)
+      }, { onConflict:'user_id,devotional_id' });
 
-    setBusy(false);
-    if (completionError) return Alert.alert('Could not complete', completionError.message);
-    Alert.alert('Devotional completed', 'Your reflection has been saved.');
-    router.replace('/(tabs)/home');
+      if (completionError) throw completionError;
+
+      const { error: submissionError } = await (supabase as any).rpc(
+        'submit_devotional_for_bayanihan',
+        { p_devotional_id:id }
+      );
+
+      if (submissionError) {
+        Alert.alert(
+          'Devotional saved',
+          `Your reflection and completion were saved, but the validation submission could not be finalized. Please tap COMPLETE DEVOTIONAL again.\n\n${submissionError.message}`
+        );
+        return;
+      }
+
+      Alert.alert(
+        'Devotional completed',
+        'Your reflection and application were saved and submitted for BUKLOD validation.'
+      );
+      router.replace('/(tabs)/home');
+    } catch (error: any) {
+      Alert.alert(
+        'Could not complete devotional',
+        error?.message ?? 'Please try again.'
+      );
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
