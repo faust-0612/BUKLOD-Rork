@@ -1,6 +1,7 @@
 name: BUKLOD Formation R27 Production Deploy
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -8,11 +9,13 @@ on:
       - '.github/workflows/formation_r27_production_deploy.yml'
       - 'scripts/patch-formation-r27.cjs'
       - 'supabase/migrations/20260907143000_formation_auto_validation_notifications_reminders_r27.sql'
+      - 'supabase/migrations/20260911050000_formation_daily_pipeline_repair_r1.sql'
       - 'supabase/functions/buklod-ai-validate-response/**'
       - 'src/lib/buklodAiResponseValidation.ts'
       - 'src/components/LearningQuestionResponse.tsx'
       - 'src/app/learn/lesson.tsx'
       - 'src/app/bible/index.tsx'
+      - 'src/app/reflection/**'
 
 permissions:
   contents: read
@@ -48,6 +51,7 @@ jobs:
           grep -F 'BUKLOD_MAIN_AUTH_STORM_R21' 'src/lib/buklodAuthResilience.ts'
           test -f supabase/migrations/20260907074000_context_scope_formation_approval_r22b_hardening.sql
           test -f supabase/migrations/20260907143000_formation_auto_validation_notifications_reminders_r27.sql
+          test -f supabase/migrations/20260911050000_formation_daily_pipeline_repair_r1.sql
           test -f supabase/functions/buklod-ai-validate-response/index.ts
 
       - name: Apply deterministic R27 client patch
@@ -62,8 +66,10 @@ jobs:
           grep -F 'PENDING REVIEW' 'src/app/learn/lesson.tsx'
           grep -F 'PENDING SCOPE REVIEW' 'src/app/bible/index.tsx'
           grep -F 'SUBMIT FOR REVIEW' 'src/app/bible/index.tsx'
+          grep -F 'submit_devotional_for_bayanihan' 'src/app/reflection/[id].tsx'
           grep -F 'buklod_try_auto_approve_lesson_v1' 'supabase/migrations/20260907143000_formation_auto_validation_notifications_reminders_r27.sql'
           grep -F 'buklod-formation-daily-reminders-r27' 'supabase/migrations/20260907143000_formation_auto_validation_notifications_reminders_r27.sql'
+          grep -F 'buklod_is_formation_scope_approver_v1' 'supabase/migrations/20260911050000_formation_daily_pipeline_repair_r1.sql'
 
       - name: Verify no native or protected config drift
         shell: bash
@@ -105,7 +111,7 @@ jobs:
             --channel production \
             --platform android \
             --environment production \
-            --message "BUKLOD Formation R27 - AI approval notifications reminders" \
+            --message "BUKLOD Formation pipeline repair - Daily Reading and Devotion" \
             --non-interactive 2>&1 | tee r27-android-ota.txt
 
       - name: Preserve deployment evidence
