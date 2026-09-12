@@ -26,12 +26,16 @@ if ([string]::IsNullOrWhiteSpace($env:BUKLOD_WORKSPACE_ROOT)) {
 if ([string]::IsNullOrWhiteSpace($env:BUKLOD_R31_R40_RECOVERY_ROOT)) {
   Fail 'Approved R31/R40 recovery root is missing. Deployment blocked.'
 }
+if ([string]::IsNullOrWhiteSpace($env:BUKLOD_RELEASE_SOURCE_SHA)) {
+  Fail 'BUKLOD_RELEASE_SOURCE_SHA is missing. Exact release identity cannot be proven.'
+}
 
 $WorkspaceRoot = Full $env:BUKLOD_WORKSPACE_ROOT
 $ManifestPath = Join-Path $WorkspaceRoot 'BUKLOD_WORKSPACE.json'
 $ExpectedReleaseWork = Full (Join-Path $WorkspaceRoot 'RELEASE\WEB\current')
 $CurrentRoot = Full (Get-Location).Path
 $RecoveryRoot = Full $env:BUKLOD_R31_R40_RECOVERY_ROOT
+$ExpectedSourceSha = $env:BUKLOD_RELEASE_SOURCE_SHA.Trim()
 
 if (!(Test-Path -LiteralPath $ManifestPath -PathType Leaf)) {
   Fail "Canonical workspace manifest missing: $ManifestPath"
@@ -62,6 +66,10 @@ $branch = (& git symbolic-ref --short -q HEAD).Trim()
 if ($branch -ne 'main') {
   Fail "Production web release requires branch main; actual: $branch"
 }
+$headSha = (& git rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0 -or $headSha -ne $ExpectedSourceSha) {
+  Fail "Release staging SHA drift detected before deployment. Expected=$ExpectedSourceSha actual=$headSha"
+}
 $dirty = @(& git status --porcelain)
 if ($dirty.Count -gt 0) {
   Fail 'Disposable release staging is dirty before deployment.'
@@ -91,6 +99,7 @@ Write-Host "Release   : $CurrentRoot"
 Write-Host "Recovery  : $RecoveryRoot"
 Write-Host "Origin    : $origin"
 Write-Host "Branch    : $branch"
+Write-Host "SHA lock  : $ExpectedSourceSha"
 Write-Host ''
 
 # Windows PowerShell 5.1 treats UTF-8-without-BOM scripts as the active ANSI
@@ -101,6 +110,11 @@ Write-Host 'Normalizing protected child PowerShell scripts for Windows PowerShel
 Ensure-Utf8Bom $implementation
 Ensure-Utf8Bom $recoveryScript
 Write-Host 'PowerShell 5.1 child-script encoding: VERIFIED' -ForegroundColor Green
+
+$headAfterNormalization = (& git rev-parse HEAD).Trim()
+if ($headAfterNormalization -ne $ExpectedSourceSha) {
+  Fail "Release staging SHA changed during local normalization. Expected=$ExpectedSourceSha actual=$headAfterNormalization"
+}
 
 Write-Host 'Starting protected web deployment implementation...' -ForegroundColor Cyan
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $implementation

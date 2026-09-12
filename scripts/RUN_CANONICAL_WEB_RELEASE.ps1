@@ -1,6 +1,7 @@
 #requires -Version 5.1
 param(
-  [string]$WorkspaceRoot = "$HOME\BUKLOD_WORKSPACE"
+  [string]$WorkspaceRoot = "$HOME\BUKLOD_WORKSPACE",
+  [string]$ExpectedSourceSha = ''
 )
 
 Set-StrictMode -Version Latest
@@ -102,6 +103,9 @@ try {
   if ($branch -ne 'main') { Fail "Canonical SOURCE must be on main. Current branch: $branch" }
   if ($dirtyAfter.Count -gt 0) { Fail 'Canonical SOURCE became dirty during verification. Deployment stopped.' }
   if ($sourceSha -ne $originMain) { Fail "Canonical SOURCE is not identical to origin/main. HEAD=$sourceSha origin/main=$originMain" }
+  if (-not [string]::IsNullOrWhiteSpace($ExpectedSourceSha) -and $sourceSha -ne $ExpectedSourceSha.Trim()) {
+    Fail "Canonical SOURCE SHA does not match requested release SHA. Expected=$($ExpectedSourceSha.Trim()) actual=$sourceSha"
+  }
 
   $manifestIdentity = Get-Content -LiteralPath $Manifest -Raw | ConvertFrom-Json
   $markerIdentity = Get-Content -LiteralPath $Marker -Raw | ConvertFrom-Json
@@ -112,6 +116,7 @@ try {
   Write-Host 'BUKLOD_CANONICAL_SOURCE: PASS' -ForegroundColor Green
   Write-Host "HEAD        : $sourceSha"
   Write-Host "origin/main : $originMain"
+  Write-Host "LOCKED SHA  : $sourceSha"
   Write-Host 'Dirty       : False'
 } finally {
   Pop-Location
@@ -139,18 +144,19 @@ Write-Host ''
 Write-Host 'STEP 3/3 - CREATE FRESH RELEASE STAGING + RUN PROTECTED DEPLOY' -ForegroundColor Cyan
 $null = Rotate-Directory $ReleaseWork $PreviousReleaseRoot 'web'
 EnsureDir $ReleaseRoot
-# Disposable staging needs only the current main snapshot, not repository history.
-# A shallow clone reduces transferred data and retries transient curl 56 / early EOF
-# failures. Exact source-vs-staging SHA equality is still mandatory below.
+# Disposable staging needs only the captured main snapshot, not repository history.
+# If main advances after source verification, the clone SHA check below fails closed.
 Clone-ShallowWithRetry 'main' $ReleaseWork $PreviousReleaseRoot 'web'
 
 $stagingSha = (& git -C $ReleaseWork rev-parse HEAD).Trim()
 if ($stagingSha -ne $sourceSha) { Fail "Release staging SHA mismatch. Source=$sourceSha staging=$stagingSha" }
 Write-Host "Fresh staging HEAD: $stagingSha" -ForegroundColor Green
+Write-Host "Release SHA lock: $sourceSha" -ForegroundColor Green
 
 $env:BUKLOD_CANONICAL_RELEASE = '1'
 $env:BUKLOD_WORKSPACE_ROOT = Full $WorkspaceRoot
 $env:BUKLOD_R31_R40_RECOVERY_ROOT = Full $RecoveryPackage
+$env:BUKLOD_RELEASE_SOURCE_SHA = $sourceSha
 $deployExit = 1
 
 Push-Location $ReleaseWork
@@ -162,6 +168,7 @@ try {
   Remove-Item Env:\BUKLOD_CANONICAL_RELEASE -ErrorAction SilentlyContinue
   Remove-Item Env:\BUKLOD_WORKSPACE_ROOT -ErrorAction SilentlyContinue
   Remove-Item Env:\BUKLOD_R31_R40_RECOVERY_ROOT -ErrorAction SilentlyContinue
+  Remove-Item Env:\BUKLOD_RELEASE_SOURCE_SHA -ErrorAction SilentlyContinue
 }
 
 if ($deployExit -ne 0) { Fail "Protected canonical web deploy failed with exit code $deployExit." }
