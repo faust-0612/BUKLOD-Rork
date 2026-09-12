@@ -1,0 +1,107 @@
+name: BUKLOD IGPAT Production Android OTA
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/igpat_production_ota.yml'
+      - 'src/app/igpat/**'
+      - 'src/app/reels/index.tsx'
+      - 'src/app/(tabs)/buklod.tsx'
+      - 'src/components/BuklodExclusiveScopeCommunity.tsx'
+      - 'src/lib/buklodCommunityWallMedia.ts'
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  APP_VARIANT: production
+  EXPO_PUBLIC_APP_ENV: production
+  EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-production
+
+permissions:
+  contents: read
+
+jobs:
+  qa-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact OTA trigger
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Verify exact trigger SHA
+        shell: bash
+        run: |
+          actual="$(git rev-parse HEAD)"
+          echo "Expected trigger SHA: ${GITHUB_SHA}"
+          echo "Checked out SHA:      ${actual}"
+          test "${actual}" = "${GITHUB_SHA}"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts --include=dev
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Verify IGPAT OTA release anchors
+        shell: bash
+        run: |
+          test -f 'src/app/igpat/index.tsx'
+          test -f 'src/app/igpat/create.tsx'
+          test -f 'src/app/igpat/create.web.tsx'
+          test -f 'src/app/reels/index.tsx'
+          grep -F 'get_buklod_igpat_feed_v2' 'src/app/igpat/index.tsx'
+          grep -F 'create_buklod_reel_v1' 'src/app/igpat/create.tsx'
+          grep -F 'create_buklod_reel_v1' 'src/app/igpat/create.web.tsx'
+          grep -F 'get_my_active_igpat_groups_v1' 'src/app/igpat/create.tsx'
+          grep -F 'get_my_active_igpat_groups_v1' 'src/app/igpat/create.web.tsx'
+          if grep -F 'get_buklod_reels_v1' 'src/app/igpat/index.tsx'; then
+            echo 'Legacy Reels feed RPC is still active.'
+            exit 1
+          fi
+          grep -F 'Community accepts text and photos only. Post videos through BUKLOD IGPAT.' 'src/app/(tabs)/buklod.tsx'
+          grep -F 'Community accepts text and photos only. Post videos through BUKLOD IGPAT.' 'src/components/BuklodExclusiveScopeCommunity.tsx'
+          grep -F "router.push('/igpat/create' as any)" 'src/components/BuklodExclusiveScopeCommunity.tsx'
+          grep -F '/igpat' 'src/app/reels/index.tsx'
+
+      - name: Verify OTA runtime remains production 1.3.0
+        shell: bash
+        run: |
+          grep -F "runtimeVersion: isClassroom ? '1.3.0' : (isStaging ? '1.3.2' : '1.3.0')" app.config.js
+          grep -F '"production": {' eas.json
+          grep -F '"channel": "production"' eas.json
+
+      - name: Expo credential preflight
+        shell: bash
+        run: |
+          if [ -z "${EXPO_TOKEN:-}" ]; then
+            echo 'EXPO_TOKEN repository secret is missing.'
+            exit 1
+          fi
+          npx eas-cli@latest whoami --non-interactive
+
+      - name: Publish exact production Android OTA
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          npx eas-cli@latest update \
+            --channel production \
+            --platform android \
+            --environment production \
+            --message "BUKLOD IGPAT R8-R16 production release ${GITHUB_SHA}" \
+            --non-interactive
+
+      - name: Deployment status
+        shell: bash
+        run: |
+          echo "BUKLOD IGPAT production Android OTA published for ${GITHUB_SHA}."
+          echo 'No APK/AAB/native build was requested.'
