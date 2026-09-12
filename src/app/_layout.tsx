@@ -15,6 +15,7 @@ import { ComplianceProvider } from '@/providers/ComplianceProvider';
 import { NetworkProvider } from '@/providers/NetworkProvider';
 import { RuntimeConfigProvider } from '@/providers/RuntimeConfigProvider';
 import BuklodReportNotificationProvider from '@/providers/BuklodReportNotificationProvider';
+import BuklodReportRouteGuard from '@/providers/BuklodReportRouteGuard';
 
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   return (
@@ -43,7 +44,8 @@ export function SuspenseFallback() {
  * Shared account, compliance and runtime services are retained because Report
  * depends on canonical BUKLOD identity. The BuklodScopeProvider name resolves
  * to the standalone read-only Report scope context on this branch, so Report
- * never writes BUKLOD Main's active workspace.
+ * never writes BUKLOD Main's active workspace. The route guard prevents legacy
+ * Main route files in this repository from being opened by this package.
  */
 export default function RootLayout() {
   return (
@@ -56,28 +58,30 @@ export default function RootLayout() {
                 <ComplianceProvider>
                   <RuntimeConfigProvider>
                     <BuklodReportNotificationProvider>
-                      <BuklodRootKeyboardAvoidingView style={{ flex: 1 }}>
-                        <OfflineBanner />
-                        <Stack
-                          screenOptions={{
-                            headerShown: false,
-                            animation: 'none',
-                            contentStyle: { flex: 1 },
-                          }}
-                        >
-                          <Stack.Screen name="index" />
-                          <Stack.Screen name="report-login" />
-                          <Stack.Screen name="privacy/consent" />
-                          <Stack.Screen name="system/maintenance" />
-                          <Stack.Screen name="system/update-required" />
-                          <Stack.Screen name="system/pilot-access" />
-                          <Stack.Screen name="reports/index" />
-                          <Stack.Screen name="reports/library" />
-                          <Stack.Screen name="reports/definitions" />
-                          <Stack.Screen name="reports/template-builder" />
-                          <Stack.Screen name="reports/consolidated" />
-                        </Stack>
-                      </BuklodRootKeyboardAvoidingView>
+                      <BuklodReportRouteGuard>
+                        <BuklodRootKeyboardAvoidingView style={{ flex: 1 }}>
+                          <OfflineBanner />
+                          <Stack
+                            screenOptions={{
+                              headerShown: false,
+                              animation: 'none',
+                              contentStyle: { flex: 1 },
+                            }}
+                          >
+                            <Stack.Screen name="index" />
+                            <Stack.Screen name="report-login" />
+                            <Stack.Screen name="privacy/consent" />
+                            <Stack.Screen name="system/maintenance" />
+                            <Stack.Screen name="system/update-required" />
+                            <Stack.Screen name="system/pilot-access" />
+                            <Stack.Screen name="reports/index" />
+                            <Stack.Screen name="reports/library" />
+                            <Stack.Screen name="reports/definitions" />
+                            <Stack.Screen name="reports/template-builder" />
+                            <Stack.Screen name="reports/consolidated" />
+                          </Stack>
+                        </BuklodRootKeyboardAvoidingView>
+                      </BuklodReportRouteGuard>
                     </BuklodReportNotificationProvider>
                   </RuntimeConfigProvider>
                 </ComplianceProvider>
