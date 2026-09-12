@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { appEnvironment } from '@/lib/environment';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
@@ -31,6 +31,19 @@ type RuntimeContextValue = {
   featureEnabled: (key: string) => boolean;
 };
 
+type RuntimeConfigCacheEnvelope = {
+  schema: 1;
+  user_id: string;
+  environment: string;
+  saved_at: number;
+  config: RuntimeConfig;
+};
+
+type ParsedRuntimeCache = {
+  config: RuntimeConfig;
+  savedAt: number;
+};
+
 const RuntimeContext = createContext<RuntimeContextValue>({
   loading: true,
   config: null,
@@ -39,6 +52,52 @@ const RuntimeContext = createContext<RuntimeContextValue>({
 });
 
 const RUNTIME_CONFIG_TIMEOUT_MS = 4000;
+const RUNTIME_CONFIG_CACHE_TTL_MS = 5 * 60 * 1000;
+
+function parseRuntimeCache(
+  raw: string,
+  userId: string,
+): ParsedRuntimeCache | null {
+  try {
+    const parsed = JSON.parse(raw) as
+      | RuntimeConfigCacheEnvelope
+      | RuntimeConfig;
+
+    if (
+      'schema' in parsed &&
+      parsed.schema === 1 &&
+      parsed.user_id === userId &&
+      parsed.environment === appEnvironment &&
+      parsed.config
+    ) {
+      return {
+        config: parsed.config,
+        savedAt: parsed.saved_at,
+      };
+    }
+
+    /*
+     * Backward compatibility for the pre-hardening cache shape, where the
+     * RuntimeConfig object itself was stored directly. Treat it as expired so
+     * it can only be used as an offline fallback and will be replaced after a
+     * successful online refresh.
+     */
+    if (
+      'features' in parsed &&
+      typeof parsed.features === 'object' &&
+      'environment' in parsed
+    ) {
+      return {
+        config: parsed as RuntimeConfig,
+        savedAt: 0,
+      };
+    }
+  } catch {
+    // Ignore malformed cache. The server refresh below remains authoritative.
+  }
+
+  return null;
+}
 
 export function RuntimeConfigProvider({children}:{children:React.ReactNode}){
   const {user}=useAuth();
@@ -48,31 +107,70 @@ export function RuntimeConfigProvider({children}:{children:React.ReactNode}){
 
   const online=isConnected && isInternetReachable!==false;
   const version=Constants.expoConfig?.version ?? '0.0.0';
+  const identityKey=user ? `${user.id}:${appEnvironment}` : null;
   const cacheKey=user ? `buklod:runtime:${user.id}:${appEnvironment}` : null;
+  const activeIdentityRef=useRef<string|null>(identityKey);
+  const previousIdentityRef=useRef<string|null>(identityKey);
+  const requestSerialRef=useRef(0);
+
+  /*
+   * Keep the async request guard synchronized with the latest render. A late
+   * response from a previous account must never overwrite the current user's
+   * runtime state.
+   */
+  activeIdentityRef.current=identityKey;
 
   const refresh=async()=>{
-    if(!user){
-      setConfig(null);
-      setLoading(false);
+    const requestIdentity=identityKey;
+    const requestUserId=user?.id ?? null;
+    const requestCacheKey=cacheKey;
+    const requestSerial=++requestSerialRef.current;
+
+    const requestIsCurrent=()=>(
+      activeIdentityRef.current===requestIdentity &&
+      requestSerialRef.current===requestSerial
+    );
+
+    if(!requestUserId || !requestIdentity){
+      if(requestIsCurrent()){
+        setConfig(null);
+        setLoading(false);
+      }
       return;
     }
 
-    let cachedConfig:RuntimeConfig|null=null;
+    let parsedCache:ParsedRuntimeCache|null=null;
+    let publishedCache=false;
 
-    if(cacheKey){
+    if(requestCacheKey){
       try{
-        const cached=await AsyncStorage.getItem(cacheKey);
+        const cached=await AsyncStorage.getItem(requestCacheKey);
+
+        if(!requestIsCurrent()) return;
+
         if(cached){
-          try{
-            cachedConfig=JSON.parse(cached) as RuntimeConfig;
-            setConfig(cachedConfig);
+          parsedCache=parseRuntimeCache(cached,requestUserId);
+
+          if(parsedCache){
+            const cacheAge=Date.now()-parsedCache.savedAt;
+            const cacheIsFresh=(
+              parsedCache.savedAt>0 &&
+              cacheAge>=0 &&
+              cacheAge<=RUNTIME_CONFIG_CACHE_TTL_MS
+            );
+
             /*
-             * BUKLOD_GLOBAL_BOOT_R20:
-             * Cached runtime config is enough to release the shell.
-             * The server refresh continues below when online.
+             * Online boots only trust a short-lived cache. Expired/legacy
+             * runtime state must not make one account look "older" than
+             * another. Offline mode may still use the same-user cache as a
+             * continuity fallback.
              */
-            setLoading(false);
-          }catch{}
+            if(cacheIsFresh || !online){
+              setConfig(parsedCache.config);
+              setLoading(false);
+              publishedCache=true;
+            }
+          }
         }
       }catch(error){
         console.warn(
@@ -82,12 +180,14 @@ export function RuntimeConfigProvider({children}:{children:React.ReactNode}){
       }
     }
 
+    if(!requestIsCurrent()) return;
+
     if(!online){
       setLoading(false);
       return;
     }
 
-    if(!cachedConfig && !config){
+    if(!publishedCache){
       setLoading(true);
     }
 
@@ -101,6 +201,8 @@ export function RuntimeConfigProvider({children}:{children:React.ReactNode}){
         'BUKLOD runtime config'
       );
 
+      if(!requestIsCurrent()) return;
+
       if(error){
         console.warn('BUKLOD runtime config:',error.message);
         return;
@@ -109,9 +211,17 @@ export function RuntimeConfigProvider({children}:{children:React.ReactNode}){
       const next=data as RuntimeConfig;
       setConfig(next);
 
-      if(cacheKey){
+      if(requestCacheKey){
+        const envelope:RuntimeConfigCacheEnvelope={
+          schema:1,
+          user_id:requestUserId,
+          environment:appEnvironment,
+          saved_at:Date.now(),
+          config:next,
+        };
+
         void AsyncStorage
-          .setItem(cacheKey,JSON.stringify(next))
+          .setItem(requestCacheKey,JSON.stringify(envelope))
           .catch((error)=>{
             console.warn(
               'BUKLOD runtime cache save:',
@@ -120,16 +230,34 @@ export function RuntimeConfigProvider({children}:{children:React.ReactNode}){
           });
       }
     }catch(error){
-      console.warn(
-        'BUKLOD runtime config:',
-        String((error as Error)?.message ?? error)
-      );
+      if(requestIsCurrent()){
+        console.warn(
+          'BUKLOD runtime config:',
+          String((error as Error)?.message ?? error)
+        );
+      }
     }finally{
-      setLoading(false);
+      if(requestIsCurrent()){
+        setLoading(false);
+      }
     }
   };
 
-  useEffect(()=>{void refresh()},[user?.id,online,appEnvironment]);
+  useEffect(()=>{
+    const identityChanged=previousIdentityRef.current!==identityKey;
+    previousIdentityRef.current=identityKey;
+
+    if(identityChanged){
+      /*
+       * Account/environment switches are hard boundaries. Clear the previous
+       * runtime state before reading the new account's cache or server config.
+       */
+      setConfig(null);
+      setLoading(Boolean(identityKey));
+    }
+
+    void refresh();
+  },[identityKey,online]);
 
   const value=useMemo(()=>({
     loading,
