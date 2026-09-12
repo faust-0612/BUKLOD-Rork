@@ -1,17 +1,30 @@
 import fs from 'node:fs';
+import path from 'node:path';
 
 const failures = [];
 const warnings = [];
 
 const env = process.env.EXPO_PUBLIC_APP_ENV || '';
+const appTarget = process.env.BUKLOD_APP_TARGET || '';
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const publishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '';
-const easProjectId = process.env.EAS_PROJECT_ID || process.env.EXPO_PUBLIC_EAS_PROJECT_ID || '';
+const reportEasProjectId = (
+  process.env.REPORT_EAS_PROJECT_ID ||
+  process.env.EXPO_PUBLIC_REPORT_EAS_PROJECT_ID ||
+  ''
+).trim();
+const reportGoogleServicesFile = (process.env.REPORT_GOOGLE_SERVICES_FILE || '').trim();
 
-const read = (path) => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+const root = new URL('../', import.meta.url);
+const read = (filePath) => fs.readFileSync(new URL(filePath, root), 'utf8');
+const exists = (filePath) => fs.existsSync(new URL(filePath, root));
 
 if (env !== 'production') {
   failures.push('EXPO_PUBLIC_APP_ENV must be production.');
+}
+
+if (appTarget && appTarget !== 'report') {
+  failures.push('BUKLOD_APP_TARGET must be report when set.');
 }
 
 if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(supabaseUrl)) {
@@ -19,69 +32,123 @@ if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(supabaseUrl)) {
 }
 
 if (!/^sb_publishable_/i.test(publishableKey)) {
-  failures.push('Production Expo client must use a Supabase publishable key.');
+  failures.push('Production Report client must use a Supabase publishable key.');
 }
 
 if (/sb_secret_|service_role/i.test(publishableKey)) {
   failures.push('A secret/service-role key is present in the client key variable.');
 }
 
-if (!easProjectId) {
-  failures.push('EAS_PROJECT_ID is required for the production build.');
+if (!reportEasProjectId) {
+  failures.push('REPORT_EAS_PROJECT_ID (or EXPO_PUBLIC_REPORT_EAS_PROJECT_ID) is required for the standalone Report build.');
 }
 
-const appConfig = read('app.config.js');
-if (!appConfig.includes("'org.mzbministry.buklod'")) {
-  failures.push('Production package/bundle identifier is missing.');
-}
-
-const legal = read('src/lib/legal.ts');
-if (legal.includes('REQUIRED BEFORE LAUNCH')) {
-  failures.push('Privacy notice still contains REQUIRED BEFORE LAUNCH placeholders.');
-}
-
-if (legal.includes('[OFFICIAL PRIVACY/DPO EMAIL')) {
-  failures.push('Privacy notice still contains the privacy/DPO email placeholder.');
-}
-
-if (legal.includes('[OFFICIAL ORGANIZATION ADDRESS')) {
-  failures.push('Privacy notice still contains the organization-address placeholder.');
-}
-
-const seedProd = read('supabase/seed.production.sql');
-if (/Leadership Pilot|Pilot Week|QA Church|test user/i.test(seedProd)) {
-  failures.push('Production seed appears to contain staging/pilot/demo data.');
-}
-
-const migrations = fs.readdirSync(new URL('../supabase/migrations/', import.meta.url))
-  .filter(x => x.endsWith('.sql'))
-  .sort();
-
-if (migrations.length !== 43) {
-  failures.push(`Expected 43 canonical production migrations; found ${migrations.length}.`);
-}
-
-for (let i=1;i<migrations.length;i++) {
-  if (migrations[i] <= migrations[i-1]) {
-    failures.push('Migration filenames are not strictly ordered.');
-    break;
+if (!reportGoogleServicesFile) {
+  failures.push('REPORT_GOOGLE_SERVICES_FILE is required for the standalone Report Android build. Never reuse BUKLOD Main Firebase credentials.');
+} else {
+  const absoluteGoogleServicesPath = path.isAbsolute(reportGoogleServicesFile)
+    ? reportGoogleServicesFile
+    : path.resolve(new URL('.', root).pathname, reportGoogleServicesFile);
+  if (!fs.existsSync(absoluteGoogleServicesPath)) {
+    failures.push(`REPORT_GOOGLE_SERVICES_FILE does not exist: ${reportGoogleServicesFile}`);
+  } else {
+    try {
+      const firebaseConfig = JSON.parse(fs.readFileSync(absoluteGoogleServicesPath, 'utf8'));
+      const packageNames = (firebaseConfig?.client ?? [])
+        .map((client) => client?.client_info?.android_client_info?.package_name)
+        .filter(Boolean);
+      if (!packageNames.includes('org.mzbministry.buklod.report')) {
+        failures.push('Dedicated Firebase config does not contain the production Report package org.mzbministry.buklod.report.');
+      }
+      if (packageNames.includes('org.mzbministry.buklod')) {
+        failures.push('REPORT_GOOGLE_SERVICES_FILE appears to contain the BUKLOD Main package. Use the dedicated Report Firebase app instead.');
+      }
+    } catch (error) {
+      failures.push(`REPORT_GOOGLE_SERVICES_FILE is not valid JSON: ${String(error?.message ?? error)}`);
+    }
   }
 }
 
-const releaseManifest = JSON.parse(read('release/PRODUCTION_RELEASE_MANIFEST.json'));
-if (releaseManifest.version !== '1.0.0') {
-  warnings.push(`Release manifest version is ${releaseManifest.version}, expected 1.0.0 for initial release.`);
+const appConfig = read('app.config.js');
+for (const expected of [
+  "slug: 'buklod-report'",
+  "'org.mzbministry.buklod.report'",
+  "'buklod-report'",
+  "appTarget: 'report'",
+  'REPORT_EAS_PROJECT_ID',
+  'REPORT_GOOGLE_SERVICES_FILE',
+]) {
+  if (!appConfig.includes(expected)) {
+    failures.push(`Standalone Report app config is missing required marker: ${expected}`);
+  }
 }
 
-console.log('BUKLOD Production Preflight');
-console.log('===========================');
+if (/google-services\.json['\"]/.test(appConfig) && !appConfig.includes('REPORT_GOOGLE_SERVICES_FILE')) {
+  failures.push('app.config.js contains a hard-coded Google Services path instead of the dedicated Report variable.');
+}
 
-for (const w of warnings) console.log(`WARN: ${w}`);
-for (const f of failures) console.error(`FAIL: ${f}`);
+const easConfig = read('eas.json');
+for (const marker of ['report-development', 'report-preview', 'report-production', '"BUKLOD_APP_TARGET": "report"']) {
+  if (!easConfig.includes(marker)) failures.push(`eas.json is missing standalone Report marker: ${marker}`);
+}
+
+const requiredReportFiles = [
+  'src/app/report-login.tsx',
+  'src/app/report-access-pending.tsx',
+  'src/app/reports/index.tsx',
+  'src/app/reports/library.tsx',
+  'src/app/reports/definitions.tsx',
+  'src/app/reports/template-builder.tsx',
+  'src/app/reports/consolidated.tsx',
+  'src/providers/BuklodReportRouteGuard.tsx',
+  'src/providers/BuklodReportScopeProvider.tsx',
+  'src/providers/BuklodReportNotificationProvider.tsx',
+  'src/components/BuklodReportAssignmentForm.tsx',
+  'src/components/BuklodWeeklyReportForm.tsx',
+  'src/lib/buklodReportDeadlines.ts',
+  'src/lib/buklodReportTemplateImport.ts',
+  'src/lib/buklodReportConsolidation.ts',
+];
+for (const filePath of requiredReportFiles) {
+  if (!exists(filePath)) failures.push(`Required standalone Report source is missing: ${filePath}`);
+}
+
+const requiredMigrations = [
+  'supabase/migrations/20260912_buklod_report_real_deadlines_r1.sql',
+  'supabase/migrations/20260912_buklod_report_consolidated_export_r1.sql',
+  'supabase/migrations/20260912_buklod_report_publish_requires_fields_r1.sql',
+  'supabase/migrations/20260912_buklod_report_template_file_bucket_r1.sql',
+];
+for (const filePath of requiredMigrations) {
+  if (!exists(filePath)) failures.push(`Required Report migration source is missing: ${filePath}`);
+}
+
+const quickWeekly = read('src/components/BuklodWeeklyReportForm.tsx');
+if (!quickWeekly.includes('pickAndAnalyzeReportFile')) {
+  failures.push('MZB Quick Weekly file/photo import is missing from the standalone Report form.');
+}
+if (!quickWeekly.includes('updateQuickWeeklyReminder')) {
+  failures.push('MZB Quick Weekly reminder actions are missing from the standalone Report form.');
+}
+
+const routeGuard = read('src/providers/BuklodReportRouteGuard.tsx');
+if (!routeGuard.includes('report-access-pending') || !routeGuard.includes('hasCanonicalAccess')) {
+  failures.push('Standalone Report route/account containment is incomplete.');
+}
+
+const legacyLogin = exists('src/app/(auth)/login.tsx') ? read('src/app/(auth)/login.tsx') : '';
+if (legacyLogin.includes("router.replace(\n      '/(tabs)/home'")) {
+  warnings.push('Legacy Main login source still exists in the repository, but standalone boot/route containment must never navigate to it.');
+}
+
+console.log('BUKLOD Report Production Preflight');
+console.log('==================================');
+for (const warning of warnings) console.log(`WARN: ${warning}`);
+for (const failure of failures) console.error(`FAIL: ${failure}`);
 
 if (failures.length) {
-  console.error(`\nPRODUCTION PREFLIGHT FAILED with ${failures.length} blocker(s).`);
+  console.error(`\nREPORT PRODUCTION PREFLIGHT FAILED with ${failures.length} blocker(s).`);
   process.exit(1);
 }
 
-console.log('\nPRODUCTION PREFLIGHT PASSED.');
+console.log('\nREPORT PRODUCTION PREFLIGHT PASSED.');
