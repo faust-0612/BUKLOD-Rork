@@ -59,13 +59,36 @@ export type ReportTemplateImportResult = {
 
 const MAX_FILE_BYTES = 12 * 1024 * 1024;
 
-function readErrorMessage(error: any, fallback: string) {
+async function readErrorMessage(error: any, fallback: string) {
+  const context = error?.context;
+  if (context && typeof context.clone === 'function') {
+    try {
+      const payload = await context.clone().json();
+      const message = String(payload?.error ?? payload?.message ?? '').trim();
+      if (message) return message;
+    } catch {
+      try {
+        const text = String(await context.clone().text()).trim();
+        if (text) return text.slice(0, 1200);
+      } catch {
+        // Fall through to the regular Supabase error message.
+      }
+    }
+  }
+
   return String(
     error?.context?.body?.error ??
       error?.context?.body?.message ??
       error?.message ??
       fallback
   );
+}
+
+function stripDataUrlPrefix(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed.startsWith('data:')) return trimmed;
+  const commaIndex = trimmed.indexOf(',');
+  return commaIndex >= 0 ? trimmed.slice(commaIndex + 1) : trimmed;
 }
 
 function inferMimeType(name: string, reported?: string | null) {
@@ -148,6 +171,9 @@ export async function pickAndAnalyzeReportTemplate(args: {
     ],
     copyToCacheDirectory: true,
     multiple: false,
+    // Web: ask Expo to expose the picked file as base64 directly. Native
+    // ignores this option and continues using the cached-file reader.
+    base64: true,
   });
 
   if (picker.canceled || !picker.assets?.[0]) return null;
@@ -156,13 +182,24 @@ export async function pickAndAnalyzeReportTemplate(args: {
     throw new Error('Reporting layout files are limited to 12 MB.');
   }
 
-  const base64 = await readReportAssetBase64(asset);
+  const embeddedBase64 = typeof asset.base64 === 'string'
+    ? stripDataUrlPrefix(asset.base64)
+    : '';
+  const base64 = embeddedBase64 || await readReportAssetBase64(asset);
+  if (!base64) {
+    throw new Error('The selected reporting form could not be read. Choose the file again.');
+  }
+
   const approximateBytes = Math.floor((base64.length * 3) / 4);
   if (approximateBytes > MAX_FILE_BYTES) {
     throw new Error('Reporting layout files are limited to 12 MB.');
   }
 
   const mimeType = inferMimeType(asset.name, asset.mimeType);
+  if (!mimeType) {
+    throw new Error('Unsupported reporting form type. Use PDF, Word, Excel/CSV, text, JPG, PNG or WebP.');
+  }
+
   const { data, error } = await supabase.functions.invoke('buklod-report-template-import-v1', {
     body: {
       scope_id: args.scopeId,
@@ -173,7 +210,9 @@ export async function pickAndAnalyzeReportTemplate(args: {
     },
   });
 
-  if (error) throw new Error(readErrorMessage(error, 'The reporting form could not be analyzed.'));
+  if (error) {
+    throw new Error(await readErrorMessage(error, 'The reporting form could not be analyzed.'));
+  }
   if (!data?.ok || !data?.draft || !data?.source_file) {
     throw new Error(String(data?.error ?? 'The reporting form could not be analyzed.'));
   }
