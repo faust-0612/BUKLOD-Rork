@@ -112,16 +112,9 @@ export default function BuklodDugtongAction({ postId }: Props) {
     }
   }, [postId]);
 
-  useEffect(() => {
-    let alive = true;
-    void (supabase as any)
-      .rpc('get_buklod_dugtong_summary_v1', { p_post_id: postId })
-      .then(({ data, error }: any) => {
-        if (alive && !error && data) setSummary(data as Summary);
-      })
-      .catch(() => undefined);
-    return () => { alive = false; };
-  }, [postId]);
+  // Deliberately do not fetch one summary per feed card on mount. The mature
+  // Community Wall can render many posts at once; loading the chain lazily on
+  // interaction avoids an N+1 RPC burst and keeps casual scrolling lightweight.
 
   const startCompose = (nextParent: DugtongRow | null = null) => {
     setParent(nextParent);
@@ -196,13 +189,13 @@ export default function BuklodDugtongAction({ postId }: Props) {
   return <>
     <BuklodPressable
       accessibilityRole="button"
-      accessibilityLabel={`${label}. ${count} Dugtongs`}
+      accessibilityLabel={summary ? `${label}. ${count} Dugtongs` : 'Dugtong'}
       nested compact
       onPress={() => { setOpen(true); setCompose(false); void load(); }}
       style={styles.action}
     >
       <MaterialCommunityIcons name="link-variant" size={18} color={theme.textMuted} />
-      <Text style={[styles.actionCount, { color: theme.textMuted }]}>{count}</Text>
+      {summary && count > 0 ? <Text style={[styles.actionCount, { color: theme.textMuted }]}>{count}</Text> : null}
     </BuklodPressable>
 
     <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
