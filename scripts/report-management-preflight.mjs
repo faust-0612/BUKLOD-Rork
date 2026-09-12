@@ -12,6 +12,9 @@ const required = [
   'src/lib/buklodReportTemplateImport.ts',
   'src/lib/buklodReportConsolidation.ts',
   'src/lib/buklodReportActions.ts',
+  'src/lib/buklodReportManagementDocument.ts',
+  'src/lib/buklodReportDocumentOutput.ts',
+  'src/lib/buklodReportDocumentOutput.web.ts',
   'src/app/reports/actions.tsx',
   'src/app/reports/consolidated.tsx',
 ];
@@ -55,7 +58,16 @@ if (exists('src/lib/buklodReportActions.ts')) {
 if (exists('src/app/reports/consolidated.tsx')) {
   const source = read('src/app/reports/consolidated.tsx');
   if (!source.includes('never happens automatically')) failures.push('High-impact personnel review must remain explicitly non-automatic.');
-  if (!source.includes('Export Word report')) failures.push('Management Word export is missing from the dashboard.');
+  for (const marker of ['exportScopeManagementWord', 'doWordExport', 'file-word-outline', 'Word summary']) {
+    if (!source.includes(marker)) failures.push(`Management Word export dashboard wiring is missing: ${marker}`);
+  }
+}
+
+if (exists('src/lib/buklodReportManagementDocument.ts')) {
+  const source = read('src/lib/buklodReportManagementDocument.ts');
+  for (const marker of ['exportScopeManagementWord', 'overall status', 'actions', 'next action']) {
+    if (!source.toLowerCase().includes(marker.toLowerCase())) failures.push(`Management Word export document is missing: ${marker}`);
+  }
 }
 
 console.log('BUKLOD Report Management Preflight');
