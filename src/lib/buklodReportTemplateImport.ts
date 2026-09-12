@@ -1,3 +1,4 @@
+import { encode as base64Encode } from 'base64-arraybuffer';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
@@ -60,19 +61,9 @@ export type ReportTemplateImportResult = {
 
 const MAX_FILE_BYTES = 12 * 1024 * 1024;
 
-function arrayBufferToBase64(buffer: ArrayBuffer) {
-  const bytes = new Uint8Array(buffer);
-  let binary = '';
-  const chunk = 0x8000;
-  for (let index = 0; index < bytes.length; index += chunk) {
-    binary += String.fromCharCode(...bytes.subarray(index, Math.min(index + chunk, bytes.length)));
-  }
-  return globalThis.btoa(binary);
-}
-
 async function assetBase64(asset: DocumentPicker.DocumentPickerAsset) {
   if (Platform.OS === 'web' && asset.file) {
-    return arrayBufferToBase64(await asset.file.arrayBuffer());
+    return base64Encode(await asset.file.arrayBuffer());
   }
 
   return FileSystem.readAsStringAsync(asset.uri, {
