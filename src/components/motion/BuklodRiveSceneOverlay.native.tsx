@@ -34,7 +34,7 @@ function RemoteRiveOverlay({
     riveFile,
     isLoading,
     error,
-  } = useRiveFile({ uri: url });
+  } = useRiveFile(url);
 
   if (
     !visible ||
@@ -58,6 +58,7 @@ function RemoteRiveOverlay({
         file={riveFile}
         autoPlay
         fit={Fit.Contain}
+        onError={() => undefined}
         style={StyleSheet.absoluteFill}
       />
     </View>
