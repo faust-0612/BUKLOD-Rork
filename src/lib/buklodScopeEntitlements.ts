@@ -6,7 +6,18 @@ import {
 
 export type ScopeCommercialEntitlements = ScopeEntitlementsSnapshot;
 
-let cachedByScopeId = new Map<string, ScopeCommercialEntitlements>();
+type ScopeEntitlementCacheEntry = {
+  value: ScopeCommercialEntitlements;
+  cachedAt: number;
+};
+
+const SCOPE_ENTITLEMENT_FRESH_MS = 30_000;
+
+const cachedByScopeId =
+  new Map<string, ScopeEntitlementCacheEntry>();
+
+const inFlightByScopeId =
+  new Map<string, Promise<ScopeCommercialEntitlements>>();
 
 export function readScopeCommercialEntitlements(
   data: unknown
@@ -24,33 +35,70 @@ export async function fetchScopeCommercialEntitlements(
     return readScopeCommercialEntitlements(null);
   }
 
-  if (!forceRefresh && cachedByScopeId.has(id)) {
-    return cachedByScopeId.get(id)!;
-  }
+  if (!forceRefresh) {
+    const cached = cachedByScopeId.get(id);
 
-  const { data, error } = await (supabase as any).rpc(
-    'buklod_scope_entitlements_v1',
-    {
-      p_scope_id: id,
+    if (
+      cached &&
+      Date.now() - cached.cachedAt <= SCOPE_ENTITLEMENT_FRESH_MS
+    ) {
+      return cached.value;
     }
-  );
 
-  if (error) {
-    throw error;
+    const inFlight = inFlightByScopeId.get(id);
+    if (inFlight) {
+      return inFlight;
+    }
   }
 
-  const entitlements = readScopeCommercialEntitlements(data);
-  cachedByScopeId.set(id, entitlements);
-  return entitlements;
+  const request = (async () => {
+    const { data, error } = await (supabase as any).rpc(
+      'buklod_scope_entitlements_v1',
+      {
+        p_scope_id: id,
+      }
+    );
+
+    if (error) {
+      throw error;
+    }
+
+    const entitlements = readScopeCommercialEntitlements(data);
+
+    cachedByScopeId.set(id, {
+      value: entitlements,
+      cachedAt: Date.now(),
+    });
+
+    return entitlements;
+  })();
+
+  if (!forceRefresh) {
+    inFlightByScopeId.set(id, request);
+  }
+
+  try {
+    return await request;
+  } finally {
+    if (
+      !forceRefresh &&
+      inFlightByScopeId.get(id) === request
+    ) {
+      inFlightByScopeId.delete(id);
+    }
+  }
 }
 
 export function clearScopeCommercialEntitlementsCache(scopeId?: string) {
   if (!scopeId) {
     cachedByScopeId.clear();
+    inFlightByScopeId.clear();
     return;
   }
 
-  cachedByScopeId.delete(String(scopeId).trim());
+  const id = String(scopeId).trim();
+  cachedByScopeId.delete(id);
+  inFlightByScopeId.delete(id);
 }
 
 export async function verifyScopeCommercialFeature(
