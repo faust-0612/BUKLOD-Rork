@@ -57,6 +57,7 @@ module.exports = ({ config }) => {
 
     web: {
       bundler: 'metro',
+      output: 'static',
       favicon: './assets/release/app-icon.png',
     },
 
