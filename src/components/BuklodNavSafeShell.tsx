@@ -6,11 +6,13 @@ import React, {
 import {
   Keyboard,
   Platform,
+  Pressable,
   StyleSheet,
   View,
 } from 'react-native';
 
-import { usePathname } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { router, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import BuklodFocusAppAdStrip from '@/components/BuklodFocusAppAdStrip';
@@ -40,10 +42,23 @@ function isMyBuklodDoorPath(pathname: string): boolean {
   );
 }
 
+function isImmersiveIgpatPath(pathname: string): boolean {
+  const normalized = normalizeBuklodPathname(pathname);
+
+  return (
+    normalized === '/igpat' ||
+    normalized.startsWith('/igpat/') ||
+    normalized === '/reels' ||
+    normalized.startsWith('/reels/')
+  );
+}
+
 /**
  * Root shell: shrinks routed content above the global bottom nav so door
  * screens and dashboard pushes never sit underneath the phone nav pane.
- * Focus App routes also receive one normal-flow AdMob banner above that pane.
+ * IGPAT is an immersive video surface: no normal-flow ad strip or persistent
+ * bottom navigation is reserved there. A small floating Community return
+ * remains available so the user never gets trapped inside IGPAT.
  */
 export default function BuklodNavSafeShell({
   children,
@@ -54,6 +69,8 @@ export default function BuklodNavSafeShell({
     useBuklodPersistentNavOccupiedHeight();
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
+  const immersiveIgpat =
+    isImmersiveIgpatPath(pathname);
   const reserveMyBuklodSystemInsets =
     isMyBuklodDoorPath(pathname);
   const [keyboardVisible, setKeyboardVisible] =
@@ -103,17 +120,21 @@ export default function BuklodNavSafeShell({
   }, []);
 
   const contentTopInset =
-    reserveMyBuklodSystemInsets
-      ? Math.max(insets.top, 0)
-      : 0;
-  const contentBottomInset =
-    keyboardVisible
+    immersiveIgpat
       ? 0
-      : navOccupied > 0
-        ? navOccupied
-        : reserveMyBuklodSystemInsets
-          ? Math.max(insets.bottom, 0)
-          : 0;
+      : reserveMyBuklodSystemInsets
+        ? Math.max(insets.top, 0)
+        : 0;
+  const contentBottomInset =
+    immersiveIgpat
+      ? 0
+      : keyboardVisible
+        ? 0
+        : navOccupied > 0
+          ? navOccupied
+          : reserveMyBuklodSystemInsets
+            ? Math.max(insets.bottom, 0)
+            : 0;
 
   return (
     <View style={styles.root}>
@@ -129,15 +150,37 @@ export default function BuklodNavSafeShell({
         <View style={styles.routedContent}>
           {children}
         </View>
-        <BuklodFocusAppAdStrip />
+        {!immersiveIgpat ? <BuklodFocusAppAdStrip /> : null}
       </View>
 
-      <View
-        pointerEvents="box-none"
-        style={styles.navOverlay}
-      >
-        <BuklodPersistentBottomNav />
-      </View>
+      {!immersiveIgpat ? (
+        <View
+          pointerEvents="box-none"
+          style={styles.navOverlay}
+        >
+          <BuklodPersistentBottomNav />
+        </View>
+      ) : null}
+
+      {immersiveIgpat ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Back to Community Wall"
+          accessibilityHint="Returns to the BUKLOD Community Wall"
+          hitSlop={10}
+          onPress={() => router.replace('/buklod' as any)}
+          style={[
+            styles.igpatCommunityReturn,
+            { top: Math.max(insets.top, 8) + 6 },
+          ]}
+        >
+          <MaterialCommunityIcons
+            name="arrow-left"
+            size={23}
+            color="#FFFFFF"
+          />
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -159,5 +202,18 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+  },
+  igpatCommunityReturn: {
+    position: 'absolute',
+    left: 12,
+    zIndex: 1000,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.56)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.22)',
   },
 });
