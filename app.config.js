@@ -1,7 +1,8 @@
+const DEFAULT_REPORT_EAS_PROJECT_ID = 'cc69b3c0-a5df-4b69-a84c-887c36242fdd';
 const reportProjectId = (
   process.env.REPORT_EAS_PROJECT_ID ||
   process.env.EXPO_PUBLIC_REPORT_EAS_PROJECT_ID ||
-  ''
+  DEFAULT_REPORT_EAS_PROJECT_ID
 ).trim();
 const reportGoogleServicesFile = (process.env.REPORT_GOOGLE_SERVICES_FILE || '').trim();
 
@@ -119,12 +120,10 @@ module.exports = ({ config }) => {
       ...config.extra,
       appEnvironment: process.env.EXPO_PUBLIC_APP_ENV || variant,
       appTarget: 'report',
-      ...(reportProjectId ? { eas: { projectId: reportProjectId } } : {}),
+      eas: { projectId: reportProjectId },
     },
 
-    updates: reportProjectId
-      ? { url: `https://u.expo.dev/${reportProjectId}`, fallbackToCacheTimeout: 0 }
-      : undefined,
+    updates: { url: `https://u.expo.dev/${reportProjectId}`, fallbackToCacheTimeout: 0 },
     runtimeVersion: '1.0.0',
   };
 };
