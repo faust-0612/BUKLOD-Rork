@@ -10,7 +10,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 
-import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
+import BuklodReportScrollView from '@/components/BuklodReportScrollView';
 import BuklodReportAssignmentForm from '@/components/BuklodReportAssignmentForm';
 import { BUKLOD_REPORT_ICON_URI } from '@/lib/buklodReportBranding';
 import type { ReportAssignmentCard, ReportHomeCardStatus } from '@/lib/buklodReportContracts';
@@ -25,8 +25,8 @@ import {
   readReportAssignmentId,
   readReportScopeId,
 } from '@/lib/buklodReportRoutes';
+import { reportColors as colors, reportTheme } from '@/lib/buklodReportTheme';
 import { verifyOrganizationManageAccess } from '@/lib/buklodOrganization';
-import { colors, reportTheme } from '@/lib/theme';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 
 const ATTENTION_STATUSES = new Set<ReportHomeCardStatus>([
@@ -172,7 +172,7 @@ export default function BuklodReportLandingScreen() {
   return (
     <>
       <Stack.Screen options={{ title: 'BUKLOD Report' }} />
-      <BuklodPortalScrollView contentContainerStyle={styles.content}>
+      <BuklodReportScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
           <Image source={{ uri: BUKLOD_REPORT_ICON_URI }} resizeMode="cover" style={styles.heroIcon} />
           <View style={styles.heroCopy}>
@@ -335,7 +335,7 @@ export default function BuklodReportLandingScreen() {
             )}
           </>
         )}
-      </BuklodPortalScrollView>
+      </BuklodReportScrollView>
     </>
   );
 }
