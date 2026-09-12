@@ -1426,8 +1426,7 @@ export default function BuklodExclusiveScopeCommunity({
       const cleanBody =
         body.trim();
 
-      const publishingReel =
-        mode === 'reels';
+      const publishingReel = false;
 
       if (
         publishingReel &&
@@ -1473,11 +1472,15 @@ export default function BuklodExclusiveScopeCommunity({
 
       const snapshot = {
         photos: [...photos],
-        wallVideo,
-        reel,
-        communityGif,
+        wallVideo:
+          wallVideo as SelectedVideo | null,
+        reel:
+          reel as SelectedVideo | null,
+        communityGif:
+          communityGif as BuklodCommunityGifFile | null,
         cleanBody,
-        publishingReel,
+        publishingReel:
+          publishingReel as boolean,
         userId: user.id,
         scopeId: scope.scope_id,
       };

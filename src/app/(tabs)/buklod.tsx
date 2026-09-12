@@ -1653,8 +1653,14 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
    photos:
     [...photos],
    wallVideo:
-    wallVideo186O,
-   communityGif,
+    wallVideo186O as {
+     uri:string;
+     mimeType:string;
+     sizeBytes:number;
+     durationSeconds:number;
+    }|null,
+   communityGif:
+    communityGif as BuklodCommunityGifFile|null,
    mentions:
     [...mentions],
    audience,
