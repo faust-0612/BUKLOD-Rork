@@ -3,56 +3,40 @@ import React from 'react';
 import {
   ScrollView,
   type ScrollViewProps,
-  StyleSheet,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
 
 import {
   mergeBuklodSafeContentInsets,
   useBuklodPortalContentInsets,
 } from '@/lib/buklodSafeArea';
-import { reportTheme } from '@/lib/theme';
 
 type Props = ScrollViewProps & {
   contentExtra?: number;
-  /** Set false only for intentionally edge-to-edge portal content. */
-  constrainContent?: boolean;
 };
 
 /**
- * Shared scroll container for the standalone Report/portal experience.
- * It keeps mobile safe-area behavior while preventing web/tablet screens from
- * stretching into an unreadable full-width canvas.
+ * Scroll container for Organization/Cluster portal and door screens.
+ * Applies real top/bottom safe-area insets with global nav reservation.
  */
 export default function BuklodPortalScrollView({
   contentContainerStyle,
   contentExtra = 16,
-  constrainContent = true,
-  keyboardShouldPersistTaps = 'handled',
-  showsVerticalScrollIndicator = false,
   ...rest
 }: Props) {
-  const portalInsets = useBuklodPortalContentInsets(contentExtra);
+  const portalInsets =
+    useBuklodPortalContentInsets(
+      contentExtra,
+    );
 
   return (
     <ScrollView
       {...rest}
-      keyboardShouldPersistTaps={keyboardShouldPersistTaps}
-      showsVerticalScrollIndicator={showsVerticalScrollIndicator}
       contentContainerStyle={mergeBuklodSafeContentInsets(
-        [
-          constrainContent ? styles.constrained : null,
-          contentContainerStyle,
-        ],
+        contentContainerStyle,
         portalInsets,
       )}
     />
   );
 }
-
-const styles = StyleSheet.create({
-  constrained: {
-    width: '100%',
-    maxWidth: reportTheme.layout.maxContentWidth,
-    alignSelf: 'center',
-  },
-});
