@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Pressable,
   StyleSheet,
@@ -8,11 +9,11 @@ import {
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 
 import { BUKLOD_REPORT_ICON_URI } from '@/lib/buklodReportBranding';
 import { fetchMyActionableReportAssignments } from '@/lib/buklodReportDomain';
-import { buklodReportLandingPath } from '@/lib/buklodReportRoutes';
+import { openBuklodReportExternal } from '@/lib/buklodReportLauncher';
 import { colors } from '@/lib/theme';
 
 type Props = {
@@ -29,6 +30,7 @@ export default function BuklodReportDoorCard({
   compact = false,
 }: Props) {
   const [loading, setLoading] = useState(false);
+  const [opening, setOpening] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
 
   useFocusEffect(
@@ -64,25 +66,35 @@ export default function BuklodReportDoorCard({
     }, [scopeId])
   );
 
-  const openReport = useCallback(() => {
-    if (!scopeId) return;
+  const openReport = useCallback(async () => {
+    if (!scopeId || opening) return;
 
-    router.push(
-      `${buklodReportLandingPath(scopeId)}&entry=main&source_scope_type=${encodeURIComponent(
-        scopeType
-      )}` as any
-    );
-  }, [scopeId, scopeType]);
+    setOpening(true);
+    try {
+      await openBuklodReportExternal({ scopeId, scopeType });
+    } catch (error: unknown) {
+      Alert.alert(
+        'BUKLOD Report',
+        error instanceof Error
+          ? error.message
+          : 'The standalone BUKLOD Report app could not be opened.'
+      );
+    } finally {
+      setOpening(false);
+    }
+  }, [opening, scopeId, scopeType]);
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`Open BUKLOD Report for ${scopeName}`}
-      onPress={openReport}
+      disabled={opening}
+      onPress={() => void openReport()}
       style={({ pressed }) => [
         styles.card,
         compact && styles.cardCompact,
         pressed && styles.pressed,
+        opening && styles.disabled,
       ]}
     >
       <View style={styles.iconWrap}>
@@ -96,7 +108,7 @@ export default function BuklodReportDoorCard({
       <View style={styles.copy}>
         <View style={styles.titleRow}>
           <Text style={styles.eyebrow}>BUKLOD FOCUS APP</Text>
-          {loading ? (
+          {loading || opening ? (
             <ActivityIndicator size="small" color={colors.greenDark} />
           ) : pendingCount > 0 ? (
             <View style={styles.badge}>
@@ -105,12 +117,13 @@ export default function BuklodReportDoorCard({
           ) : null}
         </View>
         <Text style={styles.title}>BUKLOD Report</Text>
-        <Text style={styles.subtitle} numberOfLines={2}>
-          Report, monitor and follow up for {scopeName}. Your current account and
-          {` ${scopeType.toLowerCase()} `}context carry over automatically.
+        <Text style={styles.subtitle} numberOfLines={3}>
+          Report, monitor and follow up for {scopeName}. Your selected
+          {` ${scopeType.toLowerCase()} `}scope opens in the standalone Report app.
+          Sign-in may be required on first open.
         </Text>
         <View style={styles.openRow}>
-          <Text style={styles.openText}>OPEN REPORT</Text>
+          <Text style={styles.openText}>{opening ? 'OPENING…' : 'OPEN REPORT'}</Text>
           <MaterialCommunityIcons
             name="arrow-right"
             size={16}
@@ -207,5 +220,8 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.76,
+  },
+  disabled: {
+    opacity: 0.62,
   },
 });
