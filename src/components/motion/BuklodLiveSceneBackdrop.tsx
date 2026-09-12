@@ -20,15 +20,9 @@ type Props = {
 
 type VideoProps = {
   url: string;
-  visible: boolean;
-  reduceMotion: boolean;
 };
 
-function RemoteVideoLayer({
-  url,
-  visible,
-  reduceMotion,
-}: VideoProps) {
+function RemoteVideoLayer({ url }: VideoProps) {
   const source = useMemo(
     () => ({
       uri: url,
@@ -42,20 +36,17 @@ function RemoteVideoLayer({
     instance.muted = true;
     instance.volume = 0;
     instance.playbackRate = 0.82;
-    instance.play();
   });
 
   useEffect(() => {
     player.muted = true;
     player.volume = 0;
+    player.play();
 
-    if (visible && !reduceMotion) {
-      player.play();
-      return;
-    }
-
-    player.pause();
-  }, [player, reduceMotion, visible]);
+    return () => {
+      player.pause();
+    };
+  }, [player]);
 
   return (
     <VideoView
@@ -195,13 +186,9 @@ export default function BuklodLiveSceneBackdrop({
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      {normalizedVideoUrl ? (
+      {normalizedVideoUrl && visible && !reduceMotion ? (
         <View style={[StyleSheet.absoluteFill, styles.videoLayer]}>
-          <RemoteVideoLayer
-            url={normalizedVideoUrl}
-            visible={visible}
-            reduceMotion={reduceMotion}
-          />
+          <RemoteVideoLayer url={normalizedVideoUrl} />
         </View>
       ) : null}
 
