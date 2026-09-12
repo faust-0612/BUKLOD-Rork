@@ -14,33 +14,41 @@ function stop(message) {
   throw new Error(message);
 }
 
-function capture(command, args = []) {
+function spawn(command, args = [], { stdio = 'inherit', encoding } = {}) {
+  const isGit = command === 'git';
   const result = spawnSync(command, args, {
-    encoding: 'utf8',
-    shell: process.platform === 'win32',
-  });
-
-  if (result.error || result.status !== 0) {
-    stop(`${command} ${args.join(' ')} failed.`);
-  }
-
-  return String(result.stdout ?? '').trim();
-}
-
-function run(command, args = []) {
-  console.log(`\n> ${command} ${args.join(' ')}`);
-  const result = spawnSync(command, args, {
-    stdio: 'inherit',
-    shell: process.platform === 'win32',
+    stdio,
+    encoding,
+    // IMPORTANT: git argument arrays must bypass cmd.exe on Windows so a
+    // commit message remains ONE argument. npm.cmd/npx.cmd still need shell.
+    shell: process.platform === 'win32' && !isGit,
   });
 
   if (result.error) {
     stop(`${command} could not start: ${result.error.message}`);
   }
-
   if (result.status !== 0) {
     stop(`${command} exited with code ${result.status}.`);
   }
+  return result;
+}
+
+function capture(command, args = []) {
+  const result = spawn(command, args, {
+    stdio: ['ignore', 'pipe', 'pipe'],
+    encoding: 'utf8',
+  });
+  return String(result.stdout ?? '').trim();
+}
+
+function run(command, args = []) {
+  console.log(`\n> ${command} ${args.join(' ')}`);
+  spawn(command, args);
+}
+
+function runGit(args = []) {
+  console.log(`\n> git ${args.join(' ')}`);
+  spawn('git', args);
 }
 
 function indexOnce(text, needle, label) {
@@ -55,7 +63,6 @@ function indexOnce(text, needle, label) {
 function patchHome(original) {
   let text = original;
 
-  // 1) Remove the visible Home-level loading spinner/layout jump.
   const spinnerPattern = /\{loading \? \(\s*<View style=\{\{ paddingVertical: 8, alignItems: 'center' \}\}>\s*<ActivityIndicator color=\{colors\.green\} \/>\s*<\/View>\s*\) : null\}/m;
   const spinnerMatches = text.match(new RegExp(spinnerPattern.source, 'gm')) ?? [];
   if (spinnerMatches.length !== 1) {
@@ -66,7 +73,6 @@ function patchHome(original) {
     "{/* CONTINUOUS_USE_STABILITY_R1: Home refreshes quietly; no blocking spinner/layout jump. */}",
   );
 
-  // 2) Isolate the actually-rendered Daily/Bayanihan pair.
   const pairStartMarker = 'function HomeDailyBayanihanPair({';
   const pairEndMarker = 'function HomeDailyBibleStrip()';
   const pairStart = indexOnce(text, pairStartMarker, 'HomeDailyBayanihanPair');
@@ -80,9 +86,6 @@ function patchHome(original) {
   const splitMarker = '  /* MY_BIBLE_HOME_SPLIT_V2 */';
   const splitPos = indexOnce(pair, splitMarker, 'MY_BIBLE_HOME_SPLIT_V2');
 
-  // The previous script assumed `return(`. Actual source is `return (`.
-  // Match only a component-level return indented by exactly two spaces so
-  // nested callback cleanup `return () =>` statements are not selected.
   const returnPattern = /\n  return\s*\(/g;
   returnPattern.lastIndex = splitPos + splitMarker.length;
   const returnMatch = returnPattern.exec(pair);
@@ -107,8 +110,6 @@ function patchHome(original) {
     "\n  /* CONTINUOUS_USE_STABILITY_R1: no mount-time Daily Bible RPC here. */" +
     pair.slice(returnPos);
 
-  // 3) Keep one Home Daily Bible doorway and route it to the canonical
-  // landing/date-selection screen instead of directly opening today's reader.
   const dailyStartMarker = '        {/* DAILY DEVOTION */}';
   const myBibleMarker = '        {/* MY BIBLE */}';
   const dailyStart = indexOnce(pair, dailyStartMarker, 'duplicate Home Daily tile');
@@ -133,12 +134,11 @@ function patchHome(original) {
 
   const patchedPairEnd = text.indexOf(pairEndMarker, pairStart);
   const patchedPair = text.slice(pairStart, patchedPairEnd);
-  const forbidden = [
+  for (const marker of [
     'get_automatic_bible_today',
     'readingLoading',
     "pathname: '/bible/read'",
-  ];
-  for (const marker of forbidden) {
+  ]) {
     if (patchedPair.includes(marker)) {
       stop(`HomeDailyBayanihanPair still contains removed behavior: ${marker}`);
     }
@@ -169,8 +169,6 @@ function findScriptureReadButtonLabel(text) {
     cursor = pos + needle.length;
   }
 
-  // There is also a legitimate QUESTIONS ABOUT TODAY'S SCRIPTURE heading.
-  // Select only the label whose nearby context is readBibleEyebrow.
   const candidates = positions.filter((pos) =>
     text.slice(Math.max(0, pos - 180), pos).includes('styles.readBibleEyebrow')
   );
@@ -241,6 +239,25 @@ function patchBible(original) {
   return text;
 }
 
+function restoreRuntimeAndIndex(homeOriginal, bibleOriginal) {
+  try {
+    fs.writeFileSync(HOME_PATH, homeOriginal, 'utf8');
+    fs.writeFileSync(BIBLE_PATH, bibleOriginal, 'utf8');
+  } catch (restoreError) {
+    console.error(`ROLLBACK WARNING (files): ${restoreError?.message ?? restoreError}`);
+  }
+
+  try {
+    // Reset ONLY the two runtime paths in the index; never touch unrelated work.
+    spawnSync('git', ['reset', '--', HOME_PATH, BIBLE_PATH], {
+      stdio: 'inherit',
+      shell: false,
+    });
+  } catch (resetError) {
+    console.error(`ROLLBACK WARNING (index): ${resetError?.message ?? resetError}`);
+  }
+}
+
 let homeOriginal = null;
 let bibleOriginal = null;
 let wroteRuntimeFiles = false;
@@ -259,7 +276,7 @@ try {
 
   const statusBefore = capture('git', ['status', '--porcelain']);
   if (statusBefore) {
-    stop('Working tree is not clean. No runtime edit was attempted.');
+    stop('Working tree/index is not clean. Run the supplied recovery command before rerunning.');
   }
 
   const homeFile = path.join(root, HOME_PATH);
@@ -289,15 +306,15 @@ try {
     stop(`Unexpected changed files: ${changed.join(', ') || '(none)'}`);
   }
 
-  run('git', ['diff', '--check']);
+  runGit(['diff', '--check']);
   run(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['tsc', '--noEmit']);
   run(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', 'game:contract']);
 
-  run('git', ['add', '--', HOME_PATH, BIBLE_PATH]);
-  run('git', ['commit', '-m', 'fix(stability): remove duplicate daily door and loading churn']);
+  runGit(['add', '--', HOME_PATH, BIBLE_PATH]);
+  runGit(['commit', '-m', 'fix(stability): remove duplicate daily door and loading churn']);
   committed = true;
 
-  run('git', ['push', '-u', 'origin', EXPECTED_BRANCH]);
+  runGit(['push', '-u', 'origin', EXPECTED_BRANCH]);
 
   console.log('\nPASS: continuous-use stability R1 V2 committed and pushed.');
   console.log('Verified runtime changes only:');
@@ -307,13 +324,8 @@ try {
   console.error(`\nFAIL: ${error?.message ?? error}`);
 
   if (wroteRuntimeFiles && !committed && homeOriginal != null && bibleOriginal != null) {
-    try {
-      fs.writeFileSync(HOME_PATH, homeOriginal, 'utf8');
-      fs.writeFileSync(BIBLE_PATH, bibleOriginal, 'utf8');
-      console.error('ROLLBACK: restored Home/Bible runtime files to their pre-run contents.');
-    } catch (restoreError) {
-      console.error(`ROLLBACK WARNING: ${restoreError?.message ?? restoreError}`);
-    }
+    restoreRuntimeAndIndex(homeOriginal, bibleOriginal);
+    console.error('ROLLBACK: restored Home/Bible runtime files AND unstaged those paths.');
   }
 
   process.exit(1);
