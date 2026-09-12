@@ -68,6 +68,67 @@ function readErrorMessage(error: any, fallback: string) {
   );
 }
 
+function inferMimeType(name: string, reported?: string | null) {
+  const explicit = String(reported ?? '').trim().toLowerCase();
+  if (explicit && explicit !== 'application/octet-stream') return explicit;
+  const lower = name.toLowerCase();
+  if (lower.endsWith('.pdf')) return 'application/pdf';
+  if (lower.endsWith('.docx')) return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  if (lower.endsWith('.doc')) return 'application/msword';
+  if (lower.endsWith('.xlsx')) return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  if (lower.endsWith('.xls')) return 'application/vnd.ms-excel';
+  if (lower.endsWith('.csv')) return 'text/csv';
+  if (lower.endsWith('.txt') || lower.endsWith('.md')) return 'text/plain';
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+  if (lower.endsWith('.png')) return 'image/png';
+  if (lower.endsWith('.webp')) return 'image/webp';
+  return explicit;
+}
+
+function asObject(value: unknown): Record<string, any> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, any>
+    : {};
+}
+
+function normalizeDraft(value: unknown): ReportTemplateImportDraft {
+  const raw = asObject(value);
+  const rawSections = Array.isArray(raw.sections) ? raw.sections : [];
+  const rawFields = Array.isArray(raw.fields) ? raw.fields : [];
+
+  let sections = rawSections as ReportTemplateSection[];
+  let fields = sections.flatMap((section) => Array.isArray(section?.fields) ? section.fields : []);
+
+  // Older/analyzer responses may contain only the flattened fields array.
+  // Preserve those fields instead of showing a blank builder after upload.
+  if (fields.length === 0 && rawFields.length > 0) {
+    const grouped = new Map<string, ReportTemplateField[]>();
+    for (const fieldValue of rawFields) {
+      const field = asObject(fieldValue) as ReportTemplateField;
+      const sectionId = String(field.section_id || 'report_fields');
+      grouped.set(sectionId, [...(grouped.get(sectionId) ?? []), { ...field, section_id: sectionId }]);
+    }
+    sections = Array.from(grouped.entries()).map(([id, group], index) => ({
+      id,
+      title: id === 'report_fields' ? 'Report fields' : `Section ${index + 1}`,
+      description: null,
+      fields: group,
+    }));
+    fields = sections.flatMap((section) => section.fields);
+  }
+
+  return {
+    title: String(raw.title ?? '').trim(),
+    category: String(raw.category ?? 'CUSTOM').trim() || 'CUSTOM',
+    description: raw.description == null ? null : String(raw.description),
+    instructions: raw.instructions == null ? null : String(raw.instructions),
+    sections,
+    fields,
+    warnings: Array.isArray(raw.warnings) ? raw.warnings.map(String) : [],
+    confidence: Math.max(0, Math.min(1, Number(raw.confidence ?? 0) || 0)),
+  };
+}
+
 export async function pickAndAnalyzeReportTemplate(args: {
   scopeId: string;
   reportKindHint?: string;
@@ -101,11 +162,12 @@ export async function pickAndAnalyzeReportTemplate(args: {
     throw new Error('Reporting layout files are limited to 12 MB.');
   }
 
+  const mimeType = inferMimeType(asset.name, asset.mimeType);
   const { data, error } = await supabase.functions.invoke('buklod-report-template-import-v1', {
     body: {
       scope_id: args.scopeId,
       filename: asset.name,
-      mime_type: asset.mimeType ?? '',
+      mime_type: mimeType,
       base64,
       report_kind_hint: args.reportKindHint?.trim() || null,
     },
@@ -116,6 +178,7 @@ export async function pickAndAnalyzeReportTemplate(args: {
     throw new Error(String(data?.error ?? 'The reporting form could not be analyzed.'));
   }
 
+  const draft = normalizeDraft(data.draft);
   return {
     provider: String(data.provider ?? ''),
     model: String(data.model ?? ''),
@@ -124,8 +187,11 @@ export async function pickAndAnalyzeReportTemplate(args: {
       name: String(data.scope?.name ?? 'Selected scope'),
       scope_type: String(data.scope?.scope_type ?? ''),
     },
-    source_file: data.source_file as ReportTemplateSourceFile,
-    draft: data.draft as ReportTemplateImportDraft,
+    source_file: {
+      ...(data.source_file as ReportTemplateSourceFile),
+      mime_type: String(data.source_file?.mime_type || mimeType),
+    },
+    draft,
   };
 }
 
