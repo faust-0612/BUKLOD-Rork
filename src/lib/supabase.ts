@@ -12,6 +12,32 @@ if (!supabaseUrl || !supabasePublishableKey) {
   console.warn('Missing Supabase environment variables.');
 }
 
+/**
+ * Expo Router static rendering executes the web bundle in Node, where `window`
+ * does not exist. AsyncStorage's web implementation eventually reaches
+ * window/localStorage during Supabase auth session recovery, so provide a
+ * storage adapter that is intentionally empty during SSR and uses localStorage
+ * only after the app is running in a browser.
+ *
+ * Native behavior is unchanged and continues to use AsyncStorage.
+ */
+const webSafeAuthStorage = {
+  async getItem(key: string): Promise<string | null> {
+    if (typeof window === 'undefined') return null;
+    return window.localStorage.getItem(key);
+  },
+  async setItem(key: string, value: string): Promise<void> {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(key, value);
+  },
+  async removeItem(key: string): Promise<void> {
+    if (typeof window === 'undefined') return;
+    window.localStorage.removeItem(key);
+  },
+};
+
+const supabaseAuthStorage = Platform.OS === 'web' ? webSafeAuthStorage : AsyncStorage;
+const browserRuntime = Platform.OS !== 'web' || typeof window !== 'undefined';
 
 /* BUKLOD_ROOT_PERFORMANCE_R3
  * Collapse simultaneous identical SAFE READS before they reach Supabase.
@@ -38,8 +64,8 @@ const buklodPermissionSnapshotFetch =
 
 export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
   auth: {
-    storage: AsyncStorage,
-    autoRefreshToken: true,
+    storage: supabaseAuthStorage,
+    autoRefreshToken: browserRuntime,
     persistSession: true,
     detectSessionInUrl: false,
   },
