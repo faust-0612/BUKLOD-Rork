@@ -22,10 +22,17 @@ type Props = {
   onCelebrationComplete?: () => void;
   animateEntrance?: boolean;
   useFullStage?: boolean;
+  /** Optional BUKLOD-owned muted looping scene video. */
+  backdropVideoUrl?: string | null;
+  /** Optional decorative Rive scene layered behind the local character. */
+  riveOverlayUrl?: string | null;
+  /** 0..1.35; visual-only atmosphere strength. */
+  liveMotionIntensity?: number;
 };
 
 /**
  * Living Character entry — local stylized figure driven by catalog unlocks.
+ * Live video/Rive layers are presentation-only and never become progression state.
  */
 const BuklodLivingCharacter = forwardRef<
   BuklodLivingCharacterRef,
@@ -39,6 +46,9 @@ const BuklodLivingCharacter = forwardRef<
     onCelebrationComplete,
     animateEntrance = true,
     useFullStage = false,
+    backdropVideoUrl = null,
+    riveOverlayUrl = null,
+    liveMotionIntensity = 1,
   },
   ref
 ) {
@@ -61,6 +71,9 @@ const BuklodLivingCharacter = forwardRef<
         onCelebrationComplete={onCelebrationComplete}
         compact
         showStageLabel={false}
+        backdropVideoUrl={backdropVideoUrl}
+        riveOverlayUrl={riveOverlayUrl}
+        liveMotionIntensity={liveMotionIntensity}
       />
     );
   }
