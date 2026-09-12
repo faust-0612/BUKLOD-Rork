@@ -1,4 +1,4 @@
-name: BUKLOD IGPAT Production Web Deploy
+name: BUKLOD Production Web Deploy
 
 on:
   push:
@@ -9,6 +9,10 @@ on:
       - 'src/app/igpat/**'
       - 'src/components/BuklodHomeReelsExtension.tsx'
       - 'docs/BUKLOD_MINIGAME_QUALITY_STANDARD.md'
+      - 'src/components/motion/**'
+      - 'src/components/points/BuklodCharacterStage.tsx'
+      - 'src/components/points/BuklodLivingCharacter.tsx'
+      - 'src/components/points/BuklodPointsStage.tsx'
   workflow_dispatch:
 
 permissions:
@@ -52,6 +56,24 @@ jobs:
           grep -F "create_buklod_reel_v1" 'src/app/igpat/create.tsx'
           grep -F 'QUALITY FIRST. GRAPHICS FIRST. SOUND + ANIMATION REQUIRED.' 'docs/BUKLOD_MINIGAME_QUALITY_STANDARD.md'
 
+      - name: Verify Live Motion release anchors
+        shell: bash
+        run: |
+          test -f 'src/components/motion/BuklodAmbientSurface.tsx'
+          test -f 'src/components/motion/BuklodLiveSceneBackdrop.tsx'
+          test -f 'src/components/motion/BuklodRiveSceneOverlay.tsx'
+          test -f 'src/components/motion/BuklodRiveSceneOverlay.native.tsx'
+          grep -F 'BuklodAmbientSurface' 'src/components/points/BuklodPointsStage.tsx'
+          grep -F 'BuklodLiveSceneBackdrop' 'src/components/points/BuklodCharacterStage.tsx'
+          grep -F 'BuklodRiveSceneOverlay' 'src/components/points/BuklodCharacterStage.tsx'
+          if grep -F '@rive-app/react-native' 'src/components/motion/BuklodRiveSceneOverlay.tsx'; then
+            echo 'Native Rive dependency leaked into web fallback.'
+            exit 1
+          fi
+
+      - name: Preserve Character release contract
+        run: npm run character:contract
+
       - name: Expo credential preflight
         shell: bash
         run: |
@@ -68,14 +90,14 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          npx eas-cli@latest deploy --prod --non-interactive 2>&1 | tee igpat-deploy-output.txt
+          npx eas-cli@latest deploy --prod --non-interactive 2>&1 | tee web-deploy-output.txt
 
       - name: Preserve deploy result
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: buklod-igpat-web-deploy-output-${{ github.run_number }}
-          path: igpat-deploy-output.txt
+          name: buklod-production-web-deploy-output-${{ github.run_number }}
+          path: web-deploy-output.txt
           if-no-files-found: ignore
 
       - name: Deployment status
@@ -83,7 +105,7 @@ jobs:
         shell: bash
         run: |
           if [ "${{ steps.deploy.outcome }}" != "success" ]; then
-            echo 'BUKLOD IGPAT web deployment did not succeed.'
+            echo 'BUKLOD production web deployment did not succeed.'
             exit 1
           fi
-          echo 'BUKLOD IGPAT web deployment succeeded.'
+          echo 'BUKLOD production web deployment succeeded.'

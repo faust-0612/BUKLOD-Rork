@@ -11,11 +11,13 @@ import {
   useWindowDimensions,
 } from 'react-native';
 
+import { useBuklodReduceMotion } from '@/components/HomeMotion';
+import BuklodLiveSceneBackdrop from '@/components/motion/BuklodLiveSceneBackdrop';
+import BuklodRiveSceneOverlay from '@/components/motion/BuklodRiveSceneOverlay';
 import BuklodCharacterCelebrationLayer from '@/components/points/BuklodCharacterCelebrationLayer';
 import BuklodCharacterRenderer, {
   type BuklodCharacterRendererRef,
 } from '@/components/points/BuklodCharacterRenderer';
-import { useBuklodReduceMotion } from '@/components/HomeMotion';
 import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
 import { withAlpha } from '@/lib/buklodContrast';
 import type { CharacterReactionsMode } from '@/lib/buklodCharacterEvents';
@@ -55,9 +57,15 @@ type Props = {
   enabledCategories?: readonly SlotId[] | 'all';
   calibrationMode?: boolean;
   debugSkeleton?: boolean;
+  /** Optional BUKLOD-owned muted looping video used behind the character. */
+  backdropVideoUrl?: string | null;
+  /** Optional decorative BUKLOD-owned Rive scene. Character state stays local/authoritative. */
+  riveOverlayUrl?: string | null;
+  /** Procedural atmosphere strength. 0 disables the visual intensity without changing state. */
+  liveMotionIntensity?: number;
 };
 
-/** Cinematic stage — local gradient backdrop plus living character. */
+/** Cinematic stage — living gradient/video/Rive atmosphere plus authoritative character. */
 export default function BuklodCharacterStage({
   body,
   equipment,
@@ -79,6 +87,9 @@ export default function BuklodCharacterStage({
   enabledCategories = 'all',
   calibrationMode = false,
   debugSkeleton = false,
+  backdropVideoUrl = null,
+  riveOverlayUrl = null,
+  liveMotionIntensity = 1,
 }: Props) {
   const { theme } = useBuklodPresentation();
   const reduceMotion = useBuklodReduceMotion();
@@ -256,6 +267,18 @@ export default function BuklodCharacterStage({
           style={styles.background}
         />
       </Animated.View>
+
+      <BuklodLiveSceneBackdrop
+        videoUrl={backdropVideoUrl}
+        visible={visible}
+        intensity={liveMotionIntensity}
+      />
+
+      <BuklodRiveSceneOverlay
+        url={riveOverlayUrl}
+        visible={visible}
+        opacity={0.64}
+      />
 
       <Animated.View
         pointerEvents="none"
