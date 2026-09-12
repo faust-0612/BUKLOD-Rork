@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 const failures = [];
 const warnings = [];
 
+const sourceOnly = process.env.REPORT_PREFLIGHT_SOURCE_ONLY === '1';
 const env = process.env.EXPO_PUBLIC_APP_ENV || '';
 const appTarget = process.env.BUKLOD_APP_TARGET || '';
 const releaseTarget = (process.env.REPORT_RELEASE_TARGET || 'android').trim().toLowerCase();
@@ -22,37 +23,39 @@ const rootPath = fileURLToPath(root);
 const read = (filePath) => fs.readFileSync(new URL(filePath, root), 'utf8');
 const exists = (filePath) => fs.existsSync(new URL(filePath, root));
 
-if (!['web', 'android'].includes(releaseTarget)) failures.push('REPORT_RELEASE_TARGET must be web or android.');
-if (env !== 'production') failures.push('EXPO_PUBLIC_APP_ENV must be production.');
-if (appTarget && appTarget !== 'report') failures.push('BUKLOD_APP_TARGET must be report when set.');
-if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(supabaseUrl)) failures.push('EXPO_PUBLIC_SUPABASE_URL is not a hosted Supabase project URL.');
-if (!/^sb_publishable_/i.test(publishableKey)) failures.push('Production Report client must use a Supabase publishable key.');
-if (/sb_secret_|service_role/i.test(publishableKey)) failures.push('A secret/service-role key is present in the client key variable.');
-if (!reportEasProjectId) failures.push('REPORT_EAS_PROJECT_ID (or EXPO_PUBLIC_REPORT_EAS_PROJECT_ID) is required for standalone Report release/deployment.');
+if (!sourceOnly) {
+  if (!['web', 'android'].includes(releaseTarget)) failures.push('REPORT_RELEASE_TARGET must be web or android.');
+  if (env !== 'production') failures.push('EXPO_PUBLIC_APP_ENV must be production.');
+  if (appTarget && appTarget !== 'report') failures.push('BUKLOD_APP_TARGET must be report when set.');
+  if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(supabaseUrl)) failures.push('EXPO_PUBLIC_SUPABASE_URL is not a hosted Supabase project URL.');
+  if (!/^sb_publishable_/i.test(publishableKey)) failures.push('Production Report client must use a Supabase publishable key.');
+  if (/sb_secret_|service_role/i.test(publishableKey)) failures.push('A secret/service-role key is present in the client key variable.');
+  if (!reportEasProjectId) failures.push('REPORT_EAS_PROJECT_ID (or EXPO_PUBLIC_REPORT_EAS_PROJECT_ID) is required for standalone Report release/deployment.');
 
-if (releaseTarget === 'android') {
-  if (!reportGoogleServicesFile) {
-    failures.push('REPORT_GOOGLE_SERVICES_FILE is required for the standalone Report Android build. Never reuse BUKLOD Main Firebase credentials.');
-  } else {
-    const absoluteGoogleServicesPath = path.isAbsolute(reportGoogleServicesFile)
-      ? reportGoogleServicesFile
-      : path.resolve(rootPath, reportGoogleServicesFile);
-    if (!fs.existsSync(absoluteGoogleServicesPath)) {
-      failures.push(`REPORT_GOOGLE_SERVICES_FILE does not exist: ${reportGoogleServicesFile}`);
+  if (releaseTarget === 'android') {
+    if (!reportGoogleServicesFile) {
+      failures.push('REPORT_GOOGLE_SERVICES_FILE is required for the standalone Report Android build. Never reuse BUKLOD Main Firebase credentials.');
     } else {
-      try {
-        const firebaseConfig = JSON.parse(fs.readFileSync(absoluteGoogleServicesPath, 'utf8'));
-        const packageNames = (firebaseConfig?.client ?? [])
-          .map((client) => client?.client_info?.android_client_info?.package_name)
-          .filter(Boolean);
-        if (!packageNames.includes('org.mzbministry.buklod.report')) {
-          failures.push('Dedicated Firebase config does not contain the production Report package org.mzbministry.buklod.report.');
+      const absoluteGoogleServicesPath = path.isAbsolute(reportGoogleServicesFile)
+        ? reportGoogleServicesFile
+        : path.resolve(rootPath, reportGoogleServicesFile);
+      if (!fs.existsSync(absoluteGoogleServicesPath)) {
+        failures.push(`REPORT_GOOGLE_SERVICES_FILE does not exist: ${reportGoogleServicesFile}`);
+      } else {
+        try {
+          const firebaseConfig = JSON.parse(fs.readFileSync(absoluteGoogleServicesPath, 'utf8'));
+          const packageNames = (firebaseConfig?.client ?? [])
+            .map((client) => client?.client_info?.android_client_info?.package_name)
+            .filter(Boolean);
+          if (!packageNames.includes('org.mzbministry.buklod.report')) {
+            failures.push('Dedicated Firebase config does not contain the production Report package org.mzbministry.buklod.report.');
+          }
+          if (packageNames.includes('org.mzbministry.buklod')) {
+            failures.push('REPORT_GOOGLE_SERVICES_FILE appears to contain the BUKLOD Main package. Use the dedicated Report Firebase app instead.');
+          }
+        } catch (error) {
+          failures.push(`REPORT_GOOGLE_SERVICES_FILE is not valid JSON: ${String(error?.message ?? error)}`);
         }
-        if (packageNames.includes('org.mzbministry.buklod')) {
-          failures.push('REPORT_GOOGLE_SERVICES_FILE appears to contain the BUKLOD Main package. Use the dedicated Report Firebase app instead.');
-        }
-      } catch (error) {
-        failures.push(`REPORT_GOOGLE_SERVICES_FILE is not valid JSON: ${String(error?.message ?? error)}`);
       }
     }
   }
@@ -183,12 +186,14 @@ if (legacyLogin.includes("router.replace(\n      '/(tabs)/home'")) {
   warnings.push('Legacy Main login source remains in the shared repository, but the standalone router root excludes it from the Report package.');
 }
 
-console.log(`BUKLOD Report Production Preflight (${releaseTarget})`);
+console.log(sourceOnly
+  ? 'BUKLOD Report Source Preflight'
+  : `BUKLOD Report Production Preflight (${releaseTarget})`);
 console.log('==========================================');
 for (const warning of warnings) console.log(`WARN: ${warning}`);
 for (const failure of failures) console.error(`FAIL: ${failure}`);
 if (failures.length) {
-  console.error(`\nREPORT PRODUCTION PREFLIGHT FAILED with ${failures.length} blocker(s).`);
+  console.error(`\nREPORT ${sourceOnly ? 'SOURCE' : 'PRODUCTION'} PREFLIGHT FAILED with ${failures.length} blocker(s).`);
   process.exit(1);
 }
-console.log('\nREPORT PRODUCTION PREFLIGHT PASSED.');
+console.log(`\nREPORT ${sourceOnly ? 'SOURCE' : 'PRODUCTION'} PREFLIGHT PASSED.`);
