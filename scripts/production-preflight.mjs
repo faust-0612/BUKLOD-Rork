@@ -21,8 +21,16 @@ const reportGoogleServicesFile = (process.env.REPORT_GOOGLE_SERVICES_FILE || '')
 
 const root = new URL('../', import.meta.url);
 const rootPath = fileURLToPath(root);
-const read = (filePath) => fs.readFileSync(new URL(filePath, root), 'utf8');
-const exists = (filePath) => fs.existsSync(new URL(filePath, root));
+const read = filePath => fs.readFileSync(new URL(filePath, root), 'utf8');
+const exists = filePath => fs.existsSync(new URL(filePath, root));
+const hasModuleImport = (source, moduleName) => {
+  const escaped = moduleName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = new RegExp(
+    String.raw`(?:\bfrom\s*|\brequire\s*\(\s*|\bimport\s*\(\s*|^\s*import\s*)['\"]${escaped}['\"]`,
+    'm',
+  );
+  return pattern.test(source);
+};
 
 if (!sourceOnly) {
   if (!['web', 'android'].includes(releaseTarget)) failures.push('REPORT_RELEASE_TARGET must be web or android.');
@@ -48,7 +56,7 @@ if (!sourceOnly) {
         try {
           const firebaseConfig = JSON.parse(fs.readFileSync(absoluteGoogleServicesPath, 'utf8'));
           const packageNames = (firebaseConfig?.client ?? [])
-            .map((client) => client?.client_info?.android_client_info?.package_name)
+            .map(client => client?.client_info?.android_client_info?.package_name)
             .filter(Boolean);
           if (!packageNames.includes('org.mzbministry.buklod.report')) {
             failures.push('Dedicated Firebase config does not contain the production Report package org.mzbministry.buklod.report.');
@@ -159,13 +167,29 @@ for (const filePath of requiredReportFiles) {
 }
 
 const requiredMigrations = [
-  'supabase/migrations/20260912_buklod_report_real_deadlines_r1.sql',
   'supabase/migrations/20260912_buklod_report_consolidated_export_r1.sql',
   'supabase/migrations/20260912_buklod_report_publish_requires_fields_r1.sql',
   'supabase/migrations/20260912_buklod_report_template_file_bucket_r1.sql',
 ];
 for (const filePath of requiredMigrations) {
   if (!exists(filePath)) failures.push(`Required Report migration source is missing: ${filePath}`);
+}
+
+const publishDeadlineMigrationPath = 'supabase/migrations/20260912_buklod_report_publish_requires_fields_r1.sql';
+if (exists(publishDeadlineMigrationPath)) {
+  const publishDeadlineMigration = read(publishDeadlineMigrationPath);
+  for (const marker of [
+    'buklod_report_publish_deadline_v1',
+    'BUKLOD_REPORT_REAL_DEADLINE_R1',
+    'membership_snapshot',
+    'buklod_report_assignments',
+    'buklod_report_reminders',
+    'report_assigned',
+  ]) {
+    if (!publishDeadlineMigration.includes(marker)) {
+      failures.push(`Report publish/deadline migration is missing required behavior marker: ${marker}`);
+    }
+  }
 }
 
 const reportTsconfig = read('tsconfig.report.json');
@@ -181,7 +205,9 @@ if (!routeGuard.includes('report-access-pending') || !routeGuard.includes('hasCa
 const notificationProvider = read('src/providers/BuklodReportNotificationProvider.tsx');
 if (/selectScope|activeScope|setBuklodActiveScope/.test(notificationProvider)) failures.push('Standalone Report push routing must not select or persist BUKLOD Main active scope.');
 const notificationWebProvider = read('src/providers/BuklodReportNotificationProvider.web.tsx');
-if (notificationWebProvider.includes('expo-notifications')) failures.push('Standalone Report web root must not import expo-notifications during static rendering.');
+if (hasModuleImport(notificationWebProvider, 'expo-notifications')) {
+  failures.push('Standalone Report web root must not import expo-notifications during static rendering.');
+}
 
 const templateWebHelper = read('src/lib/buklodReportAssetBase64.web.ts');
 if (/expo-file-system|expo-sharing/.test(templateWebHelper)) failures.push('Web template-file reader must not import native FileSystem/Sharing modules.');
