@@ -125,6 +125,7 @@ const requiredRouterFiles = [
   'src/report-app/system/pilot-access.tsx',
   'src/report-app/reports/index.tsx',
   'src/report-app/reports/index.web.tsx',
+  'src/report-app/reports/actions.tsx',
   'src/report-app/reports/library.tsx',
   'src/report-app/reports/definitions.tsx',
   'src/report-app/reports/template-builder.tsx',
@@ -140,6 +141,7 @@ const requiredReportFiles = [
   'src/app/report-login.tsx',
   'src/app/report-access-pending.tsx',
   'src/app/reports/index.tsx',
+  'src/app/reports/actions.tsx',
   'src/app/reports/library.tsx',
   'src/app/reports/definitions.tsx',
   'src/app/reports/template-builder.tsx',
@@ -153,6 +155,7 @@ const requiredReportFiles = [
   'src/components/BuklodWeeklyReportForm.tsx',
   'src/components/BuklodReportWebAdBanner.tsx',
   'src/components/BuklodReportWebAdBanner.web.tsx',
+  'src/lib/buklodReportActions.ts',
   'src/lib/buklodReportDeadlines.ts',
   'src/lib/buklodReportTemplateImport.ts',
   'src/lib/buklodReportConsolidation.ts',
@@ -161,6 +164,7 @@ const requiredReportFiles = [
   'src/lib/buklodReportWorkbookOutput.ts',
   'src/lib/buklodReportWorkbookOutput.web.ts',
   'supabase/functions/buklod-report-api-v1/index.ts',
+  'supabase/functions/buklod-report-template-import-v1/index.ts',
 ];
 for (const filePath of requiredReportFiles) {
   if (!exists(filePath)) failures.push(`Required standalone Report source is missing: ${filePath}`);
@@ -170,6 +174,7 @@ const requiredMigrations = [
   'supabase/migrations/20260912_buklod_report_consolidated_export_r1.sql',
   'supabase/migrations/20260912_buklod_report_publish_requires_fields_r1.sql',
   'supabase/migrations/20260912_buklod_report_template_file_bucket_r1.sql',
+  'supabase/migrations/20260912_buklod_report_management_loop_r1.sql',
 ];
 for (const filePath of requiredMigrations) {
   if (!exists(filePath)) failures.push(`Required Report migration source is missing: ${filePath}`);
@@ -192,12 +197,71 @@ if (exists(publishDeadlineMigrationPath)) {
   }
 }
 
+const managementMigrationPath = 'supabase/migrations/20260912_buklod_report_management_loop_r1.sql';
+if (exists(managementMigrationPath)) {
+  const managementMigration = read(managementMigrationPath);
+  for (const marker of [
+    'buklod_report_actions',
+    'buklod_report_scope_management_data_v1',
+    'buklod_report_upsert_action_v1',
+    'buklod_report_my_actions_v1',
+    'buklod_report_update_my_action_v1',
+    'COUNSELLING',
+    'SUSPENSION_REVIEW',
+    'DISMISSAL_REVIEW',
+    'REPORT_ACTION_CREATED',
+    'REPORT_ACTION_SELF_UPDATED',
+  ]) {
+    if (!managementMigration.includes(marker)) {
+      failures.push(`Report management-loop migration is missing required behavior marker: ${marker}`);
+    }
+  }
+  if (!managementMigration.includes('enable row level security') || !managementMigration.includes('revoke all on table public.buklod_report_actions')) {
+    failures.push('Report management actions must remain RLS-enabled and RPC-only.');
+  }
+}
+
 const reportTsconfig = read('tsconfig.report.json');
 if (!reportTsconfig.includes('src/report-app/**/*.tsx')) failures.push('tsconfig.report.json is not scoped to the standalone Report router graph.');
 
 const quickWeekly = read('src/components/BuklodWeeklyReportForm.tsx');
 if (!quickWeekly.includes('pickAndAnalyzeReportFile')) failures.push('MZB Quick Weekly file/photo import is missing from the standalone Report form.');
 if (!quickWeekly.includes('updateQuickWeeklyReminder')) failures.push('MZB Quick Weekly reminder actions are missing from the standalone Report form.');
+
+const templateImportClient = read('src/lib/buklodReportTemplateImport.ts');
+for (const marker of ['inferMimeType', 'normalizeDraft', 'buklod-report-template-import-v1']) {
+  if (!templateImportClient.includes(marker)) failures.push(`Report form-upload client is missing required recovery marker: ${marker}`);
+}
+const templateAnalyzer = read('supabase/functions/buklod-report-template-import-v1/index.ts');
+for (const marker of [
+  'Infer the STRUCTURE of the reporting form, not sample answers.',
+  'A field is something the future reporter must answer or supply',
+  'Never auto-publish.',
+]) {
+  if (!templateAnalyzer.includes(marker)) failures.push(`Report template analyzer is missing canonical form-detection rule: ${marker}`);
+}
+
+const consolidationClient = read('src/lib/buklodReportConsolidation.ts');
+for (const marker of [
+  'WEEKLY',
+  'MONTHLY',
+  'SEMIANNUAL',
+  'ANNUAL',
+  'buildManagementAnalytics',
+  'exportScopeManagementXlsx',
+  'SUSPENSION_REVIEW',
+  'DISMISSAL_REVIEW',
+]) {
+  if (!consolidationClient.includes(marker)) failures.push(`Report management analytics is missing required marker: ${marker}`);
+}
+if (!consolidationClient.includes('never automatic') && !read('src/app/reports/consolidated.tsx').includes('never happens automatically')) {
+  failures.push('High-impact personnel action suggestions must remain explicitly human-reviewed and non-automatic.');
+}
+
+const memberActionsRoute = read('src/app/reports/actions.tsx');
+for (const marker of ['Acknowledge', 'Mark done', 'fetchMyReportActions', 'updateMyReportAction']) {
+  if (!memberActionsRoute.includes(marker)) failures.push(`Member Report action endpoint is missing required marker: ${marker}`);
+}
 
 const routeGuard = read('src/providers/BuklodReportRouteGuard.tsx');
 if (!routeGuard.includes('report-access-pending') || !routeGuard.includes('hasCanonicalAccess')) failures.push('Standalone Report route/account containment is incomplete.');
@@ -229,6 +293,9 @@ if (!webAdBanner.includes("typeof window === 'undefined'") || !webAdBanner.inclu
 const webReportRoute = read('src/report-app/reports/index.web.tsx');
 if (!webReportRoute.includes('showDashboardBanner') || !webReportRoute.includes('!scopeId && !assignmentId')) {
   failures.push('Web Report ads must remain limited to the top-level dashboard and stay out of scoped/assignment flows.');
+}
+if (!webReportRoute.includes("pathname: '/reports/actions'") || !webReportRoute.includes('showMyActions')) {
+  failures.push('Web Report dashboard must preserve the member My Actions endpoint while keeping assignment forms ad-free.');
 }
 
 const envExample = read('.env.example');
