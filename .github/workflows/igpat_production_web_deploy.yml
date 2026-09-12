@@ -60,7 +60,11 @@ jobs:
           grep -F 'An Instant Bond.' 'src/components/BuklodHomeReelsExtension.tsx'
           grep -F "router.push('/igpat' as any)" 'src/components/BuklodHomeReelsExtension.tsx'
           grep -F "router.push('/igpat/create' as any)" 'src/components/BuklodHomeReelsExtension.tsx'
-          grep -F "get_buklod_reels_v1" 'src/app/igpat/index.tsx'
+          grep -F "get_buklod_igpat_feed_v2" 'src/app/igpat/index.tsx'
+          if grep -F "get_buklod_reels_v1" 'src/app/igpat/index.tsx'; then
+            echo 'Legacy Reels feed RPC is still active in IGPAT.'
+            exit 1
+          fi
           grep -F "create_buklod_reel_v1" 'src/app/igpat/create.tsx'
           grep -F 'QUALITY FIRST. GRAPHICS FIRST. SOUND + ANIMATION REQUIRED.' 'docs/BUKLOD_MINIGAME_QUALITY_STANDARD.md'
 
