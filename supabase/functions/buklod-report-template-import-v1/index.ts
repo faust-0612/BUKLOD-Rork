@@ -20,6 +20,22 @@ function cleanError(value: unknown) {
   const message = value instanceof Error ? value.message : String(value ?? "Report form import failed.");
   return message.replace(/AIza[0-9A-Za-z_-]{20,}/g, "[redacted]").slice(0, 1400);
 }
+function inferMimeType(filename: string, provided: string) {
+  const candidate = safe(provided, 160).toLowerCase();
+  if (candidate && candidate !== "application/octet-stream") return candidate;
+  const lower = filename.toLowerCase();
+  if (lower.endsWith(".pdf")) return "application/pdf";
+  if (lower.endsWith(".docx")) return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  if (lower.endsWith(".doc")) return "application/msword";
+  if (lower.endsWith(".xlsx")) return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  if (lower.endsWith(".xls")) return "application/vnd.ms-excel";
+  if (lower.endsWith(".csv")) return "text/csv";
+  if (lower.endsWith(".txt") || lower.endsWith(".md") || lower.endsWith(".rtf")) return "text/plain";
+  if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+  if (lower.endsWith(".png")) return "image/png";
+  if (lower.endsWith(".webp")) return "image/webp";
+  return candidate;
+}
 function decodeBase64(value: string) {
   const normalized = value.includes(",") ? value.split(",").pop() ?? "" : value;
   const binary = atob(normalized);
@@ -151,7 +167,7 @@ Deno.serve(async (req: Request) => {
     const body = await req.json();
     const scopeId = safe(body?.scope_id, 80);
     const filename = safe(body?.filename, 240) || "report-layout";
-    const mimeType = safe(body?.mime_type, 160).toLowerCase();
+    const mimeType = inferMimeType(filename, body?.mime_type);
     const base64 = safe(body?.base64, 24_000_000);
     const reportKindHint = safe(body?.report_kind_hint, 120);
     if (!scopeId) return json({ error: "scope_id is required." }, 400);
