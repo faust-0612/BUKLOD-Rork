@@ -23,6 +23,7 @@ import {
   type ScopeManagementAction,
   type ScopeManagementData,
 } from '@/lib/buklodReportConsolidation';
+import { exportScopeManagementWord } from '@/lib/buklodReportManagementDocument';
 import { reportColors as colors, reportTheme } from '@/lib/buklodReportTheme';
 import { verifyOrganizationManageAccess } from '@/lib/buklodOrganization';
 
@@ -52,12 +53,21 @@ function statusLabel(value: string) {
   return value.replace(/_/g, ' ');
 }
 
+function overallStatus(analytics: ReturnType<typeof buildManagementAnalytics>) {
+  if (analytics.overdue > 0 || analytics.reviewAttention > 0) return 'NEEDS ATTENTION';
+  if (analytics.activeActions > 0) return 'ACTION IN PROGRESS';
+  if (analytics.assigned > 0 && analytics.coverageRate >= 90) return 'STABLE / MONITOR';
+  if (analytics.pending > 0) return 'FOLLOW-UP NEEDED';
+  return 'NO ACTIVE ISSUE';
+}
+
 export default function BuklodReportConsolidatedScreen() {
   const params = useLocalSearchParams();
   const scopeId = firstParam(params.scopeId ?? params.scope_id ?? params.organization);
   const initialDefinitionId = firstParam(params.definitionId ?? params.definition_id);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [exportingWord, setExportingWord] = useState(false);
   const [mutatingActionId, setMutatingActionId] = useState('');
   const [allowed, setAllowed] = useState(false);
   const [preset, setPreset] = useState<ManagementRangePreset>('MONTHLY');
@@ -149,6 +159,17 @@ export default function BuklodReportConsolidatedScreen() {
     } finally { setExporting(false); }
   };
 
+  const doWordExport = async () => {
+    if (!data || exportingWord) return;
+    setExportingWord(true);
+    try {
+      await exportScopeManagementWord(data, rangeLabel);
+      Alert.alert('Word report ready', 'The narrative management report includes overall status, summary, analytics, actions, outcomes, next steps and concerns.');
+    } catch (error: unknown) {
+      Alert.alert('Word export failed', error instanceof Error ? error.message : 'Could not export the management document.');
+    } finally { setExportingWord(false); }
+  };
+
   return (
     <>
       <Stack.Screen options={{ title: 'Report Management' }} />
@@ -192,8 +213,10 @@ export default function BuklodReportConsolidatedScreen() {
             </View>
 
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>AUTO SUMMARY</Text>
-              <Text style={styles.summaryText}>{analytics.summary}</Text>
+              <View style={styles.sectionHead}>
+                <View style={styles.flexCopy}><Text style={styles.cardTitle}>AUTO SUMMARY</Text><Text style={styles.summaryText}>{analytics.summary}</Text></View>
+                <View style={styles.overallPill}><Text style={styles.overallLabel}>OVERALL</Text><Text style={styles.overallText}>{overallStatus(analytics)}</Text></View>
+              </View>
               <Text style={styles.note}>This summary is derived from actual assignments, submissions, review states and recorded management actions in the selected range.</Text>
             </View>
 
@@ -247,22 +270,8 @@ export default function BuklodReportConsolidatedScreen() {
                       <View style={[styles.statusPill, action.status === 'DONE' && styles.donePill]}><Text style={[styles.statusText, action.status === 'DONE' && styles.doneText]}>{statusLabel(action.status)}</Text></View>
                     </View>
                     {action.rationale ? <Text style={styles.note}>{action.rationale}</Text> : null}
-                    <TextInput
-                      value={draft.outcome}
-                      onChangeText={(outcome) => setActionDrafts((current) => ({ ...current, [action.id]: { ...draft, outcome } }))}
-                      placeholder="Outcome / what happened"
-                      placeholderTextColor={colors.muted}
-                      multiline
-                      style={styles.input}
-                    />
-                    <TextInput
-                      value={draft.nextAction}
-                      onChangeText={(nextAction) => setActionDrafts((current) => ({ ...current, [action.id]: { ...draft, nextAction } }))}
-                      placeholder="Next action, if still needed"
-                      placeholderTextColor={colors.muted}
-                      multiline
-                      style={styles.input}
-                    />
+                    <TextInput value={draft.outcome} onChangeText={(outcome) => setActionDrafts((current) => ({ ...current, [action.id]: { ...draft, outcome } }))} placeholder="Outcome / what happened" placeholderTextColor={colors.muted} multiline style={styles.input} />
+                    <TextInput value={draft.nextAction} onChangeText={(nextAction) => setActionDrafts((current) => ({ ...current, [action.id]: { ...draft, nextAction } }))} placeholder="Next action, if still needed" placeholderTextColor={colors.muted} multiline style={styles.input} />
                     <View style={styles.actionButtons}>
                       {action.status !== 'IN_PROGRESS' && action.status !== 'DONE' ? <ActionButton label="Start" icon="play-outline" disabled={busy} onPress={() => void updateAction(action, 'IN_PROGRESS')} /> : null}
                       {action.status !== 'DONE' ? <ActionButton label="Mark done" icon="check-circle-outline" disabled={busy} onPress={() => void updateAction(action, 'DONE')} /> : null}
@@ -288,17 +297,20 @@ export default function BuklodReportConsolidatedScreen() {
               <Text style={styles.cardTitle}>REPORTED CONCERNS / SUPPORT SIGNALS</Text>
               <Text style={styles.note}>Only responses from form fields explicitly labeled as concern, challenge, issue, problem, need, assistance, support or help are surfaced here.</Text>
               {analytics.concernHighlights.length === 0 ? <Text style={styles.goodText}>No non-empty concern/support response detected in this range.</Text> : analytics.concernHighlights.map((row, index) => (
-                <View key={`${row.reporter}-${row.report}-${index}`} style={styles.concernRow}>
-                  <Text style={styles.personName}>{row.reporter} · {row.report}</Text>
-                  <Text style={styles.concernText}>{row.text}</Text>
-                </View>
+                <View key={`${row.reporter}-${row.report}-${index}`} style={styles.concernRow}><Text style={styles.personName}>{row.reporter} · {row.report}</Text><Text style={styles.concernText}>{row.text}</Text></View>
               ))}
             </View>
 
-            <Pressable disabled={exporting} onPress={() => void doExport()} style={[styles.exportButton, exporting && styles.disabled]}>
-              {exporting ? <ActivityIndicator size="small" color={colors.white} /> : <MaterialCommunityIcons name="microsoft-excel" size={19} color={colors.white} />}
-              <Text style={styles.exportText}>{exporting ? 'Building workbook…' : `Export ${rangeLabel} management workbook`}</Text>
-            </Pressable>
+            <View style={styles.exportRow}>
+              <Pressable disabled={exporting} onPress={() => void doExport()} style={[styles.exportButton, exporting && styles.disabled]}>
+                {exporting ? <ActivityIndicator size="small" color={colors.white} /> : <MaterialCommunityIcons name="microsoft-excel" size={19} color={colors.white} />}
+                <Text style={styles.exportText}>{exporting ? 'Building workbook…' : `Excel · ${rangeLabel}`}</Text>
+              </Pressable>
+              <Pressable disabled={exportingWord} onPress={() => void doWordExport()} style={[styles.wordButton, exportingWord && styles.disabled]}>
+                {exportingWord ? <ActivityIndicator size="small" color={colors.greenDark} /> : <MaterialCommunityIcons name="file-word-outline" size={19} color={colors.greenDark} />}
+                <Text style={styles.wordText}>{exportingWord ? 'Building document…' : `Word summary · ${rangeLabel}`}</Text>
+              </Pressable>
+            </View>
           </>
         ) : null}
       </BuklodReportScrollView>
@@ -329,8 +341,11 @@ const styles = StyleSheet.create({
   card: { borderRadius: 15, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, padding: 13, gap: 9 },
   cardTitle: { color: colors.textStrong, fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
   note: { color: colors.muted, fontSize: 10, lineHeight: 15 },
-  summaryText: { color: colors.textStrong, fontSize: 13, lineHeight: 19, fontWeight: '800' },
+  summaryText: { color: colors.textStrong, fontSize: 13, lineHeight: 19, fontWeight: '800', marginTop: 5 },
   goodText: { color: colors.success, fontSize: 10, lineHeight: 15, fontWeight: '800' },
+  overallPill: { maxWidth: 145, borderRadius: 10, backgroundColor: colors.greenSoft, paddingHorizontal: 9, paddingVertical: 7, alignItems: 'flex-end' },
+  overallLabel: { color: colors.muted, fontSize: 7, fontWeight: '900' },
+  overallText: { color: colors.greenDark, fontSize: 9, fontWeight: '900', textAlign: 'right' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   chip: { maxWidth: 220, minHeight: 36, borderRadius: reportTheme.radius.pill, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, paddingHorizontal: 10, paddingVertical: 7, justifyContent: 'center' },
   chipSelected: { backgroundColor: colors.greenDark, borderColor: colors.greenDark },
@@ -374,7 +389,10 @@ const styles = StyleSheet.create({
   pendingBadge: { color: colors.amber, fontSize: 8, fontWeight: '900' },
   concernRow: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, paddingTop: 8, gap: 4 },
   concernText: { color: colors.text, fontSize: 10, lineHeight: 15 },
-  exportButton: { minHeight: 48, borderRadius: 13, backgroundColor: colors.greenDark, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingHorizontal: 14 },
+  exportRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  exportButton: { minHeight: 48, flexGrow: 1, borderRadius: 13, backgroundColor: colors.greenDark, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingHorizontal: 14 },
   exportText: { color: colors.white, fontSize: 11, fontWeight: '900' },
+  wordButton: { minHeight: 48, flexGrow: 1, borderRadius: 13, borderWidth: 1, borderColor: colors.greenDark, backgroundColor: colors.surface, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingHorizontal: 14 },
+  wordText: { color: colors.greenDark, fontSize: 11, fontWeight: '900' },
   disabled: { opacity: 0.5 },
 });
