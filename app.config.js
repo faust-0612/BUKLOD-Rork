@@ -16,6 +16,7 @@ module.exports = ({ config }) => {
 
   return {
     ...config,
+    owner: 'faust_0612',
     name: appName,
     slug: 'buklod-report',
     version: '1.0.0',
