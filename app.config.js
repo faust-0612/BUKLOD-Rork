@@ -1,9 +1,15 @@
-const DEFAULT_REPORT_EAS_PROJECT_ID = 'cc69b3c0-a5df-4b69-a84c-887c36242fdd';
-const reportProjectId = (
+const REPORT_EAS_PROJECT_ID = 'cc69b3c0-a5df-4b69-a84c-887c36242fdd';
+const requestedReportProjectId = (
   process.env.REPORT_EAS_PROJECT_ID ||
   process.env.EXPO_PUBLIC_REPORT_EAS_PROJECT_ID ||
-  DEFAULT_REPORT_EAS_PROJECT_ID
+  ''
 ).trim();
+if (requestedReportProjectId && requestedReportProjectId !== REPORT_EAS_PROJECT_ID) {
+  throw new Error(
+    `BUKLOD Report EAS project mismatch: expected ${REPORT_EAS_PROJECT_ID}, received ${requestedReportProjectId}.`,
+  );
+}
+const reportProjectId = REPORT_EAS_PROJECT_ID;
 const reportGoogleServicesFile = (process.env.REPORT_GOOGLE_SERVICES_FILE || '').trim();
 
 module.exports = ({ config }) => {
