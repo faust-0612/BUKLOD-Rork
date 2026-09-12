@@ -585,11 +585,7 @@ export default function HomeScreen() {
         false
       }
     >
-      {loading ? (
-        <View style={{ paddingVertical: 8, alignItems: 'center' }}>
-          <ActivityIndicator color={colors.green} />
-        </View>
-      ) : null}
+      {/* CONTINUOUS_USE_STABILITY_R1: Home refreshes quietly; no blocking spinner/layout jump. */}
       <EnvironmentBadge />
 
       {/* BUKLOD_HOME_IDENTITY_R23_CLEAN_TWO_ROW */}
@@ -1070,75 +1066,7 @@ function HomeDailyBayanihanPair({
   const { hasEntitlement } = useBuklodAccess();
   const canUseBayanihan = hasEntitlement('bayanihan');
   /* MY_BIBLE_HOME_SPLIT_V2 */
-
-  const [reading,setReading] =
-    useState<{
-      bible_reference:string;
-      chapters_today:number;
-    } | null>(null);
-
-  const [readingLoading,setReadingLoading] =
-    useState(true);
-
-
-  useEffect(()=>{
-    let active=true;
-
-    const load=async()=>{
-      try{
-        const bibleResult = await (supabase as any).rpc(
-          'get_automatic_bible_today'
-        );
-
-        if(!active)return;
-
-        const bibleRaw=
-          Array.isArray(bibleResult.data)
-            ? bibleResult.data[0] ?? null
-            : bibleResult.data ?? null;
-
-        if(bibleRaw){
-          setReading({
-            bible_reference:String(
-              bibleRaw.bible_reference ?? ''
-            ),
-
-            chapters_today:Number(
-              bibleRaw.chapters_today ?? 1
-            )
-          });
-        }else{
-          setReading(null);
-        }
-
-      }catch(error:any){
-
-        if(!active)return;
-
-        console.warn(
-          'Home Daily/Bayanihan:',
-          error?.message ?? error
-        );
-
-      }finally{
-
-        if(active){
-          setReadingLoading(false);
-        }
-      }
-    };
-
-
-    void load();
-
-
-    return()=>{
-      active=false;
-    };
-
-  },[]);
-
-
+  /* CONTINUOUS_USE_STABILITY_R1: no mount-time Daily Bible RPC here. */
   return(
     <View
       style={{
@@ -1169,29 +1097,19 @@ function HomeDailyBayanihanPair({
         }}
       >
 
-        {/* DAILY DEVOTION */}
-<HomePressable
+        {/* DAILY BIBLE — canonical landing doorway */}
+        <HomePressable
           haptic={false}
           wrapStyle={{
             flex:1,
-            minHeight: 44,
+            minHeight:44,
           }}
-          onPress={() =>
-            router.push({
-              pathname: '/bible/read',
-              params: {
-                source: 'daily_plan',
-                assignedDate: new Date(
-                  Date.now() + 8 * 60 * 60 * 1000
-                ).toISOString().slice(0, 10),
-              },
-            } as any)
-          }
+          onPress={() => router.push('/bible' as any)}
           accessibilityRole="button"
-          accessibilityLabel="Open Daily Devotion"
+          accessibilityLabel="Open Daily Bible"
           style={({pressed})=>({
             flex:1,
-            minHeight: 44,
+            minHeight:44,
             opacity:pressed ? 0.82 : 1
           })}
         >
@@ -1207,7 +1125,6 @@ function HomeDailyBayanihanPair({
               paddingVertical:7
             }}
           >
-
             <View
               style={{
                 flexDirection:'row',
@@ -1220,7 +1137,6 @@ function HomeDailyBayanihanPair({
                 size={16}
                 color={colors.greenDark}
               />
-
               <Text
                 numberOfLines={1}
                 style={{
@@ -1231,10 +1147,9 @@ function HomeDailyBayanihanPair({
                   letterSpacing:.35
                 }}
               >
-                DAILY DEVOTION
+                DAILY BIBLE
               </Text>
             </View>
-
 
             <Text
               numberOfLines={1}
@@ -1246,34 +1161,20 @@ function HomeDailyBayanihanPair({
                 color:colors.text
               }}
             >
-              {
-                readingLoading
-                  ? 'Loading...'
-                  : reading?.bible_reference ||
-                    'Daily Bible Reading'
-              }
+              Daily Bible Reading
             </Text>
 
-
             <Text
-              numberOfLines={1}
+              numberOfLines={2}
               style={{
                 marginTop:2,
                 fontSize:8.5,
+                lineHeight:11,
                 color:colors.muted
               }}
             >
-              {
-                reading
-                  ? `${reading.chapters_today} ${
-                      reading.chapters_today===1
-                        ? 'chapter'
-                        : 'chapters'
-                    } today`
-                  : 'Open today\u2019s reading'
-              }
+              Choose a date, read Scripture, reflect, and complete.
             </Text>
-
           </View>
         </HomePressable>
 
