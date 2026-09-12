@@ -10,8 +10,10 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
+
+const QUIZ_ENTRY_BRIDGE =
+  'https://cjtehbfspgimyhifnjon.supabase.co/functions/v1/buklod-quiz-main-entry-v1';
 
 export default function BuklodQuizStudentEntry() {
   const { session } = useAuth();
@@ -21,7 +23,8 @@ export default function BuklodQuizStudentEntry() {
   const openQuiz = React.useCallback(async () => {
     if (inFlight.current || opening) return;
 
-    if (!session?.access_token) {
+    const accessToken = String(session?.access_token ?? '').trim();
+    if (!accessToken) {
       Alert.alert(
         'BUKLOD session required',
         'Please sign in to BUKLOD Main again before opening BUKLOD Quiz.',
@@ -33,18 +36,35 @@ export default function BuklodQuizStudentEntry() {
     setOpening(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke(
-        'buklod-quiz-entry-v1',
-        { body: {} },
-      );
+      /* BUKLOD_MAIN_QUIZ_SECURE_BRIDGE_ZERO_LOGIN_R18
+       * Main and Quiz use separate Supabase projects.
+       * Never pass Main access/refresh tokens directly into Quiz Auth.
+       * Quiz verifies the current Main bearer session and returns a one-time
+       * dedicated Quiz launch URL.
+       */
+      const handoffResponse = await fetch(QUIZ_ENTRY_BRIDGE, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: '{}',
+      });
 
-      if (error) throw error;
+      const handoffResult = await handoffResponse.json().catch(() => null);
+      const launchUrl = String(handoffResult?.launch_url ?? '').trim();
 
-      const launchUrl = String(data?.launch_url ?? '').trim();
-      if (!data?.ok || !launchUrl) {
+      if (
+        !handoffResponse.ok ||
+        handoffResult?.ok !== true ||
+        !launchUrl
+      ) {
         throw new Error(
-          data?.message ||
-            'The one-time BUKLOD Quiz entry could not be created. Please try again.',
+          String(
+            handoffResult?.message ??
+              handoffResult?.error ??
+              'Could not create your automatic BUKLOD Quiz session.',
+          ),
         );
       }
 
