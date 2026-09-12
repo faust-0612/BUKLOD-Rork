@@ -7,21 +7,21 @@ import React, {
 import {
   ActivityIndicator,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
+import BuklodQuizStudentEntry from '@/components/classroom/BuklodQuizStudentEntry';
 import {
   loadSystemAnnouncementBoard,
   type SystemAnnouncementSlot,
 } from '@/lib/buklodSystemAnnouncementBoard';
 import { colors } from '@/lib/theme';
 import { useAuth } from '@/providers/AuthProvider';
+import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 
 type Props = {
@@ -35,7 +35,10 @@ export function BuklodSystemAnnouncementBoard({
 }: Props) {
   const { theme } = useBuklodTheme();
   const { hasRole } = useAuth();
+  const { activeScope } = useBuklodScope();
   const canEdit = hasRole('system_admin');
+  const showPublicQuizDoor =
+    slot === 'public_home' && activeScope?.scope_type === 'PUBLIC';
 
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
@@ -139,72 +142,88 @@ export function BuklodSystemAnnouncementBoard({
           color: theme.textMuted,
           textAlign: 'center',
         },
+        publicQuizDoor: {
+          marginHorizontal: 12,
+          marginTop: 4,
+        },
       }),
     [slot, theme]
   );
 
+  const publicQuizDoor = showPublicQuizDoor ? (
+    <View style={styles.publicQuizDoor}>
+      <BuklodQuizStudentEntry />
+    </View>
+  ) : null;
+
   if (loading) {
-    return null;
+    return publicQuizDoor;
   }
 
   if (!message) {
     if (!canEdit) {
-      return null;
+      return publicQuizDoor;
     }
 
     return (
-      <Pressable
-        style={[styles.adminSetup, style]}
-        onPress={() =>
-          router.push('/admin/system-announcement-boards' as any)
-        }
-      >
-        <Text style={styles.adminSetupText}>
-          {slot === 'public_home'
-            ? 'Set the Public Home announcement board'
-            : 'Set the profile announcement board'}
-        </Text>
-        <View style={styles.editBtn}>
-          <Text style={styles.editText}>OPEN ANNOUNCEMENT BOARDS</Text>
-          <MaterialCommunityIcons
-            name="bullhorn-outline"
-            size={14}
-            color={colors.greenDark}
-          />
-        </View>
-      </Pressable>
+      <>
+        <Pressable
+          style={[styles.adminSetup, style]}
+          onPress={() =>
+            router.push('/admin/system-announcement-boards' as any)
+          }
+        >
+          <Text style={styles.adminSetupText}>
+            {slot === 'public_home'
+              ? 'Set the Public Home announcement board'
+              : 'Set the profile announcement board'}
+          </Text>
+          <View style={styles.editBtn}>
+            <Text style={styles.editText}>OPEN ANNOUNCEMENT BOARDS</Text>
+            <MaterialCommunityIcons
+              name="bullhorn-outline"
+              size={14}
+              color={colors.greenDark}
+            />
+          </View>
+        </Pressable>
+        {publicQuizDoor}
+      </>
     );
   }
 
   return (
-    <View style={[styles.wrap, style]}>
-      <View style={styles.board}>
-        <Text style={styles.label}>
-          {slot === 'public_home'
-            ? 'ANNOUNCEMENT'
-            : 'FROM BUKLOD'}
-        </Text>
-        <Text style={styles.message}>{message}</Text>
+    <>
+      <View style={[styles.wrap, style]}>
+        <View style={styles.board}>
+          <Text style={styles.label}>
+            {slot === 'public_home'
+              ? 'ANNOUNCEMENT'
+              : 'FROM BUKLOD'}
+          </Text>
+          <Text style={styles.message}>{message}</Text>
 
-        {canEdit && (
-          <Pressable
-            onPress={() =>
-              router.push('/admin/system-announcement-boards' as any)
-            }
-            style={styles.editBtn}
-          >
-            <Text style={styles.editText}>
-              EDIT ANNOUNCEMENT BOARD
-            </Text>
-            <MaterialCommunityIcons
-              name="pencil-outline"
-              size={14}
-              color={colors.greenDark}
-            />
-          </Pressable>
-        )}
+          {canEdit && (
+            <Pressable
+              onPress={() =>
+                router.push('/admin/system-announcement-boards' as any)
+              }
+              style={styles.editBtn}
+            >
+              <Text style={styles.editText}>
+                EDIT ANNOUNCEMENT BOARD
+              </Text>
+              <MaterialCommunityIcons
+                name="pencil-outline"
+                size={14}
+                color={colors.greenDark}
+              />
+            </Pressable>
+          )}
+        </View>
       </View>
-    </View>
+      {publicQuizDoor}
+    </>
   );
 }
 

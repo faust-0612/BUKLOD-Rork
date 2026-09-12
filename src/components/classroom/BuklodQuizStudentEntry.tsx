@@ -12,36 +12,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { useAuth } from '@/providers/AuthProvider';
 
-const QUIZ_WEB_URL = 'https://buklod-quiz.expo.app';
-
-function buildQuizSessionUrl(input: {
-  accessToken: string;
-  refreshToken: string;
-  expiresAt?: number | null;
-}) {
-  const nowSeconds = Math.floor(Date.now() / 1000);
-  const expiresAt =
-    typeof input.expiresAt === 'number' && input.expiresAt > nowSeconds
-      ? Math.floor(input.expiresAt)
-      : nowSeconds + 3600;
-  const expiresIn = Math.max(1, expiresAt - nowSeconds);
-
-  // BUKLOD Quiz R12+/R14 uses the same BUKLOD Connect Supabase project.
-  // Send the central session directly to the Quiz login route instead of the
-  // site root. The root route can redirect unauthenticated visitors to /login;
-  // that redirect may discard the URL fragment before Supabase can consume it.
-  // A URL fragment is not sent to the Expo hosting server in the HTTP request.
-  const fragment = [
-    `access_token=${encodeURIComponent(input.accessToken)}`,
-    `refresh_token=${encodeURIComponent(input.refreshToken)}`,
-    `expires_in=${expiresIn}`,
-    `expires_at=${expiresAt}`,
-    'token_type=bearer',
-    'buklod_handoff=classroom',
-  ].join('&');
-
-  return `${QUIZ_WEB_URL}/login#${fragment}`;
-}
+const QUIZ_ENTRY_BRIDGE =
+  'https://cjtehbfspgimyhifnjon.supabase.co/functions/v1/buklod-quiz-main-entry-v1';
 
 export default function BuklodQuizStudentEntry() {
   const { session } = useAuth();
@@ -51,10 +23,8 @@ export default function BuklodQuizStudentEntry() {
   const openQuiz = React.useCallback(async () => {
     if (inFlight.current || opening) return;
 
-    const accessToken = session?.access_token;
-    const refreshToken = session?.refresh_token;
-
-    if (!accessToken || !refreshToken) {
+    const accessToken = String(session?.access_token ?? '').trim();
+    if (!accessToken) {
       Alert.alert(
         'BUKLOD session required',
         'Please sign in to BUKLOD Main again before opening BUKLOD Quiz.',
@@ -66,11 +36,37 @@ export default function BuklodQuizStudentEntry() {
     setOpening(true);
 
     try {
-      const launchUrl = buildQuizSessionUrl({
-        accessToken,
-        refreshToken,
-        expiresAt: session?.expires_at,
+      /* BUKLOD_MAIN_QUIZ_SECURE_BRIDGE_ZERO_LOGIN_R18
+       * Main and Quiz use separate Supabase projects.
+       * Never pass Main access/refresh tokens directly into Quiz Auth.
+       * Quiz verifies the current Main bearer session and returns a one-time
+       * dedicated Quiz launch URL.
+       */
+      const handoffResponse = await fetch(QUIZ_ENTRY_BRIDGE, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: '{}',
       });
+
+      const handoffResult = await handoffResponse.json().catch(() => null);
+      const launchUrl = String(handoffResult?.launch_url ?? '').trim();
+
+      if (
+        !handoffResponse.ok ||
+        handoffResult?.ok !== true ||
+        !launchUrl
+      ) {
+        throw new Error(
+          String(
+            handoffResult?.message ??
+              handoffResult?.error ??
+              'Could not create your automatic BUKLOD Quiz session.',
+          ),
+        );
+      }
 
       await Linking.openURL(launchUrl);
     } catch (error: any) {
@@ -83,7 +79,7 @@ export default function BuklodQuizStudentEntry() {
       inFlight.current = false;
       setOpening(false);
     }
-  }, [opening, session?.access_token, session?.expires_at, session?.refresh_token]);
+  }, [opening, session?.access_token]);
 
   return (
     <View style={styles.card}>
@@ -100,8 +96,8 @@ export default function BuklodQuizStudentEntry() {
           <Text style={styles.eyebrow}>LIVE EXAM</Text>
           <Text style={styles.title}>BUKLOD Quiz</Text>
           <Text style={styles.body}>
-            Your signed-in BUKLOD Main account is already your identity proof.
-            Open Quiz directly, then enter only the live class code given by your examiner.
+            Your signed-in BUKLOD Main account is your identity proof. Open Quiz
+            directly, then enter only the live class code given by your examiner.
           </Text>
         </View>
       </View>
@@ -127,8 +123,8 @@ export default function BuklodQuizStudentEntry() {
       </Pressable>
 
       <Text style={styles.notice}>
-        Direct central-session handoff. No email/SMS OTP, no one-time-code request,
-        no second password check, and no automatic retry loop.
+        Secure one-time Main-to-Quiz handoff. Your Main refresh token is never
+        passed to the Quiz app, and no second password or OTP entry is required.
       </Text>
     </View>
   );
