@@ -3,6 +3,8 @@
 -- Routine social participation stays within the canonical 1–2 point range;
 -- qualified/impact rewards remain separate.
 
+-- Create the successor as STAGED first because the policy table enforces
+-- exactly one ACTIVE row at a time.
 insert into private.buklod_r36_economy_policy_versions (
   policy_version,
   status,
@@ -13,7 +15,7 @@ insert into private.buklod_r36_economy_policy_versions (
 )
 select
   'r37_standard_social_points_v1',
-  'active',
+  'staged',
   now(),
   'r36_social_economy_v1',
   jsonb_set(
@@ -32,7 +34,7 @@ select
     '2'::jsonb,
     true
   ),
-  now()
+  null
 from private.buklod_r36_economy_policy_versions p
 where p.policy_version = 'r36_social_economy_v1'
   and not exists (
@@ -41,8 +43,65 @@ where p.policy_version = 'r36_social_economy_v1'
     where x.policy_version = 'r37_standard_social_points_v1'
   );
 
--- Keep the proven R36 cutover/readiness gate, but settle NEW social events
--- under the forward-only R37 policy. This avoids rewriting historical awards.
+-- Preserve the old policy row for historical audit, but stop using it for
+-- new social events.
+update private.buklod_r36_economy_policy_versions
+set status = 'retired'
+where policy_version = 'r36_social_economy_v1'
+  and status = 'active';
+
+update private.buklod_r36_economy_policy_versions
+set
+  status = 'active',
+  effective_at = coalesce(effective_at, now()),
+  activated_at = coalesce(activated_at, now())
+where policy_version = 'r37_standard_social_points_v1';
+
+-- R37 keeps all R36 anti-farming / event-recording / settlement machinery,
+-- but uses a small route guard that validates the successor policy itself.
+create or replace function private.buklod_r37_social_route_v1()
+returns text
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_status text;
+  v_effective_at timestamptz;
+  v_config jsonb;
+  v_activation jsonb;
+begin
+  select p.status, p.effective_at, p.config
+  into v_status, v_effective_at, v_config
+  from private.buklod_r36_economy_policy_versions p
+  where p.policy_version = 'r37_standard_social_points_v1';
+
+  if v_config is null
+     or v_status <> 'active'
+     or v_effective_at is null
+     or v_effective_at > now() then
+    return 'legacy';
+  end if;
+
+  v_activation := coalesce(v_config->'activation', '{}'::jsonb);
+
+  if not coalesce((v_activation->>'social_event_recording_enabled')::boolean, false)
+     or not coalesce((v_activation->>'engager_economics_enabled')::boolean, false)
+     or not coalesce((v_activation->>'publisher_economics_enabled')::boolean, false)
+     or not coalesce((v_activation->>'creator_impact_settlement_enabled')::boolean, false)
+     or not coalesce((v_activation->>'legacy_social_publish_cutover_completed')::boolean, false) then
+    return 'legacy';
+  end if;
+
+  return 'r37';
+exception
+  when others then
+    return 'legacy';
+end;
+$$;
+
+-- Settle NEW social events under R37. Existing ledger rows remain unchanged.
 create or replace function public.community_post_points_trigger_v2()
 returns trigger
 language plpgsql
@@ -50,7 +109,7 @@ security definer
 set search_path = ''
 as $$
 begin
-  if private.buklod_r36_social_route_v1() = 'r36' then
+  if private.buklod_r37_social_route_v1() = 'r37' then
     perform private.buklod_r36_settle_publish_v1(
       new.id,
       'r37_standard_social_points_v1'
@@ -74,7 +133,7 @@ security definer
 set search_path = ''
 as $$
 begin
-  if private.buklod_r36_social_route_v1() = 'r36' then
+  if private.buklod_r37_social_route_v1() = 'r37' then
     perform private.buklod_r36_process_comment_v1(
       new.id,
       'r37_standard_social_points_v1'
@@ -98,7 +157,7 @@ security definer
 set search_path = ''
 as $$
 begin
-  if private.buklod_r36_social_route_v1() = 'r36' then
+  if private.buklod_r37_social_route_v1() = 'r37' then
     perform private.buklod_r36_process_reaction_v1(
       new.post_id,
       new.user_id,
@@ -123,7 +182,7 @@ security definer
 set search_path = ''
 as $$
 begin
-  if private.buklod_r36_social_route_v1() = 'r36' then
+  if private.buklod_r37_social_route_v1() = 'r37' then
     perform private.buklod_r36_process_share_v1(
       new.id,
       'r37_standard_social_points_v1'
