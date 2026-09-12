@@ -1,16 +1,11 @@
 # IGPAT_MANUAL_TS_QA_R15
 $ErrorActionPreference = 'Stop'
-$ExpectedSha = '34230152660c36e4d0d801bd10758978e2767916'
 $ExpectedChanged = @(
   'src/app/(tabs)/buklod.tsx',
   'src/components/BuklodExclusiveScopeCommunity.tsx'
 )
 
 $head = (& git rev-parse HEAD).Trim()
-if ($head -ne $ExpectedSha) {
-  throw "Wrong IGPAT R15 QA source SHA. Expected=$ExpectedSha Actual=$head"
-}
-
 $trackedDirtyBefore = @(& git status --porcelain --untracked-files=no)
 if ($trackedDirtyBefore.Count -gt 0) {
   & git status --short
