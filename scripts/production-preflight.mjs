@@ -112,6 +112,7 @@ const requiredRouterFiles = [
   'src/report-app/system/update-required.tsx',
   'src/report-app/system/pilot-access.tsx',
   'src/report-app/reports/index.tsx',
+  'src/report-app/reports/index.web.tsx',
   'src/report-app/reports/library.tsx',
   'src/report-app/reports/definitions.tsx',
   'src/report-app/reports/template-builder.tsx',
@@ -138,6 +139,8 @@ const requiredReportFiles = [
   'src/providers/BuklodReportNotificationProvider.web.tsx',
   'src/components/BuklodReportAssignmentForm.tsx',
   'src/components/BuklodWeeklyReportForm.tsx',
+  'src/components/BuklodReportWebAdBanner.tsx',
+  'src/components/BuklodReportWebAdBanner.web.tsx',
   'src/lib/buklodReportDeadlines.ts',
   'src/lib/buklodReportTemplateImport.ts',
   'src/lib/buklodReportConsolidation.ts',
@@ -180,6 +183,30 @@ const templateWebHelper = read('src/lib/buklodReportAssetBase64.web.ts');
 if (/expo-file-system|expo-sharing/.test(templateWebHelper)) failures.push('Web template-file reader must not import native FileSystem/Sharing modules.');
 const workbookWebHelper = read('src/lib/buklodReportWorkbookOutput.web.ts');
 if (/expo-file-system|expo-sharing/.test(workbookWebHelper)) failures.push('Web workbook output must not import native FileSystem/Sharing modules.');
+
+const nativeAdBanner = read('src/components/BuklodReportWebAdBanner.tsx');
+if (!/return\s+null/.test(nativeAdBanner)) failures.push('Native Report ad banner must remain a no-op.');
+if (/react-native-google-mobile-ads|AdMob|BannerAd/.test(nativeAdBanner)) failures.push('Standalone Report native ad banner must not introduce AdMob/native ad dependencies.');
+
+const webAdBanner = read('src/components/BuklodReportWebAdBanner.web.tsx');
+for (const marker of ['EXPO_PUBLIC_REPORT_ADSENSE_ENABLED', 'EXPO_PUBLIC_REPORT_ADSENSE_CLIENT', 'EXPO_PUBLIC_REPORT_ADSENSE_SLOT', 'pagead2.googlesyndication.com']) {
+  if (!webAdBanner.includes(marker)) failures.push(`Web Report ad banner is missing required marker: ${marker}`);
+}
+if (!webAdBanner.includes("typeof window === 'undefined'") || !webAdBanner.includes("typeof document === 'undefined'")) {
+  failures.push('Web Report ad banner must remain safe during Expo static rendering.');
+}
+
+const webReportRoute = read('src/report-app/reports/index.web.tsx');
+if (!webReportRoute.includes('showDashboardBanner') || !webReportRoute.includes('!scopeId && !assignmentId')) {
+  failures.push('Web Report ads must remain limited to the top-level dashboard and stay out of scoped/assignment flows.');
+}
+
+const envExample = read('.env.example');
+const envProductionExample = read('.env.production.example');
+for (const marker of ['EXPO_PUBLIC_REPORT_ADSENSE_ENABLED', 'EXPO_PUBLIC_REPORT_ADSENSE_CLIENT', 'EXPO_PUBLIC_REPORT_ADSENSE_SLOT']) {
+  if (!envExample.includes(marker)) failures.push(`.env.example is missing Report web ad marker: ${marker}`);
+  if (!envProductionExample.includes(marker)) failures.push(`.env.production.example is missing Report web ad marker: ${marker}`);
+}
 
 const legacyLogin = exists('src/app/(auth)/login.tsx') ? read('src/app/(auth)/login.tsx') : '';
 if (legacyLogin.includes("router.replace(\n      '/(tabs)/home'")) {
