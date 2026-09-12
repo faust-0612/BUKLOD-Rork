@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -63,9 +64,6 @@ function Preview({ uri }: { uri: string }) {
   });
 
   useEffect(() => {
-    try {
-      player.play();
-    } catch {}
     return () => {
       try {
         player.pause();
@@ -73,7 +71,14 @@ function Preview({ uri }: { uri: string }) {
     };
   }, [player]);
 
-  return <VideoView player={player} style={styles.preview} nativeControls contentFit="contain" />;
+  return (
+    <VideoView
+      player={player}
+      style={styles.preview}
+      nativeControls
+      contentFit="contain"
+    />
+  );
 }
 
 export default function IgpatCreateScreen() {
@@ -85,7 +90,17 @@ export default function IgpatCreateScreen() {
   const [groupsLoading, setGroupsLoading] = useState(true);
   const [groupId, setGroupId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [pickerBusy, setPickerBusy] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
+  const pickerBusyRef = useRef(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      pickerBusyRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -148,62 +163,174 @@ export default function IgpatCreateScreen() {
   }, [profile?.church_id, user?.id]);
 
   const acceptVideo = async (asset: any) => {
-    const durationSeconds = Math.ceil(Number(asset?.duration ?? 0) / 1000);
-    if (!durationSeconds || durationSeconds < 1) {
-      return Alert.alert('BUKLOD IGPAT', 'Could not determine the video duration.');
-    }
-    if (durationSeconds > BUKLOD_REEL_MAX_DURATION_SECONDS) {
-      return Alert.alert(
-        'Maximum 60 Seconds',
-        `This video is ${durationSeconds} seconds. IGPAT videos may be up to 60 seconds only.`
+    try {
+      if (!asset?.uri) {
+        Alert.alert('BUKLOD IGPAT', 'The selected video could not be read.');
+        return;
+      }
+
+      const durationSeconds = Math.ceil(Number(asset?.duration ?? 0) / 1000);
+      if (!durationSeconds || durationSeconds < 1) {
+        Alert.alert('BUKLOD IGPAT', 'Could not determine the video duration.');
+        return;
+      }
+      if (durationSeconds > BUKLOD_REEL_MAX_DURATION_SECONDS) {
+        Alert.alert(
+          'Maximum 60 Seconds',
+          `This video is ${durationSeconds} seconds. IGPAT videos may be up to 60 seconds only.`
+        );
+        return;
+      }
+
+      const sizeBytes = await readVideoSizeBytes(asset, async (uri, options) =>
+        FileSystem.getInfoAsync(uri, options as any)
       );
+      const validationError = validateCommunityVideoUpload({
+        durationSeconds,
+        sizeBytes,
+        isReel: true,
+      });
+      if (validationError) {
+        Alert.alert('BUKLOD IGPAT', validationError);
+        return;
+      }
+
+      const mimeType = inferMime(asset);
+      if (!mountedRef.current) return;
+      setDraft({
+        uri: asset.uri,
+        durationSeconds,
+        sizeBytes,
+        mimeType,
+        fileName: String(asset.fileName ?? `igpat.${extensionForMime(mimeType)}`),
+      });
+    } catch (error: any) {
+      console.warn('BUKLOD IGPAT accept video:', String(error?.message ?? error));
+      if (mountedRef.current) {
+        Alert.alert(
+          'Could Not Prepare Video',
+          error?.message ?? 'The video could not be prepared safely. Please try again.'
+        );
+      }
+    }
+  };
+
+  const handlePickerResult = async (result: any) => {
+    if (!result) return;
+
+    if (result?.code) {
+      console.warn(
+        'BUKLOD IGPAT picker result:',
+        String(result?.message ?? result?.code)
+      );
+      if (mountedRef.current) {
+        Alert.alert(
+          'Camera Result Could Not Be Restored',
+          result?.message ?? 'Please record or select the video again.'
+        );
+      }
+      return;
     }
 
-    const sizeBytes = await readVideoSizeBytes(asset, async (uri, options) =>
-      FileSystem.getInfoAsync(uri, options as any)
-    );
-    const validationError = validateCommunityVideoUpload({
-      durationSeconds,
-      sizeBytes,
-      isReel: true,
-    });
-    if (validationError) return Alert.alert('BUKLOD IGPAT', validationError);
+    if (!result.canceled && result.assets?.length) {
+      await acceptVideo(result.assets[0]);
+    }
+  };
 
-    const mimeType = inferMime(asset);
-    setDraft({
-      uri: asset.uri,
-      durationSeconds,
-      sizeBytes,
-      mimeType,
-      fileName: String(asset.fileName ?? `igpat.${extensionForMime(mimeType)}`),
-    });
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+
+    let cancelled = false;
+    void ImagePicker.getPendingResultAsync()
+      .then(async result => {
+        if (cancelled || !result) return;
+        await handlePickerResult(result);
+      })
+      .catch(error => {
+        console.warn(
+          'BUKLOD IGPAT pending picker result:',
+          String((error as any)?.message ?? error)
+        );
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const beginPicker = () => {
+    if (busy || pickerBusyRef.current) return false;
+    pickerBusyRef.current = true;
+    if (mountedRef.current) setPickerBusy(true);
+    return true;
+  };
+
+  const endPicker = () => {
+    pickerBusyRef.current = false;
+    if (mountedRef.current) setPickerBusy(false);
   };
 
   const chooseVideo = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['videos'],
-      allowsEditing: false,
-      quality: 1,
-    });
-    if (!result.canceled && result.assets?.length) await acceptVideo(result.assets[0]);
+    if (!beginPicker()) return;
+
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(
+          'Media Permission',
+          'Photo and video library access is required to select an IGPAT.'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['videos'],
+        allowsEditing: false,
+      });
+      await handlePickerResult(result);
+    } catch (error: any) {
+      console.warn('BUKLOD IGPAT library picker:', String(error?.message ?? error));
+      Alert.alert(
+        'Could Not Open Videos',
+        error?.message ?? 'Please try selecting the video again.'
+      );
+    } finally {
+      endPicker();
+    }
   };
 
   const recordVideo = async () => {
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permission.granted) {
-      return Alert.alert('Camera Permission', 'Camera access is required to record an IGPAT.');
+    if (!beginPicker()) return;
+
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(
+          'Camera Permission',
+          'Camera access is required to record an IGPAT.'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['videos'],
+        videoMaxDuration: 60,
+        allowsEditing: false,
+      });
+      await handlePickerResult(result);
+    } catch (error: any) {
+      console.warn('BUKLOD IGPAT camera picker:', String(error?.message ?? error));
+      Alert.alert(
+        'Could Not Record Video',
+        error?.message ?? 'The camera could not return the recorded video safely. Please try again.'
+      );
+    } finally {
+      endPicker();
     }
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ['videos'],
-      videoMaxDuration: 60,
-      allowsEditing: false,
-      quality: 1,
-    });
-    if (!result.canceled && result.assets?.length) await acceptVideo(result.assets[0]);
   };
 
   const publish = async () => {
-    if (!user?.id || !draft || busy) return;
+    if (!user?.id || !draft || busy || pickerBusy) return;
     if (
       audience === 'group' &&
       (!groupId || !groups.some(row => row.group_id === groupId))
@@ -252,10 +379,16 @@ export default function IgpatCreateScreen() {
   };
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      style={styles.root}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+    >
       <Text style={styles.eyebrow}>BUKLOD IGPAT</Text>
       <Text style={styles.title}>Create an Instant Bond</Text>
-      <Text style={styles.subtitle}>Record or choose a short video, preview it, then publish.</Text>
+      <Text style={styles.subtitle}>
+        Record or choose a short video, preview it, then publish.
+      </Text>
 
       {draft ? (
         <View style={styles.previewCard}>
@@ -263,18 +396,29 @@ export default function IgpatCreateScreen() {
           <View style={styles.previewMeta}>
             <Text style={styles.metaStrong}>{draft.durationSeconds}s</Text>
             <Text style={styles.meta}>{formatVideoBytes(draft.sizeBytes)}</Text>
-            <Pressable onPress={() => setDraft(null)} disabled={busy}>
+            <Pressable onPress={() => setDraft(null)} disabled={busy || pickerBusy}>
               <Text style={styles.change}>CHANGE</Text>
             </Pressable>
           </View>
         </View>
       ) : (
         <View style={styles.sourceRow}>
-          <Pressable style={styles.sourceButton} onPress={() => void recordVideo()} disabled={busy}>
+          <Pressable
+            style={[styles.sourceButton, pickerBusy && styles.sourceButtonDisabled]}
+            onPress={() => void recordVideo()}
+            disabled={busy || pickerBusy}
+          >
+            {pickerBusy ? <ActivityIndicator color="#FFFFFF" /> : null}
             <Text style={styles.sourceTitle}>RECORD</Text>
-            <Text style={styles.sourceCopy}>Use camera</Text>
+            <Text style={styles.sourceCopy}>
+              {pickerBusy ? 'Opening…' : 'Use camera'}
+            </Text>
           </Pressable>
-          <Pressable style={styles.sourceButton} onPress={() => void chooseVideo()} disabled={busy}>
+          <Pressable
+            style={[styles.sourceButton, pickerBusy && styles.sourceButtonDisabled]}
+            onPress={() => void chooseVideo()}
+            disabled={busy || pickerBusy}
+          >
             <Text style={styles.sourceTitle}>SELECT</Text>
             <Text style={styles.sourceCopy}>From device</Text>
           </Pressable>
@@ -289,7 +433,7 @@ export default function IgpatCreateScreen() {
         multiline
         maxLength={500}
         style={styles.caption}
-        editable={!busy}
+        editable={!busy && !pickerBusy}
       />
 
       <Text style={styles.label}>AUDIENCE</Text>
@@ -314,7 +458,7 @@ export default function IgpatCreateScreen() {
                   setGroupId(groups[0]?.group_id ?? null);
                 }
               }}
-              disabled={busy || disabled}
+              disabled={busy || pickerBusy || disabled}
             >
               <Text style={[styles.audienceText, audience === value && styles.audienceSelectedText]}>
                 {value === 'group' ? 'CLUSTER' : value.toUpperCase()}
@@ -336,9 +480,12 @@ export default function IgpatCreateScreen() {
                   key={option.group_id}
                   style={[styles.clusterChip, selected && styles.clusterChipSelected]}
                   onPress={() => setGroupId(option.group_id)}
-                  disabled={busy}
+                  disabled={busy || pickerBusy}
                 >
-                  <Text style={[styles.clusterText, selected && styles.clusterTextSelected]} numberOfLines={1}>
+                  <Text
+                    style={[styles.clusterText, selected && styles.clusterTextSelected]}
+                    numberOfLines={1}
+                  >
                     {label}
                   </Text>
                 </Pressable>
@@ -358,8 +505,8 @@ export default function IgpatCreateScreen() {
       )}
 
       <Pressable
-        style={[styles.publish, (!draft || busy) && styles.publishDisabled]}
-        disabled={!draft || busy}
+        style={[styles.publish, (!draft || busy || pickerBusy) && styles.publishDisabled]}
+        disabled={!draft || busy || pickerBusy}
         onPress={() => void publish()}
       >
         <Text style={styles.publishText}>{busy ? 'PUBLISHING...' : 'PUBLISH IGPAT'}</Text>
@@ -376,6 +523,7 @@ const styles = StyleSheet.create({
   subtitle: { marginTop: 7, color: 'rgba(255,255,255,0.62)', fontSize: 12, lineHeight: 18 },
   sourceRow: { flexDirection: 'row', gap: 12, marginTop: 24 },
   sourceButton: { flex: 1, minHeight: 116, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#101512' },
+  sourceButtonDisabled: { opacity: 0.58 },
   sourceTitle: { color: '#FFFFFF', fontSize: 14, fontWeight: '900', letterSpacing: 1 },
   sourceCopy: { marginTop: 5, color: 'rgba(255,255,255,0.48)', fontSize: 10 },
   previewCard: { marginTop: 24, overflow: 'hidden', borderRadius: 22, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: '#0C110E' },
