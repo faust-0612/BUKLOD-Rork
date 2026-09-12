@@ -26,10 +26,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout production source
+      - name: Checkout exact production trigger
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.sha }}
+
+      - name: Verify exact trigger SHA
+        shell: bash
+        run: |
+          actual="$(git rev-parse HEAD)"
+          echo "Expected trigger SHA: ${GITHUB_SHA}"
+          echo "Checked out SHA:      ${actual}"
+          test "${actual}" = "${GITHUB_SHA}"
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -90,6 +98,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
           npx eas-cli@latest deploy --prod --non-interactive 2>&1 | tee web-deploy-output.txt
 
       - name: Preserve deploy result
@@ -108,4 +117,4 @@ jobs:
             echo 'BUKLOD production web deployment did not succeed.'
             exit 1
           fi
-          echo 'BUKLOD production web deployment succeeded.'
+          echo "BUKLOD production web deployment succeeded for ${GITHUB_SHA}."
