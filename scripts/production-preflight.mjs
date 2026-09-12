@@ -25,14 +25,10 @@ const exists = (filePath) => fs.existsSync(new URL(filePath, root));
 if (!['web', 'android'].includes(releaseTarget)) failures.push('REPORT_RELEASE_TARGET must be web or android.');
 if (env !== 'production') failures.push('EXPO_PUBLIC_APP_ENV must be production.');
 if (appTarget && appTarget !== 'report') failures.push('BUKLOD_APP_TARGET must be report when set.');
-if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(supabaseUrl)) {
-  failures.push('EXPO_PUBLIC_SUPABASE_URL is not a hosted Supabase project URL.');
-}
+if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(supabaseUrl)) failures.push('EXPO_PUBLIC_SUPABASE_URL is not a hosted Supabase project URL.');
 if (!/^sb_publishable_/i.test(publishableKey)) failures.push('Production Report client must use a Supabase publishable key.');
 if (/sb_secret_|service_role/i.test(publishableKey)) failures.push('A secret/service-role key is present in the client key variable.');
-if (!reportEasProjectId) {
-  failures.push('REPORT_EAS_PROJECT_ID (or EXPO_PUBLIC_REPORT_EAS_PROJECT_ID) is required for standalone Report release/deployment.');
-}
+if (!reportEasProjectId) failures.push('REPORT_EAS_PROJECT_ID (or EXPO_PUBLIC_REPORT_EAS_PROJECT_ID) is required for standalone Report release/deployment.');
 
 if (releaseTarget === 'android') {
   if (!reportGoogleServicesFile) {
@@ -79,6 +75,12 @@ if (/google-services\.json['\"]/.test(appConfig) && !appConfig.includes('REPORT_
   failures.push('app.config.js contains a hard-coded Google Services path instead of the dedicated Report variable.');
 }
 
+const entry = read('index.js');
+if (!entry.includes("import 'expo-router/entry'")) failures.push('Standalone Report entry must boot expo-router/entry.');
+if (/setPushConfig|setFirebaseListeners|streamVideo/i.test(entry)) {
+  failures.push('Standalone Report entry must not boot BUKLOD Main Stream/Firebase listeners.');
+}
+
 const easConfig = read('eas.json');
 for (const marker of ['report-development', 'report-preview', 'report-production', '"BUKLOD_APP_TARGET": "report"']) {
   if (!easConfig.includes(marker)) failures.push(`eas.json is missing standalone Report marker: ${marker}`);
@@ -121,6 +123,10 @@ const requiredReportFiles = [
   'src/lib/buklodReportDeadlines.ts',
   'src/lib/buklodReportTemplateImport.ts',
   'src/lib/buklodReportConsolidation.ts',
+  'src/lib/buklodReportAssetBase64.ts',
+  'src/lib/buklodReportAssetBase64.web.ts',
+  'src/lib/buklodReportWorkbookOutput.ts',
+  'src/lib/buklodReportWorkbookOutput.web.ts',
 ];
 for (const filePath of requiredReportFiles) {
   if (!exists(filePath)) failures.push(`Required standalone Report source is missing: ${filePath}`);
@@ -137,26 +143,24 @@ for (const filePath of requiredMigrations) {
 }
 
 const reportTsconfig = read('tsconfig.report.json');
-if (!reportTsconfig.includes('src/report-app/**/*.tsx')) {
-  failures.push('tsconfig.report.json is not scoped to the standalone Report router graph.');
-}
+if (!reportTsconfig.includes('src/report-app/**/*.tsx')) failures.push('tsconfig.report.json is not scoped to the standalone Report router graph.');
 
 const quickWeekly = read('src/components/BuklodWeeklyReportForm.tsx');
 if (!quickWeekly.includes('pickAndAnalyzeReportFile')) failures.push('MZB Quick Weekly file/photo import is missing from the standalone Report form.');
 if (!quickWeekly.includes('updateQuickWeeklyReminder')) failures.push('MZB Quick Weekly reminder actions are missing from the standalone Report form.');
 
 const routeGuard = read('src/providers/BuklodReportRouteGuard.tsx');
-if (!routeGuard.includes('report-access-pending') || !routeGuard.includes('hasCanonicalAccess')) {
-  failures.push('Standalone Report route/account containment is incomplete.');
-}
+if (!routeGuard.includes('report-access-pending') || !routeGuard.includes('hasCanonicalAccess')) failures.push('Standalone Report route/account containment is incomplete.');
+
 const notificationProvider = read('src/providers/BuklodReportNotificationProvider.tsx');
-if (/selectScope|activeScope|setBuklodActiveScope/.test(notificationProvider)) {
-  failures.push('Standalone Report push routing must not select or persist BUKLOD Main active scope.');
-}
+if (/selectScope|activeScope|setBuklodActiveScope/.test(notificationProvider)) failures.push('Standalone Report push routing must not select or persist BUKLOD Main active scope.');
 const notificationWebProvider = read('src/providers/BuklodReportNotificationProvider.web.tsx');
-if (notificationWebProvider.includes('expo-notifications')) {
-  failures.push('Standalone Report web root must not import expo-notifications during static rendering.');
-}
+if (notificationWebProvider.includes('expo-notifications')) failures.push('Standalone Report web root must not import expo-notifications during static rendering.');
+
+const templateWebHelper = read('src/lib/buklodReportAssetBase64.web.ts');
+if (/expo-file-system|expo-sharing/.test(templateWebHelper)) failures.push('Web template-file reader must not import native FileSystem/Sharing modules.');
+const workbookWebHelper = read('src/lib/buklodReportWorkbookOutput.web.ts');
+if (/expo-file-system|expo-sharing/.test(workbookWebHelper)) failures.push('Web workbook output must not import native FileSystem/Sharing modules.');
 
 const legacyLogin = exists('src/app/(auth)/login.tsx') ? read('src/app/(auth)/login.tsx') : '';
 if (legacyLogin.includes("router.replace(\n      '/(tabs)/home'")) {
