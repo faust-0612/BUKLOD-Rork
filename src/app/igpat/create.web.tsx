@@ -10,8 +10,6 @@ import {
   View,
 } from 'react-native';
 import { router } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
-import { VideoView, useVideoPlayer } from 'expo-video';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import {
@@ -38,19 +36,18 @@ type IgpatGroupOption = {
 };
 
 function Preview({ uri }: { uri: string }) {
-  const player = useVideoPlayer(uri, instance => {
-    instance.loop = true;
-    instance.muted = false;
+  return React.createElement('video', {
+    src: uri,
+    controls: true,
+    playsInline: true,
+    preload: 'metadata',
+    style: {
+      width: '100%',
+      height: 420,
+      objectFit: 'contain',
+      backgroundColor: '#000000',
+    },
   });
-
-  useEffect(() => {
-    try { player.play(); } catch {}
-    return () => {
-      try { player.pause(); } catch {}
-    };
-  }, [player]);
-
-  return <VideoView player={player} style={styles.preview} nativeControls contentFit="contain" />;
 }
 
 function extensionForMime(mime: string) {
@@ -327,39 +324,85 @@ export default function IgpatCreateWebScreen() {
   };
 
   const chooseVideo = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['videos'],
-      allowsEditing: false,
-      quality: 1,
-    });
-    if (result.canceled || !result.assets?.length) return;
+    try {
+      const file = await new Promise<File | null>(resolve => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'video/*';
+        input.multiple = false;
+        input.onchange = () => resolve(input.files?.[0] ?? null);
+        input.click();
+      });
 
-    const asset: any = result.assets[0];
-    const durationSeconds = Math.max(1, Math.ceil(Number(asset?.duration ?? 0) / 1000));
-    const response = await fetch(asset.uri);
-    const blob = await response.blob();
-    const sizeBytes = Number(blob.size ?? asset?.fileSize ?? 0);
-    const mimeType = String(asset?.mimeType || blob.type || 'video/mp4').toLowerCase();
+      if (!file) return;
 
-    if (durationSeconds > BUKLOD_REEL_MAX_DURATION_SECONDS) {
-      Alert.alert('Maximum 60 Seconds', `This video is ${durationSeconds} seconds. IGPAT videos may be up to 60 seconds only.`);
-      return;
+      const uri = URL.createObjectURL(file);
+      try {
+        const durationSeconds = await new Promise<number>((resolve, reject) => {
+          const probe = document.createElement('video');
+          const timeout = window.setTimeout(() => {
+            probe.removeAttribute('src');
+            reject(new Error('Could not read the selected video duration.'));
+          }, 12000);
+
+          probe.preload = 'metadata';
+          probe.onloadedmetadata = () => {
+            window.clearTimeout(timeout);
+            const seconds = Math.ceil(Number(probe.duration || 0));
+            probe.removeAttribute('src');
+            if (!seconds || seconds < 1) {
+              reject(new Error('Could not determine the selected video duration.'));
+              return;
+            }
+            resolve(seconds);
+          };
+          probe.onerror = () => {
+            window.clearTimeout(timeout);
+            probe.removeAttribute('src');
+            reject(new Error('The selected video could not be read by this browser.'));
+          };
+          probe.src = uri;
+        });
+
+        if (durationSeconds > BUKLOD_REEL_MAX_DURATION_SECONDS) {
+          throw new Error(
+            'This video is ' + durationSeconds +
+              ' seconds. IGPAT videos may be up to 60 seconds only.'
+          );
+        }
+
+        const sizeBytes = Number(file.size || 0);
+        const validationError = validateCommunityVideoUpload({
+          durationSeconds,
+          sizeBytes,
+          isReel: true,
+        });
+        if (validationError) throw new Error(validationError);
+
+        const mimeType = String(file.type || 'video/mp4').toLowerCase();
+        disposeDraft();
+        setDraft({
+          uri,
+          durationSeconds,
+          sizeBytes,
+          mimeType:
+            mimeType === 'video/quicktime' || mimeType === 'video/webm'
+              ? mimeType
+              : 'video/mp4',
+          fileName: file.name || ('igpat.' + extensionForMime(mimeType)),
+          revokeOnDispose: true,
+        });
+      } catch (error) {
+        URL.revokeObjectURL(uri);
+        throw error;
+      }
+    } catch (error: any) {
+      console.warn('BUKLOD IGPAT browser file picker:', String(error?.message ?? error));
+      Alert.alert(
+        'Could Not Prepare Video',
+        error?.message ?? 'Please choose the video again.'
+      );
     }
-
-    const validationError = validateCommunityVideoUpload({ durationSeconds, sizeBytes, isReel: true });
-    if (validationError) {
-      Alert.alert('BUKLOD IGPAT', validationError);
-      return;
-    }
-
-    disposeDraft();
-    setDraft({
-      uri: asset.uri,
-      durationSeconds,
-      sizeBytes,
-      mimeType: mimeType === 'video/quicktime' || mimeType === 'video/webm' ? mimeType : 'video/mp4',
-      fileName: String(asset?.fileName ?? `igpat.${extensionForMime(mimeType)}`),
-    });
   };
 
   const publish = async () => {
