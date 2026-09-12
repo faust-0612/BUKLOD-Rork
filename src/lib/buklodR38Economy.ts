@@ -1,0 +1,161 @@
+import { supabase } from '@/lib/supabase';
+
+export type BuklodR38MoneySummary = {
+  bayanihan: number;
+  direct_referral: number;
+  total: number;
+};
+
+export type BuklodR38UserEconomyReport = {
+  progress: {
+    lifetime_points: number;
+    available_points: number;
+    pending_points: number;
+    circle_rank: Record<string, unknown>;
+    character: string | null;
+    collectibles: number;
+  };
+  economic_contribution: {
+    qualified_bcu: number;
+    current_period_bcu: number;
+    current_period: {
+      period_key: string;
+      status: string;
+      start: string;
+      end: string;
+    } | null;
+  };
+  app_sharing: {
+    qualified_direct_referrals: number;
+    qualified_rcu: number;
+    current_period_rcu: number;
+    referral_statuses: Record<string, number>;
+    direct_only: boolean;
+  };
+  actual_earnings: {
+    estimated_share: (BuklodR38MoneySummary & {
+      label: string;
+      withdrawable: boolean;
+    }) | null;
+    finalized_share: BuklodR38MoneySummary;
+    available_cash: BuklodR38MoneySummary;
+    reserved_for_withdrawal: number;
+    paid_earnings: BuklodR38MoneySummary;
+    referral_withdrawal_enabled: boolean;
+    currency: 'PHP' | string;
+  };
+  economic_invariants: {
+    points_are_money: boolean;
+    fixed_php_per_point: boolean;
+    fixed_php_per_bcu: boolean;
+    fixed_php_per_rcu: boolean;
+    cash_source: string;
+    rcu_is_weight_only: boolean;
+    bcu_is_weight_only: boolean;
+  };
+};
+
+export type BuklodR38AdminEconomyReport = {
+  period: Record<string, unknown> | null;
+  revenue_chain: {
+    actual_reconciled_revenue: number;
+    actual_reconciled_costs: number;
+    distributable_base: number;
+    bayanihan_pool: number;
+    referral_pool: number;
+    founder: number;
+    growth: number;
+    reserve: number;
+  } | null;
+  financial_entry_breakdown: Array<{
+    entry_kind: string;
+    direction: string;
+    reconciliation_state: string;
+    amount: number;
+  }>;
+  qualified_units: {
+    bcu: number | null;
+    rcu: number | null;
+  } | null;
+  user_shares: Array<{
+    user_id: string;
+    full_name: string;
+    pool_key: 'BAYANIHAN' | 'DIRECT_REFERRAL' | string;
+    qualified_units: number;
+    total_qualified_units: number;
+    share_ratio: number;
+    funded_pool_amount: number;
+    finalized_share_amount: number;
+    effective_php_per_unit_analytics_only: number | null;
+  }>;
+  distributed: {
+    bayanihan: number;
+    direct_referral: number;
+  };
+  effective_rates_analytics_only: {
+    php_per_bcu: number | null;
+    php_per_rcu: number | null;
+    not_future_conversion_rate: boolean;
+  };
+  cash_ledger: {
+    available: number;
+    reserved: number;
+    paid: number;
+    currency: string;
+  };
+  referral_states: Record<string, number>;
+  withdrawals: Record<string, number>;
+  activation: Record<string, boolean>;
+  invariant_checks: Record<string, boolean | string>;
+};
+
+function messageFrom(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) return error.message;
+  if (error && typeof error === 'object') {
+    const row = error as Record<string, unknown>;
+    for (const key of ['message', 'details', 'hint', 'code']) {
+      const value = row[key];
+      if (typeof value === 'string' && value.trim()) return value.trim();
+    }
+  }
+  return fallback;
+}
+
+export function asMoney(value: unknown) {
+  const number = Number(value ?? 0);
+  return Number.isFinite(number) ? number : 0;
+}
+
+export function formatPhp(value: unknown) {
+  return asMoney(value).toLocaleString('en-PH', {
+    style: 'currency',
+    currency: 'PHP',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+export async function loadMyBuklodR38EconomyReport() {
+  const { data, error } = await (supabase as any).rpc(
+    'get_my_buklod_r38_economy_report_v1',
+  );
+
+  if (error) {
+    throw new Error(messageFrom(error, 'Could not load your BUKLOD economy report.'));
+  }
+
+  return data as BuklodR38UserEconomyReport;
+}
+
+export async function loadAdminBuklodR38EconomyReport(periodKey?: string | null) {
+  const { data, error } = await (supabase as any).rpc(
+    'admin_get_buklod_r38_economy_report_v1',
+    { p_period_key: periodKey?.trim() || null },
+  );
+
+  if (error) {
+    throw new Error(messageFrom(error, 'Could not load the R38 economy report.'));
+  }
+
+  return data as BuklodR38AdminEconomyReport;
+}
