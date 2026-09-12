@@ -1,92 +1,20 @@
 import React from 'react';
 
-import {
-  StyleSheet,
-  View,
-} from 'react-native';
-import {
-  Fit,
-  RiveView,
-  useRiveFile,
-} from '@rive-app/react-native';
-
-import { useBuklodReduceMotion } from '@/components/HomeMotion';
-
 type Props = {
   url?: string | null;
   visible?: boolean;
   opacity?: number;
 };
 
-type RemoteProps = {
-  url: string;
-  visible: boolean;
-  opacity: number;
-};
-
-function RemoteRiveOverlay({
-  url,
-  visible,
-  opacity,
-}: RemoteProps) {
-  const reduceMotion = useBuklodReduceMotion();
-  const {
-    riveFile,
-    isLoading,
-    error,
-  } = useRiveFile({ uri: url });
-
-  if (
-    !visible ||
-    reduceMotion ||
-    isLoading ||
-    error ||
-    !riveFile
-  ) {
-    return null;
-  }
-
-  return (
-    <View
-      pointerEvents="none"
-      style={[
-        StyleSheet.absoluteFill,
-        { opacity },
-      ]}
-    >
-      <RiveView
-        file={riveFile}
-        autoPlay
-        fit={Fit.Contain}
-        style={StyleSheet.absoluteFill}
-      />
-    </View>
-  );
-}
-
 /**
- * Decorative Rive layer for a BUKLOD-owned scene asset.
+ * Web-safe fallback.
  *
- * Intentionally does not replace the authoritative local character renderer.
- * It can add ambient animated art now and later be upgraded to a fully rigged
- * BUKLOD character once that asset has an approved state-machine contract.
+ * Native bundlers resolve BuklodRiveSceneOverlay.native.tsx and get the real
+ * @rive-app/react-native runtime. Web intentionally resolves this no-op until
+ * a dedicated BUKLOD web Rive runtime is approved, preventing a native-only
+ * dependency from becoming a production-web regression.
  */
-export default function BuklodRiveSceneOverlay({
-  url,
-  visible = true,
-  opacity = 0.72,
-}: Props) {
-  const normalizedUrl = String(url ?? '').trim();
-
-  if (!normalizedUrl) {
-    return null;
-  }
-
-  return (
-    <RemoteRiveOverlay
-      url={normalizedUrl}
-      visible={visible}
-      opacity={Math.max(0, Math.min(opacity, 1))}
-    />
-  );
+export default function BuklodRiveSceneOverlay(props: Props) {
+  void props;
+  return null;
 }
