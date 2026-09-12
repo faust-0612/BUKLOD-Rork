@@ -239,7 +239,8 @@ export default function IgpatScreen() {
 
     try {
       const limit = dataSaver ? DATA_SAVER_LIMIT : NORMAL_LIMIT;
-      const { data, error } = await (supabase as any).rpc('get_buklod_reels_v1', {
+      const { data, error } = await (supabase as any).rpc('get_buklod_igpat_feed_v2', {
+        p_mode: feedMode,
         p_limit: limit,
       });
       if (error) throw error;
@@ -275,23 +276,11 @@ export default function IgpatScreen() {
     } finally {
       setLoading(false);
     }
-  }, [dataSaver, prefsReady, user?.id]);
+  }, [dataSaver, feedMode, prefsReady, user?.id]);
 
   useEffect(() => {
     void load();
   }, [load]);
-
-  const visibleRows = useMemo(() => {
-    if (feedMode === 'following') {
-      return rows.filter(row => Boolean(row.user_id && followedIds.has(row.user_id)));
-    }
-    if (feedMode === 'latest') {
-      return [...rows].sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
-    }
-    return rows;
-  }, [feedMode, followedIds, rows]);
 
   useEffect(() => {
     setActiveIndex(0);
@@ -447,9 +436,20 @@ export default function IgpatScreen() {
       <View style={styles.center}>
         <Text style={styles.emptyTitle}>BUKLOD IGPAT</Text>
         <Text style={styles.emptyCopy}>
-          {loadError ? 'IGPAT could not load right now.' : 'No available IGPAT videos yet.'}
+          {loadError
+            ? 'IGPAT could not load right now.'
+            : feedMode === 'following'
+              ? 'Follow IGPAT creators to see them here.'
+              : feedMode === 'latest'
+                ? 'No latest IGPAT videos yet.'
+                : 'No available IGPAT videos yet.'}
         </Text>
         <View style={styles.emptyActions}>
+          {feedMode === 'following' ? (
+            <Pressable style={styles.retryButton} onPress={() => setFeedMode('for-you')}>
+              <Text style={styles.retryText}>FOR YOU</Text>
+            </Pressable>
+          ) : null}
           <Pressable style={styles.retryButton} onPress={() => void load()}>
             <Text style={styles.retryText}>RETRY</Text>
           </Pressable>
@@ -464,7 +464,7 @@ export default function IgpatScreen() {
   return (
     <View style={styles.root}>
       <FlatList
-        data={visibleRows}
+        data={rows}
         key={`${feedMode}:${dataSaver ? 'saver' : 'normal'}`}
         keyExtractor={item => item.id}
         pagingEnabled
@@ -482,16 +482,6 @@ export default function IgpatScreen() {
           offset: viewportHeight * index,
           index,
         })}
-        ListEmptyComponent={
-          <View style={[styles.center, { height: viewportHeight }]}>
-            <MaterialCommunityIcons name="account-heart-outline" size={34} color="rgba(255,255,255,0.72)" />
-            <Text style={styles.emptyModeTitle}>Your Following feed is ready.</Text>
-            <Text style={styles.emptyCopy}>Follow IGPAT creators to see them here.</Text>
-            <Pressable style={styles.retryButton} onPress={() => setFeedMode('for-you')}>
-              <Text style={styles.retryText}>FOR YOU</Text>
-            </Pressable>
-          </View>
-        }
         renderItem={({ item, index }) => {
           const creatorId = item.user_id ? String(item.user_id) : '';
           const isSelf = creatorId === user?.id;
