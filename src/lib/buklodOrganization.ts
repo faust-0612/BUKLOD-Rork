@@ -111,8 +111,31 @@ export function organizationScopeManageRoute(
   };
 }
 
+async function verifyExactScopeAdmin(
+  scopeId: string,
+  scopeName: string | null
+): Promise<{ allowed: boolean; scopeName: string | null }> {
+  try {
+    const { data, error } = await (supabase as any).rpc(
+      'buklod_is_exact_scope_admin_v1',
+      { p_scope_id: scopeId }
+    );
+
+    if (!error && data === true) {
+      return { allowed: true, scopeName };
+    }
+  } catch {
+    // Caller receives the safe false result below.
+  }
+
+  return { allowed: false, scopeName };
+}
+
 /**
  * Backend-scoped admin check for Organization / Sub-organization Manage routes.
+ * The canonical exact-scope check is also used as a safe fallback for Cluster
+ * admin callers such as BUKLOD Report. It does not grant anything beyond the
+ * backend's ADMIN / ORG_ADMIN / CLUSTER_ADMIN contract.
  */
 export async function verifyOrganizationManageAccess(
   scopeId: string
@@ -121,6 +144,8 @@ export async function verifyOrganizationManageAccess(
   if (!id) {
     return { allowed: false, scopeName: null };
   }
+
+  let scopeName: string | null = null;
 
   try {
     const [{ data: manageable, error: manageError }, { data: scopeRow }] =
@@ -133,39 +158,21 @@ export async function verifyOrganizationManageAccess(
           .maybeSingle(),
       ]);
 
-    if (manageError) {
-      throw manageError;
-    }
+    scopeName = scopeRow?.name ?? null;
 
-    const ids = (manageable ?? []).map(
-      (row: { scope_id?: string; id?: string }) =>
-        String(row.scope_id ?? row.id ?? '').trim()
-    );
-
-    return {
-      allowed: canManageExactScope(id, ids),
-      scopeName: scopeRow?.name ?? null,
-    };
-  } catch {
-    try {
-      const { data, error } = await (supabase as any).rpc(
-        'buklod_is_exact_scope_admin_v1',
-        { p_scope_id: id }
+    if (!manageError) {
+      const ids = (manageable ?? []).map(
+        (row: { scope_id?: string; id?: string }) =>
+          String(row.scope_id ?? row.id ?? '').trim()
       );
 
-      if (!error && data === true) {
-        const { data: scopeRow } = await (supabase as any)
-          .from('buklod_scopes')
-          .select('name')
-          .eq('id', id)
-          .maybeSingle();
-
-        return { allowed: true, scopeName: scopeRow?.name ?? null };
+      if (canManageExactScope(id, ids)) {
+        return { allowed: true, scopeName };
       }
-    } catch {
-      // fall through
     }
-
-    return { allowed: false, scopeName: null };
+  } catch {
+    // Fall through to the canonical exact-scope check.
   }
+
+  return verifyExactScopeAdmin(id, scopeName);
 }
