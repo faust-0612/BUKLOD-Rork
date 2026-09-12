@@ -65,7 +65,8 @@ async function readErrorMessage(error: any, fallback: string) {
     try {
       const payload = await context.clone().json();
       const message = String(payload?.error ?? payload?.message ?? '').trim();
-      if (message) return message;
+      const stage = String(payload?.stage ?? '').trim();
+      if (message) return stage ? `${message} [${stage}]` : message;
     } catch {
       try {
         const text = String(await context.clone().text()).trim();
