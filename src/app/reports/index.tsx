@@ -11,7 +11,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
-import BuklodWeeklyReportForm from '@/components/BuklodWeeklyReportForm';
+import BuklodReportAssignmentForm from '@/components/BuklodReportAssignmentForm';
 import { BUKLOD_REPORT_ICON_URI } from '@/lib/buklodReportBranding';
 import { colors } from '@/lib/theme';
 import {
@@ -139,7 +139,7 @@ export default function BuklodReportLandingScreen() {
             <Text style={styles.heroEyebrow}>REPORT → EVIDENCE → ACTION</Text>
             <Text style={styles.heroTitle}>BUKLOD Report</Text>
             <Text style={styles.heroSubtitle}>
-              Simple reporting in front. Intelligent monitoring and follow-up behind it.
+              One reporting engine for different Organization and Cluster reporting systems.
             </Text>
           </View>
         </View>
@@ -188,7 +188,7 @@ export default function BuklodReportLandingScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.cardTitle}>Open from Organization or Cluster Home</Text>
                   <Text style={styles.note}>
-                    The BUKLOD Report doorway carries the exact active scope automatically so you do not need to choose it again.
+                    BUKLOD Report uses the exact Organization or Cluster context. Local and Public scopes do not create reporting workspaces.
                   </Text>
                 </View>
               </View>
@@ -242,7 +242,11 @@ export default function BuklodReportLandingScreen() {
 
             {scopeId && entitled ? (
               routeReady ? (
-                <BuklodWeeklyReportForm scopeId={scopeId} onSubmitted={() => void load()} />
+                <BuklodReportAssignmentForm
+                  scopeId={scopeId}
+                  assignmentId={routeAssignmentId || null}
+                  onSubmitted={() => void load()}
+                />
               ) : (
                 <View style={styles.center}>
                   <ActivityIndicator color={colors.green} />
@@ -255,7 +259,7 @@ export default function BuklodReportLandingScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.warningTitle}>Reporting is not enabled for this scope</Text>
                   <Text style={styles.warningText}>
-                    Ask the Organization or Cluster administrator to activate BUKLOD Report access.
+                    BUKLOD Report is available only to entitled Organization and Cluster scopes.
                   </Text>
                 </View>
               </View>
@@ -269,7 +273,7 @@ export default function BuklodReportLandingScreen() {
                 <MaterialCommunityIcons name="clipboard-text-clock-outline" size={20} color={colors.greenDark} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.manageTitle}>Report settings</Text>
-                  <Text style={styles.manageMeta}>Manage definitions and scope reporting rules</Text>
+                  <Text style={styles.manageMeta}>Manage definitions, templates and real deadlines for this scope</Text>
                 </View>
                 <MaterialCommunityIcons name="chevron-right" size={20} color={colors.greenDark} />
               </Pressable>
@@ -277,7 +281,7 @@ export default function BuklodReportLandingScreen() {
 
             <View style={styles.footerLine}>
               <Text style={styles.footerText}>
-                {phase || 'PHASE_4_SUBMISSION'} · Scope-isolated · Evidence preserved
+                {phase || 'PHASE_4_SUBMISSION'} · Organization/Cluster scoped · Template-driven
               </Text>
             </View>
 
