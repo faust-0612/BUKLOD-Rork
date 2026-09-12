@@ -1,5 +1,5 @@
 /* BUKLOD_CHARACTER_STUDIO3_REAL_ART_R1 */
-/* BUKLOD_PROFILE_POINTS_CLAIM_R1 */
+/* BUKLOD_PROFILE_POINTS_CLAIM_R2_GROUPED */
 /* BUKLOD_CHARACTER_R25D_PROFILE_VIEWPORT */
 import React, {
   useCallback,
@@ -29,10 +29,6 @@ import BuklodCharacterCustomizeSheet
 
 import BuklodCharacterLayeredArt
   from '@/components/points/BuklodCharacterLayeredArt';
-
-import BuklodClaimRewardCard, {
-  type ClaimRewardItem,
-} from '@/components/points/BuklodClaimRewardCard';
 
 import {
   ProfileMotionFadeUp,
@@ -66,9 +62,9 @@ import {
 } from '@/lib/buklodCharacterEvents';
 
 import {
-  claimBuklodRewardEvent,
-  loadPendingBuklodRewardEvent,
-  type BuklodRewardEvent,
+  claimBuklodRewardGroup,
+  loadBuklodClaimGroups,
+  type BuklodClaimGroup,
 } from '@/lib/buklodRewards';
 
 import {
@@ -80,74 +76,26 @@ type Props = {
   rankName?: string | null;
 };
 
-export default function
-BuklodProfileCharacterCard({
+export default function BuklodProfileCharacterCard({
   lifetimePoints = 0,
   rankName = null,
 }: Props) {
-  const {
-    theme,
-  } = useBuklodPresentation();
+  const { theme } = useBuklodPresentation();
+  const { session } = useAuth();
+  const [focused, setFocused] = useState(false);
+  const characterEvents = useBuklodCharacterEventsOptional();
+  const greetedRef = useRef(false);
+  const userId = session?.user?.id ?? null;
 
-  const {
-    session,
-  } = useAuth();
-
-  const [
-    focused,
-    setFocused,
-  ] = useState(false);
-
-  const characterEvents =
-    useBuklodCharacterEventsOptional();
-
-  const greetedRef =
-    useRef(false);
-
-  const userId =
-    session?.user?.id ??
-    null;
-
-  const [
-    config,
-    setConfig,
-  ] =
-    useState<BuklodCharacterState>({
-      ...DEFAULT_CHARACTER,
-    });
-
-  const [
-    customizeOpen,
-    setCustomizeOpen,
-  ] =
-    useState(false);
-
-  const [
-    displayPoints,
-    setDisplayPoints,
-  ] = useState(lifetimePoints);
-
-  const [
-    displayRank,
-    setDisplayRank,
-  ] = useState<string | null>(rankName);
-
-  const [
-    rewardEvent,
-    setRewardEvent,
-  ] = useState<BuklodRewardEvent | null>(null);
-
-  const [
-    claimBusy,
-    setClaimBusy,
-  ] = useState(false);
-
-  const [
-    claimStatus,
-    setClaimStatus,
-  ] = useState<
-    'claimable' | 'claiming' | 'claimed' | 'failed'
-  >('claimable');
+  const [config, setConfig] = useState<BuklodCharacterState>({
+    ...DEFAULT_CHARACTER,
+  });
+  const [customizeOpen, setCustomizeOpen] = useState(false);
+  const [displayPoints, setDisplayPoints] = useState(lifetimePoints);
+  const [displayRank, setDisplayRank] = useState<string | null>(rankName);
+  const [claimGroups, setClaimGroups] = useState<BuklodClaimGroup[]>([]);
+  const [claimingGroup, setClaimingGroup] = useState<string | null>(null);
+  const [claimError, setClaimError] = useState<string | null>(null);
 
   useEffect(() => {
     setDisplayPoints(lifetimePoints);
@@ -158,459 +106,387 @@ BuklodProfileCharacterCard({
   }, [rankName]);
 
   useEffect(() => {
-    void loadBuklodCharacter(
-      userId,
-    ).then(
-      (loaded) => {
-        const reconciled =
-          reconcileCharacterForPoints(
-            loaded,
-            displayPoints,
-          );
+    void loadBuklodCharacter(userId).then((loaded) => {
+      const reconciled = reconcileCharacterForPoints(
+        loaded,
+        displayPoints,
+      );
+      setConfig(reconciled);
+    });
+  }, [displayPoints, userId]);
 
-        setConfig(
-          reconciled,
-        );
-      },
-    );
-  }, [
-    displayPoints,
-    userId,
-  ]);
+  const loadClaimGroups = useCallback(async () => {
+    if (!userId) {
+      setClaimGroups([]);
+      return;
+    }
 
-  const loadPendingReward =
-    useCallback(async () => {
-      if (!userId) {
-        setRewardEvent(null);
-        return;
-      }
-
-      try {
-        const pending =
-          await loadPendingBuklodRewardEvent();
-
-        setRewardEvent(pending);
-        setClaimStatus('claimable');
-      } catch (error: unknown) {
-        console.warn(
-          'Profile BUKLOD reward:',
-          error instanceof Error
-            ? error.message
-            : error,
-        );
-      }
-    }, [userId]);
+    try {
+      const groups = await loadBuklodClaimGroups();
+      setClaimGroups(groups);
+      setClaimError(null);
+    } catch (error: unknown) {
+      console.warn(
+        'Profile BUKLOD claim groups:',
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }, [userId]);
 
   useFocusEffect(
-    useCallback(
-      () => {
-        setFocused(true);
-        void loadPendingReward();
+    useCallback(() => {
+      setFocused(true);
+      void loadClaimGroups();
 
-        return () =>
-          setFocused(false);
-      },
-      [loadPendingReward],
-    ),
+      return () => setFocused(false);
+    }, [loadClaimGroups]),
   );
 
   useEffect(() => {
-    if (
-      !focused ||
-      greetedRef.current
-    ) {
+    if (!focused || greetedRef.current) {
       return;
     }
 
-    greetedRef.current =
-      true;
-
+    greetedRef.current = true;
     characterEvents?.emit({
-      type:
-        CharacterEventType
-          .PROFILE_CHARACTER_VISIBLE,
+      type: CharacterEventType.PROFILE_CHARACTER_VISIBLE,
       success: true,
     });
-  }, [
-    characterEvents,
-    focused,
-  ]);
+  }, [characterEvents, focused]);
 
-  const claimReward = async () => {
-    if (!rewardEvent || claimBusy) {
+  const claimGroup = async (group: BuklodClaimGroup) => {
+    if (claimingGroup) {
       return;
     }
 
-    const eventId = rewardEvent.id;
-    const fallbackPoints = Number(rewardEvent.points ?? 0);
-
-    setClaimBusy(true);
-    setClaimStatus('claiming');
+    setClaimingGroup(group.group_key);
+    setClaimError(null);
 
     try {
-      const result =
-        await claimBuklodRewardEvent(eventId);
-
-      const earnedPoints =
-        result.claimed_points > 0
-          ? result.claimed_points
-          : fallbackPoints;
+      const result = await claimBuklodRewardGroup(group.group_key);
 
       setDisplayPoints(result.lifetime_points);
-
       if (result.rank_name) {
         setDisplayRank(result.rank_name);
       }
 
-      if (earnedPoints > 0) {
+      // Remove the claimed section immediately. Reconciliation below quietly
+      // refreshes any rewards that may have arrived while the request ran.
+      setClaimGroups((current) =>
+        current.filter((item) => item.group_key !== group.group_key),
+      );
+
+      if (result.claimed_points > 0) {
         characterEvents?.emit({
           type: CharacterEventType.POINTS_CLAIMED,
           success: true,
-          points: earnedPoints,
+          points: result.claimed_points,
           spokenText:
-            rewardEvent.spoken_message ??
-            rewardEvent.message ??
-            undefined,
+            `${group.group_label}: ${result.claimed_points.toLocaleString('en-PH')} points claimed.`,
         });
       }
 
-      setClaimStatus('claimed');
-      setRewardEvent(null);
+      void loadClaimGroups();
     } catch (error: unknown) {
-      console.warn(
-        'Profile BUKLOD claim:',
+      const message =
         error instanceof Error
           ? error.message
-          : error,
-      );
+          : 'Could not claim these points.';
 
-      setClaimStatus('failed');
+      console.warn('Profile BUKLOD group claim:', message);
+      setClaimError(message);
     } finally {
-      setClaimBusy(false);
+      setClaimingGroup(null);
     }
   };
 
-  const rankLabel =
-    String(
-      displayRank ?? '',
-    ).trim();
+  const rankLabel = String(displayRank ?? '').trim();
+  const hasClaimGroups = claimGroups.length > 0;
 
-  const pendingClaim: ClaimRewardItem | null =
-    rewardEvent
-      ? {
-          id: rewardEvent.id,
-          title: rewardEvent.title,
-          message: rewardEvent.message,
-          points: rewardEvent.points,
-          eventType: rewardEvent.event_type,
-          status: claimStatus,
-        }
-      : null;
-
-  const styles =
-    StyleSheet.create({
-      wrap: {
-        marginHorizontal: 12,
-        marginBottom: 6,
-      },
-
-      card: {
-        paddingHorizontal: 14,
-        paddingTop: 12,
-        paddingBottom: 13,
-        borderRadius: 18,
-        borderWidth: 1,
-        borderColor:
-          theme.border,
-        backgroundColor:
-          withAlpha(
-            theme.cardSurface,
-            0.88,
-          ),
-      },
-
-      eyebrow: {
-        fontSize: 9,
-        fontWeight: '900',
-        letterSpacing: 1.15,
-        color:
-          theme.textMuted,
-        marginBottom: 5,
-      },
-
-      body: {
-        minHeight: 132,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 14,
-      },
-
-      artPress: {
-        width: 82,
-        height: 130,
-        flexShrink: 0,
-        alignItems: 'center',
-        justifyContent:
-          'flex-end',
-        overflow: 'hidden',
-        borderRadius: 14,
-      },
-
-      copyCol: {
-        flex: 1,
-        minWidth: 0,
-        justifyContent:
-          'center',
-      },
-
-      rankTitle: {
-        fontSize: 16,
-        fontWeight: '900',
-        color:
-          theme.textPrimary,
-      },
-
-      pointsMeta: {
-        marginTop: 3,
-        fontSize: 12,
-        fontWeight: '800',
-        color:
-          theme.textSecondary,
-      },
-
-      helper: {
-        marginTop: 5,
-        fontSize: 10,
-        lineHeight: 14,
-        color:
-          theme.textMuted,
-      },
-
-      customize: {
-        alignSelf: 'flex-start',
-        marginTop: 10,
-        minHeight: 38,
-        paddingHorizontal: 13,
-        borderRadius: 12,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent:
-          'center',
-        gap: 6,
-        backgroundColor:
-          theme.accentSoft,
-        borderWidth: 1,
-        borderColor:
-          withAlpha(
-            theme.accent,
-            0.25,
-          ),
-      },
-
-      customizeText: {
-        fontSize: 11,
-        fontWeight: '900',
-        color:
-          theme.accent,
-      },
-
-      pointsSection: {
-        marginTop: 10,
-        paddingTop: 11,
-        borderTopWidth: StyleSheet.hairlineWidth,
-        borderTopColor: theme.border,
-      },
-
-      pointsHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 8,
-        marginBottom: 8,
-      },
-
-      pointsHeaderTitle: {
-        fontSize: 10,
-        fontWeight: '900',
-        letterSpacing: 0.8,
-        color: theme.textMuted,
-      },
-
-      fullRankingText: {
-        fontSize: 10,
-        fontWeight: '900',
-        color: theme.accent,
-      },
-
-      summaryRow: {
-        flexDirection: 'row',
-        gap: 8,
-        marginBottom: pendingClaim ? 10 : 0,
-      },
-
-      summaryChip: {
-        flex: 1,
-        minHeight: 54,
-        paddingHorizontal: 10,
-        paddingVertical: 8,
-        borderRadius: 12,
-        backgroundColor: theme.surface,
-        borderWidth: 1,
-        borderColor: theme.border,
-      },
-
-      summaryLabel: {
-        fontSize: 8,
-        fontWeight: '900',
-        letterSpacing: 0.7,
-        color: theme.textMuted,
-      },
-
-      summaryValue: {
-        marginTop: 3,
-        fontSize: 12,
-        fontWeight: '900',
-        color: theme.textPrimary,
-      },
-    });
+  const styles = StyleSheet.create({
+    wrap: {
+      marginHorizontal: 12,
+      marginBottom: 6,
+    },
+    card: {
+      paddingHorizontal: 14,
+      paddingTop: 12,
+      paddingBottom: 13,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: theme.border,
+      backgroundColor: withAlpha(theme.cardSurface, 0.88),
+    },
+    eyebrow: {
+      fontSize: 9,
+      fontWeight: '900',
+      letterSpacing: 1.15,
+      color: theme.textMuted,
+      marginBottom: 5,
+    },
+    body: {
+      minHeight: 132,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+    },
+    artPress: {
+      width: 82,
+      height: 130,
+      flexShrink: 0,
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      overflow: 'hidden',
+      borderRadius: 14,
+    },
+    copyCol: {
+      flex: 1,
+      minWidth: 0,
+      justifyContent: 'center',
+    },
+    rankTitle: {
+      fontSize: 16,
+      fontWeight: '900',
+      color: theme.textPrimary,
+    },
+    pointsMeta: {
+      marginTop: 3,
+      fontSize: 12,
+      fontWeight: '800',
+      color: theme.textSecondary,
+    },
+    helper: {
+      marginTop: 5,
+      fontSize: 10,
+      lineHeight: 14,
+      color: theme.textMuted,
+    },
+    customize: {
+      alignSelf: 'flex-start',
+      marginTop: 10,
+      minHeight: 38,
+      paddingHorizontal: 13,
+      borderRadius: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      backgroundColor: theme.accentSoft,
+      borderWidth: 1,
+      borderColor: withAlpha(theme.accent, 0.25),
+    },
+    customizeText: {
+      fontSize: 11,
+      fontWeight: '900',
+      color: theme.accent,
+    },
+    pointsSection: {
+      marginTop: 10,
+      paddingTop: 11,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: theme.border,
+    },
+    pointsHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 8,
+      marginBottom: 8,
+    },
+    pointsHeaderTitle: {
+      fontSize: 10,
+      fontWeight: '900',
+      letterSpacing: 0.8,
+      color: theme.textMuted,
+    },
+    fullRankingText: {
+      fontSize: 10,
+      fontWeight: '900',
+      color: theme.accent,
+    },
+    summaryRow: {
+      flexDirection: 'row',
+      gap: 8,
+      marginBottom: hasClaimGroups ? 10 : 0,
+    },
+    summaryChip: {
+      flex: 1,
+      minHeight: 54,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      borderRadius: 12,
+      backgroundColor: theme.surface,
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    summaryLabel: {
+      fontSize: 8,
+      fontWeight: '900',
+      letterSpacing: 0.7,
+      color: theme.textMuted,
+    },
+    summaryValue: {
+      marginTop: 3,
+      fontSize: 12,
+      fontWeight: '900',
+      color: theme.textPrimary,
+    },
+    claimPanel: {
+      gap: 8,
+    },
+    claimPanelHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 8,
+    },
+    claimPanelTitle: {
+      fontSize: 9,
+      fontWeight: '900',
+      letterSpacing: 0.85,
+      color: theme.textMuted,
+    },
+    claimPanelHint: {
+      fontSize: 9,
+      fontWeight: '800',
+      color: theme.accent,
+    },
+    claimGroupCard: {
+      minHeight: 66,
+      paddingHorizontal: 11,
+      paddingVertical: 10,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: withAlpha(theme.accent, 0.2),
+      backgroundColor: withAlpha(theme.accentSoft, 0.5),
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    claimIcon: {
+      width: 34,
+      height: 34,
+      borderRadius: 11,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.surface,
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    claimCopy: {
+      flex: 1,
+      minWidth: 0,
+    },
+    claimLabel: {
+      fontSize: 12,
+      fontWeight: '900',
+      color: theme.textPrimary,
+    },
+    claimMeta: {
+      marginTop: 2,
+      fontSize: 9,
+      lineHeight: 13,
+      color: theme.textMuted,
+    },
+    claimPoints: {
+      marginTop: 3,
+      fontSize: 12,
+      fontWeight: '900',
+      color: theme.accent,
+    },
+    claimButton: {
+      minHeight: 38,
+      minWidth: 82,
+      paddingHorizontal: 11,
+      borderRadius: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 5,
+      backgroundColor: theme.buttonPrimary,
+    },
+    claimButtonBusy: {
+      opacity: 0.62,
+    },
+    claimButtonText: {
+      fontSize: 9,
+      fontWeight: '900',
+      letterSpacing: 0.45,
+      color: theme.white,
+    },
+    claimError: {
+      fontSize: 9,
+      lineHeight: 13,
+      color: theme.danger,
+    },
+  });
 
   return (
     <>
-      <ProfileMotionFadeUp
-        delay={55}
-      >
-        <View
-          style={
-            styles.wrap
-          }
-        >
-          <View
-            style={
-              styles.card
-            }
-          >
-            <Text
-              style={
-                styles.eyebrow
-              }
-            >
+      <ProfileMotionFadeUp delay={55}>
+        <View style={styles.wrap}>
+          <View style={styles.card}>
+            <Text style={styles.eyebrow}>
               MY BUKLOD CHARACTER
             </Text>
 
-            <View
-              style={
-                styles.body
-              }
-            >
+            <View style={styles.body}>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Open ranking and BUKLOD Points"
-                onPress={() =>
-                  router.push(
-                    '/points',
-                  )
-                }
-                style={({
-                  pressed,
-                }) => [
+                onPress={() => router.push('/points')}
+                style={({ pressed }) => [
                   styles.artPress,
-                  pressed && {
-                    opacity: 0.92,
-                  },
+                  pressed && { opacity: 0.92 },
                 ]}
               >
                 <BuklodCharacterLayeredArt
-                  body={
-                    config.body
-                  }
-                  equipment={
-                    config.equipment
-                  }
+                  body={config.body}
+                  equipment={config.equipment}
                   height={124}
                   viewportWidth={82}
-                  showStage={
-                    false
-                  }
+                  showStage={false}
                   showEffects={false}
                 />
               </Pressable>
 
-              <View
-                style={
-                  styles.copyCol
-                }
-              >
+              <View style={styles.copyCol}>
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Open ranking and BUKLOD Points"
-                  onPress={() =>
-                    router.push(
-                      '/points',
-                    )
-                  }
+                  onPress={() => router.push('/points')}
                 >
                   <Text
-                    style={
-                      styles.rankTitle
-                    }
-                    numberOfLines={
-                      1
-                    }
+                    style={styles.rankTitle}
+                    numberOfLines={1}
                   >
-                    {rankLabel ||
-                      'BUKLOD Character'}
+                    {rankLabel || 'BUKLOD Character'}
                   </Text>
 
-                  <Text
-                    style={
-                      styles.pointsMeta
-                    }
-                  >
-                    {formatPoints(
-                      displayPoints,
-                    )}{' '}
-                    lifetime pts
+                  <Text style={styles.pointsMeta}>
+                    {formatPoints(displayPoints)} lifetime pts
                   </Text>
 
-                  <Text
-                    style={
-                      styles.helper
-                    }
-                  >
-                    Rank, points, and ready rewards are now visible directly in Profile.
+                  <Text style={styles.helper}>
+                    Rank, points, and ready rewards are visible directly in Profile.
                   </Text>
                 </Pressable>
 
                 <Pressable
-                  onPress={() =>
-                    setCustomizeOpen(
-                      true,
-                    )
-                  }
+                  onPress={() => setCustomizeOpen(true)}
                   accessibilityRole="button"
                   accessibilityLabel="Customize character"
-                  style={({
-                    pressed,
-                  }) => [
+                  style={({ pressed }) => [
                     styles.customize,
-                    pressed && {
-                      opacity: 0.88,
-                    },
+                    pressed && { opacity: 0.88 },
                   ]}
                 >
                   <MaterialCommunityIcons
                     name="palette-outline"
                     size={16}
-                    color={
-                      theme.accent
-                    }
+                    color={theme.accent}
                   />
-
-                  <Text
-                    style={
-                      styles.customizeText
-                    }
-                  >
+                  <Text style={styles.customizeText}>
                     Customize
                   </Text>
                 </Pressable>
@@ -643,7 +519,7 @@ BuklodProfileCharacterCard({
                     numberOfLines={1}
                     style={styles.summaryValue}
                   >
-                    {rankLabel || 'Loading rank…'}
+                    {rankLabel || 'BUKLOD Rank'}
                   </Text>
                 </View>
 
@@ -657,15 +533,85 @@ BuklodProfileCharacterCard({
                 </View>
               </View>
 
-              {pendingClaim ? (
-                <BuklodClaimRewardCard
-                  reward={pendingClaim}
-                  onClaim={() => void claimReward()}
-                  onRetry={() => {
-                    setClaimStatus('claimable');
-                    void claimReward();
-                  }}
-                />
+              {hasClaimGroups ? (
+                <View style={styles.claimPanel}>
+                  <View style={styles.claimPanelHeader}>
+                    <Text style={styles.claimPanelTitle}>
+                      READY TO CLAIM
+                    </Text>
+                    <Text style={styles.claimPanelHint}>
+                      Claim by activity
+                    </Text>
+                  </View>
+
+                  {claimGroups.map((group, index) => {
+                    const busy = claimingGroup === group.group_key;
+                    const anyBusy = claimingGroup !== null;
+
+                    return (
+                      <ProfileMotionFadeUp
+                        key={group.group_key}
+                        delay={70 + index * 25}
+                        duration={220}
+                        fromY={6}
+                        fromOpacity={0.82}
+                      >
+                        <View style={styles.claimGroupCard}>
+                          <View style={styles.claimIcon}>
+                            <MaterialCommunityIcons
+                              name="star-four-points"
+                              size={17}
+                              color={theme.accent}
+                            />
+                          </View>
+
+                          <View style={styles.claimCopy}>
+                            <Text
+                              numberOfLines={1}
+                              style={styles.claimLabel}
+                            >
+                              {group.group_label}
+                            </Text>
+                            <Text style={styles.claimMeta}>
+                              {group.event_count.toLocaleString('en-PH')}{' '}
+                              {group.event_count === 1 ? 'reward' : 'rewards'} ready
+                            </Text>
+                            <Text style={styles.claimPoints}>
+                              +{formatPoints(group.total_points)} pts
+                            </Text>
+                          </View>
+
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={`Claim all ${group.group_label} points`}
+                            disabled={anyBusy}
+                            onPress={() => void claimGroup(group)}
+                            style={({ pressed }) => [
+                              styles.claimButton,
+                              busy && styles.claimButtonBusy,
+                              pressed && !anyBusy && { transform: [{ scale: 0.97 }] },
+                            ]}
+                          >
+                            <Text style={styles.claimButtonText}>
+                              {busy ? 'CLAIMING…' : 'CLAIM ALL'}
+                            </Text>
+                            <MaterialCommunityIcons
+                              name={busy ? 'progress-clock' : 'gift-outline'}
+                              size={14}
+                              color={theme.white}
+                            />
+                          </Pressable>
+                        </View>
+                      </ProfileMotionFadeUp>
+                    );
+                  })}
+
+                  {claimError ? (
+                    <Text style={styles.claimError}>
+                      {claimError}
+                    </Text>
+                  ) : null}
+                </View>
               ) : null}
             </View>
           </View>
@@ -673,21 +619,11 @@ BuklodProfileCharacterCard({
       </ProfileMotionFadeUp>
 
       <BuklodCharacterCustomizeSheet
-        visible={
-          customizeOpen
-        }
-        onClose={() =>
-          setCustomizeOpen(
-            false,
-          )
-        }
+        visible={customizeOpen}
+        onClose={() => setCustomizeOpen(false)}
         userId={userId}
-        lifetimePoints={
-          displayPoints
-        }
-        onSaved={
-          setConfig
-        }
+        lifetimePoints={displayPoints}
+        onSaved={setConfig}
       />
     </>
   );
