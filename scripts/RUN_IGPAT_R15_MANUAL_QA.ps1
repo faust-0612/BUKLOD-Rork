@@ -2,6 +2,8 @@
 $ErrorActionPreference = 'Stop'
 node scripts/fix-igpat-community-ts-r15.cjs
 if ($LASTEXITCODE -ne 0) { throw 'IGPAT publish cleanup patch failed.' }
+node scripts/fix-igpat-r15-catch-types.cjs
+if ($LASTEXITCODE -ne 0) { throw 'IGPAT strict catch typing patch failed.' }
 npx tsc --noEmit
 if ($LASTEXITCODE -ne 0) { throw 'TypeScript QA failed after IGPAT cleanup.' }
 if (Test-Path 'dist-igpat-qa-r15') { Remove-Item 'dist-igpat-qa-r15' -Recurse -Force }
