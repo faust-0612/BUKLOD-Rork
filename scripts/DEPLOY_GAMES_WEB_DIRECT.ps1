@@ -10,13 +10,18 @@ function Invoke-NativeLogged {
   # terminating NativeCommandError when ErrorActionPreference is Stop.
   # Expo prints non-fatal warnings (for example the missing iOS AdMob id during
   # a WEB-only export) to stderr. Trust the native process exit code instead.
+  # Pipe captured output to the host so the function returns ONLY the numeric
+  # native exit code; otherwise PowerShell includes every logged line in the
+  # function return value and corrupts the release gate comparison.
   $oldPreference = $ErrorActionPreference
   $oldCI = $env:CI
   $global:LASTEXITCODE = 0
   try {
     $ErrorActionPreference = 'Continue'
     $env:CI = '1'
-    cmd.exe /d /s /c "$Command 2>&1" | Tee-Object -FilePath $LogPath
+    cmd.exe /d /s /c "$Command 2>&1" |
+      Tee-Object -FilePath $LogPath |
+      Out-Host
     $exitCode = $LASTEXITCODE
   } finally {
     $ErrorActionPreference = $oldPreference
@@ -26,7 +31,7 @@ function Invoke-NativeLogged {
       $env:CI = $oldCI
     }
   }
-  return $exitCode
+  return [int]$exitCode
 }
 
 Write-Host 'BUKLOD Game Lab — Protected Canonical Expo Web Deploy' -ForegroundColor Cyan
@@ -160,7 +165,7 @@ if ($exportExit -ne 0) {
   }
   throw 'Expo web export failed. Deployment stopped.'
 }
-Write-Host "Expo web export native exit code: 0" -ForegroundColor Green
+Write-Host 'Expo web export native exit code: 0' -ForegroundColor Green
 Write-Host "Export log: $exportLog" -ForegroundColor DarkGray
 
 if (-not (Test-Path 'dist\index.html')) {
