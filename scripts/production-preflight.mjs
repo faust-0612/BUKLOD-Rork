@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const failures = [];
 const warnings = [];
@@ -16,6 +17,7 @@ const reportEasProjectId = (
 const reportGoogleServicesFile = (process.env.REPORT_GOOGLE_SERVICES_FILE || '').trim();
 
 const root = new URL('../', import.meta.url);
+const rootPath = fileURLToPath(root);
 const read = (filePath) => fs.readFileSync(new URL(filePath, root), 'utf8');
 const exists = (filePath) => fs.existsSync(new URL(filePath, root));
 
@@ -48,7 +50,7 @@ if (!reportGoogleServicesFile) {
 } else {
   const absoluteGoogleServicesPath = path.isAbsolute(reportGoogleServicesFile)
     ? reportGoogleServicesFile
-    : path.resolve(new URL('.', root).pathname, reportGoogleServicesFile);
+    : path.resolve(rootPath, reportGoogleServicesFile);
   if (!fs.existsSync(absoluteGoogleServicesPath)) {
     failures.push(`REPORT_GOOGLE_SERVICES_FILE does not exist: ${reportGoogleServicesFile}`);
   } else {
@@ -134,6 +136,11 @@ if (!quickWeekly.includes('updateQuickWeeklyReminder')) {
 const routeGuard = read('src/providers/BuklodReportRouteGuard.tsx');
 if (!routeGuard.includes('report-access-pending') || !routeGuard.includes('hasCanonicalAccess')) {
   failures.push('Standalone Report route/account containment is incomplete.');
+}
+
+const notificationProvider = read('src/providers/BuklodReportNotificationProvider.tsx');
+if (/selectScope|activeScope|setBuklodActiveScope/.test(notificationProvider)) {
+  failures.push('Standalone Report push routing must not select or persist BUKLOD Main active scope.');
 }
 
 const legacyLogin = exists('src/app/(auth)/login.tsx') ? read('src/app/(auth)/login.tsx') : '';
