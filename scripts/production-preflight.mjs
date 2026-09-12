@@ -81,6 +81,19 @@ if (/setPushConfig|setFirebaseListeners|streamVideo/i.test(entry)) {
   failures.push('Standalone Report entry must not boot BUKLOD Main Stream/Firebase listeners.');
 }
 
+const rootLayout = read('src/app/_layout.tsx');
+if (!rootLayout.includes('BuklodReportNotificationProvider') || !rootLayout.includes('BuklodReportRouteGuard')) {
+  failures.push('Standalone Report root layout must keep the Report-only notification provider and route guard.');
+}
+if (/StreamVideo|setPushConfig|setFirebaseListeners|@react-native-firebase\/messaging/i.test(rootLayout)) {
+  failures.push('Standalone Report root layout must not boot BUKLOD Main Stream/Firebase listeners.');
+}
+
+const scopeCompat = read('src/providers/BuklodScopeProvider.tsx');
+if (!scopeCompat.includes('BuklodReportScopeProvider') || !scopeCompat.includes('useBuklodReportScope')) {
+  failures.push('BuklodScopeProvider compatibility path must resolve to the standalone read-only Report scope provider.');
+}
+
 const easConfig = read('eas.json');
 for (const marker of ['report-development', 'report-preview', 'report-production', '"BUKLOD_APP_TARGET": "report"']) {
   if (!easConfig.includes(marker)) failures.push(`eas.json is missing standalone Report marker: ${marker}`);
@@ -107,6 +120,7 @@ for (const filePath of requiredRouterFiles) {
 }
 
 const requiredReportFiles = [
+  'src/app/_layout.tsx',
   'src/app/report-login.tsx',
   'src/app/report-access-pending.tsx',
   'src/app/reports/index.tsx',
@@ -114,6 +128,7 @@ const requiredReportFiles = [
   'src/app/reports/definitions.tsx',
   'src/app/reports/template-builder.tsx',
   'src/app/reports/consolidated.tsx',
+  'src/providers/BuklodScopeProvider.tsx',
   'src/providers/BuklodReportRouteGuard.tsx',
   'src/providers/BuklodReportScopeProvider.tsx',
   'src/providers/BuklodReportNotificationProvider.tsx',
@@ -127,6 +142,7 @@ const requiredReportFiles = [
   'src/lib/buklodReportAssetBase64.web.ts',
   'src/lib/buklodReportWorkbookOutput.ts',
   'src/lib/buklodReportWorkbookOutput.web.ts',
+  'supabase/functions/buklod-report-api-v1/index.ts',
 ];
 for (const filePath of requiredReportFiles) {
   if (!exists(filePath)) failures.push(`Required standalone Report source is missing: ${filePath}`);
