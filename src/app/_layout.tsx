@@ -40,10 +40,10 @@ export function SuspenseFallback() {
 /**
  * Standalone BUKLOD Report application shell.
  *
- * Shared account, scope, compliance and runtime services are retained because
- * Report depends on canonical BUKLOD identity and Organization/Cluster
- * membership. Main-only providers (Character, Formation, Ads, Reels/Stream,
- * Classroom and Main navigation guards) are intentionally absent.
+ * Shared account, compliance and runtime services are retained because Report
+ * depends on canonical BUKLOD identity. The BuklodScopeProvider name resolves
+ * to the standalone read-only Report scope context on this branch, so Report
+ * never writes BUKLOD Main's active workspace.
  */
 export default function RootLayout() {
   return (
@@ -66,7 +66,7 @@ export default function RootLayout() {
                           }}
                         >
                           <Stack.Screen name="index" />
-                          <Stack.Screen name="(auth)" />
+                          <Stack.Screen name="report-login" />
                           <Stack.Screen name="privacy/consent" />
                           <Stack.Screen name="system/maintenance" />
                           <Stack.Screen name="system/update-required" />
