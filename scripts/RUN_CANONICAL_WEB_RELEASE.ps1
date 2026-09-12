@@ -6,6 +6,8 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# Keep this launcher ASCII-only because Windows PowerShell 5.1 may parse
+# UTF-8-without-BOM punctuation incorrectly on legacy Windows code pages.
 $RepoUrl = 'https://github.com/faust-0612/BUKLOD-Rork.git'
 $RecoveryBranch = 'recovery/r31-r40-approved-local-20260910'
 $SourceRoot = Join-Path $WorkspaceRoot 'SOURCE\BUKLOD-MAIN'
@@ -47,7 +49,7 @@ function Clone-ShallowWithRetry(
       $null = Rotate-Directory $Destination $ArchiveRoot "${Prefix}_failed_clone"
     }
 
-    Write-Host "Clone attempt $attempt/$Attempts — branch $Branch" -ForegroundColor DarkGray
+    Write-Host "Clone attempt $attempt/$Attempts - branch $Branch" -ForegroundColor DarkGray
     & git -c http.version=HTTP/1.1 clone --depth 1 --branch $Branch --single-branch $RepoUrl $Destination
     $cloneExit = $LASTEXITCODE
     if ($cloneExit -eq 0) { return }
@@ -71,7 +73,7 @@ Write-Host "RECOVERY : $RecoveryPackage"
 Write-Host "STAGING  : $ReleaseWork"
 Write-Host ''
 
-Write-Host 'STEP 1/3 — VERIFY + NORMALIZE CANONICAL SOURCE' -ForegroundColor Cyan
+Write-Host 'STEP 1/3 - VERIFY + NORMALIZE CANONICAL SOURCE' -ForegroundColor Cyan
 Push-Location $SourceRoot
 try {
   $origin = (& git remote get-url origin).Trim()
@@ -116,7 +118,7 @@ try {
 }
 
 Write-Host ''
-Write-Host 'STEP 2/3 — REFRESH + VERIFY APPROVED R31/R40 RECOVERY' -ForegroundColor Cyan
+Write-Host 'STEP 2/3 - REFRESH + VERIFY APPROVED R31/R40 RECOVERY' -ForegroundColor Cyan
 # Never recursively delete this Git clone on Windows. Rotate the top-level folder
 # atomically, then clone a fresh approved recovery reference. Retry transient
 # transport resets without weakening any release identity checks.
@@ -134,7 +136,7 @@ Write-Host "R40 assets : $($recoveryIdentity.r40_named_asset_count)"
 Write-Host "Source set : $(@($recoveryIdentity.source_files).Count) files"
 
 Write-Host ''
-Write-Host 'STEP 3/3 — CREATE FRESH RELEASE STAGING + RUN PROTECTED DEPLOY' -ForegroundColor Cyan
+Write-Host 'STEP 3/3 - CREATE FRESH RELEASE STAGING + RUN PROTECTED DEPLOY' -ForegroundColor Cyan
 $null = Rotate-Directory $ReleaseWork $PreviousReleaseRoot 'web'
 EnsureDir $ReleaseRoot
 # Disposable staging needs only the current main snapshot, not repository history.
