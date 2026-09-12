@@ -6,7 +6,6 @@ import { router } from 'expo-router';
 import { registerPushToken } from '@/lib/pushNotifications';
 import { buklodReportLandingPath } from '@/lib/buklodReportRoutes';
 import { useAuth } from '@/providers/AuthProvider';
-import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -23,12 +22,13 @@ function notificationData(response: Notifications.NotificationResponse) {
 
 /**
  * Push shell for the standalone Report app.
- * It intentionally handles Report destinations only; unrelated BUKLOD Main
- * notifications never pull this app into Main routes.
+ *
+ * Report notifications already carry canonical scope/assignment IDs. Opening
+ * them must route to that exact Report context without selecting or persisting
+ * a shared BUKLOD Main active scope.
  */
 export default function BuklodReportNotificationProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const { activeScope, selectScope } = useBuklodScope();
 
   useEffect(() => {
     if (!user?.id) return;
@@ -68,16 +68,8 @@ export default function BuklodReportNotificationProvider({ children }: { childre
 
     if (!kind.startsWith('report_') && !assignmentId) return;
 
-    if (scopeId && scopeId !== activeScope?.scope_id) {
-      try {
-        await selectScope(scopeId);
-      } catch (error) {
-        console.warn('BUKLOD Report notification scope sync:', error);
-      }
-    }
-
     router.push(buklodReportLandingPath(scopeId || undefined, assignmentId || undefined) as any);
-  }, [activeScope?.scope_id, selectScope]);
+  }, []);
 
   useEffect(() => {
     let active = true;
