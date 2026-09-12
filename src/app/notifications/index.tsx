@@ -15,6 +15,7 @@ import {
   buklodNotificationTarget,
   syncScopeSelection,
 } from '@/lib/buklodScopeRoute';
+import { buklodReportLandingPath } from '@/lib/buklodReportRoutes';
 import { resolveMzbOrganizationScopeId } from '@/lib/buklodMzbOrganization';
 
 export default function NotificationCenter(){
@@ -29,13 +30,25 @@ export default function NotificationCenter(){
  const open=async(x:any)=>{
   const kind=String(x?.kind??'');
   const data=x?.data??null;
-  const mzbCanonicalScopeId=await resolveMzbOrganizationScopeId().catch(()=>null);
-  const target=buklodNotificationTarget(kind,data,{scopes,mzbCanonicalScopeId});
-  const p=target?.path??null;
+  const reportScopeId=String(data?.scope_id??'').trim();
+  const reportAssignmentId=String(data?.report_assignment_id??'').trim();
+
+  let p:string|null=null;
+  let targetScopeId:string|null=null;
+
+  if(kind.startsWith('report_')&&reportScopeId&&reportAssignmentId){
+   p=buklodReportLandingPath(reportScopeId,reportAssignmentId);
+   targetScopeId=reportScopeId;
+  }else{
+   const mzbCanonicalScopeId=await resolveMzbOrganizationScopeId().catch(()=>null);
+   const target=buklodNotificationTarget(kind,data,{scopes,mzbCanonicalScopeId});
+   p=target?.path??null;
+   targetScopeId=target?.scopeId??null;
+  }
 
   if(p){
-   if(target?.scopeId){
-    void syncScopeSelection(selectScope,target.scopeId,activeScope?.scope_id);
+   if(targetScopeId){
+    void syncScopeSelection(selectScope,targetScopeId,activeScope?.scope_id);
    }
    buklodInstantPush(p as any);
   }
