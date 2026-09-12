@@ -1,0 +1,57 @@
+name: BUKLOD Live Motion R1 QA
+
+on:
+  pull_request:
+    paths:
+      - 'src/components/motion/**'
+      - 'src/components/points/BuklodCharacterStage.tsx'
+      - 'src/components/points/BuklodLivingCharacter.tsx'
+      - '.github/workflows/live_motion_r1_qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  motion-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: TypeScript
+        run: npx tsc --noEmit
+
+      - name: Preserve Character R31/R40 release contract
+        run: npm run character:contract
+
+      - name: Enforce web/native Rive boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -q "@rive-app/react-native" src/components/motion/BuklodRiveSceneOverlay.tsx; then
+            echo "Native Rive import leaked into the web-safe fallback."
+            exit 1
+          fi
+          grep -q "@rive-app/react-native" src/components/motion/BuklodRiveSceneOverlay.native.tsx
+          grep -q "expo-video" src/components/motion/BuklodLiveSceneBackdrop.tsx
+
+      - name: Verify no protected character assets changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E '^assets/images/characters/(phan_r26|quin_r26|van_r26|christian_r26|lhen_r26)\.jpg$'; then
+            echo "Protected R31 core Character art changed."
+            exit 1
+          fi
