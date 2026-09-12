@@ -5,17 +5,14 @@ $ExpectedChanged = @(
   'src/components/BuklodExclusiveScopeCommunity.tsx'
 )
 
-$head = (& git rev-parse HEAD).Trim()
 $trackedDirtyBefore = @(& git status --porcelain --untracked-files=no)
 if ($trackedDirtyBefore.Count -gt 0) {
   & git status --short
   throw 'Tracked source is already dirty before IGPAT R15 cleanup.'
 }
 
-node scripts/fix-igpat-community-ts-r15.cjs
+node scripts/run-igpat-community-ts-cleanup-r15.cjs
 if ($LASTEXITCODE -ne 0) { throw 'IGPAT publish cleanup patch failed.' }
-node scripts/fix-igpat-r15-catch-types.cjs
-if ($LASTEXITCODE -ne 0) { throw 'IGPAT strict catch typing patch failed.' }
 
 & git diff --check
 if ($LASTEXITCODE -ne 0) { throw 'git diff --check failed after IGPAT cleanup.' }
@@ -51,7 +48,6 @@ if (-not (Test-Path 'dist-igpat-qa-r15/index.html')) { throw 'Expo export comple
 Write-Host ''
 Write-Host '========================================' -ForegroundColor Green
 Write-Host 'IGPAT R15 MANUAL QA: PASS' -ForegroundColor Green
-Write-Host "SOURCE SHA: $head" -ForegroundColor Green
 Write-Host 'EXPECTED TRACKED DIFF: 2 Community publish files only' -ForegroundColor Green
 Write-Host 'NO WEB DEPLOY / NO OTA / NO NATIVE BUILD PERFORMED' -ForegroundColor Green
 Write-Host '========================================' -ForegroundColor Green
