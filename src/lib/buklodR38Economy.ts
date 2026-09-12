@@ -6,6 +6,40 @@ export type BuklodR38MoneySummary = {
   total: number;
 };
 
+export type BuklodR38EconomyPolicy = {
+  policy_version: string;
+  referral: {
+    direct_only: boolean;
+    qualification_active_days: number;
+    qualification_activities: number;
+    earning_window_months: number;
+    rcu_percent_of_qualified_bcu: number;
+    qualification_activity_types: string[];
+    organization_required: boolean;
+    attendance_required: boolean;
+    reports_required: boolean;
+    classroom_required: boolean;
+    purchase_required: boolean;
+    ad_view_required: boolean;
+  };
+  withdrawal: {
+    currency: string;
+    minimum_amount: number;
+    full_balance_only: boolean;
+    partial_enabled: boolean;
+    manual_processing_phase_1: boolean;
+  };
+  allocation_percent: {
+    bayanihan?: number;
+    active_direct_referral?: number;
+    founder?: number;
+    growth?: number;
+    reserve?: number;
+  };
+  activation: Record<string, boolean>;
+  invariants: Record<string, boolean | string>;
+};
+
 export type BuklodR38UserEconomyReport = {
   progress: {
     lifetime_points: number;
@@ -145,6 +179,18 @@ export async function loadMyBuklodR38EconomyReport() {
   }
 
   return data as BuklodR38UserEconomyReport;
+}
+
+export async function loadBuklodR38EconomyPolicy() {
+  const { data, error } = await (supabase as any).rpc(
+    'get_buklod_r38_economy_policy_v1',
+  );
+
+  if (error) {
+    throw new Error(messageFrom(error, 'Could not load the R38 economy policy.'));
+  }
+
+  return data as BuklodR38EconomyPolicy;
 }
 
 export async function loadAdminBuklodR38EconomyReport(periodKey?: string | null) {
