@@ -45,7 +45,7 @@ export function SuspenseFallback() {
  * depends on canonical BUKLOD identity. The BuklodScopeProvider name resolves
  * to the standalone read-only Report scope context on this branch, so Report
  * never writes BUKLOD Main's active workspace. The route guard prevents legacy
- * Main route files in this repository from being opened by this package.
+ * Main route files or unapproved Report deep links from being opened.
  */
 export default function RootLayout() {
   return (
@@ -70,6 +70,7 @@ export default function RootLayout() {
                           >
                             <Stack.Screen name="index" />
                             <Stack.Screen name="report-login" />
+                            <Stack.Screen name="report-access-pending" />
                             <Stack.Screen name="privacy/consent" />
                             <Stack.Screen name="system/maintenance" />
                             <Stack.Screen name="system/update-required" />
