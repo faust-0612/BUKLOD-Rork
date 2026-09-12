@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -13,14 +13,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
-import { colors } from '@/lib/theme';
-import {
-  listReportDefinitions,
-  REPORT_DEFINITION_STATUS_OPTIONS,
-  REPORT_RECURRENCE_OPTIONS,
-  setReportDefinitionStatus,
-  upsertReportDefinition,
-} from '@/lib/buklodReportDomain';
+import { listReportDefinitions } from '@/lib/buklodReportDomain';
 import {
   formatManilaInput,
   parseManilaDateTime,
@@ -28,27 +21,10 @@ import {
   publishReportDeadline,
   type ReportDeadlineAudiencePreview,
 } from '@/lib/buklodReportDeadlines';
-import type {
-  ReportDefinitionRow,
-  ReportDefinitionStatus,
-  ReportRecurrenceKind,
-} from '@/lib/buklodReportContracts';
+import type { ReportDefinitionRow } from '@/lib/buklodReportContracts';
 import { readReportScopeId } from '@/lib/buklodReportRoutes';
 import { verifyOrganizationManageAccess } from '@/lib/buklodOrganization';
-
-const EMPTY_FORM = {
-  code: '',
-  title: '',
-  description: '',
-  instructions: '',
-  recurrenceKind: 'MONTHLY' as ReportRecurrenceKind,
-  status: 'DRAFT' as ReportDefinitionStatus,
-  isRequired: true,
-  effectiveFrom: '',
-  effectiveTo: '',
-  dueRuleKind: 'END_OF_PERIOD',
-  dueOffsetDays: '0',
-};
+import { colors } from '@/lib/theme';
 
 const EMPTY_DEADLINE = {
   opensAt: '',
@@ -56,60 +32,63 @@ const EMPTY_DEADLINE = {
   closesAt: '',
 };
 
-export default function BuklodReportDefinitionsScreen() {
+function objectValue(value: unknown): Record<string, any> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, any>)
+    : {};
+}
+
+function displayTitle(row: ReportDefinitionRow) {
+  const requirements = objectValue(row.content_requirements);
+  return String(requirements.template_label ?? '').trim() || row.title;
+}
+
+function category(row: ReportDefinitionRow) {
+  const requirements = objectValue(row.content_requirements);
+  if (String(requirements.template_key ?? '') === 'MZB_MINISTERIAL_REPORT_V1') return 'MINISTRY';
+  return String(requirements.category ?? 'CUSTOM').toUpperCase();
+}
+
+export default function BuklodReportDeadlineManagerScreen() {
   const params = useLocalSearchParams();
   const scopeId = readReportScopeId(params as Record<string, unknown>);
-
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [allowed, setAllowed] = useState(false);
-  const [rows, setRows] = useState<ReportDefinitionRow[]>([]);
+  const [scopeName, setScopeName] = useState('');
   const [includeArchived, setIncludeArchived] = useState(false);
-  const [editorOpen, setEditorOpen] = useState(false);
-  const [editing, setEditing] = useState<ReportDefinitionRow | null>(null);
+  const [rows, setRows] = useState<ReportDefinitionRow[]>([]);
   const [publishTarget, setPublishTarget] = useState<ReportDefinitionRow | null>(null);
   const [audiencePreview, setAudiencePreview] = useState<ReportDeadlineAudiencePreview | null>(null);
   const [publishConfirmed, setPublishConfirmed] = useState(false);
-  const [form, setForm] = useState(EMPTY_FORM);
   const [deadline, setDeadline] = useState(EMPTY_DEADLINE);
 
   const load = useCallback(async () => {
     if (!scopeId) {
       setLoading(false);
-      setAllowed(false);
       return;
     }
-
     setLoading(true);
     try {
       const access = await verifyOrganizationManageAccess(scopeId);
       setAllowed(access.allowed);
+      setScopeName(access.scopeName ?? 'Selected scope');
       if (!access.allowed) {
         setRows([]);
         return;
       }
       setRows(await listReportDefinitions(scopeId, includeArchived));
     } catch (error: unknown) {
-      Alert.alert(
-        'BUKLOD Report',
-        error instanceof Error ? error.message : 'Could not load report definitions.'
-      );
+      Alert.alert('BUKLOD Report', error instanceof Error ? error.message : 'Could not load report templates.');
     } finally {
       setLoading(false);
     }
-  }, [scopeId, includeArchived]);
+  }, [includeArchived, scopeId]);
 
   useEffect(() => {
     void load();
   }, [load]);
-
-  const closeEditor = () => {
-    setEditorOpen(false);
-    setEditing(null);
-    setForm(EMPTY_FORM);
-  };
 
   const closePublisher = () => {
     setPublishTarget(null);
@@ -118,46 +97,14 @@ export default function BuklodReportDefinitionsScreen() {
     setDeadline(EMPTY_DEADLINE);
   };
 
-  const startCreate = () => {
-    closePublisher();
-    setEditing(null);
-    setForm(EMPTY_FORM);
-    setEditorOpen(true);
-  };
-
-  const startEdit = (row: ReportDefinitionRow) => {
-    closePublisher();
-    setEditing(row);
-    setForm({
-      code: row.code,
-      title: row.title,
-      description: row.description ?? '',
-      instructions: row.instructions ?? '',
-      recurrenceKind: row.recurrence_kind,
-      status: row.status,
-      isRequired: row.is_required,
-      effectiveFrom: row.effective_from ?? '',
-      effectiveTo: row.effective_to ?? '',
-      dueRuleKind: String(row.due_rule?.kind ?? 'END_OF_PERIOD'),
-      dueOffsetDays: String(row.due_rule?.offset_days ?? 0),
-    });
-    setEditorOpen(true);
-  };
-
   const startPublish = async (row: ReportDefinitionRow) => {
-    closeEditor();
     setPublishTarget(row);
     setAudiencePreview(null);
     setPublishConfirmed(false);
-    setDeadline({
-      opensAt: formatManilaInput(),
-      deadlineAt: '',
-      closesAt: '',
-    });
+    setDeadline({ opensAt: formatManilaInput(), deadlineAt: '', closesAt: '' });
     setPreviewing(true);
     try {
-      const preview = await previewReportDeadlineAudience(row.id);
-      setAudiencePreview(preview);
+      setAudiencePreview(await previewReportDeadlineAudience(row.id));
     } catch (error: unknown) {
       Alert.alert(
         'Could not preview recipients',
@@ -165,50 +112,6 @@ export default function BuklodReportDefinitionsScreen() {
       );
     } finally {
       setPreviewing(false);
-    }
-  };
-
-  const save = async () => {
-    if (!scopeId) return;
-    if (!form.code.trim() || !form.title.trim()) {
-      Alert.alert('BUKLOD Report', 'Code and title are required.');
-      return;
-    }
-
-    setSaving(true);
-    try {
-      await upsertReportDefinition({
-        scopeId,
-        definitionId: editing?.id ?? null,
-        code: form.code.trim().toUpperCase(),
-        title: form.title.trim(),
-        description: form.description.trim(),
-        instructions: form.instructions.trim(),
-        recurrenceKind: form.recurrenceKind,
-        status: form.status,
-        isRequired: form.isRequired,
-        effectiveFrom: form.effectiveFrom.trim() || undefined,
-        effectiveTo: form.effectiveTo.trim() || undefined,
-        dueRule: {
-          kind: form.dueRuleKind.trim() || 'END_OF_PERIOD',
-          offset_days: Number(form.dueOffsetDays || 0),
-        },
-        submitterRules: { mode: 'SCOPE_FUNCTIONAL_ROLES' },
-        recipientRules: { mode: 'SCOPE_ADMINS' },
-      });
-      closeEditor();
-      await load();
-      Alert.alert(
-        'Definition saved',
-        'This is still a template. No member was notified. Use Publish deadline when you are ready to create the real report assignment.'
-      );
-    } catch (error: unknown) {
-      Alert.alert(
-        'BUKLOD Report',
-        error instanceof Error ? error.message : 'Could not save report definition.'
-      );
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -225,62 +128,34 @@ export default function BuklodReportDefinitionsScreen() {
 
     setPublishing(true);
     try {
-      const dueAt = parseManilaDateTime(deadline.deadlineAt);
-      const opensAt = deadline.opensAt.trim()
-        ? parseManilaDateTime(deadline.opensAt)
-        : null;
-      const closesAt = deadline.closesAt.trim()
-        ? parseManilaDateTime(deadline.closesAt)
-        : null;
-
       const result = await publishReportDeadline({
         definitionId: publishTarget.id,
-        title: publishTarget.title,
-        opensAt,
-        dueAt,
-        closesAt,
+        title: displayTitle(publishTarget),
+        opensAt: deadline.opensAt.trim() ? parseManilaDateTime(deadline.opensAt) : null,
+        dueAt: parseManilaDateTime(deadline.deadlineAt),
+        closesAt: deadline.closesAt.trim() ? parseManilaDateTime(deadline.closesAt) : null,
       });
 
       if (result.alreadyPublished) {
         Alert.alert(
           'Deadline already published',
-          `The same deadline already exists for ${result.scopeName}. The original member snapshot was kept unchanged.`
+          `The same deadline already exists for ${result.scopeName}. The original member snapshot remains unchanged.`
         );
       } else {
         Alert.alert(
           'Deadline published',
-          `${result.assignedCount} member assignment${result.assignedCount === 1 ? '' : 's'} created. ${result.notificationCount} notification${result.notificationCount === 1 ? '' : 's'} queued for in-app and push delivery.`
+          `${result.assignedCount} assignment${result.assignedCount === 1 ? '' : 's'} created and ${result.notificationCount} notification${result.notificationCount === 1 ? '' : 's'} queued.`
         );
       }
-
       closePublisher();
       await load();
     } catch (error: unknown) {
-      Alert.alert(
-        'BUKLOD Report',
-        error instanceof Error ? error.message : 'Could not publish the deadline.'
-      );
+      Alert.alert('BUKLOD Report', error instanceof Error ? error.message : 'Could not publish the deadline.');
     } finally {
       setPublishing(false);
     }
   };
 
-  const changeStatus = async (
-    row: ReportDefinitionRow,
-    status: ReportDefinitionStatus
-  ) => {
-    try {
-      await setReportDefinitionStatus(row.id, status);
-      await load();
-    } catch (error: unknown) {
-      Alert.alert(
-        'BUKLOD Report',
-        error instanceof Error ? error.message : 'Could not update report status.'
-      );
-    }
-  };
-
-  const statusChips = useMemo(() => REPORT_DEFINITION_STATUS_OPTIONS, []);
   const canPublish = Boolean(
     !previewing &&
       audiencePreview &&
@@ -289,204 +164,62 @@ export default function BuklodReportDefinitionsScreen() {
       deadline.deadlineAt.trim()
   );
 
-  if (!scopeId) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.emptyTitle}>No scope selected</Text>
-      </View>
-    );
-  }
-
   return (
     <>
-      <Stack.Screen options={{ title: 'BUKLOD Report Definitions' }} />
+      <Stack.Screen options={{ title: 'Report Deadline Manager' }} />
       <BuklodPortalScrollView contentContainerStyle={styles.content}>
-        <Pressable onPress={() => router.back()} style={styles.back}>
-          <MaterialCommunityIcons name="arrow-left" size={20} color={colors.greenDark} />
-          <Text style={styles.backText}>BUKLOD Report</Text>
+        <Pressable onPress={() => router.back()} style={styles.backRow}>
+          <MaterialCommunityIcons name="arrow-left" size={19} color={colors.greenDark} />
+          <Text style={styles.backText}>Report Library</Text>
         </Pressable>
 
         <View style={styles.hero}>
-          <Text style={styles.heroTitle}>Report definitions & deadlines</Text>
-          <Text style={styles.heroSubtitle}>
-            Save templates without notifying members. Publish a real deadline only when the report is ready; publishing freezes the current active member list and sends assignments.
+          <Text style={styles.heroEyebrow}>LIVE ASSIGNMENT CONTROL</Text>
+          <Text style={styles.heroTitle}>Deadline Manager</Text>
+          <Text style={styles.heroText}>
+            {scopeName}. Report forms are built in the Report Library. This screen only publishes real deadlines and member assignments.
           </Text>
         </View>
 
         {loading ? (
-          <ActivityIndicator color={colors.green} />
+          <View style={styles.center}><ActivityIndicator color={colors.green} /><Text style={styles.note}>Loading templates…</Text></View>
         ) : !allowed ? (
-          <View style={styles.card}>
-            <Text style={styles.note}>
-              Exact-scope admin access is required to manage BUKLOD Report definitions and deadlines.
-            </Text>
-          </View>
+          <View style={styles.card}><Text style={styles.note}>Exact-scope admin access is required.</Text></View>
         ) : (
           <>
-            <View style={styles.toolbar}>
-              <Pressable onPress={startCreate} style={styles.primaryButton}>
-                <MaterialCommunityIcons name="plus" size={18} color="#FFFFFF" />
-                <Text style={styles.primaryButtonText}>New definition</Text>
-              </Pressable>
-              <View style={styles.switchRow}>
-                <Text style={styles.switchLabel}>Show archived</Text>
-                <Switch value={includeArchived} onValueChange={setIncludeArchived} />
-              </View>
+            <View style={styles.switchRow}>
+              <Text style={styles.switchText}>Show archived</Text>
+              <Switch value={includeArchived} onValueChange={setIncludeArchived} />
             </View>
-
-            {editorOpen ? (
-              <View style={styles.card}>
-                <Text style={styles.cardTitle}>{editing ? 'Edit definition' : 'New definition'}</Text>
-                <Text style={styles.note}>
-                  Saving this section does not create a deadline and does not notify members.
-                </Text>
-                <Field
-                  label="CODE"
-                  value={form.code}
-                  onChangeText={(code) => setForm((current) => ({ ...current, code }))}
-                  placeholder="WEEKLY_MINISTRY"
-                  autoCapitalize="characters"
-                />
-                <Field
-                  label="TITLE"
-                  value={form.title}
-                  onChangeText={(title) => setForm((current) => ({ ...current, title }))}
-                  placeholder="Weekly Ministry Report"
-                />
-                <Field
-                  label="DESCRIPTION"
-                  value={form.description}
-                  onChangeText={(description) => setForm((current) => ({ ...current, description }))}
-                  multiline
-                />
-                <Field
-                  label="INSTRUCTIONS"
-                  value={form.instructions}
-                  onChangeText={(instructions) => setForm((current) => ({ ...current, instructions }))}
-                  multiline
-                />
-
-                <Text style={styles.fieldLabel}>RECURRENCE</Text>
-                <View style={styles.chipRow}>
-                  {REPORT_RECURRENCE_OPTIONS.map((option) => (
-                    <Chip
-                      key={option}
-                      label={option}
-                      selected={form.recurrenceKind === option}
-                      onPress={() => setForm((current) => ({ ...current, recurrenceKind: option }))}
-                    />
-                  ))}
-                </View>
-
-                <Text style={styles.fieldLabel}>TEMPLATE STATUS</Text>
-                <View style={styles.chipRow}>
-                  {statusChips.map((option) => (
-                    <Chip
-                      key={option}
-                      label={option}
-                      selected={form.status === option}
-                      onPress={() => setForm((current) => ({ ...current, status: option }))}
-                    />
-                  ))}
-                </View>
-
-                <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Required report</Text>
-                  <Switch
-                    value={form.isRequired}
-                    onValueChange={(isRequired) => setForm((current) => ({ ...current, isRequired }))}
-                  />
-                </View>
-
-                <Field
-                  label="EFFECTIVE FROM (YYYY-MM-DD)"
-                  value={form.effectiveFrom}
-                  onChangeText={(effectiveFrom) => setForm((current) => ({ ...current, effectiveFrom }))}
-                  placeholder="2026-09-13"
-                />
-                <Field
-                  label="EFFECTIVE TO (YYYY-MM-DD)"
-                  value={form.effectiveTo}
-                  onChangeText={(effectiveTo) => setForm((current) => ({ ...current, effectiveTo }))}
-                  placeholder="Optional"
-                />
-                <Field
-                  label="DUE RULE KIND"
-                  value={form.dueRuleKind}
-                  onChangeText={(dueRuleKind) => setForm((current) => ({ ...current, dueRuleKind }))}
-                  placeholder="END_OF_PERIOD"
-                />
-                <Field
-                  label="DUE OFFSET DAYS"
-                  value={form.dueOffsetDays}
-                  onChangeText={(dueOffsetDays) => setForm((current) => ({ ...current, dueOffsetDays }))}
-                  keyboardType="number-pad"
-                />
-
-                <View style={styles.formActions}>
-                  <Pressable
-                    disabled={saving}
-                    onPress={() => void save()}
-                    style={[styles.primaryButton, saving && styles.disabled]}
-                  >
-                    <Text style={styles.primaryButtonText}>{saving ? 'Saving...' : 'Save template'}</Text>
-                  </Pressable>
-                  <Pressable onPress={closeEditor} style={styles.secondaryButton}>
-                    <Text style={styles.secondaryButtonText}>Cancel</Text>
-                  </Pressable>
-                </View>
-              </View>
-            ) : null}
 
             {publishTarget ? (
               <View style={styles.card}>
                 <Text style={styles.cardTitle}>PUBLISH REAL DEADLINE</Text>
-                <Text style={styles.publishTitle}>{publishTarget.title}</Text>
+                <Text style={styles.publishTitle}>{displayTitle(publishTarget)}</Text>
                 <Text style={styles.note}>
-                  This is the live action. Publishing creates one assignment for every active member currently in this Organization/Cluster. That member list is frozen for this deadline; retries will not silently add new members.
+                  Publishing creates one assignment for every active member currently in this Organization/Cluster. The recipient snapshot is frozen for this deadline.
                 </Text>
 
                 {previewing ? (
                   <View style={styles.previewBox}>
                     <ActivityIndicator size="small" color={colors.greenDark} />
-                    <Text style={styles.previewLabel}>Resolving current recipients...</Text>
+                    <Text style={styles.note}>Resolving current recipients…</Text>
                   </View>
                 ) : audiencePreview ? (
                   <View style={styles.previewBox}>
                     <Text style={styles.previewCount}>{audiencePreview.eligibleMemberCount}</Text>
-                    <View style={styles.previewTextWrap}>
+                    <View style={{ flex: 1 }}>
                       <Text style={styles.previewTitle}>active member{audiencePreview.eligibleMemberCount === 1 ? '' : 's'} will receive this report</Text>
-                      <Text style={styles.previewLabel}>
-                        {audiencePreview.scopeName} · {audiencePreview.scopeType}
-                      </Text>
-                      <Text style={styles.previewLabel}>Recipient list will be frozen when Publish is pressed.</Text>
+                      <Text style={styles.note}>{audiencePreview.scopeName} · {audiencePreview.scopeType}</Text>
                     </View>
                   </View>
                 ) : (
-                  <View style={styles.previewBox}>
-                    <MaterialCommunityIcons name="alert-circle-outline" size={20} color={colors.muted} />
-                    <Text style={styles.previewLabel}>Recipients could not be resolved. Publishing is disabled.</Text>
-                  </View>
+                  <View style={styles.previewBox}><Text style={styles.note}>Recipients could not be resolved. Publishing is disabled.</Text></View>
                 )}
 
-                <Field
-                  label="OPENS — MANILA TIME (YYYY-MM-DD HH:mm)"
-                  value={deadline.opensAt}
-                  onChangeText={(opensAt) => setDeadline((current) => ({ ...current, opensAt }))}
-                  placeholder="2026-09-13 08:00"
-                />
-                <Field
-                  label="DEADLINE — MANILA TIME (YYYY-MM-DD HH:mm)"
-                  value={deadline.deadlineAt}
-                  onChangeText={(deadlineAt) => setDeadline((current) => ({ ...current, deadlineAt }))}
-                  placeholder="2026-09-19 21:00"
-                />
-                <Field
-                  label="CLOSES — OPTIONAL (YYYY-MM-DD HH:mm)"
-                  value={deadline.closesAt}
-                  onChangeText={(closesAt) => setDeadline((current) => ({ ...current, closesAt }))}
-                  placeholder="Leave blank to allow late submission"
-                />
+                <Field label="OPENS — MANILA TIME (YYYY-MM-DD HH:mm)" value={deadline.opensAt} onChangeText={(opensAt) => setDeadline((current) => ({ ...current, opensAt }))} />
+                <Field label="DEADLINE — MANILA TIME (YYYY-MM-DD HH:mm)" value={deadline.deadlineAt} onChangeText={(deadlineAt) => setDeadline((current) => ({ ...current, deadlineAt }))} placeholder="2026-09-19 21:00" />
+                <Field label="CLOSES — OPTIONAL" value={deadline.closesAt} onChangeText={(closesAt) => setDeadline((current) => ({ ...current, closesAt }))} placeholder="Leave blank to allow late submission" />
 
                 <View style={styles.confirmBox}>
                   <Switch
@@ -494,77 +227,36 @@ export default function BuklodReportDefinitionsScreen() {
                     value={publishConfirmed}
                     onValueChange={setPublishConfirmed}
                   />
-                  <Text style={styles.confirmText}>
-                    I understand that Publish & notify immediately creates assignments for the previewed members and queues in-app/push notifications.
-                  </Text>
+                  <Text style={styles.confirmText}>I understand that Publish creates the previewed member assignments and queues their report notification.</Text>
                 </View>
 
-                <View style={styles.formActions}>
-                  <Pressable
-                    disabled={publishing || !canPublish}
-                    onPress={() => void publish()}
-                    style={[styles.primaryButton, (publishing || !canPublish) && styles.disabled]}
-                  >
-                    {publishing ? <ActivityIndicator size="small" color="#FFFFFF" /> : null}
-                    <Text style={styles.primaryButtonText}>
-                      {publishing ? 'Publishing...' : 'Publish & notify members'}
-                    </Text>
+                <View style={styles.actions}>
+                  <Pressable disabled={publishing || !canPublish} onPress={() => void publish()} style={[styles.primaryButton, (publishing || !canPublish) && styles.disabled]}>
+                    {publishing ? <ActivityIndicator size="small" color="#FFFFFF" /> : <MaterialCommunityIcons name="bell-plus-outline" size={17} color="#FFFFFF" />}
+                    <Text style={styles.primaryText}>{publishing ? 'Publishing…' : 'Publish & notify members'}</Text>
                   </Pressable>
-                  <Pressable
-                    disabled={publishing}
-                    onPress={closePublisher}
-                    style={styles.secondaryButton}
-                  >
-                    <Text style={styles.secondaryButtonText}>Cancel</Text>
-                  </Pressable>
+                  <Pressable disabled={publishing} onPress={closePublisher} style={styles.secondaryButton}><Text style={styles.secondaryText}>Cancel</Text></Pressable>
                 </View>
               </View>
             ) : null}
 
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>DEFINITIONS</Text>
-              <Text style={styles.note}>
-                Bell = create the actual deadline. Pencil = edit the template. Draft/template changes alone never notify members.
-              </Text>
-              {rows.length === 0 ? (
-                <Text style={styles.note}>No report definitions yet.</Text>
-              ) : (
-                rows.map((row) => (
-                  <View key={row.id} style={styles.row}>
-                    <View style={styles.rowMain}>
-                      <Text style={styles.rowTitle}>{row.title}</Text>
-                      <Text style={styles.rowMeta}>
-                        {row.code} · {row.recurrence_kind} · {row.status}
-                        {row.is_required ? ' · Required' : ' · Optional'}
-                      </Text>
-                    </View>
-                    <View style={styles.rowActions}>
-                      {row.status !== 'ARCHIVED' ? (
-                        <Pressable
-                          accessibilityLabel={`Publish deadline for ${row.title}`}
-                          onPress={() => void startPublish(row)}
-                          style={styles.iconButton}
-                        >
-                          <MaterialCommunityIcons name="bell-plus-outline" size={21} color={colors.greenDark} />
-                        </Pressable>
-                      ) : null}
-                      <Pressable onPress={() => startEdit(row)} style={styles.iconButton}>
-                        <MaterialCommunityIcons name="pencil-outline" size={20} color={colors.greenDark} />
-                      </Pressable>
-                      {row.status !== 'ARCHIVED' ? (
-                        <Pressable onPress={() => void changeStatus(row, 'ARCHIVED')} style={styles.iconButton}>
-                          <MaterialCommunityIcons name="archive-outline" size={20} color={colors.muted} />
-                        </Pressable>
-                      ) : (
-                        <Pressable onPress={() => void changeStatus(row, 'DRAFT')} style={styles.iconButton}>
-                          <MaterialCommunityIcons name="restore" size={20} color={colors.greenDark} />
-                        </Pressable>
-                      )}
-                    </View>
-                  </View>
-                ))
-              )}
-            </View>
+            {rows.length === 0 ? (
+              <View style={styles.card}><Text style={styles.note}>No report templates. Create one from Report Library first.</Text></View>
+            ) : rows.map((row) => (
+              <View key={row.id} style={[styles.reportRow, row.status === 'ARCHIVED' && styles.archived]}>
+                <View style={styles.reportIcon}><MaterialCommunityIcons name="file-document-outline" size={20} color={colors.greenDark} /></View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.category}>{category(row)}</Text>
+                  <Text style={styles.rowTitle}>{displayTitle(row)}</Text>
+                  <Text style={styles.rowMeta}>{row.recurrence_kind} · {row.status}</Text>
+                </View>
+                {row.status !== 'ARCHIVED' ? (
+                  <Pressable onPress={() => void startPublish(row)} style={styles.bellButton} accessibilityLabel={`Publish deadline for ${displayTitle(row)}`}>
+                    <MaterialCommunityIcons name="bell-plus-outline" size={21} color="#FFFFFF" />
+                  </Pressable>
+                ) : null}
+              </View>
+            ))}
           </>
         )}
       </BuklodPortalScrollView>
@@ -572,304 +264,49 @@ export default function BuklodReportDefinitionsScreen() {
   );
 }
 
-function Field({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  multiline,
-  autoCapitalize,
-  keyboardType,
-}: {
-  label: string;
-  value: string;
-  onChangeText: (value: string) => void;
-  placeholder?: string;
-  multiline?: boolean;
-  autoCapitalize?: 'none' | 'characters' | 'sentences' | 'words';
-  keyboardType?: 'default' | 'number-pad';
-}) {
+function Field({ label, value, onChangeText, placeholder }: { label: string; value: string; onChangeText: (value: string) => void; placeholder?: string }) {
   return (
-    <View style={styles.field}>
+    <View style={styles.fieldWrap}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={colors.muted}
-        multiline={multiline}
-        autoCapitalize={autoCapitalize}
-        keyboardType={keyboardType}
-        style={[styles.input, multiline && styles.inputMultiline]}
-      />
+      <TextInput value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor={colors.muted} style={styles.input} />
     </View>
   );
 }
 
-function Chip({
-  label,
-  selected,
-  onPress,
-}: {
-  label: string;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable onPress={onPress} style={[styles.chip, selected && styles.chipSelected]}>
-      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
-  content: {
-    padding: 14,
-    gap: 12,
-    backgroundColor: colors.background,
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.background,
-  },
-  emptyTitle: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: colors.text,
-  },
-  back: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  backText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.greenDark,
-  },
-  hero: {
-    borderRadius: 16,
-    padding: 16,
-    backgroundColor: colors.greenDark,
-    gap: 6,
-  },
-  heroTitle: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#FFFFFF',
-  },
-  heroSubtitle: {
-    fontSize: 12,
-    lineHeight: 18,
-    color: 'rgba(255,255,255,0.86)',
-  },
-  toolbar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  card: {
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.white,
-    padding: 14,
-    gap: 10,
-  },
-  cardTitle: {
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 0.6,
-    color: colors.greenDark,
-  },
-  publishTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: colors.text,
-  },
-  note: {
-    fontSize: 12,
-    lineHeight: 18,
-    color: colors.muted,
-  },
-  previewBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 12,
-    padding: 12,
-  },
-  previewTextWrap: {
-    flex: 1,
-    gap: 2,
-  },
-  previewCount: {
-    minWidth: 36,
-    fontSize: 24,
-    fontWeight: '900',
-    color: colors.greenDark,
-    textAlign: 'center',
-  },
-  previewTitle: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: colors.text,
-  },
-  previewLabel: {
-    flexShrink: 1,
-    fontSize: 11,
-    lineHeight: 16,
-    color: colors.muted,
-  },
-  field: {
-    gap: 5,
-  },
-  fieldLabel: {
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-    color: colors.muted,
-  },
-  input: {
-    minHeight: 44,
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: colors.white,
-    color: colors.text,
-  },
-  inputMultiline: {
-    minHeight: 88,
-    textAlignVertical: 'top',
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 7,
-  },
-  chip: {
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    backgroundColor: colors.white,
-  },
-  chipSelected: {
-    borderColor: colors.greenDark,
-    backgroundColor: colors.greenDark,
-  },
-  chipText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.text,
-  },
-  chipTextSelected: {
-    color: '#FFFFFF',
-  },
-  switchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
-  switchLabel: {
-    flex: 1,
-    fontSize: 12,
-    fontWeight: '800',
-    color: colors.text,
-  },
-  confirmBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 12,
-    padding: 10,
-  },
-  confirmText: {
-    flex: 1,
-    fontSize: 12,
-    lineHeight: 17,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  formActions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 4,
-  },
-  primaryButton: {
-    minHeight: 42,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    backgroundColor: colors.greenDark,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 7,
-  },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '900',
-  },
-  secondaryButton: {
-    minHeight: 42,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: colors.line,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  secondaryButtonText: {
-    color: colors.text,
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  disabled: {
-    opacity: 0.45,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 9,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.line,
-  },
-  rowMain: {
-    flex: 1,
-    gap: 4,
-  },
-  rowTitle: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: colors.text,
-  },
-  rowMeta: {
-    fontSize: 11,
-    lineHeight: 16,
-    color: colors.muted,
-  },
-  rowActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  iconButton: {
-    padding: 7,
-  },
+  content: { padding: 14, gap: 12, backgroundColor: colors.background },
+  backRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  backText: { color: colors.greenDark, fontSize: 12, fontWeight: '900' },
+  hero: { borderRadius: 18, padding: 16, backgroundColor: colors.greenDark, gap: 5 },
+  heroEyebrow: { color: 'rgba(255,255,255,0.68)', fontSize: 8, fontWeight: '900', letterSpacing: 0.7 },
+  heroTitle: { color: '#FFFFFF', fontSize: 20, fontWeight: '900' },
+  heroText: { color: 'rgba(255,255,255,0.86)', fontSize: 11, lineHeight: 16 },
+  center: { paddingVertical: 28, alignItems: 'center', gap: 8 },
+  card: { borderRadius: 15, borderWidth: 1, borderColor: colors.line, backgroundColor: '#FFFFFF', padding: 13, gap: 10 },
+  cardTitle: { color: colors.greenDark, fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
+  publishTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
+  note: { color: colors.muted, fontSize: 10, lineHeight: 15 },
+  switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  switchText: { color: colors.text, fontSize: 11, fontWeight: '800' },
+  previewBox: { borderRadius: 12, borderWidth: 1, borderColor: colors.line, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 9 },
+  previewCount: { minWidth: 35, color: colors.greenDark, fontSize: 23, fontWeight: '900', textAlign: 'center' },
+  previewTitle: { color: colors.text, fontSize: 11, fontWeight: '900' },
+  fieldWrap: { gap: 5 },
+  fieldLabel: { color: colors.muted, fontSize: 9, fontWeight: '900', letterSpacing: 0.4 },
+  input: { minHeight: 43, borderRadius: 10, borderWidth: 1, borderColor: colors.line, backgroundColor: '#FFFFFF', paddingHorizontal: 11, color: colors.text },
+  confirmBox: { borderRadius: 12, borderWidth: 1, borderColor: colors.line, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 9 },
+  confirmText: { flex: 1, color: colors.text, fontSize: 10, lineHeight: 15, fontWeight: '700' },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  primaryButton: { minHeight: 43, borderRadius: 10, backgroundColor: colors.greenDark, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  primaryText: { color: '#FFFFFF', fontSize: 11, fontWeight: '900' },
+  secondaryButton: { minHeight: 43, borderRadius: 10, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 13, alignItems: 'center', justifyContent: 'center' },
+  secondaryText: { color: colors.greenDark, fontSize: 11, fontWeight: '900' },
+  disabled: { opacity: 0.45 },
+  reportRow: { borderRadius: 14, borderWidth: 1, borderColor: '#DCE5E0', backgroundColor: '#FFFFFF', padding: 11, flexDirection: 'row', alignItems: 'center', gap: 9 },
+  archived: { opacity: 0.55 },
+  reportIcon: { width: 38, height: 38, borderRadius: 10, backgroundColor: '#EAF5EF', alignItems: 'center', justifyContent: 'center' },
+  category: { color: '#61766C', fontSize: 8, fontWeight: '900', letterSpacing: 0.6 },
+  rowTitle: { color: colors.text, fontSize: 12, fontWeight: '900' },
+  rowMeta: { color: colors.muted, fontSize: 9, marginTop: 2 },
+  bellButton: { width: 40, height: 40, borderRadius: 11, backgroundColor: colors.greenDark, alignItems: 'center', justifyContent: 'center' },
 });
