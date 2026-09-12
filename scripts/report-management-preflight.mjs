@@ -10,6 +10,7 @@ const required = [
   'supabase/migrations/20260913_buklod_report_management_loop_hardening_r1.sql',
   'supabase/functions/buklod-report-template-import-v1/index.ts',
   'src/lib/buklodReportTemplateImport.ts',
+  'src/lib/buklodReportAssetBase64.web.ts',
   'src/lib/buklodReportConsolidation.ts',
   'src/lib/buklodReportActions.ts',
   'src/lib/buklodReportManagementDocument.ts',
@@ -36,15 +37,39 @@ if (exists('supabase/migrations/20260913_buklod_report_management_loop_hardening
 
 if (exists('supabase/functions/buklod-report-template-import-v1/index.ts')) {
   const source = read('supabase/functions/buklod-report-template-import-v1/index.ts');
-  for (const marker of ['function inferMimeType', 'application/octet-stream', 'const mimeType = inferMimeType(filename, body?.mime_type)']) {
-    if (!source.includes(marker)) failures.push(`Template analyzer MIME recovery is missing: ${marker}`);
+  for (const marker of [
+    'function inferMimeType',
+    'application/octet-stream',
+    'const mimeType = inferMimeType(filename, body?.mime_type)',
+    'mimeType === "application/pdf" || mimeType.startsWith("image/")',
+    'Detect ONLY the form or reporting fields actually present',
+    'return json({ error: message, stage }, 500)',
+  ]) {
+    if (!source.includes(marker)) failures.push(`Template analyzer hardening is missing: ${marker}`);
+  }
+  if (/from\s+["']npm:unpdf/i.test(source) || source.includes('getDocumentProxy(')) {
+    failures.push('PDF report forms must go directly to multimodal analysis instead of local Edge PDF parsing.');
   }
 }
 
 if (exists('src/lib/buklodReportTemplateImport.ts')) {
   const source = read('src/lib/buklodReportTemplateImport.ts');
-  for (const marker of ['inferMimeType', 'normalizeDraft', 'buklod-report-template-import-v1']) {
+  for (const marker of [
+    'inferMimeType',
+    'normalizeDraft',
+    'buklod-report-template-import-v1',
+    'base64: true',
+    'stripDataUrlPrefix',
+    'await readErrorMessage(error',
+  ]) {
     if (!source.includes(marker)) failures.push(`Template import client recovery is missing: ${marker}`);
+  }
+}
+
+if (exists('src/lib/buklodReportAssetBase64.web.ts')) {
+  const source = read('src/lib/buklodReportAssetBase64.web.ts');
+  for (const marker of ['asset.base64', 'asset.file', 'fetch(asset.uri)']) {
+    if (!source.includes(marker)) failures.push(`Browser form-file reader is missing: ${marker}`);
   }
 }
 
