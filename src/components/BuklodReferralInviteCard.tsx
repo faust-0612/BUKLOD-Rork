@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
 import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
 import { loadReferralSummary, type ReferralSummary } from '@/lib/buklodRewards';
@@ -131,9 +132,31 @@ export default function BuklodReferralInviteCard() {
     actionTextOutline: {
       color: theme.textPrimary,
     },
+    reportBtn: {
+      minHeight: 40,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: withAlpha(theme.accent, 0.24),
+      backgroundColor: withAlpha(theme.accentSoft, 0.45),
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'row',
+      gap: 7,
+      marginTop: 2,
+    },
+    reportText: {
+      fontSize: 11,
+      fontWeight: '900',
+      color: theme.accent,
+    },
     stats: {
       marginTop: 2,
       fontSize: 11,
+      color: theme.textMuted,
+    },
+    economyNote: {
+      fontSize: 10.5,
+      lineHeight: 15,
       color: theme.textMuted,
     },
   });
@@ -151,8 +174,15 @@ export default function BuklodReferralInviteCard() {
       <View style={styles.card}>
         <Text style={styles.sub}>
           Invite friends to BUKLOD. Your referral code will appear here once
-          rewards are enabled on the server.
+          referral sharing is available on the server.
         </Text>
+        <Pressable
+          onPress={() => router.push('/bayanihan' as any)}
+          style={({ pressed }) => [styles.reportBtn, pressed && { opacity: 0.76 }]}
+        >
+          <MaterialCommunityIcons name="chart-donut" size={16} color={theme.accent} />
+          <Text style={styles.reportText}>VIEW MY ECONOMY REPORT</Text>
+        </Pressable>
       </View>
     );
   }
@@ -162,7 +192,9 @@ export default function BuklodReferralInviteCard() {
       <Text style={styles.eyebrow}>INVITE FRIENDS</Text>
       <Text style={styles.title}>Share BUKLOD</Text>
       <Text style={styles.sub}>
-        One-level referrals only. You earn when someone you invite qualifies.
+        Direct referrals only. A qualified referral may contribute referral
+        weight during its earning window; sharing or qualification does not
+        create a fixed cash reward.
       </Text>
 
       <View style={styles.codeRow}>
@@ -195,6 +227,18 @@ export default function BuklodReferralInviteCard() {
         Invited {summary.invited_count} · Qualified {summary.qualified_count}
         {summary.was_referred ? ' · You joined via referral' : ''}
       </Text>
+      <Text style={styles.economyNote}>
+        Any cash share can come only from a finalized, funded BUKLOD revenue
+        pool. Points and referral units are not pesos.
+      </Text>
+
+      <Pressable
+        onPress={() => router.push('/bayanihan' as any)}
+        style={({ pressed }) => [styles.reportBtn, pressed && { opacity: 0.76 }]}
+      >
+        <MaterialCommunityIcons name="chart-donut" size={16} color={theme.accent} />
+        <Text style={styles.reportText}>VIEW MY ECONOMY REPORT</Text>
+      </Pressable>
     </View>
   );
 }
