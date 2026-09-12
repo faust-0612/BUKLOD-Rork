@@ -62,7 +62,6 @@ import {
 } from '@/lib/buklodCharacterEvents';
 
 import {
-  claimBuklodRewardGroup,
   loadBuklodClaimGroups,
   type BuklodClaimGroup,
 } from '@/lib/buklodRewards';
@@ -94,8 +93,6 @@ export default function BuklodProfileCharacterCard({
   const [displayPoints, setDisplayPoints] = useState(lifetimePoints);
   const [displayRank, setDisplayRank] = useState<string | null>(rankName);
   const [claimGroups, setClaimGroups] = useState<BuklodClaimGroup[]>([]);
-  const [claimingGroup, setClaimingGroup] = useState<string | null>(null);
-  const [claimError, setClaimError] = useState<string | null>(null);
 
   useEffect(() => {
     setDisplayPoints(lifetimePoints);
@@ -124,7 +121,6 @@ export default function BuklodProfileCharacterCard({
     try {
       const groups = await loadBuklodClaimGroups();
       setClaimGroups(groups);
-      setClaimError(null);
     } catch (error: unknown) {
       console.warn(
         'Profile BUKLOD claim groups:',
@@ -153,52 +149,6 @@ export default function BuklodProfileCharacterCard({
       success: true,
     });
   }, [characterEvents, focused]);
-
-  const claimGroup = async (group: BuklodClaimGroup) => {
-    if (claimingGroup) {
-      return;
-    }
-
-    setClaimingGroup(group.group_key);
-    setClaimError(null);
-
-    try {
-      const result = await claimBuklodRewardGroup(group.group_key);
-
-      setDisplayPoints(result.lifetime_points);
-      if (result.rank_name) {
-        setDisplayRank(result.rank_name);
-      }
-
-      // Remove the claimed section immediately. Reconciliation below quietly
-      // refreshes any rewards that may have arrived while the request ran.
-      setClaimGroups((current) =>
-        current.filter((item) => item.group_key !== group.group_key),
-      );
-
-      if (result.claimed_points > 0) {
-        characterEvents?.emit({
-          type: CharacterEventType.POINTS_CLAIMED,
-          success: true,
-          points: result.claimed_points,
-          spokenText:
-            `${group.group_label}: ${result.claimed_points.toLocaleString('en-PH')} points claimed.`,
-        });
-      }
-
-      void loadClaimGroups();
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'Could not claim these points.';
-
-      console.warn('Profile BUKLOD group claim:', message);
-      setClaimError(message);
-    } finally {
-      setClaimingGroup(null);
-    }
-  };
 
   const rankLabel = String(displayRank ?? '').trim();
   const hasClaimGroups = claimGroups.length > 0;
@@ -307,7 +257,6 @@ export default function BuklodProfileCharacterCard({
     summaryRow: {
       flexDirection: 'row',
       gap: 8,
-      marginBottom: hasClaimGroups ? 10 : 0,
     },
     summaryChip: {
       flex: 1,
@@ -318,6 +267,12 @@ export default function BuklodProfileCharacterCard({
       backgroundColor: theme.surface,
       borderWidth: 1,
       borderColor: theme.border,
+    },
+    rankSummaryHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 6,
     },
     summaryLabel: {
       fontSize: 8,
@@ -331,93 +286,19 @@ export default function BuklodProfileCharacterCard({
       fontWeight: '900',
       color: theme.textPrimary,
     },
-    claimPanel: {
-      gap: 8,
-    },
-    claimPanelHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 8,
-    },
-    claimPanelTitle: {
-      fontSize: 9,
-      fontWeight: '900',
-      letterSpacing: 0.85,
-      color: theme.textMuted,
-    },
-    claimPanelHint: {
-      fontSize: 9,
-      fontWeight: '800',
-      color: theme.accent,
-    },
-    claimGroupCard: {
-      minHeight: 66,
-      paddingHorizontal: 11,
-      paddingVertical: 10,
-      borderRadius: 14,
+    claimNotice: {
+      paddingHorizontal: 7,
+      paddingVertical: 3,
+      borderRadius: 999,
+      backgroundColor: withAlpha(theme.accent, 0.1),
       borderWidth: 1,
-      borderColor: withAlpha(theme.accent, 0.2),
-      backgroundColor: withAlpha(theme.accentSoft, 0.5),
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 10,
+      borderColor: withAlpha(theme.accent, 0.22),
     },
-    claimIcon: {
-      width: 34,
-      height: 34,
-      borderRadius: 11,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: theme.surface,
-      borderWidth: 1,
-      borderColor: theme.border,
-    },
-    claimCopy: {
-      flex: 1,
-      minWidth: 0,
-    },
-    claimLabel: {
-      fontSize: 12,
+    claimNoticeText: {
+      fontSize: 7,
       fontWeight: '900',
-      color: theme.textPrimary,
-    },
-    claimMeta: {
-      marginTop: 2,
-      fontSize: 9,
-      lineHeight: 13,
-      color: theme.textMuted,
-    },
-    claimPoints: {
-      marginTop: 3,
-      fontSize: 12,
-      fontWeight: '900',
+      letterSpacing: 0.55,
       color: theme.accent,
-    },
-    claimButton: {
-      minHeight: 38,
-      minWidth: 82,
-      paddingHorizontal: 11,
-      borderRadius: 12,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 5,
-      backgroundColor: theme.buttonPrimary,
-    },
-    claimButtonBusy: {
-      opacity: 0.62,
-    },
-    claimButtonText: {
-      fontSize: 9,
-      fontWeight: '900',
-      letterSpacing: 0.45,
-      color: theme.white,
-    },
-    claimError: {
-      fontSize: 9,
-      lineHeight: 13,
-      color: theme.danger,
     },
   });
 
@@ -512,9 +393,26 @@ export default function BuklodProfileCharacterCard({
 
               <View style={styles.summaryRow}>
                 <View style={styles.summaryChip}>
-                  <Text style={styles.summaryLabel}>
-                    CURRENT RANK
-                  </Text>
+                  <View style={styles.rankSummaryHeader}>
+                    <Text style={styles.summaryLabel}>
+                      CURRENT RANK
+                    </Text>
+                    {hasClaimGroups ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Open points ready to claim"
+                        onPress={() => router.push('/points')}
+                        style={({ pressed }) => [
+                          styles.claimNotice,
+                          pressed && { opacity: 0.82 },
+                        ]}
+                      >
+                        <Text style={styles.claimNoticeText}>
+                          TO CLAIM
+                        </Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
                   <Text
                     numberOfLines={1}
                     style={styles.summaryValue}
@@ -532,87 +430,6 @@ export default function BuklodProfileCharacterCard({
                   </Text>
                 </View>
               </View>
-
-              {hasClaimGroups ? (
-                <View style={styles.claimPanel}>
-                  <View style={styles.claimPanelHeader}>
-                    <Text style={styles.claimPanelTitle}>
-                      READY TO CLAIM
-                    </Text>
-                    <Text style={styles.claimPanelHint}>
-                      Claim by activity
-                    </Text>
-                  </View>
-
-                  {claimGroups.map((group, index) => {
-                    const busy = claimingGroup === group.group_key;
-                    const anyBusy = claimingGroup !== null;
-
-                    return (
-                      <ProfileMotionFadeUp
-                        key={group.group_key}
-                        delay={70 + index * 25}
-                        duration={220}
-                        fromY={6}
-                        fromOpacity={0.82}
-                      >
-                        <View style={styles.claimGroupCard}>
-                          <View style={styles.claimIcon}>
-                            <MaterialCommunityIcons
-                              name="star-four-points"
-                              size={17}
-                              color={theme.accent}
-                            />
-                          </View>
-
-                          <View style={styles.claimCopy}>
-                            <Text
-                              numberOfLines={1}
-                              style={styles.claimLabel}
-                            >
-                              {group.group_label}
-                            </Text>
-                            <Text style={styles.claimMeta}>
-                              {group.event_count.toLocaleString('en-PH')}{' '}
-                              {group.event_count === 1 ? 'reward' : 'rewards'} ready
-                            </Text>
-                            <Text style={styles.claimPoints}>
-                              +{formatPoints(group.total_points)} pts
-                            </Text>
-                          </View>
-
-                          <Pressable
-                            accessibilityRole="button"
-                            accessibilityLabel={`Claim all ${group.group_label} points`}
-                            disabled={anyBusy}
-                            onPress={() => void claimGroup(group)}
-                            style={({ pressed }) => [
-                              styles.claimButton,
-                              busy && styles.claimButtonBusy,
-                              pressed && !anyBusy && { transform: [{ scale: 0.97 }] },
-                            ]}
-                          >
-                            <Text style={styles.claimButtonText}>
-                              {busy ? 'CLAIMING…' : 'CLAIM ALL'}
-                            </Text>
-                            <MaterialCommunityIcons
-                              name={busy ? 'progress-clock' : 'gift-outline'}
-                              size={14}
-                              color={theme.white}
-                            />
-                          </Pressable>
-                        </View>
-                      </ProfileMotionFadeUp>
-                    );
-                  })}
-
-                  {claimError ? (
-                    <Text style={styles.claimError}>
-                      {claimError}
-                    </Text>
-                  ) : null}
-                </View>
-              ) : null}
             </View>
           </View>
         </View>
