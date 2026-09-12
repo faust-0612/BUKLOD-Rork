@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
   metricLabel: { color: colors.muted, fontSize: 8, fontWeight: '900', textTransform: 'uppercase' },
   graphRow: { gap: 5, paddingTop: 5 },
   graphHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  graphLabel: { flex: 1, color: colors.textStrong, fontSize: 10, fontWeight: '850' },
+  graphLabel: { flex: 1, color: colors.textStrong, fontSize: 10, fontWeight: '800' },
   graphValue: { color: colors.muted, fontSize: 9, fontWeight: '800' },
   track: { height: 8, borderRadius: 999, backgroundColor: colors.surfaceMuted, overflow: 'hidden' },
   fill: { height: 8, borderRadius: 999, backgroundColor: colors.greenDark },
