@@ -40,6 +40,29 @@ export type BuklodR38EconomyPolicy = {
   invariants: Record<string, boolean | string>;
 };
 
+export type BuklodR38PayoutProfile = {
+  id: string;
+  payout_method: 'GCASH' | string;
+  account_name: string;
+  destination_masked: string;
+  status: 'ACTIVE' | 'DISABLED' | string;
+  updated_at: string;
+};
+
+export type BuklodR38Withdrawal = {
+  id: string;
+  user_id: string;
+  requested_amount: number;
+  currency: string;
+  status: string;
+  payout_method: string | null;
+  payout_profile_ref: string | null;
+  payout_destination_masked: string | null;
+  requested_at: string;
+  paid_at?: string | null;
+  payout_transaction_ref?: string | null;
+};
+
 export type BuklodR38UserEconomyReport = {
   progress: {
     lifetime_points: number;
@@ -155,6 +178,10 @@ function messageFrom(error: unknown, fallback: string) {
   return fallback;
 }
 
+function requestKey(prefix: string) {
+  return `${prefix}:${Date.now()}:${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export function asMoney(value: unknown) {
   const number = Number(value ?? 0);
   return Number.isFinite(number) ? number : 0;
@@ -191,6 +218,76 @@ export async function loadBuklodR38EconomyPolicy() {
   }
 
   return data as BuklodR38EconomyPolicy;
+}
+
+export async function loadMyBuklodR38PayoutProfile() {
+  const { data, error } = await (supabase as any).rpc(
+    'get_my_buklod_r38_payout_profile_v1',
+  );
+
+  if (error) {
+    throw new Error(messageFrom(error, 'Could not load your payout profile.'));
+  }
+
+  return (data ?? null) as BuklodR38PayoutProfile | null;
+}
+
+export async function saveMyBuklodR38PayoutProfile(input: {
+  accountName: string;
+  gcashMobile: string;
+}) {
+  const { data, error } = await (supabase as any).rpc(
+    'set_my_buklod_r38_payout_profile_v1',
+    {
+      p_payout_method: 'GCASH',
+      p_account_name: input.accountName.trim(),
+      p_destination: input.gcashMobile.trim(),
+    },
+  );
+
+  if (error) {
+    throw new Error(messageFrom(error, 'Could not save your payout profile.'));
+  }
+
+  return data as BuklodR38PayoutProfile;
+}
+
+export async function requestMyBuklodR38ReferralWithdrawal(
+  profile: BuklodR38PayoutProfile,
+  idempotencyKey?: string,
+) {
+  const { data, error } = await (supabase as any).rpc(
+    'request_my_buklod_r38_referral_withdrawal_v1',
+    {
+      p_payout_method: profile.payout_method,
+      p_payout_profile_ref: profile.id,
+      p_destination_masked: profile.destination_masked,
+      p_request_key: idempotencyKey || requestKey('r38-withdrawal'),
+    },
+  );
+
+  if (error) {
+    throw new Error(messageFrom(error, 'Could not request withdrawal.'));
+  }
+
+  return data as {
+    idempotent_replay: boolean;
+    withdrawal: BuklodR38Withdrawal;
+    remaining_available_referral_cash: number;
+  };
+}
+
+export async function cancelMyBuklodR38ReferralWithdrawal(withdrawalId: string) {
+  const { data, error } = await (supabase as any).rpc(
+    'cancel_my_buklod_r38_referral_withdrawal_v1',
+    { p_withdrawal_id: withdrawalId },
+  );
+
+  if (error) {
+    throw new Error(messageFrom(error, 'Could not cancel the withdrawal request.'));
+  }
+
+  return data as BuklodR38Withdrawal;
 }
 
 export async function loadAdminBuklodR38EconomyReport(periodKey?: string | null) {
