@@ -10,14 +10,14 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 
-import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
+import BuklodReportScrollView from '@/components/BuklodReportScrollView';
 import {
   exportConsolidatedReportXlsx,
   fetchConsolidatedReportData,
   type ConsolidatedReportData,
 } from '@/lib/buklodReportConsolidation';
+import { reportColors as colors, reportTheme } from '@/lib/buklodReportTheme';
 import { verifyOrganizationManageAccess } from '@/lib/buklodOrganization';
-import { colors } from '@/lib/theme';
 
 function firstParam(value: unknown) {
   if (typeof value === 'string') return value.trim();
@@ -37,6 +37,15 @@ function formatDate(value: string | null | undefined) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+
+function reviewPresentation(status: string | null | undefined) {
+  const value = String(status ?? '').toUpperCase();
+  if (value === 'NEEDS_REVIEW' || value === 'SUBMITTED') return { label: 'Needs review', bg: colors.amberSoft, fg: colors.amber };
+  if (value === 'NEEDS_REVISION' || value === 'REJECTED') return { label: 'Follow-up', bg: colors.dangerSoft, fg: colors.danger };
+  if (value === 'APPROVED' || value === 'AUTO_APPROVED' || value === 'CLOSED') return { label: 'Reviewed', bg: colors.successSoft, fg: colors.success };
+  if (value === 'PROCESSING') return { label: 'Processing', bg: colors.infoSoft, fg: colors.info };
+  return { label: value ? value.replace(/_/g, ' ') : 'Submitted', bg: colors.surfaceMuted, fg: colors.muted };
 }
 
 export default function BuklodReportConsolidatedScreen() {
@@ -80,8 +89,13 @@ export default function BuklodReportConsolidatedScreen() {
 
   const totals = useMemo(() => (viewData?.periods ?? []).reduce(
     (acc, period) => ({ assigned: acc.assigned + Number(period.assigned_count ?? 0), submitted: acc.submitted + Number(period.submitted_count ?? 0) }),
-    { assigned: 0, submitted: 0 }
+    { assigned: 0, submitted: 0 },
   ), [viewData?.periods]);
+
+  const reviewCount = useMemo(() => (viewData?.submissions ?? []).filter((submission) => {
+    const status = String(submission.review_status ?? submission.submission_status ?? '').toUpperCase();
+    return ['SUBMITTED', 'NEEDS_REVIEW', 'NEEDS_REVISION', 'REJECTED'].includes(status);
+  }).length, [viewData?.submissions]);
 
   const doExport = async () => {
     if (!viewData || exporting) return;
@@ -97,15 +111,15 @@ export default function BuklodReportConsolidatedScreen() {
   return (
     <>
       <Stack.Screen options={{ title: 'Consolidated Report' }} />
-      <BuklodPortalScrollView contentContainerStyle={styles.content}>
+      <BuklodReportScrollView contentContainerStyle={styles.content}>
         <Pressable onPress={() => router.back()} style={styles.backRow}>
           <MaterialCommunityIcons name="arrow-left" size={19} color={colors.greenDark} />
           <Text style={styles.backText}>Report Library</Text>
         </Pressable>
         <View style={styles.hero}>
-          <Text style={styles.heroEyebrow}>CONSOLIDATED REPORT</Text>
+          <Text style={styles.heroEyebrow}>SUPERVISOR VIEW</Text>
           <Text style={styles.heroTitle}>{reportTitle(viewData)}</Text>
-          <Text style={styles.heroText}>Combine submitted reports into one management view and exportable Excel file.</Text>
+          <Text style={styles.heroText}>See reporting coverage, review attention and submitted evidence without changing the original report records.</Text>
         </View>
 
         {loading && !viewData ? (
@@ -115,11 +129,12 @@ export default function BuklodReportConsolidatedScreen() {
         ) : viewData ? (
           <>
             <View style={styles.metricsRow}>
-              <Metric label="Assigned" value={totals.assigned} />
-              <Metric label="Submitted" value={totals.submitted} />
-              <Metric label="Pending" value={Math.max(0, totals.assigned - totals.submitted)} />
-              <Metric label="Rows" value={viewData.submissions.length} />
+              <Metric label="Assigned" value={totals.assigned} icon="account-multiple-outline" />
+              <Metric label="Submitted" value={totals.submitted} icon="check-circle-outline" />
+              <Metric label="Pending" value={Math.max(0, totals.assigned - totals.submitted)} icon="clock-outline" attention={totals.assigned > totals.submitted} />
+              <Metric label="Review" value={reviewCount} icon="clipboard-search-outline" attention={reviewCount > 0} />
             </View>
+
             <View style={styles.card}>
               <Text style={styles.cardTitle}>REPORTING PERIOD</Text>
               <View style={styles.chips}>
@@ -127,68 +142,122 @@ export default function BuklodReportConsolidatedScreen() {
                 {(allData?.periods ?? []).map((period) => <Chip key={period.id} label={period.title} selected={selectedPeriodId === period.id} onPress={() => void selectPeriod(period.id)} />)}
               </View>
             </View>
+
             <View style={styles.card}>
-              <View style={styles.sectionHead}><View style={{ flex: 1 }}><Text style={styles.cardTitle}>PERIOD SUMMARY</Text><Text style={styles.note}>Assigned, submitted and pending counts per deadline.</Text></View>{loading ? <ActivityIndicator size="small" color={colors.green} /> : null}</View>
-              {viewData.periods.length === 0 ? <Text style={styles.note}>No published deadline yet.</Text> : viewData.periods.map((period) => (
-                <View key={period.id} style={styles.periodRow}><View style={{ flex: 1 }}><Text style={styles.periodTitle}>{period.title}</Text><Text style={styles.periodMeta}>Deadline {formatDate(period.due_at)}</Text></View><Text style={styles.periodCount}>{period.submitted_count}/{period.assigned_count}</Text></View>
-              ))}
+              <View style={styles.sectionHead}>
+                <View style={styles.flexCopy}>
+                  <Text style={styles.cardTitle}>PERIOD SUMMARY</Text>
+                  <Text style={styles.note}>Assigned, submitted and pending counts per published deadline.</Text>
+                </View>
+                {loading ? <ActivityIndicator size="small" color={colors.green} /> : null}
+              </View>
+              {viewData.periods.length === 0 ? <Text style={styles.note}>No published deadline yet.</Text> : viewData.periods.map((period) => {
+                const pending = Math.max(0, Number(period.assigned_count ?? 0) - Number(period.submitted_count ?? 0));
+                return (
+                  <View key={period.id} style={styles.periodRow}>
+                    <View style={styles.flexCopy}>
+                      <Text style={styles.periodTitle}>{period.title}</Text>
+                      <Text style={styles.periodMeta}>Deadline {formatDate(period.due_at)}</Text>
+                    </View>
+                    <View style={styles.periodNumbers}>
+                      <Text style={styles.periodCount}>{period.submitted_count}/{period.assigned_count}</Text>
+                      {pending > 0 ? <Text style={styles.pendingText}>{pending} pending</Text> : <Text style={styles.completeText}>complete</Text>}
+                    </View>
+                  </View>
+                );
+              })}
             </View>
+
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>SUBMITTED REPORTS</Text>
-              <Text style={styles.note}>The Excel export contains the full saved report fields. This preview shows submission identity and status.</Text>
-              {viewData.submissions.length === 0 ? <Text style={styles.note}>No submitted report in this selection.</Text> : viewData.submissions.slice(0, 100).map((submission) => (
-                <View key={submission.submission_id} style={styles.submissionRow}><View style={styles.avatar}><MaterialCommunityIcons name="account-outline" size={18} color={colors.greenDark} /></View><View style={{ flex: 1 }}><Text style={styles.submitter}>{submission.submitter_name}</Text><Text style={styles.submissionMeta}>{submission.period_title} · {submission.submission_status} · {formatDate(submission.submitted_at)}</Text></View></View>
-              ))}
+              <View style={styles.sectionHead}>
+                <View style={styles.flexCopy}>
+                  <Text style={styles.cardTitle}>SUBMITTED REPORTS</Text>
+                  <Text style={styles.note}>Review state is shown separately from the submitter’s original report. Excel export keeps the full saved report fields.</Text>
+                </View>
+                {reviewCount > 0 ? <View style={styles.attentionPill}><Text style={styles.attentionText}>{reviewCount} ATTENTION</Text></View> : null}
+              </View>
+              {viewData.submissions.length === 0 ? <Text style={styles.note}>No submitted report in this selection.</Text> : viewData.submissions.slice(0, 100).map((submission) => {
+                const state = reviewPresentation(submission.review_status ?? submission.submission_status);
+                return (
+                  <View key={submission.submission_id} style={styles.submissionRow}>
+                    <View style={styles.avatar}><MaterialCommunityIcons name="account-outline" size={18} color={colors.greenDark} /></View>
+                    <View style={styles.flexCopy}>
+                      <View style={styles.submissionHeading}>
+                        <Text style={styles.submitter} numberOfLines={1}>{submission.submitter_name}</Text>
+                        <View style={[styles.reviewPill, { backgroundColor: state.bg }]}><Text style={[styles.reviewText, { color: state.fg }]}>{state.label}</Text></View>
+                      </View>
+                      <Text style={styles.submissionMeta}>{submission.period_title} · {formatDate(submission.submitted_at)}</Text>
+                    </View>
+                  </View>
+                );
+              })}
             </View>
+
             <Pressable disabled={exporting} onPress={() => void doExport()} style={[styles.exportButton, exporting && styles.disabled]}>
-              {exporting ? <ActivityIndicator size="small" color="#FFFFFF" /> : <MaterialCommunityIcons name="microsoft-excel" size={19} color="#FFFFFF" />}
+              {exporting ? <ActivityIndicator size="small" color={colors.white} /> : <MaterialCommunityIcons name="microsoft-excel" size={19} color={colors.white} />}
               <Text style={styles.exportText}>{exporting ? 'Building file…' : 'Export consolidated Excel'}</Text>
             </Pressable>
           </>
         ) : null}
-      </BuklodPortalScrollView>
+      </BuklodReportScrollView>
     </>
   );
 }
 
-function Metric({ label, value }: { label: string; value: number }) {
-  return <View style={styles.metric}><Text style={styles.metricValue}>{value}</Text><Text style={styles.metricLabel}>{label}</Text></View>;
+function Metric({ label, value, icon, attention = false }: { label: string; value: number; icon: React.ComponentProps<typeof MaterialCommunityIcons>['name']; attention?: boolean }) {
+  return (
+    <View style={[styles.metric, attention && styles.metricAttention]}>
+      <MaterialCommunityIcons name={icon} size={18} color={attention ? colors.amber : colors.greenDark} />
+      <Text style={styles.metricValue}>{value}</Text>
+      <Text style={styles.metricLabel}>{label}</Text>
+    </View>
+  );
 }
 function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   return <Pressable onPress={onPress} style={[styles.chip, selected && styles.chipSelected]}><Text style={[styles.chipText, selected && styles.chipTextSelected]} numberOfLines={1}>{label}</Text></Pressable>;
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 14, gap: 12, backgroundColor: colors.background },
-  backRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  content: { padding: reportTheme.layout.mobilePadding, gap: 12, backgroundColor: colors.background },
+  flexCopy: { flex: 1, minWidth: 0 },
+  backRow: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' },
   backText: { color: colors.greenDark, fontSize: 12, fontWeight: '900' },
-  hero: { borderRadius: 18, padding: 16, backgroundColor: colors.greenDark, gap: 5 },
+  hero: { borderRadius: reportTheme.radius.xl, padding: 16, backgroundColor: colors.greenDark, gap: 5 },
   heroEyebrow: { color: 'rgba(255,255,255,0.68)', fontSize: 8, fontWeight: '900', letterSpacing: 0.7 },
-  heroTitle: { color: '#FFFFFF', fontSize: 20, fontWeight: '900' },
+  heroTitle: { color: colors.white, fontSize: 21, fontWeight: '900' },
   heroText: { color: 'rgba(255,255,255,0.86)', fontSize: 11, lineHeight: 16 },
   center: { paddingVertical: 28, alignItems: 'center', gap: 8 },
-  card: { borderRadius: 15, borderWidth: 1, borderColor: colors.line, backgroundColor: '#FFFFFF', padding: 13, gap: 9 },
-  cardTitle: { color: colors.greenDark, fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
+  card: { borderRadius: 15, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, padding: 13, gap: 9 },
+  cardTitle: { color: colors.textStrong, fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
   note: { color: colors.muted, fontSize: 10, lineHeight: 15 },
   metricsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  metric: { minWidth: 76, flexGrow: 1, borderRadius: 13, borderWidth: 1, borderColor: colors.line, backgroundColor: '#FFFFFF', paddingVertical: 11, paddingHorizontal: 9, alignItems: 'center' },
-  metricValue: { color: colors.greenDark, fontSize: 20, fontWeight: '900' },
+  metric: { minWidth: 92, flexGrow: 1, flexBasis: '22%', borderRadius: 13, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, paddingVertical: 11, paddingHorizontal: 9, alignItems: 'center', gap: 2 },
+  metricAttention: { borderColor: '#E8C98C', backgroundColor: '#FFFCF5' },
+  metricValue: { color: colors.textStrong, fontSize: 20, fontWeight: '900' },
   metricLabel: { color: colors.muted, fontSize: 8, fontWeight: '900', textTransform: 'uppercase' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  chip: { maxWidth: 220, borderRadius: 999, borderWidth: 1, borderColor: colors.line, backgroundColor: '#FFFFFF', paddingHorizontal: 10, paddingVertical: 7 },
+  chip: { maxWidth: 220, minHeight: 36, borderRadius: reportTheme.radius.pill, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, paddingHorizontal: 10, paddingVertical: 7, justifyContent: 'center' },
   chipSelected: { backgroundColor: colors.greenDark, borderColor: colors.greenDark },
   chipText: { color: colors.text, fontSize: 9, fontWeight: '800' },
-  chipTextSelected: { color: '#FFFFFF' },
+  chipTextSelected: { color: colors.white },
   sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   periodRow: { flexDirection: 'row', alignItems: 'center', gap: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, paddingTop: 9 },
-  periodTitle: { color: colors.text, fontSize: 11, fontWeight: '900' },
+  periodTitle: { color: colors.textStrong, fontSize: 11, fontWeight: '900' },
   periodMeta: { color: colors.muted, fontSize: 9, marginTop: 2 },
+  periodNumbers: { alignItems: 'flex-end' },
   periodCount: { color: colors.greenDark, fontSize: 13, fontWeight: '900' },
-  submissionRow: { flexDirection: 'row', alignItems: 'center', gap: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, paddingTop: 8 },
-  avatar: { width: 34, height: 34, borderRadius: 10, backgroundColor: '#EAF5EF', alignItems: 'center', justifyContent: 'center' },
-  submitter: { color: colors.text, fontSize: 10, fontWeight: '900' },
+  pendingText: { color: colors.amber, fontSize: 8, fontWeight: '800' },
+  completeText: { color: colors.success, fontSize: 8, fontWeight: '800' },
+  submissionRow: { flexDirection: 'row', alignItems: 'center', gap: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, paddingTop: 9 },
+  avatar: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.greenSoft, alignItems: 'center', justifyContent: 'center' },
+  submissionHeading: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  submitter: { flex: 1, color: colors.textStrong, fontSize: 10, fontWeight: '900' },
   submissionMeta: { color: colors.muted, fontSize: 8, marginTop: 2 },
-  exportButton: { minHeight: 47, borderRadius: 12, backgroundColor: colors.greenDark, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 14 },
-  exportText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
+  reviewPill: { borderRadius: reportTheme.radius.pill, paddingHorizontal: 7, paddingVertical: 4 },
+  reviewText: { fontSize: 7, fontWeight: '900' },
+  attentionPill: { borderRadius: reportTheme.radius.pill, backgroundColor: colors.amberSoft, paddingHorizontal: 8, paddingVertical: 5 },
+  attentionText: { color: colors.amber, fontSize: 7, fontWeight: '900' },
+  exportButton: { minHeight: 50, borderRadius: 12, backgroundColor: colors.greenDark, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 14 },
+  exportText: { color: colors.white, fontSize: 12, fontWeight: '900' },
   disabled: { opacity: 0.48 },
 });
