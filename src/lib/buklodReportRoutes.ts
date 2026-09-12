@@ -87,10 +87,15 @@ export function buklodReportLandingPath(
   return suffix ? `/reports?${suffix}` : '/reports';
 }
 
+/**
+ * Historical name retained for compatibility with existing callers.
+ * Admins now enter the Report Library first; deadline management remains
+ * available from the library as a separate action.
+ */
 export function buklodReportDefinitionsPath(scopeId: string): string {
   const query = new URLSearchParams({
     scope_id: scopeId.trim(),
   });
 
-  return `/reports/definitions?${query.toString()}`;
+  return `/reports/library?${query.toString()}`;
 }
