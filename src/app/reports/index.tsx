@@ -241,7 +241,17 @@ export default function BuklodReportLandingScreen() {
             ) : null}
 
             {scopeId && entitled ? (
-              routeReady ? (
+              actionableAssignments.length === 0 && !routeAssignmentId ? (
+                <View style={styles.infoCard}>
+                  <MaterialCommunityIcons name="clipboard-text-outline" size={24} color={colors.greenDark} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.cardTitle}>No report assigned right now</Text>
+                    <Text style={styles.note}>
+                      Published reports from this Organization or Cluster will appear here. No sample or MZB form is created automatically.
+                    </Text>
+                  </View>
+                </View>
+              ) : routeReady ? (
                 <BuklodReportAssignmentForm
                   scopeId={scopeId}
                   assignmentId={routeAssignmentId || null}
