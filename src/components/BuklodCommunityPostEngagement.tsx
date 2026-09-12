@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 
 import BuklodPressable from '@/components/BuklodPressable';
+import BuklodDugtongAction from '@/components/BuklodDugtongAction';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import {
@@ -37,6 +38,15 @@ type Props = {
   onReport?: () => void;
 };
 
+function postIdFromRightAction(
+  action: ReactNode,
+): string | null {
+  if (!React.isValidElement(action)) return null;
+  const value = (action.props as any)?.postId;
+  const normalized = String(value ?? '').trim();
+  return normalized || null;
+}
+
 export function BuklodCommunityPostEngagement({
   reactionOptions,
   reactionCounts,
@@ -52,6 +62,7 @@ export function BuklodCommunityPostEngagement({
 }: Props) {
   const { theme } = useBuklodTheme();
   const totalComments = Number(commentCount ?? 0);
+  const livingPostId = postIdFromRightAction(rightAction);
 
   return (
     <View style={styles.wrap}>
@@ -90,6 +101,12 @@ export function BuklodCommunityPostEngagement({
               {totalComments}
             </Text>
           </BuklodPressable>
+        ) : null}
+
+        {livingPostId ? (
+          <BuklodDugtongAction
+            postId={livingPostId}
+          />
         ) : null}
 
         {rightAction}
@@ -168,7 +185,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 7,
   },
   reactions: {
     flex: 1,
