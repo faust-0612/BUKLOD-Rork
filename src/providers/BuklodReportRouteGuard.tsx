@@ -48,12 +48,19 @@ export default function BuklodReportRouteGuard({ children }: { children: ReactNo
       return;
     }
 
-    if (SAFETY_ROOTS.has(root)) {
-      if (root === 'report-access-pending' && session && hasCanonicalAccess) {
-        router.replace('/reports' as any);
-      }
+    if (root === 'report-login') {
+      if (session && hasCanonicalAccess) router.replace('/reports' as any);
+      else if (session) router.replace('/report-access-pending' as any);
       return;
     }
+
+    if (root === 'report-access-pending') {
+      if (!session) router.replace('/report-login' as any);
+      else if (hasCanonicalAccess) router.replace('/reports' as any);
+      return;
+    }
+
+    if (SAFETY_ROOTS.has(root)) return;
 
     if (!session) {
       router.replace('/report-login' as any);
@@ -67,6 +74,8 @@ export default function BuklodReportRouteGuard({ children }: { children: ReactNo
 
   if (accountLoading) return null;
   if (!ALLOWED_ROOTS.has(root)) return null;
+  if (root === 'report-login' && session) return null;
+  if (root === 'report-access-pending' && (!session || hasCanonicalAccess)) return null;
   if (!SAFETY_ROOTS.has(root) && (!session || !hasCanonicalAccess)) return null;
 
   return <>{children}</>;
