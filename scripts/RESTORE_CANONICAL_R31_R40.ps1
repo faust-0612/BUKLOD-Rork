@@ -91,6 +91,41 @@ function Repair-R40SpecialCharacterUi([string]$Path) {
     [System.IO.File]::WriteAllText($Path, $text, (New-Object System.Text.UTF8Encoding($false)))
   }
 }
+function Repair-R40SeriesOneArt([string]$Path) {
+  if (!(Test-Path -LiteralPath $Path -PathType Leaf)) {
+    Fail "R40 Series 1 repair target missing: $Path"
+  }
+
+  $text = [System.IO.File]::ReadAllText($Path)
+  $original = $text
+  $specialIds = @('ace','ellusur','jawo','mitch','niel','angel','vhen','trudice')
+
+  # The approved recovery snapshot still points the passport-preview ART registry
+  # at an older special-series1 WEBP family that is not included in the approved
+  # 168-asset package. Reuse the verified R40 hero JPG for both compact and medium
+  # preview slots. This is presentation-only and does not change unlock, points,
+  # rank, pursuit, DB, ownership, or active-character behavior.
+  foreach ($id in $specialIds) {
+    $thumbOld = "../../../assets/images/characters/special-series1/${id}_thumb.webp"
+    $mediumOld = "../../../assets/images/characters/special-series1/${id}_medium.webp"
+    $heroNew = "../../../assets/images/characters/special/batch1/${id}_hero.jpg"
+    $text = $text.Replace($thumbOld, $heroNew)
+    $text = $text.Replace($mediumOld, $heroNew)
+
+    if (-not $text.Contains($heroNew)) {
+      Fail "R40 Series 1 forward repair could not prove verified hero art wiring for: $id"
+    }
+  }
+
+  if ($text.Contains('special-series1/')) {
+    Fail 'R40 Series 1 forward repair left obsolete special-series1 WEBP dependencies.'
+  }
+
+  if ($text -ne $original) {
+    [System.IO.File]::WriteAllText($Path, $text, (New-Object System.Text.UTF8Encoding($false)))
+    Write-Host ' Forward repair: redirected obsolete Series 1 WEBP previews to verified R40 hero JPGs.' -ForegroundColor Green
+  }
+}
 
 $ProjectRoot = Full $ProjectRoot
 $WorkspaceRecoveryRepo = Join-Path $HOME 'BUKLOD_WORKSPACE\RECOVERY\R31_R40_APPROVED'
@@ -200,7 +235,9 @@ Write-Host ''
 Write-Host '4/6 APPLY REVIEWED R40 FORWARD REPAIR' -ForegroundColor Cyan
 $specialUiDestination = Join-Path $ProjectRoot 'src\components\points\BuklodSpecialCharacterSeries.tsx'
 Repair-R40SpecialCharacterUi $specialUiDestination
-Write-Host ' R40 UI structural repair: VERIFIED' -ForegroundColor Green
+$seriesOneDestination = Join-Path $ProjectRoot 'src\components\points\BuklodSpecialSeriesOne.tsx'
+Repair-R40SeriesOneArt $seriesOneDestination
+Write-Host ' R40 UI structural + asset repair: VERIFIED' -ForegroundColor Green
 
 Write-Host ''
 Write-Host '5/6 OVERLAY IMMUTABLE CORE + SPECIAL ASSETS' -ForegroundColor Cyan
