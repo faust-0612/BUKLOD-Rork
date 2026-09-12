@@ -22,6 +22,22 @@ type PermissionGrant = {
   scope_id: string | null;
 };
 
+type PermissionSnapshotCache = {
+  userId: string;
+  grants: PermissionGrant[];
+  cachedAt: number;
+};
+
+type PermissionSnapshotFlight = {
+  userId: string;
+  request: Promise<PermissionGrant[]>;
+};
+
+const PERMISSION_SNAPSHOT_FRESH_MS = 3_000;
+
+let permissionSnapshotCache: PermissionSnapshotCache | null = null;
+let permissionSnapshotFlight: PermissionSnapshotFlight | null = null;
+
 function normalizeRoleKey(value: string) {
   return String(value ?? '').trim().toUpperCase().replaceAll('-', '_');
 }
@@ -81,21 +97,68 @@ function grantAllows(
 }
 
 async function loadPermissionSnapshot(): Promise<PermissionGrant[]> {
-  const { data, error } = await (supabase as any).rpc(
-    'buklod_my_permission_snapshot_v1'
-  );
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user?.id ?? '';
 
-  if (error) {
-    throw error;
+  if (!userId) {
+    permissionSnapshotCache = null;
+    permissionSnapshotFlight = null;
+    return [];
   }
 
-  return (Array.isArray(data) ? data : [])
-    .map((row: any): PermissionGrant => ({
-      permission_key: String(row?.permission_key ?? ''),
-      scope_type: normalizeScopeType(row?.scope_type),
-      scope_id: row?.scope_id == null ? null : String(row.scope_id),
-    }))
-    .filter((row: PermissionGrant) => Boolean(row.permission_key));
+  if (
+    permissionSnapshotCache?.userId === userId &&
+    Date.now() - permissionSnapshotCache.cachedAt <=
+      PERMISSION_SNAPSHOT_FRESH_MS
+  ) {
+    return permissionSnapshotCache.grants;
+  }
+
+  if (permissionSnapshotFlight?.userId === userId) {
+    return permissionSnapshotFlight.request;
+  }
+
+  const request = (async () => {
+    const { data, error } = await (supabase as any).rpc(
+      'buklod_my_permission_snapshot_v1'
+    );
+
+    if (error) {
+      throw error;
+    }
+
+    const grants = (Array.isArray(data) ? data : [])
+      .map((row: any): PermissionGrant => ({
+        permission_key: String(row?.permission_key ?? ''),
+        scope_type: normalizeScopeType(row?.scope_type),
+        scope_id: row?.scope_id == null ? null : String(row.scope_id),
+      }))
+      .filter((row: PermissionGrant) => Boolean(row.permission_key));
+
+    permissionSnapshotCache = {
+      userId,
+      grants,
+      cachedAt: Date.now(),
+    };
+
+    return grants;
+  })();
+
+  permissionSnapshotFlight = {
+    userId,
+    request,
+  };
+
+  try {
+    return await request;
+  } finally {
+    if (
+      permissionSnapshotFlight?.userId === userId &&
+      permissionSnapshotFlight.request === request
+    ) {
+      permissionSnapshotFlight = null;
+    }
+  }
 }
 
 function hasSnapshotPermissionForApp(

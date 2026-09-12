@@ -6,7 +6,11 @@ import {
 
 export type ScopeCommercialEntitlements = ScopeEntitlementsSnapshot;
 
-let cachedByScopeId = new Map<string, ScopeCommercialEntitlements>();
+const cachedByScopeId =
+  new Map<string, ScopeCommercialEntitlements>();
+
+const inFlightByScopeId =
+  new Map<string, Promise<ScopeCommercialEntitlements>>();
 
 export function readScopeCommercialEntitlements(
   data: unknown
@@ -24,33 +28,61 @@ export async function fetchScopeCommercialEntitlements(
     return readScopeCommercialEntitlements(null);
   }
 
-  if (!forceRefresh && cachedByScopeId.has(id)) {
-    return cachedByScopeId.get(id)!;
-  }
-
-  const { data, error } = await (supabase as any).rpc(
-    'buklod_scope_entitlements_v1',
-    {
-      p_scope_id: id,
+  if (!forceRefresh) {
+    const cached = cachedByScopeId.get(id);
+    if (cached) {
+      return cached;
     }
-  );
 
-  if (error) {
-    throw error;
+    const inFlight = inFlightByScopeId.get(id);
+    if (inFlight) {
+      return inFlight;
+    }
   }
 
-  const entitlements = readScopeCommercialEntitlements(data);
-  cachedByScopeId.set(id, entitlements);
-  return entitlements;
+  const request = (async () => {
+    const { data, error } = await (supabase as any).rpc(
+      'buklod_scope_entitlements_v1',
+      {
+        p_scope_id: id,
+      }
+    );
+
+    if (error) {
+      throw error;
+    }
+
+    const entitlements = readScopeCommercialEntitlements(data);
+    cachedByScopeId.set(id, entitlements);
+    return entitlements;
+  })();
+
+  if (!forceRefresh) {
+    inFlightByScopeId.set(id, request);
+  }
+
+  try {
+    return await request;
+  } finally {
+    if (
+      !forceRefresh &&
+      inFlightByScopeId.get(id) === request
+    ) {
+      inFlightByScopeId.delete(id);
+    }
+  }
 }
 
 export function clearScopeCommercialEntitlementsCache(scopeId?: string) {
   if (!scopeId) {
     cachedByScopeId.clear();
+    inFlightByScopeId.clear();
     return;
   }
 
-  cachedByScopeId.delete(String(scopeId).trim());
+  const id = String(scopeId).trim();
+  cachedByScopeId.delete(id);
+  inFlightByScopeId.delete(id);
 }
 
 export async function verifyScopeCommercialFeature(
