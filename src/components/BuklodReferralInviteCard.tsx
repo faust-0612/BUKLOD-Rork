@@ -144,7 +144,7 @@ export default function BuklodReferralInviteCard() {
       gap: 7,
       marginTop: 2,
     },
-    payoutBtn: {
+    secondaryBtn: {
       minHeight: 38,
       borderRadius: 12,
       borderWidth: 1,
@@ -160,7 +160,7 @@ export default function BuklodReferralInviteCard() {
       fontWeight: '900',
       color: theme.accent,
     },
-    payoutText: {
+    secondaryText: {
       fontSize: 10.5,
       fontWeight: '900',
       color: theme.textPrimary,
@@ -186,13 +186,22 @@ export default function BuklodReferralInviteCard() {
         <MaterialCommunityIcons name="chart-donut" size={16} color={theme.accent} />
         <Text style={styles.reportText}>VIEW MY ECONOMY REPORT</Text>
       </Pressable>
-      <Pressable
-        onPress={() => router.push('/bayanihan/payout-profile' as any)}
-        style={({ pressed }) => [styles.payoutBtn, pressed && { opacity: 0.76 }]}
-      >
-        <MaterialCommunityIcons name="cash-check" size={16} color={theme.textPrimary} />
-        <Text style={styles.payoutText}>PAYOUT PROFILE</Text>
-      </Pressable>
+      <View style={styles.actionRow}>
+        <Pressable
+          onPress={() => router.push('/bayanihan/payout-profile' as any)}
+          style={({ pressed }) => [styles.secondaryBtn, { flex: 1 }, pressed && { opacity: 0.76 }]}
+        >
+          <MaterialCommunityIcons name="cash-check" size={16} color={theme.textPrimary} />
+          <Text style={styles.secondaryText}>PAYOUT PROFILE</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => router.push('/bayanihan/withdrawals' as any)}
+          style={({ pressed }) => [styles.secondaryBtn, { flex: 1 }, pressed && { opacity: 0.76 }]}
+        >
+          <MaterialCommunityIcons name="history" size={16} color={theme.textPrimary} />
+          <Text style={styles.secondaryText}>HISTORY</Text>
+        </Pressable>
+      </View>
     </>
   );
 
