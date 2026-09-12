@@ -1,8 +1,6 @@
-import { encode as base64Encode } from 'base64-arraybuffer';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system/legacy';
-import { Platform } from 'react-native';
 
+import { readReportAssetBase64 } from '@/lib/buklodReportAssetBase64';
 import { supabase } from '@/lib/supabase';
 
 export type ReportTemplateFieldType =
@@ -61,15 +59,6 @@ export type ReportTemplateImportResult = {
 
 const MAX_FILE_BYTES = 12 * 1024 * 1024;
 
-async function assetBase64(asset: DocumentPicker.DocumentPickerAsset) {
-  if (Platform.OS === 'web' && asset.file) {
-    return base64Encode(await asset.file.arrayBuffer());
-  }
-  return FileSystem.readAsStringAsync(asset.uri, {
-    encoding: FileSystem.EncodingType.Base64,
-  });
-}
-
 function readErrorMessage(error: any, fallback: string) {
   return String(
     error?.context?.body?.error ??
@@ -106,7 +95,7 @@ export async function pickAndAnalyzeReportTemplate(args: {
     throw new Error('Reporting layout files are limited to 12 MB.');
   }
 
-  const base64 = await assetBase64(asset);
+  const base64 = await readReportAssetBase64(asset);
   const approximateBytes = Math.floor((base64.length * 3) / 4);
   if (approximateBytes > MAX_FILE_BYTES) {
     throw new Error('Reporting layout files are limited to 12 MB.');
