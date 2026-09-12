@@ -139,10 +139,10 @@ const publicReplacement = ` const publish=async()=>{
 
      if(snapshot.photos.length){
       setNotice(
-       `Uploading photos in the background… 0/${snapshot.photos.length}`
+       \`Uploading photos in the background… 0/\${snapshot.photos.length}\`
       );
       setPublishNotice(
-       `Uploading photos in the background… 0/${snapshot.photos.length}`
+       \`Uploading photos in the background… 0/\${snapshot.photos.length}\`
       );
 
       let finished=0;
@@ -152,7 +152,7 @@ const publicReplacement = ` const publish=async()=>{
         3,
         async(photo,index)=>{
          const path=
-          `${snapshot.userId}/post-${Date.now()}-${index}-${Math.random().toString(36).slice(2)}.jpg`;
+          \`\${snapshot.userId}/post-\${Date.now()}-\${index}-\${Math.random().toString(36).slice(2)}.jpg\`;
 
          const uploadedPhoto=
           await uploadCommunityPhotoFile({
@@ -162,7 +162,7 @@ const publicReplacement = ` const publish=async()=>{
 
          finished+=1;
          const notice=
-          `Uploading photos in the background… ${finished}/${snapshot.photos.length}`;
+          \`Uploading photos in the background… \${finished}/\${snapshot.photos.length}\`;
          setNotice(notice);
          setPublishNotice(notice);
 
@@ -290,7 +290,7 @@ const scopedReplacement = `  const publish =
                 3,
                 async (item, index) => {
                   const path =
-                    `scope/${snapshot.scopeId}/${snapshot.userId}/post-${Date.now()}-${index}-${Math.random().toString(36).slice(2)}.jpg`;
+                    \`scope/\${snapshot.scopeId}/\${snapshot.userId}/post-\${Date.now()}-\${index}-\${Math.random().toString(36).slice(2)}.jpg\`;
 
                   const uploadedPhoto =
                     await uploadCommunityPhotoFile({
