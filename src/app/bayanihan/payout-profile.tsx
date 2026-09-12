@@ -16,40 +16,60 @@ import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 import { shared } from '@/components/UI';
 import {
   asMoney,
+  cancelMyBuklodR38ReferralWithdrawal,
   formatPhp,
   loadBuklodR38EconomyPolicy,
   loadMyBuklodR38EconomyReport,
   loadMyBuklodR38PayoutProfile,
+  loadMyBuklodR38WithdrawalHistory,
   requestMyBuklodR38ReferralWithdrawal,
   saveMyBuklodR38PayoutProfile,
   type BuklodR38EconomyPolicy,
   type BuklodR38PayoutProfile,
   type BuklodR38UserEconomyReport,
+  type BuklodR38WithdrawalHistory,
 } from '@/lib/buklodR38Economy';
+
+function formatWhen(value?: string | null) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString('en-PH', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
 
 export default function BuklodR38PayoutProfileScreen() {
   const [profile, setProfile] = useState<BuklodR38PayoutProfile | null>(null);
   const [policy, setPolicy] = useState<BuklodR38EconomyPolicy | null>(null);
   const [report, setReport] = useState<BuklodR38UserEconomyReport | null>(null);
+  const [history, setHistory] = useState<BuklodR38WithdrawalHistory | null>(null);
   const [accountName, setAccountName] = useState('');
   const [gcashMobile, setGcashMobile] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [requesting, setRequesting] = useState(false);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
       setError(null);
-      const [nextProfile, nextPolicy, nextReport] = await Promise.all([
+      const [nextProfile, nextPolicy, nextReport, nextHistory] = await Promise.all([
         loadMyBuklodR38PayoutProfile(),
         loadBuklodR38EconomyPolicy(),
         loadMyBuklodR38EconomyReport(),
+        loadMyBuklodR38WithdrawalHistory(),
       ]);
       setProfile(nextProfile);
       setPolicy(nextPolicy);
       setReport(nextReport);
+      setHistory(nextHistory);
       if (nextProfile) {
         setAccountName(nextProfile.account_name || '');
       }
@@ -146,6 +166,37 @@ export default function BuklodR38PayoutProfileScreen() {
     );
   };
 
+  const cancelWithdrawal = (withdrawalId: string, amount: number) => {
+    Alert.alert(
+      'Cancel Withdrawal?',
+      `${formatPhp(amount)} will be released from Reserved back to Available Direct Referral cash.`,
+      [
+        { text: 'Keep Request', style: 'cancel' },
+        {
+          text: 'Cancel Withdrawal',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              setCancellingId(withdrawalId);
+              try {
+                await cancelMyBuklodR38ReferralWithdrawal(withdrawalId);
+                await load();
+                Alert.alert('Withdrawal Cancelled', 'The reserved referral cash is available again.');
+              } catch (nextError: unknown) {
+                Alert.alert(
+                  'Withdrawal',
+                  nextError instanceof Error ? nextError.message : 'Could not cancel the withdrawal.',
+                );
+              } finally {
+                setCancellingId(null);
+              }
+            })();
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <BuklodPortalScrollView
       style={shared.screen}
@@ -215,7 +266,7 @@ export default function BuklodR38PayoutProfileScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{profile ? 'Update GCash profile' : 'Set GCash profile'}</Text>
             <Text style={styles.muted}>
-              Saving a new number replaces the active payout destination. The saved full number is never returned to this screen.
+              Saving a new number replaces the active payout destination for future requests only. Existing withdrawal requests keep their original frozen payout destination.
             </Text>
             <TextInput
               value={accountName}
@@ -274,6 +325,60 @@ export default function BuklodR38PayoutProfileScreen() {
               <Text style={styles.primaryText}>REQUEST FULL REFERRAL BALANCE</Text>
             </Pressable>
           </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Withdrawal history</Text>
+            <Text style={styles.muted}>
+              Your own payout records only. Full payout numbers are never returned here; each record shows the frozen masked destination used when the request was created.
+            </Text>
+            {history?.rows.length ? history.rows.map((item) => {
+              const cancellable = ['REQUESTED', 'UNDER_REVIEW'].includes(item.status);
+              const isCancelling = cancellingId === item.id;
+              return (
+                <View key={item.id} style={styles.historyCard}>
+                  <View style={styles.historyHeader}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.historyAmount}>{formatPhp(item.requested_amount)}</Text>
+                      <Text style={styles.historyMeta}>
+                        {item.payout_method || '—'} · {item.payout_destination_masked || '—'}
+                      </Text>
+                    </View>
+                    <Text style={styles.historyStatus}>{item.status.replace(/_/g, ' ')}</Text>
+                  </View>
+                  <Text style={styles.historyLine}>Requested: {formatWhen(item.requested_at)}</Text>
+                  {!!item.paid_at && <Text style={styles.historyLine}>Paid: {formatWhen(item.paid_at)}</Text>}
+                  {!!item.payout_transaction_ref && (
+                    <Text style={styles.historyLine}>Transaction ref: {item.payout_transaction_ref}</Text>
+                  )}
+                  {!!item.rejection_reason && (
+                    <Text style={styles.historyLine}>Reason: {item.rejection_reason}</Text>
+                  )}
+                  {!!item.failure_reason && (
+                    <Text style={styles.historyLine}>Failure: {item.failure_reason}</Text>
+                  )}
+                  {cancellable ? (
+                    <Pressable
+                      disabled={isCancelling}
+                      onPress={() => cancelWithdrawal(item.id, item.requested_amount)}
+                      style={({ pressed }) => [styles.cancelBtn, (pressed || isCancelling) && { opacity: 0.7 }]}
+                    >
+                      {isCancelling ? (
+                        <ActivityIndicator color="#7C3B35" />
+                      ) : (
+                        <MaterialCommunityIcons name="close-circle-outline" size={16} color="#7C3B35" />
+                      )}
+                      <Text style={styles.cancelText}>CANCEL REQUEST</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              );
+            }) : (
+              <View style={styles.emptyHistory}>
+                <MaterialCommunityIcons name="history" size={21} color="#7E8983" />
+                <Text style={styles.muted}>No withdrawal requests yet.</Text>
+              </View>
+            )}
+          </View>
         </>
       )}
     </BuklodPortalScrollView>
@@ -312,4 +417,13 @@ const styles = StyleSheet.create({
   statusText: { flex: 1, fontSize: 11.5, lineHeight: 16, fontWeight: '800', color: '#47564E' },
   withdrawBtn: { minHeight: 46, borderRadius: 11, backgroundColor: '#275D45', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   disabledBtn: { backgroundColor: '#9DA7A2', opacity: 0.72 },
+  historyCard: { gap: 6, padding: 13, borderWidth: 1, borderColor: 'rgba(25,45,35,0.09)', backgroundColor: '#FFFFFF' },
+  historyHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  historyAmount: { fontSize: 14, fontWeight: '900', color: '#275D45' },
+  historyMeta: { marginTop: 2, fontSize: 10.5, color: '#738078' },
+  historyStatus: { fontSize: 9, fontWeight: '900', color: '#47564E', backgroundColor: '#F0F4F2', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 5, textTransform: 'uppercase' },
+  historyLine: { fontSize: 10.5, lineHeight: 15, color: '#69766F' },
+  cancelBtn: { marginTop: 3, minHeight: 38, borderWidth: 1, borderColor: 'rgba(124,59,53,0.25)', borderRadius: 10, backgroundColor: '#FFF8F7', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  cancelText: { color: '#7C3B35', fontSize: 10, fontWeight: '900' },
+  emptyHistory: { minHeight: 72, borderWidth: 1, borderColor: 'rgba(25,45,35,0.08)', backgroundColor: '#F7F9F8', alignItems: 'center', justifyContent: 'center', gap: 6 },
 });
