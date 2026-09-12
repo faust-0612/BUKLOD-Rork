@@ -48,11 +48,8 @@ if ([string]::IsNullOrWhiteSpace($env:BUKLOD_WORKSPACE_ROOT)) {
 if ([string]::IsNullOrWhiteSpace($env:BUKLOD_R31_R40_RECOVERY_ROOT)) {
   throw 'BUKLOD_R31_R40_RECOVERY_ROOT is missing. Canonical R31/R40 recovery cannot be proven.'
 }
-
-$scriptPath = $PSCommandPath
-$scriptHashBefore = $null
-if ($scriptPath -and (Test-Path $scriptPath)) {
-  $scriptHashBefore = (Get-FileHash $scriptPath -Algorithm SHA256).Hash
+if ([string]::IsNullOrWhiteSpace($env:BUKLOD_RELEASE_SOURCE_SHA)) {
+  throw 'BUKLOD_RELEASE_SOURCE_SHA is missing. Exact release identity cannot be proven.'
 }
 
 $branch = (git symbolic-ref --short -q HEAD 2>$null)
@@ -64,18 +61,13 @@ if ($branch -ne 'main') {
   throw "Production web release requires branch main. Current branch: $branch"
 }
 
-Write-Host 'Refreshing canonical main inside disposable staging...' -ForegroundColor Yellow
-git pull --ff-only origin main
-if ($LASTEXITCODE -ne 0) { throw 'git pull failed. Deployment stopped.' }
-
-if ($scriptPath -and (Test-Path $scriptPath) -and $scriptHashBefore) {
-  $scriptHashAfter = (Get-FileHash $scriptPath -Algorithm SHA256).Hash
-  if ($scriptHashAfter -ne $scriptHashBefore) {
-    Write-Host 'Deploy implementation updated during pull. Relaunching latest protected copy...' -ForegroundColor Cyan
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $scriptPath
-    exit $LASTEXITCODE
-  }
+$expectedSourceSha = $env:BUKLOD_RELEASE_SOURCE_SHA.Trim()
+$headSha = (git rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0 -or $headSha -ne $expectedSourceSha) {
+  throw "Canonical release SHA drift detected. Expected=$expectedSourceSha actual=$headSha"
 }
+Write-Host "Canonical release SHA locked: $headSha" -ForegroundColor Green
+Write-Host 'No git pull will run inside disposable staging.' -ForegroundColor Green
 
 if (-not (Test-Path 'package.json')) { throw 'package.json missing from canonical release staging.' }
 if (-not (Test-Path 'package-lock.json')) { throw 'package-lock.json missing from canonical release staging.' }
@@ -123,6 +115,11 @@ if (-not $supabaseUrlLine -or -not $supabaseKeyLine) {
   throw 'Production environment preflight failed. Deployment stopped.'
 }
 Write-Host 'Production Supabase client environment verified.' -ForegroundColor Green
+
+$headBeforeOverlay = (git rev-parse HEAD).Trim()
+if ($headBeforeOverlay -ne $expectedSourceSha) {
+  throw "Release SHA changed before recovery overlay. Expected=$expectedSourceSha actual=$headBeforeOverlay"
+}
 
 Write-Host 'Overlaying approved R31/R40 recovery package into disposable release staging...' -ForegroundColor Yellow
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File '.\scripts\RESTORE_CANONICAL_R31_R40.ps1' `
@@ -221,6 +218,11 @@ if ($LASTEXITCODE -ne 0) {
   throw 'Compiled web artifact failed the BUKLOD Kingdom release lock. Deployment stopped.'
 }
 
+$headBeforeDeploy = (git rev-parse HEAD).Trim()
+if ($headBeforeDeploy -ne $expectedSourceSha) {
+  throw "Release SHA changed before EAS deploy. Expected=$expectedSourceSha actual=$headBeforeDeploy"
+}
+
 Write-Host 'Publishing WEB ONLY to existing Expo Hosting production target...' -ForegroundColor Yellow
 $deployLog = Join-Path $releaseLogDir 'eas-web-deploy.log'
 $deployExit = Invoke-NativeLogged `
@@ -238,6 +240,7 @@ if ($deployExit -ne 0) {
 }
 
 Write-Host 'DEPLOY COMPLETE — WEB ONLY' -ForegroundColor Green
+Write-Host "Released source SHA: $expectedSourceSha" -ForegroundColor Green
 Write-Host "Release logs: $releaseLogDir" -ForegroundColor DarkGray
 Write-Host 'Verify BUKLOD Main: https://buklod.expo.app' -ForegroundColor Green
 Write-Host 'Verify BUKLOD Kingdom: https://buklod.expo.app/games' -ForegroundColor Green
