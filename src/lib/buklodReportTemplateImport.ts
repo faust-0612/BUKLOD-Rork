@@ -125,7 +125,7 @@ export async function pickAndAnalyzeReportTemplate(args: {
     throw new Error('Reporting layout files are limited to 12 MB.');
   }
 
-  const { data, error } = await supabase.functions.invoke('buklod-report-import-v1', {
+  const { data, error } = await supabase.functions.invoke('buklod-report-template-import-v1', {
     body: {
       scope_id: args.scopeId,
       filename: asset.name,
