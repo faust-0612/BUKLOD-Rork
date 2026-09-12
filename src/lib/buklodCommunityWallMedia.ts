@@ -1,12 +1,15 @@
-/* BUKLOD_COMMUNITY_WALL_MEDIA_CONTRACT_R1 */
+/* BUKLOD_COMMUNITY_WALL_MEDIA_CONTRACT_R2 */
 /**
- * Wall vs Reel video rules — shared by Public and scoped Community composers.
+ * Community vs BUKLOD IGPAT media rules.
  * Canonical product contract:
- * - Wall: one video, max 1 GiB / 30 minutes
- * - Reels: short-form, max 60 seconds
+ * - Community: text/photos only for new posts.
+ * - IGPAT: short-form video, max 60 seconds.
+ *
+ * Some legacy names remain exported as compatibility aliases so older stable
+ * callers and deep links do not regress while the product name is IGPAT.
  */
 
-/** 1 GiB product maximum for community video uploads (1024-based). */
+/** 1 GiB product maximum for IGPAT video uploads (1024-based). */
 export const BUKLOD_VIDEO_MAX_SIZE_BYTES = 1_073_741_824;
 
 export const BUKLOD_VIDEO_MAX_SIZE_LABEL = '1 GB';
@@ -15,17 +18,25 @@ export const BUKLOD_VIDEO_MAX_SIZE_LABEL = '1 GB';
 export const BUKLOD_VIDEO_TOO_LARGE_MESSAGE =
   `Maximum video size is ${BUKLOD_VIDEO_MAX_SIZE_LABEL}.`;
 
-/** Reels remain short-form. */
-export const BUKLOD_REEL_MAX_DURATION_SECONDS = 60;
+/** Canonical IGPAT short-form duration ceiling. */
+export const BUKLOD_IGPAT_MAX_DURATION_SECONDS = 60;
 
-/** Wall / general community video duration ceiling. */
+/** @deprecated Compatibility alias for older source references. */
+export const BUKLOD_REEL_MAX_DURATION_SECONDS =
+  BUKLOD_IGPAT_MAX_DURATION_SECONDS;
+
+/** Legacy wall/general-video duration ceiling retained for read/edit compatibility. */
 export const BUKLOD_WALL_VIDEO_MAX_DURATION_SECONDS = 1800;
 
 export const BUKLOD_WALL_VIDEO_TOO_LONG_MESSAGE =
-  'Videos can be up to 30 minutes long.';
+  'Legacy Community videos can be up to 30 minutes long.';
 
+export const BUKLOD_IGPAT_TOO_LONG_MESSAGE =
+  'BUKLOD IGPAT may be up to 60 seconds only.';
+
+/** @deprecated Compatibility alias; user-facing wording is canonical IGPAT. */
 export const BUKLOD_REEL_TOO_LONG_MESSAGE =
-  'Reels may be up to 60 seconds only.';
+  BUKLOD_IGPAT_TOO_LONG_MESSAGE;
 
 export type CommunityUploadFailureReason =
   | 'app_validation_limit'
@@ -182,9 +193,20 @@ export function communityVideoUploadRejectedMessage(
   });
 }
 
-export function isReelMediaPath(path: string | null | undefined) {
+/** Canonical helper for new IGPAT media paths plus legacy Reel paths. */
+export function isIgpatMediaPath(path: string | null | undefined) {
   const value = String(path ?? '').toLowerCase();
-  return value.includes('/reel-') || value.includes('reel-');
+  return (
+    value.includes('/igpat-') ||
+    value.includes('igpat-') ||
+    value.includes('/reel-') ||
+    value.includes('reel-')
+  );
+}
+
+/** @deprecated Compatibility alias for stable older callers. */
+export function isReelMediaPath(path: string | null | undefined) {
+  return isIgpatMediaPath(path);
 }
 
 export function readVideoDurationSeconds(asset: {
@@ -196,8 +218,9 @@ export function readVideoDurationSeconds(asset: {
   }
 
   /*
-   * Expo ImagePicker documents milliseconds. Some Android galleries
-   * already report seconds. Values above the 30-minute wall cap are ms.
+   * Expo ImagePicker documents milliseconds. Some Android galleries have
+   * historically surfaced seconds. Values above the legacy 30-minute wall cap
+   * are therefore safely interpreted as milliseconds.
    */
   if (raw > BUKLOD_WALL_VIDEO_MAX_DURATION_SECONDS) {
     return Math.max(1, Math.ceil(raw / 1000));
@@ -252,15 +275,17 @@ export async function readVideoSizeBytes(
 export function validateCommunityVideoUpload(params: {
   durationSeconds: number;
   sizeBytes?: number;
+  /** Legacy compatibility field: true means the IGPAT short-video contract. */
   isReel?: boolean;
+  isIgpat?: boolean;
 }): string | null {
-  const isReel = Boolean(params.isReel);
+  const isIgpat = Boolean(params.isIgpat ?? params.isReel);
   const duration = Number(params.durationSeconds ?? 0);
   const sizeBytes = Number(params.sizeBytes ?? 0);
 
-  if (isReel) {
-    if (duration > BUKLOD_REEL_MAX_DURATION_SECONDS) {
-      return BUKLOD_REEL_TOO_LONG_MESSAGE;
+  if (isIgpat) {
+    if (duration > BUKLOD_IGPAT_MAX_DURATION_SECONDS) {
+      return BUKLOD_IGPAT_TOO_LONG_MESSAGE;
     }
   } else if (duration > BUKLOD_WALL_VIDEO_MAX_DURATION_SECONDS) {
     return BUKLOD_WALL_VIDEO_TOO_LONG_MESSAGE;
