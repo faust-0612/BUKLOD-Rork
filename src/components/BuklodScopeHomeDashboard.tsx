@@ -20,6 +20,7 @@ import BuklodScopeAttendanceCard from '@/components/BuklodScopeAttendanceCard';
 import BuklodMzbHomeWidgets from '@/components/BuklodMzbHomeWidgets';
 import BuklodOrgHomeClusterCard from '@/components/BuklodOrgHomeClusterCard';
 import BuklodOrgHomeBayanihanCard from '@/components/BuklodOrgHomeBayanihanCard';
+import BuklodReportDoorCard from '@/components/BuklodReportDoorCard';
 import BuklodScreenBottomBanner from '@/components/BuklodScreenBottomBanner';
 import { useBuklodAccess } from '@/hooks/useBuklodAccess';
 import { useScreenFocused } from '@/hooks/useScreenFocused';
@@ -205,6 +206,11 @@ export default function BuklodScopeHomeDashboard({
         <>
           <BuklodOrgHomeClusterCard organizationId={scope.scope_id} />
           <BuklodOrgHomeBayanihanCard />
+          <BuklodReportDoorCard
+            scopeId={scope.scope_id}
+            scopeName={scope.name}
+            scopeType="ORGANIZATION"
+          />
         </>
       ) : null}
 
