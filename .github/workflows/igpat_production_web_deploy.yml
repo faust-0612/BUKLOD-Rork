@@ -1,31 +1,30 @@
-name: BUKLOD IGPAT Production Web Deploy
+name: BUKLOD IGPAT Web Release Gate
 
 on:
-  push:
+  pull_request:
     branches:
       - main
     paths:
       - '.github/workflows/igpat_production_web_deploy.yml'
       - 'src/app/igpat/**'
-      - 'src/components/BuklodHomeReelsExtension.tsx'
-      - 'docs/BUKLOD_MINIGAME_QUALITY_STANDARD.md'
+      - 'src/app/reels/index.tsx'
+      - 'src/app/(tabs)/buklod.tsx'
+      - 'src/components/BuklodExclusiveScopeCommunity.tsx'
+      - 'src/lib/buklodCommunityWallMedia.ts'
+      - 'supabase/migrations/*igpat*.sql'
+      - 'supabase/migrations/*community_text_photo_only*.sql'
   workflow_dispatch:
 
 permissions:
   contents: read
 
-env:
-  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-
 jobs:
-  qa-export-deploy:
+  qa:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout production source
+      - name: Checkout candidate source
         uses: actions/checkout@v4
-        with:
-          ref: main
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -39,51 +38,54 @@ jobs:
       - name: TypeScript QA
         run: npx tsc --noEmit
 
-      - name: Verify IGPAT release anchors
+      - name: Verify canonical IGPAT release contract
         shell: bash
         run: |
+          set -euo pipefail
+
           test -f 'src/app/igpat/index.tsx'
           test -f 'src/app/igpat/create.tsx'
-          grep -F 'BUKLOD IGPAT' 'src/components/BuklodHomeReelsExtension.tsx'
-          grep -F 'An Instant Bond.' 'src/components/BuklodHomeReelsExtension.tsx'
-          grep -F "router.push('/igpat' as any)" 'src/components/BuklodHomeReelsExtension.tsx'
-          grep -F "router.push('/igpat/create' as any)" 'src/components/BuklodHomeReelsExtension.tsx'
-          grep -F "get_buklod_reels_v1" 'src/app/igpat/index.tsx'
+          test -f 'src/app/igpat/create.web.tsx'
+          test -f 'src/app/reels/index.tsx'
+
+          grep -F "get_buklod_igpat_feed_v2" 'src/app/igpat/index.tsx'
+          if grep -F "get_buklod_reels_v1" 'src/app/igpat/index.tsx'; then
+            echo 'Legacy client-side Reels feed RPC is still active in IGPAT.'
+            exit 1
+          fi
+
           grep -F "create_buklod_reel_v1" 'src/app/igpat/create.tsx'
-          grep -F 'QUALITY FIRST. GRAPHICS FIRST. SOUND + ANIMATION REQUIRED.' 'docs/BUKLOD_MINIGAME_QUALITY_STANDARD.md'
+          grep -F "create_buklod_reel_v1" 'src/app/igpat/create.web.tsx'
+          grep -F "get_my_active_igpat_groups_v1" 'src/app/igpat/create.tsx'
+          grep -F "get_my_active_igpat_groups_v1" 'src/app/igpat/create.web.tsx'
+          grep -F 'href="/igpat"' 'src/app/reels/index.tsx'
 
-      - name: Expo credential preflight
-        shell: bash
-        run: |
-          if [ -z "${EXPO_TOKEN:-}" ]; then
-            echo 'EXPO_TOKEN repository secret is missing.'
+          grep -F "router.push('/igpat' as any)" 'src/app/(tabs)/buklod.tsx'
+          grep -F "router.push('/igpat/create' as any)" 'src/app/(tabs)/buklod.tsx'
+          grep -F "router.push('/igpat' as any)" 'src/components/BuklodExclusiveScopeCommunity.tsx'
+          grep -F "router.push('/igpat/create' as any)" 'src/components/BuklodExclusiveScopeCommunity.tsx'
+          grep -F 'Community accepts text and photos only' 'src/components/BuklodExclusiveScopeCommunity.tsx'
+
+          if grep -F "setMode('reels')" 'src/components/BuklodExclusiveScopeCommunity.tsx'; then
+            echo 'Scoped Community still exposes a local Reels mode entrypoint.'
+            exit 1
+          fi
+          if grep -F 'Add GIF' 'src/components/BuklodExclusiveScopeCommunity.tsx'; then
+            echo 'Scoped Community still exposes Add GIF.'
+            exit 1
+          fi
+          if grep -F 'Add Video' 'src/components/BuklodExclusiveScopeCommunity.tsx'; then
+            echo 'Scoped Community still exposes Add Video.'
             exit 1
           fi
 
-      - name: Export production web
-        run: npx expo export --platform web --output-dir dist
+          test -f 'supabase/migrations/20260912021000_igpat_follow_write_grants_r8.sql'
+          test -f 'supabase/migrations/20260912023000_igpat_multi_group_options_r9.sql'
+          test -f 'supabase/migrations/20260912024500_igpat_publish_scope_correctness_r10.sql'
+          test -f 'supabase/migrations/20260912025500_community_text_photo_only_r11.sql'
+          test -f 'supabase/migrations/20260912031000_igpat_feed_modes_r12.sql'
+          test -f 'supabase/migrations/20260912030448_igpat_r13_scope_community_text_photo_only.sql'
+          test -f 'supabase/migrations/20260912045328_igpat_r14_scope_community_legacy_overload_guard.sql'
 
-      - name: Deploy production web
-        id: deploy
-        shell: bash
-        run: |
-          set -o pipefail
-          npx eas-cli@latest deploy --prod --non-interactive 2>&1 | tee igpat-deploy-output.txt
-
-      - name: Preserve deploy result
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: buklod-igpat-web-deploy-output-${{ github.run_number }}
-          path: igpat-deploy-output.txt
-          if-no-files-found: ignore
-
-      - name: Deployment status
-        if: always()
-        shell: bash
-        run: |
-          if [ "${{ steps.deploy.outcome }}" != "success" ]; then
-            echo 'BUKLOD IGPAT web deployment did not succeed.'
-            exit 1
-          fi
-          echo 'BUKLOD IGPAT web deployment succeeded.'
+      - name: Confirm gate is non-deploying
+        run: echo 'IGPAT PR gate passed. Production deployment remains owned by BUKLOD Production Web Deploy after merge.'
