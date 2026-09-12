@@ -96,16 +96,23 @@ export async function uploadBuklodResource({
   uri,
   name,
   mimeType,
+  sha256: suppliedSha256,
 }: {
   userId: string;
   uri: string;
   name: string;
   mimeType: string;
+  sha256?: string;
 }): Promise<{
   storagePath: string;
   sha256: string;
 }> {
-  const sha256 = await sha256BuklodResource(uri);
+  // The composer normally fingerprints once before checking for an existing
+  // object. Reuse that digest instead of reading a large local file twice.
+  const normalizedSupplied = String(suppliedSha256 ?? '').trim().toLowerCase();
+  const sha256 = /^[a-f0-9]{64}$/.test(normalizedSupplied)
+    ? normalizedSupplied
+    : await sha256BuklodResource(uri);
   const path = `${userId}/resources/${sha256.slice(0, 16)}-${safeFilename(name)}`;
   const storage = supabase.storage.from('community-media');
 
