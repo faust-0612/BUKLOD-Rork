@@ -51,16 +51,26 @@ export type BuklodR38PayoutProfile = {
 
 export type BuklodR38Withdrawal = {
   id: string;
-  user_id: string;
+  user_id?: string;
   requested_amount: number;
   currency: string;
   status: string;
   payout_method: string | null;
-  payout_profile_ref: string | null;
+  payout_profile_ref?: string | null;
   payout_destination_masked: string | null;
   requested_at: string;
+  reviewed_at?: string | null;
+  approved_at?: string | null;
   paid_at?: string | null;
   payout_transaction_ref?: string | null;
+  rejection_reason?: string | null;
+  failure_reason?: string | null;
+};
+
+export type BuklodR38WithdrawalHistory = {
+  rows: BuklodR38Withdrawal[];
+  referral_withdrawal_enabled: boolean;
+  payout_processing_enabled: boolean;
 };
 
 export type BuklodR38UserEconomyReport = {
@@ -250,6 +260,19 @@ export async function saveMyBuklodR38PayoutProfile(input: {
   }
 
   return data as BuklodR38PayoutProfile;
+}
+
+export async function loadMyBuklodR38WithdrawalHistory(limit = 50) {
+  const { data, error } = await (supabase as any).rpc(
+    'get_my_buklod_r38_referral_withdrawals_v1',
+    { p_limit: limit },
+  );
+
+  if (error) {
+    throw new Error(messageFrom(error, 'Could not load your withdrawal history.'));
+  }
+
+  return data as BuklodR38WithdrawalHistory;
 }
 
 export async function requestMyBuklodR38ReferralWithdrawal(
