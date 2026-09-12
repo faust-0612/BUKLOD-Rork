@@ -35,6 +35,24 @@ export type BuklodClaimResult = {
   ack_only?: boolean;
 };
 
+export type BuklodClaimGroup = {
+  group_key: string;
+  group_label: string;
+  event_count: number;
+  total_points: number;
+};
+
+export type BuklodClaimGroupResult = {
+  group_key: string;
+  claimed_count: number;
+  claimed_points: number;
+  lifetime_points: number;
+  available_points: number;
+  rank_up: boolean;
+  rank_name: string | null;
+  remaining_count: number;
+};
+
 const POINTS_CACHE_PREFIX = 'buklod:points:';
 
 async function getAuthScopedPointsCacheKey(suffix: string) {
@@ -129,6 +147,42 @@ export async function loadPendingBuklodRewardEvent(): Promise<BuklodRewardEvent 
   );
 }
 
+export async function loadBuklodClaimGroups(): Promise<BuklodClaimGroup[]> {
+  const cacheKey = await getAuthScopedPointsCacheKey('claim-groups');
+
+  return cachedQuery(
+    cacheKey,
+    async () => {
+      const { data, error } = await (supabase as any).rpc(
+        'get_my_buklod_claim_groups_v1',
+      );
+
+      if (error) {
+        throw error;
+      }
+
+      if (!Array.isArray(data)) {
+        return [];
+      }
+
+      return data
+        .map((raw: Record<string, unknown>) => ({
+          group_key: String(raw.group_key ?? ''),
+          group_label: String(raw.group_label ?? 'Other'),
+          event_count: toNumber(raw.event_count),
+          total_points: toNumber(raw.total_points),
+        }))
+        .filter(
+          (group: BuklodClaimGroup) =>
+            Boolean(group.group_key) &&
+            group.event_count > 0 &&
+            group.total_points > 0,
+        );
+    },
+    { ttlMs: 5_000, staleMs: 12_000 },
+  );
+}
+
 export async function claimBuklodRewardEvent(
   eventId: string,
 ): Promise<BuklodClaimResult> {
@@ -152,6 +206,34 @@ export async function claimBuklodRewardEvent(
     rank_up: Boolean(row.rank_up),
     rank_name: row.rank_name ? String(row.rank_name) : null,
     ack_only: Boolean(row.ack_only),
+  };
+}
+
+export async function claimBuklodRewardGroup(
+  groupKey: string,
+): Promise<BuklodClaimGroupResult> {
+  const { data, error } = await (supabase as any).rpc(
+    'claim_my_buklod_reward_group_v1',
+    { p_group_key: groupKey.trim().toLowerCase() },
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  await invalidateMyPointsCache();
+
+  const row = (data ?? {}) as Record<string, unknown>;
+
+  return {
+    group_key: String(row.group_key ?? groupKey),
+    claimed_count: toNumber(row.claimed_count),
+    claimed_points: toNumber(row.claimed_points),
+    lifetime_points: toNumber(row.lifetime_points),
+    available_points: toNumber(row.available_points),
+    rank_up: Boolean(row.rank_up),
+    rank_name: row.rank_name ? String(row.rank_name) : null,
+    remaining_count: toNumber(row.remaining_count),
   };
 }
 
