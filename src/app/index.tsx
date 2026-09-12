@@ -29,7 +29,7 @@ export default function Index() {
     );
   }
 
-  if (!session) return <Redirect href="/(auth)/login" />;
+  if (!session) return <Redirect href="/report-login" />;
   if (config?.maintenance_mode) return <Redirect href="/system/maintenance" />;
   if (config?.update_required) return <Redirect href="/system/update-required" />;
   if (config?.pilot_access_required && !config?.pilot_access_granted) {
