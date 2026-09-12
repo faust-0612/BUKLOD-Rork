@@ -48,13 +48,15 @@ export default function BibleLayout() {
   if (isBareDailyDoorway) {
     return (
       <Redirect
-        href={{
-          pathname: '/bible',
-          params: {
-            ...(assignedDate ? { date: assignedDate } : {}),
-            mode: 'respond',
-          },
-        }}
+        href={
+          {
+            pathname: '/bible',
+            params: {
+              ...(assignedDate ? { date: assignedDate } : {}),
+              mode: 'respond',
+            },
+          } as any
+        }
       />
     );
   }
