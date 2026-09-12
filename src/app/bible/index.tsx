@@ -1959,33 +1959,7 @@ export default function DailyBibleScreen() {
             )}
 
 
-<Pressable
-              disabled={selectedDate > today}
-              onPress={openAssignedReading}
-              style={[
-                styles.readBibleButton,
-                selectedDate > today &&
-                  styles.readBibleButtonOff,
-              ]}
-            >
-              <View style={{flex:1}}>
-                <Text style={styles.readBibleEyebrow}>
-                  TODAY'S SCRIPTURE
-                </Text>
-
-                <Text style={styles.readBibleTitle}>
-                  READ {selected.bible_reference}
-                </Text>
-
-                <Text style={styles.readBibleHelp}>
-                  Open the full Bible text in ASD or KJV.
-                </Text>
-              </View>
-
-              <Text style={styles.readBibleArrow}>
-                READ {'>'}
-              </Text>
-            </Pressable>
+{/* CONTINUOUS_USE_STABILITY_R1: duplicate read doorway removed; selected reference OPEN IN BIBLE remains canonical. */}
 
             <Text style={styles.eyebrow}>
               RESPONSE LANGUAGE
