@@ -31,6 +31,12 @@ type IgpatDraft = {
   revokeOnDispose?: boolean;
 };
 
+type IgpatGroupOption = {
+  group_id: string;
+  group_name?: string | null;
+  group_code?: string | null;
+};
+
 function Preview({ uri }: { uri: string }) {
   const player = useVideoPlayer(uri, instance => {
     instance.loop = true;
@@ -99,6 +105,8 @@ export default function IgpatCreateWebScreen() {
   const [draft, setDraft] = useState<IgpatDraft | null>(null);
   const [caption, setCaption] = useState('');
   const [audience, setAudience] = useState<Audience>('public');
+  const [groups, setGroups] = useState<IgpatGroupOption[]>([]);
+  const [groupsLoading, setGroupsLoading] = useState(true);
   const [groupId, setGroupId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [stage, setStage] = useState('');
@@ -116,20 +124,63 @@ export default function IgpatCreateWebScreen() {
   const recordStartedAtRef = useRef(0);
 
   useEffect(() => {
-    if (!user?.id) return;
-    void supabase
-      .from('group_members')
-      .select('group_id')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .limit(1)
-      .maybeSingle()
-      .then(({ data }) => {
-        const id = data?.group_id ?? null;
-        setGroupId(id);
-        if (id) setAudience('group');
-        else if (profile?.church_id) setAudience('public');
+    let cancelled = false;
+
+    if (!user?.id) {
+      setGroups([]);
+      setGroupId(null);
+      setGroupsLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setGroupsLoading(true);
+
+    void (supabase as any)
+      .rpc('get_my_active_igpat_groups_v1')
+      .then(({ data, error }: any) => {
+        if (cancelled) return;
+
+        if (error) {
+          console.warn('BUKLOD IGPAT groups:', error.message);
+          setGroups([]);
+          setGroupId(null);
+          return;
+        }
+
+        const options = ((data ?? []) as IgpatGroupOption[])
+          .filter(row => Boolean(row?.group_id))
+          .map(row => ({
+            group_id: String(row.group_id),
+            group_name: row.group_name ? String(row.group_name) : null,
+            group_code: row.group_code ? String(row.group_code) : null,
+          }));
+
+        setGroups(options);
+        setGroupId(current =>
+          current && options.some(row => row.group_id === current)
+            ? current
+            : options[0]?.group_id ?? null
+        );
+
+        if (!profile?.church_id && options.length) {
+          setAudience('group');
+        }
+      })
+      .catch((error: any) => {
+        if (cancelled) return;
+        console.warn('BUKLOD IGPAT groups:', String(error?.message ?? error));
+        setGroups([]);
+        setGroupId(null);
+      })
+      .finally(() => {
+        if (!cancelled) setGroupsLoading(false);
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [profile?.church_id, user?.id]);
 
   const stopCamera = () => {
@@ -314,8 +365,11 @@ export default function IgpatCreateWebScreen() {
   const publish = async () => {
     if (!user?.id || !draft || busy) return;
 
-    if (audience === 'group' && !groupId) {
-      Alert.alert('BUKLOD IGPAT', 'You do not have an active BUKLOD Cluster.');
+    if (
+      audience === 'group' &&
+      (!groupId || !groups.some(row => row.group_id === groupId))
+    ) {
+      Alert.alert('BUKLOD IGPAT', 'Choose an active BUKLOD Cluster first.');
       return;
     }
     if ((audience === 'local' || audience === 'public') && !profile?.church_id) {
@@ -432,12 +486,24 @@ export default function IgpatCreateWebScreen() {
       <Text style={styles.label}>AUDIENCE</Text>
       <View style={styles.audienceRow}>
         {(['group', 'public', 'local'] as Audience[]).map(value => {
-          const disabled = value === 'group' ? !groupId : !profile?.church_id;
+          const disabled = value === 'group'
+            ? groupsLoading || !groups.length
+            : !profile?.church_id;
           return (
             <Pressable
               key={value}
-              style={[styles.audienceButton, audience === value && styles.audienceSelected, disabled && styles.audienceDisabled]}
-              onPress={() => !disabled && setAudience(value)}
+              style={[
+                styles.audienceButton,
+                audience === value && styles.audienceSelected,
+                disabled && styles.audienceDisabled,
+              ]}
+              onPress={() => {
+                if (disabled) return;
+                setAudience(value);
+                if (value === 'group' && !groupId) {
+                  setGroupId(groups[0]?.group_id ?? null);
+                }
+              }}
               disabled={busy || disabled}
             >
               <Text style={[styles.audienceText, audience === value && styles.audienceSelectedText]}>
@@ -447,6 +513,30 @@ export default function IgpatCreateWebScreen() {
           );
         })}
       </View>
+
+      {audience === 'group' && groups.length > 0 ? (
+        <View style={styles.clusterSection}>
+          <Text style={styles.clusterLabel}>POST TO CLUSTER</Text>
+          <View style={styles.clusterRow}>
+            {groups.map(option => {
+              const selected = option.group_id === groupId;
+              const label = option.group_name || option.group_code || 'BUKLOD Cluster';
+              return (
+                <Pressable
+                  key={option.group_id}
+                  style={[styles.clusterChip, selected && styles.clusterChipSelected]}
+                  onPress={() => setGroupId(option.group_id)}
+                  disabled={busy}
+                >
+                  <Text style={[styles.clusterText, selected && styles.clusterTextSelected]} numberOfLines={1}>
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
 
       {busy ? (
         <View style={styles.progressRow}>
@@ -495,6 +585,13 @@ const styles = StyleSheet.create({
   audienceDisabled: { opacity: 0.28 },
   audienceText: { color: 'rgba(255,255,255,0.68)', fontSize: 9, fontWeight: '900', letterSpacing: 0.7 },
   audienceSelectedText: { color: '#080C09' },
+  clusterSection: { marginTop: 14 },
+  clusterLabel: { marginBottom: 8, color: 'rgba(255,255,255,0.46)', fontSize: 8, fontWeight: '900', letterSpacing: 0.9 },
+  clusterRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  clusterChip: { maxWidth: '100%', paddingHorizontal: 13, paddingVertical: 9, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)', backgroundColor: '#0D120F' },
+  clusterChipSelected: { backgroundColor: '#FFFFFF', borderColor: '#FFFFFF' },
+  clusterText: { maxWidth: 240, color: 'rgba(255,255,255,0.72)', fontSize: 10, fontWeight: '800' },
+  clusterTextSelected: { color: '#080C09' },
   progressRow: { marginTop: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
   progressText: { color: 'rgba(255,255,255,0.82)', fontSize: 11, fontWeight: '800' },
   progressSub: { marginTop: 2, color: 'rgba(255,255,255,0.50)', fontSize: 9 },
