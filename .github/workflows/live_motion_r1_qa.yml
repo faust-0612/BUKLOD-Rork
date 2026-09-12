@@ -6,6 +6,7 @@ on:
       - 'src/components/motion/**'
       - 'src/components/points/BuklodCharacterStage.tsx'
       - 'src/components/points/BuklodLivingCharacter.tsx'
+      - 'src/components/points/BuklodPointsStage.tsx'
       - '.github/workflows/live_motion_r1_qa.yml'
   workflow_dispatch:
 
