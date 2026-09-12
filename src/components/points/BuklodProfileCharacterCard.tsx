@@ -445,7 +445,6 @@ BuklodProfileCharacterCard({
       summaryRow: {
         flexDirection: 'row',
         gap: 8,
-        marginBottom: pendingClaim ? 10 : 0,
       },
 
       summaryChip: {
@@ -457,6 +456,13 @@ BuklodProfileCharacterCard({
         backgroundColor: theme.surface,
         borderWidth: 1,
         borderColor: theme.border,
+      },
+
+      rankSummaryHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 6,
       },
 
       summaryLabel: {
@@ -471,6 +477,30 @@ BuklodProfileCharacterCard({
         fontSize: 12,
         fontWeight: '900',
         color: theme.textPrimary,
+      },
+
+      claimNotice: {
+        paddingHorizontal: 7,
+        paddingVertical: 3,
+        borderRadius: 999,
+        backgroundColor:
+          withAlpha(
+            theme.accent,
+            0.1,
+          ),
+        borderWidth: 1,
+        borderColor:
+          withAlpha(
+            theme.accent,
+            0.22,
+          ),
+      },
+
+      claimNoticeText: {
+        fontSize: 7,
+        fontWeight: '900',
+        letterSpacing: 0.55,
+        color: theme.accent,
       },
     });
 
@@ -636,9 +666,26 @@ BuklodProfileCharacterCard({
 
               <View style={styles.summaryRow}>
                 <View style={styles.summaryChip}>
-                  <Text style={styles.summaryLabel}>
-                    CURRENT RANK
-                  </Text>
+                  <View style={styles.rankSummaryHeader}>
+                    <Text style={styles.summaryLabel}>
+                      CURRENT RANK
+                    </Text>
+                    {pendingClaim ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Open points ready to claim"
+                        onPress={() => router.push('/points')}
+                        style={({ pressed }) => [
+                          styles.claimNotice,
+                          pressed && { opacity: 0.82 },
+                        ]}
+                      >
+                        <Text style={styles.claimNoticeText}>
+                          TO CLAIM
+                        </Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
                   <Text
                     numberOfLines={1}
                     style={styles.summaryValue}
@@ -656,17 +703,6 @@ BuklodProfileCharacterCard({
                   </Text>
                 </View>
               </View>
-
-              {pendingClaim ? (
-                <BuklodClaimRewardCard
-                  reward={pendingClaim}
-                  onClaim={() => void claimReward()}
-                  onRetry={() => {
-                    setClaimStatus('claimable');
-                    void claimReward();
-                  }}
-                />
-              ) : null}
             </View>
           </View>
         </View>
