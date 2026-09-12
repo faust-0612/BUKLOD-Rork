@@ -11,8 +11,9 @@ export REPORT_RELEASE_TARGET="web"
 node scripts/production-preflight.mjs
 node scripts/verify-production-migrations.mjs > release/PRODUCTION_MIGRATION_HASHES.json
 
-# Compile and export first. Deployment is allowed only from this exact output.
-npx tsc --noEmit
+# Compile and export only the standalone Report route/dependency graph first.
+# Deployment is allowed only from this exact exported output.
+npx tsc -p tsconfig.report.json --noEmit
 rm -rf dist-report-production
 npx expo export --platform web --output-dir dist-report-production
 
