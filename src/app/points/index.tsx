@@ -24,9 +24,6 @@ import BuklodRankCard from '@/components/BuklodRankCard';
 import BuklodPointsStage from '@/components/points/BuklodPointsStage';
 import BuklodCharacterRewardRoadmap from '@/components/points/BuklodCharacterRewardRoadmap';
 import BuklodParticipationProgress from '@/components/points/BuklodParticipationProgress';
-import BuklodClaimRewardCard, {
-  type ClaimRewardItem,
-} from '@/components/points/BuklodClaimRewardCard';
 import BuklodPointsClaimCelebration from '@/components/points/BuklodPointsClaimCelebration';
 import BuklodMyCollectionCard from '@/components/points/BuklodMyCollectionCard';
 import BuklodRedeemCatalogSection from '@/components/points/BuklodRedeemCatalogSection';
@@ -48,11 +45,11 @@ import { CharacterEventType } from '@/lib/buklodCharacterEvents';
 import { supabase } from '@/lib/supabase';
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import {
-  claimBuklodRewardEvent,
+  claimBuklodRewardGroup,
+  loadBuklodClaimGroups,
   loadBuklodPointsDashboard,
-  loadPendingBuklodRewardEvent,
+  type BuklodClaimGroup,
   type BuklodPointsDashboard,
-  type BuklodRewardEvent,
 } from '@/lib/buklodRewards';
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 
@@ -92,6 +89,7 @@ type RankDashboard = {
 type PointRow = {
   id: string;
   direction: 'credit' | 'debit';
+  claim_state: 'pending' | 'claimed' | 'legacy' | string;
   points: number;
   activity_type: string;
   source_key: string;
@@ -230,6 +228,72 @@ case 'weekly_consistency':
           letter.toUpperCase()
         );
   }
+}
+
+function claimGroupKeyForActivity(type: string) {
+  if ([
+    'community_post',
+    'r36_publish_wall',
+  ].includes(type)) {
+    return 'posting';
+  }
+
+  if ([
+    'community_comment',
+    'community_reaction',
+    'prayer_response',
+    'r36_engager_comment',
+    'r36_engager_reaction',
+    'r36_engager_reply',
+  ].includes(type)) {
+    return 'engagement';
+  }
+
+  if ([
+    'daily_bible',
+    'daily_bible_verification',
+  ].includes(type)) {
+    return 'daily_bible';
+  }
+
+  if (type === 'devotional') {
+    return 'devotional';
+  }
+
+  if ([
+    'abc_growth_lesson',
+    'formation_lesson',
+    'learning_progress_verification',
+    'stage_completion',
+  ].includes(type)) {
+    return 'formation';
+  }
+
+  if ([
+    'mentor_session',
+    'mentoring_release',
+  ].includes(type)) {
+    return 'mentoring';
+  }
+
+  if ([
+    'event_attendance',
+    'scope_attendance',
+    'ministry_activity',
+  ].includes(type)) {
+    return 'attendance';
+  }
+
+  if ([
+    'reflection_quality_bonus',
+    'weekly_consistency',
+    'verified_giving_participation',
+    'admin_bonus',
+  ].includes(type)) {
+    return 'bonus';
+  }
+
+  return 'other';
 }
 
 function StatCard({
@@ -1244,16 +1308,17 @@ export default function BuklodPointsScreen() {
   const [dashboard, setDashboard] =
     useState<PointsDashboard | null>(null);
 
-  const [rewardEvent, setRewardEvent] =
-    useState<BuklodRewardEvent | null>(null);
+  const [claimGroups, setClaimGroups] =
+    useState<BuklodClaimGroup[]>([]);
 
-  const [claimBusy, setClaimBusy] =
-    useState(false);
+  const [claimingGroup, setClaimingGroup] =
+    useState<string | null>(null);
 
-  const [claimCardStatus, setClaimCardStatus] =
-    useState<
-      'claimable' | 'claiming' | 'claimed' | 'failed'
-    >('claimable');
+  const [claimError, setClaimError] =
+    useState<string | null>(null);
+
+  const [expandedClaimGroups, setExpandedClaimGroups] =
+    useState<Record<string, boolean>>({});
 
   const [character, setCharacter] =
     useState<BuklodCharacterConfig>({
@@ -1488,7 +1553,7 @@ const load = useCallback(async () => {
       supabase
         .from('buklod_points_ledger')
         .select(
-          'id,direction,points,activity_type,source_key,source_id,description,created_at'
+          'id,direction,claim_state,points,activity_type,source_key,source_id,description,created_at'
         )
         .order('created_at', {
           ascending: false,
@@ -1516,6 +1581,20 @@ const load = useCallback(async () => {
           ? dashboardError.message
           : 'Could not load BUKLOD Points.',
       );
+    }
+
+    try {
+      const groups = await loadBuklodClaimGroups();
+      setClaimGroups(groups);
+      setClaimError(null);
+    } catch (claimGroupsError: unknown) {
+      const message =
+        claimGroupsError instanceof Error
+          ? claimGroupsError.message
+          : 'Could not load claimable activities.';
+      console.warn('BUKLOD claim groups:', message);
+      setClaimGroups([]);
+      setClaimError(message);
     }
 
     if (rankResult.error) {
@@ -1629,45 +1708,24 @@ const load = useCallback(async () => {
     previousLifetimeRef.current = current;
   }, [character.body, characterEvents, dashboard?.total_points]);
 
-  useEffect(() => {
-    if (rewardEvent) {
-      setClaimCardStatus('claimable');
-    }
-  }, [rewardEvent?.id]);
-
-  const loadPendingReward =
-    useCallback(async () => {
-      try {
-        const pending = await loadPendingBuklodRewardEvent();
-        setRewardEvent(pending);
-      } catch (error: unknown) {
-        console.warn(
-          'Pending BUKLOD reward:',
-          error instanceof Error ? error.message : error,
-        );
-      }
-    }, []);
-
-  useEffect(() => {
-    loadPendingReward();
-  }, [loadPendingReward]);
-
-  const claimReward = async () => {
-    if (!rewardEvent || claimBusy) {
+  const claimGroup = async (group: BuklodClaimGroup) => {
+    if (claimingGroup) {
       return;
     }
 
-    setClaimBusy(true);
-    setClaimCardStatus('claiming');
-
-    const eventId = rewardEvent.id;
+    setClaimingGroup(group.group_key);
+    setClaimError(null);
 
     try {
-      const result = await claimBuklodRewardEvent(eventId);
-      const earnedPoints =
-        result.claimed_points > 0
-          ? result.claimed_points
-          : rewardEvent.points;
+      const result = await claimBuklodRewardGroup(group.group_key);
+
+      if (result.claimed_count <= 0 || result.claimed_points <= 0) {
+        setClaimError(
+          'Wala nang pending points sa activity group na ito. Ni-refresh ang listahan.',
+        );
+        await load();
+        return;
+      }
 
       setConfirmedBalance(result.lifetime_points);
       setConfirmedAvailableBalance(result.available_points);
@@ -1678,66 +1736,56 @@ const load = useCallback(async () => {
               total_points: result.lifetime_points,
               lifetime_points: result.lifetime_points,
               available_points: result.available_points,
+              pending_claimable_points: Math.max(
+                0,
+                current.pending_claimable_points - result.claimed_points,
+              ),
             }
           : current,
       );
 
-      const spoken =
-        rewardEvent.spoken_message ??
-        rewardEvent.message ??
-        undefined;
+      setClaimGroups((current) =>
+        current.filter((item) => item.group_key !== group.group_key),
+      );
+      setExpandedClaimGroups((current) => ({
+        ...current,
+        [group.group_key]: false,
+      }));
 
       if (result.rank_up) {
         characterEvents?.emit({
           type: CharacterEventType.MILESTONE_REACHED,
           success: true,
-          spokenText:
-            result.rank_name
-              ? `Rank up! You are now ${result.rank_name}.`
-              : spoken,
-        });
-      }
-
-      if (earnedPoints && !result.ack_only) {
-        characterEvents?.emit({
-          type: CharacterEventType.POINTS_CLAIMED,
-          success: true,
-          points: earnedPoints,
-          spokenText: spoken ?? undefined,
-          dialogue: rewardEvent.title
-            ? `${rewardEvent.title} — +${earnedPoints} pts`
+          spokenText: result.rank_name
+            ? `Rank up! You are now ${result.rank_name}.`
             : undefined,
         });
-
-        setCelebrationPoints(earnedPoints);
-        setCelebrationActive(true);
-        setHudPop(true);
-      } else if (earnedPoints) {
-        characterEvents?.emit({
-          type: CharacterEventType.POINTS_CLAIMED,
-          success: true,
-          points: earnedPoints,
-          spokenText: spoken ?? undefined,
-        });
       }
 
-      setClaimCardStatus('claimed');
-      setClaimBusy(false);
+      characterEvents?.emit({
+        type: CharacterEventType.POINTS_CLAIMED,
+        success: true,
+        points: result.claimed_points,
+        spokenText:
+          `${group.group_label}: ${result.claimed_points.toLocaleString('en-PH')} points claimed.`,
+        dialogue:
+          `${group.group_label} — +${result.claimed_points.toLocaleString('en-PH')} pts`,
+      });
 
-      await Promise.all([
-        load(),
-        loadPendingReward(),
-      ]);
+      setCelebrationPoints(result.claimed_points);
+      setCelebrationActive(true);
+      setHudPop(true);
+
+      await load();
     } catch (error: unknown) {
-      setClaimBusy(false);
-      setClaimCardStatus('failed');
-
-      Alert.alert(
-        'BUKLOD Reward',
+      const message =
         error instanceof Error
           ? error.message
-          : 'Claim failed. No points were awarded.',
-      );
+          : 'Claim failed. No points were awarded.';
+      console.warn('BUKLOD grouped claim:', message);
+      setClaimError(message);
+    } finally {
+      setClaimingGroup(null);
     }
   };
 
@@ -1745,8 +1793,6 @@ const load = useCallback(async () => {
     setCelebrationActive(false);
     setCelebrationPoints(null);
     setHudPop(false);
-    setRewardEvent(null);
-    setClaimCardStatus('claimable');
   };
 
   const refresh = async () => {
@@ -1828,19 +1874,20 @@ const load = useCallback(async () => {
     });
   }, [history, search, filter]);
 
-  const claimableCount = rewardEvent ? 1 : 0;
+  const pendingClaimRows = useMemo(
+    () =>
+      history.filter(
+        (item) =>
+          item.direction === 'credit' &&
+          item.claim_state === 'pending',
+      ),
+    [history],
+  );
 
-  const pendingClaim: ClaimRewardItem | null =
-    rewardEvent
-      ? {
-          id: rewardEvent.id,
-          title: rewardEvent.title,
-          message: rewardEvent.message,
-          points: rewardEvent.points,
-          eventType: rewardEvent.event_type,
-          status: claimCardStatus,
-        }
-      : null;
+  const claimableCount = claimGroups.reduce(
+    (sum, group) => sum + group.event_count,
+    0,
+  );
 
   const recentHistory = filtered.slice(0, 5);
 
@@ -1956,24 +2003,230 @@ const load = useCallback(async () => {
               }
             />
           </View>
-          {pendingClaim && (
+          {(claimGroups.length > 0 || claimError) && (
             <View style={styles.sectionPad}>
               <Text style={styles.sectionEyebrow}>
                 CLAIMABLE REWARDS
               </Text>
-              <Text style={[styles.sectionTitle, { marginBottom: 8 }]}>
+              <Text style={[styles.sectionTitle, { marginBottom: 4 }]}>
                 Ready to Claim
               </Text>
-              <PointsFocusCard index={0}>
-                <BuklodClaimRewardCard
-                  reward={pendingClaim}
-                  onClaim={() => void claimReward()}
-                  onRetry={() => {
-                    setClaimCardStatus('claimable');
-                    void claimReward();
+              <Text
+                style={{
+                  marginBottom: 10,
+                  fontSize: 11,
+                  lineHeight: 16,
+                  color: theme.textMuted,
+                }}
+              >
+                Each list shows the completed activities that created your pending points. Claim All applies only to that activity group.
+              </Text>
+
+              {claimGroups.map((group, index) => {
+                const groupItems = pendingClaimRows.filter(
+                  (item) =>
+                    claimGroupKeyForActivity(item.activity_type) ===
+                    group.group_key,
+                );
+                const expanded = Boolean(
+                  expandedClaimGroups[group.group_key],
+                );
+                const visibleItems = expanded
+                  ? groupItems
+                  : groupItems.slice(0, 5);
+                const notLoadedCount = Math.max(
+                  0,
+                  group.event_count - groupItems.length,
+                );
+                const busy = claimingGroup === group.group_key;
+                const anyBusy = claimingGroup !== null;
+
+                return (
+                  <PointsFocusCard
+                    key={group.group_key}
+                    index={index}
+                  >
+                    <View
+                      style={[
+                        styles.historyCard,
+                        { padding: 14, marginBottom: 10 },
+                      ]}
+                    >
+                      <View style={styles.rowBetween}>
+                        <View style={{ flex: 1, paddingRight: 8 }}>
+                          <Text style={styles.historyTitle}>
+                            {group.group_label}
+                          </Text>
+                          <Text style={styles.meta}>
+                            {group.event_count.toLocaleString('en-PH')}{' '}
+                            {group.event_count === 1
+                              ? 'completed activity'
+                              : 'completed activities'}
+                          </Text>
+                        </View>
+                        <Text style={[styles.pointsAmount, styles.pointsCredit]}>
+                          +{group.total_points.toLocaleString('en-PH')} pts
+                        </Text>
+                      </View>
+
+                      <View
+                        style={{
+                          marginTop: 10,
+                          borderTopWidth: StyleSheet.hairlineWidth,
+                          borderTopColor: theme.border,
+                        }}
+                      >
+                        {visibleItems.length === 0 ? (
+                          <Text
+                            style={{
+                              paddingVertical: 10,
+                              fontSize: 10.5,
+                              lineHeight: 16,
+                              color: theme.textMuted,
+                            }}
+                          >
+                            Pending activity details are being reconciled. The group total above remains authoritative.
+                          </Text>
+                        ) : (
+                          visibleItems.map((item) => (
+                            <View
+                              key={item.id}
+                              style={{
+                                flexDirection: 'row',
+                                alignItems: 'flex-start',
+                                gap: 8,
+                                paddingVertical: 9,
+                                borderBottomWidth: StyleSheet.hairlineWidth,
+                                borderBottomColor: theme.border,
+                              }}
+                            >
+                              <View style={{ flex: 1 }}>
+                                <Text
+                                  style={{
+                                    fontSize: 11,
+                                    fontWeight: '900',
+                                    color: theme.textPrimary,
+                                  }}
+                                >
+                                  {activityLabel(item.activity_type)}
+                                </Text>
+                                {!!item.description && (
+                                  <Text
+                                    numberOfLines={2}
+                                    style={{
+                                      marginTop: 2,
+                                      fontSize: 10,
+                                      lineHeight: 14,
+                                      color: theme.textMuted,
+                                    }}
+                                  >
+                                    {item.description}
+                                  </Text>
+                                )}
+                                <Text style={[styles.meta, { marginTop: 2 }]}>
+                                  {dateLabel(item.created_at)}
+                                </Text>
+                              </View>
+                              <Text
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: '900',
+                                  color: theme.accent,
+                                }}
+                              >
+                                +{Number(item.points).toLocaleString('en-PH')} pts
+                              </Text>
+                            </View>
+                          ))
+                        )}
+                      </View>
+
+                      {groupItems.length > 5 ? (
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() =>
+                            setExpandedClaimGroups((current) => ({
+                              ...current,
+                              [group.group_key]: !expanded,
+                            }))
+                          }
+                          style={{
+                            alignSelf: 'flex-start',
+                            paddingVertical: 8,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontSize: 9.5,
+                              fontWeight: '900',
+                              color: theme.accent,
+                            }}
+                          >
+                            {expanded
+                              ? 'SHOW LESS'
+                              : `SHOW ALL ${groupItems.length.toLocaleString('en-PH')} ACTIVITIES`}
+                          </Text>
+                        </Pressable>
+                      ) : null}
+
+                      {notLoadedCount > 0 ? (
+                        <Text
+                          style={{
+                            marginBottom: 8,
+                            fontSize: 9.5,
+                            lineHeight: 14,
+                            color: theme.textMuted,
+                          }}
+                        >
+                          +{notLoadedCount.toLocaleString('en-PH')} more pending activities are included in this Claim All.
+                        </Text>
+                      ) : null}
+
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`Claim all ${group.group_label} points`}
+                        disabled={anyBusy}
+                        onPress={() => void claimGroup(group)}
+                        style={({ pressed }) => ({
+                          minHeight: 44,
+                          marginTop: 4,
+                          borderRadius: 13,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: theme.buttonPrimary,
+                          opacity: anyBusy && !busy ? 0.55 : pressed ? 0.86 : 1,
+                        })}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 10,
+                            fontWeight: '900',
+                            letterSpacing: 0.45,
+                            color: theme.white,
+                          }}
+                        >
+                          {busy
+                            ? 'CLAIMING...'
+                            : `CLAIM ALL · +${group.total_points.toLocaleString('en-PH')} PTS`}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  </PointsFocusCard>
+                );
+              })}
+
+              {claimError ? (
+                <Text
+                  style={{
+                    marginTop: 2,
+                    fontSize: 10,
+                    lineHeight: 15,
+                    color: theme.danger,
                   }}
-                />
-              </PointsFocusCard>
+                >
+                  {claimError}
+                </Text>
+              ) : null}
             </View>
           )}
 
