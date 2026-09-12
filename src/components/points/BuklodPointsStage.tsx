@@ -12,6 +12,9 @@ import {
   MaterialCommunityIcons,
 } from '@expo/vector-icons';
 
+import BuklodAmbientSurface
+  from '@/components/motion/BuklodAmbientSurface';
+
 import BuklodCharacterLayeredArt
   from '@/components/points/BuklodCharacterLayeredArt';
 
@@ -196,6 +199,11 @@ export default function BuklodPointsStage({
       style={styles.stageWrap}
     >
       <View style={styles.hero}>
+        <BuklodAmbientSurface
+          tone="surface"
+          intensity={0.72}
+        />
+
         <View style={styles.art}>
           <BuklodCharacterLayeredArt
             body={character.body}
