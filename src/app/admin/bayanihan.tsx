@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
 import { AdminGate } from '@/components/AdminGate';
 import { shared } from '@/components/UI';
@@ -119,6 +120,18 @@ export default function AdminBayanihanScreen() {
             </Text>
           </View>
         </View>
+
+        <Pressable
+          onPress={() => router.push('/admin/economy-operations' as any)}
+          style={({ pressed }) => [styles.operationsButton, pressed && { opacity: 0.78 }]}
+        >
+          <MaterialCommunityIcons name="bank-cog" size={19} color="#FFFFFF" />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.operationsTitle}>OPEN R38 ECONOMY OPERATIONS</Text>
+            <Text style={styles.operationsSubtitle}>Periods, revenue/cost reconciliation, referral review and payout queue</Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={20} color="#FFFFFF" />
+        </Pressable>
 
         {loading && !report ? (
           <View style={styles.loadingCard}>
@@ -284,6 +297,9 @@ const styles = StyleSheet.create({
   guardCard: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: '#D5E7DC', backgroundColor: '#EEF8F2' },
   guardTitle: { fontSize: 14, fontWeight: '900', color: colors.text },
   guardText: { marginTop: 4, fontSize: 11.5, lineHeight: 17, color: colors.muted },
+  operationsButton: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 13, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: colors.greenDark },
+  operationsTitle: { color: '#FFFFFF', fontSize: 11, fontWeight: '900' },
+  operationsSubtitle: { marginTop: 2, color: 'rgba(255,255,255,0.78)', fontSize: 9.5, lineHeight: 13 },
   loadingCard: { padding: 28, alignItems: 'center', gap: 10, backgroundColor: colors.white, borderRadius: 14 },
   errorTitle: { fontSize: 15, fontWeight: '900', color: colors.text },
   muted: { fontSize: 11.5, lineHeight: 17, color: colors.muted },
