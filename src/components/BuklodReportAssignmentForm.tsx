@@ -83,7 +83,7 @@ function formatDeadline(value: string | null | undefined) {
 
 function readFields(requirements: Record<string, unknown>): DynamicField[] {
   const source = Array.isArray(requirements.fields) ? requirements.fields : [];
-  const fields = source.flatMap((value: unknown, index: number) => {
+  return source.flatMap((value: unknown, index: number) => {
     const row = objectValue(value);
     const id = String(row.id ?? row.key ?? `field_${index + 1}`).trim();
     const label = String(row.label ?? row.title ?? '').trim();
@@ -102,16 +102,6 @@ function readFields(requirements: Record<string, unknown>): DynamicField[] {
         : undefined,
     }];
   });
-
-  if (fields.length > 0) return fields;
-
-  return [{
-    id: 'report_response',
-    label: 'Report response',
-    type: 'long_text',
-    required: true,
-    help: 'Follow the report instructions above. This field is intentionally neutral so each Organization or Cluster can define its own reporting purpose.',
-  }];
 }
 
 function isMzbMinisterialTemplate(context: ReportContext) {
@@ -186,7 +176,7 @@ export default function BuklodReportAssignmentForm({
   );
 
   const save = useCallback(async (submit: boolean) => {
-    if (!context || saving || readOnly) return;
+    if (!context || saving || readOnly || fields.length === 0) return;
 
     if (submit) {
       const missing = fields.find((field) => field.required && !String(answers[field.id] ?? '').trim());
@@ -267,6 +257,20 @@ export default function BuklodReportAssignmentForm({
           </View>
         </View>
         <BuklodWeeklyReportForm scopeId={scopeId} onSubmitted={onSubmitted} />
+      </View>
+    );
+  }
+
+  if (fields.length === 0) {
+    return (
+      <View style={styles.emptyCard}>
+        <MaterialCommunityIcons name="alert-circle-outline" size={24} color="#92400E" />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.emptyTitle}>Report template needs fields</Text>
+          <Text style={styles.muted}>
+            This Organization/Cluster report has no configured fields. BUKLOD will not invent an automatic field. Ask the report administrator to review the template.
+          </Text>
+        </View>
       </View>
     );
   }
