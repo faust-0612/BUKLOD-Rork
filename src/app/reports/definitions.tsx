@@ -24,7 +24,9 @@ import {
 import {
   formatManilaInput,
   parseManilaDateTime,
+  previewReportDeadlineAudience,
   publishReportDeadline,
+  type ReportDeadlineAudiencePreview,
 } from '@/lib/buklodReportDeadlines';
 import type {
   ReportDefinitionRow,
@@ -61,11 +63,14 @@ export default function BuklodReportDefinitionsScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
   const [allowed, setAllowed] = useState(false);
   const [rows, setRows] = useState<ReportDefinitionRow[]>([]);
   const [includeArchived, setIncludeArchived] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<ReportDefinitionRow | null>(null);
   const [publishTarget, setPublishTarget] = useState<ReportDefinitionRow | null>(null);
+  const [audiencePreview, setAudiencePreview] = useState<ReportDeadlineAudiencePreview | null>(null);
   const [publishConfirmed, setPublishConfirmed] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [deadline, setDeadline] = useState(EMPTY_DEADLINE);
@@ -100,14 +105,28 @@ export default function BuklodReportDefinitionsScreen() {
     void load();
   }, [load]);
 
-  const startCreate = () => {
-    setPublishTarget(null);
+  const closeEditor = () => {
+    setEditorOpen(false);
     setEditing(null);
     setForm(EMPTY_FORM);
   };
 
-  const startEdit = (row: ReportDefinitionRow) => {
+  const closePublisher = () => {
     setPublishTarget(null);
+    setAudiencePreview(null);
+    setPublishConfirmed(false);
+    setDeadline(EMPTY_DEADLINE);
+  };
+
+  const startCreate = () => {
+    closePublisher();
+    setEditing(null);
+    setForm(EMPTY_FORM);
+    setEditorOpen(true);
+  };
+
+  const startEdit = (row: ReportDefinitionRow) => {
+    closePublisher();
     setEditing(row);
     setForm({
       code: row.code,
@@ -122,18 +141,31 @@ export default function BuklodReportDefinitionsScreen() {
       dueRuleKind: String(row.due_rule?.kind ?? 'END_OF_PERIOD'),
       dueOffsetDays: String(row.due_rule?.offset_days ?? 0),
     });
+    setEditorOpen(true);
   };
 
-  const startPublish = (row: ReportDefinitionRow) => {
-    setEditing(null);
-    setForm(EMPTY_FORM);
+  const startPublish = async (row: ReportDefinitionRow) => {
+    closeEditor();
     setPublishTarget(row);
+    setAudiencePreview(null);
     setPublishConfirmed(false);
     setDeadline({
       opensAt: formatManilaInput(),
       deadlineAt: '',
       closesAt: '',
     });
+    setPreviewing(true);
+    try {
+      const preview = await previewReportDeadlineAudience(row.id);
+      setAudiencePreview(preview);
+    } catch (error: unknown) {
+      Alert.alert(
+        'Could not preview recipients',
+        error instanceof Error ? error.message : 'The target members could not be resolved.'
+      );
+    } finally {
+      setPreviewing(false);
+    }
   };
 
   const save = async () => {
@@ -164,8 +196,7 @@ export default function BuklodReportDefinitionsScreen() {
         submitterRules: { mode: 'SCOPE_FUNCTIONAL_ROLES' },
         recipientRules: { mode: 'SCOPE_ADMINS' },
       });
-      setEditing(null);
-      setForm(EMPTY_FORM);
+      closeEditor();
       await load();
       Alert.alert(
         'Definition saved',
@@ -183,6 +214,10 @@ export default function BuklodReportDefinitionsScreen() {
 
   const publish = async () => {
     if (!publishTarget || !publishConfirmed) return;
+    if (!audiencePreview || audiencePreview.eligibleMemberCount < 1) {
+      Alert.alert('BUKLOD Report', 'No eligible active member is available for this deadline.');
+      return;
+    }
     if (!deadline.deadlineAt.trim()) {
       Alert.alert('BUKLOD Report', 'Enter the real deadline date and time.');
       return;
@@ -218,9 +253,7 @@ export default function BuklodReportDefinitionsScreen() {
         );
       }
 
-      setPublishTarget(null);
-      setPublishConfirmed(false);
-      setDeadline(EMPTY_DEADLINE);
+      closePublisher();
       await load();
     } catch (error: unknown) {
       Alert.alert(
@@ -247,8 +280,14 @@ export default function BuklodReportDefinitionsScreen() {
     }
   };
 
-  const editorVisible = editing !== null || form.code !== '' || form.title !== '';
   const statusChips = useMemo(() => REPORT_DEFINITION_STATUS_OPTIONS, []);
+  const canPublish = Boolean(
+    !previewing &&
+      audiencePreview &&
+      audiencePreview.eligibleMemberCount > 0 &&
+      publishConfirmed &&
+      deadline.deadlineAt.trim()
+  );
 
   if (!scopeId) {
     return (
@@ -295,7 +334,7 @@ export default function BuklodReportDefinitionsScreen() {
               </View>
             </View>
 
-            {editorVisible ? (
+            {editorOpen ? (
               <View style={styles.card}>
                 <Text style={styles.cardTitle}>{editing ? 'Edit definition' : 'New definition'}</Text>
                 <Text style={styles.note}>
@@ -392,13 +431,7 @@ export default function BuklodReportDefinitionsScreen() {
                   >
                     <Text style={styles.primaryButtonText}>{saving ? 'Saving...' : 'Save template'}</Text>
                   </Pressable>
-                  <Pressable
-                    onPress={() => {
-                      setEditing(null);
-                      setForm(EMPTY_FORM);
-                    }}
-                    style={styles.secondaryButton}
-                  >
+                  <Pressable onPress={closeEditor} style={styles.secondaryButton}>
                     <Text style={styles.secondaryButtonText}>Cancel</Text>
                   </Pressable>
                 </View>
@@ -412,6 +445,30 @@ export default function BuklodReportDefinitionsScreen() {
                 <Text style={styles.note}>
                   This is the live action. Publishing creates one assignment for every active member currently in this Organization/Cluster. That member list is frozen for this deadline; retries will not silently add new members.
                 </Text>
+
+                {previewing ? (
+                  <View style={styles.previewBox}>
+                    <ActivityIndicator size="small" color={colors.greenDark} />
+                    <Text style={styles.previewLabel}>Resolving current recipients...</Text>
+                  </View>
+                ) : audiencePreview ? (
+                  <View style={styles.previewBox}>
+                    <Text style={styles.previewCount}>{audiencePreview.eligibleMemberCount}</Text>
+                    <View style={styles.previewTextWrap}>
+                      <Text style={styles.previewTitle}>active member{audiencePreview.eligibleMemberCount === 1 ? '' : 's'} will receive this report</Text>
+                      <Text style={styles.previewLabel}>
+                        {audiencePreview.scopeName} · {audiencePreview.scopeType}
+                      </Text>
+                      <Text style={styles.previewLabel}>Recipient list will be frozen when Publish is pressed.</Text>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.previewBox}>
+                    <MaterialCommunityIcons name="alert-circle-outline" size={20} color={colors.muted} />
+                    <Text style={styles.previewLabel}>Recipients could not be resolved. Publishing is disabled.</Text>
+                  </View>
+                )}
+
                 <Field
                   label="OPENS — MANILA TIME (YYYY-MM-DD HH:mm)"
                   value={deadline.opensAt}
@@ -432,20 +489,21 @@ export default function BuklodReportDefinitionsScreen() {
                 />
 
                 <View style={styles.confirmBox}>
-                  <Switch value={publishConfirmed} onValueChange={setPublishConfirmed} />
+                  <Switch
+                    disabled={!audiencePreview || audiencePreview.eligibleMemberCount < 1}
+                    value={publishConfirmed}
+                    onValueChange={setPublishConfirmed}
+                  />
                   <Text style={styles.confirmText}>
-                    I understand that Publish & notify immediately creates member assignments and queues in-app/push notifications.
+                    I understand that Publish & notify immediately creates assignments for the previewed members and queues in-app/push notifications.
                   </Text>
                 </View>
 
                 <View style={styles.formActions}>
                   <Pressable
-                    disabled={publishing || !publishConfirmed || !deadline.deadlineAt.trim()}
+                    disabled={publishing || !canPublish}
                     onPress={() => void publish()}
-                    style={[
-                      styles.primaryButton,
-                      (publishing || !publishConfirmed || !deadline.deadlineAt.trim()) && styles.disabled,
-                    ]}
+                    style={[styles.primaryButton, (publishing || !canPublish) && styles.disabled]}
                   >
                     {publishing ? <ActivityIndicator size="small" color="#FFFFFF" /> : null}
                     <Text style={styles.primaryButtonText}>
@@ -454,11 +512,7 @@ export default function BuklodReportDefinitionsScreen() {
                   </Pressable>
                   <Pressable
                     disabled={publishing}
-                    onPress={() => {
-                      setPublishTarget(null);
-                      setPublishConfirmed(false);
-                      setDeadline(EMPTY_DEADLINE);
-                    }}
+                    onPress={closePublisher}
                     style={styles.secondaryButton}
                   >
                     <Text style={styles.secondaryButtonText}>Cancel</Text>
@@ -488,7 +542,7 @@ export default function BuklodReportDefinitionsScreen() {
                       {row.status !== 'ARCHIVED' ? (
                         <Pressable
                           accessibilityLabel={`Publish deadline for ${row.title}`}
-                          onPress={() => startPublish(row)}
+                          onPress={() => void startPublish(row)}
                           style={styles.iconButton}
                         >
                           <MaterialCommunityIcons name="bell-plus-outline" size={21} color={colors.greenDark} />
@@ -639,6 +693,37 @@ const styles = StyleSheet.create({
   note: {
     fontSize: 12,
     lineHeight: 18,
+    color: colors.muted,
+  },
+  previewBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 12,
+    padding: 12,
+  },
+  previewTextWrap: {
+    flex: 1,
+    gap: 2,
+  },
+  previewCount: {
+    minWidth: 36,
+    fontSize: 24,
+    fontWeight: '900',
+    color: colors.greenDark,
+    textAlign: 'center',
+  },
+  previewTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: colors.text,
+  },
+  previewLabel: {
+    flexShrink: 1,
+    fontSize: 11,
+    lineHeight: 16,
     color: colors.muted,
   },
   field: {
