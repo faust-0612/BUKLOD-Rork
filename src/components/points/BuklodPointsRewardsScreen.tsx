@@ -934,7 +934,7 @@ export default function BuklodPointsRewardsScreen() {
         {claimError ? (
           <View style={styles.errorCard}>
             <View style={styles.errorIcon}>
-              <MaterialCommunityIcons name="refresh-alert" size={21} color={COLORS.danger} />
+              <MaterialCommunityIcons name="alert-circle-outline" size={21} color={COLORS.danger} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.errorTitle}>Claim needs another try</Text>
