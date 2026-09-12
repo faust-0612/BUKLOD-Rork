@@ -11,7 +11,8 @@ const appTarget = process.env.BUKLOD_APP_TARGET || '';
 const releaseTarget = (process.env.REPORT_RELEASE_TARGET || 'android').trim().toLowerCase();
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const publishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '';
-const reportEasProjectId = (
+const expectedReportEasProjectId = 'cc69b3c0-a5df-4b69-a84c-887c36242fdd';
+const requestedReportEasProjectId = (
   process.env.REPORT_EAS_PROJECT_ID ||
   process.env.EXPO_PUBLIC_REPORT_EAS_PROJECT_ID ||
   ''
@@ -30,7 +31,9 @@ if (!sourceOnly) {
   if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(supabaseUrl)) failures.push('EXPO_PUBLIC_SUPABASE_URL is not a hosted Supabase project URL.');
   if (!/^sb_publishable_/i.test(publishableKey)) failures.push('Production Report client must use a Supabase publishable key.');
   if (/sb_secret_|service_role/i.test(publishableKey)) failures.push('A secret/service-role key is present in the client key variable.');
-  if (!reportEasProjectId) failures.push('REPORT_EAS_PROJECT_ID (or EXPO_PUBLIC_REPORT_EAS_PROJECT_ID) is required for standalone Report release/deployment.');
+  if (requestedReportEasProjectId && requestedReportEasProjectId !== expectedReportEasProjectId) {
+    failures.push(`Standalone Report EAS project mismatch. Expected ${expectedReportEasProjectId}.`);
+  }
 
   if (releaseTarget === 'android') {
     if (!reportGoogleServicesFile) {
@@ -63,13 +66,14 @@ if (!sourceOnly) {
 
 const appConfig = read('app.config.js');
 for (const expected of [
+  "owner: 'faust_0612'",
   "slug: 'buklod-report'",
   "'org.mzbministry.buklod.report'",
   "'buklod-report'",
   "output: 'static'",
   "root: './src/report-app'",
   "appTarget: 'report'",
-  'REPORT_EAS_PROJECT_ID',
+  expectedReportEasProjectId,
   'REPORT_GOOGLE_SERVICES_FILE',
 ]) {
   if (!appConfig.includes(expected)) failures.push(`Standalone Report app config is missing required marker: ${expected}`);
