@@ -1,10 +1,8 @@
-import * as FileSystem from 'expo-file-system/legacy';
-import * as Sharing from 'expo-sharing';
-import { Platform } from 'react-native';
 import * as XLSX from 'xlsx';
 
 import { supabase } from '@/lib/supabase';
 import { readReportDefinitionRow, type ReportDefinitionRow } from '@/lib/buklodReportContracts';
+import { outputReportWorkbook } from '@/lib/buklodReportWorkbookOutput';
 
 type ConsolidatedPeriod = {
   id: string;
@@ -155,22 +153,5 @@ export async function exportConsolidatedReportXlsx(data: ConsolidatedReportData)
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(submissionRows.length ? submissionRows : [{ Reporter: 'No submitted report yet' }]), 'Submissions');
 
   const fileName = `${sanitizeFileName(reportTitle)}_Consolidated_${new Date().toISOString().slice(0, 10)}.xlsx`;
-  if (Platform.OS === 'web') {
-    XLSX.writeFile(workbook, fileName);
-    return fileName;
-  }
-
-  const base64 = XLSX.write(workbook, { type: 'base64', bookType: 'xlsx' });
-  const directory = FileSystem.cacheDirectory || FileSystem.documentDirectory;
-  if (!directory) throw new Error('A writable export directory is unavailable.');
-  const uri = `${directory}${fileName}`;
-  await FileSystem.writeAsStringAsync(uri, base64, { encoding: FileSystem.EncodingType.Base64 });
-  if (await Sharing.isAvailableAsync()) {
-    await Sharing.shareAsync(uri, {
-      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      dialogTitle: `Export ${reportTitle}`,
-      UTI: 'org.openxmlformats.spreadsheetml.sheet',
-    });
-  }
-  return uri;
+  return outputReportWorkbook(workbook, fileName);
 }
