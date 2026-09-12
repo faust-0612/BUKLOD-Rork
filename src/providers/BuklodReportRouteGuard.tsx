@@ -7,7 +7,17 @@ const ALLOWED_ROOTS = new Set([
   '',
   'index',
   'report-login',
+  'report-access-pending',
   'reports',
+  'privacy',
+  'system',
+]);
+
+const SAFETY_ROOTS = new Set([
+  '',
+  'index',
+  'report-login',
+  'report-access-pending',
   'privacy',
   'system',
 ]);
@@ -16,19 +26,48 @@ const ALLOWED_ROOTS = new Set([
  * Runtime containment for the standalone Report package.
  *
  * The repository still contains legacy BUKLOD Main route source, but this
- * package must never expose those screens. Any direct/deep-linked Main route
- * is redirected into the standalone Report surface.
+ * package must never expose those screens. The guard also prevents a direct
+ * /reports deep link from bypassing the canonical BUKLOD account gate.
  */
 export default function BuklodReportRouteGuard({ children }: { children: ReactNode }) {
   const segments = useSegments();
-  const { session, loading } = useAuth();
+  const { session, loading, profile, membershipState } = useAuth();
+  const root = String(segments?.[0] ?? '');
+
+  const hasCommunityAccess = profile?.is_active === true && Boolean(profile?.connection_type);
+  const hasCanonicalAccess =
+    profile?.is_active === true &&
+    (membershipState === 'ready' || hasCommunityAccess);
+  const accountLoading = loading || (Boolean(session) && membershipState === 'loading' && !profile);
 
   useEffect(() => {
-    if (loading) return;
-    const root = String(segments?.[0] ?? '');
-    if (ALLOWED_ROOTS.has(root)) return;
-    router.replace((session ? '/reports' : '/report-login') as any);
-  }, [loading, segments, session]);
+    if (accountLoading) return;
+
+    if (!ALLOWED_ROOTS.has(root)) {
+      router.replace((!session ? '/report-login' : hasCanonicalAccess ? '/reports' : '/report-access-pending') as any);
+      return;
+    }
+
+    if (SAFETY_ROOTS.has(root)) {
+      if (root === 'report-access-pending' && session && hasCanonicalAccess) {
+        router.replace('/reports' as any);
+      }
+      return;
+    }
+
+    if (!session) {
+      router.replace('/report-login' as any);
+      return;
+    }
+
+    if (!hasCanonicalAccess) {
+      router.replace('/report-access-pending' as any);
+    }
+  }, [accountLoading, hasCanonicalAccess, root, session]);
+
+  if (accountLoading) return null;
+  if (!ALLOWED_ROOTS.has(root)) return null;
+  if (!SAFETY_ROOTS.has(root) && (!session || !hasCanonicalAccess)) return null;
 
   return <>{children}</>;
 }
