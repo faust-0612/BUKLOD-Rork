@@ -6,15 +6,8 @@ import {
 
 export type ScopeCommercialEntitlements = ScopeEntitlementsSnapshot;
 
-type ScopeEntitlementCacheEntry = {
-  value: ScopeCommercialEntitlements;
-  cachedAt: number;
-};
-
-const SCOPE_ENTITLEMENT_FRESH_MS = 30_000;
-
 const cachedByScopeId =
-  new Map<string, ScopeEntitlementCacheEntry>();
+  new Map<string, ScopeCommercialEntitlements>();
 
 const inFlightByScopeId =
   new Map<string, Promise<ScopeCommercialEntitlements>>();
@@ -37,12 +30,8 @@ export async function fetchScopeCommercialEntitlements(
 
   if (!forceRefresh) {
     const cached = cachedByScopeId.get(id);
-
-    if (
-      cached &&
-      Date.now() - cached.cachedAt <= SCOPE_ENTITLEMENT_FRESH_MS
-    ) {
-      return cached.value;
+    if (cached) {
+      return cached;
     }
 
     const inFlight = inFlightByScopeId.get(id);
@@ -64,12 +53,7 @@ export async function fetchScopeCommercialEntitlements(
     }
 
     const entitlements = readScopeCommercialEntitlements(data);
-
-    cachedByScopeId.set(id, {
-      value: entitlements,
-      cachedAt: Date.now(),
-    });
-
+    cachedByScopeId.set(id, entitlements);
     return entitlements;
   })();
 
