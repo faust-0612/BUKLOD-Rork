@@ -62,7 +62,14 @@ module.exports = ({ config }) => {
     },
 
     plugins: [
-      'expo-router',
+      [
+        'expo-router',
+        {
+          // Standalone isolation: route discovery must see only Report/login/
+          // safety routes, never BUKLOD Main tabs, Classroom, IGPat or Character.
+          root: './src/report-app',
+        },
+      ],
       [
         'expo-notifications',
         { enableBackgroundRemoteNotifications: true },
