@@ -10,8 +10,9 @@ const cors = {
 const reply = (status: number, body: any) => new Response(JSON.stringify(body), { status, headers: cors });
 const safe = (value: any, max = 4000) => String(value ?? "").trim().slice(0, max);
 const objectValue = (value: any) => value && typeof value === "object" && !Array.isArray(value) ? value : {};
+const reportScopeType = (value: any) => ["ORGANIZATION", "CLUSTER"].includes(safe(value, 40).toUpperCase());
 
-function manilaWeekInfo() {
+function manilaWeekKey() {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit", weekday: "short",
   }).formatToParts(new Date());
@@ -23,18 +24,7 @@ function manilaWeekInfo() {
   const index: Record<string, number> = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
   const localNoonUtc = new Date(Date.UTC(year, month - 1, day, 4, 0, 0));
   localNoonUtc.setUTCDate(localNoonUtc.getUTCDate() - (index[weekday] ?? 0));
-  const mondayY = localNoonUtc.getUTCFullYear();
-  const mondayM = localNoonUtc.getUTCMonth() + 1;
-  const mondayD = localNoonUtc.getUTCDate();
-  const key = `${mondayY}-${String(mondayM).padStart(2, "0")}-${String(mondayD).padStart(2, "0")}`;
-  const opens = new Date(Date.UTC(mondayY, mondayM - 1, mondayD, -8, 0, 0));
-  const due = new Date(opens); due.setUTCDate(due.getUTCDate() + 6); due.setUTCHours(13, 0, 0, 0);
-  return {
-    key,
-    title: `Week of ${new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", month: "short", day: "numeric", year: "numeric" }).format(opens)}`,
-    opens: opens.toISOString(),
-    due: due.toISOString(),
-  };
+  return `${localNoonUtc.getUTCFullYear()}-${String(localNoonUtc.getUTCMonth() + 1).padStart(2, "0")}-${String(localNoonUtc.getUTCDate()).padStart(2, "0")}`;
 }
 
 Deno.serve(async (req: Request) => {
@@ -77,7 +67,8 @@ Deno.serve(async (req: Request) => {
     const { data: scopes, error: scopesError } = await caller
       .from("buklod_scopes")
       .select("id,name,scope_type,parent_scope_id,organization_id,status")
-      .in("id", ids);
+      .in("id", ids)
+      .in("scope_type", ["ORGANIZATION", "CLUSTER"]);
     if (scopesError) throw scopesError;
     const out: any[] = [];
     for (const scope of scopes ?? []) {
@@ -98,8 +89,8 @@ Deno.serve(async (req: Request) => {
         user: { id: uid, email: user.email },
         profile,
         scopes,
-        week: manilaWeekInfo(),
         receiver_enabled: scopes.some((scope: any) => scope.is_admin),
+        reporting_scope_types: ["ORGANIZATION", "CLUSTER"],
       });
     }
 
@@ -107,7 +98,7 @@ Deno.serve(async (req: Request) => {
     if (!scopeId) return reply(400, { ok: false, error: "scope_required" });
     const scopes = await getMemberships();
     const scope = scopes.find((item: any) => item.id === scopeId);
-    if (!scope) return reply(403, { ok: false, error: "scope_not_allowed" });
+    if (!scope || !reportScopeType(scope.scope_type)) return reply(403, { ok: false, error: "report_scope_not_allowed" });
 
     const loadBundle = async (assignment: any) => {
       const [{ data: definition, error: definitionError }, { data: period, error: periodError }] = await Promise.all([
@@ -117,7 +108,24 @@ Deno.serve(async (req: Request) => {
       if (definitionError) throw definitionError;
       if (periodError) throw periodError;
       if (!definition || !period) throw new Error("report_assignment_context_incomplete");
+      if (definition.scope_id !== scopeId || period.scope_id !== scopeId) throw new Error("report_scope_mismatch");
       return { definition, period, assignment };
+    };
+
+    const isMzbLineage = async () => {
+      const candidates = new Set<string>();
+      if (scope.scope_type === "ORGANIZATION") {
+        candidates.add(scope.id);
+        if (scope.parent_scope_id) candidates.add(scope.parent_scope_id);
+      } else if (scope.scope_type === "CLUSTER") {
+        if (scope.organization_id) candidates.add(scope.organization_id);
+        if (scope.parent_scope_id) candidates.add(scope.parent_scope_id);
+      }
+      for (const candidate of candidates) {
+        const { data, error } = await caller.rpc("buklod_is_mzb_organization_scope_v1", { p_scope_id: candidate });
+        if (!error && data === true) return true;
+      }
+      return false;
     };
 
     const ensureAssignment = async (preferredAssignmentId?: string | null) => {
@@ -148,91 +156,40 @@ Deno.serve(async (req: Request) => {
       if (publishedError) throw publishedError;
       if (publishedAssignment) return await loadBundle(publishedAssignment);
 
-      const week = manilaWeekInfo();
-      let { data: definition, error: definitionError } = await admin
-        .from("buklod_report_definitions")
-        .select("*")
-        .eq("scope_id", scopeId)
-        .eq("code", "QUICK_WEEKLY_REPORT")
-        .maybeSingle();
-      if (definitionError) throw definitionError;
-      if (!definition) {
-        const inserted = await admin.from("buklod_report_definitions").insert({
-          scope_id: scopeId,
-          code: "QUICK_WEEKLY_REPORT",
-          title: "Quick Weekly Report",
-          description: "Simple weekly reporting: activity, people, concern, goal and support needed.",
-          instructions: "One tap + one short input is enough. Optional blanks remain blank, not zero.",
-          recurrence_kind: "WEEKLY",
-          recurrence_config: { timezone: "Asia/Manila", due: "SUNDAY_21:00" },
-          submitter_rules: { exact_scope_member: true },
-          recipient_rules: { exact_scope_admin: true },
-          content_requirements: { optional_fields_are_null: true, schema: "BUKLOD_QUICK_WEEKLY_V1" },
-          validation_config: { no_blank_to_zero: true },
-          auto_approval_config: {},
-          form_mode: "FLEXIBLE",
-          reminder_config: [{ kind: "deadline", enabled: true }],
-          raw_retention_days: 30,
-          status: "ACTIVE",
-          created_by: uid,
-          updated_by: uid,
-        }).select().single();
-        if (inserted.error) throw inserted.error;
-        definition = inserted.data;
+      // Legacy compatibility only: preserve already-created MZB Quick Weekly drafts.
+      // Never create a definition, period, or assignment here.
+      if (await isMzbLineage()) {
+        const { data: legacyDefinition, error: legacyDefinitionError } = await admin
+          .from("buklod_report_definitions")
+          .select("*")
+          .eq("scope_id", scopeId)
+          .eq("code", "QUICK_WEEKLY_REPORT")
+          .eq("status", "ACTIVE")
+          .maybeSingle();
+        if (legacyDefinitionError) throw legacyDefinitionError;
+        if (legacyDefinition && objectValue(legacyDefinition.content_requirements).schema === "BUKLOD_QUICK_WEEKLY_V1") {
+          const { data: legacyPeriod, error: legacyPeriodError } = await admin
+            .from("buklod_report_periods")
+            .select("*")
+            .eq("report_definition_id", legacyDefinition.id)
+            .eq("period_key", manilaWeekKey())
+            .maybeSingle();
+          if (legacyPeriodError) throw legacyPeriodError;
+          if (legacyPeriod) {
+            const { data: legacyAssignment, error: legacyAssignmentError } = await admin
+              .from("buklod_report_assignments")
+              .select("*")
+              .eq("report_definition_id", legacyDefinition.id)
+              .eq("report_period_id", legacyPeriod.id)
+              .eq("assignee_user_id", uid)
+              .maybeSingle();
+            if (legacyAssignmentError) throw legacyAssignmentError;
+            if (legacyAssignment) return { definition: legacyDefinition, period: legacyPeriod, assignment: legacyAssignment };
+          }
+        }
       }
 
-      let { data: period, error: periodError } = await admin
-        .from("buklod_report_periods")
-        .select("*")
-        .eq("report_definition_id", definition.id)
-        .eq("period_key", week.key)
-        .maybeSingle();
-      if (periodError) throw periodError;
-      if (!period) {
-        const inserted = await admin.from("buklod_report_periods").insert({
-          report_definition_id: definition.id,
-          scope_id: scopeId,
-          period_key: week.key,
-          title: week.title,
-          opens_at: week.opens,
-          due_at: week.due,
-          status: "OPEN",
-          metadata: { timezone: "Asia/Manila" },
-        }).select().single();
-        if (inserted.error) throw inserted.error;
-        period = inserted.data;
-      }
-
-      let { data: assignment, error: assignmentError } = await admin
-        .from("buklod_report_assignments")
-        .select("*")
-        .eq("report_definition_id", definition.id)
-        .eq("report_period_id", period.id)
-        .eq("assignee_user_id", uid)
-        .maybeSingle();
-      if (assignmentError) throw assignmentError;
-      if (!assignment) {
-        const reminder = {
-          status: "ACTIVE",
-          response: null,
-          comments: [],
-          created_at: new Date().toISOString(),
-          completed_at: null,
-        };
-        const inserted = await admin.from("buklod_report_assignments").insert({
-          report_definition_id: definition.id,
-          report_period_id: period.id,
-          scope_id: scopeId,
-          assignee_user_id: uid,
-          deadline_at: period.due_at,
-          original_deadline_at: period.due_at,
-          assignment_status: "OPEN",
-          metadata: { source: "BUKLOD_REPORT", reminder },
-        }).select().single();
-        if (inserted.error) throw inserted.error;
-        assignment = inserted.data;
-      }
-      return { definition, period, assignment };
+      throw new Error("no_report_assignment");
     };
 
     const readReminder = async (assignment: any) => {
@@ -273,6 +230,7 @@ Deno.serve(async (req: Request) => {
         .maybeSingle();
       if (submissionError) throw submissionError;
       const reminder = await readReminder(assignment);
+      const requirements = objectValue(definition.content_requirements);
       return reply(200, {
         ok: true,
         context: {
@@ -280,11 +238,20 @@ Deno.serve(async (req: Request) => {
           scope_name: scope.name,
           scope_type: scope.scope_type,
           report_definition_id: definition.id,
+          report_code: definition.code,
+          report_title: definition.title,
+          report_description: definition.description ?? null,
+          report_instructions: definition.instructions ?? null,
+          form_mode: definition.form_mode ?? "FLEXIBLE",
+          form_schema: safe(requirements.schema, 120) || "BUKLOD_DYNAMIC_FORM_V1",
+          content_requirements: requirements,
           report_period_id: period.id,
           report_assignment_id: assignment.id,
           period_title: period.title,
           period_key: period.period_key,
+          opens_at: period.opens_at,
           deadline_at: assignment.deadline_at,
+          closes_at: period.closes_at,
           assignment_status: assignment.assignment_status,
           submission_id: submission?.id ?? null,
           submission_status: submission?.submission_status ?? null,
@@ -294,7 +261,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    if (action === "save_weekly") {
+    if (action === "save_weekly" || action === "save_report") {
       const assignmentId = safe(body.assignment_id, 80);
       const { definition, period, assignment } = await ensureAssignment(assignmentId || null);
       const content = objectValue(body.content);
@@ -416,7 +383,10 @@ Deno.serve(async (req: Request) => {
 
     return reply(400, { ok: false, error: "unknown_action" });
   } catch (error: any) {
-    console.error("[BUKLOD_REPORT_API]", error?.message ?? error);
-    return reply(500, { ok: false, error: safe(error?.message || "report_api_failed", 1200) });
+    const message = safe(error?.message || "report_api_failed", 1200);
+    console.error("[BUKLOD_REPORT_API]", message);
+    if (message === "no_report_assignment") return reply(404, { ok: false, error: message });
+    if (message === "assignment_not_allowed" || message === "report_scope_mismatch") return reply(403, { ok: false, error: message });
+    return reply(500, { ok: false, error: message });
   }
 });
