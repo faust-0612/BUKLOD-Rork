@@ -6,6 +6,7 @@ echo "===================================================="
 
 export BUKLOD_APP_TARGET="report"
 export EXPO_PUBLIC_APP_ENV="production"
+export REPORT_RELEASE_TARGET="android"
 
 node scripts/production-preflight.mjs
 node scripts/verify-production-migrations.mjs > release/PRODUCTION_MIGRATION_HASHES.json
