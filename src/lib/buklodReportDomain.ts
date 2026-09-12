@@ -1,13 +1,11 @@
 /**
- * BUKLOD Report domain client.
+ * BUKLOD Report domain client for the standalone Report app.
  *
- * Definitions remain on the canonical RPC contract. Weekly sender workflow and
- * personal reminder state use the authenticated BUKLOD Report Edge API, which
- * re-validates the signed-in BUKLOD user and exact scope membership server-side.
+ * The backend remains the canonical source of scope membership, report
+ * definitions, published assignments and submissions. No report is created by
+ * opening the app.
  */
-
 import { supabase } from '@/lib/supabase';
-
 import {
   readReportDefinitionRow,
   readReportResolvedContext,
@@ -58,21 +56,30 @@ export type QuickWeeklySaveResult = {
   content: Record<string, unknown>;
 };
 
+const preferredAssignmentByScope = new Map<string, string>();
+
 function readObject(value: unknown): Record<string, any> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, any>)
     : {};
 }
 
-async function invokeReportApi<T>(body: Record<string, unknown>): Promise<T> {
-  const { data, error } = await supabase.functions.invoke('buklod-report-api-v1', {
-    body,
-  });
+export function setPreferredReportAssignment(scopeId: string, assignmentId?: string | null) {
+  const scope = String(scopeId ?? '').trim();
+  if (!scope) return;
+  const assignment = String(assignmentId ?? '').trim();
+  if (!assignment) preferredAssignmentByScope.delete(scope);
+  else preferredAssignmentByScope.set(scope, assignment);
+}
 
+export function getPreferredReportAssignment(scopeId: string): string {
+  return preferredAssignmentByScope.get(String(scopeId ?? '').trim()) ?? '';
+}
+
+async function invokeReportApi<T>(body: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.functions.invoke('buklod-report-api-v1', { body });
   if (error) throw error;
-  if (!data?.ok) {
-    throw new Error(String(data?.error ?? 'BUKLOD Report request failed.'));
-  }
+  if (!data?.ok) throw new Error(String(data?.error ?? 'BUKLOD Report request failed.'));
   return data as T;
 }
 
@@ -83,19 +90,13 @@ export async function fetchReportDomainStatus(): Promise<{
   next_phase: string;
   canonical_ids: string[];
 }> {
-  const { data, error } = await (supabase as any).rpc(
-    'buklod_report_domain_status_v1'
-  );
-
+  const { data, error } = await (supabase as any).rpc('buklod_report_domain_status_v1');
   if (error) throw error;
-
   const raw = readObject(data);
   return {
     domain: String(raw.domain ?? 'BUKLOD_ORGANIZATIONAL_REPORTS'),
     shared_with_focus_app: String(raw.shared_with_focus_app ?? 'BUKLOD_REPORT'),
-    implementation_phase: String(
-      raw.implementation_phase ?? 'PHASE_4_SUBMISSION'
-    ) as BuklodReportPhase,
+    implementation_phase: String(raw.implementation_phase ?? 'PHASE_4_SUBMISSION') as BuklodReportPhase,
     next_phase: String(raw.next_phase ?? 'PHASE_5_REVIEW'),
     canonical_ids: Array.isArray(raw.canonical_ids)
       ? raw.canonical_ids.map((id: unknown) => String(id))
@@ -103,53 +104,47 @@ export async function fetchReportDomainStatus(): Promise<{
   };
 }
 
-export async function resolveReportContext(args: {
-  assignmentId?: string;
-  submissionId?: string;
-}) {
-  const { data, error } = await (supabase as any).rpc(
-    'buklod_report_resolve_context_v1',
-    {
-      p_assignment_id: args.assignmentId ?? null,
-      p_submission_id: args.submissionId ?? null,
-    }
-  );
-
+export async function resolveReportContext(args: { assignmentId?: string; submissionId?: string }) {
+  const { data, error } = await (supabase as any).rpc('buklod_report_resolve_context_v1', {
+    p_assignment_id: args.assignmentId ?? null,
+    p_submission_id: args.submissionId ?? null,
+  });
   if (error) throw error;
   return readReportResolvedContext(data);
 }
 
 export async function isReportScopeEntitled(scopeId: string): Promise<boolean> {
-  const { data, error } = await (supabase as any).rpc(
-    'buklod_report_scope_entitled_v1',
-    { p_scope_id: scopeId }
-  );
-
+  const { data, error } = await (supabase as any).rpc('buklod_report_scope_entitled_v1', {
+    p_scope_id: scopeId,
+  });
   if (error) throw error;
   return Boolean(data);
 }
 
 export async function ensureQuickWeeklyReport(
-  scopeId: string
+  scopeId: string,
+  assignmentId?: string | null
 ): Promise<QuickWeeklyReportContext> {
+  const preferredAssignmentId =
+    String(assignmentId ?? '').trim() || getPreferredReportAssignment(scopeId);
   const payload = await invokeReportApi<{ ok: true; context: Record<string, any> }>({
     action: 'bootstrap_scope',
     scope_id: scopeId,
+    assignment_id: preferredAssignmentId || null,
   });
   const raw = readObject(payload.context);
   if (!raw.report_assignment_id || !raw.report_definition_id || !raw.report_period_id) {
-    throw new Error('Weekly report context is incomplete.');
+    throw new Error('Report assignment context is incomplete.');
   }
   const reminder = readObject(raw.reminder);
-
-  return {
+  const context: QuickWeeklyReportContext = {
     scope_id: String(raw.scope_id ?? scopeId),
     scope_name: String(raw.scope_name ?? 'Selected scope'),
     scope_type: String(raw.scope_type ?? ''),
     report_definition_id: String(raw.report_definition_id),
     report_period_id: String(raw.report_period_id),
     report_assignment_id: String(raw.report_assignment_id),
-    period_title: String(raw.period_title ?? 'Quick Weekly Report'),
+    period_title: String(raw.period_title ?? 'Report'),
     period_key: String(raw.period_key ?? ''),
     deadline_at: String(raw.deadline_at ?? ''),
     assignment_status: String(raw.assignment_status ?? 'OPEN') as ReportAssignmentStatus,
@@ -162,18 +157,17 @@ export async function ensureQuickWeeklyReport(
       status: String(reminder.status ?? 'ACTIVE') === 'DONE' ? 'DONE' : 'ACTIVE',
       response: reminder.response ? String(reminder.response) : null,
       comments: Array.isArray(reminder.comments)
-        ? reminder.comments.map((row: unknown) => {
-            const item = readObject(row);
-            return {
-              text: String(item.text ?? ''),
-              by: item.by ? String(item.by) : undefined,
-              at: item.at ? String(item.at) : undefined,
-            };
-          }).filter((row: { text: string }) => row.text)
+        ? reminder.comments.flatMap((value: unknown) => {
+            const row = readObject(value);
+            const text = String(row.text ?? '').trim();
+            return text ? [{ text, by: row.by ? String(row.by) : undefined, at: row.at ? String(row.at) : undefined }] : [];
+          })
         : [],
       completed_at: reminder.completed_at ? String(reminder.completed_at) : null,
     },
   };
+  setPreferredReportAssignment(context.scope_id, context.report_assignment_id);
+  return context;
 }
 
 export async function saveQuickWeeklyReport(args: {
@@ -193,7 +187,6 @@ export async function saveQuickWeeklyReport(args: {
   });
   const raw = readObject(payload.result);
   if (!raw.submission_id) throw new Error('Report submission could not be saved.');
-
   return {
     scope_id: String(raw.scope_id ?? args.scopeId),
     report_definition_id: String(raw.report_definition_id ?? ''),
@@ -209,12 +202,15 @@ export async function saveQuickWeeklyReport(args: {
 
 export async function updateQuickWeeklyReminder(args: {
   scopeId: string;
+  assignmentId?: string | null;
   kind: 'ACK' | 'COMMENT' | 'DONE';
   value?: string;
 }): Promise<ReportReminderState> {
+  const assignmentId = String(args.assignmentId ?? '').trim() || getPreferredReportAssignment(args.scopeId);
   const payload = await invokeReportApi<{ ok: true; reminder: Record<string, any> }>({
     action: 'reminder_action',
     scope_id: args.scopeId,
+    assignment_id: assignmentId || null,
     kind: args.kind,
     value: args.value ?? '',
   });
@@ -223,10 +219,11 @@ export async function updateQuickWeeklyReminder(args: {
     status: String(raw.status ?? 'ACTIVE') === 'DONE' ? 'DONE' : 'ACTIVE',
     response: raw.response ? String(raw.response) : null,
     comments: Array.isArray(raw.comments)
-      ? raw.comments.map((row: unknown) => {
-          const item = readObject(row);
-          return { text: String(item.text ?? ''), by: item.by ? String(item.by) : undefined, at: item.at ? String(item.at) : undefined };
-        }).filter((row: { text: string }) => row.text)
+      ? raw.comments.flatMap((value: unknown) => {
+          const row = readObject(value);
+          const text = String(row.text ?? '').trim();
+          return text ? [{ text, by: row.by ? String(row.by) : undefined, at: row.at ? String(row.at) : undefined }] : [];
+        })
       : [],
     completed_at: raw.completed_at ? String(raw.completed_at) : null,
   };
@@ -236,36 +233,10 @@ export async function fetchMyActionableReportAssignments(
   limit = 10,
   scopeId?: string | null
 ): Promise<ReportAssignmentCard[]> {
-  if (scopeId) {
-    try {
-      const context = await ensureQuickWeeklyReport(scopeId);
-      if (context.assignment_status === 'SUBMITTED') return [];
-      const status: ReportHomeCardStatus =
-        new Date(context.deadline_at).getTime() < Date.now() ? 'EXPIRED' : 'DUE';
-      return [{
-        report_assignment_id: context.report_assignment_id,
-        report_definition_id: context.report_definition_id,
-        report_period_id: context.report_period_id,
-        scope_id: context.scope_id,
-        scope_label: context.scope_name,
-        report_title: 'Quick Weekly Report',
-        period_label: context.period_title,
-        deadline_at: context.deadline_at,
-        assignment_status: context.assignment_status,
-        submission_status: context.submission_status,
-        home_status: status,
-        submission_id: context.submission_id,
-        has_unread_remarks: false,
-      }];
-    } catch {
-      return [];
-    }
-  }
-
-  const { data, error } = await (supabase as any).rpc(
-    'buklod_report_my_assignments_v1',
-    { p_scope_id: null, p_limit: Math.max(1, Math.min(100, limit)) }
-  );
+  const { data, error } = await (supabase as any).rpc('buklod_report_my_assignments_v1', {
+    p_scope_id: scopeId ?? null,
+    p_limit: Math.max(1, Math.min(100, limit)),
+  });
   if (error) return [];
   const raw = readObject(data);
   const rows = Array.isArray(raw.assignments) ? raw.assignments : [];
