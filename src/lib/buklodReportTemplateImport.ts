@@ -71,8 +71,6 @@ function arrayBufferToBase64(buffer: ArrayBuffer) {
 }
 
 async function assetBase64(asset: DocumentPicker.DocumentPickerAsset) {
-  if (asset.base64) return asset.base64;
-
   if (Platform.OS === 'web' && asset.file) {
     return arrayBufferToBase64(await asset.file.arrayBuffer());
   }
