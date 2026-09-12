@@ -466,14 +466,15 @@ export default function IgpatScreen() {
     <View style={styles.root}>
       <FlatList
         data={rows}
+        extraData={activeIndex}
         key={`${feedMode}:${dataSaver ? 'saver' : 'normal'}`}
         keyExtractor={item => item.id}
         pagingEnabled
         showsVerticalScrollIndicator={false}
         initialNumToRender={1}
-        maxToRenderPerBatch={2}
+        maxToRenderPerBatch={1}
         updateCellsBatchingPeriod={80}
-        windowSize={3}
+        windowSize={2}
         removeClippedSubviews
         decelerationRate="fast"
         onViewableItemsChanged={onViewableItemsChanged}
@@ -490,9 +491,9 @@ export default function IgpatScreen() {
 
           return (
             <View style={[styles.page, { height: viewportHeight }]}>
-              {!!item.media_url && (
-                <IgpatVideo uri={item.media_url} active={index === activeIndex} />
-              )}
+              {!!item.media_url && index === activeIndex ? (
+                <IgpatVideo uri={item.media_url} active />
+              ) : null}
               <View pointerEvents="none" style={styles.scrim} />
 
               <View style={[styles.topBar, { top: insets.top + 10 }]}>

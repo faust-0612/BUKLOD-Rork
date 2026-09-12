@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,7 +10,6 @@ import {
   View,
 } from 'react-native';
 import { router } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { supabase } from '@/lib/supabase';
@@ -237,27 +235,6 @@ export default function IgpatCreateScreen() {
     }
   };
 
-  useEffect(() => {
-    if (Platform.OS !== 'android') return;
-
-    let cancelled = false;
-    void ImagePicker.getPendingResultAsync()
-      .then(async result => {
-        if (cancelled || !result) return;
-        await handlePickerResult(result);
-      })
-      .catch(error => {
-        console.warn(
-          'BUKLOD IGPAT pending picker result:',
-          String((error as any)?.message ?? error)
-        );
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const beginPicker = () => {
     if (busy || pickerBusyRef.current) return false;
     pickerBusyRef.current = true;
@@ -274,6 +251,10 @@ export default function IgpatCreateScreen() {
     if (!beginPicker()) return;
 
     try {
+      // Load the native picker only after explicit user action. This keeps
+      // /igpat/create mount-compatible with older production binaries and
+      // turns native-module drift into a caught error instead of an app crash.
+      const ImagePicker = await import('expo-image-picker');
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
         Alert.alert(
@@ -292,7 +273,8 @@ export default function IgpatCreateScreen() {
       console.warn('BUKLOD IGPAT library picker:', String(error?.message ?? error));
       Alert.alert(
         'Could Not Open Videos',
-        error?.message ?? 'Please try selecting the video again.'
+        error?.message ??
+          'Video selection is not available in this installed app version. Please update the app before trying again.'
       );
     } finally {
       endPicker();
@@ -303,6 +285,9 @@ export default function IgpatCreateScreen() {
     if (!beginPicker()) return;
 
     try {
+      // Same compatibility rule as SELECT: never require ImagePicker native
+      // methods merely by opening the IGPAT creator.
+      const ImagePicker = await import('expo-image-picker');
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
         Alert.alert(
@@ -322,7 +307,8 @@ export default function IgpatCreateScreen() {
       console.warn('BUKLOD IGPAT camera picker:', String(error?.message ?? error));
       Alert.alert(
         'Could Not Record Video',
-        error?.message ?? 'The camera could not return the recorded video safely. Please try again.'
+        error?.message ??
+          'Camera video recording is not available in this installed app version. Please update the app before trying again.'
       );
     } finally {
       endPicker();
