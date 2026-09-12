@@ -500,9 +500,18 @@ function LegacyPublicBuklodScreen(){
               originalName: null,
             }));
 
+        const gifRows = normalized.filter(
+          (row: any) =>
+            row?.contentType === 'image' &&
+            String(row?.contentMimeType ?? '').toLowerCase() === 'image/gif' &&
+            typeof row?.contentUri === 'string' &&
+            row.contentUri.length > 0
+        );
+
         const imageRows = normalized.filter(
           (row: any) =>
             row?.contentType === 'image' &&
+            String(row?.contentMimeType ?? '').toLowerCase() !== 'image/gif' &&
             typeof row?.contentUri === 'string' &&
             row.contentUri.length > 0
         );
@@ -517,6 +526,7 @@ function LegacyPublicBuklodScreen(){
         if (
           !sharedText.length &&
           !imageRows.length &&
+          !gifRows.length &&
           !videoRows.length
         ) {
           throw new Error(
@@ -524,16 +534,23 @@ function LegacyPublicBuklodScreen(){
           );
         }
 
-        if (imageRows.length && videoRows.length) {
-          throw new Error(
-            'BUKLOD Community accepts either photos or one video in a post, not both.'
+        if (gifRows.length) {
+          incomingShare187A.clearSharedPayloads();
+          Alert.alert(
+            'Community',
+            'Community accepts text and still photos only. GIF posting is not available.'
           );
+          return;
         }
 
-        if (videoRows.length > 1) {
-          throw new Error(
-            'BUKLOD Community accepts one video per post.'
+        if (videoRows.length) {
+          incomingShare187A.clearSharedPayloads();
+          Alert.alert(
+            'BUKLOD IGPAT',
+            'Videos belong in BUKLOD IGPAT. Opening the IGPAT creator.'
           );
+          router.push('/igpat/create' as any);
+          return;
         }
 
         if (sharedText.length) {
@@ -1580,6 +1597,13 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
 
  const publish=async()=>{
   if(!user)return;
+
+  if(wallVideo186O || communityGif){
+   return Alert.alert(
+    'Community',
+    'Community accepts text and photos only. Post videos through BUKLOD IGPAT.'
+   );
+  }
 
   if(
    audience==='group' &&
@@ -3187,7 +3211,7 @@ const refreshCommunity186L=
     <ConnectPressable
      onPress={() =>
       router.push(
-       '/reels' as any
+       '/igpat' as any
       )
      }
      style={{
@@ -3208,7 +3232,7 @@ const refreshCommunity186L=
        color:colors.greenDark
       }}
      >
-      BUKLOD REELS
+      BUKLOD IGPAT
      </Text>
     </ConnectPressable>
    </View>
@@ -3253,23 +3277,8 @@ const refreshCommunity186L=
     <Pressable
      style={s.tool}
      disabled={busy}
-     onPress={()=>{
-      setPhotos([]);
-      setWallVideo186O(null);
-      setCommunityGifPickerOpen(true);
-     }}
-    >
-     <MaterialCommunityIcons name="file-gif-box" size={17} color={colors.green}/>
-     <Text style={s.toolText}>{communityGif?'GIF Ready':'Add GIF'}</Text>
-    </Pressable>
-    <Pressable
-     style={s.tool}
-     disabled={
-      busy||
-      videoBusy186O
-     }
      onPress={()=>
-      void pickWallVideo186O()
+      router.push('/igpat/create' as any)
      }
     >
      <MaterialCommunityIcons
@@ -3277,13 +3286,7 @@ const refreshCommunity186L=
       size={17}
       color={colors.green}
      />
-     <Text style={s.toolText}>
-      {videoBusy186O
-       ? 'Preparing...'
-       : wallVideo186O
-        ? 'Video Ready'
-        : 'Add Video'}
-     </Text>
+     <Text style={s.toolText}>BUKLOD IGPAT</Text>
     </Pressable></View>
     {!!communityGif&&(
      <BuklodCommunityGifPreview
@@ -3307,7 +3310,7 @@ const refreshCommunity186L=
      </Text>
     )}
     <Text style={[shared.muted,{marginBottom:8,fontSize:11}]}>
-      Up to {COMMUNITY_MAX_PHOTOS} photos per post. Posting continues in the background so you can keep using BUKLOD.
+      Up to {COMMUNITY_MAX_PHOTOS} photos per post. Videos are posted through BUKLOD IGPAT. Posting continues in the background so you can keep using BUKLOD.
       {photos.length
        ? ' Long-press a photo to highlight, draw, add text, emoji, or remove.'
        : ''}
@@ -3439,7 +3442,6 @@ const refreshCommunity186L=
     const counts =
       item.reaction_counts ||
       {};
-
     const ms =
       Array.isArray(
         item.mentions,
@@ -3459,9 +3461,6 @@ const refreshCommunity186L=
        gap: 9,
      }}
    >
-     
-
-     
    {/* PATCH_185A_R2_COMMUNITY_AUTHOR_PROFILE_PHOTO */}
    <View
     style={{
@@ -3471,9 +3470,7 @@ const refreshCommunity186L=
      marginBottom:6
     }}
    >
-    
     <View style={{flex:1}}>
-     
    {/* PATCH_185A_R5_COMMUNITY_AUTHOR_PROFILE_PHOTO */}
    <View
     style={{
@@ -3507,7 +3504,6 @@ const refreshCommunity186L=
          item.user_id,
        )}
      </BuklodTappablePersonName>
-    
        {/* PATCH_186I_R3_AUTHOR_META_UNDER_NAME */}
        <Text
          style={s.meta}
@@ -3595,10 +3591,7 @@ const refreshCommunity186L=
     </View>
    </View>
    </View>
-
-   
-   <Text style={s.body}>{/* UI_002_R9_R2_SHARED_BODY_CLEAN */
-String(repairMojibakeText(item.body) ?? '').replace(
+   <Text style={s.body}>{String(repairMojibakeText(item.body) ?? '').replace(
   /^Shared from [^\r\n]+(?:\r?\n\s*|$)+/i,
   ''
 )}</Text>{!!ms.length&&<Text style={s.mentioned}>{ms.map((x:any)=>`@${x.full_name}`).join(' ')}</Text>}
@@ -4124,5 +4117,3 @@ String(repairMojibakeText(item.body) ?? '').replace(
      {reportSheet}
 </>;
 }
-
-

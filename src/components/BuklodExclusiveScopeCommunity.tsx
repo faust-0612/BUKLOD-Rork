@@ -35,6 +35,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { router } from 'expo-router';
 
 import {
   ActivityIndicator,
@@ -1409,6 +1410,19 @@ export default function BuklodExclusiveScopeCommunity({
         return;
       }
 
+      if (
+        mode === 'reels' ||
+        !!reel ||
+        !!wallVideo ||
+        !!communityGif
+      ) {
+        Alert.alert(
+          'Community',
+          'Community accepts text and photos only. Post videos through BUKLOD IGPAT.'
+        );
+        return;
+      }
+
       const cleanBody =
         body.trim();
 
@@ -1436,7 +1450,7 @@ export default function BuklodExclusiveScopeCommunity({
       ) {
         Alert.alert(
           'Nothing to Post',
-          'Write a message, add a GIF, photos, or a video first.'
+          'Write a message or add photos first.'
         );
 
         return;
@@ -3459,7 +3473,7 @@ return (
                           styles.scopeNoticeText
                         }
                       >
-                        Posts, Reels, reactions,
+                        Posts, photos, reactions,
                         comments and replies stay
                         inside this exact community.
                         Nothing here is mixed with
@@ -3513,45 +3527,29 @@ return (
           </Pressable>
 
           <Pressable
-            onPress={() => {
-              setMode(
-                'reels'
-              );
-              setWallVideo(
-                null
-              );
-              setPhotos(
-                []
-              );
-              setCommunityGif(null);
-            }}
-            style={[
-              styles.modeButton,
-              mode ===
-                'reels' &&
-                styles.modeButtonOn,
-            ]}
+            onPress={() =>
+              router.push('/igpat' as any)
+            }
+            style={
+              styles.modeButton
+            }
+            accessibilityRole="button"
+            accessibilityLabel="Open BUKLOD IGPAT"
           >
             <MaterialCommunityIcons
               name="movie-play-outline"
               size={19}
               color={
-                mode ===
-                  'reels'
-                  ? colors.white
-                  : colors.greenDark
+                colors.greenDark
               }
             />
 
             <Text
-              style={[
-                styles.modeText,
-                mode ===
-                  'reels' &&
-                  styles.modeTextOn,
-              ]}
+              style={
+                styles.modeText
+              }
             >
-              REELS
+              BUKLOD IGPAT
             </Text>
           </Pressable>
         </View>
@@ -3981,33 +3979,14 @@ return (
 
                 <Pressable
                   disabled={busy}
-                  onPress={() => {
-                    clearMedia();
-                    setCommunityGifPickerOpen(true);
-                  }}
-                  style={styles.mediaButton}
-                >
-                  <MaterialCommunityIcons
-                    name="file-gif-box"
-                    size={19}
-                    color={colors.greenDark}
-                  />
-                  <Text style={styles.mediaButtonText}>
-                    {communityGif ? 'GIF Ready' : 'Add GIF'}
-                  </Text>
-                </Pressable>
-
-                <Pressable
-                  disabled={
-                    busy ||
-                    wallVideoBusy
-                  }
                   onPress={() =>
-                    void pickWallVideo()
+                    router.push('/igpat/create' as any)
                   }
                   style={
                     styles.mediaButton
                   }
+                  accessibilityRole="button"
+                  accessibilityLabel="Create in BUKLOD IGPAT"
                 >
                   <MaterialCommunityIcons
                     name="video-outline"
@@ -4021,11 +4000,7 @@ return (
                       styles.mediaButtonText
                     }
                   >
-                    {wallVideoBusy
-                      ? 'Preparing...'
-                      : wallVideo
-                      ? 'Video Ready'
-                      : 'Add Video'}
+                    BUKLOD IGPAT
                   </Text>
                 </Pressable>
               </>
