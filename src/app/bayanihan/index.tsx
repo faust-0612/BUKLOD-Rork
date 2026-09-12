@@ -1,10 +1,6 @@
-﻿import React, {
-  useCallback,
-  useEffect,
-  useState,
-} from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
+  ActivityIndicator,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -16,154 +12,123 @@ import { router } from 'expo-router';
 
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 import { shared } from '@/components/UI';
-import { useAuth } from '@/providers/AuthProvider';
-import { useBuklodScope } from '@/providers/BuklodScopeProvider';
-import { openAttendanceWorkspaceForAccount } from '@/lib/buklodScopeManage';
 import {
-  loadBuklodPointsDashboard,
-  type BuklodPointsDashboard,
-} from '@/lib/buklodRewards';
-import { supabase } from '@/lib/supabase';
+  asMoney,
+  formatPhp,
+  loadMyBuklodR38EconomyReport,
+  type BuklodR38UserEconomyReport,
+} from '@/lib/buklodR38Economy';
 
-function SummaryTile({
+function Metric({
   label,
   value,
+  note,
   emphasized = false,
 }: {
   label: string;
   value: string;
+  note?: string;
   emphasized?: boolean;
 }) {
   return (
-    <View
-      style={[
-        styles.summaryTile,
-        emphasized && styles.summaryTilePrimary,
-      ]}
-    >
-      <Text
-        style={[
-          styles.summaryValue,
-          emphasized && styles.summaryValuePrimary,
-        ]}
-      >
+    <View style={[styles.metric, emphasized && styles.metricPrimary]}>
+      <Text style={[styles.metricValue, emphasized && styles.metricValuePrimary]}>
         {value}
       </Text>
-      <Text
-        style={[
-          styles.summaryLabel,
-          emphasized && styles.summaryLabelPrimary,
-        ]}
-      >
-        {label}
-      </Text>
+      <Text style={styles.metricLabel}>{label}</Text>
+      {!!note && <Text style={styles.metricNote}>{note}</Text>}
     </View>
   );
 }
 
-function DoorwayRow({
+function Section({
+  eyebrow,
+  title,
+  children,
+}: {
+  eyebrow: string;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionEyebrow}>{eyebrow}</Text>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {children}
+    </View>
+  );
+}
+
+function InfoRow({
   icon,
   title,
-  subtitle,
-  onPress,
+  text,
 }: {
   icon: keyof typeof MaterialCommunityIcons.glyphMap;
   title: string;
-  subtitle: string;
-  onPress: () => void;
+  text: string;
 }) {
   return (
-    <Pressable onPress={onPress} style={styles.doorwayRow}>
-      <View style={styles.doorwayIcon}>
-        <MaterialCommunityIcons
-          name={icon}
-          size={22}
-          color="#275D45"
-        />
+    <View style={styles.infoRow}>
+      <View style={styles.infoIcon}>
+        <MaterialCommunityIcons name={icon} size={19} color="#275D45" />
       </View>
-
       <View style={{ flex: 1 }}>
-        <Text style={styles.doorwayTitle}>{title}</Text>
-        <Text style={styles.doorwaySubtitle}>{subtitle}</Text>
+        <Text style={styles.infoTitle}>{title}</Text>
+        <Text style={styles.infoText}>{text}</Text>
       </View>
-
-      <MaterialCommunityIcons
-        name="chevron-right"
-        size={22}
-        color="#77837C"
-      />
-    </Pressable>
+    </View>
   );
 }
 
 export default function BayanihanScreen() {
-  const { profile } = useAuth();
-  const { scopes, activeScope, selectScope } = useBuklodScope();
-  const profileId = (profile as { id?: string } | null)?.id;
-
-  const [points, setPoints] =
-    useState<BuklodPointsDashboard | null>(null);
-  const [circleRank, setCircleRank] =
-    useState<string | null>(null);
+  const [report, setReport] = useState<BuklodR38UserEconomyReport | null>(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] =
-    useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const [pointsResult, rankResult] =
-      await Promise.all([
-        loadBuklodPointsDashboard().catch(() => null),
-
-        profileId
-          ? (supabase as any).rpc(
-              'get_member_circle_ranks_v1',
-              { p_user_ids: [profileId] },
-            )
-          : Promise.resolve({ data: null, error: null }),
-      ]);
-
-    setPoints(pointsResult);
-
-    if (!rankResult.error) {
-      const rows = Array.isArray(rankResult.data)
-        ? rankResult.data
-        : rankResult.data
-          ? [rankResult.data]
-          : [];
-
-      const row =
-        rows.find(
-          (item: { user_id?: string }) =>
-            item?.user_id === profileId,
-        ) ?? rows[0];
-
-      setCircleRank(row?.rank_name ?? null);
-    } else {
-      setCircleRank(null);
+    try {
+      setError(null);
+      setReport(await loadMyBuklodR38EconomyReport());
+    } catch (nextError: unknown) {
+      setError(
+        nextError instanceof Error
+          ? nextError.message
+          : 'Could not load your BUKLOD economy report.',
+      );
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
-  }, [profileId]);
+  }, []);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     setRefreshing(true);
     await load();
     setRefreshing(false);
-  };
+  }, [load]);
 
-  const lifetimePoints = Number(
-    points?.lifetime_points ?? 0,
-  );
-  const availablePoints = Number(
-    points?.available_points ?? 0,
-  );
-  const pendingPoints = Number(
-    points?.pending_claimable_points ?? 0,
-  );
+  const rankName = useMemo(() => {
+    const rank = report?.progress?.circle_rank ?? {};
+    const value =
+      (rank as Record<string, unknown>).display_name ??
+      (rank as Record<string, unknown>).rank_name ??
+      (rank as Record<string, unknown>).tier_name;
+    return typeof value === 'string' && value.trim()
+      ? value.trim()
+      : 'BUKLOD Member';
+  }, [report]);
+
+  const estimated = report?.actual_earnings?.estimated_share ?? null;
+  const finalized = report?.actual_earnings?.finalized_share;
+  const availableCash = report?.actual_earnings?.available_cash;
+  const paid = report?.actual_earnings?.paid_earnings;
+  const withdrawalEnabled =
+    report?.actual_earnings?.referral_withdrawal_enabled === true;
 
   return (
     <BuklodPortalScrollView
@@ -171,175 +136,197 @@ export default function BayanihanScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
       refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={refresh}
-        />
+        <RefreshControl refreshing={refreshing} onRefresh={refresh} />
       }
     >
       <View style={styles.hero}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.eyebrow}>
-            BUKLOD BAYANIHAN
-          </Text>
-
-          <Text style={styles.title}>
-            BUKLOD Bayanihan
-          </Text>
-
+          <Text style={styles.eyebrow}>BUKLOD BAYANIHAN</Text>
+          <Text style={styles.title}>My Economy Report</Text>
           <Text style={styles.subtitle}>
-            Participation • Growth • Community
+            Progress, contribution, app sharing and actual funded earnings — kept separate by design.
           </Text>
         </View>
-
         <View style={styles.heroIcon}>
-          <MaterialCommunityIcons
-            name="account-group-outline"
-            size={30}
-            color="#275D45"
-          />
+          <MaterialCommunityIcons name="chart-donut" size={30} color="#275D45" />
         </View>
       </View>
 
-      {loading ? (
+      {loading && !report ? (
         <View style={styles.loadingCard}>
-          <Text style={styles.loadingText}>
-            Loading your participation summary...
-          </Text>
+          <ActivityIndicator color="#275D45" />
+          <Text style={styles.loadingText}>Loading your economy report...</Text>
         </View>
-      ) : (
+      ) : error && !report ? (
+        <View style={styles.loadingCard}>
+          <MaterialCommunityIcons name="alert-circle-outline" size={30} color="#A35C00" />
+          <Text style={styles.errorTitle}>Report unavailable</Text>
+          <Text style={styles.loadingText}>{error}</Text>
+          <Pressable onPress={() => void load()} style={styles.retryButton}>
+            <Text style={styles.retryText}>TRY AGAIN</Text>
+          </Pressable>
+        </View>
+      ) : report ? (
         <>
-          <View style={styles.rankCard}>
-            <Text style={styles.rankEyebrow}>
-              HOW ASSISTANCE WORKS
-            </Text>
-            <Text style={styles.rankName}>
-              Request · Review · Receive
-            </Text>
-            <Text style={styles.rankNote}>
-              Bayanihan ₱ is separate from BUKLOD Points. Qualification,
-              required documents, and approval follow the posted policy.
-              Participation and contribution conditions are set by System Admin
-              configuration, not by converting points into cash.
-            </Text>
+          <View style={styles.invariantCard}>
+            <MaterialCommunityIcons name="shield-check-outline" size={24} color="#275D45" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.invariantTitle}>Points are not money</Text>
+              <Text style={styles.invariantText}>
+                BUKLOD Points, Circle Rank, Character and Collectibles are progression systems. They do not convert to pesos. Cash can exist only after real platform revenue is reconciled, funded and finalized.
+              </Text>
+            </View>
           </View>
 
-          <View style={styles.rankCard}>
-            <Text style={styles.rankEyebrow}>
-              CIRCLE RANK
-            </Text>
-            <Text style={styles.rankName}>
-              {circleRank ?? 'Circle Starter V'}
-            </Text>
-            <Text style={styles.rankNote}>
-              Based on lifetime BUKLOD Points from
-              approved participation.
-            </Text>
-          </View>
-
-          <View style={styles.summaryGrid}>
-            <SummaryTile
-              label="Lifetime Points"
-              value={lifetimePoints.toLocaleString('en-PH')}
-              emphasized
+          <Section eyebrow="PROGRESS" title="Your BUKLOD Progress">
+            <View style={styles.grid}>
+              <Metric
+                label="Lifetime Points"
+                value={Number(report.progress.lifetime_points ?? 0).toLocaleString('en-PH')}
+                emphasized
+              />
+              <Metric
+                label="Available Points"
+                value={Number(report.progress.available_points ?? 0).toLocaleString('en-PH')}
+              />
+              <Metric
+                label="Pending Claimable"
+                value={Number(report.progress.pending_points ?? 0).toLocaleString('en-PH')}
+              />
+            </View>
+            <InfoRow
+              icon="trophy-outline"
+              title={rankName}
+              text={`Character: ${report.progress.character || 'Not selected'} · Collectibles: ${Number(report.progress.collectibles ?? 0).toLocaleString('en-PH')}`}
             />
-            <SummaryTile
-              label="Available Points"
-              value={availablePoints.toLocaleString('en-PH')}
-            />
-            <SummaryTile
-              label="Pending Claimable"
-              value={pendingPoints.toLocaleString('en-PH')}
-            />
-          </View>
+            <Pressable style={styles.linkButton} onPress={() => router.push('/points' as any)}>
+              <MaterialCommunityIcons name="star-circle-outline" size={18} color="#275D45" />
+              <Text style={styles.linkButtonText}>OPEN BUKLOD POINTS</Text>
+            </Pressable>
+          </Section>
 
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionEyebrow}>
-              DOORWAYS
+          <Section eyebrow="ECONOMIC CONTRIBUTION" title="Qualified Participation Weight">
+            <View style={styles.gridTwo}>
+              <Metric
+                label="Qualified BCU"
+                value={asMoney(report.economic_contribution.qualified_bcu).toLocaleString('en-PH', { maximumFractionDigits: 6 })}
+                note="Weight unit only"
+              />
+              <Metric
+                label="Current Period BCU"
+                value={asMoney(report.economic_contribution.current_period_bcu).toLocaleString('en-PH', { maximumFractionDigits: 6 })}
+                note="Not a peso rate"
+              />
+            </View>
+            <Text style={styles.explainer}>
+              BCU helps determine a proportional share only when a real funded Bayanihan pool is finalized. There is no fixed PHP-per-BCU promise.
             </Text>
-            <Text style={styles.sectionTitle}>
-              Continue Your Journey
+          </Section>
+
+          <Section eyebrow="APP SHARING" title="Direct Referral Contribution">
+            <View style={styles.gridTwo}>
+              <Metric
+                label="Qualified Direct Referrals"
+                value={Number(report.app_sharing.qualified_direct_referrals ?? 0).toLocaleString('en-PH')}
+              />
+              <Metric
+                label="Qualified RCU"
+                value={asMoney(report.app_sharing.qualified_rcu).toLocaleString('en-PH', { maximumFractionDigits: 6 })}
+                note="Weight unit only"
+              />
+            </View>
+            <Text style={styles.explainer}>
+              Sharing the app does not create a fixed cash reward. A qualified direct referral may contribute RCU during its earning window; RCU only shares a funded referral pool after period finalization.
             </Text>
-          </View>
+          </Section>
 
-          <DoorwayRow
-            icon="star-circle-outline"
-            title="BUKLOD Points"
-            subtitle="View rank progress, claim rewards, and activity history"
-            onPress={() => router.push('/points' as any)}
-          />
+          <Section eyebrow="ACTUAL EARNINGS" title="Funded Cash Status">
+            {estimated ? (
+              <View style={styles.estimateCard}>
+                <Text style={styles.estimateLabel}>{estimated.label}</Text>
+                <Text style={styles.estimateValue}>{formatPhp(estimated.total)}</Text>
+                <Text style={styles.estimateText}>
+                  Estimate only. It is not withdrawable and may change until the period is reconciled and finalized.
+                </Text>
+              </View>
+            ) : null}
 
-          <DoorwayRow
-            icon="school-outline"
-            title="Learning Progress"
-            subtitle="Formation lessons, mentoring, and verification"
-            onPress={() => router.push('/learn' as any)}
-          />
+            <View style={styles.gridTwo}>
+              <Metric label="Finalized Share" value={formatPhp(finalized?.total)} emphasized />
+              <Metric label="Available Cash" value={formatPhp(availableCash?.total)} />
+              <Metric
+                label="Reserved"
+                value={formatPhp(report.actual_earnings.reserved_for_withdrawal)}
+              />
+              <Metric label="Paid Earnings" value={formatPhp(paid?.total)} />
+            </View>
 
-          <DoorwayRow
-            icon="book-open-page-variant-outline"
-            title="Daily Bible & Devotion"
-            subtitle="Daily reading, reflection, and spiritual formation"
-            onPress={() => router.push('/bible' as any)}
-          />
+            <View style={styles.breakdownCard}>
+              <Text style={styles.breakdownTitle}>Finalized share breakdown</Text>
+              <Text style={styles.breakdownLine}>
+                Bayanihan pool share: {formatPhp(finalized?.bayanihan)}
+              </Text>
+              <Text style={styles.breakdownLine}>
+                Direct referral pool share: {formatPhp(finalized?.direct_referral)}
+              </Text>
+            </View>
 
-          <DoorwayRow
-            icon="calendar-check-outline"
-            title="BUKLOD Attendance"
-            subtitle="Participation records across your scopes"
-            onPress={() => {
-              void openAttendanceWorkspaceForAccount(selectScope, scopes, {
-                activeScope,
-              }).catch((error: any) => {
-                Alert.alert(
-                  'BUKLOD Attendance',
-                  String(error?.message ?? 'Open an Organization or Cluster first.'),
-                );
-              });
-            }}
-          />
+            <InfoRow
+              icon={withdrawalEnabled ? 'cash-check' : 'lock-outline'}
+              title={withdrawalEnabled ? 'Referral withdrawal is enabled' : 'Withdrawal is not activated yet'}
+              text={
+                withdrawalEnabled
+                  ? 'Only finalized, available Direct Referral cash can enter the withdrawal workflow. Points are never deducted or converted.'
+                  : 'No withdrawal can be created while the R38 withdrawal flag is off. This prevents unfunded or premature payouts.'
+              }
+            />
+          </Section>
+
+          <Section eyebrow="RULES" title="How the Money Flow Works">
+            <InfoRow
+              icon="cash-multiple"
+              title="1. Real platform revenue first"
+              text="Advertising and other recognized platform revenue are recorded at platform level, never from a user's Points balance."
+            />
+            <InfoRow
+              icon="server-network"
+              title="2. Actual costs are reconciled"
+              text="Infrastructure, database, storage, bandwidth, media, AI/TTS, payment fees and other recognized costs are deducted before distribution."
+            />
+            <InfoRow
+              icon="chart-pie"
+              title="3. Funded pools are created"
+              text="Only the remaining distributable base can fund Bayanihan, Direct Referral, Founder, Growth and Reserve allocations."
+            />
+            <InfoRow
+              icon="scale-balance"
+              title="4. BCU and RCU determine proportional share"
+              text="The value per unit can differ each finalized period. A retrospective effective rate is analytics only — never a future conversion rate."
+            />
+            <InfoRow
+              icon="bank-check"
+              title="5. Finalized cash can move to payout"
+              text="Only finalized and available cash may become a withdrawal. Payment history is separate from Points, Rank and progression."
+            />
+          </Section>
         </>
-      )}
+      ) : null}
 
-      <View style={styles.footerCard}>
-        <MaterialCommunityIcons
-          name="shield-check-outline"
-          size={22}
-          color="#275D45"
-        />
-
-        <Text style={styles.footerText}>
-          BUKLOD Bayanihan recognizes approved participation,
-          learning, and community engagement through BUKLOD Points
-          and Circle Rank. It is not a personal cash account and
-          does not measure spiritual worth.
-        </Text>
-      </View>
-
-      <Text style={styles.footerBrand}>
-        SAMAHANG BINU KLOD NG PAG-IBIG
-      </Text>
+      <Text style={styles.footerBrand}>SAMAHANG BINUKLOD NG PAG-IBIG</Text>
     </BuklodPortalScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
-    paddingTop: 18,
-    paddingBottom: 160,
-  },
-
+  content: { paddingTop: 18, paddingBottom: 160, gap: 8 },
   hero: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 12,
     padding: 19,
-    marginBottom: 6,
-    borderRadius: 0,
     backgroundColor: 'rgba(39,93,69,0.06)',
     borderWidth: 1,
     borderColor: 'rgba(39,93,69,0.13)',
   },
-
   heroIcon: {
     width: 54,
     height: 54,
@@ -348,75 +335,33 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     backgroundColor: '#FFFFFF',
   },
-
-  eyebrow: {
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 1.6,
-    color: '#78847D',
-  },
-
-  title: {
-    marginTop: 4,
-    fontSize: 29,
-    fontWeight: '900',
-    color: '#1C2822',
-  },
-
-  subtitle: {
-    marginTop: 6,
-    fontSize: 12.5,
-    lineHeight: 18,
-    color: '#69766F',
-    fontWeight: '700',
-  },
-
-  loadingCard: {
-    padding: 30,
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-  },
-
-  loadingText: {
-    color: '#738078',
-  },
-
-  rankCard: {
-    padding: 21,
-    marginBottom: 6,
-    borderRadius: 22,
-    backgroundColor: '#275D45',
-  },
-
-  rankEyebrow: {
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 1.5,
-    color: 'rgba(255,255,255,0.72)',
-  },
-
-  rankName: {
-    marginTop: 6,
-    fontSize: 28,
-    fontWeight: '900',
-    color: '#FFFFFF',
-  },
-
-  rankNote: {
-    marginTop: 8,
-    fontSize: 11.5,
-    lineHeight: 16,
-    color: 'rgba(255,255,255,0.82)',
-  },
-
-  summaryGrid: {
+  eyebrow: { fontSize: 10, fontWeight: '900', letterSpacing: 1.6, color: '#78847D' },
+  title: { marginTop: 4, fontSize: 28, fontWeight: '900', color: '#1C2822' },
+  subtitle: { marginTop: 6, fontSize: 12.5, lineHeight: 18, color: '#69766F', fontWeight: '700' },
+  loadingCard: { padding: 30, gap: 10, alignItems: 'center', backgroundColor: '#FFFFFF' },
+  loadingText: { textAlign: 'center', color: '#738078', lineHeight: 18 },
+  errorTitle: { fontSize: 15, fontWeight: '900', color: '#26352D' },
+  retryButton: { marginTop: 4, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, backgroundColor: '#275D45' },
+  retryText: { color: '#FFFFFF', fontSize: 11, fontWeight: '900' },
+  invariantCard: {
     flexDirection: 'row',
-    gap: 6,
-    marginBottom: 6,
+    alignItems: 'flex-start',
+    gap: 12,
+    padding: 16,
+    backgroundColor: '#EFF8F2',
+    borderWidth: 1,
+    borderColor: '#D7EADF',
   },
-
-  summaryTile: {
-    flex: 1,
+  invariantTitle: { fontSize: 15, fontWeight: '900', color: '#203229' },
+  invariantText: { marginTop: 4, fontSize: 11.5, lineHeight: 17, color: '#637169' },
+  section: { gap: 8, paddingTop: 14 },
+  sectionEyebrow: { fontSize: 9.5, fontWeight: '900', letterSpacing: 1.35, color: '#7F8B84' },
+  sectionTitle: { marginBottom: 2, fontSize: 20, fontWeight: '900', color: '#202C26' },
+  grid: { flexDirection: 'row', gap: 6 },
+  gridTwo: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  metric: {
+    flexGrow: 1,
+    flexBasis: '31%',
     minHeight: 88,
     padding: 12,
     justifyContent: 'center',
@@ -424,108 +369,32 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(25,45,35,0.09)',
   },
-
-  summaryTilePrimary: {
-    backgroundColor: 'rgba(39,93,69,0.07)',
-    borderColor: 'rgba(39,93,69,0.18)',
-  },
-
-  summaryValue: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#344139',
-  },
-
-  summaryValuePrimary: {
-    color: '#275D45',
-  },
-
-  summaryLabel: {
-    marginTop: 5,
-    fontSize: 9.5,
-    lineHeight: 13,
-    color: '#7C8881',
-  },
-
-  summaryLabelPrimary: {
-    color: '#617068',
-  },
-
-  sectionHeader: {
-    marginTop: 8,
-    marginBottom: 6,
-  },
-
-  sectionEyebrow: {
-    fontSize: 9,
-    fontWeight: '900',
-    letterSpacing: 1.5,
-    color: '#87918B',
-  },
-
-  sectionTitle: {
-    marginTop: 2,
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#202C26',
-  },
-
-  doorwayRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 15,
-    marginBottom: 6,
-    borderRadius: 18,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: 'rgba(25,45,35,0.09)',
-  },
-
-  doorwayIcon: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 13,
-    backgroundColor: 'rgba(39,93,69,0.07)',
-  },
-
-  doorwayTitle: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#25322B',
-  },
-
-  doorwaySubtitle: {
-    marginTop: 3,
-    fontSize: 10.5,
-    lineHeight: 15,
-    color: '#7A867F',
-  },
-
-  footerCard: {
+  metricPrimary: { backgroundColor: 'rgba(39,93,69,0.07)', borderColor: 'rgba(39,93,69,0.18)' },
+  metricValue: { fontSize: 17, fontWeight: '900', color: '#344139' },
+  metricValuePrimary: { color: '#275D45' },
+  metricLabel: { marginTop: 5, fontSize: 10, lineHeight: 13, fontWeight: '800', color: '#6F7C75' },
+  metricNote: { marginTop: 3, fontSize: 9.5, lineHeight: 13, color: '#909A94' },
+  infoRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 6,
-    marginTop: 10,
-    padding: 14,
-    backgroundColor: 'rgba(39,93,69,0.055)',
+    gap: 10,
+    padding: 13,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: 'rgba(25,45,35,0.08)',
   },
-
-  footerText: {
-    flex: 1,
-    fontSize: 10.5,
-    lineHeight: 15,
-    color: '#6D7972',
-  },
-
-  footerBrand: {
-    marginTop: 6,
-    textAlign: 'center',
-    fontSize: 9.5,
-    fontWeight: '800',
-    letterSpacing: 1.1,
-    color: '#929C96',
-  },
+  infoIcon: { width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(39,93,69,0.07)' },
+  infoTitle: { fontSize: 13, fontWeight: '900', color: '#25322B' },
+  infoText: { marginTop: 3, fontSize: 10.5, lineHeight: 16, color: '#748078' },
+  linkButton: { minHeight: 44, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F0F7F3', borderWidth: 1, borderColor: '#D4E7DC' },
+  linkButtonText: { fontSize: 11, fontWeight: '900', color: '#275D45' },
+  explainer: { paddingHorizontal: 2, fontSize: 11, lineHeight: 17, color: '#6E7A73' },
+  estimateCard: { padding: 14, backgroundColor: '#FFF9E8', borderWidth: 1, borderColor: '#F1DDA3' },
+  estimateLabel: { fontSize: 9.5, fontWeight: '900', letterSpacing: 0.8, color: '#956500' },
+  estimateValue: { marginTop: 4, fontSize: 24, fontWeight: '900', color: '#7D5500' },
+  estimateText: { marginTop: 5, fontSize: 10.5, lineHeight: 15, color: '#876F3F' },
+  breakdownCard: { padding: 13, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(25,45,35,0.08)' },
+  breakdownTitle: { fontSize: 12.5, fontWeight: '900', color: '#25322B' },
+  breakdownLine: { marginTop: 5, fontSize: 10.5, color: '#6F7D75' },
+  footerBrand: { marginTop: 16, textAlign: 'center', fontSize: 9.5, fontWeight: '800', letterSpacing: 1.1, color: '#929C96' },
 });
