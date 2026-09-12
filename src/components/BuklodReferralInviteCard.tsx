@@ -144,10 +144,26 @@ export default function BuklodReferralInviteCard() {
       gap: 7,
       marginTop: 2,
     },
+    payoutBtn: {
+      minHeight: 38,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: theme.border,
+      backgroundColor: theme.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'row',
+      gap: 7,
+    },
     reportText: {
       fontSize: 11,
       fontWeight: '900',
       color: theme.accent,
+    },
+    payoutText: {
+      fontSize: 10.5,
+      fontWeight: '900',
+      color: theme.textPrimary,
     },
     stats: {
       marginTop: 2,
@@ -160,6 +176,25 @@ export default function BuklodReferralInviteCard() {
       color: theme.textMuted,
     },
   });
+
+  const economyLinks = (
+    <>
+      <Pressable
+        onPress={() => router.push('/bayanihan' as any)}
+        style={({ pressed }) => [styles.reportBtn, pressed && { opacity: 0.76 }]}
+      >
+        <MaterialCommunityIcons name="chart-donut" size={16} color={theme.accent} />
+        <Text style={styles.reportText}>VIEW MY ECONOMY REPORT</Text>
+      </Pressable>
+      <Pressable
+        onPress={() => router.push('/bayanihan/payout-profile' as any)}
+        style={({ pressed }) => [styles.payoutBtn, pressed && { opacity: 0.76 }]}
+      >
+        <MaterialCommunityIcons name="cash-check" size={16} color={theme.textPrimary} />
+        <Text style={styles.payoutText}>PAYOUT PROFILE</Text>
+      </Pressable>
+    </>
+  );
 
   if (loading) {
     return (
@@ -176,13 +211,7 @@ export default function BuklodReferralInviteCard() {
           Invite friends to BUKLOD. Your referral code will appear here once
           referral sharing is available on the server.
         </Text>
-        <Pressable
-          onPress={() => router.push('/bayanihan' as any)}
-          style={({ pressed }) => [styles.reportBtn, pressed && { opacity: 0.76 }]}
-        >
-          <MaterialCommunityIcons name="chart-donut" size={16} color={theme.accent} />
-          <Text style={styles.reportText}>VIEW MY ECONOMY REPORT</Text>
-        </Pressable>
+        {economyLinks}
       </View>
     );
   }
@@ -232,13 +261,7 @@ export default function BuklodReferralInviteCard() {
         pool. Points and referral units are not pesos.
       </Text>
 
-      <Pressable
-        onPress={() => router.push('/bayanihan' as any)}
-        style={({ pressed }) => [styles.reportBtn, pressed && { opacity: 0.76 }]}
-      >
-        <MaterialCommunityIcons name="chart-donut" size={16} color={theme.accent} />
-        <Text style={styles.reportText}>VIEW MY ECONOMY REPORT</Text>
-      </Pressable>
+      {economyLinks}
     </View>
   );
 }
