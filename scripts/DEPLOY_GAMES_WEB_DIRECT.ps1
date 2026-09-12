@@ -1,5 +1,34 @@
 $ErrorActionPreference = 'Stop'
 
+function Invoke-NativeLogged {
+  param(
+    [Parameter(Mandatory = $true)][string]$Command,
+    [Parameter(Mandatory = $true)][string]$LogPath
+  )
+
+  # Windows PowerShell 5.1 can promote harmless native stderr output into a
+  # terminating NativeCommandError when ErrorActionPreference is Stop.
+  # Expo prints non-fatal warnings (for example the missing iOS AdMob id during
+  # a WEB-only export) to stderr. Trust the native process exit code instead.
+  $oldPreference = $ErrorActionPreference
+  $oldCI = $env:CI
+  $global:LASTEXITCODE = 0
+  try {
+    $ErrorActionPreference = 'Continue'
+    $env:CI = '1'
+    cmd.exe /d /s /c "$Command 2>&1" | Tee-Object -FilePath $LogPath
+    $exitCode = $LASTEXITCODE
+  } finally {
+    $ErrorActionPreference = $oldPreference
+    if ($null -eq $oldCI) {
+      Remove-Item Env:\CI -ErrorAction SilentlyContinue
+    } else {
+      $env:CI = $oldCI
+    }
+  }
+  return $exitCode
+}
+
 Write-Host 'BUKLOD Game Lab — Protected Canonical Expo Web Deploy' -ForegroundColor Cyan
 
 # Production deployment is intentionally impossible from random clones/snapshots.
@@ -49,6 +78,9 @@ if (-not (Test-Path 'app.config.js')) { throw 'app.config.js not found.' }
 if (-not (Test-Path 'eas.json')) { throw 'eas.json not found.' }
 if (-not (Test-Path 'scripts\RESTORE_CANONICAL_R31_R40.ps1')) { throw 'Canonical R31/R40 recovery script is missing.' }
 if (-not (Test-Path 'scripts\game-kingdom-release-contract.mjs')) { throw 'Kingdom game release contract is missing.' }
+
+$releaseLogDir = Join-Path (Get-Location).Path ('.buklod-logs\canonical_web_' + (Get-Date -Format 'yyyyMMdd_HHmmss'))
+New-Item -ItemType Directory -Force -Path $releaseLogDir | Out-Null
 
 $env:APP_VARIANT = 'production'
 $env:EXPO_PUBLIC_APP_ENV = 'production'
@@ -114,8 +146,22 @@ if ($LASTEXITCODE -ne 0) { throw 'TypeScript QA failed. Deployment stopped.' }
 if (Test-Path 'dist') { Remove-Item 'dist' -Recurse -Force }
 
 Write-Host 'Exporting proven single-page BUKLOD production bundle...' -ForegroundColor Yellow
-npx expo export --platform web --output-dir dist
-if ($LASTEXITCODE -ne 0) { throw 'Expo web export failed. Deployment stopped.' }
+$exportLog = Join-Path $releaseLogDir 'expo-web-export.log'
+$exportExit = Invoke-NativeLogged `
+  -Command 'npx.cmd expo export --platform web --clear --output-dir dist' `
+  -LogPath $exportLog
+if ($exportExit -ne 0) {
+  Write-Host ''
+  Write-Host "Expo web export FAILED with native exit code $exportExit." -ForegroundColor Red
+  Write-Host "Full export log: $exportLog" -ForegroundColor Yellow
+  if (Test-Path -LiteralPath $exportLog) {
+    Write-Host 'Last export log lines:' -ForegroundColor Yellow
+    Get-Content -LiteralPath $exportLog -Tail 120
+  }
+  throw 'Expo web export failed. Deployment stopped.'
+}
+Write-Host "Expo web export native exit code: 0" -ForegroundColor Green
+Write-Host "Export log: $exportLog" -ForegroundColor DarkGray
 
 if (-not (Test-Path 'dist\index.html')) {
   throw 'dist\index.html is missing. Deployment stopped.'
@@ -171,9 +217,22 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host 'Publishing WEB ONLY to existing Expo Hosting production target...' -ForegroundColor Yellow
-npx eas-cli@latest deploy --prod --environment production --non-interactive
-if ($LASTEXITCODE -ne 0) { throw 'EAS web deployment failed.' }
+$deployLog = Join-Path $releaseLogDir 'eas-web-deploy.log'
+$deployExit = Invoke-NativeLogged `
+  -Command 'npx.cmd eas-cli@latest deploy --prod --environment production --non-interactive' `
+  -LogPath $deployLog
+if ($deployExit -ne 0) {
+  Write-Host ''
+  Write-Host "EAS web deploy FAILED with native exit code $deployExit." -ForegroundColor Red
+  Write-Host "Full deploy log: $deployLog" -ForegroundColor Yellow
+  if (Test-Path -LiteralPath $deployLog) {
+    Write-Host 'Last deploy log lines:' -ForegroundColor Yellow
+    Get-Content -LiteralPath $deployLog -Tail 120
+  }
+  throw 'EAS web deployment failed.'
+}
 
 Write-Host 'DEPLOY COMPLETE — WEB ONLY' -ForegroundColor Green
+Write-Host "Release logs: $releaseLogDir" -ForegroundColor DarkGray
 Write-Host 'Verify BUKLOD Main: https://buklod.expo.app' -ForegroundColor Green
 Write-Host 'Verify BUKLOD Kingdom: https://buklod.expo.app/games' -ForegroundColor Green
