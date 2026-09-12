@@ -11,9 +11,10 @@ export REPORT_RELEASE_TARGET="android"
 node scripts/production-preflight.mjs
 node scripts/verify-production-migrations.mjs > release/PRODUCTION_MIGRATION_HASHES.json
 
-# No GitHub Actions are required for this release gate. These checks run in the
-# build-capable workspace immediately before the dedicated Report EAS build.
-npx tsc --noEmit
+# No GitHub Actions are required for this release gate. Check the standalone
+# Report dependency graph only; unrelated BUKLOD Main routes are not release
+# inputs for this package.
+npx tsc -p tsconfig.report.json --noEmit
 npx expo export --platform web --output-dir dist-report-production-qa
 npx expo-doctor@latest
 
