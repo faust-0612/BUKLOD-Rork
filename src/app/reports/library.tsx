@@ -97,10 +97,10 @@ export default function BuklodReportLibraryScreen() {
     } as any);
   };
 
-  const openConsolidated = (definitionId: string) => {
+  const openConsolidated = (definitionId?: string) => {
     router.push({
       pathname: '/reports/consolidated',
-      params: { scopeId, definitionId },
+      params: { scopeId, definitionId: definitionId ?? '' },
     } as any);
   };
 
@@ -125,9 +125,7 @@ export default function BuklodReportLibraryScreen() {
         <View style={styles.hero}>
           <Text style={styles.heroEyebrow}>ORGANIZATION / CLUSTER REPORTING SYSTEM</Text>
           <Text style={styles.heroTitle}>Report Library</Text>
-          <Text style={styles.heroText}>
-            {scopeName || 'Selected scope'}. Each report card can have its own form, fields and purpose while using the same assignment and submission engine.
-          </Text>
+          <Text style={styles.heroText}>{scopeName || 'Selected scope'}. Build forms, collect reports, consolidate the evidence, and track the management action through completion.</Text>
         </View>
 
         {loading ? (
@@ -140,6 +138,10 @@ export default function BuklodReportLibraryScreen() {
               <Pressable onPress={() => openBuilder()} style={styles.primaryButton}>
                 <MaterialCommunityIcons name="file-upload-outline" size={18} color="#FFFFFF" />
                 <Text style={styles.primaryText}>Upload / build report</Text>
+              </Pressable>
+              <Pressable onPress={() => openConsolidated()} style={styles.primaryButton}>
+                <MaterialCommunityIcons name="chart-box-outline" size={18} color="#FFFFFF" />
+                <Text style={styles.primaryText}>Management summary</Text>
               </Pressable>
               <Pressable onPress={() => openDeadlines()} style={styles.secondaryButton}>
                 <MaterialCommunityIcons name="calendar-clock-outline" size={17} color={colors.greenDark} />
@@ -164,11 +166,7 @@ export default function BuklodReportLibraryScreen() {
               <View key={row.id} style={[styles.reportCard, row.status === 'ARCHIVED' && styles.archived]}>
                 <View style={styles.reportHead}>
                   <View style={styles.reportIcon}>
-                    <MaterialCommunityIcons
-                      name={sourceLabel(row) === 'MZB current layout' ? 'church-outline' : 'file-document-edit-outline'}
-                      size={23}
-                      color={colors.greenDark}
-                    />
+                    <MaterialCommunityIcons name={sourceLabel(row) === 'MZB current layout' ? 'church-outline' : 'file-document-edit-outline'} size={23} color={colors.greenDark} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.category}>{category(row)}</Text>
@@ -192,7 +190,7 @@ export default function BuklodReportLibraryScreen() {
                   ) : null}
                   <Pressable onPress={() => openConsolidated(row.id)} style={styles.actionButton}>
                     <MaterialCommunityIcons name="file-chart-outline" size={16} color={colors.greenDark} />
-                    <Text style={styles.actionText}>Consolidated</Text>
+                    <Text style={styles.actionText}>Manage / analyze</Text>
                   </Pressable>
                   <Pressable onPress={() => void archive(row)} style={styles.actionButton}>
                     <MaterialCommunityIcons name={row.status === 'ARCHIVED' ? 'restore' : 'archive-outline'} size={16} color={colors.muted} />
