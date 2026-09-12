@@ -159,6 +159,9 @@ const requiredReportFiles = [
   'src/lib/buklodReportDeadlines.ts',
   'src/lib/buklodReportTemplateImport.ts',
   'src/lib/buklodReportConsolidation.ts',
+  'src/lib/buklodReportManagementDocument.ts',
+  'src/lib/buklodReportDocumentOutput.ts',
+  'src/lib/buklodReportDocumentOutput.web.ts',
   'src/lib/buklodReportAssetBase64.ts',
   'src/lib/buklodReportAssetBase64.web.ts',
   'src/lib/buklodReportWorkbookOutput.ts',
@@ -191,9 +194,7 @@ if (exists(publishDeadlineMigrationPath)) {
     'buklod_report_reminders',
     'report_assigned',
   ]) {
-    if (!publishDeadlineMigration.includes(marker)) {
-      failures.push(`Report publish/deadline migration is missing required behavior marker: ${marker}`);
-    }
+    if (!publishDeadlineMigration.includes(marker)) failures.push(`Report publish/deadline migration is missing required behavior marker: ${marker}`);
   }
 }
 
@@ -212,9 +213,7 @@ if (exists(managementMigrationPath)) {
     'REPORT_ACTION_CREATED',
     'REPORT_ACTION_SELF_UPDATED',
   ]) {
-    if (!managementMigration.includes(marker)) {
-      failures.push(`Report management-loop migration is missing required behavior marker: ${marker}`);
-    }
+    if (!managementMigration.includes(marker)) failures.push(`Report management-loop migration is missing required behavior marker: ${marker}`);
   }
   if (!managementMigration.includes('enable row level security') || !managementMigration.includes('revoke all on table public.buklod_report_actions')) {
     failures.push('Report management actions must remain RLS-enabled and RPC-only.');
@@ -254,8 +253,20 @@ for (const marker of [
 ]) {
   if (!consolidationClient.includes(marker)) failures.push(`Report management analytics is missing required marker: ${marker}`);
 }
-if (!consolidationClient.includes('never automatic') && !read('src/app/reports/consolidated.tsx').includes('never happens automatically')) {
+const managementScreen = read('src/app/reports/consolidated.tsx');
+if (!consolidationClient.includes('never automatic') && !managementScreen.includes('never happens automatically')) {
   failures.push('High-impact personnel action suggestions must remain explicitly human-reviewed and non-automatic.');
+}
+if (!managementScreen.includes('exportScopeManagementWord') || !managementScreen.includes('OVERALL')) {
+  failures.push('Report management screen must expose overall status and Word narrative export.');
+}
+const managementDocument = read('src/lib/buklodReportManagementDocument.ts');
+for (const marker of ['Executive Summary', 'OVERALL STATUS', 'Suggested Actions', 'Action Taken / Endpoint', 'never automatic']) {
+  if (!managementDocument.includes(marker)) failures.push(`Report Word management document is missing required section/safety marker: ${marker}`);
+}
+const documentWebOutput = read('src/lib/buklodReportDocumentOutput.web.ts');
+if (!documentWebOutput.includes('application/msword') || hasModuleImport(documentWebOutput, 'expo-file-system') || hasModuleImport(documentWebOutput, 'expo-sharing')) {
+  failures.push('Web Word export must remain browser-only and free of native FileSystem/Sharing imports.');
 }
 
 const memberActionsRoute = read('src/app/reports/actions.tsx');
@@ -269,9 +280,7 @@ if (!routeGuard.includes('report-access-pending') || !routeGuard.includes('hasCa
 const notificationProvider = read('src/providers/BuklodReportNotificationProvider.tsx');
 if (/selectScope|activeScope|setBuklodActiveScope/.test(notificationProvider)) failures.push('Standalone Report push routing must not select or persist BUKLOD Main active scope.');
 const notificationWebProvider = read('src/providers/BuklodReportNotificationProvider.web.tsx');
-if (hasModuleImport(notificationWebProvider, 'expo-notifications')) {
-  failures.push('Standalone Report web root must not import expo-notifications during static rendering.');
-}
+if (hasModuleImport(notificationWebProvider, 'expo-notifications')) failures.push('Standalone Report web root must not import expo-notifications during static rendering.');
 
 const templateWebHelper = read('src/lib/buklodReportAssetBase64.web.ts');
 if (/expo-file-system|expo-sharing/.test(templateWebHelper)) failures.push('Web template-file reader must not import native FileSystem/Sharing modules.');
