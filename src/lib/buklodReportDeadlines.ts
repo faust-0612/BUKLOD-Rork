@@ -31,10 +31,49 @@ export type PublishReportDeadlineResult = {
   membershipSnapshot: boolean;
 };
 
+export type ReportDeadlineAudiencePreview = {
+  ok: boolean;
+  scopeId: string;
+  scopeName: string;
+  scopeType: string;
+  reportDefinitionId: string;
+  reportTitle: string;
+  eligibleMemberCount: number;
+  audienceMode: 'ALL_ACTIVE_SCOPE_MEMBERS';
+  membershipSnapshotOnPublish: boolean;
+};
+
 function readObject(value: unknown): Record<string, any> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, any>)
     : {};
+}
+
+export async function previewReportDeadlineAudience(
+  definitionId: string
+): Promise<ReportDeadlineAudiencePreview> {
+  const { data, error } = await (supabase as any).rpc(
+    'buklod_report_deadline_preview_v1',
+    { p_definition_id: definitionId }
+  );
+
+  if (error) throw error;
+  const raw = readObject(data);
+  if (!raw.ok || !raw.scope_id) {
+    throw new Error('The report deadline audience could not be resolved.');
+  }
+
+  return {
+    ok: true,
+    scopeId: String(raw.scope_id),
+    scopeName: String(raw.scope_name ?? 'Selected scope'),
+    scopeType: String(raw.scope_type ?? ''),
+    reportDefinitionId: String(raw.report_definition_id ?? definitionId),
+    reportTitle: String(raw.report_title ?? 'Report'),
+    eligibleMemberCount: Number(raw.eligible_member_count ?? 0),
+    audienceMode: 'ALL_ACTIVE_SCOPE_MEMBERS',
+    membershipSnapshotOnPublish: Boolean(raw.membership_snapshot_on_publish),
+  };
 }
 
 export async function publishReportDeadline(
