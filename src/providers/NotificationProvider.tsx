@@ -10,6 +10,7 @@ import {
   buklodNotificationTarget,
   syncScopeSelection,
 } from '@/lib/buklodScopeRoute';
+import { buklodReportLandingPath } from '@/lib/buklodReportRoutes';
 import { resolveMzbOrganizationScopeId } from '@/lib/buklodMzbOrganization';
 
 type Ctx={unreadCount:number;refreshUnread:()=>Promise<void>;markAllRead:()=>Promise<void>};
@@ -36,6 +37,14 @@ export function NotificationProvider({children}:{children:ReactNode}){
   }
   if(data?.prayer_id){
    router.push(`/prayer/${data.prayer_id}` as any);
+   return;
+  }
+
+  const reportScopeId=String(data?.scope_id??'').trim();
+  const reportAssignmentId=String(data?.report_assignment_id??'').trim();
+  if(kind.startsWith('report_')&&reportScopeId&&reportAssignmentId){
+   void syncScopeSelection(selectScope,reportScopeId,activeScope?.scope_id);
+   router.push(buklodReportLandingPath(reportScopeId,reportAssignmentId) as any);
    return;
   }
 
