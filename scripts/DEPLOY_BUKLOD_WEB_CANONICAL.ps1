@@ -6,6 +6,16 @@ $ExpectedRepo = 'https://github.com/faust-0612/BUKLOD-Rork.git'
 
 function Fail([string]$Message) { throw $Message }
 function Full([string]$Path) { return [System.IO.Path]::GetFullPath($Path).TrimEnd('\') }
+function Ensure-Utf8Bom([string]$Path) {
+  if (!(Test-Path -LiteralPath $Path -PathType Leaf)) {
+    Fail "PowerShell compatibility target missing: $Path"
+  }
+
+  $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+  $utf8Bom = New-Object System.Text.UTF8Encoding($true)
+  $text = [System.IO.File]::ReadAllText($Path, $utf8NoBom)
+  [System.IO.File]::WriteAllText($Path, $text, $utf8Bom)
+}
 
 if ($env:BUKLOD_CANONICAL_RELEASE -ne '1') {
   Fail 'Canonical release authorization is missing. Start web release only through scripts\RUN_CANONICAL_WEB_RELEASE.ps1.'
@@ -67,8 +77,12 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $implementation = Join-Path $CurrentRoot 'scripts\DEPLOY_GAMES_WEB_DIRECT.ps1'
+$recoveryScript = Join-Path $CurrentRoot 'scripts\RESTORE_CANONICAL_R31_R40.ps1'
 if (!(Test-Path -LiteralPath $implementation -PathType Leaf)) {
   Fail 'Canonical web deploy implementation is missing.'
+}
+if (!(Test-Path -LiteralPath $recoveryScript -PathType Leaf)) {
+  Fail 'Canonical R31/R40 recovery implementation is missing.'
 }
 
 Write-Host 'BUKLOD_CANONICAL_RELEASE_GUARD: PASS' -ForegroundColor Green
@@ -78,7 +92,16 @@ Write-Host "Recovery  : $RecoveryRoot"
 Write-Host "Origin    : $origin"
 Write-Host "Branch    : $branch"
 Write-Host ''
-Write-Host 'Starting protected web deployment implementation...' -ForegroundColor Cyan
 
+# Windows PowerShell 5.1 treats UTF-8-without-BOM scripts as the active ANSI
+# code page. Some protected child scripts intentionally contain Unicode display
+# punctuation. Normalize only the disposable staging copies after all source
+# identity/dirty guards have passed; application source is not changed.
+Write-Host 'Normalizing protected child PowerShell scripts for Windows PowerShell 5.1...' -ForegroundColor Yellow
+Ensure-Utf8Bom $implementation
+Ensure-Utf8Bom $recoveryScript
+Write-Host 'PowerShell 5.1 child-script encoding: VERIFIED' -ForegroundColor Green
+
+Write-Host 'Starting protected web deployment implementation...' -ForegroundColor Cyan
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $implementation
 exit $LASTEXITCODE
