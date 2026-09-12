@@ -35,6 +35,31 @@ function Rotate-Directory([string]$Path, [string]$ArchiveRoot, [string]$Prefix) 
   Write-Host "Rotated previous directory to: $target" -ForegroundColor DarkGray
   return $target
 }
+function Clone-ShallowWithRetry(
+  [string]$Branch,
+  [string]$Destination,
+  [string]$ArchiveRoot,
+  [string]$Prefix,
+  [int]$Attempts = 3
+) {
+  for ($attempt = 1; $attempt -le $Attempts; $attempt++) {
+    if (Test-Path -LiteralPath $Destination -PathType Container) {
+      $null = Rotate-Directory $Destination $ArchiveRoot "${Prefix}_failed_clone"
+    }
+
+    Write-Host "Clone attempt $attempt/$Attempts — branch $Branch" -ForegroundColor DarkGray
+    & git -c http.version=HTTP/1.1 clone --depth 1 --branch $Branch --single-branch $RepoUrl $Destination
+    $cloneExit = $LASTEXITCODE
+    if ($cloneExit -eq 0) { return }
+
+    Write-Host "Git clone attempt $attempt failed with exit code $cloneExit." -ForegroundColor Yellow
+    if ($attempt -lt $Attempts) {
+      Start-Sleep -Seconds 2
+    }
+  }
+
+  Fail "Could not clone branch $Branch after $Attempts attempts."
+}
 
 if (!(Test-Path -LiteralPath $SourceRoot -PathType Container)) { Fail "Canonical SOURCE missing: $SourceRoot" }
 if (!(Test-Path -LiteralPath $Manifest -PathType Leaf)) { Fail "Canonical workspace manifest missing. Run scripts\FINALIZE_BUKLOD_CENTRALIZATION.ps1 first: $Manifest" }
@@ -93,11 +118,11 @@ try {
 Write-Host ''
 Write-Host 'STEP 2/3 — REFRESH + VERIFY APPROVED R31/R40 RECOVERY' -ForegroundColor Cyan
 # Never recursively delete this Git clone on Windows. Rotate the top-level folder
-# atomically, then clone a fresh approved recovery reference.
+# atomically, then clone a fresh approved recovery reference. Retry transient
+# transport resets without weakening any release identity checks.
 $null = Rotate-Directory $RecoveryRepo $RecoveryPreviousRoot 'r31_r40'
 EnsureDir (Split-Path -Parent $RecoveryRepo)
-& git clone --depth 1 --branch $RecoveryBranch --single-branch $RepoUrl $RecoveryRepo
-if ($LASTEXITCODE -ne 0) { Fail 'Could not clone approved R31/R40 recovery branch.' }
+Clone-ShallowWithRetry $RecoveryBranch $RecoveryRepo $RecoveryPreviousRoot 'r31_r40'
 
 $RecoveryManifest = Join-Path $RecoveryPackage 'RECOVERY_MANIFEST.json'
 if (!(Test-Path -LiteralPath $RecoveryManifest -PathType Leaf)) { Fail "Approved recovery manifest missing: $RecoveryManifest" }
@@ -112,8 +137,10 @@ Write-Host ''
 Write-Host 'STEP 3/3 — CREATE FRESH RELEASE STAGING + RUN PROTECTED DEPLOY' -ForegroundColor Cyan
 $null = Rotate-Directory $ReleaseWork $PreviousReleaseRoot 'web'
 EnsureDir $ReleaseRoot
-& git clone --branch main --single-branch $RepoUrl $ReleaseWork
-if ($LASTEXITCODE -ne 0) { Fail 'Could not create disposable release staging clone.' }
+# Disposable staging needs only the current main snapshot, not repository history.
+# A shallow clone reduces transferred data and retries transient curl 56 / early EOF
+# failures. Exact source-vs-staging SHA equality is still mandatory below.
+Clone-ShallowWithRetry 'main' $ReleaseWork $PreviousReleaseRoot 'web'
 
 $stagingSha = (& git -C $ReleaseWork rev-parse HEAD).Trim()
 if ($stagingSha -ne $sourceSha) { Fail "Release staging SHA mismatch. Source=$sourceSha staging=$stagingSha" }
