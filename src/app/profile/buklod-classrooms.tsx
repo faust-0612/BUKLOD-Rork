@@ -143,11 +143,12 @@ function MainClassroomDoor() {
         </View>
       ) : (
         <>
-          {/* BUKLOD_QUIZ_INSIDE_PROFILE_CLASSROOM_R1
-           * Keep the existing secure Main-to-Quiz bridge inside the canonical
-           * My Classroom doorway. Student eligibility remains authoritative.
+          {/* BUKLOD_QUIZ_INSIDE_PROFILE_CLASSROOM_R2
+           * Quiz is a canonical child door of My Classroom in Profile.
+           * Visibility follows My Classroom authority (can_open); the existing
+           * secure Main-to-Quiz bridge remains authoritative for actual launch.
            */}
-          {access.is_student ? <BuklodQuizStudentEntry /> : null}
+          <BuklodQuizStudentEntry />
 
           {access.is_student ? (
             <Pressable
