@@ -10,6 +10,7 @@ import {
   buklodNotificationTarget,
   syncScopeSelection,
 } from '@/lib/buklodScopeRoute';
+import { buklodFormationNotificationTarget } from '@/lib/buklodFormationNotificationTarget';
 import { resolveMzbOrganizationScopeId } from '@/lib/buklodMzbOrganization';
 
 type Ctx={unreadCount:number;refreshUnread:()=>Promise<void>;markAllRead:()=>Promise<void>};
@@ -39,8 +40,11 @@ export function NotificationProvider({children}:{children:ReactNode}){
    return;
   }
 
-  const mzbCanonicalScopeId=await resolveMzbOrganizationScopeId().catch(()=>null);
-  const target=buklodNotificationTarget(kind,data,{scopes,mzbCanonicalScopeId});
+  const formationTarget=buklodFormationNotificationTarget(kind,data);
+  const mzbCanonicalScopeId=formationTarget
+   ? null
+   : await resolveMzbOrganizationScopeId().catch(()=>null);
+  const target=formationTarget??buklodNotificationTarget(kind,data,{scopes,mzbCanonicalScopeId});
 
   if(!target?.path){
    router.push('/notifications' as any);
@@ -48,7 +52,7 @@ export function NotificationProvider({children}:{children:ReactNode}){
   }
 
   if(target.scopeId){
-   void syncScopeSelection(selectScope,target.scopeId,activeScope?.scope_id);
+   await syncScopeSelection(selectScope,target.scopeId,activeScope?.scope_id);
   }
 
   router.push(target.path as any);
