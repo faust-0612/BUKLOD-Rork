@@ -51,7 +51,7 @@ for (const file of requiredDocs) {
  *   - Character levels do not transfer
  *   - Circle Points / Circle Rank remain intact
  *   - locked Special Characters remain hidden
- *   - Profile and Points must render the same V2 active selection
+ *   - Profile, Points hero, and Points navigator render the same V2 selection
  */
 const characterSelection = read('src/lib/buklodCharacterSelectionV2.ts');
 const progressiveCharacter = read('src/lib/buklodProgressiveCharacter.ts');
@@ -61,6 +61,7 @@ const customizeSheet = read('src/components/points/BuklodCharacterCustomizeSheet
 const activeCharacterArt = read('src/components/points/BuklodActiveCharacterArt.tsx');
 const profileCharacterCard = read('src/components/points/BuklodProfileCharacterCard.tsx');
 const pointsStage = read('src/components/points/BuklodPointsStage.tsx');
+const characterNavigator = read('src/components/points/BuklodCharacterNavigator.tsx');
 
 if (!characterSelection.includes('ATOMIC_RESET_LEVEL_1_V2')) {
   failures.push('Character V2 atomic Level-1 reset contract is missing.');
@@ -103,6 +104,10 @@ if (!profileCharacterCard.includes('BuklodActiveCharacterArt')) {
 }
 if (!pointsStage.includes('BuklodActiveCharacterArt')) {
   failures.push('Points hero is not rendering the canonical V2 active Character.');
+}
+if (!characterNavigator.includes('BuklodActiveCharacterArt') ||
+    characterNavigator.includes('BuklodCharacterFaceAvatar')) {
+  failures.push('Points Character navigator is not locked to the canonical V2 active Character.');
 }
 
 if (!process.env.EAS_PROJECT_ID && !process.env.EXPO_PUBLIC_EAS_PROJECT_ID) {
