@@ -59,32 +59,9 @@ export type ReportTemplateImportResult = {
 
 const MAX_FILE_BYTES = 12 * 1024 * 1024;
 const ANALYZE_TIMEOUT_MS = 60_000;
-
-async function readErrorMessage(error: any, fallback: string) {
-  const context = error?.context;
-  if (context && typeof context.clone === 'function') {
-    try {
-      const payload = await context.clone().json();
-      const message = String(payload?.error ?? payload?.message ?? '').trim();
-      const stage = String(payload?.stage ?? '').trim();
-      if (message) return stage ? `${message} [${stage}]` : message;
-    } catch {
-      try {
-        const text = String(await context.clone().text()).trim();
-        if (text) return text.slice(0, 1200);
-      } catch {
-        // Fall through to the regular Supabase error message.
-      }
-    }
-  }
-
-  return String(
-    error?.context?.body?.error ??
-      error?.context?.body?.message ??
-      error?.message ??
-      fallback
-  );
-}
+const SUPABASE_URL = String(process.env.EXPO_PUBLIC_SUPABASE_URL ?? '').replace(/\/+$/, '');
+const SUPABASE_PUBLISHABLE_KEY = String(process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? '').trim();
+const TEMPLATE_ANALYZER_URL = `${SUPABASE_URL}/functions/v1/buklod-report-template-import-v1`;
 
 function stripDataUrlPrefix(value: string) {
   const trimmed = value.trim();
@@ -152,23 +129,68 @@ function normalizeDraft(value: unknown): ReportTemplateImportDraft {
   };
 }
 
-function withAnalyzeTimeout<T>(promise: Promise<T>): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(new Error('The form analyzer did not respond within 60 seconds. Try a smaller/clearer form. [client-timeout]'));
-    }, ANALYZE_TIMEOUT_MS);
+async function parseAnalyzerResponse(response: Response) {
+  const raw = await response.text();
+  let payload: any = null;
+  try {
+    payload = raw ? JSON.parse(raw) : null;
+  } catch {
+    payload = null;
+  }
 
-    promise.then(
-      (value) => {
-        clearTimeout(timer);
-        resolve(value);
-      },
-      (error) => {
-        clearTimeout(timer);
-        reject(error);
-      }
-    );
-  });
+  if (!response.ok) {
+    const message = String(payload?.error ?? payload?.message ?? raw ?? `Analyzer request failed (${response.status}).`).trim();
+    const stage = String(payload?.stage ?? '').trim();
+    throw new Error(stage ? `${message} [${stage}]` : message || `Analyzer request failed (${response.status}).`);
+  }
+
+  return payload;
+}
+
+async function invokeTemplateAnalyzer(body: FormData | Record<string, unknown>) {
+  if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+    throw new Error('BUKLOD Report is missing its Supabase web configuration.');
+  }
+
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError) {
+    throw new Error(`Could not read the current BUKLOD session: ${sessionError.message}`);
+  }
+
+  const accessToken = String(sessionData.session?.access_token ?? '').trim();
+  if (!accessToken) {
+    throw new Error('Your BUKLOD Report session is missing or expired. Sign in again before uploading a form. [session]');
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), ANALYZE_TIMEOUT_MS);
+
+  try {
+    const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${accessToken}`,
+      apikey: SUPABASE_PUBLISHABLE_KEY,
+      'x-client-info': 'buklod-report-template-import-direct-v1',
+    };
+
+    if (!isFormData) headers['Content-Type'] = 'application/json';
+
+    const response = await fetch(TEMPLATE_ANALYZER_URL, {
+      method: 'POST',
+      headers,
+      body: isFormData ? body : JSON.stringify(body),
+      signal: controller.signal,
+    });
+
+    return await parseAnalyzerResponse(response);
+  } catch (error: any) {
+    if (error?.name === 'AbortError') {
+      throw new Error('The form analyzer did not respond within 60 seconds. Try a smaller/clearer form. [client-timeout]');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export async function pickAndAnalyzeReportTemplate(args: {
@@ -207,9 +229,6 @@ export async function pickAndAnalyzeReportTemplate(args: {
 
   let body: FormData | Record<string, unknown>;
 
-  // Browser-native path: send the actual File as multipart data. This avoids
-  // expanding the upload into a large base64 JSON payload before it reaches
-  // the Edge Function and matches normal web file-upload behavior.
   if (asset.file && typeof FormData !== 'undefined') {
     const form = new FormData();
     form.append('scope_id', args.scopeId);
@@ -219,8 +238,6 @@ export async function pickAndAnalyzeReportTemplate(args: {
     form.append('file', asset.file, asset.name);
     body = form;
   } else {
-    // Native fallback: the current runtime provides a cached URI/base64 rather
-    // than a browser File object.
     const embeddedBase64 = typeof asset.base64 === 'string'
       ? stripDataUrlPrefix(asset.base64)
       : '';
@@ -243,12 +260,8 @@ export async function pickAndAnalyzeReportTemplate(args: {
     };
   }
 
-  const invocation = supabase.functions.invoke('buklod-report-template-import-v1', { body });
-  const { data, error } = await withAnalyzeTimeout(invocation);
+  const data = await invokeTemplateAnalyzer(body);
 
-  if (error) {
-    throw new Error(await readErrorMessage(error, 'The reporting form could not be analyzed.'));
-  }
   if (!data?.ok || !data?.draft || !data?.source_file) {
     const stage = String(data?.stage ?? '').trim();
     const message = String(data?.error ?? 'The reporting form could not be analyzed.');
