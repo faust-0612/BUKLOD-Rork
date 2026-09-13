@@ -58,9 +58,9 @@ function Add-HighQualityToZoomCall([string]$Path, [string]$Marker, [string]$Labe
     $block = $block.Replace('height={500}', 'height={500}' + $eol + $indent + 'highQuality')
     $text = $text.Substring(0, $componentStart) + $block + $text.Substring($componentEnd)
     Write-Utf8 $Path $text
-    Write-Host " $Label: high-quality fullscreen decode enabled." -ForegroundColor Green
+    Write-Host " ${Label}: high-quality fullscreen decode enabled." -ForegroundColor Green
   } else {
-    Write-Host " $Label: high-quality fullscreen decode already enabled." -ForegroundColor DarkGray
+    Write-Host " ${Label}: high-quality fullscreen decode already enabled." -ForegroundColor DarkGray
   }
 
   $verified = Read-Utf8 $Path
