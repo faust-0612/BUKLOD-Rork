@@ -56,6 +56,15 @@ type ImportMeta = Pick<ReportTemplateImportResult, 'provider' | 'model' | 'sourc
   warnings: string[];
 };
 
+type SavedDraftState = {
+  id: string;
+  title: string;
+  version: number;
+  sectionCount: number;
+  fieldCount: number;
+  previousVersionArchived: boolean;
+};
+
 function firstParam(value: unknown) {
   if (typeof value === 'string') return value.trim();
   if (Array.isArray(value) && typeof value[0] === 'string') return value[0].trim();
@@ -132,9 +141,17 @@ export default function BuklodReportTemplateBuilderScreen() {
   const [sections, setSections] = useState<ReportTemplateSection[]>([]);
   const [importKindHint, setImportKindHint] = useState('');
   const [importMeta, setImportMeta] = useState<ImportMeta | null>(null);
+  const [savedDraft, setSavedDraft] = useState<SavedDraftState | null>(null);
+  const [showSavedPreview, setShowSavedPreview] = useState(false);
+  const [holdAfterSave, setHoldAfterSave] = useState(false);
 
   const mzb = useMemo(() => isMzbTemplate(existing), [existing]);
   const fields = useMemo(() => flattenReportTemplateSections(sections), [sections]);
+
+  const goToLibrary = useCallback(() => {
+    if (!scopeId) return;
+    router.replace({ pathname: '/reports/library', params: { scopeId } } as any);
+  }, [scopeId]);
 
   const load = useCallback(async () => {
     if (!scopeId) { setLoading(false); return; }
@@ -176,6 +193,12 @@ export default function BuklodReportTemplateBuilderScreen() {
   }, [definitionId, scopeId]);
 
   useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    if (!savedDraft || holdAfterSave) return;
+    const timer = setTimeout(() => goToLibrary(), 7000);
+    return () => clearTimeout(timer);
+  }, [goToLibrary, holdAfterSave, savedDraft]);
 
   const analyzeFile = async () => {
     if (!scopeId || mzb || importing) return;
@@ -255,7 +278,7 @@ export default function BuklodReportTemplateBuilderScreen() {
         } : existingRequirements.import_meta ?? null,
       };
 
-      await upsertReportDefinition({
+      const saved = await upsertReportDefinition({
         scopeId,
         definitionId: null,
         code: nextCode,
@@ -276,8 +299,17 @@ export default function BuklodReportTemplateBuilderScreen() {
         isRequired: meta.isRequired,
       });
       if (existing) await setReportDefinitionStatus(existing.id, 'ARCHIVED');
-      Alert.alert('Template saved', existing ? `Version ${version} created. The previous version was archived and historical submissions remain linked to it.` : 'Draft template created. No member was notified.');
-      router.back();
+      setExisting(saved);
+      setShowSavedPreview(false);
+      setHoldAfterSave(false);
+      setSavedDraft({
+        id: saved.id,
+        title: saved.title,
+        version,
+        sectionCount: sections.length,
+        fieldCount: fields.length,
+        previousVersionArchived: Boolean(existing),
+      });
     } catch (error: unknown) {
       Alert.alert('BUKLOD Report', error instanceof Error ? error.message : 'Could not save report template.');
     } finally { setSaving(false); }
@@ -293,6 +325,79 @@ export default function BuklodReportTemplateBuilderScreen() {
       <BuklodPortalScrollView contentContainerStyle={styles.content}>
         <Pressable onPress={() => router.back()} style={styles.backRow}><MaterialCommunityIcons name="arrow-left" size={19} color={colors.greenDark} /><Text style={styles.backText}>Report Library</Text></Pressable>
         <View style={styles.hero}><Text style={styles.heroTitle}>{mzb ? 'MZB Ministerial Report' : 'Adaptive Report Builder'}</Text><Text style={styles.heroText}>{mzb ? 'The current MZB Ministerial layout is protected and remains unchanged.' : existing ? 'Edits are saved as a new immutable version; old reporting periods keep the exact template they used.' : 'Upload an existing reporting layout or build it manually. Nothing is published until a deadline is explicitly created.'}</Text></View>
+
+        {savedDraft ? (
+          <View style={styles.savedCard}>
+            <View style={styles.savedHead}>
+              <View style={styles.savedIcon}><MaterialCommunityIcons name="check" size={22} color="#FFFFFF" /></View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.savedEyebrow}>DRAFT SAVED SUCCESSFULLY</Text>
+                <Text style={styles.savedTitle}>{savedDraft.title}</Text>
+                <Text style={styles.savedMeta}>{savedDraft.fieldCount} fields · {savedDraft.sectionCount} sections · DRAFT</Text>
+              </View>
+            </View>
+            <View style={styles.savedSafety}>
+              <MaterialCommunityIcons name="shield-check-outline" size={18} color={colors.greenDark} />
+              <Text style={styles.savedSafetyText}>No assignment, deadline, member notification, submission record, or member-visible report was created.</Text>
+            </View>
+            {savedDraft.previousVersionArchived ? <Text style={styles.savedVersionNote}>Version {savedDraft.version} was created. The previous version was archived; historical submissions remain linked to it.</Text> : null}
+            <View style={styles.savedActions}>
+              <Pressable onPress={() => { setHoldAfterSave(true); setShowSavedPreview(true); }} style={styles.secondaryButton}>
+                <MaterialCommunityIcons name="eye-outline" size={16} color={colors.greenDark} />
+                <Text style={styles.secondaryText}>Preview form</Text>
+              </Pressable>
+              <Pressable onPress={() => {
+                setHoldAfterSave(true);
+                router.replace({ pathname: '/reports/template-builder', params: { scopeId, definitionId: savedDraft.id } } as any);
+              }} style={styles.secondaryButton}>
+                <MaterialCommunityIcons name="pencil-outline" size={16} color={colors.greenDark} />
+                <Text style={styles.secondaryText}>Continue editing</Text>
+              </Pressable>
+              <Pressable onPress={goToLibrary} style={styles.primaryButton}>
+                <MaterialCommunityIcons name="view-list-outline" size={17} color="#FFFFFF" />
+                <Text style={styles.primaryText}>Back to Report Management</Text>
+              </Pressable>
+            </View>
+            {!holdAfterSave ? <Text style={styles.savedAutoReturn}>Returning to Report Management automatically in a few seconds unless you choose an action.</Text> : null}
+          </View>
+        ) : null}
+
+        {savedDraft && showSavedPreview ? (
+          <View style={styles.previewCard}>
+            <View style={styles.builderHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardTitle}>FORM PREVIEW</Text>
+                <Text style={styles.note}>Read-only preview of the saved draft. This does not publish or assign the report.</Text>
+              </View>
+              <Pressable onPress={() => setShowSavedPreview(false)} style={styles.smallButton}>
+                <MaterialCommunityIcons name="close" size={15} color={colors.greenDark} />
+                <Text style={styles.smallText}>Close</Text>
+              </Pressable>
+            </View>
+            <Text style={styles.previewTitle}>{meta.title}</Text>
+            {meta.description.trim() ? <Text style={styles.previewDescription}>{meta.description.trim()}</Text> : null}
+            {meta.instructions.trim() ? <View style={styles.previewInstruction}><Text style={styles.previewInstructionText}>{meta.instructions.trim()}</Text></View> : null}
+            {sections.map((section) => (
+              <View key={`preview-${section.id}`} style={styles.previewSection}>
+                <Text style={styles.previewSectionTitle}>{section.title}</Text>
+                {section.description ? <Text style={styles.note}>{section.description}</Text> : null}
+                {section.fields.map((field) => (
+                  <View key={`preview-${field.id}`} style={styles.previewField}>
+                    <Text style={styles.previewFieldLabel}>{field.label}{field.required ? ' *' : ''}</Text>
+                    {field.help ? <Text style={styles.previewHelp}>{field.help}</Text> : null}
+                    {field.type === 'choice' ? (
+                      <View style={styles.previewChoices}>{field.options.map((option) => <View key={`${field.id}-${option}`} style={styles.previewChoice}><View style={styles.previewRadio} /><Text style={styles.previewChoiceText}>{option}</Text></View>)}</View>
+                    ) : field.type === 'yes_no' ? (
+                      <View style={styles.previewChoices}><View style={styles.previewChoice}><View style={styles.previewRadio} /><Text style={styles.previewChoiceText}>Yes</Text></View><View style={styles.previewChoice}><View style={styles.previewRadio} /><Text style={styles.previewChoiceText}>No</Text></View></View>
+                    ) : (
+                      <View style={[styles.previewInput, field.type === 'long_text' && styles.previewLongInput]} />
+                    )}
+                  </View>
+                ))}
+              </View>
+            ))}
+          </View>
+        ) : null}
 
         {mzb ? (
           <View style={styles.mzbCard}><MaterialCommunityIcons name="shield-lock-outline" size={26} color={colors.greenDark} /><View style={{ flex: 1 }}><Text style={styles.cardTitle}>MZB TEMPLATE LOCKED</Text><Text style={styles.note}>Activities, attendance, concerns, goals, assistance and notes remain on the established MZB layout. This builder will not rewrite it.</Text></View></View>
@@ -402,5 +507,32 @@ const styles = StyleSheet.create({
   inlineActions: { flexDirection: 'row', gap: 3 },
   iconButton: { width: 31, height: 31, borderRadius: 8, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' },
   saveButton: { minHeight: 48, borderRadius: 12, backgroundColor: colors.greenDark, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  savedCard: { borderRadius: 16, padding: 14, gap: 10, borderWidth: 1, borderColor: '#B8DCC9', backgroundColor: '#F0F8F4' },
+  savedHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  savedIcon: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.greenDark, alignItems: 'center', justifyContent: 'center' },
+  savedEyebrow: { color: '#557064', fontSize: 8, fontWeight: '900', letterSpacing: 0.7 },
+  savedTitle: { color: colors.greenDark, fontSize: 16, fontWeight: '900' },
+  savedMeta: { color: colors.muted, fontSize: 10, marginTop: 2 },
+  savedSafety: { borderRadius: 10, padding: 10, backgroundColor: '#FFFFFF', flexDirection: 'row', gap: 7, alignItems: 'flex-start' },
+  savedSafetyText: { flex: 1, color: '#3E5A4E', fontSize: 10, lineHeight: 15, fontWeight: '700' },
+  savedVersionNote: { color: '#51635A', fontSize: 10, lineHeight: 15 },
+  savedActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  savedAutoReturn: { color: colors.muted, fontSize: 9, fontStyle: 'italic' },
+  previewCard: { borderRadius: 15, padding: 14, gap: 11, borderWidth: 1, borderColor: '#CFE0D7', backgroundColor: '#FFFFFF' },
+  previewTitle: { color: colors.greenDark, fontSize: 18, fontWeight: '900' },
+  previewDescription: { color: '#51635A', fontSize: 11, lineHeight: 16 },
+  previewInstruction: { borderRadius: 9, backgroundColor: '#F7F9F8', padding: 10 },
+  previewInstructionText: { color: colors.text, fontSize: 10, lineHeight: 15 },
+  previewSection: { borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 10, gap: 9 },
+  previewSectionTitle: { color: colors.greenDark, fontSize: 12, fontWeight: '900' },
+  previewField: { gap: 5 },
+  previewFieldLabel: { color: colors.text, fontSize: 10, fontWeight: '800' },
+  previewHelp: { color: colors.muted, fontSize: 9, lineHeight: 13 },
+  previewInput: { minHeight: 38, borderRadius: 8, borderWidth: 1, borderColor: '#D7E1DC', backgroundColor: '#FAFBFA' },
+  previewLongInput: { minHeight: 72 },
+  previewChoices: { gap: 6 },
+  previewChoice: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  previewRadio: { width: 14, height: 14, borderRadius: 7, borderWidth: 1, borderColor: '#81958B' },
+  previewChoiceText: { color: colors.text, fontSize: 10 },
   disabled: { opacity: 0.45 },
 });
