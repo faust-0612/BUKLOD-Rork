@@ -63,6 +63,17 @@ const SUPABASE_URL = String(process.env.EXPO_PUBLIC_SUPABASE_URL ?? '').replace(
 const SUPABASE_PUBLISHABLE_KEY = String(process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? '').trim();
 const TEMPLATE_ANALYZER_URL = `${SUPABASE_URL}/functions/v1/buklod-report-template-import-v1`;
 
+const STRICT_FILLABLE_FORM_HINT = [
+  'STRICT FORM RECONSTRUCTION MODE.',
+  'Create an input field ONLY when the original document visibly expects the future reporter to enter, write, select, check, choose, sign, date, or supply a value.',
+  'Do NOT convert every visible text label into an input field.',
+  'Titles, headings, section names, instructions, explanatory sentences, policies, notes, examples, prefilled/sample answers, fixed values, decorative labels, and table column headers are STATIC layout text, not fields.',
+  'A label becomes a field only when there is clear fill-in evidence such as a blank or underline, empty box or cell, checkbox, radio/select choice, explicit question, signature/date line, or clearly empty response area associated with that label.',
+  'For tables, preserve the table or section meaning but create fields only for cells or columns the reporter is actually expected to fill. Do not convert header rows into unrelated fields.',
+  'Preserve the source order and section grouping so the generated digital form follows the original layout logically.',
+  'When uncertain whether text is static or fillable, prefer STATIC text and omit the field. The administrator can add a missing field manually.',
+].join(' ');
+
 function showWebAnalyzerMessage(message: string) {
   if (typeof window !== 'undefined' && typeof window.alert === 'function') {
     window.alert(`BUKLOD Report\n\n${message}`);
@@ -233,6 +244,11 @@ export async function pickAndAnalyzeReportTemplate(args: {
     throw new Error('Unsupported reporting form type. Use PDF, Word, Excel/CSV, text, JPG, PNG or WebP.');
   }
 
+  const userHint = args.reportKindHint?.trim() || '';
+  const analyzerHint = userHint
+    ? `${STRICT_FILLABLE_FORM_HINT} Administrator context: ${userHint}`
+    : STRICT_FILLABLE_FORM_HINT;
+
   let body: FormData | Record<string, unknown>;
 
   if (asset.file && typeof FormData !== 'undefined') {
@@ -240,7 +256,7 @@ export async function pickAndAnalyzeReportTemplate(args: {
     form.append('scope_id', args.scopeId);
     form.append('filename', asset.name);
     form.append('mime_type', mimeType);
-    form.append('report_kind_hint', args.reportKindHint?.trim() || '');
+    form.append('report_kind_hint', analyzerHint);
     form.append('file', asset.file, asset.name);
     body = form;
   } else {
@@ -262,7 +278,7 @@ export async function pickAndAnalyzeReportTemplate(args: {
       filename: asset.name,
       mime_type: mimeType,
       base64,
-      report_kind_hint: args.reportKindHint?.trim() || null,
+      report_kind_hint: analyzerHint,
     };
   }
 
