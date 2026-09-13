@@ -44,6 +44,49 @@ for (const file of requiredDocs) {
   }
 }
 
+/* BUKLOD_CHARACTER_CANONICAL_V2_RELEASE_LOCK
+ * R31/R40 art may be recovered, but legacy progression authority must never be
+ * recovered with it. Selection/reset authority remains server-backed V2:
+ *   - selecting/changing Character starts the newly selected Character at L1
+ *   - Character levels do not transfer
+ *   - Circle Points / Circle Rank remain intact
+ *   - locked Special Characters remain hidden
+ */
+const characterSelection = read('src/lib/buklodCharacterSelectionV2.ts');
+const progressiveCharacter = read('src/lib/buklodProgressiveCharacter.ts');
+const progressiveSelector = read('src/components/points/BuklodProgressiveCharacterSelector.tsx');
+const specialSeries = read('src/components/points/BuklodSpecialCharacterSeries.tsx');
+const customizeSheet = read('src/components/points/BuklodCharacterCustomizeSheet.tsx');
+
+if (!characterSelection.includes('ATOMIC_RESET_LEVEL_1_V2')) {
+  failures.push('Character V2 atomic Level-1 reset contract is missing.');
+}
+if (!characterSelection.includes('CANONICAL_CIRCLE_RANK_PLUS_2_STEPS')) {
+  failures.push('Canonical Circle Rank Special Character gate contract is missing.');
+}
+if (!characterSelection.includes('visible_special_character_ids')) {
+  failures.push('Hidden-until-unlocked Special Character visibility contract is missing.');
+}
+if (!progressiveCharacter.includes('setMyBuklodCharacterActiveV2')) {
+  failures.push('Recovered R31 selection is not delegated to V2/server authority.');
+}
+if (/levelForPoints\s*\(\s*lifetimePoints\s*\)/.test(progressiveSelector)) {
+  failures.push('Legacy transferable lifetime-points Character leveling returned in R31 selector.');
+}
+if (!progressiveSelector.includes('starts at Level 1')) {
+  failures.push('R31 selector is missing the visible Level-1 reset rule.');
+}
+if (!specialSeries.includes('setMyBuklodCharacterActiveV2')) {
+  failures.push('R40 Special Character activation is not delegated to V2/server authority.');
+}
+if (specialSeries.includes("rpc('set_my_buklod_special_character_active_v1'")) {
+  failures.push('Legacy R40 active-character RPC is authoritative again; use V2 selection authority.');
+}
+if (!customizeSheet.includes('BuklodProgressiveCharacterSelector') ||
+    !customizeSheet.includes('BuklodSpecialCharacterSeries')) {
+  failures.push('R31/R40 Character journeys are not integrated into the live Customize surface.');
+}
+
 if (!process.env.EAS_PROJECT_ID && !process.env.EXPO_PUBLIC_EAS_PROJECT_ID) {
   warnings.push('EAS project ID is not present in this shell environment.');
 }
