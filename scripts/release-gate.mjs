@@ -37,7 +37,7 @@ if (!appConfig.includes("org.mzbministry.buklod")) {
   failures.push('Expected final app identifier org.mzbministry.buklod was not found.');
 }
 
-const sqlFiles = fs.readdirSync(new URL('../supabase/', import.meta.url))
+const sqlFiles = fs.readdirSync(new URL('../supabase/migrations/', import.meta.url))
   .filter(name => /^\d+_.*\.sql$/.test(name));
 
 if (sqlFiles.length < 14) {
