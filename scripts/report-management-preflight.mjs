@@ -78,8 +78,12 @@ if (exists('src/lib/buklodReportTemplateImport.ts')) {
     'TEMPLATE_ANALYZER_URL',
     'signal: controller.signal',
     'await parseAnalyzerResponse(response)',
+    'STRICT_FILLABLE_FORM_HINT',
+    'Create an input field ONLY when the original document visibly expects',
+    'When uncertain whether text is static or fillable, prefer STATIC text and omit the field',
+    "form.append('report_kind_hint', analyzerHint)",
   ]) {
-    if (!source.includes(marker)) failures.push(`Template import explicit-auth transport is missing: ${marker}`);
+    if (!source.includes(marker)) failures.push(`Template import explicit-auth/strict-fillable contract is missing: ${marker}`);
   }
   if (source.includes("supabase.functions.invoke('buklod-report-template-import-v1'")) {
     failures.push('Template analyzer upload must use the explicit authenticated fetch path, not implicit functions.invoke auth.');
