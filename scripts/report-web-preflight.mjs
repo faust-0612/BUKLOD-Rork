@@ -58,7 +58,7 @@ if (exists('src/app/reports/template-builder.tsx')) {
     'Preview form',
     'Continue editing',
     'Back to Report Management',
-    'No assignment, deadline or member notification was created.',
+    'No assignment, deadline, member notification, submission record, or member-visible report was created.',
     'setTimeout(() => goToLibrary(), 7000)',
   ]) {
     if (!source.includes(marker)) failures.push(`Post-save draft workflow is missing: ${marker}`);
