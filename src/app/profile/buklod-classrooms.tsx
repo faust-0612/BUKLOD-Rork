@@ -143,6 +143,12 @@ function MainClassroomDoor() {
         </View>
       ) : (
         <>
+          {/* BUKLOD_QUIZ_INSIDE_PROFILE_CLASSROOM_R1
+           * Keep the existing secure Main-to-Quiz bridge inside the canonical
+           * My Classroom doorway. Student eligibility remains authoritative.
+           */}
+          {access.is_student ? <BuklodQuizStudentEntry /> : null}
+
           {access.is_student ? (
             <Pressable
               style={({ pressed }) => [styles.launchCard, pressed && styles.pressed]}
