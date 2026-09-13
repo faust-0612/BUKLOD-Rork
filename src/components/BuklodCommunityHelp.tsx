@@ -75,7 +75,7 @@ export default function BuklodCommunityHelp(){
   useEffect(()=>()=>{mounted.current=false},[]);
 
   const refresh=useCallback(async()=>{
-    if(!user?.id||!enabled)return;
+    if(!user?.id)return;
     setLoading(true);
     try{
       const {data,error}=await supabase.rpc('buklod_help_list_nearby',{p_limit:12});
@@ -86,7 +86,7 @@ export default function BuklodCommunityHelp(){
     }finally{
       if(mounted.current)setLoading(false);
     }
-  },[enabled,user?.id]);
+  },[user?.id]);
 
   const ensurePresence=useCallback(async(showErrors=true)=>{
     if(!user?.id)return null;
@@ -110,6 +110,21 @@ export default function BuklodCommunityHelp(){
       return null;
     }
   },[user?.id]);
+
+  const disablePresence=useCallback(()=>{
+    Alert.alert(
+      'Turn off nearby safety alerts?',
+      'Your stored nearby-presence location will be deleted. Existing help or SOS requests you already sent remain active until you resolve or cancel them.',
+      [
+        {text:'Keep on',style:'cancel'},
+        {text:'Turn off',style:'destructive',onPress:async()=>{
+          const {error}=await supabase.rpc('buklod_help_disable_presence');
+          if(error){Alert.alert('Could not turn off alerts',error.message);return}
+          if(mounted.current){setEnabled(false);setNearby([])}
+        }},
+      ],
+    );
+  },[]);
 
   useEffect(()=>{
     if(!user?.id)return;
@@ -178,6 +193,13 @@ export default function BuklodCommunityHelp(){
     if(error)Alert.alert('Response not saved',error.message);else await refresh();
   },[refresh]);
 
+  const flagFalseAlert=useCallback((id:string)=>{
+    Alert.alert('Flag possible false alert?','This records your safety signal for review. Do not use it just because you cannot personally verify the incident.',[
+      {text:'Cancel',style:'cancel'},
+      {text:'Flag',style:'destructive',onPress:()=>void respond(id,'FALSE_ALERT')},
+    ]);
+  },[respond]);
+
   const resolve=(id:string)=>Alert.alert('End this alert?','Use this when you are safe or no longer need help.',[
     {text:'Keep active',style:'cancel'},
     {text:"I'm safe / Resolve",onPress:async()=>{
@@ -195,10 +217,10 @@ export default function BuklodCommunityHelp(){
         <View style={{flex:1}}><Text style={s.title}>BUKLOD HELP</Text><Text style={s.sub}>Ask nearby. Respond nearby.</Text></View>
       </View>
       <View style={s.actions}>
-        <Pressable accessibilityRole="button" onPress={()=>begin('HELP')} style={({pressed})=>[s.help,pressed&&s.pressed]}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Request help from nearby BUKLOD users" onPress={()=>begin('HELP')} style={({pressed})=>[s.help,pressed&&s.pressed]}>
           <MaterialCommunityIcons name="hand-heart-outline" size={15} color={colors.greenDark}/><Text style={s.helpText}>Need Help</Text>
         </Pressable>
-        <Pressable accessibilityRole="button" onPress={()=>begin('EMERGENCY')} style={({pressed})=>[s.sos,pressed&&s.pressed]}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Open emergency SOS" onPress={()=>begin('EMERGENCY')} style={({pressed})=>[s.sos,pressed&&s.pressed]}>
           <MaterialCommunityIcons name="alarm-light-outline" size={15} color="#FFF"/><Text style={s.sosText}>SOS</Text>
         </Pressable>
       </View>
@@ -208,7 +230,11 @@ export default function BuklodCommunityHelp(){
       <MaterialCommunityIcons name="map-marker-radius-outline" size={14} color={colors.greenDark}/>
       <Text style={s.enableText}>Enable nearby safety alerts</Text>
       <MaterialCommunityIcons name="chevron-right" size={16} color={colors.muted}/>
-    </Pressable>:null}
+    </Pressable>:<View style={s.enable}>
+      <MaterialCommunityIcons name="shield-check-outline" size={14} color={colors.greenDark}/>
+      <Text style={s.enableText}>Nearby safety alerts on</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel="Turn off nearby safety alerts" onPress={disablePresence}><Text style={s.turnOff}>Turn off</Text></Pressable>
+    </View>}
 
     {enabled&&(loading||nearby.length>0)?<View style={s.nearby}>
       <View style={s.nearbyHead}><Text style={s.nearbyTitle}>NEARBY NOW</Text>{loading?<ActivityIndicator size="small" color={colors.green}/>:null}</View>
@@ -229,6 +255,7 @@ export default function BuklodCommunityHelp(){
                 <Pressable onPress={()=>void respond(item.id,'CAN_HELP')} style={[s.response,item.my_response==='CAN_HELP'&&s.responseOn]}><Text style={[s.responseText,item.my_response==='CAN_HELP'&&s.responseTextOn]}>CAN HELP</Text></Pressable>
                 <Pressable onPress={()=>void respond(item.id,'ON_MY_WAY')} style={[s.response,item.my_response==='ON_MY_WAY'&&s.responseOn]}><Text style={[s.responseText,item.my_response==='ON_MY_WAY'&&s.responseTextOn]}>ON MY WAY</Text></Pressable>
                 {emergency?<Pressable accessibilityLabel="Confirm incident" onPress={()=>void respond(item.id,'CONFIRM_INCIDENT')} style={s.confirm}><MaterialCommunityIcons name="check-decagram-outline" size={15} color={colors.greenDark}/></Pressable>:null}
+                <Pressable accessibilityLabel="Flag possible false alert" onPress={()=>flagFalseAlert(item.id)} style={s.confirm}><MaterialCommunityIcons name="flag-outline" size={15} color={colors.muted}/></Pressable>
               </View>}
           </View>;
         })}
@@ -271,9 +298,9 @@ function styles(colors:ReturnType<typeof useBuklodPresentation>['colors']){
     brand:{flex:1,minWidth:0,flexDirection:'row',alignItems:'center',gap:7},title:{color:colors.greenDark,fontSize:10,fontWeight:'900',letterSpacing:.7},sub:{color:colors.muted,fontSize:8.5,fontWeight:'700',marginTop:1},
     actions:{flexDirection:'row',alignItems:'center',gap:6},help:{height:34,paddingHorizontal:10,borderRadius:17,backgroundColor:`${colors.green}12`,flexDirection:'row',alignItems:'center',gap:5},helpText:{color:colors.greenDark,fontSize:9.5,fontWeight:'900'},
     sos:{height:34,minWidth:62,paddingHorizontal:10,borderRadius:17,backgroundColor:'#B42318',flexDirection:'row',alignItems:'center',justifyContent:'center',gap:5},sosText:{color:'#FFF',fontSize:10,fontWeight:'900'},pressed:{opacity:.72,transform:[{scale:.98}]},
-    enable:{marginTop:6,minHeight:32,paddingHorizontal:9,borderRadius:10,backgroundColor:`${colors.green}0C`,flexDirection:'row',alignItems:'center',gap:6},enableText:{flex:1,color:colors.greenDark,fontSize:9,fontWeight:'800'},
+    enable:{marginTop:6,minHeight:32,paddingHorizontal:9,borderRadius:10,backgroundColor:`${colors.green}0C`,flexDirection:'row',alignItems:'center',gap:6},enableText:{flex:1,color:colors.greenDark,fontSize:9,fontWeight:'800'},turnOff:{color:colors.muted,fontSize:8.5,fontWeight:'800',textDecorationLine:'underline'},
     nearby:{marginTop:8},nearbyHead:{minHeight:20,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},nearbyTitle:{color:colors.muted,fontSize:8.5,fontWeight:'900',letterSpacing:.6},cards:{gap:8,paddingRight:10},
-    card:{width:246,minHeight:142,borderRadius:14,borderWidth:StyleSheet.hairlineWidth,borderColor:colors.line,backgroundColor:colors.white,padding:10},emergencyCard:{borderColor:'#F2B8B5',backgroundColor:'#FFF9F8'},cardHead:{flexDirection:'row',alignItems:'center',gap:5},cardKind:{flex:1,color:colors.greenDark,fontSize:8.5,fontWeight:'900'},red:{color:'#B42318'},
+    card:{width:264,minHeight:142,borderRadius:14,borderWidth:StyleSheet.hairlineWidth,borderColor:colors.line,backgroundColor:colors.white,padding:10},emergencyCard:{borderColor:'#F2B8B5',backgroundColor:'#FFF9F8'},cardHead:{flexDirection:'row',alignItems:'center',gap:5},cardKind:{flex:1,color:colors.greenDark,fontSize:8.5,fontWeight:'900'},red:{color:'#B42318'},
     cardBody:{color:colors.text,fontSize:11,lineHeight:15,fontWeight:'700',marginTop:7,minHeight:30},meta:{color:colors.muted,fontSize:8.5,fontWeight:'700',marginTop:3},responseRow:{flexDirection:'row',gap:5,marginTop:9},response:{minHeight:28,paddingHorizontal:8,borderRadius:14,borderWidth:StyleSheet.hairlineWidth,borderColor:colors.line,alignItems:'center',justifyContent:'center'},responseOn:{backgroundColor:colors.greenDark,borderColor:colors.greenDark},responseText:{color:colors.greenDark,fontSize:7.5,fontWeight:'900'},responseTextOn:{color:'#FFF'},confirm:{width:30,height:28,borderRadius:14,backgroundColor:`${colors.green}12`,alignItems:'center',justifyContent:'center'},resolve:{marginTop:9,minHeight:29,borderRadius:15,backgroundColor:colors.greenDark,alignItems:'center',justifyContent:'center'},resolveText:{color:'#FFF',fontSize:8,fontWeight:'900'},
     backdrop:{flex:1,backgroundColor:'rgba(7,15,10,.55)',justifyContent:'flex-end'},sheet:{maxHeight:'86%',borderTopLeftRadius:22,borderTopRightRadius:22,backgroundColor:colors.white,paddingHorizontal:16,paddingTop:15,paddingBottom:22},sheetHead:{flexDirection:'row',alignItems:'flex-start',gap:12,marginBottom:14},sheetTitle:{color:colors.text,fontSize:17,fontWeight:'900'},sheetHint:{maxWidth:310,color:colors.muted,fontSize:9.5,lineHeight:13,fontWeight:'700',marginTop:3},close:{width:34,height:34,borderRadius:17,backgroundColor:`${colors.text}08`,alignItems:'center',justifyContent:'center'},
     label:{color:colors.muted,fontSize:8.5,fontWeight:'900',letterSpacing:.7,marginBottom:6,marginTop:3},categoryRow:{gap:7,paddingBottom:12},category:{minHeight:34,paddingHorizontal:10,borderRadius:17,borderWidth:StyleSheet.hairlineWidth,borderColor:colors.line,flexDirection:'row',alignItems:'center',gap:5},categoryOn:{backgroundColor:colors.greenDark,borderColor:colors.greenDark},categoryText:{color:colors.greenDark,fontSize:9,fontWeight:'800'},categoryTextOn:{color:'#FFF'},
