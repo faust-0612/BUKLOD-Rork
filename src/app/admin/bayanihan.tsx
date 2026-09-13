@@ -125,7 +125,7 @@ export default function AdminBayanihanScreen() {
           onPress={() => router.push('/admin/economy-operations' as any)}
           style={({ pressed }) => [styles.operationsButton, pressed && { opacity: 0.78 }]}
         >
-          <MaterialCommunityIcons name="bank-cog" size={19} color="#FFFFFF" />
+          <MaterialCommunityIcons name="finance" size={19} color="#FFFFFF" />
           <View style={{ flex: 1 }}>
             <Text style={styles.operationsTitle}>OPEN R38 ECONOMY OPERATIONS</Text>
             <Text style={styles.operationsSubtitle}>Periods, revenue/cost reconciliation, referral review and payout queue</Text>
