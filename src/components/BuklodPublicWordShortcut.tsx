@@ -24,7 +24,7 @@ import {
 
 /* BUKLOD_CHARACTER_V2_WEB_RELEASE_TRIGGER_R1 */
 /* BUKLOD_HOME_IDENTITY_R23_EQUAL_SHORTCUTS */
-/* BUKLOD_KINGDOM_HOME_DOOR_R1 */
+/* BUKLOD_KINGDOM_PROFILE_RELOCATION_R1 */
 export default function BuklodPublicWordShortcut() {
   const { colors } = useBuklodPresentation();
   const { activeScope } = useBuklodScope();
@@ -54,7 +54,7 @@ export default function BuklodPublicWordShortcut() {
   return (
     <View
       style={{
-        flex: showWord ? 3 : 2,
+        flex: showWord ? 2 : 1,
         minWidth: 0,
         flexDirection: 'row',
         alignItems: 'stretch',
@@ -90,40 +90,6 @@ export default function BuklodPublicWordShortcut() {
           </Text>
         </Pressable>
       ) : null}
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Open BUKLOD Kingdom Games"
-        onPress={() => router.push('/games' as any)}
-        style={({ pressed }) => [
-          tileStyle({ pressed }),
-          {
-            backgroundColor: pressed ? 'rgba(239,207,118,0.16)' : 'rgba(239,207,118,0.11)',
-            borderColor: 'rgba(181,142,54,0.44)',
-          },
-        ]}
-      >
-        <MaterialCommunityIcons
-          name="castle"
-          size={23}
-          color="#9a7421"
-        />
-        <Text
-          allowFontScaling={false}
-          numberOfLines={2}
-          style={{
-            marginTop: 4,
-            width: '100%',
-            textAlign: 'center',
-            fontSize: 8.1,
-            lineHeight: 10,
-            fontWeight: '900',
-            color: '#8a681c',
-          }}
-        >
-          BUKLOD KINGDOM
-        </Text>
-      </Pressable>
 
       <Pressable
         accessibilityRole="button"
