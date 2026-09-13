@@ -23,6 +23,8 @@ declare
   v_active_members int := 0;
   v_assignment_id uuid;
   v_bible_reference text;
+  v_latest_assignment_id uuid;
+  v_latest_bible_reference text;
   v_devotional_id uuid;
   v_daily_submitted int := 0;
   v_daily_approved int := 0;
@@ -134,11 +136,9 @@ begin
   ) a on true;
 
   -- Use the most recently submitted Daily Reading today for the card reference.
-  -- This prevents a catch-up submission from being counted under an unrelated
-  -- current assignment title. If there is no submission today, preserve v2's
-  -- current assignment/reference.
+  -- If there is no submission today, keep v2's current assignment/reference.
   select s.assignment_id,a.bible_reference
-  into v_assignment_id,v_bible_reference
+  into v_latest_assignment_id,v_latest_bible_reference
   from public.daily_bible_submissions s
   join public.daily_bible_assignments a on a.id=s.assignment_id
   where (s.submitted_at at time zone 'Asia/Manila')::date=v_today
@@ -158,6 +158,11 @@ begin
     )
   order by s.submitted_at desc
   limit 1;
+
+  if v_latest_assignment_id is not null then
+    v_assignment_id := v_latest_assignment_id;
+    v_bible_reference := v_latest_bible_reference;
+  end if;
 
   select count(distinct s.user_id)::int
   into v_daily_approved_week
