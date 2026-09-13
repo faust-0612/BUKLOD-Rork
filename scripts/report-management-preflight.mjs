@@ -38,7 +38,7 @@ if (exists('supabase/migrations/20260913_buklod_report_management_loop_hardening
 if (exists('supabase/functions/buklod-report-template-import-v1/index.ts')) {
   const source = read('supabase/functions/buklod-report-template-import-v1/index.ts');
   for (const marker of [
-    'ANALYZER_VERSION = "v6"',
+    'ANALYZER_VERSION = "v7"',
     'function inferMimeType',
     'application/octet-stream',
     'multipart/form-data',
@@ -54,8 +54,8 @@ if (exists('supabase/functions/buklod-report-template-import-v1/index.ts')) {
     'REPORT_TEMPLATE_FILE_ANALYZE_STARTED',
     'REPORT_TEMPLATE_FILE_ANALYZE_FAILED',
     'REPORT_TEMPLATE_AI_ATTEMPT',
-    'AI_TOTAL_TIMEOUT_MS',
-    'AI_ATTEMPT_TIMEOUT_MS',
+    'AI_TOTAL_TIMEOUT_MS = 52_000',
+    'AI_ATTEMPT_TIMEOUT_MS = 20_000',
     'TRANSIENT_STATUSES',
     'callGeminiWithFallback',
     'gemini-3.7-flash',
@@ -65,7 +65,7 @@ if (exists('supabase/functions/buklod-report-template-import-v1/index.ts')) {
     'request_id: requestId',
     'analyzer_version: ANALYZER_VERSION',
   ]) {
-    if (!source.includes(marker)) failures.push(`Template analyzer v6 hardening is missing: ${marker}`);
+    if (!source.includes(marker)) failures.push(`Template analyzer v7 hardening is missing: ${marker}`);
   }
   if (/from\s+["']npm:unpdf/i.test(source) || source.includes('getDocumentProxy(')) {
     failures.push('PDF report forms must go directly to multimodal analysis instead of local Edge PDF parsing.');
