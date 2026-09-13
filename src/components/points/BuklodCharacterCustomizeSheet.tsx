@@ -1,5 +1,5 @@
-/* BUKLOD_CHARACTER_SELECTION_V2_VISIBLE_SELECTOR */
-import React, { useEffect, useMemo, useState } from 'react';
+/* BUKLOD_CHARACTER_SELECTION_V2_R31_R40_FORWARD_PORT */
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -12,21 +12,16 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import BuklodSpecialCharacterArtV2
-  from '@/components/points/BuklodSpecialCharacterArtV2';
+import BuklodProgressiveCharacterSelector from '@/components/points/BuklodProgressiveCharacterSelector';
+import BuklodSpecialCharacterSeries from '@/components/points/BuklodSpecialCharacterSeries';
 import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
 import { useBuklodDrawerBottomInset } from '@/lib/buklodSafeArea';
 import { BUKLOD_HIT_SLOP } from '@/lib/buklodTouch';
 import {
   CHARACTER_DISPLAY_NAME,
-  CORE_CHARACTER_ORDER,
-  SPECIAL_CHARACTER_ORDER,
   getMyBuklodCharacterSelectionV2,
-  setMyBuklodCharacterActiveV2,
   subscribeBuklodCharacterSelectionV2,
-  type BuklodCharacterId,
   type BuklodCharacterSelectionV2State,
-  type BuklodSpecialCharacterId,
 } from '@/lib/buklodCharacterSelectionV2';
 import type { BuklodCharacterState } from '@/lib/buklodCharacter';
 
@@ -38,6 +33,8 @@ type Props = {
   onSaved?: (config: BuklodCharacterState) => void;
 };
 
+type JourneyPanel = 'core' | 'special' | null;
+
 export default function BuklodCharacterCustomizeSheet({
   visible,
   onClose,
@@ -47,7 +44,13 @@ export default function BuklodCharacterCustomizeSheet({
   const drawerBottomInset = useBuklodDrawerBottomInset();
   const [state, setState] = useState<BuklodCharacterSelectionV2State | null>(null);
   const [loading, setLoading] = useState(false);
-  const [busyId, setBusyId] = useState<BuklodCharacterId | null>(null);
+  const [panel, setPanel] = useState<JourneyPanel>(null);
+
+  const refreshState = async () => {
+    if (!userId) return;
+    const next = await getMyBuklodCharacterSelectionV2(userId, true);
+    setState(next);
+  };
 
   useEffect(() => {
     if (!visible || !userId) return;
@@ -84,113 +87,14 @@ export default function BuklodCharacterCustomizeSheet({
     };
   }, [userId, visible]);
 
-  const visibleSpecials = useMemo(() => {
-    const unlocked = new Set(state?.visible_special_character_ids ?? []);
-    return SPECIAL_CHARACTER_ORDER.filter((id) => unlocked.has(id));
-  }, [state?.visible_special_character_ids]);
+  useEffect(() => {
+    if (!visible) setPanel(null);
+  }, [visible]);
 
-  const choose = async (id: BuklodCharacterId) => {
-    if (!userId || busyId || state?.active_character_id === id) return;
-    setBusyId(id);
-    try {
-      const next = await setMyBuklodCharacterActiveV2(userId, id);
-      setState(next);
-    } catch (error: unknown) {
-      Alert.alert(
-        'BUKLOD Character',
-        error instanceof Error ? error.message : 'Could not change Character.',
-      );
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  const renderCore = (id: typeof CORE_CHARACTER_ORDER[number]) => {
-    const active = state?.active_character_id === id;
-    const level = active ? state?.character_level ?? 1 : 1;
-
-    return (
-      <Pressable
-        key={id}
-        onPress={() => void choose(id)}
-        style={[
-          styles.card,
-          { backgroundColor: theme.surface, borderColor: active ? theme.accent : theme.border },
-        ]}
-        accessibilityRole="button"
-        accessibilityLabel={`Select ${CHARACTER_DISPLAY_NAME[id]}`}
-      >
-        <View
-          style={[
-            styles.coreBadge,
-            { backgroundColor: theme.accentSoft, borderColor: theme.border },
-          ]}
-        >
-          <MaterialCommunityIcons
-            name={active ? 'account-star' : 'account-star-outline'}
-            size={42}
-            color={active ? theme.accent : theme.textSecondary}
-          />
-          <Text style={[styles.coreInitial, { color: theme.textPrimary }]}>
-            {CHARACTER_DISPLAY_NAME[id].slice(0, 1)}
-          </Text>
-        </View>
-        <Text style={[styles.name, { color: theme.textPrimary }]}>
-          {CHARACTER_DISPLAY_NAME[id]}
-        </Text>
-        <Text style={[styles.meta, { color: theme.textMuted }]}>
-          {active ? `LEVEL ${level}` : 'STARTS LEVEL 1'}
-        </Text>
-        {active ? (
-          <View style={[styles.activePill, { backgroundColor: theme.accentSoft }]}>
-            <MaterialCommunityIcons name="check-circle" size={13} color={theme.accent} />
-            <Text style={[styles.activeText, { color: theme.accent }]}>ACTIVE</Text>
-          </View>
-        ) : busyId === id ? (
-          <ActivityIndicator size="small" color={theme.accent} />
-        ) : null}
-      </Pressable>
-    );
-  };
-
-  const renderSpecial = (id: BuklodSpecialCharacterId) => {
-    const active = state?.active_character_id === id;
-    const level = active ? state?.character_level ?? 1 : 1;
-    return (
-      <Pressable
-        key={id}
-        onPress={() => void choose(id)}
-        style={[
-          styles.card,
-          { backgroundColor: theme.surface, borderColor: active ? theme.accent : theme.border },
-        ]}
-        accessibilityRole="button"
-        accessibilityLabel={`Select ${CHARACTER_DISPLAY_NAME[id]}`}
-      >
-        <View style={styles.specialArtWrap}>
-          <BuklodSpecialCharacterArtV2
-            characterId={id}
-            height={116}
-            viewportWidth={104}
-          />
-        </View>
-        <Text style={[styles.name, { color: theme.textPrimary }]}>
-          {CHARACTER_DISPLAY_NAME[id]}
-        </Text>
-        <Text style={[styles.meta, { color: theme.textMuted }]}>
-          SPECIAL · {active ? `LEVEL ${level}` : 'STARTS LEVEL 1'}
-        </Text>
-        {active ? (
-          <View style={[styles.activePill, { backgroundColor: theme.accentSoft }]}>
-            <MaterialCommunityIcons name="star-four-points" size={13} color={theme.accent} />
-            <Text style={[styles.activeText, { color: theme.accent }]}>ACTIVE</Text>
-          </View>
-        ) : busyId === id ? (
-          <ActivityIndicator size="small" color={theme.accent} />
-        ) : null}
-      </Pressable>
-    );
-  };
+  const activeName = state
+    ? CHARACTER_DISPLAY_NAME[state.active_character_id]
+    : 'BUKLOD Character';
+  const unlockedSpecialCount = state?.visible_special_character_ids.length ?? 0;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -204,10 +108,10 @@ export default function BuklodCharacterCustomizeSheet({
         >
           <View style={[styles.header, { borderBottomColor: theme.border }]}>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.title, { color: theme.textPrimary }]}>BUKLOD Character Selection</Text>
-              <Text style={[styles.subtitle, { color: theme.textMuted }]}>Circle Rank stays. Every newly selected Character starts at Level 1.</Text>
+              <Text style={[styles.title, { color: theme.textPrimary }]}>BUKLOD Character</Text>
+              <Text style={[styles.subtitle, { color: theme.textMuted }]}>One selection authority · protected R31/R40 art · 20-level journeys</Text>
             </View>
-            <Pressable onPress={onClose} hitSlop={BUKLOD_HIT_SLOP}>
+            <Pressable onPress={onClose} hitSlop={BUKLOD_HIT_SLOP} accessibilityRole="button" accessibilityLabel="Close Character">
               <MaterialCommunityIcons name="close" size={24} color={theme.textMuted} />
             </Pressable>
           </View>
@@ -221,40 +125,79 @@ export default function BuklodCharacterCustomizeSheet({
             ) : null}
 
             {state ? (
-              <View style={[styles.statusCard, { backgroundColor: theme.accentSoft, borderColor: theme.border }]}>
-                <Text style={[styles.statusEyebrow, { color: theme.accent }]}>CURRENT CHARACTER</Text>
-                <Text style={[styles.statusName, { color: theme.textPrimary }]}>
-                  {CHARACTER_DISPLAY_NAME[state.active_character_id]} · Level {state.character_level}
-                </Text>
-                <Text style={[styles.statusMeta, { color: theme.textSecondary }]}>
-                  {state.circle_rank_name} · Circle Rank #{state.circle_rank_order}
-                </Text>
-                <Text style={[styles.statusMeta, { color: theme.textMuted }]}>
-                  {state.character_points_since_selection.toLocaleString('en-PH')} Character Points since this selection
-                </Text>
+              <>
+                <View style={[styles.statusCard, { backgroundColor: theme.accentSoft, borderColor: theme.border }]}>
+                  <View style={styles.statusIcon}>
+                    <MaterialCommunityIcons name="account-star" size={28} color={theme.accent} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.statusEyebrow, { color: theme.accent }]}>ACTIVE CHARACTER</Text>
+                    <Text style={[styles.statusName, { color: theme.textPrimary }]}>{activeName} · Level {state.character_level}</Text>
+                    <Text style={[styles.statusMeta, { color: theme.textSecondary }]}>{state.circle_rank_name} · Circle Rank #{state.circle_rank_order}</Text>
+                    <Text style={[styles.statusMeta, { color: theme.textMuted }]}>{state.character_points_since_selection.toLocaleString('en-PH')} Character Points since selection</Text>
+                  </View>
+                </View>
+
+                <View style={[styles.ruleCard, { borderColor: theme.border, backgroundColor: theme.surfaceElevated }]}>
+                  <MaterialCommunityIcons name="shield-check-outline" size={20} color={theme.accent} />
+                  <Text style={[styles.ruleText, { color: theme.textSecondary }]}>
+                    Changing Character never resets Circle Points or Circle Rank. The newly selected Character starts at Level 1, levels do not transfer, and locked Special Characters remain hidden.
+                  </Text>
+                </View>
+
+                <View style={styles.launchRow}>
+                  <Pressable
+                    onPress={() => setPanel((value) => value === 'core' ? null : 'core')}
+                    style={[
+                      styles.launchCard,
+                      { borderColor: panel === 'core' ? theme.accent : theme.border, backgroundColor: panel === 'core' ? theme.accentSoft : theme.surfaceElevated },
+                    ]}
+                  >
+                    <MaterialCommunityIcons name="account-group-outline" size={22} color={panel === 'core' ? theme.accent : theme.textSecondary} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.launchTitle, { color: theme.textPrimary }]}>Core Journey</Text>
+                      <Text style={[styles.launchMeta, { color: theme.textMuted }]}>Phan · Quin · Van · Christian · Lhen</Text>
+                    </View>
+                    <MaterialCommunityIcons name={panel === 'core' ? 'chevron-up' : 'chevron-down'} size={22} color={theme.textMuted} />
+                  </Pressable>
+
+                  <Pressable
+                    onPress={() => setPanel((value) => value === 'special' ? null : 'special')}
+                    style={[
+                      styles.launchCard,
+                      { borderColor: panel === 'special' ? theme.accent : theme.border, backgroundColor: panel === 'special' ? theme.accentSoft : theme.surfaceElevated },
+                    ]}
+                  >
+                    <MaterialCommunityIcons name="star-four-points-outline" size={22} color={panel === 'special' ? theme.accent : theme.textSecondary} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.launchTitle, { color: theme.textPrimary }]}>Special Journey</Text>
+                      <Text style={[styles.launchMeta, { color: theme.textMuted }]}>{unlockedSpecialCount > 0 ? `${unlockedSpecialCount} unlocked by Circle Rank` : 'Locked characters stay invisible'}</Text>
+                    </View>
+                    <MaterialCommunityIcons name={panel === 'special' ? 'chevron-up' : 'chevron-down'} size={22} color={theme.textMuted} />
+                  </Pressable>
+                </View>
+
+                {panel === 'core' ? (
+                  <BuklodProgressiveCharacterSelector
+                    userId={userId}
+                    state={state}
+                    onStateRefresh={refreshState}
+                  />
+                ) : null}
+
+                {panel === 'special' ? (
+                  <BuklodSpecialCharacterSeries
+                    userId={userId}
+                    state={state}
+                    onStateRefresh={refreshState}
+                  />
+                ) : null}
+              </>
+            ) : !loading ? (
+              <View style={[styles.emptyCard, { borderColor: theme.border }]}>
+                <Text style={[styles.emptyText, { color: theme.textMuted }]}>Character state is unavailable. No selection or points data was changed.</Text>
               </View>
             ) : null}
-
-            <Text style={[styles.sectionEyebrow, { color: theme.textMuted }]}>ORIGINAL CHARACTERS</Text>
-            <View style={styles.grid}>{CORE_CHARACTER_ORDER.map(renderCore)}</View>
-
-            {visibleSpecials.length > 0 ? (
-              <>
-                <View style={styles.specialHeadingRow}>
-                  <Text style={[styles.sectionEyebrow, { color: theme.textMuted }]}>SPECIAL CHARACTERS</Text>
-                  <MaterialCommunityIcons name="star-four-points-outline" size={17} color={theme.accent} />
-                </View>
-                <Text style={[styles.specialHint, { color: theme.textSecondary }]}>Only Special Characters already unlocked by your canonical Circle Rank appear here.</Text>
-                <View style={styles.grid}>{visibleSpecials.map(renderSpecial)}</View>
-              </>
-            ) : null}
-
-            <View style={[styles.ruleCard, { borderColor: theme.border, backgroundColor: theme.surfaceElevated }]}>
-              <MaterialCommunityIcons name="shield-check-outline" size={20} color={theme.accent} />
-              <Text style={[styles.ruleText, { color: theme.textSecondary }]}>
-                Character switching never resets Circle Points or Circle Rank. Special eligibility is enforced by the server, and locked Special Characters are not shown.
-              </Text>
-            </View>
           </ScrollView>
         </Pressable>
       </Pressable>
@@ -269,24 +212,19 @@ const styles = StyleSheet.create({
   title: { fontSize: 19, fontWeight: '900' },
   subtitle: { marginTop: 3, fontSize: 10.5, lineHeight: 14 },
   content: { padding: 14, paddingBottom: 28 },
-  loadingBox: { minHeight: 80, alignItems: 'center', justifyContent: 'center', gap: 8 },
+  loadingBox: { minHeight: 90, alignItems: 'center', justifyContent: 'center', gap: 8 },
   loadingText: { fontSize: 11, fontWeight: '700' },
-  statusCard: { padding: 14, borderRadius: 17, borderWidth: 1, marginBottom: 18 },
+  statusCard: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: 17, borderWidth: 1, marginBottom: 10 },
+  statusIcon: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
   statusEyebrow: { fontSize: 9, fontWeight: '900', letterSpacing: 1 },
-  statusName: { marginTop: 4, fontSize: 18, fontWeight: '900' },
-  statusMeta: { marginTop: 3, fontSize: 10.5, fontWeight: '700' },
-  sectionEyebrow: { fontSize: 10, fontWeight: '900', letterSpacing: 0.9, marginBottom: 9 },
-  specialHeadingRow: { marginTop: 20, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  specialHint: { marginTop: -4, marginBottom: 10, fontSize: 10, lineHeight: 14 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  card: { width: '47.8%', minHeight: 190, borderRadius: 17, borderWidth: 1.5, padding: 10, alignItems: 'center' },
-  coreBadge: { width: 92, height: 116, alignItems: 'center', justifyContent: 'center', gap: 2, overflow: 'hidden', borderRadius: 14, borderWidth: 1 },
-  coreInitial: { marginTop: -3, fontSize: 20, fontWeight: '900' },
-  specialArtWrap: { width: 104, height: 116, borderRadius: 13, overflow: 'hidden' },
-  name: { marginTop: 7, fontSize: 13, fontWeight: '900' },
-  meta: { marginTop: 3, fontSize: 8.5, fontWeight: '900', textAlign: 'center' },
-  activePill: { marginTop: 7, minHeight: 25, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, borderRadius: 999 },
-  activeText: { fontSize: 8, fontWeight: '900', letterSpacing: 0.6 },
-  ruleCard: { marginTop: 20, flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 12, borderRadius: 14, borderWidth: 1 },
+  statusName: { marginTop: 3, fontSize: 17, fontWeight: '900' },
+  statusMeta: { marginTop: 3, fontSize: 10, fontWeight: '700' },
+  ruleCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 12, borderRadius: 14, borderWidth: 1 },
   ruleText: { flex: 1, fontSize: 10, lineHeight: 15, fontWeight: '700' },
+  launchRow: { marginTop: 12, gap: 8 },
+  launchCard: { minHeight: 62, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 15, borderWidth: 1 },
+  launchTitle: { fontSize: 12, fontWeight: '900' },
+  launchMeta: { marginTop: 2, fontSize: 9, lineHeight: 13, fontWeight: '700' },
+  emptyCard: { padding: 14, borderWidth: 1, borderRadius: 14 },
+  emptyText: { fontSize: 10, lineHeight: 15, fontWeight: '700' },
 });
