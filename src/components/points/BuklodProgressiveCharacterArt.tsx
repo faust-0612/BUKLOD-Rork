@@ -1,8 +1,6 @@
 /* BUKLOD_CHARACTER_R31_PROGRESSIVE_ART_V2_SAFE */
-/* BUKLOD_CHARACTER_R25_ZOOM_SHARP_FULL_SOURCE */
 import React from 'react';
-import { Image as NativeImage, StyleSheet, View } from 'react-native';
-import { Image as ExpoImage } from 'expo-image';
+import { Image, StyleSheet, View } from 'react-native';
 
 import {
   PROGRESSIVE_CHARACTERS,
@@ -14,13 +12,10 @@ type Props = {
   level: number;
   height: number;
   viewportWidth?: number;
-  /** Full-source decode for enlarged/fullscreen Character review surfaces. */
-  highQuality?: boolean;
 };
 
 const SPRITE_WIDTH = 1235;
 const CELL_WIDTH = SPRITE_WIDTH / 20;
-const FULLSCREEN_QUALITY_HEIGHT = 320;
 const SHEETS = {
   phan: require('../../../assets/images/characters/phan_r26.jpg'),
   quin: require('../../../assets/images/characters/quin_r26.jpg'),
@@ -34,7 +29,6 @@ export default function BuklodProgressiveCharacterArt({
   level,
   height,
   viewportWidth,
-  highQuality = false,
 }: Props) {
   const profile = PROGRESSIVE_CHARACTERS[characterId];
   const safeLevel = Math.max(1, Math.min(20, Math.floor(Number(level) || 1)));
@@ -45,41 +39,22 @@ export default function BuklodProgressiveCharacterArt({
     ? Math.max(1, Math.round(viewportWidth))
     : artWidth;
   const left = Math.round((frameWidth - artWidth) / 2);
-  const useFullSourceDecode = highQuality || height >= FULLSCREEN_QUALITY_HEIGHT;
 
   return (
     <View pointerEvents="none" style={[styles.frame, { width: frameWidth, height }]}>
       <View style={[styles.crop, { left, width: artWidth, height }]}>
-        {useFullSourceDecode ? (
-          <ExpoImage
-            source={SHEETS[characterId]}
-            contentFit="contain"
-            allowDownscaling={false}
-            cachePolicy="memory-disk"
-            priority="high"
-            transition={0}
-            style={{
-              position: 'absolute',
-              left: Math.round(-cropX * scale),
-              top: 0,
-              width: Math.round(SPRITE_WIDTH * scale),
-              height: Math.round(profile.rowHeight * scale),
-            }}
-          />
-        ) : (
-          <NativeImage
-            source={SHEETS[characterId]}
-            resizeMode="contain"
-            fadeDuration={0}
-            style={{
-              position: 'absolute',
-              left: Math.round(-cropX * scale),
-              top: 0,
-              width: Math.round(SPRITE_WIDTH * scale),
-              height: Math.round(profile.rowHeight * scale),
-            }}
-          />
-        )}
+        <Image
+          source={SHEETS[characterId]}
+          resizeMode="contain"
+          fadeDuration={0}
+          style={{
+            position: 'absolute',
+            left: Math.round(-cropX * scale),
+            top: 0,
+            width: Math.round(SPRITE_WIDTH * scale),
+            height: Math.round(profile.rowHeight * scale),
+          }}
+        />
       </View>
     </View>
   );
