@@ -1,12 +1,13 @@
-/* BUKLOD_AWS_WALL_VIDEO_R2_FAST_MULTIPART
+/* BUKLOD_AWS_WALL_VIDEO_R3_NATIVE_BOUNDED_MEMORY
  * Large Wall-video transport only. No native dependency is added.
  * - Web: parallel multipart S3 upload using Blob slices.
- * - Android/iOS: parallel multipart S3 upload using the already-installed Expo FileSystem File.slice API.
+ * - Android/iOS: materialize one multipart part at a time with bounded FileHandle reads,
+ *   then upload the temp part through the already-installed legacy FileSystem uploader.
  * - AWS credentials never enter the app. The AWS API only returns short-lived signed URLs
  *   after validating the current Supabase access token.
  */
-import { File } from 'expo-file-system';
-import { fetch as expoFetch } from 'expo/fetch';
+import { File, Paths } from 'expo-file-system';
+import * as LegacyFileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
@@ -19,8 +20,8 @@ export const BUKLOD_AWS_WALL_VIDEO_THRESHOLD_BYTES =
 
 const FAST_PART_SIZE_BYTES = 16 * 1024 * 1024;
 const WEB_MULTIPART_WORKERS = 5;
-const NATIVE_MULTIPART_WORKERS = 4;
 const PART_UPLOAD_RETRIES = 3;
+const NATIVE_COPY_CHUNK_BYTES = 1024 * 1024;
 
 type MultipartPart = {
   partNumber: number;
@@ -120,6 +121,17 @@ function fastPartSize(serverPartSize?: number) {
     FAST_PART_SIZE_BYTES,
     Number(serverPartSize ?? 0) || 0,
   );
+}
+
+function responseHeader(
+  headers: Record<string, string> | null | undefined,
+  name: string,
+) {
+  const wanted = name.toLowerCase();
+  for (const [key, value] of Object.entries(headers ?? {})) {
+    if (key.toLowerCase() === wanted) return String(value ?? '').trim();
+  }
+  return '';
 }
 
 async function createMultipartUpload(options: {
@@ -308,17 +320,89 @@ async function uploadWebMultipart(options: {
   }
 }
 
+function createNativePartFileName(partNumber: number) {
+  return `buklod-igpat-${Date.now()}-${partNumber}-${Math.random()
+    .toString(36)
+    .slice(2)}.part`;
+}
+
+function materializeNativePart(options: {
+  source: File;
+  start: number;
+  end: number;
+  partNumber: number;
+}) {
+  const temp = new File(
+    Paths.cache,
+    createNativePartFileName(options.partNumber),
+  );
+  temp.create({ overwrite: true });
+
+  const sourceHandle = options.source.open();
+  const targetHandle = temp.open();
+
+  try {
+    sourceHandle.offset = options.start;
+    let remaining = Math.max(0, options.end - options.start);
+
+    while (remaining > 0) {
+      const requested = Math.min(
+        NATIVE_COPY_CHUNK_BYTES,
+        remaining,
+      );
+      const bytes = sourceHandle.readBytes(requested);
+      if (!bytes.byteLength) {
+        throw new Error(
+          `Could not read video part ${options.partNumber}.`,
+        );
+      }
+      targetHandle.writeBytes(bytes);
+      remaining -= bytes.byteLength;
+    }
+  } finally {
+    try {
+      sourceHandle.close();
+    } catch {}
+    try {
+      targetHandle.close();
+    } catch {}
+  }
+
+  return temp;
+}
+
+async function uploadNativeTempPart(options: {
+  signedUrl: string;
+  file: File;
+}) {
+  return LegacyFileSystem.uploadAsync(
+    options.signedUrl,
+    options.file.uri,
+    {
+      httpMethod: 'PUT',
+      uploadType:
+        LegacyFileSystem.FileSystemUploadType.BINARY_CONTENT,
+    },
+  );
+}
+
 async function uploadNativeMultipart(options: {
   uri: string;
   contentType: string;
   sizeBytes: number;
   onProgress?: (progress: AwsWallVideoProgress) => void;
 }) {
-  const file = new File(options.uri);
-  const totalBytes = Number(file.size || options.sizeBytes || 0);
+  const source = new File(options.uri);
+  const totalBytes = Number(source.size || options.sizeBytes || 0);
 
   if (!totalBytes) {
     throw new Error('Could not read the selected video size.');
+  }
+
+  if (typeof (source as any).open !== 'function') {
+    throw new Error(
+      'This installed app version cannot safely stream large IGPAT videos. Please update BUKLOD before publishing this video.',
+    );
   }
 
   const created = await createMultipartUpload({
@@ -329,78 +413,79 @@ async function uploadNativeMultipart(options: {
   const partSize = fastPartSize(created.partSize);
   const partCount = Math.ceil(totalBytes / partSize);
   const parts: MultipartPart[] = new Array(partCount);
-  let nextPart = 0;
   let uploadedBytes = 0;
 
   options.onProgress?.({ sentBytes: 0, totalBytes, ratio: 0 });
 
   try {
-    const workers = Array.from(
-      {
-        length: Math.min(
-          NATIVE_MULTIPART_WORKERS,
-          Math.max(1, partCount),
-        ),
-      },
-      async () => {
-        while (true) {
-          const index = nextPart++;
-          if (index >= partCount) return;
+    // Native deliberately uploads one part at a time. The previous parallel
+    // File.slice + expo/fetch path could cause Android to call bytesSync() on
+    // the entire source video and exhaust the Java heap. One bounded temp part
+    // keeps memory predictable while preserving the same S3 multipart contract.
+    for (let index = 0; index < partCount; index += 1) {
+      const partNumber = index + 1;
+      const start = index * partSize;
+      const end = Math.min(totalBytes, start + partSize);
+      const partBytes = end - start;
+      const temp = materializeNativePart({
+        source,
+        start,
+        end,
+        partNumber,
+      });
 
-          const partNumber = index + 1;
-          const start = index * partSize;
-          const end = Math.min(totalBytes, start + partSize);
-          let lastError: unknown = null;
+      let lastError: unknown = null;
 
-          for (let attempt = 1; attempt <= PART_UPLOAD_RETRIES; attempt += 1) {
-            try {
-              const signed = await signedPartUrl(created, partNumber);
-              const body = file.slice(start, end, options.contentType);
-              const put = await expoFetch(signed.url, {
-                method: 'PUT',
-                body,
-              });
+      try {
+        for (let attempt = 1; attempt <= PART_UPLOAD_RETRIES; attempt += 1) {
+          try {
+            const signed = await signedPartUrl(created, partNumber);
+            const put = await uploadNativeTempPart({
+              signedUrl: signed.url,
+              file: temp,
+            });
 
-              if (!put.ok) {
-                const message = await put.text().catch(() => '');
-                throw new Error(
-                  message ||
-                    `Video part ${partNumber} upload failed (${put.status}).`,
-                );
-              }
+            if (put.status < 200 || put.status >= 300) {
+              throw new Error(
+                put.body ||
+                  `Video part ${partNumber} upload failed (${put.status}).`,
+              );
+            }
 
-              const etag = String(put.headers.get('etag') ?? '').trim();
-              if (!etag) {
-                throw new Error(
-                  `Video part ${partNumber} did not return an ETag.`,
-                );
-              }
+            const etag = responseHeader(put.headers, 'etag');
+            if (!etag) {
+              throw new Error(
+                `Video part ${partNumber} did not return an ETag.`,
+              );
+            }
 
-              parts[index] = { partNumber, etag };
-              uploadedBytes += end - start;
-              options.onProgress?.({
-                sentBytes: uploadedBytes,
-                totalBytes,
-                ratio: totalBytes > 0
-                  ? Math.min(1, uploadedBytes / totalBytes)
-                  : 0,
-              });
-              lastError = null;
-              break;
-            } catch (error) {
-              lastError = error;
-              if (attempt < PART_UPLOAD_RETRIES) {
-                await sleep(350 * 2 ** (attempt - 1));
-              }
+            parts[index] = { partNumber, etag };
+            uploadedBytes += partBytes;
+            options.onProgress?.({
+              sentBytes: uploadedBytes,
+              totalBytes,
+              ratio: totalBytes > 0
+                ? Math.min(1, uploadedBytes / totalBytes)
+                : 0,
+            });
+            lastError = null;
+            break;
+          } catch (error) {
+            lastError = error;
+            if (attempt < PART_UPLOAD_RETRIES) {
+              await sleep(350 * 2 ** (attempt - 1));
             }
           }
-
-          if (lastError) throw lastError;
         }
-      },
-    );
+      } finally {
+        try {
+          if (temp.exists) temp.delete();
+        } catch {}
+      }
 
-    await Promise.all(workers);
+      if (lastError) throw lastError;
+    }
+
     await completeMultipartUpload(created, parts);
 
     options.onProgress?.({
