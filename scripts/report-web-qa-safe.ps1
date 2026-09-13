@@ -86,6 +86,21 @@ function Remove-StaleDist {
     }
 }
 
+function Assert-CleanTrackedSource([string]$GitPath) {
+    Write-Step 'TRACKED SOURCE DRIFT CHECK'
+    $Changed = @(& $GitPath 'diff' '--name-only' '--') | Where-Object { $_ -and $_.Trim() }
+    if ($LASTEXITCODE -ne 0) { throw 'Could not inspect tracked source drift.' }
+    $Staged = @(& $GitPath 'diff' '--cached' '--name-only' '--') | Where-Object { $_ -and $_.Trim() }
+    if ($LASTEXITCODE -ne 0) { throw 'Could not inspect staged source drift.' }
+    $AllChanged = @($Changed + $Staged | Sort-Object -Unique)
+    if ($AllChanged.Count -gt 0) {
+        Write-Host 'Tracked files differ from the checked-out checkpoint:' -ForegroundColor Yellow
+        foreach ($Path in $AllChanged) { Write-Host "  - $Path" -ForegroundColor Yellow }
+        throw 'Tracked source drift detected. Back up/restore only the listed files before QA release.'
+    }
+    Write-Host 'PASS: tracked source matches the checked-out checkpoint.' -ForegroundColor Green
+}
+
 function Assert-FreshExport([datetime]$ExportStartedUtc) {
     $Index = Join-Path $Dist 'index.html'
     if (-not (Test-Path -LiteralPath $Index)) { throw 'Fresh export is missing index.html.' }
@@ -119,6 +134,11 @@ Write-Host 'Rule: failed preflight/typecheck/export can NEVER continue to deploy
 Remove-StaleDist
 
 try {
+    $Git = (Get-Command git.exe -ErrorAction SilentlyContinue)
+    if (-not $Git) { $Git = Get-Command git -ErrorAction Stop }
+    $GitPath = $Git.Source
+    Assert-CleanTrackedSource -GitPath $GitPath
+
     Ensure-PublicEnv 'EXPO_PUBLIC_SUPABASE_URL'
     Ensure-PublicEnv 'EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY'
 
@@ -136,9 +156,6 @@ try {
 
     $Node = (Get-Command node -ErrorAction Stop).Source
     $Npx = (Get-Command npx.cmd -ErrorAction Stop).Source
-    $Git = (Get-Command git.exe -ErrorAction SilentlyContinue)
-    if (-not $Git) { $Git = Get-Command git -ErrorAction Stop }
-    $GitPath = $Git.Source
 
     Invoke-Checked 'MANAGEMENT PREFLIGHT' { & $Node 'scripts/report-management-preflight.mjs' }
     Invoke-Checked 'REPORT WEB PREFLIGHT' { & $Node 'scripts/report-web-preflight.mjs' }
