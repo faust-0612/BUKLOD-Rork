@@ -38,6 +38,7 @@ if (exists('supabase/migrations/20260913_buklod_report_management_loop_hardening
 if (exists('supabase/functions/buklod-report-template-import-v1/index.ts')) {
   const source = read('supabase/functions/buklod-report-template-import-v1/index.ts');
   for (const marker of [
+    'ANALYZER_VERSION = "v6"',
     'function inferMimeType',
     'application/octet-stream',
     'multipart/form-data',
@@ -52,22 +53,28 @@ if (exists('supabase/functions/buklod-report-template-import-v1/index.ts')) {
     'Detect ONLY fields actually present',
     'REPORT_TEMPLATE_FILE_ANALYZE_STARTED',
     'REPORT_TEMPLATE_FILE_ANALYZE_FAILED',
-    'REPORT_TEMPLATE_AI_FALLBACK_USED',
-    'GEMINI_TOTAL_TIMEOUT_MS',
-    'GEMINI_ATTEMPT_TIMEOUT_MS',
-    'TRANSIENT_GEMINI_STATUSES',
+    'REPORT_TEMPLATE_AI_ATTEMPT',
+    'AI_TOTAL_TIMEOUT_MS',
+    'AI_ATTEMPT_TIMEOUT_MS',
+    'TRANSIENT_STATUSES',
     'callGeminiWithFallback',
     'gemini-3.7-flash',
     'gemini-3.6-flash',
-    'return json({ error: message, stage }, 500)',
+    'gemini-3.5-flash',
+    'target_id: args.requestId',
+    'request_id: requestId',
+    'analyzer_version: ANALYZER_VERSION',
   ]) {
-    if (!source.includes(marker)) failures.push(`Template analyzer hardening is missing: ${marker}`);
+    if (!source.includes(marker)) failures.push(`Template analyzer v6 hardening is missing: ${marker}`);
   }
   if (/from\s+["']npm:unpdf/i.test(source) || source.includes('getDocumentProxy(')) {
     failures.push('PDF report forms must go directly to multimodal analysis instead of local Edge PDF parsing.');
   }
   if (/responseJsonSchema[\s\S]{0,3000}type:\s*["'](?:OBJECT|STRING|ARRAY|NUMBER|BOOLEAN)["']/.test(source)) {
     failures.push('responseJsonSchema must use standard lowercase JSON Schema type names.');
+  }
+  if (source.includes('target_id: null')) {
+    failures.push('Template analyzer audit rows must use a real request UUID because audit target_id is NOT NULL.');
   }
 }
 
