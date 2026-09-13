@@ -1,0 +1,51 @@
+name: BUKLOD R38 Economy QA
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/r38_economy_pr_qa.yml'
+      - 'scripts/r38-economy-release-contract.mjs'
+      - 'src/app/admin/bayanihan.tsx'
+      - 'src/app/admin/economy-operations.tsx'
+      - 'src/app/admin/points-redemptions.tsx'
+      - 'src/app/bayanihan/**'
+      - 'src/components/BuklodReferralInviteCard.tsx'
+      - 'src/components/points/BuklodRedeemCatalogSection.tsx'
+      - 'src/lib/buklodR38*.ts'
+      - 'supabase/migrations/*buklod*r38*.sql'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  r38-economy-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: R38 economy invariant contract
+        run: node scripts/r38-economy-release-contract.mjs
+
+      - name: Export web without deploying
+        run: npx expo export --platform web --output-dir dist-r38-qa
+
+      - name: Confirm no release action
+        run: echo 'QA only — no EAS build, OTA/update, native release, production web deploy, or monetization activation was executed.'
