@@ -51,12 +51,16 @@ for (const file of requiredDocs) {
  *   - Character levels do not transfer
  *   - Circle Points / Circle Rank remain intact
  *   - locked Special Characters remain hidden
+ *   - Profile and Points must render the same V2 active selection
  */
 const characterSelection = read('src/lib/buklodCharacterSelectionV2.ts');
 const progressiveCharacter = read('src/lib/buklodProgressiveCharacter.ts');
 const progressiveSelector = read('src/components/points/BuklodProgressiveCharacterSelector.tsx');
 const specialSeries = read('src/components/points/BuklodSpecialCharacterSeries.tsx');
 const customizeSheet = read('src/components/points/BuklodCharacterCustomizeSheet.tsx');
+const activeCharacterArt = read('src/components/points/BuklodActiveCharacterArt.tsx');
+const profileCharacterCard = read('src/components/points/BuklodProfileCharacterCard.tsx');
+const pointsStage = read('src/components/points/BuklodPointsStage.tsx');
 
 if (!characterSelection.includes('ATOMIC_RESET_LEVEL_1_V2')) {
   failures.push('Character V2 atomic Level-1 reset contract is missing.');
@@ -85,6 +89,20 @@ if (specialSeries.includes("rpc('set_my_buklod_special_character_active_v1'")) {
 if (!customizeSheet.includes('BuklodProgressiveCharacterSelector') ||
     !customizeSheet.includes('BuklodSpecialCharacterSeries')) {
   failures.push('R31/R40 Character journeys are not integrated into the live Customize surface.');
+}
+if (!activeCharacterArt.includes('getMyBuklodCharacterSelectionV2') ||
+    !activeCharacterArt.includes('subscribeBuklodCharacterSelectionV2')) {
+  failures.push('Visible Character art is not synchronized to V2 active selection state.');
+}
+if (!activeCharacterArt.includes('BuklodProgressiveCharacterArt') ||
+    !activeCharacterArt.includes('getBuklodSpecialLevelAsset')) {
+  failures.push('Visible Character adapter is missing R31 or R40 art rendering.');
+}
+if (!profileCharacterCard.includes('BuklodActiveCharacterArt')) {
+  failures.push('Profile Character card is not rendering the canonical V2 active Character.');
+}
+if (!pointsStage.includes('BuklodActiveCharacterArt')) {
+  failures.push('Points hero is not rendering the canonical V2 active Character.');
 }
 
 if (!process.env.EAS_PROJECT_ID && !process.env.EXPO_PUBLIC_EAS_PROJECT_ID) {
