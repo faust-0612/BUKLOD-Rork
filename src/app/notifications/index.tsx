@@ -15,6 +15,7 @@ import {
   buklodNotificationTarget,
   syncScopeSelection,
 } from '@/lib/buklodScopeRoute';
+import { buklodFormationNotificationTarget } from '@/lib/buklodFormationNotificationTarget';
 import { resolveMzbOrganizationScopeId } from '@/lib/buklodMzbOrganization';
 
 export default function NotificationCenter(){
@@ -29,13 +30,16 @@ export default function NotificationCenter(){
  const open=async(x:any)=>{
   const kind=String(x?.kind??'');
   const data=x?.data??null;
-  const mzbCanonicalScopeId=await resolveMzbOrganizationScopeId().catch(()=>null);
-  const target=buklodNotificationTarget(kind,data,{scopes,mzbCanonicalScopeId});
+  const formationTarget=buklodFormationNotificationTarget(kind,data);
+  const mzbCanonicalScopeId=formationTarget
+   ? null
+   : await resolveMzbOrganizationScopeId().catch(()=>null);
+  const target=formationTarget??buklodNotificationTarget(kind,data,{scopes,mzbCanonicalScopeId});
   const p=target?.path??null;
 
   if(p){
    if(target?.scopeId){
-    void syncScopeSelection(selectScope,target.scopeId,activeScope?.scope_id);
+    await syncScopeSelection(selectScope,target.scopeId,activeScope?.scope_id);
    }
    buklodInstantPush(p as any);
   }
