@@ -63,6 +63,12 @@ const SUPABASE_URL = String(process.env.EXPO_PUBLIC_SUPABASE_URL ?? '').replace(
 const SUPABASE_PUBLISHABLE_KEY = String(process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? '').trim();
 const TEMPLATE_ANALYZER_URL = `${SUPABASE_URL}/functions/v1/buklod-report-template-import-v1`;
 
+function showWebAnalyzerMessage(message: string) {
+  if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+    window.alert(`BUKLOD Report\n\n${message}`);
+  }
+}
+
 function stripDataUrlPrefix(value: string) {
   const trimmed = value.trim();
   if (!trimmed.startsWith('data:')) return trimmed;
@@ -260,15 +266,28 @@ export async function pickAndAnalyzeReportTemplate(args: {
     };
   }
 
-  const data = await invokeTemplateAnalyzer(body);
+  let data: any;
+  try {
+    data = await invokeTemplateAnalyzer(body);
+  } catch (error: any) {
+    const message = String(error?.message ?? error ?? 'The reporting form could not be analyzed.');
+    showWebAnalyzerMessage(message);
+    throw error;
+  }
 
   if (!data?.ok || !data?.draft || !data?.source_file) {
     const stage = String(data?.stage ?? '').trim();
     const message = String(data?.error ?? 'The reporting form could not be analyzed.');
-    throw new Error(stage ? `${message} [${stage}]` : message);
+    const visible = stage ? `${message} [${stage}]` : message;
+    showWebAnalyzerMessage(visible);
+    throw new Error(visible);
   }
 
   const draft = normalizeDraft(data.draft);
+  if (draft.fields.length === 0) {
+    showWebAnalyzerMessage('The file was analyzed, but no reliable report fields were detected. Try a clearer form or add the fields manually.');
+  }
+
   return {
     provider: String(data.provider ?? ''),
     model: String(data.model ?? ''),
