@@ -1,6 +1,7 @@
 /* BUKLOD_CHARACTER_STUDIO3_REAL_ART_R1 */
 /* BUKLOD_PROFILE_POINTS_CLAIM_R2_GROUPED */
 /* BUKLOD_CHARACTER_R25D_PROFILE_VIEWPORT */
+/* BUKLOD_CHARACTER_VISIBLE_SYNC_R31_R40_V2 */
 import React, {
   useCallback,
   useEffect,
@@ -27,8 +28,8 @@ import {
 import BuklodCharacterCustomizeSheet
   from '@/components/points/BuklodCharacterCustomizeSheet';
 
-import BuklodCharacterLayeredArt
-  from '@/components/points/BuklodCharacterLayeredArt';
+import BuklodActiveCharacterArt
+  from '@/components/points/BuklodActiveCharacterArt';
 
 import {
   ProfileMotionFadeUp,
@@ -321,9 +322,8 @@ export default function BuklodProfileCharacterCard({
                   pressed && { opacity: 0.92 },
                 ]}
               >
-                <BuklodCharacterLayeredArt
-                  body={config.body}
-                  equipment={config.equipment}
+                <BuklodActiveCharacterArt
+                  fallbackCharacter={config}
                   height={124}
                   viewportWidth={82}
                   showStage={false}
