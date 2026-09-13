@@ -3,30 +3,30 @@ import { createClient } from "npm:@supabase/supabase-js@2.112.2";
 import * as XLSX from "npm:xlsx@0.18.5";
 import JSZip from "npm:jszip@3.10.1";
 
+const ANALYZER_VERSION = "v6";
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-
 const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), {
+  new Response(JSON.stringify({ analyzer_version: ANALYZER_VERSION, ...(body as Record<string, unknown>) }), {
     status,
     headers: { ...cors, "Content-Type": "application/json" },
   });
 
 const MAX_BYTES = 12 * 1024 * 1024;
-const MAX_SOURCE_TEXT = 80000;
-const GEMINI_TOTAL_TIMEOUT_MS = 45_000;
-const GEMINI_ATTEMPT_TIMEOUT_MS = 18_000;
-const GEMINI_MAX_ATTEMPTS = 4;
-const TRANSIENT_GEMINI_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
+const MAX_SOURCE_TEXT = 80_000;
+const AI_TOTAL_TIMEOUT_MS = 50_000;
+const AI_ATTEMPT_TIMEOUT_MS = 14_000;
+const AI_MAX_ATTEMPTS = 6;
+const TRANSIENT_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
 const SUPPORTED_TYPES = new Set(["short_text", "long_text", "number", "date", "yes_no", "choice"]);
 
 const safe = (value: unknown, max = 4000) => String(value ?? "").trim().slice(0, max);
 const objectValue = (value: unknown): Record<string, any> =>
   value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, any>)
+    ? value as Record<string, any>
     : {};
 
 function cleanError(value: unknown) {
@@ -34,7 +34,7 @@ function cleanError(value: unknown) {
   return message.replace(/AIza[0-9A-Za-z_-]{20,}/g, "[redacted]").slice(0, 1400);
 }
 
-function inferMimeType(filename: string, provided: string) {
+function inferMimeType(filename: string, provided?: string | null) {
   const candidate = safe(provided, 160).toLowerCase();
   if (candidate && candidate !== "application/octet-stream") return candidate;
   const lower = filename.toLowerCase();
@@ -63,8 +63,7 @@ function encodeBase64(bytes: Uint8Array) {
   let binary = "";
   const chunkSize = 0x8000;
   for (let index = 0; index < bytes.length; index += chunkSize) {
-    const chunk = bytes.subarray(index, Math.min(index + chunkSize, bytes.length));
-    binary += String.fromCharCode(...chunk);
+    binary += String.fromCharCode(...bytes.subarray(index, Math.min(index + chunkSize, bytes.length)));
   }
   return btoa(binary);
 }
@@ -272,7 +271,7 @@ async function parseUpload(req: Request): Promise<ParsedUpload> {
   if (contentType.toLowerCase().includes("multipart/form-data")) {
     const form = await req.formData();
     const scopeId = safe(form.get("scope_id"), 80);
-    const reportKindHint = safe(form.get("report_kind_hint"), 120);
+    const reportKindHint = safe(form.get("report_kind_hint"), 3000);
     const fileValue = form.get("file");
     if (!(fileValue instanceof File)) throw new Error("A reporting layout file is required.");
     const filename = safe(form.get("filename"), 240) || safe(fileValue.name, 240) || "report-layout";
@@ -286,28 +285,40 @@ async function parseUpload(req: Request): Promise<ParsedUpload> {
   const filename = safe(body?.filename, 240) || "report-layout";
   const mimeType = inferMimeType(filename, body?.mime_type);
   const base64 = safe(body?.base64, 24_000_000);
-  const reportKindHint = safe(body?.report_kind_hint, 120);
+  const reportKindHint = safe(body?.report_kind_hint, 3000);
   if (!base64) throw new Error("A reporting layout file is required.");
   return { scopeId, filename, mimeType, reportKindHint, bytes: decodeBase64(base64) };
 }
 
-async function writeAudit(admin: any, args: any) {
-  try {
-    await admin.from("buklod_report_audit_log").insert({
-      scope_id: args.scopeId,
-      actor_user_id: args.userId,
-      action: args.action,
-      target_type: "REPORT_TEMPLATE_DRAFT",
-      target_id: null,
-      details: {
-        filename: args.filename,
-        mime_type: args.mimeType,
-        stage: args.stage ?? null,
-        message: args.message?.slice(0, 700) ?? null,
-        ...(args.details ?? {}),
-      },
-    });
-  } catch {}
+type AuditArgs = {
+  requestId: string;
+  scopeId: string;
+  userId: string;
+  action: string;
+  filename: string;
+  mimeType: string;
+  stage?: string;
+  message?: string;
+  details?: Record<string, unknown>;
+};
+
+async function writeAudit(admin: any, args: AuditArgs) {
+  const { error } = await admin.from("buklod_report_audit_log").insert({
+    scope_id: args.scopeId,
+    actor_user_id: args.userId,
+    action: args.action,
+    target_type: "REPORT_TEMPLATE_ANALYSIS",
+    target_id: args.requestId,
+    details: {
+      analyzer_version: ANALYZER_VERSION,
+      filename: args.filename,
+      mime_type: args.mimeType,
+      stage: args.stage ?? null,
+      message: args.message?.slice(0, 700) ?? null,
+      ...(args.details ?? {}),
+    },
+  });
+  if (error) console.warn("[BUKLOD_REPORT_TEMPLATE_AUDIT]", cleanError(error));
 }
 
 function sleep(ms: number) {
@@ -316,11 +327,13 @@ function sleep(ms: number) {
 
 function modelCandidates() {
   return Array.from(new Set([
+    Deno.env.get("GEMINI_REPORT_IMPORT_PRIMARY") ?? "",
+    "gemini-3.7-flash",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash",
     Deno.env.get("GEMINI_REPORT_IMPORT_MODEL") ?? "",
     Deno.env.get("GEMINI_GRADING_MODEL") ?? "",
     "gemini-3.8-flash",
-    "gemini-3.7-flash",
-    "gemini-3.6-flash",
   ].map((value) => value.trim()).filter(Boolean)));
 }
 
@@ -330,36 +343,46 @@ type GeminiAttempt = {
   error: string | null;
 };
 
-async function callGeminiWithFallback(geminiKey: string, parts: any[]) {
+async function callGeminiWithFallback(args: {
+  geminiKey: string;
+  parts: any[];
+  admin: any;
+  requestId: string;
+  scopeId: string;
+  userId: string;
+  filename: string;
+  mimeType: string;
+}) {
   const models = modelCandidates();
   const startedAt = Date.now();
   const attempts: GeminiAttempt[] = [];
-  let totalAttempts = 0;
   let lastMessage = "AI analysis failed.";
+  let attemptCount = 0;
 
-  for (let modelIndex = 0; modelIndex < models.length && totalAttempts < GEMINI_MAX_ATTEMPTS; modelIndex += 1) {
-    const model = models[modelIndex];
-    let sameModelAttempts = 0;
+  for (let pass = 0; pass < 2 && attemptCount < AI_MAX_ATTEMPTS; pass += 1) {
+    for (const model of models) {
+      if (attemptCount >= AI_MAX_ATTEMPTS) break;
+      if (pass === 1 && !attempts.some((item) => item.model === model && item.status != null && TRANSIENT_STATUSES.has(item.status))) continue;
 
-    while (sameModelAttempts < 2 && totalAttempts < GEMINI_MAX_ATTEMPTS) {
-      const remainingMs = GEMINI_TOTAL_TIMEOUT_MS - (Date.now() - startedAt);
+      const remainingMs = AI_TOTAL_TIMEOUT_MS - (Date.now() - startedAt);
       if (remainingMs <= 1_500) break;
 
-      sameModelAttempts += 1;
-      totalAttempts += 1;
+      attemptCount += 1;
       const controller = new AbortController();
-      const attemptTimeoutMs = Math.max(1_000, Math.min(GEMINI_ATTEMPT_TIMEOUT_MS, remainingMs));
+      const attemptTimeoutMs = Math.max(1_000, Math.min(AI_ATTEMPT_TIMEOUT_MS, remainingMs));
       const timeout = setTimeout(() => controller.abort(), attemptTimeoutMs);
+      let status: number | null = null;
+      let errorText: string | null = null;
 
       try {
         const response = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
           {
             method: "POST",
-            headers: { "x-goog-api-key": geminiKey, "Content-Type": "application/json" },
+            headers: { "x-goog-api-key": args.geminiKey, "Content-Type": "application/json" },
             signal: controller.signal,
             body: JSON.stringify({
-              contents: [{ role: "user", parts }],
+              contents: [{ role: "user", parts: args.parts }],
               generationConfig: {
                 responseMimeType: "application/json",
                 responseJsonSchema,
@@ -369,49 +392,71 @@ async function callGeminiWithFallback(geminiKey: string, parts: any[]) {
           }
         );
 
+        status = response.status;
         const rawResponse = await response.text();
         if (response.ok) {
-          return { model, rawResponse, attempts: [...attempts, { model, status: response.status, error: null }] };
+          attempts.push({ model, status, error: null });
+          await writeAudit(args.admin, {
+            requestId: args.requestId,
+            scopeId: args.scopeId,
+            userId: args.userId,
+            action: "REPORT_TEMPLATE_AI_ATTEMPT",
+            filename: args.filename,
+            mimeType: args.mimeType,
+            stage: "ai-analysis",
+            details: { model, status, attempt: attemptCount, success: true },
+          });
+          return { model, rawResponse, attempts };
         }
 
-        const errorText = rawResponse.slice(0, 900);
-        attempts.push({ model, status: response.status, error: errorText });
-        lastMessage = `${model} failed (${response.status}): ${errorText}`;
+        errorText = rawResponse.slice(0, 700);
+        lastMessage = `${model} failed (${status}): ${errorText}`;
+        attempts.push({ model, status, error: errorText });
+        await writeAudit(args.admin, {
+          requestId: args.requestId,
+          scopeId: args.scopeId,
+          userId: args.userId,
+          action: "REPORT_TEMPLATE_AI_ATTEMPT",
+          filename: args.filename,
+          mimeType: args.mimeType,
+          stage: "ai-analysis",
+          message: lastMessage,
+          details: { model, status, attempt: attemptCount, success: false },
+        });
 
-        if (!TRANSIENT_GEMINI_STATUSES.has(response.status)) {
-          throw new Error(lastMessage);
-        }
-
-        const retrySameModel = sameModelAttempts === 1 && (response.status === 429 || response.status === 503);
-        if (!retrySameModel) break;
-
-        const delayMs = 450 + Math.floor(Math.random() * 450);
-        if (Date.now() - startedAt + delayMs >= GEMINI_TOTAL_TIMEOUT_MS) break;
-        await sleep(delayMs);
+        if (!TRANSIENT_STATUSES.has(status)) continue;
       } catch (error: any) {
         if (controller.signal.aborted) {
-          const message = `${model} timed out after ${Math.round(attemptTimeoutMs / 1000)} seconds.`;
-          attempts.push({ model, status: 408, error: message });
-          lastMessage = message;
-          break;
+          status = 408;
+          errorText = `${model} timed out after ${Math.round(attemptTimeoutMs / 1000)} seconds.`;
+        } else {
+          errorText = cleanError(error);
         }
-
-        const message = cleanError(error);
-        attempts.push({ model, status: null, error: message });
-        lastMessage = message;
-        if (message.includes("failed (") && !/(408|425|429|500|502|503|504)/.test(message)) {
-          throw error;
-        }
-        break;
+        lastMessage = errorText;
+        attempts.push({ model, status, error: errorText });
+        await writeAudit(args.admin, {
+          requestId: args.requestId,
+          scopeId: args.scopeId,
+          userId: args.userId,
+          action: "REPORT_TEMPLATE_AI_ATTEMPT",
+          filename: args.filename,
+          mimeType: args.mimeType,
+          stage: "ai-analysis",
+          message: errorText,
+          details: { model, status, attempt: attemptCount, success: false },
+        });
       } finally {
         clearTimeout(timeout);
       }
+
+      const delayMs = 250 + Math.floor(Math.random() * 350);
+      if (Date.now() - startedAt + delayMs < AI_TOTAL_TIMEOUT_MS) await sleep(delayMs);
     }
   }
 
-  const attemptedModels = Array.from(new Set(attempts.map((item) => item.model))).join(", ");
+  const attemptedModels = Array.from(new Set(attempts.map((item) => item.model)).join(", "));
   throw new Error(
-    `The AI form analyzer is temporarily busy after retrying available models${attemptedModels ? ` (${attemptedModels})` : ""}. Please try again shortly. Last error: ${lastMessage.slice(0, 500)}`
+    `The AI form analyzer is temporarily unavailable after trying ${attemptedModels || "available models"}. Please try again shortly. Last error: ${lastMessage.slice(0, 500)}`
   );
 }
 
@@ -419,6 +464,7 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "POST required." }, 405);
 
+  const requestId = crypto.randomUUID();
   let stage = "request";
   let admin: any = null;
   let userId = "";
@@ -431,15 +477,14 @@ Deno.serve(async (req: Request) => {
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const geminiKey = Deno.env.get("GEMINI_API_KEY") ?? "";
-
     if (!supabaseUrl || !anonKey || !serviceKey || !geminiKey) {
-      return json({ error: "Report import service is not configured.", stage: "configuration" }, 500);
+      return json({ error: "Report import service is not configured.", stage: "configuration", request_id: requestId }, 500);
     }
 
     stage = "authentication";
     const authorization = req.headers.get("Authorization") ?? "";
     if (!authorization.toLowerCase().startsWith("bearer ")) {
-      return json({ error: "Authentication required.", stage }, 401);
+      return json({ error: "Authentication required.", stage, request_id: requestId }, 401);
     }
     const token = authorization.replace(/^Bearer\s+/i, "").trim();
     admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
@@ -449,7 +494,7 @@ Deno.serve(async (req: Request) => {
     });
     const { data: userData, error: userError } = await admin.auth.getUser(token);
     const user = userData?.user;
-    if (userError || !user) return json({ error: "Invalid or expired session.", stage }, 401);
+    if (userError || !user) return json({ error: "Invalid or expired session.", stage, request_id: requestId }, 401);
     userId = user.id;
 
     stage = "request-body";
@@ -457,25 +502,26 @@ Deno.serve(async (req: Request) => {
     scopeId = upload.scopeId;
     filename = upload.filename;
     mimeType = upload.mimeType;
-    if (!scopeId) return json({ error: "scope_id is required.", stage }, 400);
-    if (!mimeType) return json({ error: "Unsupported reporting form type.", stage }, 400);
-    if (upload.bytes.byteLength < 1) return json({ error: "The uploaded file is empty.", stage }, 400);
-    if (upload.bytes.byteLength > MAX_BYTES) return json({ error: "Reporting layout files are limited to 12 MB.", stage }, 413);
+    if (!scopeId) return json({ error: "scope_id is required.", stage, request_id: requestId }, 400);
+    if (!mimeType) return json({ error: "Unsupported reporting form type.", stage, request_id: requestId }, 400);
+    if (upload.bytes.byteLength < 1) return json({ error: "The uploaded file is empty.", stage, request_id: requestId }, 400);
+    if (upload.bytes.byteLength > MAX_BYTES) return json({ error: "Reporting layout files are limited to 12 MB.", stage, request_id: requestId }, 413);
 
     stage = "scope-access";
     const [{ data: scope, error: scopeError }, { data: isAdmin, error: adminError }] = await Promise.all([
       caller.from("buklod_scopes").select("id,name,scope_type,status").eq("id", scopeId).maybeSingle(),
       caller.rpc("buklod_is_exact_scope_admin_v1", { p_scope_id: scopeId }),
     ]);
-    if (scopeError || !scope) return json({ error: "Report scope was not found.", stage }, 404);
+    if (scopeError || !scope) return json({ error: "Report scope was not found.", stage, request_id: requestId }, 404);
     if (!["ORGANIZATION", "CLUSTER"].includes(String(scope.scope_type).toUpperCase())) {
-      return json({ error: "BUKLOD Report templates are available only for Organization or Cluster scopes.", stage }, 400);
+      return json({ error: "BUKLOD Report templates are available only for Organization or Cluster scopes.", stage, request_id: requestId }, 400);
     }
     if (adminError || isAdmin !== true) {
-      return json({ error: "Exact-scope admin access is required.", stage }, 403);
+      return json({ error: "Exact-scope admin access is required.", stage, request_id: requestId }, 403);
     }
 
     await writeAudit(admin, {
+      requestId,
       scopeId,
       userId,
       action: "REPORT_TEMPLATE_FILE_ANALYZE_STARTED",
@@ -516,7 +562,16 @@ Deno.serve(async (req: Request) => {
       parts.push({ inline_data: { mime_type: mimeType, data: encodeBase64(upload.bytes) } });
     }
 
-    const ai = await callGeminiWithFallback(geminiKey, parts);
+    const ai = await callGeminiWithFallback({
+      geminiKey,
+      parts,
+      admin,
+      requestId,
+      scopeId,
+      userId,
+      filename,
+      mimeType,
+    });
     const outer = JSON.parse(ai.rawResponse);
     const outputText = (outer?.candidates?.[0]?.content?.parts ?? [])
       .map((part: any) => typeof part?.text === "string" ? part.text : "")
@@ -524,21 +579,6 @@ Deno.serve(async (req: Request) => {
       .trim();
     if (!outputText) throw new Error("No structured form draft was returned.");
     const draft = normalizeDraft(JSON.parse(outputText), filename);
-
-    if (ai.attempts.length > 1 || ai.model !== modelCandidates()[0]) {
-      await writeAudit(admin, {
-        scopeId,
-        userId,
-        action: "REPORT_TEMPLATE_AI_FALLBACK_USED",
-        filename,
-        mimeType,
-        stage,
-        details: {
-          selected_model: ai.model,
-          attempts: ai.attempts.map((item: GeminiAttempt) => ({ model: item.model, status: item.status })),
-        },
-      });
-    }
 
     stage = "source-storage";
     const storageName = filename.replace(/[^A-Za-z0-9._-]+/g, "_").slice(-180) || "report-layout";
@@ -549,9 +589,7 @@ Deno.serve(async (req: Request) => {
         contentType: mimeType || "application/octet-stream",
         upsert: false,
       });
-    if (uploadError) {
-      throw new Error(`The form was analyzed but the source file could not be stored: ${uploadError.message}`);
-    }
+    if (uploadError) throw new Error(`The form was analyzed but the source file could not be stored: ${uploadError.message}`);
 
     stage = "audit";
     const sourceFile = {
@@ -565,6 +603,7 @@ Deno.serve(async (req: Request) => {
     };
 
     await writeAudit(admin, {
+      requestId,
       scopeId,
       userId,
       action: "REPORT_TEMPLATE_FILE_ANALYZED",
@@ -578,12 +617,13 @@ Deno.serve(async (req: Request) => {
         category: draft.category,
         source_path: storagePath,
         model: ai.model,
-        attempt_count: ai.attempts.length,
+        attempts: ai.attempts.map((item) => ({ model: item.model, status: item.status })),
       },
     });
 
     return json({
       ok: true,
+      request_id: requestId,
       provider: "gemini",
       model: ai.model,
       scope: { id: scope.id, name: scope.name, scope_type: scope.scope_type },
@@ -592,9 +632,10 @@ Deno.serve(async (req: Request) => {
     });
   } catch (error) {
     const message = cleanError(error);
-    console.error("[BUKLOD_REPORT_TEMPLATE_IMPORT]", stage, message);
+    console.error("[BUKLOD_REPORT_TEMPLATE_IMPORT]", ANALYZER_VERSION, stage, requestId, message);
     if (admin && scopeId && userId) {
       await writeAudit(admin, {
+        requestId,
         scopeId,
         userId,
         action: "REPORT_TEMPLATE_FILE_ANALYZE_FAILED",
@@ -604,6 +645,6 @@ Deno.serve(async (req: Request) => {
         message,
       });
     }
-    return json({ error: message, stage }, 500);
+    return json({ error: message, stage, request_id: requestId }, 500);
   }
 });
