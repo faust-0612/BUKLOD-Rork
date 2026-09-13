@@ -195,9 +195,13 @@ Deno.serve(async(req:Request)=>{
   }catch(error){
     const message=String((error as Error)?.message??error);
     if(admin&&claimedRequestId){
-      await admin.from('buklod_help_alert_dispatches').update({
-        status:'FAILED',last_error:message.slice(0,1000),updated_at:new Date().toISOString(),
-      }).eq('request_id',claimedRequestId).neq('status','SENT').catch(()=>undefined);
+      try{
+        await admin.from('buklod_help_alert_dispatches').update({
+          status:'FAILED',last_error:message.slice(0,1000),updated_at:new Date().toISOString(),
+        }).eq('request_id',claimedRequestId).neq('status','SENT');
+      }catch{
+        // Error reporting must never mask the original dispatch failure.
+      }
     }
     return new Response(JSON.stringify({ok:false,error:message}),{
       status:400,headers:{...corsHeaders,'Content-Type':'application/json'},
