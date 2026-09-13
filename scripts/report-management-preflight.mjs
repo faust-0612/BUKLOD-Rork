@@ -57,7 +57,9 @@ if (exists('supabase/functions/buklod-report-template-import-v1/index.ts')) {
   if (/from\s+["']npm:unpdf/i.test(source) || source.includes('getDocumentProxy(')) {
     failures.push('PDF report forms must go directly to multimodal analysis instead of local Edge PDF parsing.');
   }
-  if (/responseJsonSchema[\s\S]{0,800}type:\s*["']OBJECT["']/i.test(source)) {
+  // Case-sensitive on purpose: lowercase JSON Schema types are valid and must
+  // not be mistaken for the legacy Gemini/OpenAPI uppercase type names.
+  if (/responseJsonSchema[\s\S]{0,3000}type:\s*["'](?:OBJECT|STRING|ARRAY|NUMBER|BOOLEAN)["']/.test(source)) {
     failures.push('responseJsonSchema must use standard lowercase JSON Schema type names.');
   }
 }
