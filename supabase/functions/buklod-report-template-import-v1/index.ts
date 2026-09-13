@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.112.2";
 import * as XLSX from "npm:xlsx@0.18.5";
 import JSZip from "npm:jszip@3.10.1";
 
-const ANALYZER_VERSION = "v6";
+const ANALYZER_VERSION = "v7";
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -17,8 +17,8 @@ const json = (body: Record<string, unknown>, status = 200) =>
 
 const MAX_BYTES = 12 * 1024 * 1024;
 const MAX_SOURCE_TEXT = 80_000;
-const AI_TOTAL_TIMEOUT_MS = 42_000;
-const AI_ATTEMPT_TIMEOUT_MS = 10_000;
+const AI_TOTAL_TIMEOUT_MS = 52_000;
+const AI_ATTEMPT_TIMEOUT_MS = 20_000;
 const AI_MAX_ATTEMPTS = 5;
 const TRANSIENT_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
 const SUPPORTED_TYPES = new Set(["short_text", "long_text", "number", "date", "yes_no", "choice"]);
@@ -383,7 +383,7 @@ async function callGeminiWithFallback(args: {
         clearTimeout(timeout);
       }
 
-      const delayMs = 250 + Math.floor(Math.random() * 350);
+      const delayMs = 150 + Math.floor(Math.random() * 200);
       if (Date.now() - startedAt + delayMs < AI_TOTAL_TIMEOUT_MS) await sleep(delayMs);
     }
   }
