@@ -77,9 +77,18 @@ for (const gameId of GAME_IDS) {
   if (!map.includes(gameId)) failures.push(`Kingdom Map missing station: ${gameId}`);
 }
 
-requireTokens('src/components/BuklodPublicWordShortcut.tsx', [
-  'BUKLOD_KINGDOM_HOME_DOOR_R1',
-  'BUKLOD KINGDOM',
+const homeShortcut = requireTokens('src/components/BuklodPublicWordShortcut.tsx', [
+  'BUKLOD_KINGDOM_PROFILE_RELOCATION_R1',
+]);
+if (homeShortcut.includes('BUKLOD_KINGDOM_HOME_DOOR_R1')) {
+  failures.push('Home shortcut still contains the obsolete Kingdom Home door marker.');
+}
+if (homeShortcut.includes('BUKLOD KINGDOM') || homeShortcut.includes("router.push('/games'")) {
+  failures.push('Kingdom door was reintroduced into Home; canonical location is Profile.');
+}
+requireTokens('src/components/BuklodFoundationWorkspaceNav.tsx', [
+  'BUKLOD_KINGDOM_PROFILE_RELOCATION_R1',
+  'title="BUKLOD Kingdom"',
   "router.push('/games'",
 ]);
 
