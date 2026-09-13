@@ -282,7 +282,7 @@ export default function AdminEconomyOperationsScreen() {
               Prepare real revenue periods, reconcile costs, finalize only when the central gate is active, and process funded referral withdrawals.
             </Text>
           </View>
-          <MaterialCommunityIcons name="bank-cog" size={30} color={colors.greenDark} />
+          <MaterialCommunityIcons name="finance" size={30} color={colors.greenDark} />
         </View>
 
         <View style={styles.guardCard}>
