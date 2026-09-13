@@ -213,7 +213,7 @@ export default function BuklodCommunityHelp(){
   return <View style={s.wrap}>
     <View style={s.bar}>
       <View style={s.brand}>
-        <MaterialCommunityIcons name="shield-heart-outline" size={17} color={colors.greenDark}/>
+        <MaterialCommunityIcons name="head-heart-outline" size={17} color={colors.greenDark}/>
         <View style={{flex:1}}><Text style={s.title}>BUKLOD HELP</Text><Text style={s.sub}>Ask nearby. Respond nearby.</Text></View>
       </View>
       <View style={s.actions}>
