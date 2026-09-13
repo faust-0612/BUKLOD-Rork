@@ -62,26 +62,14 @@ export function NotificationProvider({children}:{children:ReactNode}){
   router.push(target.path as any);
  },[scopes,selectScope,activeScope?.scope_id]);
 
- useEffect(()=>{void (async()=>{try{
-  if(Platform.OS==='android'){
-   await Notifications.setNotificationChannelAsync('buklod-activity-v2',{
+ useEffect(()=>{void (async()=>{try{if(Platform.OS==='android')await Notifications.setNotificationChannelAsync('buklod-activity-v2',{
     name:'BUKLOD Activity Alerts',
     importance:Notifications.AndroidImportance.MAX,
     vibrationPattern:[0,250,250,250],
     enableVibrate:true,
     showBadge:true
-   });
-   await Notifications.setNotificationChannelAsync('buklod-emergency',{
-    name:'BUKLOD Emergency Alerts',
-    importance:Notifications.AndroidImportance.MAX,
-    vibrationPattern:[0,300,180,300],
-    enableVibrate:true,
-    showBadge:true,
-    lockscreenVisibility:Notifications.AndroidNotificationVisibility.PUBLIC
-   });
-  }
-  const p=await Notifications.getPermissionsAsync();if(p.status!=='granted')await Notifications.requestPermissionsAsync()
- }catch(e){console.warn('Notification permission',e)}})()},[]);
+});
+  const p=await Notifications.getPermissionsAsync();if(p.status!=='granted')await Notifications.requestPermissionsAsync()}catch(e){console.warn('Notification permission',e)}})()},[]);
  useEffect(()=>{void refreshUnread()},[refreshUnread]);
 
  /* BUKLOD_5K_SCALE_R1_NOTIFICATION_NO_CDC
