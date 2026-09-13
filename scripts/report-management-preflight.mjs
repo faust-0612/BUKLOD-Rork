@@ -19,6 +19,7 @@ const required = [
   'src/lib/buklodReportDocumentOutput.web.ts',
   'src/app/reports/actions.tsx',
   'src/app/reports/consolidated.tsx',
+  'src/app/reports/template-builder.tsx',
 ];
 for (const filePath of required) {
   if (!exists(filePath)) failures.push(`Missing management-loop source: ${filePath}`);
@@ -110,6 +111,29 @@ if (exists('src/lib/buklodReportTemplateImport.ts')) {
   }
   if (source.includes("supabase.functions.invoke('buklod-report-template-import-v1'")) {
     failures.push('Template analyzer upload must use the explicit authenticated fetch path, not implicit functions.invoke auth.');
+  }
+}
+
+if (exists('src/app/reports/template-builder.tsx')) {
+  const source = read('src/app/reports/template-builder.tsx');
+  for (const marker of [
+    'type SavedDraftState',
+    'const [savedDraft, setSavedDraft]',
+    'const saved = await upsertReportDefinition',
+    'DRAFT SAVED SUCCESSFULLY',
+    'No assignment, deadline, member notification, submission record, or member-visible report was created.',
+    'Preview form',
+    'Continue editing',
+    'Back to Report Management',
+    "pathname: '/reports/library'",
+    "pathname: '/reports/template-builder'",
+    'setTimeout(() => goToLibrary(), 7000)',
+    'FORM PREVIEW',
+  ]) {
+    if (!source.includes(marker)) failures.push(`Post-save draft workflow is missing: ${marker}`);
+  }
+  if (source.includes("Alert.alert('Template saved'")) {
+    failures.push('Template save must use the explicit post-save draft workflow, not a generic save alert.');
   }
 }
 
