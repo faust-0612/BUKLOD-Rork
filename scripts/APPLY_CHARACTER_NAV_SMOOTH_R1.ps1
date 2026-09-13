@@ -133,6 +133,18 @@ foreach ($check in @(
   }
 }
 
+# 5) Fullscreen zoom clarity: keep the exact locked presentation and approved art,
+# but switch only the 500px fullscreen surfaces to a full-source no-downscaling decode.
+$zoomRepairScript = Join-Path $ProjectRoot 'scripts\APPLY_CHARACTER_ZOOM_SHARP_R1.ps1'
+if (!(Test-Path -LiteralPath $zoomRepairScript -PathType Leaf)) {
+  Fail "Character zoom-quality repair script missing: $zoomRepairScript"
+}
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $zoomRepairScript -ProjectRoot $ProjectRoot
+if ($LASTEXITCODE -ne 0) {
+  Fail 'Character fullscreen zoom-quality repair failed.'
+}
+Write-Host ' Character fullscreen zoom-quality repair: VERIFIED.' -ForegroundColor Green
+
 Write-Host ''
-Write-Host 'CHARACTER NAVIGATION SMOOTHNESS R24: PASS' -ForegroundColor Green
+Write-Host 'CHARACTER NAVIGATION SMOOTHNESS R24 + ZOOM QUALITY R25: PASS' -ForegroundColor Green
 Write-Host 'Visible Character format: UNCHANGED / LOCKED' -ForegroundColor Green
