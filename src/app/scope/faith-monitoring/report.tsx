@@ -68,6 +68,7 @@ export default function ScopeFaithMonitoringReportScreen() {
   const { activeScope } = useBuklodScope();
   const { isExactScopeAdmin, isSystemAdmin } = useBuklodAccess();
   const [summary, setSummary] = useState<ScopeFaithMonitoringSummary | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -78,6 +79,7 @@ export default function ScopeFaithMonitoringReportScreen() {
   const load = useCallback(async () => {
     if (!activeScope?.scope_id) {
       setSummary(null);
+      setWarning(null);
       setCanLeadership(false);
       setLoading(false);
       return;
@@ -95,9 +97,12 @@ export default function ScopeFaithMonitoringReportScreen() {
         scopeName: activeScope.name,
       });
       setSummary(result.summary);
+      setWarning(result.warning);
     } catch (error) {
-      Alert.alert('Formation Submission Report', String((error as Error)?.message ?? 'Could not load report.'));
+      const message = String((error as Error)?.message ?? 'Could not load report.');
+      Alert.alert('Formation Submission Report', message);
       setSummary(null);
+      setWarning(message);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -172,6 +177,18 @@ export default function ScopeFaithMonitoringReportScreen() {
           <Text style={styles.exportText}>{exporting ? '…' : 'Export'}</Text>
         </Pressable>
       </View>
+
+      {warning ? (
+        <Card>
+          <View style={styles.warningRow}>
+            <MaterialCommunityIcons name="alert-circle-outline" size={20} color="#B3261E" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.warningTitle}>REPORT DATA WARNING</Text>
+              <Text style={styles.warningText}>{warning}</Text>
+            </View>
+          </View>
+        </Card>
+      ) : null}
 
       {loading && !summary ? (
         <View style={styles.loading}>
@@ -269,6 +286,9 @@ const styles = StyleSheet.create({
   },
   exportText: { color: colors.greenDark, fontSize: 10, fontWeight: '900' },
   loading: { alignItems: 'center', gap: 8, paddingVertical: 24 },
+  warningRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 9 },
+  warningTitle: { color: '#B3261E', fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
+  warningText: { marginTop: 4, color: colors.text, fontSize: 11, lineHeight: 17 },
   metricRow: {
     flexDirection: 'row',
     alignItems: 'center',
