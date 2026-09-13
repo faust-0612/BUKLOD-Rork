@@ -40,15 +40,25 @@ if (exists('supabase/functions/buklod-report-template-import-v1/index.ts')) {
   for (const marker of [
     'function inferMimeType',
     'application/octet-stream',
-    'const mimeType = inferMimeType(filename, body?.mime_type)',
+    'multipart/form-data',
+    'await req.formData()',
+    'fileValue instanceof File',
+    'responseJsonSchema',
+    'type: "object"',
     'mimeType === "application/pdf" || mimeType.startsWith("image/")',
     'Detect ONLY the form or reporting fields actually present',
+    'REPORT_TEMPLATE_FILE_ANALYZE_STARTED',
+    'REPORT_TEMPLATE_FILE_ANALYZE_FAILED',
+    'GEMINI_TIMEOUT_MS',
     'return json({ error: message, stage }, 500)',
   ]) {
     if (!source.includes(marker)) failures.push(`Template analyzer hardening is missing: ${marker}`);
   }
   if (/from\s+["']npm:unpdf/i.test(source) || source.includes('getDocumentProxy(')) {
     failures.push('PDF report forms must go directly to multimodal analysis instead of local Edge PDF parsing.');
+  }
+  if (/responseJsonSchema[\s\S]{0,800}type:\s*["']OBJECT["']/i.test(source)) {
+    failures.push('responseJsonSchema must use standard lowercase JSON Schema type names.');
   }
 }
 
@@ -58,8 +68,11 @@ if (exists('src/lib/buklodReportTemplateImport.ts')) {
     'inferMimeType',
     'normalizeDraft',
     'buklod-report-template-import-v1',
-    'base64: true',
-    'stripDataUrlPrefix',
+    'new FormData()',
+    "form.append('file'",
+    'asset.file',
+    'ANALYZE_TIMEOUT_MS',
+    'withAnalyzeTimeout',
     'await readErrorMessage(error',
   ]) {
     if (!source.includes(marker)) failures.push(`Template import client recovery is missing: ${marker}`);
