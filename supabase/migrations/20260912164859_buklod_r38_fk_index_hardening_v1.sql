@@ -1,0 +1,15 @@
+create index if not exists buklod_r38_economic_periods_finalized_by_idx on private.buklod_r38_economic_periods(finalized_by);
+create index if not exists buklod_r38_economy_audit_log_actor_user_idx on private.buklod_r38_economy_audit_log(actor_user_id);
+create index if not exists buklod_r38_financial_entries_created_by_idx on private.buklod_r38_financial_entries(created_by);
+create index if not exists buklod_r38_financial_entries_reconciled_by_idx on private.buklod_r38_financial_entries(reconciled_by);
+create index if not exists buklod_r38_fraud_flags_referral_idx on private.buklod_r38_fraud_flags(referral_id);
+create index if not exists buklod_r38_fraud_flags_reviewed_by_idx on private.buklod_r38_fraud_flags(reviewed_by);
+create index if not exists buklod_r38_rcu_ledger_referral_idx on private.buklod_r38_rcu_ledger(referral_id);
+create index if not exists buklod_r38_rcu_ledger_source_bcu_idx on private.buklod_r38_rcu_ledger(source_bcu_ledger_id);
+create index if not exists buklod_r38_referral_earnings_created_by_idx on private.buklod_r38_referral_earnings_ledger(created_by);
+create index if not exists buklod_r38_referral_earnings_period_idx on private.buklod_r38_referral_earnings_ledger(period_id);
+create index if not exists buklod_r38_referral_earnings_withdrawal_idx on private.buklod_r38_referral_earnings_ledger(withdrawal_request_id);
+create index if not exists buklod_r38_referral_withdrawals_approved_by_idx on private.buklod_r38_referral_withdrawals(approved_by);
+create index if not exists buklod_r38_referral_withdrawals_reviewed_by_idx on private.buklod_r38_referral_withdrawals(reviewed_by);
+create index if not exists buklod_r38_user_cash_ledger_created_by_idx on private.buklod_r38_user_cash_ledger(created_by);
+create index if not exists buklod_r38_user_cash_ledger_withdrawal_idx on private.buklod_r38_user_cash_ledger(withdrawal_request_id);
