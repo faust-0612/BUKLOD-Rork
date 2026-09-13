@@ -1,0 +1,55 @@
+name: BUKLOD Character R31-R40 Recovery QA
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/character_recovery_pr_qa.yml'
+      - 'assets/images/characters/**'
+      - 'src/components/points/BuklodCharacterCustomizeSheet.tsx'
+      - 'src/components/points/BuklodProgressiveCharacterArt.tsx'
+      - 'src/components/points/BuklodProgressiveCharacterSelector.tsx'
+      - 'src/components/points/BuklodSpecialCharacterSeries.tsx'
+      - 'src/lib/buklodProgressiveCharacter.ts'
+      - 'src/lib/buklodSpecialCharacterAssets.ts'
+      - 'src/lib/buklodCharacterSelectionV2.ts'
+      - 'scripts/character-release-contract.mjs'
+      - 'scripts/release-gate.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  character-recovery-qa:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Character source contract
+        run: npm run character:contract
+
+      - name: Base production gate
+        run: npm run release:base-gate
+
+      - name: Export web without deploying
+        run: npx expo export --platform web --output-dir dist-character-qa
+
+      - name: Character compiled-bundle contract
+        run: node scripts/character-release-contract.mjs --dist dist-character-qa
+
+      - name: Confirm no release action
+        run: echo 'QA only — no EAS deploy, update, build, OTA, or native release was executed.'

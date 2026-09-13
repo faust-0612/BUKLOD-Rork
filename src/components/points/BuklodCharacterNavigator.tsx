@@ -1,3 +1,4 @@
+/* BUKLOD_CHARACTER_VISIBLE_SYNC_R31_R40_V2 */
 import React, {
   useCallback,
   useEffect,
@@ -14,7 +15,7 @@ import {
   View,
 } from 'react-native';
 
-import BuklodCharacterFaceAvatar from '@/components/points/BuklodCharacterFaceAvatar';
+import BuklodActiveCharacterArt from '@/components/points/BuklodActiveCharacterArt';
 import { useBuklodCharacterEventsOptional } from '@/components/character/BuklodCharacterEventProvider';
 import { useBuklodReduceMotion } from '@/components/HomeMotion';
 import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
@@ -31,7 +32,7 @@ type Props = {
   onOpenCustomize?: () => void;
 };
 
-/** Mini circular stage — same living character as the hero stage. */
+/** Mini circular stage — synchronized to the same V2 active Character as Profile/Points. */
 export default function BuklodCharacterNavigator({
   character,
   claimableCount = 0,
@@ -53,11 +54,6 @@ export default function BuklodCharacterNavigator({
   const entryOpacity = useRef(new Animated.Value(0)).current;
   const entryY = useRef(new Animated.Value(12)).current;
   const shownUnlockRef = useRef<string | null>(null);
-
-  const reactionId =
-    presentation?.reactionId ??
-    (claimableCount > 0 ? 'proud' : 'neutral');
-  const reactionKey = presentation?.reactionKey ?? 0;
 
   const clearBubble = useCallback(() => {
     if (bubbleTimer.current) {
@@ -307,13 +303,15 @@ export default function BuklodCharacterNavigator({
             ]}
           />
 
-          <BuklodCharacterFaceAvatar
-            body={character.body}
-            equipment={character.equipment}
-            size={avatarSize}
-            reactionId={reactionId}
-            reactionKey={reactionKey}
-          />
+          <View style={styles.avatarClip}>
+            <BuklodActiveCharacterArt
+              fallbackCharacter={character}
+              height={avatarSize}
+              viewportWidth={avatarSize}
+              showStage={false}
+              showEffects={false}
+            />
+          </View>
 
           {claimableCount > 0 ? (
             <View
@@ -367,6 +365,14 @@ const styles = StyleSheet.create({
     height: 54,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatarClip: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
   },
   ring: {
     position: 'absolute',
