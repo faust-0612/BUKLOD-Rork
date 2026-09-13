@@ -6,6 +6,10 @@ on:
       - main
     paths:
       - '.github/workflows/igpat_production_web_deploy.yml'
+      - 'package.json'
+      - 'scripts/character-release-contract.mjs'
+      - 'scripts/game-kingdom-release-contract.mjs'
+      - 'scripts/release-gate.mjs'
       - 'src/app/igpat/**'
       - 'src/components/BuklodHomeReelsExtension.tsx'
       - 'docs/BUKLOD_MINIGAME_QUALITY_STANDARD.md'
@@ -13,6 +17,12 @@ on:
       - 'src/components/points/BuklodCharacterStage.tsx'
       - 'src/components/points/BuklodLivingCharacter.tsx'
       - 'src/components/points/BuklodPointsStage.tsx'
+      - 'src/components/points/BuklodProgressiveCharacter*.tsx'
+      - 'src/components/points/BuklodSpecialCharacterSeries.tsx'
+      - 'src/components/points/BuklodCharacterCustomizeSheet.tsx'
+      - 'src/lib/buklodProgressiveCharacter.ts'
+      - 'src/lib/buklodSpecialCharacterAssets.ts'
+      - 'assets/images/characters/**'
   workflow_dispatch:
 
 permissions:
@@ -51,6 +61,9 @@ jobs:
       - name: TypeScript QA
         run: npx tsc --noEmit
 
+      - name: Universal production release gate
+        run: npm run release:gate
+
       - name: Verify IGPAT release anchors
         shell: bash
         run: |
@@ -83,9 +96,6 @@ jobs:
             exit 1
           fi
 
-      - name: Preserve Character release contract
-        run: npm run character:contract
-
       - name: Expo credential preflight
         shell: bash
         run: |
@@ -96,6 +106,11 @@ jobs:
 
       - name: Export production web
         run: npx expo export --platform web --output-dir dist
+
+      - name: Verify exported protected contracts
+        run: |
+          npm run character:contract:dist
+          npm run game:contract:dist
 
       - name: Deploy production web
         id: deploy
