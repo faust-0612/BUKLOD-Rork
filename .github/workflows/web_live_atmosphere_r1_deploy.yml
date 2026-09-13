@@ -21,10 +21,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout production source
+      - name: Checkout exact production trigger
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.sha }}
+
+      - name: Verify exact trigger SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          echo "Expected trigger SHA: ${GITHUB_SHA}"
+          echo "Checked out SHA:      ${actual}"
+          test "${actual}" = "${GITHUB_SHA}"
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -46,6 +55,9 @@ jobs:
       - name: TypeScript QA
         run: npx tsc --noEmit
 
+      - name: Universal production release gate
+        run: npm run release:gate
+
       - name: Expo credential preflight
         shell: bash
         run: |
@@ -65,11 +77,17 @@ jobs:
           grep -F 'buklod-web-ambient-drift' dist/index.html
           grep -F 'google-adsense-account' dist/index.html
 
+      - name: Verify exported protected contracts
+        run: |
+          npm run character:contract:dist
+          npm run game:contract:dist
+
       - name: Deploy production web only
         id: deploy
         shell: bash
         run: |
           set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
           npx eas-cli@latest deploy --prod --non-interactive 2>&1 | tee web-live-atmosphere-deploy-output.txt
 
       - name: Preserve deploy result
@@ -89,4 +107,4 @@ jobs:
             echo 'BUKLOD web-only Live Atmosphere deployment did not succeed.'
             exit 1
           fi
-          echo 'BUKLOD web-only Live Atmosphere deployment succeeded.'
+          echo "BUKLOD web-only Live Atmosphere deployment succeeded for ${GITHUB_SHA}."
