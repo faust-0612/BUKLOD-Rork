@@ -1,4 +1,5 @@
 /* BUKLOD_POINTS_STAGE_CHARACTER_500K_R1 */
+/* BUKLOD_CHARACTER_VISIBLE_SYNC_R31_R40_V2 */
 import React from 'react';
 
 import {
@@ -15,8 +16,8 @@ import {
 import BuklodAmbientSurface
   from '@/components/motion/BuklodAmbientSurface';
 
-import BuklodCharacterLayeredArt
-  from '@/components/points/BuklodCharacterLayeredArt';
+import BuklodActiveCharacterArt
+  from '@/components/points/BuklodActiveCharacterArt';
 
 import BuklodCharacterNavigator
   from '@/components/points/BuklodCharacterNavigator';
@@ -205,10 +206,10 @@ export default function BuklodPointsStage({
         />
 
         <View style={styles.art}>
-          <BuklodCharacterLayeredArt
-            body={character.body}
-            equipment={character.equipment}
+          <BuklodActiveCharacterArt
+            fallbackCharacter={character}
             height={184}
+            viewportWidth={122}
             showStage
             showEffects
           />
