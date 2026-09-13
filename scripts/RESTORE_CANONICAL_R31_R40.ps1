@@ -146,7 +146,7 @@ $CandidateRoots = @(
 
 Write-Host ''
 Write-Host '====================================================================' -ForegroundColor Cyan
-Write-Host ' BUKLOD CANONICAL CHARACTER RECOVERY — R31 CORE + R40 SPECIAL' -ForegroundColor Cyan
+Write-Host ' BUKLOD CANONICAL CHARACTER RECOVERY - R31 CORE + R40 SPECIAL' -ForegroundColor Cyan
 Write-Host ' APPROVED MANIFEST + VERIFIED FORWARD REPAIR / DISPOSABLE OVERLAY' -ForegroundColor Cyan
 Write-Host '====================================================================' -ForegroundColor Cyan
 
@@ -232,12 +232,21 @@ foreach ($relativeRaw in @($RecoveryManifest.source_files)) {
 }
 
 Write-Host ''
-Write-Host '4/6 APPLY REVIEWED R40 FORWARD REPAIR' -ForegroundColor Cyan
+Write-Host '4/6 APPLY REVIEWED R40 + NAVIGATION FORWARD REPAIR' -ForegroundColor Cyan
 $specialUiDestination = Join-Path $ProjectRoot 'src\components\points\BuklodSpecialCharacterSeries.tsx'
 Repair-R40SpecialCharacterUi $specialUiDestination
 $seriesOneDestination = Join-Path $ProjectRoot 'src\components\points\BuklodSpecialSeriesOne.tsx'
 Repair-R40SeriesOneArt $seriesOneDestination
+$navRepairScript = Join-Path $ProjectRoot 'scripts\APPLY_CHARACTER_NAV_SMOOTH_R1.ps1'
+if (!(Test-Path -LiteralPath $navRepairScript -PathType Leaf)) {
+  Fail "Character navigation repair script missing: $navRepairScript"
+}
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $navRepairScript -ProjectRoot $ProjectRoot
+if ($LASTEXITCODE -ne 0) {
+  Fail 'Character navigation smoothness forward repair failed.'
+}
 Write-Host ' R40 UI structural + asset repair: VERIFIED' -ForegroundColor Green
+Write-Host ' Character navigation smoothness repair: VERIFIED' -ForegroundColor Green
 
 Write-Host ''
 Write-Host '5/6 OVERLAY IMMUTABLE CORE + SPECIAL ASSETS' -ForegroundColor Cyan
@@ -279,5 +288,6 @@ if ($contractExit -ne 0) {
 Write-Host ''
 Write-Host '====================================================================' -ForegroundColor Green
 Write-Host ' R31 + R40 APPROVED RELEASE OVERLAY + FORWARD REPAIR: PASS' -ForegroundColor Green
+Write-Host ' CHARACTER FORMAT: LOCKED / NAVIGATION-ONLY REPAIR' -ForegroundColor Green
 Write-Host '====================================================================' -ForegroundColor Green
 Write-Host 'No Git reset, no source-branch overwrite, and no deployment was performed by this recovery step.'
