@@ -3,13 +3,27 @@ import fs from 'node:fs';
 const failures = [];
 const warnings = [];
 
+function fileUrl(path) {
+  return new URL(`../${path}`, import.meta.url);
+}
+
 function read(path) {
-  return fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+  return fs.readFileSync(fileUrl(path), 'utf8');
+}
+
+function readFirst(paths) {
+  for (const path of paths) {
+    if (fs.existsSync(fileUrl(path))) {
+      return read(path);
+    }
+  }
+
+  throw new Error(`None of the expected files exist: ${paths.join(', ')}`);
 }
 
 const legal = read('src/lib/legal.ts');
 const envExample = read('.env.example');
-const appConfig = read('app.config.ts');
+const appConfig = readFirst(['app.config.js', 'app.config.ts']);
 
 if (legal.includes('REQUIRED BEFORE LAUNCH')) {
   failures.push('Privacy notice still contains REQUIRED BEFORE LAUNCH placeholders.');
