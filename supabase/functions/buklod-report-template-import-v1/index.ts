@@ -9,17 +9,17 @@ const cors = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify({ analyzer_version: ANALYZER_VERSION, ...(body as Record<string, unknown>) }), {
+const json = (body: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify({ analyzer_version: ANALYZER_VERSION, ...body }), {
     status,
     headers: { ...cors, "Content-Type": "application/json" },
   });
 
 const MAX_BYTES = 12 * 1024 * 1024;
 const MAX_SOURCE_TEXT = 80_000;
-const AI_TOTAL_TIMEOUT_MS = 50_000;
-const AI_ATTEMPT_TIMEOUT_MS = 14_000;
-const AI_MAX_ATTEMPTS = 6;
+const AI_TOTAL_TIMEOUT_MS = 42_000;
+const AI_ATTEMPT_TIMEOUT_MS = 10_000;
+const AI_MAX_ATTEMPTS = 5;
 const TRANSIENT_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
 const SUPPORTED_TYPES = new Set(["short_text", "long_text", "number", "date", "yes_no", "choice"]);
 
@@ -93,7 +93,6 @@ function legacyDocText(bytes: Uint8Array) {
 
 async function extractSourceText(bytes: Uint8Array, filename: string, mimeType: string) {
   const lower = filename.toLowerCase();
-
   if (/\.(xlsx|xls|csv)$/.test(lower) || /spreadsheet|excel|csv/i.test(mimeType)) {
     const workbook = lower.endsWith(".csv") || /csv/i.test(mimeType)
       ? XLSX.read(new TextDecoder().decode(bytes), { type: "string" })
@@ -110,7 +109,6 @@ async function extractSourceText(bytes: Uint8Array, filename: string, mimeType: 
     }
     return parts.join("\n").slice(0, MAX_SOURCE_TEXT);
   }
-
   if (lower.endsWith(".docx") || /officedocument\.wordprocessingml/i.test(mimeType)) {
     const zip = await JSZip.loadAsync(bytes);
     const xml = await zip.file("word/document.xml")?.async("string");
@@ -127,39 +125,31 @@ async function extractSourceText(bytes: Uint8Array, filename: string, mimeType: 
         .replace(/\n\s+/g, "\n")
     ).slice(0, MAX_SOURCE_TEXT);
   }
-
-  if (lower.endsWith(".doc") || mimeType === "application/msword") {
-    return legacyDocText(bytes).slice(0, MAX_SOURCE_TEXT);
-  }
-
-  if (mimeType.startsWith("text/") || /\.(txt|md|rtf|json|xml)$/i.test(lower)) {
-    return new TextDecoder().decode(bytes).slice(0, MAX_SOURCE_TEXT);
-  }
-
+  if (lower.endsWith(".doc") || mimeType === "application/msword") return legacyDocText(bytes).slice(0, MAX_SOURCE_TEXT);
+  if (mimeType.startsWith("text/") || /\.(txt|md|rtf|json|xml)$/i.test(lower)) return new TextDecoder().decode(bytes).slice(0, MAX_SOURCE_TEXT);
   return "";
 }
 
 function slug(value: string, fallback: string) {
-  const result = value
+  return value
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "")
-    .slice(0, 56);
-  return result || fallback;
+    .slice(0, 56) || fallback;
 }
 
 function normalizeDraft(raw: any, filename: string) {
-  const rawSections = Array.isArray(raw?.sections) ? raw.sections : [];
   const sections: any[] = [];
   const fields: any[] = [];
   const seenFieldIds = new Set<string>();
+  const rawSections = Array.isArray(raw?.sections) ? raw.sections : [];
 
   rawSections.slice(0, 30).forEach((sectionValue: unknown, sectionIndex: number) => {
     const sectionRaw = objectValue(sectionValue);
     const sectionTitle = safe(sectionRaw.title, 180) || `Section ${sectionIndex + 1}`;
-    const sectionDescription = safe(sectionRaw.description, 800) || null;
+    const description = safe(sectionRaw.description, 800) || null;
     const sectionId = slug(safe(sectionRaw.id, 100) || sectionTitle, `section_${sectionIndex + 1}`);
     const sectionFields: any[] = [];
     const rawFields = Array.isArray(sectionRaw.fields) ? sectionRaw.fields : [];
@@ -173,10 +163,7 @@ function normalizeDraft(raw: any, filename: string) {
       let id = slug(safe(fieldRaw.id, 120) || label, `field_${sectionIndex + 1}_${fieldIndex + 1}`);
       const baseId = id;
       let suffix = 2;
-      while (seenFieldIds.has(id)) {
-        id = `${baseId}_${suffix}`.slice(0, 64);
-        suffix += 1;
-      }
+      while (seenFieldIds.has(id)) id = `${baseId}_${suffix++}`.slice(0, 64);
       seenFieldIds.add(id);
       const options = Array.isArray(fieldRaw.options)
         ? fieldRaw.options.map((item: unknown) => safe(item, 180)).filter(Boolean).slice(0, 40)
@@ -194,14 +181,7 @@ function normalizeDraft(raw: any, filename: string) {
       fields.push(field);
     });
 
-    if (sectionFields.length > 0 || sectionDescription) {
-      sections.push({
-        id: sectionId,
-        title: sectionTitle,
-        description: sectionDescription,
-        fields: sectionFields,
-      });
-    }
+    if (sectionFields.length > 0 || description) sections.push({ id: sectionId, title: sectionTitle, description, fields: sectionFields });
   });
 
   return {
@@ -211,9 +191,7 @@ function normalizeDraft(raw: any, filename: string) {
     instructions: safe(raw?.instructions, 2400) || null,
     sections,
     fields,
-    warnings: Array.isArray(raw?.warnings)
-      ? raw.warnings.map((item: unknown) => safe(item, 500)).filter(Boolean).slice(0, 12)
-      : [],
+    warnings: Array.isArray(raw?.warnings) ? raw.warnings.map((item: unknown) => safe(item, 500)).filter(Boolean).slice(0, 12) : [],
     confidence: Math.max(0, Math.min(1, Number(raw?.confidence ?? 0) || 0)),
   };
 }
@@ -258,13 +236,7 @@ const responseJsonSchema = {
   required: ["title", "category", "sections", "warnings", "confidence"],
 };
 
-type ParsedUpload = {
-  scopeId: string;
-  filename: string;
-  mimeType: string;
-  reportKindHint: string;
-  bytes: Uint8Array;
-};
+type ParsedUpload = { scopeId: string; filename: string; mimeType: string; reportKindHint: string; bytes: Uint8Array };
 
 async function parseUpload(req: Request): Promise<ParsedUpload> {
   const contentType = req.headers.get("content-type") ?? "";
@@ -275,31 +247,31 @@ async function parseUpload(req: Request): Promise<ParsedUpload> {
     const fileValue = form.get("file");
     if (!(fileValue instanceof File)) throw new Error("A reporting layout file is required.");
     const filename = safe(form.get("filename"), 240) || safe(fileValue.name, 240) || "report-layout";
-    const mimeType = inferMimeType(filename, safe(form.get("mime_type"), 160) || fileValue.type);
-    const bytes = new Uint8Array(await fileValue.arrayBuffer());
-    return { scopeId, filename, mimeType, reportKindHint, bytes };
+    return {
+      scopeId,
+      filename,
+      mimeType: inferMimeType(filename, safe(form.get("mime_type"), 160) || fileValue.type),
+      reportKindHint,
+      bytes: new Uint8Array(await fileValue.arrayBuffer()),
+    };
   }
-
   const body = await req.json();
   const scopeId = safe(body?.scope_id, 80);
   const filename = safe(body?.filename, 240) || "report-layout";
-  const mimeType = inferMimeType(filename, body?.mime_type);
   const base64 = safe(body?.base64, 24_000_000);
-  const reportKindHint = safe(body?.report_kind_hint, 3000);
   if (!base64) throw new Error("A reporting layout file is required.");
-  return { scopeId, filename, mimeType, reportKindHint, bytes: decodeBase64(base64) };
+  return {
+    scopeId,
+    filename,
+    mimeType: inferMimeType(filename, body?.mime_type),
+    reportKindHint: safe(body?.report_kind_hint, 3000),
+    bytes: decodeBase64(base64),
+  };
 }
 
 type AuditArgs = {
-  requestId: string;
-  scopeId: string;
-  userId: string;
-  action: string;
-  filename: string;
-  mimeType: string;
-  stage?: string;
-  message?: string;
-  details?: Record<string, unknown>;
+  requestId: string; scopeId: string; userId: string; action: string; filename: string; mimeType: string;
+  stage?: string; message?: string; details?: Record<string, unknown>;
 };
 
 async function writeAudit(admin: any, args: AuditArgs) {
@@ -321,37 +293,24 @@ async function writeAudit(admin: any, args: AuditArgs) {
   if (error) console.warn("[BUKLOD_REPORT_TEMPLATE_AUDIT]", cleanError(error));
 }
 
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+function sleep(ms: number) { return new Promise((resolve) => setTimeout(resolve, ms)); }
 
 function modelCandidates() {
   return Array.from(new Set([
-    Deno.env.get("GEMINI_REPORT_IMPORT_PRIMARY") ?? "",
     "gemini-3.7-flash",
     "gemini-3.6-flash",
     "gemini-3.5-flash",
+    Deno.env.get("GEMINI_REPORT_IMPORT_PRIMARY") ?? "",
     Deno.env.get("GEMINI_REPORT_IMPORT_MODEL") ?? "",
     Deno.env.get("GEMINI_GRADING_MODEL") ?? "",
     "gemini-3.8-flash",
   ].map((value) => value.trim()).filter(Boolean)));
 }
 
-type GeminiAttempt = {
-  model: string;
-  status: number | null;
-  error: string | null;
-};
+type GeminiAttempt = { model: string; status: number | null; error: string | null };
 
 async function callGeminiWithFallback(args: {
-  geminiKey: string;
-  parts: any[];
-  admin: any;
-  requestId: string;
-  scopeId: string;
-  userId: string;
-  filename: string;
-  mimeType: string;
+  geminiKey: string; parts: any[]; admin: any; requestId: string; scopeId: string; userId: string; filename: string; mimeType: string;
 }) {
   const models = modelCandidates();
   const startedAt = Date.now();
@@ -363,7 +322,6 @@ async function callGeminiWithFallback(args: {
     for (const model of models) {
       if (attemptCount >= AI_MAX_ATTEMPTS) break;
       if (pass === 1 && !attempts.some((item) => item.model === model && item.status != null && TRANSIENT_STATUSES.has(item.status))) continue;
-
       const remainingMs = AI_TOTAL_TIMEOUT_MS - (Date.now() - startedAt);
       if (remainingMs <= 1_500) break;
 
@@ -383,27 +341,17 @@ async function callGeminiWithFallback(args: {
             signal: controller.signal,
             body: JSON.stringify({
               contents: [{ role: "user", parts: args.parts }],
-              generationConfig: {
-                responseMimeType: "application/json",
-                responseJsonSchema,
-                maxOutputTokens: 9000,
-              },
+              generationConfig: { responseMimeType: "application/json", responseJsonSchema, maxOutputTokens: 9000 },
             }),
           }
         );
-
         status = response.status;
         const rawResponse = await response.text();
         if (response.ok) {
           attempts.push({ model, status, error: null });
           await writeAudit(args.admin, {
-            requestId: args.requestId,
-            scopeId: args.scopeId,
-            userId: args.userId,
-            action: "REPORT_TEMPLATE_AI_ATTEMPT",
-            filename: args.filename,
-            mimeType: args.mimeType,
-            stage: "ai-analysis",
+            requestId: args.requestId, scopeId: args.scopeId, userId: args.userId,
+            action: "REPORT_TEMPLATE_AI_ATTEMPT", filename: args.filename, mimeType: args.mimeType, stage: "ai-analysis",
             details: { model, status, attempt: attemptCount, success: true },
           });
           return { model, rawResponse, attempts };
@@ -413,18 +361,10 @@ async function callGeminiWithFallback(args: {
         lastMessage = `${model} failed (${status}): ${errorText}`;
         attempts.push({ model, status, error: errorText });
         await writeAudit(args.admin, {
-          requestId: args.requestId,
-          scopeId: args.scopeId,
-          userId: args.userId,
-          action: "REPORT_TEMPLATE_AI_ATTEMPT",
-          filename: args.filename,
-          mimeType: args.mimeType,
-          stage: "ai-analysis",
-          message: lastMessage,
+          requestId: args.requestId, scopeId: args.scopeId, userId: args.userId,
+          action: "REPORT_TEMPLATE_AI_ATTEMPT", filename: args.filename, mimeType: args.mimeType, stage: "ai-analysis", message: lastMessage,
           details: { model, status, attempt: attemptCount, success: false },
         });
-
-        if (!TRANSIENT_STATUSES.has(status)) continue;
       } catch (error: any) {
         if (controller.signal.aborted) {
           status = 408;
@@ -435,14 +375,8 @@ async function callGeminiWithFallback(args: {
         lastMessage = errorText;
         attempts.push({ model, status, error: errorText });
         await writeAudit(args.admin, {
-          requestId: args.requestId,
-          scopeId: args.scopeId,
-          userId: args.userId,
-          action: "REPORT_TEMPLATE_AI_ATTEMPT",
-          filename: args.filename,
-          mimeType: args.mimeType,
-          stage: "ai-analysis",
-          message: errorText,
+          requestId: args.requestId, scopeId: args.scopeId, userId: args.userId,
+          action: "REPORT_TEMPLATE_AI_ATTEMPT", filename: args.filename, mimeType: args.mimeType, stage: "ai-analysis", message: errorText,
           details: { model, status, attempt: attemptCount, success: false },
         });
       } finally {
@@ -454,10 +388,8 @@ async function callGeminiWithFallback(args: {
     }
   }
 
-  const attemptedModels = Array.from(new Set(attempts.map((item) => item.model)).join(", "));
-  throw new Error(
-    `The AI form analyzer is temporarily unavailable after trying ${attemptedModels || "available models"}. Please try again shortly. Last error: ${lastMessage.slice(0, 500)}`
-  );
+  const attemptedModels = Array.from(new Set(attempts.map((item) => item.model))).join(", ");
+  throw new Error(`The AI form analyzer is temporarily unavailable after trying ${attemptedModels || "available models"}. Please try again shortly. Last error: ${lastMessage.slice(0, 500)}`);
 }
 
 Deno.serve(async (req: Request) => {
@@ -477,15 +409,11 @@ Deno.serve(async (req: Request) => {
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const geminiKey = Deno.env.get("GEMINI_API_KEY") ?? "";
-    if (!supabaseUrl || !anonKey || !serviceKey || !geminiKey) {
-      return json({ error: "Report import service is not configured.", stage: "configuration", request_id: requestId }, 500);
-    }
+    if (!supabaseUrl || !anonKey || !serviceKey || !geminiKey) return json({ error: "Report import service is not configured.", stage: "configuration", request_id: requestId }, 500);
 
     stage = "authentication";
     const authorization = req.headers.get("Authorization") ?? "";
-    if (!authorization.toLowerCase().startsWith("bearer ")) {
-      return json({ error: "Authentication required.", stage, request_id: requestId }, 401);
-    }
+    if (!authorization.toLowerCase().startsWith("bearer ")) return json({ error: "Authentication required.", stage, request_id: requestId }, 401);
     const token = authorization.replace(/^Bearer\s+/i, "").trim();
     admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
     const caller = createClient(supabaseUrl, anonKey, {
@@ -513,21 +441,11 @@ Deno.serve(async (req: Request) => {
       caller.rpc("buklod_is_exact_scope_admin_v1", { p_scope_id: scopeId }),
     ]);
     if (scopeError || !scope) return json({ error: "Report scope was not found.", stage, request_id: requestId }, 404);
-    if (!["ORGANIZATION", "CLUSTER"].includes(String(scope.scope_type).toUpperCase())) {
-      return json({ error: "BUKLOD Report templates are available only for Organization or Cluster scopes.", stage, request_id: requestId }, 400);
-    }
-    if (adminError || isAdmin !== true) {
-      return json({ error: "Exact-scope admin access is required.", stage, request_id: requestId }, 403);
-    }
+    if (!["ORGANIZATION", "CLUSTER"].includes(String(scope.scope_type).toUpperCase())) return json({ error: "BUKLOD Report templates are available only for Organization or Cluster scopes.", stage, request_id: requestId }, 400);
+    if (adminError || isAdmin !== true) return json({ error: "Exact-scope admin access is required.", stage, request_id: requestId }, 403);
 
     await writeAudit(admin, {
-      requestId,
-      scopeId,
-      userId,
-      action: "REPORT_TEMPLATE_FILE_ANALYZE_STARTED",
-      filename,
-      mimeType,
-      stage,
+      requestId, scopeId, userId, action: "REPORT_TEMPLATE_FILE_ANALYZE_STARTED", filename, mimeType, stage,
       details: { size_bytes: upload.bytes.byteLength },
     });
 
@@ -558,92 +476,43 @@ Deno.serve(async (req: Request) => {
     stage = "ai-analysis";
     const parts: any[] = [{ text: prompt }];
     if (sourceText) parts.push({ text: `EXTRACTED SOURCE TEXT:\n${sourceText}` });
-    if (mimeType === "application/pdf" || mimeType.startsWith("image/")) {
-      parts.push({ inline_data: { mime_type: mimeType, data: encodeBase64(upload.bytes) } });
-    }
+    if (mimeType === "application/pdf" || mimeType.startsWith("image/")) parts.push({ inline_data: { mime_type: mimeType, data: encodeBase64(upload.bytes) } });
 
-    const ai = await callGeminiWithFallback({
-      geminiKey,
-      parts,
-      admin,
-      requestId,
-      scopeId,
-      userId,
-      filename,
-      mimeType,
-    });
+    const ai = await callGeminiWithFallback({ geminiKey, parts, admin, requestId, scopeId, userId, filename, mimeType });
     const outer = JSON.parse(ai.rawResponse);
-    const outputText = (outer?.candidates?.[0]?.content?.parts ?? [])
-      .map((part: any) => typeof part?.text === "string" ? part.text : "")
-      .join("")
-      .trim();
+    const outputText = (outer?.candidates?.[0]?.content?.parts ?? []).map((part: any) => typeof part?.text === "string" ? part.text : "").join("").trim();
     if (!outputText) throw new Error("No structured form draft was returned.");
     const draft = normalizeDraft(JSON.parse(outputText), filename);
 
     stage = "source-storage";
     const storageName = filename.replace(/[^A-Za-z0-9._-]+/g, "_").slice(-180) || "report-layout";
     const storagePath = `${scopeId}/${userId}/${crypto.randomUUID()}-${storageName}`;
-    const { error: uploadError } = await admin.storage
-      .from("buklod-report-template-files")
-      .upload(storagePath, upload.bytes, {
-        contentType: mimeType || "application/octet-stream",
-        upsert: false,
-      });
+    const { error: uploadError } = await admin.storage.from("buklod-report-template-files").upload(storagePath, upload.bytes, { contentType: mimeType || "application/octet-stream", upsert: false });
     if (uploadError) throw new Error(`The form was analyzed but the source file could not be stored: ${uploadError.message}`);
 
     stage = "audit";
     const sourceFile = {
-      bucket: "buklod-report-template-files",
-      path: storagePath,
-      name: filename,
-      mime_type: mimeType,
-      size_bytes: upload.bytes.byteLength,
-      uploaded_by: userId,
-      uploaded_at: new Date().toISOString(),
+      bucket: "buklod-report-template-files", path: storagePath, name: filename, mime_type: mimeType,
+      size_bytes: upload.bytes.byteLength, uploaded_by: userId, uploaded_at: new Date().toISOString(),
     };
-
     await writeAudit(admin, {
-      requestId,
-      scopeId,
-      userId,
-      action: "REPORT_TEMPLATE_FILE_ANALYZED",
-      filename,
-      mimeType,
-      stage,
+      requestId, scopeId, userId, action: "REPORT_TEMPLATE_FILE_ANALYZED", filename, mimeType, stage,
       details: {
-        field_count: draft.fields.length,
-        section_count: draft.sections.length,
-        confidence: draft.confidence,
-        category: draft.category,
-        source_path: storagePath,
-        model: ai.model,
+        field_count: draft.fields.length, section_count: draft.sections.length, confidence: draft.confidence,
+        category: draft.category, source_path: storagePath, model: ai.model,
         attempts: ai.attempts.map((item) => ({ model: item.model, status: item.status })),
       },
     });
 
     return json({
-      ok: true,
-      request_id: requestId,
-      provider: "gemini",
-      model: ai.model,
-      scope: { id: scope.id, name: scope.name, scope_type: scope.scope_type },
-      source_file: sourceFile,
-      draft,
+      ok: true, request_id: requestId, provider: "gemini", model: ai.model,
+      scope: { id: scope.id, name: scope.name, scope_type: scope.scope_type }, source_file: sourceFile, draft,
     });
   } catch (error) {
     const message = cleanError(error);
     console.error("[BUKLOD_REPORT_TEMPLATE_IMPORT]", ANALYZER_VERSION, stage, requestId, message);
     if (admin && scopeId && userId) {
-      await writeAudit(admin, {
-        requestId,
-        scopeId,
-        userId,
-        action: "REPORT_TEMPLATE_FILE_ANALYZE_FAILED",
-        filename,
-        mimeType,
-        stage,
-        message,
-      });
+      await writeAudit(admin, { requestId, scopeId, userId, action: "REPORT_TEMPLATE_FILE_ANALYZE_FAILED", filename, mimeType, stage, message });
     }
     return json({ error: message, stage, request_id: requestId }, 500);
   }
