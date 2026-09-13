@@ -171,29 +171,46 @@ export default function BuklodFoundationWorkspaceNav() {
       </ProfileMotionFadeUp>
 
       <BuklodProfileGlassCard>
+        {/* BUKLOD_KINGDOM_PROFILE_RELOCATION_R1: canonical visible door now lives in Profile. */}
         <BuklodProfileGlassRow
-          icon="apps"
-          title="BUKLOD Focus Apps"
-          subtitle="Premium portals · ₱59/month or ₱499/year"
-          onPress={() => void openDrawer()}
+          icon="castle"
+          title="BUKLOD Kingdom"
+          subtitle="Games, Kingdom map, progression and rewards"
+          onPress={() => router.push('/games' as any)}
           trailing={
             <MaterialCommunityIcons
-              name={open ? 'chevron-up' : 'chevron-down'}
+              name="chevron-right"
               size={20}
               color={theme.textMuted}
             />
           }
         />
 
+        <View style={styles.rowBorder}>
+          <BuklodProfileGlassRow
+            icon="apps"
+            title="BUKLOD Focus Apps"
+            subtitle="Premium portals · ₱59/month or ₱499/year"
+            onPress={() => void openDrawer()}
+            trailing={
+              <MaterialCommunityIcons
+                name={open ? 'chevron-up' : 'chevron-down'}
+                size={20}
+                color={theme.textMuted}
+              />
+            }
+          />
+        </View>
+
         {open
-          ? catalogApps.map((row, index) => {
+          ? catalogApps.map((row) => {
               const opening = openingKey === row.app;
               const isLocked = row.gated && locked[row.app] !== false && locked[row.app] !== undefined
                 ? locked[row.app]
                 : row.gated && !row.access?.canSee;
               const title = BUKLOD_FOCUS_APP_LABELS[row.app];
               return (
-                <View key={row.app} style={index >= 0 ? styles.rowBorder : undefined}>
+                <View key={row.app} style={styles.rowBorder}>
                   <BuklodProfileGlassRow
                     icon={
                       (BUKLOD_FOCUS_APP_ICONS[row.app] as
