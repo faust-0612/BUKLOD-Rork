@@ -31,6 +31,10 @@ export function NotificationProvider({children}:{children:ReactNode}){
  const markAllRead=useCallback(async()=>{if(!user?.id)return;const {error}=await supabase.from('notifications').update({read_at:new Date().toISOString()}).eq('user_id',user.id).is('read_at',null);if(error)throw error;await refreshUnread()},[user?.id,refreshUnread]);
 
  const openNotification=useCallback(async(kind:string,data:any)=>{
+  if(kind==='community_emergency'&&data?.help_request_id){
+   router.push(`/buklod?help_request_id=${encodeURIComponent(String(data.help_request_id))}` as any);
+   return;
+  }
   if(data?.prayer_request_id){
    router.push(`/prayer/${data.prayer_request_id}` as any);
    return;

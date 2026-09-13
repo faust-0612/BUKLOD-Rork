@@ -8,10 +8,12 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
+import BuklodCommunityHelp from '@/components/BuklodCommunityHelp';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import { colors } from '@/lib/theme';
 
@@ -43,50 +45,54 @@ export default function BuklodPublicLocationChips({selectedScopeId,onChange}:Pro
     .filter(scope=>scope.scope_type==='LOCAL'&&Boolean(scope.scope_id)&&Boolean(String(scope.name??'').trim())&&(!scope.membership_status||scope.membership_status==='ACTIVE'))
     .sort((a,b)=>weight(a)-weight(b)),[scopes]);
 
-  return <ScrollView
-    horizontal
-    showsHorizontalScrollIndicator={false}
-    contentContainerStyle={styles.row}
-    style={styles.scroller}
-  >
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="Show all Public Community posts"
-      onPress={()=>onChange(null)}
-      style={({pressed})=>[
-        styles.chip,
-        selectedScopeId===null&&styles.chipOn,
-        pressed&&{opacity:.74},
-      ]}
-    >
-      <Text style={[styles.text,selectedScopeId===null&&styles.textOn]}>PUBLIC</Text>
-    </Pressable>
+  return <View>
+    <BuklodCommunityHelp />
 
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="Explore Dugtong, Moments, Challenges, Polls and Resources"
-      onPress={()=>router.push('/community/discover?mode=for_you' as any)}
-      style={({pressed})=>[styles.exploreChip,pressed&&{opacity:.72}]}
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.row}
+      style={styles.scroller}
     >
-      <MaterialCommunityIcons name="compass-outline" size={14} color={colors.greenDark}/>
-      <Text style={styles.exploreText}>EXPLORE</Text>
-    </Pressable>
-
-    {localScopes.map(scope=>{
-      const on=selectedScopeId===scope.scope_id;
-      return <Pressable
-        key={scope.scope_id}
+      <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Filter Community to ${scope.name}`}
-        onPress={()=>onChange(scope.scope_id)}
-        style={({pressed})=>[styles.chip,on&&styles.chipOn,pressed&&{opacity:.74}]}
+        accessibilityLabel="Show all Public Community posts"
+        onPress={()=>onChange(null)}
+        style={({pressed})=>[
+          styles.chip,
+          selectedScopeId===null&&styles.chipOn,
+          pressed&&{opacity:.74},
+        ]}
       >
-        <Text numberOfLines={1} style={[styles.text,on&&styles.textOn]}>
-          {String(scope.name).toUpperCase()}
-        </Text>
-      </Pressable>;
-    })}
-  </ScrollView>;
+        <Text style={[styles.text,selectedScopeId===null&&styles.textOn]}>PUBLIC</Text>
+      </Pressable>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Explore Dugtong, Moments, Challenges, Polls and Resources"
+        onPress={()=>router.push('/community/discover?mode=for_you' as any)}
+        style={({pressed})=>[styles.exploreChip,pressed&&{opacity:.72}]}
+      >
+        <MaterialCommunityIcons name="compass-outline" size={14} color={colors.greenDark}/>
+        <Text style={styles.exploreText}>EXPLORE</Text>
+      </Pressable>
+
+      {localScopes.map(scope=>{
+        const on=selectedScopeId===scope.scope_id;
+        return <Pressable
+          key={scope.scope_id}
+          accessibilityRole="button"
+          accessibilityLabel={`Filter Community to ${scope.name}`}
+          onPress={()=>onChange(scope.scope_id)}
+          style={({pressed})=>[styles.chip,on&&styles.chipOn,pressed&&{opacity:.74}]}
+        >
+          <Text numberOfLines={1} style={[styles.text,on&&styles.textOn]}>
+            {String(scope.name).toUpperCase()}
+          </Text>
+        </Pressable>;
+      })}
+    </ScrollView>
+  </View>;
 }
 
 const styles=StyleSheet.create({
