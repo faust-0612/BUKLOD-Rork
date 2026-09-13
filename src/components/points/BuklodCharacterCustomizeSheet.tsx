@@ -1,4 +1,4 @@
-/* BUKLOD_CHARACTER_SELECTION_V2_R31_R40_FORWARD_PORT */
+/* BUKLOD_CHARACTER_WEB_FORMAT_PARITY_R22 */
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -12,9 +12,11 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
+import BuklodActiveCharacterArt from '@/components/points/BuklodActiveCharacterArt';
 import BuklodProgressiveCharacterSelector from '@/components/points/BuklodProgressiveCharacterSelector';
 import BuklodSpecialCharacterSeries from '@/components/points/BuklodSpecialCharacterSeries';
 import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
+import { DEFAULT_CHARACTER, type BuklodCharacterState } from '@/lib/buklodCharacter';
 import { useBuklodDrawerBottomInset } from '@/lib/buklodSafeArea';
 import { BUKLOD_HIT_SLOP } from '@/lib/buklodTouch';
 import {
@@ -23,7 +25,6 @@ import {
   subscribeBuklodCharacterSelectionV2,
   type BuklodCharacterSelectionV2State,
 } from '@/lib/buklodCharacterSelectionV2';
-import type { BuklodCharacterState } from '@/lib/buklodCharacter';
 
 type Props = {
   visible: boolean;
@@ -32,8 +33,6 @@ type Props = {
   lifetimePoints: number;
   onSaved?: (config: BuklodCharacterState) => void;
 };
-
-type JourneyPanel = 'core' | 'special' | null;
 
 export default function BuklodCharacterCustomizeSheet({
   visible,
@@ -44,7 +43,6 @@ export default function BuklodCharacterCustomizeSheet({
   const drawerBottomInset = useBuklodDrawerBottomInset();
   const [state, setState] = useState<BuklodCharacterSelectionV2State | null>(null);
   const [loading, setLoading] = useState(false);
-  const [panel, setPanel] = useState<JourneyPanel>(null);
 
   const refreshState = async () => {
     if (!userId) return;
@@ -87,14 +85,9 @@ export default function BuklodCharacterCustomizeSheet({
     };
   }, [userId, visible]);
 
-  useEffect(() => {
-    if (!visible) setPanel(null);
-  }, [visible]);
-
   const activeName = state
     ? CHARACTER_DISPLAY_NAME[state.active_character_id]
     : 'BUKLOD Character';
-  const unlockedSpecialCount = state?.visible_special_character_ids.length ?? 0;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -107,16 +100,25 @@ export default function BuklodCharacterCustomizeSheet({
           onPress={(event) => event.stopPropagation()}
         >
           <View style={[styles.header, { borderBottomColor: theme.border }]}>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.title, { color: theme.textPrimary }]}>BUKLOD Character</Text>
-              <Text style={[styles.subtitle, { color: theme.textMuted }]}>One selection authority · protected R31/R40 art · 20-level journeys</Text>
+            <View style={styles.headerCopy}>
+              <Text style={[styles.title, { color: theme.textPrimary }]}>Customize Character</Text>
+              <Text style={[styles.localNote, { color: theme.textMuted }]}>R31 Core + R40 Special Character journey</Text>
             </View>
-            <Pressable onPress={onClose} hitSlop={BUKLOD_HIT_SLOP} accessibilityRole="button" accessibilityLabel="Close Character">
-              <MaterialCommunityIcons name="close" size={24} color={theme.textMuted} />
+            <Pressable
+              onPress={onClose}
+              hitSlop={BUKLOD_HIT_SLOP}
+              accessibilityRole="button"
+              accessibilityLabel="Close Character"
+            >
+              <MaterialCommunityIcons name="close" size={23} color={theme.textMuted} />
             </Pressable>
           </View>
 
-          <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator>
+          <ScrollView
+            style={styles.bodyScroll}
+            contentContainerStyle={styles.bodyContent}
+            showsVerticalScrollIndicator
+          >
             {loading && !state ? (
               <View style={styles.loadingBox}>
                 <ActivityIndicator color={theme.accent} />
@@ -126,76 +128,53 @@ export default function BuklodCharacterCustomizeSheet({
 
             {state ? (
               <>
-                <View style={[styles.statusCard, { backgroundColor: theme.accentSoft, borderColor: theme.border }]}>
-                  <View style={styles.statusIcon}>
-                    <MaterialCommunityIcons name="account-star" size={28} color={theme.accent} />
+                <View
+                  style={[
+                    styles.heroRow,
+                    { borderColor: theme.border, backgroundColor: theme.accentSoft },
+                  ]}
+                >
+                  <View style={styles.heroArt}>
+                    <BuklodActiveCharacterArt
+                      fallbackCharacter={DEFAULT_CHARACTER}
+                      height={154}
+                      viewportWidth={128}
+                      showStage
+                      showEffects
+                    />
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.statusEyebrow, { color: theme.accent }]}>ACTIVE CHARACTER</Text>
-                    <Text style={[styles.statusName, { color: theme.textPrimary }]}>{activeName} · Level {state.character_level}</Text>
-                    <Text style={[styles.statusMeta, { color: theme.textSecondary }]}>{state.circle_rank_name} · Circle Rank #{state.circle_rank_order}</Text>
-                    <Text style={[styles.statusMeta, { color: theme.textMuted }]}>{state.character_points_since_selection.toLocaleString('en-PH')} Character Points since selection</Text>
+
+                  <View style={styles.heroMeta}>
+                    <View style={[styles.levelPill, { borderColor: theme.border, backgroundColor: theme.surface }]}>
+                      <MaterialCommunityIcons name="star-circle" size={13} color={theme.accent} />
+                      <Text style={[styles.levelText, { color: theme.accent }]}>LEVEL {state.character_level}</Text>
+                    </View>
+
+                    <Text style={[styles.heroTitle, { color: theme.textPrimary }]}>{activeName}</Text>
+                    <Text style={[styles.heroHint, { color: theme.textSecondary }]}>
+                      Preview the complete R31/R40 journey below. Changing Character starts the newly selected Character at Level 1; Circle Points and Circle Rank stay intact.
+                    </Text>
+                    <Text style={[styles.rankMeta, { color: theme.textMuted }]}>
+                      {state.circle_rank_name} · Circle Rank #{state.circle_rank_order}
+                    </Text>
                   </View>
                 </View>
 
-                <View style={[styles.ruleCard, { borderColor: theme.border, backgroundColor: theme.surfaceElevated }]}>
-                  <MaterialCommunityIcons name="shield-check-outline" size={20} color={theme.accent} />
-                  <Text style={[styles.ruleText, { color: theme.textSecondary }]}>
-                    Changing Character never resets Circle Points or Circle Rank. The newly selected Character starts at Level 1, levels do not transfer, and locked Special Characters remain hidden.
-                  </Text>
-                </View>
+                <BuklodProgressiveCharacterSelector
+                  userId={userId}
+                  state={state}
+                  onStateRefresh={refreshState}
+                />
 
-                <View style={styles.launchRow}>
-                  <Pressable
-                    onPress={() => setPanel((value) => value === 'core' ? null : 'core')}
-                    style={[
-                      styles.launchCard,
-                      { borderColor: panel === 'core' ? theme.accent : theme.border, backgroundColor: panel === 'core' ? theme.accentSoft : theme.surfaceElevated },
-                    ]}
-                  >
-                    <MaterialCommunityIcons name="account-group-outline" size={22} color={panel === 'core' ? theme.accent : theme.textSecondary} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.launchTitle, { color: theme.textPrimary }]}>Core Journey</Text>
-                      <Text style={[styles.launchMeta, { color: theme.textMuted }]}>Phan · Quin · Van · Christian · Lhen</Text>
-                    </View>
-                    <MaterialCommunityIcons name={panel === 'core' ? 'chevron-up' : 'chevron-down'} size={22} color={theme.textMuted} />
-                  </Pressable>
-
-                  <Pressable
-                    onPress={() => setPanel((value) => value === 'special' ? null : 'special')}
-                    style={[
-                      styles.launchCard,
-                      { borderColor: panel === 'special' ? theme.accent : theme.border, backgroundColor: panel === 'special' ? theme.accentSoft : theme.surfaceElevated },
-                    ]}
-                  >
-                    <MaterialCommunityIcons name="star-four-points-outline" size={22} color={panel === 'special' ? theme.accent : theme.textSecondary} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.launchTitle, { color: theme.textPrimary }]}>Special Journey</Text>
-                      <Text style={[styles.launchMeta, { color: theme.textMuted }]}>{unlockedSpecialCount > 0 ? `${unlockedSpecialCount} unlocked by Circle Rank` : 'Locked characters stay invisible'}</Text>
-                    </View>
-                    <MaterialCommunityIcons name={panel === 'special' ? 'chevron-up' : 'chevron-down'} size={22} color={theme.textMuted} />
-                  </Pressable>
-                </View>
-
-                {panel === 'core' ? (
-                  <BuklodProgressiveCharacterSelector
-                    userId={userId}
-                    state={state}
-                    onStateRefresh={refreshState}
-                  />
-                ) : null}
-
-                {panel === 'special' ? (
-                  <BuklodSpecialCharacterSeries
-                    userId={userId}
-                    state={state}
-                    onStateRefresh={refreshState}
-                  />
-                ) : null}
+                <BuklodSpecialCharacterSeries
+                  userId={userId}
+                  state={state}
+                  onStateRefresh={refreshState}
+                />
               </>
             ) : !loading ? (
               <View style={[styles.emptyCard, { borderColor: theme.border }]}>
-                <Text style={[styles.emptyText, { color: theme.textMuted }]}>Character state is unavailable. No selection or points data was changed.</Text>
+                <Text style={[styles.emptyText, { color: theme.textMuted }]}>Character state is unavailable. No selection, Circle Points, or Circle Rank data was changed.</Text>
               </View>
             ) : null}
           </ScrollView>
@@ -206,25 +185,117 @@ export default function BuklodCharacterCustomizeSheet({
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.50)' },
-  sheet: { height: '94%', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' },
-  header: { minHeight: 66, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, borderBottomWidth: StyleSheet.hairlineWidth },
-  title: { fontSize: 19, fontWeight: '900' },
-  subtitle: { marginTop: 3, fontSize: 10.5, lineHeight: 14 },
-  content: { padding: 14, paddingBottom: 28 },
-  loadingBox: { minHeight: 90, alignItems: 'center', justifyContent: 'center', gap: 8 },
-  loadingText: { fontSize: 11, fontWeight: '700' },
-  statusCard: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: 17, borderWidth: 1, marginBottom: 10 },
-  statusIcon: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
-  statusEyebrow: { fontSize: 9, fontWeight: '900', letterSpacing: 1 },
-  statusName: { marginTop: 3, fontSize: 17, fontWeight: '900' },
-  statusMeta: { marginTop: 3, fontSize: 10, fontWeight: '700' },
-  ruleCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 12, borderRadius: 14, borderWidth: 1 },
-  ruleText: { flex: 1, fontSize: 10, lineHeight: 15, fontWeight: '700' },
-  launchRow: { marginTop: 12, gap: 8 },
-  launchCard: { minHeight: 62, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 15, borderWidth: 1 },
-  launchTitle: { fontSize: 12, fontWeight: '900' },
-  launchMeta: { marginTop: 2, fontSize: 9, lineHeight: 13, fontWeight: '700' },
-  emptyCard: { padding: 14, borderWidth: 1, borderRadius: 14 },
-  emptyText: { fontSize: 10, lineHeight: 15, fontWeight: '700' },
+  overlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.50)',
+  },
+  sheet: {
+    height: '94%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: 'hidden',
+  },
+  header: {
+    minHeight: 60,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  headerCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  title: {
+    fontSize: 19,
+    fontWeight: '900',
+  },
+  localNote: {
+    marginTop: 2,
+    fontSize: 10,
+  },
+  bodyScroll: {
+    flex: 1,
+  },
+  bodyContent: {
+    paddingBottom: 18,
+  },
+  loadingBox: {
+    minHeight: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  loadingText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  heroRow: {
+    marginTop: 12,
+    marginHorizontal: 14,
+    minHeight: 188,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  heroArt: {
+    width: 128,
+    height: 170,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
+    borderRadius: 18,
+  },
+  heroMeta: {
+    flex: 1,
+    minWidth: 0,
+  },
+  levelPill: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  levelText: {
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  heroTitle: {
+    marginTop: 9,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  heroHint: {
+    marginTop: 4,
+    fontSize: 10,
+    lineHeight: 14,
+  },
+  rankMeta: {
+    marginTop: 7,
+    fontSize: 9,
+    lineHeight: 13,
+    fontWeight: '800',
+  },
+  emptyCard: {
+    margin: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderRadius: 14,
+  },
+  emptyText: {
+    fontSize: 10,
+    lineHeight: 15,
+    fontWeight: '700',
+  },
 });
