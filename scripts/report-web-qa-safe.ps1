@@ -22,7 +22,7 @@ function Invoke-Checked([string]$Label, [scriptblock]$Command) {
 
 function Read-DotEnvValue([string]$File, [string]$Name) {
     if (-not (Test-Path -LiteralPath $File)) { return '' }
-    foreach ($RawLine in Get-Content -LiteralPath $File) {
+    foreach ($RawLine in @(Get-Content -LiteralPath $File)) {
         $Line = $RawLine.Trim()
         if (-not $Line -or $Line.StartsWith('#')) { continue }
         if ($Line.StartsWith('export ')) { $Line = $Line.Substring(7).Trim() }
@@ -57,7 +57,7 @@ function Get-EnvCandidates {
     }
 
     $Seen = @{}
-    foreach ($CandidateRoot in $Roots) {
+    foreach ($CandidateRoot in @($Roots)) {
         if ($Seen.ContainsKey($CandidateRoot)) { continue }
         $Seen[$CandidateRoot] = $true
         foreach ($Name in @('.env.local', '.env.production.local', '.env')) {
@@ -70,7 +70,7 @@ function Get-EnvCandidates {
 function Ensure-PublicEnv([string]$Name) {
     $Existing = [Environment]::GetEnvironmentVariable($Name, 'Process')
     if ($Existing) { return }
-    foreach ($File in Get-EnvCandidates) {
+    foreach ($File in @(Get-EnvCandidates)) {
         $Value = Read-DotEnvValue -File $File -Name $Name
         if ($Value) {
             [Environment]::SetEnvironmentVariable($Name, $Value, 'Process')
