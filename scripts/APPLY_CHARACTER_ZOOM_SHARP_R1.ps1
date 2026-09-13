@@ -175,15 +175,8 @@ import { Image as ExpoImage } from 'expo-image';
 
 # Enable the high-quality path only for fullscreen surfaces. Normal cards, hero rails,
 # and progression thumbnails retain the lightweight renderer path.
-Add-HighQualityToZoomCall \
-  $profilePath \
-  'BUKLOD_CHARACTER_R27C_PROFILE_ZOOM_MODAL' \
-  'Profile fullscreen zoom'
-
-Add-HighQualityToZoomCall \
-  $selectorPath \
-  'BUKLOD_CHARACTER_R27B_FULLSCREEN' \
-  'R31 level fullscreen zoom'
+Add-HighQualityToZoomCall $profilePath 'BUKLOD_CHARACTER_R27C_PROFILE_ZOOM_MODAL' 'Profile fullscreen zoom'
+Add-HighQualityToZoomCall $selectorPath 'BUKLOD_CHARACTER_R27B_FULLSCREEN' 'R31 level fullscreen zoom'
 
 $renderer = Read-Utf8 $rendererPath
 foreach ($token in @(
