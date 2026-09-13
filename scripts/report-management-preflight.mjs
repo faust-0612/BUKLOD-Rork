@@ -57,8 +57,6 @@ if (exists('supabase/functions/buklod-report-template-import-v1/index.ts')) {
   if (/from\s+["']npm:unpdf/i.test(source) || source.includes('getDocumentProxy(')) {
     failures.push('PDF report forms must go directly to multimodal analysis instead of local Edge PDF parsing.');
   }
-  // Case-sensitive on purpose: lowercase JSON Schema types are valid and must
-  // not be mistaken for the legacy Gemini/OpenAPI uppercase type names.
   if (/responseJsonSchema[\s\S]{0,3000}type:\s*["'](?:OBJECT|STRING|ARRAY|NUMBER|BOOLEAN)["']/.test(source)) {
     failures.push('responseJsonSchema must use standard lowercase JSON Schema type names.');
   }
@@ -74,10 +72,17 @@ if (exists('src/lib/buklodReportTemplateImport.ts')) {
     "form.append('file'",
     'asset.file',
     'ANALYZE_TIMEOUT_MS',
-    'withAnalyzeTimeout',
-    'await readErrorMessage(error',
+    'supabase.auth.getSession()',
+    'Authorization: `Bearer ${accessToken}`',
+    'apikey: SUPABASE_PUBLISHABLE_KEY',
+    'TEMPLATE_ANALYZER_URL',
+    'signal: controller.signal',
+    'await parseAnalyzerResponse(response)',
   ]) {
-    if (!source.includes(marker)) failures.push(`Template import client recovery is missing: ${marker}`);
+    if (!source.includes(marker)) failures.push(`Template import explicit-auth transport is missing: ${marker}`);
+  }
+  if (source.includes("supabase.functions.invoke('buklod-report-template-import-v1'")) {
+    failures.push('Template analyzer upload must use the explicit authenticated fetch path, not implicit functions.invoke auth.');
   }
 }
 
