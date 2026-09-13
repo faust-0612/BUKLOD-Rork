@@ -108,26 +108,40 @@ export default function BuklodSpecialCharacterSeries({
   useEffect(() => {
     if (!selectedId || !userId) {
       setCollectibles([]);
+      setCollectibleLoading(false);
       return;
     }
+
     let mounted = true;
     setCollectibleLoading(true);
+
     /* Compatibility with the recovered R40 server contract. Missing RPC is a
      * graceful no-data state; Character selection/progression remains V2-safe. */
-    void (supabase as any).rpc('get_my_buklod_special_collectibles_v2', {
-      p_character_id: selectedId,
-    }).then(({ data, error }: { data?: any; error?: any }) => {
-      if (!mounted) return;
-      if (error) {
-        setCollectibles([]);
-        return;
+    void (async () => {
+      try {
+        const { data, error } = await (supabase as any).rpc(
+          'get_my_buklod_special_collectibles_v2',
+          { p_character_id: selectedId },
+        );
+
+        if (!mounted) return;
+        if (error) {
+          setCollectibles([]);
+          return;
+        }
+
+        const rows = Array.isArray(data?.collectibles) ? data.collectibles : [];
+        setCollectibles(rows as CollectibleRow[]);
+      } catch {
+        if (mounted) setCollectibles([]);
+      } finally {
+        if (mounted) setCollectibleLoading(false);
       }
-      const rows = Array.isArray(data?.collectibles) ? data.collectibles : [];
-      setCollectibles(rows as CollectibleRow[]);
-    }).finally(() => {
-      if (mounted) setCollectibleLoading(false);
-    });
-    return () => { mounted = false; };
+    })();
+
+    return () => {
+      mounted = false;
+    };
   }, [selectedId, userId]);
 
   const choose = async () => {
