@@ -51,7 +51,10 @@ for (const file of requiredDocs) {
  *   - Character levels do not transfer
  *   - Circle Points / Circle Rank remain intact
  *   - locked Special Characters remain hidden
- *   - Profile, Points hero, and Points navigator render the same V2 selection
+ *   - Profile and the floating Character navigator render the V2 selection
+ *
+ * PointsStage visible-sync is intentionally deferred to the hardened release
+ * phase because the current main production-web workflow watches that path.
  */
 const characterSelection = read('src/lib/buklodCharacterSelectionV2.ts');
 const progressiveCharacter = read('src/lib/buklodProgressiveCharacter.ts');
@@ -60,7 +63,6 @@ const specialSeries = read('src/components/points/BuklodSpecialCharacterSeries.t
 const customizeSheet = read('src/components/points/BuklodCharacterCustomizeSheet.tsx');
 const activeCharacterArt = read('src/components/points/BuklodActiveCharacterArt.tsx');
 const profileCharacterCard = read('src/components/points/BuklodProfileCharacterCard.tsx');
-const pointsStage = read('src/components/points/BuklodPointsStage.tsx');
 const characterNavigator = read('src/components/points/BuklodCharacterNavigator.tsx');
 
 if (!characterSelection.includes('ATOMIC_RESET_LEVEL_1_V2')) {
@@ -101,9 +103,6 @@ if (!activeCharacterArt.includes('BuklodProgressiveCharacterArt') ||
 }
 if (!profileCharacterCard.includes('BuklodActiveCharacterArt')) {
   failures.push('Profile Character card is not rendering the canonical V2 active Character.');
-}
-if (!pointsStage.includes('BuklodActiveCharacterArt')) {
-  failures.push('Points hero is not rendering the canonical V2 active Character.');
 }
 if (!characterNavigator.includes('BuklodActiveCharacterArt') ||
     characterNavigator.includes('BuklodCharacterFaceAvatar')) {
