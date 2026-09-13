@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 
-import BuklodCharacterLayeredArt from '@/components/points/BuklodCharacterLayeredArt';
 import BuklodProgressiveCharacterArt from '@/components/points/BuklodProgressiveCharacterArt';
 import { useAuth } from '@/providers/AuthProvider';
 import {
@@ -26,11 +25,8 @@ type Props = {
 };
 
 export default function BuklodActiveCharacterArt({
-  fallbackCharacter,
   height,
   viewportWidth,
-  showStage = false,
-  showEffects = false,
 }: Props) {
   const { session } = useAuth();
   const userId = session?.user?.id ?? null;
@@ -91,17 +87,15 @@ export default function BuklodActiveCharacterArt({
     );
   }
 
-  /* Presentation-only compatibility fallback. It preserves the current layered
-   * renderer whenever V2 state cannot be loaded; it never becomes selection or
-   * progression authority. */
+  /* Fail closed to the canonical Character system. Never resurrect the retired
+   * layered/wardrobe renderer when server-backed V2 state is unavailable.
+   * Keep the frame height stable while the canonical state loads or retries. */
   return (
-    <BuklodCharacterLayeredArt
-      body={fallbackCharacter.body}
-      equipment={fallbackCharacter.equipment}
-      height={height}
-      viewportWidth={viewportWidth}
-      showStage={showStage}
-      showEffects={showEffects}
+    <View
+      pointerEvents="none"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={[styles.frame, viewportWidth ? { width: viewportWidth } : null, { height }]}
     />
   );
 }
