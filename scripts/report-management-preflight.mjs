@@ -9,6 +9,7 @@ const required = [
   'supabase/migrations/20260912_buklod_report_management_loop_r1.sql',
   'supabase/migrations/20260913_buklod_report_management_loop_hardening_r1.sql',
   'supabase/functions/buklod-report-template-import-v1/index.ts',
+  'supabase/functions/buklod-report-template-import-v1/docx-structure.ts',
   'src/lib/buklodReportTemplateImport.ts',
   'src/lib/buklodReportAssetBase64.web.ts',
   'src/lib/buklodReportConsolidation.ts',
@@ -38,7 +39,8 @@ if (exists('supabase/migrations/20260913_buklod_report_management_loop_hardening
 if (exists('supabase/functions/buklod-report-template-import-v1/index.ts')) {
   const source = read('supabase/functions/buklod-report-template-import-v1/index.ts');
   for (const marker of [
-    'ANALYZER_VERSION = "v7"',
+    'ANALYZER_VERSION = "v8"',
+    'buildDocxStructureDraft',
     'function inferMimeType',
     'application/octet-stream',
     'multipart/form-data',
@@ -46,26 +48,16 @@ if (exists('supabase/functions/buklod-report-template-import-v1/index.ts')) {
     'fileValue instanceof File',
     'responseJsonSchema',
     'type: "object"',
-    'mimeType === "application/pdf" || mimeType.startsWith("image/")',
-    'STRICT FILLABLE-FIELD RULE',
-    'Do NOT convert every visible label or line of text into an input field',
-    'When uncertain whether text is static or fillable, prefer STATIC and omit the field',
-    'Detect ONLY fields actually present',
     'REPORT_TEMPLATE_FILE_ANALYZE_STARTED',
     'REPORT_TEMPLATE_FILE_ANALYZE_FAILED',
+    'REPORT_TEMPLATE_DOCX_STRUCTURE_USED',
     'REPORT_TEMPLATE_AI_ATTEMPT',
-    'AI_TOTAL_TIMEOUT_MS = 52_000',
-    'AI_ATTEMPT_TIMEOUT_MS = 20_000',
-    'TRANSIENT_STATUSES',
-    'callGeminiWithFallback',
-    'gemini-3.7-flash',
-    'gemini-3.6-flash',
-    'gemini-3.5-flash',
+    'provider: "docx-structure"',
     'target_id: args.requestId',
     'request_id: requestId',
     'analyzer_version: ANALYZER_VERSION',
   ]) {
-    if (!source.includes(marker)) failures.push(`Template analyzer v7 hardening is missing: ${marker}`);
+    if (!source.includes(marker)) failures.push(`Template analyzer v8 hardening is missing: ${marker}`);
   }
   if (/from\s+["']npm:unpdf/i.test(source) || source.includes('getDocumentProxy(')) {
     failures.push('PDF report forms must go directly to multimodal analysis instead of local Edge PDF parsing.');
@@ -75,6 +67,21 @@ if (exists('supabase/functions/buklod-report-template-import-v1/index.ts')) {
   }
   if (source.includes('target_id: null')) {
     failures.push('Template analyzer audit rows must use a real request UUID because audit target_id is NOT NULL.');
+  }
+}
+
+if (exists('supabase/functions/buklod-report-template-import-v1/docx-structure.ts')) {
+  const source = read('supabase/functions/buklod-report-template-import-v1/docx-structure.ts');
+  for (const marker of [
+    'buildDocxStructureDraft',
+    'word/document.xml',
+    'blankMarkerIndex',
+    'explicitColonBlank',
+    'tableRows',
+    'chooseHeaderRow',
+    'Generated directly from the Word document structure without AI',
+  ]) {
+    if (!source.includes(marker)) failures.push(`DOCX structure parser is missing: ${marker}`);
   }
 }
 
