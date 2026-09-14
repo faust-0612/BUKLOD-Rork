@@ -46,6 +46,14 @@ function requireTokens(rel, tokens) {
   return text;
 }
 
+function forbidTokens(rel, tokens) {
+  const text = read(rel);
+  for (const token of tokens) {
+    if (text.includes(token)) failures.push(`${rel} contains forbidden legacy token: ${token}`);
+  }
+  return text;
+}
+
 function requireOneOf(rel, alternatives, label) {
   const text = read(rel);
   if (!alternatives.some((token) => text.includes(token))) {
@@ -72,17 +80,37 @@ function walk(dir) {
 console.log('BUKLOD CHARACTER RELEASE CONTRACT — R31 + R40');
 console.log('================================================');
 
-// R31 current compatible family: progression remains independent from Circle Rank,
-// supports all 20 character levels, exact approved core art, and explicit activation.
-requireTokens('src/components/points/BuklodProgressiveCharacterSelector.tsx', [
+/*
+ * BUKLOD_CHARACTER_R31_R40_LAYOUT_CONTRACT_V3
+ *
+ * Layout is now part of the release contract. A source tree that contains the
+ * assets and V2 state logic but silently falls back to the simplified Character
+ * layout MUST fail release. This removes the old dual-source/recovery-overlay gap.
+ */
+const r31 = requireTokens('src/components/points/BuklodProgressiveCharacterSelector.tsx', [
+  'BUKLOD_CHARACTER_R31_LAYOUT_LOCK_V3',
+  'Choose Your BUKLOD Character',
+  'LEVEL 1-20 PROGRESSION',
+  'COLLECTIBLES -',
   'Browse all 20 levels',
   'Use This Character',
+  'nestedScrollEnabled',
+  'state.character_level',
+  'state.character_points_since_selection',
 ]);
+if (/levelForPoints\s*\(\s*lifetimePoints\s*\)/.test(r31)) {
+  failures.push('R31 legacy lifetime-points transferable Character leveling returned. V2/server Character level must remain authoritative.');
+}
+if (/lifetimePoints\s*[:=]/.test(r31)) {
+  failures.push('R31 selector regained lifetimePoints as a progression authority/input. Layout may use V2 state only.');
+}
+
 requireTokens('src/lib/buklodProgressiveCharacter.ts', [
   'PROGRESSIVE_LEVEL_THRESHOLDS',
   'collectibleNames',
   'loadProgressiveCharacter',
   'saveProgressiveCharacter',
+  'setMyBuklodCharacterActiveV2',
   'ProgressiveCharacterId',
   'loadProgressiveShowcase',
   'subscribeProgressiveShowcase',
@@ -90,15 +118,23 @@ requireTokens('src/lib/buklodProgressiveCharacter.ts', [
 mustExist('src/components/points/BuklodProgressiveCharacterArt.tsx');
 mustExist('src/components/points/BuklodProfileCharacterCard.tsx');
 
-// The Customize surface must expose both the R31 progressive selector and the R40 journey.
 requireTokens('src/components/points/BuklodCharacterCustomizeSheet.tsx', [
+  'BUKLOD_CHARACTER_R31_R40_LAYOUT_HOST_LOCK_V3',
   'BuklodProgressiveCharacterSelector',
   'BuklodSpecialCharacterSeries',
+  'nestedScrollEnabled',
+  'getMyBuklodCharacterSelectionV2',
 ]);
 
-// R40 premium special-character journey and server-backed collectible/progression contract.
-requireTokens('src/components/points/BuklodSpecialCharacterSeries.tsx', [
+const r40 = requireTokens('src/components/points/BuklodSpecialCharacterSeries.tsx', [
+  'BUKLOD_CHARACTER_R40_LAYOUT_LOCK_V3',
   'Special Character Journey',
+  'More than a character. A mission.',
+  'LEVEL 1 - 20 JOURNEY',
+  'COLLECTIBLES & BADGES',
+  'nestedScrollEnabled',
+  'visible_special_character_ids',
+  'setMyBuklodCharacterActiveV2',
   'get_my_buklod_special_collectibles_v2',
   'set_my_buklod_special_character_pursuit_v1',
   'ACE',
@@ -108,6 +144,9 @@ requireTokens('src/components/points/BuklodSpecialCharacterSeries.tsx', [
   'VHEN',
   'TRUDICE',
 ]);
+if (r40.includes("rpc('set_my_buklod_special_character_active_v1'")) {
+  failures.push('Legacy R40 active-character RPC is authoritative again. Activation must use setMyBuklodCharacterActiveV2.');
+}
 requireOneOf('src/components/points/BuklodSpecialCharacterSeries.tsx', ['JAVVO', 'JAWO', 'Jawo'], 'Jawo identity');
 requireOneOf('src/components/points/BuklodSpecialCharacterSeries.tsx', ['ELLUSUR', 'ELESUR'], 'ELESUR identity');
 
@@ -116,21 +155,16 @@ for (const id of SPECIAL_IDS) {
   if (!registry.includes(`${id}_hero.jpg`)) failures.push(`R40 registry is missing ${id}_hero.jpg`);
   for (let level = 1; level <= 20; level += 1) {
     const suffix = String(level).padStart(2, '0');
-    if (!registry.includes(`${id}_level_${suffix}.jpg`)) {
-      failures.push(`R40 registry is missing ${id}_level_${suffix}.jpg`);
-    }
+    if (!registry.includes(`${id}_level_${suffix}.jpg`)) failures.push(`R40 registry is missing ${id}_level_${suffix}.jpg`);
   }
 }
 
-// Exact five approved R31 strips are immutable release anchors. A future redesign must
-// deliberately version this contract instead of silently replacing them.
 for (const [rel, expected] of Object.entries(CORE_ASSETS)) {
   if (!mustExist(rel)) continue;
   const actual = sha256(rel);
   if (actual !== expected) failures.push(`R31 core art changed: ${rel} expected=${expected} actual=${actual}`);
 }
 
-// Require the full R40 special asset family: 8 characters × (1 hero + 20 levels) = 168.
 const specialRoot = full('assets/images/characters/special/batch1');
 if (!fs.existsSync(specialRoot)) {
   failures.push('Missing R40 special asset folder: assets/images/characters/special/batch1');
@@ -149,8 +183,6 @@ if (!fs.existsSync(specialRoot)) {
   info.push(`R40 special JPG count: ${jpgs.length}`);
 }
 
-// Optional second gate: prove the exported production bundle contains the preserved
-// R31/R40 behavior. This prevents a correct source tree from publishing a stale bundle.
 if (distDir) {
   if (!fs.existsSync(distDir)) {
     failures.push(`Compiled bundle directory does not exist: ${path.relative(ROOT, distDir)}`);
@@ -163,12 +195,17 @@ if (distDir) {
       .join('\n');
 
     for (const token of [
-      'Browse all 20 levels',
+      'Choose Your BUKLOD Character',
+      'LEVEL 1-20 PROGRESSION',
+      'COLLECTIBLES -',
       'Use This Character',
       'Special Character Journey',
+      'More than a character. A mission.',
+      'LEVEL 1 - 20 JOURNEY',
+      'COLLECTIBLES & BADGES',
       'get_my_buklod_special_collectibles_v2',
     ]) {
-      if (!compiled.includes(token)) failures.push(`Compiled bundle is missing R31/R40 token: ${token}`);
+      if (!compiled.includes(token)) failures.push(`Compiled bundle is missing rich R31/R40 layout token: ${token}`);
     }
     if (!(compiled.includes('JAVVO') || compiled.includes('JAWO') || compiled.includes('Jawo'))) {
       failures.push('Compiled bundle is missing Jawo special-character identity.');
@@ -185,8 +222,8 @@ for (const failure of failures) console.error(`FAIL: ${failure}`);
 
 if (failures.length) {
   console.error(`\nCHARACTER RELEASE LOCK FAILED with ${failures.length} blocker(s).`);
-  console.error('DEPLOYMENT MUST STOP. Restore/forward-port the canonical R31 + R40 package before publishing.');
+  console.error('DEPLOYMENT MUST STOP. Restore/forward-port the canonical rich R31 + R40 layout before publishing.');
   process.exit(1);
 }
 
-console.log('\nCHARACTER RELEASE LOCK PASSED — canonical R31 + R40 package is preserved.');
+console.log('\nCHARACTER RELEASE LOCK PASSED — canonical rich R31 + R40 layout and assets are preserved.');
