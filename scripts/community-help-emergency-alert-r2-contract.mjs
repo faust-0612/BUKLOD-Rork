@@ -47,6 +47,7 @@ requireAll('src/lib/buklodEmergencyAlertMode.ts', [
   "kind: 'community_emergency_test'",
   'No nearby BUKLOD user was alerted.',
   "interruptionLevel: Platform.OS === 'ios' ? 'timeSensitive' : undefined",
+  "return 'ACKNOWLEDGED' as const",
 ]);
 
 requireAll('src/components/BuklodEmergencyAlertModeCard.tsx', [
@@ -68,9 +69,9 @@ requireAll('src/components/BuklodPublicLocationChips.tsx', [
 requireAll('src/providers/NotificationProvider.tsx', [
   'ensureBuklodEmergencyChannel',
   'registerBuklodEmergencyNotificationCategory',
+  'emergencyResponseTypeForAction',
   "kind==='community_emergency'&&data?.help_request_id",
   "p_response_type:responseType",
-  "return 'ACKNOWLEDGED' as const",
 ]);
 
 requireAll('app.config.js', [
