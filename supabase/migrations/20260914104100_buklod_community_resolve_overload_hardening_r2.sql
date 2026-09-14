@@ -4,7 +4,9 @@
 
 begin;
 
-create or replace function public.resolve_buklod_community_chain_v1(
+drop function if exists public.resolve_buklod_community_chain_v1(uuid,uuid);
+
+create function public.resolve_buklod_community_chain_v1(
   p_post_id uuid,
   p_helpful_dugtong_id uuid
 )
