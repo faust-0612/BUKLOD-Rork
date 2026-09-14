@@ -73,36 +73,19 @@ type NavItem = {
   label: string;
 };
 
+/*
+ * BUKLOD_PUBLIC_COMMUNITY_ONLY_NAV_R1
+ * Public/personal navigation now has one canonical surface: Community Wall.
+ * Home, Connect, Prayer, and Notifications are intentionally removed from
+ * the public bottom navigation. Their underlying routes remain available to
+ * internal/deep-link flows. Connect is entered from inside Community Wall.
+ */
 const BASE_ITEMS: NavItem[] = [
-  {
-    key: 'home',
-    route: '/home',
-    icon: 'home-variant-outline',
-    label: 'Home',
-  },
-  {
-    key: 'connect',
-    route: '/messages',
-    icon: 'message-processing-outline',
-    label: 'Connect',
-  },
   {
     key: 'community',
     route: '/buklod',
     icon: 'account-group-outline',
     label: 'Community',
-  },
-  {
-    key: 'prayer',
-    route: '/prayer',
-    icon: 'hands-pray',
-    label: 'Prayer',
-  },
-  {
-    key: 'notifications',
-    route: '/notifications',
-    icon: 'bell-outline',
-    label: 'Notifications',
   },
 ];
 
