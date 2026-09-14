@@ -7,7 +7,6 @@ import React, {
 } from 'react';
 
 import {
-  ActivityIndicator,
   Alert,
   Image,
   Modal,
@@ -64,9 +63,6 @@ import {
   loadAllMaritesStories,
   loadMaritesStories,
   mergeMaritesStories,
-  MARITES_CARD_HEIGHT,
-  MARITES_CARD_WIDTH,
-  MARITES_CARD_FOOTER_HEIGHT,
   MARITES_MAX_CHARS,
   MARITES_MAX_PHOTOS,
   MARITES_QUICK_EMOJI,
@@ -110,6 +106,55 @@ type MaritesComposerPhoto = {
   uri: string;
 };
 
+/*
+ * MARITES_COMPACT_STABLE_R20
+ *
+ * Keep the lightweight story strip warm across Community Wall remounts.
+ * Stories are short-lived already, so a small freshness window prevents
+ * repeated remote/media signing work without turning this into durable state.
+ */
+const MARITES_COMPACT_CARD_WIDTH = 124;
+const MARITES_COMPACT_CARD_HEIGHT = 168;
+const MARITES_COMPACT_FOOTER_HEIGHT = 32;
+const MARITES_MEMORY_FRESH_MS = 20_000;
+const MARITES_REFRESH_TIMEOUT_MS = 8_000;
+
+type MaritesMemoryEntry = {
+  rows: MaritesStory[];
+  remoteUpdatedAt: number;
+};
+
+const maritesMemory = new Map<string, MaritesMemoryEntry>();
+const maritesRefreshes = new Map<string, Promise<MaritesStory[]>>();
+
+function maritesMemoryKey(
+  locationScopeId: string | null | undefined,
+  userId: string | null | undefined
+) {
+  return `${locationScopeId || 'public'}:${userId || 'anonymous'}`;
+}
+
+async function withMaritesRefreshTimeout(
+  promise: Promise<MaritesStory[]>
+) {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<MaritesStory[]>((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new Error('Marites shared refresh timed out.'));
+        }, MARITES_REFRESH_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
+
 function storyEditPhotos(story: MaritesStory): CommunityEditPhoto[] {
   const uris = getMaritesStoryPhotos(story);
   const paths = story.photo_paths ?? [];
@@ -128,72 +173,65 @@ function createStyles(
 ) {
   return StyleSheet.create({
     section: {
-      marginTop: 4,
-      marginBottom: 12,
+      marginTop: 2,
+      marginBottom: 8,
     },
     headingRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: 8,
+      gap: 8,
+      marginBottom: 6,
+    },
+    headingActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      gap: 7,
+      flexShrink: 1,
     },
     title: {
-      fontSize: 10,
+      fontSize: 9,
       fontWeight: '900',
-      letterSpacing: 0.8,
+      letterSpacing: 0.7,
       color: colors.greenDark,
     },
     hint: {
-      fontSize: 9,
+      fontSize: 8,
       fontWeight: '700',
       color: colors.muted,
+      flexShrink: 1,
+    },
+    shareButton: {
+      minHeight: 28,
+      paddingHorizontal: 9,
+      paddingVertical: 4,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: colors.line,
+      backgroundColor: `${colors.green}10`,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 3,
+      flexShrink: 0,
+    },
+    shareButtonText: {
+      fontSize: 9,
+      fontWeight: '900',
+      color: colors.greenDark,
     },
     row: {
-      paddingRight: 12,
-      gap: 10,
+      paddingRight: 8,
+      gap: 7,
     },
     cardShell: {
       flexShrink: 0,
     },
-    addCard: {
-      width: MARITES_CARD_WIDTH,
-      height: MARITES_CARD_HEIGHT,
-      borderRadius: 14,
-      borderWidth: 1.5,
-      borderStyle: 'dashed',
-      borderColor: colors.green,
-      backgroundColor: colors.white,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: 10,
-      paddingVertical: 12,
-    },
-    addIcon: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: `${colors.green}18`,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: 8,
-    },
-    addLabel: {
-      fontSize: 10,
-      fontWeight: '900',
-      color: colors.greenDark,
-      textAlign: 'center',
-    },
-    addMeta: {
-      marginTop: 4,
-      fontSize: 8,
-      fontWeight: '700',
-      color: colors.muted,
-      textAlign: 'center',
-    },
     storyCard: {
-      width: MARITES_CARD_WIDTH,
-      height: MARITES_CARD_HEIGHT,
-      borderRadius: 14,
+      width: MARITES_COMPACT_CARD_WIDTH,
+      height: MARITES_COMPACT_CARD_HEIGHT,
+      borderRadius: 12,
       borderWidth: 1,
       borderColor: colors.line,
       backgroundColor: `${colors.green}10`,
@@ -201,12 +239,12 @@ function createStyles(
     },
     cardMenuBtn: {
       position: 'absolute',
-      top: 6,
-      right: 6,
+      top: 5,
+      right: 5,
       zIndex: 4,
-      width: 28,
-      height: 28,
-      borderRadius: 14,
+      width: 24,
+      height: 24,
+      borderRadius: 12,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: 'rgba(0,0,0,0.42)',
@@ -216,7 +254,7 @@ function createStyles(
       top: 0,
       left: 0,
       right: 0,
-      bottom: MARITES_CARD_FOOTER_HEIGHT,
+      bottom: MARITES_COMPACT_FOOTER_HEIGHT,
       backgroundColor: colors.line,
     },
     mediaFill: {
@@ -225,22 +263,22 @@ function createStyles(
     emojiFillText: {
       width: '100%',
       height: '100%',
-      fontSize: 72,
-      lineHeight: 80,
+      fontSize: 56,
+      lineHeight: 64,
       textAlign: 'center',
       textAlignVertical: 'center',
       includeFontPadding: false,
     },
     textFill: {
       ...StyleSheet.absoluteFill,
-      paddingHorizontal: 10,
-      paddingTop: 10,
-      paddingBottom: 40,
+      paddingHorizontal: 8,
+      paddingTop: 8,
+      paddingBottom: 34,
       justifyContent: 'center',
     },
     bodyFill: {
-      fontSize: 12,
-      lineHeight: 16,
+      fontSize: 10.5,
+      lineHeight: 14,
       fontWeight: '700',
       color: colors.text,
       textAlign: 'center',
@@ -250,14 +288,14 @@ function createStyles(
       left: 0,
       right: 0,
       top: 0,
-      paddingHorizontal: 10,
-      paddingTop: 10,
-      paddingBottom: 52,
+      paddingHorizontal: 8,
+      paddingTop: 8,
+      paddingBottom: 44,
       justifyContent: 'flex-end',
     },
     photoCaptionText: {
-      fontSize: 11,
-      lineHeight: 14,
+      fontSize: 9.5,
+      lineHeight: 12,
       fontWeight: '800',
       color: '#FFFFFF',
       textShadowColor: 'rgba(0,0,0,0.65)',
@@ -271,9 +309,10 @@ function createStyles(
       bottom: 0,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 6,
-      paddingHorizontal: 8,
-      paddingVertical: 7,
+      gap: 4,
+      minHeight: MARITES_COMPACT_FOOTER_HEIGHT,
+      paddingHorizontal: 6,
+      paddingVertical: 4,
       backgroundColor: 'rgba(255,255,255,0.94)',
       borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: colors.line,
@@ -284,7 +323,7 @@ function createStyles(
     },
     authorName: {
       flex: 1,
-      fontSize: 9,
+      fontSize: 8,
       fontWeight: '900',
       color: colors.text,
     },
@@ -292,7 +331,7 @@ function createStyles(
       color: '#FFFFFF',
     },
     age: {
-      fontSize: 8,
+      fontSize: 7,
       fontWeight: '700',
       color: colors.muted,
     },
@@ -300,10 +339,10 @@ function createStyles(
       color: 'rgba(255,255,255,0.82)',
     },
     reactionPill: {
-      fontSize: 8,
+      fontSize: 7,
       fontWeight: '800',
       color: colors.greenDark,
-      marginLeft: 2,
+      marginLeft: 1,
     },
     reactionPillOnPhoto: {
       color: '#FFFFFF',
@@ -435,17 +474,12 @@ function createStyles(
       fontSize: 10,
       fontWeight: '700',
     },
-    loading: {
-      minHeight: MARITES_CARD_HEIGHT,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
     emptyNote: {
-      marginTop: 6,
-      fontSize: 9,
+      marginTop: 5,
+      fontSize: 8.5,
       fontWeight: '600',
       color: colors.muted,
-      lineHeight: 13,
+      lineHeight: 12,
     },
     backdrop: {
       flex: 1,
@@ -726,7 +760,7 @@ function MaritesStoryCard({
           userId={story.user_id}
           uri={story.avatar_url}
           name={story.author_name}
-          size={24}
+          size={20}
         />
         <Text
           numberOfLines={1}
@@ -772,12 +806,15 @@ export default function BuklodMaritesBoard({
     () => createStyles(colors),
     [colors]
   );
+  const cacheKey = useMemo(
+    () => maritesMemoryKey(locationScopeId, user?.id),
+    [locationScopeId, user?.id]
+  );
 
   const [stories, setStories] = useState<
     MaritesStory[]
-  >([]);
-  const [loading, setLoading] = useState(false);
-  const hasLoadedRef = useRef(false);
+  >(() => maritesMemory.get(cacheKey)?.rows ?? []);
+  const loadGenerationRef = useRef(0);
   const [composerOpen, setComposerOpen] =
     useState(false);
   const [viewStory, setViewStory] =
@@ -802,104 +839,109 @@ export default function BuklodMaritesBoard({
   const [photoEditorInitialTool, setPhotoEditorInitialTool] =
     useState<BuklodPhotoEditorTool>('draw');
 
-  const load = useCallback(async () => {
-    /*
-     * MARITES_LOCAL_FIRST_R19
-     *
-     * Never let the first Marites render wait forever for
-     * a remote/community request. Show the cached local board
-     * first, then refresh the shared board in the background.
-     */
-    if (!hasLoadedRef.current) {
-      setLoading(false);
+  const load = useCallback(async (forceRemote = false) => {
+    const generation = ++loadGenerationRef.current;
+    const userId = user?.id ?? null;
+
+    if (!userId) {
+      setStories([]);
+      return;
     }
 
-    let localRows: MaritesStory[] = [];
+    const cached = maritesMemory.get(cacheKey);
 
-    try {
-      localRows = filterMaritesStoriesForViewer(
-        await loadMaritesStories(),
-        user?.id ?? null
+    if (cached) {
+      const visibleCached = filterMaritesStoriesForViewer(
+        cached.rows,
+        userId
       );
 
-      setStories(localRows);
-    } catch (localError) {
-      console.warn(
-        'Marites Story local cache:',
-        String(
-          (localError as Error)?.message ??
-            localError
-        )
-      );
+      setStories(visibleCached);
 
-      if (!hasLoadedRef.current) {
-        setStories([]);
+      if (
+        !forceRemote &&
+        cached.remoteUpdatedAt > 0 &&
+        Date.now() - cached.remoteUpdatedAt <
+          MARITES_MEMORY_FRESH_MS
+      ) {
+        return;
+      }
+    } else {
+      try {
+        const localRows = filterMaritesStoriesForViewer(
+          await loadMaritesStories(),
+          userId
+        );
+
+        if (generation !== loadGenerationRef.current) {
+          return;
+        }
+
+        setStories(localRows);
+        maritesMemory.set(cacheKey, {
+          rows: localRows,
+          remoteUpdatedAt: 0,
+        });
+      } catch (localError) {
+        console.warn(
+          'Marites Story local cache:',
+          String(
+            (localError as Error)?.message ??
+              localError
+          )
+        );
       }
     }
 
-    /*
-     * Local cache is enough to finish the initial UI load.
-     * Remote data is a background enhancement, not a spinner gate.
-     */
-    if (!hasLoadedRef.current) {
-      hasLoadedRef.current = true;
-      setLoading(false);
+    let refreshPromise =
+      !forceRemote
+        ? maritesRefreshes.get(cacheKey)
+        : undefined;
+
+    if (!refreshPromise) {
+      const nextPromise = loadAllMaritesStories(
+        locationScopeId,
+        userId
+      );
+
+      refreshPromise = nextPromise;
+      maritesRefreshes.set(cacheKey, nextPromise);
+
+      void nextPromise.then(
+        () => {
+          if (maritesRefreshes.get(cacheKey) === nextPromise) {
+            maritesRefreshes.delete(cacheKey);
+          }
+        },
+        () => {
+          if (maritesRefreshes.get(cacheKey) === nextPromise) {
+            maritesRefreshes.delete(cacheKey);
+          }
+        }
+      );
     }
 
     try {
-      const rows =
-        await new Promise<MaritesStory[]>(
-          (resolve, reject) => {
-            let settled = false;
+      const rows = await withMaritesRefreshTimeout(
+        refreshPromise
+      );
 
-            const timeoutId = setTimeout(
-              () => {
-                if (settled) {
-                  return;
-                }
+      if (generation !== loadGenerationRef.current) {
+        return;
+      }
 
-                settled = true;
-                reject(
-                  new Error(
-                    'Marites shared refresh timed out.'
-                  )
-                );
-              },
-              8000
-            );
+      const visibleRows = filterMaritesStoriesForViewer(
+        rows,
+        userId
+      );
 
-            void loadAllMaritesStories(
-              locationScopeId,
-              user?.id ?? null
-            ).then(
-              (remoteRows) => {
-                if (settled) {
-                  return;
-                }
-
-                settled = true;
-                clearTimeout(timeoutId);
-                resolve(remoteRows);
-              },
-              (remoteError) => {
-                if (settled) {
-                  return;
-                }
-
-                settled = true;
-                clearTimeout(timeoutId);
-                reject(remoteError);
-              }
-            );
-          }
-        );
-
-      setStories(rows);
+      maritesMemory.set(cacheKey, {
+        rows: visibleRows,
+        remoteUpdatedAt: Date.now(),
+      });
+      setStories(visibleRows);
     } catch (remoteError) {
-      /*
-       * Keep cached stories visible when offline or when
-       * the shared/community request is unavailable.
-       */
+      /* Keep warm/local stories visible when refresh is unavailable. */
       console.warn(
         'Marites Story shared refresh:',
         String(
@@ -907,15 +949,33 @@ export default function BuklodMaritesBoard({
             remoteError
         )
       );
-    } finally {
-      hasLoadedRef.current = true;
-      setLoading(false);
     }
-  }, [locationScopeId, user?.id]);
+  }, [cacheKey, locationScopeId, user?.id]);
 
   useEffect(() => {
     void load();
+
+    return () => {
+      loadGenerationRef.current += 1;
+    };
   }, [load]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      return;
+    }
+
+    const current = maritesMemory.get(cacheKey);
+
+    if (!current && stories.length === 0) {
+      return;
+    }
+
+    maritesMemory.set(cacheKey, {
+      rows: stories,
+      remoteUpdatedAt: current?.remoteUpdatedAt ?? 0,
+    });
+  }, [cacheKey, stories, user?.id]);
 
   const closeStoryViewer = useCallback(() => {
     setStoryZoomed(false);
@@ -1413,7 +1473,7 @@ export default function BuklodMaritesBoard({
       }
 
       resetComposer();
-      void load();
+      void load(true);
     } catch (error) {
       Alert.alert(
         'Marites Story',
@@ -1461,79 +1521,66 @@ export default function BuklodMaritesBoard({
         <Text style={styles.title}>
           MARITES STORY
         </Text>
-        <Text style={styles.hint}>
-          Tap to fit · Long press react
-        </Text>
+        <View style={styles.headingActions}>
+          <Text
+            numberOfLines={1}
+            style={styles.hint}
+          >
+            Tap · Hold react
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Share Marites update"
+            hitSlop={6}
+            onPress={() => setComposerOpen(true)}
+            style={({ pressed }) => [
+              styles.shareButton,
+              pressed && { opacity: 0.72 },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="plus"
+              size={13}
+              color={colors.green}
+            />
+            <Text style={styles.shareButtonText}>
+              Share
+            </Text>
+          </Pressable>
+        </View>
       </View>
 
-      {loading ? (
-        <View style={styles.loading}>
-          <ActivityIndicator
-            color={colors.green}
-          />
-        </View>
-      ) : (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={styles.row}
-        >
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.row}
+      >
+        {stories.map((story, index) => (
           <BuklodFocusFadeUp
-            delay={0}
-            duration={240}
-            fromY={8}
-            fromOpacity={0.78}
+            key={story.id}
+            delay={Math.min(index, 8) * 30}
+            duration={220}
+            fromY={6}
+            fromOpacity={0.82}
             style={styles.cardShell}
           >
-            <Pressable
+            <MaritesStoryCard
+              story={story}
+              colors={colors}
               onPress={() =>
-                setComposerOpen(true)
+                openStoryViewer(story)
               }
-              style={styles.addCard}
-            >
-              <View style={styles.addIcon}>
-                <MaterialCommunityIcons
-                  name="plus"
-                  size={22}
-                  color={colors.green}
-                />
-              </View>
-              <Text style={styles.addLabel}>
-                Share update
-              </Text>
-              <Text style={styles.addMeta}>
-                Text · emoji · photos
-              </Text>
-            </Pressable>
+              menu={storyOwnerMenu(
+                story,
+                styles.cardMenuBtn
+              )}
+            />
           </BuklodFocusFadeUp>
+        ))}
+      </ScrollView>
 
-          {stories.map((story, index) => (
-            <BuklodFocusFadeUp
-              key={story.id}
-              delay={Math.min(index + 1, 8) * 35}
-              duration={240}
-              fromY={8}
-              fromOpacity={0.78}
-              style={styles.cardShell}
-            >
-              <MaritesStoryCard
-                story={story}
-                colors={colors}
-                onPress={() =>
-                  openStoryViewer(story)
-                }
-                menu={storyOwnerMenu(
-                  story,
-                  styles.cardMenuBtn
-                )}
-              />
-            </BuklodFocusFadeUp>
-          ))}
-        </ScrollView>
-      )}
-
-      {!loading && stories.length === 0 && (
+      {stories.length === 0 && (
         <Text style={styles.emptyNote}>
           Be the first to share a quick update, or wait
           for community members to post.
