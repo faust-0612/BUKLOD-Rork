@@ -24,12 +24,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run production_web_deploy.yml --repo faust-0612/BUKLOD-Rork --ref main
 
-      - name: Dispatch vetted production Android OTA workflow
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh workflow run production_android_ota.yml --repo faust-0612/BUKLOD-Rork --ref main
-
+      # MANUAL_LOGIN_GATE_RELEASE_20260914
+      # Phase 1 is intentionally Web-only. Android OTA is dispatched only
+      # after the Web production workflow and live verification succeed.
       - name: Summary
         run: |
-          echo 'BUKLOD Organization Setup Hub R24 production workflows dispatched.'
-          echo 'Web and Android will use the existing production QA/safety gates.'
+          echo 'BUKLOD manual login-gate release Phase 1 dispatched.'
+          echo 'Web uses the existing production QA/safety gates.'
+          echo 'Android OTA remains intentionally pending until Web is verified.'
