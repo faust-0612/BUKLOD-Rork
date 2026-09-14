@@ -61,12 +61,12 @@ function clamp(value: number, min: number, max: number) {
 }
 
 /*
- * BUKLOD_WEB_PROFILE_AVATAR_R23_MOBILE_TOUCH
+ * BUKLOD_WEB_PROFILE_AVATAR_R24_MOBILE_TOUCH
  *
  * Web uses a lightweight avatar instead of the continuously animated native
- * GestureDetector version. R23 restores drag specifically for phone/small web
- * with PanResponder, keeps the hit surface equal to the visible avatar, and
- * lifts the default position above the persistent mobile navigation.
+ * GestureDetector version. R24 keeps drag specifically for phone/small web,
+ * keeps the hit surface equal to the visible avatar, and preserves browser
+ * history when Public Community opens Profile so Back returns to Community.
  *
  * Native Android/iOS still resolve BuklodGuideAvatar.tsx and are untouched.
  */
@@ -345,7 +345,12 @@ export function BuklodGuideAvatar() {
       });
     }
 
-    router.replace(
+    /*
+     * Public Community -> Profile must preserve browser/PWA history. Using
+     * replace here would remove Community Wall and let phone Back exit the
+     * web app. Push keeps Community immediately behind Profile.
+     */
+    router.push(
       '/me' as any
     );
   };
