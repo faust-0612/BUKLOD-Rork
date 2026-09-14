@@ -26,6 +26,8 @@ import {
 type Audience = 'group' | 'local' | 'public';
 type CreateStep = 'source' | 'quick-edit' | 'preview' | 'details';
 
+const QUICK_EDIT_TOOLS = ['Trim', 'Text', 'Audio', 'Speed', 'Cover', 'More'] as const;
+
 type IgpatDraft = {
   uri: string;
   durationSeconds: number;
@@ -276,6 +278,39 @@ export default function IgpatCreateScreen() {
     );
   };
 
+  const renderQuickEditShell = () => {
+    if (!draft) return null;
+    return (
+      <>
+        <View style={styles.timelineSection}>
+          <View style={styles.timelineHeader}>
+            <Text style={styles.timelineLabel}>TIMELINE</Text>
+            <Text style={styles.timelineTime}>0:00 / 0:{String(draft.durationSeconds).padStart(2, '0')}</Text>
+          </View>
+          <View style={styles.timelineTrack}>
+            {Array.from({ length: 12 }).map((_, index) => (
+              <View key={index} style={styles.timelineFrame} />
+            ))}
+            <View style={styles.timelinePlayhead} />
+          </View>
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.toolRail}
+          style={styles.toolScroller}
+        >
+          {QUICK_EDIT_TOOLS.map(tool => (
+            <View key={tool} style={styles.toolChip}>
+              <Text style={styles.toolText}>{tool}</Text>
+            </View>
+          ))}
+        </ScrollView>
+      </>
+    );
+  };
+
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Text style={styles.eyebrow}>BUKLOD IGPAT</Text>
@@ -296,10 +331,9 @@ export default function IgpatCreateScreen() {
       ) : step === 'quick-edit' ? (
         <View>
           <Text style={styles.stepTitle}>QUICK EDIT</Text>
-          <Text style={styles.stepCopy}>
-            Review the selected video before continuing. Advanced editing tools are intentionally outside this step.
-          </Text>
+          <Text style={styles.stepCopy}>Keep the important tools close without crowding the screen.</Text>
           {renderDraftPreview()}
+          {renderQuickEditShell()}
           <View style={styles.actionStack}>
             <Pressable style={styles.primaryAction} onPress={() => setStep('preview')} disabled={busy}>
               <Text style={styles.primaryActionText}>PREVIEW</Text>
@@ -435,6 +469,17 @@ const styles = StyleSheet.create({
   metaStrong: { color: '#FFFFFF', fontSize: 11, fontWeight: '900' },
   meta: { flex: 1, color: 'rgba(255,255,255,0.50)', fontSize: 10 },
   change: { color: '#FFFFFF', fontSize: 10, fontWeight: '900', letterSpacing: 0.8 },
+  timelineSection: { marginTop: 14 },
+  timelineHeader: { marginBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  timelineLabel: { color: 'rgba(255,255,255,0.48)', fontSize: 8, fontWeight: '900', letterSpacing: 0.9 },
+  timelineTime: { color: 'rgba(255,255,255,0.46)', fontSize: 9, fontWeight: '700' },
+  timelineTrack: { height: 48, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: '#0B100D', flexDirection: 'row', overflow: 'hidden', padding: 4, gap: 2, position: 'relative' },
+  timelineFrame: { flex: 1, borderRadius: 5, backgroundColor: 'rgba(255,255,255,0.10)' },
+  timelinePlayhead: { position: 'absolute', top: 0, bottom: 0, left: 6, width: 2, backgroundColor: '#FFFFFF' },
+  toolScroller: { marginTop: 12 },
+  toolRail: { gap: 8, paddingRight: 18 },
+  toolChip: { minWidth: 68, minHeight: 38, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', backgroundColor: '#0D120F', alignItems: 'center', justifyContent: 'center' },
+  toolText: { color: 'rgba(255,255,255,0.76)', fontSize: 10, fontWeight: '800' },
   actionStack: { marginTop: 16, gap: 10 },
   primaryAction: { minHeight: 50, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
   primaryActionText: { color: '#060908', fontSize: 11, fontWeight: '900', letterSpacing: 0.9 },
