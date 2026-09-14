@@ -1,10 +1,11 @@
 import { Linking, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 
 export const BUKLOD_EMERGENCY_CHANNEL_ID = 'buklod-emergency-v1';
 export const BUKLOD_EMERGENCY_CATEGORY_ID = 'buklod_emergency';
 export const BUKLOD_EMERGENCY_ACK_ACTION = 'buklod_emergency_ack';
-export const BUKLOD_EMERGENCY_ON_MY_WAY_ACTION = 'buklod_emergency_on_my_way';
+export const BUKLOD_EMERGENCY_DND_NATIVE_MIN_VERSION_CODE = 21;
 
 export type BuklodEmergencyAlertModeState = {
   platform: string;
@@ -12,12 +13,25 @@ export type BuklodEmergencyAlertModeState = {
   channelReady: boolean;
   bypassDnd: boolean;
   importance: number | null;
+  nativeDndPermissionReady: boolean;
+  nativeVersionCode: number | null;
 };
+
+export function getBuklodNativeAndroidVersionCode() {
+  const value = Constants.platform?.android?.versionCode;
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+export function isBuklodDndNativePermissionReady() {
+  if (Platform.OS !== 'android') return false;
+  const versionCode = getBuklodNativeAndroidVersionCode();
+  return versionCode !== null && versionCode >= BUKLOD_EMERGENCY_DND_NATIVE_MIN_VERSION_CODE;
+}
 
 function emergencyChannelInput(): Notifications.NotificationChannelInput {
   return {
     name: 'BUKLOD Emergency Alerts',
-    description: 'Urgent nearby BUKLOD SOS alerts. Enable Do Not Disturb access if you want these alerts to interrupt DND.',
+    description: 'Urgent nearby BUKLOD SOS alerts. DND override works only after the user grants Android Notification Policy access.',
     importance: Notifications.AndroidImportance.MAX,
     sound: 'default',
     enableVibrate: true,
@@ -47,15 +61,6 @@ export async function registerBuklodEmergencyNotificationCategory() {
           isDestructive: false,
         },
       },
-      {
-        identifier: BUKLOD_EMERGENCY_ON_MY_WAY_ACTION,
-        buttonTitle: 'ON MY WAY',
-        options: {
-          opensAppToForeground: true,
-          isAuthenticationRequired: false,
-          isDestructive: false,
-        },
-      },
     ],
   );
 }
@@ -76,9 +81,12 @@ export async function getBuklodEmergencyAlertModeState(): Promise<BuklodEmergenc
       channelReady: false,
       bypassDnd: false,
       importance: null,
+      nativeDndPermissionReady: false,
+      nativeVersionCode: null,
     };
   }
 
+  const nativeVersionCode = getBuklodNativeAndroidVersionCode();
   const channel = await Notifications.getNotificationChannelAsync(BUKLOD_EMERGENCY_CHANNEL_ID);
   return {
     platform: Platform.OS,
@@ -86,11 +94,14 @@ export async function getBuklodEmergencyAlertModeState(): Promise<BuklodEmergenc
     channelReady: Boolean(channel),
     bypassDnd: Boolean(channel?.bypassDnd),
     importance: channel?.importance ?? null,
+    nativeDndPermissionReady: isBuklodDndNativePermissionReady(),
+    nativeVersionCode,
   };
 }
 
 export async function rebuildBuklodEmergencyChannelForDnd() {
   if (Platform.OS !== 'android') return getBuklodEmergencyAlertModeState();
+  if (!isBuklodDndNativePermissionReady()) return getBuklodEmergencyAlertModeState();
   await Notifications.deleteNotificationChannelAsync(BUKLOD_EMERGENCY_CHANNEL_ID).catch(() => undefined);
   await ensureBuklodEmergencyChannel();
   return getBuklodEmergencyAlertModeState();
@@ -100,6 +111,9 @@ export async function openBuklodDndAccessSettings() {
   if (Platform.OS !== 'android') {
     await Linking.openSettings();
     return;
+  }
+  if (!isBuklodDndNativePermissionReady()) {
+    throw new Error('DND override requires the next BUKLOD native app update (Android build 21+).');
   }
 
   try {
@@ -135,7 +149,6 @@ export async function sendBuklodEmergencyLocalTest() {
 }
 
 export function emergencyResponseTypeForAction(actionIdentifier: string) {
-  if (actionIdentifier === BUKLOD_EMERGENCY_ON_MY_WAY_ACTION) return 'ON_MY_WAY' as const;
   if (
     actionIdentifier === BUKLOD_EMERGENCY_ACK_ACTION ||
     actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER
