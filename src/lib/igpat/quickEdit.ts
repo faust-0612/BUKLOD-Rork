@@ -13,6 +13,11 @@ export type IgpatQuickEditState = {
   coverSeconds: number;
 };
 
+export type IgpatAutoImproveSuggestion = {
+  edit: IgpatQuickEditState;
+  changes: string[];
+};
+
 export const IGPAT_MIN_OUTPUT_SECONDS = 1;
 
 export const DEFAULT_IGPAT_QUICK_EDIT: IgpatQuickEditState = {
@@ -53,6 +58,34 @@ export function normalizeIgpatQuickEdit(
     trimStartSeconds: boundedStart,
     trimEndSeconds: boundedEnd,
     coverSeconds,
+  };
+}
+
+export function suggestIgpatAutoImprove(
+  edit: IgpatQuickEditState,
+  durationSeconds: number
+): IgpatAutoImproveSuggestion {
+  const normalized = normalizeIgpatQuickEdit(edit, durationSeconds);
+  const changes: string[] = [];
+  const start = normalized.trimStartSeconds;
+  const end = Number(normalized.trimEndSeconds ?? durationSeconds);
+  const midpoint = Math.round((start + Math.max(start, end - start) / 2) * 10) / 10;
+  const suggestedCover = Math.max(start, Math.min(end, midpoint));
+  let next = normalized;
+
+  if (normalized.contentFit !== 'cover') {
+    next = { ...next, contentFit: 'cover' };
+    changes.push('Optimized preview framing for the vertical 9:16 feed.');
+  }
+
+  if (Math.abs(normalized.coverSeconds - suggestedCover) > 0.11) {
+    next = { ...next, coverSeconds: suggestedCover };
+    changes.push('Suggested a cover frame near the middle of the selected clip.');
+  }
+
+  return {
+    edit: normalizeIgpatQuickEdit(next, durationSeconds),
+    changes,
   };
 }
 
