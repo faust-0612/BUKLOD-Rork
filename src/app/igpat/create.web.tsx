@@ -9,7 +9,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import {
@@ -28,6 +28,11 @@ import {
   type IgpatQuickEditState,
   type IgpatRotation,
 } from '@/lib/igpat/quickEdit';
+import {
+  igpatRelayPromptLabel,
+  normalizeIgpatRelayPrompt,
+  type IgpatRelayPrompt,
+} from '@/lib/igpat/relay';
 import { useIgpatQuickEditHistory } from '@/lib/igpat/useQuickEditHistory';
 import type { IgpatCreationMode, IgpatDraftSaveInput } from '@/lib/igpat/draftTypes';
 import {
@@ -59,6 +64,10 @@ type IgpatGroupOption = {
   group_name?: string | null;
   group_code?: string | null;
 };
+
+function routeParam(value: string | string[] | undefined): string {
+  return Array.isArray(value) ? String(value[0] ?? '') : String(value ?? '');
+}
 
 function formatClock(seconds: number): string {
   const safe = Math.max(0, Number(seconds) || 0);
@@ -205,10 +214,27 @@ async function uploadWebIgpatDirect({
 }
 
 export default function IgpatCreateWebScreen() {
+  const params = useLocalSearchParams<{
+    relayParentPostId?: string | string[];
+    relayPrompt?: string | string[];
+    relayParentAuthor?: string | string[];
+  }>();
+  const routeRelayParentPostId = routeParam(params.relayParentPostId).trim();
+  const routeRelayPrompt = normalizeIgpatRelayPrompt(routeParam(params.relayPrompt));
+  const routeRelayParentAuthor = routeParam(params.relayParentAuthor).trim().slice(0, 120);
   const { user, profile } = useAuth();
   const [draft, setDraft] = useState<IgpatDraft | null>(null);
   const [step, setStep] = useState<CreateStep>('source');
   const [creationMode, setCreationMode] = useState<IgpatCreationMode>('standard');
+  const [relayParentPostId, setRelayParentPostId] = useState<string | null>(
+    routeRelayParentPostId && routeRelayPrompt ? routeRelayParentPostId : null
+  );
+  const [relayPrompt, setRelayPrompt] = useState<IgpatRelayPrompt | null>(
+    routeRelayParentPostId ? routeRelayPrompt : null
+  );
+  const [relayParentAuthor, setRelayParentAuthor] = useState<string | null>(
+    routeRelayParentPostId && routeRelayPrompt && routeRelayParentAuthor ? routeRelayParentAuthor : null
+  );
   const [activeTool, setActiveTool] = useState<QuickEditTool>('Trim');
   const {
     edit,
@@ -257,6 +283,14 @@ export default function IgpatCreateWebScreen() {
       draftAutosaveTimerRef.current = null;
     }
   };
+
+  useEffect(() => {
+    if (!draft && routeRelayParentPostId && routeRelayPrompt) {
+      setRelayParentPostId(routeRelayParentPostId);
+      setRelayPrompt(routeRelayPrompt);
+      setRelayParentAuthor(routeRelayParentAuthor || null);
+    }
+  }, [draft, routeRelayParentAuthor, routeRelayParentPostId, routeRelayPrompt]);
 
   useEffect(() => {
     let cancelled = false;
@@ -380,6 +414,9 @@ export default function IgpatCreateWebScreen() {
                   revokeOnDispose: true,
                 });
                 setCreationMode(restoredMode);
+                setRelayParentPostId(snapshot.relayParentPostId ?? null);
+                setRelayPrompt(normalizeIgpatRelayPrompt(snapshot.relayPrompt));
+                setRelayParentAuthor(snapshot.relayParentAuthor ?? null);
                 pendingCreationModeRef.current = restoredMode;
                 resetEditHistory(snapshot.edit, snapshot.durationSeconds);
                 setCaption(snapshot.caption);
@@ -414,6 +451,9 @@ export default function IgpatCreateWebScreen() {
       audience,
       groupId,
       creationMode,
+      relayParentPostId,
+      relayPrompt,
+      relayParentAuthor,
     };
     latestDraftSaveRef.current = input;
     cancelDraftAutosave();
@@ -430,7 +470,7 @@ export default function IgpatCreateWebScreen() {
       clearTimeout(timer);
       if (draftAutosaveTimerRef.current === timer) draftAutosaveTimerRef.current = null;
     };
-  }, [audience, caption, creationMode, draft, edit, groupId, user?.id]);
+  }, [audience, caption, creationMode, draft, edit, groupId, relayParentAuthor, relayParentPostId, relayPrompt, user?.id]);
 
   const clearDraftState = () => {
     cancelDraftAutosave();
@@ -496,6 +536,9 @@ export default function IgpatCreateWebScreen() {
       audience,
       groupId,
       creationMode: mode,
+      relayParentPostId,
+      relayPrompt,
+      relayParentAuthor,
     };
 
     try {
@@ -699,6 +742,11 @@ export default function IgpatCreateWebScreen() {
       Alert.alert('BUKLOD IGPAT', 'Choose CLUSTER, or ask an admin to complete your Local Church assignment.');
       return;
     }
+    const hasRelay = Boolean(relayParentPostId || relayPrompt);
+    if (hasRelay && (!relayParentPostId || !relayPrompt)) {
+      Alert.alert('IGPAT Relay', 'The Relay source is incomplete. Return to the IGPAT and start Relay again.');
+      return;
+    }
 
     const normalizedEdit = normalizeIgpatQuickEdit(edit, draft.durationSeconds);
     const outputDuration = igpatOutputDurationSeconds(normalizedEdit, draft.durationSeconds);
@@ -716,8 +764,8 @@ export default function IgpatCreateWebScreen() {
       setStage('Uploading video…');
       await uploadWebIgpatDirect({ path: uploadedPath, uri: draft.uri, contentType: draft.mimeType, onProgress: setProgress });
 
-      setStage('Creating IGPAT post…');
-      const { data, error } = await (supabase as any).rpc('create_buklod_reel_v2', {
+      setStage(hasRelay ? 'Creating Relay response…' : 'Creating IGPAT post…');
+      const payload: Record<string, unknown> = {
         p_audience: audience,
         p_group_id: audience === 'group' ? groupId : null,
         p_body: caption.trim(),
@@ -726,7 +774,15 @@ export default function IgpatCreateWebScreen() {
         p_media_size_bytes: draft.sizeBytes,
         p_duration_seconds: draft.durationSeconds,
         p_edit_meta: serializeIgpatQuickEdit(normalizedEdit, draft.durationSeconds),
-      });
+      };
+      if (hasRelay) {
+        payload.p_relay_parent_post_id = relayParentPostId;
+        payload.p_relay_prompt = relayPrompt;
+      }
+      const { data, error } = await (supabase as any).rpc(
+        hasRelay ? 'create_buklod_reel_v3' : 'create_buklod_reel_v2',
+        payload
+      );
       if (error) throw error;
       if (!data) throw new Error('The server did not return the new IGPAT post ID.');
 
@@ -739,7 +795,12 @@ export default function IgpatCreateWebScreen() {
       }
       clearDraftState();
       setCaption('');
-      Alert.alert('IGPAT Published', 'Your IGPAT is now available in the selected feed.');
+      Alert.alert(
+        hasRelay ? 'IGPAT Relay Published' : 'IGPAT Published',
+        hasRelay
+          ? 'Your video response is now part of the IGPAT Relay chain.'
+          : 'Your IGPAT is now available in the selected feed.'
+      );
       router.replace('/igpat' as any);
     } catch (error: any) {
       const message = String(error?.message ?? error ?? 'Please try again.');
@@ -747,12 +808,45 @@ export default function IgpatCreateWebScreen() {
       if (uploadedPath) {
         await supabase.storage.from('community-media').remove([uploadedPath]).catch(() => undefined as any);
       }
-      Alert.alert('Could Not Publish IGPAT', `${stage || 'Publish'}: ${message}`);
+      Alert.alert(
+        hasRelay ? 'Could Not Publish IGPAT Relay' : 'Could Not Publish IGPAT',
+        hasRelay && /create_buklod_reel_v3|function.*does not exist/i.test(message)
+          ? 'The IGPAT Relay server update still needs to be applied before Relay responses can publish.'
+          : `${stage || 'Publish'}: ${message}`
+      );
     } finally {
       setBusy(false);
       setProgress(null);
       setStage('');
     }
+  };
+
+  const renderRelayContext = () => {
+    if (!relayParentPostId || !relayPrompt) return null;
+    return (
+      <View style={styles.relayContext}>
+        <View style={styles.relayContextCopy}>
+          <Text style={styles.relayEyebrow}>IGPAT RELAY · {igpatRelayPromptLabel(relayPrompt).toUpperCase()}</Text>
+          <Text style={styles.relayTitle} numberOfLines={2}>
+            {relayParentAuthor ? `Responding to ${relayParentAuthor}` : 'Video response to an IGPAT'}
+          </Text>
+          <Text style={styles.relayHint}>Your post will be linked to the original Relay chain after publish.</Text>
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Cancel IGPAT Relay"
+          style={styles.relayCancel}
+          disabled={busy}
+          onPress={() => {
+            setRelayParentPostId(null);
+            setRelayPrompt(null);
+            setRelayParentAuthor(null);
+          }}
+        >
+          <Text style={styles.relayCancelText}>CANCEL RELAY</Text>
+        </Pressable>
+      </View>
+    );
   };
 
   const renderDraftPreview = () => {
@@ -1046,6 +1140,7 @@ export default function IgpatCreateWebScreen() {
       <Text style={styles.eyebrow}>BUKLOD IGPAT</Text>
       <Text style={styles.title}>Create an Instant Bond</Text>
       <Text style={styles.subtitle}>Record directly from your camera or choose a short video, then use Quick Edit or post as-is.</Text>
+      {renderRelayContext()}
 
       {cameraReady && !draft ? (
         <View style={styles.cameraCard}>
@@ -1199,7 +1294,7 @@ export default function IgpatCreateWebScreen() {
           ) : null}
 
           <Pressable style={[styles.publish, (!draft || busy) && styles.publishDisabled]} disabled={!draft || busy} onPress={() => void publish()}>
-            <Text style={styles.publishText}>{busy ? 'PUBLISHING…' : 'PUBLISH IGPAT'}</Text>
+            <Text style={styles.publishText}>{busy ? 'PUBLISHING…' : relayParentPostId && relayPrompt ? 'PUBLISH RELAY' : 'PUBLISH IGPAT'}</Text>
           </Pressable>
         </View>
       )}
@@ -1213,6 +1308,13 @@ const styles = StyleSheet.create({
   eyebrow: { color: 'rgba(255,255,255,0.58)', fontSize: 10, fontWeight: '900', letterSpacing: 1.4 },
   title: { marginTop: 7, color: '#FFFFFF', fontSize: 27, lineHeight: 32, fontWeight: '900' },
   subtitle: { marginTop: 7, color: 'rgba(255,255,255,0.62)', fontSize: 12, lineHeight: 18 },
+  relayContext: { marginTop: 14, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(217,255,105,0.28)', backgroundColor: '#10150D', padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  relayContextCopy: { flex: 1 },
+  relayEyebrow: { color: '#D9FF69', fontSize: 8.5, fontWeight: '900', letterSpacing: 0.8 },
+  relayTitle: { marginTop: 4, color: '#FFFFFF', fontSize: 12, lineHeight: 17, fontWeight: '900' },
+  relayHint: { marginTop: 4, color: 'rgba(255,255,255,0.50)', fontSize: 9, lineHeight: 14 },
+  relayCancel: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' },
+  relayCancelText: { color: '#FFFFFF', fontSize: 7.5, fontWeight: '900', letterSpacing: 0.6 },
   stepTitle: { marginTop: 24, color: '#FFFFFF', fontSize: 13, fontWeight: '900', letterSpacing: 1.1 },
   stepCopy: { marginTop: 6, color: 'rgba(255,255,255,0.55)', fontSize: 11, lineHeight: 17 },
   sourceRow: { flexDirection: 'row', gap: 12, marginTop: 24 },
