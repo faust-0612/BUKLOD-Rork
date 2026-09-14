@@ -13,18 +13,18 @@ const distIndex = args.indexOf('--dist');
 const distDir = distIndex >= 0 ? path.resolve(ROOT, args[distIndex + 1] || 'dist') : null;
 
 /*
- * BUKLOD APPROVED CHARACTER VISUAL LOCK — 2026-09-14
+ * BUKLOD CHARACTER VISUAL + GATING LOCK — 2026-09-14
  *
- * These exact tracked Git blobs are user-approved and immutable.
- * Do not change, substitute, forward-port, recompose, or regenerate these
- * visual surfaces unless the user explicitly authorizes: UNLOCK R31/R40.
+ * R31 remains on the exact approved visual blob. R40 preserves the approved
+ * presentation for unlocked Special Characters while enforcing the canonical
+ * rule that locked Special identities are not rendered before Circle Rank unlock.
  *
  * Git blob identity is checked instead of hashing working-tree text so Windows
  * CRLF conversion cannot create false failures.
  */
 const LOCKED_VISUAL_BLOBS = {
   'src/components/points/BuklodProgressiveCharacterSelector.tsx': 'f94af7e2f6d20246c9c9fe983b06240ae50599ba',
-  'src/components/points/BuklodSpecialCharacterSeries.tsx': 'cfeaf0385d6963a6c497681d58c53b4c08b2ec62',
+  'src/components/points/BuklodSpecialCharacterSeries.tsx': 'f742ed7f3644f6b8b6dd0c477b6444f86b0c279f',
   'src/components/points/BuklodCharacterCustomizeSheet.tsx': '8aa1a4dfdad33ba9aca7a07a32560765160fb176',
   'src/components/points/BuklodProgressiveCharacterArt.tsx': '7b6eef608b9844e21e412df19348de87d0468bbe',
 };
@@ -103,12 +103,12 @@ function enforceExactVisualLock() {
     if (!mustExist(rel)) continue;
     const actual = trackedGitBlobSha(rel);
     if (actual && actual !== expected.toLowerCase()) {
-      failures.push(`APPROVED CHARACTER VISUAL LOCK CHANGED: ${rel} expected=${expected} actual=${actual}. Explicit UNLOCK R31/R40 authorization is required before changing this file.`);
+      failures.push(`CHARACTER VISUAL/GATING LOCK CHANGED: ${rel} expected=${expected} actual=${actual}. Review and explicitly re-baseline the Character contract before release.`);
     }
     if (lockedPathIsDirty(rel)) {
-      failures.push(`APPROVED CHARACTER VISUAL LOCK has local/staged edits: ${rel}. Restore the approved blob before release.`);
+      failures.push(`CHARACTER VISUAL/GATING LOCK has local/staged edits: ${rel}. Commit or restore the canonical Character surface before release.`);
     }
-    if (actual === expected.toLowerCase()) info.push(`Locked visual blob OK: ${rel} @ ${actual}`);
+    if (actual === expected.toLowerCase()) info.push(`Locked Character blob OK: ${rel} @ ${actual}`);
   }
 }
 
@@ -128,9 +128,9 @@ function walk(dir) {
   return out;
 }
 
-console.log('BUKLOD CHARACTER RELEASE CONTRACT — APPROVED R31 + R40 ONLY');
-console.log('==========================================================');
-console.log('LOCK POLICY: exact approved visual blobs; explicit UNLOCK R31/R40 required for visual changes.');
+console.log('BUKLOD CHARACTER RELEASE CONTRACT — R31 + R40 CANONICAL');
+console.log('========================================================');
+console.log('LOCK POLICY: preserve approved Character presentation and hide locked Special identities until Circle Rank unlock.');
 
 enforceExactVisualLock();
 
@@ -175,15 +175,17 @@ requireTokens('src/components/points/BuklodCharacterCustomizeSheet.tsx', [
 
 const r40 = requireTokens('src/components/points/BuklodSpecialCharacterSeries.tsx', [
   'BUKLOD_SPECIAL_BATCH1_R40_PREMIUM_UI',
+  'BUKLOD_SPECIAL_LOCKED_IDENTITIES_HIDDEN',
   'SPECIAL_ORDER',
+  'visibleSpecialIds.map',
   'Special Character Journey',
+  'Special Characters appear only when your Circle Rank unlocks them.',
   'More than a character. A mission.',
   'LEVEL 1 - 20 JOURNEY',
   'COLLECTIBLES & BADGES',
   'VIEW ALL LEVELS',
   'VIEW ALL COLLECTIBLES',
   'LOCKED',
-  'NEXT TO UNLOCK',
   'nestedScrollEnabled',
   'visible_special_character_ids',
   'setMyBuklodCharacterActiveV2',
@@ -197,6 +199,15 @@ const r40 = requireTokens('src/components/points/BuklodSpecialCharacterSeries.ts
 ]);
 if (r40.includes("rpc('set_my_buklod_special_character_active_v1'")) {
   failures.push('Legacy R40 active-character RPC is authoritative again. Activation must use setMyBuklodCharacterActiveV2.');
+}
+if (r40.includes('SPECIAL_ORDER.map(')) {
+  failures.push('Locked Special Character identities are being rendered. The Special rail must map visibleSpecialIds only.');
+}
+if (!r40.includes('visibleSpecialIds.map(')) {
+  failures.push('R40 no longer restricts the Special rail to unlocked/visible Special Character IDs.');
+}
+if (r40.includes('NEXT TO UNLOCK')) {
+  failures.push('Locked Special Character identity preview returned. Locked Specials must remain hidden until Circle Rank unlocks them.');
 }
 forbidTokens('src/components/points/BuklodSpecialCharacterSeries.tsx', [
   'BUKLOD_CHARACTER_R41',
@@ -256,15 +267,18 @@ if (distDir) {
       'COLLECTIBLES -',
       'Use This Character',
       'Special Character Journey',
+      'Special Characters appear only when your Circle Rank unlocks them.',
       'More than a character. A mission.',
       'LEVEL 1 - 20 JOURNEY',
       'COLLECTIBLES & BADGES',
       'VIEW ALL LEVELS',
       'VIEW ALL COLLECTIBLES',
-      'NEXT TO UNLOCK',
       'get_my_buklod_special_collectibles_v2',
     ]) {
-      if (!compiled.includes(token)) failures.push(`Compiled bundle is missing approved R31/R40 layout token: ${token}`);
+      if (!compiled.includes(token)) failures.push(`Compiled bundle is missing canonical R31/R40 layout token: ${token}`);
+    }
+    if (compiled.includes('NEXT TO UNLOCK')) {
+      failures.push('Compiled bundle exposes a locked Special Character identity preview.');
     }
     if (!(compiled.includes('JAVVO') || compiled.includes('JAWO') || compiled.includes('Jawo'))) {
       failures.push('Compiled bundle is missing Jawo special-character identity.');
@@ -281,8 +295,8 @@ for (const failure of failures) console.error(`FAIL: ${failure}`);
 
 if (failures.length) {
   console.error(`\nCHARACTER RELEASE LOCK FAILED with ${failures.length} blocker(s).`);
-  console.error('DEPLOYMENT MUST STOP. Restore the exact approved R31 + R40 visual blobs before publishing.');
+  console.error('DEPLOYMENT MUST STOP. Restore the canonical R31 + R40 Character presentation and hidden-Special gating before publishing.');
   process.exit(1);
 }
 
-console.log('\nCHARACTER RELEASE LOCK PASSED — exact approved R31 + R40 visual blobs, Special rail, badges surface, and assets are preserved.');
+console.log('\nCHARACTER RELEASE LOCK PASSED — R31 visuals, R40 unlocked presentation, hidden locked Special identities, badges surface, and assets are preserved.');
