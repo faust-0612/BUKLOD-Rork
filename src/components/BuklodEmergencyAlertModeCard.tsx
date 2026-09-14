@@ -28,6 +28,8 @@ const EMPTY: BuklodEmergencyAlertModeState = {
   channelReady: false,
   bypassDnd: false,
   importance: null,
+  nativeDndPermissionReady: false,
+  nativeVersionCode: null,
 };
 
 export default function BuklodEmergencyAlertModeCard() {
@@ -69,6 +71,14 @@ export default function BuklodEmergencyAlertModeCard() {
   if (Platform.OS !== 'android' && Platform.OS !== 'ios') return null;
 
   const enableDnd = async () => {
+    if (!state.nativeDndPermissionReady) {
+      Alert.alert(
+        'Native app update required',
+        'MAX-priority Emergency Alert Mode works now, but Android Do Not Disturb override requires the next BUKLOD native app build with Notification Policy access.',
+      );
+      return;
+    }
+
     setBusy(true);
     try {
       await ensureBuklodEmergencyChannel();
@@ -101,9 +111,11 @@ export default function BuklodEmergencyAlertModeCard() {
   const status = Platform.OS === 'android'
     ? state.bypassDnd
       ? 'DND OVERRIDE ACTIVE'
-      : androidReady
-        ? 'ALARM CHANNEL READY · DND OVERRIDE OFF'
-        : 'SETUP NEEDED'
+      : !state.nativeDndPermissionReady
+        ? 'MAX ALERT MODE READY · DND NATIVE UPDATE PENDING'
+        : androidReady
+          ? 'ALARM CHANNEL READY · DND OVERRIDE OFF'
+          : 'SETUP NEEDED'
     : 'TIME-SENSITIVE ALERTS';
 
   return (
@@ -120,15 +132,17 @@ export default function BuklodEmergencyAlertModeCard() {
 
       <Text style={styles.body}>
         {Platform.OS === 'android'
-          ? 'Uses a separate MAX-priority emergency channel with strong vibration and alarm audio behavior. Android DND bypass still requires your one-time permission.'
+          ? 'Uses a separate MAX-priority emergency channel with strong vibration and alarm audio behavior. True DND override is opt-in and requires the native Notification Policy permission.'
           : 'BUKLOD SOS uses Time Sensitive delivery on iPhone. Silent-mode bypass requires Apple Critical Alerts approval and is not claimed by this mode.'}
       </Text>
 
       <View style={styles.actions}>
         {Platform.OS === 'android' ? (
-          <Pressable disabled={busy} onPress={enableDnd} style={({ pressed }) => [styles.primary, (pressed || busy) && styles.pressed]}>
+          <Pressable disabled={busy} onPress={enableDnd} style={({ pressed }) => [styles.primary, (pressed || busy) && styles.pressed, !state.nativeDndPermissionReady && styles.pending]}>
             <MaterialCommunityIcons name="shield-alert-outline" size={14} color="#FFF" />
-            <Text style={styles.primaryText}>{state.bypassDnd ? 'RECHECK DND' : 'ENABLE DND OVERRIDE'}</Text>
+            <Text style={styles.primaryText}>
+              {state.bypassDnd ? 'RECHECK DND' : state.nativeDndPermissionReady ? 'ENABLE DND OVERRIDE' : 'DND: NEXT APP BUILD'}
+            </Text>
           </Pressable>
         ) : (
           <Pressable disabled={busy} onPress={() => void openBuklodNotificationSettings()} style={({ pressed }) => [styles.primary, (pressed || busy) && styles.pressed]}>
@@ -141,7 +155,9 @@ export default function BuklodEmergencyAlertModeCard() {
         </Pressable>
       </View>
 
-      <Text style={styles.note}>The test is local-only. It never broadcasts an SOS.</Text>
+      <Text style={styles.note}>
+        The test is local-only. It never broadcasts an SOS.{Platform.OS === 'android' && state.nativeVersionCode ? ` Native build: ${state.nativeVersionCode}.` : ''}
+      </Text>
     </View>
   );
 }
@@ -166,6 +182,7 @@ const styles = StyleSheet.create({
   body: { fontSize: 10, lineHeight: 14, color: '#69413A' },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
   primary: { minHeight: 31, paddingHorizontal: 10, borderRadius: 9, backgroundColor: '#B42318', flexDirection: 'row', gap: 5, alignItems: 'center', justifyContent: 'center' },
+  pending: { backgroundColor: '#B54708' },
   primaryText: { color: '#FFF', fontSize: 8.5, fontWeight: '900', letterSpacing: .2 },
   secondary: { minHeight: 31, paddingHorizontal: 10, borderRadius: 9, borderWidth: StyleSheet.hairlineWidth, borderColor: '#B7D1BF', backgroundColor: '#FFF', flexDirection: 'row', gap: 5, alignItems: 'center', justifyContent: 'center' },
   secondaryText: { color: colors.greenDark, fontSize: 8.5, fontWeight: '900', letterSpacing: .2 },
