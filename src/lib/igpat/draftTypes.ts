@@ -1,6 +1,7 @@
 import type { IgpatQuickEditState } from './quickEdit';
 
 export type IgpatDraftAudience = 'group' | 'local' | 'public';
+export type IgpatCreationMode = 'standard' | 'quick-capture';
 
 export type IgpatDraftSnapshot = {
   version: 1;
@@ -14,6 +15,7 @@ export type IgpatDraftSnapshot = {
   caption: string;
   audience: IgpatDraftAudience;
   groupId: string | null;
+  creationMode?: IgpatCreationMode;
   savedAt: string;
 };
 
@@ -24,6 +26,7 @@ export function buildIgpatDraftSnapshot(input: IgpatDraftSaveInput): IgpatDraftS
     ...input,
     version: 1,
     caption: input.caption.slice(0, 500),
+    creationMode: input.creationMode === 'quick-capture' ? 'quick-capture' : 'standard',
     savedAt: new Date().toISOString(),
   };
 }
@@ -45,6 +48,7 @@ export function isIgpatDraftSnapshot(value: unknown): value is IgpatDraftSnapsho
     typeof row.caption === 'string' &&
     (row.audience === 'group' || row.audience === 'local' || row.audience === 'public') &&
     (row.groupId == null || typeof row.groupId === 'string') &&
+    (row.creationMode == null || row.creationMode === 'standard' || row.creationMode === 'quick-capture') &&
     typeof row.savedAt === 'string'
   );
 }
