@@ -23,7 +23,7 @@ export default function Index() {
    *
    * A fresh app/web boot with an existing session is PERSONAL/GLOBAL.
    * Never restore a stale Organization/Cluster/Mission Worker workspace as
-   * the automatic landing context. Reset to PUBLIC first, then open Connect.
+   * the automatic landing context. Reset to PUBLIC first, then open Community Wall.
    * Managed workspaces remain available only when the user explicitly opens
    * them again from the scope/workspace controls.
    */
@@ -157,7 +157,7 @@ export default function Index() {
 
   return (
     <Redirect
-      href="/(tabs)/messages"
+      href="/(tabs)/buklod"
     />
   );
 }
