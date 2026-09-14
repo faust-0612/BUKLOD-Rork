@@ -1,14 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { igpatRelayPromptLabel } from '@/lib/igpat/relay';
 
@@ -44,14 +37,10 @@ export default function IgpatRelayChainScreen() {
       setLoading(false);
       return;
     }
-
     setLoading(true);
     setError(null);
     try {
-      const { data, error: relayError } = await (supabase as any).rpc(
-        'get_buklod_igpat_relay_chain_v1',
-        { p_post_id: postId }
-      );
+      const { data, error: relayError } = await (supabase as any).rpc('get_buklod_igpat_relay_chain_v1', { p_post_id: postId });
       if (relayError) throw relayError;
       setRows(((data ?? []) as RelayRow[]).filter(row => Boolean(row?.id)));
     } catch (loadError: any) {
@@ -63,9 +52,7 @@ export default function IgpatRelayChainScreen() {
     }
   }, [postId]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useEffect(() => { void load(); }, [load]);
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
@@ -103,6 +90,11 @@ export default function IgpatRelayChainScreen() {
               <Text style={styles.tileTitle}>PASS</Text>
               <Text style={styles.tileHint}>Send intentionally</Text>
             </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Open Moment Mosaic" style={styles.featureTile} onPress={() => router.push(`/igpat/mosaic/${postId}` as any)}>
+              <MaterialCommunityIcons name="view-grid-outline" size={19} color="#FFFFFF" />
+              <Text style={styles.tileTitle}>MOSAIC</Text>
+              <Text style={styles.tileHint}>Shared moments</Text>
+            </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel="Open IGPAT Bond inbox" style={styles.featureTile} onPress={() => router.push('/igpat/bonds' as any)}>
               <MaterialCommunityIcons name="inbox-arrow-down-outline" size={19} color="#FFFFFF" />
               <Text style={styles.tileTitle}>BOND INBOX</Text>
@@ -113,10 +105,7 @@ export default function IgpatRelayChainScreen() {
       )}
 
       {loading ? (
-        <View style={styles.centerState}>
-          <ActivityIndicator color="#FFFFFF" />
-          <Text style={styles.stateText}>Loading Relay chain…</Text>
-        </View>
+        <View style={styles.centerState}><ActivityIndicator color="#FFFFFF" /><Text style={styles.stateText}>Loading Relay chain…</Text></View>
       ) : error ? (
         <View style={styles.stateCard}>
           <Text style={styles.stateText}>{error}</Text>
@@ -172,8 +161,8 @@ const styles = StyleSheet.create({
   featureCopy: { flex: 1 },
   featureTitle: { color: '#D9FF69', fontSize: 9, fontWeight: '900', letterSpacing: 0.8 },
   featureHint: { marginTop: 3, color: 'rgba(255,255,255,0.50)', fontSize: 8.8, lineHeight: 13 },
-  featureGrid: { marginTop: 8, flexDirection: 'row', gap: 8 },
-  featureTile: { flex: 1, minHeight: 86, borderRadius: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: '#0D120F', padding: 11, justifyContent: 'center' },
+  featureGrid: { marginTop: 8, flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  featureTile: { width: '48%', minHeight: 86, borderRadius: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: '#0D120F', padding: 11, justifyContent: 'center' },
   tileTitle: { marginTop: 8, color: '#FFFFFF', fontSize: 8.5, fontWeight: '900', letterSpacing: 0.5 },
   tileHint: { marginTop: 3, color: 'rgba(255,255,255,0.40)', fontSize: 7.8, lineHeight: 11 },
   centerState: { marginTop: 48, alignItems: 'center', gap: 10 },
