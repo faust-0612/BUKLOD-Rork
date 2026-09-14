@@ -69,7 +69,7 @@ export function suggestIgpatAutoImprove(
   const changes: string[] = [];
   const start = normalized.trimStartSeconds;
   const end = Number(normalized.trimEndSeconds ?? durationSeconds);
-  const midpoint = Math.round((start + Math.max(start, end - start) / 2) * 10) / 10;
+  const midpoint = Math.round((start + (end - start) / 2) * 10) / 10;
   const suggestedCover = Math.max(start, Math.min(end, midpoint));
   let next = normalized;
 
