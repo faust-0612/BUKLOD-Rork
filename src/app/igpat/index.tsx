@@ -43,6 +43,10 @@ type PulseOption = {
   storedReaction: 'love' | 'amen' | 'haha' | 'with_you' | 'care' | 'praying';
   icon: keyof typeof MaterialCommunityIcons.glyphMap;
 };
+type BondMoment = {
+  userId: string;
+  name: string;
+};
 
 const NORMAL_LIMIT = 16;
 const DATA_SAVER_LIMIT = 8;
@@ -260,6 +264,7 @@ export default function IgpatScreen() {
   const [followBusy, setFollowBusy] = useState<Set<string>>(new Set());
   const [reactionBusy, setReactionBusy] = useState<Set<string>>(new Set());
   const [pulsePickerPostId, setPulsePickerPostId] = useState<string | null>(null);
+  const [bondMoments, setBondMoments] = useState<Record<string, BondMoment>>({});
   const viewportHeight = Dimensions.get('window').height;
 
   useEffect(() => {
@@ -361,6 +366,69 @@ export default function IgpatScreen() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const loadBondMoments = useCallback(async () => {
+    if (!user?.id || !rows.length || !followedIds.size) {
+      setBondMoments({});
+      return;
+    }
+
+    const postIds = rows.map(row => row.id);
+    const followedUserIds = Array.from(followedIds);
+
+    try {
+      const { data: reactionRows, error: reactionError } = await supabase
+        .from('reactions')
+        .select('post_id,user_id')
+        .in('post_id', postIds)
+        .in('user_id', followedUserIds);
+      if (reactionError) throw reactionError;
+
+      const firstBondUserByPost = new Map<string, string>();
+      for (const row of reactionRows ?? []) {
+        const postId = String(row.post_id ?? '');
+        const bondUserId = String(row.user_id ?? '');
+        if (postId && bondUserId && bondUserId !== user.id && !firstBondUserByPost.has(postId)) {
+          firstBondUserByPost.set(postId, bondUserId);
+        }
+      }
+
+      const bondUserIds = Array.from(new Set(firstBondUserByPost.values()));
+      if (!bondUserIds.length) {
+        setBondMoments({});
+        return;
+      }
+
+      const { data: profileRows, error: profileError } = await supabase
+        .from('profiles')
+        .select('id,full_name,first_name,username')
+        .in('id', bondUserIds);
+      if (profileError) throw profileError;
+
+      const names = new Map<string, string>();
+      for (const profileRow of profileRows ?? []) {
+        const id = String(profileRow.id ?? '');
+        const rawName = profileRow.full_name || profileRow.first_name || profileRow.username || 'Someone you follow';
+        if (id) names.set(id, resolvePersonDisplayName(String(rawName), id));
+      }
+
+      const next: Record<string, BondMoment> = {};
+      firstBondUserByPost.forEach((bondUserId, postId) => {
+        next[postId] = {
+          userId: bondUserId,
+          name: names.get(bondUserId) ?? 'Someone you follow',
+        };
+      });
+      setBondMoments(next);
+    } catch (error) {
+      console.warn('BUKLOD IGPAT bond moment:', String((error as any)?.message ?? error));
+      setBondMoments({});
+    }
+  }, [followedIds, rows, user?.id]);
+
+  useEffect(() => {
+    void loadBondMoments();
+  }, [loadBondMoments]);
 
   useEffect(() => {
     setActiveIndex(0);
@@ -569,7 +637,7 @@ export default function IgpatScreen() {
     <View style={styles.root}>
       <FlatList
         data={rows}
-        extraData={`${activeIndex}:${pulsePickerPostId ?? ''}`}
+        extraData={`${activeIndex}:${pulsePickerPostId ?? ''}:${Object.keys(bondMoments).length}`}
         key={`${feedMode}:${dataSaver ? 'saver' : 'normal'}`}
         keyExtractor={item => item.id}
         pagingEnabled
@@ -593,6 +661,7 @@ export default function IgpatScreen() {
           const isFollowing = Boolean(creatorId && followedIds.has(creatorId));
           const currentPulse = pulseOptionForStoredReaction(item.my_reaction);
           const showPulsePicker = pulsePickerPostId === item.id && index === activeIndex;
+          const bondMoment = item.my_reaction ? bondMoments[item.id] : null;
 
           return (
             <View style={[styles.page, { height: viewportHeight }]}>
@@ -749,6 +818,14 @@ export default function IgpatScreen() {
                     {item.body}
                   </Text>
                 )}
+                {bondMoment ? (
+                  <View style={styles.bondMoment} accessibilityLabel={`You and ${bondMoment.name} connected with this IGPAT`}>
+                    <MaterialCommunityIcons name="link-variant" size={13} color="#D9FF69" />
+                    <Text numberOfLines={1} style={styles.bondMomentText}>
+                      You and {bondMoment.name} connected with this.
+                    </Text>
+                  </View>
+                ) : null}
                 {dataSaver ? <Text style={styles.saverHint}>DATA SAVER ON</Text> : null}
               </View>
             </View>
@@ -901,6 +978,21 @@ const styles = StyleSheet.create({
   followText: { color: '#FFFFFF', fontSize: 8, fontWeight: '900', letterSpacing: 0.6 },
   followingText: { color: '#07100B' },
   caption: { marginTop: 6, color: 'rgba(255,255,255,0.90)', fontSize: 12, lineHeight: 17, fontWeight: '600' },
+  bondMoment: {
+    marginTop: 8,
+    maxWidth: '100%',
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,0,0,0.34)',
+    borderWidth: 1,
+    borderColor: 'rgba(217,255,105,0.25)',
+  },
+  bondMomentText: { flexShrink: 1, color: 'rgba(255,255,255,0.82)', fontSize: 9, fontWeight: '800' },
   saverHint: { marginTop: 8, color: 'rgba(255,255,255,0.50)', fontSize: 8, fontWeight: '900', letterSpacing: 1 },
   editTextWrap: {
     position: 'absolute',
