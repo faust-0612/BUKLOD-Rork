@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -12,7 +13,9 @@ const distIndex = args.indexOf('--dist');
 const distDir = distIndex >= 0 ? path.resolve(ROOT, args[distIndex + 1] || 'dist') : null;
 
 // EXACT visual source approved/locked on 2026-09-13.
-// Any byte-level change requires an explicit new Character unlock/revision phase.
+// These are repository blob identities, not raw working-copy byte hashes.
+// That distinction keeps the lock exact while remaining safe on Windows where
+// Git may materialize LF text as CRLF in the working tree.
 const LOCKED_VISUAL_BLOBS = {
   'src/components/points/BuklodCharacterCustomizeSheet.tsx': '9d3e8264e80654330cfa692def167cd26b9f1b91',
   'src/components/points/BuklodProgressiveCharacterSelector.tsx': '685f4b16dfa5bf8ced3be1296565c4493c092dbd',
@@ -52,10 +55,35 @@ function sha256(rel) {
   return crypto.createHash('sha256').update(buffer).digest('hex').toUpperCase();
 }
 
-function gitBlobSha(rel) {
-  const buffer = fs.readFileSync(full(rel));
-  const header = Buffer.from(`blob ${buffer.length}\0`, 'utf8');
-  return crypto.createHash('sha1').update(header).update(buffer).digest('hex');
+function trackedGitBlobSha(rel) {
+  try {
+    return execFileSync('git', ['rev-parse', `HEAD:${rel}`], {
+      cwd: ROOT,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }).trim();
+  } catch (error) {
+    failures.push(`Could not resolve tracked Git blob for locked Character file: ${rel}`);
+    return null;
+  }
+}
+
+function lockedPathIsDirty(rel) {
+  const worktree = spawnSync('git', ['diff', '--quiet', '--', rel], {
+    cwd: ROOT,
+    stdio: 'ignore',
+  });
+  const index = spawnSync('git', ['diff', '--cached', '--quiet', '--', rel], {
+    cwd: ROOT,
+    stdio: 'ignore',
+  });
+
+  if (worktree.status == null || index.status == null) {
+    failures.push(`Could not verify clean Git state for locked Character file: ${rel}`);
+    return true;
+  }
+
+  return worktree.status !== 0 || index.status !== 0;
 }
 
 function requireTokens(rel, tokens) {
@@ -82,12 +110,17 @@ console.log('================================================');
 
 for (const [rel, expected] of Object.entries(LOCKED_VISUAL_BLOBS)) {
   if (!mustExist(rel)) continue;
-  const actual = gitBlobSha(rel);
-  if (actual !== expected) {
-    failures.push(`LOCKED CHARACTER VISUAL CHANGED: ${rel} expected_blob=${expected} actual_blob=${actual}`);
+
+  const tracked = trackedGitBlobSha(rel);
+  if (tracked && tracked !== expected) {
+    failures.push(`LOCKED CHARACTER VISUAL REVISION CHANGED: ${rel} expected_blob=${expected} tracked_blob=${tracked}`);
+  }
+
+  if (lockedPathIsDirty(rel)) {
+    failures.push(`LOCKED CHARACTER VISUAL HAS LOCAL/STAGED EDITS: ${rel}`);
   }
 }
-info.push('Exact 2026-09-13 R31/R40 visual source lock checked.');
+info.push('Exact 2026-09-13 R31/R40 tracked visual blobs + clean working state checked.');
 
 const selector = requireTokens('src/components/points/BuklodProgressiveCharacterSelector.tsx', [
   'Browse all 20 levels',
@@ -168,8 +201,8 @@ for (const failure of failures) console.error(`FAIL: ${failure}`);
 
 if (failures.length) {
   console.error(`\nCHARACTER RELEASE LOCK FAILED with ${failures.length} blocker(s).`);
-  console.error('DEPLOYMENT MUST STOP. The exact locked R31/R40 visual source may not be changed or overlaid.');
+  console.error('DEPLOYMENT MUST STOP. The exact locked R31/R40 revision must remain tracked and unmodified.');
   process.exit(1);
 }
 
-console.log('\nCHARACTER RELEASE LOCK PASSED — exact 2026-09-13 R31/R40 visual source + V2 authority are preserved.');
+console.log('\nCHARACTER RELEASE LOCK PASSED — exact 2026-09-13 R31/R40 tracked visual revision + V2 authority are preserved.');
