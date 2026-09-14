@@ -1,9 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Network from 'expo-network';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  AppState,
   Dimensions,
   FlatList,
   Pressable,
@@ -53,6 +55,9 @@ const NORMAL_LIMIT = 16;
 const DATA_SAVER_LIMIT = 8;
 const SIGNED_URL_TTL_SECONDS = 1200;
 const SIGN_CONCURRENCY = 4;
+const FEED_LOAD_TIMEOUT_MS = 12000;
+const SIGN_TIMEOUT_MS = 8000;
+const FOREGROUND_REFRESH_AFTER_MS = 12 * 60 * 1000;
 const DATA_SAVER_KEY = '@buklod_igpat_data_saver_v1';
 const SAVED_IGPAT_KEY = '@buklod_igpat_saved_ids_v1';
 const PULSE_OPTIONS: PulseOption[] = [
@@ -67,6 +72,20 @@ const PULSE_OPTIONS: PulseOption[] = [
 function pulseOptionForStoredReaction(reaction?: string | null): PulseOption | null {
   if (!reaction) return null;
   return PULSE_OPTIONS.find(option => option.storedReaction === reaction) ?? null;
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeout = setTimeout(() => reject(new Error(`${label} timed out`)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
 }
 
 async function mapWithConcurrency<T, R>(
@@ -270,6 +289,8 @@ export default function IgpatScreen() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [feedMode, setFeedMode] = useState<FeedMode>('for-you');
   const [dataSaver, setDataSaver] = useState(false);
+  const [networkState, setNetworkState] = useState<Network.NetworkState | null>(null);
+  const [appActive, setAppActive] = useState(AppState.currentState === 'active');
   const [prefsReady, setPrefsReady] = useState(false);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [followedIds, setFollowedIds] = useState<Set<string>>(new Set());
@@ -278,16 +299,24 @@ export default function IgpatScreen() {
   const [pulsePickerPostId, setPulsePickerPostId] = useState<string | null>(null);
   const [relayPickerPostId, setRelayPickerPostId] = useState<string | null>(null);
   const [bondMoments, setBondMoments] = useState<Record<string, BondMoment>>({});
+  const loadGenerationRef = useRef(0);
+  const lastSuccessfulLoadAtRef = useRef(0);
   const viewportHeight = Dimensions.get('window').height;
+
+  const autoDataSaver = networkState?.type === Network.NetworkStateType.CELLULAR;
+  const networkUnavailable = networkState?.isConnected === false || networkState?.isInternetReachable === false;
+  const effectiveDataSaver = dataSaver || autoDataSaver;
 
   useEffect(() => {
     let mounted = true;
     void Promise.all([
       AsyncStorage.getItem(DATA_SAVER_KEY),
       AsyncStorage.getItem(SAVED_IGPAT_KEY),
-    ]).then(([dataSaverValue, savedValue]) => {
+      Network.getNetworkStateAsync().catch(() => null),
+    ]).then(([dataSaverValue, savedValue, initialNetwork]) => {
       if (!mounted) return;
       setDataSaver(dataSaverValue === '1');
+      if (initialNetwork) setNetworkState(initialNetwork);
       try {
         const parsed = JSON.parse(savedValue ?? '[]');
         setSavedIds(new Set(Array.isArray(parsed) ? parsed.map(String) : []));
@@ -296,9 +325,23 @@ export default function IgpatScreen() {
       }
       setPrefsReady(true);
     });
+
+    const networkSubscription = Network.addNetworkStateListener(next => {
+      if (mounted) setNetworkState(next);
+    });
+
     return () => {
       mounted = false;
+      networkSubscription.remove();
+      loadGenerationRef.current += 1;
     };
+  }, []);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', nextState => {
+      setAppActive(nextState === 'active');
+    });
+    return () => subscription.remove();
   }, []);
 
   const loadFollows = useCallback(async () => {
@@ -326,9 +369,17 @@ export default function IgpatScreen() {
 
   const load = useCallback(async () => {
     if (!prefsReady) return;
+    const generation = ++loadGenerationRef.current;
+
     if (!user?.id) {
       setRows([]);
       setLoading(false);
+      return;
+    }
+
+    if (networkUnavailable) {
+      setLoading(false);
+      setLoadError('No usable internet connection. IGPAT will recover automatically when the connection returns.');
       return;
     }
 
@@ -336,49 +387,123 @@ export default function IgpatScreen() {
     setLoadError(null);
 
     try {
-      const limit = dataSaver ? DATA_SAVER_LIMIT : NORMAL_LIMIT;
-      const { data, error } = await (supabase as any).rpc('get_buklod_igpat_feed_v3', {
-        p_mode: feedMode,
-        p_limit: limit,
-      });
-      if (error) throw error;
+      const limit = effectiveDataSaver ? DATA_SAVER_LIMIT : NORMAL_LIMIT;
+      const rpcResult = await withTimeout(
+        Promise.resolve((supabase as any).rpc('get_buklod_igpat_feed_v3', {
+          p_mode: feedMode,
+          p_limit: limit,
+        })),
+        FEED_LOAD_TIMEOUT_MS,
+        'IGPAT feed'
+      );
+      if (generation !== loadGenerationRef.current) return;
+      if (rpcResult?.error) throw rpcResult.error;
 
-      const source = ((data ?? []) as IgpatRow[])
+      const source = ((rpcResult?.data ?? []) as IgpatRow[])
         .filter(row => Boolean(row.media_path))
         .slice(0, limit);
 
       const signed = await mapWithConcurrency(
         source,
-        SIGN_CONCURRENCY,
+        effectiveDataSaver ? 2 : SIGN_CONCURRENCY,
         async row => {
-          const { data: mediaData, error: signError } = await supabase.storage
-            .from('community-media')
-            .createSignedUrl(row.media_path, SIGNED_URL_TTL_SECONDS);
+          try {
+            const signResult = await withTimeout(
+              Promise.resolve(
+                supabase.storage
+                  .from('community-media')
+                  .createSignedUrl(row.media_path, SIGNED_URL_TTL_SECONDS)
+              ),
+              SIGN_TIMEOUT_MS,
+              'IGPAT media URL'
+            );
 
-          if (signError) {
-            console.warn('BUKLOD IGPAT sign:', signError.message);
+            if (signResult.error) {
+              console.warn('BUKLOD IGPAT sign:', signResult.error.message);
+              return { ...row, media_url: null };
+            }
+            return { ...row, media_url: signResult.data?.signedUrl ?? null };
+          } catch (signError) {
+            console.warn('BUKLOD IGPAT sign:', String((signError as any)?.message ?? signError));
             return { ...row, media_url: null };
           }
-
-          return { ...row, media_url: mediaData?.signedUrl ?? null };
         }
       );
 
+      if (generation !== loadGenerationRef.current) return;
       setRows(signed.filter(row => Boolean(row.media_url)));
       setActiveIndex(0);
+      lastSuccessfulLoadAtRef.current = Date.now();
     } catch (error) {
+      if (generation !== loadGenerationRef.current) return;
       const message = String((error as any)?.message ?? error);
       console.warn('BUKLOD IGPAT load:', message);
       setRows([]);
       setLoadError(message);
     } finally {
-      setLoading(false);
+      if (generation === loadGenerationRef.current) setLoading(false);
     }
-  }, [dataSaver, feedMode, prefsReady, user?.id]);
+  }, [effectiveDataSaver, feedMode, networkUnavailable, prefsReady, user?.id]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!appActive || !prefsReady || networkUnavailable) return;
+    const stale = Date.now() - lastSuccessfulLoadAtRef.current >= FOREGROUND_REFRESH_AFTER_MS;
+    if (lastSuccessfulLoadAtRef.current > 0 && stale) void load();
+  }, [appActive, load, networkUnavailable, prefsReady]);
+
+  const trackEvent = useCallback((
+    eventName: string,
+    postId?: string | null,
+    creatorId?: string | null,
+    watchMs = 0,
+    meta: Record<string, unknown> = {}
+  ) => {
+    if (!user?.id) return;
+    void (async () => {
+      try {
+        let result = await (supabase as any).rpc('igpat_track_event_v2', {
+          p_event_name: eventName,
+          p_post_id: postId || null,
+          p_creator_id: creatorId || null,
+          p_feed_source: feedMode,
+          p_watch_ms: watchMs,
+          p_meta: meta,
+        });
+        if (result?.error) {
+          result = await (supabase as any).rpc('igpat_track_event_v1', {
+            p_event_name: eventName,
+            p_post_id: postId || null,
+            p_creator_id: creatorId || null,
+            p_feed_source: feedMode,
+            p_watch_ms: watchMs,
+            p_meta: meta,
+          });
+        }
+        if (result?.error) throw result.error;
+      } catch (error) {
+        console.warn('BUKLOD IGPAT event:', String((error as any)?.message ?? error));
+      }
+    })();
+  }, [feedMode, user?.id]);
+
+  const activePostId = rows[activeIndex]?.id ?? null;
+  const activeCreatorId = rows[activeIndex]?.user_id ? String(rows[activeIndex]?.user_id) : null;
+
+  useEffect(() => {
+    if (!appActive || !activePostId) return undefined;
+    const startedAt = Date.now();
+    trackEvent('impression', activePostId, activeCreatorId);
+
+    return () => {
+      const watchMs = Math.max(0, Date.now() - startedAt);
+      const eventName = watchMs >= 3000 ? 'qualified_watch' : watchMs < 900 ? 'skip' : 'watch';
+      trackEvent(eventName, activePostId, activeCreatorId, watchMs);
+    };
+  }, [activeCreatorId, activePostId, appActive, trackEvent]);
 
   const loadBondMoments = useCallback(async () => {
     if (!user?.id || !rows.length || !followedIds.size) {
@@ -463,6 +588,8 @@ export default function IgpatScreen() {
   }, []);
 
   const toggleSaved = useCallback((postId: string) => {
+    const row = rows.find(item => item.id === postId);
+    const wasSaved = savedIds.has(postId);
     setSavedIds(current => {
       const next = new Set(current);
       if (next.has(postId)) next.delete(postId);
@@ -470,7 +597,8 @@ export default function IgpatScreen() {
       void AsyncStorage.setItem(SAVED_IGPAT_KEY, JSON.stringify(Array.from(next)));
       return next;
     });
-  }, []);
+    if (row) trackEvent(wasSaved ? 'unsave' : 'save', row.id, row.user_id ? String(row.user_id) : null);
+  }, [rows, savedIds, trackEvent]);
 
   const toggleFollow = useCallback(async (creatorId: string) => {
     if (!user?.id || creatorId === user.id || followBusy.has(creatorId)) return;
@@ -497,6 +625,7 @@ export default function IgpatScreen() {
 
       const { error } = await request;
       if (error) throw error;
+      if (!wasFollowing) trackEvent('follow', null, creatorId);
     } catch (error) {
       console.warn('BUKLOD IGPAT follow:', String((error as any)?.message ?? error));
       setFollowedIds(current => {
@@ -512,7 +641,7 @@ export default function IgpatScreen() {
         return next;
       });
     }
-  }, [followBusy, followedIds, user?.id]);
+  }, [followBusy, followedIds, trackEvent, user?.id]);
 
   const setPulseReaction = useCallback(async (postId: string, storedReaction: string) => {
     const row = rows.find(item => item.id === postId);
@@ -586,20 +715,29 @@ export default function IgpatScreen() {
     void setPulseReaction(postId, currentOption?.storedReaction ?? 'love');
   }, [rows, setPulseReaction]);
 
-  const shareIgpat = useCallback(async (postId: string) => {
+  const shareIgpat = useCallback(async (row: IgpatRow) => {
     try {
-      await Share.share({
-        message: `BUKLOD IGPAT — An Instant Bond.\nhttps://buklod.expo.app/post/${postId}`,
+      const result = await Share.share({
+        message: `BUKLOD IGPAT — An Instant Bond.\nhttps://buklod.expo.app/post/${row.id}`,
       });
+      if (result.action === Share.sharedAction) {
+        trackEvent('share', row.id, row.user_id ? String(row.user_id) : null);
+      }
     } catch (error) {
       console.warn('BUKLOD IGPAT share:', String((error as any)?.message ?? error));
     }
-  }, []);
+  }, [trackEvent]);
+
+  const openComments = useCallback((row: IgpatRow) => {
+    trackEvent('comment_open', row.id, row.user_id ? String(row.user_id) : null);
+    router.push(`/post/${row.id}` as any);
+  }, [trackEvent]);
 
   const beginRelay = useCallback((row: IgpatRow, prompt: IgpatRelayPrompt) => {
     const author = resolvePersonDisplayName(row.author_name, row.user_id);
     setRelayPickerPostId(null);
     setPulsePickerPostId(null);
+    trackEvent('relay_open', row.id, row.user_id ? String(row.user_id) : null, 0, { prompt });
     router.push({
       pathname: '/igpat/create',
       params: {
@@ -608,7 +746,7 @@ export default function IgpatScreen() {
         relayParentAuthor: author,
       },
     } as any);
-  }, []);
+  }, [trackEvent]);
 
   const onViewableItemsChanged = useRef(
     ({ viewableItems }: { viewableItems: Array<ViewToken<IgpatRow>> }) => {
@@ -638,7 +776,7 @@ export default function IgpatScreen() {
         <Text style={styles.emptyTitle}>BUKLOD IGPAT</Text>
         <Text style={styles.emptyCopy}>
           {loadError
-            ? 'IGPAT could not load right now.'
+            ? loadError
             : feedMode === 'following'
               ? 'Follow IGPAT creators to see them here.'
               : feedMode === 'latest'
@@ -666,8 +804,8 @@ export default function IgpatScreen() {
     <View style={styles.root}>
       <FlatList
         data={rows}
-        extraData={`${activeIndex}:${pulsePickerPostId ?? ''}:${relayPickerPostId ?? ''}:${Object.keys(bondMoments).length}`}
-        key={`${feedMode}:${dataSaver ? 'saver' : 'normal'}`}
+        extraData={`${activeIndex}:${pulsePickerPostId ?? ''}:${relayPickerPostId ?? ''}:${Object.keys(bondMoments).length}:${appActive ? 'active' : 'background'}`}
+        key={`${feedMode}:${effectiveDataSaver ? 'saver' : 'normal'}`}
         keyExtractor={item => item.id}
         pagingEnabled
         showsVerticalScrollIndicator={false}
@@ -698,7 +836,7 @@ export default function IgpatScreen() {
               {!!item.media_url && index === activeIndex ? (
                 <IgpatVideo
                   uri={item.media_url}
-                  active
+                  active={appActive}
                   durationSeconds={Number(item.media_duration_seconds ?? 0)}
                   editMeta={item.igpat_edit_meta}
                 />
@@ -713,17 +851,23 @@ export default function IgpatScreen() {
                 <View style={styles.topActions}>
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={dataSaver ? 'Turn Data Saver off' : 'Turn Data Saver on'}
+                    accessibilityLabel={
+                      autoDataSaver && !dataSaver
+                        ? 'Automatic Data Saver is on for mobile data'
+                        : dataSaver
+                          ? 'Turn manual Data Saver off'
+                          : 'Turn manual Data Saver on'
+                    }
                     onPress={toggleDataSaver}
-                    style={[styles.utilityButton, dataSaver && styles.utilityButtonActive]}
+                    style={[styles.utilityButton, effectiveDataSaver && styles.utilityButtonActive]}
                   >
                     <MaterialCommunityIcons
                       name="leaf"
                       size={17}
-                      color={dataSaver ? '#07100B' : '#FFFFFF'}
+                      color={effectiveDataSaver ? '#07100B' : '#FFFFFF'}
                     />
-                    <Text style={[styles.utilityText, dataSaver && styles.utilityTextActive]}>
-                      {dataSaver ? 'SAVER' : 'DATA'}
+                    <Text style={[styles.utilityText, effectiveDataSaver && styles.utilityTextActive]}>
+                      {autoDataSaver && !dataSaver ? 'AUTO' : dataSaver ? 'SAVER' : 'DATA'}
                     </Text>
                   </Pressable>
                   <Pressable
@@ -833,6 +977,7 @@ export default function IgpatScreen() {
                     accessibilityLabel="View IGPAT Relay chain"
                     onPress={() => {
                       setRelayPickerPostId(null);
+                      trackEvent('relay_open', item.id, creatorId || null, 0, { action: 'view_chain' });
                       router.push(`/igpat/relay/${item.id}` as any);
                     }}
                     style={styles.relayChainButton}
@@ -859,12 +1004,12 @@ export default function IgpatScreen() {
                   icon="comment-outline"
                   label="Open comments"
                   count={item.comment_count}
-                  onPress={() => router.push(`/post/${item.id}` as any)}
+                  onPress={() => openComments(item)}
                 />
                 <ActionButton
                   icon="share-variant-outline"
                   label="Share IGPAT. Long press for Relay."
-                  onPress={() => void shareIgpat(item.id)}
+                  onPress={() => void shareIgpat(item)}
                   onLongPress={() => {
                     setPulsePickerPostId(null);
                     setRelayPickerPostId(item.id);
@@ -908,7 +1053,9 @@ export default function IgpatScreen() {
                     </Text>
                   </View>
                 ) : null}
-                {dataSaver ? <Text style={styles.saverHint}>DATA SAVER ON</Text> : null}
+                {effectiveDataSaver ? (
+                  <Text style={styles.saverHint}>{autoDataSaver && !dataSaver ? 'AUTO DATA SAVER · MOBILE DATA' : 'DATA SAVER ON'}</Text>
+                ) : null}
               </View>
             </View>
           );
