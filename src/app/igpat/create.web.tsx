@@ -245,7 +245,15 @@ export default function IgpatCreateWebScreen() {
   const recordStartedAtRef = useRef(0);
   const draftRecoveryUserRef = useRef<string | null>(null);
   const latestDraftSaveRef = useRef<IgpatDraftSaveInput | null>(null);
+  const draftAutosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draftPersistenceWarningRef = useRef(false);
+
+  const cancelDraftAutosave = () => {
+    if (draftAutosaveTimerRef.current) {
+      clearTimeout(draftAutosaveTimerRef.current);
+      draftAutosaveTimerRef.current = null;
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -311,6 +319,7 @@ export default function IgpatCreateWebScreen() {
 
   useEffect(() => () => {
     stopCamera();
+    cancelDraftAutosave();
     const pending = latestDraftSaveRef.current;
     if (pending) {
       try { saveWebIgpatDraft(pending); } catch {}
@@ -343,6 +352,7 @@ export default function IgpatCreateWebScreen() {
               text: 'DISCARD DRAFT',
               style: 'destructive',
               onPress: () => {
+                cancelDraftAutosave();
                 latestDraftSaveRef.current = null;
                 URL.revokeObjectURL(uri);
                 void clearWebIgpatDraft(user.id);
@@ -397,17 +407,24 @@ export default function IgpatCreateWebScreen() {
       groupId,
     };
     latestDraftSaveRef.current = input;
+    cancelDraftAutosave();
     const timer = setTimeout(() => {
+      if (draftAutosaveTimerRef.current === timer) draftAutosaveTimerRef.current = null;
       try {
         saveWebIgpatDraft(input);
       } catch (error: any) {
         console.warn('BUKLOD IGPAT draft autosave:', String(error?.message ?? error));
       }
     }, DRAFT_AUTOSAVE_DELAY_MS);
-    return () => clearTimeout(timer);
+    draftAutosaveTimerRef.current = timer;
+    return () => {
+      clearTimeout(timer);
+      if (draftAutosaveTimerRef.current === timer) draftAutosaveTimerRef.current = null;
+    };
   }, [audience, caption, draft, edit, groupId, user?.id]);
 
   const clearDraftState = () => {
+    cancelDraftAutosave();
     latestDraftSaveRef.current = null;
     setDraft(null);
     resetEditHistory({ ...DEFAULT_IGPAT_QUICK_EDIT });
@@ -418,6 +435,8 @@ export default function IgpatCreateWebScreen() {
   };
 
   const disposeDraft = () => {
+    cancelDraftAutosave();
+    latestDraftSaveRef.current = null;
     if (draft?.revokeOnDispose && draft.uri) {
       try { URL.revokeObjectURL(draft.uri); } catch {}
     }
@@ -446,6 +465,8 @@ export default function IgpatCreateWebScreen() {
       return;
     }
 
+    cancelDraftAutosave();
+    latestDraftSaveRef.current = null;
     const initialEdit = { ...DEFAULT_IGPAT_QUICK_EDIT, trimEndSeconds: next.durationSeconds };
     const baseDraft: IgpatDraftSaveInput = {
       userId: user.id,
@@ -686,6 +707,7 @@ export default function IgpatCreateWebScreen() {
       if (error) throw error;
       if (!data) throw new Error('The server did not return the new IGPAT post ID.');
 
+      cancelDraftAutosave();
       latestDraftSaveRef.current = null;
       await clearWebIgpatDraft(user.id);
       setStage('Published');
