@@ -5,6 +5,8 @@ type FormationNotificationData = {
   item_kind?: string | null;
   item_id?: string | null;
   auto_approved?: boolean | null;
+  report_only?: boolean | null;
+  pending_count?: number | null;
 };
 
 export type FormationNotificationTarget = {
@@ -18,6 +20,8 @@ const FORMATION_NOTIFICATION_KINDS = new Set([
   'formation_approved',
   'formation_needs_improvement',
   'formation_auto_approved',
+  'formation_pending_reminder',
+  'formation_submission_report',
 ]);
 
 function clean(value: unknown) {

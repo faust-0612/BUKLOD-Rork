@@ -1862,6 +1862,38 @@ export default function MeScreen() {
               style={styles.profileMenuItem}
               onPress={() => {
                 setProfileMenuOpen(false);
+                router.push('/notifications' as any);
+              }}
+            >
+              <MaterialCommunityIcons
+                name="bell-outline"
+                size={22}
+                color={theme.accent}
+              />
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[
+                    styles.profileMenuTitle,
+                    { color: theme.textPrimary },
+                  ]}
+                >
+                  Notifications
+                </Text>
+                <Text
+                  style={[
+                    styles.profileMenuSubtitle,
+                    { color: theme.textMuted },
+                  ]}
+                >
+                  View updates, messages, and requests
+                </Text>
+              </View>
+            </Pressable>
+
+            <Pressable
+              style={styles.profileMenuItem}
+              onPress={() => {
+                setProfileMenuOpen(false);
                 void changeProfileBackground();
               }}
             >

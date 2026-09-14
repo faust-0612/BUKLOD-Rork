@@ -11,11 +11,8 @@ import { useBuklodScrollBottomInset } from '@/lib/buklodSafeArea';
 import {useAuth} from '@/providers/AuthProvider';
 import {useNotifications} from '@/providers/NotificationProvider';
 import {useBuklodScope} from '@/providers/BuklodScopeProvider';
-import {
-  buklodNotificationTarget,
-  syncScopeSelection,
-} from '@/lib/buklodScopeRoute';
-import { buklodFormationNotificationTarget } from '@/lib/buklodFormationNotificationTarget';
+import { syncScopeSelection } from '@/lib/buklodScopeRoute';
+import { resolveBuklodNotificationTarget } from '@/lib/buklodNotificationNavigation';
 import { resolveMzbOrganizationScopeId } from '@/lib/buklodMzbOrganization';
 
 export default function NotificationCenter(){
@@ -29,30 +26,28 @@ export default function NotificationCenter(){
  useEffect(()=>{void load()},[load]);
  const open=async(x:any)=>{
   const kind=String(x?.kind??'');
-  const data=x?.data??null;
-  const formationTarget=buklodFormationNotificationTarget(kind,data);
-  const mzbCanonicalScopeId=formationTarget
-   ? null
-   : await resolveMzbOrganizationScopeId().catch(()=>null);
-  const target=formationTarget??buklodNotificationTarget(kind,data,{scopes,mzbCanonicalScopeId});
+  const data=(x?.data??null) as Record<string,unknown>|null;
+  const mzbCanonicalScopeId=await resolveMzbOrganizationScopeId().catch(()=>null);
+  const target=resolveBuklodNotificationTarget(kind,data,{scopes,mzbCanonicalScopeId});
   const p=target?.path??null;
+
+  if(!x.read_at){
+   const {error}=await supabase.from('notifications').update({read_at:new Date().toISOString()}).eq('id',x.id).eq('user_id',user?.id);
+   if(!error){
+    setItems(current=>current.map(item=>item.id===x.id?{...item,read_at:new Date().toISOString()}:item));
+    await refreshUnread();
+   }
+  }
 
   if(p){
    if(target?.scopeId){
     await syncScopeSelection(selectScope,target.scopeId,activeScope?.scope_id);
    }
    buklodInstantPush(p as any);
+   return;
   }
 
-  void (async()=>{
-   if(!x.read_at){
-    await supabase.from('notifications').update({read_at:new Date().toISOString()}).eq('id',x.id).eq('user_id',user?.id);
-    await refreshUnread();
-   }
-   if(!p){
-    await load();
-   }
-  })();
+  Alert.alert('Notification','This notification does not have a destination yet.');
  };
  return <View style={[shared.screen,{paddingTop:insets.top}]}><FlatList contentContainerStyle={[s.content,{paddingBottom:scrollBottomInset}]} data={items} keyExtractor={x=>x.id} refreshing={loading} onRefresh={load}
  ListHeaderComponent={<View><View style={s.header}><View style={{flex:1}}><Text style={shared.h1}>Notifications</Text><Text style={shared.muted}>{unreadCount} unread</Text></View><View style={s.bell}><MaterialCommunityIcons name="bell-outline" size={23} color={colors.greenDark}/>{unreadCount>0&&<View style={s.badge}><Text style={s.badgeText}>{Math.min(unreadCount,99)}</Text></View>}</View></View>
