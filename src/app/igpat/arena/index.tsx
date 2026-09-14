@@ -43,6 +43,16 @@ const SCOPES: Array<{ key: ArenaScope; label: string }> = [
   { key: 'completed', label: 'COMPLETE' },
 ];
 
+const ARENA_FEATURES = [
+  { route: '/igpat/arena/hill', icon: 'crown-outline', title: 'THE HILL', helper: 'Approved champions' },
+  { route: '/igpat/arena/boss', icon: 'flag-checkered', title: 'BOSS', helper: 'Cluster objective' },
+  { route: '/igpat/arena/streak', icon: 'fire', title: 'IRON STREAK', helper: 'Real completion days' },
+  { route: '/igpat/arena/season', icon: 'podium-gold', title: 'SEASON', helper: 'Arena-only ranking' },
+  { route: '/igpat/arena/badges', icon: 'shield-star-outline', title: 'SKILL BADGES', helper: 'Transparent criteria' },
+  { route: '/igpat/arena/bounty', icon: 'medal-outline', title: 'BOUNTY', helper: 'Symbolic rewards only' },
+  { route: '/igpat/arena/record', icon: 'chart-box-outline', title: 'MY RECORD', helper: 'Structured W/L only' },
+] as const;
+
 function dateLabel(value?: string | null): string {
   if (!value) return '';
   const parsed = new Date(value);
@@ -86,9 +96,7 @@ export default function IgpatArenaScreen() {
     }
   }, [scope, showRankings]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useEffect(() => { void load(); }, [load]);
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
@@ -120,6 +128,17 @@ export default function IgpatArenaScreen() {
           <MaterialCommunityIcons name="podium" size={18} color={showRankings ? '#07100B' : '#FFFFFF'} />
           <Text style={[styles.rankText, showRankings && styles.rankTextActive]}>{showRankings ? 'CHALLENGES' : 'RANKINGS'}</Text>
         </Pressable>
+      </View>
+
+      <Text style={styles.featureLabel}>ARENA MODES & PROGRESS</Text>
+      <View style={styles.featureGrid}>
+        {ARENA_FEATURES.map(feature => (
+          <Pressable key={feature.route} style={styles.featureTile} onPress={() => router.push(feature.route as any)}>
+            <MaterialCommunityIcons name={feature.icon as any} size={18} color={feature.title === 'THE HILL' ? '#D9FF69' : '#FFFFFF'} />
+            <Text style={styles.featureTitle}>{feature.title}</Text>
+            <Text style={styles.featureHelper}>{feature.helper}</Text>
+          </Pressable>
+        ))}
       </View>
 
       {!showRankings ? (
@@ -154,15 +173,13 @@ export default function IgpatArenaScreen() {
                 </View>
                 <View style={styles.scoreBadge}>
                   <Text style={styles.scoreValue}>{row.arena_score}</Text>
-                  <Text style={styles.scoreLabel}>SCORE</Text>
+                  <Text style={styles.scoreLabel}>ARENA SCORE</Text>
                 </View>
               </View>
             ))}
-            <Text style={styles.rankFootnote}>Arena ranking never applies to normal social posts. It reflects structured competitive participation only.</Text>
+            <Text style={styles.rankFootnote}>Arena ranking never applies to normal social posts or other BUKLOD point/rank systems.</Text>
           </View>
-        ) : (
-          <View style={styles.stateCard}><Text style={styles.stateText}>No completed Arena records yet.</Text></View>
-        )
+        ) : <View style={styles.stateCard}><Text style={styles.stateText}>No completed Arena records yet.</Text></View>
       ) : rows.length ? (
         <View style={styles.list}>
           {rows.map(row => (
@@ -172,9 +189,7 @@ export default function IgpatArenaScreen() {
                 <Text style={styles.status}>{igpatArenaStatusLabel(row.status)}</Text>
               </View>
               <Text style={styles.cardTitle} numberOfLines={2}>{row.title?.trim() || igpatArenaModeLabel(row.mode)}</Text>
-              <Text style={styles.match} numberOfLines={1}>
-                {row.creator_name}{row.opponent_name ? `  vs  ${row.opponent_name}` : ' · open challenge'}
-              </Text>
+              <Text style={styles.match} numberOfLines={1}>{row.creator_name}{row.opponent_name ? `  vs  ${row.opponent_name}` : ' · open challenge'}</Text>
               <View style={styles.cardBottom}>
                 <Text style={styles.meta}>{Number(row.result_count ?? 0)} submissions · {Number(row.respect_score ?? 0)} Respect</Text>
                 <Text style={styles.meta}>{dateLabel(row.created_at)}</Text>
@@ -183,9 +198,7 @@ export default function IgpatArenaScreen() {
             </Pressable>
           ))}
         </View>
-      ) : (
-        <View style={styles.stateCard}><Text style={styles.stateText}>No Arena challenges in this view yet.</Text></View>
-      )}
+      ) : <View style={styles.stateCard}><Text style={styles.stateText}>No Arena challenges in this view yet.</Text></View>}
     </ScrollView>
   );
 }
@@ -210,7 +223,12 @@ const styles = StyleSheet.create({
   rankButtonActive: { backgroundColor: '#FFFFFF', borderColor: '#FFFFFF' },
   rankText: { color: '#FFFFFF', fontSize: 8.5, fontWeight: '900', letterSpacing: 0.6 },
   rankTextActive: { color: '#07100B' },
-  scopeTabs: { marginTop: 14, padding: 3, borderRadius: 999, backgroundColor: '#0D120F', flexDirection: 'row' },
+  featureLabel: { marginTop: 18, marginBottom: 8, color: 'rgba(255,255,255,0.38)', fontSize: 8, fontWeight: '900', letterSpacing: 0.8 },
+  featureGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  featureTile: { width: '48%', minHeight: 82, borderRadius: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.11)', backgroundColor: '#0D120F', padding: 11, justifyContent: 'center' },
+  featureTitle: { marginTop: 7, color: '#FFFFFF', fontSize: 8.5, fontWeight: '900', letterSpacing: 0.5 },
+  featureHelper: { marginTop: 3, color: 'rgba(255,255,255,0.36)', fontSize: 7.7, lineHeight: 11 },
+  scopeTabs: { marginTop: 16, padding: 3, borderRadius: 999, backgroundColor: '#0D120F', flexDirection: 'row' },
   scopeTab: { flex: 1, minHeight: 38, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   scopeTabActive: { backgroundColor: '#FFFFFF' },
   scopeText: { color: 'rgba(255,255,255,0.58)', fontSize: 8.5, fontWeight: '900', letterSpacing: 0.5 },
