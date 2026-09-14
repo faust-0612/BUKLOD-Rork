@@ -77,12 +77,20 @@ requireAll('src/lib/pushNotifications.ts', [
   'buklod-activity-v2 fallback',
 ]);
 
+// Notification routing is centralized on current main. The provider owns R2
+// channel/category + acknowledgement behavior; the resolver owns exact routes.
 requireAll('src/providers/NotificationProvider.tsx', [
   'ensureBuklodEmergencyChannel',
   'registerBuklodEmergencyNotificationCategory',
   'emergencyResponseTypeForAction',
-  "kind==='community_emergency'&&data?.help_request_id",
+  "kind==='community_emergency'&&d?.help_request_id&&user?.id",
   "p_response_type:responseType",
+  'resolveBuklodNotificationTarget',
+  'void openNotification(kind,d)',
+]);
+requireAll('src/lib/buklodNotificationNavigation.ts', [
+  'const helpRequestId = clean(payload.help_request_id);',
+  'path: `/buklod?help_request_id=${encodeURIComponent(helpRequestId)}`',
 ]);
 
 requireAll('app.config.js', [
@@ -153,4 +161,4 @@ if (failures.length) {
 }
 
 console.log('EMERGENCY ALERT MODE R2 RELEASE LOCK PASSED.');
-console.log('Protected: grandfathered cutover, capability-safe rollout, dedicated MAX channel, alarm audio attributes, safe DND gating, acknowledgement, staged reminders, iOS Time Sensitive path, and R1 privacy boundaries.');
+console.log('Protected: grandfathered cutover, capability-safe rollout, dedicated MAX channel, alarm audio attributes, safe DND gating, acknowledgement, staged reminders, iOS Time Sensitive path, centralized exact-route preservation, and R1 privacy boundaries.');
