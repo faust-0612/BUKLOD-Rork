@@ -1,4 +1,4 @@
-# Release trigger: 2026-09-12 automatic Formation submission + community photo repair
+# Release trigger: 2026-09-14 Community Help Emergency Alert Mode R2
 name: BUKLOD Production Android OTA
 
 on:
@@ -9,12 +9,17 @@ on:
     paths:
       - '.github/workflows/production_android_ota.yml'
       - 'scripts/community-help-sos-release-contract.mjs'
+      - 'scripts/community-help-emergency-alert-r2-contract.mjs'
       - 'src/components/BuklodCommunityHelp.tsx'
+      - 'src/components/BuklodEmergencyAlertModeCard.tsx'
       - 'src/components/BuklodPublicLocationChips.tsx'
+      - 'src/lib/buklodEmergencyAlertMode.ts'
       - 'src/providers/NotificationProvider.tsx'
       - 'app.config.js'
       - 'supabase/functions/buklod-help-alert/**'
+      - 'supabase/functions/push/**'
       - 'supabase/migrations/*community_help_sos*.sql'
+      - 'supabase/migrations/*community_help_emergency_alert*.sql'
       - 'scripts/patch-home-identity-action-row.cjs'
       - 'src/app/index.tsx'
       - 'src/app/onboarding/index.tsx'
@@ -101,6 +106,9 @@ jobs:
       - name: Verify locked Community Help / Emergency SOS baseline
         run: node scripts/community-help-sos-release-contract.mjs
 
+      - name: Verify Emergency Alert Mode R2
+        run: node scripts/community-help-emergency-alert-r2-contract.mjs
+
       - name: Apply Home identity action row
         run: node scripts/patch-home-identity-action-row.cjs
 
@@ -109,7 +117,7 @@ jobs:
         run: |
           grep -F 'HOME_IDENTITY_ACTION_ROW_R2' 'src/app/(tabs)/home.tsx'
           grep -F 'BUKLOD_CLASSROOM_ACCOUNT_ISOLATION_R2' 'src/app/profile/buklod-classrooms.tsx'
-          grep -F "row.role_key === 'STUDENT'" 'src/app/profile/buklod-classrooms.tsx'
+          grep -F "row.role_key === 'STUDENT' 'src/app/profile/buklod-classrooms.tsx'" || grep -F "row.role_key === 'STUDENT'" 'src/app/profile/buklod-classrooms.tsx'
           if grep -F "row.role_key === 'FACULTY'" 'src/app/profile/buklod-classrooms.tsx'; then
             echo 'Faculty rows are still rendered in student My Classroom.'
             exit 1
@@ -211,7 +219,7 @@ jobs:
             --channel production \
             --platform android \
             --environment production \
-            --message "BUKLOD Formation automatic submission + photo access repair" \
+            --message "BUKLOD Emergency Alert Mode R2" \
             --non-interactive
 
       - name: Deployment status
