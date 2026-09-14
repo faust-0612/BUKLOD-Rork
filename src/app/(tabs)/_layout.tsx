@@ -27,6 +27,7 @@ import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import { useNotifications } from '@/providers/NotificationProvider';
 import { useCompliance } from '@/providers/ComplianceProvider';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
+import { isBuklodScopedWorkspacePath } from '@/lib/buklodSafeArea';
 
 function SwipeDashboardHeader() {
   const pathname =
@@ -36,14 +37,19 @@ function SwipeDashboardHeader() {
     useSafeAreaInsets();
 
   const { theme } = useBuklodTheme();
-  const { activeScope } = useBuklodScope();
-  const { unreadCount } = useNotifications();
+  const { unreadCount, refreshUnread } = useNotifications();
   const publicMinimal =
-    activeScope?.scope_type === 'PUBLIC';
+    !isBuklodScopedWorkspacePath(pathname);
   const badgeText =
     unreadCount > 99
       ? '99+'
       : String(unreadCount);
+
+  useEffect(() => {
+    if (publicMinimal) {
+      void refreshUnread();
+    }
+  }, [publicMinimal, refreshUnread]);
 
   let title = 'Buklod';
 
@@ -290,9 +296,9 @@ export default function TabsLayout() {
 
   /*
    * Instant route switches with no swipe-between-tabs ViewPager.
-   * PUBLIC uses Community as its canonical surface, with lightweight header
-   * utilities such as the three-dot Notification Center shortcut. Managed
-   * Organization/Cluster navigation remains owned by its scoped workspace.
+   * Public/personal navigation is route-authoritative, with Community as the
+   * canonical surface and the three-dot Notification Center shortcut in the
+   * header. Managed Organization/Cluster navigation remains owned by /scope.
    */
   return (
     <View style={{ flex: 1 }}>
