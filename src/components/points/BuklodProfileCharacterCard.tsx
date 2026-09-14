@@ -2,6 +2,7 @@
 /* BUKLOD_PROFILE_POINTS_CLAIM_R2_GROUPED */
 /* BUKLOD_CHARACTER_R25D_PROFILE_VIEWPORT */
 /* BUKLOD_CHARACTER_VISIBLE_SYNC_R31_R40_V2 */
+/* BUKLOD_PROFILE_TOP10_R1 */
 import React, {
   useCallback,
   useEffect,
@@ -68,12 +69,28 @@ import {
 } from '@/lib/buklodRewards';
 
 import {
+  resolvePersonDisplayName,
+} from '@/lib/buklodPersonDisplay';
+
+import {
+  supabase,
+} from '@/lib/supabase';
+
+import {
   withAlpha,
 } from '@/lib/buklodContrast';
 
 type Props = {
   lifetimePoints?: number;
   rankName?: string | null;
+};
+
+type ProfileLeaderboardRow = {
+  user_id: string;
+  full_name: string | null;
+  church_name: string | null;
+  rank_position: number;
+  total_points: number;
 };
 
 export default function BuklodProfileCharacterCard({
@@ -94,6 +111,8 @@ export default function BuklodProfileCharacterCard({
   const [displayPoints, setDisplayPoints] = useState(lifetimePoints);
   const [displayRank, setDisplayRank] = useState<string | null>(rankName);
   const [claimGroups, setClaimGroups] = useState<BuklodClaimGroup[]>([]);
+  const [topTen, setTopTen] = useState<ProfileLeaderboardRow[]>([]);
+  const [topTenBusy, setTopTenBusy] = useState(false);
 
   useEffect(() => {
     setDisplayPoints(lifetimePoints);
@@ -130,13 +149,53 @@ export default function BuklodProfileCharacterCard({
     }
   }, [userId]);
 
+  const loadTopTen = useCallback(async () => {
+    if (!userId) {
+      setTopTen([]);
+      setTopTenBusy(false);
+      return;
+    }
+
+    setTopTenBusy(true);
+
+    try {
+      const { data, error } = await (supabase as any).rpc(
+        'get_buklod_points_leaderboard',
+        {
+          p_period: 'all_time',
+          p_limit: 10,
+          p_church_id: null,
+        },
+      );
+
+      if (error) {
+        throw error;
+      }
+
+      setTopTen(
+        Array.isArray(data)
+          ? data.slice(0, 10) as ProfileLeaderboardRow[]
+          : [],
+      );
+    } catch (error: unknown) {
+      console.warn(
+        'Profile Top 10 leaderboard:',
+        error instanceof Error ? error.message : error,
+      );
+      setTopTen([]);
+    } finally {
+      setTopTenBusy(false);
+    }
+  }, [userId]);
+
   useFocusEffect(
     useCallback(() => {
       setFocused(true);
       void loadClaimGroups();
+      void loadTopTen();
 
       return () => setFocused(false);
-    }, [loadClaimGroups]),
+    }, [loadClaimGroups, loadTopTen]),
   );
 
   useEffect(() => {
@@ -301,6 +360,88 @@ export default function BuklodProfileCharacterCard({
       letterSpacing: 0.55,
       color: theme.accent,
     },
+    topTenSection: {
+      marginTop: 11,
+      paddingTop: 11,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: theme.border,
+    },
+    topTenHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 8,
+      marginBottom: 5,
+    },
+    topTenTitleWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    topTenTitle: {
+      fontSize: 10,
+      fontWeight: '900',
+      letterSpacing: 0.8,
+      color: theme.textMuted,
+    },
+    topTenPeriod: {
+      fontSize: 8,
+      fontWeight: '900',
+      color: theme.accent,
+    },
+    topTenState: {
+      paddingVertical: 12,
+      textAlign: 'center',
+      fontSize: 10,
+      color: theme.textMuted,
+    },
+    topTenRow: {
+      minHeight: 47,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingHorizontal: 7,
+      paddingVertical: 6,
+      borderRadius: 11,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: theme.border,
+    },
+    topTenRowMine: {
+      backgroundColor: withAlpha(theme.accent, 0.08),
+      borderWidth: 1,
+      borderColor: withAlpha(theme.accent, 0.2),
+    },
+    topTenPosition: {
+      width: 28,
+      fontSize: 11,
+      fontWeight: '900',
+      color: theme.accent,
+    },
+    topTenPerson: {
+      flex: 1,
+      minWidth: 0,
+    },
+    topTenName: {
+      fontSize: 10.5,
+      fontWeight: '900',
+      color: theme.textPrimary,
+    },
+    topTenChurch: {
+      marginTop: 1,
+      fontSize: 8.5,
+      color: theme.textMuted,
+    },
+    topTenPoints: {
+      fontSize: 10,
+      fontWeight: '900',
+      color: theme.textSecondary,
+    },
+    youTag: {
+      marginLeft: 4,
+      fontSize: 7,
+      fontWeight: '900',
+      color: theme.accent,
+    },
   });
 
   return (
@@ -429,6 +570,94 @@ export default function BuklodProfileCharacterCard({
                     {formatPoints(displayPoints)}
                   </Text>
                 </View>
+              </View>
+
+              <View style={styles.topTenSection}>
+                <View style={styles.topTenHeader}>
+                  <View style={styles.topTenTitleWrap}>
+                    <MaterialCommunityIcons
+                      name="trophy-outline"
+                      size={15}
+                      color={theme.accent}
+                    />
+                    <Text style={styles.topTenTitle}>
+                      TOP 10
+                    </Text>
+                    <Text style={styles.topTenPeriod}>
+                      ALL-TIME
+                    </Text>
+                  </View>
+
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Open complete Top 10 ranking"
+                    onPress={() => router.push('/points')}
+                  >
+                    <Text style={styles.fullRankingText}>
+                      View ranking →
+                    </Text>
+                  </Pressable>
+                </View>
+
+                {topTenBusy ? (
+                  <Text style={styles.topTenState}>
+                    Loading Top 10…
+                  </Text>
+                ) : topTen.length === 0 ? (
+                  <Text style={styles.topTenState}>
+                    No ranking data yet.
+                  </Text>
+                ) : (
+                  topTen.map((item) => {
+                    const mine = item.user_id === userId;
+                    const points = Number(item.total_points ?? 0);
+
+                    return (
+                      <Pressable
+                        key={item.user_id}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Rank ${item.rank_position}: ${resolvePersonDisplayName(item.full_name, item.user_id)}`}
+                        onPress={() => router.push('/points')}
+                        style={({ pressed }) => [
+                          styles.topTenRow,
+                          mine && styles.topTenRowMine,
+                          pressed && { opacity: 0.86 },
+                        ]}
+                      >
+                        <Text style={styles.topTenPosition}>
+                          #{item.rank_position}
+                        </Text>
+
+                        <View style={styles.topTenPerson}>
+                          <Text
+                            numberOfLines={1}
+                            style={styles.topTenName}
+                          >
+                            {resolvePersonDisplayName(
+                              item.full_name,
+                              item.user_id,
+                            )}
+                            {mine ? (
+                              <Text style={styles.youTag}> · YOU</Text>
+                            ) : null}
+                          </Text>
+                          <Text
+                            numberOfLines={1}
+                            style={styles.topTenChurch}
+                          >
+                            {item.church_name || 'No Local'}
+                          </Text>
+                        </View>
+
+                        <Text style={styles.topTenPoints}>
+                          {Number.isFinite(points)
+                            ? points.toLocaleString('en-PH')
+                            : '0'} pts
+                        </Text>
+                      </Pressable>
+                    );
+                  })
+                )}
               </View>
             </View>
           </View>
