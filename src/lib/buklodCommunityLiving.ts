@@ -46,6 +46,24 @@ export type BuklodChainStatus =
   | 'growing'
   | 'resolved';
 
+export const BUKLOD_MOMENT_MODES = [
+  'add_yours',
+  'then_now',
+  'progress',
+  'relay',
+] as const;
+
+export type BuklodMomentMode =
+  (typeof BUKLOD_MOMENT_MODES)[number];
+
+export const BUKLOD_MOMENT_MODE_LABELS:
+  Record<BuklodMomentMode, string> = {
+    add_yours: 'Add yours',
+    then_now: 'Then & Now',
+    progress: 'Show progress',
+    relay: 'Photo Relay',
+  };
+
 export const BUKLOD_COMMUNITY_KIND_LABELS:
   Record<BuklodCommunityKind, string> = {
     question: 'Question',
@@ -76,6 +94,12 @@ export const BUKLOD_DUGTONG_TYPE_LABELS:
     continuation: 'Continue',
   };
 
+export const BUKLOD_COMMUNITY_PRIVACY_LABELS:
+  Record<BuklodCommunityPrivacy, string> = {
+    public: 'Show my name',
+    anonymous: 'Hide my name',
+  };
+
 export type BuklodPrivacyShieldResult = {
   hardBlock: boolean;
   warnings: string[];
@@ -90,12 +114,12 @@ const ADDRESS_HINT_PATTERN =
   /\b(?:house|unit|lot|block|blk|street|st\.|road|rd\.|purok|sitio)\s*[#:.-]?\s*[A-Z0-9-]{1,12}\b/gi;
 const LINK_PATTERN = /https?:\/\/\S+/gi;
 const HARD_ABUSE_PATTERN =
-  /\b(?:kill\s+yourself|kys|child\s+porn|rape\s+you)\b/gi;
+  /\b(?:kill\s+yourself|kys|child\s+porn|rape\s+you|send\s+nudes?\s+of\s+(?:a\s+)?child)\b/gi;
 
 /**
- * Fast local Privacy Shield before publish. This is intentionally conservative:
- * it protects accidental identity exposure and obvious abuse without pretending
- * to replace server moderation or future AI moderation.
+ * Fast local Privacy Shield. This is intentionally conservative and cheap so
+ * normal posts remain instant. A server-side AI moderation pass runs after a
+ * successful write and can hide content that needs stronger review.
  */
 export function scanBuklodCommunityPrivacy(
   text: string,
@@ -106,28 +130,19 @@ export function scanBuklodCommunityPrivacy(
 
   if (PHONE_PATTERN.test(source)) {
     warnings.push('Possible phone number detected.');
-    suggestedText = suggestedText.replace(
-      PHONE_PATTERN,
-      '[phone hidden]',
-    );
+    suggestedText = suggestedText.replace(PHONE_PATTERN, '[phone hidden]');
   }
-
   PHONE_PATTERN.lastIndex = 0;
 
   if (EMAIL_PATTERN.test(source)) {
     warnings.push('Possible email address detected.');
-    suggestedText = suggestedText.replace(
-      EMAIL_PATTERN,
-      '[email hidden]',
-    );
+    suggestedText = suggestedText.replace(EMAIL_PATTERN, '[email hidden]');
   }
-
   EMAIL_PATTERN.lastIndex = 0;
 
   if (ADDRESS_HINT_PATTERN.test(source)) {
     warnings.push('Possible exact address detail detected.');
   }
-
   ADDRESS_HINT_PATTERN.lastIndex = 0;
 
   const links = source.match(LINK_PATTERN) ?? [];
@@ -143,11 +158,7 @@ export function scanBuklodCommunityPrivacy(
     warnings.push('This text contains content that cannot be posted.');
   }
 
-  return {
-    hardBlock,
-    warnings,
-    suggestedText,
-  };
+  return { hardBlock, warnings, suggestedText };
 }
 
 export function primaryDugtongLabelForKind(
@@ -158,10 +169,6 @@ export function primaryDugtongLabelForKind(
       return 'Add yours';
     case 'challenge':
       return 'Join / Dugtong';
-    case 'question':
-    case 'need_advice':
-    case 'help_needed':
-      return 'Dugtong';
     default:
       return 'Dugtong';
   }
@@ -177,10 +184,27 @@ export function defaultDugtongTypeForKind(
       return 'challenge_response';
     case 'question':
     case 'need_advice':
+    case 'help_needed':
       return 'advice';
     case 'encouragement':
       return 'encouragement';
     default:
       return 'continuation';
   }
+}
+
+export function defaultQuietModeForKind(
+  kind?: string | null,
+): boolean {
+  return ['need_advice', 'help_needed'].includes(
+    String(kind ?? '').toLowerCase(),
+  );
+}
+
+export function supportsCommunityRewardPot(
+  kind?: string | null,
+): boolean {
+  return ['question', 'need_advice', 'help_needed', 'challenge'].includes(
+    String(kind ?? '').toLowerCase(),
+  );
 }
