@@ -66,6 +66,16 @@ requireAll('src/components/BuklodPublicLocationChips.tsx', [
   '<BuklodEmergencyAlertModeCard />',
 ]);
 
+requireAll('src/lib/pushNotifications.ts', [
+  'BUKLOD_EMERGENCY_ALERT_MODE_R2_CAPABILITY',
+  'ensureBuklodEmergencyChannel',
+  'registerBuklodEmergencyNotificationCategory',
+  "'mark_device_emergency_alert_mode_r2'",
+  'p_expo_push_token: token',
+  'Older/unopened clients remain on the',
+  'buklod-activity-v2 fallback',
+]);
+
 requireAll('src/providers/NotificationProvider.tsx', [
   'ensureBuklodEmergencyChannel',
   'registerBuklodEmergencyNotificationCategory',
@@ -83,6 +93,11 @@ requireAll('app.config.js', [
 ]);
 
 requireAll('supabase/migrations/20260914011000_community_help_emergency_alert_r2.sql', [
+  'add column if not exists emergency_alert_mode_version integer not null default 1',
+  'create or replace function public.mark_device_emergency_alert_mode_r2',
+  'emergency_alert_mode_version=greatest(coalesce(emergency_alert_mode_version,1),2)',
+  "if not found then raise exception 'DEVICE_TOKEN_NOT_OWNED'",
+  'grant execute on function public.mark_device_emergency_alert_mode_r2(text) to authenticated',
   "'ACKNOWLEDGED'",
   "if v_type='ACKNOWLEDGED' then",
   "when public.buklod_help_responses.response_type in ('CAN_HELP','ON_MY_WAY','CONFIRM_INCIDENT','CANNOT_HELP','FALSE_ALERT')",
@@ -97,14 +112,17 @@ requireAll('supabase/migrations/20260914011000_community_help_emergency_alert_r2
 ]);
 
 requireAll('supabase/functions/push/index.ts', [
-  'BUKLOD_EMERGENCY_ALERT_MODE_R2',
+  'BUKLOD_EMERGENCY_ALERT_MODE_R2_CAPABILITY_FALLBACK',
   "notification.kind === 'community_emergency'",
+  '.select(\'expo_push_token,platform,emergency_alert_mode_version\')',
+  'Number(row.emergency_alert_mode_version ?? 1) >= 2',
   "? 'buklod-emergency-v1'",
-  "? 'buklod_emergency'",
-  "? 'time-sensitive'",
-  "? 'buklod-activity-v2'",
+  ": 'buklod-activity-v2'",
+  "categoryReady ? 'buklod_emergency' : undefined",
+  "isCommunityEmergency && platform === 'ios' ? 'time-sensitive' : undefined",
   "? `buklod-sos-${helpRequestId}`",
-  "emergency_alert_mode: 'R2'",
+  "emergency_alert_mode: r2Ready ? 'R2' : 'R1_FALLBACK'",
+  'emergency_fallback_tokens: emergencyFallbackCount',
 ]);
 
 // R2 must not silently introduce background location, full-screen takeover,
@@ -128,4 +146,4 @@ if (failures.length) {
 }
 
 console.log('EMERGENCY ALERT MODE R2 RELEASE LOCK PASSED.');
-console.log('Protected: dedicated MAX channel, alarm audio attributes, safe DND gating, acknowledgement, bounded reminders, iOS Time Sensitive path, and R1 privacy boundaries.');
+console.log('Protected: capability-safe rollout, dedicated MAX channel, alarm audio attributes, safe DND gating, acknowledgement, bounded reminders, iOS Time Sensitive path, and R1 privacy boundaries.');
