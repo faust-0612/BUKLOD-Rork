@@ -1,5 +1,6 @@
 name: BUKLOD Web Production Deploy
 
+# Web-only recovery trigger. Do not add native build/update jobs here.
 on:
   push:
     branches: ['main']
