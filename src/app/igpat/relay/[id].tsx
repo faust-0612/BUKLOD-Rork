@@ -1,0 +1,216 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { router, useLocalSearchParams } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { supabase } from '@/lib/supabase';
+import { igpatRelayPromptLabel } from '@/lib/igpat/relay';
+
+type RelayRow = {
+  id: string;
+  parent_post_id?: string | null;
+  relay_prompt?: string | null;
+  relay_depth?: number | null;
+  user_id?: string | null;
+  author_name?: string | null;
+  body?: string | null;
+  created_at?: string | null;
+};
+
+function formatDate(value?: string | null): string {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString();
+}
+
+export default function IgpatRelayChainScreen() {
+  const params = useLocalSearchParams<{ id?: string }>();
+  const postId = String(params.id ?? '').trim();
+  const [rows, setRows] = useState<RelayRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    if (!postId) {
+      setRows([]);
+      setError('Relay chain is unavailable.');
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error: relayError } = await (supabase as any).rpc(
+        'get_buklod_igpat_relay_chain_v1',
+        { p_post_id: postId }
+      );
+      if (relayError) throw relayError;
+      setRows(((data ?? []) as RelayRow[]).filter(row => Boolean(row?.id)));
+    } catch (loadError: any) {
+      console.warn('BUKLOD IGPAT Relay chain:', String(loadError?.message ?? loadError));
+      setRows([]);
+      setError(
+        'This Relay chain is not available yet. The IGPat server update may still need to be applied.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [postId]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  return (
+    <ScrollView style={styles.root} contentContainerStyle={styles.content}>
+      <View style={styles.headerRow}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <MaterialCommunityIcons name="arrow-left" size={20} color="#FFFFFF" />
+        </Pressable>
+        <View style={styles.headerCopy}>
+          <Text style={styles.eyebrow}>BUKLOD IGPAT</Text>
+          <Text style={styles.title}>IGPAT Relay</Text>
+          <Text style={styles.subtitle}>Follow the bond from one video response to the next.</Text>
+        </View>
+      </View>
+
+      {loading ? (
+        <View style={styles.centerState}>
+          <ActivityIndicator color="#FFFFFF" />
+          <Text style={styles.stateText}>Loading Relay chain…</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.stateCard}>
+          <Text style={styles.stateText}>{error}</Text>
+          <Pressable style={styles.retryButton} onPress={() => void load()}>
+            <Text style={styles.retryText}>RETRY</Text>
+          </Pressable>
+        </View>
+      ) : rows.length ? (
+        <View style={styles.chain}>
+          {rows.map((row, index) => {
+            const depth = Math.max(0, Number(row.relay_depth ?? 0));
+            const isRoot = depth === 0 || !row.parent_post_id;
+            return (
+              <View key={row.id} style={styles.chainRow}>
+                <View style={styles.railWrap}>
+                  <View style={[styles.node, isRoot && styles.rootNode]} />
+                  {index < rows.length - 1 ? <View style={styles.rail} /> : null}
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open IGPAT by ${row.author_name || 'BUKLOD Member'}`}
+                  style={[styles.card, { marginLeft: Math.min(depth, 6) * 8 }]}
+                  onPress={() => router.push(`/post/${row.id}` as any)}
+                >
+                  <View style={styles.cardTop}>
+                    <Text style={styles.author} numberOfLines={1}>
+                      {row.author_name || 'BUKLOD Member'}
+                    </Text>
+                    <Text style={styles.depth}>{isRoot ? 'START' : `#${depth + 1}`}</Text>
+                  </View>
+                  {!isRoot ? (
+                    <Text style={styles.prompt}>{igpatRelayPromptLabel(row.relay_prompt)}</Text>
+                  ) : (
+                    <Text style={styles.prompt}>Original IGPAT</Text>
+                  )}
+                  {!!row.body?.trim() ? (
+                    <Text style={styles.body} numberOfLines={3}>{row.body.trim()}</Text>
+                  ) : null}
+                  <View style={styles.cardBottom}>
+                    <Text style={styles.date}>{formatDate(row.created_at)}</Text>
+                    <View style={styles.openHint}>
+                      <Text style={styles.openHintText}>OPEN</Text>
+                      <MaterialCommunityIcons name="chevron-right" size={16} color="#FFFFFF" />
+                    </View>
+                  </View>
+                </Pressable>
+              </View>
+            );
+          })}
+        </View>
+      ) : (
+        <View style={styles.stateCard}>
+          <Text style={styles.stateText}>No visible Relay entries were found.</Text>
+        </View>
+      )}
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#060908' },
+  content: { padding: 18, paddingTop: 54, paddingBottom: 44 },
+  headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: '#0D120F',
+  },
+  headerCopy: { flex: 1 },
+  eyebrow: { color: 'rgba(255,255,255,0.46)', fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
+  title: { marginTop: 4, color: '#FFFFFF', fontSize: 24, fontWeight: '900' },
+  subtitle: { marginTop: 5, color: 'rgba(255,255,255,0.58)', fontSize: 11, lineHeight: 17 },
+  centerState: { marginTop: 48, alignItems: 'center', gap: 10 },
+  stateCard: {
+    marginTop: 28,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: '#0D120F',
+    padding: 18,
+  },
+  stateText: { color: 'rgba(255,255,255,0.68)', fontSize: 11, lineHeight: 17, textAlign: 'center' },
+  retryButton: {
+    marginTop: 14,
+    alignSelf: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.22)',
+  },
+  retryText: { color: '#FFFFFF', fontSize: 9, fontWeight: '900', letterSpacing: 0.8 },
+  chain: { marginTop: 28 },
+  chainRow: { flexDirection: 'row', alignItems: 'stretch' },
+  railWrap: { width: 22, alignItems: 'center' },
+  node: { width: 9, height: 9, borderRadius: 5, marginTop: 22, backgroundColor: '#FFFFFF' },
+  rootNode: { backgroundColor: '#D9FF69' },
+  rail: { flex: 1, width: 1, minHeight: 52, backgroundColor: 'rgba(255,255,255,0.18)' },
+  card: {
+    flex: 1,
+    marginBottom: 12,
+    borderRadius: 17,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: '#0D120F',
+    padding: 14,
+  },
+  cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  author: { flex: 1, color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
+  depth: { color: 'rgba(255,255,255,0.42)', fontSize: 8, fontWeight: '900', letterSpacing: 0.8 },
+  prompt: { marginTop: 5, color: '#D9FF69', fontSize: 9, fontWeight: '900', letterSpacing: 0.5 },
+  body: { marginTop: 8, color: 'rgba(255,255,255,0.74)', fontSize: 11, lineHeight: 17 },
+  cardBottom: { marginTop: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  date: { flex: 1, color: 'rgba(255,255,255,0.36)', fontSize: 8.5 },
+  openHint: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  openHintText: { color: '#FFFFFF', fontSize: 8, fontWeight: '900', letterSpacing: 0.7 },
+});
