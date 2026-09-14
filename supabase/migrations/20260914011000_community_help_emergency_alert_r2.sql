@@ -1,6 +1,20 @@
 -- BUKLOD Community Help / Emergency SOS R2
 -- Additive emergency-alert layer over the locked R1 baseline.
--- Adds device capability registration, recipient acknowledgement and two bounded reminders.
+-- Existing emergencies are grandfathered; reminder delivery starts disabled.
+
+create table if not exists private.buklod_help_emergency_alert_r2_state (
+  singleton boolean primary key default true check (singleton),
+  activated_at timestamptz not null default now(),
+  reminders_enabled boolean not null default false
+);
+
+insert into private.buklod_help_emergency_alert_r2_state(singleton,activated_at,reminders_enabled)
+values(true,now(),false)
+on conflict(singleton) do nothing;
+
+revoke all on table private.buklod_help_emergency_alert_r2_state from public;
+revoke all on table private.buklod_help_emergency_alert_r2_state from anon;
+revoke all on table private.buklod_help_emergency_alert_r2_state from authenticated;
 
 alter table public.device_tokens
   add column if not exists emergency_alert_mode_version integer not null default 1;
@@ -122,7 +136,18 @@ set search_path = public, private
 as $$
 declare
   v_inserted integer := 0;
+  v_activated_at timestamptz;
+  v_reminders_enabled boolean := false;
 begin
+  select activated_at,reminders_enabled
+  into v_activated_at,v_reminders_enabled
+  from private.buklod_help_emergency_alert_r2_state
+  where singleton=true;
+
+  if not coalesce(v_reminders_enabled,false) then
+    return 0;
+  end if;
+
   with due as (
     select
       d.request_id,
@@ -142,6 +167,7 @@ begin
     where r.kind='EMERGENCY'
       and r.status='ACTIVE'
       and r.expires_at>now()
+      and r.created_at >= v_activated_at
       and d.created_at <= now() - interval '2 minutes'
       and rr.request_id is null
   ), ready as (
@@ -183,9 +209,9 @@ revoke all on function private.buklod_help_enqueue_emergency_reminders_r2() from
 revoke all on function private.buklod_help_enqueue_emergency_reminders_r2() from anon;
 revoke all on function private.buklod_help_enqueue_emergency_reminders_r2() from authenticated;
 
--- One small scheduler drives both bounded reminder opportunities. The function
--- is idempotent per user/request/reminder step, so a delayed cron tick cannot
--- create duplicate reminders.
+-- Scheduler is installed now but function returns 0 until reminders_enabled is
+-- explicitly enabled after the R2 client OTA has been verified. activated_at
+-- permanently excludes emergencies that were already active at R2 cutover.
 do $$
 declare
   v_job_id bigint;
