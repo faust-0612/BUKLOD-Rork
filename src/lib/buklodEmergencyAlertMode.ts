@@ -143,7 +143,12 @@ export async function sendBuklodEmergencyLocalTest() {
       interruptionLevel: Platform.OS === 'ios' ? 'timeSensitive' : undefined,
     },
     trigger: Platform.OS === 'android'
-      ? { channelId: BUKLOD_EMERGENCY_CHANNEL_ID }
+      ? {
+          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+          seconds: 1,
+          repeats: false,
+          channelId: BUKLOD_EMERGENCY_CHANNEL_ID,
+        }
       : null,
   });
 }
