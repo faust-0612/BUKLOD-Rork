@@ -117,7 +117,7 @@ jobs:
         run: |
           grep -F 'HOME_IDENTITY_ACTION_ROW_R2' 'src/app/(tabs)/home.tsx'
           grep -F 'BUKLOD_CLASSROOM_ACCOUNT_ISOLATION_R2' 'src/app/profile/buklod-classrooms.tsx'
-          grep -F "row.role_key === 'STUDENT' 'src/app/profile/buklod-classrooms.tsx'" || grep -F "row.role_key === 'STUDENT'" 'src/app/profile/buklod-classrooms.tsx'
+          grep -F "row.role_key === 'STUDENT'" 'src/app/profile/buklod-classrooms.tsx'
           if grep -F "row.role_key === 'FACULTY'" 'src/app/profile/buklod-classrooms.tsx'; then
             echo 'Faculty rows are still rendered in student My Classroom.'
             exit 1
