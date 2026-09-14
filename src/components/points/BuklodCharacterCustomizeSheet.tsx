@@ -15,6 +15,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import BuklodActiveCharacterArt from '@/components/points/BuklodActiveCharacterArt';
 import BuklodProgressiveCharacterSelector from '@/components/points/BuklodProgressiveCharacterSelector';
 import BuklodSpecialCharacterSeries from '@/components/points/BuklodSpecialCharacterSeries';
+import BuklodSpecialSeriesOne from '@/components/points/BuklodSpecialSeriesOne';
 import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
 import { DEFAULT_CHARACTER, type BuklodCharacterState } from '@/lib/buklodCharacter';
 import { useBuklodDrawerBottomInset } from '@/lib/buklodSafeArea';
@@ -118,6 +119,7 @@ export default function BuklodCharacterCustomizeSheet({
             style={styles.bodyScroll}
             contentContainerStyle={styles.bodyContent}
             showsVerticalScrollIndicator
+            nestedScrollEnabled
           >
             {loading && !state ? (
               <View style={styles.loadingBox}>
@@ -167,6 +169,12 @@ export default function BuklodCharacterCustomizeSheet({
                 />
 
                 <BuklodSpecialCharacterSeries
+                  userId={userId}
+                  state={state}
+                  onStateRefresh={refreshState}
+                />
+
+                <BuklodSpecialSeriesOne
                   userId={userId}
                   state={state}
                   onStateRefresh={refreshState}
