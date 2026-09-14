@@ -1475,7 +1475,6 @@ export default function BuklodMaritesBoard({
       }
 
       resetComposer();
-      void load(true);
     } catch (error) {
       Alert.alert(
         'Marites Story',
@@ -1489,7 +1488,6 @@ export default function BuklodMaritesBoard({
     }
   }, [
     draft,
-    load,
     photos,
     profile?.avatar_url,
     profile?.full_name,
