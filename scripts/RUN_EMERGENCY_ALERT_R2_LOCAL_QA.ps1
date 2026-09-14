@@ -15,7 +15,6 @@ function Fail([string]$Message) {
 
 $ExpectedBranch = 'feature/community-help-emergency-alert-r2'
 $ExpectedRepo = 'https://github.com/faust-0612/BUKLOD-Rork.git'
-$Root = (Get-Location).Path
 $Stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $ExportDir = Join-Path $env:TEMP "buklod-emergency-r2-android-export-$Stamp"
 
@@ -26,7 +25,11 @@ try {
     Fail "Wrong repository. Expected $ExpectedRepo; actual $origin"
   }
 
-  $branch = (& git symbolic-ref --short -q HEAD).Trim()
+  $branchLines = @(& git symbolic-ref --short -q HEAD 2>$null)
+  $branch = ''
+  if ($branchLines.Count -gt 0) {
+    $branch = ([string]$branchLines[0]).Trim()
+  }
   if ($branch -and $branch -ne $ExpectedBranch) {
     Fail "Run this only from $ExpectedBranch or a detached worktree created from origin/$ExpectedBranch. Actual branch: $branch"
   }
@@ -37,8 +40,10 @@ try {
   }
 
   $head = (& git rev-parse HEAD).Trim()
+  $branchLabel = '<detached>'
+  if ($branch) { $branchLabel = $branch }
   Write-Host "Repo   : $origin"
-  Write-Host "Branch : $($branch ? $branch : '<detached>')"
+  Write-Host "Branch : $branchLabel"
   Write-Host "HEAD   : $head"
 
   Step '2/7 INSTALL EXACT LOCKFILE DEPENDENCIES'
