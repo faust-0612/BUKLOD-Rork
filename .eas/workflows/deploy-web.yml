@@ -1,9 +1,9 @@
 name: BUKLOD Web Production Deploy
 
-# Web-only recovery trigger. Do not add native build/update jobs here.
+# Web-only production deploy. Manual trigger only after recovery so future main
+# pushes cannot automatically publish incomplete work. Never add native build/update jobs here.
 on:
-  push:
-    branches: ['main']
+  workflow_dispatch:
 
 jobs:
   deploy_web:
