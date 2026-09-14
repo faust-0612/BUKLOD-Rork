@@ -1,0 +1,13 @@
+name: BUKLOD Web Production Deploy
+
+on:
+  push:
+    branches: ['main']
+
+jobs:
+  deploy_web:
+    name: Deploy BUKLOD web production
+    type: deploy
+    environment: production
+    params:
+      prod: true
