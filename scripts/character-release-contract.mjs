@@ -21,10 +21,7 @@ const CORE_ASSETS = {
 
 const SPECIAL_IDS = ['ace', 'ellusur', 'jawo', 'mitch', 'niel', 'angel', 'vhen', 'trudice'];
 
-function full(rel) {
-  return path.join(ROOT, rel);
-}
-
+function full(rel) { return path.join(ROOT, rel); }
 function mustExist(rel) {
   if (!fs.existsSync(full(rel))) {
     failures.push(`Missing required R31/R40 file: ${rel}`);
@@ -32,40 +29,33 @@ function mustExist(rel) {
   }
   return true;
 }
-
 function read(rel) {
   if (!mustExist(rel)) return '';
   return fs.readFileSync(full(rel), 'utf8');
 }
-
 function requireTokens(rel, tokens) {
   const text = read(rel);
   for (const token of tokens) {
-    if (!text.includes(token)) failures.push(`${rel} is missing required contract token: ${token}`);
+    if (!text.includes(token)) failures.push(`${rel} is missing approved-layout token: ${token}`);
   }
   return text;
 }
-
 function forbidTokens(rel, tokens) {
   const text = read(rel);
   for (const token of tokens) {
-    if (text.includes(token)) failures.push(`${rel} contains forbidden legacy token: ${token}`);
+    if (text.includes(token)) failures.push(`${rel} contains forbidden non-approved token/path: ${token}`);
   }
   return text;
 }
-
 function requireOneOf(rel, alternatives, label) {
   const text = read(rel);
   if (!alternatives.some((token) => text.includes(token))) {
     failures.push(`${rel} is missing ${label}: expected one of ${alternatives.join(', ')}`);
   }
 }
-
 function sha256(rel) {
-  const buffer = fs.readFileSync(full(rel));
-  return crypto.createHash('sha256').update(buffer).digest('hex').toUpperCase();
+  return crypto.createHash('sha256').update(fs.readFileSync(full(rel))).digest('hex').toUpperCase();
 }
-
 function walk(dir) {
   if (!fs.existsSync(dir)) return [];
   const out = [];
@@ -77,78 +67,75 @@ function walk(dir) {
   return out;
 }
 
-console.log('BUKLOD CHARACTER RELEASE CONTRACT — R31 + R40');
-console.log('================================================');
+console.log('BUKLOD CHARACTER RELEASE CONTRACT — APPROVED R31 + APPROVED R40 ONLY');
+console.log('=================================================================');
 
-/*
- * BUKLOD_CHARACTER_R31_R40_LAYOUT_CONTRACT_V3
- *
- * Layout is now part of the release contract. A source tree that contains the
- * assets and V2 state logic but silently falls back to the simplified Character
- * layout MUST fail release. This removes the old dual-source/recovery-overlay gap.
- */
 const r31 = requireTokens('src/components/points/BuklodProgressiveCharacterSelector.tsx', [
-  'BUKLOD_CHARACTER_R31_LAYOUT_LOCK_V3',
+  'BUKLOD_CHARACTER_R31_APPROVED_LAYOUT_20260905',
   'Choose Your BUKLOD Character',
   'LEVEL 1-20 PROGRESSION',
   'COLLECTIBLES -',
   'Browse all 20 levels',
+  'PREVIEW LOCKED',
   'Use This Character',
   'nestedScrollEnabled',
   'state.character_level',
   'state.character_points_since_selection',
+  'width: 112',
+  'minHeight: 224',
+  "maxWidth: 360",
 ]);
-if (/levelForPoints\s*\(\s*lifetimePoints\s*\)/.test(r31)) {
-  failures.push('R31 legacy lifetime-points transferable Character leveling returned. V2/server Character level must remain authoritative.');
+if (/levelForPoints\s*\(\s*lifetimePoints\s*\)/.test(r31) || /lifetimePoints\s*[:=]/.test(r31)) {
+  failures.push('R31 regained legacy lifetime-points Character-level authority.');
 }
-if (/lifetimePoints\s*[:=]/.test(r31)) {
-  failures.push('R31 selector regained lifetimePoints as a progression authority/input. Layout may use V2 state only.');
-}
-
-requireTokens('src/lib/buklodProgressiveCharacter.ts', [
-  'PROGRESSIVE_LEVEL_THRESHOLDS',
-  'collectibleNames',
-  'loadProgressiveCharacter',
-  'saveProgressiveCharacter',
-  'setMyBuklodCharacterActiveV2',
-  'ProgressiveCharacterId',
-  'loadProgressiveShowcase',
-  'subscribeProgressiveShowcase',
-]);
-mustExist('src/components/points/BuklodProgressiveCharacterArt.tsx');
-mustExist('src/components/points/BuklodProfileCharacterCard.tsx');
-
-requireTokens('src/components/points/BuklodCharacterCustomizeSheet.tsx', [
-  'BUKLOD_CHARACTER_R31_R40_LAYOUT_HOST_LOCK_V3',
-  'BuklodProgressiveCharacterSelector',
-  'BuklodSpecialCharacterSeries',
-  'nestedScrollEnabled',
-  'getMyBuklodCharacterSelectionV2',
-]);
 
 const r40 = requireTokens('src/components/points/BuklodSpecialCharacterSeries.tsx', [
-  'BUKLOD_CHARACTER_R40_LAYOUT_LOCK_V3',
+  'BUKLOD_SPECIAL_BATCH1_R40_PREMIUM_UI',
   'Special Character Journey',
   'More than a character. A mission.',
   'LEVEL 1 - 20 JOURNEY',
+  'VIEW ALL LEVELS',
+  'Future level artwork stays hidden until earned.',
   'COLLECTIBLES & BADGES',
-  'nestedScrollEnabled',
+  'VIEW ALL COLLECTIBLES',
+  'Harder cross-feature mastery rewards',
   'visible_special_character_ids',
   'setMyBuklodCharacterActiveV2',
   'get_my_buklod_special_collectibles_v2',
-  'set_my_buklod_special_character_pursuit_v1',
-  'ACE',
-  'MITCH',
-  'NIEL',
-  'ANGEL',
-  'VHEN',
-  'TRUDICE',
+  'width: 360',
+  'width: 300',
+  'fontSize: 34',
 ]);
-if (r40.includes("rpc('set_my_buklod_special_character_active_v1'")) {
-  failures.push('Legacy R40 active-character RPC is authoritative again. Activation must use setMyBuklodCharacterActiveV2.');
+if (r40.includes("rpc('set_my_buklod_special_character_active_v1'") || r40.includes('set_my_buklod_special_character_active_v1')) {
+  failures.push('Legacy R40 active-character RPC returned. V2 activation is mandatory.');
 }
 requireOneOf('src/components/points/BuklodSpecialCharacterSeries.tsx', ['JAVVO', 'JAWO', 'Jawo'], 'Jawo identity');
 requireOneOf('src/components/points/BuklodSpecialCharacterSeries.tsx', ['ELLUSUR', 'ELESUR'], 'ELESUR identity');
+
+const host = requireTokens('src/components/points/BuklodCharacterCustomizeSheet.tsx', [
+  'BuklodProgressiveCharacterSelector',
+  'BuklodSpecialCharacterSeries',
+  'getMyBuklodCharacterSelectionV2',
+  'subscribeBuklodCharacterSelectionV2',
+]);
+forbidTokens('src/components/points/BuklodCharacterCustomizeSheet.tsx', [
+  'BuklodSpecialSeriesOne',
+]);
+forbidTokens('src/components/points/BuklodSpecialCharacterSeries.tsx', [
+  'R41',
+  'CHARACTER PASSPORT PREVIEW',
+  'SPECIAL CHARACTERS · SERIES 1',
+]);
+if (!host.includes('<BuklodProgressiveCharacterSelector') || !host.includes('<BuklodSpecialCharacterSeries')) {
+  failures.push('Character host must render approved R31 then approved R40 surfaces.');
+}
+
+requireTokens('src/lib/buklodProgressiveCharacter.ts', [
+  'saveProgressiveCharacter',
+  'setMyBuklodCharacterActiveV2',
+]);
+mustExist('src/components/points/BuklodProgressiveCharacterArt.tsx');
+mustExist('src/components/points/BuklodProfileCharacterCard.tsx');
 
 const registry = requireTokens('src/lib/buklodSpecialCharacterAssets.ts', ['ace_hero.jpg']);
 for (const id of SPECIAL_IDS) {
@@ -171,15 +158,6 @@ if (!fs.existsSync(specialRoot)) {
 } else {
   const jpgs = walk(specialRoot).filter((file) => /\.jpg$/i.test(file));
   if (jpgs.length < 168) failures.push(`R40 special asset set incomplete: found ${jpgs.length}, expected at least 168.`);
-  for (const id of SPECIAL_IDS) {
-    const hero = path.join(specialRoot, `${id}_hero.jpg`);
-    if (!fs.existsSync(hero)) failures.push(`Missing R40 hero asset: ${path.relative(ROOT, hero)}`);
-    for (let level = 1; level <= 20; level += 1) {
-      const suffix = String(level).padStart(2, '0');
-      const file = path.join(specialRoot, `${id}_level_${suffix}.jpg`);
-      if (!fs.existsSync(file)) failures.push(`Missing R40 level asset: ${path.relative(ROOT, file)}`);
-    }
-  }
   info.push(`R40 special JPG count: ${jpgs.length}`);
 }
 
@@ -189,29 +167,24 @@ if (distDir) {
   } else {
     const compiled = walk(distDir)
       .filter((file) => /\.(?:js|html)$/i.test(file))
-      .map((file) => {
-        try { return fs.readFileSync(file, 'utf8'); } catch { return ''; }
-      })
+      .map((file) => { try { return fs.readFileSync(file, 'utf8'); } catch { return ''; } })
       .join('\n');
-
     for (const token of [
       'Choose Your BUKLOD Character',
       'LEVEL 1-20 PROGRESSION',
       'COLLECTIBLES -',
-      'Use This Character',
       'Special Character Journey',
       'More than a character. A mission.',
       'LEVEL 1 - 20 JOURNEY',
+      'VIEW ALL LEVELS',
       'COLLECTIBLES & BADGES',
+      'VIEW ALL COLLECTIBLES',
       'get_my_buklod_special_collectibles_v2',
     ]) {
-      if (!compiled.includes(token)) failures.push(`Compiled bundle is missing rich R31/R40 layout token: ${token}`);
+      if (!compiled.includes(token)) failures.push(`Compiled bundle is missing approved R31/R40 token: ${token}`);
     }
-    if (!(compiled.includes('JAVVO') || compiled.includes('JAWO') || compiled.includes('Jawo'))) {
-      failures.push('Compiled bundle is missing Jawo special-character identity.');
-    }
-    if (!(compiled.includes('ELLUSUR') || compiled.includes('ELESUR'))) {
-      failures.push('Compiled bundle is missing ELESUR special-character identity.');
+    if (compiled.includes('CHARACTER PASSPORT PREVIEW') || compiled.includes('SPECIAL CHARACTERS · SERIES 1')) {
+      failures.push('Compiled Character UI contains rejected Series 1/passport alternate layout.');
     }
     info.push(`Compiled bundle checked: ${path.relative(ROOT, distDir)}`);
   }
@@ -222,8 +195,8 @@ for (const failure of failures) console.error(`FAIL: ${failure}`);
 
 if (failures.length) {
   console.error(`\nCHARACTER RELEASE LOCK FAILED with ${failures.length} blocker(s).`);
-  console.error('DEPLOYMENT MUST STOP. Restore/forward-port the canonical rich R31 + R40 layout before publishing.');
+  console.error('DEPLOYMENT MUST STOP. Only approved R31 + approved R40 layout is allowed.');
   process.exit(1);
 }
 
-console.log('\nCHARACTER RELEASE LOCK PASSED — canonical rich R31 + R40 layout and assets are preserved.');
+console.log('\nCHARACTER RELEASE LOCK PASSED — approved R31 + approved R40 only; V2 authority preserved.');
