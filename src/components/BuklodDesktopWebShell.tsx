@@ -48,12 +48,9 @@ type NavItem = {
 
 type SponsorPlacement = 'home' | 'messages' | 'community' | 'prayer';
 
+/* Public desktop chrome follows the same Community-first contract as mobile. */
 const NAV_ITEMS: NavItem[] = [
-  { key: 'home', route: '/home', label: 'Home', icon: 'home-variant-outline' },
-  { key: 'connect', route: '/messages', label: 'Connect', icon: 'message-processing-outline' },
   { key: 'community', route: '/buklod', label: 'Community', icon: 'account-group-outline' },
-  { key: 'prayer', route: '/prayer', label: 'Prayer', icon: 'hands-pray' },
-  { key: 'notifications', route: '/notifications', label: 'Notifications', icon: 'bell-outline' },
 ];
 
 function isActiveRoute(pathname: string, route: Route) {
@@ -304,8 +301,8 @@ export default function BuklodDesktopWebShell({
         <View style={styles.topLeft}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="BUKLOD Home"
-            onPress={() => openGlobalDestination('/home')}
+            accessibilityLabel="BUKLOD Community Wall"
+            onPress={() => openGlobalDestination('/buklod')}
             style={({ pressed }) => [styles.brand, pressed && styles.pressed]}
           >
             <View style={[styles.brandMark, { backgroundColor: theme.accent }]}>
@@ -359,24 +356,6 @@ export default function BuklodDesktopWebShell({
             ]}
           >
             <MaterialCommunityIcons name="fullscreen" size={24} color={theme.textPrimary} />
-          </Pressable>
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Notifications"
-            onPress={() => openGlobalDestination('/notifications')}
-            style={({ pressed }) => [
-              styles.roundAction,
-              { backgroundColor: theme.surfaceMuted },
-              pressed && styles.pressed,
-            ]}
-          >
-            <MaterialCommunityIcons name="bell-outline" size={23} color={theme.textPrimary} />
-            {unreadCount > 0 ? (
-              <View style={[styles.topBadge, { backgroundColor: theme.danger }]}>
-                <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
-              </View>
-            ) : null}
           </Pressable>
 
           <Pressable
