@@ -18,6 +18,7 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 import { supabase } from '@/lib/supabase';
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import { parseIgpatQuickEdit } from '@/lib/igpat/quickEdit';
+import { IGPAT_RELAY_OPTIONS, type IgpatRelayPrompt } from '@/lib/igpat/relay';
 import { useAuth } from '@/providers/AuthProvider';
 
 type IgpatRow = {
@@ -226,12 +227,23 @@ function ActionButton({
   onPress: () => void;
   onLongPress?: () => void;
 }) {
+  const longPressedRef = useRef(false);
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      onPress={onPress}
-      onLongPress={onLongPress}
+      onPressIn={() => { longPressedRef.current = false; }}
+      onPress={() => {
+        if (longPressedRef.current) {
+          longPressedRef.current = false;
+          return;
+        }
+        onPress();
+      }}
+      onLongPress={onLongPress ? () => {
+        longPressedRef.current = true;
+        onLongPress();
+      } : undefined}
       delayLongPress={280}
       style={({ pressed }) => [styles.actionButton, pressed && styles.actionPressed]}
     >
@@ -264,6 +276,7 @@ export default function IgpatScreen() {
   const [followBusy, setFollowBusy] = useState<Set<string>>(new Set());
   const [reactionBusy, setReactionBusy] = useState<Set<string>>(new Set());
   const [pulsePickerPostId, setPulsePickerPostId] = useState<string | null>(null);
+  const [relayPickerPostId, setRelayPickerPostId] = useState<string | null>(null);
   const [bondMoments, setBondMoments] = useState<Record<string, BondMoment>>({});
   const viewportHeight = Dimensions.get('window').height;
 
@@ -433,10 +446,12 @@ export default function IgpatScreen() {
   useEffect(() => {
     setActiveIndex(0);
     setPulsePickerPostId(null);
+    setRelayPickerPostId(null);
   }, [feedMode]);
 
   useEffect(() => {
     setPulsePickerPostId(null);
+    setRelayPickerPostId(null);
   }, [activeIndex]);
 
   const toggleDataSaver = useCallback(() => {
@@ -581,6 +596,20 @@ export default function IgpatScreen() {
     }
   }, []);
 
+  const beginRelay = useCallback((row: IgpatRow, prompt: IgpatRelayPrompt) => {
+    const author = resolvePersonDisplayName(row.author_name, row.user_id);
+    setRelayPickerPostId(null);
+    setPulsePickerPostId(null);
+    router.push({
+      pathname: '/igpat/create',
+      params: {
+        relayParentPostId: row.id,
+        relayPrompt: prompt,
+        relayParentAuthor: author,
+      },
+    } as any);
+  }, []);
+
   const onViewableItemsChanged = useRef(
     ({ viewableItems }: { viewableItems: Array<ViewToken<IgpatRow>> }) => {
       const first = viewableItems.find(item => item.isViewable && typeof item.index === 'number');
@@ -637,7 +666,7 @@ export default function IgpatScreen() {
     <View style={styles.root}>
       <FlatList
         data={rows}
-        extraData={`${activeIndex}:${pulsePickerPostId ?? ''}:${Object.keys(bondMoments).length}`}
+        extraData={`${activeIndex}:${pulsePickerPostId ?? ''}:${relayPickerPostId ?? ''}:${Object.keys(bondMoments).length}`}
         key={`${feedMode}:${dataSaver ? 'saver' : 'normal'}`}
         keyExtractor={item => item.id}
         pagingEnabled
@@ -661,6 +690,7 @@ export default function IgpatScreen() {
           const isFollowing = Boolean(creatorId && followedIds.has(creatorId));
           const currentPulse = pulseOptionForStoredReaction(item.my_reaction);
           const showPulsePicker = pulsePickerPostId === item.id && index === activeIndex;
+          const showRelayPicker = relayPickerPostId === item.id && index === activeIndex;
           const bondMoment = item.my_reaction ? bondMoments[item.id] : null;
 
           return (
@@ -727,16 +757,16 @@ export default function IgpatScreen() {
 
               {showPulsePicker ? (
                 <View style={[styles.pulsePicker, { bottom: Math.max(insets.bottom + 84, 92) }]}>
-                  <View style={styles.pulsePickerHeader}>
+                  <View style={styles.pickerHeader}>
                     <View>
-                      <Text style={styles.pulsePickerTitle}>IGPAT PULSE</Text>
-                      <Text style={styles.pulsePickerHint}>Choose how this bond felt.</Text>
+                      <Text style={styles.pickerTitle}>IGPAT PULSE</Text>
+                      <Text style={styles.pickerHint}>Choose how this bond felt.</Text>
                     </View>
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel="Close IGPAT Pulse choices"
                       onPress={() => setPulsePickerPostId(null)}
-                      style={styles.pulseClose}
+                      style={styles.pickerClose}
                     >
                       <MaterialCommunityIcons name="close" size={17} color="#FFFFFF" />
                     </Pressable>
@@ -768,6 +798,51 @@ export default function IgpatScreen() {
                 </View>
               ) : null}
 
+              {showRelayPicker ? (
+                <View style={[styles.relayPicker, { bottom: Math.max(insets.bottom + 82, 90) }]}>
+                  <View style={styles.pickerHeader}>
+                    <View style={styles.pickerHeaderCopy}>
+                      <Text style={styles.pickerTitle}>IGPAT RELAY</Text>
+                      <Text style={styles.pickerHint}>Reply with a video, or open the existing chain.</Text>
+                    </View>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Close IGPAT Relay choices"
+                      onPress={() => setRelayPickerPostId(null)}
+                      style={styles.pickerClose}
+                    >
+                      <MaterialCommunityIcons name="close" size={17} color="#FFFFFF" />
+                    </Pressable>
+                  </View>
+                  <View style={styles.relayChoices}>
+                    {IGPAT_RELAY_OPTIONS.map(option => (
+                      <Pressable
+                        key={option.key}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${option.label} IGPAT Relay`}
+                        onPress={() => beginRelay(item, option.key)}
+                        style={styles.relayChoice}
+                      >
+                        <Text style={styles.relayChoiceTitle}>{option.label}</Text>
+                        <Text style={styles.relayChoiceHelper} numberOfLines={2}>{option.helper}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="View IGPAT Relay chain"
+                    onPress={() => {
+                      setRelayPickerPostId(null);
+                      router.push(`/igpat/relay/${item.id}` as any);
+                    }}
+                    style={styles.relayChainButton}
+                  >
+                    <MaterialCommunityIcons name="source-branch" size={16} color="#D9FF69" />
+                    <Text style={styles.relayChainText}>VIEW RELAY CHAIN</Text>
+                  </Pressable>
+                </View>
+              ) : null}
+
               <View style={[styles.actions, { bottom: Math.max(insets.bottom + 34, 42) }]}>
                 <ActionButton
                   icon={currentPulse ? currentPulse.icon : 'heart-outline'}
@@ -775,7 +850,10 @@ export default function IgpatScreen() {
                   active={Boolean(currentPulse)}
                   count={item.reaction_count}
                   onPress={() => pulse(item.id)}
-                  onLongPress={() => setPulsePickerPostId(item.id)}
+                  onLongPress={() => {
+                    setRelayPickerPostId(null);
+                    setPulsePickerPostId(item.id);
+                  }}
                 />
                 <ActionButton
                   icon="comment-outline"
@@ -785,8 +863,12 @@ export default function IgpatScreen() {
                 />
                 <ActionButton
                   icon="share-variant-outline"
-                  label="Share IGPAT"
+                  label="Share IGPAT. Long press for Relay."
                   onPress={() => void shareIgpat(item.id)}
+                  onLongPress={() => {
+                    setPulsePickerPostId(null);
+                    setRelayPickerPostId(item.id);
+                  }}
                 />
                 <ActionButton
                   icon={savedIds.has(item.id) ? 'bookmark' : 'bookmark-outline'}
@@ -941,10 +1023,22 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.18)',
     backgroundColor: 'rgba(5,8,7,0.94)',
   },
-  pulsePickerHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  pulsePickerTitle: { color: '#FFFFFF', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
-  pulsePickerHint: { marginTop: 3, color: 'rgba(255,255,255,0.50)', fontSize: 8.5 },
-  pulseClose: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.09)' },
+  relayPicker: {
+    position: 'absolute',
+    left: 16,
+    right: 72,
+    zIndex: 5,
+    padding: 13,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(217,255,105,0.22)',
+    backgroundColor: 'rgba(5,8,7,0.96)',
+  },
+  pickerHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  pickerHeaderCopy: { flex: 1 },
+  pickerTitle: { color: '#FFFFFF', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+  pickerHint: { marginTop: 3, color: 'rgba(255,255,255,0.50)', fontSize: 8.5 },
+  pickerClose: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.09)' },
   pulseChoices: { marginTop: 11, flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
   pulseChoice: {
     minWidth: '30%',
@@ -963,6 +1057,12 @@ const styles = StyleSheet.create({
   pulseChoiceSelected: { backgroundColor: '#FFFFFF', borderColor: '#FFFFFF' },
   pulseChoiceText: { color: '#FFFFFF', fontSize: 8.5, fontWeight: '900' },
   pulseChoiceTextSelected: { color: '#07100B' },
+  relayChoices: { marginTop: 11, gap: 7 },
+  relayChoice: { minHeight: 49, borderRadius: 13, borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', backgroundColor: 'rgba(255,255,255,0.05)', paddingHorizontal: 11, paddingVertical: 8, justifyContent: 'center' },
+  relayChoiceTitle: { color: '#FFFFFF', fontSize: 9.5, fontWeight: '900' },
+  relayChoiceHelper: { marginTop: 2, color: 'rgba(255,255,255,0.48)', fontSize: 8.2, lineHeight: 12 },
+  relayChainButton: { marginTop: 10, minHeight: 39, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(217,255,105,0.24)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  relayChainText: { color: '#D9FF69', fontSize: 8.5, fontWeight: '900', letterSpacing: 0.7 },
   meta: { position: 'absolute', left: 18, right: 76 },
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   author: { maxWidth: '68%', color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
