@@ -122,7 +122,7 @@ const PROFILES: Record<BuklodSpecialCharacterId, Profile> = {
     quote: 'Grow what matters. Build what lasts. Provide with purpose.',
     description: 'Agriculture, productivity, enterprise, family provision, and stewardship form this builder journey.',
     traits: ['Agriculture', 'Enterprise', 'Family', 'Stewardship'],
-    stages: ['Farm Helper','Garden Learner','Student Worker','Youth Volunteer','Field Assistant','Crop Care Worker','Community Helper','Agriculture Learner','Farm Technician','Harvest Organizer','Agribusiness Starter','Small Business Owner','Community Grower','Agriculture Specialist','Family Provider','Farm Entrepreneur','Community Business Leader','Resource Steward','Agriculture Mentor','Legacy Builder'],
+    stages: ['Farm Helper','Garden Learner','Student Worker','YouthVolunteer','Field Assistant','Crop Care Worker','Community Helper','Agriculture Learner','Farm Technician','Harvest Organizer','Agribusiness Starter','Small Business Owner','Community Grower','Agriculture Specialist','Family Provider','Farm Entrepreneur','Community Business Leader','Resource Steward','Agriculture Mentor','Legacy Builder'],
   },
   trudice: {
     id: 'trudice', name: 'TRUDICE', domain: 'CHILDREN TEACHING DISCIPLESHIP',
@@ -177,8 +177,14 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
   const isUnlocked = (id: BuklodSpecialCharacterId) =>
     visible.includes(id) || state.circle_rank_order >= SPECIAL_REQUIRED_RANK_ORDER[id];
 
-  const nextLockedId = SPECIAL_ORDER.find((id) => !isUnlocked(id)) ?? null;
-  const [selectedId, setSelectedId] = useState<BuklodSpecialCharacterId>(activeSpecial ?? 'ace');
+  /* BUKLOD_SPECIAL_LOCKED_IDENTITIES_HIDDEN */
+  const visibleSpecialIds = SPECIAL_ORDER.filter(isUnlocked);
+  const [selectedId, setSelectedId] = useState<BuklodSpecialCharacterId>(
+    activeSpecial ?? visibleSpecialIds[0] ?? 'ace',
+  );
+  const effectiveSelectedId = visibleSpecialIds.includes(selectedId)
+    ? selectedId
+    : visibleSpecialIds[0] ?? null;
   const [collectibles, setCollectibles] = useState<CollectiblePayload | null>(null);
   const [collectibleLoading, setCollectibleLoading] = useState(false);
   const [using, setUsing] = useState(false);
@@ -188,17 +194,19 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (activeSpecial) setSelectedId(activeSpecial);
-  }, [activeSpecial]);
+    if (activeSpecial && visibleSpecialIds.includes(activeSpecial)) {
+      setSelectedId(activeSpecial);
+    }
+  }, [activeSpecial, state.circle_rank_order, state.visible_special_character_ids]);
 
   useEffect(() => {
     setShowAllLevels(false);
     setShowAllCollectibles(false);
     if (nativeLayout) setNativeDetailsOpen(false);
-  }, [nativeLayout, selectedId]);
+  }, [nativeLayout, effectiveSelectedId]);
 
   useEffect(() => {
-    if (!userId || (nativeLayout && !nativeDetailsOpen)) {
+    if (!userId || !effectiveSelectedId || (nativeLayout && !nativeDetailsOpen)) {
       setCollectibles(null);
       setCollectibleLoading(false);
       return;
@@ -209,7 +217,7 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
     void (async () => {
       try {
         const { data, error } = await (supabase as any).rpc('get_my_buklod_special_collectibles_v2', {
-          p_character_id: selectedId,
+          p_character_id: effectiveSelectedId,
         });
         if (!mounted) return;
         if (error) throw error;
@@ -224,10 +232,37 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
       }
     })();
     return () => { mounted = false; };
-  }, [nativeDetailsOpen, nativeLayout, selectedId, userId]);
+  }, [effectiveSelectedId, nativeDetailsOpen, nativeLayout, userId]);
 
-  const selected = PROFILES[selectedId];
-  const unlocked = isUnlocked(selected.id);
+  if (!effectiveSelectedId) {
+    return (
+      <View style={[styles.shell, nativeLayout && styles.shellNative]}>
+        <View style={[styles.topHeader, compact && styles.topHeaderCompact]}>
+          <View style={styles.brandMark}><Text style={styles.brandMarkText}>SC</Text></View>
+          <View style={[styles.headerCopy, nativeLayout && compact && styles.headerCopyNativeCompact]}>
+            <Text style={styles.heading}>Special Character Journey</Text>
+            <Text style={styles.subheading}>
+              Special Characters appear only when your Circle Rank unlocks them.
+            </Text>
+          </View>
+          {!compact ? (
+            <View style={styles.missionNote}>
+              <Text style={styles.missionTitle}>More than a character. A mission.</Text>
+              <Text style={styles.missionText}>Grow in character. Serve with purpose. Make an impact.</Text>
+            </View>
+          ) : null}
+        </View>
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>Keep growing your Circle Rank</Text>
+          <Text style={styles.sectionCaption}>
+            Your first Special Character will appear here automatically when it becomes available.
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  const selected = PROFILES[effectiveSelectedId];
   const active = state.active_character_id === selected.id;
   const currentLevel = active ? Math.max(1, Math.min(20, state.character_level)) : 1;
   const requiredRank = SPECIAL_REQUIRED_RANK_ORDER[selected.id];
@@ -240,7 +275,7 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
     : (collectibles?.collectibles ?? []).slice(0, 12);
 
   const useCharacter = async () => {
-    if (!userId || !unlocked || active || using) return;
+    if (!userId || active || using) return;
     setUsing(true);
     setMessage(null);
     try {
@@ -260,7 +295,7 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
         <View style={[styles.headerCopy, nativeLayout && compact && styles.headerCopyNativeCompact]}>
           <Text style={styles.heading}>Special Character Journey</Text>
           <Text style={styles.subheading}>
-            Harder mastery progression. Every Batch 1 character has a Level 1 preview; Circle Rank gates unlocking.
+            Harder mastery progression. Special Characters appear only when your Circle Rank unlocks them.
           </Text>
         </View>
         {!compact ? (
@@ -278,12 +313,10 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.characterRail}
       >
-        {SPECIAL_ORDER.map((id) => {
+        {visibleSpecialIds.map((id) => {
           const character = PROFILES[id];
           const chosen = id === selected.id;
           const activeNow = state.active_character_id === id;
-          const unlockedNow = isUnlocked(id);
-          const isNext = id === nextLockedId;
           return (
             <Pressable
               key={id}
@@ -294,16 +327,11 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
             >
               <View style={styles.characterImageFrame}>
                 <Image source={SPECIAL_CHARACTER_HERO[id]} style={styles.characterImage} resizeMode="contain" />
-                {!unlockedNow ? (
-                  <View style={styles.lockChip}>
-                    <Text style={styles.lockChipText}>LOCKED</Text>
-                  </View>
-                ) : null}
               </View>
               <Text style={styles.characterName}>{character.name}</Text>
               <Text style={styles.characterRank}>Rank {SPECIAL_REQUIRED_RANK_ORDER[id]}</Text>
-              <Text style={activeNow ? styles.characterStateActive : isNext ? styles.characterStateNext : unlockedNow ? styles.characterStateReady : styles.characterStateMuted}>
-                {activeNow ? 'ACTIVE' : isNext ? 'NEXT TO UNLOCK' : unlockedNow ? 'AVAILABLE' : 'LOCKED'}
+              <Text style={activeNow ? styles.characterStateActive : styles.characterStateReady}>
+                {activeNow ? 'ACTIVE' : 'AVAILABLE'}
               </Text>
             </Pressable>
           );
@@ -334,13 +362,11 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
         </View>
 
         <View style={[styles.rankPanel, nativeLayout && compact && styles.rankPanelNativeCompact]}>
-          <Text style={styles.rankStatus}>{unlocked ? (active ? `Level ${currentLevel}` : 'Unlocked') : 'Locked'}</Text>
+          <Text style={styles.rankStatus}>{active ? `Level ${currentLevel}` : 'Unlocked'}</Text>
           <Text style={styles.rankSubtitle}>
             {active
               ? selected.stages[currentLevel - 1]
-              : unlocked
-                ? `Selecting ${selected.name} starts it at Level 1.`
-                : `Unlocks at Circle Rank ${requiredRank}. Level 1 remains previewable.`}
+              : `Selecting ${selected.name} starts it at Level 1.`}
           </Text>
           <View style={styles.rankLine}>
             <Text style={styles.rankLabel}>Your Current Rank</Text>
@@ -351,12 +377,12 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
             Circle Points and Circle Rank remain intact when changing Character. Character levels do not transfer.
           </Text>
           <Pressable
-            disabled={using || active || !unlocked}
+            disabled={using || active}
             onPress={() => void useCharacter()}
-            style={[styles.primaryAction, (using || active || !unlocked) && styles.primaryActionDisabled]}
+            style={[styles.primaryAction, (using || active) && styles.primaryActionDisabled]}
           >
             <Text style={styles.primaryActionText}>
-              {active ? 'ACTIVE CHARACTER' : !unlocked ? `UNLOCK AT RANK ${requiredRank}` : using ? 'SETTING...' : 'USE CHARACTER'}
+              {active ? 'ACTIVE CHARACTER' : using ? 'SETTING...' : 'USE CHARACTER'}
             </Text>
           </Pressable>
         </View>
@@ -377,7 +403,7 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
             <View style={styles.sectionHeader}>
               <View style={styles.sectionHeaderCopy}>
                 <Text style={styles.sectionTitle}>LEVEL 1 - 20 JOURNEY</Text>
-                <Text style={styles.sectionCaption}>Level 1 is always previewable. Future level artwork stays hidden until earned.</Text>
+                <Text style={styles.sectionCaption}>Level 1 is always previewable after the Special Character is unlocked. Future level artwork stays hidden until earned.</Text>
               </View>
               <Pressable onPress={() => setShowAllLevels((value) => !value)} style={styles.textAction}>
                 <Text style={styles.textActionText}>{showAllLevels ? 'SHOW LESS' : 'VIEW ALL LEVELS'}</Text>
