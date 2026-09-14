@@ -8,6 +8,13 @@ on:
       - main
     paths:
       - '.github/workflows/production_android_ota.yml'
+      - 'scripts/community-help-sos-release-contract.mjs'
+      - 'src/components/BuklodCommunityHelp.tsx'
+      - 'src/components/BuklodPublicLocationChips.tsx'
+      - 'src/providers/NotificationProvider.tsx'
+      - 'app.config.js'
+      - 'supabase/functions/buklod-help-alert/**'
+      - 'supabase/migrations/*community_help_sos*.sql'
       - 'scripts/patch-home-identity-action-row.cjs'
       - 'src/app/index.tsx'
       - 'src/app/onboarding/index.tsx'
@@ -36,7 +43,6 @@ on:
       - 'src/app/notifications/index.tsx'
       - 'src/app/post/[id].tsx'
       - 'src/hooks/useBuklodConnectUnread.ts'
-      - 'src/providers/NotificationProvider.tsx'
       - 'src/app/profile/buklod-faculty-class.tsx'
       - 'src/app/profile/buklod-faculty.tsx'
       - 'src/app/profile/buklod-faculty-quiz-results.tsx'
@@ -91,6 +97,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --ignore-scripts
+
+      - name: Verify locked Community Help / Emergency SOS baseline
+        run: node scripts/community-help-sos-release-contract.mjs
 
       - name: Apply Home identity action row
         run: node scripts/patch-home-identity-action-row.cjs
