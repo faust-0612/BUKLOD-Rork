@@ -8,6 +8,7 @@ import React, {
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -210,13 +211,39 @@ export default function OrganizationJoinRequestsScreen() {
       row: JoinRequestRow,
       approve: boolean,
     ) => {
-      Alert.alert(
+      const title =
         approve
           ? 'Approve join request?'
-          : 'Reject join request?',
+          : 'Reject join request?';
+
+      const message =
         approve
           ? `Approve ${row.full_name} as a normal member of this exact scope?`
-          : `Reject ${row.full_name}'s request to join this exact scope?`,
+          : `Reject ${row.full_name}'s request to join this exact scope?`;
+
+      if (Platform.OS === 'web') {
+        const confirmed =
+          (globalThis as typeof globalThis & {
+            confirm?: (
+              message?: string,
+            ) => boolean;
+          }).confirm?.(
+            `${title}\n\n${message}`
+          ) ?? true;
+
+        if (confirmed) {
+          void performReview(
+            row,
+            approve,
+          );
+        }
+
+        return;
+      }
+
+      Alert.alert(
+        title,
+        message,
         [
           {
             text: 'CANCEL',
