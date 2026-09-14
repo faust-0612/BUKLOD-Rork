@@ -1,6 +1,41 @@
 -- BUKLOD Community Help / Emergency SOS R2
 -- Additive emergency-alert layer over the locked R1 baseline.
--- Adds recipient acknowledgement plus two bounded reminder opportunities.
+-- Adds device capability registration, recipient acknowledgement and two bounded reminders.
+
+alter table public.device_tokens
+  add column if not exists emergency_alert_mode_version integer not null default 1;
+
+alter table public.device_tokens
+  drop constraint if exists device_tokens_emergency_alert_mode_version_check;
+alter table public.device_tokens
+  add constraint device_tokens_emergency_alert_mode_version_check
+  check (emergency_alert_mode_version >= 1);
+
+create or replace function public.mark_device_emergency_alert_mode_r2(
+  p_expo_push_token text
+) returns void
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_token text := nullif(btrim(p_expo_push_token), '');
+begin
+  if v_user_id is null then raise exception 'AUTH_REQUIRED'; end if;
+  if v_token is null then raise exception 'PUSH_TOKEN_REQUIRED'; end if;
+
+  update public.device_tokens
+  set emergency_alert_mode_version=greatest(coalesce(emergency_alert_mode_version,1),2),
+      updated_at=now()
+  where expo_push_token=v_token
+    and user_id=v_user_id;
+
+  if not found then raise exception 'DEVICE_TOKEN_NOT_OWNED'; end if;
+end;
+$$;
+
+revoke all on function public.mark_device_emergency_alert_mode_r2(text) from public;
+revoke all on function public.mark_device_emergency_alert_mode_r2(text) from anon;
+grant execute on function public.mark_device_emergency_alert_mode_r2(text) to authenticated;
 
 alter table public.buklod_help_responses
   drop constraint if exists buklod_help_responses_response_type_check;
@@ -39,10 +74,8 @@ begin
   if not found then raise exception 'REQUEST_NOT_ACTIVE'; end if;
   if v_request.creator_id=auth.uid() then raise exception 'CREATOR_CANNOT_RESPOND'; end if;
 
-  -- ACKNOWLEDGED only confirms receipt/opening of an alert. It does not claim
-  -- that the responder is still physically inside the radius, so no fresh
-  -- location is required for this one response type. Never downgrade a stronger
-  -- responder commitment just because the notification is tapped again later.
+  -- ACKNOWLEDGED confirms receipt/opening only. It never claims current
+  -- proximity and never downgrades an existing stronger responder state.
   if v_type='ACKNOWLEDGED' then
     insert into public.buklod_help_responses(request_id,responder_id,response_type,created_at,updated_at)
     values(p_request_id,auth.uid(),v_type,now(),now())
@@ -56,7 +89,7 @@ begin
     return;
   end if;
 
-  -- All active-response claims remain protected by the locked R1 proximity rule.
+  -- All active-response claims retain the locked R1 fresh-presence/proximity rule.
   select p.latitude,p.longitude into v_lat,v_lon
   from public.buklod_help_presence p
   where p.user_id=auth.uid()
