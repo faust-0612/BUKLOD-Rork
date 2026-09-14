@@ -1,6 +1,6 @@
 /* BUKLOD_SPECIAL_BATCH1_R40_PREMIUM_UI */
-/* Approved Sep. 5 R40 presentation; current V2/server visibility and activation remain authoritative. */
-import React, { useEffect, useMemo, useState } from 'react';
+/* Approved Sep. 5 R40 presentation; current V2/server unlock and activation remain authoritative. */
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -62,6 +62,17 @@ type Profile = {
   traits: readonly string[];
   stages: readonly string[];
 };
+
+const SPECIAL_ORDER: BuklodSpecialCharacterId[] = [
+  'ace',
+  'ellusur',
+  'jawo',
+  'mitch',
+  'niel',
+  'angel',
+  'vhen',
+  'trudice',
+];
 
 const PROFILES: Record<BuklodSpecialCharacterId, Profile> = {
   ace: {
@@ -159,11 +170,15 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
   const compact = width < 760;
   const nativeLayout = Platform.OS !== 'web';
   const visible = state.visible_special_character_ids;
-  const activeSpecial = visible.includes(state.active_character_id as BuklodSpecialCharacterId)
+  const activeSpecial = SPECIAL_ORDER.includes(state.active_character_id as BuklodSpecialCharacterId)
     ? (state.active_character_id as BuklodSpecialCharacterId)
     : null;
 
-  const [selectedId, setSelectedId] = useState<BuklodSpecialCharacterId | null>(activeSpecial ?? visible[0] ?? null);
+  const isUnlocked = (id: BuklodSpecialCharacterId) =>
+    visible.includes(id) || state.circle_rank_order >= SPECIAL_REQUIRED_RANK_ORDER[id];
+
+  const nextLockedId = SPECIAL_ORDER.find((id) => !isUnlocked(id)) ?? null;
+  const [selectedId, setSelectedId] = useState<BuklodSpecialCharacterId>(activeSpecial ?? 'ace');
   const [collectibles, setCollectibles] = useState<CollectiblePayload | null>(null);
   const [collectibleLoading, setCollectibleLoading] = useState(false);
   const [using, setUsing] = useState(false);
@@ -173,9 +188,8 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (selectedId && visible.includes(selectedId)) return;
-    setSelectedId(activeSpecial ?? visible[0] ?? null);
-  }, [activeSpecial, selectedId, visible]);
+    if (activeSpecial) setSelectedId(activeSpecial);
+  }, [activeSpecial]);
 
   useEffect(() => {
     setShowAllLevels(false);
@@ -184,13 +198,14 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
   }, [nativeLayout, selectedId]);
 
   useEffect(() => {
-    if (!selectedId || !userId || (nativeLayout && !nativeDetailsOpen)) {
+    if (!userId || (nativeLayout && !nativeDetailsOpen)) {
       setCollectibles(null);
       setCollectibleLoading(false);
       return;
     }
     let mounted = true;
     setCollectibleLoading(true);
+    setMessage(null);
     void (async () => {
       try {
         const { data, error } = await (supabase as any).rpc('get_my_buklod_special_collectibles_v2', {
@@ -211,9 +226,8 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
     return () => { mounted = false; };
   }, [nativeDetailsOpen, nativeLayout, selectedId, userId]);
 
-  if (!visible.length) return null;
-
-  const selected = PROFILES[selectedId ?? visible[0]];
+  const selected = PROFILES[selectedId];
+  const unlocked = isUnlocked(selected.id);
   const active = state.active_character_id === selected.id;
   const currentLevel = active ? Math.max(1, Math.min(20, state.character_level)) : 1;
   const requiredRank = SPECIAL_REQUIRED_RANK_ORDER[selected.id];
@@ -226,7 +240,7 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
     : (collectibles?.collectibles ?? []).slice(0, 12);
 
   const useCharacter = async () => {
-    if (!userId || active || using) return;
+    if (!userId || !unlocked || active || using) return;
     setUsing(true);
     setMessage(null);
     try {
@@ -246,7 +260,7 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
         <View style={[styles.headerCopy, nativeLayout && compact && styles.headerCopyNativeCompact]}>
           <Text style={styles.heading}>Special Character Journey</Text>
           <Text style={styles.subheading}>
-            Harder mastery progression. Every available Batch 1 character has a Level 1 preview; Circle Rank controls visibility.
+            Harder mastery progression. Every Batch 1 character has a Level 1 preview; Circle Rank gates unlocking.
           </Text>
         </View>
         {!compact ? (
@@ -264,10 +278,12 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.characterRail}
       >
-        {visible.map((id) => {
+        {SPECIAL_ORDER.map((id) => {
           const character = PROFILES[id];
           const chosen = id === selected.id;
           const activeNow = state.active_character_id === id;
+          const unlockedNow = isUnlocked(id);
+          const isNext = id === nextLockedId;
           return (
             <Pressable
               key={id}
@@ -278,11 +294,16 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
             >
               <View style={styles.characterImageFrame}>
                 <Image source={SPECIAL_CHARACTER_HERO[id]} style={styles.characterImage} resizeMode="contain" />
+                {!unlockedNow ? (
+                  <View style={styles.lockChip}>
+                    <Text style={styles.lockChipText}>LOCKED</Text>
+                  </View>
+                ) : null}
               </View>
               <Text style={styles.characterName}>{character.name}</Text>
               <Text style={styles.characterRank}>Rank {SPECIAL_REQUIRED_RANK_ORDER[id]}</Text>
-              <Text style={activeNow ? styles.characterStateActive : styles.characterStateReady}>
-                {activeNow ? 'ACTIVE' : 'AVAILABLE'}
+              <Text style={activeNow ? styles.characterStateActive : isNext ? styles.characterStateNext : unlockedNow ? styles.characterStateReady : styles.characterStateMuted}>
+                {activeNow ? 'ACTIVE' : isNext ? 'NEXT TO UNLOCK' : unlockedNow ? 'AVAILABLE' : 'LOCKED'}
               </Text>
             </Pressable>
           );
@@ -313,9 +334,13 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
         </View>
 
         <View style={[styles.rankPanel, nativeLayout && compact && styles.rankPanelNativeCompact]}>
-          <Text style={styles.rankStatus}>{active ? `Level ${currentLevel}` : 'Unlocked'}</Text>
+          <Text style={styles.rankStatus}>{unlocked ? (active ? `Level ${currentLevel}` : 'Unlocked') : 'Locked'}</Text>
           <Text style={styles.rankSubtitle}>
-            {active ? selected.stages[currentLevel - 1] : `Selecting ${selected.name} starts it at Level 1.`}
+            {active
+              ? selected.stages[currentLevel - 1]
+              : unlocked
+                ? `Selecting ${selected.name} starts it at Level 1.`
+                : `Unlocks at Circle Rank ${requiredRank}. Level 1 remains previewable.`}
           </Text>
           <View style={styles.rankLine}>
             <Text style={styles.rankLabel}>Your Current Rank</Text>
@@ -326,11 +351,13 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
             Circle Points and Circle Rank remain intact when changing Character. Character levels do not transfer.
           </Text>
           <Pressable
-            disabled={using || active}
+            disabled={using || active || !unlocked}
             onPress={() => void useCharacter()}
-            style={[styles.primaryAction, (using || active) && styles.primaryActionDisabled]}
+            style={[styles.primaryAction, (using || active || !unlocked) && styles.primaryActionDisabled]}
           >
-            <Text style={styles.primaryActionText}>{active ? 'ACTIVE CHARACTER' : using ? 'SETTING...' : 'USE CHARACTER'}</Text>
+            <Text style={styles.primaryActionText}>
+              {active ? 'ACTIVE CHARACTER' : !unlocked ? `UNLOCK AT RANK ${requiredRank}` : using ? 'SETTING...' : 'USE CHARACTER'}
+            </Text>
           </Pressable>
         </View>
       </View>
@@ -396,7 +423,7 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
 
             {collectibleLoading ? (
               <ActivityIndicator style={styles.collectibleLoader} />
-            ) : (
+            ) : visibleCollectibles.length ? (
               <View style={styles.collectibleGrid}>
                 {visibleCollectibles.map((item) => (
                   <View key={item.collectible_id} style={[styles.collectibleCard, compact && styles.collectibleCardCompact]}>
@@ -409,6 +436,18 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
                     <Text style={item.earned ? styles.collectibleEarned : item.secret ? styles.collectibleSecret : styles.collectibleTier}>
                       {item.earned ? (item.earned_early ? 'COLLECTED EARLY' : 'COLLECTED') : item.secret ? 'SECRET' : `TIER ${item.difficulty_tier}`}
                     </Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View style={styles.badgePreviewGrid}>
+                {Array.from({ length: 4 }, (_, index) => index + 1).map((level) => (
+                  <View key={`${selected.id}-badge-preview-${level}`} style={[styles.collectibleCard, compact && styles.collectibleCardCompact]}>
+                    <View style={styles.collectibleIcon}><Text style={styles.collectibleIconText}>{level}</Text></View>
+                    <Text style={styles.collectibleName}>{selected.name} Level {level} Badge</Text>
+                    <Text style={styles.badgeName}>BADGE PREVIEW</Text>
+                    <Text style={styles.requirementText}>Badge details load from the Special Character mastery service.</Text>
+                    <Text style={styles.collectibleTier}>PREVIEW</Text>
                   </View>
                 ))}
               </View>
@@ -441,9 +480,13 @@ const styles = StyleSheet.create({
   characterCardSelected: { borderColor: '#1EA653', borderWidth: 2, shadowColor: '#1EA653', shadowOpacity: 0.12, shadowRadius: 8, elevation: 2 },
   characterImageFrame: { height: 138, borderRadius: 13, overflow: 'hidden', backgroundColor: '#F1F5F2', alignItems: 'center', justifyContent: 'center' },
   characterImage: { width: '100%', height: '100%' },
+  lockChip: { position: 'absolute', right: 6, top: 6, borderRadius: 999, paddingHorizontal: 7, paddingVertical: 4, backgroundColor: 'rgba(255,255,255,0.92)' },
+  lockChipText: { fontSize: 8, fontWeight: '900', color: '#667069' },
   characterName: { marginTop: 7, textAlign: 'center', fontSize: 14, fontWeight: '900', color: '#15271D' },
   characterRank: { marginTop: 1, textAlign: 'center', fontSize: 10, color: '#506257' },
   characterStateActive: { marginTop: 5, textAlign: 'center', fontSize: 8.5, fontWeight: '900', color: '#15783A' },
+  characterStateNext: { marginTop: 5, textAlign: 'center', fontSize: 8.5, fontWeight: '900', color: '#178A43' },
+  characterStateMuted: { marginTop: 5, textAlign: 'center', fontSize: 8.5, fontWeight: '900', color: '#879089' },
   characterStateReady: { marginTop: 5, textAlign: 'center', fontSize: 8.5, fontWeight: '900', color: '#34754A' },
   heroPanel: { marginHorizontal: 16, marginBottom: 14, padding: 10, borderRadius: 22, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#DCE7E0', flexDirection: 'row', gap: 18, alignItems: 'stretch' },
   heroPanelCompact: { flexDirection: 'column' },
@@ -508,6 +551,7 @@ const styles = StyleSheet.create({
   levelCollectible: { marginTop: 5, fontSize: 8.5, color: '#66736B' },
   collectibleLoader: { marginVertical: 20 },
   collectibleGrid: { marginTop: 10, flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  badgePreviewGrid: { marginTop: 10, flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   collectibleCard: { width: 150, minHeight: 168, borderRadius: 14, padding: 10, borderWidth: 1, borderColor: '#E1E8E3', backgroundColor: '#FBFDFC' },
   collectibleCardCompact: { width: '48%' },
   collectibleIcon: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#E0F3E6', alignItems: 'center', justifyContent: 'center' },
