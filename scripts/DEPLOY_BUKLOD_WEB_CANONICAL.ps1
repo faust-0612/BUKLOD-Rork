@@ -84,6 +84,15 @@ if ($LASTEXITCODE -ne 0) {
   Fail 'Production source identity guard failed.'
 }
 
+$helpSosContract = Join-Path $CurrentRoot 'scripts\community-help-sos-release-contract.mjs'
+if (!(Test-Path -LiteralPath $helpSosContract -PathType Leaf)) {
+  Fail 'Community Help / Emergency SOS release contract is missing.'
+}
+& node $helpSosContract
+if ($LASTEXITCODE -ne 0) {
+  Fail 'Community Help / Emergency SOS locked baseline contract failed.'
+}
+
 $implementation = Join-Path $CurrentRoot 'scripts\DEPLOY_GAMES_WEB_DIRECT.ps1'
 $recoveryScript = Join-Path $CurrentRoot 'scripts\RESTORE_CANONICAL_R31_R40.ps1'
 if (!(Test-Path -LiteralPath $implementation -PathType Leaf)) {
