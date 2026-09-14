@@ -29,6 +29,17 @@ import { useCompliance } from '@/providers/ComplianceProvider';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 import { isBuklodScopedWorkspacePath } from '@/lib/buklodSafeArea';
 
+/*
+ * BUKLOD_PUBLIC_CANONICAL_LANDING_R23
+ *
+ * When the tab group itself is restored (for example after an OTA reload),
+ * Community Wall must be the first route instead of the retired Public Home.
+ * Organization/Cluster workspaces remain route-owned by /scope.
+ */
+export const unstable_settings = {
+  initialRouteName: 'buklod',
+};
+
 function SwipeDashboardHeader() {
   const pathname =
     usePathname();
@@ -208,6 +219,7 @@ function SwipeDashboardHeader() {
 
 export default function TabsLayout() {
   const { theme } = useBuklodTheme();
+  const pathname = usePathname();
   const { activeScope } = useBuklodScope();
   const showPrayer = Boolean(
     activeScope?.show_faith_content
@@ -286,6 +298,29 @@ export default function TabsLayout() {
     return <Redirect href="/onboarding" />;
   }
 
+  /*
+   * Retired PUBLIC routes are compatibility aliases only. If an older OTA,
+   * saved navigation state, or deep link restores Public Home/Prayer, send
+   * the user to the canonical Community Wall. Do not apply this redirect to
+   * Organization/Cluster scopes.
+   */
+  const publicLegacyRoute =
+    activeScope?.scope_type === 'PUBLIC' &&
+    (
+      pathname === '/home' ||
+      pathname.startsWith('/home/') ||
+      pathname === '/prayer' ||
+      pathname.startsWith('/prayer/')
+    );
+
+  if (publicLegacyRoute) {
+    return (
+      <Redirect
+        href="/(tabs)/buklod"
+      />
+    );
+  }
+
   const tabSceneStyle = {
     backgroundColor: theme.surface,
     marginHorizontal: 5,
@@ -319,9 +354,9 @@ export default function TabsLayout() {
             contentStyle: tabSceneStyle,
           }}
         >
+          <Stack.Screen name="buklod" />
           <Stack.Screen name="home" />
           <Stack.Screen name="messages" />
-          <Stack.Screen name="buklod" />
           {showPrayer ? (
             <Stack.Screen name="prayer" />
           ) : null}
