@@ -72,7 +72,7 @@ begin
     raise exception 'Unsupported IGPAT rotation';
   end if;
 
-  if coalesce(safe_meta->>'content_fit', 'contain') not in ('contain', 'cover') then
+  if coalesce(safe_meta->>'content_fit', 'cover') not in ('contain', 'cover') then
     raise exception 'Unsupported IGPAT framing mode';
   end if;
 
@@ -102,7 +102,7 @@ begin
     'speed', speed_value,
     'muted', muted_value,
     'text_overlay', left(coalesce(safe_meta->>'text_overlay', ''), 160),
-    'content_fit', coalesce(safe_meta->>'content_fit', 'contain'),
+    'content_fit', coalesce(safe_meta->>'content_fit', 'cover'),
     'rotation', rotation_value,
     'cover_seconds', cover_value
   )
