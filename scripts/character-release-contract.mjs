@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -10,6 +11,23 @@ const info = [];
 const args = process.argv.slice(2);
 const distIndex = args.indexOf('--dist');
 const distDir = distIndex >= 0 ? path.resolve(ROOT, args[distIndex + 1] || 'dist') : null;
+
+/*
+ * BUKLOD APPROVED CHARACTER VISUAL LOCK — 2026-09-14
+ *
+ * These exact tracked Git blobs are user-approved and immutable.
+ * Do not change, substitute, forward-port, recompose, or regenerate these
+ * visual surfaces unless the user explicitly authorizes: UNLOCK R31/R40.
+ *
+ * Git blob identity is checked instead of hashing working-tree text so Windows
+ * CRLF conversion cannot create false failures.
+ */
+const LOCKED_VISUAL_BLOBS = {
+  'src/components/points/BuklodProgressiveCharacterSelector.tsx': 'f94af7e2f6d20246c9c9fe983b06240ae50599ba',
+  'src/components/points/BuklodSpecialCharacterSeries.tsx': 'cfeaf0385d6963a6c497681d58c53b4c08b2ec62',
+  'src/components/points/BuklodCharacterCustomizeSheet.tsx': '8aa1a4dfdad33ba9aca7a07a32560765160fb176',
+  'src/components/points/BuklodProgressiveCharacterArt.tsx': '7b6eef608b9844e21e412df19348de87d0468bbe',
+};
 
 const CORE_ASSETS = {
   'assets/images/characters/phan_r26.jpg': '1598EF159BFC4AB784A681BEF7BC53FF839DBEA92CB729EE03A15BAA4F31CCDB',
@@ -61,6 +79,39 @@ function requireOneOf(rel, alternatives, label) {
   }
 }
 
+function trackedGitBlobSha(rel) {
+  try {
+    return execFileSync('git', ['rev-parse', `HEAD:${rel}`], {
+      cwd: ROOT,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }).trim().toLowerCase();
+  } catch (error) {
+    failures.push(`Could not read tracked Git blob for locked Character file: ${rel}`);
+    return '';
+  }
+}
+
+function lockedPathIsDirty(rel) {
+  const unstaged = spawnSync('git', ['diff', '--quiet', '--', rel], { cwd: ROOT });
+  const staged = spawnSync('git', ['diff', '--cached', '--quiet', '--', rel], { cwd: ROOT });
+  return unstaged.status !== 0 || staged.status !== 0;
+}
+
+function enforceExactVisualLock() {
+  for (const [rel, expected] of Object.entries(LOCKED_VISUAL_BLOBS)) {
+    if (!mustExist(rel)) continue;
+    const actual = trackedGitBlobSha(rel);
+    if (actual && actual !== expected.toLowerCase()) {
+      failures.push(`APPROVED CHARACTER VISUAL LOCK CHANGED: ${rel} expected=${expected} actual=${actual}. Explicit UNLOCK R31/R40 authorization is required before changing this file.`);
+    }
+    if (lockedPathIsDirty(rel)) {
+      failures.push(`APPROVED CHARACTER VISUAL LOCK has local/staged edits: ${rel}. Restore the approved blob before release.`);
+    }
+    if (actual === expected.toLowerCase()) info.push(`Locked visual blob OK: ${rel} @ ${actual}`);
+  }
+}
+
 function sha256(rel) {
   const buffer = fs.readFileSync(full(rel));
   return crypto.createHash('sha256').update(buffer).digest('hex').toUpperCase();
@@ -79,6 +130,9 @@ function walk(dir) {
 
 console.log('BUKLOD CHARACTER RELEASE CONTRACT — APPROVED R31 + R40 ONLY');
 console.log('==========================================================');
+console.log('LOCK POLICY: exact approved visual blobs; explicit UNLOCK R31/R40 required for visual changes.');
+
+enforceExactVisualLock();
 
 const r31 = requireTokens('src/components/points/BuklodProgressiveCharacterSelector.tsx', [
   'BUKLOD_CHARACTER_R31_APPROVED_LAYOUT',
@@ -227,8 +281,8 @@ for (const failure of failures) console.error(`FAIL: ${failure}`);
 
 if (failures.length) {
   console.error(`\nCHARACTER RELEASE LOCK FAILED with ${failures.length} blocker(s).`);
-  console.error('DEPLOYMENT MUST STOP. Restore the approved R31 + R40 layout before publishing.');
+  console.error('DEPLOYMENT MUST STOP. Restore the exact approved R31 + R40 visual blobs before publishing.');
   process.exit(1);
 }
 
-console.log('\nCHARACTER RELEASE LOCK PASSED — approved R31 + R40 layout, Special rail, badges surface, and assets are preserved.');
+console.log('\nCHARACTER RELEASE LOCK PASSED — exact approved R31 + R40 visual blobs, Special rail, badges surface, and assets are preserved.');
