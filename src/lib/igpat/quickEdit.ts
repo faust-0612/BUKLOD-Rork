@@ -21,7 +21,7 @@ export const DEFAULT_IGPAT_QUICK_EDIT: IgpatQuickEditState = {
   speed: 1,
   muted: false,
   textOverlay: '',
-  contentFit: 'contain',
+  contentFit: 'cover',
   rotation: 0,
   coverSeconds: 0,
 };
@@ -78,7 +78,7 @@ export function isDefaultIgpatQuickEdit(
     normalized.speed === 1 &&
     !normalized.muted &&
     !normalized.textOverlay.trim() &&
-    normalized.contentFit === 'contain' &&
+    normalized.contentFit === 'cover' &&
     normalized.rotation === 0 &&
     normalized.coverSeconds <= 0.001
   );
@@ -124,7 +124,7 @@ export function parseIgpatQuickEdit(
       speed,
       muted: Boolean(row.muted),
       textOverlay: String(row.text_overlay ?? '').slice(0, 160),
-      contentFit: row.content_fit === 'cover' ? 'cover' : 'contain',
+      contentFit: row.content_fit === 'contain' ? 'contain' : 'cover',
       rotation,
       coverSeconds: Number(row.cover_seconds ?? 0),
     },
