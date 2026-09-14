@@ -110,15 +110,10 @@ export default function IgpatRelayChainScreen() {
               <Text style={styles.tileTitle}>ARENA</Text>
               <Text style={styles.tileHint}>Intentional competition</Text>
             </Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel="Open King of the Hill" style={styles.featureTile} onPress={() => router.push('/igpat/arena/hill' as any)}>
-              <MaterialCommunityIcons name="crown-outline" size={19} color="#FFFFFF" />
-              <Text style={styles.tileTitle}>THE HILL</Text>
-              <Text style={styles.tileHint}>Approved champions</Text>
-            </Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel="Open my Arena record" style={styles.featureTile} onPress={() => router.push('/igpat/arena/record' as any)}>
-              <MaterialCommunityIcons name="chart-box-outline" size={19} color="#FFFFFF" />
-              <Text style={styles.tileTitle}>MY RECORD</Text>
-              <Text style={styles.tileHint}>Structured W/L only</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="Open IGPAT feed controls" style={styles.featureTile} onPress={() => router.push(`/igpat/options/${postId}` as any)}>
+              <MaterialCommunityIcons name="tune-variant" size={19} color="#FFFFFF" />
+              <Text style={styles.tileTitle}>FEED CONTROLS</Text>
+              <Text style={styles.tileHint}>Tune / hide / report</Text>
             </Pressable>
           </View>
         </View>
