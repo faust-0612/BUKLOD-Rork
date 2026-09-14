@@ -28,6 +28,13 @@ import {
   type IgpatRotation,
 } from '@/lib/igpat/quickEdit';
 import { useIgpatQuickEditHistory } from '@/lib/igpat/useQuickEditHistory';
+import type { IgpatDraftSaveInput } from '@/lib/igpat/draftTypes';
+import {
+  clearWebIgpatDraft,
+  loadWebIgpatDraft,
+  prepareWebIgpatDraftMedia,
+  saveWebIgpatDraft,
+} from '@/lib/igpat/draftStorage.web';
 
 type Audience = 'group' | 'local' | 'public';
 type CreateStep = 'source' | 'quick-edit' | 'preview' | 'details';
@@ -35,6 +42,7 @@ type QuickEditTool = 'Trim' | 'Text' | 'Audio' | 'Speed' | 'Cover' | 'More';
 
 const QUICK_EDIT_TOOLS: QuickEditTool[] = ['Trim', 'Text', 'Audio', 'Speed', 'Cover', 'More'];
 const SPEEDS: IgpatPlaybackRate[] = [0.5, 0.75, 1, 1.25, 1.5, 2];
+const DRAFT_AUTOSAVE_DELAY_MS = 300;
 
 type IgpatDraft = {
   uri: string;
@@ -235,6 +243,9 @@ export default function IgpatCreateWebScreen() {
   const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recordStartedAtRef = useRef(0);
+  const draftRecoveryUserRef = useRef<string | null>(null);
+  const latestDraftSaveRef = useRef<IgpatDraftSaveInput | null>(null);
+  const draftPersistenceWarningRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -300,12 +311,104 @@ export default function IgpatCreateWebScreen() {
 
   useEffect(() => () => {
     stopCamera();
+    const pending = latestDraftSaveRef.current;
+    if (pending) {
+      try { saveWebIgpatDraft(pending); } catch {}
+    }
+  }, []);
+
+  useEffect(() => () => {
     if (draft?.revokeOnDispose && draft.uri) {
       try { URL.revokeObjectURL(draft.uri); } catch {}
     }
   }, [draft?.revokeOnDispose, draft?.uri]);
 
+  useEffect(() => {
+    if (!user?.id || draftRecoveryUserRef.current === user.id) return;
+    draftRecoveryUserRef.current = user.id;
+    let cancelled = false;
+
+    void loadWebIgpatDraft(user.id)
+      .then(restored => {
+        if (cancelled || !restored) {
+          if (cancelled && restored?.uri) URL.revokeObjectURL(restored.uri);
+          return;
+        }
+        const { snapshot, uri } = restored;
+        Alert.alert(
+          'BUKLOD IGPAT Draft',
+          'You have a saved IGPAT draft in this browser.',
+          [
+            {
+              text: 'DISCARD DRAFT',
+              style: 'destructive',
+              onPress: () => {
+                latestDraftSaveRef.current = null;
+                URL.revokeObjectURL(uri);
+                void clearWebIgpatDraft(user.id);
+              },
+            },
+            {
+              text: 'CONTINUE EDITING',
+              onPress: () => {
+                if (cancelled) {
+                  URL.revokeObjectURL(uri);
+                  return;
+                }
+                setDraft({
+                  uri,
+                  durationSeconds: snapshot.durationSeconds,
+                  sizeBytes: snapshot.sizeBytes,
+                  mimeType: snapshot.mimeType,
+                  fileName: snapshot.fileName,
+                  revokeOnDispose: true,
+                });
+                resetEditHistory(snapshot.edit, snapshot.durationSeconds);
+                setCaption(snapshot.caption);
+                setAudience(snapshot.audience);
+                setGroupId(snapshot.groupId);
+                setPreviewTime(snapshot.edit.trimStartSeconds);
+                setSeekSeconds(snapshot.edit.trimStartSeconds);
+                setActiveTool('Trim');
+                setStep('quick-edit');
+              },
+            },
+          ],
+          { cancelable: false }
+        );
+      })
+      .catch(error => console.warn('BUKLOD IGPAT draft recovery:', String(error?.message ?? error)));
+
+    return () => { cancelled = true; };
+  }, [resetEditHistory, user?.id]);
+
+  useEffect(() => {
+    if (!user?.id || !draft) return;
+    const input: IgpatDraftSaveInput = {
+      userId: user.id,
+      mediaUri: draft.uri,
+      durationSeconds: draft.durationSeconds,
+      sizeBytes: draft.sizeBytes,
+      mimeType: draft.mimeType,
+      fileName: draft.fileName,
+      edit: normalizeIgpatQuickEdit(edit, draft.durationSeconds),
+      caption,
+      audience,
+      groupId,
+    };
+    latestDraftSaveRef.current = input;
+    const timer = setTimeout(() => {
+      try {
+        saveWebIgpatDraft(input);
+      } catch (error: any) {
+        console.warn('BUKLOD IGPAT draft autosave:', String(error?.message ?? error));
+      }
+    }, DRAFT_AUTOSAVE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [audience, caption, draft, edit, groupId, user?.id]);
+
   const clearDraftState = () => {
+    latestDraftSaveRef.current = null;
     setDraft(null);
     resetEditHistory({ ...DEFAULT_IGPAT_QUICK_EDIT });
     setPreviewTime(0);
@@ -318,6 +421,7 @@ export default function IgpatCreateWebScreen() {
     if (draft?.revokeOnDispose && draft.uri) {
       try { URL.revokeObjectURL(draft.uri); } catch {}
     }
+    if (user?.id) void clearWebIgpatDraft(user.id);
     clearDraftState();
   };
 
@@ -336,6 +440,44 @@ export default function IgpatCreateWebScreen() {
     setStep('quick-edit');
   };
 
+  const persistAndAcceptDraft = async (next: IgpatDraft, blob: Blob) => {
+    if (!user?.id) {
+      Alert.alert('BUKLOD IGPAT', 'Sign in again before preparing an IGPAT.');
+      return;
+    }
+
+    const initialEdit = { ...DEFAULT_IGPAT_QUICK_EDIT, trimEndSeconds: next.durationSeconds };
+    const baseDraft: IgpatDraftSaveInput = {
+      userId: user.id,
+      mediaUri: next.uri,
+      durationSeconds: next.durationSeconds,
+      sizeBytes: next.sizeBytes,
+      mimeType: next.mimeType,
+      fileName: next.fileName,
+      edit: initialEdit,
+      caption,
+      audience,
+      groupId,
+    };
+
+    try {
+      await prepareWebIgpatDraftMedia(user.id, blob);
+      saveWebIgpatDraft(baseDraft);
+      latestDraftSaveRef.current = baseDraft;
+    } catch (error: any) {
+      console.warn('BUKLOD IGPAT durable draft:', String(error?.message ?? error));
+      if (!draftPersistenceWarningRef.current) {
+        draftPersistenceWarningRef.current = true;
+        Alert.alert(
+          'Draft Autosave Unavailable',
+          'You can still edit and publish this IGPAT, but this browser could not save the video for recovery after a reload.'
+        );
+      }
+    }
+
+    acceptDraft(next);
+  };
+
   const openCamera = async () => {
     if (!navigator?.mediaDevices?.getUserMedia) {
       Alert.alert('Camera unavailable', 'This browser does not support direct camera recording.');
@@ -343,10 +485,7 @@ export default function IgpatCreateWebScreen() {
     }
     try {
       stopCamera();
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user' },
-        audio: true,
-      });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true });
       streamRef.current = stream;
       setCameraReady(true);
       setTimeout(() => {
@@ -395,10 +534,7 @@ export default function IgpatCreateWebScreen() {
       Alert.alert('Recording error', event?.error?.message ?? 'Camera recording failed.');
     };
     recorder.onstop = () => {
-      const durationSeconds = Math.max(
-        1,
-        Math.min(60, Math.ceil((Date.now() - recordStartedAtRef.current) / 1000))
-      );
+      const durationSeconds = Math.max(1, Math.min(60, Math.ceil((Date.now() - recordStartedAtRef.current) / 1000)));
       const blob = new Blob(chunksRef.current, { type: 'video/webm' });
       chunksRef.current = [];
       setRecording(false);
@@ -407,23 +543,21 @@ export default function IgpatCreateWebScreen() {
         Alert.alert('BUKLOD IGPAT', 'The recorded video was empty. Please try again.');
         return;
       }
-      const validationError = validateCommunityVideoUpload({
-        durationSeconds,
-        sizeBytes: blob.size,
-        isReel: true,
-      });
+      const validationError = validateCommunityVideoUpload({ durationSeconds, sizeBytes: blob.size, isReel: true });
       if (validationError) {
         Alert.alert('BUKLOD IGPAT', validationError);
         return;
       }
-      acceptDraft({
+
+      const next: IgpatDraft = {
         uri: URL.createObjectURL(blob),
         durationSeconds,
         sizeBytes: blob.size,
         mimeType: 'video/webm',
         fileName: `igpat-${Date.now()}.webm`,
         revokeOnDispose: true,
-      });
+      };
+      void persistAndAcceptDraft(next, blob);
     };
 
     recorder.start(1000);
@@ -491,18 +625,16 @@ export default function IgpatCreateWebScreen() {
         if (validationError) throw new Error(validationError);
 
         const directMime = String(file.type || 'video/mp4').toLowerCase();
-        const mimeType =
-          directMime === 'video/quicktime' || directMime === 'video/webm'
-            ? directMime
-            : 'video/mp4';
-        acceptDraft({
+        const mimeType = directMime === 'video/quicktime' || directMime === 'video/webm' ? directMime : 'video/mp4';
+        const next: IgpatDraft = {
           uri,
           durationSeconds,
           sizeBytes,
           mimeType,
           fileName: file.name || `igpat.${extensionForMime(mimeType)}`,
           revokeOnDispose: true,
-        });
+        };
+        await persistAndAcceptDraft(next, file);
       } catch (error) {
         URL.revokeObjectURL(uri);
         throw error;
@@ -520,10 +652,7 @@ export default function IgpatCreateWebScreen() {
       return;
     }
     if ((audience === 'local' || audience === 'public') && !profile?.church_id) {
-      Alert.alert(
-        'BUKLOD IGPAT',
-        'Choose CLUSTER, or ask an admin to complete your Local Church assignment.'
-      );
+      Alert.alert('BUKLOD IGPAT', 'Choose CLUSTER, or ask an admin to complete your Local Church assignment.');
       return;
     }
 
@@ -541,12 +670,7 @@ export default function IgpatCreateWebScreen() {
     try {
       uploadedPath = `${user.id}/igpat-${Date.now()}-${Math.random().toString(36).slice(2)}.${extensionForMime(draft.mimeType)}`;
       setStage('Uploading video…');
-      await uploadWebIgpatDirect({
-        path: uploadedPath,
-        uri: draft.uri,
-        contentType: draft.mimeType,
-        onProgress: setProgress,
-      });
+      await uploadWebIgpatDirect({ path: uploadedPath, uri: draft.uri, contentType: draft.mimeType, onProgress: setProgress });
 
       setStage('Creating IGPAT post…');
       const { data, error } = await (supabase as any).rpc('create_buklod_reel_v2', {
@@ -562,8 +686,13 @@ export default function IgpatCreateWebScreen() {
       if (error) throw error;
       if (!data) throw new Error('The server did not return the new IGPAT post ID.');
 
+      latestDraftSaveRef.current = null;
+      await clearWebIgpatDraft(user.id);
       setStage('Published');
-      disposeDraft();
+      if (draft.revokeOnDispose && draft.uri) {
+        try { URL.revokeObjectURL(draft.uri); } catch {}
+      }
+      clearDraftState();
       setCaption('');
       Alert.alert('IGPAT Published', 'Your IGPAT is now available in the selected feed.');
       router.replace('/igpat' as any);
@@ -618,10 +747,7 @@ export default function IgpatCreateWebScreen() {
     };
 
     const updateEnd = (value: number) => {
-      const nextEnd = Math.max(
-        start + IGPAT_MIN_OUTPUT_SECONDS,
-        Math.min(draft.durationSeconds, value)
-      );
+      const nextEnd = Math.max(start + IGPAT_MIN_OUTPUT_SECONDS, Math.min(draft.durationSeconds, value));
       updateEditTransaction({ ...normalized, trimEndSeconds: nextEnd });
       const nextSeek = Math.min(previewTime, nextEnd);
       setPreviewTime(nextSeek);
@@ -684,9 +810,7 @@ export default function IgpatCreateWebScreen() {
           },
           style: rangeStyle,
         })}
-        <Text style={styles.panelHint}>
-          Output · {formatClock(igpatOutputDurationSeconds(normalized, draft.durationSeconds))}
-        </Text>
+        <Text style={styles.panelHint}>Output · {formatClock(igpatOutputDurationSeconds(normalized, draft.durationSeconds))}</Text>
       </View>
     );
   };
@@ -711,9 +835,7 @@ export default function IgpatCreateWebScreen() {
             style={styles.overlayInput}
             editable={!busy}
           />
-          <Text style={styles.panelHint}>
-            Drag/resize stays hidden until BUKLOD has a safe rendered-composition path.
-          </Text>
+          <Text style={styles.panelHint}>Drag/resize stays hidden until BUKLOD has a safe rendered-composition path.</Text>
         </View>
       );
     }
@@ -723,24 +845,14 @@ export default function IgpatCreateWebScreen() {
         <View style={styles.editorPanel}>
           <Text style={styles.panelTitle}>ORIGINAL AUDIO</Text>
           <View style={styles.choiceRow}>
-            <Pressable
-              style={[styles.choiceChip, !normalized.muted && styles.choiceSelected]}
-              onPress={() => patchEdit({ muted: false })}
-              disabled={busy}
-            >
+            <Pressable style={[styles.choiceChip, !normalized.muted && styles.choiceSelected]} onPress={() => patchEdit({ muted: false })} disabled={busy}>
               <Text style={[styles.choiceText, !normalized.muted && styles.choiceTextSelected]}>ON</Text>
             </Pressable>
-            <Pressable
-              style={[styles.choiceChip, normalized.muted && styles.choiceSelected]}
-              onPress={() => patchEdit({ muted: true })}
-              disabled={busy}
-            >
+            <Pressable style={[styles.choiceChip, normalized.muted && styles.choiceSelected]} onPress={() => patchEdit({ muted: true })} disabled={busy}>
               <Text style={[styles.choiceText, normalized.muted && styles.choiceTextSelected]}>MUTE</Text>
             </Pressable>
           </View>
-          <Text style={styles.panelHint}>
-            Music mixing and audio cleanup are hidden until a safe processing path exists.
-          </Text>
+          <Text style={styles.panelHint}>Music mixing and audio cleanup are hidden until a safe processing path exists.</Text>
         </View>
       );
     }
@@ -753,12 +865,7 @@ export default function IgpatCreateWebScreen() {
             {SPEEDS.map(value => {
               const selected = normalized.speed === value;
               return (
-                <Pressable
-                  key={value}
-                  style={[styles.choiceChip, selected && styles.choiceSelected]}
-                  onPress={() => patchEdit({ speed: value })}
-                  disabled={busy}
-                >
+                <Pressable key={value} style={[styles.choiceChip, selected && styles.choiceSelected]} onPress={() => patchEdit({ speed: value })} disabled={busy}>
                   <Text style={[styles.choiceText, selected && styles.choiceTextSelected]}>{value}×</Text>
                 </Pressable>
               );
@@ -773,11 +880,7 @@ export default function IgpatCreateWebScreen() {
         <View style={styles.editorPanel}>
           <Text style={styles.panelTitle}>COVER FRAME</Text>
           <Text style={styles.panelValue}>Current frame · {formatClock(previewTime)}</Text>
-          <Pressable
-            style={styles.panelAction}
-            onPress={() => patchEdit({ coverSeconds: previewTime })}
-            disabled={busy}
-          >
+          <Pressable style={styles.panelAction} onPress={() => patchEdit({ coverSeconds: previewTime })} disabled={busy}>
             <Text style={styles.panelActionText}>USE CURRENT FRAME</Text>
           </Pressable>
           <Text style={styles.panelHint}>Selected · {formatClock(normalized.coverSeconds)}</Text>
@@ -793,15 +896,8 @@ export default function IgpatCreateWebScreen() {
           {(['contain', 'cover'] as const).map(value => {
             const selected = normalized.contentFit === value;
             return (
-              <Pressable
-                key={value}
-                style={[styles.choiceChip, selected && styles.choiceSelected]}
-                onPress={() => patchEdit({ contentFit: value })}
-                disabled={busy}
-              >
-                <Text style={[styles.choiceText, selected && styles.choiceTextSelected]}>
-                  {value === 'cover' ? 'FILL 9:16' : 'FIT'}
-                </Text>
+              <Pressable key={value} style={[styles.choiceChip, selected && styles.choiceSelected]} onPress={() => patchEdit({ contentFit: value })} disabled={busy}>
+                <Text style={[styles.choiceText, selected && styles.choiceTextSelected]}>{value === 'cover' ? 'FILL 9:16' : 'FIT'}</Text>
               </Pressable>
             );
           })}
@@ -811,12 +907,7 @@ export default function IgpatCreateWebScreen() {
           {([0, 90, 180, 270] as IgpatRotation[]).map(value => {
             const selected = normalized.rotation === value;
             return (
-              <Pressable
-                key={value}
-                style={[styles.choiceChip, selected && styles.choiceSelected]}
-                onPress={() => patchEdit({ rotation: value })}
-                disabled={busy}
-              >
+              <Pressable key={value} style={[styles.choiceChip, selected && styles.choiceSelected]} onPress={() => patchEdit({ rotation: value })} disabled={busy}>
                 <Text style={[styles.choiceText, selected && styles.choiceTextSelected]}>{value}°</Text>
               </Pressable>
             );
@@ -868,21 +959,11 @@ export default function IgpatCreateWebScreen() {
           </Pressable>
         </View>
       </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.toolRail}
-        style={styles.toolScroller}
-      >
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.toolRail} style={styles.toolScroller}>
         {QUICK_EDIT_TOOLS.map(tool => {
           const selected = activeTool === tool;
           return (
-            <Pressable
-              key={tool}
-              style={[styles.toolChip, selected && styles.toolChipSelected]}
-              onPress={() => setActiveTool(tool)}
-              disabled={busy}
-            >
+            <Pressable key={tool} style={[styles.toolChip, selected && styles.toolChipSelected]} onPress={() => setActiveTool(tool)} disabled={busy}>
               <Text style={[styles.toolText, selected && styles.toolTextSelected]}>{tool}</Text>
             </Pressable>
           );
@@ -912,9 +993,7 @@ export default function IgpatCreateWebScreen() {
             <Pressable style={[styles.recordButton, recording && styles.stopButton]} onPress={recording ? stopRecording : startRecording}>
               <Text style={styles.recordButtonText}>{recording ? 'STOP' : 'START RECORDING'}</Text>
             </Pressable>
-            {!recording ? (
-              <Pressable onPress={stopCamera}><Text style={styles.change}>CLOSE CAMERA</Text></Pressable>
-            ) : null}
+            {!recording ? <Pressable onPress={stopCamera}><Text style={styles.change}>CLOSE CAMERA</Text></Pressable> : null}
           </View>
         </View>
       ) : !draft || step === 'source' ? (
@@ -931,7 +1010,7 @@ export default function IgpatCreateWebScreen() {
       ) : step === 'quick-edit' ? (
         <View>
           <Text style={styles.stepTitle}>QUICK EDIT</Text>
-          <Text style={styles.stepCopy}>Non-destructive edits. Your original video stays intact.</Text>
+          <Text style={styles.stepCopy}>Non-destructive edits. Your draft is saved automatically in this browser.</Text>
           {renderDraftPreview()}
           {renderQuickEditShell()}
           <View style={styles.actionStack}>
@@ -941,10 +1020,7 @@ export default function IgpatCreateWebScreen() {
             <Pressable
               style={styles.secondaryAction}
               onPress={() => {
-                resetEditHistory(
-                  { ...DEFAULT_IGPAT_QUICK_EDIT, trimEndSeconds: draft.durationSeconds },
-                  draft.durationSeconds
-                );
+                resetEditHistory({ ...DEFAULT_IGPAT_QUICK_EDIT, trimEndSeconds: draft.durationSeconds }, draft.durationSeconds);
                 setPreviewTime(0);
                 setSeekSeconds(0);
                 setStep('details');
@@ -991,11 +1067,7 @@ export default function IgpatCreateWebScreen() {
               return (
                 <Pressable
                   key={value}
-                  style={[
-                    styles.audienceButton,
-                    audience === value && styles.audienceSelected,
-                    disabled && styles.audienceDisabled,
-                  ]}
+                  style={[styles.audienceButton, audience === value && styles.audienceSelected, disabled && styles.audienceDisabled]}
                   onPress={() => {
                     if (disabled) return;
                     setAudience(value);
@@ -1003,9 +1075,7 @@ export default function IgpatCreateWebScreen() {
                   }}
                   disabled={busy || disabled}
                 >
-                  <Text style={[styles.audienceText, audience === value && styles.audienceSelectedText]}>
-                    {value === 'group' ? 'CLUSTER' : value.toUpperCase()}
-                  </Text>
+                  <Text style={[styles.audienceText, audience === value && styles.audienceSelectedText]}>{value === 'group' ? 'CLUSTER' : value.toUpperCase()}</Text>
                 </Pressable>
               );
             })}
@@ -1019,15 +1089,8 @@ export default function IgpatCreateWebScreen() {
                   const selected = option.group_id === groupId;
                   const label = option.group_name || option.group_code || 'BUKLOD Cluster';
                   return (
-                    <Pressable
-                      key={option.group_id}
-                      style={[styles.clusterChip, selected && styles.clusterChipSelected]}
-                      onPress={() => setGroupId(option.group_id)}
-                      disabled={busy}
-                    >
-                      <Text style={[styles.clusterText, selected && styles.clusterTextSelected]} numberOfLines={1}>
-                        {label}
-                      </Text>
+                    <Pressable key={option.group_id} style={[styles.clusterChip, selected && styles.clusterChipSelected]} onPress={() => setGroupId(option.group_id)} disabled={busy}>
+                      <Text style={[styles.clusterText, selected && styles.clusterTextSelected]} numberOfLines={1}>{label}</Text>
                     </Pressable>
                   );
                 })}
@@ -1045,11 +1108,7 @@ export default function IgpatCreateWebScreen() {
             </View>
           ) : null}
 
-          <Pressable
-            style={[styles.publish, (!draft || busy) && styles.publishDisabled]}
-            disabled={!draft || busy}
-            onPress={() => void publish()}
-          >
+          <Pressable style={[styles.publish, (!draft || busy) && styles.publishDisabled]} disabled={!draft || busy} onPress={() => void publish()}>
             <Text style={styles.publishText}>{busy ? 'PUBLISHING…' : 'PUBLISH IGPAT'}</Text>
           </Pressable>
         </View>
