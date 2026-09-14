@@ -27,6 +27,7 @@ import {
   type IgpatQuickEditState,
   type IgpatRotation,
 } from '@/lib/igpat/quickEdit';
+import { useIgpatQuickEditHistory } from '@/lib/igpat/useQuickEditHistory';
 
 type Audience = 'group' | 'local' | 'public';
 type CreateStep = 'source' | 'quick-edit' | 'preview' | 'details';
@@ -98,9 +99,7 @@ function BrowserEditedPreview({
   useEffect(() => {
     const video = videoRef.current;
     if (!video || seekSeconds == null) return;
-    try {
-      video.currentTime = Math.max(start, Math.min(end, seekSeconds));
-    } catch {}
+    try { video.currentTime = Math.max(start, Math.min(end, seekSeconds)); } catch {}
   }, [end, seekSeconds, start]);
 
   return (
@@ -201,7 +200,20 @@ export default function IgpatCreateWebScreen() {
   const [draft, setDraft] = useState<IgpatDraft | null>(null);
   const [step, setStep] = useState<CreateStep>('source');
   const [activeTool, setActiveTool] = useState<QuickEditTool>('Trim');
-  const [edit, setEdit] = useState<IgpatQuickEditState>({ ...DEFAULT_IGPAT_QUICK_EDIT });
+  const {
+    edit,
+    canUndo,
+    canRedo,
+    reset: resetEditHistory,
+    commit: commitEdit,
+    commitPatch: patchEdit,
+    beginTransaction: beginEditTransaction,
+    updateTransaction: updateEditTransaction,
+    updateTransactionPatch: updatePatchTransaction,
+    endTransaction: endEditTransaction,
+    undo: undoEdit,
+    redo: redoEdit,
+  } = useIgpatQuickEditHistory(draft?.durationSeconds);
   const [previewTime, setPreviewTime] = useState(0);
   const [seekSeconds, setSeekSeconds] = useState<number | null>(null);
   const [caption, setCaption] = useState('');
@@ -226,7 +238,6 @@ export default function IgpatCreateWebScreen() {
 
   useEffect(() => {
     let cancelled = false;
-
     if (!user?.id) {
       setGroups([]);
       setGroupId(null);
@@ -235,7 +246,6 @@ export default function IgpatCreateWebScreen() {
     }
 
     setGroupsLoading(true);
-
     void (supabase as any)
       .rpc('get_my_active_igpat_groups_v1')
       .then(({ data, error }: any) => {
@@ -246,7 +256,6 @@ export default function IgpatCreateWebScreen() {
           setGroupId(null);
           return;
         }
-
         const options = ((data ?? []) as IgpatGroupOption[])
           .filter(row => Boolean(row?.group_id))
           .map(row => ({
@@ -254,7 +263,6 @@ export default function IgpatCreateWebScreen() {
             group_name: row.group_name ? String(row.group_name) : null,
             group_code: row.group_code ? String(row.group_code) : null,
           }));
-
         setGroups(options);
         setGroupId(current =>
           current && options.some(row => row.group_id === current)
@@ -272,7 +280,6 @@ export default function IgpatCreateWebScreen() {
       .finally(() => {
         if (!cancelled) setGroupsLoading(false);
       });
-
     return () => { cancelled = true; };
   }, [profile?.church_id, user?.id]);
 
@@ -300,7 +307,7 @@ export default function IgpatCreateWebScreen() {
 
   const clearDraftState = () => {
     setDraft(null);
-    setEdit({ ...DEFAULT_IGPAT_QUICK_EDIT });
+    resetEditHistory({ ...DEFAULT_IGPAT_QUICK_EDIT });
     setPreviewTime(0);
     setSeekSeconds(null);
     setActiveTool('Trim');
@@ -319,7 +326,10 @@ export default function IgpatCreateWebScreen() {
       try { URL.revokeObjectURL(draft.uri); } catch {}
     }
     setDraft(next);
-    setEdit({ ...DEFAULT_IGPAT_QUICK_EDIT, trimEndSeconds: next.durationSeconds });
+    resetEditHistory(
+      { ...DEFAULT_IGPAT_QUICK_EDIT, trimEndSeconds: next.durationSeconds },
+      next.durationSeconds
+    );
     setPreviewTime(0);
     setSeekSeconds(0);
     setActiveTool('Trim');
@@ -331,7 +341,6 @@ export default function IgpatCreateWebScreen() {
       Alert.alert('Camera unavailable', 'This browser does not support direct camera recording.');
       return;
     }
-
     try {
       stopCamera();
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -356,7 +365,6 @@ export default function IgpatCreateWebScreen() {
       await openCamera();
       return;
     }
-
     const Recorder = (globalThis as any).MediaRecorder;
     if (!Recorder) {
       Alert.alert('Recording unavailable', 'This browser does not support MediaRecorder.');
@@ -379,16 +387,13 @@ export default function IgpatCreateWebScreen() {
     recorderRef.current = recorder;
     recordStartedAtRef.current = Date.now();
     setRecordSeconds(0);
-
     recorder.ondataavailable = (event: any) => {
       if (event?.data?.size > 0) chunksRef.current.push(event.data);
     };
-
     recorder.onerror = (event: any) => {
       setRecording(false);
       Alert.alert('Recording error', event?.error?.message ?? 'Camera recording failed.');
     };
-
     recorder.onstop = () => {
       const durationSeconds = Math.max(
         1,
@@ -398,12 +403,10 @@ export default function IgpatCreateWebScreen() {
       chunksRef.current = [];
       setRecording(false);
       stopCamera();
-
       if (!blob.size) {
         Alert.alert('BUKLOD IGPAT', 'The recorded video was empty. Please try again.');
         return;
       }
-
       const validationError = validateCommunityVideoUpload({
         durationSeconds,
         sizeBytes: blob.size,
@@ -413,7 +416,6 @@ export default function IgpatCreateWebScreen() {
         Alert.alert('BUKLOD IGPAT', validationError);
         return;
       }
-
       acceptDraft({
         uri: URL.createObjectURL(blob),
         durationSeconds,
@@ -427,9 +429,7 @@ export default function IgpatCreateWebScreen() {
     recorder.start(1000);
     setRecording(true);
     tickRef.current = setInterval(() => {
-      setRecordSeconds(
-        Math.min(60, Math.floor((Date.now() - recordStartedAtRef.current) / 1000))
-      );
+      setRecordSeconds(Math.min(60, Math.floor((Date.now() - recordStartedAtRef.current) / 1000)));
     }, 500);
     stopTimerRef.current = setTimeout(() => {
       try {
@@ -454,7 +454,6 @@ export default function IgpatCreateWebScreen() {
         input.onchange = () => resolve(input.files?.[0] ?? null);
         input.click();
       });
-
       if (!file) return;
       const uri = URL.createObjectURL(file);
 
@@ -465,7 +464,6 @@ export default function IgpatCreateWebScreen() {
             probe.removeAttribute('src');
             reject(new Error('Could not read the selected video duration.'));
           }, 12000);
-
           probe.preload = 'metadata';
           probe.onloadedmetadata = () => {
             window.clearTimeout(timeout);
@@ -486,17 +484,10 @@ export default function IgpatCreateWebScreen() {
         });
 
         if (durationSeconds > BUKLOD_REEL_MAX_DURATION_SECONDS) {
-          throw new Error(
-            `This video is ${durationSeconds} seconds. IGPAT videos may be up to 60 seconds only.`
-          );
+          throw new Error(`This video is ${durationSeconds} seconds. IGPAT videos may be up to 60 seconds only.`);
         }
-
         const sizeBytes = Number(file.size || 0);
-        const validationError = validateCommunityVideoUpload({
-          durationSeconds,
-          sizeBytes,
-          isReel: true,
-        });
+        const validationError = validateCommunityVideoUpload({ durationSeconds, sizeBytes, isReel: true });
         if (validationError) throw new Error(validationError);
 
         const directMime = String(file.type || 'video/mp4').toLowerCase();
@@ -504,7 +495,6 @@ export default function IgpatCreateWebScreen() {
           directMime === 'video/quicktime' || directMime === 'video/webm'
             ? directMime
             : 'video/mp4';
-
         acceptDraft({
           uri,
           durationSeconds,
@@ -523,23 +513,9 @@ export default function IgpatCreateWebScreen() {
     }
   };
 
-  const applyEdit = (next: IgpatQuickEditState) => {
-    if (!draft) return;
-    setEdit(normalizeIgpatQuickEdit(next, draft.durationSeconds));
-  };
-
-  const patchEdit = (patch: Partial<IgpatQuickEditState>) => {
-    if (!draft) return;
-    applyEdit({ ...edit, ...patch });
-  };
-
   const publish = async () => {
     if (!user?.id || !draft || busy) return;
-
-    if (
-      audience === 'group' &&
-      (!groupId || !groups.some(row => row.group_id === groupId))
-    ) {
+    if (audience === 'group' && (!groupId || !groups.some(row => row.group_id === groupId))) {
       Alert.alert('BUKLOD IGPAT', 'Choose an active BUKLOD Cluster first.');
       return;
     }
@@ -553,10 +529,7 @@ export default function IgpatCreateWebScreen() {
 
     const normalizedEdit = normalizeIgpatQuickEdit(edit, draft.durationSeconds);
     const outputDuration = igpatOutputDurationSeconds(normalizedEdit, draft.durationSeconds);
-    if (
-      outputDuration < IGPAT_MIN_OUTPUT_SECONDS ||
-      outputDuration > BUKLOD_REEL_MAX_DURATION_SECONDS
-    ) {
+    if (outputDuration < IGPAT_MIN_OUTPUT_SECONDS || outputDuration > BUKLOD_REEL_MAX_DURATION_SECONDS) {
       Alert.alert('BUKLOD IGPAT', 'The edited IGPAT must be between 1 and 60 seconds.');
       return;
     }
@@ -565,10 +538,8 @@ export default function IgpatCreateWebScreen() {
     setProgress(0);
     setStage('Preparing upload…');
     let uploadedPath: string | null = null;
-
     try {
       uploadedPath = `${user.id}/igpat-${Date.now()}-${Math.random().toString(36).slice(2)}.${extensionForMime(draft.mimeType)}`;
-
       setStage('Uploading video…');
       await uploadWebIgpatDirect({
         path: uploadedPath,
@@ -622,9 +593,7 @@ export default function IgpatCreateWebScreen() {
           onTimeChange={setPreviewTime}
         />
         <View style={styles.previewMeta}>
-          <Text style={styles.metaStrong}>
-            {formatClock(igpatOutputDurationSeconds(edit, draft.durationSeconds))}
-          </Text>
+          <Text style={styles.metaStrong}>{formatClock(igpatOutputDurationSeconds(edit, draft.durationSeconds))}</Text>
           <Text style={styles.meta}>{formatVideoBytes(draft.sizeBytes)}</Text>
           <Pressable onPress={disposeDraft} disabled={busy}>
             <Text style={styles.change}>CHANGE</Text>
@@ -643,7 +612,7 @@ export default function IgpatCreateWebScreen() {
 
     const updateStart = (value: number) => {
       const nextStart = Math.min(Math.max(0, value), end - IGPAT_MIN_OUTPUT_SECONDS);
-      applyEdit({ ...normalized, trimStartSeconds: nextStart });
+      updateEditTransaction({ ...normalized, trimStartSeconds: nextStart });
       setPreviewTime(nextStart);
       setSeekSeconds(nextStart);
     };
@@ -653,10 +622,18 @@ export default function IgpatCreateWebScreen() {
         start + IGPAT_MIN_OUTPUT_SECONDS,
         Math.min(draft.durationSeconds, value)
       );
-      applyEdit({ ...normalized, trimEndSeconds: nextEnd });
+      updateEditTransaction({ ...normalized, trimEndSeconds: nextEnd });
       const nextSeek = Math.min(previewTime, nextEnd);
       setPreviewTime(nextSeek);
       setSeekSeconds(nextSeek);
+    };
+
+    const transactionProps = {
+      onFocus: beginEditTransaction,
+      onBlur: endEditTransaction,
+      onPointerDown: beginEditTransaction,
+      onPointerUp: endEditTransaction,
+      onPointerCancel: endEditTransaction,
     };
 
     return (
@@ -675,6 +652,7 @@ export default function IgpatCreateWebScreen() {
           disabled: busy,
           'aria-label': 'IGPAT trim start',
           onChange: (event: any) => updateStart(Number(event?.target?.value ?? 0)),
+          ...transactionProps,
           style: rangeStyle,
         })}
         <Text style={styles.rangeLabel}>END {formatClock(end)}</Text>
@@ -687,6 +665,7 @@ export default function IgpatCreateWebScreen() {
           disabled: busy,
           'aria-label': 'IGPAT trim end',
           onChange: (event: any) => updateEnd(Number(event?.target?.value ?? draft.durationSeconds)),
+          ...transactionProps,
           style: rangeStyle,
         })}
         <Text style={styles.rangeLabel}>SCRUB {formatClock(previewTime)}</Text>
@@ -715,7 +694,6 @@ export default function IgpatCreateWebScreen() {
   const renderToolPanel = () => {
     if (!draft) return null;
     const normalized = normalizeIgpatQuickEdit(edit, draft.durationSeconds);
-
     if (activeTool === 'Trim') return renderTrimPanel();
 
     if (activeTool === 'Text') {
@@ -724,7 +702,9 @@ export default function IgpatCreateWebScreen() {
           <Text style={styles.panelTitle}>TEXT OVERLAY</Text>
           <TextInput
             value={normalized.textOverlay}
-            onChangeText={value => patchEdit({ textOverlay: value.slice(0, 160) })}
+            onFocus={beginEditTransaction}
+            onChangeText={value => updatePatchTransaction({ textOverlay: value.slice(0, 160) })}
+            onBlur={endEditTransaction}
             placeholder="Add short on-video text"
             placeholderTextColor="rgba(255,255,255,0.36)"
             maxLength={160}
@@ -845,7 +825,7 @@ export default function IgpatCreateWebScreen() {
         <Pressable
           style={styles.restoreAction}
           onPress={() => {
-            setEdit({ ...DEFAULT_IGPAT_QUICK_EDIT, trimEndSeconds: draft.durationSeconds });
+            commitEdit({ ...DEFAULT_IGPAT_QUICK_EDIT, trimEndSeconds: draft.durationSeconds });
             setPreviewTime(0);
             setSeekSeconds(0);
           }}
@@ -859,6 +839,35 @@ export default function IgpatCreateWebScreen() {
 
   const renderQuickEditShell = () => (
     <>
+      <View style={styles.historyRow}>
+        <Text style={styles.historyLabel}>EDIT HISTORY</Text>
+        <View style={styles.historyActions}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Undo last IGPAT edit"
+            style={[styles.historyButton, !canUndo && styles.historyButtonDisabled]}
+            disabled={!canUndo || busy}
+            onPress={() => {
+              undoEdit();
+              setSeekSeconds(null);
+            }}
+          >
+            <Text style={[styles.historyButtonText, !canUndo && styles.historyButtonTextDisabled]}>UNDO</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Redo IGPAT edit"
+            style={[styles.historyButton, !canRedo && styles.historyButtonDisabled]}
+            disabled={!canRedo || busy}
+            onPress={() => {
+              redoEdit();
+              setSeekSeconds(null);
+            }}
+          >
+            <Text style={[styles.historyButtonText, !canRedo && styles.historyButtonTextDisabled]}>REDO</Text>
+          </Pressable>
+        </View>
+      </View>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -932,7 +941,10 @@ export default function IgpatCreateWebScreen() {
             <Pressable
               style={styles.secondaryAction}
               onPress={() => {
-                setEdit({ ...DEFAULT_IGPAT_QUICK_EDIT, trimEndSeconds: draft.durationSeconds });
+                resetEditHistory(
+                  { ...DEFAULT_IGPAT_QUICK_EDIT, trimEndSeconds: draft.durationSeconds },
+                  draft.durationSeconds
+                );
                 setPreviewTime(0);
                 setSeekSeconds(0);
                 setStep('details');
@@ -961,7 +973,6 @@ export default function IgpatCreateWebScreen() {
         <View>
           <Text style={styles.stepTitle}>CAPTION & AUDIENCE</Text>
           {renderDraftPreview()}
-
           <TextInput
             value={caption}
             onChangeText={setCaption}
@@ -976,9 +987,7 @@ export default function IgpatCreateWebScreen() {
           <Text style={styles.label}>AUDIENCE</Text>
           <View style={styles.audienceRow}>
             {(['group', 'public', 'local'] as Audience[]).map(value => {
-              const disabled = value === 'group'
-                ? groupsLoading || !groups.length
-                : !profile?.church_id;
+              const disabled = value === 'group' ? groupsLoading || !groups.length : !profile?.church_id;
               return (
                 <Pressable
                   key={value}
@@ -1077,6 +1086,13 @@ const styles = StyleSheet.create({
   overlayText: { maxWidth: '100%', color: '#FFFFFF', fontSize: 22, lineHeight: 28, fontWeight: '900', textAlign: 'center', textShadowColor: 'rgba(0,0,0,0.85)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 6 },
   mutedBadge: { position: 'absolute', top: 12, right: 12, paddingHorizontal: 9, paddingVertical: 6, borderRadius: 999, backgroundColor: 'rgba(0,0,0,0.68)' },
   mutedBadgeText: { color: '#FFFFFF', fontSize: 8, fontWeight: '900', letterSpacing: 0.8 },
+  historyRow: { marginTop: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  historyLabel: { color: 'rgba(255,255,255,0.42)', fontSize: 8, fontWeight: '900', letterSpacing: 0.8 },
+  historyActions: { flexDirection: 'row', gap: 8 },
+  historyButton: { minHeight: 34, minWidth: 66, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.20)', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0D120F' },
+  historyButtonDisabled: { opacity: 0.34 },
+  historyButtonText: { color: '#FFFFFF', fontSize: 8.5, fontWeight: '900', letterSpacing: 0.7 },
+  historyButtonTextDisabled: { color: 'rgba(255,255,255,0.55)' },
   toolScroller: { marginTop: 12 },
   toolRail: { gap: 8, paddingRight: 18 },
   toolChip: { minWidth: 68, minHeight: 38, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', backgroundColor: '#0D120F', alignItems: 'center', justifyContent: 'center' },
