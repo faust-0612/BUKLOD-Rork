@@ -64,13 +64,19 @@ export function useIgpatQuickEditHistory(durationSeconds?: number | null) {
   );
 
   const reset = useCallback(
-    (next: IgpatQuickEditState = { ...DEFAULT_IGPAT_QUICK_EDIT }) => {
-      const normalized = normalize(next);
+    (
+      next: IgpatQuickEditState = { ...DEFAULT_IGPAT_QUICK_EDIT },
+      durationOverride?: number | null
+    ) => {
+      const duration = Number(durationOverride ?? durationSeconds ?? 0);
+      const normalized = duration >= 1
+        ? normalizeIgpatQuickEdit(next, duration)
+        : { ...next };
       transactionBaseRef.current = null;
       presentRef.current = normalized;
       setHistory({ past: [], present: normalized, future: [] });
     },
-    [normalize]
+    [durationSeconds]
   );
 
   const commit = useCallback(
