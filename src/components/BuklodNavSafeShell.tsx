@@ -21,6 +21,7 @@ import {
   normalizeBuklodPathname,
   useBuklodPersistentNavOccupiedHeight,
 } from '@/lib/buklodSafeArea';
+import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 
 function isMyBuklodDoorPath(pathname: string): boolean {
   const normalized = normalizeBuklodPathname(pathname);
@@ -56,6 +57,8 @@ function isImmersiveIgpatPath(pathname: string): boolean {
 /**
  * Root shell: shrinks routed content above the global bottom nav so door
  * screens and dashboard pushes never sit underneath the phone nav pane.
+ * PUBLIC is intentionally Community-first and no longer renders/reserves the
+ * old persistent nav pane. Organization/Cluster behavior stays unchanged.
  * IGPAT is an immersive video surface: no normal-flow ad strip or persistent
  * bottom navigation is reserved there. A small floating Community return
  * remains available so the user never gets trapped inside IGPAT.
@@ -65,8 +68,14 @@ export default function BuklodNavSafeShell({
 }: {
   children: React.ReactNode;
 }) {
-  const navOccupied =
+  const rawNavOccupied =
     useBuklodPersistentNavOccupiedHeight();
+  const { activeScope } = useBuklodScope();
+  const publicMinimal =
+    activeScope?.scope_type === 'PUBLIC';
+  const navOccupied = publicMinimal
+    ? 0
+    : rawNavOccupied;
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const immersiveIgpat =
@@ -153,7 +162,7 @@ export default function BuklodNavSafeShell({
         {!immersiveIgpat ? <BuklodFocusAppAdStrip /> : null}
       </View>
 
-      {!immersiveIgpat ? (
+      {!immersiveIgpat && !publicMinimal ? (
         <View
           pointerEvents="box-none"
           style={styles.navOverlay}
