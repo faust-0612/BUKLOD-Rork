@@ -299,7 +299,6 @@ begin
     )
   order by
     case when safe_mode = 'for-you' then
-      -- Small transparent affinity contribution from the viewer's own recent actions.
       coalesce((
         select sum(
           case ev.event_name
@@ -333,6 +332,40 @@ begin
 end;
 $$;
 
+-- Preserve all current clients that still call v3 while transparently applying
+-- the v4 recommendation controls after this migration lands. The return shape is
+-- intentionally identical, so no client schema change is required.
+create or replace function public.get_buklod_igpat_feed_v3(
+  p_mode text default 'for-you',
+  p_limit integer default 15
+)
+returns table(
+  id uuid,
+  user_id uuid,
+  author_name text,
+  audience text,
+  category text,
+  body text,
+  created_at timestamptz,
+  media_path text,
+  media_mime_type text,
+  media_size_bytes bigint,
+  media_duration_seconds numeric,
+  reaction_counts jsonb,
+  reaction_count bigint,
+  comment_count bigint,
+  my_reaction text,
+  igpat_edit_meta jsonb
+)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select *
+  from public.get_buklod_igpat_feed_v4(p_mode, p_limit);
+$$;
+
 revoke all on function public.igpat_track_event_v2(text,uuid,uuid,text,integer,jsonb) from public;
 revoke all on function public.igpat_track_event_v2(text,uuid,uuid,text,integer,jsonb) from anon;
 grant execute on function public.igpat_track_event_v2(text,uuid,uuid,text,integer,jsonb) to authenticated;
@@ -357,3 +390,8 @@ revoke all on function public.get_buklod_igpat_feed_v4(text,integer) from public
 revoke all on function public.get_buklod_igpat_feed_v4(text,integer) from anon;
 grant execute on function public.get_buklod_igpat_feed_v4(text,integer) to authenticated;
 grant execute on function public.get_buklod_igpat_feed_v4(text,integer) to service_role;
+
+revoke all on function public.get_buklod_igpat_feed_v3(text,integer) from public;
+revoke all on function public.get_buklod_igpat_feed_v3(text,integer) from anon;
+grant execute on function public.get_buklod_igpat_feed_v3(text,integer) to authenticated;
+grant execute on function public.get_buklod_igpat_feed_v3(text,integer) to service_role;
