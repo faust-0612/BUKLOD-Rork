@@ -69,6 +69,17 @@ export default function BuklodPublicLocationChips({selectedScopeId,onChange}:Pro
 
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel="Open BUKLOD Connect"
+        accessibilityHint="Opens your BUKLOD messages from inside Community Wall"
+        onPress={()=>router.push('/messages' as any)}
+        style={({pressed})=>[styles.connectChip,pressed&&{opacity:.72}]}
+      >
+        <MaterialCommunityIcons name="message-processing-outline" size={14} color="#FFFFFF"/>
+        <Text style={styles.connectText}>CONNECT</Text>
+      </Pressable>
+
+      <Pressable
+        accessibilityRole="button"
         accessibilityLabel="Explore Dugtong, Moments, Challenges, Polls and Resources"
         onPress={()=>router.push('/community/discover?mode=for_you' as any)}
         style={({pressed})=>[styles.exploreChip,pressed&&{opacity:.72}]}
@@ -102,6 +113,8 @@ const styles=StyleSheet.create({
   chipOn:{borderColor:colors.greenDark,backgroundColor:colors.greenDark},
   text:{fontSize:9.5,fontWeight:'900',letterSpacing:.25,color:colors.greenDark},
   textOn:{color:'#FFFFFF'},
+  connectChip:{minHeight:34,borderRadius:18,paddingHorizontal:11,backgroundColor:colors.greenDark,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:5},
+  connectText:{fontSize:9,fontWeight:'900',letterSpacing:.2,color:'#FFFFFF'},
   exploreChip:{minHeight:34,borderRadius:18,paddingHorizontal:11,backgroundColor:'#F2F7F4',flexDirection:'row',alignItems:'center',justifyContent:'center',gap:5},
   exploreText:{fontSize:9,fontWeight:'900',letterSpacing:.2,color:colors.greenDark},
 });
