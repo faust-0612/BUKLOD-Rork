@@ -124,7 +124,6 @@ export default function TabsLayout() {
   const {
     session,
     loading,
-    membershipState,
     profile,
   } = useAuth();
   const {
@@ -149,8 +148,7 @@ export default function TabsLayout() {
   if (
     (loading && !session && !profile) ||
     (complianceLoading && !session) ||
-    (runtimeLoading && !config) ||
-    (membershipState === 'loading' && !profile)
+    (runtimeLoading && !config)
   ) {
     return (
       <View
@@ -184,17 +182,14 @@ export default function TabsLayout() {
     return <Redirect href="/privacy/consent" />;
   }
 
-  const hasCommunityAccess =
-    profile?.is_active === true &&
-    !!profile?.connection_type;
-
-  if (
-    membershipState !== 'ready' &&
-    !hasCommunityAccess
-  ) {
-    return <Redirect href="/onboarding" />;
-  }
-
+  /*
+   * BUKLOD_LEGACY_VERIFICATION_REMOVAL_R22
+   * Keep the authenticated tab shell aligned with src/app/index.tsx:
+   * account/admin verification is not a global application gate.
+   * Organization/Cluster membership and feature permissions stay local to
+   * the features that require them. A missing profile still goes to the
+   * actionable onboarding/profile-completion flow below.
+   */
   if (!profile) {
     return <Redirect href="/onboarding" />;
   }
