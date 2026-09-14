@@ -122,7 +122,7 @@ const PROFILES: Record<BuklodSpecialCharacterId, Profile> = {
     quote: 'Grow what matters. Build what lasts. Provide with purpose.',
     description: 'Agriculture, productivity, enterprise, family provision, and stewardship form this builder journey.',
     traits: ['Agriculture', 'Enterprise', 'Family', 'Stewardship'],
-    stages: ['Farm Helper','Garden Learner','Student Worker','YouthVolunteer','Field Assistant','Crop Care Worker','Community Helper','Agriculture Learner','Farm Technician','Harvest Organizer','Agribusiness Starter','Small Business Owner','Community Grower','Agriculture Specialist','Family Provider','Farm Entrepreneur','Community Business Leader','Resource Steward','Agriculture Mentor','Legacy Builder'],
+    stages: ['Farm Helper','Garden Learner','Student Worker','Youth Volunteer','Field Assistant','Crop Care Worker','Community Helper','Agriculture Learner','Farm Technician','Harvest Organizer','Agribusiness Starter','Small Business Owner','Community Grower','Agriculture Specialist','Family Provider','Farm Entrepreneur','Community Business Leader','Resource Steward','Agriculture Mentor','Legacy Builder'],
   },
   trudice: {
     id: 'trudice', name: 'TRUDICE', domain: 'CHILDREN TEACHING DISCIPLESHIP',
@@ -194,10 +194,8 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (activeSpecial && visibleSpecialIds.includes(activeSpecial)) {
-      setSelectedId(activeSpecial);
-    }
-  }, [activeSpecial, state.circle_rank_order, state.visible_special_character_ids]);
+    if (activeSpecial) setSelectedId(activeSpecial);
+  }, [activeSpecial]);
 
   useEffect(() => {
     setShowAllLevels(false);
