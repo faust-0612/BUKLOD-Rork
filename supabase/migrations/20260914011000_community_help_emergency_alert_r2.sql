@@ -1,0 +1,170 @@
+-- BUKLOD Community Help / Emergency SOS R2
+-- Additive emergency-alert layer over the locked R1 baseline.
+-- Adds recipient acknowledgement plus two bounded reminder opportunities.
+
+alter table public.buklod_help_responses
+  drop constraint if exists buklod_help_responses_response_type_check;
+
+alter table public.buklod_help_responses
+  add constraint buklod_help_responses_response_type_check
+  check (response_type in (
+    'ACKNOWLEDGED',
+    'CAN_HELP',
+    'ON_MY_WAY',
+    'CONFIRM_INCIDENT',
+    'CANNOT_HELP',
+    'FALSE_ALERT'
+  ));
+
+create or replace function public.buklod_help_respond(
+  p_request_id uuid,
+  p_response_type text
+) returns void
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_type text := upper(trim(coalesce(p_response_type,'')));
+  v_request public.buklod_help_requests%rowtype;
+  v_lat double precision;
+  v_lon double precision;
+  v_distance double precision;
+begin
+  if auth.uid() is null then raise exception 'AUTH_REQUIRED'; end if;
+  if v_type not in ('ACKNOWLEDGED','CAN_HELP','ON_MY_WAY','CONFIRM_INCIDENT','CANNOT_HELP','FALSE_ALERT') then
+    raise exception 'INVALID_RESPONSE';
+  end if;
+
+  select * into v_request from public.buklod_help_requests
+  where id=p_request_id and status='ACTIVE' and expires_at>now();
+  if not found then raise exception 'REQUEST_NOT_ACTIVE'; end if;
+  if v_request.creator_id=auth.uid() then raise exception 'CREATOR_CANNOT_RESPOND'; end if;
+
+  -- ACKNOWLEDGED only confirms receipt/opening of an alert. It does not claim
+  -- that the responder is still physically inside the radius, so no fresh
+  -- location is required for this one response type.
+  if v_type='ACKNOWLEDGED' then
+    insert into public.buklod_help_responses(request_id,responder_id,response_type,created_at,updated_at)
+    values(p_request_id,auth.uid(),v_type,now(),now())
+    on conflict(request_id,responder_id) do update
+      set response_type=excluded.response_type,updated_at=now();
+    return;
+  end if;
+
+  -- All active-response claims remain protected by the locked R1 proximity rule.
+  select p.latitude,p.longitude into v_lat,v_lon
+  from public.buklod_help_presence p
+  where p.user_id=auth.uid()
+    and p.safety_alerts_enabled=true
+    and p.updated_at>now()-interval '60 minutes';
+  if v_lat is null then raise exception 'FRESH_LOCATION_REQUIRED'; end if;
+
+  v_distance := public.buklod_help_distance_km(v_lat,v_lon,v_request.latitude,v_request.longitude);
+  if v_distance>v_request.radius_km then raise exception 'NOT_WITHIN_ALERT_RADIUS'; end if;
+
+  insert into public.buklod_help_responses(request_id,responder_id,response_type,created_at,updated_at)
+  values(p_request_id,auth.uid(),v_type,now(),now())
+  on conflict(request_id,responder_id) do update
+    set response_type=excluded.response_type,updated_at=now();
+end;
+$$;
+
+revoke all on function public.buklod_help_respond(uuid,text) from public;
+revoke all on function public.buklod_help_respond(uuid,text) from anon;
+grant execute on function public.buklod_help_respond(uuid,text) to authenticated;
+
+create index if not exists buklod_help_notifications_request_step_r2_idx
+  on public.notifications ((data->>'help_request_id'), (data->>'emergency_reminder_step'))
+  where kind='community_emergency';
+
+create or replace function private.buklod_help_enqueue_emergency_reminders_r2()
+returns integer
+language plpgsql
+set search_path = public, private
+as $$
+declare
+  v_inserted integer := 0;
+begin
+  with due as (
+    select
+      d.request_id,
+      d.user_id,
+      d.distance_km,
+      r.category,
+      r.message,
+      case
+        when d.created_at <= now() - interval '5 minutes' then 2
+        else 1
+      end as reminder_step
+    from public.buklod_help_alert_deliveries d
+    join public.buklod_help_requests r
+      on r.id=d.request_id
+    left join public.buklod_help_responses rr
+      on rr.request_id=d.request_id
+     and rr.responder_id=d.user_id
+    where r.kind='EMERGENCY'
+      and r.status='ACTIVE'
+      and r.expires_at>now()
+      and d.created_at <= now() - interval '2 minutes'
+      and rr.request_id is null
+  ), ready as (
+    select due.*
+    from due
+    where not exists (
+      select 1
+      from public.notifications n
+      where n.user_id=due.user_id
+        and n.kind='community_emergency'
+        and n.data->>'help_request_id'=due.request_id::text
+        and n.data->>'emergency_reminder_step'=due.reminder_step::text
+    )
+  )
+  insert into public.notifications(user_id,title,body,kind,data)
+  select
+    ready.user_id,
+    'EMERGENCY STILL ACTIVE · ' || replace(ready.category,'_',' '),
+    'No acknowledgement yet · approximately '
+      || round(ready.distance_km::numeric,1)::text
+      || ' km away. Open BUKLOD to acknowledge or respond.',
+    'community_emergency',
+    jsonb_build_object(
+      'kind','community_emergency',
+      'help_request_id',ready.request_id,
+      'category',ready.category,
+      'distance_km',round(ready.distance_km::numeric,1),
+      'emergency_alert_mode','R2',
+      'emergency_reminder_step',ready.reminder_step
+    )
+  from ready;
+
+  get diagnostics v_inserted = row_count;
+  return v_inserted;
+end;
+$$;
+
+revoke all on function private.buklod_help_enqueue_emergency_reminders_r2() from public;
+revoke all on function private.buklod_help_enqueue_emergency_reminders_r2() from anon;
+revoke all on function private.buklod_help_enqueue_emergency_reminders_r2() from authenticated;
+
+-- One small scheduler drives both bounded reminder opportunities. The function
+-- is idempotent per user/request/reminder step, so a delayed cron tick cannot
+-- create duplicate reminders.
+do $$
+declare
+  v_job_id bigint;
+begin
+  select jobid into v_job_id
+  from cron.job
+  where jobname='buklod-help-emergency-reminders-r2'
+  limit 1;
+
+  if v_job_id is not null then
+    perform cron.unschedule(v_job_id);
+  end if;
+
+  perform cron.schedule(
+    'buklod-help-emergency-reminders-r2',
+    '* * * * *',
+    'select private.buklod_help_enqueue_emergency_reminders_r2();'
+  );
+end;
+$$;
