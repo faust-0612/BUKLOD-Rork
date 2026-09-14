@@ -12,14 +12,15 @@ const args = process.argv.slice(2);
 const distIndex = args.indexOf('--dist');
 const distDir = distIndex >= 0 ? path.resolve(ROOT, args[distIndex + 1] || 'dist') : null;
 
-// EXACT visual source approved/locked on 2026-09-13.
-// These are repository blob identities, not raw working-copy byte hashes.
-// That distinction keeps the lock exact while remaining safe on Windows where
-// Git may materialize LF text as CRLF in the working tree.
-const LOCKED_VISUAL_BLOBS = {
-  'src/components/points/BuklodCharacterCustomizeSheet.tsx': '9d3e8264e80654330cfa692def167cd26b9f1b91',
+/*
+ * R31 FIRST-FIVE VISUAL FREEZE
+ * These are exact repository blob identities from the Sept 13 approved state.
+ * R40 is intentionally NOT hash-frozen in this recovery PR until the user
+ * visually confirms the restored dual-layer Special presentation. After that
+ * confirmation, Customize + both R40 presentation files must be hash-locked.
+ */
+const LOCKED_R31_VISUAL_BLOBS = {
   'src/components/points/BuklodProgressiveCharacterSelector.tsx': '685f4b16dfa5bf8ced3be1296565c4493c092dbd',
-  'src/components/points/BuklodSpecialCharacterSeries.tsx': 'df742294795aeb58a9651fd8514983d8cf8411a8',
   'src/components/points/BuklodProgressiveCharacterArt.tsx': '7b6eef608b9844e21e412df19348de87d0468bbe',
 };
 
@@ -39,7 +40,7 @@ function full(rel) {
 
 function mustExist(rel) {
   if (!fs.existsSync(full(rel))) {
-    failures.push(`Missing required R31/R40 file: ${rel}`);
+    failures.push(`Missing required Character file: ${rel}`);
     return false;
   }
   return true;
@@ -62,27 +63,19 @@ function trackedGitBlobSha(rel) {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
     }).trim();
-  } catch (error) {
-    failures.push(`Could not resolve tracked Git blob for locked Character file: ${rel}`);
+  } catch {
+    failures.push(`Could not resolve tracked Git blob: ${rel}`);
     return null;
   }
 }
 
 function lockedPathIsDirty(rel) {
-  const worktree = spawnSync('git', ['diff', '--quiet', '--', rel], {
-    cwd: ROOT,
-    stdio: 'ignore',
-  });
-  const index = spawnSync('git', ['diff', '--cached', '--quiet', '--', rel], {
-    cwd: ROOT,
-    stdio: 'ignore',
-  });
-
+  const worktree = spawnSync('git', ['diff', '--quiet', '--', rel], { cwd: ROOT, stdio: 'ignore' });
+  const index = spawnSync('git', ['diff', '--cached', '--quiet', '--', rel], { cwd: ROOT, stdio: 'ignore' });
   if (worktree.status == null || index.status == null) {
-    failures.push(`Could not verify clean Git state for locked Character file: ${rel}`);
+    failures.push(`Could not verify clean Git state: ${rel}`);
     return true;
   }
-
   return worktree.status !== 0 || index.status !== 0;
 }
 
@@ -90,6 +83,14 @@ function requireTokens(rel, tokens) {
   const text = read(rel);
   for (const token of tokens) {
     if (!text.includes(token)) failures.push(`${rel} is missing required contract token: ${token}`);
+  }
+  return text;
+}
+
+function forbidTokens(rel, tokens) {
+  const text = read(rel);
+  for (const token of tokens) {
+    if (text.includes(token)) failures.push(`${rel} contains forbidden legacy token: ${token}`);
   }
   return text;
 }
@@ -108,19 +109,15 @@ function walk(dir) {
 console.log('BUKLOD CHARACTER RELEASE CONTRACT — R31 + R40');
 console.log('================================================');
 
-for (const [rel, expected] of Object.entries(LOCKED_VISUAL_BLOBS)) {
+for (const [rel, expected] of Object.entries(LOCKED_R31_VISUAL_BLOBS)) {
   if (!mustExist(rel)) continue;
-
   const tracked = trackedGitBlobSha(rel);
   if (tracked && tracked !== expected) {
-    failures.push(`LOCKED CHARACTER VISUAL REVISION CHANGED: ${rel} expected_blob=${expected} tracked_blob=${tracked}`);
+    failures.push(`LOCKED R31 VISUAL CHANGED: ${rel} expected_blob=${expected} tracked_blob=${tracked}`);
   }
-
-  if (lockedPathIsDirty(rel)) {
-    failures.push(`LOCKED CHARACTER VISUAL HAS LOCAL/STAGED EDITS: ${rel}`);
-  }
+  if (lockedPathIsDirty(rel)) failures.push(`LOCKED R31 VISUAL HAS LOCAL/STAGED EDITS: ${rel}`);
 }
-info.push('Exact 2026-09-13 R31/R40 tracked visual blobs + clean working state checked.');
+info.push('Exact Sept 13 first-five R31 visual source checked.');
 
 const selector = requireTokens('src/components/points/BuklodProgressiveCharacterSelector.tsx', [
   'Browse all 20 levels',
@@ -129,25 +126,52 @@ const selector = requireTokens('src/components/points/BuklodProgressiveCharacter
   'starts at Level 1',
 ]);
 if (/levelForPoints\s*\(\s*lifetimePoints\s*\)/.test(selector)) {
-  failures.push('Legacy transferable lifetime-points Character leveling returned in locked R31 selector.');
+  failures.push('Legacy transferable lifetime-points Character leveling returned in R31 selector.');
 }
 
 requireTokens('src/components/points/BuklodCharacterCustomizeSheet.tsx', [
   'BuklodProgressiveCharacterSelector',
   'BuklodSpecialCharacterSeries',
+  'BuklodSpecialSeriesOne',
   'getMyBuklodCharacterSelectionV2',
   'subscribeBuklodCharacterSelectionV2',
 ]);
 
-const r40 = requireTokens('src/components/points/BuklodSpecialCharacterSeries.tsx', [
+const premium = requireTokens('src/components/points/BuklodSpecialCharacterSeries.tsx', [
+  'BUKLOD_CHARACTER_R40_LAYOUT_LOCK_V3',
   'Special Character Journey',
+  'More than a character. A mission.',
+  'LEVEL 1 - 20 JOURNEY',
+  'COLLECTIBLES & BADGES',
+  'nestedScrollEnabled',
   'visible_special_character_ids',
   'setMyBuklodCharacterActiveV2',
   'get_my_buklod_special_collectibles_v2',
   'set_my_buklod_special_character_pursuit_v1',
 ]);
-if (r40.includes("rpc('set_my_buklod_special_character_active_v1'")) {
-  failures.push('Legacy R40 active-character RPC became authoritative again.');
+if (premium.includes("rpc('set_my_buklod_special_character_active_v1'")) {
+  failures.push('Legacy R40 active-character RPC returned in premium Special journey.');
+}
+
+const passport = requireTokens('src/components/points/BuklodSpecialSeriesOne.tsx', [
+  'BUKLOD_CHARACTER_R37B_SPECIAL_SERIES1_PREVIEW_V2_SAFE',
+  'SPECIAL CHARACTERS · SERIES 1',
+  'Eight new BUKLOD journeys',
+  'ACTIVE SPECIAL CHARACTER · MAIN VIEW',
+  'SERIES 1 · CHARACTER PASSPORT PREVIEW',
+  'STAGES 1–20',
+  'visible_special_character_ids',
+  'setMyBuklodCharacterActiveV2',
+  'nestedScrollEnabled',
+]);
+forbidTokens('src/components/points/BuklodSpecialSeriesOne.tsx', [
+  'set_my_buklod_special_character_active_v1',
+  'discover_my_buklod_special_character_v1',
+  'unlock_my_buklod_special_character_v1',
+  'special-series1/',
+]);
+if (!passport.includes('SPECIAL_CHARACTER_HERO')) {
+  failures.push('Series 1 passport layer is not using the verified R40 hero art family.');
 }
 
 requireTokens('src/lib/buklodProgressiveCharacter.ts', [
@@ -189,8 +213,17 @@ if (distDir) {
         try { return fs.readFileSync(file, 'utf8'); } catch { return ''; }
       })
       .join('\n');
-    for (const token of ['Browse all 20 levels', 'Use This Character', 'Special Character Journey', 'get_my_buklod_special_collectibles_v2']) {
-      if (!compiled.includes(token)) failures.push(`Compiled bundle is missing locked R31/R40 token: ${token}`);
+    for (const token of [
+      'Browse all 20 levels',
+      'Use This Character',
+      'Special Character Journey',
+      'More than a character. A mission.',
+      'SPECIAL CHARACTERS · SERIES 1',
+      'Eight new BUKLOD journeys',
+      'SERIES 1 · CHARACTER PASSPORT PREVIEW',
+      'get_my_buklod_special_collectibles_v2',
+    ]) {
+      if (!compiled.includes(token)) failures.push(`Compiled bundle is missing Character presentation token: ${token}`);
     }
     info.push(`Compiled bundle checked: ${path.relative(ROOT, distDir)}`);
   }
@@ -201,8 +234,8 @@ for (const failure of failures) console.error(`FAIL: ${failure}`);
 
 if (failures.length) {
   console.error(`\nCHARACTER RELEASE LOCK FAILED with ${failures.length} blocker(s).`);
-  console.error('DEPLOYMENT MUST STOP. The exact locked R31/R40 revision must remain tracked and unmodified.');
+  console.error('DEPLOYMENT MUST STOP. Preserve the frozen R31 first-five layout and the V2-safe dual-layer R40 candidate.');
   process.exit(1);
 }
 
-console.log('\nCHARACTER RELEASE LOCK PASSED — exact 2026-09-13 R31/R40 tracked visual revision + V2 authority are preserved.');
+console.log('\nCHARACTER RELEASE LOCK PASSED — R31 first five remain frozen; dual-layer V2-safe R40 candidate is present for visual confirmation.');
