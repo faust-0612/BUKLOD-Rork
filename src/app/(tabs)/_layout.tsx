@@ -6,7 +6,6 @@ import {
 import {
   Redirect,
   Stack,
-  router,
   usePathname,
 } from 'expo-router';
 import React, {
@@ -14,20 +13,16 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
-  Pressable,
   Text,
   View,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 
 import { useAuth } from '@/providers/AuthProvider';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
-import { useNotifications } from '@/providers/NotificationProvider';
 import { useCompliance } from '@/providers/ComplianceProvider';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
-import { isBuklodScopedWorkspacePath } from '@/lib/buklodSafeArea';
 
 /*
  * BUKLOD_PUBLIC_CANONICAL_LANDING_R23
@@ -48,19 +43,6 @@ function SwipeDashboardHeader() {
     useSafeAreaInsets();
 
   const { theme } = useBuklodTheme();
-  const { unreadCount, refreshUnread } = useNotifications();
-  const publicMinimal =
-    !isBuklodScopedWorkspacePath(pathname);
-  const badgeText =
-    unreadCount > 99
-      ? '99+'
-      : String(unreadCount);
-
-  useEffect(() => {
-    if (publicMinimal) {
-      void refreshUnread();
-    }
-  }, [publicMinimal, refreshUnread]);
 
   let title = 'Buklod';
 
@@ -147,71 +129,6 @@ function SwipeDashboardHeader() {
         ) : (
           <View style={{ width: 12 }} />
         )}
-
-        {publicMinimal ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={
-              unreadCount > 0
-                ? `Notifications, ${unreadCount} unread`
-                : 'Notifications'
-            }
-            accessibilityHint="Opens the BUKLOD Notification Center"
-            hitSlop={8}
-            onPress={() =>
-              router.push(
-                '/notifications' as any
-              )
-            }
-            style={({ pressed }) => ({
-              position: 'relative',
-              width: 38,
-              height: 38,
-              borderRadius: 19,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: theme.surface,
-              opacity: pressed ? 0.72 : 1,
-            })}
-          >
-            <MaterialCommunityIcons
-              name="dots-horizontal"
-              size={24}
-              color={theme.textPrimary}
-            />
-
-            {unreadCount > 0 ? (
-              <View
-                pointerEvents="none"
-                style={{
-                  position: 'absolute',
-                  right: -4,
-                  top: -5,
-                  minWidth: 18,
-                  height: 18,
-                  paddingHorizontal: 4,
-                  borderRadius: 10,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: theme.danger,
-                  borderWidth: 2,
-                  borderColor: theme.headerSurface,
-                }}
-              >
-                <Text
-                  style={{
-                    color: '#FFFFFF',
-                    fontSize: 8,
-                    lineHeight: 10,
-                    fontWeight: '900',
-                  }}
-                >
-                  {badgeText}
-                </Text>
-              </View>
-            ) : null}
-          </Pressable>
-        ) : null}
       </View>
     </View>
   );
@@ -332,8 +249,9 @@ export default function TabsLayout() {
   /*
    * Instant route switches with no swipe-between-tabs ViewPager.
    * Public/personal navigation is route-authoritative, with Community as the
-   * canonical surface and the three-dot Notification Center shortcut in the
-   * header. Managed Organization/Cluster navigation remains owned by /scope.
+   * canonical surface. BUKLOD Connect is entered from Community Wall and
+   * Notification Center remains deep-linkable without a public nav shortcut.
+   * Managed Organization/Cluster navigation remains owned by /scope.
    */
   return (
     <View style={{ flex: 1 }}>
