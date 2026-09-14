@@ -33,6 +33,13 @@ import {
   type IgpatRotation,
 } from '@/lib/igpat/quickEdit';
 import { useIgpatQuickEditHistory } from '@/lib/igpat/useQuickEditHistory';
+import type { IgpatDraftSaveInput } from '@/lib/igpat/draftTypes';
+import {
+  clearNativeIgpatDraft,
+  loadNativeIgpatDraft,
+  prepareNativeIgpatDraftMedia,
+  saveNativeIgpatDraft,
+} from '@/lib/igpat/draftStorage.native';
 
 type Audience = 'group' | 'local' | 'public';
 type CreateStep = 'source' | 'quick-edit' | 'preview' | 'details';
@@ -40,9 +47,11 @@ type QuickEditTool = 'Trim' | 'Text' | 'Audio' | 'Speed' | 'Cover' | 'More';
 
 const QUICK_EDIT_TOOLS: QuickEditTool[] = ['Trim', 'Text', 'Audio', 'Speed', 'Cover', 'More'];
 const SPEEDS: IgpatPlaybackRate[] = [0.5, 0.75, 1, 1.25, 1.5, 2];
+const DRAFT_AUTOSAVE_DELAY_MS = 350;
 
 type IgpatDraft = {
   uri: string;
+  persistedMediaUri: string;
   durationSeconds: number;
   sizeBytes: number;
   mimeType: string;
@@ -57,9 +66,7 @@ type IgpatGroupOption = {
 
 function inferMime(asset: any): string {
   const direct = String(asset?.mimeType ?? '').toLowerCase();
-  if (direct === 'video/mp4' || direct === 'video/quicktime' || direct === 'video/webm') {
-    return direct;
-  }
+  if (direct === 'video/mp4' || direct === 'video/quicktime' || direct === 'video/webm') return direct;
   const name = String(asset?.fileName ?? asset?.uri ?? '').toLowerCase();
   if (name.endsWith('.mov')) return 'video/quicktime';
   if (name.endsWith('.webm')) return 'video/webm';
@@ -114,9 +121,7 @@ function EditedPreview({
 
   useEffect(() => {
     if (seekSeconds == null) return;
-    try {
-      player.currentTime = Math.max(start, Math.min(end, seekSeconds));
-    } catch {}
+    try { player.currentTime = Math.max(start, Math.min(end, seekSeconds)); } catch {}
   }, [end, player, seekSeconds, start]);
 
   useEffect(() => {
@@ -192,17 +197,11 @@ function TrimTimeline({
   const pct = (value: number) => `${pctNumber(value)}%` as const;
 
   const updateFromX = (x: number, target: 'start' | 'end' | 'scrub') => {
-    const seconds = Math.max(
-      0,
-      Math.min(durationSeconds, (x / Math.max(1, width)) * durationSeconds)
-    );
+    const seconds = Math.max(0, Math.min(durationSeconds, (x / Math.max(1, width)) * durationSeconds));
 
     if (target === 'start') {
       const nextStart = Math.min(seconds, end - IGPAT_MIN_OUTPUT_SECONDS);
-      const next = normalizeIgpatQuickEdit(
-        { ...normalized, trimStartSeconds: nextStart },
-        durationSeconds
-      );
+      const next = normalizeIgpatQuickEdit({ ...normalized, trimStartSeconds: nextStart }, durationSeconds);
       onChange(next);
       onSeek(next.trimStartSeconds);
       return;
@@ -210,10 +209,7 @@ function TrimTimeline({
 
     if (target === 'end') {
       const nextEnd = Math.max(seconds, start + IGPAT_MIN_OUTPUT_SECONDS);
-      const next = normalizeIgpatQuickEdit(
-        { ...normalized, trimEndSeconds: nextEnd },
-        durationSeconds
-      );
+      const next = normalizeIgpatQuickEdit({ ...normalized, trimEndSeconds: nextEnd }, durationSeconds);
       onChange(next);
       onSeek(Number(next.trimEndSeconds ?? durationSeconds));
       return;
@@ -241,9 +237,7 @@ function TrimTimeline({
         if (targetRef.current !== 'scrub') onInteractionStart();
         updateFromX(x, targetRef.current);
       },
-      onPanResponderMove: event => {
-        updateFromX(Number(event.nativeEvent.locationX ?? 0), targetRef.current);
-      },
+      onPanResponderMove: event => updateFromX(Number(event.nativeEvent.locationX ?? 0), targetRef.current),
       onPanResponderRelease: finishInteraction,
       onPanResponderTerminate: finishInteraction,
       onPanResponderTerminationRequest: () => false,
@@ -263,19 +257,14 @@ function TrimTimeline({
         {...responder.panHandlers}
       >
         {Array.from({ length: 12 }).map((_, index) => <View key={index} style={styles.timelineFrame} />)}
-        <View
-          pointerEvents="none"
-          style={[styles.trimWindow, { left: pct(start), right: `${100 - pctNumber(end)}%` }]}
-        />
+        <View pointerEvents="none" style={[styles.trimWindow, { left: pct(start), right: `${100 - pctNumber(end)}%` }]} />
         <View pointerEvents="none" style={[styles.trimHandle, styles.trimHandleStart, { left: pct(start) }]} />
         <View pointerEvents="none" style={[styles.trimHandle, styles.trimHandleEnd, { left: pct(end) }]} />
         <View pointerEvents="none" style={[styles.timelinePlayhead, { left: pct(current) }]} />
       </View>
       <View style={styles.trimStats}>
         <Text style={styles.trimStat}>START {formatClock(start)}</Text>
-        <Text style={styles.trimStatStrong}>
-          OUTPUT {formatClock(igpatOutputDurationSeconds(normalized, durationSeconds))}
-        </Text>
+        <Text style={styles.trimStatStrong}>OUTPUT {formatClock(igpatOutputDurationSeconds(normalized, durationSeconds))}</Text>
         <Text style={styles.trimStat}>END {formatClock(end)}</Text>
       </View>
     </View>
@@ -313,15 +302,18 @@ export default function IgpatCreateScreen() {
   const [progress, setProgress] = useState<number | null>(null);
   const pickerBusyRef = useRef(false);
   const mountedRef = useRef(true);
+  const draftRecoveryUserRef = useRef<string | null>(null);
+  const latestDraftSaveRef = useRef<IgpatDraftSaveInput | null>(null);
 
   useEffect(() => () => {
     mountedRef.current = false;
     pickerBusyRef.current = false;
+    const pending = latestDraftSaveRef.current;
+    if (pending) void saveNativeIgpatDraft(pending).catch(() => undefined);
   }, []);
 
   useEffect(() => {
     let cancelled = false;
-
     if (!user?.id) {
       setGroups([]);
       setGroupId(null);
@@ -368,8 +360,86 @@ export default function IgpatCreateScreen() {
     return () => { cancelled = true; };
   }, [profile?.church_id, user?.id]);
 
+  useEffect(() => {
+    if (!user?.id || draftRecoveryUserRef.current === user.id) return;
+    draftRecoveryUserRef.current = user.id;
+    let cancelled = false;
+
+    void loadNativeIgpatDraft(user.id)
+      .then(snapshot => {
+        if (cancelled || !snapshot) return;
+        Alert.alert(
+          'BUKLOD IGPAT Draft',
+          'You have a saved IGPAT draft on this device.',
+          [
+            {
+              text: 'DISCARD DRAFT',
+              style: 'destructive',
+              onPress: () => {
+                latestDraftSaveRef.current = null;
+                void clearNativeIgpatDraft(user.id);
+              },
+            },
+            {
+              text: 'CONTINUE EDITING',
+              onPress: () => {
+                if (cancelled) return;
+                setDraft({
+                  uri: snapshot.mediaUri,
+                  persistedMediaUri: snapshot.mediaUri,
+                  durationSeconds: snapshot.durationSeconds,
+                  sizeBytes: snapshot.sizeBytes,
+                  mimeType: snapshot.mimeType,
+                  fileName: snapshot.fileName,
+                });
+                resetEditHistory(snapshot.edit, snapshot.durationSeconds);
+                setCaption(snapshot.caption);
+                setAudience(snapshot.audience);
+                setGroupId(snapshot.groupId);
+                setPreviewTime(snapshot.edit.trimStartSeconds);
+                setSeekSeconds(snapshot.edit.trimStartSeconds);
+                setActiveTool('Trim');
+                setStep('quick-edit');
+              },
+            },
+          ],
+          { cancelable: false }
+        );
+      })
+      .catch(error => console.warn('BUKLOD IGPAT draft recovery:', String(error?.message ?? error)));
+
+    return () => { cancelled = true; };
+  }, [resetEditHistory, user?.id]);
+
+  useEffect(() => {
+    if (!user?.id || !draft) return;
+    const input: IgpatDraftSaveInput = {
+      userId: user.id,
+      mediaUri: draft.persistedMediaUri,
+      durationSeconds: draft.durationSeconds,
+      sizeBytes: draft.sizeBytes,
+      mimeType: draft.mimeType,
+      fileName: draft.fileName,
+      edit: normalizeIgpatQuickEdit(edit, draft.durationSeconds),
+      caption,
+      audience,
+      groupId,
+    };
+    latestDraftSaveRef.current = input;
+    const timer = setTimeout(() => {
+      void saveNativeIgpatDraft(input).catch(error =>
+        console.warn('BUKLOD IGPAT draft autosave:', String(error?.message ?? error))
+      );
+    }, DRAFT_AUTOSAVE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [audience, caption, draft, edit, groupId, user?.id]);
+
   const acceptVideo = async (asset: any) => {
     try {
+      if (!user?.id) {
+        Alert.alert('BUKLOD IGPAT', 'Sign in again before preparing an IGPAT.');
+        return;
+      }
       if (!asset?.uri) {
         Alert.alert('BUKLOD IGPAT', 'The selected video could not be read.');
         return;
@@ -380,10 +450,7 @@ export default function IgpatCreateScreen() {
         return;
       }
       if (durationSeconds > BUKLOD_REEL_MAX_DURATION_SECONDS) {
-        Alert.alert(
-          'Maximum 60 Seconds',
-          `This video is ${durationSeconds} seconds. IGPAT videos may be up to 60 seconds only.`
-        );
+        Alert.alert('Maximum 60 Seconds', `This video is ${durationSeconds} seconds. IGPAT videos may be up to 60 seconds only.`);
         return;
       }
 
@@ -397,18 +464,37 @@ export default function IgpatCreateScreen() {
       }
 
       const mimeType = inferMime(asset);
-      if (!mountedRef.current) return;
-      setDraft({
-        uri: asset.uri,
+      const durableUri = await prepareNativeIgpatDraftMedia({
+        userId: user.id,
+        sourceUri: asset.uri,
+        mimeType,
+      });
+      const initialEdit = { ...DEFAULT_IGPAT_QUICK_EDIT, trimEndSeconds: durationSeconds };
+      const baseDraft: IgpatDraftSaveInput = {
+        userId: user.id,
+        mediaUri: durableUri,
         durationSeconds,
         sizeBytes,
         mimeType,
         fileName: String(asset.fileName ?? `igpat.${extensionForMime(mimeType)}`),
+        edit: initialEdit,
+        caption,
+        audience,
+        groupId,
+      };
+      await saveNativeIgpatDraft(baseDraft);
+      latestDraftSaveRef.current = baseDraft;
+
+      if (!mountedRef.current) return;
+      setDraft({
+        uri: durableUri,
+        persistedMediaUri: durableUri,
+        durationSeconds,
+        sizeBytes,
+        mimeType,
+        fileName: baseDraft.fileName,
       });
-      resetEditHistory(
-        { ...DEFAULT_IGPAT_QUICK_EDIT, trimEndSeconds: durationSeconds },
-        durationSeconds
-      );
+      resetEditHistory(initialEdit, durationSeconds);
       setPreviewTime(0);
       setSeekSeconds(0);
       setActiveTool('Trim');
@@ -416,16 +502,15 @@ export default function IgpatCreateScreen() {
     } catch (error: any) {
       console.warn('BUKLOD IGPAT accept video:', String(error?.message ?? error));
       if (mountedRef.current) {
-        Alert.alert(
-          'Could Not Prepare Video',
-          error?.message ?? 'The video could not be prepared safely. Please try again.'
-        );
+        Alert.alert('Could Not Prepare Video', error?.message ?? 'The video could not be prepared safely. Please try again.');
       }
     }
   };
 
   const resetDraft = () => {
     if (busy || pickerBusy) return;
+    latestDraftSaveRef.current = null;
+    if (user?.id) void clearNativeIgpatDraft(user.id);
     setDraft(null);
     resetEditHistory({ ...DEFAULT_IGPAT_QUICK_EDIT });
     setPreviewTime(0);
@@ -439,10 +524,7 @@ export default function IgpatCreateScreen() {
     if (result?.code) {
       console.warn('BUKLOD IGPAT picker result:', String(result?.message ?? result?.code));
       if (mountedRef.current) {
-        Alert.alert(
-          'Camera Result Could Not Be Restored',
-          result?.message ?? 'Please record or select the video again.'
-        );
+        Alert.alert('Camera Result Could Not Be Restored', result?.message ?? 'Please record or select the video again.');
       }
       return;
     }
@@ -470,18 +552,11 @@ export default function IgpatCreateScreen() {
         Alert.alert('Media Permission', 'Photo and video library access is required to select an IGPAT.');
         return;
       }
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['videos'],
-        allowsEditing: false,
-      });
+      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['videos'], allowsEditing: false });
       await handlePickerResult(result);
     } catch (error: any) {
       console.warn('BUKLOD IGPAT library picker:', String(error?.message ?? error));
-      Alert.alert(
-        'Could Not Open Videos',
-        error?.message ??
-          'Video selection is not available in this installed app version. Please update the app before trying again.'
-      );
+      Alert.alert('Could Not Open Videos', error?.message ?? 'Video selection is not available in this installed app version. Please update the app before trying again.');
     } finally {
       endPicker();
     }
@@ -496,19 +571,11 @@ export default function IgpatCreateScreen() {
         Alert.alert('Camera Permission', 'Camera access is required to record an IGPAT.');
         return;
       }
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['videos'],
-        videoMaxDuration: 60,
-        allowsEditing: false,
-      });
+      const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['videos'], videoMaxDuration: 60, allowsEditing: false });
       await handlePickerResult(result);
     } catch (error: any) {
       console.warn('BUKLOD IGPAT camera picker:', String(error?.message ?? error));
-      Alert.alert(
-        'Could Not Record Video',
-        error?.message ??
-          'Camera video recording is not available in this installed app version. Please update the app before trying again.'
-      );
+      Alert.alert('Could Not Record Video', error?.message ?? 'Camera video recording is not available in this installed app version. Please update the app before trying again.');
     } finally {
       endPicker();
     }
@@ -553,6 +620,8 @@ export default function IgpatCreateScreen() {
       });
       if (error) throw error;
 
+      latestDraftSaveRef.current = null;
+      await clearNativeIgpatDraft(user.id);
       Alert.alert('IGPAT Published', 'Your IGPAT is now available to the selected audience.');
       router.replace('/igpat' as any);
     } catch (error: any) {
@@ -622,9 +691,7 @@ export default function IgpatCreateScreen() {
             style={styles.overlayInput}
             editable={!busy && !pickerBusy}
           />
-          <Text style={styles.panelHint}>
-            Kept intentionally clean and readable. Drag/resize stays hidden until a safe rendered-composition path exists.
-          </Text>
+          <Text style={styles.panelHint}>Kept intentionally clean and readable. Drag/resize stays hidden until a safe rendered-composition path exists.</Text>
         </View>
       );
     }
@@ -634,24 +701,14 @@ export default function IgpatCreateScreen() {
         <View style={styles.editorPanel}>
           <Text style={styles.panelTitle}>ORIGINAL AUDIO</Text>
           <View style={styles.choiceRow}>
-            <Pressable
-              style={[styles.choiceChip, !normalized.muted && styles.choiceSelected]}
-              onPress={() => patchEdit({ muted: false })}
-              disabled={busy || pickerBusy}
-            >
+            <Pressable style={[styles.choiceChip, !normalized.muted && styles.choiceSelected]} onPress={() => patchEdit({ muted: false })} disabled={busy || pickerBusy}>
               <Text style={[styles.choiceText, !normalized.muted && styles.choiceTextSelected]}>ON</Text>
             </Pressable>
-            <Pressable
-              style={[styles.choiceChip, normalized.muted && styles.choiceSelected]}
-              onPress={() => patchEdit({ muted: true })}
-              disabled={busy || pickerBusy}
-            >
+            <Pressable style={[styles.choiceChip, normalized.muted && styles.choiceSelected]} onPress={() => patchEdit({ muted: true })} disabled={busy || pickerBusy}>
               <Text style={[styles.choiceText, normalized.muted && styles.choiceTextSelected]}>MUTE</Text>
             </Pressable>
           </View>
-          <Text style={styles.panelHint}>
-            Music mixing and cleanup stay hidden until a safe media-processing path exists.
-          </Text>
+          <Text style={styles.panelHint}>Music mixing and cleanup stay hidden until a safe media-processing path exists.</Text>
         </View>
       );
     }
@@ -664,12 +721,7 @@ export default function IgpatCreateScreen() {
             {SPEEDS.map(value => {
               const selected = normalized.speed === value;
               return (
-                <Pressable
-                  key={value}
-                  style={[styles.choiceChip, selected && styles.choiceSelected]}
-                  onPress={() => patchEdit({ speed: value })}
-                  disabled={busy || pickerBusy}
-                >
+                <Pressable key={value} style={[styles.choiceChip, selected && styles.choiceSelected]} onPress={() => patchEdit({ speed: value })} disabled={busy || pickerBusy}>
                   <Text style={[styles.choiceText, selected && styles.choiceTextSelected]}>{value}×</Text>
                 </Pressable>
               );
@@ -684,11 +736,7 @@ export default function IgpatCreateScreen() {
         <View style={styles.editorPanel}>
           <Text style={styles.panelTitle}>COVER FRAME</Text>
           <Text style={styles.panelValue}>Current frame · {formatClock(previewTime)}</Text>
-          <Pressable
-            style={styles.panelAction}
-            onPress={() => patchEdit({ coverSeconds: previewTime })}
-            disabled={busy || pickerBusy}
-          >
+          <Pressable style={styles.panelAction} onPress={() => patchEdit({ coverSeconds: previewTime })} disabled={busy || pickerBusy}>
             <Text style={styles.panelActionText}>USE CURRENT FRAME</Text>
           </Pressable>
           <Text style={styles.panelHint}>Selected · {formatClock(normalized.coverSeconds)}</Text>
@@ -704,15 +752,8 @@ export default function IgpatCreateScreen() {
           {(['contain', 'cover'] as const).map(value => {
             const selected = normalized.contentFit === value;
             return (
-              <Pressable
-                key={value}
-                style={[styles.choiceChip, selected && styles.choiceSelected]}
-                onPress={() => patchEdit({ contentFit: value })}
-                disabled={busy || pickerBusy}
-              >
-                <Text style={[styles.choiceText, selected && styles.choiceTextSelected]}>
-                  {value === 'cover' ? 'FILL 9:16' : 'FIT'}
-                </Text>
+              <Pressable key={value} style={[styles.choiceChip, selected && styles.choiceSelected]} onPress={() => patchEdit({ contentFit: value })} disabled={busy || pickerBusy}>
+                <Text style={[styles.choiceText, selected && styles.choiceTextSelected]}>{value === 'cover' ? 'FILL 9:16' : 'FIT'}</Text>
               </Pressable>
             );
           })}
@@ -722,12 +763,7 @@ export default function IgpatCreateScreen() {
           {([0, 90, 180, 270] as IgpatRotation[]).map(value => {
             const selected = normalized.rotation === value;
             return (
-              <Pressable
-                key={value}
-                style={[styles.choiceChip, selected && styles.choiceSelected]}
-                onPress={() => patchEdit({ rotation: value })}
-                disabled={busy || pickerBusy}
-              >
+              <Pressable key={value} style={[styles.choiceChip, selected && styles.choiceSelected]} onPress={() => patchEdit({ rotation: value })} disabled={busy || pickerBusy}>
                 <Text style={[styles.choiceText, selected && styles.choiceTextSelected]}>{value}°</Text>
               </Pressable>
             );
@@ -781,21 +817,11 @@ export default function IgpatCreateScreen() {
             </Pressable>
           </View>
         </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.toolRail}
-          style={styles.toolScroller}
-        >
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.toolRail} style={styles.toolScroller}>
           {QUICK_EDIT_TOOLS.map(tool => {
             const selected = activeTool === tool;
             return (
-              <Pressable
-                key={tool}
-                style={[styles.toolChip, selected && styles.toolChipSelected]}
-                onPress={() => setActiveTool(tool)}
-                disabled={busy || pickerBusy}
-              >
+              <Pressable key={tool} style={[styles.toolChip, selected && styles.toolChipSelected]} onPress={() => setActiveTool(tool)} disabled={busy || pickerBusy}>
                 <Text style={[styles.toolText, selected && styles.toolTextSelected]}>{tool}</Text>
               </Pressable>
             );
@@ -814,20 +840,12 @@ export default function IgpatCreateScreen() {
 
       {!draft || step === 'source' ? (
         <View style={styles.sourceRow}>
-          <Pressable
-            style={[styles.sourceButton, pickerBusy && styles.sourceButtonDisabled]}
-            onPress={() => void recordVideo()}
-            disabled={busy || pickerBusy}
-          >
+          <Pressable style={[styles.sourceButton, pickerBusy && styles.sourceButtonDisabled]} onPress={() => void recordVideo()} disabled={busy || pickerBusy}>
             {pickerBusy ? <ActivityIndicator color="#FFFFFF" /> : null}
             <Text style={styles.sourceTitle}>RECORD</Text>
             <Text style={styles.sourceCopy}>{pickerBusy ? 'Opening…' : 'Use camera'}</Text>
           </Pressable>
-          <Pressable
-            style={[styles.sourceButton, pickerBusy && styles.sourceButtonDisabled]}
-            onPress={() => void chooseVideo()}
-            disabled={busy || pickerBusy}
-          >
+          <Pressable style={[styles.sourceButton, pickerBusy && styles.sourceButtonDisabled]} onPress={() => void chooseVideo()} disabled={busy || pickerBusy}>
             <Text style={styles.sourceTitle}>SELECT</Text>
             <Text style={styles.sourceCopy}>From device</Text>
           </Pressable>
@@ -835,7 +853,7 @@ export default function IgpatCreateScreen() {
       ) : step === 'quick-edit' ? (
         <View>
           <Text style={styles.stepTitle}>QUICK EDIT</Text>
-          <Text style={styles.stepCopy}>Non-destructive edits. Your original video stays intact.</Text>
+          <Text style={styles.stepCopy}>Non-destructive edits. Your draft is saved automatically on this device.</Text>
           {renderDraftPreview()}
           {renderQuickEditShell()}
           <View style={styles.actionStack}>
@@ -845,10 +863,7 @@ export default function IgpatCreateScreen() {
             <Pressable
               style={styles.secondaryAction}
               onPress={() => {
-                resetEditHistory(
-                  { ...DEFAULT_IGPAT_QUICK_EDIT, trimEndSeconds: draft.durationSeconds },
-                  draft.durationSeconds
-                );
+                resetEditHistory({ ...DEFAULT_IGPAT_QUICK_EDIT, trimEndSeconds: draft.durationSeconds }, draft.durationSeconds);
                 setPreviewTime(0);
                 setSeekSeconds(0);
                 setStep('details');
@@ -895,11 +910,7 @@ export default function IgpatCreateScreen() {
               return (
                 <Pressable
                   key={value}
-                  style={[
-                    styles.audienceButton,
-                    audience === value && styles.audienceSelected,
-                    disabled && styles.audienceDisabled,
-                  ]}
+                  style={[styles.audienceButton, audience === value && styles.audienceSelected, disabled && styles.audienceDisabled]}
                   onPress={() => {
                     if (disabled) return;
                     setAudience(value);
@@ -907,9 +918,7 @@ export default function IgpatCreateScreen() {
                   }}
                   disabled={busy || pickerBusy || disabled}
                 >
-                  <Text style={[styles.audienceText, audience === value && styles.audienceSelectedText]}>
-                    {value === 'group' ? 'CLUSTER' : value.toUpperCase()}
-                  </Text>
+                  <Text style={[styles.audienceText, audience === value && styles.audienceSelectedText]}>{value === 'group' ? 'CLUSTER' : value.toUpperCase()}</Text>
                 </Pressable>
               );
             })}
@@ -923,15 +932,8 @@ export default function IgpatCreateScreen() {
                   const selected = option.group_id === groupId;
                   const label = option.group_name || option.group_code || 'BUKLOD Cluster';
                   return (
-                    <Pressable
-                      key={option.group_id}
-                      style={[styles.clusterChip, selected && styles.clusterChipSelected]}
-                      onPress={() => setGroupId(option.group_id)}
-                      disabled={busy || pickerBusy}
-                    >
-                      <Text style={[styles.clusterText, selected && styles.clusterTextSelected]} numberOfLines={1}>
-                        {label}
-                      </Text>
+                    <Pressable key={option.group_id} style={[styles.clusterChip, selected && styles.clusterChipSelected]} onPress={() => setGroupId(option.group_id)} disabled={busy || pickerBusy}>
+                      <Text style={[styles.clusterText, selected && styles.clusterTextSelected]} numberOfLines={1}>{label}</Text>
                     </Pressable>
                   );
                 })}
@@ -942,17 +944,11 @@ export default function IgpatCreateScreen() {
           {busy && (
             <View style={styles.progressRow}>
               <ActivityIndicator color="#FFFFFF" />
-              <Text style={styles.progressText}>
-                Uploading {progress == null ? '' : `${Math.round(progress * 100)}%`}
-              </Text>
+              <Text style={styles.progressText}>Uploading {progress == null ? '' : `${Math.round(progress * 100)}%`}</Text>
             </View>
           )}
 
-          <Pressable
-            style={[styles.publish, (!draft || busy || pickerBusy) && styles.publishDisabled]}
-            disabled={!draft || busy || pickerBusy}
-            onPress={() => void publish()}
-          >
+          <Pressable style={[styles.publish, (!draft || busy || pickerBusy) && styles.publishDisabled]} disabled={!draft || busy || pickerBusy} onPress={() => void publish()}>
             <Text style={styles.publishText}>{busy ? 'PUBLISHING...' : 'PUBLISH IGPAT'}</Text>
           </Pressable>
         </View>
