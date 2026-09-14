@@ -1,11 +1,15 @@
 import { usePathname } from 'expo-router';
 import React from 'react';
+import { View } from 'react-native';
 
 import BuklodScopeBar
   from '@/components/BuklodScopeBar';
 
 import BuklodPublicDailyMessageBar
   from '@/components/BuklodPublicDailyMessageBar';
+
+import BuklodPublicCommunityActions
+  from '@/components/BuklodPublicCommunityActions';
 
 import {
   useBuklodScope,
@@ -30,6 +34,9 @@ export default function BuklodDashboardContextBar() {
   const messagesRoute =
     pathname === '/messages' ||
     pathname.startsWith('/messages/');
+  const publicCommunityRoute =
+    pathname === '/buklod' ||
+    pathname.startsWith('/buklod/');
   const {
     activeScope,
   } = useBuklodScope();
@@ -75,7 +82,12 @@ export default function BuklodDashboardContextBar() {
     'PUBLIC'
   ) {
     return (
-      <BuklodPublicDailyMessageBar />
+      <View>
+        <BuklodPublicDailyMessageBar />
+        {publicCommunityRoute ? (
+          <BuklodPublicCommunityActions />
+        ) : null}
+      </View>
     );
   }
 
