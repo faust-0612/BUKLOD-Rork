@@ -59,10 +59,16 @@ requireAll('src/components/BuklodPublicLocationChips.tsx', [
   '<BuklodCommunityHelp />',
 ]);
 
-// Emergency notification must retain a direct BUKLOD Community route and request identity.
+// Emergency notification routing may be centralized, but it must preserve the
+// exact request identity and Community destination end-to-end.
 requireAll('src/providers/NotificationProvider.tsx', [
-  "kind==='community_emergency'&&data?.help_request_id",
-  '/buklod?help_request_id=',
+  'resolveBuklodNotificationTarget',
+  'void openNotification(kind,d)',
+]);
+requireAll('src/lib/buklodNotificationNavigation.ts', [
+  'const helpRequestId = clean(payload.help_request_id);',
+  'if (helpRequestId)',
+  'path: `/buklod?help_request_id=${encodeURIComponent(helpRequestId)}`',
 ]);
 
 // Foreground-only location is a locked privacy boundary for R1.
