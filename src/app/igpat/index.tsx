@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { supabase } from '@/lib/supabase';
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
+import { parseIgpatQuickEdit } from '@/lib/igpat/quickEdit';
 import { useAuth } from '@/providers/AuthProvider';
 
 type IgpatRow = {
@@ -30,6 +31,7 @@ type IgpatRow = {
   reaction_count?: number | null;
   comment_count?: number | null;
   my_reaction?: string | null;
+  igpat_edit_meta?: unknown;
   media_url?: string | null;
 };
 
@@ -65,23 +67,65 @@ async function mapWithConcurrency<T, R>(
   return results;
 }
 
-function IgpatVideo({ uri, active }: { uri: string; active: boolean }) {
+function IgpatVideo({
+  uri,
+  active,
+  durationSeconds,
+  editMeta,
+}: {
+  uri: string;
+  active: boolean;
+  durationSeconds: number;
+  editMeta?: unknown;
+}) {
   const [pausedByUser, setPausedByUser] = useState(false);
+  const hasEditMeta = Boolean(editMeta && typeof editMeta === 'object');
+  const safeDuration = durationSeconds > 0 ? durationSeconds : 60;
+  const edit = useMemo(
+    () => parseIgpatQuickEdit(editMeta, safeDuration),
+    [editMeta, safeDuration]
+  );
+  const trimStart = hasEditMeta ? edit.trimStartSeconds : 0;
+  const trimEnd = hasEditMeta ? Number(edit.trimEndSeconds ?? safeDuration) : safeDuration;
+  const baseRate = hasEditMeta ? edit.speed : 1;
   const player = useVideoPlayer(uri, instance => {
-    instance.loop = true;
-    instance.muted = false;
+    instance.loop = !hasEditMeta;
+    instance.muted = hasEditMeta ? edit.muted : false;
+    instance.playbackRate = baseRate;
   });
 
   useEffect(() => {
     try {
+      player.loop = !hasEditMeta;
+      player.muted = hasEditMeta ? edit.muted : false;
+      player.playbackRate = baseRate;
+      if (hasEditMeta && (player.currentTime < trimStart || player.currentTime >= trimEnd)) {
+        player.currentTime = trimStart;
+      }
       if (active && !pausedByUser) player.play();
       else player.pause();
     } catch {}
-  }, [active, pausedByUser, player]);
+  }, [active, baseRate, edit.muted, hasEditMeta, pausedByUser, player, trimEnd, trimStart]);
 
   useEffect(() => {
     if (!active) setPausedByUser(false);
   }, [active]);
+
+  useEffect(() => {
+    if (!active || !hasEditMeta) return undefined;
+
+    const timer = setInterval(() => {
+      try {
+        const current = Number(player.currentTime ?? 0);
+        if (current >= trimEnd - 0.04 || current < trimStart - 0.04) {
+          player.currentTime = trimStart;
+          if (!pausedByUser) player.play();
+        }
+      } catch {}
+    }, 100);
+
+    return () => clearInterval(timer);
+  }, [active, hasEditMeta, pausedByUser, player, trimEnd, trimStart]);
 
   useEffect(() => {
     return () => {
@@ -101,7 +145,7 @@ function IgpatVideo({ uri, active }: { uri: string; active: boolean }) {
 
   const stopFastPlayback = () => {
     try {
-      player.playbackRate = 1;
+      player.playbackRate = baseRate;
       if (pausedByUser) player.pause();
     } catch {}
   };
@@ -118,10 +162,20 @@ function IgpatVideo({ uri, active }: { uri: string; active: boolean }) {
     >
       <VideoView
         player={player}
-        style={StyleSheet.absoluteFill}
+        style={[
+          StyleSheet.absoluteFill,
+          hasEditMeta && edit.rotation !== 0
+            ? { transform: [{ rotate: `${edit.rotation}deg` }] }
+            : null,
+        ]}
         nativeControls={false}
-        contentFit="cover"
+        contentFit={hasEditMeta ? edit.contentFit : 'cover'}
       />
+      {hasEditMeta && !!edit.textOverlay.trim() && (
+        <View pointerEvents="none" style={styles.editTextWrap}>
+          <Text style={styles.editText}>{edit.textOverlay.trim()}</Text>
+        </View>
+      )}
       {active && pausedByUser && (
         <View pointerEvents="none" style={styles.pausedBadge}>
           <MaterialCommunityIcons name="play" size={18} color="#FFFFFF" />
@@ -239,7 +293,7 @@ export default function IgpatScreen() {
 
     try {
       const limit = dataSaver ? DATA_SAVER_LIMIT : NORMAL_LIMIT;
-      const { data, error } = await (supabase as any).rpc('get_buklod_igpat_feed_v2', {
+      const { data, error } = await (supabase as any).rpc('get_buklod_igpat_feed_v3', {
         p_mode: feedMode,
         p_limit: limit,
       });
@@ -490,7 +544,12 @@ export default function IgpatScreen() {
           return (
             <View style={[styles.page, { height: viewportHeight }]}>
               {!!item.media_url && (
-                <IgpatVideo uri={item.media_url} active={index === activeIndex} />
+                <IgpatVideo
+                  uri={item.media_url}
+                  active={index === activeIndex}
+                  durationSeconds={Number(item.media_duration_seconds ?? 0)}
+                  editMeta={item.igpat_edit_meta}
+                />
               )}
               <View pointerEvents="none" style={styles.scrim} />
 
@@ -713,6 +772,24 @@ const styles = StyleSheet.create({
   followingText: { color: '#07100B' },
   caption: { marginTop: 6, color: 'rgba(255,255,255,0.90)', fontSize: 12, lineHeight: 17, fontWeight: '600' },
   saverHint: { marginTop: 8, color: 'rgba(255,255,255,0.50)', fontSize: 8, fontWeight: '900', letterSpacing: 1 },
+  editTextWrap: {
+    position: 'absolute',
+    left: 22,
+    right: 78,
+    bottom: '18%',
+    alignItems: 'center',
+  },
+  editText: {
+    maxWidth: '100%',
+    color: '#FFFFFF',
+    fontSize: 24,
+    lineHeight: 30,
+    fontWeight: '900',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.86)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
+  },
   pausedBadge: {
     position: 'absolute',
     alignSelf: 'center',
