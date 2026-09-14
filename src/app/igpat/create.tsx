@@ -28,6 +28,7 @@ import {
   igpatOutputDurationSeconds,
   normalizeIgpatQuickEdit,
   serializeIgpatQuickEdit,
+  suggestIgpatAutoImprove,
   type IgpatPlaybackRate,
   type IgpatQuickEditState,
   type IgpatRotation,
@@ -733,9 +734,33 @@ export default function IgpatCreateScreen() {
         </View>
       );
     }
+
     return (
       <View style={styles.editorPanel}>
-        <Text style={styles.panelTitle}>FRAME & ORIENTATION</Text>
+        <Text style={styles.panelTitle}>AUTO IMPROVE</Text>
+        <Pressable
+          style={styles.panelAction}
+          onPress={() => {
+            const suggestion = suggestIgpatAutoImprove(normalized, draft.durationSeconds);
+            if (!suggestion.changes.length) {
+              Alert.alert('Auto Improve', 'No additional safe metadata-only improvements were found for this clip.');
+              return;
+            }
+            commitEdit(suggestion.edit);
+            setPreviewTime(suggestion.edit.coverSeconds);
+            setSeekSeconds(suggestion.edit.coverSeconds);
+            Alert.alert(
+              'Auto Improve Applied',
+              `${suggestion.changes.join('\n')}\n\nUse Undo to reverse these changes.`
+            );
+          }}
+          disabled={busy || pickerBusy}
+        >
+          <Text style={styles.panelActionText}>AUTO IMPROVE</Text>
+        </Pressable>
+        <Text style={styles.panelHint}>
+          Safe and reversible: 9:16 framing plus a cover-frame suggestion. Brightness, audio normalization, captions, and auto-trim stay unchanged until a reliable processing engine exists.
+        </Text>
         <Text style={styles.panelLabel}>REFRAME</Text>
         <View style={styles.choiceRow}>
           {(['contain', 'cover'] as const).map(value => {
