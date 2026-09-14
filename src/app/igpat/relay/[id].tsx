@@ -100,6 +100,26 @@ export default function IgpatRelayChainScreen() {
               <Text style={styles.tileTitle}>BOND INBOX</Text>
               <Text style={styles.tileHint}>Passes & Capsules</Text>
             </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Open Memory Echo" style={styles.featureTile} onPress={() => router.push('/igpat/memory-echo' as any)}>
+              <MaterialCommunityIcons name="history" size={19} color="#FFFFFF" />
+              <Text style={styles.tileTitle}>MEMORY ECHO</Text>
+              <Text style={styles.tileHint}>Then ↔ Now</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Open IGPAT Arena" style={styles.featureTile} onPress={() => router.push('/igpat/arena' as any)}>
+              <MaterialCommunityIcons name="sword-cross" size={19} color="#D9FF69" />
+              <Text style={styles.tileTitle}>ARENA</Text>
+              <Text style={styles.tileHint}>Intentional competition</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Open King of the Hill" style={styles.featureTile} onPress={() => router.push('/igpat/arena/hill' as any)}>
+              <MaterialCommunityIcons name="crown-outline" size={19} color="#FFFFFF" />
+              <Text style={styles.tileTitle}>THE HILL</Text>
+              <Text style={styles.tileHint}>Approved champions</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Open my Arena record" style={styles.featureTile} onPress={() => router.push('/igpat/arena/record' as any)}>
+              <MaterialCommunityIcons name="chart-box-outline" size={19} color="#FFFFFF" />
+              <Text style={styles.tileTitle}>MY RECORD</Text>
+              <Text style={styles.tileHint}>Structured W/L only</Text>
+            </Pressable>
           </View>
         </View>
       )}
