@@ -7,6 +7,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { usePathname } from 'expo-router';
 
 import BuklodDesktopWebShell from '@/components/BuklodDesktopWebShell';
 import BuklodFocusAppAdStrip from '@/components/BuklodFocusAppAdStrip';
@@ -22,9 +23,11 @@ import {
   withBuklodTimeout,
 } from '@/lib/buklodAsyncTimeout';
 import {
+  isBuklodScopedWorkspacePath,
+} from '@/lib/buklodSafeArea';
+import {
   supabase,
 } from '@/lib/supabase';
-import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 
 /*
  * BUKLOD_WEB_RESPONSIVE_SPLIT_R3
@@ -33,9 +36,9 @@ import { useBuklodScope } from '@/providers/BuklodScopeProvider';
  * refresh token on web, clear only local cached auth/scope state and reload to
  * the clean login route. Server account/data are never deleted or modified.
  *
- * BUKLOD_PUBLIC_MINIMAL_NAV_R1: PUBLIC always uses the minimal mobile-style
- * shell at any web width, so the old desktop navigation pane is not rendered.
- * Managed Organization/Cluster workspaces retain the existing responsive
+ * BUKLOD_PUBLIC_MINIMAL_NAV_R2: public/personal routes use the minimal shell at
+ * any web width, determined by route rather than transient active-scope state.
+ * Managed Organization/Cluster `/scope` routes retain the existing responsive
  * desktop shell behavior and are not changed by this public cleanup.
  *
  * BUKLOD_WEB_FOCUS_ADS_R1 keeps the Focus App ad inside both web layouts,
@@ -138,8 +141,9 @@ export default function BuklodNavSafeShell({
   useBuklodWebSessionSelfHeal();
 
   const { width } = useWindowDimensions();
-  const { activeScope } = useBuklodScope();
-  const publicMinimal = activeScope?.scope_type === 'PUBLIC';
+  const pathname = usePathname();
+  const publicMinimal =
+    !isBuklodScopedWorkspacePath(pathname);
 
   const content = (
     <>
