@@ -47,6 +47,7 @@ requireAll('src/lib/buklodEmergencyAlertMode.ts', [
   "kind: 'community_emergency_test'",
   'No nearby BUKLOD user was alerted.',
   "interruptionLevel: Platform.OS === 'ios' ? 'timeSensitive' : undefined",
+  'SchedulableTriggerInputTypes.TIME_INTERVAL',
   "return 'ACKNOWLEDGED' as const",
 ]);
 
@@ -93,6 +94,10 @@ requireAll('app.config.js', [
 ]);
 
 requireAll('supabase/migrations/20260914011000_community_help_emergency_alert_r2.sql', [
+  'create table if not exists private.buklod_help_emergency_alert_r2_state',
+  'reminders_enabled boolean not null default false',
+  'values(true,now(),false)',
+  'revoke all on table private.buklod_help_emergency_alert_r2_state from authenticated',
   'add column if not exists emergency_alert_mode_version integer not null default 1',
   'create or replace function public.mark_device_emergency_alert_mode_r2',
   'emergency_alert_mode_version=greatest(coalesce(emergency_alert_mode_version,1),2)',
@@ -103,6 +108,8 @@ requireAll('supabase/migrations/20260914011000_community_help_emergency_alert_r2
   "when public.buklod_help_responses.response_type in ('CAN_HELP','ON_MY_WAY','CONFIRM_INCIDENT','CANNOT_HELP','FALSE_ALERT')",
   "if v_distance>v_request.radius_km then raise exception 'NOT_WITHIN_ALERT_RADIUS'",
   'private.buklod_help_enqueue_emergency_reminders_r2()',
+  'if not coalesce(v_reminders_enabled,false) then',
+  'r.created_at >= v_activated_at',
   "d.created_at <= now() - interval '2 minutes'",
   "d.created_at <= now() - interval '5 minutes'",
   "n.data->>'emergency_reminder_step'=due.reminder_step::text",
@@ -114,7 +121,7 @@ requireAll('supabase/migrations/20260914011000_community_help_emergency_alert_r2
 requireAll('supabase/functions/push/index.ts', [
   'BUKLOD_EMERGENCY_ALERT_MODE_R2_CAPABILITY_FALLBACK',
   "notification.kind === 'community_emergency'",
-  '.select(\'expo_push_token,platform,emergency_alert_mode_version\')',
+  ".select('expo_push_token,platform,emergency_alert_mode_version')",
   'Number(row.emergency_alert_mode_version ?? 1) >= 2',
   "? 'buklod-emergency-v1'",
   ": 'buklod-activity-v2'",
@@ -146,4 +153,4 @@ if (failures.length) {
 }
 
 console.log('EMERGENCY ALERT MODE R2 RELEASE LOCK PASSED.');
-console.log('Protected: capability-safe rollout, dedicated MAX channel, alarm audio attributes, safe DND gating, acknowledgement, bounded reminders, iOS Time Sensitive path, and R1 privacy boundaries.');
+console.log('Protected: grandfathered cutover, capability-safe rollout, dedicated MAX channel, alarm audio attributes, safe DND gating, acknowledgement, staged reminders, iOS Time Sensitive path, and R1 privacy boundaries.');
