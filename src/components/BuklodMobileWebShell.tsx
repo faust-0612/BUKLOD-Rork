@@ -15,13 +15,15 @@ import {
   normalizeBuklodPathname,
   useBuklodPersistentNavOccupiedHeight,
 } from '@/lib/buklodSafeArea';
+import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 
 /*
  * BUKLOD_MOBILE_WEB_SHELL_R3
  * BUKLOD_MOBILE_WEB_TOUCH_R5
- * Phone/small-browser web intentionally keeps the original BUKLOD mobile-web
- * layout: routed content plus the persistent bottom navigation. This is a web
- * component only and does not change the Android/iOS APK implementation.
+ * BUKLOD_PUBLIC_MINIMAL_NAV_R1
+ * Phone/small-browser web keeps the mobile layout, but PUBLIC no longer
+ * renders or reserves the old persistent bottom navigation pane. Managed
+ * Organization/Cluster behavior stays unchanged.
  * R5 is the deployment anchor for the dedicated web avatar drag and tolerant
  * web press target implementations.
  */
@@ -51,7 +53,10 @@ export default function BuklodMobileWebShell({
 }: {
   children: React.ReactNode;
 }) {
-  const navOccupied = useBuklodPersistentNavOccupiedHeight();
+  const rawNavOccupied = useBuklodPersistentNavOccupiedHeight();
+  const { activeScope } = useBuklodScope();
+  const publicMinimal = activeScope?.scope_type === 'PUBLIC';
+  const navOccupied = publicMinimal ? 0 : rawNavOccupied;
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const reserveMyBuklodSystemInsets = isMyBuklodDoorPath(pathname);
@@ -97,9 +102,11 @@ export default function BuklodMobileWebShell({
         {children}
       </View>
 
-      <View pointerEvents="box-none" style={styles.navOverlay}>
-        <BuklodPersistentBottomNav />
-      </View>
+      {!publicMinimal ? (
+        <View pointerEvents="box-none" style={styles.navOverlay}>
+          <BuklodPersistentBottomNav />
+        </View>
+      ) : null}
     </View>
   );
 }

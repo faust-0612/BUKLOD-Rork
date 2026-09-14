@@ -24,6 +24,7 @@ import {
 import {
   supabase,
 } from '@/lib/supabase';
+import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 
 /*
  * BUKLOD_WEB_RESPONSIVE_SPLIT_R3
@@ -32,11 +33,10 @@ import {
  * refresh token on web, clear only local cached auth/scope state and reload to
  * the clean login route. Server account/data are never deleted or modified.
  *
- * One Expo web build serves both phone browsers and desktop browsers.
- * Do not infer "web" as "desktop": small viewports keep the original
- * mobile-style BUKLOD layout, while desktop-sized viewports receive the
- * Facebook-style desktop shell. Android/iOS APK still resolve the native
- * BuklodNavSafeShell.tsx and are completely separate from this decision.
+ * BUKLOD_PUBLIC_MINIMAL_NAV_R1: PUBLIC always uses the minimal mobile-style
+ * shell at any web width, so the old desktop navigation pane is not rendered.
+ * Managed Organization/Cluster workspaces retain the existing responsive
+ * desktop shell behavior and are not changed by this public cleanup.
  *
  * BUKLOD_WEB_FOCUS_ADS_R1 keeps the Focus App ad inside both web layouts,
  * so phone-browser users and desktop-browser users are monetized consistently.
@@ -138,6 +138,8 @@ export default function BuklodNavSafeShell({
   useBuklodWebSessionSelfHeal();
 
   const { width } = useWindowDimensions();
+  const { activeScope } = useBuklodScope();
+  const publicMinimal = activeScope?.scope_type === 'PUBLIC';
 
   const content = (
     <>
@@ -148,7 +150,10 @@ export default function BuklodNavSafeShell({
     </>
   );
 
-  if (width < BUKLOD_DESKTOP_WEB_MIN_WIDTH) {
+  if (
+    publicMinimal ||
+    width < BUKLOD_DESKTOP_WEB_MIN_WIDTH
+  ) {
     return (
       <BuklodMobileWebShell>
         {content}
