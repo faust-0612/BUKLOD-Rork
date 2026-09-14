@@ -46,7 +46,7 @@ export default function IgpatRelayChainScreen() {
     } catch (loadError: any) {
       console.warn('BUKLOD IGPAT Relay chain:', String(loadError?.message ?? loadError));
       setRows([]);
-      setError('This Relay chain is not available yet. The IGPat server update may still need to be applied.');
+      setError('This Relay chain is not available yet. The IGPAT server update may still need to be applied.');
     } finally {
       setLoading(false);
     }
@@ -110,10 +110,20 @@ export default function IgpatRelayChainScreen() {
               <Text style={styles.tileTitle}>ARENA</Text>
               <Text style={styles.tileHint}>Intentional competition</Text>
             </Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel="Open IGPAT feed controls" style={styles.featureTile} onPress={() => router.push(`/igpat/options/${postId}` as any)}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Open IGPAT captions" style={styles.featureTile} onPress={() => router.push(`/igpat/captions/${postId}` as any)}>
+              <MaterialCommunityIcons name="closed-caption-outline" size={19} color="#FFFFFF" />
+              <Text style={styles.tileTitle}>CAPTIONS</Text>
+              <Text style={styles.tileHint}>Generate / review / view</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Open IGPAT feed controls" style={styles.featureTile} onPress={() => router.push(`/igpat/controls/${postId}` as any)}>
               <MaterialCommunityIcons name="tune-variant" size={19} color="#FFFFFF" />
               <Text style={styles.tileTitle}>FEED CONTROLS</Text>
               <Text style={styles.tileHint}>Tune / hide / report</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Open my IGPAT creator analytics" style={styles.featureTile} onPress={() => router.push('/igpat/analytics' as any)}>
+              <MaterialCommunityIcons name="chart-line" size={19} color="#FFFFFF" />
+              <Text style={styles.tileTitle}>ANALYTICS</Text>
+              <Text style={styles.tileHint}>My creator insights</Text>
             </Pressable>
           </View>
         </View>
