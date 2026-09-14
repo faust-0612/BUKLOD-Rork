@@ -33,7 +33,7 @@ import {
   type IgpatRotation,
 } from '@/lib/igpat/quickEdit';
 import { useIgpatQuickEditHistory } from '@/lib/igpat/useQuickEditHistory';
-import type { IgpatDraftSaveInput } from '@/lib/igpat/draftTypes';
+import type { IgpatCreationMode, IgpatDraftSaveInput } from '@/lib/igpat/draftTypes';
 import {
   clearNativeIgpatDraft,
   loadNativeIgpatDraft,
@@ -198,7 +198,6 @@ function TrimTimeline({
 
   const updateFromX = (x: number, target: 'start' | 'end' | 'scrub') => {
     const seconds = Math.max(0, Math.min(durationSeconds, (x / Math.max(1, width)) * durationSeconds));
-
     if (target === 'start') {
       const nextStart = Math.min(seconds, end - IGPAT_MIN_OUTPUT_SECONDS);
       const next = normalizeIgpatQuickEdit({ ...normalized, trimStartSeconds: nextStart }, durationSeconds);
@@ -206,7 +205,6 @@ function TrimTimeline({
       onSeek(next.trimStartSeconds);
       return;
     }
-
     if (target === 'end') {
       const nextEnd = Math.max(seconds, start + IGPAT_MIN_OUTPUT_SECONDS);
       const next = normalizeIgpatQuickEdit({ ...normalized, trimEndSeconds: nextEnd }, durationSeconds);
@@ -214,7 +212,6 @@ function TrimTimeline({
       onSeek(Number(next.trimEndSeconds ?? durationSeconds));
       return;
     }
-
     onSeek(Math.max(start, Math.min(end, seconds)));
   };
 
@@ -251,11 +248,7 @@ function TrimTimeline({
         <Text style={styles.timelineLabel}>TRIM · DRAG HANDLES OR SCRUB</Text>
         <Text style={styles.timelineTime}>{formatClock(start)} – {formatClock(end)}</Text>
       </View>
-      <View
-        style={styles.timelineTrack}
-        onLayout={event => setWidth(Math.max(1, event.nativeEvent.layout.width))}
-        {...responder.panHandlers}
-      >
+      <View style={styles.timelineTrack} onLayout={event => setWidth(Math.max(1, event.nativeEvent.layout.width))} {...responder.panHandlers}>
         {Array.from({ length: 12 }).map((_, index) => <View key={index} style={styles.timelineFrame} />)}
         <View pointerEvents="none" style={[styles.trimWindow, { left: pct(start), right: `${100 - pctNumber(end)}%` }]} />
         <View pointerEvents="none" style={[styles.trimHandle, styles.trimHandleStart, { left: pct(start) }]} />
@@ -275,6 +268,7 @@ export default function IgpatCreateScreen() {
   const { user, profile } = useAuth();
   const [draft, setDraft] = useState<IgpatDraft | null>(null);
   const [step, setStep] = useState<CreateStep>('source');
+  const [creationMode, setCreationMode] = useState<IgpatCreationMode>('standard');
   const [activeTool, setActiveTool] = useState<QuickEditTool>('Trim');
   const {
     edit,
@@ -304,6 +298,7 @@ export default function IgpatCreateScreen() {
   const mountedRef = useRef(true);
   const draftRecoveryUserRef = useRef<string | null>(null);
   const latestDraftSaveRef = useRef<IgpatDraftSaveInput | null>(null);
+  const pendingCreationModeRef = useRef<IgpatCreationMode>('standard');
 
   useEffect(() => () => {
     mountedRef.current = false;
@@ -320,7 +315,6 @@ export default function IgpatCreateScreen() {
       setGroupsLoading(false);
       return () => { cancelled = true; };
     }
-
     setGroupsLoading(true);
     void (supabase as any)
       .rpc('get_my_active_igpat_groups_v1')
@@ -340,11 +334,7 @@ export default function IgpatCreateScreen() {
             group_code: row.group_code ? String(row.group_code) : null,
           }));
         setGroups(options);
-        setGroupId(current =>
-          current && options.some(row => row.group_id === current)
-            ? current
-            : options[0]?.group_id ?? null
-        );
+        setGroupId(current => current && options.some(row => row.group_id === current) ? current : options[0]?.group_id ?? null);
         if (!profile?.church_id && options.length) setAudience('group');
       })
       .catch((error: any) => {
@@ -356,7 +346,6 @@ export default function IgpatCreateScreen() {
       .finally(() => {
         if (!cancelled) setGroupsLoading(false);
       });
-
     return () => { cancelled = true; };
   }, [profile?.church_id, user?.id]);
 
@@ -384,6 +373,7 @@ export default function IgpatCreateScreen() {
               text: 'CONTINUE EDITING',
               onPress: () => {
                 if (cancelled) return;
+                const restoredMode: IgpatCreationMode = snapshot.creationMode === 'quick-capture' ? 'quick-capture' : 'standard';
                 setDraft({
                   uri: snapshot.mediaUri,
                   persistedMediaUri: snapshot.mediaUri,
@@ -392,6 +382,8 @@ export default function IgpatCreateScreen() {
                   mimeType: snapshot.mimeType,
                   fileName: snapshot.fileName,
                 });
+                setCreationMode(restoredMode);
+                pendingCreationModeRef.current = restoredMode;
                 resetEditHistory(snapshot.edit, snapshot.durationSeconds);
                 setCaption(snapshot.caption);
                 setAudience(snapshot.audience);
@@ -399,7 +391,7 @@ export default function IgpatCreateScreen() {
                 setPreviewTime(snapshot.edit.trimStartSeconds);
                 setSeekSeconds(snapshot.edit.trimStartSeconds);
                 setActiveTool('Trim');
-                setStep('quick-edit');
+                setStep(restoredMode === 'quick-capture' ? 'preview' : 'quick-edit');
               },
             },
           ],
@@ -424,6 +416,7 @@ export default function IgpatCreateScreen() {
       caption,
       audience,
       groupId,
+      creationMode,
     };
     latestDraftSaveRef.current = input;
     const timer = setTimeout(() => {
@@ -432,7 +425,7 @@ export default function IgpatCreateScreen() {
       );
     }, DRAFT_AUTOSAVE_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [audience, caption, draft, edit, groupId, user?.id]);
+  }, [audience, caption, creationMode, draft, edit, groupId, user?.id]);
 
   const acceptVideo = async (asset: any) => {
     try {
@@ -454,9 +447,7 @@ export default function IgpatCreateScreen() {
         return;
       }
 
-      const sizeBytes = await readVideoSizeBytes(asset, async (uri, options) =>
-        FileSystem.getInfoAsync(uri, options as any)
-      );
+      const sizeBytes = await readVideoSizeBytes(asset, async (uri, options) => FileSystem.getInfoAsync(uri, options as any));
       const validationError = validateCommunityVideoUpload({ durationSeconds, sizeBytes, isReel: true });
       if (validationError) {
         Alert.alert('BUKLOD IGPAT', validationError);
@@ -464,11 +455,8 @@ export default function IgpatCreateScreen() {
       }
 
       const mimeType = inferMime(asset);
-      const durableUri = await prepareNativeIgpatDraftMedia({
-        userId: user.id,
-        sourceUri: asset.uri,
-        mimeType,
-      });
+      const mode = pendingCreationModeRef.current;
+      const durableUri = await prepareNativeIgpatDraftMedia({ userId: user.id, sourceUri: asset.uri, mimeType });
       const initialEdit = { ...DEFAULT_IGPAT_QUICK_EDIT, trimEndSeconds: durationSeconds };
       const baseDraft: IgpatDraftSaveInput = {
         userId: user.id,
@@ -481,6 +469,7 @@ export default function IgpatCreateScreen() {
         caption,
         audience,
         groupId,
+        creationMode: mode,
       };
       await saveNativeIgpatDraft(baseDraft);
       latestDraftSaveRef.current = baseDraft;
@@ -494,11 +483,13 @@ export default function IgpatCreateScreen() {
         mimeType,
         fileName: baseDraft.fileName,
       });
+      setCreationMode(mode);
       resetEditHistory(initialEdit, durationSeconds);
       setPreviewTime(0);
       setSeekSeconds(0);
       setActiveTool('Trim');
-      setStep('quick-edit');
+      setStep(mode === 'quick-capture' ? 'preview' : 'quick-edit');
+      pendingCreationModeRef.current = 'standard';
     } catch (error: any) {
       console.warn('BUKLOD IGPAT accept video:', String(error?.message ?? error));
       if (mountedRef.current) {
@@ -512,6 +503,8 @@ export default function IgpatCreateScreen() {
     latestDraftSaveRef.current = null;
     if (user?.id) void clearNativeIgpatDraft(user.id);
     setDraft(null);
+    setCreationMode('standard');
+    pendingCreationModeRef.current = 'standard';
     resetEditHistory({ ...DEFAULT_IGPAT_QUICK_EDIT });
     setPreviewTime(0);
     setSeekSeconds(null);
@@ -544,6 +537,7 @@ export default function IgpatCreateScreen() {
   };
 
   const chooseVideo = async () => {
+    pendingCreationModeRef.current = 'standard';
     if (!beginPicker()) return;
     try {
       const ImagePicker = await import('expo-image-picker');
@@ -562,7 +556,8 @@ export default function IgpatCreateScreen() {
     }
   };
 
-  const recordVideo = async () => {
+  const recordVideo = async (mode: IgpatCreationMode = 'standard') => {
+    pendingCreationModeRef.current = mode;
     if (!beginPicker()) return;
     try {
       const ImagePicker = await import('expo-image-picker');
@@ -658,7 +653,6 @@ export default function IgpatCreateScreen() {
   const renderToolPanel = () => {
     if (!draft) return null;
     const normalized = normalizeIgpatQuickEdit(edit, draft.durationSeconds);
-
     if (activeTool === 'Trim') {
       return (
         <TrimTimeline
@@ -675,7 +669,6 @@ export default function IgpatCreateScreen() {
         />
       );
     }
-
     if (activeTool === 'Text') {
       return (
         <View style={styles.editorPanel}>
@@ -695,7 +688,6 @@ export default function IgpatCreateScreen() {
         </View>
       );
     }
-
     if (activeTool === 'Audio') {
       return (
         <View style={styles.editorPanel}>
@@ -712,7 +704,6 @@ export default function IgpatCreateScreen() {
         </View>
       );
     }
-
     if (activeTool === 'Speed') {
       return (
         <View style={styles.editorPanel}>
@@ -730,7 +721,6 @@ export default function IgpatCreateScreen() {
         </View>
       );
     }
-
     if (activeTool === 'Cover') {
       return (
         <View style={styles.editorPanel}>
@@ -743,7 +733,6 @@ export default function IgpatCreateScreen() {
         </View>
       );
     }
-
     return (
       <View style={styles.editorPanel}>
         <Text style={styles.panelTitle}>FRAME & ORIENTATION</Text>
@@ -791,28 +780,10 @@ export default function IgpatCreateScreen() {
         <View style={styles.historyRow}>
           <Text style={styles.historyLabel}>EDIT HISTORY</Text>
           <View style={styles.historyActions}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Undo last IGPAT edit"
-              style={[styles.historyButton, !canUndo && styles.historyButtonDisabled]}
-              disabled={!canUndo || busy || pickerBusy}
-              onPress={() => {
-                undoEdit();
-                setSeekSeconds(null);
-              }}
-            >
+            <Pressable accessibilityRole="button" accessibilityLabel="Undo last IGPAT edit" style={[styles.historyButton, !canUndo && styles.historyButtonDisabled]} disabled={!canUndo || busy || pickerBusy} onPress={() => { undoEdit(); setSeekSeconds(null); }}>
               <Text style={[styles.historyButtonText, !canUndo && styles.historyButtonTextDisabled]}>UNDO</Text>
             </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Redo IGPAT edit"
-              style={[styles.historyButton, !canRedo && styles.historyButtonDisabled]}
-              disabled={!canRedo || busy || pickerBusy}
-              onPress={() => {
-                redoEdit();
-                setSeekSeconds(null);
-              }}
-            >
+            <Pressable accessibilityRole="button" accessibilityLabel="Redo IGPAT edit" style={[styles.historyButton, !canRedo && styles.historyButtonDisabled]} disabled={!canRedo || busy || pickerBusy} onPress={() => { redoEdit(); setSeekSeconds(null); }}>
               <Text style={[styles.historyButtonText, !canRedo && styles.historyButtonTextDisabled]}>REDO</Text>
             </Pressable>
           </View>
@@ -839,15 +810,21 @@ export default function IgpatCreateScreen() {
       <Text style={styles.subtitle}>Record or choose a short video, review it, then publish.</Text>
 
       {!draft || step === 'source' ? (
-        <View style={styles.sourceRow}>
-          <Pressable style={[styles.sourceButton, pickerBusy && styles.sourceButtonDisabled]} onPress={() => void recordVideo()} disabled={busy || pickerBusy}>
-            {pickerBusy ? <ActivityIndicator color="#FFFFFF" /> : null}
-            <Text style={styles.sourceTitle}>RECORD</Text>
-            <Text style={styles.sourceCopy}>{pickerBusy ? 'Opening…' : 'Use camera'}</Text>
-          </Pressable>
-          <Pressable style={[styles.sourceButton, pickerBusy && styles.sourceButtonDisabled]} onPress={() => void chooseVideo()} disabled={busy || pickerBusy}>
-            <Text style={styles.sourceTitle}>SELECT</Text>
-            <Text style={styles.sourceCopy}>From device</Text>
+        <View>
+          <View style={styles.sourceRow}>
+            <Pressable style={[styles.sourceButton, pickerBusy && styles.sourceButtonDisabled]} onPress={() => void recordVideo('standard')} disabled={busy || pickerBusy}>
+              {pickerBusy ? <ActivityIndicator color="#FFFFFF" /> : null}
+              <Text style={styles.sourceTitle}>RECORD</Text>
+              <Text style={styles.sourceCopy}>{pickerBusy ? 'Opening…' : 'Record then edit'}</Text>
+            </Pressable>
+            <Pressable style={[styles.sourceButton, pickerBusy && styles.sourceButtonDisabled]} onPress={() => void chooseVideo()} disabled={busy || pickerBusy}>
+              <Text style={styles.sourceTitle}>SELECT</Text>
+              <Text style={styles.sourceCopy}>From device</Text>
+            </Pressable>
+          </View>
+          <Pressable style={[styles.quickCaptureButton, pickerBusy && styles.sourceButtonDisabled]} onPress={() => void recordVideo('quick-capture')} disabled={busy || pickerBusy}>
+            <Text style={styles.quickCaptureTitle}>QUICK CAPTURE</Text>
+            <Text style={styles.quickCaptureCopy}>Record → preview → caption → post. No edit required.</Text>
           </Pressable>
         </View>
       ) : step === 'quick-edit' ? (
@@ -876,16 +853,22 @@ export default function IgpatCreateScreen() {
         </View>
       ) : step === 'preview' ? (
         <View>
-          <Text style={styles.stepTitle}>PREVIEW</Text>
-          <Text style={styles.stepCopy}>Watch the edited IGPAT before adding its caption and audience.</Text>
+          <Text style={styles.stepTitle}>{creationMode === 'quick-capture' ? 'QUICK CAPTURE PREVIEW' : 'PREVIEW'}</Text>
+          <Text style={styles.stepCopy}>
+            {creationMode === 'quick-capture'
+              ? 'Check the recording, then continue straight to caption and audience.'
+              : 'Watch the edited IGPAT before adding its caption and audience.'}
+          </Text>
           {renderDraftPreview()}
           <View style={styles.actionStack}>
             <Pressable style={styles.primaryAction} onPress={() => setStep('details')} disabled={busy || pickerBusy}>
               <Text style={styles.primaryActionText}>CONTINUE</Text>
             </Pressable>
-            <Pressable style={styles.secondaryAction} onPress={() => setStep('quick-edit')} disabled={busy || pickerBusy}>
-              <Text style={styles.secondaryActionText}>BACK TO QUICK EDIT</Text>
-            </Pressable>
+            {creationMode === 'standard' ? (
+              <Pressable style={styles.secondaryAction} onPress={() => setStep('quick-edit')} disabled={busy || pickerBusy}>
+                <Text style={styles.secondaryActionText}>BACK TO QUICK EDIT</Text>
+              </Pressable>
+            ) : null}
           </View>
         </View>
       ) : (
@@ -908,16 +891,11 @@ export default function IgpatCreateScreen() {
             {(['public', 'local', 'group'] as Audience[]).map(value => {
               const disabled = value === 'group' ? groupsLoading || !groups.length : !profile?.church_id;
               return (
-                <Pressable
-                  key={value}
-                  style={[styles.audienceButton, audience === value && styles.audienceSelected, disabled && styles.audienceDisabled]}
-                  onPress={() => {
-                    if (disabled) return;
-                    setAudience(value);
-                    if (value === 'group' && !groupId) setGroupId(groups[0]?.group_id ?? null);
-                  }}
-                  disabled={busy || pickerBusy || disabled}
-                >
+                <Pressable key={value} style={[styles.audienceButton, audience === value && styles.audienceSelected, disabled && styles.audienceDisabled]} onPress={() => {
+                  if (disabled) return;
+                  setAudience(value);
+                  if (value === 'group' && !groupId) setGroupId(groups[0]?.group_id ?? null);
+                }} disabled={busy || pickerBusy || disabled}>
                   <Text style={[styles.audienceText, audience === value && styles.audienceSelectedText]}>{value === 'group' ? 'CLUSTER' : value.toUpperCase()}</Text>
                 </Pressable>
               );
@@ -970,6 +948,9 @@ const styles = StyleSheet.create({
   sourceButtonDisabled: { opacity: 0.58 },
   sourceTitle: { color: '#FFFFFF', fontSize: 14, fontWeight: '900', letterSpacing: 1 },
   sourceCopy: { marginTop: 5, color: 'rgba(255,255,255,0.48)', fontSize: 10 },
+  quickCaptureButton: { marginTop: 12, minHeight: 64, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(217,255,105,0.38)', backgroundColor: '#11170D', paddingHorizontal: 16, alignItems: 'flex-start', justifyContent: 'center' },
+  quickCaptureTitle: { color: '#D9FF69', fontSize: 12, fontWeight: '900', letterSpacing: 1 },
+  quickCaptureCopy: { marginTop: 4, color: 'rgba(255,255,255,0.58)', fontSize: 9.5 },
   previewCard: { marginTop: 18, overflow: 'hidden', borderRadius: 22, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: '#0C110E' },
   previewStage: { width: '100%', height: 420, backgroundColor: '#000000', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   preview: { width: '100%', height: 420, backgroundColor: '#000000' },
