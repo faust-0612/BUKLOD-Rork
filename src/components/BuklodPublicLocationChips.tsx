@@ -14,6 +14,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import BuklodCommunityHelp from '@/components/BuklodCommunityHelp';
+import BuklodEmergencyAlertModeCard from '@/components/BuklodEmergencyAlertModeCard';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import { colors } from '@/lib/theme';
 
@@ -47,6 +48,7 @@ export default function BuklodPublicLocationChips({selectedScopeId,onChange}:Pro
 
   return <View>
     <BuklodCommunityHelp />
+    <BuklodEmergencyAlertModeCard />
 
     <ScrollView
       horizontal
