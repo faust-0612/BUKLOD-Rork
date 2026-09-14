@@ -8,6 +8,7 @@ import {
 } from './draftTypes';
 
 const DRAFT_KEY_PREFIX = '@buklod_igpat_draft_v1:';
+const userQueues = new Map<string, Promise<unknown>>();
 
 function safeUserId(userId: string): string {
   return userId.replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -28,6 +29,16 @@ function extensionForMime(mimeType: string): string {
   if (mimeType === 'video/quicktime') return 'mov';
   if (mimeType === 'video/webm') return 'webm';
   return 'mp4';
+}
+
+function enqueueForUser<T>(userId: string, task: () => Promise<T>): Promise<T> {
+  const previous = userQueues.get(userId) ?? Promise.resolve();
+  const next = previous.catch(() => undefined).then(task);
+  userQueues.set(userId, next);
+  void next.finally(() => {
+    if (userQueues.get(userId) === next) userQueues.delete(userId);
+  }).catch(() => undefined);
+  return next;
 }
 
 async function readMetadata(userId: string): Promise<IgpatDraftSnapshot | null> {
@@ -60,23 +71,31 @@ export async function prepareNativeIgpatDraftMedia({
   return target;
 }
 
-export async function saveNativeIgpatDraft(
+export function saveNativeIgpatDraft(
   input: IgpatDraftSaveInput
 ): Promise<IgpatDraftSnapshot> {
-  const previous = await readMetadata(input.userId);
-  const snapshot = buildIgpatDraftSnapshot(input);
-  await AsyncStorage.setItem(metadataKey(input.userId), JSON.stringify(snapshot));
+  return enqueueForUser(input.userId, async () => {
+    const info = await FileSystem.getInfoAsync(input.mediaUri);
+    if (!info.exists) {
+      throw new Error('The saved IGPAT draft video is no longer available.');
+    }
 
-  if (previous?.mediaUri && previous.mediaUri !== snapshot.mediaUri) {
-    await FileSystem.deleteAsync(previous.mediaUri, { idempotent: true }).catch(() => undefined);
-  }
+    const previous = await readMetadata(input.userId);
+    const snapshot = buildIgpatDraftSnapshot(input);
+    await AsyncStorage.setItem(metadataKey(input.userId), JSON.stringify(snapshot));
 
-  return snapshot;
+    if (previous?.mediaUri && previous.mediaUri !== snapshot.mediaUri) {
+      await FileSystem.deleteAsync(previous.mediaUri, { idempotent: true }).catch(() => undefined);
+    }
+
+    return snapshot;
+  });
 }
 
 export async function loadNativeIgpatDraft(
   userId: string
 ): Promise<IgpatDraftSnapshot | null> {
+  await (userQueues.get(userId) ?? Promise.resolve()).catch(() => undefined);
   const snapshot = await readMetadata(userId);
   if (!snapshot) return null;
 
@@ -92,11 +111,13 @@ export async function loadNativeIgpatDraft(
   }
 }
 
-export async function clearNativeIgpatDraft(userId: string): Promise<void> {
-  await AsyncStorage.removeItem(metadataKey(userId));
-  try {
-    await FileSystem.deleteAsync(draftDirectory(userId), { idempotent: true });
-  } catch {
-    // Draft metadata is already removed; stale media cleanup can safely retry later.
-  }
+export function clearNativeIgpatDraft(userId: string): Promise<void> {
+  return enqueueForUser(userId, async () => {
+    await AsyncStorage.removeItem(metadataKey(userId));
+    try {
+      await FileSystem.deleteAsync(draftDirectory(userId), { idempotent: true });
+    } catch {
+      // Draft metadata is already removed; stale media cleanup can safely retry later.
+    }
+  });
 }
