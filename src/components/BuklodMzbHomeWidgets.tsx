@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -9,6 +10,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import MzbRandomWallPhoto from '@/components/MzbRandomWallPhoto';
+import { BUKLOD_REPORT_ICON_URI } from '@/lib/buklodReportBranding';
 import { buklodReportLandingPath } from '@/lib/buklodReportRoutes';
 import type { BuklodScope } from '@/lib/buklodScope';
 import { useBuklodAccess } from '@/hooks/useBuklodAccess';
@@ -66,9 +68,7 @@ export default function BuklodMzbHomeWidgets({
         <View style={styles.card}>
           <Text style={styles.cardTitle}>MZB ADMIN TOOLS</Text>
           <View style={styles.linkRow}>
-            <FaithLink
-              icon="file-upload-outline"
-              label="BUKLOD Report"
+            <ReportLogoLink
               onPress={() =>
                 router.push(buklodReportLandingPath(scope.scope_id) as any)
               }
@@ -155,6 +155,26 @@ export default function BuklodMzbHomeWidgets({
   );
 }
 
+function ReportLogoLink({ onPress }: { onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Open BUKLOD Report"
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.reportLogoButton,
+        pressed && styles.pressed,
+      ]}
+    >
+      <Image
+        source={{ uri: BUKLOD_REPORT_ICON_URI }}
+        resizeMode="cover"
+        style={styles.reportLogo}
+      />
+    </Pressable>
+  );
+}
+
 function FaithLink({
   icon,
   label,
@@ -223,7 +243,21 @@ const styles = StyleSheet.create({
   linkRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    alignItems: 'center',
     gap: 8,
+  },
+  reportLogoButton: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#DCE5E0',
+    backgroundColor: '#F8FBF9',
+    overflow: 'hidden',
+  },
+  reportLogo: {
+    width: '100%',
+    height: '100%',
   },
   link: {
     flexDirection: 'row',
