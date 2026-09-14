@@ -21,6 +21,7 @@ type Props = {
   scopeName: string;
   scopeType: string;
   compact?: boolean;
+  iconOnly?: boolean;
 };
 
 export default function BuklodReportDoorCard({
@@ -28,6 +29,7 @@ export default function BuklodReportDoorCard({
   scopeName,
   scopeType,
   compact = false,
+  iconOnly = false,
 }: Props) {
   const [loading, setLoading] = useState(false);
   const [opening, setOpening] = useState(false);
@@ -93,44 +95,62 @@ export default function BuklodReportDoorCard({
       style={({ pressed }) => [
         styles.card,
         compact && styles.cardCompact,
+        iconOnly && styles.logoButton,
         pressed && styles.pressed,
         opening && styles.disabled,
       ]}
     >
-      <View style={styles.iconWrap}>
-        <Image
-          source={{ uri: BUKLOD_REPORT_ICON_URI }}
-          resizeMode="cover"
-          style={styles.icon}
-        />
-      </View>
-
-      <View style={styles.copy}>
-        <View style={styles.titleRow}>
-          <Text style={styles.eyebrow}>BUKLOD FOCUS APP</Text>
-          {loading || opening ? (
-            <ActivityIndicator size="small" color={colors.greenDark} />
-          ) : pendingCount > 0 ? (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{pendingCount} DUE</Text>
+      {iconOnly ? (
+        <View style={styles.logoOnlyWrap}>
+          <Image
+            source={{ uri: BUKLOD_REPORT_ICON_URI }}
+            resizeMode="cover"
+            style={styles.logoOnlyIcon}
+          />
+          {opening ? (
+            <View style={styles.logoOnlyLoading}>
+              <ActivityIndicator size="small" color={colors.greenDark} />
             </View>
           ) : null}
         </View>
-        <Text style={styles.title}>BUKLOD Report</Text>
-        <Text style={styles.subtitle} numberOfLines={3}>
-          Report, monitor and follow up for {scopeName}. Your selected
-          {` ${scopeType.toLowerCase()} `}scope opens in the standalone Report app.
-          Sign-in may be required on first open.
-        </Text>
-        <View style={styles.openRow}>
-          <Text style={styles.openText}>{opening ? 'OPENING…' : 'OPEN REPORT'}</Text>
-          <MaterialCommunityIcons
-            name="arrow-right"
-            size={16}
-            color={colors.greenDark}
-          />
-        </View>
-      </View>
+      ) : (
+        <>
+          <View style={styles.iconWrap}>
+            <Image
+              source={{ uri: BUKLOD_REPORT_ICON_URI }}
+              resizeMode="cover"
+              style={styles.icon}
+            />
+          </View>
+
+          <View style={styles.copy}>
+            <View style={styles.titleRow}>
+              <Text style={styles.eyebrow}>BUKLOD FOCUS APP</Text>
+              {loading || opening ? (
+                <ActivityIndicator size="small" color={colors.greenDark} />
+              ) : pendingCount > 0 ? (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{pendingCount} DUE</Text>
+                </View>
+              ) : null}
+            </View>
+            <Text style={styles.title}>BUKLOD Report</Text>
+            <Text style={styles.subtitle} numberOfLines={3}>
+              Report, monitor and follow up for {scopeName}. Your selected
+              {` ${scopeType.toLowerCase()} `}scope opens in the standalone Report app.
+              Sign-in may be required on first open.
+            </Text>
+            <View style={styles.openRow}>
+              <Text style={styles.openText}>{opening ? 'OPENING…' : 'OPEN REPORT'}</Text>
+              <MaterialCommunityIcons
+                name="arrow-right"
+                size={16}
+                color={colors.greenDark}
+              />
+            </View>
+          </View>
+        </>
+      )}
     </Pressable>
   );
 }
@@ -153,6 +173,33 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 2,
     minHeight: 96,
+  },
+  logoButton: {
+    width: 64,
+    height: 64,
+    minHeight: 64,
+    marginHorizontal: 12,
+    marginTop: 10,
+    marginBottom: 2,
+    padding: 0,
+    borderRadius: 16,
+    alignSelf: 'flex-start',
+    overflow: 'hidden',
+  },
+  logoOnlyWrap: {
+    width: '100%',
+    height: '100%',
+    position: 'relative',
+  },
+  logoOnlyIcon: {
+    width: '100%',
+    height: '100%',
+  },
+  logoOnlyLoading: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.72)',
   },
   iconWrap: {
     width: 66,
