@@ -96,6 +96,48 @@ jobs:
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
+      - name: Expo credential preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          npx eas-cli@latest whoami --non-interactive >/dev/null
+          echo 'Expo authentication: READY'
+
+      - name: Pull and persist EAS production public environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .env.local
+          npx eas-cli@latest env:pull --environment production --path .env.local --non-interactive
+          test -s .env.local
+          set -a
+          . ./.env.local
+          set +a
+          test -n "${EXPO_PUBLIC_SUPABASE_URL:-}"
+          test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}"
+
+          EXPECTED_MAIN_URL='https://yhanxndaqbmuzbdqlblu.supabase.co'
+          if [ "$EXPO_PUBLIC_SUPABASE_URL" != "$EXPECTED_MAIN_URL" ]; then
+            echo 'STOP: EAS production Supabase URL is not the protected BUKLOD Connect/Main project.'
+            exit 1
+          fi
+
+          while IFS='=' read -r name _; do
+            case "$name" in
+              EXPO_PUBLIC_*)
+                value="${!name-}"
+                {
+                  echo "${name}<<__BUKLOD_ENV__"
+                  printf '%s\n' "$value"
+                  echo '__BUKLOD_ENV__'
+                } >> "$GITHUB_ENV"
+                ;;
+            esac
+          done < <(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env.local)
+
+          echo 'Protected BUKLOD Main production public environment: READY'
+
       - name: Apply web Community Post hotfix
         run: node scripts/patch-web-community-post.cjs
 
@@ -214,23 +256,38 @@ jobs:
           grep -F 'BUKLOD_5K_SCALE_R1_PRAYER_NO_CDC' 'src/app/(tabs)/prayer.tsx'
           grep -F 'BUKLOD 5K SCALE HARDENING R1' 'supabase/migrations/20260904131000_buklod_5k_scale_hardening_r1.sql'
 
-      - name: Expo credential preflight
+      - name: Export production web with production environment
         shell: bash
+        env:
+          NODE_ENV: production
+          EXPO_PUBLIC_APP_ENV: production
         run: |
-          if [ -z "${EXPO_TOKEN:-}" ]; then
-            echo 'EXPO_TOKEN repository secret is missing.'
-            exit 1
-          fi
+          set -euo pipefail
+          test -n "${EXPO_PUBLIC_SUPABASE_URL:-}"
+          test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}"
+          test "$EXPO_PUBLIC_SUPABASE_URL" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
+          rm -rf dist
+          npx expo export --platform web --output-dir dist
+          test -s dist/index.html
 
-      - name: Export production web
-        run: npx expo export --platform web --output-dir dist
+          SUPABASE_HOST="$(printf '%s' "$EXPO_PUBLIC_SUPABASE_URL" | sed -E 's#https?://([^/]+).*#\1#')"
+          grep -RFl --include='*.js' "$SUPABASE_HOST" dist/_expo/static/js/web >/dev/null || {
+            echo 'WEB EXPORT FAILED: production Supabase host was not embedded in JavaScript.'
+            exit 1
+          }
+          echo 'Production Supabase runtime config embedded in web bundle: VERIFIED'
 
       - name: Deploy production web
         id: deploy
         shell: bash
+        env:
+          NODE_ENV: production
+          EXPO_PUBLIC_APP_ENV: production
         run: |
-          set -o pipefail
-          npx eas-cli@latest deploy --prod --non-interactive 2>&1 | tee deploy-output.txt
+          set -euo pipefail
+          test -n "${EXPO_PUBLIC_SUPABASE_URL:-}"
+          test "$EXPO_PUBLIC_SUPABASE_URL" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
+          npx eas-cli@latest deploy --prod --environment production --non-interactive 2>&1 | tee deploy-output.txt
 
       - name: Preserve deploy result
         if: always()
