@@ -47,7 +47,10 @@ try {
   Write-Host "HEAD   : $head"
 
   Step '2/7 INSTALL EXACT LOCKFILE DEPENDENCIES'
-  & npm ci --ignore-scripts
+  # Use the CMD shims explicitly. Newer npm PowerShell shims inspect
+  # $MyInvocation.Statement, which is not present in Windows PowerShell 5.1
+  # under StrictMode and fails before npm itself can run.
+  & npm.cmd ci --ignore-scripts
   if ($LASTEXITCODE -ne 0) { Fail 'npm ci failed.' }
 
   Step '3/7 VERIFY LOCKED R1 COMMUNITY HELP / SOS CONTRACT'
@@ -59,14 +62,14 @@ try {
   if ($LASTEXITCODE -ne 0) { Fail 'R2 emergency alert contract failed.' }
 
   Step '5/7 TYPESCRIPT QA'
-  & npx tsc --noEmit
+  & npx.cmd tsc --noEmit
   if ($LASTEXITCODE -ne 0) { Fail 'TypeScript QA failed.' }
 
   Step '6/7 ANDROID EXPO EXPORT — NO EAS BUILD / NO PUBLISH'
   if (Test-Path -LiteralPath $ExportDir) {
     Remove-Item -LiteralPath $ExportDir -Recurse -Force
   }
-  & npx expo export --platform android --output-dir $ExportDir
+  & npx.cmd expo export --platform android --output-dir $ExportDir
   if ($LASTEXITCODE -ne 0) { Fail 'Android Expo export failed.' }
   if (!(Test-Path -LiteralPath $ExportDir -PathType Container)) {
     Fail 'Android Expo export directory was not created.'
