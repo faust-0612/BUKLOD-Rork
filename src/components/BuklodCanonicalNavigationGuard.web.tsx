@@ -58,15 +58,15 @@ function normalizeSection(
 function publicRouteFor(
   section: CanonicalSection
 ) {
-  if (section === 'community') {
-    return '/buklod';
-  }
-
   if (section === 'connect') {
     return '/connect';
   }
 
-  return '/home';
+  /*
+   * BUKLOD_PUBLIC_COMMUNITY_ROOT_R24
+   * Retired Public Home and Community both resolve to Community Wall.
+   */
+  return '/buklod';
 }
 
 export default function
@@ -109,15 +109,15 @@ BuklodCanonicalNavigationGuard() {
       normalized.startsWith('/scope/buklod-lesson');
 
     /*
-     * BUKLOD_WEB_SCOPE_BOOT_R22
+     * BUKLOD_WEB_SCOPE_BOOT_R24
      *
      * A browser refresh/history autocomplete may reopen an old canonical
      * /scope?section=...&scopeId=... URL directly. That bypasses app/index.tsx,
      * so the normal PUBLIC boot reset never gets a chance to run.
      *
      * On the FIRST settled browser route only, a plain scoped workspace is
-     * treated as stale navigation state: restore PUBLIC and enter personal
-     * Connect. Exact-scope utilities are preserved.
+     * treated as stale navigation state: restore PUBLIC and enter the
+     * canonical Community Wall. Exact-scope utilities are preserved.
      *
      * Later in-app navigation to /scope is untouched because this guard has
      * already completed its initial-route pass.
@@ -160,7 +160,7 @@ BuklodCanonicalNavigationGuard() {
             }
 
             router.replace(
-              '/messages' as any
+              '/buklod' as any
             );
           })();
 
