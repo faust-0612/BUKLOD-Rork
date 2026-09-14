@@ -109,6 +109,9 @@ export function useIgpatQuickEditHistory(durationSeconds?: number | null) {
 
   const updateTransaction = useCallback(
     (next: IgpatQuickEditState) => {
+      if (!transactionBaseRef.current) {
+        transactionBaseRef.current = presentRef.current;
+      }
       updateHistory(current => ({
         ...current,
         present: normalize(next),
