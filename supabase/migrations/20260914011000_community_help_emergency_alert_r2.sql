@@ -41,12 +41,18 @@ begin
 
   -- ACKNOWLEDGED only confirms receipt/opening of an alert. It does not claim
   -- that the responder is still physically inside the radius, so no fresh
-  -- location is required for this one response type.
+  -- location is required for this one response type. Never downgrade a stronger
+  -- responder commitment just because the notification is tapped again later.
   if v_type='ACKNOWLEDGED' then
     insert into public.buklod_help_responses(request_id,responder_id,response_type,created_at,updated_at)
     values(p_request_id,auth.uid(),v_type,now(),now())
     on conflict(request_id,responder_id) do update
-      set response_type=excluded.response_type,updated_at=now();
+      set response_type=case
+            when public.buklod_help_responses.response_type in ('CAN_HELP','ON_MY_WAY','CONFIRM_INCIDENT','CANNOT_HELP','FALSE_ALERT')
+              then public.buklod_help_responses.response_type
+            else excluded.response_type
+          end,
+          updated_at=now();
     return;
   end if;
 
@@ -90,7 +96,6 @@ begin
       d.user_id,
       d.distance_km,
       r.category,
-      r.message,
       case
         when d.created_at <= now() - interval '5 minutes' then 2
         else 1
