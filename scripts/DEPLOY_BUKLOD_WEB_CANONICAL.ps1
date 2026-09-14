@@ -93,6 +93,15 @@ if ($LASTEXITCODE -ne 0) {
   Fail 'Community Help / Emergency SOS locked baseline contract failed.'
 }
 
+$emergencyAlertR2Contract = Join-Path $CurrentRoot 'scripts\community-help-emergency-alert-r2-contract.mjs'
+if (!(Test-Path -LiteralPath $emergencyAlertR2Contract -PathType Leaf)) {
+  Fail 'Emergency Alert Mode R2 release contract is missing.'
+}
+& node $emergencyAlertR2Contract
+if ($LASTEXITCODE -ne 0) {
+  Fail 'Emergency Alert Mode R2 contract failed.'
+}
+
 $implementation = Join-Path $CurrentRoot 'scripts\DEPLOY_GAMES_WEB_DIRECT.ps1'
 $recoveryScript = Join-Path $CurrentRoot 'scripts\RESTORE_CANONICAL_R31_R40.ps1'
 if (!(Test-Path -LiteralPath $implementation -PathType Leaf)) {
