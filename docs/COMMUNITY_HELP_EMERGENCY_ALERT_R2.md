@@ -15,11 +15,23 @@ Make a legitimate nearby Emergency SOS materially harder to miss without pretend
 - Strong vibration pattern.
 - Alarm audio usage / sonification attributes.
 - Emergency notification category with explicit ACKNOWLEDGE action.
-- Remote `community_emergency` pushes use the emergency channel only; all other BUKLOD notifications remain on `buklod-activity-v2`.
 - Emergency pushes use high priority, 10-minute TTL, collapse/tag identity per SOS, and iOS `time-sensitive` interruption level.
 - Safe local `TEST THIS PHONE` path never creates an SOS or notifies another user.
 - Tapping/acknowledging an Emergency SOS records `ACKNOWLEDGED` without weakening stronger responder states.
 - Two bounded reminder opportunities for delivered-but-unacknowledged active emergencies: after about 2 minutes and about 5 minutes. Reminders are idempotent and stop after any response.
+
+## Capability-safe rollout
+
+Android must not receive a push for a notification channel that does not yet exist on that device. R2 therefore uses per-device capability registration instead of switching all tokens at once.
+
+- Existing device-token rows default to `emergency_alert_mode_version = 1`.
+- After an R2 client successfully creates the emergency channel/category, it calls the authenticated `mark_device_emergency_alert_mode_r2` RPC for that exact Expo token.
+- An Android token is routed to `buklod-emergency-v1` only when its capability is version 2 or newer.
+- Older/unopened Android clients continue receiving Emergency SOS through the proven `buklod-activity-v2` channel.
+- iOS Emergency SOS uses Time Sensitive delivery even during rollout; notification actions are attached only after R2 category capability is registered.
+- All non-emergency BUKLOD notifications remain on the existing activity path.
+
+This fallback is a release invariant: OTA adoption must never create a period where an Emergency SOS disappears because the recipient has not opened the updated app yet.
 
 ## Native DND layer
 
