@@ -51,11 +51,12 @@ function Load-DotEnv([string]$Path) {
 
 Set-Location -LiteralPath $Root
 
-Step 'BUKLOD MAIN — WEB-ONLY WHITE-SCREEN RECOVERY'
+Step 'BUKLOD MAIN — MANUAL WEB-ONLY PRODUCTION RELEASE'
 Write-Host "Target: $ExpectedProductionUrl"
+Write-Host 'Character source overlay/recovery: FORBIDDEN'
 Write-Host 'Android OTA: FORBIDDEN'
 Write-Host 'EAS Build / APK / AAB: FORBIDDEN'
-Write-Host 'Scope: production web export + production web deploy only'
+Write-Host 'Scope: tracked current-main source -> QA -> production web export -> manual production web deploy only'
 
 if (Test-Path -LiteralPath $Dist) {
     Remove-Item -LiteralPath $Dist -Recurse -Force
@@ -66,6 +67,8 @@ try {
     if (-not $Git) { $Git = Get-Command git -ErrorAction Stop }
     $Npx = Get-Command npx.cmd -ErrorAction SilentlyContinue
     if (-not $Npx) { $Npx = Get-Command npx -ErrorAction Stop }
+    $Npm = Get-Command npm.cmd -ErrorAction SilentlyContinue
+    if (-not $Npm) { $Npm = Get-Command npm -ErrorAction Stop }
 
     Step 'VERIFY CURRENT MAIN'
     & $Git.Source fetch origin main
@@ -76,6 +79,10 @@ try {
         throw "Checkout is not current origin/main. HEAD=$Head origin/main=$Remote"
     }
     Write-Host "PASS: current main $Head" -ForegroundColor Green
+
+    Run 'VERIFY EXACT LOCKED R31/R40 CHARACTER SOURCE' {
+        & $Npm.Source 'run' 'character:contract'
+    }
 
     Run 'VERIFY EXPO AUTHENTICATION' {
         & $Npx.Source 'eas-cli@latest' 'whoami' '--non-interactive'
@@ -120,7 +127,7 @@ try {
     }
 
     Step 'FRESH PRODUCTION WEB EXPORT'
-    & $Npx.Source 'expo' 'export' '--platform' 'web' '--output-dir' 'dist-main-web-recovery'
+    & $Npx.Source 'expo' 'export' '--platform' 'web' '--output-dir' 'dist-main-web-recovery' '--clear'
     if ($LASTEXITCODE -ne 0) {
         throw 'Expo web export failed.'
     }
@@ -148,24 +155,29 @@ try {
     }
     Write-Host 'PASS: production Supabase runtime config is embedded in web bundle.' -ForegroundColor Green
 
+    Run 'VERIFY LOCKED R31/R40 INSIDE COMPILED WEB BUNDLE' {
+        & $Npx.Source 'node' 'scripts/character-release-contract.mjs' '--dist' 'dist-main-web-recovery'
+    }
+
     Run 'DEPLOY MAIN WEB TO PRODUCTION' {
         & $Npx.Source 'eas-cli@latest' 'deploy' '--export-dir' 'dist-main-web-recovery' '--prod' '--environment' 'production' '--non-interactive'
     }
 
-    Step 'WEB-ONLY RECOVERY COMPLETE'
+    Step 'WEB-ONLY RELEASE COMPLETE'
     Write-Host "WEB: $ExpectedProductionUrl" -ForegroundColor Green
+    Write-Host 'Character overlay/recovery: NOT RUN' -ForegroundColor Green
     Write-Host 'Android OTA: NOT RUN' -ForegroundColor Green
     Write-Host 'EAS Build/APK/AAB: NOT RUN' -ForegroundColor Green
-    Write-Host 'Refresh the browser with Ctrl+F5 and verify login/home.'
+    Write-Host 'Refresh the browser with Ctrl+F5 and verify Character + login/home.'
 }
 catch {
     Write-Host ''
     Write-Host "STOPPED SAFELY: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host 'No Android OTA or native build was triggered.' -ForegroundColor Yellow
+    Write-Host 'No Character recovery overlay, Android OTA, or native build was triggered.' -ForegroundColor Yellow
     exit 1
 }
 finally {
     if (Test-Path -LiteralPath $Dist) {
-        Write-Host "Recovery export kept at: $Dist" -ForegroundColor DarkGray
+        Write-Host "Web export kept at: $Dist" -ForegroundColor DarkGray
     }
 }
