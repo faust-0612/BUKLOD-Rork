@@ -36,6 +36,13 @@ type IgpatRow = {
 };
 
 type FeedMode = 'for-you' | 'following' | 'latest';
+type PulseKey = 'inspired' | 'amen' | 'happy' | 'curious' | 'support' | 'pray';
+type PulseOption = {
+  key: PulseKey;
+  label: string;
+  storedReaction: 'love' | 'amen' | 'haha' | 'with_you' | 'care' | 'praying';
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+};
 
 const NORMAL_LIMIT = 16;
 const DATA_SAVER_LIMIT = 8;
@@ -43,6 +50,19 @@ const SIGNED_URL_TTL_SECONDS = 1200;
 const SIGN_CONCURRENCY = 4;
 const DATA_SAVER_KEY = '@buklod_igpat_data_saver_v1';
 const SAVED_IGPAT_KEY = '@buklod_igpat_saved_ids_v1';
+const PULSE_OPTIONS: PulseOption[] = [
+  { key: 'inspired', label: 'Inspired', storedReaction: 'love', icon: 'lightbulb-outline' },
+  { key: 'amen', label: 'Amen', storedReaction: 'amen', icon: 'check-circle-outline' },
+  { key: 'happy', label: 'Happy', storedReaction: 'haha', icon: 'emoticon-happy-outline' },
+  { key: 'curious', label: 'Curious', storedReaction: 'with_you', icon: 'help-circle-outline' },
+  { key: 'support', label: 'Support', storedReaction: 'care', icon: 'hand-heart' },
+  { key: 'pray', label: 'Pray', storedReaction: 'praying', icon: 'hands-pray' },
+];
+
+function pulseOptionForStoredReaction(reaction?: string | null): PulseOption | null {
+  if (!reaction) return null;
+  return PULSE_OPTIONS.find(option => option.storedReaction === reaction) ?? null;
+}
 
 async function mapWithConcurrency<T, R>(
   values: T[],
@@ -193,18 +213,22 @@ function ActionButton({
   active = false,
   count,
   onPress,
+  onLongPress,
 }: {
   icon: keyof typeof MaterialCommunityIcons.glyphMap;
   label: string;
   active?: boolean;
   count?: number | null;
   onPress: () => void;
+  onLongPress?: () => void;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={280}
       style={({ pressed }) => [styles.actionButton, pressed && styles.actionPressed]}
     >
       <View style={[styles.actionOrb, active && styles.actionOrbActive]}>
@@ -235,6 +259,7 @@ export default function IgpatScreen() {
   const [followedIds, setFollowedIds] = useState<Set<string>>(new Set());
   const [followBusy, setFollowBusy] = useState<Set<string>>(new Set());
   const [reactionBusy, setReactionBusy] = useState<Set<string>>(new Set());
+  const [pulsePickerPostId, setPulsePickerPostId] = useState<string | null>(null);
   const viewportHeight = Dimensions.get('window').height;
 
   useEffect(() => {
@@ -339,7 +364,12 @@ export default function IgpatScreen() {
 
   useEffect(() => {
     setActiveIndex(0);
+    setPulsePickerPostId(null);
   }, [feedMode]);
+
+  useEffect(() => {
+    setPulsePickerPostId(null);
+  }, [activeIndex]);
 
   const toggleDataSaver = useCallback(() => {
     setDataSaver(current => {
@@ -401,20 +431,25 @@ export default function IgpatScreen() {
     }
   }, [followBusy, followedIds, user?.id]);
 
-  const pulse = useCallback(async (postId: string) => {
+  const setPulseReaction = useCallback(async (postId: string, storedReaction: string) => {
     const row = rows.find(item => item.id === postId);
-    if (!row || row.my_reaction === 'love' || reactionBusy.has(postId)) return;
+    if (!row || reactionBusy.has(postId)) return;
 
+    const sameReaction = row.my_reaction === storedReaction;
+    const nextReaction = sameReaction ? null : storedReaction;
+    const previousCount = Number(row.reaction_count ?? 0);
+    const nextCount = sameReaction
+      ? Math.max(0, previousCount - 1)
+      : row.my_reaction
+        ? previousCount
+        : previousCount + 1;
+
+    setPulsePickerPostId(null);
     setReactionBusy(current => new Set(current).add(postId));
     setRows(current =>
       current.map(item =>
         item.id === postId
-          ? {
-              ...item,
-              my_reaction: 'love',
-              reaction_count:
-                Number(item.reaction_count ?? 0) + (item.my_reaction ? 0 : 1),
-            }
+          ? { ...item, my_reaction: nextReaction, reaction_count: nextCount }
           : item
       )
     );
@@ -422,17 +457,23 @@ export default function IgpatScreen() {
     try {
       let result = await (supabase as any).rpc('set_buklod_post_reaction_v4', {
         p_post_id: postId,
-        p_reaction: 'love',
+        p_reaction: storedReaction,
       });
 
       if (result?.error) {
         result = await (supabase as any).rpc('set_buklod_post_reaction_v3', {
           p_post_id: postId,
-          p_reaction: 'love',
+          p_reaction: storedReaction,
         });
       }
 
       if (result?.error) throw result.error;
+      const persistedReaction = result?.data == null ? null : String(result.data);
+      setRows(current =>
+        current.map(item =>
+          item.id === postId ? { ...item, my_reaction: persistedReaction } : item
+        )
+      );
     } catch (error) {
       console.warn('BUKLOD IGPAT pulse:', String((error as any)?.message ?? error));
       setRows(current =>
@@ -441,7 +482,7 @@ export default function IgpatScreen() {
             ? {
                 ...item,
                 my_reaction: row.my_reaction ?? null,
-                reaction_count: Number(row.reaction_count ?? 0),
+                reaction_count: previousCount,
               }
             : item
         )
@@ -454,6 +495,13 @@ export default function IgpatScreen() {
       });
     }
   }, [reactionBusy, rows]);
+
+  const pulse = useCallback((postId: string) => {
+    const row = rows.find(item => item.id === postId);
+    if (!row) return;
+    const currentOption = pulseOptionForStoredReaction(row.my_reaction);
+    void setPulseReaction(postId, currentOption?.storedReaction ?? 'love');
+  }, [rows, setPulseReaction]);
 
   const shareIgpat = useCallback(async (postId: string) => {
     try {
@@ -521,7 +569,7 @@ export default function IgpatScreen() {
     <View style={styles.root}>
       <FlatList
         data={rows}
-        extraData={activeIndex}
+        extraData={`${activeIndex}:${pulsePickerPostId ?? ''}`}
         key={`${feedMode}:${dataSaver ? 'saver' : 'normal'}`}
         keyExtractor={item => item.id}
         pagingEnabled
@@ -543,6 +591,8 @@ export default function IgpatScreen() {
           const creatorId = item.user_id ? String(item.user_id) : '';
           const isSelf = creatorId === user?.id;
           const isFollowing = Boolean(creatorId && followedIds.has(creatorId));
+          const currentPulse = pulseOptionForStoredReaction(item.my_reaction);
+          const showPulsePicker = pulsePickerPostId === item.id && index === activeIndex;
 
           return (
             <View style={[styles.page, { height: viewportHeight }]}>
@@ -606,13 +656,57 @@ export default function IgpatScreen() {
                 ))}
               </View>
 
+              {showPulsePicker ? (
+                <View style={[styles.pulsePicker, { bottom: Math.max(insets.bottom + 84, 92) }]}>
+                  <View style={styles.pulsePickerHeader}>
+                    <View>
+                      <Text style={styles.pulsePickerTitle}>IGPAT PULSE</Text>
+                      <Text style={styles.pulsePickerHint}>Choose how this bond felt.</Text>
+                    </View>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Close IGPAT Pulse choices"
+                      onPress={() => setPulsePickerPostId(null)}
+                      style={styles.pulseClose}
+                    >
+                      <MaterialCommunityIcons name="close" size={17} color="#FFFFFF" />
+                    </Pressable>
+                  </View>
+                  <View style={styles.pulseChoices}>
+                    {PULSE_OPTIONS.map(option => {
+                      const selected = item.my_reaction === option.storedReaction;
+                      return (
+                        <Pressable
+                          key={option.key}
+                          disabled={reactionBusy.has(item.id)}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${option.label} IGPAT Pulse`}
+                          onPress={() => void setPulseReaction(item.id, option.storedReaction)}
+                          style={[styles.pulseChoice, selected && styles.pulseChoiceSelected]}
+                        >
+                          <MaterialCommunityIcons
+                            name={option.icon}
+                            size={18}
+                            color={selected ? '#07100B' : '#FFFFFF'}
+                          />
+                          <Text style={[styles.pulseChoiceText, selected && styles.pulseChoiceTextSelected]}>
+                            {option.label}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+              ) : null}
+
               <View style={[styles.actions, { bottom: Math.max(insets.bottom + 34, 42) }]}>
                 <ActionButton
-                  icon={item.my_reaction === 'love' ? 'heart' : 'heart-outline'}
-                  label="Pulse this IGPAT"
-                  active={item.my_reaction === 'love'}
+                  icon={currentPulse ? currentPulse.icon : 'heart-outline'}
+                  label={currentPulse ? `${currentPulse.label} Pulse. Long press to change.` : 'Pulse this IGPAT. Long press for choices.'}
+                  active={Boolean(currentPulse)}
                   count={item.reaction_count}
-                  onPress={() => void pulse(item.id)}
+                  onPress={() => pulse(item.id)}
+                  onLongPress={() => setPulsePickerPostId(item.id)}
                 />
                 <ActionButton
                   icon="comment-outline"
@@ -759,6 +853,39 @@ const styles = StyleSheet.create({
   },
   actionOrbActive: { backgroundColor: '#FFFFFF', borderColor: '#FFFFFF' },
   actionCount: { marginTop: 3, color: '#FFFFFF', fontSize: 9, fontWeight: '800' },
+  pulsePicker: {
+    position: 'absolute',
+    left: 16,
+    right: 72,
+    zIndex: 5,
+    padding: 13,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: 'rgba(5,8,7,0.94)',
+  },
+  pulsePickerHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  pulsePickerTitle: { color: '#FFFFFF', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+  pulsePickerHint: { marginTop: 3, color: 'rgba(255,255,255,0.50)', fontSize: 8.5 },
+  pulseClose: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.09)' },
+  pulseChoices: { marginTop: 11, flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  pulseChoice: {
+    minWidth: '30%',
+    flexGrow: 1,
+    minHeight: 43,
+    paddingHorizontal: 9,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+  },
+  pulseChoiceSelected: { backgroundColor: '#FFFFFF', borderColor: '#FFFFFF' },
+  pulseChoiceText: { color: '#FFFFFF', fontSize: 8.5, fontWeight: '900' },
+  pulseChoiceTextSelected: { color: '#07100B' },
   meta: { position: 'absolute', left: 18, right: 76 },
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   author: { maxWidth: '68%', color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
