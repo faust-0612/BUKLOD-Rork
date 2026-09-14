@@ -856,7 +856,9 @@ export default function BuklodMaritesBoard({
         userId
       );
 
-      setStories(visibleCached);
+      if (!forceRemote) {
+        setStories(visibleCached);
+      }
 
       if (
         !forceRemote &&
