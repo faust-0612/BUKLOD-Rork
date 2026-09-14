@@ -12,20 +12,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import BuklodPersistentBottomNav from '@/components/BuklodPersistentBottomNav';
 import {
+  isBuklodScopedWorkspacePath,
   normalizeBuklodPathname,
   useBuklodPersistentNavOccupiedHeight,
 } from '@/lib/buklodSafeArea';
-import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 
 /*
  * BUKLOD_MOBILE_WEB_SHELL_R3
  * BUKLOD_MOBILE_WEB_TOUCH_R5
- * BUKLOD_PUBLIC_MINIMAL_NAV_R1
- * Phone/small-browser web keeps the mobile layout, but PUBLIC no longer
- * renders or reserves the old persistent bottom navigation pane. Managed
- * Organization/Cluster behavior stays unchanged.
- * R5 is the deployment anchor for the dedicated web avatar drag and tolerant
- * web press target implementations.
+ * BUKLOD_PUBLIC_MINIMAL_NAV_R2
+ * Phone/small-browser web keeps the mobile layout, but public/personal routes
+ * no longer render or reserve the old persistent bottom navigation pane.
+ * `/scope` remains authoritative for Organization/Cluster workspace behavior.
  */
 
 function isMyBuklodDoorPath(pathname: string): boolean {
@@ -53,12 +51,11 @@ export default function BuklodMobileWebShell({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
   const rawNavOccupied = useBuklodPersistentNavOccupiedHeight();
-  const { activeScope } = useBuklodScope();
-  const publicMinimal = activeScope?.scope_type === 'PUBLIC';
+  const publicMinimal = !isBuklodScopedWorkspacePath(pathname);
   const navOccupied = publicMinimal ? 0 : rawNavOccupied;
   const insets = useSafeAreaInsets();
-  const pathname = usePathname();
   const reserveMyBuklodSystemInsets = isMyBuklodDoorPath(pathname);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
 
