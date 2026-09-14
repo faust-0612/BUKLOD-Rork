@@ -159,7 +159,7 @@ export default function BuklodClusterHomeCommandCenter({
       ) : null}
 
       <BuklodReportDoorCard
-        compact
+        iconOnly
         scopeId={scope.scope_id}
         scopeName={scope.name}
         scopeType="CLUSTER"
