@@ -87,6 +87,24 @@ export default function IgpatRelayChainScreen() {
         </View>
       </View>
 
+      {!!postId && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Open Community Reveal"
+          style={styles.revealButton}
+          onPress={() => router.push(`/igpat/reveal/${postId}` as any)}
+        >
+          <View style={styles.revealIcon}>
+            <MaterialCommunityIcons name="lock-open-variant-outline" size={18} color="#D9FF69" />
+          </View>
+          <View style={styles.revealCopy}>
+            <Text style={styles.revealTitle}>COMMUNITY REVEAL</Text>
+            <Text style={styles.revealHint}>View the participation milestone or manage your own reveal.</Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={19} color="#FFFFFF" />
+        </Pressable>
+      )}
+
       {loading ? (
         <View style={styles.centerState}>
           <ActivityIndicator color="#FFFFFF" />
@@ -169,6 +187,11 @@ const styles = StyleSheet.create({
   eyebrow: { color: 'rgba(255,255,255,0.46)', fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
   title: { marginTop: 4, color: '#FFFFFF', fontSize: 24, fontWeight: '900' },
   subtitle: { marginTop: 5, color: 'rgba(255,255,255,0.58)', fontSize: 11, lineHeight: 17 },
+  revealButton: { marginTop: 18, minHeight: 66, borderRadius: 17, borderWidth: 1, borderColor: 'rgba(217,255,105,0.24)', backgroundColor: '#10150D', paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  revealIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(217,255,105,0.08)', alignItems: 'center', justifyContent: 'center' },
+  revealCopy: { flex: 1 },
+  revealTitle: { color: '#D9FF69', fontSize: 9, fontWeight: '900', letterSpacing: 0.8 },
+  revealHint: { marginTop: 3, color: 'rgba(255,255,255,0.50)', fontSize: 8.8, lineHeight: 13 },
   centerState: { marginTop: 48, alignItems: 'center', gap: 10 },
   stateCard: {
     marginTop: 28,
