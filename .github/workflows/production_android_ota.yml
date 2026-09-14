@@ -14,6 +14,7 @@ on:
       - 'src/components/BuklodEmergencyAlertModeCard.tsx'
       - 'src/components/BuklodPublicLocationChips.tsx'
       - 'src/lib/buklodEmergencyAlertMode.ts'
+      - 'src/lib/pushNotifications.ts'
       - 'src/providers/NotificationProvider.tsx'
       - 'app.config.js'
       - 'supabase/functions/buklod-help-alert/**'
