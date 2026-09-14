@@ -62,6 +62,11 @@ async function loadImage(admin: any, path: string | null, mime: string | null) {
   if (error || !data || data.size > 5 * 1024 * 1024) return null;
   return { mimeType: mime, data: arrayBufferToBase64(await data.arrayBuffer()) };
 }
+async function rootOwner(admin: any, post: any): Promise<string> {
+  if (post?.user_id) return String(post.user_id);
+  const { data } = await admin.from('buklod_community_root_owners').select('owner_id').eq('post_id', post?.id).maybeSingle();
+  return String(data?.owner_id ?? '');
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
@@ -69,9 +74,8 @@ Deno.serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const serviceRole = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-    const geminiKey = Deno.env.get('GEMINI_API_KEY') ?? '';
     const authHeader = req.headers.get('Authorization') ?? '';
-    if (!supabaseUrl || !serviceRole || !geminiKey) throw new Error('Community AI secrets are incomplete.');
+    if (!supabaseUrl || !serviceRole) throw new Error('Community service secrets are incomplete.');
     if (!authHeader.toLowerCase().startsWith('bearer ')) return json({ error: 'Authentication required.' }, 401);
     const admin = createClient(supabaseUrl, serviceRole, { auth: { persistSession: false } });
     const token = authHeader.replace(/^Bearer\s+/i, '').trim();
@@ -81,19 +85,33 @@ Deno.serve(async (req: Request) => {
     const body = await req.json();
     const action = String(body?.action ?? '').trim();
 
+    if (action === 'anonymous_upload_url') {
+      const mime = String(body?.mime_type ?? '').toLowerCase();
+      const size = Number(body?.size_bytes ?? 0);
+      if (mime !== 'image/jpeg') return json({ error: 'Anonymous Community media must be JPEG.' }, 400);
+      if (!Number.isFinite(size) || size < 1 || size > 5 * 1024 * 1024) return json({ error: 'Anonymous Community photos are limited to 5 MB.' }, 400);
+      const storagePath = `anonymous-media/${crypto.randomUUID()}.jpg`;
+      const { data: signed, error: signedError } = await admin.storage.from('community-media').createSignedUploadUrl(storagePath, { upsert: false });
+      if (signedError || !signed?.signedUrl) throw signedError ?? new Error('Could not prepare anonymous upload.');
+      return json({ storage_path: storagePath, signed_url: signed.signedUrl });
+    }
+
+    const geminiKey = Deno.env.get('GEMINI_API_KEY') ?? '';
+    if (!geminiKey) throw new Error('Community AI key is unavailable.');
+
     if (action === 'moderate_root' || action === 'moderate_dugtong') {
       const id = String(body?.id ?? '').trim(); if (!id) return json({ error: 'id is required.' }, 400);
       let text = ''; let owner = ''; let mediaPath: string | null = null; let mediaMime: string | null = null; let kind = 'community';
       if (action === 'moderate_root') {
         const { data: post, error } = await admin.from('community_posts').select('id,user_id,body,media_path,media_mime_type').eq('id', id).is('deleted_at', null).single();
         if (error || !post) return json({ error: 'Post not found.' }, 404);
-        owner = post.user_id; text = String(post.body ?? ''); mediaPath = post.media_path; mediaMime = post.media_mime_type;
+        owner = await rootOwner(admin, post); text = String(post.body ?? ''); mediaPath = post.media_path; mediaMime = post.media_mime_type;
         const { data: meta } = await admin.from('buklod_community_post_meta').select('kind,title,topic,privacy').eq('post_id', id).maybeSingle();
         kind = String(meta?.kind ?? 'community'); text = [meta?.title, meta?.topic, text].filter(Boolean).join('\n');
       } else {
         const { data: row, error } = await admin.from('buklod_community_dugtongs').select('id,user_id,body,dugtong_type,media_path,media_mime_type').eq('id', id).is('deleted_at', null).single();
         if (error || !row) return json({ error: 'Dugtong not found.' }, 404);
-        owner = row.user_id; text = String(row.body ?? ''); mediaPath = row.media_path; mediaMime = row.media_mime_type; kind = String(row.dugtong_type ?? 'dugtong');
+        owner = String(row.user_id ?? ''); text = String(row.body ?? ''); mediaPath = row.media_path; mediaMime = row.media_mime_type; kind = String(row.dugtong_type ?? 'dugtong');
       }
       if (owner !== actor) return json({ error: 'Only the content author may request this moderation pass.' }, 403);
       const image = await loadImage(admin, mediaPath, mediaMime);
@@ -129,7 +147,8 @@ Deno.serve(async (req: Request) => {
       const postId = String(body?.post_id ?? '').trim(); if (!postId) return json({ error: 'post_id is required.' }, 400);
       const { data: post, error: postError } = await admin.from('community_posts').select('id,user_id,body').eq('id', postId).is('deleted_at', null).single();
       if (postError || !post) return json({ error: 'Post not found.' }, 404);
-      if (post.user_id !== actor) return json({ error: 'Only the original poster can create this Takeaway.' }, 403);
+      const owner = await rootOwner(admin, post);
+      if (owner !== actor) return json({ error: 'Only the original poster can create this Takeaway.' }, 403);
       const { data: meta } = await admin.from('buklod_community_post_meta').select('kind,title,topic,chain_status').eq('post_id', postId).single();
       if (meta?.chain_status !== 'resolved') return json({ error: 'Resolve the chain before creating a Takeaway.' }, 409);
       const { data: rows, error: rowsError } = await admin.from('buklod_community_dugtongs').select('id,body,privacy,is_helpful,created_at').eq('root_post_id', postId).eq('moderation_state', 'approved').is('deleted_at', null).order('is_helpful', { ascending: false }).order('created_at', { ascending: true }).limit(30);
