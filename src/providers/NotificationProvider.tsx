@@ -11,11 +11,8 @@ import {
   ensureBuklodEmergencyChannel,
   registerBuklodEmergencyNotificationCategory,
 } from '@/lib/buklodEmergencyAlertMode';
-import {
-  buklodNotificationTarget,
-  syncScopeSelection,
-} from '@/lib/buklodScopeRoute';
-import { buklodFormationNotificationTarget } from '@/lib/buklodFormationNotificationTarget';
+import { syncScopeSelection } from '@/lib/buklodScopeRoute';
+import { resolveBuklodNotificationTarget } from '@/lib/buklodNotificationNavigation';
 import { resolveMzbOrganizationScopeId } from '@/lib/buklodMzbOrganization';
 
 type Ctx={unreadCount:number;refreshUnread:()=>Promise<void>;markAllRead:()=>Promise<void>};
@@ -36,24 +33,8 @@ export function NotificationProvider({children}:{children:ReactNode}){
  const markAllRead=useCallback(async()=>{if(!user?.id)return;const {error}=await supabase.from('notifications').update({read_at:new Date().toISOString()}).eq('user_id',user.id).is('read_at',null);if(error)throw error;await refreshUnread()},[user?.id,refreshUnread]);
 
  const openNotification=useCallback(async(kind:string,data:any)=>{
-  if(kind==='community_emergency'&&data?.help_request_id){
-   router.push(`/buklod?help_request_id=${encodeURIComponent(String(data.help_request_id))}` as any);
-   return;
-  }
-  if(data?.prayer_request_id){
-   router.push(`/prayer/${data.prayer_request_id}` as any);
-   return;
-  }
-  if(data?.prayer_id){
-   router.push(`/prayer/${data.prayer_id}` as any);
-   return;
-  }
-
-  const formationTarget=buklodFormationNotificationTarget(kind,data);
-  const mzbCanonicalScopeId=formationTarget
-   ? null
-   : await resolveMzbOrganizationScopeId().catch(()=>null);
-  const target=formationTarget??buklodNotificationTarget(kind,data,{scopes,mzbCanonicalScopeId});
+  const mzbCanonicalScopeId=await resolveMzbOrganizationScopeId().catch(()=>null);
+  const target=resolveBuklodNotificationTarget(kind,data,{scopes,mzbCanonicalScopeId});
 
   if(!target?.path){
    router.push('/notifications' as any);
