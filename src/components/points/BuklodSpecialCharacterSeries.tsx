@@ -94,7 +94,7 @@ const PROFILES: Record<BuklodSpecialCharacterId, Profile> = {
     quote: 'Harmony is built when gifts are shared with purpose.',
     description: 'Music, nature, worship, creativity, and community life grow together through service.',
     traits: ['Music', 'Nature', 'Worship', 'Community'],
-    stages: ['Young Dreamer','Nature Lover','Student Musician','Campus Volunteer','Youth Encourager','Choir Member','Guitar Learner','Worship Music Helper','Community Singer','Music Team Member','Youth Mentor','Worship Leader','Creative Ministry Worker','Forest Advocate','Community Organizer','Music Trainer','Mission Volunteer','Discipleship Worker','Church Planting Partner','Purposeful Leader'],
+    stages: ['Young Dreamer','Nature Lover','Student Musician','Campus Volunteer','Youth Encourager','Choir Member','Guitar Learner','Worship Music Helper','Community Singer','Music Team Member','Youth Mentor','Worship Leader','Creative Ministry Worker','Forest Advocate','CommunityOrganizer','Music Trainer','Mission Volunteer','Discipleship Worker','Church Planting Partner','Purposeful Leader'],
   },
   mitch: {
     id: 'mitch', name: 'MITCH', domain: 'ARTS CULTURE TEACHING',
@@ -440,17 +440,7 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
                 ))}
               </View>
             ) : (
-              <View style={styles.badgePreviewGrid}>
-                {Array.from({ length: 4 }, (_, index) => index + 1).map((level) => (
-                  <View key={`${selected.id}-badge-preview-${level}`} style={[styles.collectibleCard, compact && styles.collectibleCardCompact]}>
-                    <View style={styles.collectibleIcon}><Text style={styles.collectibleIconText}>{level}</Text></View>
-                    <Text style={styles.collectibleName}>{selected.name} Level {level} Badge</Text>
-                    <Text style={styles.badgeName}>BADGE PREVIEW</Text>
-                    <Text style={styles.requirementText}>Badge details load from the Special Character mastery service.</Text>
-                    <Text style={styles.collectibleTier}>PREVIEW</Text>
-                  </View>
-                ))}
-              </View>
+              <Text style={styles.emptyBadges}>No Special Character badge data is available from the server for this selection yet.</Text>
             )}
           </View>
         </>
@@ -551,7 +541,6 @@ const styles = StyleSheet.create({
   levelCollectible: { marginTop: 5, fontSize: 8.5, color: '#66736B' },
   collectibleLoader: { marginVertical: 20 },
   collectibleGrid: { marginTop: 10, flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  badgePreviewGrid: { marginTop: 10, flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   collectibleCard: { width: 150, minHeight: 168, borderRadius: 14, padding: 10, borderWidth: 1, borderColor: '#E1E8E3', backgroundColor: '#FBFDFC' },
   collectibleCardCompact: { width: '48%' },
   collectibleIcon: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#E0F3E6', alignItems: 'center', justifyContent: 'center' },
@@ -563,5 +552,6 @@ const styles = StyleSheet.create({
   collectibleEarned: { marginTop: 8, fontSize: 8, fontWeight: '900', color: '#16813E' },
   collectibleSecret: { marginTop: 8, fontSize: 8, fontWeight: '900', color: '#777F79' },
   collectibleTier: { marginTop: 8, fontSize: 8, fontWeight: '900', color: '#9A7118' },
+  emptyBadges: { marginTop: 12, fontSize: 10, lineHeight: 15, color: '#67756D' },
   message: { marginHorizontal: 16, marginBottom: 14, fontSize: 10, lineHeight: 15, color: '#56685D' },
 });
