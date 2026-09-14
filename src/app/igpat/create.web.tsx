@@ -28,7 +28,7 @@ import {
   type IgpatRotation,
 } from '@/lib/igpat/quickEdit';
 import { useIgpatQuickEditHistory } from '@/lib/igpat/useQuickEditHistory';
-import type { IgpatDraftSaveInput } from '@/lib/igpat/draftTypes';
+import type { IgpatCreationMode, IgpatDraftSaveInput } from '@/lib/igpat/draftTypes';
 import {
   clearWebIgpatDraft,
   loadWebIgpatDraft,
@@ -207,6 +207,7 @@ export default function IgpatCreateWebScreen() {
   const { user, profile } = useAuth();
   const [draft, setDraft] = useState<IgpatDraft | null>(null);
   const [step, setStep] = useState<CreateStep>('source');
+  const [creationMode, setCreationMode] = useState<IgpatCreationMode>('standard');
   const [activeTool, setActiveTool] = useState<QuickEditTool>('Trim');
   const {
     edit,
@@ -247,6 +248,7 @@ export default function IgpatCreateWebScreen() {
   const latestDraftSaveRef = useRef<IgpatDraftSaveInput | null>(null);
   const draftAutosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draftPersistenceWarningRef = useRef(false);
+  const pendingCreationModeRef = useRef<IgpatCreationMode>('standard');
 
   const cancelDraftAutosave = () => {
     if (draftAutosaveTimerRef.current) {
@@ -344,9 +346,12 @@ export default function IgpatCreateWebScreen() {
           return;
         }
         const { snapshot, uri } = restored;
+        const restoredMode: IgpatCreationMode = snapshot.creationMode === 'quick-capture' ? 'quick-capture' : 'standard';
         Alert.alert(
           'BUKLOD IGPAT Draft',
-          'You have a saved IGPAT draft in this browser.',
+          restoredMode === 'quick-capture'
+            ? 'You have a saved Quick Capture draft in this browser.'
+            : 'You have a saved IGPAT draft in this browser.',
           [
             {
               text: 'DISCARD DRAFT',
@@ -359,7 +364,7 @@ export default function IgpatCreateWebScreen() {
               },
             },
             {
-              text: 'CONTINUE EDITING',
+              text: restoredMode === 'quick-capture' ? 'CONTINUE QUICK CAPTURE' : 'CONTINUE EDITING',
               onPress: () => {
                 if (cancelled) {
                   URL.revokeObjectURL(uri);
@@ -373,6 +378,8 @@ export default function IgpatCreateWebScreen() {
                   fileName: snapshot.fileName,
                   revokeOnDispose: true,
                 });
+                setCreationMode(restoredMode);
+                pendingCreationModeRef.current = restoredMode;
                 resetEditHistory(snapshot.edit, snapshot.durationSeconds);
                 setCaption(snapshot.caption);
                 setAudience(snapshot.audience);
@@ -380,7 +387,7 @@ export default function IgpatCreateWebScreen() {
                 setPreviewTime(snapshot.edit.trimStartSeconds);
                 setSeekSeconds(snapshot.edit.trimStartSeconds);
                 setActiveTool('Trim');
-                setStep('quick-edit');
+                setStep(restoredMode === 'quick-capture' ? 'preview' : 'quick-edit');
               },
             },
           ],
@@ -405,6 +412,7 @@ export default function IgpatCreateWebScreen() {
       caption,
       audience,
       groupId,
+      creationMode,
     };
     latestDraftSaveRef.current = input;
     cancelDraftAutosave();
@@ -421,12 +429,14 @@ export default function IgpatCreateWebScreen() {
       clearTimeout(timer);
       if (draftAutosaveTimerRef.current === timer) draftAutosaveTimerRef.current = null;
     };
-  }, [audience, caption, draft, edit, groupId, user?.id]);
+  }, [audience, caption, creationMode, draft, edit, groupId, user?.id]);
 
   const clearDraftState = () => {
     cancelDraftAutosave();
     latestDraftSaveRef.current = null;
     setDraft(null);
+    setCreationMode('standard');
+    pendingCreationModeRef.current = 'standard';
     resetEditHistory({ ...DEFAULT_IGPAT_QUICK_EDIT });
     setPreviewTime(0);
     setSeekSeconds(null);
@@ -444,11 +454,12 @@ export default function IgpatCreateWebScreen() {
     clearDraftState();
   };
 
-  const acceptDraft = (next: IgpatDraft) => {
+  const acceptDraft = (next: IgpatDraft, mode: IgpatCreationMode = 'standard') => {
     if (draft?.revokeOnDispose && draft.uri) {
       try { URL.revokeObjectURL(draft.uri); } catch {}
     }
     setDraft(next);
+    setCreationMode(mode);
     resetEditHistory(
       { ...DEFAULT_IGPAT_QUICK_EDIT, trimEndSeconds: next.durationSeconds },
       next.durationSeconds
@@ -456,10 +467,14 @@ export default function IgpatCreateWebScreen() {
     setPreviewTime(0);
     setSeekSeconds(0);
     setActiveTool('Trim');
-    setStep('quick-edit');
+    setStep(mode === 'quick-capture' ? 'preview' : 'quick-edit');
   };
 
-  const persistAndAcceptDraft = async (next: IgpatDraft, blob: Blob) => {
+  const persistAndAcceptDraft = async (
+    next: IgpatDraft,
+    blob: Blob,
+    mode: IgpatCreationMode = 'standard'
+  ) => {
     if (!user?.id) {
       Alert.alert('BUKLOD IGPAT', 'Sign in again before preparing an IGPAT.');
       return;
@@ -479,6 +494,7 @@ export default function IgpatCreateWebScreen() {
       caption,
       audience,
       groupId,
+      creationMode: mode,
     };
 
     try {
@@ -496,10 +512,11 @@ export default function IgpatCreateWebScreen() {
       }
     }
 
-    acceptDraft(next);
+    acceptDraft(next, mode);
   };
 
-  const openCamera = async () => {
+  const openCamera = async (mode: IgpatCreationMode = 'standard') => {
+    pendingCreationModeRef.current = mode;
     if (!navigator?.mediaDevices?.getUserMedia) {
       Alert.alert('Camera unavailable', 'This browser does not support direct camera recording.');
       return;
@@ -522,7 +539,7 @@ export default function IgpatCreateWebScreen() {
 
   const startRecording = async () => {
     if (!streamRef.current) {
-      await openCamera();
+      await openCamera(pendingCreationModeRef.current);
       return;
     }
     const Recorder = (globalThis as any).MediaRecorder;
@@ -555,17 +572,20 @@ export default function IgpatCreateWebScreen() {
       Alert.alert('Recording error', event?.error?.message ?? 'Camera recording failed.');
     };
     recorder.onstop = () => {
+      const mode = pendingCreationModeRef.current;
       const durationSeconds = Math.max(1, Math.min(60, Math.ceil((Date.now() - recordStartedAtRef.current) / 1000)));
       const blob = new Blob(chunksRef.current, { type: 'video/webm' });
       chunksRef.current = [];
       setRecording(false);
       stopCamera();
       if (!blob.size) {
+        pendingCreationModeRef.current = 'standard';
         Alert.alert('BUKLOD IGPAT', 'The recorded video was empty. Please try again.');
         return;
       }
       const validationError = validateCommunityVideoUpload({ durationSeconds, sizeBytes: blob.size, isReel: true });
       if (validationError) {
+        pendingCreationModeRef.current = 'standard';
         Alert.alert('BUKLOD IGPAT', validationError);
         return;
       }
@@ -578,7 +598,8 @@ export default function IgpatCreateWebScreen() {
         fileName: `igpat-${Date.now()}.webm`,
         revokeOnDispose: true,
       };
-      void persistAndAcceptDraft(next, blob);
+      pendingCreationModeRef.current = 'standard';
+      void persistAndAcceptDraft(next, blob, mode);
     };
 
     recorder.start(1000);
@@ -600,6 +621,7 @@ export default function IgpatCreateWebScreen() {
   };
 
   const chooseVideo = async () => {
+    pendingCreationModeRef.current = 'standard';
     try {
       const file = await new Promise<File | null>(resolve => {
         const input = document.createElement('input');
@@ -655,7 +677,7 @@ export default function IgpatCreateWebScreen() {
           fileName: file.name || `igpat.${extensionForMime(mimeType)}`,
           revokeOnDispose: true,
         };
-        await persistAndAcceptDraft(next, file);
+        await persistAndAcceptDraft(next, file, 'standard');
       } catch (error) {
         URL.revokeObjectURL(uri);
         throw error;
@@ -1011,7 +1033,13 @@ export default function IgpatCreateWebScreen() {
             style: { width: '100%', height: 380, objectFit: 'cover', backgroundColor: '#000' },
           })}
           <View style={styles.cameraActions}>
-            <Text style={styles.recordTime}>{recording ? `REC ${recordSeconds}s / 60s` : 'CAMERA READY'}</Text>
+            <Text style={styles.recordTime}>
+              {recording
+                ? `REC ${recordSeconds}s / 60s`
+                : pendingCreationModeRef.current === 'quick-capture'
+                  ? 'QUICK CAPTURE READY'
+                  : 'CAMERA READY'}
+            </Text>
             <Pressable style={[styles.recordButton, recording && styles.stopButton]} onPress={recording ? stopRecording : startRecording}>
               <Text style={styles.recordButtonText}>{recording ? 'STOP' : 'START RECORDING'}</Text>
             </Pressable>
@@ -1019,14 +1047,24 @@ export default function IgpatCreateWebScreen() {
           </View>
         </View>
       ) : !draft || step === 'source' ? (
-        <View style={styles.sourceRow}>
-          <Pressable style={styles.sourceButton} onPress={() => void openCamera()} disabled={busy}>
-            <Text style={styles.sourceTitle}>RECORD</Text>
-            <Text style={styles.sourceCopy}>Open camera + mic</Text>
-          </Pressable>
-          <Pressable style={styles.sourceButton} onPress={() => void chooseVideo()} disabled={busy}>
-            <Text style={styles.sourceTitle}>SELECT</Text>
-            <Text style={styles.sourceCopy}>From device</Text>
+        <View>
+          <View style={styles.sourceRow}>
+            <Pressable style={styles.sourceButton} onPress={() => void openCamera('standard')} disabled={busy}>
+              <Text style={styles.sourceTitle}>RECORD</Text>
+              <Text style={styles.sourceCopy}>Record then edit</Text>
+            </Pressable>
+            <Pressable style={styles.sourceButton} onPress={() => void chooseVideo()} disabled={busy}>
+              <Text style={styles.sourceTitle}>SELECT</Text>
+              <Text style={styles.sourceCopy}>From device</Text>
+            </Pressable>
+          </View>
+          <Pressable
+            style={[styles.secondaryAction, styles.quickCaptureAction]}
+            onPress={() => void openCamera('quick-capture')}
+            disabled={busy}
+          >
+            <Text style={styles.secondaryActionText}>QUICK CAPTURE</Text>
+            <Text style={styles.quickCaptureCopy}>Record → preview → caption → audience → post. No edit required.</Text>
           </Pressable>
         </View>
       ) : step === 'quick-edit' ? (
@@ -1055,16 +1093,22 @@ export default function IgpatCreateWebScreen() {
         </View>
       ) : step === 'preview' ? (
         <View>
-          <Text style={styles.stepTitle}>PREVIEW</Text>
-          <Text style={styles.stepCopy}>Watch the edited IGPAT before adding its caption and audience.</Text>
+          <Text style={styles.stepTitle}>{creationMode === 'quick-capture' ? 'QUICK CAPTURE PREVIEW' : 'PREVIEW'}</Text>
+          <Text style={styles.stepCopy}>
+            {creationMode === 'quick-capture'
+              ? 'Review your recording, then continue straight to caption and audience.'
+              : 'Watch the edited IGPAT before adding its caption and audience.'}
+          </Text>
           {renderDraftPreview()}
           <View style={styles.actionStack}>
             <Pressable style={styles.primaryAction} onPress={() => setStep('details')} disabled={busy}>
               <Text style={styles.primaryActionText}>CONTINUE</Text>
             </Pressable>
-            <Pressable style={styles.secondaryAction} onPress={() => setStep('quick-edit')} disabled={busy}>
-              <Text style={styles.secondaryActionText}>BACK TO QUICK EDIT</Text>
-            </Pressable>
+            {creationMode !== 'quick-capture' ? (
+              <Pressable style={styles.secondaryAction} onPress={() => setStep('quick-edit')} disabled={busy}>
+                <Text style={styles.secondaryActionText}>BACK TO QUICK EDIT</Text>
+              </Pressable>
+            ) : null}
           </View>
         </View>
       ) : (
@@ -1151,6 +1195,8 @@ const styles = StyleSheet.create({
   sourceButton: { flex: 1, minHeight: 116, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#101512' },
   sourceTitle: { color: '#FFFFFF', fontSize: 14, fontWeight: '900', letterSpacing: 1 },
   sourceCopy: { marginTop: 5, color: 'rgba(255,255,255,0.48)', fontSize: 10 },
+  quickCaptureAction: { marginTop: 12, minHeight: 68, paddingHorizontal: 16 },
+  quickCaptureCopy: { marginTop: 5, color: 'rgba(255,255,255,0.48)', fontSize: 9.5, textAlign: 'center' },
   cameraCard: { marginTop: 24, overflow: 'hidden', borderRadius: 22, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: '#0C110E' },
   cameraActions: { padding: 14, gap: 10, alignItems: 'center' },
   recordTime: { color: '#FFFFFF', fontSize: 11, fontWeight: '900', letterSpacing: 0.8 },
