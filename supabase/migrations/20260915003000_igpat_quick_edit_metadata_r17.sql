@@ -541,6 +541,228 @@ begin
 end;
 $$;
 
+-- R23 Community Reveal keeps its hidden payload outside generic Community metadata
+-- because existing Community summary RPCs may legitimately expose context_config.
+create table if not exists public.igpat_community_reveals (
+  post_id uuid primary key references public.community_posts(id) on delete cascade,
+  owner_user_id uuid not null references public.profiles(id) on delete cascade,
+  target_count smallint not null check (target_count between 2 and 500),
+  reveal_text text not null check (char_length(trim(reveal_text)) between 1 and 1200),
+  enabled boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.igpat_community_reveals enable row level security;
+revoke all on table public.igpat_community_reveals from public;
+revoke all on table public.igpat_community_reveals from anon;
+revoke all on table public.igpat_community_reveals from authenticated;
+grant all on table public.igpat_community_reveals to service_role;
+
+create or replace function public.set_buklod_igpat_reveal_v1(
+  p_post_id uuid,
+  p_target_count integer default 50,
+  p_reveal_text text default '',
+  p_enabled boolean default true
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  actor uuid := (select auth.uid());
+  owner_id uuid;
+  safe_text text := trim(coalesce(p_reveal_text, ''));
+begin
+  if actor is null then
+    raise exception 'Authentication required';
+  end if;
+
+  select cp.user_id
+  into owner_id
+  from public.community_posts cp
+  where cp.id = p_post_id
+    and cp.is_reel = true
+    and cp.is_hidden = false
+    and cp.deleted_at is null
+    and cp.media_mime_type like 'video/%';
+
+  if owner_id is null then
+    raise exception 'IGPAT was not found';
+  end if;
+
+  if owner_id is distinct from actor then
+    raise exception 'Only the IGPAT creator can manage Community Reveal';
+  end if;
+
+  if not coalesce(p_enabled, true) then
+    delete from public.igpat_community_reveals reveal
+    where reveal.post_id = p_post_id
+      and reveal.owner_user_id = actor;
+    return jsonb_build_object(
+      'configured', false,
+      'is_owner', true
+    );
+  end if;
+
+  if p_target_count is null or p_target_count < 2 or p_target_count > 500 then
+    raise exception 'Community Reveal target must be from 2 to 500 unique participants';
+  end if;
+
+  if char_length(safe_text) < 1 or char_length(safe_text) > 1200 then
+    raise exception 'Community Reveal text must be 1 to 1200 characters';
+  end if;
+
+  insert into public.igpat_community_reveals(
+    post_id,
+    owner_user_id,
+    target_count,
+    reveal_text,
+    enabled,
+    updated_at
+  )
+  values(
+    p_post_id,
+    actor,
+    p_target_count::smallint,
+    safe_text,
+    true,
+    now()
+  )
+  on conflict(post_id) do update
+    set target_count = excluded.target_count,
+        reveal_text = excluded.reveal_text,
+        enabled = true,
+        updated_at = now()
+  where igpat_community_reveals.owner_user_id = actor;
+
+  return jsonb_build_object(
+    'configured', true,
+    'is_owner', true,
+    'target_count', p_target_count,
+    'reveal_text', safe_text
+  );
+end;
+$$;
+
+create or replace function public.get_buklod_igpat_reveal_v1(
+  p_post_id uuid
+)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  actor uuid := (select auth.uid());
+  owner_id uuid;
+  parent_audience text;
+  parent_group_id uuid;
+  parent_church_id uuid;
+  parent_scope_id uuid;
+  reveal_row public.igpat_community_reveals%rowtype;
+  participant_count integer := 0;
+  unlocked boolean := false;
+begin
+  if actor is null then
+    raise exception 'Authentication required';
+  end if;
+
+  select
+    cp.user_id,
+    cp.audience,
+    cp.group_id,
+    cp.church_id,
+    cp.scope_id
+  into
+    owner_id,
+    parent_audience,
+    parent_group_id,
+    parent_church_id,
+    parent_scope_id
+  from public.community_posts cp
+  where cp.id = p_post_id
+    and cp.is_reel = true
+    and cp.is_hidden = false
+    and cp.deleted_at is null
+    and cp.media_mime_type like 'video/%'
+    and public.can_view_community_post_v2(cp.id);
+
+  if owner_id is null then
+    raise exception 'IGPAT is unavailable for this account';
+  end if;
+
+  select *
+  into reveal_row
+  from public.igpat_community_reveals reveal
+  where reveal.post_id = p_post_id
+    and reveal.enabled = true;
+
+  if not found then
+    return jsonb_build_object(
+      'configured', false,
+      'is_owner', actor = owner_id
+    );
+  end if;
+
+  with participants as (
+    select rx.user_id
+    from public.reactions rx
+    where rx.post_id = p_post_id
+      and rx.user_id <> owner_id
+
+    union
+
+    select cm.user_id
+    from public.comments cm
+    where cm.post_id = p_post_id
+      and cm.user_id <> owner_id
+      and cm.is_hidden = false
+      and cm.deleted_at is null
+
+    union
+
+    select child.user_id
+    from public.community_posts child
+    join public.buklod_community_post_meta meta
+      on meta.post_id = child.id
+    where meta.context_config #>> '{igpat_relay,parent_post_id}' = p_post_id::text
+      and child.user_id is not null
+      and child.user_id <> owner_id
+      and child.is_reel = true
+      and child.is_hidden = false
+      and child.deleted_at is null
+      and child.media_mime_type like 'video/%'
+      and child.audience = parent_audience
+      and child.group_id is not distinct from parent_group_id
+      and child.church_id is not distinct from parent_church_id
+      and child.scope_id is not distinct from parent_scope_id
+  )
+  select count(distinct user_id)::integer
+  into participant_count
+  from participants;
+
+  participant_count := coalesce(participant_count, 0);
+  unlocked := participant_count >= reveal_row.target_count;
+
+  return jsonb_build_object(
+    'configured', true,
+    'is_owner', actor = owner_id,
+    'enabled', reveal_row.enabled,
+    'target_count', reveal_row.target_count,
+    'meaningful_count', participant_count,
+    'remaining_count', greatest(reveal_row.target_count - participant_count, 0),
+    'unlocked', unlocked,
+    'reveal_text', case
+      when actor = owner_id or unlocked then reveal_row.reveal_text
+      else null
+    end
+  );
+end;
+$$;
+
 revoke all on function public.create_buklod_reel_v2(text,uuid,text,text,text,bigint,numeric,jsonb) from public;
 revoke all on function public.create_buklod_reel_v2(text,uuid,text,text,text,bigint,numeric,jsonb) from anon;
 grant execute on function public.create_buklod_reel_v2(text,uuid,text,text,text,bigint,numeric,jsonb) to authenticated;
@@ -565,3 +787,13 @@ revoke all on function public.get_buklod_igpat_relay_chain_v1(uuid) from public;
 revoke all on function public.get_buklod_igpat_relay_chain_v1(uuid) from anon;
 grant execute on function public.get_buklod_igpat_relay_chain_v1(uuid) to authenticated;
 grant execute on function public.get_buklod_igpat_relay_chain_v1(uuid) to service_role;
+
+revoke all on function public.set_buklod_igpat_reveal_v1(uuid,integer,text,boolean) from public;
+revoke all on function public.set_buklod_igpat_reveal_v1(uuid,integer,text,boolean) from anon;
+grant execute on function public.set_buklod_igpat_reveal_v1(uuid,integer,text,boolean) to authenticated;
+grant execute on function public.set_buklod_igpat_reveal_v1(uuid,integer,text,boolean) to service_role;
+
+revoke all on function public.get_buklod_igpat_reveal_v1(uuid) from public;
+revoke all on function public.get_buklod_igpat_reveal_v1(uuid) from anon;
+grant execute on function public.get_buklod_igpat_reveal_v1(uuid) to authenticated;
+grant execute on function public.get_buklod_igpat_reveal_v1(uuid) to service_role;
