@@ -1,5 +1,7 @@
-import { Alert } from 'react-native';
+import { Alert, Linking } from 'react-native';
 import { router } from 'expo-router';
+
+import { supabase } from '@/lib/supabase';
 
 export type FacultyClassroomRef = {
   id: string;
@@ -12,6 +14,7 @@ export type FacultyAutopilotModule = {
     | 'materials'
     | 'attendance'
     | 'assessments'
+    | 'quickcheck'
     | 'gradingSetup'
     | 'gradebook'
     | 'participation'
@@ -51,6 +54,13 @@ export const FACULTY_AUTOPILOT_MODULES: FacultyAutopilotModule[] = [
     title: 'Assessments',
     description: 'Quizzes, exams, paper scans, rubrics, and review queues.',
     pathname: '/profile/buklod-faculty-assessments',
+  },
+  {
+    key: 'quickcheck',
+    icon: 'door-open',
+    title: 'QuickCheck',
+    description: 'Scan mixed papers, auto-sort, suggest grades, and review only flags. Opens this class with its enrolled roster—no second sign-in.',
+    pathname: 'quickcheck',
   },
   {
     key: 'gradingSetup',
@@ -97,6 +107,27 @@ export function facultyClassParams(classroom: FacultyClassroomRef) {
   };
 }
 
+async function openQuickCheck(classroom: FacultyClassroomRef) {
+  try {
+    const { data, error } = await supabase.functions.invoke('quickcheck-handoff-mint', {
+      body: { classroomId: classroom.id },
+    });
+    if (error) throw error;
+    const url = typeof data?.url === 'string' ? data.url : '';
+    if (!url) throw new Error('QuickCheck did not return a secure launch link.');
+    const supported = await Linking.canOpenURL(url);
+    if (!supported) throw new Error('This device cannot open the QuickCheck web app.');
+    await Linking.openURL(url);
+  } catch (error) {
+    Alert.alert(
+      'QuickCheck',
+      error instanceof Error
+        ? error.message
+        : 'Could not open QuickCheck. Please try again from this classroom.'
+    );
+  }
+}
+
 export function openFacultyAutopilotModule(
   module: FacultyAutopilotModule,
   classroom: FacultyClassroomRef | null
@@ -106,6 +137,11 @@ export function openFacultyAutopilotModule(
       'Select a class',
       'Create or choose a class first. Every Autopilot tool stays inside that classroom.'
     );
+    return;
+  }
+
+  if (module.key === 'quickcheck') {
+    void openQuickCheck(classroom);
     return;
   }
 
