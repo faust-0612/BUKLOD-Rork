@@ -1,13 +1,13 @@
 name: BUKLOD Web Live Atmosphere R1 Deploy
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/web_live_atmosphere_r1_deploy.yml'
-      - 'src/app/+html.tsx'
   workflow_dispatch:
+    inputs:
+      deploy_production:
+        description: 'Explicitly deploy the verified web-only Live Atmosphere candidate to production'
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -21,10 +21,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout production source
+      - name: Checkout exact manual trigger
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.sha }}
+
+      - name: Verify exact trigger SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -40,20 +46,25 @@ jobs:
         run: |
           set -euo pipefail
           grep -F 'BUKLOD_WEB_LIVE_ATMOSPHERE_R1' 'src/app/+html.tsx'
+          grep -F 'BUKLOD_PERF_DELTA_MOBILE_WEB_R1' 'src/app/+html.tsx'
           grep -F 'prefers-reduced-motion: reduce' 'src/app/+html.tsx'
           grep -F 'pointer-events: none' 'src/app/+html.tsx'
 
       - name: TypeScript QA
         run: npx tsc --noEmit
 
+      - name: Universal production release gate
+        run: npm run release:gate
+
       - name: Expo credential preflight
+        if: ${{ inputs.deploy_production == true }}
         shell: bash
         run: |
           set -euo pipefail
           test -n "${EXPO_TOKEN:-}"
           npx eas-cli@latest whoami --non-interactive
 
-      - name: Export production web
+      - name: Export production web candidate
         run: npx expo export --platform web --output-dir dist
 
       - name: Verify exported web artifact
@@ -67,13 +78,15 @@ jobs:
 
       - name: Deploy production web only
         id: deploy
+        if: ${{ inputs.deploy_production == true }}
         shell: bash
         run: |
           set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
           npx eas-cli@latest deploy --prod --non-interactive 2>&1 | tee web-live-atmosphere-deploy-output.txt
 
       - name: Preserve deploy result
-        if: always()
+        if: ${{ always() && inputs.deploy_production == true }}
         uses: actions/upload-artifact@v4
         with:
           name: buklod-web-live-atmosphere-r1-${{ github.run_number }}
@@ -84,9 +97,15 @@ jobs:
       - name: Deployment status
         if: always()
         shell: bash
+        env:
+          DEPLOY_PRODUCTION: ${{ inputs.deploy_production }}
+          DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
         run: |
-          if [ "${{ steps.deploy.outcome }}" != "success" ]; then
+          if [ "$DEPLOY_PRODUCTION" != "true" ]; then
+            echo 'BUKLOD Live Atmosphere QA completed. Production deployment was not requested.'
+          elif [ "$DEPLOY_OUTCOME" != "success" ]; then
             echo 'BUKLOD web-only Live Atmosphere deployment did not succeed.'
             exit 1
+          else
+            echo 'BUKLOD web-only Live Atmosphere deployment succeeded.'
           fi
-          echo 'BUKLOD web-only Live Atmosphere deployment succeeded.'
