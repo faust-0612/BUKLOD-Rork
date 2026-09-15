@@ -1,8 +1,14 @@
-# Release trigger: 2026-09-12 automatic Formation submission + community photo repair
+# Release hardening: pushes run QA only; production OTA requires explicit manual opt-in.
 name: BUKLOD Production Android OTA
 
 on:
   workflow_dispatch:
+    inputs:
+      publish_ota:
+        description: 'Explicitly publish the production Android OTA after every release gate passes'
+        required: true
+        type: boolean
+        default: false
   push:
     branches:
       - main
@@ -84,10 +90,19 @@ jobs:
   qa-and-publish:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout production source
+      - name: Checkout exact production trigger
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.sha }}
+
+      - name: Verify exact trigger SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          echo "Expected trigger SHA: ${GITHUB_SHA}"
+          echo "Checked out SHA:      ${actual}"
+          test "${actual}" = "${GITHUB_SHA}"
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -117,6 +132,9 @@ jobs:
 
       - name: TypeScript QA
         run: npx tsc --noEmit
+
+      - name: Universal production release gate
+        run: npm run release:gate
 
       - name: Verify production safety anchors
         shell: bash
@@ -193,6 +211,7 @@ jobs:
 
       - name: Expo credential preflight
         id: expo
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_ota == true }}
         shell: bash
         run: |
           if [ -z "$EXPO_TOKEN" ]; then
@@ -204,23 +223,30 @@ jobs:
           echo "ready=true" >> "$GITHUB_OUTPUT"
 
       - name: Publish production Android OTA
-        if: steps.expo.outputs.ready == 'true'
+        id: publish
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_ota == true && steps.expo.outputs.ready == 'true' }}
         shell: bash
         run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
           npx eas-cli@latest update \
             --channel production \
             --platform android \
             --environment production \
-            --message "BUKLOD Formation automatic submission + photo access repair" \
+            --message "BUKLOD verified production Android OTA" \
             --non-interactive
 
       - name: Deployment status
         shell: bash
         env:
+          EVENT_NAME: ${{ github.event_name }}
+          PUBLISH_OTA: ${{ inputs.publish_ota }}
           EXPO_READY: ${{ steps.expo.outputs.ready }}
         run: |
-          if [ "$EXPO_READY" = "true" ]; then
-            echo "BUKLOD production Android OTA published successfully."
+          if [ "$EVENT_NAME" != "workflow_dispatch" ] || [ "$PUBLISH_OTA" != "true" ]; then
+            echo "BUKLOD source QA passed; automatic Android OTA publishing is disabled. No OTA was published."
+          elif [ "$EXPO_READY" = "true" ]; then
+            echo "BUKLOD production Android OTA published successfully after explicit manual opt-in."
           else
-            echo "BUKLOD source QA passed; OTA remains pending only because EXPO_TOKEN is unavailable."
+            echo "BUKLOD source QA passed; explicit OTA publish remains pending because EXPO_TOKEN is unavailable."
           fi
