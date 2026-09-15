@@ -1,0 +1,42 @@
+import fs from 'node:fs';
+
+function read(path) {
+  return fs.readFileSync(path, 'utf8');
+}
+
+function requireText(source, text, label) {
+  if (!source.includes(text)) throw new Error(`BUKLOD City QA missing ${label}: ${text}`);
+}
+
+const cityWeb = read('src/app/city.web.tsx');
+const cityNative = read('src/app/city.tsx');
+const indexWeb = read('src/app/index.web.tsx');
+const indexNative = read('src/app/index.tsx');
+const cityClient = read('src/lib/buklodCity.ts');
+const mapWeb = read('src/components/BuklodCityMap.web.tsx');
+const migration = read('supabase/migrations/20260915183000_buklod_city_web_r1.sql');
+
+requireText(indexWeb, 'BUKLOD_CITY_WEB_HOME_R1', 'web-only home marker');
+requireText(indexWeb, '<Redirect href="/city" />', 'web City boot');
+requireText(indexNative, 'href="/(tabs)/buklod"', 'native Community Wall boot');
+requireText(cityWeb, 'Community Wall', 'Community Wall return door');
+requireText(cityWeb, 'Share my location', 'opt-in people presence');
+requireText(cityWeb, "useState<'APPROXIMATE' | 'EXACT'>('APPROXIMATE')", 'approximate location default');
+requireText(cityWeb, 'Government categorization remains restricted to system verification.', 'government verification notice');
+requireText(cityWeb, 'We do not generate fake pins.', 'no fake pin contract');
+requireText(cityClient, 'buklod_city_map_snapshot_v1', 'City snapshot RPC');
+requireText(cityClient, 'buklod_city_set_presence_v1', 'presence write RPC');
+requireText(cityClient, 'buklod_city_set_scope_location_v1', 'scope location RPC');
+requireText(mapWeb, 'OpenStreetMap contributors', 'OSM attribution');
+requireText(mapWeb, 'https://{s}.tile.openstreetmap.org', 'real OSM tiles');
+requireText(migration, "precision_mode text not null default 'APPROXIMATE'", 'backend approximate default');
+requireText(migration, "if v_category = 'government' and not public.buklod_is_system_admin()", 'government backend guard');
+requireText(migration, 'revoke all on public.buklod_city_presence from anon, authenticated', 'direct presence read revocation');
+requireText(migration, "round(p.latitude::numeric, 2)", 'approximate latitude masking');
+requireText(migration, "round(p.longitude::numeric, 2)", 'approximate longitude masking');
+
+if (cityNative.includes('leaflet') || cityNative.includes('openstreetmap.org')) {
+  throw new Error('Native City route must not acquire the web map implementation.');
+}
+
+console.log('BUKLOD City Web R1 release contract: PASS');
