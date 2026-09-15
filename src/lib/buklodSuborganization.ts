@@ -33,6 +33,19 @@ function rows<T>(data: unknown): T[] {
   return [data as T];
 }
 
+function isMissingFunction(error: unknown, functionName: string) {
+  const message = String(
+    (error as { message?: unknown } | null)?.message ?? error ?? ''
+  ).toLowerCase();
+
+  return (
+    message.includes(functionName.toLowerCase()) &&
+    (message.includes('does not exist') ||
+      message.includes('could not find the function') ||
+      message.includes('schema cache'))
+  );
+}
+
 export function readParentOrganizationType(
   metadata?: Record<string, unknown> | null
 ): string {
@@ -68,19 +81,64 @@ export function roleTemplateGroupLabel(group: ScopeRoleTemplateGroup) {
   }
 }
 
+export async function canCreateSuborganization(
+  parentScopeId: string
+): Promise<boolean> {
+  const v2 = await (supabase as any).rpc(
+    'buklod_can_create_suborganization_v2',
+    { p_parent_scope_id: parentScopeId }
+  );
+
+  if (!v2.error) {
+    return v2.data === true;
+  }
+
+  if (!isMissingFunction(v2.error, 'buklod_can_create_suborganization_v2')) {
+    throw v2.error;
+  }
+
+  // Compatibility before the v2 migration is live: check the canonical
+  // ACTIVE membership helper with the authenticated user's explicit id.
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError) throw authError;
+  const userId = authData.user?.id;
+  if (!userId) return false;
+
+  const legacyMembership = await (supabase as any).rpc(
+    'buklod_scope_has_active_membership_v1',
+    { p_scope_id: parentScopeId, p_user_id: userId }
+  );
+
+  if (legacyMembership.error) {
+    throw legacyMembership.error;
+  }
+
+  return legacyMembership.data === true;
+}
+
 export async function listSuborganizations(
   parentScopeId: string,
   limit = 50,
   offset = 0
 ): Promise<SuborganizationRow[]> {
-  const { data, error } = await (supabase as any).rpc(
-    'buklod_list_suborganizations_v1',
-    {
+  const v2 = await (supabase as any).rpc('buklod_list_suborganizations_v2', {
+    p_parent_scope_id: parentScopeId,
+    p_limit: limit,
+    p_offset: offset,
+  });
+
+  let data = v2.data;
+  let error = v2.error;
+
+  if (error && isMissingFunction(error, 'buklod_list_suborganizations_v2')) {
+    const v1 = await (supabase as any).rpc('buklod_list_suborganizations_v1', {
       p_parent_scope_id: parentScopeId,
       p_limit: limit,
       p_offset: offset,
-    }
-  );
+    });
+    data = v1.data;
+    error = v1.error;
+  }
 
   if (error) {
     const legacy = await (supabase as any).rpc('buklod_list_suborganizations', {
@@ -124,18 +182,35 @@ export async function listSuborganizations(
 export async function createSuborganization(
   input: CreateSuborganizationInput
 ): Promise<string> {
-  const { data, error } = await (supabase as any).rpc(
-    'buklod_create_suborganization_v1',
-    {
-      p_parent_scope_id: input.parentScopeId,
-      p_name: input.name.trim(),
-      p_description: input.description?.trim() || null,
-      p_visibility: input.visibility ?? null,
-      p_join_policy: input.joinPolicy ?? null,
-      p_organization_type: input.organizationType?.trim() || null,
-      p_profile: {},
-    }
+  const args = {
+    p_parent_scope_id: input.parentScopeId,
+    p_name: input.name.trim(),
+    p_description: input.description?.trim() || null,
+    p_visibility: input.visibility ?? null,
+    p_join_policy: input.joinPolicy ?? null,
+    p_organization_type: input.organizationType?.trim() || null,
+    p_profile: {},
+  };
+
+  const v2 = await (supabase as any).rpc(
+    'buklod_create_suborganization_v2',
+    args
   );
+
+  let data = v2.data;
+  let error = v2.error;
+
+  if (error && isMissingFunction(error, 'buklod_create_suborganization_v2')) {
+    // Compatibility only for already-authorized legacy admins before v2 is
+    // applied. Normal members are never reported as successfully created by
+    // the client because v1 keeps its server-side admin authorization.
+    const v1 = await (supabase as any).rpc(
+      'buklod_create_suborganization_v1',
+      args
+    );
+    data = v1.data;
+    error = v1.error;
+  }
 
   if (error) {
     throw error;

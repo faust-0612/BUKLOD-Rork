@@ -22,6 +22,7 @@ import {
 import { supabase } from '../../lib/supabase';
 import { organizationScopeParams } from '@/lib/buklodOrganization';
 import {
+  canCreateSuborganization,
   createSuborganization,
   listSuborganizations,
   readParentOrganizationType,
@@ -157,13 +158,13 @@ export default function SuborganizationsScreen() {
     setLoading(true);
 
     try {
-      const [parentResult, manageableResult] = await Promise.all([
+      const [parentResult, canCreate] = await Promise.all([
         (supabase as any)
           .from('buklod_scopes')
           .select('*')
           .eq('id', parentScopeId)
           .maybeSingle(),
-        (supabase as any).rpc('buklod_my_manageable_organizations_v2'),
+        canCreateSuborganization(parentScopeId),
       ]);
 
       if (parentResult.error) {
@@ -182,14 +183,7 @@ export default function SuborganizationsScreen() {
         );
       }
 
-      const canManage =
-        !manageableResult.error &&
-        (manageableResult.data || []).some(
-          (row: { scope_id?: string; id?: string }) =>
-            String(row.scope_id || row.id || '').trim() === parentScopeId
-        );
-
-      setAllowed(canManage);
+      setAllowed(canCreate);
       setParent(parentRow);
       setOrganizationType(readParentOrganizationType(parentRow.metadata));
       setVisibility(upper(parentRow.visibility || 'PUBLIC'));
@@ -234,8 +228,8 @@ export default function SuborganizationsScreen() {
 
     if (!allowed) {
       Alert.alert(
-        'Admin access required',
-        'Only an authorized admin of the parent Organization can create a Sub-organization.'
+        'Organization membership required',
+        'You must be an active member of the parent Organization to create a Sub-organization.'
       );
       return;
     }
@@ -294,8 +288,8 @@ export default function SuborganizationsScreen() {
 
   const requestSuborganization = () => {
     Alert.alert(
-      'Request new Sub-organization',
-      'If you manage a lower unit but are not authorized to create directly under this Organization, you may request a new Sub-organization for parent admin review.\n\nApproval workflow is being prepared. No child scope is created until a parent Organization admin approves the request.'
+      'Organization membership required',
+      'Join this parent Organization first. Any authenticated ACTIVE member may create a Sub-organization; no payment or premium entitlement is required.'
     );
   };
 
@@ -391,7 +385,7 @@ export default function SuborganizationsScreen() {
                   ]}
                 >
                   <Text style={styles.actionOutlineText}>
-                    REQUEST NEW SUB-ORGANIZATION
+                    ACTIVE MEMBERSHIP REQUIRED
                   </Text>
                 </Pressable>
               )}
@@ -467,10 +461,11 @@ export default function SuborganizationsScreen() {
           <>
             {!allowed ? (
               <View style={styles.warningCard}>
-                <Text style={styles.warningTitle}>ADMIN ACCESS REQUIRED</Text>
+                <Text style={styles.warningTitle}>ACTIVE MEMBERSHIP REQUIRED</Text>
                 <Text style={styles.warningText}>
-                  Only an admin of this exact parent Organization can create a
-                  structural Sub-organization.
+                  Any authenticated ACTIVE member of this exact parent Organization
+                  may create a structural Sub-organization. No payment or premium
+                  entitlement is required.
                 </Text>
                 <Pressable
                   onPress={requestSuborganization}
@@ -482,7 +477,7 @@ export default function SuborganizationsScreen() {
                   ]}
                 >
                   <Text style={styles.actionOutlineText}>
-                    REQUEST NEW SUB-ORGANIZATION
+                    MEMBERSHIP INFORMATION
                   </Text>
                 </Pressable>
               </View>
