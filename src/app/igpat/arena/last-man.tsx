@@ -73,20 +73,20 @@ export default function IgpatLastManStandingScreen() {
 
       <View style={styles.ruleCard}>
         <MaterialCommunityIcons name="shield-check-outline" size={20} color="#D9FF69" />
-        <View style={styles.flex}><Text style={styles.ruleTitle}>PREDICTABLE ADVANCEMENT</Text><Text style={styles.ruleText}>Each round advances the top half by unique outside Respect. Ties are resolved by earlier verified submission, then a stable account identifier. Participants cannot vote. There is no wagering or random elimination.</Text></View>
+        <View style={styles.flex}><Text style={styles.ruleTitle}>PREDICTABLE ADVANCEMENT</Text><Text style={styles.ruleText}>Each round advances the top half by unique outside Respect. Voting opens only after the full active field has submitted and only for viewers who can see every active entry. Ties are resolved by earlier verified submission, then a stable account identifier. Participants cannot vote.</Text></View>
       </View>
 
       {loading ? <View style={styles.center}><ActivityIndicator color="#FFFFFF" /><Text style={styles.stateText}>Loading elimination events…</Text></View> : error ? (
-        <View style={styles.stateCard}><Text style={styles.stateText}>{error}</Text><Pressable style={styles.smallButton} onPress={() => void load()}><Text style={styles.smallText}>RETRY</Text></Pressable></View>
+        <View style={styles.stateCard}><Text style={styles.stateText}>{error}</Text><Pressable accessibilityRole="button" accessibilityLabel="Retry Last Man Standing" style={styles.smallButton} onPress={() => void load()}><Text style={styles.smallText}>RETRY</Text></Pressable></View>
       ) : (
         <>
           {!hasOwnedOpen ? (
             <View style={styles.createCard}>
               <Text style={styles.sectionTitle}>CREATE A STRUCTURED EVENT</Text>
               <Text style={styles.helper}>No custom call-out text is used here, reducing harassment. Pick a clear skill category and participant cap.</Text>
-              <View style={styles.chips}>{CATEGORIES.map(value => <Pressable key={value} style={[styles.chip,category===value&&styles.chipActive]} onPress={() => setCategory(value)}><Text style={[styles.chipText,category===value&&styles.chipTextActive]}>{title(value).toUpperCase()}</Text></Pressable>)}</View>
+              <View style={styles.chips}>{CATEGORIES.map(value => <Pressable accessibilityRole="button" accessibilityLabel={`Choose ${title(value)} category`} key={value} style={[styles.chip,category===value&&styles.chipActive]} onPress={() => setCategory(value)}><Text style={[styles.chipText,category===value&&styles.chipTextActive]}>{title(value).toUpperCase()}</Text></Pressable>)}</View>
               <Text style={styles.label}>MAX PARTICIPANTS</Text>
-              <View style={styles.row}>{[4,8,12,16].map(value => <Pressable key={value} style={[styles.capButton,cap===value&&styles.capActive]} onPress={() => setCap(value)}><Text style={[styles.capText,cap===value&&styles.capTextActive]}>{value}</Text></Pressable>)}</View>
+              <View style={styles.row}>{[4,8,12,16].map(value => <Pressable accessibilityRole="button" accessibilityLabel={`Set maximum participants to ${value}`} key={value} style={[styles.capButton,cap===value&&styles.capActive]} onPress={() => setCap(value)}><Text style={[styles.capText,cap===value&&styles.capTextActive]}>{value}</Text></Pressable>)}</View>
               <Pressable accessibilityRole="button" accessibilityLabel="Create Last Man Standing event" disabled={!!busy} style={styles.primaryButton} onPress={() => void run('create','igpat_create_lms_event_v1',{p_category:category,p_max_participants:cap},'Last Man Standing event opened for voluntary joining.')}><MaterialCommunityIcons name="tournament" size={18} color="#07100B" /><Text style={styles.primaryText}>CREATE EVENT</Text></Pressable>
             </View>
           ) : null}
@@ -99,8 +99,10 @@ export default function IgpatLastManStandingScreen() {
               const activeMe = event.my_status === 'ACTIVE';
               const selected = selectedPosts[event.id] ?? igpats[0]?.id ?? '';
               const myEntry = (event.entries ?? []).find(entry => entry.user_id === user?.id);
-              const allSubmitted = event.status === 'ACTIVE' && activeParticipants.length > 1 && (event.entries ?? []).filter(entry => activeParticipants.some(p => p.user_id===entry.user_id)).length === activeParticipants.length;
-              const canVote = event.status === 'ACTIVE' && !joined;
+              const activeEntries = (event.entries ?? []).filter(entry => activeParticipants.some(p => p.user_id === entry.user_id));
+              const allSubmitted = event.status === 'ACTIVE' && activeParticipants.length > 1 && activeEntries.length === activeParticipants.length;
+              const allVisibleToMe = allSubmitted && activeEntries.every(entry => Boolean(entry.post_id));
+              const canVote = event.status === 'ACTIVE' && !joined && allVisibleToMe;
               return (
                 <View key={event.id} style={styles.eventCard}>
                   <View style={styles.eventTop}><View style={styles.flex}><Text style={styles.eventTitle}>{title(event.category)} · {event.status}</Text><Text style={styles.meta}>Host {event.creator_name} · Round {event.current_round || 'Lobby'} · {(event.participants ?? []).filter(p=>p.status!=='LEFT').length}/{event.max_participants}</Text></View>{event.champion_name ? <MaterialCommunityIcons name="trophy-outline" size={22} color="#D9FF69" /> : null}</View>
@@ -119,6 +121,8 @@ export default function IgpatLastManStandingScreen() {
                   {event.status === 'ACTIVE' ? (
                     <>
                       <Text style={styles.label}>ROUND {event.current_round} ENTRIES</Text>
+                      {!joined && !allSubmitted ? <Text style={styles.helper}>Outside Respect opens after every active participant submits this round.</Text> : null}
+                      {!joined && allSubmitted && !allVisibleToMe ? <Text style={styles.helper}>Respect is unavailable to this account because not every active entry is currently viewable.</Text> : null}
                       {(event.entries ?? []).length ? (event.entries ?? []).map(entry => (
                         <View key={entry.user_id} style={styles.entryRow}>
                           <View style={styles.flex}><Text style={styles.entryName}>{entry.name}</Text><Text style={styles.meta}>{Number(entry.respect_received??0)} Respect{entry.advanced===true?' · ADVANCED':entry.advanced===false?' · ELIMINATED':''}</Text></View>
