@@ -1,7 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Pressable,
   StyleSheet,
@@ -9,11 +8,11 @@ import {
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 
 import { BUKLOD_REPORT_ICON_URI } from '@/lib/buklodReportBranding';
 import { fetchMyActionableReportAssignments } from '@/lib/buklodReportDomain';
-import { openBuklodReportExternal } from '@/lib/buklodReportLauncher';
+import { buklodReportLandingPath } from '@/lib/buklodReportRoutes';
 import { colors } from '@/lib/theme';
 
 type Props = {
@@ -24,6 +23,15 @@ type Props = {
   iconOnly?: boolean;
 };
 
+/**
+ * Canonical BUKLOD Report door for Organization / Cluster Home.
+ *
+ * The Main door MUST stay on the authenticated BUKLOD router. Opening the
+ * standalone hostname here would cross web origins and can cause a second
+ * sign-in. Direct standalone Report access can keep its own login guard, but
+ * entry from BUKLOD Main reuses the existing account session and carries the
+ * exact Organization / Cluster scope through the internal Report route.
+ */
 export default function BuklodReportDoorCard({
   scopeId,
   scopeName,
@@ -32,7 +40,6 @@ export default function BuklodReportDoorCard({
   iconOnly = false,
 }: Props) {
   const [loading, setLoading] = useState(false);
-  const [opening, setOpening] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
 
   useFocusEffect(
@@ -68,36 +75,30 @@ export default function BuklodReportDoorCard({
     }, [scopeId])
   );
 
-  const openReport = useCallback(async () => {
-    if (!scopeId || opening) return;
+  const openReport = useCallback(() => {
+    if (!scopeId) return;
 
-    setOpening(true);
-    try {
-      await openBuklodReportExternal({ scopeId, scopeType });
-    } catch (error: unknown) {
-      Alert.alert(
-        'BUKLOD Report',
-        error instanceof Error
-          ? error.message
-          : 'The standalone BUKLOD Report app could not be opened.'
-      );
-    } finally {
-      setOpening(false);
-    }
-  }, [opening, scopeId, scopeType]);
+    const base = buklodReportLandingPath(scopeId);
+    const separator = base.includes('?') ? '&' : '?';
+
+    router.push(
+      `${base}${separator}entry=main&source_scope_type=${encodeURIComponent(
+        scopeType
+      )}` as any
+    );
+  }, [scopeId, scopeType]);
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`Open BUKLOD Report for ${scopeName}`}
-      disabled={opening}
-      onPress={() => void openReport()}
+      accessibilityHint="Uses your current BUKLOD account and active workspace without another sign-in."
+      onPress={openReport}
       style={({ pressed }) => [
         styles.card,
         compact && styles.cardCompact,
         iconOnly && styles.logoButton,
         pressed && styles.pressed,
-        opening && styles.disabled,
       ]}
     >
       {iconOnly ? (
@@ -107,9 +108,15 @@ export default function BuklodReportDoorCard({
             resizeMode="cover"
             style={styles.logoOnlyIcon}
           />
-          {opening ? (
+          {loading ? (
             <View style={styles.logoOnlyLoading}>
               <ActivityIndicator size="small" color={colors.greenDark} />
+            </View>
+          ) : pendingCount > 0 ? (
+            <View style={styles.logoOnlyBadge}>
+              <Text style={styles.logoOnlyBadgeText}>
+                {pendingCount > 99 ? '99+' : pendingCount}
+              </Text>
             </View>
           ) : null}
         </View>
@@ -126,7 +133,7 @@ export default function BuklodReportDoorCard({
           <View style={styles.copy}>
             <View style={styles.titleRow}>
               <Text style={styles.eyebrow}>BUKLOD FOCUS APP</Text>
-              {loading || opening ? (
+              {loading ? (
                 <ActivityIndicator size="small" color={colors.greenDark} />
               ) : pendingCount > 0 ? (
                 <View style={styles.badge}>
@@ -136,12 +143,11 @@ export default function BuklodReportDoorCard({
             </View>
             <Text style={styles.title}>BUKLOD Report</Text>
             <Text style={styles.subtitle} numberOfLines={3}>
-              Report, monitor and follow up for {scopeName}. Your selected
-              {` ${scopeType.toLowerCase()} `}scope opens in the standalone Report app.
-              Sign-in may be required on first open.
+              Report, monitor and follow up for {scopeName}. Your current BUKLOD
+              account and {` ${scopeType.toLowerCase()} `}scope carry over automatically.
             </Text>
             <View style={styles.openRow}>
-              <Text style={styles.openText}>{opening ? 'OPENING…' : 'OPEN REPORT'}</Text>
+              <Text style={styles.openText}>OPEN REPORT</Text>
               <MaterialCommunityIcons
                 name="arrow-right"
                 size={16}
@@ -184,7 +190,7 @@ const styles = StyleSheet.create({
     padding: 0,
     borderRadius: 16,
     alignSelf: 'flex-start',
-    overflow: 'hidden',
+    overflow: 'visible',
   },
   logoOnlyWrap: {
     width: '100%',
@@ -194,12 +200,33 @@ const styles = StyleSheet.create({
   logoOnlyIcon: {
     width: '100%',
     height: '100%',
+    borderRadius: 16,
   },
   logoOnlyLoading: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 16,
     backgroundColor: 'rgba(255,255,255,0.72)',
+  },
+  logoOnlyBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    backgroundColor: '#F59E0B',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  logoOnlyBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 8,
+    fontWeight: '900',
   },
   iconWrap: {
     width: 66,
@@ -267,8 +294,5 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.76,
-  },
-  disabled: {
-    opacity: 0.62,
   },
 });
