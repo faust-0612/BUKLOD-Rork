@@ -1,5 +1,6 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
-import { View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import type { BuklodCityPoint } from '@/lib/buklodCity';
 
@@ -23,15 +24,50 @@ function safeJson(value: unknown) {
   return JSON.stringify(value).replace(/</g, '\\u003c');
 }
 
+function MapIcon({
+  icon,
+  label,
+  onPress,
+  disabled = false,
+}: {
+  icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+  label: string;
+  onPress?: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      disabled={disabled || !onPress}
+      onPress={onPress}
+      style={({ pressed }) => [styles.mapIconButton, disabled && styles.mapIconButtonDisabled, pressed && !disabled && styles.mapIconButtonPressed]}
+    >
+      <MaterialCommunityIcons name={icon} size={20} color={disabled ? '#9AA9B5' : '#214A5D'} />
+    </Pressable>
+  );
+}
+
 export function BuklodCityMap({
   points,
   center,
   expanded = false,
+  onExpandedChange,
+  onShareLocation,
+  onManagePlace,
+  canManagePlace = true,
 }: {
   points: BuklodCityPoint[];
   center?: { latitude: number; longitude: number } | null;
   expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
+  onShareLocation?: () => void;
+  onManagePlace?: () => void;
+  canManagePlace?: boolean;
 }) {
+  const { width } = useWindowDimensions();
+  const mobile = width < 720;
+  const previewHeight = mobile ? 190 : 250;
   const mapCenter = center ?? points[0] ?? FALLBACK_CENTER;
 
   const srcDoc = useMemo(() => {
@@ -56,14 +92,12 @@ export function BuklodCityMap({
 <style>
 html,body,#map{width:100%;height:100%;margin:0;padding:0;background:#eaf2f4;font-family:Inter,system-ui,-apple-system,sans-serif}
 .leaflet-control-attribution{font-size:9px}
-.leaflet-popup-content{min-width:220px;margin:12px 14px}
+.leaflet-popup-content{min-width:200px;margin:11px 13px}
 .buklod-pin{width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 3px 10px rgba(20,50,70,.25);display:flex;align-items:center;justify-content:center}
 .buklod-pin span{transform:rotate(45deg);color:#fff;font-size:12px;font-weight:900}
-.buklod-popup-title{font-weight:800;font-size:13px;color:#183047;margin-bottom:3px}.buklod-popup-sub{font-size:11px;line-height:15px;color:#60768a}.buklod-verified{font-size:10px;color:#177552;font-weight:700;margin-top:5px}
-.buklod-popup-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.buklod-popup-action{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:0 10px;border-radius:10px;text-decoration:none;font-size:10px;font-weight:800;border:1px solid #d7e1e8;color:#245574;background:#f5f8fa}.buklod-popup-action-primary{color:#fff;background:#177552;border-color:#177552}.buklod-popup-note{margin-top:7px;font-size:9px;line-height:13px;color:#748695}
-.buklod-nav-hint{min-width:150px;padding:9px 11px;border:1px solid #d7e5dd;border-radius:13px;background:rgba(255,255,255,.96);box-shadow:0 5px 18px rgba(22,60,45,.16);color:#204a3a;cursor:default}.buklod-nav-hint strong{display:block;font-size:11px;line-height:14px}.buklod-nav-hint span{display:block;margin-top:2px;font-size:9px;line-height:12px;color:#60786d}
-.buklod-nav-dock{max-width:min(390px,calc(100vw - 44px));padding:10px 11px;border:1px solid #d7e5dd;border-radius:15px;background:rgba(255,255,255,.97);box-shadow:0 8px 26px rgba(19,52,68,.2);color:#1f3c4e}.buklod-nav-dock-hidden{display:none}.buklod-nav-dock-title{font-size:11px;line-height:14px;font-weight:900;color:#20384b}.buklod-nav-dock-sub{margin-top:2px;font-size:9px;line-height:12px;color:#6a7f8f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.buklod-nav-dock-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.buklod-nav-dock a{display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 11px;border-radius:10px;text-decoration:none;font-size:10px;font-weight:900;border:1px solid #d7e1e8;color:#245574;background:#f5f8fa}.buklod-nav-dock a.primary{color:#fff;background:#177552;border-color:#177552}.buklod-nav-dock-note{margin-top:6px;font-size:8px;line-height:11px;color:#748695}
-@media (max-width:560px){.buklod-nav-hint{min-width:0;padding:7px 9px}.buklod-nav-hint strong{font-size:10px}.buklod-nav-hint span{font-size:8px}.buklod-nav-dock{max-width:calc(100vw - 34px);padding:9px}.buklod-nav-dock-actions{gap:5px}.buklod-nav-dock a{min-height:32px;padding:0 9px;font-size:9px}}
+.buklod-popup-title{font-weight:800;font-size:13px;color:#183047;margin-bottom:3px}.buklod-popup-sub{font-size:11px;line-height:15px;color:#60768a}.buklod-verified{font-size:10px;color:#177552;font-weight:700;margin-top:5px}.buklod-popup-note{margin-top:7px;font-size:9px;line-height:13px;color:#748695}
+.buklod-nav-dock{max-width:min(330px,calc(100vw - 40px));padding:0;border:0;background:transparent;box-shadow:none}.buklod-nav-dock-hidden{display:none}.buklod-nav-card{display:block;padding:11px 12px;border:1px solid #cfe0d7;border-radius:15px;background:rgba(255,255,255,.98);box-shadow:0 8px 26px rgba(19,52,68,.2);text-decoration:none;color:#1f3c4e}.buklod-nav-card strong{display:block;font-size:11px;line-height:14px;color:#177552}.buklod-nav-card span{display:block;margin-top:3px;font-size:9px;line-height:12px;color:#6a7f8f}.buklod-nav-card small{display:block;margin-top:6px;font-size:8px;line-height:11px;color:#748695}.buklod-privacy-card{padding:11px 12px;border:1px solid #dfe7ec;border-radius:15px;background:rgba(255,255,255,.98);box-shadow:0 8px 26px rgba(19,52,68,.16);font-size:10px;line-height:14px;color:#586f80}
+@media (max-width:560px){.buklod-nav-dock{max-width:calc(100vw - 30px)}.buklod-nav-card{padding:10px 11px}.buklod-nav-card strong{font-size:10px}.buklod-nav-card span{font-size:8px}}
 </style>
 </head>
 <body>
@@ -75,16 +109,6 @@ const colors=${safeJson(CATEGORY_COLORS)};
 const center=${safeJson([Number(mapCenter.latitude), Number(mapCenter.longitude)])};
 const map=L.map('map',{zoomControl:true,attributionControl:true}).setView(center,13);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
-
-const NavigationHint=L.Control.extend({
- onAdd(){
-  const div=L.DomUtil.create('div','buklod-nav-hint');
-  div.innerHTML='<strong>🧭 BUKLOD Navigation</strong><span>Tap a place pin to navigate</span>';
-  L.DomEvent.disableClickPropagation(div);
-  return div;
- }
-});
-new NavigationHint({position:'topright'}).addTo(map);
 
 const NavigationDock=L.Control.extend({
  onAdd(){
@@ -101,20 +125,19 @@ function escapeHtml(value){return String(value||'').replace(/[&<>"']/g,s=>({'&':
 function navigationUrls(p){
  const destination=encodeURIComponent(String(p.latitude)+','+String(p.longitude));
  const directions='https://www.google.com/maps/dir/?api=1&destination='+destination;
- return {directions,navigate:directions+'&travelmode=driving&dir_action=navigate',map:'https://www.google.com/maps/search/?api=1&query='+destination};
+ return {navigate:directions+'&travelmode=driving&dir_action=navigate'};
 }
 function isNavigablePoint(p){return String(p.kind||'').toUpperCase()!=='PERSON' && String(p.category||'').toLowerCase()!=='people';}
 function showNavigationDock(p){
  const dock=document.getElementById('buklod-nav-dock');
  if(!dock) return;
+ dock.className='buklod-nav-dock';
  if(!isNavigablePoint(p)){
-  dock.className='buklod-nav-dock';
-  dock.innerHTML='<div class="buklod-nav-dock-title">Privacy-protected presence</div><div class="buklod-nav-dock-note">People-presence pins are not exposed as navigation destinations.</div>';
+  dock.innerHTML='<div class="buklod-privacy-card"><strong>Privacy-protected presence</strong><br/>People-presence pins are not navigation destinations.</div>';
   return;
  }
  const urls=navigationUrls(p);
- dock.className='buklod-nav-dock';
- dock.innerHTML='<div class="buklod-nav-dock-title">Navigate to '+escapeHtml(p.title)+'</div><div class="buklod-nav-dock-sub">'+escapeHtml(p.subtitle||p.category||'BUKLOD place')+'</div><div class="buklod-nav-dock-actions"><a class="primary" href="'+urls.navigate+'" target="_blank" rel="noopener noreferrer">Start navigation</a><a href="'+urls.directions+'" target="_blank" rel="noopener noreferrer">Directions</a><a href="'+urls.map+'" target="_blank" rel="noopener noreferrer">Google Maps</a></div><div class="buklod-nav-dock-note">Google Maps can use your current device location as origin when available.</div>';
+ dock.innerHTML='<a class="buklod-nav-card" href="'+urls.navigate+'" target="_blank" rel="noopener noreferrer"><strong>🧭 Navigate to '+escapeHtml(p.title)+'</strong><span>'+escapeHtml(p.subtitle||p.category||'BUKLOD place')+'</span><small>Tap this card to open Google Maps navigation</small></a>';
 }
 
 const bounds=[];
@@ -126,11 +149,10 @@ points.forEach((p)=>{
  const marker=L.marker([p.latitude,p.longitude],{icon}).addTo(map);
  const safeTitle=escapeHtml(p.title);
  const safeSub=escapeHtml(p.subtitle);
- const urls=navigationUrls(p);
- const navigationHtml=isNavigablePoint(p)
-   ? '<div class="buklod-popup-actions"><a class="buklod-popup-action buklod-popup-action-primary" href="'+urls.navigate+'" target="_blank" rel="noopener noreferrer">Navigate</a><a class="buklod-popup-action" href="'+urls.directions+'" target="_blank" rel="noopener noreferrer">Directions</a><a class="buklod-popup-action" href="'+urls.map+'" target="_blank" rel="noopener noreferrer">Google Maps</a></div><div class="buklod-popup-note">Google Maps uses your current device location as the starting point when available.</div>'
+ const popupNote=isNavigablePoint(p)
+   ? '<div class="buklod-popup-note">Select this place, then tap the green BUKLOD Navigation card.</div>'
    : '<div class="buklod-popup-note">People-presence pins are intentionally not exposed as navigation destinations.</div>';
- marker.bindPopup('<div class="buklod-popup-title">'+safeTitle+'</div><div class="buklod-popup-sub">'+safeSub+'</div>'+(p.verified?'<div class="buklod-verified">Verified BUKLOD place</div>':'')+navigationHtml);
+ marker.bindPopup('<div class="buklod-popup-title">'+safeTitle+'</div><div class="buklod-popup-sub">'+safeSub+'</div>'+(p.verified?'<div class="buklod-verified">Verified BUKLOD place</div>':'')+popupNote);
  marker.on('click',()=>showNavigationDock(p));
  bounds.push([p.latitude,p.longitude]);
 });
@@ -141,28 +163,108 @@ setTimeout(()=>map.invalidateSize(),120);
 </html>`;
   }, [mapCenter.latitude, mapCenter.longitude, points]);
 
-  return (
-    <View
-      style={{
-        width: '100%',
-        height: expanded ? 620 : 440,
-        borderRadius: 22,
-        overflow: 'hidden',
-        backgroundColor: '#EAF2F4',
-      }}
-    >
-      {React.createElement('iframe', {
-        title: 'BUKLOD City community map',
-        srcDoc,
-        style: {
-          border: 0,
-          width: '100%',
-          height: '100%',
-          display: 'block',
-          background: '#EAF2F4',
-        },
-        referrerPolicy: 'no-referrer',
-      })}
+  const iframe = (interactive: boolean) => React.createElement('iframe', {
+    title: interactive ? 'BUKLOD City interactive community map' : 'BUKLOD City map preview',
+    srcDoc,
+    style: {
+      border: 0,
+      width: '100%',
+      height: '100%',
+      display: 'block',
+      background: '#EAF2F4',
+      pointerEvents: interactive ? 'auto' : 'none',
+    },
+    referrerPolicy: 'no-referrer',
+  });
+
+  const controls = (showClose = false) => (
+    <View style={styles.mapControls} pointerEvents="box-none">
+      <MapIcon icon="crosshairs-gps" label="Share location" onPress={onShareLocation} />
+      <MapIcon icon="pencil" label="Manage place" onPress={onManagePlace} disabled={!canManagePlace} />
+      {showClose ? <MapIcon icon="close" label="Close full screen map" onPress={() => onExpandedChange?.(false)} /> : null}
     </View>
   );
+
+  return (
+    <>
+      <View style={[styles.previewFrame, { height: previewHeight }]}> 
+        {iframe(false)}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Open BUKLOD City map full screen"
+          onPress={() => onExpandedChange?.(true)}
+          style={({ pressed }) => [styles.previewTapLayer, pressed && styles.previewTapLayerPressed]}
+        >
+          <View style={styles.previewPrompt}>
+            <MaterialCommunityIcons name="map-search-outline" size={18} color="#FFFFFF" />
+            <Text style={styles.previewPromptText}>Tap map to open</Text>
+          </View>
+        </Pressable>
+        {controls(false)}
+      </View>
+
+      <Modal visible={expanded} animationType="fade" onRequestClose={() => onExpandedChange?.(false)}>
+        <View style={styles.fullscreenShell}>
+          <View style={styles.fullscreenMap}>{iframe(true)}</View>
+          {controls(true)}
+        </View>
+      </Modal>
+    </>
+  );
 }
+
+const styles = StyleSheet.create({
+  previewFrame: {
+    width: '100%',
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: '#EAF2F4',
+    borderWidth: 1,
+    borderColor: '#D6E2E8',
+    position: 'relative',
+  },
+  previewTapLayer: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(21,48,64,.04)',
+  },
+  previewTapLayerPressed: { backgroundColor: 'rgba(21,48,64,.10)' },
+  previewPrompt: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 999,
+    backgroundColor: 'rgba(24,55,72,.82)',
+  },
+  previewPromptText: { color: '#FFFFFF', fontSize: 10, fontWeight: '900' },
+  mapControls: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    flexDirection: 'row',
+    gap: 7,
+    zIndex: 20,
+  },
+  mapIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,.96)',
+    borderWidth: 1,
+    borderColor: '#D6E2E8',
+    boxShadow: '0 5px 16px rgba(18,45,62,.16)',
+  } as any,
+  mapIconButtonDisabled: { opacity: 0.45 },
+  mapIconButtonPressed: { opacity: 0.72 },
+  fullscreenShell: { flex: 1, backgroundColor: '#EAF2F4', position: 'relative' },
+  fullscreenMap: { flex: 1, width: '100%' },
+});
