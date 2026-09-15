@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/providers/AuthProvider';
 
 type Participant = { user_id: string; name: string; status: string; joined_at?: string | null; eliminated_round?: number | null };
 type Entry = { user_id: string; name: string; post_id?: string | null; respect_received?: number | null; submitted_at?: string | null; advanced?: boolean | null; my_vote?: boolean };
@@ -21,6 +22,7 @@ function title(value: string) {
 }
 
 export default function IgpatLastManStandingScreen() {
+  const { user } = useAuth();
   const [hub, setHub] = useState<Hub>({});
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]>('skills');
   const [cap, setCap] = useState(8);
@@ -85,7 +87,7 @@ export default function IgpatLastManStandingScreen() {
               <View style={styles.chips}>{CATEGORIES.map(value => <Pressable key={value} style={[styles.chip,category===value&&styles.chipActive]} onPress={() => setCategory(value)}><Text style={[styles.chipText,category===value&&styles.chipTextActive]}>{title(value).toUpperCase()}</Text></Pressable>)}</View>
               <Text style={styles.label}>MAX PARTICIPANTS</Text>
               <View style={styles.row}>{[4,8,12,16].map(value => <Pressable key={value} style={[styles.capButton,cap===value&&styles.capActive]} onPress={() => setCap(value)}><Text style={[styles.capText,cap===value&&styles.capTextActive]}>{value}</Text></Pressable>)}</View>
-              <Pressable disabled={!!busy} style={styles.primaryButton} onPress={() => void run('create','igpat_create_lms_event_v1',{p_category:category,p_max_participants:cap},'Last Man Standing event opened for voluntary joining.')}><MaterialCommunityIcons name="tournament" size={18} color="#07100B" /><Text style={styles.primaryText}>CREATE EVENT</Text></Pressable>
+              <Pressable accessibilityRole="button" accessibilityLabel="Create Last Man Standing event" disabled={!!busy} style={styles.primaryButton} onPress={() => void run('create','igpat_create_lms_event_v1',{p_category:category,p_max_participants:cap},'Last Man Standing event opened for voluntary joining.')}><MaterialCommunityIcons name="tournament" size={18} color="#07100B" /><Text style={styles.primaryText}>CREATE EVENT</Text></Pressable>
             </View>
           ) : null}
 
@@ -96,7 +98,7 @@ export default function IgpatLastManStandingScreen() {
               const joined = Boolean(event.my_status && event.my_status !== 'LEFT');
               const activeMe = event.my_status === 'ACTIVE';
               const selected = selectedPosts[event.id] ?? igpats[0]?.id ?? '';
-              const myEntry = (event.entries ?? []).find(entry => entry.user_id && entry.name && entry.user_id === (event.participants ?? []).find(p => p.status === event.my_status && activeMe)?.user_id);
+              const myEntry = (event.entries ?? []).find(entry => entry.user_id === user?.id);
               const allSubmitted = event.status === 'ACTIVE' && activeParticipants.length > 1 && (event.entries ?? []).filter(entry => activeParticipants.some(p => p.user_id===entry.user_id)).length === activeParticipants.length;
               const canVote = event.status === 'ACTIVE' && !joined;
               return (
@@ -107,10 +109,10 @@ export default function IgpatLastManStandingScreen() {
 
                   {event.status === 'OPEN' ? (
                     <View style={styles.row}>
-                      {!joined ? <Pressable disabled={!!busy} style={styles.primarySmall} onPress={() => void run(`join:${event.id}`,'igpat_join_lms_event_v1',{p_event_id:event.id},'You joined voluntarily.')}><Text style={styles.primarySmallText}>JOIN</Text></Pressable> : null}
-                      {joined && !event.is_creator ? <Pressable disabled={!!busy} style={styles.smallButton} onPress={() => void run(`leave:${event.id}`,'igpat_leave_lms_event_v1',{p_event_id:event.id},'You left before elimination began.')}><Text style={styles.smallText}>LEAVE</Text></Pressable> : null}
-                      {event.is_creator ? <Pressable disabled={!!busy || activeParticipants.length<4} style={[styles.primarySmall,activeParticipants.length<4&&styles.disabled]} onPress={() => void run(`start:${event.id}`,'igpat_start_lms_event_v1',{p_event_id:event.id},'Round 1 started. Every active participant must submit before advancement.')}><Text style={styles.primarySmallText}>START · MIN 4</Text></Pressable> : null}
-                      {event.is_creator ? <Pressable disabled={!!busy} style={styles.smallButton} onPress={() => void run(`cancel:${event.id}`,'igpat_leave_lms_event_v1',{p_event_id:event.id},'Open event cancelled.')}><Text style={styles.smallText}>CANCEL</Text></Pressable> : null}
+                      {!joined ? <Pressable accessibilityRole="button" accessibilityLabel="Join Last Man Standing event" disabled={!!busy} style={styles.primarySmall} onPress={() => void run(`join:${event.id}`,'igpat_join_lms_event_v1',{p_event_id:event.id},'You joined voluntarily.')}><Text style={styles.primarySmallText}>JOIN</Text></Pressable> : null}
+                      {joined && !event.is_creator ? <Pressable accessibilityRole="button" accessibilityLabel="Leave Last Man Standing event" disabled={!!busy} style={styles.smallButton} onPress={() => void run(`leave:${event.id}`,'igpat_leave_lms_event_v1',{p_event_id:event.id},'You left before elimination began.')}><Text style={styles.smallText}>LEAVE</Text></Pressable> : null}
+                      {event.is_creator ? <Pressable accessibilityRole="button" accessibilityLabel="Start Last Man Standing event" disabled={!!busy || activeParticipants.length<4} style={[styles.primarySmall,activeParticipants.length<4&&styles.disabled]} onPress={() => void run(`start:${event.id}`,'igpat_start_lms_event_v1',{p_event_id:event.id},'Round 1 started. Every active participant must submit before advancement.')}><Text style={styles.primarySmallText}>START · MIN 4</Text></Pressable> : null}
+                      {event.is_creator ? <Pressable accessibilityRole="button" accessibilityLabel="Cancel open Last Man Standing event" disabled={!!busy} style={styles.smallButton} onPress={() => void run(`cancel:${event.id}`,'igpat_leave_lms_event_v1',{p_event_id:event.id},'Open event cancelled.')}><Text style={styles.smallText}>CANCEL</Text></Pressable> : null}
                     </View>
                   ) : null}
 
@@ -120,20 +122,20 @@ export default function IgpatLastManStandingScreen() {
                       {(event.entries ?? []).length ? (event.entries ?? []).map(entry => (
                         <View key={entry.user_id} style={styles.entryRow}>
                           <View style={styles.flex}><Text style={styles.entryName}>{entry.name}</Text><Text style={styles.meta}>{Number(entry.respect_received??0)} Respect{entry.advanced===true?' · ADVANCED':entry.advanced===false?' · ELIMINATED':''}</Text></View>
-                          {entry.post_id ? <Pressable style={styles.openButton} onPress={() => router.push(`/post/${entry.post_id}` as any)}><Text style={styles.openText}>VIEW</Text></Pressable> : <Text style={styles.meta}>PRIVATE</Text>}
-                          {canVote && entry.post_id ? <Pressable disabled={!!busy} style={[styles.voteButton,entry.my_vote&&styles.voteActive]} onPress={() => void run(`vote:${event.id}:${entry.user_id}`,'igpat_vote_lms_v1',{p_event_id:event.id,p_participant_user_id:entry.user_id})}><Text style={[styles.voteText,entry.my_vote&&styles.voteTextActive]}>{entry.my_vote?'RESPECTED':'RESPECT'}</Text></Pressable> : null}
+                          {entry.post_id ? <Pressable accessibilityRole="button" accessibilityLabel={`Open ${entry.name} IGPAT`} style={styles.openButton} onPress={() => router.push(`/post/${entry.post_id}` as any)}><Text style={styles.openText}>VIEW</Text></Pressable> : <Text style={styles.meta}>PRIVATE</Text>}
+                          {canVote && entry.post_id ? <Pressable accessibilityRole="button" accessibilityLabel={`Give Respect to ${entry.name}`} disabled={!!busy} style={[styles.voteButton,entry.my_vote&&styles.voteActive]} onPress={() => void run(`vote:${event.id}:${entry.user_id}`,'igpat_vote_lms_v1',{p_event_id:event.id,p_participant_user_id:entry.user_id})}><Text style={[styles.voteText,entry.my_vote&&styles.voteTextActive]}>{entry.my_vote?'RESPECTED':'RESPECT'}</Text></Pressable> : null}
                         </View>
                       )) : <Text style={styles.helper}>Waiting for verified IGPAT submissions.</Text>}
 
                       {activeMe && igpats.length ? (
                         <View style={styles.submitBox}>
-                          <Text style={styles.helper}>Choose one of your real IGPATs for this round. Updating your entry resets round votes so nobody votes on replaced content.</Text>
-                          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.igpatRow}>{igpats.slice(0,12).map(post => <Pressable key={post.id} style={[styles.igpatChip,selected===post.id&&styles.igpatSelected]} onPress={() => setSelectedPosts(current=>({...current,[event.id]:post.id}))}><Text style={[styles.igpatText,selected===post.id&&styles.igpatTextSelected]} numberOfLines={1}>{post.body?.trim()||'IGPAT'}</Text></Pressable>)}</ScrollView>
-                          <Pressable disabled={!!busy||!selected} style={styles.primarySmall} onPress={() => void run(`submit:${event.id}`,'igpat_submit_lms_entry_v1',{p_event_id:event.id,p_post_id:selected},myEntry?'Round entry updated.':'Round entry submitted.')}><Text style={styles.primarySmallText}>{myEntry?'UPDATE ENTRY':'SUBMIT ENTRY'}</Text></Pressable>
+                          <Text style={styles.helper}>{myEntry ? 'You may replace your round IGPAT only before outside Respect voting begins. Once voting starts, the entry is locked for fairness.' : 'Choose one of your real IGPATs for this round. Once outside Respect voting begins, the entry is locked for fairness.'}</Text>
+                          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.igpatRow}>{igpats.slice(0,12).map(post => <Pressable accessibilityRole="button" accessibilityLabel={`Select ${post.body?.trim() || 'IGPAT'} for this round`} key={post.id} style={[styles.igpatChip,selected===post.id&&styles.igpatSelected]} onPress={() => setSelectedPosts(current=>({...current,[event.id]:post.id}))}><Text style={[styles.igpatText,selected===post.id&&styles.igpatTextSelected]} numberOfLines={1}>{post.body?.trim()||'IGPAT'}</Text></Pressable>)}</ScrollView>
+                          <Pressable accessibilityRole="button" accessibilityLabel={myEntry?'Update round entry':'Submit round entry'} disabled={!!busy||!selected} style={styles.primarySmall} onPress={() => void run(`submit:${event.id}`,'igpat_submit_lms_entry_v1',{p_event_id:event.id,p_post_id:selected},myEntry?'Round entry updated.':'Round entry submitted.')}><Text style={styles.primarySmallText}>{myEntry?'UPDATE ENTRY':'SUBMIT ENTRY'}</Text></Pressable>
                         </View>
                       ) : null}
 
-                      {(event.is_creator || activeMe) && allSubmitted ? <Pressable disabled={!!busy} style={styles.advanceButton} onPress={() => void run(`advance:${event.id}`,'igpat_advance_lms_round_v1',{p_event_id:event.id})}><MaterialCommunityIcons name="arrow-right-bold-outline" size={17} color="#07100B" /><Text style={styles.advanceText}>ADVANCE BY PUBLISHED RULE</Text></Pressable> : null}
+                      {(event.is_creator || activeMe) && allSubmitted ? <Pressable accessibilityRole="button" accessibilityLabel="Advance Last Man Standing round by published rule" disabled={!!busy} style={styles.advanceButton} onPress={() => void run(`advance:${event.id}`,'igpat_advance_lms_round_v1',{p_event_id:event.id})}><MaterialCommunityIcons name="arrow-right-bold-outline" size={17} color="#07100B" /><Text style={styles.advanceText}>ADVANCE BY PUBLISHED RULE</Text></Pressable> : null}
                     </>
                   ) : null}
                 </View>
