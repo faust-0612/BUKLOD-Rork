@@ -108,6 +108,8 @@ const requiredMigrationMarkers = [
   'squad_pending_cancel_r35',
   'lms_voting_fairness_r39',
   'rank_visibility_seasons_r35_r39_r40',
+  'internal_function_privileges_r35_r39_r62',
+  'share_helper_privilege_r53_r54',
 ];
 for (const marker of requiredMigrationMarkers) {
   if (!releaseMigrationNames.some(name => name.includes(marker))) fail(`missing IGPAT release migration containing: ${marker}`);
@@ -117,6 +119,19 @@ for (const name of releaseMigrationNames) {
   const sql = text(join(migrationDir, name));
   if (/grant\s+all\s+on\s+table[\s\S]{0,160}\bauthenticated\b/i.test(sql)) fail(`${name} grants broad table access to authenticated`);
   if (/grant\s+all\s+on\s+table[\s\S]{0,160}\banon\b/i.test(sql)) fail(`${name} grants broad table access to anon`);
+}
+
+const internalPrivilegeSql = releaseMigrationNames
+  .filter(name => name.includes('internal_function_privileges') || name.includes('share_helper_privilege'))
+  .map(name => text(join(migrationDir, name)))
+  .join('\n');
+for (const signature of [
+  'igpat_is_active_squad_member_v1(uuid,uuid)',
+  'igpat_can_user_view_post_v1(uuid,uuid)',
+]) {
+  if (!internalPrivilegeSql.includes(`revoke all on function public.${signature} from public,anon,authenticated`)) {
+    fail(`internal helper is not explicitly removed from authenticated execution: ${signature}`);
+  }
 }
 
 try {
