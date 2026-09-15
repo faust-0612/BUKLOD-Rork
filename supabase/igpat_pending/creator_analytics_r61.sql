@@ -47,9 +47,6 @@ begin
     from public.igpat_events ev
     join own_posts op on op.id = ev.post_id
     where ev.created_at >= since_at
-  ), watch_events as (
-    select * from own_events
-    where event_name in ('watch','qualified_watch','skip')
   ), latest_save_state as (
     select distinct on (ev.user_id, ev.post_id)
       ev.user_id, ev.post_id, ev.event_name
@@ -148,8 +145,7 @@ begin
   from public.buklod_community_post_meta meta
   join public.community_posts child on child.id = meta.post_id
   join public.community_posts parent
-    on (meta.context_config #>> '{igpat_relay,parent_post_id}') ~ '^[0-9a-fA-F-]{36}$'
-   and parent.id = (meta.context_config #>> '{igpat_relay,parent_post_id}')::uuid
+    on parent.id::text = (meta.context_config #>> '{igpat_relay,parent_post_id}')
   where parent.user_id = actor
     and child.user_id <> actor
     and child.is_reel = true
