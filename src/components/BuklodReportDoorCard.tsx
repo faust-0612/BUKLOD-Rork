@@ -7,7 +7,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 
 import { BUKLOD_REPORT_ICON_URI } from '@/lib/buklodReportBranding';
@@ -22,6 +21,15 @@ type Props = {
   compact?: boolean;
 };
 
+/**
+ * Canonical BUKLOD Report door for Organization / Cluster Home.
+ *
+ * IMPORTANT: this deliberately uses Expo Router inside BUKLOD Main instead of
+ * opening the standalone Report hostname. The already-authenticated BUKLOD
+ * session therefore remains authoritative and the member is never asked to
+ * sign in again when entering through this door. Direct standalone Report
+ * access remains protected by its own login/session guard.
+ */
 export default function BuklodReportDoorCard({
   scopeId,
   scopeName,
@@ -67,6 +75,7 @@ export default function BuklodReportDoorCard({
   const openReport = useCallback(() => {
     if (!scopeId) return;
 
+    // Keep this as an internal route. Do not replace with Linking/openURL.
     router.push(
       `${buklodReportLandingPath(scopeId)}&entry=main&source_scope_type=${encodeURIComponent(
         scopeType
@@ -75,137 +84,91 @@ export default function BuklodReportDoorCard({
   }, [scopeId, scopeType]);
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`Open BUKLOD Report for ${scopeName}`}
-      onPress={openReport}
-      style={({ pressed }) => [
-        styles.card,
-        compact && styles.cardCompact,
-        pressed && styles.pressed,
-      ]}
-    >
-      <View style={styles.iconWrap}>
+    <View style={[styles.wrap, compact && styles.wrapCompact]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Open BUKLOD Report for ${scopeName}`}
+        accessibilityHint="Uses your current BUKLOD session and workspace."
+        onPress={openReport}
+        style={({ pressed }) => [
+          styles.logoButton,
+          pressed && styles.pressed,
+        ]}
+      >
         <Image
           source={{ uri: BUKLOD_REPORT_ICON_URI }}
           resizeMode="cover"
-          style={styles.icon}
+          style={styles.logo}
         />
-      </View>
 
-      <View style={styles.copy}>
-        <View style={styles.titleRow}>
-          <Text style={styles.eyebrow}>BUKLOD FOCUS APP</Text>
-          {loading ? (
+        {loading ? (
+          <View style={styles.statusBubble}>
             <ActivityIndicator size="small" color={colors.greenDark} />
-          ) : pendingCount > 0 ? (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{pendingCount} DUE</Text>
-            </View>
-          ) : null}
-        </View>
-        <Text style={styles.title}>BUKLOD Report</Text>
-        <Text style={styles.subtitle} numberOfLines={2}>
-          Report, monitor and follow up for {scopeName}. Your current account and
-          {` ${scopeType.toLowerCase()} `}context carry over automatically.
-        </Text>
-        <View style={styles.openRow}>
-          <Text style={styles.openText}>OPEN REPORT</Text>
-          <MaterialCommunityIcons
-            name="arrow-right"
-            size={16}
-            color={colors.greenDark}
-          />
-        </View>
-      </View>
-    </Pressable>
+          </View>
+        ) : pendingCount > 0 ? (
+          <View style={[styles.statusBubble, styles.badge]}>
+            <Text style={styles.badgeText}>
+              {pendingCount > 99 ? '99+' : pendingCount}
+            </Text>
+          </View>
+        ) : null}
+      </Pressable>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    minHeight: 112,
-    marginHorizontal: 0,
+  wrap: {
+    alignSelf: 'flex-start',
+  },
+  wrapCompact: {
+    marginHorizontal: 12,
+    marginTop: 10,
+    marginBottom: 2,
+  },
+  logoButton: {
+    width: 72,
+    height: 72,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: '#D8E5DE',
     backgroundColor: '#FFFFFF',
-    padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    padding: 3,
+    shadowColor: '#000000',
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
-  cardCompact: {
-    marginHorizontal: 12,
-    marginTop: 10,
-    marginBottom: 2,
-    minHeight: 96,
-  },
-  iconWrap: {
-    width: 66,
-    height: 66,
-    borderRadius: 17,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#D8E5DE',
-    backgroundColor: '#F4F8F5',
-  },
-  icon: {
+  logo: {
     width: '100%',
     height: '100%',
+    borderRadius: 14,
   },
-  copy: {
-    flex: 1,
-    minWidth: 0,
-    gap: 3,
-  },
-  titleRow: {
-    minHeight: 20,
-    flexDirection: 'row',
+  statusBubble: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    minWidth: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  eyebrow: {
-    color: '#61766C',
-    fontSize: 9,
-    fontWeight: '900',
-    letterSpacing: 0.7,
-  },
-  title: {
-    color: '#173B2F',
-    fontSize: 17,
-    fontWeight: '900',
-  },
-  subtitle: {
-    color: '#66766E',
-    fontSize: 10,
-    lineHeight: 14,
+    justifyContent: 'center',
+    paddingHorizontal: 4,
   },
   badge: {
-    borderRadius: 999,
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
+    backgroundColor: '#F59E0B',
   },
   badgeText: {
-    color: '#92400E',
+    color: '#FFFFFF',
     fontSize: 8,
     fontWeight: '900',
   },
-  openRow: {
-    marginTop: 3,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  openText: {
-    color: colors.greenDark,
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.3,
-  },
   pressed: {
     opacity: 0.76,
+    transform: [{ scale: 0.97 }],
   },
 });
