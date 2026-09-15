@@ -12,7 +12,7 @@ on:
       - 'src/components/BuklodCityMap.web.tsx'
       - 'src/lib/buklodCity.ts'
       - 'scripts/buklod-city-web-r1-qa.mjs'
-      - 'supabase/migrations/20260915183000_buklod_city_web_r1.sql'
+      - 'supabase/migrations/*buklod_city_web*.sql'
 
 permissions:
   contents: read
@@ -83,7 +83,6 @@ jobs:
           npx expo export --platform web --output-dir dist
           test -s dist/index.html
           grep -RFl --include='*.js' 'yhanxndaqbmuzbdqlblu.supabase.co' dist/_expo/static/js/web >/dev/null
-          grep -RFl --include='*.js' 'BUKLOD_CITY_WEB_HOME_R1' dist/_expo/static/js/web >/dev/null || true
 
       - name: Deploy production web
         shell: bash
