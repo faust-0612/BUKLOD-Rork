@@ -28,6 +28,8 @@ jobs:
           cache: npm
       - name: Enforce BUKLOD app boundaries
         run: node scripts/verify-buklod-app-boundaries.cjs
+      - name: IGPAT SQL contract
+        run: node scripts/igpat-sql-contract.mjs
       - name: Install locked dependencies
         run: npm ci --ignore-scripts
       - name: IGPAT release contract
@@ -45,3 +47,5 @@ jobs:
           grep -R -F 'COMMUNITY REVEAL' dist/_expo/static/js/web >/dev/null
           grep -R -F 'Creator Analytics' dist/_expo/static/js/web >/dev/null
           grep -R -F 'IGPAT Arena' dist/_expo/static/js/web >/dev/null
+          grep -R -F 'Squad vs Squad' dist/_expo/static/js/web >/dev/null
+          grep -R -F 'Last Man Standing' dist/_expo/static/js/web >/dev/null
