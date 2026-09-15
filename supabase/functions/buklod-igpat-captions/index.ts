@@ -9,7 +9,11 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
   headers: { ...cors, 'Content-Type': 'application/json' },
 });
 
-const MAX_INLINE_VIDEO_BYTES = 30 * 1024 * 1024;
+// The worker uses the legacy generateContent inline-video path. Keep raw media
+// far enough below the documented 20 MB total-request guidance to absorb base64
+// expansion plus prompt/schema overhead. Larger IGPATs remain fully publishable;
+// they simply skip optional automatic captions.
+const MAX_INLINE_VIDEO_BYTES = 14 * 1024 * 1024;
 const MAX_CAPTION_TEXT = 12000;
 const MAX_SEGMENTS = 240;
 // Reuse the same approved Gemini fallback set already used by BUKLOD Main AI.
