@@ -17,7 +17,7 @@ type DynamicField = {
   id: string;
   section_id?: string | null;
   label: string;
-  type: 'short_text' | 'long_text' | 'number' | 'date' | 'yes_no' | 'choice' | string;
+  type: string;
   required?: boolean;
   help?: string | null;
   options?: string[];
@@ -27,7 +27,7 @@ type DynamicSection = {
   id: string;
   title: string;
   description?: string | null;
-  fields?: DynamicField[];
+  fields: DynamicField[];
 };
 
 type AssignedContext = {
@@ -53,12 +53,7 @@ type AssignedContext = {
   submission_id: string | null;
   submission_status: string | null;
   content: Record<string, any>;
-  reminder?: {
-    status?: string;
-    response?: string | null;
-    comments?: Array<{ text?: string }>;
-    completed_at?: string | null;
-  };
+  reminder?: Record<string, any>;
 };
 
 type Props = {
@@ -128,7 +123,7 @@ const ASSISTANCE_OPTIONS = [
 
 function asObject(value: unknown): Record<string, any> {
   return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, any>)
+    ? value as Record<string, any>
     : {};
 }
 
@@ -137,11 +132,7 @@ function formatDateTime(value?: string | null) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
+    month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit',
   });
 }
 
@@ -181,9 +172,12 @@ function normalizeContext(value: unknown): AssignedContext {
   };
 }
 
-function readDynamicValues(content: Record<string, any>) {
-  const values = asObject(content.values);
-  return Object.keys(values).length ? values : content;
+function readDynamicAnswers(content: Record<string, any>) {
+  const answers = asObject(content.answers);
+  if (Object.keys(answers).length) return answers;
+  const legacyValues = asObject(content.values);
+  if (Object.keys(legacyValues).length) return legacyValues;
+  return {};
 }
 
 function dynamicFieldList(requirements: Record<string, any>): DynamicField[] {
@@ -199,7 +193,7 @@ function dynamicFieldList(requirements: Record<string, any>): DynamicField[] {
       required: row.required === true,
       help: row.help ? String(row.help) : null,
       options: Array.isArray(row.options) ? row.options.map((item: unknown) => String(item)) : [],
-    } as DynamicField];
+    }];
   });
 }
 
@@ -208,15 +202,15 @@ function dynamicSections(requirements: Record<string, any>, fields: DynamicField
   const sections = raw.flatMap((value: unknown) => {
     const row = asObject(value);
     if (!row.id || !row.title) return [];
+    const id = String(row.id);
     return [{
-      id: String(row.id),
+      id,
       title: String(row.title),
       description: row.description ? String(row.description) : null,
-      fields: fields.filter((field) => field.section_id === String(row.id)),
-    } as DynamicSection];
+      fields: fields.filter((field) => field.section_id === id),
+    }];
   });
-  if (sections.length) return sections;
-  return [{ id: 'report', title: 'Report', fields }];
+  return sections.length ? sections : [{ id: 'report', title: 'Report', fields }];
 }
 
 function isEditableStatus(status: string | null | undefined) {
@@ -235,7 +229,7 @@ export default function BuklodAssignedReportForm({
   const [reminderBusy, setReminderBusy] = useState(false);
   const [error, setError] = useState('');
   const [context, setContext] = useState<AssignedContext | null>(null);
-  const [values, setValues] = useState<Record<string, any>>({});
+  const [answers, setAnswers] = useState<Record<string, any>>({});
   const [quick, setQuick] = useState<Record<string, any>>({});
 
   const load = useCallback(async () => {
@@ -252,8 +246,10 @@ export default function BuklodAssignedReportForm({
       setContext(next);
       if (next.form_schema === 'BUKLOD_QUICK_WEEKLY_V1') {
         setQuick(next.content);
+        setAnswers({});
       } else {
-        setValues(readDynamicValues(next.content));
+        setAnswers(readDynamicAnswers(next.content));
+        setQuick({});
       }
     } catch (loadError: any) {
       setError(loadError?.message || 'Could not open this assigned report.');
@@ -277,37 +273,32 @@ export default function BuklodAssignedReportForm({
   const quickMode = context?.form_schema === 'BUKLOD_QUICK_WEEKLY_V1';
   const readOnly = !isEditableStatus(context?.submission_status);
 
-  const quickContent = useMemo(() => {
-    if (!quickMode) return {};
-    return {
-      schema: 'BUKLOD_QUICK_WEEKLY_V1',
-      overall_week: String(quick.overall_week ?? 'Active / Normal'),
-      activities: asObject(quick.activities),
-      people: asObject(quick.people),
-      concern: asObject(quick.concern),
-      next_period: asObject(quick.next_period),
-      additional_note: quick.additional_note ?? null,
-    };
-  }, [quick, quickMode]);
+  const quickContent = useMemo(() => ({
+    schema: 'BUKLOD_QUICK_WEEKLY_V1',
+    overall_week: String(quick.overall_week ?? 'Active / Normal'),
+    activities: asObject(quick.activities),
+    people: asObject(quick.people),
+    concern: asObject(quick.concern),
+    next_period: asObject(quick.next_period),
+    additional_note: quick.additional_note ?? null,
+  }), [quick]);
 
   const dynamicContent = useMemo(() => ({
     schema: context?.form_schema || 'BUKLOD_DYNAMIC_FORM_V1',
-    values,
-  }), [context?.form_schema, values]);
+    answers,
+  }), [answers, context?.form_schema]);
 
   const validate = useCallback(() => {
     if (quickMode) return true;
     const missing = fields.find((field) => {
       if (!field.required) return false;
-      const value = values[field.id];
+      const value = answers[field.id];
       return value === null || value === undefined || String(value).trim() === '';
     });
-    if (missing) {
-      Alert.alert('BUKLOD Report', `${missing.label} is required.`);
-      return false;
-    }
-    return true;
-  }, [fields, quickMode, values]);
+    if (!missing) return true;
+    Alert.alert('BUKLOD Report', `${missing.label} is required.`);
+    return false;
+  }, [answers, fields, quickMode]);
 
   const save = useCallback(async (submit: boolean) => {
     if (!context?.report_assignment_id || readOnly || saving || submitting) return;
@@ -381,7 +372,7 @@ export default function BuklodAssignedReportForm({
     return (
       <View style={styles.errorCard}>
         <Text style={styles.errorText}>{error || 'Assigned report could not be opened.'}</Text>
-        <View style={styles.actionRow}>
+        <View style={styles.actions}>
           <Pressable onPress={() => void load()} style={styles.secondaryButton}>
             <Text style={styles.secondaryText}>TRY AGAIN</Text>
           </Pressable>
@@ -432,11 +423,7 @@ export default function BuklodAssignedReportForm({
               />
             ))}
           </View>
-          <Pressable
-            disabled={reminderBusy}
-            onPress={() => void reminderAction('DONE')}
-            style={styles.reminderDone}
-          >
+          <Pressable disabled={reminderBusy} onPress={() => void reminderAction('DONE')} style={styles.reminderDone}>
             <MaterialCommunityIcons name="check-circle-outline" size={17} color="#166534" />
             <Text style={styles.reminderDoneText}>MARK REMINDER DONE</Text>
           </Pressable>
@@ -450,41 +437,31 @@ export default function BuklodAssignedReportForm({
           <View key={section.id} style={styles.sectionCard}>
             <Text style={styles.sectionTitle}>{section.title}</Text>
             {section.description ? <Text style={styles.body}>{section.description}</Text> : null}
-            {(section.fields ?? []).map((field) => (
+            {section.fields.map((field) => (
               <DynamicInput
                 key={field.id}
                 field={field}
-                value={values[field.id]}
+                value={answers[field.id]}
                 disabled={readOnly}
-                onChange={(value) => setValues((current) => ({ ...current, [field.id]: value }))}
+                onChange={(value) => setAnswers((current) => ({ ...current, [field.id]: value }))}
               />
             ))}
           </View>
         ))
       ) : (
         <View style={styles.errorCard}>
-          <Text style={styles.errorText}>This report has no configured fields. Ask the scope administrator to review the report template before publishing another deadline.</Text>
+          <Text style={styles.errorText}>This report has no configured fields. Ask the scope administrator to review the template before publishing another deadline.</Text>
         </View>
       )}
 
-      {error ? (
-        <View style={styles.errorCard}><Text style={styles.errorText}>{error}</Text></View>
-      ) : null}
+      {error ? <View style={styles.errorCard}><Text style={styles.errorText}>{error}</Text></View> : null}
 
       {!readOnly && (quickMode || fields.length > 0) ? (
-        <View style={styles.actionRow}>
-          <Pressable
-            disabled={saving || submitting}
-            onPress={() => void save(false)}
-            style={[styles.secondaryButton, (saving || submitting) && styles.disabled]}
-          >
+        <View style={styles.actions}>
+          <Pressable disabled={saving || submitting} onPress={() => void save(false)} style={[styles.secondaryButton, (saving || submitting) && styles.disabled]}>
             {saving ? <ActivityIndicator color={colors.greenDark} /> : <Text style={styles.secondaryText}>SAVE DRAFT</Text>}
           </Pressable>
-          <Pressable
-            disabled={saving || submitting}
-            onPress={() => void save(true)}
-            style={[styles.submitButton, (saving || submitting) && styles.disabled]}
-          >
+          <Pressable disabled={saving || submitting} onPress={() => void save(true)} style={[styles.submitButton, (saving || submitting) && styles.disabled]}>
             {submitting ? <ActivityIndicator color="#FFFFFF" /> : <MaterialCommunityIcons name="send-check-outline" size={19} color="#FFFFFF" />}
             <Text style={styles.submitText}>{submitting ? 'SUBMITTING…' : 'SUBMIT REPORT'}</Text>
           </Pressable>
@@ -508,8 +485,7 @@ function DynamicInput({ field, value, disabled, onChange }: {
   disabled: boolean;
   onChange: (value: any) => void;
 }) {
-  const type = field.type;
-  if (type === 'yes_no') {
+  if (field.type === 'yes_no') {
     return (
       <View style={styles.inputGroup}>
         <FieldLabel field={field} />
@@ -522,7 +498,7 @@ function DynamicInput({ field, value, disabled, onChange }: {
     );
   }
 
-  if (type === 'choice' && field.options?.length) {
+  if (field.type === 'choice' && field.options?.length) {
     return (
       <View style={styles.inputGroup}>
         <FieldLabel field={field} />
@@ -540,13 +516,13 @@ function DynamicInput({ field, value, disabled, onChange }: {
       <FieldLabel field={field} />
       <TextInput
         editable={!disabled}
-        value={value === null || value === undefined ? '' : String(value)}
-        onChangeText={(next) => onChange(type === 'number' ? next.replace(/[^0-9.-]/g, '') : next)}
-        keyboardType={type === 'number' ? 'numeric' : 'default'}
-        placeholder={type === 'date' ? 'YYYY-MM-DD' : field.required ? 'Required' : 'Optional'}
+        value={value == null ? '' : String(value)}
+        onChangeText={(next) => onChange(field.type === 'number' ? next.replace(/[^0-9.-]/g, '') : next)}
+        keyboardType={field.type === 'number' ? 'numeric' : 'default'}
+        placeholder={field.type === 'date' ? 'YYYY-MM-DD' : field.required ? 'Required' : 'Optional'}
         placeholderTextColor="#9AA7A0"
-        multiline={type === 'long_text'}
-        style={[styles.input, type === 'long_text' && styles.textArea, disabled && styles.disabled]}
+        multiline={field.type === 'long_text'}
+        style={[styles.input, field.type === 'long_text' && styles.textArea, disabled && styles.disabled]}
       />
     </View>
   );
@@ -570,7 +546,6 @@ function QuickWeeklyFields({ value, disabled, onChange }: {
   const people = asObject(value.people);
   const concern = asObject(value.concern);
   const nextPeriod = asObject(value.next_period);
-
   const patch = (next: Record<string, any>) => onChange((current) => ({ ...current, ...next }));
 
   return (
@@ -590,11 +565,7 @@ function QuickWeeklyFields({ value, disabled, onChange }: {
           const row = asObject(activities[key]);
           return (
             <View key={key} style={styles.quickRow}>
-              <Pressable
-                disabled={disabled}
-                onPress={() => patch({ activities: { ...activities, [key]: { ...row, selected: row.selected !== true } } })}
-                style={styles.quickToggle}
-              >
+              <Pressable disabled={disabled} onPress={() => patch({ activities: { ...activities, [key]: { ...row, selected: row.selected !== true } } })} style={styles.quickToggle}>
                 <MaterialCommunityIcons name={row.selected === true ? 'checkbox-marked' : 'checkbox-blank-outline'} size={21} color={row.selected === true ? colors.greenDark : '#7B8A82'} />
                 <Text style={styles.quickLabel}>{label}</Text>
               </Pressable>
@@ -731,7 +702,7 @@ const styles = StyleSheet.create({
   quickRow: { borderRadius: 12, borderWidth: 1, borderColor: '#E2E9E5', backgroundColor: '#FAFBFA', padding: 9, gap: 7 },
   quickToggle: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   quickLabel: { color: '#263D34', fontSize: 11, fontWeight: '800' },
-  actionRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  actions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   secondaryButton: { minHeight: 46, borderRadius: 12, borderWidth: 1, borderColor: '#BFCFC6', backgroundColor: '#FFFFFF', paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center', flexGrow: 1 },
   secondaryText: { color: colors.greenDark, fontSize: 10, fontWeight: '900' },
   submitButton: { minHeight: 46, borderRadius: 12, backgroundColor: '#173B2F', paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, flexGrow: 1 },
