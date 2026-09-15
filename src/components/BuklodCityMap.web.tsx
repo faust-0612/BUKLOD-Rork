@@ -1,8 +1,13 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import type { BuklodCityPoint } from '@/lib/buklodCity';
+import {
+  loadMyBuklodHomeMapLocation,
+  type BuklodHomeMapLocation,
+} from '@/lib/buklodHomeLocation';
+import { useAuth } from '@/providers/AuthProvider';
 
 const FALLBACK_CENTER = { latitude: 14.4974, longitude: 121.2862 };
 
@@ -66,9 +71,35 @@ export function BuklodCityMap({
   canManagePlace?: boolean;
 }) {
   const { width } = useWindowDimensions();
+  const { user } = useAuth();
   const mobile = width < 720;
   const previewHeight = mobile ? 190 : 250;
-  const mapCenter = center ?? points[0] ?? FALLBACK_CENTER;
+  const [privateHomePoint, setPrivateHomePoint] = useState<BuklodHomeMapLocation | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    if (!user?.id) {
+      setPrivateHomePoint(null);
+      return () => {
+        mounted = false;
+      };
+    }
+
+    void loadMyBuklodHomeMapLocation(user.id)
+      .then((location) => {
+        if (mounted) setPrivateHomePoint(location);
+      })
+      .catch(() => {
+        if (mounted) setPrivateHomePoint(null);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [user?.id]);
+
+  const mapCenter = privateHomePoint ?? center ?? points[0] ?? FALLBACK_CENTER;
 
   const srcDoc = useMemo(() => {
     const payload = points.map(point => ({
@@ -82,6 +113,12 @@ export function BuklodCityMap({
       verified: Boolean(point.verified),
       isMe: Boolean(point.isMe),
     }));
+    const home = privateHomePoint
+      ? {
+          latitude: privateHomePoint.latitude,
+          longitude: privateHomePoint.longitude,
+        }
+      : null;
 
     return `<!doctype html>
 <html>
@@ -95,6 +132,9 @@ html,body,#map{width:100%;height:100%;margin:0;padding:0;background:#eaf2f4;font
 .leaflet-popup-content{min-width:200px;margin:11px 13px}
 .buklod-pin{width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 3px 10px rgba(20,50,70,.25);display:flex;align-items:center;justify-content:center}
 .buklod-pin span{transform:rotate(45deg);color:#fff;font-size:12px;font-weight:900}
+.buklod-home-pin{width:42px;height:42px;border-radius:14px;background:#fff;border:3px solid #177552;box-shadow:0 5px 16px rgba(23,117,82,.32);display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer}
+.buklod-home-pin:after{content:'HOME';position:absolute;top:43px;left:50%;transform:translateX(-50%);background:#177552;color:#fff;border-radius:999px;padding:2px 6px;font-size:8px;line-height:12px;font-weight:900;letter-spacing:.5px;white-space:nowrap;box-shadow:0 2px 6px rgba(20,50,70,.2)}
+.buklod-home-pin svg{width:25px;height:25px;display:block;fill:#177552}
 .buklod-popup-title{font-weight:800;font-size:13px;color:#183047;margin-bottom:3px}.buklod-popup-sub{font-size:11px;line-height:15px;color:#60768a}.buklod-verified{font-size:10px;color:#177552;font-weight:700;margin-top:5px}.buklod-popup-note{margin-top:7px;font-size:9px;line-height:13px;color:#748695}
 .buklod-nav-control{display:block;min-width:165px;max-width:min(300px,calc(100vw - 92px));padding:9px 11px;border:1px solid #cfe0d7;border-radius:14px;background:rgba(255,255,255,.97);box-shadow:0 7px 22px rgba(19,52,68,.18);text-decoration:none;color:#1f3c4e;cursor:default}.buklod-nav-control strong{display:block;font-size:11px;line-height:14px;color:#177552}.buklod-nav-control span{display:block;margin-top:2px;font-size:8px;line-height:11px;color:#6a7f8f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.buklod-nav-control.active{cursor:pointer;border-color:#9ccdb8;background:#f8fffb}.buklod-nav-control.privacy strong{color:#697f8e}
 @media (max-width:560px){.buklod-nav-control{min-width:145px;max-width:calc(100vw - 86px);padding:8px 9px}.buklod-nav-control strong{font-size:10px}.buklod-nav-control span{font-size:8px}}
@@ -105,6 +145,7 @@ html,body,#map{width:100%;height:100%;margin:0;padding:0;background:#eaf2f4;font
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script>
 const points=${safeJson(payload)};
+const home=${safeJson(home)};
 const colors=${safeJson(CATEGORY_COLORS)};
 const center=${safeJson([Number(mapCenter.latitude), Number(mapCenter.longitude)])};
 const map=L.map('map',{zoomControl:true,attributionControl:true}).setView(center,13);
@@ -167,12 +208,26 @@ points.forEach((p)=>{
  marker.on('click',()=>selectNavigationDestination(p));
  bounds.push([p.latitude,p.longitude]);
 });
+if(home&&Number.isFinite(home.latitude)&&Number.isFinite(home.longitude)){
+ const homeSvg='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2 2.8 10.6a1 1 0 0 0 .6 1.8h1.1v7.1c0 .8.7 1.5 1.5 1.5h4.2v-5.5h3.6V21H18c.8 0 1.5-.7 1.5-1.5v-7.1h1.1a1 1 0 0 0 .6-1.8L12 3.2Z"/></svg>';
+ const homeIcon=L.divIcon({className:'',html:'<div class="buklod-home-pin" title="Open My BUKLOD Home">'+homeSvg+'</div>',iconSize:[42,58],iconAnchor:[21,42]});
+ const homeMarker=L.marker([home.latitude,home.longitude],{icon:homeIcon,zIndexOffset:1000,keyboard:true,title:'My BUKLOD Home'}).addTo(map);
+ homeMarker.bindTooltip('My BUKLOD Home · tap to enter',{direction:'top',offset:[0,-34]});
+ homeMarker.on('click',()=>{try{window.top.location.assign('/personal-home');}catch(_){window.location.assign('/personal-home');}});
+ bounds.push([home.latitude,home.longitude]);
+}
 if(bounds.length>1){map.fitBounds(bounds,{padding:[38,38],maxZoom:15});}else if(bounds.length===1){map.setView(bounds[0],15);}
 setTimeout(()=>map.invalidateSize(),120);
 </script>
 </body>
 </html>`;
-  }, [mapCenter.latitude, mapCenter.longitude, points]);
+  }, [
+    mapCenter.latitude,
+    mapCenter.longitude,
+    points,
+    privateHomePoint?.latitude,
+    privateHomePoint?.longitude,
+  ]);
 
   const iframe = (interactive: boolean) => React.createElement('iframe', {
     title: interactive ? 'BUKLOD City interactive community map' : 'BUKLOD City map preview',
