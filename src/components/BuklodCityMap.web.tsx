@@ -55,9 +55,11 @@ export function BuklodCityMap({
 <style>
 html,body,#map{width:100%;height:100%;margin:0;padding:0;background:#eaf2f4;font-family:Inter,system-ui,-apple-system,sans-serif}
 .leaflet-control-attribution{font-size:9px}
+.leaflet-popup-content{min-width:220px;margin:12px 14px}
 .buklod-pin{width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 3px 10px rgba(20,50,70,.25);display:flex;align-items:center;justify-content:center}
 .buklod-pin span{transform:rotate(45deg);color:#fff;font-size:12px;font-weight:900}
-.buklod-popup-title{font-weight:800;font-size:13px;color:#183047;margin-bottom:3px}.buklod-popup-sub{font-size:11px;color:#60768a}.buklod-verified{font-size:10px;color:#177552;font-weight:700;margin-top:5px}
+.buklod-popup-title{font-weight:800;font-size:13px;color:#183047;margin-bottom:3px}.buklod-popup-sub{font-size:11px;line-height:15px;color:#60768a}.buklod-verified{font-size:10px;color:#177552;font-weight:700;margin-top:5px}
+.buklod-popup-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.buklod-popup-action{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:0 10px;border-radius:10px;text-decoration:none;font-size:10px;font-weight:800;border:1px solid #d7e1e8;color:#245574;background:#f5f8fa}.buklod-popup-action-primary{color:#fff;background:#177552;border-color:#177552}.buklod-popup-note{margin-top:7px;font-size:9px;line-height:13px;color:#748695}
 </style>
 </head>
 <body>
@@ -78,7 +80,15 @@ points.forEach((p)=>{
  const marker=L.marker([p.latitude,p.longitude],{icon}).addTo(map);
  const safeTitle=String(p.title||'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
  const safeSub=String(p.subtitle||'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
- marker.bindPopup('<div class="buklod-popup-title">'+safeTitle+'</div><div class="buklod-popup-sub">'+safeSub+'</div>'+(p.verified?'<div class="buklod-verified">Verified BUKLOD place</div>':''));
+ const destination=encodeURIComponent(String(p.latitude)+','+String(p.longitude));
+ const directionsUrl='https://www.google.com/maps/dir/?api=1&destination='+destination;
+ const navigateUrl=directionsUrl+'&travelmode=driving&dir_action=navigate';
+ const mapUrl='https://www.google.com/maps/search/?api=1&query='+destination;
+ const isNavigable=String(p.category||'').toLowerCase()!=='people';
+ const navigationHtml=isNavigable
+   ? '<div class="buklod-popup-actions"><a class="buklod-popup-action buklod-popup-action-primary" href="'+navigateUrl+'" target="_blank" rel="noopener noreferrer">Navigate</a><a class="buklod-popup-action" href="'+directionsUrl+'" target="_blank" rel="noopener noreferrer">Directions</a><a class="buklod-popup-action" href="'+mapUrl+'" target="_blank" rel="noopener noreferrer">Google Maps</a></div><div class="buklod-popup-note">Google Maps uses your current device location as the starting point when available.</div>'
+   : '<div class="buklod-popup-note">People-presence pins are intentionally not exposed as navigation destinations.</div>';
+ marker.bindPopup('<div class="buklod-popup-title">'+safeTitle+'</div><div class="buklod-popup-sub">'+safeSub+'</div>'+(p.verified?'<div class="buklod-verified">Verified BUKLOD place</div>':'')+navigationHtml);
  bounds.push([p.latitude,p.longitude]);
 });
 if(bounds.length>1){map.fitBounds(bounds,{padding:[38,38],maxZoom:15});}else if(bounds.length===1){map.setView(bounds[0],15);}
