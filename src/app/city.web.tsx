@@ -276,7 +276,7 @@ export default function BuklodCityWeb() {
         <View style={styles.toolbarCard}>
           <View style={styles.searchRow}>
             <View style={styles.searchBox}><MaterialCommunityIcons name="magnify" size={20} color="#668096" /><TextInput value={search} onChangeText={setSearch} placeholder="Search BUKLOD places, services, events…" placeholderTextColor="#8292A2" style={styles.searchInput} /></View>
-            <CityButton label={myPlacesOnly ? 'Showing My Places' : 'My Places'} icon="heart-map-marker" filled={myPlacesOnly} onPress={() => setMyPlacesOnly(value => !value)} />
+            <CityButton label={myPlacesOnly ? 'Showing My Places' : 'My Places'} icon="heart" filled={myPlacesOnly} onPress={() => setMyPlacesOnly(value => !value)} />
             <CityButton label={expandedMap ? 'Minimize Map' : 'Expand Map'} icon={expandedMap ? 'arrow-collapse' : 'arrow-expand'} onPress={() => setExpandedMap(value => !value)} />
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
@@ -298,7 +298,7 @@ export default function BuklodCityWeb() {
                 const route = getBuklodCityPointRoute(point);
                 const tone = CATEGORY_TONE[String(point.category)] ?? '#35679D';
                 return <Pressable key={`${point.kind}-${point.id}`} disabled={!route} onPress={() => route && router.push(route as any)} style={({ pressed }) => [styles.placeCard, pressed && route && styles.pressed]}>
-                  <View style={[styles.placeIcon, { backgroundColor: `${tone}18` }]}><MaterialCommunityIcons name={point.kind === 'PERSON' ? 'account-location-outline' : point.kind === 'EVENT' ? 'calendar-star' : point.kind === 'SERVICE' ? 'hand-heart-outline' : point.kind === 'BAYANIHAN' ? 'account-group-outline' : 'map-marker-radius-outline'} size={21} color={tone} /></View>
+                  <View style={[styles.placeIcon, { backgroundColor: `${tone}18` }]}><MaterialCommunityIcons name={point.kind === 'PERSON' ? 'account' : point.kind === 'EVENT' ? 'calendar-star' : point.kind === 'SERVICE' ? 'hand-heart-outline' : point.kind === 'BAYANIHAN' ? 'account-group-outline' : 'map-marker-radius-outline'} size={21} color={tone} /></View>
                   <View style={styles.placeCopy}><Text style={styles.placeTitle}>{point.title}</Text><Text numberOfLines={2} style={styles.placeMeta}>{point.subtitle || point.locality || String(point.category)}</Text><View style={styles.placeFlags}>{point.verified ? <Text style={styles.verifiedFlag}>VERIFIED</Text> : null}{point.isMember ? <Text style={styles.memberFlag}>MY PLACE</Text> : null}{point.isMe ? <Text style={styles.memberFlag}>YOU</Text> : null}</View></View>
                   {route ? <MaterialCommunityIcons name="chevron-right" size={18} color="#7A8B9C" /> : null}
                 </Pressable>;
@@ -318,7 +318,7 @@ export default function BuklodCityWeb() {
           <View style={styles.controlCard}>
             <View style={styles.controlIcon}><MaterialCommunityIcons name="office-building-cog-outline" size={24} color="#2877DD" /></View>
             <View style={styles.controlCopy}><Text style={styles.controlTitle}>Manage a real BUKLOD place</Text><Text style={styles.controlText}>{managedScopes.length ? 'Admins can publish a real institution location and create scoped events, services or Bayanihan map items.' : 'Only verified BUKLOD space admins can publish institution locations and map activities.'}</Text></View>
-            <View style={styles.controlActions}><CityButton label="Manage map presence" icon="pencil-location-outline" disabled={!managedScopes.length} onPress={() => setManageOpen(true)} /></View>
+            <View style={styles.controlActions}><CityButton label="Manage map presence" icon="pencil" disabled={!managedScopes.length} onPress={() => setManageOpen(true)} /></View>
           </View>
         </View>
 
