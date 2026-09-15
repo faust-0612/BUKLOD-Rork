@@ -58,7 +58,10 @@ const files = fs
   .readdirSync(workflowDir)
   .filter((name) => /\.ya?ml$/i.test(name));
 
-const easMutation = /\bnpx\s+eas-cli@latest\s+(?:update|deploy(?::alias)?|build|submit)\b/i;
+// Mutating EAS verbs must be followed by whitespace. This intentionally does
+// not classify read-only commands such as `build:view` or `build:list` as a
+// production build.
+const easMutation = /\bnpx\s+eas-cli@latest\s+(?:update(?=\s)|deploy(?::alias)?(?=\s)|build(?=\s)|submit(?=\s))/i;
 const directMainPush = /\bgit\s+push\b[^\n]*\bmain\b/i;
 const productionDispatch = /\bgh\s+workflow\s+run\b[^\n]*\bproduction[^\n]*/i;
 const supabaseProductionMutation = /\bsupabase\s+(?:db\s+push|migration\s+up|functions\s+deploy)\b/i;
