@@ -92,6 +92,12 @@ jobs:
           if [ -f scripts/community-help-emergency-alert-r2-contract.mjs ]; then
             node scripts/community-help-emergency-alert-r2-contract.mjs
           fi
+          if [ -f scripts/igpat-release-contract.mjs ]; then
+            node scripts/igpat-release-contract.mjs --content-only
+          fi
+          if [ -f scripts/igpat-sql-contract.mjs ]; then
+            node scripts/igpat-sql-contract.mjs
+          fi
 
       - name: Verify Main native identity
         shell: bash
