@@ -2,6 +2,8 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
+const contentOnly = process.argv.includes('--content-only');
+
 function fail(message) {
   console.error(`IGPAT RELEASE CONTRACT FAILED: ${message}`);
   process.exitCode = 1;
@@ -134,27 +136,31 @@ for (const signature of [
   }
 }
 
-try {
-  const mergeBase = execFileSync('git', ['merge-base', 'origin/main', 'HEAD'], { encoding: 'utf8' }).trim();
-  const changed = execFileSync('git', ['diff', '--name-only', `${mergeBase}..HEAD`], { encoding: 'utf8' }).trim().split('\n').filter(Boolean);
-  const isAllowed = path =>
-    path.startsWith('src/app/igpat/') ||
-    path.startsWith('src/lib/igpat/') ||
-    path === 'src/components/CommunityVideo.tsx' ||
-    path === 'src/components/IgpatSponsoredFeedPage.tsx' ||
-    (path.startsWith('supabase/migrations/') && /igpat/i.test(path)) ||
-    path.startsWith('supabase/functions/buklod-igpat-captions/') ||
-    path.startsWith('.github/workflows/igpat_') ||
-    path.startsWith('scripts/igpat-') ||
-    path.startsWith('src/lib/igpat/__tests__/');
+if (!contentOnly) {
+  try {
+    const mergeBase = execFileSync('git', ['merge-base', 'origin/main', 'HEAD'], { encoding: 'utf8' }).trim();
+    const changed = execFileSync('git', ['diff', '--name-only', `${mergeBase}..HEAD`], { encoding: 'utf8' }).trim().split('\n').filter(Boolean);
+    const isAllowed = path =>
+      path.startsWith('src/app/igpat/') ||
+      path.startsWith('src/lib/igpat/') ||
+      path === 'src/components/CommunityVideo.tsx' ||
+      path === 'src/components/IgpatSponsoredFeedPage.tsx' ||
+      (path.startsWith('supabase/migrations/') && /igpat/i.test(path)) ||
+      path.startsWith('supabase/functions/buklod-igpat-captions/') ||
+      path.startsWith('.github/workflows/igpat_') ||
+      path.startsWith('scripts/igpat-') ||
+      path.startsWith('src/lib/igpat/__tests__/');
 
-  const bad = changed.filter(path => !isAllowed(path));
-  if (bad.length) fail(`out-of-scope files changed: ${bad.join(', ')}`);
+    const bad = changed.filter(path => !isAllowed(path));
+    if (bad.length) fail(`out-of-scope files changed: ${bad.join(', ')}`);
 
-  const forbidden = changed.filter(path => /quickcheck|quiz|classroom|src\/lib\/education\//i.test(path));
-  if (forbidden.length) fail(`forbidden non-IGPAT app scope changed: ${forbidden.join(', ')}`);
-} catch (error) {
-  fail(`could not evaluate branch scope: ${error instanceof Error ? error.message : String(error)}`);
+    const forbidden = changed.filter(path => /quickcheck|quiz|classroom|src\/lib\/education\//i.test(path));
+    if (forbidden.length) fail(`forbidden non-IGPAT app scope changed: ${forbidden.join(', ')}`);
+  } catch (error) {
+    fail(`could not evaluate branch scope: ${error instanceof Error ? error.message : String(error)}`);
+  }
+} else {
+  console.log('IGPAT release contract: integrated content-only mode (strict branch-scope check intentionally skipped)');
 }
 
 if (!process.exitCode) console.log('IGPAT release contract: PASS');
