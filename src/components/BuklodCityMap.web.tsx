@@ -96,8 +96,8 @@ html,body,#map{width:100%;height:100%;margin:0;padding:0;background:#eaf2f4;font
 .buklod-pin{width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 3px 10px rgba(20,50,70,.25);display:flex;align-items:center;justify-content:center}
 .buklod-pin span{transform:rotate(45deg);color:#fff;font-size:12px;font-weight:900}
 .buklod-popup-title{font-weight:800;font-size:13px;color:#183047;margin-bottom:3px}.buklod-popup-sub{font-size:11px;line-height:15px;color:#60768a}.buklod-verified{font-size:10px;color:#177552;font-weight:700;margin-top:5px}.buklod-popup-note{margin-top:7px;font-size:9px;line-height:13px;color:#748695}
-.buklod-nav-dock{max-width:min(330px,calc(100vw - 40px));padding:0;border:0;background:transparent;box-shadow:none}.buklod-nav-dock-hidden{display:none}.buklod-nav-card{display:block;padding:11px 12px;border:1px solid #cfe0d7;border-radius:15px;background:rgba(255,255,255,.98);box-shadow:0 8px 26px rgba(19,52,68,.2);text-decoration:none;color:#1f3c4e}.buklod-nav-card strong{display:block;font-size:11px;line-height:14px;color:#177552}.buklod-nav-card span{display:block;margin-top:3px;font-size:9px;line-height:12px;color:#6a7f8f}.buklod-nav-card small{display:block;margin-top:6px;font-size:8px;line-height:11px;color:#748695}.buklod-privacy-card{padding:11px 12px;border:1px solid #dfe7ec;border-radius:15px;background:rgba(255,255,255,.98);box-shadow:0 8px 26px rgba(19,52,68,.16);font-size:10px;line-height:14px;color:#586f80}
-@media (max-width:560px){.buklod-nav-dock{max-width:calc(100vw - 30px)}.buklod-nav-card{padding:10px 11px}.buklod-nav-card strong{font-size:10px}.buklod-nav-card span{font-size:8px}}
+.buklod-nav-control{display:block;min-width:165px;max-width:min(300px,calc(100vw - 92px));padding:9px 11px;border:1px solid #cfe0d7;border-radius:14px;background:rgba(255,255,255,.97);box-shadow:0 7px 22px rgba(19,52,68,.18);text-decoration:none;color:#1f3c4e;cursor:default}.buklod-nav-control strong{display:block;font-size:11px;line-height:14px;color:#177552}.buklod-nav-control span{display:block;margin-top:2px;font-size:8px;line-height:11px;color:#6a7f8f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.buklod-nav-control.active{cursor:pointer;border-color:#9ccdb8;background:#f8fffb}.buklod-nav-control.privacy strong{color:#697f8e}
+@media (max-width:560px){.buklod-nav-control{min-width:145px;max-width:calc(100vw - 86px);padding:8px 9px}.buklod-nav-control strong{font-size:10px}.buklod-nav-control span{font-size:8px}}
 </style>
 </head>
 <body>
@@ -110,34 +110,45 @@ const center=${safeJson([Number(mapCenter.latitude), Number(mapCenter.longitude)
 const map=L.map('map',{zoomControl:true,attributionControl:true}).setView(center,13);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
 
-const NavigationDock=L.Control.extend({
+const NavigationControl=L.Control.extend({
  onAdd(){
-  const div=L.DomUtil.create('div','buklod-nav-dock buklod-nav-dock-hidden');
-  div.id='buklod-nav-dock';
-  L.DomEvent.disableClickPropagation(div);
-  L.DomEvent.disableScrollPropagation(div);
-  return div;
+  const link=L.DomUtil.create('a','buklod-nav-control');
+  link.id='buklod-nav-control';
+  link.href='#';
+  link.setAttribute('aria-disabled','true');
+  link.innerHTML='<strong>🧭 BUKLOD Navigation</strong><span>Tap a place pin to choose a destination</span>';
+  L.DomEvent.disableClickPropagation(link);
+  L.DomEvent.on(link,'click',(event)=>{
+    if(link.getAttribute('aria-disabled')==='true') L.DomEvent.preventDefault(event);
+  });
+  return link;
  }
 });
-new NavigationDock({position:'bottomleft'}).addTo(map);
+new NavigationControl({position:'topleft'}).addTo(map);
 
 function escapeHtml(value){return String(value||'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));}
-function navigationUrls(p){
+function navigationUrl(p){
  const destination=encodeURIComponent(String(p.latitude)+','+String(p.longitude));
- const directions='https://www.google.com/maps/dir/?api=1&destination='+destination;
- return {navigate:directions+'&travelmode=driving&dir_action=navigate'};
+ return 'https://www.google.com/maps/dir/?api=1&destination='+destination+'&travelmode=driving&dir_action=navigate';
 }
 function isNavigablePoint(p){return String(p.kind||'').toUpperCase()!=='PERSON' && String(p.category||'').toLowerCase()!=='people';}
-function showNavigationDock(p){
- const dock=document.getElementById('buklod-nav-dock');
- if(!dock) return;
- dock.className='buklod-nav-dock';
+function selectNavigationDestination(p){
+ const link=document.getElementById('buklod-nav-control');
+ if(!link) return;
  if(!isNavigablePoint(p)){
-  dock.innerHTML='<div class="buklod-privacy-card"><strong>Privacy-protected presence</strong><br/>People-presence pins are not navigation destinations.</div>';
+  link.className='buklod-nav-control privacy';
+  link.setAttribute('aria-disabled','true');
+  link.removeAttribute('target');
+  link.href='#';
+  link.innerHTML='<strong>🛡 Privacy-protected presence</strong><span>People pins are not navigation destinations</span>';
   return;
  }
- const urls=navigationUrls(p);
- dock.innerHTML='<a class="buklod-nav-card" href="'+urls.navigate+'" target="_blank" rel="noopener noreferrer"><strong>🧭 Navigate to '+escapeHtml(p.title)+'</strong><span>'+escapeHtml(p.subtitle||p.category||'BUKLOD place')+'</span><small>Tap this card to open Google Maps navigation</small></a>';
+ link.className='buklod-nav-control active';
+ link.setAttribute('aria-disabled','false');
+ link.setAttribute('target','_blank');
+ link.setAttribute('rel','noopener noreferrer');
+ link.href=navigationUrl(p);
+ link.innerHTML='<strong>🧭 BUKLOD Navigation</strong><span>Navigate to '+escapeHtml(p.title)+'</span>';
 }
 
 const bounds=[];
@@ -150,10 +161,10 @@ points.forEach((p)=>{
  const safeTitle=escapeHtml(p.title);
  const safeSub=escapeHtml(p.subtitle);
  const popupNote=isNavigablePoint(p)
-   ? '<div class="buklod-popup-note">Select this place, then tap the green BUKLOD Navigation card.</div>'
-   : '<div class="buklod-popup-note">People-presence pins are intentionally not exposed as navigation destinations.</div>';
+   ? '<div class="buklod-popup-note">Selected. Tap BUKLOD Navigation at the top of the map.</div>'
+   : '<div class="buklod-popup-note">People-presence pins are intentionally not navigation destinations.</div>';
  marker.bindPopup('<div class="buklod-popup-title">'+safeTitle+'</div><div class="buklod-popup-sub">'+safeSub+'</div>'+(p.verified?'<div class="buklod-verified">Verified BUKLOD place</div>':'')+popupNote);
- marker.on('click',()=>showNavigationDock(p));
+ marker.on('click',()=>selectNavigationDestination(p));
  bounds.push([p.latitude,p.longitude]);
 });
 if(bounds.length>1){map.fitBounds(bounds,{padding:[38,38],maxZoom:15});}else if(bounds.length===1){map.setView(bounds[0],15);}

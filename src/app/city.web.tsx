@@ -3,7 +3,6 @@ import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -14,6 +13,7 @@ import {
 } from 'react-native';
 
 import { BuklodCityMap } from '@/components/BuklodCityMap.web';
+import { BuklodCommunityBulletin } from '@/components/BuklodCommunityBulletin.web';
 import {
   BuklodCityLayer,
   BuklodCityPoint,
@@ -143,6 +143,7 @@ export default function BuklodCityWeb() {
   }, [activeLayers, allPoints, locality, myPlacesOnly, search]);
 
   const mappedMyPlace = useMemo(() => visiblePoints.find(pointMatchesMyPlaces) ?? visiblePoints[0] ?? null, [visiblePoints]);
+  const bulletinLocality = mappedMyPlace?.locality || (locality !== 'ALL' ? locality : null);
   const managedScopes = useMemo(() => scopes.filter(scope => scope.is_admin && ['ORGANIZATION', 'CHURCH', 'CLUSTER'].includes(scope.scope_type)), [scopes]);
   const churchScopes = useMemo(() => scopes.filter(scope => scope.membership_status === 'ACTIVE' && (scope.scope_type === 'CHURCH' || scope.name.toLowerCase().includes('church') || scope.name.toLowerCase().includes('ministry'))), [scopes]);
   const organizationScopes = useMemo(() => scopes.filter(scope => scope.membership_status === 'ACTIVE' && scope.scope_type === 'ORGANIZATION'), [scopes]);
@@ -167,13 +168,9 @@ export default function BuklodCityWeb() {
 
   const sharePresence = async () => {
     const geolocation = (globalThis as any)?.navigator?.geolocation;
-    if (!geolocation) {
-      setError('Location sharing is not available in this browser.');
-      return;
-    }
+    if (!geolocation) return setError('Location sharing is not available in this browser.');
     if ((presenceAudience === 'MY_CHURCH' || presenceAudience === 'MY_ORGANIZATION') && !presenceScopeId) {
-      setError('Choose an eligible Church or Organization before sharing.');
-      return;
+      return setError('Choose an eligible Church or Organization before sharing.');
     }
     setPresenceBusy(true);
     setError(null);
@@ -182,7 +179,7 @@ export default function BuklodCityWeb() {
         geolocation.getCurrentPosition(
           (position: any) => resolve({ latitude: Number(position.coords.latitude), longitude: Number(position.coords.longitude) }),
           (geoError: any) => reject(new Error(geoError?.message || 'Location permission was not granted.')),
-          { enableHighAccuracy: presencePrecision === 'EXACT', timeout: 15000, maximumAge: 30000 }
+          { enableHighAccuracy: presencePrecision === 'EXACT', timeout: 15000, maximumAge: 30000 },
         );
       });
       await setBuklodCityPresence({ ...coords, precisionMode: presencePrecision, audience: presenceAudience, scopeId: presenceScopeId, durationMinutes: presenceDuration });
@@ -309,15 +306,12 @@ export default function BuklodCityWeb() {
           </View> : null}
         </View>
 
-        <View style={[styles.homeStrip, mobile && styles.homeStripMobile]}>
-          <Pressable onPress={() => router.push('/(tabs)/me' as any)} style={[styles.homeStripItem, mobile && styles.homeStripItemMobile]}><MaterialCommunityIcons name="home-heart" size={28} color="#177552" /><View style={styles.homeStripCopy}><Text style={styles.homeStripTitle}>My Home</Text><Text style={styles.homeStripText}>Your personal BUKLOD center and connected spaces.</Text></View></Pressable>
-          <MaterialCommunityIcons name={mobile ? 'arrow-down' : 'arrow-right'} size={22} color="#8A9BAB" />
-          <Pressable onPress={() => router.push('/points' as any)} style={[styles.homeStripItem, mobile && styles.homeStripItemMobile]}><MaterialCommunityIcons name="star-circle-outline" size={28} color="#A36C08" /><View style={styles.homeStripCopy}><Text style={styles.homeStripTitle}>Circle Points</Text><Text style={styles.homeStripText}>Activities → Character progression + House development.</Text></View></Pressable>
-        </View>
-
-        <View style={styles.supportGrid}>
-          {[['BUKLOD IGPAT','play-box-multiple-outline','/igpat'],['Reports','file-chart-outline','/reports'],['Bible / Formation','book-open-page-variant-outline','/bible'],['Bayanihan','account-group-outline','/bayanihan'],['Organizations','office-building-outline','/organizations'],['My Classroom','school-outline','/profile/buklod-classrooms']].map(([label, icon, route]) => <Pressable key={label} onPress={() => router.push(route as any)} style={({ pressed }) => [styles.supportCard, mobile && styles.supportCardMobile, pressed && styles.pressed]}><MaterialCommunityIcons name={icon as any} size={22} color="#35679D" /><Text style={styles.supportTitle}>{label}</Text><MaterialCommunityIcons name="arrow-top-right" size={17} color="#7890A4" /></Pressable>)}
-        </View>
+        <BuklodCommunityBulletin
+          latitude={mappedMyPlace?.latitude ?? null}
+          longitude={mappedMyPlace?.longitude ?? null}
+          locality={bulletinLocality}
+          localItems={snapshot.items}
+        />
       </ScrollView>
 
       {presenceOpen ? <View style={[styles.modalBackdrop, mobile && styles.modalBackdropMobile]}><View style={[styles.modalCard, mobile && styles.modalCardMobile]}>
@@ -344,16 +338,100 @@ export default function BuklodCityWeb() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 }, page: { width: '100%', maxWidth: 1480, alignSelf: 'center', paddingHorizontal: 18, paddingTop: 18, paddingBottom: 80 }, pageMobile: { paddingHorizontal: 10, paddingTop: 10, paddingBottom: 72 },
-  hero: { flexDirection: 'row', gap: 20, alignItems: 'center', justifyContent: 'space-between', padding: 22, borderRadius: 26, backgroundColor: '#F4FBF8', borderWidth: 1, borderColor: '#DCEEE7', marginBottom: 14 }, heroMobile: { flexDirection: 'column', alignItems: 'stretch', gap: 14, padding: 16, borderRadius: 20 }, heroCopy: { flex: 1, minWidth: 0 }, eyebrow: { fontSize: 10, lineHeight: 14, fontWeight: '900', letterSpacing: 1.3, color: '#1C6CC1' }, heroTitle: { fontSize: 34, lineHeight: 39, fontWeight: '900', letterSpacing: -1 }, heroTitleMobile: { fontSize: 27, lineHeight: 32, letterSpacing: -0.6 }, heroText: { marginTop: 7, maxWidth: 760, fontSize: 14, lineHeight: 20, color: '#5D7284' }, heroActions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }, heroActionsMobile: { justifyContent: 'flex-start', width: '100%' },
-  actionButton: { minHeight: 40, maxWidth: '100%', paddingHorizontal: 12, borderRadius: 13, flexDirection: 'row', gap: 7, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F3F7FA', borderWidth: 1, borderColor: '#D9E4EC' }, actionButtonFilled: { backgroundColor: '#177552', borderColor: '#177552' }, actionButtonText: { flexShrink: 1, color: '#245574', fontSize: 11, fontWeight: '900' }, actionButtonTextFilled: { color: '#FFFFFF' }, disabled: { opacity: 0.45 }, pressed: { opacity: 0.72 },
-  contextBar: { flexDirection: 'row', gap: 11, alignItems: 'center', padding: 13, borderRadius: 18, backgroundColor: '#F5FAFF', borderWidth: 1, borderColor: '#DDE9F2', marginBottom: 14 }, contextBarMobile: { alignItems: 'flex-start', flexWrap: 'wrap' }, contextCopy: { flex: 1, minWidth: 0 }, contextLabel: { color: '#1767D2', fontSize: 9, fontWeight: '900', letterSpacing: 1 }, contextName: { fontSize: 14, fontWeight: '900', color: '#20384B' }, contextMeta: { fontSize: 10, color: '#6E8191', marginTop: 2 }, contextLink: { padding: 10 }, contextLinkText: { color: '#1767D2', fontSize: 11, fontWeight: '900' },
-  errorBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 14, backgroundColor: '#FFF1F1', borderWidth: 1, borderColor: '#F2CDCD', marginBottom: 14 }, errorText: { flex: 1, minWidth: 0, fontSize: 12, color: '#8D3434', lineHeight: 17 },
-  gatewayGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 14 }, gatewayCard: { flexGrow: 1, flexBasis: 210, minWidth: 190, maxWidth: 360, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 13, borderRadius: 18, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E1E9EF' }, gatewayCardMobile: { flexBasis: '100%', minWidth: 0, maxWidth: '100%', width: '100%' }, gatewayLocked: { opacity: 0.72 }, gatewayIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }, gatewayCopy: { flex: 1, minWidth: 0 }, gatewayTitle: { color: '#213A4D', fontWeight: '900', fontSize: 13 }, gatewayDescription: { marginTop: 3, color: '#718493', fontSize: 10, lineHeight: 14 },
-  toolbarCard: { padding: 12, borderRadius: 20, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E1E9EF', marginBottom: 12 }, searchRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', alignItems: 'center' }, searchBox: { flex: 1, minWidth: 260, flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 42, paddingHorizontal: 12, borderRadius: 14, backgroundColor: '#F5F8FA', borderWidth: 1, borderColor: '#E2E9EE' }, searchBoxMobile: { flexBasis: '100%', minWidth: 0, width: '100%' }, searchInput: { flex: 1, minWidth: 0, minHeight: 40, color: '#20384B', fontSize: 12, outlineStyle: 'none' } as any, chipRow: { gap: 7, paddingTop: 10 }, layerChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 999, backgroundColor: '#EFF4F7' }, layerChipActive: { backgroundColor: '#315E87' }, layerChipText: { fontSize: 10, fontWeight: '800', color: '#48667D' }, layerChipTextActive: { color: '#FFFFFF' }, localityRow: { gap: 6, paddingTop: 9 }, localityChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: '#DDE6ED' }, localityChipActive: { backgroundColor: '#E8F7F0', borderColor: '#A9D9C4' }, localityText: { color: '#61778A', fontSize: 10, fontWeight: '800' }, localityTextActive: { color: '#177552' },
-  cityWorkArea: { gap: 12, marginBottom: 14 }, cityWorkAreaDesktop: { flexDirection: 'row', alignItems: 'stretch' }, mapColumn: { flex: 1.75, minWidth: 0 }, directoryColumn: { flex: 0.85, minWidth: 320, maxHeight: 510, padding: 12, borderRadius: 22, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E1E9EF' }, directoryColumnMobile: { flex: 0, minWidth: 0, width: '100%', maxHeight: 460 }, directoryScroll: { flex: 1 }, sectionHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }, sectionTitle: { fontSize: 18, fontWeight: '900', color: '#20384B' }, countPill: { minWidth: 30, paddingHorizontal: 8, paddingVertical: 5, textAlign: 'center', borderRadius: 999, color: '#1767D2', backgroundColor: '#EAF3FF', fontSize: 10, fontWeight: '900' }, loadingMap: { height: 250, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: '#EAF2F4' }, loadingText: { marginTop: 10, color: '#657C8E', fontSize: 12 }, mapFooter: { flexDirection: 'row', justifyContent: 'space-between', gap: 10, paddingHorizontal: 4, paddingTop: 7 }, mapFooterMobile: { flexDirection: 'column', gap: 3 }, mapFooterText: { flex: 1, minWidth: 0, fontSize: 9, color: '#748695' }, osmText: { fontSize: 9, color: '#748695' },
-  placeCard: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E7EDF1' }, placeIcon: { width: 38, height: 38, borderRadius: 13, alignItems: 'center', justifyContent: 'center' }, placeCopy: { flex: 1, minWidth: 0 }, placeTitle: { fontSize: 12, fontWeight: '900', color: '#253D50' }, placeMeta: { marginTop: 2, color: '#748695', fontSize: 9, lineHeight: 13 }, placeFlags: { flexDirection: 'row', gap: 5, marginTop: 4, flexWrap: 'wrap' }, verifiedFlag: { color: '#177552', backgroundColor: '#E8F7F0', borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2, fontSize: 7, fontWeight: '900' }, memberFlag: { color: '#1767D2', backgroundColor: '#EAF3FF', borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2, fontSize: 7, fontWeight: '900' }, emptyBox: { padding: 28, alignItems: 'center' }, emptyTitle: { marginTop: 8, fontSize: 13, fontWeight: '900', color: '#354D60' }, emptyText: { marginTop: 5, textAlign: 'center', fontSize: 10, lineHeight: 15, color: '#7A8C9B' },
-  controlGrid: { gap: 10, marginBottom: 14 }, controlCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 20, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E1E9EF' }, controlCardMobile: { flexDirection: 'column', alignItems: 'stretch', padding: 14, gap: 10 }, controlIcon: { width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: '#EFF7F3' }, controlCopy: { flex: 1, minWidth: 0 }, controlTitle: { fontSize: 13, fontWeight: '900', color: '#233C4E' }, controlText: { marginTop: 3, fontSize: 10, lineHeight: 15, color: '#708394' }, controlActions: { flexDirection: 'row', gap: 7, flexWrap: 'wrap', justifyContent: 'flex-end' }, controlActionsMobile: { width: '100%', justifyContent: 'flex-start', alignItems: 'stretch' },
-  homeStrip: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 22, backgroundColor: '#F8FBFA', borderWidth: 1, borderColor: '#DFEAE5', marginBottom: 14 }, homeStripMobile: { flexDirection: 'column', alignItems: 'stretch', gap: 6, padding: 12 }, homeStripItem: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8 }, homeStripItemMobile: { flexGrow: 0, flexShrink: 0, width: '100%' }, homeStripCopy: { flex: 1, minWidth: 0 }, homeStripTitle: { fontSize: 13, fontWeight: '900', color: '#294154' }, homeStripText: { fontSize: 9, lineHeight: 13, color: '#718494', marginTop: 2 }, supportGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, supportCard: { flexGrow: 1, flexBasis: 190, minWidth: 170, flexDirection: 'row', alignItems: 'center', gap: 9, padding: 13, borderRadius: 16, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E1E9EF' }, supportCardMobile: { flexBasis: '100%', minWidth: 0, maxWidth: '100%', width: '100%' }, supportTitle: { flex: 1, minWidth: 0, color: '#30495C', fontSize: 11, fontWeight: '900' },
-  modalBackdrop: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15,30,42,.42)', alignItems: 'center', justifyContent: 'center', padding: 20 }, modalBackdropMobile: { padding: 10 }, modalCard: { width: '100%', maxWidth: 680, maxHeight: '92%', padding: 20, borderRadius: 24, backgroundColor: '#FFFFFF', boxShadow: '0 20px 70px rgba(10,30,50,.25)' } as any, modalCardMobile: { maxHeight: '96%', padding: 14, borderRadius: 18 }, modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 14 }, modalTitle: { flexShrink: 1, fontSize: 21, lineHeight: 26, fontWeight: '900', color: '#20384B' }, modalLabel: { marginTop: 12, marginBottom: 6, fontSize: 10, fontWeight: '900', letterSpacing: .5, color: '#526B7E' }, optionRow: { flexDirection: 'row', gap: 7, flexWrap: 'wrap' }, optionWrap: { flexDirection: 'row', gap: 7, flexWrap: 'wrap' }, optionChip: { maxWidth: '100%', paddingHorizontal: 10, paddingVertical: 8, borderRadius: 999, backgroundColor: '#F0F4F7', borderWidth: 1, borderColor: '#DCE6EC' }, optionChipActive: { backgroundColor: '#315E87', borderColor: '#315E87' }, optionText: { flexShrink: 1, fontSize: 9, fontWeight: '900', color: '#506A7E' }, optionTextActive: { color: '#FFFFFF' }, warningBox: { marginTop: 9, flexDirection: 'row', gap: 7, padding: 10, borderRadius: 12, backgroundColor: '#FFF7E8' }, warningText: { flex: 1, minWidth: 0, color: '#86591B', fontSize: 9, lineHeight: 14 }, modalInput: { minHeight: 42, paddingHorizontal: 12, marginTop: 8, borderRadius: 12, backgroundColor: '#F6F8FA', borderWidth: 1, borderColor: '#DCE5EB', color: '#20384B', fontSize: 11, outlineStyle: 'none' } as any, modalTextarea: { minHeight: 78, paddingTop: 11, textAlignVertical: 'top' }, helperText: { fontSize: 9, color: '#7A8B99', lineHeight: 14, marginTop: 6, marginBottom: 13 }, modalActionRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 12 },
+  screen: { flex: 1 },
+  page: { width: '100%', maxWidth: 1480, alignSelf: 'center', paddingHorizontal: 18, paddingTop: 18, paddingBottom: 80 },
+  pageMobile: { paddingHorizontal: 10, paddingTop: 10, paddingBottom: 72 },
+  hero: { flexDirection: 'row', gap: 20, alignItems: 'center', justifyContent: 'space-between', padding: 22, borderRadius: 26, backgroundColor: '#F4FBF8', borderWidth: 1, borderColor: '#DCEEE7', marginBottom: 14 },
+  heroMobile: { flexDirection: 'column', alignItems: 'stretch', gap: 14, padding: 16, borderRadius: 20 },
+  heroCopy: { flex: 1, minWidth: 0 },
+  eyebrow: { fontSize: 10, lineHeight: 14, fontWeight: '900', letterSpacing: 1.3, color: '#1C6CC1' },
+  heroTitle: { fontSize: 34, lineHeight: 39, fontWeight: '900', letterSpacing: -1 },
+  heroTitleMobile: { fontSize: 27, lineHeight: 32, letterSpacing: -0.6 },
+  heroText: { marginTop: 7, maxWidth: 760, fontSize: 14, lineHeight: 20, color: '#5D7284' },
+  heroActions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' },
+  heroActionsMobile: { justifyContent: 'flex-start', width: '100%' },
+  actionButton: { minHeight: 40, maxWidth: '100%', paddingHorizontal: 12, borderRadius: 13, flexDirection: 'row', gap: 7, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F3F7FA', borderWidth: 1, borderColor: '#D9E4EC' },
+  actionButtonFilled: { backgroundColor: '#177552', borderColor: '#177552' },
+  actionButtonText: { flexShrink: 1, color: '#245574', fontSize: 11, fontWeight: '900' },
+  actionButtonTextFilled: { color: '#FFFFFF' },
+  disabled: { opacity: 0.45 },
+  pressed: { opacity: 0.72 },
+  contextBar: { flexDirection: 'row', gap: 11, alignItems: 'center', padding: 13, borderRadius: 18, backgroundColor: '#F5FAFF', borderWidth: 1, borderColor: '#DDE9F2', marginBottom: 14 },
+  contextBarMobile: { alignItems: 'flex-start', flexWrap: 'wrap' },
+  contextCopy: { flex: 1, minWidth: 0 },
+  contextLabel: { color: '#1767D2', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
+  contextName: { fontSize: 14, fontWeight: '900', color: '#20384B' },
+  contextMeta: { fontSize: 10, color: '#6E8191', marginTop: 2 },
+  contextLink: { padding: 10 },
+  contextLinkText: { color: '#1767D2', fontSize: 11, fontWeight: '900' },
+  errorBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 14, backgroundColor: '#FFF1F1', borderWidth: 1, borderColor: '#F2CDCD', marginBottom: 14 },
+  errorText: { flex: 1, minWidth: 0, fontSize: 12, color: '#8D3434', lineHeight: 17 },
+  gatewayGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 14 },
+  gatewayCard: { flexGrow: 1, flexBasis: 210, minWidth: 190, maxWidth: 360, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 13, borderRadius: 18, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E1E9EF' },
+  gatewayCardMobile: { flexBasis: '100%', minWidth: 0, maxWidth: '100%', width: '100%' },
+  gatewayLocked: { opacity: 0.72 },
+  gatewayIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  gatewayCopy: { flex: 1, minWidth: 0 },
+  gatewayTitle: { color: '#213A4D', fontWeight: '900', fontSize: 13 },
+  gatewayDescription: { marginTop: 3, color: '#718493', fontSize: 10, lineHeight: 14 },
+  toolbarCard: { padding: 12, borderRadius: 20, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E1E9EF', marginBottom: 12 },
+  searchRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', alignItems: 'center' },
+  searchBox: { flex: 1, minWidth: 260, flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 42, paddingHorizontal: 12, borderRadius: 14, backgroundColor: '#F5F8FA', borderWidth: 1, borderColor: '#E2E9EE' },
+  searchBoxMobile: { flexBasis: '100%', minWidth: 0, width: '100%' },
+  searchInput: { flex: 1, minWidth: 0, minHeight: 40, color: '#20384B', fontSize: 12, outlineStyle: 'none' } as any,
+  chipRow: { gap: 7, paddingTop: 10 },
+  layerChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 999, backgroundColor: '#EFF4F7' },
+  layerChipActive: { backgroundColor: '#315E87' },
+  layerChipText: { fontSize: 10, fontWeight: '800', color: '#48667D' },
+  layerChipTextActive: { color: '#FFFFFF' },
+  localityRow: { gap: 6, paddingTop: 9 },
+  localityChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: '#DDE6ED' },
+  localityChipActive: { backgroundColor: '#E8F7F0', borderColor: '#A9D9C4' },
+  localityText: { color: '#61778A', fontSize: 10, fontWeight: '800' },
+  localityTextActive: { color: '#177552' },
+  cityWorkArea: { gap: 12, marginBottom: 14 },
+  cityWorkAreaDesktop: { flexDirection: 'row', alignItems: 'stretch' },
+  mapColumn: { flex: 1.75, minWidth: 0 },
+  directoryColumn: { flex: 0.85, minWidth: 320, maxHeight: 510, padding: 12, borderRadius: 22, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E1E9EF' },
+  directoryColumnMobile: { flex: 0, minWidth: 0, width: '100%', maxHeight: 460 },
+  directoryScroll: { flex: 1 },
+  sectionHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  sectionTitle: { fontSize: 18, fontWeight: '900', color: '#20384B' },
+  countPill: { minWidth: 30, paddingHorizontal: 8, paddingVertical: 5, textAlign: 'center', borderRadius: 999, color: '#1767D2', backgroundColor: '#EAF3FF', fontSize: 10, fontWeight: '900' },
+  loadingMap: { height: 250, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: '#EAF2F4' },
+  loadingText: { marginTop: 10, color: '#657C8E', fontSize: 12 },
+  mapFooter: { flexDirection: 'row', justifyContent: 'space-between', gap: 10, paddingHorizontal: 4, paddingTop: 7 },
+  mapFooterMobile: { flexDirection: 'column', gap: 3 },
+  mapFooterText: { flex: 1, minWidth: 0, fontSize: 9, color: '#748695' },
+  osmText: { fontSize: 9, color: '#748695' },
+  placeCard: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E7EDF1' },
+  placeIcon: { width: 38, height: 38, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  placeCopy: { flex: 1, minWidth: 0 },
+  placeTitle: { fontSize: 12, fontWeight: '900', color: '#253D50' },
+  placeMeta: { marginTop: 2, color: '#748695', fontSize: 9, lineHeight: 13 },
+  placeFlags: { flexDirection: 'row', gap: 5, marginTop: 4, flexWrap: 'wrap' },
+  verifiedFlag: { color: '#177552', backgroundColor: '#E8F7F0', borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2, fontSize: 7, fontWeight: '900' },
+  memberFlag: { color: '#1767D2', backgroundColor: '#EAF3FF', borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2, fontSize: 7, fontWeight: '900' },
+  emptyBox: { padding: 28, alignItems: 'center' },
+  emptyTitle: { marginTop: 8, fontSize: 13, fontWeight: '900', color: '#354D60' },
+  emptyText: { marginTop: 5, textAlign: 'center', fontSize: 10, lineHeight: 15, color: '#7A8C9B' },
+  modalBackdrop: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15,30,42,.42)', alignItems: 'center', justifyContent: 'center', padding: 20 },
+  modalBackdropMobile: { padding: 10 },
+  modalCard: { width: '100%', maxWidth: 680, maxHeight: '92%', padding: 20, borderRadius: 24, backgroundColor: '#FFFFFF', boxShadow: '0 20px 70px rgba(10,30,50,.25)' } as any,
+  modalCardMobile: { maxHeight: '96%', padding: 14, borderRadius: 18 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 14 },
+  modalTitle: { flexShrink: 1, fontSize: 21, lineHeight: 26, fontWeight: '900', color: '#20384B' },
+  modalLabel: { marginTop: 12, marginBottom: 6, fontSize: 10, fontWeight: '900', letterSpacing: .5, color: '#526B7E' },
+  optionRow: { flexDirection: 'row', gap: 7, flexWrap: 'wrap' },
+  optionWrap: { flexDirection: 'row', gap: 7, flexWrap: 'wrap' },
+  optionChip: { maxWidth: '100%', paddingHorizontal: 10, paddingVertical: 8, borderRadius: 999, backgroundColor: '#F0F4F7', borderWidth: 1, borderColor: '#DCE6EC' },
+  optionChipActive: { backgroundColor: '#315E87', borderColor: '#315E87' },
+  optionText: { flexShrink: 1, fontSize: 9, fontWeight: '900', color: '#506A7E' },
+  optionTextActive: { color: '#FFFFFF' },
+  warningBox: { marginTop: 9, flexDirection: 'row', gap: 7, padding: 10, borderRadius: 12, backgroundColor: '#FFF7E8' },
+  warningText: { flex: 1, minWidth: 0, color: '#86591B', fontSize: 9, lineHeight: 14 },
+  modalInput: { minHeight: 42, paddingHorizontal: 12, marginTop: 8, borderRadius: 12, backgroundColor: '#F6F8FA', borderWidth: 1, borderColor: '#DCE5EB', color: '#20384B', fontSize: 11, outlineStyle: 'none' } as any,
+  modalTextarea: { minHeight: 78, paddingTop: 11, textAlignVertical: 'top' },
+  helperText: { fontSize: 9, color: '#7A8B99', lineHeight: 14, marginTop: 6, marginBottom: 13 },
+  modalActionRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 12 },
 });
