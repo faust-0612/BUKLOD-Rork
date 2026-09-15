@@ -1,0 +1,31 @@
+name: BUKLOD Production Release Safety QA
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+      - 'scripts/production-workflow-safety-contract.mjs'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/**'
+      - 'scripts/production-workflow-safety-contract.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  release-safety:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact workflow source
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Enforce production workflow safety contract
+        run: node scripts/production-workflow-safety-contract.mjs
