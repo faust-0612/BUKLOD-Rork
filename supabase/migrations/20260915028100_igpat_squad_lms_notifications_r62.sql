@@ -48,7 +48,7 @@ after insert or update of status on public.igpat_arena_squad_matches
 for each row execute function public.buklod_igpat_notify_squad_match_v1();
 
 create or replace function public.buklod_igpat_notify_lms_participant_v1()
-returns trigger language plpgsql security definer set search_path = '' as $$;
+returns trigger language plpgsql security definer set search_path = '' as $$
 begin
   if tg_op='UPDATE' and old.status is distinct from new.status then
     if new.status='ELIMINATED' then
