@@ -9,7 +9,6 @@ import {
   Dimensions,
   FlatList,
   Pressable,
-  Share,
   StyleSheet,
   Text,
   View,
@@ -151,6 +150,7 @@ function IgpatVideo({
   editMeta,
   caption,
   captionsEnabled,
+  revealControls,
 }: {
   uri: string;
   active: boolean;
@@ -158,6 +158,7 @@ function IgpatVideo({
   editMeta?: unknown;
   caption?: IgpatCaptionPayload | null;
   captionsEnabled?: boolean;
+  revealControls?: (() => void) | null;
 }) {
   const [pausedByUser, setPausedByUser] = useState(false);
   const [captionLine, setCaptionLine] = useState('');
@@ -220,8 +221,11 @@ function IgpatVideo({
       return undefined;
     }
 
+    // Corrected full-text captions intentionally have no stale fake timing.
+    // They remain available in the caption transcript screen, but the Watch
+    // overlay renders only real timed segments.
     if (!captionSegments.length) {
-      setCaptionLine(String(caption.caption_text ?? '').trim());
+      setCaptionLine('');
       return undefined;
     }
 
@@ -240,7 +244,7 @@ function IgpatVideo({
     updateLine();
     const timer = setInterval(updateLine, 220);
     return () => clearInterval(timer);
-  }, [active, caption?.caption_text, caption?.configured, caption?.is_visible, captionSegments, captionsEnabled, player]);
+  }, [active, caption?.configured, caption?.is_visible, captionSegments, captionsEnabled, player]);
 
   useEffect(() => {
     return () => {
@@ -251,7 +255,7 @@ function IgpatVideo({
   }, [player]);
 
   const startFastPlayback = () => {
-    if (!active) return;
+    if (!active || revealControls) return;
     try {
       player.playbackRate = 2;
       player.play();
@@ -259,6 +263,7 @@ function IgpatVideo({
   };
 
   const stopFastPlayback = () => {
+    if (revealControls) return;
     try {
       player.playbackRate = baseRate;
       if (pausedByUser) player.pause();
@@ -268,12 +273,20 @@ function IgpatVideo({
   return (
     <Pressable
       style={StyleSheet.absoluteFill}
-      onPress={() => active && setPausedByUser(current => !current)}
+      onPress={() => {
+        if (!active) return;
+        if (revealControls) {
+          revealControls();
+          return;
+        }
+        setPausedByUser(current => !current);
+      }}
       onLongPress={startFastPlayback}
       onPressOut={stopFastPlayback}
       delayLongPress={220}
       accessibilityRole="button"
-      accessibilityLabel={pausedByUser ? 'Play IGPAT video' : 'Pause IGPAT video'}
+      accessibilityLabel={revealControls ? 'Reveal IGPAT controls' : pausedByUser ? 'Play IGPAT video' : 'Pause IGPAT video'}
+      accessibilityHint={revealControls ? 'Returns from clean-screen viewing to standard IGPAT controls.' : 'Long press temporarily plays at two times speed.'}
     >
       <VideoView
         player={player}
@@ -296,7 +309,7 @@ function IgpatVideo({
           <Text numberOfLines={3} style={styles.captionOverlayText}>{captionLine}</Text>
         </View>
       ) : null}
-      {active && pausedByUser && (
+      {active && pausedByUser && !revealControls && (
         <View pointerEvents="none" style={styles.pausedBadge}>
           <MaterialCommunityIcons name="play" size={18} color="#FFFFFF" />
           <Text style={styles.pausedBadgeText}>PAUSED</Text>
@@ -364,6 +377,7 @@ export default function IgpatScreen() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [feedMode, setFeedMode] = useState<FeedMode>('for-you');
   const [dataSaver, setDataSaver] = useState(false);
+  const [cleanScreen, setCleanScreen] = useState(false);
   const [networkState, setNetworkState] = useState<Network.NetworkState | null>(null);
   const [appActive, setAppActive] = useState(AppState.currentState === 'active');
   const [prefsReady, setPrefsReady] = useState(false);
@@ -630,7 +644,6 @@ export default function IgpatScreen() {
           setCaptionEnabledIds(current => new Set(current).add(activePostId));
         }
       } catch (error) {
-        // Captions are an optional R52 enhancement. Older servers must keep Watch working.
         console.warn('BUKLOD IGPAT caption read:', String((error as any)?.message ?? error));
         setCaptionsByPostId(current => ({ ...current, [activePostId]: null }));
       }
@@ -704,6 +717,7 @@ export default function IgpatScreen() {
     setActiveIndex(0);
     setPulsePickerPostId(null);
     setRelayPickerPostId(null);
+    setCleanScreen(false);
   }, [feedMode]);
 
   useEffect(() => {
@@ -856,18 +870,9 @@ export default function IgpatScreen() {
     void setPulseReaction(postId, currentOption?.storedReaction ?? 'love');
   }, [rows, setPulseReaction]);
 
-  const shareIgpat = useCallback(async (row: IgpatRow) => {
-    try {
-      const result = await Share.share({
-        message: `BUKLOD IGPAT — An Instant Bond.\nhttps://buklod.expo.app/post/${row.id}`,
-      });
-      if (result.action === Share.sharedAction) {
-        trackEvent('share', row.id, row.user_id ? String(row.user_id) : null);
-      }
-    } catch (error) {
-      console.warn('BUKLOD IGPAT share:', String((error as any)?.message ?? error));
-    }
-  }, [trackEvent]);
+  const openShare = useCallback((row: IgpatRow) => {
+    router.push(`/igpat/share/${row.id}` as any);
+  }, []);
 
   const openComments = useCallback((row: IgpatRow) => {
     trackEvent('comment_open', row.id, row.user_id ? String(row.user_id) : null);
@@ -945,7 +950,7 @@ export default function IgpatScreen() {
     <View style={styles.root}>
       <FlatList
         data={feedItems}
-        extraData={`${activeIndex}:${pulsePickerPostId ?? ''}:${relayPickerPostId ?? ''}:${Object.keys(bondMoments).length}:${captionEnabledIds.size}:${appActive ? 'active' : 'background'}`}
+        extraData={`${activeIndex}:${pulsePickerPostId ?? ''}:${relayPickerPostId ?? ''}:${Object.keys(bondMoments).length}:${captionEnabledIds.size}:${cleanScreen ? 'clean' : 'social'}:${appActive ? 'active' : 'background'}`}
         key={`${feedMode}:${effectiveDataSaver ? 'saver' : 'normal'}:${allowSponsored ? 'ads' : 'organic'}`}
         keyExtractor={item => item.id}
         pagingEnabled
@@ -978,11 +983,12 @@ export default function IgpatScreen() {
           const isSelf = creatorId === user?.id;
           const isFollowing = Boolean(creatorId && followedIds.has(creatorId));
           const currentPulse = pulseOptionForStoredReaction(row.my_reaction);
-          const showPulsePicker = pulsePickerPostId === row.id && index === activeIndex;
-          const showRelayPicker = relayPickerPostId === row.id && index === activeIndex;
+          const showPulsePicker = !cleanScreen && pulsePickerPostId === row.id && index === activeIndex;
+          const showRelayPicker = !cleanScreen && relayPickerPostId === row.id && index === activeIndex;
           const bondMoment = row.my_reaction ? bondMoments[row.id] : null;
           const caption = captionsByPostId[row.id] ?? null;
           const captionsEnabled = captionEnabledIds.has(row.id);
+          const timedCaptionCount = normalizeCaptionSegments(caption?.segments).length;
 
           return (
             <View style={[styles.page, { height: viewportHeight }]}>
@@ -993,87 +999,114 @@ export default function IgpatScreen() {
                   durationSeconds={Number(row.media_duration_seconds ?? 0)}
                   editMeta={row.igpat_edit_meta}
                   caption={caption}
-                  captionsEnabled={captionsEnabled}
+                  captionsEnabled={captionsEnabled && !cleanScreen}
+                  revealControls={cleanScreen ? () => setCleanScreen(false) : null}
                 />
               ) : null}
               <View pointerEvents="none" style={styles.scrim} />
 
-              <View style={[styles.topBar, { top: insets.top + 10 }]}>
-                <View pointerEvents="none">
-                  <Text style={styles.brandTitle}>IGPAT</Text>
-                  <Text style={styles.brandTagline}>An Instant Bond.</Text>
-                </View>
-                <View style={styles.topActions}>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      autoDataSaver && !dataSaver
-                        ? 'Automatic Data Saver is on for mobile data'
-                        : dataSaver
-                          ? 'Turn manual Data Saver off'
-                          : 'Turn manual Data Saver on'
-                    }
-                    onPress={toggleDataSaver}
-                    style={[styles.utilityButton, effectiveDataSaver && styles.utilityButtonActive]}
-                  >
-                    <MaterialCommunityIcons
-                      name="leaf"
-                      size={17}
-                      color={effectiveDataSaver ? '#07100B' : '#FFFFFF'}
-                    />
-                    <Text style={[styles.utilityText, effectiveDataSaver && styles.utilityTextActive]}>
-                      {autoDataSaver && !dataSaver ? 'AUTO' : dataSaver ? 'SAVER' : 'DATA'}
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Create IGPAT"
-                    onPress={() => router.push('/igpat/create' as any)}
-                    style={styles.createButton}
-                  >
-                    <MaterialCommunityIcons name="plus" size={21} color="#07100B" />
-                  </Pressable>
-                </View>
-              </View>
+              {!cleanScreen ? (
+                <>
+                  <View style={[styles.topBar, { top: insets.top + 10 }]}>
+                    <View pointerEvents="none">
+                      <Text style={styles.brandTitle}>IGPAT</Text>
+                      <Text style={styles.brandTagline}>An Instant Bond.</Text>
+                    </View>
+                    <View style={styles.topActions}>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Enter clean-screen Pure Watch mode"
+                        accessibilityHint="Hides nonessential IGPAT controls. Tap the video once to reveal them again."
+                        onPress={() => {
+                          setPulsePickerPostId(null);
+                          setRelayPickerPostId(null);
+                          setCleanScreen(true);
+                        }}
+                        style={styles.cleanButton}
+                      >
+                        <MaterialCommunityIcons name="eye-off-outline" size={17} color="#FFFFFF" />
+                      </Pressable>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={
+                          autoDataSaver && !dataSaver
+                            ? 'Automatic Data Saver is on for mobile data'
+                            : dataSaver
+                              ? 'Turn manual Data Saver off'
+                              : 'Turn manual Data Saver on'
+                        }
+                        onPress={toggleDataSaver}
+                        style={[styles.utilityButton, effectiveDataSaver && styles.utilityButtonActive]}
+                      >
+                        <MaterialCommunityIcons
+                          name="leaf"
+                          size={17}
+                          color={effectiveDataSaver ? '#07100B' : '#FFFFFF'}
+                        />
+                        <Text style={[styles.utilityText, effectiveDataSaver && styles.utilityTextActive]}>
+                          {autoDataSaver && !dataSaver ? 'AUTO' : dataSaver ? 'SAVER' : 'DATA'}
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Create IGPAT"
+                        onPress={() => router.push('/igpat/create' as any)}
+                        style={styles.createButton}
+                      >
+                        <MaterialCommunityIcons name="plus" size={21} color="#07100B" />
+                      </Pressable>
+                    </View>
+                  </View>
 
-              <View style={[styles.feedTabs, { top: insets.top + 58 }]}>
-                {([
-                  ['for-you', 'For You'],
-                  ['following', 'Following'],
-                  ['latest', 'Latest'],
-                ] as Array<[FeedMode, string]>).map(([mode, label]) => (
-                  <Pressable
-                    key={mode}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${label} IGPAT feed`}
-                    onPress={() => setFeedMode(mode)}
-                    style={[styles.feedTab, feedMode === mode && styles.feedTabActive]}
-                  >
-                    <Text style={[styles.feedTabText, feedMode === mode && styles.feedTabTextActive]}>
-                      {label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
+                  <View style={[styles.feedTabs, { top: insets.top + 58 }]}>
+                    {([
+                      ['for-you', 'For You'],
+                      ['following', 'Following'],
+                      ['latest', 'Latest'],
+                    ] as Array<[FeedMode, string]>).map(([mode, label]) => (
+                      <Pressable
+                        key={mode}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: feedMode === mode }}
+                        accessibilityLabel={`${label} IGPAT feed`}
+                        onPress={() => setFeedMode(mode)}
+                        style={[styles.feedTab, feedMode === mode && styles.feedTabActive]}
+                      >
+                        <Text style={[styles.feedTabText, feedMode === mode && styles.feedTabTextActive]}>
+                          {label}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
 
-              {caption?.configured && index === activeIndex ? (
-                <Pressable
-                  accessibilityRole="switch"
-                  accessibilityState={{ checked: captionsEnabled }}
-                  accessibilityLabel={captionsEnabled ? 'Hide IGPAT captions' : 'Show IGPAT captions'}
-                  onPress={() => toggleCaption(row.id)}
-                  onLongPress={() => router.push(`/igpat/captions/${row.id}` as any)}
-                  style={[styles.captionToggle, { top: insets.top + 98 }, captionsEnabled && styles.captionToggleActive]}
-                >
-                  <MaterialCommunityIcons
-                    name="closed-caption-outline"
-                    size={16}
-                    color={captionsEnabled ? '#07100B' : '#FFFFFF'}
-                  />
-                  <Text style={[styles.captionToggleText, captionsEnabled && styles.captionToggleTextActive]}>
-                    {captionsEnabled ? 'CC ON' : 'CC'}
-                  </Text>
-                </Pressable>
+                  {caption?.configured && index === activeIndex ? (
+                    <Pressable
+                      accessibilityRole="switch"
+                      accessibilityState={{ checked: captionsEnabled && timedCaptionCount > 0 }}
+                      accessibilityLabel={
+                        timedCaptionCount > 0
+                          ? captionsEnabled ? 'Hide IGPAT captions' : 'Show IGPAT captions'
+                          : 'Open corrected IGPAT caption transcript'
+                      }
+                      accessibilityHint={timedCaptionCount > 0 ? 'Long press to open the full caption transcript and translations.' : 'This corrected caption has no stale timing and opens as full text.'}
+                      onPress={() => {
+                        if (timedCaptionCount > 0) toggleCaption(row.id);
+                        else router.push(`/igpat/captions/${row.id}` as any);
+                      }}
+                      onLongPress={() => router.push(`/igpat/captions/${row.id}` as any)}
+                      style={[styles.captionToggle, { top: insets.top + 98 }, captionsEnabled && timedCaptionCount > 0 && styles.captionToggleActive]}
+                    >
+                      <MaterialCommunityIcons
+                        name="closed-caption-outline"
+                        size={16}
+                        color={captionsEnabled && timedCaptionCount > 0 ? '#07100B' : '#FFFFFF'}
+                      />
+                      <Text style={[styles.captionToggleText, captionsEnabled && timedCaptionCount > 0 && styles.captionToggleTextActive]}>
+                        {timedCaptionCount > 0 ? captionsEnabled ? 'CC ON' : 'CC' : 'TEXT'}
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                </>
               ) : null}
 
               {showPulsePicker ? (
@@ -1151,7 +1184,7 @@ export default function IgpatScreen() {
                   </View>
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel="View IGPAT Relay chain"
+                    accessibilityLabel="View IGPAT Relay chain and advanced actions"
                     onPress={() => {
                       setRelayPickerPostId(null);
                       trackEvent('relay_open', row.id, creatorId || null, 0, { action: 'view_chain' });
@@ -1160,82 +1193,86 @@ export default function IgpatScreen() {
                     style={styles.relayChainButton}
                   >
                     <MaterialCommunityIcons name="source-branch" size={16} color="#D9FF69" />
-                    <Text style={styles.relayChainText}>VIEW RELAY CHAIN</Text>
+                    <Text style={styles.relayChainText}>RELAY & MORE</Text>
                   </Pressable>
                 </View>
               ) : null}
 
-              <View style={[styles.actions, { bottom: Math.max(insets.bottom + 34, 42) }]}>
-                <ActionButton
-                  icon={currentPulse ? currentPulse.icon : 'heart-outline'}
-                  label={currentPulse ? `${currentPulse.label} Pulse. Long press to change.` : 'Pulse this IGPAT. Long press for choices.'}
-                  active={Boolean(currentPulse)}
-                  count={row.reaction_count}
-                  onPress={() => pulse(row.id)}
-                  onLongPress={() => {
-                    setRelayPickerPostId(null);
-                    setPulsePickerPostId(row.id);
-                  }}
-                />
-                <ActionButton
-                  icon="comment-outline"
-                  label="Open comments"
-                  count={row.comment_count}
-                  onPress={() => openComments(row)}
-                />
-                <ActionButton
-                  icon="share-variant-outline"
-                  label="Share IGPAT. Long press for Relay."
-                  onPress={() => void shareIgpat(row)}
-                  onLongPress={() => {
-                    setPulsePickerPostId(null);
-                    setRelayPickerPostId(row.id);
-                  }}
-                />
-                <ActionButton
-                  icon={savedIds.has(row.id) ? 'bookmark' : 'bookmark-outline'}
-                  label={savedIds.has(row.id) ? 'Remove saved IGPAT' : 'Save IGPAT'}
-                  active={savedIds.has(row.id)}
-                  onPress={() => toggleSaved(row.id)}
-                />
-              </View>
-
-              <View style={[styles.meta, { bottom: Math.max(insets.bottom + 30, 38) }]}>
-                <View style={styles.authorRow}>
-                  <Text numberOfLines={1} style={styles.author}>
-                    {resolvePersonDisplayName(row.author_name, row.user_id)}
-                  </Text>
-                  {!isSelf && creatorId ? (
-                    <Pressable
-                      disabled={followBusy.has(creatorId)}
-                      accessibilityRole="button"
-                      accessibilityLabel={isFollowing ? 'Unfollow IGPAT creator' : 'Follow IGPAT creator'}
-                      onPress={() => void toggleFollow(creatorId)}
-                      style={[styles.followButton, isFollowing && styles.followingButton]}
-                    >
-                      <Text style={[styles.followText, isFollowing && styles.followingText]}>
-                        {isFollowing ? 'FOLLOWING' : 'FOLLOW'}
-                      </Text>
-                    </Pressable>
-                  ) : null}
-                </View>
-                {!!row.body && (
-                  <Text numberOfLines={2} style={styles.caption}>
-                    {row.body}
-                  </Text>
-                )}
-                {bondMoment ? (
-                  <View style={styles.bondMoment} accessibilityLabel={`You and ${bondMoment.name} connected with this IGPAT`}>
-                    <MaterialCommunityIcons name="link-variant" size={13} color="#D9FF69" />
-                    <Text numberOfLines={1} style={styles.bondMomentText}>
-                      You and {bondMoment.name} connected with this.
-                    </Text>
+              {!cleanScreen ? (
+                <>
+                  <View style={[styles.actions, { bottom: Math.max(insets.bottom + 34, 42) }]}>
+                    <ActionButton
+                      icon={currentPulse ? currentPulse.icon : 'heart-outline'}
+                      label={currentPulse ? `${currentPulse.label} Pulse. Long press to change.` : 'Pulse this IGPAT. Long press for choices.'}
+                      active={Boolean(currentPulse)}
+                      count={row.reaction_count}
+                      onPress={() => pulse(row.id)}
+                      onLongPress={() => {
+                        setRelayPickerPostId(null);
+                        setPulsePickerPostId(row.id);
+                      }}
+                    />
+                    <ActionButton
+                      icon="comment-outline"
+                      label="Open comments"
+                      count={row.comment_count}
+                      onPress={() => openComments(row)}
+                    />
+                    <ActionButton
+                      icon="share-variant-outline"
+                      label="Share IGPAT. Long press for Relay."
+                      onPress={() => openShare(row)}
+                      onLongPress={() => {
+                        setPulsePickerPostId(null);
+                        setRelayPickerPostId(row.id);
+                      }}
+                    />
+                    <ActionButton
+                      icon={savedIds.has(row.id) ? 'bookmark' : 'bookmark-outline'}
+                      label={savedIds.has(row.id) ? 'Remove saved IGPAT' : 'Save IGPAT'}
+                      active={savedIds.has(row.id)}
+                      onPress={() => toggleSaved(row.id)}
+                    />
                   </View>
-                ) : null}
-                {effectiveDataSaver ? (
-                  <Text style={styles.saverHint}>{autoDataSaver && !dataSaver ? 'AUTO DATA SAVER · MOBILE DATA' : 'DATA SAVER ON'}</Text>
-                ) : null}
-              </View>
+
+                  <View style={[styles.meta, { bottom: Math.max(insets.bottom + 30, 38) }]}>
+                    <View style={styles.authorRow}>
+                      <Text numberOfLines={1} style={styles.author}>
+                        {resolvePersonDisplayName(row.author_name, row.user_id)}
+                      </Text>
+                      {!isSelf && creatorId ? (
+                        <Pressable
+                          disabled={followBusy.has(creatorId)}
+                          accessibilityRole="button"
+                          accessibilityLabel={isFollowing ? 'Unfollow IGPAT creator' : 'Follow IGPAT creator'}
+                          onPress={() => void toggleFollow(creatorId)}
+                          style={[styles.followButton, isFollowing && styles.followingButton]}
+                        >
+                          <Text style={[styles.followText, isFollowing && styles.followingText]}>
+                            {isFollowing ? 'FOLLOWING' : 'FOLLOW'}
+                          </Text>
+                        </Pressable>
+                      ) : null}
+                    </View>
+                    {!!row.body && (
+                      <Text numberOfLines={2} style={styles.caption}>
+                        {row.body}
+                      </Text>
+                    )}
+                    {bondMoment ? (
+                      <View style={styles.bondMoment} accessibilityLabel={`You and ${bondMoment.name} connected with this IGPAT`}>
+                        <MaterialCommunityIcons name="link-variant" size={13} color="#D9FF69" />
+                        <Text numberOfLines={1} style={styles.bondMomentText}>
+                          You and {bondMoment.name} connected with this.
+                        </Text>
+                      </View>
+                    ) : null}
+                    {effectiveDataSaver ? (
+                      <Text style={styles.saverHint}>{autoDataSaver && !dataSaver ? 'AUTO DATA SAVER · MOBILE DATA' : 'DATA SAVER ON'}</Text>
+                    ) : null}
+                  </View>
+                </>
+              ) : null}
             </View>
           );
         }}
@@ -1257,11 +1294,12 @@ const styles = StyleSheet.create({
   loadingTitle: { marginTop: 16, color: '#FFFFFF', fontSize: 17, fontWeight: '900', letterSpacing: 1.2 },
   loadingTagline: { marginTop: 4, color: 'rgba(255,255,255,0.62)', fontSize: 11, fontWeight: '700' },
   emptyTitle: { color: '#FFFFFF', fontSize: 21, fontWeight: '900', letterSpacing: 1.1 },
-  emptyModeTitle: { marginTop: 12, color: '#FFFFFF', fontSize: 16, fontWeight: '900' },
   emptyCopy: { marginTop: 8, color: 'rgba(255,255,255,0.62)', fontSize: 12, textAlign: 'center' },
   emptyActions: { marginTop: 18, flexDirection: 'row', gap: 10 },
   retryButton: {
     marginTop: 14,
+    minHeight: 44,
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.42)',
     borderRadius: 999,
@@ -1283,10 +1321,20 @@ const styles = StyleSheet.create({
   },
   brandTitle: { color: '#FFFFFF', fontSize: 19, fontWeight: '900', letterSpacing: 1.4 },
   brandTagline: { marginTop: 1, color: 'rgba(255,255,255,0.66)', fontSize: 9, fontWeight: '700', letterSpacing: 0.3 },
-  topActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  topActions: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  cleanButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.26)',
+    backgroundColor: 'rgba(0,0,0,0.36)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   utilityButton: {
-    minHeight: 34,
-    minWidth: 54,
+    minHeight: 44,
+    minWidth: 58,
     paddingHorizontal: 10,
     borderRadius: 999,
     borderWidth: 1,
@@ -1316,7 +1364,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: 'rgba(0,0,0,0.30)',
   },
-  feedTab: { minHeight: 38, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, justifyContent: 'center' },
+  feedTab: { minHeight: 40, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, justifyContent: 'center' },
   feedTabActive: { backgroundColor: 'rgba(255,255,255,0.16)' },
   feedTabText: { color: 'rgba(255,255,255,0.62)', fontSize: 9, fontWeight: '800' },
   feedTabTextActive: { color: '#FFFFFF' },
@@ -1324,7 +1372,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 15,
     minWidth: 54,
-    minHeight: 38,
+    minHeight: 40,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.24)',
@@ -1413,8 +1461,8 @@ const styles = StyleSheet.create({
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   author: { maxWidth: '68%', color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
   followButton: {
-    minHeight: 38,
-    minWidth: 72,
+    minHeight: 40,
+    minWidth: 78,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
