@@ -9,7 +9,6 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import MzbRandomWallPhoto from '@/components/MzbRandomWallPhoto';
-import BuklodReportDoorCard from '@/components/BuklodReportDoorCard';
 import type { BuklodScope } from '@/lib/buklodScope';
 import { useBuklodAccess } from '@/hooks/useBuklodAccess';
 import { colors } from '@/lib/theme';
@@ -21,6 +20,10 @@ type Props = {
 
 /**
  * MZB-specific home sections rendered inside the canonical scope dashboard.
+ *
+ * BUKLOD Report is intentionally not repeated here. Organization Home already
+ * renders the shared BuklodReportDoorCard through BuklodOrgHomeClusterCard,
+ * preserving the current BUKLOD Main session and exact Organization scope.
  */
 export default function BuklodMzbHomeWidgets({
   scope,
@@ -60,12 +63,6 @@ export default function BuklodMzbHomeWidgets({
 
       <MzbRandomWallPhoto
         onOpenCommunity={onOpenCommunity}
-      />
-
-      <BuklodReportDoorCard
-        scopeId={scope.scope_id}
-        scopeName={scope.name}
-        scopeType="ORGANIZATION"
       />
 
       {showAdminTools ? (
