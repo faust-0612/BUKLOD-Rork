@@ -1,4 +1,4 @@
-# Release trigger: 2026-09-12 automatic Formation submission + community photo repair
+# Release trigger: 2026-09-15 Android title-bar ad removal
 name: BUKLOD Production Android OTA
 
 on:
@@ -60,6 +60,8 @@ on:
       - 'src/components/BuklodNavSafeShell.tsx'
       - 'src/components/BuklodFocusAppAdStrip.tsx'
       - 'src/components/BuklodAdMobBanner.tsx'
+      - 'src/components/BuklodHeaderSponsor.android.tsx'
+      - 'src/components/BuklodScopedHeaderBanner.android.tsx'
       - 'src/lib/buklodAdUnits.ts'
       - 'src/lib/buklodAwsWallVideo.ts'
       - 'src/lib/uploadCommunityVideoFile.ts'
@@ -211,7 +213,7 @@ jobs:
             --channel production \
             --platform android \
             --environment production \
-            --message "BUKLOD Formation automatic submission + photo access repair" \
+            --message "BUKLOD Android title-bar ad removal" \
             --non-interactive
 
       - name: Deployment status
