@@ -1,8 +1,12 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 
 import type { BuklodCityPoint } from '@/lib/buklodCity';
-import type { BuklodHomeMapLocation } from '@/lib/buklodHomeLocation';
+import {
+  loadMyBuklodHomeMapLocation,
+  type BuklodHomeMapLocation,
+} from '@/lib/buklodHomeLocation';
+import { useAuth } from '@/providers/AuthProvider';
 
 const FALLBACK_CENTER = { latitude: 14.4974, longitude: 121.2862 };
 
@@ -35,7 +39,35 @@ export function BuklodCityMap({
   homePoint?: BuklodHomeMapLocation | null;
   expanded?: boolean;
 }) {
-  const mapCenter = center ?? homePoint ?? points[0] ?? FALLBACK_CENTER;
+  const { user } = useAuth();
+  const [privateHomePoint, setPrivateHomePoint] =
+    useState<BuklodHomeMapLocation | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    if (!user?.id) {
+      setPrivateHomePoint(null);
+      return () => {
+        mounted = false;
+      };
+    }
+
+    void loadMyBuklodHomeMapLocation(user.id)
+      .then((location) => {
+        if (mounted) setPrivateHomePoint(location);
+      })
+      .catch(() => {
+        if (mounted) setPrivateHomePoint(null);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [user?.id]);
+
+  const resolvedHomePoint = homePoint ?? privateHomePoint;
+  const mapCenter = resolvedHomePoint ?? center ?? points[0] ?? FALLBACK_CENTER;
 
   const srcDoc = useMemo(() => {
     const payload = points.map(point => ({
@@ -49,10 +81,10 @@ export function BuklodCityMap({
       isMe: Boolean(point.isMe),
     }));
 
-    const privateHome = homePoint
+    const privateHome = resolvedHomePoint
       ? {
-          latitude: homePoint.latitude,
-          longitude: homePoint.longitude,
+          latitude: resolvedHomePoint.latitude,
+          longitude: resolvedHomePoint.longitude,
         }
       : null;
 
@@ -109,11 +141,11 @@ setTimeout(()=>map.invalidateSize(),120);
 </body>
 </html>`;
   }, [
-    homePoint?.latitude,
-    homePoint?.longitude,
     mapCenter.latitude,
     mapCenter.longitude,
     points,
+    resolvedHomePoint?.latitude,
+    resolvedHomePoint?.longitude,
   ]);
 
   return (
