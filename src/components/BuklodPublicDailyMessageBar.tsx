@@ -5,10 +5,15 @@ import React, {
 
 import {
   ActivityIndicator,
+  Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+
+import {
+  router,
+} from 'expo-router';
 
 import {
   MaterialCommunityIcons,
@@ -189,6 +194,31 @@ export default function BuklodPublicDailyMessageBar({
           </Text>
         ) : null}
       </View>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Open my BUKLOD Home"
+        accessibilityHint="Opens your personal daily-life Home without leaving the Community permanently"
+        hitSlop={8}
+        onPress={() =>
+          router.push(
+            '/personal-home' as any
+          )
+        }
+        style={({ pressed }) => [
+          styles.homeDoor,
+          pressed && { opacity: 0.72 },
+        ]}
+      >
+        <MaterialCommunityIcons
+          name="home-heart"
+          size={20}
+          color={colors.greenDark}
+        />
+        <Text style={styles.homeDoorText}>
+          HOME
+        </Text>
+      </Pressable>
     </View>
   );
 }
@@ -228,6 +258,7 @@ function createStyles(
 
   copy: {
     flex: 1,
+    minWidth: 0,
   },
 
   metaRow: {
@@ -264,6 +295,26 @@ function createStyles(
     marginTop: 2,
     fontSize: 9.5,
     fontWeight: '900',
+    color: colors.greenDark,
+  },
+
+  homeDoor: {
+    width: 48,
+    minHeight: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.greenSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 5,
+  },
+
+  homeDoorText: {
+    marginTop: 1,
+    fontSize: 7.5,
+    fontWeight: '900',
+    letterSpacing: 0.45,
     color: colors.greenDark,
   },
   });
