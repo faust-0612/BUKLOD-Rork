@@ -33,6 +33,19 @@ function rows<T>(data: unknown): T[] {
   return [data as T];
 }
 
+function isMissingFunction(error: unknown, functionName: string) {
+  const message = String(
+    (error as { message?: unknown } | null)?.message ?? error ?? ''
+  ).toLowerCase();
+
+  return (
+    message.includes(functionName.toLowerCase()) &&
+    (message.includes('does not exist') ||
+      message.includes('could not find the function') ||
+      message.includes('schema cache'))
+  );
+}
+
 export function readParentOrganizationType(
   metadata?: Record<string, unknown> | null
 ): string {
@@ -68,19 +81,60 @@ export function roleTemplateGroupLabel(group: ScopeRoleTemplateGroup) {
   }
 }
 
+export async function canCreateSuborganization(
+  parentScopeId: string
+): Promise<boolean> {
+  const v2 = await (supabase as any).rpc(
+    'buklod_can_create_suborganization_v2',
+    { p_parent_scope_id: parentScopeId }
+  );
+
+  if (!v2.error) {
+    return v2.data === true;
+  }
+
+  if (!isMissingFunction(v2.error, 'buklod_can_create_suborganization_v2')) {
+    throw v2.error;
+  }
+
+  // Backward-compatible source fallback while the release migration has not
+  // been applied yet. This only checks canonical ACTIVE membership and does
+  // not introduce any payment/premium requirement.
+  const legacyMembership = await (supabase as any).rpc(
+    'buklod_scope_has_active_membership_v1',
+    { p_scope_id: parentScopeId }
+  );
+
+  if (legacyMembership.error) {
+    throw legacyMembership.error;
+  }
+
+  return legacyMembership.data === true;
+}
+
 export async function listSuborganizations(
   parentScopeId: string,
   limit = 50,
   offset = 0
 ): Promise<SuborganizationRow[]> {
-  const { data, error } = await (supabase as any).rpc(
-    'buklod_list_suborganizations_v1',
-    {
+  const v2 = await (supabase as any).rpc('buklod_list_suborganizations_v2', {
+    p_parent_scope_id: parentScopeId,
+    p_limit: limit,
+    p_offset: offset,
+  });
+
+  let data = v2.data;
+  let error = v2.error;
+
+  if (error && isMissingFunction(error, 'buklod_list_suborganizations_v2')) {
+    const v1 = await (supabase as any).rpc('buklod_list_suborganizations_v1', {
       p_parent_scope_id: parentScopeId,
       p_limit: limit,
       p_offset: offset,
-    }
-  );
+    });
+    data = v1.data;
+    error = v1.error;
+  }
 
   if (error) {
     const legacy = await (supabase as any).rpc('buklod_list_suborganizations', {
@@ -124,18 +178,35 @@ export async function listSuborganizations(
 export async function createSuborganization(
   input: CreateSuborganizationInput
 ): Promise<string> {
-  const { data, error } = await (supabase as any).rpc(
-    'buklod_create_suborganization_v1',
-    {
-      p_parent_scope_id: input.parentScopeId,
-      p_name: input.name.trim(),
-      p_description: input.description?.trim() || null,
-      p_visibility: input.visibility ?? null,
-      p_join_policy: input.joinPolicy ?? null,
-      p_organization_type: input.organizationType?.trim() || null,
-      p_profile: {},
-    }
+  const args = {
+    p_parent_scope_id: input.parentScopeId,
+    p_name: input.name.trim(),
+    p_description: input.description?.trim() || null,
+    p_visibility: input.visibility ?? null,
+    p_join_policy: input.joinPolicy ?? null,
+    p_organization_type: input.organizationType?.trim() || null,
+    p_profile: {},
+  };
+
+  const v2 = await (supabase as any).rpc(
+    'buklod_create_suborganization_v2',
+    args
   );
+
+  let data = v2.data;
+  let error = v2.error;
+
+  if (error && isMissingFunction(error, 'buklod_create_suborganization_v2')) {
+    // Compatibility only for already-authorized legacy admins before the v2
+    // migration is applied. Normal members will not be falsely reported as
+    // successful because v1 keeps its server-side admin check.
+    const v1 = await (supabase as any).rpc(
+      'buklod_create_suborganization_v1',
+      args
+    );
+    data = v1.data;
+    error = v1.error;
+  }
 
   if (error) {
     throw error;
