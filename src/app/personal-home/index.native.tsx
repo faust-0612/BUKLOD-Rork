@@ -1,3 +1,3 @@
-import BuklodSpatialHome from '@/components/home/BuklodSpatialHome';
+import BuklodSpatialHomeV2 from '@/components/home/BuklodSpatialHomeV2';
 
-export default BuklodSpatialHome;
+export default BuklodSpatialHomeV2;
