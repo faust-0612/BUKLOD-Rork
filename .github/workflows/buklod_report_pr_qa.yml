@@ -8,9 +8,13 @@ on:
     paths:
       - 'src/app/reports/**'
       - 'src/components/BuklodWeeklyReportForm.tsx'
+      - 'src/components/BuklodReportDoorCard.tsx'
+      - 'src/components/BuklodMzbHomeWidgets.tsx'
+      - 'src/components/BuklodClusterHomeCommandCenter.tsx'
       - 'src/lib/buklodReportDomain.ts'
       - 'src/lib/buklodReportFiles.ts'
       - 'src/lib/buklodReportBranding.ts'
+      - 'src/lib/buklodReportRoutes.ts'
       - '.github/workflows/buklod_report_*'
       - '.buklod/**'
       - 'scripts/verify-buklod-app-boundaries.cjs'
@@ -37,6 +41,17 @@ jobs:
           grep -F 'PDF / PRINT' src/components/BuklodWeeklyReportForm.tsx
           grep -F 'buklod-report-import-v1' src/lib/buklodReportFiles.ts
           grep -F 'buklod-report-api-v1' src/lib/buklodReportDomain.ts
+      - name: Report door session and scope contract
+        run: |
+          grep -F 'router.push(' src/components/BuklodReportDoorCard.tsx
+          grep -F 'buklodReportLandingPath(scopeId)' src/components/BuklodReportDoorCard.tsx
+          grep -F 'entry=main' src/components/BuklodReportDoorCard.tsx
+          ! grep -E 'Linking\.openURL|openURL\(' src/components/BuklodReportDoorCard.tsx
+          grep -F '<BuklodReportDoorCard' src/components/BuklodMzbHomeWidgets.tsx
+          grep -F 'scopeType="ORGANIZATION"' src/components/BuklodMzbHomeWidgets.tsx
+          ! grep -F 'label="BUKLOD Report"' src/components/BuklodMzbHomeWidgets.tsx
+          grep -F '<BuklodReportDoorCard' src/components/BuklodClusterHomeCommandCenter.tsx
+          grep -F 'scopeType="CLUSTER"' src/components/BuklodClusterHomeCommandCenter.tsx
       - name: TypeScript
         run: npx tsc --noEmit
       - name: Main-side web compatibility export - NOT a Report deployment
