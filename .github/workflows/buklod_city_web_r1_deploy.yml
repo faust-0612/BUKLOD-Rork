@@ -1,0 +1,94 @@
+name: BUKLOD City Web R1 Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/buklod_city_web_r1_deploy.yml'
+      - 'src/app/city.web.tsx'
+      - 'src/app/index.web.tsx'
+      - 'src/components/BuklodCityMap.web.tsx'
+      - 'src/lib/buklodCity.ts'
+      - 'scripts/buklod-city-web-r1-qa.mjs'
+      - 'supabase/migrations/*buklod_city_web*.sql'
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+jobs:
+  qa-export-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout production source
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Pull EAS production public environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          npx eas-cli@latest whoami --non-interactive >/dev/null
+          rm -f .env.local
+          npx eas-cli@latest env:pull --environment production --path .env.local --non-interactive
+          test -s .env.local
+          set -a
+          . ./.env.local
+          set +a
+          test "${EXPO_PUBLIC_SUPABASE_URL:-}" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
+          while IFS='=' read -r name _; do
+            case "$name" in
+              EXPO_PUBLIC_*)
+                value="${!name-}"
+                {
+                  echo "${name}<<__BUKLOD_ENV__"
+                  printf '%s\n' "$value"
+                  echo '__BUKLOD_ENV__'
+                } >> "$GITHUB_ENV"
+                ;;
+            esac
+          done < <(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env.local)
+
+      - name: BUKLOD City release contract
+        run: node scripts/buklod-city-web-r1-qa.mjs
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Export production web
+        shell: bash
+        env:
+          NODE_ENV: production
+          EXPO_PUBLIC_APP_ENV: production
+        run: |
+          set -euo pipefail
+          test "${EXPO_PUBLIC_SUPABASE_URL:-}" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
+          rm -rf dist
+          npx expo export --platform web --output-dir dist
+          test -s dist/index.html
+          grep -RFl --include='*.js' 'yhanxndaqbmuzbdqlblu.supabase.co' dist/_expo/static/js/web >/dev/null
+
+      - name: Deploy production web
+        shell: bash
+        env:
+          NODE_ENV: production
+          EXPO_PUBLIC_APP_ENV: production
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest deploy --prod --environment production --non-interactive
