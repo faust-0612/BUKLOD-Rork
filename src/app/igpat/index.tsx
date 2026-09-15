@@ -17,8 +17,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { VideoView, useVideoPlayer } from 'expo-video';
+import IgpatSponsoredFeedPage from '@/components/IgpatSponsoredFeedPage';
 import { supabase } from '@/lib/supabase';
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
+import { buildIgpatFeedItems, type IgpatFeedItem } from '@/lib/igpat/adPolicy';
 import { parseIgpatQuickEdit } from '@/lib/igpat/quickEdit';
 import { IGPAT_RELAY_OPTIONS, type IgpatRelayPrompt } from '@/lib/igpat/relay';
 import { useAuth } from '@/providers/AuthProvider';
@@ -36,6 +38,20 @@ type IgpatRow = {
   my_reaction?: string | null;
   igpat_edit_meta?: unknown;
   media_url?: string | null;
+};
+
+type IgpatCaptionSegment = {
+  start_seconds: number;
+  end_seconds: number;
+  text: string;
+};
+
+type IgpatCaptionPayload = {
+  configured?: boolean;
+  language?: string | null;
+  caption_text?: string | null;
+  segments?: IgpatCaptionSegment[] | null;
+  is_visible?: boolean;
 };
 
 type FeedMode = 'for-you' | 'following' | 'latest';
@@ -111,18 +127,40 @@ async function mapWithConcurrency<T, R>(
   return results;
 }
 
+function normalizeCaptionSegments(value: unknown): IgpatCaptionSegment[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map(item => ({
+      start_seconds: Number((item as any)?.start_seconds ?? 0),
+      end_seconds: Number((item as any)?.end_seconds ?? 0),
+      text: String((item as any)?.text ?? '').trim(),
+    }))
+    .filter(item =>
+      item.text.length > 0 &&
+      Number.isFinite(item.start_seconds) &&
+      Number.isFinite(item.end_seconds) &&
+      item.end_seconds > item.start_seconds
+    )
+    .slice(0, 240);
+}
+
 function IgpatVideo({
   uri,
   active,
   durationSeconds,
   editMeta,
+  caption,
+  captionsEnabled,
 }: {
   uri: string;
   active: boolean;
   durationSeconds: number;
   editMeta?: unknown;
+  caption?: IgpatCaptionPayload | null;
+  captionsEnabled?: boolean;
 }) {
   const [pausedByUser, setPausedByUser] = useState(false);
+  const [captionLine, setCaptionLine] = useState('');
   const hasEditMeta = Boolean(editMeta && typeof editMeta === 'object');
   const safeDuration = durationSeconds > 0 ? durationSeconds : 60;
   const edit = useMemo(
@@ -132,6 +170,10 @@ function IgpatVideo({
   const trimStart = hasEditMeta ? edit.trimStartSeconds : 0;
   const trimEnd = hasEditMeta ? Number(edit.trimEndSeconds ?? safeDuration) : safeDuration;
   const baseRate = hasEditMeta ? edit.speed : 1;
+  const captionSegments = useMemo(
+    () => normalizeCaptionSegments(caption?.segments),
+    [caption?.segments]
+  );
 
   const player = useVideoPlayer(uri, instance => {
     instance.loop = !hasEditMeta;
@@ -171,6 +213,34 @@ function IgpatVideo({
 
     return () => clearInterval(timer);
   }, [active, hasEditMeta, pausedByUser, player, trimEnd, trimStart]);
+
+  useEffect(() => {
+    if (!active || !captionsEnabled || !caption?.configured || caption?.is_visible === false) {
+      setCaptionLine('');
+      return undefined;
+    }
+
+    if (!captionSegments.length) {
+      setCaptionLine(String(caption.caption_text ?? '').trim());
+      return undefined;
+    }
+
+    const updateLine = () => {
+      try {
+        const current = Number(player.currentTime ?? 0);
+        const segment = captionSegments.find(
+          row => current >= row.start_seconds && current < row.end_seconds
+        );
+        setCaptionLine(segment?.text ?? '');
+      } catch {
+        setCaptionLine('');
+      }
+    };
+
+    updateLine();
+    const timer = setInterval(updateLine, 220);
+    return () => clearInterval(timer);
+  }, [active, caption?.caption_text, caption?.configured, caption?.is_visible, captionSegments, captionsEnabled, player]);
 
   useEffect(() => {
     return () => {
@@ -221,6 +291,11 @@ function IgpatVideo({
           <Text style={styles.editText}>{edit.textOverlay.trim()}</Text>
         </View>
       )}
+      {!!captionLine && captionsEnabled ? (
+        <View pointerEvents="none" style={styles.captionOverlayWrap}>
+          <Text numberOfLines={3} style={styles.captionOverlayText}>{captionLine}</Text>
+        </View>
+      ) : null}
       {active && pausedByUser && (
         <View pointerEvents="none" style={styles.pausedBadge}>
           <MaterialCommunityIcons name="play" size={18} color="#FFFFFF" />
@@ -299,6 +374,8 @@ export default function IgpatScreen() {
   const [pulsePickerPostId, setPulsePickerPostId] = useState<string | null>(null);
   const [relayPickerPostId, setRelayPickerPostId] = useState<string | null>(null);
   const [bondMoments, setBondMoments] = useState<Record<string, BondMoment>>({});
+  const [captionsByPostId, setCaptionsByPostId] = useState<Record<string, IgpatCaptionPayload | null>>({});
+  const [captionEnabledIds, setCaptionEnabledIds] = useState<Set<string>>(new Set());
   const loadGenerationRef = useRef(0);
   const lastSuccessfulLoadAtRef = useRef(0);
   const viewportHeight = Dimensions.get('window').height;
@@ -306,6 +383,11 @@ export default function IgpatScreen() {
   const autoDataSaver = networkState?.type === Network.NetworkStateType.CELLULAR;
   const networkUnavailable = networkState?.isConnected === false || networkState?.isInternetReachable === false;
   const effectiveDataSaver = dataSaver || autoDataSaver;
+  const allowSponsored = feedMode === 'for-you' && !effectiveDataSaver && !networkUnavailable;
+  const feedItems = useMemo(
+    () => buildIgpatFeedItems(rows, allowSponsored),
+    [allowSponsored, rows]
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -490,8 +572,11 @@ export default function IgpatScreen() {
     })();
   }, [feedMode, user?.id]);
 
-  const activePostId = rows[activeIndex]?.id ?? null;
-  const activeCreatorId = rows[activeIndex]?.user_id ? String(rows[activeIndex]?.user_id) : null;
+  const activeFeedItem = feedItems[activeIndex] ?? null;
+  const activeRow = activeFeedItem?.kind === 'organic' ? activeFeedItem.row : null;
+  const activePostId = activeRow?.id ?? null;
+  const activeCreatorId = activeRow?.user_id ? String(activeRow.user_id) : null;
+  const activeSponsoredId = activeFeedItem?.kind === 'sponsored' ? activeFeedItem.id : null;
 
   useEffect(() => {
     if (!appActive || !activePostId) return undefined;
@@ -504,6 +589,53 @@ export default function IgpatScreen() {
       trackEvent(eventName, activePostId, activeCreatorId, watchMs);
     };
   }, [activeCreatorId, activePostId, appActive, trackEvent]);
+
+  useEffect(() => {
+    if (!appActive || !activeSponsoredId || activeFeedItem?.kind !== 'sponsored') return undefined;
+    const startedAt = Date.now();
+    trackEvent('ad_page_view', null, null, 0, {
+      placement: 'reels_inline',
+      after_organic_count: activeFeedItem.afterOrganicCount,
+    });
+
+    return () => {
+      trackEvent('ad_page_leave', null, null, Math.max(0, Date.now() - startedAt), {
+        placement: 'reels_inline',
+        after_organic_count: activeFeedItem.afterOrganicCount,
+      });
+    };
+  }, [activeFeedItem, activeSponsoredId, appActive, trackEvent]);
+
+  useEffect(() => {
+    if (!activePostId || !user?.id) return;
+    if (Object.prototype.hasOwnProperty.call(captionsByPostId, activePostId)) return;
+
+    setCaptionsByPostId(current => ({ ...current, [activePostId]: null }));
+    void (async () => {
+      try {
+        const { data, error } = await (supabase as any).rpc('get_buklod_igpat_caption_v1', {
+          p_post_id: activePostId,
+        });
+        if (error) throw error;
+        const raw = (data ?? {}) as IgpatCaptionPayload;
+        const configured = raw.configured === true && raw.is_visible !== false;
+        const next = configured
+          ? {
+              ...raw,
+              segments: normalizeCaptionSegments(raw.segments),
+            }
+          : null;
+        setCaptionsByPostId(current => ({ ...current, [activePostId]: next }));
+        if (next) {
+          setCaptionEnabledIds(current => new Set(current).add(activePostId));
+        }
+      } catch (error) {
+        // Captions are an optional R52 enhancement. Older servers must keep Watch working.
+        console.warn('BUKLOD IGPAT caption read:', String((error as any)?.message ?? error));
+        setCaptionsByPostId(current => ({ ...current, [activePostId]: null }));
+      }
+    })();
+  }, [activePostId, captionsByPostId, user?.id]);
 
   const loadBondMoments = useCallback(async () => {
     if (!user?.id || !rows.length || !followedIds.size) {
@@ -599,6 +731,15 @@ export default function IgpatScreen() {
     });
     if (row) trackEvent(wasSaved ? 'unsave' : 'save', row.id, row.user_id ? String(row.user_id) : null);
   }, [rows, savedIds, trackEvent]);
+
+  const toggleCaption = useCallback((postId: string) => {
+    setCaptionEnabledIds(current => {
+      const next = new Set(current);
+      if (next.has(postId)) next.delete(postId);
+      else next.add(postId);
+      return next;
+    });
+  }, []);
 
   const toggleFollow = useCallback(async (creatorId: string) => {
     if (!user?.id || creatorId === user.id || followBusy.has(creatorId)) return;
@@ -749,7 +890,7 @@ export default function IgpatScreen() {
   }, [trackEvent]);
 
   const onViewableItemsChanged = useRef(
-    ({ viewableItems }: { viewableItems: Array<ViewToken<IgpatRow>> }) => {
+    ({ viewableItems }: { viewableItems: Array<ViewToken<IgpatFeedItem<IgpatRow>>> }) => {
       const first = viewableItems.find(item => item.isViewable && typeof item.index === 'number');
       if (typeof first?.index === 'number') setActiveIndex(first.index);
     }
@@ -803,9 +944,9 @@ export default function IgpatScreen() {
   return (
     <View style={styles.root}>
       <FlatList
-        data={rows}
-        extraData={`${activeIndex}:${pulsePickerPostId ?? ''}:${relayPickerPostId ?? ''}:${Object.keys(bondMoments).length}:${appActive ? 'active' : 'background'}`}
-        key={`${feedMode}:${effectiveDataSaver ? 'saver' : 'normal'}`}
+        data={feedItems}
+        extraData={`${activeIndex}:${pulsePickerPostId ?? ''}:${relayPickerPostId ?? ''}:${Object.keys(bondMoments).length}:${captionEnabledIds.size}:${appActive ? 'active' : 'background'}`}
+        key={`${feedMode}:${effectiveDataSaver ? 'saver' : 'normal'}:${allowSponsored ? 'ads' : 'organic'}`}
         keyExtractor={item => item.id}
         pagingEnabled
         showsVerticalScrollIndicator={false}
@@ -823,22 +964,36 @@ export default function IgpatScreen() {
           index,
         })}
         renderItem={({ item, index }) => {
-          const creatorId = item.user_id ? String(item.user_id) : '';
+          if (item.kind === 'sponsored') {
+            return (
+              <IgpatSponsoredFeedPage
+                height={viewportHeight}
+                bottomInset={insets.bottom}
+              />
+            );
+          }
+
+          const row = item.row;
+          const creatorId = row.user_id ? String(row.user_id) : '';
           const isSelf = creatorId === user?.id;
           const isFollowing = Boolean(creatorId && followedIds.has(creatorId));
-          const currentPulse = pulseOptionForStoredReaction(item.my_reaction);
-          const showPulsePicker = pulsePickerPostId === item.id && index === activeIndex;
-          const showRelayPicker = relayPickerPostId === item.id && index === activeIndex;
-          const bondMoment = item.my_reaction ? bondMoments[item.id] : null;
+          const currentPulse = pulseOptionForStoredReaction(row.my_reaction);
+          const showPulsePicker = pulsePickerPostId === row.id && index === activeIndex;
+          const showRelayPicker = relayPickerPostId === row.id && index === activeIndex;
+          const bondMoment = row.my_reaction ? bondMoments[row.id] : null;
+          const caption = captionsByPostId[row.id] ?? null;
+          const captionsEnabled = captionEnabledIds.has(row.id);
 
           return (
             <View style={[styles.page, { height: viewportHeight }]}>
-              {!!item.media_url && index === activeIndex ? (
+              {!!row.media_url && index === activeIndex ? (
                 <IgpatVideo
-                  uri={item.media_url}
+                  uri={row.media_url}
                   active={appActive}
-                  durationSeconds={Number(item.media_duration_seconds ?? 0)}
-                  editMeta={item.igpat_edit_meta}
+                  durationSeconds={Number(row.media_duration_seconds ?? 0)}
+                  editMeta={row.igpat_edit_meta}
+                  caption={caption}
+                  captionsEnabled={captionsEnabled}
                 />
               ) : null}
               <View pointerEvents="none" style={styles.scrim} />
@@ -889,6 +1044,8 @@ export default function IgpatScreen() {
                 ] as Array<[FeedMode, string]>).map(([mode, label]) => (
                   <Pressable
                     key={mode}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${label} IGPAT feed`}
                     onPress={() => setFeedMode(mode)}
                     style={[styles.feedTab, feedMode === mode && styles.feedTabActive]}
                   >
@@ -898,6 +1055,26 @@ export default function IgpatScreen() {
                   </Pressable>
                 ))}
               </View>
+
+              {caption?.configured && index === activeIndex ? (
+                <Pressable
+                  accessibilityRole="switch"
+                  accessibilityState={{ checked: captionsEnabled }}
+                  accessibilityLabel={captionsEnabled ? 'Hide IGPAT captions' : 'Show IGPAT captions'}
+                  onPress={() => toggleCaption(row.id)}
+                  onLongPress={() => router.push(`/igpat/captions/${row.id}` as any)}
+                  style={[styles.captionToggle, { top: insets.top + 98 }, captionsEnabled && styles.captionToggleActive]}
+                >
+                  <MaterialCommunityIcons
+                    name="closed-caption-outline"
+                    size={16}
+                    color={captionsEnabled ? '#07100B' : '#FFFFFF'}
+                  />
+                  <Text style={[styles.captionToggleText, captionsEnabled && styles.captionToggleTextActive]}>
+                    {captionsEnabled ? 'CC ON' : 'CC'}
+                  </Text>
+                </Pressable>
+              ) : null}
 
               {showPulsePicker ? (
                 <View style={[styles.pulsePicker, { bottom: Math.max(insets.bottom + 84, 92) }]}>
@@ -917,14 +1094,14 @@ export default function IgpatScreen() {
                   </View>
                   <View style={styles.pulseChoices}>
                     {PULSE_OPTIONS.map(option => {
-                      const selected = item.my_reaction === option.storedReaction;
+                      const selected = row.my_reaction === option.storedReaction;
                       return (
                         <Pressable
                           key={option.key}
-                          disabled={reactionBusy.has(item.id)}
+                          disabled={reactionBusy.has(row.id)}
                           accessibilityRole="button"
                           accessibilityLabel={`${option.label} IGPAT Pulse`}
-                          onPress={() => void setPulseReaction(item.id, option.storedReaction)}
+                          onPress={() => void setPulseReaction(row.id, option.storedReaction)}
                           style={[styles.pulseChoice, selected && styles.pulseChoiceSelected]}
                         >
                           <MaterialCommunityIcons
@@ -964,7 +1141,7 @@ export default function IgpatScreen() {
                         key={option.key}
                         accessibilityRole="button"
                         accessibilityLabel={`${option.label} IGPAT Relay`}
-                        onPress={() => beginRelay(item, option.key)}
+                        onPress={() => beginRelay(row, option.key)}
                         style={styles.relayChoice}
                       >
                         <Text style={styles.relayChoiceTitle}>{option.label}</Text>
@@ -977,8 +1154,8 @@ export default function IgpatScreen() {
                     accessibilityLabel="View IGPAT Relay chain"
                     onPress={() => {
                       setRelayPickerPostId(null);
-                      trackEvent('relay_open', item.id, creatorId || null, 0, { action: 'view_chain' });
-                      router.push(`/igpat/relay/${item.id}` as any);
+                      trackEvent('relay_open', row.id, creatorId || null, 0, { action: 'view_chain' });
+                      router.push(`/igpat/relay/${row.id}` as any);
                     }}
                     style={styles.relayChainButton}
                   >
@@ -993,44 +1170,46 @@ export default function IgpatScreen() {
                   icon={currentPulse ? currentPulse.icon : 'heart-outline'}
                   label={currentPulse ? `${currentPulse.label} Pulse. Long press to change.` : 'Pulse this IGPAT. Long press for choices.'}
                   active={Boolean(currentPulse)}
-                  count={item.reaction_count}
-                  onPress={() => pulse(item.id)}
+                  count={row.reaction_count}
+                  onPress={() => pulse(row.id)}
                   onLongPress={() => {
                     setRelayPickerPostId(null);
-                    setPulsePickerPostId(item.id);
+                    setPulsePickerPostId(row.id);
                   }}
                 />
                 <ActionButton
                   icon="comment-outline"
                   label="Open comments"
-                  count={item.comment_count}
-                  onPress={() => openComments(item)}
+                  count={row.comment_count}
+                  onPress={() => openComments(row)}
                 />
                 <ActionButton
                   icon="share-variant-outline"
                   label="Share IGPAT. Long press for Relay."
-                  onPress={() => void shareIgpat(item)}
+                  onPress={() => void shareIgpat(row)}
                   onLongPress={() => {
                     setPulsePickerPostId(null);
-                    setRelayPickerPostId(item.id);
+                    setRelayPickerPostId(row.id);
                   }}
                 />
                 <ActionButton
-                  icon={savedIds.has(item.id) ? 'bookmark' : 'bookmark-outline'}
-                  label={savedIds.has(item.id) ? 'Remove saved IGPAT' : 'Save IGPAT'}
-                  active={savedIds.has(item.id)}
-                  onPress={() => toggleSaved(item.id)}
+                  icon={savedIds.has(row.id) ? 'bookmark' : 'bookmark-outline'}
+                  label={savedIds.has(row.id) ? 'Remove saved IGPAT' : 'Save IGPAT'}
+                  active={savedIds.has(row.id)}
+                  onPress={() => toggleSaved(row.id)}
                 />
               </View>
 
               <View style={[styles.meta, { bottom: Math.max(insets.bottom + 30, 38) }]}>
                 <View style={styles.authorRow}>
                   <Text numberOfLines={1} style={styles.author}>
-                    {resolvePersonDisplayName(item.author_name, item.user_id)}
+                    {resolvePersonDisplayName(row.author_name, row.user_id)}
                   </Text>
                   {!isSelf && creatorId ? (
                     <Pressable
                       disabled={followBusy.has(creatorId)}
+                      accessibilityRole="button"
+                      accessibilityLabel={isFollowing ? 'Unfollow IGPAT creator' : 'Follow IGPAT creator'}
                       onPress={() => void toggleFollow(creatorId)}
                       style={[styles.followButton, isFollowing && styles.followingButton]}
                     >
@@ -1040,9 +1219,9 @@ export default function IgpatScreen() {
                     </Pressable>
                   ) : null}
                 </View>
-                {!!item.body && (
+                {!!row.body && (
                   <Text numberOfLines={2} style={styles.caption}>
-                    {item.body}
+                    {row.body}
                   </Text>
                 )}
                 {bondMoment ? (
@@ -1107,6 +1286,7 @@ const styles = StyleSheet.create({
   topActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   utilityButton: {
     minHeight: 34,
+    minWidth: 54,
     paddingHorizontal: 10,
     borderRadius: 999,
     borderWidth: 1,
@@ -1114,15 +1294,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.36)',
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 5,
   },
   utilityButtonActive: { backgroundColor: '#FFFFFF', borderColor: '#FFFFFF' },
   utilityText: { color: '#FFFFFF', fontSize: 8, fontWeight: '900', letterSpacing: 0.8 },
   utilityTextActive: { color: '#07100B' },
   createButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
@@ -1135,22 +1316,40 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: 'rgba(0,0,0,0.30)',
   },
-  feedTab: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
+  feedTab: { minHeight: 38, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, justifyContent: 'center' },
   feedTabActive: { backgroundColor: 'rgba(255,255,255,0.16)' },
   feedTabText: { color: 'rgba(255,255,255,0.62)', fontSize: 9, fontWeight: '800' },
   feedTabTextActive: { color: '#FFFFFF' },
+  captionToggle: {
+    position: 'absolute',
+    right: 15,
+    minWidth: 54,
+    minHeight: 38,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.24)',
+    backgroundColor: 'rgba(0,0,0,0.38)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingHorizontal: 9,
+  },
+  captionToggleActive: { backgroundColor: '#FFFFFF', borderColor: '#FFFFFF' },
+  captionToggleText: { color: '#FFFFFF', fontSize: 8, fontWeight: '900', letterSpacing: 0.6 },
+  captionToggleTextActive: { color: '#07100B' },
   actions: {
     position: 'absolute',
     right: 12,
     alignItems: 'center',
     gap: 11,
   },
-  actionButton: { alignItems: 'center', minWidth: 48 },
+  actionButton: { alignItems: 'center', minWidth: 48, minHeight: 48 },
   actionPressed: { opacity: 0.72, transform: [{ scale: 0.96 }] },
   actionOrb: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.42)',
@@ -1185,12 +1384,12 @@ const styles = StyleSheet.create({
   pickerHeaderCopy: { flex: 1 },
   pickerTitle: { color: '#FFFFFF', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
   pickerHint: { marginTop: 3, color: 'rgba(255,255,255,0.50)', fontSize: 8.5 },
-  pickerClose: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.09)' },
+  pickerClose: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.09)' },
   pulseChoices: { marginTop: 11, flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
   pulseChoice: {
     minWidth: '30%',
     flexGrow: 1,
-    minHeight: 43,
+    minHeight: 44,
     paddingHorizontal: 9,
     borderRadius: 13,
     borderWidth: 1,
@@ -1208,12 +1407,16 @@ const styles = StyleSheet.create({
   relayChoice: { minHeight: 49, borderRadius: 13, borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', backgroundColor: 'rgba(255,255,255,0.05)', paddingHorizontal: 11, paddingVertical: 8, justifyContent: 'center' },
   relayChoiceTitle: { color: '#FFFFFF', fontSize: 9.5, fontWeight: '900' },
   relayChoiceHelper: { marginTop: 2, color: 'rgba(255,255,255,0.48)', fontSize: 8.2, lineHeight: 12 },
-  relayChainButton: { marginTop: 10, minHeight: 39, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(217,255,105,0.24)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  relayChainButton: { marginTop: 10, minHeight: 44, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(217,255,105,0.24)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   relayChainText: { color: '#D9FF69', fontSize: 8.5, fontWeight: '900', letterSpacing: 0.7 },
   meta: { position: 'absolute', left: 18, right: 76 },
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   author: { maxWidth: '68%', color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
   followButton: {
+    minHeight: 38,
+    minWidth: 72,
+    justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.55)',
     borderRadius: 999,
@@ -1258,6 +1461,28 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0,0,0,0.86)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 6,
+  },
+  captionOverlayWrap: {
+    position: 'absolute',
+    left: 22,
+    right: 78,
+    bottom: '12%',
+    alignItems: 'center',
+  },
+  captionOverlayText: {
+    maxWidth: '100%',
+    color: '#FFFFFF',
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '800',
+    textAlign: 'center',
+    backgroundColor: 'rgba(0,0,0,0.64)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 9,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   pausedBadge: {
     position: 'absolute',
