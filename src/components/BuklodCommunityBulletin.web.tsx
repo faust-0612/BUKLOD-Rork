@@ -146,7 +146,7 @@ export function BuklodCommunityBulletin({
 
           <View style={[styles.card, styles.suspensionCard, mobile && styles.cardMobile]}>
             <View style={styles.cardHeader}>
-              <View style={[styles.cardIcon, { backgroundColor: '#FFF3E5' }]}><MaterialCommunityIcons name="school-alert-outline" size={22} color="#B16A14" /></View>
+              <View style={[styles.cardIcon, { backgroundColor: '#FFF3E5' }]}><MaterialCommunityIcons name="school-outline" size={22} color="#B16A14" /></View>
               <View style={styles.cardHeaderCopy}><Text style={styles.cardKicker}>WALANG PASOK / CLASS SUSPENSIONS</Text><Text style={styles.cardTitle}>Latest reports</Text></View>
             </View>
             {noClasses.length ? noClasses.slice(0, 4).map(item => <NewsRow key={`${item.url}-${item.title}`} item={item} accent="#B16A14" />) : (
