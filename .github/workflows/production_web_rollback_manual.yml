@@ -1,0 +1,60 @@
+name: BUKLOD Manual Web Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      deployment_id:
+        description: 'Exact immutable EAS web deployment ID to promote'
+        required: true
+        type: string
+      confirm_rollback:
+        description: 'I confirm this deployment ID is the intended production rollback target'
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+concurrency:
+  group: buklod-production-web
+  cancel-in-progress: false
+
+jobs:
+  rollback:
+    if: ${{ inputs.confirm_rollback == true }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate rollback target
+        shell: bash
+        env:
+          DEPLOYMENT_ID: ${{ inputs.deployment_id }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOYMENT_ID"
+          case "$DEPLOYMENT_ID" in
+            *[!A-Za-z0-9_-]*) echo 'Invalid deployment ID.'; exit 1 ;;
+          esac
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Expo credential preflight
+        run: |
+          test -n "${EXPO_TOKEN:-}"
+          npx eas-cli@latest whoami --non-interactive
+
+      - name: Promote exact immutable deployment
+        shell: bash
+        env:
+          DEPLOYMENT_ID: ${{ inputs.deployment_id }}
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest deploy:alias --prod --id="$DEPLOYMENT_ID" --non-interactive
+          echo "Promoted immutable web deployment: $DEPLOYMENT_ID"
+          echo 'No Android OTA, native build, database migration, or source mutation was performed.'

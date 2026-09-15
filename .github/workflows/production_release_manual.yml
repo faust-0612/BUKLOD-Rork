@@ -1,0 +1,228 @@
+name: BUKLOD Manual Production Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_sha:
+        description: 'Exact current main commit SHA to release'
+        required: true
+        type: string
+      target:
+        description: 'Production target'
+        required: true
+        type: choice
+        options:
+          - web
+          - android_ota
+          - android_apk
+          - android_aab
+      confirm_release:
+        description: 'I confirm this exact current-main SHA is approved for production release'
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: buklod-production-${{ inputs.target }}
+  cancel-in-progress: false
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  EXPO_PUBLIC_APP_ENV: production
+  EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-production
+  CI: '1'
+
+jobs:
+  release:
+    if: ${{ inputs.confirm_release == true }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout exact approved release SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_sha }}
+          fetch-depth: 0
+
+      - name: Verify exact current-main release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          requested='${{ inputs.release_sha }}'
+          test "$actual" = "$requested"
+          git fetch origin main --depth=1
+          current_main="$(git rev-parse origin/main)"
+          echo "Requested:    $requested"
+          echo "Checked out:  $actual"
+          echo "Current main: $current_main"
+          if [ "$actual" != "$current_main" ]; then
+            echo 'STOP: normal production release must use the exact current main commit. Use the dedicated manual rollback workflow for an older web deployment.'
+            exit 1
+          fi
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --include=dev
+
+      - name: Production workflow safety contract
+        run: node scripts/production-workflow-safety-contract.mjs
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Universal release gate
+        run: npm run release:gate
+
+      - name: Additional protected contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f scripts/community-help-sos-release-contract.mjs ]; then
+            node scripts/community-help-sos-release-contract.mjs
+          fi
+          if [ -f scripts/community-help-emergency-alert-r2-contract.mjs ]; then
+            node scripts/community-help-emergency-alert-r2-contract.mjs
+          fi
+
+      - name: Verify Main native identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const configFactory = require('./app.config.js');
+          const resolved = configFactory({ config: {} });
+          if (resolved?.android?.package !== 'org.mzbministry.buklod') {
+            throw new Error(`Unexpected Main Android package: ${resolved?.android?.package}`);
+          }
+          const versionCode = Number(resolved?.android?.versionCode);
+          if (!Number.isInteger(versionCode) || versionCode < 20) {
+            throw new Error(`Invalid Main Android versionCode: ${resolved?.android?.versionCode}`);
+          }
+          console.log(`BUKLOD Main Android versionCode: ${versionCode}`);
+          NODE
+
+      - name: Expo credential preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          npx eas-cli@latest whoami --non-interactive
+
+      - name: Load protected production public environment
+        if: ${{ inputs.target == 'web' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .env.production.release
+          npx eas-cli@latest env:pull --environment production --path .env.production.release --non-interactive
+          test -s .env.production.release
+          set -a
+          . ./.env.production.release
+          set +a
+          test "${EXPO_PUBLIC_SUPABASE_URL:-}" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
+          test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}"
+          while IFS='=' read -r name _; do
+            case "$name" in
+              EXPO_PUBLIC_*)
+                value="${!name-}"
+                {
+                  echo "${name}<<__BUKLOD_ENV__"
+                  printf '%s\n' "$value"
+                  echo '__BUKLOD_ENV__'
+                } >> "$GITHUB_ENV"
+                ;;
+            esac
+          done < <(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env.production.release)
+
+      - name: Export protected production web
+        if: ${{ inputs.target == 'web' }}
+        shell: bash
+        env:
+          NODE_ENV: production
+          EXPO_PUBLIC_APP_ENV: production
+        run: |
+          set -euo pipefail
+          rm -rf dist
+          npx expo export --platform web --output-dir dist
+          node scripts/inject-adsense-web-head.cjs dist
+          test -s dist/index.html
+          grep -F 'google-adsense-account' dist/index.html
+          npm run character:contract:dist
+          npm run game:contract:dist
+
+      - name: Deploy protected production web
+        if: ${{ inputs.target == 'web' }}
+        shell: bash
+        env:
+          NODE_ENV: production
+          EXPO_PUBLIC_APP_ENV: production
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '${{ inputs.release_sha }}'
+          npx eas-cli@latest deploy --prod --environment production --export-dir=dist --non-interactive
+
+      - name: Publish protected production Android OTA
+        if: ${{ inputs.target == 'android_ota' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '${{ inputs.release_sha }}'
+          npx eas-cli@latest update \
+            --channel production \
+            --platform android \
+            --environment production \
+            --message "BUKLOD verified production Android OTA ${{ inputs.release_sha }}" \
+            --non-interactive
+
+      - name: Build protected production APK
+        if: ${{ inputs.target == 'android_apk' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '${{ inputs.release_sha }}'
+          npx eas-cli@latest build \
+            --platform android \
+            --profile production-apk \
+            --non-interactive \
+            --wait \
+            --json | tee eas-production-apk.json
+
+      - name: Build protected production AAB
+        if: ${{ inputs.target == 'android_aab' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '${{ inputs.release_sha }}'
+          npx eas-cli@latest build \
+            --platform android \
+            --profile production \
+            --non-interactive \
+            --wait \
+            --json | tee eas-production-aab.json
+
+      - name: Preserve native build metadata
+        if: ${{ always() && (inputs.target == 'android_apk' || inputs.target == 'android_aab') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-production-${{ inputs.target }}-${{ github.run_number }}
+          path: |
+            eas-production-apk.json
+            eas-production-aab.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Release summary
+        shell: bash
+        run: |
+          echo "BUKLOD production target: ${{ inputs.target }}"
+          echo "Exact released source: ${{ inputs.release_sha }}"
+          echo 'No database migration, Edge Function deployment, or Google Play submission is performed by this workflow.'
