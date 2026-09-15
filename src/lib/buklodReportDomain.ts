@@ -58,10 +58,32 @@ export type QuickWeeklySaveResult = {
   content: Record<string, unknown>;
 };
 
+const preferredAssignmentByScope = new Map<string, string>();
+
 function readObject(value: unknown): Record<string, any> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, any>)
     : {};
+}
+
+export function setPreferredReportAssignment(
+  scopeId: string,
+  assignmentId?: string | null
+) {
+  const scope = String(scopeId ?? '').trim();
+  if (!scope) return;
+
+  const assignment = String(assignmentId ?? '').trim();
+  if (!assignment) {
+    preferredAssignmentByScope.delete(scope);
+    return;
+  }
+
+  preferredAssignmentByScope.set(scope, assignment);
+}
+
+export function getPreferredReportAssignment(scopeId: string): string {
+  return preferredAssignmentByScope.get(String(scopeId ?? '').trim()) ?? '';
 }
 
 async function invokeReportApi<T>(body: Record<string, unknown>): Promise<T> {
@@ -130,11 +152,16 @@ export async function isReportScopeEntitled(scopeId: string): Promise<boolean> {
 }
 
 export async function ensureQuickWeeklyReport(
-  scopeId: string
+  scopeId: string,
+  assignmentId?: string | null
 ): Promise<QuickWeeklyReportContext> {
+  const preferredAssignmentId =
+    String(assignmentId ?? '').trim() || getPreferredReportAssignment(scopeId);
+
   const payload = await invokeReportApi<{ ok: true; context: Record<string, any> }>({
     action: 'bootstrap_scope',
     scope_id: scopeId,
+    assignment_id: preferredAssignmentId || null,
   });
   const raw = readObject(payload.context);
   if (!raw.report_assignment_id || !raw.report_definition_id || !raw.report_period_id) {
@@ -142,7 +169,7 @@ export async function ensureQuickWeeklyReport(
   }
   const reminder = readObject(raw.reminder);
 
-  return {
+  const context: QuickWeeklyReportContext = {
     scope_id: String(raw.scope_id ?? scopeId),
     scope_name: String(raw.scope_name ?? 'Selected scope'),
     scope_type: String(raw.scope_type ?? ''),
@@ -174,6 +201,9 @@ export async function ensureQuickWeeklyReport(
       completed_at: reminder.completed_at ? String(reminder.completed_at) : null,
     },
   };
+
+  setPreferredReportAssignment(context.scope_id, context.report_assignment_id);
+  return context;
 }
 
 export async function saveQuickWeeklyReport(args: {
@@ -209,12 +239,17 @@ export async function saveQuickWeeklyReport(args: {
 
 export async function updateQuickWeeklyReminder(args: {
   scopeId: string;
+  assignmentId?: string | null;
   kind: 'ACK' | 'COMMENT' | 'DONE';
   value?: string;
 }): Promise<ReportReminderState> {
+  const preferredAssignmentId =
+    String(args.assignmentId ?? '').trim() || getPreferredReportAssignment(args.scopeId);
+
   const payload = await invokeReportApi<{ ok: true; reminder: Record<string, any> }>({
     action: 'reminder_action',
     scope_id: args.scopeId,
+    assignment_id: preferredAssignmentId || null,
     kind: args.kind,
     value: args.value ?? '',
   });
@@ -236,35 +271,12 @@ export async function fetchMyActionableReportAssignments(
   limit = 10,
   scopeId?: string | null
 ): Promise<ReportAssignmentCard[]> {
-  if (scopeId) {
-    try {
-      const context = await ensureQuickWeeklyReport(scopeId);
-      if (context.assignment_status === 'SUBMITTED') return [];
-      const status: ReportHomeCardStatus =
-        new Date(context.deadline_at).getTime() < Date.now() ? 'EXPIRED' : 'DUE';
-      return [{
-        report_assignment_id: context.report_assignment_id,
-        report_definition_id: context.report_definition_id,
-        report_period_id: context.report_period_id,
-        scope_id: context.scope_id,
-        scope_label: context.scope_name,
-        report_title: 'Quick Weekly Report',
-        period_label: context.period_title,
-        deadline_at: context.deadline_at,
-        assignment_status: context.assignment_status,
-        submission_status: context.submission_status,
-        home_status: status,
-        submission_id: context.submission_id,
-        has_unread_remarks: false,
-      }];
-    } catch {
-      return [];
-    }
-  }
-
   const { data, error } = await (supabase as any).rpc(
     'buklod_report_my_assignments_v1',
-    { p_scope_id: null, p_limit: Math.max(1, Math.min(100, limit)) }
+    {
+      p_scope_id: scopeId ?? null,
+      p_limit: Math.max(1, Math.min(100, limit)),
+    }
   );
   if (error) return [];
   const raw = readObject(data);
