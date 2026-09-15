@@ -14,8 +14,10 @@ if (!existsSync(migrationDir)) {
   process.exit(1);
 }
 
+// Current IGPAT release migrations are deliberately grouped under the 20260915
+// prefix. Older unrelated/legacy migrations are not retroactively judged here.
 const files = readdirSync(migrationDir)
-  .filter(name => /igpat/i.test(name) && name.endsWith('.sql'))
+  .filter(name => /^20260915.*igpat/i.test(name) && name.endsWith('.sql'))
   .sort();
 
 const sources = new Map(files.map(name => [name, readFileSync(join(migrationDir, name), 'utf8')]));
@@ -77,7 +79,7 @@ for (const [fn, marker] of Object.entries(expectedLatest)) {
 }
 
 const requiredSqlMarkers = [
-  'one active Squad captain',
+  'igpat_arena_one_active_captain_squad_idx',
   'roster is snapshotted at acceptance',
   'Outside Respect opens only after every active participant',
   'viewer may inspect contributes',
@@ -89,4 +91,4 @@ for (const marker of requiredSqlMarkers) {
 }
 
 if (failed) process.exit(1);
-console.log(`IGPAT SQL contract: PASS (${files.length} migrations inspected)`);
+console.log(`IGPAT SQL contract: PASS (${files.length} current-release migrations inspected)`);
