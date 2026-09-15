@@ -15,14 +15,13 @@ const ADSENSE_CLIENT =
 
 /*
  * BUKLOD_WEB_LIVE_ATMOSPHERE_R1
+ * BUKLOD_PERF_DELTA_MOBILE_WEB_R1
  *
- * Web-only presentation enhancement. This deliberately lives in +html.tsx so
+ * Web-only presentation enhancement. Desktop keeps the subtle ambient motion.
+ * Small/mobile web keeps the same visual atmosphere as a static layer so phone
+ * browsers do not continuously composite two full-screen fixed animations.
  * Android/native runtimes, business logic, navigation, auth, points, Formation,
  * Classroom, reports, and database behavior remain untouched.
- *
- * The two fixed pseudo-elements are pointer-events:none and therefore can never
- * intercept taps, scrolling, forms, dialogs, ads, or navigation. Motion is
- * automatically disabled when the browser/OS requests reduced motion.
  */
 const WEB_LIVE_ATMOSPHERE_CSS = `
   body::before,
@@ -91,13 +90,24 @@ const WEB_LIVE_ATMOSPHERE_CSS = `
     }
   }
 
-  @media (max-width: 720px) {
+  /*
+   * The app uses <1100px as the mobile/small-web shell boundary. Keep the
+   * atmosphere visible there, but static. This removes continuous viewport-size
+   * compositing from the phone browser while preserving the design language.
+   */
+  @media (max-width: 1099px) {
+    body::before,
+    body::after {
+      animation: none !important;
+    }
+
     body::before {
-      opacity: 0.56;
+      opacity: 0.34;
+      transform: none;
     }
 
     body::after {
-      opacity: 0.32;
+      display: none;
     }
   }
 
