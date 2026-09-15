@@ -61,6 +61,7 @@ export default function BuklodOrgHomeClusterCard({
   return (
     <View style={styles.stack}>
       <BuklodReportDoorCard
+        iconOnly
         scopeId={organizationId}
         scopeName={organizationName}
         scopeType="ORGANIZATION"
