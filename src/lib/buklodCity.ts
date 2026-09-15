@@ -61,16 +61,8 @@ function asPoint(value: unknown): BuklodCityPoint | null {
   const longitude = Number(row.longitude);
   const id = String(row.id ?? '').trim();
   const title = String(row.title ?? '').trim();
-  if (!id || !title || !Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-    return null;
-  }
-  return {
-    ...(row as unknown as BuklodCityPoint),
-    id,
-    title,
-    latitude,
-    longitude,
-  };
+  if (!id || !title || !Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+  return { ...(row as unknown as BuklodCityPoint), id, title, latitude, longitude };
 }
 
 function asPoints(value: unknown): BuklodCityPoint[] {
@@ -89,6 +81,20 @@ export async function getBuklodCitySnapshot(): Promise<BuklodCitySnapshot> {
     people: asPoints(payload.people),
     generatedAt: payload.generatedAt ? String(payload.generatedAt) : null,
   };
+}
+
+export async function geocodeBuklodCityAddress(query: string): Promise<{ latitude: number; longitude: number; label?: string } | null> {
+  const trimmed = query.trim();
+  if (trimmed.length < 3) return null;
+  const params = new URLSearchParams({ format: 'jsonv2', limit: '1', countrycodes: 'ph', q: trimmed });
+  const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, { headers: { Accept: 'application/json' } });
+  if (!response.ok) return null;
+  const rows = await response.json() as Array<{ lat?: string; lon?: string; display_name?: string }>;
+  const first = rows?.[0];
+  const latitude = Number(first?.lat);
+  const longitude = Number(first?.lon);
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+  return { latitude, longitude, label: first?.display_name };
 }
 
 export async function setBuklodCityPresence(input: {
@@ -178,17 +184,11 @@ export function cityLayerForPoint(point: BuklodCityPoint): BuklodCityLayer {
 export function getBuklodCityPointRoute(point: BuklodCityPoint): string | null {
   if (point.kind !== 'INSTITUTION') return null;
   switch (point.category) {
-    case 'faith':
-      return '/church';
-    case 'school':
-      return '/profile/buklod-classrooms';
-    case 'market':
-      return '/profile/buklod-market';
-    case 'business':
-      return '/profile/buklod-business';
-    case 'government':
-      return null;
-    default:
-      return '/organizations';
+    case 'faith': return '/church';
+    case 'school': return '/profile/buklod-classrooms';
+    case 'market': return '/profile/buklod-market';
+    case 'business': return '/profile/buklod-business';
+    case 'government': return null;
+    default: return '/organizations';
   }
 }
