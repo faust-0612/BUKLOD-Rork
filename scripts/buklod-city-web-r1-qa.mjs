@@ -15,6 +15,8 @@ const indexNative = read('src/app/index.tsx');
 const cityClient = read('src/lib/buklodCity.ts');
 const mapWeb = read('src/components/BuklodCityMap.web.tsx');
 const migration = read('supabase/migrations/20260915183000_buklod_city_web_r1.sql');
+const migrationB = read('supabase/migrations/20260915184500_buklod_city_web_r1b.sql');
+const migrationC = read('supabase/migrations/20260915185500_buklod_city_web_r1c.sql');
 
 requireText(indexWeb, 'BUKLOD_CITY_WEB_HOME_R1', 'web-only home marker');
 requireText(indexWeb, '<Redirect href="/city" />', 'web City boot');
@@ -34,6 +36,10 @@ requireText(migration, "if v_category = 'government' and not public.buklod_is_sy
 requireText(migration, 'revoke all on public.buklod_city_presence from anon, authenticated', 'direct presence read revocation');
 requireText(migration, "round(p.latitude::numeric, 2)", 'approximate latitude masking');
 requireText(migration, "round(p.longitude::numeric, 2)", 'approximate longitude masking');
+requireText(migrationB, "'isMember', coalesce(vs.is_member, false)", 'activity My Places membership');
+requireText(migrationB, "'canManage', coalesce(vs.can_manage, false)", 'activity My Places admin visibility');
+requireText(migrationC, 'revoke execute on function public.buklod_city_map_snapshot_v1() from anon', 'anonymous snapshot revoke');
+requireText(migrationC, 'revoke execute on function public.buklod_city_set_presence_v1', 'anonymous presence write revoke');
 
 if (cityNative.includes('leaflet') || cityNative.includes('openstreetmap.org')) {
   throw new Error('Native City route must not acquire the web map implementation.');
