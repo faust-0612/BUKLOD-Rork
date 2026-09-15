@@ -9,7 +9,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import MzbRandomWallPhoto from '@/components/MzbRandomWallPhoto';
-import { buklodReportLandingPath } from '@/lib/buklodReportRoutes';
+import BuklodReportDoorCard from '@/components/BuklodReportDoorCard';
 import type { BuklodScope } from '@/lib/buklodScope';
 import { useBuklodAccess } from '@/hooks/useBuklodAccess';
 import { colors } from '@/lib/theme';
@@ -62,17 +62,16 @@ export default function BuklodMzbHomeWidgets({
         onOpenCommunity={onOpenCommunity}
       />
 
+      <BuklodReportDoorCard
+        scopeId={scope.scope_id}
+        scopeName={scope.name}
+        scopeType="ORGANIZATION"
+      />
+
       {showAdminTools ? (
         <View style={styles.card}>
           <Text style={styles.cardTitle}>MZB ADMIN TOOLS</Text>
           <View style={styles.linkRow}>
-            <FaithLink
-              icon="file-upload-outline"
-              label="BUKLOD Report"
-              onPress={() =>
-                router.push(buklodReportLandingPath(scope.scope_id) as any)
-              }
-            />
             <FaithLink
               icon="account-heart-outline"
               label="Visitors"
