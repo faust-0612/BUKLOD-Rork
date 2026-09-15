@@ -80,6 +80,11 @@ export default function IgpatRelayChainScreen() {
           </Pressable>
 
           <View style={styles.featureGrid}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Share this IGPAT" style={styles.featureTile} onPress={() => router.push(`/igpat/share/${postId}` as any)}>
+              <MaterialCommunityIcons name="share-variant-outline" size={19} color="#D9FF69" />
+              <Text style={styles.tileTitle}>SHARE</Text>
+              <Text style={styles.tileHint}>Connect / external / copy</Text>
+            </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel="Create IGPAT Capsule" style={styles.featureTile} onPress={() => router.push(`/igpat/capsule/${postId}` as any)}>
               <MaterialCommunityIcons name="timer-lock-outline" size={19} color="#FFFFFF" />
               <Text style={styles.tileTitle}>CAPSULE</Text>
@@ -113,7 +118,7 @@ export default function IgpatRelayChainScreen() {
             <Pressable accessibilityRole="button" accessibilityLabel="Open IGPAT captions" style={styles.featureTile} onPress={() => router.push(`/igpat/captions/${postId}` as any)}>
               <MaterialCommunityIcons name="closed-caption-outline" size={19} color="#FFFFFF" />
               <Text style={styles.tileTitle}>CAPTIONS</Text>
-              <Text style={styles.tileHint}>Generate / review / view</Text>
+              <Text style={styles.tileHint}>Generate / review / translate</Text>
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel="Open IGPAT feed controls" style={styles.featureTile} onPress={() => router.push(`/igpat/controls/${postId}` as any)}>
               <MaterialCommunityIcons name="tune-variant" size={19} color="#FFFFFF" />
@@ -134,7 +139,7 @@ export default function IgpatRelayChainScreen() {
       ) : error ? (
         <View style={styles.stateCard}>
           <Text style={styles.stateText}>{error}</Text>
-          <Pressable style={styles.retryButton} onPress={() => void load()}><Text style={styles.retryText}>RETRY</Text></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Retry Relay chain" style={styles.retryButton} onPress={() => void load()}><Text style={styles.retryText}>RETRY</Text></Pressable>
         </View>
       ) : rows.length ? (
         <View style={styles.chain}>
@@ -174,7 +179,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#060908' },
   content: { padding: 18, paddingTop: 54, paddingBottom: 44 },
   headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  backButton: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', backgroundColor: '#0D120F' },
+  backButton: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', backgroundColor: '#0D120F' },
   headerCopy: { flex: 1 },
   eyebrow: { color: 'rgba(255,255,255,0.46)', fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
   title: { marginTop: 4, color: '#FFFFFF', fontSize: 24, fontWeight: '900' },
@@ -187,13 +192,13 @@ const styles = StyleSheet.create({
   featureTitle: { color: '#D9FF69', fontSize: 9, fontWeight: '900', letterSpacing: 0.8 },
   featureHint: { marginTop: 3, color: 'rgba(255,255,255,0.50)', fontSize: 8.8, lineHeight: 13 },
   featureGrid: { marginTop: 8, flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  featureTile: { width: '48%', minHeight: 86, borderRadius: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: '#0D120F', padding: 11, justifyContent: 'center' },
+  featureTile: { width: '48%', minHeight: 88, borderRadius: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: '#0D120F', padding: 11, justifyContent: 'center' },
   tileTitle: { marginTop: 8, color: '#FFFFFF', fontSize: 8.5, fontWeight: '900', letterSpacing: 0.5 },
   tileHint: { marginTop: 3, color: 'rgba(255,255,255,0.40)', fontSize: 7.8, lineHeight: 11 },
   centerState: { marginTop: 48, alignItems: 'center', gap: 10 },
   stateCard: { marginTop: 28, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: '#0D120F', padding: 18 },
   stateText: { color: 'rgba(255,255,255,0.68)', fontSize: 11, lineHeight: 17, textAlign: 'center' },
-  retryButton: { marginTop: 14, alignSelf: 'center', paddingHorizontal: 18, paddingVertical: 9, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)' },
+  retryButton: { marginTop: 14, alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: 18, paddingVertical: 9, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)' },
   retryText: { color: '#FFFFFF', fontSize: 9, fontWeight: '900', letterSpacing: 0.8 },
   chain: { marginTop: 28 },
   chainRow: { flexDirection: 'row', alignItems: 'stretch' },
@@ -201,7 +206,7 @@ const styles = StyleSheet.create({
   node: { width: 9, height: 9, borderRadius: 5, marginTop: 22, backgroundColor: '#FFFFFF' },
   rootNode: { backgroundColor: '#D9FF69' },
   rail: { flex: 1, width: 1, minHeight: 52, backgroundColor: 'rgba(255,255,255,0.18)' },
-  card: { flex: 1, marginBottom: 12, borderRadius: 17, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: '#0D120F', padding: 14 },
+  card: { flex: 1, marginBottom: 12, minHeight: 70, borderRadius: 17, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: '#0D120F', padding: 14 },
   cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   author: { flex: 1, color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
   depth: { color: 'rgba(255,255,255,0.42)', fontSize: 8, fontWeight: '900', letterSpacing: 0.8 },
