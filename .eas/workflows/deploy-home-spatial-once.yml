@@ -1,0 +1,15 @@
+name: BUKLOD Spatial Home Web Deploy
+
+on:
+  push:
+    branches: ['main']
+    paths:
+      - '.eas/workflows/deploy-home-spatial-once.yml'
+
+jobs:
+  deploy_web:
+    name: Deploy BUKLOD spatial Home to production web
+    type: deploy
+    environment: production
+    params:
+      prod: true
