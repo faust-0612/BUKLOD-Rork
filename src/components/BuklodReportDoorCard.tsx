@@ -8,11 +8,11 @@ import {
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 
 import { BUKLOD_REPORT_ICON_URI } from '@/lib/buklodReportBranding';
 import { fetchMyActionableReportAssignments } from '@/lib/buklodReportDomain';
-import { buklodReportLandingPath } from '@/lib/buklodReportRoutes';
+import { openBuklodReportExternal } from '@/lib/buklodReportLauncher';
 import { colors } from '@/lib/theme';
 
 type Props = {
@@ -26,11 +26,9 @@ type Props = {
 /**
  * Canonical BUKLOD Report door for Organization / Cluster Home.
  *
- * The Main door MUST stay on the authenticated BUKLOD router. Opening the
- * standalone hostname here would cross web origins and can cause a second
- * sign-in. Direct standalone Report access can keep its own login guard, but
- * entry from BUKLOD Main reuses the existing account session and carries the
- * exact Organization / Cluster scope through the internal Report route.
+ * The door opens the dedicated BUKLOD Report production web app and carries
+ * only the active Organization / Cluster scope. Authentication tokens are never
+ * placed in the URL; the Report app performs its own canonical access checks.
  */
 export default function BuklodReportDoorCard({
   scopeId,
@@ -40,6 +38,7 @@ export default function BuklodReportDoorCard({
   iconOnly = false,
 }: Props) {
   const [loading, setLoading] = useState(false);
+  const [opening, setOpening] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
 
   useFocusEffect(
@@ -75,25 +74,29 @@ export default function BuklodReportDoorCard({
     }, [scopeId])
   );
 
-  const openReport = useCallback(() => {
-    if (!scopeId) return;
+  const openReport = useCallback(async () => {
+    if (!scopeId || opening) return;
 
-    const base = buklodReportLandingPath(scopeId);
-    const separator = base.includes('?') ? '&' : '?';
-
-    router.push(
-      `${base}${separator}entry=main&source_scope_type=${encodeURIComponent(
-        scopeType
-      )}` as any
-    );
-  }, [scopeId, scopeType]);
+    setOpening(true);
+    try {
+      await openBuklodReportExternal({
+        scopeId,
+        scopeType,
+      });
+    } catch (error) {
+      console.warn('BUKLOD Report production doorway:', error);
+    } finally {
+      setOpening(false);
+    }
+  }, [opening, scopeId, scopeType]);
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`Open BUKLOD Report for ${scopeName}`}
-      accessibilityHint="Uses your current BUKLOD account and active workspace without another sign-in."
-      onPress={openReport}
+      accessibilityHint="Opens the official BUKLOD Report production web for this workspace."
+      disabled={!scopeId || opening}
+      onPress={() => void openReport()}
       style={({ pressed }) => [
         styles.card,
         compact && styles.cardCompact,
@@ -108,7 +111,7 @@ export default function BuklodReportDoorCard({
             resizeMode="cover"
             style={styles.logoOnlyIcon}
           />
-          {loading ? (
+          {loading || opening ? (
             <View style={styles.logoOnlyLoading}>
               <ActivityIndicator size="small" color={colors.greenDark} />
             </View>
@@ -133,7 +136,7 @@ export default function BuklodReportDoorCard({
           <View style={styles.copy}>
             <View style={styles.titleRow}>
               <Text style={styles.eyebrow}>BUKLOD FOCUS APP</Text>
-              {loading ? (
+              {loading || opening ? (
                 <ActivityIndicator size="small" color={colors.greenDark} />
               ) : pendingCount > 0 ? (
                 <View style={styles.badge}>
@@ -143,8 +146,8 @@ export default function BuklodReportDoorCard({
             </View>
             <Text style={styles.title}>BUKLOD Report</Text>
             <Text style={styles.subtitle} numberOfLines={3}>
-              Report, monitor and follow up for {scopeName}. Your current BUKLOD
-              account and {` ${scopeType.toLowerCase()} `}scope carry over automatically.
+              Open the official Report workspace for {scopeName}. The active
+              {` ${scopeType.toLowerCase()} `}scope is carried securely.
             </Text>
             <View style={styles.openRow}>
               <Text style={styles.openText}>OPEN REPORT</Text>
