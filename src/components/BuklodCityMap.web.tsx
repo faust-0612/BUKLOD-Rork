@@ -108,7 +108,7 @@ const points=${safeJson(payload)};
 const colors=${safeJson(CATEGORY_COLORS)};
 const center=${safeJson([Number(mapCenter.latitude), Number(mapCenter.longitude)])};
 const map=L.map('map',{zoomControl:true,attributionControl:true}).setView(center,13);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{y}/{x}.png'.replace('{y}/{x}','{z}/{x}/{y}'),{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
 
 const NavigationControl=L.Control.extend({
  onAdd(){
