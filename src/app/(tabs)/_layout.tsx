@@ -149,68 +149,97 @@ function SwipeDashboardHeader() {
         )}
 
         {publicMinimal ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={
-              unreadCount > 0
-                ? `Notifications, ${unreadCount} unread`
-                : 'Notifications'
-            }
-            accessibilityHint="Opens the BUKLOD Notification Center"
-            hitSlop={8}
-            onPress={() =>
-              router.push(
-                '/notifications' as any
-              )
-            }
-            style={({ pressed }) => ({
-              position: 'relative',
-              width: 38,
-              height: 38,
-              borderRadius: 19,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: theme.surface,
-              opacity: pressed ? 0.72 : 1,
-            })}
-          >
-            <MaterialCommunityIcons
-              name="dots-horizontal"
-              size={24}
-              color={theme.textPrimary}
-            />
+          <>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open BUKLOD City"
+              accessibilityHint="Opens the BUKLOD City community shell"
+              hitSlop={8}
+              onPress={() =>
+                router.push(
+                  '/city' as any
+                )
+              }
+              style={({ pressed }) => ({
+                width: 38,
+                height: 38,
+                borderRadius: 19,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: theme.surface,
+                opacity: pressed ? 0.72 : 1,
+              })}
+            >
+              <MaterialCommunityIcons
+                name="city-variant-outline"
+                size={22}
+                color={theme.accent}
+              />
+            </Pressable>
 
-            {unreadCount > 0 ? (
-              <View
-                pointerEvents="none"
-                style={{
-                  position: 'absolute',
-                  right: -4,
-                  top: -5,
-                  minWidth: 18,
-                  height: 18,
-                  paddingHorizontal: 4,
-                  borderRadius: 10,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: theme.danger,
-                  borderWidth: 2,
-                  borderColor: theme.headerSurface,
-                }}
-              >
-                <Text
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                unreadCount > 0
+                  ? `Notifications, ${unreadCount} unread`
+                  : 'Notifications'
+              }
+              accessibilityHint="Opens the BUKLOD Notification Center"
+              hitSlop={8}
+              onPress={() =>
+                router.push(
+                  '/notifications' as any
+                )
+              }
+              style={({ pressed }) => ({
+                position: 'relative',
+                width: 38,
+                height: 38,
+                borderRadius: 19,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: theme.surface,
+                opacity: pressed ? 0.72 : 1,
+              })}
+            >
+              <MaterialCommunityIcons
+                name="dots-horizontal"
+                size={24}
+                color={theme.textPrimary}
+              />
+
+              {unreadCount > 0 ? (
+                <View
+                  pointerEvents="none"
                   style={{
-                    color: '#FFFFFF',
-                    fontSize: 8,
-                    lineHeight: 10,
-                    fontWeight: '900',
+                    position: 'absolute',
+                    right: -4,
+                    top: -5,
+                    minWidth: 18,
+                    height: 18,
+                    paddingHorizontal: 4,
+                    borderRadius: 10,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: theme.danger,
+                    borderWidth: 2,
+                    borderColor: theme.headerSurface,
                   }}
                 >
-                  {badgeText}
-                </Text>
-              </View>
-            ) : null}
-          </Pressable>
+                  <Text
+                    style={{
+                      color: '#FFFFFF',
+                      fontSize: 8,
+                      lineHeight: 10,
+                      fontWeight: '900',
+                    }}
+                  >
+                    {badgeText}
+                  </Text>
+                </View>
+              ) : null}
+            </Pressable>
+          </>
         ) : null}
       </View>
     </View>
