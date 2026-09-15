@@ -188,7 +188,10 @@ export default function IgpatSquadScreen() {
                 <Text style={styles.sectionTitle}>SQUAD MATCHES</Text>
                 {(hub.matches ?? []).length ? (hub.matches ?? []).map(match => {
                   const opponentInvite = own.is_captain && match.status === 'OPEN' && match.opponent_squad_id === own.id;
-                  const challengerCanCancel = own.is_captain && match.status === 'OPEN' && match.challenger_squad_id === own.id;
+                  const pendingCanCancel = own.is_captain && (
+                    (match.status === 'OPEN' && match.challenger_squad_id === own.id)
+                    || match.status === 'ACCEPTED'
+                  );
                   const canSubmit = own.is_captain && (match.status === 'ACCEPTED' || match.status === 'ACTIVE');
                   const selected = selectedPosts[match.id] ?? igpats[0]?.id ?? '';
                   return (
@@ -200,7 +203,7 @@ export default function IgpatSquadScreen() {
                         {match.opponent_post_id ? <Pressable accessibilityRole="button" accessibilityLabel={`Open ${match.opponent_name} team IGPAT`} style={styles.smallButton} onPress={() => router.push(`/post/${match.opponent_post_id}` as any)}><Text style={styles.smallText}>TEAM B IGPAT</Text></Pressable> : null}
                       </View>
                       {opponentInvite ? <View style={styles.row}><Pressable accessibilityRole="button" accessibilityLabel="Accept Squad challenge and lock current roster" disabled={!!busy} style={styles.primarySmall} onPress={() => void run(`matchAccept:${match.id}`, 'igpat_respond_squad_match_v1', { p_match_id: match.id, p_accept: true }, 'Squad challenge accepted. Current active rosters are now locked for this battle.')}><Text style={styles.primarySmallText}>ACCEPT</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel="Decline Squad challenge" disabled={!!busy} style={styles.smallButton} onPress={() => void run(`matchDecline:${match.id}`, 'igpat_respond_squad_match_v1', { p_match_id: match.id, p_accept: false }, 'Squad challenge declined privately.')}><Text style={styles.smallText}>DECLINE</Text></Pressable></View> : null}
-                      {challengerCanCancel ? <Pressable accessibilityRole="button" accessibilityLabel="Cancel open Squad challenge" disabled={!!busy} style={styles.dangerButton} onPress={() => void run(`matchCancel:${match.id}`, 'igpat_cancel_squad_match_v1', { p_match_id: match.id }, 'Open Squad challenge cancelled.')}><Text style={styles.dangerText}>CANCEL OPEN CHALLENGE</Text></Pressable> : null}
+                      {pendingCanCancel ? <Pressable accessibilityRole="button" accessibilityLabel={match.status === 'ACCEPTED' ? 'Cancel accepted Squad battle before team submission' : 'Cancel open Squad challenge'} disabled={!!busy} style={styles.dangerButton} onPress={() => void run(`matchCancel:${match.id}`, 'igpat_cancel_squad_match_v1', { p_match_id: match.id }, match.status === 'ACCEPTED' ? 'Accepted Squad battle cancelled before any team submission.' : 'Open Squad challenge cancelled.')}><Text style={styles.dangerText}>{match.status === 'ACCEPTED' ? 'CANCEL BEFORE SUBMISSION' : 'CANCEL OPEN CHALLENGE'}</Text></Pressable> : null}
                       {canSubmit && igpats.length ? (
                         <>
                           <Text style={styles.helper}>Captain submits one team IGPAT. The accepted roster remains locked while this battle is active. Team IGPAT replacement is locked once outside Respect voting begins.</Text>
