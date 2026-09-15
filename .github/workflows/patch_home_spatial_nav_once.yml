@@ -1,0 +1,37 @@
+name: One-time Home Spatial Nav Patch
+
+on:
+  push:
+    branches:
+      - buklod-home-engine-r1
+    paths:
+      - '.github/workflows/patch_home_spatial_nav_once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.head_commit.message == 'chore(home): run one-time spatial nav patch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: buklod-home-engine-r1
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply targeted Home navigation patch
+        run: node scripts/patch-home-spatial-nav-once.mjs
+      - name: Commit patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/components/home/BuklodSpatialHome.tsx
+          git diff --cached --check
+          git commit -m 'fix(home): make BUKLOD City door canonical return'
+          git push origin HEAD:buklod-home-engine-r1
