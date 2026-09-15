@@ -29,6 +29,7 @@ const required = [
   'src/lib/igpat/adPolicy.ts',
   'src/lib/igpat/quickEdit.ts',
   'supabase/functions/buklod-igpat-captions/index.ts',
+  'scripts/igpat-sql-contract.mjs',
 ];
 required.forEach(requireFile);
 
@@ -54,6 +55,7 @@ for (const marker of [
   'igpat_cancel_squad_match_v1',
   'roster',
   'outside Respect',
+  'CANCEL BEFORE SUBMISSION',
 ]) {
   if (!squad.includes(marker)) fail(`Squad UI is missing integrity marker: ${marker}`);
 }
@@ -63,6 +65,7 @@ for (const marker of [
   'igpat_advance_lms_round_v1',
   'outside Respect voting begins',
   'entry.user_id === user?.id',
+  'allVisibleToMe',
 ]) {
   if (!lastMan.includes(marker)) fail(`Last Man Standing UI is missing integrity marker: ${marker}`);
 }
@@ -86,6 +89,7 @@ if (existsSync(pendingDir)) {
 
 const migrationDir = 'supabase/migrations';
 const migrationNames = readdirSync(migrationDir).filter(name => /igpat/i.test(name));
+const releaseMigrationNames = migrationNames.filter(name => /^20260915/.test(name));
 const requiredMigrationMarkers = [
   'quick_edit_metadata_r17',
   'arena_hardening_r28',
@@ -102,12 +106,14 @@ const requiredMigrationMarkers = [
   'structured_record_r32_r35_r39',
   'squad_roster_lock_r35',
   'squad_pending_cancel_r35',
+  'lms_voting_fairness_r39',
+  'rank_visibility_seasons_r35_r39_r40',
 ];
 for (const marker of requiredMigrationMarkers) {
-  if (!migrationNames.some(name => name.includes(marker))) fail(`missing IGPAT release migration containing: ${marker}`);
+  if (!releaseMigrationNames.some(name => name.includes(marker))) fail(`missing IGPAT release migration containing: ${marker}`);
 }
 
-for (const name of migrationNames) {
+for (const name of releaseMigrationNames) {
   const sql = text(join(migrationDir, name));
   if (/grant\s+all\s+on\s+table[\s\S]{0,160}\bauthenticated\b/i.test(sql)) fail(`${name} grants broad table access to authenticated`);
   if (/grant\s+all\s+on\s+table[\s\S]{0,160}\banon\b/i.test(sql)) fail(`${name} grants broad table access to anon`);
