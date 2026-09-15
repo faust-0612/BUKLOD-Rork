@@ -49,6 +49,24 @@ for (const marker of ['/igpat/arena/squad', '/igpat/arena/last-man']) {
   if (!arenaHub.includes(marker)) fail(`Arena hub is missing completed mode: ${marker}`);
 }
 
+const squad = text('src/app/igpat/arena/squad.tsx');
+for (const marker of [
+  'igpat_cancel_squad_match_v1',
+  'roster',
+  'outside Respect',
+]) {
+  if (!squad.includes(marker)) fail(`Squad UI is missing integrity marker: ${marker}`);
+}
+
+const lastMan = text('src/app/igpat/arena/last-man.tsx');
+for (const marker of [
+  'igpat_advance_lms_round_v1',
+  'outside Respect voting begins',
+  'entry.user_id === user?.id',
+]) {
+  if (!lastMan.includes(marker)) fail(`Last Man Standing UI is missing integrity marker: ${marker}`);
+}
+
 const communityCreate = text('src/app/community/create.tsx');
 if (communityCreate.includes("'video/*'") || communityCreate.includes('"video/*"')) {
   fail('Community composer reintroduced direct video picking');
@@ -79,6 +97,11 @@ const requiredMigrationMarkers = [
   'notifications',
   'squad_lms_r35_r39',
   'competitive_rank_integration_r35_r39',
+  'competitive_fairness_r35_r39',
+  'creator_analytics_complete_r61',
+  'structured_record_r32_r35_r39',
+  'squad_roster_lock_r35',
+  'squad_pending_cancel_r35',
 ];
 for (const marker of requiredMigrationMarkers) {
   if (!migrationNames.some(name => name.includes(marker))) fail(`missing IGPAT release migration containing: ${marker}`);
