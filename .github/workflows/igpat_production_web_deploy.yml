@@ -1,19 +1,13 @@
 name: BUKLOD Production Web Deploy
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/igpat_production_web_deploy.yml'
-      - 'src/app/igpat/**'
-      - 'src/components/BuklodHomeReelsExtension.tsx'
-      - 'docs/BUKLOD_MINIGAME_QUALITY_STANDARD.md'
-      - 'src/components/motion/**'
-      - 'src/components/points/BuklodCharacterStage.tsx'
-      - 'src/components/points/BuklodLivingCharacter.tsx'
-      - 'src/components/points/BuklodPointsStage.tsx'
   workflow_dispatch:
+    inputs:
+      deploy_production:
+        description: 'Explicitly deploy verified BUKLOD web source to production'
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -26,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout exact production trigger
+      - name: Checkout exact manual trigger
         uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
@@ -34,6 +28,7 @@ jobs:
       - name: Verify exact trigger SHA
         shell: bash
         run: |
+          set -euo pipefail
           actual="$(git rev-parse HEAD)"
           echo "Expected trigger SHA: ${GITHUB_SHA}"
           echo "Checked out SHA:      ${actual}"
@@ -50,6 +45,9 @@ jobs:
 
       - name: TypeScript QA
         run: npx tsc --noEmit
+
+      - name: Universal production release gate
+        run: npm run release:gate
 
       - name: Verify IGPAT release anchors
         shell: bash
@@ -83,30 +81,36 @@ jobs:
             exit 1
           fi
 
-      - name: Preserve Character release contract
-        run: npm run character:contract
-
       - name: Expo credential preflight
+        if: ${{ inputs.deploy_production == true }}
         shell: bash
         run: |
           if [ -z "${EXPO_TOKEN:-}" ]; then
             echo 'EXPO_TOKEN repository secret is missing.'
             exit 1
           fi
+          npx eas-cli@latest whoami --non-interactive
 
-      - name: Export production web
+      - name: Export production web candidate
         run: npx expo export --platform web --output-dir dist
+
+      - name: Verify exported protected contracts
+        run: |
+          npm run character:contract:dist
+          npm run game:contract:dist
 
       - name: Deploy production web
         id: deploy
+        if: ${{ inputs.deploy_production == true }}
         shell: bash
         run: |
+          set -euo pipefail
           set -o pipefail
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
           npx eas-cli@latest deploy --prod --non-interactive 2>&1 | tee web-deploy-output.txt
 
       - name: Preserve deploy result
-        if: always()
+        if: ${{ always() && inputs.deploy_production == true }}
         uses: actions/upload-artifact@v4
         with:
           name: buklod-production-web-deploy-output-${{ github.run_number }}
@@ -116,9 +120,15 @@ jobs:
       - name: Deployment status
         if: always()
         shell: bash
+        env:
+          DEPLOY_PRODUCTION: ${{ inputs.deploy_production }}
+          DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
         run: |
-          if [ "${{ steps.deploy.outcome }}" != "success" ]; then
+          if [ "$DEPLOY_PRODUCTION" != "true" ]; then
+            echo 'BUKLOD production web candidate QA completed. Production deployment was not requested.'
+          elif [ "$DEPLOY_OUTCOME" != "success" ]; then
             echo 'BUKLOD production web deployment did not succeed.'
             exit 1
+          else
+            echo "BUKLOD production web deployment succeeded for ${GITHUB_SHA}."
           fi
-          echo "BUKLOD production web deployment succeeded for ${GITHUB_SHA}."
