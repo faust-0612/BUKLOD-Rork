@@ -20,9 +20,8 @@ import {
 
 type Props = PressableProps & {
   /**
-   * Fire `onPress` on finger down. Only for isolated chrome
-   * (bottom nav, FABs, primary form buttons) — never list rows.
-   * Ignored when `onLongPress` is set so tap vs long-press can compete.
+   * Legacy fast-response hint. The action still fires on press release so a
+   * finger-down that becomes a scroll/drag can be cancelled safely.
    */
   instant?: boolean;
 
@@ -35,13 +34,13 @@ type Props = PressableProps & {
 
 /**
  * Canonical BUKLOD press target.
- * - No press delay for ordinary buttons
+ * - No artificial press delay for ordinary buttons
+ * - Actions fire only after release, never on finger-down
  * - Movement cancel so scrolls / small drags do not count as taps
  * - Long-press does not also fire onPress
- * - Instant press-in never double-fires with onPress
  */
 export default function BuklodPressable({
-  instant = false,
+  instant: _instant = false,
   nested = false,
   compact = false,
   onPress,
@@ -61,10 +60,6 @@ export default function BuklodPressable({
   const cancelled = useRef(false);
   const fired = useRef(false);
   const longPressed = useRef(false);
-
-  const allowInstant =
-    instant &&
-    !onLongPress;
 
   const resolvedHitSlop =
     hitSlop ??
@@ -125,15 +120,6 @@ export default function BuklodPressable({
 
         markTouch(event);
         onPressIn?.(event);
-
-        if (
-          allowInstant &&
-          !disabled &&
-          onPress
-        ) {
-          fired.current = true;
-          onPress(event);
-        }
       }}
       onPressOut={event => {
         onPressOut?.(event);
@@ -154,27 +140,23 @@ export default function BuklodPressable({
             }
           : undefined
       }
-      onPress={
-        allowInstant
-          ? undefined
-          : event => {
-              if (nested) {
-                stopBuklodNestedPress(event);
-              }
+      onPress={event => {
+        if (nested) {
+          stopBuklodNestedPress(event);
+        }
 
-              if (
-                disabled ||
-                cancelled.current ||
-                longPressed.current ||
-                fired.current
-              ) {
-                return;
-              }
+        if (
+          disabled ||
+          cancelled.current ||
+          longPressed.current ||
+          fired.current
+        ) {
+          return;
+        }
 
-              fired.current = true;
-              onPress?.(event);
-            }
-      }
+        fired.current = true;
+        onPress?.(event);
+      }}
     />
   );
 }
