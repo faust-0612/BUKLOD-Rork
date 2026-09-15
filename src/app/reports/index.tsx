@@ -2,464 +2,174 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 
-import BuklodReportScrollView from '@/components/BuklodReportScrollView';
 import BuklodReportAssignmentForm from '@/components/BuklodReportAssignmentForm';
+import BuklodReportScrollView from '@/components/BuklodReportScrollView';
 import { BUKLOD_REPORT_ICON_URI } from '@/lib/buklodReportBranding';
 import type { ReportAssignmentCard, ReportHomeCardStatus } from '@/lib/buklodReportContracts';
-import {
-  fetchMyActionableReportAssignments,
-  isReportScopeEntitled,
-  setPreferredReportAssignment,
-} from '@/lib/buklodReportDomain';
-import {
-  buklodReportDefinitionsPath,
-  buklodReportLandingPath,
-  readReportAssignmentId,
-  readReportScopeId,
-} from '@/lib/buklodReportRoutes';
-import { reportColors as colors, reportTheme } from '@/lib/buklodReportTheme';
+import { fetchMyActionableReportAssignments, isReportScopeEntitled, setPreferredReportAssignment } from '@/lib/buklodReportDomain';
+import { buklodReportDefinitionsPath, buklodReportLandingPath, readReportAssignmentId, readReportScopeId } from '@/lib/buklodReportRoutes';
 import { verifyOrganizationManageAccess } from '@/lib/buklodOrganization';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 
-const ATTENTION_STATUSES = new Set<ReportHomeCardStatus>([
-  'DUE',
-  'DUE_SOON',
-  'EXPIRED',
-  'NEEDS_REVISION',
-  'REJECTED',
-]);
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+type ViewMode = 'dashboard' | 'reports' | 'analytics' | 'workspaces';
+type Option = { label: string; value: string };
+type Workspace = { scope_id: string; scope_type: string; name: string };
 
-const STATUS_PRIORITY: Record<ReportHomeCardStatus, number> = {
-  EXPIRED: 0,
-  NEEDS_REVISION: 1,
-  REJECTED: 2,
-  DUE_SOON: 3,
-  DUE: 4,
-  NEEDS_REVIEW: 5,
-  PROCESSING: 6,
-  SUBMITTED: 7,
-  APPROVED: 8,
-};
+const C = {
+  navy: '#062D59', deep: '#041E3C', blue: '#0878E8', sky: '#17A9F4', pale: '#F4F9FF', soft: '#EAF5FF',
+  gold: '#FBBF24', white: '#FFFFFF', ink: '#102A43', muted: '#60758B', line: '#D7E7F6',
+  green: '#13A66B', greenSoft: '#E9F8F1', purple: '#7653D6', purpleSoft: '#F1EDFF',
+  orange: '#E88A00', orangeSoft: '#FFF3DD', red: '#C83C3C', redSoft: '#FDECEC',
+} as const;
 
-function formatDeadline(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+const ATTENTION = new Set<ReportHomeCardStatus>(['DUE', 'DUE_SOON', 'EXPIRED', 'NEEDS_REVISION', 'REJECTED']);
+const PRIORITY: Record<ReportHomeCardStatus, number> = { EXPIRED: 0, NEEDS_REVISION: 1, REJECTED: 2, DUE_SOON: 3, DUE: 4, NEEDS_REVIEW: 5, PROCESSING: 6, SUBMITTED: 7, APPROVED: 8 };
+
+function attention(row: ReportAssignmentCard) {
+  return row.assignment_status !== 'SUBMITTED' || ATTENTION.has(row.home_status) || Boolean(row.has_unread_remarks);
 }
-
-function needsAttention(row: ReportAssignmentCard) {
-  return (
-    row.assignment_status !== 'SUBMITTED' ||
-    ATTENTION_STATUSES.has(row.home_status) ||
-    Boolean(row.has_unread_remarks)
-  );
+function submitted(row: ReportAssignmentCard) { return ['SUBMITTED', 'PROCESSING', 'NEEDS_REVIEW', 'APPROVED'].includes(row.home_status); }
+function reviewing(row: ReportAssignmentCard) { return row.home_status === 'PROCESSING' || row.home_status === 'NEEDS_REVIEW'; }
+function deadline(value: string) {
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? value : d.toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
-
-function statusPresentation(row: ReportAssignmentCard) {
-  if (row.has_unread_remarks) {
-    return { label: 'NEW FEEDBACK', icon: 'message-alert-outline' as const, tone: 'attention' as const };
-  }
-  switch (row.home_status) {
-    case 'EXPIRED':
-      return { label: 'OVERDUE', icon: 'clock-alert-outline' as const, tone: 'danger' as const };
-    case 'NEEDS_REVISION':
-      return { label: 'FOLLOW-UP', icon: 'file-document-edit-outline' as const, tone: 'attention' as const };
-    case 'REJECTED':
-      return { label: 'ACTION NEEDED', icon: 'alert-circle-outline' as const, tone: 'danger' as const };
-    case 'DUE_SOON':
-      return { label: 'DUE SOON', icon: 'clock-fast' as const, tone: 'warning' as const };
-    case 'DUE':
-      return { label: 'DUE', icon: 'clipboard-text-clock-outline' as const, tone: 'warning' as const };
-    case 'APPROVED':
-      return { label: 'REVIEWED', icon: 'check-decagram-outline' as const, tone: 'success' as const };
-    case 'PROCESSING':
-    case 'NEEDS_REVIEW':
-      return { label: 'IN REVIEW', icon: 'progress-clock' as const, tone: 'neutral' as const };
-    default:
-      return { label: 'SUBMITTED', icon: 'check-circle-outline' as const, tone: 'success' as const };
-  }
+function status(row: ReportAssignmentCard) {
+  if (row.has_unread_remarks) return { label: 'NEW FEEDBACK', icon: 'message-alert-outline' as IconName, fg: C.blue, bg: C.soft };
+  if (row.home_status === 'EXPIRED') return { label: 'OVERDUE', icon: 'clock-alert-outline' as IconName, fg: C.red, bg: C.redSoft };
+  if (row.home_status === 'NEEDS_REVISION') return { label: 'FOLLOW-UP', icon: 'file-document-edit-outline' as IconName, fg: C.orange, bg: C.orangeSoft };
+  if (row.home_status === 'REJECTED') return { label: 'ACTION NEEDED', icon: 'alert-circle-outline' as IconName, fg: C.red, bg: C.redSoft };
+  if (row.home_status === 'DUE' || row.home_status === 'DUE_SOON') return { label: row.home_status === 'DUE_SOON' ? 'DUE SOON' : 'DUE', icon: 'calendar-clock-outline' as IconName, fg: C.orange, bg: C.orangeSoft };
+  if (row.home_status === 'APPROVED') return { label: 'REVIEWED', icon: 'check-decagram-outline' as IconName, fg: C.green, bg: C.greenSoft };
+  if (reviewing(row)) return { label: 'IN REVIEW', icon: 'progress-clock' as IconName, fg: C.purple, bg: C.purpleSoft };
+  return { label: 'SUBMITTED', icon: 'check-circle-outline' as IconName, fg: C.blue, bg: C.soft };
+}
+function ordered(rows: ReportAssignmentCard[]) {
+  return [...rows].sort((a, b) => (PRIORITY[a.home_status] ?? 99) - (PRIORITY[b.home_status] ?? 99) || new Date(a.deadline_at).getTime() - new Date(b.deadline_at).getTime());
 }
 
 export default function BuklodReportLandingScreen() {
   const params = useLocalSearchParams();
   const scopeId = readReportScopeId(params as Record<string, unknown>);
-  const routeAssignmentId = readReportAssignmentId(params as Record<string, unknown>);
+  const assignmentId = readReportAssignmentId(params as Record<string, unknown>);
   const { scopes, loading: scopesLoading } = useBuklodScope();
-
   const [loading, setLoading] = useState(true);
   const [entitled, setEntitled] = useState(false);
   const [canManage, setCanManage] = useState(false);
-  const [loadError, setLoadError] = useState('');
-  const [assignments, setAssignments] = useState<ReportAssignmentCard[]>([]);
+  const [error, setError] = useState('');
+  const [rows, setRows] = useState<ReportAssignmentCard[]>([]);
 
-  const reportScopes = useMemo(
-    () => scopes.filter((scope) => ['ORGANIZATION', 'CLUSTER'].includes(String(scope.scope_type).toUpperCase())),
-    [scopes],
-  );
-  const selectedScope = useMemo(
-    () => reportScopes.find((scope) => scope.scope_id === scopeId) ?? null,
-    [reportScopes, scopeId],
-  );
+  const workspaces = useMemo<Workspace[]>(() => scopes
+    .filter((s) => ['ORGANIZATION', 'CLUSTER'].includes(String(s.scope_type).toUpperCase()))
+    .map((s) => ({ scope_id: s.scope_id, scope_type: s.scope_type, name: s.name })), [scopes]);
+  const selected = useMemo(() => workspaces.find((s) => s.scope_id === scopeId) ?? null, [scopeId, workspaces]);
 
-  useEffect(() => {
-    if (scopeId) setPreferredReportAssignment(scopeId, routeAssignmentId || null);
-  }, [routeAssignmentId, scopeId]);
-
+  useEffect(() => { if (scopeId) setPreferredReportAssignment(scopeId, assignmentId || null); }, [assignmentId, scopeId]);
   const load = useCallback(async () => {
-    setLoading(true);
-    setLoadError('');
+    setLoading(true); setError('');
     try {
       if (scopeId) {
-        const [isEntitled, access, rows] = await Promise.all([
-          isReportScopeEntitled(scopeId),
-          verifyOrganizationManageAccess(scopeId),
-          fetchMyActionableReportAssignments(50, scopeId),
-        ]);
-        setEntitled(isEntitled);
-        setCanManage(access.allowed);
-        setAssignments(rows);
+        const [ok, access, data] = await Promise.all([isReportScopeEntitled(scopeId), verifyOrganizationManageAccess(scopeId), fetchMyActionableReportAssignments(50, scopeId)]);
+        setEntitled(ok); setCanManage(access.allowed); setRows(data);
       } else {
-        setEntitled(false);
-        setCanManage(false);
-        setAssignments(await fetchMyActionableReportAssignments(100, null));
+        setEntitled(false); setCanManage(false); setRows(await fetchMyActionableReportAssignments(100, null));
       }
-    } catch (error: any) {
-      setLoadError(error?.message || 'Unable to load your reports. Check your connection and try again.');
-    } finally {
-      setLoading(false);
-    }
+    } catch (e: any) { setError(e?.message || 'Unable to load BUKLOD Report. Check your connection and try again.'); }
+    finally { setLoading(false); }
   }, [scopeId]);
-
   useEffect(() => { void load(); }, [load]);
+  const open = (row: ReportAssignmentCard) => router.push(buklodReportLandingPath(row.scope_id, row.report_assignment_id) as any);
 
-  const attentionAssignments = useMemo(
-    () => assignments
-      .filter(needsAttention)
-      .sort((a, b) => (STATUS_PRIORITY[a.home_status] ?? 99) - (STATUS_PRIORITY[b.home_status] ?? 99)),
-    [assignments],
-  );
-
-  const recentAssignments = useMemo(
-    () => assignments.filter((row) => !needsAttention(row)).slice(0, 4),
-    [assignments],
-  );
-
-  const summary = useMemo(() => ({
-    overdue: assignments.filter((row) => row.home_status === 'EXPIRED').length,
-    due: assignments.filter((row) => row.home_status === 'DUE' || row.home_status === 'DUE_SOON').length,
-    feedback: assignments.filter((row) => row.home_status === 'NEEDS_REVISION' || row.home_status === 'REJECTED' || row.has_unread_remarks).length,
-    sent: assignments.filter((row) => ['SUBMITTED', 'PROCESSING', 'NEEDS_REVIEW', 'APPROVED'].includes(row.home_status)).length,
-  }), [assignments]);
-
-  const openAssignment = (row: ReportAssignmentCard) => {
-    router.push(buklodReportLandingPath(row.scope_id, row.report_assignment_id) as any);
-  };
-
-  return (
-    <>
-      <Stack.Screen options={{ title: 'BUKLOD Report' }} />
-      <BuklodReportScrollView contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <Image source={{ uri: BUKLOD_REPORT_ICON_URI }} resizeMode="cover" style={styles.heroIcon} />
-          <View style={styles.heroCopy}>
-            <Text style={styles.heroEyebrow}>REPORT • FOLLOW-UP • CARE</Text>
-            <Text style={styles.heroTitle}>BUKLOD Report</Text>
-            <Text style={styles.heroSubtitle}>
-              Simple reporting for members. Clear attention and follow-up for leaders.
-            </Text>
-          </View>
-        </View>
-
-        {scopeId ? (
-          <Pressable onPress={() => router.replace('/reports' as any)} style={styles.backRow}>
-            <MaterialCommunityIcons name="arrow-left" size={18} color={colors.greenDark} />
-            <Text style={styles.backText}>All reports</Text>
-          </Pressable>
-        ) : null}
-
-        {loading || scopesLoading ? (
-          <View style={styles.center}>
-            <ActivityIndicator color={colors.green} />
-            <Text style={styles.muted}>Opening your report workspace…</Text>
-          </View>
-        ) : (
-          <>
-            {loadError ? (
-              <View style={styles.errorCard}>
-                <MaterialCommunityIcons name="wifi-alert" size={20} color={colors.danger} />
-                <View style={styles.flexCopy}>
-                  <Text style={styles.errorTitle}>Reports could not be loaded</Text>
-                  <Text style={styles.errorText}>{loadError}</Text>
-                </View>
-                <Pressable onPress={() => void load()} style={styles.retryButton}>
-                  <Text style={styles.retryText}>Try again</Text>
-                </Pressable>
-              </View>
-            ) : null}
-
-            {!scopeId ? (
-              <>
-                <View style={styles.summaryGrid}>
-                  <SummaryTile label="Overdue" value={summary.overdue} icon="clock-alert-outline" tone="danger" />
-                  <SummaryTile label="Due" value={summary.due} icon="calendar-clock-outline" tone="warning" />
-                  <SummaryTile label="Feedback" value={summary.feedback} icon="message-alert-outline" tone="attention" />
-                  <SummaryTile label="Sent" value={summary.sent} icon="check-circle-outline" tone="success" />
-                </View>
-
-                <SectionHeading eyebrow="MY WORK" title="Needs attention" count={attentionAssignments.length} />
-                {attentionAssignments.length === 0 ? (
-                  <View style={styles.successCard}>
-                    <View style={styles.successIcon}>
-                      <MaterialCommunityIcons name="check" size={20} color={colors.success} />
-                    </View>
-                    <View style={styles.flexCopy}>
-                      <Text style={styles.cardTitle}>You are caught up</Text>
-                      <Text style={styles.note}>No report currently needs action. New published requirements will appear here automatically.</Text>
-                    </View>
-                  </View>
-                ) : attentionAssignments.map((row) => (
-                  <AssignmentRow key={row.report_assignment_id} row={row} onPress={() => openAssignment(row)} showScope />
-                ))}
-
-                {recentAssignments.length > 0 ? (
-                  <>
-                    <SectionHeading eyebrow="RECENT" title="Submitted & reviewed" />
-                    <View style={styles.listCard}>
-                      {recentAssignments.map((row) => (
-                        <AssignmentRow key={row.report_assignment_id} row={row} onPress={() => openAssignment(row)} showScope compact />
-                      ))}
-                    </View>
-                  </>
-                ) : null}
-
-                <SectionHeading eyebrow="WORKSPACES" title="Organization & Cluster" />
-                {reportScopes.length === 0 ? (
-                  <View style={styles.infoCard}>
-                    <MaterialCommunityIcons name="domain-off" size={24} color={colors.muted} />
-                    <Text style={styles.note}>No active Organization or Cluster reporting workspace is available to this account.</Text>
-                  </View>
-                ) : reportScopes.map((scope) => (
-                  <Pressable
-                    key={scope.scope_id}
-                    onPress={() => router.push(buklodReportLandingPath(scope.scope_id) as any)}
-                    style={({ pressed }) => [styles.workspaceCard, pressed && styles.pressed]}
-                  >
-                    <View style={styles.workspaceIcon}>
-                      <MaterialCommunityIcons name={scope.scope_type === 'CLUSTER' ? 'account-group' : 'domain'} size={21} color={colors.greenDark} />
-                    </View>
-                    <View style={styles.flexCopy}>
-                      <Text style={styles.workspaceTitle}>{scope.name}</Text>
-                      <Text style={styles.workspaceMeta}>{scope.scope_type}</Text>
-                    </View>
-                    <MaterialCommunityIcons name="chevron-right" size={20} color={colors.greenDark} />
-                  </Pressable>
-                ))}
-              </>
-            ) : (
-              <>
-                <View style={styles.scopeCard}>
-                  <View style={styles.workspaceIcon}>
-                    <MaterialCommunityIcons name={selectedScope?.scope_type === 'CLUSTER' ? 'account-group' : 'domain'} size={21} color={colors.greenDark} />
-                  </View>
-                  <View style={styles.flexCopy}>
-                    <Text style={styles.sectionEyebrow}>ACTIVE REPORT WORKSPACE</Text>
-                    <Text style={styles.workspaceTitle}>{selectedScope?.name || 'Selected Organization / Cluster'}</Text>
-                  </View>
-                  {entitled ? <View style={styles.enabledPill}><Text style={styles.enabledText}>ENABLED</Text></View> : null}
-                </View>
-
-                {!entitled ? (
-                  <View style={styles.warningCard}>
-                    <MaterialCommunityIcons name="lock-outline" size={22} color={colors.amber} />
-                    <View style={styles.flexCopy}>
-                      <Text style={styles.warningTitle}>Reporting is not enabled for this scope</Text>
-                      <Text style={styles.warningText}>BUKLOD Report is available only to entitled Organization and Cluster scopes.</Text>
-                    </View>
-                  </View>
-                ) : (
-                  <>
-                    {!routeAssignmentId ? (
-                      <>
-                        <SectionHeading eyebrow="CURRENT" title="Reports needing attention" count={attentionAssignments.length} />
-                        {attentionAssignments.length > 0 ? (
-                          <View style={styles.listCard}>
-                            {attentionAssignments.map((row) => (
-                              <AssignmentRow key={row.report_assignment_id} row={row} onPress={() => openAssignment(row)} />
-                            ))}
-                          </View>
-                        ) : (
-                          <View style={styles.infoCard}>
-                            <MaterialCommunityIcons name="clipboard-check-outline" size={24} color={colors.success} />
-                            <View style={styles.flexCopy}>
-                              <Text style={styles.cardTitle}>Nothing needs action</Text>
-                              <Text style={styles.note}>A form appears only after a real report is published to this workspace.</Text>
-                            </View>
-                          </View>
-                        )}
-                      </>
-                    ) : null}
-
-                    {routeAssignmentId ? (
-                      <BuklodReportAssignmentForm scopeId={scopeId} assignmentId={routeAssignmentId} onSubmitted={() => void load()} />
-                    ) : null}
-                  </>
-                )}
-
-                {canManage ? (
-                  <Pressable onPress={() => router.push(buklodReportDefinitionsPath(scopeId) as any)} style={styles.manageButton}>
-                    <View style={styles.manageIcon}>
-                      <MaterialCommunityIcons name="folder-cog-outline" size={21} color={colors.greenDark} />
-                    </View>
-                    <View style={styles.flexCopy}>
-                      <Text style={styles.manageTitle}>Report Library & management</Text>
-                      <Text style={styles.manageMeta}>Templates, deadlines, assignments and consolidated reports</Text>
-                    </View>
-                    <MaterialCommunityIcons name="chevron-right" size={20} color={colors.greenDark} />
-                  </Pressable>
-                ) : null}
-              </>
-            )}
-          </>
-        )}
-      </BuklodReportScrollView>
-    </>
-  );
+  return <>
+    <Stack.Screen options={{ title: 'BUKLOD Report', headerShown: false }} />
+    <BuklodReportScrollView constrainContent={false} contentExtra={24} contentContainerStyle={s.page}>
+      {loading || scopesLoading ? <StateCard loading title="Opening BUKLOD Report" text="Loading your authorized reporting workspaces…" />
+        : error ? <StateCard title="Reports could not be loaded" text={error} onRetry={() => void load()} />
+        : scopeId ? <Scoped rows={rows} scopeId={scopeId} assignmentId={assignmentId} workspace={selected} entitled={entitled} canManage={canManage} onOpen={open} onRefresh={() => void load()} />
+        : <Dashboard rows={rows} workspaces={workspaces} onOpen={open} onWorkspace={(id) => router.push(buklodReportLandingPath(id) as any)} onRefresh={() => void load()} />}
+    </BuklodReportScrollView>
+  </>;
 }
 
-function SectionHeading({ eyebrow, title, count }: { eyebrow: string; title: string; count?: number }) {
-  return (
-    <View style={styles.sectionHeader}>
-      <View>
-        <Text style={styles.sectionEyebrow}>{eyebrow}</Text>
-        <Text style={styles.sectionTitle}>{title}</Text>
+function Dashboard({ rows, workspaces, onOpen, onWorkspace, onRefresh }: { rows: ReportAssignmentCard[]; workspaces: Workspace[]; onOpen: (r: ReportAssignmentCard) => void; onWorkspace: (id: string) => void; onRefresh: () => void }) {
+  const { width } = useWindowDimensions();
+  const desktop = width >= 1020;
+  const wide = width >= 720;
+  const [view, setView] = useState<ViewMode>('dashboard');
+  const [scope, setScope] = useState('ALL'); const [period, setPeriod] = useState('ALL'); const [kind, setKind] = useState('ALL'); const [state, setState] = useState('ALL');
+  const workspaceOptions = useMemo<Option[]>(() => [{ label: 'All Organizations / Clusters', value: 'ALL' }, ...workspaces.map((w) => ({ label: w.name, value: w.scope_id }))], [workspaces]);
+  const periods = useMemo<Option[]>(() => [{ label: 'All Reporting Periods', value: 'ALL' }, ...Array.from(new Set(rows.map((r) => r.period_label))).map((x) => ({ label: x, value: x }))], [rows]);
+  const kinds = useMemo<Option[]>(() => [{ label: 'All Report Types', value: 'ALL' }, ...Array.from(new Set(rows.map((r) => r.report_title))).map((x) => ({ label: x, value: x }))], [rows]);
+  const filtered = useMemo(() => ordered(rows.filter((r) => {
+    if (scope !== 'ALL' && r.scope_id !== scope) return false; if (period !== 'ALL' && r.period_label !== period) return false; if (kind !== 'ALL' && r.report_title !== kind) return false;
+    if (state === 'ACTION' && !attention(r)) return false; if (state === 'REVIEW' && !reviewing(r)) return false; if (state === 'SUBMITTED' && !submitted(r)) return false; if (state === 'APPROVED' && r.home_status !== 'APPROVED') return false; return true;
+  })), [kind, period, rows, scope, state]);
+  const needs = filtered.filter(attention); const sent = filtered.filter(submitted); const inReview = filtered.filter(reviewing); const reviewed = filtered.filter((r) => r.home_status === 'APPROVED');
+  const rate = filtered.length ? Math.round(sent.length * 100 / filtered.length) : 0;
+  const next = needs[0] ?? filtered[0] ?? null;
+  const reset = () => { setScope('ALL'); setPeriod('ALL'); setKind('ALL'); setState('ALL'); };
+  const showReports = view === 'dashboard' || view === 'reports'; const showAnalytics = view === 'dashboard' || view === 'analytics'; const showWorkspaces = view === 'dashboard' || view === 'workspaces';
+
+  return <View style={[s.shell, desktop && s.shellDesktop]}>
+    {desktop ? <Sidebar view={view} setView={setView} refresh={onRefresh} /> : null}
+    <View style={s.main}>
+      <LinearGradient colors={[C.deep, C.blue, C.sky]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
+        <View style={s.heroIdentity}><Image source={{ uri: BUKLOD_REPORT_ICON_URI }} style={s.logo} /><View style={s.heroCopy}><Text style={s.heroTitle}>BUKLOD <Text style={{ color: C.gold }}>REPORT</Text></Text><Text style={s.heroSub}>Mission Reporting and Monitoring</Text><Text style={s.heroMeta}>People  •  Ministry  •  Reports  •  Greater Impact</Text></View></View>
+        {wide ? <View style={s.promise}><MaterialCommunityIcons name="cross" size={27} color={C.white} /><Text style={s.promiseText}>Together We Report{`\n`}A Brighter Tomorrow</Text></View> : null}
+      </LinearGradient>
+      {!desktop ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.mobileNav}>{(['dashboard','reports','analytics','workspaces'] as ViewMode[]).map((v) => <NavChip key={v} view={v} active={view === v} onPress={() => setView(v)} />)}<Pressable style={s.navChip} onPress={onRefresh}><MaterialCommunityIcons name="refresh" size={16} color={C.blue}/><Text style={s.navChipText}>Refresh</Text></Pressable></ScrollView> : null}
+
+      <View style={s.body}>
+        <View style={s.filters}><View style={s.filterGrid}><Filter label="Organization / Cluster" icon="account-group-outline" value={scope} options={workspaceOptions} onChange={setScope}/><Filter label="Reporting Period" icon="calendar-month-outline" value={period} options={periods} onChange={setPeriod}/><Filter label="Report Type" icon="file-document-outline" value={kind} options={kinds} onChange={setKind}/><Filter label="Status" icon="layers-outline" value={state} options={[{label:'All Statuses',value:'ALL'},{label:'Needs Action',value:'ACTION'},{label:'In Review',value:'REVIEW'},{label:'Submitted',value:'SUBMITTED'},{label:'Reviewed',value:'APPROVED'}]} onChange={setState}/></View><Pressable onPress={reset} style={s.reset}><MaterialCommunityIcons name="backup-restore" size={16} color={C.blue}/><Text style={s.resetText}>Reset Filters</Text></Pressable></View>
+        <View style={s.kpis}><Kpi label="Total Reports" value={filtered.length} icon="file-document-multiple-outline" fg={C.blue} bg={C.soft}/><Kpi label="Needs Action" value={needs.length} icon="clock-alert-outline" fg={C.orange} bg={C.orangeSoft}/><Kpi label="In Review" value={inReview.length} icon="progress-clock" fg={C.purple} bg={C.purpleSoft}/><Kpi label="Completion Rate" value={`${rate}%`} icon="chart-box-outline" fg={C.green} bg={C.greenSoft}/><Kpi label="Active Workspaces" value={workspaces.length} icon="account-group-outline" fg={C.blue} bg={C.soft}/></View>
+
+        {showReports ? <View style={[s.columns, desktop && s.columnsDesktop]}><View style={s.primary}>
+          <View style={[s.quickRow, wide && s.quickRowWide]}><Panel title="Quick Report" subtitle="Open the next real report assigned to you." icon="square-edit-outline" action={next ? <Pressable style={s.goldButton} onPress={() => onOpen(next)}><MaterialCommunityIcons name="send-outline" size={15} color={C.deep}/><Text style={s.goldText}>Open Report</Text></Pressable> : undefined}>{next ? <View style={s.preview}><Info label="Report Title" value={next.report_title}/><Info label="Reporting Period" value={next.period_label}/><Info label="Workspace" value={next.scope_label || workspaces.find((w) => w.scope_id === next.scope_id)?.name || 'Assigned workspace'}/><Info label="Deadline" value={deadline(next.deadline_at)}/><View style={s.rule}><MaterialCommunityIcons name="shield-check-outline" size={18} color={C.blue}/><Text style={s.ruleText}>Uses the canonical assigned report, existing approval rules and existing Supabase submission flow. No duplicate free-form report is created.</Text></View></View> : <Empty title="You are caught up" text="No report currently needs action."/>}</Panel>
+          <Panel title="Attachments / Evidence" subtitle="Evidence stays tied to its report submission." icon="paperclip"><View style={s.upload}><MaterialCommunityIcons name="cloud-upload-outline" size={40} color={C.blue}/><Text style={s.uploadTitle}>Open an assigned report</Text><Text style={s.uploadText}>Add evidence only where the report template requires it.</Text></View>{next ? <Pressable style={s.linkButton} onPress={() => onOpen(next)}><Text style={s.linkText}>Manage report evidence</Text><MaterialCommunityIcons name="chevron-right" size={17} color={C.blue}/></Pressable> : null}</Panel></View>
+          <Panel title="Recent Reports" subtitle="Submitted and reviewed reports from your authorized workspaces." icon="file-document-multiple-outline" action={<Text style={s.count}>{sent.slice(0,6).length}</Text>}>{sent.length ? sent.slice(0,6).map((r) => <Assignment key={r.report_assignment_id} row={r} onPress={() => onOpen(r)}/>) : <Empty title="No submitted reports" text="Adjust filters or submit an assigned report first."/>}</Panel>
+          {showAnalytics ? <Analytics rows={filtered} reviewed={reviewed.length} sent={sent.length}/> : null}
+        </View><View style={[s.rail, desktop && s.railDesktop]}><Rail title="Follow-up Actions" icon="checkbox-marked-circle-outline" rows={filtered.filter((r) => r.home_status === 'NEEDS_REVISION' || r.home_status === 'REJECTED' || r.has_unread_remarks).slice(0,4)} onOpen={onOpen}/><Rail title="Deadlines / Reminders" icon="bell-outline" rows={needs.filter((r) => ['DUE','DUE_SOON','EXPIRED'].includes(r.home_status)).slice(0,4)} onOpen={onOpen}/><Workflow/></View></View> : null}
+        {view === 'analytics' ? <Analytics rows={filtered} reviewed={reviewed.length} sent={sent.length}/> : null}
+        {showWorkspaces ? <Panel title="Organization & Cluster Workspaces" subtitle="Only active reporting memberships available to this account." icon="account-group-outline"><View style={s.workspaceGrid}>{workspaces.length ? workspaces.map((w) => { const n = rows.filter((r) => r.scope_id === w.scope_id).length; return <Pressable key={w.scope_id} onPress={() => onWorkspace(w.scope_id)} style={s.workspace}><View style={s.workspaceIcon}><MaterialCommunityIcons name={w.scope_type === 'CLUSTER' ? 'account-group' : 'domain'} size={22} color={C.blue}/></View><View style={{flex:1}}><Text style={s.workspaceName}>{w.name}</Text><Text style={s.workspaceType}>{w.scope_type}</Text><Text style={s.workspaceMeta}>{n} report assignment{n === 1 ? '' : 's'}</Text></View><MaterialCommunityIcons name="chevron-right" size={20} color={C.muted}/></Pressable>}) : <Empty title="No reporting workspace" text="No active Organization or Cluster reporting membership is available."/>}</View></Panel> : null}
       </View>
-      {typeof count === 'number' ? <View style={styles.countPill}><Text style={styles.countText}>{count}</Text></View> : null}
+      <LinearGradient colors={[C.deep,C.blue]} style={s.footer}><Text style={s.footerBrand}>BUKLOD <Text style={{color:C.gold}}>REPORT</Text></Text><Text style={s.footerText}>People  •  Ministry  •  Reports  •  Greater Impact</Text><Text style={s.footerText}>Built for a Stronger Tomorrow</Text></LinearGradient>
     </View>
-  );
+  </View>;
 }
 
-function SummaryTile({ label, value, icon, tone }: { label: string; value: number; icon: React.ComponentProps<typeof MaterialCommunityIcons>['name']; tone: 'danger' | 'warning' | 'attention' | 'success' }) {
-  const palette = tone === 'danger'
-    ? { bg: colors.dangerSoft, fg: colors.danger }
-    : tone === 'warning'
-      ? { bg: colors.amberSoft, fg: colors.amber }
-      : tone === 'attention'
-        ? { bg: colors.infoSoft, fg: colors.info }
-        : { bg: colors.successSoft, fg: colors.success };
-  return (
-    <View style={styles.summaryTile}>
-      <View style={[styles.summaryIcon, { backgroundColor: palette.bg }]}>
-        <MaterialCommunityIcons name={icon} size={18} color={palette.fg} />
-      </View>
-      <Text style={styles.summaryValue}>{value}</Text>
-      <Text style={styles.summaryLabel}>{label}</Text>
-    </View>
-  );
+function Scoped({ rows, scopeId, assignmentId, workspace, entitled, canManage, onOpen, onRefresh }: { rows: ReportAssignmentCard[]; scopeId: string; assignmentId: string; workspace: Workspace | null; entitled: boolean; canManage: boolean; onOpen: (r: ReportAssignmentCard) => void; onRefresh: () => void }) {
+  const { width } = useWindowDimensions(); const desktop = width >= 900; const list = ordered(rows); const needs = list.filter(attention);
+  return <View style={s.scopePage}><LinearGradient colors={[C.deep,C.blue,C.sky]} style={s.scopeHero}><Pressable style={s.back} onPress={() => router.replace('/reports' as any)}><MaterialCommunityIcons name="arrow-left" size={17} color={C.white}/><Text style={s.backText}>Dashboard</Text></Pressable><View style={s.scopeIdentity}><Image source={{uri:BUKLOD_REPORT_ICON_URI}} style={s.scopeLogo}/><View style={{flex:1}}><Text style={s.scopeEye}>BUKLOD REPORT WORKSPACE</Text><Text style={s.scopeTitle}>{workspace?.name || 'Organization / Cluster'}</Text><Text style={s.scopeSub}>Mission Reporting and Monitoring</Text></View><Pressable style={s.refresh} onPress={onRefresh}><MaterialCommunityIcons name="refresh" size={18} color={C.white}/></Pressable></View></LinearGradient><View style={s.scopeBody}>{!entitled ? <View style={s.warning}><MaterialCommunityIcons name="lock-outline" size={24} color={C.orange}/><View style={{flex:1}}><Text style={s.warningTitle}>Reporting is not enabled for this workspace</Text><Text style={s.warningText}>BUKLOD Report remains restricted to entitled Organization and Cluster scopes.</Text></View></View> : <View style={[s.scopeCols, desktop && s.scopeColsDesktop]}><View style={s.scopeMain}><Text style={s.scopeSection}>REPORT WORKSPACE</Text>{assignmentId ? <BuklodReportAssignmentForm scopeId={scopeId} assignmentId={assignmentId} onSubmitted={onRefresh}/> : <>{needs.length ? needs.map((r) => <Assignment key={r.report_assignment_id} row={r} onPress={() => onOpen(r)}/>) : <Empty title="Nothing needs action" text="New published report requirements will appear here automatically."/>}</>}</View><View style={[s.scopeRail,desktop && s.scopeRailDesktop]}><View style={s.kpis}><Kpi label="Total" value={list.length} icon="file-document-multiple-outline" fg={C.blue} bg={C.soft}/><Kpi label="Needs Action" value={needs.length} icon="clock-alert-outline" fg={C.orange} bg={C.orangeSoft}/></View>{canManage ? <Pressable style={s.manage} onPress={() => router.push(buklodReportDefinitionsPath(scopeId) as any)}><View style={s.workspaceIcon}><MaterialCommunityIcons name="folder-cog-outline" size={22} color={C.blue}/></View><View style={{flex:1}}><Text style={s.manageTitle}>Report Library & Management</Text><Text style={s.manageText}>Templates, deadlines, assignments and consolidated reports</Text></View><MaterialCommunityIcons name="chevron-right" size={20} color={C.blue}/></Pressable> : null}</View></View>}</View></View>;
 }
 
-function AssignmentRow({ row, onPress, showScope = false, compact = false }: { row: ReportAssignmentCard; onPress: () => void; showScope?: boolean; compact?: boolean }) {
-  const status = statusPresentation(row);
-  const palette = status.tone === 'danger'
-    ? { bg: colors.dangerSoft, fg: colors.danger }
-    : status.tone === 'warning'
-      ? { bg: colors.amberSoft, fg: colors.amber }
-      : status.tone === 'attention'
-        ? { bg: colors.infoSoft, fg: colors.info }
-        : status.tone === 'success'
-          ? { bg: colors.successSoft, fg: colors.success }
-          : { bg: colors.surfaceMuted, fg: colors.muted };
-  const showDeadline = ['DUE', 'DUE_SOON', 'EXPIRED'].includes(row.home_status);
-
-  return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.assignmentRow, compact && styles.assignmentRowCompact, pressed && styles.pressed]}>
-      <View style={[styles.assignmentIcon, { backgroundColor: palette.bg }]}>
-        <MaterialCommunityIcons name={status.icon} size={20} color={palette.fg} />
-      </View>
-      <View style={styles.flexCopy}>
-        <View style={styles.assignmentHeading}>
-          <Text style={styles.assignmentTitle} numberOfLines={2}>{row.report_title}</Text>
-          <View style={[styles.statusPill, { backgroundColor: palette.bg }]}><Text style={[styles.statusText, { color: palette.fg }]}>{status.label}</Text></View>
-        </View>
-        {showScope && row.scope_label ? <Text style={styles.assignmentScope}>{row.scope_label}</Text> : null}
-        <Text style={styles.assignmentMeta}>{row.period_label}</Text>
-        {showDeadline ? <Text style={[styles.assignmentDeadline, row.home_status === 'EXPIRED' && { color: colors.danger }]}>{row.home_status === 'EXPIRED' ? 'Overdue · ' : 'Deadline · '}{formatDeadline(row.deadline_at)}</Text> : null}
-      </View>
-      <MaterialCommunityIcons name="chevron-right" size={20} color={colors.muted} />
-    </Pressable>
-  );
+function Sidebar({ view, setView, refresh }: { view: ViewMode; setView: (v: ViewMode) => void; refresh: () => void }) {
+  return <View style={s.sidebar}><Image source={{uri:BUKLOD_REPORT_ICON_URI}} style={s.sideLogo}/>{(['dashboard','reports','analytics','workspaces'] as ViewMode[]).map((v) => <Pressable key={v} onPress={() => setView(v)} style={[s.sideButton,view===v&&s.sideActive]}><MaterialCommunityIcons name={v==='dashboard'?'view-dashboard-outline':v==='reports'?'file-document-outline':v==='analytics'?'chart-bar':'account-group-outline'} size={22} color={view===v?C.white:'#CFE5F8'}/><Text style={s.sideText}>{v[0].toUpperCase()+v.slice(1)}</Text></Pressable>)}<View style={{flex:1}}/><Pressable style={s.sideButton} onPress={refresh}><MaterialCommunityIcons name="refresh" size={22} color="#CFE5F8"/><Text style={s.sideText}>Refresh</Text></Pressable><Text style={s.motto}>ONE BODY{`\n`}MORE LIVES</Text></View>;
 }
+function NavChip({ view, active, onPress }: { view: ViewMode; active: boolean; onPress: () => void }) { return <Pressable onPress={onPress} style={[s.navChip,active&&s.navChipActive]}><Text style={[s.navChipText,active&&{color:C.white}]}>{view[0].toUpperCase()+view.slice(1)}</Text></Pressable>; }
+function Kpi({ label, value, icon, fg, bg }: { label:string; value:string|number; icon:IconName; fg:string; bg:string }) { return <View style={s.kpi}><View style={[s.kpiIcon,{backgroundColor:bg}]}><MaterialCommunityIcons name={icon} size={22} color={fg}/></View><View><Text style={s.kpiLabel}>{label}</Text><Text style={s.kpiValue}>{value}</Text></View></View>; }
+function Panel({ title, subtitle, icon, action, children }: { title:string; subtitle:string; icon:IconName; action?:React.ReactNode; children:React.ReactNode }) { return <View style={s.panel}><View style={s.panelHead}><View style={s.panelIcon}><MaterialCommunityIcons name={icon} size={21} color={C.blue}/></View><View style={{flex:1}}><Text style={s.panelTitle}>{title}</Text><Text style={s.panelSub}>{subtitle}</Text></View>{action}</View>{children}</View>; }
+function Info({label,value}:{label:string;value:string}) { return <View style={s.info}><Text style={s.infoLabel}>{label}</Text><Text style={s.infoValue} numberOfLines={2}>{value}</Text></View>; }
+function Empty({title,text}:{title:string;text:string}) { return <View style={s.empty}><MaterialCommunityIcons name="clipboard-check-outline" size={28} color={C.blue}/><View style={{flex:1}}><Text style={s.emptyTitle}>{title}</Text><Text style={s.emptyText}>{text}</Text></View></View>; }
+function Assignment({row,onPress}:{row:ReportAssignmentCard;onPress:()=>void}) { const st=status(row); return <Pressable onPress={onPress} style={s.assignment}><View style={[s.assignmentIcon,{backgroundColor:st.bg}]}><MaterialCommunityIcons name={st.icon} size={19} color={st.fg}/></View><View style={{flex:1,minWidth:0}}><Text style={s.assignmentTitle} numberOfLines={2}>{row.report_title}</Text><Text style={s.assignmentMeta}>{row.scope_label ? `${row.scope_label} • ` : ''}{row.period_label}</Text></View><View style={s.assignmentRight}><View style={[s.pill,{backgroundColor:st.bg}]}><Text style={[s.pillText,{color:st.fg}]}>{st.label}</Text></View><Text style={s.due}>{deadline(row.deadline_at)}</Text></View><MaterialCommunityIcons name="chevron-right" size={18} color={C.muted}/></Pressable>; }
+function Rail({title,icon,rows,onOpen}:{title:string;icon:IconName;rows:ReportAssignmentCard[];onOpen:(r:ReportAssignmentCard)=>void}) { return <View style={s.railCard}><View style={s.railHead}><MaterialCommunityIcons name={icon} size={19} color={C.blue}/><Text style={s.railTitle}>{title}</Text>{rows.length?<View style={s.badge}><Text style={s.badgeText}>{rows.length}</Text></View>:null}</View>{rows.length?rows.map((r)=><Pressable key={r.report_assignment_id} style={s.railRow} onPress={()=>onOpen(r)}><View style={s.check}/><View style={{flex:1}}><Text style={s.railRowTitle} numberOfLines={2}>{r.report_title}</Text><Text style={s.railMeta}>{r.period_label}</Text></View></Pressable>):<Text style={s.railEmpty}>Nothing waiting in this view.</Text>}</View>; }
+function Workflow() { return <View style={s.railCard}><View style={s.railHead}><MaterialCommunityIcons name="source-branch-check" size={19} color={C.blue}/><Text style={s.railTitle}>Approval Workflow</Text></View><View style={s.workflow}>{['Draft','Submitted','Reviewed','Approved'].map((x,i)=><React.Fragment key={x}><View style={s.step}><View style={[s.circle,i<2&&s.circleOn]}><MaterialCommunityIcons name={i<2?'check':'circle-outline'} size={13} color={i<2?C.white:C.blue}/></View><Text style={s.stepText}>{x}</Text></View>{i<3?<View style={s.line}/>:null}</React.Fragment>)}</View><Text style={s.workflowNote}>Actual status remains controlled by the existing report review workflow.</Text></View>; }
+function Analytics({rows,reviewed,sent}:{rows:ReportAssignmentCard[];reviewed:number;sent:number}) { const stats=[{label:'Submitted / In Review',value:sent,fg:C.blue},{label:'Reviewed / Approved',value:reviewed,fg:C.green},{label:'Needs Action',value:rows.filter(attention).length,fg:C.orange}]; const max=Math.max(1,...stats.map(x=>x.value)); return <Panel title="Analytics & Insights" subtitle="Live summary calculated from the authorized assignments already loaded on this screen." icon="chart-bar"><View style={s.analytics}>{stats.map(x=><View key={x.label} style={s.barRow}><View style={s.barHead}><Text style={s.barLabel}>{x.label}</Text><Text style={s.barValue}>{x.value}</Text></View><View style={s.barTrack}><View style={[s.barFill,{backgroundColor:x.fg,width:`${Math.round(x.value/max*100)}%`}]} /></View></View>)}</View></Panel>; }
+function StateCard({loading,title,text,onRetry}:{loading?:boolean;title:string;text:string;onRetry?:()=>void}) { return <View style={s.state}><Image source={{uri:BUKLOD_REPORT_ICON_URI}} style={s.stateLogo}/>{loading?<ActivityIndicator color={C.blue}/>:<MaterialCommunityIcons name="wifi-alert" size={28} color={C.red}/>}<Text style={s.stateTitle}>{title}</Text><Text style={s.stateText}>{text}</Text>{onRetry?<Pressable style={s.retry} onPress={onRetry}><Text style={s.retryText}>Try Again</Text></Pressable>:null}</View>; }
+function Filter({label,icon,value,options,onChange}:{label:string;icon:IconName;value:string;options:Option[];onChange:(v:string)=>void}) { const [open,setOpen]=useState(false); const current=options.find(o=>o.value===value)?.label||options[0]?.label||'Select'; return <><View style={s.filter}><Text style={s.filterLabel}>{label}</Text><Pressable style={s.select} onPress={()=>setOpen(true)}><MaterialCommunityIcons name={icon} size={16} color={C.navy}/><Text style={s.selectText} numberOfLines={1}>{current}</Text><MaterialCommunityIcons name="chevron-down" size={17} color={C.muted}/></Pressable></View><Modal visible={open} transparent animationType="fade" onRequestClose={()=>setOpen(false)}><Pressable style={s.modalBg} onPress={()=>setOpen(false)}><View style={s.modalCard}><Text style={s.modalTitle}>{label}</Text><ScrollView style={{maxHeight:360}}>{options.map(o=><Pressable key={o.value} onPress={()=>{onChange(o.value);setOpen(false);}} style={[s.option,o.value===value&&s.optionActive]}><Text style={[s.optionText,o.value===value&&{color:C.blue,fontWeight:'900'}]}>{o.label}</Text>{o.value===value?<MaterialCommunityIcons name="check" size={18} color={C.blue}/>:null}</Pressable>)}</ScrollView></View></Pressable></Modal></>; }
 
-const styles = StyleSheet.create({
-  content: { padding: reportTheme.layout.mobilePadding, gap: reportTheme.spacing.sm, backgroundColor: colors.background },
-  flexCopy: { flex: 1, minWidth: 0 },
-  hero: { borderRadius: reportTheme.radius.xl, padding: 16, backgroundColor: colors.greenDark, flexDirection: 'row', alignItems: 'center', gap: 14 },
-  heroIcon: { width: 66, height: 66, borderRadius: 17, backgroundColor: colors.white },
-  heroCopy: { flex: 1, minWidth: 0, gap: 4 },
-  heroEyebrow: { color: 'rgba(255,255,255,0.70)', fontSize: 9, fontWeight: '900', letterSpacing: 0.8 },
-  heroTitle: { fontSize: 25, fontWeight: '900', color: colors.white },
-  heroSubtitle: { fontSize: 11, lineHeight: 16, color: 'rgba(255,255,255,0.86)' },
-  backRow: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' },
-  backText: { color: colors.greenDark, fontSize: 11, fontWeight: '900' },
-  center: { paddingVertical: 38, alignItems: 'center', gap: 9 },
-  muted: { color: colors.muted, fontSize: 11 },
-  summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  summaryTile: { minWidth: 118, flexGrow: 1, flexBasis: '22%', borderRadius: 14, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, padding: 11 },
-  summaryIcon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  summaryValue: { marginTop: 8, color: colors.textStrong, fontSize: 22, fontWeight: '900' },
-  summaryLabel: { marginTop: 1, color: colors.muted, fontSize: 10, fontWeight: '800' },
-  sectionHeader: { marginTop: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  sectionEyebrow: { color: colors.muted, fontSize: 8, fontWeight: '900', letterSpacing: 0.65 },
-  sectionTitle: { color: colors.textStrong, fontSize: 16, fontWeight: '900' },
-  countPill: { minWidth: 30, height: 30, borderRadius: 15, backgroundColor: colors.greenSoft, alignItems: 'center', justifyContent: 'center' },
-  countText: { color: colors.greenDark, fontSize: 11, fontWeight: '900' },
-  infoCard: { borderRadius: 15, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, padding: 13, flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  successCard: { borderRadius: 15, borderWidth: 1, borderColor: '#CBE5D5', backgroundColor: colors.surface, padding: 13, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  successIcon: { width: 38, height: 38, borderRadius: 11, backgroundColor: colors.successSoft, alignItems: 'center', justifyContent: 'center' },
-  cardTitle: { color: colors.textStrong, fontSize: 13, fontWeight: '900' },
-  note: { marginTop: 3, color: colors.muted, fontSize: 10, lineHeight: 15 },
-  workspaceCard: { minHeight: 62, borderRadius: 14, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  scopeCard: { minHeight: 64, borderRadius: 15, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  workspaceIcon: { width: 40, height: 40, borderRadius: 11, backgroundColor: colors.greenSoft, alignItems: 'center', justifyContent: 'center' },
-  workspaceTitle: { color: colors.textStrong, fontSize: 13, fontWeight: '900' },
-  workspaceMeta: { marginTop: 2, color: colors.muted, fontSize: 9 },
-  enabledPill: { borderRadius: reportTheme.radius.pill, backgroundColor: colors.successSoft, paddingHorizontal: 8, paddingVertical: 4 },
-  enabledText: { color: colors.success, fontSize: 8, fontWeight: '900' },
-  listCard: { borderRadius: 15, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, padding: 8, gap: 7 },
-  assignmentRow: { minHeight: 72, borderRadius: 13, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 9 },
-  assignmentRowCompact: { minHeight: 62 },
-  assignmentIcon: { width: 38, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  assignmentHeading: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
-  assignmentTitle: { flex: 1, color: colors.textStrong, fontSize: 11, fontWeight: '900' },
-  assignmentScope: { color: colors.greenDark, fontSize: 9, fontWeight: '800', marginTop: 2 },
-  assignmentMeta: { marginTop: 2, color: colors.muted, fontSize: 9 },
-  assignmentDeadline: { marginTop: 3, color: colors.muted, fontSize: 9, fontWeight: '700' },
-  statusPill: { borderRadius: reportTheme.radius.pill, paddingHorizontal: 7, paddingVertical: 4 },
-  statusText: { fontSize: 7, fontWeight: '900', letterSpacing: 0.25 },
-  warningCard: { borderRadius: 14, borderWidth: 1, borderColor: '#F0D5A5', backgroundColor: colors.amberSoft, padding: 13, flexDirection: 'row', gap: 9 },
-  warningTitle: { color: '#7A4700', fontSize: 12, fontWeight: '900' },
-  warningText: { marginTop: 2, color: '#785A25', fontSize: 10, lineHeight: 14 },
-  manageButton: { minHeight: 64, borderRadius: 15, borderWidth: 1, borderColor: '#CFE3D8', backgroundColor: colors.surface, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  manageIcon: { width: 40, height: 40, borderRadius: 11, backgroundColor: colors.greenSoft, alignItems: 'center', justifyContent: 'center' },
-  manageTitle: { color: colors.textStrong, fontSize: 11, fontWeight: '900' },
-  manageMeta: { marginTop: 2, color: colors.muted, fontSize: 9 },
-  errorCard: { borderRadius: 14, borderWidth: 1, borderColor: '#F3C4C1', backgroundColor: colors.dangerSoft, padding: 12, gap: 9, flexDirection: 'row', alignItems: 'center' },
-  errorTitle: { color: colors.danger, fontSize: 11, fontWeight: '900' },
-  errorText: { marginTop: 2, color: '#7D3936', fontSize: 10, lineHeight: 14 },
-  retryButton: { borderRadius: 9, backgroundColor: colors.danger, paddingHorizontal: 10, paddingVertical: 8 },
-  retryText: { color: colors.white, fontSize: 9, fontWeight: '900' },
-  pressed: { opacity: 0.72 },
+const s=StyleSheet.create({
+  page:{backgroundColor:'#EAF5FF',padding:12}, shell:{width:'100%',maxWidth:1380,alignSelf:'center',borderRadius:22,overflow:'hidden',backgroundColor:C.pale,borderWidth:1,borderColor:'#C8DFF2'},shellDesktop:{flexDirection:'row'},sidebar:{width:82,backgroundColor:C.deep,padding:8,gap:8,alignItems:'center'},sideLogo:{width:64,height:64,borderRadius:18,marginBottom:6},sideButton:{width:66,minHeight:60,borderRadius:13,alignItems:'center',justifyContent:'center',gap:4,padding:5},sideActive:{backgroundColor:C.blue},sideText:{fontSize:8,color:'#CFE5F8',fontWeight:'800',textAlign:'center'},motto:{color:'rgba(255,255,255,.7)',fontSize:8,lineHeight:13,textAlign:'center',fontWeight:'900',letterSpacing:1,marginVertical:8},main:{flex:1,minWidth:0},hero:{minHeight:126,padding:16,flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:14},heroIdentity:{flex:1,flexDirection:'row',alignItems:'center',gap:14},logo:{width:80,height:80,borderRadius:21,borderWidth:2,borderColor:'rgba(255,255,255,.25)'},heroCopy:{flex:1,minWidth:0},heroTitle:{fontSize:30,fontWeight:'900',color:C.white},heroSub:{fontSize:14,fontWeight:'800',color:C.white,marginTop:2},heroMeta:{fontSize:9,color:'rgba(255,255,255,.78)',marginTop:5,fontWeight:'700'},promise:{alignItems:'flex-end',gap:3},promiseText:{fontSize:15,lineHeight:19,fontStyle:'italic',color:C.white,textAlign:'right'},mobileNav:{gap:7,padding:9,backgroundColor:C.white},navChip:{minHeight:38,borderRadius:10,borderWidth:1,borderColor:'#C8DFF2',paddingHorizontal:12,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:5},navChipActive:{backgroundColor:C.blue,borderColor:C.blue},navChipText:{fontSize:9,fontWeight:'800',color:C.blue},body:{padding:12,gap:11},filters:{backgroundColor:C.white,borderWidth:1,borderColor:C.line,borderRadius:16,padding:11,gap:8},filterGrid:{flexDirection:'row',flexWrap:'wrap',gap:8},filter:{flexGrow:1,flexBasis:190,minWidth:170},filterLabel:{fontSize:8,fontWeight:'900',color:C.ink,marginBottom:4},select:{height:40,borderRadius:9,borderWidth:1,borderColor:'#C9DDF0',paddingHorizontal:9,flexDirection:'row',alignItems:'center',gap:6},selectText:{flex:1,fontSize:9,color:C.ink},reset:{alignSelf:'flex-end',flexDirection:'row',alignItems:'center',gap:5,minHeight:32,paddingHorizontal:8},resetText:{fontSize:8,fontWeight:'900',color:C.blue},modalBg:{flex:1,backgroundColor:'rgba(3,24,45,.48)',alignItems:'center',justifyContent:'center',padding:18},modalCard:{width:'100%',maxWidth:460,maxHeight:'72%',borderRadius:18,backgroundColor:C.white,padding:14},modalTitle:{fontSize:15,fontWeight:'900',color:C.navy,marginBottom:8},option:{minHeight:44,paddingHorizontal:10,flexDirection:'row',alignItems:'center',justifyContent:'space-between',borderRadius:9},optionActive:{backgroundColor:C.soft},optionText:{flex:1,fontSize:10,color:C.ink},kpis:{flexDirection:'row',flexWrap:'wrap',gap:8},kpi:{minWidth:150,flexGrow:1,flexBasis:170,minHeight:74,borderRadius:14,borderWidth:1,borderColor:C.line,backgroundColor:C.white,padding:10,flexDirection:'row',alignItems:'center',gap:9},kpiIcon:{width:42,height:42,borderRadius:12,alignItems:'center',justifyContent:'center'},kpiLabel:{fontSize:8,fontWeight:'800',color:C.muted},kpiValue:{fontSize:22,fontWeight:'900',color:C.navy,marginTop:2},columns:{gap:11},columnsDesktop:{flexDirection:'row',alignItems:'flex-start'},primary:{flex:1,minWidth:0,gap:11},rail:{width:'100%',gap:11},railDesktop:{width:300,flexShrink:0},quickRow:{gap:11},quickRowWide:{flexDirection:'row'},panel:{flex:1,minWidth:0,borderRadius:16,borderWidth:1,borderColor:C.line,backgroundColor:C.white,padding:12,gap:10},panelHead:{flexDirection:'row',alignItems:'center',gap:9},panelIcon:{width:38,height:38,borderRadius:11,backgroundColor:C.soft,alignItems:'center',justifyContent:'center'},panelTitle:{fontSize:14,fontWeight:'900',color:C.navy},panelSub:{fontSize:8.5,color:C.muted,marginTop:2,lineHeight:12},goldButton:{minHeight:38,borderRadius:10,backgroundColor:C.gold,paddingHorizontal:10,flexDirection:'row',alignItems:'center',gap:5},goldText:{fontSize:8.5,fontWeight:'900',color:C.deep},preview:{flexDirection:'row',flexWrap:'wrap',gap:7},info:{minWidth:180,flexGrow:1,flexBasis:220,borderWidth:1,borderColor:'#DDEBF6',borderRadius:10,padding:9,backgroundColor:'#FBFDFF'},infoLabel:{fontSize:7.5,fontWeight:'900',color:C.muted},infoValue:{fontSize:9.5,fontWeight:'700',color:C.ink,marginTop:3},rule:{width:'100%',borderRadius:10,backgroundColor:C.soft,padding:9,flexDirection:'row',gap:7,alignItems:'flex-start'},ruleText:{flex:1,fontSize:8,lineHeight:12,color:'#35536F',fontWeight:'600'},upload:{minHeight:152,borderRadius:13,borderWidth:1,borderStyle:'dashed',borderColor:'#AACDEB',backgroundColor:'#F8FCFF',alignItems:'center',justifyContent:'center',padding:12},uploadTitle:{fontSize:10,fontWeight:'900',color:C.navy,marginTop:6},uploadText:{fontSize:8,color:C.muted,textAlign:'center',marginTop:3,lineHeight:12},linkButton:{minHeight:38,borderRadius:9,borderWidth:1,borderColor:'#C6DDF1',paddingHorizontal:9,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},linkText:{fontSize:8.5,fontWeight:'900',color:C.blue},count:{minWidth:28,height:28,borderRadius:14,textAlign:'center',textAlignVertical:'center',backgroundColor:C.soft,color:C.blue,fontWeight:'900',fontSize:10},assignment:{minHeight:66,borderWidth:1,borderColor:'#E0ECF6',borderRadius:11,padding:8,flexDirection:'row',alignItems:'center',gap:8},assignmentIcon:{width:36,height:36,borderRadius:10,alignItems:'center',justifyContent:'center'},assignmentTitle:{fontSize:9.5,fontWeight:'900',color:C.navy},assignmentMeta:{fontSize:7.5,color:C.muted,marginTop:2},assignmentRight:{alignItems:'flex-end',gap:3,maxWidth:150},pill:{borderRadius:99,paddingHorizontal:7,paddingVertical:3},pillText:{fontSize:7,fontWeight:'900'},due:{fontSize:7,color:C.muted,textAlign:'right'},empty:{minHeight:70,borderRadius:11,backgroundColor:'#F8FCFF',padding:10,flexDirection:'row',alignItems:'center',gap:9},emptyTitle:{fontSize:10,fontWeight:'900',color:C.navy},emptyText:{fontSize:8,color:C.muted,marginTop:2},railCard:{borderRadius:16,borderWidth:1,borderColor:C.line,backgroundColor:C.white,padding:11,gap:7},railHead:{flexDirection:'row',alignItems:'center',gap:6},railTitle:{flex:1,fontSize:11,fontWeight:'900',color:C.navy},badge:{minWidth:21,height:21,borderRadius:11,backgroundColor:C.red,alignItems:'center',justifyContent:'center'},badgeText:{fontSize:7.5,fontWeight:'900',color:C.white},railRow:{minHeight:42,flexDirection:'row',alignItems:'center',gap:7,borderBottomWidth:1,borderBottomColor:'#EDF4F9'},check:{width:16,height:16,borderRadius:4,borderWidth:1.5,borderColor:C.blue},railRowTitle:{fontSize:8.5,fontWeight:'800',color:C.ink},railMeta:{fontSize:7,color:C.muted,marginTop:1},railEmpty:{fontSize:8,color:C.muted,paddingVertical:5},workflow:{flexDirection:'row',alignItems:'flex-start',justifyContent:'space-between'},step:{width:48,alignItems:'center',gap:3},circle:{width:27,height:27,borderRadius:14,borderWidth:2,borderColor:C.blue,alignItems:'center',justifyContent:'center'},circleOn:{backgroundColor:C.blue},line:{flex:1,height:2,marginTop:13,backgroundColor:'#C6DCF0'},stepText:{fontSize:6.5,fontWeight:'800',color:C.muted,textAlign:'center'},workflowNote:{fontSize:7.5,lineHeight:11,color:C.muted,textAlign:'center'},analytics:{gap:10},barRow:{gap:4},barHead:{flexDirection:'row',justifyContent:'space-between'},barLabel:{fontSize:8,color:C.muted,fontWeight:'700'},barValue:{fontSize:8,fontWeight:'900',color:C.navy},barTrack:{height:8,borderRadius:99,backgroundColor:'#E6F0F8',overflow:'hidden'},barFill:{height:'100%',borderRadius:99},workspaceGrid:{flexDirection:'row',flexWrap:'wrap',gap:8},workspace:{minWidth:240,flexGrow:1,flexBasis:270,minHeight:72,borderWidth:1,borderColor:'#D7E7F5',borderRadius:12,padding:10,flexDirection:'row',alignItems:'center',gap:9},workspaceIcon:{width:40,height:40,borderRadius:11,backgroundColor:C.soft,alignItems:'center',justifyContent:'center'},workspaceName:{fontSize:10.5,fontWeight:'900',color:C.navy},workspaceType:{fontSize:7,fontWeight:'900',color:C.blue,marginTop:1},workspaceMeta:{fontSize:7.5,color:C.muted,marginTop:3},footer:{minHeight:58,padding:13,flexDirection:'row',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',gap:9},footerBrand:{fontSize:11,fontWeight:'900',color:C.white},footerText:{fontSize:7.5,fontWeight:'700',color:'rgba(255,255,255,.78)'},scopePage:{width:'100%',maxWidth:1220,alignSelf:'center',borderRadius:22,overflow:'hidden',backgroundColor:C.pale,borderWidth:1,borderColor:'#C8DFF2'},scopeHero:{padding:15,gap:9},back:{alignSelf:'flex-start',minHeight:36,borderRadius:10,backgroundColor:'rgba(255,255,255,.14)',paddingHorizontal:9,flexDirection:'row',alignItems:'center',gap:5},backText:{fontSize:8.5,fontWeight:'900',color:C.white},scopeIdentity:{flexDirection:'row',alignItems:'center',gap:11},scopeLogo:{width:66,height:66,borderRadius:17,borderWidth:2,borderColor:'rgba(255,255,255,.25)'},scopeEye:{fontSize:7.5,fontWeight:'900',color:C.gold,letterSpacing:.8},scopeTitle:{fontSize:21,fontWeight:'900',color:C.white,marginTop:2},scopeSub:{fontSize:9,color:'rgba(255,255,255,.78)',marginTop:2},refresh:{width:40,height:40,borderRadius:12,backgroundColor:'rgba(255,255,255,.14)',alignItems:'center',justifyContent:'center'},scopeBody:{padding:12},warning:{borderRadius:14,borderWidth:1,borderColor:'#F3D29C',backgroundColor:'#FFF9EC',padding:12,flexDirection:'row',gap:9},warningTitle:{fontSize:11,fontWeight:'900',color:'#704200'},warningText:{fontSize:8.5,lineHeight:13,color:'#8A642A',marginTop:2},scopeCols:{gap:11},scopeColsDesktop:{flexDirection:'row',alignItems:'flex-start'},scopeMain:{flex:1,minWidth:0,gap:9},scopeRail:{width:'100%',gap:9},scopeRailDesktop:{width:300,flexShrink:0},scopeSection:{fontSize:16,fontWeight:'900',color:C.navy},manage:{minHeight:68,borderRadius:14,borderWidth:1,borderColor:'#BBD9F2',backgroundColor:C.white,padding:10,flexDirection:'row',alignItems:'center',gap:8},manageTitle:{fontSize:10.5,fontWeight:'900',color:C.navy},manageText:{fontSize:8,color:C.muted,marginTop:2},state:{width:'100%',maxWidth:540,alignSelf:'center',marginVertical:60,padding:22,borderRadius:20,borderWidth:1,borderColor:C.line,backgroundColor:C.white,alignItems:'center',gap:9},stateLogo:{width:82,height:82,borderRadius:21},stateTitle:{fontSize:17,fontWeight:'900',color:C.navy,textAlign:'center'},stateText:{fontSize:9.5,lineHeight:14,color:C.muted,textAlign:'center'},retry:{minHeight:42,borderRadius:10,backgroundColor:C.blue,paddingHorizontal:15,alignItems:'center',justifyContent:'center'},retryText:{fontSize:9,fontWeight:'900',color:C.white},
 });
