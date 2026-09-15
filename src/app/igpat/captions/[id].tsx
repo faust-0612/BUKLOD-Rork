@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -14,15 +14,28 @@ import {
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 
+type TranslationRow = {
+  language?: string | null;
+  text?: string | null;
+  updated_at?: string | null;
+};
+
 type CaptionPayload = {
   configured?: boolean;
   is_owner?: boolean;
   language?: string | null;
   caption_text?: string | null;
   segments?: unknown[] | null;
+  translations?: Record<string, TranslationRow> | null;
   is_visible?: boolean;
   updated_at?: string | null;
 };
+
+const TRANSLATION_TARGETS = [
+  { key: 'en', label: 'English' },
+  { key: 'fil', label: 'Filipino' },
+  { key: 'ceb', label: 'Cebuano' },
+] as const;
 
 export default function IgpatCaptionsScreen() {
   const { user } = useAuth();
@@ -33,7 +46,16 @@ export default function IgpatCaptionsScreen() {
   const [visible, setVisible] = useState(true);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [translating, setTranslating] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const translations = useMemo(() => {
+    const raw = payload?.translations;
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return [];
+    return TRANSLATION_TARGETS
+      .map(target => ({ target, row: raw[target.key] }))
+      .filter(item => Boolean(item.row?.text?.trim()));
+  }, [payload?.translations]);
 
   const load = useCallback(async () => {
     if (!postId || !user?.id) {
@@ -67,17 +89,17 @@ export default function IgpatCaptionsScreen() {
   }, [load]);
 
   const generate = async () => {
-    if (!postId || busy) return;
+    if (!postId || busy || translating) return;
     setBusy(true);
     setError(null);
     try {
       const { data, error: invokeError } = await supabase.functions.invoke('buklod-igpat-captions', {
-        body: { post_id: postId },
+        body: { post_id: postId, action: 'transcribe' },
       });
       if (invokeError) throw invokeError;
       if ((data as any)?.error) throw new Error(String((data as any).error));
       await load();
-      Alert.alert('IGPAT Captions', 'Automatic captions are ready. Review and correct them before leaving them visible.');
+      Alert.alert('IGPAT Captions', 'Automatic captions are ready. Review and correct them before relying on them.');
     } catch (generateError: any) {
       const message = String(generateError?.message ?? generateError ?? 'Caption generation failed.');
       console.warn('BUKLOD IGPAT caption generation:', message);
@@ -88,8 +110,34 @@ export default function IgpatCaptionsScreen() {
     }
   };
 
+  const generateTranslation = async (targetLanguage: string, targetLabel: string) => {
+    if (!postId || busy || translating || !payload?.is_owner || !payload?.configured) return;
+    setTranslating(targetLanguage);
+    setError(null);
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke('buklod-igpat-captions', {
+        body: {
+          post_id: postId,
+          action: 'translate',
+          target_language: targetLanguage,
+        },
+      });
+      if (invokeError) throw invokeError;
+      if ((data as any)?.error) throw new Error(String((data as any).error));
+      await load();
+      Alert.alert('IGPAT Translation', `${targetLabel} translation is ready.`);
+    } catch (translationError: any) {
+      const message = String(translationError?.message ?? translationError ?? 'Translation failed.');
+      console.warn('BUKLOD IGPAT translation:', message);
+      setError(message);
+      Alert.alert('Could Not Translate Captions', message);
+    } finally {
+      setTranslating(null);
+    }
+  };
+
   const save = async () => {
-    if (!postId || busy || !payload?.is_owner || !payload?.configured) return;
+    if (!postId || busy || translating || !payload?.is_owner || !payload?.configured) return;
     setBusy(true);
     setError(null);
     try {
@@ -106,7 +154,7 @@ export default function IgpatCaptionsScreen() {
       setPayload(next);
       setText(String(next.caption_text ?? text));
       setVisible(next.is_visible !== false);
-      Alert.alert('IGPAT Captions', 'Caption changes saved. Manual corrections now use the corrected full-text caption instead of stale AI timestamps.');
+      Alert.alert('IGPAT Captions', 'Caption changes saved. Manual corrections clear stale timing and translations so they can be regenerated from the corrected text.');
     } catch (saveError: any) {
       const message = String(saveError?.message ?? saveError ?? 'Could not save captions.');
       console.warn('BUKLOD IGPAT caption save:', message);
@@ -115,6 +163,21 @@ export default function IgpatCaptionsScreen() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const renderTranslations = () => {
+    if (!translations.length) return null;
+    return (
+      <View style={styles.translationList}>
+        <Text style={styles.label}>AVAILABLE TRANSLATIONS</Text>
+        {translations.map(({ target, row }) => (
+          <View key={target.key} style={styles.translationCard} accessible accessibilityLabel={`${target.label} translation`}>
+            <Text style={styles.translationTitle}>{target.label.toUpperCase()}</Text>
+            <Text selectable style={styles.translationText}>{String(row?.text ?? '')}</Text>
+          </View>
+        ))}
+      </View>
+    );
   };
 
   return (
@@ -126,7 +189,7 @@ export default function IgpatCaptionsScreen() {
         <View style={styles.headerCopy}>
           <Text style={styles.eyebrow}>BUKLOD IGPAT</Text>
           <Text style={styles.title}>Captions</Text>
-          <Text style={styles.subtitle}>Optional speech captions with creator review. Tagalog, English and Taglish may remain as spoken.</Text>
+          <Text style={styles.subtitle}>Optional speech captions with creator review and approved translations. Filipino, English, Cebuano and mixed speech may remain as spoken.</Text>
         </View>
       </View>
 
@@ -134,7 +197,7 @@ export default function IgpatCaptionsScreen() {
         <MaterialCommunityIcons name="closed-caption-outline" size={20} color="#D9FF69" />
         <View style={styles.safetyCopy}>
           <Text style={styles.safetyTitle}>CREATOR CONTROLLED</Text>
-          <Text style={styles.safetyText}>Automatic captions are assistance, not a guaranteed transcript. Review them before relying on them. Videos that are too large for the safe caption worker remain publishable without captions.</Text>
+          <Text style={styles.safetyText}>Automatic captions and translations are assistance, not guaranteed transcripts. Review them before relying on them. Videos too large for the safe caption worker remain publishable without captions.</Text>
         </View>
       </View>
 
@@ -143,14 +206,14 @@ export default function IgpatCaptionsScreen() {
       ) : error && !payload ? (
         <View style={styles.stateCard}>
           <Text style={styles.stateText}>{error}</Text>
-          <Pressable style={styles.retryButton} onPress={() => void load()}><Text style={styles.retryText}>RETRY</Text></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Retry captions" style={styles.retryButton} onPress={() => void load()}><Text style={styles.retryText}>RETRY</Text></Pressable>
         </View>
       ) : payload?.is_owner ? (
         <View style={styles.editor}>
           {!payload.configured ? (
             <View style={styles.stateCard}>
               <Text style={styles.stateText}>No caption track has been generated for this IGPAT yet.</Text>
-              <Pressable disabled={busy} style={styles.primaryButton} onPress={() => void generate()}>
+              <Pressable accessibilityRole="button" disabled={busy} style={styles.primaryButton} onPress={() => void generate()}>
                 {busy ? <ActivityIndicator color="#07100B" /> : <MaterialCommunityIcons name="auto-fix" size={18} color="#07100B" />}
                 <Text style={styles.primaryText}>GENERATE CAPTIONS</Text>
               </Pressable>
@@ -167,18 +230,19 @@ export default function IgpatCaptionsScreen() {
                 value={text}
                 onChangeText={value => setText(value.slice(0, 12000))}
                 multiline
-                editable={!busy}
+                editable={!busy && !translating}
                 placeholder="Correct the transcript here"
                 placeholderTextColor="rgba(255,255,255,0.35)"
                 style={styles.input}
                 textAlignVertical="top"
+                accessibilityLabel="IGPAT caption text"
               />
               <Text style={styles.count}>{text.length.toLocaleString()} / 12,000</Text>
 
               <Pressable
                 accessibilityRole="switch"
                 accessibilityState={{ checked: visible }}
-                disabled={busy}
+                disabled={busy || Boolean(translating)}
                 onPress={() => setVisible(value => !value)}
                 style={[styles.visibilityButton, visible && styles.visibilityButtonActive]}
               >
@@ -189,14 +253,33 @@ export default function IgpatCaptionsScreen() {
                 </View>
               </Pressable>
 
+              <Text style={styles.label}>TRANSLATE CORRECTED CAPTION</Text>
+              <Text style={styles.helper}>Generate only the languages you want to make available. Editing the source caption later clears translations so stale text is never served.</Text>
+              <View style={styles.translationButtons}>
+                {TRANSLATION_TARGETS.map(target => (
+                  <Pressable
+                    key={target.key}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Generate ${target.label} caption translation`}
+                    disabled={busy || Boolean(translating) || !text.trim()}
+                    onPress={() => void generateTranslation(target.key, target.label)}
+                    style={styles.translationButton}
+                  >
+                    {translating === target.key ? <ActivityIndicator size="small" color="#FFFFFF" /> : <MaterialCommunityIcons name="translate" size={16} color="#FFFFFF" />}
+                    <Text style={styles.translationButtonText}>{target.label.toUpperCase()}</Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              {renderTranslations()}
               {!!error && <Text style={styles.inlineError}>{error}</Text>}
 
               <View style={styles.actions}>
-                <Pressable disabled={busy} style={styles.secondaryButton} onPress={() => void generate()}>
+                <Pressable accessibilityRole="button" disabled={busy || Boolean(translating)} style={styles.secondaryButton} onPress={() => void generate()}>
                   <MaterialCommunityIcons name="refresh" size={17} color="#FFFFFF" />
                   <Text style={styles.secondaryText}>REGENERATE</Text>
                 </Pressable>
-                <Pressable disabled={busy} style={styles.primaryButton} onPress={() => void save()}>
+                <Pressable accessibilityRole="button" disabled={busy || Boolean(translating)} style={styles.primaryButton} onPress={() => void save()}>
                   {busy ? <ActivityIndicator color="#07100B" /> : <MaterialCommunityIcons name="content-save-outline" size={17} color="#07100B" />}
                   <Text style={styles.primaryText}>SAVE</Text>
                 </Pressable>
@@ -205,9 +288,13 @@ export default function IgpatCaptionsScreen() {
           )}
         </View>
       ) : payload?.configured ? (
-        <View style={styles.stateCard}>
-          <Text style={styles.viewerCaption}>{String(payload.caption_text ?? '') || 'No intelligible speech was detected.'}</Text>
-          <Text style={styles.stateText}>Caption management is available only to the IGPAT creator.</Text>
+        <View style={styles.viewerSection}>
+          <View style={styles.stateCard}>
+            <Text style={styles.viewerLabel}>ORIGINAL CAPTION</Text>
+            <Text selectable style={styles.viewerCaption}>{String(payload.caption_text ?? '') || 'No intelligible speech was detected.'}</Text>
+            <Text style={styles.stateText}>Caption management is available only to the IGPAT creator.</Text>
+          </View>
+          {renderTranslations()}
         </View>
       ) : (
         <View style={styles.stateCard}><Text style={styles.stateText}>This IGPAT does not have a visible caption track.</Text></View>
@@ -220,7 +307,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#050807' },
   content: { padding: 18, paddingTop: 54, paddingBottom: 48 },
   headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  backButton: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', backgroundColor: '#0D120F' },
+  backButton: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', backgroundColor: '#0D120F' },
   headerCopy: { flex: 1 },
   eyebrow: { color: 'rgba(255,255,255,0.46)', fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
   title: { marginTop: 4, color: '#FFFFFF', fontSize: 26, fontWeight: '900' },
@@ -232,12 +319,14 @@ const styles = StyleSheet.create({
   centerState: { marginTop: 40, alignItems: 'center', gap: 10 },
   stateCard: { marginTop: 18, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: '#0D120F', padding: 18 },
   stateText: { color: 'rgba(255,255,255,0.62)', fontSize: 10.5, lineHeight: 17, textAlign: 'center' },
-  retryButton: { marginTop: 13, alignSelf: 'center', paddingHorizontal: 17, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.20)' },
+  retryButton: { marginTop: 13, alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: 17, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.20)' },
   retryText: { color: '#FFFFFF', fontSize: 8.5, fontWeight: '900', letterSpacing: 0.7 },
   editor: { marginTop: 18 },
+  viewerSection: { marginTop: 2 },
   metaRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 8, marginBottom: 12 },
   metaText: { color: 'rgba(255,255,255,0.42)', fontSize: 8, fontWeight: '900', letterSpacing: 0.5 },
-  label: { color: '#FFFFFF', fontSize: 9, fontWeight: '900', letterSpacing: 0.7, marginBottom: 7 },
+  label: { color: '#FFFFFF', fontSize: 9, fontWeight: '900', letterSpacing: 0.7, marginTop: 16, marginBottom: 7 },
+  helper: { marginTop: -2, marginBottom: 8, color: 'rgba(255,255,255,0.44)', fontSize: 8.5, lineHeight: 13 },
   input: { minHeight: 190, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', backgroundColor: '#0D120F', color: '#FFFFFF', padding: 14, fontSize: 12, lineHeight: 18 },
   count: { marginTop: 6, textAlign: 'right', color: 'rgba(255,255,255,0.34)', fontSize: 8.5 },
   visibilityButton: { marginTop: 14, minHeight: 66, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', backgroundColor: '#0D120F', flexDirection: 'row', alignItems: 'center', padding: 13, gap: 10 },
@@ -247,11 +336,19 @@ const styles = StyleSheet.create({
   visibilityTitleActive: { color: '#07100B' },
   visibilityHint: { marginTop: 3, color: 'rgba(255,255,255,0.45)', fontSize: 8.5 },
   visibilityHintActive: { color: 'rgba(7,16,11,0.62)' },
+  translationButtons: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  translationButton: { minHeight: 44, flexGrow: 1, minWidth: '30%', borderRadius: 13, borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', backgroundColor: '#0D120F', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 9 },
+  translationButtonText: { color: '#FFFFFF', fontSize: 8, fontWeight: '900', letterSpacing: 0.5 },
+  translationList: { marginTop: 8 },
+  translationCard: { marginTop: 8, borderRadius: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: '#0D120F', padding: 13 },
+  translationTitle: { color: '#D9FF69', fontSize: 8.5, fontWeight: '900', letterSpacing: 0.7 },
+  translationText: { marginTop: 7, color: '#FFFFFF', fontSize: 12, lineHeight: 19 },
   inlineError: { marginTop: 12, color: '#FFB4A8', fontSize: 9.5, lineHeight: 15 },
   actions: { marginTop: 16, flexDirection: 'row', gap: 9 },
-  primaryButton: { flex: 1, minHeight: 46, borderRadius: 14, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 14 },
+  primaryButton: { flex: 1, minHeight: 48, borderRadius: 14, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 14 },
   primaryText: { color: '#07100B', fontSize: 9, fontWeight: '900', letterSpacing: 0.7 },
-  secondaryButton: { flex: 1, minHeight: 46, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', backgroundColor: '#0D120F', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 14 },
+  secondaryButton: { flex: 1, minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', backgroundColor: '#0D120F', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 14 },
   secondaryText: { color: '#FFFFFF', fontSize: 9, fontWeight: '900', letterSpacing: 0.7 },
-  viewerCaption: { color: '#FFFFFF', fontSize: 14, lineHeight: 22, fontWeight: '700', marginBottom: 14 },
+  viewerLabel: { color: '#D9FF69', fontSize: 8.5, fontWeight: '900', letterSpacing: 0.7 },
+  viewerCaption: { marginTop: 7, color: '#FFFFFF', fontSize: 14, lineHeight: 22, fontWeight: '700', marginBottom: 14 },
 });
