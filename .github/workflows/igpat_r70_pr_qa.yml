@@ -1,0 +1,51 @@
+name: BUKLOD Main - IGPAT R70 PR QA
+
+on:
+  pull_request:
+    paths:
+      - 'src/app/igpat/**'
+      - 'src/lib/igpat/**'
+      - 'src/components/CommunityVideo.tsx'
+      - 'src/components/IgpatSponsoredFeedPage.tsx'
+      - 'supabase/migrations/*igpat*'
+      - 'supabase/functions/buklod-igpat-captions/**'
+      - 'scripts/igpat-*'
+      - '.github/workflows/igpat_*'
+
+permissions:
+  contents: read
+
+jobs:
+  igpat-pre-release-qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Enforce BUKLOD app boundaries
+        run: node scripts/verify-buklod-app-boundaries.cjs
+      - name: IGPAT SQL contract
+        run: node scripts/igpat-sql-contract.mjs
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+      - name: IGPAT release contract
+        run: node scripts/igpat-release-contract.mjs
+      - name: IGPAT focused tests
+        run: npx jest --runInBand src/lib/igpat/__tests__
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Web export compatibility
+        run: npx expo export --platform web --output-dir dist --clear
+      - name: Bundle contract
+        run: |
+          test -f dist/index.html
+          grep -R -F 'An Instant Bond.' dist/_expo/static/js/web >/dev/null
+          grep -R -F 'COMMUNITY REVEAL' dist/_expo/static/js/web >/dev/null
+          grep -R -F 'Creator Analytics' dist/_expo/static/js/web >/dev/null
+          grep -R -F 'IGPAT Arena' dist/_expo/static/js/web >/dev/null
+          grep -R -F 'Squad vs Squad' dist/_expo/static/js/web >/dev/null
+          grep -R -F 'Last Man Standing' dist/_expo/static/js/web >/dev/null
