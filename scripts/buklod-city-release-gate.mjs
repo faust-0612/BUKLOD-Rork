@@ -74,12 +74,11 @@ function requireCommittedBlob(rel, expectedBlob) {
 }
 
 function newestMtime(files) {
-  return Math.max(
-    ...files
-      .map(rel => path.join(root, rel))
-      .filter(file => fs.existsSync(file))
-      .map(file => fs.statSync(file).mtimeMs),
-  );
+  const mtimes = files
+    .map(rel => path.join(root, rel))
+    .filter(file => fs.existsSync(file))
+    .map(file => fs.statSync(file).mtimeMs);
+  return mtimes.length ? Math.max(...mtimes) : Number.NaN;
 }
 
 const criticalSources = [
@@ -177,22 +176,31 @@ if (!fs.existsSync(distIndex)) failures.push('Missing dist/index.html. Export sp
 if (!fs.existsSync(distMetadata)) failures.push('Missing dist/metadata.json. Export specifically to dist before deploy.');
 if (!fs.existsSync(bundleDir)) failures.push('Missing dist/_expo/static/js/web. Export specifically to dist before deploy.');
 
-if (fs.existsSync(distIndex)) {
-  const distMtime = fs.statSync(distIndex).mtimeMs;
-  const ageMinutes = (Date.now() - distMtime) / 60000;
+let bundleFiles = [];
+if (fs.existsSync(bundleDir)) {
+  bundleFiles = fs
+    .readdirSync(bundleDir)
+    .filter(name => name.endsWith('.js'))
+    .map(name => path.join(bundleDir, name));
+  if (!bundleFiles.length) failures.push('No web JS bundle found under dist/_expo/static/js/web.');
+}
+
+const exportArtifacts = [distIndex, distMetadata, ...bundleFiles].filter(file => fs.existsSync(file));
+if (exportArtifacts.length) {
+  const newestExportMtime = Math.max(...exportArtifacts.map(file => fs.statSync(file).mtimeMs));
+  const ageMinutes = (Date.now() - newestExportMtime) / 60000;
+
   if (ageMinutes > 15) {
-    failures.push(`dist/index.html is stale (${ageMinutes.toFixed(1)} minutes old). Re-export to dist immediately before deploy.`);
+    failures.push(
+      `Latest web export artifact is stale (${ageMinutes.toFixed(1)} minutes old). ` +
+      'Re-export to dist immediately before deploy.',
+    );
   }
 
   const sourceMtime = newestMtime(criticalSources);
-  if (Number.isFinite(sourceMtime) && distMtime + 1000 < sourceMtime) {
+  if (Number.isFinite(sourceMtime) && newestExportMtime + 1000 < sourceMtime) {
     failures.push('dist is older than a critical City/Home source file. Re-export to dist before deploy.');
   }
-}
-
-if (fs.existsSync(bundleDir)) {
-  const bundles = fs.readdirSync(bundleDir).filter(name => name.endsWith('.js'));
-  if (!bundles.length) failures.push('No web JS bundle found under dist/_expo/static/js/web.');
 }
 
 if (failures.length) {
