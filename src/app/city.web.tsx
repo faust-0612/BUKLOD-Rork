@@ -19,7 +19,6 @@ import {
   BuklodCityPoint,
   cityLayerForPoint,
   createBuklodCityMapItem,
-  getBuklodCityPointRoute,
   getBuklodCitySnapshot,
   setBuklodCityPresence,
   setBuklodCityScopeLocation,
@@ -90,7 +89,6 @@ export default function BuklodCityWeb() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [locality, setLocality] = useState('ALL');
-  const [myPlacesOnly, setMyPlacesOnly] = useState(false);
   const [expandedMap, setExpandedMap] = useState(false);
   const [activeLayers, setActiveLayers] = useState<Set<BuklodCityLayer>>(() => new Set(LAYERS.map(layer => layer.key)));
 
@@ -135,12 +133,11 @@ export default function BuklodCityWeb() {
     const q = search.trim().toLowerCase();
     return allPoints.filter(point => {
       if (!activeLayers.has(cityLayerForPoint(point))) return false;
-      if (myPlacesOnly && !pointMatchesMyPlaces(point)) return false;
       if (locality !== 'ALL' && point.kind === 'INSTITUTION' && point.locality !== locality) return false;
       if (!q) return true;
       return [point.title, point.subtitle, point.description, point.locality, point.category].some(value => String(value || '').toLowerCase().includes(q));
     });
-  }, [activeLayers, allPoints, locality, myPlacesOnly, search]);
+  }, [activeLayers, allPoints, locality, search]);
 
   const mappedMyPlace = useMemo(() => visiblePoints.find(pointMatchesMyPlaces) ?? visiblePoints[0] ?? null, [visiblePoints]);
   const bulletinLocality = mappedMyPlace?.locality || (locality !== 'ALL' ? locality : null);
@@ -232,7 +229,6 @@ export default function BuklodCityWeb() {
   };
 
   const hasMyPresence = snapshot.people.some(point => point.isMe);
-  const desktop = width >= 1040;
   const mobile = width < 720;
 
   return (
@@ -275,7 +271,6 @@ export default function BuklodCityWeb() {
         <View style={styles.toolbarCard}>
           <View style={styles.searchRow}>
             <View style={[styles.searchBox, mobile && styles.searchBoxMobile]}><MaterialCommunityIcons name="magnify" size={20} color="#668096" /><TextInput value={search} onChangeText={setSearch} placeholder="Search BUKLOD places, services, events…" placeholderTextColor="#8292A2" style={styles.searchInput} /></View>
-            <CityButton label={myPlacesOnly ? 'Showing My Places' : 'My Places'} icon="heart" filled={myPlacesOnly} onPress={() => setMyPlacesOnly(value => !value)} />
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
             {LAYERS.map(layer => <Pressable key={layer.key} onPress={() => toggleLayer(layer.key)} style={[styles.layerChip, activeLayers.has(layer.key) && styles.layerChipActive]}><MaterialCommunityIcons name={layer.icon} size={16} color={activeLayers.has(layer.key) ? '#FFFFFF' : '#48667D'} /><Text style={[styles.layerChipText, activeLayers.has(layer.key) && styles.layerChipTextActive]}>{layer.label}</Text></Pressable>)}
@@ -283,27 +278,11 @@ export default function BuklodCityWeb() {
           {localities.length ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.localityRow}><Pressable onPress={() => setLocality('ALL')} style={[styles.localityChip, locality === 'ALL' && styles.localityChipActive]}><Text style={[styles.localityText, locality === 'ALL' && styles.localityTextActive]}>All localities</Text></Pressable>{localities.map(value => <Pressable key={value} onPress={() => setLocality(value)} style={[styles.localityChip, locality === value && styles.localityChipActive]}><Text style={[styles.localityText, locality === value && styles.localityTextActive]}>{value}</Text></Pressable>)}</ScrollView> : null}
         </View>
 
-        <View style={[styles.cityWorkArea, desktop && styles.cityWorkAreaDesktop]}>
+        <View style={styles.cityWorkArea}>
           <View style={styles.mapColumn}>
             {loading ? <View style={styles.loadingMap}><ActivityIndicator size="large" color="#177552" /><Text style={styles.loadingText}>Loading your real BUKLOD community…</Text></View> : <BuklodCityMap points={visiblePoints} center={mappedMyPlace ? { latitude: mappedMyPlace.latitude, longitude: mappedMyPlace.longitude } : null} expanded={expandedMap} onExpandedChange={setExpandedMap} onShareLocation={() => setPresenceOpen(true)} onManagePlace={() => setManageOpen(true)} canManagePlace={Boolean(managedScopes.length)} />}
             <View style={[styles.mapFooter, mobile && styles.mapFooterMobile]}><Text style={styles.mapFooterText}>{visiblePoints.length} visible map item{visiblePoints.length === 1 ? '' : 's'} · tap the map to open full screen</Text><Text style={styles.osmText}>Map © OpenStreetMap contributors</Text></View>
           </View>
-
-          {!expandedMap ? <View style={[styles.directoryColumn, mobile && styles.directoryColumnMobile]}>
-            <View style={styles.sectionHeading}><View><Text style={styles.eyebrow}>CITY DIRECTORY</Text><Text style={styles.sectionTitle}>What is here now</Text></View><Text style={styles.countPill}>{visiblePoints.length}</Text></View>
-            <ScrollView style={styles.directoryScroll} nestedScrollEnabled>
-              {visiblePoints.slice(0, 28).map(point => {
-                const route = getBuklodCityPointRoute(point);
-                const tone = CATEGORY_TONE[String(point.category)] ?? '#35679D';
-                return <Pressable key={`${point.kind}-${point.id}`} disabled={!route} onPress={() => route && router.push(route as any)} style={({ pressed }) => [styles.placeCard, pressed && route && styles.pressed]}>
-                  <View style={[styles.placeIcon, { backgroundColor: `${tone}18` }]}><MaterialCommunityIcons name={point.kind === 'PERSON' ? 'account' : point.kind === 'EVENT' ? 'calendar-star' : point.kind === 'SERVICE' ? 'hand-heart-outline' : point.kind === 'BAYANIHAN' ? 'account-group-outline' : 'map-marker-radius-outline'} size={21} color={tone} /></View>
-                  <View style={styles.placeCopy}><Text style={styles.placeTitle}>{point.title}</Text><Text numberOfLines={2} style={styles.placeMeta}>{point.subtitle || point.locality || String(point.category)}</Text><View style={styles.placeFlags}>{point.verified ? <Text style={styles.verifiedFlag}>VERIFIED</Text> : null}{point.isMember ? <Text style={styles.memberFlag}>MY PLACE</Text> : null}{point.isMe ? <Text style={styles.memberFlag}>YOU</Text> : null}</View></View>
-                  {route ? <MaterialCommunityIcons name="chevron-right" size={18} color="#7A8B9C" /> : null}
-                </Pressable>;
-              })}
-              {!visiblePoints.length && !loading ? <View style={styles.emptyBox}><MaterialCommunityIcons name="map-marker-off-outline" size={34} color="#8296A8" /><Text style={styles.emptyTitle}>No matching mapped records yet</Text><Text style={styles.emptyText}>A verified/admin-managed BUKLOD space can publish its real place. We do not generate fake pins.</Text></View> : null}
-            </ScrollView>
-          </View> : null}
         </View>
 
         <BuklodCommunityBulletin
@@ -389,32 +368,14 @@ const styles = StyleSheet.create({
   localityChipActive: { backgroundColor: '#E8F7F0', borderColor: '#A9D9C4' },
   localityText: { color: '#61778A', fontSize: 10, fontWeight: '800' },
   localityTextActive: { color: '#177552' },
-  cityWorkArea: { gap: 12, marginBottom: 14 },
-  cityWorkAreaDesktop: { flexDirection: 'row', alignItems: 'stretch' },
-  mapColumn: { flex: 1.75, minWidth: 0 },
-  directoryColumn: { flex: 0.85, minWidth: 320, maxHeight: 510, padding: 12, borderRadius: 22, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E1E9EF' },
-  directoryColumnMobile: { flex: 0, minWidth: 0, width: '100%', maxHeight: 460 },
-  directoryScroll: { flex: 1 },
-  sectionHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  sectionTitle: { fontSize: 18, fontWeight: '900', color: '#20384B' },
-  countPill: { minWidth: 30, paddingHorizontal: 8, paddingVertical: 5, textAlign: 'center', borderRadius: 999, color: '#1767D2', backgroundColor: '#EAF3FF', fontSize: 10, fontWeight: '900' },
+  cityWorkArea: { marginBottom: 10 },
+  mapColumn: { minWidth: 0 },
   loadingMap: { height: 250, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: '#EAF2F4' },
   loadingText: { marginTop: 10, color: '#657C8E', fontSize: 12 },
   mapFooter: { flexDirection: 'row', justifyContent: 'space-between', gap: 10, paddingHorizontal: 4, paddingTop: 7 },
   mapFooterMobile: { flexDirection: 'column', gap: 3 },
   mapFooterText: { flex: 1, minWidth: 0, fontSize: 9, color: '#748695' },
   osmText: { fontSize: 9, color: '#748695' },
-  placeCard: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E7EDF1' },
-  placeIcon: { width: 38, height: 38, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  placeCopy: { flex: 1, minWidth: 0 },
-  placeTitle: { fontSize: 12, fontWeight: '900', color: '#253D50' },
-  placeMeta: { marginTop: 2, color: '#748695', fontSize: 9, lineHeight: 13 },
-  placeFlags: { flexDirection: 'row', gap: 5, marginTop: 4, flexWrap: 'wrap' },
-  verifiedFlag: { color: '#177552', backgroundColor: '#E8F7F0', borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2, fontSize: 7, fontWeight: '900' },
-  memberFlag: { color: '#1767D2', backgroundColor: '#EAF3FF', borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2, fontSize: 7, fontWeight: '900' },
-  emptyBox: { padding: 28, alignItems: 'center' },
-  emptyTitle: { marginTop: 8, fontSize: 13, fontWeight: '900', color: '#354D60' },
-  emptyText: { marginTop: 5, textAlign: 'center', fontSize: 10, lineHeight: 15, color: '#7A8C9B' },
   modalBackdrop: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15,30,42,.42)', alignItems: 'center', justifyContent: 'center', padding: 20 },
   modalBackdropMobile: { padding: 10 },
   modalCard: { width: '100%', maxWidth: 680, maxHeight: '92%', padding: 20, borderRadius: 24, backgroundColor: '#FFFFFF', boxShadow: '0 20px 70px rgba(10,30,50,.25)' } as any,
