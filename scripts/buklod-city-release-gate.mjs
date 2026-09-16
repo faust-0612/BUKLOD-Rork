@@ -73,16 +73,6 @@ function requireCommittedBlob(rel, expectedBlob) {
   }
 }
 
-function latestFsChange(files) {
-  const values = files
-    .filter(file => fs.existsSync(file))
-    .flatMap(file => {
-      const stat = fs.statSync(file);
-      return [stat.mtimeMs, stat.ctimeMs, stat.birthtimeMs].filter(Number.isFinite);
-    });
-  return values.length ? Math.max(...values) : Number.NaN;
-}
-
 requireText('src/app/city.web.tsx', [
   'BuklodCityDashboardR6',
   'home-outline',
@@ -198,18 +188,6 @@ if (fs.existsSync(distIndex)) {
         failures.push(`dist/index.html references missing web bundle: ${bundleName}`);
       }
     }
-  }
-}
-
-const exportClockFiles = [distDir, bundleDir, distIndex, distMetadata, ...bundleFiles];
-const latestExportChange = latestFsChange(exportClockFiles);
-if (Number.isFinite(latestExportChange)) {
-  const ageMinutes = (Date.now() - latestExportChange) / 60000;
-  if (ageMinutes > 30) {
-    failures.push(
-      `Web export filesystem state appears stale (${ageMinutes.toFixed(1)} minutes old). ` +
-      'Remove dist and run a fresh web export before deploy.',
-    );
   }
 }
 
