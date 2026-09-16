@@ -1293,12 +1293,6 @@ export default function MeScreen() {
         onPress: () => router.push('/profile/attendance-qr' as any),
       },
       {
-        key: 'classrooms',
-        icon: 'google-classroom',
-        label: 'My Classrooms',
-        onPress: () => router.push('/profile/buklod-classrooms' as any),
-      },
-      {
         key: 'organization',
         icon: 'domain',
         label: 'Organization',

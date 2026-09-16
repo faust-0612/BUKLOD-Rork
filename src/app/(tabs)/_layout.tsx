@@ -154,33 +154,6 @@ function SwipeDashboardHeader() {
           <>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Open BUKLOD City"
-              accessibilityHint="Opens the BUKLOD City community shell"
-              hitSlop={8}
-              onPress={() =>
-                router.push(
-                  '/city' as any
-                )
-              }
-              style={({ pressed }) => ({
-                width: 38,
-                height: 38,
-                borderRadius: 19,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: theme.surface,
-                opacity: pressed ? 0.72 : 1,
-              })}
-            >
-              <MaterialCommunityIcons
-                name="city-variant-outline"
-                size={22}
-                color={theme.accent}
-              />
-            </Pressable>
-
-            <Pressable
-              accessibilityRole="button"
               accessibilityLabel={
                 unreadCount > 0
                   ? `Notifications, ${unreadCount} unread`
