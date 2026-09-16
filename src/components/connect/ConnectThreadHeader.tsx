@@ -178,6 +178,7 @@ export function ConnectThreadHeader({
           userId={otherUserId}
           name={title}
           size={36}
+          onPress={null}
         />
       )}
 
