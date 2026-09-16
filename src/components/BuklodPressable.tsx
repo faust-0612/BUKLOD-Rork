@@ -48,6 +48,9 @@ export default function BuklodPressable({
   onPressOut,
   onLongPress,
   onTouchMove,
+  onTouchCancel,
+  onResponderMove,
+  onResponderTerminate,
   disabled,
   android_ripple,
   delayLongPress = BUKLOD_LONG_PRESS_MS,
@@ -90,6 +93,10 @@ export default function BuklodPressable({
     }
   };
 
+  const cancelPress = () => {
+    cancelled.current = true;
+  };
+
   return (
     <Pressable
       {...rest}
@@ -113,6 +120,18 @@ export default function BuklodPressable({
         trackMovement(event);
         onTouchMove?.(event);
       }}
+      onResponderMove={event => {
+        trackMovement(event);
+        onResponderMove?.(event);
+      }}
+      onTouchCancel={event => {
+        cancelPress();
+        onTouchCancel?.(event);
+      }}
+      onResponderTerminate={event => {
+        cancelPress();
+        onResponderTerminate?.(event);
+      }}
       onPressIn={event => {
         if (nested) {
           stopBuklodNestedPress(event);
@@ -122,6 +141,10 @@ export default function BuklodPressable({
         onPressIn?.(event);
       }}
       onPressOut={event => {
+        // Some ScrollView/FlatList responder paths do not reliably deliver
+        // every touch-move event to the child Pressable. Re-check the final
+        // release position so a drag/flick cannot fall through as a tap.
+        trackMovement(event);
         onPressOut?.(event);
       }}
       onLongPress={
@@ -131,6 +154,7 @@ export default function BuklodPressable({
                 stopBuklodNestedPress(event);
               }
 
+              trackMovement(event);
               if (cancelled.current || disabled) {
                 return;
               }
@@ -144,6 +168,10 @@ export default function BuklodPressable({
         if (nested) {
           stopBuklodNestedPress(event);
         }
+
+        // Final-position verification is the last safety net for web/PWA and
+        // nested scroll containers where onTouchMove may be interrupted.
+        trackMovement(event);
 
         if (
           disabled ||
