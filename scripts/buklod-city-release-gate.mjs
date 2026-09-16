@@ -23,6 +23,13 @@ function requireText(rel, needles) {
   }
 }
 
+function requirePattern(rel, pattern, label) {
+  const text = read(rel);
+  if (!pattern.test(text)) {
+    failures.push(`${rel} is missing required release anchor: ${label}`);
+  }
+}
+
 function newestMtime(files) {
   return Math.max(
     ...files
@@ -79,7 +86,11 @@ requireText('src/components/BuklodCommunityBulletinR6.web.tsx', [
   'onOpenMapItem',
 ]);
 
-requireText('src/app/index.web.tsx', ["'/city'"]);
+requirePattern(
+  'src/app/index.web.tsx',
+  /<Redirect\s+href=["']\/city["']\s*\/>/,
+  '<Redirect href="/city" />',
+);
 
 let head = 'unknown';
 try {
