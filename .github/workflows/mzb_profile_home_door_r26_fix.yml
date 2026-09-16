@@ -1,14 +1,9 @@
 # R26 guarded source-only fix: MZB Ministry Inc profile door -> Organization Home
-# retrigger after workflow registration
+# GitHub Actions credits guard: manual dispatch only while runner credits are exhausted.
 name: BUKLOD MZB Profile Home Door R26 Fix
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/mzb_profile_home_door_r26_fix.yml'
 
 permissions:
   contents: write
