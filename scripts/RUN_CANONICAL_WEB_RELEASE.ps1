@@ -92,8 +92,33 @@ try {
   & git switch main
   if ($LASTEXITCODE -ne 0) { Fail 'Could not switch canonical SOURCE to main.' }
 
-  & git pull --ff-only origin main
-  if ($LASTEXITCODE -ne 0) { Fail 'Could not update canonical SOURCE main.' }
+  $localMainBefore = (& git rev-parse HEAD).Trim()
+  $originMainBefore = (& git rev-parse origin/main).Trim()
+  if (-not [string]::IsNullOrWhiteSpace($ExpectedSourceSha) -and $originMainBefore -ne $ExpectedSourceSha.Trim()) {
+    Fail "origin/main does not match requested release SHA. Expected=$($ExpectedSourceSha.Trim()) origin/main=$originMainBefore"
+  }
+
+  if ($localMainBefore -ne $originMainBefore) {
+    & git merge-base --is-ancestor $localMainBefore $originMainBefore
+    $localIsAncestor = ($LASTEXITCODE -eq 0)
+
+    if ($localIsAncestor) {
+      Write-Host 'Canonical SOURCE main is behind origin/main; applying verified fast-forward.' -ForegroundColor Yellow
+      & git merge --ff-only origin/main
+      if ($LASTEXITCODE -ne 0) { Fail 'Could not fast-forward canonical SOURCE main.' }
+    } else {
+      $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+      $shortLocal = (& git rev-parse --short=8 $localMainBefore).Trim()
+      $rescueBranch = "rescue/canonical-main-${stamp}-${shortLocal}"
+      Write-Host "Canonical SOURCE main contains local-only history. Preserving it at: $rescueBranch" -ForegroundColor Yellow
+      & git branch $rescueBranch $localMainBefore
+      if ($LASTEXITCODE -ne 0) { Fail 'Could not create rescue branch for local-only canonical SOURCE history.' }
+
+      & git reset --hard origin/main
+      if ($LASTEXITCODE -ne 0) { Fail 'Could not normalize canonical SOURCE main to origin/main after rescue branch creation.' }
+      Write-Host "Local-only history preserved safely at $rescueBranch" -ForegroundColor Green
+    }
+  }
 
   $branch = (& git symbolic-ref --short -q HEAD).Trim()
   $sourceSha = (& git rev-parse HEAD).Trim()
