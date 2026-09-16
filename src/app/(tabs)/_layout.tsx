@@ -392,8 +392,9 @@ export default function TabsLayout() {
   /*
    * BUKLOD_DESKTOP_HOME_3COL_R1
    * Desktop Home only: reserve narrow left/right rails and keep the existing
-   * dashboard intact in a wider center column. Mobile/tablet and all other
-   * routes keep their existing single-column shell unchanged.
+   * dashboard intact in a wider center column. The workspace/navigation tree
+   * stays mounted while route changes occur, preventing tab-state resets.
+   * Mobile/tablet receives no desktop rail styling.
    */
   return (
     <View style={{ flex: 1 }}>
@@ -405,55 +406,61 @@ export default function TabsLayout() {
       >
         <SwipeDashboardHeader />
 
-        {desktopHome ? (
+        <View
+          style={
+            desktopHome
+              ? {
+                  flex: 1,
+                  width: '100%',
+                  maxWidth: 1680,
+                  alignSelf: 'center',
+                  flexDirection: 'row',
+                  alignItems: 'stretch',
+                  paddingHorizontal: 18,
+                  gap: 18,
+                }
+              : {
+                  flex: 1,
+                }
+          }
+        >
+          {desktopHome ? (
+            <View
+              key="desktop-left-rail"
+              pointerEvents="none"
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              style={{
+                flex: 1,
+                minWidth: 0,
+              }}
+            />
+          ) : null}
+
           <View
+            key="workspace-center"
             style={{
-              flex: 1,
-              width: '100%',
-              maxWidth: 1680,
-              alignSelf: 'center',
-              flexDirection: 'row',
-              alignItems: 'stretch',
-              paddingHorizontal: 18,
-              gap: 18,
+              flex: desktopHome ? 2.8 : 1,
+              minWidth: 0,
             }}
           >
-            <View
-              pointerEvents="none"
-              accessibilityElementsHidden
-              importantForAccessibility="no-hide-descendants"
-              style={{
-                flex: 1,
-                minWidth: 0,
-              }}
-            />
-
-            <View
-              style={{
-                flex: 2.8,
-                minWidth: 0,
-              }}
-            >
-              <BuklodDashboardContextBar />
-              {workspaceStack}
-            </View>
-
-            <View
-              pointerEvents="none"
-              accessibilityElementsHidden
-              importantForAccessibility="no-hide-descendants"
-              style={{
-                flex: 1,
-                minWidth: 0,
-              }}
-            />
-          </View>
-        ) : (
-          <>
             <BuklodDashboardContextBar />
             {workspaceStack}
-          </>
-        )}
+          </View>
+
+          {desktopHome ? (
+            <View
+              key="desktop-right-rail"
+              pointerEvents="none"
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              style={{
+                flex: 1,
+                minWidth: 0,
+              }}
+            />
+          ) : null}
+        </View>
       </View>
     </View>
   );
