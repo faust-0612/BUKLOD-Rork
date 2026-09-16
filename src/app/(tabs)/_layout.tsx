@@ -1,6 +1,10 @@
 import BuklodDashboardContextBar from '@/components/BuklodDashboardContextBar';
 import BuklodHeaderSponsor from '@/components/BuklodHeaderSponsor';
 import {
+  BuklodDesktopCharacterPointsRail,
+  BuklodDesktopProfileRail,
+} from '@/components/BuklodDesktopDashboardRails';
+import {
   warmBuklodInterstitial,
 } from '@/lib/buklodAds';
 import {
@@ -392,11 +396,11 @@ export default function TabsLayout() {
   );
 
   /*
-   * BUKLOD_DESKTOP_HOME_3COL_R2
-   * Desktop Community/Home only: reserve narrow left/right rails and keep the
-   * existing dashboard intact in a wider center column. The workspace/navigation
-   * tree stays mounted while route changes occur, preventing tab-state resets.
-   * Mobile/tablet receives no desktop rail styling.
+   * BUKLOD_DESKTOP_HOME_3COL_R3
+   * Desktop Community/Home only: Profile content lives in the left rail,
+   * Community/Home stays in the wider center, and Character + Points live in
+   * the right rail. The workspace/navigation tree stays mounted across route
+   * changes. Mobile/tablet receives no desktop rail styling.
    */
   return (
     <View style={{ flex: 1 }}>
@@ -429,14 +433,14 @@ export default function TabsLayout() {
           {desktopHome ? (
             <View
               key="desktop-left-rail"
-              pointerEvents="none"
-              accessibilityElementsHidden
-              importantForAccessibility="no-hide-descendants"
               style={{
                 flex: 1,
                 minWidth: 0,
+                overflow: 'hidden',
               }}
-            />
+            >
+              <BuklodDesktopProfileRail />
+            </View>
           ) : null}
 
           <View
@@ -453,14 +457,14 @@ export default function TabsLayout() {
           {desktopHome ? (
             <View
               key="desktop-right-rail"
-              pointerEvents="none"
-              accessibilityElementsHidden
-              importantForAccessibility="no-hide-descendants"
               style={{
                 flex: 1,
                 minWidth: 0,
+                overflow: 'hidden',
               }}
-            />
+            >
+              <BuklodDesktopCharacterPointsRail />
+            </View>
           ) : null}
         </View>
       </View>
