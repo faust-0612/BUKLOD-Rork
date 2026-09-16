@@ -366,7 +366,9 @@ export default function TabsLayout() {
     width >= 1200 &&
     (
       pathname === '/home' ||
-      pathname.startsWith('/home/')
+      pathname.startsWith('/home/') ||
+      pathname === '/buklod' ||
+      pathname.startsWith('/buklod/')
     );
 
   const workspaceStack = (
@@ -390,10 +392,10 @@ export default function TabsLayout() {
   );
 
   /*
-   * BUKLOD_DESKTOP_HOME_3COL_R1
-   * Desktop Home only: reserve narrow left/right rails and keep the existing
-   * dashboard intact in a wider center column. The workspace/navigation tree
-   * stays mounted while route changes occur, preventing tab-state resets.
+   * BUKLOD_DESKTOP_HOME_3COL_R2
+   * Desktop Community/Home only: reserve narrow left/right rails and keep the
+   * existing dashboard intact in a wider center column. The workspace/navigation
+   * tree stays mounted while route changes occur, preventing tab-state resets.
    * Mobile/tablet receives no desktop rail styling.
    */
   return (
