@@ -16,6 +16,11 @@ import {
 } from '@/lib/buklodAdDiagnostics';
 
 import {
+  INTERSTITIAL_COOLDOWN_MS,
+  INTERSTITIAL_MIN_EVENT_COUNT,
+} from '@/lib/buklodAdMonetizationPolicy';
+
+import {
   buklodAdsTestMode,
   getBuklodInterstitialUnitId,
 } from '@/lib/buklodAdUnits';
@@ -97,9 +102,8 @@ getBuklodAdsDiagnostics() {
  * - completed lesson/content session
  * - leaving a longer reading session
  *
- * Frequency:
- * - minimum 3 eligible transition events
- * - minimum 12 minute cooldown
+ * Frequency is platform-configured. Android intentionally uses
+ * a heavier cadence while web/iOS retain the conservative defaults.
  * ===========================================================
  */
 
@@ -109,10 +113,11 @@ const INTERSTITIAL_LAST_KEY =
 const INTERSTITIAL_COUNT_KEY =
   '@buklod/ad/interstitial-count';
 
-const MIN_EVENT_COUNT = 3;
+const MIN_EVENT_COUNT =
+  INTERSTITIAL_MIN_EVENT_COUNT;
 
 const COOLDOWN_MS =
-  12 * 60 * 1000;
+  INTERSTITIAL_COOLDOWN_MS;
 
 
 let interstitial:
