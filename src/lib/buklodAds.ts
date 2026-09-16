@@ -257,9 +257,17 @@ maybeShowBuklodInterstitial(
   void reason;
 
 
-  if (await isBuklodAdLightPassActive()) {
-    await prepareInterstitial();
-    return false;
+  try {
+    if (await isBuklodAdLightPassActive()) {
+      await prepareInterstitial();
+      return false;
+    }
+  }
+  catch (error) {
+    console.warn(
+      'BUKLOD Ad-Light pass check:',
+      error
+    );
   }
 
 
