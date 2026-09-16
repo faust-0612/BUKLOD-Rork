@@ -1,4 +1,9 @@
-import { useCallback, useMemo, useState } from 'react';
+import {
+  type ComponentProps,
+  useCallback,
+  useMemo,
+  useState,
+} from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -39,7 +44,7 @@ type AccessoryApp = {
   key: 'report' | 'classroom' | 'quiz' | 'quick-check';
   title: string;
   subtitle: string;
-  icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+  icon: ComponentProps<typeof MaterialCommunityIcons>['name'];
   route?: string;
   externalUrl?: string;
 };
@@ -328,7 +333,7 @@ export default function BuklodFoundationWorkspaceNav() {
                   <BuklodProfileGlassRow
                     icon={
                       (BUKLOD_FOCUS_APP_ICONS[row.app] as
-                        React.ComponentProps<typeof MaterialCommunityIcons>['name']) ||
+                        ComponentProps<typeof MaterialCommunityIcons>['name']) ||
                       'apps'
                     }
                     title={title}
