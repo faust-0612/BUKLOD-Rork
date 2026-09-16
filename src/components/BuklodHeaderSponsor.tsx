@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {
+  Platform,
   StyleSheet,
   useWindowDimensions,
   View,
@@ -57,6 +58,10 @@ BuklodHeaderSponsor({
   const {
     width,
   } = useWindowDimensions();
+
+  if (Platform.OS === 'android') {
+    return null;
+  }
 
   /*
    * IMPORTANT:
