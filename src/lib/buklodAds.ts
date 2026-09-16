@@ -25,6 +25,10 @@ import {
   getBuklodInterstitialUnitId,
 } from '@/lib/buklodAdUnits';
 
+import {
+  isBuklodAdLightPassActive,
+} from '@/lib/buklodAdLightPass';
+
 export async function initializeBuklodAds():
   Promise<boolean> {
   try {
@@ -251,6 +255,12 @@ maybeShowBuklodInterstitial(
    * without changing its type/API.
    */
   void reason;
+
+
+  if (await isBuklodAdLightPassActive()) {
+    await prepareInterstitial();
+    return false;
+  }
 
 
   const previousCount =
