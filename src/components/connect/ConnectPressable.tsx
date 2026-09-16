@@ -2,6 +2,7 @@ import React from 'react';
 
 import BuklodPressable from '@/components/BuklodPressable';
 import {
+  Platform,
   type PressableProps,
   type StyleProp,
   type ViewStyle,
@@ -24,7 +25,7 @@ export function ConnectPressable({
 }: Props) {
   return (
     <BuklodPressable
-      instant={instant}
+      instant={Platform.OS === 'android' ? false : instant}
       nested={nested}
       {...rest}
     />
