@@ -1,7 +1,13 @@
-import { useCallback, useMemo, useState } from 'react';
+import {
+  type ComponentProps,
+  useCallback,
+  useMemo,
+  useState,
+} from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Pressable,
   StyleSheet,
   Text,
@@ -34,6 +40,49 @@ import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import { supabase } from '@/lib/supabase';
 
+type AccessoryApp = {
+  key: 'report' | 'classroom' | 'quiz' | 'quick-check';
+  title: string;
+  subtitle: string;
+  icon: ComponentProps<typeof MaterialCommunityIcons>['name'];
+  route?: string;
+  externalUrl?: string;
+};
+
+/**
+ * Canonical accessory launchers belong only in Profile -> BUKLOD Focus Apps.
+ * Routes keep their own permission/entitlement guards authoritative.
+ */
+const ACCESSORY_APPS: AccessoryApp[] = [
+  {
+    key: 'report',
+    title: 'BUKLOD Report',
+    subtitle: 'Reporting and monitoring workspace',
+    icon: 'file-chart-outline',
+    route: '/reports',
+  },
+  {
+    key: 'classroom',
+    title: 'BUKLOD Classroom',
+    subtitle: 'Student and Faculty classroom access',
+    icon: 'google-classroom',
+    route: '/profile/buklod-classrooms',
+  },
+  {
+    key: 'quiz',
+    title: 'BUKLOD Quiz',
+    subtitle: 'Secure assessment app',
+    icon: 'clipboard-check-outline',
+    externalUrl: 'https://buklod-quiz.expo.app',
+  },
+  {
+    key: 'quick-check',
+    title: 'Quick Check',
+    subtitle: 'Launcher not registered in BUKLOD Main yet',
+    icon: 'check-decagram-outline',
+  },
+];
+
 export default function BuklodFoundationWorkspaceNav() {
   const { theme } = useBuklodTheme();
   const { focusApps } = useBuklodFoundation();
@@ -65,6 +114,16 @@ export default function BuklodFoundationWorkspaceNav() {
         rowBorder: {
           borderTopWidth: StyleSheet.hairlineWidth,
           borderTopColor: theme.border,
+        },
+        groupLabel: {
+          paddingHorizontal: 14,
+          paddingTop: 12,
+          paddingBottom: 6,
+          color: theme.textMuted,
+          fontSize: 10,
+          lineHeight: 13,
+          fontWeight: '900',
+          letterSpacing: 0.8,
         },
         lockNote: {
           paddingHorizontal: 14,
@@ -111,6 +170,32 @@ export default function BuklodFoundationWorkspaceNav() {
     );
     setLocked(nextLocked);
   }, [catalogApps, open, organizationId]);
+
+  const openAccessory = useCallback(
+    async (app: AccessoryApp) => {
+      if (openingKey || (!app.route && !app.externalUrl)) return;
+
+      const key = `accessory:${app.key}`;
+      setOpeningKey(key);
+      try {
+        if (app.route) {
+          router.push(app.route as any);
+          return;
+        }
+        if (app.externalUrl) {
+          await Linking.openURL(app.externalUrl);
+        }
+      } catch (error: any) {
+        Alert.alert(
+          app.title,
+          String(error?.message ?? 'Could not open this BUKLOD app.'),
+        );
+      } finally {
+        setOpeningKey(null);
+      }
+    },
+    [openingKey],
+  );
 
   const openApp = useCallback(
     async (app: BuklodFocusApp, item: BuklodFocusAppAccess | null) => {
@@ -190,7 +275,7 @@ export default function BuklodFoundationWorkspaceNav() {
           <BuklodProfileGlassRow
             icon="apps"
             title="BUKLOD Focus Apps"
-            subtitle="Premium portals · ₱59/month or ₱499/year"
+            subtitle="All Focus and accessory apps in one drawer"
             onPress={() => void openDrawer()}
             trailing={
               <MaterialCommunityIcons
@@ -201,6 +286,40 @@ export default function BuklodFoundationWorkspaceNav() {
             }
           />
         </View>
+
+        {open ? <Text style={styles.groupLabel}>ACCESSORY APPS</Text> : null}
+
+        {open
+          ? ACCESSORY_APPS.map((app) => {
+              const key = `accessory:${app.key}`;
+              const opening = openingKey === key;
+              const unavailable = !app.route && !app.externalUrl;
+              return (
+                <View key={app.key} style={styles.rowBorder}>
+                  <BuklodProfileGlassRow
+                    icon={app.icon}
+                    title={app.title}
+                    subtitle={app.subtitle}
+                    disabled={!!openingKey || unavailable}
+                    onPress={() => void openAccessory(app)}
+                    trailing={
+                      opening ? (
+                        <ActivityIndicator size="small" color={theme.accent} />
+                      ) : (
+                        <MaterialCommunityIcons
+                          name={unavailable ? 'clock-outline' : 'chevron-right'}
+                          size={20}
+                          color={theme.textMuted}
+                        />
+                      )
+                    }
+                  />
+                </View>
+              );
+            })
+          : null}
+
+        {open ? <Text style={styles.groupLabel}>FOCUS WORKSPACES</Text> : null}
 
         {open
           ? catalogApps.map((row) => {
@@ -214,7 +333,7 @@ export default function BuklodFoundationWorkspaceNav() {
                   <BuklodProfileGlassRow
                     icon={
                       (BUKLOD_FOCUS_APP_ICONS[row.app] as
-                        React.ComponentProps<typeof MaterialCommunityIcons>['name']) ||
+                        ComponentProps<typeof MaterialCommunityIcons>['name']) ||
                       'apps'
                     }
                     title={title}

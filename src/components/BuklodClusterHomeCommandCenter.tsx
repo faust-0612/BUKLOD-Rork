@@ -17,7 +17,6 @@ import {
 } from 'expo-router';
 
 import BuklodClusterHomeCommandCenterImpl from '@/components/BuklodClusterHomeCommandCenterImpl';
-import BuklodReportDoorCard from '@/components/BuklodReportDoorCard';
 import { clusterScopeManageRoute } from '@/lib/buklodCluster';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
@@ -157,13 +156,6 @@ export default function BuklodClusterHomeCommandCenter({
           />
         </Pressable>
       ) : null}
-
-      <BuklodReportDoorCard
-        iconOnly
-        scopeId={scope.scope_id}
-        scopeName={scope.name}
-        scopeType="CLUSTER"
-      />
 
       <View style={styles.commandCenter}>
         <BuklodClusterHomeCommandCenterImpl
