@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {
+  Platform,
   StyleSheet,
   useWindowDimensions,
   View,
@@ -57,6 +58,11 @@ BuklodHeaderSponsor({
   const {
     width,
   } = useWindowDimensions();
+
+  // Android/APK only: remove the title-bar sponsor and leave all other ads intact.
+  if (Platform.OS === 'android') {
+    return null;
+  }
 
   /*
    * IMPORTANT:
