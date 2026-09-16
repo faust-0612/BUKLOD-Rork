@@ -4,6 +4,7 @@ import React, {
 import {
   View,
 } from 'react-native';
+import { router } from 'expo-router';
 
 import * as Haptics from 'expo-haptics';
 
@@ -14,9 +15,6 @@ import {
 import {
   ProfileAvatar,
 } from '@/components/ProfileAvatar';
-import {
-  visitMemberProfile,
-} from '@/lib/buklodMemberProfile';
 import {
   isAvatarCircleHit,
 } from '@/components/BuklodTappableAvatar';
@@ -39,10 +37,10 @@ type Props = {
 };
 
 /**
- * Connect-specific avatar tap target.
+ * Connect-specific avatar target.
  *
- * Tap uses a normal press-up so it can open the profile sheet
- * without jumping into a message on finger-down.
+ * Tap opens the direct conversation / write-message thread.
+ * Long press opens the member profile sheet.
  */
 export function ConnectTappableAvatar({
   userId,
@@ -65,6 +63,22 @@ export function ConnectTappableAvatar({
     setSheetOpen,
   ] = useState(false);
 
+  const openConversation = resolvedUserId
+    ? () => {
+        void Haptics
+          .selectionAsync()
+          .catch(() => undefined);
+        router.push({
+          pathname: '/connect/personal/[threadId]',
+          params: {
+            threadId: 'new',
+            targetUserId: resolvedUserId,
+            otherUserName: String(name ?? ''),
+          },
+        } as any);
+      }
+    : undefined;
+
   const openProfileSheet = longPressEnabled
     ? () => {
         void Haptics
@@ -72,22 +86,12 @@ export function ConnectTappableAvatar({
           .catch(() => undefined);
         setSheetOpen(true);
       }
-    : resolvedUserId
-      ? () => {
-          void Haptics
-            .selectionAsync()
-            .catch(() => undefined);
-          visitMemberProfile(
-            resolvedUserId,
-            name
-          );
-        }
-      : undefined;
+    : undefined;
 
   const tapHandler =
     onPress === null
       ? undefined
-      : (onPress ?? openProfileSheet);
+      : (onPress ?? openConversation);
 
   const interactive =
     !!tapHandler ||
@@ -123,8 +127,8 @@ export function ConnectTappableAvatar({
         accessibilityRole="button"
         accessibilityLabel={
           name
-            ? `${name} avatar. Tap to view profile.`
-            : 'Member avatar. Tap to view profile.'
+            ? `${name} avatar. Tap to message${longPressEnabled ? ', long press to view profile' : ''}.`
+            : `Member avatar. Tap to message${longPressEnabled ? ', long press to view profile' : ''}.`
         }
         enableScale={false}
         instant={false}
