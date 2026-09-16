@@ -1,18 +1,30 @@
+import {
+  COMMUNITY_AD_INTERVAL,
+  COMMUNITY_AD_INTERVAL_MAX,
+  COMMUNITY_AD_INTERVAL_MIN,
+  COMMUNITY_AD_MIN_LEADING,
+  REELS_AD_INTERVAL,
+  REELS_AD_INTERVAL_MAX,
+  REELS_AD_INTERVAL_MIN,
+  REELS_AD_MIN_LEADING,
+} from '@/lib/buklodAdMonetizationPolicy';
+
+export {
+  COMMUNITY_AD_INTERVAL,
+  COMMUNITY_AD_INTERVAL_MAX,
+  COMMUNITY_AD_INTERVAL_MIN,
+  COMMUNITY_AD_MIN_LEADING,
+  REELS_AD_INTERVAL,
+  REELS_AD_INTERVAL_MAX,
+  REELS_AD_INTERVAL_MIN,
+  REELS_AD_MIN_LEADING,
+};
+
 /**
- * Shared AdMob placement intervals and feed helpers.
- * Spacing is 8–12 eligible items with a deterministic per-slot variation.
+ * Shared AdMob feed helpers.
+ * Placement cadence is platform-configured so Android can monetize more
+ * aggressively without changing web/PWA behavior.
  */
-
-export const COMMUNITY_AD_INTERVAL = 10;
-export const COMMUNITY_AD_INTERVAL_MIN = 8;
-export const COMMUNITY_AD_INTERVAL_MAX = 12;
-export const COMMUNITY_AD_MIN_LEADING = 8;
-
-/** Reels swipe ads use the same conservative cadence. */
-export const REELS_AD_INTERVAL = 10;
-export const REELS_AD_INTERVAL_MIN = 8;
-export const REELS_AD_INTERVAL_MAX = 12;
-export const REELS_AD_MIN_LEADING = 8;
 
 export type CommunityFeedInlineAdRow = {
   id: string;
@@ -113,8 +125,9 @@ function buildFeedWithInlineAds<T extends { id?: string | null }>(
 }
 
 /**
- * Inserts inline ad markers every 8–12 posts.
- * Never before the user has seen several organic posts.
+ * Inserts inline ad markers using the active platform cadence.
+ * Android uses the heavier APK policy while other targets retain the
+ * existing conservative spacing.
  */
 export function buildCommunityFeedWithInlineAds<
   T extends { id?: string | null },

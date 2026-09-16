@@ -15,6 +15,12 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { VideoView, useVideoPlayer } from 'expo-video';
+import BuklodReelsInlineAd from '@/components/BuklodReelsInlineAd';
+import {
+  buildReelsFeedWithInlineAds,
+  isReelsFeedInlineAdRow,
+  type ReelsFeedInlineAdRow,
+} from '@/lib/buklodAdPlacements';
 import { supabase } from '@/lib/supabase';
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import { useAuth } from '@/providers/AuthProvider';
@@ -33,6 +39,7 @@ type IgpatRow = {
   media_url?: string | null;
 };
 
+type IgpatFeedRow = IgpatRow | ReelsFeedInlineAdRow;
 type FeedMode = 'for-you' | 'following' | 'latest';
 
 const NORMAL_LIMIT = 16;
@@ -181,6 +188,7 @@ export default function IgpatScreen() {
   const [followBusy, setFollowBusy] = useState<Set<string>>(new Set());
   const [reactionBusy, setReactionBusy] = useState<Set<string>>(new Set());
   const viewportHeight = Dimensions.get('window').height;
+  const feedRows = useMemo(() => buildReelsFeedWithInlineAds(rows), [rows]);
 
   useEffect(() => {
     let mounted = true;
@@ -411,7 +419,7 @@ export default function IgpatScreen() {
   }, []);
 
   const onViewableItemsChanged = useRef(
-    ({ viewableItems }: { viewableItems: Array<ViewToken<IgpatRow>> }) => {
+    ({ viewableItems }: { viewableItems: Array<ViewToken<IgpatFeedRow>> }) => {
       const first = viewableItems.find(item => item.isViewable && typeof item.index === 'number');
       if (typeof first?.index === 'number') setActiveIndex(first.index);
     }
@@ -465,7 +473,7 @@ export default function IgpatScreen() {
   return (
     <View style={styles.root}>
       <FlatList
-        data={rows}
+        data={feedRows}
         extraData={activeIndex}
         key={`${feedMode}:${dataSaver ? 'saver' : 'normal'}`}
         keyExtractor={item => item.id}
@@ -485,6 +493,14 @@ export default function IgpatScreen() {
           index,
         })}
         renderItem={({ item, index }) => {
+          if (isReelsFeedInlineAdRow(item)) {
+            return (
+              <View style={[styles.page, { height: viewportHeight }]}>
+                <BuklodReelsInlineAd slotId={item.id} active={index === activeIndex} />
+              </View>
+            );
+          }
+
           const creatorId = item.user_id ? String(item.user_id) : '';
           const isSelf = creatorId === user?.id;
           const isFollowing = Boolean(creatorId && followedIds.has(creatorId));
