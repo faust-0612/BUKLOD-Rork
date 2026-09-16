@@ -118,15 +118,26 @@ Write-Host 'Production Supabase client environment verified.' -ForegroundColor G
 
 $headBeforeOverlay = (git rev-parse HEAD).Trim()
 if ($headBeforeOverlay -ne $expectedSourceSha) {
-  throw "Release SHA changed before recovery overlay. Expected=$expectedSourceSha actual=$headBeforeOverlay"
+  throw "Release SHA changed before Character preflight. Expected=$expectedSourceSha actual=$headBeforeOverlay"
 }
 
-Write-Host 'Overlaying approved R31/R40 recovery package into disposable release staging...' -ForegroundColor Yellow
-& powershell.exe -NoProfile -ExecutionPolicy Bypass -File '.\scripts\RESTORE_CANONICAL_R31_R40.ps1' `
-  -ProjectRoot (Get-Location).Path `
-  -RecoveryRoots @($env:BUKLOD_R31_R40_RECOVERY_ROOT)
-if ($LASTEXITCODE -ne 0) {
-  throw 'Canonical R31/R40 recovery failed. No deployment attempted.'
+# The tracked main branch is the canonical Character source of truth. Recovery is
+# fallback-only: never overwrite a Character surface that already passes the exact
+# visual/gating/assets contract with an older recovery snapshot.
+Write-Host 'Checking canonical R31/R40 character release lock before recovery...' -ForegroundColor Yellow
+& npm.cmd run character:contract
+$characterPreflightExit = $LASTEXITCODE
+
+if ($characterPreflightExit -eq 0) {
+  Write-Host 'Canonical R31/R40 Character source and assets already verified. Recovery overlay skipped.' -ForegroundColor Green
+} else {
+  Write-Host 'Canonical Character preflight failed. Attempting approved R31/R40 recovery fallback...' -ForegroundColor Yellow
+  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File '.\scripts\RESTORE_CANONICAL_R31_R40.ps1' `
+    -ProjectRoot (Get-Location).Path `
+    -RecoveryRoots @($env:BUKLOD_R31_R40_RECOVERY_ROOT)
+  if ($LASTEXITCODE -ne 0) {
+    throw 'Canonical R31/R40 recovery fallback failed. No deployment attempted.'
+  }
 }
 
 Write-Host 'Checking canonical R31/R40 character release lock...' -ForegroundColor Yellow
