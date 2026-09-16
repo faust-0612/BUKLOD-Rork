@@ -173,11 +173,7 @@ export default function BuklodAdLightRewardCard() {
     setBusy(true);
 
     try {
-      const result = await showBuklodRewardedAd(async () => {
-        await activateBuklodAdLightPass();
-      });
-
-      await refreshStatus();
+      const result = await showBuklodRewardedAd();
 
       if (!result.shown) {
         Alert.alert(
@@ -195,6 +191,9 @@ export default function BuklodAdLightRewardCard() {
         );
         return;
       }
+
+      await activateBuklodAdLightPass();
+      await refreshStatus();
 
       Alert.alert(
         'Ad-Light Pass active',
