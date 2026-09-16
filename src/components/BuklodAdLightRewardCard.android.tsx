@@ -150,7 +150,7 @@ export default function BuklodAdLightRewardCard() {
       buttonText: {
         fontSize: 11,
         fontWeight: '900',
-        color: theme.onAccent,
+        color: '#FFFFFF',
       },
       buttonTextActive: {
         color: theme.accent,
@@ -258,7 +258,7 @@ export default function BuklodAdLightRewardCard() {
           <MaterialCommunityIcons
             name={status.active ? 'shield-check-outline' : 'play-circle-outline'}
             size={17}
-            color={status.active ? theme.accent : theme.onAccent}
+            color={status.active ? theme.accent : '#FFFFFF'}
           />
           <Text
             style={[
