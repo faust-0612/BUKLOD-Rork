@@ -41,13 +41,10 @@ type PostContext = {
 
 type RelayRow = {
   id: string;
-  parent_post_id?: string | null;
   relay_prompt?: string | null;
   relay_depth?: number | null;
-  user_id?: string | null;
   author_name?: string | null;
   body?: string | null;
-  created_at?: string | null;
 };
 
 type BondRow = {
@@ -56,19 +53,15 @@ type BondRow = {
   post_id: string;
   actor_user_id: string;
   actor_name?: string | null;
-  target_id?: string | null;
   message?: string | null;
   unlock_at?: string | null;
-  status?: string | null;
-  created_at?: string | null;
   locked?: boolean | null;
 };
 
 function shortDate(value?: string | null): string {
   if (!value) return '';
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleString();
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleString();
 }
 
 async function copyText(value: string) {
@@ -76,7 +69,6 @@ async function copyText(value: string) {
     await navigator.clipboard.writeText(value);
     return;
   }
-
   const textarea = document.createElement('textarea');
   textarea.value = value;
   textarea.style.position = 'fixed';
@@ -106,7 +98,6 @@ export function IgpatCommunityWebActions({ postId }: { postId: string }) {
     if (!open || !user?.id || !postId) return;
     setLoading(true);
     setError(null);
-
     try {
       const { data: postRow, error: postError } = await supabase
         .from('community_posts')
@@ -115,10 +106,7 @@ export function IgpatCommunityWebActions({ postId }: { postId: string }) {
         .maybeSingle();
       if (postError) throw postError;
       if (
-        !postRow?.id ||
-        !postRow.is_reel ||
-        postRow.is_hidden ||
-        postRow.deleted_at ||
+        !postRow?.id || !postRow.is_reel || postRow.is_hidden || postRow.deleted_at ||
         !String(postRow.media_mime_type ?? '').startsWith('video/')
       ) {
         setPost(null);
@@ -130,11 +118,7 @@ export function IgpatCommunityWebActions({ postId }: { postId: string }) {
       }
 
       const [profileResult, directResult, scopeResult, relayResult, bondResult] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('id,full_name,first_name,username')
-          .eq('id', postRow.user_id)
-          .maybeSingle(),
+        supabase.from('profiles').select('id,full_name,first_name,username').eq('id', postRow.user_id).maybeSingle(),
         (supabase as any).rpc('get_my_connect_inbox_v2'),
         (supabase as any).rpc('buklod_connect_community_rooms'),
         (supabase as any).rpc('get_buklod_igpat_relay_chain_v1', { p_post_id: postId }),
@@ -147,8 +131,7 @@ export function IgpatCommunityWebActions({ postId }: { postId: string }) {
       if (bondResult?.error) throw bondResult.error;
 
       const profile = profileResult.data as any;
-      const rawName =
-        profile?.full_name || profile?.first_name || profile?.username || 'BUKLOD Member';
+      const rawName = profile?.full_name || profile?.first_name || profile?.username || 'BUKLOD Member';
       setPost({
         id: String(postRow.id),
         user_id: String(postRow.user_id),
@@ -169,29 +152,17 @@ export function IgpatCommunityWebActions({ postId }: { postId: string }) {
     }
   }, [open, postId, user?.id]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useEffect(() => { void load(); }, [load]);
 
   if (!postId) return null;
 
-  const copyLink = async () => {
-    try {
-      await copyText(link);
-      Alert.alert('Copied', 'IGPAT link copied.');
-    } catch (copyError: any) {
-      Alert.alert('Could Not Copy', String(copyError?.message ?? copyError));
-    }
-  };
-
   const externalShare = async () => {
     try {
-      const message = `BUKLOD IGPAT${post?.authorName ? ` · ${post.authorName}` : ''}\n${link}`;
       if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
-        await navigator.share({ title: 'BUKLOD IGPAT', text: message, url: link });
+        await navigator.share({ title: 'BUKLOD IGPAT', text: `BUKLOD IGPAT${post?.authorName ? ` · ${post.authorName}` : ''}`, url: link });
       } else {
         await copyText(link);
-        Alert.alert('Link Copied', 'Browser sharing is not available here, so the IGPAT link was copied instead.');
+        Alert.alert('Link Copied', 'Browser sharing is unavailable here, so the IGPAT link was copied.');
       }
     } catch (shareError: any) {
       if (String(shareError?.name ?? '') !== 'AbortError') {
@@ -202,9 +173,7 @@ export function IgpatCommunityWebActions({ postId }: { postId: string }) {
 
   const startRelay = (prompt: IgpatRelayPrompt) => {
     const author = encodeURIComponent(post?.authorName ?? 'BUKLOD Member');
-    router.push(
-      `/igpat/create?relayParentPostId=${encodeURIComponent(postId)}&relayPrompt=${encodeURIComponent(prompt)}&relayParentAuthor=${author}` as any,
-    );
+    router.push(`/igpat/create?relayParentPostId=${encodeURIComponent(postId)}&relayPrompt=${encodeURIComponent(prompt)}&relayParentAuthor=${author}` as any);
   };
 
   const shareDirect = async (target: DirectTarget) => {
@@ -254,8 +223,8 @@ export function IgpatCommunityWebActions({ postId }: { postId: string }) {
         p_message: bondNote.trim() || null,
       });
       if (bondError) throw bondError;
-      Alert.alert('IGPAT Bond Sent', `Passed intentionally to ${target.other_name}.`);
       setBondNote('');
+      Alert.alert('IGPAT Bond Sent', `Passed intentionally to ${target.other_name}.`);
       await load();
     } catch (bondError: any) {
       Alert.alert('Could Not Send Bond', String(bondError?.message ?? bondError));
@@ -266,17 +235,12 @@ export function IgpatCommunityWebActions({ postId }: { postId: string }) {
 
   return (
     <View style={styles.root}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={open ? 'Hide IGPAT actions' : 'Open IGPAT actions'}
-        style={styles.trigger}
-        onPress={() => setOpen(current => !current)}
-      >
-        <View style={styles.triggerLeft}>
+      <Pressable style={styles.trigger} onPress={() => setOpen(current => !current)}>
+        <View style={styles.row}>
           <MaterialCommunityIcons name="source-branch" size={18} color="#D9FF69" />
           <View>
             <Text style={styles.triggerTitle}>IGPAT ACTIONS</Text>
-            <Text style={styles.triggerHint}>Share · Relay · Bond</Text>
+            <Text style={styles.hint}>Share · Relay · Bond</Text>
           </View>
         </View>
         <MaterialCommunityIcons name={open ? 'chevron-up' : 'chevron-down'} size={20} color="#FFFFFF" />
@@ -285,161 +249,84 @@ export function IgpatCommunityWebActions({ postId }: { postId: string }) {
       {open ? (
         <View style={styles.panel}>
           {loading ? (
-            <View style={styles.centerState}>
-              <ActivityIndicator color="#FFFFFF" />
-              <Text style={styles.stateText}>Loading IGPAT actions…</Text>
-            </View>
+            <View style={styles.center}><ActivityIndicator color="#FFFFFF" /><Text style={styles.hint}>Loading IGPAT actions…</Text></View>
           ) : error ? (
-            <View style={styles.stateCard}>
-              <Text style={styles.stateText}>{error}</Text>
-              <Pressable style={styles.retry} onPress={() => void load()}>
-                <Text style={styles.retryText}>RETRY</Text>
-              </Pressable>
-            </View>
+            <View style={styles.card}><Text style={styles.hint}>{error}</Text><Pressable onPress={() => void load()}><Text style={styles.linkText}>RETRY</Text></Pressable></View>
           ) : !post ? (
-            <View style={styles.stateCard}>
-              <Text style={styles.stateText}>This Community video is not an available IGPAT.</Text>
-            </View>
+            <View style={styles.card}><Text style={styles.hint}>This Community video is not an available IGPAT.</Text></View>
           ) : (
             <>
-              <View style={styles.contextCard}>
-                <Text style={styles.contextLabel}>ORIGINAL CREATOR</Text>
-                <Text style={styles.contextName}>{post.authorName}</Text>
-                {!!post.body?.trim() ? (
-                  <Text numberOfLines={2} style={styles.contextBody}>{post.body.trim()}</Text>
-                ) : null}
-                <Text style={styles.contextAudience}>AUDIENCE · {String(post.audience ?? 'public').toUpperCase()}</Text>
+              <View style={styles.card}>
+                <Text style={styles.kicker}>ORIGINAL CREATOR</Text>
+                <Text style={styles.name}>{post.authorName}</Text>
+                {!!post.body?.trim() ? <Text numberOfLines={2} style={styles.body}>{post.body.trim()}</Text> : null}
+                <Text style={styles.audience}>AUDIENCE · {String(post.audience ?? 'public').toUpperCase()}</Text>
               </View>
 
-              <View style={styles.quickRow}>
-                <Pressable style={styles.quickButton} onPress={() => void externalShare()}>
-                  <MaterialCommunityIcons name="share-variant-outline" size={18} color="#FFFFFF" />
-                  <Text style={styles.quickText}>SHARE</Text>
-                </Pressable>
-                <Pressable style={styles.quickButton} onPress={() => void copyLink()}>
-                  <MaterialCommunityIcons name="link-variant" size={18} color="#FFFFFF" />
-                  <Text style={styles.quickText}>COPY LINK</Text>
-                </Pressable>
+              <View style={styles.twoCol}>
+                <Pressable style={styles.action} onPress={() => void externalShare()}><Text style={styles.actionText}>SHARE</Text></Pressable>
+                <Pressable style={styles.action} onPress={() => void copyText(link).then(() => Alert.alert('Copied', 'IGPAT link copied.'))}><Text style={styles.actionText}>COPY LINK</Text></Pressable>
               </View>
 
-              <Text style={styles.sectionTitle}>RELAY</Text>
-              <Text style={styles.sectionHint}>Reply with another IGPAT while keeping the original bond visible.</Text>
-              <View style={styles.relayGrid}>
-                {IGPAT_RELAY_OPTIONS.map(prompt => (
-                  <Pressable key={prompt} style={styles.relayButton} onPress={() => startRelay(prompt)}>
-                    <MaterialCommunityIcons name="source-branch" size={16} color="#D9FF69" />
-                    <Text style={styles.relayText}>{igpatRelayPromptLabel(prompt).toUpperCase()}</Text>
+              <Text style={styles.section}>RELAY</Text>
+              <View style={styles.twoCol}>
+                {IGPAT_RELAY_OPTIONS.map(option => (
+                  <Pressable key={option.key} style={styles.action} onPress={() => startRelay(option.key)}>
+                    <Text style={styles.actionText}>{option.label.toUpperCase()}</Text>
                   </Pressable>
                 ))}
               </View>
 
-              {relayRows.length ? (
-                <View style={styles.chainWrap}>
-                  <Text style={styles.sectionTitle}>RELAY CHAIN</Text>
-                  {relayRows.slice(0, 12).map(row => (
-                    <Pressable
-                      key={row.id}
-                      style={styles.chainCard}
-                      onPress={() => router.push(`/post/${row.id}` as any)}
-                    >
-                      <View style={styles.chainHead}>
-                        <Text style={styles.chainAuthor}>{row.author_name || 'BUKLOD Member'}</Text>
-                        <Text style={styles.chainDepth}>#{Math.max(0, Number(row.relay_depth ?? 0)) + 1}</Text>
-                      </View>
-                      <Text style={styles.chainPrompt}>
-                        {row.relay_depth ? igpatRelayPromptLabel(row.relay_prompt) : 'Original IGPAT'}
-                      </Text>
-                      {!!row.body?.trim() ? <Text numberOfLines={2} style={styles.chainBody}>{row.body.trim()}</Text> : null}
-                    </Pressable>
-                  ))}
-                </View>
-              ) : null}
+              {relayRows.length ? <>
+                <Text style={styles.section}>RELAY CHAIN</Text>
+                {relayRows.slice(0, 10).map(row => (
+                  <Pressable key={row.id} style={styles.card} onPress={() => router.push(`/post/${row.id}` as any)}>
+                    <View style={styles.rowBetween}><Text style={styles.name}>{row.author_name || 'BUKLOD Member'}</Text><Text style={styles.kicker}>#{Math.max(0, Number(row.relay_depth ?? 0)) + 1}</Text></View>
+                    <Text style={styles.audience}>{row.relay_depth ? igpatRelayPromptLabel(row.relay_prompt).toUpperCase() : 'ORIGINAL IGPAT'}</Text>
+                    {!!row.body?.trim() ? <Text numberOfLines={2} style={styles.body}>{row.body.trim()}</Text> : null}
+                  </Pressable>
+                ))}
+              </> : null}
 
-              <Text style={styles.sectionTitle}>BUKLOD CONNECT · DIRECT</Text>
-              <Text style={styles.sectionHint}>Share normally, or PASS as an intentional IGPAT Bond.</Text>
-              <TextInput
-                value={bondNote}
-                onChangeText={setBondNote}
-                maxLength={240}
-                placeholder="Optional Bond note"
-                placeholderTextColor="rgba(255,255,255,0.30)"
-                style={styles.noteInput}
-              />
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
+              <Text style={styles.section}>BUKLOD CONNECT · DIRECT</Text>
+              <TextInput value={bondNote} onChangeText={setBondNote} maxLength={240} placeholder="Optional Bond note" placeholderTextColor="rgba(255,255,255,0.30)" style={styles.input} />
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontal}>
                 {directTargets.length ? directTargets.slice(0, 20).map(target => (
-                  <View key={target.conversation_id} style={styles.personCard}>
-                    <Text numberOfLines={1} style={styles.personName}>{target.other_name}</Text>
-                    <Text numberOfLines={1} style={styles.personHint}>{target.church_name || 'Direct Connect'}</Text>
-                    <View style={styles.personActions}>
-                      <Pressable
-                        disabled={Boolean(busyKey)}
-                        style={styles.smallButton}
-                        onPress={() => void shareDirect(target)}
-                      >
-                        <Text style={styles.smallText}>{busyKey === `share:${target.conversation_id}` ? '…' : 'SEND'}</Text>
-                      </Pressable>
-                      <Pressable
-                        disabled={Boolean(busyKey)}
-                        style={[styles.smallButton, styles.bondButton]}
-                        onPress={() => void passBond(target)}
-                      >
-                        <Text style={[styles.smallText, styles.bondText]}>{busyKey === `bond:${target.other_user_id}` ? '…' : 'BOND'}</Text>
-                      </Pressable>
+                  <View key={target.conversation_id} style={styles.person}>
+                    <Text numberOfLines={1} style={styles.name}>{target.other_name}</Text>
+                    <Text numberOfLines={1} style={styles.hint}>{target.church_name || 'Direct Connect'}</Text>
+                    <View style={styles.twoCol}>
+                      <Pressable disabled={Boolean(busyKey)} style={styles.small} onPress={() => void shareDirect(target)}><Text style={styles.smallText}>{busyKey === `share:${target.conversation_id}` ? '…' : 'SEND'}</Text></Pressable>
+                      <Pressable disabled={Boolean(busyKey)} style={[styles.small, styles.bond]} onPress={() => void passBond(target)}><Text style={[styles.smallText, styles.bondText]}>{busyKey === `bond:${target.other_user_id}` ? '…' : 'BOND'}</Text></Pressable>
                     </View>
                   </View>
-                )) : (
-                  <View style={styles.stateCard}><Text style={styles.stateText}>No existing direct Connect conversations.</Text></View>
-                )}
+                )) : <View style={styles.card}><Text style={styles.hint}>No existing direct Connect conversations.</Text></View>}
               </ScrollView>
 
-              <Text style={styles.sectionTitle}>BUKLOD CONNECT · ROOMS</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
+              <Text style={styles.section}>BUKLOD CONNECT · ROOMS</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontal}>
                 {scopeTargets.length ? scopeTargets.slice(0, 20).map(target => (
-                  <Pressable
-                    key={target.scope_id}
-                    disabled={Boolean(busyKey)}
-                    style={styles.roomCard}
-                    onPress={() => void shareScope(target)}
-                  >
+                  <Pressable key={target.scope_id} disabled={Boolean(busyKey)} style={styles.room} onPress={() => void shareScope(target)}>
                     <MaterialCommunityIcons name="account-group-outline" size={18} color="#D9FF69" />
-                    <Text numberOfLines={2} style={styles.roomName}>{target.scope_name}</Text>
-                    <Text style={styles.roomHint}>{target.scope_type}{target.geo_level ? ` · ${target.geo_level}` : ''}</Text>
+                    <Text numberOfLines={2} style={styles.name}>{target.scope_name}</Text>
+                    <Text style={styles.hint}>{target.scope_type}{target.geo_level ? ` · ${target.geo_level}` : ''}</Text>
                   </Pressable>
-                )) : (
-                  <View style={styles.stateCard}><Text style={styles.stateText}>No available Connect rooms.</Text></View>
-                )}
+                )) : <View style={styles.card}><Text style={styles.hint}>No available Connect rooms.</Text></View>}
               </ScrollView>
 
-              <Text style={styles.sectionTitle}>BOND INBOX</Text>
-              <Text style={styles.sectionHint}>Your recent sent and received intentional IGPAT bonds.</Text>
-              <View style={styles.bondList}>
-                {bondRows.length ? bondRows.slice(0, 12).map(row => {
-                  const outgoing = row.actor_user_id === user?.id;
-                  const actorName = resolvePersonDisplayName(row.actor_name || 'BUKLOD Member', row.actor_user_id);
-                  const locked = Boolean(row.locked);
-                  return (
-                    <Pressable
-                      key={row.id}
-                      disabled={locked}
-                      style={[styles.bondCard, locked && styles.lockedBondCard]}
-                      onPress={() => !locked && router.push(`/post/${row.post_id}` as any)}
-                    >
-                      <View style={styles.bondHead}>
-                        <MaterialCommunityIcons name={locked ? 'lock-outline' : 'link-variant'} size={16} color={locked ? '#D9FF69' : '#FFFFFF'} />
-                        <Text style={styles.bondKind}>{String(row.kind).replace(/_/g, ' ').toUpperCase()}</Text>
-                      </View>
-                      <Text style={styles.bondDirection}>{outgoing ? 'SENT BY YOU' : `FROM ${actorName}`}</Text>
-                      {locked ? (
-                        <Text style={styles.bondMessage}>Sealed until {shortDate(row.unlock_at)}</Text>
-                      ) : row.message?.trim() ? (
-                        <Text numberOfLines={2} style={styles.bondMessage}>{row.message.trim()}</Text>
-                      ) : null}
-                    </Pressable>
-                  );
-                }) : (
-                  <View style={styles.stateCard}><Text style={styles.stateText}>No IGPAT Bonds yet.</Text></View>
-                )}
-              </View>
+              <Text style={styles.section}>BOND INBOX</Text>
+              {bondRows.length ? bondRows.slice(0, 10).map(row => {
+                const locked = Boolean(row.locked);
+                const outgoing = row.actor_user_id === user?.id;
+                const actorName = resolvePersonDisplayName(row.actor_name || 'BUKLOD Member', row.actor_user_id);
+                return (
+                  <Pressable key={row.id} disabled={locked} style={[styles.card, locked && styles.locked]} onPress={() => !locked && router.push(`/post/${row.post_id}` as any)}>
+                    <View style={styles.row}><MaterialCommunityIcons name={locked ? 'lock-outline' : 'link-variant'} size={16} color={locked ? '#D9FF69' : '#FFFFFF'} /><Text style={styles.name}>{String(row.kind).replace(/_/g, ' ').toUpperCase()}</Text></View>
+                    <Text style={styles.hint}>{outgoing ? 'SENT BY YOU' : `FROM ${actorName}`}</Text>
+                    {locked ? <Text style={styles.body}>Sealed until {shortDate(row.unlock_at)}</Text> : row.message?.trim() ? <Text numberOfLines={2} style={styles.body}>{row.message.trim()}</Text> : null}
+                  </Pressable>
+                );
+              }) : <View style={styles.card}><Text style={styles.hint}>No IGPAT Bonds yet.</Text></View>}
             </>
           )}
         </View>
@@ -450,64 +337,30 @@ export function IgpatCommunityWebActions({ postId }: { postId: string }) {
 
 const styles = StyleSheet.create({
   root: { marginTop: 10 },
-  trigger: {
-    minHeight: 52,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: 'rgba(217,255,105,0.20)',
-    backgroundColor: '#0D120F',
-    paddingHorizontal: 13,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  triggerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  triggerTitle: { color: '#FFFFFF', fontSize: 10, fontWeight: '900', letterSpacing: 0.8 },
-  triggerHint: { marginTop: 2, color: 'rgba(255,255,255,0.44)', fontSize: 8.5 },
+  trigger: { minHeight: 52, borderRadius: 15, borderWidth: 1, borderColor: 'rgba(217,255,105,0.20)', backgroundColor: '#0D120F', paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   panel: { marginTop: 8, borderRadius: 17, borderWidth: 1, borderColor: 'rgba(255,255,255,0.11)', backgroundColor: '#080B09', padding: 13 },
-  centerState: { minHeight: 100, alignItems: 'center', justifyContent: 'center', gap: 8 },
-  stateCard: { minWidth: 190, borderRadius: 13, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)', backgroundColor: '#0D120F', padding: 12 },
-  stateText: { color: 'rgba(255,255,255,0.58)', fontSize: 9.5, lineHeight: 14, textAlign: 'center' },
-  retry: { marginTop: 10, alignSelf: 'center', paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' },
-  retryText: { color: '#FFFFFF', fontSize: 8.5, fontWeight: '900' },
-  contextCard: { borderRadius: 14, borderWidth: 1, borderColor: 'rgba(217,255,105,0.14)', backgroundColor: '#10150D', padding: 12 },
-  contextLabel: { color: 'rgba(255,255,255,0.38)', fontSize: 7.5, fontWeight: '900', letterSpacing: 0.8 },
-  contextName: { marginTop: 4, color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
-  contextBody: { marginTop: 5, color: 'rgba(255,255,255,0.65)', fontSize: 9.5, lineHeight: 14 },
-  contextAudience: { marginTop: 7, color: '#D9FF69', fontSize: 7.5, fontWeight: '900', letterSpacing: 0.6 },
-  quickRow: { marginTop: 9, flexDirection: 'row', gap: 8 },
-  quickButton: { flex: 1, minHeight: 46, borderRadius: 13, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: '#0D120F', alignItems: 'center', justifyContent: 'center', gap: 5 },
-  quickText: { color: '#FFFFFF', fontSize: 8, fontWeight: '900', letterSpacing: 0.6 },
-  sectionTitle: { marginTop: 17, color: '#FFFFFF', fontSize: 9, fontWeight: '900', letterSpacing: 0.8 },
-  sectionHint: { marginTop: 3, color: 'rgba(255,255,255,0.40)', fontSize: 8.2, lineHeight: 12 },
-  relayGrid: { marginTop: 8, flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
-  relayButton: { width: '48%', minHeight: 48, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(217,255,105,0.14)', backgroundColor: '#0D120F', padding: 9, justifyContent: 'center' },
-  relayText: { marginTop: 5, color: '#FFFFFF', fontSize: 7.8, fontWeight: '900', letterSpacing: 0.4 },
-  chainWrap: { marginTop: 2 },
-  chainCard: { marginTop: 7, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)', backgroundColor: '#0D120F', padding: 10 },
-  chainHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  chainAuthor: { flex: 1, color: '#FFFFFF', fontSize: 9.5, fontWeight: '900' },
-  chainDepth: { color: 'rgba(255,255,255,0.40)', fontSize: 7.5, fontWeight: '900' },
-  chainPrompt: { marginTop: 4, color: '#D9FF69', fontSize: 7.8, fontWeight: '900' },
-  chainBody: { marginTop: 5, color: 'rgba(255,255,255,0.58)', fontSize: 9, lineHeight: 13 },
-  noteInput: { marginTop: 8, minHeight: 42, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: '#0D120F', color: '#FFFFFF', paddingHorizontal: 11, fontSize: 10 },
-  horizontalList: { paddingTop: 8, paddingRight: 8, gap: 8 },
-  personCard: { width: 176, borderRadius: 13, borderWidth: 1, borderColor: 'rgba(255,255,255,0.11)', backgroundColor: '#0D120F', padding: 10 },
-  personName: { color: '#FFFFFF', fontSize: 10, fontWeight: '900' },
-  personHint: { marginTop: 3, color: 'rgba(255,255,255,0.38)', fontSize: 8 },
-  personActions: { marginTop: 9, flexDirection: 'row', gap: 6 },
-  smallButton: { flex: 1, minHeight: 32, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' },
-  bondButton: { backgroundColor: '#D9FF69', borderColor: '#D9FF69' },
+  center: { minHeight: 100, alignItems: 'center', justifyContent: 'center', gap: 8 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 9 },
+  triggerTitle: { color: '#FFFFFF', fontSize: 10, fontWeight: '900', letterSpacing: 0.8 },
+  card: { marginTop: 8, borderRadius: 13, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)', backgroundColor: '#0D120F', padding: 11 },
+  locked: { borderColor: 'rgba(217,255,105,0.18)', backgroundColor: '#10150D' },
+  kicker: { color: 'rgba(255,255,255,0.38)', fontSize: 7.5, fontWeight: '900', letterSpacing: 0.8 },
+  name: { color: '#FFFFFF', fontSize: 10, fontWeight: '900' },
+  body: { marginTop: 5, color: 'rgba(255,255,255,0.62)', fontSize: 9, lineHeight: 13 },
+  audience: { marginTop: 6, color: '#D9FF69', fontSize: 7.5, fontWeight: '900' },
+  hint: { marginTop: 2, color: 'rgba(255,255,255,0.42)', fontSize: 8.2, lineHeight: 12 },
+  linkText: { marginTop: 8, color: '#D9FF69', fontSize: 8.5, fontWeight: '900', textAlign: 'center' },
+  section: { marginTop: 17, color: '#FFFFFF', fontSize: 9, fontWeight: '900', letterSpacing: 0.8 },
+  twoCol: { marginTop: 8, flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  action: { width: '48%', minHeight: 42, borderRadius: 11, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: '#0D120F', alignItems: 'center', justifyContent: 'center', padding: 8 },
+  actionText: { color: '#FFFFFF', fontSize: 7.8, fontWeight: '900', letterSpacing: 0.4 },
+  input: { marginTop: 8, minHeight: 42, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: '#0D120F', color: '#FFFFFF', paddingHorizontal: 11, fontSize: 10 },
+  horizontal: { paddingTop: 8, paddingRight: 8, gap: 8 },
+  person: { width: 176, borderRadius: 13, borderWidth: 1, borderColor: 'rgba(255,255,255,0.11)', backgroundColor: '#0D120F', padding: 10 },
+  room: { width: 156, minHeight: 78, borderRadius: 13, borderWidth: 1, borderColor: 'rgba(255,255,255,0.11)', backgroundColor: '#0D120F', padding: 10, justifyContent: 'center', gap: 6 },
+  small: { flex: 1, minHeight: 32, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' },
+  bond: { backgroundColor: '#D9FF69', borderColor: '#D9FF69' },
   smallText: { color: '#FFFFFF', fontSize: 7.8, fontWeight: '900' },
   bondText: { color: '#07100B' },
-  roomCard: { width: 156, minHeight: 78, borderRadius: 13, borderWidth: 1, borderColor: 'rgba(255,255,255,0.11)', backgroundColor: '#0D120F', padding: 10, justifyContent: 'center' },
-  roomName: { marginTop: 7, color: '#FFFFFF', fontSize: 9.5, lineHeight: 13, fontWeight: '900' },
-  roomHint: { marginTop: 3, color: 'rgba(255,255,255,0.38)', fontSize: 7.5 },
-  bondList: { marginTop: 7, gap: 7 },
-  bondCard: { borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)', backgroundColor: '#0D120F', padding: 10 },
-  lockedBondCard: { borderColor: 'rgba(217,255,105,0.18)', backgroundColor: '#10150D' },
-  bondHead: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  bondKind: { color: '#FFFFFF', fontSize: 8.5, fontWeight: '900', letterSpacing: 0.5 },
-  bondDirection: { marginTop: 4, color: 'rgba(255,255,255,0.38)', fontSize: 7.5, fontWeight: '800' },
-  bondMessage: { marginTop: 6, color: 'rgba(255,255,255,0.62)', fontSize: 9, lineHeight: 13 },
 });
