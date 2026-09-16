@@ -27,6 +27,7 @@ export type BuklodRewardedAdResult = {
 };
 
 const LOAD_TIMEOUT_MS = 10_000;
+const SHOW_FAILSAFE_TIMEOUT_MS = 5 * 60 * 1000;
 
 function clean(value: string | undefined) {
   return String(value ?? '').trim();
@@ -46,21 +47,14 @@ function getBuklodRewardedUnitId(): string | null {
 
 let warmedAd: RewardedAd | null = null;
 let warmedLoaded = false;
-let warmedCleanup: Array<() => void> = [];
+let loadingPromise: Promise<boolean> | null = null;
+let showing = false;
 
-function cleanupWarmedListeners() {
-  warmedCleanup.forEach((unsubscribe) => {
-    try {
-      unsubscribe();
-    } catch {}
-  });
-  warmedCleanup = [];
-}
-
-function resetWarmedAd() {
-  cleanupWarmedListeners();
+function clearWarmedAd(ad?: RewardedAd) {
+  if (ad && warmedAd !== ad) return;
   warmedAd = null;
   warmedLoaded = false;
+  loadingPromise = null;
 }
 
 async function prepareRewardedAd(): Promise<boolean> {
@@ -71,34 +65,60 @@ async function prepareRewardedAd(): Promise<boolean> {
   if (!unitId) return false;
 
   if (warmedAd && warmedLoaded) return true;
-  if (warmedAd) return false;
+  if (loadingPromise) return loadingPromise;
 
   const ad = RewardedAd.createForAdRequest(unitId, {
     requestNonPersonalizedAdsOnly: false,
   });
 
   warmedAd = ad;
+  warmedLoaded = false;
 
-  warmedCleanup.push(
-    ad.addAdEventListener(
-      RewardedAdEventType.LOADED,
-      () => {
+  loadingPromise = new Promise<boolean>((resolve) => {
+    let settled = false;
+    let unsubscribeLoaded = () => {};
+    let unsubscribeError = () => {};
+
+    const finishLoad = (loaded: boolean) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      unsubscribeLoaded();
+      unsubscribeError();
+
+      if (loaded && warmedAd === ad) {
         warmedLoaded = true;
-      },
-    ),
-  );
+        loadingPromise = null;
+        resolve(true);
+        return;
+      }
 
-  warmedCleanup.push(
-    ad.addAdEventListener(
+      clearWarmedAd(ad);
+      resolve(false);
+    };
+
+    unsubscribeLoaded = ad.addAdEventListener(
+      RewardedAdEventType.LOADED,
+      () => finishLoad(true),
+    );
+
+    unsubscribeError = ad.addAdEventListener(
       AdEventType.ERROR,
-      () => {
-        resetWarmedAd();
+      (error) => {
+        console.warn('BUKLOD rewarded load:', error);
+        finishLoad(false);
       },
-    ),
-  );
+    );
 
-  ad.load();
-  return false;
+    const timeout = setTimeout(
+      () => finishLoad(false),
+      LOAD_TIMEOUT_MS,
+    );
+
+    ad.load();
+  });
+
+  return loadingPromise;
 }
 
 export function warmBuklodRewardedAd() {
@@ -110,9 +130,17 @@ export async function showBuklodRewardedAd(
     reward: RewardedAdReward,
   ) => void | Promise<void>,
 ): Promise<BuklodRewardedAdResult> {
-  await prepareRewardedAd();
+  if (showing) {
+    return {
+      shown: false,
+      earned: false,
+      reward: null,
+    };
+  }
 
-  if (!warmedAd || !warmedLoaded) {
+  const ready = await prepareRewardedAd();
+
+  if (!ready || !warmedAd || !warmedLoaded) {
     return {
       shown: false,
       earned: false,
@@ -123,6 +151,7 @@ export async function showBuklodRewardedAd(
   const ad = warmedAd;
   let earnedReward: RewardedAdReward | null = null;
   let earnedHandled = false;
+  showing = true;
 
   return await new Promise<BuklodRewardedAdResult>((resolve) => {
     let settled = false;
@@ -134,7 +163,8 @@ export async function showBuklodRewardedAd(
       unsubscribeEarned();
       unsubscribeClosed();
       unsubscribeError();
-      resetWarmedAd();
+      showing = false;
+      clearWarmedAd(ad);
       void prepareRewardedAd();
       resolve({
         shown,
@@ -176,7 +206,7 @@ export async function showBuklodRewardedAd(
 
     const timeout = setTimeout(
       () => finish(false),
-      LOAD_TIMEOUT_MS,
+      SHOW_FAILSAFE_TIMEOUT_MS,
     );
 
     void ad.show().catch((error) => {

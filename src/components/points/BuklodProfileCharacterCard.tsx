@@ -32,6 +32,9 @@ import BuklodCharacterCustomizeSheet
 import BuklodActiveCharacterArt
   from '@/components/points/BuklodActiveCharacterArt';
 
+import BuklodAdLightRewardCard
+  from '@/components/BuklodAdLightRewardCard';
+
 import {
   ProfileMotionFadeUp,
 } from '@/components/BuklodProfileMotion';
@@ -660,6 +663,8 @@ export default function BuklodProfileCharacterCard({
                 )}
               </View>
             </View>
+
+            <BuklodAdLightRewardCard />
           </View>
         </View>
       </ProfileMotionFadeUp>
