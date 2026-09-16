@@ -112,6 +112,7 @@ import {ActivityIndicator,
  TextInput,
  View,
  Dimensions,
+ Keyboard,
  KeyboardAvoidingView,
  Platform} from 'react-native';
 import { FlashList } from '@shopify/flash-list';
@@ -3180,6 +3181,16 @@ const refreshCommunity186L=
     } keyExtractor={(i: any)=>i.id} extraData={communityAdExtraData} onViewableItemsChanged={onCommunityAdViewableItemsChanged} viewabilityConfig={communityAdViewabilityConfig} /* PATCH_186L_R3_PULL_REFRESH_PAGE_ZERO */
     refreshing={busy}
     onRefresh={refreshCommunity186L}
+    onScrollBeginDrag={
+      Platform.OS === 'android'
+        ? () => Keyboard.dismiss()
+        : undefined
+    }
+    keyboardDismissMode={
+      Platform.OS === 'android'
+        ? 'on-drag'
+        : undefined
+    }
   ListHeaderComponent={<BuklodFocusFadeUp duration={240} fromY={10} fromOpacity={0.78}><View>
    {/* PATCH_161A_COMMUNITY_COMPACT */}
    <Text style={s.eyebrow}>

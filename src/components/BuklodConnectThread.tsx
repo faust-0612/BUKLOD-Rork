@@ -3737,13 +3737,18 @@ const [
               18,
           },
         ]}
-        onContentSizeChange={
-          () =>
-            listRef.current
-              ?.scrollToEnd({
-                animated: true,
-              })
-        }
+        onContentSizeChange={() => {
+          if (
+            connectReadingOlderRef.current
+          ) {
+            return;
+          }
+
+          listRef.current
+            ?.scrollToEnd({
+              animated: false,
+            });
+        }}
         ListEmptyComponent={
           <View
             style={
