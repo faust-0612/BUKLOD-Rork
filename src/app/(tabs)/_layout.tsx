@@ -14,8 +14,10 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -249,6 +251,7 @@ function SwipeDashboardHeader() {
 export default function TabsLayout() {
   const { theme } = useBuklodTheme();
   const pathname = usePathname();
+  const { width } = useWindowDimensions();
   const { activeScope } = useBuklodScope();
   const showPrayer = Boolean(
     activeScope?.show_faith_content
@@ -358,11 +361,39 @@ export default function TabsLayout() {
     overflow: 'hidden' as const,
   };
 
+  const desktopHome =
+    Platform.OS === 'web' &&
+    width >= 1200 &&
+    (
+      pathname === '/home' ||
+      pathname.startsWith('/home/')
+    );
+
+  const workspaceStack = (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        animation: 'none',
+        freezeOnBlur: true,
+        contentStyle: tabSceneStyle,
+      }}
+    >
+      <Stack.Screen name="buklod" />
+      <Stack.Screen name="home" />
+      <Stack.Screen name="messages" />
+      {showPrayer ? (
+        <Stack.Screen name="prayer" />
+      ) : null}
+      <Stack.Screen name="me" />
+      <Stack.Screen name="learn" />
+    </Stack>
+  );
+
   /*
-   * Instant route switches with no swipe-between-tabs ViewPager.
-   * Public/personal navigation is route-authoritative, with Community as the
-   * canonical surface and the three-dot Notification Center shortcut in the
-   * header. Managed Organization/Cluster navigation remains owned by /scope.
+   * BUKLOD_DESKTOP_HOME_3COL_R1
+   * Desktop Home only: reserve narrow left/right rails and keep the existing
+   * dashboard intact in a wider center column. Mobile/tablet and all other
+   * routes keep their existing single-column shell unchanged.
    */
   return (
     <View style={{ flex: 1 }}>
@@ -373,25 +404,56 @@ export default function TabsLayout() {
         }}
       >
         <SwipeDashboardHeader />
-        <BuklodDashboardContextBar />
 
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            animation: 'none',
-            freezeOnBlur: true,
-            contentStyle: tabSceneStyle,
-          }}
-        >
-          <Stack.Screen name="buklod" />
-          <Stack.Screen name="home" />
-          <Stack.Screen name="messages" />
-          {showPrayer ? (
-            <Stack.Screen name="prayer" />
-          ) : null}
-          <Stack.Screen name="me" />
-          <Stack.Screen name="learn" />
-        </Stack>
+        {desktopHome ? (
+          <View
+            style={{
+              flex: 1,
+              width: '100%',
+              maxWidth: 1680,
+              alignSelf: 'center',
+              flexDirection: 'row',
+              alignItems: 'stretch',
+              paddingHorizontal: 18,
+              gap: 18,
+            }}
+          >
+            <View
+              pointerEvents="none"
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              style={{
+                flex: 1,
+                minWidth: 0,
+              }}
+            />
+
+            <View
+              style={{
+                flex: 2.8,
+                minWidth: 0,
+              }}
+            >
+              <BuklodDashboardContextBar />
+              {workspaceStack}
+            </View>
+
+            <View
+              pointerEvents="none"
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              style={{
+                flex: 1,
+                minWidth: 0,
+              }}
+            />
+          </View>
+        ) : (
+          <>
+            <BuklodDashboardContextBar />
+            {workspaceStack}
+          </>
+        )}
       </View>
     </View>
   );
