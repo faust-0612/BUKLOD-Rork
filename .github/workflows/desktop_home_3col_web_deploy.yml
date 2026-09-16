@@ -1,0 +1,129 @@
+name: BUKLOD Desktop Home 3-Column Web Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/desktop_home_3col_web_deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  EXPECTED_SOURCE_COMMIT: fda47c7e06e8da58f2c715578d0a60451c9e2d16
+  EXPECTED_LAYOUT_BLOB: d36647afd5fbf6d3ba6c2fadb0f49a367b3d3077
+  RELEASE_WORKFLOW: .github/workflows/desktop_home_3col_web_deploy.yml
+
+jobs:
+  verify-export-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact release trigger
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+
+      - name: Guard exact source and web-only release scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "${EXPECTED_SOURCE_COMMIT}"
+          test "$(git rev-parse HEAD:'src/app/(tabs)/_layout.tsx')" = "${EXPECTED_LAYOUT_BLOB}"
+          changed="$(git diff --name-only HEAD^ HEAD)"
+          test "$changed" = "${RELEASE_WORKFLOW}"
+          grep -F 'BUKLOD_DESKTOP_HOME_3COL_R1' 'src/app/(tabs)/_layout.tsx'
+          grep -F "Platform.OS === 'web'" 'src/app/(tabs)/_layout.tsx'
+          grep -F 'width >= 1200' 'src/app/(tabs)/_layout.tsx'
+          grep -F 'flex: desktopHome ? 2.8 : 1' 'src/app/(tabs)/_layout.tsx'
+          grep -F 'key="workspace-center"' 'src/app/(tabs)/_layout.tsx'
+          echo 'Exact desktop Home source and web-only release scope: VERIFIED'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Expo production credential and environment preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          npx eas-cli@latest whoami --non-interactive >/dev/null
+          rm -f .env.local
+          npx eas-cli@latest env:pull --environment production --path .env.local --non-interactive
+          test -s .env.local
+          set -a
+          . ./.env.local
+          set +a
+          test -n "${EXPO_PUBLIC_SUPABASE_URL:-}"
+          test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}"
+          test "$EXPO_PUBLIC_SUPABASE_URL" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
+          while IFS='=' read -r name _; do
+            case "$name" in
+              EXPO_PUBLIC_*)
+                value="${!name-}"
+                {
+                  echo "${name}<<__BUKLOD_ENV__"
+                  printf '%s\n' "$value"
+                  echo '__BUKLOD_ENV__'
+                } >> "$GITHUB_ENV"
+                ;;
+            esac
+          done < <(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env.local)
+          echo 'Protected BUKLOD Main production environment: READY'
+
+      - name: Export production web
+        shell: bash
+        env:
+          NODE_ENV: production
+          EXPO_PUBLIC_APP_ENV: production
+        run: |
+          set -euo pipefail
+          rm -rf dist
+          npx expo export --platform web --output-dir dist
+          test -s dist/index.html
+          SUPABASE_HOST="$(printf '%s' "$EXPO_PUBLIC_SUPABASE_URL" | sed -E 's#https?://([^/]+).*#\1#')"
+          grep -RFl --include='*.js' "$SUPABASE_HOST" dist/_expo/static/js/web >/dev/null
+          echo 'Production web export: VERIFIED'
+
+      - name: Deploy production web only
+        id: deploy
+        shell: bash
+        env:
+          NODE_ENV: production
+          EXPO_PUBLIC_APP_ENV: production
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "${EXPECTED_SOURCE_COMMIT}"
+          test "$EXPO_PUBLIC_SUPABASE_URL" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
+          npx eas-cli@latest deploy --prod --environment production --non-interactive 2>&1 | tee desktop-home-web-deploy-output.txt
+
+      - name: Preserve deploy result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-home-3col-web-deploy-${{ github.run_number }}
+          path: desktop-home-web-deploy-output.txt
+          if-no-files-found: ignore
+
+      - name: Release status
+        if: always()
+        shell: bash
+        run: |
+          if [ "${{ steps.deploy.outcome }}" != "success" ]; then
+            echo 'Desktop Home production web deployment did not succeed.'
+            exit 1
+          fi
+          echo "Desktop Home production web deployment succeeded from protected source ${EXPECTED_SOURCE_COMMIT}."
