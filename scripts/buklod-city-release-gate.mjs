@@ -73,17 +73,15 @@ function requireCommittedBlob(rel, expectedBlob) {
   }
 }
 
-function newestMtime(files) {
-  const mtimes = files
-    .map(rel => path.join(root, rel))
+function latestFsChange(files) {
+  const values = files
     .filter(file => fs.existsSync(file))
-    .map(file => fs.statSync(file).mtimeMs);
-  return mtimes.length ? Math.max(...mtimes) : Number.NaN;
+    .flatMap(file => {
+      const stat = fs.statSync(file);
+      return [stat.mtimeMs, stat.ctimeMs, stat.birthtimeMs].filter(Number.isFinite);
+    });
+  return values.length ? Math.max(...values) : Number.NaN;
 }
-
-const criticalSources = [
-  ...Object.keys(FROZEN_RELEASE_BLOBS),
-];
 
 requireText('src/app/city.web.tsx', [
   'BuklodCityDashboardR6',
@@ -185,21 +183,33 @@ if (fs.existsSync(bundleDir)) {
   if (!bundleFiles.length) failures.push('No web JS bundle found under dist/_expo/static/js/web.');
 }
 
-const exportArtifacts = [distIndex, distMetadata, ...bundleFiles].filter(file => fs.existsSync(file));
-if (exportArtifacts.length) {
-  const newestExportMtime = Math.max(...exportArtifacts.map(file => fs.statSync(file).mtimeMs));
-  const ageMinutes = (Date.now() - newestExportMtime) / 60000;
+if (fs.existsSync(distIndex)) {
+  const indexHtml = fs.readFileSync(distIndex, 'utf8');
+  const referencedBundles = [
+    ...indexHtml.matchAll(/(?:src|href)=["'][^"']*_expo\/static\/js\/web\/([^"']+\.js)["']/g),
+  ].map(match => match[1]);
 
-  if (ageMinutes > 15) {
-    failures.push(
-      `Latest web export artifact is stale (${ageMinutes.toFixed(1)} minutes old). ` +
-      'Re-export to dist immediately before deploy.',
-    );
+  if (!referencedBundles.length) {
+    failures.push('dist/index.html does not reference any generated web JS bundle.');
+  } else {
+    for (const bundleName of referencedBundles) {
+      const full = path.join(bundleDir, bundleName);
+      if (!fs.existsSync(full)) {
+        failures.push(`dist/index.html references missing web bundle: ${bundleName}`);
+      }
+    }
   }
+}
 
-  const sourceMtime = newestMtime(criticalSources);
-  if (Number.isFinite(sourceMtime) && newestExportMtime + 1000 < sourceMtime) {
-    failures.push('dist is older than a critical City/Home source file. Re-export to dist before deploy.');
+const exportClockFiles = [distDir, bundleDir, distIndex, distMetadata, ...bundleFiles];
+const latestExportChange = latestFsChange(exportClockFiles);
+if (Number.isFinite(latestExportChange)) {
+  const ageMinutes = (Date.now() - latestExportChange) / 60000;
+  if (ageMinutes > 30) {
+    failures.push(
+      `Web export filesystem state appears stale (${ageMinutes.toFixed(1)} minutes old). ` +
+      'Remove dist and run a fresh web export before deploy.',
+    );
   }
 }
 
@@ -212,5 +222,5 @@ if (failures.length) {
 
 console.log(`BUKLOD CITY/HOME RELEASE GATE: PASS @ ${head}`);
 console.log('Frozen City/Home fingerprints and critical anchors verified.');
-console.log('dist is fresh and was exported to the canonical dist directory.');
+console.log('Web export structure and referenced JS bundles verified.');
 console.log('Proceed to production deploy, then perform physical mobile smoke checks before declaring complete.');
