@@ -141,9 +141,11 @@ export default function BuklodNavSafeShell({
         ? 0
         : navOccupied > 0
           ? navOccupied
-          : reserveMyBuklodSystemInsets
+          : Platform.OS === 'android'
             ? Math.max(insets.bottom, 0)
-            : 0;
+            : reserveMyBuklodSystemInsets
+              ? Math.max(insets.bottom, 0)
+              : 0;
 
   return (
     <View style={styles.root}>
