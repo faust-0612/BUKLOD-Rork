@@ -103,8 +103,8 @@ export function BuklodCommunityBulletin({
       <View style={styles.header}>
         <View style={styles.headerCopy}>
           <Text style={styles.eyebrow}>COMMUNITY BULLETIN</Text>
-          <Text style={styles.title}>What the community needs to know</Text>
-          <Text style={styles.subtitle}>{locality || data?.locality || 'Your BUKLOD community'} · latest available updates</Text>
+          <Text style={styles.title}>Latest Community Updates</Text>
+          <Text style={styles.subtitle}>{locality || data?.locality || 'Your BUKLOD community'} · weather, suspensions, announcements & important news</Text>
         </View>
         <Pressable
           accessibilityRole="button"
