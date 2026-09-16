@@ -1,22 +1,7 @@
 name: BUKLOD App Boundary Guard
 
+# GitHub Actions credits guard: manual dispatch only while runner credits are exhausted.
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/**'
-      - '.buklod/**'
-      - 'scripts/verify-buklod-app-boundaries.cjs'
-      - 'scripts/test-buklod-app-boundaries.cjs'
-      - 'docs/BUKLOD_APP_BOUNDARIES.md'
-  pull_request:
-    paths:
-      - '.github/workflows/**'
-      - '.buklod/**'
-      - 'scripts/verify-buklod-app-boundaries.cjs'
-      - 'scripts/test-buklod-app-boundaries.cjs'
-      - 'docs/BUKLOD_APP_BOUNDARIES.md'
   workflow_dispatch:
 
 permissions:
