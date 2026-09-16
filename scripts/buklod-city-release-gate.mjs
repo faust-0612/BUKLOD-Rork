@@ -5,6 +5,27 @@ import { execFileSync } from 'node:child_process';
 const root = process.cwd();
 const failures = [];
 
+/*
+ * BUKLOD_CITY_HOME_FREEZE_R8
+ *
+ * These are the exact committed Git blob identities of the approved City/Home
+ * production baseline. A normal source edit must NOT silently change them.
+ * Intentional future City/Home work must explicitly update this contract after
+ * review; otherwise the production release gate blocks deployment.
+ */
+const FROZEN_RELEASE_BLOBS = {
+  'src/app/city.web.tsx': '427a9c53a5b12e357c575a7992f140b7212f6cb1',
+  'src/app/index.web.tsx': '767735cbef429d35fbe2350faa1726dab09bed7d',
+  'src/app/personal-home/index.tsx': 'd15fe20456d778638ac0234846fae12fd3e70cf9',
+  'src/app/personal-home/index.web.tsx': 'd15fe20456d778638ac0234846fae12fd3e70cf9',
+  'src/app/personal-home/index.native.tsx': 'd15fe20456d778638ac0234846fae12fd3e70cf9',
+  'src/components/BuklodCityDashboardR6.web.tsx': '24d039c759ab0af94e30e1970e1625ccd68719f4',
+  'src/components/BuklodCityMap.web.tsx': '769b9aa6e0f18cef72f1bd15a6132ff3968f0caa',
+  'src/components/BuklodCommunityBulletin.web.tsx': '1a9d9867f84621d122ba3299f1d2d6e957449b92',
+  'src/components/BuklodCommunityBulletinR6.web.tsx': '0c4b095861485ba784586718c3d2faa1d2a0ef26',
+  'src/components/home/BuklodSpatialHomeV2.tsx': '7b818b429d2631f5819403c74449bce049384e0d',
+};
+
 function read(rel) {
   const full = path.join(root, rel);
   if (!fs.existsSync(full)) {
@@ -30,6 +51,28 @@ function requirePattern(rel, pattern, label) {
   }
 }
 
+function requireCommittedBlob(rel, expectedBlob) {
+  try {
+    const actualBlob = execFileSync('git', ['rev-parse', `HEAD:${rel}`], {
+      cwd: root,
+      encoding: 'utf8',
+    }).trim();
+
+    if (actualBlob !== expectedBlob) {
+      failures.push(
+        `${rel} changed from frozen City/Home baseline ` +
+        `(expected ${expectedBlob.slice(0, 8)}, found ${actualBlob.slice(0, 8)}). ` +
+        'Restore the approved baseline or deliberately update the freeze contract.',
+      );
+    }
+  } catch (error) {
+    failures.push(
+      `Could not verify frozen blob for ${rel}: ` +
+      (error instanceof Error ? error.message : String(error)),
+    );
+  }
+}
+
 function newestMtime(files) {
   return Math.max(
     ...files
@@ -40,11 +83,7 @@ function newestMtime(files) {
 }
 
 const criticalSources = [
-  'src/app/city.web.tsx',
-  'src/app/index.web.tsx',
-  'src/components/BuklodCityDashboardR6.web.tsx',
-  'src/components/BuklodCityMap.web.tsx',
-  'src/components/BuklodCommunityBulletinR6.web.tsx',
+  ...Object.keys(FROZEN_RELEASE_BLOBS),
 ];
 
 requireText('src/app/city.web.tsx', [
@@ -75,6 +114,8 @@ requireText('src/components/BuklodCityMap.web.tsx', [
   'Tap map to open',
   'onShareLocation',
   'onManagePlace',
+  'loadMyBuklodHomeMapLocation',
+  "window.top.location.assign('/personal-home')",
 ]);
 
 requireText('src/components/BuklodCommunityBulletinR6.web.tsx', [
@@ -92,12 +133,28 @@ requirePattern(
   '<Redirect href="/city" />',
 );
 
+requireText('src/app/personal-home/index.tsx', [
+  'BuklodSpatialHomeV2',
+  'export default BuklodSpatialHomeV2',
+]);
+
+requireText('src/components/home/BuklodSpatialHomeV2.tsx', [
+  "router.replace('/city' as any)",
+  'COMMUNITY MAP',
+  'Back to BUKLOD City',
+  'MARKET / DELIVERY',
+]);
+
 let head = 'unknown';
 try {
   head = execFileSync('git', ['rev-parse', '--short', 'HEAD'], {
     cwd: root,
     encoding: 'utf8',
   }).trim();
+
+  for (const [rel, expectedBlob] of Object.entries(FROZEN_RELEASE_BLOBS)) {
+    requireCommittedBlob(rel, expectedBlob);
+  }
 
   const trackedChanges = execFileSync(
     'git',
@@ -129,7 +186,7 @@ if (fs.existsSync(distIndex)) {
 
   const sourceMtime = newestMtime(criticalSources);
   if (Number.isFinite(sourceMtime) && distMtime + 1000 < sourceMtime) {
-    failures.push('dist is older than a critical City source file. Re-export to dist before deploy.');
+    failures.push('dist is older than a critical City/Home source file. Re-export to dist before deploy.');
   }
 }
 
@@ -139,13 +196,13 @@ if (fs.existsSync(bundleDir)) {
 }
 
 if (failures.length) {
-  console.error(`\nBUKLOD CITY RELEASE GATE: BLOCKED @ ${head}\n`);
+  console.error(`\nBUKLOD CITY/HOME RELEASE GATE: BLOCKED @ ${head}\n`);
   for (const failure of failures) console.error(`- ${failure}`);
   console.error('\nDO NOT run EAS production deploy until every item passes.\n');
   process.exit(1);
 }
 
-console.log(`BUKLOD CITY RELEASE GATE: PASS @ ${head}`);
-console.log('Critical Home/City/map/bulletin anchors present.');
+console.log(`BUKLOD CITY/HOME RELEASE GATE: PASS @ ${head}`);
+console.log('Frozen City/Home fingerprints and critical anchors verified.');
 console.log('dist is fresh and was exported to the canonical dist directory.');
 console.log('Proceed to production deploy, then perform physical mobile smoke checks before declaring complete.');
