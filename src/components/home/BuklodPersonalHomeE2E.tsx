@@ -43,7 +43,7 @@ export default function BuklodPersonalHomeE2E() {
   return (
     <View style={styles.root}>
       <BuklodSpatialHomeV2 />
-      <View style={styles.dock} accessibilityRole="toolbar">
+      <View style={styles.dock}>
         {HOME_TOOLS.map((tool) => (
           <Pressable
             key={tool.route}
