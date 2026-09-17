@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
+import { router } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
 import { registerPushToken } from '@/lib/pushNotifications';
@@ -220,7 +221,7 @@ export default function BuklodCommunityHelp(){
         <Pressable accessibilityRole="button" accessibilityLabel="Request help from nearby BUKLOD users" onPress={()=>begin('HELP')} style={({pressed})=>[s.help,pressed&&s.pressed]}>
           <MaterialCommunityIcons name="hand-heart-outline" size={15} color={colors.greenDark}/><Text style={s.helpText}>Need Help</Text>
         </Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel="Open emergency SOS" onPress={()=>begin('EMERGENCY')} style={({pressed})=>[s.sos,pressed&&s.pressed]}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Open emergency SOS" onPress={()=>router.push('/sos?trigger=in_app' as any)} style={({pressed})=>[s.sos,pressed&&s.pressed]}>
           <MaterialCommunityIcons name="alarm-light-outline" size={15} color="#FFF"/><Text style={s.sosText}>SOS</Text>
         </Pressable>
       </View>
