@@ -4,7 +4,8 @@ const checks = [
   {
     file: 'src/components/BuklodCommunityMapNav.android.tsx',
     tokens: [
-      'BUKLOD_ANDROID_COMMUNITY_PROFILE_BUBBLES_R2_CONNECT_NOTES',
+      'BUKLOD_ANDROID_COMMUNITY_CONNECT_BUBBLES_R3',
+      "import { ConnectTappableAvatar } from '@/components/connect/ConnectTappableAvatar';",
       'loadConnectSuggestedContacts',
       'loadMessagesStatusNote',
       'markConnectStatusNoteSeen',
@@ -13,11 +14,8 @@ const checks = [
       "pathname: '/connect/personal/[threadId]'",
       "threadId: 'new'",
       'targetUserId: contact.user_id',
-      "pathname: '/member/[id]'",
-      'delayLongPress={420}',
       'onPress={() => openConversation(contact)}',
-      'onLongPress={() => openProfile(contact)}',
-      'Tap to open personal conversation. Long press to view profile.',
+      'enableLongPressSheet',
       'showsHorizontalScrollIndicator={false}',
       "contact.rank_name || 'Circle Starter V'",
     ],
@@ -26,6 +24,7 @@ const checks = [
       '<MapView',
       'PROVIDER_GOOGLE',
       'Tap map to open',
+      'openProfile(contact)',
     ],
   },
   {
@@ -42,10 +41,10 @@ const checks = [
 
 let failures = 0;
 
-console.log('BUKLOD ANDROID COMMUNITY CONNECT LINEUP RELEASE CONTRACT');
+console.log('BUKLOD ANDROID COMMUNITY CONNECT BUBBLES RELEASE CONTRACT');
 console.log('=========================================================');
 console.log(
-  'LOCK: Recent Android only. Public Community top map card stays removed and is replaced by the Connect-style contact lineup using the canonical suggested-contact and status-note sources. Quick notes are visible, self note is mirrored, unread/rank remain, tap opens personal conversation, and long press opens member profile. Android top rail must not mount react-native-maps. Web/iOS/backend stay outside this contract.',
+  'LOCK: Recent Android only. Public Community top map card stays removed. The Community Wall reuses the exact Connect profile bubble component. Quick notes are visible, self note is mirrored, unread/rank remain, tap opens personal conversation, and long press uses the existing Connect profile interaction. Android top rail must not mount react-native-maps. Web/iOS/backend stay outside this contract.',
 );
 
 for (const check of checks) {
@@ -73,8 +72,8 @@ for (const check of checks) {
 }
 
 if (failures > 0) {
-  console.error(`ANDROID COMMUNITY CONNECT LINEUP RELEASE LOCK FAILED: ${failures} blocker(s).`);
+  console.error(`ANDROID COMMUNITY CONNECT BUBBLES RELEASE LOCK FAILED: ${failures} blocker(s).`);
   process.exit(1);
 }
 
-console.log('ANDROID COMMUNITY CONNECT NOTES LINEUP RELEASE LOCK PASSED.');
+console.log('ANDROID COMMUNITY CONNECT BUBBLES RELEASE LOCK PASSED.');
