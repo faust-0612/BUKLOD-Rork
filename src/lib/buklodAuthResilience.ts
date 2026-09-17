@@ -22,6 +22,7 @@ const AUTH_PROFILE_FALLBACK_TIMEOUT_MS = 1_500;
 const AUTH_LOCAL_SESSION_TIMEOUT_MS = 1_200;
 const AUTH_LOCAL_SIGN_OUT_TIMEOUT_MS = 2_500;
 const AUTH_FRESH_SIGN_IN_USER_TTL_MS = 60_000;
+const AUTH_RECENT_PASSWORD_GRANT_TTL_MS = 20_000;
 
 /*
  * BUKLOD_MAIN_AUTH_STORM_R21
@@ -39,6 +40,8 @@ type BuklodAuthRuntimeState = {
   passwordSignInInFlight: Promise<any> | null;
   lastSignedInUserId: string | null;
   lastSignedInAt: number;
+  lastPasswordGrantKey: string | null;
+  lastPasswordGrantResult: any | null;
 };
 
 const AUTH_RUNTIME_STATE_KEY =
@@ -51,6 +54,12 @@ function getBuklodAuthRuntimeState(): BuklodAuthRuntimeState {
     | undefined;
 
   if (existing) {
+    /*
+     * Fast Refresh may preserve a runtime object created by an older bundle.
+     * Normalize newly-added containment fields instead of assuming a cold boot.
+     */
+    existing.lastPasswordGrantKey ??= null;
+    existing.lastPasswordGrantResult ??= null;
     return existing;
   }
 
@@ -58,6 +67,8 @@ function getBuklodAuthRuntimeState(): BuklodAuthRuntimeState {
     passwordSignInInFlight: null,
     lastSignedInUserId: null,
     lastSignedInAt: 0,
+    lastPasswordGrantKey: null,
+    lastPasswordGrantResult: null,
   };
 
   root[AUTH_RUNTIME_STATE_KEY] = created;
@@ -65,6 +76,31 @@ function getBuklodAuthRuntimeState(): BuklodAuthRuntimeState {
 }
 
 const authRuntimeState = getBuklodAuthRuntimeState();
+
+function passwordGrantKey(
+  credentials: Parameters<
+    typeof supabase.auth.signInWithPassword
+  >[0]
+): string {
+  const raw = credentials as any;
+  const email = String(raw?.email ?? '')
+    .trim()
+    .toLowerCase();
+
+  if (email) {
+    return `email:${email}`;
+  }
+
+  const phone = String(raw?.phone ?? '')
+    .replace(/\s+/g, '')
+    .trim();
+
+  if (phone) {
+    return `phone:${phone}`;
+  }
+
+  return '';
+}
 
 function authErrorText(error: any): string {
   return String(
@@ -172,6 +208,30 @@ export async function signInWithPasswordResilient(
     return authRuntimeState.passwordSignInInFlight;
   }
 
+  const grantKey = passwordGrantKey(credentials);
+  const recentGrantAge =
+    Date.now() - authRuntimeState.lastSignedInAt;
+
+  /*
+   * P0_AUTH_SESSION_CONTAINMENT_R1
+   * A successful password grant already created the Supabase session.
+   * If the Login route remounts or the same remembered/manual credential is
+   * submitted again immediately afterwards, reuse that successful result
+   * rather than creating another server-side session for the same runtime.
+   *
+   * This is deliberately local/runtime-only. It does not block legitimate
+   * multi-device sign-ins and it is cleared on local sign-out.
+   */
+  if (
+    grantKey &&
+    authRuntimeState.lastPasswordGrantKey === grantKey &&
+    authRuntimeState.lastPasswordGrantResult &&
+    recentGrantAge >= 0 &&
+    recentGrantAge <= AUTH_RECENT_PASSWORD_GRANT_TTL_MS
+  ) {
+    return authRuntimeState.lastPasswordGrantResult;
+  }
+
   const task = supabase.auth
     .signInWithPassword(credentials)
     .then((result: any) => {
@@ -182,6 +242,9 @@ export async function signInWithPasswordResilient(
       if (!result?.error && userId) {
         authRuntimeState.lastSignedInUserId = userId;
         authRuntimeState.lastSignedInAt = Date.now();
+        authRuntimeState.lastPasswordGrantKey =
+          grantKey || null;
+        authRuntimeState.lastPasswordGrantResult = result;
       }
 
       return result;
@@ -373,6 +436,8 @@ export async function signOutBuklodResilient() {
 
   authRuntimeState.lastSignedInUserId = null;
   authRuntimeState.lastSignedInAt = 0;
+  authRuntimeState.lastPasswordGrantKey = null;
+  authRuntimeState.lastPasswordGrantResult = null;
 
   try {
     const result =
