@@ -40,7 +40,14 @@ type PermissionSnapshotState = {
   inFlight: Map<string, Promise<PermissionSnapshotRow[]>>;
 };
 
-const SNAPSHOT_TTL_MS = 10_000;
+/*
+ * P0_BOOTSTRAP_AMPLIFICATION_R4
+ * This cache only answers current-user presentation permission checks. Actual
+ * protected operations remain server-authoritative, so 30 seconds prevents a
+ * synchronized login wave from repeatedly rebuilding the same snapshot while
+ * keeping UI authority state reasonably fresh.
+ */
+const SNAPSHOT_TTL_MS = 30_000;
 const GLOBAL_STATE_KEY = '__BUKLOD_PERMISSION_SNAPSHOT_R1__';
 
 function state(): PermissionSnapshotState {
