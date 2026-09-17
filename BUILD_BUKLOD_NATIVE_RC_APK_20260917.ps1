@@ -33,9 +33,17 @@ Require-Command node
 Require-Command npm
 
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
+$WorkspaceRoot = if ($env:BUKLOD_WORKSPACE) {
+  $env:BUKLOD_WORKSPACE
+} else {
+  Join-Path $HOME 'BUKLOD_WORKSPACE'
+}
+$ReleaseDir = Join-Path $WorkspaceRoot 'RELEASE\ANDROID\NATIVE_RC_20260917'
+New-Item -ItemType Directory -Path $ReleaseDir -Force | Out-Null
+
 Push-Location $Root
 try {
-  Step '1/9 Verify repository and protect local work'
+  Step '1/10 Verify repository and protect local work'
   if (-not (Test-Path '.git')) {
     throw "This script must be run from the root of the BUKLOD-Rork Git repository. Current path: $Root"
   }
@@ -53,8 +61,8 @@ try {
     throw 'STOP: Local working tree is not clean. Commit/stash intentional work first; this script will not overwrite it.'
   }
 
-  Step '2/9 Update exact native RC branch'
-  git fetch origin $Branch
+  Step '2/10 Update exact native RC branch'
+  git fetch origin main $Branch
   if ($LASTEXITCODE -ne 0) { throw 'git fetch failed.' }
   git checkout $Branch
   if ($LASTEXITCODE -ne 0) { throw "Could not checkout $Branch." }
@@ -68,21 +76,30 @@ try {
   }
   Write-Host "Release candidate commit: $head" -ForegroundColor Cyan
 
-  Step '3/9 Install locked dependencies'
+  Step '3/10 Require latest canonical main to be inside this RC'
+  git merge-base --is-ancestor origin/main HEAD
+  if ($LASTEXITCODE -ne 0) {
+    $mainHead = (git rev-parse origin/main).Trim()
+    throw "STOP: Native RC $head is behind/diverged from latest origin/main $mainHead. Sync main into the RC and rebuild before physical testing."
+  }
+  $mainHead = (git rev-parse origin/main).Trim()
+  Write-Host "PASS latest origin/main $mainHead is an ancestor of RC $head" -ForegroundColor Green
+
+  Step '4/10 Install locked dependencies'
   npm ci --ignore-scripts
   if ($LASTEXITCODE -ne 0) { throw 'npm ci failed.' }
 
-  Step '4/9 Native Android closing contract'
+  Step '5/10 Native Android closing contract'
   node scripts/native-android-closing-contract.mjs
   if ($LASTEXITCODE -ne 0) {
     throw 'Native Android closing contract failed. APK build stopped so a required native capability cannot be omitted silently.'
   }
 
-  Step '5/9 TypeScript release gate'
+  Step '6/10 TypeScript release gate'
   npx tsc --noEmit
   if ($LASTEXITCODE -ne 0) { throw 'TypeScript gate failed. APK build stopped.' }
 
-  Step '6/9 Verify Main native identity/configuration'
+  Step '7/10 Verify Main native identity/configuration'
   $env:APP_VARIANT = 'production'
   $env:EXPO_PUBLIC_APP_ENV = 'production'
   $env:BUKLOD_APP_TARGET = 'main'
@@ -113,14 +130,14 @@ console.log(JSON.stringify({name:config.name,version:config.version,versionCode:
   $verify | node -
   if ($LASTEXITCODE -ne 0) { throw 'Native identity/config gate failed.' }
 
-  Step '7/9 Verify Expo/EAS authentication'
+  Step '8/10 Verify Expo/EAS authentication'
   npx eas-cli@latest whoami
   if ($LASTEXITCODE -ne 0) {
     throw 'EAS authentication is not ready. Run: npx eas-cli@latest login'
   }
 
-  Step '8/9 Build installable APK on EAS'
-  $jsonFile = Join-Path $Root 'eas-native-rc-apk-20260917.json'
+  Step '9/10 Build installable APK on EAS'
+  $jsonFile = Join-Path $ReleaseDir 'eas-native-rc-apk-20260917.json'
   if (Test-Path $jsonFile) { Remove-Item $jsonFile -Force }
 
   $oldCI = $env:CI
@@ -133,7 +150,7 @@ console.log(JSON.stringify({name:config.name,version:config.version,versionCode:
     if ($null -eq $oldCI) { Remove-Item Env:CI -ErrorAction SilentlyContinue } else { $env:CI = $oldCI }
   }
 
-  Step '9/9 Read build result'
+  Step '10/10 Read build result'
   $raw = (Get-Content $jsonFile -Raw).Trim()
   if (-not $raw) { throw 'EAS returned no JSON build result.' }
   $parsed = $raw | ConvertFrom-Json
@@ -146,11 +163,14 @@ console.log(JSON.stringify({name:config.name,version:config.version,versionCode:
   Write-Host ' BUKLOD NATIVE RC APK READY' -ForegroundColor Green
   Write-Host '====================================================================' -ForegroundColor DarkGreen
   Write-Host "Commit      : $head"
+  Write-Host "Main base   : $mainHead"
   Write-Host "Version     : $ExpectedVersion"
   Write-Host "VersionCode : $ExpectedVersionCode"
   Write-Host "EAS Build ID: $($build.id)"
   Write-Host "Status      : $($build.status)"
   Write-Host "APK         : $apkUrl" -ForegroundColor Cyan
+  Write-Host "Result JSON : $jsonFile"
+  Write-Host "Release dir : $ReleaseDir"
   Write-Host 'AAB         : NOT built. Test/edit this APK first; AAB comes only after approval.' -ForegroundColor Yellow
 }
 finally {
