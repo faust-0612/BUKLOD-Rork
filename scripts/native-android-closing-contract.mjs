@@ -151,6 +151,22 @@ check('Closed/background call native foundation', () => {
     "androidMessagingServiceBaseClass: 'io.invertase.firebase.messaging.ReactNativeFirebaseMessagingService'",
     'enableBackgroundRemoteNotifications: true',
   ]);
+  mustInclude('index.js', [
+    'setPushConfig();',
+    'setFirebaseListeners();',
+    "import 'expo-router/entry'",
+  ]);
+  mustInclude('src/utils/setFirebaseListeners.android.ts', [
+    'setBackgroundMessageHandler',
+    'firebaseDataHandler',
+    'call.ring',
+  ]);
+  mustInclude('src/utils/setPushConfig.ts', [
+    'firebase-video-production',
+    'buklod_incoming_calls_v2',
+    'createStreamVideoClient',
+    'enableOngoingCalls',
+  ]);
 });
 
 check('IGPAT camera/video native foundation', () => {
@@ -158,12 +174,34 @@ check('IGPAT camera/video native foundation', () => {
   for (const dep of ['expo-camera', 'expo-video', 'expo-image-picker']) {
     if (!pkg.dependencies?.[dep]) throw new Error(`Missing ${dep}`);
   }
+  mustInclude('src/app/igpat/create.tsx', [
+    'ImagePicker.launchCameraAsync',
+    'videoMaxDuration: 60',
+    'contentFit="contain"',
+  ]);
+  mustInclude('src/app/igpat/index.tsx', [
+    'nativeControls={false}',
+    'contentFit="contain"',
+    'player.playbackRate = 2',
+  ]);
 });
 
 check('Animated character and Kingdom native renderers', () => {
   const pkg = require(path.join(root, 'package.json'));
   if (!pkg.dependencies?.['@rive-app/react-native']) throw new Error('Missing Rive native dependency');
   if (!pkg.dependencies?.['@shopify/react-native-skia']) throw new Error('Missing Skia native dependency');
+  mustInclude('src/components/points/BuklodRiveCharacterRuntime.tsx', [
+    "from '@rive-app/react-native'",
+    'RiveView',
+    'useRiveFile',
+    'autoPlay',
+  ]);
+  mustInclude('src/features/games/runtime/BuklodGameStage.native.tsx', [
+    "from '@shopify/react-native-skia'",
+    'Canvas',
+    'recordBuklodKingdomPreviewResult',
+    'BuklodGameVisualFX',
+  ]);
 });
 
 check('Native map / hybrid satellite / live foreground location', () => {
@@ -174,6 +212,12 @@ check('Native map / hybrid satellite / live foreground location', () => {
     "useState<NativeMapType>('hybrid')",
     'Location.watchPositionAsync',
     'google.navigation:q=',
+    'mapType={mapType}',
+    'showsUserLocation={locationGranted}',
+  ]);
+  mustInclude('src/components/BuklodDashboardContextBar.tsx', [
+    "from '@/components/BuklodCommunityMapNav'",
+    '<BuklodCommunityMapNav />',
   ]);
 });
 
