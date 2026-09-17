@@ -1,6 +1,6 @@
 import { usePathname } from 'expo-router';
 import React from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 
 import BuklodCommunityMapNav
   from '@/components/BuklodCommunityMapNav';
@@ -80,6 +80,19 @@ export default function BuklodDashboardContextBar() {
     'PUBLIC'
   ) {
     if (communityRoute) {
+      /*
+       * BUKLOD_ANDROID_COMMUNITY_SCROLL_HEADER_R4
+       * Android mounts Search + Connect bubbles inside the Community feed
+       * ListHeaderComponent so they scroll away with the Wall instead of
+       * permanently shrinking the feed viewport. Web/iOS keep their existing
+       * context-bar placement.
+       */
+      if (Platform.OS === 'android') {
+        return (
+          <BuklodPublicDailyMessageBar />
+        );
+      }
+
       return (
         <View>
           <BuklodCommunityMapNav />
