@@ -1,6 +1,10 @@
 import { usePathname } from 'expo-router';
 import React from 'react';
-import { View } from 'react-native';
+import {
+  Platform,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 
 import BuklodCommunityMapNav
   from '@/components/BuklodCommunityMapNav';
@@ -21,6 +25,7 @@ export default function BuklodDashboardContextBar() {
   /* PATCH_169F_R3_PROFILE_ROUTE */
   const pathname =
     usePathname();
+  const { width } = useWindowDimensions();
 
   const profileRoute =
     pathname === '/me' ||
@@ -35,6 +40,10 @@ export default function BuklodDashboardContextBar() {
   const communityRoute =
     pathname === '/buklod' ||
     pathname.startsWith('/buklod/');
+  const desktopCommunity =
+    Platform.OS === 'web' &&
+    width >= 1200 &&
+    communityRoute;
   const {
     activeScope,
   } = useBuklodScope();
@@ -80,6 +89,16 @@ export default function BuklodDashboardContextBar() {
     'PUBLIC'
   ) {
     if (communityRoute) {
+      /*
+       * BUKLOD_DESKTOP_COMMUNITY_MAP_R4
+       * Desktop uses the real City map from inside the Wall list header, so
+       * the map scrolls with Community. Keep the legacy compact nav untouched
+       * on mobile/tablet.
+       */
+      if (desktopCommunity) {
+        return <BuklodPublicDailyMessageBar />;
+      }
+
       return (
         <View>
           <BuklodCommunityMapNav />
