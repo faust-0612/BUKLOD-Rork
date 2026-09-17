@@ -1,15 +1,14 @@
-/* BUKLOD_ANDROID_COMMUNITY_PROFILE_BUBBLES_R2_CONNECT_NOTES */
+/* BUKLOD_ANDROID_COMMUNITY_CONNECT_BUBBLES_R3 */
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Image,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 
+import { ConnectTappableAvatar } from '@/components/connect/ConnectTappableAvatar';
 import {
   loadConnectSuggestedContacts,
   type ConnectSuggestedContact,
@@ -27,17 +26,6 @@ const MAX_BUBBLES = 14;
 const AVATAR_SIZE = 56;
 const COLUMN_WIDTH = 78;
 const NOTE_MAX_LINES = 3;
-
-function initials(name: string) {
-  const parts = String(name ?? '')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2);
-
-  if (!parts.length) return 'B';
-  return parts.map(part => part[0]?.toUpperCase() ?? '').join('');
-}
 
 function firstName(name: string) {
   return String(name ?? 'Member').trim().split(/\s+/)[0] || 'Member';
@@ -146,16 +134,6 @@ export default function BuklodCommunityMapNav() {
     } as any);
   }, []);
 
-  const openProfile = useCallback((contact: ConnectSuggestedContact) => {
-    router.push({
-      pathname: '/member/[id]' as any,
-      params: {
-        id: contact.user_id,
-        name: contact.full_name,
-      },
-    } as any);
-  }, []);
-
   const selfContact = useMemo<ConnectSuggestedContact | null>(() => {
     if (!currentUser) return null;
 
@@ -196,34 +174,14 @@ export default function BuklodCommunityMapNav() {
               textColor={theme.textPrimary}
             />
 
-            <View
-              style={[
-                styles.avatarRing,
-                {
-                  borderColor: theme.border,
-                  backgroundColor: theme.surface,
-                },
-              ]}
-            >
-              {selfContact.avatar_url ? (
-                <Image
-                  source={{ uri: selfContact.avatar_url }}
-                  style={styles.avatar}
-                  resizeMode="cover"
-                />
-              ) : (
-                <View
-                  style={[
-                    styles.avatarFallback,
-                    { backgroundColor: theme.surfaceElevated },
-                  ]}
-                >
-                  <Text style={[styles.initials, { color: theme.textPrimary }]}>
-                    {initials(selfContact.full_name)}
-                  </Text>
-                </View>
-              )}
-            </View>
+            <ConnectTappableAvatar
+              userId={selfContact.user_id}
+              name={selfContact.full_name}
+              uri={selfContact.avatar_url}
+              size={AVATAR_SIZE}
+              onPress={null}
+              enableLongPressSheet={false}
+            />
 
             <Text
               numberOfLines={1}
@@ -235,72 +193,39 @@ export default function BuklodCommunityMapNav() {
         ) : null}
 
         {visibleContacts.map(contact => (
-          <Pressable
-            key={contact.user_id}
-            delayLongPress={420}
-            onPress={() => openConversation(contact)}
-            onLongPress={() => openProfile(contact)}
-            accessibilityRole="button"
-            accessibilityLabel={`Chat with ${contact.full_name}`}
-            accessibilityHint="Tap to open personal conversation. Long press to view profile."
-            style={({ pressed }) => [
-              styles.person,
-              pressed && styles.pressed,
-            ]}
-          >
+          <View key={contact.user_id} style={styles.person}>
             <NoteBubble
               note={contact.quick_note}
               textColor={theme.textPrimary}
             />
 
-            <View
-              style={[
-                styles.avatarRing,
-                {
-                  borderColor:
-                    contact.unread_count > 0
-                      ? theme.accent
-                      : theme.border,
-                  backgroundColor: theme.surface,
-                },
-              ]}
-            >
-              {contact.avatar_url ? (
-                <Image
-                  source={{ uri: contact.avatar_url }}
-                  style={styles.avatar}
-                  resizeMode="cover"
-                />
-              ) : (
-                <View
-                  style={[
-                    styles.avatarFallback,
-                    { backgroundColor: theme.surfaceElevated },
-                  ]}
-                >
-                  <Text style={[styles.initials, { color: theme.textPrimary }]}>
-                    {initials(contact.full_name)}
-                  </Text>
-                </View>
-              )}
+            <View style={styles.avatarWrap}>
+              <ConnectTappableAvatar
+                userId={contact.user_id}
+                name={contact.full_name}
+                uri={contact.avatar_url}
+                size={AVATAR_SIZE}
+                onPress={() => openConversation(contact)}
+                enableLongPressSheet
+              />
 
               {contact.unread_count > 0 ? (
                 <View
+                  pointerEvents="none"
                   style={[
-                    styles.unreadBadge,
-                    { backgroundColor: theme.accent },
+                    styles.unreadDot,
+                    {
+                      backgroundColor: theme.unreadBadge,
+                      borderColor: theme.canvas,
+                    },
                   ]}
-                >
-                  <Text style={styles.unreadText}>
-                    {contact.unread_count > 9 ? '9+' : contact.unread_count}
-                  </Text>
-                </View>
+                />
               ) : null}
             </View>
 
             <Text
               numberOfLines={1}
-              style={[styles.name, { color: theme.textPrimary }]}
+              style={[styles.name, { color: theme.textSecondary }]}
             >
               {firstName(contact.full_name)}
             </Text>
@@ -311,7 +236,7 @@ export default function BuklodCommunityMapNav() {
             >
               {contact.rank_name || 'Circle Starter V'}
             </Text>
-          </Pressable>
+          </View>
         ))}
       </ScrollView>
     </View>
@@ -332,10 +257,6 @@ const styles = StyleSheet.create({
   person: {
     width: COLUMN_WIDTH,
     alignItems: 'center',
-  },
-  pressed: {
-    opacity: 0.62,
-    transform: [{ scale: 0.97 }],
   },
   noteZone: {
     width: COLUMN_WIDTH,
@@ -372,44 +293,19 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     textAlign: 'center',
   },
-  avatarRing: {
+  avatarWrap: {
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
-    borderRadius: AVATAR_SIZE / 2,
-    borderWidth: 2,
-    padding: 2,
     position: 'relative',
   },
-  avatar: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 25,
-  },
-  avatarFallback: {
-    flex: 1,
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  initials: {
-    fontSize: 17,
-    fontWeight: '900',
-  },
-  unreadBadge: {
+  unreadDot: {
     position: 'absolute',
-    right: -4,
-    top: -4,
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
-    paddingHorizontal: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  unreadText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '900',
+    right: 2,
+    bottom: 2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 2,
   },
   name: {
     marginTop: 5,
