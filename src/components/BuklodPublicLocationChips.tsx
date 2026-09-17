@@ -4,6 +4,7 @@
  */
 import React, { useMemo } from 'react';
 import {
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -14,6 +15,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import BuklodCommunityHelp from '@/components/BuklodCommunityHelp';
+import BuklodWebCommunityMapHeader from '@/components/BuklodWebCommunityMapHeader';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import { colors } from '@/lib/theme';
 
@@ -41,11 +43,15 @@ function weight(scope:LocalScope){
 
 export default function BuklodPublicLocationChips({selectedScopeId,onChange}:Props){
   const {scopes}=useBuklodScope();
+  const webCommunityMap=Platform.OS==='web';
   const localScopes=useMemo(()=>(scopes as LocalScope[])
     .filter(scope=>scope.scope_type==='LOCAL'&&Boolean(scope.scope_id)&&Boolean(String(scope.name??'').trim())&&(!scope.membership_status||scope.membership_status==='ACTIVE'))
     .sort((a,b)=>weight(a)-weight(b)),[scopes]);
 
   return <View>
+    {/* Web app: real City map is part of the Wall header, so it scrolls with the feed. */}
+    {webCommunityMap?<BuklodWebCommunityMapHeader/>:null}
+
     <BuklodCommunityHelp />
 
     <ScrollView
