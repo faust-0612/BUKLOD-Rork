@@ -33,8 +33,10 @@ const checks = [
       'buklod-home-address',
       'privateHomePoint.localityLabel',
       "window.top.location.assign('/personal-home')",
-      "Satellite • loading nearby places",
-      "title: interactive\n        ? 'BUKLOD live satellite interactive community map'",
+      'Satellite • loading nearby places',
+      'title: interactive',
+      "'BUKLOD live satellite interactive community map'",
+      "'BUKLOD live satellite community map preview'",
     ],
   },
   {
