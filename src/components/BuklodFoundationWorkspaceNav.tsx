@@ -83,6 +83,9 @@ const ACCESSORY_APPS: AccessoryApp[] = [
   },
 ];
 
+const QUIZ_ENTRY_BRIDGE =
+  'https://cjtehbfspgimyhifnjon.supabase.co/functions/v1/buklod-quiz-main-entry-v1';
+
 export default function BuklodFoundationWorkspaceNav() {
   const { theme } = useBuklodTheme();
   const { focusApps } = useBuklodFoundation();
@@ -182,6 +185,54 @@ export default function BuklodFoundationWorkspaceNav() {
           router.push(app.route as any);
           return;
         }
+
+        if (app.key === 'quiz') {
+          /* BUKLOD_PROFILE_QUIZ_ZERO_LOGIN_SSO_R1
+           * Profile must use the same secure Main -> Quiz bridge already used
+           * by the canonical Classroom Quiz entry. Never open the bare Quiz
+           * URL for an authenticated Main user and never place Main access or
+           * refresh tokens in the Quiz URL.
+           */
+          const { data, error } = await supabase.auth.getSession();
+          if (error) throw error;
+
+          const accessToken = String(data.session?.access_token ?? '').trim();
+          if (!accessToken) {
+            throw new Error(
+              'Your BUKLOD Main session is unavailable. Sign in to BUKLOD Main again, then open BUKLOD Quiz from Profile.',
+            );
+          }
+
+          const handoffResponse = await fetch(QUIZ_ENTRY_BRIDGE, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ source: 'buklod-main-profile' }),
+          });
+
+          const handoffResult = await handoffResponse.json().catch(() => null);
+          const launchUrl = String(handoffResult?.launch_url ?? '').trim();
+
+          if (
+            !handoffResponse.ok ||
+            handoffResult?.ok !== true ||
+            !launchUrl
+          ) {
+            throw new Error(
+              String(
+                handoffResult?.message ??
+                  handoffResult?.error ??
+                  'Could not create your automatic BUKLOD Quiz session.',
+              ),
+            );
+          }
+
+          await Linking.openURL(launchUrl);
+          return;
+        }
+
         if (app.externalUrl) {
           await Linking.openURL(app.externalUrl);
         }
