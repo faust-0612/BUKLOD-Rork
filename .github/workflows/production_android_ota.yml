@@ -1,4 +1,4 @@
-# Release trigger: 2026-09-15 Android title-bar ad removal
+# Release trigger: 2026-09-17 BUKLOD Auth R1 trusted-device unlock
 name: BUKLOD Production Android OTA
 
 on:
@@ -27,6 +27,8 @@ on:
       - 'src/app/account/recovery-pin.tsx'
       - 'src/app/account/security.tsx'
       - 'src/app/admin/account-recovery.tsx'
+      - 'src/components/BuklodTrustedDeviceGate.tsx'
+      - 'src/components/BuklodTrustedDeviceGate.native.tsx'
       - 'src/app/scope/index.tsx'
       - 'src/app/scope/bulletin-editor.tsx'
       - 'src/app/scope/faith-monitoring/report.tsx'
@@ -111,6 +113,7 @@ jobs:
         run: |
           grep -F 'HOME_IDENTITY_ACTION_ROW_R2' 'src/app/(tabs)/home.tsx'
           grep -F 'BUKLOD_CLASSROOM_ACCOUNT_ISOLATION_R2' 'src/app/profile/buklod-classrooms.tsx'
+          grep -F "row.role_key === 'STUDENT' 'src/app/profile/buklod-classrooms.tsx'" || true
           grep -F "row.role_key === 'STUDENT'" 'src/app/profile/buklod-classrooms.tsx'
           if grep -F "row.role_key === 'FACULTY'" 'src/app/profile/buklod-classrooms.tsx'; then
             echo 'Faculty rows are still rendered in student My Classroom.'
@@ -129,6 +132,10 @@ jobs:
           grep -F "BUKLOD_MAIN_AUTH_STORM_R21" 'src/lib/buklodAuthResilience.ts'
           grep -F "authRuntimeState.passwordSignInInFlight" 'src/lib/buklodAuthResilience.ts'
           test "$(grep -cF '.signInWithPassword(credentials)' 'src/lib/buklodAuthResilience.ts')" -eq 1
+          grep -F 'persistSession: true' 'src/lib/supabase.ts'
+          grep -F 'BUKLOD_AUTH_EMAIL_LOCAL_DEVICE_R1' 'src/components/BuklodTrustedDeviceGate.native.tsx'
+          grep -F 'LocalAuthentication.authenticateAsync' 'src/components/BuklodTrustedDeviceGate.native.tsx'
+          grep -F 'SecureStore.setItemAsync' 'src/components/BuklodTrustedDeviceGate.native.tsx'
           grep -F 'BUKLOD_LEGACY_VERIFICATION_REMOVAL_R22' 'src/app/index.tsx'
           grep -F 'BUKLOD_LEGACY_VERIFICATION_REMOVAL_R22' 'src/app/onboarding/index.tsx'
           if grep -F 'WAITING FOR ADMIN VERIFICATION' 'src/app/onboarding/index.tsx'; then
@@ -213,7 +220,7 @@ jobs:
             --channel production \
             --platform android \
             --environment production \
-            --message "BUKLOD Android title-bar ad removal" \
+            --message "BUKLOD Auth R1 — persisted login + email OTP recovery + trusted-device unlock" \
             --non-interactive
 
       - name: Deployment status
