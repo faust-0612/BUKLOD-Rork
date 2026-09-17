@@ -1,7 +1,6 @@
-/* BUKLOD_ANDROID_COMMUNITY_PROFILE_BUBBLES_R1 */
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+/* BUKLOD_ANDROID_COMMUNITY_PROFILE_BUBBLES_R2_CONNECT_NOTES */
 import { router } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Image,
   Pressable,
@@ -15,9 +14,19 @@ import {
   loadConnectSuggestedContacts,
   type ConnectSuggestedContact,
 } from '@/lib/buklodConnectSuggestedContacts';
+import { markConnectStatusNoteSeen } from '@/lib/buklodConnectStatusNoteSeen';
+import {
+  loadMessagesStatusNote,
+  type MessagesStatusNote,
+} from '@/lib/buklodMessagesStatusNote';
+import { repairMojibakeText } from '@/lib/repairMojibakeText';
+import { useAuth } from '@/providers/AuthProvider';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 
 const MAX_BUBBLES = 14;
+const AVATAR_SIZE = 56;
+const COLUMN_WIDTH = 78;
+const NOTE_MAX_LINES = 3;
 
 function initials(name: string) {
   const parts = String(name ?? '')
@@ -30,9 +39,61 @@ function initials(name: string) {
   return parts.map(part => part[0]?.toUpperCase() ?? '').join('');
 }
 
+function firstName(name: string) {
+  return String(name ?? 'Member').trim().split(/\s+/)[0] || 'Member';
+}
+
+function NoteBubble({
+  note,
+  muted,
+}: {
+  note?: string | null;
+  muted: string;
+}) {
+  const value = repairMojibakeText(String(note ?? '')).trim();
+
+  if (!value) {
+    return <View style={styles.noteZone} />;
+  }
+
+  return (
+    <View style={styles.noteZone} pointerEvents="none">
+      <View style={styles.noteBubble}>
+        <Text
+          numberOfLines={NOTE_MAX_LINES}
+          style={[styles.noteText, { color: muted }]}
+        >
+          {value}
+        </Text>
+      </View>
+      <View style={styles.noteTail} />
+    </View>
+  );
+}
+
 export default function BuklodCommunityMapNav() {
   const { theme } = useBuklodTheme();
+  const { profile } = useAuth();
   const [contacts, setContacts] = useState<ConnectSuggestedContact[]>([]);
+  const [selfNote, setSelfNote] = useState<MessagesStatusNote | null>(null);
+
+  const currentUser = useMemo(() => {
+    const userId = String((profile as any)?.id ?? '').trim();
+    if (!userId) return null;
+
+    return {
+      user_id: userId,
+      full_name: String((profile as any)?.full_name ?? 'You'),
+      avatar_url: (profile as any)?.avatar_url
+        ? String((profile as any).avatar_url)
+        : null,
+    };
+  }, [profile]);
+
+  const loadContacts = useCallback(async () => {
+    const rows = await loadConnectSuggestedContacts(MAX_BUBBLES);
+    setContacts(rows.slice(0, MAX_BUBBLES));
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -46,10 +107,26 @@ export default function BuklodCommunityMapNav() {
         if (active) setContacts([]);
       });
 
+    void loadMessagesStatusNote()
+      .then(note => {
+        if (active) setSelfNote(note);
+      })
+      .catch(() => {
+        if (active) setSelfNote(null);
+      });
+
     return () => {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    for (const contact of contacts) {
+      if (String(contact.quick_note ?? '').trim()) {
+        void markConnectStatusNoteSeen(contact.user_id).catch(() => undefined);
+      }
+    }
+  }, [contacts]);
 
   const openConversation = useCallback((contact: ConnectSuggestedContact) => {
     if (contact.thread_id) {
@@ -84,7 +161,27 @@ export default function BuklodCommunityMapNav() {
     } as any);
   }, []);
 
-  if (!contacts.length) {
+  const selfContact = useMemo<ConnectSuggestedContact | null>(() => {
+    if (!currentUser) return null;
+
+    return {
+      user_id: currentUser.user_id,
+      full_name: currentUser.full_name,
+      avatar_url: currentUser.avatar_url,
+      shared_scope_label: null,
+      rank_name: null,
+      thread_id: null,
+      unread_count: 0,
+      quick_note: selfNote?.quick_note ?? null,
+    };
+  }, [currentUser, selfNote?.quick_note]);
+
+  const visibleContacts = useMemo(
+    () => contacts.filter(contact => contact.user_id !== currentUser?.user_id),
+    [contacts, currentUser?.user_id],
+  );
+
+  if (!selfContact && !visibleContacts.length) {
     return null;
   }
 
@@ -95,8 +192,55 @@ export default function BuklodCommunityMapNav() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.row}
         keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled
+        refreshControl={undefined}
       >
-        {contacts.map(contact => (
+        {selfContact ? (
+          <View style={styles.person}>
+            <NoteBubble
+              note={selfContact.quick_note}
+              muted={theme.textPrimary}
+            />
+
+            <View
+              style={[
+                styles.avatarRing,
+                {
+                  borderColor: theme.border,
+                  backgroundColor: theme.surface,
+                },
+              ]}
+            >
+              {selfContact.avatar_url ? (
+                <Image
+                  source={{ uri: selfContact.avatar_url }}
+                  style={styles.avatar}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View
+                  style={[
+                    styles.avatarFallback,
+                    { backgroundColor: theme.surfaceRaised },
+                  ]}
+                >
+                  <Text style={[styles.initials, { color: theme.textPrimary }]}>
+                    {initials(selfContact.full_name)}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            <Text
+              numberOfLines={1}
+              style={[styles.name, { color: theme.textPrimary }]}
+            >
+              {firstName(selfContact.full_name)}
+            </Text>
+          </View>
+        ) : null}
+
+        {visibleContacts.map(contact => (
           <Pressable
             key={contact.user_id}
             delayLongPress={420}
@@ -110,6 +254,11 @@ export default function BuklodCommunityMapNav() {
               pressed && styles.pressed,
             ]}
           >
+            <NoteBubble
+              note={contact.quick_note}
+              muted={theme.textPrimary}
+            />
+
             <View
               style={[
                 styles.avatarRing,
@@ -135,12 +284,7 @@ export default function BuklodCommunityMapNav() {
                     { backgroundColor: theme.surfaceRaised },
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.initials,
-                      { color: theme.textPrimary },
-                    ]}
-                  >
+                  <Text style={[styles.initials, { color: theme.textPrimary }]}>
                     {initials(contact.full_name)}
                   </Text>
                 </View>
@@ -162,30 +306,17 @@ export default function BuklodCommunityMapNav() {
 
             <Text
               numberOfLines={1}
-              style={[
-                styles.name,
-                { color: theme.textPrimary },
-              ]}
+              style={[styles.name, { color: theme.textPrimary }]}
             >
-              {contact.full_name.split(/\s+/)[0] || 'Member'}
+              {firstName(contact.full_name)}
             </Text>
 
-            <View style={styles.hintRow}>
-              <MaterialCommunityIcons
-                name="message-text-outline"
-                size={10}
-                color={theme.textMuted}
-              />
-              <Text
-                numberOfLines={1}
-                style={[
-                  styles.hint,
-                  { color: theme.textMuted },
-                ]}
-              >
-                Hold: profile
-              </Text>
-            </View>
+            <Text
+              numberOfLines={1}
+              style={[styles.rank, { color: theme.textMuted }]}
+            >
+              {contact.rank_name || 'Circle Starter V'}
+            </Text>
           </Pressable>
         ))}
       </ScrollView>
@@ -195,26 +326,62 @@ export default function BuklodCommunityMapNav() {
 
 const styles = StyleSheet.create({
   shell: {
-    paddingTop: 8,
-    paddingBottom: 6,
+    paddingTop: 4,
+    paddingBottom: 4,
   },
   row: {
     paddingHorizontal: 12,
-    gap: 12,
+    paddingBottom: 8,
+    gap: 10,
     alignItems: 'flex-start',
   },
   person: {
-    width: 72,
+    width: COLUMN_WIDTH,
     alignItems: 'center',
   },
   pressed: {
     opacity: 0.62,
     transform: [{ scale: 0.97 }],
   },
+  noteZone: {
+    width: COLUMN_WIDTH,
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginBottom: 4,
+  },
+  noteBubble: {
+    maxWidth: COLUMN_WIDTH,
+    minWidth: 58,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(127,127,127,0.25)',
+    backgroundColor: 'rgba(127,127,127,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noteTail: {
+    width: 10,
+    height: 10,
+    marginTop: -5,
+    backgroundColor: 'rgba(127,127,127,0.08)',
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(127,127,127,0.25)',
+    transform: [{ rotate: '45deg' }],
+  },
+  noteText: {
+    fontSize: 9.5,
+    lineHeight: 12,
+    fontWeight: '400',
+    textAlign: 'center',
+  },
   avatarRing: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: AVATAR_SIZE / 2,
     borderWidth: 2,
     padding: 2,
     position: 'relative',
@@ -222,11 +389,11 @@ const styles = StyleSheet.create({
   avatar: {
     width: '100%',
     height: '100%',
-    borderRadius: 26,
+    borderRadius: 25,
   },
   avatarFallback: {
     flex: 1,
-    borderRadius: 26,
+    borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -257,16 +424,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
   },
-  hintRow: {
-    marginTop: 2,
-    maxWidth: 72,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
-  },
-  hint: {
+  rank: {
+    marginTop: 1,
+    width: '100%',
+    textAlign: 'center',
     fontSize: 8,
-    fontWeight: '600',
+    lineHeight: 11,
+    fontWeight: '700',
   },
 });
