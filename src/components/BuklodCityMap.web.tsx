@@ -117,6 +117,7 @@ export function BuklodCityMap({
       ? {
           latitude: privateHomePoint.latitude,
           longitude: privateHomePoint.longitude,
+          localityLabel: privateHomePoint.localityLabel ?? '',
         }
       : null;
 
@@ -132,12 +133,14 @@ html,body,#map{width:100%;height:100%;margin:0;padding:0;background:#eaf2f4;font
 .leaflet-popup-content{min-width:200px;margin:11px 13px}
 .buklod-pin{width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 3px 10px rgba(20,50,70,.25);display:flex;align-items:center;justify-content:center}
 .buklod-pin span{transform:rotate(45deg);color:#fff;font-size:12px;font-weight:900}
-.buklod-home-pin{width:42px;height:42px;border-radius:14px;background:#fff;border:3px solid #177552;box-shadow:0 5px 16px rgba(23,117,82,.32);display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer}
-.buklod-home-pin:after{content:'HOME';position:absolute;top:43px;left:50%;transform:translateX(-50%);background:#177552;color:#fff;border-radius:999px;padding:2px 6px;font-size:8px;line-height:12px;font-weight:900;letter-spacing:.5px;white-space:nowrap;box-shadow:0 2px 6px rgba(20,50,70,.2)}
-.buklod-home-pin svg{width:25px;height:25px;display:block;fill:#177552}
+.buklod-home-marker{width:176px;display:flex;flex-direction:column;align-items:center;gap:4px;filter:drop-shadow(0 5px 12px rgba(23,117,82,.22));cursor:pointer}
+.buklod-home-door{width:44px;height:44px;border-radius:14px;background:#fff;border:3px solid #177552;display:flex;align-items:center;justify-content:center;position:relative}
+.buklod-home-door:after{content:'HOME';position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:#177552;color:#fff;border-radius:999px;padding:2px 6px;font-size:8px;line-height:12px;font-weight:900;letter-spacing:.5px;white-space:nowrap}
+.buklod-home-door svg{width:26px;height:26px;display:block;fill:#177552}
+.buklod-home-address{max-width:170px;padding:4px 8px;border:1px solid #b9d9cb;border-radius:10px;background:rgba(255,255,255,.97);color:#385565;font-size:9px;line-height:12px;font-weight:800;text-align:center;white-space:normal;box-shadow:0 3px 8px rgba(20,50,70,.14)}
 .buklod-popup-title{font-weight:800;font-size:13px;color:#183047;margin-bottom:3px}.buklod-popup-sub{font-size:11px;line-height:15px;color:#60768a}.buklod-verified{font-size:10px;color:#177552;font-weight:700;margin-top:5px}.buklod-popup-note{margin-top:7px;font-size:9px;line-height:13px;color:#748695}
 .buklod-nav-control{display:block;min-width:165px;max-width:min(300px,calc(100vw - 92px));padding:9px 11px;border:1px solid #cfe0d7;border-radius:14px;background:rgba(255,255,255,.97);box-shadow:0 7px 22px rgba(19,52,68,.18);text-decoration:none;color:#1f3c4e;cursor:default}.buklod-nav-control strong{display:block;font-size:11px;line-height:14px;color:#177552}.buklod-nav-control span{display:block;margin-top:2px;font-size:8px;line-height:11px;color:#6a7f8f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.buklod-nav-control.active{cursor:pointer;border-color:#9ccdb8;background:#f8fffb}.buklod-nav-control.privacy strong{color:#697f8e}
-@media (max-width:560px){.buklod-nav-control{min-width:145px;max-width:calc(100vw - 86px);padding:8px 9px}.buklod-nav-control strong{font-size:10px}.buklod-nav-control span{font-size:8px}}
+@media (max-width:560px){.buklod-nav-control{min-width:145px;max-width:calc(100vw - 86px);padding:8px 9px}.buklod-nav-control strong{font-size:10px}.buklod-nav-control span{font-size:8px}.buklod-home-marker{width:150px}.buklod-home-address{max-width:144px;font-size:8px;line-height:11px}}
 </style>
 </head>
 <body>
@@ -210,9 +213,11 @@ points.forEach((p)=>{
 });
 if(home&&Number.isFinite(home.latitude)&&Number.isFinite(home.longitude)){
  const homeSvg='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2 2.8 10.6a1 1 0 0 0 .6 1.8h1.1v7.1c0 .8.7 1.5 1.5 1.5h4.2v-5.5h3.6V21H18c.8 0 1.5-.7 1.5-1.5v-7.1h1.1a1 1 0 0 0 .6-1.8L12 3.2Z"/></svg>';
- const homeIcon=L.divIcon({className:'',html:'<div class="buklod-home-pin" title="Open My BUKLOD Home">'+homeSvg+'</div>',iconSize:[42,58],iconAnchor:[21,42]});
+ const safeHomeAddress=escapeHtml(home.localityLabel||'My saved address');
+ const homeHtml='<div class="buklod-home-marker" title="Open My BUKLOD Home"><div class="buklod-home-door">'+homeSvg+'</div><div class="buklod-home-address">'+safeHomeAddress+'</div></div>';
+ const homeIcon=L.divIcon({className:'',html:homeHtml,iconSize:[176,76],iconAnchor:[88,44]});
  const homeMarker=L.marker([home.latitude,home.longitude],{icon:homeIcon,zIndexOffset:1000,keyboard:true,title:'My BUKLOD Home'}).addTo(map);
- homeMarker.bindTooltip('My BUKLOD Home · tap to enter',{direction:'top',offset:[0,-34]});
+ homeMarker.bindTooltip('My BUKLOD Home · tap to enter',{direction:'top',offset:[0,-42]});
  homeMarker.on('click',()=>{try{window.top.location.assign('/personal-home');}catch(_){window.location.assign('/personal-home');}});
  bounds.push([home.latitude,home.longitude]);
 }
@@ -227,6 +232,7 @@ setTimeout(()=>map.invalidateSize(),120);
     points,
     privateHomePoint?.latitude,
     privateHomePoint?.longitude,
+    privateHomePoint?.localityLabel,
   ]);
 
   const iframe = (interactive: boolean) => React.createElement('iframe', {
