@@ -26,6 +26,26 @@ const checks = [
     ],
   },
   {
+    file: 'app.config.js',
+    tokens: [
+      'GOOGLE_MAPS_ANDROID_API_KEY',
+      'androidGoogleMapsApiKey: googleMapsAndroidApiKey',
+      "package: packageId",
+    ],
+  },
+  {
+    file: 'plugins/withBuklodWebRTC.js',
+    tokens: [
+      'BUKLOD_ANDROID_GOOGLE_MAPS_MANIFEST_R1',
+      'withAndroidManifest',
+      'AndroidConfig.Manifest.getMainApplicationOrThrow',
+      'AndroidConfig.Manifest.addMetaDataItemToMainApplication',
+      'com.google.android.geo.API_KEY',
+      'GOOGLE_MAPS_ANDROID_API_KEY',
+      "config.android?.package === 'org.mzbministry.buklod'",
+    ],
+  },
+  {
     file: 'src/components/BuklodDashboardContextBar.tsx',
     tokens: [
       'import BuklodCommunityMapNav',
@@ -50,7 +70,7 @@ let failures = 0;
 console.log('BUKLOD ANDROID COMMUNITY SATELLITE MAP RELEASE CONTRACT');
 console.log('=======================================================');
 console.log(
-  'LOCK: Android Public Community uses the real native satellite/hybrid map, Tap map to open stays, nearby places load safely, BUKLOD Navigation remains, and private Home stays local-only.',
+  'LOCK: Android Public Community uses the real native satellite/hybrid map, Google Maps API metadata is injected into AndroidManifest, Tap map to open stays, nearby places load safely, BUKLOD Navigation remains, and private Home stays local-only.',
 );
 
 for (const check of checks) {
