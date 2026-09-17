@@ -1,6 +1,5 @@
 /* BUKLOD_SHARE_TARGET_187A */
-import {
-useEffect } from 'react';
+import { useEffect } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -12,6 +11,26 @@ import {
 import { router } from 'expo-router';
 import { useIncomingShare } from '@/lib/buklodIncomingShare';
 
+function hasIncomingVideo(incoming: any) {
+  const resolved = incoming?.resolvedSharedPayloads ?? [];
+  if (
+    resolved.some(
+      (row: any) =>
+        row?.contentType === 'video' ||
+        String(row?.contentMimeType ?? '').toLowerCase().startsWith('video/')
+    )
+  ) {
+    return true;
+  }
+
+  const raw = incoming?.sharedPayloads ?? [];
+  return raw.some(
+    (row: any) =>
+      row?.shareType === 'video' ||
+      String(row?.mimeType ?? '').toLowerCase().startsWith('video/')
+  );
+}
+
 export default function BuklodIncomingShareHandoff() {
   /* BUKLOD_WEB_SHARE_HANDOFF_R18B */
   useEffect(() => {
@@ -20,7 +39,6 @@ export default function BuklodIncomingShareHandoff() {
     }
   }, []);
 
-
   const incoming = useIncomingShare();
 
   useEffect(() => {
@@ -28,9 +46,18 @@ export default function BuklodIncomingShareHandoff() {
       (incoming.sharedPayloads?.length ?? 0) > 0 ||
       (incoming.resolvedSharedPayloads?.length ?? 0) > 0;
 
-    if (hasPayload) {
-      router.replace('/(tabs)/buklod' as any);
+    if (!hasPayload) return;
+
+    // Community Wall is text/photo-only. Shared video goes straight to the
+    // canonical IGPAT creator while keeping the OS payload alive so IGPAT can
+    // import the exact shared file, inspect duration/size, and let the user
+    // review caption/audience before publishing.
+    if (hasIncomingVideo(incoming)) {
+      router.replace('/igpat/create?incomingShare=1' as any);
+      return;
     }
+
+    router.replace('/(tabs)/buklod' as any);
   }, [
     incoming.sharedPayloads,
     incoming.resolvedSharedPayloads,
@@ -39,9 +66,9 @@ export default function BuklodIncomingShareHandoff() {
   return (
     <View style={styles.screen}>
       <ActivityIndicator size="large" />
-      <Text style={styles.title}>Opening BUKLOD Community...</Text>
+      <Text style={styles.title}>Opening Share to BUKLOD...</Text>
       <Text style={styles.copy}>
-        Your shared item will be placed in the composer for review before posting.
+        Photos and text open in Community. Videos open in BUKLOD IGPAT. Nothing is published until you review and confirm it.
       </Text>
 
       {!!incoming.error && (
