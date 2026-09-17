@@ -20,7 +20,7 @@ $DevicePreflight = Join-Path $Root 'RUN_BUKLOD_NATIVE_RC_DEVICE_PREFLIGHT_202609
 
 if (-not (Test-Path $BuildScript)) { throw "Missing build script: $BuildScript" }
 
-Write-Host "`nBUKLOD NATIVE RC — BUILD + DOWNLOAD + DEVICE PREP" -ForegroundColor Green
+Write-Host "`nBUKLOD NATIVE RC - BUILD + DOWNLOAD + DEVICE PREP" -ForegroundColor Green
 Write-Host "Release artifacts: $ReleaseDir" -ForegroundColor Cyan
 & $BuildScript
 if ($LASTEXITCODE -ne 0) { throw 'Native RC build script failed.' }
@@ -76,14 +76,14 @@ Write-Host 'Repository working tree is not used for generated build artifacts.' 
 
 if ($SkipDevicePreflight) {
   Write-Host "`nDevice preflight skipped by request." -ForegroundColor Yellow
-  Write-Host "Later run: .\RUN_BUKLOD_NATIVE_RC_DEVICE_PREFLIGHT_20260917.ps1 -ApkPath `"$ApkPath`""
+  Write-Host ('Later run: .\RUN_BUKLOD_NATIVE_RC_DEVICE_PREFLIGHT_20260917.ps1 -ApkPath "{0}"' -f $ApkPath)
   exit 0
 }
 
 if (-not (Get-Command adb -ErrorAction SilentlyContinue)) {
   Write-Host "`nAPK is ready, but ADB is not installed/on PATH." -ForegroundColor Yellow
   Write-Host 'Install Android Platform Tools, connect one phone with USB debugging, then run:'
-  Write-Host ".\RUN_BUKLOD_NATIVE_RC_DEVICE_PREFLIGHT_20260917.ps1 -ApkPath `"$ApkPath`"" -ForegroundColor Cyan
+  Write-Host ('.\RUN_BUKLOD_NATIVE_RC_DEVICE_PREFLIGHT_20260917.ps1 -ApkPath "{0}"' -f $ApkPath) -ForegroundColor Cyan
   exit 0
 }
 
