@@ -1,6 +1,10 @@
 import BuklodDashboardContextBar from '@/components/BuklodDashboardContextBar';
 import BuklodHeaderSponsor from '@/components/BuklodHeaderSponsor';
 import {
+  BuklodDesktopCharacterPointsRail,
+  BuklodDesktopProfileRail,
+} from '@/components/BuklodDesktopDashboardRails';
+import {
   warmBuklodInterstitial,
 } from '@/lib/buklodAds';
 import {
@@ -334,7 +338,7 @@ export default function TabsLayout() {
     overflow: 'hidden' as const,
   };
 
-  const desktopHome =
+  const webWideDashboard =
     Platform.OS === 'web' &&
     width >= 1200 &&
     (
@@ -365,11 +369,10 @@ export default function TabsLayout() {
   );
 
   /*
-   * BUKLOD_DESKTOP_HOME_3COL_R2
-   * Desktop Community/Home only: reserve narrow left/right rails and keep the
-   * existing dashboard intact in a wider center column. The workspace/navigation
-   * tree stays mounted while route changes occur, preventing tab-state resets.
-   * Mobile/tablet receives no desktop rail styling.
+   * BUKLOD_WEB_DASHBOARD_R4
+   * The web app is the target. Wide web gets Profile / Community / Character
+   * columns; narrower web keeps the existing single-column responsive shell.
+   * Native Android/iOS behavior is not changed by this layout patch.
    */
   return (
     <View style={{ flex: 1 }}>
@@ -383,7 +386,7 @@ export default function TabsLayout() {
 
         <View
           style={
-            desktopHome
+            webWideDashboard
               ? {
                   flex: 1,
                   width: '100%',
@@ -399,23 +402,23 @@ export default function TabsLayout() {
                 }
           }
         >
-          {desktopHome ? (
+          {webWideDashboard ? (
             <View
-              key="desktop-left-rail"
-              pointerEvents="none"
-              accessibilityElementsHidden
-              importantForAccessibility="no-hide-descendants"
+              key="web-left-rail"
               style={{
                 flex: 1,
                 minWidth: 0,
+                overflow: 'hidden',
               }}
-            />
+            >
+              <BuklodDesktopProfileRail />
+            </View>
           ) : null}
 
           <View
             key="workspace-center"
             style={{
-              flex: desktopHome ? 2.8 : 1,
+              flex: webWideDashboard ? 2.8 : 1,
               minWidth: 0,
             }}
           >
@@ -423,17 +426,17 @@ export default function TabsLayout() {
             {workspaceStack}
           </View>
 
-          {desktopHome ? (
+          {webWideDashboard ? (
             <View
-              key="desktop-right-rail"
-              pointerEvents="none"
-              accessibilityElementsHidden
-              importantForAccessibility="no-hide-descendants"
+              key="web-right-rail"
               style={{
                 flex: 1,
                 minWidth: 0,
+                overflow: 'hidden',
               }}
-            />
+            >
+              <BuklodDesktopCharacterPointsRail />
+            </View>
           ) : null}
         </View>
       </View>
