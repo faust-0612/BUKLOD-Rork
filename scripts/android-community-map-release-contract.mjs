@@ -2,27 +2,25 @@ import fs from 'node:fs';
 
 const checks = [
   {
-    file: 'src/components/BuklodCommunityMapNav.native.tsx',
+    file: 'src/components/BuklodCommunityMapNav.android.tsx',
     tokens: [
-      'BUKLOD_ANDROID_COMMUNITY_SATELLITE_MAP_R1',
+      'BUKLOD_ANDROID_COMMUNITY_PROFILE_BUBBLES_R1',
+      'loadConnectSuggestedContacts',
+      "pathname: '/connect/personal/[threadId]'",
+      "threadId: 'new'",
+      'targetUserId: contact.user_id',
+      "pathname: '/member/[id]'",
+      'delayLongPress={420}',
+      'onPress={() => openConversation(contact)}',
+      'onLongPress={() => openProfile(contact)}',
+      'Tap to open personal conversation. Long press to view profile.',
+      'showsHorizontalScrollIndicator={false}',
+    ],
+    absentTokens: [
       "from 'react-native-maps'",
+      '<MapView',
       'PROVIDER_GOOGLE',
-      'mapType="hybrid"',
       'Tap map to open',
-      'BUKLOD LIVE MAP',
-      'BUKLOD NAVIGATION',
-      'overpass-api.de/api/interpreter',
-      'overpass.kumi.systems/api/interpreter',
-      'hospital|clinic|doctors|pharmacy|police|fire_station|school|college|university',
-      '["shop"]["name"]',
-      '["office"]["name"]',
-      'getBuklodCitySnapshot',
-      'loadMyBuklodHomeMapLocation',
-      "router.push('/personal-home' as any)",
-      "home.localityLabel || 'My saved address'",
-      "point.kind !== 'PERSON'",
-      'POI_RELOAD_DISTANCE_KM',
-      'Keep BUKLOD + Home markers usable when external POI data is unavailable.',
     ],
   },
   {
@@ -55,22 +53,14 @@ const checks = [
       'communityRoute',
     ],
   },
-  {
-    file: 'src/lib/buklodHomeLocation.ts',
-    tokens: [
-      'The resulting coordinates are intentionally NOT written to the public City',
-      'localityLabel',
-      'buklod_user_addresses',
-    ],
-  },
 ];
 
 let failures = 0;
 
-console.log('BUKLOD ANDROID COMMUNITY SATELLITE MAP RELEASE CONTRACT');
-console.log('=======================================================');
+console.log('BUKLOD ANDROID COMMUNITY TOP RAIL RELEASE CONTRACT');
+console.log('==================================================');
 console.log(
-  'LOCK: Android Public Community uses the real native satellite/hybrid map, Google Maps API metadata is injected into AndroidManifest, Tap map to open stays, nearby places load safely, BUKLOD Navigation remains, and private Home stays local-only.',
+  'LOCK: Recent Android only. Public Community top map card is replaced by real member profile bubbles. Tap opens personal conversation; long press opens member profile. Android top rail must not mount react-native-maps. Web/iOS behavior stays outside this contract.',
 );
 
 for (const check of checks) {
@@ -81,17 +71,25 @@ for (const check of checks) {
   }
 
   const source = fs.readFileSync(check.file, 'utf8');
-  for (const token of check.tokens) {
+
+  for (const token of check.tokens ?? []) {
     if (!source.includes(token)) {
       console.error(`FAIL: ${check.file} missing locked token: ${token}`);
+      failures += 1;
+    }
+  }
+
+  for (const token of check.absentTokens ?? []) {
+    if (source.includes(token)) {
+      console.error(`FAIL: ${check.file} contains forbidden Android top-rail token: ${token}`);
       failures += 1;
     }
   }
 }
 
 if (failures > 0) {
-  console.error(`ANDROID COMMUNITY MAP RELEASE LOCK FAILED: ${failures} blocker(s).`);
+  console.error(`ANDROID COMMUNITY TOP RAIL RELEASE LOCK FAILED: ${failures} blocker(s).`);
   process.exit(1);
 }
 
-console.log('ANDROID COMMUNITY SATELLITE MAP RELEASE LOCK PASSED.');
+console.log('ANDROID COMMUNITY PROFILE BUBBLES RELEASE LOCK PASSED.');
