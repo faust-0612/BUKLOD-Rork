@@ -215,7 +215,7 @@ export default function BuklodCommunityMapNav() {
                 <View
                   style={[
                     styles.avatarFallback,
-                    { backgroundColor: theme.surfaceRaised },
+                    { backgroundColor: theme.surfaceElevated },
                   ]}
                 >
                   <Text style={[styles.initials, { color: theme.textPrimary }]}>
@@ -275,7 +275,7 @@ export default function BuklodCommunityMapNav() {
                 <View
                   style={[
                     styles.avatarFallback,
-                    { backgroundColor: theme.surfaceRaised },
+                    { backgroundColor: theme.surfaceElevated },
                   ]}
                 >
                   <Text style={[styles.initials, { color: theme.textPrimary }]}>
