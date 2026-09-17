@@ -2,6 +2,7 @@ import BuklodNavSafeShell from '@/components/BuklodNavSafeShell';
 import BuklodRootKeyboardAvoidingView from '@/components/BuklodRootKeyboardAvoidingView';
 import { BuklodGuideAvatar } from '@/components/BuklodGuideAvatar';
 import BuklodFormationEntryScopeTracker from '@/components/BuklodFormationEntryScopeTracker';
+import BuklodTrustedDeviceGate from '@/components/BuklodTrustedDeviceGate';
 import '@/lib/performanceBoot';
 import { Stack, type ErrorBoundaryProps } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -66,6 +67,7 @@ export default function RootLayout() {
       style={{ flex: 1 }}
     >
       <AuthProvider>
+        <BuklodTrustedDeviceGate>
         <BuklodBibleNarrationProvider>
         <BuklodThemeProvider>
         <BuklodCharacterEventProvider>
@@ -249,6 +251,7 @@ export default function RootLayout() {
         </BuklodCharacterEventProvider>
         </BuklodThemeProvider>
         </BuklodBibleNarrationProvider>
+        </BuklodTrustedDeviceGate>
 </AuthProvider>
     </GestureHandlerRootView>
     </SafeAreaProvider>
