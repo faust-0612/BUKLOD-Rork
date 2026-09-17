@@ -75,7 +75,30 @@ Use two real Android devices/accounts.
 - [ ] Upload/post completes and the same IGPAT item plays afterward.
 - [ ] Community Wall IGPAT preview opens the exact IGPAT item.
 
-## F. Animated character / BUKLOD Kingdom — REQUIRED
+## F. Share to/from BUKLOD — REQUIRED
+
+### Receive from other Android apps
+
+- [ ] Android share sheet lists **BUKLOD** for a single photo.
+- [ ] Sharing a photo into BUKLOD opens Public Community and places the exact photo in the composer for review; nothing auto-posts.
+- [ ] Sharing plain text or a URL into BUKLOD places the exact text/URL in the Community composer for review.
+- [ ] Sharing multiple photos into BUKLOD is accepted where Android/provider supports `ACTION_SEND_MULTIPLE`, and the selected photos reach the Community composer within the normal photo limit.
+- [ ] Android share sheet lists **BUKLOD** for a video.
+- [ ] Sharing a video into BUKLOD routes to **BUKLOD IGPAT**, not Community video posting.
+- [ ] The exact shared video is preloaded in the IGPAT creator without forcing the user to select it again.
+- [ ] Shared video duration/size are inspected and the normal 60-second IGPAT validation is still enforced.
+- [ ] If the source app supplies accompanying text, it can populate the IGPAT caption without publishing automatically.
+- [ ] Cold-start share works when BUKLOD was fully closed.
+- [ ] Warm share works when BUKLOD was already open/backgrounded.
+- [ ] Cancelling Share to BUKLOD clears the incoming payload and does not create a post.
+
+### Share from BUKLOD to other apps
+
+- [ ] Sharing an IGPAT opens the Android share sheet with the correct BUKLOD IGPAT link/content.
+- [ ] Sharing an approved Community post opens the Android share sheet and sends the intended BUKLOD content/link/text.
+- [ ] Existing file/report/classroom exports that use native sharing still open a valid Android share sheet.
+
+## G. Animated character / BUKLOD Kingdom — REQUIRED
 
 - [ ] Native Rive character renders on Android; web fallback is not accidentally used.
 - [ ] Character animation/state changes do not crash after background → foreground.
@@ -85,7 +108,7 @@ Use two real Android devices/accounts.
 - [ ] No obvious frame stalls, runaway memory, black canvas, or missing textures during several minutes of use.
 - [ ] Leaving and reopening Kingdom/game restores expected state.
 
-## G. Native Community Map / travel — REQUIRED
+## H. Native Community Map / travel — REQUIRED
 
 - [ ] Native Google map loads using the production Maps key.
 - [ ] Default HYBRID imagery renders.
@@ -100,7 +123,7 @@ Use two real Android devices/accounts.
 
 > Note: satellite/hybrid imagery is provider imagery, not a real-time satellite camera feed. The device GPS position is the live component. Current RC uses a native BUKLOD map plus Google Maps turn-by-turn handoff; it does not claim an embedded Google Navigation SDK engine.
 
-## H. Production regression / release safety — REQUIRED
+## I. Production regression / release safety — REQUIRED
 
 - [ ] Community Wall/public root loads.
 - [ ] Profile opens and Android Back returns correctly.
@@ -118,8 +141,11 @@ Only when every REQUIRED item above passes:
 
 1. Record the exact RC Git SHA tested on the phone.
 2. Do not merge unrelated `main` work into the frozen RC.
-3. Run the final AAB script from that exact SHA.
-4. Verify package `org.mzbministry.buklod`, version `1.3.0`, versionCode `21`.
-5. Upload that AAB to Google Play Production only after final AAB identity checks pass.
+3. From the exact clean RC checkout, run:
+   `PowerShell -ExecutionPolicy Bypass -File .\APPROVE_BUKLOD_NATIVE_RC_AFTER_PHYSICAL_QA_20260917.ps1 -ApprovedSha <TESTED_SHA> -IConfirmAllPhysicalQAPassed`
+4. The approval script verifies the exact downloaded APK SHA256 and refuses approval if the RC branch moved after that APK was built.
+5. Run the final AAB script from that exact approved SHA.
+6. Verify package `org.mzbministry.buklod`, version `1.3.0`, versionCode `21`.
+7. Upload that exact hashed AAB to Google Play Production only after final AAB identity checks pass.
 
 Any failure returns the RC to FIX → REBUILD APK → RETEST. Never patch after physical approval and reuse the old approval.
