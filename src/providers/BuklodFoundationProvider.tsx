@@ -114,6 +114,32 @@ async function clearCachedSnapshot() {
   }
 }
 
+function buildFoundationInputKey(
+  userId: string,
+  isSystemAdmin: boolean,
+  scopes: BuklodScope[],
+  activeScope: BuklodScope | null
+) {
+  const scopeState = scopes
+    .map((scope) => ({
+      id: String(scope.scope_id ?? ''),
+      type: String(scope.scope_type ?? ''),
+      status: String(scope.scope_status ?? ''),
+      membership: String(scope.membership_status ?? ''),
+      admin: scope.is_admin === true,
+      roles: [...(scope.role_keys ?? [])].map(String).sort(),
+      features: [...(scope.feature_keys ?? [])].map(String).sort(),
+    }))
+    .sort((a, b) => a.id.localeCompare(b.id));
+
+  return JSON.stringify({
+    userId,
+    isSystemAdmin,
+    activeScopeId: activeScope?.scope_id ?? null,
+    scopeState,
+  });
+}
+
 export function BuklodFoundationProvider({
   children,
 }: {
@@ -149,8 +175,24 @@ export function BuklodFoundationProvider({
   const cacheHydratedRef = useRef(false);
   const lastValidSnapshotRef =
     useRef<BuklodFoundationSnapshot | null>(null);
+  const lastResolvedInputKeyRef = useRef<string | null>(null);
+  const resolveInFlightRef = useRef<{
+    key: string;
+    request: Promise<void>;
+  } | null>(null);
 
   const isSystemAdmin = hasRole('system_admin');
+
+  const foundationInputKey = useMemo(
+    () =>
+      buildFoundationInputKey(
+        user?.id ?? '',
+        isSystemAdmin,
+        scopes,
+        activeScope
+      ),
+    [user?.id, isSystemAdmin, scopes, activeScope]
+  );
 
   const applySnapshot = useCallback(
     (snapshot: BuklodFoundationSnapshot) => {
@@ -163,8 +205,9 @@ export function BuklodFoundationProvider({
   );
 
   const resolveFoundation = useCallback(
-    async (options?: { background?: boolean }) => {
+    async (options?: { background?: boolean; force?: boolean }) => {
       const background = Boolean(options?.background);
+      const force = Boolean(options?.force);
 
       if (!user?.id) {
         setFocusApps([]);
@@ -173,11 +216,38 @@ export function BuklodFoundationProvider({
         setIsReady(true);
         setRefreshing(false);
         lastValidSnapshotRef.current = null;
+        lastResolvedInputKeyRef.current = null;
+        resolveInFlightRef.current = null;
         void clearCachedSnapshot();
         return;
       }
 
       if (authLoading || scopeLoading) {
+        return;
+      }
+
+      const inputKey = foundationInputKey;
+
+      /*
+       * P0_BOOTSTRAP_AMPLIFICATION_R4
+       * React/provider rerenders must not replay the full Foundation graph when
+       * the authenticated user's effective scope state did not change.
+       */
+      if (
+        !force &&
+        lastResolvedInputKeyRef.current === inputKey
+      ) {
+        setIsReady(true);
+        setRefreshing(false);
+        return;
+      }
+
+      const existingFlight = resolveInFlightRef.current;
+      if (
+        !force &&
+        existingFlight?.key === inputKey
+      ) {
+        await existingFlight.request;
         return;
       }
 
@@ -187,38 +257,54 @@ export function BuklodFoundationProvider({
         setRefreshing(true);
       }
 
+      const request = (async () => {
+        try {
+          const snapshot = await resolveFoundationFocusAppsFast({
+            isSystemAdmin,
+            scopes,
+            activeScope,
+          });
+
+          if (generation !== resolveGenerationRef.current) {
+            return;
+          }
+
+          lastResolvedInputKeyRef.current = inputKey;
+          applySnapshot(snapshot);
+          void saveCachedSnapshot(user.id, snapshot.focusApps);
+          setIsReady(true);
+        } catch (error: any) {
+          console.warn(
+            'BUKLOD foundation resolve failed:',
+            String(error?.message ?? error)
+          );
+
+          if (generation !== resolveGenerationRef.current) {
+            return;
+          }
+
+          if (lastValidSnapshotRef.current) {
+            applySnapshot(lastValidSnapshotRef.current);
+          }
+
+          setIsReady(true);
+        } finally {
+          if (generation === resolveGenerationRef.current) {
+            setRefreshing(false);
+          }
+        }
+      })();
+
+      resolveInFlightRef.current = {
+        key: inputKey,
+        request,
+      };
+
       try {
-        const snapshot = await resolveFoundationFocusAppsFast({
-          isSystemAdmin,
-          scopes,
-          activeScope,
-        });
-
-        if (generation !== resolveGenerationRef.current) {
-          return;
-        }
-
-        applySnapshot(snapshot);
-        void saveCachedSnapshot(user.id, snapshot.focusApps);
-        setIsReady(true);
-      } catch (error: any) {
-        console.warn(
-          'BUKLOD foundation resolve failed:',
-          String(error?.message ?? error)
-        );
-
-        if (generation !== resolveGenerationRef.current) {
-          return;
-        }
-
-        if (lastValidSnapshotRef.current) {
-          applySnapshot(lastValidSnapshotRef.current);
-        }
-
-        setIsReady(true);
+        await request;
       } finally {
-        if (generation === resolveGenerationRef.current) {
-          setRefreshing(false);
+        if (resolveInFlightRef.current?.request === request) {
+          resolveInFlightRef.current = null;
         }
       }
     },
@@ -226,6 +312,7 @@ export function BuklodFoundationProvider({
       user?.id,
       authLoading,
       scopeLoading,
+      foundationInputKey,
       isSystemAdmin,
       scopes,
       activeScope,
@@ -245,6 +332,8 @@ export function BuklodFoundationProvider({
       setIsReady(true);
       setRefreshing(false);
       lastValidSnapshotRef.current = null;
+      lastResolvedInputKeyRef.current = null;
+      resolveInFlightRef.current = null;
       return () => {
         active = false;
       };
@@ -295,15 +384,13 @@ export function BuklodFoundationProvider({
     user?.id,
     authLoading,
     scopeLoading,
-    isSystemAdmin,
-    scopes,
-    activeScope?.scope_id,
+    foundationInputKey,
     resolveFoundation,
   ]);
 
   const refresh = useCallback(async () => {
     await refreshScopes();
-    await resolveFoundation({ background: true });
+    await resolveFoundation({ background: true, force: true });
   }, [refreshScopes, resolveFoundation]);
 
   const getFocusApp = useCallback(
