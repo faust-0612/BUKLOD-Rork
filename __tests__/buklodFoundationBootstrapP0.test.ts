@@ -83,7 +83,7 @@ describe('BUKLOD P0 Foundation bootstrap containment', () => {
       scopes: [],
       activeScope: null,
       workspaces: [],
-    } as const;
+    };
 
     const [first, second, third] = await Promise.all([
       resolveFoundationFocusAppsFast(options),
@@ -111,7 +111,7 @@ describe('BUKLOD P0 Foundation bootstrap containment', () => {
       scopes: [],
       activeScope: null,
       workspaces: [],
-    } as const;
+    };
 
     await resolveFoundationFocusAppsFast(options);
     await resolveFoundationFocusAppsFast(options);
