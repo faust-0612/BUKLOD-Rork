@@ -1,5 +1,6 @@
 name: BUKLOD P0 R4 Web Deploy
 
+# Triggered for Personal Home E2E production release on 2026-09-17.
 on:
   push:
     branches:
