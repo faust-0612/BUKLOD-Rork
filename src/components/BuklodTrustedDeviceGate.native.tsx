@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
+import { usePathname } from 'expo-router';
 
 import { colors } from '@/lib/theme';
 import { useAuth } from '@/providers/AuthProvider';
@@ -32,6 +33,14 @@ import { useAuth } from '@/providers/AuthProvider';
  * The first successful signed-in session on a capable device marks that
  * account as trusted. The next cold app open with that persisted session
  * requires local device authentication before BUKLOD content mounts.
+ *
+ * Emergency exception:
+ * - /sos may mount without first clearing this general app-unlock gate so a
+ *   Quick Tile / lock-screen / launcher SOS entry does not demand TWO local
+ *   authentication prompts in sequence.
+ * - This does NOT bypass SOS identity verification: the emergency transport
+ *   itself requires local device-owner authentication immediately before the
+ *   EMERGENCY RPC is allowed to leave the device.
  */
 
 const TRUSTED_DEVICE_KEY_PREFIX = 'buklod.auth.trusted_device.v1.';
@@ -87,6 +96,8 @@ export default function BuklodTrustedDeviceGate({
 }: {
   children: ReactNode;
 }) {
+  const pathname = usePathname();
+  const emergencyRoute = pathname === '/sos' || pathname.startsWith('/sos/');
   const {
     session,
     loading: authLoading,
@@ -185,6 +196,12 @@ export default function BuklodTrustedDeviceGate({
         if (cancelled) return;
 
         if (trusted) {
+          // Emergency routes defer local authentication to the SOS transport
+          // boundary, immediately before dispatch, avoiding a duplicate prompt.
+          if (emergencyRoute) {
+            setGateState('locked');
+            return;
+          }
           await unlock(userId);
           return;
         }
@@ -219,6 +236,7 @@ export default function BuklodTrustedDeviceGate({
     void enrollWithoutInterruptingFreshLogin(userId);
   }, [
     authLoading,
+    emergencyRoute,
     enrollWithoutInterruptingFreshLogin,
     unlock,
     userId,
@@ -244,7 +262,7 @@ export default function BuklodTrustedDeviceGate({
     );
   }
 
-  if (!userId || gateState === 'open') {
+  if (!userId || gateState === 'open' || emergencyRoute) {
     return <>{children}</>;
   }
 

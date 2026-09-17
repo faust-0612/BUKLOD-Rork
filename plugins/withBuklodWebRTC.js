@@ -2,6 +2,7 @@
   withGradleProperties,
   withInfoPlist,
 } = require('expo/config-plugins');
+const withBuklodEmergencyTriggers = require('./withBuklodEmergencyTriggers');
 
 function withBuklodWebRTC(config) {
   config = withGradleProperties(config, (config) => {
@@ -32,6 +33,12 @@ function withBuklodWebRTC(config) {
 
     return config;
   });
+
+  // BUKLOD SOS native entry points are intentionally wired through this
+  // already-canonical local plugin so app.config.js does not need another
+  // risky release-candidate edit. It adds the Android Quick Settings SOS tile
+  // and launcher long-press SOS shortcut; both open the canonical /sos flow.
+  config = withBuklodEmergencyTriggers(config);
 
   return config;
 }

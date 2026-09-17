@@ -1,0 +1,134 @@
+name: BUKLOD Native RC APK 2026-09-17
+
+on:
+  push:
+    branches:
+      - release/native-rc-apk-20260917
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: buklod-native-rc-apk-20260917
+  cancel-in-progress: true
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+jobs:
+  qa-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout exact release candidate
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Native Android closing contract
+        run: node scripts/native-android-closing-contract.mjs
+
+      - name: TypeScript gate
+        run: npx tsc --noEmit
+
+      - name: Verify exact Main APK identity and native RC configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "RC commit: $GITHUB_SHA"
+          grep -F "version: '1.3.0'" app.config.js
+          grep -F "versionCode: isStaging ? undefined : (isClassroom ? 20 : 21)" app.config.js
+          grep -F "android.permission.ACCESS_NOTIFICATION_POLICY" app.config.js
+          grep -F '"production-apk"' eas.json
+          grep -F '"buildType": "apk"' eas.json
+          grep -F 'firebase-video-production' eas.json
+          node <<'NODE'
+          process.env.APP_VARIANT = 'production';
+          process.env.EXPO_PUBLIC_APP_ENV = 'production';
+          process.env.BUKLOD_APP_TARGET = 'main';
+          const makeConfig = require('./app.config.js');
+          const config = makeConfig({ config: {} });
+          if (config.name !== 'BUKLOD') throw new Error(`Unexpected app name: ${config.name}`);
+          if (config.android?.package !== 'org.mzbministry.buklod') throw new Error(`Unexpected package: ${config.android?.package}`);
+          if (config.android?.versionCode !== 21) throw new Error(`Expected versionCode 21, got ${config.android?.versionCode}`);
+          if (config.runtimeVersion !== '1.3.0') throw new Error(`Unexpected runtime: ${config.runtimeVersion}`);
+          if (config.extra?.eas?.projectId !== '23dad7d0-389a-406e-8dec-08965dab85d8') throw new Error('Unexpected EAS project id');
+          if (!config.android?.permissions?.includes('android.permission.ACCESS_NOTIFICATION_POLICY')) throw new Error('Missing notification policy permission');
+          console.log('Native RC config verified.');
+          NODE
+
+      - name: Verify production Firebase client
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const cfg = JSON.parse(fs.readFileSync('google-services.production.json', 'utf8'));
+          const main = (cfg.client || []).find(c => c?.client_info?.android_client_info?.package_name === 'org.mzbministry.buklod');
+          if (cfg?.project_info?.project_id !== 'buklod-efa4a') throw new Error('Firebase project mismatch');
+          if (!main?.client_info?.mobilesdk_app_id) throw new Error('BUKLOD Main Firebase client missing');
+          console.log('Production Firebase client verified.');
+          NODE
+
+      - name: Expo credential preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${EXPO_TOKEN:-}" ]; then
+            echo 'EXPO_TOKEN repository secret is missing.'
+            exit 1
+          fi
+          npx eas-cli@latest whoami --non-interactive
+
+      - name: Build installable production APK from this RC
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest build \
+            --platform android \
+            --profile production-apk \
+            --non-interactive \
+            --wait \
+            --json > eas-apk-build.json
+          cat eas-apk-build.json
+
+      - name: Extract APK result
+        id: apk
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const raw = fs.readFileSync('eas-apk-build.json', 'utf8').trim();
+          const parsed = JSON.parse(raw);
+          const build = Array.isArray(parsed) ? parsed[0] : parsed;
+          const id = build?.id || '';
+          const status = build?.status || '';
+          const url = build?.artifacts?.buildUrl || build?.artifacts?.applicationArchiveUrl || '';
+          if (!url) throw new Error('EAS did not return an APK artifact URL');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `build_id=${id}\nstatus=${status}\napk_url=${url}\n`);
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## BUKLOD Native RC APK\n\n- Commit: ${process.env.GITHUB_SHA}\n- Version: 1.3.0\n- Version code: 21\n- EAS build: ${id}\n- Status: ${status}\n- APK: ${url}\n`);
+          console.log(`EAS build: ${id}`);
+          console.log(`Status: ${status}`);
+          console.log(`APK: ${url}`);
+          NODE
+
+      - name: Preserve EAS build metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-native-rc-apk-metadata-${{ github.run_number }}
+          path: eas-apk-build.json
+          if-no-files-found: ignore
+
+      - name: Final RC status
+        run: |
+          echo 'BUKLOD installable APK release candidate completed.'
+          echo 'EAS build ID: ${{ steps.apk.outputs.build_id }}'
+          echo 'APK URL: ${{ steps.apk.outputs.apk_url }}'

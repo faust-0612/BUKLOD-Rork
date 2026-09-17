@@ -4,6 +4,7 @@ import { AppState, Platform } from 'react-native';
 import { createBuklodPerformanceFetch } from './buklodPerformanceFetch';
 import { createBuklodPermissionSnapshotFetch } from './buklodPermissionSnapshotFetch';
 import { createBuklodR4RequestShield } from './buklodR4RequestShield';
+import { createBuklodEmergencyTriggerFetch } from './buklodEmergencyTriggerFetch';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
@@ -36,6 +37,14 @@ const buklodR4PerformanceFetch =
 const buklodPermissionSnapshotFetch =
   createBuklodPermissionSnapshotFetch(buklodR4PerformanceFetch);
 
+/* BUKLOD_SOS_NATIVE_VERIFICATION_R1
+ * Every native EMERGENCY creation request crosses this last transport shield.
+ * It adds a local device-owner challenge (fingerprint / Face ID / device auth
+ * fallback when available) without changing ordinary HELP or other requests.
+ */
+const buklodEmergencyVerifiedFetch =
+  createBuklodEmergencyTriggerFetch(buklodPermissionSnapshotFetch);
+
 export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
   auth: {
     storage: AsyncStorage,
@@ -51,7 +60,7 @@ export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
           : 'mobile',
     },
 
-  fetch: buklodPermissionSnapshotFetch
+  fetch: buklodEmergencyVerifiedFetch
 },
   realtime: {
     params: {

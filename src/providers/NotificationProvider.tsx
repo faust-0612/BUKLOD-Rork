@@ -6,6 +6,13 @@ import {supabase} from '@/lib/supabase';
 import {useAuth} from '@/providers/AuthProvider';
 import {useBuklodScope} from '@/providers/BuklodScopeProvider';
 import {registerPushToken} from '@/lib/pushNotifications';
+import {
+  emergencyResponseTypeForAction,
+  ensureBuklodEmergencyChannel,
+  ensureBuklodSosReadyChannel,
+  registerBuklodEmergencyNotificationCategory,
+  registerBuklodSosTriggerCategory,
+} from '@/lib/buklodEmergencyAlertMode';
 import { syncScopeSelection } from '@/lib/buklodScopeRoute';
 import { resolveBuklodNotificationTarget } from '@/lib/buklodNotificationNavigation';
 import { resolveMzbOrganizationScopeId } from '@/lib/buklodMzbOrganization';
@@ -28,6 +35,11 @@ export function NotificationProvider({children}:{children:ReactNode}){
  const markAllRead=useCallback(async()=>{if(!user?.id)return;const {error}=await supabase.from('notifications').update({read_at:new Date().toISOString()}).eq('user_id',user.id).is('read_at',null);if(error)throw error;await refreshUnread()},[user?.id,refreshUnread]);
 
  const openNotification=useCallback(async(kind:string,data:any)=>{
+  if(kind==='buklod_sos_trigger'){
+   router.push('/sos?trigger=lockscreen_action' as any);
+   return;
+  }
+
   if(kind==='community_emergency'&&data?.help_request_id){
    router.push(`/buklod?help_request_id=${encodeURIComponent(String(data.help_request_id))}` as any);
    return;
@@ -48,14 +60,22 @@ export function NotificationProvider({children}:{children:ReactNode}){
   router.push(target.path as any);
  },[scopes,selectScope,activeScope?.scope_id]);
 
- useEffect(()=>{void (async()=>{try{if(Platform.OS==='android')await Notifications.setNotificationChannelAsync('buklod-activity-v2',{
+ useEffect(()=>{void (async()=>{try{
+  if(Platform.OS==='android'){
+   await Notifications.setNotificationChannelAsync('buklod-activity-v2',{
     name:'BUKLOD Activity Alerts',
     importance:Notifications.AndroidImportance.MAX,
     vibrationPattern:[0,250,250,250],
     enableVibrate:true,
     showBadge:true
-});
-  const p=await Notifications.getPermissionsAsync();if(p.status!=='granted')await Notifications.requestPermissionsAsync()}catch(e){console.warn('Notification permission',e)}})()},[]);
+   });
+   await ensureBuklodEmergencyChannel();
+   await ensureBuklodSosReadyChannel();
+  }
+  await registerBuklodEmergencyNotificationCategory();
+  await registerBuklodSosTriggerCategory();
+  const p=await Notifications.getPermissionsAsync();if(p.status!=='granted')await Notifications.requestPermissionsAsync();
+ }catch(e){console.warn('Notification permission',e)}})()},[]);
  useEffect(()=>{void refreshUnread()},[refreshUnread]);
 
  /* BUKLOD_5K_SCALE_R1_NOTIFICATION_NO_CDC
@@ -109,11 +129,21 @@ export function NotificationProvider({children}:{children:ReactNode}){
 
    const d:any=
     r.notification.request.content.data||{};
+   const kind=String(d.kind||'general');
 
-   void openNotification(
-     String(d.kind||'general'),
-     d
-   );
+   if(kind==='community_emergency'&&d?.help_request_id&&user?.id){
+    const responseType=emergencyResponseTypeForAction(actionId);
+    if(responseType){
+     void (supabase as any).rpc('buklod_help_respond',{
+      p_request_id:String(d.help_request_id),
+      p_response_type:responseType,
+     }).then(({error}:{error?:{message?:string}|null})=>{
+      if(error)console.warn('BUKLOD emergency acknowledgement',error.message);
+     });
+    }
+   }
+
+   void openNotification(kind,d);
   };
 
   const initial=
@@ -136,7 +166,7 @@ export function NotificationProvider({children}:{children:ReactNode}){
    active=false;
    sub.remove();
   };
- },[openNotification]);
+ },[openNotification,user?.id]);
  const value=useMemo(()=>({unreadCount,refreshUnread,markAllRead}),[unreadCount,refreshUnread,markAllRead]);
  return <Context.Provider value={value}>{children}</Context.Provider>
 }
