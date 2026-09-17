@@ -45,10 +45,10 @@ function firstName(name: string) {
 
 function NoteBubble({
   note,
-  muted,
+  textColor,
 }: {
   note?: string | null;
-  muted: string;
+  textColor: string;
 }) {
   const value = repairMojibakeText(String(note ?? '')).trim();
 
@@ -61,7 +61,7 @@ function NoteBubble({
       <View style={styles.noteBubble}>
         <Text
           numberOfLines={NOTE_MAX_LINES}
-          style={[styles.noteText, { color: muted }]}
+          style={[styles.noteText, { color: textColor }]}
         >
           {value}
         </Text>
@@ -89,11 +89,6 @@ export default function BuklodCommunityMapNav() {
         : null,
     };
   }, [profile]);
-
-  const loadContacts = useCallback(async () => {
-    const rows = await loadConnectSuggestedContacts(MAX_BUBBLES);
-    setContacts(rows.slice(0, MAX_BUBBLES));
-  }, []);
 
   useEffect(() => {
     let active = true;
@@ -193,13 +188,12 @@ export default function BuklodCommunityMapNav() {
         contentContainerStyle={styles.row}
         keyboardShouldPersistTaps="handled"
         nestedScrollEnabled
-        refreshControl={undefined}
       >
         {selfContact ? (
           <View style={styles.person}>
             <NoteBubble
               note={selfContact.quick_note}
-              muted={theme.textPrimary}
+              textColor={theme.textPrimary}
             />
 
             <View
@@ -256,7 +250,7 @@ export default function BuklodCommunityMapNav() {
           >
             <NoteBubble
               note={contact.quick_note}
-              muted={theme.textPrimary}
+              textColor={theme.textPrimary}
             />
 
             <View
