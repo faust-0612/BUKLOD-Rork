@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { cachedQuery } from '@/lib/performance';
 
 export type BuklodScopeType =
   | 'PUBLIC'
@@ -382,84 +383,185 @@ export async function rpcWithArgFallback(
   };
 }
 
+const ACTIVE_SCOPE_CONFIRM_TTL_MS = 30_000;
+const confirmedActiveScopeByUser = new Map<
+  string,
+  { scopeId: string | null; confirmedAt: number }
+>();
+
+async function getCurrentScopeUserId() {
+  const { data } =
+    await supabase.auth.getSession();
+
+  return data.session?.user?.id ?? null;
+}
+
 export async function getMyBuklodScopes():
   Promise<BuklodScope[]> {
-  const { data, error } =
-    await (supabase as any).rpc(
-      'buklod_my_scopes'
+  const userId =
+    await getCurrentScopeUserId();
+
+  const load = async () => {
+    const { data, error } =
+      await (supabase as any).rpc(
+        'buklod_my_scopes'
+      );
+
+    if (error) {
+      throw error;
+    }
+
+    const rows =
+      Array.isArray(data)
+        ? data
+        : [];
+
+    const mapped = rows.map(
+      (row: any): BuklodScope => ({
+        scope_id:
+          String(row.scope_id),
+        scope_type:
+          row.scope_type as BuklodScopeType,
+        name:
+          String(row.name ?? 'BUKLOD'),
+        scope_status:
+          row.scope_status ?? null,
+        visibility:
+          row.visibility ?? null,
+        geo_level:
+          row.geo_level ?? null,
+        membership_status:
+          row.membership_status ?? null,
+        role_keys:
+          Array.isArray(row.role_keys)
+            ? row.role_keys
+            : [],
+        is_admin:
+          Boolean(row.is_admin),
+        member_count:
+          row.member_count === null ||
+          row.member_count === undefined
+            ? null
+            : Number(row.member_count),
+        show_faith_content:
+          row.show_faith_content === null ||
+          row.show_faith_content === undefined
+            ? null
+            : Boolean(
+                row.show_faith_content
+              ),
+        feature_keys:
+          Array.isArray(row.feature_keys)
+            ? row.feature_keys
+            : [],
+        is_active_scope:
+          Boolean(
+            row.is_active_scope
+          ),
+      })
     );
 
-  if (error) {
-    throw error;
+    if (userId) {
+      const active =
+        mapped.find(
+          scope =>
+            scope.is_active_scope
+        );
+
+      confirmedActiveScopeByUser.set(
+        userId,
+        {
+          scopeId:
+            active?.scope_id ?? null,
+          confirmedAt: Date.now(),
+        }
+      );
+    }
+
+    return mapped;
+  };
+
+  if (!userId) {
+    return load();
   }
 
-  const rows =
-    Array.isArray(data)
-      ? data
-      : [];
-
-  return rows.map(
-    (row: any): BuklodScope => ({
-      scope_id:
-        String(row.scope_id),
-      scope_type:
-        row.scope_type as BuklodScopeType,
-      name:
-        String(row.name ?? 'BUKLOD'),
-      scope_status:
-        row.scope_status ?? null,
-      visibility:
-        row.visibility ?? null,
-      geo_level:
-        row.geo_level ?? null,
-      membership_status:
-        row.membership_status ?? null,
-      role_keys:
-        Array.isArray(row.role_keys)
-          ? row.role_keys
-          : [],
-      is_admin:
-        Boolean(row.is_admin),
-      member_count:
-        row.member_count === null ||
-        row.member_count === undefined
-          ? null
-          : Number(row.member_count),
-      show_faith_content:
-        row.show_faith_content === null ||
-        row.show_faith_content === undefined
-          ? null
-          : Boolean(
-              row.show_faith_content
-            ),
-      feature_keys:
-        Array.isArray(row.feature_keys)
-          ? row.feature_keys
-          : [],
-      is_active_scope:
-        Boolean(
-          row.is_active_scope
-        ),
-    })
+  return cachedQuery<BuklodScope[]>(
+    `p0:my-scopes:${userId}`,
+    load,
+    {
+      ttlMs: 0,
+      staleMs: 0,
+    }
   );
 }
 
 export async function setBuklodActiveScope(
   scopeId: string
 ): Promise<void> {
-  const result =
-    await rpcWithArgFallback(
-      'buklod_set_active_scope',
-      [
-        { _scope_id: scopeId },
-        { p_scope_id: scopeId },
-        { scope_id: scopeId },
-      ]
-    );
+  const normalizedScopeId =
+    String(scopeId ?? '').trim();
 
-  if (result.error) {
-    throw result.error;
+  if (!normalizedScopeId) {
+    return;
   }
+
+  const userId =
+    await getCurrentScopeUserId();
+  const confirmed =
+    userId
+      ? confirmedActiveScopeByUser.get(
+          userId
+        )
+      : null;
+
+  if (
+    confirmed &&
+    confirmed.scopeId === normalizedScopeId &&
+    Date.now() - confirmed.confirmedAt <
+      ACTIVE_SCOPE_CONFIRM_TTL_MS
+  ) {
+    return;
+  }
+
+  const persist = async () => {
+    const result =
+      await rpcWithArgFallback(
+        'buklod_set_active_scope',
+        [
+          { _scope_id: normalizedScopeId },
+          { p_scope_id: normalizedScopeId },
+          { scope_id: normalizedScopeId },
+        ]
+      );
+
+    if (result.error) {
+      throw result.error;
+    }
+
+    if (userId) {
+      confirmedActiveScopeByUser.set(
+        userId,
+        {
+          scopeId: normalizedScopeId,
+          confirmedAt: Date.now(),
+        }
+      );
+    }
+  };
+
+  if (!userId) {
+    await persist();
+    return;
+  }
+
+  await cachedQuery<void>(
+    `p0:set-active:${userId}:${normalizedScopeId}`,
+    persist,
+    {
+      ttlMs: 0,
+      staleMs: 0,
+    }
+  );
 }
 
 export async function getBuklodScopeFeed(
