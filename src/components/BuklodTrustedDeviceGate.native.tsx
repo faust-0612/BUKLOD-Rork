@@ -7,7 +7,6 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
-  AppState,
   Pressable,
   StyleSheet,
   Text,
@@ -31,13 +30,11 @@ import { useAuth } from '@/providers/AuthProvider';
  *
  * Enrollment is device-local and intentionally does not store a password.
  * The first successful signed-in session on a capable device marks that
- * account as trusted. Future cold starts, and resumes after a meaningful
- * background interval, require local device authentication before BUKLOD
- * content mounts.
+ * account as trusted. The next cold app open with that persisted session
+ * requires local device authentication before BUKLOD content mounts.
  */
 
 const TRUSTED_DEVICE_KEY_PREFIX = 'buklod.auth.trusted_device.v1.';
-const RELOCK_AFTER_BACKGROUND_MS = 60_000;
 
 type GateState = 'checking' | 'open' | 'unlocking' | 'locked';
 
@@ -102,8 +99,6 @@ export default function BuklodTrustedDeviceGate({
   const bootDecisionMadeRef = useRef(false);
   const activeUserIdRef = useRef<string | null>(null);
   const unlockInFlightRef = useRef(false);
-  const backgroundAtRef = useRef<number | null>(null);
-  const appStateRef = useRef(AppState.currentState);
 
   const unlock = useCallback(async (targetUserId: string) => {
     if (unlockInFlightRef.current) return;
@@ -217,7 +212,7 @@ export default function BuklodTrustedDeviceGate({
      * A user appearing after bootstrap is a fresh interactive sign-in.
      * Password/email ownership was just proven, so do not immediately
      * interrupt that login with a second local-auth prompt. Enroll the
-     * device for the NEXT app open/resume instead.
+     * device for the NEXT app open instead.
      */
     activeUserIdRef.current = userId;
     setGateState('open');
@@ -229,39 +224,6 @@ export default function BuklodTrustedDeviceGate({
     userId,
   ]);
 
-  useEffect(() => {
-    const subscription = AppState.addEventListener('change', (nextState) => {
-      const previousState = appStateRef.current;
-      appStateRef.current = nextState;
-
-      if (nextState === 'background' || nextState === 'inactive') {
-        if (backgroundAtRef.current == null) {
-          backgroundAtRef.current = Date.now();
-        }
-        return;
-      }
-
-      if (
-        nextState === 'active' &&
-        (previousState === 'background' || previousState === 'inactive')
-      ) {
-        const backgroundAt = backgroundAtRef.current;
-        backgroundAtRef.current = null;
-
-        if (!userId || backgroundAt == null) return;
-        if (Date.now() - backgroundAt < RELOCK_AFTER_BACKGROUND_MS) return;
-
-        void (async () => {
-          if (await readTrustedDevice(userId)) {
-            await unlock(userId);
-          }
-        })();
-      }
-    });
-
-    return () => subscription.remove();
-  }, [unlock, userId]);
-
   const usePasswordInstead = useCallback(async () => {
     if (userId) {
       await clearTrustedDevice(userId);
@@ -270,6 +232,17 @@ export default function BuklodTrustedDeviceGate({
     setGateState('open');
     await signOut();
   }, [signOut, userId]);
+
+  if (authLoading && !bootDecisionMadeRef.current) {
+    return (
+      <View style={styles.screen}>
+        <View style={styles.progressRow}>
+          <ActivityIndicator color={colors.green} />
+          <Text style={styles.progressText}>Restoring your BUKLOD session…</Text>
+        </View>
+      </View>
+    );
+  }
 
   if (!userId || gateState === 'open') {
     return <>{children}</>;
