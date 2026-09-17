@@ -105,6 +105,13 @@ check('Canonical verified SOS screen', () => {
   ]);
 });
 
+check('Community SOS routes to canonical verified screen', () => {
+  mustInclude('src/components/BuklodCommunityHelp.tsx', [
+    "import { router } from 'expo-router'",
+    "router.push('/sos?trigger=in_app' as any)",
+  ]);
+});
+
 check('Android SOS Quick Settings tile + launcher shortcut', () => {
   mustInclude('plugins/withBuklodWebRTC.js', 'withBuklodEmergencyTriggers');
   mustInclude('plugins/withBuklodEmergencyTriggers.js', [
