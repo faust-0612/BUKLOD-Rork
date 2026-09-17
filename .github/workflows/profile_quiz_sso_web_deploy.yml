@@ -1,0 +1,103 @@
+name: BUKLOD Profile Quiz SSO Web Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/profile_quiz_sso_web_deploy.yml'
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  EXPO_PUBLIC_APP_ENV: production
+
+jobs:
+  qa-export-deploy-web-only:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source-locked Quiz SSO release
+        uses: actions/checkout@v4
+        with:
+          ref: 23a509ffeada7e72f3c5c09f1e6599df56363965
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Verify Profile Quiz SSO source contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'BUKLOD_PROFILE_QUIZ_ZERO_LOGIN_SSO_R1' 'src/components/BuklodFoundationWorkspaceNav.tsx'
+          grep -F 'buklod-quiz-main-entry-v1' 'src/components/BuklodFoundationWorkspaceNav.tsx'
+          grep -F "body: JSON.stringify({ source: 'buklod-main-profile' })" 'src/components/BuklodFoundationWorkspaceNav.tsx'
+          grep -F 'await Linking.openURL(launchUrl)' 'src/components/BuklodFoundationWorkspaceNav.tsx'
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Expo credential preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          npx eas-cli@latest whoami --non-interactive >/dev/null
+          echo 'Expo authentication: READY'
+
+      - name: Pull protected production public environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .env.local
+          npx eas-cli@latest env:pull --environment production --path .env.local --non-interactive
+          test -s .env.local
+          set -a
+          . ./.env.local
+          set +a
+          test -n "${EXPO_PUBLIC_SUPABASE_URL:-}"
+          test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}"
+          test "$EXPO_PUBLIC_SUPABASE_URL" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
+          while IFS='=' read -r name _; do
+            case "$name" in
+              EXPO_PUBLIC_*)
+                value="${!name-}"
+                {
+                  echo "${name}<<__BUKLOD_ENV__"
+                  printf '%s\n' "$value"
+                  echo '__BUKLOD_ENV__'
+                } >> "$GITHUB_ENV"
+                ;;
+            esac
+          done < <(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env.local)
+
+      - name: Web export smoke
+        shell: bash
+        env:
+          NODE_ENV: production
+          EXPO_PUBLIC_APP_ENV: production
+        run: |
+          set -euo pipefail
+          npx expo export --platform web --clear
+          test -s dist/index.html
+          grep -R -F 'buklod-quiz-main-entry-v1' dist >/dev/null
+          echo 'Web export contains Quiz SSO bridge contract.'
+
+      - name: Deploy production web only
+        shell: bash
+        env:
+          NODE_ENV: production
+          EXPO_PUBLIC_APP_ENV: production
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest deploy --prod --non-interactive
+
+      - name: Confirm no native release step
+        run: echo 'WEB ONLY COMPLETE. No Android OTA, APK, AAB, or iOS release was invoked.'
