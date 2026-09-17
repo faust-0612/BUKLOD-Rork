@@ -33,10 +33,43 @@ type PermissionSnapshotFlight = {
   request: Promise<PermissionGrant[]>;
 };
 
-const PERMISSION_SNAPSHOT_FRESH_MS = 3_000;
+type PermissionSnapshotRuntimeState = {
+  cache: PermissionSnapshotCache | null;
+  flight: PermissionSnapshotFlight | null;
+};
 
-let permissionSnapshotCache: PermissionSnapshotCache | null = null;
-let permissionSnapshotFlight: PermissionSnapshotFlight | null = null;
+/*
+ * P0_BOOTSTRAP_AMPLIFICATION_R4
+ * Foundation permission data is presentation-only. Actual protected reads and
+ * writes remain enforced by server RLS/RPCs, so a short cache window can safely
+ * absorb login/remount storms without weakening authorization boundaries.
+ * Keep the state on globalThis so bundle/module re-evaluation in one runtime
+ * cannot throw away the single-flight/cache and immediately hit Supabase again.
+ */
+const PERMISSION_SNAPSHOT_FRESH_MS = 30_000;
+const PERMISSION_SNAPSHOT_STATE_KEY =
+  '__BUKLOD_FOUNDATION_PERMISSION_SNAPSHOT_R4__';
+
+function getPermissionSnapshotState(): PermissionSnapshotRuntimeState {
+  const root = globalThis as any;
+  const existing = root[PERMISSION_SNAPSHOT_STATE_KEY] as
+    | PermissionSnapshotRuntimeState
+    | undefined;
+
+  if (existing) {
+    return existing;
+  }
+
+  const created: PermissionSnapshotRuntimeState = {
+    cache: null,
+    flight: null,
+  };
+
+  root[PERMISSION_SNAPSHOT_STATE_KEY] = created;
+  return created;
+}
+
+const permissionSnapshotState = getPermissionSnapshotState();
 
 function normalizeRoleKey(value: string) {
   return String(value ?? '').trim().toUpperCase().replaceAll('-', '_');
@@ -101,21 +134,21 @@ async function loadPermissionSnapshot(): Promise<PermissionGrant[]> {
   const userId = sessionData.session?.user?.id ?? '';
 
   if (!userId) {
-    permissionSnapshotCache = null;
-    permissionSnapshotFlight = null;
+    permissionSnapshotState.cache = null;
+    permissionSnapshotState.flight = null;
     return [];
   }
 
   if (
-    permissionSnapshotCache?.userId === userId &&
-    Date.now() - permissionSnapshotCache.cachedAt <=
+    permissionSnapshotState.cache?.userId === userId &&
+    Date.now() - permissionSnapshotState.cache.cachedAt <=
       PERMISSION_SNAPSHOT_FRESH_MS
   ) {
-    return permissionSnapshotCache.grants;
+    return permissionSnapshotState.cache.grants;
   }
 
-  if (permissionSnapshotFlight?.userId === userId) {
-    return permissionSnapshotFlight.request;
+  if (permissionSnapshotState.flight?.userId === userId) {
+    return permissionSnapshotState.flight.request;
   }
 
   const request = (async () => {
@@ -135,7 +168,7 @@ async function loadPermissionSnapshot(): Promise<PermissionGrant[]> {
       }))
       .filter((row: PermissionGrant) => Boolean(row.permission_key));
 
-    permissionSnapshotCache = {
+    permissionSnapshotState.cache = {
       userId,
       grants,
       cachedAt: Date.now(),
@@ -144,7 +177,7 @@ async function loadPermissionSnapshot(): Promise<PermissionGrant[]> {
     return grants;
   })();
 
-  permissionSnapshotFlight = {
+  permissionSnapshotState.flight = {
     userId,
     request,
   };
@@ -153,10 +186,10 @@ async function loadPermissionSnapshot(): Promise<PermissionGrant[]> {
     return await request;
   } finally {
     if (
-      permissionSnapshotFlight?.userId === userId &&
-      permissionSnapshotFlight.request === request
+      permissionSnapshotState.flight?.userId === userId &&
+      permissionSnapshotState.flight.request === request
     ) {
-      permissionSnapshotFlight = null;
+      permissionSnapshotState.flight = null;
     }
   }
 }
