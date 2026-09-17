@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -16,6 +16,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { VideoView, useVideoPlayer } from 'expo-video';
 
+import BuklodReelsInlineAd from '@/components/BuklodReelsInlineAd';
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import { parseIgpatQuickEdit } from '@/lib/igpat/quickEdit';
 import { supabase } from '@/lib/supabase';
@@ -40,8 +41,10 @@ type FeedMode = 'for-you' | 'following' | 'latest';
 
 const NORMAL_LIMIT = 16;
 const DATA_SAVER_LIMIT = 8;
+const DEEP_LINK_LIMIT = 50;
 const SIGNED_URL_TTL_SECONDS = 1200;
 const SIGN_CONCURRENCY = 4;
+const WEB_BANNER_INTERVAL = 9;
 const DATA_SAVER_KEY = '@buklod_igpat_data_saver_v1';
 const SAVED_IGPAT_KEY = '@buklod_igpat_saved_ids_v1';
 
@@ -66,6 +69,51 @@ async function mapWithConcurrency<T, R>(
   );
 
   return results;
+}
+
+async function fetchExactIgpatRow(postId: string): Promise<IgpatRow | null> {
+  if (!postId) return null;
+
+  const { data, error } = await (supabase as any)
+    .from('community_posts')
+    .select(
+      'id,user_id,body,created_at,media_path,media_mime_type,media_duration_seconds,igpat_edit_meta,is_reel,is_hidden,deleted_at',
+    )
+    .eq('id', postId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  const mime = String(data.media_mime_type ?? '').toLowerCase();
+  if (
+    data.is_reel !== true ||
+    data.is_hidden === true ||
+    data.deleted_at ||
+    !mime.startsWith('video/') ||
+    !data.media_path
+  ) {
+    return null;
+  }
+
+  const { data: profile } = await (supabase as any)
+    .from('profiles')
+    .select('full_name')
+    .eq('id', data.user_id)
+    .maybeSingle();
+
+  return {
+    id: String(data.id),
+    user_id: data.user_id ? String(data.user_id) : null,
+    author_name: String(profile?.full_name ?? 'BUKLOD Member'),
+    body: String(data.body ?? ''),
+    created_at: String(data.created_at ?? new Date().toISOString()),
+    media_path: String(data.media_path),
+    media_duration_seconds: Number(data.media_duration_seconds ?? 0),
+    reaction_count: null,
+    comment_count: null,
+    my_reaction: null,
+    igpat_edit_meta: data.igpat_edit_meta ?? null,
+  };
 }
 
 function IgpatVideo({
@@ -187,7 +235,7 @@ function IgpatVideo({
             : null,
         ]}
         nativeControls={false}
-        contentFit={hasEditMeta ? edit.contentFit : 'cover'}
+        contentFit={hasEditMeta ? edit.contentFit : 'contain'}
       />
 
       {hasEditMeta && !!edit.textOverlay.trim() ? (
@@ -243,6 +291,13 @@ function ActionButton({
 export default function IgpatWebScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{ post?: string | string[] }>();
+  const targetPostId = useMemo(() => {
+    const raw = Array.isArray(params.post) ? params.post[0] : params.post;
+    return String(raw ?? '').trim();
+  }, [params.post]);
+  const initialTargetRef = useRef(targetPostId);
+
   const [rows, setRows] = useState<IgpatRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -313,16 +368,34 @@ export default function IgpatWebScreen() {
     setLoadError(null);
 
     try {
-      const limit = dataSaver ? DATA_SAVER_LIMIT : NORMAL_LIMIT;
+      const normalLimit = dataSaver ? DATA_SAVER_LIMIT : NORMAL_LIMIT;
+      const exactTarget = initialTargetRef.current;
+      const requestLimit = exactTarget ? DEEP_LINK_LIMIT : normalLimit;
       const { data, error } = await (supabase as any).rpc('get_buklod_igpat_feed_v3', {
         p_mode: feedMode,
-        p_limit: limit,
+        p_limit: requestLimit,
       });
       if (error) throw error;
 
-      const source = ((data ?? []) as IgpatRow[])
+      let source = ((data ?? []) as IgpatRow[])
         .filter(row => Boolean(row.media_path))
-        .slice(0, limit);
+        .slice(0, requestLimit);
+
+      if (exactTarget) {
+        const existing = source.find(row => String(row.id) === exactTarget) ?? null;
+        let targetRow = existing;
+
+        if (!targetRow) {
+          targetRow = await fetchExactIgpatRow(exactTarget);
+        }
+
+        if (targetRow) {
+          source = [
+            targetRow,
+            ...source.filter(row => String(row.id) !== exactTarget),
+          ].slice(0, requestLimit);
+        }
+      }
 
       const signed = await mapWithConcurrency(
         source,
@@ -478,7 +551,7 @@ export default function IgpatWebScreen() {
   const shareIgpat = useCallback(async (postId: string) => {
     try {
       await Share.share({
-        message: `BUKLOD IGPAT — An Instant Bond.\nhttps://buklod.expo.app/post/${postId}`,
+        message: `BUKLOD IGPAT — An Instant Bond.\nhttps://buklod.expo.app/igpat?post=${encodeURIComponent(postId)}`,
       });
     } catch (error) {
       console.warn('BUKLOD IGPAT share:', String((error as any)?.message ?? error));
@@ -548,10 +621,10 @@ export default function IgpatWebScreen() {
         keyExtractor={item => item.id}
         pagingEnabled
         showsVerticalScrollIndicator={false}
-        initialNumToRender={1}
-        maxToRenderPerBatch={1}
+        initialNumToRender={2}
+        maxToRenderPerBatch={2}
         updateCellsBatchingPeriod={80}
-        windowSize={2}
+        windowSize={3}
         removeClippedSubviews
         decelerationRate="fast"
         onViewableItemsChanged={onViewableItemsChanged}
@@ -565,119 +638,140 @@ export default function IgpatWebScreen() {
           const creatorId = item.user_id ? String(item.user_id) : '';
           const isSelf = creatorId === user?.id;
           const isFollowing = Boolean(creatorId && followedIds.has(creatorId));
+          const shouldMountVideo = Math.abs(index - activeIndex) <= 1;
+          const showInlineBanner = (index + 1) % WEB_BANNER_INTERVAL === 0;
 
           return (
             <View style={[styles.page, { height: viewportHeight }]}>
-              {!!item.media_url && index === activeIndex ? (
-                <IgpatVideo
-                  uri={item.media_url}
-                  active
-                  durationSeconds={Number(item.media_duration_seconds ?? 60)}
-                  editMeta={item.igpat_edit_meta}
-                />
-              ) : null}
-              <View pointerEvents="none" style={styles.scrim} />
+              <View style={styles.stage}>
+                {!!item.media_url && shouldMountVideo ? (
+                  <IgpatVideo
+                    uri={item.media_url}
+                    active={index === activeIndex}
+                    durationSeconds={Number(item.media_duration_seconds ?? 60)}
+                    editMeta={item.igpat_edit_meta}
+                  />
+                ) : null}
+                <View pointerEvents="none" style={styles.scrim} />
 
-              <View style={[styles.topBar, { top: insets.top + 10 }]}>
-                <View pointerEvents="none">
-                  <Text style={styles.brandTitle}>IGPAT</Text>
-                  <Text style={styles.brandTagline}>An Instant Bond.</Text>
-                </View>
-                <View style={styles.topActions}>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={dataSaver ? 'Turn Data Saver off' : 'Turn Data Saver on'}
-                    onPress={toggleDataSaver}
-                    style={[styles.utilityButton, dataSaver && styles.utilityButtonActive]}
-                  >
-                    <MaterialCommunityIcons
-                      name="leaf"
-                      size={17}
-                      color={dataSaver ? '#07100B' : '#FFFFFF'}
-                    />
-                    <Text style={[styles.utilityText, dataSaver && styles.utilityTextActive]}>
-                      {dataSaver ? 'SAVER' : 'DATA'}
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Create IGPAT"
-                    onPress={() => router.push('/igpat/create' as any)}
-                    style={styles.createButton}
-                  >
-                    <MaterialCommunityIcons name="plus" size={21} color="#07100B" />
-                  </Pressable>
-                </View>
-              </View>
-
-              <View style={[styles.feedTabs, { top: insets.top + 58 }]}>
-                {([
-                  ['for-you', 'For You'],
-                  ['following', 'Following'],
-                  ['latest', 'Latest'],
-                ] as Array<[FeedMode, string]>).map(([mode, label]) => (
-                  <Pressable
-                    key={mode}
-                    onPress={() => setFeedMode(mode)}
-                    style={[styles.feedTab, feedMode === mode && styles.feedTabActive]}
-                  >
-                    <Text style={[styles.feedTabText, feedMode === mode && styles.feedTabTextActive]}>
-                      {label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-
-              <View style={[styles.actions, { bottom: Math.max(insets.bottom + 34, 42) }]}>
-                <ActionButton
-                  icon={item.my_reaction === 'love' ? 'heart' : 'heart-outline'}
-                  label="Pulse this IGPAT"
-                  active={item.my_reaction === 'love'}
-                  count={item.reaction_count}
-                  onPress={() => void pulse(item.id)}
-                />
-                <ActionButton
-                  icon="comment-outline"
-                  label="Open comments"
-                  count={item.comment_count}
-                  onPress={() => router.push(`/post/${item.id}` as any)}
-                />
-                <ActionButton
-                  icon="share-variant-outline"
-                  label="Share IGPAT"
-                  onPress={() => void shareIgpat(item.id)}
-                />
-                <ActionButton
-                  icon={savedIds.has(item.id) ? 'bookmark' : 'bookmark-outline'}
-                  label={savedIds.has(item.id) ? 'Remove saved IGPAT' : 'Save IGPAT'}
-                  active={savedIds.has(item.id)}
-                  onPress={() => toggleSaved(item.id)}
-                />
-              </View>
-
-              <View style={[styles.meta, { bottom: Math.max(insets.bottom + 30, 38) }]}>
-                <View style={styles.authorRow}>
-                  <Text numberOfLines={1} style={styles.author}>
-                    {resolvePersonDisplayName(item.author_name, item.user_id)}
-                  </Text>
-                  {!isSelf && creatorId ? (
+                <View style={[styles.topBar, { top: insets.top + 10 }]}>
+                  <View pointerEvents="none">
+                    <Text style={styles.brandTitle}>IGPAT</Text>
+                    <Text style={styles.brandTagline}>An Instant Bond.</Text>
+                  </View>
+                  <View style={styles.topActions}>
                     <Pressable
-                      disabled={followBusy.has(creatorId)}
-                      onPress={() => void toggleFollow(creatorId)}
-                      style={[styles.followButton, isFollowing && styles.followingButton]}
+                      accessibilityRole="button"
+                      accessibilityLabel={dataSaver ? 'Turn Data Saver off' : 'Turn Data Saver on'}
+                      onPress={toggleDataSaver}
+                      style={[styles.utilityButton, dataSaver && styles.utilityButtonActive]}
                     >
-                      <Text style={[styles.followText, isFollowing && styles.followingText]}>
-                        {isFollowing ? 'FOLLOWING' : 'FOLLOW'}
+                      <MaterialCommunityIcons
+                        name="leaf"
+                        size={17}
+                        color={dataSaver ? '#07100B' : '#FFFFFF'}
+                      />
+                      <Text style={[styles.utilityText, dataSaver && styles.utilityTextActive]}>
+                        {dataSaver ? 'SAVER' : 'DATA'}
                       </Text>
                     </Pressable>
-                  ) : null}
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Create IGPAT"
+                      onPress={() => router.push('/igpat/create' as any)}
+                      style={styles.createButton}
+                    >
+                      <MaterialCommunityIcons name="plus" size={21} color="#07100B" />
+                    </Pressable>
+                  </View>
                 </View>
-                {!!item.body ? (
-                  <Text numberOfLines={2} style={styles.caption}>
-                    {item.body}
-                  </Text>
+
+                <View style={[styles.feedTabs, { top: insets.top + 58 }]}>
+                  {([
+                    ['for-you', 'For You'],
+                    ['following', 'Following'],
+                    ['latest', 'Latest'],
+                  ] as Array<[FeedMode, string]>).map(([mode, label]) => (
+                    <Pressable
+                      key={mode}
+                      onPress={() => {
+                        initialTargetRef.current = '';
+                        setFeedMode(mode);
+                      }}
+                      style={[styles.feedTab, feedMode === mode && styles.feedTabActive]}
+                    >
+                      <Text style={[styles.feedTabText, feedMode === mode && styles.feedTabTextActive]}>
+                        {label}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+
+                <View style={[styles.actions, { bottom: Math.max(insets.bottom + 34, 42) }]}>
+                  <ActionButton
+                    icon={item.my_reaction === 'love' ? 'heart' : 'heart-outline'}
+                    label="Pulse this IGPAT"
+                    active={item.my_reaction === 'love'}
+                    count={item.reaction_count}
+                    onPress={() => void pulse(item.id)}
+                  />
+                  <ActionButton
+                    icon="comment-outline"
+                    label="Open comments"
+                    count={item.comment_count}
+                    onPress={() => router.push(`/post/${item.id}` as any)}
+                  />
+                  <ActionButton
+                    icon="share-variant-outline"
+                    label="Share IGPAT"
+                    onPress={() => void shareIgpat(item.id)}
+                  />
+                  <ActionButton
+                    icon={savedIds.has(item.id) ? 'bookmark' : 'bookmark-outline'}
+                    label={savedIds.has(item.id) ? 'Remove saved IGPAT' : 'Save IGPAT'}
+                    active={savedIds.has(item.id)}
+                    onPress={() => toggleSaved(item.id)}
+                  />
+                </View>
+
+                {showInlineBanner ? (
+                  <View
+                    style={[
+                      styles.inlineAdWrap,
+                      { bottom: Math.max(insets.bottom + 126, 134) },
+                    ]}
+                  >
+                    <BuklodReelsInlineAd
+                      slotId={`web-igpat-${item.id}`}
+                      active={index === activeIndex}
+                    />
+                  </View>
                 ) : null}
-                {dataSaver ? <Text style={styles.saverHint}>DATA SAVER ON</Text> : null}
+
+                <View style={[styles.meta, { bottom: Math.max(insets.bottom + 30, 38) }]}>
+                  <View style={styles.authorRow}>
+                    <Text numberOfLines={1} style={styles.author}>
+                      {resolvePersonDisplayName(item.author_name, item.user_id)}
+                    </Text>
+                    {!isSelf && creatorId ? (
+                      <Pressable
+                        disabled={followBusy.has(creatorId)}
+                        onPress={() => void toggleFollow(creatorId)}
+                        style={[styles.followButton, isFollowing && styles.followingButton]}
+                      >
+                        <Text style={[styles.followText, isFollowing && styles.followingText]}>
+                          {isFollowing ? 'FOLLOWING' : 'FOLLOW'}
+                        </Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                  {!!item.body ? (
+                    <Text numberOfLines={2} style={styles.caption}>
+                      {item.body}
+                    </Text>
+                  ) : null}
+                  {dataSaver ? <Text style={styles.saverHint}>DATA SAVER ON</Text> : null}
+                </View>
               </View>
             </View>
           );
@@ -688,8 +782,21 @@ export default function IgpatWebScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#050807' },
-  page: { width: '100%', backgroundColor: '#050807', overflow: 'hidden' },
+  root: { flex: 1, backgroundColor: '#020504' },
+  page: {
+    width: '100%',
+    backgroundColor: '#020504',
+    overflow: 'hidden',
+    alignItems: 'center',
+  },
+  stage: {
+    width: '100%',
+    maxWidth: 560,
+    height: '100%',
+    alignSelf: 'center',
+    backgroundColor: '#050807',
+    overflow: 'hidden',
+  },
   center: {
     flex: 1,
     alignItems: 'center',
@@ -729,7 +836,7 @@ const styles = StyleSheet.create({
   retryText: { color: '#FFFFFF', fontSize: 10, fontWeight: '900', letterSpacing: 0.9 },
   scrim: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.10)',
+    backgroundColor: 'rgba(0,0,0,0.08)',
   },
   topBar: {
     position: 'absolute',
@@ -802,6 +909,12 @@ const styles = StyleSheet.create({
   },
   actionOrbActive: { backgroundColor: '#FFFFFF', borderColor: '#FFFFFF' },
   actionCount: { marginTop: 3, color: '#FFFFFF', fontSize: 9, fontWeight: '800' },
+  inlineAdWrap: {
+    position: 'absolute',
+    left: 18,
+    right: 18,
+    alignItems: 'center',
+  },
   meta: { position: 'absolute', left: 18, right: 76 },
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   author: { maxWidth: '68%', color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
