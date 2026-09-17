@@ -4,8 +4,12 @@ const checks = [
   {
     file: 'src/components/BuklodCommunityMapNav.android.tsx',
     tokens: [
-      'BUKLOD_ANDROID_COMMUNITY_PROFILE_BUBBLES_R1',
+      'BUKLOD_ANDROID_COMMUNITY_PROFILE_BUBBLES_R2_CONNECT_NOTES',
       'loadConnectSuggestedContacts',
+      'loadMessagesStatusNote',
+      'markConnectStatusNoteSeen',
+      'contact.quick_note',
+      'selfNote?.quick_note',
       "pathname: '/connect/personal/[threadId]'",
       "threadId: 'new'",
       'targetUserId: contact.user_id',
@@ -15,32 +19,13 @@ const checks = [
       'onLongPress={() => openProfile(contact)}',
       'Tap to open personal conversation. Long press to view profile.',
       'showsHorizontalScrollIndicator={false}',
+      "contact.rank_name || 'Circle Starter V'",
     ],
     absentTokens: [
       "from 'react-native-maps'",
       '<MapView',
       'PROVIDER_GOOGLE',
       'Tap map to open',
-    ],
-  },
-  {
-    file: 'app.config.js',
-    tokens: [
-      'GOOGLE_MAPS_ANDROID_API_KEY',
-      'androidGoogleMapsApiKey: googleMapsAndroidApiKey',
-      "package: packageId",
-    ],
-  },
-  {
-    file: 'plugins/withBuklodWebRTC.js',
-    tokens: [
-      'BUKLOD_ANDROID_GOOGLE_MAPS_MANIFEST_R1',
-      'withAndroidManifest',
-      'AndroidConfig.Manifest.getMainApplicationOrThrow',
-      'AndroidConfig.Manifest.addMetaDataItemToMainApplication',
-      'com.google.android.geo.API_KEY',
-      'GOOGLE_MAPS_ANDROID_API_KEY',
-      "config.android?.package === 'org.mzbministry.buklod'",
     ],
   },
   {
@@ -57,10 +42,10 @@ const checks = [
 
 let failures = 0;
 
-console.log('BUKLOD ANDROID COMMUNITY TOP RAIL RELEASE CONTRACT');
-console.log('==================================================');
+console.log('BUKLOD ANDROID COMMUNITY CONNECT LINEUP RELEASE CONTRACT');
+console.log('=========================================================');
 console.log(
-  'LOCK: Recent Android only. Public Community top map card is replaced by real member profile bubbles. Tap opens personal conversation; long press opens member profile. Android top rail must not mount react-native-maps. Web/iOS behavior stays outside this contract.',
+  'LOCK: Recent Android only. Public Community top map card stays removed and is replaced by the Connect-style contact lineup using the canonical suggested-contact and status-note sources. Quick notes are visible, self note is mirrored, unread/rank remain, tap opens personal conversation, and long press opens member profile. Android top rail must not mount react-native-maps. Web/iOS/backend stay outside this contract.',
 );
 
 for (const check of checks) {
@@ -88,8 +73,8 @@ for (const check of checks) {
 }
 
 if (failures > 0) {
-  console.error(`ANDROID COMMUNITY TOP RAIL RELEASE LOCK FAILED: ${failures} blocker(s).`);
+  console.error(`ANDROID COMMUNITY CONNECT LINEUP RELEASE LOCK FAILED: ${failures} blocker(s).`);
   process.exit(1);
 }
 
-console.log('ANDROID COMMUNITY PROFILE BUBBLES RELEASE LOCK PASSED.');
+console.log('ANDROID COMMUNITY CONNECT NOTES LINEUP RELEASE LOCK PASSED.');
