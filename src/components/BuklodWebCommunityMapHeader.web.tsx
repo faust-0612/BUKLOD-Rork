@@ -1,8 +1,8 @@
-/* BUKLOD_WEB_COMMUNITY_MAP_R5 */
+/* BUKLOD_WEB_COMMUNITY_MAP_R6_SATELLITE */
 import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { BuklodCityMap } from '@/components/BuklodCityMap.web';
+import { BuklodLiveSatelliteMap } from '@/components/BuklodLiveSatelliteMap.web';
 import {
   getBuklodCitySnapshot,
   type BuklodCityPoint,
@@ -10,9 +10,10 @@ import {
 import { useAuth } from '@/providers/AuthProvider';
 
 /**
- * Real BUKLOD City map for the web Community Wall.
- * It lives inside the Wall list header so it scrolls with Community content
- * instead of staying fixed above the feed.
+ * Real BUKLOD live satellite map for the web Community Wall.
+ * It remains inside the Wall list header so it scrolls with Community content.
+ * The preview stays tap-to-open; full screen enables map interaction and live
+ * nearby-place discovery while preserving BUKLOD/Home pins.
  */
 export default function BuklodWebCommunityMapHeader() {
   const { user } = useAuth();
@@ -62,7 +63,7 @@ export default function BuklodWebCommunityMapHeader() {
 
   return (
     <View style={styles.wrap}>
-      <BuklodCityMap
+      <BuklodLiveSatelliteMap
         points={points}
         center={center}
         expanded={expanded}
