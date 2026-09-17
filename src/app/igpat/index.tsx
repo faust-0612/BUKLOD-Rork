@@ -127,7 +127,7 @@ function IgpatVideo({ uri, active }: { uri: string; active: boolean }) {
         player={player}
         style={StyleSheet.absoluteFill}
         nativeControls={false}
-        contentFit="cover"
+        contentFit="contain"
       />
       {active && pausedByUser && (
         <View pointerEvents="none" style={styles.pausedBadge}>
@@ -480,9 +480,9 @@ export default function IgpatScreen() {
         pagingEnabled
         showsVerticalScrollIndicator={false}
         initialNumToRender={1}
-        maxToRenderPerBatch={1}
+        maxToRenderPerBatch={2}
         updateCellsBatchingPeriod={80}
-        windowSize={2}
+        windowSize={3}
         removeClippedSubviews
         decelerationRate="fast"
         onViewableItemsChanged={onViewableItemsChanged}
