@@ -186,7 +186,6 @@ export default function RootLayout() {
                 <Stack.Screen name="admin/faith-payments" />
                 <Stack.Screen name="admin/account-recovery" />
                 <Stack.Screen name="account/recovery-pin" />
-                <Stack.Screen name="(auth)/forgot-password" />
                 {/* PATCH_162D_SPONSOR_ROUTE */}
                 <Stack.Screen name="admin/sponsors" />
                 <Stack.Screen name="admin/member-master" />
@@ -263,4 +262,3 @@ const styles=StyleSheet.create({
   retry:{marginTop:18,backgroundColor:colors.green,paddingVertical:12,paddingHorizontal:18,borderRadius:12},
   retryText:{color:colors.white,fontWeight:'900'}
 });
-
