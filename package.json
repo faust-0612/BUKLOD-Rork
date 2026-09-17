@@ -15,6 +15,7 @@
     "character:contract:dist": "node scripts/character-release-contract.mjs --dist dist && node scripts/character-active-renderer-gate.mjs",
     "game:contract": "node scripts/game-kingdom-release-contract.mjs",
     "game:contract:dist": "node scripts/game-kingdom-release-contract.mjs --dist dist",
+    "android-community-map:contract": "node scripts/android-community-map-release-contract.mjs",
     "release:base-gate": "node scripts/release-gate.mjs",
     "release:gate": "npm run character:contract && npm run game:contract && npm run release:base-gate",
     "quality": "npm run test && npm run test:db && npm run release:gate",
@@ -89,7 +90,7 @@
     "expo-notifications": "~57.0.13",
     "expo-router": "~57.0.15",
     "expo-screen-orientation": "~57.0.1",
-    "expo-secure-store": "~57.0.1",
+    "expo-secure-store": "~57.0.2",
     "expo-sharing": "~57.0.14",
     "expo-speech": "~57.0.1",
     "expo-splash-screen": "~57.0.7",
@@ -122,7 +123,7 @@
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
-    "@types/qrcode": "^1.5.6",
+    "@types/qrcode": "^15.0.6",
     "supabase": "^2.114.0",
     "typescript": "~6.0.3"
   },
