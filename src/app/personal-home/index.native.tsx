@@ -1,3 +1,3 @@
-import BuklodPersonalHomeFunctional from '@/components/home/BuklodPersonalHomeFunctional';
+import BuklodSpatialHomeV2 from '@/components/home/BuklodSpatialHomeV2';
 
-export default BuklodPersonalHomeFunctional;
+export default BuklodSpatialHomeV2;
