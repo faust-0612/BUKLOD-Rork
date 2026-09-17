@@ -169,6 +169,39 @@ check('Closed/background call native foundation', () => {
   ]);
 });
 
+check('Inbound Share to BUKLOD native target and routing', () => {
+  mustInclude('app.config.js', [
+    "'expo-sharing'",
+    'enabled: true',
+    "'image/*'",
+    "'video/*'",
+    "'text/*'",
+  ]);
+  mustInclude('src/app/+native-intent.ts', [
+    "new URL(path).hostname === 'expo-sharing'",
+    "return '/handle-share'",
+  ]);
+  mustInclude('src/app/handle-share.tsx', [
+    'useIncomingShare',
+    'hasIncomingVideo',
+    "/igpat/create?incomingShare=1",
+    "router.replace('/(tabs)/buklod' as any)",
+  ]);
+  mustInclude('src/app/(tabs)/buklod.tsx', [
+    'useBuklodIncomingShare187A',
+    'incomingShare187A.clearSharedPayloads()',
+    'setBody((current: string)',
+    'setPhotos(prepared)',
+  ]);
+  mustInclude('src/app/igpat/create.tsx', [
+    'useIncomingShare',
+    'readSharedVideoDurationSeconds',
+    'shouldImportIncomingShare',
+    'incoming.clearSharedPayloads()',
+    'Shared Video Ready',
+  ]);
+});
+
 check('IGPAT camera/video native foundation', () => {
   const pkg = require(path.join(root, 'package.json'));
   for (const dep of ['expo-camera', 'expo-video', 'expo-image-picker']) {
