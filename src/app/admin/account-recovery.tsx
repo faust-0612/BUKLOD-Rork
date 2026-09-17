@@ -8,6 +8,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { router } from 'expo-router';
@@ -31,6 +32,15 @@ type RecoveryRequest = {
   birth_date?: string | null;
   needs_match?: boolean;
   auto_delivery_ready?: boolean;
+};
+
+type RecoveryCandidate = {
+  userId: string;
+  fullName: string;
+  loginMethod: string;
+  loginHint: string;
+  mobileHint?: string | null;
+  birthDate?: string | null;
 };
 
 function methodLabel(value: string | null | undefined) {
@@ -72,10 +82,15 @@ async function functionErrorMessage(error: any, fallback: string) {
 export default function AdminAccountRecoveryScreen() {
   const { hasRole } = useAuth();
   const verifyInFlight = useRef(false);
+  const matchInFlight = useRef(false);
   const [rows, setRows] = useState<RecoveryRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [matchBusyId, setMatchBusyId] = useState<string | null>(null);
+  const [matchQueries, setMatchQueries] = useState<Record<string, string>>({});
+  const [matchResults, setMatchResults] = useState<Record<string, RecoveryCandidate[]>>({});
+  const [matchSearched, setMatchSearched] = useState<Record<string, boolean>>({});
   const [statusText, setStatusText] = useState('');
 
   const load = useCallback(async (refresh = false) => {
@@ -105,13 +120,156 @@ export default function AdminAccountRecoveryScreen() {
     else setLoading(false);
   }, [hasRole, load]);
 
+  const searchRecoveryAccounts = async (row: RecoveryRequest) => {
+    if (matchInFlight.current || busyId || matchBusyId) return;
+    if (!row.needs_match || row.user_id) return;
+    if (!row.auto_delivery_ready) {
+      const message = 'This recovery session already expired. Ask the member to submit a new Admin Help request.';
+      setStatusText(`ERROR: ${message}`);
+      if (Platform.OS !== 'web') Alert.alert('New Request Required', message);
+      return;
+    }
+
+    const query = String(matchQueries[row.id] ?? '').trim();
+    if (query.length < 3) {
+      const message = 'Search using at least 3 characters from the registered username, mobile, email, or exact name.';
+      setStatusText(`ERROR: ${message}`);
+      if (Platform.OS !== 'web') Alert.alert('Find Member Account', message);
+      return;
+    }
+
+    matchInFlight.current = true;
+    setMatchBusyId(row.id);
+    setMatchSearched((current) => ({ ...current, [row.id]: true }));
+    setMatchResults((current) => ({ ...current, [row.id]: [] }));
+
+    try {
+      const { data, error } = await supabase.functions.invoke('account-recovery-match-v1', {
+        body: {
+          action: 'search_accounts',
+          requestId: row.id,
+          query,
+        },
+      });
+      if (error) {
+        throw new Error(
+          await functionErrorMessage(
+            error,
+            'Could not search member accounts. Confirm that the secure recovery matching service is available.'
+          )
+        );
+      }
+      if (!data?.ok) throw new Error(data?.message ?? 'Could not search member accounts.');
+
+      const candidates = Array.isArray(data?.candidates)
+        ? data.candidates.filter(
+            (item: any): item is RecoveryCandidate =>
+              typeof item?.userId === 'string' &&
+              typeof item?.fullName === 'string' &&
+              typeof item?.loginHint === 'string'
+          )
+        : [];
+
+      setMatchResults((current) => ({ ...current, [row.id]: candidates }));
+      setStatusText(
+        candidates.length
+          ? `Found ${candidates.length} possible account${candidates.length === 1 ? '' : 's'}. Confirm the saved details before matching.`
+          : 'No matching active BUKLOD account found. Try the exact username, mobile number, email, or a more exact name.'
+      );
+    } catch (error: any) {
+      const message = String(error?.message ?? error ?? 'Could not search member accounts.');
+      setStatusText(`ERROR: ${message}`);
+      if (Platform.OS !== 'web') Alert.alert('Find Member Account', message);
+    } finally {
+      matchInFlight.current = false;
+      setMatchBusyId(null);
+    }
+  };
+
+  const matchRecoveryAccount = (row: RecoveryRequest, candidate: RecoveryCandidate) => {
+    const run = async () => {
+      if (matchInFlight.current || busyId || matchBusyId) return;
+      matchInFlight.current = true;
+      setMatchBusyId(row.id);
+      setStatusText(`Matching the recovery request to ${candidate.fullName}…`);
+
+      try {
+        const { data, error } = await supabase.functions.invoke('account-recovery-match-v1', {
+          body: {
+            action: 'match_request',
+            requestId: row.id,
+            userId: candidate.userId,
+          },
+        });
+        if (error) {
+          throw new Error(
+            await functionErrorMessage(
+              error,
+              'Could not match this recovery request. Refresh and try again.'
+            )
+          );
+        }
+        if (!data?.ok || !data?.matched) {
+          throw new Error(data?.message ?? 'Could not match this recovery request.');
+        }
+
+        const matched = data.matched as RecoveryCandidate;
+        setRows((current) =>
+          current.map((item) =>
+            item.id === row.id
+              ? {
+                  ...item,
+                  user_id: matched.userId,
+                  full_name: matched.fullName,
+                  login_method: matched.loginMethod,
+                  login_hint: matched.loginHint,
+                  mobile_hint: matched.mobileHint ?? null,
+                  birth_date: matched.birthDate ?? null,
+                  needs_match: false,
+                }
+              : item
+          )
+        );
+        setMatchQueries((current) => ({ ...current, [row.id]: '' }));
+        setMatchResults((current) => ({ ...current, [row.id]: [] }));
+        setMatchSearched((current) => ({ ...current, [row.id]: false }));
+        setStatusText(
+          `${matched.fullName} matched to this recovery request. Confirm identity, then tap VERIFY ACCOUNT — AUTO DELIVER CODE.`
+        );
+      } catch (error: any) {
+        const message = String(error?.message ?? error ?? 'Could not match this recovery request.');
+        setStatusText(`ERROR: ${message}`);
+        if (Platform.OS !== 'web') Alert.alert('Match Recovery Account', message);
+      } finally {
+        matchInFlight.current = false;
+        setMatchBusyId(null);
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      void run();
+      return;
+    }
+
+    Alert.alert(
+      'Match This Account?',
+      `Match this recovery request to ${candidate.fullName}?\n\n${methodLabel(candidate.loginMethod)}: ${candidate.loginHint}${
+        candidate.birthDate ? `\nBirthday: ${candidate.birthDate}` : ''
+      }\n\nContinue only after confirming these saved details belong to the person requesting recovery.`,
+      [
+        { text: 'CANCEL', style: 'cancel' },
+        { text: 'MATCH ACCOUNT', onPress: () => void run() },
+      ]
+    );
+  };
+
   const verifyAccount = async (row: RecoveryRequest) => {
-    if (verifyInFlight.current || busyId) return;
+    if (verifyInFlight.current || busyId || matchBusyId) return;
 
     if (row.needs_match || !row.user_id) {
-      const message = row.birth_date
-        ? `Hindi ma-verify: ang submitted name + birthday (${row.birth_date}) ay hindi nag-match nang eksakto sa isang BUKLOD account. Ang birthday na nakikita rito ay SUBMITTED BIRTHDAY lamang, hindi patunay na iyon ang birthday na naka-save sa account. Hindi pinapayagan ang name-only approval. Mag-submit ulit gamit ang registered username, mobile number, o email kung available.`
-        : 'Hindi ma-verify: hindi uniquely matched ang submitted identity sa isang BUKLOD account. Hindi pinapayagan ang name-only approval. Mag-submit ulit gamit ang registered username, mobile number, o email kung available.';
+      const message = row.auto_delivery_ready
+        ? 'Match this recovery request to the correct BUKLOD account first using FIND MEMBER ACCOUNT below.'
+        : 'This recovery request is unmatched and its private recovery session has expired. Ask the member to submit a new Admin Help request.';
       setStatusText(`ERROR: ${message}`);
       if (Platform.OS !== 'web') Alert.alert('Account Match Required', message);
       return;
@@ -176,7 +334,7 @@ export default function AdminAccountRecoveryScreen() {
 
   const rejectRequest = (row: RecoveryRequest) => {
     const run = async () => {
-      if (busyId) return;
+      if (busyId || matchBusyId) return;
       setBusyId(row.id);
       try {
         const { data, error } = await supabase.functions.invoke('account-recovery-v4', {
@@ -234,7 +392,7 @@ export default function AdminAccountRecoveryScreen() {
 
       <Text style={styles.title}>Account Recovery Requests</Text>
       <Text style={styles.subtitle}>
-        Verify the member first. Tap VERIFY ACCOUNT once. BUKLOD then generates and delivers the one-time code directly to the member’s waiting recovery screen — no copying, reading, or manual sending by Admin.
+        Verify the member first. If BUKLOD could not uniquely match the submitted details, find and match the correct account here. Then VERIFY ACCOUNT once so the one-time code is delivered directly to the member’s waiting recovery screen.
       </Text>
 
       {!!statusText && (
@@ -245,9 +403,10 @@ export default function AdminAccountRecoveryScreen() {
 
       <View style={styles.stepsCard}>
         <Text style={styles.stepsTitle}>Admin flow</Text>
-        <Text style={styles.stepText}>1. Confirm the person using the saved account details.</Text>
-        <Text style={styles.stepText}>2. Tap VERIFY ACCOUNT — AUTO DELIVER CODE once.</Text>
-        <Text style={styles.stepText}>3. Done. BUKLOD generates the one-time code and sends it automatically to the member’s waiting recovery screen.</Text>
+        <Text style={styles.stepText}>1. Confirm the person using the submitted and saved account details.</Text>
+        <Text style={styles.stepText}>2. If MATCH REQUIRED, securely find and match the correct member account first.</Text>
+        <Text style={styles.stepText}>3. Tap VERIFY ACCOUNT — AUTO DELIVER CODE once.</Text>
+        <Text style={styles.stepText}>4. Done. BUKLOD sends the one-time code automatically to the linked recovery screen.</Text>
       </View>
 
       {loading ? (
@@ -263,6 +422,9 @@ export default function AdminAccountRecoveryScreen() {
           const needsMatch = !!row.needs_match || !row.user_id;
           const autoReady = !!row.auto_delivery_ready;
           const canVerify = !needsMatch && autoReady;
+          const rowMatching = matchBusyId === row.id;
+          const rowResults = matchResults[row.id] ?? [];
+          const rowSearched = matchSearched[row.id] === true;
           const buttonLabel = needsMatch
             ? 'ACCOUNT MATCH REQUIRED'
             : autoReady
@@ -299,14 +461,79 @@ export default function AdminAccountRecoveryScreen() {
                 />
               </View>
 
-              {!canVerify && (
+              {needsMatch && autoReady && (
+                <View style={styles.matchBox}>
+                  <Text style={styles.matchTitle}>Find member account</Text>
+                  <Text style={styles.matchHelp}>
+                    Search the exact registered username, mobile number, email, or member name. Results show masked login details only. Match only after checking the saved details against the person requesting recovery.
+                  </Text>
+                  <TextInput
+                    value={matchQueries[row.id] ?? ''}
+                    onChangeText={(value) => {
+                      setMatchQueries((current) => ({ ...current, [row.id]: value }));
+                      setMatchSearched((current) => ({ ...current, [row.id]: false }));
+                      setMatchResults((current) => ({ ...current, [row.id]: [] }));
+                    }}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    placeholder="Username, mobile, email, or exact name"
+                    style={styles.matchInput}
+                    editable={!rowMatching && busyId === null}
+                    returnKeyType="search"
+                    onSubmitEditing={() => void searchRecoveryAccounts(row)}
+                  />
+                  <Pressable
+                    onPress={() => void searchRecoveryAccounts(row)}
+                    disabled={rowMatching || busyId !== null || matchBusyId !== null}
+                    style={[styles.matchSearchButton, (rowMatching || busyId !== null || matchBusyId !== null) && styles.disabled]}
+                  >
+                    {rowMatching ? (
+                      <ActivityIndicator color={colors.green} />
+                    ) : (
+                      <>
+                        <MaterialCommunityIcons name="account-search-outline" size={18} color={colors.green} />
+                        <Text style={styles.matchSearchText}>FIND ACCOUNT</Text>
+                      </>
+                    )}
+                  </Pressable>
+
+                  {rowSearched && !rowMatching && rowResults.length === 0 && (
+                    <Text style={styles.noMatchText}>
+                      No candidate found. Try the exact registered login or a more exact member name.
+                    </Text>
+                  )}
+
+                  {rowResults.map((candidate) => (
+                    <View key={candidate.userId} style={styles.candidateCard}>
+                      <Text style={styles.candidateName}>{candidate.fullName}</Text>
+                      <Text style={styles.candidateMeta}>
+                        {methodLabel(candidate.loginMethod)}: {candidate.loginHint}
+                      </Text>
+                      {!!candidate.mobileHint && (
+                        <Text style={styles.candidateMeta}>Mobile: {candidate.mobileHint}</Text>
+                      )}
+                      <Text style={styles.candidateMeta}>
+                        Birthday: {candidate.birthDate || 'Not recorded'}
+                      </Text>
+                      <Pressable
+                        onPress={() => matchRecoveryAccount(row, candidate)}
+                        disabled={busyId !== null || matchBusyId !== null}
+                        style={[styles.candidateButton, (busyId !== null || matchBusyId !== null) && styles.disabled]}
+                      >
+                        <MaterialCommunityIcons name="link-variant" size={17} color="#FFFFFF" />
+                        <Text style={styles.candidateButtonText}>MATCH THIS ACCOUNT</Text>
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {!canVerify && !(needsMatch && autoReady) && (
                 <View style={styles.warningCard}>
                   <MaterialCommunityIcons name="alert-circle-outline" size={20} color="#8A5A00" />
                   <Text style={styles.warningCardText}>
                     {needsMatch
-                      ? row.birth_date
-                        ? `HINDI MA-VERIFY: ang submitted name + birthday (${row.birth_date}) ay hindi uniquely matched sa account records. Name-only approval is blocked. Ang birthday na ito ay galing sa request at hindi nangangahulugang naka-save ito sa member profile.`
-                        : 'HINDI MA-VERIFY: ang submitted identity ay hindi uniquely matched sa account records. Name-only approval is blocked.'
+                      ? 'HINDI MA-VERIFY: unmatched at expired na ang secure waiting session. Keep the audit record and ask the member to submit a new Admin Help request.'
                       : 'HINDI MA-VERIFY: legacy/expired request ito at walang active private auto-delivery session. Keep the record; ask the member to submit a new Admin Help request from the updated recovery screen.'}
                   </Text>
                 </View>
@@ -314,13 +541,13 @@ export default function AdminAccountRecoveryScreen() {
 
               <Pressable
                 onPress={() => void verifyAccount(row)}
-                disabled={busyId !== null || !canVerify}
+                disabled={busyId !== null || matchBusyId !== null || !canVerify}
                 hitSlop={10}
                 accessibilityRole="button"
                 style={({ pressed }) => [
                   styles.primary,
-                  pressed && busyId === null && canVerify && styles.pressed,
-                  (busyId !== null || !canVerify) && styles.disabled,
+                  pressed && busyId === null && matchBusyId === null && canVerify && styles.pressed,
+                  (busyId !== null || matchBusyId !== null || !canVerify) && styles.disabled,
                 ]}
               >
                 {busyId === row.id ? (
@@ -335,10 +562,10 @@ export default function AdminAccountRecoveryScreen() {
 
               <Pressable
                 onPress={() => rejectRequest(row)}
-                disabled={busyId !== null}
+                disabled={busyId !== null || matchBusyId !== null}
                 hitSlop={8}
                 accessibilityRole="button"
-                style={[styles.reject, busyId !== null && styles.disabled]}
+                style={[styles.reject, (busyId !== null || matchBusyId !== null) && styles.disabled]}
               >
                 <MaterialCommunityIcons name="close-circle-outline" size={18} color="#A62828" />
                 <Text style={styles.rejectText}>REJECT / CANNOT VERIFY</Text>
@@ -396,6 +623,18 @@ const styles = StyleSheet.create({
   detailRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   detailLabel: { color: '#78827B', fontSize: 10.5, fontWeight: '800' },
   detailValue: { marginTop: 1, color: colors.text, fontSize: 12.5, fontWeight: '800' },
+  matchBox: { marginTop: 12, borderRadius: 12, borderWidth: 1, borderColor: '#BFD8C6', backgroundColor: '#F1F8F3', padding: 12 },
+  matchTitle: { color: colors.text, fontWeight: '900', fontSize: 13 },
+  matchHelp: { marginTop: 4, color: '#526057', fontSize: 11.5, lineHeight: 17 },
+  matchInput: { marginTop: 10, minHeight: 46, borderWidth: 1, borderColor: '#CFD9D1', borderRadius: 10, backgroundColor: '#FFFFFF', paddingHorizontal: 11, color: colors.text },
+  matchSearchButton: { marginTop: 8, minHeight: 43, borderWidth: 1, borderColor: colors.green, borderRadius: 10, flexDirection: 'row', gap: 7, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
+  matchSearchText: { color: colors.green, fontWeight: '900', fontSize: 11 },
+  noMatchText: { marginTop: 9, color: '#7A5B1C', fontSize: 11.5, lineHeight: 17, fontWeight: '700' },
+  candidateCard: { marginTop: 10, borderWidth: 1, borderColor: '#D8E1DA', borderRadius: 10, backgroundColor: '#FFFFFF', padding: 10 },
+  candidateName: { color: colors.text, fontWeight: '900', fontSize: 13.5 },
+  candidateMeta: { marginTop: 3, color: '#5B665E', fontSize: 11.5, lineHeight: 16 },
+  candidateButton: { marginTop: 9, minHeight: 40, borderRadius: 9, backgroundColor: colors.green, flexDirection: 'row', gap: 7, alignItems: 'center', justifyContent: 'center' },
+  candidateButtonText: { color: '#FFFFFF', fontWeight: '900', fontSize: 10.5 },
   warningCard: { marginTop: 10, borderRadius: 10, borderWidth: 1, borderColor: '#E8C977', backgroundColor: '#FFF8E5', padding: 10, flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
   warningCardText: { flex: 1, color: '#6F4B00', fontSize: 11.5, lineHeight: 17, fontWeight: '700' },
   primary: { marginTop: 13, minHeight: 50, borderRadius: 11, backgroundColor: colors.green, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 },
