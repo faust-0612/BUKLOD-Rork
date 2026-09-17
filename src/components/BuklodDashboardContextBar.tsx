@@ -1,6 +1,6 @@
 import { usePathname } from 'expo-router';
 import React from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 
 import BuklodCommunityMapNav
   from '@/components/BuklodCommunityMapNav';
@@ -19,8 +19,7 @@ import {
 
 export default function BuklodDashboardContextBar() {
   /* PATCH_169F_R3_PROFILE_ROUTE */
-  const pathname =
-    usePathname();
+  const pathname = usePathname();
 
   const profileRoute =
     pathname === '/me' ||
@@ -35,19 +34,11 @@ export default function BuklodDashboardContextBar() {
   const communityRoute =
     pathname === '/buklod' ||
     pathname.startsWith('/buklod/');
-  const {
-    activeScope,
-  } = useBuklodScope();
+  const webCommunityRoute =
+    Platform.OS === 'web' && communityRoute;
+  const { activeScope } = useBuklodScope();
 
-  /*
-   * PATCH_172G_R2_GENERIC_PROFILE_NO_CONTEXTBAR
-   *
-   * Profile / My BUKLOD is a fully generic personal screen.
-   * No Public / Church / Cluster / Organization / Sub-org
-   * context bar or scope selector is rendered here.
-   */
   if (profileRoute) {
-    /* PATCH_186F_ENCOURAGEMENT_THROUGH_PROFILE */
     return (
       <BuklodPublicDailyMessageBar
         forceVisible
@@ -62,11 +53,6 @@ export default function BuklodDashboardContextBar() {
     return null;
   }
 
-  /*
-   * Organization / Sub-organization / Cluster workspaces live only under
-   * `/scope` (opened from Profile or portal actions). Never show the global
-   * scope drawer on the personal tab dashboard.
-   */
   if (
     isManagedCommunityScope(
       activeScope,
@@ -76,10 +62,19 @@ export default function BuklodDashboardContextBar() {
   }
 
   if (
-    activeScope?.scope_type ===
-    'PUBLIC'
+    activeScope?.scope_type === 'PUBLIC'
   ) {
     if (communityRoute) {
+      /*
+       * WEB_COMMUNITY_MAP_R5
+       * On web, the real City map is rendered inside the Community Wall list
+       * header so it scrolls with the feed. The old compact BUKLOD NAV remains
+       * only for native compatibility.
+       */
+      if (webCommunityRoute) {
+        return <BuklodPublicDailyMessageBar />;
+      }
+
       return (
         <View>
           <BuklodCommunityMapNav />
