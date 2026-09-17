@@ -1,10 +1,12 @@
-/* BUKLOD_WEB_COMMUNITY_CONNECT_SCROLL_HEADER_R1 */
+/* BUKLOD_WEB_COMMUNITY_CONNECT_SCROLL_HEADER_R2_NOTES_24H */
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 
@@ -18,6 +20,7 @@ import {
 import { markConnectStatusNoteSeen } from '@/lib/buklodConnectStatusNoteSeen';
 import {
   loadMessagesStatusNote,
+  saveMessagesStatusNote,
   type MessagesStatusNote,
 } from '@/lib/buklodMessagesStatusNote';
 import { repairMojibakeText } from '@/lib/repairMojibakeText';
@@ -30,84 +33,229 @@ const MAX_BUBBLES = 14;
 const AVATAR_SIZE = 56;
 const COLUMN_WIDTH = 78;
 const NOTE_MAX_LINES = 3;
+const NOTE_MAX_CHARS = 80;
+const NOTE_REFRESH_MS = 30_000;
 
 function firstName(name: string) {
   return String(name ?? 'Member').trim().split(/\s+/)[0] || 'Member';
 }
 
+function isExpired(expiresAt: string | null | undefined, now = Date.now()) {
+  if (!expiresAt) return false;
+  const expires = new Date(expiresAt).getTime();
+  return Number.isFinite(expires) && expires <= now;
+}
+
+async function pruneExpiredContactNotes(
+  rows: ConnectSuggestedContact[],
+): Promise<ConnectSuggestedContact[]> {
+  const ids = [
+    ...new Set(
+      rows
+        .map(row => String(row.user_id ?? '').trim())
+        .filter(Boolean),
+    ),
+  ];
+
+  if (!ids.length) return rows;
+
+  try {
+    const { data, error } = await supabase
+      .from('buklod_profile_status')
+      .select('user_id, quick_note_expires_at')
+      .in('user_id', ids);
+
+    if (error) return rows;
+
+    const expired = new Set<string>();
+    const now = Date.now();
+
+    for (const row of data ?? []) {
+      const userId = String(row.user_id ?? '').trim();
+      if (
+        userId &&
+        row.quick_note_expires_at &&
+        isExpired(String(row.quick_note_expires_at), now)
+      ) {
+        expired.add(userId);
+      }
+    }
+
+    if (!expired.size) return rows;
+
+    return rows.map(row =>
+      expired.has(row.user_id)
+        ? { ...row, quick_note: null }
+        : row,
+    );
+  } catch {
+    return rows;
+  }
+}
+
 function NoteBubble({
   note,
   textColor,
+  editable = false,
+  saving = false,
+  onSave,
 }: {
   note?: string | null;
   textColor: string;
+  editable?: boolean;
+  saving?: boolean;
+  onSave?: (value: string) => Promise<boolean>;
 }) {
   const value = repairMojibakeText(String(note ?? '')).trim();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
 
-  if (!value) {
+  useEffect(() => {
+    if (!editing) setDraft(value);
+  }, [editing, value]);
+
+  if (editing && editable) {
+    const trimmed = draft.trim();
+    const canSave = !!trimmed && trimmed !== value && !saving;
+
+    return (
+      <View style={styles.noteZoneEditing}>
+        <View style={styles.noteBubble}>
+          <TextInput
+            autoFocus
+            multiline
+            maxLength={NOTE_MAX_CHARS}
+            value={draft}
+            onChangeText={setDraft}
+            placeholder="Add note"
+            placeholderTextColor="rgba(127,127,127,0.7)"
+            style={[styles.noteInput, { color: textColor }]}
+          />
+          <Text style={[styles.noteCount, { color: textColor }]}>
+            {draft.length}/{NOTE_MAX_CHARS}
+          </Text>
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Post profile note"
+          disabled={!canSave}
+          onPress={() => {
+            if (!canSave || !onSave) return;
+            void onSave(trimmed).then(ok => {
+              if (ok) setEditing(false);
+            });
+          }}
+          style={[
+            styles.notePostButton,
+            !canSave && styles.notePostButtonDisabled,
+          ]}
+        >
+          <Text style={styles.notePostButtonText}>
+            {saving ? '...' : 'POST'}
+          </Text>
+        </Pressable>
+        <View style={styles.noteTail} />
+      </View>
+    );
+  }
+
+  if (!value && !editable) {
     return <View style={styles.noteZone} />;
   }
 
   return (
-    <View style={styles.noteZone} pointerEvents="none">
+    <Pressable
+      disabled={!editable}
+      onPress={() => {
+        if (editable) setEditing(true);
+      }}
+      style={styles.noteZone}
+    >
       <View style={styles.noteBubble}>
         <Text
           numberOfLines={NOTE_MAX_LINES}
-          style={[styles.noteText, { color: textColor }]}
+          style={[
+            styles.noteText,
+            { color: textColor },
+            !value && styles.notePlaceholder,
+          ]}
         >
-          {value}
+          {value || 'Add note'}
         </Text>
       </View>
       <View style={styles.noteTail} />
-    </View>
+    </Pressable>
   );
 }
 
 function BuklodCommunityConnectRail() {
   const { theme } = useBuklodTheme();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const [contacts, setContacts] = useState<ConnectSuggestedContact[]>([]);
   const [searchContacts, setSearchContacts] = useState<ConnectSuggestedContact[]>([]);
   const [query, setQuery] = useState('');
   const [selfNote, setSelfNote] = useState<MessagesStatusNote | null>(null);
+  const [selfSaving, setSelfSaving] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
 
   const currentUser = useMemo(() => {
-    const userId = String((profile as any)?.id ?? '').trim();
+    const userId = String(
+      (profile as any)?.id ??
+        (profile as any)?.user_id ??
+        (user as any)?.id ??
+        '',
+    ).trim();
+
     if (!userId) return null;
 
     return {
       user_id: userId,
-      full_name: String((profile as any)?.full_name ?? 'You'),
+      full_name: String(
+        (profile as any)?.full_name ??
+          (profile as any)?.display_name ??
+          'You',
+      ),
       avatar_url: (profile as any)?.avatar_url
         ? String((profile as any).avatar_url)
         : null,
     };
-  }, [profile]);
+  }, [profile, user]);
+
+  const refreshRail = useCallback(async () => {
+    const [contactsResult, selfNoteResult] = await Promise.allSettled([
+      loadConnectSuggestedContacts(MAX_BUBBLES),
+      loadMessagesStatusNote(),
+    ]);
+
+    if (contactsResult.status === 'fulfilled') {
+      const clean = await pruneExpiredContactNotes(
+        contactsResult.value.slice(0, MAX_BUBBLES),
+      );
+      setContacts(clean);
+    }
+
+    if (selfNoteResult.status === 'fulfilled') {
+      setSelfNote(selfNoteResult.value);
+    }
+
+    setNow(Date.now());
+  }, []);
 
   useEffect(() => {
-    let active = true;
+    void refreshRail();
 
-    void loadConnectSuggestedContacts(MAX_BUBBLES)
-      .then(rows => {
-        if (!active) return;
-        setContacts(rows.slice(0, MAX_BUBBLES));
-      })
-      .catch(() => {
-        if (active) setContacts([]);
-      });
+    const interval = setInterval(() => {
+      void refreshRail();
+    }, NOTE_REFRESH_MS);
 
-    void loadMessagesStatusNote()
-      .then(note => {
-        if (active) setSelfNote(note);
-      })
-      .catch(() => {
-        if (active) setSelfNote(null);
-      });
+    return () => clearInterval(interval);
+  }, [refreshRail]);
 
-    return () => {
-      active = false;
-    };
-  }, []);
+  useEffect(() => {
+    if (selfNote && isExpired(selfNote.expires_at, now)) {
+      setSelfNote(null);
+    }
+  }, [now, selfNote]);
 
   useEffect(() => {
     const clean = query.trim();
@@ -129,9 +277,7 @@ function BuklodCommunityConnectRail() {
           },
         );
 
-        if (cancelled || result.error) {
-          return;
-        }
+        if (cancelled || result.error) return;
 
         const mapped: ConnectSuggestedContact[] = (result.data ?? [])
           .map((row: any) => {
@@ -154,10 +300,9 @@ function BuklodCommunityConnectRail() {
 
         const enriched =
           await enrichConnectSuggestedContactsWithNotes(mapped);
+        const cleanRows = await pruneExpiredContactNotes(enriched);
 
-        if (!cancelled) {
-          setSearchContacts(enriched);
-        }
+        if (!cancelled) setSearchContacts(cleanRows);
       })();
     }, 250);
 
@@ -206,6 +351,24 @@ function BuklodCommunityConnectRail() {
     } as any);
   }, []);
 
+  const persistSelfNote = useCallback(async (value: string) => {
+    setSelfSaving(true);
+    try {
+      const saved = await saveMessagesStatusNote(value);
+      setSelfNote(saved);
+      setNow(Date.now());
+      return !!saved;
+    } catch (error) {
+      console.warn(
+        'Community profile note:',
+        String((error as Error)?.message ?? error),
+      );
+      return false;
+    } finally {
+      setSelfSaving(false);
+    }
+  }, []);
+
   const selfContact = useMemo<ConnectSuggestedContact | null>(() => {
     if (!currentUser) return null;
 
@@ -217,9 +380,12 @@ function BuklodCommunityConnectRail() {
       rank_name: null,
       thread_id: null,
       unread_count: 0,
-      quick_note: selfNote?.quick_note ?? null,
+      quick_note:
+        selfNote && !isExpired(selfNote.expires_at, now)
+          ? selfNote.quick_note
+          : null,
     };
-  }, [currentUser, selfNote?.quick_note]);
+  }, [currentUser, now, selfNote]);
 
   if (!selfContact && !visibleContacts.length && !searching) {
     return null;
@@ -247,6 +413,9 @@ function BuklodCommunityConnectRail() {
             <NoteBubble
               note={selfContact.quick_note}
               textColor={theme.textPrimary}
+              editable
+              saving={selfSaving}
+              onSave={persistSelfNote}
             />
 
             <ConnectTappableAvatar
@@ -352,6 +521,13 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     marginBottom: 4,
   },
+  noteZoneEditing: {
+    width: COLUMN_WIDTH,
+    minHeight: 78,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginBottom: 4,
+  },
   noteBubble: {
     maxWidth: COLUMN_WIDTH,
     minWidth: 58,
@@ -379,6 +555,43 @@ const styles = StyleSheet.create({
     lineHeight: 12,
     fontWeight: '400',
     textAlign: 'center',
+  },
+  notePlaceholder: {
+    opacity: 0.65,
+    fontWeight: '700',
+  },
+  noteInput: {
+    width: 62,
+    minHeight: 30,
+    maxHeight: 42,
+    padding: 0,
+    margin: 0,
+    fontSize: 9.5,
+    lineHeight: 12,
+    textAlign: 'center',
+  },
+  noteCount: {
+    marginTop: 2,
+    fontSize: 7.5,
+    opacity: 0.6,
+  },
+  notePostButton: {
+    marginTop: 4,
+    minHeight: 21,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: '#177552',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notePostButtonDisabled: {
+    opacity: 0.4,
+  },
+  notePostButtonText: {
+    color: '#FFFFFF',
+    fontSize: 8,
+    fontWeight: '900',
   },
   avatarWrap: {
     width: AVATAR_SIZE,
