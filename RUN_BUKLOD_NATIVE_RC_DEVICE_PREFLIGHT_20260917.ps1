@@ -22,7 +22,7 @@ if (-not (Get-Command adb -ErrorAction SilentlyContinue)) {
   throw 'ADB is not installed/on PATH. Install Android Platform Tools, connect the test phone with USB debugging, then rerun this script.'
 }
 
-Step '1/7 Verify one Android test device is connected'
+Step '1/8 Verify one Android test device is connected'
 $deviceLines = adb devices | Select-Object -Skip 1 | Where-Object { $_ -match '\tdevice$' }
 if ($LASTEXITCODE -ne 0) { throw 'adb devices failed.' }
 if (($deviceLines | Measure-Object).Count -ne 1) {
@@ -32,11 +32,11 @@ if (($deviceLines | Measure-Object).Count -ne 1) {
 $serial = (($deviceLines | Select-Object -First 1) -split '\s+')[0]
 Write-Host "Device: $serial" -ForegroundColor Cyan
 
-Step '2/7 Install exact RC APK'
+Step '2/8 Install exact RC APK'
 adb -s $serial install -r $ApkPath
 if ($LASTEXITCODE -ne 0) { throw 'APK installation failed.' }
 
-Step '3/7 Verify installed BUKLOD identity/version'
+Step '3/8 Verify installed BUKLOD identity/version'
 $packageDump = adb -s $serial shell dumpsys package $Package
 if ($LASTEXITCODE -ne 0 -or -not $packageDump) { throw "Could not inspect installed package $Package." }
 if (($packageDump -join "`n") -notmatch "versionCode=$ExpectedVersionCode(\s|\b)") {
@@ -44,7 +44,7 @@ if (($packageDump -join "`n") -notmatch "versionCode=$ExpectedVersionCode(\s|\b)
 }
 Write-Host "PASS package=$Package versionCode=$ExpectedVersionCode"
 
-Step '4/7 Verify critical Android permissions in installed manifest'
+Step '4/8 Verify critical Android permissions in installed manifest'
 $requiredPermissions = @(
   'android.permission.CAMERA',
   'android.permission.RECORD_AUDIO',
@@ -59,7 +59,18 @@ foreach ($permission in $requiredPermissions) {
   Write-Host "PASS $permission"
 }
 
-Step '5/7 Verify native SOS Quick Settings service'
+Step '5/8 Verify native Share to BUKLOD Android intent target'
+if ($dumpText -notmatch 'android\.intent\.action\.SEND') {
+  throw 'Installed APK does not expose the Android ACTION_SEND Share to BUKLOD target.'
+}
+Write-Host 'PASS Android ACTION_SEND inbound share target' -ForegroundColor Cyan
+if ($dumpText -match 'android\.intent\.action\.SEND_MULTIPLE') {
+  Write-Host 'PASS Android ACTION_SEND_MULTIPLE inbound photo share target' -ForegroundColor Cyan
+} else {
+  Write-Host 'WARN: dumpsys did not print ACTION_SEND_MULTIPLE. Verify multi-photo Share to BUKLOD manually.' -ForegroundColor Yellow
+}
+
+Step '6/8 Verify native SOS Quick Settings service'
 if ($dumpText -notmatch 'BuklodSosTileService') {
   throw 'Installed APK does not expose BuklodSosTileService.'
 }
@@ -69,7 +80,7 @@ if ($dumpText -notmatch 'android\.service\.quicksettings\.action\.QS_TILE') {
   Write-Host 'PASS Quick Settings SOS TileService + QS_TILE intent filter'
 }
 
-Step '6/7 Launch canonical SOS deep link from a closed app'
+Step '7/8 Launch canonical SOS deep link from a closed app'
 adb -s $serial shell am force-stop $Package
 Start-Sleep -Milliseconds 700
 $launch = adb -s $serial shell am start -W -a android.intent.action.VIEW -d 'buklod://sos?trigger=deep_link' $Package
@@ -82,7 +93,7 @@ if ($launchText -match 'Error:|Activity not started|unable to resolve') {
 Write-Host $launchText
 Write-Host 'PASS closed-app SOS deep-link entry resolved.' -ForegroundColor Cyan
 
-Step '7/7 Hand off to human-required emergency/device checks'
+Step '8/8 Hand off to human-required emergency/device checks'
 Write-Host @'
 AUTOMATED DEVICE PREFLIGHT PASSED.
 
@@ -95,8 +106,11 @@ Highest-priority manual checks:
   5. Controlled recipient push with MAX alert + DND opt-in.
   6. Incoming call while receiver app is killed.
   7. IGPAT camera/playback.
-  8. Rive character + Skia Kingdom/game.
-  9. Hybrid/satellite native map + live GPS + Google navigation handoff.
+  8. Share text/photo from another Android app into BUKLOD Community.
+  9. Share a video from another Android app into the IGPAT creator and confirm the exact video is preloaded.
+ 10. Share BUKLOD Community/IGPAT content out to another Android app.
+ 11. Rive character + Skia Kingdom/game.
+ 12. Hybrid/satellite native map + live GPS + Google navigation handoff.
 
 Do not build the final AAB until all physical QA items pass.
 '@
