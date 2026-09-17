@@ -4,26 +4,37 @@ const checks = [
   {
     file: 'src/components/BuklodWebCommunityMapHeader.web.tsx',
     tokens: [
-      'BUKLOD_WEB_COMMUNITY_MAP_R5',
-      "import { BuklodCityMap } from '@/components/BuklodCityMap.web';",
+      'BUKLOD_WEB_COMMUNITY_MAP_R6_SATELLITE',
+      "import { BuklodLiveSatelliteMap } from '@/components/BuklodLiveSatelliteMap.web';",
       'getBuklodCitySnapshot',
-      '<BuklodCityMap',
+      '<BuklodLiveSatelliteMap',
       'canManagePlace={false}',
     ],
   },
   {
-    file: 'src/components/BuklodCityMap.web.tsx',
+    file: 'src/components/BuklodLiveSatelliteMap.web.tsx',
     tokens: [
+      'BUKLOD_LIVE_SATELLITE_MAP_R1',
       'Tap map to open',
       '{iframe(false)}',
       '{iframe(true)}',
       "pointerEvents: interactive ? 'auto' : 'none'",
+      'World_Imagery/MapServer/tile',
+      'World_Boundaries_and_Places/MapServer/tile',
+      "'Satellite': satellite",
+      "'Nearby places': nearbyPlaces",
+      'overpass-api.de/api/interpreter',
+      'overpass.kumi.systems/api/interpreter',
+      'hospital|clinic|doctors|pharmacy|police|fire_station|school|college|university',
+      '["shop"]["name"]',
+      '["office"]["name"]',
       'buklod-home-marker',
       'buklod-home-door',
       'buklod-home-address',
       'privateHomePoint.localityLabel',
       "window.top.location.assign('/personal-home')",
-      "title: interactive ? 'BUKLOD City interactive community map' : 'BUKLOD City map preview'",
+      "Satellite • loading nearby places",
+      "title: interactive\n        ? 'BUKLOD live satellite interactive community map'",
     ],
   },
   {
@@ -46,9 +57,11 @@ const checks = [
 
 let failures = 0;
 
-console.log('BUKLOD COMMUNITY LIVE MAP RELEASE CONTRACT');
-console.log('==========================================');
-console.log('LOCK: Community Wall uses the real map preview; Tap map to open stays; Home door remains inside the map above the saved address label.');
+console.log('BUKLOD COMMUNITY LIVE SATELLITE MAP RELEASE CONTRACT');
+console.log('====================================================');
+console.log(
+  'LOCK: Community Wall uses the real satellite map preview; Tap map to open stays; full map loads nearby real-world places; Home door remains inside the map above the saved address label.',
+);
 
 for (const check of checks) {
   if (!fs.existsSync(check.file)) {
@@ -67,8 +80,10 @@ for (const check of checks) {
 }
 
 if (failures > 0) {
-  console.error(`COMMUNITY LIVE MAP RELEASE LOCK FAILED: ${failures} blocker(s).`);
+  console.error(
+    `COMMUNITY LIVE SATELLITE MAP RELEASE LOCK FAILED: ${failures} blocker(s).`,
+  );
   process.exit(1);
 }
 
-console.log('COMMUNITY LIVE MAP RELEASE LOCK PASSED.');
+console.log('COMMUNITY LIVE SATELLITE MAP RELEASE LOCK PASSED.');
