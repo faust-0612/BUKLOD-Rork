@@ -16,7 +16,7 @@ env:
 
 jobs:
   qa-export-deploy-web-only:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - name: Checkout source-locked Quiz SSO release
         uses: actions/checkout@v4
