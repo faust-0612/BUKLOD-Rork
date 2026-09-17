@@ -9,11 +9,12 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import * as FileSystem from 'expo-file-system/legacy';
-import { VideoView, useVideoPlayer } from 'expo-video';
+import { createVideoPlayer, VideoView, useVideoPlayer } from 'expo-video';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
+import { useIncomingShare } from '@/lib/buklodIncomingShare';
 import { uploadCommunityVideoFile } from '@/lib/uploadCommunityVideoFile';
 import {
   BUKLOD_REEL_MAX_DURATION_SECONDS,
@@ -55,6 +56,67 @@ function extensionForMime(mime: string): string {
   return 'mp4';
 }
 
+async function readSharedVideoDurationSeconds(uri: string): Promise<number> {
+  const player = createVideoPlayer(null);
+
+  return await new Promise<number>((resolve, reject) => {
+    let finished = false;
+    let sourceSubscription: any = null;
+    let statusSubscription: any = null;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const finish = (error: Error | null, duration = 0) => {
+      if (finished) return;
+      finished = true;
+
+      try {
+        sourceSubscription?.remove?.();
+      } catch {}
+      try {
+        statusSubscription?.remove?.();
+      } catch {}
+      if (timer) clearTimeout(timer);
+      try {
+        player.release();
+      } catch {}
+
+      if (error) reject(error);
+      else resolve(duration);
+    };
+
+    sourceSubscription = player.addListener('sourceLoad', (event: any) => {
+      const duration = Number(event?.duration ?? player.duration ?? 0);
+      if (duration > 0) {
+        finish(null, duration);
+      } else {
+        finish(new Error('Could not determine the shared video duration.'));
+      }
+    });
+
+    statusSubscription = player.addListener('statusChange', (event: any) => {
+      if (event?.status === 'error') {
+        finish(
+          new Error(
+            String(event?.error?.message ?? 'Could not open the shared video.')
+          )
+        );
+      }
+    });
+
+    timer = setTimeout(() => {
+      finish(new Error('BUKLOD could not inspect the shared video.'));
+    }, 15000);
+
+    void player.replaceAsync(uri).catch((error: any) => {
+      finish(
+        new Error(
+          String(error?.message ?? 'Could not open the shared video.')
+        )
+      );
+    });
+  });
+}
+
 function Preview({ uri }: { uri: string }) {
   const player = useVideoPlayer(uri, instance => {
     instance.loop = true;
@@ -81,6 +143,16 @@ function Preview({ uri }: { uri: string }) {
 
 export default function IgpatCreateScreen() {
   const { user, profile } = useAuth();
+  const params = useLocalSearchParams<{ incomingShare?: string | string[] }>();
+  const incoming = useIncomingShare();
+  const incomingShareSignatureRef = useRef('');
+  const shouldImportIncomingShare =
+    String(
+      Array.isArray(params.incomingShare)
+        ? params.incomingShare[0]
+        : params.incomingShare ?? ''
+    ) === '1';
+
   const [draft, setDraft] = useState<IgpatDraft | null>(null);
   const [caption, setCaption] = useState('');
   const [audience, setAudience] = useState<Audience>('public');
@@ -160,24 +232,24 @@ export default function IgpatCreateScreen() {
     };
   }, [profile?.church_id, user?.id]);
 
-  const acceptVideo = async (asset: any) => {
+  const acceptVideo = async (asset: any): Promise<boolean> => {
     try {
       if (!asset?.uri) {
         Alert.alert('BUKLOD IGPAT', 'The selected video could not be read.');
-        return;
+        return false;
       }
 
       const durationSeconds = Math.ceil(Number(asset?.duration ?? 0) / 1000);
       if (!durationSeconds || durationSeconds < 1) {
         Alert.alert('BUKLOD IGPAT', 'Could not determine the video duration.');
-        return;
+        return false;
       }
       if (durationSeconds > BUKLOD_REEL_MAX_DURATION_SECONDS) {
         Alert.alert(
           'Maximum 60 Seconds',
           `This video is ${durationSeconds} seconds. IGPAT videos may be up to 60 seconds only.`
         );
-        return;
+        return false;
       }
 
       const sizeBytes = await readVideoSizeBytes(asset, async (uri, options) =>
@@ -190,11 +262,11 @@ export default function IgpatCreateScreen() {
       });
       if (validationError) {
         Alert.alert('BUKLOD IGPAT', validationError);
-        return;
+        return false;
       }
 
       const mimeType = inferMime(asset);
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) return false;
       setDraft({
         uri: asset.uri,
         durationSeconds,
@@ -202,6 +274,7 @@ export default function IgpatCreateScreen() {
         mimeType,
         fileName: String(asset.fileName ?? `igpat.${extensionForMime(mimeType)}`),
       });
+      return true;
     } catch (error: any) {
       console.warn('BUKLOD IGPAT accept video:', String(error?.message ?? error));
       if (mountedRef.current) {
@@ -210,8 +283,97 @@ export default function IgpatCreateScreen() {
           error?.message ?? 'The video could not be prepared safely. Please try again.'
         );
       }
+      return false;
     }
   };
+
+  useEffect(() => {
+    if (!shouldImportIncomingShare || incoming.isResolving || draft) return;
+
+    const raw: any[] = incoming.sharedPayloads ?? [];
+    const resolved: any[] = incoming.resolvedSharedPayloads ?? [];
+    if (!raw.length && !resolved.length) return;
+
+    const videos = (resolved.length
+      ? resolved
+      : raw.map((row: any) => ({
+          contentType: row?.shareType,
+          contentUri: row?.value,
+          contentMimeType: row?.mimeType,
+          contentSize: null,
+          originalName: null,
+        })))
+      .filter(
+        (row: any) =>
+          (row?.contentType === 'video' ||
+            String(row?.contentMimeType ?? '').toLowerCase().startsWith('video/')) &&
+          typeof row?.contentUri === 'string' &&
+          row.contentUri.length > 0
+      );
+
+    if (!videos.length) return;
+
+    const signature = JSON.stringify(
+      videos.map((row: any) => [
+        row?.contentUri,
+        row?.contentMimeType,
+        row?.contentSize,
+        row?.originalName,
+      ])
+    );
+    if (!signature || incomingShareSignatureRef.current === signature) return;
+    incomingShareSignatureRef.current = signature;
+
+    void (async () => {
+      try {
+        const video = videos[0];
+        const durationSeconds = await readSharedVideoDurationSeconds(
+          video.contentUri
+        );
+
+        const sharedCaption = raw
+          .filter(
+            (row: any) => row?.shareType === 'text' || row?.shareType === 'url'
+          )
+          .map((row: any) => String(row?.value ?? '').trim())
+          .filter(Boolean)
+          .join('\n\n');
+
+        if (sharedCaption) {
+          setCaption(current => current.trim() ? current : sharedCaption.slice(0, 500));
+        }
+
+        const accepted = await acceptVideo({
+          uri: video.contentUri,
+          duration: durationSeconds * 1000,
+          fileSize: Number(video.contentSize ?? 0) || undefined,
+          mimeType: video.contentMimeType || 'video/mp4',
+          fileName: video.originalName || 'shared-igpat.mp4',
+          type: 'video',
+        });
+
+        if (!accepted) return;
+
+        incoming.clearSharedPayloads();
+        Alert.alert(
+          'Shared Video Ready',
+          'The video shared to BUKLOD is now in IGPAT. Review the preview, caption, and audience before publishing.'
+        );
+      } catch (error: any) {
+        console.warn('BUKLOD IGPAT incoming share:', String(error?.message ?? error));
+        Alert.alert(
+          'Could Not Import Shared Video',
+          String(error?.message ?? 'Please share the video to BUKLOD again or select it from your device.')
+        );
+      }
+    })();
+  }, [
+    shouldImportIncomingShare,
+    incoming.isResolving,
+    incoming.sharedPayloads,
+    incoming.resolvedSharedPayloads,
+    draft,
+  ]);
 
   const handlePickerResult = async (result: any) => {
     if (!result) return;
