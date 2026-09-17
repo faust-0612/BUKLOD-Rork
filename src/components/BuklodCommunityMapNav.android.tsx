@@ -1,4 +1,4 @@
-/* BUKLOD_ANDROID_COMMUNITY_CONNECT_BUBBLES_R3 */
+/* BUKLOD_ANDROID_COMMUNITY_CONNECT_BUBBLES_R4_SCROLL_HEADER */
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -8,8 +8,10 @@ import {
   View,
 } from 'react-native';
 
+import { ConnectInboxSearch } from '@/components/connect/ConnectInboxSearch';
 import { ConnectTappableAvatar } from '@/components/connect/ConnectTappableAvatar';
 import {
+  enrichConnectSuggestedContactsWithNotes,
   loadConnectSuggestedContacts,
   type ConnectSuggestedContact,
 } from '@/lib/buklodConnectSuggestedContacts';
@@ -19,8 +21,10 @@ import {
   type MessagesStatusNote,
 } from '@/lib/buklodMessagesStatusNote';
 import { repairMojibakeText } from '@/lib/repairMojibakeText';
+import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
+import { ConnectThemeProvider } from '@/providers/ConnectThemeProvider';
 
 const MAX_BUBBLES = 14;
 const AVATAR_SIZE = 56;
@@ -59,10 +63,12 @@ function NoteBubble({
   );
 }
 
-export default function BuklodCommunityMapNav() {
+function BuklodCommunityConnectRail() {
   const { theme } = useBuklodTheme();
   const { profile } = useAuth();
   const [contacts, setContacts] = useState<ConnectSuggestedContact[]>([]);
+  const [searchContacts, setSearchContacts] = useState<ConnectSuggestedContact[]>([]);
+  const [query, setQuery] = useState('');
   const [selfNote, setSelfNote] = useState<MessagesStatusNote | null>(null);
 
   const currentUser = useMemo(() => {
@@ -104,12 +110,78 @@ export default function BuklodCommunityMapNav() {
   }, []);
 
   useEffect(() => {
-    for (const contact of contacts) {
+    const clean = query.trim();
+
+    if (clean.length < 2) {
+      setSearchContacts([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    const timer = setTimeout(() => {
+      void (async () => {
+        const result = await (supabase as any).rpc(
+          'buklod_connect_people_search',
+          {
+            _query: clean,
+            _limit: 20,
+          },
+        );
+
+        if (cancelled || result.error) {
+          return;
+        }
+
+        const mapped: ConnectSuggestedContact[] = (result.data ?? [])
+          .map((row: any) => {
+            const known = contacts.find(
+              contact => contact.user_id === String(row.user_id ?? ''),
+            );
+
+            return {
+              user_id: String(row.user_id ?? ''),
+              full_name: String(row.full_name ?? 'Member'),
+              avatar_url: row.avatar_url ? String(row.avatar_url) : null,
+              shared_scope_label: known?.shared_scope_label ?? 'Search',
+              rank_name: known?.rank_name ?? null,
+              thread_id: known?.thread_id ?? null,
+              unread_count: known?.unread_count ?? 0,
+              quick_note: known?.quick_note ?? null,
+            };
+          })
+          .filter((row: ConnectSuggestedContact) => !!row.user_id);
+
+        const enriched =
+          await enrichConnectSuggestedContactsWithNotes(mapped);
+
+        if (!cancelled) {
+          setSearchContacts(enriched);
+        }
+      })();
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [contacts, query]);
+
+  const searching = query.trim().length >= 2;
+  const sourceContacts = searching ? searchContacts : contacts;
+
+  const visibleContacts = useMemo(
+    () => sourceContacts.filter(contact => contact.user_id !== currentUser?.user_id),
+    [sourceContacts, currentUser?.user_id],
+  );
+
+  useEffect(() => {
+    for (const contact of visibleContacts) {
       if (String(contact.quick_note ?? '').trim()) {
         void markConnectStatusNoteSeen(contact.user_id).catch(() => undefined);
       }
     }
-  }, [contacts]);
+  }, [visibleContacts]);
 
   const openConversation = useCallback((contact: ConnectSuggestedContact) => {
     if (contact.thread_id) {
@@ -149,17 +221,21 @@ export default function BuklodCommunityMapNav() {
     };
   }, [currentUser, selfNote?.quick_note]);
 
-  const visibleContacts = useMemo(
-    () => contacts.filter(contact => contact.user_id !== currentUser?.user_id),
-    [contacts, currentUser?.user_id],
-  );
-
-  if (!selfContact && !visibleContacts.length) {
+  if (!selfContact && !visibleContacts.length && !searching) {
     return null;
   }
 
   return (
     <View style={styles.shell}>
+      <View style={styles.searchWrap}>
+        <ConnectInboxSearch
+          inline
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search messages or people"
+        />
+      </View>
+
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -167,7 +243,7 @@ export default function BuklodCommunityMapNav() {
         keyboardShouldPersistTaps="handled"
         nestedScrollEnabled
       >
-        {selfContact ? (
+        {!searching && selfContact ? (
           <View style={styles.person}>
             <NoteBubble
               note={selfContact.quick_note}
@@ -243,10 +319,22 @@ export default function BuklodCommunityMapNav() {
   );
 }
 
+export default function BuklodCommunityMapNav() {
+  return (
+    <ConnectThemeProvider>
+      <BuklodCommunityConnectRail />
+    </ConnectThemeProvider>
+  );
+}
+
 const styles = StyleSheet.create({
   shell: {
     paddingTop: 4,
     paddingBottom: 4,
+  },
+  searchWrap: {
+    paddingHorizontal: 12,
+    paddingBottom: 8,
   },
   row: {
     paddingHorizontal: 12,
