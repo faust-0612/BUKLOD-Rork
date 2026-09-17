@@ -4,16 +4,19 @@
  */
 import React, { useMemo } from 'react';
 import {
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import BuklodCommunityHelp from '@/components/BuklodCommunityHelp';
+import BuklodDesktopCommunityMapHeader from '@/components/BuklodDesktopCommunityMapHeader';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import { colors } from '@/lib/theme';
 
@@ -41,11 +44,16 @@ function weight(scope:LocalScope){
 
 export default function BuklodPublicLocationChips({selectedScopeId,onChange}:Props){
   const {scopes}=useBuklodScope();
+  const {width}=useWindowDimensions();
+  const desktopCommunityMap=Platform.OS==='web'&&width>=1200;
   const localScopes=useMemo(()=>(scopes as LocalScope[])
     .filter(scope=>scope.scope_type==='LOCAL'&&Boolean(scope.scope_id)&&Boolean(String(scope.name??'').trim())&&(!scope.membership_status||scope.membership_status==='ACTIVE'))
     .sort((a,b)=>weight(a)-weight(b)),[scopes]);
 
   return <View>
+    {/* R4: the real City map is part of the Wall header, therefore it scrolls. */}
+    {desktopCommunityMap?<BuklodDesktopCommunityMapHeader/>:null}
+
     <BuklodCommunityHelp />
 
     <ScrollView
