@@ -86,7 +86,13 @@ export default function BuklodRorkHomeAtlas({ onOpenDetails }: { onOpenDetails: 
           ? stars.map((x, index) => (
               <View
                 key={x}
-                style={[styles.star, { left: x + '%', top: 5 + (index % 3) * 4 + '%' }]}
+                style={[
+                  styles.star,
+                  {
+                    left: (sceneWidth * x) / 100,
+                    top: (sceneHeight * (5 + (index % 3) * 4)) / 100,
+                  },
+                ]}
               />
             ))
           : null}
@@ -95,7 +101,7 @@ export default function BuklodRorkHomeAtlas({ onOpenDetails }: { onOpenDetails: 
         <View style={[styles.houseBody, { backgroundColor: night ? '#34291F' : '#D8BC8A' }]} />
 
         {[33, 51, 70.5, 84].map((top) => (
-          <View key={top} style={[styles.beam, { top: top + '%' }]} />
+          <View key={top} style={[styles.beam, { top: (sceneHeight * top) / 100 }]} />
         ))}
 
         {ROOMS.map((room) => {
