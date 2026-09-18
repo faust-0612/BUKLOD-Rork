@@ -138,8 +138,9 @@ requireTokens('src/features/games/runtime/BuklodGameBackdrop.tsx', [
 ]);
 const rorkMedia = requireTokens('src/features/games/runtime/rorkMedia.ts', [
   'RORK_GAME_MEDIA',
-  'r2-pub.rork.com',
+  'kp3ge50a5t6chyb7gv3jn-web.rork.live',
   'kingdom/audio',
+  'kingdom/bg',
 ]);
 for (const gameId of GAME_IDS) {
   if (!rorkMedia.includes(`'${gameId}'`)) failures.push(`Rork media mapping missing game: ${gameId}`);
