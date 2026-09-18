@@ -32,7 +32,7 @@ const lastPlayedAt = new Map<RorkAudioKey, number>();
 
 function createPlayer(source: string, loop = false) {
   try {
-    const player = createAudioPlayer(source);
+    const player = createAudioPlayer(source, { downloadFirst: true, updateInterval: 1000 });
     player.loop = loop;
     return player;
   } catch {
@@ -66,6 +66,7 @@ function playKey(key: RorkAudioKey, volume: number, cooldownMs = 0) {
   const cursor = cursors.get(key) ?? 0;
   cursors.set(key, (cursor + 1) % voices.length);
   const player = voices[cursor % voices.length];
+  if (!player.isLoaded) return false;
 
   try {
     player.volume = volume;
