@@ -62,7 +62,9 @@ function tone(
 }
 
 export async function playBuklodGameFeedback(event: BuklodGameFeedbackEvent) {
-  if (tryPlayRorkGameFeedback(event, 0.24)) return;
+  // Rork SFX are additive only; the proven synthesized feedback remains the
+  // guaranteed baseline when remote media is blocked/offline.
+  tryPlayRorkGameFeedback(event, 0.16);
   const ctx = getAudioContext();
   if (!ctx) return;
 
