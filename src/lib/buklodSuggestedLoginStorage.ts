@@ -65,6 +65,10 @@ export async function clearSavedSuggestedLoginPassword(options: {
   const matchedUserIds = new Set<string>();
   const matchedIdentifiers = new Set<string>();
 
+  if (targetUserId) {
+    matchedUserIds.add(targetUserId);
+  }
+
   const next = items.map(item => {
     const userId = String(item?.userId ?? '').trim();
     const identifier = normalize(item?.identifier);
