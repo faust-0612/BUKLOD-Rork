@@ -1,12 +1,13 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import BuklodAdMobBanner from '@/components/BuklodAdMobBanner';
 import { claimBahayGardenAdReward } from '@/lib/buklodBahay';
 import { showBuklodRewardedAd, warmBuklodRewardedAd } from '@/lib/buklodRewardedAds';
 
 export function BahayHomeAdBanner() {
+  if (Platform.OS !== 'android') return null;
   return (
     <View style={styles.bannerShell}>
       <BuklodAdMobBanner
@@ -66,6 +67,8 @@ export function BahayGardenRewardAd({
       setBusy(false);
     }
   },[busy,homeId,onGranted]);
+
+  if (Platform.OS !== 'android') return null;
 
   return (
     <View style={styles.rewardCard}>
