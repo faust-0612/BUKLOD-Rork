@@ -312,7 +312,12 @@ async function flushPendingQueue() {
         latest = await submitPending(item);
         remaining.shift();
         await writeQueue(remaining);
-      } catch {
+      } catch (error) {
+        if (isPermanentKingdomSubmissionError(error)) {
+          remaining.shift();
+          await writeQueue(remaining);
+          continue;
+        }
         break;
       }
     }
