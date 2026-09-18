@@ -6,6 +6,8 @@ import { usePathname } from 'expo-router';
 import { recordBuklodKingdomPreviewResult } from '@/features/games/kingdom/progress';
 import type { BuklodGameResult } from '@/features/games/types';
 import { BuklodGameLanguageControl, BuklodGameLanguageProvider } from './BuklodGameLanguage';
+import BuklodGameBackdrop from './BuklodGameBackdrop';
+import { useRorkGameAmbience } from './rorkAudio';
 import { BuklodGameEntrance, BuklodGameVisualFX } from './BuklodGameVisualFX';
 import type { BuklodGameBiome } from './quality';
 
@@ -60,6 +62,7 @@ export function BuklodGameStage({ biome, gameId, children }: Props) {
   const pathname = usePathname();
   const resolvedGameId = gameId ?? routeGameId(pathname);
   const colors = palettes[biome];
+  useRorkGameAmbience(resolvedGameId);
 
   const recordResult = useCallback((result: BuklodGameResult) => {
     if (resolvedGameId && result.gameId !== resolvedGameId) return;
@@ -72,6 +75,7 @@ export function BuklodGameStage({ biome, gameId, children }: Props) {
     <BuklodGameLanguageProvider gameId={resolvedGameId}>
       <View style={styles.shell}>
         <LinearGradient colors={colors} style={StyleSheet.absoluteFill} />
+        <BuklodGameBackdrop gameId={resolvedGameId} opacity={0.38} />
         <BuklodGameVisualFX biome={biome} />
         <View pointerEvents="none" style={styles.lightA} />
         <View pointerEvents="none" style={styles.lightB} />
