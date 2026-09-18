@@ -4,8 +4,10 @@ import { router } from 'expo-router';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import {
+  loadBuklodKingdomLevelDetails,
   loadBuklodKingdomProgress,
   subscribeBuklodKingdomProgress,
+  type BuklodKingdomLevelDetail,
   type BuklodKingdomProgress,
 } from '@/features/games/kingdom/progress';
 import {
@@ -16,20 +18,34 @@ import {
 
 function TrainingGroundsContent() {
   const [progress, setProgress] = useState<BuklodKingdomProgress | null>(null);
+  const [levelDetails, setLevelDetails] = useState<Record<string, Record<number, BuklodKingdomLevelDetail>>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
-    loadBuklodKingdomProgress()
-      .then((value) => {
-        if (mounted) setProgress(value);
+
+    Promise.all([
+      loadBuklodKingdomProgress(),
+      loadBuklodKingdomLevelDetails().catch(() => []),
+    ])
+      .then(([value, details]) => {
+        if (!mounted) return;
+        setProgress(value);
+        const grouped: Record<string, Record<number, BuklodKingdomLevelDetail>> = {};
+        for (const detail of details) {
+          grouped[detail.gameId] ??= {};
+          grouped[detail.gameId][detail.levelNo] = detail;
+        }
+        setLevelDetails(grouped);
       })
       .finally(() => {
         if (mounted) setLoading(false);
       });
+
     const unsubscribe = subscribeBuklodKingdomProgress((value) => {
       if (mounted) setProgress(value);
     });
+
     return () => {
       mounted = false;
       unsubscribe();
@@ -85,8 +101,12 @@ function TrainingGroundsContent() {
       <View style={styles.grid}>
         {stations.map((station) => {
           const availableLevels = station.unlocked
-            ? Array.from({ length: station.currentLevel }, (_, index) => index + 1)
+            ? Array.from(
+                { length: station.mastered ? 20 : station.currentLevel },
+                (_, index) => index + 1,
+              )
             : [];
+          const stationLevels = levelDetails[station.gameId] ?? {};
           return (
             <View
               key={station.gameId}
@@ -139,7 +159,9 @@ function TrainingGroundsContent() {
                       <View style={styles.levelGrid}>
                         {availableLevels
                           .filter((levelNo) => levelNo <= station.clearedLevels)
-                          .map((levelNo) => (
+                          .map((levelNo) => {
+                            const detail = stationLevels[levelNo];
+                            return (
                             <Pressable
                               key={levelNo}
                               accessibilityRole="button"
@@ -157,8 +179,12 @@ function TrainingGroundsContent() {
                               ]}
                             >
                               <Text style={styles.levelButtonText}>{levelNo}</Text>
+                              <Text style={styles.levelStars}>
+                                {detail?.bestStars ? '★'.repeat(detail.bestStars) : '·'}
+                              </Text>
                             </Pressable>
-                          ))}
+                            );
+                          })}
                       </View>
                     </View>
                   ) : null}
@@ -240,8 +266,8 @@ const styles = StyleSheet.create({
   levelSectionTitle: { color: '#8fa5b0', fontSize: 8, fontWeight: '900', letterSpacing: 0.7 },
   levelGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   levelButton: {
-    minWidth: 31,
-    height: 31,
+    minWidth: 34,
+    height: 42,
     borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
@@ -251,6 +277,7 @@ const styles = StyleSheet.create({
   },
   levelButtonCurrent: { borderColor: '#e6c66d', backgroundColor: 'rgba(230,198,109,0.14)' },
   levelButtonText: { color: '#eef3f5', fontSize: 10, fontWeight: '900' },
+  levelStars: { color: '#f2d47c', fontSize: 7, lineHeight: 9, fontWeight: '900', marginTop: 1 },
   cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   character: { color: '#f2d47c', fontSize: 12, fontWeight: '900' },
   statePill: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 999, backgroundColor: '#274a5d' },
