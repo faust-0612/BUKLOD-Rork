@@ -13,7 +13,7 @@ const eventAudio: Record<BuklodGameFeedbackEvent, RorkAudioKey> = {
   unlock: 'unlock',
 };
 
-function playAsset(source: number, volume: number, loop = false) {
+function playAsset(source: string | number, volume: number, loop = false) {
   try {
     const player = createAudioPlayer(source);
     player.volume = volume;
