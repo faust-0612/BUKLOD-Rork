@@ -272,7 +272,7 @@ export default function BuklodBahayHome() {
   };
 
   const addRoomItem = (type?:string) => run(async()=>{
-    if (!activeHomeId || !userId || !activeRoom || ['PEOPLE','COMMUNITY','GARDEN','DRAWER','SALA'].includes(activeRoom)) return;
+    if (!activeHomeId || !userId || !activeRoom || ['PEOPLE','COMMUNITY','GARDEN','DRAWER'].includes(activeRoom)) return;
     if (!draft.trim()) throw new Error('Maglagay muna ng item.');
     const room = activeRoom as BahayRoom;
     const visibility: BahayVisibility = room==='BEDROOM' ? 'PRIVATE' : room==='BILLS' ? 'ADULTS' : 'SHARED';
