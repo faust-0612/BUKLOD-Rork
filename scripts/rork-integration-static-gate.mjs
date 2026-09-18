@@ -80,8 +80,9 @@ for (const forbidden of ['supabase', '.rpc(', 'fetch(', 'axios', 'createClient('
 const registry = read('src/features/games/registry.ts');
 const media = requireTokens('src/features/games/runtime/rorkMedia.ts', [
   'RORK_GAME_MEDIA',
-  'kingdom/audio',
-  'kingdom/bg',
+  'kp3ge50a5t6chyb7gv3jn-web.rork.live/kingdom',
+  "const AUDIO_BASE = `${RORK_PUBLIC_BASE}/audio`",
+  "const BG_BASE = `${RORK_PUBLIC_BASE}/bg`",
 ]);
 for (const gameId of GAME_IDS) {
   if (!registry.includes(`'${gameId}'`)) failures.push(`Canonical game registry missing: ${gameId}`);
