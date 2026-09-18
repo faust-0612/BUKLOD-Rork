@@ -235,6 +235,23 @@ requireTokens('supabase/migrations/20260918214500_buklod_kingdom_level_replay_v2
   'v_level < v_next_level',
 ]);
 
+requireTokens('supabase/migrations/20260918215500_buklod_kingdom_e2e_security_hardening_r1.sql', [
+  'enable row level security',
+  'revoke all on table private.buklod_kingdom_level_progress_v1 from public, anon, authenticated',
+  'revoke all on table private.buklod_kingdom_wallet_v1 from public, anon, authenticated',
+  'revoke all on table private.buklod_kingdom_collectibles_v1 from public, anon, authenticated',
+  'revoke all on table private.buklod_kingdom_result_events_v1 from public, anon, authenticated',
+  'grant execute on function public.get_my_buklod_kingdom_v1() to authenticated',
+  'grant execute on function public.submit_my_buklod_kingdom_result_v2',
+]);
+
+requireTokens('scripts/game-translation-coverage.mjs', [
+  'GAME TRANSLATION COVERAGE PASSED.',
+  '13/13 game components use the shared EN/TL Text renderer.',
+  'JAWO • WHISPERING FOREST',
+  'QUIN • DISCOVERY WORLD',
+]);
+
 requireTokens('src/features/games/runtime/BuklodGameProgressHud.tsx', [
   'LEVEL CLEAR SAVED',
   'BEST RUN UPDATED',
