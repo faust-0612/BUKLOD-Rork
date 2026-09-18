@@ -21,6 +21,7 @@ const media = fs.readFileSync('src/features/games/runtime/rorkMedia.ts', 'utf8')
 const audio = fs.readFileSync('src/features/games/runtime/rorkAudio.ts', 'utf8');
 
 const failures = [];
+
 for (const id of GAME_IDS) {
   if (!registry.includes(`'${id}'`)) failures.push(`Registry missing canonical game: ${id}`);
   if (!media.includes(`'${id}'`)) failures.push(`Rork media mapping missing canonical game: ${id}`);
@@ -28,24 +29,43 @@ for (const id of GAME_IDS) {
 
 for (const token of [
   'RORK_GAME_MEDIA',
-  'RORK_AUDIO',
-  'kp3ge50a5t6chyb7gv3jn-web.rork.live/kingdom',
-  'const AUDIO_BASE = `${RORK_PUBLIC_BASE}/audio`',
   'https://r2-pub.rork.com/projects/kp3ge50a5t6chyb7gv3jn/assets/',
 ]) {
   if (!media.includes(token)) failures.push(`rorkMedia.ts missing token: ${token}`);
 }
 
+for (const forbidden of [
+  'kp3ge50a5t6chyb7gv3jn-web.rork.live/kingdom',
+  'RORK_PUBLIC_BASE',
+  'AUDIO_BASE',
+  'RORK_AUDIO',
+]) {
+  if (media.includes(forbidden)) failures.push(`rorkMedia.ts still contains obsolete remote audio token: ${forbidden}`);
+}
+
 for (const token of [
   'createAudioPlayer',
-  'downloadFirst: true',
-  'player.isLoaded',
+  'buklod-reaction.wav',
+  'buklod-points-claim.wav',
+  'assets/bible-ambience/wind.wav',
+  'assets/bible-ambience/crowd.wav',
+  'assets/bible-ambience/sea.wav',
   'tryPlayRorkGameFeedback',
   'playRorkSignatureSfx',
   'useRorkGameAmbience',
-  'const REMOTE_RORK_AUDIO_ENABLED = false',
+  'ambienceSources',
+  'localSfx',
+  'player.isLoaded',
 ]) {
-  if (!audio.includes(token)) failures.push(`rorkAudio.ts missing token: ${token}`);
+  if (!audio.includes(token)) failures.push(`rorkAudio.ts missing local-audio token: ${token}`);
+}
+
+for (const forbidden of [
+  'REMOTE_RORK_AUDIO_ENABLED',
+  'downloadFirst: true',
+  'https://',
+]) {
+  if (audio.includes(forbidden)) failures.push(`rorkAudio.ts must be network-free; found: ${forbidden}`);
 }
 
 if (failures.length) {
@@ -55,4 +75,4 @@ if (failures.length) {
 }
 
 console.log('RORK MEDIA CONTRACT PASSED.');
-console.log('13/13 canonical games mapped; media endpoint and audio fallback readiness contract intact.');
+console.log('13/13 canonical games mapped; local SFX/ambience are network-free and fallback-safe.');
