@@ -10,7 +10,7 @@ import {
 import { usePathname } from 'expo-router';
 
 import BuklodDesktopWebShell from '@/components/BuklodDesktopWebShell';
-import BuklodFocusAppAdStrip from '@/components/BuklodFocusAppAdStrip';
+import BuklodNavigationAdStrip from '@/components/BuklodNavigationAdStrip';
 import BuklodMobileWebShell from '@/components/BuklodMobileWebShell';
 import {
   clearBuklodPersistedAuthStorage,
@@ -150,7 +150,7 @@ export default function BuklodNavSafeShell({
       <View style={styles.routedContent}>
         {children}
       </View>
-      <BuklodFocusAppAdStrip />
+      <BuklodNavigationAdStrip />
     </>
   );
 
