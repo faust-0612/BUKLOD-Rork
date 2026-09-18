@@ -96,6 +96,12 @@ requireTokens('src/features/games/runtime/BuklodGameBackdrop.tsx', [
   'getRorkGameMedia',
   'Animated.loop',
 ]);
+requireTokens('scripts/game-kingdom-release-contract.mjs', [
+  "const webOutputMode = webOutputIndex >= 0",
+  "webOutputMode === 'static'",
+  "...GAME_IDS",
+  "Compiled single-output",
+].filter((token) => token !== "Compiled single-output"));
 requireTokens('src/features/games/runtime/rorkAudio.ts', [
   "from 'expo-audio'",
   'tryPlayRorkGameFeedback',
@@ -109,6 +115,12 @@ requireTokens('src/features/games/runtime/rorkAudio.ts', [
 requireTokens('scripts/rork-media-contract-test.mjs', [
   'RORK MEDIA CONTRACT PASSED.',
   '13/13 canonical games mapped',
+]);
+requireTokens('scripts/rork-integration-qa.ps1', [
+  'Assert-ExternalCommand',
+  "$env:BUKLOD_WEB_OUTPUT = 'single'",
+  '--web-output single',
+  "Assert-ExternalCommand 'Android bundle smoke'",
 ]);
 for (const rel of [
   'src/features/games/runtime/BuklodGameStage.web.tsx',
