@@ -116,6 +116,7 @@ requireTokens('src/features/games/runtime/BuklodGameStage.web.tsx', [
   'recordBuklodKingdomPreviewResult',
   'withResultHandler',
   'BuklodGameLanguageControl',
+  'BuklodGameCharacterCompanion',
 ]);
 requireTokens('src/features/games/runtime/BuklodGameStage.native.tsx', [
   '@shopify/react-native-skia',
@@ -123,9 +124,11 @@ requireTokens('src/features/games/runtime/BuklodGameStage.native.tsx', [
   'recordBuklodKingdomPreviewResult',
   'withResultHandler',
   'BuklodGameLanguageControl',
+  'BuklodGameCharacterCompanion',
 ]);
 requireTokens('src/features/games/runtime/BuklodGameFeedback.web.ts', [
   'AudioContext',
+  'emitBuklodGameCharacterMotion',
   "case 'collect'",
   "case 'impact'",
   "case 'success'",
@@ -133,9 +136,19 @@ requireTokens('src/features/games/runtime/BuklodGameFeedback.web.ts', [
 ]);
 requireTokens('src/features/games/runtime/BuklodGameFeedback.native.ts', [
   'createAudioPlayer',
+  'emitBuklodGameCharacterMotion',
   'buklod-reaction.wav',
   'buklod-points-claim.wav',
   'expo-haptics',
+]);
+requireTokens('src/features/games/runtime/BuklodGameCharacterCompanion.tsx', [
+  'BuklodActiveCharacterArt',
+  'BuklodCharacterMotion',
+  'subscribeBuklodGameCharacterMotion',
+]);
+requireTokens('src/features/games/runtime/characterMotionBus.ts', [
+  'emitBuklodGameCharacterMotion',
+  'subscribeBuklodGameCharacterMotion',
 ]);
 requireTokens('src/features/games/runtime/BuklodGameBackdrop.tsx', [
   'getRorkGameMedia',
