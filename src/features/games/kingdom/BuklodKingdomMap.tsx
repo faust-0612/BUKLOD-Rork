@@ -185,6 +185,23 @@ function StationNode({
 
   return (
     <View style={[styles.stationWrap, { left: station.x - 69, top: station.y - 64 }]}>
+      {unlocked && worldTier > 0 ? (
+        <View pointerEvents="none" style={styles.worldGrowthMarks}>
+          {Array.from({ length: 5 }).map((_, mark) => (
+            <View
+              key={mark}
+              style={[
+                styles.worldGrowthMark,
+                styles[`worldGrowthMark${mark + 1}` as keyof typeof styles] as any,
+                {
+                  opacity: mark < worldTier ? 0.92 : 0.12,
+                  backgroundColor: mark < worldTier ? station.accent : '#64717a',
+                },
+              ]}
+            />
+          ))}
+        </View>
+      ) : null}
       <Animated.View
         pointerEvents="none"
         style={[
@@ -879,6 +896,27 @@ const styles = StyleSheet.create({
   signText: { color: '#f6deb2', fontSize: 8, fontWeight: '900', textAlign: 'center', letterSpacing: 0.8 },
 
   stationWrap: {
+  worldGrowthMarks: {
+    position: 'absolute',
+    left: 17,
+    top: 1,
+    width: 104,
+    height: 96,
+    zIndex: 0,
+  },
+  worldGrowthMark: {
+    position: 'absolute',
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.52)',
+  },
+  worldGrowthMark1: { left: 6, top: 48 },
+  worldGrowthMark2: { left: 21, top: 14 },
+  worldGrowthMark3: { left: 48, top: 2 },
+  worldGrowthMark4: { right: 18, top: 16 },
+  worldGrowthMark5: { right: 4, top: 50 },
     position: 'absolute',
     width: 138,
     zIndex: 20,
