@@ -157,7 +157,7 @@ function StationNode({
   const glowOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.18, cleared ? 0.62 : 0.3] });
 
   return (
-    <View style={[styles.stationWrap, { left: station.x - 76, top: station.y - 64 }]}>
+    <View style={[styles.stationWrap, { left: station.x - 69, top: station.y - 64 }]}>
       <Animated.View
         pointerEvents="none"
         style={[
@@ -332,7 +332,7 @@ export default function BuklodKingdomMap() {
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={['#71c9f2', '#d8f3ff']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#123c58', '#071b2a']} style={StyleSheet.absoluteFill} />
 
       <View style={[styles.topHud, { top: Math.max(12, insets.top + 6) }]} pointerEvents="box-none">
         <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.hudButton}>
@@ -361,18 +361,18 @@ export default function BuklodKingdomMap() {
           contentContainerStyle={styles.verticalContent}
         >
           <View style={styles.worldFrame}>
-            <LinearGradient colors={['#78d7f7', '#1b93c8']} style={StyleSheet.absoluteFill} />
+            <LinearGradient colors={['#1b6c91', '#0a2a40']} style={StyleSheet.absoluteFill} />
 
             <Svg width={WORLD_W} height={WORLD_H} style={StyleSheet.absoluteFill} pointerEvents="none">
               <Defs>
                 <SvgLinearGradient id="cliff" x1="0" y1="0" x2="0" y2="1">
-                  <Stop offset="0" stopColor="#7d6c55" />
-                  <Stop offset="1" stopColor="#433d36" />
+                  <Stop offset="0" stopColor="#76664f" />
+                  <Stop offset="1" stopColor="#302f31" />
                 </SvgLinearGradient>
                 <SvgLinearGradient id="land" x1="0" y1="0" x2="1" y2="1">
-                  <Stop offset="0" stopColor="#9cdc68" />
-                  <Stop offset="0.52" stopColor="#5daf54" />
-                  <Stop offset="1" stopColor="#3a844f" />
+                  <Stop offset="0" stopColor="#86bd68" />
+                  <Stop offset="0.52" stopColor="#4b8d50" />
+                  <Stop offset="1" stopColor="#315d45" />
                 </SvgLinearGradient>
                 <SvgLinearGradient id="river" x1="0" y1="0" x2="1" y2="1">
                   <Stop offset="0" stopColor="#85e7ff" />
@@ -536,7 +536,7 @@ export default function BuklodKingdomMap() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#83d7f3' },
+  root: { flex: 1, backgroundColor: '#071b2a' },
   horizontalContent: { minWidth: '100%' },
   verticalContent: { minHeight: '100%' },
   worldFrame: {
@@ -767,6 +767,7 @@ const styles = StyleSheet.create({
   stationGlow: {
     position: 'absolute',
     top: 0,
+    left: 30,
     width: 78,
     height: 78,
     borderRadius: 39,
@@ -848,19 +849,19 @@ const styles = StyleSheet.create({
   progressDotCleared: { backgroundColor: '#f1bd2e', borderColor: '#9c6b16' },
 
   futureNode: { position: 'absolute', width: 86, height: 86, zIndex: 8, alignItems: 'center', justifyContent: 'center' },
-  futureFog: { ...StyleSheet.absoluteFillObject, borderRadius: 43, backgroundColor: 'rgba(230,243,246,0.72)' },
+  futureFog: { ...StyleSheet.absoluteFillObject, borderRadius: 43, backgroundColor: 'rgba(13,28,41,0.72)' },
   futureLock: {
     width: 70,
     height: 70,
     borderRadius: 35,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(221,226,224,0.86)',
+    backgroundColor: 'rgba(16,31,44,0.90)',
     borderWidth: 2,
-    borderColor: '#818d90',
+    borderColor: '#7d8b96',
   },
-  futureTitle: { color: '#59646b', fontSize: 10, fontWeight: '900' },
-  futureCopy: { color: '#727d82', fontSize: 5.5, fontWeight: '900', letterSpacing: 0.5 },
+  futureTitle: { color: '#dce6ec', fontSize: 10, fontWeight: '900' },
+  futureCopy: { color: '#9eabb4', fontSize: 5.5, fontWeight: '900', letterSpacing: 0.5 },
 
   decorativeLabel: {
     position: 'absolute',
@@ -873,15 +874,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#f3e5b9',
-    borderWidth: 2,
-    borderColor: '#8b6734',
+    backgroundColor: 'rgba(10,27,43,0.88)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(220,181,92,0.68)',
   },
-  decorativeLabelText: { color: '#513c24', fontSize: 8.5, fontWeight: '900' },
-  decorativeLabelLocked: { color: '#687074' },
+  decorativeLabelText: { color: '#f7e5ae', fontSize: 8.5, fontWeight: '900' },
+  decorativeLabelLocked: { color: '#94a0a8' },
 
   harborDecor: { position: 'absolute', left: 62, bottom: 42, zIndex: 5, alignItems: 'center' },
-  centralTree: { position: 'absolute', left: 520, top: 445, zIndex: 5, alignItems: 'center' },
+  centralTree: { position: 'absolute', left: 590, top: 500, zIndex: 5, alignItems: 'center', opacity: 0.78 },
   treeCanopy: { width: 104, height: 82, borderRadius: 52, backgroundColor: '#4f9c45', borderWidth: 6, borderColor: '#36743d' },
   treeTrunk: { width: 18, height: 38, marginTop: -8, backgroundColor: '#754c2c', borderRadius: 8 },
   smallPlaque: { marginTop: 4, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 5, backgroundColor: '#f4e4b8', borderWidth: 1.5, borderColor: '#806037' },
