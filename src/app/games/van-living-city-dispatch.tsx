@@ -1,7 +1,6 @@
 import React from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
-import { recordBuklodKingdomPreviewResult } from '@/features/games/kingdom/progress';
 import { BuklodGameStage } from '@/features/games/runtime/BuklodGameStage';
 import { LivingCityDispatchGameV1 } from '@/features/games/van/LivingCityDispatchGameV1';
 
@@ -11,7 +10,7 @@ export default function VanLivingCityDispatchScreen() {
   return (
     <BuklodGameStage biome="city" gameId={GAME_ID}>
       <ScrollView contentContainerStyle={styles.page}>
-        <LivingCityDispatchGameV1 onFinish={(result) => { void recordBuklodKingdomPreviewResult(result); }} />
+        <LivingCityDispatchGameV1 />
       </ScrollView>
     </BuklodGameStage>
   );
