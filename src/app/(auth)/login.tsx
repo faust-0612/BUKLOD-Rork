@@ -745,7 +745,12 @@ export default function LoginScreen() {
 
 const chooseSuggestedLogin =
     async (item: SuggestedLogin) => {
-      if (busy) return;
+      if (busy) {
+        setLoginStatus(
+          'A sign-in is already being processed. Please wait for it to finish.'
+        );
+        return;
+      }
 
       setIdentifier(
         item.identifier
@@ -800,6 +805,13 @@ const chooseSuggestedLogin =
 
         setPassword('');
         setRememberPassword(false);
+        setLoginStatus(
+          'BUKLOD could not read the saved password on this device. Enter your current password manually.'
+        );
+        Alert.alert(
+          'Saved login unavailable',
+          'BUKLOD could not read the saved password on this device. Enter your current password manually. If you recently reset it, use the new password.'
+        );
       }
     };
 
