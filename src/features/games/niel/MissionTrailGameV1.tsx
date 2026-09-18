@@ -420,7 +420,7 @@ export function MissionTrailGameV1({ onFinish }: Props) {
           <Text style={styles.finishCopy}>
             {failed
               ? 'A critical reserve reached zero. Route choice matters more than raw speed.'
-              : 'The route is complete. Later, this result can permanently open Niel’s next frontier station and change the Mission map.'}
+              : 'Clear recorded. Niel’s next Kingdom Level is available and Mission Frontier growth is saved to your account.'}
           </Text>
           <View style={styles.historyBox}>
             {history.map((item, index) => (
