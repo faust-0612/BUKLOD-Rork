@@ -475,6 +475,77 @@ const TL_TEXT: Record<string, string> = {
   'Expedition energy is exhausted before the relic is secured.': 'Naubos ang expedition energy bago makuha ang reliko.',
   'The relic was found, but the expedition lacked enough evidence or reserve energy to secure the discovery.':
     'Nahanap ang reliko, pero kulang ang ebidensiya o reserve energy para maging matagumpay ang discovery.',
+  // Live Kingdom progression / result copy
+  'STATION CLEARED': 'NALAMPASAN ANG STATION',
+  'TRAIL INTERRUPTED': 'NAANTALA ANG LANDAS',
+  'HIDDEN GROVE FOUND': 'NATAGPUAN ANG HIDDEN GROVE',
+  'RETURN TO THE TRAIL': 'BUMALIK SA LANDAS',
+  'RUN AGAIN': 'TAKBUHIN MULI',
+  'TRY AGAIN': 'SUBUKAN MULI',
+  'MISSION CLEARED': 'NALAMPASAN ANG MISYON',
+  'MISSION INCOMPLETE': 'HINDI KUMPLETO ANG MISYON',
+  'EXTRACTION SUCCESS': 'MATAGUMPAY ANG EXTRACTION',
+  'REPLAN THE GRID': 'PLANUHIN MULI ANG GRID',
+  'PATH LOST': 'NAWALA ANG LANDAS',
+  'CHILDREN’S HAVEN GLOWS': 'UMIILAW ANG CHILDREN’S HAVEN',
+  'TRY THE PATH AGAIN': 'SUBUKAN MULI ANG LANDAS',
+  'Clear recorded. Your next Kingdom Level is now available and this region grows on the map.':
+    'Naitala ang clear. Available na ang susunod mong Kingdom Level at lumalago ang rehiyong ito sa mapa.',
+  'Replay this level to improve your best score and stars without farming first-clear XP.':
+    'Ulitin ang level para mapataas ang best score at stars; hindi mauulit ang first-clear XP.',
+  'Clear recorded. Trudice’s Journey advances and Children’s Haven grows on the Kingdom Map.':
+    'Naitala ang clear. Umuusad ang Journey ni Trudice at lumalago ang Children’s Haven sa Kingdom Map.',
+  'Replay this level freely. Progress advances only when the level is cleared.':
+    'Malaya mong ulitin ang level. Uusad lamang ang progression kapag na-clear ang level.',
+  'Clear recorded. Ace’s next Kingdom Level opens and the Strategy District world tier can grow.':
+    'Naitala ang clear. Bumukas ang susunod na Kingdom Level ni Ace at puwedeng umangat ang world tier ng Strategy District.',
+  'Replay this level and find a shorter, cleaner route. A loss never advances the level.':
+    'Ulitin ang level at humanap ng mas maikli at malinis na ruta. Hindi nagpapataas ng level ang pagkatalo.',
+  'This clear advances Mitch’s Journey and contributes to permanent Art Village world growth.':
+    'Ang clear na ito ay nagpapasulong sa Journey ni Mitch at sa permanenteng paglago ng Art Village.',
+  'Clear recorded. Niel’s next Kingdom Level is available and Mission Frontier growth is saved to your account.':
+    'Naitala ang clear. Available na ang susunod na Kingdom Level ni Niel at naka-save sa account mo ang paglago ng Mission Frontier.',
+  'Follow the visual pulse and local feedback. Timing windows become tighter as your Kingdom Level rises.':
+    'Sundan ang visual pulse at local feedback. Mas humihigpit ang timing windows habang tumataas ang Kingdom Level.',
+  'This timing engine uses real Perfect, Good, and Miss windows. Higher Kingdom Levels tighten the timing challenge.':
+    'Gumagamit ang timing engine ng tunay na Perfect, Good, at Miss windows. Mas mahigpit ang timing sa mas mataas na Kingdom Level.',
+
+  // Kingdom map
+  'SWIPE TO EXPLORE': 'MAG-SWIPE PARA MAG-EXPLORE',
+  'EXPLORE THE KINGDOM': 'GALUGARIN ANG KAHARIAN',
+  'A SMALL BEGINNING': 'MUNTING SIMULA',
+  'A greater tomorrow starts here': 'Dito nagsisimula ang mas magandang bukas',
+  'STRONGER TOGETHER': 'MAS MATATAG NANG MAGKASAMA',
+  'The kingdom begins to awaken': 'Nagsisimulang mabuhay ang kaharian',
+  'A GROWING KINGDOM': 'LUMALAGONG KAHARIAN',
+  'More paths, people and purpose': 'Mas maraming landas, tao at layunin',
+  'A BRIGHTER TOMORROW': 'MAS MALIWANAG NA BUKAS',
+  'A united people, a living world': 'Nagkakaisang bayan, buhay na mundo',
+  'KINGDOM UNITED': 'NAGKAISANG KAHARIAN',
+  'Every region is alive; mastery now shapes the world': 'Buhay ang bawat rehiyon; mastery na ang humuhubog sa mundo',
+  'THE CITADEL': 'ANG CITADEL',
+  'Unity • Purpose • Eternal Home': 'Pagkakaisa • Layunin • Walang-hanggang Tahanan',
+  'A JOURNEY OF FAITH': 'PAGLALAKBAY NG PANANAMPALATAYA',
+  'EXPLORE • GROW • BELONG': 'GALUGARIN • LUMAGO • MAPABILANG',
+  'PEOPLE': 'MGA TAO',
+  'FAITH': 'PANANAMPALATAYA',
+  'GROWTH': 'PAGLAGO',
+  'BUKLOD HARBOR': 'BUKLOD HARBOR',
+  'SCRIPTURE GARDEN': 'HARDIN NG KASULATAN',
+  'BUKLOD CITADEL': 'BUKLOD CITADEL',
+  'HIGH CITADEL': 'HIGH CITADEL',
+  'A brighter world together': 'Mas maliwanag na mundong magkakasama',
+  'Awakens in a later stage': 'Magbubukas sa susunod na stage',
+  '13 regions alive • mastery continues': 'Buhay ang 13 rehiyon • nagpapatuloy ang mastery',
+  'TRAINING GROUNDS': 'TRAINING GROUNDS',
+  'IGPAT ARENA': 'IGPAT ARENA',
+  'MENTOR TOWER': 'MENTOR TOWER',
+  'LOCKED LAND': 'NAKA-LOCK NA LUPAIN',
+  'COMING SOON': 'PAPARATING',
+  'BUILD • BELONG • SERVE': 'BUMUO • MAPABILANG • MAGLINGKOD',
+  'TOGETHER FOR A BRIGHTER WORLD': 'MAGKASAMA PARA SA MAS MALIWANAG NA MUNDO',
+  'MASTERED': 'MASTERED',
+  'LOCKED': 'NAKA-LOCK',
 };
 
 function translateDynamicTagalog(input: string) {
