@@ -10,7 +10,7 @@ function Assert-ExternalCommand {
 Write-Host ''
 Write-Host '============================================================'
 Write-Host ' BUKLOD RORK INTEGRATION QA'
-Write-Host ' HOME + KINGDOM + 13 GAMES + CHARACTER MOTION / NO DEPLOY'
+Write-Host ' HOME + KINGDOM + 13 GAMES + CHARACTER MOTION / FROZEN / NO DEPLOY'
 Write-Host '============================================================'
 
 $branch = (git branch --show-current).Trim()
@@ -24,27 +24,32 @@ if ($conflicts.Count -gt 0) {
 }
 
 Write-Host ''
-Write-Host '1/7 Static integration scope gate...'
+Write-Host '1/8 Current edit freeze gate...'
+node scripts/rork-current-edit-freeze-r1.mjs
+Assert-ExternalCommand 'Current edit freeze gate'
+
+Write-Host ''
+Write-Host '2/8 Static integration scope gate...'
 node scripts/rork-integration-static-gate.mjs
 Assert-ExternalCommand 'Static integration scope gate'
 
 Write-Host ''
-Write-Host '2/7 Canonical Character contract...'
+Write-Host '3/8 Canonical Character contract...'
 npm run character:contract
 Assert-ExternalCommand 'Canonical Character contract'
 
 Write-Host ''
-Write-Host '3/7 Canonical Kingdom/game contract...'
+Write-Host '4/8 Canonical Kingdom/game contract...'
 npm run game:contract
 Assert-ExternalCommand 'Canonical Kingdom/game contract'
 
 Write-Host ''
-Write-Host '4/7 TypeScript compile QA...'
+Write-Host '5/8 TypeScript compile QA...'
 npx tsc --noEmit
 Assert-ExternalCommand 'TypeScript compile QA'
 
 Write-Host ''
-Write-Host '5/7 Targeted Rork media contract test...'
+Write-Host '6/8 Targeted Rork media contract test...'
 node scripts/rork-media-contract-test.mjs
 Assert-ExternalCommand 'Rork media contract test'
 
@@ -57,7 +62,7 @@ New-Item -ItemType Directory -Force -Path $qaRoot | Out-Null
 Write-Host "QA artifact run: $qaRoot"
 
 Write-Host ''
-Write-Host '6/7 Web export + compiled Kingdom route contract...'
+Write-Host '7/8 Web export + compiled Kingdom route contract...'
 $env:BUKLOD_WEB_OUTPUT = 'single'
 npx expo export --platform web --output-dir $webOut
 Assert-ExternalCommand 'Web export'
@@ -65,7 +70,7 @@ node scripts/game-kingdom-release-contract.mjs --dist $webOut --web-output singl
 Assert-ExternalCommand 'Compiled single-output Kingdom contract'
 
 Write-Host ''
-Write-Host '7/7 Android JS/native-module bundle smoke...'
+Write-Host '8/8 Android JS/native-module bundle smoke...'
 npx expo export --platform android --output-dir $androidOut
 Assert-ExternalCommand 'Android bundle smoke'
 
