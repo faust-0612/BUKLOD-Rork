@@ -40,7 +40,11 @@ jobs:
           set -euo pipefail
           grep -F 'BUKLOD_PROFILE_QUIZ_ZERO_LOGIN_SSO_R1' 'src/components/BuklodFoundationWorkspaceNav.tsx'
           grep -F 'BUKLOD_PROFILE_QUIZ_STUCK_LOADING_GUARD_R2' 'src/components/BuklodFoundationWorkspaceNav.tsx'
+          grep -F 'BUKLOD_PROFILE_QUIZ_DEVICE_SESSION_SELF_HEAL_R3' 'src/components/BuklodFoundationWorkspaceNav.tsx'
           grep -F 'QUIZ_ENTRY_TIMEOUT_MS = 15_000' 'src/components/BuklodFoundationWorkspaceNav.tsx'
+          grep -F 'supabase.auth.getUser(accessToken)' 'src/components/BuklodFoundationWorkspaceNav.tsx'
+          grep -F 'supabase.auth.refreshSession()' 'src/components/BuklodFoundationWorkspaceNav.tsx'
+          grep -F 'session_launch_ready === true' 'src/components/BuklodFoundationWorkspaceNav.tsx'
           grep -F 'signal: controller.signal' 'src/components/BuklodFoundationWorkspaceNav.tsx'
           grep -F 'quizEntryInFlight.current = false' 'src/components/BuklodFoundationWorkspaceNav.tsx'
           grep -F 'buklod-quiz-main-entry-v1' 'src/components/BuklodFoundationWorkspaceNav.tsx'
