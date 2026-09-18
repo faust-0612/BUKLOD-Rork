@@ -3,6 +3,7 @@ import { Animated, Easing, PanResponder, Pressable, StyleSheet, View } from 'rea
 
 import { playBuklodGameFeedback } from '../runtime/BuklodGameFeedback';
 import { BuklodGameText as Text } from '../runtime/BuklodGameLanguage';
+import { useBuklodKingdomLevel } from '../runtime/BuklodGameLevelContext';
 import type { BuklodGameResult } from '../types';
 
 type Lane = 0 | 1 | 2;
@@ -67,11 +68,13 @@ type Props = {
 };
 
 export function ForestTrailGameV2({ onFinish }: Props) {
+  const { level, speedMultiplier } = useBuklodKingdomLevel();
+  const startingHearts = level >= 15 ? 2 : STARTING_HEARTS;
   const trail = useMemo(makeTrail, []);
   const [phase, setPhase] = useState<Phase>('ready');
   const [lane, setLane] = useState<Lane>(1);
   const [stepIndex, setStepIndex] = useState(0);
-  const [hearts, setHearts] = useState(STARTING_HEARTS);
+  const [hearts, setHearts] = useState(startingHearts);
   const [score, setScore] = useState(0);
   const [combo, setCombo] = useState(0);
   const [bestCombo, setBestCombo] = useState(0);
@@ -250,16 +253,16 @@ export function ForestTrailGameV2({ onFinish }: Props) {
 
   useEffect(() => {
     if (phase !== 'playing') return undefined;
-    const timer = setTimeout(resolveEncounter, encounterDelay(intensity));
+    const timer = setTimeout(resolveEncounter, Math.max(420, encounterDelay(intensity) / speedMultiplier));
     return () => clearTimeout(timer);
-  }, [intensity, phase, resolveEncounter]);
+  }, [intensity, phase, resolveEncounter, speedMultiplier]);
 
   const reset = useCallback(() => {
     finishingRef.current = false;
     setPhase('ready');
     setLane(1);
     setStepIndex(0);
-    setHearts(STARTING_HEARTS);
+    setHearts(startingHearts);
     setScore(0);
     setCombo(0);
     setBestCombo(0);
@@ -268,7 +271,7 @@ export function ForestTrailGameV2({ onFinish }: Props) {
     setMessage('Swipe or tap to change trail. Stay alert.');
     playerX.setValue(0);
     startOpacity.setValue(1);
-  }, [playerX, startOpacity]);
+  }, [playerX, startOpacity, startingHearts]);
 
   const start = useCallback(() => {
     finishingRef.current = false;
@@ -356,7 +359,7 @@ export function ForestTrailGameV2({ onFinish }: Props) {
       </View>
 
       <View style={styles.heartRow}>
-        {Array.from({ length: STARTING_HEARTS }, (_, index) => (
+        {Array.from({ length: startingHearts }, (_, index) => (
           <View key={index} style={[styles.heartMark, index >= hearts && styles.heartEmpty]} />
         ))}
       </View>
