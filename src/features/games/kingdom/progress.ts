@@ -70,6 +70,7 @@ export type BuklodKingdomPreviewProgress = BuklodKingdomProgress;
 type PendingResult = {
   clientResultId: string;
   result: BuklodGameResult;
+  levelNo: number | null;
 };
 
 const CACHE_KEY = 'buklod.kingdom.progress.v2';
@@ -270,12 +271,13 @@ async function fetchServerState() {
 }
 
 async function submitPending(item: PendingResult) {
-  const { data, error } = await (supabase as any).rpc('submit_my_buklod_kingdom_result_v1', {
+  const { data, error } = await (supabase as any).rpc('submit_my_buklod_kingdom_result_v2', {
     p_client_result_id: item.clientResultId,
     p_game_id: item.result.gameId,
     p_status: item.result.status,
     p_score: Math.max(0, Math.floor(item.result.score || 0)),
     p_stars: clampInt(item.result.stars, 0, 3),
+    p_level_no: item.levelNo,
   });
   if (error) throw error;
   return data;
@@ -310,8 +312,8 @@ async function flushPendingQueue() {
   return flushPromise;
 }
 
-function resultSignature(result: BuklodGameResult) {
-  return [result.gameId, result.status, result.score || 0, result.stars].join('|');
+function resultSignature(result: BuklodGameResult, levelNo: number | null) {
+  return [result.gameId, levelNo ?? 'current', result.status, result.score || 0, result.stars].join('|');
 }
 
 function makeClientResultId(gameId: string) {
@@ -350,8 +352,13 @@ export async function loadBuklodKingdomPreviewProgress() {
   return loadBuklodKingdomProgress();
 }
 
-export async function recordBuklodKingdomResult(result: BuklodGameResult) {
-  const signature = resultSignature(result);
+export async function recordBuklodKingdomResult(
+  result: BuklodGameResult,
+  levelNo: number | null = null,
+) {
+  const normalizedLevel =
+    levelNo == null ? null : clampInt(levelNo, 1, 20);
+  const signature = resultSignature(result, normalizedLevel);
   const now = Date.now();
   if (signature === lastResultSignature && now - lastResultAt < DUPLICATE_RESULT_WINDOW_MS) {
     return loadBuklodKingdomProgress();
@@ -361,6 +368,7 @@ export async function recordBuklodKingdomResult(result: BuklodGameResult) {
 
   const item: PendingResult = {
     clientResultId: makeClientResultId(result.gameId),
+    levelNo: normalizedLevel,
     result: {
       ...result,
       score: Math.max(0, Math.floor(result.score || 0)),
@@ -391,7 +399,7 @@ export async function recordBuklodKingdomResult(result: BuklodGameResult) {
  * Compatibility alias for older screens. New routes submit only through BuklodGameStage.
  */
 export async function recordBuklodKingdomPreviewResult(result: BuklodGameResult) {
-  return recordBuklodKingdomResult(result);
+  return recordBuklodKingdomResult(result, null);
 }
 
 export function subscribeBuklodKingdomProgress(
