@@ -5,7 +5,9 @@ on:
     branches:
       - main
     paths:
+      - 'src/components/BuklodFoundationWorkspaceNav.tsx'
       - '.github/workflows/profile_quiz_sso_web_deploy.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -18,10 +20,10 @@ jobs:
   qa-export-deploy-web-only:
     runs-on: macos-latest
     steps:
-      - name: Checkout source-locked Quiz SSO release
+      - name: Checkout current Profile Quiz SSO release
         uses: actions/checkout@v4
         with:
-          ref: 23a509ffeada7e72f3c5c09f1e6599df56363965
+          ref: ${{ github.sha }}
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -37,6 +39,10 @@ jobs:
         run: |
           set -euo pipefail
           grep -F 'BUKLOD_PROFILE_QUIZ_ZERO_LOGIN_SSO_R1' 'src/components/BuklodFoundationWorkspaceNav.tsx'
+          grep -F 'BUKLOD_PROFILE_QUIZ_STUCK_LOADING_GUARD_R2' 'src/components/BuklodFoundationWorkspaceNav.tsx'
+          grep -F 'QUIZ_ENTRY_TIMEOUT_MS = 15_000' 'src/components/BuklodFoundationWorkspaceNav.tsx'
+          grep -F 'signal: controller.signal' 'src/components/BuklodFoundationWorkspaceNav.tsx'
+          grep -F 'quizEntryInFlight.current = false' 'src/components/BuklodFoundationWorkspaceNav.tsx'
           grep -F 'buklod-quiz-main-entry-v1' 'src/components/BuklodFoundationWorkspaceNav.tsx'
           grep -F "body: JSON.stringify({ source: 'buklod-main-profile' })" 'src/components/BuklodFoundationWorkspaceNav.tsx'
           grep -F 'await Linking.openURL(launchUrl)' 'src/components/BuklodFoundationWorkspaceNav.tsx'
