@@ -123,6 +123,8 @@ const progress = requireTokens('src/features/games/kingdom/progress.ts', [
   'recordBuklodKingdomResult(',
   'levelNo: normalizedLevel',
   'isPermanentKingdomSubmissionError',
+  'get_my_buklod_kingdom_level_details_v1',
+  'loadBuklodKingdomLevelDetails',
 ]);
 if (progress.includes('buklod.kingdom.preview.progress.v1')) {
   failures.push('Legacy local-only Kingdom preview storage is still active.');
@@ -203,6 +205,9 @@ requireTokens('src/app/games/training-grounds.tsx', [
   'station.worldTier',
   'REPLAY CLEARED LEVELS',
   "params: { level: String(levelNo) }",
+  'loadBuklodKingdomLevelDetails',
+  'levelStars',
+  'detail?.bestStars',
   'router.push',
   'station.gameId',
 ]);
@@ -233,6 +238,14 @@ requireTokens('supabase/migrations/20260918214500_buklod_kingdom_level_replay_v2
   'Kingdom replay level',
   'v_first_clear',
   'v_level < v_next_level',
+]);
+
+requireTokens('supabase/migrations/20260918220500_buklod_kingdom_level_details_v1.sql', [
+  'get_my_buklod_kingdom_level_details_v1',
+  'generate_series(1,20)',
+  "'best_stars'",
+  "'level_unlocked'",
+  'grant execute on function public.get_my_buklod_kingdom_level_details_v1(text) to authenticated',
 ]);
 
 requireTokens('supabase/migrations/20260918215500_buklod_kingdom_e2e_security_hardening_r1.sql', [
