@@ -188,6 +188,7 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
   const effectiveSelectedId = SPECIAL_ORDER.includes(selectedId)
     ? selectedId
     : SPECIAL_ORDER[0];
+  const effectiveSelectedUnlocked = isUnlocked(effectiveSelectedId);
   const [collectibles, setCollectibles] = useState<CollectiblePayload | null>(null);
   const [collectibleLoading, setCollectibleLoading] = useState(false);
   const [using, setUsing] = useState(false);
@@ -210,7 +211,7 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
     if (
       !userId ||
       !effectiveSelectedId ||
-      !isUnlocked(effectiveSelectedId) ||
+      !effectiveSelectedUnlocked ||
       (nativeLayout && !nativeDetailsOpen)
     ) {
       setCollectibles(null);
@@ -238,13 +239,19 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
       }
     })();
     return () => { mounted = false; };
-  }, [effectiveSelectedId, nativeDetailsOpen, nativeLayout, userId]);
+  }, [
+    effectiveSelectedId,
+    effectiveSelectedUnlocked,
+    nativeDetailsOpen,
+    nativeLayout,
+    userId,
+  ]);
 
   const selected = PROFILES[effectiveSelectedId];
   const active = state.active_character_id === selected.id;
   const currentLevel = active ? Math.max(1, Math.min(20, state.character_level)) : 1;
   const requiredRank = SPECIAL_REQUIRED_RANK_ORDER[selected.id];
-  const unlocked = isUnlocked(selected.id);
+  const unlocked = effectiveSelectedUnlocked;
   const progress = Math.max(0, Math.min(1, state.circle_rank_order / Math.max(1, requiredRank)));
   const levelItems = showAllLevels
     ? Array.from({ length: 20 }, (_, index) => index + 1)
