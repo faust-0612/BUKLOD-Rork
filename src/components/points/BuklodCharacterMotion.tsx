@@ -45,6 +45,7 @@ export default function BuklodCharacterMotion({
   style,
 }: Props) {
   const [reduceMotion, setReduceMotion] = useState(false);
+  const entry = useRef(new Animated.Value(0)).current;
   const idle = useRef(new Animated.Value(0)).current;
   const x = useRef(new Animated.Value(0)).current;
   const y = useRef(new Animated.Value(0)).current;
@@ -66,6 +67,20 @@ export default function BuklodCharacterMotion({
       subscription?.remove?.();
     };
   }, []);
+
+  useEffect(() => {
+    if (reduceMotion) {
+      entry.setValue(1);
+      return;
+    }
+    Animated.spring(entry, {
+      toValue: 1,
+      damping: 18,
+      stiffness: 150,
+      mass: 0.78,
+      useNativeDriver: true,
+    }).start();
+  }, [entry, reduceMotion]);
 
   useEffect(() => {
     if (reduceMotion) {
@@ -243,8 +258,18 @@ export default function BuklodCharacterMotion({
         {
           transform: [
             { translateX: x },
-            { translateY: Animated.add(y, idleTranslateY) },
-            { scale: Animated.multiply(scale, idleScale) },
+            {
+              translateY: Animated.add(
+                Animated.add(y, idleTranslateY),
+                entry.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }),
+              ),
+            },
+            {
+              scale: Animated.multiply(
+                Animated.multiply(scale, idleScale),
+                entry.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1] }),
+              ),
+            },
             { rotate: reactionRotate },
             { rotateZ: idleRotate },
           ],
