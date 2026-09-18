@@ -3,6 +3,7 @@ import { createAudioPlayer } from 'expo-audio';
 
 import type { BuklodGameFeedbackEvent } from './feedbackTypes';
 import { tryPlayRorkGameFeedback } from './rorkAudio';
+import { emitBuklodGameCharacterMotion } from './characterMotionBus';
 
 const reactionSound = require('../../../../assets/sounds/buklod-reaction.wav');
 const rewardSound = require('../../../../assets/sounds/buklod-points-claim.wav');
@@ -27,6 +28,7 @@ function playNativeSound(
 }
 
 export async function playBuklodGameFeedback(event: BuklodGameFeedbackEvent) {
+  emitBuklodGameCharacterMotion(event);
   try {
     // Use Rork SFX only after they are actually loaded; otherwise keep the
     // shipped local WAV path. Haptics always remain active.
