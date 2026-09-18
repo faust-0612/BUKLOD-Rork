@@ -3,6 +3,7 @@ import { Animated, PanResponder, Pressable, StyleSheet, View } from 'react-nativ
 
 import { playBuklodGameFeedback } from '../runtime/BuklodGameFeedback';
 import { BuklodGameText as Text } from '../runtime/BuklodGameLanguage';
+import { useBuklodKingdomLevel } from '../runtime/BuklodGameLevelContext';
 import type { BuklodGameResult } from '../types';
 
 type FragmentSpec = {
@@ -60,12 +61,13 @@ type DraggableFragmentProps = {
   placed: boolean;
   resetKey: number;
   active: boolean;
+  dropRadius: number;
   onActive: (id: string | null) => void;
   onPlaced: (id: string, precision: number) => void;
   onMiss: () => void;
 };
 
-function DraggableFragment({ spec, placed, resetKey, active, onActive, onPlaced, onMiss }: DraggableFragmentProps) {
+function DraggableFragment({ spec, placed, resetKey, active, dropRadius, onActive, onPlaced, onMiss }: DraggableFragmentProps) {
   const position = useRef(new Animated.ValueXY(spec.start)).current;
 
   useEffect(() => {
@@ -89,8 +91,8 @@ function DraggableFragment({ spec, placed, resetKey, active, onActive, onPlaced,
         const current = { x: spec.start.x + gesture.dx, y: spec.start.y + gesture.dy };
         const dropDistance = distance(current, spec.target);
 
-        if (dropDistance <= DROP_RADIUS) {
-          const precision = Math.max(0, Math.round(100 - (dropDistance / DROP_RADIUS) * 100));
+        if (dropDistance <= dropRadius) {
+          const precision = Math.max(0, Math.round(100 - (dropDistance / dropRadius) * 100));
           Animated.spring(position, {
             toValue: spec.target,
             useNativeDriver: false,
@@ -140,6 +142,8 @@ function DraggableFragment({ spec, placed, resetKey, active, onActive, onPlaced,
 type Props = { onFinish?: (result: BuklodGameResult) => void };
 
 export function RestoreMuralGameV1({ onFinish }: Props) {
+  const { targetMultiplier } = useBuklodKingdomLevel();
+  const dropRadius = Math.max(34, DROP_RADIUS / targetMultiplier);
   const [placed, setPlaced] = useState<PlacedFragment[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [mistakes, setMistakes] = useState(0);
@@ -251,6 +255,7 @@ export function RestoreMuralGameV1({ onFinish }: Props) {
             placed={placedIds.has(fragment.id)}
             resetKey={resetKey}
             active={activeId === fragment.id}
+            dropRadius={dropRadius}
             onActive={setActiveId}
             onPlaced={handlePlaced}
             onMiss={handleMiss}
