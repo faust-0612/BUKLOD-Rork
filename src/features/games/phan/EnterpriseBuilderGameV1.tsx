@@ -1,7 +1,9 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { playBuklodGameFeedback } from '../runtime/BuklodGameFeedback';
+import { BuklodGameText as Text } from '../runtime/BuklodGameLanguage';
+import { useBuklodKingdomLevel } from '../runtime/BuklodGameLevelContext';
 import type { BuklodGameResult } from '../types';
 
 type ActionKey = 'produce' | 'process' | 'sell' | 'upgrade';
@@ -16,8 +18,11 @@ const starsForScore=(score:number):1|2|3=>score>=1700?3:score>=1250?2:1;
 type Props={onFinish?:(result:BuklodGameResult)=>void};
 
 export function EnterpriseBuilderGameV1({onFinish}:Props){
+  const { resourceMultiplier, targetMultiplier, level } = useBuklodKingdomLevel();
+  const startingCash = Math.max(220, Math.round(320 * resourceMultiplier));
+  const rounds = Math.min(8, ROUNDS + Math.floor((level - 1) / 7));
   const [round,setRound]=useState(1);
-  const [cash,setCash]=useState(320);
+  const [cash,setCash]=useState(startingCash);
   const [raw,setRaw]=useState(4);
   const [goods,setGoods]=useState(0);
   const [capacity,setCapacity]=useState(4);
@@ -34,17 +39,17 @@ export function EnterpriseBuilderGameV1({onFinish}:Props){
   const endTurn=useCallback((next:{cash:number;raw:number;goods:number;capacity:number;reputation:number;scoreDelta:number;message:string})=>{
     const nextRound=round+1;
     setCash(next.cash);setRaw(next.raw);setGoods(next.goods);setCapacity(next.capacity);setReputation(Math.max(0,Math.min(100,next.reputation)));setScore(v=>v+next.scoreDelta);setMessage(next.message);
-    if(nextRound>ROUNDS){
+    if(nextRound>rounds){
       const finalValue=next.cash+next.raw*16+next.goods*48+next.capacity*55+Math.max(0,Math.min(100,next.reputation))*4;
       const finalScore=Math.round(score+next.scoreDelta+finalValue);
-      const failed=next.cash<0||next.reputation<18||finalValue<720;
+      const failed=next.cash<0||next.reputation<18||finalValue<Math.round(720*targetMultiplier);
       const stars=starsForScore(finalScore);
       setScore(finalScore);setFinished(true);
       setMessage(failed?'The enterprise expanded too fast or lost market trust. Rebuild with stronger cash flow and reputation.':`Enterprise stabilized at ${finalValue} value with ${Math.round(next.reputation)} reputation.`);
       void playBuklodGameFeedback(failed?'failure':'success');
       onFinish?.({gameId:GAME_ID,status:failed?'lost':'won',score:finalScore,stars:failed?0:stars,reward:{xp:failed?25:135+stars*45,kingdomXp:failed?5:60+stars*22,collectibleKey:!failed&&stars===3?'phan-enterprise-founder-seal':undefined}});
     }else setRound(nextRound);
-  },[onFinish,round,score]);
+  },[onFinish,round,rounds,score,targetMultiplier]);
 
   const act=useCallback((action:ActionKey)=>{
     if(finished)return;
@@ -65,14 +70,14 @@ export function EnterpriseBuilderGameV1({onFinish}:Props){
     void playBuklodGameFeedback('collect');
   },[capacity,cash,demand,demandLabel,endTurn,finished,goods,raw,reputation,sellPrice]);
 
-  const reset=useCallback(()=>{setRound(1);setCash(320);setRaw(4);setGoods(0);setCapacity(4);setReputation(30);setScore(0);setFinished(false);setMessage('Grow a small farmstead into a stable enterprise. Cash, production capacity, inventory and reputation must all survive six business cycles.');},[]);
+  const reset=useCallback(()=>{setRound(1);setCash(startingCash);setRaw(4);setGoods(0);setCapacity(4);setReputation(30);setScore(0);setFinished(false);setMessage('Grow a small farmstead into a stable enterprise. Cash, production capacity, inventory and reputation must all survive six business cycles.');},[startingCash]);
 
   return <View style={styles.shell}>
     <View style={styles.header}><View><Text style={styles.eyebrow}>PHAN • FARMSTEAD TO ENTERPRISE</Text><Text style={styles.title}>Enterprise Builder</Text></View><View style={styles.valueBox}><Text style={styles.value}>{enterpriseValue}</Text><Text style={styles.valueLabel}>ENTERPRISE VALUE</Text></View></View>
     <Text style={styles.message}>{message}</Text>
     <View style={styles.dashboard}>{[['CASH',cash],['RAW',raw],['GOODS',goods],['CAPACITY',capacity],['REPUTATION',Math.round(reputation)]].map(([label,value])=><View key={String(label)} style={styles.stat}><Text style={styles.statLabel}>{label}</Text><Text style={styles.statValue}>{value}</Text></View>)}</View>
     {!finished?<>
-      <View style={styles.market}><Text style={styles.round}>BUSINESS CYCLE {round}/{ROUNDS}</Text><Text style={styles.marketTitle}>{demandLabel}</Text><Text style={styles.marketCopy}>Finished-goods price this cycle: {sellPrice}. Decide whether to produce, process, sell, or invest in capacity.</Text></View>
+      <View style={styles.market}><Text style={styles.round}>BUSINESS CYCLE {round}/{rounds}</Text><Text style={styles.marketTitle}>{demandLabel}</Text><Text style={styles.marketCopy}>Finished-goods price this cycle: {sellPrice}. Decide whether to produce, process, sell, or invest in capacity.</Text></View>
       <View style={styles.actions}>
         <Pressable style={styles.action} onPress={()=>act('produce')}><Text style={styles.actionTitle}>PRODUCE</Text><Text style={styles.actionCopy}>Spend cash → increase raw stock</Text></Pressable>
         <Pressable style={styles.action} onPress={()=>act('process')}><Text style={styles.actionTitle}>PROCESS</Text><Text style={styles.actionCopy}>Convert raw stock → finished goods</Text></Pressable>

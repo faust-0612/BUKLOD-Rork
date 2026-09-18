@@ -1,7 +1,9 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, View } from 'react-native';
 
 import { playBuklodGameFeedback } from '../runtime/BuklodGameFeedback';
+import { BuklodGameText as Text } from '../runtime/BuklodGameLanguage';
+import { useBuklodKingdomLevel } from '../runtime/BuklodGameLevelContext';
 import type { BuklodGameResult } from '../types';
 
 type Phase = 'ready' | 'playing' | 'won' | 'lost';
@@ -45,10 +47,12 @@ type Props = {
 };
 
 export function RescueGridGameV1({ onFinish }: Props) {
+  const { resourceMultiplier } = useBuklodKingdomLevel();
+  const startingEnergy = Math.max(9, Math.round(STARTING_ENERGY * resourceMultiplier));
   const [phase, setPhase] = useState<Phase>('ready');
   const [position, setPosition] = useState(START);
   const [path, setPath] = useState<number[]>([START]);
-  const [energy, setEnergy] = useState(STARTING_ENERGY);
+  const [energy, setEnergy] = useState(startingEnergy);
   const [rescued, setRescued] = useState<number[]>([]);
   const [score, setScore] = useState(0);
   const [message, setMessage] = useState('Plan a route through the district. Reach all three rescue beacons before extraction.');
@@ -158,23 +162,23 @@ export function RescueGridGameV1({ onFinish }: Props) {
     setPhase('playing');
     setPosition(START);
     setPath([START]);
-    setEnergy(STARTING_ENERGY);
+    setEnergy(startingEnergy);
     setRescued([]);
     setScore(0);
     setMessage('Mission live. Secure all rescue beacons, then reach extraction.');
     playBuklodGameFeedback('unlock').catch(() => undefined);
-  }, []);
+  }, [startingEnergy]);
 
   const reset = useCallback(() => {
     finishingRef.current = false;
     setPhase('ready');
     setPosition(START);
     setPath([START]);
-    setEnergy(STARTING_ENERGY);
+    setEnergy(startingEnergy);
     setRescued([]);
     setScore(0);
     setMessage('Plan a route through the district. Reach all three rescue beacons before extraction.');
-  }, []);
+  }, [startingEnergy]);
 
   return (
     <View style={styles.root}>
@@ -261,7 +265,7 @@ export function RescueGridGameV1({ onFinish }: Props) {
             <Text style={styles.resultTitle}>{phase === 'won' ? 'EXTRACTION SUCCESS' : 'REPLAN THE GRID'}</Text>
             <Text style={styles.resultScore}>{score.toLocaleString()} pts</Text>
             <Text style={styles.resultMeta}>Energy {energy} • Rescue {rescuedCount}/3 {phase === 'won' ? `• ${'★'.repeat(starsForEnergy(energy))}` : ''}</Text>
-            <Text style={styles.resultCopy}>{phase === 'won' ? 'Later this can unlock Ace’s next tactical district station and a visible city-state change.' : 'Replay without penalty and find a shorter, cleaner route.'}</Text>
+            <Text style={styles.resultCopy}>{phase === 'won' ? 'Clear recorded. Ace’s next Kingdom Level opens and the Strategy District world tier can grow.' : 'Replay this level and find a shorter, cleaner route. A loss never advances the level.'}</Text>
             <Pressable onPress={reset} style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryPressed]}>
               <Text style={styles.primaryText}>REPLAY MISSION</Text>
             </Pressable>

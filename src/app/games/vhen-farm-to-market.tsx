@@ -1,7 +1,6 @@
 import React from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
-import { recordBuklodKingdomPreviewResult } from '@/features/games/kingdom/progress';
 import { BuklodGameStage } from '@/features/games/runtime/BuklodGameStage';
 import { FarmToMarketGameV1 } from '@/features/games/vhen/FarmToMarketGameV1';
 
@@ -11,7 +10,7 @@ export default function VhenFarmToMarketScreen() {
   return (
     <BuklodGameStage biome="agriculture" gameId={GAME_ID}>
       <ScrollView contentContainerStyle={styles.page}>
-        <FarmToMarketGameV1 onFinish={(result) => { void recordBuklodKingdomPreviewResult(result); }} />
+        <FarmToMarketGameV1 />
       </ScrollView>
     </BuklodGameStage>
   );

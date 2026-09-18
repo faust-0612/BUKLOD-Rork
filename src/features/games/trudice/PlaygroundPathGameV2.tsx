@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
 
 import { playBuklodGameFeedback } from '../runtime/BuklodGameFeedback';
+import { BuklodGameText as Text } from '../runtime/BuklodGameLanguage';
+import { useBuklodKingdomLevel } from '../runtime/BuklodGameLevelContext';
 import type { BuklodGameResult } from '../types';
 
 type Phase = 'ready' | 'watch' | 'input' | 'round-clear' | 'won' | 'lost';
@@ -42,12 +44,15 @@ type Props = {
 };
 
 export function PlaygroundPathGameV2({ onFinish }: Props) {
+  const { level, speedMultiplier } = useBuklodKingdomLevel();
+  const maxRound = Math.min(8, MAX_ROUND + Math.floor((level - 1) / 5));
+  const startingHearts = level >= 13 ? 2 : STARTING_HEARTS;
   const [phase, setPhase] = useState<Phase>('ready');
   const [round, setRound] = useState(1);
   const [watchIndex, setWatchIndex] = useState(0);
   const [inputIndex, setInputIndex] = useState(0);
   const [litStation, setLitStation] = useState<StationId | null>(null);
-  const [hearts, setHearts] = useState(STARTING_HEARTS);
+  const [hearts, setHearts] = useState(startingHearts);
   const [mistakes, setMistakes] = useState(0);
   const [score, setScore] = useState(0);
   const [message, setMessage] = useState('Watch the playground come alive, then repeat the path.');
@@ -56,7 +61,7 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
   const celebration = useRef(new Animated.Value(0)).current;
 
   const sequence = useMemo(() => buildSequence(round), [round]);
-  const progress = Math.round(((round - 1) / MAX_ROUND) * 100);
+  const progress = Math.round(((round - 1) / maxRound) * 100);
 
   const flashScene = useCallback(
     (strength: number) => {
@@ -139,24 +144,30 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
         setPhase('input');
         setInputIndex(0);
         setMessage('Your turn. Repeat the glowing path.');
-      }, 480);
+      }, Math.max(220, 480 / speedMultiplier));
       return () => clearTimeout(readyTimer);
     }
 
     setLitStation(sequence[watchIndex]);
-    const offTimer = setTimeout(() => setLitStation(null), 390);
-    const nextTimer = setTimeout(() => setWatchIndex((value) => value + 1), 650);
+    const offTimer = setTimeout(
+      () => setLitStation(null),
+      Math.max(170, 390 / speedMultiplier),
+    );
+    const nextTimer = setTimeout(
+      () => setWatchIndex((value) => value + 1),
+      Math.max(280, 650 / speedMultiplier),
+    );
 
     return () => {
       clearTimeout(offTimer);
       clearTimeout(nextTimer);
     };
-  }, [phase, sequence, watchIndex]);
+  }, [phase, sequence, speedMultiplier, watchIndex]);
 
   useEffect(() => {
     if (phase !== 'round-clear') return undefined;
     const timer = setTimeout(() => {
-      if (round >= MAX_ROUND) {
+      if (round >= maxRound) {
         finishGame(score, mistakes);
         return;
       }
@@ -166,9 +177,9 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
       setInputIndex(0);
       setLitStation(null);
       setMessage('The playground is adding one more step. Watch carefully.');
-    }, 850);
+    }, Math.max(380, 850 / speedMultiplier));
     return () => clearTimeout(timer);
-  }, [finishGame, mistakes, phase, round, score]);
+  }, [finishGame, maxRound, mistakes, phase, round, score, speedMultiplier]);
 
   const chooseStation = useCallback(
     (stationId: StationId) => {
@@ -176,7 +187,10 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
       const expected = sequence[inputIndex];
 
       setLitStation(stationId);
-      setTimeout(() => setLitStation((current) => (current === stationId ? null : current)), 180);
+      setTimeout(
+        () => setLitStation((current) => (current === stationId ? null : current)),
+        Math.max(90, 180 / speedMultiplier),
+      );
 
       if (stationId !== expected) {
         const nextHearts = hearts - 1;
@@ -197,7 +211,7 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
           setWatchIndex(0);
           setLitStation(null);
           setPhase('watch');
-        }, 620);
+        }, Math.max(280, 620 / speedMultiplier));
         return;
       }
 
@@ -217,13 +231,13 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
         setMessage(`${nextIndex}/${sequence.length} correct. Keep the path in mind.`);
       }
     },
-    [failGame, flashScene, hearts, inputIndex, mistakes, phase, pulseCelebration, round, score, sequence],
+    [failGame, flashScene, hearts, inputIndex, mistakes, phase, pulseCelebration, round, score, sequence, speedMultiplier],
   );
 
   const start = useCallback(() => {
     finishingRef.current = false;
     setRound(1);
-    setHearts(STARTING_HEARTS);
+    setHearts(startingHearts);
     setMistakes(0);
     setScore(0);
     setWatchIndex(0);
@@ -232,20 +246,20 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
     setPhase('watch');
     setMessage('Round 1: watch the path.');
     playBuklodGameFeedback('unlock').catch(() => undefined);
-  }, []);
+  }, [startingHearts]);
 
   const reset = useCallback(() => {
     finishingRef.current = false;
     setPhase('ready');
     setRound(1);
-    setHearts(STARTING_HEARTS);
+    setHearts(startingHearts);
     setMistakes(0);
     setScore(0);
     setWatchIndex(0);
     setInputIndex(0);
     setLitStation(null);
     setMessage('Watch the playground come alive, then repeat the path.');
-  }, []);
+  }, [startingHearts]);
 
   const celebrationScale = celebration.interpolate({ inputRange: [0, 1], outputRange: [1, 1.025] });
 
@@ -307,7 +321,7 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
           <Text style={styles.title}>Wonder Path</Text>
         </View>
         <View style={styles.statRow}>
-          <View style={styles.stat}><Text style={styles.statLabel}>ROUND</Text><Text style={styles.statValue}>{round}/{MAX_ROUND}</Text></View>
+          <View style={styles.stat}><Text style={styles.statLabel}>ROUND</Text><Text style={styles.statValue}>{round}/{maxRound}</Text></View>
           <View style={styles.stat}><Text style={styles.statLabel}>SCORE</Text><Text style={styles.statValue}>{score}</Text></View>
         </View>
       </View>
@@ -315,7 +329,7 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
       <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${phase === 'won' ? 100 : progress}%` }]} /></View>
 
       <View style={styles.heartRow}>
-        {Array.from({ length: STARTING_HEARTS }, (_, index) => (
+        {Array.from({ length: startingHearts }, (_, index) => (
           <View key={index} style={[styles.heartDot, index >= hearts && styles.heartDotEmpty]} />
         ))}
       </View>
@@ -335,7 +349,7 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
             <View style={styles.rulesRow}>
               <View style={styles.ruleChip}><Text style={styles.ruleTitle}>WATCH</Text><Text style={styles.ruleCopy}>follow the glow</Text></View>
               <View style={styles.ruleChip}><Text style={styles.ruleTitle}>REPEAT</Text><Text style={styles.ruleCopy}>tap in order</Text></View>
-              <View style={styles.ruleChip}><Text style={styles.ruleTitle}>GROW</Text><Text style={styles.ruleCopy}>5 rounds</Text></View>
+              <View style={styles.ruleChip}><Text style={styles.ruleTitle}>GROW</Text><Text style={styles.ruleCopy}>{maxRound} rounds</Text></View>
             </View>
             <Pressable onPress={start} style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryPressed]}>
               <Text style={styles.primaryText}>OPEN THE PLAYGROUND</Text>
@@ -358,7 +372,7 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
             <Text style={styles.resultTitle}>{phase === 'won' ? 'CHILDREN’S HAVEN GLOWS' : 'TRY THE PATH AGAIN'}</Text>
             <Text style={styles.resultScore}>{score.toLocaleString()} pts</Text>
             <Text style={styles.resultMeta}>Mistakes {mistakes} • {'★'.repeat(starsForRun(mistakes))}</Text>
-            <Text style={styles.resultCopy}>{phase === 'won' ? 'Later, this clear can permanently brighten Trudice’s playground station on the Kingdom Map.' : 'The pattern is replayable with no penalty. Learn it visually and try again.'}</Text>
+            <Text style={styles.resultCopy}>{phase === 'won' ? 'Clear recorded. Trudice’s Journey advances and Children’s Haven grows on the Kingdom Map.' : 'Replay this level freely. Progress advances only when the level is cleared.'}</Text>
             <Pressable onPress={reset} style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryPressed]}>
               <Text style={styles.primaryText}>PLAY AGAIN</Text>
             </Pressable>

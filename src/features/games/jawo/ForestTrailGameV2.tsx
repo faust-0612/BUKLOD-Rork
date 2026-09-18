@@ -1,15 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Animated,
-  Easing,
-  PanResponder,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Animated, Easing, PanResponder, Pressable, StyleSheet, View } from 'react-native';
 
 import { playBuklodGameFeedback } from '../runtime/BuklodGameFeedback';
+import { BuklodGameText as Text } from '../runtime/BuklodGameLanguage';
+import { useBuklodKingdomLevel } from '../runtime/BuklodGameLevelContext';
 import type { BuklodGameResult } from '../types';
 
 type Lane = 0 | 1 | 2;
@@ -74,11 +68,13 @@ type Props = {
 };
 
 export function ForestTrailGameV2({ onFinish }: Props) {
+  const { level, speedMultiplier } = useBuklodKingdomLevel();
+  const startingHearts = level >= 15 ? 2 : STARTING_HEARTS;
   const trail = useMemo(makeTrail, []);
   const [phase, setPhase] = useState<Phase>('ready');
   const [lane, setLane] = useState<Lane>(1);
   const [stepIndex, setStepIndex] = useState(0);
-  const [hearts, setHearts] = useState(STARTING_HEARTS);
+  const [hearts, setHearts] = useState(startingHearts);
   const [score, setScore] = useState(0);
   const [combo, setCombo] = useState(0);
   const [bestCombo, setBestCombo] = useState(0);
@@ -257,16 +253,16 @@ export function ForestTrailGameV2({ onFinish }: Props) {
 
   useEffect(() => {
     if (phase !== 'playing') return undefined;
-    const timer = setTimeout(resolveEncounter, encounterDelay(intensity));
+    const timer = setTimeout(resolveEncounter, Math.max(420, encounterDelay(intensity) / speedMultiplier));
     return () => clearTimeout(timer);
-  }, [intensity, phase, resolveEncounter]);
+  }, [intensity, phase, resolveEncounter, speedMultiplier]);
 
   const reset = useCallback(() => {
     finishingRef.current = false;
     setPhase('ready');
     setLane(1);
     setStepIndex(0);
-    setHearts(STARTING_HEARTS);
+    setHearts(startingHearts);
     setScore(0);
     setCombo(0);
     setBestCombo(0);
@@ -275,7 +271,7 @@ export function ForestTrailGameV2({ onFinish }: Props) {
     setMessage('Swipe or tap to change trail. Stay alert.');
     playerX.setValue(0);
     startOpacity.setValue(1);
-  }, [playerX, startOpacity]);
+  }, [playerX, startOpacity, startingHearts]);
 
   const start = useCallback(() => {
     finishingRef.current = false;
@@ -363,7 +359,7 @@ export function ForestTrailGameV2({ onFinish }: Props) {
       </View>
 
       <View style={styles.heartRow}>
-        {Array.from({ length: STARTING_HEARTS }, (_, index) => (
+        {Array.from({ length: startingHearts }, (_, index) => (
           <View key={index} style={[styles.heartMark, index >= hearts && styles.heartEmpty]} />
         ))}
       </View>
@@ -422,7 +418,7 @@ export function ForestTrailGameV2({ onFinish }: Props) {
             <Text style={styles.resultTitle}>{phase === 'won' ? 'HIDDEN GROVE FOUND' : 'RETURN TO THE TRAIL'}</Text>
             <Text style={styles.resultScore}>{score.toLocaleString()} pts</Text>
             <Text style={styles.resultMeta}>Best combo x{bestCombo} • Trail Lights {lights} • {'★'.repeat(starsForScore(score)) || 'No star yet'}</Text>
-            <Text style={styles.resultCopy}>{phase === 'won' ? 'This station is ready to unlock a permanent map change once Kingdom persistence is connected.' : 'No punishment. Replay, learn the rhythm, and push deeper into the forest.'}</Text>
+            <Text style={styles.resultCopy}>{phase === 'won' ? 'Clear recorded. Your next Kingdom Level is now available and this region grows on the map.' : 'Replay this level to improve your best score and stars without farming first-clear XP.'}</Text>
             <Pressable onPress={reset} style={({ pressed }) => [styles.startButton, pressed && styles.startButtonPressed]}>
               <Text style={styles.startButtonText}>{phase === 'won' ? 'RUN AGAIN' : 'TRY AGAIN'}</Text>
             </Pressable>

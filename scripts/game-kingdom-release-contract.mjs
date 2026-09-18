@@ -8,7 +8,10 @@ const args = process.argv.slice(2);
 const distIndex = args.indexOf('--dist');
 const distDir = distIndex >= 0 ? path.resolve(ROOT, args[distIndex + 1] || 'dist') : null;
 const webOutputIndex = args.indexOf('--web-output');
-const webOutputMode = webOutputIndex >= 0 ? String(args[webOutputIndex + 1] || '').trim().toLowerCase() : 'static';
+const webOutputMode = webOutputIndex >= 0
+  ? String(args[webOutputIndex + 1] || '').trim().toLowerCase()
+  : 'single';
+
 if (!['single', 'static'].includes(webOutputMode)) {
   failures.push(`Unsupported --web-output mode: ${webOutputMode || '(empty)'}`);
 }
@@ -29,7 +32,26 @@ const GAME_IDS = [
   'quin-discovery-expedition',
 ];
 
-function absolute(rel) { return path.join(ROOT, rel); }
+const GAME_COMPONENTS = [
+  'src/features/games/jawo/ForestTrailGameV2.tsx',
+  'src/features/games/trudice/PlaygroundPathGameV2.tsx',
+  'src/features/games/ace/RescueGridGameV1.tsx',
+  'src/features/games/mitch/RestoreMuralGameV1.tsx',
+  'src/features/games/niel/MissionTrailGameV1.tsx',
+  'src/features/games/angel/KingdomTreasuryGameV1.tsx',
+  'src/features/games/vhen/FarmToMarketGameV1.tsx',
+  'src/features/games/elesur/VillageBuilderGameV1.tsx',
+  'src/features/games/phan/EnterpriseBuilderGameV1.tsx',
+  'src/features/games/van/LivingCityDispatchGameV1.tsx',
+  'src/features/games/christian/CivicLeadershipGameV1.tsx',
+  'src/features/games/lhen/RhythmJourneyGameV1.tsx',
+  'src/features/games/quin/DiscoveryExpeditionGameV1.tsx',
+];
+
+function absolute(rel) {
+  return path.join(ROOT, rel);
+}
+
 function exists(rel) {
   if (!fs.existsSync(absolute(rel))) {
     failures.push(`Missing Kingdom release file: ${rel}`);
@@ -37,9 +59,11 @@ function exists(rel) {
   }
   return true;
 }
+
 function read(rel) {
   return exists(rel) ? fs.readFileSync(absolute(rel), 'utf8') : '';
 }
+
 function requireTokens(rel, tokens) {
   const text = read(rel);
   for (const token of tokens) {
@@ -47,6 +71,15 @@ function requireTokens(rel, tokens) {
   }
   return text;
 }
+
+function rejectTokens(rel, tokens) {
+  const text = read(rel);
+  for (const token of tokens) {
+    if (text.includes(token)) failures.push(`${rel} contains obsolete Kingdom token: ${token}`);
+  }
+  return text;
+}
+
 function walk(dir) {
   if (!fs.existsSync(dir)) return [];
   const output = [];
@@ -58,25 +91,28 @@ function walk(dir) {
   return output;
 }
 
-console.log('BUKLOD KINGDOM GAME RELEASE CONTRACT');
-console.log('====================================');
+console.log('BUKLOD KINGDOM GAME RELEASE CONTRACT — E2E R1');
+console.log('===============================================');
 
 const registry = requireTokens('src/features/games/registry.ts', GAME_IDS);
-if ((registry.match(/replayable:\s*true/g) || []).length < 13) {
+if (registry.split('replayable: true').length - 1 < 13) {
   failures.push('Game registry no longer exposes 13 replayable current stations.');
 }
 
 requireTokens('src/app/games/index.tsx', ['BuklodKingdomMap']);
+
 const map = requireTokens('src/features/games/kingdom/BuklodKingdomMap.tsx', [
-  'BUKLOD KINGDOM',
-  'A SMALL BEGINNING',
-  'A BRIGHTER TOMORROW',
-  'COMING SOON',
-  'SCRIPTURE GARDEN',
-  'BUKLOD CITADEL',
-  'EXPLORE THE KINGDOM',
-  'stageFor',
-  'clearedCount',
+  'KINGDOM UNITED',
+  'progress.clearedRegions',
+  'progress.kingdomXp',
+  'progress.masteredRegions',
+  'state?.unlocked',
+  'state?.currentLevel',
+  'state?.worldTier',
+  'WORLD_GROWTH_MARK_POSITIONS',
+  'href="/games/training-grounds"',
+  'href="/igpat"',
+  'href="/mentor"',
 ]);
 for (const gameId of GAME_IDS) {
   if (!map.includes(gameId)) failures.push(`Kingdom Map missing station: ${gameId}`);
@@ -91,119 +127,148 @@ if (homeShortcut.includes('BUKLOD_KINGDOM_HOME_DOOR_R1')) {
 if (homeShortcut.includes('BUKLOD KINGDOM') || homeShortcut.includes("router.push('/games'")) {
   failures.push('Kingdom door was reintroduced into Home; canonical location is Profile.');
 }
+
 requireTokens('src/components/BuklodFoundationWorkspaceNav.tsx', [
   'BUKLOD_KINGDOM_PROFILE_RELOCATION_R1',
   'title="BUKLOD Kingdom"',
   "router.push('/games'",
 ]);
 
-const language = requireTokens('src/features/games/runtime/BuklodGameLanguage.tsx', [
-  "export type BuklodGameLanguage = 'en' | 'tl'",
-  'TAGALOG GAME GUIDE',
-  'PAANO LARUIN',
+const progress = requireTokens('src/features/games/kingdom/progress.ts', [
+  'buklod.kingdom.progress.v2',
+  'buklod.kingdom.pending-results.v1',
+  "rpc('get_my_buklod_kingdom_v1'",
+  "rpc('submit_my_buklod_kingdom_result_v2'",
+  'loadBuklodKingdomLevelDetails',
+  'get_my_buklod_kingdom_level_details_v1',
+  'isPermanentKingdomSubmissionError',
+  'pendingResults',
 ]);
-for (const gameId of GAME_IDS) {
-  if (!language.includes(`'${gameId}'`)) failures.push(`EN/TL guide missing game: ${gameId}`);
+if (progress.includes('buklod.kingdom.preview.progress.v1')) {
+  failures.push('Legacy local-only Kingdom preview storage is still active.');
 }
 
-requireTokens('src/features/games/runtime/BuklodGameVisualFX.tsx', [
-  'BuklodGameVisualFX',
-  'BuklodGameEntrance',
-  'Animated.loop',
+for (const rel of GAME_COMPONENTS) {
+  requireTokens(rel, [
+    'BuklodGameText as Text',
+    'useBuklodKingdomLevel',
+  ]);
+}
+
+for (const gameId of GAME_IDS) {
+  const route = `src/app/games/${gameId}.tsx`;
+  requireTokens(route, ['BuklodGameStage']);
+  rejectTokens(route, ['recordBuklodKingdomPreviewResult']);
+}
+
+for (const rel of [
+  'src/features/games/runtime/BuklodGameStage.web.tsx',
+  'src/features/games/runtime/BuklodGameStage.native.tsx',
+]) {
+  requireTokens(rel, [
+    'BuklodGameBackdrop',
+    'useRorkGameAmbience',
+    'useBuklodGameKingdomRuntime',
+    'BuklodKingdomLevelProvider',
+    'BuklodGameProgressHud',
+    'kingdom.submitResult',
+    'kingdom.canPlay',
+    'BuklodGameLanguageControl',
+    'BuklodGameCharacterCompanion',
+  ]);
+  rejectTokens(rel, ['recordBuklodKingdomPreviewResult']);
+}
+
+requireTokens('src/features/games/runtime/BuklodGameKingdomRuntime.ts', [
+  'useLocalSearchParams',
+  'recordBuklodKingdomResult(result, level)',
+  'difficulty',
+  'speedMultiplier',
+  'targetMultiplier',
+  'resourceMultiplier',
 ]);
-requireTokens('src/features/games/runtime/BuklodGameStage.web.tsx', [
-  'BuklodGameVisualFX',
-  'recordBuklodKingdomPreviewResult',
-  'withResultHandler',
-  'BuklodGameLanguageControl',
-  'BuklodGameCharacterCompanion',
+
+requireTokens('src/features/games/runtime/BuklodGameLanguage.tsx', [
+  "export type BuklodGameLanguage = 'en' | 'tl'",
+  'BuklodGameText',
+  'translateBuklodGameText',
+  'translateDynamicTagalog',
+  'PAANO LARUIN',
+  'NAGKAISANG KAHARIAN',
 ]);
-requireTokens('src/features/games/runtime/BuklodGameStage.native.tsx', [
-  '@shopify/react-native-skia',
-  'BuklodGameVisualFX',
-  'recordBuklodKingdomPreviewResult',
-  'withResultHandler',
-  'BuklodGameLanguageControl',
-  'BuklodGameCharacterCompanion',
+
+requireTokens('src/app/games/training-grounds.tsx', [
+  'loadBuklodKingdomLevelDetails',
+  'REPLAY CLEARED LEVELS',
+  'detail?.bestStars',
+  'params: { level: String(levelNo) }',
 ]);
+
 requireTokens('src/features/games/runtime/BuklodGameFeedback.web.ts', [
   'AudioContext',
+  'tryPlayRorkGameFeedback',
   'emitBuklodGameCharacterMotion',
-  "case 'collect'",
-  "case 'impact'",
-  "case 'success'",
-  "case 'failure'",
 ]);
+
 requireTokens('src/features/games/runtime/BuklodGameFeedback.native.ts', [
-  'createAudioPlayer',
-  'emitBuklodGameCharacterMotion',
+  'expo-haptics',
+  'tryPlayRorkGameFeedback',
   'buklod-reaction.wav',
   'buklod-points-claim.wav',
-  'expo-haptics',
-]);
-requireTokens('src/features/games/runtime/BuklodGameCharacterCompanion.tsx', [
-  'BuklodActiveCharacterArt',
-  'BuklodCharacterMotion',
-  'subscribeBuklodGameCharacterMotion',
-]);
-requireTokens('src/features/games/runtime/characterMotionBus.ts', [
   'emitBuklodGameCharacterMotion',
-  'subscribeBuklodGameCharacterMotion',
 ]);
-requireTokens('src/features/games/runtime/BuklodGameBackdrop.tsx', [
-  'getRorkGameMedia',
-  "from 'expo-image'",
-]);
+
 const rorkMedia = requireTokens('src/features/games/runtime/rorkMedia.ts', [
   'RORK_GAME_MEDIA',
-  'kp3ge50a5t6chyb7gv3jn-web.rork.live/kingdom',
-  "const AUDIO_BASE = `${RORK_PUBLIC_BASE}/audio`",
   'https://r2-pub.rork.com/projects/kp3ge50a5t6chyb7gv3jn/assets/',
 ]);
 for (const gameId of GAME_IDS) {
   if (!rorkMedia.includes(`'${gameId}'`)) failures.push(`Rork media mapping missing game: ${gameId}`);
 }
-requireTokens('src/features/games/runtime/rorkAudio.ts', [
+for (const forbidden of [
+  'kp3ge50a5t6chyb7gv3jn-web.rork.live/kingdom',
+  'RORK_AUDIO',
+  'AUDIO_BASE',
+]) {
+  if (rorkMedia.includes(forbidden)) failures.push(`Rork media still contains remote audio dependency: ${forbidden}`);
+}
+
+const rorkAudio = requireTokens('src/features/games/runtime/rorkAudio.ts', [
   'createAudioPlayer',
   'useRorkGameAmbience',
   'tryPlayRorkGameFeedback',
   'playRorkSignatureSfx',
+  'ambienceSources',
+  'localSfx',
+  'buklod-reaction.wav',
+  'buklod-points-claim.wav',
+  'assets/bible-ambience/sea.wav',
+]);
+for (const forbidden of [
   'REMOTE_RORK_AUDIO_ENABLED',
-]);
-requireTokens('src/features/games/runtime/BuklodGameStage.web.tsx', [
-  'BuklodGameBackdrop',
-  'useRorkGameAmbience',
-]);
-requireTokens('src/features/games/runtime/BuklodGameStage.native.tsx', [
-  'BuklodGameBackdrop',
-  'useRorkGameAmbience',
-]);
-requireTokens('src/features/games/runtime/BuklodGameFeedback.web.ts', [
-  'tryPlayRorkGameFeedback',
-  'AudioContext',
-]);
-requireTokens('src/features/games/runtime/BuklodGameFeedback.native.ts', [
-  'tryPlayRorkGameFeedback',
-  'expo-haptics',
-]);
-requireTokens('src/features/games/kingdom/BuklodKingdomMap.tsx', [
-  'BuklodGameBackdrop',
-  'playRorkSignatureSfx',
-  'BIOME_REGIONS',
-  'THE CITADEL',
-  'EXPLORE • GROW • BELONG',
-]);
-
-requireTokens('src/features/games/kingdom/progress.ts', [
-  'recordBuklodKingdomPreviewResult',
-  'bestScore',
-  'bestStars',
-  'clears',
-]);
-
-for (const gameId of GAME_IDS) {
-  if (!exists(`src/app/games/${gameId}.tsx`)) failures.push(`Missing current game route: /games/${gameId}`);
+  'downloadFirst: true',
+  'https://',
+]) {
+  if (rorkAudio.includes(forbidden)) failures.push(`Kingdom audio must be network-free; found: ${forbidden}`);
 }
+
+requireTokens('supabase/migrations/20260918213000_buklod_kingdom_e2e_v1.sql', [
+  'SERVER_13_REGIONS_20_LEVELS_SEQUENTIAL_V1',
+  'KINGDOM_XP_SEPARATE_FROM_CIRCLE_POINTS_V1',
+  'public.get_my_buklod_kingdom_v1',
+]);
+requireTokens('supabase/migrations/20260918214500_buklod_kingdom_level_replay_v2.sql', [
+  'public.submit_my_buklod_kingdom_result_v2',
+  'p_level_no integer default null',
+]);
+requireTokens('supabase/migrations/20260918215500_buklod_kingdom_e2e_security_hardening_r1.sql', [
+  'enable row level security',
+  'revoke all on table private.buklod_kingdom_level_progress_v1',
+]);
+requireTokens('supabase/migrations/20260918220500_buklod_kingdom_level_details_v1.sql', [
+  'public.get_my_buklod_kingdom_level_details_v1',
+  'generate_series(1,20)',
+]);
 
 if (distDir) {
   if (!fs.existsSync(distDir)) {
@@ -212,16 +277,20 @@ if (distDir) {
     const compiled = walk(distDir)
       .filter((file) => /\.(?:js|html)$/i.test(file))
       .map((file) => {
-        try { return fs.readFileSync(file, 'utf8'); } catch { return ''; }
+        try {
+          return fs.readFileSync(file, 'utf8');
+        } catch {
+          return '';
+        }
       })
       .join('\n');
+
     for (const token of [
-      'BUKLOD KINGDOM',
-      'A BRIGHTER TOMORROW',
-      'COMING SOON',
-      'TAGALOG GAME GUIDE',
+      'KINGDOM UNITED',
+      'SERVER_13_REGIONS_20_LEVELS_SEQUENTIAL_V1',
+      'KINGDOM_XP_SEPARATE_FROM_CIRCLE_POINTS_V1',
+      'TRAINING GROUNDS',
       'PAANO LARUIN',
-      'Special Character Journey',
       ...GAME_IDS,
     ]) {
       if (!compiled.includes(token)) failures.push(`Compiled bundle missing Kingdom token: ${token}`);
@@ -233,14 +302,10 @@ if (distDir) {
     if (webOutputMode === 'static') {
       const gameShell = path.join(distDir, 'games', 'index.html');
       if (!fs.existsSync(gameShell)) failures.push('Compiled static web artifact is missing dist/games/index.html.');
-      for (const gameId of GAME_IDS) {
-        const routeShell = path.join(distDir, 'games', gameId, 'index.html');
-        if (!fs.existsSync(routeShell)) failures.push(`Compiled static web artifact missing route shell: /games/${gameId}`);
-      }
     } else {
-      const nestedHtml = walk(distDir).filter((file) => /games[\\/]?.*index\.html$/i.test(file));
+      const nestedHtml = walk(distDir).filter((file) => /games[\\/].*index\.html$/i.test(file));
       if (nestedHtml.length > 0) {
-        failures.push('Single-output web artifact unexpectedly emitted per-route HTML shells; verify Expo Router output mode.');
+        failures.push('Single-output web artifact unexpectedly emitted per-route HTML shells.');
       }
     }
   }
@@ -249,8 +314,9 @@ if (distDir) {
 for (const failure of failures) console.error(`FAIL: ${failure}`);
 if (failures.length) {
   console.error(`\nKINGDOM GAME RELEASE LOCK FAILED with ${failures.length} blocker(s).`);
-  console.error('DEPLOYMENT MUST STOP. Forward-restore the protected Kingdom/Game layer before publishing.');
+  console.error('DEPLOYMENT MUST STOP. Restore the canonical Kingdom E2E layer before publishing.');
   process.exit(1);
 }
 
 console.log('\nKINGDOM GAME RELEASE LOCK PASSED.');
+console.log('13 regions • Level 1–20 • server progression • EN/TL • local audio • replay-safe economy.');

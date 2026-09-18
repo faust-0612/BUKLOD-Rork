@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,7 +7,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
   useWindowDimensions,
 } from 'react-native';
@@ -24,6 +23,11 @@ import Svg, {
 } from 'react-native-svg';
 
 import BuklodGameBackdrop from '@/features/games/runtime/BuklodGameBackdrop';
+import {
+  BuklodGameLanguageControl,
+  BuklodGameLanguageProvider,
+  BuklodGameText as Text,
+} from '@/features/games/runtime/BuklodGameLanguage';
 import { playRorkSignatureSfx } from '@/features/games/runtime/rorkAudio';
 
 import {
@@ -112,14 +116,31 @@ const BIOME_REGIONS = [
 ] as const;
 
 function emptyProgress(): BuklodKingdomPreviewProgress {
-  return { version: 1, stations: {} };
-}
-
-function stageFor(cleared: number) {
-  if (cleared >= 10) return 4;
-  if (cleared >= 7) return 3;
-  if (cleared >= 4) return 2;
-  return 1;
+  return {
+    version: 2,
+    serverBacked: false,
+    circleRankOrder: 1,
+    circleRankName: 'Circle Starter V',
+    systemAdminOverride: false,
+    kingdomXp: 0,
+    gameXp: 0,
+    clearedRegions: 0,
+    masteredRegions: 0,
+    stage: 1,
+    stageTitle: 'A SMALL BEGINNING',
+    stageSubtitle: 'A greater tomorrow starts here',
+    landmarks: {
+      trainingGrounds: false,
+      igpatArena: false,
+      mentorTower: false,
+      kingdomUnited: false,
+    },
+    stations: {},
+    progressionModel: 'SERVER_13_REGIONS_20_LEVELS_SEQUENTIAL_V1',
+    economyModel: 'KINGDOM_XP_SEPARATE_FROM_CIRCLE_POINTS_V1',
+    pendingResults: 0,
+    lastResult: null,
+  };
 }
 
 const STAGE_COPY: Record<number, { title: string; subtitle: string }> = {
@@ -127,7 +148,16 @@ const STAGE_COPY: Record<number, { title: string; subtitle: string }> = {
   2: { title: 'STRONGER TOGETHER', subtitle: 'The kingdom begins to awaken' },
   3: { title: 'A GROWING KINGDOM', subtitle: 'More paths, people and purpose' },
   4: { title: 'A BRIGHTER TOMORROW', subtitle: 'A united people, a living world' },
+  5: { title: 'KINGDOM UNITED', subtitle: 'Every region is alive; mastery now shapes the world' },
 };
+
+const WORLD_GROWTH_MARK_POSITIONS = [
+  { left: 6, top: 48 },
+  { left: 21, top: 14 },
+  { left: 48, top: 2 },
+  { right: 18, top: 16 },
+  { right: 4, top: 50 },
+] as const;
 
 function StationNode({
   station,
@@ -140,7 +170,12 @@ function StationNode({
 }) {
   const pulse = useRef(new Animated.Value(0)).current;
   const state = progress.stations[station.id];
-  const cleared = (state?.clears ?? 0) > 0;
+  const unlocked = state?.unlocked ?? false;
+  const cleared = (state?.clearedLevels ?? 0) > 0;
+  const mastered = Boolean(state?.mastered);
+  const worldTier = state?.worldTier ?? 0;
+  const currentLevel = state?.currentLevel ?? 1;
+  const clearedLevels = state?.clearedLevels ?? 0;
 
   useEffect(() => {
     const loop = Animated.loop(
@@ -158,6 +193,23 @@ function StationNode({
 
   return (
     <View style={[styles.stationWrap, { left: station.x - 69, top: station.y - 64 }]}>
+      {unlocked && worldTier > 0 ? (
+        <View pointerEvents="none" style={styles.worldGrowthMarks}>
+          {Array.from({ length: 5 }).map((_, mark) => (
+            <View
+              key={mark}
+              style={[
+                styles.worldGrowthMark,
+                WORLD_GROWTH_MARK_POSITIONS[mark],
+                {
+                  opacity: mark < worldTier ? 0.92 : 0.12,
+                  backgroundColor: mark < worldTier ? station.accent : '#64717a',
+                },
+              ]}
+            />
+          ))}
+        </View>
+      ) : null}
       <Animated.View
         pointerEvents="none"
         style={[
@@ -165,32 +217,62 @@ function StationNode({
           {
             opacity: glowOpacity,
             transform: [{ scale }],
-            backgroundColor: cleared ? '#ffd65d' : station.accent,
+            backgroundColor: !unlocked ? '#66747c' : mastered ? '#fff0a6' : cleared ? '#ffd65d' : station.accent,
           },
         ]}
       />
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Open station ${index + 1}, ${station.character}, ${station.game}`}
+        accessibilityLabel={
+          unlocked
+            ? `Open station ${index + 1}, ${station.character}, ${station.game}, level ${currentLevel} of 20`
+            : `Locked station ${index + 1}, ${station.character}, requires Circle Rank ${state?.requiredRankOrder ?? '?'}`
+        }
+        disabled={!unlocked}
         onPress={() => {
+          if (!unlocked) return;
           playRorkSignatureSfx(station.id, 0.20);
           router.push(station.href as any);
         }}
-        style={({ pressed }) => [styles.stationPressable, pressed && styles.stationPressed]}
+        style={({ pressed }) => [
+          styles.stationPressable,
+          !unlocked && styles.stationPressableLocked,
+          pressed && unlocked && styles.stationPressed,
+        ]}
       >
         <LinearGradient
-          colors={cleared ? ['#ffe892', '#d49a2f'] : ['#f7f0d2', '#d7b974']}
+          colors={
+            !unlocked
+              ? ['#a7afb5', '#59656e']
+              : mastered
+                ? ['#fff7c4', '#e6b83e']
+                : cleared
+                  ? ['#ffe892', '#d49a2f']
+                  : ['#f7f0d2', '#d7b974']
+          }
           style={styles.landmarkOrb}
         >
           <View style={[styles.landmarkInner, { borderColor: station.accent }]}>
-            <BuklodGameBackdrop gameId={station.id} thumbnail opacity={0.62} />
-            <MaterialCommunityIcons name={station.icon} size={27} color={station.accent} />
+            <BuklodGameBackdrop gameId={station.id} thumbnail opacity={unlocked ? 0.50 + worldTier * 0.08 : 0.20} />
+            <MaterialCommunityIcons
+              name={unlocked ? station.icon : 'lock-outline'}
+              size={27}
+              color={unlocked ? station.accent : '#d5dde2'}
+            />
           </View>
           <View style={[styles.numberBadge, cleared && styles.numberBadgeCleared]}>
             <Text style={styles.numberText}>{index + 1}</Text>
           </View>
-          {cleared ? (
+          {!unlocked ? (
+            <View style={styles.lockedBadge}>
+              <MaterialCommunityIcons name="lock" size={9} color="#fff" />
+            </View>
+          ) : mastered ? (
+            <View style={styles.clearedBadge}>
+              <MaterialCommunityIcons name="crown" size={10} color="#fff" />
+            </View>
+          ) : cleared ? (
             <View style={styles.clearedBadge}>
               <MaterialCommunityIcons name="check-bold" size={10} color="#fff" />
             </View>
@@ -202,18 +284,25 @@ function StationNode({
           <Text numberOfLines={1} style={styles.stationRegion}>{station.region}</Text>
           <Text numberOfLines={1} style={styles.stationGame}>{station.game}</Text>
           <View style={styles.progressRow}>
-            <Text style={styles.levelText}>1</Text>
-            {Array.from({ length: 8 }).map((_, dot) => (
+            <Text style={styles.levelText}>{unlocked ? `L${currentLevel}` : 'LOCK'}</Text>
+            {Array.from({ length: 10 }).map((_, dot) => (
               <View
                 key={dot}
                 style={[
                   styles.progressDot,
-                  dot < Math.max(1, state?.bestStars ?? 0) && (cleared ? styles.progressDotCleared : styles.progressDotActive),
+                  dot < Math.ceil(clearedLevels / 2) && styles.progressDotCleared,
                 ]}
               />
             ))}
             <Text style={styles.levelText}>20</Text>
           </View>
+          <Text style={styles.worldTierText}>
+            {unlocked
+              ? mastered
+                ? 'MASTERED'
+                : `WORLD TIER ${worldTier}`
+              : `RANK ${state?.requiredRankOrder ?? '?'}`}
+          </Text>
         </View>
       </Pressable>
     </View>
@@ -229,6 +318,8 @@ function BiomeRegion({
   height,
   tint,
   rotate,
+  worldTier = 0,
+  unlocked = true,
 }: {
   gameId: string;
   label: string;
@@ -238,6 +329,8 @@ function BiomeRegion({
   height: number;
   tint: string;
   rotate: string;
+  worldTier?: number;
+  unlocked?: boolean;
 }) {
   return (
     <View
@@ -250,6 +343,7 @@ function BiomeRegion({
           width,
           height,
           transform: [{ rotate }],
+          opacity: unlocked ? 0.58 + Math.min(5, worldTier) * 0.08 : 0.28,
         },
       ]}
     >
@@ -261,6 +355,7 @@ function BiomeRegion({
       />
       <View style={styles.biomeLabel}>
         <Text style={styles.biomeLabelText}>{label}</Text>
+        <Text style={styles.biomeTierText}>{unlocked ? `TIER ${worldTier}` : 'LOCKED'}</Text>
       </View>
     </View>
   );
@@ -286,6 +381,7 @@ function DecorativeLabel({
   label,
   stage,
   minimumStage,
+  href,
 }: {
   left: number;
   top: number;
@@ -293,17 +389,29 @@ function DecorativeLabel({
   label: string;
   stage: number;
   minimumStage: number;
+  href: string;
 }) {
   const locked = stage < minimumStage;
   return (
-    <View style={[styles.decorativeLabel, { left, top, opacity: locked ? 0.4 : 0.95 }]}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={locked ? `${label} locked until Kingdom Stage ${minimumStage}` : `Open ${label}`}
+      disabled={locked}
+      onPress={() => {
+        if (!locked) router.push(href as any);
+      }}
+      style={({ pressed }) => [
+        styles.decorativeLabel,
+        { left, top, opacity: locked ? 0.4 : pressed ? 0.72 : 0.95 },
+      ]}
+    >
       <MaterialCommunityIcons name={locked ? 'lock-outline' : icon} size={18} color={locked ? '#67737a' : '#234f78'} />
       <Text style={[styles.decorativeLabelText, locked && styles.decorativeLabelLocked]}>{locked ? 'LOCKED LAND' : label}</Text>
-    </View>
+    </Pressable>
   );
 }
 
-export default function BuklodKingdomMap() {
+function BuklodKingdomMapContent() {
   const [progress, setProgress] = useState<BuklodKingdomPreviewProgress>(emptyProgress());
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -322,19 +430,19 @@ export default function BuklodKingdomMap() {
     };
   }, []);
 
-  const clearedCount = useMemo(
-    () => STATIONS.filter((station) => (progress.stations[station.id]?.clears ?? 0) > 0).length,
-    [progress],
-  );
-  const stage = stageFor(clearedCount);
-  const stageCopy = STAGE_COPY[stage];
+  const clearedCount = progress.clearedRegions;
+  const stage = progress.stage;
+  const stageCopy = {
+    title: progress.stageTitle || STAGE_COPY[stage].title,
+    subtitle: progress.stageSubtitle || STAGE_COPY[stage].subtitle,
+  };
   const worldScaleHint = width < 780 ? 'SWIPE TO EXPLORE' : 'EXPLORE THE KINGDOM';
 
   return (
     <View style={styles.root}>
       <LinearGradient colors={['#123c58', '#071b2a']} style={StyleSheet.absoluteFill} />
 
-      <View style={[styles.topHud, { top: Math.max(12, insets.top + 6) }]} pointerEvents="box-none">
+      <View style={[styles.topHud, { top: Math.max(52, insets.top + 44) }]} pointerEvents="box-none">
         <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.hudButton}>
           <MaterialCommunityIcons name="arrow-left" size={21} color="#173f62" />
         </Pressable>
@@ -342,6 +450,9 @@ export default function BuklodKingdomMap() {
           <MaterialCommunityIcons name="castle" size={18} color="#c28b1d" />
           <Text style={styles.progressPillTitle}>BUKLOD KINGDOM</Text>
           <Text style={styles.progressPillMeta}>{clearedCount}/13 CLEARED • STAGE {stage}</Text>
+          <Text style={styles.progressPillXp}>
+            {progress.kingdomXp.toLocaleString()} KXP • {progress.masteredRegions}/13 MASTERED
+          </Text>
         </View>
         <View style={styles.explorePill}>
           <MaterialCommunityIcons name="gesture-swipe-horizontal" size={17} color="#173f62" />
@@ -428,9 +539,17 @@ export default function BuklodKingdomMap() {
               <Ellipse cx={450} cy={655} rx={125} ry={82} fill="#e6d274" opacity={stage >= 2 ? 0.58 : 0.25} />
             </Svg>
 
-            {BIOME_REGIONS.map((region) => (
-              <BiomeRegion key={region.label} {...region} />
-            ))}
+            {BIOME_REGIONS.map((region) => {
+              const state = progress.stations[region.gameId];
+              return (
+                <BiomeRegion
+                  key={region.label}
+                  {...region}
+                  worldTier={state?.worldTier ?? 0}
+                  unlocked={state?.unlocked ?? false}
+                />
+              );
+            })}
 
             <Svg
               width={WORLD_W}
@@ -502,16 +621,28 @@ export default function BuklodKingdomMap() {
             </View>
 
             <View style={[styles.castleDecor, { opacity: stage >= 4 ? 1 : 0.48 }]}>
-              <MaterialCommunityIcons name={stage >= 4 ? 'castle' : 'lock-outline'} size={68} color={stage >= 4 ? '#f2d072' : '#66747c'} />
+              <MaterialCommunityIcons
+                name={stage >= 5 ? 'crown' : stage >= 4 ? 'castle' : 'lock-outline'}
+                size={68}
+                color={stage >= 4 ? '#f2d072' : '#66747c'}
+              />
               <View style={styles.castlePlaque}>
-                <Text style={styles.castleTitle}>{stage >= 4 ? 'BUKLOD CITADEL' : 'HIGH CITADEL'}</Text>
-                <Text style={styles.castleCopy}>{stage >= 4 ? 'A brighter world together' : 'Awakens in a later stage'}</Text>
+                <Text style={styles.castleTitle}>
+                  {stage >= 5 ? 'KINGDOM UNITED' : stage >= 4 ? 'BUKLOD CITADEL' : 'HIGH CITADEL'}
+                </Text>
+                <Text style={styles.castleCopy}>
+                  {stage >= 5
+                    ? '13 regions alive • mastery continues'
+                    : stage >= 4
+                      ? 'A brighter world together'
+                      : 'Awakens in a later stage'}
+                </Text>
               </View>
             </View>
 
-            <DecorativeLabel left={360} top={185} icon="target" label="TRAINING GROUNDS" stage={stage} minimumStage={2} />
-            <DecorativeLabel left={835} top={510} icon="stadium" label="IGPAT ARENA" stage={stage} minimumStage={3} />
-            <DecorativeLabel left={735} top={145} icon="castle" label="MENTOR TOWER" stage={stage} minimumStage={3} />
+            <DecorativeLabel left={360} top={185} icon="target" label="TRAINING GROUNDS" stage={stage} minimumStage={2} href="/games/training-grounds" />
+            <DecorativeLabel left={835} top={510} icon="stadium" label="IGPAT ARENA" stage={stage} minimumStage={3} href="/igpat" />
+            <DecorativeLabel left={735} top={145} icon="castle" label="MENTOR TOWER" stage={stage} minimumStage={3} href="/mentor" />
 
             {STATIONS.map((station, index) => (
               <StationNode key={station.id} station={station} index={index} progress={progress} />
@@ -535,7 +666,19 @@ export default function BuklodKingdomMap() {
   );
 }
 
+export default function BuklodKingdomMap() {
+  return (
+    <BuklodGameLanguageProvider gameId="kingdom-map">
+      <View style={styles.languageRoot}>
+        <BuklodKingdomMapContent />
+        <BuklodGameLanguageControl />
+      </View>
+    </BuklodGameLanguageProvider>
+  );
+}
+
 const styles = StyleSheet.create({
+  languageRoot: { flex: 1, position: 'relative' },
   root: { flex: 1, backgroundColor: '#071b2a' },
   horizontalContent: { minWidth: '100%' },
   verticalContent: { minHeight: '100%' },
@@ -572,6 +715,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(244,207,114,0.44)',
   },
+  biomeTierText: { color: 'rgba(255,244,202,0.72)', fontSize: 6.2, fontWeight: '900', letterSpacing: 0.7, marginTop: 1 },
   biomeLabelText: {
     color: '#fff3c7',
     fontSize: 8,
@@ -679,6 +823,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
   },
   progressPillTitle: { fontSize: 12, fontWeight: '900', color: '#6f4a13', letterSpacing: 0.6 },
+  progressPillXp: { color: '#745a2a', fontSize: 6.5, fontWeight: '900', marginTop: 1 },
   progressPillMeta: { fontSize: 9.5, fontWeight: '900', color: '#5c6570' },
   explorePill: {
     marginLeft: 'auto',
@@ -759,6 +904,22 @@ const styles = StyleSheet.create({
   signText: { color: '#f6deb2', fontSize: 8, fontWeight: '900', textAlign: 'center', letterSpacing: 0.8 },
 
   stationWrap: {
+  worldGrowthMarks: {
+    position: 'absolute',
+    left: 17,
+    top: 1,
+    width: 104,
+    height: 96,
+    zIndex: 0,
+  },
+  worldGrowthMark: {
+    position: 'absolute',
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.52)',
+  },
     position: 'absolute',
     width: 138,
     zIndex: 20,
@@ -840,6 +1001,7 @@ const styles = StyleSheet.create({
     shadowRadius: 7,
   },
   stationCharacter: { color: '#fff2c2', fontSize: 12, fontWeight: '900', letterSpacing: 0.25 },
+  stationPressableLocked: { opacity: 0.58 },
   stationRegion: { width: '100%', color: 'rgba(238,244,248,0.92)', fontSize: 7.8, fontWeight: '900', textAlign: 'center' },
   stationGame: { width: '100%', marginTop: 1, color: 'rgba(214,226,236,0.78)', fontSize: 7.1, fontWeight: '800', textAlign: 'center' },
   progressRow: { marginTop: 4, flexDirection: 'row', alignItems: 'center', gap: 2 },
@@ -847,6 +1009,20 @@ const styles = StyleSheet.create({
   progressDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#53616d', borderWidth: 0.6, borderColor: '#8c9aa4' },
   progressDotActive: { backgroundColor: '#d8a92f' },
   progressDotCleared: { backgroundColor: '#f1bd2e', borderColor: '#9c6b16' },
+  worldTierText: { marginTop: 3, color: '#d7e4ec', fontSize: 6.4, fontWeight: '900', letterSpacing: 0.55 },
+  lockedBadge: {
+    position: 'absolute',
+    right: 4,
+    top: 4,
+    width: 19,
+    height: 19,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#58646c',
+    borderWidth: 1,
+    borderColor: '#e6edf1',
+  },
 
   futureNode: { position: 'absolute', width: 86, height: 86, zIndex: 8, alignItems: 'center', justifyContent: 'center' },
   futureFog: { ...StyleSheet.absoluteFillObject, borderRadius: 43, backgroundColor: 'rgba(13,28,41,0.72)' },

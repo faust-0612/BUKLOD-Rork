@@ -1,7 +1,9 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, View } from 'react-native';
 
 import { playBuklodGameFeedback } from '../runtime/BuklodGameFeedback';
+import { BuklodGameText as Text } from '../runtime/BuklodGameLanguage';
+import { useBuklodKingdomLevel } from '../runtime/BuklodGameLevelContext';
 import type { BuklodGameResult } from '../types';
 
 type ResourceKey = 'water' | 'food' | 'energy' | 'morale';
@@ -213,6 +215,7 @@ type Props = {
 };
 
 export function MissionTrailGameV1({ onFinish }: Props) {
+  const { difficulty } = useBuklodKingdomLevel();
   const [legIndex, setLegIndex] = useState(0);
   const [resources, setResources] = useState<Resources>(STARTING_RESOURCES);
   const [score, setScore] = useState(0);
@@ -263,7 +266,11 @@ export function MissionTrailGameV1({ onFinish }: Props) {
 
       const nextResources = (Object.keys(resources) as ResourceKey[]).reduce<Resources>(
         (next, key) => {
-          next[key] = clampResource(resources[key] + (choice.delta[key] ?? 0));
+          const rawDelta = choice.delta[key] ?? 0;
+          const scaledDelta = rawDelta < 0
+            ? Math.round(rawDelta * difficulty)
+            : Math.round(rawDelta / Math.max(1, difficulty * 0.92));
+          next[key] = clampResource(resources[key] + scaledDelta);
           return next;
         },
         { ...resources },
@@ -312,7 +319,7 @@ export function MissionTrailGameV1({ onFinish }: Props) {
         setLegIndex(nextLegIndex);
       }
     },
-    [failed, finishGame, finished, leg.name, legIndex, onFinish, resources, score, transition],
+    [difficulty, failed, finishGame, finished, leg.name, legIndex, onFinish, resources, score, transition],
   );
 
   const reserveScore = useMemo(
@@ -413,7 +420,7 @@ export function MissionTrailGameV1({ onFinish }: Props) {
           <Text style={styles.finishCopy}>
             {failed
               ? 'A critical reserve reached zero. Route choice matters more than raw speed.'
-              : 'The route is complete. Later, this result can permanently open Niel’s next frontier station and change the Mission map.'}
+              : 'Clear recorded. Niel’s next Kingdom Level is available and Mission Frontier growth is saved to your account.'}
           </Text>
           <View style={styles.historyBox}>
             {history.map((item, index) => (
