@@ -211,14 +211,82 @@ export default function BuklodFoundationWorkspaceNav() {
            * in OPENING state. Keep one request in flight, abort after a bounded
            * timeout, show a retryable error, then always release the launcher.
            */
+          /* BUKLOD_PROFILE_QUIZ_DEVICE_SESSION_SELF_HEAL_R3
+           * getSession() reads local persisted state and can be stale on one
+           * browser/device. Confirm it against Main Auth with getUser(). If
+           * validation fails, refresh exactly once. Never loop refresh/bridge
+           * requests and never expose refresh tokens to Quiz.
+           */
           const { data, error } = await supabase.auth.getSession();
           if (error) throw error;
 
-          const accessToken = String(data.session?.access_token ?? '').trim();
+          let accessToken = String(data.session?.access_token ?? '').trim();
           if (!accessToken) {
             throw new Error(
               'Your BUKLOD Main session is unavailable. Sign in to BUKLOD Main again, then open BUKLOD Quiz from Profile.',
             );
+          }
+
+          const validation = await Promise.race([
+            supabase.auth.getUser(accessToken),
+            new Promise<any>((resolve) => {
+              setTimeout(
+                () =>
+                  resolve({
+                    data: { user: null },
+                    error: new Error('BUKLOD_MAIN_SESSION_VALIDATE_TIMEOUT'),
+                  }),
+                8_000,
+              );
+            }),
+          ]);
+
+          if (validation?.error || !validation?.data?.user) {
+            const refreshed = await Promise.race([
+              supabase.auth.refreshSession(),
+              new Promise<any>((resolve) => {
+                setTimeout(
+                  () =>
+                    resolve({
+                      data: { session: null, user: null },
+                      error: new Error('BUKLOD_MAIN_SESSION_REFRESH_TIMEOUT'),
+                    }),
+                  8_000,
+                );
+              }),
+            ]);
+
+            accessToken = String(
+              refreshed?.data?.session?.access_token ?? '',
+            ).trim();
+
+            if (refreshed?.error || !accessToken) {
+              throw new Error(
+                'Your saved BUKLOD session on this device is no longer valid. Sign in to BUKLOD Main again, then open BUKLOD Quiz.',
+              );
+            }
+
+            const revalidated = await Promise.race([
+              supabase.auth.getUser(accessToken),
+              new Promise<any>((resolve) => {
+                setTimeout(
+                  () =>
+                    resolve({
+                      data: { user: null },
+                      error: new Error(
+                        'BUKLOD_MAIN_SESSION_REVALIDATE_TIMEOUT',
+                      ),
+                    }),
+                  8_000,
+                );
+              }),
+            ]);
+
+            if (revalidated?.error || !revalidated?.data?.user) {
+              throw new Error(
+                'BUKLOD refreshed your saved session, but this device could not validate it. Check your connection, then sign in again if needed.',
+              );
+            }
           }
 
           const controller = new AbortController();
