@@ -25,22 +25,27 @@ if ($conflicts.Count -gt 0) {
 }
 
 Write-Host ''
-Write-Host '1/7 Kingdom E2E source contract...'
+Write-Host '1/8 Kingdom E2E source contract...'
 node scripts/kingdom-e2e-contract.mjs
 Assert-ExternalCommand 'Kingdom E2E source contract'
 
 Write-Host ''
-Write-Host '2/7 Canonical Character regression contract...'
+Write-Host '2/8 Full 13-game EN/TL coverage gate...'
+node scripts/game-translation-coverage.mjs
+Assert-ExternalCommand '13-game EN/TL coverage gate'
+
+Write-Host ''
+Write-Host '3/8 Canonical Character regression contract...'
 npm run character:contract
 Assert-ExternalCommand 'Character regression contract'
 
 Write-Host ''
-Write-Host '3/7 TypeScript compile QA...'
+Write-Host '4/8 TypeScript compile QA...'
 npx tsc --noEmit
 Assert-ExternalCommand 'TypeScript compile QA'
 
 Write-Host ''
-Write-Host '4/7 Rork media/fallback contract...'
+Write-Host '5/8 Rork media/fallback contract...'
 node scripts/rork-media-contract-test.mjs
 Assert-ExternalCommand 'Rork media contract'
 
@@ -53,24 +58,24 @@ New-Item -ItemType Directory -Force -Path $qaRoot | Out-Null
 Write-Host "QA artifact run: $qaRoot"
 
 Write-Host ''
-Write-Host '5/7 Web single-output export...'
+Write-Host '6/8 Web single-output export...'
 $env:BUKLOD_WEB_OUTPUT = 'single'
 npx expo export --platform web --output-dir $webOut
 Assert-ExternalCommand 'Web export'
 
 Write-Host ''
-Write-Host '6/7 Compiled Kingdom E2E contract...'
+Write-Host '7/8 Compiled Kingdom E2E contract...'
 node scripts/kingdom-e2e-contract.mjs --dist $webOut
 Assert-ExternalCommand 'Compiled Kingdom E2E contract'
 
 Write-Host ''
-Write-Host '7/7 Android JS/native-module bundle smoke...'
+Write-Host '8/8 Android JS/native-module bundle smoke...'
 npx expo export --platform android --output-dir $androidOut
 Assert-ExternalCommand 'Android bundle smoke'
 
 Write-Host ''
 Write-Host '============================================================'
-Write-Host ' KINGDOM E2E AUTOMATED QA PASS'
+Write-Host ' KINGDOM E2E AUTOMATED QA 8/8 PASS'
 Write-Host '============================================================'
 Write-Host "Web artifact    : $webOut"
 Write-Host "Android artifact: $androidOut"
