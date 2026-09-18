@@ -130,7 +130,6 @@ requireText('src/components/home/BuklodPersonalHomeE2E.tsx', [
   'BuklodRorkHomeAtlas',
   'BuklodSpatialHomeV2',
   "useState<'house' | 'details'>('house')",
-  'Open full Home details & tools',
 ]);
 requireText('src/components/home/BuklodRorkHomeAtlas.tsx', [
   'BuklodActiveCharacterArt',
@@ -141,6 +140,7 @@ requireText('src/components/home/BuklodRorkHomeAtlas.tsx', [
   "route: '/personal-home/budget'",
   "route: '/bayanihan'",
   "route: '/city'",
+  'Open full Home details & tools',
 ]);
 
 requireText('src/components/home/BuklodSpatialHomeV2.tsx', [
