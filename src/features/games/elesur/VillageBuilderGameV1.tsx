@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { playBuklodGameFeedback } from '../runtime/BuklodGameFeedback';
 import { BuklodGameText as Text } from '../runtime/BuklodGameLanguage';
+import { useBuklodKingdomLevel } from '../runtime/BuklodGameLevelContext';
 import type { BuklodGameResult } from '../types';
 
 type ProjectKey = 'water' | 'school' | 'farm' | 'clinic' | 'road';
@@ -32,9 +33,12 @@ const starsForScore = (score:number):1|2|3 => score >= 1450 ? 3 : score >= 1100 
 type Props = { onFinish?: (result:BuklodGameResult)=>void };
 
 export function VillageBuilderGameV1({ onFinish }:Props) {
+  const { difficulty, resourceMultiplier } = useBuklodKingdomLevel();
+  const startWorkers = Math.max(7, Math.round(START_WORKERS * resourceMultiplier));
+  const startMaterials = Math.max(10, Math.round(START_MATERIALS * resourceMultiplier));
   const [phase,setPhase]=useState<Phase>('build');
-  const [workers,setWorkers]=useState(START_WORKERS);
-  const [materials,setMaterials]=useState(START_MATERIALS);
+  const [workers,setWorkers]=useState(startWorkers);
+  const [materials,setMaterials]=useState(startMaterials);
   const [built,setBuilt]=useState<ProjectKey[]>([]);
   const [round,setRound]=useState(1);
   const [score,setScore]=useState(0);
@@ -64,16 +68,16 @@ export function VillageBuilderGameV1({ onFinish }:Props) {
       const unresolved=PROJECTS.filter(p=>!nextBuilt.includes(p.key));
       const critical=unresolved.filter(p=>p.need>=80).length;
       const finalScore=Math.round(score+priorityBonus+project.need*2+avg*5+(workers-project.workerCost)*35+(materials-project.materialCost)*20-critical*130);
-      const failed=avg<48||critical>=2;
+      const failed=avg<(48+(difficulty-1)*10)||critical>=2;
       const stars=starsForScore(finalScore);
       setScore(finalScore);setPhase('result');
       setMessage(failed?'The village improved, but too many urgent needs were left unresolved. Rebuild the intervention order.':`Village cycle stabilized. ${nextBuilt.length} priority projects now anchor the highland community.`);
       void playBuklodGameFeedback(failed?'failure':'success');
       onFinish?.({gameId:GAME_ID,status:failed?'lost':'won',score:finalScore,stars:failed?0:stars,reward:{xp:failed?25:130+stars*45,kingdomXp:failed?5:60+stars*20,collectibleKey:!failed&&stars===3?'elesur-highland-service-seal':undefined}});
     }
-  },[built,builtSet,health,materials,onFinish,phase,pressure,score,workers]);
+  },[built,builtSet,difficulty,health,materials,onFinish,phase,pressure,score,workers]);
 
-  const reset=useCallback(()=>{setPhase('build');setWorkers(START_WORKERS);setMaterials(START_MATERIALS);setBuilt([]);setRound(1);setScore(0);setHealth({care:38,access:32,learning:34,livelihood:36});setMessage('The highland village has more needs than resources. Build in the right order before the community enters crisis.');},[]);
+  const reset=useCallback(()=>{setPhase('build');setWorkers(startWorkers);setMaterials(startMaterials);setBuilt([]);setRound(1);setScore(0);setHealth({care:38,access:32,learning:34,livelihood:36});setMessage('The highland village has more needs than resources. Build in the right order before the community enters crisis.');},[startMaterials,startWorkers]);
 
   return <View style={styles.shell}>
     <View style={styles.header}><View><Text style={styles.eyebrow}>ELESUR • HIGHLAND COMMUNITY</Text><Text style={styles.title}>Village Builder</Text></View><View style={styles.resourceBox}><Text style={styles.resource}>{workers}W • {materials}M</Text><Text style={styles.resourceLabel}>WORKERS / MATERIALS</Text></View></View>
