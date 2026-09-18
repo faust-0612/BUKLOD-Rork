@@ -58,6 +58,21 @@ export default function BuklodGameProgressHud({
         <Text style={styles.metaText}>WORLD TIER {station.worldTier}</Text>
         <Text style={styles.metaText}>★ {station.bestStars} • {station.clearedLevels} CLEARED</Text>
       </View>
+      {progress?.lastResult?.gameId === station.gameId ? (
+        <View style={styles.rewardPill}>
+          <Text style={styles.rewardTitle}>
+            {progress.lastResult.firstClear ? 'LEVEL CLEAR SAVED' : 'BEST RUN UPDATED'}
+          </Text>
+          {progress.lastResult.kingdomXpAwarded > 0 ? (
+            <Text style={styles.rewardText}>
+              +{progress.lastResult.kingdomXpAwarded} Kingdom XP
+            </Text>
+          ) : null}
+          {progress.lastResult.collectibleAwarded ? (
+            <Text style={styles.collectibleText}>NEW COLLECTIBLE</Text>
+          ) : null}
+        </View>
+      ) : null}
       {progress?.pendingResults ? (
         <View style={styles.pendingPill}>
           <MaterialCommunityIcons name="cloud-sync-outline" size={11} color="#ffe6a1" />
@@ -115,6 +130,18 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.12)',
   },
   metaText: { color: 'rgba(255,255,255,0.78)', fontSize: 7.5, fontWeight: '800' },
+  rewardPill: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: 'rgba(65,48,13,0.88)',
+    borderWidth: 1,
+    borderColor: 'rgba(242,211,121,0.36)',
+  },
+  rewardTitle: { color: '#fff0b0', fontSize: 7.5, fontWeight: '900', letterSpacing: 0.5 },
+  rewardText: { marginTop: 1, color: '#ffffff', fontSize: 9, fontWeight: '900' },
+  collectibleText: { marginTop: 2, color: '#9ee7b6', fontSize: 7, fontWeight: '900' },
   pendingPill: {
     alignSelf: 'flex-start',
     flexDirection: 'row',
