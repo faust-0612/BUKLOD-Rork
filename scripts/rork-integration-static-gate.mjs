@@ -103,6 +103,12 @@ requireTokens('src/features/games/runtime/rorkAudio.ts', [
   'useRorkGameAmbience',
   'voiceCount',
   'cooldownMs',
+  'downloadFirst: true',
+  'player.isLoaded',
+]);
+requireTokens('scripts/rork-media-contract-test.mjs', [
+  'RORK MEDIA CONTRACT PASSED.',
+  '13/13 canonical games mapped',
 ]);
 for (const rel of [
   'src/features/games/runtime/BuklodGameStage.web.tsx',
@@ -159,6 +165,7 @@ try {
     'scripts/game-kingdom-release-contract.mjs',
     'scripts/rork-integration-qa.ps1',
     'scripts/rork-integration-static-gate.mjs',
+    'scripts/rork-media-contract-test.mjs',
     'src/components/home/BuklodPersonalHomeE2E.tsx',
     'src/components/home/BuklodRorkHomeAtlas.tsx',
     'src/features/games/kingdom/BuklodKingdomMap.tsx',
