@@ -321,7 +321,16 @@ export default function BuklodFoundationWorkspaceNav() {
           }
 
           const handoffResult = await handoffResponse.json().catch(() => null);
-          const launchUrl = String(handoffResult?.launch_url ?? '').trim();
+          const legacyLaunchUrl = String(
+            handoffResult?.launch_url ?? '',
+          ).trim();
+          const sessionLaunchUrl = String(
+            handoffResult?.session_launch_url ?? '',
+          ).trim();
+          const launchUrl =
+            handoffResult?.session_launch_ready === true && sessionLaunchUrl
+              ? sessionLaunchUrl
+              : legacyLaunchUrl;
 
           if (
             !handoffResponse.ok ||
