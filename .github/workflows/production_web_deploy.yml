@@ -152,12 +152,14 @@ jobs:
       - name: Apply web Community Post hotfix
         run: node scripts/patch-web-community-post.cjs
 
-      - name: Verify web Community Post hotfix
+      - name: Verify web Community background publish contract
         shell: bash
         run: |
-          grep -F "setBusy(true);" 'src/components/BuklodExclusiveScopeCommunity.tsx'
-          grep -F "disabled={busy}" 'src/components/BuklodExclusiveScopeCommunity.tsx'
-          grep -F "Post to this community" 'src/components/BuklodExclusiveScopeCommunity.tsx'
+          grep -F "const snapshot =" 'src/components/BuklodExclusiveScopeCommunity.tsx'
+          grep -F "setBusy(false);" 'src/components/BuklodExclusiveScopeCommunity.tsx'
+          grep -F "setPublishNotice(" 'src/components/BuklodExclusiveScopeCommunity.tsx'
+          grep -F "!body.trim()" 'src/components/BuklodExclusiveScopeCommunity.tsx'
+          grep -F "BUKLOD_WEB_COMMUNITY_BACKGROUND_PUBLISH_R5" 'scripts/patch-web-community-post.cjs'
 
       - name: Apply Home identity action row
         run: node scripts/patch-home-identity-action-row.cjs
