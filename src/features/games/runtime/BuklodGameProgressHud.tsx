@@ -1,7 +1,8 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
+import { BuklodGameText as Text } from './BuklodGameLanguage';
 import type {
   BuklodKingdomProgress,
   BuklodKingdomStationProgress,
