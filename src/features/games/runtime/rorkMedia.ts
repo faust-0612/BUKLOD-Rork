@@ -26,7 +26,6 @@ export type RorkGameMedia = {
 
 const RORK_PUBLIC_BASE = 'https://kp3ge50a5t6chyb7gv3jn-web.rork.live/kingdom';
 const AUDIO_BASE = `${RORK_PUBLIC_BASE}/audio`;
-const BG_BASE = `${RORK_PUBLIC_BASE}/bg`;
 
 export const RORK_AUDIO: Record<RorkAudioKey, string> = {
   ui_tap: `${AUDIO_BASE}/ui_tap.mp3`,
