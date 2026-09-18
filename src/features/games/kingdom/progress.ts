@@ -25,6 +25,21 @@ export type BuklodKingdomStationProgress = {
   collectibleEarned: boolean;
 };
 
+export type BuklodKingdomLevelDetail = {
+  gameId: string;
+  levelNo: number;
+  regionUnlocked: boolean;
+  levelUnlocked: boolean;
+  cleared: boolean;
+  attempts: number;
+  wins: number;
+  bestScore: number;
+  bestStars: 0 | 1 | 2 | 3;
+  lastStatus: 'ready' | 'won' | 'lost';
+  firstClearedAt: string | null;
+  lastPlayedAt: string | null;
+};
+
 export type BuklodKingdomLastResult = {
   clientResultId: string;
   gameId: string;
@@ -150,6 +165,34 @@ function normalizeStation(value: any): BuklodKingdomStationProgress | null {
         ? null
         : String(value?.collectible_key ?? value?.collectibleKey),
     collectibleEarned: Boolean(value?.collectible_earned ?? value?.collectibleEarned),
+  };
+}
+
+function normalizeLevelDetail(value: any): BuklodKingdomLevelDetail | null {
+  const gameId = String(value?.game_id ?? value?.gameId ?? '').trim();
+  const levelNo = clampInt(value?.level_no ?? value?.levelNo, 1, 20);
+  if (!gameId) return null;
+  return {
+    gameId,
+    levelNo,
+    regionUnlocked: Boolean(value?.region_unlocked ?? value?.regionUnlocked),
+    levelUnlocked: Boolean(value?.level_unlocked ?? value?.levelUnlocked),
+    cleared: Boolean(value?.cleared),
+    attempts: Math.max(0, Number(value?.attempts ?? 0) || 0),
+    wins: Math.max(0, Number(value?.wins ?? 0) || 0),
+    bestScore: Math.max(0, Number(value?.best_score ?? value?.bestScore ?? 0) || 0),
+    bestStars: clampInt(value?.best_stars ?? value?.bestStars, 0, 3) as 0 | 1 | 2 | 3,
+    lastStatus: ['won', 'lost'].includes(String(value?.last_status ?? value?.lastStatus))
+      ? (String(value?.last_status ?? value?.lastStatus) as 'won' | 'lost')
+      : 'ready',
+    firstClearedAt:
+      value?.first_cleared_at == null && value?.firstClearedAt == null
+        ? null
+        : String(value?.first_cleared_at ?? value?.firstClearedAt),
+    lastPlayedAt:
+      value?.last_played_at == null && value?.lastPlayedAt == null
+        ? null
+        : String(value?.last_played_at ?? value?.lastPlayedAt),
   };
 }
 
@@ -369,6 +412,21 @@ export async function loadBuklodKingdomProgress() {
 
 export async function loadBuklodKingdomPreviewProgress() {
   return loadBuklodKingdomProgress();
+}
+
+export async function loadBuklodKingdomLevelDetails(
+  gameId: string | null = null,
+): Promise<BuklodKingdomLevelDetail[]> {
+  const { data, error } = await (supabase as any).rpc(
+    'get_my_buklod_kingdom_level_details_v1',
+    { p_game_id: gameId },
+  );
+  if (error) throw error;
+
+  const rows = Array.isArray(data) ? data : [];
+  return rows
+    .map((row) => normalizeLevelDetail(row))
+    .filter((row): row is BuklodKingdomLevelDetail => Boolean(row));
 }
 
 export async function recordBuklodKingdomResult(
