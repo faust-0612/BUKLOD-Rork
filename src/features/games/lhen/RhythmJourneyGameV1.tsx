@@ -36,12 +36,12 @@ export function RhythmJourneyGameV1({onFinish}:Props){
   if(phase!=='playing')return;
   const timer=setInterval(()=>{
    const now=Date.now()-startedRef.current;setElapsed(now);
-   let idx=BEATS.findIndex((beat,i)=>!handledRef.current.has(i)&&now<=beat.time+230);if(idx<0)idx=BEATS.length-1;setBeatIndex(idx);
+   let idx=BEATS.findIndex((beat,i)=>!handledRef.current.has(i)&&now<=beat.time+missWindow);if(idx<0)idx=BEATS.length-1;setBeatIndex(idx);
    BEATS.forEach((beat,i)=>{if(!handledRef.current.has(i)&&now>beat.time+missWindow){handledRef.current.add(i);hitsRef.current=[...hitsRef.current,'miss'];comboRef.current=0;setHits(hitsRef.current);setCombo(0);setMessage('Missed pulse. Reset your timing and re-enter the rhythm.');void playBuklodGameFeedback('impact');}});
    if(now>=SONG_END){clearInterval(timer);finish(scoreRef.current,[...hitsRef.current],bestComboRef.current);}
   },45);
   return()=>clearInterval(timer);
- },[finish,phase]);
+ },[finish,missWindow,phase]);
 
  const start=useCallback(()=>{handledRef.current=new Set();startedRef.current=Date.now();scoreRef.current=0;comboRef.current=0;bestComboRef.current=0;hitsRef.current=[];finishedRef.current=false;setElapsed(0);setBeatIndex(0);setScore(0);setCombo(0);setBestCombo(0);setHits([]);setPhase('playing');setMessage('Follow the visual pulse and local feedback. Timing windows become tighter as your Kingdom Level rises.');void playBuklodGameFeedback('move');},[]);
 
