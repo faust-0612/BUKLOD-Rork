@@ -28,27 +28,29 @@ function playNativeSound(
 
 export async function playBuklodGameFeedback(event: BuklodGameFeedbackEvent) {
   try {
-    const usedRork = tryPlayRorkGameFeedback(event, 0.30);
+    // Keep the shipped local WAV + haptic path as the guaranteed baseline.
+    // Rork audio layers on top and may fail closed when offline.
+    tryPlayRorkGameFeedback(event, 0.16);
     switch (event) {
       case 'move':
-        if (!usedRork) playNativeSound(reactionSound, 1.55, 0.18, 700);
+        playNativeSound(reactionSound, 1.55, 0.18, 700);
         await Haptics.selectionAsync();
         return;
       case 'collect':
-        if (!usedRork) playNativeSound(reactionSound, 1.85, 0.28, 800);
+        playNativeSound(reactionSound, 1.85, 0.28, 800);
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         return;
       case 'impact':
-        if (!usedRork) playNativeSound(reactionSound, 0.72, 0.32, 1050);
+        playNativeSound(reactionSound, 0.72, 0.32, 1050);
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
         return;
       case 'success':
       case 'unlock':
-        if (!usedRork) playNativeSound(rewardSound, event === 'unlock' ? 1.18 : 1, 0.42, 1500);
+        playNativeSound(rewardSound, event === 'unlock' ? 1.18 : 1, 0.42, 1500);
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         return;
       case 'failure':
-        if (!usedRork) playNativeSound(reactionSound, 0.5, 0.30, 1300);
+        playNativeSound(reactionSound, 0.5, 0.30, 1300);
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         return;
     }
