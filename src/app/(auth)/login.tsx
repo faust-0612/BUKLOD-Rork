@@ -358,10 +358,18 @@ async function signInForFreshPublicHome(
       typeof supabase.auth.signInWithPassword
     >[0]
 ) {
-  await AsyncStorage.setItem(
-    BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY,
-    '1'
-  );
+  try {
+    await AsyncStorage.setItem(
+      BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY,
+      '1'
+    );
+  }
+  catch (error) {
+    console.warn(
+      'Could not save fresh-login routing intent.',
+      error
+    );
+  }
 
   const result =
     await signInWithPasswordResilient(
@@ -371,7 +379,7 @@ async function signInForFreshPublicHome(
   if (result.error) {
     await AsyncStorage.removeItem(
       BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY
-    );
+    ).catch(() => undefined);
   }
 
   return result;
