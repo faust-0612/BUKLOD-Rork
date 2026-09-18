@@ -56,6 +56,9 @@ jobs:
       - name: Kingdom source contract
         run: npm run kingdom:e2e:contract
 
+      - name: Canonical Kingdom/game release contract
+        run: npm run game:contract
+
       - name: 13-game EN/TL coverage
         run: npm run game:translation:coverage
 
@@ -73,13 +76,15 @@ jobs:
           BUKLOD_WEB_OUTPUT: single
         run: npx expo export --platform web --output-dir .kingdom-ci/web
 
-      - name: Compiled Kingdom contract
-        run: node scripts/kingdom-e2e-contract.mjs --dist .kingdom-ci/web
+      - name: Compiled Kingdom contracts
+        run: |
+          node scripts/kingdom-e2e-contract.mjs --dist .kingdom-ci/web
+          node scripts/game-kingdom-release-contract.mjs --dist .kingdom-ci/web --web-output single
 
       - name: Android bundle smoke
         run: npx expo export --platform android --output-dir .kingdom-ci/android
 
       - name: Kingdom QA summary
         run: |
-          echo 'KINGDOM E2E 8/8 QA PASS'
+          echo 'KINGDOM E2E 9/9 QA PASS'
           echo 'No deploy or merge performed.'
