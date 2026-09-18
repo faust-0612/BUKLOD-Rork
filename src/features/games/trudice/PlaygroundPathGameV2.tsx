@@ -363,7 +363,7 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
             <Text style={styles.resultTitle}>{phase === 'won' ? 'CHILDREN’S HAVEN GLOWS' : 'TRY THE PATH AGAIN'}</Text>
             <Text style={styles.resultScore}>{score.toLocaleString()} pts</Text>
             <Text style={styles.resultMeta}>Mistakes {mistakes} • {'★'.repeat(starsForRun(mistakes))}</Text>
-            <Text style={styles.resultCopy}>{phase === 'won' ? 'Later, this clear can permanently brighten Trudice’s playground station on the Kingdom Map.' : 'The pattern is replayable with no penalty. Learn it visually and try again.'}</Text>
+            <Text style={styles.resultCopy}>{phase === 'won' ? 'Clear recorded. Trudice’s Journey advances and Children’s Haven grows on the Kingdom Map.' : 'Replay this level freely. Progress advances only when the level is cleared.'}</Text>
             <Pressable onPress={reset} style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryPressed]}>
               <Text style={styles.primaryText}>PLAY AGAIN</Text>
             </Pressable>
