@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { playBuklodGameFeedback } from '../runtime/BuklodGameFeedback';
 import { BuklodGameText as Text } from '../runtime/BuklodGameLanguage';
+import { useBuklodKingdomLevel } from '../runtime/BuklodGameLevelContext';
 import type { BuklodGameResult } from '../types';
 
 type Phase='ready'|'playing'|'result';
@@ -17,6 +18,8 @@ const starsForScore=(score:number):1|2|3=>score>=2350?3:score>=1750?2:1;
 
 type Props={onFinish?:(result:BuklodGameResult)=>void};
 export function RhythmJourneyGameV1({onFinish}:Props){
+ const { targetMultiplier } = useBuklodKingdomLevel();
+ const missWindow=Math.max(125,230/targetMultiplier),tapWindow=Math.max(145,260/targetMultiplier),perfectWindow=Math.max(45,85/targetMultiplier),goodWindow=Math.max(95,180/targetMultiplier);
  const [phase,setPhase]=useState<Phase>('ready'),[elapsed,setElapsed]=useState(0),[beatIndex,setBeatIndex]=useState(0),[score,setScore]=useState(0),[combo,setCombo]=useState(0),[bestCombo,setBestCombo]=useState(0),[hits,setHits]=useState<Hit[]>([]),[message,setMessage]=useState('Tap when the pulse reaches the center. Perfect timing builds combo; missed beats break the flow.');
  const startedRef=useRef(0),handledRef=useRef<Set<number>>(new Set()),scoreRef=useRef(0),comboRef=useRef(0),bestComboRef=useRef(0),hitsRef=useRef<Hit[]>([]),finishedRef=useRef(false);
  const currentBeat=BEATS[Math.min(beatIndex,BEATS.length-1)];
@@ -34,7 +37,7 @@ export function RhythmJourneyGameV1({onFinish}:Props){
   const timer=setInterval(()=>{
    const now=Date.now()-startedRef.current;setElapsed(now);
    let idx=BEATS.findIndex((beat,i)=>!handledRef.current.has(i)&&now<=beat.time+230);if(idx<0)idx=BEATS.length-1;setBeatIndex(idx);
-   BEATS.forEach((beat,i)=>{if(!handledRef.current.has(i)&&now>beat.time+230){handledRef.current.add(i);hitsRef.current=[...hitsRef.current,'miss'];comboRef.current=0;setHits(hitsRef.current);setCombo(0);setMessage('Missed pulse. Reset your timing and re-enter the rhythm.');void playBuklodGameFeedback('impact');}});
+   BEATS.forEach((beat,i)=>{if(!handledRef.current.has(i)&&now>beat.time+missWindow){handledRef.current.add(i);hitsRef.current=[...hitsRef.current,'miss'];comboRef.current=0;setHits(hitsRef.current);setCombo(0);setMessage('Missed pulse. Reset your timing and re-enter the rhythm.');void playBuklodGameFeedback('impact');}});
    if(now>=SONG_END){clearInterval(timer);finish(scoreRef.current,[...hitsRef.current],bestComboRef.current);}
   },45);
   return()=>clearInterval(timer);
@@ -45,10 +48,10 @@ export function RhythmJourneyGameV1({onFinish}:Props){
  const tap=useCallback(()=>{
   if(phase!=='playing')return;
   const idx=BEATS.findIndex((_beat,i)=>!handledRef.current.has(i));if(idx<0)return;
-  const beat=BEATS[idx];const deviation=Math.abs(elapsed-beat.time);if(deviation>260){setMessage('Too early. Wait for the pulse to collapse into the center.');void playBuklodGameFeedback('impact');return;}
-  handledRef.current.add(idx);let hit:Hit='good';let points=110;if(deviation<=85){hit='perfect';points=190;}else if(deviation<=180){hit='good';points=120;}else{hit='miss';points=0;}
+  const beat=BEATS[idx];const deviation=Math.abs(elapsed-beat.time);if(deviation>tapWindow){setMessage('Too early. Wait for the pulse to collapse into the center.');void playBuklodGameFeedback('impact');return;}
+  handledRef.current.add(idx);let hit:Hit='good';let points=110;if(deviation<=perfectWindow){hit='perfect';points=190;}else if(deviation<=goodWindow){hit='good';points=120;}else{hit='miss';points=0;}
   const nextCombo=hit==='miss'?0:comboRef.current+1;const bonus=hit==='miss'?0:nextCombo*12+(beat.accent?45:0);comboRef.current=nextCombo;bestComboRef.current=Math.max(bestComboRef.current,nextCombo);scoreRef.current+=points+bonus;hitsRef.current=[...hitsRef.current,hit];setCombo(nextCombo);setBestCombo(bestComboRef.current);setScore(scoreRef.current);setHits(hitsRef.current);setMessage(hit==='perfect'?(beat.accent?'PERFECT ACCENT • flow surges':'PERFECT • keep the line'):hit==='good'?'GOOD • stay centered':'Late miss • recover on the next pulse');void playBuklodGameFeedback(hit==='miss'?'impact':'collect');
- },[elapsed,phase]);
+ },[elapsed,goodWindow,missWindow,perfectWindow,phase,tapWindow]);
 
  const reset=useCallback(()=>{finishedRef.current=false;setPhase('ready');setElapsed(0);setBeatIndex(0);setScore(0);setCombo(0);setBestCombo(0);setHits([]);setMessage('Tap when the pulse reaches the center. Perfect timing builds combo; missed beats break the flow.');},[]);
  const progress=Math.min(100,Math.round(elapsed/SONG_END*100));
