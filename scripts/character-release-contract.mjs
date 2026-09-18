@@ -15,9 +15,9 @@ const distDir = distIndex >= 0 ? path.resolve(ROOT, args[distIndex + 1] || 'dist
 /*
  * BUKLOD CHARACTER VISUAL + GATING LOCK — 2026-09-14
  *
- * R31 remains on the exact approved visual blob. R40 preserves the approved
- * presentation for unlocked Special Characters while enforcing the canonical
- * rule that locked Special identities are not rendered before Circle Rank unlock.
+ * R31 remains on the exact approved visual blob. R40 preserves Circle Rank
+ * activation authority while keeping every Special Character identity visible.
+ * Locked Characters must render as LOCKED and must not become activatable early.
  *
  * Git blob identity is checked instead of hashing working-tree text so Windows
  * CRLF conversion cannot create false failures.
@@ -179,7 +179,7 @@ const r40 = requireTokens('src/components/points/BuklodSpecialCharacterSeries.ts
   'SPECIAL_ORDER',
   'visibleSpecialIds.map',
   'Special Character Journey',
-  'Special Characters appear only when your Circle Rank unlocks them.',
+  'See every Special Character now. Circle Rank still controls when each one can be activated.',
   'More than a character. A mission.',
   'LEVEL 1 - 20 JOURNEY',
   'COLLECTIBLES & BADGES',
