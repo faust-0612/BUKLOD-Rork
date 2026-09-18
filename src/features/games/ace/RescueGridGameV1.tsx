@@ -3,6 +3,7 @@ import { Animated, Pressable, StyleSheet, View } from 'react-native';
 
 import { playBuklodGameFeedback } from '../runtime/BuklodGameFeedback';
 import { BuklodGameText as Text } from '../runtime/BuklodGameLanguage';
+import { useBuklodKingdomLevel } from '../runtime/BuklodGameLevelContext';
 import type { BuklodGameResult } from '../types';
 
 type Phase = 'ready' | 'playing' | 'won' | 'lost';
@@ -46,10 +47,12 @@ type Props = {
 };
 
 export function RescueGridGameV1({ onFinish }: Props) {
+  const { resourceMultiplier } = useBuklodKingdomLevel();
+  const startingEnergy = Math.max(9, Math.round(STARTING_ENERGY * resourceMultiplier));
   const [phase, setPhase] = useState<Phase>('ready');
   const [position, setPosition] = useState(START);
   const [path, setPath] = useState<number[]>([START]);
-  const [energy, setEnergy] = useState(STARTING_ENERGY);
+  const [energy, setEnergy] = useState(startingEnergy);
   const [rescued, setRescued] = useState<number[]>([]);
   const [score, setScore] = useState(0);
   const [message, setMessage] = useState('Plan a route through the district. Reach all three rescue beacons before extraction.');
@@ -159,23 +162,23 @@ export function RescueGridGameV1({ onFinish }: Props) {
     setPhase('playing');
     setPosition(START);
     setPath([START]);
-    setEnergy(STARTING_ENERGY);
+    setEnergy(startingEnergy);
     setRescued([]);
     setScore(0);
     setMessage('Mission live. Secure all rescue beacons, then reach extraction.');
     playBuklodGameFeedback('unlock').catch(() => undefined);
-  }, []);
+  }, [startingEnergy]);
 
   const reset = useCallback(() => {
     finishingRef.current = false;
     setPhase('ready');
     setPosition(START);
     setPath([START]);
-    setEnergy(STARTING_ENERGY);
+    setEnergy(startingEnergy);
     setRescued([]);
     setScore(0);
     setMessage('Plan a route through the district. Reach all three rescue beacons before extraction.');
-  }, []);
+  }, [startingEnergy]);
 
   return (
     <View style={styles.root}>
