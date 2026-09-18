@@ -41,6 +41,11 @@ export type BahayItem = {
   is_done: boolean;
   created_by: string;
   created_at: string;
+  recurrence?: 'NONE'|'DAILY'|'WEEKLY'|'MONTHLY';
+  rotation_enabled?: boolean;
+  requires_confirmation?: boolean;
+  confirmation_status?: 'NONE'|'PENDING'|'CONFIRMED'|'REJECTED';
+  completed_by?: string|null;
 };
 
 export type BahayMessage = {
@@ -211,6 +216,9 @@ export async function addBahayItem(input: {
   dueAt?: string|null;
   amount?: number|null;
   visibility?: BahayVisibility;
+  recurrence?: 'NONE'|'DAILY'|'WEEKLY'|'MONTHLY';
+  rotationEnabled?: boolean;
+  requiresConfirmation?: boolean;
 }) {
   const result = await (supabase as any).from('buklod_home_items').insert({
     home_id: input.homeId,
@@ -222,6 +230,9 @@ export async function addBahayItem(input: {
     due_at: input.dueAt ?? null,
     amount: input.amount ?? null,
     visibility: input.visibility ?? 'SHARED',
+    recurrence: input.recurrence ?? 'NONE',
+    rotation_enabled: Boolean(input.rotationEnabled),
+    requires_confirmation: Boolean(input.requiresConfirmation),
     created_by: input.userId,
   }).select('*').single();
   if (result.error) throw result.error;
@@ -233,6 +244,56 @@ export async function toggleBahayItem(item: BahayItem) {
     p_item_id: item.id,
     p_done: !item.is_done,
   });
+  if (result.error) throw result.error;
+}
+
+export async function confirmBahayItem(itemId: string, approve: boolean) {
+  const result = await (supabase as any).rpc('buklod_home_confirm_item_v1', {
+    p_item_id: itemId,
+    p_approve: approve,
+  });
+  if (result.error) throw result.error;
+}
+
+export async function loadBahayPreferences(homeId: string, userId: string) {
+  const result = await (supabase as any)
+    .from('buklod_home_member_preferences')
+    .select('quiet_enabled,quiet_start,quiet_end,timezone,notify_messages,notify_tasks,notify_due')
+    .eq('home_id',homeId)
+    .eq('user_id',userId)
+    .maybeSingle();
+  if (result.error) throw result.error;
+  return result.data ?? {
+    quiet_enabled:false,
+    quiet_start:'22:00:00',
+    quiet_end:'07:00:00',
+    timezone:'Asia/Manila',
+    notify_messages:true,
+    notify_tasks:true,
+    notify_due:true,
+  };
+}
+
+export async function saveBahayPreferences(homeId: string, userId: string, prefs: {
+  quiet_enabled: boolean;
+  notify_messages: boolean;
+  notify_tasks: boolean;
+  notify_due: boolean;
+}) {
+  const result = await (supabase as any)
+    .from('buklod_home_member_preferences')
+    .upsert({
+      home_id:homeId,
+      user_id:userId,
+      quiet_enabled:prefs.quiet_enabled,
+      quiet_start:'22:00',
+      quiet_end:'07:00',
+      timezone:'Asia/Manila',
+      notify_messages:prefs.notify_messages,
+      notify_tasks:prefs.notify_tasks,
+      notify_due:prefs.notify_due,
+      updated_at:new Date().toISOString(),
+    },{onConflict:'home_id,user_id'});
   if (result.error) throw result.error;
 }
 
