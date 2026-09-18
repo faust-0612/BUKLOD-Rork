@@ -15,6 +15,7 @@ import { recordBuklodKingdomPreviewResult } from '@/features/games/kingdom/progr
 import type { BuklodGameResult } from '@/features/games/types';
 import { BuklodGameLanguageControl, BuklodGameLanguageProvider } from './BuklodGameLanguage';
 import BuklodGameBackdrop from './BuklodGameBackdrop';
+import BuklodGameCharacterCompanion from './BuklodGameCharacterCompanion';
 import { useRorkGameAmbience } from './rorkAudio';
 import { BuklodGameEntrance, BuklodGameVisualFX } from './BuklodGameVisualFX';
 import type { BuklodGameBiome } from './quality';
@@ -105,6 +106,7 @@ export function BuklodGameStage({ biome, gameId, children }: Props) {
         <View style={styles.content}>
           <BuklodGameEntrance>{connectedChildren}</BuklodGameEntrance>
         </View>
+        <BuklodGameCharacterCompanion gameId={resolvedGameId} />
         <BuklodGameLanguageControl />
       </View>
     </BuklodGameLanguageProvider>
