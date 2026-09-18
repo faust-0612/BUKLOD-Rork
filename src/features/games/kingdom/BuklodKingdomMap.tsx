@@ -23,6 +23,9 @@ import Svg, {
   Stop,
 } from 'react-native-svg';
 
+import BuklodGameBackdrop from '@/features/games/runtime/BuklodGameBackdrop';
+import { playRorkSignatureSfx } from '@/features/games/runtime/rorkAudio';
+
 import {
   loadBuklodKingdomPreviewProgress,
   subscribeBuklodKingdomPreviewProgress,
@@ -159,7 +162,10 @@ function StationNode({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Open station ${index + 1}, ${station.character}, ${station.game}`}
-        onPress={() => router.push(station.href as any)}
+        onPress={() => {
+          playRorkSignatureSfx(station.id, 0.20);
+          router.push(station.href as any);
+        }}
         style={({ pressed }) => [styles.stationPressable, pressed && styles.stationPressed]}
       >
         <LinearGradient
@@ -167,6 +173,7 @@ function StationNode({
           style={styles.landmarkOrb}
         >
           <View style={[styles.landmarkInner, { borderColor: station.accent }]}>
+            <BuklodGameBackdrop gameId={station.id} thumbnail opacity={0.62} />
             <MaterialCommunityIcons name={station.icon} size={27} color={station.accent} />
           </View>
           <View style={[styles.numberBadge, cleared && styles.numberBadgeCleared]}>
@@ -592,8 +599,9 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff8de',
+    backgroundColor: 'rgba(255,248,222,0.78)',
     borderWidth: 2,
+    overflow: 'hidden',
   },
   numberBadge: {
     position: 'absolute',
