@@ -108,7 +108,6 @@ const styles = StyleSheet.create({
     zIndex: 105,
     maxWidth: 250,
     gap: 5,
-    pointerEvents: 'none',
   },
   levelPill: {
     alignSelf: 'flex-start',
