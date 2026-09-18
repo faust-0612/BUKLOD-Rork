@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
     bottom: 62,
     width: 72,
     height: 96,
-    zIndex: 2,
+    zIndex: 4,
     alignItems: 'center',
     justifyContent: 'flex-end',
     opacity: 0.94,
