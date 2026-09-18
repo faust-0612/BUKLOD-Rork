@@ -265,7 +265,7 @@ export function RescueGridGameV1({ onFinish }: Props) {
             <Text style={styles.resultTitle}>{phase === 'won' ? 'EXTRACTION SUCCESS' : 'REPLAN THE GRID'}</Text>
             <Text style={styles.resultScore}>{score.toLocaleString()} pts</Text>
             <Text style={styles.resultMeta}>Energy {energy} • Rescue {rescuedCount}/3 {phase === 'won' ? `• ${'★'.repeat(starsForEnergy(energy))}` : ''}</Text>
-            <Text style={styles.resultCopy}>{phase === 'won' ? 'Later this can unlock Ace’s next tactical district station and a visible city-state change.' : 'Replay without penalty and find a shorter, cleaner route.'}</Text>
+            <Text style={styles.resultCopy}>{phase === 'won' ? 'Clear recorded. Ace’s next Kingdom Level opens and the Strategy District world tier can grow.' : 'Replay this level and find a shorter, cleaner route. A loss never advances the level.'}</Text>
             <Pressable onPress={reset} style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryPressed]}>
               <Text style={styles.primaryText}>REPLAY MISSION</Text>
             </Pressable>
