@@ -1,8 +1,9 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import BuklodRorkHomeAtlas from '@/components/home/BuklodRorkHomeAtlas';
 import BuklodSpatialHomeV2 from '@/components/home/BuklodSpatialHomeV2';
 
 type HomeTool = {
@@ -40,9 +41,39 @@ const HOME_TOOLS: HomeTool[] = [
 ];
 
 export default function BuklodPersonalHomeE2E() {
+  const [mode, setMode] = useState<'house' | 'details'>('house');
+
   return (
     <View style={styles.root}>
-      <BuklodSpatialHomeV2 />
+      <View style={styles.modeBar}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ selected: mode === 'house' }}
+          onPress={() => setMode('house')}
+          style={[styles.modeButton, mode === 'house' && styles.modeButtonActive]}
+        >
+          <MaterialCommunityIcons name="home-variant-outline" size={17} color={mode === 'house' ? '#FFFFFF' : '#355342'} />
+          <Text style={[styles.modeText, mode === 'house' && styles.modeTextActive]}>House</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ selected: mode === 'details' }}
+          onPress={() => setMode('details')}
+          style={[styles.modeButton, mode === 'details' && styles.modeButtonActive]}
+        >
+          <MaterialCommunityIcons name="view-dashboard-outline" size={17} color={mode === 'details' ? '#FFFFFF' : '#355342'} />
+          <Text style={[styles.modeText, mode === 'details' && styles.modeTextActive]}>Details</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.content}>
+        {mode === 'house' ? (
+          <BuklodRorkHomeAtlas onOpenDetails={() => setMode('details')} />
+        ) : (
+          <BuklodSpatialHomeV2 />
+        )}
+      </View>
+
       <View style={styles.dock}>
         {HOME_TOOLS.map((tool) => (
           <Pressable
@@ -69,6 +100,40 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: '#F4F0E6',
+  },
+  modeBar: {
+    flexDirection: 'row',
+    alignSelf: 'center',
+    marginTop: 8,
+    marginBottom: 2,
+    padding: 3,
+    borderRadius: 17,
+    backgroundColor: '#E8E2D5',
+    gap: 3,
+    zIndex: 5,
+  },
+  modeButton: {
+    minHeight: 34,
+    paddingHorizontal: 13,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  modeButtonActive: {
+    backgroundColor: '#2D6B4F',
+  },
+  modeText: {
+    color: '#355342',
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  modeTextActive: {
+    color: '#FFFFFF',
+  },
+  content: {
+    flex: 1,
   },
   dock: {
     minHeight: 62,
