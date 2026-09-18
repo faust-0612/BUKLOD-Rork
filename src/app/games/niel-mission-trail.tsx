@@ -1,7 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { recordBuklodKingdomPreviewResult } from '@/features/games/kingdom/progress';
 import { MissionTrailGameV1 } from '@/features/games/niel/MissionTrailGameV1';
 import { BuklodGameStage } from '@/features/games/runtime/BuklodGameStage';
 
@@ -11,7 +10,7 @@ export default function NielMissionTrailScreen() {
   return (
     <BuklodGameStage biome="mission" gameId={GAME_ID}>
       <View style={styles.page}>
-        <MissionTrailGameV1 onFinish={(result) => { void recordBuklodKingdomPreviewResult(result); }} />
+        <MissionTrailGameV1 />
       </View>
     </BuklodGameStage>
   );
