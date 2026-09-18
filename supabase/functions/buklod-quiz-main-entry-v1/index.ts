@@ -246,6 +246,11 @@ Deno.serve(async (req: Request) => {
     shadowCreated: ensured?.created === true,
   });
 
+  const tokenHash = safeText(properties?.hashed_token, 1200);
+  const sessionLaunchUrl = tokenHash
+    ? `${QUIZ_WEB_URL}/?buklod_quiz_token_hash=${encodeURIComponent(tokenHash)}`
+    : null;
+
   return respond(200, {
     ok: true,
     authority: "buklod_main",
@@ -253,7 +258,14 @@ Deno.serve(async (req: Request) => {
     launch_url: actionLink,
     quiz_url: QUIZ_WEB_URL,
     one_time_code: properties?.email_otp ?? null,
-    token_hash: properties?.hashed_token ?? null,
+    token_hash: tokenHash || null,
+    session_launch_url: sessionLaunchUrl,
+    /*
+     * BUKLOD_QUIZ_DEVICE_SESSION_HANDOFF_R7
+     * Keep false until the Quiz web client that consumes
+     * buklod_quiz_token_hash is verified live. Main falls back to launch_url.
+     */
+    session_launch_ready: false,
     expires_hint_seconds: 300,
     shadow_created: ensured?.created === true,
   });
