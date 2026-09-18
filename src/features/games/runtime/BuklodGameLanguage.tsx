@@ -716,8 +716,6 @@ const TL_TEXT: Record<string, string> = {
 };
 
 function translateDynamicTagalog(input: string) {
-  let value = input;
-
   const rules: Array<[RegExp, (...args: any[]) => string]> = [
     [/^WORLD TIER (\d+)$/, (_m, n) => `WORLD TIER ${n}`],
     [/^RANK (\d+)$/, (_m, n) => `RANK ${n}`],
@@ -745,8 +743,10 @@ function translateDynamicTagalog(input: string) {
     [/^(\d+) crates$/, (_m, n) => `${n} crates`],
     [/^Projected harvest: (\d+) crates$/, (_m, n) => `Tinatayang ani: ${n} crates`],
     [/^BUSINESS CYCLE (\d+)\/(\d+)$/, (_m, a, b) => `BUSINESS CYCLE ${a}/${b}`],
-    [/^Finished-goods price this cycle: (.+)\. Decide whether to produce, process, sell, or invest in capacity\.$/, (_m, price) => `Presyo ng finished goods: ${price}. Magpasya kung magpo-produce, magpo-process, magbebenta, o mag-iinvest sa capacity.`],
-    [/^REQUEST (\d+)\/(\d+) • TOTAL CAPACITY (\d+)$/, (_m, a, b, c) => `REQUEST ${a}/${b} • KABUUANG KAPASIDAD ${c}`],
+    [/^Finished-goods price this cycle: (.+)\. Decide whether to produce, process, sell, or invest in capacity\.$/, (_m, price) =>
+      `Presyo ng finished goods: ${price}. Magpasya kung magpo-produce, magpo-process, magbebenta, o mag-iinvest sa capacity.`],
+    [/^REQUEST (\d+)\/(\d+) • TOTAL CAPACITY (\d+)$/, (_m, a, b, c) =>
+      `REQUEST ${a}/${b} • KABUUANG KAPASIDAD ${c}`],
     [/^Distance (\d+) • Ideal response: (.+)$/, (_m, d, team) => `Layo ${d} • Pinakamainam na tugon: ${team}`],
     [/^(\d+) capacity$/, (_m, n) => `${n} kapasidad`],
     [/^CASE (\d+)\/(\d+)$/, (_m, a, b) => `KASO ${a}/${b}`],
@@ -756,49 +756,74 @@ function translateDynamicTagalog(input: string) {
     [/^(\d+) ms late$/, (_m, n) => `${n} ms huli`],
     [/^FIELD NOTES • (\d+)\/3 CLUES$/, (_m, n) => `FIELD NOTES • ${n}/3 PALATANDAAN`],
     [/^Score (\d+) • Visited (\d+) tiles$/, (_m, a, b) => `Iskor ${a} • ${b} tile ang nabisita`],
-    [/^Reach Circle Rank (\d+) to enter this Kingdom region\.$/, (_m, n) => `Abutin ang Circle Rank ${n} para makapasok sa Kingdom region na ito.`],
+    [/^Reach Circle Rank (\d+) to enter this Kingdom region\.$/, (_m, n) =>
+      `Abutin ang Circle Rank ${n} para makapasok sa Kingdom region na ito.`],
     [/^(\d+) PENDING SYNC$/, (_m, n) => `${n} NAKAPILA SA SYNC`],
     [/^LEVEL (\d+)\/20$/, (_m, n) => `LEVEL ${n}/20`],
     [/^(\d+)\/20 CLEARED$/, (_m, n) => `${n}/20 NALAMPASAN`],
     [/^WORLD (\d+)$/, (_m, n) => `WORLD ${n}`],
     [/^REQUIRES CIRCLE RANK (\d+)$/, (_m, n) => `KAILANGAN ANG CIRCLE RANK ${n}`],
-    [/^Impact at (.+)\. Recover and change trail\.$/, (_m, zone) => \`Tumama sa \${zone}. Bumawi at lumipat ng landas.\`],
-    [/^Round (\\d+): watch the path\. Do not tap yet\.$/, (_m, n) => \`Round \${n}: panoorin ang landas. Huwag munang mag-tap.\`],
-    [/^Round (\\d+) complete\. The playground grows brighter\.$/, (_m, n) => \`Kumpleto ang Round \${n}. Mas lumiwanag ang playground.\`],
-    [/^(\\d+)\\/(\\d+) correct\\. Keep the path in mind\\.$/, (_m, a, b) => \`\${a}/\${b} tama. Tandaan ang landas.\`],
-    [/^Rescue beacon (\\d+)\\/3 secured\\. Continue to extraction\\.$/, (_m, n) => \`Nakuha ang rescue beacon \${n}/3. Magpatuloy sa extraction.\`],
-    [/^Mural restored • (\\d+)% average precision$/, (_m, n) => \`Naibalik ang mural • \${n}% average precision\`],
-    [/^Assign the remaining (\\d+) treasury tokens before approving the budget\\.$/, (_m, n) => \`Ilaan muna ang natitirang \${n} treasury token bago aprubahan ang budget.\`],
-    [/^Emergency covered\\. (\\d+) reserve remains for the next unknown challenge\\.$/, (_m, n) => \`Natugunan ang emergency. May \${n} reserve pa para sa susunod na hamon.\`],
-    [/^The emergency response fell short by (\\d+) coverage points\\. The kingdom absorbed the consequences\\.$/, (_m, n) => \`Kulang ng \${n} coverage points ang emergency response. Sinalo ng kaharian ang epekto.\`],
-    [/^Use all (\\d+) field units before planting\\. (\\d+) remain\\.$/, (_m, a, b) => \`Gamitin ang lahat ng \${a} field units bago magtanim. \${b} pa ang natitira.\`],
-    [/^Market run complete\\. (\\d+) crates arrived with (\\d+) trade value\\.$/, (_m, a, b) => \`Kumpleto ang market run. \${a} crates ang dumating na may \${b} trade value.\`],
-    [/^(.+) completed\\. The village changed, but unresolved needs keep increasing pressure\\.$/, (_m, p) => \`Natapos ang \${p}. Nagbago ang pamayanan, pero tumitindi pa rin ang pressure mula sa hindi nalutas na pangangailangan.\`],
-    [/^Village cycle stabilized\\. (\\d+) priority projects now anchor the highland community\\.$/, (_m, n) => \`Naging matatag ang village cycle. \${n} priority projects na ang pundasyon ng highland community.\`],
-    [/^Need (\\d+)$/, (_m, n) => \`Pangangailangan \${n}\`],
-    [/^Enterprise stabilized at (\\d+) value with (\\d+) reputation\\.$/, (_m, a, b) => \`Naging matatag ang negosyo sa halagang \${a} at reputasyong \${b}.\`],
-    [/^Harvest cycle completed: \\+(\\d+) raw units\\. Cash fell by (\\d+), but the supply base grew\\.$/, (_m, a, b) => \`Kumpleto ang harvest cycle: +\${a} raw units. Bumaba ng \${b} ang cash pero lumaki ang supply base.\`],
-    [/^Processed (\\d+) raw units into higher-value goods\\.$/, (_m, n) => \`Na-process ang \${n} raw units bilang mas mataas ang halagang produkto.\`],
-    [/^Sold (\\d+) goods into (.+) for (\\d+)\\. Market trust increased\\.$/, (_m, a, market, b) => \`Nabenta ang \${a} goods sa \${market} sa halagang \${b}. Tumaas ang tiwala ng market.\`],
-    [/^Expansion costs (\\d+)\\. Growth without enough cash can break the enterprise\\.$/, (_m, n) => \`Nagkakahalaga ng \${n} ang expansion. Maaaring bumagsak ang negosyo kung kulang ang cash.\`],
-    [/^(.+) needs (\\d+) capacity for this distance but has only (\\d+)\\.$/, (_m, team, need, have) => \`Kailangan ng \${need} capacity ng \${team} para sa layong ito pero \${have} lamang ang available.\`],
-    [/^(.+) resolved (.+)\\. Trust improved\\.$/, (_m, team, place) => \`Nalutas ng \${team} ang request sa \${place}. Tumaas ang tiwala.\`],
-    [/^Wrong specialization\\. The request was handled poorly and city trust dropped\\.$/, () => 'Maling specialization. Hindi maayos ang paghawak sa request at bumaba ang tiwala ng lungsod.'],
-    [/^City shift stabilized with (\\d+) trust and (\\d+) reserve team capacity\\.$/, (_m, a, b) => \`Naging matatag ang city shift na may \${a} trust at \${b} reserve team capacity.\`],
-    [/^Dispatch capacity or public trust collapsed before the city stabilized\\.$/, () => 'Bumagsak ang dispatch capacity o public trust bago naging matatag ang lungsod.'],
-    [/^Civic term completed with (\\d+) trust, (\\d+) unity and (\\d+) budget reserve\\.$/, (_m, a, b, c) => \`Kumpleto ang civic term na may \${a} trust, \${b} unity at \${c} budget reserve.\`],
-    [/^Leadership mandate weakened: trust, unity, or resources fell below a sustainable level\\.$/, () => 'Humina ang mandato ng pamumuno: bumaba sa hindi sustainable na antas ang trust, unity o resources.'],
-    [/^First clue: the relic lies mostly (north|south) of your position\\.$/, (_m, d) => \`Unang clue: ang reliko ay nasa bandang \${d === 'north' ? 'hilaga' : 'timog'} ng posisyon mo.\`],
-    [/^Second clue: move (east|west) while preserving energy\\.$/, (_m, d) => \`Ikalawang clue: gumalaw pa-\${d === 'east' ? 'silangan' : 'kanluran'} habang nagtitipid ng enerhiya.\`],
-    [/^Relic signature is close: (\\d+) grid steps away\\.$/, (_m, n) => \`Malapit na ang relic signature: \${n} grid steps na lang.\`],
-    [/^Relic secured with (\\d+) clues and (\\d+) energy remaining\\.$/, (_m, a, b) => \`Nakuha ang reliko gamit ang \${a} clues at may \${b} energy pang natitira.\`],
+    [/^Impact at (.+)\. Recover and change trail\.$/, (_m, zone) => `Tumama sa ${zone}. Bumawi at lumipat ng landas.`],
+    [/^Light chain x(\d+)\. The forest is responding\.$/, (_m, n) => `Light chain x${n}. Tumutugon ang kagubatan.`],
+    [/^Trail Light secured at (.+)\.$/, (_m, zone) => `Nakuha ang Trail Light sa ${zone}.`],
+    [/^Clean run x(\d+)\. Keep the rhythm\.$/, (_m, n) => `Malinis na run x${n}. Panatilihin ang ritmo.`],
+    [/^Clear through (.+)\.$/, (_m, zone) => `Malinis ang daan sa ${zone}.`],
+    [/^Round (\d+): watch the path\. Do not tap yet\.$/, (_m, n) => `Round ${n}: panoorin ang landas. Huwag munang mag-tap.`],
+    [/^Round (\d+) complete\. The playground grows brighter\.$/, (_m, n) => `Kumpleto ang Round ${n}. Mas lumiwanag ang playground.`],
+    [/^(\d+)\/(\d+) correct\. Keep the path in mind\.$/, (_m, a, b) => `${a}/${b} tama. Tandaan ang landas.`],
+    [/^Rescue beacon (\d+)\/3 secured\. Continue to extraction\.$/, (_m, n) => `Nakuha ang rescue beacon ${n}/3. Magpatuloy sa extraction.`],
+    [/^Mural restored • (\d+)% average precision$/, (_m, n) => `Naibalik ang mural • ${n}% average precision`],
+    [/^Clean restoration • (\d+)% precision • combo ×(\d+)$/, (_m, p, c) => `Malinis na restoration • ${p}% precision • combo ×${c}`],
+    [/^Fragment restored • (\d+)% precision$/, (_m, p) => `Naibalik ang fragment • ${p}% precision`],
+    [/^Assign the remaining (\d+) treasury tokens before approving the budget\.$/, (_m, n) => `Ilaan muna ang natitirang ${n} treasury token bago aprubahan ang budget.`],
+    [/^(.+): decide how much of the reserve to release\. Too little worsens the crisis; too much leaves the kingdom exposed\.$/, (_m, title) =>
+      `${translateBuklodGameText(String(title), 'angel-kingdom-treasury')}: magpasya kung gaano karaming reserve ang ilalabas. Kulang ay magpapalala sa krisis; sobra ay mag-iiwan sa kaharian na walang proteksiyon.`],
+    [/^Emergency covered\. (\d+) reserve remains for the next unknown challenge\.$/, (_m, n) => `Natugunan ang emergency. May ${n} reserve pa para sa susunod na hamon.`],
+    [/^The emergency response fell short by (\d+) coverage points\. The kingdom absorbed the consequences\.$/, (_m, n) => `Kulang ng ${n} coverage points ang emergency response. Sinalo ng kaharian ang epekto.`],
+    [/^Use all (\d+) field units before planting\. (\d+) remain\.$/, (_m, a, b) => `Gamitin ang lahat ng ${a} field units bago magtanim. ${b} pa ang natitira.`],
+    [/^Market run complete\. (\d+) crates arrived with (\d+) trade value\.$/, (_m, a, b) => `Kumpleto ang market run. ${a} crates ang dumating na may ${b} trade value.`],
+    [/^(.+) completed\. The village changed, but unresolved needs keep increasing pressure\.$/, (_m, p) =>
+      `Natapos ang ${translateBuklodGameText(String(p), 'elesur-village-builder')}. Nagbago ang pamayanan, pero tumitindi pa rin ang pressure mula sa hindi nalutas na pangangailangan.`],
+    [/^Village cycle stabilized\. (\d+) priority projects now anchor the highland community\.$/, (_m, n) => `Naging matatag ang village cycle. ${n} priority projects na ang pundasyon ng highland community.`],
+    [/^Need (\d+)$/, (_m, n) => `Pangangailangan ${n}`],
+    [/^Enterprise stabilized at (\d+) value with (\d+) reputation\.$/, (_m, a, b) => `Naging matatag ang negosyo sa halagang ${a} at reputasyong ${b}.`],
+    [/^Harvest cycle completed: \+(\d+) raw units\. Cash fell by (\d+), but the supply base grew\.$/, (_m, a, b) => `Kumpleto ang harvest cycle: +${a} raw units. Bumaba ng ${b} ang cash pero lumaki ang supply base.`],
+    [/^Processed (\d+) raw units into higher-value goods\.$/, (_m, n) => `Na-process ang ${n} raw units bilang mas mataas ang halagang produkto.`],
+    [/^Sold (\d+) goods into (.+) for (\d+)\. Market trust increased\.$/, (_m, a, market, b) =>
+      `Nabenta ang ${a} goods sa ${translateBuklodGameText(String(market), 'phan-enterprise-builder')} sa halagang ${b}. Tumaas ang tiwala ng market.`],
+    [/^Expansion costs (\d+)\. Growth without enough cash can break the enterprise\.$/, (_m, n) => `Nagkakahalaga ng ${n} ang expansion. Maaaring bumagsak ang negosyo kung kulang ang cash.`],
+    [/^(.+) needs (\d+) capacity for this distance but has only (\d+)\.$/, (_m, team, need, have) =>
+      `Kailangan ng ${need} capacity ng ${translateBuklodGameText(String(team), 'van-living-city-dispatch')} para sa layong ito pero ${have} lamang ang available.`],
+    [/^(.+) resolved (.+)\. Trust improved\.$/, (_m, team, place) =>
+      `Nalutas ng ${translateBuklodGameText(String(team), 'van-living-city-dispatch')} ang request sa ${translateBuklodGameText(String(place), 'van-living-city-dispatch')}. Tumaas ang tiwala.`],
+    [/^Wrong specialization\. The request was handled poorly and city trust dropped\.$/, () => 'Maling specialization. Hindi maayos ang paghawak sa request at bumaba ang tiwala ng lungsod.'],
+    [/^City shift stabilized with (\d+) trust and (\d+) reserve team capacity\.$/, (_m, a, b) => `Naging matatag ang city shift na may ${a} trust at ${b} reserve team capacity.`],
+    [/^Dispatch capacity or public trust collapsed before the city stabilized\.$/, () => 'Bumagsak ang dispatch capacity o public trust bago naging matatag ang lungsod.'],
+    [/^(.+): (.+)$/, (_m, label, copy) => {
+      const translatedLabel = translateBuklodGameText(String(label), 'christian-civic-leadership');
+      const translatedCopy = translateBuklodGameText(String(copy), 'christian-civic-leadership');
+      return translatedLabel === label && translatedCopy === copy ? input : `${translatedLabel}: ${translatedCopy}`;
+    }],
+    [/^Civic term completed with (\d+) trust, (\d+) unity and (\d+) budget reserve\.$/, (_m, a, b, c) => `Kumpleto ang civic term na may ${a} trust, ${b} unity at ${c} budget reserve.`],
+    [/^Leadership mandate weakened: trust, unity, or resources fell below a sustainable level\.$/, () => 'Humina ang mandato ng pamumuno: bumaba sa hindi sustainable na antas ang trust, unity o resources.'],
+    [/^PERFECT ACCENT • flow surges$/, () => 'PERFECT ACCENT • lumalakas ang flow'],
+    [/^PERFECT • keep the line$/, () => 'PERFECT • panatilihin ang linya'],
+    [/^GOOD • stay centered$/, () => 'GOOD • manatili sa gitna'],
+    [/^Late miss • recover on the next pulse$/, () => 'Late miss • bumawi sa susunod na pulse'],
+    [/^Performance complete at (\d+)% accuracy with a best combo of (\d+)\.$/, (_m, a, b) => `Kumpleto ang performance sa ${a}% accuracy at best combo na ${b}.`],
+    [/^The rhythm broke too often to complete the performance\. Re-enter the journey and rebuild the timing flow\.$/, () =>
+      'Masyadong maraming naputol na ritmo para makumpleto ang performance. Bumalik sa journey at buuin muli ang timing flow.'],
+    [/^First clue: the relic lies mostly (north|south) of your position\.$/, (_m, d) => `Unang clue: ang reliko ay nasa bandang ${d === 'north' ? 'hilaga' : 'timog'} ng posisyon mo.`],
+    [/^Second clue: move (east|west) while preserving energy\.$/, (_m, d) => `Ikalawang clue: gumalaw pa-${d === 'east' ? 'silangan' : 'kanluran'} habang nagtitipid ng enerhiya.`],
+    [/^Relic signature is close: (\d+) grid steps away\.$/, (_m, n) => `Malapit na ang relic signature: ${n} grid steps na lang.`],
+    [/^Relic secured with (\d+) clues and (\d+) energy remaining\.$/, (_m, a, b) => `Nakuha ang reliko gamit ang ${a} clues at may ${b} energy pang natitira.`],
   ];
 
   for (const [pattern, replace] of rules) {
-    if (pattern.test(value)) return value.replace(pattern, replace as any);
+    if (pattern.test(input)) return input.replace(pattern, replace as any);
   }
 
-  return value;
+  return input;
 }
 
 export function translateBuklodGameText(text: string, _gameId?: string) {
