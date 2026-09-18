@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, PanResponder, Pressable, StyleSheet, View } from 'react-native';
 
 import { playBuklodGameFeedback } from '../runtime/BuklodGameFeedback';
+import { BuklodGameText as Text } from '../runtime/BuklodGameLanguage';
 import type { BuklodGameResult } from '../types';
 
 type FragmentSpec = {
