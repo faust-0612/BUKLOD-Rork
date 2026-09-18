@@ -29,8 +29,8 @@ Write-Host '3/6 TypeScript compile QA...'
 npx tsc --noEmit
 
 Write-Host ''
-Write-Host '4/6 Targeted Rork media unit test...'
-npx jest src/features/games/runtime/__tests__/rorkMedia.test.ts --runInBand
+Write-Host '4/6 Targeted Rork media contract test...'
+node scripts/rork-media-contract-test.mjs
 
 $qaRoot = Join-Path (Get-Location) '.rork-qa'
 $webOut = Join-Path $qaRoot 'web'
