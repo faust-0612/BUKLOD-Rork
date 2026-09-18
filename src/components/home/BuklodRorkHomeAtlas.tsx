@@ -45,9 +45,10 @@ const P = {
 };
 
 export default function BuklodRorkHomeAtlas({ onOpenDetails }: { onOpenDetails: () => void }) {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const [night, setNight] = useState(false);
-  const sceneWidth = Math.min(Math.max(width - 20, 320), 620);
+  const maxByHeight = Math.max(300, (height - 190) * 0.74);
+  const sceneWidth = Math.min(Math.max(width - 20, 300), 620, maxByHeight);
   const sceneHeight = sceneWidth / 0.74;
   const characterHeight = Math.max(56, Math.min(102, sceneWidth * 0.18));
 
