@@ -3,11 +3,13 @@ import { StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { usePathname } from 'expo-router';
 
-import { recordBuklodKingdomPreviewResult } from '@/features/games/kingdom/progress';
 import type { BuklodGameResult } from '@/features/games/types';
 import { BuklodGameLanguageControl, BuklodGameLanguageProvider } from './BuklodGameLanguage';
 import BuklodGameBackdrop from './BuklodGameBackdrop';
 import BuklodGameCharacterCompanion from './BuklodGameCharacterCompanion';
+import BuklodGameProgressHud from './BuklodGameProgressHud';
+import { useBuklodGameKingdomRuntime } from './BuklodGameKingdomRuntime';
+import { BuklodKingdomLevelProvider } from './BuklodGameLevelContext';
 import { useRorkGameAmbience } from './rorkAudio';
 import { BuklodGameEntrance, BuklodGameVisualFX } from './BuklodGameVisualFX';
 import type { BuklodGameBiome } from './quality';
@@ -64,16 +66,25 @@ export function BuklodGameStage({ biome, gameId, children }: Props) {
   const resolvedGameId = gameId ?? routeGameId(pathname);
   const colors = palettes[biome];
   useRorkGameAmbience(resolvedGameId);
+  const kingdom = useBuklodGameKingdomRuntime(resolvedGameId);
 
   const recordResult = useCallback((result: BuklodGameResult) => {
     if (resolvedGameId && result.gameId !== resolvedGameId) return;
-    recordBuklodKingdomPreviewResult(result).catch(() => undefined);
-  }, [resolvedGameId]);
+    kingdom.submitResult(result).catch(() => undefined);
+  }, [kingdom.submitResult, resolvedGameId]);
 
   const connectedChildren = withResultHandler(children, recordResult);
+  const levelContext = {
+    level: kingdom.level,
+    difficulty: kingdom.difficulty,
+    speedMultiplier: kingdom.speedMultiplier,
+    targetMultiplier: kingdom.targetMultiplier,
+    resourceMultiplier: kingdom.resourceMultiplier,
+  };
 
   return (
     <BuklodGameLanguageProvider gameId={resolvedGameId}>
+      <BuklodKingdomLevelProvider value={levelContext}>
       <View style={styles.shell}>
         <LinearGradient colors={colors} style={StyleSheet.absoluteFill} />
         <BuklodGameBackdrop gameId={resolvedGameId} opacity={0.38} />
@@ -81,12 +92,23 @@ export function BuklodGameStage({ biome, gameId, children }: Props) {
         <View pointerEvents="none" style={styles.lightA} />
         <View pointerEvents="none" style={styles.lightB} />
         <View pointerEvents="none" style={styles.vignette} />
-        <View style={styles.content}>
-          <BuklodGameEntrance>{connectedChildren}</BuklodGameEntrance>
-        </View>
-        <BuklodGameCharacterCompanion gameId={resolvedGameId} />
+        {kingdom.canPlay && !kingdom.loading ? (
+          <View style={styles.content}>
+            <BuklodGameEntrance>{connectedChildren}</BuklodGameEntrance>
+          </View>
+        ) : null}
+        {kingdom.canPlay && !kingdom.loading ? (
+          <BuklodGameCharacterCompanion gameId={resolvedGameId} />
+        ) : null}
+        <BuklodGameProgressHud
+          loading={kingdom.loading}
+          station={kingdom.station}
+          progress={kingdom.progress}
+          canPlay={kingdom.canPlay}
+        />
         <BuklodGameLanguageControl />
       </View>
+      </BuklodKingdomLevelProvider>
     </BuklodGameLanguageProvider>
   );
 }
