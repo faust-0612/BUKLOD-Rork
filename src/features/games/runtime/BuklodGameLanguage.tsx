@@ -782,6 +782,8 @@ function translateDynamicTagalog(input: string) {
       `Abutin ang Circle Rank ${n} para makapasok sa Kingdom region na ito.`],
     [/^(\d+) PENDING SYNC$/, (_m, n) => `${n} NAKAPILA SA SYNC`],
     [/^LEVEL (\d+)\/20$/, (_m, n) => `LEVEL ${n}/20`],
+    [/^PLAY LEVEL (\d+)$/, (_m, n) => `LARUIN ANG LEVEL ${n}`],
+    [/^TRAIN LEVEL (\d+)$/, (_m, n) => `MAGSANAY SA LEVEL ${n}`],
     [/^(\d+)\/20 CLEARED$/, (_m, n) => `${n}/20 NALAMPASAN`],
     [/^WORLD (\d+)$/, (_m, n) => `WORLD ${n}`],
     [/^REQUIRES CIRCLE RANK (\d+)$/, (_m, n) => `KAILANGAN ANG CIRCLE RANK ${n}`],
