@@ -99,3 +99,6 @@ BUKLOD_ANDROID_OTA_PREFLIGHT/
 BUKLOD_*_AUDIT_*/
 BUKLOD_STREAM_WEB_BACKUP_*/
 PATCH_*_BACKUP_*/
+
+# Local Rork integration QA artifacts
+.rork-qa/
