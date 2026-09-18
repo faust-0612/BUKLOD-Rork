@@ -266,7 +266,7 @@ export function RestoreMuralGameV1({ onFinish }: Props) {
           <View style={styles.completionOverlay}>
             <Text style={styles.completeKicker}>ART VILLAGE RESTORATION</Text>
             <Text style={styles.completeTitle}>MURAL AWAKENED</Text>
-            <Text style={styles.completeCopy}>Every restored fragment can later become a permanent visual upgrade inside Mitch's map region.</Text>
+            <Text style={styles.completeCopy}>This clear advances Mitch’s Journey and contributes to permanent Art Village world growth.</Text>
             <Pressable onPress={reset} style={styles.replayButton}><Text style={styles.replayText}>RESTORE AGAIN</Text></Pressable>
           </View>
         ) : null}
