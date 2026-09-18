@@ -1,0 +1,86 @@
+name: Kingdom E2E R1 QA
+
+on:
+  push:
+    branches:
+      - feature/kingdom-e2e-r1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+jobs:
+  kingdom-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Kingdom branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/kingdom-e2e-r1
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Pull EAS production public environment
+        if: env.EXPO_TOKEN != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest env:pull --environment production --path .env.local --non-interactive
+          if [ -s .env.local ]; then
+            set -a
+            . ./.env.local
+            set +a
+            while IFS='=' read -r name _; do
+              case "$name" in
+                EXPO_PUBLIC_*)
+                  value="${!name-}"
+                  {
+                    echo "${name}<<__BUKLOD_ENV__"
+                    printf '%s\n' "$value"
+                    echo '__BUKLOD_ENV__'
+                  } >> "$GITHUB_ENV"
+                  ;;
+              esac
+            done < <(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env.local || true)
+          fi
+
+      - name: Kingdom source contract
+        run: npm run kingdom:e2e:contract
+
+      - name: 13-game EN/TL coverage
+        run: npm run game:translation:coverage
+
+      - name: Character regression contract
+        run: npm run character:contract
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Rork media/fallback contract
+        run: node scripts/rork-media-contract-test.mjs
+
+      - name: Web export
+        env:
+          BUKLOD_WEB_OUTPUT: single
+        run: npx expo export --platform web --output-dir .kingdom-ci/web
+
+      - name: Compiled Kingdom contract
+        run: node scripts/kingdom-e2e-contract.mjs --dist .kingdom-ci/web
+
+      - name: Android bundle smoke
+        run: npx expo export --platform android --output-dir .kingdom-ci/android
+
+      - name: Kingdom QA summary
+        run: |
+          echo 'KINGDOM E2E 8/8 QA PASS'
+          echo 'No deploy or merge performed.'
