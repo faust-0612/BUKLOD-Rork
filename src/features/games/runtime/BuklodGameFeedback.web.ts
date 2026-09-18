@@ -1,4 +1,5 @@
 import type { BuklodGameFeedbackEvent } from './feedbackTypes';
+import { tryPlayRorkGameFeedback } from './rorkAudio';
 
 type AudioContextLike = {
   currentTime: number;
@@ -61,6 +62,7 @@ function tone(
 }
 
 export async function playBuklodGameFeedback(event: BuklodGameFeedbackEvent) {
+  if (tryPlayRorkGameFeedback(event, 0.24)) return;
   const ctx = getAudioContext();
   if (!ctx) return;
 
