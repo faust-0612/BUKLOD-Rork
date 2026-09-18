@@ -21,11 +21,13 @@ import {
   createBahay,
   createBahayCommunity,
   createBahayPoll,
+  confirmBahayItem,
   decideBahayInvite,
   errorMessage,
   inviteKasambahay,
   joinBahayCommunity,
   loadBahayHomes,
+  loadBahayPreferences,
   loadBahaySnapshot,
   loadCommunity,
   openBahayFile,
@@ -33,6 +35,7 @@ import {
   plantBahayGarden,
   sendBahayMessage,
   sendCommunityMessage,
+  saveBahayPreferences,
   subscribeBahay,
   toggleBahayItem,
   voteBahayPoll,
@@ -98,15 +101,34 @@ function memberName(member?: BahayMember|null) {
   return member?.profiles?.full_name || member?.profiles?.username || 'Kasambahay';
 }
 
-function ItemRow({item,members,onToggle}:{item:BahayItem;members:BahayMember[];onToggle:(item:BahayItem)=>void}) {
+function ItemRow({
+  item,
+  members,
+  onToggle,
+  canConfirm = false,
+  onConfirm,
+}:{
+  item:BahayItem;
+  members:BahayMember[];
+  onToggle:(item:BahayItem)=>void;
+  canConfirm?:boolean;
+  onConfirm?:(item:BahayItem,approve:boolean)=>void;
+}) {
   const assigned = members.find((m)=>m.user_id===item.assigned_to);
+  const awaiting = item.confirmation_status === 'PENDING';
   return (
-    <Pressable onPress={()=>onToggle(item)} style={[styles.itemRow,item.is_done&&styles.itemDone]}>
-      <MaterialCommunityIcons
-        name={item.is_done?'checkbox-marked-circle':'checkbox-blank-circle-outline'}
-        size={22}
-        color={item.is_done?'#4E7D5B':'#6D7F72'}
-      />
+    <View style={[styles.itemRow,item.is_done&&styles.itemDone]}>
+      <Pressable
+        onPress={()=>onToggle(item)}
+        accessibilityRole="button"
+        accessibilityLabel={item.is_done?'Mark item pending':'Mark item done'}
+      >
+        <MaterialCommunityIcons
+          name={item.is_done?'checkbox-marked-circle':awaiting?'clock-check-outline':'checkbox-blank-circle-outline'}
+          size={22}
+          color={item.is_done?'#4E7D5B':awaiting?'#9A6A1D':'#6D7F72'}
+        />
+      </Pressable>
       <View style={{flex:1,minWidth:0}}>
         <Text style={[styles.itemTitle,item.is_done&&styles.strike]}>{item.title}</Text>
         <Text style={styles.itemMeta}>
@@ -114,10 +136,19 @@ function ItemRow({item,members,onToggle}:{item:BahayItem;members:BahayMember[];o
           {assigned ? ` · ${memberName(assigned)}` : ''}
           {item.due_at ? ` · ${formatWhen(item.due_at)}` : ''}
           {item.amount != null ? ` · ₱${Number(item.amount).toLocaleString()}` : ''}
+          {item.recurrence && item.recurrence!=='NONE' ? ` · ${item.recurrence}` : ''}
+          {item.rotation_enabled ? ' · ROTATING' : ''}
         </Text>
         {!!item.body && <Text style={styles.itemBody}>{item.body}</Text>}
+        {awaiting && <Text style={styles.pendingConfirm}>Awaiting another adult confirmation</Text>}
+        {canConfirm && awaiting && onConfirm ? (
+          <View style={styles.confirmRow}>
+            <Pressable onPress={()=>onConfirm(item,false)} style={styles.rejectButton}><Text style={styles.rejectText}>REJECT</Text></Pressable>
+            <Pressable onPress={()=>onConfirm(item,true)} style={styles.confirmButton}><Text style={styles.confirmText}>CONFIRM</Text></Pressable>
+          </View>
+        ) : null}
       </View>
-    </Pressable>
+    </View>
   );
 }
 
@@ -142,6 +173,9 @@ export default function BuklodBahayHome() {
   const [detailDraft,setDetailDraft] = useState('');
   const [dueMode,setDueMode] = useState('NONE');
   const [assignedTo,setAssignedTo] = useState<string|null>(null);
+  const [recurrence,setRecurrence] = useState<'NONE'|'DAILY'|'WEEKLY'|'MONTHLY'>('NONE');
+  const [rotateChore,setRotateChore] = useState(false);
+  const [requiresConfirmation,setRequiresConfirmation] = useState(false);
   const [amountDraft,setAmountDraft] = useState('');
   const [messageDraft,setMessageDraft] = useState('');
   const [inviteId,setInviteId] = useState('');
@@ -158,6 +192,11 @@ export default function BuklodBahayHome() {
   const [communityData,setCommunityData] = useState<any>({items:[],messages:[]});
   const [communityDraft,setCommunityDraft] = useState('');
   const [communityMessage,setCommunityMessage] = useState('');
+  const [communityParent,setCommunityParent] = useState<string|null>(null);
+  const [quietEnabled,setQuietEnabled] = useState(false);
+  const [notifyMessages,setNotifyMessages] = useState(true);
+  const [notifyTasks,setNotifyTasks] = useState(true);
+  const [notifyDue,setNotifyDue] = useState(true);
 
   const activeHome = snapshot?.home || homes.find((home)=>home.id===activeHomeId) || null;
   const members: BahayMember[] = snapshot?.members ?? [];
@@ -221,6 +260,18 @@ export default function BuklodBahayHome() {
     }
     void loadCommunity(selectedCommunityId).then(setCommunityData).catch((e)=>setError(errorMessage(e)));
   },[selectedCommunityId]);
+
+  useEffect(()=>{
+    if (!activeHomeId || !userId) return;
+    void loadBahayPreferences(activeHomeId,userId)
+      .then((prefs:any)=>{
+        setQuietEnabled(Boolean(prefs.quiet_enabled));
+        setNotifyMessages(prefs.notify_messages !== false);
+        setNotifyTasks(prefs.notify_tasks !== false);
+        setNotifyDue(prefs.notify_due !== false);
+      })
+      .catch((e)=>setError(errorMessage(e)));
+  },[activeHomeId,userId]);
 
   const pendingCount = useMemo(()=>items.filter((i)=>!i.is_done && i.visibility!=='PRIVATE').length,[items]);
   const todayCount = useMemo(()=>{
@@ -286,8 +337,12 @@ export default function BuklodBahayHome() {
       dueAt:dueFromMode(dueMode),
       amount:room==='BILLS'&&amountDraft ? Number(amountDraft) : null,
       visibility,
+      recurrence,
+      rotationEnabled:room==='KITCHEN'&&type==='TASK'?rotateChore:false,
+      requiresConfirmation:room==='KITCHEN'&&type==='TASK'?requiresConfirmation:false,
     });
     setDraft(''); setDetailDraft(''); setAmountDraft(''); setDueMode('NONE'); setAssignedTo(null);
+    setRecurrence('NONE'); setRotateChore(false); setRequiresConfirmation(false);
     await refreshSnapshot();
   });
 
@@ -297,8 +352,12 @@ export default function BuklodBahayHome() {
       await addBahayItem({
         homeId:activeHomeId,userId,room:'KITCHEN',type,title:draft,body:detailDraft,
         assignedTo:type==='TASK'?assignedTo:null,dueAt:dueFromMode(dueMode),visibility:'SHARED',
+        recurrence:type==='TASK'?recurrence:'NONE',
+        rotationEnabled:type==='TASK'?rotateChore:false,
+        requiresConfirmation:type==='TASK'?requiresConfirmation:false,
       });
       setDraft('');setDetailDraft('');setDueMode('NONE');setAssignedTo(null);
+      setRecurrence('NONE');setRotateChore(false);setRequiresConfirmation(false);
       await refreshSnapshot();
     });
   };
@@ -349,7 +408,7 @@ export default function BuklodBahayHome() {
 
   const createCommunity = () => run(async()=>{
     if (!communityName.trim()) throw new Error('Ilagay ang pangalan.');
-    const result=await createBahayCommunity(activeHomeId,communityName,communityKind);
+    const result=await createBahayCommunity(activeHomeId,communityName,communityKind,communityParent);
     setCommunityName('');
     await refreshSnapshot();
     if (result?.community_id) setSelectedCommunityId(result.community_id);
@@ -363,6 +422,20 @@ export default function BuklodBahayHome() {
     await refreshSnapshot();
     setSelectedCommunityId(id);
   });
+
+  const confirmItem = (item:BahayItem,approve:boolean) => run(async()=>{
+    await confirmBahayItem(item.id,approve);
+    await refreshSnapshot();
+  });
+
+  const saveNotificationPrefs = () => run(async()=>{
+    await saveBahayPreferences(activeHomeId,userId,{
+      quiet_enabled:quietEnabled,
+      notify_messages:notifyMessages,
+      notify_tasks:notifyTasks,
+      notify_due:notifyDue,
+    });
+  },'Notification preferences saved.');
 
   const addGoal = () => run(async()=>{
     if (!selectedCommunityId || !communityDraft.trim()) return;
@@ -458,6 +531,14 @@ export default function BuklodBahayHome() {
               <View style={styles.chips}>
                 {['NONE','1H','TONIGHT','TOMORROW'].map((x)=><Pressable key={x} onPress={()=>setDueMode(x)} style={[styles.chip,dueMode===x&&styles.chipActive]}><Text style={[styles.chipText,dueMode===x&&styles.chipTextActive]}>{x}</Text></Pressable>)}
               </View>
+              <Text style={styles.label}>Recurrence</Text>
+              <View style={styles.chips}>
+                {(['NONE','DAILY','WEEKLY','MONTHLY'] as const).map((x)=><Pressable key={x} onPress={()=>setRecurrence(x)} style={[styles.chip,recurrence===x&&styles.chipActive]}><Text style={[styles.chipText,recurrence===x&&styles.chipTextActive]}>{x}</Text></Pressable>)}
+              </View>
+              <View style={styles.chips}>
+                <Pressable onPress={()=>setRotateChore((v)=>!v)} style={[styles.chip,rotateChore&&styles.chipActive]}><Text style={[styles.chipText,rotateChore&&styles.chipTextActive]}>ROTATE KASAMBAHAY</Text></Pressable>
+                <Pressable onPress={()=>setRequiresConfirmation((v)=>!v)} style={[styles.chip,requiresConfirmation&&styles.chipActive]}><Text style={[styles.chipText,requiresConfirmation&&styles.chipTextActive]}>ADULT CONFIRM</Text></Pressable>
+              </View>
               <Text style={styles.label}>Assign chore</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
                 <Pressable onPress={()=>setAssignedTo(null)} style={[styles.chip,!assignedTo&&styles.chipActive]}><Text style={[styles.chipText,!assignedTo&&styles.chipTextActive]}>Anyone</Text></Pressable>
@@ -471,7 +552,7 @@ export default function BuklodBahayHome() {
               <Pressable onPress={()=>router.push('/personal-home/recipe' as any)} style={styles.softButton}><MaterialCommunityIcons name="chef-hat" size={18} color="#31543E"/><Text style={styles.softText}>AI Recipe</Text></Pressable>
             </View>
             <View style={styles.card}>
-              {items.filter((i)=>i.room==='KITCHEN').map((i)=><ItemRow key={i.id} item={i} members={members} onToggle={(x)=>void run(async()=>{await toggleBahayItem(x);await refreshSnapshot()})}/>)}
+              {items.filter((i)=>i.room==='KITCHEN').map((i)=><ItemRow key={i.id} item={i} members={members} canConfirm={Boolean(activeMembership&&['OWNER','ADMIN','ADULT'].includes(activeMembership.role)&&i.completed_by!==userId)} onConfirm={(x,approve)=>void confirmItem(x,approve)} onToggle={(x)=>void run(async()=>{await toggleBahayItem(x);await refreshSnapshot()})}/>)}
             </View>
           </View>
         )}
@@ -549,6 +630,17 @@ export default function BuklodBahayHome() {
               <Pressable onPress={()=>void inviteMember()} style={styles.primaryButton}><Text style={styles.primaryText}>SEND INVITATION</Text></Pressable>
             </View>}
             <View style={styles.card}>
+              <Text style={styles.cardTitle}>Notifications</Text>
+              <Text style={styles.helper}>Quiet hours use 10:00 PM–7:00 AM. Critical app/system notices are handled separately.</Text>
+              <View style={styles.chips}>
+                <Pressable onPress={()=>setQuietEnabled((v)=>!v)} style={[styles.chip,quietEnabled&&styles.chipActive]}><Text style={[styles.chipText,quietEnabled&&styles.chipTextActive]}>QUIET HOURS</Text></Pressable>
+                <Pressable onPress={()=>setNotifyMessages((v)=>!v)} style={[styles.chip,notifyMessages&&styles.chipActive]}><Text style={[styles.chipText,notifyMessages&&styles.chipTextActive]}>MESSAGES</Text></Pressable>
+                <Pressable onPress={()=>setNotifyTasks((v)=>!v)} style={[styles.chip,notifyTasks&&styles.chipActive]}><Text style={[styles.chipText,notifyTasks&&styles.chipTextActive]}>TASKS</Text></Pressable>
+                <Pressable onPress={()=>setNotifyDue((v)=>!v)} style={[styles.chip,notifyDue&&styles.chipActive]}><Text style={[styles.chipText,notifyDue&&styles.chipTextActive]}>DUE / OVERDUE</Text></Pressable>
+              </View>
+              <Pressable onPress={()=>void saveNotificationPrefs()} style={styles.softButton}><MaterialCommunityIcons name="bell-cog-outline" size={18} color="#31543E"/><Text style={styles.softText}>SAVE NOTIFICATION SETTINGS</Text></Pressable>
+            </View>
+            <View style={styles.card}>
               <Text style={styles.cardTitle}>Kasambahay · {members.length}</Text>
               {members.map((m)=><View key={m.user_id} style={styles.memberRow}><View style={styles.avatar}><MaterialCommunityIcons name="account" size={20} color="#FFF"/></View><View style={{flex:1}}><Text style={styles.itemTitle}>{memberName(m)}</Text><Text style={styles.itemMeta}>{m.role}{m.expires_at?` · until ${formatWhen(m.expires_at)}`:''}</Text></View></View>)}
             </View>
@@ -561,6 +653,15 @@ export default function BuklodBahayHome() {
               <Text style={styles.cardTitle}>Build a Compound / Subdivision</Text>
               <TextInput value={communityName} onChangeText={setCommunityName} placeholder="Community name" placeholderTextColor="#8A978F" style={styles.input}/>
               <View style={styles.chips}>{(['COMPOUND','SUBDIVISION','VIRTUAL'] as const).map((kind)=><Pressable key={kind} onPress={()=>setCommunityKind(kind)} style={[styles.chip,communityKind===kind&&styles.chipActive]}><Text style={[styles.chipText,communityKind===kind&&styles.chipTextActive]}>{kind}</Text></Pressable>)}</View>
+              {communityKind==='SUBDIVISION' && communities.length>0 ? (
+                <>
+                  <Text style={styles.label}>Optional parent compound/community</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+                    <Pressable onPress={()=>setCommunityParent(null)} style={[styles.chip,!communityParent&&styles.chipActive]}><Text style={[styles.chipText,!communityParent&&styles.chipTextActive]}>NONE</Text></Pressable>
+                    {communities.map((parent:any)=><Pressable key={parent.id} onPress={()=>setCommunityParent(parent.id)} style={[styles.chip,communityParent===parent.id&&styles.chipActive]}><Text style={[styles.chipText,communityParent===parent.id&&styles.chipTextActive]}>{parent.name}</Text></Pressable>)}
+                  </ScrollView>
+                </>
+              ) : null}
               <Pressable onPress={()=>void createCommunity()} style={styles.primaryButton}><Text style={styles.primaryText}>CREATE COMMUNITY</Text></Pressable>
               <View style={styles.dividerLine}/>
               <TextInput value={communityCode} onChangeText={setCommunityCode} autoCapitalize="characters" placeholder="Join code from another community" placeholderTextColor="#8A978F" style={styles.input}/>
@@ -781,6 +882,12 @@ const styles=StyleSheet.create({
   itemTitle:{fontSize:12,fontWeight:'900',color:'#263B2D'},
   itemMeta:{fontSize:8.5,fontWeight:'700',color:'#7D8A82',marginTop:2},
   itemBody:{fontSize:10,lineHeight:14,color:'#68776D',marginTop:3},
+  pendingConfirm:{fontSize:8.5,fontWeight:'900',color:'#94651D',marginTop:5},
+  confirmRow:{flexDirection:'row',gap:6,marginTop:7},
+  rejectButton:{paddingHorizontal:9,paddingVertical:6,borderRadius:9,borderWidth:1,borderColor:'#D6B8B1',backgroundColor:'#FFF6F4'},
+  rejectText:{fontSize:8,fontWeight:'900',color:'#8A4437'},
+  confirmButton:{paddingHorizontal:9,paddingVertical:6,borderRadius:9,backgroundColor:'#4E7D5B'},
+  confirmText:{fontSize:8,fontWeight:'900',color:'#FFF'},
   strike:{textDecorationLine:'line-through'},
   message:{padding:9,borderRadius:12,backgroundColor:'#F5F7F4',gap:2},
   messageName:{fontSize:9,fontWeight:'900',color:'#4E7D5B'},
