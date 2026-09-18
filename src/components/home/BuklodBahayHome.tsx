@@ -37,6 +37,7 @@ import {
   sendCommunityMessage,
   saveBahayPreferences,
   subscribeBahay,
+  subscribeBahayCommunity,
   toggleBahayItem,
   voteBahayPoll,
   waterBahayPlant,
@@ -258,7 +259,13 @@ export default function BuklodBahayHome() {
       setCommunityData({items:[],messages:[]});
       return;
     }
-    void loadCommunity(selectedCommunityId).then(setCommunityData).catch((e)=>setError(errorMessage(e)));
+    const refreshCommunity=()=> {
+      void loadCommunity(selectedCommunityId)
+        .then(setCommunityData)
+        .catch((e)=>setError(errorMessage(e)));
+    };
+    refreshCommunity();
+    return subscribeBahayCommunity(selectedCommunityId,refreshCommunity);
   },[selectedCommunityId]);
 
   useEffect(()=>{
