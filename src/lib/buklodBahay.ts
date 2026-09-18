@@ -264,6 +264,20 @@ export async function sendBahayMessage(homeId: string, userId: string, body: str
   if (result.error) throw result.error;
 }
 
+export async function claimBahayGardenAdReward(homeId: string, rewardToken: string) {
+  const result = await (supabase as any).rpc('buklod_home_rewarded_ad_grant_v1', {
+    p_home_id: homeId,
+    p_reward_token: rewardToken,
+  });
+  if (result.error) throw result.error;
+  const row = Array.isArray(result.data) ? result.data[0] : result.data;
+  return {
+    granted: Boolean(row?.granted),
+    remainingToday: Number(row?.remaining_today ?? 0),
+    gardenEnergy: Number(row?.garden_energy ?? 0),
+  };
+}
+
 export async function plantBahayGarden(homeId: string, plantType = 'SUNFLOWER', nickname?: string) {
   const result = await (supabase as any).rpc('buklod_home_plant_v1', {
     p_home_id: homeId, p_type: plantType, p_nickname: nickname?.trim() || null,
