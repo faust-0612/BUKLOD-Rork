@@ -120,6 +120,9 @@ const progress = requireTokens('src/features/games/kingdom/progress.ts', [
   'serverBacked',
   'currentLevel',
   'worldTier',
+  'recordBuklodKingdomResult(',
+  'levelNo: normalizedLevel',
+  'isPermanentKingdomSubmissionError',
 ]);
 if (progress.includes('buklod.kingdom.preview.progress.v1')) {
   failures.push('Legacy local-only Kingdom preview storage is still active.');
@@ -146,6 +149,8 @@ requireTokens('src/features/games/runtime/BuklodGameKingdomRuntime.ts', [
   'resourceMultiplier',
   'station.unlocked',
   'submitResult',
+  'useLocalSearchParams',
+  'recordBuklodKingdomResult(result, level)',
 ]);
 
 requireTokens('src/features/games/runtime/BuklodGameLevelContext.tsx', [
@@ -183,6 +188,8 @@ const map = requireTokens('src/features/games/kingdom/BuklodKingdomMap.tsx', [
   'href="/igpat"',
   'href="/mentor"',
   'BuklodGameLanguageProvider',
+  'WORLD_GROWTH_MARK_POSITIONS',
+  'worldGrowthMarks',
 ]);
 for (const gameId of GAME_IDS) {
   if (!map.includes(gameId)) failures.push('Kingdom Map missing canonical station: ' + gameId);
@@ -235,6 +242,18 @@ requireTokens('src/features/games/runtime/BuklodGameProgressHud.tsx', [
   'PENDING SYNC',
   'REPLAY LEVEL',
   'activeLevel',
+]);
+
+requireTokens('src/features/games/trudice/PlaygroundPathGameV2.tsx', [
+  'setHearts(startingHearts)',
+  '390 / speedMultiplier',
+  '650 / speedMultiplier',
+  '180 / speedMultiplier',
+]);
+
+requireTokens('src/features/games/lhen/RhythmJourneyGameV1.tsx', [
+  'beat.time+missWindow',
+  '[finish,missWindow,phase]',
 ]);
 
 if (distDir) {
