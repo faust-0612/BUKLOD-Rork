@@ -13,11 +13,13 @@ export default function BuklodGameProgressHud({
   station,
   progress,
   canPlay,
+  activeLevel,
 }: {
   loading: boolean;
   station: BuklodKingdomStationProgress | null;
   progress: BuklodKingdomProgress | null;
   canPlay: boolean;
+  activeLevel: number;
 }) {
   if (loading && !station) {
     return (
@@ -53,7 +55,10 @@ export default function BuklodGameProgressHud({
     <View style={styles.hud} pointerEvents="none">
       <View style={styles.levelPill}>
         <Text style={styles.levelLabel}>KINGDOM LEVEL</Text>
-        <Text style={styles.levelValue}>{station.currentLevel}/20</Text>
+        <Text style={styles.levelValue}>{activeLevel}/20</Text>
+        {activeLevel < station.currentLevel || (station.mastered && activeLevel <= station.clearedLevels) ? (
+          <Text style={styles.replayLabel}>REPLAY LEVEL</Text>
+        ) : null}
       </View>
       <View style={styles.metaPill}>
         <Text style={styles.metaText}>WORLD TIER {station.worldTier}</Text>
@@ -120,6 +125,7 @@ const styles = StyleSheet.create({
   },
   levelLabel: { color: '#d9c58c', fontSize: 7.5, fontWeight: '900', letterSpacing: 0.8 },
   levelValue: { color: '#ffffff', fontSize: 18, lineHeight: 20, fontWeight: '900' },
+  replayLabel: { marginTop: 1, color: '#9fd7ef', fontSize: 7, fontWeight: '900', letterSpacing: 0.55 },
   metaPill: {
     alignSelf: 'flex-start',
     paddingHorizontal: 9,
