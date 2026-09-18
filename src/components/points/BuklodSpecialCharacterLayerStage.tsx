@@ -16,6 +16,7 @@ type Props = {
   domain: string;
   level: number;
   active: boolean;
+  unlocked: boolean;
   compact?: boolean;
 };
 
@@ -25,6 +26,7 @@ export default function BuklodSpecialCharacterLayerStage({
   domain,
   level,
   active,
+  unlocked,
   compact = false,
 }: Props) {
   const safeLevel = Math.max(1, Math.min(20, Math.floor(Number(level) || 1)));
@@ -73,7 +75,9 @@ export default function BuklodSpecialCharacterLayerStage({
       </View>
 
       <View pointerEvents="none" style={styles.levelBadge}>
-        <Text style={styles.levelKicker}>{active ? 'ACTIVE LEVEL' : 'PREVIEW'}</Text>
+        <Text style={styles.levelKicker}>
+          {active ? 'ACTIVE LEVEL' : unlocked ? 'PREVIEW' : 'LOCKED'}
+        </Text>
         <Text style={styles.levelValue}>{active ? safeLevel : 1}</Text>
       </View>
 
