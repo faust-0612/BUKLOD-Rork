@@ -24,7 +24,7 @@ const distDir = distIndex >= 0 ? path.resolve(ROOT, args[distIndex + 1] || 'dist
  */
 const LOCKED_VISUAL_BLOBS = {
   'src/components/points/BuklodProgressiveCharacterSelector.tsx': 'f94af7e2f6d20246c9c9fe983b06240ae50599ba',
-  'src/components/points/BuklodSpecialCharacterSeries.tsx': 'f742ed7f3644f6b8b6dd0c477b6444f86b0c279f',
+  'src/components/points/BuklodSpecialCharacterSeries.tsx': '4d4b792d866c2a54612faf27870d1a97d91abe88',
   'src/components/points/BuklodCharacterCustomizeSheet.tsx': '8aa1a4dfdad33ba9aca7a07a32560765160fb176',
   'src/components/points/BuklodProgressiveCharacterArt.tsx': '7b6eef608b9844e21e412df19348de87d0468bbe',
 };
