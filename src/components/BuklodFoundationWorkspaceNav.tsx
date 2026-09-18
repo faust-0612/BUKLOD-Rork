@@ -2,6 +2,7 @@ import {
   type ComponentProps,
   useCallback,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import {
@@ -85,6 +86,7 @@ const ACCESSORY_APPS: AccessoryApp[] = [
 
 const QUIZ_ENTRY_BRIDGE =
   'https://cjtehbfspgimyhifnjon.supabase.co/functions/v1/buklod-quiz-main-entry-v1';
+const QUIZ_ENTRY_TIMEOUT_MS = 15_000;
 
 export default function BuklodFoundationWorkspaceNav() {
   const { theme } = useBuklodTheme();
@@ -93,6 +95,7 @@ export default function BuklodFoundationWorkspaceNav() {
   const [open, setOpen] = useState(false);
   const [openingKey, setOpeningKey] = useState<string | null>(null);
   const [locked, setLocked] = useState<Record<string, boolean>>({});
+  const quizEntryInFlight = useRef(false);
 
   const organizationId =
     resolveOrganizationIdFromScope(activeScope) ??
@@ -176,7 +179,17 @@ export default function BuklodFoundationWorkspaceNav() {
 
   const openAccessory = useCallback(
     async (app: AccessoryApp) => {
-      if (openingKey || (!app.route && !app.externalUrl)) return;
+      if (
+        quizEntryInFlight.current ||
+        openingKey ||
+        (!app.route && !app.externalUrl)
+      ) {
+        return;
+      }
+
+      if (app.key === 'quiz') {
+        quizEntryInFlight.current = true;
+      }
 
       const key = `accessory:${app.key}`;
       setOpeningKey(key);
@@ -192,6 +205,11 @@ export default function BuklodFoundationWorkspaceNav() {
            * by the canonical Classroom Quiz entry. Never open the bare Quiz
            * URL for an authenticated Main user and never place Main access or
            * refresh tokens in the Quiz URL.
+           *
+           * BUKLOD_PROFILE_QUIZ_STUCK_LOADING_GUARD_R2
+           * A slow or stalled per-user handoff must never leave Profile stuck
+           * in OPENING state. Keep one request in flight, abort after a bounded
+           * timeout, show a retryable error, then always release the launcher.
            */
           const { data, error } = await supabase.auth.getSession();
           if (error) throw error;
@@ -203,14 +221,36 @@ export default function BuklodFoundationWorkspaceNav() {
             );
           }
 
-          const handoffResponse = await fetch(QUIZ_ENTRY_BRIDGE, {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ source: 'buklod-main-profile' }),
-          });
+          const controller = new AbortController();
+          const timeoutId = setTimeout(
+            () => controller.abort(),
+            QUIZ_ENTRY_TIMEOUT_MS,
+          );
+
+          let handoffResponse: Awaited<ReturnType<typeof fetch>>;
+          try {
+            handoffResponse = await fetch(QUIZ_ENTRY_BRIDGE, {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ source: 'buklod-main-profile' }),
+              signal: controller.signal,
+            });
+          } catch (handoffError: any) {
+            if (
+              handoffError?.name === 'AbortError' ||
+              controller.signal.aborted
+            ) {
+              throw new Error(
+                'BUKLOD Quiz entry timed out. Check your connection, then tap BUKLOD Quiz once to retry.',
+              );
+            }
+            throw handoffError;
+          } finally {
+            clearTimeout(timeoutId);
+          }
 
           const handoffResult = await handoffResponse.json().catch(() => null);
           const launchUrl = String(handoffResult?.launch_url ?? '').trim();
@@ -220,6 +260,13 @@ export default function BuklodFoundationWorkspaceNav() {
             handoffResult?.ok !== true ||
             !launchUrl
           ) {
+            const code = String(handoffResult?.error ?? '').trim();
+            if (code === 'entry_already_in_progress') {
+              throw new Error(
+                'Your BUKLOD Quiz entry is already processing. Wait a few seconds, then tap BUKLOD Quiz once.',
+              );
+            }
+
             throw new Error(
               String(
                 handoffResult?.message ??
@@ -242,6 +289,9 @@ export default function BuklodFoundationWorkspaceNav() {
           String(error?.message ?? 'Could not open this BUKLOD app.'),
         );
       } finally {
+        if (app.key === 'quiz') {
+          quizEntryInFlight.current = false;
+        }
         setOpeningKey(null);
       }
     },
