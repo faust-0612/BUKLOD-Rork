@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 
 import {
   loadBuklodKingdomProgress,
@@ -18,6 +19,7 @@ const CORE_GAMES = new Set([
 ]);
 
 export function useBuklodGameKingdomRuntime(gameId?: string) {
+  const params = useLocalSearchParams<{ level?: string | string[] }>();
   const [progress, setProgress] = useState<BuklodKingdomProgress | null>(null);
   const [loading, setLoading] = useState(Boolean(gameId));
 
@@ -52,13 +54,18 @@ export function useBuklodGameKingdomRuntime(gameId?: string) {
     [gameId, progress],
   );
 
+  const requestedLevelRaw = Array.isArray(params.level) ? params.level[0] : params.level;
+  const requestedLevel = requestedLevelRaw
+    ? Math.max(1, Math.min(20, Math.floor(Number(requestedLevelRaw) || 1)))
+    : null;
+
   const canPlay = !gameId
     ? true
     : station
-      ? station.unlocked
+      ? station.unlocked && (requestedLevel == null || requestedLevel <= station.currentLevel)
       : !loading && CORE_GAMES.has(gameId);
 
-  const level = station?.currentLevel ?? 1;
+  const level = requestedLevel ?? station?.currentLevel ?? 1;
   const difficulty = 1 + Math.max(0, level - 1) * 0.055;
   const speedMultiplier = 1 + Math.max(0, level - 1) * 0.035;
   const targetMultiplier = 1 + Math.max(0, level - 1) * 0.04;
@@ -66,11 +73,11 @@ export function useBuklodGameKingdomRuntime(gameId?: string) {
 
   const submitResult = useCallback(
     async (result: BuklodGameResult) => {
-      const next = await recordBuklodKingdomResult(result);
+      const next = await recordBuklodKingdomResult(result, level);
       setProgress(next);
       return next;
     },
-    [],
+    [level],
   );
 
   return {
