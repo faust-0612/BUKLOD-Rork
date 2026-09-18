@@ -152,6 +152,25 @@ try {
     .map((value) => value.trim())
     .filter(Boolean);
 
+  const allowedChanges = new Set([
+    '.gitignore',
+    'package.json',
+    'scripts/buklod-city-release-gate.mjs',
+    'scripts/game-kingdom-release-contract.mjs',
+    'scripts/rork-integration-qa.ps1',
+    'scripts/rork-integration-static-gate.mjs',
+    'src/components/home/BuklodPersonalHomeE2E.tsx',
+    'src/components/home/BuklodRorkHomeAtlas.tsx',
+    'src/features/games/kingdom/BuklodKingdomMap.tsx',
+    'src/features/games/runtime/BuklodGameBackdrop.tsx',
+    'src/features/games/runtime/BuklodGameFeedback.native.ts',
+    'src/features/games/runtime/BuklodGameFeedback.web.ts',
+    'src/features/games/runtime/BuklodGameStage.native.tsx',
+    'src/features/games/runtime/BuklodGameStage.web.tsx',
+    'src/features/games/runtime/__tests__/rorkMedia.test.ts',
+    'src/features/games/runtime/rorkAudio.ts',
+    'src/features/games/runtime/rorkMedia.ts',
+  ]);
   const forbiddenPrefixes = [
     'supabase/',
     'android/',
@@ -167,6 +186,9 @@ try {
   ]);
 
   for (const rel of changed) {
+    if (!allowedChanges.has(rel)) {
+      failures.push(`Unexpected file changed in isolated Rork integration branch: ${rel}`);
+    }
     if (forbiddenExact.has(rel) || forbiddenPrefixes.some((prefix) => rel.startsWith(prefix))) {
       failures.push(`Protected backend/native/release surface changed in Rork integration branch: ${rel}`);
     }
