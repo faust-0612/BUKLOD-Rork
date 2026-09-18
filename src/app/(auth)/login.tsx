@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Animated,
   Easing,
@@ -37,6 +38,10 @@ import {
   HomePressable,
   useBuklodReduceMotion,
 } from '@/components/HomeMotion';
+import {
+  clearSavedSuggestedLoginPassword,
+  consumePasswordRecoveryNotice,
+} from '@/lib/buklodSuggestedLoginStorage';
 
 const LOGIN_EASING = Easing.out(Easing.cubic);
 
@@ -600,6 +605,9 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [loginStatus, setLoginStatus] = useState('');
+  const [passwordRecoveryNotice, setPasswordRecoveryNotice] =
+    useState(false);
   // HIGH_CONCURRENCY_LOGIN_R1: React state alone cannot stop same-tick double taps.
   const loginInFlightRef = useRef(false);
   const [
@@ -627,6 +635,30 @@ export default function LoginScreen() {
   const [rememberLoaded, setRememberLoaded] =
     useState(false);
   const { shakeX, triggerShake } = useLoginShake();
+
+  useEffect(() => {
+    let active = true;
+
+    void consumePasswordRecoveryNotice()
+      .then(notice => {
+        if (active && notice) {
+          setPasswordRecoveryNotice(true);
+          setLoginStatus(
+            'Password updated. Enter your new password once to sign in.'
+          );
+        }
+      })
+      .catch(error => {
+        console.warn(
+          'Could not load password recovery notice.',
+          error
+        );
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -739,6 +771,8 @@ const chooseSuggestedLogin =
               item.identifier,
             password:
               savedPassword,
+            suggestedUserId:
+              item.userId,
           });
 
           return;
@@ -746,6 +780,9 @@ const chooseSuggestedLogin =
 
         setPassword('');
         setRememberPassword(false);
+        setLoginStatus(
+          'Enter the current password for this account. If you recently reset it, use the new password.'
+        );
       }
       catch (error) {
         console.warn(
@@ -913,6 +950,7 @@ const chooseSuggestedLogin =
     credentialsOverride?: {
       identifier: string;
       password: string;
+      suggestedUserId?: string;
     },
   ) {
     const raw =
@@ -928,6 +966,9 @@ const chooseSuggestedLogin =
       password;
 
     if (!raw || !effectivePassword) {
+      setLoginStatus(
+        'Enter your login and password to continue.'
+      );
       triggerShake();
       return Alert.alert(
         'BUKLOD',
@@ -936,15 +977,26 @@ const chooseSuggestedLogin =
     }
 
     if (loginInFlightRef.current) {
+      setLoginStatus(
+        'Sign-in is already being processed. Please wait for the current attempt to finish.'
+      );
       return;
     }
 
     loginInFlightRef.current = true;
     setBusy(true);
+    setLoginStatus(
+      'Checking your BUKLOD account…'
+    );
 
-    const releaseLogin = () => {
+    const releaseLogin = (
+      status?: string
+    ) => {
       loginInFlightRef.current = false;
       setBusy(false);
+      if (typeof status === 'string') {
+        setLoginStatus(status);
+      }
     };
 
     let error: any = null;
@@ -1000,7 +1052,9 @@ const chooseSuggestedLogin =
         const username = normalizeUsername(raw);
 
         if (!username) {
-          releaseLogin();
+          releaseLogin(
+            'Enter a valid mobile number, username, or email.'
+          );
 
           return Alert.alert(
             'BUKLOD',
@@ -1025,19 +1079,64 @@ const chooseSuggestedLogin =
     }
 
     if (error) {
-      releaseLogin();
-      triggerShake();
-
       const temporaryFailure =
         isBuklodTransientAuthError(error);
+      const invalidCredentials =
+        isBuklodInvalidCredentialsError(error);
+
+      if (
+        invalidCredentials &&
+        credentialsOverride?.suggestedUserId
+      ) {
+        await clearSavedSuggestedLoginPassword({
+          userId:
+            credentialsOverride.suggestedUserId,
+          loginIdentifier: raw,
+        }).catch(clearError => {
+          console.warn(
+            'Could not clear stale Suggested Login password.',
+            clearError
+          );
+        });
+
+        setSuggestedLogins(current =>
+          current.map(item =>
+            item.userId ===
+            credentialsOverride.suggestedUserId
+              ? {
+                  ...item,
+                  hasPassword: false,
+                }
+              : item
+          )
+        );
+        setPassword('');
+        setRememberPassword(false);
+      }
+
+      releaseLogin(
+        temporaryFailure
+          ? 'BUKLOD did not finish this sign-in request. You can try again; no extra request will be started while the old one is still active.'
+          : invalidCredentials &&
+            credentialsOverride?.suggestedUserId
+            ? 'The saved password no longer matches this account. Enter the current password, then you may save it again.'
+            : 'Login was not completed. Check your login and password, then try again.'
+      );
+      triggerShake();
 
       return Alert.alert(
         temporaryFailure
           ? 'BUKLOD is temporarily busy'
-          : 'Login failed',
+          : invalidCredentials &&
+            credentialsOverride?.suggestedUserId
+            ? 'Saved password needs updating'
+            : 'Login failed',
         temporaryFailure
-          ? 'Your password was not rejected. The BUKLOD server did not finish the sign-in request. Please try again in a moment.'
-          : 'Invalid login identifier or password.'
+          ? 'BUKLOD did not finish the sign-in request. Please try again. If this continues, close and reopen BUKLOD before retrying.'
+          : invalidCredentials &&
+            credentialsOverride?.suggestedUserId
+            ? 'The password saved on this device is no longer valid. Enter your current password. If you recently reset it, use the new password.'
+            : 'Invalid login identifier or password.'
       );
     }
 
@@ -1057,12 +1156,17 @@ const chooseSuggestedLogin =
 
     if (accountLifecycleError) {
       await signOutBuklodResilient();
-      releaseLogin();
 
       const temporaryFailure =
         isBuklodTransientAuthError(
           accountLifecycleError
         );
+
+      releaseLogin(
+        temporaryFailure
+          ? 'Password accepted, but BUKLOD could not finish the account-status check. Please try again.'
+          : 'BUKLOD could not verify this account status. Please try again.'
+      );
 
       Alert.alert(
         temporaryFailure
@@ -1155,6 +1259,9 @@ const chooseSuggestedLogin =
       return;
     }
     setLoginAccepted(true);
+    setLoginStatus(
+      'Signed in. Opening BUKLOD…'
+    );
 
     /*
      * PATCH_171K_R3_BUBBLE_HOME_REOPEN_CONNECT
@@ -1369,6 +1476,24 @@ const chooseSuggestedLogin =
           </View>
           </LoginMotionFadeUp>
         ) : null}
+        {passwordRecoveryNotice ? (
+          <View style={styles.recoveryNotice}>
+            <Ionicons
+              name="information-circle-outline"
+              size={22}
+              color={colors.greenDark}
+            />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.recoveryNoticeTitle}>
+                Password updated
+              </Text>
+              <Text style={styles.recoveryNoticeText}>
+                For your security, BUKLOD removed the old saved password on this device. Enter the new password once, then you may turn on Remember password again.
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
         <Animated.View
           style={[
             styles.form,
@@ -1467,12 +1592,38 @@ const chooseSuggestedLogin =
             haptic={false}
             onPress={() => void login()}
             disabled={busy}
-            style={styles.primary}
+            accessibilityRole="button"
+            accessibilityLabel={
+              busy
+                ? 'BUKLOD login in progress'
+                : 'Log in to BUKLOD'
+            }
+            style={[
+              styles.primary,
+              busy && styles.primaryBusy,
+            ]}
           >
-            <Text style={styles.primaryText}>
-              LOG IN
-            </Text>
+            <View style={styles.primaryContent}>
+              {busy ? (
+                <ActivityIndicator
+                  size="small"
+                  color={colors.white}
+                />
+              ) : null}
+              <Text style={styles.primaryText}>
+                {busy ? 'LOGGING IN…' : 'LOG IN'}
+              </Text>
+            </View>
           </HomePressable>
+
+          {!!loginStatus ? (
+            <Text
+              accessibilityLiveRegion="polite"
+              style={styles.loginStatus}
+            >
+              {loginStatus}
+            </Text>
+          ) : null}
 
           
           {/* PATCH_166D_PASSWORD_RECOVERY */}
@@ -1695,6 +1846,28 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '800',
   },
+  recoveryNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginBottom: 14,
+    padding: 13,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#C9DFCf',
+    backgroundColor: '#EEF8F1',
+  },
+  recoveryNoticeTitle: {
+    color: colors.greenDark,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  recoveryNoticeText: {
+    marginTop: 3,
+    color: colors.text,
+    fontSize: 12,
+    lineHeight: 18,
+  },
   form: {
     gap: 8,
   },
@@ -1739,9 +1912,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.green,
   },
+  primaryBusy: {
+    opacity: 0.82,
+  },
+  primaryContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
   primaryText: {
     color: colors.white,
     fontWeight: '900',
+  },
+  loginStatus: {
+    marginTop: 2,
+    color: colors.muted,
+    fontSize: 11,
+    lineHeight: 17,
+    textAlign: 'center',
   },
   secondary: {
     padding: 14,
