@@ -33,6 +33,7 @@ export type BuklodKingdomLastResult = {
   score: number;
   stars: 0 | 1 | 2 | 3;
   firstClear: boolean;
+  replay: boolean;
   starImproved: boolean;
   kingdomXpAwarded: number;
   gameXpAwarded: number;
@@ -165,6 +166,7 @@ function normalizeLastResult(value: any): BuklodKingdomLastResult | null {
     score: Math.max(0, Number(value?.score ?? 0) || 0),
     stars: clampInt(value?.stars, 0, 3) as 0 | 1 | 2 | 3,
     firstClear: Boolean(value?.first_clear ?? value?.firstClear),
+    replay: Boolean(value?.replay),
     starImproved: Boolean(value?.star_improved ?? value?.starImproved),
     kingdomXpAwarded: Math.max(0, Number(value?.kingdom_xp_awarded ?? value?.kingdomXpAwarded ?? 0) || 0),
     gameXpAwarded: Math.max(0, Number(value?.game_xp_awarded ?? value?.gameXpAwarded ?? 0) || 0),
@@ -268,6 +270,18 @@ async function fetchServerState() {
   const progress = normalize(data, queue.length);
   await persist(progress);
   return progress;
+}
+
+function isPermanentKingdomSubmissionError(error: unknown) {
+  const message = String((error as any)?.message ?? error ?? '').toLowerCase();
+  return [
+    'authentication required',
+    'invalid kingdom',
+    'unsupported buklod kingdom game',
+    'kingdom region is locked',
+    'is not unlocked yet',
+    'was not previously cleared',
+  ].some((token) => message.includes(token));
 }
 
 async function submitPending(item: PendingResult) {
@@ -382,7 +396,8 @@ export async function recordBuklodKingdomResult(
     const progress = normalize(data, queue.length);
     await persist(progress);
     return progress;
-  } catch {
+  } catch (error) {
+    if (isPermanentKingdomSubmissionError(error)) throw error;
     const queue = await readQueue();
     if (!queue.some((row) => row.clientResultId === item.clientResultId)) {
       queue.push(item);
