@@ -4,6 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import BuklodActiveCharacterArt from '@/components/points/BuklodActiveCharacterArt';
+import BuklodCharacterMotion from '@/components/points/BuklodCharacterMotion';
 import { DEFAULT_CHARACTER } from '@/lib/buklodCharacter';
 
 type RoomId = 'night' | 'study' | 'relax' | 'kitchen' | 'living' | 'drawer' | 'budget' | 'bayanihan' | 'door';
@@ -128,12 +129,18 @@ export default function BuklodRorkHomeAtlas({ onOpenDetails }: { onOpenDetails: 
               <View style={[styles.roomGlow, { backgroundColor: room.accent, opacity: dark ? 0.08 : 0.13 }]} />
               <MaterialCommunityIcons name={room.icon} size={room.id === 'door' ? 22 : 28} color={dark ? '#CFC5B5' : room.accent} />
               {room.id === 'living' ? (
-                <View pointerEvents="none" style={styles.characterSlot}>
-                  <BuklodActiveCharacterArt
-                    fallbackCharacter={DEFAULT_CHARACTER}
-                    height={characterHeight}
-                    viewportWidth={characterHeight * 0.72}
-                  />
+                <View pointerEvents="box-none" style={styles.characterSlot}>
+                  <BuklodCharacterMotion
+                    interactive
+                    mode="home"
+                    accessibilityLabel="My BUKLOD Character"
+                  >
+                    <BuklodActiveCharacterArt
+                      fallbackCharacter={DEFAULT_CHARACTER}
+                      height={characterHeight}
+                      viewportWidth={characterHeight * 0.72}
+                    />
+                  </BuklodCharacterMotion>
                 </View>
               ) : null}
               <View style={styles.plaque}>
@@ -181,7 +188,7 @@ const styles = StyleSheet.create({
   plaque: { position: 'absolute', left: 5, right: 5, bottom: 5, minHeight: 24, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 4, borderRadius: 12, backgroundColor: 'rgba(255,248,236,0.93)' },
   plaqueIcon: { width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   plaqueText: { flex: 1, color: P.ink, fontSize: 8.4, fontWeight: '900' },
-  characterSlot: { position: 'absolute', bottom: 17, alignItems: 'center', justifyContent: 'flex-end' },
+  characterSlot: { position: 'absolute', bottom: 17, zIndex: 5, alignItems: 'center', justifyContent: 'flex-end' },
   floorShade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '7%', backgroundColor: 'rgba(74,44,26,0.20)' },
   detailsButton: { marginTop: 10, minHeight: 44, borderRadius: 15, borderWidth: 1, borderColor: 'rgba(22,86,90,0.20)', backgroundColor: '#FFF8EC', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   detailsText: { color: P.teal, fontSize: 12, fontWeight: '900' },
