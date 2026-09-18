@@ -445,6 +445,19 @@ export function subscribeBahay(homeId: string, onChange: () => void) {
     .on('postgres_changes',{event:'*',schema:'public',table:'buklod_home_messages',filter:`home_id=eq.${homeId}`},onChange)
     .on('postgres_changes',{event:'*',schema:'public',table:'buklod_home_members',filter:`home_id=eq.${homeId}`},onChange)
     .on('postgres_changes',{event:'*',schema:'public',table:'buklod_home_garden_plants',filter:`home_id=eq.${homeId}`},onChange)
+    .on('postgres_changes',{event:'*',schema:'public',table:'buklod_home_files',filter:`home_id=eq.${homeId}`},onChange)
+    .on('postgres_changes',{event:'*',schema:'public',table:'buklod_home_polls',filter:`home_id=eq.${homeId}`},onChange)
+    .on('postgres_changes',{event:'*',schema:'public',table:'buklod_home_poll_options'},onChange)
+    .on('postgres_changes',{event:'*',schema:'public',table:'buklod_home_poll_votes'},onChange)
+    .subscribe();
+  return () => { void (supabase as any).removeChannel(channel); };
+}
+
+export function subscribeBahayCommunity(communityId: string, onChange: () => void) {
+  const channel = (supabase as any)
+    .channel(`buklod-bahay-community:${communityId}`)
+    .on('postgres_changes',{event:'*',schema:'public',table:'buklod_home_community_items',filter:`community_id=eq.${communityId}`},onChange)
+    .on('postgres_changes',{event:'*',schema:'public',table:'buklod_home_community_messages',filter:`community_id=eq.${communityId}`},onChange)
     .subscribe();
   return () => { void (supabase as any).removeChannel(channel); };
 }
