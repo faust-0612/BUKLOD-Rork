@@ -7,6 +7,11 @@ const failures = [];
 const args = process.argv.slice(2);
 const distIndex = args.indexOf('--dist');
 const distDir = distIndex >= 0 ? path.resolve(ROOT, args[distIndex + 1] || 'dist') : null;
+const webOutputIndex = args.indexOf('--web-output');
+const webOutputMode = webOutputIndex >= 0 ? String(args[webOutputIndex + 1] || '').trim().toLowerCase() : 'static';
+if (!['single', 'static'].includes(webOutputMode)) {
+  failures.push(`Unsupported --web-output mode: ${webOutputMode || '(empty)'}`);
+}
 
 const GAME_IDS = [
   'jawo-forest-trail',
@@ -111,6 +116,7 @@ requireTokens('src/features/games/runtime/BuklodGameStage.web.tsx', [
   'recordBuklodKingdomPreviewResult',
   'withResultHandler',
   'BuklodGameLanguageControl',
+  'BuklodGameCharacterCompanion',
 ]);
 requireTokens('src/features/games/runtime/BuklodGameStage.native.tsx', [
   '@shopify/react-native-skia',
@@ -118,9 +124,11 @@ requireTokens('src/features/games/runtime/BuklodGameStage.native.tsx', [
   'recordBuklodKingdomPreviewResult',
   'withResultHandler',
   'BuklodGameLanguageControl',
+  'BuklodGameCharacterCompanion',
 ]);
 requireTokens('src/features/games/runtime/BuklodGameFeedback.web.ts', [
   'AudioContext',
+  'emitBuklodGameCharacterMotion',
   "case 'collect'",
   "case 'impact'",
   "case 'success'",
@@ -128,10 +136,64 @@ requireTokens('src/features/games/runtime/BuklodGameFeedback.web.ts', [
 ]);
 requireTokens('src/features/games/runtime/BuklodGameFeedback.native.ts', [
   'createAudioPlayer',
+  'emitBuklodGameCharacterMotion',
   'buklod-reaction.wav',
   'buklod-points-claim.wav',
   'expo-haptics',
 ]);
+requireTokens('src/features/games/runtime/BuklodGameCharacterCompanion.tsx', [
+  'BuklodActiveCharacterArt',
+  'BuklodCharacterMotion',
+  'subscribeBuklodGameCharacterMotion',
+]);
+requireTokens('src/features/games/runtime/characterMotionBus.ts', [
+  'emitBuklodGameCharacterMotion',
+  'subscribeBuklodGameCharacterMotion',
+]);
+requireTokens('src/features/games/runtime/BuklodGameBackdrop.tsx', [
+  'getRorkGameMedia',
+  "from 'expo-image'",
+]);
+const rorkMedia = requireTokens('src/features/games/runtime/rorkMedia.ts', [
+  'RORK_GAME_MEDIA',
+  'kp3ge50a5t6chyb7gv3jn-web.rork.live/kingdom',
+  "const AUDIO_BASE = `${RORK_PUBLIC_BASE}/audio`",
+  'https://r2-pub.rork.com/projects/kp3ge50a5t6chyb7gv3jn/assets/',
+]);
+for (const gameId of GAME_IDS) {
+  if (!rorkMedia.includes(`'${gameId}'`)) failures.push(`Rork media mapping missing game: ${gameId}`);
+}
+requireTokens('src/features/games/runtime/rorkAudio.ts', [
+  'createAudioPlayer',
+  'useRorkGameAmbience',
+  'tryPlayRorkGameFeedback',
+  'playRorkSignatureSfx',
+  'REMOTE_RORK_AUDIO_ENABLED',
+]);
+requireTokens('src/features/games/runtime/BuklodGameStage.web.tsx', [
+  'BuklodGameBackdrop',
+  'useRorkGameAmbience',
+]);
+requireTokens('src/features/games/runtime/BuklodGameStage.native.tsx', [
+  'BuklodGameBackdrop',
+  'useRorkGameAmbience',
+]);
+requireTokens('src/features/games/runtime/BuklodGameFeedback.web.ts', [
+  'tryPlayRorkGameFeedback',
+  'AudioContext',
+]);
+requireTokens('src/features/games/runtime/BuklodGameFeedback.native.ts', [
+  'tryPlayRorkGameFeedback',
+  'expo-haptics',
+]);
+requireTokens('src/features/games/kingdom/BuklodKingdomMap.tsx', [
+  'BuklodGameBackdrop',
+  'playRorkSignatureSfx',
+  'BIOME_REGIONS',
+  'THE CITADEL',
+  'EXPLORE • GROW • BELONG',
+]);
+
 requireTokens('src/features/games/kingdom/progress.ts', [
   'recordBuklodKingdomPreviewResult',
   'bestScore',
@@ -160,14 +222,26 @@ if (distDir) {
       'TAGALOG GAME GUIDE',
       'PAANO LARUIN',
       'Special Character Journey',
+      ...GAME_IDS,
     ]) {
       if (!compiled.includes(token)) failures.push(`Compiled bundle missing Kingdom token: ${token}`);
     }
-    const gameShell = path.join(distDir, 'games', 'index.html');
-    if (!fs.existsSync(gameShell)) failures.push('Compiled web artifact is missing dist/games/index.html.');
-    for (const gameId of GAME_IDS) {
-      const routeShell = path.join(distDir, 'games', gameId, 'index.html');
-      if (!fs.existsSync(routeShell)) failures.push(`Compiled web artifact missing route shell: /games/${gameId}`);
+
+    const rootShell = path.join(distDir, 'index.html');
+    if (!fs.existsSync(rootShell)) failures.push('Compiled web artifact is missing dist/index.html.');
+
+    if (webOutputMode === 'static') {
+      const gameShell = path.join(distDir, 'games', 'index.html');
+      if (!fs.existsSync(gameShell)) failures.push('Compiled static web artifact is missing dist/games/index.html.');
+      for (const gameId of GAME_IDS) {
+        const routeShell = path.join(distDir, 'games', gameId, 'index.html');
+        if (!fs.existsSync(routeShell)) failures.push(`Compiled static web artifact missing route shell: /games/${gameId}`);
+      }
+    } else {
+      const nestedHtml = walk(distDir).filter((file) => /games[\\/]?.*index\.html$/i.test(file));
+      if (nestedHtml.length > 0) {
+        failures.push('Single-output web artifact unexpectedly emitted per-route HTML shells; verify Expo Router output mode.');
+      }
     }
   }
 }

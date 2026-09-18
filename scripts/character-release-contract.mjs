@@ -15,16 +15,16 @@ const distDir = distIndex >= 0 ? path.resolve(ROOT, args[distIndex + 1] || 'dist
 /*
  * BUKLOD CHARACTER VISUAL + GATING LOCK — 2026-09-14
  *
- * R31 remains on the exact approved visual blob. R40 preserves the approved
- * presentation for unlocked Special Characters while enforcing the canonical
- * rule that locked Special identities are not rendered before Circle Rank unlock.
+ * R31 remains on the exact approved visual blob. R40 preserves Circle Rank
+ * activation authority while keeping every Special Character identity visible.
+ * Locked Characters must render as LOCKED and must not become activatable early.
  *
  * Git blob identity is checked instead of hashing working-tree text so Windows
  * CRLF conversion cannot create false failures.
  */
 const LOCKED_VISUAL_BLOBS = {
   'src/components/points/BuklodProgressiveCharacterSelector.tsx': 'f94af7e2f6d20246c9c9fe983b06240ae50599ba',
-  'src/components/points/BuklodSpecialCharacterSeries.tsx': 'f742ed7f3644f6b8b6dd0c477b6444f86b0c279f',
+  'src/components/points/BuklodSpecialCharacterSeries.tsx': '36426e47eec76b21697b07e1eebd5029d2932690',
   'src/components/points/BuklodCharacterCustomizeSheet.tsx': '8aa1a4dfdad33ba9aca7a07a32560765160fb176',
   'src/components/points/BuklodProgressiveCharacterArt.tsx': '7b6eef608b9844e21e412df19348de87d0468bbe',
 };
@@ -175,11 +175,11 @@ requireTokens('src/components/points/BuklodCharacterCustomizeSheet.tsx', [
 
 const r40 = requireTokens('src/components/points/BuklodSpecialCharacterSeries.tsx', [
   'BUKLOD_SPECIAL_BATCH1_R40_PREMIUM_UI',
-  'BUKLOD_SPECIAL_LOCKED_IDENTITIES_HIDDEN',
+  'BUKLOD_SPECIAL_LOCKED_IDENTITIES_VISIBLE_R1',
   'SPECIAL_ORDER',
   'visibleSpecialIds.map',
   'Special Character Journey',
-  'Special Characters appear only when your Circle Rank unlocks them.',
+  'See every Special Character now. Circle Rank still controls when each one can be activated.',
   'More than a character. A mission.',
   'LEVEL 1 - 20 JOURNEY',
   'COLLECTIBLES & BADGES',
@@ -216,6 +216,27 @@ forbidTokens('src/components/points/BuklodSpecialCharacterSeries.tsx', [
 ]);
 requireOneOf('src/components/points/BuklodSpecialCharacterSeries.tsx', ['JAVVO', 'JAWO', 'Jawo'], 'Jawo identity');
 requireOneOf('src/components/points/BuklodSpecialCharacterSeries.tsx', ['ELLUSUR', 'ELESUR'], 'ELESUR identity');
+requireTokens('src/components/points/BuklodSpecialCharacterSeries.tsx', [
+  'BuklodSpecialCharacterLayerStage',
+  'visibleSpecialIds.map',
+]);
+requireTokens('src/components/points/BuklodSpecialCharacterLayerStage.tsx', [
+  'BuklodCharacterMotion',
+  'R40 SPECIAL',
+  'unlocked',
+  'Tap • double tap • hold • swipe',
+  'getBuklodSpecialLevelAsset',
+  'SPECIAL_CHARACTER_HERO',
+]);
+requireTokens('src/components/points/BuklodCharacterMotion.tsx', [
+  'AccessibilityInfo',
+  'PanResponder',
+  "case 'success'",
+  "case 'failure'",
+  "case 'unlock'",
+  "case 'hello'",
+  "case 'nod'",
+]);
 
 const registry = requireTokens('src/lib/buklodSpecialCharacterAssets.ts', ['ace_hero.jpg']);
 for (const id of SPECIAL_IDS) {

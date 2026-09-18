@@ -1,0 +1,283 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { execFileSync } from 'node:child_process';
+
+const root = process.cwd();
+const failures = [];
+
+const GAME_IDS = [
+  'jawo-forest-trail',
+  'trudice-playground-memory',
+  'ace-rescue-grid',
+  'mitch-restore-mural',
+  'niel-mission-trail',
+  'angel-kingdom-treasury',
+  'vhen-farm-to-market',
+  'elesur-village-builder',
+  'phan-enterprise-builder',
+  'van-living-city-dispatch',
+  'christian-civic-leadership',
+  'lhen-rhythm-journey',
+  'quin-discovery-expedition',
+];
+
+function read(rel) {
+  const full = path.join(root, rel);
+  if (!fs.existsSync(full)) {
+    failures.push(`Missing Rork integration file: ${rel}`);
+    return '';
+  }
+  return fs.readFileSync(full, 'utf8');
+}
+
+function requireTokens(rel, tokens) {
+  const source = read(rel);
+  for (const token of tokens) {
+    if (!source.includes(token)) {
+      failures.push(`${rel} missing Rork integration token: ${token}`);
+    }
+  }
+  return source;
+}
+
+console.log('BUKLOD RORK HOME + KINGDOM STATIC GATE');
+console.log('======================================');
+
+for (const rel of [
+  'src/app/personal-home/index.tsx',
+  'src/app/personal-home/index.web.tsx',
+  'src/app/personal-home/index.native.tsx',
+]) {
+  requireTokens(rel, [
+    'BuklodPersonalHomeE2E',
+    'export default BuklodPersonalHomeE2E',
+  ]);
+}
+
+requireTokens('src/components/home/BuklodPersonalHomeE2E.tsx', [
+  'BuklodRorkHomeAtlas',
+  'BuklodSpatialHomeV2',
+  "useState<'house' | 'details'>('house')",
+]);
+
+const atlas = requireTokens('src/components/home/BuklodRorkHomeAtlas.tsx', [
+  'BuklodActiveCharacterArt',
+  'BuklodCharacterMotion',
+  'interactive',
+  'My BUKLOD Character',
+  "route: '/profile/buklod-classrooms'",
+  "route: '/igpat'",
+  "route: '/personal-home/recipe'",
+  "route: '/points'",
+  "route: '/personal-home/budget'",
+  "route: '/bayanihan'",
+  "route: '/city'",
+  'Open full Home details & tools',
+]);
+for (const forbidden of ['supabase', '.rpc(', 'fetch(', 'axios', 'createClient(']) {
+  if (atlas.includes(forbidden)) {
+    failures.push(`Rork Home atlas must remain presentation/navigation only; found forbidden token: ${forbidden}`);
+  }
+}
+
+const registry = read('src/features/games/registry.ts');
+const media = requireTokens('src/features/games/runtime/rorkMedia.ts', [
+  'RORK_GAME_MEDIA',
+  'kp3ge50a5t6chyb7gv3jn-web.rork.live/kingdom',
+  "const AUDIO_BASE = `${RORK_PUBLIC_BASE}/audio`",
+  'https://r2-pub.rork.com/projects/kp3ge50a5t6chyb7gv3jn/assets/',
+]);
+for (const gameId of GAME_IDS) {
+  if (!registry.includes(`'${gameId}'`)) failures.push(`Canonical game registry missing: ${gameId}`);
+  if (!media.includes(`'${gameId}'`)) failures.push(`Rork media map missing canonical game: ${gameId}`);
+  const route = path.join(root, 'src', 'app', 'games', `${gameId}.tsx`);
+  if (!fs.existsSync(route)) failures.push(`Canonical game route missing: /games/${gameId}`);
+}
+
+requireTokens('src/components/points/BuklodCharacterMotion.tsx', [
+  'AccessibilityInfo',
+  'PanResponder',
+  "case 'hello'",
+  "case 'celebrate'",
+  "case 'success'",
+  "case 'failure'",
+  "case 'unlock'",
+]);
+requireTokens('src/components/points/BuklodSpecialCharacterLayerStage.tsx', [
+  'R40 SPECIAL',
+  'unlocked',
+  'BuklodCharacterMotion',
+  'Tap • double tap • hold • swipe',
+]);
+requireTokens('src/components/points/BuklodSpecialCharacterSeries.tsx', [
+  'BuklodSpecialCharacterLayerStage',
+  'visibleSpecialIds.map',
+  'BUKLOD_SPECIAL_LOCKED_IDENTITIES_VISIBLE_R1',
+  'const visibleSpecialIds = SPECIAL_ORDER',
+  "unlockedNow ? 'AVAILABLE' : 'LOCKED'",
+  'Reach Circle Rank',
+]);
+requireTokens('src/features/games/runtime/BuklodGameCharacterCompanion.tsx', [
+  'BuklodActiveCharacterArt',
+  'BuklodCharacterMotion',
+  'subscribeBuklodGameCharacterMotion',
+]);
+requireTokens('src/features/games/runtime/characterMotionBus.ts', [
+  'emitBuklodGameCharacterMotion',
+  'subscribeBuklodGameCharacterMotion',
+]);
+requireTokens('src/features/games/runtime/BuklodGameBackdrop.tsx', [
+  "from 'expo-image'",
+  'getRorkGameMedia',
+  'Animated.loop',
+]);
+requireTokens('scripts/game-kingdom-release-contract.mjs', [
+  "const webOutputMode = webOutputIndex >= 0",
+  "webOutputMode === 'static'",
+  "...GAME_IDS",
+  "Compiled single-output",
+].filter((token) => token !== "Compiled single-output"));
+requireTokens('src/features/games/runtime/rorkAudio.ts', [
+  "from 'expo-audio'",
+  'tryPlayRorkGameFeedback',
+  'playRorkSignatureSfx',
+  'useRorkGameAmbience',
+  'voiceCount',
+  'cooldownMs',
+  'downloadFirst: true',
+  'player.isLoaded',
+  'const REMOTE_RORK_AUDIO_ENABLED = false',
+]);
+requireTokens('scripts/rork-media-contract-test.mjs', [
+  'RORK MEDIA CONTRACT PASSED.',
+  '13/13 canonical games mapped',
+]);
+requireTokens('scripts/rork-current-edit-freeze-r1.mjs', [
+  'BUKLOD CURRENT EDIT FREEZE R1',
+  'CURRENT EDIT FREEZE PASSED.',
+  'git hash-object',
+]);
+requireTokens('scripts/rork-integration-qa.ps1', [
+  'Assert-ExternalCommand',
+  "$env:BUKLOD_WEB_OUTPUT = 'single'",
+  '--web-output single',
+  "$runStamp = Get-Date -Format 'yyyyMMdd-HHmmss'",
+  'QA artifact run:',
+  "Assert-ExternalCommand 'Canonical Character contract'",
+  "Assert-ExternalCommand 'Android bundle smoke'",
+]);
+for (const rel of [
+  'src/features/games/runtime/BuklodGameStage.web.tsx',
+  'src/features/games/runtime/BuklodGameStage.native.tsx',
+]) {
+  requireTokens(rel, [
+    'BuklodGameBackdrop',
+    'useRorkGameAmbience',
+    'recordBuklodKingdomPreviewResult',
+    'withResultHandler',
+    'BuklodGameLanguageControl',
+    'BuklodGameCharacterCompanion',
+  ]);
+}
+requireTokens('src/features/games/runtime/BuklodGameFeedback.web.ts', [
+  'tryPlayRorkGameFeedback',
+  'AudioContext',
+  "case 'collect'",
+  "case 'impact'",
+  "case 'success'",
+  "case 'failure'",
+  'emitBuklodGameCharacterMotion',
+]);
+requireTokens('src/features/games/runtime/BuklodGameFeedback.native.ts', [
+  'tryPlayRorkGameFeedback',
+  'buklod-reaction.wav',
+  'buklod-points-claim.wav',
+  'expo-haptics',
+  'emitBuklodGameCharacterMotion',
+]);
+requireTokens('src/features/games/kingdom/BuklodKingdomMap.tsx', [
+  'BuklodGameBackdrop',
+  'playRorkSignatureSfx',
+  'loadBuklodKingdomPreviewProgress',
+  'subscribeBuklodKingdomPreviewProgress',
+  'BIOME_REGIONS',
+  'THE CITADEL',
+  'EXPLORE • GROW • BELONG',
+]);
+
+try {
+  let base = 'main';
+  try {
+    execFileSync('git', ['rev-parse', '--verify', 'main'], { cwd: root, stdio: 'ignore' });
+  } catch {
+    base = 'origin/main';
+  }
+  const changed = execFileSync('git', ['diff', '--name-only', `${base}...HEAD`], {
+    cwd: root,
+    encoding: 'utf8',
+  })
+    .split(/\r?\n/)
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  const allowedChanges = new Set([
+    '.gitignore',
+    'package.json',
+    'scripts/buklod-city-release-gate.mjs',
+    'scripts/character-release-contract.mjs',
+    'scripts/game-kingdom-release-contract.mjs',
+    'scripts/rork-current-edit-freeze-r1.mjs',
+    'scripts/rork-integration-qa.ps1',
+    'scripts/rork-integration-static-gate.mjs',
+    'scripts/rork-media-contract-test.mjs',
+    'src/components/home/BuklodPersonalHomeE2E.tsx',
+    'src/components/home/BuklodRorkHomeAtlas.tsx',
+    'src/components/points/BuklodCharacterMotion.tsx',
+    'src/components/points/BuklodSpecialCharacterLayerStage.tsx',
+    'src/components/points/BuklodSpecialCharacterSeries.tsx',
+    'src/features/games/kingdom/BuklodKingdomMap.tsx',
+    'src/features/games/runtime/BuklodGameBackdrop.tsx',
+    'src/features/games/runtime/BuklodGameCharacterCompanion.tsx',
+    'src/features/games/runtime/BuklodGameFeedback.native.ts',
+    'src/features/games/runtime/BuklodGameFeedback.web.ts',
+    'src/features/games/runtime/BuklodGameStage.native.tsx',
+    'src/features/games/runtime/BuklodGameStage.web.tsx',
+    'src/features/games/runtime/__tests__/rorkMedia.test.ts',
+    'src/features/games/runtime/characterMotionBus.ts',
+    'src/features/games/runtime/rorkAudio.ts',
+    'src/features/games/runtime/rorkMedia.ts',
+  ]);
+  const forbiddenPrefixes = [
+    'supabase/',
+    'android/',
+    'ios/',
+    'functions/',
+  ];
+  const forbiddenExact = new Set([
+    'app.config.js',
+    'app.config.ts',
+    'app.json',
+    'eas.json',
+    'package-lock.json',
+  ]);
+
+  for (const rel of changed) {
+    if (!allowedChanges.has(rel)) {
+      failures.push(`Unexpected file changed in isolated Rork integration branch: ${rel}`);
+    }
+    if (forbiddenExact.has(rel) || forbiddenPrefixes.some((prefix) => rel.startsWith(prefix))) {
+      failures.push(`Protected backend/native/release surface changed in Rork integration branch: ${rel}`);
+    }
+  }
+} catch (error) {
+  failures.push(`Could not verify Rork branch scope with git diff: ${error instanceof Error ? error.message : String(error)}`);
+}
+
+for (const failure of failures) console.error(`FAIL: ${failure}`);
+if (failures.length) {
+  console.error(`\nRORK STATIC GATE FAILED with ${failures.length} blocker(s).`);
+  process.exit(1);
+}
+
+console.log('\nRORK STATIC GATE PASSED.');
+console.log('Home presentation, 13-game mapping, shared runtime, fallback feedback and branch scope are intact.');

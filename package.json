@@ -14,7 +14,7 @@
     "character:contract": "node scripts/character-release-contract.mjs && node scripts/character-active-renderer-gate.mjs",
     "character:contract:dist": "node scripts/character-release-contract.mjs --dist dist && node scripts/character-active-renderer-gate.mjs",
     "game:contract": "node scripts/game-kingdom-release-contract.mjs",
-    "game:contract:dist": "node scripts/game-kingdom-release-contract.mjs --dist dist",
+    "game:contract:dist": "node scripts/game-kingdom-release-contract.mjs --dist dist --web-output single",
     "release:base-gate": "node scripts/release-gate.mjs",
     "release:gate": "npm run character:contract && npm run game:contract && npm run release:base-gate",
     "quality": "npm run test && npm run test:db && npm run release:gate",
@@ -27,7 +27,10 @@
     "production:dry-run": "bash scripts/production-cutover.sh",
     "production:android": "bash scripts/build-android-production.sh",
     "play:draft": "bash scripts/submit-google-play-draft.sh",
-    "play:internal": "bash scripts/submit-google-play-internal.sh"
+    "play:internal": "bash scripts/submit-google-play-internal.sh",
+    "rork:static": "node scripts/rork-integration-static-gate.mjs",
+    "rork:qa": "powershell -ExecutionPolicy Bypass -File scripts/rork-integration-qa.ps1",
+    "rork:freeze": "node scripts/rork-current-edit-freeze-r1.mjs"
   },
   "jest": {
     "preset": "jest-expo",
