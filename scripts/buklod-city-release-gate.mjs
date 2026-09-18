@@ -20,7 +20,7 @@ const FROZEN_RELEASE_BLOBS = {
   'src/app/personal-home/index.web.tsx': 'f2929f9f703d3d520e4cc0b5757b09e04211a5bd',
   'src/app/personal-home/index.native.tsx': 'f2929f9f703d3d520e4cc0b5757b09e04211a5bd',
   'src/components/home/BuklodPersonalHomeE2E.tsx': 'bb517eb6abfc198e204e95daa6b50280176bc40e',
-  'src/components/home/BuklodRorkHomeAtlas.tsx': 'b86eca025aec6424e9618d9b0a47ad5280c6969c',
+  'src/components/home/BuklodRorkHomeAtlas.tsx': '86902f5f0e1825affb8f44412128ed69813c2299',
   'src/components/BuklodCityDashboardR6.web.tsx': '24d039c759ab0af94e30e1970e1625ccd68719f4',
   'src/components/BuklodCityMap.web.tsx': '769b9aa6e0f18cef72f1bd15a6132ff3968f0caa',
   'src/components/BuklodCommunityBulletin.web.tsx': '1a9d9867f84621d122ba3299f1d2d6e957449b92',
