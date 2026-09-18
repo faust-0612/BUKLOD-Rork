@@ -23,6 +23,9 @@ import Svg, {
   Stop,
 } from 'react-native-svg';
 
+import BuklodGameBackdrop from '@/features/games/runtime/BuklodGameBackdrop';
+import { playRorkSignatureSfx } from '@/features/games/runtime/rorkAudio';
+
 import {
   loadBuklodKingdomPreviewProgress,
   subscribeBuklodKingdomPreviewProgress,
@@ -97,6 +100,17 @@ const FUTURE = [
   { x: 825, y: 800 },
 ] as const;
 
+const BIOME_REGIONS = [
+  { gameId: 'phan-enterprise-builder', label: 'TIDEWHISPER COAST', left: 18, top: 520, width: 310, height: 270, tint: 'rgba(18,104,139,0.20)', rotate: '-2deg' },
+  { gameId: 'jawo-forest-trail', label: 'WHISPERING FOREST', left: 52, top: 250, width: 330, height: 300, tint: 'rgba(25,89,55,0.26)', rotate: '1deg' },
+  { gameId: 'vhen-farm-to-market', label: 'HARVEST VALLEY', left: 270, top: 510, width: 360, height: 280, tint: 'rgba(115,119,35,0.18)', rotate: '-1deg' },
+  { gameId: 'christian-civic-leadership', label: 'COVENANT HEIGHTS', left: 405, top: 105, width: 365, height: 275, tint: 'rgba(32,65,104,0.20)', rotate: '1.5deg' },
+  { gameId: 'lhen-rhythm-journey', label: 'RESONANCE CITY', left: 730, top: 165, width: 360, height: 275, tint: 'rgba(90,45,115,0.22)', rotate: '-1.5deg' },
+  { gameId: 'niel-mission-trail', label: 'MISSION FRONTIER', left: 610, top: 500, width: 355, height: 285, tint: 'rgba(47,75,75,0.22)', rotate: '1deg' },
+  { gameId: 'angel-kingdom-treasury', label: 'TREASURY QUARTER', left: 830, top: 470, width: 300, height: 250, tint: 'rgba(120,82,28,0.20)', rotate: '-1deg' },
+  { gameId: 'quin-discovery-expedition', label: 'SUNSPIRE RUINS', left: 920, top: 40, width: 250, height: 230, tint: 'rgba(128,72,28,0.18)', rotate: '2deg' },
+] as const;
+
 function emptyProgress(): BuklodKingdomPreviewProgress {
   return { version: 1, stations: {} };
 }
@@ -143,7 +157,7 @@ function StationNode({
   const glowOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.18, cleared ? 0.62 : 0.3] });
 
   return (
-    <View style={[styles.stationWrap, { left: station.x - 76, top: station.y - 64 }]}>
+    <View style={[styles.stationWrap, { left: station.x - 69, top: station.y - 64 }]}>
       <Animated.View
         pointerEvents="none"
         style={[
@@ -159,7 +173,10 @@ function StationNode({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Open station ${index + 1}, ${station.character}, ${station.game}`}
-        onPress={() => router.push(station.href as any)}
+        onPress={() => {
+          playRorkSignatureSfx(station.id, 0.20);
+          router.push(station.href as any);
+        }}
         style={({ pressed }) => [styles.stationPressable, pressed && styles.stationPressed]}
       >
         <LinearGradient
@@ -167,6 +184,7 @@ function StationNode({
           style={styles.landmarkOrb}
         >
           <View style={[styles.landmarkInner, { borderColor: station.accent }]}>
+            <BuklodGameBackdrop gameId={station.id} thumbnail opacity={0.62} />
             <MaterialCommunityIcons name={station.icon} size={27} color={station.accent} />
           </View>
           <View style={[styles.numberBadge, cleared && styles.numberBadgeCleared]}>
@@ -179,7 +197,7 @@ function StationNode({
           ) : null}
         </LinearGradient>
 
-        <View style={styles.parchmentPlaque}>
+        <View style={[styles.parchmentPlaque, { borderColor: station.accent }]}>
           <Text style={styles.stationCharacter}>{station.character}</Text>
           <Text numberOfLines={1} style={styles.stationRegion}>{station.region}</Text>
           <Text numberOfLines={1} style={styles.stationGame}>{station.game}</Text>
@@ -198,6 +216,52 @@ function StationNode({
           </View>
         </View>
       </Pressable>
+    </View>
+  );
+}
+
+function BiomeRegion({
+  gameId,
+  label,
+  left,
+  top,
+  width,
+  height,
+  tint,
+  rotate,
+}: {
+  gameId: string;
+  label: string;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  tint: string;
+  rotate: string;
+}) {
+  return (
+    <View
+      pointerEvents="none"
+      style={[
+        styles.biomeRegion,
+        {
+          left,
+          top,
+          width,
+          height,
+          transform: [{ rotate }],
+        },
+      ]}
+    >
+      <BuklodGameBackdrop gameId={gameId} thumbnail opacity={0.86} />
+      <LinearGradient
+        colors={['rgba(4,15,27,0.03)', tint, 'rgba(5,15,24,0.32)']}
+        locations={[0, 0.56, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      <View style={styles.biomeLabel}>
+        <Text style={styles.biomeLabelText}>{label}</Text>
+      </View>
     </View>
   );
 }
@@ -268,7 +332,7 @@ export default function BuklodKingdomMap() {
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={['#71c9f2', '#d8f3ff']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#123c58', '#071b2a']} style={StyleSheet.absoluteFill} />
 
       <View style={[styles.topHud, { top: Math.max(12, insets.top + 6) }]} pointerEvents="box-none">
         <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.hudButton}>
@@ -297,18 +361,18 @@ export default function BuklodKingdomMap() {
           contentContainerStyle={styles.verticalContent}
         >
           <View style={styles.worldFrame}>
-            <LinearGradient colors={['#78d7f7', '#1b93c8']} style={StyleSheet.absoluteFill} />
+            <LinearGradient colors={['#1b6c91', '#0a2a40']} style={StyleSheet.absoluteFill} />
 
             <Svg width={WORLD_W} height={WORLD_H} style={StyleSheet.absoluteFill} pointerEvents="none">
               <Defs>
                 <SvgLinearGradient id="cliff" x1="0" y1="0" x2="0" y2="1">
-                  <Stop offset="0" stopColor="#7d6c55" />
-                  <Stop offset="1" stopColor="#433d36" />
+                  <Stop offset="0" stopColor="#76664f" />
+                  <Stop offset="1" stopColor="#302f31" />
                 </SvgLinearGradient>
                 <SvgLinearGradient id="land" x1="0" y1="0" x2="1" y2="1">
-                  <Stop offset="0" stopColor="#9cdc68" />
-                  <Stop offset="0.52" stopColor="#5daf54" />
-                  <Stop offset="1" stopColor="#3a844f" />
+                  <Stop offset="0" stopColor="#86bd68" />
+                  <Stop offset="0.52" stopColor="#4b8d50" />
+                  <Stop offset="1" stopColor="#315d45" />
                 </SvgLinearGradient>
                 <SvgLinearGradient id="river" x1="0" y1="0" x2="1" y2="1">
                   <Stop offset="0" stopColor="#85e7ff" />
@@ -363,6 +427,45 @@ export default function BuklodKingdomMap() {
               <Ellipse cx={915} cy={465} rx={120} ry={88} fill="#d9e88d" opacity={stage >= 3 ? 0.64 : 0.24} />
               <Ellipse cx={450} cy={655} rx={125} ry={82} fill="#e6d274" opacity={stage >= 2 ? 0.58 : 0.25} />
             </Svg>
+
+            {BIOME_REGIONS.map((region) => (
+              <BiomeRegion key={region.label} {...region} />
+            ))}
+
+            <Svg
+              width={WORLD_W}
+              height={WORLD_H}
+              style={[StyleSheet.absoluteFill, styles.routeOverlay]}
+              pointerEvents="none"
+            >
+              <Defs>
+                <SvgLinearGradient id="routeTop" x1="0" y1="0" x2="1" y2="1">
+                  <Stop offset="0" stopColor="#fff5ad" />
+                  <Stop offset="0.55" stopColor="#ffd65a" />
+                  <Stop offset="1" stopColor="#f29224" />
+                </SvgLinearGradient>
+              </Defs>
+              {JOURNEY_PATH.map((path, index) => (
+                <G key={`route-top-${index}`}>
+                  <Path d={path} fill="none" stroke="rgba(23,25,27,0.26)" strokeWidth={13} strokeLinecap="round" />
+                  <Path d={path} fill="none" stroke="url(#routeTop)" strokeWidth={6} strokeLinecap="round" strokeDasharray="2 13" />
+                </G>
+              ))}
+            </Svg>
+
+            <View pointerEvents="none" style={styles.citadelHub}>
+              <LinearGradient colors={['rgba(22,39,63,0.96)', 'rgba(7,20,34,0.96)']} style={styles.citadelHubInner}>
+                <View style={styles.citadelHalo} />
+                <MaterialCommunityIcons name="castle" size={48} color="#f4cf72" />
+                <Text style={styles.citadelTitle}>THE CITADEL</Text>
+                <Text style={styles.citadelCopy}>Unity • Purpose • Eternal Home</Text>
+              </LinearGradient>
+            </View>
+
+            <View pointerEvents="none" style={styles.worldTitleStamp}>
+              <Text style={styles.worldTitleSmall}>A JOURNEY OF FAITH</Text>
+              <Text style={styles.worldTitleBig}>EXPLORE • GROW • BELONG</Text>
+            </View>
 
             <View style={styles.brandBoard}>
               <View style={styles.brandShield}>
@@ -433,7 +536,7 @@ export default function BuklodKingdomMap() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#83d7f3' },
+  root: { flex: 1, backgroundColor: '#071b2a' },
   horizontalContent: { minWidth: '100%' },
   verticalContent: { minHeight: '100%' },
   worldFrame: {
@@ -441,7 +544,103 @@ const styles = StyleSheet.create({
     height: WORLD_H,
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: '#55bfe9',
+    backgroundColor: '#0b3550',
+  },
+  routeOverlay: {
+    zIndex: 7,
+  },
+  biomeRegion: {
+    position: 'absolute',
+    zIndex: 3,
+    overflow: 'hidden',
+    borderRadius: 54,
+    borderWidth: 2,
+    borderColor: 'rgba(248,224,156,0.44)',
+    backgroundColor: '#153950',
+    shadowColor: '#07131e',
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+  },
+  biomeLabel: {
+    position: 'absolute',
+    left: 14,
+    bottom: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    backgroundColor: 'rgba(7,20,34,0.72)',
+    borderWidth: 1,
+    borderColor: 'rgba(244,207,114,0.44)',
+  },
+  biomeLabelText: {
+    color: '#fff3c7',
+    fontSize: 8,
+    fontWeight: '900',
+    letterSpacing: 1.1,
+  },
+  citadelHub: {
+    position: 'absolute',
+    zIndex: 11,
+    left: 520,
+    top: 355,
+    width: 180,
+    height: 132,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  citadelHubInner: {
+    width: 150,
+    minHeight: 112,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#d8ad4e',
+    shadowColor: '#000',
+    shadowOpacity: 0.34,
+    shadowRadius: 14,
+  },
+  citadelHalo: {
+    position: 'absolute',
+    width: 112,
+    height: 112,
+    borderRadius: 56,
+    borderWidth: 2,
+    borderColor: 'rgba(244,207,114,0.28)',
+    backgroundColor: 'rgba(244,207,114,0.06)',
+  },
+  citadelTitle: {
+    marginTop: 3,
+    color: '#f8df9a',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 1.1,
+  },
+  citadelCopy: {
+    marginTop: 2,
+    color: 'rgba(245,247,250,0.80)',
+    fontSize: 6.6,
+    fontWeight: '700',
+  },
+  worldTitleStamp: {
+    position: 'absolute',
+    zIndex: 10,
+    right: 34,
+    top: 22,
+    alignItems: 'flex-end',
+  },
+  worldTitleSmall: {
+    color: 'rgba(242,229,190,0.78)',
+    fontSize: 7,
+    fontWeight: '900',
+    letterSpacing: 2.2,
+  },
+  worldTitleBig: {
+    marginTop: 2,
+    color: '#fff0bd',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 1.2,
   },
   topHud: {
     position: 'absolute',
@@ -495,41 +694,41 @@ const styles = StyleSheet.create({
 
   brandBoard: {
     position: 'absolute',
-    left: 30,
-    top: 78,
-    width: 270,
-    minHeight: 112,
-    paddingLeft: 76,
-    paddingRight: 16,
-    paddingTop: 14,
-    borderRadius: 18,
-    backgroundColor: '#72451f',
-    borderWidth: 4,
-    borderColor: '#3f2814',
-    shadowColor: '#263726',
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
+    left: 24,
+    top: 76,
+    width: 238,
+    minHeight: 90,
+    paddingLeft: 64,
+    paddingRight: 12,
+    paddingTop: 12,
+    borderRadius: 20,
+    backgroundColor: 'rgba(10,29,47,0.94)',
+    borderWidth: 2,
+    borderColor: '#d5aa4f',
+    shadowColor: '#07131e',
+    shadowOpacity: 0.38,
+    shadowRadius: 14,
   },
   brandShield: {
     position: 'absolute',
-    left: 14,
-    top: 14,
-    width: 52,
-    height: 62,
+    left: 10,
+    top: 10,
+    width: 46,
+    height: 52,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#164a86',
-    borderWidth: 3,
+    backgroundColor: '#153f66',
+    borderWidth: 2,
     borderColor: '#e0aa34',
   },
-  brandTitle: { color: '#f8d783', fontSize: 31, lineHeight: 32, fontWeight: '900', letterSpacing: 1 },
-  brandSubtitle: { color: '#fff0bc', fontSize: 13, fontWeight: '900', letterSpacing: 4 },
+  brandTitle: { color: '#f8d783', fontSize: 25, lineHeight: 26, fontWeight: '900', letterSpacing: 1.4 },
+  brandSubtitle: { color: '#fff0bc', fontSize: 9, fontWeight: '900', letterSpacing: 3.5 },
   stageRibbon: {
     position: 'absolute',
-    left: 64,
-    right: 22,
-    top: 85,
+    left: 44,
+    right: 10,
+    top: 67,
     paddingVertical: 8,
     paddingHorizontal: 13,
     alignItems: 'center',
@@ -542,12 +741,12 @@ const styles = StyleSheet.create({
   stageTitle: { color: '#46301a', fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
   stageSubtitle: { color: '#725638', fontSize: 7.5, fontWeight: '800', marginTop: 1 },
 
-  signPost: { position: 'absolute', left: 30, top: 235, width: 150, gap: 5 },
+  signPost: { position: 'absolute', left: 28, top: 196, width: 122, gap: 4, zIndex: 12 },
   signBoard: {
-    minHeight: 31,
+    minHeight: 27,
     justifyContent: 'center',
-    paddingHorizontal: 14,
-    backgroundColor: '#80502a',
+    paddingHorizontal: 10,
+    backgroundColor: 'rgba(73,44,28,0.92)',
     borderWidth: 2,
     borderColor: '#4e2d16',
     borderRadius: 5,
@@ -557,27 +756,28 @@ const styles = StyleSheet.create({
   },
   signTiltA: { transform: [{ rotate: '-1.5deg' }] },
   signTiltB: { transform: [{ rotate: '1.5deg' }] },
-  signText: { color: '#f6deb2', fontSize: 9, fontWeight: '900', textAlign: 'center', letterSpacing: 0.5 },
+  signText: { color: '#f6deb2', fontSize: 8, fontWeight: '900', textAlign: 'center', letterSpacing: 0.8 },
 
   stationWrap: {
     position: 'absolute',
-    width: 152,
+    width: 138,
     zIndex: 20,
     alignItems: 'center',
   },
   stationGlow: {
     position: 'absolute',
     top: 0,
+    left: 30,
     width: 78,
     height: 78,
     borderRadius: 39,
   },
-  stationPressable: { width: 152, alignItems: 'center' },
+  stationPressable: { width: 138, alignItems: 'center' },
   stationPressed: { transform: [{ scale: 0.965 }] },
   landmarkOrb: {
-    width: 66,
-    height: 66,
-    borderRadius: 33,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
@@ -587,13 +787,14 @@ const styles = StyleSheet.create({
     shadowRadius: 7,
   },
   landmarkInner: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff8de',
+    backgroundColor: 'rgba(10,27,43,0.52)',
     borderWidth: 2,
+    overflow: 'hidden',
   },
   numberBadge: {
     position: 'absolute',
@@ -624,44 +825,43 @@ const styles = StyleSheet.create({
     borderColor: '#fff7c7',
   },
   parchmentPlaque: {
-    marginTop: -3,
-    width: 146,
-    minHeight: 72,
+    marginTop: -5,
+    width: 132,
+    minHeight: 58,
     alignItems: 'center',
     paddingHorizontal: 8,
     paddingTop: 7,
     paddingBottom: 6,
-    backgroundColor: '#f5e5b8',
-    borderWidth: 2,
-    borderColor: '#835b29',
-    borderRadius: 9,
-    shadowColor: '#48351e',
-    shadowOpacity: 0.23,
-    shadowRadius: 5,
+    backgroundColor: 'rgba(8,23,37,0.90)',
+    borderWidth: 1.5,
+    borderRadius: 11,
+    shadowColor: '#000',
+    shadowOpacity: 0.28,
+    shadowRadius: 7,
   },
-  stationCharacter: { color: '#3e2b18', fontSize: 13, fontWeight: '900', letterSpacing: 0.2 },
-  stationRegion: { width: '100%', color: '#5d452d', fontSize: 8.5, fontWeight: '900', textAlign: 'center' },
-  stationGame: { width: '100%', marginTop: 1, color: '#7d6038', fontSize: 7.5, fontWeight: '800', textAlign: 'center' },
+  stationCharacter: { color: '#fff2c2', fontSize: 12, fontWeight: '900', letterSpacing: 0.25 },
+  stationRegion: { width: '100%', color: 'rgba(238,244,248,0.92)', fontSize: 7.8, fontWeight: '900', textAlign: 'center' },
+  stationGame: { width: '100%', marginTop: 1, color: 'rgba(214,226,236,0.78)', fontSize: 7.1, fontWeight: '800', textAlign: 'center' },
   progressRow: { marginTop: 4, flexDirection: 'row', alignItems: 'center', gap: 2 },
-  levelText: { color: '#51432f', fontSize: 6.8, fontWeight: '900' },
-  progressDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#8b806a', borderWidth: 0.6, borderColor: '#5d513d' },
+  levelText: { color: '#f7d77f', fontSize: 6.8, fontWeight: '900' },
+  progressDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#53616d', borderWidth: 0.6, borderColor: '#8c9aa4' },
   progressDotActive: { backgroundColor: '#d8a92f' },
   progressDotCleared: { backgroundColor: '#f1bd2e', borderColor: '#9c6b16' },
 
   futureNode: { position: 'absolute', width: 86, height: 86, zIndex: 8, alignItems: 'center', justifyContent: 'center' },
-  futureFog: { ...StyleSheet.absoluteFillObject, borderRadius: 43, backgroundColor: 'rgba(230,243,246,0.72)' },
+  futureFog: { ...StyleSheet.absoluteFillObject, borderRadius: 43, backgroundColor: 'rgba(13,28,41,0.72)' },
   futureLock: {
     width: 70,
     height: 70,
     borderRadius: 35,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(221,226,224,0.86)',
+    backgroundColor: 'rgba(16,31,44,0.90)',
     borderWidth: 2,
-    borderColor: '#818d90',
+    borderColor: '#7d8b96',
   },
-  futureTitle: { color: '#59646b', fontSize: 10, fontWeight: '900' },
-  futureCopy: { color: '#727d82', fontSize: 5.5, fontWeight: '900', letterSpacing: 0.5 },
+  futureTitle: { color: '#dce6ec', fontSize: 10, fontWeight: '900' },
+  futureCopy: { color: '#9eabb4', fontSize: 5.5, fontWeight: '900', letterSpacing: 0.5 },
 
   decorativeLabel: {
     position: 'absolute',
@@ -674,15 +874,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#f3e5b9',
-    borderWidth: 2,
-    borderColor: '#8b6734',
+    backgroundColor: 'rgba(10,27,43,0.88)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(220,181,92,0.68)',
   },
-  decorativeLabelText: { color: '#513c24', fontSize: 8.5, fontWeight: '900' },
-  decorativeLabelLocked: { color: '#687074' },
+  decorativeLabelText: { color: '#f7e5ae', fontSize: 8.5, fontWeight: '900' },
+  decorativeLabelLocked: { color: '#94a0a8' },
 
   harborDecor: { position: 'absolute', left: 62, bottom: 42, zIndex: 5, alignItems: 'center' },
-  centralTree: { position: 'absolute', left: 520, top: 445, zIndex: 5, alignItems: 'center' },
+  centralTree: { position: 'absolute', left: 590, top: 500, zIndex: 5, alignItems: 'center', opacity: 0.78 },
   treeCanopy: { width: 104, height: 82, borderRadius: 52, backgroundColor: '#4f9c45', borderWidth: 6, borderColor: '#36743d' },
   treeTrunk: { width: 18, height: 38, marginTop: -8, backgroundColor: '#754c2c', borderRadius: 8 },
   smallPlaque: { marginTop: 4, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 5, backgroundColor: '#f4e4b8', borderWidth: 1.5, borderColor: '#806037' },
