@@ -16,6 +16,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
+import { recordPasswordResetOnThisDevice } from '@/lib/buklodSuggestedLoginStorage';
 
 type RecoveryPath = 'email' | 'pin' | 'admin';
 
@@ -388,10 +389,17 @@ export default function ForgotPasswordScreen() {
       }
       if (!data?.ok) throw new Error(data?.message ?? 'Password reset could not be completed.');
 
-      setEmailStatus('Password changed successfully.');
+      await recordPasswordResetOnThisDevice({
+        userId: emailAccountId,
+        loginIdentifier: email.trim().toLowerCase(),
+      });
+
+      setEmailStatus(
+        'Password changed. The old saved one-tap password on this device was cleared.'
+      );
       Alert.alert(
         'Password Changed',
-        'Your BUKLOD password was changed successfully. You can now sign in with your email and new password.',
+        'Your password was changed successfully. BUKLOD cleared the old saved password on this device. Sign in with your new password once, then you may enable Remember password again.',
         [{ text: 'SIGN IN', onPress: () => router.replace('/(auth)/login' as any) }]
       );
     } catch (error: any) {
@@ -436,11 +444,20 @@ export default function ForgotPasswordScreen() {
       if (error) throw error;
       if (!data?.ok) throw new Error(data?.message ?? 'Account recovery failed.');
 
+      const recoveredLoginIdentifier =
+        String(
+          data?.loginIdentifier ??
+          cleanIdentifier
+        ).trim();
+
+      await recordPasswordResetOnThisDevice({
+        loginIdentifier:
+          recoveredLoginIdentifier,
+      });
+
       Alert.alert(
         'Password Changed',
-        `Your BUKLOD password is ready. ${formatLoginMethod(data?.loginMethod)}: ${String(
-          data?.loginIdentifier ?? cleanIdentifier
-        )}`,
+        `Your BUKLOD password is ready. ${formatLoginMethod(data?.loginMethod)}: ${recoveredLoginIdentifier}\n\nThe old saved password on this device was cleared. Sign in with the new password once, then you may enable Remember password again.`,
         [{ text: 'SIGN IN', onPress: () => router.replace('/(auth)/login' as any) }]
       );
     } catch (error: any) {
@@ -570,6 +587,11 @@ export default function ForgotPasswordScreen() {
       if (!data?.ok) throw new Error(data?.message ?? 'Account recovery failed.');
 
       const login = String(data?.loginIdentifier ?? '').trim();
+
+      await recordPasswordResetOnThisDevice({
+        loginIdentifier: login || null,
+      });
+
       Alert.alert(
         'Account Recovered',
         login
