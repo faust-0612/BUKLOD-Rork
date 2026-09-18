@@ -132,6 +132,45 @@ requireTokens('src/features/games/runtime/BuklodGameFeedback.native.ts', [
   'buklod-points-claim.wav',
   'expo-haptics',
 ]);
+requireTokens('src/features/games/runtime/BuklodGameBackdrop.tsx', [
+  'getRorkGameMedia',
+  "from 'expo-image'",
+]);
+const rorkMedia = requireTokens('src/features/games/runtime/rorkMedia.ts', [
+  'RORK_GAME_MEDIA',
+  'r2-pub.rork.com',
+  'kingdom/audio',
+]);
+for (const gameId of GAME_IDS) {
+  if (!rorkMedia.includes(`'${gameId}'`)) failures.push(`Rork media mapping missing game: ${gameId}`);
+}
+requireTokens('src/features/games/runtime/rorkAudio.ts', [
+  'createAudioPlayer',
+  'useRorkGameAmbience',
+  'tryPlayRorkGameFeedback',
+  'playRorkSignatureSfx',
+]);
+requireTokens('src/features/games/runtime/BuklodGameStage.web.tsx', [
+  'BuklodGameBackdrop',
+  'useRorkGameAmbience',
+]);
+requireTokens('src/features/games/runtime/BuklodGameStage.native.tsx', [
+  'BuklodGameBackdrop',
+  'useRorkGameAmbience',
+]);
+requireTokens('src/features/games/runtime/BuklodGameFeedback.web.ts', [
+  'tryPlayRorkGameFeedback',
+  'AudioContext',
+]);
+requireTokens('src/features/games/runtime/BuklodGameFeedback.native.ts', [
+  'tryPlayRorkGameFeedback',
+  'expo-haptics',
+]);
+requireTokens('src/features/games/kingdom/BuklodKingdomMap.tsx', [
+  'BuklodGameBackdrop',
+  'playRorkSignatureSfx',
+]);
+
 requireTokens('src/features/games/kingdom/progress.ts', [
   'recordBuklodKingdomPreviewResult',
   'bestScore',
