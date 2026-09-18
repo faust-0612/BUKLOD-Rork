@@ -114,7 +114,7 @@ const progress = requireTokens('src/features/games/kingdom/progress.ts', [
   'buklod.kingdom.progress.v2',
   'buklod.kingdom.pending-results.v1',
   "rpc('get_my_buklod_kingdom_v1'",
-  "rpc('submit_my_buklod_kingdom_result_v1'",
+  "rpc('submit_my_buklod_kingdom_result_v2'",
   'flushPendingQueue',
   'pendingResults',
   'serverBacked',
@@ -194,6 +194,8 @@ requireTokens('src/app/games/training-grounds.tsx', [
   'station.currentLevel',
   'station.clearedLevels',
   'station.worldTier',
+  'REPLAY CLEARED LEVELS',
+  "params: { level: String(levelNo) }",
   'router.push',
   'station.gameId',
 ]);
@@ -217,11 +219,22 @@ for (const gameId of GAME_IDS) {
   if (!migration.includes("'" + gameId + "'")) failures.push('Backend progression migration missing game: ' + gameId);
 }
 
+requireTokens('supabase/migrations/20260918214500_buklod_kingdom_level_replay_v2.sql', [
+  'submit_my_buklod_kingdom_result_v2',
+  'p_level_no integer default null',
+  'v_level > v_next_level',
+  'Kingdom replay level',
+  'v_first_clear',
+  'v_level < v_next_level',
+]);
+
 requireTokens('src/features/games/runtime/BuklodGameProgressHud.tsx', [
   'LEVEL CLEAR SAVED',
   'BEST RUN UPDATED',
   'NEW COLLECTIBLE',
   'PENDING SYNC',
+  'REPLAY LEVEL',
+  'activeLevel',
 ]);
 
 if (distDir) {
