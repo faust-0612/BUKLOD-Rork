@@ -27,7 +27,9 @@
     "production:dry-run": "bash scripts/production-cutover.sh",
     "production:android": "bash scripts/build-android-production.sh",
     "play:draft": "bash scripts/submit-google-play-draft.sh",
-    "play:internal": "bash scripts/submit-google-play-internal.sh"
+    "play:internal": "bash scripts/submit-google-play-internal.sh",
+    "rork:static": "node scripts/rork-integration-static-gate.mjs",
+    "rork:qa": "powershell -ExecutionPolicy Bypass -File scripts/rork-integration-qa.ps1"
   },
   "jest": {
     "preset": "jest-expo",
