@@ -62,6 +62,9 @@ requireTokens('src/components/home/BuklodPersonalHomeE2E.tsx', [
 
 const atlas = requireTokens('src/components/home/BuklodRorkHomeAtlas.tsx', [
   'BuklodActiveCharacterArt',
+  'BuklodCharacterMotion',
+  'interactive',
+  'My BUKLOD Character',
   "route: '/profile/buklod-classrooms'",
   "route: '/igpat'",
   "route: '/personal-home/recipe'",
@@ -91,6 +94,34 @@ for (const gameId of GAME_IDS) {
   if (!fs.existsSync(route)) failures.push(`Canonical game route missing: /games/${gameId}`);
 }
 
+requireTokens('src/components/points/BuklodCharacterMotion.tsx', [
+  'AccessibilityInfo',
+  'PanResponder',
+  "case 'hello'",
+  "case 'celebrate'",
+  "case 'success'",
+  "case 'failure'",
+  "case 'unlock'",
+]);
+requireTokens('src/components/points/BuklodSpecialCharacterLayerStage.tsx', [
+  'R40 SPECIAL',
+  'BuklodCharacterMotion',
+  'Tap • double tap • hold • swipe',
+]);
+requireTokens('src/components/points/BuklodSpecialCharacterSeries.tsx', [
+  'BuklodSpecialCharacterLayerStage',
+  'visibleSpecialIds.map',
+  'BUKLOD_SPECIAL_LOCKED_IDENTITIES_HIDDEN',
+]);
+requireTokens('src/features/games/runtime/BuklodGameCharacterCompanion.tsx', [
+  'BuklodActiveCharacterArt',
+  'BuklodCharacterMotion',
+  'subscribeBuklodGameCharacterMotion',
+]);
+requireTokens('src/features/games/runtime/characterMotionBus.ts', [
+  'emitBuklodGameCharacterMotion',
+  'subscribeBuklodGameCharacterMotion',
+]);
 requireTokens('src/features/games/runtime/BuklodGameBackdrop.tsx', [
   "from 'expo-image'",
   'getRorkGameMedia',
@@ -123,6 +154,7 @@ requireTokens('scripts/rork-integration-qa.ps1', [
   '--web-output single',
   "$runStamp = Get-Date -Format 'yyyyMMdd-HHmmss'",
   'QA artifact run:',
+  "Assert-ExternalCommand 'Canonical Character contract'",
   "Assert-ExternalCommand 'Android bundle smoke'",
 ]);
 for (const rel of [
@@ -135,6 +167,7 @@ for (const rel of [
     'recordBuklodKingdomPreviewResult',
     'withResultHandler',
     'BuklodGameLanguageControl',
+    'BuklodGameCharacterCompanion',
   ]);
 }
 requireTokens('src/features/games/runtime/BuklodGameFeedback.web.ts', [
@@ -144,12 +177,14 @@ requireTokens('src/features/games/runtime/BuklodGameFeedback.web.ts', [
   "case 'impact'",
   "case 'success'",
   "case 'failure'",
+  'emitBuklodGameCharacterMotion',
 ]);
 requireTokens('src/features/games/runtime/BuklodGameFeedback.native.ts', [
   'tryPlayRorkGameFeedback',
   'buklod-reaction.wav',
   'buklod-points-claim.wav',
   'expo-haptics',
+  'emitBuklodGameCharacterMotion',
 ]);
 requireTokens('src/features/games/kingdom/BuklodKingdomMap.tsx', [
   'BuklodGameBackdrop',
@@ -180,19 +215,25 @@ try {
     '.gitignore',
     'package.json',
     'scripts/buklod-city-release-gate.mjs',
+    'scripts/character-release-contract.mjs',
     'scripts/game-kingdom-release-contract.mjs',
     'scripts/rork-integration-qa.ps1',
     'scripts/rork-integration-static-gate.mjs',
     'scripts/rork-media-contract-test.mjs',
     'src/components/home/BuklodPersonalHomeE2E.tsx',
     'src/components/home/BuklodRorkHomeAtlas.tsx',
+    'src/components/points/BuklodCharacterMotion.tsx',
+    'src/components/points/BuklodSpecialCharacterLayerStage.tsx',
+    'src/components/points/BuklodSpecialCharacterSeries.tsx',
     'src/features/games/kingdom/BuklodKingdomMap.tsx',
     'src/features/games/runtime/BuklodGameBackdrop.tsx',
+    'src/features/games/runtime/BuklodGameCharacterCompanion.tsx',
     'src/features/games/runtime/BuklodGameFeedback.native.ts',
     'src/features/games/runtime/BuklodGameFeedback.web.ts',
     'src/features/games/runtime/BuklodGameStage.native.tsx',
     'src/features/games/runtime/BuklodGameStage.web.tsx',
     'src/features/games/runtime/__tests__/rorkMedia.test.ts',
+    'src/features/games/runtime/characterMotionBus.ts',
     'src/features/games/runtime/rorkAudio.ts',
     'src/features/games/runtime/rorkMedia.ts',
   ]);
