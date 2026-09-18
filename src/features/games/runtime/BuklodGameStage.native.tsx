@@ -127,6 +127,7 @@ export function BuklodGameStage({ biome, gameId, children }: Props) {
           station={kingdom.station}
           progress={kingdom.progress}
           canPlay={kingdom.canPlay}
+          activeLevel={kingdom.level}
         />
         <BuklodGameLanguageControl />
       </View>
