@@ -549,6 +549,8 @@ const TL_TEXT: Record<string, string> = {
   'Replay any unlocked region, improve stars and best score, and train for the current Level. First-clear XP is never farmed by replay.':
     'Ulitin ang anumang unlocked region, pagandahin ang stars at best score, at magsanay sa kasalukuyang Level. Hindi naiipon nang paulit-ulit ang first-clear XP sa replay.',
   'KINGDOM XP': 'KINGDOM XP',
+  'REPLAY LEVEL': 'ULITIN ANG LEVEL',
+  'REPLAY CLEARED LEVELS': 'ULITIN ANG MGA NALAMPASANG LEVEL',
   'Your Circle Rank:': 'Circle Rank mo:',
   'This Kingdom region is not available yet.': 'Hindi pa available ang Kingdom region na ito.',
 
