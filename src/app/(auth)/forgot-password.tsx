@@ -16,6 +16,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
+import { recordPasswordResetOnThisDevice } from '@/lib/buklodSuggestedLoginStorage';
 
 type RecoveryPath = 'email' | 'pin' | 'admin';
 
@@ -388,10 +389,30 @@ export default function ForgotPasswordScreen() {
       }
       if (!data?.ok) throw new Error(data?.message ?? 'Password reset could not be completed.');
 
-      setEmailStatus('Password changed successfully.');
+      const localCleanupOk =
+        await recordPasswordResetOnThisDevice({
+          userId: emailAccountId,
+          loginIdentifier: email.trim().toLowerCase(),
+        })
+          .then(() => true)
+          .catch(cleanupError => {
+            console.warn(
+              'Password changed, but local saved-login cleanup failed.',
+              cleanupError
+            );
+            return false;
+          });
+
+      setEmailStatus(
+        localCleanupOk
+          ? 'Password changed. The old saved one-tap password on this device was cleared.'
+          : 'Password changed. Use the new password. If one-tap login still shows an old password, remove that saved profile and sign in manually.'
+      );
       Alert.alert(
         'Password Changed',
-        'Your BUKLOD password was changed successfully. You can now sign in with your email and new password.',
+        localCleanupOk
+          ? 'Your password was changed successfully. BUKLOD cleared the old saved password on this device. Sign in with your new password once, then you may enable Remember password again.'
+          : 'Your password was changed successfully. Sign in with the new password. If a saved one-tap profile still uses the old password, remove that saved profile and sign in manually once.',
         [{ text: 'SIGN IN', onPress: () => router.replace('/(auth)/login' as any) }]
       );
     } catch (error: any) {
@@ -436,11 +457,31 @@ export default function ForgotPasswordScreen() {
       if (error) throw error;
       if (!data?.ok) throw new Error(data?.message ?? 'Account recovery failed.');
 
+      const recoveredLoginIdentifier =
+        String(
+          data?.loginIdentifier ??
+          cleanIdentifier
+        ).trim();
+
+      const localCleanupOk =
+        await recordPasswordResetOnThisDevice({
+          loginIdentifier:
+            recoveredLoginIdentifier,
+        })
+          .then(() => true)
+          .catch(cleanupError => {
+            console.warn(
+              'Password changed, but local saved-login cleanup failed.',
+              cleanupError
+            );
+            return false;
+          });
+
       Alert.alert(
         'Password Changed',
-        `Your BUKLOD password is ready. ${formatLoginMethod(data?.loginMethod)}: ${String(
-          data?.loginIdentifier ?? cleanIdentifier
-        )}`,
+        localCleanupOk
+          ? `Your BUKLOD password is ready. ${formatLoginMethod(data?.loginMethod)}: ${recoveredLoginIdentifier}\n\nThe old saved password on this device was cleared. Sign in with the new password once, then you may enable Remember password again.`
+          : `Your BUKLOD password is ready. ${formatLoginMethod(data?.loginMethod)}: ${recoveredLoginIdentifier}\n\nSign in with the new password. If a saved one-tap profile still uses the old password, remove that saved profile and sign in manually once.`,
         [{ text: 'SIGN IN', onPress: () => router.replace('/(auth)/login' as any) }]
       );
     } catch (error: any) {
@@ -570,13 +611,37 @@ export default function ForgotPasswordScreen() {
       if (!data?.ok) throw new Error(data?.message ?? 'Account recovery failed.');
 
       const login = String(data?.loginIdentifier ?? '').trim();
+
+      const localCleanupOk =
+        await recordPasswordResetOnThisDevice({
+          loginIdentifier: login || null,
+        })
+          .then(() => true)
+          .catch(cleanupError => {
+            console.warn(
+              'Password changed, but local saved-login cleanup failed.',
+              cleanupError
+            );
+            return false;
+          });
+
       Alert.alert(
         'Account Recovered',
         login
-          ? `Password changed successfully. Your BUKLOD sign-in is:\n\n${formatLoginMethod(
-              data?.loginMethod
-            )}: ${login}\n\nKeep this login somewhere safe.`
-          : 'Password changed successfully. You can now sign in again.',
+          ? (
+              localCleanupOk
+                ? `Password changed successfully. Your BUKLOD sign-in is:\n\n${formatLoginMethod(
+                    data?.loginMethod
+                  )}: ${login}\n\nThe old saved password on this device was cleared. Sign in with the new password once, then you may enable Remember password again.`
+                : `Password changed successfully. Your BUKLOD sign-in is:\n\n${formatLoginMethod(
+                    data?.loginMethod
+                  )}: ${login}\n\nSign in with the new password. If a saved one-tap profile still uses the old password, remove that saved profile and sign in manually once.`
+            )
+          : (
+              localCleanupOk
+                ? 'Password changed successfully. The old saved password on this device was cleared. Return to Sign In and use the new password once.'
+                : 'Password changed successfully. Return to Sign In and use the new password. If a saved one-tap profile still uses the old password, remove that saved profile first.'
+            ),
         [{ text: 'SIGN IN', onPress: () => router.replace('/(auth)/login' as any) }]
       );
     } catch (error: any) {
