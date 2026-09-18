@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { playBuklodGameFeedback } from '../runtime/BuklodGameFeedback';
 import { BuklodGameText as Text } from '../runtime/BuklodGameLanguage';
+import { useBuklodKingdomLevel } from '../runtime/BuklodGameLevelContext';
 import type { BuklodGameResult } from '../types';
 
 type CropKey = 'rice' | 'vegetables' | 'fruit';
@@ -47,6 +48,7 @@ const timingMultiplier = (timing: Timing, weather: Weather) => {
 type Props = { onFinish?: (result: BuklodGameResult) => void };
 
 export function FarmToMarketGameV1({ onFinish }: Props) {
+  const { difficulty, targetMultiplier } = useBuklodKingdomLevel();
   const [phase, setPhase] = useState<Phase>('planning');
   const [land, setLand] = useState<Record<CropKey, number>>({ rice: 3, vegetables: 3, fruit: 2 });
   const [weatherIndex, setWeatherIndex] = useState(0);
@@ -130,7 +132,8 @@ export function FarmToMarketGameV1({ onFinish }: Props) {
   const finish = useCallback(() => {
     if (phase !== 'market') return;
     const routeMultiplier = route === 'town' ? 0.96 : 1.18;
-    const spoilageRate = route === 'town' ? 0.04 : 0.13;
+    const baseSpoilageRate = route === 'town' ? 0.04 : 0.13;
+    const spoilageRate = Math.min(0.32, baseSpoilageRate * difficulty);
     const netCrates = Math.max(0, Math.round(totalCrates * (1 - spoilageRate)));
     const netRevenue = Math.round(grossValue * routeMultiplier * (1 - spoilageRate));
     const diversity = [land.rice, land.vegetables, land.fruit].filter((value) => value > 0).length;
@@ -138,7 +141,7 @@ export function FarmToMarketGameV1({ onFinish }: Props) {
     const efficiencyBonus = Math.round(netCrates * 7);
     const finalScore = netRevenue + stewardshipBonus + efficiencyBonus;
     const stars = starsForScore(finalScore);
-    const failed = netCrates < 12 || finalScore < 700;
+    const failed = netCrates < Math.round(12 * targetMultiplier) || finalScore < Math.round(700 * targetMultiplier);
 
     setScore(finalScore);
     setPhase('result');
@@ -159,7 +162,7 @@ export function FarmToMarketGameV1({ onFinish }: Props) {
         collectibleKey: !failed && stars === 3 ? 'vhen-golden-harvest-crate' : undefined,
       },
     });
-  }, [grossValue, land, onFinish, phase, route, totalCrates]);
+  }, [difficulty, grossValue, land, onFinish, phase, route, targetMultiplier, totalCrates]);
 
   const reset = useCallback(() => {
     setPhase('planning');
