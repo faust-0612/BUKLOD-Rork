@@ -30,7 +30,14 @@ const pools = new Map<RorkAudioKey, Player[]>();
 const cursors = new Map<RorkAudioKey, number>();
 const lastPlayedAt = new Map<RorkAudioKey, number>();
 
+// The Rork live-preview audio host is not a production asset origin and was
+// observed to reject/fail requests in Web. Keep the proven local/synthesized
+// BUKLOD feedback path authoritative until the 17 generated clips are vendored
+// into this repository as local assets.
+const REMOTE_RORK_AUDIO_ENABLED = false;
+
 function createPlayer(source: string, loop = false) {
+  if (!REMOTE_RORK_AUDIO_ENABLED) return null;
   try {
     const player = createAudioPlayer(source, { downloadFirst: true, updateInterval: 1000 });
     player.loop = loop;
