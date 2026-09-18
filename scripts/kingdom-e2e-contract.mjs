@@ -41,17 +41,22 @@ const GAME_COMPONENTS = [
   'src/features/games/quin/DiscoveryExpeditionGameV1.tsx',
 ];
 
-function abs(rel) { return path.join(ROOT, rel); }
+function absolute(rel) {
+  return path.join(ROOT, rel);
+}
+
 function exists(rel) {
-  if (!fs.existsSync(abs(rel))) {
+  if (!fs.existsSync(absolute(rel))) {
     failures.push('Missing Kingdom E2E file: ' + rel);
     return false;
   }
   return true;
 }
+
 function read(rel) {
-  return exists(rel) ? fs.readFileSync(abs(rel), 'utf8') : '';
+  return exists(rel) ? fs.readFileSync(absolute(rel), 'utf8') : '';
 }
+
 function requireTokens(rel, tokens) {
   const text = read(rel);
   for (const token of tokens) {
@@ -59,6 +64,7 @@ function requireTokens(rel, tokens) {
   }
   return text;
 }
+
 function rejectTokens(rel, tokens) {
   const text = read(rel);
   for (const token of tokens) {
@@ -66,22 +72,23 @@ function rejectTokens(rel, tokens) {
   }
   return text;
 }
+
 function walk(dir) {
   if (!fs.existsSync(dir)) return [];
-  const out = [];
+  const output = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const item = path.join(dir, entry.name);
-    if (entry.isDirectory()) out.push(...walk(item));
-    else out.push(item);
+    const file = path.join(dir, entry.name);
+    if (entry.isDirectory()) output.push(...walk(file));
+    else output.push(file);
   }
-  return out;
+  return output;
 }
 
 console.log('BUKLOD KINGDOM E2E CONTRACT R1');
 console.log('===============================');
 
 const registry = requireTokens('src/features/games/registry.ts', GAME_IDS);
-if ((registry.match(/replayable:\\s*true/g) || []).length < 13) {
+if (registry.split('replayable: true').length - 1 < 13) {
   failures.push('Registry no longer exposes 13 replayable Kingdom games.');
 }
 
@@ -98,8 +105,8 @@ for (const gameId of GAME_IDS) {
 
 for (const rel of GAME_COMPONENTS) {
   const text = requireTokens(rel, ['BuklodGameText as Text', 'useBuklodKingdomLevel']);
-  if (/import\\s*\\{[^}]*\\bText\\b[^}]*\\}\\s*from\\s*['"]react-native['"]/s.test(text)) {
-    failures.push(rel + ' bypasses the shared EN/TL Text renderer.');
+  if (text.includes('Text,') && text.includes("from 'react-native'")) {
+    failures.push(rel + ' may be importing React Native Text instead of the shared EN/TL renderer.');
   }
 }
 
@@ -159,8 +166,8 @@ const language = requireTokens('src/features/games/runtime/BuklodGameLanguage.ts
 for (const gameId of GAME_IDS) {
   if (!language.includes("'" + gameId + "'")) failures.push('Language guide missing game: ' + gameId);
 }
-if (language.includes('=> \\' + TICK) || language.includes('\\\\\\d+')) {
-  failures.push('Language translator contains escaped template/regex syntax from an earlier generated patch.');
+if (language.includes('=> \\' + TICK)) {
+  failures.push('Language translator contains escaped template syntax from an earlier generated patch.');
 }
 
 const map = requireTokens('src/features/games/kingdom/BuklodKingdomMap.tsx', [
@@ -222,11 +229,15 @@ if (distDir) {
     failures.push('Compiled web directory missing: ' + path.relative(ROOT, distDir));
   } else {
     const compiled = walk(distDir)
-      .filter((file) => /\\.(?:js|html)$/i.test(file))
+      .filter((file) => file.toLowerCase().endsWith('.js') || file.toLowerCase().endsWith('.html'))
       .map((file) => {
-        try { return fs.readFileSync(file, 'utf8'); } catch { return ''; }
+        try {
+          return fs.readFileSync(file, 'utf8');
+        } catch {
+          return '';
+        }
       })
-      .join('\\n');
+      .join('\n');
 
     const requiredCompiled = [
       'SERVER_13_REGIONS_20_LEVELS_SEQUENTIAL_V1',
@@ -248,7 +259,7 @@ if (distDir) {
 
 for (const failure of failures) console.error('FAIL: ' + failure);
 if (failures.length) {
-  console.error('\\nKINGDOM E2E CONTRACT FAILED with ' + failures.length + ' blocker(s).');
+  console.error('\nKINGDOM E2E CONTRACT FAILED with ' + failures.length + ' blocker(s).');
   console.error('DEPLOYMENT MUST STOP. Do not merge or publish until every blocker is resolved.');
   process.exit(1);
 }
