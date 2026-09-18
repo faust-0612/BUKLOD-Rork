@@ -120,6 +120,8 @@ requireTokens('scripts/rork-integration-qa.ps1', [
   'Assert-ExternalCommand',
   "$env:BUKLOD_WEB_OUTPUT = 'single'",
   '--web-output single',
+  "$runStamp = Get-Date -Format 'yyyyMMdd-HHmmss'",
+  'QA artifact run:',
   "Assert-ExternalCommand 'Android bundle smoke'",
 ]);
 for (const rel of [
