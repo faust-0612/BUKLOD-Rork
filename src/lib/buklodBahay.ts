@@ -148,9 +148,9 @@ export async function inviteKasambahay(homeId: string, identifier: string, role:
 export async function loadBahaySnapshot(homeId: string) {
   const [homeResult, memberResult, itemResult, messageResult, fileResult, plantResult, communityLinkResult] = await Promise.all([
     (supabase as any).from('buklod_homes').select('*').eq('id', homeId).single(),
-    (supabase as any).from('buklod_home_members').select('home_id,user_id,role,status,expires_at,profiles:user_id(full_name,username,avatar_url)').eq('home_id', homeId).eq('status','ACTIVE').order('joined_at'),
+    (supabase as any).from('buklod_home_members').select('home_id,user_id,role,status,expires_at').eq('home_id', homeId).eq('status','ACTIVE').order('joined_at'),
     (supabase as any).from('buklod_home_items').select('*').eq('home_id', homeId).order('created_at',{ascending:false}).limit(160),
-    (supabase as any).from('buklod_home_messages').select('id,home_id,sender_id,body,created_at,profiles:sender_id(full_name,username)').eq('home_id',homeId).order('created_at',{ascending:false}).limit(60),
+    (supabase as any).from('buklod_home_messages').select('id,home_id,sender_id,body,created_at').eq('home_id',homeId).order('created_at',{ascending:false}).limit(60),
     (supabase as any).from('buklod_home_files').select('*').eq('home_id',homeId).order('created_at',{ascending:false}).limit(80),
     (supabase as any).from('buklod_home_garden_plants').select('*').eq('home_id',homeId).order('planted_at',{ascending:false}),
     (supabase as any).from('buklod_home_community_homes').select('community_id,role,buklod_home_communities:community_id(id,name,community_kind,parent_community_id,join_code)').eq('home_id',homeId),
@@ -158,15 +158,39 @@ export async function loadBahaySnapshot(homeId: string) {
   for (const result of [homeResult,memberResult,itemResult,messageResult,fileResult,plantResult,communityLinkResult]) {
     if (result.error) throw result.error;
   }
+  const identityIds = Array.from(new Set([
+    ...(memberResult.data ?? []).map((row: any) => row.user_id),
+    ...(messageResult.data ?? []).map((row: any) => row.sender_id),
+  ].filter(Boolean)));
+  let identityMap = new Map<string, any>();
+  if (identityIds.length) {
+    const identities = await (supabase as any)
+      .from('profiles')
+      .select('id,full_name,username,avatar_url')
+      .in('id', identityIds);
+    if (!identities.error) {
+      identityMap = new Map((identities.data ?? []).map((row: any) => [row.id,row]));
+    }
+  }
+
+  const membersWithProfiles = (memberResult.data ?? []).map((row: any) => ({
+    ...row,
+    profiles: identityMap.get(row.user_id) ?? null,
+  }));
+  const messagesWithProfiles = (messageResult.data ?? []).map((row: any) => ({
+    ...row,
+    profiles: identityMap.get(row.sender_id) ?? null,
+  }));
+
   const communities = (communityLinkResult.data ?? []).map((row: any) => ({
     ...(row.buklod_home_communities ?? {}),
     role: row.role,
   })).filter((x: any) => x.id);
   return {
     home: homeResult.data as BahayHome,
-    members: (memberResult.data ?? []) as BahayMember[],
+    members: membersWithProfiles as BahayMember[],
     items: (itemResult.data ?? []) as BahayItem[],
-    messages: (messageResult.data ?? []) as BahayMessage[],
+    messages: messagesWithProfiles as BahayMessage[],
     files: fileResult.data ?? [],
     plants: (plantResult.data ?? []) as BahayPlant[],
     communities: communities as BahayCommunity[],
