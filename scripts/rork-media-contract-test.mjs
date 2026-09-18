@@ -31,7 +31,7 @@ for (const token of [
   'RORK_AUDIO',
   'kp3ge50a5t6chyb7gv3jn-web.rork.live/kingdom',
   'const AUDIO_BASE = `${RORK_PUBLIC_BASE}/audio`',
-  'const BG_BASE = `${RORK_PUBLIC_BASE}/bg`',
+  'https://r2-pub.rork.com/projects/kp3ge50a5t6chyb7gv3jn/assets/',
 ]) {
   if (!media.includes(token)) failures.push(`rorkMedia.ts missing token: ${token}`);
 }
@@ -43,6 +43,7 @@ for (const token of [
   'tryPlayRorkGameFeedback',
   'playRorkSignatureSfx',
   'useRorkGameAmbience',
+  'const REMOTE_RORK_AUDIO_ENABLED = false',
 ]) {
   if (!audio.includes(token)) failures.push(`rorkAudio.ts missing token: ${token}`);
 }
