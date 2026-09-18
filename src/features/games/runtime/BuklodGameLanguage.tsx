@@ -546,12 +546,31 @@ const TL_TEXT: Record<string, string> = {
   'TOGETHER FOR A BRIGHTER WORLD': 'MAGKASAMA PARA SA MAS MALIWANAG NA MUNDO',
   'MASTERED': 'MASTERED',
   'LOCKED': 'NAKA-LOCK',
+  'LOADING KINGDOM...': 'NILO-LOAD ANG KINGDOM...',
+  'LEVEL CLEAR SAVED': 'NA-SAVE ANG LEVEL CLEAR',
+  'BEST RUN UPDATED': 'NA-UPDATE ANG BEST RUN',
+  'NEW COLLECTIBLE': 'BAGONG COLLECTIBLE',
+  'LOADING TRAINING GROUNDS...': 'NILO-LOAD ANG TRAINING GROUNDS...',
+  'TRAINING GROUNDS LOCKED': 'NAKA-LOCK ANG TRAINING GROUNDS',
+  'Clear 4 Kingdom regions to unlock the Training Grounds.': 'Mag-clear ng 4 na Kingdom region para mabuksan ang Training Grounds.',
+  'BACK TO KINGDOM': 'BUMALIK SA KINGDOM',
+  'Replay any unlocked region, improve stars and best score, and train for the current Level. First-clear XP is never farmed by replay.':
+    'Ulitin ang anumang unlocked region, pagandahin ang stars at best score, at magsanay sa kasalukuyang Level. Hindi naiipon nang paulit-ulit ang first-clear XP sa replay.',
+  'KINGDOM XP': 'KINGDOM XP',
+  'Your Circle Rank:': 'Circle Rank mo:',
+  'This Kingdom region is not available yet.': 'Hindi pa available ang Kingdom region na ito.',
 };
 
 function translateDynamicTagalog(input: string) {
   let value = input;
 
   const rules: Array<[RegExp, (...args: any[]) => string]> = [
+    [/^Reach Circle Rank (\d+) to enter this Kingdom region\.$/, (_m, n) => `Abutin ang Circle Rank ${n} para makapasok sa Kingdom region na ito.`],
+    [/^(\d+) PENDING SYNC$/, (_m, n) => `${n} NAKAPILA SA SYNC`],
+    [/^LEVEL (\d+)\/20$/, (_m, n) => `LEVEL ${n}/20`],
+    [/^(\d+)\/20 CLEARED$/, (_m, n) => `${n}/20 NALAMPASAN`],
+    [/^WORLD (\d+)$/, (_m, n) => `WORLD ${n}`],
+    [/^REQUIRES CIRCLE RANK (\d+)$/, (_m, n) => `KAILANGAN ANG CIRCLE RANK ${n}`],
     [/^Impact at (.+)\. Recover and change trail\.$/, (_m, zone) => \`Tumama sa \${zone}. Bumawi at lumipat ng landas.\`],
     [/^Round (\\d+): watch the path\. Do not tap yet\.$/, (_m, n) => \`Round \${n}: panoorin ang landas. Huwag munang mag-tap.\`],
     [/^Round (\\d+) complete\. The playground grows brighter\.$/, (_m, n) => \`Kumpleto ang Round \${n}. Mas lumiwanag ang playground.\`],
