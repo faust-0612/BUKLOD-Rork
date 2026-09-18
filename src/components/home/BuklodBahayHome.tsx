@@ -45,6 +45,10 @@ import {
   type BahayVisibility,
 } from '@/lib/buklodBahay';
 import { useAuth } from '@/providers/AuthProvider';
+import {
+  BahayGardenRewardAd,
+  BahayHomeAdBanner,
+} from '@/components/home/BuklodBahayAds';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 type RoomKey = BahayRoom | 'PEOPLE' | 'COMMUNITY';
@@ -513,6 +517,7 @@ export default function BuklodBahayHome() {
                 <Text style={styles.gardenStat}>🏆 {activeHome.garden_harvests||0} harvests</Text>
               </View>
               <Text style={styles.helper}>Shared chores and maintenance earn garden energy. Water plants to grow them. A full-grown plant gives 2 seeds back.</Text>
+              <BahayGardenRewardAd homeId={activeHomeId} onGranted={refreshSnapshot}/>
               <TextInput value={plantNickname} onChangeText={setPlantNickname} placeholder="Plant nickname (optional)" placeholderTextColor="#78907A" style={styles.input}/>
               <View style={styles.chips}>
                 {['SUNFLOWER','TOMATO','HERB','TREE','FLOWER'].map((type)=><Pressable key={type} onPress={()=>setPlantType(type)} style={[styles.chip,plantType===type&&styles.chipActive]}><Text style={[styles.chipText,plantType===type&&styles.chipTextActive]}>{type}</Text></Pressable>)}
@@ -587,6 +592,12 @@ export default function BuklodBahayHome() {
               {roomItems.map((i)=><ItemRow key={i.id} item={i} members={members} onToggle={(x)=>void run(async()=>{await toggleBahayItem(x);await refreshSnapshot()})}/>)}
               {!roomItems.length&&<Text style={styles.empty}>Wala pang items dito.</Text>}
             </View>
+          </View>
+        )}
+
+        {!['BEDROOM','DRAWER'].includes(activeRoom) && (
+          <View style={{marginTop:10}}>
+            <BahayHomeAdBanner />
           </View>
         )}
       </View>
@@ -670,6 +681,8 @@ export default function BuklodBahayHome() {
                 </View>
                 <View style={styles.gardenStrip}><Text style={styles.gardenStripText}>🌱 Garden grows when the household works together · ⚡ {activeHome?.garden_energy||0}</Text></View>
               </View>
+
+              <BahayHomeAdBanner />
 
               <View style={styles.utilityRow}>
                 <Pressable onPress={()=>router.push('/personal-home/media' as any)} style={styles.utility}><MaterialCommunityIcons name="radio" size={19} color="#31543E"/><Text style={styles.utilityText}>Media</Text></Pressable>
