@@ -29,7 +29,8 @@
     "play:draft": "bash scripts/submit-google-play-draft.sh",
     "play:internal": "bash scripts/submit-google-play-internal.sh",
     "rork:static": "node scripts/rork-integration-static-gate.mjs",
-    "rork:qa": "powershell -ExecutionPolicy Bypass -File scripts/rork-integration-qa.ps1"
+    "rork:qa": "powershell -ExecutionPolicy Bypass -File scripts/rork-integration-qa.ps1",
+    "rork:freeze": "node scripts/rork-current-edit-freeze-r1.mjs"
   },
   "jest": {
     "preset": "jest-expo",
