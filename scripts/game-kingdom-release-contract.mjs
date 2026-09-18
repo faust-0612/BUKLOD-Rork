@@ -7,6 +7,11 @@ const failures = [];
 const args = process.argv.slice(2);
 const distIndex = args.indexOf('--dist');
 const distDir = distIndex >= 0 ? path.resolve(ROOT, args[distIndex + 1] || 'dist') : null;
+const webOutputIndex = args.indexOf('--web-output');
+const webOutputMode = webOutputIndex >= 0 ? String(args[webOutputIndex + 1] || '').trim().toLowerCase() : 'static';
+if (!['single', 'static'].includes(webOutputMode)) {
+  failures.push(`Unsupported --web-output mode: ${webOutputMode || '(empty)'}`);
+}
 
 const GAME_IDS = [
   'jawo-forest-trail',
@@ -200,14 +205,26 @@ if (distDir) {
       'TAGALOG GAME GUIDE',
       'PAANO LARUIN',
       'Special Character Journey',
+      ...GAME_IDS,
     ]) {
       if (!compiled.includes(token)) failures.push(`Compiled bundle missing Kingdom token: ${token}`);
     }
-    const gameShell = path.join(distDir, 'games', 'index.html');
-    if (!fs.existsSync(gameShell)) failures.push('Compiled web artifact is missing dist/games/index.html.');
-    for (const gameId of GAME_IDS) {
-      const routeShell = path.join(distDir, 'games', gameId, 'index.html');
-      if (!fs.existsSync(routeShell)) failures.push(`Compiled web artifact missing route shell: /games/${gameId}`);
+
+    const rootShell = path.join(distDir, 'index.html');
+    if (!fs.existsSync(rootShell)) failures.push('Compiled web artifact is missing dist/index.html.');
+
+    if (webOutputMode === 'static') {
+      const gameShell = path.join(distDir, 'games', 'index.html');
+      if (!fs.existsSync(gameShell)) failures.push('Compiled static web artifact is missing dist/games/index.html.');
+      for (const gameId of GAME_IDS) {
+        const routeShell = path.join(distDir, 'games', gameId, 'index.html');
+        if (!fs.existsSync(routeShell)) failures.push(`Compiled static web artifact missing route shell: /games/${gameId}`);
+      }
+    } else {
+      const nestedHtml = walk(distDir).filter((file) => /games[\\/]?.*index\.html$/i.test(file));
+      if (nestedHtml.length > 0) {
+        failures.push('Single-output web artifact unexpectedly emitted per-route HTML shells; verify Expo Router output mode.');
+      }
     }
   }
 }
