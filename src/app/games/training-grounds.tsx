@@ -83,47 +83,94 @@ function TrainingGroundsContent() {
       </View>
 
       <View style={styles.grid}>
-        {stations.map((station) => (
-          <Pressable
-            key={station.gameId}
-            disabled={!station.unlocked}
-            accessibilityRole="button"
-            accessibilityLabel={
-              station.unlocked
-                ? `Train ${station.gameName}, Level ${station.currentLevel}`
-                : `${station.gameName} locked until Circle Rank ${station.requiredRankOrder ?? '?'}`
-            }
-            onPress={() => router.push(`/games/${station.gameId}` as any)}
-            style={({ pressed }) => [
-              styles.card,
-              !station.unlocked && styles.cardLocked,
-              pressed && station.unlocked && styles.cardPressed,
-            ]}
-          >
-            <View style={styles.cardTop}>
-              <Text style={styles.character}>{station.characterName}</Text>
-              <View style={[styles.statePill, station.mastered && styles.masteredPill]}>
-                <Text style={styles.stateText}>
-                  {!station.unlocked
-                    ? 'LOCKED'
-                    : station.mastered
-                      ? 'MASTERED'
-                      : `LEVEL ${station.currentLevel}/20`}
-                </Text>
+        {stations.map((station) => {
+          const availableLevels = station.unlocked
+            ? Array.from({ length: station.currentLevel }, (_, index) => index + 1)
+            : [];
+          return (
+            <View
+              key={station.gameId}
+              style={[styles.card, !station.unlocked && styles.cardLocked]}
+            >
+              <View style={styles.cardTop}>
+                <Text style={styles.character}>{station.characterName}</Text>
+                <View style={[styles.statePill, station.mastered && styles.masteredPill]}>
+                  <Text style={styles.stateText}>
+                    {!station.unlocked
+                      ? 'LOCKED'
+                      : station.mastered
+                        ? 'MASTERED'
+                        : `LEVEL ${station.currentLevel}/20`}
+                  </Text>
+                </View>
               </View>
+              <Text style={styles.game}>{station.gameName}</Text>
+              <Text style={styles.region}>{station.regionName}</Text>
+              <View style={styles.metaRow}>
+                <Text style={styles.meta}>★ {station.bestStars}</Text>
+                <Text style={styles.meta}>{station.clearedLevels}/20 CLEARED</Text>
+                <Text style={styles.meta}>WORLD {station.worldTier}</Text>
+              </View>
+
+              {station.unlocked ? (
+                <>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Play current ${station.gameName} Level ${station.currentLevel}`}
+                    onPress={() =>
+                      router.push({
+                        pathname: `/games/${station.gameId}` as any,
+                        params: { level: String(station.currentLevel) },
+                      })
+                    }
+                    style={({ pressed }) => [
+                      styles.trainButton,
+                      pressed && styles.cardPressed,
+                    ]}
+                  >
+                    <Text style={styles.trainButtonText}>
+                      {station.mastered ? 'TRAIN LEVEL 20' : `PLAY LEVEL ${station.currentLevel}`}
+                    </Text>
+                  </Pressable>
+
+                  {station.clearedLevels > 0 ? (
+                    <View style={styles.levelSection}>
+                      <Text style={styles.levelSectionTitle}>REPLAY CLEARED LEVELS</Text>
+                      <View style={styles.levelGrid}>
+                        {availableLevels
+                          .filter((levelNo) => levelNo <= station.clearedLevels)
+                          .map((levelNo) => (
+                            <Pressable
+                              key={levelNo}
+                              accessibilityRole="button"
+                              accessibilityLabel={`Replay ${station.gameName} Level ${levelNo}`}
+                              onPress={() =>
+                                router.push({
+                                  pathname: `/games/${station.gameId}` as any,
+                                  params: { level: String(levelNo) },
+                                })
+                              }
+                              style={({ pressed }) => [
+                                styles.levelButton,
+                                levelNo === station.currentLevel && styles.levelButtonCurrent,
+                                pressed && styles.cardPressed,
+                              ]}
+                            >
+                              <Text style={styles.levelButtonText}>{levelNo}</Text>
+                            </Pressable>
+                          ))}
+                      </View>
+                    </View>
+                  ) : null}
+                </>
+              ) : (
+                <Text style={styles.requirement}>
+                  REQUIRES CIRCLE RANK {station.requiredRankOrder}
+                </Text>
+              )}
             </View>
-            <Text style={styles.game}>{station.gameName}</Text>
-            <Text style={styles.region}>{station.regionName}</Text>
-            <View style={styles.metaRow}>
-              <Text style={styles.meta}>★ {station.bestStars}</Text>
-              <Text style={styles.meta}>{station.clearedLevels}/20 CLEARED</Text>
-              <Text style={styles.meta}>WORLD {station.worldTier}</Text>
-            </View>
-            {!station.unlocked ? (
-              <Text style={styles.requirement}>REQUIRES CIRCLE RANK {station.requiredRankOrder}</Text>
-            ) : null}
-          </Pressable>
-        ))}
+          );
+        })}
       </View>
     </ScrollView>
   );
@@ -180,6 +227,30 @@ const styles = StyleSheet.create({
   },
   cardLocked: { opacity: 0.48, borderColor: 'rgba(160,170,176,0.22)' },
   cardPressed: { opacity: 0.78 },
+  trainButton: {
+    marginTop: 14,
+    borderRadius: 12,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    backgroundColor: '#d7b85e',
+  },
+  trainButtonText: { color: '#17212a', fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
+  levelSection: { marginTop: 12, gap: 7 },
+  levelSectionTitle: { color: '#8fa5b0', fontSize: 8, fontWeight: '900', letterSpacing: 0.7 },
+  levelGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  levelButton: {
+    minWidth: 31,
+    height: 31,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  levelButtonCurrent: { borderColor: '#e6c66d', backgroundColor: 'rgba(230,198,109,0.14)' },
+  levelButtonText: { color: '#eef3f5', fontSize: 10, fontWeight: '900' },
   cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   character: { color: '#f2d47c', fontSize: 12, fontWeight: '900' },
   statePill: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 999, backgroundColor: '#274a5d' },
