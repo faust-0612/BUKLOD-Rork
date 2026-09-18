@@ -149,14 +149,20 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
     }
 
     setLitStation(sequence[watchIndex]);
-    const offTimer = setTimeout(() => setLitStation(null), 390);
-    const nextTimer = setTimeout(() => setWatchIndex((value) => value + 1), 650);
+    const offTimer = setTimeout(
+      () => setLitStation(null),
+      Math.max(170, 390 / speedMultiplier),
+    );
+    const nextTimer = setTimeout(
+      () => setWatchIndex((value) => value + 1),
+      Math.max(280, 650 / speedMultiplier),
+    );
 
     return () => {
       clearTimeout(offTimer);
       clearTimeout(nextTimer);
     };
-  }, [phase, sequence, watchIndex]);
+  }, [phase, sequence, speedMultiplier, watchIndex]);
 
   useEffect(() => {
     if (phase !== 'round-clear') return undefined;
@@ -181,7 +187,10 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
       const expected = sequence[inputIndex];
 
       setLitStation(stationId);
-      setTimeout(() => setLitStation((current) => (current === stationId ? null : current)), 180);
+      setTimeout(
+        () => setLitStation((current) => (current === stationId ? null : current)),
+        Math.max(90, 180 / speedMultiplier),
+      );
 
       if (stationId !== expected) {
         const nextHearts = hearts - 1;
@@ -222,7 +231,7 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
         setMessage(`${nextIndex}/${sequence.length} correct. Keep the path in mind.`);
       }
     },
-    [failGame, flashScene, hearts, inputIndex, mistakes, phase, pulseCelebration, round, score, sequence],
+    [failGame, flashScene, hearts, inputIndex, mistakes, phase, pulseCelebration, round, score, sequence, speedMultiplier],
   );
 
   const start = useCallback(() => {
@@ -243,7 +252,7 @@ export function PlaygroundPathGameV2({ onFinish }: Props) {
     finishingRef.current = false;
     setPhase('ready');
     setRound(1);
-    setHearts(STARTING_HEARTS);
+    setHearts(startingHearts);
     setMistakes(0);
     setScore(0);
     setWatchIndex(0);
