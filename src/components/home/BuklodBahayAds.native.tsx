@@ -4,6 +4,7 @@ import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native
 
 import BuklodAdMobBanner from '@/components/BuklodAdMobBanner';
 import { claimBahayGardenAdReward } from '@/lib/buklodBahay';
+import { buklodAdsTestMode } from '@/lib/buklodAdUnits';
 import { showBuklodRewardedAd, warmBuklodRewardedAd } from '@/lib/buklodRewardedAds';
 
 export function BahayHomeAdBanner() {
@@ -68,7 +69,11 @@ export function BahayGardenRewardAd({
     }
   },[busy,homeId,onGranted]);
 
-  if (Platform.OS !== 'android') return null;
+  const rewardedConfigured =
+    buklodAdsTestMode ||
+    Boolean(String(process.env.EXPO_PUBLIC_ADMOB_REWARDED_UNIT_ID ?? '').trim());
+
+  if (Platform.OS !== 'android' || !rewardedConfigured) return null;
 
   return (
     <View style={styles.rewardCard}>
