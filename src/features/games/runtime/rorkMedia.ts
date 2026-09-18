@@ -48,21 +48,20 @@ export const RORK_AUDIO: Record<RorkAudioKey, string> = {
   amb_desert: `${AUDIO_BASE}/amb_desert.mp3`,
 };
 
-// The Rork project serves its compressed WebP plates directly. These are
-// enhancement-only sources; the shipped game scene remains fully usable if
-// the network/CDN is unavailable. The exported prototype ZIP is preserved as
-// the vendoring source for a future fully-local asset pass.
+// Painted Rork plates are read from the stable public asset CDN rather than
+// the ephemeral live-preview host. They remain enhancement-only: the shipped
+// gameplay scene remains usable if media is unavailable.
 const BG = {
-  village: `${BG_BASE}/village_yard.webp`,
-  forest: `${BG_BASE}/forest_trail.webp`,
-  harvest: `${BG_BASE}/harvest_terrace.webp`,
-  citadel: `${BG_BASE}/citadel_hall.webp`,
-  resonance: `${BG_BASE}/resonance_stage.webp`,
-  treasury: `${BG_BASE}/treasury_vault.webp`,
-  frontier: `${BG_BASE}/frontier_camp.webp`,
-  harbour: `${BG_BASE}/harbour_quay.webp`,
-  ruins: `${BG_BASE}/sunspire_ruins.webp`,
-  council: `${BG_BASE}/council_terrace.webp`,
+  village: 'https://r2-pub.rork.com/projects/kp3ge50a5t6chyb7gv3jn/assets/3f5d9d55-e7dd-457b-8263-8a552cfad196.png',
+  forest: 'https://r2-pub.rork.com/projects/kp3ge50a5t6chyb7gv3jn/assets/466950a3-d8c9-470d-a13c-847fcbcefe5e.png',
+  harvest: 'https://r2-pub.rork.com/projects/kp3ge50a5t6chyb7gv3jn/assets/06893c0e-1dca-476f-94c8-c0e8923f33d8.png',
+  citadel: 'https://r2-pub.rork.com/projects/kp3ge50a5t6chyb7gv3jn/assets/2d616eb4-e5a0-43b5-bddf-f35709a684d6.png',
+  resonance: 'https://r2-pub.rork.com/projects/kp3ge50a5t6chyb7gv3jn/assets/3826a0d1-f060-486d-8648-c8a092232a9a.png',
+  treasury: 'https://r2-pub.rork.com/projects/kp3ge50a5t6chyb7gv3jn/assets/02d290ce-4f4c-41ea-9507-19bf23a3acc9.png',
+  frontier: 'https://r2-pub.rork.com/projects/kp3ge50a5t6chyb7gv3jn/assets/86c46583-17f8-4313-a175-0601cb4165e7.png',
+  harbour: 'https://r2-pub.rork.com/projects/kp3ge50a5t6chyb7gv3jn/assets/4734fd77-4dc6-40e3-a405-d792bc1b6675.png',
+  ruins: 'https://r2-pub.rork.com/projects/kp3ge50a5t6chyb7gv3jn/assets/7b7ca700-de35-49ab-bf6e-2f8f5a515c28.png',
+  council: 'https://r2-pub.rork.com/projects/kp3ge50a5t6chyb7gv3jn/assets/c0efd678-84b4-4676-8028-9ac154dc0ec9.png',
 } as const;
 
 export const RORK_GAME_MEDIA: Record<string, RorkGameMedia> = {
