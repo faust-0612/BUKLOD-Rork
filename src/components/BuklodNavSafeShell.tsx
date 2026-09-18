@@ -15,7 +15,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import BuklodFocusAppAdStrip from '@/components/BuklodFocusAppAdStrip';
+import BuklodNavigationAdStrip from '@/components/BuklodNavigationAdStrip';
 import BuklodPersistentBottomNav from '@/components/BuklodPersistentBottomNav';
 import {
   isBuklodScopedWorkspacePath,
@@ -159,7 +159,7 @@ export default function BuklodNavSafeShell({
         <View style={styles.routedContent}>
           {children}
         </View>
-        {!immersiveIgpat ? <BuklodFocusAppAdStrip /> : null}
+        {!immersiveIgpat ? <BuklodNavigationAdStrip hidden={keyboardVisible} /> : null}
       </View>
 
       {!immersiveIgpat && !publicMinimal ? (
