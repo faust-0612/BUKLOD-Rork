@@ -356,6 +356,7 @@ function DecorativeLabel({
   label,
   stage,
   minimumStage,
+  href,
 }: {
   left: number;
   top: number;
@@ -363,13 +364,25 @@ function DecorativeLabel({
   label: string;
   stage: number;
   minimumStage: number;
+  href: string;
 }) {
   const locked = stage < minimumStage;
   return (
-    <View style={[styles.decorativeLabel, { left, top, opacity: locked ? 0.4 : 0.95 }]}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={locked ? `${label} locked until Kingdom Stage ${minimumStage}` : `Open ${label}`}
+      disabled={locked}
+      onPress={() => {
+        if (!locked) router.push(href as any);
+      }}
+      style={({ pressed }) => [
+        styles.decorativeLabel,
+        { left, top, opacity: locked ? 0.4 : pressed ? 0.72 : 0.95 },
+      ]}
+    >
       <MaterialCommunityIcons name={locked ? 'lock-outline' : icon} size={18} color={locked ? '#67737a' : '#234f78'} />
       <Text style={[styles.decorativeLabelText, locked && styles.decorativeLabelLocked]}>{locked ? 'LOCKED LAND' : label}</Text>
-    </View>
+    </Pressable>
   );
 }
 
@@ -602,9 +615,9 @@ function BuklodKingdomMapContent() {
               </View>
             </View>
 
-            <DecorativeLabel left={360} top={185} icon="target" label="TRAINING GROUNDS" stage={stage} minimumStage={2} />
-            <DecorativeLabel left={835} top={510} icon="stadium" label="IGPAT ARENA" stage={stage} minimumStage={3} />
-            <DecorativeLabel left={735} top={145} icon="castle" label="MENTOR TOWER" stage={stage} minimumStage={3} />
+            <DecorativeLabel left={360} top={185} icon="target" label="TRAINING GROUNDS" stage={stage} minimumStage={2} href="/games/training-grounds" />
+            <DecorativeLabel left={835} top={510} icon="stadium" label="IGPAT ARENA" stage={stage} minimumStage={3} href="/igpat" />
+            <DecorativeLabel left={735} top={145} icon="castle" label="MENTOR TOWER" stage={stage} minimumStage={3} href="/mentor" />
 
             {STATIONS.map((station, index) => (
               <StationNode key={station.id} station={station} index={index} progress={progress} />
