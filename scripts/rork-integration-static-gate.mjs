@@ -105,13 +105,17 @@ requireTokens('src/components/points/BuklodCharacterMotion.tsx', [
 ]);
 requireTokens('src/components/points/BuklodSpecialCharacterLayerStage.tsx', [
   'R40 SPECIAL',
+  'unlocked',
   'BuklodCharacterMotion',
   'Tap • double tap • hold • swipe',
 ]);
 requireTokens('src/components/points/BuklodSpecialCharacterSeries.tsx', [
   'BuklodSpecialCharacterLayerStage',
   'visibleSpecialIds.map',
-  'BUKLOD_SPECIAL_LOCKED_IDENTITIES_HIDDEN',
+  'BUKLOD_SPECIAL_LOCKED_IDENTITIES_VISIBLE_R1',
+  'const visibleSpecialIds = SPECIAL_ORDER',
+  "unlockedNow ? 'AVAILABLE' : 'LOCKED'",
+  'Reach Circle Rank',
 ]);
 requireTokens('src/features/games/runtime/BuklodGameCharacterCompanion.tsx', [
   'BuklodActiveCharacterArt',
