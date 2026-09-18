@@ -24,6 +24,7 @@ import {
   SPECIAL_CHARACTER_HERO,
   getBuklodSpecialLevelAsset,
 } from '@/lib/buklodSpecialCharacterAssets';
+import BuklodSpecialCharacterLayerStage from '@/components/points/BuklodSpecialCharacterLayerStage';
 
 type Props = {
   userId?: string | null;
@@ -338,7 +339,14 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
 
       <View style={[styles.heroPanel, compact && styles.heroPanelCompact, nativeLayout && compact && styles.heroPanelNativeCompact]}>
         <View style={[styles.largeArtFrame, compact && styles.largeArtFrameCompact, nativeLayout && compact && styles.largeArtFrameNativeCompact]}>
-          <Image source={SPECIAL_CHARACTER_HERO[selected.id]} style={[styles.largeArt, nativeLayout && compact && styles.largeArtNativeCompact]} resizeMode="contain" />
+          <BuklodSpecialCharacterLayerStage
+            characterId={selected.id}
+            name={selected.name}
+            domain={selected.domain}
+            level={currentLevel}
+            active={active}
+            compact={compact}
+          />
         </View>
 
         <View style={[styles.heroCopy, nativeLayout && compact && styles.heroCopyNativeCompact]}>
