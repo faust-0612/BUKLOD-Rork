@@ -418,7 +418,7 @@ export function ForestTrailGameV2({ onFinish }: Props) {
             <Text style={styles.resultTitle}>{phase === 'won' ? 'HIDDEN GROVE FOUND' : 'RETURN TO THE TRAIL'}</Text>
             <Text style={styles.resultScore}>{score.toLocaleString()} pts</Text>
             <Text style={styles.resultMeta}>Best combo x{bestCombo} • Trail Lights {lights} • {'★'.repeat(starsForScore(score)) || 'No star yet'}</Text>
-            <Text style={styles.resultCopy}>{phase === 'won' ? 'This station is ready to unlock a permanent map change once Kingdom persistence is connected.' : 'No punishment. Replay, learn the rhythm, and push deeper into the forest.'}</Text>
+            <Text style={styles.resultCopy}>{phase === 'won' ? 'Clear recorded. Your next Kingdom Level is now available and this region grows on the map.' : 'Replay this level to improve your best score and stars without farming first-clear XP.'}</Text>
             <Pressable onPress={reset} style={({ pressed }) => [styles.startButton, pressed && styles.startButtonPressed]}>
               <Text style={styles.startButtonText}>{phase === 'won' ? 'RUN AGAIN' : 'TRY AGAIN'}</Text>
             </Pressable>
