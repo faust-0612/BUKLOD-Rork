@@ -24,29 +24,6 @@ export type RorkGameMedia = {
   accent: string;
 };
 
-const RORK_PUBLIC_BASE = 'https://kp3ge50a5t6chyb7gv3jn-web.rork.live/kingdom';
-const AUDIO_BASE = `${RORK_PUBLIC_BASE}/audio`;
-
-export const RORK_AUDIO: Record<RorkAudioKey, string> = {
-  ui_tap: `${AUDIO_BASE}/ui_tap.mp3`,
-  ui_confirm: `${AUDIO_BASE}/ui_confirm.mp3`,
-  game_enter: `${AUDIO_BASE}/game_enter.mp3`,
-  unlock: `${AUDIO_BASE}/unlock.mp3`,
-  success: `${AUDIO_BASE}/success.mp3`,
-  retry: `${AUDIO_BASE}/retry.mp3`,
-  pickup: `${AUDIO_BASE}/pickup.mp3`,
-  coins: `${AUDIO_BASE}/coins.mp3`,
-  beat_hit: `${AUDIO_BASE}/beat_hit.mp3`,
-  beat_combo: `${AUDIO_BASE}/beat_combo.mp3`,
-  mission_go: `${AUDIO_BASE}/mission_go.mp3`,
-  build_hit: `${AUDIO_BASE}/build_hit.mp3`,
-  amb_forest: `${AUDIO_BASE}/amb_forest.mp3`,
-  amb_market: `${AUDIO_BASE}/amb_market.mp3`,
-  amb_harbour: `${AUDIO_BASE}/amb_harbour.mp3`,
-  amb_hall: `${AUDIO_BASE}/amb_hall.mp3`,
-  amb_desert: `${AUDIO_BASE}/amb_desert.mp3`,
-};
-
 // Painted Rork plates are read from the stable public asset CDN rather than
 // the ephemeral live-preview host. They remain enhancement-only: the shipped
 // gameplay scene remains usable if media is unavailable.
