@@ -216,6 +216,26 @@ forbidTokens('src/components/points/BuklodSpecialCharacterSeries.tsx', [
 ]);
 requireOneOf('src/components/points/BuklodSpecialCharacterSeries.tsx', ['JAVVO', 'JAWO', 'Jawo'], 'Jawo identity');
 requireOneOf('src/components/points/BuklodSpecialCharacterSeries.tsx', ['ELLUSUR', 'ELESUR'], 'ELESUR identity');
+requireTokens('src/components/points/BuklodSpecialCharacterSeries.tsx', [
+  'BuklodSpecialCharacterLayerStage',
+  'visibleSpecialIds.map',
+]);
+requireTokens('src/components/points/BuklodSpecialCharacterLayerStage.tsx', [
+  'BuklodCharacterMotion',
+  'R40 SPECIAL',
+  'Tap • double tap • hold • swipe',
+  'getBuklodSpecialLevelAsset',
+  'SPECIAL_CHARACTER_HERO',
+]);
+requireTokens('src/components/points/BuklodCharacterMotion.tsx', [
+  'AccessibilityInfo',
+  'PanResponder',
+  "case 'success'",
+  "case 'failure'",
+  "case 'unlock'",
+  "case 'hello'",
+  "case 'nod'",
+]);
 
 const registry = requireTokens('src/lib/buklodSpecialCharacterAssets.ts', ['ace_hero.jpg']);
 for (const id of SPECIAL_IDS) {
