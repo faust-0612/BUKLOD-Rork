@@ -215,7 +215,7 @@ Write-Host "Auth-only contract PASS." -ForegroundColor Green
 
 Write-Host ""
 Write-Host "3/4 TypeScript QA..." -ForegroundColor Yellow
-& npx tsc --noEmit
+& npx.cmd tsc --noEmit
 if ($LASTEXITCODE -ne 0) {
   throw "TypeScript QA failed. Restore from: $backupFile"
 }
@@ -225,7 +225,7 @@ $shouldExport = $ExportWeb -or $DeployWeb
 if ($shouldExport) {
   Write-Host ""
   Write-Host "4/4 Web export..." -ForegroundColor Yellow
-  & npx expo export --platform web --clear
+  & npx.cmd expo export --platform web --clear
   if ($LASTEXITCODE -ne 0) {
     throw "Web export failed. No deploy attempted."
   }
@@ -241,7 +241,7 @@ if ($shouldExport) {
 if ($DeployWeb) {
   Write-Host ""
   Write-Host "Deploying BUKLOD Quiz WEB ONLY..." -ForegroundColor Yellow
-  & npx eas-cli@latest deploy --prod --non-interactive
+  & npx.cmd eas-cli@latest deploy --prod --non-interactive
   if ($LASTEXITCODE -ne 0) {
     throw "Expo web deploy failed. Source patch + QA remain intact."
   }
