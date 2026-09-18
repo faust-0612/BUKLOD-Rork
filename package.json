@@ -32,7 +32,8 @@
     "rork:qa": "powershell -ExecutionPolicy Bypass -File scripts/rork-integration-qa.ps1",
     "rork:freeze": "node scripts/rork-current-edit-freeze-r1.mjs",
     "kingdom:e2e:contract": "node scripts/kingdom-e2e-contract.mjs",
-    "kingdom:e2e:qa": "powershell -ExecutionPolicy Bypass -File scripts/kingdom-e2e-qa.ps1"
+    "kingdom:e2e:qa": "powershell -ExecutionPolicy Bypass -File scripts/kingdom-e2e-qa.ps1",
+    "game:translation:coverage": "node scripts/game-translation-coverage.mjs"
   },
   "jest": {
     "preset": "jest-expo",
