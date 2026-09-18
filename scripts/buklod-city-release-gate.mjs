@@ -16,9 +16,11 @@ const failures = [];
 const FROZEN_RELEASE_BLOBS = {
   'src/app/city.web.tsx': '427a9c53a5b12e357c575a7992f140b7212f6cb1',
   'src/app/index.web.tsx': '767735cbef429d35fbe2350faa1726dab09bed7d',
-  'src/app/personal-home/index.tsx': 'd15fe20456d778638ac0234846fae12fd3e70cf9',
-  'src/app/personal-home/index.web.tsx': 'd15fe20456d778638ac0234846fae12fd3e70cf9',
-  'src/app/personal-home/index.native.tsx': 'd15fe20456d778638ac0234846fae12fd3e70cf9',
+  'src/app/personal-home/index.tsx': 'f2929f9f703d3d520e4cc0b5757b09e04211a5bd',
+  'src/app/personal-home/index.web.tsx': 'f2929f9f703d3d520e4cc0b5757b09e04211a5bd',
+  'src/app/personal-home/index.native.tsx': 'f2929f9f703d3d520e4cc0b5757b09e04211a5bd',
+  'src/components/home/BuklodPersonalHomeE2E.tsx': 'bb517eb6abfc198e204e95daa6b50280176bc40e',
+  'src/components/home/BuklodRorkHomeAtlas.tsx': 'b86eca025aec6424e9618d9b0a47ad5280c6969c',
   'src/components/BuklodCityDashboardR6.web.tsx': '24d039c759ab0af94e30e1970e1625ccd68719f4',
   'src/components/BuklodCityMap.web.tsx': '769b9aa6e0f18cef72f1bd15a6132ff3968f0caa',
   'src/components/BuklodCommunityBulletin.web.tsx': '1a9d9867f84621d122ba3299f1d2d6e957449b92',
@@ -121,8 +123,24 @@ requirePattern(
 );
 
 requireText('src/app/personal-home/index.tsx', [
+  'BuklodPersonalHomeE2E',
+  'export default BuklodPersonalHomeE2E',
+]);
+requireText('src/components/home/BuklodPersonalHomeE2E.tsx', [
+  'BuklodRorkHomeAtlas',
   'BuklodSpatialHomeV2',
-  'export default BuklodSpatialHomeV2',
+  "useState<'house' | 'details'>('house')",
+  'Open full Home details & tools',
+]);
+requireText('src/components/home/BuklodRorkHomeAtlas.tsx', [
+  'BuklodActiveCharacterArt',
+  "route: '/profile/buklod-classrooms'",
+  "route: '/igpat'",
+  "route: '/personal-home/recipe'",
+  "route: '/points'",
+  "route: '/personal-home/budget'",
+  "route: '/bayanihan'",
+  "route: '/city'",
 ]);
 
 requireText('src/components/home/BuklodSpatialHomeV2.tsx', [
