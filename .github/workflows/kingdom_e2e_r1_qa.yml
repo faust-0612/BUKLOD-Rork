@@ -1,9 +1,8 @@
 name: Kingdom E2E R1 QA
 
+# Runner credits were unavailable during this branch's automated attempt.
+# Keep the workflow for one-click re-run once GitHub runners are available.
 on:
-  push:
-    branches:
-      - feature/kingdom-e2e-r1
   workflow_dispatch:
 
 permissions:
