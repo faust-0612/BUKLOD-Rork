@@ -43,13 +43,13 @@ Write-Host '4/6 Targeted Rork media contract test...'
 node scripts/rork-media-contract-test.mjs
 Assert-ExternalCommand 'Rork media contract test'
 
-$qaRoot = Join-Path (Get-Location) '.rork-qa'
+$qaBase = Join-Path (Get-Location) '.rork-qa'
+$runStamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+$qaRoot = Join-Path $qaBase $runStamp
 $webOut = Join-Path $qaRoot 'web'
 $androidOut = Join-Path $qaRoot 'android'
-if (Test-Path $qaRoot) {
-  Remove-Item $qaRoot -Recurse -Force
-}
 New-Item -ItemType Directory -Force -Path $qaRoot | Out-Null
+Write-Host "QA artifact run: $qaRoot"
 
 Write-Host ''
 Write-Host '5/6 Web export + compiled Kingdom route contract...'
