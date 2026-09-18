@@ -152,6 +152,11 @@ requireTokens('scripts/rork-media-contract-test.mjs', [
   'RORK MEDIA CONTRACT PASSED.',
   '13/13 canonical games mapped',
 ]);
+requireTokens('scripts/rork-current-edit-freeze-r1.mjs', [
+  'BUKLOD CURRENT EDIT FREEZE R1',
+  'CURRENT EDIT FREEZE PASSED.',
+  'git hash-object',
+]);
 requireTokens('scripts/rork-integration-qa.ps1', [
   'Assert-ExternalCommand',
   "$env:BUKLOD_WEB_OUTPUT = 'single'",
@@ -221,6 +226,7 @@ try {
     'scripts/buklod-city-release-gate.mjs',
     'scripts/character-release-contract.mjs',
     'scripts/game-kingdom-release-contract.mjs',
+    'scripts/rork-current-edit-freeze-r1.mjs',
     'scripts/rork-integration-qa.ps1',
     'scripts/rork-integration-static-gate.mjs',
     'scripts/rork-media-contract-test.mjs',
