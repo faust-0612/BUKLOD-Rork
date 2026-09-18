@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { playBuklodGameFeedback } from '../runtime/BuklodGameFeedback';
 import { BuklodGameText as Text } from '../runtime/BuklodGameLanguage';
+import { useBuklodKingdomLevel } from '../runtime/BuklodGameLevelContext';
 import type { BuklodGameResult } from '../types';
 
 type FundKey = 'relief' | 'infrastructure' | 'learning' | 'mission' | 'reserve';
@@ -164,7 +165,8 @@ export function KingdomTreasuryGameV1({ onFinish }: Props) {
     const primaryFund = allocation[emergency.primary];
     const secondaryFund = allocation[emergency.secondary];
     const coverage = responseSpend + primaryFund * 0.55 + secondaryFund * 0.28;
-    const shortfall = Math.max(0, emergency.minimumResponse - coverage);
+    const minimumResponse = Math.round(emergency.minimumResponse * targetMultiplier);
+    const shortfall = Math.max(0, minimumResponse - coverage);
     const reserveLeft = allocation.reserve - responseSpend;
 
     const nextHealth: KingdomHealth = {
@@ -216,7 +218,7 @@ export function KingdomTreasuryGameV1({ onFinish }: Props) {
             collectibleKey: stars === 3 ? 'angel-balanced-steward-seal' : undefined,
           },
     });
-  }, [allocation, emergency, health, onFinish, phase, responseSpend, score]);
+  }, [allocation, emergency, health, onFinish, phase, responseSpend, score, targetMultiplier]);
 
   const reset = useCallback(() => {
     setAllocation(initialAllocation);
