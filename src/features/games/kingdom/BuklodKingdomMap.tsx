@@ -151,6 +151,14 @@ const STAGE_COPY: Record<number, { title: string; subtitle: string }> = {
   5: { title: 'KINGDOM UNITED', subtitle: 'Every region is alive; mastery now shapes the world' },
 };
 
+const WORLD_GROWTH_MARK_POSITIONS = [
+  { left: 6, top: 48 },
+  { left: 21, top: 14 },
+  { left: 48, top: 2 },
+  { right: 18, top: 16 },
+  { right: 4, top: 50 },
+] as const;
+
 function StationNode({
   station,
   index,
@@ -192,7 +200,7 @@ function StationNode({
               key={mark}
               style={[
                 styles.worldGrowthMark,
-                styles[`worldGrowthMark${mark + 1}` as keyof typeof styles] as any,
+                WORLD_GROWTH_MARK_POSITIONS[mark],
                 {
                   opacity: mark < worldTier ? 0.92 : 0.12,
                   backgroundColor: mark < worldTier ? station.accent : '#64717a',
@@ -912,11 +920,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.52)',
   },
-  worldGrowthMark1: { left: 6, top: 48 },
-  worldGrowthMark2: { left: 21, top: 14 },
-  worldGrowthMark3: { left: 48, top: 2 },
-  worldGrowthMark4: { right: 18, top: 16 },
-  worldGrowthMark5: { right: 4, top: 50 },
     position: 'absolute',
     width: 138,
     zIndex: 20,
