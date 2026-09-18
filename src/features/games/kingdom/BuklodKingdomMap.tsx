@@ -7,7 +7,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
   useWindowDimensions,
 } from 'react-native';
@@ -24,6 +23,11 @@ import Svg, {
 } from 'react-native-svg';
 
 import BuklodGameBackdrop from '@/features/games/runtime/BuklodGameBackdrop';
+import {
+  BuklodGameLanguageControl,
+  BuklodGameLanguageProvider,
+  BuklodGameText as Text,
+} from '@/features/games/runtime/BuklodGameLanguage';
 import { playRorkSignatureSfx } from '@/features/games/runtime/rorkAudio';
 
 import {
@@ -369,7 +373,7 @@ function DecorativeLabel({
   );
 }
 
-export default function BuklodKingdomMap() {
+function BuklodKingdomMapContent() {
   const [progress, setProgress] = useState<BuklodKingdomPreviewProgress>(emptyProgress());
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -400,7 +404,7 @@ export default function BuklodKingdomMap() {
     <View style={styles.root}>
       <LinearGradient colors={['#123c58', '#071b2a']} style={StyleSheet.absoluteFill} />
 
-      <View style={[styles.topHud, { top: Math.max(12, insets.top + 6) }]} pointerEvents="box-none">
+      <View style={[styles.topHud, { top: Math.max(52, insets.top + 44) }]} pointerEvents="box-none">
         <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.hudButton}>
           <MaterialCommunityIcons name="arrow-left" size={21} color="#173f62" />
         </Pressable>
@@ -624,7 +628,19 @@ export default function BuklodKingdomMap() {
   );
 }
 
+export default function BuklodKingdomMap() {
+  return (
+    <BuklodGameLanguageProvider gameId="kingdom-map">
+      <View style={styles.languageRoot}>
+        <BuklodKingdomMapContent />
+        <BuklodGameLanguageControl />
+      </View>
+    </BuklodGameLanguageProvider>
+  );
+}
+
 const styles = StyleSheet.create({
+  languageRoot: { flex: 1, position: 'relative' },
   root: { flex: 1, backgroundColor: '#071b2a' },
   horizontalContent: { minWidth: '100%' },
   verticalContent: { minHeight: '100%' },
