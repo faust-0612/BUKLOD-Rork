@@ -242,8 +242,6 @@ const TL_TEXT: Record<string, string> = {
   'FRAGMENT TABLE • DRAG TO RESTORE': 'MGA PIRA-PIRASO • I-DRAG PARA MAIBALIK',
   'ART VILLAGE RESTORATION': 'PAGPAPANUMBALIK NG ART VILLAGE',
   'MURAL AWAKENED': 'MULING NABUHAY ANG MURAL',
-  "Every restored fragment can later become a permanent visual upgrade inside Mitch's map region.":
-    'Bawat naibalik na piraso ay maaaring maging permanenteng visual upgrade sa rehiyon ni Mitch.',
   'RESTORE AGAIN': 'IBALIK MULI',
   'Drag fragments directly. Near-center drops earn higher precision and stronger combo bonuses.':
     'I-drag nang direkta ang mga piraso. Mas malapit sa gitna ang drop, mas mataas ang precision at combo bonus.',
@@ -266,8 +264,6 @@ const TL_TEXT: Record<string, string> = {
   'VILLAGE REACHED': 'NARATING ANG PAMAYANAN',
   'A critical reserve reached zero. Route choice matters more than raw speed.':
     'May kritikal na reserbang naubos. Mas mahalaga ang tamang ruta kaysa bilis lamang.',
-  'The route is complete. Later, this result can permanently open Niel’s next frontier station and change the Mission map.':
-    'Kumpleto ang ruta. Ang resulta ay maaaring magbukas ng susunod na frontier station ni Niel at baguhin ang Mission map.',
 
   // Angel
   'QUARTER TREASURY': 'PONDO NG QUARTER',
@@ -444,13 +440,9 @@ const TL_TEXT: Record<string, string> = {
   // Lhen
   'TIMING ENGINE': 'TIMING ENGINE',
   'Follow the center pulse.': 'Sundan ang pulse sa gitna.',
-  'This V1 uses the real timing windows and combo logic. Final music stems and Lhen animation can synchronize to the same beat map later.':
-    'Gumagamit ito ng tunay na timing windows at combo logic. Ang final music stems at animation ni Lhen ay puwedeng sumabay sa parehong beat map.',
   'TAP THE PULSE': 'I-TAP ANG PULSE',
   'PERFORMANCE COMPLETE': 'KUMPLETO ANG PERFORMANCE',
   'Missed pulse. Reset your timing and re-enter the rhythm.': 'Hindi natamaan ang pulse. Ayusin muli ang timing at bumalik sa ritmo.',
-  'Listen with your eyes for now—audio stems plug into this same timing grid later.':
-    'Sundan muna sa mata—ang audio stems ay ikakabit sa parehong timing grid.',
   'Too early. Wait for the pulse to collapse into the center.': 'Masyadong maaga. Hintaying pumasok ang pulse sa gitna.',
   'Tap when the pulse reaches the center. Perfect timing builds combo; missed beats break the flow.':
     'I-tap kapag nasa gitna ang pulse. Perfect timing ang nagpapataas ng combo; ang miss ay pumuputol sa flow.',
@@ -559,12 +551,211 @@ const TL_TEXT: Record<string, string> = {
   'KINGDOM XP': 'KINGDOM XP',
   'Your Circle Rank:': 'Circle Rank mo:',
   'This Kingdom region is not available yet.': 'Hindi pa available ang Kingdom region na ito.',
+
+  // Remaining 13-game visible labels, scenario copy, and Kingdom regions
+  'Forest Edge': 'Gilid ng Kagubatan',
+  'Fern Corridor': 'Landas ng Pako',
+  'Creek Bend': 'Likuan ng Sapa',
+  'Whispering Pines': 'Bulong ng mga Puno',
+  'Moss Crossing': 'Tawiran ng Lumot',
+  'Hidden Grove': 'Nakatagong Gubat',
+  'Old Ranger Trail': 'Lumang Ranger Trail',
+  'Ancient Tree Path': 'Landas ng Sinaunang Puno',
+  'Firefly Hollow': 'Lambak ng Alitaptap',
+  'STORY': 'KUWENTO',
+  'SLIDE': 'SLIDE',
+  'HOP': 'TALON',
+  'WONDER': 'HIWAGA',
+  'Story Tree': 'Puno ng Kuwento',
+  'Sky Slide': 'Sky Slide',
+  'Hop Garden': 'Hardin ng Talon',
+  'Wonder Wheel': 'Gulong ng Hiwaga',
+  'EXTRACTION AVAILABLE': 'AVAILABLE ANG EXTRACTION',
+  'TACTICAL ROUTE ACTIVE': 'AKTIBO ANG TACTICAL ROUTE',
+  'Route blocked. Find another corridor.': 'Sarado ang ruta. Humanap ng ibang corridor.',
+  'Move only to an adjacent district tile.': 'Lumipat lamang sa katabing district tile.',
+  'All beacons secured. Reach the extraction gate.': 'Nakuha na ang lahat ng beacon. Pumunta sa extraction gate.',
+  'Route clear. Keep energy in reserve.': 'Malinaw ang ruta. Magtira ng enerhiya.',
+  'Dawn': 'Bukang-Liwayway',
+  'Ridge': 'Gulod',
+  'Canopy': 'Lilim ng Puno',
+  'River': 'Ilog',
+  'Ember': 'Baga',
+  'Journey': 'Paglalakbay',
+
+  'River Pass': 'Tawiran ng Ilog',
+  'The direct trail is flooded. A ridge detour is safer, but it will cost time and supplies.':
+    'Baha ang direktang landas. Mas ligtas ang detour sa gulod pero mangangailangan ito ng oras at supplies.',
+  'Cross the ford': 'Tumawid sa mababaw na ilog',
+  'Fast route through knee-deep water. Save food, spend energy.':
+    'Mabilis na ruta sa tubig na abot-tuhod. Makakatipid sa pagkain pero gagastos ng enerhiya.',
+  'River crossing': 'Tawiran ng ilog',
+  'The team crosses quickly and reaches higher ground before the current rises.':
+    'Mabilis na nakatawid ang team at nakarating sa mataas na lugar bago lumakas ang agos.',
+  'Take the ridge': 'Tahakin ang gulod',
+  'Longer climb with dry footing and a good view of the next valley.':
+    'Mas mahabang akyat pero tuyo ang daan at malinaw ang tanaw sa susunod na lambak.',
+  'High ridge': 'Mataas na gulod',
+  'The ridge costs supplies, but the route ahead becomes easier to read.':
+    'Gumagamit ng supplies ang gulod pero mas madaling basahin ang susunod na ruta.',
+  'Broken Bridge': 'Sirang Tulay',
+  'A damaged footbridge blocks the shortest path. Nearby residents are trying to repair it.':
+    'Harang sa pinakamaikling daan ang sirang footbridge. Sinisikap itong ayusin ng mga residenteng malapit.',
+  'Help repair the bridge': 'Tumulong sa pag-aayos ng tulay',
+  'Spend energy now to open a safer route for everyone behind you.':
+    'Gumamit ng enerhiya ngayon para magbukas ng mas ligtas na ruta para sa mga susunod.',
+  'Community crossing': 'Tawiran ng komunidad',
+  'The bridge is stabilized. The team leaves a safer crossing for the community.':
+    'Napatatag ang tulay. Nag-iwan ang team ng mas ligtas na tawiran para sa komunidad.',
+  'Use the ravine path': 'Dumaan sa landas ng bangin',
+  'Keep moving, but the narrow trail is slow and draining.':
+    'Magpatuloy, pero makitid, mabagal, at nakapapagod ang landas.',
+  'Ravine path': 'Landas ng bangin',
+  'The ravine works, but the detour costs more strength than expected.':
+    'Naitawid ng bangin ang team pero mas malaki ang nagamit na lakas kaysa inaasahan.',
+  'Storm Front': 'Paparating na Bagyo',
+  'Dark clouds roll over the trail. A covered school building lies off-route while the open road remains passable.':
+    'Makapal ang ulap sa landas. May covered school building sa labas ng ruta habang nadadaanan pa ang bukas na kalsada.',
+  'Shelter and regroup': 'Sumilong at mag-regroup',
+  'Lose travel time, recover energy, and check supplies before continuing.':
+    'Mawawalan ng oras sa biyahe pero makakabawi ng enerhiya at masusuri ang supplies.',
+  'Mountain school': 'Paaralan sa bundok',
+  'The storm passes while the team rests. Everyone leaves stronger and organized.':
+    'Lumipas ang bagyo habang nagpapahinga ang team. Mas malakas at organisado silang nagpatuloy.',
+  'Push through the rain': 'Magpatuloy sa ulan',
+  'Maintain pace at the cost of energy and morale.':
+    'Panatilihin ang bilis kapalit ng enerhiya at morale.',
+  'Open road': 'Bukas na kalsada',
+  'The team keeps its schedule, but the exposed march takes a toll.':
+    'Nasunod ng team ang iskedyul pero malaki ang naging pagod sa bukas na daan.',
+  'Wayside Family': 'Pamilyang nasa Daan',
+  'A family along the trail asks for drinking water. The village destination is still several kilometers away.':
+    'Humihingi ng inuming tubig ang isang pamilya sa landas. Ilang kilometro pa ang destinasyong pamayanan.',
+  'Share supplies': 'Magbahagi ng supplies',
+  'Give part of the team reserve and continue with less margin.':
+    'Magbigay mula sa reserba ng team at magpatuloy na mas kaunti ang allowance.',
+  'Wayside settlement': 'Pamayanan sa tabi ng daan',
+  'The family is supplied, and the team leaves with renewed purpose despite a smaller reserve.':
+    'Natulungan ang pamilya at nagpatuloy ang team na mas buo ang layunin kahit mas maliit ang reserve.',
+  'Protect mission reserve': 'Protektahan ang mission reserve',
+  'Keep critical supplies for the final climb and offer directions to the next water source.':
+    'Itabi ang kritikal na supplies para sa huling akyat at ituro ang susunod na mapagkukunan ng tubig.',
+  'The team preserves its reserve, but morale dips after the difficult decision.':
+    'Napanatili ng team ang reserve pero bumaba ang morale matapos ang mahirap na desisyon.',
+  'Final Climb': 'Huling Akyat',
+  'The remote village is visible across the final slope. There is a steep shortcut and a longer shaded trail.':
+    'Tanaw na ang malayong pamayanan sa huling dalisdis. May matarik na shortcut at mas mahabang landas na may lilim.',
+  'Take the steep ascent': 'Tahakin ang matarik na akyat',
+  'Fast finish with a heavy energy cost.': 'Mabilis na pagtatapos kapalit ng malaking enerhiya.',
+  'Stone ascent': 'Batuhang akyat',
+  'The team crests the hill and reaches the village before sunset.':
+    'Naabot ng team ang tuktok at nakarating sa pamayanan bago lumubog ang araw.',
+  'Use the shaded trail': 'Dumaan sa landas na may lilim',
+  'Safer arrival, but consume more water and food during the longer approach.':
+    'Mas ligtas ang pagdating pero mas maraming tubig at pagkain ang magagamit sa mas mahabang ruta.',
+  'Forest approach': 'Paglapit sa kagubatan',
+  'The team arrives steadily with enough strength left to begin serving immediately.':
+    'Maayos na nakarating ang team na may sapat pang lakas para magsimulang maglingkod agad.',
+
+  'People & Relief': 'Tao at Relief',
+  'Food, emergency help, vulnerable families': 'Pagkain, emergency help, at mga pamilyang nangangailangan',
+  'Infrastructure': 'Imprastraktura',
+  'Roads, repairs, water access, community facilities': 'Kalsada, repairs, water access, at pasilidad ng komunidad',
+  'Learning': 'Pagkatuto',
+  'Education, formation, youth development': 'Edukasyon, formation, at youth development',
+  'Mission & Service': 'Misyon at Paglilingkod',
+  'Community outreach, care teams, mission support': 'Community outreach, care teams, at mission support',
+  'Emergency Reserve': 'Emergency Reserve',
+  'Protection against unexpected kingdom-wide shocks': 'Proteksiyon laban sa biglaang krisis sa buong kaharian',
+  'Severe Storm Damage': 'Matinding Pinsala ng Bagyo',
+  'Several homes were damaged and the eastern bridge is unsafe. Relief is urgent, but repairs are needed to keep supplies moving.':
+    'Nasira ang ilang bahay at delikado ang silangang tulay. Kailangan agad ang relief at repairs para tuloy ang galaw ng supplies.',
+  'Water System Failure': 'Pagpalya ng Sistema ng Tubig',
+  'A major water line fails near the learning district. Repairs are costly and families need temporary support while access is restored.':
+    'Nasira ang pangunahing water line malapit sa learning district. Mahal ang repairs at kailangan ng pansamantalang tulong ng mga pamilya.',
+  'Families Arrive at the Frontier': 'Dumating ang mga Pamilya sa Frontier',
+  'The quarter failed: critical kingdom health dropped below a safe level. Rebuild the budget with stronger balance and emergency protection.':
+    'Bumagsak ang quarter: bumaba sa delikadong antas ang critical kingdom health. Buuin muli ang budget na mas balanse at may mas matibay na emergency protection.',
+  'Quarter failed • no star awarded': 'Bumagsak ang quarter • walang star',
+
+  'Rice': 'Palay',
+  'Vegetables': 'Gulay',
+  'Fruit': 'Prutas',
+
+  'Water Point': 'Punto ng Tubig',
+  'Learning House': 'Bahay-Pagkatuto',
+  'Community Farm': 'Sakahang Pangkomunidad',
+  'Care Station': 'Care Station',
+  'Highland Path': 'Landas sa Kabundukan',
+
+  'Premium Contract': 'Premium Contract',
+  'Town Demand': 'Demand sa Bayan',
+  'Local Market': 'Lokal na Pamilihan',
+
+  'Farm / Enterprise': 'Bukid / Negosyo',
+  'Agricultural Valley': 'Lambak ng Agrikultura',
+  'Explorer Forest': 'Kagubatan ng Explorer',
+  "Children's Haven": 'Kanlungan ng mga Bata',
+  'Art Village': 'Pamayanan ng Sining',
+  'Civic Academy': 'Akademyang Sibiko',
+  'Strategy / Rescue': 'Strategy / Rescue',
+  'Living City': 'Buhay na Lungsod',
+  'Music City': 'Lungsod ng Musika',
+  'Treasury City': 'Lungsod ng Ingat-Yaman',
+  'Mission Frontier': 'Hangganan ng Misyon',
+  'Highland Community': 'Komunidad sa Kabundukan',
+  'Discovery World': 'Mundo ng Pagtuklas',
+  'TIDEWHISPER COAST': 'BAYBAYIN NG TIDEWHISPER',
+  'WHISPERING FOREST': 'BUMUBULONG NA KAGUBATAN',
+  'HARVEST VALLEY': 'LAMBAK NG ANI',
+  'COVENANT HEIGHTS': 'COVENANT HEIGHTS',
+  'RESONANCE CITY': 'LUNGSOD NG RESONANCE',
+  'MISSION FRONTIER': 'HANGGANAN NG MISYON',
+  'TREASURY QUARTER': 'DISTRITO NG INGAT-YAMAN',
+  'SUNSPIRE RUINS': 'GUHO NG SUNSPIRE',
 };
 
 function translateDynamicTagalog(input: string) {
   let value = input;
 
   const rules: Array<[RegExp, (...args: any[]) => string]> = [
+    [/^WORLD TIER (\d+)$/, (_m, n) => `WORLD TIER ${n}`],
+    [/^RANK (\d+)$/, (_m, n) => `RANK ${n}`],
+    [/^STAGE (\d+)$/, (_m, n) => `STAGE ${n}`],
+    [/^(\d+)\/13 CLEARED • STAGE (\d+)$/, (_m, a, b) => `${a}/13 NALAMPASAN • STAGE ${b}`],
+    [/^(\d+) KXP • (\d+)\/13 MASTERED$/, (_m, a, b) => `${a} KXP • ${b}/13 MASTERED`],
+    [/^(\d+) pts$/, (_m, n) => `${n} puntos`],
+    [/^Best combo x(\d+) • Trail Lights (\d+) • (.+)$/, (_m, a, b, c) => `Best combo x${a} • Trail Lights ${b} • ${c}`],
+    [/^Mistakes (\d+) • (.+)$/, (_m, n, stars) => `Mali ${n} • ${stars}`],
+    [/^Energy (-?\d+) • Rescue (\d+)\/3(.*)$/, (_m, e, r, tail) => `Enerhiya ${e} • Rescue ${r}/3${tail}`],
+    [/^(\d+)% restored$/, (_m, n) => `${n}% naibalik`],
+    [/^Combo ×(\d+)$/, (_m, n) => `Combo ×${n}`],
+    [/^Misses (\d+)$/, (_m, n) => `Miss ${n}`],
+    [/^Reserve (\d+)$/, (_m, n) => `Reserve ${n}`],
+    [/^LEG (\d+) \/ (\d+)$/, (_m, a, b) => `BAHAGI ${a} / ${b}`],
+    [/^(\d+)% route$/, (_m, n) => `${n}% ruta`],
+    [/^Stars: (.+)$/, (_m, stars) => `Stars: ${stars}`],
+    [/^(\d+) unassigned$/, (_m, n) => `${n} hindi pa nailalaan`],
+    [/^(\d+) reserve remains$/, (_m, n) => `${n} reserve ang natitira`],
+    [/^(\d+) severity$/, (_m, n) => `${n} tindi`],
+    [/^(\d+) base crates \/ field$/, (_m, n) => `${n} base crates / field`],
+    [/^(\d+) field units remaining$/, (_m, n) => `${n} field units ang natitira`],
+    [/^(\d+) WEATHER$/, (_m, n) => `${n} PANAHON`],
+    [/^(\d+) fields planted$/, (_m, n) => `${n} field ang naitanim`],
+    [/^(\d+) crates$/, (_m, n) => `${n} crates`],
+    [/^Projected harvest: (\d+) crates$/, (_m, n) => `Tinatayang ani: ${n} crates`],
+    [/^BUSINESS CYCLE (\d+)\/(\d+)$/, (_m, a, b) => `BUSINESS CYCLE ${a}/${b}`],
+    [/^Finished-goods price this cycle: (.+)\. Decide whether to produce, process, sell, or invest in capacity\.$/, (_m, price) => `Presyo ng finished goods: ${price}. Magpasya kung magpo-produce, magpo-process, magbebenta, o mag-iinvest sa capacity.`],
+    [/^REQUEST (\d+)\/(\d+) • TOTAL CAPACITY (\d+)$/, (_m, a, b, c) => `REQUEST ${a}/${b} • KABUUANG KAPASIDAD ${c}`],
+    [/^Distance (\d+) • Ideal response: (.+)$/, (_m, d, team) => `Layo ${d} • Pinakamainam na tugon: ${team}`],
+    [/^(\d+) capacity$/, (_m, n) => `${n} kapasidad`],
+    [/^CASE (\d+)\/(\d+)$/, (_m, a, b) => `KASO ${a}/${b}`],
+    [/^Accuracy (\d+)%$/, (_m, n) => `Accuracy ${n}%`],
+    [/^Beat (\d+)\/(\d+)$/, (_m, a, b) => `Beat ${a}/${b}`],
+    [/^(\d+) ms early$/, (_m, n) => `${n} ms maaga`],
+    [/^(\d+) ms late$/, (_m, n) => `${n} ms huli`],
+    [/^FIELD NOTES • (\d+)\/3 CLUES$/, (_m, n) => `FIELD NOTES • ${n}/3 PALATANDAAN`],
+    [/^Score (\d+) • Visited (\d+) tiles$/, (_m, a, b) => `Iskor ${a} • ${b} tile ang nabisita`],
     [/^Reach Circle Rank (\d+) to enter this Kingdom region\.$/, (_m, n) => `Abutin ang Circle Rank ${n} para makapasok sa Kingdom region na ito.`],
     [/^(\d+) PENDING SYNC$/, (_m, n) => `${n} NAKAPILA SA SYNC`],
     [/^LEVEL (\d+)\/20$/, (_m, n) => `LEVEL ${n}/20`],
