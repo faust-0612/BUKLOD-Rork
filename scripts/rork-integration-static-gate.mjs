@@ -58,7 +58,6 @@ requireTokens('src/components/home/BuklodPersonalHomeE2E.tsx', [
   'BuklodRorkHomeAtlas',
   'BuklodSpatialHomeV2',
   "useState<'house' | 'details'>('house')",
-  'Open full Home details & tools',
 ]);
 
 const atlas = requireTokens('src/components/home/BuklodRorkHomeAtlas.tsx', [
@@ -70,6 +69,7 @@ const atlas = requireTokens('src/components/home/BuklodRorkHomeAtlas.tsx', [
   "route: '/personal-home/budget'",
   "route: '/bayanihan'",
   "route: '/city'",
+  'Open full Home details & tools',
 ]);
 for (const forbidden of ['supabase', '.rpc(', 'fetch(', 'axios', 'createClient(']) {
   if (atlas.includes(forbidden)) {
@@ -132,7 +132,8 @@ requireTokens('src/features/games/runtime/BuklodGameFeedback.native.ts', [
 requireTokens('src/features/games/kingdom/BuklodKingdomMap.tsx', [
   'BuklodGameBackdrop',
   'playRorkSignatureSfx',
-  'recordBuklodKingdomPreviewResult',
+  'loadBuklodKingdomPreviewProgress',
+  'subscribeBuklodKingdomPreviewProgress',
 ]);
 
 try {
