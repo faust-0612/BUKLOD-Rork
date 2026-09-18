@@ -161,20 +161,10 @@ export async function loadBahaySnapshot(homeId: string) {
   for (const result of [homeResult,memberResult,itemResult,messageResult,fileResult,plantResult,communityLinkResult,pollResult,optionResult,voteResult]) {
     if (result.error) throw result.error;
   }
-  const identityIds = Array.from(new Set([
-    ...(memberResult.data ?? []).map((row: any) => row.user_id),
-    ...(messageResult.data ?? []).map((row: any) => row.sender_id),
-  ].filter(Boolean)));
-  let identityMap = new Map<string, any>();
-  if (identityIds.length) {
-    const identities = await (supabase as any)
-      .from('profiles')
-      .select('id,full_name,username,avatar_url')
-      .in('id', identityIds);
-    if (!identities.error) {
-      identityMap = new Map((identities.data ?? []).map((row: any) => [row.id,row]));
-    }
-  }
+  const identities = await (supabase as any).rpc('buklod_home_member_directory_v1', { p_home_id: homeId });
+  const identityMap = new Map<string, any>(
+    (identities.error ? [] : identities.data ?? []).map((row: any) => [row.user_id,row]),
+  );
 
   const membersWithProfiles = (memberResult.data ?? []).map((row: any) => ({
     ...row,
