@@ -18,43 +18,47 @@ export type RorkAudioKey =
   | 'amb_desert';
 
 export type RorkGameMedia = {
-  background: number;
+  background: string;
   ambience: RorkAudioKey;
   signature: RorkAudioKey;
   accent: string;
 };
 
-export const RORK_AUDIO: Record<RorkAudioKey, number> = {
-  ui_tap: require('../../../../assets/kingdom/rork/audio/ui_tap.mp3'),
-  ui_confirm: require('../../../../assets/kingdom/rork/audio/ui_confirm.mp3'),
-  game_enter: require('../../../../assets/kingdom/rork/audio/game_enter.mp3'),
-  unlock: require('../../../../assets/kingdom/rork/audio/unlock.mp3'),
-  success: require('../../../../assets/kingdom/rork/audio/success.mp3'),
-  retry: require('../../../../assets/kingdom/rork/audio/retry.mp3'),
-  pickup: require('../../../../assets/kingdom/rork/audio/pickup.mp3'),
-  coins: require('../../../../assets/kingdom/rork/audio/coins.mp3'),
-  beat_hit: require('../../../../assets/kingdom/rork/audio/beat_hit.mp3'),
-  beat_combo: require('../../../../assets/kingdom/rork/audio/beat_combo.mp3'),
-  mission_go: require('../../../../assets/kingdom/rork/audio/mission_go.mp3'),
-  build_hit: require('../../../../assets/kingdom/rork/audio/build_hit.mp3'),
-  amb_forest: require('../../../../assets/kingdom/rork/audio/amb_forest.mp3'),
-  amb_market: require('../../../../assets/kingdom/rork/audio/amb_market.mp3'),
-  amb_harbour: require('../../../../assets/kingdom/rork/audio/amb_harbour.mp3'),
-  amb_hall: require('../../../../assets/kingdom/rork/audio/amb_hall.mp3'),
-  amb_desert: require('../../../../assets/kingdom/rork/audio/amb_desert.mp3'),
+const AUDIO_BASE = 'https://kp3ge50a5t6chyb7gv3jn-web.rork.live/kingdom/audio';
+
+export const RORK_AUDIO: Record<RorkAudioKey, string> = {
+  ui_tap: `${AUDIO_BASE}/ui_tap.mp3`,
+  ui_confirm: `${AUDIO_BASE}/ui_confirm.mp3`,
+  game_enter: `${AUDIO_BASE}/game_enter.mp3`,
+  unlock: `${AUDIO_BASE}/unlock.mp3`,
+  success: `${AUDIO_BASE}/success.mp3`,
+  retry: `${AUDIO_BASE}/retry.mp3`,
+  pickup: `${AUDIO_BASE}/pickup.mp3`,
+  coins: `${AUDIO_BASE}/coins.mp3`,
+  beat_hit: `${AUDIO_BASE}/beat_hit.mp3`,
+  beat_combo: `${AUDIO_BASE}/beat_combo.mp3`,
+  mission_go: `${AUDIO_BASE}/mission_go.mp3`,
+  build_hit: `${AUDIO_BASE}/build_hit.mp3`,
+  amb_forest: `${AUDIO_BASE}/amb_forest.mp3`,
+  amb_market: `${AUDIO_BASE}/amb_market.mp3`,
+  amb_harbour: `${AUDIO_BASE}/amb_harbour.mp3`,
+  amb_hall: `${AUDIO_BASE}/amb_hall.mp3`,
+  amb_desert: `${AUDIO_BASE}/amb_desert.mp3`,
 };
 
+// Rork-generated painted plates use their immutable asset CDN URLs. The local
+// prototype ZIP remains the preservation source if these are ever vendored.
 const BG = {
-  citadel: require('../../../../assets/kingdom/rork/bg/citadel_hall.webp'),
-  council: require('../../../../assets/kingdom/rork/bg/council_terrace.webp'),
-  forest: require('../../../../assets/kingdom/rork/bg/forest_trail.webp'),
-  frontier: require('../../../../assets/kingdom/rork/bg/frontier_camp.webp'),
-  harbour: require('../../../../assets/kingdom/rork/bg/harbour_quay.webp'),
-  harvest: require('../../../../assets/kingdom/rork/bg/harvest_terrace.webp'),
-  resonance: require('../../../../assets/kingdom/rork/bg/resonance_stage.webp'),
-  ruins: require('../../../../assets/kingdom/rork/bg/sunspire_ruins.webp'),
-  treasury: require('../../../../assets/kingdom/rork/bg/treasury_vault.webp'),
-  village: require('../../../../assets/kingdom/rork/bg/village_yard.webp'),
+  village: 'https://r2-pub.rork.com/projects/kp3ge50a5t6chyb7gv3jn/assets/3f5d9d55-e7dd-457b-8263-8a552cfad196.png',
+  forest: 'https://r2-pub.rork.com/projects/kp3ge50a5t6chyb7gv3jn/assets/466950a3-d8c9-470d-a13c-847fcbcefe5e.png',
+  harvest: 'https://r2-pub.rork.com/projects/kp3ge50a5t6chyb7gv3jn/assets/06893c0e-1dca-476f-94c8-c0e8923f33d8.png',
+  citadel: 'https://r2-pub.rork.com/projects/kp3ge50a5t6chyb7gv3jn/assets/2d616eb4-e5a0-43b5-bddf-f35709a684d6.png',
+  resonance: 'https://r2-pub.rork.com/projects/kp3ge50a5t6chyb7gv3jn/assets/3826a0d1-f060-486d-8648-c8a092232a9a.png',
+  treasury: 'https://r2-pub.rork.com/projects/kp3ge50a5t6chyb7gv3jn/assets/02d290ce-4f4c-41ea-9507-19bf23a3acc9.png',
+  frontier: 'https://r2-pub.rork.com/projects/kp3ge50a5t6chyb7gv3jn/assets/86c46583-17f8-4313-a175-0601cb4165e7.png',
+  harbour: 'https://r2-pub.rork.com/projects/kp3ge50a5t6chyb7gv3jn/assets/4734fd77-4dc6-40e3-a405-d792bc1b6675.png',
+  ruins: 'https://r2-pub.rork.com/projects/kp3ge50a5t6chyb7gv3jn/assets/7b7ca700-de35-49ab-bf6e-2f8f5a515c28.png',
+  council: 'https://r2-pub.rork.com/projects/kp3ge50a5t6chyb7gv3jn/assets/c0efd678-84b4-4676-8028-9ac154dc0ec9.png',
 } as const;
 
 export const RORK_GAME_MEDIA: Record<string, RorkGameMedia> = {
