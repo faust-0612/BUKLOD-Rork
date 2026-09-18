@@ -145,7 +145,7 @@ const rorkMedia = requireTokens('src/features/games/runtime/rorkMedia.ts', [
   'RORK_GAME_MEDIA',
   'kp3ge50a5t6chyb7gv3jn-web.rork.live/kingdom',
   "const AUDIO_BASE = `${RORK_PUBLIC_BASE}/audio`",
-  "const BG_BASE = `${RORK_PUBLIC_BASE}/bg`",
+  'https://r2-pub.rork.com/projects/kp3ge50a5t6chyb7gv3jn/assets/',
 ]);
 for (const gameId of GAME_IDS) {
   if (!rorkMedia.includes(`'${gameId}'`)) failures.push(`Rork media mapping missing game: ${gameId}`);
@@ -155,6 +155,7 @@ requireTokens('src/features/games/runtime/rorkAudio.ts', [
   'useRorkGameAmbience',
   'tryPlayRorkGameFeedback',
   'playRorkSignatureSfx',
+  'REMOTE_RORK_AUDIO_ENABLED',
 ]);
 requireTokens('src/features/games/runtime/BuklodGameStage.web.tsx', [
   'BuklodGameBackdrop',
@@ -175,6 +176,9 @@ requireTokens('src/features/games/runtime/BuklodGameFeedback.native.ts', [
 requireTokens('src/features/games/kingdom/BuklodKingdomMap.tsx', [
   'BuklodGameBackdrop',
   'playRorkSignatureSfx',
+  'BIOME_REGIONS',
+  'THE CITADEL',
+  'EXPLORE • GROW • BELONG',
 ]);
 
 requireTokens('src/features/games/kingdom/progress.ts', [
