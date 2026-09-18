@@ -22,6 +22,8 @@ const AUTH_PROFILE_FALLBACK_TIMEOUT_MS = 1_500;
 const AUTH_LOCAL_SESSION_TIMEOUT_MS = 1_200;
 const AUTH_LOCAL_SIGN_OUT_TIMEOUT_MS = 2_500;
 const AUTH_FRESH_SIGN_IN_USER_TTL_MS = 60_000;
+const AUTH_PASSWORD_SIGN_IN_TIMEOUT_MS = 12_000;
+const AUTH_EXISTING_PASSWORD_SIGN_IN_TIMEOUT_MS = 3_500;
 
 /*
  * BUKLOD_MAIN_AUTH_STORM_R21
@@ -163,13 +165,29 @@ export async function signInWithPasswordResilient(
 ) {
   /*
    * HIGH_CONCURRENCY_LOGIN_R1 + BUKLOD_MAIN_AUTH_STORM_R21
-   * Never auto-retry a password request after a timeout/5xx/429, and never
-   * allow two password grants from the same runtime at the same time.
-   * This prevents same-tick taps, route remounts, and suggested-login races
-   * from amplifying a synchronized login wave.
+   *
+   * The underlying password request remains single-flight. The UI wait is
+   * bounded separately so one slow auth request cannot leave the Login screen
+   * permanently disabled. A timed-out caller does NOT start a second password
+   * grant while the original request is still active.
    */
   if (authRuntimeState.passwordSignInInFlight) {
-    return authRuntimeState.passwordSignInInFlight;
+    try {
+      return await withBuklodTimeout<any>(
+        authRuntimeState.passwordSignInInFlight,
+        AUTH_EXISTING_PASSWORD_SIGN_IN_TIMEOUT_MS,
+        'BUKLOD sign-in already in progress'
+      );
+    }
+    catch (error) {
+      return {
+        data: {
+          user: null,
+          session: null,
+        },
+        error,
+      } as any;
+    }
   }
 
   const task = supabase.auth
@@ -189,15 +207,33 @@ export async function signInWithPasswordResilient(
 
   authRuntimeState.passwordSignInInFlight = task;
 
+  void task
+    .finally(() => {
+      if (
+        authRuntimeState.passwordSignInInFlight ===
+        task
+      ) {
+        authRuntimeState.passwordSignInInFlight =
+          null;
+      }
+    })
+    .catch(() => undefined);
+
   try {
-    return await task;
+    return await withBuklodTimeout<any>(
+      task,
+      AUTH_PASSWORD_SIGN_IN_TIMEOUT_MS,
+      'BUKLOD password sign-in'
+    );
   }
-  finally {
-    if (
-      authRuntimeState.passwordSignInInFlight === task
-    ) {
-      authRuntimeState.passwordSignInInFlight = null;
-    }
+  catch (error) {
+    return {
+      data: {
+        user: null,
+        session: null,
+      },
+      error,
+    } as any;
   }
 }
 

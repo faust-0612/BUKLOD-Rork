@@ -149,15 +149,37 @@ if (publishStart < 0 || publishEnd < 0) {
   fail('Could not locate the scoped Community publish function.');
 }
 
-let publishChunk = source.slice(publishStart, publishEnd);
-const busyOld = "      setBody('');\n      clearMedia();\n      setBusy(false);\n      setPublishNotice(";
-const busyNew = "      setBody('');\n      clearMedia();\n      setBusy(true);\n      setPublishNotice(";
+/*
+ * BUKLOD_WEB_COMMUNITY_BACKGROUND_PUBLISH_R5
+ *
+ * Current Community publishing snapshots and clears the composer immediately,
+ * then continues upload/posting in the background while publishNotice shows
+ * progress. The legacy export-time hotfix forced setBusy(true) after clearing
+ * the composer and rewrote the whole Pressable opening tag. That contract is
+ * obsolete and now conflicts with the production source.
+ *
+ * Do NOT mutate the current publish state machine here. Verify its safety
+ * anchors only, then continue with the independent Guide avatar web patch.
+ */
+const publishChunk = source.slice(publishStart, publishEnd);
 
-if (publishChunk.includes(busyOld)) {
-  publishChunk = publishChunk.replace(busyOld, busyNew);
-  source = source.slice(0, publishStart) + publishChunk + source.slice(publishEnd);
-} else if (!publishChunk.includes(busyNew)) {
-  fail('Publish busy-state anchor changed; refusing an unsafe web export.');
+const requiredPublishAnchors = [
+  'const snapshot =',
+  "setBody('');",
+  'clearMedia();',
+  'setBusy(false);',
+  'setPublishNotice(',
+  'void (async () => {',
+  'setPublishNotice(null);',
+];
+
+for (const anchor of requiredPublishAnchors) {
+  if (!publishChunk.includes(anchor)) {
+    fail(
+      'Background publish contract changed; refusing an unsafe web export. Missing: ' +
+        anchor
+    );
+  }
 }
 
 const publishPressMarker = "onPress={() =>\n              void publish()\n            }";
@@ -168,48 +190,27 @@ if (markerIndex < 0) {
 }
 
 const openStart = source.lastIndexOf('<Pressable', markerIndex);
-const openEndMarker = '\n          >';
-const openEndStart = source.indexOf(openEndMarker, markerIndex);
+const openEnd = source.indexOf('\n          >', markerIndex);
 
-if (openStart < 0 || openEndStart < 0) {
+if (openStart < 0 || openEnd < 0) {
   fail('Could not isolate the scoped Community Post button opening tag.');
 }
 
-const fixedOpening = `<Pressable
-            disabled={busy}
-            onPress={() =>
-              void publish()
-            }
-            accessibilityRole="button"
-            accessibilityLabel={
-              mode === 'reels'
-                ? 'Publish Reel'
-                : 'Post to this community'
-            }
-            style={[
-              styles.publish,
-              busy &&
-                styles.publishDisabled,
-            ]}
-          >`;
+const publishButtonOpening = source.slice(openStart, openEnd);
 
-source =
-  source.slice(0, openStart) +
-  fixedOpening +
-  source.slice(openEndStart + openEndMarker.length);
-
-if (!source.includes("clearMedia();\n      setBusy(true);\n      setPublishNotice(")) {
-  fail('Busy-state fix verification failed.');
+if (!publishButtonOpening.includes('disabled={')) {
+  fail('Community Post button no longer has a disabled-state guard.');
 }
-if (!source.includes('disabled={busy}')) {
-  fail('Post-button enabled-state fix verification failed.');
+if (!publishButtonOpening.includes('busy ||')) {
+  fail('Community Post button disabled-state no longer includes busy.');
 }
-if (!source.includes(': \'Post to this community\'')) {
-  fail('Post-button accessibility verification failed.');
+if (!publishButtonOpening.includes('!body.trim()')) {
+  fail('Community Post button no longer disables an empty cleared composer.');
 }
 
-fs.writeFileSync(file, source, 'utf8');
-console.log('BUKLOD web scoped Community Post hotfix applied and verified.');
+console.log(
+  'BUKLOD web scoped Community background-publish contract verified; legacy busy-state mutation skipped.'
+);
 
 /*
  * PATCH_20260904_WEB_SCOPED_GUIDE_PROFILE_EXIT
