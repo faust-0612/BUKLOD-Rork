@@ -182,21 +182,25 @@ for (const anchor of requiredPublishAnchors) {
   }
 }
 
-const publishPressMarker = "onPress={() =>\n              void publish()\n            }";
-const markerIndex = source.indexOf(publishPressMarker);
+/*
+ * Match structurally instead of by exact newlines/indentation. Windows Git
+ * checkouts may use CRLF while GitHub runners use LF, and formatting can wrap
+ * the onPress handler without changing behavior.
+ */
+const markerIndex = source.indexOf('void publish()', publishEnd);
 
 if (markerIndex < 0) {
-  fail('Could not locate the scoped Community Post button.');
+  fail('Could not locate the scoped Community Post button publish action.');
 }
 
 const openStart = source.lastIndexOf('<Pressable', markerIndex);
-const openEnd = source.indexOf('\n          >', markerIndex);
+const openEnd = source.indexOf('>', markerIndex);
 
-if (openStart < 0 || openEnd < 0) {
+if (openStart < 0 || openEnd < 0 || openEnd <= openStart) {
   fail('Could not isolate the scoped Community Post button opening tag.');
 }
 
-const publishButtonOpening = source.slice(openStart, openEnd);
+const publishButtonOpening = source.slice(openStart, openEnd + 1);
 
 if (!publishButtonOpening.includes('disabled={')) {
   fail('Community Post button no longer has a disabled-state guard.');
