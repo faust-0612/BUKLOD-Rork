@@ -205,6 +205,10 @@ const TL_TEXT: Record<string, string> = {
   'Run the trail. Read the forest, not the buttons.': 'Tahakin ang landas. Basahin ang kagubatan, hindi lang ang mga button.',
   'Swipe or tap to change trail. Stay alert.': 'Mag-swipe o mag-tap para lumipat ng landas. Manatiling alerto.',
   'Listen. Watch the path. Move only when needed.': 'Makinig. Bantayan ang landas. Gumalaw lamang kapag kailangan.',
+  'The trail opens into the Hidden Grove.': 'Bumukas ang landas patungo sa Hidden Grove.',
+  'The forest closes in. Regroup and try again.': 'Sumisikip ang kagubatan. Mag-regroup at subukan muli.',
+  'No star yet': 'Wala pang star',
+  'GO': 'SIGE',
 
   // Trudice
   'The playground lights a route across four stations. Watch the full sequence, then repeat it. Every round adds another step.':
