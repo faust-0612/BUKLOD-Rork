@@ -175,7 +175,7 @@ requireTokens('src/components/points/BuklodCharacterCustomizeSheet.tsx', [
 
 const r40 = requireTokens('src/components/points/BuklodSpecialCharacterSeries.tsx', [
   'BUKLOD_SPECIAL_BATCH1_R40_PREMIUM_UI',
-  'BUKLOD_SPECIAL_LOCKED_IDENTITIES_HIDDEN',
+  'BUKLOD_SPECIAL_LOCKED_IDENTITIES_VISIBLE_R1',
   'SPECIAL_ORDER',
   'visibleSpecialIds.map',
   'Special Character Journey',
@@ -223,6 +223,7 @@ requireTokens('src/components/points/BuklodSpecialCharacterSeries.tsx', [
 requireTokens('src/components/points/BuklodSpecialCharacterLayerStage.tsx', [
   'BuklodCharacterMotion',
   'R40 SPECIAL',
+  'unlocked',
   'Tap • double tap • hold • swipe',
   'getBuklodSpecialLevelAsset',
   'SPECIAL_CHARACTER_HERO',
