@@ -35,10 +35,11 @@ function Load-DotEnv([string]$Path) {
   }
 }
 
+Write-Host " PHYSICAL DEVICE NATIVE QA STILL REQUIRED BEFORE PLAY SUBMISSION" -ForegroundColor Yellow
 Write-Host "====================================================================" -ForegroundColor Green
 Write-Host " BUKLOD MAIN FINAL LOCAL RELEASE FALLBACK" -ForegroundColor Green
-Write-Host " AUTOMATED QA -> EXACT RC -> MAIN -> WEB -> VERIFY -> APK" -ForegroundColor Green
-Write-Host " NO MANUAL APP TEST REQUIRED / DEPLOYMENT LAST" -ForegroundColor Green
+Write-Host " AUTOMATED QA -> NATIVE CNG QA -> AAB -> EXACT RC -> MAIN -> WEB" -ForegroundColor Green
+Write-Host " DEPLOYMENT LAST / SAME SOURCE SHA / NO PIECEMEAL RELEASE" -ForegroundColor Green
 Write-Host "====================================================================" -ForegroundColor Green
 
 if (-not (Test-Path -LiteralPath $Repo)) {
@@ -51,7 +52,7 @@ if ($remote -notmatch 'faust-0612/BUKLOD-Rork') {
   throw "Wrong repository remote: $remote"
 }
 
-Run "1/12 FETCH EXACT REMOTES" {
+Run "1/13 FETCH EXACT REMOTES" {
   git fetch origin main $RcBranch --prune
 }
 
@@ -72,7 +73,7 @@ if (Test-Path -LiteralPath $qaRoot) {
   Remove-Item -LiteralPath $qaRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
 
-Run "2/12 CREATE SOURCE-LOCKED QA WORKTREE" {
+Run "2/13 CREATE SOURCE-LOCKED QA WORKTREE" {
   git worktree add --detach $qaRoot $rcSha
 }
 
@@ -82,12 +83,12 @@ if ($actual -ne $rcSha) {
   throw "QA worktree SHA mismatch. Expected $rcSha, got $actual"
 }
 
-Run "3/12 INSTALL LOCKED DEPENDENCIES" {
+Run "3/13 INSTALL LOCKED DEPENDENCIES" {
   npm.cmd ci --ignore-scripts --include=dev
   Assert-NativeSuccess "npm ci"
 }
 
-Run "4/12 STATIC + AUTH + TEST + TYPESCRIPT GATES" {
+Run "4/13 STATIC + AUTH + TEST + TYPESCRIPT GATES" {
   node scripts/buklod-main-final-release-gate.mjs
   Assert-NativeSuccess "final release gate"
   node scripts/auth-canonical-login-contract.mjs
@@ -98,7 +99,7 @@ Run "4/12 STATIC + AUTH + TEST + TYPESCRIPT GATES" {
   Assert-NativeSuccess "TypeScript release QA"
 }
 
-Run "5/12 MIGRATION + EXPO HEALTH + SECURITY GATES" {
+Run "5/13 MIGRATION + EXPO HEALTH + SECURITY GATES" {
   node scripts/verify-production-migrations.mjs | Out-File -Encoding utf8 final-migration-manifest.json
   Assert-NativeSuccess "migration manifest"
   npx.cmd --yes expo-doctor@latest
@@ -107,7 +108,7 @@ Run "5/12 MIGRATION + EXPO HEALTH + SECURITY GATES" {
   Assert-NativeSuccess "production dependency security audit"
 }
 
-Run "6/12 PRODUCTION ENVIRONMENT PREFLIGHT" {
+Run "6/13 PRODUCTION ENVIRONMENT PREFLIGHT" {
   npx.cmd --yes eas-cli@latest whoami --non-interactive
   Assert-NativeSuccess "EAS identity"
   Remove-Item .env.local -Force -ErrorAction SilentlyContinue
@@ -120,11 +121,33 @@ Run "6/12 PRODUCTION ENVIRONMENT PREFLIGHT" {
   }
   $env:EXPO_PUBLIC_APP_ENV = "production"
   $env:BUKLOD_APP_TARGET = "main"
+  $env:EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME = "firebase-video-production"
+
   node scripts/production-preflight.mjs
   Assert-NativeSuccess "production preflight"
+
+  $easEnvText = (npx.cmd --yes eas-cli@latest env:list production --scope project --format short | Out-String)
+  Assert-NativeSuccess "production EAS env list"
+  foreach ($requiredName in @(
+    "GOOGLE_MAPS_ANDROID_API_KEY",
+    "ADMOB_ANDROID_APP_ID",
+    "EXPO_PUBLIC_SENTRY_DSN",
+    "SENTRY_ORG",
+    "SENTRY_PROJECT",
+    "SENTRY_AUTH_TOKEN"
+  )) {
+    if ($easEnvText -notmatch ("(?m)^\s*" + [regex]::Escape($requiredName) + "\b")) {
+      throw "Required production EAS variable missing: $requiredName"
+    }
+  }
 }
 
-Run "7/12 FRESH WEB + ANDROID EXPORT QA" {
+Run "7/13 CONSOLIDATED NATIVE SOURCE GATE" {
+  node scripts/buklod-main-final-native-gate.mjs
+  Assert-NativeSuccess "final native source gate"
+}
+
+Run "8/13 FRESH WEB + ANDROID EXPORT QA" {
   $env:NODE_ENV = "production"
   Remove-Item dist -Recurse -Force -ErrorAction SilentlyContinue
   Remove-Item dist-android -Recurse -Force -ErrorAction SilentlyContinue
@@ -140,7 +163,38 @@ Run "7/12 FRESH WEB + ANDROID EXPORT QA" {
   if ($bad) { throw "Development endpoint detected in production web bundle." }
 }
 
-Run "8/12 FREEZE EXACT RELEASE CANDIDATE" {
+Run "9/13 ANDROID CNG + GENERATED MANIFEST QA" {
+  $trackedAndroid = @(git ls-files android)
+  if ($trackedAndroid.Count -gt 0) {
+    throw "Root android contains tracked files; refusing destructive CNG cleanup."
+  }
+
+  Remove-Item android -Recurse -Force -ErrorAction SilentlyContinue
+  npx.cmd expo prebuild --platform android --clean --no-install
+  Assert-NativeSuccess "Android CNG prebuild"
+
+  $androidText = (
+    Get-ChildItem android -Recurse -File -ErrorAction SilentlyContinue |
+      Where-Object { $_.Extension -in @(".xml", ".kt", ".java", ".gradle", ".properties") } |
+      ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw -ErrorAction SilentlyContinue }
+  ) -join [Environment]::NewLine
+
+  foreach ($token in @(
+    "android.permission.POST_NOTIFICATIONS",
+    "android.permission.MANAGE_OWN_CALLS",
+    "android.permission.USE_FULL_SCREEN_INTENT",
+    "android.intent.action.SEND",
+    "android.intent.action.SEND_MULTIPLE"
+  )) {
+    if ($androidText -notmatch [regex]::Escape($token)) {
+      throw "Generated Android native project missing requirement: $token"
+    }
+  }
+
+  Remove-Item android -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+Run "10/13 FREEZE EXACT RELEASE CANDIDATE" {
   if ((git rev-parse HEAD).Trim() -ne $rcSha) { throw "RC SHA changed." }
   git diff --exit-code -- .
   Assert-NativeSuccess "tracked RC cleanliness"
@@ -148,8 +202,16 @@ Run "8/12 FREEZE EXACT RELEASE CANDIDATE" {
   Assert-NativeSuccess "staged RC cleanliness"
 }
 
+Run "11/13 BUILD FINAL PRODUCTION AAB FROM EXACT RC" {
+  if ((git rev-parse HEAD).Trim() -ne $rcSha) { throw "AAB source SHA drifted." }
+  npx.cmd --yes eas-cli@latest build --platform android --profile production --non-interactive --wait --json |
+    Tee-Object -FilePath eas-aab-build.json
+  Assert-NativeSuccess "production AAB build"
+  if (-not (Test-Path eas-aab-build.json)) { throw "AAB build record missing." }
+}
+
 Set-Location -LiteralPath $Repo
-Run "9/12 ATOMIC FAST-FORWARD MAIN PUSH" {
+Run "12/13 ATOMIC FAST-FORWARD VERIFIED RC TO MAIN" {
   git fetch origin main $RcBranch
   Assert-NativeSuccess "final remote refresh"
 }
@@ -164,14 +226,14 @@ if ($rcNow -ne $rcSha) {
 git merge-base --is-ancestor $mainNow $rcSha
 if ($LASTEXITCODE -ne 0) { throw "Fast-forward safety check failed." }
 
-Run "10/12 PUSH VERIFIED RC TO MAIN" {
+Run "12B/13 PUSH VERIFIED RC TO MAIN" {
   git push origin "$rcSha`:refs/heads/main"
   Assert-NativeSuccess "verified RC push to main"
 }
 
 Set-Location -LiteralPath $qaRoot
 
-Run "11/12 FINAL WEB PRODUCTION PUSH + LIVE VERIFY" {
+Run "13/13 FINAL WEB PRODUCTION PUSH + LIVE VERIFY" {
   $env:NODE_ENV = "production"
   npx.cmd --yes eas-cli@latest deploy --prod --environment production --non-interactive
   Assert-NativeSuccess "production web deploy"
@@ -184,18 +246,11 @@ Run "11/12 FINAL WEB PRODUCTION PUSH + LIVE VERIFY" {
   }
 }
 
-Run "12/12 FINAL ANDROID APK BUILD FROM SAME SHA" {
-  if ((git rev-parse HEAD).Trim() -ne $rcSha) { throw "APK source SHA drifted." }
-  npx.cmd --yes eas-cli@latest build --platform android --profile production-apk --non-interactive --wait --json |
-    Tee-Object -FilePath eas-apk-build.json
-  Assert-NativeSuccess "production APK build"
-  if (-not (Test-Path eas-apk-build.json)) { throw "APK build record missing." }
-}
 
 Write-Host ""
 Write-Host "====================================================================" -ForegroundColor Green
-Write-Host " BUKLOD MAIN FINAL RELEASE COMPLETE" -ForegroundColor Green
+Write-Host " BUKLOD MAIN FINAL WEB + AAB BUILD COMPLETE" -ForegroundColor Green
 Write-Host " SOURCE SHA: $rcSha" -ForegroundColor Green
 Write-Host " WEB: https://buklod.expo.app" -ForegroundColor Green
-Write-Host " APK BUILD RECORD: $qaRoot\eas-apk-build.json" -ForegroundColor Green
+Write-Host " AAB BUILD RECORD: $qaRoot\eas-aab-build.json" -ForegroundColor Green
 Write-Host "====================================================================" -ForegroundColor Green
