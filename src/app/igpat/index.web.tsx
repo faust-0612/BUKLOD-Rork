@@ -39,10 +39,10 @@ type IgpatRow = {
 };
 
 type FeedMode = 'for-you' | 'following' | 'latest';
+type IgpatPageCursor = { createdAt: string; id: string };
 
 const NORMAL_LIMIT = 16;
 const DATA_SAVER_LIMIT = 8;
-const DEEP_LINK_LIMIT = 50;
 const SIGNED_URL_TTL_SECONDS = 1200;
 const SIGN_CONCURRENCY = 4;
 const IGPAT_READ_TIMEOUT_MS = 10_000;
@@ -50,6 +50,24 @@ const IGPAT_WRITE_TIMEOUT_MS = 12_000;
 const WEB_BANNER_INTERVAL = 9;
 const DATA_SAVER_KEY = '@buklod_igpat_data_saver_v1';
 const SAVED_IGPAT_KEY = '@buklod_igpat_saved_ids_v1';
+
+function oldestIgpatCursor(rows: IgpatRow[]): IgpatPageCursor | null {
+  if (!rows.length) return null;
+
+  return rows.reduce<IgpatPageCursor | null>((oldest, row) => {
+    const createdAt = String(row.created_at ?? '');
+    const id = String(row.id ?? '');
+    if (!createdAt || !id) return oldest;
+    if (!oldest) return { createdAt, id };
+
+    const time = new Date(createdAt).getTime();
+    const oldestTime = new Date(oldest.createdAt).getTime();
+    if (time < oldestTime || (time === oldestTime && id < oldest.id)) {
+      return { createdAt, id };
+    }
+    return oldest;
+  }, null);
+}
 
 async function mapWithConcurrency<T, R>(
   values: T[],
@@ -320,6 +338,9 @@ export default function IgpatWebScreen() {
   const [followedIds, setFollowedIds] = useState<Set<string>>(new Set());
   const [followBusy, setFollowBusy] = useState<Set<string>>(new Set());
   const [reactionBusy, setReactionBusy] = useState<Set<string>>(new Set());
+  const [hasMore, setHasMore] = useState(true);
+  const pageCursorRef = useRef<IgpatPageCursor | null>(null);
+  const loadMoreBusyRef = useRef(false);
   const viewportHeight = Dimensions.get('window').height;
 
   useEffect(() => {
@@ -374,37 +395,55 @@ export default function IgpatWebScreen() {
     void loadFollows();
   }, [loadFollows]);
 
-  const load = useCallback(async () => {
-    if (!prefsReady) return;
+  const load = useCallback(async (options?: { append?: boolean }) => {
+    const append = Boolean(options?.append);
+
+    if (!prefsReady) return 0;
     if (!user?.id) {
       setRows([]);
       setLoading(false);
-      return;
+      return 0;
     }
 
-    setLoading(true);
-    setLoadError(null);
+    if (append && loadMoreBusyRef.current) {
+      return 0;
+    }
+
+    if (append) {
+      loadMoreBusyRef.current = true;
+    } else {
+      setLoading(true);
+      setLoadError(null);
+      setHasMore(true);
+      pageCursorRef.current = null;
+    }
 
     try {
-      const normalLimit = dataSaver ? DATA_SAVER_LIMIT : NORMAL_LIMIT;
-      const exactTarget = initialTargetRef.current;
-      const requestLimit = exactTarget ? DEEP_LINK_LIMIT : normalLimit;
+      const limit = dataSaver ? DATA_SAVER_LIMIT : NORMAL_LIMIT;
+      const cursor = append ? pageCursorRef.current : null;
+      const exactTarget = append ? '' : initialTargetRef.current;
+
       const { data, error } = await withBuklodTimeout<any>(
-        (supabase as any).rpc('get_buklod_igpat_feed_v3', {
+        (supabase as any).rpc('get_buklod_igpat_feed_v4', {
           p_mode: feedMode,
-          p_limit: requestLimit,
+          p_limit: limit,
+          p_before_created_at: cursor?.createdAt ?? null,
+          p_before_id: cursor?.id ?? null,
         }),
         IGPAT_READ_TIMEOUT_MS,
-        'IGPAT feed'
+        'IGPAT feed page'
       );
       if (error) throw error;
 
-      let source = ((data ?? []) as IgpatRow[])
+      const pageSource = ((data ?? []) as IgpatRow[])
         .filter(row => Boolean(row.media_path))
-        .slice(0, requestLimit);
+        .slice(0, limit);
+      const nextCursor = oldestIgpatCursor(pageSource);
+
+      let source = pageSource;
 
       if (exactTarget) {
-        const existing = source.find(row => String(row.id) === exactTarget) ?? null;
+        const existing = pageSource.find(row => String(row.id) === exactTarget) ?? null;
         let targetRow = existing;
 
         if (!targetRow) {
@@ -414,8 +453,8 @@ export default function IgpatWebScreen() {
         if (targetRow) {
           source = [
             targetRow,
-            ...source.filter(row => String(row.id) !== exactTarget),
-          ].slice(0, requestLimit);
+            ...pageSource.filter(row => String(row.id) !== exactTarget),
+          ];
         }
       }
 
@@ -436,7 +475,7 @@ export default function IgpatWebScreen() {
             }));
 
           if (signError) {
-            console.warn('BUKLOD IGPAT sign:', signError.message);
+            console.warn('BUKLOD IGPAT sign:', String(signError?.message ?? signError));
             return { ...row, media_url: null };
           }
 
@@ -444,15 +483,38 @@ export default function IgpatWebScreen() {
         },
       );
 
-      setRows(signed.filter(row => Boolean(row.media_url)));
-      setActiveIndex(0);
+      const usable = signed.filter(row => Boolean(row.media_url));
+
+      if (append) {
+        setRows(current => {
+          const seen = new Set(current.map(row => row.id));
+          return [
+            ...current,
+            ...usable.filter(row => !seen.has(row.id)),
+          ];
+        });
+      } else {
+        setRows(usable);
+        setActiveIndex(0);
+      }
+
+      pageCursorRef.current = nextCursor;
+      setHasMore(pageSource.length >= limit && Boolean(nextCursor));
+      return pageSource.length;
     } catch (error) {
       const message = String((error as any)?.message ?? error);
       console.warn('BUKLOD IGPAT load:', message);
-      setRows([]);
-      setLoadError(message);
+      if (!append) {
+        setRows([]);
+        setLoadError(message);
+      }
+      return -1;
     } finally {
-      setLoading(false);
+      if (append) {
+        loadMoreBusyRef.current = false;
+      } else {
+        setLoading(false);
+      }
     }
   }, [dataSaver, feedMode, prefsReady, user?.id]);
 
@@ -669,6 +731,12 @@ export default function IgpatWebScreen() {
         windowSize={3}
         removeClippedSubviews
         decelerationRate="fast"
+        onEndReachedThreshold={0.7}
+        onEndReached={() => {
+          if (hasMore) {
+            void load({ append: true });
+          }
+        }}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
         getItemLayout={(_, index) => ({
