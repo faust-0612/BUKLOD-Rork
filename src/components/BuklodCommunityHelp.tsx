@@ -164,12 +164,11 @@ export default function BuklodCommunityHelp(){
          * Deliberate SOS send requires local device confirmation before GPS
          * capture and server fan-out. Device PIN remains the fallback.
          */
-        const canAuth=await LocalAuthentication.hasHardwareAsync().catch(()=>false);
-        const enrolled=canAuth
-          ? await LocalAuthentication.isEnrolledAsync().catch(()=>false)
-          : false;
+        const authLevel=await LocalAuthentication
+          .getEnrolledLevelAsync()
+          .catch(()=>LocalAuthentication.SecurityLevel.NONE);
 
-        if(canAuth&&enrolled){
+        if(authLevel!==LocalAuthentication.SecurityLevel.NONE){
           const verified=await LocalAuthentication.authenticateAsync({
             promptMessage:'Confirm Emergency SOS',
             promptSubtitle:'Send an urgent nearby BUKLOD alert',
