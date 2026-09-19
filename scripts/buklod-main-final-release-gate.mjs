@@ -97,6 +97,11 @@ requireText('src/app/(tabs)/buklod.tsx', 'BUKLOD_WALL_REMOTE_GUARD_R4', 'Wall re
 requireText('src/app/(tabs)/buklod.tsx', 'communityReadRpc', 'Wall interactive reads are time-bounded');
 requireText('src/app/(tabs)/me.tsx', "'Profile Circle Rank'", 'Profile rank read is time-bounded');
 requireText('src/app/(tabs)/me.tsx', "'Profile background'", 'Profile background read is time-bounded');
+requireText('src/lib/buklodRewards.ts', 'BUKLOD_POINTS_AUTHORITATIVE_BALANCE_R4', 'Points UI preserves lifetime vs available accounting');
+requireText('src/lib/buklodRewards.ts', 'pointsReadRpc', 'Points dashboard reads are time-bounded');
+requireText('src/components/points/BuklodProfileCharacterCard.tsx', "'Profile Points leaderboard'", 'Profile Points leaderboard is time-bounded');
+requireText('src/lib/buklodPointsRedemption.ts', 'BUKLOD_BAYANIHAN_ACCOUNTING_VIEW_R4', 'Bayanihan redemption view preserves accounting invariants');
+requireText('src/lib/buklodPointsRedemption.ts', 'redemptionReadRpc', 'Bayanihan/redemption reads are time-bounded');
 
 // Community AI must fail/recover instead of holding UI indefinitely.
 requireText('src/lib/buklodCommunityAi.ts', 'withBuklodTimeout', 'Community AI client waits are bounded');
