@@ -6,13 +6,16 @@ param(
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
+function Assert-NativeSuccess([string]$Context) {
+  if ($LASTEXITCODE -ne 0) {
+    throw "$Context FAILED with exit code $LASTEXITCODE"
+  }
+}
+
 function Run([string]$Label, [scriptblock]$Command) {
   Write-Host ""
   Write-Host "=== $Label ===" -ForegroundColor Cyan
   & $Command
-  if ($LASTEXITCODE -ne 0) {
-    throw "$Label FAILED with exit code $LASTEXITCODE"
-  }
 }
 
 function Load-DotEnv([string]$Path) {
@@ -80,25 +83,36 @@ if ($actual -ne $rcSha) {
 }
 
 Run "3/12 INSTALL LOCKED DEPENDENCIES" {
-  npm.cmd ci --ignore-scripts
+  npm.cmd ci --ignore-scripts --include=dev
+  Assert-NativeSuccess "npm ci"
 }
 
 Run "4/12 STATIC + AUTH + TEST + TYPESCRIPT GATES" {
   node scripts/buklod-main-final-release-gate.mjs
+  Assert-NativeSuccess "final release gate"
   node scripts/auth-canonical-login-contract.mjs
+  Assert-NativeSuccess "auth canonical contract"
   npm.cmd test
+  Assert-NativeSuccess "Jest regression suite"
   npx.cmd tsc --noEmit
+  Assert-NativeSuccess "TypeScript release QA"
 }
 
-Run "5/12 MIGRATION + EXPO HEALTH GATES" {
+Run "5/12 MIGRATION + EXPO HEALTH + SECURITY GATES" {
   node scripts/verify-production-migrations.mjs | Out-File -Encoding utf8 final-migration-manifest.json
+  Assert-NativeSuccess "migration manifest"
   npx.cmd --yes expo-doctor@latest
+  Assert-NativeSuccess "Expo Doctor"
+  npm.cmd audit --omit=dev --audit-level=high
+  Assert-NativeSuccess "production dependency security audit"
 }
 
 Run "6/12 PRODUCTION ENVIRONMENT PREFLIGHT" {
   npx.cmd --yes eas-cli@latest whoami --non-interactive
+  Assert-NativeSuccess "EAS identity"
   Remove-Item .env.local -Force -ErrorAction SilentlyContinue
   npx.cmd --yes eas-cli@latest env:pull --environment production --path .env.local --non-interactive
+  Assert-NativeSuccess "production environment pull"
   if (-not (Test-Path .env.local)) { throw "Production environment pull failed." }
   Load-DotEnv .env.local
   if ($env:EXPO_PUBLIC_SUPABASE_URL -ne "https://yhanxndaqbmuzbdqlblu.supabase.co") {
@@ -107,6 +121,7 @@ Run "6/12 PRODUCTION ENVIRONMENT PREFLIGHT" {
   $env:EXPO_PUBLIC_APP_ENV = "production"
   $env:BUKLOD_APP_TARGET = "main"
   node scripts/production-preflight.mjs
+  Assert-NativeSuccess "production preflight"
 }
 
 Run "7/12 FRESH WEB + ANDROID EXPORT QA" {
@@ -114,8 +129,10 @@ Run "7/12 FRESH WEB + ANDROID EXPORT QA" {
   Remove-Item dist -Recurse -Force -ErrorAction SilentlyContinue
   Remove-Item dist-android -Recurse -Force -ErrorAction SilentlyContinue
   npx.cmd expo export --platform web --output-dir dist --clear
+  Assert-NativeSuccess "production web export"
   if (-not (Test-Path dist\index.html)) { throw "Web export has no index.html." }
   npx.cmd expo export --platform android --output-dir dist-android --clear
+  Assert-NativeSuccess "Android export"
   if (-not (Test-Path dist-android)) { throw "Android export missing." }
 
   $bad = Get-ChildItem dist -Recurse -File -Filter *.js -ErrorAction SilentlyContinue |
@@ -126,12 +143,15 @@ Run "7/12 FRESH WEB + ANDROID EXPORT QA" {
 Run "8/12 FREEZE EXACT RELEASE CANDIDATE" {
   if ((git rev-parse HEAD).Trim() -ne $rcSha) { throw "RC SHA changed." }
   git diff --exit-code -- .
+  Assert-NativeSuccess "tracked RC cleanliness"
   git diff --cached --exit-code -- .
+  Assert-NativeSuccess "staged RC cleanliness"
 }
 
 Set-Location -LiteralPath $Repo
 Run "9/12 ATOMIC FAST-FORWARD MAIN PUSH" {
   git fetch origin main $RcBranch
+  Assert-NativeSuccess "final remote refresh"
 }
 $mainNow = (git rev-parse origin/main).Trim()
 $rcNow = (git rev-parse "origin/$RcBranch").Trim()
@@ -146,6 +166,7 @@ if ($LASTEXITCODE -ne 0) { throw "Fast-forward safety check failed." }
 
 Run "10/12 PUSH VERIFIED RC TO MAIN" {
   git push origin "$rcSha`:refs/heads/main"
+  Assert-NativeSuccess "verified RC push to main"
 }
 
 Set-Location -LiteralPath $qaRoot
@@ -153,6 +174,7 @@ Set-Location -LiteralPath $qaRoot
 Run "11/12 FINAL WEB PRODUCTION PUSH + LIVE VERIFY" {
   $env:NODE_ENV = "production"
   npx.cmd --yes eas-cli@latest deploy --prod --environment production --non-interactive
+  Assert-NativeSuccess "production web deploy"
 
   1..5 | ForEach-Object {
     $response = Invoke-WebRequest -Uri "https://buklod.expo.app/" -MaximumRedirection 5 -TimeoutSec 20 -UseBasicParsing
@@ -166,6 +188,7 @@ Run "12/12 FINAL ANDROID APK BUILD FROM SAME SHA" {
   if ((git rev-parse HEAD).Trim() -ne $rcSha) { throw "APK source SHA drifted." }
   npx.cmd --yes eas-cli@latest build --platform android --profile production-apk --non-interactive --wait --json |
     Tee-Object -FilePath eas-apk-build.json
+  Assert-NativeSuccess "production APK build"
   if (-not (Test-Path eas-apk-build.json)) { throw "APK build record missing." }
 }
 
