@@ -65,11 +65,11 @@ async function getMainUser(req: Request) {
       return null;
     }
 
-    const userMetadata =
+    const userMetadata: Record<string, unknown> =
       claims.user_metadata &&
       typeof claims.user_metadata === "object" &&
       !Array.isArray(claims.user_metadata)
-        ? claims.user_metadata
+        ? claims.user_metadata as Record<string, unknown>
         : {};
 
     return {
