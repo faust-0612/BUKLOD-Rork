@@ -7,6 +7,47 @@
 --   * Make runtime config a single-pass server operation.
 --   * Preserve existing authorization semantics and response shape.
 
+create or replace function public.buklod_is_system_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path to ''
+as $function$
+  with actor as (
+    select auth.uid() as user_id
+  )
+  select coalesce(
+    exists (
+      select 1
+      from public.buklod_scope_role_assignments ra
+      join public.buklod_scopes s
+        on s.id = ra.scope_id
+      join actor a
+        on a.user_id = ra.user_id
+      where ra.role_key = 'SYSTEM_ADMIN'
+        and ra.status = 'ACTIVE'
+        and s.scope_type = 'SYSTEM'
+        and s.status = 'ACTIVE'
+    )
+    or exists (
+      select 1
+      from public.user_roles ur
+      join actor a
+        on a.user_id = ur.user_id
+      where lower(ur.role::text) = 'system_admin'
+    )
+    or exists (
+      select 1
+      from public.profiles p
+      join actor a
+        on a.user_id = p.id
+      where lower(p.role::text) = 'system_admin'
+    ),
+    false
+  );
+$function$;
+
 create or replace function public.is_system_admin()
 returns boolean
 language sql
