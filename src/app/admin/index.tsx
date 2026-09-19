@@ -30,11 +30,10 @@ type Stats = {
 };
 
 type DrawerKey =
+  | 'reports'
+  | 'people'
   | 'content'
-  | 'organization'
-  | 'care'
-  | 'operations'
-  | 'attendance'
+  | 'platform'
   | null;
 
 type IconName =
@@ -206,10 +205,10 @@ export default function AdminDashboard() {
     },
   });
 
-  // Organization is open by default because it contains
-  // the most frequently used people/access controls.
+  // Reports open first so the admin lands on the current
+  // operational picture instead of legacy management structures.
   const [openDrawer, setOpenDrawer] =
-    useState<DrawerKey>('organization');
+    useState<DrawerKey>('reports');
 
   const toggle = (key: DrawerKey) => {
     setOpenDrawer((current) =>
@@ -253,8 +252,7 @@ export default function AdminDashboard() {
             </Text>
 
             <Text style={styles.subtitle}>
-              Organization, formation, people, ministry operations,
-              governance and system oversight.
+              Reports, people, formation, access and platform operations.
             </Text>
 
             {syncStatus ? (
@@ -366,28 +364,6 @@ export default function AdminDashboard() {
               />
             </View>
 
-            <View style={styles.devotionalCard}>
-              <View style={styles.devotionalIcon}>
-                <MaterialCommunityIcons
-                  name="book-open-page-variant-outline"
-                  size={25}
-                  color="#275D45"
-                />
-              </View>
-
-              <View style={{ flex: 1 }}>
-                <Text style={styles.devotionalTitle}>
-                  Devotional Content
-                </Text>
-
-                <Text style={styles.devotionalMeta}>
-                  {stats.published_devotionals} available devotionals
-                  {'  |  '}
-                  {stats.series} series
-                </Text>
-              </View>
-            </View>
-
             <View style={styles.sectionHeading}>
               <View>
                 <Text style={styles.sectionEyebrow}>
@@ -401,23 +377,103 @@ export default function AdminDashboard() {
             </View>
 
             <DrawerSection
+              icon="chart-box-outline"
+              title="Reports & Economy"
+              subtitle="Operational reports, Bayanihan, shares, revenue and payouts"
+              open={openDrawer === 'reports'}
+              onPress={() => toggle('reports')}
+            >
+              <AdminRow
+                icon="view-dashboard-variant-outline"
+                title="Admin Reports Center"
+                subtitle="Bayanihan, shares, revenue, withdrawals, attendance and scope reporting"
+                path="/admin/reports-center"
+              />
+
+              <AdminRow
+                icon="finance"
+                title="Economy, Bayanihan & Shares"
+                subtitle="Funded pools, BCU/RCU weights, finalized user shares and cash ledger"
+                path="/admin/bayanihan"
+              />
+
+              <AdminRow
+                icon="cash-sync"
+                title="Economy Operations"
+                subtitle="Reconcile actual revenue and costs, finalize funded periods, process payouts"
+                path="/admin/economy-operations"
+              />
+
+              <AdminRow
+                icon="calendar-check-outline"
+                title="Attendance & Focus Apps"
+                subtitle="Attendance analytics, subscriptions and Focus App usage"
+                path="/admin/attendance"
+              />
+            </DrawerSection>
+
+            <DrawerSection
+              icon="account-cog-outline"
+              title="People & Scope"
+              subtitle="Members, Organizations, Clusters, roles and account access"
+              open={openDrawer === 'people'}
+              onPress={() => toggle('people')}
+            >
+              <AdminRow
+                icon="account-details-outline"
+                title="Member Master & Point Audit"
+                subtitle="Canonical member directory, scope memberships, roles and per-member Points audit"
+                path="/admin/member-master"
+              />
+
+              <AdminRow
+                icon="office-building-cog-outline"
+                title="Org / Cluster Control Center"
+                subtitle="Organizations, Clusters, grants, suspension and audit"
+                path="/admin/org-cluster-control"
+              />
+
+              <AdminRow
+                icon="shield-account-outline"
+                title="Access & Roles"
+                subtitle="Foundation roles, scoped admins and audited access changes"
+                path="/admin/foundation-access"
+              />
+
+              <AdminRow
+                icon="church-outline"
+                title="Church Readiness"
+                subtitle="Pastor or Mentor, map location and Nearby discovery setup"
+                path="/admin/church-readiness"
+              />
+
+              <AdminRow
+                icon="account-key-outline"
+                title="Account Recovery"
+                subtitle="Verify assistance requests and issue one-time recovery codes"
+                path="/admin/account-recovery"
+              />
+            </DrawerSection>
+
+            <DrawerSection
               icon="book-education-outline"
-              title="Content & Formation"
-              subtitle="Devotionals, learning, discipleship and mentoring"
+              title="Formation & Content"
+              subtitle="Daily Bible, devotionals, learning and announcement content"
               open={openDrawer === 'content'}
               onPress={() => toggle('content')}
             >
-              <AdminRow
-                icon="book-open-page-variant-outline"
-                title="Devotional Content"
-                subtitle="Manage published and upcoming devotionals"
-                path="/admin/devotionals"
-              />
               <AdminRow
                 icon="book-open-variant"
                 title="Daily Bible Reading"
                 subtitle="Set daily passages, reflection questions and monitor submissions"
                 path="/admin/bible"
+              />
+
+              <AdminRow
+                icon="book-open-page-variant-outline"
+                title="Devotional Content"
+                subtitle="Manage published and upcoming devotionals"
+                path="/admin/devotionals"
               />
 
               <AdminRow
@@ -434,138 +490,42 @@ export default function AdminDashboard() {
                 path="/admin/learning"
               />
 
-              
-
-              <AdminRow
-                icon="bullhorn-outline"
-                title="Announcement Boards"
-                subtitle="Bold Home board and separate profile message"
-                path="/admin/system-announcement-boards"
-              />
-
               <AdminRow
                 icon="clipboard-check-outline"
                 title="Learning Progress Approval"
                 subtitle="Final System Admin review after Pastor validation"
                 path="/admin/learning-approvals"
               />
-            </DrawerSection>
-
-            <DrawerSection
-              icon="office-building-cog-outline"
-              title="People & Rewards"
-              subtitle="Bayanihan participation and faith payment verification"
-              open={openDrawer === 'organization'}
-              onPress={() => toggle('organization')}
-            >
-              <AdminRow
-                icon="hand-heart-outline"
-                title="BUKLOD Bayanihan"
-                subtitle="Participation, recognition and BUKLOD progress"
-                path="/admin/bayanihan"
-              />
 
               <AdminRow
-                icon="cash-check"
-                title="Faith & Cluster Payments"
-                subtitle="Verify GCash for Cluster Premium, lesson packages, and Organization Focus Apps"
-                path="/admin/faith-payments"
-              />
-            </DrawerSection>
-
-            
-
-            <DrawerSection
-              icon="clipboard-check-outline"
-              title="BUKLOD Attendance & Focus Apps"
-              subtitle="Platform usage, analytics, subscriptions and all focus apps"
-              open={openDrawer === 'attendance'}
-              onPress={() => toggle('attendance')}
-            >
-              <AdminRow
-                icon="view-dashboard-outline"
-                title="Attendance & Focus Apps Console"
-                subtitle="Platform snapshot, reports, scope adoption and focus app analytics"
-                path="/admin/attendance"
-              />
-
-              <AdminRow
-                icon="chart-timeline-variant"
-                title="Attendance Usage Analytics"
-                subtitle="Events, check-ins, cluster activity and adoption trends"
-                path="/admin/attendance/usage"
-              />
-
-              <AdminRow
-                icon="apps"
-                title="All Focus Apps"
-                subtitle="Subscriptions, admins and per-app usage across the platform"
-                path="/admin/attendance/focus-apps"
-              />
-
-              <AdminRow
-                icon="cash-check"
-                title="Focus App Payments"
-                subtitle="Review annual GCash subscription requests for every focus app"
-                path="/admin/attendance/focus-apps/payments"
+                icon="bullhorn-outline"
+                title="Announcement Boards"
+                subtitle="Home board and profile message content"
+                path="/admin/system-announcement-boards"
               />
             </DrawerSection>
 
             <DrawerSection
               icon="shield-outline"
-              title="Operations & Governance"
-              subtitle="Reports, privacy, pilot operations and system readiness"
-              open={openDrawer === 'operations'}
-              onPress={() => toggle('operations')}
+              title="Platform & Safety"
+              subtitle="Payments, moderation, advertising and system configuration"
+              open={openDrawer === 'platform'}
+              onPress={() => toggle('platform')}
             >
-              
-
-              
               <AdminRow
-                icon="office-building-cog-outline"
-                title="Org / Cluster Control Center"
-                subtitle="Organizations, Clusters, leadership, grants, suspend and audit"
-                path="/admin/org-cluster-control"
-              />
-              <AdminRow
-                icon="shield-account-outline"
-                title="Access & Roles"
-                subtitle="Foundation roles, scoped admins and audited access changes"
-                path="/admin/foundation-access"
-              />
-              <AdminRow
-                icon="church-outline"
-                title="Church Readiness"
-                subtitle="Pastor/Mentor, map location and Nearby discovery setup"
-                path="/admin/church-readiness"
-              />
-              <AdminRow
-                icon="tune-variant"
-                title="Configuration Center"
-                subtitle="Buttons, links, strings, features — System Admin and scope admins"
-                path="/admin/configuration-center"
+                icon="cash-check"
+                title="Faith & Cluster Payments"
+                subtitle="Verify Cluster Premium, lesson packages and Organization Focus Apps"
+                path="/admin/faith-payments"
               />
 
               <AdminRow
-                icon="account-key-outline"
-                title="Account Recovery"
-                subtitle="Verify assistance requests and issue one-time recovery codes"
-                path="/admin/account-recovery"
+                icon="credit-card-check-outline"
+                title="Focus App Payments"
+                subtitle="Review annual subscription payment requests"
+                path="/admin/attendance/focus-apps/payments"
               />
 
-              <AdminRow
-                icon="flag-outline"
-                title="Reported Posts & Comments"
-                subtitle="Reason, post or comment, and System Admin review"
-                path="/admin/content-reports"
-              />
-              <AdminRow
-                icon="shield-lock-outline"
-                title="Privacy & Moderation"
-                subtitle="Privacy requests and reported posts or comments"
-                path="/admin/privacy"
-              />
-              {/* PATCH_162D_SPONSOR_ADMIN */}
               <AdminRow
                 icon="advertisements"
                 title="Sponsors & Advertising"
@@ -574,10 +534,24 @@ export default function AdminDashboard() {
               />
 
               <AdminRow
-                icon="flask-outline"
-                title="Pilot Operations"
-                subtitle="Pilot access, features and feedback"
-                path="/admin/pilot"
+                icon="flag-outline"
+                title="Reported Posts & Comments"
+                subtitle="Review reported posts, comments and reasons"
+                path="/admin/content-reports"
+              />
+
+              <AdminRow
+                icon="shield-lock-outline"
+                title="Privacy & Moderation"
+                subtitle="Privacy requests and moderation controls"
+                path="/admin/privacy"
+              />
+
+              <AdminRow
+                icon="tune-variant"
+                title="Configuration Center"
+                subtitle="System and scoped configuration controls"
+                path="/admin/configuration-center"
               />
             </DrawerSection>
 

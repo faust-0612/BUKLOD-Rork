@@ -132,7 +132,7 @@ export default function AdminEconomyOperationsScreen() {
       const key = nextReport.period?.period_key;
       if (typeof key === 'string' && key.trim()) setPeriodKey(key);
     } catch (nextError: unknown) {
-      setError(nextError instanceof Error ? nextError.message : 'Could not load R38 operations.');
+      setError(nextError instanceof Error ? nextError.message : 'Could not load economy operations.');
     } finally {
       setLoading(false);
     }
@@ -158,9 +158,9 @@ export default function AdminEconomyOperationsScreen() {
     try {
       await work();
       await load();
-      Alert.alert('R38 Economy', success);
+      Alert.alert('BUKLOD Economy', success);
     } catch (nextError: unknown) {
-      Alert.alert('R38 Economy', nextError instanceof Error ? nextError.message : 'Operation failed.');
+      Alert.alert('BUKLOD Economy', nextError instanceof Error ? nextError.message : 'Operation failed.');
     } finally {
       setBusy(null);
     }
@@ -276,7 +276,7 @@ export default function AdminEconomyOperationsScreen() {
 
         <View style={styles.hero}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.eyebrow}>SYSTEM ADMIN · R38 OPERATIONS</Text>
+            <Text style={styles.eyebrow}>SYSTEM ADMIN · ECONOMY OPERATIONS</Text>
             <Text style={shared.h1}>Economy Operations</Text>
             <Text style={shared.muted}>
               Prepare real revenue periods, reconcile costs, finalize only when the central gate is active, and process funded referral withdrawals.

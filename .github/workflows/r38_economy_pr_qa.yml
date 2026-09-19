@@ -9,6 +9,7 @@ on:
       - 'scripts/r38-economy-release-contract.mjs'
       - 'src/app/admin/bayanihan.tsx'
       - 'src/app/admin/economy-operations.tsx'
+      - 'src/app/admin/reports-center.tsx'
       - 'src/app/admin/points-redemptions.tsx'
       - 'src/app/bayanihan/**'
       - 'src/components/BuklodReferralInviteCard.tsx'

@@ -64,7 +64,7 @@ export default function AdminBayanihanScreen() {
       setError(null);
       setReport(await loadAdminBuklodR38EconomyReport());
     } catch (nextError: unknown) {
-      setError(nextError instanceof Error ? nextError.message : 'Could not load R38 economy report.');
+      setError(nextError instanceof Error ? nextError.message : 'Could not load the economy report.');
     } finally {
       setLoading(false);
     }
@@ -102,8 +102,8 @@ export default function AdminBayanihanScreen() {
       >
         <View style={styles.hero}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.eyebrow}>SYSTEM ADMIN · R38</Text>
-            <Text style={shared.h1}>BUKLOD Economy & Bayanihan</Text>
+            <Text style={styles.eyebrow}>SYSTEM ADMIN · ECONOMY REPORT</Text>
+            <Text style={shared.h1}>Economy, Bayanihan & Shares</Text>
             <Text style={shared.muted}>
               Platform revenue reconciliation, funded-pool allocation, BCU/RCU weights, finalized user shares and payout controls.
             </Text>
@@ -127,7 +127,7 @@ export default function AdminBayanihanScreen() {
         >
           <MaterialCommunityIcons name="finance" size={19} color="#FFFFFF" />
           <View style={{ flex: 1 }}>
-            <Text style={styles.operationsTitle}>OPEN R38 ECONOMY OPERATIONS</Text>
+            <Text style={styles.operationsTitle}>OPEN ECONOMY OPERATIONS</Text>
             <Text style={styles.operationsSubtitle}>Periods, revenue/cost reconciliation, referral review and payout queue</Text>
           </View>
           <MaterialCommunityIcons name="chevron-right" size={20} color="#FFFFFF" />
