@@ -40,6 +40,8 @@ forbidText('src/app/(auth)/login.tsx', 'function mobileInternalEmail(', 'No gues
 forbidText('src/app/(auth)/login.tsx', 'function legacyMobileInternalEmail(', 'No legacy guessed mobile auth email in Login');
 forbidText('src/app/(auth)/login.tsx', 'function usernameInternalEmail(', 'No guessed username auth email in Login');
 forbidText('src/app/(auth)/login.tsx', '.signInWithPassword(', 'No direct password grant in Login UI');
+requireText('src/app/(auth)/forgot-password.tsx', 'invokeRecovery', 'Recovery requests use one bounded function wrapper');
+requireText('src/app/(auth)/forgot-password.tsx', 'withBuklodTimeout', 'Recovery requests cannot wait forever');
 requireText('supabase/functions/buklod-auth-login-v2/index.ts', 'AbortSignal.timeout(12000)', 'Canonical login upstream request is bounded');
 forbidText('supabase/functions/buklod-auth-login-v2/index.ts', 'central_auth_v4_success', 'No per-success auth logging at scale');
 forbidText('supabase/functions/buklod-auth-login-v2/index.ts', 'central_auth_v4_invalid_credentials', 'No per-invalid-password auth logging at scale');
