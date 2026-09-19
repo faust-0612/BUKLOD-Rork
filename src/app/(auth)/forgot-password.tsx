@@ -17,6 +17,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
 import { recordPasswordResetOnThisDevice } from '@/lib/buklodSuggestedLoginStorage';
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 
 type RecoveryPath = 'email' | 'pin' | 'admin';
 
@@ -50,6 +51,14 @@ function formatLoginMethod(value: unknown) {
   if (method === 'email') return 'Email';
   if (method === 'username') return 'Username';
   return 'Login';
+}
+
+function invokeRecovery(name: string, options: any) {
+  return withBuklodTimeout<any>(
+    supabase.functions.invoke(name, options),
+    15_000,
+    `Account recovery ${name}`
+  );
 }
 
 function formatExpiry(value: string | null) {
@@ -144,7 +153,7 @@ export default function ForgotPasswordScreen() {
 
     const checkEmailRecovery = async () => {
       try {
-        const { data, error } = await supabase.functions.invoke('account-recovery-otp-v1', {
+        const { data, error } = await invokeRecovery('account-recovery-otp-v1', {
           body: { action: 'service_status' },
         });
         if (cancelled) return;
@@ -172,7 +181,7 @@ export default function ForgotPasswordScreen() {
       if (pollInFlight.current || cancelled) return;
       pollInFlight.current = true;
       try {
-        const { data, error } = await supabase.functions.invoke('account-recovery-v4', {
+        const { data, error } = await invokeRecovery('account-recovery-v4', {
           body: {
             action: 'recovery_request_status',
             requestId: recoverySession.requestId,
@@ -272,7 +281,7 @@ export default function ForgotPasswordScreen() {
     setEmailOtpVerified(false);
 
     try {
-      const { data, error } = await supabase.functions.invoke('account-recovery-otp-v1', {
+      const { data, error } = await invokeRecovery('account-recovery-otp-v1', {
         body: autoForgotLogin
           ? {
               action: 'request_otp',
@@ -343,7 +352,7 @@ export default function ForgotPasswordScreen() {
     setEmailStatus('Verifying your recovery code…');
 
     try {
-      const { data, error } = await supabase.functions.invoke('account-recovery-otp-v1', {
+      const { data, error } = await invokeRecovery('account-recovery-otp-v1', {
         body: {
           action: 'verify_otp',
           challengeId: emailChallengeId,
@@ -401,7 +410,7 @@ export default function ForgotPasswordScreen() {
     setEmailStatus('Changing your password…');
 
     try {
-      const { data, error } = await supabase.functions.invoke('account-recovery-otp-v1', {
+      const { data, error } = await invokeRecovery('account-recovery-otp-v1', {
         body: {
           action: 'reset_password',
           challengeId: emailChallengeId,
@@ -473,7 +482,7 @@ export default function ForgotPasswordScreen() {
     setPinBusy(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('account-recovery-v3', {
+      const { data, error } = await invokeRecovery('account-recovery-v3', {
         body: {
           action: 'recover_with_pin',
           identifier: cleanIdentifier,
@@ -551,7 +560,7 @@ export default function ForgotPasswordScreen() {
     setRecoveryStateText('Submitting recovery request…');
 
     try {
-      const { data, error } = await supabase.functions.invoke('account-recovery-v4', {
+      const { data, error } = await invokeRecovery('account-recovery-v4', {
         body: forgotLogin
           ? {
               action: 'request_admin_recovery',
@@ -627,7 +636,7 @@ export default function ForgotPasswordScreen() {
     setCodeBusy(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('account-recovery-v4', {
+      const { data, error } = await invokeRecovery('account-recovery-v4', {
         body: {
           action: 'recover_with_admin_code',
           code: clean,
