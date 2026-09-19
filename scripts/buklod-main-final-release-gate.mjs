@@ -40,6 +40,10 @@ forbidText('src/app/(auth)/login.tsx', 'function mobileInternalEmail(', 'No gues
 forbidText('src/app/(auth)/login.tsx', 'function legacyMobileInternalEmail(', 'No legacy guessed mobile auth email in Login');
 forbidText('src/app/(auth)/login.tsx', 'function usernameInternalEmail(', 'No guessed username auth email in Login');
 forbidText('src/app/(auth)/login.tsx', '.signInWithPassword(', 'No direct password grant in Login UI');
+requireText('supabase/functions/buklod-auth-login-v2/index.ts', 'AbortSignal.timeout(12000)', 'Canonical login upstream request is bounded');
+forbidText('supabase/functions/buklod-auth-login-v2/index.ts', 'central_auth_v4_success', 'No per-success auth logging at scale');
+forbidText('supabase/functions/buklod-auth-login-v2/index.ts', 'central_auth_v4_invalid_credentials', 'No per-invalid-password auth logging at scale');
+forbidText('supabase/functions/buklod-auth-login-v2/index.ts', 'central_auth_v4_no_candidate', 'No per-unknown-account auth logging at scale');
 
 // Community Wall is the public root on both native and web.
 requireText('src/app/index.tsx', 'href="/(tabs)/buklod"', 'Native root is Community Wall');
