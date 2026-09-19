@@ -14,6 +14,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
+import { openBuklodQuizFromMain } from '@/lib/buklodQuizEntry';
 import {
   FACULTY_AUTOPILOT_MODULES,
   openFacultyAutopilotModule,
@@ -290,8 +291,20 @@ export default function BuklodFacultyScreen() {
               return;
             }
 
-            const Linking = require('react-native').Linking;
-            await Linking.openURL('https://buklod-quiz.expo.app');
+            try {
+              /* BUKLOD_QUIZ_UNIFIED_MAIN_ENTRY_R21 */
+              await openBuklodQuizFromMain({
+                source: 'buklod-main-faculty-examiner',
+              });
+            } catch (quizError: any) {
+              Alert.alert(
+                'BUKLOD Quiz Examiner',
+                String(
+                  quizError?.message ??
+                    'Could not create your automatic BUKLOD Quiz session.',
+                ),
+              );
+            }
           }}
           style={{
             flexDirection:'row',
