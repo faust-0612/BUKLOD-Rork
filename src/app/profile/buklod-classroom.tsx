@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
-  Linking,
   Alert,
   Pressable,
   RefreshControl,
@@ -17,6 +16,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { ClassroomDrawer } from '@/components/classroom/ClassroomDrawer';
 import { useClassroomTheme } from '@/hooks/useClassroomTheme';
 import { supabase } from '@/lib/supabase';
+import { openBuklodQuizFromMain } from '@/lib/buklodQuizEntry';
 
 type Context = {
   id: string;
@@ -162,43 +162,19 @@ export default function BuklodClassroomScreen() {
   };
 
   /*
-   * BUKLOD_MAIN_CLASSROOM_QUIZ_ZERO_LOGIN_R15E
-   *
-   * R15C/R15D contract:
-   * Main is already authenticated to the canonical BUKLOD Connect project.
-   * The current Central session is handed to Quiz once; Quiz adopts it and
-   * immediately clears credentials from the browser address bar/history state.
-   * Manual Quiz Sign In remains fallback only for a direct standalone launch.
+   * BUKLOD_QUIZ_UNIFIED_MAIN_ENTRY_R21
+   * This legacy classroom Quiz button now uses the same server-side one-time
+   * handoff as every other BUKLOD Main Quiz door. Main access/refresh tokens
+   * must never be copied into the browser URL.
    */
   const openBuklodQuiz = async () => {
     if (quizBusy) return;
 
     setQuizBusy(true);
     try {
-      const { data, error } = await supabase.auth.getSession();
-      if (error) throw error;
-
-      const session = data.session;
-      const accessToken = String(session?.access_token ?? '');
-      const refreshToken = String(session?.refresh_token ?? '');
-
-      if (!accessToken || !refreshToken) {
-        Alert.alert(
-          'BUKLOD Quiz',
-          'Your BUKLOD Main session is not available. Sign in to BUKLOD Main again, then press ENTER BUKLOD QUIZ.',
-        );
-        return;
-      }
-
-      const query = [
-        'buklod_handoff=1',
-        'access_token=' + encodeURIComponent(accessToken),
-        'refresh_token=' + encodeURIComponent(refreshToken),
-      ].join('&');
-
-      await Linking.openURL(
-        'https://buklod-quiz.expo.app/?' + query,
-      );
+      await openBuklodQuizFromMain({
+        source: 'buklod-main-classroom',
+      });
     } catch (error) {
       Alert.alert(
         'BUKLOD Quiz',
