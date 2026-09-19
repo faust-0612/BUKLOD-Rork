@@ -22,7 +22,7 @@ jobs:
             set -euo pipefail
             grep -F 'BUKLOD_CLASSROOM_ACCOUNT_ISOLATION_R2' 'src/app/profile/buklod-classrooms.tsx'
             grep -F 'buklod_classroom_start_live_v1' 'src/app/profile/buklod-classroom.tsx'
-            grep -F "key: 'quickcheck'" 'src/lib/education/facultyAutopilot.ts'
+            grep -F "key: 'quick-check'" 'src/components/BuklodFoundationWorkspaceNav.tsx'
             grep -F 'BUKLOD_WEB_RESPONSIVE_SPLIT_R3' 'src/components/BuklodNavSafeShell.web.tsx'
     params:
       prod: true
