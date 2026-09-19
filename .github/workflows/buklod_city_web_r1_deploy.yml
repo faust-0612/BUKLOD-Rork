@@ -2,17 +2,11 @@ name: BUKLOD City Web R1 Deploy
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/buklod_city_web_r1_deploy.yml'
-      - 'src/app/city.web.tsx'
-      - 'src/app/index.web.tsx'
-      - 'src/components/BuklodCityMap.web.tsx'
-      - 'src/lib/buklodCity.ts'
-      - 'scripts/buklod-city-web-r1-qa.mjs'
-      - 'supabase/migrations/*buklod_city_web*.sql'
+
+# BUKLOD_FINAL_RELEASE_PIPELINE_R1
+# Automatic production deployment is centralized in
+# .github/workflows/buklod_main_final_release.yml.
+# This historical workflow remains manual-only for rollback/forensics.
 
 permissions:
   contents: read
