@@ -80,25 +80,25 @@ if ($actual -ne $rcSha) {
 }
 
 Run "3/12 INSTALL LOCKED DEPENDENCIES" {
-  npm ci --ignore-scripts
+  npm.cmd ci --ignore-scripts
 }
 
 Run "4/12 STATIC + AUTH + TEST + TYPESCRIPT GATES" {
   node scripts/buklod-main-final-release-gate.mjs
   node scripts/auth-canonical-login-contract.mjs
-  npm test
-  npx tsc --noEmit
+  npm.cmd test
+  npx.cmd tsc --noEmit
 }
 
 Run "5/12 MIGRATION + EXPO HEALTH GATES" {
   node scripts/verify-production-migrations.mjs | Out-File -Encoding utf8 final-migration-manifest.json
-  npx expo-doctor@latest
+  npx.cmd expo-doctor@latest
 }
 
 Run "6/12 PRODUCTION ENVIRONMENT PREFLIGHT" {
-  npx eas-cli@latest whoami --non-interactive
+  npx.cmd eas-cli@latest whoami --non-interactive
   Remove-Item .env.local -Force -ErrorAction SilentlyContinue
-  npx eas-cli@latest env:pull --environment production --path .env.local --non-interactive
+  npx.cmd eas-cli@latest env:pull --environment production --path .env.local --non-interactive
   if (-not (Test-Path .env.local)) { throw "Production environment pull failed." }
   Load-DotEnv .env.local
   if ($env:EXPO_PUBLIC_SUPABASE_URL -ne "https://yhanxndaqbmuzbdqlblu.supabase.co") {
@@ -113,9 +113,9 @@ Run "7/12 FRESH WEB + ANDROID EXPORT QA" {
   $env:NODE_ENV = "production"
   Remove-Item dist -Recurse -Force -ErrorAction SilentlyContinue
   Remove-Item dist-android -Recurse -Force -ErrorAction SilentlyContinue
-  npx expo export --platform web --output-dir dist --clear
+  npx.cmd expo export --platform web --output-dir dist --clear
   if (-not (Test-Path dist\index.html)) { throw "Web export has no index.html." }
-  npx expo export --platform android --output-dir dist-android --clear
+  npx.cmd expo export --platform android --output-dir dist-android --clear
   if (-not (Test-Path dist-android)) { throw "Android export missing." }
 
   $bad = Get-ChildItem dist -Recurse -File -Filter *.js -ErrorAction SilentlyContinue |
@@ -152,7 +152,7 @@ Set-Location -LiteralPath $qaRoot
 
 Run "11/12 FINAL WEB PRODUCTION PUSH + LIVE VERIFY" {
   $env:NODE_ENV = "production"
-  npx eas-cli@latest deploy --prod --environment production --non-interactive
+  npx.cmd eas-cli@latest deploy --prod --environment production --non-interactive
 
   1..5 | ForEach-Object {
     $response = Invoke-WebRequest -Uri "https://buklod.expo.app/" -MaximumRedirection 5 -TimeoutSec 20 -UseBasicParsing
@@ -164,7 +164,7 @@ Run "11/12 FINAL WEB PRODUCTION PUSH + LIVE VERIFY" {
 
 Run "12/12 FINAL ANDROID APK BUILD FROM SAME SHA" {
   if ((git rev-parse HEAD).Trim() -ne $rcSha) { throw "APK source SHA drifted." }
-  npx eas-cli@latest build --platform android --profile production-apk --non-interactive --wait --json |
+  npx.cmd eas-cli@latest build --platform android --profile production-apk --non-interactive --wait --json |
     Tee-Object -FilePath eas-apk-build.json
   if (-not (Test-Path eas-apk-build.json)) { throw "APK build record missing." }
 }
