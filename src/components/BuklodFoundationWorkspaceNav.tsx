@@ -40,6 +40,7 @@ import { openAttendanceWorkspaceForAccount } from '@/lib/buklodScopeManage';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import { supabase } from '@/lib/supabase';
+import { openBuklodQuizFromMain } from '@/lib/buklodQuizEntry';
 
 type AccessoryApp = {
   key: 'report' | 'classroom' | 'quiz' | 'quick-check';
@@ -74,7 +75,6 @@ const ACCESSORY_APPS: AccessoryApp[] = [
     title: 'BUKLOD Quiz',
     subtitle: 'Secure assessment app',
     icon: 'clipboard-check-outline',
-    externalUrl: 'https://buklod-quiz.expo.app',
   },
   {
     key: 'quick-check',
@@ -83,10 +83,6 @@ const ACCESSORY_APPS: AccessoryApp[] = [
     icon: 'check-decagram-outline',
   },
 ];
-
-const QUIZ_ENTRY_BRIDGE =
-  'https://cjtehbfspgimyhifnjon.supabase.co/functions/v1/buklod-quiz-main-entry-v1';
-const QUIZ_ENTRY_TIMEOUT_MS = 15_000;
 
 export default function BuklodFoundationWorkspaceNav() {
   const { theme } = useBuklodTheme();
@@ -182,7 +178,10 @@ export default function BuklodFoundationWorkspaceNav() {
       if (
         quizEntryInFlight.current ||
         openingKey ||
-        (!app.route && !app.externalUrl && app.key !== 'quick-check')
+        (!app.route &&
+          !app.externalUrl &&
+          app.key !== 'quick-check' &&
+          app.key !== 'quiz')
       ) {
         return;
       }
@@ -222,160 +221,14 @@ export default function BuklodFoundationWorkspaceNav() {
         }
 
         if (app.key === 'quiz') {
-          /* BUKLOD_PROFILE_QUIZ_ZERO_LOGIN_SSO_R1
-           * Profile must use the same secure Main -> Quiz bridge already used
-           * by the canonical Classroom Quiz entry. Never open the bare Quiz
-           * URL for an authenticated Main user and never place Main access or
-           * refresh tokens in the Quiz URL.
-           *
-           * BUKLOD_PROFILE_QUIZ_STUCK_LOADING_GUARD_R2
-           * A slow or stalled per-user handoff must never leave Profile stuck
-           * in OPENING state. Keep one request in flight, abort after a bounded
-           * timeout, show a retryable error, then always release the launcher.
+          /*
+           * BUKLOD_QUIZ_UNIFIED_MAIN_ENTRY_R21
+           * All authenticated Main Quiz doors use the same validated, one-time
+           * server-side bridge. No bare Quiz URL and no Main token-in-URL path.
            */
-          /* BUKLOD_PROFILE_QUIZ_DEVICE_SESSION_SELF_HEAL_R3
-           * getSession() reads local persisted state and can be stale on one
-           * browser/device. Confirm it against Main Auth with getUser(). If
-           * validation fails, refresh exactly once. Never loop refresh/bridge
-           * requests and never expose refresh tokens to Quiz.
-           */
-          const { data, error } = await supabase.auth.getSession();
-          if (error) throw error;
-
-          let accessToken = String(data.session?.access_token ?? '').trim();
-          if (!accessToken) {
-            throw new Error(
-              'Your BUKLOD Main session is unavailable. Sign in to BUKLOD Main again, then open BUKLOD Quiz from Profile.',
-            );
-          }
-
-          const validation = await Promise.race([
-            supabase.auth.getUser(accessToken),
-            new Promise<any>((resolve) => {
-              setTimeout(
-                () =>
-                  resolve({
-                    data: { user: null },
-                    error: new Error('BUKLOD_MAIN_SESSION_VALIDATE_TIMEOUT'),
-                  }),
-                8_000,
-              );
-            }),
-          ]);
-
-          if (validation?.error || !validation?.data?.user) {
-            const refreshed = await Promise.race([
-              supabase.auth.refreshSession(),
-              new Promise<any>((resolve) => {
-                setTimeout(
-                  () =>
-                    resolve({
-                      data: { session: null, user: null },
-                      error: new Error('BUKLOD_MAIN_SESSION_REFRESH_TIMEOUT'),
-                    }),
-                  8_000,
-                );
-              }),
-            ]);
-
-            accessToken = String(
-              refreshed?.data?.session?.access_token ?? '',
-            ).trim();
-
-            if (refreshed?.error || !accessToken) {
-              throw new Error(
-                'Your saved BUKLOD session on this device is no longer valid. Sign in to BUKLOD Main again, then open BUKLOD Quiz.',
-              );
-            }
-
-            const revalidated = await Promise.race([
-              supabase.auth.getUser(accessToken),
-              new Promise<any>((resolve) => {
-                setTimeout(
-                  () =>
-                    resolve({
-                      data: { user: null },
-                      error: new Error(
-                        'BUKLOD_MAIN_SESSION_REVALIDATE_TIMEOUT',
-                      ),
-                    }),
-                  8_000,
-                );
-              }),
-            ]);
-
-            if (revalidated?.error || !revalidated?.data?.user) {
-              throw new Error(
-                'BUKLOD refreshed your saved session, but this device could not validate it. Check your connection, then sign in again if needed.',
-              );
-            }
-          }
-
-          const controller = new AbortController();
-          const timeoutId = setTimeout(
-            () => controller.abort(),
-            QUIZ_ENTRY_TIMEOUT_MS,
-          );
-
-          let handoffResponse: Awaited<ReturnType<typeof fetch>>;
-          try {
-            handoffResponse = await fetch(QUIZ_ENTRY_BRIDGE, {
-              method: 'POST',
-              headers: {
-                Authorization: `Bearer ${accessToken}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ source: 'buklod-main-profile' }),
-              signal: controller.signal,
-            });
-          } catch (handoffError: any) {
-            if (
-              handoffError?.name === 'AbortError' ||
-              controller.signal.aborted
-            ) {
-              throw new Error(
-                'BUKLOD Quiz entry timed out. Check your connection, then tap BUKLOD Quiz once to retry.',
-              );
-            }
-            throw handoffError;
-          } finally {
-            clearTimeout(timeoutId);
-          }
-
-          const handoffResult = await handoffResponse.json().catch(() => null);
-          const legacyLaunchUrl = String(
-            handoffResult?.launch_url ?? '',
-          ).trim();
-          const sessionLaunchUrl = String(
-            handoffResult?.session_launch_url ?? '',
-          ).trim();
-          const launchUrl =
-            handoffResult?.session_launch_ready === true && sessionLaunchUrl
-              ? sessionLaunchUrl
-              : legacyLaunchUrl;
-
-          if (
-            !handoffResponse.ok ||
-            handoffResult?.ok !== true ||
-            !launchUrl
-          ) {
-            const code = String(handoffResult?.error ?? '').trim();
-            if (code === 'entry_already_in_progress') {
-              throw new Error(
-                'Your BUKLOD Quiz entry is already processing. Wait a few seconds, then tap BUKLOD Quiz once.',
-              );
-            }
-
-            throw new Error(
-              String(
-                handoffResult?.message ??
-                  handoffResult?.error ??
-                  'Could not create your automatic BUKLOD Quiz session.',
-              ),
-            );
-          }
-
-          await Linking.openURL(launchUrl);
+          await openBuklodQuizFromMain({
+            source: 'buklod-main-profile',
+          });
           return;
         }
 
@@ -494,7 +347,10 @@ export default function BuklodFoundationWorkspaceNav() {
               const key = `accessory:${app.key}`;
               const opening = openingKey === key;
               const unavailable =
-                app.key !== 'quick-check' && !app.route && !app.externalUrl;
+                app.key !== 'quick-check' &&
+                app.key !== 'quiz' &&
+                !app.route &&
+                !app.externalUrl;
               return (
                 <View key={app.key} style={styles.rowBorder}>
                   <BuklodProfileGlassRow

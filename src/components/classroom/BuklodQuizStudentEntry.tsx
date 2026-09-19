@@ -2,7 +2,6 @@ import React from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Linking,
   Pressable,
   StyleSheet,
   Text,
@@ -10,65 +9,28 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { useAuth } from '@/providers/AuthProvider';
-
-const QUIZ_ENTRY_BRIDGE =
-  'https://cjtehbfspgimyhifnjon.supabase.co/functions/v1/buklod-quiz-main-entry-v1';
+import { openBuklodQuizFromMain } from '@/lib/buklodQuizEntry';
 
 export default function BuklodQuizStudentEntry() {
-  const { session } = useAuth();
   const [opening, setOpening] = React.useState(false);
   const inFlight = React.useRef(false);
 
   const openQuiz = React.useCallback(async () => {
     if (inFlight.current || opening) return;
 
-    const accessToken = String(session?.access_token ?? '').trim();
-    if (!accessToken) {
-      Alert.alert(
-        'BUKLOD session required',
-        'Please sign in to BUKLOD Main again before opening BUKLOD Quiz.',
-      );
-      return;
-    }
-
     inFlight.current = true;
     setOpening(true);
 
     try {
-      /* BUKLOD_MAIN_QUIZ_SECURE_BRIDGE_ZERO_LOGIN_R18
-       * Main and Quiz use separate Supabase projects.
-       * Never pass Main access/refresh tokens directly into Quiz Auth.
-       * Quiz verifies the current Main bearer session and returns a one-time
-       * dedicated Quiz launch URL.
+      /*
+       * BUKLOD_QUIZ_UNIFIED_MAIN_ENTRY_R21
+       * Do not open the bare Quiz URL and do not place Main credentials in the
+       * address bar. The shared launcher validates/refreshes Main once, mints
+       * the one-time Quiz handoff, then opens the dedicated Quiz session.
        */
-      const handoffResponse = await fetch(QUIZ_ENTRY_BRIDGE, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: '{}',
+      await openBuklodQuizFromMain({
+        source: 'buklod-main-classroom-student',
       });
-
-      const handoffResult = await handoffResponse.json().catch(() => null);
-      const launchUrl = String(handoffResult?.launch_url ?? '').trim();
-
-      if (
-        !handoffResponse.ok ||
-        handoffResult?.ok !== true ||
-        !launchUrl
-      ) {
-        throw new Error(
-          String(
-            handoffResult?.message ??
-              handoffResult?.error ??
-              'Could not create your automatic BUKLOD Quiz session.',
-          ),
-        );
-      }
-
-      await Linking.openURL(launchUrl);
     } catch (error: any) {
       Alert.alert(
         'Cannot open BUKLOD Quiz',
@@ -79,7 +41,7 @@ export default function BuklodQuizStudentEntry() {
       inFlight.current = false;
       setOpening(false);
     }
-  }, [opening, session?.access_token]);
+  }, [opening]);
 
   return (
     <View style={styles.card}>

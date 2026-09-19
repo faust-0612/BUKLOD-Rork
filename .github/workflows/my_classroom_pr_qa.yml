@@ -8,6 +8,7 @@ on:
       - 'src/app/profile/buklod-classrooms.tsx'
       - 'src/components/BuklodPublicWordShortcut.tsx'
       - 'src/components/classroom/BuklodQuizStudentEntry.tsx'
+      - 'src/lib/buklodQuizEntry.ts'
       - '.github/workflows/my_classroom_pr_qa.yml'
 
 permissions:
@@ -32,16 +33,18 @@ jobs:
       - name: TypeScript
         run: npx tsc --noEmit
 
-      - name: Verify My Classroom direct-session anchors
+      - name: Verify My Classroom canonical Quiz SSO contract
         shell: bash
         run: |
+          set -euo pipefail
           grep -F "BuklodQuizStudentEntry" 'src/app/profile/buklod-classrooms.tsx'
           grep -F "'/profile/buklod-classrooms'" 'src/components/BuklodPublicWordShortcut.tsx'
-          grep -F "https://buklod-quiz.expo.app" 'src/components/classroom/BuklodQuizStudentEntry.tsx'
-          grep -F 'access_token=' 'src/components/classroom/BuklodQuizStudentEntry.tsx'
-          grep -F 'refresh_token=' 'src/components/classroom/BuklodQuizStudentEntry.tsx'
-          grep -F 'inFlight.current' 'src/components/classroom/BuklodQuizStudentEntry.tsx'
-          ! grep -F "cjtehbfspgimyhifnjon" 'src/components/classroom/BuklodQuizStudentEntry.tsx'
-          ! grep -F "buklod-quiz-main-entry-v1" 'src/components/classroom/BuklodQuizStudentEntry.tsx'
-          ! grep -F "one_time_code" 'src/components/classroom/BuklodQuizStudentEntry.tsx'
-          ! grep -F "VERIFYING MAIN SESSION" 'src/components/classroom/BuklodQuizStudentEntry.tsx'
+          grep -F 'BUKLOD_QUIZ_UNIFIED_MAIN_ENTRY_R21' 'src/components/classroom/BuklodQuizStudentEntry.tsx'
+          grep -F "openBuklodQuizFromMain" 'src/components/classroom/BuklodQuizStudentEntry.tsx'
+          grep -F "source: 'buklod-main-classroom-student'" 'src/components/classroom/BuklodQuizStudentEntry.tsx'
+          grep -F 'BUKLOD_QUIZ_UNIFIED_MAIN_ENTRY_R21' 'src/lib/buklodQuizEntry.ts'
+          grep -F 'buklod-quiz-main-entry-v1' 'src/lib/buklodQuizEntry.ts'
+          ! grep -F "https://buklod-quiz.expo.app" 'src/components/classroom/BuklodQuizStudentEntry.tsx'
+          ! grep -F 'access_token=' 'src/components/classroom/BuklodQuizStudentEntry.tsx'
+          ! grep -F 'refresh_token=' 'src/components/classroom/BuklodQuizStudentEntry.tsx'
+          ! grep -F 'buklod_handoff=1' 'src/components/classroom/BuklodQuizStudentEntry.tsx'
