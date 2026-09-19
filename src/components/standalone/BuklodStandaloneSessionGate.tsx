@@ -88,7 +88,7 @@ export default function BuklodStandaloneSessionGate({
     void supabase.auth
       .verifyOtp({
         token_hash: tokenHash,
-        type: 'magiclink',
+        type: 'email',
       })
       .then(({ error: verifyError }) => {
         cleanHandoffQuery();
