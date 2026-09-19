@@ -46,7 +46,7 @@ if (-not $Copied) {
 }
 
 $env:EXPO_PUBLIC_BUKLOD_MAIN_WEB_URL = "http://127.0.0.1:8081"
-Remove-Item Env:BUKLOD_APP_TARGET -ErrorAction SilentlyContinue
+$env:BUKLOD_APP_TARGET = "main"
 
 Write-Host ""
 Write-Host "3/6 TypeScript + standalone exports..." -ForegroundColor Yellow
@@ -63,7 +63,20 @@ node scripts/export-standalone-web.mjs kingdom dist-kingdom-e2e
 if ($LASTEXITCODE -ne 0) { throw "Kingdom E2E export FAILED." }
 
 Write-Host ""
-Write-Host "4/6 Starting standalone staging servers..." -ForegroundColor Yellow
+Write-Host "4/6 Verifying edge auth + starting standalone staging servers..." -ForegroundColor Yellow
+$FunctionUrl = "https://yhanxndaqbmuzbdqlblu.supabase.co/functions/v1/buklod-surface-main-entry-v1"
+try {
+  Invoke-WebRequest -UseBasicParsing -Method Post -Uri $FunctionUrl -ContentType "application/json" -Body '{"target":"home"}' -TimeoutSec 10 | Out-Null
+  throw "Edge auth gate unexpectedly accepted an unauthenticated request."
+} catch {
+  $status = $null
+  try { $status = [int]$_.Exception.Response.StatusCode } catch {}
+  if ($status -ne 401) {
+    throw "Edge auth gate preflight expected HTTP 401 but got: $($_.Exception.Message)"
+  }
+  Write-Host "PASS: edge function rejects unauthenticated entry (401)." -ForegroundColor Green
+}
+
 Start-Process -FilePath "node" -ArgumentList @("scripts/serve-standalone-static.mjs","dist-home-e2e","4173") -WorkingDirectory $QaRoot | Out-Null
 Start-Process -FilePath "node" -ArgumentList @("scripts/serve-standalone-static.mjs","dist-kingdom-e2e","4174") -WorkingDirectory $QaRoot | Out-Null
 Start-Sleep -Seconds 2
