@@ -277,7 +277,7 @@ export default function IgpatScreen() {
       return 0;
     }
 
-    if (append && (!hasMore || loadMoreBusyRef.current)) {
+    if (append && loadMoreBusyRef.current) {
       return 0;
     }
 
@@ -369,7 +369,7 @@ export default function IgpatScreen() {
         setLoading(false);
       }
     }
-  }, [dataSaver, feedMode, hasMore, prefsReady, user?.id]);
+  }, [dataSaver, feedMode, prefsReady, user?.id]);
 
   useEffect(() => {
     void load();
