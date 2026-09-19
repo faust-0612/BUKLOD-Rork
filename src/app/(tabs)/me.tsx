@@ -62,6 +62,7 @@ import { AppRole, useAuth } from '@/providers/AuthProvider';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import { firstRouteParam } from '@/lib/buklodScopeRoute';
 import { supabase } from '@/lib/supabase';
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import {
   loadMyProfileLocked,
@@ -887,10 +888,17 @@ export default function MeScreen() {
           data,
           error,
         } =
-          await (supabase as any)
-            .rpc(
-              'get_my_profile_background_url'
-            );
+          await withBuklodTimeout<any>(
+            (supabase as any)
+              .rpc(
+                'get_my_profile_background_url'
+              ),
+            7000,
+            'Profile background'
+          ).catch((timeoutError:any)=>({
+            data:null,
+            error:timeoutError,
+          }));
 
         if (!active) {
           return;
@@ -1122,12 +1130,19 @@ export default function MeScreen() {
         return;
       }
 
-      const { data, error } = await (supabase as any).rpc(
-        'get_member_circle_ranks_v1',
-        {
-          p_user_ids: [profile.id],
-        }
-      );
+      const { data, error } = await withBuklodTimeout<any>(
+        (supabase as any).rpc(
+          'get_member_circle_ranks_v1',
+          {
+            p_user_ids: [profile.id],
+          }
+        ),
+        7000,
+        'Profile Circle Rank'
+      ).catch((timeoutError:any)=>({
+        data:null,
+        error:timeoutError,
+      }));
 
       if (!active) return;
 
