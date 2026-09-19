@@ -32,6 +32,7 @@ for (const name of [
   'expo-audio',
   'expo-video',
   'expo-location',
+  'expo-haptics',
   'react-native-maps',
   'react-native-google-mobile-ads',
   '@sentry/react-native',
@@ -94,6 +95,12 @@ need('src/app/+native-intent.ts', "getSharedPayloads", 'cold-start incoming shar
 need('src/app/+native-intent.ts', "return '/handle-share'", 'cold-start incoming share route');
 need('src/lib/buklodIncomingShare.ts', 'useIncomingShare', 'incoming share hook');
 
+need('src/lib/adMob.ts', 'AdsConsent', 'BUKLOD UMP consent runtime');
+need('src/lib/adMob.ts', 'gatherConsent', 'BUKLOD UMP consent gathering');
+need('src/lib/adMob.ts', 'canRequestAds', 'BUKLOD UMP request gate');
+need('app.config.js', 'com.google.android.gms.internal.consent_sdk', 'UMP ProGuard preservation');
+need('app.config.js', 'scheme,', 'native deep-link scheme');
+need('metro.config.js', 'getSentryExpoConfig', 'Sentry Metro debug-id config');
 need('src/lib/preachingAudio.ts', 'shouldPlayInBackground: true', 'preaching background audio');
 need('src/components/PreachingAudioPlayer.tsx', 'setActiveForLockScreen', 'lock-screen preaching controls');
 need('src/lib/buklodSentry.ts', 'Sentry.init', 'Sentry runtime init');
