@@ -26,6 +26,7 @@ const required = [
   ['open record button', 'OPEN RECORD'],
   ['reprocess button', 'REPROCESS'],
   ['sync package button', 'PREPARE BUKLOD SYNC PACKAGE'],
+  ['all-failed report visibility', 'failedFrames.length > 0'],
 ];
 
 for (const [label, token] of required) {
