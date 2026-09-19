@@ -22,6 +22,9 @@ Verified:
 - replay of a previously cleared level grants 0 additional first-clear XP
 - replay does not duplicate the collectible
 - level details reflect the next unlocked level
+- full 20-level sequential clear reaches `cleared_levels=20`, `mastered=true`, and `world_tier=5`
+- the canonical collectible is awarded once across the 20-level mastery run
+- Level 20 replay awards 0 additional Kingdom XP / Game XP
 - all QA writes were rolled back
 
 Observed first-clear sample from the rollback transaction:
