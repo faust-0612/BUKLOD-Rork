@@ -22,16 +22,17 @@ export default function BuklodStandaloneLaunchScreen({
   target,
   title,
 }: Props) {
-  const startedRef = useRef(false);
+  const autoStartedRef = useRef(false);
+  const inFlightRef = useRef(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(true);
 
   const open = useCallback(async () => {
-    if (busy && startedRef.current) return;
+    if (inFlightRef.current) return;
 
+    inFlightRef.current = true;
     setBusy(true);
     setError('');
-    startedRef.current = true;
 
     try {
       await openBuklodStandaloneFromMain({
@@ -42,19 +43,21 @@ export default function BuklodStandaloneLaunchScreen({
             : 'buklod-main-kingdom-route',
       });
     } catch (launchError: any) {
-      startedRef.current = false;
-      setBusy(false);
       setError(
         String(
           launchError?.message ??
             `Could not open ${title}. Please try again.`,
         ),
       );
+    } finally {
+      inFlightRef.current = false;
+      setBusy(false);
     }
-  }, [busy, target, title]);
+  }, [target, title]);
 
   useEffect(() => {
-    if (startedRef.current) return;
+    if (autoStartedRef.current) return;
+    autoStartedRef.current = true;
     void open();
   }, [open]);
 
