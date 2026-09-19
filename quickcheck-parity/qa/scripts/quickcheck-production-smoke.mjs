@@ -1,5 +1,5 @@
 const ORIGIN = 'https://buklod-quickcheck-web.vercel.app';
-const required = ['Report Inspector', 'REVIEW FLAGS ONLY', 'START CONTINUOUS SCAN', 'Open exact Paper Review'];
+const required = ['Report Inspector', 'REVIEW FLAGS ONLY', 'START CONTINUOUS SCAN', 'Open exact Paper Review', 'reprocess_batch', 'hasQuickCheckSession'];
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
