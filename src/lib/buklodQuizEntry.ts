@@ -1,4 +1,4 @@
-import { Linking } from 'react-native';
+import { Linking, Platform } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
 
@@ -167,11 +167,33 @@ export async function openBuklodQuizFromMain(
   options: OpenBuklodQuizOptions,
 ) {
   const launchUrl = await createBuklodQuizLaunchUrl(options);
-  const supported = await Linking.canOpenURL(launchUrl);
 
-  if (!supported) {
-    throw new Error('This device cannot open the BUKLOD Quiz web app.');
+  /*
+   * BUKLOD_QUIZ_MOBILE_DIRECT_ENTRY_R22
+   *
+   * React Native Web's Linking.openURL() may rely on a browser-created window.
+   * Because Quiz entry first performs async session validation + one-time SSO
+   * minting, some mobile browsers/PWA/WebViews no longer treat the final open
+   * as part of the original tap and may block it. canOpenURL() can also return
+   * false on otherwise valid HTTPS links on some devices.
+   *
+   * For web, use same-context navigation so the handoff cannot be blocked as a
+   * popup. Native keeps Linking.openURL(). The server-issued URL is still the
+   * only URL accepted from createBuklodQuizLaunchUrl().
+   */
+  if (Platform.OS === 'web') {
+    const webLocation = (globalThis as any)?.location;
+    if (typeof webLocation?.assign === 'function') {
+      webLocation.assign(launchUrl);
+      return;
+    }
   }
 
-  await Linking.openURL(launchUrl);
+  try {
+    await Linking.openURL(launchUrl);
+  } catch {
+    throw new Error(
+      'This device could not open BUKLOD Quiz. Check the browser/app link settings, then tap BUKLOD Quiz once again.',
+    );
+  }
 }
