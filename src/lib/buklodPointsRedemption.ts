@@ -393,7 +393,7 @@ function normalizeAdminCenter(
 export async function adminLoadBuklodPointsRedemptionCenter(
   limit = 100,
 ) {
-  const { data, error } = await (supabase as any).rpc(
+  const { data, error } = await redemptionReadRpc(
     'admin_get_buklod_points_redemption_center_v1',
     {
       p_limit: limit,
