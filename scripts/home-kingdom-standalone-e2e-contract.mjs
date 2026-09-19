@@ -71,7 +71,8 @@ const entry = tokens('src/lib/buklodStandaloneEntry.ts', [
   'Authorization: `Bearer ${accessToken}`',
   'EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
   'session_launch_url',
-  'location.assign',
+  'const webLocation = (globalThis as any)?.location',
+  'webLocation.assign(launchUrl)',
 ], ['access_token=', 'refresh_token=']);
 
 tokens('src/components/standalone/BuklodStandaloneSessionGate.tsx', [
@@ -105,10 +106,12 @@ for (const gameId of GAME_IDS) {
   ]);
 }
 
+let totalGamePressables = 0;
 for (const [gameId, [sourceFile, minimumPressables]] of Object.entries(GAME_INTERACTION_SURFACE)) {
   const source = read(sourceFile);
-  const pressables = count(source, /<Pressable\\b/g);
+  const pressables = count(source, /<Pressable\b/g);
   const onPress = count(source, /onPress=/g);
+  totalGamePressables += pressables;
   if (pressables < minimumPressables || onPress < minimumPressables) {
     failures.push(
       `${gameId} interaction surface shrank: expected >=${minimumPressables} controls, found ${pressables} Pressables / ${onPress} onPress handlers`,
@@ -117,7 +120,7 @@ for (const [gameId, [sourceFile, minimumPressables]] of Object.entries(GAME_INTE
   if (!source.includes('reward:')) failures.push(`${gameId} no longer emits a reward result payload`);
 }
 
-notes.push('13/13 game interaction surfaces inventoried (47 current Pressables).');
+notes.push(`13/13 game interaction surfaces inventoried (${totalGamePressables} current Pressables).`);
 
 // 3. Web-only authoritative Kingdom progression/rewards.
 const progress = tokens('src/features/games/kingdom/progress.web.ts', [
