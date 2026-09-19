@@ -31,7 +31,6 @@ import {
   isBuklodInvalidCredentialsError,
   isBuklodTransientAuthError,
   resolveBuklodAccountLifecycleAfterLogin,
-  signInWithPasswordResilient,
   signOutBuklodResilient,
 } from '@/lib/buklodAuthResilience';
 import {
@@ -353,11 +352,19 @@ function parseSuggestedLogins(
 }
 
 async function signInForFreshPublicHome(
-  credentials:
-    Parameters<
-      typeof supabase.auth.signInWithPassword
-    >[0]
+  identifier: string,
+  password: string
 ) {
+  /*
+   * BUKLOD_CANONICAL_LOGIN_RESOLVER_R23
+   *
+   * Never derive/guess an internal auth email from the text entered by the
+   * member. The central login service resolves Mobile / Username / Email to
+   * the actual BUKLOD account first, then performs the password grant against
+   * that account. This prevents recovered username-based accounts from
+   * becoming unreachable when the member signs in with the mobile number
+   * stored on the same profile.
+   */
   try {
     await AsyncStorage.setItem(
       BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY,
@@ -371,18 +378,97 @@ async function signInForFreshPublicHome(
     );
   }
 
-  const result =
-    await signInWithPasswordResilient(
-      credentials
-    );
-
-  if (result.error) {
+  const fail = async (error: any) => {
     await AsyncStorage.removeItem(
       BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY
     ).catch(() => undefined);
-  }
 
-  return result;
+    return {
+      data: {
+        user: null,
+        session: null,
+      },
+      error,
+    } as any;
+  };
+
+  try {
+    const {
+      data,
+      error: invokeError,
+    } = await supabase.functions.invoke(
+      'buklod-auth-login-v2',
+      {
+        body: {
+          identifier,
+          password,
+        },
+      }
+    );
+
+    if (invokeError) {
+      return fail(invokeError);
+    }
+
+    if (!data?.ok) {
+      return fail({
+        code:
+          String(data?.error ?? '').trim() ||
+          'invalid_credentials',
+        message:
+          String(data?.message ?? '').trim() ||
+          'Invalid username/mobile/email or password.',
+        status:
+          data?.error === 'invalid_credentials'
+            ? 400
+            : 503,
+      });
+    }
+
+    const accessToken =
+      String(
+        data?.session?.access_token ?? ''
+      ).trim();
+    const refreshToken =
+      String(
+        data?.session?.refresh_token ?? ''
+      ).trim();
+
+    if (!accessToken || !refreshToken) {
+      return fail({
+        code: 'login_temporarily_unavailable',
+        message:
+          'Login service returned an incomplete session. Please try again.',
+        status: 503,
+      });
+    }
+
+    const sessionResult =
+      await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
+
+    if (
+      sessionResult.error ||
+      !sessionResult.data?.session ||
+      !sessionResult.data?.user
+    ) {
+      return fail(
+        sessionResult.error ?? {
+          code: 'login_temporarily_unavailable',
+          message:
+            'BUKLOD could not save the authenticated session. Please try again.',
+          status: 503,
+        }
+      );
+    }
+
+    return sessionResult;
+  }
+  catch (error) {
+    return fail(error);
+  }
 }
 
 /* PATCH_174C_R5_SUGGESTED_LOGIN_AVATAR_EXACT_AST_FIX */
@@ -1022,81 +1108,17 @@ const chooseSuggestedLogin =
     let error: any = null;
     let authenticatedUser: any = null;
 
-    if (raw.includes('@')) {
-      const result = await signInForFreshPublicHome({
-        email: raw.toLowerCase(),
-        password: effectivePassword,
-      });
+    const result =
+      await signInForFreshPublicHome(
+        raw,
+        effectivePassword
+      );
 
-      error = result.error;
+    error = result.error;
 
-      authenticatedUser =
-
-        result.data?.user ??
-
-
-        null;
-    } else {
-      const phone = normalizePhilippinePhone(raw);
-
-      if (phone) {
-        let result = await signInForFreshPublicHome({
-          email: mobileInternalEmail(phone),
-          password: effectivePassword,
-        });
-
-        // Patch 147 backward compatibility. Only probe the legacy
-        // identifier after a real credential miss. Do not double auth traffic
-        // when Supabase itself is returning a transient 5xx/timeout.
-        if (
-          result.error &&
-          isBuklodInvalidCredentialsError(
-            result.error
-          )
-        ) {
-          result = await signInForFreshPublicHome({
-            email: legacyMobileInternalEmail(phone),
-            password: effectivePassword,
-          });
-        }
-
-        error = result.error;
-
-        authenticatedUser =
-
-          result.data?.user ??
-
-
-          null;
-      } else {
-        const username = normalizeUsername(raw);
-
-        if (!username) {
-          releaseLogin(
-            'Enter a valid mobile number, username, or email.'
-          );
-
-          return Alert.alert(
-            'BUKLOD',
-            'Enter a valid Mobile Number, Username, or Email.'
-          );
-        }
-
-        const result = await signInForFreshPublicHome({
-          email: usernameInternalEmail(username),
-          password: effectivePassword,
-        });
-
-        error = result.error;
-
-        authenticatedUser =
-
-          result.data?.user ??
-
-
-          null;
-      }
-    }
+    authenticatedUser =
+      result.data?.user ??
+      null;
 
     if (error) {
       const temporaryFailure =
