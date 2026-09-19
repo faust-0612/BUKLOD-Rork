@@ -156,6 +156,15 @@ for (const unsafe of ['/games/training-grounds', 'href="/mentor"', 'href="/igpat
   if (map.includes(unsafe)) failures.push(`Web Kingdom map contains unsafe standalone landmark route: ${unsafe}`);
 }
 
+tokens('supabase/migrations/20260919164940_buklod_bahay_completion_reward_idempotency_r3.sql', [
+  '_buklod_garden_energy_granted',
+  '_buklod_recurrence_spawned',
+  '_buklod_recurrence_successor_id',
+  'buklod_home_spawn_recurrence',
+  'buklod_home_complete_item_v1',
+  'buklod_home_confirm_item_v1',
+]);
+
 // 4. Bahay full action surface and backend bindings.
 const bahayUi = read('src/components/home/BuklodBahayHome.tsx');
 const bahayPressables = count(bahayUi, /<Pressable\b/g);
