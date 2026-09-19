@@ -39,6 +39,7 @@ import {
 } from '@expo/vector-icons';
 
 import {
+  Redirect,
   router,
   useLocalSearchParams,
 } from 'expo-router';
@@ -283,12 +284,12 @@ ScopeWorkspaceScreen() {
           await exitScopedWorkspace(
             selectScope,
             scopes,
-            '/home'
+            '/buklod'
           );
           return;
         }
 
-        router.back();
+        router.replace('/(tabs)/buklod' as any);
       },
       [
         workspaceScope?.scope_type,
@@ -398,14 +399,7 @@ if (
     'PUBLIC'
   ) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator
-          color={colors.green}
-        />
-        <Text style={styles.muted}>
-          Opening Public BUKLOD...
-        </Text>
-      </View>
+      <Redirect href="/(tabs)/buklod" />
     );
   }
 return (
