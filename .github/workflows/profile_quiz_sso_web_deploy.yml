@@ -45,6 +45,9 @@ jobs:
           set -euo pipefail
 
           grep -F 'BUKLOD_QUIZ_UNIFIED_MAIN_ENTRY_R21' 'src/lib/buklodQuizEntry.ts'
+          grep -F 'BUKLOD_QUIZ_MOBILE_DIRECT_ENTRY_R22' 'src/lib/buklodQuizEntry.ts'
+          grep -F "Platform.OS === 'web'" 'src/lib/buklodQuizEntry.ts'
+          grep -F 'webLocation.assign(launchUrl)' 'src/lib/buklodQuizEntry.ts'
           grep -F 'QUIZ_ENTRY_BRIDGE' 'src/lib/buklodQuizEntry.ts'
           grep -F 'supabase.auth.getUser(accessToken)' 'src/lib/buklodQuizEntry.ts'
           grep -F 'supabase.auth.refreshSession()' 'src/lib/buklodQuizEntry.ts'
