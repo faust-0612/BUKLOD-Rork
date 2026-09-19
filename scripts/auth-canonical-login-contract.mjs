@@ -1,31 +1,52 @@
 import fs from 'node:fs';
 
-const loginPath = 'src/app/(auth)/login.tsx';
-const login = fs.readFileSync(loginPath, 'utf8');
+const login =
+  fs.readFileSync(
+    'src/app/(auth)/login.tsx',
+    'utf8'
+  );
+const resilience =
+  fs.readFileSync(
+    'src/lib/buklodAuthResilience.ts',
+    'utf8'
+  );
 
 const failures = [];
 
-function requireText(text, label) {
-  if (!login.includes(text)) {
+function requireText(source, text, label) {
+  if (!source.includes(text)) {
     failures.push(`Missing canonical login contract: ${label}`);
   }
 }
 
-function forbidText(text, label) {
-  if (login.includes(text)) {
+function forbidText(source, text, label) {
+  if (source.includes(text)) {
     failures.push(`Forbidden legacy login pattern returned: ${label}`);
   }
 }
 
-requireText('BUKLOD_CANONICAL_LOGIN_RESOLVER_R23', 'R23 marker');
-requireText("'buklod-auth-login-v2'", 'central login edge function');
-requireText('supabase.auth.setSession', 'canonical returned-session persistence');
-requireText('await signInForFreshPublicHome(\n        raw,\n        effectivePassword', 'all identifiers use one canonical path');
+requireText(
+  login,
+  'signInWithCanonicalIdentifierResilient',
+  'Login UI delegates to resilient canonical auth'
+);
+requireText(
+  login,
+  'await signInForFreshPublicHome(\n        raw,\n        effectivePassword',
+  'all entered identifiers use one canonical Login path'
+);
 
-forbidText('function mobileInternalEmail(', 'mobileInternalEmail guessing helper');
-forbidText('function legacyMobileInternalEmail(', 'legacy mobile email guessing helper');
-forbidText('function usernameInternalEmail(', 'usernameInternalEmail guessing helper');
-forbidText('.signInWithPassword(', 'direct password grant in Login screen');
+forbidText(login, 'function mobileInternalEmail(', 'mobile auth-email guessing helper');
+forbidText(login, 'function legacyMobileInternalEmail(', 'legacy mobile auth-email guessing helper');
+forbidText(login, 'function usernameInternalEmail(', 'username auth-email guessing helper');
+forbidText(login, '.signInWithPassword(', 'direct password grant in Login screen');
+
+requireText(resilience, 'BUKLOD_CANONICAL_LOGIN_RESOLVER_R23', 'R23 resilience marker');
+requireText(resilience, "'buklod-auth-login-v2'", 'central login edge function');
+requireText(resilience, 'supabase.auth.setSession', 'canonical returned-session persistence');
+requireText(resilience, 'canonicalIdentifierSignInInFlight', 'global single-flight protection');
+requireText(resilience, 'AUTH_CANONICAL_IDENTIFIER_TIMEOUT_MS', 'bounded canonical login wait');
+requireText(resilience, 'authRuntimeState.lastSignedInUserId = userId', 'lifecycle fresh-user cache preservation');
 
 if (failures.length) {
   console.error('BUKLOD CANONICAL LOGIN CONTRACT FAILED');
