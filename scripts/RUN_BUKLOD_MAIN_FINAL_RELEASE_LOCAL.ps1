@@ -92,13 +92,13 @@ Run "4/12 STATIC + AUTH + TEST + TYPESCRIPT GATES" {
 
 Run "5/12 MIGRATION + EXPO HEALTH GATES" {
   node scripts/verify-production-migrations.mjs | Out-File -Encoding utf8 final-migration-manifest.json
-  npx.cmd expo-doctor@latest
+  npx.cmd --yes expo-doctor@latest
 }
 
 Run "6/12 PRODUCTION ENVIRONMENT PREFLIGHT" {
-  npx.cmd eas-cli@latest whoami --non-interactive
+  npx.cmd --yes eas-cli@latest whoami --non-interactive
   Remove-Item .env.local -Force -ErrorAction SilentlyContinue
-  npx.cmd eas-cli@latest env:pull --environment production --path .env.local --non-interactive
+  npx.cmd --yes eas-cli@latest env:pull --environment production --path .env.local --non-interactive
   if (-not (Test-Path .env.local)) { throw "Production environment pull failed." }
   Load-DotEnv .env.local
   if ($env:EXPO_PUBLIC_SUPABASE_URL -ne "https://yhanxndaqbmuzbdqlblu.supabase.co") {
@@ -152,7 +152,7 @@ Set-Location -LiteralPath $qaRoot
 
 Run "11/12 FINAL WEB PRODUCTION PUSH + LIVE VERIFY" {
   $env:NODE_ENV = "production"
-  npx.cmd eas-cli@latest deploy --prod --environment production --non-interactive
+  npx.cmd --yes eas-cli@latest deploy --prod --environment production --non-interactive
 
   1..5 | ForEach-Object {
     $response = Invoke-WebRequest -Uri "https://buklod.expo.app/" -MaximumRedirection 5 -TimeoutSec 20 -UseBasicParsing
@@ -164,7 +164,7 @@ Run "11/12 FINAL WEB PRODUCTION PUSH + LIVE VERIFY" {
 
 Run "12/12 FINAL ANDROID APK BUILD FROM SAME SHA" {
   if ((git rev-parse HEAD).Trim() -ne $rcSha) { throw "APK source SHA drifted." }
-  npx.cmd eas-cli@latest build --platform android --profile production-apk --non-interactive --wait --json |
+  npx.cmd --yes eas-cli@latest build --platform android --profile production-apk --non-interactive --wait --json |
     Tee-Object -FilePath eas-apk-build.json
   if (-not (Test-Path eas-apk-build.json)) { throw "APK build record missing." }
 }
