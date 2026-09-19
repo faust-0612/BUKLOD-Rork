@@ -29,7 +29,9 @@ function forbidText(rel, text, label) {
 
 const packageJson = JSON.parse(read('package.json'));
 const expectedTestToolchain = 'npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund jest@29.7.0 jest-expo@57.0.4 @react-native/jest-preset@0.86.2 && jest --runInBand';
-pass('Pinned Windows-safe Jest toolchain', packageJson?.scripts?.test === expectedTestToolchain);
+const testToolchainOk = packageJson?.scripts?.test === expectedTestToolchain;
+checks.push({ label: 'Pinned Windows-safe Jest toolchain', ok: testToolchainOk });
+if (!testToolchainOk) failures.push('Pinned Windows-safe Jest toolchain: package.json test script drifted.');
 
 console.log('BUKLOD MAIN FINAL RELEASE GATE R1');
 console.log('=================================');
