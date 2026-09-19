@@ -85,7 +85,7 @@ if ((git rev-parse HEAD).Trim() -ne $sourceSha) {
 
 Write-Host ""
 Write-Host "=== 1/10 LOCKED DEPENDENCIES ===" -ForegroundColor Yellow
-Invoke-Checked npm.cmd ci --ignore-scripts
+Invoke-Checked npm.cmd ci --ignore-scripts --include=dev
 
 Write-Host ""
 Write-Host "=== 2/10 FINAL STATIC RELEASE CONTRACT ===" -ForegroundColor Yellow
@@ -109,8 +109,9 @@ if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath "final-migration-manife
 }
 
 Write-Host ""
-Write-Host "=== 6/10 EXPO / DEPENDENCY DOCTOR ===" -ForegroundColor Yellow
+Write-Host "=== 6/10 EXPO / DEPENDENCY DOCTOR + SECURITY AUDIT ===" -ForegroundColor Yellow
 Invoke-Checked npx.cmd --yes expo-doctor@latest
+Invoke-Checked npm.cmd audit --omit=dev --audit-level=high
 
 Write-Host ""
 Write-Host "=== 7/10 PRODUCTION ENVIRONMENT PREFLIGHT ===" -ForegroundColor Yellow
