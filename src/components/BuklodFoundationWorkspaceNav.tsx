@@ -347,7 +347,10 @@ export default function BuklodFoundationWorkspaceNav() {
               const key = `accessory:${app.key}`;
               const opening = openingKey === key;
               const unavailable =
-                app.key !== 'quick-check' && !app.route && !app.externalUrl;
+                app.key !== 'quick-check' &&
+                app.key !== 'quiz' &&
+                !app.route &&
+                !app.externalUrl;
               return (
                 <View key={app.key} style={styles.rowBorder}>
                   <BuklodProfileGlassRow
