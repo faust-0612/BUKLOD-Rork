@@ -113,9 +113,6 @@ Deno.serve(async (req: Request) => {
     await admin.auth.admin.generateLink({
       type: "magiclink",
       email,
-      options: {
-        redirectTo: targetUrl,
-      },
     });
 
   const tokenHash = safeText(linkData?.properties?.hashed_token, 1200);
