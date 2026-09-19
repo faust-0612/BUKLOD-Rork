@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { cachedQuery, invalidateCache } from '@/lib/performance';
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 
 export type BuklodPointsDashboard = {
   total_points: number;
@@ -56,6 +57,17 @@ export type BuklodClaimGroupResult = {
 const POINTS_CACHE_PREFIX = 'buklod:points:';
 const CLAIM_ALL_COMPAT_EVENT_ID = '__buklod_claim_all_eligible__';
 
+async function pointsReadRpc(
+  name: string,
+  args?: Record<string, unknown>,
+) {
+  return withBuklodTimeout<any>(
+    (supabase as any).rpc(name, args),
+    8_000,
+    `BUKLOD Points ${name}`,
+  );
+}
+
 async function getAuthScopedPointsCacheKey(suffix: string) {
   const { data } = await supabase.auth.getSession();
   const userId = data.session?.user?.id ?? 'anonymous';
@@ -78,14 +90,27 @@ function toNumber(value: unknown, fallback = 0) {
 export function normalizePointsDashboard(
   data: Record<string, unknown> | null | undefined,
 ): BuklodPointsDashboard {
-  const lifetime = toNumber(
-    data?.lifetime_points ?? data?.total_points,
+  /* BUKLOD_POINTS_AUTHORITATIVE_BALANCE_R4
+   * Lifetime and spendable balances are distinct accounting values.
+   * If the server ever omits available_points, fail closed at zero instead
+   * of presenting lifetime points as redeemable currency.
+   */
+  const lifetime = Math.max(
+    0,
+    toNumber(data?.lifetime_points ?? data?.total_points),
+  );
+  const available = Math.max(
+    0,
+    Math.min(
+      lifetime,
+      toNumber(data?.available_points, 0),
+    ),
   );
 
   return {
     total_points: lifetime,
     lifetime_points: lifetime,
-    available_points: toNumber(data?.available_points, lifetime),
+    available_points: available,
     pending_claimable_points: toNumber(data?.pending_claimable_points),
     weekly_points: toNumber(data?.weekly_points),
     monthly_points: toNumber(data?.monthly_points),
@@ -110,8 +135,7 @@ export async function loadBuklodPointsDashboard(): Promise<BuklodPointsDashboard
   return cachedQuery(
     cacheKey,
     async () => {
-      const { data, error } = await (supabase as any).rpc(
-        'get_my_buklod_points_dashboard',
+      const { data, error } = await pointsReadRpc('get_my_buklod_points_dashboard',
       );
 
       if (error) {
@@ -134,8 +158,7 @@ export async function loadBuklodClaimGroups(): Promise<BuklodClaimGroup[]> {
   return cachedQuery(
     cacheKey,
     async () => {
-      const { data, error } = await (supabase as any).rpc(
-        'get_my_buklod_claim_groups_v1',
+      const { data, error } = await pointsReadRpc('get_my_buklod_claim_groups_v1',
       );
 
       if (error) {
@@ -208,8 +231,7 @@ export async function loadPendingBuklodRewardEvent(): Promise<BuklodRewardEvent 
         } satisfies BuklodRewardEvent;
       }
 
-      const { data, error } = await supabase.rpc(
-        'get_my_pending_buklod_reward_event',
+      const { data, error } = await pointsReadRpc('get_my_pending_buklod_reward_event',
       );
 
       if (error) {
@@ -292,8 +314,7 @@ export async function loadUnclaimedBuklodRewardCount(): Promise<number> {
   return cachedQuery(
     cacheKey,
     async () => {
-      const { data, error } = await supabase.rpc(
-        'get_my_unclaimed_buklod_reward_count',
+      const { data, error } = await pointsReadRpc('get_my_unclaimed_buklod_reward_count',
       );
 
       if (error) {
@@ -324,8 +345,7 @@ export type BuklodRedeemResult = {
 };
 
 export async function loadRedeemCatalog(): Promise<BuklodRedeemCatalogItem[]> {
-  const { data, error } = await (supabase as any).rpc(
-    'get_buklod_redeem_catalog_v1',
+  const { data, error } = await pointsReadRpc('get_buklod_redeem_catalog_v1',
   );
 
   if (error || !Array.isArray(data)) {
@@ -375,8 +395,7 @@ export type RevenueSplitConfig = {
 };
 
 export async function loadRevenueSplitConfig(): Promise<RevenueSplitConfig | null> {
-  const { data, error } = await (supabase as any).rpc(
-    'get_buklod_revenue_split_config_v1',
+  const { data, error } = await pointsReadRpc('get_buklod_revenue_split_config_v1',
   );
 
   if (error || !data || typeof data !== 'object') {
@@ -417,8 +436,7 @@ export type ReferralSummary = {
 };
 
 export async function loadReferralSummary(): Promise<ReferralSummary | null> {
-  const { data, error } = await (supabase as any).rpc(
-    'get_my_buklod_referral_summary_v1',
+  const { data, error } = await pointsReadRpc('get_my_buklod_referral_summary_v1',
   );
 
   if (error || !data || typeof data !== 'object') {
