@@ -373,7 +373,7 @@ test('local file and folder import paths process selected images', async ({ page
   await expect(page.getByText(/1\/1 file\(s\) accepted/i)).toBeVisible();
   await expect(page.getByText('END-TO-END BATCH REPORT')).toBeVisible();
 
-  await page.getByRole('button', { name: /Clear/i }).click();
+  await page.getByRole('button', { name: 'Clear', exact: true }).click();
 
   const folder = mkdtempSync(join(tmpdir(), 'quickcheck-e2e-folder-'));
   try {
@@ -408,9 +408,15 @@ test('failed page retry button is reachable and never silently grades a poor pag
   await chooser.setFiles({ name: 'poor.png', mimeType: 'image/png', buffer: Buffer.from(pngBase64, 'base64') });
 
   await expect(page.getByRole('button', { name: 'RETRY FAILED' })).toBeVisible();
+  await expect(page.getByText('END-TO-END BATCH REPORT')).toBeVisible();
+  await expect(page.getByText(/0\/1 accepted pages/i)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'AUTO-SORT & SUGGEST GRADES', exact: true })).toBeDisabled();
+
   await page.getByRole('button', { name: 'RETRY FAILED' }).click();
   await expect(page.getByRole('button', { name: 'RETRY FAILED' })).toBeVisible();
+  await expect(page.getByText(/Needs rescan/i)).toBeVisible();
   await expect(page.getByRole('button', { name: 'AUTO-SORT & SUGGEST GRADES', exact: true })).toBeDisabled();
+  await expect(page.getByText('3. Suggested Grades & Teacher Review')).toHaveCount(0);
 });
 
 test('saved batch reprocess persists repaired grouping before release', async ({ page }) => {
@@ -480,7 +486,7 @@ test('rubric, report inspectors, assessment/student drilldowns and recheck butto
   await page.getByRole('button', { name: 'SELECT RUBRIC FILE' }).click();
   const chooser = await rubricChooser;
   await chooser.setFiles({ name: 'rubric.png', mimeType: 'image/png', buffer: Buffer.from(pngBase64, 'base64') });
-  await expect(page.getByText(/Rubric ON/i)).toBeVisible();
+  await expect(page.getByText('✓ RUBRIC ON · rubric.png', { exact: true })).toBeVisible();
 
   await page.getByRole('button', { name: 'CLEAR RUBRIC' }).click();
   await expect(page.getByText(/RUBRIC OFF/i)).toBeVisible();
