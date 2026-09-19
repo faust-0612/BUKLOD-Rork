@@ -29,6 +29,7 @@ import { colors } from '@/lib/theme';
 import { useAuth } from '@/providers/AuthProvider';
 import {
   isBuklodInvalidCredentialsError,
+  isBuklodRateLimitError,
   isBuklodTransientAuthError,
   resolveBuklodAccountLifecycleAfterLogin,
   signInWithPasswordResilient,
@@ -218,6 +219,7 @@ function useLoginShake() {
 
 const BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY =
   'buklod.auth.fresh_login_public.v1';
+const BUKLOD_LOGIN_RATE_LIMIT_COOLDOWN_MS = 30_000;
 
 
 function normalizePhilippinePhone(value: string) {
@@ -618,6 +620,8 @@ export default function LoginScreen() {
     useState(false);
   // HIGH_CONCURRENCY_LOGIN_R1: React state alone cannot stop same-tick double taps.
   const loginInFlightRef = useRef(false);
+  // BUKLOD_MASS_LOGIN_RATE_LIMIT_GUARD_R22: local backoff after a real 429.
+  const loginRateLimitUntilRef = useRef(0);
   const [
     suggestedLogins,
     setSuggestedLogins,
@@ -996,6 +1000,26 @@ const chooseSuggestedLogin =
       );
     }
 
+    const rateLimitRemainingMs =
+      loginRateLimitUntilRef.current - Date.now();
+
+    if (rateLimitRemainingMs > 0) {
+      const waitSeconds = Math.max(
+        1,
+        Math.ceil(rateLimitRemainingMs / 1000)
+      );
+
+      setLoginStatus(
+        `Login traffic is temporarily full. Wait about ${waitSeconds} seconds before trying again.`
+      );
+      triggerShake();
+
+      return Alert.alert(
+        'Login traffic is busy',
+        `Many users may be signing in at the same time. Please wait about ${waitSeconds} seconds before trying again. Do not tap Log In repeatedly.`
+      );
+    }
+
     if (loginInFlightRef.current) {
       setLoginStatus(
         'Sign-in is already being processed. Please wait for the current attempt to finish.'
@@ -1101,8 +1125,16 @@ const chooseSuggestedLogin =
     if (error) {
       const temporaryFailure =
         isBuklodTransientAuthError(error);
+      const rateLimited =
+        isBuklodRateLimitError(error);
       const invalidCredentials =
         isBuklodInvalidCredentialsError(error);
+
+      if (rateLimited) {
+        loginRateLimitUntilRef.current =
+          Date.now() +
+          BUKLOD_LOGIN_RATE_LIMIT_COOLDOWN_MS;
+      }
 
       if (
         invalidCredentials &&
@@ -1135,28 +1167,34 @@ const chooseSuggestedLogin =
       }
 
       releaseLogin(
-        temporaryFailure
-          ? 'BUKLOD did not finish this sign-in request. You can try again; no extra request will be started while the old one is still active.'
-          : invalidCredentials &&
-            credentialsOverride?.suggestedUserId
-            ? 'The saved password no longer matches this account. Enter the current password, then you may save it again.'
-            : 'Login was not completed. Check your login and password, then try again.'
+        rateLimited
+          ? 'Many users are signing in at the same time. Wait about 30 seconds before trying again; repeated taps are blocked on this device.'
+          : temporaryFailure
+            ? 'BUKLOD did not finish this sign-in request. You can try again; no extra request will be started while the old one is still active.'
+            : invalidCredentials &&
+              credentialsOverride?.suggestedUserId
+              ? 'The saved password no longer matches this account. Enter the current password, then you may save it again.'
+              : 'Login was not completed. Check your login and password, then try again.'
       );
       triggerShake();
 
       return Alert.alert(
-        temporaryFailure
-          ? 'BUKLOD is temporarily busy'
-          : invalidCredentials &&
-            credentialsOverride?.suggestedUserId
-            ? 'Saved password needs updating'
-            : 'Login failed',
-        temporaryFailure
-          ? 'BUKLOD did not finish the sign-in request. Please try again. If this continues, close and reopen BUKLOD before retrying.'
-          : invalidCredentials &&
-            credentialsOverride?.suggestedUserId
-            ? 'The password saved on this device is no longer valid. Enter your current password. If you recently reset it, use the new password.'
-            : 'Invalid login identifier or password.'
+        rateLimited
+          ? 'Login traffic is busy'
+          : temporaryFailure
+            ? 'BUKLOD is temporarily busy'
+            : invalidCredentials &&
+              credentialsOverride?.suggestedUserId
+              ? 'Saved password needs updating'
+              : 'Login failed',
+        rateLimited
+          ? 'Many users are signing in at the same time. Wait about 30 seconds before trying again. Do not tap Log In repeatedly; repeated requests can keep the shared login traffic congested.'
+          : temporaryFailure
+            ? 'BUKLOD did not finish the sign-in request. Please try again. If this continues, close and reopen BUKLOD before retrying.'
+            : invalidCredentials &&
+              credentialsOverride?.suggestedUserId
+              ? 'The password saved on this device is no longer valid. Enter your current password. If you recently reset it, use the new password.'
+              : 'Invalid login identifier or password.'
       );
     }
 
