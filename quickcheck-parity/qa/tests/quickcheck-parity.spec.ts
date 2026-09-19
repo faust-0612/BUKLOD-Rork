@@ -417,7 +417,7 @@ test('failed page retry button is reachable and never silently grades a poor pag
 
   await page.getByRole('button', { name: 'RETRY FAILED' }).click();
   await expect(page.getByRole('button', { name: 'RETRY FAILED' })).toBeVisible();
-  await expect(page.getByText(/Needs rescan/i)).toBeVisible();
+  await expect(page.getByText(/This page was NOT included in grading/i).first()).toBeVisible();
   await expect(page.getByRole('button', { name: 'AUTO-SORT & SUGGEST GRADES', exact: true })).toBeDisabled();
   await expect(page.getByText('3. Suggested Grades & Teacher Review')).toHaveCount(0);
 });
@@ -441,7 +441,7 @@ test('AI processing outage retains the page safely and never creates grades', as
   const chooser = await chooserPromise;
   await chooser.setFiles({ name: 'ai-outage.png', mimeType: 'image/png', buffer: Buffer.from(pngBase64, 'base64') });
 
-  await expect(page.getByText(/AI ERROR/i)).toBeVisible();
+  await expect(page.getByText(/Scan retained in Failed Pages/i).first()).toBeVisible();
   await expect(page.getByRole('button', { name: 'RETRY FAILED' })).toBeVisible();
   await expect(page.getByText('3. Suggested Grades & Teacher Review')).toHaveCount(0);
 });
@@ -567,36 +567,44 @@ test('rubric, report inspectors, assessment/student drilldowns and recheck butto
   await page.getByRole('button', { name: 'AUTO-SORT & SUGGEST GRADES', exact: true }).click();
   await expect(page.getByText('3. Suggested Grades & Teacher Review')).toBeVisible();
 
-  const inspectorButtons = [
-    /^Scanned.*View/i,
-    /^Processed.*View/i,
-    /^Flags.*View/i,
-    /^Released.*View/i,
-    /^Captured/i,
-    /^Processed/i,
-    /^Assessments/i,
-    /^Students/i,
-    /^Failed/i,
-    /^Graded/i,
+  const closeInspector = async () => {
+    await expect(page.getByText('Report Inspector')).toBeVisible();
+    await page.getByRole('dialog').filter({ hasText: 'Report Inspector' }).getByRole('button', { name: /CLOSE/i }).click();
+  };
+
+  const topStatusPatterns = [/Scanned/i, /Processed/i, /Flags/i, /Released/i];
+  for (const pattern of topStatusPatterns) {
+    const button = page.locator('section.grid.md\\:grid-cols-4').getByRole('button').filter({ hasText: pattern }).first();
+    await expect(button).toBeVisible();
+    await button.click();
+    await closeInspector();
+  }
+
+  const report = page.locator('section').filter({ hasText: 'END-TO-END BATCH REPORT' }).first();
+  const reportPatterns = [
+    /Captured .* View/i,
+    /Processed .* View/i,
+    /Assessments .* View/i,
+    /Students .* View/i,
+    /Failed .* View/i,
+    /Graded .* View/i,
     /Scan & Quality/i,
     /Sorting & Identity/i,
     /Grade & Record/i,
     /Overall grade summary/i,
-    /^1 .*Scan/i,
-    /^2 .*Quality/i,
-    /^3 .*Check/i,
-    /^4 .*Approval/i,
+    /1 .* Scan/i,
+    /2 .* Quality/i,
+    /3 .* Check/i,
+    /4 .* Approval/i,
   ];
-
-  for (const pattern of inspectorButtons) {
-    const button = page.getByRole('button').filter({ hasText: pattern }).first();
+  for (const pattern of reportPatterns) {
+    const button = report.getByRole('button').filter({ hasText: pattern }).first();
     await expect(button).toBeVisible();
     await button.click();
-    await expect(page.getByText('Report Inspector')).toBeVisible();
-    await page.getByRole('dialog').filter({ hasText: 'Report Inspector' }).getByRole('button', { name: /CLOSE/i }).click();
+    await closeInspector();
   }
 
-  const assessmentButton = page.getByRole('button').filter({ hasText: /Logic Activity/ }).first();
+  const assessmentButton = report.getByRole('button').filter({ hasText: /Logic Activity/ }).first();
   await assessmentButton.click();
   await expect(page.getByText('Report Inspector')).toBeVisible();
   await page.getByRole('dialog').filter({ hasText: 'Report Inspector' }).getByRole('button', { name: /CLOSE/i }).click();
