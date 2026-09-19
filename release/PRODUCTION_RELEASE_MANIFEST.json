@@ -1,9 +1,9 @@
 {
   "product": "BUKLOD",
-  "release": "1.0",
-  "version": "1.0.0",
-  "starter_package": "v16",
-  "generated_date": "2026-08-10",
+  "release": "1.3",
+  "version": "1.3.0",
+  "starter_package": "BUKLOD Main final RC",
+  "generated_date": "2026-09-20",
   "production_app": {
     "name": "BUKLOD",
     "android_package": "org.mzbministry.buklod",
@@ -11,29 +11,30 @@
     "eas_environment": "production"
   },
   "database": {
-    "canonical_migrations": 13,
-    "production_seed": "supabase/seed.production.sql",
-    "staging_seed": "supabase/seed.staging.sql",
-    "include_seed_on_production_push": false
+    "production_project_ref": "yhanxndaqbmuzbdqlblu",
+    "migration_package": "dynamic source-tracked incremental migrations",
+    "migration_verifier": "scripts/verify-production-migrations.mjs",
+    "production_seed": null,
+    "include_seed_on_production_push": false,
+    "note": "Production has historical migrations outside this repository; release verification hashes the source-tracked migration package and does not replay demo/staging seed data."
   },
   "release_controls": {
     "production_preflight": "scripts/production-preflight.mjs",
     "migration_verifier": "scripts/verify-production-migrations.mjs",
-    "cutover_shell": "scripts/production-cutover.sh",
-    "cutover_powershell": "scripts/production-cutover.ps1",
-    "command_center_required": true,
-    "human_go_live_decision_required": true
+    "integrated_release_workflow": ".github/workflows/buklod_main_final_release.yml",
+    "exact_release_candidate_required": true,
+    "web_before_apk": true,
+    "same_source_sha_for_web_and_apk": true
   },
-  "external_requirements_embedded": false,
+  "external_requirements_embedded": true,
   "automatic_crash_telemetry_connected": false,
-  "privacy_placeholders_must_be_replaced": true,
+  "privacy_placeholders_must_be_replaced": false,
   "execution_pack": {
-    "android_first": true,
-    "google_play_draft_profile": true,
-    "google_play_internal_profile": true,
-    "production_eas_setup_script": true,
-    "production_supabase_link_script": true,
-    "android_smoke_test": true,
+    "web_first": true,
+    "android_apk_profile": "production-apk",
+    "exact_rc_required": true,
+    "production_supabase_linked": true,
+    "production_web": "https://buklod.expo.app",
     "external_actions_completed": false
   }
 }
