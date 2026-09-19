@@ -329,7 +329,9 @@ export async function signInWithCanonicalIdentifierResilient(
         status:
           data?.error === 'invalid_credentials'
             ? 400
-            : 503,
+            : data?.error === 'rate_limited'
+              ? 429
+              : 503,
       });
     }
 
