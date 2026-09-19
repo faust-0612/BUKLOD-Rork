@@ -390,7 +390,7 @@ export default function AdminReportsCenterScreen() {
               <ReportRow
                 icon="account-details-outline"
                 title="Member Master & Point Audit"
-                subtitle="Per-member records and export without mixing Points with cash earnings"
+                subtitle="Per-member Lifetime, Available, Pending, ledger reconciliation, scopes and roles"
                 path="/admin/member-master"
               />
             </>
