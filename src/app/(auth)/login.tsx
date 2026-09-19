@@ -219,42 +219,6 @@ const BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY =
   'buklod.auth.fresh_login_public.v1';
 
 
-function normalizePhilippinePhone(value: string) {
-  const cleaned = value.replace(/[^\d+]/g, '');
-
-  if (/^\+639\d{9}$/.test(cleaned)) return cleaned;
-  if (/^639\d{9}$/.test(cleaned)) return `+${cleaned}`;
-  if (/^09\d{9}$/.test(cleaned)) return `+63${cleaned.slice(1)}`;
-
-  return null;
-}
-
-function normalizeUsername(value: string) {
-  const username = value.trim().toLowerCase();
-
-  if (
-    username.length < 3 ||
-    username.length > 30 ||
-    !/^(?=.*[a-z])[a-z0-9]+(?:[._-][a-z0-9]+)*$/.test(username)
-  ) {
-    return null;
-  }
-
-  return username;
-}
-
-function mobileInternalEmail(phone: string) {
-  return `m.${phone.replace(/\D/g, '')}@buklod.invalid`;
-}
-
-function legacyMobileInternalEmail(phone: string) {
-  return `${phone.replace(/\D/g, '')}@buklod.invalid`;
-}
-
-function usernameInternalEmail(username: string) {
-  return `u.${username}@buklod.invalid`;
-}
-
 /* PATCH_171I_SUGGESTED_LOGIN_BUBBLES */
 type SuggestedLogin = {
   userId: string;
@@ -962,7 +926,7 @@ const chooseSuggestedLogin =
     ) => {
       /*
        * HIGH_CONCURRENCY_LOGIN_R1
-       * signInWithPassword already returned the authenticated user. Do not
+       * Canonical login already returned the authenticated user. Do not
        * call auth.getUser() and profiles again just to paint a local bubble.
        */
       const userId =
