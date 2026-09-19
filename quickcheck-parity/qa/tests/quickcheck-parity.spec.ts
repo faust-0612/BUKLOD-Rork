@@ -1,4 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const handoff = {
   quickcheckSession: 'e2e-session',
@@ -331,9 +334,15 @@ test('local file and folder import paths process selected images', async ({ page
 
   await page.getByRole('button', { name: /Clear/i }).click();
 
-  await inputs.nth(1).setInputFiles({ name: 'folder-paper.png', mimeType: 'image/png', buffer: png });
-  await expect(page.getByText(/1\/1 file\(s\) accepted/i)).toBeVisible();
-  await expect(page.getByText('END-TO-END BATCH REPORT')).toBeVisible();
+  const folder = mkdtempSync(join(tmpdir(), 'quickcheck-e2e-folder-'));
+  try {
+    writeFileSync(join(folder, 'folder-paper.png'), png);
+    await inputs.nth(1).setInputFiles(folder);
+    await expect(page.getByText(/1\/1 file\(s\) accepted/i)).toBeVisible();
+    await expect(page.getByText('END-TO-END BATCH REPORT')).toBeVisible();
+  } finally {
+    rmSync(folder, { recursive: true, force: true });
+  }
 });
 
 test('saved batch reprocess persists repaired grouping before release', async ({ page }) => {
