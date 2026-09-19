@@ -109,6 +109,7 @@ export async function createBuklodStandaloneLaunchUrl(
       method: 'POST',
       headers: {
         Authorization: `Bearer ${accessToken}`,
+        apikey: String(process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? ''),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
