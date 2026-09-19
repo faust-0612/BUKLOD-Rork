@@ -89,6 +89,11 @@ requireText('src/lib/buklodR4RequestShield.ts', 'BUKLOD_MASS_CONCURRENCY_R32', '
 requireText('src/app/(tabs)/buklod.tsx', 'BUKLOD_ROOT_PERFORMANCE_R3_COMMUNITY_REALTIME', 'Community realtime performance lock');
 requireText('src/app/(tabs)/buklod.tsx', 'PERF_EMERGENCY_R2_STALE_LOAD', 'Community stale-load protection');
 
+// Community AI must fail/recover instead of holding UI indefinitely.
+requireText('src/lib/buklodCommunityAi.ts', 'withBuklodTimeout', 'Community AI client waits are bounded');
+requireText('src/lib/buklodCommunityAnonymousMedia.ts', 'withBuklodTimeout', 'Community anonymous-media AI wait is bounded');
+requireText('supabase/functions/buklod-community-ai/index.ts', 'AbortSignal.timeout(GEMINI_TIMEOUT_MS)', 'Community AI provider waits are bounded');
+
 // Main production identity.
 requireText('app.config.js', "'23dad7d0-389a-406e-8dec-08965dab85d8'", 'Main EAS project identity');
 requireText('app.config.js', "'org.mzbministry.buklod'", 'Main Android package identity');
