@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { api, setQuickCheckBearerToken, setQuickCheckSession } from './apiCompat';
+import { api, hasQuickCheckSession, setQuickCheckBearerToken, setQuickCheckSession } from './apiCompat';
 import {
   Camera,
   CheckCircle2,
@@ -229,7 +229,7 @@ function App() {
   const [buklodEmail, setBuklodEmail] = useState('');
   const [buklodPassword, setBuklodPassword] = useState('');
   const [buklodToken, setBuklodToken] = useState('');
-  const [buklodHandoffConnected, setBuklodHandoffConnected] = useState(false);
+  const [buklodHandoffConnected, setBuklodHandoffConnected] = useState(() => hasQuickCheckSession());
   const [buklodClassrooms, setBuklodClassrooms] = useState<BuklodClassroom[]>([]);
   const [selectedClassroomId, setSelectedClassroomId] = useState('');
   const [rosterStudents, setRosterStudents] = useState<RosterStudent[]>([]);
