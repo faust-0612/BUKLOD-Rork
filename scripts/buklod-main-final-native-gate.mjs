@@ -47,6 +47,19 @@ for (const name of [
   deps[name] ? pass('dependency: ' + name) : fail('dependency: ' + name);
 }
 
+for (const name of [
+  'expo-document-picker',
+  'expo-file-system',
+  'expo-speech',
+  'expo-linking',
+  'expo-clipboard',
+  'expo-web-browser',
+  'expo-background-task',
+  'expo-updates',
+]) {
+  deps[name] ? pass('support dependency: ' + name) : fail('support dependency: ' + name);
+}
+
 need('app.config.js', "orientation: 'default'", 'global orientation default');
 need('app.config.js', "'expo-screen-orientation'", 'screen orientation plugin');
 need('app.config.js', "initialOrientation: 'DEFAULT'", 'orientation DEFAULT');
@@ -69,12 +82,37 @@ need('app.config.js', 'google-services.production.json', 'production Firebase co
 need('app.config.js', 'org.mzbministry.buklod', 'production Android package');
 need('app.config.js', 'versionCode: isStaging ? undefined : 20', 'production versionCode');
 need('eas.json', '"buildType": "app-bundle"', 'production AAB profile');
+(pkg.main === 'index.js' ? pass('package main = index.js') : fail('package main = index.js'));
+need('app.config.js', 'addNoiseCancellation: true', 'Stream native noise cancellation');
+need('app.config.js', "'expo-background-task'", 'Expo background task plugin');
+need('app.config.js', "'android.permission.CAMERA'", 'camera native permission');
+need('app.config.js', "'android.permission.RECORD_AUDIO'", 'microphone native permission');
+need('app.config.js', "'android.permission.BLUETOOTH_CONNECT'", 'Bluetooth call permission');
+need('app.config.js', 'isAndroidBackgroundLocationEnabled: false', 'no always-on Android background location');
+need('app.config.js', 'runtimeVersion:', 'runtime version configured');
+
 
 need('src/components/BuklodTrustedDeviceGate.native.tsx', 'LocalAuthentication.authenticateAsync', 'fingerprint/Face ID trusted-device gate');
 need('src/components/BuklodTrustedDeviceGate.native.tsx', 'SecureStore.setItemAsync', 'trusted-device SecureStore');
 need('src/app/_layout.tsx', '<BuklodTrustedDeviceGate>', 'trusted-device gate mounted');
 need('src/components/BuklodCommunityHelp.tsx', 'BUKLOD_SOS_LOCAL_AUTH_R2', 'SOS local-auth confirmation');
 need('src/components/BuklodCommunityHelp.tsx', 'LocalAuthentication.authenticateAsync', 'SOS fingerprint/Face ID/PIN path');
+const versionAtLeast = (raw, minimum) => {
+  const parse = v => String(v || '').replace(/^[~^]/, '').split('-')[0].split('.').map(Number);
+  const a = parse(raw), b = parse(minimum);
+  for (let i = 0; i < 3; i += 1) {
+    if ((a[i] || 0) > (b[i] || 0)) return true;
+    if ((a[i] || 0) < (b[i] || 0)) return false;
+  }
+  return true;
+};
+versionAtLeast(deps['@stream-io/video-react-native-sdk'], '1.32.0')
+  ? pass('Stream Video SDK minimum 1.32')
+  : fail('Stream Video SDK minimum 1.32');
+versionAtLeast(deps['@stream-io/react-native-webrtc'], '145.0.0')
+  ? pass('Stream WebRTC minimum 145')
+  : fail('Stream WebRTC minimum 145');
+
 need('src/utils/setPushConfig.ts', 'firebase-video-production', 'production Stream push provider fallback');
 need('src/utils/setPushConfig.ts', 'buklod_incoming_calls_v2', 'dedicated incoming-call channel');
 need('src/utils/setPushConfig.ts', 'createStreamVideoClient', 'killed-state Stream client factory');
@@ -95,6 +133,12 @@ need('src/app/+native-intent.ts', "getSharedPayloads", 'cold-start incoming shar
 need('src/app/+native-intent.ts', "return '/handle-share'", 'cold-start incoming share route');
 need('src/lib/buklodIncomingShare.ts', 'useIncomingShare', 'incoming share hook');
 
+need('src/lib/gcash.ts', 'getGCashDetails', 'GCash runtime getGCashDetails');
+need('src/lib/gcash.ts', 'copyGCashNumber', 'GCash clipboard support');
+need('src/lib/gcash.ts', 'openGCashPayment', 'GCash secure payment handoff');
+need('src/lib/gcash.ts', 'Clipboard', 'GCash Clipboard native support');
+need('src/lib/gcash.ts', 'WebBrowser', 'GCash WebBrowser native support');
+need('src/app/_layout.tsx', '<AdsProvider>', 'AdsProvider mounted at root');
 need('src/lib/adMob.ts', 'AdsConsent', 'BUKLOD UMP consent runtime');
 need('src/lib/adMob.ts', 'gatherConsent', 'BUKLOD UMP consent gathering');
 need('src/lib/adMob.ts', 'canRequestAds', 'BUKLOD UMP request gate');
@@ -107,6 +151,11 @@ need('src/lib/buklodSentry.ts', 'Sentry.init', 'Sentry runtime init');
 
 exists('modules/buklod-mlkit-translation/expo-module.config.json', 'ML Kit Expo module config');
 exists('modules/buklod-mlkit-translation/android', 'ML Kit Android native module');
+need('modules/buklod-mlkit-translation/android/build.gradle', "com.google.mlkit:translate:17.0.3", 'ML Kit Translate 17.0.3');
+need('modules/buklod-mlkit-translation/android/build.gradle', "com.google.mlkit:language-id:17.0.6", 'ML Kit Language ID 17.0.6');
+need('modules/buklod-mlkit-translation/expo-module.config.json', 'BuklodMlKitTranslationModule', 'ML Kit Kotlin module registration');
+if (fs.existsSync(path.join(root, 'modules/modules/buklod-mlkit-translation'))) fail('no nested duplicate ML Kit module');
+else pass('no nested duplicate ML Kit module');
 exists('google-services.production.json', 'production google-services file');
 
 if (process.env.EXPO_PUBLIC_APP_ENV === 'production') {
