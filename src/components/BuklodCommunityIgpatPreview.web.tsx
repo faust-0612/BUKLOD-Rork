@@ -11,6 +11,7 @@ import {
 import { VideoView, useVideoPlayer } from 'expo-video';
 
 import { supabase } from '@/lib/supabase';
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 
 type IgpatPreviewRow = {
   id: string;
@@ -28,6 +29,7 @@ type Props = {
 };
 
 const PREVIEW_LIMIT = 10;
+const IGPAT_PREVIEW_TIMEOUT_MS = 8_000;
 const SIGNED_URL_TTL_SECONDS = 1200;
 
 let previewCache: IgpatPreviewRow[] | null = null;
@@ -46,10 +48,14 @@ async function fetchIgpatPreviews(): Promise<IgpatPreviewRow[]> {
   if (previewRequest) return previewRequest;
 
   previewRequest = (async () => {
-    const { data, error } = await (supabase as any).rpc('get_buklod_igpat_feed_v3', {
-      p_mode: 'for-you',
-      p_limit: PREVIEW_LIMIT,
-    });
+    const { data, error } = await withBuklodTimeout<any>(
+      (supabase as any).rpc('get_buklod_igpat_feed_v3', {
+        p_mode: 'for-you',
+        p_limit: PREVIEW_LIMIT,
+      }),
+      IGPAT_PREVIEW_TIMEOUT_MS,
+      'Community IGPAT preview feed'
+    );
 
     if (error) throw error;
 
@@ -59,9 +65,17 @@ async function fetchIgpatPreviews(): Promise<IgpatPreviewRow[]> {
 
     const signed = await Promise.all(
       source.map(async row => {
-        const { data: signedData, error: signError } = await supabase.storage
-          .from('community-media')
-          .createSignedUrl(row.media_path, SIGNED_URL_TTL_SECONDS);
+        const { data: signedData, error: signError } =
+          await withBuklodTimeout<any>(
+            supabase.storage
+              .from('community-media')
+              .createSignedUrl(row.media_path, SIGNED_URL_TTL_SECONDS),
+            IGPAT_PREVIEW_TIMEOUT_MS,
+            'Community IGPAT preview media'
+          ).catch((timeoutError) => ({
+            data: null,
+            error: timeoutError,
+          }));
 
         if (signError || !signedData?.signedUrl) {
           return null;
