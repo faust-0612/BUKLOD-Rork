@@ -34,6 +34,7 @@ on:
       - 'app.config.js'
       - 'eas.json'
       - 'supabase/migrations/*igpat*.sql'
+      - 'supabase/migrations/*auth_login_indexed_resolver*.sql'
   push:
     branches: [main]
     paths:
