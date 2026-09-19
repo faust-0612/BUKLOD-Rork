@@ -98,6 +98,14 @@ module.exports = ({ config }) => {
         'android.permission.MODIFY_AUDIO_SETTINGS',
         'android.permission.BLUETOOTH',
         'android.permission.BLUETOOTH_CONNECT',
+        'android.permission.POST_NOTIFICATIONS',
+        'android.permission.VIBRATE',
+        'android.permission.FOREGROUND_SERVICE',
+        'android.permission.FOREGROUND_SERVICE_MICROPHONE',
+        'android.permission.FOREGROUND_SERVICE_CAMERA',
+        'android.permission.FOREGROUND_SERVICE_PHONE_CALL',
+        'android.permission.MANAGE_OWN_CALLS',
+        'android.permission.USE_FULL_SCREEN_INTENT',
       ],
 
       blockedPermissions: [
