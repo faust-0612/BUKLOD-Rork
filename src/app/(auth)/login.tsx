@@ -25,13 +25,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { supabase } from '@/lib/supabase';
-import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { colors } from '@/lib/theme';
 import { useAuth } from '@/providers/AuthProvider';
 import {
   isBuklodInvalidCredentialsError,
   isBuklodTransientAuthError,
   resolveBuklodAccountLifecycleAfterLogin,
+  signInWithCanonicalIdentifierResilient,
   signOutBuklodResilient,
 } from '@/lib/buklodAuthResilience';
 import {
@@ -219,8 +219,6 @@ function useLoginShake() {
 const BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY =
   'buklod.auth.fresh_login_public.v1';
 
-const BUKLOD_CANONICAL_LOGIN_TIMEOUT_MS = 15_000;
-const BUKLOD_CANONICAL_SESSION_TIMEOUT_MS = 5_000;
 
 
 /* PATCH_171I_SUGGESTED_LOGIN_BUBBLES */
@@ -323,16 +321,6 @@ async function signInForFreshPublicHome(
   identifier: string,
   password: string
 ) {
-  /*
-   * BUKLOD_CANONICAL_LOGIN_RESOLVER_R23
-   *
-   * Never derive/guess an internal auth email from the text entered by the
-   * member. The central login service resolves Mobile / Username / Email to
-   * the actual BUKLOD account first, then performs the password grant against
-   * that account. This prevents recovered username-based accounts from
-   * becoming unreachable when the member signs in with the mobile number
-   * stored on the same profile.
-   */
   try {
     await AsyncStorage.setItem(
       BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY,
@@ -346,105 +334,19 @@ async function signInForFreshPublicHome(
     );
   }
 
-  const fail = async (error: any) => {
+  const result =
+    await signInWithCanonicalIdentifierResilient(
+      identifier,
+      password
+    );
+
+  if (result.error) {
     await AsyncStorage.removeItem(
       BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY
     ).catch(() => undefined);
-
-    return {
-      data: {
-        user: null,
-        session: null,
-      },
-      error,
-    } as any;
-  };
-
-  try {
-    const {
-      data,
-      error: invokeError,
-    } = await withBuklodTimeout(
-      supabase.functions.invoke(
-        'buklod-auth-login-v2',
-        {
-          body: {
-            identifier,
-            password,
-          },
-        }
-      ),
-      BUKLOD_CANONICAL_LOGIN_TIMEOUT_MS,
-      'BUKLOD canonical sign-in'
-    );
-
-    if (invokeError) {
-      return fail(invokeError);
-    }
-
-    if (!data?.ok) {
-      return fail({
-        code:
-          String(data?.error ?? '').trim() ||
-          'invalid_credentials',
-        message:
-          String(data?.message ?? '').trim() ||
-          'Invalid username/mobile/email or password.',
-        status:
-          data?.error === 'invalid_credentials'
-            ? 400
-            : 503,
-      });
-    }
-
-    const accessToken =
-      String(
-        data?.session?.access_token ?? ''
-      ).trim();
-    const refreshToken =
-      String(
-        data?.session?.refresh_token ?? ''
-      ).trim();
-
-    if (!accessToken || !refreshToken) {
-      return fail({
-        code: 'login_temporarily_unavailable',
-        message:
-          'Login service returned an incomplete session. Please try again.',
-        status: 503,
-      });
-    }
-
-    const sessionResult =
-      await withBuklodTimeout(
-        supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        }),
-        BUKLOD_CANONICAL_SESSION_TIMEOUT_MS,
-        'BUKLOD local session persistence'
-      );
-
-    if (
-      sessionResult.error ||
-      !sessionResult.data?.session ||
-      !sessionResult.data?.user
-    ) {
-      return fail(
-        sessionResult.error ?? {
-          code: 'login_temporarily_unavailable',
-          message:
-            'BUKLOD could not save the authenticated session. Please try again.',
-          status: 503,
-        }
-      );
-    }
-
-    return sessionResult;
   }
-  catch (error) {
-    return fail(error);
-  }
+
+  return result;
 }
 
 /* PATCH_174C_R5_SUGGESTED_LOGIN_AVATAR_EXACT_AST_FIX */
