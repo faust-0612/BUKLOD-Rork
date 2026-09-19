@@ -1,0 +1,76 @@
+name: BUKLOD Quiz Mobile R22 Android OTA
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/lib/buklodQuizEntry.ts'
+      - '.github/workflows/quiz_mobile_r22_android_ota.yml'
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  EXPO_PUBLIC_APP_ENV: production
+
+jobs:
+  qa-and-publish-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact production commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Verify Quiz mobile direct-entry contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          grep -F 'BUKLOD_QUIZ_UNIFIED_MAIN_ENTRY_R21' 'src/lib/buklodQuizEntry.ts'
+          grep -F 'BUKLOD_QUIZ_MOBILE_DIRECT_ENTRY_R22' 'src/lib/buklodQuizEntry.ts'
+          grep -F "Platform.OS === 'web'" 'src/lib/buklodQuizEntry.ts'
+          grep -F 'webLocation.assign(launchUrl)' 'src/lib/buklodQuizEntry.ts'
+          grep -F 'await Linking.openURL(launchUrl)' 'src/lib/buklodQuizEntry.ts'
+          if grep -F 'Linking.canOpenURL(launchUrl)' 'src/lib/buklodQuizEntry.ts'; then
+            echo 'Legacy Quiz canOpenURL hard gate returned.' >&2
+            exit 1
+          fi
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Expo credential preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          npx eas-cli@latest whoami --non-interactive >/dev/null
+          echo 'Expo authentication: READY'
+
+      - name: Publish Android production OTA
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest update \
+            --channel production \
+            --platform android \
+            --environment production \
+            --message "BUKLOD Quiz Mobile Direct Entry R22 ${GITHUB_SHA}" \
+            --non-interactive
+
+      - name: Confirm release scope
+        run: echo 'ANDROID OTA ONLY COMPLETE. No APK, AAB, iOS build, backend migration, or unrelated deploy was invoked.'
