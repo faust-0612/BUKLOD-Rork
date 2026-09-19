@@ -25,6 +25,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { supabase } from '@/lib/supabase';
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { colors } from '@/lib/theme';
 import { useAuth } from '@/providers/AuthProvider';
 import {
@@ -218,6 +219,9 @@ function useLoginShake() {
 const BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY =
   'buklod.auth.fresh_login_public.v1';
 
+const BUKLOD_CANONICAL_LOGIN_TIMEOUT_MS = 15_000;
+const BUKLOD_CANONICAL_SESSION_TIMEOUT_MS = 5_000;
+
 
 /* PATCH_171I_SUGGESTED_LOGIN_BUBBLES */
 type SuggestedLogin = {
@@ -360,14 +364,18 @@ async function signInForFreshPublicHome(
     const {
       data,
       error: invokeError,
-    } = await supabase.functions.invoke(
-      'buklod-auth-login-v2',
-      {
-        body: {
-          identifier,
-          password,
-        },
-      }
+    } = await withBuklodTimeout(
+      supabase.functions.invoke(
+        'buklod-auth-login-v2',
+        {
+          body: {
+            identifier,
+            password,
+          },
+        }
+      ),
+      BUKLOD_CANONICAL_LOGIN_TIMEOUT_MS,
+      'BUKLOD canonical sign-in'
     );
 
     if (invokeError) {
@@ -408,10 +416,14 @@ async function signInForFreshPublicHome(
     }
 
     const sessionResult =
-      await supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      });
+      await withBuklodTimeout(
+        supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        }),
+        BUKLOD_CANONICAL_SESSION_TIMEOUT_MS,
+        'BUKLOD local session persistence'
+      );
 
     if (
       sessionResult.error ||
