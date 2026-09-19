@@ -34,7 +34,7 @@ import {
   loadBuklodKingdomPreviewProgress,
   subscribeBuklodKingdomPreviewProgress,
   type BuklodKingdomPreviewProgress,
-} from './progress';
+} from './progress.web';
 
 const WORLD_W = 1200;
 const WORLD_H = 900;
