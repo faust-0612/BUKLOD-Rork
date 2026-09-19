@@ -33,6 +33,9 @@ jobs:
       - name: TypeScript check
         run: npx tsc --noEmit
 
+      - name: Canonical auth resolver contract
+        run: node scripts/auth-canonical-login-contract.mjs
+
       - name: Performance R1 contract checks
         shell: bash
         run: |
