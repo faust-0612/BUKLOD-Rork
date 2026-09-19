@@ -1,793 +1,543 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
+  ActivityIndicator,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { shareWorkbook, loadXlsxModule } from '@/lib/reports/export';
+import { router } from 'expo-router';
 
 import { AdminGate } from '@/components/AdminGate';
-import { Button, Card, SectionTitle, shared } from '@/components/UI';
+import { shared } from '@/components/UI';
+import { loadXlsxModule, shareWorkbook } from '@/lib/reports/export';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
-import { AppRole, useAuth } from '@/providers/AuthProvider';
 
 type Row = Record<string, any>;
-type FilterRole = 'all' | AppRole;
+type AccountFilter = 'ALL' | 'ACTIVE' | 'INACTIVE';
+type PointFilter = 'ALL' | 'HAS_POINTS' | 'PENDING' | 'REVIEW';
 
-const ROLE_LABELS: Record<AppRole, string> = {
-  member: 'Member',
-  leader: 'Leader',
-  mentor: 'Mentor',
-  pastor: 'Pastor',
-  local_admin: 'Local Admin',
-  system_admin: 'System Admin',
+type PointSummary = {
+  lifetime: number;
+  available: number;
+  pending: number;
+  committedCredits: number;
+  debits: number;
+  ledgerEntries: number;
+  pendingEntries: number;
+  lifetimeMismatch: boolean;
+  availableMismatch: boolean;
+  status: 'OK' | 'REVIEW' | 'NO_ACTIVITY';
 };
 
-const ROLE_OPTIONS: FilterRole[] = [
-  'all',
-  'member',
-  'leader',
-  'mentor',
-  'pastor',
-  'local_admin',
-  'system_admin',
-];
-
-const isoDate = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
-    d.getDate()
-  ).padStart(2, '0')}`;
-
-const today = () => isoDate(new Date());
-const monthStart = () => {
-  const d = new Date();
-  d.setDate(1);
-  return isoDate(d);
+const numberValue = (value: unknown) => {
+  const n = Number(value ?? 0);
+  return Number.isFinite(n) ? n : 0;
 };
 
-const manilaToday = () =>
-  new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
+const formatNumber = (value: unknown) =>
+  numberValue(value).toLocaleString('en-PH', { maximumFractionDigits: 0 });
 
-const datePart = (value?: string | null) =>
-  value ? String(value).slice(0, 10) : '';
-
-const inPeriod = (
-  value: string | null | undefined,
-  from: string,
-  to: string
-) => {
-  if (!value) return false;
-  const d = datePart(value);
-  return d >= from && d <= to;
-};
-
-function safeSheet(
-  rows: Row[],
-  XLSX: Awaited<ReturnType<typeof loadXlsxModule>>
-) {
-  const source = rows.length ? rows : [{ Info: 'No records found for this filter.' }];
-  const sheet = XLSX.utils.json_to_sheet(source);
-  const headers = Object.keys(source[0] ?? {});
-
-  (sheet as any)['!cols'] = headers.map((header) => {
-    let width = Math.max(12, header.length + 2);
-    for (const row of source.slice(0, 300)) {
-      width = Math.max(width, String(row?.[header] ?? '').length + 2);
-    }
-    return { wch: Math.min(width, 42) };
+const formatDate = (value: unknown) => {
+  if (!value) return '—';
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString('en-PH', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: 'numeric',
+    minute: '2-digit',
   });
+};
 
-  if (headers.length > 1) {
-    (sheet as any)['!autofilter'] = {
-      ref: XLSX.utils.encode_range({
-        s: { r: 0, c: 0 },
-        e: { r: Math.max(0, source.length), c: headers.length - 1 },
-      }),
-    };
-  }
-
-  return sheet;
-}
-
-async function fetchAll(table: string, select: string): Promise<Row[]> {
-  const result: Row[] = [];
+async function fetchAllRows(
+  table: string,
+  columns: string,
+  orderColumn: string,
+): Promise<Row[]> {
   const pageSize = 1000;
+  const rows: Row[] = [];
 
-  for (let from = 0; ; from += pageSize) {
+  for (let from = 0; from < 100000; from += pageSize) {
     const { data, error } = await (supabase as any)
       .from(table)
-      .select(select)
+      .select(columns)
+      .order(orderColumn, { ascending: true })
       .range(from, from + pageSize - 1);
 
-    if (error) throw error;
+    if (error) throw new Error(error.message || `Could not read ${table}.`);
 
     const page = (data ?? []) as Row[];
-    result.push(...page);
-
-    if (page.length < pageSize) break;
+    rows.push(...page);
+    if (page.length < pageSize) return rows;
   }
 
-  return result;
+  throw new Error(`${table} exceeded the protected admin paging limit.`);
 }
 
-export default function MemberMasterRecordsScreen() {
-  const { profile } = useAuth();
+function Metric({
+  label,
+  value,
+  note,
+}: {
+  label: string;
+  value: string;
+  note?: string;
+}) {
+  return (
+    <View style={styles.metric}>
+      <Text style={styles.metricValue}>{value}</Text>
+      <Text style={styles.metricLabel}>{label}</Text>
+      {!!note && <Text style={styles.metricNote}>{note}</Text>}
+    </View>
+  );
+}
+
+function FilterChip({
+  label,
+  active,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[styles.chip, active && styles.chipActive]}
+    >
+      <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function StatusPill({ status }: { status: PointSummary['status'] }) {
+  const label =
+    status === 'REVIEW'
+      ? 'REVIEW'
+      : status === 'NO_ACTIVITY'
+        ? 'NO POINTS'
+        : 'OK';
+
+  return (
+    <View
+      style={[
+        styles.statusPill,
+        status === 'REVIEW' && styles.statusPillWarning,
+        status === 'OK' && styles.statusPillOk,
+      ]}
+    >
+      <Text
+        style={[
+          styles.statusPillText,
+          status === 'REVIEW' && styles.statusPillTextWarning,
+          status === 'OK' && styles.statusPillTextOk,
+        ]}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+export default function AdminMemberMasterScreen() {
+  const [profiles, setProfiles] = useState<Row[]>([]);
+  const [balances, setBalances] = useState<Row[]>([]);
+  const [ledger, setLedger] = useState<Row[]>([]);
+  const [scopes, setScopes] = useState<Row[]>([]);
+  const [memberships, setMemberships] = useState<Row[]>([]);
+  const [scopeRoles, setScopeRoles] = useState<Row[]>([]);
+
+  const [search, setSearch] = useState('');
+  const [accountFilter, setAccountFilter] = useState<AccountFilter>('ALL');
+  const [pointFilter, setPointFilter] = useState<PointFilter>('ALL');
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [visibleLimit, setVisibleLimit] = useState(100);
 
   const [loading, setLoading] = useState(true);
-  const [exporting, setExporting] = useState<'general' | 'full' | null>(null);
-
-  const [profiles, setProfiles] = useState<Row[]>([]);
-  const [churches, setChurches] = useState<Row[]>([]);
-  const [groups, setGroups] = useState<Row[]>([]);
-  const [groupMembers, setGroupMembers] = useState<Row[]>([]);
-  const [userRoles, setUserRoles] = useState<Row[]>([]);
-  const [mentorAssignments, setMentorAssignments] = useState<Row[]>([]);
-  const [pastorAssignments, setPastorAssignments] = useState<Row[]>([]);
-
-  const [tracks, setTracks] = useState<Row[]>([]);
-  const [lessons, setLessons] = useState<Row[]>([]);
-  const [enrollments, setEnrollments] = useState<Row[]>([]);
-  const [lessonProgress, setLessonProgress] = useState<Row[]>([]);
-
-  const [bibleAssignments, setBibleAssignments] = useState<Row[]>([]);
-  const [bibleMembers, setBibleMembers] = useState<Row[]>([]);
-  const [bibleSubmissions, setBibleSubmissions] = useState<Row[]>([]);
-
-  const [pointsLedger, setPointsLedger] = useState<Row[]>([]);
-  const [events, setEvents] = useState<Row[]>([]);
-  const [attendance, setAttendance] = useState<Row[]>([]);
-
-  const [churchFilter, setChurchFilter] = useState('all');
-  const [groupFilter, setGroupFilter] = useState('all');
-  const [roleFilter, setRoleFilter] = useState<FilterRole>('all');
-  const [activeOnly, setActiveOnly] = useState(true);
-  const [dateFrom, setDateFrom] = useState(monthStart());
-  const [dateTo, setDateTo] = useState(today());
+  const [refreshing, setRefreshing] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [error, setError] = useState('');
 
   const load = useCallback(async () => {
-    setLoading(true);
+    setError('');
 
     try {
       const [
         profileRows,
-        churchRows,
-        groupRows,
-        groupMemberRows,
+        balanceRows,
+        ledgerRows,
+        scopeRows,
+        membershipRows,
         roleRows,
-        mentorRows,
-        trackRows,
-        lessonRows,
-        enrollmentRows,
-        progressRows,
-        bibleAssignmentRows,
-        bibleMemberRows,
-        bibleSubmissionRows,
-        pointRows,
-        eventRows,
-        attendanceRows,
-        pastorAssignmentResult,
       ] = await Promise.all([
-        fetchAll(
+        fetchAllRows(
           'profiles',
-          'id,full_name,mobile,birth_date,sex,avatar_url,church_id,role,is_active,created_at'
+          'id,full_name,username,login_identifier,role,is_active,is_verified,created_at,updated_at',
+          'id',
         ),
-        fetchAll('churches', 'id,name,is_active'),
-        fetchAll('buklod_groups', 'id,name,church_id,leader_id,is_active'),
-        fetchAll('group_members', 'group_id,user_id,is_active'),
-        fetchAll(
-          'user_roles',
-          'user_id,role,is_active,granted_by,granted_at,revoked_by,revoked_at'
+        fetchAllRows(
+          'buklod_user_points_balances',
+          'user_id,lifetime_points,available_points,updated_at',
+          'user_id',
         ),
-        fetchAll(
-          'mentor_assignments',
-          'mentor_id,disciple_id,assigned_by,is_active,assigned_at'
-        ),
-        fetchAll('learning_tracks', 'id,title,slug'),
-        fetchAll(
-          'learning_lessons',
-          'id,track_id,lesson_number,title,is_required'
-        ),
-        fetchAll(
-          'track_enrollments',
-          'id,user_id,track_id,mentor_id,status,enrolled_at,completed_at'
-        ),
-        fetchAll(
-          'lesson_progress',
-          'id,enrollment_id,lesson_id,user_id,started_at,completed_at,reflection_text,updated_at'
-        ),
-        fetchAll(
-          'daily_bible_assignments',
-          'id,reading_date,bible_reference,is_published'
-        ),
-        fetchAll(
-          'daily_bible_assignment_members',
-          'assignment_id,user_id,assigned_at'
-        ),
-        fetchAll(
-          'daily_bible_submissions',
-          'id,assignment_id,user_id,answer_text,answer_language,submitted_at,submitted_on_time,reward_amount,status,reviewed_by,reviewed_at,admin_note'
-        ),
-        fetchAll(
+        fetchAllRows(
           'buklod_points_ledger',
-          'id,user_id,direction,points,activity_type,source_key,source_id,description,awarded_by,created_at'
+          'id,user_id,direction,points,activity_type,source_key,source_id,description,created_at,claim_state,formation_stage_code',
+          'id',
         ),
-        fetchAll(
-          'church_events',
-          'id,scope,church_id,group_id,event_type,title,starts_at,ends_at,is_cancelled'
+        fetchAllRows(
+          'buklod_scopes',
+          'id,scope_type,name,status,parent_scope_id,organization_id',
+          'id',
         ),
-        fetchAll(
-          'event_attendance',
-          'event_id,user_id,status,checked_in_at,recorded_by,note'
+        fetchAllRows(
+          'buklod_scope_memberships',
+          'id,scope_id,user_id,membership_status,membership_source,joined_at,left_at,created_at,updated_at',
+          'id',
         ),
-        (supabase as any).rpc('admin_get_pastor_church_assignments'),
+        fetchAllRows(
+          'buklod_scope_role_assignments',
+          'id,scope_id,user_id,role_key,status,created_at,updated_at,revoked_at',
+          'id',
+        ),
       ]);
 
-      if (pastorAssignmentResult.error) throw pastorAssignmentResult.error;
-
       setProfiles(profileRows);
-      setChurches(churchRows);
-      setGroups(groupRows);
-      setGroupMembers(groupMemberRows);
-      setUserRoles(roleRows);
-      setMentorAssignments(mentorRows);
-      setPastorAssignments(pastorAssignmentResult.data ?? []);
-      setTracks(trackRows);
-      setLessons(lessonRows);
-      setEnrollments(enrollmentRows);
-      setLessonProgress(progressRows);
-      setBibleAssignments(bibleAssignmentRows);
-      setBibleMembers(bibleMemberRows);
-      setBibleSubmissions(bibleSubmissionRows);
-      setPointsLedger(pointRows);
-      setEvents(eventRows);
-      setAttendance(attendanceRows);
-    } catch (error: any) {
-      Alert.alert('Member Master Records', error?.message ?? 'Could not load records.');
+      setBalances(balanceRows);
+      setLedger(ledgerRows);
+      setScopes(scopeRows);
+      setMemberships(membershipRows);
+      setScopeRoles(roleRows);
+    } catch (nextError: unknown) {
+      setError(
+        nextError instanceof Error
+          ? nextError.message
+          : 'Could not load Member Master.',
+      );
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
-  const churchMap = useMemo(
-    () => new Map(churches.map((row) => [row.id, row.name])),
-    [churches]
-  );
-
-  const groupMap = useMemo(
-    () => new Map(groups.map((row) => [row.id, row])),
-    [groups]
-  );
+  const refresh = useCallback(async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  }, [load]);
 
   const profileMap = useMemo(
-    () => new Map(profiles.map((row) => [row.id, row])),
-    [profiles]
+    () => new Map(profiles.map((row) => [String(row.id), row])),
+    [profiles],
   );
 
-  const trackMap = useMemo(
-    () => new Map(tracks.map((row) => [row.id, row])),
-    [tracks]
+  const scopeMap = useMemo(
+    () => new Map(scopes.map((row) => [String(row.id), row])),
+    [scopes],
   );
 
-  const lessonMap = useMemo(
-    () => new Map(lessons.map((row) => [row.id, row])),
-    [lessons]
+  const balanceMap = useMemo(
+    () => new Map(balances.map((row) => [String(row.user_id), row])),
+    [balances],
   );
 
-  const enrollmentMap = useMemo(
-    () => new Map(enrollments.map((row) => [row.id, row])),
-    [enrollments]
-  );
+  const ledgerByUser = useMemo(() => {
+    const map = new Map<string, Row[]>();
 
-  const bibleAssignmentMap = useMemo(
-    () => new Map(bibleAssignments.map((row) => [row.id, row])),
-    [bibleAssignments]
-  );
-
-  const eventMap = useMemo(
-    () => new Map(events.map((row) => [row.id, row])),
-    [events]
-  );
-
-  const rolesMap = useMemo(() => {
-    const map = new Map<string, AppRole[]>();
-
-    for (const person of profiles) {
-      map.set(person.id, ['member']);
+    for (const row of ledger) {
+      const userId = String(row.user_id ?? '');
+      if (!userId) continue;
+      const current = map.get(userId) ?? [];
+      current.push(row);
+      map.set(userId, current);
     }
 
-    for (const row of userRoles) {
-      if (!row.is_active) continue;
-      const role = row.role as AppRole;
-      const current = map.get(row.user_id) ?? ['member'];
-      if (!current.includes(role)) current.push(role);
-      map.set(row.user_id, current);
-    }
-
-    for (const person of profiles) {
-      const legacy = person.role as AppRole;
-      const current = map.get(person.id) ?? ['member'];
-      if (legacy && !current.includes(legacy)) current.push(legacy);
-      map.set(person.id, current);
+    for (const rows of map.values()) {
+      rows.sort(
+        (a, b) =>
+          new Date(String(b.created_at ?? 0)).getTime() -
+          new Date(String(a.created_at ?? 0)).getTime(),
+      );
     }
 
     return map;
-  }, [profiles, userRoles]);
+  }, [ledger]);
 
-  const groupNamesFor = useCallback(
-    (userId: string) =>
-      groupMembers
-        .filter((row) => row.user_id === userId && row.is_active)
-        .map((row) => groupMap.get(row.group_id)?.name)
-        .filter(Boolean)
-        .join(' | '),
-    [groupMembers, groupMap]
-  );
+  const membershipsByUser = useMemo(() => {
+    const map = new Map<string, Row[]>();
 
-  const visibleGroups = useMemo(
-    () =>
-      groups.filter(
-        (row) =>
-          row.is_active &&
-          (churchFilter === 'all' || row.church_id === churchFilter)
-      ),
-    [groups, churchFilter]
-  );
-
-  useEffect(() => {
-    if (
-      groupFilter !== 'all' &&
-      !visibleGroups.some((group) => group.id === groupFilter)
-    ) {
-      setGroupFilter('all');
-    }
-  }, [groupFilter, visibleGroups]);
-
-  const filteredProfiles = useMemo(() => {
-    return profiles
-      .filter((person) => !activeOnly || person.is_active)
-      .filter(
-        (person) => churchFilter === 'all' || person.church_id === churchFilter
-      )
-      .filter((person) => {
-        if (groupFilter === 'all') return true;
-        return groupMembers.some(
-          (membership) =>
-            membership.user_id === person.id &&
-            membership.group_id === groupFilter &&
-            membership.is_active
-        );
-      })
-      .filter((person) => {
-        if (roleFilter === 'all') return true;
-        return (rolesMap.get(person.id) ?? ['member']).includes(roleFilter);
-      })
-      .sort((a, b) =>
-        String(a.full_name ?? '').localeCompare(String(b.full_name ?? ''))
-      );
-  }, [
-    profiles,
-    activeOnly,
-    churchFilter,
-    groupFilter,
-    groupMembers,
-    roleFilter,
-    rolesMap,
-  ]);
-
-  const memberIds = useMemo(
-    () => new Set(filteredProfiles.map((person) => person.id)),
-    [filteredProfiles]
-  );
-
-  const buildWorkbook = async (full: boolean) => {
-    const XLSX = await loadXlsxModule();
-
-    if (!dateFrom || !dateTo || dateFrom > dateTo) {
-      throw new Error('Enter a valid date range in YYYY-MM-DD format.');
+    for (const row of memberships) {
+      const userId = String(row.user_id ?? '');
+      if (!userId) continue;
+      const current = map.get(userId) ?? [];
+      current.push(row);
+      map.set(userId, current);
     }
 
-    const masterRows = filteredProfiles.map((person, index) => ({
-      'No.': index + 1,
-      'Member Name': person.full_name || 'Unnamed Member',
-      Local: churchMap.get(person.church_id) || 'Unassigned',
-      Group: groupNamesFor(person.id) || '',
-      'Member ID': person.id,
-      Mobile: person.mobile || '',
-      'Birth Date': person.birth_date || '',
-      Sex: person.sex || '',
-      'Active Roles': (rolesMap.get(person.id) ?? ['member'])
-        .map((role) => ROLE_LABELS[role])
-        .join(' | '),
-      'Legacy Primary Role': person.role || '',
-      'Account Status': person.is_active ? 'Active' : 'Inactive',
-      'Created At': person.created_at || '',
-    }));
+    return map;
+  }, [memberships]);
 
-    const assignmentRows: Row[] = [];
+  const rolesByUser = useMemo(() => {
+    const map = new Map<string, Row[]>();
 
-    for (const role of userRoles) {
-      if (!memberIds.has(role.user_id)) continue;
-      const person = profileMap.get(role.user_id);
-      assignmentRows.push({
-        'Record Type': 'Role',
-        'Member ID': role.user_id,
-        'Member Name': person?.full_name || '',
-        Assignment: ROLE_LABELS[role.role as AppRole] || role.role,
-        Scope: '',
-        Status: role.is_active ? 'Active' : 'Inactive',
-        'Started / Granted': role.granted_at || '',
-        'Ended / Revoked': role.revoked_at || '',
-        Notes: '',
-      });
+    for (const row of scopeRoles) {
+      const userId = String(row.user_id ?? '');
+      if (!userId) continue;
+      const current = map.get(userId) ?? [];
+      current.push(row);
+      map.set(userId, current);
     }
 
-    for (const membership of groupMembers) {
-      if (!memberIds.has(membership.user_id)) continue;
-      assignmentRows.push({
-        'Record Type': 'BUKLOD Cluster Membership',
-        'Member ID': membership.user_id,
-        'Member Name': profileMap.get(membership.user_id)?.full_name || '',
-        Assignment: groupMap.get(membership.group_id)?.name || membership.group_id,
-        Scope:
-          churchMap.get(groupMap.get(membership.group_id)?.church_id) || '',
-        Status: membership.is_active ? 'Active' : 'Inactive',
-        'Started / Granted': '',
-        'Ended / Revoked': '',
-        Notes: '',
-      });
-    }
+    return map;
+  }, [scopeRoles]);
 
-    for (const group of groups) {
-      if (!group.leader_id || !memberIds.has(group.leader_id)) continue;
-      assignmentRows.push({
-        'Record Type': 'BUKLOD Cluster Leader',
-        'Member ID': group.leader_id,
-        'Member Name': profileMap.get(group.leader_id)?.full_name || '',
-        Assignment: group.name,
-        Scope: churchMap.get(group.church_id) || '',
-        Status: group.is_active ? 'Active' : 'Inactive',
-        'Started / Granted': '',
-        'Ended / Revoked': '',
-        Notes: '',
-      });
-    }
+  const pointSummaryMap = useMemo(() => {
+    const map = new Map<string, PointSummary>();
 
-    for (const row of mentorAssignments) {
-      if (!memberIds.has(row.mentor_id) && !memberIds.has(row.disciple_id)) continue;
-      assignmentRows.push({
-        'Record Type': 'Mentor Assignment',
-        'Member ID': row.disciple_id,
-        'Member Name': profileMap.get(row.disciple_id)?.full_name || '',
-        Assignment: `Mentor: ${profileMap.get(row.mentor_id)?.full_name || row.mentor_id}`,
-        Scope: churchMap.get(profileMap.get(row.disciple_id)?.church_id) || '',
-        Status: row.is_active ? 'Active' : 'Inactive',
-        'Started / Granted': row.assigned_at || '',
-        'Ended / Revoked': '',
-        Notes: '',
-      });
-    }
+    for (const profile of profiles) {
+      const userId = String(profile.id);
+      const balance = balanceMap.get(userId);
+      const userLedger = ledgerByUser.get(userId) ?? [];
 
-    for (const row of pastorAssignments) {
-      if (!memberIds.has(row.pastor_id)) continue;
-      assignmentRows.push({
-        'Record Type': 'Pastor Local Assignment',
-        'Member ID': row.pastor_id,
-        'Member Name': row.pastor_name || '',
-        Assignment: row.church_name || '',
-        Scope: row.church_name || '',
-        Status: row.is_active ? 'Active' : 'Ended',
-        'Started / Granted': row.assigned_at || '',
-        'Ended / Revoked': row.ended_at || '',
-        Notes: row.assignment_note || row.end_note || '',
-      });
-    }
+      let committedCredits = 0;
+      let pending = 0;
+      let debits = 0;
+      let pendingEntries = 0;
 
-    const learningRows: Row[] = [];
+      for (const row of userLedger) {
+        const points = numberValue(row.points);
+        const direction = String(row.direction ?? '').toLowerCase();
+        const claimState = String(row.claim_state ?? '').toLowerCase();
 
-    for (const enrollment of enrollments) {
-      if (!memberIds.has(enrollment.user_id)) continue;
-      if (
-        !inPeriod(enrollment.enrolled_at, dateFrom, dateTo) &&
-        !inPeriod(enrollment.completed_at, dateFrom, dateTo)
-      ) {
-        continue;
-      }
-
-      const person = profileMap.get(enrollment.user_id);
-      const track = trackMap.get(enrollment.track_id);
-      learningRows.push({
-        'Record Type': 'Track Enrollment',
-        'Member ID': enrollment.user_id,
-        'Member Name': person?.full_name || '',
-        'Local Church': churchMap.get(person?.church_id) || '',
-        Track: track?.title || enrollment.track_id,
-        Lesson: '',
-        Status: enrollment.status,
-        'Started / Enrolled': enrollment.enrolled_at || '',
-        Completed: enrollment.completed_at || '',
-        Mentor: profileMap.get(enrollment.mentor_id)?.full_name || '',
-        ...(full ? { Reflection: '' } : {}),
-      });
-    }
-
-    for (const progress of lessonProgress) {
-      if (!memberIds.has(progress.user_id)) continue;
-      if (
-        !inPeriod(progress.started_at, dateFrom, dateTo) &&
-        !inPeriod(progress.completed_at, dateFrom, dateTo) &&
-        !inPeriod(progress.updated_at, dateFrom, dateTo)
-      ) {
-        continue;
-      }
-
-      const person = profileMap.get(progress.user_id);
-      const lesson = lessonMap.get(progress.lesson_id);
-      const enrollment = enrollmentMap.get(progress.enrollment_id);
-      const track = trackMap.get(enrollment?.track_id || lesson?.track_id);
-
-      learningRows.push({
-        'Record Type': 'Lesson Progress',
-        'Member ID': progress.user_id,
-        'Member Name': person?.full_name || '',
-        'Local Church': churchMap.get(person?.church_id) || '',
-        Track: track?.title || '',
-        Lesson: lesson
-          ? `${lesson.lesson_number}. ${lesson.title}`
-          : progress.lesson_id,
-        Status: progress.completed_at ? 'Completed' : 'In Progress',
-        'Started / Enrolled': progress.started_at || '',
-        Completed: progress.completed_at || '',
-        Mentor: profileMap.get(enrollment?.mentor_id)?.full_name || '',
-        ...(full ? { Reflection: progress.reflection_text || '' } : {}),
-      });
-    }
-
-    const submissionMap = new Map(
-      bibleSubmissions.map((row) => [
-        `${row.assignment_id}:${row.user_id}`,
-        row,
-      ])
-    );
-
-    const currentManilaDate = manilaToday();
-    const bibleRows: Row[] = [];
-
-    for (const membership of bibleMembers) {
-      if (!memberIds.has(membership.user_id)) continue;
-      const assignment = bibleAssignmentMap.get(membership.assignment_id);
-      if (!assignment || !inPeriod(assignment.reading_date, dateFrom, dateTo)) continue;
-
-      const submission = submissionMap.get(
-        `${membership.assignment_id}:${membership.user_id}`
-      );
-
-      let memberStatus = 'NOT STARTED';
-      if (submission?.status === 'approved') memberStatus = 'VALID';
-      else if (submission?.status === 'pending_admin') memberStatus = 'SUBMITTED';
-      else if (submission?.status === 'rejected') memberStatus = 'REVIEW REQUIRED';
-      else if (assignment.reading_date < currentManilaDate) memberStatus = 'MISSED';
-
-      const person = profileMap.get(membership.user_id);
-      bibleRows.push({
-        'Reading Date': assignment.reading_date,
-        'Member ID': membership.user_id,
-        'Member Name': person?.full_name || '',
-        'Local Church': churchMap.get(person?.church_id) || '',
-        'Bible Reference': assignment.bible_reference,
-        Status: memberStatus,
-        'Submission Status': submission?.status || '',
-        'Submitted At': submission?.submitted_at || '',
-        'On Time': submission ? (submission.submitted_on_time ? 'Yes' : 'No') : '',
-        'Reviewed At': submission?.reviewed_at || '',
-        ...(full
-          ? {
-              'Reflection Answer': submission?.answer_text || '',
-              'Admin Note': submission?.admin_note || '',
-            }
-          : {}),
-      });
-    }
-
-    const pointRows = pointsLedger
-      .filter((row) => memberIds.has(row.user_id))
-      .filter((row) => inPeriod(row.created_at, dateFrom, dateTo))
-      .map((row) => {
-        const person = profileMap.get(row.user_id);
-        const signed = row.direction === 'debit' ? -Number(row.points || 0) : Number(row.points || 0);
-        return {
-          Date: row.created_at || '',
-          'Member ID': row.user_id,
-          'Member Name': person?.full_name || '',
-          'Local Church': churchMap.get(person?.church_id) || '',
-          Direction: row.direction,
-          Points: signed,
-          Activity: row.activity_type,
-          Description: row.description || '',
-          'Source Key': row.source_key || '',
-        };
-      });
-
-    const churchLifeRows = attendance
-      .filter((row) => memberIds.has(row.user_id))
-      .map((row) => ({ attendance: row, event: eventMap.get(row.event_id) }))
-      .filter(({ event }) => event && inPeriod(event.starts_at, dateFrom, dateTo))
-      .map(({ attendance: row, event }) => {
-        const person = profileMap.get(row.user_id);
-        return {
-          'Event Date': event?.starts_at || '',
-          'Member ID': row.user_id,
-          'Member Name': person?.full_name || '',
-          'Local Church': churchMap.get(person?.church_id) || '',
-          Event: event?.title || '',
-          'Event Type': event?.event_type || '',
-          Scope: event?.scope || '',
-          'Event Church': event?.church_id ? (churchMap.get(event.church_id) || '') : '',
-          'BUKLOD Cluster': event?.group_id ? (groupMap.get(event.group_id)?.name || '') : '',
-          Attendance: row.status || '',
-          'Checked In At': row.checked_in_at || '',
-          Note: row.note || '',
-        };
-      });
-
-    let givingRows: Row[] = [];
-
-    if (full) {
-      const relevantChurches = churches.filter(
-        (church) =>
-          churchFilter === 'all' || church.id === churchFilter
-      );
-
-      for (const church of relevantChurches) {
-        const { data, error } = await (supabase as any).rpc(
-          'get_church_giving_masterlist',
-          { p_church_id: church.id }
-        );
-        if (error) throw error;
-
-        for (const row of data ?? []) {
-          if (!memberIds.has(row.user_id)) continue;
-          if (!inPeriod(row.payment_date || row.created_at, dateFrom, dateTo)) continue;
-
-          givingRows.push({
-            'Payment Date': row.payment_date || '',
-            'Member ID': row.user_id,
-            'Member Name': row.full_name || '',
-            'Local Church': church.name,
-            'Giving Type': row.giving_type || '',
-            Amount: Number(row.amount || 0),
-            'Payment Method': row.payment_method || '',
-            'Reference Number': row.reference_number || '',
-            Status: row.status || '',
-            'Submitted At': row.created_at || '',
-            'Verified At': row.verified_at || '',
-            'Verified By': row.verifier_name || '',
-          });
+        if (direction === 'credit' && ['claimed', 'legacy'].includes(claimState)) {
+          committedCredits += points;
+        } else if (direction === 'credit' && claimState === 'pending') {
+          pending += points;
+          pendingEntries += 1;
+        } else if (direction === 'debit') {
+          debits += points;
         }
       }
-    }
 
-    const netPoints = pointRows.reduce(
-      (sum, row) => sum + Number(row.Points || 0),
-      0
-    );
-    const completedLessons = learningRows.filter(
-      (row) => row['Record Type'] === 'Lesson Progress' && row.Status === 'Completed'
-    ).length;
-    const bibleValid = bibleRows.filter((row) => row.Status === 'VALID').length;
-    const presentAttendance = churchLifeRows.filter((row) =>
-      ['present', 'late'].includes(String(row.Attendance).toLowerCase())
-    ).length;
-    const verifiedGiving = givingRows
-      .filter((row) => row.Status === 'verified')
-      .reduce((sum, row) => sum + Number(row.Amount || 0), 0);
+      const lifetime = numberValue(balance?.lifetime_points);
+      const available = numberValue(balance?.available_points);
+      const lifetimeMismatch = lifetime !== committedCredits;
+      const availableMismatch = available !== committedCredits - debits;
+      const hasActivity =
+        lifetime !== 0 ||
+        available !== 0 ||
+        pending !== 0 ||
+        userLedger.length !== 0;
 
-    const dashboardRows: Row[] = [
-      { Metric: 'Export Type', Value: full ? 'Full Admin Master Record' : 'General Member Masterlist' },
-      { Metric: 'Period', Value: `${dateFrom} to ${dateTo}` },
-      { Metric: 'Members in Filter', Value: filteredProfiles.length },
-      { Metric: 'Active Members', Value: filteredProfiles.filter((p) => p.is_active).length },
-      { Metric: 'Completed Lessons in Period', Value: completedLessons },
-      { Metric: 'Valid Daily Bible Entries', Value: bibleValid },
-      { Metric: 'Net BUKLOD Points in Period', Value: netPoints },
-      { Metric: 'Present/Late Attendance Records', Value: presentAttendance },
-    ];
-
-    for (const role of ROLE_OPTIONS.filter((role) => role !== 'all') as AppRole[]) {
-      dashboardRows.push({
-        Metric: `${ROLE_LABELS[role]} Accounts`,
-        Value: filteredProfiles.filter((person) =>
-          (rolesMap.get(person.id) ?? ['member']).includes(role)
-        ).length,
+      map.set(userId, {
+        lifetime,
+        available,
+        pending,
+        committedCredits,
+        debits,
+        ledgerEntries: userLedger.length,
+        pendingEntries,
+        lifetimeMismatch,
+        availableMismatch,
+        status:
+          lifetimeMismatch || availableMismatch
+            ? 'REVIEW'
+            : hasActivity
+              ? 'OK'
+              : 'NO_ACTIVITY',
       });
     }
 
-    for (const church of churches.filter((c) => c.is_active)) {
-      dashboardRows.push({
-        Metric: `Members - ${church.name}`,
-        Value: filteredProfiles.filter((person) => person.church_id === church.id).length,
-      });
+    return map;
+  }, [profiles, balanceMap, ledgerByUser]);
+
+  const totals = useMemo(() => {
+    let lifetime = 0;
+    let available = 0;
+    let pending = 0;
+    let reviewMembers = 0;
+    let membersWithPoints = 0;
+
+    for (const summary of pointSummaryMap.values()) {
+      lifetime += summary.lifetime;
+      available += summary.available;
+      pending += summary.pending;
+      if (summary.status === 'REVIEW') reviewMembers += 1;
+      if (summary.status !== 'NO_ACTIVITY') membersWithPoints += 1;
     }
 
-    if (full) {
-      dashboardRows.push({
-        Metric: 'Verified Giving in Period',
-        Value: verifiedGiving,
-      });
-    }
-
-    const exportInfoRows: Row[] = [
-      { Field: 'Generated At', Value: new Date().toISOString() },
-      { Field: 'Generated By', Value: profile?.full_name || profile?.id || 'System Admin' },
-      { Field: 'Export Type', Value: full ? 'Full Admin Master Record' : 'General Member Masterlist' },
-      { Field: 'Church Filter', Value: churchFilter === 'all' ? 'All Churches' : churchMap.get(churchFilter) || churchFilter },
-      { Field: 'Group Filter', Value: groupFilter === 'all' ? 'All Groups' : groupMap.get(groupFilter)?.name || groupFilter },
-      { Field: 'Role Filter', Value: roleFilter === 'all' ? 'All Roles' : ROLE_LABELS[roleFilter] },
-      { Field: 'Active Only', Value: activeOnly ? 'Yes' : 'No' },
-      { Field: 'Period Start', Value: dateFrom },
-      { Field: 'Period End', Value: dateTo },
-      {
-        Field: 'Privacy Note',
-        Value: full
-          ? 'Restricted System Admin export. Contains financial and reflection details. Handle as confidential ministry records.'
-          : 'General administrative masterlist. Financial details and reflection text are excluded.',
-      },
-      {
-        Field: 'Excluded Data',
-        Value: 'Passwords, auth tokens, secrets, proof-image files and private storage objects are never exported.',
-      },
-    ];
-
-    const workbook = XLSX.utils.book_new();
-    workbook.Props = {
-      Title: full ? 'BUKLOD Full Admin Master Record' : 'Member Masterlist',
-      Subject: 'BUKLOD member administrative records',
-      Author: 'MZB Ministry Inc. - BUKLOD',
-      CreatedDate: new Date(),
+    return {
+      lifetime,
+      available,
+      pending,
+      reviewMembers,
+      membersWithPoints,
     };
+  }, [pointSummaryMap]);
 
-    XLSX.utils.book_append_sheet(workbook, safeSheet(dashboardRows, XLSX), 'Summary Dashboard');
-    XLSX.utils.book_append_sheet(workbook, safeSheet(masterRows, XLSX), 'Member Masterlist');
-    XLSX.utils.book_append_sheet(workbook, safeSheet(assignmentRows, XLSX), 'Roles & Assignments');
-    XLSX.utils.book_append_sheet(workbook, safeSheet(learningRows, XLSX), 'Learning Records');
-    XLSX.utils.book_append_sheet(workbook, safeSheet(bibleRows, XLSX), 'Daily Bible');
-    XLSX.utils.book_append_sheet(workbook, safeSheet(pointRows, XLSX), 'BUKLOD Points');
-    XLSX.utils.book_append_sheet(workbook, safeSheet(churchLifeRows, XLSX), 'Church Life');
-    if (full) {
-      XLSX.utils.book_append_sheet(workbook, safeSheet(givingRows, XLSX), 'Giving Summary');
-    }
-    XLSX.utils.book_append_sheet(workbook, safeSheet(exportInfoRows, XLSX), 'Export Info');
+  const filteredMembers = useMemo(() => {
+    const needle = search.trim().toLowerCase();
 
-    return workbook;
-  };
+    return profiles
+      .filter((profile) => {
+        if (accountFilter === 'ACTIVE' && profile.is_active !== true) return false;
+        if (accountFilter === 'INACTIVE' && profile.is_active === true) return false;
 
-  const exportWorkbook = async (full: boolean) => {
-    const kind = full ? 'full' : 'general';
-    setExporting(kind);
+        const summary = pointSummaryMap.get(String(profile.id));
+        if (pointFilter === 'HAS_POINTS' && summary?.status === 'NO_ACTIVITY') return false;
+        if (pointFilter === 'PENDING' && !summary?.pending) return false;
+        if (pointFilter === 'REVIEW' && summary?.status !== 'REVIEW') return false;
+
+        if (!needle) return true;
+
+        return [
+          profile.full_name,
+          profile.username,
+          profile.login_identifier,
+          profile.id,
+        ].some((value) => String(value ?? '').toLowerCase().includes(needle));
+      })
+      .sort((a, b) =>
+        String(a.full_name ?? '').localeCompare(String(b.full_name ?? '')),
+      );
+  }, [profiles, search, accountFilter, pointFilter, pointSummaryMap]);
+
+  useEffect(() => {
+    setVisibleLimit(100);
+  }, [search, accountFilter, pointFilter]);
+
+  const selectedProfile = selectedUserId
+    ? profileMap.get(selectedUserId) ?? null
+    : null;
+  const selectedSummary = selectedUserId
+    ? pointSummaryMap.get(selectedUserId) ?? null
+    : null;
+  const selectedLedger = selectedUserId
+    ? ledgerByUser.get(selectedUserId) ?? []
+    : [];
+  const selectedMemberships = selectedUserId
+    ? membershipsByUser.get(selectedUserId) ?? []
+    : [];
+  const selectedRoles = selectedUserId
+    ? rolesByUser.get(selectedUserId) ?? []
+    : [];
+
+  const exportAudit = async () => {
+    setExporting(true);
 
     try {
-      const workbook = await buildWorkbook(full);
-      const stamp = today();
-      await shareWorkbook(
-        full
-          ? `buklod-full-admin-master-record-${stamp}.xlsx`
-          : `buklod-member-masterlist-${stamp}.xlsx`,
-        workbook
+      const XLSX = await loadXlsxModule();
+      const workbook = XLSX.utils.book_new();
+
+      const memberRows = filteredMembers.map((profile) => {
+        const userId = String(profile.id);
+        const summary = pointSummaryMap.get(userId);
+        const activeMemberships = (membershipsByUser.get(userId) ?? [])
+          .filter((row) => String(row.membership_status).toUpperCase() === 'ACTIVE')
+          .map((row) => {
+            const scope = scopeMap.get(String(row.scope_id));
+            return scope
+              ? `${scope.scope_type}: ${scope.name}`
+              : String(row.scope_id);
+          })
+          .join(' | ');
+
+        const activeRoles = (rolesByUser.get(userId) ?? [])
+          .filter((row) => String(row.status).toUpperCase() === 'ACTIVE')
+          .map((row) => {
+            const scope = scopeMap.get(String(row.scope_id));
+            return `${row.role_key}${scope ? ` @ ${scope.name}` : ''}`;
+          })
+          .join(' | ');
+
+        return {
+          'Member ID': userId,
+          'Member Name': profile.full_name || '',
+          Username: profile.username || '',
+          'Account Status': profile.is_active ? 'ACTIVE' : 'INACTIVE',
+          Verified: profile.is_verified ? 'YES' : 'NO',
+          'Active Scope Memberships': activeMemberships,
+          'Active Scope Roles': activeRoles,
+          'Lifetime Points': summary?.lifetime ?? 0,
+          'Available Points': summary?.available ?? 0,
+          'Pending Claimable': summary?.pending ?? 0,
+          'Committed Ledger Credits': summary?.committedCredits ?? 0,
+          'Ledger Debits': summary?.debits ?? 0,
+          'Ledger Entries': summary?.ledgerEntries ?? 0,
+          'Point Audit': summary?.status ?? 'NO_ACTIVITY',
+          'Lifetime Match': summary?.lifetimeMismatch ? 'NO' : 'YES',
+          'Available Match': summary?.availableMismatch ? 'NO' : 'YES',
+        };
+      });
+
+      const ledgerRows = filteredMembers.flatMap((profile) => {
+        const userId = String(profile.id);
+        return (ledgerByUser.get(userId) ?? []).map((row) => ({
+          Date: row.created_at || '',
+          'Member ID': userId,
+          'Member Name': profile.full_name || '',
+          Direction: row.direction || '',
+          Points:
+            String(row.direction).toLowerCase() === 'debit'
+              ? -numberValue(row.points)
+              : numberValue(row.points),
+          'Claim State': row.claim_state || '',
+          Activity: row.activity_type || '',
+          Description: row.description || '',
+          'Source Key': row.source_key || '',
+        }));
+      });
+
+      const scopeRows = filteredMembers.flatMap((profile) => {
+        const userId = String(profile.id);
+        return (membershipsByUser.get(userId) ?? []).map((row) => {
+          const scope = scopeMap.get(String(row.scope_id));
+          return {
+            'Member ID': userId,
+            'Member Name': profile.full_name || '',
+            'Scope Type': scope?.scope_type || '',
+            Scope: scope?.name || row.scope_id || '',
+            Status: row.membership_status || '',
+            Source: row.membership_source || '',
+            Joined: row.joined_at || '',
+            Left: row.left_at || '',
+          };
+        });
+      });
+
+      XLSX.utils.book_append_sheet(
+        workbook,
+        XLSX.utils.json_to_sheet(memberRows.length ? memberRows : [{ Info: 'No members match the filter.' }]),
+        'Member Point Audit',
       );
-    } catch (error: any) {
-      Alert.alert('Excel Export', error?.message ?? 'Could not create workbook.');
+      XLSX.utils.book_append_sheet(
+        workbook,
+        XLSX.utils.json_to_sheet(ledgerRows.length ? ledgerRows : [{ Info: 'No point ledger rows match the filter.' }]),
+        'Point Ledger',
+      );
+      XLSX.utils.book_append_sheet(
+        workbook,
+        XLSX.utils.json_to_sheet(scopeRows.length ? scopeRows : [{ Info: 'No scope memberships match the filter.' }]),
+        'Scope Memberships',
+      );
+
+      await shareWorkbook(
+        `buklod-member-point-audit-${new Date().toISOString().slice(0, 10)}.xlsx`,
+        workbook,
+      );
     } finally {
-      setExporting(null);
+      setExporting(false);
     }
   };
 
@@ -795,273 +545,653 @@ export default function MemberMasterRecordsScreen() {
     <AdminGate>
       <ScrollView
         style={shared.screen}
-        contentContainerStyle={[shared.content, styles.content]}
+        contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
       >
-        <Text style={styles.eyebrow}>PEOPLE | RECORDS | EXPORT</Text>
-        <Text style={shared.h1}>Member Master Records</Text>
-        <Text style={shared.muted}>
-          Live BUKLOD records assembled into downloadable Excel workbooks. No duplicate
-          master-record database is created.
-        </Text>
+        <Pressable onPress={() => router.back()} style={styles.backRow}>
+          <MaterialCommunityIcons name="arrow-left" size={18} color={colors.greenDark} />
+          <Text style={styles.backText}>ADMIN</Text>
+        </Pressable>
+
+        <View style={styles.hero}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.eyebrow}>SYSTEM ADMIN · PEOPLE</Text>
+            <Text style={shared.h1}>Member Master & Point Audit</Text>
+            <Text style={shared.muted}>
+              Canonical BUKLOD member directory, Organization/Cluster memberships,
+              scoped roles and per-member Points accounting.
+            </Text>
+          </View>
+          <MaterialCommunityIcons
+            name="account-search-outline"
+            size={30}
+            color={colors.greenDark}
+          />
+        </View>
 
         <View style={styles.notice}>
-          <MaterialCommunityIcons name="shield-lock-outline" size={22} color="#275D45" />
+          <MaterialCommunityIcons
+            name="shield-check-outline"
+            size={22}
+            color={colors.greenDark}
+          />
           <Text style={styles.noticeText}>
-            Full Admin export is restricted to System Administration and includes giving
-            details and reflection text. Proof files, passwords, tokens and secrets are excluded.
+            This page is member and Points audit only. Learning, Daily Bible,
+            Attendance, Giving and other operational reports stay in their own
+            report modules. Points remain separate from Bayanihan cash.
           </Text>
         </View>
 
-        <SectionTitle>FILTERS</SectionTitle>
-        <Card>
-          <Text style={styles.label}>LOCAL CHURCH</Text>
-          <View style={styles.wrap}>
-            <Chip label="All Churches" on={churchFilter === 'all'} onPress={() => setChurchFilter('all')} />
-            {churches
-              .filter((church) => church.is_active)
-              .map((church) => (
-                <Chip
-                  key={church.id}
-                  label={church.name}
-                  on={churchFilter === church.id}
-                  onPress={() => setChurchFilter(church.id)}
-                />
-              ))}
+        {loading && !profiles.length ? (
+          <View style={styles.loadingCard}>
+            <ActivityIndicator color={colors.greenDark} />
+            <Text style={shared.muted}>Loading canonical member records…</Text>
           </View>
-
-          <Text style={[styles.label, styles.topGap]}>BUKLOD GROUP</Text>
-          <View style={styles.wrap}>
-            <Chip label="All Groups" on={groupFilter === 'all'} onPress={() => setGroupFilter('all')} />
-            {visibleGroups.map((group) => (
-              <Chip
-                key={group.id}
-                label={group.name}
-                on={groupFilter === group.id}
-                onPress={() => setGroupFilter(group.id)}
+        ) : error && !profiles.length ? (
+          <View style={styles.loadingCard}>
+            <Text style={styles.errorTitle}>Member Master unavailable</Text>
+            <Text style={shared.muted}>{error}</Text>
+            <Pressable onPress={() => void load()} style={styles.primaryButton}>
+              <Text style={styles.primaryButtonText}>TRY AGAIN</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <>
+            <View style={styles.grid}>
+              <Metric label="Members" value={profiles.length.toLocaleString('en-PH')} />
+              <Metric
+                label="Members with Point Activity"
+                value={totals.membersWithPoints.toLocaleString('en-PH')}
               />
-            ))}
-          </View>
-
-          <Text style={[styles.label, styles.topGap]}>ROLE</Text>
-          <View style={styles.wrap}>
-            {ROLE_OPTIONS.map((role) => (
-              <Chip
-                key={role}
-                label={role === 'all' ? 'All Roles' : ROLE_LABELS[role]}
-                on={roleFilter === role}
-                onPress={() => setRoleFilter(role)}
+              <Metric
+                label="Lifetime Points"
+                value={totals.lifetime.toLocaleString('en-PH')}
               />
-            ))}
-          </View>
-
-          <View style={styles.switchRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.label}>ACTIVE ACCOUNTS ONLY</Text>
-              <Text style={styles.help}>Turn off to include inactive historical accounts.</Text>
+              <Metric
+                label="Available Points"
+                value={totals.available.toLocaleString('en-PH')}
+              />
+              <Metric
+                label="Pending Claimable"
+                value={totals.pending.toLocaleString('en-PH')}
+              />
+              <Metric
+                label="Point Audit Review"
+                value={totals.reviewMembers.toLocaleString('en-PH')}
+                note={totals.reviewMembers ? 'Balance mismatch detected' : 'No balance mismatch'}
+              />
             </View>
-            <Switch value={activeOnly} onValueChange={setActiveOnly} />
-          </View>
 
-          <Text style={[styles.label, styles.topGap]}>ACTIVITY PERIOD</Text>
-          <View style={styles.dateRow}>
-            <TextInput
-              value={dateFrom}
-              onChangeText={setDateFrom}
-              placeholder="YYYY-MM-DD"
-              autoCapitalize="none"
-              style={[styles.input, { flex: 1 }]}
-            />
-            <TextInput
-              value={dateTo}
-              onChangeText={setDateTo}
-              placeholder="YYYY-MM-DD"
-              autoCapitalize="none"
-              style={[styles.input, { flex: 1 }]}
-            />
-          </View>
-        </Card>
+            <View style={styles.filtersCard}>
+              <TextInput
+                value={search}
+                onChangeText={setSearch}
+                placeholder="Search member name, username or member ID"
+                placeholderTextColor={colors.muted}
+                style={styles.searchInput}
+                autoCapitalize="none"
+              />
 
-        <SectionTitle>MASTER RECORD STATUS</SectionTitle>
-        <View style={styles.metrics}>
-          <Metric label="Members" value={filteredProfiles.length} />
-          <Metric label="Roles" value={userRoles.filter((r) => r.is_active && memberIds.has(r.user_id)).length} />
-          <Metric label="Learning" value={lessonProgress.filter((r) => memberIds.has(r.user_id)).length} />
-          <Metric label="Bible" value={bibleSubmissions.filter((r) => memberIds.has(r.user_id)).length} />
-          <Metric label="Points" value={pointsLedger.filter((r) => memberIds.has(r.user_id)).length} />
-          <Metric label="Attendance" value={attendance.filter((r) => memberIds.has(r.user_id)).length} />
-        </View>
+              <Text style={styles.filterLabel}>ACCOUNT</Text>
+              <View style={styles.chipRow}>
+                {(['ALL', 'ACTIVE', 'INACTIVE'] as AccountFilter[]).map((value) => (
+                  <FilterChip
+                    key={value}
+                    label={value === 'ALL' ? 'All Accounts' : value}
+                    active={accountFilter === value}
+                    onPress={() => setAccountFilter(value)}
+                  />
+                ))}
+              </View>
 
-        <Button
-          title={loading ? 'LOADING MASTER RECORDS...' : 'REFRESH MASTER RECORDS'}
-          outline
-          onPress={load}
-        />
+              <Text style={styles.filterLabel}>POINT STATUS</Text>
+              <View style={styles.chipRow}>
+                <FilterChip
+                  label="All"
+                  active={pointFilter === 'ALL'}
+                  onPress={() => setPointFilter('ALL')}
+                />
+                <FilterChip
+                  label="Has Points"
+                  active={pointFilter === 'HAS_POINTS'}
+                  onPress={() => setPointFilter('HAS_POINTS')}
+                />
+                <FilterChip
+                  label="Pending Claim"
+                  active={pointFilter === 'PENDING'}
+                  onPress={() => setPointFilter('PENDING')}
+                />
+                <FilterChip
+                  label="Needs Review"
+                  active={pointFilter === 'REVIEW'}
+                  onPress={() => setPointFilter('REVIEW')}
+                />
+              </View>
+            </View>
 
-        <SectionTitle>EXCEL EXPORT</SectionTitle>
-        <Card>
-          <Text style={styles.exportTitle}>General Member Masterlist</Text>
-          <Text style={styles.help}>
-            Masterlist, roles and assignments, learning, Daily Bible status, BUKLOD Points,
-            Church Life and dashboard. Financial details and reflection text are excluded.
-          </Text>
-          <Button
-            title={exporting === 'general' ? 'CREATING EXCEL...' : 'EXPORT GENERAL MASTERLIST (.XLSX)'}
-            onPress={() => exportWorkbook(false)}
-          />
-        </Card>
+            <View style={styles.sectionHeader}>
+              <View>
+                <Text style={styles.sectionEyebrow}>MEMBER DIRECTORY</Text>
+                <Text style={styles.sectionTitle}>
+                  {filteredMembers.length.toLocaleString('en-PH')} matching members
+                </Text>
+              </View>
+              <Pressable
+                onPress={() => void exportAudit()}
+                disabled={exporting}
+                style={[styles.exportButton, exporting && { opacity: 0.55 }]}
+              >
+                <MaterialCommunityIcons
+                  name="file-excel-outline"
+                  size={17}
+                  color={colors.greenDark}
+                />
+                <Text style={styles.exportText}>
+                  {exporting ? 'EXPORTING…' : 'EXPORT AUDIT'}
+                </Text>
+              </Pressable>
+            </View>
 
-        <Card>
-          <Text style={styles.exportTitle}>Full Admin Master Record</Text>
-          <Text style={styles.help}>
-            Adds reflection text and Giving Summary for restricted System Admin recordkeeping.
-          </Text>
-          <Button
-            title={exporting === 'full' ? 'CREATING SECURE EXCEL...' : 'EXPORT FULL ADMIN MASTER RECORD (.XLSX)'}
-            onPress={() => exportWorkbook(true)}
-          />
-        </Card>
+            <View style={styles.memberList}>
+              {filteredMembers.slice(0, visibleLimit).map((profile) => {
+                const userId = String(profile.id);
+                const summary =
+                  pointSummaryMap.get(userId) ?? {
+                    lifetime: 0,
+                    available: 0,
+                    pending: 0,
+                    committedCredits: 0,
+                    debits: 0,
+                    ledgerEntries: 0,
+                    pendingEntries: 0,
+                    lifetimeMismatch: false,
+                    availableMismatch: false,
+                    status: 'NO_ACTIVITY' as const,
+                  };
+                const activeScopes = (membershipsByUser.get(userId) ?? []).filter(
+                  (row) =>
+                    String(row.membership_status).toUpperCase() === 'ACTIVE',
+                );
 
-        <View style={{ height: 80 }} />
+                return (
+                  <Pressable
+                    key={userId}
+                    onPress={() => setSelectedUserId(userId)}
+                    style={[
+                      styles.memberCard,
+                      selectedUserId === userId && styles.memberCardSelected,
+                    ]}
+                  >
+                    <View style={styles.memberHeader}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.memberName}>
+                          {profile.full_name || 'Unnamed Member'}
+                        </Text>
+                        <Text style={styles.memberMeta}>
+                          {profile.username ? `@${profile.username} · ` : ''}
+                          {profile.is_active ? 'ACTIVE' : 'INACTIVE'} · {activeScopes.length} active scope{activeScopes.length === 1 ? '' : 's'}
+                        </Text>
+                      </View>
+                      <StatusPill status={summary.status} />
+                    </View>
+
+                    <View style={styles.memberPointRow}>
+                      <Text style={styles.memberPoint}>
+                        Lifetime {formatNumber(summary.lifetime)}
+                      </Text>
+                      <Text style={styles.memberPoint}>
+                        Available {formatNumber(summary.available)}
+                      </Text>
+                      <Text style={styles.memberPoint}>
+                        Pending {formatNumber(summary.pending)}
+                      </Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {visibleLimit < filteredMembers.length ? (
+              <Pressable
+                onPress={() => setVisibleLimit((current) => current + 100)}
+                style={styles.secondaryButton}
+              >
+                <Text style={styles.secondaryButtonText}>SHOW MORE MEMBERS</Text>
+              </Pressable>
+            ) : null}
+
+            {selectedProfile && selectedSummary ? (
+              <View style={styles.detailSection}>
+                <View style={styles.detailHero}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.sectionEyebrow}>SELECTED MEMBER</Text>
+                    <Text style={styles.detailName}>
+                      {selectedProfile.full_name || 'Unnamed Member'}
+                    </Text>
+                    <Text style={styles.detailMeta}>
+                      {selectedProfile.username ? `@${selectedProfile.username} · ` : ''}
+                      {selectedProfile.is_active ? 'ACTIVE' : 'INACTIVE'} · joined {formatDate(selectedProfile.created_at)}
+                    </Text>
+                  </View>
+                  <StatusPill status={selectedSummary.status} />
+                </View>
+
+                <View style={styles.grid}>
+                  <Metric
+                    label="Lifetime"
+                    value={formatNumber(selectedSummary.lifetime)}
+                    note="Claimed + legacy credits"
+                  />
+                  <Metric
+                    label="Available"
+                    value={formatNumber(selectedSummary.available)}
+                    note="Current spendable Points"
+                  />
+                  <Metric
+                    label="Pending Claimable"
+                    value={formatNumber(selectedSummary.pending)}
+                    note={`${selectedSummary.pendingEntries} pending entries`}
+                  />
+                  <Metric
+                    label="Committed Credits"
+                    value={formatNumber(selectedSummary.committedCredits)}
+                  />
+                  <Metric
+                    label="Debits"
+                    value={formatNumber(selectedSummary.debits)}
+                  />
+                  <Metric
+                    label="Ledger Entries"
+                    value={selectedSummary.ledgerEntries.toLocaleString('en-PH')}
+                  />
+                </View>
+
+                <View
+                  style={[
+                    styles.auditCard,
+                    selectedSummary.status === 'REVIEW' && styles.auditCardWarning,
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name={
+                      selectedSummary.status === 'REVIEW'
+                        ? 'alert-circle-outline'
+                        : 'check-decagram-outline'
+                    }
+                    size={21}
+                    color={
+                      selectedSummary.status === 'REVIEW'
+                        ? '#8A5B19'
+                        : colors.greenDark
+                    }
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.auditTitle}>POINT BALANCE AUDIT</Text>
+                    <Text style={styles.auditText}>
+                      Lifetime balance {selectedSummary.lifetimeMismatch ? 'DOES NOT MATCH' : 'matches'} claimed/legacy credits. Available balance {selectedSummary.availableMismatch ? 'DOES NOT MATCH' : 'matches'} committed credits minus debits.
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.twoColumn}>
+                  <View style={styles.detailCard}>
+                    <Text style={styles.cardTitle}>Scope memberships</Text>
+                    {selectedMemberships.length ? (
+                      selectedMemberships.map((row) => {
+                        const scope = scopeMap.get(String(row.scope_id));
+                        return (
+                          <View key={String(row.id)} style={styles.detailRow}>
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.detailRowTitle}>
+                                {scope?.name || 'Unknown scope'}
+                              </Text>
+                              <Text style={styles.detailRowMeta}>
+                                {scope?.scope_type || 'SCOPE'} · {row.membership_status || 'UNKNOWN'}
+                              </Text>
+                            </View>
+                            <Text style={styles.smallDate}>
+                              {row.joined_at ? formatDate(row.joined_at) : ''}
+                            </Text>
+                          </View>
+                        );
+                      })
+                    ) : (
+                      <Text style={styles.emptyText}>No scope membership records.</Text>
+                    )}
+                  </View>
+
+                  <View style={styles.detailCard}>
+                    <Text style={styles.cardTitle}>Scoped roles</Text>
+                    {selectedRoles.length ? (
+                      selectedRoles.map((row) => {
+                        const scope = scopeMap.get(String(row.scope_id));
+                        return (
+                          <View key={String(row.id)} style={styles.detailRow}>
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.detailRowTitle}>
+                                {String(row.role_key || 'ROLE').replace(/_/g, ' ')}
+                              </Text>
+                              <Text style={styles.detailRowMeta}>
+                                {scope?.name || 'Unknown scope'} · {row.status || 'UNKNOWN'}
+                              </Text>
+                            </View>
+                          </View>
+                        );
+                      })
+                    ) : (
+                      <Text style={styles.emptyText}>No scoped-role records.</Text>
+                    )}
+                  </View>
+                </View>
+
+                <View style={styles.detailCard}>
+                  <Text style={styles.cardTitle}>Point ledger</Text>
+                  <Text style={styles.cardHint}>
+                    Latest 80 entries · Pending is not yet part of Lifetime or Available Points.
+                  </Text>
+
+                  {selectedLedger.length ? (
+                    selectedLedger.slice(0, 80).map((row) => {
+                      const isDebit = String(row.direction).toLowerCase() === 'debit';
+                      return (
+                        <View key={String(row.id)} style={styles.ledgerRow}>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.ledgerActivity}>
+                              {String(row.activity_type || 'Point activity').replace(/_/g, ' ')}
+                            </Text>
+                            <Text style={styles.ledgerMeta}>
+                              {String(row.claim_state || 'unknown').toUpperCase()} · {formatDate(row.created_at)}
+                            </Text>
+                            {!!row.description && (
+                              <Text style={styles.ledgerDescription}>
+                                {String(row.description)}
+                              </Text>
+                            )}
+                          </View>
+                          <Text
+                            style={[
+                              styles.ledgerPoints,
+                              isDebit && styles.ledgerPointsDebit,
+                            ]}
+                          >
+                            {isDebit ? '−' : '+'}{formatNumber(row.points)}
+                          </Text>
+                        </View>
+                      );
+                    })
+                  ) : (
+                    <Text style={styles.emptyText}>No point ledger activity.</Text>
+                  )}
+                </View>
+              </View>
+            ) : (
+              <View style={styles.selectHint}>
+                <MaterialCommunityIcons
+                  name="cursor-default-click-outline"
+                  size={20}
+                  color={colors.greenDark}
+                />
+                <Text style={styles.selectHintText}>
+                  Select a member above to open the individual Point Audit.
+                </Text>
+              </View>
+            )}
+          </>
+        )}
       </ScrollView>
     </AdminGate>
   );
 }
 
-function Chip({
-  label,
-  on,
-  onPress,
-}: {
-  label: string;
-  on: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable onPress={onPress} style={[styles.chip, on && styles.chipOn]}>
-      <Text style={[styles.chipText, on && styles.chipTextOn]}>{label}</Text>
-    </Pressable>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: number | string }) {
-  return (
-    <View style={styles.metric}>
-      <Text style={styles.metricValue}>{value}</Text>
-      <Text style={styles.metricLabel}>{label}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  content: { paddingBottom: 120 },
-  eyebrow: {
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 1.6,
-    color: '#78857E',
-    marginBottom: 4,
-  },
-  notice: {
-    marginTop: 6,
-    padding: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(39,93,69,0.13)',
-    backgroundColor: 'rgba(39,93,69,0.065)',
-    flexDirection: 'row',
-    gap: 6,
-    alignItems: 'flex-start',
-  },
-  noticeText: {
-    flex: 1,
-    fontSize: 11.5,
-    lineHeight: 17,
-    color: '#526159',
-  },
-  label: {
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.7,
-    color: colors.muted,
-  },
-  topGap: { marginTop: 16 },
-  wrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 6,
-  },
-  chip: {
-    paddingHorizontal: 11,
-    paddingVertical: 8,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: '#FFFFFF',
-  },
-  chipOn: {
-    backgroundColor: colors.greenSoft,
-    borderColor: colors.green,
-  },
-  chipText: {
-    fontSize: 10.5,
-    fontWeight: '800',
-    color: colors.text,
-  },
-  chipTextOn: { color: colors.green },
-  switchRow: {
-    marginTop: 6,
+  content: { padding: 18, paddingBottom: 100, gap: 14 },
+  backRow: {
+    alignSelf: 'flex-start',
+    minHeight: 38,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  help: {
-    marginTop: 5,
-    fontSize: 11,
-    lineHeight: 17,
+  backText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: colors.greenDark,
+    letterSpacing: 0.7,
+  },
+  hero: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  eyebrow: {
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 1,
+    color: colors.greenDark,
+    marginBottom: 4,
+  },
+  notice: {
+    flexDirection: 'row',
+    gap: 10,
+    padding: 13,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#D5E7DC',
+    backgroundColor: '#EEF8F2',
+  },
+  noticeText: {
+    flex: 1,
+    fontSize: 10.5,
+    lineHeight: 15,
     color: colors.muted,
   },
-  dateRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
-  input: {
-    minHeight: 44,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: '#FFFFFF',
-    color: colors.text,
-    fontSize: 12,
-  },
-  metrics: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 6,
-  },
-  metric: {
-    minWidth: '30%',
-    flexGrow: 1,
-    padding: 12,
+  loadingCard: {
+    minHeight: 160,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.line,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
+    padding: 20,
   },
-  metricValue: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: colors.green,
+  errorTitle: { fontSize: 14, fontWeight: '900', color: colors.text },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  metric: {
+    minWidth: 145,
+    flexGrow: 1,
+    flexBasis: '30%',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.white,
   },
-  metricLabel: {
+  metricValue: { fontSize: 16, fontWeight: '900', color: colors.greenDark },
+  metricLabel: { marginTop: 4, fontSize: 9.5, fontWeight: '800', color: colors.text },
+  metricNote: { marginTop: 2, fontSize: 8.5, lineHeight: 12, color: colors.muted },
+  filtersCard: {
+    gap: 9,
+    padding: 12,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.white,
+  },
+  searchInput: {
+    minHeight: 44,
+    borderRadius: 11,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: '#FAFCFB',
+    paddingHorizontal: 12,
+    color: colors.text,
+    fontSize: 11,
+  },
+  filterLabel: {
     marginTop: 2,
-    fontSize: 9.5,
-    fontWeight: '800',
+    fontSize: 8.5,
+    fontWeight: '900',
+    letterSpacing: 0.8,
     color: colors.muted,
   },
-  exportTitle: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: colors.text,
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  chip: {
+    minHeight: 34,
+    justifyContent: 'center',
+    paddingHorizontal: 11,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.white,
   },
+  chipActive: { borderColor: '#9BC6AA', backgroundColor: '#E8F4EC' },
+  chipText: { fontSize: 9.5, fontWeight: '800', color: colors.muted },
+  chipTextActive: { color: colors.greenDark },
+  sectionHeader: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+  },
+  sectionEyebrow: {
+    fontSize: 8.5,
+    fontWeight: '900',
+    letterSpacing: 1,
+    color: colors.muted,
+  },
+  sectionTitle: { marginTop: 2, fontSize: 17, fontWeight: '900', color: colors.text },
+  exportButton: {
+    minHeight: 38,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 11,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#BFDCC9',
+    backgroundColor: '#EEF8F2',
+  },
+  exportText: { fontSize: 9, fontWeight: '900', color: colors.greenDark },
+  memberList: { gap: 7 },
+  memberCard: {
+    padding: 12,
+    gap: 8,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.white,
+  },
+  memberCardSelected: { borderColor: '#74A887', backgroundColor: '#F4FAF6' },
+  memberHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  memberName: { fontSize: 12.5, fontWeight: '900', color: colors.text },
+  memberMeta: { marginTop: 2, fontSize: 9, color: colors.muted },
+  memberPointRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  memberPoint: { fontSize: 9.5, fontWeight: '800', color: colors.greenDark },
+  statusPill: {
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: '#EDF0EE',
+  },
+  statusPillOk: { backgroundColor: '#DCFCE7' },
+  statusPillWarning: { backgroundColor: '#FFF2CC' },
+  statusPillText: { fontSize: 8, fontWeight: '900', color: colors.muted },
+  statusPillTextOk: { color: '#166534' },
+  statusPillTextWarning: { color: '#8A5B19' },
+  primaryButton: {
+    minHeight: 40,
+    justifyContent: 'center',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    backgroundColor: colors.greenDark,
+  },
+  primaryButtonText: { color: '#FFFFFF', fontSize: 9.5, fontWeight: '900' },
+  secondaryButton: {
+    minHeight: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 11,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.white,
+  },
+  secondaryButtonText: { fontSize: 9.5, fontWeight: '900', color: colors.greenDark },
+  detailSection: { gap: 10, marginTop: 4 },
+  detailHero: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: '#173B2F',
+  },
+  detailName: { marginTop: 2, fontSize: 18, fontWeight: '900', color: '#FFFFFF' },
+  detailMeta: { marginTop: 3, fontSize: 9.5, color: 'rgba(255,255,255,0.75)' },
+  auditCard: {
+    flexDirection: 'row',
+    gap: 9,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#BFDCC9',
+    backgroundColor: '#EEF8F2',
+  },
+  auditCardWarning: { borderColor: '#E8D0A2', backgroundColor: '#FFF8EA' },
+  auditTitle: { fontSize: 9.5, fontWeight: '900', color: colors.text },
+  auditText: { marginTop: 2, fontSize: 9.5, lineHeight: 14, color: colors.muted },
+  twoColumn: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  detailCard: {
+    flexGrow: 1,
+    flexBasis: '45%',
+    minWidth: 260,
+    padding: 12,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.white,
+  },
+  cardTitle: { fontSize: 12, fontWeight: '900', color: colors.text },
+  cardHint: { marginTop: 2, marginBottom: 4, fontSize: 8.5, color: colors.muted },
+  detailRow: {
+    minHeight: 42,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+  },
+  detailRowTitle: { fontSize: 10, fontWeight: '800', color: colors.text },
+  detailRowMeta: { marginTop: 2, fontSize: 8.5, color: colors.muted },
+  smallDate: { maxWidth: 120, fontSize: 8, color: colors.muted, textAlign: 'right' },
+  ledgerRow: {
+    minHeight: 54,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    paddingVertical: 6,
+  },
+  ledgerActivity: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: colors.text,
+    textTransform: 'capitalize',
+  },
+  ledgerMeta: { marginTop: 2, fontSize: 8.5, color: colors.muted },
+  ledgerDescription: { marginTop: 2, fontSize: 8.5, lineHeight: 12, color: colors.muted },
+  ledgerPoints: { fontSize: 12, fontWeight: '900', color: '#166534' },
+  ledgerPointsDebit: { color: '#991B1B' },
+  emptyText: { marginTop: 7, fontSize: 9.5, lineHeight: 14, color: colors.muted },
+  selectHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 13,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.white,
+  },
+  selectHintText: { flex: 1, fontSize: 10, color: colors.muted },
 });
