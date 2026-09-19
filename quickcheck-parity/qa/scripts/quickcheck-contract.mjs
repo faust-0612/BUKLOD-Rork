@@ -20,6 +20,12 @@ const required = [
   ['release all grades', 'RELEASE ALL GRADES'],
   ['profile accessory entry', 'Profile &gt; Accessory Apps'],
   ['exact paper-review status action', 'Open exact Paper Review'],
+  ['session restore', 'hasQuickCheckSession'],
+  ['retry failed button', 'RETRY FAILED'],
+  ['rubric file button', 'SELECT RUBRIC FILE'],
+  ['open record button', 'OPEN RECORD'],
+  ['reprocess button', 'REPROCESS'],
+  ['sync package button', 'PREPARE BUKLOD SYNC PACKAGE'],
 ];
 
 for (const [label, token] of required) {
@@ -37,5 +43,8 @@ if (!api.includes('quickcheck-process-v1') || !api.includes('quickcheck-records-
 }
 if (!api.includes("action: 'reprocess_batch'") || !api.includes('reprocessPersisted')) {
   throw new Error('Persisted saved-batch reprocess adapter missing.');
+}
+if (app.includes('Faculty-side Classroom door')) {
+  throw new Error('Obsolete Faculty-door QuickCheck copy remains.');
 }
 console.log('QUICKCHECK_CONTRACT_PASS');
