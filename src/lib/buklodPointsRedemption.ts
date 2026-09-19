@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 
 export type BuklodPointsRedemptionStatus =
   | 'pending'
@@ -102,6 +103,17 @@ function toNullableNumber(value: unknown) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+async function redemptionReadRpc(
+  name: string,
+  args?: Record<string, unknown>,
+) {
+  return withBuklodTimeout<any>(
+    (supabase as any).rpc(name, args),
+    8_000,
+    `BUKLOD redemption ${name}`,
+  );
+}
+
 function textOrNull(value: unknown) {
   if (value == null || value === '') {
     return null;
@@ -193,7 +205,7 @@ export function createBuklodPointsRedemptionRequestKey(
 }
 
 export async function loadBuklodPointsRedemptionCenter(): Promise<BuklodPointsRedemptionCenter> {
-  const { data, error } = await (supabase as any).rpc(
+  const { data, error } = await redemptionReadRpc(
     'get_my_buklod_redemption_center_v1',
   );
 
@@ -219,11 +231,32 @@ export async function loadBuklodPointsRedemptionCenter(): Promise<BuklodPointsRe
         .map(normalizeRecord)
     : [];
 
+  /* BUKLOD_BAYANIHAN_ACCOUNTING_VIEW_R4
+   * User-visible balances fail closed and preserve the accounting invariant:
+   * spendable <= available <= lifetime, reserved <= available.
+   */
+  const lifetimePoints = Math.max(0, toNumber(row.lifetime_points));
+  const availablePoints = Math.max(
+    0,
+    Math.min(lifetimePoints, toNumber(row.available_points)),
+  );
+  const reservedPoints = Math.max(
+    0,
+    Math.min(availablePoints, toNumber(row.reserved_points)),
+  );
+  const spendablePoints = Math.max(
+    0,
+    Math.min(
+      availablePoints,
+      toNumber(row.spendable_points, availablePoints - reservedPoints),
+    ),
+  );
+
   return {
-    lifetime_points: toNumber(row.lifetime_points),
-    available_points: toNumber(row.available_points),
-    reserved_points: toNumber(row.reserved_points),
-    spendable_points: toNumber(row.spendable_points),
+    lifetime_points: lifetimePoints,
+    available_points: availablePoints,
+    reserved_points: reservedPoints,
+    spendable_points: spendablePoints,
     bayanihan: {
       enabled: Boolean(bayanihan.enabled),
       units_per_point: toNumber(bayanihan.units_per_point, 1),
