@@ -63,6 +63,27 @@ Rewarded Garden backend verified independently:
 - exactly 3 reward rows / +3 Garden Energy in the transaction
 - transaction rolled back
 
+### Reward/recurrence integrity blocker found and fixed
+
+The full-button audit exposed two backend exploits in the old completion function:
+- DONE -> pending -> DONE on a recurring task spawned duplicate future occurrences.
+- DONE -> pending -> DONE could grant Garden Energy repeatedly for the same task.
+
+Live migration `20260919164940_buklod_bahay_completion_reward_idempotency_r3` fixes both:
+- one completion-energy grant per item
+- one recurrence successor per source occurrence
+- internal reward/recurrence markers are stripped from each spawned child so every new occurrence starts clean
+- legacy recurrence rows self-heal by adopting an already-existing exact next occurrence
+
+Live rollback retest after deployment verified:
+- one rotated successor after repeat toggles
+- next assignee rotation works
+- confirm -> undo -> confirm still grants once and spawns once
+- REJECT -> recomplete -> CONFIRM works
+- CHILD/ADULT/PRIVATE visibility enforcement works
+- Stage-5 Garden harvest awards seeds once
+- post-harvest water does not consume energy
+
 ### Infrastructure
 
 Verified live:
