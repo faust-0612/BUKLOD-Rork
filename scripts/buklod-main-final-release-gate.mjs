@@ -56,6 +56,15 @@ forbidText('src/app/scope/index.tsx', 'Opening Public BUKLOD...', 'No infinite P
 requireText('src/components/BuklodNavSafeShell.tsx', 'Back to Community Wall', 'IGPAT has explicit Wall return');
 requireText('src/components/BuklodNavSafeShell.tsx', "router.replace('/buklod' as any)", 'IGPAT Wall return is route-authoritative');
 requireText('src/components/BuklodNavSafeShell.tsx', 'BUKLOD_ROOT_BACK_TO_WALL_R1', 'Android core direct-entry back converges on Wall');
+
+// IGPAT / Community Wall parity consolidated from the pending web + Android targeted updates.
+requireText('src/components/BuklodCommunityIgpatPreview.web.tsx', 'contentFit="contain"', 'Web Community IGPAT preview preserves source aspect');
+requireText('src/components/BuklodCommunityIgpatPreview.web.tsx', '/igpat?post=', 'Web Community IGPAT preview opens exact video');
+requireText('src/components/BuklodCommunityIgpatPreview.android.tsx', 'contentFit="contain"', 'Android Community IGPAT preview preserves source aspect');
+requireText('src/components/BuklodCommunityInlineAd.android.tsx', 'BuklodCommunityIgpatPreview', 'Android Community inline slot can render IGPAT preview');
+requireText('src/hooks/useBuklodCommunityAdViewability.ts', 'useBuklodCommunityInlineVisibility', 'Off-screen IGPAT playback uses true visibility');
+requireText('src/app/igpat/[postId].android.tsx', 'contentFit="contain"', 'Android focused IGPAT preserves source aspect');
+requireText('src/app/igpat/index.web.tsx', 'postId', 'Web IGPAT supports exact post targeting');
 requireText('src/app/account/security.tsx', 'Current Password', 'Change Password requires current-password verification');
 requireText('src/app/account/security.tsx', "router.canGoBack()", 'Password & Recovery has safe back');
 requireText('src/app/account/recovery-pin.tsx', "router.canGoBack()", 'Recovery PIN has safe back');
