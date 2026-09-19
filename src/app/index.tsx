@@ -27,9 +27,6 @@ function withBootTimeout<T>(promise: Promise<T>, ms = 7000) {
   });
 }
 
-function shortBootDelay(ms = 250) {
-  return new Promise<void>(resolve => setTimeout(resolve, ms));
-}
 
 export default function Index() {
   const { session, loading, profile } = useAuth();
@@ -105,16 +102,9 @@ export default function Index() {
 
         void (async () => {
           try {
-            try {
-              await withBootTimeout(
-                selectScope(publicScope.scope_id)
-              );
-            } catch (firstError) {
-              await shortBootDelay();
-              await withBootTimeout(
-                selectScope(publicScope.scope_id)
-              );
-            }
+            await withBootTimeout(
+              selectScope(publicScope.scope_id)
+            );
           } catch (error) {
             console.warn(
               'BUKLOD boot Public scope reset:',
