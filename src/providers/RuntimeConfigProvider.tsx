@@ -39,6 +39,15 @@ const RuntimeContext = createContext<RuntimeContextValue>({
 });
 
 const RUNTIME_CONFIG_TIMEOUT_MS = 4000;
+/*
+ * PERF_MAIN_BOOT_R3
+ *
+ * Runtime config changes rarely compared with app opens / network reconnects.
+ * Reuse a recently fetched per-user snapshot so mass login does not create a
+ * thundering herd against the API gateway. Manual refresh() still forces a
+ * server read.
+ */
+const RUNTIME_CONFIG_FRESH_MS = 2 * 60 * 1000;
 
 export function RuntimeConfigProvider({children}:{children:React.ReactNode}){
   const {user}=useAuth();
@@ -49,8 +58,9 @@ export function RuntimeConfigProvider({children}:{children:React.ReactNode}){
   const online=isConnected && isInternetReachable!==false;
   const version=Constants.expoConfig?.version ?? '0.0.0';
   const cacheKey=user ? `buklod:runtime:${user.id}:${appEnvironment}` : null;
+  const cacheFreshKey=cacheKey ? `${cacheKey}:fetched-at` : null;
 
-  const refresh=async()=>{
+  const refresh=async(force=true)=>{
     if(!user){
       setConfig(null);
       setLoading(false);
@@ -58,10 +68,19 @@ export function RuntimeConfigProvider({children}:{children:React.ReactNode}){
     }
 
     let cachedConfig:RuntimeConfig|null=null;
+    let cachedFetchedAt=0;
 
     if(cacheKey){
       try{
-        const cached=await AsyncStorage.getItem(cacheKey);
+        const [cached,cachedAtRaw]=await Promise.all([
+          AsyncStorage.getItem(cacheKey),
+          cacheFreshKey
+            ? AsyncStorage.getItem(cacheFreshKey)
+            : Promise.resolve(null),
+        ]);
+
+        cachedFetchedAt=Number(cachedAtRaw ?? 0) || 0;
+
         if(cached){
           try{
             cachedConfig=JSON.parse(cached) as RuntimeConfig;
@@ -69,7 +88,6 @@ export function RuntimeConfigProvider({children}:{children:React.ReactNode}){
             /*
              * BUKLOD_GLOBAL_BOOT_R20:
              * Cached runtime config is enough to release the shell.
-             * The server refresh continues below when online.
              */
             setLoading(false);
           }catch{}
@@ -83,6 +101,16 @@ export function RuntimeConfigProvider({children}:{children:React.ReactNode}){
     }
 
     if(!online){
+      setLoading(false);
+      return;
+    }
+
+    if(
+      !force &&
+      cachedConfig &&
+      cachedFetchedAt > 0 &&
+      Date.now() - cachedFetchedAt < RUNTIME_CONFIG_FRESH_MS
+    ){
       setLoading(false);
       return;
     }
@@ -110,14 +138,23 @@ export function RuntimeConfigProvider({children}:{children:React.ReactNode}){
       setConfig(next);
 
       if(cacheKey){
-        void AsyncStorage
-          .setItem(cacheKey,JSON.stringify(next))
-          .catch((error)=>{
-            console.warn(
-              'BUKLOD runtime cache save:',
-              String((error as Error)?.message ?? error)
-            );
-          });
+        void Promise.all([
+          AsyncStorage.setItem(
+            cacheKey,
+            JSON.stringify(next)
+          ),
+          cacheFreshKey
+            ? AsyncStorage.setItem(
+                cacheFreshKey,
+                String(Date.now())
+              )
+            : Promise.resolve(),
+        ]).catch((error)=>{
+          console.warn(
+            'BUKLOD runtime cache save:',
+            String((error as Error)?.message ?? error)
+          );
+        });
       }
     }catch(error){
       console.warn(
@@ -129,7 +166,7 @@ export function RuntimeConfigProvider({children}:{children:React.ReactNode}){
     }
   };
 
-  useEffect(()=>{void refresh()},[user?.id,online,appEnvironment]);
+  useEffect(()=>{void refresh(false)},[user?.id,online,appEnvironment]);
 
   const value=useMemo(()=>({
     loading,
