@@ -146,6 +146,7 @@ async function installMocks(page: Page, options: { invalidHandoff?: boolean } = 
     }
     if (body.action === 'analyze') {
       const source = body.pages?.[0]?.name || 'imported.png';
+      const poor = /poor/i.test(source);
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -159,10 +160,10 @@ async function installMocks(page: Page, options: { invalidHandoff?: boolean } = 
           assessmentKind: 'Activity',
           questions: [{ number: '1', question: 'Imported question', answer: 'Imported answer' }],
           questionSignature: 'imported q1',
-          imageQuality: 'clear',
-          needsRescan: false,
-          confidence: 0.99,
-          flags: [],
+          imageQuality: poor ? 'poor' : 'clear',
+          needsRescan: poor,
+          confidence: poor ? 0.35 : 0.99,
+          flags: poor ? ['Blurred / unreadable test page'] : [],
         }] }),
       });
     }
@@ -365,9 +366,10 @@ test('local file and folder import paths process selected images', async ({ page
     return canvas.toDataURL('image/png').split(',')[1];
   });
   const png = Buffer.from(pngBase64, 'base64');
-  const inputs = page.locator('input[type="file"]');
-
-  await inputs.nth(0).setInputFiles({ name: 'paper.png', mimeType: 'image/png', buffer: png });
+  const fileChooserPromise = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'SELECT FILES' }).click();
+  const fileChooser = await fileChooserPromise;
+  await fileChooser.setFiles({ name: 'paper.png', mimeType: 'image/png', buffer: png });
   await expect(page.getByText(/1\/1 file\(s\) accepted/i)).toBeVisible();
   await expect(page.getByText('END-TO-END BATCH REPORT')).toBeVisible();
 
@@ -376,12 +378,39 @@ test('local file and folder import paths process selected images', async ({ page
   const folder = mkdtempSync(join(tmpdir(), 'quickcheck-e2e-folder-'));
   try {
     writeFileSync(join(folder, 'folder-paper.png'), png);
-    await inputs.nth(1).setInputFiles(folder);
+    const folderChooserPromise = page.waitForEvent('filechooser');
+    await page.getByRole('button', { name: 'SELECT FOLDER' }).click();
+    const folderChooser = await folderChooserPromise;
+    await folderChooser.setFiles(folder);
     await expect(page.getByText(/1\/1 file\(s\) accepted/i)).toBeVisible();
     await expect(page.getByText('END-TO-END BATCH REPORT')).toBeVisible();
   } finally {
     rmSync(folder, { recursive: true, force: true });
   }
+});
+
+test('failed page retry button is reachable and never silently grades a poor page', async ({ page }) => {
+  await installMocks(page);
+  await page.goto('/?handoff=E2E-CODE');
+
+  const pngBase64 = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 96; canvas.height = 96;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas unavailable.');
+    ctx.fillStyle = '#ddd'; ctx.fillRect(0, 0, 96, 96);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+
+  const chooserPromise = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'SELECT FILES' }).click();
+  const chooser = await chooserPromise;
+  await chooser.setFiles({ name: 'poor.png', mimeType: 'image/png', buffer: Buffer.from(pngBase64, 'base64') });
+
+  await expect(page.getByRole('button', { name: 'RETRY FAILED' })).toBeVisible();
+  await page.getByRole('button', { name: 'RETRY FAILED' }).click();
+  await expect(page.getByRole('button', { name: 'RETRY FAILED' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'AUTO-SORT & SUGGEST GRADES', exact: true })).toBeDisabled();
 });
 
 test('saved batch reprocess persists repaired grouping before release', async ({ page }) => {
