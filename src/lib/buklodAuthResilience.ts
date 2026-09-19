@@ -115,6 +115,32 @@ export function isBuklodInvalidCredentialsError(
   );
 }
 
+export function isBuklodRateLimitError(
+  error: any
+): boolean {
+  if (!error) {
+    return false;
+  }
+
+  const code = authErrorCode(error);
+  const text = authErrorText(error);
+  const status = authErrorStatus(error);
+
+  return (
+    status === 429 ||
+    code === 'over_request_rate_limit' ||
+    code === 'over_email_send_rate_limit' ||
+    text.includes('too many requests') ||
+    text.includes('rate limit') ||
+    text.includes('rate-limit')
+  );
+}
+
+/*
+ * BUKLOD_MASS_LOGIN_RATE_LIMIT_GUARD_R22
+ * Keep rate-limit detection separate from generic transient failures so the
+ * Login UI can pause repeated taps instead of amplifying a shared-IP burst.
+ */
 export function isBuklodTransientAuthError(
   error: any
 ): boolean {

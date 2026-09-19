@@ -235,9 +235,10 @@ export default function BuklodFoundationWorkspaceNav() {
            */
           /* BUKLOD_PROFILE_QUIZ_DEVICE_SESSION_SELF_HEAL_R3
            * getSession() reads local persisted state and can be stale on one
-           * browser/device. Confirm it against Main Auth with getUser(). If
-           * validation fails, refresh exactly once. Never loop refresh/bridge
-           * requests and never expose refresh tokens to Quiz.
+           * browser/device. Verify its signed claims with getClaims(). With
+           * asymmetric signing this uses cached JWKS instead of a per-launch
+           * Main Auth user lookup. If validation fails, refresh exactly once.
+           * Never loop refresh/bridge requests or expose refresh tokens to Quiz.
            */
           const { data, error } = await supabase.auth.getSession();
           if (error) throw error;
@@ -250,12 +251,12 @@ export default function BuklodFoundationWorkspaceNav() {
           }
 
           const validation = await Promise.race([
-            supabase.auth.getUser(accessToken),
+            supabase.auth.getClaims(accessToken),
             new Promise<any>((resolve) => {
               setTimeout(
                 () =>
                   resolve({
-                    data: { user: null },
+                    data: { claims: null },
                     error: new Error('BUKLOD_MAIN_SESSION_VALIDATE_TIMEOUT'),
                   }),
                 8_000,
@@ -263,7 +264,7 @@ export default function BuklodFoundationWorkspaceNav() {
             }),
           ]);
 
-          if (validation?.error || !validation?.data?.user) {
+          if (validation?.error || !validation?.data?.claims?.sub) {
             const refreshed = await Promise.race([
               supabase.auth.refreshSession(),
               new Promise<any>((resolve) => {
@@ -289,12 +290,12 @@ export default function BuklodFoundationWorkspaceNav() {
             }
 
             const revalidated = await Promise.race([
-              supabase.auth.getUser(accessToken),
+              supabase.auth.getClaims(accessToken),
               new Promise<any>((resolve) => {
                 setTimeout(
                   () =>
                     resolve({
-                      data: { user: null },
+                      data: { claims: null },
                       error: new Error(
                         'BUKLOD_MAIN_SESSION_REVALIDATE_TIMEOUT',
                       ),
@@ -304,7 +305,7 @@ export default function BuklodFoundationWorkspaceNav() {
               }),
             ]);
 
-            if (revalidated?.error || !revalidated?.data?.user) {
+            if (revalidated?.error || !revalidated?.data?.claims?.sub) {
               throw new Error(
                 'BUKLOD refreshed your saved session, but this device could not validate it. Check your connection, then sign in again if needed.',
               );
