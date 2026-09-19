@@ -85,7 +85,7 @@ if ((git rev-parse HEAD).Trim() -ne $sourceSha) {
 
 Write-Host ""
 Write-Host "=== 1/10 LOCKED DEPENDENCIES ===" -ForegroundColor Yellow
-Invoke-Checked npm ci --ignore-scripts
+Invoke-Checked npm.cmd ci --ignore-scripts
 
 Write-Host ""
 Write-Host "=== 2/10 FINAL STATIC RELEASE CONTRACT ===" -ForegroundColor Yellow
@@ -94,11 +94,11 @@ Invoke-Checked node scripts/auth-canonical-login-contract.mjs
 
 Write-Host ""
 Write-Host "=== 3/10 JEST REGRESSION SUITE ===" -ForegroundColor Yellow
-Invoke-Checked npm test
+Invoke-Checked npm.cmd test
 
 Write-Host ""
 Write-Host "=== 4/10 TYPESCRIPT RELEASE QA ===" -ForegroundColor Yellow
-Invoke-Checked npx tsc --noEmit
+Invoke-Checked npx.cmd tsc --noEmit
 
 Write-Host ""
 Write-Host "=== 5/10 MIGRATION PACKAGE MANIFEST ===" -ForegroundColor Yellow
@@ -110,7 +110,7 @@ if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath "final-migration-manife
 
 Write-Host ""
 Write-Host "=== 6/10 EXPO / DEPENDENCY DOCTOR ===" -ForegroundColor Yellow
-Invoke-Checked npx expo-doctor@latest
+Invoke-Checked npx.cmd expo-doctor@latest
 
 Write-Host ""
 Write-Host "=== 7/10 PRODUCTION ENVIRONMENT PREFLIGHT ===" -ForegroundColor Yellow
@@ -119,13 +119,13 @@ $env:APP_VARIANT = "production"
 $env:BUKLOD_APP_TARGET = "main"
 $env:EAS_PROJECT_ID = "23dad7d0-389a-406e-8dec-08965dab85d8"
 
-Invoke-Checked npx eas-cli@latest whoami --non-interactive
+Invoke-Checked npx.cmd eas-cli@latest whoami --non-interactive
 
 if (Test-Path -LiteralPath ".env.local") {
   Remove-Item -LiteralPath ".env.local" -Force
 }
 
-Invoke-Checked npx eas-cli@latest env:pull --environment production --path .env.local --non-interactive
+Invoke-Checked npx.cmd eas-cli@latest env:pull --environment production --path .env.local --non-interactive
 
 if (-not (Test-Path -LiteralPath ".env.local")) {
   throw "Production .env.local was not pulled."
@@ -137,7 +137,7 @@ if ($env:EXPO_PUBLIC_SUPABASE_URL -ne "https://yhanxndaqbmuzbdqlblu.supabase.co"
   throw "Wrong production Supabase project: $($env:EXPO_PUBLIC_SUPABASE_URL)"
 }
 
-Invoke-Checked npm run production:preflight
+Invoke-Checked npm.cmd run production:preflight
 
 Write-Host ""
 Write-Host "=== 8/10 FRESH PRODUCTION WEB EXPORT ===" -ForegroundColor Yellow
@@ -145,7 +145,7 @@ if (Test-Path -LiteralPath "dist") {
   Remove-Item -LiteralPath "dist" -Recurse -Force
 }
 $env:NODE_ENV = "production"
-Invoke-Checked npx expo export --platform web --output-dir dist --clear
+Invoke-Checked npx.cmd expo export --platform web --output-dir dist --clear
 
 if (-not (Test-Path -LiteralPath "dist\index.html")) {
   throw "Web export did not produce dist\index.html."
@@ -184,7 +184,7 @@ Write-Host "=== 9/10 ANDROID JS / ASSET EXPORT ===" -ForegroundColor Yellow
 if (Test-Path -LiteralPath "dist-android") {
   Remove-Item -LiteralPath "dist-android" -Recurse -Force
 }
-Invoke-Checked npx expo export --platform android --output-dir dist-android --clear
+Invoke-Checked npx.cmd expo export --platform android --output-dir dist-android --clear
 
 $androidFiles = Get-ChildItem -LiteralPath "dist-android" -File -Recurse -ErrorAction SilentlyContinue
 if (-not $androidFiles) {
