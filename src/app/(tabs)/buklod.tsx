@@ -194,6 +194,54 @@ type Mention={user_id:string;full_name:string;church_name:string;group_name:stri
 
 let PERF2_MENTION_SEARCH_SEQ = 0;
 
+/* BUKLOD_WALL_REMOTE_GUARD_R4
+ * Normalize thrown transport failures so Community actions always return to
+ * an actionable UI state. Reads are additionally time-bounded; writes stay
+ * authoritative and are not locally timed out because a timed-out write may
+ * already have committed and must never be blindly replayed.
+ */
+async function communityRpc(
+ name:string,
+ args:Record<string,unknown>
+):Promise<any>{
+ try{
+  return await (supabase as any).rpc(name,args);
+ }
+ catch(error:any){
+  return {
+   data:null,
+   error:{
+    message:String(
+     error?.message??
+     error??
+     'Community request failed.'
+    )
+   }
+  };
+ }
+}
+
+async function communityReadRpc(
+ name:string,
+ args:Record<string,unknown>,
+ timeoutMs=7000
+):Promise<any>{
+ return withBuklodTimeout(
+  communityRpc(name,args),
+  timeoutMs,
+  `Community ${name}`
+ ).catch((error:any)=>({
+  data:null,
+  error:{
+   message:String(
+    error?.message??
+    error??
+    'Community request timed out.'
+   )
+  }
+ }));
+}
+
 /* PERF2_MENTION_SEARCH_DEBOUNCE */
 
 // PATCH_161H_C_PHOTO_VIEWER_PLUS
@@ -985,17 +1033,24 @@ const load=useCallback(async(options?:{
       'author_name',
     ),
     postIds.length
-      ? supabase
-          .from('reactions')
-          .select('post_id,reaction')
-          .eq(
-            'user_id',
-            user.id
-          )
-          .in(
-            'post_id',
-            postIds
-          )
+      ? withBuklodTimeout<any>(
+          supabase
+            .from('reactions')
+            .select('post_id,reaction')
+            .eq(
+              'user_id',
+              user.id
+            )
+            .in(
+              'post_id',
+              postIds
+            ),
+          5000,
+          'Community my reactions'
+        ).catch(() => ({
+          data: [] as any[],
+          error: null,
+        }))
       : Promise.resolve({
           data: [] as any[],
           error: null,
@@ -1668,7 +1723,7 @@ const load=useCallback(async(options?:{
   ) {
     return;
   }
-const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v2',{p_audience:audience,p_group_id:audience==='group'?group?.id??null:null,p_query:q,p_limit:40});
+const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p_audience:audience,p_group_id:audience==='group'?group?.id??null:null,p_query:q,p_limit:40},6000);
   if(error)return Alert.alert('Mention',error.message);(
   perfMentionSeq ===
   PERF2_MENTION_SEARCH_SEQ
@@ -1794,10 +1849,7 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
     data:created,
     error:createError
    }=
-    await (
-     supabase as any
-    ).rpc(
-     'create_buklod_community_post_v3',
+    await communityRpc('create_buklod_community_post_v3',
      {
       p_audience:
        snapshot.audience,
@@ -2135,10 +2187,7 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
   );
 
   const {error}=
-    await(
-      supabase as any
-    ).rpc(
-      'set_buklod_post_reaction_v3',
+    awaitcommunityRpc('set_buklod_post_reaction_v3',
       {
         p_post_id:
           postId,
@@ -2186,20 +2235,14 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
      reactionsResult
     ]=
      await Promise.all([
-      (
-       supabase as any
-      ).rpc(
-       'get_buklod_post_comments_v4',
+      communityReadRpc('get_buklod_post_comments_v4',
        {
         p_post_id:
          postId
        }
       ),
 
-      (
-       supabase as any
-      ).rpc(
-       'get_buklod_comment_reactions_v1',
+      communityReadRpc('get_buklod_comment_reactions_v1',
        {
         p_post_id:
          postId
@@ -2226,19 +2269,27 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
      ) as any[];
 
     const hydratedRows=
-      await hydratePersonNamesOnRows(
-        rows,
-        'user_id',
-        'commenter_name',
-      );
+      await withBuklodTimeout(
+        hydratePersonNamesOnRows(
+          rows,
+          'user_id',
+          'commenter_name',
+        ),
+        5000,
+        'Community comment names'
+      ).catch(()=>rows);
 
     const clusterMap=
-     await getClusterLabels(
-      hydratedRows.map(
-       (row:any)=>
-        row.user_id
-      )
-     );
+     await withBuklodTimeout(
+       getClusterLabels(
+        hydratedRows.map(
+         (row:any)=>
+          row.user_id
+        )
+       ),
+       5000,
+       'Community comment clusters'
+     ).catch(()=>({} as Record<string,string>));
 
     const reactionMap=
      new Map<string,any>();
@@ -2353,10 +2404,7 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
    setCommentBusy(true);
 
    const {error}=
-    await (
-     supabase as any
-    ).rpc(
-     'add_buklod_post_comment_v4',
+    await communityRpc('add_buklod_post_comment_v4',
      {
       p_post_id:
        commentPost.id,
@@ -2464,10 +2512,7 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
    );
 
    const {error}=
-    await (
-     supabase as any
-    ).rpc(
-     'set_buklod_comment_reaction_v1',
+    await communityRpc('set_buklod_comment_reaction_v1',
      {
       p_comment_id:
        targetId,
@@ -2498,10 +2543,7 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
    body:string
   )=>{
    const {error}=
-    await (
-     supabase as any
-    ).rpc(
-     'update_buklod_post_comment_v1',
+    await communityRpc('update_buklod_post_comment_v1',
      {
       p_comment_id:commentId,
       p_body:body
@@ -2520,10 +2562,7 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
  const deleteCommentById=
   async(commentId:string)=>{
    const {error}=
-    await (
-     supabase as any
-    ).rpc(
-     'delete_buklod_post_comment_v1',
+    await communityRpc('delete_buklod_post_comment_v1',
      {
       p_comment_id:commentId
      }
@@ -2599,10 +2638,7 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
     data,
     error
    }=
-    await (
-     supabase as any
-    ).rpc(
-     'set_buklod_photo_reaction_v1',
+    await communityRpc('set_buklod_photo_reaction_v1',
      {
       p_post_id:
        postId,
