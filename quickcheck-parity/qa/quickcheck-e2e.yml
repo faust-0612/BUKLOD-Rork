@@ -28,6 +28,8 @@ jobs:
         run: node scripts/quickcheck-contract.mjs
       - name: Live Supabase backend smoke
         run: node scripts/quickcheck-backend-smoke.mjs
+      - name: Backend concurrency / latency smoke
+        run: node scripts/quickcheck-load-smoke.mjs
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Browser E2E
