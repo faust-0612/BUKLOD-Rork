@@ -7,6 +7,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Text,
   View,
   useWindowDimensions,
 } from 'react-native';
@@ -26,7 +27,6 @@ import BuklodGameBackdrop from '@/features/games/runtime/BuklodGameBackdrop';
 import {
   BuklodGameLanguageControl,
   BuklodGameLanguageProvider,
-  BuklodGameText as Text,
 } from '@/features/games/runtime/BuklodGameLanguage';
 import { playRorkSignatureSfx } from '@/features/games/runtime/rorkAudio';
 
@@ -893,6 +893,11 @@ const styles = StyleSheet.create({
   signText: { color: '#f6deb2', fontSize: 8, fontWeight: '900', textAlign: 'center', letterSpacing: 0.8 },
 
   stationWrap: {
+    position: 'absolute',
+    width: 138,
+    zIndex: 20,
+    alignItems: 'center',
+  },
   worldGrowthMarks: {
     position: 'absolute',
     left: 17,
@@ -908,11 +913,6 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.52)',
-  },
-    position: 'absolute',
-    width: 138,
-    zIndex: 20,
-    alignItems: 'center',
   },
   stationGlow: {
     position: 'absolute',
