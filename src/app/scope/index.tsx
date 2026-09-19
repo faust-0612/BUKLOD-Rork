@@ -270,11 +270,13 @@ ScopeWorkspaceScreen() {
   const exitWorkspace =
     useCallback(
       async () => {
-        if (router.canGoBack()) {
-          router.back();
-          return;
-        }
-
+        /*
+         * BUKLOD_SCOPED_EXIT_PUBLIC_FIRST_R2
+         * Managed workspaces must restore PUBLIC before any history-based
+         * navigation. Otherwise a valid browser/native history entry can keep
+         * the active Organization/Cluster scope alive and bounce the user back
+         * into /scope instead of reaching Community Wall.
+         */
         if (
           workspaceScope?.scope_type ===
             'CLUSTER' ||
@@ -286,6 +288,11 @@ ScopeWorkspaceScreen() {
             scopes,
             '/buklod'
           );
+          return;
+        }
+
+        if (router.canGoBack()) {
+          router.back();
           return;
         }
 
