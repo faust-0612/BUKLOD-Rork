@@ -13,6 +13,7 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 import { useBuklodCommunityInlineVisibility } from '@/hooks/useBuklodCommunityAdViewability';
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import { supabase } from '@/lib/supabase';
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 
 type IgpatPreviewRow = {
@@ -30,6 +31,7 @@ type Props = {
 };
 
 const PREVIEW_LIMIT = 12;
+const IGPAT_PREVIEW_TIMEOUT_MS = 8_000;
 const SIGNED_URL_TTL_SECONDS = 1200;
 const CACHE_TTL_MS = 8 * 60 * 1000;
 
@@ -50,10 +52,14 @@ async function loadPreviewRows() {
   if (pendingRows) return pendingRows;
 
   pendingRows = (async () => {
-    const result = await (supabase as any).rpc('get_buklod_igpat_feed_v2', {
-      p_mode: 'for-you',
-      p_limit: PREVIEW_LIMIT,
-    });
+    const result = await withBuklodTimeout<any>(
+      (supabase as any).rpc('get_buklod_igpat_feed_v2', {
+        p_mode: 'for-you',
+        p_limit: PREVIEW_LIMIT,
+      }),
+      IGPAT_PREVIEW_TIMEOUT_MS,
+      'Community IGPAT preview feed'
+    );
 
     if (result?.error) throw result.error;
 
@@ -64,9 +70,16 @@ async function loadPreviewRows() {
     const signed = await Promise.all(
       source.map(async row => {
         const mediaPath = String(row.media_path ?? '');
-        const { data, error } = await supabase.storage
-          .from('community-media')
-          .createSignedUrl(mediaPath, SIGNED_URL_TTL_SECONDS);
+        const { data, error } = await withBuklodTimeout<any>(
+          supabase.storage
+            .from('community-media')
+            .createSignedUrl(mediaPath, SIGNED_URL_TTL_SECONDS),
+          IGPAT_PREVIEW_TIMEOUT_MS,
+          'Community IGPAT preview media'
+        ).catch((timeoutError) => ({
+          data: null,
+          error: timeoutError,
+        }));
 
         if (error || !data?.signedUrl) return null;
 
