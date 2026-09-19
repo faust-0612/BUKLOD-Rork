@@ -14,6 +14,7 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import { supabase } from '@/lib/supabase';
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 
 type FocusedIgpat = {
   id: string;
@@ -24,6 +25,7 @@ type FocusedIgpat = {
   author_name: string;
 };
 
+const IGPAT_READ_TIMEOUT_MS = 10_000;
 const SIGNED_URL_TTL_SECONDS = 1200;
 
 function FocusedVideo({ uri }: { uri: string }) {
@@ -96,21 +98,29 @@ export default function FocusedIgpatScreen() {
       setErrorMessage(null);
 
       try {
-        const { data: post, error } = await supabase
-          .from('community_posts')
-          .select('id,user_id,body,media_path,is_reel,media_mime_type')
-          .eq('id', postId)
-          .eq('is_reel', true)
-          .maybeSingle();
+        const { data: post, error } = await withBuklodTimeout<any>(
+          supabase
+            .from('community_posts')
+            .select('id,user_id,body,media_path,is_reel,media_mime_type')
+            .eq('id', postId)
+            .eq('is_reel', true)
+            .maybeSingle(),
+          IGPAT_READ_TIMEOUT_MS,
+          'IGPAT focused post'
+        );
 
         if (error) throw error;
         if (!post?.id || !post.media_path) {
           throw new Error('IGPAT video not found or is no longer available.');
         }
 
-        const { data: signed, error: signError } = await supabase.storage
-          .from('community-media')
-          .createSignedUrl(String(post.media_path), SIGNED_URL_TTL_SECONDS);
+        const { data: signed, error: signError } = await withBuklodTimeout<any>(
+          supabase.storage
+            .from('community-media')
+            .createSignedUrl(String(post.media_path), SIGNED_URL_TTL_SECONDS),
+          IGPAT_READ_TIMEOUT_MS,
+          'IGPAT focused media URL'
+        );
 
         if (signError || !signed?.signedUrl) {
           throw signError ?? new Error('IGPAT video could not be opened.');
@@ -118,11 +128,15 @@ export default function FocusedIgpatScreen() {
 
         let authorName = '';
         if (post.user_id) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('full_name,username,mobile')
-            .eq('id', post.user_id)
-            .maybeSingle();
+          const { data: profile } = await withBuklodTimeout<any>(
+            supabase
+              .from('profiles')
+              .select('full_name,username,mobile')
+              .eq('id', post.user_id)
+              .maybeSingle(),
+            IGPAT_READ_TIMEOUT_MS,
+            'IGPAT focused author'
+          ).catch(() => ({ data: null }));
 
           authorName = resolvePersonDisplayName({
             full_name: profile?.full_name ?? null,
