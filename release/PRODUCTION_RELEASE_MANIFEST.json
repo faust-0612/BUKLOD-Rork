@@ -26,7 +26,7 @@
     "web_before_apk": true,
     "same_source_sha_for_web_and_apk": true
   },
-  "external_requirements_embedded": true,
+  "external_requirements_embedded": false,
   "automatic_crash_telemetry_connected": false,
   "privacy_placeholders_must_be_replaced": false,
   "execution_pack": {
