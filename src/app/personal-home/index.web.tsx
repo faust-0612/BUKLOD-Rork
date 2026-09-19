@@ -1,3 +1,10 @@
-import BuklodPersonalHomeE2E from '@/components/home/BuklodPersonalHomeE2E';
+import BuklodStandaloneLaunchScreen from '@/components/standalone/BuklodStandaloneLaunchScreen';
 
-export default BuklodPersonalHomeE2E;
+export default function BuklodHomeStandaloneLauncher() {
+  return (
+    <BuklodStandaloneLaunchScreen
+      target="home"
+      title="BUKLOD Home"
+    />
+  );
+}
