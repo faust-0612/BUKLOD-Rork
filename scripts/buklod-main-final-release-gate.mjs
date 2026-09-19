@@ -93,6 +93,10 @@ requireText('src/lib/buklodPerformanceFetch.ts', 'simultaneous identical GET /au
 requireText('src/lib/buklodR4RequestShield.ts', 'BUKLOD_MASS_CONCURRENCY_R32', 'Mass concurrency request shield');
 requireText('src/app/(tabs)/buklod.tsx', 'BUKLOD_ROOT_PERFORMANCE_R3_COMMUNITY_REALTIME', 'Community realtime performance lock');
 requireText('src/app/(tabs)/buklod.tsx', 'PERF_EMERGENCY_R2_STALE_LOAD', 'Community stale-load protection');
+requireText('src/app/(tabs)/buklod.tsx', 'BUKLOD_WALL_REMOTE_GUARD_R4', 'Wall remote actions normalize transport failures');
+requireText('src/app/(tabs)/buklod.tsx', 'communityReadRpc', 'Wall interactive reads are time-bounded');
+requireText('src/app/(tabs)/me.tsx', "'Profile Circle Rank'", 'Profile rank read is time-bounded');
+requireText('src/app/(tabs)/me.tsx', "'Profile background'", 'Profile background read is time-bounded');
 
 // Community AI must fail/recover instead of holding UI indefinitely.
 requireText('src/lib/buklodCommunityAi.ts', 'withBuklodTimeout', 'Community AI client waits are bounded');
