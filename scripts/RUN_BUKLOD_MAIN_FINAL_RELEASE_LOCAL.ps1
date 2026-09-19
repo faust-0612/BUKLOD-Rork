@@ -35,7 +35,6 @@ function Load-DotEnv([string]$Path) {
   }
 }
 
-Write-Host " PHYSICAL DEVICE NATIVE QA STILL REQUIRED BEFORE PLAY SUBMISSION" -ForegroundColor Yellow
 Write-Host "====================================================================" -ForegroundColor Green
 Write-Host " BUKLOD MAIN FINAL LOCAL RELEASE FALLBACK" -ForegroundColor Green
 Write-Host " AUTOMATED QA -> NATIVE CNG QA -> AAB -> EXACT RC -> MAIN -> WEB" -ForegroundColor Green
@@ -253,4 +252,5 @@ Write-Host " BUKLOD MAIN FINAL WEB + AAB BUILD COMPLETE" -ForegroundColor Green
 Write-Host " SOURCE SHA: $rcSha" -ForegroundColor Green
 Write-Host " WEB: https://buklod.expo.app" -ForegroundColor Green
 Write-Host " AAB BUILD RECORD: $qaRoot\eas-aab-build.json" -ForegroundColor Green
+Write-Host " PHYSICAL DEVICE NATIVE QA STILL REQUIRED BEFORE PLAY SUBMISSION" -ForegroundColor Yellow
 Write-Host "====================================================================" -ForegroundColor Green
