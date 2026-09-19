@@ -411,9 +411,11 @@ module.exports = ({ config }) => {
       appTarget,
 
       eas:
-        projectId
-          ? { projectId }
-          : config.extra?.eas,
+        isStandaloneWeb
+          ? (projectId ? { projectId } : undefined)
+          : projectId
+            ? { projectId }
+            : config.extra?.eas,
     },
 
 
