@@ -213,9 +213,30 @@ export async function hydratePersonNamesOnRows<
   userIdKey: keyof T,
   nameKey: keyof T,
 ): Promise<T[]> {
-  const userIds = rows
-    .map((row) => String(row[userIdKey] ?? ''))
-    .filter(Boolean);
+  /*
+   * PERF_MAIN_COMMUNITY_R1
+   *
+   * Most feed RPCs already return a canonical author/commenter name.
+   * Only hit the profile-name endpoint for rows that actually need
+   * hydration. This removes one avoidable network round-trip from
+   * normal Community loads while preserving legacy/generic fallback.
+   */
+  const userIds = Array.from(
+    new Set(
+      rows
+        .filter((row) =>
+          needsPersonNameHydration(
+            String(row[nameKey] ?? ''),
+          )
+        )
+        .map((row) => String(row[userIdKey] ?? ''))
+        .filter(Boolean)
+    )
+  );
+
+  if (!userIds.length) {
+    return rows;
+  }
 
   const names = await loadPersonDisplayNames(userIds);
 
