@@ -94,19 +94,55 @@ const answerKey = [
   { assessmentId: 'A1', assessmentTitle: 'Logic Activity', assessmentKind: 'Activity', number: '2', question: 'Give one example.', expectedAnswer: 'Any declarative proposition.', maxPoints: 1 },
 ];
 
-async function installMocks(page: Page) {
+async function installMocks(page: Page, options: { invalidHandoff?: boolean } = {}) {
   let grades: any[] = [];
   let created = false;
   let released = false;
 
   await page.route('**/functions/v1/quickcheck-handoff-redeem-v2', async route => {
+    if (options.invalidHandoff) {
+      return route.fulfill({ status: 410, contentType: 'application/json', body: JSON.stringify({ error: 'Handoff expired or already used.' }) });
+    }
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(handoff) });
+  });
+
+  await page.route('**/auth/v1/token?grant_type=password', async route => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ access_token: 'manual-bearer-token' }) });
+  });
+
+  await page.route('**/functions/v1/quickcheck-classroom-roster', async route => {
+    if (route.request().method() === 'GET') {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ classrooms: [{ id: 'class-1', name: 'CHN 3B', section_name: 'B', subject_code: 'CHN' }] }),
+      });
+    }
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        classroom: { id: 'class-1', name: 'CHN 3B', section_name: 'B', subject_code: 'CHN' },
+        students: [
+          { userId: 'u-1', fullName: 'Maria Santos', studentNumber: '2026-001' },
+          { userId: 'u-2', fullName: 'Juan Dela Cruz', studentNumber: '2026-002' },
+        ],
+        syncedAt: '2026-09-19T00:00:00.000Z',
+      }),
+    });
   });
 
   await page.route('**/functions/v1/quickcheck-process-v1', async route => {
     const body = route.request().postDataJSON() as any;
     if (body.action === 'health') {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, service: 'quickcheck-process-v1' }) });
+    }
+    if (body.action === 'rubric_extract') {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ title: 'QA Rubric', rubricText: 'Each correct answer earns 1 point. Incorrect answers earn 0.' }),
+      });
     }
     if (body.action === 'analyze') {
       const source = body.pages?.[0]?.name || 'imported.png';
@@ -219,6 +255,8 @@ async function installMocks(page: Page) {
         grades = grades.map(g => g.reviewStatus === 'looks_correct' ? { ...g, approvalStatus: 'approved', approvedAt: now } : g);
       } else if (body.approvalAction === 'approve_grade') {
         grades = grades.map(g => g.gradeId === body.gradeId ? { ...g, approvalStatus: 'approved', approvedAt: now } : g);
+      } else if (body.approvalAction === 'approve_remaining') {
+        grades = grades.map(g => ({ ...g, approvalStatus: 'approved', approvedAt: g.approvedAt || now }));
       } else if (body.approvalAction === 'release') {
         if (grades.some(g => g.approvalStatus !== 'approved')) {
           return route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ error: 'Grades remain pending teacher approval.' }) });
@@ -364,8 +402,129 @@ test('saved batch reprocess persists repaired grouping before release', async ({
   await expect(page.getByText('3. Suggested Grades & Teacher Review')).toHaveCount(0);
 });
 
+test('root, invalid handoff, manual BUKLOD connect, roster sync, disconnect and reload routes are recoverable', async ({ page }) => {
+  await installMocks(page, { invalidHandoff: true });
+  await page.goto('/?handoff=EXPIRED-CODE');
+
+  await expect(page).not.toHaveURL(/handoff=/);
+  await expect(page.getByText(/handoff expired or could not be used/i)).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'QuickCheck', exact: true })).toBeVisible();
+
+  await page.getByPlaceholder('BUKLOD email').fill('faculty@example.com');
+  await page.getByPlaceholder('BUKLOD password').fill('password');
+  await page.getByRole('button', { name: 'CONNECT BUKLOD' }).click();
+  await expect(page.getByText(/1 faculty classroom\(s\) available/i)).toBeVisible();
+
+  await page.getByRole('button', { name: 'SYNC ENROLLED STUDENTS' }).click();
+  await expect(page.getByText(/2 enrolled students synced/i)).toBeVisible();
+
+  await page.getByRole('button', { name: 'DISCONNECT' }).click();
+  await expect(page.getByText(/disconnected.*standalone mode/i)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'CONNECT BUKLOD' })).toBeVisible();
+
+  await page.unroute('**/functions/v1/quickcheck-handoff-redeem-v2');
+  await page.route('**/functions/v1/quickcheck-handoff-redeem-v2', async route => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(handoff) });
+  });
+  await page.goto('/?handoff=RELOAD-CODE');
+  await expect(page.getByText(/opened securely from BUKLOD Profile/i)).toBeVisible();
+  await page.reload();
+  await expect(page.getByText(/Connected securely from BUKLOD/i)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'DISCONNECT' })).toBeVisible();
+});
+
+test('rubric, report inspectors, assessment/student drilldowns and recheck buttons all open cleanly', async ({ page }) => {
+  await installMocks(page);
+  await page.goto('/?handoff=E2E-CODE');
+  await page.getByRole('button', { name: 'Load Demo Data' }).click();
+
+  const pngBase64 = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 96; canvas.height = 96;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas unavailable.');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 96, 96);
+    ctx.fillStyle = '#111'; ctx.fillRect(10, 10, 76, 12);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+  const rubricChooser = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'SELECT RUBRIC FILE' }).click();
+  const chooser = await rubricChooser;
+  await chooser.setFiles({ name: 'rubric.png', mimeType: 'image/png', buffer: Buffer.from(pngBase64, 'base64') });
+  await expect(page.getByText(/Rubric ON/i)).toBeVisible();
+
+  await page.getByRole('button', { name: 'CLEAR RUBRIC' }).click();
+  await expect(page.getByText(/RUBRIC OFF/i)).toBeVisible();
+
+  await page.getByRole('button', { name: 'AUTO-SORT & SUGGEST GRADES', exact: true }).click();
+  await expect(page.getByText('3. Suggested Grades & Teacher Review')).toBeVisible();
+
+  const inspectorButtons = [
+    /Scan & Quality/i,
+    /Sorting & Identity/i,
+    /Grade & Record/i,
+    /Overall grade summary/i,
+    /^1 .*Scan/i,
+    /^2 .*Quality/i,
+    /^3 .*Check/i,
+    /^4 .*Approval/i,
+  ];
+
+  for (const pattern of inspectorButtons) {
+    const button = page.getByRole('button').filter({ hasText: pattern }).first();
+    await expect(button).toBeVisible();
+    await button.click();
+    await expect(page.getByText('Report Inspector')).toBeVisible();
+    await page.getByRole('dialog').filter({ hasText: 'Report Inspector' }).getByRole('button', { name: /CLOSE/i }).click();
+  }
+
+  const assessmentButton = page.getByRole('button').filter({ hasText: /Logic Activity/ }).first();
+  await assessmentButton.click();
+  await expect(page.getByText('Report Inspector')).toBeVisible();
+  await page.getByRole('dialog').filter({ hasText: 'Report Inspector' }).getByRole('button', { name: /CLOSE/i }).click();
+
+  const mariaRecord = page.getByRole('button').filter({ hasText: /Maria Santos/ }).first();
+  await mariaRecord.click();
+  await expect(page.getByText(/Paper Review|Student record detail/)).toBeVisible();
+  const close = page.getByRole('button', { name: /CLOSE/i }).first();
+  await close.click();
+
+  await page.getByRole('button', { name: 'RE-SORT & RECHECK', exact: true }).click();
+  await expect(page.getByText('3. Suggested Grades & Teacher Review')).toBeVisible();
+});
+
+test('approve remaining, CSV, BUKLOD sync package, open record and sync toggle buttons work', async ({ page }) => {
+  await installMocks(page);
+  await page.goto('/?handoff=E2E-CODE');
+  await page.getByRole('button', { name: 'Load Demo Data' }).click();
+  await page.getByRole('button', { name: 'AUTO-SORT & SUGGEST GRADES', exact: true }).click();
+
+  await page.getByRole('button', { name: 'APPROVE ALL CORRECT' }).click();
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'APPROVE REMAINING' }).click();
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'RELEASE ALL GRADES' }).click();
+  await expect(page.getByRole('button', { name: /GRADES RELEASED/i })).toBeVisible();
+
+  const csvDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'CSV' }).click();
+  expect((await csvDownload).suggestedFilename()).toContain('quickcheck-grades');
+
+  await page.getByRole('button', { name: 'SYNC TO BUKLOD CLASSROOM' }).click();
+  await page.getByPlaceholder('e.g. CHN 3B').fill('CHN 3B');
+  await page.getByPlaceholder('e.g. Quiz 3').fill('Logic Activity');
+  const syncDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'PREPARE BUKLOD SYNC PACKAGE' }).click();
+  expect((await syncDownload).suggestedFilename()).toContain('quickcheck-buklod-sync');
+  await page.getByRole('button', { name: 'CLOSE SYNC' }).click();
+
+  const history = page.locator('section').filter({ hasText: 'Batch Records / History' });
+  await history.getByRole('button', { name: 'OPEN RECORD' }).click();
+  await expect(page.getByText(/Saved Batch Record loaded/i)).toBeVisible();
+});
+
 test('camera path opens and can finish without a white screen', async ({ page, context }) => {
-  await context.grantPermissions(['camera'], { origin: 'http://127.0.0.1:4173' });
+  await context.grantPermissions(['camera']);
   await installMocks(page);
   await page.goto('/?handoff=E2E-CODE');
 
