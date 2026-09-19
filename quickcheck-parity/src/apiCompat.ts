@@ -132,11 +132,21 @@ export const api = {
         action: 'reconcile',
         pages: batch.pages || [],
       });
-      return wrap({
+      const persisted = await invoke('quickcheck-records-v1', {
+        action: 'reprocess_batch',
+        batchId,
         pages: reconciled.pages || [],
         assessments: reconciled.assessments || [],
-        rubricText: batch.rubricText || '',
-        rubricSource: batch.rubricSource || '',
+      });
+      return wrap({
+        pages: persisted.pages || reconciled.pages || [],
+        assessments: persisted.assessments || reconciled.assessments || [],
+        rubricText: persisted.rubricText || batch.rubricText || '',
+        rubricSource: persisted.rubricSource || batch.rubricSource || '',
+        reprocessPersisted: !!persisted.reprocessPersisted,
+        studentCount: persisted.studentCount,
+        pageCount: persisted.pageCount,
+        status: persisted.status || 'reprocessed',
       });
     }
 
