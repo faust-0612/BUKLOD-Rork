@@ -26,6 +26,15 @@ try {
     if (!bodyText.includes(token)) throw new Error('Production UI missing: ' + token);
   }
 
+  await page.getByRole('button', { name: 'Load Demo Data' }).click();
+  await page.getByText('END-TO-END BATCH REPORT').waitFor({ state: 'visible' });
+  const scanned = page.getByRole('button').filter({ hasText: /^Scanned.*View/i }).first();
+  await scanned.click();
+  await page.getByText('Report Inspector').waitFor({ state: 'visible' });
+  await page.getByRole('dialog').filter({ hasText: 'Report Inspector' }).getByRole('button', { name: /CLOSE/i }).click();
+  await page.getByRole('button', { name: /Clear/i }).click();
+  await page.getByText(/Batch cleared/i).waitFor({ state: 'visible' });
+
   if (pageErrors.length) throw new Error('Production page error: ' + pageErrors.join(' | '));
 
   const perf = await page.evaluate(() => {
