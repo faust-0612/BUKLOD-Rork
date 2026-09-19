@@ -22,6 +22,7 @@ import {
   type ReelsFeedInlineAdRow,
 } from '@/lib/buklodAdPlacements';
 import { supabase } from '@/lib/supabase';
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import { useAuth } from '@/providers/AuthProvider';
 
@@ -41,13 +42,35 @@ type IgpatRow = {
 
 type IgpatFeedRow = IgpatRow | ReelsFeedInlineAdRow;
 type FeedMode = 'for-you' | 'following' | 'latest';
+type IgpatPageCursor = { createdAt: string; id: string };
 
 const NORMAL_LIMIT = 16;
 const DATA_SAVER_LIMIT = 8;
 const SIGNED_URL_TTL_SECONDS = 1200;
 const SIGN_CONCURRENCY = 4;
+const IGPAT_READ_TIMEOUT_MS = 10_000;
+const IGPAT_WRITE_TIMEOUT_MS = 12_000;
 const DATA_SAVER_KEY = '@buklod_igpat_data_saver_v1';
 const SAVED_IGPAT_KEY = '@buklod_igpat_saved_ids_v1';
+
+function oldestIgpatCursor(rows: IgpatRow[]): IgpatPageCursor | null {
+  if (!rows.length) return null;
+
+  return rows.reduce<IgpatPageCursor | null>((oldest, row) => {
+    const createdAt = String(row.created_at ?? '');
+    const id = String(row.id ?? '');
+    if (!createdAt || !id) return oldest;
+    if (!oldest) return { createdAt, id };
+
+    const time = new Date(createdAt).getTime();
+    const oldestTime = new Date(oldest.createdAt).getTime();
+
+    if (time < oldestTime || (time === oldestTime && id < oldest.id)) {
+      return { createdAt, id };
+    }
+    return oldest;
+  }, null);
+}
 
 async function mapWithConcurrency<T, R>(
   values: T[],
@@ -187,6 +210,9 @@ export default function IgpatScreen() {
   const [followedIds, setFollowedIds] = useState<Set<string>>(new Set());
   const [followBusy, setFollowBusy] = useState<Set<string>>(new Set());
   const [reactionBusy, setReactionBusy] = useState<Set<string>>(new Set());
+  const [hasMore, setHasMore] = useState(true);
+  const pageCursorRef = useRef<IgpatPageCursor | null>(null);
+  const loadMoreBusyRef = useRef(false);
   const viewportHeight = Dimensions.get('window').height;
   const feedRows = useMemo(() => buildReelsFeedWithInlineAds(rows), [rows]);
 
@@ -217,10 +243,17 @@ export default function IgpatScreen() {
       return;
     }
 
-    const { data, error } = await supabase
-      .from('buklod_user_follows')
-      .select('followed_user_id')
-      .eq('follower_id', user.id);
+    const { data, error } = await withBuklodTimeout<any>(
+      supabase
+        .from('buklod_user_follows')
+        .select('followed_user_id')
+        .eq('follower_id', user.id),
+      IGPAT_READ_TIMEOUT_MS,
+      'IGPAT following list'
+    ).catch((timeoutError) => ({
+      data: null,
+      error: timeoutError,
+    }));
 
     if (error) {
       console.warn('BUKLOD IGPAT follows:', error.message);
@@ -234,39 +267,68 @@ export default function IgpatScreen() {
     void loadFollows();
   }, [loadFollows]);
 
-  const load = useCallback(async () => {
-    if (!prefsReady) return;
+  const load = useCallback(async (options?: { append?: boolean }) => {
+    const append = Boolean(options?.append);
+
+    if (!prefsReady) return 0;
     if (!user?.id) {
       setRows([]);
       setLoading(false);
-      return;
+      return 0;
     }
 
-    setLoading(true);
-    setLoadError(null);
+    if (append && (!hasMore || loadMoreBusyRef.current)) {
+      return 0;
+    }
+
+    if (append) {
+      loadMoreBusyRef.current = true;
+    } else {
+      setLoading(true);
+      setLoadError(null);
+      setHasMore(true);
+      pageCursorRef.current = null;
+    }
 
     try {
       const limit = dataSaver ? DATA_SAVER_LIMIT : NORMAL_LIMIT;
-      const { data, error } = await (supabase as any).rpc('get_buklod_igpat_feed_v2', {
-        p_mode: feedMode,
-        p_limit: limit,
-      });
+      const cursor = append ? pageCursorRef.current : null;
+      const { data, error } = await withBuklodTimeout<any>(
+        (supabase as any).rpc('get_buklod_igpat_feed_v4', {
+          p_mode: feedMode,
+          p_limit: limit,
+          p_before_created_at: cursor?.createdAt ?? null,
+          p_before_id: cursor?.id ?? null,
+        }),
+        IGPAT_READ_TIMEOUT_MS,
+        'IGPAT feed page'
+      );
       if (error) throw error;
 
       const source = ((data ?? []) as IgpatRow[])
         .filter(row => Boolean(row.media_path))
         .slice(0, limit);
 
+      const nextCursor = oldestIgpatCursor(source);
+
       const signed = await mapWithConcurrency(
         source,
         SIGN_CONCURRENCY,
         async row => {
-          const { data: mediaData, error: signError } = await supabase.storage
-            .from('community-media')
-            .createSignedUrl(row.media_path, SIGNED_URL_TTL_SECONDS);
+          const { data: mediaData, error: signError } =
+            await withBuklodTimeout<any>(
+              supabase.storage
+                .from('community-media')
+                .createSignedUrl(row.media_path, SIGNED_URL_TTL_SECONDS),
+              IGPAT_READ_TIMEOUT_MS,
+              'IGPAT media URL'
+            ).catch((timeoutError) => ({
+              data: null,
+              error: timeoutError,
+            }));
 
           if (signError) {
-            console.warn('BUKLOD IGPAT sign:', signError.message);
+            console.warn('BUKLOD IGPAT sign:', String(signError?.message ?? signError));
             return { ...row, media_url: null };
           }
 
@@ -274,17 +336,40 @@ export default function IgpatScreen() {
         }
       );
 
-      setRows(signed.filter(row => Boolean(row.media_url)));
-      setActiveIndex(0);
+      const usable = signed.filter(row => Boolean(row.media_url));
+
+      if (append) {
+        setRows(current => {
+          const seen = new Set(current.map(row => row.id));
+          return [
+            ...current,
+            ...usable.filter(row => !seen.has(row.id)),
+          ];
+        });
+      } else {
+        setRows(usable);
+        setActiveIndex(0);
+      }
+
+      pageCursorRef.current = nextCursor;
+      setHasMore(source.length >= limit && Boolean(nextCursor));
+      return source.length;
     } catch (error) {
       const message = String((error as any)?.message ?? error);
       console.warn('BUKLOD IGPAT load:', message);
-      setRows([]);
-      setLoadError(message);
+      if (!append) {
+        setRows([]);
+        setLoadError(message);
+      }
+      return -1;
     } finally {
-      setLoading(false);
+      if (append) {
+        loadMoreBusyRef.current = false;
+      } else {
+        setLoading(false);
+      }
     }
-  }, [dataSaver, feedMode, prefsReady, user?.id]);
+  }, [dataSaver, feedMode, hasMore, prefsReady, user?.id]);
 
   useEffect(() => {
     void load();
@@ -335,7 +420,11 @@ export default function IgpatScreen() {
             .from('buklod_user_follows')
             .insert({ follower_id: user.id, followed_user_id: creatorId });
 
-      const { error } = await request;
+      const { error } = await withBuklodTimeout<any>(
+        request,
+        IGPAT_WRITE_TIMEOUT_MS,
+        'IGPAT follow update'
+      );
       if (error) throw error;
     } catch (error) {
       console.warn('BUKLOD IGPAT follow:', String((error as any)?.message ?? error));
@@ -373,16 +462,24 @@ export default function IgpatScreen() {
     );
 
     try {
-      let result = await (supabase as any).rpc('set_buklod_post_reaction_v4', {
-        p_post_id: postId,
-        p_reaction: 'love',
-      });
-
-      if (result?.error) {
-        result = await (supabase as any).rpc('set_buklod_post_reaction_v3', {
+      let result = await withBuklodTimeout<any>(
+        (supabase as any).rpc('set_buklod_post_reaction_v4', {
           p_post_id: postId,
           p_reaction: 'love',
-        });
+        }),
+        IGPAT_WRITE_TIMEOUT_MS,
+        'IGPAT reaction'
+      );
+
+      if (result?.error) {
+        result = await withBuklodTimeout<any>(
+          (supabase as any).rpc('set_buklod_post_reaction_v3', {
+            p_post_id: postId,
+            p_reaction: 'love',
+          }),
+          IGPAT_WRITE_TIMEOUT_MS,
+          'IGPAT reaction fallback'
+        );
       }
 
       if (result?.error) throw result.error;
@@ -485,6 +582,12 @@ export default function IgpatScreen() {
         windowSize={3}
         removeClippedSubviews
         decelerationRate="fast"
+        onEndReachedThreshold={0.7}
+        onEndReached={() => {
+          if (hasMore) {
+            void load({ append: true });
+          }
+        }}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
         getItemLayout={(_, index) => ({
