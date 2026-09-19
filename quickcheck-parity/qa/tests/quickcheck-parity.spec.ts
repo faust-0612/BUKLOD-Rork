@@ -417,7 +417,8 @@ test('failed page retry button is reachable and never silently grades a poor pag
 
   await page.getByRole('button', { name: 'RETRY FAILED' }).click();
   await expect(page.getByRole('button', { name: 'RETRY FAILED' })).toBeVisible();
-  await expect(page.getByText(/This page was NOT included in grading/i).first()).toBeVisible();
+  await expect(page.getByText(/Batch finished with 1 blocked page/i)).toBeVisible();
+  await expect(page.getByText(/Needs rescan: Blurred \/ unreadable test page/i)).toBeVisible();
   await expect(page.getByRole('button', { name: 'AUTO-SORT & SUGGEST GRADES', exact: true })).toBeDisabled();
   await expect(page.getByText('3. Suggested Grades & Teacher Review')).toHaveCount(0);
 });
@@ -441,8 +442,9 @@ test('AI processing outage retains the page safely and never creates grades', as
   const chooser = await chooserPromise;
   await chooser.setFiles({ name: 'ai-outage.png', mimeType: 'image/png', buffer: Buffer.from(pngBase64, 'base64') });
 
-  await expect(page.getByText(/Scan retained in Failed Pages/i).first()).toBeVisible();
   await expect(page.getByRole('button', { name: 'RETRY FAILED' })).toBeVisible();
+  await expect(page.getByText(/Batch finished with 1 blocked page/i)).toBeVisible();
+  await expect(page.getByText(/AI error: AI temporarily unavailable in E2E fault injection/i)).toBeVisible();
   await expect(page.getByText('3. Suggested Grades & Teacher Review')).toHaveCount(0);
 });
 
