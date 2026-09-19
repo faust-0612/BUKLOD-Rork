@@ -20,6 +20,7 @@ import BuklodReelsInlineAd from '@/components/BuklodReelsInlineAd';
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import { parseIgpatQuickEdit } from '@/lib/igpat/quickEdit';
 import { supabase } from '@/lib/supabase';
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { useAuth } from '@/providers/AuthProvider';
 
 type IgpatRow = {
@@ -44,6 +45,8 @@ const DATA_SAVER_LIMIT = 8;
 const DEEP_LINK_LIMIT = 50;
 const SIGNED_URL_TTL_SECONDS = 1200;
 const SIGN_CONCURRENCY = 4;
+const IGPAT_READ_TIMEOUT_MS = 10_000;
+const IGPAT_WRITE_TIMEOUT_MS = 12_000;
 const WEB_BANNER_INTERVAL = 9;
 const DATA_SAVER_KEY = '@buklod_igpat_data_saver_v1';
 const SAVED_IGPAT_KEY = '@buklod_igpat_saved_ids_v1';
@@ -74,13 +77,17 @@ async function mapWithConcurrency<T, R>(
 async function fetchExactIgpatRow(postId: string): Promise<IgpatRow | null> {
   if (!postId) return null;
 
-  const { data, error } = await (supabase as any)
-    .from('community_posts')
-    .select(
-      'id,user_id,body,created_at,media_path,media_mime_type,media_duration_seconds,igpat_edit_meta,is_reel,is_hidden,deleted_at',
-    )
-    .eq('id', postId)
-    .maybeSingle();
+  const { data, error } = await withBuklodTimeout<any>(
+    (supabase as any)
+      .from('community_posts')
+      .select(
+        'id,user_id,body,created_at,media_path,media_mime_type,media_duration_seconds,igpat_edit_meta,is_reel,is_hidden,deleted_at',
+      )
+      .eq('id', postId)
+      .maybeSingle(),
+    IGPAT_READ_TIMEOUT_MS,
+    'IGPAT exact post'
+  );
 
   if (error || !data) return null;
 
@@ -95,11 +102,15 @@ async function fetchExactIgpatRow(postId: string): Promise<IgpatRow | null> {
     return null;
   }
 
-  const { data: profile } = await (supabase as any)
-    .from('profiles')
-    .select('full_name')
-    .eq('id', data.user_id)
-    .maybeSingle();
+  const { data: profile } = await withBuklodTimeout<any>(
+    (supabase as any)
+      .from('profiles')
+      .select('full_name')
+      .eq('id', data.user_id)
+      .maybeSingle(),
+    IGPAT_READ_TIMEOUT_MS,
+    'IGPAT exact post author'
+  ).catch(() => ({ data: null }));
 
   return {
     id: String(data.id),
@@ -339,10 +350,17 @@ export default function IgpatWebScreen() {
       return;
     }
 
-    const { data, error } = await supabase
-      .from('buklod_user_follows')
-      .select('followed_user_id')
-      .eq('follower_id', user.id);
+    const { data, error } = await withBuklodTimeout<any>(
+      supabase
+        .from('buklod_user_follows')
+        .select('followed_user_id')
+        .eq('follower_id', user.id),
+      IGPAT_READ_TIMEOUT_MS,
+      'IGPAT following list'
+    ).catch((timeoutError) => ({
+      data: null,
+      error: timeoutError,
+    }));
 
     if (error) {
       console.warn('BUKLOD IGPAT follows:', error.message);
@@ -371,10 +389,14 @@ export default function IgpatWebScreen() {
       const normalLimit = dataSaver ? DATA_SAVER_LIMIT : NORMAL_LIMIT;
       const exactTarget = initialTargetRef.current;
       const requestLimit = exactTarget ? DEEP_LINK_LIMIT : normalLimit;
-      const { data, error } = await (supabase as any).rpc('get_buklod_igpat_feed_v3', {
-        p_mode: feedMode,
-        p_limit: requestLimit,
-      });
+      const { data, error } = await withBuklodTimeout<any>(
+        (supabase as any).rpc('get_buklod_igpat_feed_v3', {
+          p_mode: feedMode,
+          p_limit: requestLimit,
+        }),
+        IGPAT_READ_TIMEOUT_MS,
+        'IGPAT feed'
+      );
       if (error) throw error;
 
       let source = ((data ?? []) as IgpatRow[])
@@ -401,9 +423,17 @@ export default function IgpatWebScreen() {
         source,
         SIGN_CONCURRENCY,
         async row => {
-          const { data: mediaData, error: signError } = await supabase.storage
-            .from('community-media')
-            .createSignedUrl(row.media_path, SIGNED_URL_TTL_SECONDS);
+          const { data: mediaData, error: signError } =
+            await withBuklodTimeout<any>(
+              supabase.storage
+                .from('community-media')
+                .createSignedUrl(row.media_path, SIGNED_URL_TTL_SECONDS),
+              IGPAT_READ_TIMEOUT_MS,
+              'IGPAT media URL'
+            ).catch((timeoutError) => ({
+              data: null,
+              error: timeoutError,
+            }));
 
           if (signError) {
             console.warn('BUKLOD IGPAT sign:', signError.message);
@@ -475,7 +505,11 @@ export default function IgpatWebScreen() {
             .from('buklod_user_follows')
             .insert({ follower_id: user.id, followed_user_id: creatorId });
 
-      const { error } = await request;
+      const { error } = await withBuklodTimeout<any>(
+        request,
+        IGPAT_WRITE_TIMEOUT_MS,
+        'IGPAT follow update'
+      );
       if (error) throw error;
     } catch (error) {
       console.warn('BUKLOD IGPAT follow:', String((error as any)?.message ?? error));
@@ -513,16 +547,24 @@ export default function IgpatWebScreen() {
     );
 
     try {
-      let result = await (supabase as any).rpc('set_buklod_post_reaction_v4', {
-        p_post_id: postId,
-        p_reaction: 'love',
-      });
-
-      if (result?.error) {
-        result = await (supabase as any).rpc('set_buklod_post_reaction_v3', {
+      let result = await withBuklodTimeout<any>(
+        (supabase as any).rpc('set_buklod_post_reaction_v4', {
           p_post_id: postId,
           p_reaction: 'love',
-        });
+        }),
+        IGPAT_WRITE_TIMEOUT_MS,
+        'IGPAT reaction'
+      );
+
+      if (result?.error) {
+        result = await withBuklodTimeout<any>(
+          (supabase as any).rpc('set_buklod_post_reaction_v3', {
+            p_post_id: postId,
+            p_reaction: 'love',
+          }),
+          IGPAT_WRITE_TIMEOUT_MS,
+          'IGPAT reaction fallback'
+        );
       }
 
       if (result?.error) throw result.error;
