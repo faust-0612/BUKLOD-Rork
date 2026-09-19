@@ -5,6 +5,14 @@ const MAIN_URL = "https://yhanxndaqbmuzbdqlblu.supabase.co";
 const MAIN_PUBLISHABLE_KEY = "sb_publishable_RWvrYHzgLMvBousgwn4dTg_QawYzwRS";
 const QUIZ_WEB_URL = "https://buklod-quiz.expo.app";
 
+const mainAuth = createClient(MAIN_URL, MAIN_PUBLISHABLE_KEY, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
+  },
+});
+
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -27,17 +35,48 @@ async function getMainUser(req: Request) {
   if (!token) return null;
 
   try {
-    const response = await fetch(`${MAIN_URL}/auth/v1/user`, {
-      method: "GET",
-      headers: {
-        apikey: MAIN_PUBLISHABLE_KEY,
-        Authorization: `Bearer ${token}`,
-      },
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!response.ok) return null;
-    const user = await response.json();
-    return user?.id ? user : null;
+    /*
+     * BUKLOD_MASS_LOGIN_MAIN_QUIZ_R22
+     * Verify the Main access token with Supabase getClaims(). With asymmetric
+     * signing this uses the project's JWKS (cached by supabase-js) instead of
+     * calling Main /auth/v1/user once for every Quiz launch. This removes an
+     * avoidable Auth-server request from the mass-login hot path while still
+     * cryptographically validating the token before trusting its claims.
+     */
+    const { data, error } = await mainAuth.auth.getClaims(token);
+    const claims = data?.claims as Record<string, unknown> | undefined;
+
+    if (error || !claims) return null;
+
+    const id = safeText(claims.sub, 80);
+    const email = safeText(claims.email, 320).toLowerCase();
+    const issuer = safeText(claims.iss, 320);
+    const rawAudience = claims.aud;
+    const audience = Array.isArray(rawAudience)
+      ? rawAudience.map((value) => safeText(value, 80))
+      : [safeText(rawAudience, 80)];
+
+    if (
+      !id ||
+      !email ||
+      issuer !== `${MAIN_URL}/auth/v1` ||
+      !audience.includes("authenticated")
+    ) {
+      return null;
+    }
+
+    const userMetadata =
+      claims.user_metadata &&
+      typeof claims.user_metadata === "object" &&
+      !Array.isArray(claims.user_metadata)
+        ? claims.user_metadata
+        : {};
+
+    return {
+      id,
+      email,
+      user_metadata: userMetadata,
+    };
   } catch {
     return null;
   }
