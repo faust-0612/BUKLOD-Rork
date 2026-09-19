@@ -104,7 +104,13 @@ export default function RecoveryPinScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Pressable onPress={() => router.back()} style={styles.back}>
+        <Pressable
+          onPress={() => {
+            if (router.canGoBack()) router.back();
+            else router.replace('/(tabs)/buklod' as any);
+          }}
+          style={styles.back}
+        >
           <MaterialCommunityIcons name="arrow-left" size={22} color={colors.text} />
           <Text style={styles.backText}>Back</Text>
         </Pressable>
