@@ -70,8 +70,22 @@ const migrations = fs.readdirSync(new URL('../supabase/migrations/', import.meta
   .filter(x => x.endsWith('.sql'))
   .sort();
 
-if (migrations.length !== 43) {
-  failures.push(`Expected 43 canonical production migrations; found ${migrations.length}.`);
+if (migrations.length === 0) {
+  failures.push('No production migrations were found.');
+}
+
+const migrationVersions = migrations.map(name => name.match(/^(\\d{14})_/)?.[1] ?? '');
+if (migrationVersions.some(version => !version)) {
+  failures.push('Every production migration must begin with a 14-digit timestamp.');
+}
+
+const duplicateVersions = migrationVersions.filter(
+  (version, index) => version && migrationVersions.indexOf(version) !== index
+);
+if (duplicateVersions.length) {
+  failures.push(
+    `Duplicate migration versions detected: ${[...new Set(duplicateVersions)].join(', ')}`
+  );
 }
 
 for (let i=1;i<migrations.length;i++) {
