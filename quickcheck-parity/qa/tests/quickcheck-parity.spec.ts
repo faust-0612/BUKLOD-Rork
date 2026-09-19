@@ -227,6 +227,23 @@ async function installMocks(page: Page) {
         body: JSON.stringify({ grades, status: released ? 'released' : (grades.every(g => g.approvalStatus === 'approved') ? 'approved' : 'partially_approved') }),
       });
     }
+    if (body.action === 'reprocess_batch') {
+      if (released) {
+        return route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ error: 'Released batch is immutable.' }) });
+      }
+      grades = [];
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        batchId: 'batch-e2e',
+        status: 'reprocessed',
+        pages: body.pages || pages,
+        assessments: body.assessments || assessments,
+        rubricText: '',
+        rubricSource: '',
+        studentCount: 2,
+        pageCount: 3,
+        reprocessPersisted: true,
+      }) });
+    }
     if (body.action === 'get_batch') {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
         id: 'batch-e2e', status: released ? 'released' : 'suggested', pageCount: 3,
@@ -248,17 +265,17 @@ test('Profile accessory handoff through review, override, approval and release',
   await expect(page.getByText('END-TO-END BATCH REPORT')).toBeVisible();
   await expect(page.getByText(/2 unique student\(s\)/i)).toBeVisible();
 
-  await page.getByRole('button', { name: 'AUTO-SORT & SUGGEST GRADES' }).click();
+  await page.getByRole('button', { name: 'AUTO-SORT & SUGGEST GRADES', exact: true }).click();
   await expect(page.getByText('3. Suggested Grades & Teacher Review')).toBeVisible();
 
   const reportSummary = page.locator('button').filter({ hasText: 'Overall grade summary' });
   await reportSummary.click();
   await expect(page.getByText('Report Inspector')).toBeVisible();
 
-  await page.getByRole('button', { name: /looks correct.*pending/i }).click();
+  await page.getByRole('button', { name: /looks correct.*pending/i }).first().click();
   await expect(page.getByText('Paper Review')).toBeVisible();
   await expect(page.getByRole('dialog', { name: /Paper review for Maria Santos/i })).toBeVisible();
-  await page.getByRole('button', { name: /CLOSE/i }).click();
+  await page.getByRole('dialog', { name: /Paper review for Maria Santos/i }).getByRole('button', { name: /CLOSE/i }).click();
 
   await page.getByRole('button', { name: 'REVIEW FLAGS ONLY' }).click();
   const table = page.locator('table');
@@ -291,7 +308,21 @@ test('local file and folder import paths process selected images', async ({ page
   await page.goto('/?handoff=E2E-CODE');
   await expect(page.getByText(/opened securely from BUKLOD Profile/i)).toBeVisible();
 
-  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl2tQAAAABJRU5ErkJggg==', 'base64');
+  const pngBase64 = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 96;
+    canvas.height = 96;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas unavailable in E2E fixture.');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, 96, 96);
+    ctx.fillStyle = '#111111';
+    ctx.fillRect(12, 12, 72, 12);
+    ctx.fillRect(12, 38, 58, 8);
+    ctx.fillRect(12, 58, 64, 8);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+  const png = Buffer.from(pngBase64, 'base64');
   const inputs = page.locator('input[type="file"]');
 
   await inputs.nth(0).setInputFiles({ name: 'paper.png', mimeType: 'image/png', buffer: png });
@@ -305,6 +336,24 @@ test('local file and folder import paths process selected images', async ({ page
   await expect(page.getByText('END-TO-END BATCH REPORT')).toBeVisible();
 });
 
+test('saved batch reprocess persists repaired grouping before release', async ({ page }) => {
+  await installMocks(page);
+  await page.goto('/?handoff=E2E-CODE');
+  await expect(page.getByText(/opened securely from BUKLOD Profile/i)).toBeVisible();
+
+  await page.getByRole('button', { name: 'Load Demo Data' }).click();
+  await page.getByRole('button', { name: 'AUTO-SORT & SUGGEST GRADES', exact: true }).click();
+  await expect(page.getByText('3. Suggested Grades & Teacher Review')).toBeVisible();
+
+  const historyCard = page.locator('section').filter({ hasText: 'Batch Records / History' });
+  await expect(historyCard.getByRole('button', { name: 'REPROCESS' })).toBeVisible();
+  await historyCard.getByRole('button', { name: 'REPROCESS' }).click();
+
+  await expect(page.getByText(/Saved batch re-sorted/i)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'AUTO-SORT & SUGGEST GRADES', exact: true })).toBeVisible();
+  await expect(page.getByText('3. Suggested Grades & Teacher Review')).toHaveCount(0);
+});
+
 test('camera path opens and can finish without a white screen', async ({ page, context }) => {
   await context.grantPermissions(['camera'], { origin: 'http://127.0.0.1:4173' });
   await installMocks(page);
@@ -313,5 +362,5 @@ test('camera path opens and can finish without a white screen', async ({ page, c
   await page.getByRole('button', { name: 'START CONTINUOUS SCAN' }).click();
   await expect(page.getByRole('button', { name: 'FINISH BATCH' })).toBeVisible();
   await page.getByRole('button', { name: 'FINISH BATCH' }).click();
-  await expect(page.getByText('QuickCheck')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'QuickCheck', exact: true })).toBeVisible();
 });
