@@ -79,7 +79,7 @@ const ACCESSORY_APPS: AccessoryApp[] = [
   {
     key: 'quick-check',
     title: 'Quick Check',
-    subtitle: 'Launcher not registered in BUKLOD Main yet',
+    subtitle: 'Scan mixed papers, auto-sort by question set, suggest grades, and review before approval',
     icon: 'check-decagram-outline',
   },
 ];
@@ -182,7 +182,7 @@ export default function BuklodFoundationWorkspaceNav() {
       if (
         quizEntryInFlight.current ||
         openingKey ||
-        (!app.route && !app.externalUrl)
+        (!app.route && !app.externalUrl && app.key !== 'quick-check')
       ) {
         return;
       }
@@ -196,6 +196,28 @@ export default function BuklodFoundationWorkspaceNav() {
       try {
         if (app.route) {
           router.push(app.route as any);
+          return;
+        }
+
+        if (app.key === 'quick-check') {
+          const { data, error } = await supabase.functions.invoke(
+            'quickcheck-handoff-mint',
+            {
+              body: { source: 'profile-accessory' },
+            },
+          );
+          if (error) throw error;
+          const url = String(data?.url ?? '').trim();
+          if (!url) {
+            throw new Error(
+              'Quick Check did not return a secure launch link. Please try again.',
+            );
+          }
+          const supported = await Linking.canOpenURL(url);
+          if (!supported) {
+            throw new Error('This device cannot open the Quick Check web app.');
+          }
+          await Linking.openURL(url);
           return;
         }
 
@@ -471,7 +493,8 @@ export default function BuklodFoundationWorkspaceNav() {
           ? ACCESSORY_APPS.map((app) => {
               const key = `accessory:${app.key}`;
               const opening = openingKey === key;
-              const unavailable = !app.route && !app.externalUrl;
+              const unavailable =
+                app.key !== 'quick-check' && !app.route && !app.externalUrl;
               return (
                 <View key={app.key} style={styles.rowBorder}>
                   <BuklodProfileGlassRow
