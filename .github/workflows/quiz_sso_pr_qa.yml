@@ -1,0 +1,65 @@
+name: BUKLOD Quiz SSO PR QA
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'src/lib/buklodQuizEntry.ts'
+      - 'src/components/BuklodFoundationWorkspaceNav.tsx'
+      - 'src/components/classroom/BuklodQuizStudentEntry.tsx'
+      - 'src/app/profile/buklod-classroom.tsx'
+      - 'src/app/profile/buklod-faculty.tsx'
+      - 'src/app/profile/buklod-faculty-quiz-results.tsx'
+      - '.github/workflows/quiz_sso_pr_qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  typecheck-and-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: TypeScript
+        run: npx tsc --noEmit
+
+      - name: Verify canonical Main to Quiz entry
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          grep -F 'BUKLOD_QUIZ_UNIFIED_MAIN_ENTRY_R21' 'src/lib/buklodQuizEntry.ts'
+          grep -F 'buklod-quiz-main-entry-v1' 'src/lib/buklodQuizEntry.ts'
+          grep -F 'supabase.auth.getUser(accessToken)' 'src/lib/buklodQuizEntry.ts'
+          grep -F 'supabase.auth.refreshSession()' 'src/lib/buklodQuizEntry.ts'
+          grep -F 'await Linking.openURL(launchUrl)' 'src/lib/buklodQuizEntry.ts'
+
+          grep -F "source: 'buklod-main-profile'" 'src/components/BuklodFoundationWorkspaceNav.tsx'
+          grep -F "source: 'buklod-main-classroom-student'" 'src/components/classroom/BuklodQuizStudentEntry.tsx'
+          grep -F "source: 'buklod-main-classroom'" 'src/app/profile/buklod-classroom.tsx'
+          grep -F "source: 'buklod-main-faculty-examiner'" 'src/app/profile/buklod-faculty.tsx'
+          grep -F "source: 'buklod-main-faculty-results'" 'src/app/profile/buklod-faculty-quiz-results.tsx'
+
+          if grep -R -n -F 'https://buklod-quiz.expo.app' src; then
+            echo 'ERROR: client-side bare BUKLOD Quiz URL detected. Use openBuklodQuizFromMain().' >&2
+            exit 1
+          fi
+
+          if grep -F 'buklod_handoff=1' 'src/app/profile/buklod-classroom.tsx' ||
+             grep -F 'access_token=' 'src/app/profile/buklod-classroom.tsx' ||
+             grep -F 'refresh_token=' 'src/app/profile/buklod-classroom.tsx'; then
+            echo 'ERROR: legacy Quiz token-in-URL handoff detected.' >&2
+            exit 1
+          fi
