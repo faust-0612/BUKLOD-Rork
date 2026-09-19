@@ -94,7 +94,7 @@ const answerKey = [
   { assessmentId: 'A1', assessmentTitle: 'Logic Activity', assessmentKind: 'Activity', number: '2', question: 'Give one example.', expectedAnswer: 'Any declarative proposition.', maxPoints: 1 },
 ];
 
-async function installMocks(page: Page, options: { invalidHandoff?: boolean } = {}) {
+async function installMocks(page: Page, options: { invalidHandoff?: boolean; analyzeError?: boolean } = {}) {
   let grades: any[] = [];
   let created = false;
   let released = false;
@@ -145,6 +145,9 @@ async function installMocks(page: Page, options: { invalidHandoff?: boolean } = 
       });
     }
     if (body.action === 'analyze') {
+      if (options.analyzeError) {
+        return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'AI temporarily unavailable in E2E fault injection.' }) });
+      }
       const source = body.pages?.[0]?.name || 'imported.png';
       const poor = /poor/i.test(source);
       return route.fulfill({
@@ -417,6 +420,76 @@ test('failed page retry button is reachable and never silently grades a poor pag
   await expect(page.getByText(/Needs rescan/i)).toBeVisible();
   await expect(page.getByRole('button', { name: 'AUTO-SORT & SUGGEST GRADES', exact: true })).toBeDisabled();
   await expect(page.getByText('3. Suggested Grades & Teacher Review')).toHaveCount(0);
+});
+
+test('AI processing outage retains the page safely and never creates grades', async ({ page }) => {
+  await installMocks(page, { analyzeError: true });
+  await page.goto('/?handoff=E2E-CODE');
+
+  const pngBase64 = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 96; canvas.height = 96;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas unavailable.');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 96, 96);
+    ctx.fillStyle = '#111'; ctx.fillRect(12, 12, 72, 12);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+
+  const chooserPromise = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'SELECT FILES' }).click();
+  const chooser = await chooserPromise;
+  await chooser.setFiles({ name: 'ai-outage.png', mimeType: 'image/png', buffer: Buffer.from(pngBase64, 'base64') });
+
+  await expect(page.getByText(/AI ERROR/i)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'RETRY FAILED' })).toBeVisible();
+  await expect(page.getByText('3. Suggested Grades & Teacher Review')).toHaveCount(0);
+});
+
+test('camera denial gives a recoverable file-import fallback without a white screen', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: {
+        getUserMedia: async () => {
+          throw new DOMException('Permission denied by E2E', 'NotAllowedError');
+        },
+      },
+    });
+  });
+  await installMocks(page);
+  await page.goto('/?handoff=E2E-CODE');
+
+  await page.getByRole('button', { name: 'START CONTINUOUS SCAN' }).click();
+  await expect(page.getByText(/Camera could not start/i)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'SELECT FILES' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'SELECT FOLDER' })).toBeEnabled();
+  await expect(page.getByRole('heading', { name: 'QuickCheck', exact: true })).toBeVisible();
+});
+
+test('release and export stay locked before approval; released records stay immutable', async ({ page }) => {
+  await installMocks(page);
+  await page.goto('/?handoff=E2E-CODE');
+  await page.getByRole('button', { name: 'Load Demo Data' }).click();
+  await page.getByRole('button', { name: 'AUTO-SORT & SUGGEST GRADES', exact: true }).click();
+
+  await expect(page.getByRole('button', { name: 'CSV' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'RELEASE ALL GRADES' })).toBeDisabled();
+
+  await page.getByRole('button', { name: 'APPROVE ALL CORRECT' }).click();
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'APPROVE REMAINING' }).click();
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'RELEASE ALL GRADES' }).click();
+
+  await expect(page.getByRole('button', { name: /GRADES RELEASED/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'CSV' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /EDIT GRADE/i }).first()).toBeDisabled();
+
+  const history = page.locator('section').filter({ hasText: 'Batch Records / History' });
+  await history.getByRole('button', { name: 'REPROCESS' }).click();
+  await expect(page.getByText(/Reprocess failed: Released batch is immutable/i)).toBeVisible();
+  await expect(page.getByRole('button', { name: /GRADES RELEASED/i })).toBeVisible();
 });
 
 test('saved batch reprocess persists repaired grouping before release', async ({ page }) => {
