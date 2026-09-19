@@ -55,6 +55,7 @@ forbidText('src/app/scope/index.tsx', 'Opening Public BUKLOD...', 'No infinite P
 // IGPAT and Profile exit safety.
 requireText('src/components/BuklodNavSafeShell.tsx', 'Back to Community Wall', 'IGPAT has explicit Wall return');
 requireText('src/components/BuklodNavSafeShell.tsx', "router.replace('/buklod' as any)", 'IGPAT Wall return is route-authoritative');
+requireText('src/components/BuklodNavSafeShell.tsx', 'BUKLOD_ROOT_BACK_TO_WALL_R1', 'Android core direct-entry back converges on Wall');
 requireText('src/app/account/security.tsx', 'Current Password', 'Change Password requires current-password verification');
 requireText('src/app/account/security.tsx', "router.canGoBack()", 'Password & Recovery has safe back');
 requireText('src/app/account/recovery-pin.tsx', "router.canGoBack()", 'Recovery PIN has safe back');
