@@ -22,6 +22,8 @@ jobs:
         run: npx tsc --noEmit
       - name: Production build
         run: npm run build
+      - name: Performance budget
+        run: node scripts/quickcheck-performance.mjs
       - name: Static parity contract
         run: node scripts/quickcheck-contract.mjs
       - name: Live Supabase backend smoke
@@ -29,7 +31,9 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Browser E2E
-        run: npx playwright test --project=chromium
+        env:
+          QC_E2E_PORT: '4173'
+        run: npm run test:e2e
       - name: Vercel production parity smoke
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: node scripts/quickcheck-production-smoke.mjs
