@@ -12,7 +12,7 @@ async function post(slug, body, extra = {}) {
 }
 
 let r = await post('quickcheck-process-v1', { action: 'health' });
-if (!r.response.ok || !r.data.ok || r.data.service !== 'quickcheck-process-v1' || Number(r.data.version) < 3 || r.data.assessment_identity !== 'question-set-unity') {
+if (!r.response.ok || !r.data.ok || r.data.service !== 'quickcheck-process-v1' || Number(r.data.version) < 5 || r.data.assessment_identity !== 'question-set-unity' || r.data.ai_retry_fallback !== true) {
   throw new Error('quickcheck-process-v1 health/hardening failed: ' + r.response.status + ' ' + JSON.stringify(r.data));
 }
 
