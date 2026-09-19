@@ -50,6 +50,8 @@ forbidText('src/app/index.web.tsx', 'href="/city"', 'City must not replace Commu
 // Scoped workspace may never strand the user.
 requireText('src/app/scope/index.tsx', '<Redirect href="/(tabs)/buklod" />', 'PUBLIC /scope converges on Wall');
 requireText('src/app/scope/index.tsx', "router.replace('/(tabs)/buklod' as any)", 'No-history workspace exit converges on Wall');
+requireText('src/app/scope/index.tsx', 'BUKLOD_SCOPED_EXIT_PUBLIC_FIRST_R2', 'Managed scope exit restores PUBLIC before history navigation');
+requireText('src/lib/buklodScopeRoute.ts', "| '/buklod'", 'Scoped-exit helper accepts Community Wall destination');
 forbidText('src/app/scope/index.tsx', 'Opening Public BUKLOD...', 'No infinite PUBLIC workspace loader');
 
 // IGPAT and Profile exit safety.
