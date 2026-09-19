@@ -66,7 +66,7 @@ function publicRouteFor(
     return '/connect';
   }
 
-  return '/home';
+  return '/buklod';
 }
 
 export default function
@@ -116,8 +116,8 @@ BuklodCanonicalNavigationGuard() {
      * so the normal PUBLIC boot reset never gets a chance to run.
      *
      * On the FIRST settled browser route only, a plain scoped workspace is
-     * treated as stale navigation state: restore PUBLIC and enter personal
-     * Connect. Exact-scope utilities are preserved.
+     * treated as stale navigation state: restore PUBLIC and enter the
+     * canonical Community Wall. Exact-scope utilities are preserved.
      *
      * Later in-app navigation to /scope is untouched because this guard has
      * already completed its initial-route pass.
@@ -160,7 +160,7 @@ BuklodCanonicalNavigationGuard() {
             }
 
             router.replace(
-              '/messages' as any
+              '/buklod' as any
             );
           })();
 
