@@ -24,6 +24,8 @@ const AUTH_LOCAL_SIGN_OUT_TIMEOUT_MS = 2_500;
 const AUTH_FRESH_SIGN_IN_USER_TTL_MS = 60_000;
 const AUTH_PASSWORD_SIGN_IN_TIMEOUT_MS = 12_000;
 const AUTH_EXISTING_PASSWORD_SIGN_IN_TIMEOUT_MS = 3_500;
+const AUTH_CANONICAL_IDENTIFIER_TIMEOUT_MS = 15_000;
+const AUTH_CANONICAL_SESSION_TIMEOUT_MS = 5_000;
 
 /*
  * BUKLOD_MAIN_AUTH_STORM_R21
@@ -39,6 +41,7 @@ const AUTH_EXISTING_PASSWORD_SIGN_IN_TIMEOUT_MS = 3_500;
  */
 type BuklodAuthRuntimeState = {
   passwordSignInInFlight: Promise<any> | null;
+  canonicalIdentifierSignInInFlight: Promise<any> | null;
   lastSignedInUserId: string | null;
   lastSignedInAt: number;
 };
@@ -58,6 +61,7 @@ function getBuklodAuthRuntimeState(): BuklodAuthRuntimeState {
 
   const created: BuklodAuthRuntimeState = {
     passwordSignInInFlight: null,
+    canonicalIdentifierSignInInFlight: null,
     lastSignedInUserId: null,
     lastSignedInAt: 0,
   };
@@ -234,6 +238,154 @@ export async function signInWithPasswordResilient(
       },
       error,
     } as any;
+  }
+}
+
+export async function signInWithCanonicalIdentifierResilient(
+  identifier: string,
+  password: string
+) {
+  /*
+   * BUKLOD_CANONICAL_LOGIN_RESOLVER_R23
+   *
+   * Centralize Mobile / Username / Email resolution before password auth.
+   * Keep the same global single-flight behavior as the legacy password path
+   * so route remounts and rapid taps cannot multiply auth traffic.
+   */
+  const failure = (error: any) =>
+    ({
+      data: {
+        user: null,
+        session: null,
+      },
+      error,
+    }) as any;
+
+  if (authRuntimeState.canonicalIdentifierSignInInFlight) {
+    try {
+      return await withBuklodTimeout<any>(
+        authRuntimeState.canonicalIdentifierSignInInFlight,
+        AUTH_EXISTING_PASSWORD_SIGN_IN_TIMEOUT_MS,
+        'BUKLOD canonical sign-in already in progress'
+      );
+    }
+    catch (error) {
+      return failure(error);
+    }
+  }
+
+  const task = (async () => {
+    const {
+      data,
+      error: invokeError,
+    } = await supabase.functions.invoke(
+      'buklod-auth-login-v2',
+      {
+        body: {
+          identifier,
+          password,
+        },
+      }
+    );
+
+    if (invokeError) {
+      return failure(invokeError);
+    }
+
+    if (!data?.ok) {
+      return failure({
+        code:
+          String(data?.error ?? '').trim() ||
+          'invalid_credentials',
+        message:
+          String(data?.message ?? '').trim() ||
+          'Invalid username/mobile/email or password.',
+        status:
+          data?.error === 'invalid_credentials'
+            ? 400
+            : 503,
+      });
+    }
+
+    const accessToken =
+      String(
+        data?.session?.access_token ?? ''
+      ).trim();
+    const refreshToken =
+      String(
+        data?.session?.refresh_token ?? ''
+      ).trim();
+
+    if (!accessToken || !refreshToken) {
+      return failure({
+        code: 'login_temporarily_unavailable',
+        message:
+          'Login service returned an incomplete session. Please try again.',
+        status: 503,
+      });
+    }
+
+    const sessionResult =
+      await withBuklodTimeout<any>(
+        supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        }),
+        AUTH_CANONICAL_SESSION_TIMEOUT_MS,
+        'BUKLOD local session persistence'
+      );
+
+    const userId = String(
+      sessionResult?.data?.user?.id ?? ''
+    ).trim();
+
+    if (
+      sessionResult?.error ||
+      !sessionResult?.data?.session ||
+      !userId
+    ) {
+      return failure(
+        sessionResult?.error ?? {
+          code: 'login_temporarily_unavailable',
+          message:
+            'BUKLOD could not save the authenticated session. Please try again.',
+          status: 503,
+        }
+      );
+    }
+
+    authRuntimeState.lastSignedInUserId = userId;
+    authRuntimeState.lastSignedInAt = Date.now();
+
+    return sessionResult;
+  })();
+
+  authRuntimeState.canonicalIdentifierSignInInFlight =
+    task;
+
+  void task
+    .finally(() => {
+      if (
+        authRuntimeState
+          .canonicalIdentifierSignInInFlight ===
+        task
+      ) {
+        authRuntimeState
+          .canonicalIdentifierSignInInFlight =
+          null;
+      }
+    })
+    .catch(() => undefined);
+
+  try {
+    return await withBuklodTimeout<any>(
+      task,
+      AUTH_CANONICAL_IDENTIFIER_TIMEOUT_MS,
+      'BUKLOD canonical sign-in'
+    );
+  }
+  catch (error) {
+    return failure(error);
   }
 }
 
