@@ -33,6 +33,7 @@ const redeemPath = 'src/components/points/BuklodRedeemCatalogSection.tsx';
 const legacyAdminPath = 'src/app/admin/points-redemptions.tsx';
 const adminReportPath = 'src/app/admin/bayanihan.tsx';
 const adminOpsPath = 'src/app/admin/economy-operations.tsx';
+const adminReportsPath = 'src/app/admin/reports-center.tsx';
 
 const userEconomy = read(userEconomyPath);
 const adminEconomy = read(adminEconomyPath);
@@ -44,6 +45,7 @@ const redeem = read(redeemPath);
 const legacyAdmin = read(legacyAdminPath);
 const adminReport = read(adminReportPath);
 const adminOps = read(adminOpsPath);
+const adminReports = read(adminReportsPath);
 
 requireText(userEconomyPath, userEconomy, [
   'get_my_buklod_r38_economy_report_v1',
@@ -88,13 +90,20 @@ requireText(legacyAdminPath, legacyAdmin, [
 ]);
 requireText(adminReportPath, adminReport, [
   'Hard economic invariant',
-  'OPEN R38 ECONOMY OPERATIONS',
+  'OPEN ECONOMY OPERATIONS',
 ]);
 requireText(adminOpsPath, adminOps, [
   'This console contains no activation switches',
   'FINALIZE FUNDED PERIOD',
   'ACCESS PAYOUT DESTINATION',
   'MARK PAID AFTER EXTERNAL TRANSFER',
+]);
+requireText(adminReportsPath, adminReports, [
+  'Admin Reports Center',
+  'Lifetime Points',
+  'Pending Claimable',
+  'Bayanihan, Shares & Revenue',
+  'No fixed Points-to-peso',
 ]);
 
 const clientSources = [
@@ -108,6 +117,7 @@ const clientSources = [
   [legacyAdminPath, legacyAdmin],
   [adminReportPath, adminReport],
   [adminOpsPath, adminOps],
+  [adminReportsPath, adminReports],
 ];
 
 for (const [path, content] of clientSources) {
