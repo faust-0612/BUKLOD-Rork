@@ -12,13 +12,13 @@ async function post(slug, body, extra = {}) {
 }
 
 let r = await post('quickcheck-process-v1', { action: 'health' });
-if (!r.response.ok || !r.data.ok || r.data.service !== 'quickcheck-process-v1') {
-  throw new Error('quickcheck-process-v1 health failed: ' + r.response.status + ' ' + JSON.stringify(r.data));
+if (!r.response.ok || !r.data.ok || r.data.service !== 'quickcheck-process-v1' || Number(r.data.version) < 3 || r.data.assessment_identity !== 'question-set-unity') {
+  throw new Error('quickcheck-process-v1 health/hardening failed: ' + r.response.status + ' ' + JSON.stringify(r.data));
 }
 
 r = await post('quickcheck-records-v1', { action: 'health' });
-if (!r.response.ok || !r.data.ok || r.data.service !== 'quickcheck-records-v1') {
-  throw new Error('quickcheck-records-v1 health failed: ' + r.response.status + ' ' + JSON.stringify(r.data));
+if (!r.response.ok || !r.data.ok || r.data.service !== 'quickcheck-records-v1' || Number(r.data.version) < 3 || r.data.reprocess_persisted !== true || r.data.released_batches_immutable !== true) {
+  throw new Error('quickcheck-records-v1 health/hardening failed: ' + r.response.status + ' ' + JSON.stringify(r.data));
 }
 
 r = await post('quickcheck-handoff-redeem-v2', { code: 'E2E_INVALID_CODE' });
