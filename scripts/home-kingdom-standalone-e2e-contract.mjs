@@ -24,6 +24,22 @@ const GAME_IDS = [
 
 const HOME_TOOLS = ['budget', 'media', 'recipe', 'reminders'];
 
+const GAME_INTERACTION_SURFACE = {
+  'ace-rescue-grid': ['src/features/games/ace/RescueGridGameV1.tsx', 3],
+  'angel-kingdom-treasury': ['src/features/games/angel/KingdomTreasuryGameV1.tsx', 8],
+  'christian-civic-leadership': ['src/features/games/christian/CivicLeadershipGameV1.tsx', 2],
+  'elesur-village-builder': ['src/features/games/elesur/VillageBuilderGameV1.tsx', 2],
+  'jawo-forest-trail': ['src/features/games/jawo/ForestTrailGameV2.tsx', 4],
+  'lhen-rhythm-journey': ['src/features/games/lhen/RhythmJourneyGameV1.tsx', 3],
+  'mitch-restore-mural': ['src/features/games/mitch/RestoreMuralGameV1.tsx', 1],
+  'niel-mission-trail': ['src/features/games/niel/MissionTrailGameV1.tsx', 2],
+  'phan-enterprise-builder': ['src/features/games/phan/EnterpriseBuilderGameV1.tsx', 5],
+  'quin-discovery-expedition': ['src/features/games/quin/DiscoveryExpeditionGameV1.tsx', 2],
+  'trudice-playground-memory': ['src/features/games/trudice/PlaygroundPathGameV2.tsx', 3],
+  'van-living-city-dispatch': ['src/features/games/van/LivingCityDispatchGameV1.tsx', 2],
+  'vhen-farm-to-market': ['src/features/games/vhen/FarmToMarketGameV1.tsx', 10],
+};
+
 function abs(rel) { return path.join(ROOT, rel); }
 function read(rel) {
   if (!fs.existsSync(abs(rel))) {
@@ -88,6 +104,20 @@ for (const gameId of GAME_IDS) {
     'onFinish',
   ]);
 }
+
+for (const [gameId, [sourceFile, minimumPressables]] of Object.entries(GAME_INTERACTION_SURFACE)) {
+  const source = read(sourceFile);
+  const pressables = count(source, /<Pressable\\b/g);
+  const onPress = count(source, /onPress=/g);
+  if (pressables < minimumPressables || onPress < minimumPressables) {
+    failures.push(
+      `${gameId} interaction surface shrank: expected >=${minimumPressables} controls, found ${pressables} Pressables / ${onPress} onPress handlers`,
+    );
+  }
+  if (!source.includes('reward:')) failures.push(`${gameId} no longer emits a reward result payload`);
+}
+
+notes.push('13/13 game interaction surfaces inventoried (47 current Pressables).');
 
 // 3. Web-only authoritative Kingdom progression/rewards.
 const progress = tokens('src/features/games/kingdom/progress.web.ts', [
