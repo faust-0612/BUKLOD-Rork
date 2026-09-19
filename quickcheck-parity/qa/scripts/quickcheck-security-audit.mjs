@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { gunzipSync } from 'node:zlib';
 
-const lockPath = new URL('../../package-lock.json', import.meta.url);
+const lockPath = new URL('../package-lock.json', import.meta.url);
 if (!fs.existsSync(lockPath)) {
   throw new Error('package-lock.json is missing. Regenerate the exact lock before security audit.');
 }
