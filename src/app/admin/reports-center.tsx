@@ -14,13 +14,41 @@ import { router } from 'expo-router';
 import { AdminGate } from '@/components/AdminGate';
 import { shared } from '@/components/UI';
 import {
+  asMoney,
   formatPhp,
   loadAdminBuklodR38EconomyReport,
   type BuklodR38AdminEconomyReport,
 } from '@/lib/buklodR38Economy';
+import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+type PointBalanceRow = {
+  user_id: string;
+  lifetime_points: number | string | null;
+  available_points: number | string | null;
+};
+
+type PointLedgerRow = {
+  user_id: string;
+  direction: string | null;
+  points: number | string | null;
+  activity_type: string | null;
+  claim_state: string | null;
+};
+
+type PointsHealth = {
+  membersWithBalances: number;
+  lifetimePoints: number;
+  availablePoints: number;
+  pendingPoints: number;
+  ledgerCredits: number;
+  ledgerDebits: number;
+  pendingEntries: number;
+  activityTypes: number;
+  topActivities: Array<{ key: string; points: number; entries: number }>;
+};
 
 function Metric({
   label,
@@ -68,21 +96,155 @@ function ReportRow({
   );
 }
 
+function StatusRows({
+  rows,
+  empty,
+}: {
+  rows: Record<string, number>;
+  empty: string;
+}) {
+  const entries = Object.entries(rows);
+  if (!entries.length) return <Text style={styles.emptyText}>{empty}</Text>;
+
+  return (
+    <View style={styles.statusList}>
+      {entries.map(([key, value]) => (
+        <View key={key} style={styles.statusRow}>
+          <Text style={styles.statusLabel}>{key.replace(/_/g, ' ')}</Text>
+          <Text style={styles.statusValue}>{Number(value).toLocaleString('en-PH')}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+async function fetchAllRows<T>(table: string, columns: string): Promise<T[]> {
+  const pageSize = 1000;
+  const result: T[] = [];
+  let from = 0;
+
+  while (from < 100000) {
+    const { data, error } = await (supabase as any)
+      .from(table)
+      .select(columns)
+      .range(from, from + pageSize - 1);
+
+    if (error) throw new Error(error.message || `Could not read ${table}.`);
+
+    const page = (data ?? []) as T[];
+    result.push(...page);
+    if (page.length < pageSize) return result;
+    from += pageSize;
+  }
+
+  throw new Error(`${table} exceeded the protected admin report paging limit.`);
+}
+
+async function loadPointsHealth(): Promise<PointsHealth> {
+  const [balances, ledger] = await Promise.all([
+    fetchAllRows<PointBalanceRow>(
+      'buklod_user_points_balances',
+      'user_id,lifetime_points,available_points',
+    ),
+    fetchAllRows<PointLedgerRow>(
+      'buklod_points_ledger',
+      'user_id,direction,points,activity_type,claim_state',
+    ),
+  ]);
+
+  const lifetimePoints = balances.reduce(
+    (sum, row) => sum + asMoney(row.lifetime_points),
+    0,
+  );
+  const availablePoints = balances.reduce(
+    (sum, row) => sum + asMoney(row.available_points),
+    0,
+  );
+
+  let pendingPoints = 0;
+  let ledgerCredits = 0;
+  let ledgerDebits = 0;
+  let pendingEntries = 0;
+  const activity = new Map<string, { points: number; entries: number }>();
+
+  for (const row of ledger) {
+    const points = asMoney(row.points);
+    const direction = String(row.direction ?? '').toLowerCase();
+    const claimState = String(row.claim_state ?? '').toLowerCase();
+    const activityKey = String(row.activity_type ?? 'other').trim() || 'other';
+
+    if (direction === 'credit') {
+      ledgerCredits += points;
+      if (claimState === 'pending') {
+        pendingPoints += points;
+        pendingEntries += 1;
+      }
+
+      const current = activity.get(activityKey) ?? { points: 0, entries: 0 };
+      current.points += points;
+      current.entries += 1;
+      activity.set(activityKey, current);
+    } else if (direction === 'debit') {
+      ledgerDebits += points;
+    }
+  }
+
+  const topActivities = [...activity.entries()]
+    .map(([key, value]) => ({ key, ...value }))
+    .sort((a, b) => b.points - a.points)
+    .slice(0, 8);
+
+  return {
+    membersWithBalances: balances.length,
+    lifetimePoints,
+    availablePoints,
+    pendingPoints,
+    ledgerCredits,
+    ledgerDebits,
+    pendingEntries,
+    activityTypes: activity.size,
+    topActivities,
+  };
+}
+
 export default function AdminReportsCenterScreen() {
   const [economy, setEconomy] = useState<BuklodR38AdminEconomyReport | null>(null);
+  const [points, setPoints] = useState<PointsHealth | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState('');
+  const [economyError, setEconomyError] = useState('');
+  const [pointsError, setPointsError] = useState('');
 
   const load = useCallback(async () => {
-    try {
-      setError('');
-      setEconomy(await loadAdminBuklodR38EconomyReport());
-    } catch (nextError: unknown) {
-      setError(nextError instanceof Error ? nextError.message : 'Could not load the economy report.');
-    } finally {
-      setLoading(false);
+    setEconomyError('');
+    setPointsError('');
+
+    const [economyResult, pointsResult] = await Promise.allSettled([
+      loadAdminBuklodR38EconomyReport(),
+      loadPointsHealth(),
+    ]);
+
+    if (economyResult.status === 'fulfilled') {
+      setEconomy(economyResult.value);
+    } else {
+      setEconomyError(
+        economyResult.reason instanceof Error
+          ? economyResult.reason.message
+          : 'Could not load the economy report.',
+      );
     }
+
+    if (pointsResult.status === 'fulfilled') {
+      setPoints(pointsResult.value);
+    } else {
+      setPointsError(
+        pointsResult.reason instanceof Error
+          ? pointsResult.reason.message
+          : 'Could not load Points health.',
+      );
+    }
+
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -102,8 +264,25 @@ export default function AdminReportsCenterScreen() {
     return `${typeof key === 'string' ? key : 'Period'} · ${typeof status === 'string' ? status : 'UNKNOWN'}`;
   }, [economy]);
 
+  const economyHealth = useMemo(() => {
+    if (!economy?.period) {
+      return { label: 'NO PERIOD', note: 'Economy is installed; no period is active yet.', kind: 'neutral' as const };
+    }
+
+    const checks = Object.values(economy.invariant_checks ?? {});
+    const failed = checks.filter((value) => value === false).length;
+    if (failed > 0) {
+      return { label: 'REVIEW', note: `${failed} invariant check${failed === 1 ? '' : 's'} need attention.`, kind: 'warning' as const };
+    }
+
+    return { label: 'OK', note: 'Current invariant checks have no recorded failure.', kind: 'ok' as const };
+  }, [economy]);
+
   const shareCount = economy?.user_shares?.length ?? 0;
   const revenue = economy?.revenue_chain;
+  const qualifiedBcu = economy?.qualified_units?.bcu;
+  const qualifiedRcu = economy?.qualified_units?.rcu;
+  const entryGroups = economy?.financial_entry_breakdown?.length ?? 0;
 
   return (
     <AdminGate>
@@ -123,8 +302,8 @@ export default function AdminReportsCenterScreen() {
             <Text style={styles.eyebrow}>SYSTEM ADMIN · REPORTING</Text>
             <Text style={shared.h1}>Admin Reports Center</Text>
             <Text style={shared.muted}>
-              One clean entry point for economy, Bayanihan, app-sharing revenue, payouts,
-              attendance, formation monitoring and scope reports.
+              One clean entry point for Points health, economy, Bayanihan, app-sharing,
+              finalized shares, payouts, attendance, formation and scope reports.
             </Text>
           </View>
           <MaterialCommunityIcons name="chart-box-outline" size={30} color={colors.greenDark} />
@@ -133,29 +312,122 @@ export default function AdminReportsCenterScreen() {
         <View style={styles.guardCard}>
           <MaterialCommunityIcons name="shield-check-outline" size={22} color={colors.greenDark} />
           <Text style={styles.guardText}>
-            Points and Circle Rank are progression only. Cash reports below come from actual
-            reconciled platform revenue and finalized funded shares, never a Points-to-peso rate.
+            Points, Circle Rank, Character, BCU and RCU are progression or contribution signals,
+            not money. Cash reports come only from reconciled platform revenue and finalized funded
+            shares. No fixed Points-to-peso, BCU-to-peso or RCU-to-peso rate is used.
           </Text>
+        </View>
+
+        {loading && !economy && !points ? (
+          <View style={styles.loadingCard}>
+            <ActivityIndicator color={colors.greenDark} />
+            <Text style={shared.muted}>Loading admin reports…</Text>
+          </View>
+        ) : null}
+
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View>
+              <Text style={styles.sectionEyebrow}>PROGRESSION HEALTH</Text>
+              <Text style={styles.sectionTitle}>BUKLOD Points</Text>
+            </View>
+            <Text style={styles.period}>Separate from cash</Text>
+          </View>
+
+          {pointsError && !points ? (
+            <View style={styles.loadingCard}>
+              <Text style={styles.errorTitle}>Points health unavailable</Text>
+              <Text style={shared.muted}>{pointsError}</Text>
+            </View>
+          ) : points ? (
+            <>
+              <View style={styles.grid}>
+                <Metric
+                  label="Lifetime Points"
+                  value={points.lifetimePoints.toLocaleString('en-PH')}
+                  note="Canonical member balances"
+                />
+                <Metric
+                  label="Available Points"
+                  value={points.availablePoints.toLocaleString('en-PH')}
+                  note="Spendable progression balance"
+                />
+                <Metric
+                  label="Pending Claimable"
+                  value={points.pendingPoints.toLocaleString('en-PH')}
+                  note={`${points.pendingEntries.toLocaleString('en-PH')} pending ledger entries`}
+                />
+                <Metric
+                  label="Ledger Credits"
+                  value={points.ledgerCredits.toLocaleString('en-PH')}
+                />
+                <Metric
+                  label="Ledger Debits"
+                  value={points.ledgerDebits.toLocaleString('en-PH')}
+                />
+                <Metric
+                  label="Members with Point Balance"
+                  value={points.membersWithBalances.toLocaleString('en-PH')}
+                />
+              </View>
+
+              <View style={styles.tableCard}>
+                <Text style={styles.tableTitle}>Top point activity types</Text>
+                <Text style={styles.tableHint}>
+                  Credit activity only · {points.activityTypes.toLocaleString('en-PH')} activity type{points.activityTypes === 1 ? '' : 's'} recorded
+                </Text>
+                {points.topActivities.length ? points.topActivities.map((item) => (
+                  <View key={item.key} style={styles.tableRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.tableKey}>{item.key.replace(/_/g, ' ')}</Text>
+                      <Text style={styles.tableMeta}>{item.entries.toLocaleString('en-PH')} credit entries</Text>
+                    </View>
+                    <Text style={styles.tableValue}>{item.points.toLocaleString('en-PH')} pts</Text>
+                  </View>
+                )) : <Text style={styles.emptyText}>No point-credit activity yet.</Text>}
+              </View>
+
+              <ReportRow
+                icon="account-details-outline"
+                title="Member Master & Point Audit"
+                subtitle="Per-member records and export without mixing Points with cash earnings"
+                path="/admin/member-master"
+              />
+            </>
+          ) : null}
         </View>
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View>
               <Text style={styles.sectionEyebrow}>ECONOMY SNAPSHOT</Text>
-              <Text style={styles.sectionTitle}>Bayanihan & Shares</Text>
+              <Text style={styles.sectionTitle}>Bayanihan, Shares & Revenue</Text>
             </View>
             <Text style={styles.period}>{periodLabel}</Text>
           </View>
 
-          {loading && !economy ? (
-            <View style={styles.loadingCard}>
-              <ActivityIndicator color={colors.greenDark} />
-              <Text style={shared.muted}>Loading current reports…</Text>
+          <View
+            style={[
+              styles.healthCard,
+              economyHealth.kind === 'warning' && styles.healthCardWarning,
+              economyHealth.kind === 'ok' && styles.healthCardOk,
+            ]}
+          >
+            <MaterialCommunityIcons
+              name={economyHealth.kind === 'warning' ? 'alert-circle-outline' : economyHealth.kind === 'ok' ? 'check-circle-outline' : 'information-outline'}
+              size={20}
+              color={economyHealth.kind === 'warning' ? '#8A5B19' : colors.greenDark}
+            />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.healthTitle}>ECONOMY HEALTH · {economyHealth.label}</Text>
+              <Text style={styles.healthText}>{economyHealth.note}</Text>
             </View>
-          ) : error && !economy ? (
+          </View>
+
+          {economyError && !economy ? (
             <View style={styles.loadingCard}>
               <Text style={styles.errorTitle}>Economy snapshot unavailable</Text>
-              <Text style={shared.muted}>{error}</Text>
+              <Text style={shared.muted}>{economyError}</Text>
               <Pressable onPress={() => void load()} style={styles.retryButton}>
                 <Text style={styles.retryText}>TRY AGAIN</Text>
               </Pressable>
@@ -169,6 +441,9 @@ export default function AdminReportsCenterScreen() {
                 <Metric label="Bayanihan Pool" value={formatPhp(revenue?.bayanihan_pool)} />
                 <Metric label="Referral Pool" value={formatPhp(revenue?.referral_pool)} />
                 <Metric label="Finalized Share Records" value={shareCount.toLocaleString('en-PH')} />
+                <Metric label="Qualified BCU" value={qualifiedBcu == null ? '—' : asMoney(qualifiedBcu).toLocaleString('en-PH', { maximumFractionDigits: 6 })} />
+                <Metric label="Qualified RCU" value={qualifiedRcu == null ? '—' : asMoney(qualifiedRcu).toLocaleString('en-PH', { maximumFractionDigits: 6 })} />
+                <Metric label="Financial Entry Groups" value={entryGroups.toLocaleString('en-PH')} />
                 <Metric label="Bayanihan Distributed" value={formatPhp(economy?.distributed?.bayanihan)} />
                 <Metric label="Referral Distributed" value={formatPhp(economy?.distributed?.direct_referral)} />
                 <Metric label="Available Cash" value={formatPhp(economy?.cash_ledger?.available)} />
@@ -176,17 +451,35 @@ export default function AdminReportsCenterScreen() {
                 <Metric label="Paid Earnings" value={formatPhp(economy?.cash_ledger?.paid)} />
               </View>
 
+              <View style={styles.twoColumn}>
+                <View style={styles.tableCard}>
+                  <Text style={styles.tableTitle}>App-sharing / referral states</Text>
+                  <StatusRows
+                    rows={economy?.referral_states ?? {}}
+                    empty="No referral-state activity yet."
+                  />
+                </View>
+
+                <View style={styles.tableCard}>
+                  <Text style={styles.tableTitle}>Withdrawal states</Text>
+                  <StatusRows
+                    rows={economy?.withdrawals ?? {}}
+                    empty="No withdrawal activity yet."
+                  />
+                </View>
+              </View>
+
               <View style={styles.quickLinks}>
                 <ReportRow
                   icon="finance"
-                  title="Full Economy, Bayanihan & Shares"
-                  subtitle="Pools, BCU/RCU, finalized user shares, referral states and withdrawals"
+                  title="Full Economy, Bayanihan & User Shares"
+                  subtitle="Funded pools, BCU/RCU, finalized per-user shares, referral states and withdrawals"
                   path="/admin/bayanihan"
                 />
                 <ReportRow
                   icon="cash-sync"
-                  title="Economy Operations"
-                  subtitle="Actual revenue/cost reconciliation, finalization and payout processing"
+                  title="Economy Operations & Payout Queue"
+                  subtitle="Actual revenue/cost reconciliation, period finalization, withdrawal review and payout processing"
                   path="/admin/economy-operations"
                 />
               </View>
@@ -202,7 +495,7 @@ export default function AdminReportsCenterScreen() {
             <ReportRow
               icon="office-building-outline"
               title="Organization & Cluster Reports"
-              subtitle="Open the exact Organization or Cluster context, then its Reports workspace"
+              subtitle="Choose the exact Organization or Cluster context, then open its current BUKLOD Report workspace"
               path="/organizations"
             />
             <ReportRow
@@ -229,8 +522,9 @@ export default function AdminReportsCenterScreen() {
         <View style={styles.noteCard}>
           <MaterialCommunityIcons name="information-outline" size={20} color={colors.greenDark} />
           <Text style={styles.noteText}>
-            Legacy global “Reports & Analytics” screens are not restored here. Current reporting
-            stays scope-aware and uses the active BUKLOD Report, Attendance and Economy systems.
+            Old global “Reports & Analytics” and point-to-cash admin structures are not restored.
+            Current reporting stays scope-aware and uses the canonical Points, BUKLOD Report,
+            Attendance and funded Economy systems.
           </Text>
         </View>
       </ScrollView>
@@ -239,7 +533,7 @@ export default function AdminReportsCenterScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 18, paddingBottom: 90, gap: 14 },
+  content: { padding: 18, paddingBottom: 90, gap: 16 },
   backRow: { alignSelf: 'flex-start', minHeight: 38, flexDirection: 'row', alignItems: 'center', gap: 6 },
   backText: { fontSize: 10, fontWeight: '900', color: colors.greenDark, letterSpacing: 0.7 },
   hero: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
@@ -251,21 +545,39 @@ const styles = StyleSheet.create({
   sectionEyebrow: { fontSize: 8.5, fontWeight: '900', letterSpacing: 1.1, color: colors.muted },
   sectionTitle: { marginTop: 2, fontSize: 18, fontWeight: '900', color: colors.text },
   period: { fontSize: 9.5, fontWeight: '800', color: colors.greenDark },
-  loadingCard: { minHeight: 120, alignItems: 'center', justifyContent: 'center', gap: 9, borderRadius: 13, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, padding: 18 },
+  loadingCard: { minHeight: 110, alignItems: 'center', justifyContent: 'center', gap: 9, borderRadius: 13, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, padding: 18 },
   errorTitle: { fontSize: 13, fontWeight: '900', color: colors.text },
   retryButton: { marginTop: 3, borderRadius: 9, backgroundColor: colors.greenDark, paddingHorizontal: 12, paddingVertical: 8 },
   retryText: { color: colors.white, fontSize: 9.5, fontWeight: '900' },
+  healthCard: { flexDirection: 'row', alignItems: 'center', gap: 9, padding: 11, borderRadius: 12, borderWidth: 1, borderColor: colors.line, backgroundColor: '#F5F8F6' },
+  healthCardWarning: { borderColor: '#E8D0A2', backgroundColor: '#FFF8EA' },
+  healthCardOk: { borderColor: '#BFDCC9', backgroundColor: '#EEF8F2' },
+  healthTitle: { fontSize: 10, fontWeight: '900', color: colors.text },
+  healthText: { marginTop: 2, fontSize: 9.5, lineHeight: 13.5, color: colors.muted },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   metric: { minWidth: 145, flexGrow: 1, flexBasis: '30%', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white },
   metricValue: { fontSize: 16, fontWeight: '900', color: colors.greenDark },
   metricLabel: { marginTop: 4, fontSize: 9.5, fontWeight: '800', color: colors.text },
-  metricNote: { marginTop: 2, fontSize: 8.5, color: colors.muted },
+  metricNote: { marginTop: 2, fontSize: 8.5, lineHeight: 12, color: colors.muted },
   quickLinks: { gap: 7, marginTop: 2 },
   reportList: { gap: 7 },
   reportRow: { minHeight: 65, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 13, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white },
   reportIcon: { width: 38, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: '#EEF8F2' },
   reportTitle: { fontSize: 12, fontWeight: '900', color: colors.text },
   reportSubtitle: { marginTop: 2, fontSize: 9.5, lineHeight: 13.5, color: colors.muted },
+  twoColumn: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  tableCard: { flexGrow: 1, flexBasis: '45%', minWidth: 240, padding: 12, borderRadius: 13, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white },
+  tableTitle: { fontSize: 12, fontWeight: '900', color: colors.text },
+  tableHint: { marginTop: 2, marginBottom: 4, fontSize: 8.5, color: colors.muted },
+  tableRow: { minHeight: 38, flexDirection: 'row', alignItems: 'center', gap: 8, borderTopWidth: 1, borderTopColor: colors.line },
+  tableKey: { fontSize: 10, fontWeight: '800', color: colors.text, textTransform: 'capitalize' },
+  tableMeta: { marginTop: 1, fontSize: 8.5, color: colors.muted },
+  tableValue: { fontSize: 10.5, fontWeight: '900', color: colors.greenDark },
+  statusList: { marginTop: 5 },
+  statusRow: { minHeight: 34, flexDirection: 'row', alignItems: 'center', gap: 8, borderTopWidth: 1, borderTopColor: colors.line },
+  statusLabel: { flex: 1, fontSize: 9.5, color: colors.muted, textTransform: 'capitalize' },
+  statusValue: { fontSize: 10.5, fontWeight: '900', color: colors.text },
+  emptyText: { marginTop: 7, fontSize: 9.5, lineHeight: 14, color: colors.muted },
   noteCard: { flexDirection: 'row', gap: 9, padding: 13, borderRadius: 13, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line },
   noteText: { flex: 1, fontSize: 9.5, lineHeight: 14, color: colors.muted },
 });
