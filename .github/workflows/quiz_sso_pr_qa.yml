@@ -47,6 +47,7 @@ jobs:
           grep -F 'await Linking.openURL(launchUrl)' 'src/lib/buklodQuizEntry.ts'
 
           grep -F "source: 'buklod-main-profile'" 'src/components/BuklodFoundationWorkspaceNav.tsx'
+          grep -F "app.key !== 'quiz'" 'src/components/BuklodFoundationWorkspaceNav.tsx'
           grep -F "source: 'buklod-main-classroom-student'" 'src/components/classroom/BuklodQuizStudentEntry.tsx'
           grep -F "source: 'buklod-main-classroom'" 'src/app/profile/buklod-classroom.tsx'
           grep -F "source: 'buklod-main-faculty-examiner'" 'src/app/profile/buklod-faculty.tsx'
