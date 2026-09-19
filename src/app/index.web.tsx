@@ -4,7 +4,7 @@ import {
   useState,
 } from 'react';
 import { Redirect } from 'expo-router';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { useAuth } from '@/providers/AuthProvider';
 import {
   useBuklodScope,
@@ -12,6 +12,24 @@ import {
 import { useCompliance } from '@/providers/ComplianceProvider';
 import { colors } from '@/lib/theme';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
+
+function withBootTimeout<T>(promise: Promise<T>, ms = 7000) {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error('BUKLOD_PUBLIC_SCOPE_RESET_TIMEOUT'));
+    }, ms);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
+
+function shortBootDelay(ms = 250) {
+  return new Promise<void>(resolve => setTimeout(resolve, ms));
+}
 
 /* BUKLOD_FINAL_WEB_COMMUNITY_ROOT_R1 */
 export default function IndexWeb() {
@@ -43,12 +61,18 @@ export default function IndexWeb() {
   const publicResetInFlight =
     useRef(false);
 
+  const [bootError, setBootError] =
+    useState<string | null>(null);
+  const [bootRetryNonce, setBootRetryNonce] =
+    useState(0);
+
   useEffect(() => {
     if (
       !session?.user?.id ||
       (loading && !profile)
     ) {
       publicResetInFlight.current = false;
+      setBootError(null);
       setBootReady(false);
       return;
     }
@@ -58,6 +82,7 @@ export default function IndexWeb() {
       'PUBLIC'
     ) {
       publicResetInFlight.current = false;
+      setBootError(null);
       setBootReady(true);
       return;
     }
@@ -77,18 +102,32 @@ export default function IndexWeb() {
       ) {
         publicResetInFlight.current = true;
 
-        void selectScope(
-          publicScope.scope_id
-        )
-          .catch(error => {
+        setBootError(null);
+
+        void (async () => {
+          try {
+            try {
+              await withBootTimeout(
+                selectScope(publicScope.scope_id)
+              );
+            } catch (firstError) {
+              await shortBootDelay();
+              await withBootTimeout(
+                selectScope(publicScope.scope_id)
+              );
+            }
+          } catch (error) {
             console.warn(
               'BUKLOD web boot Public scope reset:',
               error
             );
-          })
-          .finally(() => {
+            setBootError(
+              'BUKLOD could not restore the Public workspace. Check your connection and retry.'
+            );
+          } finally {
             publicResetInFlight.current = false;
-          });
+          }
+        })();
       }
 
       return;
@@ -110,6 +149,7 @@ export default function IndexWeb() {
     activeScope?.scope_type,
     scopes,
     selectScope,
+    bootRetryNonce,
   ]);
 
   if (
@@ -137,6 +177,52 @@ export default function IndexWeb() {
    * Organization/Cluster membership and feature-specific permissions remain
    * enforced only where those features actually require them.
    */
+
+  if (bootError) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 24,
+          backgroundColor: colors.white,
+        }}
+      >
+        <Text
+          style={{
+            color: colors.text,
+            fontSize: 16,
+            fontWeight: '800',
+            textAlign: 'center',
+          }}
+        >
+          {bootError}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Retry Public workspace"
+          onPress={() => {
+            setBootError(null);
+            setBootRetryNonce(value => value + 1);
+          }}
+          style={{
+            marginTop: 16,
+            minHeight: 44,
+            paddingHorizontal: 18,
+            borderRadius: 12,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: colors.green,
+          }}
+        >
+          <Text style={{ color: colors.white, fontWeight: '900' }}>
+            RETRY PUBLIC WORKSPACE
+          </Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   if (!bootReady) {
     return (
