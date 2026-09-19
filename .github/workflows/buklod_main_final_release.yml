@@ -25,6 +25,7 @@ on:
       - 'scripts/verify-production-migrations.mjs'
       - 'app.config.js'
       - 'eas.json'
+      - 'supabase/migrations/*igpat*.sql'
   push:
     branches: [main]
     paths:
