@@ -9,13 +9,13 @@ Set-StrictMode -Version Latest
 function Invoke-Checked {
   param(
     [Parameter(Mandatory=$true)][string]$File,
-    [Parameter(ValueFromRemainingArguments=$true)][string[]]$Args
+    [Parameter(ValueFromRemainingArguments=$true)][string[]]$CommandArgs
   )
 
-  Write-Host "> $File $($Args -join ' ')" -ForegroundColor DarkGray
-  & $File @Args
+  Write-Host "> $File $($CommandArgs -join ' ')" -ForegroundColor DarkGray
+  & $File @CommandArgs
   if ($LASTEXITCODE -ne 0) {
-    throw "Command failed ($LASTEXITCODE): $File $($Args -join ' ')"
+    throw "Command failed ($LASTEXITCODE): $File $($CommandArgs -join ' ')"
   }
 }
 
