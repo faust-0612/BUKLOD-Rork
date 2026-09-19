@@ -182,10 +182,30 @@ export async function openBuklodQuizFromMain(
    * only URL accepted from createBuklodQuizLaunchUrl().
    */
   if (Platform.OS === 'web') {
+    /*
+     * BUKLOD_QUIZ_WEB_SAME_CONTEXT_REPLACE_R23
+     * Prefer same-tab replace so mobile Safari/PWA/WebViews cannot treat the
+     * post-await navigation as a popup and the stale Main route is not left
+     * as the immediate history entry. Keep assign as a compatibility fallback.
+     */
     const webLocation = (globalThis as any)?.location;
+
+    if (typeof webLocation?.replace === 'function') {
+      try {
+        webLocation.replace(launchUrl);
+        return;
+      } catch {
+        // Fall through to assign below.
+      }
+    }
+
     if (typeof webLocation?.assign === 'function') {
-      webLocation.assign(launchUrl);
-      return;
+      try {
+        webLocation.assign(launchUrl);
+        return;
+      } catch {
+        // Fall through to native Linking fallback below.
+      }
     }
   }
 
