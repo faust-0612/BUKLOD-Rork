@@ -1,0 +1,40 @@
+name: QuickCheck Parity E2E
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  quickcheck-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Production build
+        run: npm run build
+      - name: Static parity contract
+        run: node scripts/quickcheck-contract.mjs
+      - name: Live Supabase backend smoke
+        run: node scripts/quickcheck-backend-smoke.mjs
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Browser E2E
+        run: npx playwright test --project=chromium
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: quickcheck-playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
