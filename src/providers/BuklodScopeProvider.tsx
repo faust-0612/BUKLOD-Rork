@@ -161,72 +161,27 @@ export function BuklodScopeProvider({
       }, SCOPE_LOADING_WATCHDOG_MS);
 
       try {
-        /* PATCH_172A_SCOPE_HIERARCHY_ENRICHMENT */
-        const baseRows =
-          await withBuklodTimeout(
+        /*
+         * PERF_MAIN_BOOT_R3
+         *
+         * Fresh login used to pay a network waterfall:
+         * scopes -> hierarchy -> memberships -> managed scope details -> MZB org.
+         *
+         * Start independent requests together, then fetch all required scope
+         * details in one bounded query. Cached scopes still release the shell
+         * immediately before this background enrichment runs.
+         */
+        const [
+          baseRows,
+          membershipResult,
+          mzbOrganizationScopeId,
+        ] = await Promise.all([
+          withBuklodTimeout(
             getMyBuklodScopes(),
             SCOPE_PRIMARY_TIMEOUT_MS,
             'BUKLOD scopes'
-          );
-
-        let rows = baseRows;
-
-        const scopeIds =
-          baseRows
-            .map(scope => scope.scope_id)
-            .filter(Boolean);
-
-        if (scopeIds.length > 0) {
-          const {
-            data: hierarchyRows,
-            error: hierarchyError,
-          } =
-            await supabase
-              .from('buklod_scopes')
-              .select('id,parent_scope_id')
-              .in('id', scopeIds);
-
-          if (!hierarchyError) {
-            const parentById =
-              new Map(
-                (hierarchyRows ?? [])
-                  .map(row => [
-                    String(row.id),
-                    row.parent_scope_id
-                      ? String(row.parent_scope_id)
-                      : null,
-                  ] as const)
-              );
-
-            rows =
-              baseRows.map(scope => ({
-                ...scope,
-                parent_scope_id:
-                  parentById.get(scope.scope_id) ??
-                  scope.parent_scope_id ??
-                  null,
-              }));
-          }
-          else {
-            console.warn(
-              'BUKLOD scope hierarchy enrichment:',
-              hierarchyError
-            );
-          }
-        }
-
-        /*
-         * PATCH_172C_R3_ACTIVE_MEMBER_SCOPE_MERGE
-         *
-         * Every ACTIVE member of an Organization, child Organization
-         * (Sub-organization), or Cluster must receive the actual shared
-         * scope selector button. Admin role is NOT required.
-         *
-         * The canonical RPC remains the primary source. This supplements
-         * any ACTIVE managed membership omitted by older RPC logic.
-         */
-        const membershipResult =
-          await withBuklodTimeout<{
+          ),
+          withBuklodTimeout<{
             data: any;
             error: any;
           }>(
@@ -250,7 +205,15 @@ export function BuklodScopeProvider({
                     'membership timeout'
                 ),
             },
-          }));
+          })),
+          withBuklodTimeout(
+            resolveMzbOrganizationScopeId(),
+            4000,
+            'MZB organization scope'
+          ).catch(() => null),
+        ]);
+
+        let rows = baseRows;
 
         const activeManagedMembershipRows =
           membershipResult?.data;
@@ -264,174 +227,226 @@ export function BuklodScopeProvider({
             'BUKLOD active memberships:',
             activeManagedMembershipError
           );
-        } else {
+        }
 
         const activeManagedScopeIds =
-          Array.from(
-            new Set(
-              (
-                activeManagedMembershipRows ??
-                []
-              )
-                .map((row: { scope_id?: string | null }) =>
-                  row.scope_id
-                    ? String(
+          activeManagedMembershipError
+            ? []
+            : Array.from(
+                new Set(
+                  (
+                    activeManagedMembershipRows ??
+                    []
+                  )
+                    .map(
+                      (row: {
+                        scope_id?: string | null;
+                      }) =>
                         row.scope_id
-                      )
-                    : ''
+                          ? String(
+                              row.scope_id
+                            )
+                          : ''
+                    )
+                    .filter(Boolean)
                 )
-                .filter(Boolean)
-            )
-          );
-
-        if (
-          activeManagedScopeIds.length >
-          0
-        ) {
-          const {
-            data: activeManagedScopeRows,
-            error: activeManagedScopeError,
-          } =
-            await supabase
-              .from('buklod_scopes')
-              .select(
-                'id,name,scope_type,status,visibility,geo_level,parent_scope_id'
-              )
-              .in(
-                'id',
-                activeManagedScopeIds
-              )
-              .in(
-                'scope_type',
-                [
-                  'ORGANIZATION',
-                  'CLUSTER',
-                ]
-              )
-              .in(
-                'status',
-                [
-                  'ACTIVE',
-                  'RESTRICTED',
-                ]
               );
 
-          if (
-            activeManagedScopeError
-          ) {
-            throw activeManagedScopeError;
-          }
+        const activeManagedScopeIdSet =
+          new Set(
+            activeManagedScopeIds
+          );
 
-          const managedById =
-            new Map(
-              (
-                activeManagedScopeRows ??
-                []
-              ).map(row => [
+        const baseScopeIds =
+          baseRows
+            .map(
+              scope =>
+                scope.scope_id
+            )
+            .filter(Boolean);
+
+        const detailIds =
+          Array.from(
+            new Set([
+              ...baseScopeIds,
+              ...activeManagedScopeIds,
+            ])
+          );
+
+        let scopeDetailRows:
+          any[] = [];
+
+        if (detailIds.length > 0) {
+          const scopeDetailResult =
+            await withBuklodTimeout<{
+              data: any;
+              error: any;
+            }>(
+              supabase
+                .from('buklod_scopes')
+                .select(
+                  'id,name,scope_type,status,visibility,geo_level,parent_scope_id'
+                )
+                .in(
+                  'id',
+                  detailIds
+                ),
+              4000,
+              'Scope details'
+            ).catch((error: any) => ({
+              data: null,
+              error: {
+                message:
+                  String(
+                    error?.message ??
+                      error ??
+                      'scope details timeout'
+                  ),
+              },
+            }));
+
+          if (
+            scopeDetailResult?.error
+          ) {
+            console.warn(
+              'BUKLOD scope details:',
+              scopeDetailResult.error
+            );
+
+            if (
+              activeManagedScopeIds.length >
+              0
+            ) {
+              throw scopeDetailResult.error;
+            }
+          } else {
+            scopeDetailRows =
+              scopeDetailResult?.data ??
+              [];
+          }
+        }
+
+        const detailById =
+          new Map(
+            scopeDetailRows
+              .map(row => [
                 String(row.id),
                 row,
               ] as const)
-            );
+          );
 
-          /*
-           * Keep richer RPC data for scopes already returned, but make
-           * ACTIVE membership and hierarchy authoritative.
-           */
-          rows =
-            rows.map(scope => {
-              const managed =
-                managedById.get(
-                  scope.scope_id
-                );
+        rows =
+          baseRows.map(scope => {
+            const detail =
+              detailById.get(
+                scope.scope_id
+              );
 
-              if (!managed) {
-                return scope;
-              }
-
-              return {
-                ...scope,
-                membership_status:
-                  'ACTIVE',
-                parent_scope_id:
-                  managed
-                    .parent_scope_id
-                    ? String(
-                        managed
-                          .parent_scope_id
-                      )
-                    : null,
-              };
-            });
-
-          const existingScopeIds =
-            new Set(
-              rows.map(
-                scope =>
-                  scope.scope_id
-              )
-            );
-
-          for (
-            const managed of
-            managedById.values()
-          ) {
-            const scopeId =
-              String(managed.id);
-
-            if (
-              existingScopeIds.has(
-                scopeId
-              )
-            ) {
-              continue;
-            }
-
-            rows.push({
-              scope_id:
-                scopeId,
-              scope_type:
-                managed
-                  .scope_type as
-                  BuklodScope[
-                    'scope_type'
-                  ],
-              name:
-                String(
-                  managed.name ??
-                    'BUKLOD'
-                ),
-              scope_status:
-                managed.status ??
-                null,
-              visibility:
-                managed.visibility ??
-                null,
-              geo_level:
-                managed.geo_level ??
-                null,
+            return {
+              ...scope,
               parent_scope_id:
-                managed
-                  .parent_scope_id
+                detail?.parent_scope_id
                   ? String(
-                      managed
-                        .parent_scope_id
+                      detail.parent_scope_id
                     )
-                  : null,
+                  : scope.parent_scope_id ??
+                    null,
               membership_status:
-                'ACTIVE',
-              role_keys: [],
-              is_admin: false,
-              is_active_scope:
-                false,
-              feature_keys: [],
-            } as BuklodScope);
+                activeManagedScopeIdSet.has(
+                  scope.scope_id
+                )
+                  ? 'ACTIVE'
+                  : scope.membership_status,
+            };
+          });
 
-            existingScopeIds.add(
+        const existingScopeIds =
+          new Set(
+            rows.map(
+              scope =>
+                scope.scope_id
+            )
+          );
+
+        for (
+          const managed of
+          scopeDetailRows
+        ) {
+          const scopeId =
+            String(managed.id);
+
+          if (
+            !activeManagedScopeIdSet.has(
               scopeId
-            );
+            ) ||
+            existingScopeIds.has(
+              scopeId
+            ) ||
+            ![
+              'ORGANIZATION',
+              'CLUSTER',
+            ].includes(
+              String(
+                managed.scope_type
+              )
+            ) ||
+            ![
+              'ACTIVE',
+              'RESTRICTED',
+            ].includes(
+              String(
+                managed.status
+              )
+            )
+          ) {
+            continue;
           }
+
+          rows.push({
+            scope_id:
+              scopeId,
+            scope_type:
+              managed
+                .scope_type as
+                BuklodScope[
+                  'scope_type'
+                ],
+            name:
+              String(
+                managed.name ??
+                  'BUKLOD'
+              ),
+            scope_status:
+              managed.status ??
+              null,
+            visibility:
+              managed.visibility ??
+              null,
+            geo_level:
+              managed.geo_level ??
+              null,
+            parent_scope_id:
+              managed
+                .parent_scope_id
+                ? String(
+                    managed
+                      .parent_scope_id
+                  )
+                : null,
+            membership_status:
+              'ACTIVE',
+            role_keys: [],
+            is_admin: false,
+            is_active_scope:
+              false,
+            feature_keys: [],
+          } as BuklodScope);
+
+          existingScopeIds.add(
+            scopeId
+          );
         }
-        }
+
         /*
          * PATCH_171K_R3_FRESH_AUTH_PUBLIC_SCOPE
          *
@@ -460,9 +475,6 @@ export function BuklodScopeProvider({
                 null
               )
             : null;
-
-        const mzbOrganizationScopeId =
-          await resolveMzbOrganizationScopeId();
 
         rows = rows.map(scope => ({
           ...scope,
