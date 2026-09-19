@@ -53,6 +53,7 @@ if ($remote -notmatch 'faust-0612/BUKLOD-Rork') {
 
 Run "1/13 FETCH EXACT REMOTES" {
   git fetch origin main $RcBranch --prune
+  Assert-NativeSuccess "initial remote fetch"
 }
 
 $mainBefore = (git rev-parse origin/main).Trim()
@@ -74,6 +75,7 @@ if (Test-Path -LiteralPath $qaRoot) {
 
 Run "2/13 CREATE SOURCE-LOCKED QA WORKTREE" {
   git worktree add --detach $qaRoot $rcSha
+  Assert-NativeSuccess "QA worktree creation"
 }
 
 Set-Location -LiteralPath $qaRoot
@@ -103,6 +105,15 @@ Run "5/13 MIGRATION + EXPO HEALTH + SECURITY GATES" {
   Assert-NativeSuccess "migration manifest"
   npx.cmd --yes expo-doctor@latest
   Assert-NativeSuccess "Expo Doctor"
+  npx.cmd expo install --check
+  Assert-NativeSuccess "Expo dependency compatibility"
+  npx.cmd expo-modules-autolinking verify
+  Assert-NativeSuccess "Expo native-module duplicate check"
+  $autoLink = (npx.cmd expo-modules-autolinking resolve --platform android | Out-String)
+  Assert-NativeSuccess "Android native-module resolution"
+  if ($autoLink -notmatch "buklod-mlkit|BuklodMlKit") {
+    throw "BUKLOD ML Kit native module was not resolved by Android autolinking."
+  }
   npm.cmd audit --omit=dev --audit-level=high
   Assert-NativeSuccess "production dependency security audit"
 }
