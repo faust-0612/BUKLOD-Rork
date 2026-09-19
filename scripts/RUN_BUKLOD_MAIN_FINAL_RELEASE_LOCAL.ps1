@@ -224,19 +224,20 @@ Set-Location -LiteralPath $Repo
 Run "12/13 ATOMIC FAST-FORWARD VERIFIED RC TO MAIN" {
   git fetch origin main $RcBranch
   Assert-NativeSuccess "final remote refresh"
-}
-$mainNow = (git rev-parse origin/main).Trim()
-$rcNow = (git rev-parse "origin/$RcBranch").Trim()
-if ($mainNow -ne $mainBefore) {
-  throw "origin/main changed during QA. Release aborted; no deployment performed."
-}
-if ($rcNow -ne $rcSha) {
-  throw "RC branch changed during QA. Release aborted; no deployment performed."
-}
-git merge-base --is-ancestor $mainNow $rcSha
-if ($LASTEXITCODE -ne 0) { throw "Fast-forward safety check failed." }
 
-Run "12B/13 PUSH VERIFIED RC TO MAIN" {
+  $mainNow = (git rev-parse origin/main).Trim()
+  $rcNow = (git rev-parse "origin/$RcBranch").Trim()
+
+  if ($mainNow -ne $mainBefore) {
+    throw "origin/main changed during QA/AAB build. Release aborted; no Web deployment performed."
+  }
+  if ($rcNow -ne $rcSha) {
+    throw "RC branch changed during QA/AAB build. Release aborted; no Web deployment performed."
+  }
+
+  git merge-base --is-ancestor $mainNow $rcSha
+  Assert-NativeSuccess "fast-forward safety check"
+
   git push origin "$rcSha`:refs/heads/main"
   Assert-NativeSuccess "verified RC push to main"
 }
