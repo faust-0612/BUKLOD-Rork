@@ -1,0 +1,317 @@
+name: BUKLOD Main Final Production Release
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/buklod_main_final_release.yml'
+      - '.buklod/FINAL_RELEASE_REQUEST'
+      - 'src/app/(auth)/login.tsx'
+      - 'src/lib/buklodAuthResilience.ts'
+      - 'src/app/index.tsx'
+      - 'src/app/index.web.tsx'
+      - 'src/app/scope/**'
+      - 'src/app/account/**'
+      - 'src/app/(tabs)/buklod.tsx'
+      - 'src/app/igpat/**'
+      - 'src/components/BuklodNavSafeShell*'
+      - 'src/lib/buklodPerformanceFetch.ts'
+      - 'src/lib/buklodR4RequestShield.ts'
+      - 'scripts/buklod-main-final-release-gate.mjs'
+      - 'scripts/production-preflight.mjs'
+      - 'scripts/verify-production-migrations.mjs'
+      - 'app.config.js'
+      - 'eas.json'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/buklod_main_final_release.yml'
+      - '.buklod/FINAL_RELEASE_REQUEST'
+      - 'src/app/(auth)/login.tsx'
+      - 'src/lib/buklodAuthResilience.ts'
+      - 'src/app/index.tsx'
+      - 'src/app/index.web.tsx'
+      - 'src/app/scope/**'
+      - 'src/app/account/**'
+      - 'scripts/buklod-main-final-release-gate.mjs'
+      - 'scripts/production-preflight.mjs'
+      - 'scripts/verify-production-migrations.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: buklod-main-final-production-release
+  cancel-in-progress: false
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  EXPO_PUBLIC_APP_ENV: production
+  EAS_PROJECT_ID: 23dad7d0-389a-406e-8dec-08965dab85d8
+  BUKLOD_APP_TARGET: main
+
+jobs:
+  integrated-rc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      source_sha: ${{ steps.identity.outputs.source_sha }}
+      release_enabled: ${{ steps.release_mode.outputs.enabled }}
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Capture exact release identity
+        id: identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          echo "source_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          printf 'SOURCE_SHA=%s\n' "$(git rev-parse HEAD)" > final-release-identity.env
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Static final release contract
+        run: node scripts/buklod-main-final-release-gate.mjs
+
+      - name: Jest regression suite
+        run: npm test
+
+      - name: TypeScript release QA
+        run: npx tsc --noEmit
+
+      - name: Verify migration package identity
+        run: node scripts/verify-production-migrations.mjs > final-migration-manifest.json
+
+      - name: Expo / dependency doctor
+        run: npx expo-doctor@latest
+
+      - name: Production credential preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          npx eas-cli@latest whoami --non-interactive >/dev/null
+          rm -f .env.local
+          npx eas-cli@latest env:pull --environment production --path .env.local --non-interactive
+          test -s .env.local
+          set -a
+          . ./.env.local
+          set +a
+          test "${EXPO_PUBLIC_SUPABASE_URL:-}" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
+          while IFS='=' read -r name _; do
+            case "$name" in
+              EXPO_PUBLIC_*)
+                value="${!name-}"
+                {
+                  echo "${name}<<__BUKLOD_ENV__"
+                  printf '%s\n' "$value"
+                  echo '__BUKLOD_ENV__'
+                } >> "$GITHUB_ENV"
+                ;;
+            esac
+          done < <(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env.local)
+
+      - name: Production preflight
+        run: npm run production:preflight
+
+      - name: Fresh production web export
+        shell: bash
+        env:
+          NODE_ENV: production
+        run: |
+          set -euo pipefail
+          rm -rf dist
+          npx expo export --platform web --output-dir dist --clear
+          test -s dist/index.html
+          grep -RFl --include='*.js' 'yhanxndaqbmuzbdqlblu.supabase.co' dist/_expo/static/js/web >/dev/null
+          if grep -RIE --include='*.js' 'localhost|127\.0\.0\.1|supabase\.local' dist/_expo/static/js/web >/dev/null; then
+            echo 'Development endpoint detected in production web bundle.'
+            exit 1
+          fi
+
+      - name: Android JS bundle / asset export
+        shell: bash
+        env:
+          NODE_ENV: production
+        run: |
+          set -euo pipefail
+          rm -rf dist-android
+          npx expo export --platform android --output-dir dist-android --clear
+          test -d dist-android
+          find dist-android -type f | grep -q .
+
+      - name: Exact candidate remained source-clean
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          git diff --exit-code -- .
+          git diff --cached --exit-code -- .
+
+      - name: Decide production release mode
+        id: release_mode
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          set -euo pipefail
+          enabled=false
+          if [ "$EVENT_NAME" = "push" ] && printf '%s' "${COMMIT_MESSAGE:-}" | grep -Fq '[BUKLOD-MAIN-FINAL-RC]'; then
+            enabled=true
+          fi
+          echo "enabled=$enabled" >> "$GITHUB_OUTPUT"
+
+      - name: Upload RC manifests
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-main-rc-${{ github.sha }}
+          path: |
+            final-release-identity.env
+            final-migration-manifest.json
+          retention-days: 30
+
+  web-production:
+    needs: integrated-rc
+    if: needs.integrated-rc.outputs.release_enabled == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact frozen RC
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.integrated-rc.outputs.source_sha }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Pull exact production public environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          npx eas-cli@latest whoami --non-interactive >/dev/null
+          rm -f .env.local
+          npx eas-cli@latest env:pull --environment production --path .env.local --non-interactive
+          set -a
+          . ./.env.local
+          set +a
+          test "${EXPO_PUBLIC_SUPABASE_URL:-}" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
+          while IFS='=' read -r name _; do
+            case "$name" in
+              EXPO_PUBLIC_*)
+                value="${!name-}"
+                {
+                  echo "${name}<<__BUKLOD_ENV__"
+                  printf '%s\n' "$value"
+                  echo '__BUKLOD_ENV__'
+                } >> "$GITHUB_ENV"
+                ;;
+            esac
+          done < <(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env.local)
+
+      - name: Re-verify frozen RC
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ needs.integrated-rc.outputs.source_sha }}"
+          node scripts/buklod-main-final-release-gate.mjs
+          npx tsc --noEmit
+
+      - name: Build exact production web artifact
+        shell: bash
+        env:
+          NODE_ENV: production
+        run: |
+          set -euo pipefail
+          rm -rf dist
+          npx expo export --platform web --output-dir dist --clear
+          test -s dist/index.html
+          git diff --exit-code -- .
+
+      - name: FINAL WEB PUSH
+        shell: bash
+        env:
+          NODE_ENV: production
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest deploy --prod --environment production --non-interactive
+
+      - name: Verify live production origin
+        shell: bash
+        run: |
+          set -euo pipefail
+          for n in 1 2 3 4 5; do
+            curl --fail --silent --show-error --location --max-time 20 https://buklod.expo.app/ -o /tmp/buklod-live.html
+            test -s /tmp/buklod-live.html
+          done
+
+  android-apk-production:
+    needs: [integrated-rc, web-production]
+    if: needs.integrated-rc.outputs.release_enabled == 'true' && needs.web-production.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout SAME frozen RC
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.integrated-rc.outputs.source_sha }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Verify Android production identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/buklod-main-final-release-gate.mjs
+          grep -F "'org.mzbministry.buklod'" app.config.js
+          grep -F "version: '1.3.0'" app.config.js
+          grep -F "versionCode: isStaging ? undefined : 20" app.config.js
+          grep -F '"production-apk"' eas.json
+          test "$(git rev-parse HEAD)" = "${{ needs.integrated-rc.outputs.source_sha }}"
+
+      - name: FINAL ANDROID APK BUILD
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          npx eas-cli@latest whoami --non-interactive >/dev/null
+          npx eas-cli@latest build \
+            --platform android \
+            --profile production-apk \
+            --non-interactive \
+            --wait \
+            --json | tee eas-apk-build.json
+          test -s eas-apk-build.json
+          git diff --exit-code -- .
+
+      - name: Upload APK build record
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-main-apk-build-${{ needs.integrated-rc.outputs.source_sha }}
+          path: eas-apk-build.json
+          retention-days: 90
