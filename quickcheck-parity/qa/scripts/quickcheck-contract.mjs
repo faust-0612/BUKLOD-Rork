@@ -27,6 +27,8 @@ const required = [
   ['reprocess button', 'REPROCESS'],
   ['sync package button', 'PREPARE BUKLOD SYNC PACKAGE'],
   ['all-failed report visibility', 'failedFrames.length > 0'],
+  ['persistent failed-page blocker', 'No blocked page was silently included'],
+  ['AI failure reason retention', 'failureReason: \`AI error:'],
 ];
 
 for (const [label, token] of required) {
