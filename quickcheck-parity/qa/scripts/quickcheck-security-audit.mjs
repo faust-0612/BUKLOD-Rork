@@ -1,54 +1,77 @@
-import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
 import { gunzipSync } from 'node:zlib';
 
-function collect(node, out = new Map()) {
-  if (!node || typeof node !== 'object') return out;
-  const deps = node.dependencies && typeof node.dependencies === 'object' ? node.dependencies : {};
-  for (const [name, meta] of Object.entries(deps)) {
-    if (!meta || typeof meta !== 'object') continue;
-    const version = typeof meta.version === 'string' ? meta.version : '';
-    if (version) {
-      if (!out.has(name)) out.set(name, new Set());
-      out.get(name).add(version);
-    }
-    collect(meta, out);
+const lockPath = new URL('../../package-lock.json', import.meta.url);
+if (!fs.existsSync(lockPath)) {
+  throw new Error('package-lock.json is missing. Regenerate the exact lock before security audit.');
+}
+
+const lock = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
+if (Number(lock.lockfileVersion) < 3 || !lock.packages || typeof lock.packages !== 'object') {
+  throw new Error('Expected npm package-lock v3 with a packages map.');
+}
+
+const root = lock.packages[''];
+if (!root || typeof root !== 'object') {
+  throw new Error('package-lock root package metadata is missing.');
+}
+
+const rootProd = root.dependencies && typeof root.dependencies === 'object' ? root.dependencies : {};
+const packageEntries = Object.entries(lock.packages);
+
+function packageNameFromPath(pkgPath, meta) {
+  if (meta && typeof meta.name === 'string' && meta.name) return meta.name;
+  const marker = 'node_modules/';
+  const i = pkgPath.lastIndexOf(marker);
+  if (i < 0) return '';
+  return pkgPath.slice(i + marker.length);
+}
+
+const versions = new Map();
+for (const [pkgPath, meta] of packageEntries) {
+  if (!pkgPath || !meta || typeof meta !== 'object') continue;
+
+  // npm lockfile v3 marks packages that are exclusively development-only with dev:true.
+  // Everything else is part of, or can be required by, the production install closure.
+  if (meta.dev === true) continue;
+
+  const name = packageNameFromPath(pkgPath, meta);
+  const version = typeof meta.version === 'string' ? meta.version : '';
+  if (!name || !version) continue;
+
+  if (!versions.has(name)) versions.set(name, new Set());
+  versions.get(name).add(version);
+}
+
+for (const name of Object.keys(rootProd)) {
+  const rootPath = 'node_modules/' + name;
+  const meta = lock.packages[rootPath];
+  if (!meta || typeof meta.version !== 'string') {
+    throw new Error('Production root dependency is missing from package-lock: ' + name);
   }
-  return out;
+  if (meta.dev === true) {
+    throw new Error('Production root dependency is incorrectly marked dev-only in package-lock: ' + name);
+  }
 }
 
-let tree;
-try {
-  const raw = execFileSync(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['ls', '--omit=dev', '--all', '--json'], {
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-    maxBuffer: 20 * 1024 * 1024,
-  });
-  tree = JSON.parse(raw);
-} catch (error) {
-  const stdout = error?.stdout ? String(error.stdout) : '';
-  const stderr = error?.stderr ? String(error.stderr) : '';
-  throw new Error('Production dependency tree validation failed before advisory lookup.\n' + stdout + '\n' + stderr);
-}
-
-const versions = collect(tree);
 const payload = Object.fromEntries(
   [...versions.entries()]
-    .sort(([a],[b]) => a.localeCompare(b))
-    .map(([name,set]) => [name, [...set].sort()])
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([name, set]) => [name, [...set].sort()])
 );
 
 if (!Object.keys(payload).length) {
-  throw new Error('Production dependency tree was unexpectedly empty.');
+  throw new Error('Production dependency closure from package-lock was unexpectedly empty.');
 }
 
-async function fetchBulk(attempt) {
+async function fetchBulk() {
   const response = await fetch('https://registry.npmjs.org/-/npm/v1/security/advisories/bulk', {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
       'accept': 'application/json',
       'accept-encoding': 'identity',
-      'user-agent': 'buklod-quickcheck-security-audit/1.0',
+      'user-agent': 'buklod-quickcheck-security-audit/2.0',
     },
     body: JSON.stringify(payload),
   });
@@ -75,13 +98,11 @@ let report;
 let lastError;
 for (let attempt = 1; attempt <= 3; attempt++) {
   try {
-    report = await fetchBulk(attempt);
+    report = await fetchBulk();
     break;
   } catch (error) {
     lastError = error;
-    if (attempt < 3) {
-      await new Promise(r => setTimeout(r, 1000 * attempt));
-    }
+    if (attempt < 3) await new Promise(r => setTimeout(r, attempt * 1000));
   }
 }
 if (!report) throw lastError || new Error('Bulk advisory lookup failed.');
@@ -93,18 +114,22 @@ for (const [pkg, items] of Object.entries(report)) {
 }
 
 const severityRank = { info: 0, low: 1, moderate: 2, high: 3, critical: 4 };
-const blocking = advisories.filter(a => (severityRank[String(a.severity || '').toLowerCase()] ?? 0) >= 3);
+const blocking = advisories.filter(
+  a => (severityRank[String(a.severity || '').toLowerCase()] ?? 0) >= 3
+);
 
 console.log(JSON.stringify({
-  audited_packages: Object.keys(payload).length,
+  lockfile_version: lock.lockfileVersion,
+  production_root_dependencies: Object.keys(rootProd).length,
+  audited_package_names: Object.keys(payload).length,
   advisory_count: advisories.length,
   blocking_high_or_critical: blocking.length,
 }, null, 2));
 
-if (advisories.length) {
-  for (const a of advisories) {
-    console.log(`${String(a.severity || 'unknown').toUpperCase()} ${a.package}: ${a.title || 'advisory'} ${a.url || ''}`);
-  }
+for (const a of advisories) {
+  console.log(
+    `${String(a.severity || 'unknown').toUpperCase()} ${a.package}: ${a.title || 'advisory'} ${a.url || ''}`
+  );
 }
 
 if (blocking.length) {
