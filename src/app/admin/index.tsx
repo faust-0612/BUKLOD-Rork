@@ -421,8 +421,8 @@ export default function AdminDashboard() {
             >
               <AdminRow
                 icon="account-details-outline"
-                title="Member Master"
-                subtitle="Canonical member directory, assignments and export"
+                title="Member Master & Point Audit"
+                subtitle="Canonical member directory, scope memberships, roles and per-member Points audit"
                 path="/admin/member-master"
               />
 
