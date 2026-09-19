@@ -91,6 +91,8 @@ export default function ForgotPasswordScreen() {
 
   const [emailReady, setEmailReady] = useState<boolean | null>(null);
   const [email, setEmail] = useState('');
+  const [autoForgotLogin, setAutoForgotLogin] = useState(false);
+  const [autoBirthDate, setAutoBirthDate] = useState('');
   const [emailChallengeId, setEmailChallengeId] = useState('');
   const [emailOtp, setEmailOtp] = useState('');
   const [emailOtpSent, setEmailOtpSent] = useState(false);
@@ -150,7 +152,7 @@ export default function ForgotPasswordScreen() {
           setEmailReady(false);
           return;
         }
-        setEmailReady(data?.emailReady === true);
+        setEmailReady(data?.emailReady === true || data?.smsReady === true);
       } catch {
         if (!cancelled) setEmailReady(false);
       }
@@ -235,21 +237,35 @@ export default function ForgotPasswordScreen() {
   }, [recoverySession]);
 
   const requestEmailOtp = async () => {
-    const clean = email.trim().toLowerCase();
-    if (!validEmail(clean)) {
-      return Alert.alert('Email Recovery', 'Enter your registered BUKLOD email address.');
+    const clean = email.trim();
+    if (!autoForgotLogin && clean.length < 3) {
+      return Alert.alert(
+        'Automatic Recovery',
+        'Enter your registered email, mobile number, or username.'
+      );
+    }
+    if (autoForgotLogin) {
+      if (firstName.trim().length < 2 || surname.trim().length < 2) {
+        return Alert.alert('Automatic Recovery', 'Enter your first name and surname.');
+      }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate.trim())) {
+        return Alert.alert(
+          'Automatic Recovery',
+          'Enter birthday as YYYY-MM-DD, for example 1990-05-23.'
+        );
+      }
     }
     if (emailReady === false) {
       return Alert.alert(
-        'Email Recovery',
-        'Email recovery is temporarily unavailable. Use Recovery PIN or Admin Help.'
+        'Automatic Recovery',
+        'Automatic recovery is temporarily unavailable. Use Recovery PIN or Admin Help.'
       );
     }
     if (emailInFlight.current) return;
 
     emailInFlight.current = true;
     setEmailBusy(true);
-    setEmailStatus('Sending a 6-digit recovery code…');
+    setEmailStatus('Checking account and sending a 6-digit recovery code…');
     setEmailOtp('');
     setEmailRecoveryToken('');
     setEmailAccountId('');
@@ -257,40 +273,54 @@ export default function ForgotPasswordScreen() {
 
     try {
       const { data, error } = await supabase.functions.invoke('account-recovery-otp-v1', {
-        body: {
-          action: 'request_otp',
-          contact: clean,
-        },
+        body: autoForgotLogin
+          ? {
+              action: 'request_otp',
+              firstName: firstName.trim(),
+              middleName: middleName.trim() || undefined,
+              surname: surname.trim(),
+              birthDate: birthDate.trim(),
+            }
+          : {
+              action: 'request_otp',
+              identifier: clean,
+              birthDate: autoBirthDate.trim() || undefined,
+            },
       });
       if (error) {
         throw new Error(
           await functionErrorMessage(
             error,
-            'The recovery code could not be sent. Try again or use Admin Help.'
+            'The account could not be recovered automatically. Check the information or use Admin Help.'
           )
         );
       }
-      if (!data?.ok) throw new Error(data?.message ?? 'The recovery code could not be sent.');
+      if (!data?.ok) {
+        throw new Error(
+          data?.message ??
+            'The account could not be recovered automatically. Check the information or use Admin Help.'
+        );
+      }
 
       const challengeId = String(data?.challengeId ?? '').trim();
       if (!/^[0-9a-f-]{36}$/i.test(challengeId)) {
         throw new Error('The recovery request was not started correctly. Please try again.');
       }
 
-      setEmail(clean);
+      if (!autoForgotLogin) setEmail(clean);
       setEmailChallengeId(challengeId);
       setEmailOtpSent(true);
       setEmailStatus(
         String(
           data?.message ??
-            'If an active BUKLOD account uses this email, a 6-digit recovery code has been sent.'
+            'Account matched. A 6-digit recovery code was sent to the registered recovery contact.'
         )
       );
     } catch (error: any) {
       setEmailStatus('');
       Alert.alert(
-        'Email Recovery',
-        String(error?.message ?? error ?? 'The recovery code could not be sent.')
+        'Automatic Recovery',
+        String(error?.message ?? error ?? 'Automatic recovery could not be started.')
       );
     } finally {
       emailInFlight.current = false;
@@ -299,26 +329,24 @@ export default function ForgotPasswordScreen() {
   };
 
   const verifyEmailOtp = async () => {
-    const cleanEmail = email.trim().toLowerCase();
     const cleanOtp = cleanEmailOtp(emailOtp);
     if (!emailChallengeId || !emailOtpSent) {
-      return Alert.alert('Email Recovery', 'Request a recovery code first.');
+      return Alert.alert('Automatic Recovery', 'Request a recovery code first.');
     }
     if (!/^\d{6}$/.test(cleanOtp)) {
-      return Alert.alert('Email Recovery', 'Enter the 6-digit code sent to your email.');
+      return Alert.alert('Automatic Recovery', 'Enter the 6-digit recovery code that was sent.');
     }
     if (emailInFlight.current) return;
 
     emailInFlight.current = true;
     setEmailBusy(true);
-    setEmailStatus('Verifying your email code…');
+    setEmailStatus('Verifying your recovery code…');
 
     try {
       const { data, error } = await supabase.functions.invoke('account-recovery-otp-v1', {
         body: {
           action: 'verify_otp',
           challengeId: emailChallengeId,
-          contact: cleanEmail,
           code: cleanOtp,
         },
       });
@@ -336,18 +364,18 @@ export default function ForgotPasswordScreen() {
       }
       if (accounts.length > 1) {
         throw new Error(
-          'More than one BUKLOD account is linked to this email. Use Admin Help so the correct account can be selected safely.'
+          'More than one BUKLOD account uses that recovery contact. Use Admin Help so the correct account can be selected safely.'
         );
       }
 
       setEmailRecoveryToken(recoveryToken);
       setEmailAccountId(String(accounts[0]?.accountId ?? ''));
       setEmailOtpVerified(true);
-      setEmailStatus('EMAIL VERIFIED — create your new password below.');
+      setEmailStatus('CODE VERIFIED — create your new password below.');
     } catch (error: any) {
       setEmailStatus('');
       Alert.alert(
-        'Email Verification',
+        'Recovery Verification',
         String(error?.message ?? error ?? 'The recovery code could not be verified.')
       );
     } finally {
@@ -358,7 +386,7 @@ export default function ForgotPasswordScreen() {
 
   const resetEmailPassword = async () => {
     if (!emailOtpVerified || !emailRecoveryToken || !emailChallengeId || !emailAccountId) {
-      return Alert.alert('Email Recovery', 'Verify the 6-digit email code first.');
+      return Alert.alert('Automatic Recovery', 'Verify the 6-digit recovery code first.');
     }
     if (emailPassword.length < 8) {
       return Alert.alert('New Password', 'Use at least 8 characters.');
@@ -417,7 +445,7 @@ export default function ForgotPasswordScreen() {
       );
     } catch (error: any) {
       Alert.alert(
-        'Email Recovery',
+        'Automatic Recovery',
         String(error?.message ?? error ?? 'Password reset could not be completed.')
       );
     } finally {
@@ -669,15 +697,15 @@ export default function ForgotPasswordScreen() {
 
         <Text style={styles.title}>Recover Your BUKLOD Account</Text>
         <Text style={styles.subtitle}>
-          If your BUKLOD login is a registered email, verify ownership with a 6-digit email code.
-          Birthday is not required. Recovery PIN and Admin Help remain available as fallback.
+          Automatic recovery checks your registered email, mobile number, or username. A matched
+          account receives a 6-digit code automatically. Admin Help is fallback only.
         </Text>
 
         <View style={styles.pathRow}>
           <PathButton
             active={path === 'email'}
-            icon="email-lock-outline"
-            label="EMAIL OTP"
+            icon="account-key-outline"
+            label="AUTO"
             onPress={() => selectPath('email')}
           />
           <PathButton
@@ -696,58 +724,137 @@ export default function ForgotPasswordScreen() {
 
         {path === 'email' && (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Verify with registered email</Text>
+            <Text style={styles.cardTitle}>Automatic Recovery</Text>
             <Text style={styles.help}>
-              BUKLOD sends a 6-digit code only when the email belongs to an active account. No
-              name or birthday is required for this path.
+              Enter your registered email, mobile number, or username. Username recovery also
+              requires birthday. If you forgot your login identifier, use name + birthday below.
             </Text>
 
             {emailReady === null ? (
               <View style={styles.inlineStatus}>
                 <ActivityIndicator color={colors.green} />
-                <Text style={styles.statusText}>Checking email recovery service…</Text>
+                <Text style={styles.statusText}>Checking automatic recovery service…</Text>
               </View>
             ) : emailReady === false ? (
               <View style={styles.warningCard}>
                 <MaterialCommunityIcons name="alert-circle-outline" size={20} color="#8A5A00" />
                 <Text style={styles.warningText}>
-                  Email delivery is not configured or is temporarily unavailable. Use Recovery PIN
-                  or Admin Help.
+                  Automatic recovery is temporarily unavailable. Use Recovery PIN or Admin Help.
                 </Text>
               </View>
             ) : null}
 
-            <FieldLabel>Registered email</FieldLabel>
-            <TextInput
-              value={email}
-              onChangeText={(value) => {
-                setEmail(value);
-                if (emailOtpSent || emailOtpVerified) {
-                  setEmailChallengeId('');
-                  setEmailOtp('');
-                  setEmailOtpSent(false);
-                  setEmailRecoveryToken('');
-                  setEmailAccountId('');
-                  setEmailOtpVerified(false);
-                  setEmailPassword('');
-                  setEmailConfirm('');
-                  setEmailStatus('');
-                }
+            <Pressable
+              onPress={() => {
+                setAutoForgotLogin((value) => !value);
+                setEmailChallengeId('');
+                setEmailOtp('');
+                setEmailOtpSent(false);
+                setEmailRecoveryToken('');
+                setEmailAccountId('');
+                setEmailOtpVerified(false);
+                setEmailPassword('');
+                setEmailConfirm('');
+                setEmailStatus('');
               }}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="email-address"
-              placeholder="name@example.com"
-              editable={!emailBusy && !emailOtpVerified}
-              style={styles.input}
-            />
+              style={styles.toggleRow}
+            >
+              <MaterialCommunityIcons
+                name={autoForgotLogin ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                size={22}
+                color={colors.green}
+              />
+              <Text style={styles.toggleText}>I forgot my login identifier too</Text>
+            </Pressable>
+
+            {!autoForgotLogin ? (
+              <>
+                <FieldLabel>Registered email, mobile number, or username</FieldLabel>
+                <TextInput
+                  value={email}
+                  onChangeText={(value) => {
+                    setEmail(value);
+                    if (emailOtpSent || emailOtpVerified) {
+                      setEmailChallengeId('');
+                      setEmailOtp('');
+                      setEmailOtpSent(false);
+                      setEmailRecoveryToken('');
+                      setEmailAccountId('');
+                      setEmailOtpVerified(false);
+                      setEmailPassword('');
+                      setEmailConfirm('');
+                      setEmailStatus('');
+                    }
+                  }}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  placeholder="email / 09... / username"
+                  editable={!emailBusy && !emailOtpVerified}
+                  style={styles.input}
+                />
+                <FieldLabel>Birthday (required when using username)</FieldLabel>
+                <TextInput
+                  value={autoBirthDate}
+                  onChangeText={(value) =>
+                    setAutoBirthDate(value.replace(/[^\d-]/g, '').slice(0, 10))
+                  }
+                  keyboardType="numbers-and-punctuation"
+                  placeholder="YYYY-MM-DD"
+                  maxLength={10}
+                  editable={!emailBusy && !emailOtpVerified}
+                  style={styles.input}
+                />
+              </>
+            ) : (
+              <>
+                <FieldLabel>First name</FieldLabel>
+                <TextInput
+                  value={firstName}
+                  onChangeText={setFirstName}
+                  autoCapitalize="words"
+                  placeholder="First name"
+                  editable={!emailBusy && !emailOtpVerified}
+                  style={styles.input}
+                />
+                <FieldLabel>Middle name (optional)</FieldLabel>
+                <TextInput
+                  value={middleName}
+                  onChangeText={setMiddleName}
+                  autoCapitalize="words"
+                  placeholder="Middle name"
+                  editable={!emailBusy && !emailOtpVerified}
+                  style={styles.input}
+                />
+                <FieldLabel>Surname</FieldLabel>
+                <TextInput
+                  value={surname}
+                  onChangeText={setSurname}
+                  autoCapitalize="words"
+                  placeholder="Surname"
+                  editable={!emailBusy && !emailOtpVerified}
+                  style={styles.input}
+                />
+                <FieldLabel>Birthday</FieldLabel>
+                <TextInput
+                  value={birthDate}
+                  onChangeText={(value) =>
+                    setBirthDate(value.replace(/[^\d-]/g, '').slice(0, 10))
+                  }
+                  keyboardType="numbers-and-punctuation"
+                  placeholder="YYYY-MM-DD"
+                  maxLength={10}
+                  editable={!emailBusy && !emailOtpVerified}
+                  style={styles.input}
+                />
+              </>
+            )}
 
             {!emailOtpVerified && (
               <>
                 <PrimaryButton
                   busy={emailBusy && !emailOtpSent}
                   disabled={emailReady !== true}
-                  label={emailOtpSent ? 'SEND NEW CODE' : 'SEND 6-DIGIT CODE'}
+                  label={emailOtpSent ? 'SEND NEW CODE' : 'MATCH ACCOUNT & SEND CODE'}
                   onPress={requestEmailOtp}
                 />
 
@@ -764,7 +871,7 @@ export default function ForgotPasswordScreen() {
                     />
                     <PrimaryButton
                       busy={emailBusy}
-                      label="VERIFY EMAIL"
+                      label="VERIFY CODE"
                       onPress={verifyEmailOtp}
                     />
                   </>
@@ -777,7 +884,7 @@ export default function ForgotPasswordScreen() {
                 <View style={styles.verifiedCard}>
                   <MaterialCommunityIcons name="check-decagram" size={23} color="#176B39" />
                   <Text style={styles.verifiedText}>
-                    Email verified. Set your new password. Birthday verification is skipped.
+                    Recovery code verified. Set your new password.
                   </Text>
                 </View>
                 <FieldLabel>New password</FieldLabel>
@@ -816,8 +923,9 @@ export default function ForgotPasswordScreen() {
             )}
 
             <Text style={styles.privacyText}>
-              For privacy, BUKLOD gives the same send-code response whether or not an account
-              exists. Codes expire quickly and cannot be reused.
+              If the details do not match an active account, BUKLOD rejects the request immediately.
+              If matched, the code is generated and sent automatically. Codes expire quickly and
+              cannot be reused.
             </Text>
           </View>
         )}
