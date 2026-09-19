@@ -1143,7 +1143,7 @@ function App() {
           <p className="mt-3 text-xs text-slate-500">Rubric files follow the same local-first rule: the original file is not stored as a cloud asset. Only normalized rubric text is retained with the structured Batch Record so the grading basis can be reviewed later.</p>
         </section>
 
-        {reportReady && extracted.length > 0 && (
+        {reportReady && (extracted.length > 0 || failedFrames.length > 0) && (
           <section ref={reportRef} className="mt-6 scroll-mt-4 rounded-3xl border border-emerald-400/30 bg-slate-900 p-5 sm:p-6">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
