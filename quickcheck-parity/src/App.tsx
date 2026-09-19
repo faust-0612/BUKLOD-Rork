@@ -376,8 +376,16 @@ function App() {
     finishingRef.current = false;
     setBusy('');
     setReportReady(true);
-    setScanStatus('Batch processing complete. Final Report is ready.');
-    setMessage('Batch finished. Final Report / Summary is ready below.');
+
+    const blocked = failedFramesRef.current.length;
+    if (blocked > 0) {
+      setScanStatus(`Batch complete with ${blocked} failed / needs-rescan page(s).`);
+      setMessage(`Batch finished with ${blocked} blocked page(s). Resolve Failed / Needs Rescan before grading or release. No blocked page was silently included.`);
+    } else {
+      setScanStatus('Batch processing complete. Final Report is ready.');
+      setMessage('Batch finished. Final Report / Summary is ready below.');
+    }
+
     window.setTimeout(() => reportRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
   };
 
@@ -422,11 +430,15 @@ function App() {
         setProcessedCount(prev => prev + results.length);
       }).catch(err => {
         const detail = err instanceof Error ? err.message : 'AI processing failed';
-        failedFramesRef.current.push(...chunk);
+        const retained = chunk.map(frame => ({
+          ...frame,
+          failureReason: `AI error: ${detail}`,
+        }));
+        failedFramesRef.current.push(...retained);
         setFailedFrames([...failedFramesRef.current]);
         setFailedCount(failedFramesRef.current.length);
         setScanStatus(`AI ERROR — ${detail.slice(0, 220)}`);
-        setMessage(`AI ERROR: ${detail}. Scan retained in Failed Pages — no rescan needed.`);
+        setMessage(`AI ERROR: ${detail}. Scan retained in Failed Pages and excluded from grading.`);
       }).finally(() => {
         activeWorkersRef.current -= 1;
         processingPagesRef.current -= chunk.length;
