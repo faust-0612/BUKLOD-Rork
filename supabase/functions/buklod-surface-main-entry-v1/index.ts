@@ -20,6 +20,26 @@ function safeText(value: unknown, max = 320) {
   return String(value ?? "").trim().slice(0, max);
 }
 
+function isLoopbackOrigin(value: string | null) {
+  try {
+    const url = new URL(String(value ?? ""));
+    return (
+      (url.protocol === "http:" || url.protocol === "https:") &&
+      (url.hostname === "localhost" ||
+        url.hostname === "127.0.0.1" ||
+        url.hostname === "::1")
+    );
+  } catch {
+    return false;
+  }
+}
+
+function localStagingUrl(target: "home" | "kingdom") {
+  return target === "home"
+    ? "http://127.0.0.1:4173"
+    : "http://127.0.0.1:4174";
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") {
@@ -56,11 +76,14 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const targetUrl = cleanUrl(
+  const configuredTargetUrl = cleanUrl(
     target === "home"
       ? Deno.env.get("BUKLOD_HOME_WEB_URL")
       : Deno.env.get("BUKLOD_KINGDOM_WEB_URL"),
   );
+  const requestOrigin = req.headers.get("Origin");
+  const localE2E = !configuredTargetUrl && isLoopbackOrigin(requestOrigin);
+  const targetUrl = configuredTargetUrl || (localE2E ? localStagingUrl(target) : "");
 
   if (!targetUrl) {
     return respond(503, {
@@ -137,12 +160,14 @@ Deno.serve(async (req: Request) => {
     target,
     userId: String(user.id),
     source: safeText(body?.source, 120) || null,
+    mode: localE2E ? "local_e2e" : "configured",
   });
 
   return respond(200, {
     ok: true,
     target,
     authority: "buklod_main",
+    mode: localE2E ? "local_e2e" : "configured",
     session_launch_url: sessionLaunchUrl,
     expires_hint_seconds: 300,
   });
