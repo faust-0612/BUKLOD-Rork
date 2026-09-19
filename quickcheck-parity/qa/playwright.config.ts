@@ -25,6 +25,7 @@ function resolveE2ePort() {
 
 const port = resolveE2ePort();
 const origin = `http://127.0.0.1:${port}`;
+console.log(`[QuickCheck E2E] isolated preview origin: ${origin}`);
 
 export default defineConfig({
   testDir: './tests',
