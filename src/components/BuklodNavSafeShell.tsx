@@ -4,6 +4,7 @@ import React, {
 } from 'react';
 
 import {
+  BackHandler,
   Keyboard,
   Platform,
   Pressable,
@@ -84,6 +85,52 @@ export default function BuklodNavSafeShell({
     isMyBuklodDoorPath(pathname);
   const [keyboardVisible, setKeyboardVisible] =
     useState(false);
+
+  /*
+   * BUKLOD_ROOT_BACK_TO_WALL_R1
+   * A direct/deep entry into the core personal surfaces must never let
+   * Android's hardware Back exit the app before the user reaches Community
+   * Wall. Normal navigation history is preserved; scoped workspaces retain
+   * their dedicated section-aware BackHandler in /scope.
+   */
+  useEffect(() => {
+    if (Platform.OS !== 'android') {
+      return;
+    }
+
+    const normalized =
+      normalizeBuklodPathname(pathname);
+    const coreFallbackPath =
+      immersiveIgpat ||
+      normalized === '/me' ||
+      normalized.startsWith('/profile/') ||
+      reserveMyBuklodSystemInsets;
+
+    if (!coreFallbackPath) {
+      return;
+    }
+
+    const subscription =
+      BackHandler.addEventListener(
+        'hardwareBackPress',
+        () => {
+          if (router.canGoBack()) {
+            return false;
+          }
+
+          router.replace('/buklod' as any);
+          return true;
+        }
+      );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [
+    immersiveIgpat,
+    pathname,
+    reserveMyBuklodSystemInsets,
+  ]);
 
   useEffect(() => {
     const showEvent =
