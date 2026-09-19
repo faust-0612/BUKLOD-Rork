@@ -637,9 +637,13 @@ PersonalInformationScreen() {
       <View style={styles.header}>
         <Pressable
           style={styles.back}
-          onPress={() =>
-            router.back()
-          }
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+              return;
+            }
+            router.replace('/(tabs)/me' as any);
+          }}
         >
           <MaterialCommunityIcons
             name="arrow-left"
