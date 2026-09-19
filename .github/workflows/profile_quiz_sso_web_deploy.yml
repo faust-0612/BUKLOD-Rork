@@ -6,6 +6,11 @@ on:
       - main
     paths:
       - 'src/components/BuklodFoundationWorkspaceNav.tsx'
+      - 'src/components/classroom/BuklodQuizStudentEntry.tsx'
+      - 'src/app/profile/buklod-classroom.tsx'
+      - 'src/app/profile/buklod-faculty.tsx'
+      - 'src/app/profile/buklod-faculty-quiz-results.tsx'
+      - 'src/lib/buklodQuizEntry.ts'
       - '.github/workflows/profile_quiz_sso_web_deploy.yml'
   workflow_dispatch:
 
@@ -34,22 +39,34 @@ jobs:
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
-      - name: Verify Profile Quiz SSO source contract
+      - name: Verify unified Quiz SSO source contract
         shell: bash
         run: |
           set -euo pipefail
-          grep -F 'BUKLOD_PROFILE_QUIZ_ZERO_LOGIN_SSO_R1' 'src/components/BuklodFoundationWorkspaceNav.tsx'
-          grep -F 'BUKLOD_PROFILE_QUIZ_STUCK_LOADING_GUARD_R2' 'src/components/BuklodFoundationWorkspaceNav.tsx'
-          grep -F 'BUKLOD_PROFILE_QUIZ_DEVICE_SESSION_SELF_HEAL_R3' 'src/components/BuklodFoundationWorkspaceNav.tsx'
-          grep -F 'QUIZ_ENTRY_TIMEOUT_MS = 15_000' 'src/components/BuklodFoundationWorkspaceNav.tsx'
-          grep -F 'supabase.auth.getUser(accessToken)' 'src/components/BuklodFoundationWorkspaceNav.tsx'
-          grep -F 'supabase.auth.refreshSession()' 'src/components/BuklodFoundationWorkspaceNav.tsx'
-          grep -F 'session_launch_ready === true' 'src/components/BuklodFoundationWorkspaceNav.tsx'
-          grep -F 'signal: controller.signal' 'src/components/BuklodFoundationWorkspaceNav.tsx'
-          grep -F 'quizEntryInFlight.current = false' 'src/components/BuklodFoundationWorkspaceNav.tsx'
-          grep -F 'buklod-quiz-main-entry-v1' 'src/components/BuklodFoundationWorkspaceNav.tsx'
-          grep -F "body: JSON.stringify({ source: 'buklod-main-profile' })" 'src/components/BuklodFoundationWorkspaceNav.tsx'
-          grep -F 'await Linking.openURL(launchUrl)' 'src/components/BuklodFoundationWorkspaceNav.tsx'
+
+          grep -F 'BUKLOD_QUIZ_UNIFIED_MAIN_ENTRY_R21' 'src/lib/buklodQuizEntry.ts'
+          grep -F 'QUIZ_ENTRY_BRIDGE' 'src/lib/buklodQuizEntry.ts'
+          grep -F 'supabase.auth.getUser(accessToken)' 'src/lib/buklodQuizEntry.ts'
+          grep -F 'supabase.auth.refreshSession()' 'src/lib/buklodQuizEntry.ts'
+          grep -F 'session_launch_ready === true' 'src/lib/buklodQuizEntry.ts'
+          grep -F 'signal: controller.signal' 'src/lib/buklodQuizEntry.ts'
+          grep -F 'await Linking.openURL(launchUrl)' 'src/lib/buklodQuizEntry.ts'
+
+          grep -F "source: 'buklod-main-profile'" 'src/components/BuklodFoundationWorkspaceNav.tsx'
+          grep -F "source: 'buklod-main-classroom-student'" 'src/components/classroom/BuklodQuizStudentEntry.tsx'
+          grep -F "source: 'buklod-main-classroom'" 'src/app/profile/buklod-classroom.tsx'
+          grep -F "source: 'buklod-main-faculty-examiner'" 'src/app/profile/buklod-faculty.tsx'
+          grep -F "source: 'buklod-main-faculty-results'" 'src/app/profile/buklod-faculty-quiz-results.tsx'
+
+          if grep -R -n -E "Linking\.openURL\(['\"]https://buklod-quiz\.expo\.app" src; then
+            echo 'ERROR: bare Quiz URL launcher detected. Use openBuklodQuizFromMain().' >&2
+            exit 1
+          fi
+
+          if grep -F 'buklod_handoff=1' 'src/app/profile/buklod-classroom.tsx'; then
+            echo 'ERROR: legacy Quiz token-in-URL handoff returned.' >&2
+            exit 1
+          fi
 
       - name: TypeScript QA
         run: npx tsc --noEmit
