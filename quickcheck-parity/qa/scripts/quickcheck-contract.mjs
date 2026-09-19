@@ -20,6 +20,7 @@ const required = [
   ['release all grades', 'RELEASE ALL GRADES'],
   ['profile accessory entry', 'Profile &gt; Accessory Apps'],
   ['exact paper-review status action', 'Open exact Paper Review'],
+  ['persisted saved-batch reprocess', "action: 'reprocess_batch'"],
 ];
 
 for (const [label, token] of required) {
