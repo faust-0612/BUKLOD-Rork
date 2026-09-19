@@ -1,3 +1,6 @@
+const sentryOrg = (process.env.SENTRY_ORG || '').trim();
+const sentryProject = (process.env.SENTRY_PROJECT || '').trim();
+
 const googleMapsAndroidApiKey =
   (
     process.env.GOOGLE_MAPS_ANDROID_API_KEY ||
@@ -126,6 +129,16 @@ module.exports = ({ config }) => {
 
 
     plugins: [
+      ...(sentryOrg && sentryProject
+        ? [[
+            '@sentry/react-native/expo',
+            {
+              url: 'https://sentry.io/',
+              organization: sentryOrg,
+              project: sentryProject,
+            },
+          ]]
+        : []),
       'expo-background-task',
       [
         'react-native-google-mobile-ads',
@@ -181,6 +194,13 @@ module.exports = ({ config }) => {
 
 
       'expo-router',
+
+      [
+        'expo-screen-orientation',
+        {
+          initialOrientation: 'DEFAULT',
+        },
+      ],
 
 
 
