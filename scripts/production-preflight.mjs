@@ -61,9 +61,16 @@ if (legal.includes('[OFFICIAL ORGANIZATION ADDRESS')) {
   failures.push('Privacy notice still contains the organization-address placeholder.');
 }
 
-const seedProd = read('supabase/seed.production.sql');
-if (/Leadership Pilot|Pilot Week|QA Church|test user/i.test(seedProd)) {
-  failures.push('Production seed appears to contain staging/pilot/demo data.');
+const productionSeedUrl = new URL('../supabase/seed.production.sql', import.meta.url);
+if (fs.existsSync(productionSeedUrl)) {
+  const seedProd = fs.readFileSync(productionSeedUrl, 'utf8');
+  if (/Leadership Pilot|Pilot Week|QA Church|test user/i.test(seedProd)) {
+    failures.push('Production seed appears to contain staging/pilot/demo data.');
+  }
+} else {
+  warnings.push(
+    'No production seed is bundled; release is migrations-only and will not inject demo/baseline data.'
+  );
 }
 
 const migrations = fs.readdirSync(new URL('../supabase/migrations/', import.meta.url))
