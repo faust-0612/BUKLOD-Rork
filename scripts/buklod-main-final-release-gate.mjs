@@ -36,6 +36,8 @@ requireText('src/lib/buklodAuthResilience.ts', 'BUKLOD_CANONICAL_LOGIN_RESOLVER_
 requireText('src/lib/buklodAuthResilience.ts', "'buklod-auth-login-v2'", 'Server-side login resolver');
 requireText('src/lib/buklodAuthResilience.ts', 'canonicalIdentifierSignInInFlight', 'Canonical login single-flight');
 requireText('src/lib/buklodAuthResilience.ts', 'isBuklodRateLimitError', 'Explicit Auth rate-limit detection');
+requireText('supabase/migrations/20260919182307_auth_login_indexed_resolver_scale_r24.sql', 'idx_profiles_active_login_identifier_value', 'Mass-login resolver has indexed login identifier path');
+requireText('supabase/migrations/20260919182307_auth_login_indexed_resolver_scale_r24.sql', 'buklod_auth_candidates_for_service_v2', 'Canonical auth resolver migration is source-tracked');
 forbidText('src/app/(auth)/login.tsx', 'function mobileInternalEmail(', 'No guessed mobile auth email in Login');
 forbidText('src/app/(auth)/login.tsx', 'function legacyMobileInternalEmail(', 'No legacy guessed mobile auth email in Login');
 forbidText('src/app/(auth)/login.tsx', 'function usernameInternalEmail(', 'No guessed username auth email in Login');
