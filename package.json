@@ -7,7 +7,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "test": "jest --runInBand",
+    "test": "npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund jest@29.7.0 jest-expo@57.0.5 && jest --runInBand",
     "test:watch": "jest --watch",
     "test:db": "supabase test db",
     "doctor": "npx expo-doctor@latest",
