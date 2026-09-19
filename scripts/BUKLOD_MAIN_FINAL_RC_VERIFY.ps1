@@ -110,7 +110,7 @@ if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath "final-migration-manife
 
 Write-Host ""
 Write-Host "=== 6/10 EXPO / DEPENDENCY DOCTOR ===" -ForegroundColor Yellow
-Invoke-Checked npx.cmd expo-doctor@latest
+Invoke-Checked npx.cmd --yes expo-doctor@latest
 
 Write-Host ""
 Write-Host "=== 7/10 PRODUCTION ENVIRONMENT PREFLIGHT ===" -ForegroundColor Yellow
@@ -119,13 +119,13 @@ $env:APP_VARIANT = "production"
 $env:BUKLOD_APP_TARGET = "main"
 $env:EAS_PROJECT_ID = "23dad7d0-389a-406e-8dec-08965dab85d8"
 
-Invoke-Checked npx.cmd eas-cli@latest whoami --non-interactive
+Invoke-Checked npx.cmd --yes eas-cli@latest whoami --non-interactive
 
 if (Test-Path -LiteralPath ".env.local") {
   Remove-Item -LiteralPath ".env.local" -Force
 }
 
-Invoke-Checked npx.cmd eas-cli@latest env:pull --environment production --path .env.local --non-interactive
+Invoke-Checked npx.cmd --yes eas-cli@latest env:pull --environment production --path .env.local --non-interactive
 
 if (-not (Test-Path -LiteralPath ".env.local")) {
   throw "Production .env.local was not pulled."
