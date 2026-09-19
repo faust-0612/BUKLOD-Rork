@@ -22,6 +22,7 @@ on:
       - 'src/lib/buklodPerformanceFetch.ts'
       - 'src/lib/buklodR4RequestShield.ts'
       - 'scripts/buklod-main-final-release-gate.mjs'
+      - 'scripts/BUKLOD_MAIN_FINAL_RC_VERIFY.ps1'
       - 'scripts/production-preflight.mjs'
       - 'scripts/verify-production-migrations.mjs'
       - 'app.config.js'
@@ -48,6 +49,7 @@ on:
       - 'src/lib/buklodPerformanceFetch.ts'
       - 'src/lib/buklodR4RequestShield.ts'
       - 'scripts/buklod-main-final-release-gate.mjs'
+      - 'scripts/BUKLOD_MAIN_FINAL_RC_VERIFY.ps1'
       - 'scripts/production-preflight.mjs'
       - 'scripts/verify-production-migrations.mjs'
   workflow_dispatch:
