@@ -489,6 +489,16 @@ test('rubric, report inspectors, assessment/student drilldowns and recheck butto
   await expect(page.getByText('3. Suggested Grades & Teacher Review')).toBeVisible();
 
   const inspectorButtons = [
+    /^Scanned.*View/i,
+    /^Processed.*View/i,
+    /^Flags.*View/i,
+    /^Released.*View/i,
+    /^Captured/i,
+    /^Processed/i,
+    /^Assessments/i,
+    /^Students/i,
+    /^Failed/i,
+    /^Graded/i,
     /Scan & Quality/i,
     /Sorting & Identity/i,
     /Grade & Record/i,
