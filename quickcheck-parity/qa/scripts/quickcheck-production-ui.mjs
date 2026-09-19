@@ -27,6 +27,19 @@ try {
   }
 
   if (pageErrors.length) throw new Error('Production page error: ' + pageErrors.join(' | '));
+
+  const perf = await page.evaluate(() => {
+    const nav = performance.getEntriesByType('navigation')[0];
+    const resources = performance.getEntriesByType('resource');
+    return {
+      domContentLoaded: nav ? nav.domContentLoadedEventEnd : 0,
+      loadEventEnd: nav ? nav.loadEventEnd : 0,
+      jsTransfer: resources.filter(r => r.name.includes('/assets/') && r.name.endsWith('.js')).reduce((n, r) => n + (r.transferSize || 0), 0),
+    };
+  });
+  if (perf.domContentLoaded > 8000) throw new Error('Production DOMContentLoaded exceeded 8s: ' + perf.domContentLoaded);
+  if (perf.loadEventEnd > 12000) throw new Error('Production load exceeded 12s: ' + perf.loadEventEnd);
+  console.log('Production performance:', JSON.stringify(perf));
   console.log('QUICKCHECK_PRODUCTION_UI_PASS');
 } finally {
   await browser.close();
