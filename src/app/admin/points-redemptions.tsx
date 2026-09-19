@@ -14,7 +14,7 @@ export default function AdminPointsRedemptionsScreen() {
         style={shared.screen}
         contentContainerStyle={styles.content}
       >
-        <Text style={styles.eyebrow}>SYSTEM ADMIN · LEGACY</Text>
+        <Text style={styles.eyebrow}>SYSTEM ADMIN · COMPATIBILITY</Text>
         <Text style={shared.h1}>Points Redemption Center</Text>
         <Text style={shared.muted}>
           This legacy point-to-value workflow has been retired under the R38 economic invariant.
@@ -35,7 +35,7 @@ export default function AdminPointsRedemptionsScreen() {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Canonical R38 flow</Text>
+          <Text style={styles.cardTitle}>Canonical funded economy flow</Text>
           <Text style={styles.line}>1. Record actual platform revenue and recognized costs.</Text>
           <Text style={styles.line}>2. Reconcile the economic period.</Text>
           <Text style={styles.line}>3. Finalize funded pools only after the finalization gate is enabled.</Text>
@@ -51,7 +51,7 @@ export default function AdminPointsRedemptionsScreen() {
           ]}
         >
           <MaterialCommunityIcons name="finance" size={19} color="#FFFFFF" />
-          <Text style={styles.buttonText}>OPEN R38 ECONOMY & BAYANIHAN</Text>
+          <Text style={styles.buttonText}>OPEN ECONOMY & BAYANIHAN</Text>
         </Pressable>
 
         <View style={styles.noteCard}>
