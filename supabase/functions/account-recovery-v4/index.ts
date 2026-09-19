@@ -165,6 +165,81 @@ Deno.serve(async (req) => {
     await event(eventType, blocked ? 'rate_limited' : 'attempt', { subjectHash });
     return { blocked, subjectHash };
   }
+  async function requestRecoveryRate(subject: string, minutes: number, subjectLimit: number, ipLimit: number) {
+    const attemptEventType = 'request_admin_recovery_v4';
+    const resultEventType = 'request_admin_recovery_v4_result';
+    const subjectHash = await secretHash('subject', `${attemptEventType}:${subject}`);
+    const since = new Date(Date.now() - minutes * 60000).toISOString();
+
+    const [s, i] = await Promise.all([
+      admin.from('buklod_account_recovery_events')
+        .select('request_id,created_at')
+        .eq('event_type', resultEventType)
+        .eq('subject_hash', subjectHash)
+        .not('request_id', 'is', null)
+        .gte('created_at', since)
+        .order('created_at', { ascending: true })
+        .limit(200),
+      admin.from('buklod_account_recovery_events')
+        .select('request_id,created_at')
+        .eq('event_type', resultEventType)
+        .eq('ip_hash', ipHash)
+        .not('request_id', 'is', null)
+        .gte('created_at', since)
+        .order('created_at', { ascending: true })
+        .limit(500),
+    ]);
+
+    if (s.error || i.error) {
+      console.error('Recovery request rate check failed', s.error ?? i.error);
+      return { blocked: false, checkError: true, subjectHash, retryAfterSeconds: 0 };
+    }
+
+    const distinct = (rows: any[] | null) => {
+      const seen = new Set<string>();
+      const accepted: { id: string; createdAt: number }[] = [];
+      for (const row of rows ?? []) {
+        const id = text(row?.request_id);
+        if (!id || seen.has(id)) continue;
+        seen.add(id);
+        const createdAt = new Date(String(row?.created_at ?? '')).getTime();
+        if (!Number.isFinite(createdAt)) continue;
+        accepted.push({ id, createdAt });
+      }
+      return accepted;
+    };
+
+    const subjectRequests = distinct(s.data as any[] | null);
+    const ipRequests = distinct(i.data as any[] | null);
+    const blockedBySubject = subjectRequests.length >= subjectLimit;
+    const blockedByIp = ipRequests.length >= ipLimit;
+    const blocked = blockedBySubject || blockedByIp;
+
+    let retryAfterSeconds = 0;
+    const now = Date.now();
+    const windowMs = minutes * 60000;
+    if (blockedBySubject && subjectRequests[0]) {
+      retryAfterSeconds = Math.max(
+        retryAfterSeconds,
+        Math.ceil((subjectRequests[0].createdAt + windowMs - now) / 1000),
+      );
+    }
+    if (blockedByIp && ipRequests[0]) {
+      retryAfterSeconds = Math.max(
+        retryAfterSeconds,
+        Math.ceil((ipRequests[0].createdAt + windowMs - now) / 1000),
+      );
+    }
+
+    await event(attemptEventType, blocked ? 'rate_limited' : 'attempt', { subjectHash });
+    return {
+      blocked,
+      checkError: false,
+      subjectHash,
+      retryAfterSeconds: Math.max(0, retryAfterSeconds),
+    };
+  }
+
   async function authUser() {
     const auth = req.headers.get('Authorization');
     if (!auth?.startsWith('Bearer ')) return null;
@@ -238,9 +313,16 @@ Deno.serve(async (req) => {
     const surname = namePart(body?.surname);
     const birth = text(body?.birthDate);
     const identityKey = `${lower(first)}|${lower(middle)}|${lower(surname)}|${birth}`;
-    const gate = await rate('request_admin_recovery_v4', raw || identityKey || 'invalid', 60, 3, 12);
+    const gate = await requestRecoveryRate(raw || identityKey || 'invalid', 60, 3, 12);
     const generic = 'Your request was received. Keep this screen open while a BUKLOD System Admin verifies the account.';
-    if (gate.blocked) return json({ ok: true, message: generic, waiting: false, rateLimited: true });
+    if (gate.checkError) return json({ ok: false, message: 'Could not check the recovery request limit right now. Please try again.' }, 503);
+    if (gate.blocked) return json({
+      ok: true,
+      message: generic,
+      waiting: false,
+      rateLimited: true,
+      retryAfterSeconds: gate.retryAfterSeconds,
+    });
 
     const token = randomToken();
     const tokenHash = await clientTokenHash(token);
