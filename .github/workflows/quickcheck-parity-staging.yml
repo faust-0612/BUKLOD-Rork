@@ -1,0 +1,27 @@
+name: QuickCheck Vercel Parity Staging QA
+
+on:
+  push:
+    branches:
+      - 'work/quickcheck-vercel-parity-20260919'
+    paths:
+      - 'quickcheck-parity/**'
+      - '.github/workflows/quickcheck-parity-staging.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: quickcheck-parity
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: quickcheck-parity/package-lock.json
+      - name: Install
+        run: npm install
+      - name: TypeScript + production build
+        run: npm run build
