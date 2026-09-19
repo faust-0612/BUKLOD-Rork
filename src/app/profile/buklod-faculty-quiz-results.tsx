@@ -1,7 +1,6 @@
 import { useCallback,useEffect,useState } from 'react';
 import {
   Alert,
-  Linking,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -13,6 +12,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
+import { openBuklodQuizFromMain } from '@/lib/buklodQuizEntry';
 
 type ReleasedQuizResult = {
   attempt_id: string;
@@ -81,6 +81,23 @@ export default function BuklodFacultyQuizResultsScreen() {
     setRefreshing(false);
   },[load]);
 
+  const openFullQuiz = useCallback(async () => {
+    try {
+      /* BUKLOD_QUIZ_UNIFIED_MAIN_ENTRY_R21 */
+      await openBuklodQuizFromMain({
+        source: 'buklod-main-faculty-results',
+      });
+    } catch (error: any) {
+      Alert.alert(
+        'BUKLOD Quiz Results',
+        String(
+          error?.message ??
+            'Could not create your automatic BUKLOD Quiz session.',
+        ),
+      );
+    }
+  },[]);
+
   return (
     <ScrollView
       style={s.screen}
@@ -109,7 +126,7 @@ export default function BuklodFacultyQuizResultsScreen() {
 
       <Pressable
         style={s.webButton}
-        onPress={() => void Linking.openURL('https://buklod-quiz.expo.app/records')}
+        onPress={() => void openFullQuiz()}
       >
         <MaterialCommunityIcons name="open-in-new" size={19} color="#fff" />
         <Text style={s.webButtonText}>OPEN FULL BUKLOD QUIZ CLASS RECORDS</Text>
