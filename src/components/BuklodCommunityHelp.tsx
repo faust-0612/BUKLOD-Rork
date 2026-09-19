@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
+import * as LocalAuthentication from 'expo-local-authentication';
 
 import { supabase } from '@/lib/supabase';
 import { registerPushToken } from '@/lib/pushNotifications';
@@ -158,6 +159,33 @@ export default function BuklodCommunityHelp(){
     if(busy)return;
     setBusy(true);
     try{
+      if(kind==='EMERGENCY'){
+        /* BUKLOD_SOS_LOCAL_AUTH_R2
+         * Deliberate SOS send requires local device confirmation before GPS
+         * capture and server fan-out. Device PIN remains the fallback.
+         */
+        const canAuth=await LocalAuthentication.hasHardwareAsync().catch(()=>false);
+        const enrolled=canAuth
+          ? await LocalAuthentication.isEnrolledAsync().catch(()=>false)
+          : false;
+
+        if(canAuth&&enrolled){
+          const verified=await LocalAuthentication.authenticateAsync({
+            promptMessage:'Confirm Emergency SOS',
+            promptSubtitle:'Send an urgent nearby BUKLOD alert',
+            promptDescription:'Confirm with fingerprint, Face ID, or device PIN.',
+            cancelLabel:'Cancel',
+            fallbackLabel:'Use device PIN',
+            disableDeviceFallback:false,
+            requireConfirmation:true,
+          });
+          if(!verified.success){
+            Alert.alert('SOS cancelled','Emergency SOS was not sent.');
+            return;
+          }
+        }
+      }
+
       const coords=await ensurePresence(true);
       if(!coords)return;
       const {data,error}=await supabase.rpc('buklod_help_create_request',{
