@@ -49,9 +49,11 @@ async function fetchIgpatPreviews(): Promise<IgpatPreviewRow[]> {
 
   previewRequest = (async () => {
     const { data, error } = await withBuklodTimeout<any>(
-      (supabase as any).rpc('get_buklod_igpat_feed_v3', {
+      (supabase as any).rpc('get_buklod_igpat_feed_v4', {
         p_mode: 'for-you',
         p_limit: PREVIEW_LIMIT,
+        p_before_created_at: null,
+        p_before_id: null,
       }),
       IGPAT_PREVIEW_TIMEOUT_MS,
       'Community IGPAT preview feed'
