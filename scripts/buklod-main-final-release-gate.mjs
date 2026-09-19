@@ -67,6 +67,14 @@ requireText('src/components/BuklodCommunityInlineAd.android.tsx', 'BuklodCommuni
 requireText('src/hooks/useBuklodCommunityAdViewability.ts', 'useBuklodCommunityInlineVisibility', 'Off-screen IGPAT playback uses true visibility');
 requireText('src/app/igpat/[postId].android.tsx', 'contentFit="contain"', 'Android focused IGPAT preserves source aspect');
 requireText('src/app/igpat/index.web.tsx', 'postId', 'Web IGPAT supports exact post targeting');
+requireText('src/app/igpat/index.tsx', 'get_buklod_igpat_feed_v4', 'Native IGPAT uses bounded cursor feed');
+requireText('src/app/igpat/index.web.tsx', 'get_buklod_igpat_feed_v4', 'Web IGPAT uses bounded cursor feed');
+requireText('src/app/igpat/index.tsx', 'onEndReachedThreshold={0.7}', 'Native IGPAT progressive pagination');
+requireText('src/app/igpat/index.web.tsx', 'onEndReachedThreshold={0.7}', 'Web IGPAT progressive pagination');
+requireText('src/app/igpat/index.tsx', 'withBuklodTimeout', 'Native IGPAT bounded remote waits');
+requireText('src/app/igpat/index.web.tsx', 'withBuklodTimeout', 'Web IGPAT bounded remote waits');
+requireText('supabase/migrations/20260919173848_igpat_cursor_pagination_scale_r18.sql', 'community_posts_igpat_live_created_idx', 'IGPAT scale index migration tracked');
+requireText('supabase/migrations/20260919173848_igpat_cursor_pagination_scale_r18.sql', 'get_buklod_igpat_feed_v4', 'IGPAT v4 cursor RPC migration tracked');
 requireText('src/app/account/security.tsx', 'Current Password', 'Change Password requires current-password verification');
 requireText('src/app/account/security.tsx', "router.canGoBack()", 'Password & Recovery has safe back');
 requireText('src/app/account/recovery-pin.tsx', "router.canGoBack()", 'Recovery PIN has safe back');
