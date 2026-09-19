@@ -17,6 +17,10 @@ export function setQuickCheckBearerToken(value: string) {
   else localStorage.removeItem(QC_BEARER_KEY);
 }
 
+export function hasQuickCheckSession() {
+  return typeof window !== 'undefined' && !!localStorage.getItem(QC_SESSION_KEY);
+}
+
 function authHeaders() {
   const headers: Record<string, string> = {
     apikey: SUPABASE_KEY,
