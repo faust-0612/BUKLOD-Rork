@@ -7,13 +7,25 @@ module.exports = ({ config }) => {
   /* BUKLOD_CLASSROOM_APP_TARGET_R4 — standalone identity without mutating Main defaults */
   const appTarget = (process.env.BUKLOD_APP_TARGET || 'main').trim().toLowerCase();
   const isClassroom = appTarget === 'classroom';
+  const isHome = appTarget === 'home';
+  const isKingdom = appTarget === 'kingdom';
+  const isStandaloneWeb = isHome || isKingdom;
   const classroomProjectId = '14100ed1-7f25-4551-9627-09d280498241';
   const classroomGoogleServicesFile = (process.env.CLASSROOM_GOOGLE_SERVICES_FILE || '').trim();
+  const mainProjectId =
+    process.env.EAS_PROJECT_ID ||
+    process.env.EXPO_PUBLIC_EAS_PROJECT_ID ||
+    '23dad7d0-389a-406e-8dec-08965dab85d8';
+  const standaloneProjectId = isHome
+    ? (process.env.BUKLOD_HOME_EAS_PROJECT_ID || '').trim()
+    : isKingdom
+      ? (process.env.BUKLOD_KINGDOM_EAS_PROJECT_ID || '').trim()
+      : '';
   const projectId = isClassroom
     ? classroomProjectId
-    : (process.env.EAS_PROJECT_ID ||
-       process.env.EXPO_PUBLIC_EAS_PROJECT_ID ||
-       '23dad7d0-389a-406e-8dec-08965dab85d8');
+    : isStandaloneWeb
+      ? standaloneProjectId
+      : mainProjectId;
 
   const variant =
     process.env.APP_VARIANT ||
@@ -29,21 +41,47 @@ module.exports = ({ config }) => {
 
   const appName = isClassroom
     ? (isStaging ? 'BUKLOD Classroom Staging' : 'BUKLOD Classroom')
-    : (isStaging ? 'BUKLOD Staging' : 'BUKLOD');
+    : isHome
+      ? (isStaging ? 'BUKLOD Home Staging' : 'BUKLOD Home')
+      : isKingdom
+        ? (isStaging ? 'BUKLOD Kingdom Staging' : 'BUKLOD Kingdom')
+        : (isStaging ? 'BUKLOD Staging' : 'BUKLOD');
 
   const packageId = isClassroom
     ? 'org.mzbministry.buklod.classroom'
-    : (isStaging ? 'org.mzbministry.buklod.staging' : 'org.mzbministry.buklod');
+    : isHome
+      ? 'org.mzbministry.buklod.home'
+      : isKingdom
+        ? 'org.mzbministry.buklod.kingdom'
+        : (isStaging ? 'org.mzbministry.buklod.staging' : 'org.mzbministry.buklod');
 
   const scheme = isClassroom
     ? 'buklod-classroom'
-    : (isStaging ? 'buklod-staging' : 'buklod');
+    : isHome
+      ? 'buklod-home'
+      : isKingdom
+        ? 'buklod-kingdom'
+        : (isStaging ? 'buklod-staging' : 'buklod');
+
+  const slug = isClassroom
+    ? 'buklod-classroom'
+    : isHome
+      ? 'buklod-home'
+      : isKingdom
+        ? 'buklod-kingdom'
+        : 'buklod';
+
+  const routerPlugin = isHome
+    ? ['expo-router', { root: './src/standalone/home' }]
+    : isKingdom
+      ? ['expo-router', { root: './src/standalone/kingdom' }]
+      : 'expo-router';
 
   return {
     ...config,
 
     name: appName,
-    slug: isClassroom ? 'buklod-classroom' : 'buklod',
+    slug,
     version: '1.3.0',
 
     orientation: 'default',
@@ -84,7 +122,9 @@ module.exports = ({ config }) => {
       // Never silently reuse Main Firebase credentials for the standalone Classroom package.
       googleServicesFile: isClassroom
         ? (classroomGoogleServicesFile || undefined)
-        : (isStaging ? './google-services.staging.json' : './google-services.production.json'),
+        : isStandaloneWeb
+          ? undefined
+          : (isStaging ? './google-services.staging.json' : './google-services.production.json'),
 
       permissions: [
         'android.permission.CAMERA',
@@ -180,7 +220,7 @@ module.exports = ({ config }) => {
       './plugins/withBuklodWebRTC.js',
 
 
-      'expo-router',
+      routerPlugin,
 
 
 
@@ -368,7 +408,7 @@ module.exports = ({ config }) => {
         process.env.EXPO_PUBLIC_APP_ENV ||
         variant,
 
-      appTarget: isClassroom ? 'classroom' : 'main',
+      appTarget,
 
       eas:
         projectId
@@ -388,7 +428,11 @@ module.exports = ({ config }) => {
         : undefined,
 
 
-    runtimeVersion: isClassroom ? '1.3.0' : (isStaging ? '1.3.2' : '1.3.0'),
+    runtimeVersion: isClassroom
+      ? '1.3.0'
+      : isStandaloneWeb
+        ? '1.0.0'
+        : (isStaging ? '1.3.2' : '1.3.0'),
   };
 };
 
