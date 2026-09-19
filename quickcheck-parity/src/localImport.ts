@@ -1,9 +1,3 @@
-import mammoth from 'mammoth';
-import * as pdfjs from 'pdfjs-dist';
-import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-
-pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
-
 export type LocalInputFrame = {
   name: string;
   dataUrl?: string;
@@ -48,7 +42,20 @@ async function imageToFrame(file: File): Promise<LocalInputFrame[]> {
   }
 }
 
+let pdfWorkerConfigured = false;
+
+async function loadPdfJs() {
+  const pdfjs = await import('pdfjs-dist');
+  if (!pdfWorkerConfigured) {
+    const worker = await import('pdfjs-dist/build/pdf.worker.min.mjs?url');
+    pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
+    pdfWorkerConfigured = true;
+  }
+  return pdfjs;
+}
+
 async function pdfToFrames(file: File): Promise<LocalInputFrame[]> {
+  const pdfjs = await loadPdfJs();
   const data = new Uint8Array(await file.arrayBuffer());
   const pdf = await pdfjs.getDocument({ data }).promise;
   const frames: LocalInputFrame[] = [];
@@ -97,7 +104,8 @@ function splitDocumentText(value: string) {
 }
 
 async function docxToFrames(file: File): Promise<LocalInputFrame[]> {
-  const result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+  const mammoth = await import('mammoth');
+  const result = await mammoth.default.extractRawText({ arrayBuffer: await file.arrayBuffer() });
   const chunks = splitDocumentText(result.value);
   if (!chunks.length) throw new Error('Word file has no readable text. Export it as PDF if the content is mainly images.');
   return chunks.map((text, index) => ({
