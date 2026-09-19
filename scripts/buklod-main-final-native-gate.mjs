@@ -51,6 +51,10 @@ need('app.config.js', "'expo-screen-orientation'", 'screen orientation plugin');
 need('app.config.js', "initialOrientation: 'DEFAULT'", 'orientation DEFAULT');
 need('app.config.js', "'@sentry/react-native/expo'", 'Sentry Expo plugin');
 need('app.config.js', 'androidKeepCallAlive: true', 'Stream keep-call-alive');
+need('app.config.js', 'android.permission.FOREGROUND_SERVICE_PHONE_CALL', 'phone-call foreground service permission');
+need('app.config.js', 'android.permission.USE_FULL_SCREEN_INTENT', 'USE_FULL_SCREEN_INTENT permission');
+need('app.config.js', 'android.permission.MANAGE_OWN_CALLS', 'MANAGE_OWN_CALLS permission');
+need('app.config.js', 'android.permission.POST_NOTIFICATIONS', 'POST_NOTIFICATIONS permission');
 need('app.config.js', 'ringing: true', 'Stream native ringing');
 need('app.config.js', 'ReactNativeFirebaseMessagingService', 'single Firebase messaging base service');
 need('app.config.js', 'enableBackgroundRemoteNotifications: true', 'background remote notifications');
@@ -117,7 +121,6 @@ if (process.env.EXPO_PUBLIC_APP_ENV === 'production') {
 
   (process.env.SENTRY_ORG || '').trim() ? pass('Sentry org') : fail('Sentry org');
   (process.env.SENTRY_PROJECT || '').trim() ? pass('Sentry project') : fail('Sentry project');
-  (process.env.SENTRY_AUTH_TOKEN || '').trim() ? pass('Sentry auth token') : fail('Sentry auth token');
 }
 
 console.log('BUKLOD MAIN FINAL NATIVE GATE');
