@@ -287,8 +287,9 @@ test('Profile accessory handoff through review, override, approval and release',
 
   const juanRow = table.locator('tr').filter({ hasText: 'Juan Dela Cruz' });
   await juanRow.getByRole('button', { name: /VIEW PAPER/i }).click();
-  await expect(page.getByRole('dialog', { name: /Paper review for Juan Dela Cruz/i })).toBeVisible();
-  await page.getByRole('button', { name: /EDIT GRADE/i }).click();
+  const juanDialog = page.getByRole('dialog', { name: /Paper review for Juan Dela Cruz/i });
+  await expect(juanDialog).toBeVisible();
+  await juanDialog.getByRole('button', { name: /EDIT GRADE/i }).click();
 
   await expect(page.getByText(/Teacher Override/i)).toBeVisible();
   await page.getByRole('spinbutton').fill('1.5');
