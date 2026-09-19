@@ -152,7 +152,7 @@ export default function ForgotPasswordScreen() {
           setEmailReady(false);
           return;
         }
-        setEmailReady(data?.autoRejectUnmatched === true || data?.emailReady === true || data?.smsReady === true);
+        setEmailReady(data?.emailReady === true || data?.smsReady === true);
       } catch {
         if (!cancelled) setEmailReady(false);
       }
