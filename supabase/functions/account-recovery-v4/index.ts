@@ -362,22 +362,16 @@ Deno.serve(async (req) => {
       }
       await event('request_admin_recovery_v4_result', 'matched', { userId: profile.id, requestId, subjectHash: gate.subjectHash });
     } else {
-      const write = {
-        user_id: null, username: raw || null,
-        status: 'pending', requested_at: now, created_at: now,
-        reviewed_by: null, reviewed_at: null, completed_at: null,
-        match_status: 'needs_match', submitted_identifier: raw || null,
-        submitted_first_name: first || null, submitted_middle_name: middle || null,
-        submitted_surname: surname || null, submitted_birth_date: validDate(birth) ? birth : null,
-        subject_hash: gate.subjectHash,
-        client_token_hash: tokenHash, client_token_expires_at: tokenExpiresAt,
-        recovery_code_ciphertext: null, recovery_code_iv: null,
-        recovery_code_expires_at: null, recovery_code_retrieved_at: null,
-      };
-      const { data, error } = await admin.from('buklod_account_recovery_requests').insert(write).select('id').maybeSingle();
-      if (error) return json({ ok: false, message: 'Could not submit the recovery request right now.' }, 500);
-      requestId = data?.id ?? null;
-      await event('request_admin_recovery_v4_result', 'queued_for_admin_match', { requestId, subjectHash: gate.subjectHash });
+      await event('request_admin_recovery_v4_result', 'not_matched_auto_rejected', {
+        subjectHash: gate.subjectHash,
+      });
+      return json({
+        ok: false,
+        code: 'NOT_MATCHED',
+        waiting: false,
+        matched: false,
+        message: 'NOT MATCHED — the information entered does not match an active BUKLOD account. Check it and try again.',
+      }, 404);
     }
 
     if (!requestId) return json({ ok: false, message: 'Could not create a recovery session.' }, 500);
