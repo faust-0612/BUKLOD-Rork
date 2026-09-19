@@ -27,9 +27,6 @@ function withBootTimeout<T>(promise: Promise<T>, ms = 7000) {
   });
 }
 
-function shortBootDelay(ms = 250) {
-  return new Promise<void>(resolve => setTimeout(resolve, ms));
-}
 
 /* BUKLOD_FINAL_WEB_COMMUNITY_ROOT_R1 */
 export default function IndexWeb() {
@@ -106,16 +103,9 @@ export default function IndexWeb() {
 
         void (async () => {
           try {
-            try {
-              await withBootTimeout(
-                selectScope(publicScope.scope_id)
-              );
-            } catch (firstError) {
-              await shortBootDelay();
-              await withBootTimeout(
-                selectScope(publicScope.scope_id)
-              );
-            }
+            await withBootTimeout(
+              selectScope(publicScope.scope_id)
+            );
           } catch (error) {
             console.warn(
               'BUKLOD web boot Public scope reset:',
