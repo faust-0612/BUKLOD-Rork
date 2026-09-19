@@ -9,7 +9,7 @@ if (files.length === 0) {
   process.exit(1);
 }
 
-const versions = files.map(name => name.match(/^(\\d{14})_/)?.[1] ?? '');
+const versions = files.map(name => name.match(/^(\d{14})_/)?.[1] ?? '');
 const duplicateVersions = versions.filter(
   (version, index) => version && versions.indexOf(version) !== index
 );
