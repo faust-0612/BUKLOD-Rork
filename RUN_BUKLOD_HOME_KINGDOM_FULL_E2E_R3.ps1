@@ -5,6 +5,7 @@ $MainRoot = "$HOME\BUKLOD_WORKSPACE\SOURCE\BUKLOD-MAIN"
 $Branch = "feature/home-kingdom-standalone-web-20260919"
 $HomeDist = "dist-home-r3"
 $KingdomDist = "dist-kingdom-r3"
+$MainDist = "dist-main-r3"
 
 $GameIds = @(
   "ace-rescue-grid",
@@ -91,13 +92,23 @@ Write-Host ""
 Write-Host "4/8 Exact standalone exports..." -ForegroundColor Yellow
 if (Test-Path ".\$HomeDist") { Remove-Item ".\$HomeDist" -Recurse -Force }
 if (Test-Path ".\$KingdomDist") { Remove-Item ".\$KingdomDist" -Recurse -Force }
+if (Test-Path ".\$MainDist") { Remove-Item ".\$MainDist" -Recurse -Force }
+
 node scripts/export-standalone-web.mjs home $HomeDist
 if ($LASTEXITCODE -ne 0) { throw "Home R3 export FAILED." }
+
 node scripts/export-standalone-web.mjs kingdom $KingdomDist
 if ($LASTEXITCODE -ne 0) { throw "Kingdom R3 export FAILED." }
+
+$env:BUKLOD_APP_TARGET = "main"
+$env:BUKLOD_WEB_OUTPUT = "single"
+node ".\node_modules\expo\bin\cli" export --platform web --output-dir $MainDist --clear
+if ($LASTEXITCODE -ne 0) { throw "Main R3 export FAILED." }
+
 if (-not (Test-Path ".\$HomeDist\index.html")) { throw "Home R3 index missing." }
 if (-not (Test-Path ".\$KingdomDist\index.html")) { throw "Kingdom R3 index missing." }
-Write-Host "PASS: both exact R3 exports exist." -ForegroundColor Green
+if (-not (Test-Path ".\$MainDist\index.html")) { throw "Main R3 index missing." }
+Write-Host "PASS: Home/Kingdom/Main exact R3 exports exist." -ForegroundColor Green
 
 Write-Host ""
 Write-Host "5/8 Restart exact R3 local servers..." -ForegroundColor Yellow
@@ -130,10 +141,9 @@ try {
 }
 Write-Host "PASS: unauthenticated handoff rejected (401)." -ForegroundColor Green
 
-$env:BUKLOD_APP_TARGET = "main"
-Start-Process -FilePath "node" -ArgumentList @(".\node_modules\expo\bin\cli","start","--web","--port","8081") -WorkingDirectory $QaRoot | Out-Null
-if (-not (Wait-BuklodUrl "http://127.0.0.1:8081" 30)) { throw "Exact R3 Main did not become ready." }
-Write-Host "PASS: exact R3 Main ready at http://127.0.0.1:8081" -ForegroundColor Green
+Start-Process -FilePath "node" -ArgumentList @("scripts/serve-standalone-static.mjs",$MainDist,"8081") -WorkingDirectory $QaRoot | Out-Null
+if (-not (Wait-BuklodUrl "http://127.0.0.1:8081" 15)) { throw "Exact static R3 Main did not become ready." }
+Write-Host "PASS: exact static R3 Main ready at http://127.0.0.1:8081" -ForegroundColor Green
 
 Write-Host ""
 Write-Host "8/8 Freeze automated evidence..." -ForegroundColor Yellow
@@ -142,6 +152,8 @@ $Evidence = @(
   "HEAD=$Head",
   "HOME_ROUTES=$($HomeRoutes.Count)",
   "KINGDOM_ROUTES=$($KingdomRoutes.Count)",
+  "MAIN_ARTIFACT=$MainDist",
+  "MAIN_SERVER_MODE=STATIC_EXACT_EXPORT",
   "NO_PRODUCTION_DEPLOY=TRUE",
   "FINAL_DONE=FALSE",
   "REASON=Authenticated browser all-button E2E finalizer still required"
