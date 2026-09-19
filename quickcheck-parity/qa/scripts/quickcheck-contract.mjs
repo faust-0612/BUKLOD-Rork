@@ -20,7 +20,6 @@ const required = [
   ['release all grades', 'RELEASE ALL GRADES'],
   ['profile accessory entry', 'Profile &gt; Accessory Apps'],
   ['exact paper-review status action', 'Open exact Paper Review'],
-  ['persisted saved-batch reprocess', "action: 'reprocess_batch'"],
 ];
 
 for (const [label, token] of required) {
@@ -35,5 +34,8 @@ if (!app.includes("page.resolvedStudentId?.trim() || page.studentId?.trim() || p
 }
 if (!api.includes('quickcheck-process-v1') || !api.includes('quickcheck-records-v1')) {
   throw new Error('Supabase adapters missing.');
+}
+if (!api.includes("action: 'reprocess_batch'") || !api.includes('reprocessPersisted')) {
+  throw new Error('Persisted saved-batch reprocess adapter missing.');
 }
 console.log('QUICKCHECK_CONTRACT_PASS');
