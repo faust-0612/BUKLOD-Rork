@@ -1,4 +1,7 @@
 import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const target = String(process.argv[2] ?? '').trim().toLowerCase();
 if (target !== 'home' && target !== 'kingdom') {
@@ -9,7 +12,14 @@ if (target !== 'home' && target !== 'kingdom') {
 const outputDir =
   String(process.argv[3] ?? '').trim() || `dist-${target}`;
 
-const command = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const expoCli = resolve(repoRoot, 'node_modules', 'expo', 'bin', 'cli');
+
+if (!existsSync(expoCli)) {
+  console.error(`Expo CLI not found at ${expoCli}. Run npm ci first.`);
+  process.exit(1);
+}
+
 const env = {
   ...process.env,
   BUKLOD_APP_TARGET: target,
@@ -19,11 +29,13 @@ const env = {
 
 console.log(`BUKLOD_STANDALONE_TARGET=${target}`);
 console.log(`BUKLOD_STANDALONE_OUTPUT=${outputDir}`);
+console.log(`BUKLOD_EXPO_CLI=${expoCli}`);
 
 const result = spawnSync(
-  command,
-  ['expo', 'export', '--platform', 'web', '--output-dir', outputDir],
+  process.execPath,
+  [expoCli, 'export', '--platform', 'web', '--output-dir', outputDir],
   {
+    cwd: repoRoot,
     stdio: 'inherit',
     env,
   },
