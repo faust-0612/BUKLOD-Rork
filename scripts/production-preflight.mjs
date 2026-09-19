@@ -74,7 +74,7 @@ if (migrations.length === 0) {
   failures.push('No production migrations were found.');
 }
 
-const migrationVersions = migrations.map(name => name.match(/^(\\d{14})_/)?.[1] ?? '');
+const migrationVersions = migrations.map(name => name.match(/^(\d{14})_/)?.[1] ?? '');
 if (migrationVersions.some(version => !version)) {
   failures.push('Every production migration must begin with a 14-digit timestamp.');
 }
