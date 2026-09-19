@@ -40,7 +40,6 @@ Deno.serve(async(req:Request)=>{
     return appFail("login_temporarily_unavailable","Login service is temporarily unavailable. Please try again.");
   }
   if(!Array.isArray(data)||data.length===0){
-    console.log("central_auth_v4_no_candidate");
     return appFail("invalid_credentials","Invalid username/mobile/email or password.");
   }
 
@@ -105,15 +104,12 @@ Deno.serve(async(req:Request)=>{
         ? appFail("rate_limited","Login traffic is temporarily full. Please wait before trying again.")
         : appFail("login_temporarily_unavailable","Your BUKLOD account could not be verified because the login service was temporarily busy. Please try again once.");
     }
-    console.log("central_auth_v4_invalid_credentials",{candidateCount:candidates.length,matchRank:bestRank});
     return appFail("invalid_credentials","Invalid username/mobile/email or password.");
   }
 
   const hit=valid[0];
   const a=hit.account;
   const j=hit.auth;
-  console.log("central_auth_v4_success",{userId:String(a.user_id),candidateCount:candidates.length,matchRank:bestRank});
-
   return reply(200,{
     ok:true,
     authority:"buklod_connect",
