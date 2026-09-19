@@ -29,9 +29,10 @@ import { colors } from '@/lib/theme';
 import { useAuth } from '@/providers/AuthProvider';
 import {
   isBuklodInvalidCredentialsError,
+  isBuklodRateLimitError,
   isBuklodTransientAuthError,
   resolveBuklodAccountLifecycleAfterLogin,
-  signInWithPasswordResilient,
+  signInWithCanonicalIdentifierResilient,
   signOutBuklodResilient,
 } from '@/lib/buklodAuthResilience';
 import {
@@ -218,43 +219,9 @@ function useLoginShake() {
 
 const BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY =
   'buklod.auth.fresh_login_public.v1';
+const BUKLOD_LOGIN_RATE_LIMIT_COOLDOWN_MS = 30_000;
 
 
-function normalizePhilippinePhone(value: string) {
-  const cleaned = value.replace(/[^\d+]/g, '');
-
-  if (/^\+639\d{9}$/.test(cleaned)) return cleaned;
-  if (/^639\d{9}$/.test(cleaned)) return `+${cleaned}`;
-  if (/^09\d{9}$/.test(cleaned)) return `+63${cleaned.slice(1)}`;
-
-  return null;
-}
-
-function normalizeUsername(value: string) {
-  const username = value.trim().toLowerCase();
-
-  if (
-    username.length < 3 ||
-    username.length > 30 ||
-    !/^(?=.*[a-z])[a-z0-9]+(?:[._-][a-z0-9]+)*$/.test(username)
-  ) {
-    return null;
-  }
-
-  return username;
-}
-
-function mobileInternalEmail(phone: string) {
-  return `m.${phone.replace(/\D/g, '')}@buklod.invalid`;
-}
-
-function legacyMobileInternalEmail(phone: string) {
-  return `${phone.replace(/\D/g, '')}@buklod.invalid`;
-}
-
-function usernameInternalEmail(username: string) {
-  return `u.${username}@buklod.invalid`;
-}
 
 /* PATCH_171I_SUGGESTED_LOGIN_BUBBLES */
 type SuggestedLogin = {
@@ -353,10 +320,8 @@ function parseSuggestedLogins(
 }
 
 async function signInForFreshPublicHome(
-  credentials:
-    Parameters<
-      typeof supabase.auth.signInWithPassword
-    >[0]
+  identifier: string,
+  password: string
 ) {
   try {
     await AsyncStorage.setItem(
@@ -372,8 +337,9 @@ async function signInForFreshPublicHome(
   }
 
   const result =
-    await signInWithPasswordResilient(
-      credentials
+    await signInWithCanonicalIdentifierResilient(
+      identifier,
+      password
     );
 
   if (result.error) {
@@ -618,6 +584,8 @@ export default function LoginScreen() {
     useState(false);
   // HIGH_CONCURRENCY_LOGIN_R1: React state alone cannot stop same-tick double taps.
   const loginInFlightRef = useRef(false);
+  // BUKLOD_MASS_LOGIN_RATE_LIMIT_GUARD_R22: back off after a real Auth 429.
+  const loginRateLimitUntilRef = useRef(0);
   const [
     suggestedLogins,
     setSuggestedLogins,
@@ -876,7 +844,7 @@ const chooseSuggestedLogin =
     ) => {
       /*
        * HIGH_CONCURRENCY_LOGIN_R1
-       * signInWithPassword already returned the authenticated user. Do not
+       * Canonical login already returned the authenticated user. Do not
        * call auth.getUser() and profiles again just to paint a local bubble.
        */
       const userId =
@@ -996,6 +964,26 @@ const chooseSuggestedLogin =
       );
     }
 
+    const rateLimitRemainingMs =
+      loginRateLimitUntilRef.current - Date.now();
+
+    if (rateLimitRemainingMs > 0) {
+      const waitSeconds = Math.max(
+        1,
+        Math.ceil(rateLimitRemainingMs / 1000)
+      );
+
+      setLoginStatus(
+        `Login traffic is temporarily full. Wait about ${waitSeconds} seconds before trying again.`
+      );
+      triggerShake();
+
+      return Alert.alert(
+        'Login traffic is busy',
+        `Many users may be signing in at the same time. Please wait about ${waitSeconds} seconds before trying again. Repeated taps are blocked on this device.`
+      );
+    }
+
     if (loginInFlightRef.current) {
       setLoginStatus(
         'Sign-in is already being processed. Please wait for the current attempt to finish.'
@@ -1022,87 +1010,31 @@ const chooseSuggestedLogin =
     let error: any = null;
     let authenticatedUser: any = null;
 
-    if (raw.includes('@')) {
-      const result = await signInForFreshPublicHome({
-        email: raw.toLowerCase(),
-        password: effectivePassword,
-      });
+    const result =
+      await signInForFreshPublicHome(
+        raw,
+        effectivePassword
+      );
 
-      error = result.error;
+    error = result.error;
 
-      authenticatedUser =
-
-        result.data?.user ??
-
-
-        null;
-    } else {
-      const phone = normalizePhilippinePhone(raw);
-
-      if (phone) {
-        let result = await signInForFreshPublicHome({
-          email: mobileInternalEmail(phone),
-          password: effectivePassword,
-        });
-
-        // Patch 147 backward compatibility. Only probe the legacy
-        // identifier after a real credential miss. Do not double auth traffic
-        // when Supabase itself is returning a transient 5xx/timeout.
-        if (
-          result.error &&
-          isBuklodInvalidCredentialsError(
-            result.error
-          )
-        ) {
-          result = await signInForFreshPublicHome({
-            email: legacyMobileInternalEmail(phone),
-            password: effectivePassword,
-          });
-        }
-
-        error = result.error;
-
-        authenticatedUser =
-
-          result.data?.user ??
-
-
-          null;
-      } else {
-        const username = normalizeUsername(raw);
-
-        if (!username) {
-          releaseLogin(
-            'Enter a valid mobile number, username, or email.'
-          );
-
-          return Alert.alert(
-            'BUKLOD',
-            'Enter a valid Mobile Number, Username, or Email.'
-          );
-        }
-
-        const result = await signInForFreshPublicHome({
-          email: usernameInternalEmail(username),
-          password: effectivePassword,
-        });
-
-        error = result.error;
-
-        authenticatedUser =
-
-          result.data?.user ??
-
-
-          null;
-      }
-    }
+    authenticatedUser =
+      result.data?.user ??
+      null;
 
     if (error) {
+      const rateLimited =
+        isBuklodRateLimitError(error);
       const temporaryFailure =
         isBuklodTransientAuthError(error);
       const invalidCredentials =
         isBuklodInvalidCredentialsError(error);
+
+      if (rateLimited) {
+        loginRateLimitUntilRef.current =
+          Date.now() +
+          BUKLOD_LOGIN_RATE_LIMIT_COOLDOWN_MS;
+      }
 
       if (
         invalidCredentials &&
@@ -1135,28 +1067,34 @@ const chooseSuggestedLogin =
       }
 
       releaseLogin(
-        temporaryFailure
-          ? 'BUKLOD did not finish this sign-in request. You can try again; no extra request will be started while the old one is still active.'
-          : invalidCredentials &&
-            credentialsOverride?.suggestedUserId
-            ? 'The saved password no longer matches this account. Enter the current password, then you may save it again.'
-            : 'Login was not completed. Check your login and password, then try again.'
+        rateLimited
+          ? 'Many users are signing in at the same time. Wait about 30 seconds before trying again; repeated taps are blocked on this device.'
+          : temporaryFailure
+            ? 'BUKLOD did not finish this sign-in request. You can try again; no extra request will be started while the old one is still active.'
+            : invalidCredentials &&
+              credentialsOverride?.suggestedUserId
+              ? 'The saved password no longer matches this account. Enter the current password, then you may save it again.'
+              : 'Login was not completed. Check your login and password, then try again.'
       );
       triggerShake();
 
       return Alert.alert(
-        temporaryFailure
-          ? 'BUKLOD is temporarily busy'
-          : invalidCredentials &&
-            credentialsOverride?.suggestedUserId
-            ? 'Saved password needs updating'
-            : 'Login failed',
-        temporaryFailure
-          ? 'BUKLOD did not finish the sign-in request. Please try again. If this continues, close and reopen BUKLOD before retrying.'
-          : invalidCredentials &&
-            credentialsOverride?.suggestedUserId
-            ? 'The password saved on this device is no longer valid. Enter your current password. If you recently reset it, use the new password.'
-            : 'Invalid login identifier or password.'
+        rateLimited
+          ? 'Login traffic is busy'
+          : temporaryFailure
+            ? 'BUKLOD is temporarily busy'
+            : invalidCredentials &&
+              credentialsOverride?.suggestedUserId
+              ? 'Saved password needs updating'
+              : 'Login failed',
+        rateLimited
+          ? 'Many users are signing in at the same time. Wait about 30 seconds before trying again. Repeated requests are blocked locally to avoid amplifying shared login traffic.'
+          : temporaryFailure
+            ? 'BUKLOD did not finish the sign-in request. Please try again. If this continues, close and reopen BUKLOD before retrying.'
+            : invalidCredentials &&
+              credentialsOverride?.suggestedUserId
+              ? 'The password saved on this device is no longer valid. Enter your current password. If you recently reset it, use the new password.'
+              : 'Invalid login identifier or password.'
       );
     }
 
