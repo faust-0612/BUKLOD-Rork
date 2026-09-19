@@ -19,6 +19,12 @@ function requireText(source, text, label) {
   }
 }
 
+function requirePattern(source, pattern, label) {
+  if (!pattern.test(source)) {
+    failures.push(`Missing canonical login contract: ${label}`);
+  }
+}
+
 function forbidText(source, text, label) {
   if (source.includes(text)) {
     failures.push(`Forbidden legacy login pattern returned: ${label}`);
@@ -30,10 +36,23 @@ requireText(
   'signInWithCanonicalIdentifierResilient',
   'Login UI delegates to resilient canonical auth'
 );
-requireText(
+
+/*
+ * BUKLOD_CANONICAL_LOGIN_CONTRACT_R2
+ * Verify the actual call shape independent of formatter whitespace.
+ * Manual login and Suggested Login both converge on login(), which must pass
+ * the resolved identifier + effective password through one canonical helper.
+ */
+requirePattern(
   login,
-  'await signInForFreshPublicHome(\n        raw,\n        effectivePassword',
+  /await\s+signInForFreshPublicHome\s*\(\s*raw\s*,\s*effectivePassword\s*\)/m,
   'all entered identifiers use one canonical Login path'
+);
+
+requirePattern(
+  login,
+  /await\s+signInWithCanonicalIdentifierResilient\s*\(\s*identifier\s*,\s*password\s*\)/m,
+  'fresh public login helper delegates to canonical identifier auth'
 );
 
 forbidText(login, 'function mobileInternalEmail(', 'mobile auth-email guessing helper');
