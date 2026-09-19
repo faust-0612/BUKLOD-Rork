@@ -869,31 +869,71 @@ const load=useCallback(async(options?:{
     return 0;
   }
 
-  const {data:m}=await withBuklodTimeout<any>(
-    supabase.from('group_members').select('group_id,buklod_groups:group_id(id,name,leader_id)').eq('user_id',user.id).eq('is_active',true).limit(1).maybeSingle(),
-    5000,
-    'Community group'
-  ).catch(()=>({data:null,error:null}));
-  if(communityLoadSeq!==communityLoadSeqRef.current)return;
-  const g:any=m?.buklod_groups??null; setGroup(g);
-  const rpcResult=await withBuklodTimeout<{data:any,error:any}>(
-    (supabase as any).rpc(
-      'get_buklod_public_community_feed_v7_page',
-      {
-        p_location_scope_id:publicLocationScopeId,
-        p_mode:'for_you',
-        p_limit:limit186L,
-        p_offset:offset186L
+  /*
+   * PERF_MAIN_COMMUNITY_R1
+   *
+   * Group context is UI enrichment only and does not affect the public
+   * feed RPC. Fetch both together so the feed no longer waits for an
+   * unrelated round-trip first.
+   */
+  const [
+    groupResult,
+    rpcResult,
+  ] = await Promise.all([
+    withBuklodTimeout<any>(
+      supabase
+        .from('group_members')
+        .select(
+          'group_id,buklod_groups:group_id(id,name,leader_id)'
+        )
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle(),
+      5000,
+      'Community group'
+    ).catch(() => ({
+      data: null,
+      error: null,
+    })),
+    withBuklodTimeout<{data:any,error:any}>(
+      (supabase as any).rpc(
+        'get_buklod_public_community_feed_v7_page',
+        {
+          p_location_scope_id:
+            publicLocationScopeId,
+          p_mode: 'for_you',
+          p_limit: limit186L,
+          p_offset: offset186L,
+        }
+      ),
+      8000,
+      'Community feed'
+    ).catch((err:any)=>({
+      data:null,
+      error:{
+        message:String(
+          err?.message ??
+          err ??
+          'Community timed out.'
+        )
       }
-    ),
-    8000,
-    'Community feed'
-  ).catch((err:any)=>({
-    data:null,
-    error:{
-      message:String(err?.message??err??'Community timed out.')
-    }
-  }));
+    })),
+  ]);
+
+  if(
+    communityLoadSeq !==
+    communityLoadSeqRef.current
+  ){
+    return -1;
+  }
+
+  const m =
+    groupResult?.data;
+  const g:any =
+    m?.buklod_groups ?? null;
+  setGroup(g);
+
   const data=rpcResult?.data;
   const error=rpcResult?.error;
   if(error){
@@ -920,48 +960,100 @@ const load=useCallback(async(options?:{
   let feedRows=
     (data??[]) as any[];
 
-  feedRows=
-    await hydratePersonNamesOnRows(
-      feedRows,
-      'user_id',
-      'author_name',
-    );
-
   const postIds=
     feedRows
       .map((p:any)=>p.id)
       .filter(Boolean);
 
+  /*
+   * PERF_MAIN_COMMUNITY_R1
+   *
+   * Community enrichment used to wait on each request one-by-one:
+   * names -> my reactions -> media -> ranks -> clusters -> comments.
+   * Keep the exact data contract, but execute independent work in two
+   * bounded batches so mobile/network latency is paid in parallel rather
+   * than multiplied across every round-trip.
+   */
+  const [
+    hydratedFeedRows,
+    myReactionResult,
+    mediaResult,
+  ] = await Promise.all([
+    hydratePersonNamesOnRows(
+      feedRows,
+      'user_id',
+      'author_name',
+    ),
+    postIds.length
+      ? supabase
+          .from('reactions')
+          .select('post_id,reaction')
+          .eq(
+            'user_id',
+            user.id
+          )
+          .in(
+            'post_id',
+            postIds
+          )
+      : Promise.resolve({
+          data: [] as any[],
+          error: null,
+        }),
+    postIds.length
+      ? withBuklodTimeout<{data:any,error:any}>(
+          (supabase as any).rpc(
+            'get_buklod_post_media_v1',
+            {
+              p_post_ids:
+                postIds
+            }
+          ),
+          5000,
+          'Community photos'
+        ).catch((err:any)=>({
+          data:null,
+          error:{
+            message:String(
+              err?.message ??
+              err ??
+              'Photos timed out.'
+            )
+          }
+        }))
+      : Promise.resolve({
+          data: [] as any[],
+          error: null,
+        }),
+  ]);
+
+  if(
+    communityLoadSeq !==
+    communityLoadSeqRef.current
+  ){
+    return -1;
+  }
+
+  feedRows =
+    hydratedFeedRows;
+
   const myReactionByPost:
     Record<string,Reaction>={};
 
-  if(postIds.length){
-    const {
-      data:myReactionRows,
-      error:myReactionError
-    }=
-      await supabase
-        .from('reactions')
-        .select('post_id,reaction')
-        .eq(
-          'user_id',
-          user.id
-        )
-        .in(
-          'post_id',
-          postIds
-        );
+  const myReactionRows =
+    myReactionResult?.data;
+  const myReactionError =
+    myReactionResult?.error;
 
-    if(!myReactionError){
-      for(
-        const row of
-          myReactionRows??[]
-      ){
-        myReactionByPost[
-          row.post_id
-        ]=
-          row.reaction as Reaction;
-      }
+  if(!myReactionError){
+    for(
+      const row of
+        myReactionRows??[]
+    ){
+      myReactionByPost[
+        row.post_id
+      ]=
+        row.reaction as Reaction;
     }
   }
 
@@ -981,48 +1073,23 @@ const load=useCallback(async(options?:{
       }
     );
 
-  
   // PATCH_161H_MEDIA_LOAD
   const mediaMap:
    Record<string,any[]> =
    {};
 
-  const mediaPostIds=
-   next
-    .map(
-     (p:any)=>p?.id
-    )
-    .filter(Boolean);
+  const mediaRows=
+    mediaResult?.data;
+  const mediaError=
+    mediaResult?.error;
 
-  if(mediaPostIds.length){
-   const mediaResult=
-    await withBuklodTimeout<{data:any,error:any}>(
-     (supabase as any).rpc(
-      'get_buklod_post_media_v1',
-      {
-       p_post_ids:
-        mediaPostIds
-      }
-     ),
-     5000,
-     'Community photos'
-    ).catch((err:any)=>({
-     data:null,
-     error:{
-      message:String(err?.message??err??'Photos timed out.')
-     }
-    }));
-
-   const mediaRows=mediaResult?.data;
-   const mediaError=mediaResult?.error;
-
-   if(mediaError){
+  if(mediaError){
     console.warn(
      'Community photos:',
      mediaError.message
     );
-   }
-   else{
+  }
+  else{
     for(
      const row
      of mediaRows??[]
@@ -1052,7 +1119,6 @@ const load=useCallback(async(options?:{
         ) ?? row.media_url,
      });
     }
-   }
   }
 
   for(const p of next){
@@ -1111,50 +1177,66 @@ const load=useCallback(async(options?:{
     )
   );
 
-  const rankMap =
-    new Map<string, string>();
-
-  if (authorIds.length) {
-    const rankResult =
-      await withBuklodTimeout<{data:any}>(
-        (supabase as any).rpc(
-          'get_member_circle_ranks_v1',
-          {
-            p_user_ids: authorIds,
-          }
-        ),
-        4000,
-        'Community ranks'
-      ).catch(() => ({ data: null as any }));
-
-    for (const row of rankResult?.data ?? []) {
-      if (row?.user_id && row?.rank_name) {
-        rankMap.set(
-          row.user_id,
-          row.rank_name
-        );
-      }
-    }
-  }
-
-  // PATCH_154A_CLUSTER_MAP
-  const clusterMap =
-    await withBuklodTimeout(
+  const [
+    rankResult,
+    clusterMap,
+    commentPreviewMap,
+  ] = await Promise.all([
+    authorIds.length
+      ? withBuklodTimeout<{data:any}>(
+          (supabase as any).rpc(
+            'get_member_circle_ranks_v1',
+            {
+              p_user_ids: authorIds,
+            }
+          ),
+          4000,
+          'Community ranks'
+        ).catch(() => ({
+          data: null as any
+        }))
+      : Promise.resolve({
+          data: null as any
+        }),
+    withBuklodTimeout(
       getClusterLabels(
         authorIds as string[]
       ),
       4000,
       'Community clusters'
-    ).catch(() => ({} as Record<string, string>));
-  if(communityLoadSeq!==communityLoadSeqRef.current)return;
-  const commentPreviewMap=
-    await withBuklodTimeout(
+    ).catch(() => (
+      {} as Record<string, string>
+    )),
+    withBuklodTimeout(
       fetchBuklodPostCommentPreviews(
         postIds
       ),
       4000,
       'Community comments'
-    ).catch(() => ({} as Record<string, unknown>));
+    ).catch(() => (
+      {} as Record<string, unknown>
+    )),
+  ]);
+
+  if(
+    communityLoadSeq !==
+    communityLoadSeqRef.current
+  ){
+    return -1;
+  }
+
+  const rankMap =
+    new Map<string, string>();
+
+  for (const row of rankResult?.data ?? []) {
+    if (row?.user_id && row?.rank_name) {
+      rankMap.set(
+        row.user_id,
+        row.rank_name
+      );
+    }
+  }
+
   const preparedPosts186L=
     next.map((p:any)=>({
       ...p,

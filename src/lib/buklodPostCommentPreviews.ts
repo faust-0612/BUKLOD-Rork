@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import {
   loadPersonDisplayNames,
+  needsPersonNameHydration,
   resolvePersonDisplayName,
 } from '@/lib/buklodPersonDisplay';
 
@@ -102,9 +103,31 @@ export async function fetchBuklodPostCommentPreviews(
     const map: Record<string, BuklodPostCommentPreview> =
       {};
     const rows = (data ?? []) as BuklodPostCommentPreview[];
-    const names = await loadPersonDisplayNames(
-      rows.map((row) => row.user_id),
+
+    /*
+     * PERF_MAIN_COMMUNITY_R1
+     *
+     * The preview RPC normally includes author_name. Avoid a second
+     * profile-name request unless a legacy/generic name actually needs
+     * hydration.
+     */
+    const missingNameUserIds = Array.from(
+      new Set(
+        rows
+          .filter((row) =>
+            needsPersonNameHydration(row.author_name)
+          )
+          .map((row) => row.user_id)
+          .filter(Boolean)
+      )
     );
+
+    const names =
+      missingNameUserIds.length > 0
+        ? await loadPersonDisplayNames(
+            missingNameUserIds
+          )
+        : {};
 
     for (const row of rows) {
       if (!row?.post_id) {
