@@ -95,7 +95,7 @@ export const INTERSTITIAL_SESSION_CAP = intEnv(
   process.env.EXPO_PUBLIC_ADS_SESSION_INTERSTITIAL_CAP,
   3,
   0,
-  10,
+  3,
 );
 
 export const BANNER_RETRY_DELAYS_MS = [
