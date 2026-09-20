@@ -190,6 +190,45 @@ create index if not exists idx_buklod_pf_value_finalized_at
   on private.buklod_pf_finalized_value_ledger(finalized_at,id);
 
 -- ---------------------------------------------------------------------------
+-- QUALIFICATION RESERVE CARRY
+-- Cross-month qualification revenue remains reserved until qualification closes.
+-- ---------------------------------------------------------------------------
+create table if not exists private.buklod_pf_qualification_fund_ledger (
+  id uuid primary key default gen_random_uuid(),
+  person_id uuid not null references private.buklod_pf_persons(person_id) on delete restrict,
+  direction text not null check(direction in ('CREDIT','DEBIT')),
+  amount_centavos bigint not null check(amount_centavos > 0),
+  entry_type text not null check(entry_type in (
+    'QUALIFICATION_REVENUE',
+    'REFERRAL_REWARD_FUNDING',
+    'BUKLOD_RETAINED_TRANSFER'
+  )),
+  event_key text not null unique,
+  source_value_id uuid references private.buklod_pf_finalized_value_ledger(id) on delete restrict,
+  referral_id uuid references private.buklod_pf_referrals(referral_id) on delete restrict,
+  policy_version text not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_buklod_pf_qualification_fund_person
+  on private.buklod_pf_qualification_fund_ledger(person_id,created_at);
+
+create or replace function private.buklod_pf_qualification_balance_centavos_v3(
+  p_person_id uuid
+)
+returns bigint
+language sql
+stable
+security definer
+set search_path=''
+as $
+  select coalesce(sum(
+    case when direction='CREDIT' then amount_centavos else -amount_centavos end
+  ),0)::bigint
+  from private.buklod_pf_qualification_fund_ledger
+  where person_id=p_person_id
+$;
+
+-- ---------------------------------------------------------------------------
 -- PERSONAL CASH LEDGER. POINTS NEVER ENTER THIS TABLE.
 -- ---------------------------------------------------------------------------
 create table if not exists private.buklod_pf_cash_ledger (
@@ -312,7 +351,10 @@ create table if not exists private.buklod_pf_settlements (
   policy_version text not null,
 
   prequalification_revenue_centavos bigint not null default 0,
+  qualification_reserve_opening_centavos bigint not null default 0,
+  qualification_reserve_closing_centavos bigint not null default 0,
   one_time_referral_rewards_centavos bigint not null default 0,
+  prequalification_retained_transfer_centavos bigint not null default 0,
   normal_eligible_revenue_centavos bigint not null default 0,
 
   user_pool_centavos bigint not null default 0,
@@ -369,7 +411,7 @@ create table if not exists private.buklod_pf_community_settlements (
   tier text not null check(tier in ('CLUSTER','ORGANIZATION')),
   active_contributor_count integer not null default 0,
   source_revenue_centavos bigint not null default 0 check(source_revenue_centavos >= 0),
-  allocation_bps integer not null check(allocation_bps in (500,700)),
+  allocation_bps integer not null check(allocation_bps between 0 and 10000),
   allocation_centavos bigint not null default 0 check(allocation_centavos >= 0),
   policy_version text not null,
   created_at timestamptz not null default now(),
@@ -895,7 +937,9 @@ as $$
     and d.effective_from<=p_at
     and (d.effective_to is null or d.effective_to>p_at)
     and p.qualified_at is not null
+    and p.qualified_at<=p_at
     and p.user_share_activated_at is not null
+    and p.user_share_activated_at<=p_at
     and p.risk_status='CLEAR'
     and pr.is_active=true
     and pr.user_deactivated_at is null
@@ -1209,6 +1253,23 @@ begin
         post_qualification_value_centavos=v_post
     where id=v_value.id;
 
+    if v_qualifying>0 then
+      insert into private.buklod_pf_qualification_fund_ledger(
+        person_id,direction,amount_centavos,entry_type,event_key,
+        source_value_id,policy_version
+      )
+      values(
+        v_person.person_id,
+        'CREDIT',
+        v_qualifying,
+        'QUALIFICATION_REVENUE',
+        'qualification-revenue:'||v_value.id::text,
+        v_value.id,
+        v_cfg.policy_version
+      )
+      on conflict(event_key) do nothing;
+    end if;
+
     if v_before+v_qualifying>=v_threshold then
       v_now:=v_value.finalized_at;
 
@@ -1233,6 +1294,28 @@ begin
             updated_at=now()
         where referral_id=v_ref.referral_id
         returning * into v_ref;
+
+        if private.buklod_pf_qualification_balance_centavos_v3(
+          v_person.person_id
+        )<v_ref.one_time_reward_centavos then
+          raise exception 'Qualification reserve is insufficient for the referral reward';
+        end if;
+
+        insert into private.buklod_pf_qualification_fund_ledger(
+          person_id,direction,amount_centavos,entry_type,event_key,
+          source_value_id,referral_id,policy_version
+        )
+        values(
+          v_person.person_id,
+          'DEBIT',
+          v_ref.one_time_reward_centavos,
+          'REFERRAL_REWARD_FUNDING',
+          'qualification-referral-funding:'||v_ref.referral_id::text,
+          v_value.id,
+          v_ref.referral_id,
+          v_cfg.policy_version
+        )
+        on conflict(event_key) do nothing;
 
         insert into private.buklod_pf_cash_ledger(
           person_id,bucket,direction,amount_centavos,entry_type,event_key,
@@ -1285,6 +1368,24 @@ begin
             )
           );
         end if;
+      end if;
+
+      if private.buklod_pf_qualification_balance_centavos_v3(v_person.person_id)>0 then
+        insert into private.buklod_pf_qualification_fund_ledger(
+          person_id,direction,amount_centavos,entry_type,event_key,
+          source_value_id,referral_id,policy_version
+        )
+        values(
+          v_person.person_id,
+          'DEBIT',
+          private.buklod_pf_qualification_balance_centavos_v3(v_person.person_id),
+          'BUKLOD_RETAINED_TRANSFER',
+          'qualification-retained-transfer:'||v_person.person_id::text,
+          v_value.id,
+          v_ref.referral_id,
+          v_cfg.policy_version
+        )
+        on conflict(event_key) do nothing;
       end if;
     elsif v_ref.referral_id is not null then
       update private.buklod_pf_referrals
@@ -1511,7 +1612,10 @@ declare
   v_settlement private.buklod_pf_settlements%rowtype;
 
   v_prequal bigint:=0;
+  v_qual_reserve_open bigint:=0;
+  v_qual_reserve_close bigint:=0;
   v_one_time bigint:=0;
+  v_prequal_retained bigint:=0;
   v_postqual bigint:=0;
   v_unattributed bigint:=0;
   v_normal bigint:=0;
@@ -1598,13 +1702,35 @@ begin
   where finalized_at>=v_start
     and finalized_at<v_end;
 
+  select coalesce(sum(
+    case when direction='CREDIT' then amount_centavos else -amount_centavos end
+  ),0)::bigint
+  into v_qual_reserve_open
+  from private.buklod_pf_qualification_fund_ledger
+  where created_at<v_start;
+
   select coalesce(sum(amount_centavos),0)::bigint
   into v_one_time
-  from private.buklod_pf_cash_ledger
-  where entry_type='REFERRAL_ONE_TIME_REWARD'
-    and direction='CREDIT'
+  from private.buklod_pf_qualification_fund_ledger
+  where entry_type='REFERRAL_REWARD_FUNDING'
+    and direction='DEBIT'
     and created_at>=v_start
     and created_at<v_end;
+
+  select coalesce(sum(amount_centavos),0)::bigint
+  into v_prequal_retained
+  from private.buklod_pf_qualification_fund_ledger
+  where entry_type='BUKLOD_RETAINED_TRANSFER'
+    and direction='DEBIT'
+    and created_at>=v_start
+    and created_at<v_end;
+
+  select coalesce(sum(
+    case when direction='CREDIT' then amount_centavos else -amount_centavos end
+  ),0)::bigint
+  into v_qual_reserve_close
+  from private.buklod_pf_qualification_fund_ledger
+  where created_at<v_end;
 
   select coalesce(sum(
     case
@@ -1888,13 +2014,14 @@ begin
     and reconciliation_state='RECONCILED'
     and entry_type='TAX_RESERVE';
 
-  v_retained:=
-    (v_prequal-v_one_time)
-    +(v_normal-v_user_pool-v_first_line-v_community);
-
-  if v_prequal<v_one_time then
-    raise exception 'Profit guard failed: one-time referral rewards exceed qualification revenue';
+  if v_qual_reserve_open+v_prequal
+     <>v_one_time+v_prequal_retained+v_qual_reserve_close then
+    raise exception 'Profit guard failed: qualification reserve does not reconcile';
   end if;
+
+  v_retained:=
+    v_prequal_retained
+    +(v_normal-v_user_pool-v_first_line-v_community);
 
   if v_normal<v_user_pool+v_first_line+v_community then
     raise exception 'Profit guard failed: normal allocations exceed eligible finalized revenue';
@@ -1922,7 +2049,10 @@ begin
   update private.buklod_pf_settlements
   set status='FINALIZED',
       prequalification_revenue_centavos=v_prequal,
+      qualification_reserve_opening_centavos=v_qual_reserve_open,
+      qualification_reserve_closing_centavos=v_qual_reserve_close,
       one_time_referral_rewards_centavos=v_one_time,
+      prequalification_retained_transfer_centavos=v_prequal_retained,
       normal_eligible_revenue_centavos=v_normal,
       user_pool_centavos=v_user_pool,
       user_pool_distributed_centavos=v_user_distributed,
@@ -1982,7 +2112,9 @@ as $$
       and d.scope_id=p_scope_id
       and d.effective_to is null
       and p.qualified_at is not null
+      and p.qualified_at<=now()
       and p.user_share_activated_at is not null
+      and p.user_share_activated_at<=now()
       and p.risk_status='CLEAR'
       and pr.is_active=true
       and pr.user_deactivated_at is null
@@ -2849,7 +2981,10 @@ begin
       'period_key',v_settlement.period_key,
       'status',v_settlement.status,
       'prequalification_revenue_php',round(v_settlement.prequalification_revenue_centavos::numeric/100,2),
+      'qualification_reserve_opening_php',round(v_settlement.qualification_reserve_opening_centavos::numeric/100,2),
+      'qualification_reserve_closing_php',round(v_settlement.qualification_reserve_closing_centavos::numeric/100,2),
       'one_time_referral_rewards_php',round(v_settlement.one_time_referral_rewards_centavos::numeric/100,2),
+      'prequalification_retained_transfer_php',round(v_settlement.prequalification_retained_transfer_centavos::numeric/100,2),
       'normal_eligible_revenue_php',round(v_settlement.normal_eligible_revenue_centavos::numeric/100,2),
       'user_pool_php',round(v_settlement.user_pool_centavos::numeric/100,2),
       'user_pool_distributed_php',round(v_settlement.user_pool_distributed_centavos::numeric/100,2),
