@@ -27,6 +27,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
 import { useAuth } from '@/providers/AuthProvider';
+import { useBuklodI18n } from '@/providers/BuklodI18nProvider';
 import {
   isBuklodInvalidCredentialsError,
   isBuklodRateLimitError,
@@ -575,6 +576,7 @@ function SuggestedLoginAvatar({
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
+  const { t, languageName } = useBuklodI18n();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -1618,6 +1620,24 @@ const chooseSuggestedLogin =
           >
             <Text style={styles.secondaryText}>
               CREATE ACCOUNT
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => router.push('/preferences/language' as any)}
+            disabled={busy}
+            accessibilityRole="button"
+            accessibilityLabel={t('language.open')}
+            style={{ alignSelf: 'center', paddingVertical: 10 }}
+          >
+            <Text
+              style={{
+                color: colors.greenDark,
+                fontSize: 13,
+                fontWeight: '900',
+              }}
+            >
+              🌐 {t('language.open')}: {languageName}
             </Text>
           </Pressable>
 

@@ -8,6 +8,7 @@ import { Stack, type ErrorBoundaryProps } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AuthProvider } from '@/providers/AuthProvider';
+import { BuklodI18nProvider } from '@/providers/BuklodI18nProvider';
 import { BuklodBibleNarrationProvider } from '@/providers/BuklodBibleNarrationProvider';
 import { BuklodScopeProvider } from '@/providers/BuklodScopeProvider';
 import { BuklodFoundationProvider } from '@/providers/BuklodFoundationProvider';
@@ -66,6 +67,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
+    <BuklodI18nProvider>
     <GestureHandlerRootView
       style={{ flex: 1 }}
     >
@@ -262,6 +264,7 @@ export default function RootLayout() {
         </BuklodTrustedDeviceGate>
 </AuthProvider>
     </GestureHandlerRootView>
+    </BuklodI18nProvider>
     </SafeAreaProvider>
   );
 }

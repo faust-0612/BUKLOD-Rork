@@ -72,6 +72,7 @@ import { shareProfileUpdateOnCommunityWall } from '@/lib/buklodProfileCommunityS
 import { loadBuklodPointsDashboard } from '@/lib/buklodRewards';
 import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
 import { BuklodGlobalThemeSelectorModal } from '@/components/BuklodGlobalThemeSelector';
+import { useBuklodI18n } from '@/providers/BuklodI18nProvider';
 import {
   useBuklodTheme,
 } from '@/providers/BuklodThemeProvider';
@@ -380,6 +381,7 @@ function MenuRow({
 
 export default function MeScreen() {
   const { theme, shared } = useBuklodPresentation();
+  const { t, languageName } = useBuklodI18n();
   const params =
     useLocalSearchParams<{
       returnScopeId?:
@@ -1374,6 +1376,24 @@ export default function MeScreen() {
             title="About BUKLOD"
             onPress={() =>
               router.push('/about-buklod' as any)
+            }
+          />
+
+          <MenuRow
+            icon="chart-donut"
+            title={t('economy.guideTitle')}
+            subtitle={t('economy.profileGuideSubtitle')}
+            onPress={() =>
+              router.push('/bayanihan/guide' as any)
+            }
+          />
+
+          <MenuRow
+            icon="translate"
+            title={t('language.open')}
+            subtitle={languageName}
+            onPress={() =>
+              router.push('/preferences/language' as any)
             }
           />
 
