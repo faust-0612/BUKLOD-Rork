@@ -406,6 +406,84 @@ $$;
 revoke all on function public.buklod_bsoc_update_support_case_v1(text,text,text) from public, anon;
 grant execute on function public.buklod_bsoc_update_support_case_v1(text,text,text) to authenticated;
 
+create or replace function public.buklod_bsoc_update_incident_v1(
+  p_incident_code text,
+  p_status text,
+  p_public_message text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path=''
+as $
+declare
+  v_role text := public.buklod_bsoc_staff_role_v1();
+  v_incident public.buklod_support_incidents%rowtype;
+  v_message text := nullif(trim(coalesce(p_public_message,'')),'');
+  v_case_count integer := 0;
+begin
+  if v_role is null then
+    raise exception 'not_authorized';
+  end if;
+  if p_status not in (
+    'POSSIBLE_SHARED_INCIDENT','INVESTIGATING','IDENTIFIED','MONITORING','RESOLVED'
+  ) then
+    raise exception 'invalid_incident_status';
+  end if;
+
+  select * into v_incident
+  from public.buklod_support_incidents
+  where incident_code=upper(trim(p_incident_code))
+  for update;
+
+  if v_incident.id is null then
+    raise exception 'incident_not_found';
+  end if;
+
+  if v_incident.category='FINANCIAL'
+     and v_role not in ('FINANCE_ESCALATION','ADMIN') then
+    raise exception 'finance_restricted';
+  end if;
+
+  update public.buklod_support_incidents
+  set status=p_status,
+      public_message=coalesce(v_message,public_message),
+      updated_at=now(),
+      resolved_at=case when p_status='RESOLVED' then coalesce(resolved_at,now()) else null end
+  where id=v_incident.id;
+
+  if v_message is not null then
+    insert into public.buklod_support_case_updates(
+      case_id,actor_id,visibility,update_type,message
+    )
+    select
+      c.id,auth.uid(),'USER','INCIDENT_UPDATE',left(v_message,1500)
+    from public.buklod_support_cases c
+    where c.incident_id=v_incident.id;
+  end if;
+
+  if p_status='RESOLVED' then
+    update public.buklod_support_cases
+    set status='RESOLVED',
+        updated_at=now(),
+        resolved_at=coalesce(resolved_at,now())
+    where incident_id=v_incident.id
+      and status<>'RESOLVED';
+    get diagnostics v_case_count = row_count;
+  end if;
+
+  return jsonb_build_object(
+    'ok',true,
+    'incident_code',v_incident.incident_code,
+    'status',p_status,
+    'linked_cases_resolved',v_case_count
+  );
+end;
+$;
+
+revoke all on function public.buklod_bsoc_update_incident_v1(text,text,text) from public, anon;
+grant execute on function public.buklod_bsoc_update_incident_v1(text,text,text) to authenticated;
+
 create or replace function public.buklod_feedback_to_support_case_v1()
 returns trigger
 language plpgsql
