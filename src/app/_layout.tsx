@@ -23,6 +23,7 @@ import BuklodCanonicalNavigationGuard from '@/components/BuklodCanonicalNavigati
 import BuklodClusterInviteDeepLinkHandler from '@/components/BuklodClusterInviteDeepLinkHandler';
 import BuklodAttendanceDeepLinkHandler from '@/components/BuklodAttendanceDeepLinkHandler';
 import BuklodAdSafetyRouteBridge from '@/components/BuklodAdSafetyRouteBridge';
+import BuklodWebAdSenseProvider from '@/components/BuklodWebAdSenseProvider';
 import { colors } from '@/lib/theme';
 import { StreamVideoProvider } from '@/providers/StreamVideoProvider';
 import { BuklodThemeProvider } from '@/providers/BuklodThemeProvider';
@@ -92,6 +93,7 @@ export default function RootLayout() {
               <BuklodCanonicalNavigationGuard />
               <BuklodClusterInviteDeepLinkHandler />
               <BuklodAttendanceDeepLinkHandler />
+              <BuklodWebAdSenseProvider>
               <BuklodNavSafeShell>
               <Stack
                 screenOptions={{
@@ -238,6 +240,7 @@ export default function RootLayout() {
                 <Stack.Screen name="organizations/events-attendance" />
               </Stack>
               </BuklodNavSafeShell>
+              </BuklodWebAdSenseProvider>
             </BuklodRootKeyboardAvoidingView>
             </StreamVideoProvider>
                       {/* PATCH_163A_R_ROOT_GUIDE */}

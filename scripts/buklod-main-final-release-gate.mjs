@@ -165,6 +165,39 @@ requireText('src/app/account/security.tsx', 'Current Password', 'Change Password
 requireText('src/app/account/security.tsx', "router.canGoBack()", 'Password & Recovery has safe back');
 requireText('src/app/account/recovery-pin.tsx', "router.canGoBack()", 'Recovery PIN has safe back');
 
+
+// Web AdSense is a separate, web-only monetization path.
+requireText(
+  'src/components/BuklodWebAdSenseProvider.web.tsx',
+  "google-adsense-account",
+  'AdSense site verification metadata support',
+);
+requireText(
+  'src/components/BuklodWebAdSenseProvider.web.tsx',
+  'EXPO_PUBLIC_ADSENSE_SITE_APPROVED',
+  'AdSense live script requires explicit site approval',
+);
+requireText(
+  'src/components/BuklodWebAdSenseProvider.web.tsx',
+  'EXPO_PUBLIC_ADS_ALLOW_LIVE_IDS',
+  'AdSense live traffic requires explicit production opt-in',
+);
+forbidText(
+  'src/components/BuklodWebAdSenseProvider.tsx',
+  'pagead2.googlesyndication.com',
+  'Native provider never loads AdSense script',
+);
+requireText(
+  'src/app/(tabs)/_layout.tsx',
+  "google-side-rail-overlap",
+  'Desktop center content protected from AdSense side-rail overlap',
+);
+requireText(
+  'scripts/write-adsense-dist-assets.mjs',
+  'f08c47fec0942fa0',
+  'AdSense ads.txt publisher record generator',
+);
+
 // Existing performance hardening must remain present.
 requireText('src/lib/buklodPerformanceFetch.ts', 'simultaneous identical GET /auth/v1/user checks', 'Auth request dedupe');
 requireText('src/lib/buklodR4RequestShield.ts', 'BUKLOD_MASS_CONCURRENCY_R32', 'Mass concurrency request shield');

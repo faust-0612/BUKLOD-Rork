@@ -172,7 +172,9 @@ jobs:
           set -euo pipefail
           rm -rf dist
           npx expo export --platform web --output-dir dist --clear
+          node scripts/write-adsense-dist-assets.mjs dist
           test -s dist/index.html
+          test -s dist/ads.txt
           grep -RFl --include='*.js' 'yhanxndaqbmuzbdqlblu.supabase.co' dist/_expo/static/js/web >/dev/null
           if grep -RIE --include='*.js' 'localhost|127\.0\.0\.1|supabase\.local' dist/_expo/static/js/web >/dev/null; then
             echo 'Development endpoint detected in production web bundle.'
@@ -280,7 +282,9 @@ jobs:
           set -euo pipefail
           rm -rf dist
           npx expo export --platform web --output-dir dist --clear
+          node scripts/write-adsense-dist-assets.mjs dist
           test -s dist/index.html
+          test -s dist/ads.txt
           git diff --exit-code -- .
 
       - name: FINAL WEB PUSH

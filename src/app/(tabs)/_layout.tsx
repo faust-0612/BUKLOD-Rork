@@ -414,6 +414,11 @@ export default function TabsLayout() {
 
           <View
             key="workspace-center"
+            {...(
+              Platform.OS === 'web'
+                ? ({ 'google-side-rail-overlap': 'false' } as any)
+                : {}
+            )}
             style={{
               flex: desktopHome ? 2.8 : 1,
               minWidth: 0,

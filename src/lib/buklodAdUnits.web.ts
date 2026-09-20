@@ -14,7 +14,12 @@ export const BUKLOD_DASHBOARD_BANNER_AD_HEIGHT = 50;
 
 export const BUKLOD_DASHBOARD_BANNER_RESERVED_HEIGHT = 68;
 
-export const buklodAdsTestMode = false;
+export const buklodAdsLiveIdsEnabled =
+  String(process.env.EXPO_PUBLIC_ADS_ALLOW_LIVE_IDS ?? '')
+    .trim()
+    .toLowerCase() === 'true';
+
+export const buklodAdsTestMode = !buklodAdsLiveIdsEnabled;
 
 export const BUKLOD_GOOGLE_TEST_ANDROID_APP_ID =
   'ca-app-pub-3940256099942544~3347511713';
