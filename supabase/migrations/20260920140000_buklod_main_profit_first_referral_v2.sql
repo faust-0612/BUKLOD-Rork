@@ -2959,7 +2959,7 @@ $$;
 -- ---------------------------------------------------------------------------
 create or replace function public.admin_finalize_buklod_r38_economic_period_v1(
   p_period_key text,
-  p_note text default null
+  p_reason text default null
 )
 returns jsonb
 language plpgsql
