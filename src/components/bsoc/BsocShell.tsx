@@ -185,6 +185,27 @@ function Navigation({ current }: { current: string }) {
         })}
       </View>
 
+      {current === 'overview' ? (
+        <View style={styles.subnav}>
+          <Pressable
+            onPress={() => router.push('/admin/bsoc/user-experience-health' as any)}
+            style={({ pressed }) => [
+              styles.subnavItem,
+              pressed && { opacity: 0.76 },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="heart-pulse"
+              size={15}
+              color="#1F5C43"
+            />
+            <Text style={styles.subnavText}>
+              User Experience Health
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+
       {current === 'apps' ? (
         <View style={styles.subnav}>
           <Pressable
