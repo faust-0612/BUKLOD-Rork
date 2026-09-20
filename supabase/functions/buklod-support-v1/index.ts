@@ -162,6 +162,7 @@ Deno.serve(async(req:Request)=>{
   const errorCode=clean(body?.error_code,120);
   const languageCode=clean(body?.language_code,24)||"en";
   const message=clean(body?.message,4000);
+  const requestId=clean(body?.request_id,120);
   const networkSummary=
     body?.network_summary&&typeof body.network_summary==="object"
       ? body.network_summary
@@ -269,6 +270,29 @@ Deno.serve(async(req:Request)=>{
   const accessToken=randomToken();
   const accessTokenHash=await keyedHash("case-token",accessToken);
   const queueCode=queueFor(category,feature);
+
+  if(requestId){
+    const {data:existing}=await admin.from("buklod_support_cases")
+      .select("id,case_code,status,queue_code,created_at,incident_id")
+      .eq("request_id",requestId).maybeSingle();
+    if(existing){
+      await admin.from("buklod_support_cases")
+        .update({public_access_token_hash:accessTokenHash,updated_at:new Date().toISOString()})
+        .eq("id",existing.id);
+      return reply(200,{
+        ok:true,
+        outcome:"CASE_CREATED",
+        case:{
+          case_code:existing.case_code,
+          status:existing.status,
+          queue_code:existing.queue_code,
+          created_at:existing.created_at,
+          access_token:accessToken,
+        },
+        recovered_idempotently:true
+      });
+    }
+  }
   const diagnostics={
     source:"BUKLOD_HELP_V1",
     account_state:accountState,
@@ -280,6 +304,7 @@ Deno.serve(async(req:Request)=>{
 
   const {data:created,error:createError}=await admin.from("buklod_support_cases").insert({
     source_type:"BUKLOD_HELP",
+    request_id:requestId||null,
     user_id:linkedUserId,
     identifier_hash:identifierHash,
     identifier_hint:identifierHint,
