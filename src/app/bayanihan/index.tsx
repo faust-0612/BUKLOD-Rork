@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -13,94 +13,84 @@ import { router } from 'expo-router';
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 import { shared } from '@/components/UI';
 import {
-  asMoney,
-  formatPhp,
-  loadMyBuklodR38EconomyReport,
-  type BuklodR38UserEconomyReport,
-} from '@/lib/buklodR38Economy';
+  loadMyBuklodFinancialSummaryV3,
+  type BuklodFinancialSummaryV3,
+} from '@/lib/buklodEconomyV3';
+import { useBuklodI18n } from '@/providers/BuklodI18nProvider';
 
 function Metric({
   label,
   value,
   note,
-  emphasized = false,
+  emphasis = false,
 }: {
   label: string;
   value: string;
   note?: string;
-  emphasized?: boolean;
+  emphasis?: boolean;
 }) {
   return (
-    <View style={[styles.metric, emphasized && styles.metricPrimary]}>
-      <Text style={[styles.metricValue, emphasized && styles.metricValuePrimary]}>
+    <View style={[styles.metric, emphasis && styles.metricEmphasis]}>
+      <Text style={[styles.metricValue, emphasis && styles.metricValueEmphasis]}>
         {value}
       </Text>
       <Text style={styles.metricLabel}>{label}</Text>
-      {!!note && <Text style={styles.metricNote}>{note}</Text>}
+      {note ? <Text style={styles.metricNote}>{note}</Text> : null}
     </View>
   );
 }
 
 function Section({
-  eyebrow,
+  icon,
   title,
   children,
 }: {
-  eyebrow: string;
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
   title: string;
   children: React.ReactNode;
 }) {
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionEyebrow}>{eyebrow}</Text>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <View style={styles.sectionHeading}>
+        <View style={styles.sectionIcon}>
+          <MaterialCommunityIcons name={icon} size={19} color="#275D45" />
+        </View>
+        <Text style={styles.sectionTitle}>{title}</Text>
+      </View>
       {children}
     </View>
   );
 }
 
-function InfoRow({
-  icon,
-  title,
-  text,
-}: {
-  icon: keyof typeof MaterialCommunityIcons.glyphMap;
-  title: string;
-  text: string;
-}) {
-  return (
-    <View style={styles.infoRow}>
-      <View style={styles.infoIcon}>
-        <MaterialCommunityIcons name={icon} size={19} color="#275D45" />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.infoTitle}>{title}</Text>
-        <Text style={styles.infoText}>{text}</Text>
-      </View>
-    </View>
-  );
-}
-
 export default function BayanihanScreen() {
-  const [report, setReport] = useState<BuklodR38UserEconomyReport | null>(null);
+  const {
+    t,
+    formatNumber,
+    formatPhp,
+    formatDate,
+  } = useBuklodI18n();
+
+  const [summary, setSummary] =
+    useState<BuklodFinancialSummaryV3 | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState('');
 
   const load = useCallback(async () => {
     try {
-      setError(null);
-      setReport(await loadMyBuklodR38EconomyReport());
-    } catch (nextError: unknown) {
+      setError('');
+      const next = await loadMyBuklodFinancialSummaryV3();
+      setSummary(next);
+    } catch (nextError) {
       setError(
         nextError instanceof Error
           ? nextError.message
-          : 'Could not load your BUKLOD economy report.',
+          : t('economy.unavailable'),
       );
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void load();
@@ -112,23 +102,19 @@ export default function BayanihanScreen() {
     setRefreshing(false);
   }, [load]);
 
-  const rankName = useMemo(() => {
-    const rank = report?.progress?.circle_rank ?? {};
-    const value =
-      (rank as Record<string, unknown>).display_name ??
-      (rank as Record<string, unknown>).rank_name ??
-      (rank as Record<string, unknown>).tier_name;
-    return typeof value === 'string' && value.trim()
-      ? value.trim()
-      : 'BUKLOD Member';
-  }, [report]);
+  const progress = summary?.progress ?? {};
+  const earnings = summary?.earnings ?? {};
+  const referral = summary?.referral ?? {};
+  const community = summary?.community ?? {};
+  const poolSharePct = Number(earnings.estimated_pool_share_pct ?? 0);
+  const referralItems = Array.isArray(referral.items)
+    ? referral.items
+    : [];
 
-  const estimated = report?.actual_earnings?.estimated_share ?? null;
-  const finalized = report?.actual_earnings?.finalized_share;
-  const availableCash = report?.actual_earnings?.available_cash;
-  const paid = report?.actual_earnings?.paid_earnings;
-  const withdrawalEnabled =
-    report?.actual_earnings?.referral_withdrawal_enabled === true;
+  const pendingReferralPhp = referralItems.reduce(
+    (sum, row) => sum + Number(row.pending_reward_php ?? 0),
+    0,
+  );
 
   return (
     <BuklodPortalScrollView
@@ -141,260 +127,321 @@ export default function BayanihanScreen() {
     >
       <View style={styles.hero}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.eyebrow}>BUKLOD BAYANIHAN</Text>
-          <Text style={styles.title}>My Economy Report</Text>
-          <Text style={styles.subtitle}>
-            Progress, contribution, app sharing and actual funded earnings — kept separate by design.
-          </Text>
+          <Text style={styles.eyebrow}>{t('economy.guideTitle')}</Text>
+          <Text style={styles.title}>{t('economy.mySummary')}</Text>
+          <Text style={styles.subtitle}>{t('economy.actualBackendOnly')}</Text>
         </View>
-        <View style={styles.heroIcon}>
-          <MaterialCommunityIcons name="chart-donut" size={30} color="#275D45" />
-        </View>
+        <MaterialCommunityIcons name="chart-donut" size={34} color="#275D45" />
       </View>
 
-      {loading && !report ? (
-        <View style={styles.loadingCard}>
+      <View style={styles.actionRow}>
+        <Pressable
+          onPress={() => router.push('/bayanihan/guide' as any)}
+          style={styles.actionPrimary}
+        >
+          <MaterialCommunityIcons name="book-open-page-variant-outline" size={17} color="#FFFFFF" />
+          <Text style={styles.actionPrimaryText}>{t('economy.openGuide')}</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => router.push('/preferences/language' as any)}
+          style={styles.actionSecondary}
+        >
+          <MaterialCommunityIcons name="translate" size={17} color="#275D45" />
+          <Text style={styles.actionSecondaryText}>{t('economy.guideLanguage')}</Text>
+        </Pressable>
+      </View>
+
+      {loading && !summary ? (
+        <View style={styles.stateCard}>
           <ActivityIndicator color="#275D45" />
-          <Text style={styles.loadingText}>Loading your economy report...</Text>
+          <Text style={styles.stateText}>{t('economy.loading')}</Text>
         </View>
-      ) : error && !report ? (
-        <View style={styles.loadingCard}>
-          <MaterialCommunityIcons name="alert-circle-outline" size={30} color="#A35C00" />
-          <Text style={styles.errorTitle}>Report unavailable</Text>
-          <Text style={styles.loadingText}>{error}</Text>
-          <Pressable onPress={() => void load()} style={styles.retryButton}>
-            <Text style={styles.retryText}>TRY AGAIN</Text>
+      ) : error && !summary ? (
+        <View style={styles.stateCard}>
+          <MaterialCommunityIcons name="alert-circle-outline" size={28} color="#9B5A17" />
+          <Text style={styles.stateTitle}>{t('economy.unavailable')}</Text>
+          <Text style={styles.stateText}>{error}</Text>
+          <Pressable onPress={() => void load()} style={styles.retry}>
+            <Text style={styles.retryText}>{t('common.retry').toUpperCase()}</Text>
           </Pressable>
         </View>
-      ) : report ? (
+      ) : summary ? (
         <>
-          <View style={styles.invariantCard}>
-            <MaterialCommunityIcons name="shield-check-outline" size={24} color="#275D45" />
+          <View style={styles.guard}>
+            <MaterialCommunityIcons name="shield-check-outline" size={23} color="#275D45" />
             <View style={{ flex: 1 }}>
-              <Text style={styles.invariantTitle}>Points are not money</Text>
-              <Text style={styles.invariantText}>
-                BUKLOD Points, Circle Rank, Character and Collectibles are progression systems. They do not convert to pesos. Cash can exist only after real platform revenue is reconciled, funded and finalized.
-              </Text>
+              <Text style={styles.guardTitle}>{t('economy.pointsNotMoney')}</Text>
+              <Text style={styles.guardText}>{t('economy.pointsNotMoneyBody')}</Text>
             </View>
           </View>
 
-          <Section eyebrow="PROGRESS" title="Your BUKLOD Progress">
+          <Section icon="star-circle-outline" title={t('economy.progressTitle')}>
             <View style={styles.grid}>
               <Metric
-                label="Lifetime Points"
-                value={Number(report.progress.lifetime_points ?? 0).toLocaleString('en-PH')}
-                emphasized
+                label={t('economy.lifetimePoints')}
+                value={formatNumber(Number(progress.lifetime_points ?? 0))}
+                emphasis
               />
               <Metric
-                label="Available Points"
-                value={Number(report.progress.available_points ?? 0).toLocaleString('en-PH')}
+                label={t('economy.qualifiedMonthlyPoints')}
+                value={formatNumber(Number(progress.qualified_monthly_points ?? 0))}
               />
               <Metric
-                label="Pending Claimable"
-                value={Number(report.progress.pending_points ?? 0).toLocaleString('en-PH')}
+                label={t('economy.totalQualifiedMonthlyPoints')}
+                value={formatNumber(Number(progress.total_qualified_monthly_points ?? 0))}
               />
             </View>
-            <InfoRow
-              icon="trophy-outline"
-              title={rankName}
-              text={`Character: ${report.progress.character || 'Not selected'} · Collectibles: ${Number(report.progress.collectibles ?? 0).toLocaleString('en-PH')}`}
-            />
-            <Pressable style={styles.linkButton} onPress={() => router.push('/points' as any)}>
-              <MaterialCommunityIcons name="star-circle-outline" size={18} color="#275D45" />
-              <Text style={styles.linkButtonText}>OPEN BUKLOD POINTS</Text>
-            </Pressable>
+            <Text style={styles.explainer}>{t('economy.progressNote')}</Text>
           </Section>
 
-          <Section eyebrow="ECONOMIC CONTRIBUTION" title="Qualified Participation Weight">
-            <View style={styles.gridTwo}>
+          <Section icon="cash-multiple" title={t('economy.earningsTitle')}>
+            <View style={styles.statusPill}>
+              <Text style={styles.statusPillText}>
+                {earnings.user_pool_eligibility_active
+                  ? t('economy.userPoolActive')
+                  : t('economy.userPoolInactive')}
+              </Text>
+            </View>
+
+            <View style={styles.grid}>
               <Metric
-                label="Qualified BCU"
-                value={asMoney(report.economic_contribution.qualified_bcu).toLocaleString('en-PH', { maximumFractionDigits: 6 })}
-                note="Weight unit only"
+                label={t('economy.estimatedPoolShare')}
+                value={poolSharePct.toLocaleString(undefined, {
+                  maximumFractionDigits: 4,
+                }) + '%'}
+                note={t('economy.estimate')}
               />
               <Metric
-                label="Current Period BCU"
-                value={asMoney(report.economic_contribution.current_period_bcu).toLocaleString('en-PH', { maximumFractionDigits: 6 })}
-                note="Not a peso rate"
+                label={t('economy.estimatedUserPool')}
+                value={formatPhp(Number(earnings.estimated_user_pool_php ?? 0))}
+                note={t('economy.estimate')}
+              />
+              <Metric
+                label={t('economy.estimatedEarnings')}
+                value={formatPhp(Number(earnings.estimated_earnings_php ?? 0))}
+                note={t('economy.estimate')}
+              />
+              <Metric
+                label={t('economy.finalizedEarnings')}
+                value={formatPhp(Number(earnings.latest_finalized_user_share_php ?? 0))}
+                note={t('economy.finalized')}
+                emphasis
+              />
+              <Metric
+                label={t('economy.withdrawableBalance')}
+                value={formatPhp(Number(earnings.withdrawable_php ?? 0))}
+                note={t('economy.withdrawable')}
+              />
+              <Metric
+                label={t('economy.reservedBalance')}
+                value={formatPhp(Number(earnings.reserved_php ?? 0))}
+              />
+              <Metric
+                label={t('economy.paidEarnings')}
+                value={formatPhp(Number(earnings.paid_php ?? 0))}
+                note={t('economy.paid')}
               />
             </View>
-            <Text style={styles.explainer}>
-              BCU helps determine a proportional share only when a real funded Bayanihan pool is finalized. There is no fixed PHP-per-BCU promise.
-            </Text>
+            <Text style={styles.explainer}>{t('economy.earningsNote')}</Text>
+            <View style={styles.actionRow}>
+              <Pressable
+                onPress={() => router.push('/bayanihan/payout-profile' as any)}
+                style={styles.actionSecondary}
+              >
+                <Text style={styles.actionSecondaryText}>{t('economy.openPayout')}</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => router.push('/bayanihan/withdrawals' as any)}
+                style={styles.actionSecondary}
+              >
+                <Text style={styles.actionSecondaryText}>{t('economy.openHistory')}</Text>
+              </Pressable>
+            </View>
           </Section>
 
-          <Section eyebrow="APP SHARING" title="Direct Referral Contribution">
-            <View style={styles.gridTwo}>
+          <Section icon="account-plus-outline" title={t('economy.referralTitle')}>
+            <View style={styles.grid}>
               <Metric
-                label="Qualified Direct Referrals"
-                value={Number(report.app_sharing.qualified_direct_referrals ?? 0).toLocaleString('en-PH')}
+                label={t('economy.referralCode')}
+                value={String(referral.referral_code ?? '—')}
               />
               <Metric
-                label="Qualified RCU"
-                value={asMoney(report.app_sharing.qualified_rcu).toLocaleString('en-PH', { maximumFractionDigits: 6 })}
-                note="Weight unit only"
+                label={t('economy.totalReferrals')}
+                value={formatNumber(Number(referral.invited_count ?? 0))}
+              />
+              <Metric
+                label={t('economy.qualifiedReferrals')}
+                value={formatNumber(Number(referral.qualified_count ?? 0))}
+              />
+              <Metric
+                label={t('economy.pending')}
+                value={formatPhp(pendingReferralPhp)}
+              />
+              <Metric
+                label={t('economy.oneTimeReward')}
+                value={formatPhp(Number(referral.one_time_reward_php ?? 0))}
+              />
+              <Metric
+                label={t('economy.firstLineShare')}
+                value={
+                  Number(referral.first_line_pct ?? 0).toLocaleString(undefined, {
+                    maximumFractionDigits: 2,
+                  }) +
+                  '% / ' +
+                  formatNumber(Number(referral.referral_months ?? 0)) +
+                  ' mo'
+                }
               />
             </View>
-            <Text style={styles.explainer}>
-              Sharing the app does not create a fixed cash reward. A qualified direct referral may contribute RCU during its earning window; RCU only shares a funded referral pool after period finalization.
-            </Text>
+            <Text style={styles.explainer}>{t('economy.referralNote')}</Text>
+            <Text style={styles.explainer}>{t('economy.firstLineOnly')}</Text>
           </Section>
 
-          <Section eyebrow="ACTUAL EARNINGS" title="Funded Cash Status">
-            {estimated ? (
-              <View style={styles.estimateCard}>
-                <Text style={styles.estimateLabel}>{estimated.label}</Text>
-                <Text style={styles.estimateValue}>{formatPhp(estimated.total)}</Text>
-                <Text style={styles.estimateText}>
-                  Estimate only. It is not withdrawable and may change until the period is reconciled and finalized.
-                </Text>
+          <Section icon="hand-heart-outline" title={t('economy.communityTitle')}>
+            {community.selected ? (
+              <>
+                <View style={styles.grid}>
+                  <Metric
+                    label={t('economy.selectedCommunity')}
+                    value={String(community.scope_name ?? '—')}
+                    emphasis
+                  />
+                  <Metric
+                    label={t('economy.communityRate')}
+                    value={
+                      Number(community.allocation_pct ?? 0).toLocaleString(
+                        undefined,
+                        { maximumFractionDigits: 2 },
+                      ) + '%'
+                    }
+                  />
+                  <Metric
+                    label={t('economy.activeContributors')}
+                    value={formatNumber(Number(community.active_contributors ?? 0))}
+                  />
+                  <Metric
+                    label={t('economy.organizationThreshold')}
+                    value={formatNumber(Number(community.organization_threshold ?? 0))}
+                  />
+                  <Metric
+                    label={t('economy.availableFund')}
+                    value={formatPhp(Number(community.available_fund_php ?? 0))}
+                  />
+                  <Metric
+                    label={t('economy.reservedFund')}
+                    value={formatPhp(Number(community.reserved_fund_php ?? 0))}
+                  />
+                  <Metric
+                    label={t('economy.spentFund')}
+                    value={formatPhp(Number(community.spent_fund_php ?? 0))}
+                  />
+                </View>
+                {community.locked_until ? (
+                  <Text style={styles.explainer}>
+                    {t('economy.destinationLock')}: {formatDate(community.locked_until)}
+                  </Text>
+                ) : null}
+              </>
+            ) : (
+              <View style={styles.emptyCard}>
+                <Text style={styles.emptyText}>{t('economy.noCommunity')}</Text>
               </View>
-            ) : null}
-
-            <View style={styles.gridTwo}>
-              <Metric label="Finalized Share" value={formatPhp(finalized?.total)} emphasized />
-              <Metric label="Available Cash" value={formatPhp(availableCash?.total)} />
-              <Metric
-                label="Reserved"
-                value={formatPhp(report.actual_earnings.reserved_for_withdrawal)}
-              />
-              <Metric label="Paid Earnings" value={formatPhp(paid?.total)} />
-            </View>
-
-            <View style={styles.breakdownCard}>
-              <Text style={styles.breakdownTitle}>Finalized share breakdown</Text>
-              <Text style={styles.breakdownLine}>
-                Bayanihan pool share: {formatPhp(finalized?.bayanihan)}
-              </Text>
-              <Text style={styles.breakdownLine}>
-                Direct referral pool share: {formatPhp(finalized?.direct_referral)}
-              </Text>
-            </View>
-
-            <InfoRow
-              icon={withdrawalEnabled ? 'cash-check' : 'lock-outline'}
-              title={withdrawalEnabled ? 'Referral withdrawal is enabled' : 'Withdrawal is not activated yet'}
-              text={
-                withdrawalEnabled
-                  ? 'Only finalized, available Direct Referral cash can enter the withdrawal workflow. Points are never deducted or converted.'
-                  : 'No withdrawal can be created while the R38 withdrawal flag is off. This prevents unfunded or premature payouts.'
-              }
-            />
+            )}
+            <Text style={styles.explainer}>{t('economy.communityNotPersonal')}</Text>
           </Section>
 
-          <Section eyebrow="RULES" title="How the Money Flow Works">
-            <InfoRow
-              icon="cash-multiple"
-              title="1. Real platform revenue first"
-              text="Advertising and other recognized platform revenue are recorded at platform level, never from a user's Points balance."
-            />
-            <InfoRow
-              icon="server-network"
-              title="2. Actual costs are reconciled"
-              text="Infrastructure, database, storage, bandwidth, media, AI/TTS, payment fees and other recognized costs are deducted before distribution."
-            />
-            <InfoRow
-              icon="chart-pie"
-              title="3. Funded pools are created"
-              text="Only the remaining distributable base can fund Bayanihan, Direct Referral, Founder, Growth and Reserve allocations."
-            />
-            <InfoRow
-              icon="scale-balance"
-              title="4. BCU and RCU determine proportional share"
-              text="The value per unit can differ each finalized period. A retrospective effective rate is analytics only — never a future conversion rate."
-            />
-            <InfoRow
-              icon="bank-check"
-              title="5. Finalized cash can move to payout"
-              text="Only finalized and available cash may become a withdrawal. Payment history is separate from Points, Rank and progression."
-            />
-          </Section>
+          <View style={styles.safetyCard}>
+            <Text style={styles.safetyText}>{t('economy.safetyNotice')}</Text>
+            <Text style={styles.safetyText}>{t('economy.antiFraud')}</Text>
+          </View>
         </>
       ) : null}
-
-      <Text style={styles.footerBrand}>SAMAHANG BINUKLOD NG PAG-IBIG</Text>
     </BuklodPortalScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { paddingTop: 18, paddingBottom: 160, gap: 8 },
+  content: { paddingTop: 16, paddingBottom: 150, gap: 10 },
   hero: {
-    flexDirection: 'row',
-    gap: 12,
-    padding: 19,
-    backgroundColor: 'rgba(39,93,69,0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(39,93,69,0.13)',
-  },
-  heroIcon: {
-    width: 54,
-    height: 54,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 17,
-    backgroundColor: '#FFFFFF',
-  },
-  eyebrow: { fontSize: 10, fontWeight: '900', letterSpacing: 1.6, color: '#78847D' },
-  title: { marginTop: 4, fontSize: 28, fontWeight: '900', color: '#1C2822' },
-  subtitle: { marginTop: 6, fontSize: 12.5, lineHeight: 18, color: '#69766F', fontWeight: '700' },
-  loadingCard: { padding: 30, gap: 10, alignItems: 'center', backgroundColor: '#FFFFFF' },
-  loadingText: { textAlign: 'center', color: '#738078', lineHeight: 18 },
-  errorTitle: { fontSize: 15, fontWeight: '900', color: '#26352D' },
-  retryButton: { marginTop: 4, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, backgroundColor: '#275D45' },
-  retryText: { color: '#FFFFFF', fontSize: 11, fontWeight: '900' },
-  invariantCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12,
-    padding: 16,
-    backgroundColor: '#EFF8F2',
+    padding: 18,
+    backgroundColor: '#EEF6F1',
     borderWidth: 1,
-    borderColor: '#D7EADF',
+    borderColor: '#D8E8DE',
   },
-  invariantTitle: { fontSize: 15, fontWeight: '900', color: '#203229' },
-  invariantText: { marginTop: 4, fontSize: 11.5, lineHeight: 17, color: '#637169' },
-  section: { gap: 8, paddingTop: 14 },
-  sectionEyebrow: { fontSize: 9.5, fontWeight: '900', letterSpacing: 1.35, color: '#7F8B84' },
-  sectionTitle: { marginBottom: 2, fontSize: 20, fontWeight: '900', color: '#202C26' },
-  grid: { flexDirection: 'row', gap: 6 },
-  gridTwo: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  eyebrow: { fontSize: 9.5, fontWeight: '900', letterSpacing: 1.2, color: '#6F7E76' },
+  title: { marginTop: 4, fontSize: 27, fontWeight: '900', color: '#1F3328' },
+  subtitle: { marginTop: 5, fontSize: 11, lineHeight: 16, color: '#6D7B73' },
+  actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, paddingHorizontal: 2 },
+  actionPrimary: {
+    minHeight: 44,
+    flexGrow: 1,
+    flexDirection: 'row',
+    gap: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    borderRadius: 11,
+    backgroundColor: '#275D45',
+  },
+  actionPrimaryText: { color: '#FFFFFF', fontSize: 10, fontWeight: '900' },
+  actionSecondary: {
+    minHeight: 42,
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    borderRadius: 11,
+    borderWidth: 1,
+    borderColor: '#CEE0D5',
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    gap: 6,
+  },
+  actionSecondaryText: { color: '#275D45', fontSize: 10, fontWeight: '900' },
+  stateCard: { padding: 28, gap: 8, alignItems: 'center', backgroundColor: '#FFFFFF' },
+  stateTitle: { fontSize: 14, fontWeight: '900', color: '#26382F' },
+  stateText: { textAlign: 'center', fontSize: 11, lineHeight: 17, color: '#758078' },
+  retry: { marginTop: 5, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 9, backgroundColor: '#275D45' },
+  retryText: { color: '#FFFFFF', fontSize: 10, fontWeight: '900' },
+  guard: {
+    flexDirection: 'row',
+    gap: 10,
+    padding: 14,
+    backgroundColor: '#F0F8F3',
+    borderWidth: 1,
+    borderColor: '#D8E9DE',
+  },
+  guardTitle: { fontSize: 13, fontWeight: '900', color: '#274136' },
+  guardText: { marginTop: 3, fontSize: 10.5, lineHeight: 16, color: '#687870' },
+  section: { gap: 8, paddingTop: 8 },
+  sectionHeading: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 2 },
+  sectionIcon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#EDF5F0' },
+  sectionTitle: { fontSize: 19, fontWeight: '900', color: '#22372C' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   metric: {
     flexGrow: 1,
     flexBasis: '31%',
-    minHeight: 88,
-    padding: 12,
+    minWidth: 130,
+    minHeight: 86,
+    padding: 11,
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(25,45,35,0.09)',
+    borderColor: '#E1E8E4',
   },
-  metricPrimary: { backgroundColor: 'rgba(39,93,69,0.07)', borderColor: 'rgba(39,93,69,0.18)' },
-  metricValue: { fontSize: 17, fontWeight: '900', color: '#344139' },
-  metricValuePrimary: { color: '#275D45' },
-  metricLabel: { marginTop: 5, fontSize: 10, lineHeight: 13, fontWeight: '800', color: '#6F7C75' },
-  metricNote: { marginTop: 3, fontSize: 9.5, lineHeight: 13, color: '#909A94' },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    padding: 13,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: 'rgba(25,45,35,0.08)',
-  },
-  infoIcon: { width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(39,93,69,0.07)' },
-  infoTitle: { fontSize: 13, fontWeight: '900', color: '#25322B' },
-  infoText: { marginTop: 3, fontSize: 10.5, lineHeight: 16, color: '#748078' },
-  linkButton: { minHeight: 44, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F0F7F3', borderWidth: 1, borderColor: '#D4E7DC' },
-  linkButtonText: { fontSize: 11, fontWeight: '900', color: '#275D45' },
-  explainer: { paddingHorizontal: 2, fontSize: 11, lineHeight: 17, color: '#6E7A73' },
-  estimateCard: { padding: 14, backgroundColor: '#FFF9E8', borderWidth: 1, borderColor: '#F1DDA3' },
-  estimateLabel: { fontSize: 9.5, fontWeight: '900', letterSpacing: 0.8, color: '#956500' },
-  estimateValue: { marginTop: 4, fontSize: 24, fontWeight: '900', color: '#7D5500' },
-  estimateText: { marginTop: 5, fontSize: 10.5, lineHeight: 15, color: '#876F3F' },
-  breakdownCard: { padding: 13, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(25,45,35,0.08)' },
-  breakdownTitle: { fontSize: 12.5, fontWeight: '900', color: '#25322B' },
-  breakdownLine: { marginTop: 5, fontSize: 10.5, color: '#6F7D75' },
-  footerBrand: { marginTop: 16, textAlign: 'center', fontSize: 9.5, fontWeight: '800', letterSpacing: 1.1, color: '#929C96' },
+  metricEmphasis: { backgroundColor: '#EEF7F1', borderColor: '#CDE1D4' },
+  metricValue: { fontSize: 16, fontWeight: '900', color: '#34463C' },
+  metricValueEmphasis: { color: '#275D45' },
+  metricLabel: { marginTop: 4, fontSize: 9.5, lineHeight: 13, fontWeight: '800', color: '#6B7871' },
+  metricNote: { marginTop: 3, fontSize: 8.5, lineHeight: 12, color: '#8A948F' },
+  explainer: { paddingHorizontal: 3, fontSize: 10.5, lineHeight: 16, color: '#6D7A73' },
+  statusPill: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: '#EAF4EE' },
+  statusPillText: { fontSize: 9, fontWeight: '900', color: '#275D45' },
+  emptyCard: { padding: 15, borderWidth: 1, borderColor: '#E1E8E4', backgroundColor: '#FFFFFF' },
+  emptyText: { fontSize: 11, lineHeight: 17, color: '#6F7C75' },
+  safetyCard: { marginTop: 8, padding: 14, gap: 6, backgroundColor: '#FFF8E9', borderWidth: 1, borderColor: '#F0DFAE' },
+  safetyText: { fontSize: 10.5, lineHeight: 16, color: '#715D2F' },
 });
