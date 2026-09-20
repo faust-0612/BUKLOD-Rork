@@ -45,6 +45,7 @@ const SENSITIVE_PREFIXES = [
   '/system/maintenance',
   '/system/update-required',
   '/privacy/consent',
+  '/help',
   '/moderation/report',
   '/profile/buklod-classroom',
   '/profile/buklod-faculty',
