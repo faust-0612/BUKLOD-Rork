@@ -172,6 +172,73 @@ $$;
 revoke all on function public.buklod_bsoc_staff_role_v1() from public, anon;
 grant execute on function public.buklod_bsoc_staff_role_v1() to authenticated;
 
+create or replace function public.buklod_bsoc_role_can_access_queue_v1(
+  p_role text,
+  p_queue text
+)
+returns boolean
+language sql
+immutable
+set search_path=''
+as $bsoc_queue$
+  select case
+    when p_role='ADMIN' then true
+    when p_role='SUPPORT' then p_queue in (
+      'ACCOUNT_SUPPORT','QUIZ_SUPPORT','CLASSROOM_SUPPORT','GENERAL_SUPPORT'
+    )
+    when p_role='MODERATION' then p_queue='MODERATION'
+    when p_role='COMMUNITY_OPS' then p_queue='COMMUNITY_OPERATIONS'
+    when p_role='ENGINEERING' then p_queue='OPERATIONS_ENGINEERING'
+    when p_role='FINANCE_ESCALATION' then p_queue='FINANCE_ESCALATION'
+    else false
+  end
+$bsoc_queue$;
+
+revoke all on function public.buklod_bsoc_role_can_access_queue_v1(text,text) from public, anon;
+grant execute on function public.buklod_bsoc_role_can_access_queue_v1(text,text) to authenticated;
+
+create or replace function public.buklod_admin_set_bsoc_staff_v1(
+  p_user_id uuid,
+  p_role_code text,
+  p_active boolean default true
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path=''
+as $bsoc_staff$
+begin
+  if not public.buklod_actor_is_system_admin_v1() then
+    raise exception 'not_authorized';
+  end if;
+  if p_role_code not in (
+    'SUPPORT','MODERATION','COMMUNITY_OPS','ENGINEERING','FINANCE_ESCALATION','ADMIN'
+  ) then
+    raise exception 'invalid_bsoc_role';
+  end if;
+
+  insert into public.buklod_bsoc_staff_assignments(
+    user_id,role_code,active,updated_at
+  ) values (
+    p_user_id,p_role_code,coalesce(p_active,true),now()
+  )
+  on conflict (user_id) do update
+  set role_code=excluded.role_code,
+      active=excluded.active,
+      updated_at=now();
+
+  return jsonb_build_object(
+    'ok',true,
+    'user_id',p_user_id,
+    'role_code',p_role_code,
+    'active',coalesce(p_active,true)
+  );
+end;
+$bsoc_staff$;
+
+revoke all on function public.buklod_admin_set_bsoc_staff_v1(uuid,text,boolean) from public, anon;
+grant execute on function public.buklod_admin_set_bsoc_staff_v1(uuid,text,boolean) to authenticated;
+
 create or replace function public.buklod_bsoc_support_inbox_v1(
   p_limit integer default 100,
   p_status text default null,
@@ -240,7 +307,8 @@ begin
     c.updated_at
   from public.buklod_support_cases c
   left join public.buklod_support_incidents i on i.id=c.incident_id
-  where (p_status is null or c.status=p_status)
+  where public.buklod_bsoc_role_can_access_queue_v1(v_role,c.queue_code)
+    and (p_status is null or c.status=p_status)
     and (p_queue is null or c.queue_code=p_queue)
     and (
       v_search is null
@@ -301,7 +369,16 @@ begin
     i.platform_scope,i.error_code,i.title,i.public_message,i.affected_users,
     i.opened_at,i.updated_at
   from public.buklod_support_incidents i
-  where p_include_resolved or i.status <> 'RESOLVED'
+  where (p_include_resolved or i.status <> 'RESOLVED')
+    and (
+      v_role='ADMIN'
+      or exists (
+        select 1
+        from public.buklod_support_cases c
+        where c.incident_id=i.id
+          and public.buklod_bsoc_role_can_access_queue_v1(v_role,c.queue_code)
+      )
+    )
   order by
     case i.severity when 'P0' then 0 when 'P1' then 1 when 'P2' then 2 else 3 end,
     i.opened_at desc
@@ -335,11 +412,23 @@ begin
       where c.status='RESOLVED' and c.resolved_at >= now()-interval '24 hours'
     ),
     'active_incidents', (
-      select count(*) from public.buklod_support_incidents i where i.status<>'RESOLVED'
+      select count(*)
+      from public.buklod_support_incidents i
+      where i.status<>'RESOLVED'
+        and (
+          v_role='ADMIN'
+          or exists (
+            select 1
+            from public.buklod_support_cases ic
+            where ic.incident_id=i.id
+              and public.buklod_bsoc_role_can_access_queue_v1(v_role,ic.queue_code)
+          )
+        )
     )
   )
   into v_result
-  from public.buklod_support_cases c;
+  from public.buklod_support_cases c
+  where public.buklod_bsoc_role_can_access_queue_v1(v_role,c.queue_code);
 
   return coalesce(v_result,'{}'::jsonb);
 end;
@@ -379,9 +468,10 @@ begin
     raise exception 'case_not_found';
   end if;
 
-  if v_case.queue_code='FINANCE_ESCALATION'
-     and v_role not in ('FINANCE_ESCALATION','ADMIN') then
-    raise exception 'finance_restricted';
+  if not public.buklod_bsoc_role_can_access_queue_v1(
+    v_role,v_case.queue_code
+  ) then
+    raise exception 'not_authorized_queue';
   end if;
 
   update public.buklod_support_cases
@@ -440,9 +530,14 @@ begin
     raise exception 'incident_not_found';
   end if;
 
-  if v_incident.category='FINANCIAL'
-     and v_role not in ('FINANCE_ESCALATION','ADMIN') then
-    raise exception 'finance_restricted';
+  if v_role<>'ADMIN'
+     and not exists (
+       select 1
+       from public.buklod_support_cases c
+       where c.incident_id=v_incident.id
+         and public.buklod_bsoc_role_can_access_queue_v1(v_role,c.queue_code)
+     ) then
+    raise exception 'not_authorized_incident';
   end if;
 
   update public.buklod_support_incidents
