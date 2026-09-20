@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { AdminGate } from '@/components/AdminGate';
+import { BsocGate } from '@/components/bsoc/BsocGate';
 import BsocShell, {
   BsocMetric,
   BsocPanel,
@@ -132,7 +132,7 @@ export default function BsocSupportScreen() {
   };
 
   return (
-    <AdminGate>
+    <BsocGate>
       <BsocShell
         current="support"
         eyebrow="SUPPORT OPERATIONS"
@@ -410,7 +410,7 @@ export default function BsocSupportScreen() {
           </View>
         </BsocPanel>
       </BsocShell>
-    </AdminGate>
+    </BsocGate>
   );
 }
 
