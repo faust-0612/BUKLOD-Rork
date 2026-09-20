@@ -1558,12 +1558,6 @@ export default function MeScreen() {
             }
           />
 
-          <MenuRow
-            icon="message-text-outline"
-            title="Send Feedback"
-            onPress={() => router.push('/feedback')}
-          />
-
           {isSystemAdmin && (
             <MenuRow
               icon="crown-outline"
