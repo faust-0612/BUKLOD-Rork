@@ -1,0 +1,239 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import {
+  INTERSTITIAL_COOLDOWN_MS,
+  INTERSTITIAL_MIN_EVENT_COUNT,
+} from '@/lib/buklodAdMonetizationPolicy';
+import type { BuklodAdPlacement } from '@/lib/buklodAdUnits';
+
+export type BuklodAdInteractionLock =
+  | 'typing'
+  | 'form'
+  | 'transaction'
+  | 'exam'
+  | 'classroom'
+  | 'error_recovery'
+  | 'critical_admin';
+
+export type BuklodNaturalInterstitialReason =
+  | 'focus_app_entry'
+  | 'accessory_entry'
+  | 'devotional_completed'
+  | 'lesson_completed'
+  | 'reading_session_completed'
+  | 'content_session_completed'
+  | 'game_session_completed';
+
+const LAST_KEY = '@buklod/ad/interstitial-last';
+const COUNT_KEY = '@buklod/ad/interstitial-count';
+
+const SENSITIVE_PREFIXES = [
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/reset-password',
+  '/account/reset-password',
+  '/account/recovery',
+  '/account/delete',
+  '/delete-account',
+  '/bayanihan/withdraw',
+  '/bayanihan/payout',
+  '/admin',
+  '/system/maintenance',
+  '/system/update-required',
+  '/privacy/consent',
+  '/moderation/report',
+  '/profile/buklod-classroom',
+  '/profile/buklod-faculty',
+  '/classroom',
+  '/faculty-',
+  '/quiz',
+  '/quick-check',
+  '/igpat',
+  '/reels',
+  '/games',
+  '/personal-home',
+];
+
+let pathname = '/';
+let foreground = true;
+let fullScreenShownThisSession = 0;
+let fullScreenReservation = false;
+let remoteFeatures: Record<string, boolean> = {};
+
+const locks: Record<BuklodAdInteractionLock, number> = {
+  typing: 0,
+  form: 0,
+  transaction: 0,
+  exam: 0,
+  classroom: 0,
+  error_recovery: 0,
+  critical_admin: 0,
+};
+
+function normalizePath(value: string | null | undefined) {
+  const raw = String(value ?? '/').trim().toLowerCase();
+  const pathOnly = raw.split('?')[0]?.split('#')[0] || '/';
+  return pathOnly.startsWith('/') ? pathOnly : `/${pathOnly}`;
+}
+
+function enabled(key: string) {
+  return remoteFeatures[key] !== false;
+}
+
+function hasInteractionLock() {
+  return (Object.keys(locks) as BuklodAdInteractionLock[]).some(
+    key => locks[key] > 0,
+  );
+}
+
+function placementEnabled(placementId: string) {
+  return (
+    enabled('ads_all') &&
+    enabled('ads_placements') &&
+    enabled(`ads_placement_${placementId}`)
+  );
+}
+
+export function setBuklodAdRoute(value: string | null | undefined) {
+  pathname = normalizePath(value);
+}
+
+export function setBuklodAdForeground(value: boolean) {
+  foreground = value;
+}
+
+export function setBuklodAdRemoteFeatures(
+  features: Record<string, boolean> | null | undefined,
+) {
+  remoteFeatures = { ...(features ?? {}) };
+}
+
+export function acquireBuklodAdSafetyLock(kind: BuklodAdInteractionLock) {
+  locks[kind] += 1;
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    locks[kind] = Math.max(0, locks[kind] - 1);
+  };
+}
+
+export function isBuklodAdRouteSensitive(
+  candidate: string | null | undefined = pathname,
+) {
+  const route = normalizePath(candidate);
+  if (route === '/') return true;
+  return SENSITIVE_PREFIXES.some(
+    prefix => route === prefix || route.startsWith(`${prefix}/`),
+  );
+}
+
+export function isBuklodPassiveAdAllowed({
+  placementId,
+  pathname: candidate,
+}: {
+  placementId: string;
+  placement?: BuklodAdPlacement;
+  pathname?: string | null;
+}) {
+  return (
+    foreground &&
+    enabled('ads_passive') &&
+    placementEnabled(placementId) &&
+    !isBuklodAdRouteSensitive(candidate ?? pathname) &&
+    !hasInteractionLock()
+  );
+}
+
+export function isBuklodRewardedAdAllowed(
+  placementId = 'rewarded_generic',
+) {
+  return (
+    foreground &&
+    enabled('ads_rewarded') &&
+    placementEnabled(placementId) &&
+    !isBuklodAdRouteSensitive(pathname) &&
+    !hasInteractionLock()
+  );
+}
+
+export function canWarmBuklodFullScreenAd(
+  placementId = 'interstitial_generic',
+) {
+  return (
+    foreground &&
+    enabled('ads_interstitial') &&
+    placementEnabled(placementId) &&
+    !isBuklodAdRouteSensitive(pathname) &&
+    !hasInteractionLock() &&
+    fullScreenShownThisSession < 3
+  );
+}
+
+export async function reserveBuklodFullScreenAd(
+  _reason: BuklodNaturalInterstitialReason,
+  placementId: string,
+): Promise<boolean> {
+  if (!canWarmBuklodFullScreenAd(placementId) || fullScreenReservation) {
+    return false;
+  }
+
+  try {
+    const pairs = await AsyncStorage.multiGet([COUNT_KEY, LAST_KEY]);
+    const previousCount = Number(pairs[0]?.[1] ?? '0');
+    const lastShown = Number(pairs[1]?.[1] ?? '0');
+    const nextCount =
+      Number.isFinite(previousCount) && previousCount >= 0
+        ? previousCount + 1
+        : 1;
+
+    await AsyncStorage.setItem(COUNT_KEY, String(nextCount));
+
+    if (nextCount < Math.max(1, INTERSTITIAL_MIN_EVENT_COUNT)) {
+      return false;
+    }
+
+    if (
+      Number.isFinite(lastShown) &&
+      lastShown > 0 &&
+      Date.now() - lastShown < Math.max(60_000, INTERSTITIAL_COOLDOWN_MS)
+    ) {
+      return false;
+    }
+
+    fullScreenReservation = true;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function finishBuklodFullScreenAd(shown: boolean) {
+  const hadReservation = fullScreenReservation;
+  fullScreenReservation = false;
+  if (!hadReservation || !shown) return;
+
+  fullScreenShownThisSession += 1;
+
+  try {
+    await AsyncStorage.multiSet([
+      [LAST_KEY, String(Date.now())],
+      [COUNT_KEY, '0'],
+    ]);
+  } catch {
+    fullScreenShownThisSession = 3;
+  }
+}
+
+export function getBuklodGlobalAdSafetySnapshot() {
+  return {
+    pathname,
+    foreground,
+    sensitiveRoute: isBuklodAdRouteSensitive(pathname),
+    interactionLocked: hasInteractionLock(),
+    fullScreenShownThisSession,
+    fullScreenReserved: fullScreenReservation,
+    remoteFeatures: { ...remoteFeatures },
+  };
+}

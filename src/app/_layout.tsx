@@ -22,6 +22,7 @@ import BuklodFocusAppRouteGuard from '@/components/BuklodFocusAppRouteGuard';
 import BuklodCanonicalNavigationGuard from '@/components/BuklodCanonicalNavigationGuard';
 import BuklodClusterInviteDeepLinkHandler from '@/components/BuklodClusterInviteDeepLinkHandler';
 import BuklodAttendanceDeepLinkHandler from '@/components/BuklodAttendanceDeepLinkHandler';
+import BuklodAdSafetyRouteBridge from '@/components/BuklodAdSafetyRouteBridge';
 import { colors } from '@/lib/theme';
 import { StreamVideoProvider } from '@/providers/StreamVideoProvider';
 import { BuklodThemeProvider } from '@/providers/BuklodThemeProvider';
@@ -80,6 +81,7 @@ export default function RootLayout() {
         <ComplianceProvider>
           <RuntimeConfigProvider>
           <AdsProvider>
+            <BuklodAdSafetyRouteBridge />
       <NotificationProvider>
             <StreamVideoProvider>
             <BuklodRootKeyboardAvoidingView style={{ flex: 1 }}>

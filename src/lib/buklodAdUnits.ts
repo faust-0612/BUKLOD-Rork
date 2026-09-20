@@ -75,15 +75,15 @@ function isProductionNativeIdentity() {
   );
 }
 
+export const buklodAdsLiveIdsEnabled =
+  clean(process.env.EXPO_PUBLIC_ADS_ALLOW_LIVE_IDS).toLowerCase() === 'true';
+
 export const buklodAdsTestMode =
+  !buklodAdsLiveIdsEnabled ||
   isStagingNativeIdentity() ||
-  (
-    !isProductionNativeIdentity() &&
-    (
-      __DEV__ ||
-      appEnvironment !== 'production'
-    )
-  );
+  !isProductionNativeIdentity() ||
+  __DEV__ ||
+  appEnvironment !== 'production';
 
 export const BUKLOD_GOOGLE_TEST_ANDROID_APP_ID =
   GOOGLE_SAMPLE_ANDROID_APP_ID;

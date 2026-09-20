@@ -1,3 +1,4 @@
+import { usePathname } from 'expo-router';
 import React, {
   createElement,
   useEffect,
@@ -11,6 +12,8 @@ import {
 
 import BuklodSponsorSlot from '@/components/BuklodSponsorSlot';
 import type { BuklodAdPlacement } from '@/lib/buklodAdUnits';
+import { buklodAdsLiveIdsEnabled } from '@/lib/buklodAdUnits';
+import { isBuklodPassiveAdAllowed } from '@/lib/buklodGlobalAdController';
 
 /*
  * BUKLOD_WEB_ADS_R1
@@ -41,6 +44,7 @@ type Props = {
   compact?: boolean;
   format?: Format;
   showLabel?: boolean;
+  placementId?: string;
 };
 
 const ADSENSE_SCRIPT_ID =
@@ -149,13 +153,22 @@ export default function BuklodWebAdSlot({
   compact = false,
   format = 'adaptive',
   showLabel = true,
+  placementId,
 }: Props) {
+  const pathname = usePathname();
+  const stablePlacementId = placementId ?? `${placement}_generic`;
+  const routeSafe = isBuklodPassiveAdAllowed({
+    placement,
+    placementId: stablePlacementId,
+    pathname,
+  });
   const slot = useMemo(
     () => slotForPlacement(placement),
     [placement]
   );
 
   const canServeGoogle =
+    buklodAdsLiveIdsEnabled &&
     isValidClient(ADSENSE_CLIENT) &&
     isValidSlot(slot);
 
@@ -181,6 +194,10 @@ export default function BuklodWebAdSlot({
       window.clearTimeout(timer);
     };
   }, [canServeGoogle, slot]);
+
+  if (!routeSafe) {
+    return null;
+  }
 
   if (!canServeGoogle) {
     return (

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { usePathname } from 'expo-router';
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import {
   BannerAd,
@@ -10,7 +11,12 @@ import {
   NativeMediaView,
   TestIds,
 } from 'react-native-google-mobile-ads';
-import { type BuklodAdPlacement, getBuklodBannerUnitId } from '@/lib/buklodAdUnits';
+import {
+  buklodAdsTestMode,
+  type BuklodAdPlacement,
+  getBuklodBannerUnitId,
+} from '@/lib/buklodAdUnits';
+import { isBuklodPassiveAdAllowed } from '@/lib/buklodGlobalAdController';
 import { initializeBuklodAds } from '@/lib/buklodAds';
 
 type Props = {
@@ -29,6 +35,12 @@ export default function BuklodCommunityInlineAd({
   active = true,
 }: Props) {
   const { width } = useWindowDimensions();
+  const pathname = usePathname();
+  const routeSafe = isBuklodPassiveAdAllowed({
+    placementId: 'community_wall_feed',
+    placement: 'community',
+    pathname,
+  });
 
   const [sdkReady, setSdkReady] = useState(false);
   const [nativeAd, setNativeAd] = useState<NativeAd | null>(null);
@@ -39,12 +51,7 @@ export default function BuklodCommunityInlineAd({
   const nativeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bannerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const appEnv =
-    envValue(process.env.EXPO_PUBLIC_APP_ENV || 'development').toLowerCase();
-
-  const testMode =
-    __DEV__ ||
-    appEnv !== 'production';
+  const testMode = buklodAdsTestMode;
 
   const nativeUnitId =
     useMemo(() => {
@@ -71,7 +78,7 @@ export default function BuklodCommunityInlineAd({
 
 
   useEffect(() => {
-    if (!active) return;
+    if (!active || !routeSafe) return;
 
     let mounted = true;
 
@@ -102,6 +109,7 @@ export default function BuklodCommunityInlineAd({
   useEffect(() => {
     if (
       !active ||
+      !routeSafe ||
       !sdkReady ||
       !nativeUnitId
     ) {
@@ -184,6 +192,7 @@ export default function BuklodCommunityInlineAd({
   useEffect(() => {
     if (
       !active ||
+      !routeSafe ||
       !sdkReady ||
       !nativeFailed ||
       !bannerUnitId ||
@@ -216,7 +225,7 @@ export default function BuklodCommunityInlineAd({
     slotId,
   ]);
 
-  if (!active) {
+  if (!active || !routeSafe) {
     return null;
   }
 

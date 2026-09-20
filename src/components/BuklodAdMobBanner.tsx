@@ -11,6 +11,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { usePathname } from 'expo-router';
 
 import {
   BannerAd,
@@ -40,6 +41,9 @@ import {
 import {
   useNetwork,
 } from '@/providers/NetworkProvider';
+import {
+  isBuklodPassiveAdAllowed,
+} from '@/lib/buklodGlobalAdController';
 
 const RETRY_DELAYS_MS = [8000, 20000, 45000];
 const MAX_RETRIES = RETRY_DELAYS_MS.length;
@@ -62,6 +66,7 @@ type Props = {
   requireViewport?: boolean;
 
   showLabel?: boolean;
+  placementId?: string;
 };
 
 function BuklodAdMobBanner({
@@ -71,9 +76,17 @@ function BuklodAdMobBanner({
   diagnosticName,
   requireViewport = true,
   showLabel = true,
+  placementId,
 }: Props) {
   const { ready, canRequestAds } = useAds();
   const { online } = useNetwork();
+  const pathname = usePathname();
+  const stablePlacementId = placementId ?? `${placement}_generic`;
+  const routeSafe = isBuklodPassiveAdAllowed({
+    placement,
+    placementId: stablePlacementId,
+    pathname,
+  });
   const { ref, eligible } = useBuklodAdViewportGate();
   const viewportReady = !requireViewport || eligible;
   const diagnostic =
@@ -90,8 +103,9 @@ function BuklodAdMobBanner({
   const unitId = getBuklodBannerUnitId(placement);
   const sdkReady = ready && canRequestAds;
   const shouldRequest =
-    !!unitId && sdkReady && viewportReady && online && !failed;
-  const mountBanner = (shouldRequest || loaded) && !!unitId && !failed;
+    routeSafe && !!unitId && sdkReady && viewportReady && online && !failed;
+  const mountBanner =
+    routeSafe && (shouldRequest || loaded) && !!unitId && !failed;
 
   useEffect(() => {
     return () => {
@@ -147,7 +161,7 @@ function BuklodAdMobBanner({
         ? BannerAdSize.INLINE_ADAPTIVE_BANNER
         : BannerAdSize.ANCHORED_ADAPTIVE_BANNER;
 
-  if (!unitId || failed) {
+  if (!routeSafe || !unitId || failed) {
     return null;
   }
 

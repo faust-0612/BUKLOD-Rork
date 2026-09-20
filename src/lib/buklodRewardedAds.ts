@@ -12,6 +12,9 @@ import {
 import {
   buklodAdsTestMode,
 } from '@/lib/buklodAdUnits';
+import {
+  isBuklodRewardedAdAllowed,
+} from '@/lib/buklodGlobalAdController';
 
 /**
  * Rewarded ads are strictly opt-in. This module never grants Circle Points,
@@ -58,6 +61,7 @@ function clearWarmedAd(ad?: RewardedAd) {
 }
 
 async function prepareRewardedAd(): Promise<boolean> {
+  if (!isBuklodRewardedAdAllowed()) return false;
   const ready = await initializeBuklodAds();
   if (!ready) return false;
 
@@ -130,7 +134,7 @@ export async function showBuklodRewardedAd(
     reward: RewardedAdReward,
   ) => void | Promise<void>,
 ): Promise<BuklodRewardedAdResult> {
-  if (showing) {
+  if (!isBuklodRewardedAdAllowed() || showing) {
     return {
       shown: false,
       earned: false,
