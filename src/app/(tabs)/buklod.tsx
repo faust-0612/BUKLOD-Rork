@@ -54,8 +54,11 @@ import { useBuklodCommunityAdViewability } from '@/hooks/useBuklodCommunityAdVie
 import BuklodPublicLocationChips from '@/components/BuklodPublicLocationChips';
 import BuklodMaritesBoard from '@/components/BuklodMaritesBoard';
 import BuklodTodayCard from '@/components/BuklodTodayCard';
+import BuklodCommunityWallEngagementLayer, {
+  BuklodCommunityQuickActions,
+  type BuklodCommunityComposerIntent,
+} from '@/components/BuklodCommunityWallEngagementLayer';
 import { repairMojibakeText } from '@/lib/repairMojibakeText';
-import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
 import { BuklodCommunityGifPicker, BuklodCommunityGifPreview, type BuklodCommunityGifFile } from '@/components/BuklodCommunityGifPicker';
 /* PATCH_160_COMMUNITY_AVATARS_TIME */
 import { formatSpecificDateTime } from '@/lib/dateTime';
@@ -694,7 +697,23 @@ function LegacyPublicBuklodScreen(){
   ]);
 
  const [posts,setPosts]=useState<any[]>([]),[group,setGroup]=useState<any>(null),[body,setBody]=useState('');
- const [category]=useState<typeof CATEGORIES[number]>('reflection');
+ const [category,setCategory]=useState<
+  'reflection'|'testimony'|'encouragement'|'discussion'
+ >('reflection');
+ const [composerIntent,setComposerIntent]=useState<BuklodCommunityComposerIntent>('post');
+ const composerInputRef=useRef<any>(null);
+
+ const activateComposerIntent=(intent:BuklodCommunityComposerIntent)=>{
+  setComposerIntent(intent);
+  setCategory(
+   intent==='ask'||intent==='need_help'
+    ? 'discussion'
+    : intent==='offer'
+      ? 'encouragement'
+      : 'reflection'
+  );
+  setTimeout(()=>composerInputRef.current?.focus?.(),0);
+ };
 
  // COMMUNITY_COMPACT_COMPOSER_20260811
  const [audience]=useState<Audience>('public');
@@ -3331,7 +3350,7 @@ const refreshCommunity186L=
 
    </View>
 
-   <BuklodTodayCard />
+   <BuklodTodayCard onRespond={()=>activateComposerIntent('post')} />
 
    <BuklodMaritesBoard
     locationScopeId={
@@ -3351,10 +3370,24 @@ const refreshCommunity186L=
           setPublicLocationScopeId
         }
       />
-    {/* PATCH_162A_SPONSOR_COMMUNITY */}
-<BuklodCommunitySponsoredAd audience="public" />
+   <BuklodCommunityQuickActions onIntent={activateComposerIntent} />
    <SectionTitle>SHARE SOMETHING</SectionTitle><Card>
-<TextInput multiline value={body} onChangeText={setBody} placeholder="Share with your Community..." style={s.area}/>
+<TextInput
+ ref={composerInputRef}
+ multiline
+ value={body}
+ onChangeText={setBody}
+ placeholder={
+  composerIntent==='ask'
+   ? 'Ano ang gusto mong itanong sa Community?'
+   : composerIntent==='need_help'
+    ? 'Anong tulong ang kailangan mo?'
+    : composerIntent==='offer'
+     ? 'Ano ang maitutulong o maibabahagi mo?'
+     : 'Share with your Community...'
+ }
+ style={s.area}
+/>
     {!!mentions.length&&<Text style={s.mentioned}>{mentions.map(x=>`@${x.full_name}`).join(' ')}</Text>}
     <View
       /* PATCH_154L_COMPOSER_SPACING */
@@ -3500,6 +3533,7 @@ const refreshCommunity186L=
      onPress={publish}
     />
    </Card>
+   <BuklodCommunityWallEngagementLayer onIntent={activateComposerIntent} />
    <SectionTitle>COMMUNITY POSTS</SectionTitle>
   </View></BuklodFocusFadeUp>}
   ListEmptyComponent={<Card><Text style={shared.muted}>No Public posts yet.</Text></Card>}

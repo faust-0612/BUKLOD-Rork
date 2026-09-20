@@ -226,6 +226,64 @@ requireText(
   'BUKLOD TODAY is mounted in Community Wall',
 );
 
+
+// Targeted Community Wall visual/engagement upgrade must preserve locked features.
+requireText(
+  'src/components/BuklodPublicLocationChips.tsx',
+  '<BuklodCommunityHelp />',
+  'SOS remains mounted on Public Community Wall',
+);
+requireText(
+  'src/components/BuklodMaritesBoard.web.tsx',
+  '<BuklodCommunityConnectHeaderWeb />',
+  'Web Connect Bubbles remain mounted',
+);
+requireText(
+  'src/app/(tabs)/buklod.tsx',
+  '<BuklodMaritesBoard',
+  'Marites remains mounted',
+);
+requireText(
+  'src/app/(tabs)/buklod.tsx',
+  '<BuklodTodayCard',
+  'Compact BUKLOD TODAY remains mounted',
+);
+requireText(
+  'src/components/BuklodTodayCard.tsx',
+  'activeIndex',
+  'BUKLOD TODAY uses rotating single-card presentation',
+);
+requireText(
+  'src/app/(tabs)/buklod.tsx',
+  '<BuklodCommunityQuickActions',
+  'Wall quick participation reuses existing composer',
+);
+requireText(
+  'src/components/BuklodCommunityWallEngagementLayer.tsx',
+  'Habang Wala Ka',
+  'Wall real unread return card installed',
+);
+requireText(
+  'src/components/BuklodCommunityWallEngagementLayer.tsx',
+  "from('notifications')",
+  'Habang Wala Ka uses real notifications',
+);
+requireText(
+  'src/components/BuklodCommunityWallEngagementLayer.tsx',
+  "from('group_members')",
+  'Samahang uses real membership data',
+);
+requireText(
+  'src/components/BuklodCommunityInlineAd.web.tsx',
+  'placementId="community_wall_feed"',
+  'Web Community feed ad has stable attribution ID',
+);
+forbidText(
+  'src/app/(tabs)/buklod.tsx',
+  'BuklodCommunitySponsoredAd',
+  'No above-the-fold sponsored card before real feed content',
+);
+
 // Existing performance hardening must remain present.
 requireText('src/lib/buklodPerformanceFetch.ts', 'simultaneous identical GET /auth/v1/user checks', 'Auth request dedupe');
 requireText('src/lib/buklodR4RequestShield.ts', 'BUKLOD_MASS_CONCURRENCY_R32', 'Mass concurrency request shield');

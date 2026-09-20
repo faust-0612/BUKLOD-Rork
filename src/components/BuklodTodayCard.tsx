@@ -17,10 +17,15 @@ function iconFor(type:BuklodTodayItem['item_type']){
   return 'comment-question-outline';
 }
 
-export default function BuklodTodayCard(){
+export default function BuklodTodayCard({
+  onRespond,
+}: {
+  onRespond?: () => void;
+}){
   const [items,setItems]=useState<BuklodTodayItem[]>([]);
   const [fallback,setFallback]=useState(false);
   const [selected,setSelected]=useState<Record<string,string>>({});
+  const [activeIndex,setActiveIndex]=useState(0);
 
   useEffect(()=>{
     let alive=true;
@@ -29,7 +34,7 @@ export default function BuklodTodayCard(){
       if(!alive)return;
       setItems(first.items.slice(0,4));
       setFallback(first.fallback);
-      for(const item of first.items.slice(0,4)) void recordBuklodTodayEngagement(item.id,'VIEW');
+      for(const item of first.items.slice(0,4)) void recordBuklodTodayEngagement(active.id,'VIEW');
 
       if(first.generationNeeded){
         const generated=await triggerBuklodTodayGenerationIfNeeded();
@@ -45,36 +50,52 @@ export default function BuklodTodayCard(){
   },[]);
 
   const visible=useMemo(()=>items.slice(0,4),[items]);
-  if(!visible.length)return null;
+  const active=visible.length?visible[activeIndex%visible.length]:null;
+
+  useEffect(()=>{
+    if(visible.length<=1)return;
+    const timer=setInterval(()=>{
+      setActiveIndex(current=>(current+1)%visible.length);
+    },12000);
+    return()=>clearInterval(timer);
+  },[visible.length]);
+
+  useEffect(()=>{
+    if(activeIndex>=visible.length)setActiveIndex(0);
+  },[activeIndex,visible.length]);
+
+  if(!active)return null;
 
   return (
     <View style={s.shell}>
       <View style={s.head}>
         <View>
           <Text style={s.eyebrow}>BUKLOD TODAY</Text>
-          <Text style={s.sub}>Fresh daily conversation starters</Text>
+          <Text style={s.sub}>Fresh daily conversation starter</Text>
         </View>
-        {fallback?<Text style={s.fallback}>SAFE FALLBACK</Text>:null}
+        <View style={s.counterWrap}>
+          {fallback?<Text style={s.fallback}>SAFE FALLBACK</Text>:null}
+          <Text style={s.counter}>{activeIndex%visible.length+1}/{visible.length}</Text>
+        </View>
       </View>
 
-      {visible.map(item=>(
-        <View key={item.id} style={s.card}>
+        <View key={active.id} style={s.card}>
           <View style={s.titleRow}>
-            <MaterialCommunityIcons name={iconFor(item.item_type) as any} size={18} color="#1E6B45"/>
-            <Text style={s.title}>{item.title}</Text>
-            {item.source_kind==='REAL_TRENDING'?<Text style={s.real}>REAL ACTIVITY</Text>:null}
+            <MaterialCommunityIcons name={iconFor(active.item_type) as any} size={18} color="#1E6B45"/>
+            <Text style={s.title}>{active.title}</Text>
+            {active.source_kind==='REAL_TRENDING'?<Text style={s.real}>REAL ACTIVITY</Text>:null}
           </View>
-          <Text style={s.body}>{item.body}</Text>
-          {Array.isArray(item.options)&&item.options.length?(
+          <Text style={s.body}>{active.body}</Text>
+          {Array.isArray(active.options)&&active.options.length?(
             <View style={s.options}>
-              {item.options.map(option=>{
-                const active=selected[item.id]===option;
+              {active.options.map(option=>{
+                const active=selected[active.id]===option;
                 return (
                   <Pressable
                     key={option}
                     onPress={()=>{
-                      setSelected(current=>({...current,[item.id]:option}));
-                      void recordBuklodTodayEngagement(item.id,'ENGAGE');
+                      setSelected(current=>({...current,[active.id]:option}));
+                      void recordBuklodTodayEngagement(active.id,'ENGAGE');
                     }}
                     style={[s.option,active&&s.optionOn]}
                   >
@@ -84,8 +105,27 @@ export default function BuklodTodayCard(){
               })}
             </View>
           ):null}
+          <View style={s.footerRow}>
+            <Pressable
+              onPress={()=>{
+                void recordBuklodTodayEngagement(active.id,'ENGAGE');
+                onRespond?.();
+              }}
+              style={s.respond}
+            >
+              <Text style={s.respondText}>Sumagot</Text>
+            </Pressable>
+            {visible.length>1?(
+              <Pressable
+                accessibilityLabel="Next BUKLOD Today card"
+                onPress={()=>setActiveIndex(current=>(current+1)%visible.length)}
+                style={s.next}
+              >
+                <MaterialCommunityIcons name="chevron-right" size={18} color="#1E6B45"/>
+              </Pressable>
+            ):null}
+          </View>
         </View>
-      ))}
     </View>
   );
 }
@@ -96,6 +136,8 @@ const s=StyleSheet.create({
   eyebrow:{fontSize:13,fontWeight:'900',letterSpacing:.8,color:'#173C2C'},
   sub:{marginTop:1,fontSize:10,color:'#6E7C74'},
   fallback:{fontSize:8,fontWeight:'900',letterSpacing:.6,color:'#7B6A2D'},
+  counterWrap:{flexDirection:'row',alignItems:'center',gap:7},
+  counter:{fontSize:8,fontWeight:'900',color:'#728077'},
   card:{borderRadius:16,borderWidth:1,borderColor:'#DDE7E1',backgroundColor:'#FFFFFF',padding:13},
   titleRow:{flexDirection:'row',alignItems:'center',gap:7},
   title:{flex:1,fontSize:13,fontWeight:'900',color:'#173C2C'},
@@ -106,4 +148,8 @@ const s=StyleSheet.create({
   optionOn:{backgroundColor:'#E4F3EA',borderColor:'#76A98D'},
   optionText:{fontSize:11,fontWeight:'800',color:'#365648'},
   optionTextOn:{color:'#145D3A'},
+  footerRow:{marginTop:10,flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:8},
+  respond:{minHeight:34,paddingHorizontal:14,borderRadius:10,backgroundColor:'#1E6B45',alignItems:'center',justifyContent:'center'},
+  respondText:{fontSize:10,fontWeight:'900',color:'#FFFFFF'},
+  next:{width:34,height:34,borderRadius:17,borderWidth:1,borderColor:'#D5E4DB',alignItems:'center',justifyContent:'center',backgroundColor:'#FFFFFF'},
 });

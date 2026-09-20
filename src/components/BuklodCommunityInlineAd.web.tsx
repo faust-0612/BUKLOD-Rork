@@ -20,6 +20,7 @@ export default function BuklodCommunityInlineAd({
       <View style={styles.adWrap}>
         <BuklodWebAdSlot
           placement="community"
+          placementId="community_wall_feed"
           compact
           format="inline"
         />
