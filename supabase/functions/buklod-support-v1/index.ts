@@ -1,6 +1,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+// BUKLOD_SUPPORT_REQUIRES_VERIFY_JWT_FALSE
+// Pre-login Help is a required public path. Deploy this function with verify_jwt=false;
+// the handler validates optional user JWTs itself and never exposes the service key.
 const cors={
   "Access-Control-Allow-Origin":"*",
   "Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type",
@@ -96,6 +99,27 @@ Deno.serve(async(req:Request)=>{
   const rawIp=clean(req.headers.get("cf-connecting-ip")||req.headers.get("x-real-ip")||req.headers.get("x-forwarded-for")?.split(",")[0]||"unknown",160);
   const keyedHash=(scope:string,value:string)=>sha256("buklod-support-v1:"+scope+":"+value+":"+serviceKey);
   const ipHash=await keyedHash("ip",rawIp||"unknown");
+
+  if(action==="health"){
+    const [casesCheck,incidentsCheck]=await Promise.all([
+      admin.from("buklod_support_cases").select("id",{count:"exact",head:true}).limit(1),
+      admin.from("buklod_support_incidents").select("id",{count:"exact",head:true}).limit(1),
+    ]);
+    if(casesCheck.error||incidentsCheck.error){
+      return reply(503,{
+        ok:false,
+        error:"support_backend_not_ready",
+        service:"BUKLOD_SUPPORT_V1",
+        schema:"BUKLOD_CENTRAL_SUPPORT_V1",
+      });
+    }
+    return reply(200,{
+      ok:true,
+      service:"BUKLOD_SUPPORT_V1",
+      schema:"BUKLOD_CENTRAL_SUPPORT_V1",
+      prelogin:true,
+    });
+  }
 
   async function caseStatus(caseCode:string,accessToken:string){
     const code=clean(caseCode,32).toUpperCase();
