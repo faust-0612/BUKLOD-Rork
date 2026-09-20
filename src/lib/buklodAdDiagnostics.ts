@@ -16,7 +16,10 @@ export type BuklodAdDiagnosticPlacement =
   | 'reels_inline'
   | 'interstitial'
   | 'rewarded_optional'
-  | 'test';
+  | 'test'
+  // Compatibility inputs from excluded/legacy source. Runtime records normalize.
+  | 'home_bottom_banner'
+  | 'community_inline';
 
 export type BuklodAdDiagnosticEvent =
   | 'ad_request'
@@ -147,6 +150,13 @@ export function recordBuklodAdEvent(
     provider?: 'ADMOB_NATIVE' | 'ADSENSE_WEB' | 'BUKLOD_SPONSOR';
   },
 ) {
+  placement =
+    placement === 'home_bottom_banner'
+      ? 'legacy_home_banner'
+      : placement === 'community_inline'
+        ? 'community_wall_feed'
+        : placement;
+
   const bucket = countsByPlacement.get(placement) ?? blankCounts();
   bucket[event] += 1;
   countsByPlacement.set(placement, bucket);

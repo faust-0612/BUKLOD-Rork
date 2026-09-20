@@ -188,7 +188,6 @@ export async function showBuklodRewardedAd(
       clearTimeout(timeout);
       unsubscribeEarned();
       unsubscribeOpened();
-      unsubscribeImpression();
       unsubscribeClosed();
       unsubscribeError();
       showing = false;
@@ -225,18 +224,6 @@ export async function showBuklodRewardedAd(
         recordBuklodAdEvent(
           'rewarded_optional',
           'ad_rendered',
-          undefined,
-          { route },
-        );
-      },
-    );
-
-    const unsubscribeImpression = ad.addAdEventListener(
-      AdEventType.IMPRESSION,
-      () => {
-        recordBuklodAdEvent(
-          'rewarded_optional',
-          'ad_impression',
           undefined,
           { route },
         );

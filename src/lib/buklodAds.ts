@@ -137,17 +137,6 @@ async function prepareInterstitial(
       );
     }),
   );
-  listenerCleanup.push(
-    interstitial.addAdEventListener(AdEventType.IMPRESSION, () => {
-      recordBuklodAdEvent(
-        'interstitial',
-        'ad_impression',
-        undefined,
-        { route },
-      );
-    }),
-  );
-
   interstitial.load();
 }
 
