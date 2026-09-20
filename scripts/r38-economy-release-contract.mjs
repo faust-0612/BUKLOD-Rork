@@ -130,7 +130,7 @@ requireText(adminPayoutLibPath, adminPayoutLib, [
 ]);
 
 requireText(i18nPath, i18n, [
-  'English fallback',
+  'readPath(PACKS.en, key)',
   'formatPhp',
   "currency: 'PHP'",
   'productionBuklodLanguages',
