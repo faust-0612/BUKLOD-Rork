@@ -513,6 +513,13 @@ export default function AdminDashboard() {
               onPress={() => toggle('platform')}
             >
               <AdminRow
+                icon="monitor-dashboard"
+                title="BUKLOD System Operations Center"
+                subtitle="Observe, investigate, act safely, verify and audit"
+                path="/admin/bsoc"
+              />
+
+              <AdminRow
                 icon="cash-check"
                 title="Faith & Cluster Payments"
                 subtitle="Verify Cluster Premium, lesson packages and Organization Focus Apps"
