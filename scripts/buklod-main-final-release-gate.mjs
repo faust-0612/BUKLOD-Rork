@@ -198,6 +198,34 @@ requireText(
   'AdSense ads.txt publisher record generator',
 );
 
+
+// AI Daily Engagement: one shared cached batch/day, never per-render generation.
+requireText(
+  'src/lib/buklodDailyEngagement.ts',
+  'claim_buklod_today_generation_v1',
+  'Daily AI uses atomic once-per-day generation claim',
+);
+requireText(
+  'supabase/functions/buklod-community-daily-engagement/index.ts',
+  'REAL_TRENDING_INPUTS',
+  'Trending AI is grounded only in real activity inputs',
+);
+requireText(
+  'supabase/functions/buklod-community-daily-engagement/index.ts',
+  'Daily AI key unavailable',
+  'Daily AI has explicit outage fallback path',
+);
+requireText(
+  'src/components/BuklodTodayCard.tsx',
+  'SAFE FALLBACK',
+  'Wall daily layer exposes curated fallback without blocking',
+);
+requireText(
+  'src/app/(tabs)/buklod.tsx',
+  '<BuklodTodayCard />',
+  'BUKLOD TODAY is mounted in Community Wall',
+);
+
 // Existing performance hardening must remain present.
 requireText('src/lib/buklodPerformanceFetch.ts', 'simultaneous identical GET /auth/v1/user checks', 'Auth request dedupe');
 requireText('src/lib/buklodR4RequestShield.ts', 'BUKLOD_MASS_CONCURRENCY_R32', 'Mass concurrency request shield');

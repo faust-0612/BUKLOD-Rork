@@ -53,6 +53,7 @@ import { useBuklodCommunityAdViewability } from '@/hooks/useBuklodCommunityAdVie
 /* PATCH_179D_FIX_COMMUNITY_IMAGE_STABLE_CACHE */
 import BuklodPublicLocationChips from '@/components/BuklodPublicLocationChips';
 import BuklodMaritesBoard from '@/components/BuklodMaritesBoard';
+import BuklodTodayCard from '@/components/BuklodTodayCard';
 import { repairMojibakeText } from '@/lib/repairMojibakeText';
 import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
 import { BuklodCommunityGifPicker, BuklodCommunityGifPreview, type BuklodCommunityGifFile } from '@/components/BuklodCommunityGifPicker';
@@ -3329,6 +3330,8 @@ const refreshCommunity186L=
     </View>
 
    </View>
+
+   <BuklodTodayCard />
 
    <BuklodMaritesBoard
     locationScopeId={
