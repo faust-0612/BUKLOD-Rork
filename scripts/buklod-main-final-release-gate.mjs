@@ -356,6 +356,29 @@ requireText(
   'Referral dashboard separates pending reward',
 );
 
+
+// Daily AI remains under explicit human admin control.
+requireText(
+  'src/app/admin/daily-engagement.tsx',
+  'BUKLOD Today AI Control',
+  'Admin can preview and control daily engagement AI',
+);
+requireText(
+  'src/app/admin/daily-engagement.tsx',
+  'REGENERATE TODAY',
+  'Admin can regenerate today content',
+);
+requireText(
+  'src/app/admin/daily-engagement.tsx',
+  'Schedule manual card',
+  'Admin can schedule manual daily content',
+);
+requireText(
+  'supabase/migrations/20260920123000_buklod_main_ai_daily_engagement_r1.sql',
+  "generation_frequency in ('DAILY','WEEKDAYS','MANUAL')",
+  'Daily AI generation frequency is configurable',
+);
+
 // Existing performance hardening must remain present.
 requireText('src/lib/buklodPerformanceFetch.ts', 'simultaneous identical GET /auth/v1/user checks', 'Auth request dedupe');
 requireText('src/lib/buklodR4RequestShield.ts', 'BUKLOD_MASS_CONCURRENCY_R32', 'Mass concurrency request shield');

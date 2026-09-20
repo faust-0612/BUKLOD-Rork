@@ -237,6 +237,7 @@ export default function RootLayout() {
                 <Stack.Screen name="admin/privacy/index" />
                 <Stack.Screen name="admin/content-reports" />
                 <Stack.Screen name="admin/system-announcement-boards" />
+                <Stack.Screen name="admin/daily-engagement" />
                 <Stack.Screen name="scope/attendance/index" />
                 <Stack.Screen name="scope/attendance/report" />
                 <Stack.Screen name="organizations/events-attendance" />
