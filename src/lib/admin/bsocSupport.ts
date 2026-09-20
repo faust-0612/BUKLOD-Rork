@@ -94,6 +94,29 @@ export async function loadBsocSupportMetrics() {
   } satisfies BsocSupportMetrics;
 }
 
+export async function updateBsocIncident(input: {
+  incidentCode: string;
+  status:
+    | 'POSSIBLE_SHARED_INCIDENT'
+    | 'INVESTIGATING'
+    | 'IDENTIFIED'
+    | 'MONITORING'
+    | 'RESOLVED';
+  publicMessage?: string;
+}) {
+  const { data, error } = await supabase.rpc(
+    'buklod_bsoc_update_incident_v1' as any,
+    {
+      p_incident_code: input.incidentCode,
+      p_status: input.status,
+      p_public_message: input.publicMessage?.trim() || null,
+    } as any,
+  );
+
+  if (error) throw error;
+  return data;
+}
+
 export async function updateBsocSupportCase(input: {
   caseCode: string;
   status: 'OPEN' | 'WAITING_FOR_USER' | 'BEING_REVIEWED' | 'RESOLVED';
