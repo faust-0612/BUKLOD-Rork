@@ -1550,6 +1550,15 @@ export default function MeScreen() {
           />
 
           <MenuRow
+            icon="lifebuoy"
+            title={t('support.title')}
+            subtitle={t('support.subtitle')}
+            onPress={() =>
+              router.push('/help' as any)
+            }
+          />
+
+          <MenuRow
             icon="email-outline"
             title="Contact Us"
             onPress={() =>
