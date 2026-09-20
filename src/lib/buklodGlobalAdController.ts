@@ -1,8 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 import {
   INTERSTITIAL_COOLDOWN_MS,
   INTERSTITIAL_MIN_EVENT_COUNT,
+  INTERSTITIAL_SESSION_CAP,
 } from '@/lib/buklodAdMonetizationPolicy';
 import type { BuklodAdPlacement } from '@/lib/buklodAdUnits';
 
@@ -91,6 +93,7 @@ function placementEnabled(placementId: string) {
   return (
     enabled('ads_all') &&
     enabled('ads_placements') &&
+    enabled(`ads_platform_${Platform.OS}`) &&
     enabled(`ads_placement_${placementId}`)
   );
 }
@@ -131,12 +134,20 @@ export function isBuklodAdRouteSensitive(
 
 export function isBuklodPassiveAdAllowed({
   placementId,
+  placement,
   pathname: candidate,
 }: {
   placementId: string;
   placement?: BuklodAdPlacement;
   pathname?: string | null;
 }) {
+  if (
+    placement === 'home' ||
+    placementId === 'legacy_home_banner'
+  ) {
+    return false;
+  }
+
   return (
     foreground &&
     enabled('ads_passive') &&
@@ -167,7 +178,7 @@ export function canWarmBuklodFullScreenAd(
     placementEnabled(placementId) &&
     !isBuklodAdRouteSensitive(pathname) &&
     !hasInteractionLock() &&
-    fullScreenShownThisSession < 3
+    fullScreenShownThisSession < INTERSTITIAL_SESSION_CAP
   );
 }
 
@@ -222,7 +233,7 @@ export async function finishBuklodFullScreenAd(shown: boolean) {
       [COUNT_KEY, '0'],
     ]);
   } catch {
-    fullScreenShownThisSession = 3;
+    fullScreenShownThisSession = INTERSTITIAL_SESSION_CAP;
   }
 }
 

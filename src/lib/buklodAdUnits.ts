@@ -16,6 +16,7 @@ export type BuklodAdPlacement =
   | 'me'
   | 'reels'
   | 'focus'
+  | 'content'
   | 'test';
 
 /* Standard AdMob BANNER creative is 320x50. Dashboard chrome
@@ -114,10 +115,19 @@ export function getBuklodAdTestDeviceIds(): string[] {
 export function diagnosticPlacementFor(
   placement: BuklodAdPlacement,
 ): BuklodAdDiagnosticPlacement {
-  if (placement === 'community') return 'community_inline';
+  if (placement === 'home') return 'legacy_home_banner';
+  if (placement === 'community') return 'community_wall_feed';
   if (placement === 'reels') return 'reels_inline';
-  if (placement === 'test') return 'test';
-  return 'home_bottom_banner';
+  if (
+    placement === 'content' ||
+    placement === 'focus' ||
+    placement === 'bible' ||
+    placement === 'devotion'
+  ) return 'content_inline';
+  if (placement === 'prayer') return 'prayer_banner';
+  if (placement === 'messages') return 'messages_banner';
+  if (placement === 'me') return 'profile_banner';
+  return 'test';
 }
 
 export function getBuklodBannerUnitId(
@@ -169,6 +179,7 @@ export function getBuklodBannerUnitId(
     case 'bible':
     case 'devotion':
     case 'focus':
+    case 'content':
       placementId =
         clean(
           process.env

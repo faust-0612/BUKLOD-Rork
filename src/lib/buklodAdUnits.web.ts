@@ -8,6 +8,7 @@
   | 'me'
   | 'reels'
   | 'focus'
+  | 'content'
   | 'test';
 
 export const BUKLOD_DASHBOARD_BANNER_AD_HEIGHT = 50;
@@ -29,9 +30,21 @@ export function getBuklodAdTestDeviceIds(): string[] {
 }
 
 export function diagnosticPlacementFor(
-  _placement: BuklodAdPlacement,
+  placement: BuklodAdPlacement,
 ) {
-  return 'home_bottom_banner' as const;
+  if (placement === 'home') return 'legacy_home_banner' as const;
+  if (placement === 'community') return 'community_wall_feed' as const;
+  if (placement === 'reels') return 'reels_inline' as const;
+  if (
+    placement === 'content' ||
+    placement === 'focus' ||
+    placement === 'bible' ||
+    placement === 'devotion'
+  ) return 'content_inline' as const;
+  if (placement === 'prayer') return 'prayer_banner' as const;
+  if (placement === 'messages') return 'messages_banner' as const;
+  if (placement === 'me') return 'profile_banner' as const;
+  return 'test' as const;
 }
 
 export function getBuklodBannerUnitId(
