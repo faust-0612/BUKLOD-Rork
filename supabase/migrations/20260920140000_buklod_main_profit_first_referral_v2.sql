@@ -1483,11 +1483,35 @@ begin
     v_cfg.policy_version,
     coalesce(p_metadata,'{}'::jsonb)
   )
-  on conflict(idempotency_key) do update
-    set idempotency_key=excluded.idempotency_key
+  on conflict(idempotency_key) do nothing
   returning * into v_row;
 
-  return private.buklod_pf_allocate_finalized_value_v3(v_row.id);
+  if v_row.id is null then
+    select * into v_row
+    from private.buklod_pf_finalized_value_ledger
+    where idempotency_key=trim(p_idempotency_key);
+
+    if v_row.person_id<>v_person
+       or v_row.gross_value_centavos<>v_centavos
+       or v_row.provider<>upper(trim(p_provider))
+       or v_row.feature_key<>lower(trim(p_feature_key)) then
+      raise exception 'Idempotency key was already used for a different finalized revenue event';
+    end if;
+
+    return jsonb_build_object(
+      'processed',true,
+      'idempotent_replay',true,
+      'value_id',v_row.id,
+      'qualification_value_php',round(v_row.qualification_value_centavos::numeric/100,2),
+      'post_qualification_value_php',round(v_row.post_qualification_value_centavos::numeric/100,2),
+      'user_pool_cash_credited_now',false,
+      'first_line_cash_credited_now',false,
+      'monthly_settlement_required',true
+    );
+  end if;
+
+  return private.buklod_pf_allocate_finalized_value_v3(v_row.id)
+    || jsonb_build_object('idempotent_replay',false);
 end
 $$;
 
