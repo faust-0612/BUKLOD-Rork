@@ -55,6 +55,7 @@ create table if not exists public.buklod_support_cases (
   ),
   source_type text not null default 'BUKLOD_HELP',
   source_id uuid,
+  request_id text unique,
   user_id uuid references auth.users(id) on delete set null,
   identifier_hash text,
   identifier_hint text,
