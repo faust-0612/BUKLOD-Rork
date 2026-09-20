@@ -463,6 +463,83 @@ requireText(
   'Language is accessible before authentication',
 );
 
+// Central Help & Support is release-critical and must work before authentication.
+requireText(
+  'src/app/(auth)/login.tsx',
+  "router.push('/help' as any)",
+  'Pre-login Need Help entry is permanent',
+);
+requireText(
+  'src/app/(tabs)/me.tsx',
+  "router.push('/help' as any)",
+  'Logged-in Profile Help entry is present',
+);
+requireText(
+  'src/app/help/index.tsx',
+  'runBuklodSupportFlow',
+  'Help runs diagnostics and self-heal before escalation',
+);
+requireText(
+  'src/app/help/index.tsx',
+  'Support Case:',
+  'Help confirms unresolved case code to user',
+);
+requireText(
+  'src/app/help/index.tsx',
+  'WAITING_FOR_USER',
+  'Help exposes canonical user case statuses',
+);
+requireText(
+  'src/app/help/index.tsx',
+  'Internal staff notes and sensitive diagnostics are never shown here.',
+  'Help keeps staff-only diagnostics private',
+);
+requireText(
+  'src/lib/buklodSupport.ts',
+  "'buklod-support-v1'",
+  'Pre-login and logged-in Help use one support service',
+);
+requireText(
+  'supabase/functions/buklod-support-v1/index.ts',
+  'outcome:"KNOWN_INCIDENT"',
+  'Known incidents avoid duplicate technical reports',
+);
+requireText(
+  'supabase/functions/buklod-support-v1/index.ts',
+  'outcome:"CASE_CREATED"',
+  'Unresolved Help creates canonical support cases',
+);
+requireText(
+  'supabase/functions/buklod-support-v1/index.ts',
+  'buklod_support_incident_subscribers',
+  'Known incident users are associated for updates',
+);
+requireText(
+  'supabase/migrations/20260920225500_buklod_central_support_v1.sql',
+  'create table if not exists public.buklod_support_cases',
+  'Canonical support case schema is source-tracked',
+);
+requireText(
+  'supabase/migrations/20260920225500_buklod_central_support_v1.sql',
+  'buklod_bsoc_support_inbox_v1',
+  'BSOC Support Inbox RPC is source-tracked',
+);
+requireText(
+  'supabase/migrations/20260920225500_buklod_central_support_v1.sql',
+  "then 'Restricted financial inquiry'",
+  'Ordinary BSOC staff receive finance-redacted support content',
+);
+requireText(
+  'supabase/migrations/20260920225500_buklod_central_support_v1.sql',
+  'trg_buklod_feedback_to_support_case_v1',
+  'Legacy feedback converges into central support cases',
+);
+requireText(
+  'src/lib/buklodGlobalAdController.ts',
+  "'/help'",
+  'Help and Support is ad-free',
+);
+
 // Existing performance hardening must remain present.
 requireText('src/lib/buklodPerformanceFetch.ts', 'simultaneous identical GET /auth/v1/user checks', 'Auth request dedupe');
 requireText('src/lib/buklodR4RequestShield.ts', 'BUKLOD_MASS_CONCURRENCY_R32', 'Mass concurrency request shield');
