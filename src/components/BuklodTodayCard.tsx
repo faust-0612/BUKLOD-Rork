@@ -34,7 +34,9 @@ export default function BuklodTodayCard({
       if(!alive)return;
       setItems(first.items.slice(0,4));
       setFallback(first.fallback);
-      for(const item of first.items.slice(0,4)) void recordBuklodTodayEngagement(active.id,'VIEW');
+      for(const item of first.items.slice(0,4)) {
+        void recordBuklodTodayEngagement(item.id,'VIEW');
+      }
 
       if(first.generationNeeded){
         const generated=await triggerBuklodTodayGenerationIfNeeded();
@@ -89,7 +91,7 @@ export default function BuklodTodayCard({
           {Array.isArray(active.options)&&active.options.length?(
             <View style={s.options}>
               {active.options.map(option=>{
-                const active=selected[active.id]===option;
+                const optionSelected=selected[active.id]===option;
                 return (
                   <Pressable
                     key={option}
@@ -97,9 +99,9 @@ export default function BuklodTodayCard({
                       setSelected(current=>({...current,[active.id]:option}));
                       void recordBuklodTodayEngagement(active.id,'ENGAGE');
                     }}
-                    style={[s.option,active&&s.optionOn]}
+                    style={[s.option,optionSelected&&s.optionOn]}
                   >
-                    <Text style={[s.optionText,active&&s.optionTextOn]}>{option}</Text>
+                    <Text style={[s.optionText,optionSelected&&s.optionTextOn]}>{option}</Text>
                   </Pressable>
                 );
               })}
