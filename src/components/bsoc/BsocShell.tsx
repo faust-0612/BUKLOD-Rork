@@ -41,6 +41,12 @@ const NAV: readonly NavItem[] = [
     path: '/admin/content-reports',
   },
   {
+    key: 'support',
+    label: 'Support',
+    icon: 'lifebuoy',
+    path: '/admin/bsoc/support',
+  },
+  {
     key: 'people',
     label: 'People',
     icon: 'account-group-outline',
