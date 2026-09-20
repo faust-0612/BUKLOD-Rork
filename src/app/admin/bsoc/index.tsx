@@ -180,10 +180,11 @@ export default function BsocOverviewScreen() {
       {
         key: 'incidents',
         icon: 'alert-decagram-outline',
-        title: 'Central incident correlation',
-        detail: 'A shared incident store is not yet wired to this R1 source surface. Missing incident telemetry is shown as unavailable, never as zero incidents.',
-        status: 'NOT CONNECTED',
-        tone: 'offline',
+        title: 'Support cases & shared incidents',
+        detail: 'Open the centralized Support Inbox for user cases, automatic diagnostics, queue routing and correlated incidents.',
+        status: 'CONNECTED',
+        tone: 'healthy',
+        path: '/admin/bsoc/support',
       },
     ];
   }, [adsHealth, error, stats]);
@@ -228,9 +229,9 @@ export default function BsocOverviewScreen() {
                 tone="neutral"
               />
               <SourceRow
-                label="Incident store"
-                value="NOT CONNECTED"
-                tone="offline"
+                label="Support / incident store"
+                value="CENTRAL RPC"
+                tone="healthy"
               />
             </BsocPanel>
 
