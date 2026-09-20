@@ -83,13 +83,7 @@ const MAP_DOORS: MapDoor[] = [
     route: '/bayanihan',
     placement: 'bottomLeft',
   },
-  {
-    key: 'home',
-    title: 'My Home',
-    icon: 'home-heart',
-    route: '/personal-home',
-    placement: 'bottomRight',
-  },
+
 ];
 
 export default function BuklodCommunityMapNav() {

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import {
   BannerAd,
   BannerAdSize,
@@ -10,7 +10,6 @@ import {
   NativeMediaView,
   TestIds,
 } from 'react-native-google-mobile-ads';
-import BuklodCommunityIgpatPreview from '@/components/BuklodCommunityIgpatPreview';
 import { type BuklodAdPlacement, getBuklodBannerUnitId } from '@/lib/buklodAdUnits';
 import { initializeBuklodAds } from '@/lib/buklodAds';
 
@@ -23,25 +22,6 @@ const AD_LOAD_TIMEOUT_MS = 8000;
 
 function envValue(value: string | undefined) {
   return String(value ?? '').trim();
-}
-
-function inlineSlotNumber(slotId?: string) {
-  const match = String(slotId ?? '').match(/__buklod_inline_ad_(\d+)_/);
-  return match ? Number(match[1]) : 1;
-}
-
-function shouldShowIgpatPreview(slotId?: string) {
-  const slot = inlineSlotNumber(slotId);
-
-  // Android Community ads are intentionally denser (roughly every 4–6 posts).
-  // Show IGPAT on alternating ad slots so IGPAT stays near the requested
-  // 8–12-post cadence without reducing or replacing ad inventory.
-  if (Platform.OS === 'android') {
-    return slot % 2 === 0;
-  }
-
-  // iOS/default feed cadence is already around 8–12 posts.
-  return true;
 }
 
 export default function BuklodCommunityInlineAd({
@@ -88,14 +68,7 @@ export default function BuklodCommunityInlineAd({
       Math.floor(width - 32),
     );
 
-  const showIgpatPreview = active && shouldShowIgpatPreview(slotId);
 
-  const igpatPreview = showIgpatPreview ? (
-    <BuklodCommunityIgpatPreview
-      slotId={slotId}
-      active={active}
-    />
-  ) : null;
 
   useEffect(() => {
     if (!active) return;
@@ -248,7 +221,7 @@ export default function BuklodCommunityInlineAd({
   }
 
   if (!sdkReady) {
-    return igpatPreview;
+    return null;
   }
 
   if (
@@ -257,7 +230,6 @@ export default function BuklodCommunityInlineAd({
   ) {
     return (
       <View>
-        {igpatPreview}
 
         <NativeAdView
           nativeAd={nativeAd}
@@ -327,12 +299,11 @@ export default function BuklodCommunityInlineAd({
     !bannerUnitId ||
     bannerFailed
   ) {
-    return igpatPreview;
+    return null;
   }
 
   return (
     <View>
-      {igpatPreview}
 
       <View
         style={

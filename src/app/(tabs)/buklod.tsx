@@ -593,11 +593,7 @@ function LegacyPublicBuklodScreen(){
 
         if (videoRows.length) {
           incomingShare187A.clearSharedPayloads();
-          Alert.alert(
-            'BUKLOD IGPAT',
-            'Videos belong in BUKLOD IGPAT. Opening the IGPAT creator.'
-          );
-          router.push('/igpat/create' as any);
+          Alert.alert('Community', 'Video sharing is disabled in this BUKLOD Main release.');
           return;
         }
 
@@ -1738,7 +1734,7 @@ const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p
   if(wallVideo186O || communityGif){
    return Alert.alert(
     'Community',
-    'Community accepts text and photos only. Post videos through BUKLOD IGPAT.'
+    'Community accepts text and photos only. Video posting is disabled in this BUKLOD Main release.'
    );
   }
 
@@ -3332,33 +3328,6 @@ const refreshCommunity186L=
      </Text>
     </View>
 
-    <ConnectPressable
-     onPress={() =>
-      router.push(
-       '/igpat' as any
-      )
-     }
-     style={{
-      flex:1,
-      minHeight:42,
-      borderRadius:12,
-      borderWidth:1,
-      borderColor:colors.green,
-      backgroundColor:colors.white,
-      alignItems:'center',
-      justifyContent:'center'
-     }}
-    >
-     <Text
-      style={{
-       fontSize:11,
-       fontWeight:'900',
-       color:colors.greenDark
-      }}
-     >
-      BUKLOD IGPAT
-     </Text>
-    </ConnectPressable>
    </View>
 
    <BuklodMaritesBoard
@@ -3393,25 +3362,7 @@ const refreshCommunity186L=
         },
       ]}
     ><Pressable style={s.tool} onPress={async()=>{setMentionOpen(true);setMentionSearch('');await searchMentions('')}}><MaterialCommunityIcons name="account-plus-outline" size={17} color={colors.green}/><Text style={s.toolText}>Mention</Text></Pressable>
-    <Pressable style={s.tool} onPress={()=>{setWallVideo186O(null);void pickPhoto();}}><MaterialCommunityIcons name="image-plus" size={17} color={colors.green}/><Text style={s.toolText}>{photoBusy
- ? 'Preparing...'
- : photos.length
- ? `${photos.length}/${COMMUNITY_MAX_PHOTOS} Photos`
- : 'Add Photos'}</Text></Pressable>
-    <Pressable
-     style={s.tool}
-     disabled={busy}
-     onPress={()=>
-      router.push('/igpat/create' as any)
-     }
-    >
-     <MaterialCommunityIcons
-      name="video-outline"
-      size={17}
-      color={colors.green}
-     />
-     <Text style={s.toolText}>BUKLOD IGPAT</Text>
-    </Pressable></View>
+</View>
     {!!communityGif&&(
      <BuklodCommunityGifPreview
       file={communityGif}
@@ -3434,7 +3385,7 @@ const refreshCommunity186L=
      </Text>
     )}
     <Text style={[shared.muted,{marginBottom:8,fontSize:11}]}>
-      Up to {COMMUNITY_MAX_PHOTOS} photos per post. Videos are posted through BUKLOD IGPAT. Posting continues in the background so you can keep using BUKLOD.
+      Up to {COMMUNITY_MAX_PHOTOS} photos per post. Video posting is disabled in this BUKLOD Main release. Posting continues in the background so you can keep using BUKLOD.
       {photos.length
        ? ' Long-press a photo to highlight, draw, add text, emoji, or remove.'
        : ''}

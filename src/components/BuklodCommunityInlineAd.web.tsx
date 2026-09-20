@@ -1,7 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import BuklodCommunityIgpatPreview from '@/components/BuklodCommunityIgpatPreview.web';
 import BuklodWebAdSlot from '@/components/BuklodWebAdSlot.web';
 
 export default function BuklodCommunityInlineAd({
@@ -17,10 +16,6 @@ export default function BuklodCommunityInlineAd({
 
   return (
     <View style={styles.wrap}>
-      <BuklodCommunityIgpatPreview
-        slotId={slotId}
-        active={active}
-      />
 
       <View style={styles.adWrap}>
         <BuklodWebAdSlot

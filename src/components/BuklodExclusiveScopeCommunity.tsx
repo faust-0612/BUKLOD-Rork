@@ -1418,7 +1418,7 @@ export default function BuklodExclusiveScopeCommunity({
       ) {
         Alert.alert(
           'Community',
-          'Community accepts text and photos only. Post videos through BUKLOD IGPAT.'
+          'Community accepts text and photos only. Video posting is disabled in this BUKLOD Main release.'
         );
         return;
       }
@@ -3490,71 +3490,7 @@ return (
             styles.modeRow
           }
         >
-          <Pressable
-            onPress={() => {
-              setMode(
-                'wall'
-              );
-              setReel(
-                null
-              );
-            }}
-            style={[
-              styles.modeButton,
-              mode ===
-                'wall' &&
-                styles.modeButtonOn,
-            ]}
-          >
-            <MaterialCommunityIcons
-              name="view-stream-outline"
-              size={19}
-              color={
-                mode ===
-                  'wall'
-                  ? colors.white
-                  : colors.greenDark
-              }
-            />
 
-            <Text
-              style={[
-                styles.modeText,
-                mode ===
-                  'wall' &&
-                  styles.modeTextOn,
-              ]}
-            >
-              WALL
-            </Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() =>
-              router.push('/igpat' as any)
-            }
-            style={
-              styles.modeButton
-            }
-            accessibilityRole="button"
-            accessibilityLabel="Open BUKLOD IGPAT"
-          >
-            <MaterialCommunityIcons
-              name="movie-play-outline"
-              size={19}
-              color={
-                colors.greenDark
-              }
-            />
-
-            <Text
-              style={
-                styles.modeText
-              }
-            >
-              BUKLOD IGPAT
-            </Text>
-          </Pressable>
         </View>
 
         <View
@@ -3951,61 +3887,7 @@ return (
           >
             {mode === 'wall' ? (
               <>
-                <Pressable
-                  disabled={
-                    busy
-                  }
-                  onPress={() =>
-                    void choosePhoto()
-                  }
-                  style={
-                    styles.mediaButton
-                  }
-                >
-                  <MaterialCommunityIcons
-                    name="image-outline"
-                    size={19}
-                    color={
-                      colors.greenDark
-                    }
-                  />
-                  <Text
-                    style={
-                      styles.mediaButtonText
-                    }
-                  >
-                    {photos.length
-                      ? `${photos.length}/${COMMUNITY_MAX_PHOTOS} Photos`
-                      : 'Photos'}
-                  </Text>
-                </Pressable>
 
-                <Pressable
-                  disabled={busy}
-                  onPress={() =>
-                    router.push('/igpat/create' as any)
-                  }
-                  style={
-                    styles.mediaButton
-                  }
-                  accessibilityRole="button"
-                  accessibilityLabel="Create in BUKLOD IGPAT"
-                >
-                  <MaterialCommunityIcons
-                    name="video-outline"
-                    size={19}
-                    color={
-                      colors.greenDark
-                    }
-                  />
-                  <Text
-                    style={
-                      styles.mediaButtonText
-                    }
-                  >
-                    BUKLOD IGPAT
-                  </Text>
-                </Pressable>
               </>
             ) : (
               <>
