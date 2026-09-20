@@ -72,6 +72,7 @@ Remove-Item -LiteralPath $envPath -Force -ErrorAction SilentlyContinue
 npx.cmd --yes eas-cli@latest env:pull --environment production --path $envPath --non-interactive
 Assert-NativeSuccess "production environment pull"
 Load-DotEnv $envPath
+Remove-Item -LiteralPath $envPath -Force -ErrorAction SilentlyContinue
 
 $supabaseUrl = [string]$env:EXPO_PUBLIC_SUPABASE_URL
 $publishableKey = [string]$env:EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY
