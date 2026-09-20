@@ -323,6 +323,39 @@ requireText(
   'Installed-app referral deep link preserves attribution',
 );
 
+
+// Profit-First payout reuses hardened payout snapshots with person-linked cash.
+requireText(
+  'supabase/migrations/20260920143000_buklod_main_profit_first_payout_v2.sql',
+  "source_pool='PROFIT_FIRST_V2'",
+  'Profit-First payout queue is explicitly isolated',
+);
+requireText(
+  'supabase/migrations/20260920143000_buklod_main_profit_first_payout_v2.sql',
+  'idx_buklod_pf_withdrawal_person_request',
+  'Withdrawal idempotency survives account recreation',
+);
+requireText(
+  'src/lib/buklodR38Economy.ts',
+  "'request_my_buklod_pf_withdrawal_v2'",
+  'User payout requests use durable Profit-First reserve path',
+);
+requireText(
+  'src/lib/buklodR38AdminEconomy.ts',
+  "'admin_mark_buklod_pf_withdrawal_paid_v2'",
+  'Admin payout completion consumes durable reserved cash',
+);
+requireText(
+  'src/app/(auth)/register.tsx',
+  'Referral not found',
+  'Invalid referral is explicitly rejected',
+);
+requireText(
+  'src/components/BuklodReferralInviteCard.tsx',
+  '₱20 PENDING',
+  'Referral dashboard separates pending reward',
+);
+
 // Existing performance hardening must remain present.
 requireText('src/lib/buklodPerformanceFetch.ts', 'simultaneous identical GET /auth/v1/user checks', 'Auth request dedupe');
 requireText('src/lib/buklodR4RequestShield.ts', 'BUKLOD_MASS_CONCURRENCY_R32', 'Mass concurrency request shield');
