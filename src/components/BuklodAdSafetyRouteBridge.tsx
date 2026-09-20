@@ -7,6 +7,9 @@ import {
   setBuklodAdRemoteFeatures,
   setBuklodAdRoute,
 } from '@/lib/buklodGlobalAdController';
+import {
+  flushBuklodAdOperationalTelemetry,
+} from '@/lib/buklodAdOperationalTelemetry';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 
 export default function BuklodAdSafetyRouteBridge() {
@@ -24,7 +27,11 @@ export default function BuklodAdSafetyRouteBridge() {
   useEffect(() => {
     setBuklodAdForeground(AppState.currentState === 'active');
     const sub = AppState.addEventListener('change', state => {
-      setBuklodAdForeground(state === 'active');
+      const active = state === 'active';
+      setBuklodAdForeground(active);
+      if (!active) {
+        void flushBuklodAdOperationalTelemetry();
+      }
     });
     return () => sub.remove();
   }, []);

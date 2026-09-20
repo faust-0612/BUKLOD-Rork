@@ -15,6 +15,7 @@ import * as Location from 'expo-location';
 import * as LocalAuthentication from 'expo-local-authentication';
 
 import { supabase } from '@/lib/supabase';
+import { acquireBuklodAdSafetyLock } from '@/lib/buklodGlobalAdController';
 import { registerPushToken } from '@/lib/pushNotifications';
 import { useAuth } from '@/providers/AuthProvider';
 import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
@@ -74,6 +75,14 @@ export default function BuklodCommunityHelp(){
   const [message,setMessage]=useState('');
 
   useEffect(()=>()=>{mounted.current=false},[]);
+
+  useEffect(()=>{
+    if(!open)return;
+    return acquireBuklodAdSafetyLock(
+      kind==='EMERGENCY'?'transaction':'form'
+    );
+  },[kind,open]);
+
 
   const refresh=useCallback(async()=>{
     if(!user?.id)return;

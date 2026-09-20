@@ -666,7 +666,7 @@ function LegacyScopeHome({
         <BuklodCommunityBulletin />
       )}
 
-      <BuklodScreenBottomBanner placement="home" variant="large" />
+      <BuklodScreenBottomBanner placement="content" variant="large" />
     </ScrollView>
   );
 }

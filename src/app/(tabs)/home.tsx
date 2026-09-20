@@ -4,7 +4,6 @@ import BuklodPublicWordShortcut from '@/components/BuklodPublicWordShortcut';
 import BuklodFindAChurchDoorway from '@/components/BuklodFindAChurchDoorway';
 import BuklodMentionText from '@/components/BuklodMentionText';
 import BuklodHomeScopeBulletins from '@/components/BuklodHomeScopeBulletins';
-import BuklodScreenBottomBanner from '@/components/BuklodScreenBottomBanner';
 import { BuklodSystemAnnouncementBoard } from '@/components/BuklodSystemAnnouncementBoard';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import {
@@ -13,7 +12,6 @@ import {
   HomePressable,
 } from '@/components/HomeMotion';
 
-import BuklodSponsorSlot from '@/components/BuklodSponsorSlot';
 /* PATCH_161B_BULLETIN_SOCIAL_UI */
 import {
   Alert as BulletinAlert,
@@ -1039,7 +1037,6 @@ export default function HomeScreen() {
         </View>
       </HomeMotionSection>
 
-      <BuklodScreenBottomBanner placement="home" variant="large" />
 </ScrollView>
   );
 }
