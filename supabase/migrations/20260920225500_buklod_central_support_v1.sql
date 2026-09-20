@@ -415,7 +415,7 @@ returns jsonb
 language plpgsql
 security definer
 set search_path=''
-as $
+as $support_incident$
 declare
   v_role text := public.buklod_bsoc_staff_role_v1();
   v_incident public.buklod_support_incidents%rowtype;
@@ -479,7 +479,7 @@ begin
     'linked_cases_resolved',v_case_count
   );
 end;
-$;
+$support_incident$;
 
 revoke all on function public.buklod_bsoc_update_incident_v1(text,text,text) from public, anon;
 grant execute on function public.buklod_bsoc_update_incident_v1(text,text,text) to authenticated;
