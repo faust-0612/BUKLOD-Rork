@@ -200,19 +200,16 @@ jobs:
           git diff --exit-code -- .
           git diff --cached --exit-code -- .
 
-      - name: Decide production release mode
+      - name: Keep hosted workflow verification-only
         id: release_mode
         shell: bash
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           set -euo pipefail
-          enabled=false
-          if [ "$EVENT_NAME" = "push" ] && printf '%s' "${COMMIT_MESSAGE:-}" | grep -Fq '[BUKLOD-MAIN-FINAL-RC]'; then
-            enabled=true
-          fi
-          echo "enabled=$enabled" >> "$GITHUB_OUTPUT"
+          # Production cutover is intentionally disabled here.
+          # Canonical release authority is scripts/RUN_BUKLOD_MAIN_FINAL_RELEASE_LOCAL.ps1:
+          # QA -> native CNG QA -> AAB -> exact RC freeze -> fast-forward main -> Web.
+          # This prevents duplicate or piecemeal Web/APK releases from a push event.
+          echo "enabled=false" >> "$GITHUB_OUTPUT"
 
       - name: Upload RC manifests
         uses: actions/upload-artifact@v4
