@@ -371,6 +371,79 @@ begin
 end;
 $$;
 
+
+create or replace function public.buklod_daily_engagement_generation_context_service_v1(
+  p_publish_date date,
+  p_claim_token uuid,
+  p_claimed_by uuid
+)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path=''
+as $$
+declare
+  v_run private.buklod_daily_engagement_generation_runs%rowtype;
+  v_cfg private.buklod_daily_engagement_config%rowtype;
+begin
+  select * into v_run
+  from private.buklod_daily_engagement_generation_runs
+  where publish_date=p_publish_date
+    and claim_token=p_claim_token
+    and claimed_by=p_claimed_by
+    and status='CLAIMED'
+    and claimed_at>now()-interval '5 minutes';
+
+  if not found then return null; end if;
+
+  select * into v_cfg
+  from private.buklod_daily_engagement_config
+  where singleton=true;
+
+  return jsonb_build_object(
+    'enabled',v_cfg.enabled,
+    'ai_enabled',v_cfg.ai_enabled,
+    'cards_per_day',v_cfg.cards_per_day,
+    'categories',v_cfg.categories,
+    'min_trending_signal',v_cfg.min_trending_signal,
+    'attempts',v_run.attempts
+  );
+end
+$$;
+
+create or replace function public.buklod_daily_engagement_finish_service_v1(
+  p_publish_date date,
+  p_claim_token uuid,
+  p_ok boolean,
+  p_model text,
+  p_error_summary text
+)
+returns boolean
+language plpgsql
+security definer
+set search_path=''
+as $$
+begin
+  update private.buklod_daily_engagement_generation_runs
+  set status=case when coalesce(p_ok,false) then 'COMPLETE' else 'FAILED' end,
+      ai_model=nullif(trim(coalesce(p_model,'')),''),
+      error_summary=case when coalesce(p_ok,false) then null else left(coalesce(p_error_summary,''),700) end,
+      completed_at=case when coalesce(p_ok,false) then now() else completed_at end,
+      updated_at=now()
+  where publish_date=p_publish_date
+    and claim_token=p_claim_token
+    and status='CLAIMED';
+
+  return found;
+end
+$$;
+
+revoke all on function public.buklod_daily_engagement_generation_context_service_v1(date,uuid,uuid) from public,anon,authenticated;
+grant execute on function public.buklod_daily_engagement_generation_context_service_v1(date,uuid,uuid) to service_role;
+revoke all on function public.buklod_daily_engagement_finish_service_v1(date,uuid,boolean,text,text) from public,anon,authenticated;
+grant execute on function public.buklod_daily_engagement_finish_service_v1(date,uuid,boolean,text,text) to service_role;
+
 grant execute on function public.get_buklod_today_v1() to authenticated;
 grant execute on function public.claim_buklod_today_generation_v1() to authenticated;
 grant execute on function public.record_buklod_daily_engagement_v1(uuid,text) to authenticated;
