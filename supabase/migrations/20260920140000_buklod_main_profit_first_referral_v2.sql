@@ -1115,8 +1115,10 @@ begin
   where id=p_scope_id
     and status='ACTIVE';
 
-  if not found or v_scope.scope_type not in ('CLUSTER','ORGANIZATION') then
-    raise exception 'Select an active Cluster or Organization';
+  if not found
+     or v_scope.scope_type not in ('CLUSTER','ORGANIZATION')
+     or (v_scope.scope_type='ORGANIZATION' and v_scope.parent_scope_id is not null) then
+    raise exception 'Select an eligible root Organization or Cluster';
   end if;
 
   if not exists(
@@ -2004,6 +2006,16 @@ begin
     on h.scope_id=d.scope_id
    and h.effective_from<=v.finalized_at
    and (h.effective_to is null or h.effective_to>v.finalized_at)
+  join public.buklod_scopes destination_scope
+    on destination_scope.id=d.scope_id
+   and destination_scope.status='ACTIVE'
+   and (
+     destination_scope.scope_type='CLUSTER'
+     or (
+       destination_scope.scope_type='ORGANIZATION'
+       and destination_scope.parent_scope_id is null
+     )
+   )
   where v.finalized_at>=v_start
     and v.finalized_at<v_end
     and v.post_qualification_value_centavos>0
@@ -2195,12 +2207,17 @@ begin
   end if;
 
   if not exists(
-    select 1 from public.buklod_scopes
+    select 1
+    from public.buklod_scopes
     where id=p_scope_id
       and status='ACTIVE'
       and scope_type in ('CLUSTER','ORGANIZATION')
+      and not (
+        scope_type='ORGANIZATION'
+        and parent_scope_id is not null
+      )
   ) then
-    raise exception 'Active Cluster or Organization required';
+    raise exception 'Active root Organization or Cluster required';
   end if;
 
   if trim(coalesce(p_title,''))='' or trim(coalesce(p_purpose,''))='' then
