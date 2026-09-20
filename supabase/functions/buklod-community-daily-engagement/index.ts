@@ -132,30 +132,20 @@ Deno.serve(async (req: Request) => {
     timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit',
   }).format(now);
 
-  const { data: run } = await admin
-    .schema('private')
-    .from('buklod_daily_engagement_generation_runs')
-    .select('publish_date,status,claim_token,claimed_by,attempts')
-    .eq('publish_date', manilaDate)
-    .maybeSingle();
+  const { data: cfg, error: contextError } = await admin.rpc(
+    'buklod_daily_engagement_generation_context_service_v1',
+    {
+      p_publish_date: manilaDate,
+      p_claim_token: claimToken,
+      p_claimed_by: actor,
+    },
+  );
 
-  if (
-    !run ||
-    run.status !== 'CLAIMED' ||
-    String(run.claim_token) !== claimToken ||
-    String(run.claimed_by) !== actor
-  ) {
+  if (contextError || !cfg) {
     return json({ error: 'Generation claim is not valid.' }, 409);
   }
 
   try {
-    const { data: cfg } = await admin
-      .schema('private')
-      .from('buklod_daily_engagement_config')
-      .select('enabled,ai_enabled,cards_per_day,categories,min_trending_signal')
-      .eq('singleton', true)
-      .single();
-
     if (!cfg?.enabled || !cfg?.ai_enabled) throw new Error('Daily AI is disabled.');
 
     const { data: recent } = await admin
@@ -268,20 +258,24 @@ Deno.serve(async (req: Request) => {
       .upsert(rows,{onConflict:'publish_date,slot'});
     if (insertError) throw insertError;
 
-    await admin.schema('private')
-      .from('buklod_daily_engagement_generation_runs')
-      .update({status:'COMPLETE',ai_model:model,completed_at:new Date().toISOString(),updated_at:new Date().toISOString(),error_summary:null})
-      .eq('publish_date',manilaDate)
-      .eq('claim_token',claimToken);
+    await admin.rpc('buklod_daily_engagement_finish_service_v1',{
+      p_publish_date:manilaDate,
+      p_claim_token:claimToken,
+      p_ok:true,
+      p_model:model,
+      p_error_summary:null,
+    });
 
     return json({ ok:true,publish_date:manilaDate,count:rows.length,model });
   } catch (error) {
     const message=cleanError(error);
-    await admin.schema('private')
-      .from('buklod_daily_engagement_generation_runs')
-      .update({status:'FAILED',error_summary:message,updated_at:new Date().toISOString()})
-      .eq('publish_date',manilaDate)
-      .eq('claim_token',claimToken);
+    await admin.rpc('buklod_daily_engagement_finish_service_v1',{
+      p_publish_date:manilaDate,
+      p_claim_token:claimToken,
+      p_ok:false,
+      p_model:null,
+      p_error_summary:message,
+    });
     console.error('[BUKLOD_DAILY_ENGAGEMENT_ERROR]',message);
     return json({ error:'Daily content is temporarily using the safe fallback.' },503);
   }
