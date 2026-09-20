@@ -5,6 +5,7 @@ import {
   INTERSTITIAL_COOLDOWN_MS,
   INTERSTITIAL_MIN_EVENT_COUNT,
   INTERSTITIAL_SESSION_CAP,
+  AD_SLOT_REMOUNT_COOLDOWN_MS,
 } from '@/lib/buklodAdMonetizationPolicy';
 import type { BuklodAdPlacement } from '@/lib/buklodAdUnits';
 
@@ -62,6 +63,7 @@ let foreground = true;
 let fullScreenShownThisSession = 0;
 let fullScreenReservation = false;
 let remoteFeatures: Record<string, boolean> = {};
+const passiveRequestTimes = new Map<string, number>();
 
 const locks: Record<BuklodAdInteractionLock, number> = {
   typing: 0,
@@ -130,6 +132,33 @@ export function isBuklodAdRouteSensitive(
   return SENSITIVE_PREFIXES.some(
     prefix => route === prefix || route.startsWith(`${prefix}/`),
   );
+}
+
+export function reserveBuklodPassiveAdRequest(
+  placementId: string,
+  requestKey = placementId,
+  cooldownMs = AD_SLOT_REMOUNT_COOLDOWN_MS,
+) {
+  const key = `${placementId}:${String(requestKey || placementId)}`;
+  const now = Date.now();
+  const previous = passiveRequestTimes.get(key) ?? 0;
+
+  if (previous > 0 && now - previous < Math.max(1_000, cooldownMs)) {
+    return false;
+  }
+
+  passiveRequestTimes.set(key, now);
+
+  if (passiveRequestTimes.size > 600) {
+    const cutoff = now - Math.max(1_000, cooldownMs);
+    for (const [candidate, timestamp] of passiveRequestTimes) {
+      if (timestamp < cutoff || passiveRequestTimes.size > 500) {
+        passiveRequestTimes.delete(candidate);
+      }
+    }
+  }
+
+  return true;
 }
 
 export function isBuklodPassiveAdAllowed({

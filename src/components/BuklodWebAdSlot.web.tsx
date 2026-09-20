@@ -3,6 +3,7 @@ import React, {
   createElement,
   useEffect,
   useMemo,
+  useRef,
 } from 'react';
 import {
   StyleSheet,
@@ -12,8 +13,16 @@ import {
 
 import BuklodSponsorSlot from '@/components/BuklodSponsorSlot';
 import type { BuklodAdPlacement } from '@/lib/buklodAdUnits';
-import { buklodAdsLiveIdsEnabled } from '@/lib/buklodAdUnits';
-import { isBuklodPassiveAdAllowed } from '@/lib/buklodGlobalAdController';
+import {
+  buklodAdsLiveIdsEnabled,
+  diagnosticPlacementFor,
+} from '@/lib/buklodAdUnits';
+import {
+  isBuklodPassiveAdAllowed,
+  reserveBuklodPassiveAdRequest,
+} from '@/lib/buklodGlobalAdController';
+import { useBuklodAdViewportGate } from '@/lib/buklodAdViewport';
+import { recordBuklodAdEvent } from '@/lib/buklodAdDiagnostics';
 
 /*
  * BUKLOD_WEB_ADS_R1
@@ -45,6 +54,7 @@ type Props = {
   format?: Format;
   showLabel?: boolean;
   placementId?: string;
+  requestKey?: string;
 };
 
 const ADSENSE_SCRIPT_ID =
@@ -90,7 +100,7 @@ function slotForPlacement(
                   ? clean(process.env.EXPO_PUBLIC_ADSENSE_DEVOTION_SLOT_ID)
                   : placement === 'me'
                     ? clean(process.env.EXPO_PUBLIC_ADSENSE_ME_SLOT_ID)
-                    : placement === 'focus'
+                    : placement === 'focus' || placement === 'content'
                       ? clean(process.env.EXPO_PUBLIC_ADSENSE_FOCUS_SLOT_ID)
                       : '';
 
@@ -118,7 +128,8 @@ function sponsorPlacementFor(
   if (
     placement === 'bible' ||
     placement === 'devotion' ||
-    placement === 'focus'
+    placement === 'focus' ||
+    placement === 'content'
   ) {
     return 'learn';
   }
@@ -154,8 +165,12 @@ export default function BuklodWebAdSlot({
   format = 'adaptive',
   showLabel = true,
   placementId,
+  requestKey,
 }: Props) {
   const pathname = usePathname();
+  const { ref, eligible } = useBuklodAdViewportGate();
+  const requestStarted = useRef(false);
+  const rendered = useRef(false);
   const stablePlacementId = placementId ?? `${placement}_generic`;
   const routeSafe = isBuklodPassiveAdAllowed({
     placement,
@@ -173,9 +188,29 @@ export default function BuklodWebAdSlot({
     isValidSlot(slot);
 
   useEffect(() => {
-    if (!canServeGoogle || typeof window === 'undefined') {
+    if (
+      !routeSafe ||
+      !eligible ||
+      !canServeGoogle ||
+      typeof window === 'undefined' ||
+      requestStarted.current
+    ) {
       return;
     }
+
+    const accepted = reserveBuklodPassiveAdRequest(
+      stablePlacementId,
+      requestKey ?? `${pathname}:${stablePlacementId}`,
+    );
+    if (!accepted) return;
+
+    requestStarted.current = true;
+    recordBuklodAdEvent(
+      diagnosticPlacementFor(placement),
+      'ad_request',
+      undefined,
+      { route: pathname, provider: 'ADSENSE_WEB' },
+    );
 
     ensureAdSenseScript(ADSENSE_CLIENT);
 
@@ -193,15 +228,48 @@ export default function BuklodWebAdSlot({
     return () => {
       window.clearTimeout(timer);
     };
-  }, [canServeGoogle, slot]);
+  }, [
+    canServeGoogle,
+    eligible,
+    pathname,
+    placement,
+    requestKey,
+    routeSafe,
+    slot,
+    stablePlacementId,
+  ]);
+
+  useEffect(() => {
+    if (!eligible || !canServeGoogle || rendered.current) return;
+    rendered.current = true;
+    recordBuklodAdEvent(
+      diagnosticPlacementFor(placement),
+      'ad_rendered',
+      undefined,
+      { route: pathname, provider: 'ADSENSE_WEB' },
+    );
+  }, [canServeGoogle, eligible, pathname, placement]);
 
   if (!routeSafe) {
     return null;
   }
 
+  if (!eligible) {
+    return (
+      <View
+        ref={ref}
+        collapsable={false}
+        pointerEvents="none"
+        style={styles.viewportProbe}
+      />
+    );
+  }
+
   if (!canServeGoogle) {
     return (
       <View
+        ref={ref}
+        collapsable={false}
         style={[
           styles.sponsorFallback,
           compact && styles.compact,
@@ -228,6 +296,8 @@ export default function BuklodWebAdSlot({
 
   return (
     <View
+      ref={ref}
+      collapsable={false}
       style={[
         styles.shell,
         compact && styles.compact,
@@ -259,6 +329,11 @@ export default function BuklodWebAdSlot({
 }
 
 const styles = StyleSheet.create({
+  viewportProbe: {
+    width: '100%',
+    minHeight: 16,
+    opacity: 0,
+  },
   shell: {
     width: '100%',
     backgroundColor: '#FFFFFF',

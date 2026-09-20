@@ -43,9 +43,11 @@ import {
 } from '@/providers/NetworkProvider';
 import {
   isBuklodPassiveAdAllowed,
+  reserveBuklodPassiveAdRequest,
 } from '@/lib/buklodGlobalAdController';
+import { BANNER_RETRY_DELAYS_MS } from '@/lib/buklodAdMonetizationPolicy';
 
-const RETRY_DELAYS_MS = [8000, 20000, 45000];
+const RETRY_DELAYS_MS = BANNER_RETRY_DELAYS_MS;
 const MAX_RETRIES = RETRY_DELAYS_MS.length;
 
 type Props = {
@@ -98,6 +100,8 @@ function BuklodAdMobBanner({
   const [opacity] = useState(() => new Animated.Value(0));
   const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestedAttempt = useRef(-1);
+  const renderedAttempt = useRef(-1);
+  const slotReserved = useRef(false);
   const failedBecauseOffline = useRef(false);
 
   const unitId = getBuklodBannerUnitId(placement);
@@ -138,13 +142,46 @@ function BuklodAdMobBanner({
     if (!shouldRequest || requestedAttempt.current === attempt) {
       return;
     }
+    if (!slotReserved.current) {
+      const accepted = reserveBuklodPassiveAdRequest(
+        stablePlacementId,
+        `${pathname}:${stablePlacementId}`,
+      );
+      if (!accepted) {
+        setFailed(true);
+        return;
+      }
+      slotReserved.current = true;
+    }
+
     requestedAttempt.current = attempt;
-    recordBuklodAdEvent(diagnostic, 'requested');
-  }, [attempt, shouldRequest, diagnostic]);
+    recordBuklodAdEvent(
+      diagnostic,
+      'ad_request',
+      undefined,
+      { route: pathname },
+    );
+  }, [
+    attempt,
+    shouldRequest,
+    diagnostic,
+    pathname,
+    stablePlacementId,
+  ]);
 
   useEffect(() => {
     if (!loaded) {
       return;
+    }
+
+    if (renderedAttempt.current !== attempt) {
+      renderedAttempt.current = attempt;
+      recordBuklodAdEvent(
+        diagnostic,
+        'ad_rendered',
+        undefined,
+        { route: pathname },
+      );
     }
 
     Animated.timing(opacity, {
@@ -152,7 +189,7 @@ function BuklodAdMobBanner({
       duration: 280,
       useNativeDriver: true,
     }).start();
-  }, [loaded, opacity]);
+  }, [attempt, diagnostic, loaded, opacity, pathname]);
 
   const bannerSize =
     format === 'mediumRectangle'
@@ -209,18 +246,18 @@ function BuklodAdMobBanner({
               size={bannerSize}
               onAdLoaded={() => {
                 setLoaded(true);
-                recordBuklodAdEvent(diagnostic, 'loaded');
+                recordBuklodAdEvent(diagnostic, 'ad_loaded', undefined, { route: pathname });
               }}
               onAdOpened={() => {
-                recordBuklodAdEvent(diagnostic, 'displayed');
+                recordBuklodAdEvent(diagnostic, 'ad_opened', undefined, { route: pathname });
               }}
               {...({
                 onAdImpression: () => {
-                  recordBuklodAdEvent(diagnostic, 'impression');
+                  recordBuklodAdEvent(diagnostic, 'ad_impression', undefined, { route: pathname });
                 },
               } as object)}
               onAdFailedToLoad={(error) => {
-                recordBuklodAdEvent(diagnostic, 'failed_load', error);
+                recordBuklodAdEvent(diagnostic, 'ad_failed', error, { route: pathname });
                 setLoaded(false);
 
                 if (!online) {

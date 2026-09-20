@@ -117,3 +117,10 @@ export const AD_OPERATIONAL_MAX_BATCH_KEYS = intEnv(
   5,
   25,
 );
+
+export const AD_SLOT_REMOUNT_COOLDOWN_MS = intEnv(
+  process.env.EXPO_PUBLIC_ADS_SLOT_REMOUNT_COOLDOWN_MS,
+  2 * 60 * 1000,
+  30 * 1000,
+  30 * 60 * 1000,
+);

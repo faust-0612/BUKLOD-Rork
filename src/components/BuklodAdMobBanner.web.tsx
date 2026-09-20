@@ -10,6 +10,7 @@ type Props = {
   diagnosticName?: 'home_bottom_banner' | 'community_inline' | 'reels_inline' | 'test';
   requireViewport?: boolean;
   showLabel?: boolean;
+  placementId?: string;
 };
 
 /*
@@ -22,6 +23,7 @@ export default function BuklodAdMobBanner({
   compact = false,
   format = 'adaptive',
   showLabel = true,
+  placementId,
 }: Props) {
   return (
     <BuklodWebAdSlot
@@ -29,6 +31,7 @@ export default function BuklodAdMobBanner({
       compact={compact}
       format={format}
       showLabel={showLabel}
+      placementId={placementId}
     />
   );
 }
