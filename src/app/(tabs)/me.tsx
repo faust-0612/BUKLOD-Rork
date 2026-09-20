@@ -1559,14 +1559,6 @@ export default function MeScreen() {
           />
 
           <MenuRow
-            icon="email-outline"
-            title="Contact Us"
-            onPress={() =>
-              router.push('/contact-us' as any)
-            }
-          />
-
-          <MenuRow
             icon="message-text-outline"
             title="Send Feedback"
             onPress={() => router.push('/feedback')}
