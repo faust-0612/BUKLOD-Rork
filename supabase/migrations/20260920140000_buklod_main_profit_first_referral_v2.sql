@@ -2154,6 +2154,7 @@ as $$
       on cfg.singleton=true
     where d.person_id=p_person_id
       and d.scope_id=p_scope_id
+      and d.effective_from<=now()
       and d.effective_to is null
       and p.qualified_at is not null
       and p.qualified_at<=now()
