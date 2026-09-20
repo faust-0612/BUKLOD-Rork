@@ -931,6 +931,11 @@ as $$
     on p.person_id=d.person_id
   join public.profiles pr
     on pr.id=p.current_user_id
+  join public.buklod_scope_memberships active_membership
+    on active_membership.scope_id=d.scope_id
+   and active_membership.user_id=p.current_user_id
+   and active_membership.membership_status='ACTIVE'
+   and active_membership.left_at is null
   join private.buklod_pf_config cfg
     on cfg.singleton=true
   where d.scope_id=p_scope_id
@@ -2162,6 +2167,11 @@ as $$
       on p.person_id=d.person_id
     join public.profiles pr
       on pr.id=p.current_user_id
+    join public.buklod_scope_memberships active_membership
+      on active_membership.scope_id=d.scope_id
+     and active_membership.user_id=p.current_user_id
+     and active_membership.membership_status='ACTIVE'
+     and active_membership.left_at is null
     join private.buklod_pf_config cfg
       on cfg.singleton=true
     where d.person_id=p_person_id
