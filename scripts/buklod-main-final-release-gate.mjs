@@ -474,6 +474,11 @@ requireText(
   "router.push('/help' as any)",
   'Logged-in Profile Help entry is present',
 );
+forbidText(
+  'src/app/(tabs)/me.tsx',
+  "router.push('/contact-us' as any)",
+  'Profile has no disconnected legacy Contact Us support path',
+);
 requireText(
   'src/app/help/index.tsx',
   'runBuklodSupportFlow',
