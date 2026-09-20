@@ -25,6 +25,12 @@ function forbidText(rel, text, label) {
   checks.push({ label, ok });
   if (!ok) failures.push(`${label}: forbidden "${text}" found in ${rel}`);
 }
+function requireRegex(rel, regex, label) {
+  const src = read(rel);
+  const ok = regex.test(src);
+  checks.push({ label, ok });
+  if (!ok) failures.push(`${label}: pattern ${regex} not found in ${rel}`);
+}
 
 
 const packageJson = JSON.parse(read('package.json'));
@@ -131,9 +137,9 @@ requireText(
   'fullScreenShownThisSession < INTERSTITIAL_SESSION_CAP',
   'Full-screen ads use centralized session cap',
 );
-requireText(
+requireRegex(
   'src/lib/buklodAdMonetizationPolicy.shared.ts',
-  'EXPO_PUBLIC_ADS_SESSION_INTERSTITIAL_CAP,\n  3,\n  0,\n  3,',
+  /INTERSTITIAL_SESSION_CAP\s*=\s*intEnv\(\s*process\.env\.EXPO_PUBLIC_ADS_SESSION_INTERSTITIAL_CAP\s*,\s*3\s*,\s*0\s*,\s*3\s*,?\s*\)/m,
   'Full-screen ads capped at three per session',
 );
 requireText(
