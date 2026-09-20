@@ -21,6 +21,7 @@ import {
   loadBsocIncidents,
   loadBsocSupportInbox,
   loadBsocSupportMetrics,
+  updateBsocIncident,
   updateBsocSupportCase,
   type BsocIncident,
   type BsocSupportCase,
@@ -98,6 +99,36 @@ export default function BsocSupportScreen() {
       ),
     [incidents],
   );
+
+  const changeIncidentStatus = async (
+    item: BsocIncident,
+    next: 'INVESTIGATING' | 'MONITORING' | 'RESOLVED',
+  ) => {
+    if (acting) return;
+    setActing(item.incident_code);
+    setError('');
+    try {
+      await updateBsocIncident({
+        incidentCode: item.incident_code,
+        status: next,
+        publicMessage:
+          next === 'RESOLVED'
+            ? 'This BUKLOD incident has been resolved. Please try again.'
+            : next === 'MONITORING'
+              ? 'A fix is in place and BUKLOD is monitoring the result.'
+              : 'BUKLOD is actively investigating this shared issue.',
+      });
+      await load();
+    } catch (actionError) {
+      setError(
+        actionError instanceof Error
+          ? actionError.message
+          : 'Incident update failed.',
+      );
+    } finally {
+      setActing(null);
+    }
+  };
 
   const changeStatus = async (
     item: BsocSupportCase,
@@ -401,6 +432,41 @@ export default function BsocSupportScreen() {
                     {item.app} • {item.category} • affected users:{' '}
                     {Number(item.affected_users ?? 0).toLocaleString('en-PH')}
                   </Text>
+                  {item.status !== 'RESOLVED' ? (
+                    <View style={styles.incidentActions}>
+                      {item.status !== 'INVESTIGATING' ? (
+                        <Pressable
+                          disabled={!!acting}
+                          onPress={() =>
+                            void changeIncidentStatus(item, 'INVESTIGATING')
+                          }
+                          style={styles.action}
+                        >
+                          <Text style={styles.actionText}>INVESTIGATE</Text>
+                        </Pressable>
+                      ) : null}
+                      {item.status !== 'MONITORING' ? (
+                        <Pressable
+                          disabled={!!acting}
+                          onPress={() =>
+                            void changeIncidentStatus(item, 'MONITORING')
+                          }
+                          style={styles.action}
+                        >
+                          <Text style={styles.actionText}>MONITOR</Text>
+                        </Pressable>
+                      ) : null}
+                      <Pressable
+                        disabled={!!acting}
+                        onPress={() =>
+                          void changeIncidentStatus(item, 'RESOLVED')
+                        }
+                        style={[styles.action, styles.actionResolve]}
+                      >
+                        <Text style={styles.actionResolveText}>RESOLVE INCIDENT</Text>
+                      </Pressable>
+                    </View>
+                  ) : null}
                 </View>
               </View>
             ))}
@@ -501,4 +567,5 @@ const styles = StyleSheet.create({
   },
   incidentTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   incidentTitle: { marginTop: 5, fontSize: 13.5, fontWeight: '900', color: '#2A4337' },
+  incidentActions: { marginTop: 9, flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
 });
