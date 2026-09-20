@@ -64,7 +64,7 @@ create table if not exists private.buklod_daily_engagement_config (
   cards_per_day smallint not null default 3 check (cards_per_day between 1 and 5),
   categories jsonb not null default '["family","food","work","school","hobbies","relationships","pets","local_life","practical_life","aspirations","entertainment","community","light_humor","wellness","learning"]'::jsonb,
   min_trending_signal integer not null default 3 check (min_trending_signal between 1 and 1000),
-  generation_frequency text not null default 'DAILY' check (generation_frequency='DAILY'),
+  generation_frequency text not null default 'DAILY' check (generation_frequency in ('DAILY','WEEKDAYS','MANUAL')),
   updated_by uuid,
   updated_at timestamptz not null default now()
 );
@@ -163,6 +163,15 @@ begin
 
   if not coalesce(v_cfg.enabled,true) or not coalesce(v_cfg.ai_enabled,true) then
     return jsonb_build_object('claimed',false,'reason','DISABLED');
+  end if;
+
+  if v_cfg.generation_frequency='MANUAL' then
+    return jsonb_build_object('claimed',false,'reason','MANUAL_ONLY');
+  end if;
+
+  if v_cfg.generation_frequency='WEEKDAYS'
+     and extract(isodow from (now() at time zone 'Asia/Manila'))::int in (6,7) then
+    return jsonb_build_object('claimed',false,'reason','WEEKDAY_SCHEDULE');
   end if;
 
   if exists(
@@ -278,7 +287,8 @@ create or replace function public.admin_set_buklod_daily_engagement_config_v1(
   p_ai_enabled boolean,
   p_cards_per_day integer,
   p_categories jsonb,
-  p_min_trending_signal integer
+  p_min_trending_signal integer,
+  p_generation_frequency text
 )
 returns void
 language plpgsql
@@ -296,6 +306,11 @@ begin
       cards_per_day=least(5,greatest(1,coalesce(p_cards_per_day,cards_per_day))),
       categories=case when jsonb_typeof(p_categories)='array' then p_categories else categories end,
       min_trending_signal=least(1000,greatest(1,coalesce(p_min_trending_signal,min_trending_signal))),
+      generation_frequency=case
+        when upper(trim(coalesce(p_generation_frequency,generation_frequency))) in ('DAILY','WEEKDAYS','MANUAL')
+          then upper(trim(coalesce(p_generation_frequency,generation_frequency)))
+        else generation_frequency
+      end,
       updated_by=auth.uid(),
       updated_at=now()
   where singleton=true;
@@ -448,7 +463,7 @@ grant execute on function public.get_buklod_today_v1() to authenticated;
 grant execute on function public.claim_buklod_today_generation_v1() to authenticated;
 grant execute on function public.record_buklod_daily_engagement_v1(uuid,text) to authenticated;
 grant execute on function public.admin_get_buklod_daily_engagement_v1() to authenticated;
-grant execute on function public.admin_set_buklod_daily_engagement_config_v1(boolean,boolean,integer,jsonb,integer) to authenticated;
+grant execute on function public.admin_set_buklod_daily_engagement_config_v1(boolean,boolean,integer,jsonb,integer,text) to authenticated;
 grant execute on function public.admin_upsert_buklod_daily_engagement_item_v1(uuid,date,integer,text,text,text,jsonb,text,text) to authenticated;
 grant execute on function public.admin_regenerate_buklod_daily_engagement_v1() to authenticated;
 
