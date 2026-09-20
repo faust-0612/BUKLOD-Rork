@@ -28,12 +28,13 @@ function forbidText(rel, text, label) {
 
 
 const packageJson = JSON.parse(read('package.json'));
-const expectedTestToolchain = 'npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund jest@29.7.0 jest-expo@57.0.4 @react-native/jest-preset@0.86.2 @testing-library/react-native@13.3.3 react-test-renderer@19.2.3 && jest --runInBand';
+const expectedTestToolchain = 'npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund jest@29.7.0 jest-expo@57.0.4 @react-native/jest-preset@0.86.2 @testing-library/react-native@13.3.3 react-test-renderer@19.2.3 && node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand';
 const testToolchainOk = packageJson?.scripts?.test === expectedTestToolchain;
 checks.push({ label: 'Pinned Windows-safe Jest toolchain', ok: testToolchainOk });
 if (!testToolchainOk) failures.push('Pinned Windows-safe Jest toolchain: package.json test script drifted.');
 requireText('jest.setup.ts', "import '@testing-library/react-native';", 'RNTL built-in matcher bootstrap');
 forbidText('jest.setup.ts', '@testing-library/react-native/extend-expect', 'No removed RNTL extend-expect subpath');
+requireText('jest.setup.ts', '@react-native-async-storage/async-storage/jest/async-storage-mock', 'AsyncStorage Jest native mock');
 
 console.log('BUKLOD MAIN FINAL RELEASE GATE R1');
 console.log('=================================');
