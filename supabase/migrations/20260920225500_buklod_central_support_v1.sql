@@ -359,7 +359,7 @@ set search_path=''
 as $$
 declare
   v_role text := public.buklod_bsoc_staff_role_v1();
-  v_case public.buklod_support_cases;
+  v_case public.buklod_support_cases%rowtype;
   v_message text := nullif(trim(coalesce(p_user_message,'')),'');
 begin
   if v_role is null then
@@ -424,8 +424,8 @@ begin
   elsif v_category ilike '%technical%' or v_category ilike '%bug%' then v_queue := 'OPERATIONS_ENGINEERING';
   end if;
 
-  v_fingerprint := encode(
-    digest(
+  v_fingerprint := pg_catalog.encode(
+    extensions.digest(
       lower('BUKLOD Main|'||v_category||'|'||coalesce(new.app_version,'')||'|'||
         coalesce(new.diagnostics->>'platform','')||'|'||
         coalesce(new.diagnostics->>'error_code','')),
