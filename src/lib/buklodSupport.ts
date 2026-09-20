@@ -168,8 +168,15 @@ export async function runBuklodSupportFlow(input: {
     };
   }
 
+  const requestId =
+    'support-' +
+    Date.now().toString(36) +
+    '-' +
+    Math.random().toString(36).slice(2, 12);
+
   const payload = {
     action: 'resolve_or_case',
+    request_id: requestId,
     category: input.category,
     identifier: String(input.identifier ?? '').trim(),
     message: String(input.message ?? '').trim(),
@@ -180,10 +187,7 @@ export async function runBuklodSupportFlow(input: {
     language_code: input.languageCode ?? 'en',
     platform: Platform.OS,
     os_version: String(Platform.Version ?? ''),
-    app_version:
-      Constants.expoConfig?.version ??
-      Constants.nativeAppVersion ??
-      '',
+    app_version: Constants.expoConfig?.version ?? '',
     network_summary: networkSummary(),
     diagnostics: {
       support_flow: 'BUKLOD_HELP_V1',
@@ -194,11 +198,20 @@ export async function runBuklodSupportFlow(input: {
     },
   };
 
-  const { data, error } = await supabase.functions.invoke(
+  let response = await supabase.functions.invoke(
     'buklod-support-v1',
     { body: payload },
   );
 
+  if (response.error) {
+    await new Promise(resolve => setTimeout(resolve, 450));
+    response = await supabase.functions.invoke(
+      'buklod-support-v1',
+      { body: payload },
+    );
+  }
+
+  const { data, error } = response;
   if (error) {
     throw new Error(
       error.message || 'BUKLOD Help could not complete diagnostics.',
