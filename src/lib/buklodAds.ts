@@ -9,6 +9,7 @@ import {
 } from '@/lib/adMob';
 import {
   getBuklodAdDiagnosticsSummary,
+  recordBuklodAdEvent,
 } from '@/lib/buklodAdDiagnostics';
 import {
   buklodAdsTestMode,
@@ -80,24 +81,70 @@ async function prepareInterstitial(
   if (!unitId || interstitial) return;
 
   interstitial = InterstitialAd.createForAdRequest(unitId);
+  const route = getBuklodGlobalAdSafetySnapshot().pathname;
+  recordBuklodAdEvent(
+    'interstitial',
+    'ad_request',
+    undefined,
+    { route },
+  );
 
   listenerCleanup.push(
     interstitial.addAdEventListener(AdEventType.LOADED, () => {
       interstitialLoaded = true;
+      recordBuklodAdEvent(
+        'interstitial',
+        'ad_loaded',
+        undefined,
+        { route },
+      );
     }),
   );
   listenerCleanup.push(
     interstitial.addAdEventListener(AdEventType.CLOSED, () => {
+      recordBuklodAdEvent(
+        'interstitial',
+        'ad_dismissed',
+        undefined,
+        { route },
+      );
       interstitialLoaded = false;
       cleanupInterstitialListeners();
       interstitial = null;
     }),
   );
   listenerCleanup.push(
-    interstitial.addAdEventListener(AdEventType.ERROR, () => {
+    interstitial.addAdEventListener(AdEventType.ERROR, error => {
+      recordBuklodAdEvent(
+        'interstitial',
+        'ad_failed',
+        error,
+        { route },
+      );
       interstitialLoaded = false;
       cleanupInterstitialListeners();
       interstitial = null;
+    }),
+  );
+
+  listenerCleanup.push(
+    interstitial.addAdEventListener(AdEventType.OPENED, () => {
+      recordBuklodAdEvent(
+        'interstitial',
+        'ad_rendered',
+        undefined,
+        { route },
+      );
+    }),
+  );
+  listenerCleanup.push(
+    interstitial.addAdEventListener(AdEventType.IMPRESSION, () => {
+      recordBuklodAdEvent(
+        'interstitial',
+        'ad_impression',
+        undefined,
+        { route },
+      );
     }),
   );
 
@@ -143,6 +190,12 @@ export async function maybeShowBuklodInterstitial(
     return true;
   } catch (error) {
     await finishBuklodFullScreenAd(false);
+    recordBuklodAdEvent(
+      'interstitial',
+      'ad_failed',
+      error,
+      { route: getBuklodGlobalAdSafetySnapshot().pathname },
+    );
     console.warn('BUKLOD interstitial:', error);
     return false;
   }

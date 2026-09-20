@@ -12,7 +12,9 @@ import {
 import {
   buklodAdsTestMode,
 } from '@/lib/buklodAdUnits';
+import { recordBuklodAdEvent } from '@/lib/buklodAdDiagnostics';
 import {
+  getBuklodGlobalAdSafetySnapshot,
   isBuklodRewardedAdAllowed,
 } from '@/lib/buklodGlobalAdController';
 
@@ -74,6 +76,13 @@ async function prepareRewardedAd(): Promise<boolean> {
   const ad = RewardedAd.createForAdRequest(unitId, {
     requestNonPersonalizedAdsOnly: false,
   });
+  const route = getBuklodGlobalAdSafetySnapshot().pathname;
+  recordBuklodAdEvent(
+    'rewarded_optional',
+    'ad_request',
+    undefined,
+    { route },
+  );
 
   warmedAd = ad;
   warmedLoaded = false;
@@ -91,6 +100,12 @@ async function prepareRewardedAd(): Promise<boolean> {
       unsubscribeError();
 
       if (loaded && warmedAd === ad) {
+        recordBuklodAdEvent(
+          'rewarded_optional',
+          'ad_loaded',
+          undefined,
+          { route },
+        );
         warmedLoaded = true;
         loadingPromise = null;
         resolve(true);
@@ -109,6 +124,12 @@ async function prepareRewardedAd(): Promise<boolean> {
     unsubscribeError = ad.addAdEventListener(
       AdEventType.ERROR,
       (error) => {
+        recordBuklodAdEvent(
+          'rewarded_optional',
+          'ad_failed',
+          error,
+          { route },
+        );
         console.warn('BUKLOD rewarded load:', error);
         finishLoad(false);
       },
@@ -159,12 +180,15 @@ export async function showBuklodRewardedAd(
 
   return await new Promise<BuklodRewardedAdResult>((resolve) => {
     let settled = false;
+    const route = getBuklodGlobalAdSafetySnapshot().pathname;
 
     const finish = (shown: boolean) => {
       if (settled) return;
       settled = true;
       clearTimeout(timeout);
       unsubscribeEarned();
+      unsubscribeOpened();
+      unsubscribeImpression();
       unsubscribeClosed();
       unsubscribeError();
       showing = false;
@@ -195,14 +219,52 @@ export async function showBuklodRewardedAd(
       },
     );
 
+    const unsubscribeOpened = ad.addAdEventListener(
+      AdEventType.OPENED,
+      () => {
+        recordBuklodAdEvent(
+          'rewarded_optional',
+          'ad_rendered',
+          undefined,
+          { route },
+        );
+      },
+    );
+
+    const unsubscribeImpression = ad.addAdEventListener(
+      AdEventType.IMPRESSION,
+      () => {
+        recordBuklodAdEvent(
+          'rewarded_optional',
+          'ad_impression',
+          undefined,
+          { route },
+        );
+      },
+    );
+
     const unsubscribeClosed = ad.addAdEventListener(
       AdEventType.CLOSED,
-      () => finish(true),
+      () => {
+        recordBuklodAdEvent(
+          'rewarded_optional',
+          'ad_dismissed',
+          undefined,
+          { route },
+        );
+        finish(true);
+      },
     );
 
     const unsubscribeError = ad.addAdEventListener(
       AdEventType.ERROR,
       (error) => {
+        recordBuklodAdEvent(
+          'rewarded_optional',
+          'ad_failed',
+          error,
+          { route },
+        );
         console.warn('BUKLOD rewarded ad:', error);
         finish(false);
       },
@@ -214,6 +276,12 @@ export async function showBuklodRewardedAd(
     );
 
     void ad.show().catch((error) => {
+      recordBuklodAdEvent(
+        'rewarded_optional',
+        'ad_failed',
+        error,
+        { route },
+      );
       console.warn('BUKLOD rewarded show:', error);
       finish(false);
     });

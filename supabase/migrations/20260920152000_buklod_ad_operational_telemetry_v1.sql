@@ -113,7 +113,7 @@ begin
       else 'ADMOB_NATIVE'
     end,
     left(coalesce(nullif(btrim(e->>'platform'),''),'unknown'),24),
-    left(split_part(split_part(coalesce(e->>'route','/'),'? ',1),'#',1),180),
+    left(split_part(split_part(coalesce(e->>'route','/'),'?',1),'#',1),180),
     nullif(left(btrim(coalesce(e->>'app_version','')),40),''),
     nullif(left(btrim(coalesce(e->>'build_version','')),40),''),
     nullif(left(btrim(coalesce(e->>'runtime_version','')),80),''),
