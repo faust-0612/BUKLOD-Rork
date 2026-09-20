@@ -581,6 +581,17 @@ begin
   where id=v_row.id
   returning * into v_row;
 
+  update private.buklod_pf_referrals
+  set status='PAID',
+      metadata=metadata||jsonb_build_object(
+        'paid_withdrawal_id',v_row.id,
+        'paid_at',v_row.paid_at
+      ),
+      updated_at=now()
+  where referrer_person_id=v_row.person_id
+    and status='WITHDRAWABLE'
+    and reward_withdrawable_at is not null;
+
   return to_jsonb(v_row)-'payout_destination_snapshot'-'payout_account_name_snapshot';
 end
 $$;
