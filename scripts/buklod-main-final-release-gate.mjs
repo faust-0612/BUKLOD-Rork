@@ -75,27 +75,92 @@ requireText('src/app/scope/index.tsx', 'BUKLOD_SCOPED_EXIT_PUBLIC_FIRST_R2', 'Ma
 requireText('src/lib/buklodScopeRoute.ts', "| '/buklod'", 'Scoped-exit helper accepts Community Wall destination');
 forbidText('src/app/scope/index.tsx', 'Opening Public BUKLOD...', 'No infinite PUBLIC workspace loader');
 
-// IGPAT and Profile exit safety.
-requireText('src/components/BuklodNavSafeShell.tsx', 'Back to Community Wall', 'IGPAT has explicit Wall return');
-requireText('src/components/BuklodNavSafeShell.tsx', "router.replace('/buklod' as any)", 'IGPAT Wall return is route-authoritative');
-requireText('src/components/BuklodNavSafeShell.tsx', 'BUKLOD_ROOT_BACK_TO_WALL_R1', 'Android core direct-entry back converges on Wall');
+// Final BUKLOD Main scope containment: Home, Kingdom and IGPAT stay excluded.
+requireText(
+  'src/components/BuklodMainExcludedSurfaceRedirect.tsx',
+  '<Redirect href="/" />',
+  'Excluded Main surfaces recover through canonical root',
+);
+for (const rel of [
+  'src/app/igpat/index.tsx',
+  'src/app/igpat/create.tsx',
+  'src/app/reels/index.tsx',
+  'src/app/games/index.tsx',
+  'src/app/personal-home/index.tsx',
+]) {
+  requireText(
+    rel,
+    "BuklodMainExcludedSurfaceRedirect",
+    `Excluded route locked: ${rel}`,
+  );
+}
+forbidText(
+  'src/components/BuklodFoundationWorkspaceNav.tsx',
+  "router.push('/games'",
+  'Kingdom launcher removed from Main Profile',
+);
+forbidText(
+  'src/components/BuklodCommunityMapNav.tsx',
+  "route: '/personal-home'",
+  'Home launcher removed from Main Community map',
+);
+forbidText(
+  'src/app/(tabs)/buklod.tsx',
+  '/igpat',
+  'IGPAT launcher removed from Main Community Wall',
+);
+forbidText(
+  'src/components/BuklodCommunityInlineAd.android.tsx',
+  'BuklodCommunityIgpatPreview',
+  'IGPAT preview removed from Android Community ads',
+);
+forbidText(
+  'src/components/BuklodCommunityInlineAd.web.tsx',
+  'BuklodCommunityIgpatPreview',
+  'IGPAT preview removed from web Community ads',
+);
 
-// IGPAT / Community Wall parity consolidated from the pending web + Android targeted updates.
-requireText('src/components/BuklodCommunityIgpatPreview.web.tsx', 'contentFit="contain"', 'Web Community IGPAT preview preserves source aspect');
-requireText('src/components/BuklodCommunityIgpatPreview.web.tsx', '/igpat?post=', 'Web Community IGPAT preview opens exact video');
-requireText('src/components/BuklodCommunityIgpatPreview.android.tsx', 'contentFit="contain"', 'Android Community IGPAT preview preserves source aspect');
-requireText('src/components/BuklodCommunityInlineAd.android.tsx', 'BuklodCommunityIgpatPreview', 'Android Community inline slot can render IGPAT preview');
-requireText('src/hooks/useBuklodCommunityAdViewability.ts', 'useBuklodCommunityInlineVisibility', 'Off-screen IGPAT playback uses true visibility');
-requireText('src/app/igpat/[postId].android.tsx', 'contentFit="contain"', 'Android focused IGPAT preserves source aspect');
-requireText('src/app/igpat/index.web.tsx', 'postId', 'Web IGPAT supports exact post targeting');
-requireText('src/app/igpat/index.tsx', 'get_buklod_igpat_feed_v4', 'Native IGPAT uses bounded cursor feed');
-requireText('src/app/igpat/index.web.tsx', 'get_buklod_igpat_feed_v4', 'Web IGPAT uses bounded cursor feed');
-requireText('src/app/igpat/index.tsx', 'onEndReachedThreshold={0.7}', 'Native IGPAT progressive pagination');
-requireText('src/app/igpat/index.web.tsx', 'onEndReachedThreshold={0.7}', 'Web IGPAT progressive pagination');
-requireText('src/app/igpat/index.tsx', 'withBuklodTimeout', 'Native IGPAT bounded remote waits');
-requireText('src/app/igpat/index.web.tsx', 'withBuklodTimeout', 'Web IGPAT bounded remote waits');
-requireText('supabase/migrations/20260919173848_igpat_cursor_pagination_scale_r18.sql', 'community_posts_igpat_live_created_idx', 'IGPAT scale index migration tracked');
-requireText('supabase/migrations/20260919173848_igpat_cursor_pagination_scale_r18.sql', 'get_buklod_igpat_feed_v4', 'IGPAT v4 cursor RPC migration tracked');
+// Central ad safety and test/live-ID separation are release-critical.
+requireText(
+  'src/lib/buklodGlobalAdController.ts',
+  'reserveBuklodFullScreenAd',
+  'Central full-screen ad reservation guard',
+);
+requireText(
+  'src/lib/buklodGlobalAdController.ts',
+  'fullScreenShownThisSession < 3',
+  'Full-screen ads capped per session',
+);
+requireText(
+  'src/lib/buklodGlobalAdController.ts',
+  'SENSITIVE_PREFIXES',
+  'Sensitive-route ad exclusion',
+);
+requireText(
+  'src/components/BuklodAdSafetyRouteBridge.tsx',
+  "AppState.addEventListener('change'",
+  'Foreground/background ad safety',
+);
+requireText(
+  'src/components/BuklodAdSafetyRouteBridge.tsx',
+  'setBuklodAdRemoteFeatures',
+  'Remote ad feature switches',
+);
+requireText(
+  'src/lib/buklodAdUnits.ts',
+  'EXPO_PUBLIC_ADS_ALLOW_LIVE_IDS',
+  'Live ad IDs require explicit production opt-in',
+);
+requireText(
+  'src/components/BuklodCommunityInlineAd.android.tsx',
+  "placementId: 'community_wall_feed'",
+  'Community ad has stable placement attribution',
+);
+requireText(
+  'src/components/BuklodNavSafeShell.tsx',
+  'BUKLOD_ROOT_BACK_TO_WALL_R1',
+  'Android core direct-entry back converges on Wall',
+);
 requireText('src/app/account/security.tsx', 'Current Password', 'Change Password requires current-password verification');
 requireText('src/app/account/security.tsx', "router.canGoBack()", 'Password & Recovery has safe back');
 requireText('src/app/account/recovery-pin.tsx', "router.canGoBack()", 'Recovery PIN has safe back');
