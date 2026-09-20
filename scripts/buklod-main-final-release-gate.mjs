@@ -128,8 +128,13 @@ requireText(
 );
 requireText(
   'src/lib/buklodGlobalAdController.ts',
-  'fullScreenShownThisSession < 3',
-  'Full-screen ads capped per session',
+  'fullScreenShownThisSession < INTERSTITIAL_SESSION_CAP',
+  'Full-screen ads use centralized session cap',
+);
+requireText(
+  'src/lib/buklodAdMonetizationPolicy.shared.ts',
+  'EXPO_PUBLIC_ADS_SESSION_INTERSTITIAL_CAP,\n  3,\n  0,\n  3,',
+  'Full-screen ads capped at three per session',
 );
 requireText(
   'src/lib/buklodGlobalAdController.ts',
@@ -222,7 +227,7 @@ requireText(
 );
 requireText(
   'src/app/(tabs)/buklod.tsx',
-  '<BuklodTodayCard />',
+  '<BuklodTodayCard',
   'BUKLOD TODAY is mounted in Community Wall',
 );
 
