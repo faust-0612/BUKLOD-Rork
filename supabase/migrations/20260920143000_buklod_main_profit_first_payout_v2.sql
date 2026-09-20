@@ -1,6 +1,20 @@
 -- BUKLOD_MAIN_PROFIT_FIRST_PAYOUT_V2
 -- Reuse hardened R38 payout snapshots/queue while durable person ledger owns cash.
 
+alter table private.buklod_r38_referral_withdrawals
+  drop constraint if exists buklod_r38_referral_withdrawals_source_pool_check;
+alter table private.buklod_r38_referral_withdrawals
+  add constraint buklod_r38_referral_withdrawals_source_pool_check
+  check(source_pool in ('DIRECT_REFERRAL','PROFIT_FIRST_V2'));
+
+alter table private.buklod_r38_referral_withdrawals
+  alter column user_id drop not null;
+alter table private.buklod_r38_referral_withdrawals
+  drop constraint if exists buklod_r38_referral_withdrawals_user_id_fkey;
+alter table private.buklod_r38_referral_withdrawals
+  add constraint buklod_r38_referral_withdrawals_user_id_fkey
+  foreign key(user_id) references auth.users(id) on delete set null;
+
 alter table private.buklod_pf_config
   add column if not exists payout_processing_enabled boolean not null default false;
 
