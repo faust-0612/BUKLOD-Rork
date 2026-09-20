@@ -59,7 +59,7 @@ Deno.serve(async(req:Request)=>{
   const birth=String(profile?.birth_date??'').trim();
   if(first&&surname&&birth)signals.push(await signal(pepper,'NAME_BIRTH',`${first}|${surname}|${birth}`,'SUPPORTING'));
 
-  const linked=await admin.schema('private').rpc('buklod_pf_link_identity_v2',{
+  const linked=await admin.rpc('buklod_pf_link_identity_service_v2',{
     p_user_id:user.id,p_signals:signals,
   });
   if(linked.error)return json({error:linked.error.message},409);
@@ -71,7 +71,7 @@ Deno.serve(async(req:Request)=>{
 
   if(action==='attach_referral'){
     const code=String(body?.referral_code??'').trim().toUpperCase();
-    const attached=await admin.schema('private').rpc('buklod_pf_attach_referral_v2',{
+    const attached=await admin.rpc('buklod_pf_attach_referral_service_v2',{
       p_referred_person:linked.data?.person_id,p_referral_code:code,
     });
     if(attached.error){
