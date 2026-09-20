@@ -286,26 +286,46 @@ forbidText(
 
 
 
-// Profit-First Referral + Sharing V2 is active release scope.
+// Canonical finance V3 is active release scope.
 requireText(
   'supabase/migrations/20260920140000_buklod_main_profit_first_referral_v2.sql',
-  'one_time_referral_php numeric(14,2) not null default 20.00',
-  'Referral one-time ₱20 is centrally versioned',
+  'user_pool_bps integer not null default 3000',
+  '30% User Revenue Pool is centrally versioned',
 );
 requireText(
   'supabase/migrations/20260920140000_buklod_main_profit_first_referral_v2.sql',
-  'referred_qualification_php numeric(14,2) not null default 40.00',
+  'one_time_referral_centavos bigint not null default 2000',
+  'Referral one-time ₱20 uses integer centavos',
+);
+requireText(
+  'supabase/migrations/20260920140000_buklod_main_profit_first_referral_v2.sql',
+  'referred_qualification_centavos bigint not null default 4000',
   'Referred qualification threshold is centrally versioned',
 );
 requireText(
   'supabase/migrations/20260920140000_buklod_main_profit_first_referral_v2.sql',
-  'no_referrer_qualification_php numeric(14,2) not null default 60.00',
+  'no_referrer_qualification_centavos bigint not null default 6000',
   'No-referrer qualification threshold is centrally versioned',
 );
 requireText(
   'supabase/migrations/20260920140000_buklod_main_profit_first_referral_v2.sql',
-  'first_line_share_pct numeric(7,6) not null default 0.10',
+  'first_line_bps integer not null default 1000',
   'First-line 10% share is centrally versioned',
+);
+requireText(
+  'supabase/migrations/20260920140000_buklod_main_profit_first_referral_v2.sql',
+  'cluster_fund_bps integer not null default 500',
+  'Cluster Community Fund 5% is centrally versioned',
+);
+requireText(
+  'supabase/migrations/20260920140000_buklod_main_profit_first_referral_v2.sql',
+  'organization_fund_bps integer not null default 700',
+  'Organization Community Fund 7% is centrally versioned',
+);
+requireText(
+  'supabase/migrations/20260920140000_buklod_main_profit_first_referral_v2.sql',
+  'idx_buklod_pf_one_active_community_destination',
+  'One active Community Contribution Destination is database-enforced',
 );
 requireText(
   'supabase/migrations/20260920140000_buklod_main_profit_first_referral_v2.sql',
@@ -327,8 +347,8 @@ requireText(
 // Profit-First payout reuses hardened payout snapshots with person-linked cash.
 requireText(
   'supabase/migrations/20260920143000_buklod_main_profit_first_payout_v2.sql',
-  "source_pool='PROFIT_FIRST_V2'",
-  'Profit-First payout queue is explicitly isolated',
+  "source_pool='PROFIT_FIRST_V3'",
+  'Canonical payout queue is explicitly isolated',
 );
 requireText(
   'supabase/migrations/20260920143000_buklod_main_profit_first_payout_v2.sql',
@@ -377,6 +397,59 @@ requireText(
   'supabase/migrations/20260920123000_buklod_main_ai_daily_engagement_r1.sql',
   "generation_frequency in ('DAILY','WEEKDAYS','MANUAL')",
   'Daily AI generation frequency is configurable',
+);
+
+
+// Canonical user Economy + one-guide + app-wide i18n release locks.
+requireText(
+  'src/lib/buklodEconomyV3.ts',
+  'get_my_buklod_financial_summary_v3',
+  'User economy reads canonical backend summary only',
+);
+requireText(
+  'src/app/bayanihan/index.tsx',
+  'loadMyBuklodFinancialSummaryV3',
+  'Active Bayanihan screen uses canonical V3 economy',
+);
+forbidText(
+  'src/app/bayanihan/index.tsx',
+  'Qualified BCU',
+  'Active user economy no longer displays legacy BCU',
+);
+forbidText(
+  'src/app/bayanihan/index.tsx',
+  'Qualified RCU',
+  'Active user economy no longer displays legacy RCU',
+);
+requireText(
+  'src/app/bayanihan/guide.tsx',
+  "t('economy.guide.stickySummary')",
+  'Single Economy & Bayanihan guide has sticky live-summary entry',
+);
+requireText(
+  'src/app/bayanihan/guide.tsx',
+  "router.push('/preferences/language'",
+  'Economy guide opens global language selector',
+);
+requireText(
+  'src/providers/BuklodI18nProvider.tsx',
+  "currency: 'PHP'",
+  'Language changes never silently convert PHP balances',
+);
+requireText(
+  'src/i18n/catalog.ts',
+  'productionReady: true',
+  'Language selector is production-pack gated',
+);
+requireText(
+  'src/app/(tabs)/me.tsx',
+  "router.push('/bayanihan/guide'",
+  'Economy guide is discoverable from Profile',
+);
+requireText(
+  'src/app/(auth)/login.tsx',
+  "router.push('/preferences/language'",
+  'Language is accessible before authentication',
 );
 
 // Existing performance hardening must remain present.
