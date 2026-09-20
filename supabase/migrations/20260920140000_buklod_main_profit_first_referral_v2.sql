@@ -220,13 +220,13 @@ language sql
 stable
 security definer
 set search_path=''
-as $
+as $function$
   select coalesce(sum(
     case when direction='CREDIT' then amount_centavos else -amount_centavos end
   ),0)::bigint
   from private.buklod_pf_qualification_fund_ledger
   where person_id=p_person_id
-$;
+$function$;
 
 -- ---------------------------------------------------------------------------
 -- PERSONAL CASH LEDGER. POINTS NEVER ENTER THIS TABLE.
