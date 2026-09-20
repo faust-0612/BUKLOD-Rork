@@ -40,9 +40,12 @@ export function BsocGate({
 
     setGate({ status: 'loading', role: null });
 
-    void supabase
-      .rpc('buklod_bsoc_staff_role_v1' as any)
-      .then(({ data, error }) => {
+    void (async () => {
+      try {
+        const { data, error } = await supabase.rpc(
+          'buklod_bsoc_staff_role_v1' as any,
+        );
+
         if (!alive) return;
 
         const role =
@@ -55,12 +58,12 @@ export function BsocGate({
         } else {
           setGate({ status: 'denied', role: null });
         }
-      })
-      .catch(() => {
+      } catch {
         if (alive) {
           setGate({ status: 'denied', role: null });
         }
-      });
+      }
+    })();
 
     return () => {
       alive = false;
