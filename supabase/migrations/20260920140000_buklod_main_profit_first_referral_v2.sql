@@ -1094,9 +1094,14 @@ begin
   if not exists(
     select 1
     from private.buklod_pf_persons p
+    join public.profiles pr
+      on pr.id=p.current_user_id
     where p.person_id=v_person
       and p.user_share_activated_at is not null
+      and p.user_share_activated_at<=now()
       and p.risk_status='CLEAR'
+      and pr.is_active=true
+      and pr.user_deactivated_at is null
   ) then
     raise exception 'Earning qualification is required before selecting a Community Fund destination';
   end if;
@@ -1779,14 +1784,25 @@ begin
   v_normal:=v_postqual+v_unattributed;
   v_user_pool:=floor(v_normal::numeric*v_cfg.user_pool_bps/10000)::bigint;
 
-  -- Snapshot community tiers before using their historical ranges for this settlement.
+  -- Resolve a period-end tier only when immutable history does not already
+  -- cover the period. Never rewrite an existing historical tier from today's clock.
   for v_row in
     select distinct d.scope_id
     from private.buklod_pf_community_designations d
     where d.effective_from<v_end
       and (d.effective_to is null or d.effective_to>v_start)
+      and not exists(
+        select 1
+        from private.buklod_pf_community_tier_history h
+        where h.scope_id=d.scope_id
+          and h.effective_from<=v_end-interval '1 microsecond'
+          and (h.effective_to is null or h.effective_to>v_end-interval '1 microsecond')
+      )
   loop
-    perform private.buklod_pf_evaluate_community_tier_v3(v_row.scope_id,now());
+    perform private.buklod_pf_evaluate_community_tier_v3(
+      v_row.scope_id,
+      v_end-interval '1 microsecond'
+    );
   end loop;
 
   -- Qualified Monthly Points are weights only. They never create cash.
