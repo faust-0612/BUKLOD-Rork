@@ -545,6 +545,42 @@ requireText(
   'Help and Support is ad-free',
 );
 
+requireText(
+  'supabase/functions/buklod-support-v1/index.ts',
+  'BUKLOD_SUPPORT_REQUIRES_VERIFY_JWT_FALSE',
+  'Pre-login Help deployment requires verify_jwt=false',
+);
+requireText(
+  'supabase/functions/buklod-support-v1/index.ts',
+  'action==="health"',
+  'Support backend exposes release health probe',
+);
+requireText(
+  'supabase/migrations/20260920225500_buklod_central_support_v1.sql',
+  'buklod_bsoc_update_incident_v1',
+  'Shared incidents have controlled BSOC lifecycle updates',
+);
+requireText(
+  'scripts/RUN_BUKLOD_MAIN_FINAL_RELEASE_LOCAL.ps1',
+  'BACKEND HANDOFF REQUIRED BEFORE MAIN / WEB CUTOVER',
+  'Phase 1 stops after AAB for support backend activation',
+);
+forbidText(
+  'scripts/RUN_BUKLOD_MAIN_FINAL_RELEASE_LOCAL.ps1',
+  'refs/heads/main',
+  'Phase 1 cannot promote Main before support backend proof',
+);
+requireText(
+  'scripts/RESUME_BUKLOD_MAIN_FINAL_RELEASE_AFTER_SUPPORT_BACKEND.ps1',
+  'VERIFY CENTRAL SUPPORT BACKEND HEALTH',
+  'Phase 2 verifies support backend before Main cutover',
+);
+requireText(
+  'scripts/RESUME_BUKLOD_MAIN_FINAL_RELEASE_AFTER_SUPPORT_BACKEND.ps1',
+  'BUKLOD_CENTRAL_SUPPORT_V1',
+  'Phase 2 requires exact support schema contract',
+);
+
 // Existing performance hardening must remain present.
 requireText('src/lib/buklodPerformanceFetch.ts', 'simultaneous identical GET /auth/v1/user checks', 'Auth request dedupe');
 requireText('src/lib/buklodR4RequestShield.ts', 'BUKLOD_MASS_CONCURRENCY_R32', 'Mass concurrency request shield');
