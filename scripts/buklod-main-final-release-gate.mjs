@@ -284,6 +284,45 @@ forbidText(
   'No above-the-fold sponsored card before real feed content',
 );
 
+
+
+// Profit-First Referral + Sharing V2 is active release scope.
+requireText(
+  'supabase/migrations/20260920140000_buklod_main_profit_first_referral_v2.sql',
+  'one_time_referral_php numeric(14,2) not null default 20.00',
+  'Referral one-time ₱20 is centrally versioned',
+);
+requireText(
+  'supabase/migrations/20260920140000_buklod_main_profit_first_referral_v2.sql',
+  'referred_qualification_php numeric(14,2) not null default 40.00',
+  'Referred qualification threshold is centrally versioned',
+);
+requireText(
+  'supabase/migrations/20260920140000_buklod_main_profit_first_referral_v2.sql',
+  'no_referrer_qualification_php numeric(14,2) not null default 60.00',
+  'No-referrer qualification threshold is centrally versioned',
+);
+requireText(
+  'supabase/migrations/20260920140000_buklod_main_profit_first_referral_v2.sql',
+  'first_line_share_pct numeric(7,6) not null default 0.10',
+  'First-line 10% share is centrally versioned',
+);
+requireText(
+  'supabase/migrations/20260920140000_buklod_main_profit_first_referral_v2.sql',
+  'unique(signal_type,signal_hash)',
+  'Durable identity signals prevent lifetime reward reset',
+);
+requireText(
+  'src/lib/buklodReferralV2.ts',
+  'attachPendingBuklodReferral',
+  'Interrupted referral attribution retries after sign-in',
+);
+requireText(
+  'src/app/+native-intent.ts',
+  'captureBuklodReferralCodeFromPath',
+  'Installed-app referral deep link preserves attribution',
+);
+
 // Existing performance hardening must remain present.
 requireText('src/lib/buklodPerformanceFetch.ts', 'simultaneous identical GET /auth/v1/user checks', 'Auth request dedupe');
 requireText('src/lib/buklodR4RequestShield.ts', 'BUKLOD_MASS_CONCURRENCY_R32', 'Mass concurrency request shield');

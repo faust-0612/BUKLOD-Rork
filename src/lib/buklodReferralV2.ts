@@ -145,3 +145,24 @@ export async function recordBuklodReferralFunnel(eventType:string,source='APP'){
     });
   }catch{}
 }
+
+export function extractBuklodReferralCodeFromPath(value:unknown){
+  const raw=String(value??'').trim();
+  if(!raw)return null;
+  try{
+    const url=new URL(raw,'https://buklod.expo.app');
+    return normalizeBuklodReferralCode(
+      url.searchParams.get('ref')??url.searchParams.get('referral')??''
+    )||null;
+  }catch{
+    const match=raw.match(/[?&](?:ref|referral)=([A-Za-z0-9]+)/i);
+    return match?normalizeBuklodReferralCode(match[1])||null:null;
+  }
+}
+
+export async function captureBuklodReferralCodeFromPath(value:unknown,source='DEEPLINK'){
+  const code=extractBuklodReferralCodeFromPath(value);
+  if(!code)return null;
+  await captureBuklodReferralCode(code,source);
+  return code;
+}

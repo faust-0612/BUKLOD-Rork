@@ -24,6 +24,7 @@ import BuklodClusterInviteDeepLinkHandler from '@/components/BuklodClusterInvite
 import BuklodAttendanceDeepLinkHandler from '@/components/BuklodAttendanceDeepLinkHandler';
 import BuklodAdSafetyRouteBridge from '@/components/BuklodAdSafetyRouteBridge';
 import BuklodWebAdSenseProvider from '@/components/BuklodWebAdSenseProvider';
+import BuklodProfitFirstIdentityBootstrap from '@/components/BuklodProfitFirstIdentityBootstrap';
 import { colors } from '@/lib/theme';
 import { StreamVideoProvider } from '@/providers/StreamVideoProvider';
 import { BuklodThemeProvider } from '@/providers/BuklodThemeProvider';
@@ -69,6 +70,7 @@ export default function RootLayout() {
       style={{ flex: 1 }}
     >
       <AuthProvider>
+        <BuklodProfitFirstIdentityBootstrap />
         <BuklodTrustedDeviceGate>
         <BuklodBibleNarrationProvider>
         <BuklodThemeProvider>

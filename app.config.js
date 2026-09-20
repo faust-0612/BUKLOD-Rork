@@ -108,6 +108,24 @@ module.exports = ({ config }) => {
         'android.permission.USE_FULL_SCREEN_INTENT',
       ],
 
+      intentFilters:
+        (!isClassroom && !isStaging)
+          ? [
+              {
+                action: 'VIEW',
+                autoVerify: false,
+                data: [
+                  {
+                    scheme: 'https',
+                    host: 'buklod.expo.app',
+                    pathPrefix: '/register',
+                  },
+                ],
+                category: ['BROWSABLE', 'DEFAULT'],
+              },
+            ]
+          : [],
+
       blockedPermissions: [
         'android.permission.READ_MEDIA_IMAGES',
         'android.permission.READ_MEDIA_VIDEO',
