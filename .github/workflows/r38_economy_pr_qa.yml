@@ -15,7 +15,13 @@ on:
       - 'src/components/BuklodReferralInviteCard.tsx'
       - 'src/components/points/BuklodRedeemCatalogSection.tsx'
       - 'src/lib/buklodR38*.ts'
+      - 'src/lib/buklodEconomyV3.ts'
+      - 'src/i18n/**'
+      - 'src/providers/BuklodI18nProvider.tsx'
+      - 'src/app/preferences/language.tsx'
       - 'supabase/migrations/*buklod*r38*.sql'
+      - 'supabase/migrations/20260920140000_buklod_main_profit_first_referral_v2.sql'
+      - 'supabase/migrations/20260920143000_buklod_main_profit_first_payout_v2.sql'
   workflow_dispatch:
 
 permissions:
@@ -42,7 +48,7 @@ jobs:
       - name: TypeScript QA
         run: npx tsc --noEmit
 
-      - name: R38 economy invariant contract
+      - name: Canonical economy invariant contract
         run: node scripts/r38-economy-release-contract.mjs
 
       - name: Export web without deploying
