@@ -649,6 +649,31 @@ begin
 end
 $$;
 
+
+create or replace function public.buklod_pf_link_identity_service_v2(
+  p_user_id uuid,
+  p_signals jsonb
+)
+returns jsonb
+language sql
+security definer
+set search_path=''
+as $$
+  select private.buklod_pf_link_identity_v2(p_user_id,p_signals)
+$$;
+
+create or replace function public.buklod_pf_attach_referral_service_v2(
+  p_referred_person uuid,
+  p_referral_code text
+)
+returns jsonb
+language sql
+security definer
+set search_path=''
+as $$
+  select private.buklod_pf_attach_referral_v2(p_referred_person,p_referral_code)
+$$;
+
 create or replace function public.record_buklod_finalized_value_v2(
   p_user_id uuid,
   p_provider text,
@@ -669,9 +694,9 @@ declare
   v_person uuid;
   v_row private.buklod_pf_finalized_value_ledger%rowtype;
 begin
-  if current_user not in ('service_role','supabase_admin') then
-    raise exception 'Service role required';
-  end if;
+  -- Execute privilege is granted only to service_role below. SECURITY DEFINER
+  -- makes current_user the function owner, so do not attempt caller detection
+  -- with current_user here.
   if p_gross_value_php is null or p_gross_value_php<=0 then raise exception 'Positive finalized value required'; end if;
   if trim(coalesce(p_idempotency_key,''))='' then raise exception 'Idempotency key required'; end if;
 
@@ -802,9 +827,13 @@ end
 $$;
 
 revoke all on function private.buklod_pf_link_identity_v2(uuid,jsonb) from public,anon,authenticated;
-grant execute on function private.buklod_pf_link_identity_v2(uuid,jsonb) to service_role;
 revoke all on function private.buklod_pf_attach_referral_v2(uuid,text) from public,anon,authenticated;
-grant execute on function private.buklod_pf_attach_referral_v2(uuid,text) to service_role;
+
+revoke all on function public.buklod_pf_link_identity_service_v2(uuid,jsonb) from public,anon,authenticated;
+grant execute on function public.buklod_pf_link_identity_service_v2(uuid,jsonb) to service_role;
+revoke all on function public.buklod_pf_attach_referral_service_v2(uuid,text) from public,anon,authenticated;
+grant execute on function public.buklod_pf_attach_referral_service_v2(uuid,text) to service_role;
+
 revoke all on function public.record_buklod_finalized_value_v2(uuid,text,text,text,numeric,text,text,timestamptz,jsonb) from public,anon,authenticated;
 grant execute on function public.record_buklod_finalized_value_v2(uuid,text,text,text,numeric,text,text,timestamptz,jsonb) to service_role;
 
