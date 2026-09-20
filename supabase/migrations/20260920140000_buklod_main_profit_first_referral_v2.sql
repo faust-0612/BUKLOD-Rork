@@ -1256,7 +1256,7 @@ begin
     if v_qualifying>0 then
       insert into private.buklod_pf_qualification_fund_ledger(
         person_id,direction,amount_centavos,entry_type,event_key,
-        source_value_id,policy_version
+        source_value_id,policy_version,created_at
       )
       values(
         v_person.person_id,
@@ -1265,7 +1265,8 @@ begin
         'QUALIFICATION_REVENUE',
         'qualification-revenue:'||v_value.id::text,
         v_value.id,
-        v_cfg.policy_version
+        v_cfg.policy_version,
+        v_value.finalized_at
       )
       on conflict(event_key) do nothing;
     end if;
@@ -1303,7 +1304,7 @@ begin
 
         insert into private.buklod_pf_qualification_fund_ledger(
           person_id,direction,amount_centavos,entry_type,event_key,
-          source_value_id,referral_id,policy_version
+          source_value_id,referral_id,policy_version,created_at
         )
         values(
           v_person.person_id,
@@ -1313,13 +1314,14 @@ begin
           'qualification-referral-funding:'||v_ref.referral_id::text,
           v_value.id,
           v_ref.referral_id,
-          v_cfg.policy_version
+          v_cfg.policy_version,
+          v_value.finalized_at
         )
         on conflict(event_key) do nothing;
 
         insert into private.buklod_pf_cash_ledger(
           person_id,bucket,direction,amount_centavos,entry_type,event_key,
-          source_value_id,referral_id,policy_version,description,metadata
+          source_value_id,referral_id,policy_version,description,metadata,created_at
         )
         values(
           v_ref.referrer_person_id,
@@ -1332,7 +1334,8 @@ begin
           v_ref.referral_id,
           v_cfg.policy_version,
           'One-time qualified first-line referral reward',
-          jsonb_build_object('qualification_revenue_backed',true)
+          jsonb_build_object('qualification_revenue_backed',true),
+          v_value.finalized_at
         )
         on conflict(person_id,event_key) do nothing;
 
@@ -1373,7 +1376,7 @@ begin
       if private.buklod_pf_qualification_balance_centavos_v3(v_person.person_id)>0 then
         insert into private.buklod_pf_qualification_fund_ledger(
           person_id,direction,amount_centavos,entry_type,event_key,
-          source_value_id,referral_id,policy_version
+          source_value_id,referral_id,policy_version,created_at
         )
         values(
           v_person.person_id,
@@ -1383,7 +1386,8 @@ begin
           'qualification-retained-transfer:'||v_person.person_id::text,
           v_value.id,
           v_ref.referral_id,
-          v_cfg.policy_version
+          v_cfg.policy_version,
+          v_value.finalized_at
         )
         on conflict(event_key) do nothing;
       end if;
