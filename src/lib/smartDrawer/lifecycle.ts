@@ -9,6 +9,9 @@ import {
 import {
   loadSmartDrawerSettings,
 } from './settings';
+import {
+  transitionSmartDrawerItem,
+} from './service';
 
 export async function runSmartDrawerLifecycleCleanup(
   userId: string,
@@ -29,6 +32,54 @@ export async function runSmartDrawerLifecycleCleanup(
 
   let offset = 0;
   let removed = 0;
+  let autoDone = 0;
+  let autoArchived = 0;
+
+  const activeLists =
+    await querySmartDrawerItems(userId, {
+      view: 'lists',
+      limit: 100,
+    });
+
+  for (const item of activeLists) {
+    if (
+      item.listItems.length > 0 &&
+      item.listItems.every(entry => entry.done)
+    ) {
+      await transitionSmartDrawerItem(
+        userId,
+        item.id,
+        'DONE',
+      );
+      autoDone += 1;
+    }
+  }
+
+  for (const view of ['events', 'appointments']) {
+    const dated =
+      await querySmartDrawerItems(userId, {
+        view,
+        limit: 100,
+      });
+
+    for (const item of dated) {
+      const eventTime = Date.parse(
+        item.eventAt ?? item.dueAt ?? '',
+      );
+
+      if (
+        Number.isFinite(eventTime) &&
+        eventTime < Date.now()
+      ) {
+        await transitionSmartDrawerItem(
+          userId,
+          item.id,
+          'ARCHIVED',
+        );
+        autoArchived += 1;
+      }
+    }
+  }
 
   while (true) {
     const page =
@@ -92,5 +143,9 @@ export async function runSmartDrawerLifecycleCleanup(
     }
   }
 
-  return { removed };
+  return {
+    removed,
+    autoDone,
+    autoArchived,
+  };
 }
