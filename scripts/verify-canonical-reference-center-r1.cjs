@@ -74,6 +74,27 @@ forbidText(
 
 requireText(
   migration,
+  'CANONICAL_REFERENCE_EDITOR',
+  'Delegated Canonical Reference Editor role is missing.',
+);
+requireText(
+  migration,
+  'CANONICAL_REFERENCE_READER',
+  'Read-only Canonical Reference Reader role is missing.',
+);
+forbidText(
+  migration,
+  "('CANONICAL_REFERENCE_EDITOR','canonical.reference.publish')",
+  'Delegated editor must not receive publish authority by default.',
+);
+forbidText(
+  migration,
+  "('CANONICAL_REFERENCE_EDITOR','canonical.reference.high_risk_publish')",
+  'Delegated editor must not receive high-risk publish authority by default.',
+);
+
+requireText(
+  migration,
   "revoke all on function public.buklod_canonical_audit_v1",
   'Internal audit helper must not be executable by normal authenticated users.',
 );
