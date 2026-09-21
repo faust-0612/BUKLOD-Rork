@@ -353,7 +353,6 @@ export default function SmartDrawerScreen() {
                 <Pressable
                   onPress={() => {
                     setQuery('');
-                    setTimeout(() => void load(false), 0);
                   }}
                   accessibilityLabel="Clear search"
                 >
