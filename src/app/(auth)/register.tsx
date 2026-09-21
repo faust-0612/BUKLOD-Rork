@@ -33,6 +33,11 @@ import {
 } from '@/lib/buklodReferralV2';
 import { colors } from '@/lib/theme';
 import { useBuklodDrawerBottomInset } from '@/lib/buklodSafeArea';
+import { useBuklodFeedback } from '@/providers/BuklodFeedbackProvider';
+import {
+  buildBuklodUserFeedback,
+  trackBuklodFeedbackEvent,
+} from '@/lib/buklodUserFeedback';
 
 type Church = {
   id: string;
@@ -125,6 +130,50 @@ function buildFullName(
 export default function RegisterScreen() {
   const params = useLocalSearchParams<{ ref?: string; referral?: string }>();
   const drawerBottomInset = useBuklodDrawerBottomInset();
+  const { showFeedback } = useBuklodFeedback();
+
+  const reportRegisterFailure = (
+    error: unknown,
+    title: string,
+    message: string,
+    outcome: string,
+  ) => {
+    const base = buildBuklodUserFeedback(
+      error,
+      {
+        context: 'general',
+        fallbackTitle: title,
+        fallbackMessage: message,
+      },
+    );
+    const feedback = {
+      ...base,
+      tone: 'error' as const,
+      title,
+      message,
+      nextStep: 'Check the form, try again, or open Need Help if the problem repeats.',
+      supportCode: base.supportCode ?? 'SYS-500',
+      retryable: true,
+      needsSupport: true,
+    };
+    showFeedback(feedback, {
+      autoHideMs: null,
+      helpParams: {
+        category: 'OTHER_ACCOUNT',
+        errorCode: feedback.supportCode,
+        message: feedback.message,
+        sourceRoute: '/(auth)/register',
+      },
+    });
+    void trackBuklodFeedbackEvent({
+      event: 'error_shown',
+      category: feedback.category,
+      supportCode: feedback.supportCode,
+      route: '/(auth)/register',
+      feature: 'Account Registration',
+      outcome,
+    });
+  };
 
   const [churches, setChurches] =
     useState<Church[]>([]);
@@ -372,9 +421,11 @@ useEffect(() => {
 
         if (error) {
           setGroups([]);
-          Alert.alert(
-            'Could not load BUKLOD clusters',
-            error.message
+          reportRegisterFailure(
+            error,
+            'BUKLOD clusters unavailable',
+            "BUKLOD couldn't load the cluster list right now. You may retry or continue without selecting a cluster where allowed.",
+            'cluster_load_failed',
           );
         } else {
           setGroups(
@@ -710,12 +761,20 @@ useEffect(() => {
             error.message
           );
 
-        return Alert.alert(
-          'Could not create account',
-          duplicate
-            ? `That ${loginMethod} is already being used by another BUKLOD account.`
-            : error.message
+        if (duplicate) {
+          return Alert.alert(
+            'Could not create account',
+            `That ${loginMethod} is already being used by another BUKLOD account.`,
+          );
+        }
+
+        reportRegisterFailure(
+          error,
+          'Account not created',
+          "BUKLOD couldn't create your account right now. Your form information is still on this screen.",
+          'account_create_failed',
         );
+        return;
       }
 
       if (!data.session) {
@@ -812,10 +871,13 @@ useEffect(() => {
         }
         void recordBuklodReferralFunnel('SIGNUP_COMPLETED','REGISTER');
       }catch(referralError:unknown){
-        const message=referralError instanceof Error
-          ? referralError.message
-          : String(referralError??'Referral sync failed.');
-        referralMessage=' Referral status: '+message+' The account is active; a valid pending referral will retry automatically.';
+        referralMessage=' Referral status could not be finalized yet. Your account is active, and a valid pending referral will retry automatically.';
+        void trackBuklodFeedbackEvent({
+          event: 'action_failed',
+          route: '/(auth)/register',
+          feature: 'Referral',
+          outcome: 'post_signup_referral_sync_deferred',
+        });
       }
 
       finishCreateAccount();
