@@ -191,7 +191,7 @@ export default function SmartDrawerScreen() {
   const [error, setError] = useState('');
 
   const load = useCallback(
-    async (append = false) => {
+    async (append = false, offset = 0) => {
       if (!user?.id) {
         setItems([]);
         setLoading(false);
@@ -208,7 +208,7 @@ export default function SmartDrawerScreen() {
           search: query,
           view,
           limit: PAGE,
-          offset: append ? items.length : 0,
+          offset: append ? offset : 0,
         });
 
         setItems(current =>
@@ -233,7 +233,7 @@ export default function SmartDrawerScreen() {
         setLoadingMore(false);
       }
     },
-    [items.length, query, user?.id, view],
+    [query, user?.id, view],
   );
 
   useFocusEffect(
@@ -509,7 +509,7 @@ export default function SmartDrawerScreen() {
         onEndReachedThreshold={0.35}
         onEndReached={() => {
           if (hasMore && !loadingMore) {
-            void load(true);
+            void load(true, items.length);
           }
         }}
         ListFooterComponent={
