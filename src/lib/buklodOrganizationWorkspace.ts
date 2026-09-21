@@ -620,6 +620,23 @@ export function writeInstitutionWorkspaceConfig(
   };
 }
 
+export function institutionModuleLabel(
+  config: BuklodInstitutionWorkspaceConfig,
+  moduleId: BuklodOrganizationModuleId,
+) {
+  if (moduleId === 'members') return config.terminology.members;
+  if (moduleId === 'units') return config.terminology.unit;
+  if (moduleId === 'classroom') return config.terminology.classroom;
+  if (moduleId === 'quiz') return config.terminology.quiz;
+
+  return (
+    BUKLOD_ORGANIZATION_MODULE_REGISTRY.find(
+      module => module.id === moduleId,
+    )?.displayName ??
+    moduleId
+  );
+}
+
 export function institutionModuleEnabled(
   config: BuklodInstitutionWorkspaceConfig,
   moduleId: BuklodOrganizationModuleId,
