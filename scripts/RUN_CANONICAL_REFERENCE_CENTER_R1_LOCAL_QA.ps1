@@ -53,11 +53,11 @@ try {
   Set-Location $qaRoot
 
   Write-Host "`n3/10 Install locked dependencies..." -ForegroundColor Yellow
-  npm ci --ignore-scripts --include=dev --no-audit --no-fund
-  Assert-LastExit "npm ci"
+  & npm.cmd ci --ignore-scripts --include=dev --no-audit --no-fund
+  Assert-LastExit "& npm.cmd ci"
 
   Write-Host "`n4/10 Canonical Reference invariant contract..." -ForegroundColor Yellow
-  npm run reference:contract
+  & npm.cmd run reference:contract
   Assert-LastExit "Reference invariant contract"
 
   Write-Host "`n5/10 Preserve standalone app boundaries..." -ForegroundColor Yellow
@@ -65,7 +65,7 @@ try {
   Assert-LastExit "App boundary guard"
 
   Write-Host "`n6/10 TypeScript..." -ForegroundColor Yellow
-  npx tsc --noEmit
+  & npx.cmd tsc --noEmit
   Assert-LastExit "TypeScript"
 
   Write-Host "`n7/10 Docker prerequisite for isolated local Supabase..." -ForegroundColor Yellow
@@ -73,18 +73,18 @@ try {
   Assert-LastExit "Docker availability"
 
   Write-Host "`n8/10 Start isolated local Supabase and rebuild from migrations..." -ForegroundColor Yellow
-  npx supabase start
+  & npx.cmd supabase start
   Assert-LastExit "Supabase start"
   $startedSupabase = $true
 
-  npx supabase db reset
+  & npx.cmd supabase db reset
   Assert-LastExit "Supabase db reset"
 
   Write-Host "`n9/10 Database lint + Canonical Reference pgTAP E2E..." -ForegroundColor Yellow
-  npx supabase db lint --level error
+  & npx.cmd supabase db lint --level error
   Assert-LastExit "Supabase DB lint"
 
-  npx supabase test db supabase/tests/buklod_canonical_reference_center_r1_test.sql
+  & npx.cmd supabase test db supabase/tests/buklod_canonical_reference_center_r1_test.sql
   Assert-LastExit "Canonical Reference pgTAP"
 
   Write-Host "`n10/10 Exact source freeze..." -ForegroundColor Yellow
@@ -111,7 +111,7 @@ try {
 finally {
   if ($startedSupabase) {
     Write-Host "`nStopping isolated local Supabase..." -ForegroundColor DarkGray
-    npx supabase stop --no-backup | Out-Host
+    & npx.cmd supabase stop --no-backup | Out-Host
   }
 
   Set-Location $Repo
