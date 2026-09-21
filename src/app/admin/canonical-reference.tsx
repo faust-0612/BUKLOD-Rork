@@ -113,10 +113,6 @@ function nextVersion(value: string) {
   return `${value || '1.0'}.1`;
 }
 
-function toneStyle(tone: Notice extends infer T ? T : never) {
-  return tone;
-}
-
 function StatusPill({
   label,
   tone = 'neutral',
@@ -251,6 +247,8 @@ function ReferenceCenterBody() {
   const [draftRisk, setDraftRisk] =
     useState<CanonicalRiskLevel>('NORMAL');
   const [draftNotes, setDraftNotes] =
+    useState('');
+  const [draftRequestId, setDraftRequestId] =
     useState('');
 
   const [metadataSummary, setMetadataSummary] =
@@ -527,7 +525,9 @@ function ReferenceCenterBody() {
         riskLevel: draftRisk,
         notes: draftNotes.trim() || null,
         sourceVersionId: selectedVersion.id,
-        requestId: `canonical-draft:${draftVersion.trim()}:${Date.now()}`,
+        requestId:
+          draftRequestId ||
+          `canonical-draft:${draftVersion.trim()}:${selectedVersion.id}`,
       });
 
       const version =
@@ -536,6 +536,7 @@ function ReferenceCenterBody() {
         await loadCanonicalHistory(25, 0);
       setHistory(versions);
       setDraftOpen(false);
+      setDraftRequestId('');
       setDraftVersion('');
       setDraftSummary('');
       setDraftModules('');
@@ -564,6 +565,7 @@ function ReferenceCenterBody() {
   }, [
     draftModules,
     draftNotes,
+    draftRequestId,
     draftRisk,
     draftSummary,
     draftVersion,
@@ -1780,6 +1782,11 @@ function ReferenceCenterBody() {
                 setDraftModules('');
                 setDraftRisk('NORMAL');
                 setDraftNotes('');
+                setDraftRequestId(
+                  `canonical-draft:${snapshot.document.id}:${nextVersion(
+                    snapshot.version.version,
+                  )}:${selectedVersion.id}`,
+                );
                 setDraftOpen(true);
               }}
               secondary
@@ -2008,7 +2015,8 @@ function ReferenceCenterBody() {
             </View>
             <Pressable
               onPress={() =>
-                setDraftOpen(false)
+                setDraftOpen(false);
+                setDraftRequestId('')
               }
             >
               <MaterialCommunityIcons
@@ -2107,7 +2115,8 @@ function ReferenceCenterBody() {
               icon="close"
               label="CANCEL"
               onPress={() =>
-                setDraftOpen(false)
+                setDraftOpen(false);
+                setDraftRequestId('')
               }
               secondary
             />
