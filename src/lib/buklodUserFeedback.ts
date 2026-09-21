@@ -26,7 +26,7 @@ export type BuklodFeedbackTone =
 
 export type BuklodUserFeedback = {
   tone: BuklodFeedbackTone;
-  category: BuklodErrorCategory;
+  category: BuklodErrorCategory | null;
   title: string;
   message: string;
   nextStep?: string | null;
