@@ -269,9 +269,6 @@ function ReferenceCenterBody() {
   const [implementationReason, setImplementationReason] =
     useState('');
 
-  const selectedIsCurrent =
-    snapshot?.version.id === selectedVersion?.id;
-
   const compareChangedRows = useMemo(
     () =>
       compareRows.filter(
@@ -2014,10 +2011,10 @@ function ReferenceCenterBody() {
               </Text>
             </View>
             <Pressable
-              onPress={() =>
+              onPress={() => {
                 setDraftOpen(false);
-                setDraftRequestId('')
-              }
+                setDraftRequestId('');
+              }}
             >
               <MaterialCommunityIcons
                 name="close"
@@ -2114,10 +2111,10 @@ function ReferenceCenterBody() {
             <ActionButton
               icon="close"
               label="CANCEL"
-              onPress={() =>
+              onPress={() => {
                 setDraftOpen(false);
-                setDraftRequestId('')
-              }
+                setDraftRequestId('');
+              }}
               secondary
             />
           </View>
