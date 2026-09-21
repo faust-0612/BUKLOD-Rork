@@ -14,7 +14,7 @@ describe('Expo Router test harness', () => {
     );
 
     // Route groups are organizational only and are omitted from the public pathname.
-    expect(screen).toHavePathname('/login');
+    (expect(screen) as any).toHavePathname('/login');
     expect(screen.getByText('LOG IN')).toBeTruthy();
   });
 });
