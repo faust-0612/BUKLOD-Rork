@@ -138,6 +138,25 @@ export async function loadCanonicalCurrent() {
   return result.data as CanonicalCurrentSnapshot;
 }
 
+export async function loadCanonicalVersion(
+  versionId: string,
+) {
+  const result = await withBuklodTimeout(
+    (supabase as any)
+      .from('buklod_canonical_document_versions')
+      .select('*')
+      .eq('id', versionId)
+      .maybeSingle(),
+    TIMEOUT,
+    'Canonical Reference version',
+  );
+  if (result.error) throw result.error;
+  if (!result.data) {
+    throw new Error('Canonical version not found.');
+  }
+  return result.data as CanonicalVersion;
+}
+
 export async function loadCanonicalHistory(
   limit = 20,
   offset = 0,
