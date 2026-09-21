@@ -70,15 +70,8 @@ export type SmartDrawerItem = {
 };
 
 export type SmartDrawerDraft = Partial<
-  Omit<
-    SmartDrawerItem,
-    'id' | 'userId' | 'createdAt' | 'updatedAt' | 'revision'
-  >
-> & {
-  id?: string;
-  title?: string;
-  body?: string;
-};
+  Omit<SmartDrawerItem, 'userId'>
+>;
 
 export type SmartDrawerClassification = {
   type: SmartDrawerItemType;
