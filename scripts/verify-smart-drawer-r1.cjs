@@ -225,22 +225,22 @@ requireText(
 );
 requireText(
   item,
-  "label="Mark as Done"",
+  'label="Mark as Done"',
   'Item actions must support Done.',
 );
 requireText(
   item,
-  "label="Move to Archive"",
+  'label="Move to Archive"',
   'Item actions must support Archive.',
 );
 requireText(
   item,
-  "label="Delete"",
+  'label="Delete"',
   'Item actions must support safe delete to Recently Removed.',
 );
 requireText(
   item,
-  "label="Restore"",
+  'label="Restore"',
   'Recently Removed items must support Restore.',
 );
 requireText(
