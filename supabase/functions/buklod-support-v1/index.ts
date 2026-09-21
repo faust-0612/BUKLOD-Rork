@@ -73,6 +73,28 @@ function maskIdentifier(v:string){
   return s.slice(0,2)+(s.length>2?"••••":"");
 }
 
+const TELEMETRY_EVENTS=new Set([
+  "error_shown","error_category","recovery_offered","recovery_attempted",
+  "recovery_success","support_opened_after_error","user_abandoned_after_error",
+  "action_processing","action_success","action_failed",
+  "self_heal_attempted","self_heal_success"
+]);
+
+function safeTelemetryMetadata(value:any){
+  if(!value||typeof value!=="object"||Array.isArray(value)) return {};
+  const out:Record<string,string|number|boolean|null>={};
+  for(const [rawKey,rawValue] of Object.entries(value).slice(0,20)){
+    const key=clean(rawKey,64);
+    if(!key||/password|pin|otp|token|secret|credential|security.?answer|payment/i.test(key)) continue;
+    if(rawValue===null||typeof rawValue==="number"||typeof rawValue==="boolean"){
+      out[key]=rawValue as number|boolean|null;
+    }else if(typeof rawValue==="string"){
+      out[key]=clean(rawValue,240);
+    }
+  }
+  return out;
+}
+
 Deno.serve(async(req:Request)=>{
   if(req.method==="OPTIONS") return new Response("ok",{headers:cors});
   if(req.method!=="POST") return reply(405,{ok:false,error:"method_not_allowed"});
@@ -99,6 +121,45 @@ Deno.serve(async(req:Request)=>{
   const rawIp=clean(req.headers.get("cf-connecting-ip")||req.headers.get("x-real-ip")||req.headers.get("x-forwarded-for")?.split(",")[0]||"unknown",160);
   const keyedHash=(scope:string,value:string)=>sha256("buklod-support-v1:"+scope+":"+value+":"+serviceKey);
   const ipHash=await keyedHash("ip",rawIp||"unknown");
+
+  if(action==="telemetry"){
+    const event=clean(body?.event,64);
+    if(!TELEMETRY_EVENTS.has(event)){
+      return reply(400,{ok:false,error:"invalid_telemetry_event"});
+    }
+
+    const sinceMinute=new Date(Date.now()-60_000).toISOString();
+    const {count:recentCount}=await admin.from("buklod_support_feedback_events")
+      .select("id",{count:"exact",head:true})
+      .eq("ip_hash",ipHash)
+      .gte("occurred_at",sinceMinute);
+
+    if(Number(recentCount??0)>=120){
+      return reply(200,{ok:true,dropped:true,reason:"telemetry_rate_limited"});
+    }
+
+    const {error}=await admin.from("buklod_support_feedback_events").insert({
+      user_id:userId,
+      event_name:event,
+      category:clean(body?.category,64)||null,
+      support_code:clean(body?.support_code,40)||null,
+      app:clean(body?.app,80)||"BUKLOD Main",
+      app_version:clean(body?.app_version,40)||null,
+      platform:clean(body?.platform,40)||null,
+      route:clean(body?.route,240)||null,
+      feature:clean(body?.feature,120)||null,
+      outcome:clean(body?.outcome,80)||null,
+      metadata:safeTelemetryMetadata(body?.metadata),
+      ip_hash:ipHash,
+    });
+
+    if(error){
+      console.error("buklod_support_telemetry_insert_failed",{code:(error as any)?.code??"unknown"});
+      return reply(503,{ok:false,error:"telemetry_unavailable"});
+    }
+
+    return reply(200,{ok:true});
+  }
 
   if(action==="health"){
     const [casesCheck,incidentsCheck]=await Promise.all([
