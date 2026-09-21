@@ -122,6 +122,7 @@ export const enMessages = {
       appNotResponding: 'App does not respond',
       otherAccount: 'Other account problem',
       quiz: 'Quiz',
+      report: 'BUKLOD Report',
       classroom: 'Classroom',
       organization: 'Organization / Cluster / Sub-Org',
       reportedContent: 'Report content / moderation',
