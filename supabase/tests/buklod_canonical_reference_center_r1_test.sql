@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(34);
+select plan(36);
 
 -- Fixed isolated identities; all test mutations roll back.
 insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at)
@@ -102,6 +102,15 @@ select ok(
   'authenticated clients cannot directly execute internal audit helper'
 );
 
+select ok(
+  not has_table_privilege(
+    'authenticated',
+    'public.buklod_canonical_document_versions',
+    'INSERT'
+  ),
+  'authenticated clients cannot directly insert canonical versions'
+);
+
 -- Ordinary user: no internal access.
 select set_config('request.jwt.claim.sub','90000000-0000-0000-0000-000000000004',true);
 select set_config('request.jwt.claim.role','authenticated',true);
@@ -125,6 +134,18 @@ select ok(
   not (public.buklod_canonical_current_v1('BUKLOD_CANONICAL_MASTER')->'permissions'->>'can_restricted_view')::boolean,
   'read-only staff without restricted permission cannot view restricted sections'
 );
+
+set local role authenticated;
+select is(
+  (select count(*)::integer
+   from public.buklod_canonical_sections s
+   join public.buklod_canonical_documents d
+     on d.current_effective_version_id=s.version_id
+   where d.document_key='BUKLOD_CANONICAL_MASTER'),
+  5,
+  'RLS exposes only INTERNAL sections to basic read-only canonical staff'
+);
+reset role;
 
 select throws_ok(
   $$select public.buklod_canonical_section_v1(
