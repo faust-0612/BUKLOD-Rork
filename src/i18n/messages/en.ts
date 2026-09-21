@@ -4,9 +4,76 @@ export const enMessages = {
     retry: 'Try again',
     loading: 'Loading…',
     save: 'Save',
+    saved: 'Saved.',
+    submitted: 'Submitted successfully.',
+    failed: "We couldn't complete this action.",
+    processing: 'Processing…',
+    nextStep: 'Next step',
+    checkConnection: 'Check connection',
     cancel: 'Cancel',
     open: 'Open',
     notAvailable: 'Not available',
+  },
+  auth: {
+    checkingAccount: 'Checking your BUKLOD account…',
+    signingIn: 'Signing you in…',
+    signedIn: 'Signed in successfully. Opening Community Wall…',
+    invalidCredentials:
+      'The username, email, mobile number, or password is incorrect.',
+    invalidCredentialsNext:
+      'Check the details, try again, or recover your account.',
+    trafficBusy:
+      'Many users are signing in right now. Please wait briefly before trying again.',
+    requestStillActive:
+      'A sign-in request is already being processed. Please wait for it to finish.',
+    temporaryFailure:
+      "BUKLOD couldn't finish this sign-in request. Please try again.",
+    accountStatusFailed:
+      'Your password was accepted, but BUKLOD could not safely finish the account-status check.',
+    inactive: 'Your account is currently inactive.',
+    restricted: 'Your account is temporarily restricted.',
+    verificationRequired:
+      'Your account needs verification before you can continue.',
+    sessionExpired:
+      "Your session expired. We're refreshing it.",
+  },
+  recovery: {
+    checkingService: 'Checking account recovery service…',
+    checkingAccount: 'Checking your account…',
+    sendingCode: 'Sending your verification code…',
+    codeSent:
+      'Verification sent. Enter the code to continue.',
+    codeInvalid: 'The verification code is incorrect.',
+    codeExpired:
+      'This verification code has expired. Request a new one.',
+    tooManyAttempts:
+      'Too many attempts. Please wait before trying again.',
+    detailsMismatch:
+      'The information entered does not match our records.',
+    unavailable:
+      "We couldn't complete recovery right now.",
+    updatingPassword: 'Updating password…',
+    passwordUpdated: 'Password updated successfully.',
+    passwordUpdatedNext:
+      'You can now sign in using your new password.',
+    pinStatusFailed:
+      "BUKLOD couldn't load your Recovery PIN status.",
+    pinSaved: 'Recovery PIN saved successfully.',
+  },
+  network: {
+    offline: 'You appear to be offline.',
+    unstable:
+      'Your connection is unstable. Some actions may take longer.',
+    restored: 'Connection restored.',
+    timeout:
+      "We're having trouble connecting. Your information is safe.",
+  },
+  feedback: {
+    supportCode: 'Support code',
+    unknownTitle: "We couldn't complete this action",
+    unknownBody: 'Please try again.',
+    rawErrorHidden:
+      'Technical details were saved for support without exposing them here.',
   },
   language: {
     title: 'Language',
