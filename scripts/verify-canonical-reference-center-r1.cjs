@@ -34,6 +34,7 @@ const service = read('src/lib/buklodCanonicalReference.ts');
 const gate = read('src/components/CanonicalReferenceGate.tsx');
 const renderer = read('src/components/BuklodCanonicalMarkdown.tsx');
 const screen = read('src/app/admin/canonical-reference.tsx');
+const dbTest = read('supabase/tests/buklod_canonical_reference_center_r1_test.sql');
 const admin = read('src/app/admin/index.tsx');
 const layout = read('src/app/_layout.tsx');
 
@@ -227,6 +228,16 @@ requireText(
   'No authenticated direct write policies are created',
   'Direct-write containment statement is missing.',
 );
+requireText(
+  migration,
+  'from anon,authenticated',
+  'Explicit table privilege revocation is missing.',
+);
+requireText(
+  migration,
+  'grant select on table',
+  'Authenticated read-only table grant is missing.',
+);
 forbidText(
   migration,
   'create policy buklod_canonical_documents_write',
@@ -237,6 +248,12 @@ forbidText(
   'grant insert on public.buklod_canonical',
   'Authenticated direct insert grants must not exist.',
 );
+
+requireText(dbTest, 'select plan(36);', 'Reference Center pgTAP plan is missing or stale.');
+requireText(dbTest, 'STALE_CANONICAL_SECTION', 'pgTAP stale-editor coverage is missing.');
+requireText(dbTest, 'DIFF_REVIEW_REQUIRED', 'pgTAP high-risk diff guard coverage is missing.');
+requireText(dbTest, 'canonical.reference.publish', 'pgTAP publish-permission coverage is missing.');
+requireText(dbTest, 'RLS exposes only INTERNAL sections', 'pgTAP restricted-section RLS coverage is missing.');
 
 requireText(service, 'copyCanonicalSection', 'Copy Section support is missing.');
 requireText(service, 'copyCanonicalMarkdown', 'Copy Current Rules support is missing.');
