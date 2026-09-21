@@ -137,6 +137,11 @@ import {useAuth} from '@/providers/AuthProvider';
 import {useBuklodScope} from '@/providers/BuklodScopeProvider';
 import {useBuklodPresentation} from '@/hooks/useBuklodPresentation';
 import {useNetwork} from '@/providers/NetworkProvider';
+import { useBuklodFeedback } from '@/providers/BuklodFeedbackProvider';
+import {
+  buildBuklodUserFeedback,
+  trackBuklodFeedbackEvent,
+} from '@/lib/buklodUserFeedback';
 import {createCommunityStyles} from '@/app/(tabs)/buklodCommunityStyles';
 import {
   useBuklodScrollBottomInset,
@@ -286,6 +291,47 @@ export default function BuklodScreen(){
   shared,
   paletteId,
  }=useBuklodPresentation();
+ const { showFeedback }=useBuklodFeedback();
+
+ const reportCommunityFailure=useCallback((
+  error:unknown,
+  title:string,
+  message:string,
+  outcome:string,
+ )=>{
+  const base=buildBuklodUserFeedback(error,{
+   context:'general',
+   fallbackTitle:title,
+   fallbackMessage:message,
+  });
+  const feedback={
+   ...base,
+   tone:'error' as const,
+   title,
+   message,
+   nextStep:'Try again. If it repeats, open Need Help.',
+   supportCode:base.supportCode??'SYS-500',
+   retryable:true,
+   needsSupport:true,
+  };
+  showFeedback(feedback,{
+   autoHideMs:null,
+   helpParams:{
+    category:'TECHNICAL',
+    errorCode:feedback.supportCode,
+    message:feedback.message,
+    sourceRoute:'/(tabs)/buklod',
+   },
+  });
+  void trackBuklodFeedbackEvent({
+   event:'error_shown',
+   category:feedback.category,
+   supportCode:feedback.supportCode,
+   route:'/(tabs)/buklod',
+   feature:'Community Wall',
+   outcome,
+  });
+ },[showFeedback]);
 
  if(scopeLoading && !activeScope){
   return(
@@ -321,8 +367,7 @@ export default function BuklodScreen(){
       Community unavailable
      </Text>
      <Text style={shared.muted}>
-      {scopeError||
-       'No active Community is available.'}
+      No active Community is available right now. Please try again or open Need Help.
      </Text>
     </Card>
    </View>
@@ -681,12 +726,11 @@ function LegacyPublicBuklodScreen(){
         );
       }
       catch (error: any) {
-        Alert.alert(
-          'Share to BUKLOD',
-          String(
-            error?.message ??
-              'Could not import the shared item.'
-          )
+        reportCommunityFailure(
+          error,
+          'Shared item not imported',
+          "BUKLOD couldn't import the shared item right now.",
+          'incoming_share_failed',
         );
       }
     })();
@@ -1555,10 +1599,11 @@ const load=useCallback(async(options?:{
     );
    }
    catch(e:any){
-    Alert.alert(
-     'Photos',
-     e?.message||
-      'Could not select photos.'
+    reportCommunityFailure(
+     e,
+     'Photos not selected',
+     "BUKLOD couldn't prepare the selected photos right now.",
+     'photo_picker_failed',
     );
    }
    finally{
@@ -1707,10 +1752,11 @@ const load=useCallback(async(options?:{
     );
    }
    catch(error:any){
-    Alert.alert(
-     'Video',
-     error?.message||
-      'Could not prepare this video.'
+    reportCommunityFailure(
+     error,
+     'Video not prepared',
+     "BUKLOD couldn't prepare this video right now.",
+     'video_prepare_failed',
     );
    }
    finally{
@@ -1740,7 +1786,15 @@ const load=useCallback(async(options?:{
     return;
   }
 const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p_audience:audience,p_group_id:audience==='group'?group?.id??null:null,p_query:q,p_limit:40},6000);
-  if(error)return Alert.alert('Mention',error.message);(
+  if(error){
+   reportCommunityFailure(
+    error,
+    'Mention search unavailable',
+    "BUKLOD couldn't search people to mention right now.",
+    'mention_search_failed',
+   );
+   return;
+  }(
   perfMentionSeq ===
   PERF2_MENTION_SEARCH_SEQ
 ) && setMentionRows(
@@ -2076,10 +2130,11 @@ const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p
    setCommunityGif(snapshot.communityGif);
    setMentions(snapshot.mentions);
 
-   Alert.alert(
-    'Could Not Post',
-    e?.message||
-    'Posting failed.'
+   reportCommunityFailure(
+    e,
+    'Post not published',
+    "BUKLOD couldn't publish your post. Your composer content was restored.",
+    'post_publish_failed',
    );
 
    await load();
@@ -2228,9 +2283,11 @@ const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p
         )
     );
 
-    Alert.alert(
-      'Reaction',
-      error.message
+    reportCommunityFailure(
+      error,
+      'Reaction not saved',
+      "BUKLOD couldn't save your reaction. The previous reaction was restored.",
+      'post_reaction_failed',
     );
   }
 
@@ -2269,11 +2326,11 @@ const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p
     if(
      commentsResult.error
     ){
-     Alert.alert(
-      'Comments',
-      commentsResult
-       .error
-       .message
+     reportCommunityFailure(
+      commentsResult.error,
+      'Comments unavailable',
+      "BUKLOD couldn't load comments right now.",
+      'comments_load_failed',
      );
      return;
     }
@@ -2435,10 +2492,13 @@ const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p
    setCommentBusy(false);
 
    if(error){
-    return Alert.alert(
-     'Comment',
-     error.message
+    reportCommunityFailure(
+     error,
+     'Comment not posted',
+     "BUKLOD couldn't post your comment right now.",
+     'comment_post_failed',
     );
+    return;
    }
 
    setCommentText('');
@@ -2538,9 +2598,11 @@ const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p
     );
 
    if(error){
-    Alert.alert(
-     'Reaction',
-     error.message
+    reportCommunityFailure(
+     error,
+     'Reaction not saved',
+     "BUKLOD couldn't save your reaction right now.",
+     'comment_reaction_failed',
     );
 
     if(commentPost?.id){
@@ -2669,10 +2731,13 @@ const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p
 
 
    if(error){
-    return Alert.alert(
-     'Photo Reaction',
-     error.message
+    reportCommunityFailure(
+     error,
+     'Photo reaction not saved',
+     "BUKLOD couldn't save your photo reaction right now.",
+     'photo_reaction_failed',
     );
+    return;
    }
 
 
@@ -2896,10 +2961,11 @@ const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p
     );
    }
    catch(e:any){
-    Alert.alert(
-     'Save Photo',
-     e?.message||
-     'Could not save this photo.'
+    reportCommunityFailure(
+     e,
+     'Photo not saved',
+     "BUKLOD couldn't save this photo right now.",
+     'save_photo_failed',
     );
    }
    finally{
