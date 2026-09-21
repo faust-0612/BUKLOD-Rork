@@ -159,6 +159,7 @@ export default function RootLayout() {
                 <Stack.Screen name="organizations/setup-wizard" />
                 <Stack.Screen name="organizations/announcements" />
                 <Stack.Screen name="organizations/calendar" />
+                <Stack.Screen name="organizations/lifecycle" />
                 <Stack.Screen name="clusters" />
                 <Stack.Screen name="prayer/new" />
                 <Stack.Screen name="prayer/[id]" />
