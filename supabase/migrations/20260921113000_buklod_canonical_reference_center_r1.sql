@@ -228,7 +228,9 @@ begin
   )
   values(
     p_document_id,p_version_id,nullif(trim(coalesce(p_section_key,'')),''),
-    p_action,p_before,p_after,p_reason,auth.uid(),coalesce(p_metadata,'{}'::jsonb)
+    p_action,p_before,p_after,p_reason,auth.uid(),
+    coalesce(p_metadata,'{}'::jsonb)
+      || jsonb_build_object('actor_roles',v_actor_roles,'session',v_session_meta)
   );
 
   insert into public.audit_logs(
@@ -243,7 +245,9 @@ begin
       'document_id',p_document_id,
       'version_id',p_version_id,
       'section_key',p_section_key,
-      'reason',p_reason
+      'reason',p_reason,
+      'actor_roles',v_actor_roles,
+      'session',v_session_meta
     ) || coalesce(p_metadata,'{}'::jsonb)
   );
 end;
@@ -496,6 +500,7 @@ begin
 
   update public.buklod_canonical_document_versions
   set updated_at=now(),
+      revision=revision+1,
       diff_reviewed_at=null,
       diff_reviewed_by=null
   where id=p_version_id;
