@@ -527,6 +527,9 @@ begin
   for update;
 
   if not found then raise exception 'Canonical section not found'; end if;
+  if v_old.visibility_scope='RESTRICTED_INTERNAL' then
+    perform public.buklod_canonical_assert_permission_v1('canonical.reference.restricted_view');
+  end if;
   if v_old.revision<>p_expected_revision then
     raise exception 'STALE_CANONICAL_SECTION: expected %, current %',p_expected_revision,v_old.revision;
   end if;
@@ -635,6 +638,9 @@ begin
   if not found then raise exception 'Canonical version not found'; end if;
   if v.status not in('DRAFT','REVIEW') then raise exception 'Diff review is only recorded before approval'; end if;
   if v.revision<>p_expected_revision then raise exception 'STALE_CANONICAL_VERSION'; end if;
+  if v.risk_level in('HIGH','FINANCIAL','SECURITY','PRIVACY') then
+    perform public.buklod_canonical_assert_permission_v1('canonical.reference.restricted_view');
+  end if;
 
   update public.buklod_canonical_document_versions
   set diff_reviewed_at=now(),
@@ -713,9 +719,11 @@ begin
   if v.revision<>p_expected_revision then raise exception 'STALE_CANONICAL_VERSION'; end if;
   if trim(coalesce(p_notes,''))='' then raise exception 'Review notes are required'; end if;
   if p_approve
-     and v.risk_level in('HIGH','FINANCIAL','SECURITY','PRIVACY')
-     and v.diff_reviewed_at is null then
-    raise exception 'DIFF_REVIEW_REQUIRED';
+     and v.risk_level in('HIGH','FINANCIAL','SECURITY','PRIVACY') then
+    perform public.buklod_canonical_assert_permission_v1('canonical.reference.restricted_view');
+    if v.diff_reviewed_at is null then
+      raise exception 'DIFF_REVIEW_REQUIRED';
+    end if;
   end if;
 
   update public.buklod_canonical_document_versions
@@ -772,9 +780,11 @@ begin
 
   if v.status<>'APPROVED' then raise exception 'Only APPROVED versions can be published'; end if;
   if v.revision<>p_expected_revision then raise exception 'STALE_CANONICAL_VERSION'; end if;
-  if v.risk_level in('HIGH','FINANCIAL','SECURITY','PRIVACY')
-     and v.diff_reviewed_at is null then
-    raise exception 'DIFF_REVIEW_REQUIRED';
+  if v.risk_level in('HIGH','FINANCIAL','SECURITY','PRIVACY') then
+    perform public.buklod_canonical_assert_permission_v1('canonical.reference.restricted_view');
+    if v.diff_reviewed_at is null then
+      raise exception 'DIFF_REVIEW_REQUIRED';
+    end if;
   end if;
 
   if v.risk_level in('FINANCIAL','SECURITY','PRIVACY') then
