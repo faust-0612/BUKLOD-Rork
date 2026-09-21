@@ -1738,7 +1738,7 @@ function ReferenceCenterBody() {
             IMPLEMENTATION REF
           </Text>
           <TextInput
-            editable={perms?.can_implementation}
+            editable={canEditImplementation}
             value={implementationRef}
             onChangeText={setImplementationRef}
             placeholder="Commit SHA / release / migration / task"
@@ -1993,8 +1993,9 @@ function ReferenceCenterBody() {
               </>
             )}
 
-          {selectedVersion.status ===
-            'APPROVED' &&
+          {desktop &&
+            selectedVersion.status ===
+              'APPROVED' &&
             perms?.can_publish && (
               <ActionButton
                 icon="publish"
@@ -2389,6 +2390,7 @@ const styles = StyleSheet.create({
   searchBar: {
     minHeight: 50,
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: 8,
     paddingHorizontal: 12,
