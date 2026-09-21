@@ -155,6 +155,10 @@ export default function RootLayout() {
                 <Stack.Screen name="connect/community/[scopeId]" />
                 <Stack.Screen name="mzb" />
                 <Stack.Screen name="organizations" />
+                <Stack.Screen name="organizations/module" />
+                <Stack.Screen name="organizations/setup-wizard" />
+                <Stack.Screen name="organizations/announcements" />
+                <Stack.Screen name="organizations/calendar" />
                 <Stack.Screen name="clusters" />
                 <Stack.Screen name="prayer/new" />
                 <Stack.Screen name="prayer/[id]" />
