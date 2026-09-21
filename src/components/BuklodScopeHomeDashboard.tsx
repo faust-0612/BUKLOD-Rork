@@ -20,6 +20,7 @@ import BuklodScopeAttendanceCard from '@/components/BuklodScopeAttendanceCard';
 import BuklodMzbHomeWidgets from '@/components/BuklodMzbHomeWidgets';
 import BuklodOrgHomeClusterCard from '@/components/BuklodOrgHomeClusterCard';
 import BuklodOrgHomeBayanihanCard from '@/components/BuklodOrgHomeBayanihanCard';
+import BuklodInstitutionOverviewSummary from '@/components/BuklodInstitutionOverviewSummary';
 import BuklodScreenBottomBanner from '@/components/BuklodScreenBottomBanner';
 import { useBuklodAccess } from '@/hooks/useBuklodAccess';
 import { useScreenFocused } from '@/hooks/useScreenFocused';
@@ -203,6 +204,11 @@ export default function BuklodScopeHomeDashboard({
 
       {scope.scope_type === 'ORGANIZATION' ? (
         <>
+          <BuklodInstitutionOverviewSummary
+            scopeId={scope.scope_id}
+            summary={summary}
+            isAdmin={showAdminSummary}
+          />
           <BuklodOrgHomeClusterCard organizationId={scope.scope_id} />
           <BuklodOrgHomeBayanihanCard />
         </>
