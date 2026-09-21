@@ -219,7 +219,7 @@ as $bsoc_queue$
   select case
     when p_role='ADMIN' then true
     when p_role='SUPPORT' then p_queue in (
-      'ACCOUNT_SUPPORT','QUIZ_SUPPORT','CLASSROOM_SUPPORT','GENERAL_SUPPORT'
+      'ACCOUNT_SUPPORT','QUIZ_SUPPORT','REPORT_SUPPORT','CLASSROOM_SUPPORT','GENERAL_SUPPORT'
     )
     when p_role='MODERATION' then p_queue='MODERATION'
     when p_role='COMMUNITY_OPS' then p_queue='COMMUNITY_OPERATIONS'
