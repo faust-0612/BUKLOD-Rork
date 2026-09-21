@@ -102,6 +102,41 @@ on public.buklod_support_cases(user_id,created_at desc);
 create index if not exists buklod_support_cases_incident_idx
 on public.buklod_support_cases(incident_id,created_at desc);
 
+create table if not exists public.buklod_support_feedback_events (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete set null,
+  event_name text not null
+    check (event_name in (
+      'error_shown','error_category','recovery_offered','recovery_attempted',
+      'recovery_success','support_opened_after_error','user_abandoned_after_error',
+      'action_processing','action_success','action_failed',
+      'self_heal_attempted','self_heal_success'
+    )),
+  category text,
+  support_code text,
+  app text not null default 'BUKLOD Main',
+  app_version text,
+  platform text,
+  route text,
+  feature text,
+  outcome text,
+  metadata jsonb not null default '{}'::jsonb,
+  ip_hash text,
+  occurred_at timestamptz not null default now()
+);
+
+create index if not exists buklod_support_feedback_events_name_time_idx
+on public.buklod_support_feedback_events(event_name,occurred_at desc);
+
+create index if not exists buklod_support_feedback_events_category_time_idx
+on public.buklod_support_feedback_events(category,occurred_at desc);
+
+create index if not exists buklod_support_feedback_events_route_time_idx
+on public.buklod_support_feedback_events(route,occurred_at desc);
+
+alter table public.buklod_support_feedback_events enable row level security;
+revoke all on table public.buklod_support_feedback_events from anon, authenticated;
+
 create table if not exists public.buklod_support_case_updates (
   id uuid primary key default gen_random_uuid(),
   case_id uuid not null references public.buklod_support_cases(id) on delete cascade,
@@ -636,6 +671,9 @@ after insert on public.user_feedback
 for each row execute function public.buklod_feedback_to_support_case_v1();
 
 revoke all on function public.buklod_feedback_to_support_case_v1() from public, anon, authenticated;
+
+comment on table public.buklod_support_feedback_events is
+'Privacy-minimized BUKLOD Main UX feedback telemetry for support-deflection analysis. No passwords, PINs, OTPs, secrets, or payment credentials.';
 
 comment on table public.buklod_support_cases is
 'Canonical BUKLOD Help cases. User-facing status is exposed only through controlled support APIs; internal notes remain private.';
