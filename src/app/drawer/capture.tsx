@@ -40,7 +40,7 @@ export default function SmartDrawerCapture() {
     return (
       <View style={styles.unsupported}>
         <MaterialCommunityIcons
-          name="cellphone-camera"
+          name="camera-outline"
           size={42}
           color="#0A6EBD"
         />
