@@ -43,6 +43,15 @@ function first(value: string | string[] | undefined) {
     : String(value ?? '').trim();
 }
 
+function supportCategoryFor(
+  moduleId: BuklodOrganizationModuleId | null,
+) {
+  if (moduleId === 'reports') return 'REPORT';
+  if (moduleId === 'classroom') return 'CLASSROOM';
+  if (moduleId === 'quiz') return 'QUIZ';
+  return 'ORGANIZATION';
+}
+
 function readModule(
   value: string | string[] | undefined,
 ): BuklodOrganizationModuleId | null {
@@ -244,7 +253,7 @@ export default function OrganizationModuleGatewayScreen() {
         router.replace({
           pathname: '/help' as any,
           params: {
-            category: 'ORGANIZATION',
+            category: supportCategoryFor(moduleId),
             organizationId: scopeId,
             moduleId: 'help',
             sourceRoute: '/scope',
@@ -300,7 +309,7 @@ export default function OrganizationModuleGatewayScreen() {
         {
           autoHideMs: null,
           helpParams: {
-            category: 'ORGANIZATION',
+            category: supportCategoryFor(moduleId),
             errorCode:
               feedback.supportCode ?? 'ORG-500',
             message:
@@ -384,7 +393,7 @@ export default function OrganizationModuleGatewayScreen() {
                 router.push({
                   pathname: '/help' as any,
                   params: {
-                    category: 'ORGANIZATION',
+                    category: supportCategoryFor(moduleId),
                     organizationId: scopeId,
                     moduleId: moduleId ?? '',
                     sourceRoute:
