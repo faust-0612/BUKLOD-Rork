@@ -3,6 +3,8 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
+import { trackBuklodFeedbackEvent } from '@/lib/buklodUserFeedback';
 
 export type BuklodSupportCategory =
   | 'SIGN_IN'
@@ -160,8 +162,23 @@ export async function runBuklodSupportFlow(input: {
   errorCode?: string | null;
   languageCode?: string;
 }): Promise<BuklodSupportResult> {
+  if (input.category === 'SIGN_IN') {
+    void trackBuklodFeedbackEvent({
+      event: 'self_heal_attempted',
+      route: input.route ?? '/help',
+      feature: input.feature ?? 'Login',
+      outcome: 'refresh_session',
+    });
+  }
+
   const fixed = await attemptLocalSelfHeal(input.category);
   if (fixed) {
+    void trackBuklodFeedbackEvent({
+      event: 'self_heal_success',
+      route: input.route ?? '/help',
+      feature: input.feature ?? 'Login',
+      outcome: 'session_refreshed',
+    });
     return {
       outcome: 'FIXED',
       message: 'Your issue was fixed. Please try again.',
@@ -198,16 +215,24 @@ export async function runBuklodSupportFlow(input: {
     },
   };
 
-  let response = await supabase.functions.invoke(
-    'buklod-support-v1',
-    { body: payload },
+  let response = await withBuklodTimeout(
+    supabase.functions.invoke(
+      'buklod-support-v1',
+      { body: payload },
+    ),
+    12_000,
+    'BUKLOD Help diagnostics',
   );
 
   if (response.error) {
     await new Promise(resolve => setTimeout(resolve, 450));
-    response = await supabase.functions.invoke(
-      'buklod-support-v1',
-      { body: payload },
+    response = await withBuklodTimeout(
+      supabase.functions.invoke(
+        'buklod-support-v1',
+        { body: payload },
+      ),
+      12_000,
+      'BUKLOD Help retry',
     );
   }
 
@@ -285,9 +310,13 @@ export async function loadBuklodSupportCases(): Promise<
   try {
     const { data: authData } = await supabase.auth.getSession();
     if (authData.session) {
-      const { data, error } = await supabase.functions.invoke(
-        'buklod-support-v1',
-        { body: { action: 'list_my_cases' } },
+      const { data, error } = await withBuklodTimeout(
+        supabase.functions.invoke(
+          'buklod-support-v1',
+          { body: { action: 'list_my_cases' } },
+        ),
+        10_000,
+        'Load support cases',
       );
       if (!error && data?.ok && Array.isArray(data.cases)) {
         for (const row of data.cases) {
@@ -303,15 +332,19 @@ export async function loadBuklodSupportCases(): Promise<
   await Promise.all(
     stored.map(async item => {
       try {
-        const { data, error } = await supabase.functions.invoke(
-          'buklod-support-v1',
-          {
-            body: {
-              action: 'case_status',
-              case_code: item.case_code,
-              access_token: item.access_token,
+        const { data, error } = await withBuklodTimeout(
+          supabase.functions.invoke(
+            'buklod-support-v1',
+            {
+              body: {
+                action: 'case_status',
+                case_code: item.case_code,
+                access_token: item.access_token,
+              },
             },
-          },
+          ),
+          10_000,
+          'Support case status',
         );
         if (!error && data?.ok && data.case?.case_code) {
           merged.set(String(data.case.case_code), data.case);
