@@ -294,12 +294,12 @@ requireText(
 );
 requireText(
   localQa,
-  'npx supabase db reset',
+  'supabase db reset',
   'Local Reference Center QA must rebuild an isolated local database.',
 );
 requireText(
   localQa,
-  'npx supabase test db supabase/tests/buklod_canonical_reference_center_r1_test.sql',
+  'supabase test db supabase/tests/buklod_canonical_reference_center_r1_test.sql',
   'Local Reference Center QA must execute the canonical pgTAP suite.',
 );
 [
