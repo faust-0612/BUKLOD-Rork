@@ -265,6 +265,34 @@ export default function SmartDrawerSettingsScreen() {
             </View>
           </View>
 
+          <Pressable
+            onPress={() =>
+              router.push(
+                '/help?category=TECHNICAL&sourceRoute=%2Fdrawer%2Fsettings' as any,
+              )
+            }
+            style={styles.help}
+          >
+            <MaterialCommunityIcons
+              name="lifebuoy"
+              size={21}
+              color="#0A6EBD"
+            />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.helpTitle}>
+                Help & Support
+              </Text>
+              <Text style={styles.helpText}>
+                Run BUKLOD Help with privacy-safe Drawer diagnostics. Your private notes and images are not attached.
+              </Text>
+            </View>
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={20}
+              color="#7D94A6"
+            />
+          </Pressable>
+
           {!!notice && (
             <Text style={styles.notice}>
               {notice}
@@ -420,6 +448,29 @@ const styles = StyleSheet.create({
     color: '#587188',
     fontSize: 10,
     lineHeight: 15,
+  },
+  help: {
+    marginTop: 16,
+    minHeight: 64,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#D8E5EE',
+    backgroundColor: '#FFFFFF',
+    padding: 11,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+  },
+  helpTitle: {
+    color: '#294D69',
+    fontSize: 11.5,
+    fontWeight: '900',
+  },
+  helpText: {
+    marginTop: 2,
+    color: '#718698',
+    fontSize: 9.5,
+    lineHeight: 14,
   },
   notice: {
     marginTop: 12,
