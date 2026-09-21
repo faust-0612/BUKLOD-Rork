@@ -35,6 +35,7 @@ const lifecycle = read('src/lib/smartDrawer/lifecycle.ts');
 const settings = read('src/lib/smartDrawer/settings.ts');
 const service = read('src/lib/smartDrawer/service.ts');
 const assets = read('src/lib/smartDrawer/assets.ts');
+const diagnostics = read('src/lib/smartDrawer/diagnostics.ts');
 const wallCard = read('src/components/SmartDrawerWallCard.tsx');
 const wall = read('src/app/(tabs)/buklod.tsx');
 const layout = read('src/app/_layout.tsx');
@@ -86,11 +87,21 @@ requireText(
 ].forEach(marker =>
   requireText(reminders, marker, `Local reminder invariant missing: ${marker}`),
 );
-requireText(
-  service,
-  'The item was saved',
-  'Reminder failure must not block the local save.',
+const localSaveIndex = service.indexOf(
+  'await saveSmartDrawerItem',
 );
+const reminderScheduleIndex = service.indexOf(
+  'await scheduleSmartDrawerReminders',
+);
+if (
+  localSaveIndex < 0 ||
+  reminderScheduleIndex < 0 ||
+  localSaveIndex > reminderScheduleIndex
+) {
+  failures.push(
+    'Smart Drawer must commit locally before attempting notification scheduling.',
+  );
+}
 
 requireText(
   lifecycle,
@@ -310,6 +321,25 @@ requireText(
   "'RECENTLY_REMOVED'",
   'Recently Removed lifecycle state is missing.',
 );
+
+requireText(
+  diagnostics,
+  "cloudSync: 'NOT_ENABLED'",
+  'Diagnostics must clearly report cloud sync as not enabled until a real sync engine exists.',
+);
+for (const privateMarker of [
+  'title:',
+  'body:',
+  'extractedText:',
+  'listItems:',
+  'assets:',
+]) {
+  forbidText(
+    diagnostics,
+    privateMarker,
+    `Support diagnostics must not expose private Drawer content: ${privateMarker}`,
+  );
+}
 
 if (failures.length) {
   console.error('\nBUKLOD SMART DRAWER R1 CONTRACT FAILED');
