@@ -12,6 +12,7 @@ on:
       - 'src/app/admin/index.tsx'
       - 'src/app/_layout.tsx'
       - 'supabase/migrations/20260921113000_buklod_canonical_reference_center_r1.sql'
+      - 'supabase/tests/buklod_canonical_reference_center_r1_test.sql'
       - 'scripts/verify-canonical-reference-center-r1.cjs'
       - 'package.json'
       - '.github/workflows/canonical_reference_center_r1_qa.yml'
@@ -45,6 +46,27 @@ jobs:
 
       - name: TypeScript
         run: npx tsc --noEmit
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start ephemeral local Supabase
+        run: supabase start
+
+      - name: Rebuild local DB from migrations
+        run: supabase db reset
+
+      - name: Database lint
+        run: supabase db lint --level error
+
+      - name: Canonical Reference pgTAP E2E
+        run: supabase test db supabase/tests/buklod_canonical_reference_center_r1_test.sql
+
+      - name: Stop ephemeral local Supabase
+        if: always()
+        run: supabase stop --no-backup
 
       - name: No production deployment in QA
         run: |
