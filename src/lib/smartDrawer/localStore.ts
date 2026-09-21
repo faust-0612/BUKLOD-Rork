@@ -770,6 +770,30 @@ export async function markSmartDrawerSynced(
   });
 }
 
+export async function permanentlyDeleteSmartDrawerItem(
+  userId: string,
+  itemId: string,
+) {
+  if (!userId || !itemId) return false;
+
+  if (Platform.OS === 'web') {
+    const rows = await readWeb(userId);
+    const next = rows.filter(
+      item => item.userId === userId && item.id !== itemId,
+    );
+    await writeWeb(userId, next);
+    return next.length !== rows.length;
+  }
+
+  const db = await nativeDb();
+  const result = await db.runAsync(
+    'DELETE FROM drawer_items WHERE user_id=? AND id=?',
+    userId,
+    itemId,
+  );
+  return Number(result?.changes ?? 0) > 0;
+}
+
 export async function markSmartDrawerSyncError(
   userId: string,
   itemId: string,
