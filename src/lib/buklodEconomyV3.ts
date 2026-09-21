@@ -69,7 +69,7 @@ function numberValue(value: unknown) {
 export async function loadMyBuklodFinancialSummaryV3(): Promise<BuklodFinancialSummaryV3> {
   await ensureBuklodProfitFirstIdentity();
 
-  const result = await withBuklodTimeout(
+  const result = await withBuklodTimeout<{ data: any; error: any }>(
     (supabase as any).rpc('get_my_buklod_financial_summary_v3'),
     7000,
     'BUKLOD Economy',
