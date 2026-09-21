@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
@@ -41,6 +41,31 @@ type ClassroomMode = 'STUDENT' | 'FACULTY';
 
 function MainClassroomDoor() {
   const { user } = useAuth();
+  const params = useLocalSearchParams<{
+    organization_id?: string | string[];
+    return_scope_id?: string | string[];
+    source?: string | string[];
+  }>();
+  const organizationId = Array.isArray(params.organization_id)
+    ? String(params.organization_id[0] ?? '').trim()
+    : String(params.organization_id ?? '').trim();
+  const returnScopeId = Array.isArray(params.return_scope_id)
+    ? String(params.return_scope_id[0] ?? '').trim()
+    : String(params.return_scope_id ?? '').trim();
+
+  const goBack = () => {
+    if (returnScopeId) {
+      router.replace({
+        pathname: '/scope' as any,
+        params: {
+          scopeId: returnScopeId,
+          section: 'home',
+        },
+      });
+      return;
+    }
+    router.back();
+  };
   const [access, setAccess] = useState<BuklodClassroomLauncherAccess | null>(null);
   const [loading, setLoading] = useState(true);
   const [opening, setOpening] = useState<ClassroomMode | null>(null);
@@ -85,7 +110,13 @@ function MainClassroomDoor() {
         `access_token=${encodeURIComponent(accessToken)}`,
         `refresh_token=${encodeURIComponent(refreshToken)}`,
         `classroom_mode=${encodeURIComponent(mode)}`,
-      ].join('&');
+        organizationId
+          ? `organization_id=${encodeURIComponent(organizationId)}`
+          : '',
+        returnScopeId
+          ? `return_scope_id=${encodeURIComponent(returnScopeId)}`
+          : '',
+      ].filter(Boolean).join('&');
 
       if (Platform.OS !== 'web') {
         try {
@@ -112,9 +143,11 @@ function MainClassroomDoor() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Pressable style={styles.back} onPress={() => router.back()}>
+      <Pressable style={styles.back} onPress={goBack}>
         <MaterialCommunityIcons name="arrow-left" size={22} color="#17311f" />
-        <Text style={styles.backText}>BUKLOD Main</Text>
+        <Text style={styles.backText}>
+          {returnScopeId ? 'Back to Organization' : 'BUKLOD Main'}
+        </Text>
       </Pressable>
 
       <View style={styles.hero}>
@@ -126,6 +159,11 @@ function MainClassroomDoor() {
         <Text style={styles.subtitle}>
           BUKLOD Main is your account and session doorway. Classroom opens as its focused extension using this same BUKLOD account and connected academic records.
         </Text>
+        {organizationId ? (
+          <Text style={styles.contextNote}>
+            Organization context is preserved for navigation only. Classroom enrollment and Faculty authority remain authoritative.
+          </Text>
+        ) : null}
       </View>
 
       {loading ? (
@@ -398,5 +436,6 @@ const styles = StyleSheet.create({
   emptyTitle: { color: '#24362b', fontWeight: '900', fontSize: 17, marginTop: 10 },
   emptyText: { color: '#6c786f', textAlign: 'center', lineHeight: 19, marginTop: 6 },
   dualNote: { color: '#68736b', fontSize: 12, lineHeight: 18, textAlign: 'center', paddingHorizontal: 10, marginTop: 4 },
+  contextNote: { marginTop: 9, color: '#496556', fontSize: 11, lineHeight: 17, fontWeight: '700' },
   pressed: { opacity: 0.84 },
 });
