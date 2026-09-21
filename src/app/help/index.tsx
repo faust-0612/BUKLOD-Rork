@@ -23,6 +23,9 @@ import {
 } from '@/lib/buklodSupport';
 import { useBuklodI18n } from '@/providers/BuklodI18nProvider';
 import {
+  getSmartDrawerDiagnostics,
+} from '@/lib/smartDrawer/diagnostics';
+import {
   buildBuklodUserFeedback,
   trackBuklodFeedbackEvent,
 } from '@/lib/buklodUserFeedback';
@@ -170,6 +173,50 @@ export default function BuklodHelpScreen() {
     setResult(null);
 
     try {
+      const sourceRoute =
+        String(params.sourceRoute ?? '').trim() ||
+        pathname;
+      let drawerDiagnostics:
+        Record<string, string | number | boolean | null> =
+          {};
+
+      if (
+        signedIn &&
+        sourceRoute.startsWith('/drawer')
+      ) {
+        const { data } =
+          await supabase.auth.getSession();
+        const userId =
+          data.session?.user?.id ?? '';
+
+        if (userId) {
+          const diag =
+            await getSmartDrawerDiagnostics(
+              userId,
+            ).catch(() => null);
+
+          if (diag) {
+            drawerDiagnostics = {
+              drawer_store_mode: diag.storeMode,
+              drawer_active_count:
+                diag.activeCount,
+              drawer_due_soon_count:
+                diag.dueSoonCount,
+              drawer_overdue_count:
+                diag.overdueCount,
+              drawer_active_list_count:
+                diag.activeListCount,
+              drawer_local_only_count:
+                diag.localOnlyCount,
+              drawer_notification_permission:
+                diag.notificationPermission,
+              drawer_cloud_sync:
+                diag.cloudSync,
+            };
+          }
+        }
+      }
+
       const next = await runBuklodSupportFlow({
         category,
         identifier:
@@ -179,20 +226,21 @@ export default function BuklodHelpScreen() {
         message,
         app: 'BUKLOD Main',
         feature:
-          category === 'QUIZ'
-            ? 'Quiz'
-            : category === 'CLASSROOM'
-              ? 'Classroom'
-              : category === 'ORGANIZATION'
-                ? 'Organization / Cluster / Sub-Org'
-                : '',
-        route:
-          String(params.sourceRoute ?? '').trim() ||
-          pathname,
+          sourceRoute.startsWith('/drawer')
+            ? 'Smart Drawer'
+            : category === 'QUIZ'
+              ? 'Quiz'
+              : category === 'CLASSROOM'
+                ? 'Classroom'
+                : category === 'ORGANIZATION'
+                  ? 'Organization / Cluster / Sub-Org'
+                  : '',
+        route: sourceRoute,
         errorCode:
           String(params.errorCode ?? '').trim() ||
           null,
         languageCode: locale,
+        diagnostics: drawerDiagnostics,
       });
       setResult(next);
       if (next.outcome === 'CASE_CREATED') {
