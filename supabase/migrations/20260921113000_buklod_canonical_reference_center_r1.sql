@@ -880,7 +880,6 @@ begin
         and a.valid_from<=now()
         and (a.valid_until is null or a.valid_until>now())
         and rp.permission_key in(
-          'canonical.reference.view',
           'canonical.reference.draft',
           'canonical.reference.review',
           'canonical.reference.approve',
