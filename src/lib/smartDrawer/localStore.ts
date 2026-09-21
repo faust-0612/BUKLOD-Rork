@@ -389,6 +389,115 @@ function itemMatchesView(item: SmartDrawerItem, view: string) {
   }
 }
 
+function nativeViewWhere(view: string) {
+  const normalized = view.toLowerCase();
+  const nowIso = new Date().toISOString();
+  const soonIso = new Date(
+    Date.now() + 7 * 24 * 60 * 60 * 1000,
+  ).toISOString();
+
+  switch (normalized) {
+    case 'due-soon':
+      return {
+        sql: "i.status='ACTIVE' AND i.due_at IS NOT NULL AND i.due_at>=? AND i.due_at<=?",
+        params: [nowIso, soonIso],
+      };
+    case 'overdue':
+      return {
+        sql: "i.status='ACTIVE' AND i.due_at IS NOT NULL AND i.due_at<?",
+        params: [nowIso],
+      };
+    case 'lists':
+      return {
+        sql: "i.status='ACTIVE' AND i.type IN ('SHOPPING_LIST','CHECKLIST')",
+        params: [],
+      };
+    case 'writing':
+      return {
+        sql: "i.status='ACTIVE' AND i.type IN ('WRITING','POEM')",
+        params: [],
+      };
+    case 'programs':
+      return {
+        sql: "i.status='ACTIVE' AND i.type='PROGRAM'",
+        params: [],
+      };
+    case 'ideas':
+      return {
+        sql: "i.status='ACTIVE' AND i.type='IDEA'",
+        params: [],
+      };
+    case 'documents':
+      return {
+        sql: "i.status='ACTIVE' AND i.type IN ('DOCUMENT','RECEIPT','NOTICE','REFERENCE')",
+        params: [],
+      };
+    case 'appointments':
+      return {
+        sql: "i.status='ACTIVE' AND i.type='APPOINTMENT'",
+        params: [],
+      };
+    case 'events':
+      return {
+        sql: "i.status='ACTIVE' AND i.type IN ('EVENT','PROGRAM')",
+        params: [],
+      };
+    case 'tasks':
+      return {
+        sql: "i.status='ACTIVE' AND i.type IN ('TASK','DUE_TASK')",
+        params: [],
+      };
+    case 'reference':
+      return {
+        sql: "i.status='ACTIVE' AND i.type='REFERENCE'",
+        params: [],
+      };
+    case 'archive':
+      return {
+        sql: "i.status='ARCHIVED'",
+        params: [],
+      };
+    case 'recently-removed':
+      return {
+        sql: "i.status='RECENTLY_REMOVED'",
+        params: [],
+      };
+    default:
+      return {
+        sql: "i.status='ACTIVE'",
+        params: [],
+      };
+  }
+}
+
+function nativeOrderBy(view: string) {
+  if (view.toLowerCase() === 'for-you') {
+    return `ORDER BY
+      i.keep_on_top DESC,
+      CASE
+        WHEN i.due_at IS NOT NULL AND i.due_at < datetime('now') THEN 4
+        WHEN i.due_at IS NOT NULL AND i.due_at <= datetime('now','+1 day') THEN 3
+        WHEN i.due_at IS NOT NULL AND i.due_at <= datetime('now','+7 day') THEN 2
+        WHEN i.type IN ('SHOPPING_LIST','CHECKLIST') THEN 1
+        ELSE 0
+      END DESC,
+      i.updated_at DESC`;
+  }
+
+  return 'ORDER BY i.keep_on_top DESC, i.updated_at DESC';
+}
+
+function searchTerms(value: string) {
+  return value
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[^a-z0-9À-ÿ]+/gi, ' ')
+    .split(/\s+/)
+    .map(term => term.trim())
+    .filter(term => term.length >= 2)
+    .slice(0, 8);
+}
+
 function relevanceScore(item: SmartDrawerItem) {
   let score = item.keepOnTop ? 10_000 : 0;
   const now = Date.now();
@@ -428,96 +537,113 @@ export async function querySmartDrawerItems(
   );
   const offset = Math.max(0, query.offset ?? 0);
 
-  let rows: SmartDrawerItem[];
-
   if (Platform.OS === 'web') {
-    rows = await readWeb(userId);
-  } else {
-    const db = await nativeDb();
+    const rows = await readWeb(userId);
+    const filtered = rows
+      .filter(item => item.userId === userId)
+      .filter(item => itemMatchesView(item, view))
+      .filter(item => !search || itemMatchesSearch(item, search));
 
-    if (search) {
-      const firstToken =
-        search
-          .toLowerCase()
-          .split(/\s+/)
-          .find(Boolean) ?? '';
-
-      const raw = await db.getAllAsync(
-        `SELECT DISTINCT i.*
-         FROM drawer_items i
-         JOIN drawer_search_tokens t
-           ON t.item_id=i.id AND t.user_id=i.user_id
-         WHERE i.user_id=?
-           AND t.token LIKE ?
-         ORDER BY i.keep_on_top DESC, i.updated_at DESC
-         LIMIT 300`,
-        userId,
-        `${firstToken}%`,
-      );
-      rows = raw.map(rowToItem);
+    if (view === 'for-you') {
+      filtered.sort((a, b) => relevanceScore(b) - relevanceScore(a));
     } else {
-      const raw = await db.getAllAsync(
-        `SELECT * FROM drawer_items
-         WHERE user_id=?
-         ORDER BY keep_on_top DESC, updated_at DESC
-         LIMIT 500`,
-        userId,
+      filtered.sort(
+        (a, b) =>
+          Number(b.keepOnTop) - Number(a.keepOnTop) ||
+          Date.parse(b.updatedAt) - Date.parse(a.updatedAt),
       );
-      rows = raw.map(rowToItem);
     }
+
+    return filtered.slice(offset, offset + limit);
   }
 
-  const filtered = rows
-    .filter(item => item.userId === userId)
-    .filter(item => itemMatchesView(item, view))
-    .filter(item => !search || itemMatchesSearch(item, search));
+  const db = await nativeDb();
+  const where = nativeViewWhere(view);
+  const terms = searchTerms(search);
+  const searchClauses = terms.map(
+    () =>
+      `EXISTS (
+        SELECT 1
+        FROM drawer_search_tokens t
+        WHERE t.user_id=i.user_id
+          AND t.item_id=i.id
+          AND t.token LIKE ?
+      )`,
+  );
 
-  if (view === 'for-you') {
-    filtered.sort((a, b) => relevanceScore(b) - relevanceScore(a));
-  } else {
-    filtered.sort(
-      (a, b) =>
-        Number(b.keepOnTop) - Number(a.keepOnTop) ||
-        Date.parse(b.updatedAt) - Date.parse(a.updatedAt),
-    );
+  const sql = `
+    SELECT i.*
+    FROM drawer_items i
+    WHERE i.user_id=?
+      AND ${where.sql}
+      ${searchClauses.length ? `AND ${searchClauses.join(' AND ')}` : ''}
+    ${nativeOrderBy(view)}
+    LIMIT ? OFFSET ?
+  `;
+
+  const raw = await db.getAllAsync(
+    sql,
+    userId,
+    ...where.params,
+    ...terms.map(term => `${term}%`),
+    limit,
+    offset,
+  );
+
+  return raw.map(rowToItem);
+}
+
+async function countSmartDrawerView(
+  userId: string,
+  view: string,
+): Promise<number> {
+  if (Platform.OS === 'web') {
+    const rows = await readWeb(userId);
+    return rows.filter(
+      item =>
+        item.userId === userId &&
+        itemMatchesView(item, view),
+    ).length;
   }
 
-  return filtered.slice(offset, offset + limit);
+  const db = await nativeDb();
+  const where = nativeViewWhere(view);
+  const row = await db.getFirstAsync(
+    `SELECT COUNT(*) AS count
+     FROM drawer_items i
+     WHERE i.user_id=? AND ${where.sql}`,
+    userId,
+    ...where.params,
+  );
+  return Number(row?.count ?? 0);
 }
 
 export async function getSmartDrawerSummary(
   userId: string,
 ): Promise<SmartDrawerSummary> {
-  const [forYou, dueSoon, overdue, activeLists, active] =
-    await Promise.all([
-      querySmartDrawerItems(userId, {
-        view: 'for-you',
-        limit: 4,
-      }),
-      querySmartDrawerItems(userId, {
-        view: 'due-soon',
-        limit: 100,
-      }),
-      querySmartDrawerItems(userId, {
-        view: 'overdue',
-        limit: 100,
-      }),
-      querySmartDrawerItems(userId, {
-        view: 'lists',
-        limit: 100,
-      }),
-      querySmartDrawerItems(userId, {
-        view: 'for-you',
-        limit: 100,
-      }),
-    ]);
+  const [
+    forYou,
+    dueSoon,
+    overdue,
+    activeLists,
+    totalActive,
+  ] = await Promise.all([
+    querySmartDrawerItems(userId, {
+      view: 'for-you',
+      limit: 4,
+    }),
+    countSmartDrawerView(userId, 'due-soon'),
+    countSmartDrawerView(userId, 'overdue'),
+    countSmartDrawerView(userId, 'lists'),
+    countSmartDrawerView(userId, 'for-you'),
+  ]);
 
   return {
     forYou,
-    dueSoon: dueSoon.length,
-    overdue: overdue.length,
-    activeLists: activeLists.length,
-    totalActive: active.length,
+    dueSoon,
+    overdue,
+    activeLists,
+    totalActive,
   };
 }
 
