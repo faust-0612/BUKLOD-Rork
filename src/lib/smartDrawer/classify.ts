@@ -189,6 +189,12 @@ function classifyType(text: string, dueAt: string | null, listCount: number) {
       : ('EVENT' as SmartDrawerItemType);
   }
 
+  if (
+    hasAny(lower, ['tula', 'poem', 'stanza', 'saknong'])
+  ) {
+    return 'POEM' as SmartDrawerItemType;
+  }
+
   if (listCount >= 2) {
     if (
       hasAny(lower, [
@@ -202,12 +208,6 @@ function classifyType(text: string, dueAt: string | null, listCount: number) {
       return 'SHOPPING_LIST' as SmartDrawerItemType;
     }
     return 'CHECKLIST' as SmartDrawerItemType;
-  }
-
-  if (
-    hasAny(lower, ['tula', 'poem', 'stanza', 'saknong'])
-  ) {
-    return 'POEM' as SmartDrawerItemType;
   }
 
   if (
