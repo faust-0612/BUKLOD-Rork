@@ -37,6 +37,7 @@ const screen = read('src/app/admin/canonical-reference.tsx');
 const dbTest = read('supabase/tests/buklod_canonical_reference_center_r1_test.sql');
 const admin = read('src/app/admin/index.tsx');
 const layout = read('src/app/_layout.tsx');
+const localQa = read('scripts/RUN_CANONICAL_REFERENCE_CENTER_R1_LOCAL_QA.ps1');
 
 forbidText(
   migration,
@@ -284,6 +285,35 @@ forbidText(
   migration,
   'grant insert on public.buklod_canonical',
   'Authenticated direct insert grants must not exist.',
+);
+
+requireText(
+  localQa,
+  'EXACT_TESTED_SHA=$rcSha',
+  'Local Reference Center QA must print the exact tested SHA.',
+);
+requireText(
+  localQa,
+  'npx supabase db reset',
+  'Local Reference Center QA must rebuild an isolated local database.',
+);
+requireText(
+  localQa,
+  'npx supabase test db supabase/tests/buklod_canonical_reference_center_r1_test.sql',
+  'Local Reference Center QA must execute the canonical pgTAP suite.',
+);
+[
+  'supabase db push',
+  'supabase migration up --linked',
+  'eas build',
+  'expo export',
+  'firebase deploy',
+].forEach(command =>
+  forbidText(
+    localQa,
+    command,
+    `Local Reference Center QA must not perform production/deployment work: ${command}`,
+  ),
 );
 
 requireText(dbTest, 'select plan(39);', 'Reference Center pgTAP plan is missing or stale.');
