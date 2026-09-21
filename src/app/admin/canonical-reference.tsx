@@ -199,6 +199,10 @@ function ReferenceCenterBody() {
     useState<CanonicalCurrentSnapshot | null>(null);
   const [history, setHistory] =
     useState<CanonicalVersion[]>([]);
+  const [historyLoaded, setHistoryLoaded] =
+    useState(false);
+  const [historyHasMore, setHistoryHasMore] =
+    useState(false);
   const [selectedVersion, setSelectedVersion] =
     useState<CanonicalVersion | null>(null);
   const [sections, setSections] =
@@ -382,20 +386,16 @@ function ReferenceCenterBody() {
     setLoading(true);
     setNotice(null);
     try {
-      const [current, versions] =
-        await Promise.all([
-          loadCanonicalCurrent(),
-          loadCanonicalHistory(25, 0),
-        ]);
+      const current =
+        await loadCanonicalCurrent();
 
       setSnapshot(current);
-      setHistory(versions);
+      setHistory([current.version]);
+      setHistoryLoaded(false);
+      setHistoryHasMore(false);
 
       const currentVersion =
-        versions.find(
-          version =>
-            version.id === current.version.id,
-        ) ?? current.version;
+        current.version;
 
       setSelectedVersion(currentVersion);
       setSections(current.sections);
@@ -490,6 +490,83 @@ function ReferenceCenterBody() {
     [history, selectVersion],
   );
 
+  const loadHistoryPage = useCallback(
+    async (append = false) => {
+      setBusy(true);
+      try {
+        const offset =
+          append && historyLoaded
+            ? history.length
+            : 0;
+        const page =
+          await loadCanonicalHistory(25, offset);
+
+        setHistory(current => {
+          if (!append) return page;
+          const seen = new Set(
+            current.map(item => item.id),
+          );
+          return [
+            ...current,
+            ...page.filter(
+              item => !seen.has(item.id),
+            ),
+          ];
+        });
+        setHistoryLoaded(true);
+        setHistoryHasMore(
+          page.length === 25,
+        );
+      } catch (error: any) {
+        setNotice({
+          tone: 'error',
+          text:
+            String(error?.message ?? '') ||
+            'Could not load version history.',
+        });
+      } finally {
+        setBusy(false);
+      }
+    },
+    [history.length, historyLoaded],
+  );
+
+  const openInternalAnchor = useCallback(
+    (anchor: string) => {
+      const normalized = String(anchor ?? '')
+        .trim()
+        .replace(/^#/, '');
+      const target = sections.find(
+        section =>
+          section.section_key === normalized ||
+          section.section_key ===
+            normalized.replaceAll('-', '_'),
+      );
+
+      if (
+        !target ||
+        !selectedVersion
+      ) {
+        setNotice({
+          tone: 'warning',
+          text:
+            'That internal Canonical Reference section is not available in your current permission scope.',
+        });
+        return;
+      }
+
+      void loadSection(
+        selectedVersion.id,
+        target.section_key,
+      );
+    },
+    [
+      loadSection,
+      sections,
+      selectedVersion,
+    ],
+  );
+
   const createDraft = useCallback(async () => {
     if (
       !snapshot ||
@@ -529,9 +606,12 @@ function ReferenceCenterBody() {
 
       const version =
         await loadCanonicalVersion(id);
-      const versions =
-        await loadCanonicalHistory(25, 0);
-      setHistory(versions);
+      setHistory(current => [
+        version,
+        ...current.filter(
+          item => item.id !== version.id,
+        ),
+      ]);
       setDraftOpen(false);
       setDraftRequestId('');
       setDraftVersion('');
@@ -1055,11 +1135,21 @@ function ReferenceCenterBody() {
 
   const perms = snapshot?.permissions;
   const canEdit =
+    desktop &&
     selectedVersion?.status === 'DRAFT' &&
     perms?.can_draft === true;
 
+  const canEditImplementation =
+    desktop &&
+    perms?.can_implementation === true;
+
   const leftPanel = (
-    <View style={styles.leftPanel}>
+    <View
+      style={[
+        styles.leftPanel,
+        !desktop && styles.leftPanelMobile,
+      ]}
+    >
       <View style={styles.leftHeader}>
         <Text style={styles.leftEyebrow}>
           SECTIONS
@@ -1235,7 +1325,12 @@ function ReferenceCenterBody() {
     ) : null;
 
   const centerPanel = (
-    <View style={styles.centerPanel}>
+    <View
+      style={[
+        styles.centerPanel,
+        !desktop && styles.centerPanelMobile,
+      ]}
+    >
       {comparePanel ?? (
         <>
           <View style={styles.editorHeader}>
@@ -1346,6 +1441,9 @@ function ReferenceCenterBody() {
                   markdown={
                     selectedSection.content_markdown
                   }
+                  onInternalAnchor={
+                    openInternalAnchor
+                  }
                 />
               </ScrollView>
             )
@@ -1362,7 +1460,12 @@ function ReferenceCenterBody() {
   );
 
   const rightPanel = (
-    <View style={styles.rightPanel}>
+    <View
+      style={[
+        styles.rightPanel,
+        !desktop && styles.rightPanelMobile,
+      ]}
+    >
       {selectedVersion ? (
         <ScrollView
           contentContainerStyle={styles.rightContent}
@@ -1569,7 +1672,7 @@ function ReferenceCenterBody() {
                 <Pressable
                   key={item}
                   disabled={
-                    !perms?.can_implementation
+                    !canEditImplementation
                   }
                   onPress={() =>
                     setImplementationStatus(item)
@@ -1605,7 +1708,7 @@ function ReferenceCenterBody() {
                 <Pressable
                   key={item}
                   disabled={
-                    !perms?.can_implementation
+                    !canEditImplementation
                   }
                   onPress={() =>
                     setVerificationStatus(item)
@@ -1642,12 +1745,12 @@ function ReferenceCenterBody() {
             placeholderTextColor="#91A097"
             style={[
               styles.input,
-              !perms?.can_implementation &&
+              !canEditImplementation &&
                 styles.readOnlyInput,
             ]}
           />
 
-          {perms?.can_implementation && (
+          {canEditImplementation && (
             <>
               <Text style={styles.fieldLabel}>
                 IMPLEMENTATION UPDATE REASON
@@ -1676,6 +1779,19 @@ function ReferenceCenterBody() {
           <Text style={styles.rightEyebrow}>
             VERSION HISTORY
           </Text>
+
+          {!historyLoaded ? (
+            <ActionButton
+              icon="history"
+              label="LOAD HISTORY"
+              onPress={() =>
+                void loadHistoryPage(false)
+              }
+              disabled={busy}
+              secondary
+            />
+          ) : null}
+
           {history.map(version => (
             <Pressable
               key={version.id}
@@ -1715,6 +1831,19 @@ function ReferenceCenterBody() {
               />
             </Pressable>
           ))}
+
+          {historyLoaded &&
+            historyHasMore && (
+              <ActionButton
+                icon="chevron-down"
+                label="LOAD MORE"
+                onPress={() =>
+                  void loadHistoryPage(true)
+                }
+                disabled={busy}
+                secondary
+              />
+            )}
         </ScrollView>
       ) : null}
     </View>
@@ -1779,7 +1908,8 @@ function ReferenceCenterBody() {
         </View>
 
         <View style={styles.topActions}>
-          {perms?.can_draft && (
+          {desktop &&
+            perms?.can_draft && (
             <ActionButton
               icon="file-plus-outline"
               label="NEW DRAFT"
@@ -2135,17 +2265,25 @@ function ReferenceCenterBody() {
         </View>
       )}
 
-      <View
-        style={[
-          styles.workspace,
-          !desktop &&
-            styles.workspaceMobile,
-        ]}
-      >
-        {leftPanel}
-        {centerPanel}
-        {rightPanel}
-      </View>
+      {desktop ? (
+        <View style={styles.workspace}>
+          {leftPanel}
+          {centerPanel}
+          {rightPanel}
+        </View>
+      ) : (
+        <ScrollView
+          style={styles.mobileWorkspaceScroll}
+          contentContainerStyle={
+            styles.mobileWorkspaceContent
+          }
+          keyboardShouldPersistTaps="handled"
+        >
+          {leftPanel}
+          {centerPanel}
+          {rightPanel}
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -2361,8 +2499,11 @@ const styles = StyleSheet.create({
     minHeight: 0,
     flexDirection: 'row',
   },
-  workspaceMobile: {
-    flexDirection: 'column',
+  mobileWorkspaceScroll: {
+    flex: 1,
+  },
+  mobileWorkspaceContent: {
+    paddingBottom: 60,
   },
   leftPanel: {
     width: 250,
@@ -2371,6 +2512,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAF8',
     borderRightWidth: 1,
     borderRightColor: '#DCE5E0',
+  },
+  leftPanelMobile: {
+    width: '100%',
+    minWidth: 0,
+    maxWidth: '100%',
+    height: 260,
+    borderRightWidth: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#DCE5E0',
   },
   leftHeader: {
     padding: 12,
@@ -2433,6 +2583,11 @@ const styles = StyleSheet.create({
     minWidth: 0,
     backgroundColor: '#FFFFFF',
   },
+  centerPanelMobile: {
+    width: '100%',
+    minHeight: 620,
+    flex: 0,
+  },
   editorHeader: {
     minHeight: 64,
     flexDirection: 'row',
@@ -2474,6 +2629,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAF8',
     borderLeftWidth: 1,
     borderLeftColor: '#DCE5E0',
+  },
+  rightPanelMobile: {
+    width: '100%',
+    minWidth: 0,
+    maxWidth: '100%',
+    minHeight: 760,
+    borderLeftWidth: 0,
+    borderTopWidth: 1,
+    borderTopColor: '#DCE5E0',
   },
   rightContent: {
     padding: 12,
