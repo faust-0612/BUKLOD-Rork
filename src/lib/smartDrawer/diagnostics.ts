@@ -4,6 +4,7 @@ import {
   getSmartDrawerSummary,
   listSmartDrawerPendingSync,
 } from './localStore';
+import type { SmartDrawerItem } from './types';
 
 export type SmartDrawerDiagnostics = {
   storeMode: 'SQLITE_LOCAL' | 'WEB_LOCAL_FALLBACK';
@@ -25,7 +26,8 @@ export async function getSmartDrawerDiagnostics(
   userId: string,
 ): Promise<SmartDrawerDiagnostics> {
   const summary = await getSmartDrawerSummary(userId);
-  const pending = await listSmartDrawerPendingSync(userId, 100);
+  const pending: SmartDrawerItem[] =
+    await listSmartDrawerPendingSync(userId, 100);
 
   let notificationPermission:
     SmartDrawerDiagnostics['notificationPermission'] =
