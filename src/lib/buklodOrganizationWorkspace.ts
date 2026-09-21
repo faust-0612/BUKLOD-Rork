@@ -46,6 +46,7 @@ export type BuklodModuleAuthority =
 export type BuklodOrganizationModuleDefinition = {
   id: BuklodOrganizationModuleId;
   displayName: string;
+  messageKey: string;
   group: BuklodOrganizationModuleGroup;
   icon: string;
   permission: string;
@@ -85,6 +86,7 @@ export const BUKLOD_ORGANIZATION_MODULE_REGISTRY: readonly BuklodOrganizationMod
   {
     id: 'overview',
     displayName: 'Overview',
+    messageKey: 'organization.workspace.module.overview',
     group: 'OVERVIEW',
     icon: 'view-dashboard-outline',
     permission: 'organization.workspace.open',
@@ -95,6 +97,7 @@ export const BUKLOD_ORGANIZATION_MODULE_REGISTRY: readonly BuklodOrganizationMod
   {
     id: 'community',
     displayName: 'Community',
+    messageKey: 'organization.workspace.module.community',
     group: 'COMMUNICATE',
     icon: 'account-group-outline',
     permission: 'organization.community.open',
@@ -105,6 +108,7 @@ export const BUKLOD_ORGANIZATION_MODULE_REGISTRY: readonly BuklodOrganizationMod
   {
     id: 'connect',
     displayName: 'Connect',
+    messageKey: 'organization.workspace.module.connect',
     group: 'COMMUNICATE',
     icon: 'message-text-outline',
     permission: 'organization.connect.open',
@@ -115,6 +119,7 @@ export const BUKLOD_ORGANIZATION_MODULE_REGISTRY: readonly BuklodOrganizationMod
   {
     id: 'announcements',
     displayName: 'Announcements',
+    messageKey: 'organization.workspace.module.announcements',
     group: 'COMMUNICATE',
     icon: 'bullhorn-outline',
     permission: 'organization.announcements.view',
@@ -125,6 +130,7 @@ export const BUKLOD_ORGANIZATION_MODULE_REGISTRY: readonly BuklodOrganizationMod
   {
     id: 'members',
     displayName: 'Members',
+    messageKey: 'organization.workspace.module.members',
     group: 'PEOPLE',
     icon: 'account-multiple-outline',
     permission: 'organization.members.manage',
@@ -136,6 +142,7 @@ export const BUKLOD_ORGANIZATION_MODULE_REGISTRY: readonly BuklodOrganizationMod
   {
     id: 'units',
     displayName: 'Units',
+    messageKey: 'organization.workspace.module.units',
     group: 'PEOPLE',
     icon: 'sitemap-outline',
     permission: 'suborg.manage',
@@ -147,6 +154,7 @@ export const BUKLOD_ORGANIZATION_MODULE_REGISTRY: readonly BuklodOrganizationMod
   {
     id: 'reports',
     displayName: 'Reports',
+    messageKey: 'organization.workspace.module.reports',
     group: 'WORK',
     icon: 'file-chart-outline',
     permission: 'reports.view',
@@ -157,6 +165,7 @@ export const BUKLOD_ORGANIZATION_MODULE_REGISTRY: readonly BuklodOrganizationMod
   {
     id: 'classroom',
     displayName: 'Classroom',
+    messageKey: 'organization.workspace.module.classroom',
     group: 'WORK',
     icon: 'school-outline',
     permission: 'classroom.open',
@@ -167,6 +176,7 @@ export const BUKLOD_ORGANIZATION_MODULE_REGISTRY: readonly BuklodOrganizationMod
   {
     id: 'quiz',
     displayName: 'Quiz / Assessment',
+    messageKey: 'organization.workspace.module.quiz',
     group: 'WORK',
     icon: 'clipboard-text-outline',
     permission: 'quiz.open',
@@ -177,6 +187,7 @@ export const BUKLOD_ORGANIZATION_MODULE_REGISTRY: readonly BuklodOrganizationMod
   {
     id: 'events',
     displayName: 'Events',
+    messageKey: 'organization.workspace.module.events',
     group: 'ORGANIZE',
     icon: 'calendar-star',
     permission: 'events.view',
@@ -187,6 +198,7 @@ export const BUKLOD_ORGANIZATION_MODULE_REGISTRY: readonly BuklodOrganizationMod
   {
     id: 'calendar',
     displayName: 'Calendar',
+    messageKey: 'organization.workspace.module.calendar',
     group: 'ORGANIZE',
     icon: 'calendar-month-outline',
     permission: 'organization.calendar.view',
@@ -197,6 +209,7 @@ export const BUKLOD_ORGANIZATION_MODULE_REGISTRY: readonly BuklodOrganizationMod
   {
     id: 'files',
     displayName: 'Files',
+    messageKey: 'organization.workspace.module.files',
     group: 'ORGANIZE',
     icon: 'folder-outline',
     permission: 'files.view',
@@ -207,6 +220,7 @@ export const BUKLOD_ORGANIZATION_MODULE_REGISTRY: readonly BuklodOrganizationMod
   {
     id: 'help',
     displayName: 'Help',
+    messageKey: 'organization.workspace.module.help',
     group: 'SUPPORT',
     icon: 'lifebuoy',
     permission: 'organization.help.open',
@@ -217,6 +231,7 @@ export const BUKLOD_ORGANIZATION_MODULE_REGISTRY: readonly BuklodOrganizationMod
   {
     id: 'manage',
     displayName: 'Manage',
+    messageKey: 'organization.workspace.module.manage',
     group: 'ADMIN',
     icon: 'cog-outline',
     permission: 'organization.manage',
@@ -641,18 +656,27 @@ export function writeInstitutionWorkspaceConfig(
 export function institutionModuleLabel(
   config: BuklodInstitutionWorkspaceConfig,
   moduleId: BuklodOrganizationModuleId,
+  translate?: (key: string) => string,
 ) {
   if (moduleId === 'members') return config.terminology.members;
   if (moduleId === 'units') return config.terminology.unit;
   if (moduleId === 'classroom') return config.terminology.classroom;
   if (moduleId === 'quiz') return config.terminology.quiz;
 
-  return (
+  const module =
     BUKLOD_ORGANIZATION_MODULE_REGISTRY.find(
-      module => module.id === moduleId,
-    )?.displayName ??
-    moduleId
-  );
+      item => item.id === moduleId,
+    );
+  if (!module) return moduleId;
+
+  if (translate) {
+    const translated = translate(module.messageKey);
+    if (translated && translated !== module.messageKey) {
+      return translated;
+    }
+  }
+
+  return module.displayName;
 }
 
 export function institutionModuleEnabled(
