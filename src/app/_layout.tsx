@@ -218,6 +218,7 @@ export default function RootLayout() {
                 <Stack.Screen name="admin/pilot/cohorts" />
                 <Stack.Screen name="admin/pilot/feedback" />
                 <Stack.Screen name="admin/configuration-center" />
+                <Stack.Screen name="admin/canonical-reference" />
                 <Stack.Screen name="admin/foundation-access" />
                 <Stack.Screen name="admin/faith-payments" />
                 <Stack.Screen name="admin/account-recovery" />
