@@ -92,8 +92,16 @@ export default function BuklodCommunityWallEngagementLayer({
           .limit(8);
 
         const [notifications, memberships] = await Promise.allSettled([
-          withBuklodTimeout(notificationQuery, 3500, 'Wall unread activity'),
-          withBuklodTimeout(groupQuery, 3500, 'Wall Samahang memberships'),
+          withBuklodTimeout<{ data: any[] | null; error: any | null }>(
+            notificationQuery,
+            3500,
+            'Wall unread activity',
+          ),
+          withBuklodTimeout<{ data: any[] | null; error: any | null }>(
+            groupQuery,
+            3500,
+            'Wall Samahang memberships',
+          ),
         ]);
 
         if (!alive) return;
