@@ -292,48 +292,6 @@ export default function BuklodScreen(){
   shared,
   paletteId,
  }=useBuklodPresentation();
- const { showFeedback }=useBuklodFeedback();
-
- const reportCommunityFailure=useCallback((
-  error:unknown,
-  title:string,
-  message:string,
-  outcome:string,
- )=>{
-  const base=buildBuklodUserFeedback(error,{
-   context:'general',
-   fallbackTitle:title,
-   fallbackMessage:message,
-  });
-  const feedback={
-   ...base,
-   tone:'error' as const,
-   title,
-   message,
-   nextStep:'Try again. If it repeats, open Need Help.',
-   supportCode:base.supportCode??'SYS-500',
-   retryable:true,
-   needsSupport:true,
-  };
-  showFeedback(feedback,{
-   autoHideMs:null,
-   helpParams:{
-    category:'TECHNICAL',
-    errorCode:feedback.supportCode,
-    message:feedback.message,
-    sourceRoute:'/(tabs)/buklod',
-   },
-  });
-  void trackBuklodFeedbackEvent({
-   event:'error_shown',
-   category:feedback.category,
-   supportCode:feedback.supportCode,
-   route:'/(tabs)/buklod',
-   feature:'Community Wall',
-   outcome,
-  });
- },[showFeedback]);
-
  if(scopeLoading && !activeScope){
   return(
    <View
@@ -402,6 +360,47 @@ function LegacyPublicBuklodScreen(){
   shared,
   paletteId,
  }=useBuklodPresentation();
+ const { showFeedback }=useBuklodFeedback();
+
+ const reportCommunityFailure=useCallback((
+  error:unknown,
+  title:string,
+  message:string,
+  outcome:string,
+ )=>{
+  const base=buildBuklodUserFeedback(error,{
+   context:'general',
+   fallbackTitle:title,
+   fallbackMessage:message,
+  });
+  const feedback={
+   ...base,
+   tone:'error' as const,
+   title,
+   message,
+   nextStep:'Try again. If it repeats, open Need Help.',
+   supportCode:base.supportCode??'SYS-500',
+   retryable:true,
+   needsSupport:true,
+  };
+  showFeedback(feedback,{
+   autoHideMs:null,
+   helpParams:{
+    category:'TECHNICAL',
+    errorCode:feedback.supportCode,
+    message:feedback.message,
+    sourceRoute:'/(tabs)/buklod',
+   },
+  });
+  void trackBuklodFeedbackEvent({
+   event:'error_shown',
+   category:feedback.category,
+   supportCode:feedback.supportCode,
+   route:'/(tabs)/buklod',
+   feature:'Community Wall',
+   outcome,
+  });
+ },[showFeedback]);
  const {
   openReport,
   reportSheet,
