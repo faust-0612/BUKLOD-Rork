@@ -72,6 +72,10 @@ export default function BuklodHelpScreen() {
     errorCode?: string;
     message?: string;
     sourceRoute?: string;
+    organizationId?: string;
+    suborganizationId?: string;
+    moduleId?: string;
+    organizationRole?: string;
   }>();
   const [signedIn, setSignedIn] = useState(false);
   const [category, setCategory] =
@@ -193,6 +197,18 @@ export default function BuklodHelpScreen() {
           String(params.errorCode ?? '').trim() ||
           null,
         languageCode: locale,
+        organizationId:
+          String(params.organizationId ?? '').trim() ||
+          null,
+        suborganizationId:
+          String(params.suborganizationId ?? '').trim() ||
+          null,
+        moduleId:
+          String(params.moduleId ?? '').trim() ||
+          null,
+        organizationRole:
+          String(params.organizationRole ?? '').trim() ||
+          null,
       });
       setResult(next);
       if (next.outcome === 'CASE_CREATED') {
