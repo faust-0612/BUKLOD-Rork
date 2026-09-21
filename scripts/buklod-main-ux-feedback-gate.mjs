@@ -187,6 +187,47 @@ requireText(
   'Unresolved Help preserves support case creation',
 );
 
+forbidText(
+  'src/app/(auth)/forgot-password.tsx',
+  'System Admin verification',
+  'Recovery no longer tells users to contact System Admin',
+);
+forbidText(
+  'src/app/(auth)/forgot-password.tsx',
+  'Use Admin Help',
+  'Recovery unresolved path uses central Need Help',
+);
+forbidText(
+  'src/app/(auth)/forgot-password.tsx',
+  'Status check: ${String(error?.message',
+  'Recovery polling never renders raw exception text',
+);
+forbidText(
+  'src/app/(tabs)/buklod.tsx',
+  "'Community',\n      error.message",
+  'Community refresh never renders raw backend error',
+);
+forbidText(
+  'src/app/organizations/manage.tsx',
+  '? error.message',
+  'Organization screen never renders raw backend error',
+);
+forbidText(
+  'src/app/organizations/suborganizations.tsx',
+  '? error.message',
+  'Sub-Org screen never renders raw backend error',
+);
+requireText(
+  'src/app/bayanihan/index.tsx',
+  "pathname: '/help'",
+  'Bayanihan failure exposes Need Help',
+);
+requireText(
+  'src/app/(tabs)/me.tsx',
+  'reportProfileFailure',
+  'Profile critical actions use safe failure presenter',
+);
+
 requireText(
   'supabase/migrations/20260920225500_buklod_central_support_v1.sql',
   'buklod_support_feedback_events',
