@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontSize: 12,
     lineHeight: 17,
-    fontWeight: '650',
+    fontWeight: '600',
   },
   nextStep: {
     marginTop: 5,
