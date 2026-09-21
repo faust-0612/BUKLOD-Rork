@@ -40,6 +40,8 @@ export async function runSmartDrawerLifecycleCleanup(
 
     if (!page.length) break;
 
+    let pageRemoved = 0;
+
     for (const summary of page) {
       const item =
         await getSmartDrawerItem(
@@ -75,6 +77,7 @@ export async function runSmartDrawerLifecycleCleanup(
         )
       ) {
         removed += 1;
+        pageRemoved += 1;
       }
     }
 
@@ -82,9 +85,9 @@ export async function runSmartDrawerLifecycleCleanup(
 
     /*
      * Rows deleted above collapse the result set.
-     * Keep offset stable when cleanup happened, otherwise advance.
+     * Keep offset stable only when this page actually removed rows.
      */
-    if (!removed) {
+    if (pageRemoved === 0) {
       offset += page.length;
     }
   }
