@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 
+import { loadSmartDrawerSettings } from './settings';
 import type { SmartDrawerItem } from './types';
 
 const CHANNEL_ID = 'buklod-smart-drawer';
@@ -55,11 +56,23 @@ export async function scheduleSmartDrawerReminders(
     });
   }
 
+  const settings = await loadSmartDrawerSettings(item.userId);
   const targets: Array<{ at: number; label: string }> = [];
-  const advance = dueMs - 60 * 60 * 1000;
-  if (advance > Date.now() + 5 * 60 * 1000) {
-    targets.push({ at: advance, label: 'Coming up' });
+
+  if (settings.reminderStyle === 'PERSISTENT') {
+    const dayBefore = dueMs - 24 * 60 * 60 * 1000;
+    if (dayBefore > Date.now() + 5 * 60 * 1000) {
+      targets.push({ at: dayBefore, label: 'Coming up tomorrow' });
+    }
   }
+
+  if (settings.reminderStyle !== 'MINIMAL') {
+    const advance = dueMs - 60 * 60 * 1000;
+    if (advance > Date.now() + 5 * 60 * 1000) {
+      targets.push({ at: advance, label: 'Coming up' });
+    }
+  }
+
   targets.push({ at: dueMs, label: 'Due now' });
 
   const ids: string[] = [];
