@@ -317,7 +317,7 @@ export default function ForgotPasswordScreen() {
 
         const state = String(data?.state ?? 'waiting');
         if (state === 'waiting') {
-          setRecoveryStateText('Waiting for System Admin verification…');
+          setRecoveryStateText('Waiting for BUKLOD Support verification…');
           return;
         }
         if (state === 'verified') {
@@ -351,8 +351,13 @@ export default function ForgotPasswordScreen() {
         }
       } catch (error: any) {
         if (!cancelled) {
+          const feedback = showRecoveryFailure(
+            error,
+            'assisted_recovery_status_failed',
+            "BUKLOD couldn't refresh the recovery status right now. Your request is safe.",
+          );
           setRecoveryStateText(
-            `Status check: ${String(error?.message ?? error ?? 'temporarily unavailable')}`
+            `${feedback.message} Try again shortly or open Need Help.`
           );
         }
       } finally {
@@ -390,7 +395,7 @@ export default function ForgotPasswordScreen() {
     if (emailReady === false) {
       return Alert.alert(
         'Automatic Recovery',
-        'Automatic recovery is temporarily unavailable. Use Recovery PIN or Admin Help.'
+        'Automatic recovery is temporarily unavailable. Use Recovery PIN or Need Help.'
       );
     }
     if (emailInFlight.current) return;
@@ -500,11 +505,11 @@ export default function ForgotPasswordScreen() {
       const recoveryToken = String(data?.recoveryToken ?? '').trim();
       const accounts: OtpAccount[] = Array.isArray(data?.accounts) ? data.accounts : [];
       if (recoveryToken.length < 32 || accounts.length < 1) {
-        throw new Error('The verified recovery session could not be completed. Use Admin Help.');
+        throw new Error('The verified recovery session could not be completed. Open Need Help so BUKLOD Support can continue safely.');
       }
       if (accounts.length > 1) {
         throw new Error(
-          'More than one BUKLOD account uses that recovery contact. Use Admin Help so the correct account can be selected safely.'
+          'More than one BUKLOD account uses that recovery contact. Open Need Help so BUKLOD Support can select the correct account safely.'
         );
       }
 
@@ -691,18 +696,18 @@ export default function ForgotPasswordScreen() {
     const cleanIdentifier = adminIdentifier.trim();
     if (!forgotLogin && cleanIdentifier.length < 3) {
       return Alert.alert(
-        'Admin Assistance',
+        'Support Assistance',
         'Enter the username, mobile number, or email you remember. If you do not remember any login, choose “I forgot my login too.”'
       );
     }
 
     if (forgotLogin) {
       if (firstName.trim().length < 2 || surname.trim().length < 2) {
-        return Alert.alert('Admin Assistance', 'Enter your first name and surname.');
+        return Alert.alert('Support Assistance', 'Enter your first name and surname.');
       }
       if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate.trim())) {
         return Alert.alert(
-          'Admin Assistance',
+          'Support Assistance',
           'Enter birthday as YYYY-MM-DD, for example 1990-05-23.'
         );
       }
@@ -750,7 +755,7 @@ export default function ForgotPasswordScreen() {
         );
       }
 
-      setRecoveryStateText('Waiting for System Admin verification… Keep this recovery screen open.');
+      setRecoveryStateText('Waiting for BUKLOD Support verification… Keep this recovery screen open.');
       setRecoverySession({
         requestId,
         requestToken: requestToken.toLowerCase(),
@@ -760,7 +765,7 @@ export default function ForgotPasswordScreen() {
       if (Platform.OS !== 'web') {
         Alert.alert(
           'Recovery Request Received',
-          'Your request is waiting for System Admin verification. Keep this screen open. Once verified, the one-time recovery code will appear here automatically.'
+          'Your request is waiting for BUKLOD Support verification. Keep this screen open. Once verified, the one-time recovery code will appear here automatically.'
         );
       }
     } catch (error: any) {
@@ -781,7 +786,7 @@ export default function ForgotPasswordScreen() {
     if (!/^[A-Z2-9]{10}$/.test(clean)) {
       return Alert.alert(
         'One-Time Code',
-        'Enter the 10-character one-time code shown after admin verification.'
+        'Enter the 10-character one-time code provided after BUKLOD Support verification.'
       );
     }
     if (codePassword.length < 8) {
@@ -874,7 +879,7 @@ export default function ForgotPasswordScreen() {
         <Text style={styles.title}>Recover Your BUKLOD Account</Text>
         <Text style={styles.subtitle}>
           Automatic recovery checks your registered email, mobile number, or username. A matched
-          account receives a 6-digit code automatically. Admin Help is fallback only.
+          account receives a 6-digit code automatically. Need Help is available if automatic recovery remains unresolved.
         </Text>
 
         {!!recoveryFeedback && (
@@ -939,7 +944,7 @@ export default function ForgotPasswordScreen() {
               <View style={styles.warningCard}>
                 <MaterialCommunityIcons name="alert-circle-outline" size={20} color="#8A5A00" />
                 <Text style={styles.warningText}>
-                  Automatic recovery is temporarily unavailable. Use Recovery PIN or Admin Help.
+                  Automatic recovery is temporarily unavailable. Use Recovery PIN or Need Help.
                 </Text>
               </View>
             ) : null}
@@ -1265,7 +1270,7 @@ export default function ForgotPasswordScreen() {
 
               <PrimaryButton
                 busy={requestBusy}
-                label={requestSent ? 'SUBMIT NEW REQUEST' : 'REQUEST ADMIN ASSISTANCE'}
+                label={requestSent ? 'SUBMIT NEW REQUEST' : 'REQUEST SUPPORT ASSISTANCE'}
                 onPress={requestAdminHelp}
               />
 
@@ -1306,7 +1311,7 @@ export default function ForgotPasswordScreen() {
 
             <View style={styles.card}>
               <Text style={styles.cardTitle}>
-                {receivedCode ? 'Create your new password' : 'Already received an admin code?'}
+                {receivedCode ? 'Create your new password' : 'Already received a support recovery code?'}
               </Text>
               <FieldLabel>10-character one-time code</FieldLabel>
               <TextInput
