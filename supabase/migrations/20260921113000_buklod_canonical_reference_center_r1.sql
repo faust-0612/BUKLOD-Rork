@@ -6,7 +6,8 @@ begin;
 
 insert into public.buklod_foundation_permissions(permission_key,description,risk_level,is_active)
 values
-  ('canonical.reference.view','View the internal current BUKLOD Canonical Reference and permitted history.','MEDIUM',true),
+  ('canonical.reference.view','View permitted internal BUKLOD Canonical Reference content and history metadata.','MEDIUM',true),
+  ('canonical.reference.restricted_view','View restricted internal financial/security/privacy Canonical Reference sections.','HIGH',true),
   ('canonical.reference.draft','Create and edit Canonical Reference drafts.','HIGH',true),
   ('canonical.reference.review','Submit/reject Canonical Reference reviews.','HIGH',true),
   ('canonical.reference.approve','Approve Canonical Reference versions.','HIGH',true),
@@ -185,7 +186,13 @@ using(public.buklod_canonical_has_permission_v1('canonical.reference.view'));
 drop policy if exists buklod_canonical_sections_read on public.buklod_canonical_sections;
 create policy buklod_canonical_sections_read
 on public.buklod_canonical_sections for select to authenticated
-using(public.buklod_canonical_has_permission_v1('canonical.reference.view'));
+using(
+  public.buklod_canonical_has_permission_v1('canonical.reference.view')
+  and (
+    visibility_scope='INTERNAL'
+    or public.buklod_canonical_has_permission_v1('canonical.reference.restricted_view')
+  )
+);
 
 drop policy if exists buklod_canonical_impl_links_read on public.buklod_canonical_implementation_links;
 create policy buklod_canonical_impl_links_read
@@ -195,7 +202,7 @@ using(public.buklod_canonical_has_permission_v1('canonical.reference.view'));
 drop policy if exists buklod_canonical_change_log_read on public.buklod_canonical_change_log;
 create policy buklod_canonical_change_log_read
 on public.buklod_canonical_change_log for select to authenticated
-using(public.buklod_canonical_has_permission_v1('canonical.reference.view'));
+using(public.buklod_canonical_has_permission_v1('canonical.reference.restricted_view'));
 
 -- No authenticated direct write policies are created. All privileged writes flow
 -- through audited SECURITY DEFINER RPCs below.
@@ -285,9 +292,14 @@ begin
       ) order by s.sort_order),'[]'::jsonb)
       from public.buklod_canonical_sections s
       where s.version_id=v_version.id
+        and (
+          s.visibility_scope='INTERNAL'
+          or public.buklod_canonical_has_permission_v1('canonical.reference.restricted_view')
+        )
     ),
     'permissions',jsonb_build_object(
       'can_view',true,
+      'can_restricted_view',public.buklod_canonical_has_permission_v1('canonical.reference.restricted_view'),
       'can_draft',public.buklod_canonical_has_permission_v1('canonical.reference.draft'),
       'can_review',public.buklod_canonical_has_permission_v1('canonical.reference.review'),
       'can_approve',public.buklod_canonical_has_permission_v1('canonical.reference.approve'),
@@ -315,7 +327,11 @@ begin
   select * into v_row
   from public.buklod_canonical_sections
   where version_id=p_version_id
-    and section_key=p_section_key;
+    and section_key=p_section_key
+    and (
+      visibility_scope='INTERNAL'
+      or public.buklod_canonical_has_permission_v1('canonical.reference.restricted_view')
+    );
 
   if not found then raise exception 'Canonical section not found'; end if;
   return to_jsonb(v_row);
@@ -920,11 +936,19 @@ begin
     select section_key,title,sort_order,content_markdown
     from public.buklod_canonical_sections
     where version_id=p_before_version_id
+      and (
+        visibility_scope='INTERNAL'
+        or public.buklod_canonical_has_permission_v1('canonical.reference.restricted_view')
+      )
   ),
   a as (
     select section_key,title,sort_order,content_markdown
     from public.buklod_canonical_sections
     where version_id=p_after_version_id
+      and (
+        visibility_scope='INTERNAL'
+        or public.buklod_canonical_has_permission_v1('canonical.reference.restricted_view')
+      )
   )
   select
     coalesce(a.section_key,b.section_key),
@@ -996,6 +1020,10 @@ begin
       or v.id=d.current_effective_version_id
     )
     and (
+      s.visibility_scope='INTERNAL'
+      or public.buklod_canonical_has_permission_v1('canonical.reference.restricted_view')
+    )
+    and (
       to_tsvector('simple',coalesce(s.title,'')||' '||coalesce(s.content_markdown,''))
       @@ plainto_tsquery('simple',q)
       or s.title ilike '%'||q||'%'
@@ -1043,7 +1071,11 @@ begin
   )
   into v_body
   from public.buklod_canonical_sections s
-  where s.version_id=v.id;
+  where s.version_id=v.id
+    and (
+      s.visibility_scope='INTERNAL'
+      or public.buklod_canonical_has_permission_v1('canonical.reference.restricted_view')
+    );
 
   return '# '||v_doc.title||E'\n\n'
     ||'- Document key: '||v_doc.document_key||E'\n'
@@ -1056,6 +1088,7 @@ begin
 end;
 $$;
 
+revoke all on function public.buklod_canonical_audit_v1(text,uuid,uuid,text,text,text,text,jsonb) from public,anon,authenticated;
 revoke all on function public.buklod_canonical_has_permission_v1(text) from public,anon;
 revoke all on function public.buklod_canonical_assert_permission_v1(text) from public,anon;
 revoke all on function public.buklod_canonical_current_v1(text) from public,anon;
