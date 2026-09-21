@@ -14,6 +14,7 @@ export type BuklodSupportCategory =
   | 'APP_NOT_RESPONDING'
   | 'OTHER_ACCOUNT'
   | 'QUIZ'
+  | 'REPORT'
   | 'CLASSROOM'
   | 'ORGANIZATION'
   | 'REPORTED_CONTENT'
@@ -33,6 +34,7 @@ export const BUKLOD_SUPPORT_CATEGORIES: {
   { key: 'APP_NOT_RESPONDING', label: 'App does not respond', preLogin: true },
   { key: 'OTHER_ACCOUNT', label: 'Other account problem', preLogin: true },
   { key: 'QUIZ', label: 'Quiz', preLogin: false },
+  { key: 'REPORT', label: 'BUKLOD Report', preLogin: false },
   { key: 'CLASSROOM', label: 'Classroom', preLogin: false },
   { key: 'ORGANIZATION', label: 'Organization / Cluster / Sub-Org', preLogin: false },
   { key: 'REPORTED_CONTENT', label: 'Report content / moderation', preLogin: false },
