@@ -2203,7 +2203,7 @@ const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p
   );
 
   const {error}=
-    awaitcommunityRpc('set_buklod_post_reaction_v3',
+    await communityRpc('set_buklod_post_reaction_v3',
       {
         p_post_id:
           postId,
