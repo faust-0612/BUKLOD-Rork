@@ -17,13 +17,14 @@ const lower=(v:any,max=240)=>clean(v,max).toLowerCase();
 
 const CATEGORIES=new Set([
   "SIGN_IN","FORGOT_PASSWORD","ACCOUNT_LOCKED","RECOVERY_CODE",
-  "APP_NOT_RESPONDING","OTHER_ACCOUNT","QUIZ","CLASSROOM",
+  "APP_NOT_RESPONDING","OTHER_ACCOUNT","QUIZ","REPORT","CLASSROOM",
   "ORGANIZATION","REPORTED_CONTENT","TECHNICAL","FINANCIAL","OTHER"
 ]);
 
 function queueFor(category:string,feature:string){
   const f=feature.toLowerCase();
   if(category==="QUIZ"||f.includes("quiz")) return "QUIZ_SUPPORT";
+  if(category==="REPORT"||f.includes("report")) return "REPORT_SUPPORT";
   if(category==="CLASSROOM"||f.includes("classroom")) return "CLASSROOM_SUPPORT";
   if(category==="ORGANIZATION"||/organization|cluster|sub-org|suborg/.test(f)) return "COMMUNITY_OPERATIONS";
   if(category==="REPORTED_CONTENT"||/moderation|report|content/.test(f)) return "MODERATION";
@@ -42,6 +43,7 @@ function caseTitle(category:string){
     APP_NOT_RESPONDING:"App does not respond",
     OTHER_ACCOUNT:"Other account problem",
     QUIZ:"Quiz support",
+    REPORT:"BUKLOD Report support",
     CLASSROOM:"Classroom support",
     ORGANIZATION:"Organization / Cluster support",
     REPORTED_CONTENT:"Reported content",
