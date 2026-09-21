@@ -381,7 +381,10 @@ function itemMatchesView(item: SmartDrawerItem, view: string) {
     case 'reference':
       return active && item.type === 'REFERENCE';
     case 'archive':
-      return item.status === 'ARCHIVED';
+      return (
+        item.status === 'ARCHIVED' ||
+        item.status === 'DONE'
+      );
     case 'recently-removed':
       return item.status === 'RECENTLY_REMOVED';
     default:
@@ -454,7 +457,7 @@ function nativeViewWhere(view: string) {
       };
     case 'archive':
       return {
-        sql: "i.status='ARCHIVED'",
+        sql: "i.status IN ('ARCHIVED','DONE')",
         params: [],
       };
     case 'recently-removed':
