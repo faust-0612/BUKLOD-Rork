@@ -159,10 +159,9 @@ export default function SmartDrawerReview() {
         <Pressable
           onPress={() =>
             router.replace(
-              source === 'camera'
+              (source === 'camera'
                 ? '/drawer/capture?mode=camera'
-                : '/drawer/capture?mode=scan',
-              as any,
+                : '/drawer/capture?mode=scan') as any,
             )
           }
           style={styles.savedSecondary}
