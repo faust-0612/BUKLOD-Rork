@@ -13,6 +13,7 @@ export type BuklodInstitutionPreset =
 export type BuklodOrganizationModuleId =
   | 'overview'
   | 'community'
+  | 'connect'
   | 'announcements'
   | 'members'
   | 'units'
@@ -97,6 +98,16 @@ export const BUKLOD_ORGANIZATION_MODULE_REGISTRY: readonly BuklodOrganizationMod
     group: 'COMMUNICATE',
     icon: 'account-group-outline',
     permission: 'organization.community.open',
+    authority: 'SCOPE_MEMBER',
+    availability: 'CORE',
+    defaultEnabled: true,
+  },
+  {
+    id: 'connect',
+    displayName: 'Connect',
+    group: 'COMMUNICATE',
+    icon: 'message-text-outline',
+    permission: 'organization.connect.open',
     authority: 'SCOPE_MEMBER',
     availability: 'CORE',
     defaultEnabled: true,
@@ -237,6 +248,7 @@ const PRESET_DEFAULTS: Record<
     enabled: [
       'overview',
       'community',
+      'connect',
       'announcements',
       'members',
       'units',
@@ -262,6 +274,7 @@ const PRESET_DEFAULTS: Record<
     enabled: [
       'overview',
       'community',
+      'connect',
       'announcements',
       'members',
       'units',
@@ -287,6 +300,7 @@ const PRESET_DEFAULTS: Record<
     enabled: [
       'overview',
       'community',
+      'connect',
       'announcements',
       'members',
       'units',
@@ -310,6 +324,7 @@ const PRESET_DEFAULTS: Record<
     enabled: [
       'overview',
       'community',
+      'connect',
       'announcements',
       'members',
       'units',
@@ -333,6 +348,7 @@ const PRESET_DEFAULTS: Record<
     enabled: [
       'overview',
       'community',
+      'connect',
       'announcements',
       'members',
       'units',
@@ -356,6 +372,7 @@ const PRESET_DEFAULTS: Record<
     enabled: [
       'overview',
       'community',
+      'connect',
       'announcements',
       'members',
       'units',
@@ -379,6 +396,7 @@ const PRESET_DEFAULTS: Record<
     enabled: [
       'overview',
       'community',
+      'connect',
       'announcements',
       'members',
       'units',
