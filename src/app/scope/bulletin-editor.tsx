@@ -106,10 +106,11 @@ export default function ScopeBulletinEditor() {
   const previewType = picked?.type ?? existingMediaKind;
   const previewUri = picked?.uri ?? existingMediaUrl;
 
-  const heading = useMemo(
-    () => (scope?.scope_type === 'CHURCH' ? 'Church Bulletin' : 'Cluster Bulletin'),
-    [scope?.scope_type],
-  );
+  const heading = useMemo(() => {
+    if (scope?.scope_type === 'CHURCH') return 'Church Bulletin';
+    if (scope?.scope_type === 'ORGANIZATION') return 'Organization Announcement';
+    return 'Cluster Bulletin';
+  }, [scope?.scope_type]);
 
   const reportSaveError = (message: string) => {
     setFeedback({ kind: 'error', text: message });
@@ -137,14 +138,19 @@ export default function ScopeBulletinEditor() {
           (item: ScopeRow) => item.scope_id === scopeId,
         ) as ScopeRow | undefined;
 
-        if (!selected || !['CLUSTER', 'CHURCH'].includes(selected.scope_type)) {
+        if (
+          !selected ||
+          !['CLUSTER', 'CHURCH', 'ORGANIZATION'].includes(
+            selected.scope_type,
+          )
+        ) {
           throw new Error(
-            'This bulletin is available only to Cluster or Church communities.',
+            'This announcement is not available for the selected workspace.',
           );
         }
 
         if (!selected.is_admin) {
-          throw new Error('Only the community admin can edit this bulletin.');
+          throw new Error('Only an authorized workspace admin can edit this announcement.');
         }
 
         if (!active) return;
@@ -234,7 +240,7 @@ export default function ScopeBulletinEditor() {
     setFeedback(null);
 
     if (!scopeId || !scope || !scope.is_admin) {
-      reportSaveError('Your Cluster Admin access could not be verified. Reopen the cluster and try again.');
+      reportSaveError('Your workspace admin access could not be verified. Reopen the Organization and try again.');
       return;
     }
 
