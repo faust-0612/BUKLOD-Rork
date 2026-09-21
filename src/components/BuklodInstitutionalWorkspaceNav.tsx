@@ -43,6 +43,7 @@ function orgScopes(scopes: ReturnType<typeof useBuklodScope>['scopes']) {
   return scopes.filter(
     scope =>
       String(scope.scope_type).toUpperCase() === 'ORGANIZATION' &&
+      !scope.parent_scope_id &&
       String(scope.membership_status ?? 'ACTIVE').toUpperCase() === 'ACTIVE',
   );
 }
