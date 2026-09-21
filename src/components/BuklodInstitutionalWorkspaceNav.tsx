@@ -111,6 +111,10 @@ export default function BuklodInstitutionalWorkspaceNav({
         onOpenSection('community');
         return;
       }
+      if (moduleId === 'connect') {
+        onOpenSection('connect');
+        return;
+      }
 
       router.push({
         pathname: '/organizations/module' as any,
@@ -183,7 +187,8 @@ export default function BuklodInstitutionalWorkspaceNav({
       {group.modules.map(module => {
         const active =
           (module.id === 'overview' && activeSection === 'home') ||
-          (module.id === 'community' && activeSection === 'community');
+          (module.id === 'community' && activeSection === 'community') ||
+          (module.id === 'connect' && activeSection === 'connect');
 
         return (
           <Pressable
