@@ -35,6 +35,7 @@ export type CanonicalRiskLevel =
 
 export type CanonicalReferencePermissions = {
   can_view: boolean;
+  can_restricted_view: boolean;
   can_draft: boolean;
   can_review: boolean;
   can_approve: boolean;
