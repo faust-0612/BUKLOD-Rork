@@ -218,9 +218,11 @@ export default function ForgotPasswordScreen() {
       pathname: '/help' as any,
       params: {
         category:
-          emailOtpSent || emailOtpVerified || path === 'admin'
+          recoveryFeedback
             ? 'RECOVERY_CODE'
-            : 'FORGOT_PASSWORD',
+            : emailOtpSent || emailOtpVerified || path === 'admin'
+              ? 'RECOVERY_CODE'
+              : 'FORGOT_PASSWORD',
         errorCode: feedback?.supportCode ?? 'REC-100',
         message:
           feedback?.message ||
@@ -584,10 +586,6 @@ export default function ForgotPasswordScreen() {
           : 'Password updated successfully. Use the new password. If one-tap login still shows an old password, remove that saved profile and sign in manually.';
       setEmailStatus(successMessage);
       showRecoverySuccess(successMessage, 'automatic_password_reset');
-      showRecoverySuccess(
-        'Password updated successfully. You can now sign in using your new password.',
-        'pin_password_reset',
-      );
       Alert.alert(
         'Password Changed',
         localCleanupOk
@@ -666,6 +664,10 @@ export default function ForgotPasswordScreen() {
             return false;
           });
 
+      showRecoverySuccess(
+        'Password updated successfully. You can now sign in using your new password.',
+        'pin_password_reset',
+      );
       Alert.alert(
         'Password Changed',
         localCleanupOk
@@ -913,10 +915,10 @@ export default function ForgotPasswordScreen() {
             onPress={() => selectPath('pin')}
           />
           <PathButton
-            active={path === 'admin'}
-            icon="account-wrench-outline"
-            label="ADMIN"
-            onPress={() => selectPath('admin')}
+            active={false}
+            icon="lifebuoy"
+            label="HELP"
+            onPress={openRecoveryHelp}
           />
         </View>
 
