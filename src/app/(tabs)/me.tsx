@@ -43,7 +43,7 @@ import {
   BUKLOD_HIT_SLOP,
   BUKLOD_HIT_SLOP_TIGHT,
 } from '@/lib/buklodTouch';
-import React, { ReactNode, useEffect, useMemo, useState } from 'react';
+import React, { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Image,
   Modal,
@@ -73,6 +73,11 @@ import { loadBuklodPointsDashboard } from '@/lib/buklodRewards';
 import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
 import { BuklodGlobalThemeSelectorModal } from '@/components/BuklodGlobalThemeSelector';
 import { useBuklodI18n } from '@/providers/BuklodI18nProvider';
+import { useBuklodFeedback } from '@/providers/BuklodFeedbackProvider';
+import {
+  buildBuklodUserFeedback,
+  trackBuklodFeedbackEvent,
+} from '@/lib/buklodUserFeedback';
 import {
   useBuklodTheme,
 } from '@/providers/BuklodThemeProvider';
@@ -382,6 +387,54 @@ function MenuRow({
 export default function MeScreen() {
   const { theme, shared } = useBuklodPresentation();
   const { t, languageName } = useBuklodI18n();
+  const { showFeedback } = useBuklodFeedback();
+
+  const reportProfileFailure = useCallback(
+    (
+      error: unknown,
+      title: string,
+      message: string,
+      outcome: string,
+    ) => {
+      const base = buildBuklodUserFeedback(
+        error,
+        {
+          context: 'general',
+          fallbackTitle: title,
+          fallbackMessage: message,
+        },
+      );
+      const feedback = {
+        ...base,
+        tone: 'error' as const,
+        title,
+        message,
+        nextStep: 'Try again. If it continues, open Need Help.',
+        supportCode: base.supportCode ?? 'SYS-500',
+        retryable: true,
+        needsSupport: true,
+      };
+      showFeedback(feedback, {
+        autoHideMs: null,
+        helpParams: {
+          category: 'TECHNICAL',
+          errorCode: feedback.supportCode,
+          message: feedback.message,
+          sourceRoute: '/(tabs)/me',
+        },
+      });
+      void trackBuklodFeedbackEvent({
+        event: 'error_shown',
+        category: feedback.category,
+        supportCode: feedback.supportCode,
+        route: '/(tabs)/me',
+        feature: 'Profile',
+        outcome,
+      });
+      return feedback;
+    },
+    [showFeedback],
+  );
   const params =
     useLocalSearchParams<{
       returnScopeId?:
@@ -539,11 +592,11 @@ export default function MeScreen() {
       await setMyProfileLocked(next);
       setProfileLockedState(next);
     } catch (error: unknown) {
-      Alert.alert(
-        'Profile Privacy',
-        error instanceof Error
-          ? error.message
-          : 'Could not update profile privacy.',
+      reportProfileFailure(
+        error,
+        'Profile privacy not updated',
+        "BUKLOD couldn't update your profile privacy right now.",
+        'privacy_update_failed',
       );
     } finally {
       setProfileLockBusy(false);
@@ -613,10 +666,11 @@ export default function MeScreen() {
           nextTheme
         );
       } catch (error: any) {
-        Alert.alert(
-          'Profile Theme',
-          error?.message ||
-            'Could not save your profile theme.'
+        reportProfileFailure(
+          error,
+          'Profile theme not saved',
+          "BUKLOD couldn't save your profile theme right now.",
+          'theme_save_failed',
         );
 
         throw error;
@@ -846,14 +900,14 @@ export default function MeScreen() {
       }
       catch (error: any) {
         console.error(
-          'Profile avatar:',
-          error
+          'Profile avatar update failed.'
         );
 
-        Alert.alert(
-          'Profile Photo',
-          error?.message ||
-          'Could not update profile picture.'
+        reportProfileFailure(
+          error,
+          'Profile photo not updated',
+          "BUKLOD couldn't update your profile photo right now.",
+          'avatar_update_failed',
         );
       }
       finally {
@@ -1107,14 +1161,14 @@ export default function MeScreen() {
       }
       catch (error: any) {
         console.error(
-          'Profile background:',
-          error
+          'Profile background update failed.'
         );
 
-        Alert.alert(
-          'Profile Background',
-          error?.message ||
-          'Could not update profile background.'
+        reportProfileFailure(
+          error,
+          'Profile background not updated',
+          "BUKLOD couldn't update your profile background right now.",
+          'background_update_failed',
         );
       }
     };
