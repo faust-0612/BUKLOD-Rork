@@ -195,7 +195,13 @@ export default function OrganizationsManageListScreen() {
       ] = await Promise.all([
         (supabase as any)
           .from('buklod_scopes')
-          .select('*'),
+          .select(
+            'id,name,description,parent_scope_id,visibility,status,scope_type,metadata',
+          )
+          .eq('scope_type', 'ORGANIZATION')
+          .neq('status', 'DELETED')
+          .order('name', { ascending: true })
+          .limit(500),
 
         (supabase as any).rpc(
           'buklod_my_manageable_organizations_v2',
@@ -204,7 +210,10 @@ export default function OrganizationsManageListScreen() {
         userId
           ? (supabase as any)
               .from('buklod_scope_memberships')
-              .select('*')
+              .select('scope_id,user_id,membership_status')
+              .eq('user_id', userId)
+              .eq('membership_status', 'ACTIVE')
+              .limit(500)
           : Promise.resolve({
               data: [],
               error: null,
@@ -218,17 +227,7 @@ export default function OrganizationsManageListScreen() {
       const allScopes =
         (scopesResult.data || []) as ScopeRow[];
 
-      const organizations = allScopes
-        .filter(
-          row =>
-            upper(row.scope_type) ===
-              'ORGANIZATION' &&
-            upper(row.status || 'ACTIVE') !==
-              'DELETED',
-        )
-        .sort((a, b) =>
-          a.name.localeCompare(b.name),
-        );
+      const organizations = allScopes;
 
       setScopes(organizations);
 
