@@ -713,6 +713,50 @@ export default function OrganizationSetupWizardScreen() {
           <View style={styles.toggleList}>
             {CORE_MODULES.map(renderModuleToggle)}
           </View>
+
+          <Text style={styles.label}>
+            DEFAULT LANDING MODULE
+          </Text>
+          <Text style={styles.help}>
+            Members open this enabled module first after selecting the
+            Organization. The module gateway still verifies permissions.
+          </Text>
+          <View style={styles.choiceWrap}>
+            {BUKLOD_ORGANIZATION_MODULE_REGISTRY
+              .filter(
+                item =>
+                  !item.adminOnly &&
+                  (item.id === 'overview' ||
+                    item.id === 'help' ||
+                    config.enabledModules[item.id] !== false),
+              )
+              .map(item => (
+                <Pressable
+                  key={item.id}
+                  onPress={() =>
+                    updateConfig(current => ({
+                      ...current,
+                      defaultLandingModule: item.id,
+                    }))
+                  }
+                  style={[
+                    styles.choice,
+                    config.defaultLandingModule === item.id &&
+                      styles.choiceOn,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.choiceText,
+                      config.defaultLandingModule === item.id &&
+                        styles.choiceTextOn,
+                    ]}
+                  >
+                    {institutionModuleLabel(config, item.id)}
+                  </Text>
+                </Pressable>
+              ))}
+          </View>
         </>
       );
     }
@@ -928,6 +972,16 @@ export default function OrganizationSetupWizardScreen() {
               {visibility === 'PRIVATE'
                 ? 'INVITE ONLY'
                 : joinPolicy.replaceAll('_', ' ')}
+            </Text>
+
+            <Text style={styles.reviewLabel}>
+              DEFAULT LANDING
+            </Text>
+            <Text style={styles.reviewValue}>
+              {institutionModuleLabel(
+                config,
+                config.defaultLandingModule,
+              )}
             </Text>
 
             <Text style={styles.reviewLabel}>
