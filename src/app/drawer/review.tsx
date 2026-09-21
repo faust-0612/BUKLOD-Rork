@@ -8,6 +8,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -86,6 +87,7 @@ export default function SmartDrawerReview() {
   const [type, setType] = useState<SmartDrawerItemType>(
     source === 'camera' ? 'REFERENCE' : 'DOCUMENT',
   );
+  const [keepOriginal, setKeepOriginal] = useState(true);
   const [busy, setBusy] = useState(false);
   const [savedId, setSavedId] = useState('');
   const [notice, setNotice] = useState('');
@@ -187,14 +189,27 @@ export default function SmartDrawerReview() {
             )
           : suggested.dueAt;
 
-      const asset = await persistSmartDrawerAsset({
-        userId: user.id,
-        uri,
-        kind: source === 'camera' ? 'PHOTO' : 'SCAN',
-        width: Number.isFinite(width) ? width : null,
-        height: Number.isFinite(height) ? height : null,
-        mimeType: 'image/jpeg',
-      });
+      const assets = keepOriginal
+        ? [
+            await persistSmartDrawerAsset({
+              userId: user.id,
+              uri,
+              kind:
+                source === 'camera'
+                  ? 'PHOTO'
+                  : 'SCAN',
+              width:
+                Number.isFinite(width)
+                  ? width
+                  : null,
+              height:
+                Number.isFinite(height)
+                  ? height
+                  : null,
+              mimeType: 'image/jpeg',
+            }),
+          ]
+        : [];
 
       const result = await commitSmartDrawerItem(
         user.id,
@@ -209,7 +224,7 @@ export default function SmartDrawerReview() {
             ['EVENT', 'APPOINTMENT'].includes(type)
               ? dueAt
               : null,
-          assets: [asset],
+          assets,
           status: 'ACTIVE',
           syncState: 'LOCAL_ONLY',
         },
@@ -349,6 +364,21 @@ export default function SmartDrawerReview() {
           placeholderTextColor="#8A9BAA"
           style={[styles.input, styles.notes]}
         />
+
+        <View style={styles.originalRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.originalTitle}>
+              Keep Original Image
+            </Text>
+            <Text style={styles.originalText}>
+              Turn this off only when the details above are enough. Important receipts and documents should keep the original.
+            </Text>
+          </View>
+          <Switch
+            value={keepOriginal}
+            onValueChange={setKeepOriginal}
+          />
+        </View>
 
         <View style={styles.willBe}>
           <Text style={styles.willTitle}>
@@ -540,6 +570,28 @@ const styles = StyleSheet.create({
   },
   typeTextSelected: {
     color: '#0A6EBD',
+  },
+  originalRow: {
+    marginTop: 12,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: '#DDE7EF',
+    backgroundColor: '#FFFFFF',
+    padding: 11,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  originalTitle: {
+    color: '#294D69',
+    fontSize: 11.5,
+    fontWeight: '900',
+  },
+  originalText: {
+    marginTop: 3,
+    color: '#72879A',
+    fontSize: 9.5,
+    lineHeight: 14,
   },
   willBe: {
     marginTop: 12,
