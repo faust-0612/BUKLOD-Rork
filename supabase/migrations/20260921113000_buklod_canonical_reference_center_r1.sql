@@ -143,6 +143,24 @@ alter table public.buklod_canonical_sections enable row level security;
 alter table public.buklod_canonical_implementation_links enable row level security;
 alter table public.buklod_canonical_change_log enable row level security;
 
+-- Explicit table privilege boundary: clients may read only what RLS permits.
+-- All writes are RPC-only, even if the project has permissive default privileges.
+revoke all on table
+  public.buklod_canonical_documents,
+  public.buklod_canonical_document_versions,
+  public.buklod_canonical_sections,
+  public.buklod_canonical_implementation_links,
+  public.buklod_canonical_change_log
+from anon,authenticated;
+
+grant select on table
+  public.buklod_canonical_documents,
+  public.buklod_canonical_document_versions,
+  public.buklod_canonical_sections,
+  public.buklod_canonical_implementation_links,
+  public.buklod_canonical_change_log
+to authenticated;
+
 create or replace function public.buklod_canonical_has_permission_v1(p_permission text)
 returns boolean
 language sql stable security definer
