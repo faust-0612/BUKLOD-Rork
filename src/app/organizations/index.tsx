@@ -11,6 +11,9 @@ import { Stack, router } from 'expo-router';
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 import { colors } from '@/lib/theme';
 import { enterScopedWorkspace } from '@/lib/buklodScopeRoute';
+import {
+  loadBuklodOrganizationWorkspaceRuntime,
+} from '@/lib/buklodOrganizationWorkspaceRuntime';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 
 export default function OrganizationsIndexScreen() {
@@ -38,14 +41,49 @@ export default function OrganizationsIndexScreen() {
   );
 
   const openOrganization = async (scopeId: string) => {
-    await enterScopedWorkspace(
-      selectScope,
-      scopeId,
-      {
-        section: 'home',
-        fromPortal: true,
+    const runtime =
+      await loadBuklodOrganizationWorkspaceRuntime(scopeId);
+    const landing = runtime.config.defaultLandingModule;
+
+    if (landing === 'overview') {
+      await enterScopedWorkspace(
+        selectScope,
+        scopeId,
+        {
+          section: 'home',
+          fromPortal: true,
+        },
+      );
+      return;
+    }
+
+    if (landing === 'community' || landing === 'connect') {
+      await enterScopedWorkspace(
+        selectScope,
+        scopeId,
+        {
+          section:
+            landing === 'community'
+              ? 'community'
+              : 'connect',
+          fromPortal: true,
+        },
+      );
+      return;
+    }
+
+    await selectScope(scopeId);
+    ((router as any).canDismiss?.()
+      ? router.dismissAll()
+      : undefined);
+    router.replace({
+      pathname: '/organizations/module' as any,
+      params: {
+        scopeId,
+        organization: scopeId,
+        module: landing,
       },
-    );
+    });
   };
 
   return (
