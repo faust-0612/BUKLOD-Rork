@@ -37,7 +37,7 @@ function fallbackItems():BuklodTodayItem[]{
 
 export async function loadBuklodToday():Promise<{items:BuklodTodayItem[];generationNeeded:boolean;fallback:boolean}>{
   try{
-    const result=await withBuklodTimeout(
+    const result=await withBuklodTimeout<{data:any;error:any}>(
       (supabase as any).rpc('get_buklod_today_v1'),
       3500,
       'BUKLOD TODAY'
@@ -60,14 +60,14 @@ export async function triggerBuklodTodayGenerationIfNeeded(){
   try{
     if(await AsyncStorage.getItem(TRIGGER_KEY)===today) return false;
     await AsyncStorage.setItem(TRIGGER_KEY,today);
-    const claim=await withBuklodTimeout(
+    const claim=await withBuklodTimeout<{data:any;error:any}>(
       (supabase as any).rpc('claim_buklod_today_generation_v1'),
       3000,
       'BUKLOD TODAY claim'
     );
     const token=String(claim.data?.claim_token??'');
     if(claim.error||!claim.data?.claimed||!token) return false;
-    const invoked=await withBuklodTimeout(
+    const invoked=await withBuklodTimeout<{data:any;error:any}>(
       (supabase as any).functions.invoke('buklod-community-daily-engagement',{body:{claim_token:token}}),
       9000,
       'BUKLOD TODAY generate'
