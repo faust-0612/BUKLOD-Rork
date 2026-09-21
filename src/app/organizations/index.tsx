@@ -1,123 +1,250 @@
-/* PATCH_185D_ORG_MOJIBAKE */
-/* PATCH_ORG_PROFILE_SETUP_HUB_R24 */
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import {
-  Stack,
-  useRouter,
-} from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Stack, router } from 'expo-router';
 
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
+import { colors } from '@/lib/theme';
+import { enterScopedWorkspace } from '@/lib/buklodScopeRoute';
+import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 
 export default function OrganizationsIndexScreen() {
-  const router = useRouter();
+  const { scopes, selectScope } = useBuklodScope();
+
+  const organizations = useMemo(
+    () =>
+      scopes.filter(
+        scope =>
+          scope.scope_type === 'ORGANIZATION' &&
+          !scope.parent_scope_id &&
+          String(
+            scope.membership_status ?? 'ACTIVE',
+          ).toUpperCase() === 'ACTIVE',
+      ),
+    [scopes],
+  );
+
+  const manageable = useMemo(
+    () =>
+      organizations.filter(
+        scope => scope.is_admin,
+      ),
+    [organizations],
+  );
+
+  const openOrganization = async (scopeId: string) => {
+    await enterScopedWorkspace(
+      selectScope,
+      scopeId,
+      {
+        section: 'home',
+        fromPortal: true,
+      },
+    );
+  };
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Organization Setup' }} />
+      <Stack.Screen
+        options={{ title: 'My Organizations' }}
+      />
 
       <BuklodPortalScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.content}>
+        contentContainerStyle={styles.content}
+      >
+        <Pressable
+          onPress={() =>
+            router.replace('/(tabs)/buklod' as any)
+          }
+          style={styles.back}
+        >
+          <MaterialCommunityIcons
+            name="arrow-left"
+            size={20}
+            color={colors.greenDark}
+          />
+          <Text style={styles.backText}>
+            Back to BUKLOD
+          </Text>
+        </Pressable>
+
         <View style={styles.header}>
-          <Text style={styles.eyebrow}>BUKLOD ORGANIZATION</Text>
-          <Text style={styles.title}>Organization Setup Hub</Text>
+          <Text style={styles.eyebrow}>
+            BUKLOD ORGANIZATION
+          </Text>
+          <Text style={styles.title}>
+            My Organizations
+          </Text>
           <Text style={styles.subtitle}>
-            Create and prepare the Organization structure here first. Set up the
-            root Organization, Sub-organizations, Clusters, access, membership,
-            and admin controls before opening a specific Organization workspace.
+            Open the institutional workspaces where you are an active member.
+            Each Organization keeps its own members, units, modules and
+            permissions.
           </Text>
         </View>
 
-        <View style={styles.notice}>
-          <Text style={styles.noticeTitle}>CURRENT STRUCTURE</Text>
-          <Text style={styles.noticeText}>
-            Organization → Sub-organization → Cluster. Every Cluster must belong
-            to an Organization. Organization Home, such as MZB Home, is opened
-            only after choosing the exact Organization from the directory.
-          </Text>
+        {organizations.length === 0 ? (
+          <View style={styles.empty}>
+            <MaterialCommunityIcons
+              name="domain-off"
+              size={36}
+              color={colors.muted}
+            />
+            <Text style={styles.emptyTitle}>
+              You have not joined an Organization yet.
+            </Text>
+            <Text style={styles.emptyText}>
+              Discover an Organization or use an invite from an institution.
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.list}>
+            {organizations.map(scope => (
+              <Pressable
+                key={scope.scope_id}
+                onPress={() =>
+                  void openOrganization(scope.scope_id)
+                }
+                style={({ pressed }) => [
+                  styles.organization,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <View style={styles.orgIcon}>
+                  <MaterialCommunityIcons
+                    name="domain"
+                    size={24}
+                    color={colors.greenDark}
+                  />
+                </View>
+                <View style={styles.orgCopy}>
+                  <Text
+                    numberOfLines={1}
+                    style={styles.orgName}
+                  >
+                    {scope.name}
+                  </Text>
+                  <Text style={styles.orgMeta}>
+                    {scope.is_admin
+                      ? 'Organization Admin'
+                      : 'Active Member'}
+                  </Text>
+                </View>
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={22}
+                  color={colors.muted}
+                />
+              </Pressable>
+            ))}
+          </View>
+        )}
+
+        <View style={styles.actions}>
+          <Pressable
+            onPress={() =>
+              router.push('/organizations/join' as any)
+            }
+            style={styles.action}
+          >
+            <MaterialCommunityIcons
+              name="account-plus-outline"
+              size={22}
+              color={colors.greenDark}
+            />
+            <View style={styles.actionCopy}>
+              <Text style={styles.actionTitle}>
+                Find or join an Organization
+              </Text>
+              <Text style={styles.actionText}>
+                Discover public institutions or enter through an approved
+                Organization invitation.
+              </Text>
+            </View>
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={20}
+              color={colors.muted}
+            />
+          </Pressable>
+
+          <Pressable
+            onPress={() =>
+              router.push('/organizations/create' as any)
+            }
+            style={styles.action}
+          >
+            <MaterialCommunityIcons
+              name="domain-plus"
+              size={22}
+              color={colors.greenDark}
+            />
+            <View style={styles.actionCopy}>
+              <Text style={styles.actionTitle}>
+                Create an Organization
+              </Text>
+              <Text style={styles.actionText}>
+                Start one configurable institutional workspace. No separate
+                application or code fork is created.
+              </Text>
+            </View>
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={20}
+              color={colors.muted}
+            />
+          </Pressable>
         </View>
 
-        <Text style={styles.sectionTitle}>CREATE & PRE-SET</Text>
-
-        <Pressable
-          onPress={() => router.push('/organizations/create' as any)}
-          style={({ pressed }) => [styles.action, pressed && styles.pressed]}>
-          <View style={styles.actionText}>
-            <Text style={styles.actionTitle}>CREATE ORGANIZATION</Text>
-            <Text style={styles.actionSubtitle}>
-              Create a new root Organization and complete its initial profile,
-              type, visibility, and membership settings.
+        {manageable.length > 0 ? (
+          <View style={styles.adminSection}>
+            <Text style={styles.sectionTitle}>
+              ADMINISTRATION
             </Text>
+            <Pressable
+              onPress={() =>
+                router.push(
+                  '/organizations/manage' as any,
+                )
+              }
+              style={styles.adminAction}
+            >
+              <MaterialCommunityIcons
+                name="cog-outline"
+                size={21}
+                color={colors.greenDark}
+              />
+              <View style={styles.actionCopy}>
+                <Text style={styles.actionTitle}>
+                  Organization directory & setup
+                </Text>
+                <Text style={styles.actionText}>
+                  Manage structure, membership, admins, access and existing
+                  Organization settings.
+                </Text>
+              </View>
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={20}
+                color={colors.muted}
+              />
+            </Pressable>
           </View>
-          <Text style={styles.chevron}>{'>'}</Text>
-        </Pressable>
+        ) : null}
 
-        <Pressable
-          onPress={() => router.push('/organizations/manage' as any)}
-          style={({ pressed }) => [styles.action, pressed && styles.pressed]}>
-          <View style={styles.actionText}>
-            <Text style={styles.actionTitle}>CREATE SUB-ORGANIZATION</Text>
-            <Text style={styles.actionSubtitle}>
-              Select the parent root Organization, then create and configure its
-              structural Sub-organization.
-            </Text>
-          </View>
-          <Text style={styles.chevron}>{'>'}</Text>
-        </Pressable>
-
-        <Pressable
-          onPress={() => router.push('/clusters/create' as any)}
-          style={({ pressed }) => [styles.action, pressed && styles.pressed]}>
-          <View style={styles.actionText}>
-            <Text style={styles.actionTitle}>CREATE CLUSTER</Text>
-            <Text style={styles.actionSubtitle}>
-              Create a Cluster under one of the Organizations you can manage.
-              Parent Organization selection is required.
-            </Text>
-          </View>
-          <Text style={styles.chevron}>{'>'}</Text>
-        </Pressable>
-
-        <Text style={styles.sectionTitle}>STRUCTURE & SETTINGS</Text>
-
-        <Pressable
-          onPress={() => router.push('/organizations/manage' as any)}
-          style={({ pressed }) => [styles.action, pressed && styles.pressed]}>
-          <View style={styles.actionText}>
-            <Text style={styles.actionTitle}>ORGANIZATION DIRECTORY & STRUCTURE</Text>
-            <Text style={styles.actionSubtitle}>
-              View root Organizations and Sub-organizations, manage exact scopes,
-              configure admins and members, or deliberately open Organization Home.
-            </Text>
-          </View>
-          <Text style={styles.chevron}>{'>'}</Text>
-        </Pressable>
-
-        <Pressable
-          onPress={() => router.push('/organizations/join' as any)}
-          style={({ pressed }) => [styles.action, pressed && styles.pressed]}>
-          <View style={styles.actionText}>
-            <Text style={styles.actionTitle}>JOIN ORGANIZATION</Text>
-            <Text style={styles.actionSubtitle}>
-              Search public Organizations and Sub-organizations, then join or send
-              a request according to the configured join policy.
-            </Text>
-          </View>
-          <Text style={styles.chevron}>{'>'}</Text>
-        </Pressable>
-
-        <View style={styles.footerNote}>
-          <Text style={styles.footerTitle}>PRE-SETTING PRINCIPLE</Text>
-          <Text style={styles.footerText}>
-            Creation, hierarchy, access policy, membership, admins, and Cluster
-            placement belong in this setup layer. The scoped Organization Home is
-            for the Organization's actual day-to-day workspace after setup.
+        <View style={styles.principle}>
+          <Text style={styles.principleTitle}>
+            ONE CORE • MANY INSTITUTIONS
+          </Text>
+          <Text style={styles.principleText}>
+            Schools, businesses, churches, NGOs, training centers and
+            associations use the same BUKLOD Organization engine with different
+            configuration—not different software forks.
           </Text>
         </View>
       </BuklodPortalScrollView>
@@ -127,112 +254,172 @@ export default function OrganizationsIndexScreen() {
 
 const styles = StyleSheet.create({
   content: {
-    paddingHorizontal: 12,
+    width: '100%',
+    maxWidth: 880,
+    alignSelf: 'center',
+    paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: 28,
-    gap: 8,
+    paddingBottom: 34,
+    gap: 12,
     backgroundColor: '#F4F7F5',
+  },
+  back: {
+    alignSelf: 'flex-start',
+    minHeight: 38,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  backText: {
+    color: colors.greenDark,
+    fontWeight: '900',
   },
   header: {
     gap: 5,
-    marginBottom: 4,
   },
   eyebrow: {
-    color: '#5E7469',
-    fontSize: 12.5,
+    color: colors.green,
+    fontSize: 10,
     fontWeight: '900',
-    letterSpacing: 0.8,
+    letterSpacing: 0.9,
   },
   title: {
-    color: '#173B2F',
-    fontSize: 26,
+    color: colors.text,
+    fontSize: 28,
     fontWeight: '900',
   },
   subtitle: {
-    color: '#687970',
-    fontSize: 14,
+    color: colors.muted,
+    fontSize: 13.5,
     lineHeight: 20,
   },
-  notice: {
-    borderRadius: 13,
-    borderWidth: 1,
-    borderColor: '#BFD8CB',
-    backgroundColor: '#EAF4EE',
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-    gap: 4,
-    marginBottom: 4,
-  },
-  noticeTitle: {
-    color: '#176B4A',
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-  noticeText: {
-    color: '#426257',
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  sectionTitle: {
-    marginTop: 8,
-    marginBottom: 2,
-    color: '#5E7469',
-    fontSize: 11.5,
-    fontWeight: '900',
-    letterSpacing: 0.7,
-  },
-  action: {
-    minHeight: 72,
-    borderRadius: 13,
-    borderWidth: 1,
-    borderColor: '#DCE5E0',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
+  list: {
     gap: 8,
   },
-  pressed: {
-    opacity: 0.7,
+  organization: {
+    minHeight: 72,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#D7E2DB',
+    backgroundColor: '#FFFFFF',
+    padding: 11,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
-  actionText: {
+  orgIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 13,
+    backgroundColor: '#EAF4ED',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  orgCopy: {
     flex: 1,
-    gap: 4,
+    minWidth: 0,
   },
-  actionTitle: {
-    color: '#173B2F',
-    fontSize: 15,
+  orgName: {
+    color: colors.text,
+    fontSize: 14,
     fontWeight: '900',
   },
-  actionSubtitle: {
-    color: '#6A7A72',
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  chevron: {
-    color: '#176B4A',
-    fontSize: 28,
+  orgMeta: {
+    marginTop: 3,
+    color: colors.muted,
+    fontSize: 11,
     fontWeight: '700',
   },
-  footerNote: {
-    marginTop: 6,
-    borderRadius: 13,
-    backgroundColor: '#FFFFFF',
+  empty: {
+    minHeight: 180,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#DCE5E0',
-    padding: 12,
-    gap: 4,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 22,
   },
-  footerTitle: {
-    color: '#173B2F',
+  emptyTitle: {
+    marginTop: 8,
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  emptyText: {
+    marginTop: 5,
+    color: colors.muted,
     fontSize: 12,
+    lineHeight: 17,
+    textAlign: 'center',
+  },
+  actions: {
+    gap: 8,
+  },
+  action: {
+    minHeight: 68,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: '#DCE5E0',
+    backgroundColor: '#FFFFFF',
+    padding: 11,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  actionCopy: {
+    flex: 1,
+  },
+  actionTitle: {
+    color: colors.text,
+    fontSize: 13,
     fontWeight: '900',
   },
-  footerText: {
-    color: '#687970',
-    fontSize: 13,
-    lineHeight: 18,
+  actionText: {
+    marginTop: 3,
+    color: colors.muted,
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  adminSection: {
+    gap: 7,
+  },
+  sectionTitle: {
+    color: colors.muted,
+    fontSize: 9.5,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+  },
+  adminAction: {
+    minHeight: 68,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: '#BFD6C7',
+    backgroundColor: '#EDF6F0',
+    padding: 11,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  principle: {
+    borderRadius: 13,
+    backgroundColor: '#173B2F',
+    padding: 14,
+  },
+  principleTitle: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+  },
+  principleText: {
+    marginTop: 5,
+    color: 'rgba(255,255,255,0.82)',
+    fontSize: 11.5,
+    lineHeight: 17,
+  },
+  pressed: {
+    opacity: 0.72,
   },
 });
