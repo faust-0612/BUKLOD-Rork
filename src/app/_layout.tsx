@@ -4,7 +4,7 @@ import { BuklodGuideAvatar } from '@/components/BuklodGuideAvatar';
 import BuklodFormationEntryScopeTracker from '@/components/BuklodFormationEntryScopeTracker';
 import BuklodTrustedDeviceGate from '@/components/BuklodTrustedDeviceGate';
 import '@/lib/performanceBoot';
-import { Stack, type ErrorBoundaryProps } from 'expo-router';
+import { Stack, router, type ErrorBoundaryProps } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AuthProvider } from '@/providers/AuthProvider';
@@ -13,6 +13,7 @@ import { BuklodBibleNarrationProvider } from '@/providers/BuklodBibleNarrationPr
 import { BuklodScopeProvider } from '@/providers/BuklodScopeProvider';
 import { BuklodFoundationProvider } from '@/providers/BuklodFoundationProvider';
 import { NetworkProvider } from '@/providers/NetworkProvider';
+import { BuklodFeedbackProvider } from '@/providers/BuklodFeedbackProvider';
 import { NotificationProvider } from '@/providers/NotificationProvider';
 import { ComplianceProvider } from '@/providers/ComplianceProvider';
 import { RuntimeConfigProvider } from '@/providers/RuntimeConfigProvider';
@@ -32,14 +33,34 @@ import { BuklodThemeProvider } from '@/providers/BuklodThemeProvider';
 import { BuklodCharacterEventProvider } from '@/components/character/BuklodCharacterEventProvider';
 import RorkAvatarOnboardingGate from '@/components/character/RorkAvatarOnboardingGate';
 
-export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
   return (
     <View style={styles.error}>
-      <Text style={styles.errorTitle}>Something went wrong</Text>
-      <Text style={styles.errorText}>{error.message}</Text>
-      <Pressable onPress={retry} style={styles.retry}>
-        <Text style={styles.retryText}>TRY AGAIN</Text>
-      </Pressable>
+      <Text style={styles.errorTitle}>BUKLOD could not open this screen</Text>
+      <Text style={styles.errorText}>
+        We couldn't complete this action. Please try again.
+      </Text>
+      <Text style={styles.errorCode}>Support code: SYS-500</Text>
+      <View style={styles.errorActions}>
+        <Pressable onPress={retry} style={styles.retry}>
+          <Text style={styles.retryText}>TRY AGAIN</Text>
+        </Pressable>
+        <Pressable
+          onPress={() =>
+            router.push({
+              pathname: '/help' as any,
+              params: {
+                category: 'TECHNICAL',
+                errorCode: 'SYS-500',
+                message: "BUKLOD couldn't open the requested screen.",
+              },
+            })
+          }
+          style={styles.helpButton}
+        >
+          <Text style={styles.helpButtonText}>NEED HELP?</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -82,6 +103,7 @@ export default function RootLayout() {
         <BuklodFormationEntryScopeTracker />
         <BuklodFoundationProvider>
       <NetworkProvider>
+        <BuklodFeedbackProvider>
         <BuklodOfflineSyncProvider>
         <ComplianceProvider>
           <RuntimeConfigProvider>
@@ -110,6 +132,7 @@ export default function RootLayout() {
                 <Stack.Screen name="child-safety" />
                 <Stack.Screen name="(auth)" />
                 <Stack.Screen name="privacy/index" />
+                <Stack.Screen name="help/index" />
                 <Stack.Screen name="delete-account/index" />
                 <Stack.Screen name="privacy/notice" />
                 <Stack.Screen name="privacy/consent" />
@@ -258,6 +281,7 @@ export default function RootLayout() {
           </RuntimeConfigProvider>
         </ComplianceProvider>
         </BuklodOfflineSyncProvider>
+        </BuklodFeedbackProvider>
       </NetworkProvider>
             </BuklodFoundationProvider>
             </BuklodScopeProvider>
@@ -277,7 +301,11 @@ const styles=StyleSheet.create({
   error:{flex:1,alignItems:'center',justifyContent:'center',padding:24,backgroundColor:colors.white},
   errorTitle:{fontSize:24,fontWeight:'900',color:colors.text},
   errorText:{marginTop:8,textAlign:'center',color:colors.muted},
-  retry:{marginTop:18,backgroundColor:colors.green,paddingVertical:12,paddingHorizontal:18,borderRadius:12},
-  retryText:{color:colors.white,fontWeight:'900'}
+  errorCode:{marginTop:8,fontSize:11,fontWeight:'900',color:colors.muted},
+  errorActions:{marginTop:18,flexDirection:'row',flexWrap:'wrap',justifyContent:'center',gap:10},
+  retry:{backgroundColor:colors.green,paddingVertical:12,paddingHorizontal:18,borderRadius:12},
+  retryText:{color:colors.white,fontWeight:'900'},
+  helpButton:{borderWidth:1,borderColor:colors.green,paddingVertical:12,paddingHorizontal:18,borderRadius:12},
+  helpButtonText:{color:colors.green,fontWeight:'900'}
 });
 
