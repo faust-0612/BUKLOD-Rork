@@ -581,6 +581,27 @@ requireText(
   'Phase 2 requires exact support schema contract',
 );
 
+requireText(
+  'scripts/buklod-main-ux-feedback-gate.mjs',
+  'BUKLOD MAIN UX FEEDBACK GATE PASS',
+  'Main no-silent-failure release gate is source-tracked',
+);
+requireText(
+  'src/providers/BuklodFeedbackProvider.tsx',
+  'showFeedback',
+  'App-wide feedback provider remains installed',
+);
+requireText(
+  'src/app/(auth)/login.tsx',
+  "router.replace(\n      '/(tabs)/buklod'\n    )",
+  'Login success remains Community Wall-rooted',
+);
+forbidText(
+  'src/app/(auth)/login.tsx',
+  "router.replace(\n      '/(tabs)/home'\n    )",
+  'Login cannot restore retired Public Home',
+);
+
 // Existing performance hardening must remain present.
 requireText('src/lib/buklodPerformanceFetch.ts', 'simultaneous identical GET /auth/v1/user checks', 'Auth request dedupe');
 requireText('src/lib/buklodR4RequestShield.ts', 'BUKLOD_MASS_CONCURRENCY_R32', 'Mass concurrency request shield');
