@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router, usePathname } from 'expo-router';
+import { router, useLocalSearchParams, usePathname } from 'expo-router';
 
 import { colors } from '@/lib/theme';
 import { supabase } from '@/lib/supabase';
@@ -22,6 +22,10 @@ import {
   type BuklodSupportResult,
 } from '@/lib/buklodSupport';
 import { useBuklodI18n } from '@/providers/BuklodI18nProvider';
+import {
+  buildBuklodUserFeedback,
+  trackBuklodFeedbackEvent,
+} from '@/lib/buklodUserFeedback';
 
 const ACCOUNT_CATEGORIES = new Set<BuklodSupportCategory>([
   'SIGN_IN',
@@ -63,6 +67,12 @@ function statusLabel(
 export default function BuklodHelpScreen() {
   const { t, locale } = useBuklodI18n();
   const pathname = usePathname();
+  const params = useLocalSearchParams<{
+    category?: string;
+    errorCode?: string;
+    message?: string;
+    sourceRoute?: string;
+  }>();
   const [signedIn, setSignedIn] = useState(false);
   const [category, setCategory] =
     useState<BuklodSupportCategory>('SIGN_IN');
@@ -75,6 +85,43 @@ export default function BuklodHelpScreen() {
     useState<BuklodSupportResult | null>(null);
   const [cases, setCases] =
     useState<BuklodSupportCaseSummary[]>([]);
+
+  useEffect(() => {
+    const requestedCategory = String(params.category ?? '')
+      .trim()
+      .toUpperCase() as BuklodSupportCategory;
+    if (
+      BUKLOD_SUPPORT_CATEGORIES.some(
+        item => item.key === requestedCategory,
+      )
+    ) {
+      setCategory(requestedCategory);
+    }
+
+    const requestedMessage = String(params.message ?? '').trim();
+    if (requestedMessage) {
+      setMessage(current => current || requestedMessage);
+    }
+
+    const errorCode = String(params.errorCode ?? '').trim();
+    if (errorCode) {
+      void trackBuklodFeedbackEvent({
+        event: 'support_opened_after_error',
+        supportCode: errorCode,
+        route:
+          String(params.sourceRoute ?? '').trim() ||
+          pathname,
+        feature: 'Help',
+        outcome: requestedCategory || 'TECHNICAL',
+      });
+    }
+  }, [
+    params.category,
+    params.errorCode,
+    params.message,
+    params.sourceRoute,
+    pathname,
+  ]);
 
   useEffect(() => {
     let alive = true;
@@ -139,7 +186,12 @@ export default function BuklodHelpScreen() {
               : category === 'ORGANIZATION'
                 ? 'Organization / Cluster / Sub-Org'
                 : '',
-        route: pathname,
+        route:
+          String(params.sourceRoute ?? '').trim() ||
+          pathname,
+        errorCode:
+          String(params.errorCode ?? '').trim() ||
+          null,
         languageCode: locale,
       });
       setResult(next);
@@ -147,11 +199,33 @@ export default function BuklodHelpScreen() {
         await refreshCases();
       }
     } catch (supportError) {
-      setError(
-        supportError instanceof Error
-          ? supportError.message
-          : t('support.creationFailed'),
+      const feedback = buildBuklodUserFeedback(
+        supportError,
+        {
+          context: 'general',
+          fallbackTitle: 'BUKLOD Help could not finish',
+          fallbackMessage: t('support.creationFailed'),
+        },
       );
+      setError(
+        [
+          feedback.message,
+          feedback.nextStep,
+          feedback.supportCode
+            ? `Support code: ${feedback.supportCode}`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(' '),
+      );
+      void trackBuklodFeedbackEvent({
+        event: 'action_failed',
+        category: feedback.category,
+        supportCode: feedback.supportCode,
+        route: pathname,
+        feature: 'Help',
+        outcome: 'support_flow_failed',
+      });
     } finally {
       setBusy(false);
     }
