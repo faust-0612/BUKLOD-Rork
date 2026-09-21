@@ -71,7 +71,7 @@ export default function ExactOrganizationManageScreen() {
         ),
         (supabase as any)
           .from('buklod_scopes')
-          .select('*')
+          .select('id,name,parent_scope_id,scope_type,status')
           .eq('id', scopeId)
           .maybeSingle(),
       ]);
@@ -165,6 +165,20 @@ export default function ExactOrganizationManageScreen() {
   const buttons = [
     ...(isRootOrganization
       ? [
+          {
+            title: 'Institution Workspace Setup',
+            subtitle:
+              'Configure preset, terminology, modules, access, invitations and workspace launch without code changes.',
+            onPress: () =>
+              open('/organizations/setup-wizard'),
+          },
+          {
+            title: 'Lifecycle & Archive Safety',
+            subtitle:
+              'Preview impact before restricting, archiving or closing this Organization. No destructive delete.',
+            onPress: () =>
+              open('/organizations/lifecycle'),
+          },
           {
             title: 'Units & Structure',
             subtitle:
