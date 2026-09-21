@@ -220,8 +220,32 @@ create or replace function public.buklod_canonical_audit_v1(
 returns void
 language plpgsql security definer
 set search_path=''
-as $$
+as $
+declare
+  v_actor_roles jsonb := '[]'::jsonb;
+  v_session_meta jsonb := '{}'::jsonb;
 begin
+  select coalesce(jsonb_agg(distinct role_key order by role_key),'[]'::jsonb)
+    into v_actor_roles
+  from (
+    select upper(ur.role) as role_key
+    from public.user_roles ur
+    where ur.user_id=auth.uid()
+      and ur.is_active=true
+    union
+    select upper(a.role_key) as role_key
+    from public.buklod_foundation_role_assignments a
+    where a.user_id=auth.uid()
+      and a.status='ACTIVE'
+      and a.valid_from<=now()
+      and (a.valid_until is null or a.valid_until>now())
+  ) roles;
+
+  v_session_meta := jsonb_build_object(
+    'aal',coalesce(auth.jwt()->>'aal',''),
+    'session_id',coalesce(auth.jwt()->>'session_id','')
+  );
+
   insert into public.buklod_canonical_change_log(
     document_id,version_id,section_key,change_type,
     before_summary,after_summary,reason,actor_id,metadata
