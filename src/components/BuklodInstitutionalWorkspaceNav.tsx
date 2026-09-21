@@ -30,6 +30,7 @@ import {
   enterScopedWorkspace,
 } from '@/lib/buklodScopeRoute';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
+import { useBuklodI18n } from '@/providers/BuklodI18nProvider';
 
 type WorkspaceSection = 'home' | 'community' | 'connect';
 
@@ -55,6 +56,7 @@ export default function BuklodInstitutionalWorkspaceNav({
 }: Props) {
   const { width } = useWindowDimensions();
   const desktop = width >= 960;
+  const { t } = useBuklodI18n();
   const { scopes, selectScope } = useBuklodScope();
   const [runtime, setRuntime] =
     useState<BuklodOrganizationWorkspaceRuntime | null>(null);
@@ -221,6 +223,7 @@ export default function BuklodInstitutionalWorkspaceNav({
               {institutionModuleLabel(
                 runtime.config,
                 module.id,
+                t,
               )}
             </Text>
           </Pressable>
@@ -242,7 +245,7 @@ export default function BuklodInstitutionalWorkspaceNav({
             color={colors.greenDark}
           />
           <Text style={styles.backText}>
-            Back to BUKLOD
+            {t('organization.workspace.backToBuklod')}
           </Text>
         </Pressable>
 
@@ -328,7 +331,7 @@ export default function BuklodInstitutionalWorkspaceNav({
               color={colors.greenDark}
             />
             <Text style={styles.setupText}>
-              Workspace Setup
+              {t('organization.workspace.setup')}
             </Text>
           </Pressable>
         )}
@@ -342,7 +345,7 @@ export default function BuklodInstitutionalWorkspaceNav({
         <Pressable
           onPress={backToBuklod}
           style={styles.mobileIcon}
-          accessibilityLabel="Back to BUKLOD"
+          accessibilityLabel="{t('organization.workspace.backToBuklod')}"
         >
           <MaterialCommunityIcons
             name="arrow-left"
@@ -390,7 +393,7 @@ export default function BuklodInstitutionalWorkspaceNav({
       {switcherOpen && (
         <View style={styles.mobilePanel}>
           <Text style={styles.mobilePanelTitle}>
-            SWITCH ORGANIZATION
+            {t('organization.workspace.switchOrganization').toUpperCase()}
           </Text>
           {organizations.map(scope => (
             <Pressable
@@ -441,7 +444,7 @@ export default function BuklodInstitutionalWorkspaceNav({
                 color={colors.greenDark}
               />
               <Text style={styles.setupText}>
-                Workspace Setup
+                {t('organization.workspace.setup')}
               </Text>
             </Pressable>
           )}
