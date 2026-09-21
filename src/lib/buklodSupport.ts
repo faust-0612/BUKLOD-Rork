@@ -161,6 +161,10 @@ export async function runBuklodSupportFlow(input: {
   route?: string;
   errorCode?: string | null;
   languageCode?: string;
+  organizationId?: string | null;
+  suborganizationId?: string | null;
+  moduleId?: string | null;
+  organizationRole?: string | null;
 }): Promise<BuklodSupportResult> {
   if (input.category === 'SIGN_IN') {
     void trackBuklodFeedbackEvent({
@@ -212,6 +216,10 @@ export async function runBuklodSupportFlow(input: {
       route: input.route ?? '',
       error_code: input.errorCode ?? '',
       language_code: input.languageCode ?? 'en',
+      organization_id: input.organizationId ?? null,
+      suborganization_id: input.suborganizationId ?? null,
+      organization_module: input.moduleId ?? null,
+      organization_role: input.organizationRole ?? null,
     },
   };
 
