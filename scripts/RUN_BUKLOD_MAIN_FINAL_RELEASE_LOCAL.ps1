@@ -92,6 +92,8 @@ Run "3/12 INSTALL LOCKED DEPENDENCIES" {
 Run "4/12 STATIC + AUTH + TEST + TYPESCRIPT GATES" {
   node scripts/buklod-main-final-release-gate.mjs
   Assert-NativeSuccess "final release gate"
+  node scripts/buklod-main-ux-feedback-gate.mjs
+  Assert-NativeSuccess "Main UX feedback gate"
   node scripts/auth-canonical-login-contract.mjs
   Assert-NativeSuccess "auth canonical contract"
   npm.cmd test
