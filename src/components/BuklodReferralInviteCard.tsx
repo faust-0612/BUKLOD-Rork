@@ -21,6 +21,10 @@ import {
   recordBuklodReferralFunnel,
   type BuklodReferralSummaryV2,
 } from '@/lib/buklodReferralV2';
+import {
+  buildBuklodUserFeedback,
+  trackBuklodFeedbackEvent,
+} from '@/lib/buklodUserFeedback';
 
 function php(value:unknown){
   return '₱'+Number(value??0).toLocaleString('en-PH',{
@@ -33,18 +37,36 @@ export default function BuklodReferralInviteCard(){
   const {theme}=useBuklodPresentation();
   const [summary,setSummary]=useState<BuklodReferralSummaryV2|null>(null);
   const [loading,setLoading]=useState(true);
+  const [loadError,setLoadError]=useState('');
+  const [supportCode,setSupportCode]=useState<string|null>(null);
 
   const load=useCallback(async()=>{
     setLoading(true);
+    setLoadError('');
+    setSupportCode(null);
     try{
       await ensureBuklodProfitFirstIdentity();
       setSummary(await loadBuklodReferralSummaryV2());
     }catch(error){
-      console.warn(
-        'Referral dashboard:',
-        error instanceof Error?error.message:error,
-      );
+      console.warn('Referral dashboard could not be loaded.');
+      const feedback=buildBuklodUserFeedback(error,{
+        context:'general',
+        fallbackTitle:'Referral unavailable',
+        fallbackMessage:"BUKLOD couldn't load your referral status right now.",
+      });
       setSummary(null);
+      setLoadError(
+        "BUKLOD couldn't load your referral status right now. Your existing referral relationship is unchanged."
+      );
+      setSupportCode(feedback.supportCode??'SYS-500');
+      void trackBuklodFeedbackEvent({
+        event:'error_shown',
+        category:feedback.category,
+        supportCode:feedback.supportCode??'SYS-500',
+        route:'/(tabs)/me',
+        feature:'Referral',
+        outcome:'referral_summary_failed',
+      });
     }finally{
       setLoading(false);
     }
@@ -244,11 +266,42 @@ export default function BuklodReferralInviteCard(){
       <View style={styles.card}>
         <Text style={styles.title}>Referral & Sharing</Text>
         <Text style={styles.sub}>
-          Referral identity is preparing. This does not block BUKLOD.
+          {loadError ||
+            'Referral identity is preparing. This does not block BUKLOD.'}
         </Text>
-        <Pressable onPress={()=>void load()} style={styles.linkBtn}>
-          <Text style={styles.linkText}>REFRESH</Text>
-        </Pressable>
+        {!!supportCode && (
+          <Text style={styles.itemMeta}>Support code: {supportCode}</Text>
+        )}
+        <View style={styles.actions}>
+          <Pressable onPress={()=>void load()} style={styles.linkBtn}>
+            <Text style={styles.linkText}>REFRESH</Text>
+          </Pressable>
+          {!!loadError && (
+            <Pressable
+              onPress={()=>{
+                void trackBuklodFeedbackEvent({
+                  event:'support_opened_after_error',
+                  supportCode,
+                  route:'/(tabs)/me',
+                  feature:'Referral',
+                  outcome:'need_help',
+                });
+                router.push({
+                  pathname:'/help' as any,
+                  params:{
+                    category:'OTHER',
+                    errorCode:supportCode??'SYS-500',
+                    message:loadError,
+                    sourceRoute:'/(tabs)/me',
+                  },
+                });
+              }}
+              style={styles.linkBtn}
+            >
+              <Text style={styles.linkText}>NEED HELP?</Text>
+            </Pressable>
+          )}
+        </View>
       </View>
     );
   }
