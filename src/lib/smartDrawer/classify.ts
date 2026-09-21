@@ -1,5 +1,3 @@
-import * as Crypto from 'expo-crypto';
-
 import type {
   SmartDrawerClassification,
   SmartDrawerItemType,
@@ -138,6 +136,13 @@ export function detectSmartDrawerDate(
   return null;
 }
 
+let listIdCounter = 0;
+
+function createListEntryId() {
+  listIdCounter += 1;
+  return `drawer-list-${Date.now()}-${listIdCounter}`;
+}
+
 function listFromText(text: string): SmartDrawerListItem[] {
   const normalized = text
     .replace(/^\s*(bibilhin|shopping|grocery|listahan)\s*:?/i, '')
@@ -151,7 +156,7 @@ function listFromText(text: string): SmartDrawerListItem[] {
   if (pieces.length < 2) return [];
 
   return pieces.slice(0, 100).map(text => ({
-    id: Crypto.randomUUID(),
+    id: createListEntryId(),
     text,
     done: false,
   }));
