@@ -89,6 +89,22 @@ export async function transitionSmartDrawerItem(
     );
   }
 
+  if (status === 'ACTIVE') {
+    return (
+      await commitSmartDrawerItem(
+        userId,
+        {
+          ...current,
+          id: current.id,
+          status: 'ACTIVE',
+          deletedAt: null,
+          reminderIds: [],
+          syncState: 'LOCAL_ONLY',
+        },
+      )
+    ).item;
+  }
+
   const next =
     await setSmartDrawerStatus(
       userId,
@@ -96,7 +112,7 @@ export async function transitionSmartDrawerItem(
       status,
     );
 
-  if (status !== 'ACTIVE' && next.reminderIds.length) {
+  if (next.reminderIds.length) {
     return (
       (await setSmartDrawerReminderIds(
         userId,
