@@ -1057,9 +1057,11 @@ const load=useCallback(async(options?:{
       }
     }
 
-    Alert.alert(
-      'Community',
-      error.message
+    reportCommunityFailure(
+      error,
+      'Community unavailable',
+      "BUKLOD couldn't refresh Community right now. If saved posts are available, they remain safe.",
+      'community_feed_failed',
     );
 
     return -1;
