@@ -19,6 +19,44 @@ set description=excluded.description,
     risk_level=excluded.risk_level,
     is_active=true;
 
+-- Reusable delegated roles. No user is auto-assigned to these roles.
+-- Publish/approve/high-risk publish remain ungranted by default.
+insert into public.buklod_foundation_roles(
+  role_key,label,description,scope_required,admin_role,is_active
+)
+values
+  (
+    'CANONICAL_REFERENCE_EDITOR',
+    'Canonical Reference Editor',
+    'Authorized Product/Operations staff who can view restricted canonical content, draft/edit, submit review, and maintain implementation linkage. Cannot approve or publish by default.',
+    false,true,true
+  ),
+  (
+    'CANONICAL_REFERENCE_READER',
+    'Canonical Reference Reader',
+    'Read-only staff who can view/search the permitted internal effective Canonical Reference. Restricted financial/security/privacy sections remain hidden unless separately authorized.',
+    false,false,true
+  )
+on conflict(role_key) do update
+set label=excluded.label,
+    description=excluded.description,
+    scope_required=excluded.scope_required,
+    admin_role=excluded.admin_role,
+    is_active=true,
+    updated_at=now();
+
+insert into public.buklod_foundation_role_permissions(
+  role_key,permission_key
+)
+values
+  ('CANONICAL_REFERENCE_EDITOR','canonical.reference.view'),
+  ('CANONICAL_REFERENCE_EDITOR','canonical.reference.restricted_view'),
+  ('CANONICAL_REFERENCE_EDITOR','canonical.reference.draft'),
+  ('CANONICAL_REFERENCE_EDITOR','canonical.reference.review'),
+  ('CANONICAL_REFERENCE_EDITOR','canonical.reference.implementation'),
+  ('CANONICAL_REFERENCE_READER','canonical.reference.view')
+on conflict(role_key,permission_key) do nothing;
+
 create table if not exists public.buklod_canonical_documents(
   id uuid primary key default gen_random_uuid(),
   document_key text not null unique,
