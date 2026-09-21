@@ -38,6 +38,17 @@ const dbTest = read('supabase/tests/buklod_canonical_reference_center_r1_test.sq
 const admin = read('src/app/admin/index.tsx');
 const layout = read('src/app/_layout.tsx');
 
+forbidText(
+  migration,
+  'as $\\ndeclare',
+  'Malformed PL/pgSQL dollar-quote opening detected in Canonical Reference migration.',
+);
+forbidText(
+  migration,
+  'end;\\n$;',
+  'Malformed PL/pgSQL dollar-quote closing detected in Canonical Reference migration.',
+);
+
 [
   'buklod_canonical_documents',
   'buklod_canonical_document_versions',
