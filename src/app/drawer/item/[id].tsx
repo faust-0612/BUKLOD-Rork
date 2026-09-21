@@ -5,6 +5,7 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Modal,
   Pressable,
@@ -25,6 +26,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   detectSmartDrawerDate,
 } from '@/lib/smartDrawer/classify';
+import {
+  deleteSmartDrawerAsset,
+} from '@/lib/smartDrawer/assets';
 import {
   getSmartDrawerItem,
   setSmartDrawerKeepOnTop,
@@ -317,6 +321,61 @@ export default function SmartDrawerItemScreen() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const removeOriginalImages = () => {
+    if (!user?.id || !item || !item.assets.length || busy) {
+      return;
+    }
+
+    Alert.alert(
+      'Remove Original Image?',
+      'BUKLOD will keep the saved details, but the local original image cannot be restored after it is removed.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'REMOVE IMAGE',
+          style: 'destructive',
+          onPress: () => {
+            setBusy(true);
+            setActionsOpen(false);
+            void (async () => {
+              try {
+                await Promise.all(
+                  item.assets.map(asset =>
+                    deleteSmartDrawerAsset(asset),
+                  ),
+                );
+
+                const result =
+                  await commitSmartDrawerItem(
+                    user.id,
+                    {
+                      ...item,
+                      id: item.id,
+                      assets: [],
+                      syncState: 'LOCAL_ONLY',
+                    },
+                  );
+
+                syncFields(result.item);
+                setNotice(
+                  'Original image removed. Saved details remain in your Drawer.',
+                );
+              } catch (error) {
+                setNotice(
+                  error instanceof Error
+                    ? error.message
+                    : 'Could not remove the original image.',
+                );
+              } finally {
+                setBusy(false);
+              }
+            })();
+          },
+        },
+      ],
+    );
   };
 
   const toggleList = async (listId: string) => {
@@ -788,6 +847,14 @@ export default function SmartDrawerItemScreen() {
               }
               onPress={() => void togglePin()}
             />
+
+            {!!item.assets.length && (
+              <SheetAction
+                icon="image-remove-outline"
+                label="Manage Original Image"
+                onPress={removeOriginalImages}
+              />
+            )}
 
             {!!item.dueAt && (
               <SheetAction
