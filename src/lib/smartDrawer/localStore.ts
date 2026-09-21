@@ -472,19 +472,30 @@ function nativeViewWhere(view: string) {
 
 function nativeOrderBy(view: string) {
   if (view.toLowerCase() === 'for-you') {
-    return `ORDER BY
-      i.keep_on_top DESC,
-      CASE
-        WHEN i.due_at IS NOT NULL AND i.due_at < datetime('now') THEN 4
-        WHEN i.due_at IS NOT NULL AND i.due_at <= datetime('now','+1 day') THEN 3
-        WHEN i.due_at IS NOT NULL AND i.due_at <= datetime('now','+7 day') THEN 2
-        WHEN i.type IN ('SHOPPING_LIST','CHECKLIST') THEN 1
-        ELSE 0
-      END DESC,
-      i.updated_at DESC`;
+    const now = Date.now();
+    return {
+      sql: `ORDER BY
+        i.keep_on_top DESC,
+        CASE
+          WHEN i.due_at IS NOT NULL AND i.due_at < ? THEN 4
+          WHEN i.due_at IS NOT NULL AND i.due_at <= ? THEN 3
+          WHEN i.due_at IS NOT NULL AND i.due_at <= ? THEN 2
+          WHEN i.type IN ('SHOPPING_LIST','CHECKLIST') THEN 1
+          ELSE 0
+        END DESC,
+        i.updated_at DESC`,
+      params: [
+        new Date(now).toISOString(),
+        new Date(now + 24 * 60 * 60 * 1000).toISOString(),
+        new Date(now + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      ],
+    };
   }
 
-  return 'ORDER BY i.keep_on_top DESC, i.updated_at DESC';
+  return {
+    sql: 'ORDER BY i.keep_on_top DESC, i.updated_at DESC',
+    params: [],
+  };
 }
 
 function searchTerms(value: string) {
@@ -571,13 +582,14 @@ export async function querySmartDrawerItems(
       )`,
   );
 
+  const order = nativeOrderBy(view);
   const sql = `
     SELECT i.*
     FROM drawer_items i
     WHERE i.user_id=?
       AND ${where.sql}
       ${searchClauses.length ? `AND ${searchClauses.join(' AND ')}` : ''}
-    ${nativeOrderBy(view)}
+    ${order.sql}
     LIMIT ? OFFSET ?
   `;
 
@@ -586,6 +598,7 @@ export async function querySmartDrawerItems(
     userId,
     ...where.params,
     ...terms.map(term => `${term}%`),
+    ...order.params,
     limit,
     offset,
   );
