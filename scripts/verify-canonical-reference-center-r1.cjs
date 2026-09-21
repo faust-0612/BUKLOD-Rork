@@ -281,7 +281,7 @@ forbidText(
   'Authenticated direct insert grants must not exist.',
 );
 
-requireText(dbTest, 'select plan(36);', 'Reference Center pgTAP plan is missing or stale.');
+requireText(dbTest, 'select plan(39);', 'Reference Center pgTAP plan is missing or stale.');
 requireText(dbTest, 'STALE_CANONICAL_SECTION', 'pgTAP stale-editor coverage is missing.');
 requireText(dbTest, 'DIFF_REVIEW_REQUIRED', 'pgTAP high-risk diff guard coverage is missing.');
 requireText(dbTest, 'canonical.reference.publish', 'pgTAP publish-permission coverage is missing.');
