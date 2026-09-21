@@ -129,7 +129,7 @@ function normalizeItem(
         : previous?.deletedAt ?? null,
     revision: (previous?.revision ?? 0) + 1,
     syncState:
-      (draft.syncState ?? 'PENDING') as SmartDrawerSyncState,
+      (draft.syncState ?? previous?.syncState ?? 'LOCAL_ONLY') as SmartDrawerSyncState,
   };
 }
 
@@ -163,7 +163,7 @@ async function nativeDb() {
           updated_at TEXT NOT NULL,
           deleted_at TEXT,
           revision INTEGER NOT NULL DEFAULT 1,
-          sync_state TEXT NOT NULL DEFAULT 'PENDING'
+          sync_state TEXT NOT NULL DEFAULT 'LOCAL_ONLY'
         );
 
         CREATE INDEX IF NOT EXISTS drawer_items_user_status_updated_idx
@@ -539,7 +539,7 @@ export async function setSmartDrawerStatus(
         : status === 'ACTIVE'
           ? null
           : item.deletedAt,
-    syncState: 'PENDING',
+    syncState: item.syncState === 'SYNCED' ? 'LOCAL_ONLY' : item.syncState,
   });
 }
 
@@ -554,7 +554,7 @@ export async function setSmartDrawerKeepOnTop(
     ...item,
     id: item.id,
     keepOnTop,
-    syncState: 'PENDING',
+    syncState: item.syncState === 'SYNCED' ? 'LOCAL_ONLY' : item.syncState,
   });
 }
 
@@ -569,7 +569,7 @@ export async function setSmartDrawerReminderMuted(
     ...item,
     id: item.id,
     reminderMuted,
-    syncState: 'PENDING',
+    syncState: item.syncState === 'SYNCED' ? 'LOCAL_ONLY' : item.syncState,
   });
 }
 
@@ -604,7 +604,7 @@ export async function toggleSmartDrawerListEntry(
         ? { ...entry, done: !entry.done }
         : entry,
     ),
-    syncState: 'PENDING',
+    syncState: item.syncState === 'SYNCED' ? 'LOCAL_ONLY' : item.syncState,
   });
 }
 
@@ -633,7 +633,7 @@ export async function listSmartDrawerPendingSync(
 export async function markSmartDrawerSynced(
   userId: string,
   itemId: string,
-  cloudUpdatedAt?: string | null,
+  _cloudUpdatedAt?: string | null,
 ) {
   const item = await getSmartDrawerItem(userId, itemId);
   if (!item) return null;
@@ -641,7 +641,6 @@ export async function markSmartDrawerSynced(
     ...item,
     id: item.id,
     syncState: 'SYNCED',
-    updatedAt: cloudUpdatedAt ?? item.updatedAt,
   });
 }
 
