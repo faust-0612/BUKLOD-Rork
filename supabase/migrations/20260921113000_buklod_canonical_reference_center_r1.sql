@@ -43,6 +43,8 @@ create table if not exists public.buklod_canonical_document_versions(
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   approved_at timestamptz null,
+  diff_reviewed_at timestamptz null,
+  diff_reviewed_by uuid null references auth.users(id) on delete set null,
   change_summary text null,
   affected_modules text[] not null default '{}',
   implementation_status text not null default 'DOC_ONLY'
@@ -477,7 +479,9 @@ begin
   returning * into v_new;
 
   update public.buklod_canonical_document_versions
-  set updated_at=now()
+  set updated_at=now(),
+      diff_reviewed_at=null,
+      diff_reviewed_by=null
   where id=p_version_id;
 
   perform public.buklod_canonical_audit_v1(
@@ -489,6 +493,101 @@ begin
   return to_jsonb(v_new);
 end;
 $$;
+
+create or replace function public.buklod_canonical_update_draft_metadata_v1(
+  p_version_id uuid,
+  p_change_summary text,
+  p_affected_modules text[],
+  p_risk_level text,
+  p_notes text,
+  p_expected_revision integer,
+  p_reason text
+)
+returns jsonb
+language plpgsql security definer
+set search_path=''
+as $
+declare
+  v public.buklod_canonical_document_versions%rowtype;
+  v_risk text:=upper(trim(coalesce(p_risk_level,'NORMAL')));
+begin
+  perform public.buklod_canonical_assert_permission_v1('canonical.reference.draft');
+  if trim(coalesce(p_change_summary,''))='' then raise exception 'Change summary is required'; end if;
+  if trim(coalesce(p_reason,''))='' then raise exception 'Reason is required'; end if;
+  if v_risk not in('NORMAL','HIGH','FINANCIAL','SECURITY','PRIVACY') then raise exception 'Invalid risk level'; end if;
+
+  select * into v
+  from public.buklod_canonical_document_versions
+  where id=p_version_id
+  for update;
+
+  if not found then raise exception 'Canonical version not found'; end if;
+  if v.status<>'DRAFT' then raise exception 'Only DRAFT metadata can be edited'; end if;
+  if v.revision<>p_expected_revision then raise exception 'STALE_CANONICAL_VERSION'; end if;
+
+  update public.buklod_canonical_document_versions
+  set change_summary=trim(p_change_summary),
+      affected_modules=coalesce(p_affected_modules,'{}'),
+      risk_level=v_risk,
+      notes=nullif(trim(coalesce(p_notes,'')),''),
+      diff_reviewed_at=null,
+      diff_reviewed_by=null,
+      revision=revision+1,
+      updated_at=now()
+  where id=p_version_id
+  returning * into v;
+
+  perform public.buklod_canonical_audit_v1(
+    'DRAFT_METADATA_CHANGED',v.document_id,v.id,null,p_reason,null,
+    v.change_summary,
+    jsonb_build_object('risk_level',v.risk_level,'affected_modules',v.affected_modules,'revision',v.revision)
+  );
+  return to_jsonb(v);
+end;
+$;
+
+create or replace function public.buklod_canonical_mark_diff_reviewed_v1(
+  p_version_id uuid,
+  p_expected_revision integer
+)
+returns jsonb
+language plpgsql security definer
+set search_path=''
+as $
+declare
+  v public.buklod_canonical_document_versions%rowtype;
+begin
+  if not (
+    public.buklod_canonical_has_permission_v1('canonical.reference.review')
+    or public.buklod_canonical_has_permission_v1('canonical.reference.approve')
+  ) then
+    raise exception 'Canonical Reference review permission required';
+  end if;
+
+  select * into v
+  from public.buklod_canonical_document_versions
+  where id=p_version_id
+  for update;
+
+  if not found then raise exception 'Canonical version not found'; end if;
+  if v.status not in('DRAFT','REVIEW') then raise exception 'Diff review is only recorded before approval'; end if;
+  if v.revision<>p_expected_revision then raise exception 'STALE_CANONICAL_VERSION'; end if;
+
+  update public.buklod_canonical_document_versions
+  set diff_reviewed_at=now(),
+      diff_reviewed_by=auth.uid(),
+      revision=revision+1,
+      updated_at=now()
+  where id=p_version_id
+  returning * into v;
+
+  perform public.buklod_canonical_audit_v1(
+    'DIFF_REVIEWED',v.document_id,v.id,null,'Required diff review completed',null,null,
+    jsonb_build_object('revision',v.revision,'risk_level',v.risk_level)
+  );
+  return to_jsonb(v);
+end;
+$;
 
 create or replace function public.buklod_canonical_submit_review_v1(
   p_version_id uuid,
@@ -550,6 +649,11 @@ begin
   if v.status<>'REVIEW' then raise exception 'Version is not in REVIEW'; end if;
   if v.revision<>p_expected_revision then raise exception 'STALE_CANONICAL_VERSION'; end if;
   if trim(coalesce(p_notes,''))='' then raise exception 'Review notes are required'; end if;
+  if p_approve
+     and v.risk_level in('HIGH','FINANCIAL','SECURITY','PRIVACY')
+     and v.diff_reviewed_at is null then
+    raise exception 'DIFF_REVIEW_REQUIRED';
+  end if;
 
   update public.buklod_canonical_document_versions
   set status=case when p_approve then 'APPROVED' else 'DRAFT' end,
@@ -605,6 +709,10 @@ begin
 
   if v.status<>'APPROVED' then raise exception 'Only APPROVED versions can be published'; end if;
   if v.revision<>p_expected_revision then raise exception 'STALE_CANONICAL_VERSION'; end if;
+  if v.risk_level in('HIGH','FINANCIAL','SECURITY','PRIVACY')
+     and v.diff_reviewed_at is null then
+    raise exception 'DIFF_REVIEW_REQUIRED';
+  end if;
 
   if v.risk_level in('FINANCIAL','SECURITY','PRIVACY') then
     perform public.buklod_canonical_assert_permission_v1('canonical.reference.high_risk_publish');
@@ -955,6 +1063,8 @@ revoke all on function public.buklod_canonical_section_v1(uuid,text) from public
 revoke all on function public.buklod_canonical_history_v1(text,integer,integer) from public,anon;
 revoke all on function public.buklod_canonical_create_draft_v1(text,text,text,text[],text,text,uuid,text) from public,anon;
 revoke all on function public.buklod_canonical_save_section_v1(uuid,text,text,text,integer,text) from public,anon;
+revoke all on function public.buklod_canonical_update_draft_metadata_v1(uuid,text,text[],text,text,integer,text) from public,anon;
+revoke all on function public.buklod_canonical_mark_diff_reviewed_v1(uuid,integer) from public,anon;
 revoke all on function public.buklod_canonical_submit_review_v1(uuid,integer,text) from public,anon;
 revoke all on function public.buklod_canonical_review_decision_v1(uuid,boolean,integer,text) from public,anon;
 revoke all on function public.buklod_canonical_publish_v1(uuid,integer) from public,anon;
@@ -970,7 +1080,9 @@ grant execute on function public.buklod_canonical_current_v1(text) to authentica
 grant execute on function public.buklod_canonical_section_v1(uuid,text) to authenticated;
 grant execute on function public.buklod_canonical_history_v1(text,integer,integer) to authenticated;
 grant execute on function public.buklod_canonical_create_draft_v1(text,text,text,text[],text,text,uuid,text) to authenticated;
-grant execute on function public.buklod_canonical_save_section_v1(uuid,text,text,text,text,integer,text) to authenticated;
+grant execute on function public.buklod_canonical_save_section_v1(uuid,text,text,text,integer,text) to authenticated;
+grant execute on function public.buklod_canonical_update_draft_metadata_v1(uuid,text,text[],text,text,integer,text) to authenticated;
+grant execute on function public.buklod_canonical_mark_diff_reviewed_v1(uuid,integer) to authenticated;
 grant execute on function public.buklod_canonical_submit_review_v1(uuid,integer,text) to authenticated;
 grant execute on function public.buklod_canonical_review_decision_v1(uuid,boolean,integer,text) to authenticated;
 grant execute on function public.buklod_canonical_publish_v1(uuid,integer) to authenticated;
