@@ -241,8 +241,19 @@ export default function CreateOrganizationScreen() {
 
       Alert.alert(
         'Organization Created',
-        'The organization is active. You are its Organization Admin.',
+        'The Organization was created successfully. Continue setup to configure units, roles, modules, access and invitations.',
         [
+          {
+            text: 'CONTINUE SETUP',
+            onPress: () =>
+              router.replace({
+                pathname: '/organizations/setup-wizard' as any,
+                params: {
+                  organization: scopeId,
+                  scopeId,
+                },
+              }),
+          },
           {
             text: 'OPEN WORKSPACE',
             onPress: () =>
@@ -252,20 +263,12 @@ export default function CreateOrganizationScreen() {
                 { fromPortal: true }
               ),
           },
-          {
-            text: 'MANAGE',
-            onPress: () =>
-              router.replace({
-                pathname: '/organizations/manage',
-                params: { organization: scopeId },
-              } as any),
-          },
         ],
       );
-    } catch (error: any) {
+    } catch {
       Alert.alert(
         'Could Not Create Organization',
-        String(error?.message ?? error ?? 'Please try again.'),
+        "BUKLOD couldn't create the Organization right now. Your entered information is still on this screen. Please try again.",
       );
     } finally {
       setBusy(false);
