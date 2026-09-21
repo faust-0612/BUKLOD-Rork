@@ -238,7 +238,7 @@ create or replace function public.buklod_canonical_audit_v1(
 returns void
 language plpgsql security definer
 set search_path=''
-as $
+as $$
 declare
   v_actor_roles jsonb := '[]'::jsonb;
   v_session_meta jsonb := '{}'::jsonb;
@@ -572,7 +572,7 @@ create or replace function public.buklod_canonical_update_draft_metadata_v1(
 returns jsonb
 language plpgsql security definer
 set search_path=''
-as $
+as $$
 declare
   v public.buklod_canonical_document_versions%rowtype;
   v_risk text:=upper(trim(coalesce(p_risk_level,'NORMAL')));
@@ -610,7 +610,7 @@ begin
   );
   return to_jsonb(v);
 end;
-$;
+$$;
 
 create or replace function public.buklod_canonical_mark_diff_reviewed_v1(
   p_version_id uuid,
@@ -619,7 +619,7 @@ create or replace function public.buklod_canonical_mark_diff_reviewed_v1(
 returns jsonb
 language plpgsql security definer
 set search_path=''
-as $
+as $$
 declare
   v public.buklod_canonical_document_versions%rowtype;
 begin
@@ -656,7 +656,7 @@ begin
   );
   return to_jsonb(v);
 end;
-$;
+$$;
 
 create or replace function public.buklod_canonical_submit_review_v1(
   p_version_id uuid,
