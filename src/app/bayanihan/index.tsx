@@ -17,6 +17,10 @@ import {
   type BuklodFinancialSummaryV3,
 } from '@/lib/buklodEconomyV3';
 import { useBuklodI18n } from '@/providers/BuklodI18nProvider';
+import {
+  buildBuklodUserFeedback,
+  trackBuklodFeedbackEvent,
+} from '@/lib/buklodUserFeedback';
 
 function Metric({
   label,
@@ -75,18 +79,36 @@ export default function BayanihanScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [supportCode, setSupportCode] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
       setError('');
+      setSupportCode(null);
       const next = await loadMyBuklodFinancialSummaryV3();
       setSummary(next);
     } catch (nextError) {
-      setError(
-        nextError instanceof Error
-          ? nextError.message
-          : t('economy.unavailable'),
+      const feedback = buildBuklodUserFeedback(
+        nextError,
+        {
+          context: 'general',
+          fallbackTitle: t('economy.unavailable'),
+          fallbackMessage:
+            'Your BUKLOD Economy summary could not be loaded right now.',
+        },
       );
+      setError(
+        'Your BUKLOD Economy summary could not be loaded right now. Pull down or tap Try Again.',
+      );
+      setSupportCode(feedback.supportCode ?? 'SYS-500');
+      void trackBuklodFeedbackEvent({
+        event: 'error_shown',
+        category: feedback.category,
+        supportCode: feedback.supportCode ?? 'SYS-500',
+        route: '/bayanihan',
+        feature: 'Economy / Bayanihan',
+        outcome: 'summary_load_failed',
+      });
     } finally {
       setLoading(false);
     }
@@ -161,9 +183,37 @@ export default function BayanihanScreen() {
           <MaterialCommunityIcons name="alert-circle-outline" size={28} color="#9B5A17" />
           <Text style={styles.stateTitle}>{t('economy.unavailable')}</Text>
           <Text style={styles.stateText}>{error}</Text>
-          <Pressable onPress={() => void load()} style={styles.retry}>
-            <Text style={styles.retryText}>{t('common.retry').toUpperCase()}</Text>
-          </Pressable>
+          {!!supportCode && (
+            <Text style={styles.supportCode}>Support code: {supportCode}</Text>
+          )}
+          <View style={styles.stateActions}>
+            <Pressable onPress={() => void load()} style={styles.retry}>
+              <Text style={styles.retryText}>{t('common.retry').toUpperCase()}</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                void trackBuklodFeedbackEvent({
+                  event: 'support_opened_after_error',
+                  supportCode,
+                  route: '/bayanihan',
+                  feature: 'Economy / Bayanihan',
+                  outcome: 'need_help',
+                });
+                router.push({
+                  pathname: '/help' as any,
+                  params: {
+                    category: 'FINANCIAL',
+                    errorCode: supportCode ?? 'SYS-500',
+                    message: error,
+                    sourceRoute: '/bayanihan',
+                  },
+                });
+              }}
+              style={styles.helpAction}
+            >
+              <Text style={styles.helpActionText}>{t('support.needHelp')}</Text>
+            </Pressable>
+          </View>
         </View>
       ) : summary ? (
         <>
@@ -404,6 +454,31 @@ const styles = StyleSheet.create({
   stateCard: { padding: 28, gap: 8, alignItems: 'center', backgroundColor: '#FFFFFF' },
   stateTitle: { fontSize: 14, fontWeight: '900', color: '#26382F' },
   stateText: { textAlign: 'center', fontSize: 11, lineHeight: 17, color: '#758078' },
+  supportCode: {
+    marginTop: 8,
+    fontSize: 10.5,
+    fontWeight: '900',
+    color: '#7A5A17',
+  },
+  stateActions: {
+    marginTop: 12,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  helpAction: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#275D45',
+    paddingHorizontal: 13,
+    paddingVertical: 9,
+  },
+  helpActionText: {
+    color: '#275D45',
+    fontSize: 10.5,
+    fontWeight: '900',
+  },
   retry: { marginTop: 5, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 9, backgroundColor: '#275D45' },
   retryText: { color: '#FFFFFF', fontSize: 10, fontWeight: '900' },
   guard: {
