@@ -49,6 +49,7 @@ const layout = read('src/app/_layout.tsx');
 
 [
   'canonical.reference.view',
+  'canonical.reference.restricted_view',
   'canonical.reference.draft',
   'canonical.reference.review',
   'canonical.reference.approve',
@@ -59,6 +60,21 @@ const layout = read('src/app/_layout.tsx');
   requireText(migration, permission, `Missing granular permission: ${permission}`),
 );
 
+requireText(
+  migration,
+  "revoke all on function public.buklod_canonical_audit_v1",
+  'Internal audit helper must not be executable by normal authenticated users.',
+);
+requireText(
+  migration,
+  "visibility_scope='INTERNAL'",
+  'Section visibility boundary is missing.',
+);
+requireText(
+  migration,
+  "canonical.reference.restricted_view",
+  'Restricted internal section permission is missing.',
+);
 requireText(
   migration,
   "create unique index if not exists buklod_canonical_one_effective_uq",
