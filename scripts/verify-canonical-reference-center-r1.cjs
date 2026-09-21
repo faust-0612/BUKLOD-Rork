@@ -260,6 +260,11 @@ requireText(
   'No authenticated direct write policies are created',
   'Direct-write containment statement is missing.',
 );
+forbidText(
+  migration,
+  "'canonical.reference.view',\n          'canonical.reference.draft',\n          'canonical.reference.review'",
+  'View-only Canonical Reference readers must not be included in publication notification recipients.',
+);
 requireText(
   migration,
   'from anon,authenticated',
