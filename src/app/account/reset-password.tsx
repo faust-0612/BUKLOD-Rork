@@ -541,18 +541,23 @@ ResetPasswordScreen() {
             ]}
           >
             {busy ? (
-              <ActivityIndicator
-                color={
-                  colors.white
-                }
-              />
+              <View style={styles.busyRow}>
+                <ActivityIndicator
+                  color={
+                    colors.white
+                  }
+                />
+                <Text style={styles.primaryText}>
+                  UPDATING PASSWORD…
+                </Text>
+              </View>
             ) : (
               <Text
                 style={
                   styles.primaryText
                 }
               >
-                {busy ? 'UPDATING PASSWORD…' : 'SAVE NEW PASSWORD'}
+                SAVE NEW PASSWORD
               </Text>
             )}
           </Pressable>
@@ -672,6 +677,13 @@ const styles =
       borderRadius: 13,
       backgroundColor:
         colors.greenDark,
+    },
+
+    busyRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
     },
 
     primaryText: {
