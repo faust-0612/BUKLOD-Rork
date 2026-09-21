@@ -81,7 +81,7 @@ export function buildBuklodReferralShareUrl(code:string){
 export async function resolveBuklodReferralCode(code:string){
   const clean=normalizeBuklodReferralCode(code);
   if(!clean)return {found:false,message:'Referral not found'};
-  const result=await withBuklodTimeout(
+  const result=await withBuklodTimeout<{data:any;error:any}>(
     (supabase as any).rpc('resolve_buklod_referral_code_v2',{p_code:clean}),
     5000,'Referral lookup'
   );
@@ -94,7 +94,7 @@ export async function ensureBuklodProfitFirstIdentity(force=false){
   const userId=session.data.session?.user?.id;
   if(!userId)return null;
   if(!force && await AsyncStorage.getItem(IDENTITY_KEY)===userId)return {ok:true,cached:true};
-  const result=await withBuklodTimeout(
+  const result=await withBuklodTimeout<{data:any;error:any}>(
     (supabase as any).functions.invoke('buklod-referral-v2',{body:{action:'ensure_identity'}}),
     10000,'Referral identity'
   );
@@ -108,7 +108,7 @@ export async function attachBuklodReferral(code:string){
   const clean=normalizeBuklodReferralCode(code);
   if(!clean)throw new Error('Referral not found');
   await ensureBuklodProfitFirstIdentity();
-  const result=await withBuklodTimeout(
+  const result=await withBuklodTimeout<{data:any;error:any}>(
     (supabase as any).functions.invoke('buklod-referral-v2',{
       body:{action:'attach_referral',referral_code:clean},
     }),
@@ -130,7 +130,7 @@ export async function attachPendingBuklodReferral(){
 }
 
 export async function loadBuklodReferralSummaryV2(){
-  const result=await withBuklodTimeout(
+  const result=await withBuklodTimeout<{data:any;error:any}>(
     (supabase as any).rpc('get_my_buklod_referral_summary_v2'),
     6000,'Referral dashboard'
   );
