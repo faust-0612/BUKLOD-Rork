@@ -607,7 +607,20 @@ function ReferenceCenterBody() {
             selectedSection.revision,
           reason: editReason.trim(),
         });
+      const version =
+        await loadCanonicalVersion(
+          selectedVersion.id,
+        );
       setSelectedSection(section);
+      setSelectedVersion(version);
+      syncVersionFields(version);
+      setHistory(current =>
+        current.map(item =>
+          item.id === version.id
+            ? version
+            : item,
+        ),
+      );
       setEditReason('');
       setNotice({
         tone: 'success',
@@ -636,6 +649,7 @@ function ReferenceCenterBody() {
     editTitle,
     selectedSection,
     selectedVersion,
+    syncVersionFields,
   ]);
 
   const saveMetadata = useCallback(async () => {
