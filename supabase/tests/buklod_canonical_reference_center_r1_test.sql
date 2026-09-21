@@ -57,6 +57,40 @@ create temporary table canonical_test_state(
   value_int integer
 );
 
+select ok(
+  exists(
+    select 1 from public.buklod_foundation_roles
+    where role_key='CANONICAL_REFERENCE_EDITOR'
+      and is_active=true
+      and scope_required=false
+  ),
+  'delegated Canonical Reference Editor role is seeded'
+);
+
+select ok(
+  exists(
+    select 1 from public.buklod_foundation_roles
+    where role_key='CANONICAL_REFERENCE_READER'
+      and is_active=true
+      and scope_required=false
+  ),
+  'read-only Canonical Reference Reader role is seeded'
+);
+
+select ok(
+  not exists(
+    select 1
+    from public.buklod_foundation_role_permissions
+    where role_key='CANONICAL_REFERENCE_EDITOR'
+      and permission_key in(
+        'canonical.reference.approve',
+        'canonical.reference.publish',
+        'canonical.reference.high_risk_publish'
+      )
+  ),
+  'delegated editor has no approve/publish authority by default'
+);
+
 select is(
   (select version from public.buklod_canonical_document_versions v
    join public.buklod_canonical_documents d on d.current_effective_version_id=v.id
