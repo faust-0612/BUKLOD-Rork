@@ -159,6 +159,15 @@ export default function OrganizationModuleGatewayScreen() {
         return;
       }
 
+      if (moduleId === 'connect') {
+        await enterScopedWorkspace(
+          selectScope,
+          scopeId,
+          { section: 'connect', fromPortal: true },
+        );
+        return;
+      }
+
       if (moduleId === 'announcements') {
         router.replace({
           pathname: '/organizations/announcements' as any,
