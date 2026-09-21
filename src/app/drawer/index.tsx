@@ -25,6 +25,9 @@ import {
   initializeSmartDrawerStore,
   querySmartDrawerItems,
 } from '@/lib/smartDrawer/localStore';
+import {
+  runSmartDrawerLifecycleCleanup,
+} from '@/lib/smartDrawer/lifecycle';
 import type {
   SmartDrawerItem,
 } from '@/lib/smartDrawer/types';
@@ -238,8 +241,24 @@ export default function SmartDrawerScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      void load(false);
-    }, [load]),
+      let active = true;
+
+      void (async () => {
+        if (user?.id) {
+          await runSmartDrawerLifecycleCleanup(
+            user.id,
+          ).catch(() => ({ removed: 0 }));
+        }
+
+        if (active) {
+          await load(false);
+        }
+      })();
+
+      return () => {
+        active = false;
+      };
+    }, [load, user?.id]),
   );
 
   const sections = useMemo(
@@ -287,13 +306,20 @@ export default function SmartDrawerScreen() {
           </Text>
         </View>
 
-        <View style={styles.privateBadge}>
+        <Pressable
+          onPress={() =>
+            router.push('/drawer/settings' as any)
+          }
+          accessibilityRole="button"
+          accessibilityLabel="Drawer settings"
+          style={styles.privateBadge}
+        >
           <MaterialCommunityIcons
-            name="lock-outline"
-            size={17}
+            name="cog-outline"
+            size={19}
             color="#FFFFFF"
           />
-        </View>
+        </Pressable>
       </View>
 
       <SectionList
