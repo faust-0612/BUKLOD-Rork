@@ -44,6 +44,7 @@ function categoryKey(category: BuklodSupportCategory) {
     APP_NOT_RESPONDING: 'support.category.appNotResponding',
     OTHER_ACCOUNT: 'support.category.otherAccount',
     QUIZ: 'support.category.quiz',
+    REPORT: 'support.category.report',
     CLASSROOM: 'support.category.classroom',
     ORGANIZATION: 'support.category.organization',
     REPORTED_CONTENT: 'support.category.reportedContent',
@@ -185,6 +186,8 @@ export default function BuklodHelpScreen() {
         feature:
           category === 'QUIZ'
             ? 'Quiz'
+            : category === 'REPORT'
+              ? 'BUKLOD Report'
             : category === 'CLASSROOM'
               ? 'Classroom'
               : category === 'ORGANIZATION'
