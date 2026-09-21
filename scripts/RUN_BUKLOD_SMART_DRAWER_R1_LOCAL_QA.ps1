@@ -48,21 +48,21 @@ try {
   Set-Location $qaRoot
 
   Write-Host "`n3/7 Install locked dependencies..." -ForegroundColor Yellow
-  npm ci --ignore-scripts --include=dev --no-audit --no-fund
-  Assert-LastExit "npm ci"
+  & npm.cmd ci --ignore-scripts --include=dev --no-audit --no-fund
+  Assert-LastExit "& npm.cmd ci"
 
   Write-Host "`n4/7 Smart Drawer invariant contract..." -ForegroundColor Yellow
-  npm run drawer:contract
+  & npm.cmd run drawer:contract
   Assert-LastExit "Smart Drawer contract"
 
   Write-Host "`n5/7 Preserve BUKLOD app boundaries + focused unit tests..." -ForegroundColor Yellow
   node scripts/verify-buklod-app-boundaries.cjs
   Assert-LastExit "App boundary guard"
-  npm test -- __tests__/smartDrawerClassification.test.ts
+  & npm.cmd test -- __tests__/smartDrawerClassification.test.ts
   Assert-LastExit "Smart Drawer focused Jest"
 
   Write-Host "`n6/7 TypeScript..." -ForegroundColor Yellow
-  npx tsc --noEmit
+  & npx.cmd tsc --noEmit
   Assert-LastExit "TypeScript"
 
   Write-Host "`n7/7 Exact source freeze..." -ForegroundColor Yellow
