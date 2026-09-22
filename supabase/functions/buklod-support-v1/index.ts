@@ -2,8 +2,9 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 // BUKLOD_SUPPORT_REQUIRES_VERIFY_JWT_FALSE
-// Pre-login Help is a required public path. Deploy this function with verify_jwt=false;
-// the handler validates optional user JWTs itself and never exposes the service key.
+// Pre-login Help is public. This compatibility implementation writes into the
+// existing user_feedback / BSOC operations pipeline instead of creating a
+// competing support store.
 const cors={
   "Access-Control-Allow-Origin":"*",
   "Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type",
@@ -20,6 +21,25 @@ const CATEGORIES=new Set([
   "APP_NOT_RESPONDING","OTHER_ACCOUNT","QUIZ","CLASSROOM",
   "ORGANIZATION","REPORTED_CONTENT","TECHNICAL","FINANCIAL","OTHER"
 ]);
+const ERROR_CATEGORIES=new Set([
+  "VALIDATION_ERROR","AUTH_ERROR","PERMISSION_ERROR","NETWORK_ERROR",
+  "TIMEOUT_ERROR","CONFLICT_ERROR","NOT_FOUND","RATE_LIMIT",
+  "SERVICE_UNAVAILABLE","RECOVERY_REQUIRED","KNOWN_INCIDENT","UNKNOWN_ERROR"
+]);
+const TELEMETRY_EVENT_MAP:Record<string,string|null>={
+  error_shown:"error_shown",
+  error_category:"error_shown",
+  recovery_offered:"recovery_offered",
+  recovery_attempted:"recovery_attempted",
+  recovery_success:"recovery_success",
+  support_opened_after_error:"support_opened_after_error",
+  user_abandoned_after_error:"user_abandoned_after_error",
+  action_processing:null,
+  action_success:"safe_recovery_action",
+  action_failed:"recovery_failed",
+  self_heal_attempted:"recovery_attempted",
+  self_heal_success:"recovery_success",
+};
 
 function queueFor(category:string,feature:string){
   const f=feature.toLowerCase();
@@ -32,7 +52,12 @@ function queueFor(category:string,feature:string){
   if(category==="TECHNICAL"||category==="APP_NOT_RESPONDING") return "OPERATIONS_ENGINEERING";
   return "GENERAL_SUPPORT";
 }
-
+function feedbackCategoryFor(category:string){
+  if(category==="REPORTED_CONTENT") return "content";
+  if(category==="ORGANIZATION") return "usability";
+  if(["APP_NOT_RESPONDING","QUIZ","CLASSROOM","TECHNICAL"].includes(category)) return "bug";
+  return "other";
+}
 function caseTitle(category:string){
   const labels:Record<string,string>={
     SIGN_IN:"Cannot sign in",
@@ -51,7 +76,15 @@ function caseTitle(category:string){
   };
   return labels[category]??labels.OTHER;
 }
-
+function publicStatus(status:string){
+  const s=lower(status,40);
+  if(s==="triaged"||s==="in_progress") return "BEING_REVIEWED";
+  if(s==="resolved"||s==="closed") return "RESOLVED";
+  return "OPEN";
+}
+function caseCodeFromId(id:string){
+  return "BUK-"+id.replace(/-/g,"").slice(0,8).toUpperCase();
+}
 async function sha256(v:string){
   const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(v));
   return Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,"0")).join("");
@@ -66,26 +99,18 @@ function maskIdentifier(v:string){
   if(!s) return null;
   if(s.includes("@")){
     const [a,b]=s.split("@");
-    return (a?.slice(0,2)||"")+(a&&a.length>2?"•••":"")+"@"+(b||"");
+    return (a?.slice(0,2)||"")+(a&&a.length>2?"***":"")+"@"+(b||"");
   }
   const digits=s.replace(/\D/g,"");
-  if(digits.length>=10) return "••••••"+digits.slice(-4);
-  return s.slice(0,2)+(s.length>2?"••••":"");
+  if(digits.length>=10) return "******"+digits.slice(-4);
+  return s.slice(0,2)+(s.length>2?"****":"");
 }
-
-const TELEMETRY_EVENTS=new Set([
-  "error_shown","error_category","recovery_offered","recovery_attempted",
-  "recovery_success","support_opened_after_error","user_abandoned_after_error",
-  "action_processing","action_success","action_failed",
-  "self_heal_attempted","self_heal_success"
-]);
-
-function safeTelemetryMetadata(value:any){
+function safeClientDiagnostics(value:any){
   if(!value||typeof value!=="object"||Array.isArray(value)) return {};
   const out:Record<string,string|number|boolean|null>={};
   for(const [rawKey,rawValue] of Object.entries(value).slice(0,20)){
     const key=clean(rawKey,64);
-    if(!key||/password|pin|otp|token|secret|credential|security.?answer|payment/i.test(key)) continue;
+    if(!key||/password|pin|otp|token|secret|credential|security.?answer|payment|title|body|text|note|image|asset|list|content|extract/i.test(key)) continue;
     if(rawValue===null||typeof rawValue==="number"||typeof rawValue==="boolean"){
       out[key]=rawValue as number|boolean|null;
     }else if(typeof rawValue==="string"){
@@ -101,7 +126,9 @@ Deno.serve(async(req:Request)=>{
 
   const url=Deno.env.get("SUPABASE_URL");
   const serviceKey=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if(!url||!serviceKey) return reply(503,{ok:false,error:"support_unavailable",message:"BUKLOD Help is temporarily unavailable."});
+  if(!url||!serviceKey){
+    return reply(503,{ok:false,error:"support_unavailable",message:"BUKLOD Help is temporarily unavailable."});
+  }
 
   const admin=createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
   let body:any={};
@@ -118,103 +145,112 @@ Deno.serve(async(req:Request)=>{
     }
   }
 
-  const rawIp=clean(req.headers.get("cf-connecting-ip")||req.headers.get("x-real-ip")||req.headers.get("x-forwarded-for")?.split(",")[0]||"unknown",160);
+  const rawIp=clean(
+    req.headers.get("cf-connecting-ip")||
+    req.headers.get("x-real-ip")||
+    req.headers.get("x-forwarded-for")?.split(",")[0]||
+    "unknown",
+    160
+  );
   const keyedHash=(scope:string,value:string)=>sha256("buklod-support-v1:"+scope+":"+value+":"+serviceKey);
   const ipHash=await keyedHash("ip",rawIp||"unknown");
 
   if(action==="telemetry"){
-    const event=clean(body?.event,64);
-    if(!TELEMETRY_EVENTS.has(event)){
+    const requested=clean(body?.event,64);
+    const eventType=TELEMETRY_EVENT_MAP[requested];
+    if(requested && !(requested in TELEMETRY_EVENT_MAP)){
       return reply(400,{ok:false,error:"invalid_telemetry_event"});
     }
-
-    const sinceMinute=new Date(Date.now()-60_000).toISOString();
-    const {count:recentCount}=await admin.from("buklod_support_feedback_events")
-      .select("id",{count:"exact",head:true})
-      .eq("ip_hash",ipHash)
-      .gte("occurred_at",sinceMinute);
-
-    if(Number(recentCount??0)>=120){
-      return reply(200,{ok:true,dropped:true,reason:"telemetry_rate_limited"});
+    if(!eventType){
+      return reply(200,{ok:true,dropped:true,reason:"non_blocking_telemetry_not_persisted"});
     }
 
-    const {error}=await admin.from("buklod_support_feedback_events").insert({
+    const rawCategory=clean(body?.category,64).toUpperCase();
+    const errorCategory=ERROR_CATEGORIES.has(rawCategory)?rawCategory:null;
+    const supportCode=clean(body?.support_code,40).toUpperCase()||null;
+
+    const {error}=await admin.from("bsoc_feedback_events").insert({
       user_id:userId,
-      event_name:event,
-      category:clean(body?.category,64)||null,
-      support_code:clean(body?.support_code,40)||null,
-      app:clean(body?.app,80)||"BUKLOD Main",
-      app_version:clean(body?.app_version,40)||null,
-      platform:clean(body?.platform,40)||null,
+      support_code:supportCode,
+      event_type:eventType,
+      error_category:errorCategory,
+      app_id:clean(body?.app,80)||"BUKLOD Main",
+      app_version:clean(body?.app_version,80)||null,
+      build:null,
+      platform:clean(body?.platform,80)||null,
       route:clean(body?.route,240)||null,
-      feature:clean(body?.feature,120)||null,
-      outcome:clean(body?.outcome,80)||null,
-      metadata:safeTelemetryMetadata(body?.metadata),
-      ip_hash:ipHash,
+      recovery_attempted:/attempted|processing/.test(requested)?true:null,
+      recovery_success:/success/.test(requested)?true:null,
+      support_case_id:null,
+      incident_id:null,
     });
 
     if(error){
       console.error("buklod_support_telemetry_insert_failed",{code:(error as any)?.code??"unknown"});
       return reply(503,{ok:false,error:"telemetry_unavailable"});
     }
-
     return reply(200,{ok:true});
   }
 
   if(action==="health"){
-    const [casesCheck,incidentsCheck]=await Promise.all([
-      admin.from("buklod_support_cases").select("id",{count:"exact",head:true}).limit(1),
-      admin.from("buklod_support_incidents").select("id",{count:"exact",head:true}).limit(1),
+    const [feedbackCheck,eventCheck]=await Promise.all([
+      admin.from("user_feedback").select("id",{count:"exact",head:true}).limit(1),
+      admin.from("bsoc_feedback_events").select("id",{count:"exact",head:true}).limit(1),
     ]);
-    if(casesCheck.error||incidentsCheck.error){
+    if(feedbackCheck.error||eventCheck.error){
       return reply(503,{
         ok:false,
         error:"support_backend_not_ready",
         service:"BUKLOD_SUPPORT_V1",
-        schema:"BUKLOD_CENTRAL_SUPPORT_V1",
+        schema:"BSOC_USER_FEEDBACK_COMPAT_V1",
       });
     }
     return reply(200,{
       ok:true,
       service:"BUKLOD_SUPPORT_V1",
-      schema:"BUKLOD_CENTRAL_SUPPORT_V1",
+      schema:"BSOC_USER_FEEDBACK_COMPAT_V1",
       prelogin:true,
+      bsoc_queue:"buklod_bsoc_support_queue_v1",
     });
+  }
+
+  async function summaryFromRow(row:any){
+    const diagnostics=row?.diagnostics&&typeof row.diagnostics==="object"?row.diagnostics:{};
+    const resolution=clean(row?.resolution,1000);
+    return {
+      case_code:clean(diagnostics.support_case_code,32)||caseCodeFromId(String(row.id||"")),
+      status:publicStatus(row.status),
+      queue_code:clean(diagnostics.support_queue,80)||"GENERAL_SUPPORT",
+      category:clean(diagnostics.support_category,80)||String(row.category||"other"),
+      app:clean(diagnostics.app,80)||"BUKLOD Main",
+      feature:clean(diagnostics.feature,120)||null,
+      title:String(row.title||"BUKLOD support request"),
+      created_at:row.created_at??null,
+      updated_at:row.updated_at??null,
+      resolved_at:row.resolved_at??null,
+      incident:null,
+      updates:resolution?[{message:resolution,update_type:"RESOLUTION",created_at:row.resolved_at??row.updated_at??null}]:[],
+    };
   }
 
   async function caseStatus(caseCode:string,accessToken:string){
     const code=clean(caseCode,32).toUpperCase();
-    const {data,error}=await admin.from("buklod_support_cases")
-      .select("id,case_code,user_id,status,queue_code,category,app,feature,title,incident_id,created_at,updated_at,resolved_at")
-      .eq("case_code",code).maybeSingle();
+    if(!code) return reply(400,{ok:false,error:"case_code_required"});
+
+    const {data,error}=await admin.from("user_feedback")
+      .select("id,user_id,category,title,status,app_version,diagnostics,resolution,created_at,updated_at,resolved_at")
+      .eq("diagnostics->>support_case_code",code)
+      .maybeSingle();
     if(error||!data) return reply(404,{ok:false,error:"case_not_found"});
 
     let allowed=!!userId&&String(data.user_id||"")===userId;
     if(!allowed&&accessToken){
       const tokenHash=await keyedHash("case-token",accessToken);
-      const {data:tokenRow}=await admin.from("buklod_support_cases")
-        .select("id").eq("id",data.id).eq("public_access_token_hash",tokenHash).maybeSingle();
-      allowed=!!tokenRow;
+      allowed=clean(data.diagnostics?.public_access_token_hash,128)===tokenHash;
     }
     if(!allowed) return reply(403,{ok:false,error:"case_access_denied"});
 
-    let incident:any=null;
-    if(data.incident_id){
-      const {data:i}=await admin.from("buklod_support_incidents")
-        .select("incident_code,status,title,public_message").eq("id",data.incident_id).maybeSingle();
-      incident=i??null;
-    }
-    const {data:updates}=await admin.from("buklod_support_case_updates")
-      .select("message,update_type,created_at")
-      .eq("case_id",data.id).eq("visibility","USER")
-      .order("created_at",{ascending:false}).limit(10);
-
-    return reply(200,{ok:true,case:{
-      case_code:data.case_code,status:data.status,queue_code:data.queue_code,
-      category:data.category,app:data.app,feature:data.feature,title:data.title,
-      created_at:data.created_at,updated_at:data.updated_at,resolved_at:data.resolved_at,
-      incident,updates:updates??[]
-    }});
+    return reply(200,{ok:true,case:await summaryFromRow(data)});
   }
 
   if(action==="case_status"){
@@ -223,11 +259,16 @@ Deno.serve(async(req:Request)=>{
 
   if(action==="list_my_cases"){
     if(!userId) return reply(401,{ok:false,error:"sign_in_required"});
-    const {data,error}=await admin.from("buklod_support_cases")
-      .select("case_code,status,queue_code,category,app,feature,title,created_at,updated_at,resolved_at")
-      .eq("user_id",userId).order("created_at",{ascending:false}).limit(100);
+    const {data,error}=await admin.from("user_feedback")
+      .select("id,user_id,category,title,status,app_version,diagnostics,resolution,created_at,updated_at,resolved_at")
+      .eq("user_id",userId)
+      .eq("diagnostics->>support_source","BUKLOD_HELP_V1")
+      .order("created_at",{ascending:false})
+      .limit(100);
     if(error) return reply(500,{ok:false,error:"support_read_failed"});
-    return reply(200,{ok:true,cases:data??[]});
+    const cases=[];
+    for(const row of data??[]) cases.push(await summaryFromRow(row));
+    return reply(200,{ok:true,cases});
   }
 
   if(action!=="resolve_or_case"){
@@ -244,13 +285,13 @@ Deno.serve(async(req:Request)=>{
   const osVersion=clean(body?.os_version,80);
   const appVersion=clean(body?.app_version,40);
   const route=clean(body?.route,240);
-  const errorCode=clean(body?.error_code,120);
+  const errorCode=clean(body?.error_code,120).toUpperCase();
   const languageCode=clean(body?.language_code,24)||"en";
   const message=clean(body?.message,4000);
   const requestId=clean(body?.request_id,120);
   const networkSummary=
     body?.network_summary&&typeof body.network_summary==="object"
-      ? body.network_summary
+      ? safeClientDiagnostics(body.network_summary)
       : {};
 
   if(category==="FORGOT_PASSWORD"){
@@ -258,14 +299,12 @@ Deno.serve(async(req:Request)=>{
       ok:true,
       outcome:"SELF_SERVICE",
       next_route:"/(auth)/forgot-password",
-      message:"Use BUKLOD password recovery. No support case is needed unless recovery itself fails."
+      message:"Use BUKLOD password recovery. No support case is needed unless recovery itself fails.",
     });
   }
 
   let linkedUserId=userId;
   let accountState="UNKNOWN";
-  let lastSuccessfulLogin:string|null=null;
-  let recentRecoveryAttempts=0;
   let identifierHash:string|null=null;
   let identifierHint:string|null=null;
 
@@ -288,68 +327,45 @@ Deno.serve(async(req:Request)=>{
     accountState="AUTHENTICATED";
   }
 
-  if(linkedUserId){
-    try{
-      const {data:authUser}=await admin.auth.admin.getUserById(linkedUserId);
-      lastSuccessfulLogin=authUser?.user?.last_sign_in_at??null;
-    }catch{}
-    const since24=new Date(Date.now()-24*60*60_000).toISOString();
-    const {count}=await admin.from("buklod_account_recovery_events")
-      .select("id",{count:"exact",head:true})
-      .eq("user_id",linkedUserId).gte("created_at",since24);
-    recentRecoveryAttempts=Number(count??0);
-  }
-
-  const fingerprint=await sha256([
-    app.toLowerCase(),feature.toLowerCase(),category,platform.toLowerCase(),errorCode.toLowerCase()
-  ].join("|"));
-
-  const {data:incidentRows}=await admin.from("buklod_support_incidents")
-    .select("id,incident_code,status,title,public_message,affected_users")
-    .eq("fingerprint",fingerprint)
-    .neq("status","RESOLVED")
-    .order("opened_at",{ascending:false}).limit(1);
-  const knownIncident=incidentRows?.[0]??null;
-
-  async function subscribeIncident(incident:any){
-    const subject=linkedUserId
-      ? await keyedHash("user",linkedUserId)
-      : identifierHash||ipHash;
-    await admin.from("buklod_support_incident_subscribers").upsert({
-      incident_id:incident.id,user_id:linkedUserId,subject_hash:subject,
-      language_code:languageCode,notify_when_resolved:true
-    },{onConflict:"incident_id,subject_hash"});
-    const [{count:subCount},{count:caseCount}]=await Promise.all([
-      admin.from("buklod_support_incident_subscribers").select("id",{count:"exact",head:true}).eq("incident_id",incident.id),
-      admin.from("buklod_support_cases").select("id",{count:"exact",head:true}).eq("incident_id",incident.id),
-    ]);
-    await admin.from("buklod_support_incidents").update({
-      affected_users:Number(subCount??0)+Number(caseCount??0),updated_at:new Date().toISOString()
-    }).eq("id",incident.id);
-  }
-
-  if(knownIncident){
-    await subscribeIncident(knownIncident);
-    return reply(200,{
-      ok:true,outcome:"KNOWN_INCIDENT",
-      incident:{
-        incident_code:knownIncident.incident_code,
-        status:knownIncident.status,
-        title:knownIncident.title,
-        message:knownIncident.public_message,
-      },
-      notify_when_fixed:true
-    });
+  if(errorCode){
+    const {data:known}=await admin.from("bsoc_known_incidents_v1")
+      .select("id,status,title,description,operator_message,support_code")
+      .eq("support_code",errorCode)
+      .neq("status","closed")
+      .order("updated_at",{ascending:false})
+      .limit(1)
+      .maybeSingle();
+    if(known){
+      return reply(200,{
+        ok:true,
+        outcome:"KNOWN_INCIDENT",
+        incident:{
+          incident_code:String(known.id||""),
+          status:String(known.status||"investigating").toUpperCase(),
+          title:String(known.title||"Known BUKLOD incident"),
+          message:String(known.operator_message||known.description||"BUKLOD is already working on this issue."),
+        },
+      });
+    }
   }
 
   const since15=new Date(Date.now()-15*60_000).toISOString();
-  const {count:ipCount}=await admin.from("buklod_support_cases")
-    .select("id",{count:"exact",head:true}).eq("ip_hash",ipHash).gte("created_at",since15);
-  if(Number(ipCount??0)>=12) return reply(429,{ok:false,error:"too_many_support_requests",message:"Too many recent support requests. Please try again later."});
+  const {count:ipCount}=await admin.from("user_feedback")
+    .select("id",{count:"exact",head:true})
+    .eq("diagnostics->>support_ip_hash",ipHash)
+    .gte("created_at",since15);
+  if(Number(ipCount??0)>=12){
+    return reply(429,{ok:false,error:"too_many_support_requests",message:"Too many recent support requests. Please try again later."});
+  }
+
   if(identifierHash){
-    const {count:idCount}=await admin.from("buklod_support_cases")
-      .select("id",{count:"exact",head:true}).eq("identifier_hash",identifierHash).gte("created_at",since15);
-    if(Number(idCount??0)>=4) return reply(429,{ok:false,error:"too_many_support_requests",message:"Too many recent support requests for this account. Please try again later."});
+    const {count:idCount}=await admin.from("user_feedback")
+      .select("id",{count:"exact",head:true})
+      .eq("diagnostics->>support_identifier_hash",identifierHash)
+      .gte("created_at",since15);
+    if(Number(idCount??0)>=4){
+      return reply(429,{ok:false,error:"too_many_support_requests",message:"Too many recent support requests for this account. Please try again later."});
+    }
   }
 
   const accessToken=randomToken();
@@ -357,115 +373,90 @@ Deno.serve(async(req:Request)=>{
   const queueCode=queueFor(category,feature);
 
   if(requestId){
-    const {data:existing}=await admin.from("buklod_support_cases")
-      .select("id,case_code,status,queue_code,created_at,incident_id")
-      .eq("request_id",requestId).maybeSingle();
+    const {data:existing}=await admin.from("user_feedback")
+      .select("id,user_id,category,title,status,app_version,diagnostics,resolution,created_at,updated_at,resolved_at")
+      .eq("diagnostics->>support_request_id",requestId)
+      .maybeSingle();
     if(existing){
-      await admin.from("buklod_support_cases")
-        .update({public_access_token_hash:accessTokenHash,updated_at:new Date().toISOString()})
+      const existingDiagnostics={
+        ...(existing.diagnostics&&typeof existing.diagnostics==="object"?existing.diagnostics:{}),
+        public_access_token_hash:accessTokenHash,
+      };
+      await admin.from("user_feedback")
+        .update({diagnostics:existingDiagnostics,updated_at:new Date().toISOString()})
         .eq("id",existing.id);
       return reply(200,{
         ok:true,
         outcome:"CASE_CREATED",
-        case:{
-          case_code:existing.case_code,
-          status:existing.status,
-          queue_code:existing.queue_code,
-          created_at:existing.created_at,
-          access_token:accessToken,
-        },
-        recovered_idempotently:true
+        case:{...(await summaryFromRow({...existing,diagnostics:existingDiagnostics})),access_token:accessToken},
+        recovered_idempotently:true,
       });
     }
   }
-  const diagnostics={
-    source:"BUKLOD_HELP_V1",
-    account_state:accountState,
-    last_successful_login:lastSuccessfulLogin,
-    recent_recovery_attempts_24h:recentRecoveryAttempts,
-    known_incident_match:false,
-    client:body?.diagnostics&&typeof body.diagnostics==="object"?body.diagnostics:{},
-  };
 
-  const {data:created,error:createError}=await admin.from("buklod_support_cases").insert({
-    source_type:"BUKLOD_HELP",
-    request_id:requestId||null,
-    user_id:linkedUserId,
-    identifier_hash:identifierHash,
-    identifier_hint:identifierHint,
+  const caseId=crypto.randomUUID();
+  const caseCode=caseCodeFromId(caseId);
+  const diagnostics={
+    support_source:"BUKLOD_HELP_V1",
+    support_case_code:caseCode,
+    support_request_id:requestId||null,
+    support_queue:queueCode,
+    support_category:category,
+    support_identifier_hash:identifierHash,
+    support_identifier_hint:identifierHint,
+    support_ip_hash:ipHash,
     public_access_token_hash:accessTokenHash,
-    status:"OPEN",
-    queue_code:queueCode,
-    category,
+    account_state:accountState,
     app,
     feature:feature||null,
-    title:caseTitle(category),
-    message,
-    platform:platform||null,
-    os_version:osVersion||null,
-    app_version:appVersion||null,
     route:route||null,
     error_code:errorCode||null,
+    platform:platform||null,
+    os_version:osVersion||null,
     language_code:languageCode,
     network_summary:networkSummary,
+    client:safeClientDiagnostics(body?.diagnostics),
+  };
+
+  const {data:created,error:createError}=await admin.from("user_feedback").insert({
+    id:caseId,
+    user_id:linkedUserId,
+    church_id:null,
+    group_id:null,
+    category:feedbackCategoryFor(category),
+    title:caseTitle(category),
+    message:message||caseTitle(category),
+    status:"new",
+    app_version:appVersion||null,
+    app_environment:"production",
     diagnostics,
-    fingerprint,
-    ip_hash:ipHash,
-  }).select("id,case_code,status,queue_code,created_at").single();
+  }).select("id,user_id,category,title,status,app_version,diagnostics,resolution,created_at,updated_at,resolved_at").single();
 
   if(createError||!created){
     console.error("buklod_support_case_create_failed",{code:(createError as any)?.code??"unknown"});
     return reply(500,{ok:false,error:"case_creation_failed",message:"Support case could not be created. Please try again."});
   }
 
-  const since30=new Date(Date.now()-30*60_000).toISOString();
-  const {count:similarCount}=await admin.from("buklod_support_cases")
-    .select("id",{count:"exact",head:true})
-    .eq("fingerprint",fingerprint).neq("status","RESOLVED").gte("created_at",since30);
-
-  let linkedIncident:any=null;
-  if(Number(similarCount??0)>=5){
-    const incidentInsert=await admin.from("buklod_support_incidents").insert({
-      fingerprint,app,feature:feature||null,category,
-      platform_scope:platform||null,error_code:errorCode||null,
-      status:"POSSIBLE_SHARED_INCIDENT",severity:"P2",
-      title:"Possible shared incident: "+caseTitle(category),
-      public_message:"BUKLOD detected several similar reports. The issue is being investigated.",
-      internal_summary:"Automatically correlated from repeated support case fingerprint."
-    }).select("id,incident_code,status,title,public_message").maybeSingle();
-
-    if(incidentInsert.data){
-      linkedIncident=incidentInsert.data;
-    }else{
-      const {data:existing}=await admin.from("buklod_support_incidents")
-        .select("id,incident_code,status,title,public_message")
-        .eq("fingerprint",fingerprint).neq("status","RESOLVED").maybeSingle();
-      linkedIncident=existing??null;
-    }
-
-    if(linkedIncident){
-      await admin.from("buklod_support_cases")
-        .update({incident_id:linkedIncident.id,updated_at:new Date().toISOString()})
-        .eq("fingerprint",fingerprint).is("incident_id",null).neq("status","RESOLVED");
-      await subscribeIncident(linkedIncident);
-    }
-  }
+  await admin.from("bsoc_feedback_events").insert({
+    user_id:linkedUserId,
+    support_code:errorCode||null,
+    event_type:"error_to_ticket",
+    error_category:null,
+    app_id:app,
+    app_version:appVersion||null,
+    build:null,
+    platform:platform||null,
+    route:route||null,
+    recovery_attempted:null,
+    recovery_success:null,
+    support_case_id:caseId,
+    incident_id:null,
+  }).then(()=>undefined).catch(()=>undefined);
 
   return reply(200,{
     ok:true,
     outcome:"CASE_CREATED",
-    case:{
-      case_code:created.case_code,
-      status:created.status,
-      queue_code:created.queue_code,
-      created_at:created.created_at,
-      access_token:accessToken,
-    },
-    incident:linkedIncident?{
-      incident_code:linkedIncident.incident_code,
-      status:linkedIncident.status,
-      title:linkedIncident.title,
-      message:linkedIncident.public_message,
-    }:null
+    case:{...(await summaryFromRow(created)),access_token:accessToken},
+    incident:null,
   });
 });
