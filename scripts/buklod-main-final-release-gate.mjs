@@ -516,35 +516,39 @@ requireText(
 );
 requireText(
   'supabase/functions/buklod-support-v1/index.ts',
-  'buklod_support_incident_subscribers',
-  'Known incident users are associated for updates',
+  'admin.from("user_feedback")',
+  'Main Help writes into the existing BSOC support case store',
+);
+forbidText(
+  'supabase/functions/buklod-support-v1/index.ts',
+  'admin.from("buklod_support_cases")',
+  'Main Help must not create a competing legacy support store',
 );
 requireText(
   'supabase/migrations/20260920225500_buklod_central_support_v1.sql',
-  'create table if not exists public.buklod_support_cases',
-  'Canonical support case schema is source-tracked',
+  'BSOC_USER_FEEDBACK_COMPAT_V1',
+  'Central support migration preserves the live BSOC user_feedback store',
 );
 requireText(
   'supabase/migrations/20260920225500_buklod_central_support_v1.sql',
-  'buklod_bsoc_support_inbox_v1',
-  'BSOC Support Inbox RPC is source-tracked',
+  'alter column user_id drop not null',
+  'Pre-login support cases can be created safely by the service Edge Function',
 );
 requireText(
   'supabase/migrations/20260920225500_buklod_central_support_v1.sql',
-  "then 'Restricted financial inquiry'",
-  'Ordinary BSOC staff receive finance-redacted support content',
+  'idx_user_feedback_support_request_id',
+  'Support case creation has database idempotency protection',
 );
 requireText(
   'supabase/migrations/20260920225500_buklod_central_support_v1.sql',
-  'trg_buklod_feedback_to_support_case_v1',
-  'Legacy feedback converges into central support cases',
+  'buklod_bsoc_support_queue_v1',
+  'Existing BSOC queue remains authoritative',
 );
 requireText(
   'src/lib/buklodGlobalAdController.ts',
   "'/help'",
   'Help and Support is ad-free',
 );
-
 requireText(
   'supabase/functions/buklod-support-v1/index.ts',
   'BUKLOD_SUPPORT_REQUIRES_VERIFY_JWT_FALSE',
@@ -556,29 +560,34 @@ requireText(
   'Support backend exposes release health probe',
 );
 requireText(
-  'supabase/migrations/20260920225500_buklod_central_support_v1.sql',
-  'buklod_bsoc_update_incident_v1',
-  'Shared incidents have controlled BSOC lifecycle updates',
+  'supabase/functions/buklod-support-v1/index.ts',
+  'schema:"BSOC_USER_FEEDBACK_COMPAT_V1"',
+  'Support health probe identifies the current BSOC compatibility contract',
 );
 requireText(
   'scripts/RUN_BUKLOD_MAIN_FINAL_RELEASE_LOCAL.ps1',
-  'BACKEND HANDOFF REQUIRED BEFORE MAIN / WEB CUTOVER',
-  'Phase 1 stops after AAB for support backend activation',
+  'BACKEND HANDOFF REQUIRED BEFORE PRODUCTION WEB CUTOVER',
+  'Phase 1 stops before Web until support backend proof is available',
 );
 forbidText(
   'scripts/RUN_BUKLOD_MAIN_FINAL_RELEASE_LOCAL.ps1',
-  'refs/heads/main',
-  'Phase 1 cannot promote Main before support backend proof',
+  'eas-cli@latest build --platform android',
+  'Phase 1 must not build Android before Web live verification',
 );
 requireText(
   'scripts/RESUME_BUKLOD_MAIN_FINAL_RELEASE_AFTER_SUPPORT_BACKEND.ps1',
   'VERIFY CENTRAL SUPPORT BACKEND HEALTH',
-  'Phase 2 verifies support backend before Main cutover',
+  'Phase 2 verifies support backend before production release',
 );
 requireText(
   'scripts/RESUME_BUKLOD_MAIN_FINAL_RELEASE_AFTER_SUPPORT_BACKEND.ps1',
-  'BUKLOD_CENTRAL_SUPPORT_V1',
-  'Phase 2 requires exact support schema contract',
+  'BSOC_USER_FEEDBACK_COMPAT_V1',
+  'Phase 2 requires the current BSOC support compatibility contract',
+);
+requireText(
+  'scripts/RESUME_BUKLOD_MAIN_FINAL_RELEASE_AFTER_SUPPORT_BACKEND.ps1',
+  'WEB LIVE VERIFY -> SAME-SHA AAB',
+  'Phase 2 locks Web first then same-SHA AAB',
 );
 
 requireText(
