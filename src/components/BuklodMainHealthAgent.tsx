@@ -73,6 +73,7 @@ export default function BuklodMainHealthAgent() {
   const pendingSinceRef = useRef<number | null>(null);
   const lastSyncRecoveryRef = useRef(0);
   const lastScopeRecoveryRef = useRef(0);
+  const lastAuthRecoveryRef = useRef(0);
   const userIdRef = useRef<string | null>(null);
 
   userIdRef.current = user?.id ?? null;
@@ -126,6 +127,10 @@ export default function BuklodMainHealthAgent() {
         const { data } = await supabase.auth.getSession();
         return data.session?.user?.id === initialUserId;
       };
+
+      if (!(await stillSameAccount())) {
+        return;
+      }
 
       if (action === 'REQUEST_CLIENT_SESSION_REFRESH') {
         let success = false;
@@ -526,6 +531,14 @@ export default function BuklodMainHealthAgent() {
   useEffect(() => {
     if (!user?.id || !session || !online) return;
 
+    const now = Date.now();
+    if (
+      now - lastAuthRecoveryRef.current <
+      LOCAL_RETRY_COOLDOWN_MS
+    ) {
+      return;
+    }
+
     const expiresAtMs =
       Number(session.expires_at ?? 0) * 1000;
     if (
@@ -534,6 +547,8 @@ export default function BuklodMainHealthAgent() {
     ) {
       return;
     }
+
+    lastAuthRecoveryRef.current = now;
 
     void (async () => {
       let healed = false;
