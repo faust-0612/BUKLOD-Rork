@@ -306,7 +306,7 @@ requireText(
 requireText(
   'supabase/migrations/20260920140000_buklod_main_profit_first_referral_v2.sql',
   'one_time_referral_centavos bigint not null default 2000',
-  'Referral one-time â‚±20 uses integer centavos',
+  'Referral one-time ₱20 uses integer centavos',
 );
 requireText(
   'supabase/migrations/20260920140000_buklod_main_profit_first_referral_v2.sql',
@@ -383,7 +383,7 @@ requireText(
 );
 requireText(
   'src/components/BuklodReferralInviteCard.tsx',
-  'â‚±20 PENDING',
+  '₱20 PENDING',
   'Referral dashboard separates pending reward',
 );
 
@@ -471,7 +471,7 @@ requireText(
 );
 requireText(
   'src/app/(tabs)/me.tsx',
-  "pathname: '/help' as any",
+  "router.push('/help' as any)",
   'Logged-in Profile Help entry is present',
 );
 forbidText(
