@@ -273,7 +273,10 @@ export async function flushBuklodMainHealthQueue(
 
   for (const row of rows) {
     try {
-      const { error } = await withBuklodTimeout(
+      const { error } = await withBuklodTimeout<{
+        data: unknown;
+        error: unknown | null;
+      }>(
         (supabase as any).rpc('buklod_record_health_event_v1', {
           p_client_event_id: row.clientEventId,
           p_app_id: APP_ID,
@@ -348,7 +351,10 @@ export async function reportBuklodMainHealthIssue(
 }
 
 export async function pollBuklodMainRecoveryCommands() {
-  const { data, error } = await withBuklodTimeout(
+  const { data, error } = await withBuklodTimeout<{
+    data: unknown;
+    error: unknown | null;
+  }>(
     (supabase as any).rpc('buklod_poll_recovery_commands_v1', {
       p_app_id: APP_ID,
       p_limit: 5,
@@ -404,7 +410,10 @@ export async function verifyBuklodMainRecovery(input: {
       .slice(0, 12),
   );
 
-  const { data, error } = await withBuklodTimeout(
+  const { data, error } = await withBuklodTimeout<{
+    data: unknown;
+    error: unknown | null;
+  }>(
     (supabase as any).rpc(
       'buklod_record_recovery_verification_v1',
       {

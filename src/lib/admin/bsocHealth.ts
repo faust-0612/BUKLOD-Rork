@@ -96,16 +96,23 @@ async function rpc<T>(
   args: Record<string, unknown>,
   label: string,
 ): Promise<T> {
-  const result = await withBuklodTimeout(
+  const result = await withBuklodTimeout<{
+    data: T | null;
+    error: { message?: unknown } | unknown | null;
+  }>(
     (supabase as any).rpc(name, args),
     8_000,
     label,
   );
 
   if (result.error) {
-    throw new Error(
-      String(result.error.message ?? result.error ?? label),
-    );
+    const message =
+      typeof result.error === 'object' &&
+      result.error &&
+      'message' in result.error
+        ? (result.error as { message?: unknown }).message
+        : result.error;
+    throw new Error(String(message ?? label));
   }
 
   return result.data as T;
@@ -160,7 +167,10 @@ export async function loadBsocRecoveryRuns(input: {
 export async function loadBsocRecoveryPlaybooks(): Promise<
   BsocRecoveryPlaybook[]
 > {
-  const result = await withBuklodTimeout(
+  const result = await withBuklodTimeout<{
+    data: BsocRecoveryPlaybook[] | null;
+    error: { message?: unknown } | unknown | null;
+  }>(
     (supabase as any)
       .from('bsoc_recovery_playbooks')
       .select(
@@ -193,12 +203,14 @@ export async function loadBsocRecoveryPlaybooks(): Promise<
   );
 
   if (result.error) {
+    const message =
+      typeof result.error === 'object' &&
+      result.error &&
+      'message' in result.error
+        ? (result.error as { message?: unknown }).message
+        : result.error;
     throw new Error(
-      String(
-        result.error.message ??
-          result.error ??
-          'BSOC recovery playbooks unavailable',
-      ),
+      String(message ?? 'BSOC recovery playbooks unavailable'),
     );
   }
 

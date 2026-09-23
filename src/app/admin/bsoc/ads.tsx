@@ -99,7 +99,7 @@ function Inspector({
     ['Environment', item.environment],
     ['Requests', metric?.requested ?? '—'],
     ['Loaded', metric?.loaded ?? '—'],
-    ['Rendered', metric?.displayed ?? '—'],
+    ['Rendered', metric?.rendered ?? '—'],
     ['Impressions', metric?.impression ?? '—'],
     ['Load rate', metric ? `${pct(metric.loaded, metric.requested) ?? '—'}%`.replace('—%', '—') : '—'],
     ['Show rate', metric ? `${pct(metric.impression, metric.loaded) ?? '—'}%`.replace('—%', '—') : '—'],
@@ -157,7 +157,7 @@ export default function BsocAdsHealthScreen() {
 
   const { requested, loaded, impression, failures } = summary.totals;
   const rendered = summary.placements.reduce(
-    (sum, row) => sum + row.displayed,
+    (sum, row) => sum + row.rendered,
     0,
   );
   const loadRate = pct(loaded, requested);
