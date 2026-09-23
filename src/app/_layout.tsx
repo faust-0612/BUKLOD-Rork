@@ -32,6 +32,7 @@ import { StreamVideoProvider } from '@/providers/StreamVideoProvider';
 import { BuklodThemeProvider } from '@/providers/BuklodThemeProvider';
 import { BuklodCharacterEventProvider } from '@/components/character/BuklodCharacterEventProvider';
 import RorkAvatarOnboardingGate from '@/components/character/RorkAvatarOnboardingGate';
+import BuklodMainHealthAgent from '@/components/BuklodMainHealthAgent';
 
 export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
   return (
@@ -103,6 +104,7 @@ export default function RootLayout() {
         <BuklodFormationEntryScopeTracker />
         <BuklodFoundationProvider>
       <NetworkProvider>
+        <BuklodMainHealthAgent />
         <BuklodFeedbackProvider>
         <BuklodOfflineSyncProvider>
         <ComplianceProvider>
