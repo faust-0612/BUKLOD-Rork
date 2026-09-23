@@ -555,6 +555,13 @@ export default function AdminDashboard() {
               />
 
               <AdminRow
+                icon="monitor-dashboard"
+                title="BUKLOD System Operation Center"
+                subtitle="Health, incidents, support, recovery, ads and operational safety"
+                path="/admin/bsoc"
+              />
+
+              <AdminRow
                 icon="tune-variant"
                 title="Configuration Center"
                 subtitle="System and scoped configuration controls"
