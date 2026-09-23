@@ -4,7 +4,7 @@ const failures = [];
 const checks = [];
 
 function read(path) {
-  return fs.readFileSync(path, 'utf8');
+  return fs.readFileSync(path, 'utf8').replace(/\r\n?/g, '\n');
 }
 
 function pass(label, ok, detail = '') {
@@ -229,8 +229,8 @@ requireText(
 );
 
 requireText(
-  'supabase/migrations/20260920225500_buklod_central_support_v1.sql',
-  'buklod_support_feedback_events',
+  'supabase/migrations/20260921090716_bsoc_feedback_operations_r1.sql',
+  'bsoc_feedback_events',
   'Feedback telemetry backend schema is source-tracked',
 );
 requireText(
@@ -240,7 +240,7 @@ requireText(
 );
 requireText(
   'supabase/functions/buklod-support-v1/index.ts',
-  '/password|pin|otp|token|secret|credential|security.?answer|payment/i',
+  '/password|pin|otp|token|secret|credential|security.?answer|payment|title|body|text|note|image|asset|list|content|extract/i',
   'Server telemetry strips secret-like metadata',
 );
 
