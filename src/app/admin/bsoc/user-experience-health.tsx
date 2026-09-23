@@ -1,5 +1,16 @@
-import React, { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
@@ -10,83 +21,58 @@ import BsocShell, {
   BsocStatusBadge,
   type BsocTone,
 } from '@/components/bsoc/BsocShell';
-import { useBuklodOfflineCache } from '@/hooks/useBuklodOfflineCache';
-import { adminDashboardStatsCacheKey } from '@/lib/buklodOfflineSync';
-import { supabase } from '@/lib/supabase';
+import {
+  bsocSupportDeflectionRate,
+  bsocVerifiedRecoveryRate,
+  loadBsocHealthEvents,
+  loadBsocHealthOverview,
+  loadBsocRecoveryPlaybooks,
+  loadBsocRecoveryRuns,
+  type BsocHealthEvent,
+  type BsocHealthOverview,
+  type BsocRecoveryPlaybook,
+  type BsocRecoveryRun,
+} from '@/lib/admin/bsocHealth';
 
-type Stats = {
-  total_users: number;
-  active_today: number;
-  completion_rate: number;
-  groups: number;
-  churches: number;
-  pending_requests: number;
-  published_devotionals: number;
-  series: number;
-};
+const REFRESH_MS = 30_000;
 
-type HealthMetric = {
-  key: string;
-  label: string;
-  value: string;
-  note: string;
-  tone: BsocTone;
-};
+function percent(value: number | null) {
+  return value === null
+    ? '—'
+    : `${value.toFixed(1)}%`;
+}
 
-type CoverageRow = {
-  path: string;
-  expected: string;
-  current: string;
-  tone: BsocTone;
-};
+function toneForState(state: string): BsocTone {
+  if (state === 'AUTO_HEALED') return 'healthy';
+  if (
+    state === 'RECOVERY_FAILED' ||
+    state === 'ESCALATED'
+  ) {
+    return 'critical';
+  }
+  if (
+    state === 'LINKED_TO_INCIDENT' ||
+    state === 'REMOTE_RECOVERY_RUNNING' ||
+    state === 'VERIFYING'
+  ) {
+    return 'warning';
+  }
+  return 'neutral';
+}
 
-const COVERAGE: readonly CoverageRow[] = [
-  {
-    path: 'LOGIN',
-    expected: 'started · completed · failed · recovered · duration',
-    current: 'Partial application telemetry; unified BSOC feed not connected',
-    tone: 'warning',
-  },
-  {
-    path: 'COMMUNITY WALL',
-    expected: 'loading · success · empty · error · recovery',
-    current: 'App behavior exists; centralized UX-health aggregation pending',
-    tone: 'warning',
-  },
-  {
-    path: 'PROFILE / ORGANIZATION',
-    expected: 'navigation · auth · sync · recovery',
-    current: 'Unified incident correlation pending',
-    tone: 'warning',
-  },
-  {
-    path: 'CLASSROOM',
-    expected: 'healthy · connecting · weak network · recovery · needs help',
-    current: 'Live health contract required before claiming real-time coverage',
-    tone: 'offline',
-  },
-  {
-    path: 'QUIZ / SUBMISSION',
-    expected: 'durable save · retry · submit · recover · verify',
-    current: 'Recovery work exists; unified BSOC telemetry still pending',
-    tone: 'warning',
-  },
-] as const;
-
-function MetricCard({ item }: { item: HealthMetric }) {
-  return (
-    <View style={styles.metricCard}>
-      <View style={styles.metricTop}>
-        <Text style={styles.metricLabel}>{item.label}</Text>
-        <BsocStatusBadge
-          label={item.tone === 'healthy' ? 'LIVE' : item.tone === 'warning' ? 'PARTIAL' : 'NOT CONNECTED'}
-          tone={item.tone}
-        />
-      </View>
-      <Text style={styles.metricValue}>{item.value}</Text>
-      <Text style={styles.metricNote}>{item.note}</Text>
-    </View>
-  );
+function toneForPlaybook(
+  item: BsocRecoveryPlaybook,
+): BsocTone {
+  if (item.kill_switch) return 'critical';
+  if (item.mode === 'SHADOW') return 'warning';
+  if (
+    item.mode === 'ENABLED' &&
+    item.qa_verified_at &&
+    item.executor_ready
+  ) {
+    return 'healthy';
+  }
+  return 'neutral';
 }
 
 function FlowStep({ label }: { label: string }) {
@@ -98,277 +84,658 @@ function FlowStep({ label }: { label: string }) {
 }
 
 export default function BsocUserExperienceHealthScreen() {
-  const {
-    data: stats,
-    loading,
-    online,
-    fromCache,
-    error,
-  } = useBuklodOfflineCache<Stats | null>({
-    cacheKey: adminDashboardStatsCacheKey(),
-    fetcher: async () => {
-      const { data, error: rpcError } = await supabase.rpc('admin_dashboard_stats');
-      if (rpcError) throw rpcError;
-      return data as Stats;
-    },
-  });
+  const [overview, setOverview] =
+    useState<BsocHealthOverview | null>(null);
+  const [events, setEvents] =
+    useState<BsocHealthEvent[]>([]);
+  const [runs, setRuns] =
+    useState<BsocRecoveryRun[]>([]);
+  const [playbooks, setPlaybooks] =
+    useState<BsocRecoveryPlaybook[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] =
+    useState(false);
+  const [error, setError] = useState('');
+  const [lastLoadedAt, setLastLoadedAt] =
+    useState<string | null>(null);
 
-  const metrics = useMemo<HealthMetric[]>(() => [
-    {
-      key: 'cases_per_1k',
-      label: 'Support cases / 1,000 active users',
-      value: '—',
-      note: stats
-        ? `Active-today denominator available: ${stats.active_today.toLocaleString('en-PH')}. Support-case telemetry is not yet connected, so BSOC will not invent a rate.`
-        : error
-          ? 'Active-user source unavailable and support-case telemetry is not connected.'
-          : 'Waiting for active-user source; support-case telemetry is not connected.',
-      tone: 'offline',
-    },
-    {
-      key: 'login_failure',
-      label: 'Login failure rate',
-      value: '—',
-      note: 'Requires a centralized login started/completed/failed/recovered event stream.',
-      tone: 'offline',
-    },
-    {
-      key: 'self_heal',
-      label: 'Self-heal success rate',
-      value: '—',
-      note: 'Requires recovery-attempt and recovery-success telemetry with bounded retry metadata.',
-      tone: 'offline',
-    },
-    {
-      key: 'retry_success',
-      label: 'Retry success rate',
-      value: '—',
-      note: 'Requires request retry telemetry with attempt count, timeout and final fallback.',
-      tone: 'offline',
-    },
-    {
-      key: 'stuck_loading',
-      label: 'Stuck loading incidents',
-      value: '—',
-      note: 'Requires route-level timeout and recovery events. Missing telemetry is not treated as zero.',
-      tone: 'offline',
-    },
-    {
-      key: 'submission_recovery',
-      label: 'Submission recovery',
-      value: '—',
-      note: 'Requires durable staging + recovered/verified submission events across Quiz/Classroom/forms.',
-      tone: 'offline',
-    },
-    {
-      key: 'session_recovery',
-      label: 'Session recovery',
-      value: '—',
-      note: 'Requires expired/stale session detection and successful refresh/recreate telemetry.',
-      tone: 'offline',
-    },
-    {
-      key: 'white_screen',
-      label: 'Crash / white-screen rate',
-      value: '—',
-      note: 'Requires centralized crash and route dead-end telemetry before scale.',
-      tone: 'offline',
-    },
-    {
-      key: 'deflection',
-      label: 'Support deflection rate',
-      value: '—',
-      note: 'Problems detected → auto-resolved → self-resolved → support case → engineering escalation.',
-      tone: 'offline',
-    },
-  ], [error, stats]);
+  const load = useCallback(async (
+    background = false,
+  ) => {
+    if (background) setRefreshing(true);
+    else setLoading(true);
 
-  const adminFreshness =
-    loading && !stats
+    try {
+      const [
+        nextOverview,
+        nextEvents,
+        nextRuns,
+        nextPlaybooks,
+      ] = await Promise.all([
+        loadBsocHealthOverview(24),
+        loadBsocHealthEvents({
+          hours: 24,
+          limit: 80,
+        }),
+        loadBsocRecoveryRuns({
+          hours: 24,
+          limit: 60,
+        }),
+        loadBsocRecoveryPlaybooks(),
+      ]);
+
+      setOverview(nextOverview);
+      setEvents(nextEvents);
+      setRuns(nextRuns);
+      setPlaybooks(nextPlaybooks);
+      setLastLoadedAt(new Date().toISOString());
+      setError('');
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : 'BSOC health data could not load.',
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load(false);
+
+    const timer = setInterval(() => {
+      void load(true);
+    }, REFRESH_MS);
+
+    return () => clearInterval(timer);
+  }, [load]);
+
+  const unresolved = useMemo(
+    () =>
+      events.filter(
+        item =>
+          ![
+            'AUTO_HEALED',
+            'LINKED_TO_INCIDENT',
+          ].includes(item.lifecycle_state),
+      ),
+    [events],
+  );
+
+  const verifiedRate = useMemo(
+    () => bsocVerifiedRecoveryRate(overview),
+    [overview],
+  );
+
+  const deflectionRate = useMemo(
+    () => bsocSupportDeflectionRate(overview),
+    [overview],
+  );
+
+  const shadowCount = playbooks.filter(
+    item => item.mode === 'SHADOW',
+  ).length;
+  const enabledCount = playbooks.filter(
+    item => item.mode === 'ENABLED',
+  ).length;
+  const killSwitchCount = playbooks.filter(
+    item => item.kill_switch,
+  ).length;
+
+  const sourceStatus = error
+    ? 'DEGRADED'
+    : loading
       ? 'LOADING'
-      : stats && !online
-        ? 'CACHED / OFFLINE'
-        : stats && fromCache
-          ? 'CACHED'
-          : stats
-            ? 'LIVE RPC'
-            : 'UNAVAILABLE';
+      : 'LIVE RPC';
 
   return (
     <AdminGate>
       <BsocShell
         current="overview"
         eyebrow="USER EXPERIENCE HEALTH"
-        title="Prevent concerns before they become tickets"
-        subtitle="BUKLOD should handle normal failure automatically. Human attention is reserved for unresolved exceptions, and engineering escalation is reserved for product defects, systemic incidents, data integrity risks, security issues, repeated recovery failures and unknown recurring failures."
+        title="Closed-loop recovery before support escalation"
+        subtitle="BSOC now reads the live health-event, recovery, verification and incident-correlation models. It never calls a recovery successful merely because a command ran."
         rightPanel={
           <View style={styles.stack}>
             <BsocPanel>
-              <Text style={styles.eyebrow}>CANONICAL FLOW</Text>
-              <Text style={styles.panelTitle}>App-first recovery</Text>
+              <Text style={styles.eyebrow}>
+                CANONICAL FLOW
+              </Text>
+              <Text style={styles.panelTitle}>
+                App-first, proof-based recovery
+              </Text>
               <Text style={styles.body}>
-                PREVENT → DETECT → EXPLAIN → SELF-RECOVER → VERIFY → ESCALATE ONLY IF UNRESOLVED
+                DETECT → DIAGNOSE → HEAL → VERIFY →
+                ESCALATE ONLY IF UNRESOLVED
               </Text>
             </BsocPanel>
 
             <BsocPanel>
-              <Text style={styles.eyebrow}>CURRENT DATA FRESHNESS</Text>
+              <Text style={styles.eyebrow}>
+                LIVE SOURCES
+              </Text>
               <View style={styles.sourceRow}>
-                <Text style={styles.sourceLabel}>Admin snapshot</Text>
+                <Text style={styles.sourceLabel}>
+                  Health event stream
+                </Text>
                 <BsocStatusBadge
-                  label={adminFreshness}
-                  tone={stats && online && !fromCache ? 'healthy' : stats ? 'warning' : 'offline'}
+                  label={sourceStatus}
+                  tone={
+                    error
+                      ? 'critical'
+                      : loading
+                        ? 'warning'
+                        : 'healthy'
+                  }
                 />
               </View>
               <View style={styles.sourceRow}>
-                <Text style={styles.sourceLabel}>UX-health event stream</Text>
-                <BsocStatusBadge label="NOT CONNECTED" tone="offline" />
+                <Text style={styles.sourceLabel}>
+                  Verification engine
+                </Text>
+                <BsocStatusBadge
+                  label="CONNECTED"
+                  tone="healthy"
+                />
               </View>
               <View style={styles.sourceRow}>
-                <Text style={styles.sourceLabel}>Incident correlation</Text>
-                <BsocStatusBadge label="NOT CONNECTED" tone="offline" />
+                <Text style={styles.sourceLabel}>
+                  Incident correlation
+                </Text>
+                <BsocStatusBadge
+                  label="CONNECTED"
+                  tone="healthy"
+                />
+              </View>
+              <View style={styles.sourceRow}>
+                <Text style={styles.sourceLabel}>
+                  Remote playbooks
+                </Text>
+                <BsocStatusBadge
+                  label={
+                    enabledCount > 0
+                      ? `${enabledCount} ENABLED`
+                      : `${shadowCount} SHADOW`
+                  }
+                  tone={
+                    enabledCount > 0
+                      ? 'warning'
+                      : 'healthy'
+                  }
+                />
               </View>
             </BsocPanel>
 
             <BsocPanel>
-              <Text style={styles.eyebrow}>HARD RULE</Text>
-              <Text style={styles.panelTitle}>Never leave “nothing happened”</Text>
+              <Text style={styles.eyebrow}>
+                SAFETY LOCK
+              </Text>
+              <Text style={styles.panelTitle}>
+                No blind reset
+              </Text>
               <Text style={styles.body}>
-                Every important action must end in success, loading/processing, a clear actionable error, a safe retry, or recovery in progress. Endless spinners, blank screens and dead navigation are release-blocking.
+                Financial, security, role, ownership,
+                destructive and irreversible changes are
+                human-controlled only. New remote playbooks
+                stay in SHADOW until their client executor
+                and verification evidence pass E2E.
               </Text>
             </BsocPanel>
           </View>
         }
       >
         <BsocPanel style={styles.flowPanel}>
-          <Text style={styles.eyebrow}>APP-FIRST RECOVERY PIPELINE</Text>
+          <View style={styles.headingRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.eyebrow}>
+                CLOSED-LOOP SELF-HEAL
+              </Text>
+              <Text style={styles.sectionTitle}>
+                Live operational health
+              </Text>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Refresh BSOC health"
+              disabled={refreshing}
+              onPress={() => void load(true)}
+              style={styles.refreshButton}
+            >
+              {refreshing ? (
+                <ActivityIndicator
+                  size="small"
+                  color="#1F5C43"
+                />
+              ) : (
+                <MaterialCommunityIcons
+                  name="refresh"
+                  size={17}
+                  color="#1F5C43"
+                />
+              )}
+              <Text style={styles.refreshText}>
+                REFRESH
+              </Text>
+            </Pressable>
+          </View>
+
           <View style={styles.flowRow}>
-            {['PREVENT', 'DETECT', 'EXPLAIN', 'SELF-RECOVER', 'VERIFY', 'ESCALATE'].map((step, index, all) => (
+            {[
+              'DETECT',
+              'DIAGNOSE',
+              'HEAL',
+              'VERIFY',
+              'ESCALATE',
+            ].map((step, index, all) => (
               <React.Fragment key={step}>
                 <FlowStep label={step} />
                 {index < all.length - 1 ? (
-                  <MaterialCommunityIcons name="chevron-right" size={17} color="#929C96" />
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={17}
+                    color="#929C96"
+                  />
                 ) : null}
               </React.Fragment>
             ))}
           </View>
+
+          {error ? (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>
+                {error}
+              </Text>
+            </View>
+          ) : null}
+
+          <Text style={styles.freshness}>
+            {lastLoadedAt
+              ? `Last live refresh: ${new Date(
+                  lastLoadedAt,
+                ).toLocaleString()}`
+              : 'Waiting for first live refresh.'}
+          </Text>
         </BsocPanel>
 
         <View style={styles.topMetrics}>
           <BsocMetric
-            label="Active today"
-            value={stats ? stats.active_today.toLocaleString('en-PH') : '—'}
-            note={adminFreshness}
+            label="Detected issues · 24h"
+            value={Number(
+              overview?.detected_issues ?? 0,
+            ).toLocaleString()}
+            note="Unique health-event rows"
           />
           <BsocMetric
-            label="Pending admin requests"
-            value={stats ? stats.pending_requests.toLocaleString('en-PH') : '—'}
-            note="Not equivalent to support cases"
+            label="Event occurrences · 24h"
+            value={Number(
+              overview?.event_occurrences ?? 0,
+            ).toLocaleString()}
+            note="Includes deduped repeat count"
           />
           <BsocMetric
-            label="Unified UX telemetry"
-            value="NOT CONNECTED"
-            note="No false-zero health claims"
+            label="Local self-heal"
+            value={Number(
+              overview?.local_self_heal_success ?? 0,
+            ).toLocaleString()}
+            note="Resolved before remote BSOC action"
+          />
+          <BsocMetric
+            label="Verified remote heal"
+            value={Number(
+              overview?.remote_auto_healed ?? 0,
+            ).toLocaleString()}
+            note="AUTO_HEALED only after proof"
+          />
+          <BsocMetric
+            label="Verification failures"
+            value={Number(
+              overview?.verification_failures ?? 0,
+            ).toLocaleString()}
+            note="Command success without proof is failure"
+          />
+          <BsocMetric
+            label="Support escalations"
+            value={Number(
+              overview?.support_cases_created ?? 0,
+            ).toLocaleString()}
+            note="Only unresolved/human-needed cases"
           />
         </View>
 
         <BsocPanel>
-          <Text style={styles.eyebrow}>CONCERN PREVENTION KPI</Text>
-          <Text style={styles.sectionTitle}>Operational health metrics</Text>
-          <Text style={styles.body}>
-            Ticket count alone is not enough. BSOC must distinguish detected problems, automatic recovery, user self-recovery, human support cases and engineering escalations.
+          <Text style={styles.eyebrow}>
+            RECOVERY QUALITY
+          </Text>
+          <Text style={styles.sectionTitle}>
+            Optimize for verified recovery
           </Text>
           <View style={styles.metricGrid}>
-            {metrics.map((item) => (
-              <MetricCard key={item.key} item={item} />
-            ))}
+            <View style={styles.metricCard}>
+              <Text style={styles.metricLabel}>
+                Verified remote recovery rate
+              </Text>
+              <Text style={styles.metricValue}>
+                {percent(verifiedRate)}
+              </Text>
+              <Text style={styles.metricNote}>
+                AUTO_HEALED / (AUTO_HEALED +
+                verification failures). Blank means no
+                verified sample yet.
+              </Text>
+            </View>
+
+            <View style={styles.metricCard}>
+              <Text style={styles.metricLabel}>
+                Support deflection
+              </Text>
+              <Text style={styles.metricValue}>
+                {percent(deflectionRate)}
+              </Text>
+              <Text style={styles.metricNote}>
+                Local + verified remote recovery compared
+                with created support cases.
+              </Text>
+            </View>
+
+            <View style={styles.metricCard}>
+              <Text style={styles.metricLabel}>
+                Incident-linked events
+              </Text>
+              <Text style={styles.metricValue}>
+                {Number(
+                  overview?.incident_linked_events ?? 0,
+                ).toLocaleString()}
+              </Text>
+              <Text style={styles.metricNote}>
+                Repeated shared failures are clustered so
+                support does not scale linearly.
+              </Text>
+            </View>
+
+            <View style={styles.metricCard}>
+              <Text style={styles.metricLabel}>
+                Unresolved exceptions
+              </Text>
+              <Text style={styles.metricValue}>
+                {unresolved.length.toLocaleString()}
+              </Text>
+              <Text style={styles.metricNote}>
+                Current 24-hour rows still requiring
+                recovery, verification or escalation.
+              </Text>
+            </View>
           </View>
         </BsocPanel>
 
         <BsocPanel>
-          <Text style={styles.eyebrow}>CRITICAL PATH COVERAGE</Text>
-          <Text style={styles.sectionTitle}>Observability before scale</Text>
-          <View style={styles.coverageList}>
-            {COVERAGE.map((row) => (
-              <View key={row.path} style={styles.coverageRow}>
-                <View style={{ flex: 0.8 }}>
-                  <Text style={styles.coveragePath}>{row.path}</Text>
-                </View>
-                <View style={{ flex: 1.4 }}>
-                  <Text style={styles.coverageExpected}>{row.expected}</Text>
-                </View>
-                <View style={{ flex: 1.5 }}>
-                  <Text style={styles.coverageCurrent}>{row.current}</Text>
-                </View>
-                <BsocStatusBadge
-                  label={row.tone === 'offline' ? 'GAP' : 'PARTIAL'}
-                  tone={row.tone}
-                />
-              </View>
-            ))}
-          </View>
-        </BsocPanel>
-
-        <BsocPanel>
-          <Text style={styles.eyebrow}>EXCEPTION-BASED OPERATIONS</Text>
-          <Text style={styles.sectionTitle}>Human attention only for unresolved exceptions</Text>
-          <View style={styles.exceptionGrid}>
-            {[
-              ['Routine recoverable condition', 'Automatic self-heal with bounded retry, timeout, fallback and telemetry', 'APP'],
-              ['Known shared incident', 'Link users/cases to one incident and stop repeated diagnosis', 'BSOC'],
-              ['Unresolved user-specific case', 'Create a smart case with context already attached', 'SUPPORT'],
-              ['Reproducible/systemic defect', 'Escalate with correlated evidence and recovery history', 'ENGINEERING'],
-            ].map(([problem, action, owner]) => (
-              <View key={problem} style={styles.exceptionCard}>
-                <Text style={styles.exceptionTitle}>{problem}</Text>
-                <Text style={styles.exceptionBody}>{action}</Text>
-                <Text style={styles.exceptionOwner}>{owner}</Text>
-              </View>
-            ))}
-          </View>
-        </BsocPanel>
-
-        <BsocPanel>
-          <Text style={styles.eyebrow}>RELEASE QUALITY GATE</Text>
-          <Text style={styles.sectionTitle}>Routine failures must not require manual admin intervention</Text>
-          <View style={styles.testGrid}>
-            {[
-              'bad / slow network',
-              'token expiry',
-              'session conflict',
-              'API timeout',
-              'database retry',
-              'background / foreground',
-              'page refresh',
-              'double tap',
-              'submission interruption',
-              'old app version',
-              'dependency outage',
-              'blank / dead route',
-            ].map((test) => (
-              <View key={test} style={styles.testChip}>
-                <MaterialCommunityIcons name="checkbox-marked-circle-outline" size={15} color="#1F5C43" />
-                <Text style={styles.testText}>{test}</Text>
-              </View>
-            ))}
-          </View>
-          <Text style={styles.releaseBlock}>
-            BLOCK RELEASE if a routine recoverable failure leaves the user stuck without guidance, creates an endless loading state, causes a white screen/dead end, or requires administrator intervention that the app should safely perform itself.
+          <Text style={styles.eyebrow}>
+            RECENT EXCEPTIONS
           </Text>
+          <Text style={styles.sectionTitle}>
+            Human attention goes to unresolved state
+          </Text>
+
+          {loading && !events.length ? (
+            <View style={styles.loadingRow}>
+              <ActivityIndicator color="#1F5C43" />
+              <Text style={styles.body}>
+                Loading live health events…
+              </Text>
+            </View>
+          ) : unresolved.length ? (
+            <View style={styles.table}>
+              {unresolved.slice(0, 12).map(item => (
+                <View
+                  key={item.event_id}
+                  style={styles.eventRow}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.eventTitle}>
+                      {item.error_signature}
+                    </Text>
+                    <Text style={styles.eventMeta}>
+                      {item.app_id} ·{' '}
+                      {item.route_module ?? 'unknown'} ·{' '}
+                      {item.safe_error_code}
+                    </Text>
+                    <Text style={styles.eventMeta}>
+                      user {item.user_ref} · repeats{' '}
+                      {item.repeat_count}
+                    </Text>
+                  </View>
+                  <BsocStatusBadge
+                    label={item.lifecycle_state}
+                    tone={toneForState(
+                      item.lifecycle_state,
+                    )}
+                  />
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text style={styles.emptyText}>
+              No unresolved health events in the current
+              24-hour window.
+            </Text>
+          )}
         </BsocPanel>
 
         <BsocPanel>
-          <Text style={styles.eyebrow}>NEXT SAFE IMPLEMENTATION LAYER</Text>
-          <Text style={styles.sectionTitle}>Central telemetry and recovery contracts</Text>
+          <Text style={styles.eyebrow}>
+            RECOVERY PLAYBOOK REGISTRY
+          </Text>
+          <Text style={styles.sectionTitle}>
+            Named, versioned, bounded and kill-switchable
+          </Text>
           <Text style={styles.body}>
-            The dashboard intentionally shows missing UX-health telemetry as unavailable. The next implementation layer is a shared event contract for started/completed/failed/recovered/duration, plus bounded-retry and self-heal outcome events. That must be connected before BSOC reports ecosystem-wide recovery KPIs.
+            This screen is deliberately read-only. Playbook
+            mode changes remain controlled administrative
+            actions; no playbook is enabled from a dashboard
+            refresh or health event.
           </Text>
+
+          <View style={styles.playbookGrid}>
+            {playbooks.map(item => (
+              <View
+                key={`${item.playbook_id}:${item.version}`}
+                style={styles.playbookCard}
+              >
+                <View style={styles.playbookTop}>
+                  <Text style={styles.playbookTitle}>
+                    {item.playbook_id}
+                  </Text>
+                  <BsocStatusBadge
+                    label={
+                      item.kill_switch
+                        ? 'KILL SWITCH'
+                        : item.mode
+                    }
+                    tone={toneForPlaybook(item)}
+                  />
+                </View>
+                <Text style={styles.playbookMeta}>
+                  v{item.version} · {item.health_category} ·{' '}
+                  {item.error_signature}
+                </Text>
+                <Text style={styles.playbookMeta}>
+                  action: {item.action_kind}
+                </Text>
+                <Text style={styles.playbookMeta}>
+                  max {item.max_attempts} · timeout{' '}
+                  {item.timeout_seconds}s · cooldown{' '}
+                  {item.cooldown_seconds}s
+                </Text>
+                <Text style={styles.playbookMeta}>
+                  verification: {item.verification_type}
+                </Text>
+                <View style={styles.playbookFlags}>
+                  <Text style={styles.flagText}>
+                    QA:{' '}
+                    {item.qa_verified_at
+                      ? 'VERIFIED'
+                      : 'NOT VERIFIED'}
+                  </Text>
+                  <Text style={styles.flagText}>
+                    EXECUTOR:{' '}
+                    {item.executor_ready
+                      ? 'READY'
+                      : 'NOT READY'}
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </BsocPanel>
+
+        <BsocPanel>
+          <Text style={styles.eyebrow}>
+            RECOVERY EVIDENCE
+          </Text>
+          <Text style={styles.sectionTitle}>
+            Recent remote recovery runs
+          </Text>
+
+          {runs.length ? (
+            <View style={styles.table}>
+              {runs.slice(0, 10).map(item => (
+                <View
+                  key={item.recovery_run_id}
+                  style={styles.eventRow}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.eventTitle}>
+                      {item.playbook_id} v
+                      {item.playbook_version}
+                    </Text>
+                    <Text style={styles.eventMeta}>
+                      {item.app_id} · {item.mode} · attempts{' '}
+                      {item.attempt_count}
+                    </Text>
+                    <Text style={styles.eventMeta}>
+                      verification:{' '}
+                      {item.verification_result ?? 'PENDING'}
+                    </Text>
+                  </View>
+                  <BsocStatusBadge
+                    label={item.state}
+                    tone={toneForState(item.state)}
+                  />
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text style={styles.emptyText}>
+              No persistent recovery runs in the current
+              24-hour window. Rollback-only QA runs do not
+              appear here by design.
+            </Text>
+          )}
+        </BsocPanel>
+
+        <BsocPanel>
+          <Text style={styles.eyebrow}>
+            TOP RECURRING SIGNATURES
+          </Text>
+          <Text style={styles.sectionTitle}>
+            Correlate, do not create a ticket storm
+          </Text>
+
+          {overview?.top_signatures?.length ? (
+            <View style={styles.table}>
+              {overview.top_signatures.map(
+                (item, index) => (
+                  <View
+                    key={`${item.app_id}:${item.error_signature}:${index}`}
+                    style={styles.signatureRow}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.eventTitle}>
+                        {item.error_signature ??
+                          'UNKNOWN_ERROR'}
+                      </Text>
+                      <Text style={styles.eventMeta}>
+                        {item.app_id ?? 'UNKNOWN_APP'} ·
+                        affected users{' '}
+                        {Number(
+                          item.affected_users ?? 0,
+                        ).toLocaleString()}
+                      </Text>
+                    </View>
+                    <Text style={styles.signatureCount}>
+                      {Number(
+                        item.occurrences ?? 0,
+                      ).toLocaleString()}
+                    </Text>
+                  </View>
+                ),
+              )}
+            </View>
+          ) : (
+            <Text style={styles.emptyText}>
+              No recurring health signature in this
+              24-hour window.
+            </Text>
+          )}
+        </BsocPanel>
+
+        <BsocPanel>
+          <Text style={styles.eyebrow}>
+            RELEASE SAFETY
+          </Text>
+          <Text style={styles.sectionTitle}>
+            Closed-loop blockers remain enforced
+          </Text>
+          <View style={styles.ruleGrid}>
+            {[
+              'AUTO_HEALED requires verification proof',
+              'Main must operate when BSOC is down',
+              'No private Smart Drawer or LIFE content in health payloads',
+              'No financial or security auto-mutation',
+              'No cross-user or cross-Organization recovery',
+              'No recovery or support-ticket storm',
+              'Every remote playbook has version, cooldown and kill switch',
+              'No endless loading / dead route',
+            ].map(rule => (
+              <View
+                key={rule}
+                style={styles.ruleCard}
+              >
+                <MaterialCommunityIcons
+                  name="shield-check-outline"
+                  size={16}
+                  color="#1F5C43"
+                />
+                <Text style={styles.ruleText}>
+                  {rule}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.safetySummary}>
+            <Text style={styles.safetyText}>
+              Playbooks: {playbooks.length} · SHADOW:{' '}
+              {shadowCount} · ENABLED: {enabledCount} ·
+              KILL SWITCH: {killSwitchCount}
+            </Text>
+          </View>
+
           <Pressable
-            onPress={() => router.push('/admin/bsoc' as any)}
-            style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.76 }]}
+            onPress={() =>
+              router.push('/admin/bsoc' as any)
+            }
+            style={styles.backButton}
           >
-            <MaterialCommunityIcons name="arrow-left" size={17} color="#FFFFFF" />
-            <Text style={styles.backText}>BACK TO COMMAND CENTER</Text>
+            <MaterialCommunityIcons
+              name="arrow-left"
+              size={17}
+              color="#FFFFFF"
+            />
+            <Text style={styles.backText}>
+              BACK TO COMMAND CENTER
+            </Text>
           </Pressable>
         </BsocPanel>
       </BsocShell>
@@ -416,7 +783,30 @@ const styles = StyleSheet.create({
     fontSize: 9.5,
     color: '#6D7872',
   },
-  flowPanel: { overflow: 'hidden' },
+  flowPanel: {
+    overflow: 'hidden',
+  },
+  headingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  refreshButton: {
+    minHeight: 34,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: '#CEDBD3',
+    backgroundColor: '#F4F8F5',
+  },
+  refreshText: {
+    fontSize: 8.5,
+    fontWeight: '900',
+    color: '#1F5C43',
+  },
   flowRow: {
     marginTop: 10,
     flexDirection: 'row',
@@ -440,6 +830,25 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     color: '#1F5C43',
   },
+  freshness: {
+    marginTop: 9,
+    fontSize: 8.5,
+    color: '#849089',
+  },
+  errorBox: {
+    marginTop: 10,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: '#E5B8B2',
+    backgroundColor: '#FFF2F0',
+    padding: 9,
+  },
+  errorText: {
+    fontSize: 9,
+    lineHeight: 13,
+    color: '#8A3B32',
+    fontWeight: '700',
+  },
   topMetrics: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -452,23 +861,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   metricCard: {
-    minWidth: 210,
+    minWidth: 205,
     flexGrow: 1,
-    flexBasis: '30%',
+    flexBasis: '22%',
     padding: 11,
     borderRadius: 11,
     borderWidth: 1,
     borderColor: '#E1E6E3',
     backgroundColor: '#FAFBFA',
   },
-  metricTop: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 7,
-  },
   metricLabel: {
-    flex: 1,
     fontSize: 9,
     fontWeight: '900',
     color: '#5E6963',
@@ -485,98 +887,141 @@ const styles = StyleSheet.create({
     lineHeight: 13,
     color: '#7A847E',
   },
-  coverageList: { marginTop: 8 },
-  coverageRow: {
-    minHeight: 62,
+  loadingRow: {
+    minHeight: 64,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingVertical: 7,
-    borderTopWidth: 1,
-    borderTopColor: '#E7EBE8',
+    gap: 9,
   },
-  coveragePath: {
+  table: {
+    marginTop: 9,
+    borderTopWidth: 1,
+    borderTopColor: '#E6EAE7',
+  },
+  eventRow: {
+    minHeight: 64,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8ECE9',
+  },
+  eventTitle: {
     fontSize: 9.5,
     fontWeight: '900',
-    color: '#223029',
+    color: '#25332C',
   },
-  coverageExpected: {
-    fontSize: 8.8,
-    lineHeight: 13,
-    color: '#59675F',
+  eventMeta: {
+    marginTop: 2,
+    fontSize: 8.5,
+    lineHeight: 12,
+    color: '#77827C',
   },
-  coverageCurrent: {
-    fontSize: 8.8,
-    lineHeight: 13,
+  emptyText: {
+    marginTop: 10,
+    fontSize: 9.5,
+    lineHeight: 14,
     color: '#7B867F',
   },
-  exceptionGrid: {
+  playbookGrid: {
     marginTop: 10,
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
-  exceptionCard: {
-    minWidth: 210,
+  playbookCard: {
+    minWidth: 250,
     flexGrow: 1,
     flexBasis: '45%',
-    padding: 11,
     borderRadius: 11,
     borderWidth: 1,
-    borderColor: '#E1E6E3',
+    borderColor: '#E0E6E2',
     backgroundColor: '#FAFBFA',
+    padding: 11,
   },
-  exceptionTitle: {
-    fontSize: 10,
+  playbookTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  playbookTitle: {
+    flex: 1,
+    fontSize: 9.5,
     fontWeight: '900',
-    color: '#233129',
+    color: '#223129',
   },
-  exceptionBody: {
+  playbookMeta: {
     marginTop: 4,
-    fontSize: 9,
-    lineHeight: 13,
-    color: '#747F78',
-  },
-  exceptionOwner: {
-    marginTop: 7,
     fontSize: 8.5,
+    lineHeight: 12,
+    color: '#727E77',
+  },
+  playbookFlags: {
+    marginTop: 8,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 7,
+  },
+  flagText: {
+    fontSize: 8,
     fontWeight: '900',
-    letterSpacing: 0.55,
+    color: '#52625A',
+  },
+  signatureRow: {
+    minHeight: 58,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8ECE9',
+  },
+  signatureCount: {
+    minWidth: 52,
+    textAlign: 'right',
+    fontSize: 18,
+    fontWeight: '900',
     color: '#1F5C43',
   },
-  testGrid: {
+  ruleGrid: {
     marginTop: 10,
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 7,
   },
-  testChip: {
-    minHeight: 34,
+  ruleCard: {
+    minWidth: 220,
+    flexGrow: 1,
+    flexBasis: '45%',
+    minHeight: 43,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 9,
+    gap: 7,
     borderRadius: 9,
     borderWidth: 1,
-    borderColor: '#DDE4E0',
+    borderColor: '#DDE6E0',
     backgroundColor: '#F8FAF8',
+    paddingHorizontal: 9,
+    paddingVertical: 8,
   },
-  testText: {
-    fontSize: 8.8,
+  ruleText: {
+    flex: 1,
+    fontSize: 8.7,
+    lineHeight: 12,
     fontWeight: '800',
-    color: '#5C6962',
+    color: '#5E6963',
   },
-  releaseBlock: {
-    marginTop: 11,
-    padding: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#E8C5C0',
-    backgroundColor: '#FFF3F1',
+  safetySummary: {
+    marginTop: 10,
+    borderRadius: 9,
+    backgroundColor: '#EFF5F1',
+    padding: 9,
+  },
+  safetyText: {
     fontSize: 9,
-    lineHeight: 14,
-    fontWeight: '800',
-    color: '#8B3C33',
+    fontWeight: '900',
+    color: '#365646',
   },
   backButton: {
     alignSelf: 'flex-start',
