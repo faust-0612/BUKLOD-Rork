@@ -28,7 +28,8 @@
     "production:dry-run": "bash scripts/production-cutover.sh",
     "production:android": "bash scripts/build-android-production.sh",
     "play:draft": "bash scripts/submit-google-play-draft.sh",
-    "play:internal": "bash scripts/submit-google-play-internal.sh"
+    "play:internal": "bash scripts/submit-google-play-internal.sh",
+    "health:contract": "node scripts/verify-buklod-main-self-heal-r1.cjs"
   },
   "jest": {
     "preset": "jest-expo",
