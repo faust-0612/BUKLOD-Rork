@@ -16,8 +16,15 @@ on:
       - 'src/app/account/**'
       - 'src/app/help/**'
       - 'src/lib/buklodSupport.ts'
+      - 'src/lib/buklodMainHealth.ts'
+      - 'src/components/BuklodMainHealthAgent.tsx'
+      - 'src/app/admin/bsoc/**'
+      - 'src/components/bsoc/**'
+      - 'src/lib/admin/bsoc*.ts'
       - 'supabase/functions/buklod-support-v1/**'
       - 'supabase/migrations/*buklod_central_support*.sql'
+      - 'supabase/migrations/*bsoc_closed_loop*.sql'
+      - 'scripts/verify-buklod-main-self-heal-r1.cjs'
       - 'src/app/(tabs)/buklod.tsx'
       - 'src/app/(tabs)/me.tsx'
       - 'src/lib/buklodRewards.ts'
@@ -58,8 +65,15 @@ on:
       - 'src/app/account/**'
       - 'src/app/help/**'
       - 'src/lib/buklodSupport.ts'
+      - 'src/lib/buklodMainHealth.ts'
+      - 'src/components/BuklodMainHealthAgent.tsx'
+      - 'src/app/admin/bsoc/**'
+      - 'src/components/bsoc/**'
+      - 'src/lib/admin/bsoc*.ts'
       - 'supabase/functions/buklod-support-v1/**'
       - 'supabase/migrations/*buklod_central_support*.sql'
+      - 'supabase/migrations/*bsoc_closed_loop*.sql'
+      - 'scripts/verify-buklod-main-self-heal-r1.cjs'
       - 'src/app/(tabs)/buklod.tsx'
       - 'src/app/(tabs)/me.tsx'
       - 'src/lib/buklodRewards.ts'
@@ -130,6 +144,9 @@ jobs:
 
       - name: Static final release contract
         run: node scripts/buklod-main-final-release-gate.mjs
+
+      - name: Closed-loop self-heal contract
+        run: node scripts/verify-buklod-main-self-heal-r1.cjs
 
       - name: Jest regression suite
         run: npm test
@@ -214,9 +231,10 @@ jobs:
         run: |
           set -euo pipefail
           # Production cutover is intentionally disabled here.
-          # Canonical release authority is scripts/RUN_BUKLOD_MAIN_FINAL_RELEASE_LOCAL.ps1:
-          # QA -> native CNG QA -> AAB -> exact RC freeze -> fast-forward main -> Web.
-          # This prevents duplicate or piecemeal Web/APK releases from a push event.
+          # Canonical release authority is the D:-only two-phase local flow:
+          # Phase 1 QA -> exact RC freeze -> support/backend handoff.
+          # Phase 2 Web deploy -> live verify -> fast-forward exact live-Web RC -> SAME-SHA AAB.
+          # This prevents duplicate or piecemeal production releases from a hosted push event.
           echo "enabled=false" >> "$GITHUB_OUTPUT"
 
       - name: Upload RC manifests
