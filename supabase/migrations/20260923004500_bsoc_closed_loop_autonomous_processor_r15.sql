@@ -377,7 +377,7 @@ begin
    * No timeout can become AUTO_HEALED.
    */
   for expired_run in
-    select distinct
+    select
       r.id as recovery_run_id,
       r.event_id,
       r.target_user_id,
@@ -390,11 +390,14 @@ begin
       r.started_at,
       r.attempt_count
     from public.bsoc_recovery_runs r
-    join public.bsoc_recovery_commands c
-      on c.recovery_run_id=r.id
     where r.state in ('REMOTE_RECOVERY_RUNNING','VERIFYING')
-      and c.status in ('PENDING','DELIVERED')
-      and c.expires_at<=now()
+      and exists (
+        select 1
+        from public.bsoc_recovery_commands c
+        where c.recovery_run_id=r.id
+          and c.status in ('PENDING','DELIVERED')
+          and c.expires_at<=now()
+      )
     order by r.started_at
     limit lim
     for update of r skip locked
