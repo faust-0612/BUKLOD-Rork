@@ -110,6 +110,8 @@ Run "4/11 STATIC + AUTH + TEST + TYPESCRIPT GATES" {
   Assert-NativeSuccess "final release gate"
   node scripts/buklod-main-ux-feedback-gate.mjs
   Assert-NativeSuccess "Main UX feedback gate"
+  node scripts/verify-buklod-main-self-heal-r1.cjs
+  Assert-NativeSuccess "Main closed-loop self-heal contract"
   node scripts/auth-canonical-login-contract.mjs
   Assert-NativeSuccess "auth canonical contract"
   npm.cmd test
