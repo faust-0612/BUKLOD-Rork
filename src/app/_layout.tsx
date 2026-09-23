@@ -4,9 +4,10 @@ import { BuklodGuideAvatar } from '@/components/BuklodGuideAvatar';
 import BuklodFormationEntryScopeTracker from '@/components/BuklodFormationEntryScopeTracker';
 import BuklodTrustedDeviceGate from '@/components/BuklodTrustedDeviceGate';
 import '@/lib/performanceBoot';
-import { Stack, router, type ErrorBoundaryProps } from 'expo-router';
+import { Stack, router, usePathname, type ErrorBoundaryProps } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { BuklodI18nProvider } from '@/providers/BuklodI18nProvider';
 import { BuklodBibleNarrationProvider } from '@/providers/BuklodBibleNarrationProvider';
@@ -33,6 +34,7 @@ import { BuklodThemeProvider } from '@/providers/BuklodThemeProvider';
 import { BuklodCharacterEventProvider } from '@/components/character/BuklodCharacterEventProvider';
 import RorkAvatarOnboardingGate from '@/components/character/RorkAvatarOnboardingGate';
 import BuklodMainHealthAgent from '@/components/BuklodMainHealthAgent';
+import { reportBuklodMainHealthIssue } from '@/lib/buklodMainHealth';
 
 export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
   return (
@@ -67,6 +69,77 @@ export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
 }
 
 export function SuspenseFallback() {
+  const pathname = usePathname();
+  const [timedOut, setTimedOut] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setTimedOut(true);
+      void reportBuklodMainHealthIssue({
+        category: 'LOADING',
+        severity: 'ERROR',
+        safeErrorCode: 'ROUTE-408',
+        errorSignature: 'ROUTE_LOAD_TIMEOUT',
+        correlationKey: 'BUKLOD_MAIN_ROUTE_LOAD_TIMEOUT',
+        routeModule: String(pathname ?? '')
+          .replace(/^\\/+/, '')
+          .replace(/[^A-Za-z0-9_./:-]/g, '')
+          .slice(0, 160) || 'unknown',
+        networkState: 'UNKNOWN',
+        authState: 'UNKNOWN',
+        syncState: 'UNKNOWN',
+        localStorageState: 'UNKNOWN',
+        pendingWorkCount: 0,
+        lastSuccessfulAction: 'ROUTE_OPEN',
+        localSelfHealAttempted: true,
+        localSelfHealResult: 'FAILED',
+        privacyClassification: 'OPERATIONAL',
+      });
+    }, 12_000);
+
+    return () => clearTimeout(timer);
+  }, [pathname]);
+
+  if (timedOut) {
+    return (
+      <View style={styles.error}>
+        <Text style={styles.errorTitle}>
+          BUKLOD is taking longer than expected
+        </Text>
+        <Text style={styles.errorText}>
+          The screen did not finish loading. You can return to Community
+          Wall or open Need Help.
+        </Text>
+        <Text style={styles.errorCode}>
+          Support code: ROUTE-408
+        </Text>
+        <View style={styles.errorActions}>
+          <Pressable
+            onPress={() => router.replace('/buklod' as any)}
+            style={styles.retry}
+          >
+            <Text style={styles.retryText}>COMMUNITY WALL</Text>
+          </Pressable>
+          <Pressable
+            onPress={() =>
+              router.push({
+                pathname: '/help' as any,
+                params: {
+                  category: 'TECHNICAL',
+                  errorCode: 'ROUTE-408',
+                  sourceRoute: pathname,
+                },
+              })
+            }
+            style={styles.helpButton}
+          >
+            <Text style={styles.helpButtonText}>NEED HELP?</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.loading}>
       <ActivityIndicator color={colors.green} />
