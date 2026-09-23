@@ -46,8 +46,8 @@ Set-Location -LiteralPath $Repo
 $remote = (git remote get-url origin).Trim()
 if ($remote -notmatch 'faust-0612/BUKLOD-Rork') { throw "Wrong repository remote: $remote" }
 
-$sourceRoot = Split-Path -LiteralPath $Repo -Parent
-$workspaceRoot = Split-Path -LiteralPath $sourceRoot -Parent
+$sourceRoot = [System.IO.Directory]::GetParent($Repo).FullName
+$workspaceRoot = [System.IO.Directory]::GetParent($sourceRoot).FullName
 $qaBase = Join-Path $workspaceRoot "QA"
 $cacheRoot = Join-Path $workspaceRoot "CACHE"
 $tempRoot = Join-Path $workspaceRoot "TEMP"

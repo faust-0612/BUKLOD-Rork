@@ -11,7 +11,7 @@ function read(rel) {
     failures.push(`Missing required file: ${rel}`);
     return '';
   }
-  return fs.readFileSync(p, 'utf8');
+  return fs.readFileSync(p, 'utf8').replace(/\r\n?/g, '\n');
 }
 function requireText(rel, text, label) {
   const src = read(rel);
@@ -306,7 +306,7 @@ requireText(
 requireText(
   'supabase/migrations/20260920140000_buklod_main_profit_first_referral_v2.sql',
   'one_time_referral_centavos bigint not null default 2000',
-  'Referral one-time ₱20 uses integer centavos',
+  'Referral one-time â‚±20 uses integer centavos',
 );
 requireText(
   'supabase/migrations/20260920140000_buklod_main_profit_first_referral_v2.sql',
@@ -383,7 +383,7 @@ requireText(
 );
 requireText(
   'src/components/BuklodReferralInviteCard.tsx',
-  '₱20 PENDING',
+  'â‚±20 PENDING',
   'Referral dashboard separates pending reward',
 );
 
@@ -466,12 +466,12 @@ requireText(
 // Central Help & Support is release-critical and must work before authentication.
 requireText(
   'src/app/(auth)/login.tsx',
-  "router.push('/help' as any)",
+  "pathname: '/help' as any",
   'Pre-login Need Help entry is permanent',
 );
 requireText(
   'src/app/(tabs)/me.tsx',
-  "router.push('/help' as any)",
+  "pathname: '/help' as any",
   'Logged-in Profile Help entry is present',
 );
 forbidText(
