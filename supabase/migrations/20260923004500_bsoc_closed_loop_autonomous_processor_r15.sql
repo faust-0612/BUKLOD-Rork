@@ -359,6 +359,7 @@ declare
   v_skipped integer:=0;
   v_run_id uuid;
   v_recent integer;
+  v_attempts integer;
   v_case uuid;
   v_corr jsonb;
   e public.bsoc_health_events%rowtype;
@@ -548,16 +549,47 @@ begin
     end if;
 
     select count(*)
+    into v_attempts
+    from public.bsoc_recovery_runs r
+    where r.event_id=e.id
+      and r.playbook_id=pb.playbook_id;
+
+    if v_attempts>=pb.max_attempts then
+      v_case:=public.buklod_bsoc_system_escalate_health_event_v1(
+        e.id,
+        'Automatic recovery reached the playbook max-attempt limit.'
+      );
+
+      if v_case is not null then
+        v_escalated:=v_escalated+1;
+      end if;
+
+      continue;
+    end if;
+
+    select count(*)
     into v_recent
     from public.bsoc_recovery_runs r
     where r.target_user_id=e.user_id
       and r.playbook_id=pb.playbook_id
       and r.app_id=e.app_id
-      and r.started_at>=now()-make_interval(secs=>pb.cooldown_seconds)
-      and r.state not in ('RECOVERY_FAILED','ESCALATED');
+      and r.started_at>=now()-make_interval(secs=>pb.cooldown_seconds);
 
     if v_recent>0 then
-      v_skipped:=v_skipped+1;
+      if pb.mode='SHADOW'
+         and e.last_seen_at<=now()-interval '2 minutes' then
+        v_case:=public.buklod_bsoc_system_escalate_health_event_v1(
+          e.id,
+          'Playbook remains in SHADOW and the user is still unresolved.'
+        );
+
+        if v_case is not null then
+          v_escalated:=v_escalated+1;
+        end if;
+      else
+        v_skipped:=v_skipped+1;
+      end if;
+
       continue;
     end if;
 
