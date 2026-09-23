@@ -82,7 +82,7 @@ export function SuspenseFallback() {
         errorSignature: 'ROUTE_LOAD_TIMEOUT',
         correlationKey: 'BUKLOD_MAIN_ROUTE_LOAD_TIMEOUT',
         routeModule: String(pathname ?? '')
-          .replace(/^\\/+/, '')
+          .replace(/^\/+/, '')
           .replace(/[^A-Za-z0-9_./:-]/g, '')
           .slice(0, 160) || 'unknown',
         networkState: 'UNKNOWN',
