@@ -222,7 +222,15 @@ module.exports = ({ config }) => {
       'expo-image',
       'expo-sqlite',
 
-      'expo-router',
+      [
+        'expo-router',
+        {
+          headers: {
+            'Cross-Origin-Embedder-Policy': 'credentialless',
+            'Cross-Origin-Opener-Policy': 'same-origin',
+          },
+        },
+      ],
 
       [
         'expo-screen-orientation',
