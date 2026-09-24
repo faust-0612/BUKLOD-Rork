@@ -15,6 +15,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuth } from '@/providers/AuthProvider';
 
 import BuklodFocusAppAdStrip from '@/components/BuklodFocusAppAdStrip';
 import BuklodPersistentBottomNav from '@/components/BuklodPersistentBottomNav';
@@ -71,6 +72,7 @@ export default function BuklodNavSafeShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const { user } = useAuth();
   const rawNavOccupied =
     useBuklodPersistentNavOccupiedHeight();
   const publicMinimal =
@@ -87,38 +89,57 @@ export default function BuklodNavSafeShell({
     useState(false);
 
   /*
-   * BUKLOD_ROOT_BACK_TO_WALL_R1
-   * A direct/deep entry into the core personal surfaces must never let
-   * Android's hardware Back exit the app before the user reaches Community
-   * Wall. Normal navigation history is preserved; scoped workspaces retain
-   * their dedicated section-aware BackHandler in /scope.
+   * BUKLOD_ROOT_BACK_TO_WALL_R2
+   *
+   * Community Wall is the canonical signed-in root.
+   *
+   * Android:
+   * - preserve meaningful navigation history;
+   * - when history is exhausted, return to Community Wall;
+   * - once on Community Wall, consume hardware Back so BUKLOD does not
+   *   unexpectedly close.
+   *
+   * Scoped workspaces keep their dedicated section-aware BackHandler.
    */
   useEffect(() => {
-    if (Platform.OS !== 'android') {
+    if (
+      Platform.OS !== 'android' ||
+      !user
+    ) {
+      return;
+    }
+
+    if (
+      isBuklodScopedWorkspacePath(
+        pathname
+      )
+    ) {
       return;
     }
 
     const normalized =
-      normalizeBuklodPathname(pathname);
-    const coreFallbackPath =
-      immersiveIgpat ||
-      normalized === '/me' ||
-      normalized.startsWith('/profile/') ||
-      reserveMyBuklodSystemInsets;
-
-    if (!coreFallbackPath) {
-      return;
-    }
+      normalizeBuklodPathname(
+        pathname
+      );
 
     const subscription =
       BackHandler.addEventListener(
         'hardwareBackPress',
         () => {
+          if (
+            normalized === '/buklod'
+          ) {
+            return true;
+          }
+
           if (router.canGoBack()) {
             return false;
           }
 
-          router.replace('/buklod' as any);
+          router.replace(
+            '/buklod' as any
+          );
+
           return true;
         }
       );
@@ -127,9 +148,134 @@ export default function BuklodNavSafeShell({
       subscription.remove();
     };
   }, [
-    immersiveIgpat,
     pathname,
-    reserveMyBuklodSystemInsets,
+    user?.id,
+  ]);
+
+
+  /*
+   * BUKLOD_WEB_WALL_ROOT_HISTORY_GUARD_R1
+   *
+   * Mobile Web / installed PWA has no React Native BackHandler.
+   * Keep one same-URL history barrier behind Community Wall so Android's
+   * system Back does not immediately leave/close BUKLOD at its canonical root.
+   */
+  useEffect(() => {
+    if (
+      Platform.OS !== 'web' ||
+      !user
+    ) {
+      return;
+    }
+
+    const normalized =
+      normalizeBuklodPathname(
+        pathname
+      );
+
+    if (
+      normalized !== '/buklod'
+    ) {
+      return;
+    }
+
+    const root =
+      globalThis as any;
+
+    const browserWindow =
+      root?.window;
+
+    if (
+      !browserWindow?.history
+        ?.pushState
+    ) {
+      return;
+    }
+
+    const GUARD_KEY =
+      '__BUKLOD_WALL_ROOT_GUARD_R1__';
+
+    const BASE_KEY =
+      '__BUKLOD_WALL_ROOT_BASE_R1__';
+
+    const currentState =
+      browserWindow.history
+        .state ?? {};
+
+    if (
+      !currentState?.[GUARD_KEY] &&
+      !currentState?.[BASE_KEY]
+    ) {
+      browserWindow.history
+        .replaceState(
+          {
+            ...currentState,
+            [BASE_KEY]: true,
+          },
+          '',
+          browserWindow.location.href,
+        );
+
+      browserWindow.history
+        .pushState(
+          {
+            ...currentState,
+            [GUARD_KEY]: true,
+          },
+          '',
+          browserWindow.location.href,
+        );
+    }
+
+    const onPopState =
+      (event: any) => {
+        const currentPath =
+          normalizeBuklodPathname(
+            String(
+              browserWindow.location
+                ?.pathname ?? ''
+            )
+          );
+
+        if (
+          currentPath !== '/buklod'
+        ) {
+          return;
+        }
+
+        const poppedState =
+          event?.state &&
+          typeof event.state ===
+            'object'
+            ? event.state
+            : {};
+
+        browserWindow.history
+          .pushState(
+            {
+              ...poppedState,
+              [GUARD_KEY]: true,
+            },
+            '',
+            browserWindow.location.href,
+          );
+      };
+
+    browserWindow.addEventListener(
+      'popstate',
+      onPopState,
+    );
+
+    return () => {
+      browserWindow
+        .removeEventListener(
+          'popstate',
+          onPopState,
+        );
+    };
+  }, [
+    pathname,
+    user?.id,
   ]);
 
   useEffect(() => {
