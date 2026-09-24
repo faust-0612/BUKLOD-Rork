@@ -1,4 +1,7 @@
-/* BUKLOD_SHARE_TARGET_187A */
+import { getSharedPayloads } from 'expo-sharing';
+import { captureBuklodReferralCodeFromPath } from '@/lib/buklodReferralV2';
+
+/* BUKLOD_NATIVE_INCOMING_SHARE_R2 */
 export async function redirectSystemPath({
   path,
 }: {
@@ -6,11 +9,16 @@ export async function redirectSystemPath({
   initial: boolean;
 }) {
   try {
-    if (new URL(path).hostname === 'expo-sharing') {
+    const referralCode=await captureBuklodReferralCodeFromPath(path,'NATIVE_DEEPLINK');
+    if(referralCode){
+      return `/register?ref=${encodeURIComponent(referralCode)}`;
+    }
+
+    if (getSharedPayloads().length > 0) {
       return '/handle-share';
     }
   } catch {
-    // Not an Expo Sharing URL; keep the original path.
+    // Preserve the original system route if native share inspection fails.
   }
 
   return path;

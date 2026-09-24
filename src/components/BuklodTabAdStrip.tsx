@@ -1,6 +1,4 @@
-import React, {
-  useEffect,
-} from 'react';
+import React from 'react';
 
 import {
   usePathname,
@@ -9,9 +7,6 @@ import {
 import BuklodAdMobBanner
   from '@/components/BuklodAdMobBanner';
 
-import {
-  warmBuklodInterstitial,
-} from '@/lib/buklodAds';
 
 
 export default function BuklodTabAdStrip() {
@@ -19,28 +14,6 @@ export default function BuklodTabAdStrip() {
   const pathname =
     usePathname();
 
-
-  useEffect(
-    () => {
-      /*
-       * Preload only.
-       * Does NOT show an interstitial.
-       */
-      warmBuklodInterstitial();
-    },
-    []
-  );
-
-
-  if (
-    pathname === '/home'
-  ) {
-    return (
-      <BuklodAdMobBanner
-        placement="home"
-      />
-    );
-  }
 
 
   if (

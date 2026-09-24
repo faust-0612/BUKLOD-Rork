@@ -70,7 +70,7 @@ function publicRouteFor(
     return '/connect';
   }
 
-  return '/home';
+  return '/buklod';
 }
 
 export default function

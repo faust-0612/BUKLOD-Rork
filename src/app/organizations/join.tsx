@@ -42,6 +42,11 @@ import {
 import {
   useBuklodScope,
 } from '@/providers/BuklodScopeProvider';
+import { useBuklodFeedback } from '@/providers/BuklodFeedbackProvider';
+import {
+  buildBuklodUserFeedback,
+  trackBuklodFeedbackEvent,
+} from '@/lib/buklodUserFeedback';
 
 type OrganizationRow = {
   scope_id: string;
@@ -75,6 +80,55 @@ JoinOrganizationScreen() {
     selectScope,
   } =
     useBuklodScope();
+
+  const { showFeedback } =
+    useBuklodFeedback();
+
+  const reportJoinFailure = useCallback(
+    (
+      error: unknown,
+      title: string,
+      message: string,
+      outcome: string,
+    ) => {
+      const base = buildBuklodUserFeedback(
+        error,
+        {
+          context: 'general',
+          fallbackTitle: title,
+          fallbackMessage: message,
+        },
+      );
+      const feedback = {
+        ...base,
+        tone: 'error' as const,
+        title,
+        message,
+        nextStep: 'Try again. If it repeats, open Need Help.',
+        supportCode: base.supportCode ?? 'SYS-500',
+        retryable: true,
+        needsSupport: true,
+      };
+      showFeedback(feedback, {
+        autoHideMs: null,
+        helpParams: {
+          category: 'ORGANIZATION',
+          errorCode: feedback.supportCode,
+          message: feedback.message,
+          sourceRoute: '/organizations/join',
+        },
+      });
+      void trackBuklodFeedbackEvent({
+        event: 'error_shown',
+        category: feedback.category,
+        supportCode: feedback.supportCode,
+        route: '/organizations/join',
+        feature: 'Organization Join',
+        outcome,
+      });
+    },
+    [showFeedback],
+  );
 
   const [
     query,
@@ -146,9 +200,11 @@ JoinOrganizationScreen() {
         if (error) {
           setRows([]);
 
-          Alert.alert(
-            'Join Organization',
-            error.message,
+          reportJoinFailure(
+            error,
+            'Organizations unavailable',
+            "BUKLOD couldn't load Organization choices right now.",
+            'organization_discovery_failed',
           );
 
           return;
@@ -204,10 +260,11 @@ JoinOrganizationScreen() {
         );
       }
       catch (error: any) {
-        Alert.alert(
-          'Organization Workspace',
-          error?.message ??
-            'Could not open this workspace.',
+        reportJoinFailure(
+          error,
+          'Workspace not opened',
+          "BUKLOD couldn't open this Organization workspace right now.",
+          'organization_workspace_failed',
         );
       }
     };
@@ -286,10 +343,11 @@ JoinOrganizationScreen() {
         );
       }
       catch (error: any) {
-        Alert.alert(
-          'Join Organization',
-          error?.message ??
-            'Unable to join this Organization.',
+        reportJoinFailure(
+          error,
+          'Organization request not completed',
+          "BUKLOD couldn't complete this Organization request right now. No membership change was silently applied.",
+          'organization_join_failed',
         );
       }
       finally {
@@ -347,10 +405,11 @@ JoinOrganizationScreen() {
         );
       }
       catch (error: any) {
-        Alert.alert(
-          'Organization Invitation',
-          error?.message ??
-            'Unable to accept invitation.',
+        reportJoinFailure(
+          error,
+          'Invitation not accepted',
+          "BUKLOD couldn't accept this Organization invitation right now.",
+          'organization_invitation_failed',
         );
       }
       finally {

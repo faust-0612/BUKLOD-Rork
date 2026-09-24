@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -17,6 +17,15 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
 import { recordPasswordResetOnThisDevice } from '@/lib/buklodSuggestedLoginStorage';
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
+import { BuklodFeedbackBanner } from '@/components/BuklodFeedbackBanner';
+import { useBuklodFeedback } from '@/providers/BuklodFeedbackProvider';
+import { useBuklodI18n } from '@/providers/BuklodI18nProvider';
+import {
+  buildBuklodUserFeedback,
+  trackBuklodFeedbackEvent,
+  type BuklodUserFeedback,
+} from '@/lib/buklodUserFeedback';
 
 type RecoveryPath = 'email' | 'pin' | 'admin';
 
@@ -50,6 +59,14 @@ function formatLoginMethod(value: unknown) {
   if (method === 'email') return 'Email';
   if (method === 'username') return 'Username';
   return 'Login';
+}
+
+function invokeRecovery(name: string, options: any) {
+  return withBuklodTimeout<any>(
+    supabase.functions.invoke(name, options),
+    15_000,
+    `Account recovery ${name}`
+  );
 }
 
 function formatExpiry(value: string | null) {
@@ -87,7 +104,11 @@ async function functionErrorMessage(error: any, fallback: string) {
 }
 
 export default function ForgotPasswordScreen() {
+  const { t } = useBuklodI18n();
+  const { showFeedback } = useBuklodFeedback();
   const [path, setPath] = useState<RecoveryPath>('email');
+  const [recoveryFeedback, setRecoveryFeedback] =
+    useState<BuklodUserFeedback | null>(null);
 
   const [emailReady, setEmailReady] = useState<boolean | null>(null);
   const [email, setEmail] = useState('');
@@ -134,6 +155,117 @@ export default function ForgotPasswordScreen() {
   const codeInFlight = useRef(false);
   const pollInFlight = useRef(false);
 
+  const showRecoveryFailure = useCallback(
+    (
+      error: unknown,
+      outcome: string,
+      fallbackMessage: string,
+    ) => {
+      const feedback = buildBuklodUserFeedback(
+        error,
+        {
+          context: 'recovery',
+          fallbackTitle: 'Recovery not completed',
+          fallbackMessage,
+        },
+      );
+      const safeFeedback: BuklodUserFeedback = {
+        ...feedback,
+        tone: feedback.tone === 'error' ? 'error' : 'warning',
+        title: 'Recovery not completed',
+        message: fallbackMessage,
+        nextStep:
+          'Try the current step again. If it repeats, open Need Help.',
+        supportCode:
+          feedback.supportCode ?? 'REC-100',
+        retryable: true,
+        needsSupport: true,
+      };
+      setRecoveryFeedback(safeFeedback);
+      void trackBuklodFeedbackEvent({
+        event: 'error_shown',
+        category: safeFeedback.category,
+        supportCode: safeFeedback.supportCode,
+        route: '/(auth)/forgot-password',
+        feature: 'Account Recovery',
+        outcome,
+      });
+      void trackBuklodFeedbackEvent({
+        event: 'action_failed',
+        category: safeFeedback.category,
+        supportCode: safeFeedback.supportCode,
+        route: '/(auth)/forgot-password',
+        feature: 'Account Recovery',
+        outcome,
+      });
+      return safeFeedback;
+    },
+    [],
+  );
+
+  const openRecoveryHelp = useCallback(() => {
+    const feedback = recoveryFeedback;
+    void trackBuklodFeedbackEvent({
+      event: 'support_opened_after_error',
+      category: feedback?.category ?? 'RECOVERY_REQUIRED',
+      supportCode: feedback?.supportCode ?? 'REC-100',
+      route: '/(auth)/forgot-password',
+      feature: 'Account Recovery',
+      outcome: path,
+    });
+
+    router.push({
+      pathname: '/help' as any,
+      params: {
+        category:
+          recoveryFeedback
+            ? 'RECOVERY_CODE'
+            : emailOtpSent || emailOtpVerified || path === 'admin'
+              ? 'RECOVERY_CODE'
+              : 'FORGOT_PASSWORD',
+        errorCode: feedback?.supportCode ?? 'REC-100',
+        message:
+          feedback?.message ||
+          emailStatus ||
+          recoveryStateText ||
+          t('recovery.unavailable'),
+        sourceRoute: '/(auth)/forgot-password',
+      },
+    });
+  }, [
+    emailOtpSent,
+    emailOtpVerified,
+    emailStatus,
+    path,
+    recoveryFeedback,
+    recoveryStateText,
+    t,
+  ]);
+
+  const showRecoverySuccess = useCallback(
+    (message: string, outcome: string) => {
+      const feedback: BuklodUserFeedback = {
+        tone: 'success',
+        category: null,
+        title: t('recovery.passwordUpdated'),
+        message,
+        nextStep: t('recovery.passwordUpdatedNext'),
+        supportCode: null,
+        retryable: false,
+        needsSupport: false,
+      };
+      setRecoveryFeedback(feedback);
+      showFeedback(feedback, { autoHideMs: 5200 });
+      void trackBuklodFeedbackEvent({
+        event: 'recovery_success',
+        route: '/(auth)/forgot-password',
+        feature: 'Account Recovery',
+        outcome,
+      });
+    },
+    [showFeedback, t],
+  );
+
   const selectPath = (next: RecoveryPath) => {
     if (emailBusy || pinBusy || requestBusy || codeBusy) return;
     setPath(next);
@@ -144,7 +276,7 @@ export default function ForgotPasswordScreen() {
 
     const checkEmailRecovery = async () => {
       try {
-        const { data, error } = await supabase.functions.invoke('account-recovery-otp-v1', {
+        const { data, error } = await invokeRecovery('account-recovery-otp-v1', {
           body: { action: 'service_status' },
         });
         if (cancelled) return;
@@ -172,7 +304,7 @@ export default function ForgotPasswordScreen() {
       if (pollInFlight.current || cancelled) return;
       pollInFlight.current = true;
       try {
-        const { data, error } = await supabase.functions.invoke('account-recovery-v4', {
+        const { data, error } = await invokeRecovery('account-recovery-v4', {
           body: {
             action: 'recovery_request_status',
             requestId: recoverySession.requestId,
@@ -185,7 +317,7 @@ export default function ForgotPasswordScreen() {
 
         const state = String(data?.state ?? 'waiting');
         if (state === 'waiting') {
-          setRecoveryStateText('Waiting for System Admin verification…');
+          setRecoveryStateText('Waiting for BUKLOD Support verification…');
           return;
         }
         if (state === 'verified') {
@@ -219,8 +351,13 @@ export default function ForgotPasswordScreen() {
         }
       } catch (error: any) {
         if (!cancelled) {
+          const feedback = showRecoveryFailure(
+            error,
+            'assisted_recovery_status_failed',
+            "BUKLOD couldn't refresh the recovery status right now. Your request is safe.",
+          );
           setRecoveryStateText(
-            `Status check: ${String(error?.message ?? error ?? 'temporarily unavailable')}`
+            `${feedback.message} Try again shortly or open Need Help.`
           );
         }
       } finally {
@@ -258,21 +395,28 @@ export default function ForgotPasswordScreen() {
     if (emailReady === false) {
       return Alert.alert(
         'Automatic Recovery',
-        'Automatic recovery is temporarily unavailable. Use Recovery PIN or Admin Help.'
+        'Automatic recovery is temporarily unavailable. Use Recovery PIN or Need Help.'
       );
     }
     if (emailInFlight.current) return;
 
     emailInFlight.current = true;
     setEmailBusy(true);
+    setRecoveryFeedback(null);
     setEmailStatus('Checking account and sending a 6-digit recovery code…');
+    void trackBuklodFeedbackEvent({
+      event: 'recovery_attempted',
+      route: '/(auth)/forgot-password',
+      feature: 'Automatic Recovery',
+      outcome: 'request_otp',
+    });
     setEmailOtp('');
     setEmailRecoveryToken('');
     setEmailAccountId('');
     setEmailOtpVerified(false);
 
     try {
-      const { data, error } = await supabase.functions.invoke('account-recovery-otp-v1', {
+      const { data, error } = await invokeRecovery('account-recovery-otp-v1', {
         body: autoForgotLogin
           ? {
               action: 'request_otp',
@@ -317,11 +461,12 @@ export default function ForgotPasswordScreen() {
         )
       );
     } catch (error: any) {
-      setEmailStatus('');
-      Alert.alert(
-        'Automatic Recovery',
-        String(error?.message ?? error ?? 'Automatic recovery could not be started.')
+      const feedback = showRecoveryFailure(
+        error,
+        'request_otp_failed',
+        'Automatic recovery could not be started. Check your information and try again.',
       );
+      setEmailStatus(feedback.message);
     } finally {
       emailInFlight.current = false;
       setEmailBusy(false);
@@ -343,7 +488,7 @@ export default function ForgotPasswordScreen() {
     setEmailStatus('Verifying your recovery code…');
 
     try {
-      const { data, error } = await supabase.functions.invoke('account-recovery-otp-v1', {
+      const { data, error } = await invokeRecovery('account-recovery-otp-v1', {
         body: {
           action: 'verify_otp',
           challengeId: emailChallengeId,
@@ -360,24 +505,32 @@ export default function ForgotPasswordScreen() {
       const recoveryToken = String(data?.recoveryToken ?? '').trim();
       const accounts: OtpAccount[] = Array.isArray(data?.accounts) ? data.accounts : [];
       if (recoveryToken.length < 32 || accounts.length < 1) {
-        throw new Error('The verified recovery session could not be completed. Use Admin Help.');
+        throw new Error('The verified recovery session could not be completed. Open Need Help so BUKLOD Support can continue safely.');
       }
       if (accounts.length > 1) {
         throw new Error(
-          'More than one BUKLOD account uses that recovery contact. Use Admin Help so the correct account can be selected safely.'
+          'More than one BUKLOD account uses that recovery contact. Open Need Help so BUKLOD Support can select the correct account safely.'
         );
       }
 
       setEmailRecoveryToken(recoveryToken);
       setEmailAccountId(String(accounts[0]?.accountId ?? ''));
       setEmailOtpVerified(true);
+      setRecoveryFeedback(null);
       setEmailStatus('CODE VERIFIED — create your new password below.');
+      void trackBuklodFeedbackEvent({
+        event: 'action_success',
+        route: '/(auth)/forgot-password',
+        feature: 'Automatic Recovery',
+        outcome: 'otp_verified',
+      });
     } catch (error: any) {
-      setEmailStatus('');
-      Alert.alert(
-        'Recovery Verification',
-        String(error?.message ?? error ?? 'The recovery code could not be verified.')
+      const feedback = showRecoveryFailure(
+        error,
+        'verify_otp_failed',
+        'The verification code is incorrect, expired, or could not be verified. Request a new code if needed.',
       );
+      setEmailStatus(feedback.message);
     } finally {
       emailInFlight.current = false;
       setEmailBusy(false);
@@ -398,10 +551,11 @@ export default function ForgotPasswordScreen() {
 
     emailInFlight.current = true;
     setEmailBusy(true);
-    setEmailStatus('Changing your password…');
+    setRecoveryFeedback(null);
+    setEmailStatus(t('recovery.updatingPassword'));
 
     try {
-      const { data, error } = await supabase.functions.invoke('account-recovery-otp-v1', {
+      const { data, error } = await invokeRecovery('account-recovery-otp-v1', {
         body: {
           action: 'reset_password',
           challengeId: emailChallengeId,
@@ -431,11 +585,12 @@ export default function ForgotPasswordScreen() {
             return false;
           });
 
-      setEmailStatus(
+      const successMessage =
         localCleanupOk
-          ? 'Password changed. The old saved one-tap password on this device was cleared.'
-          : 'Password changed. Use the new password. If one-tap login still shows an old password, remove that saved profile and sign in manually.'
-      );
+          ? 'Password updated successfully. The old saved one-tap password on this device was cleared.'
+          : 'Password updated successfully. Use the new password. If one-tap login still shows an old password, remove that saved profile and sign in manually.';
+      setEmailStatus(successMessage);
+      showRecoverySuccess(successMessage, 'automatic_password_reset');
       Alert.alert(
         'Password Changed',
         localCleanupOk
@@ -444,10 +599,12 @@ export default function ForgotPasswordScreen() {
         [{ text: 'SIGN IN', onPress: () => router.replace('/(auth)/login' as any) }]
       );
     } catch (error: any) {
-      Alert.alert(
-        'Automatic Recovery',
-        String(error?.message ?? error ?? 'Password reset could not be completed.')
+      const feedback = showRecoveryFailure(
+        error,
+        'automatic_password_reset_failed',
+        "We couldn't update your password right now. Please try again.",
       );
+      setEmailStatus(feedback.message);
     } finally {
       emailInFlight.current = false;
       setEmailBusy(false);
@@ -471,9 +628,16 @@ export default function ForgotPasswordScreen() {
     if (pinInFlight.current) return;
     pinInFlight.current = true;
     setPinBusy(true);
+    setRecoveryFeedback(null);
+    void trackBuklodFeedbackEvent({
+      event: 'recovery_attempted',
+      route: '/(auth)/forgot-password',
+      feature: 'Recovery PIN',
+      outcome: 'pin_recovery',
+    });
 
     try {
-      const { data, error } = await supabase.functions.invoke('account-recovery-v3', {
+      const { data, error } = await invokeRecovery('account-recovery-v3', {
         body: {
           action: 'recover_with_pin',
           identifier: cleanIdentifier,
@@ -505,6 +669,10 @@ export default function ForgotPasswordScreen() {
             return false;
           });
 
+      showRecoverySuccess(
+        'Password updated successfully. You can now sign in using your new password.',
+        'pin_password_reset',
+      );
       Alert.alert(
         'Password Changed',
         localCleanupOk
@@ -513,7 +681,11 @@ export default function ForgotPasswordScreen() {
         [{ text: 'SIGN IN', onPress: () => router.replace('/(auth)/login' as any) }]
       );
     } catch (error: any) {
-      Alert.alert('Recovery PIN', String(error?.message ?? error ?? 'Recovery failed.'));
+      showRecoveryFailure(
+        error,
+        'pin_recovery_failed',
+        'Recovery PIN could not complete account recovery. Check the details and try again.',
+      );
     } finally {
       pinInFlight.current = false;
       setPinBusy(false);
@@ -524,18 +696,18 @@ export default function ForgotPasswordScreen() {
     const cleanIdentifier = adminIdentifier.trim();
     if (!forgotLogin && cleanIdentifier.length < 3) {
       return Alert.alert(
-        'Admin Assistance',
+        'Support Assistance',
         'Enter the username, mobile number, or email you remember. If you do not remember any login, choose “I forgot my login too.”'
       );
     }
 
     if (forgotLogin) {
       if (firstName.trim().length < 2 || surname.trim().length < 2) {
-        return Alert.alert('Admin Assistance', 'Enter your first name and surname.');
+        return Alert.alert('Support Assistance', 'Enter your first name and surname.');
       }
       if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate.trim())) {
         return Alert.alert(
-          'Admin Assistance',
+          'Support Assistance',
           'Enter birthday as YYYY-MM-DD, for example 1990-05-23.'
         );
       }
@@ -551,7 +723,7 @@ export default function ForgotPasswordScreen() {
     setRecoveryStateText('Submitting recovery request…');
 
     try {
-      const { data, error } = await supabase.functions.invoke('account-recovery-v4', {
+      const { data, error } = await invokeRecovery('account-recovery-v4', {
         body: forgotLogin
           ? {
               action: 'request_admin_recovery',
@@ -583,7 +755,7 @@ export default function ForgotPasswordScreen() {
         );
       }
 
-      setRecoveryStateText('Waiting for System Admin verification… Keep this recovery screen open.');
+      setRecoveryStateText('Waiting for BUKLOD Support verification… Keep this recovery screen open.');
       setRecoverySession({
         requestId,
         requestToken: requestToken.toLowerCase(),
@@ -593,15 +765,16 @@ export default function ForgotPasswordScreen() {
       if (Platform.OS !== 'web') {
         Alert.alert(
           'Recovery Request Received',
-          'Your request is waiting for System Admin verification. Keep this screen open. Once verified, the one-time recovery code will appear here automatically.'
+          'Your request is waiting for BUKLOD Support verification. Keep this screen open. Once verified, the one-time recovery code will appear here automatically.'
         );
       }
     } catch (error: any) {
-      setRecoveryStateText('');
-      Alert.alert(
-        'Admin Assistance',
-        String(error?.message ?? error ?? 'Could not submit the request.')
+      const feedback = showRecoveryFailure(
+        error,
+        'assisted_recovery_request_failed',
+        "We couldn't submit the assisted recovery request. Please try again.",
       );
+      setRecoveryStateText(feedback.message);
     } finally {
       requestInFlight.current = false;
       setRequestBusy(false);
@@ -613,7 +786,7 @@ export default function ForgotPasswordScreen() {
     if (!/^[A-Z2-9]{10}$/.test(clean)) {
       return Alert.alert(
         'One-Time Code',
-        'Enter the 10-character one-time code shown after admin verification.'
+        'Enter the 10-character one-time code provided after BUKLOD Support verification.'
       );
     }
     if (codePassword.length < 8) {
@@ -627,7 +800,7 @@ export default function ForgotPasswordScreen() {
     setCodeBusy(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('account-recovery-v4', {
+      const { data, error } = await invokeRecovery('account-recovery-v4', {
         body: {
           action: 'recover_with_admin_code',
           code: clean,
@@ -653,6 +826,10 @@ export default function ForgotPasswordScreen() {
             return false;
           });
 
+      showRecoverySuccess(
+        'Password updated successfully. You can now sign in using your new password.',
+        'assisted_password_reset',
+      );
       Alert.alert(
         'Account Recovered',
         login
@@ -673,7 +850,11 @@ export default function ForgotPasswordScreen() {
         [{ text: 'SIGN IN', onPress: () => router.replace('/(auth)/login' as any) }]
       );
     } catch (error: any) {
-      Alert.alert('One-Time Code', String(error?.message ?? error ?? 'Recovery failed.'));
+      showRecoveryFailure(
+        error,
+        'assisted_code_recovery_failed',
+        'The one-time recovery code is invalid, expired, or could not be used. Request a new recovery step if needed.',
+      );
     } finally {
       codeInFlight.current = false;
       setCodeBusy(false);
@@ -698,8 +879,32 @@ export default function ForgotPasswordScreen() {
         <Text style={styles.title}>Recover Your BUKLOD Account</Text>
         <Text style={styles.subtitle}>
           Automatic recovery checks your registered email, mobile number, or username. A matched
-          account receives a 6-digit code automatically. Admin Help is fallback only.
+          account receives a 6-digit code automatically. Need Help is available if automatic recovery remains unresolved.
         </Text>
+
+        {!!recoveryFeedback && (
+          <View style={{ marginTop: 12 }}>
+            <BuklodFeedbackBanner
+              feedback={recoveryFeedback}
+              onNeedHelp={openRecoveryHelp}
+            />
+          </View>
+        )}
+
+        <Pressable
+          accessibilityRole="button"
+          onPress={openRecoveryHelp}
+          style={styles.helpEntry}
+        >
+          <MaterialCommunityIcons
+            name="lifebuoy"
+            size={18}
+            color={colors.greenDark}
+          />
+          <Text style={styles.helpEntryText}>
+            {t('support.needHelp')}
+          </Text>
+        </Pressable>
 
         <View style={styles.pathRow}>
           <PathButton
@@ -715,10 +920,10 @@ export default function ForgotPasswordScreen() {
             onPress={() => selectPath('pin')}
           />
           <PathButton
-            active={path === 'admin'}
-            icon="account-wrench-outline"
-            label="ADMIN"
-            onPress={() => selectPath('admin')}
+            active={false}
+            icon="lifebuoy"
+            label="HELP"
+            onPress={openRecoveryHelp}
           />
         </View>
 
@@ -739,7 +944,7 @@ export default function ForgotPasswordScreen() {
               <View style={styles.warningCard}>
                 <MaterialCommunityIcons name="alert-circle-outline" size={20} color="#8A5A00" />
                 <Text style={styles.warningText}>
-                  Automatic recovery is temporarily unavailable. Use Recovery PIN or Admin Help.
+                  Automatic recovery is temporarily unavailable. Use Recovery PIN or Need Help.
                 </Text>
               </View>
             ) : null}
@@ -1065,7 +1270,7 @@ export default function ForgotPasswordScreen() {
 
               <PrimaryButton
                 busy={requestBusy}
-                label={requestSent ? 'SUBMIT NEW REQUEST' : 'REQUEST ADMIN ASSISTANCE'}
+                label={requestSent ? 'SUBMIT NEW REQUEST' : 'REQUEST SUPPORT ASSISTANCE'}
                 onPress={requestAdminHelp}
               />
 
@@ -1106,7 +1311,7 @@ export default function ForgotPasswordScreen() {
 
             <View style={styles.card}>
               <Text style={styles.cardTitle}>
-                {receivedCode ? 'Create your new password' : 'Already received an admin code?'}
+                {receivedCode ? 'Create your new password' : 'Already received a support recovery code?'}
               </Text>
               <FieldLabel>10-character one-time code</FieldLabel>
               <TextInput
@@ -1444,5 +1649,20 @@ const styles = StyleSheet.create({
     marginTop: 6,
     color: '#68756D',
     fontSize: 12,
+  },
+  helpEntry: {
+    marginTop: 10,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  helpEntryText: {
+    color: colors.greenDark,
+    fontSize: 12,
+    fontWeight: '900',
+    textDecorationLine: 'underline',
   },
 });

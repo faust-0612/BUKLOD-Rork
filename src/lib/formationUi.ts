@@ -41,27 +41,36 @@ export function stageProgressPercent(stage: FormationJourneyStage): number {
   }
 
   let parts = 0;
-  let done = 0;
+  let progressTotal = 0;
 
   if (stage.lessons_complete !== undefined) {
     parts += 1;
-    if (stage.lessons_complete) done += 1;
+    progressTotal += stage.lessons_complete ? 1 : 0;
   }
   if (stage.documents_or_milestones_complete !== undefined) {
     parts += 1;
-    if (stage.documents_or_milestones_complete) done += 1;
+    progressTotal += stage.documents_or_milestones_complete ? 1 : 0;
   }
-  if ((stage.stage_points_required ?? 0) > 0) {
+
+  const pointsRequired = Number(stage.stage_points_required ?? 0);
+  if (pointsRequired > 0) {
     parts += 1;
-    if (stage.stage_points_met) done += 1;
+    const pointsCurrent = Number(stage.stage_points_current ?? 0);
+    progressTotal += Math.max(0, Math.min(1, pointsCurrent / pointsRequired));
   }
-  if ((stage.stage_bayanihan_required ?? 0) > 0) {
+
+  const bayanihanRequired = Number(stage.stage_bayanihan_required ?? 0);
+  if (bayanihanRequired > 0) {
     parts += 1;
-    if (stage.stage_bayanihan_met) done += 1;
+    const bayanihanCurrent = Number(stage.stage_bayanihan_current ?? 0);
+    progressTotal += Math.max(
+      0,
+      Math.min(1, bayanihanCurrent / bayanihanRequired),
+    );
   }
 
   if (parts === 0) return 0;
-  return Math.round((done / parts) * 100);
+  return Math.min(99, Math.round((progressTotal / parts) * 100));
 }
 
 export function statusLabel(status: FormationCardStatus): string {

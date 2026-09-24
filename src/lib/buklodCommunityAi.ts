@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 
 type CommunityModerationTarget = 'root' | 'dugtong';
 
@@ -15,14 +16,18 @@ export async function moderateBuklodCommunityContent(
   const normalizedId = String(id ?? '').trim();
   if (!normalizedId) return;
 
-  const { data, error } = await supabase.functions.invoke(
-    'buklod-community-ai',
-    {
-      body: {
-        action: target === 'root' ? 'moderate_root' : 'moderate_dugtong',
-        id: normalizedId,
+  const { data, error } = await withBuklodTimeout<any>(
+    supabase.functions.invoke(
+      'buklod-community-ai',
+      {
+        body: {
+          action: target === 'root' ? 'moderate_root' : 'moderate_dugtong',
+          id: normalizedId,
+        },
       },
-    },
+    ),
+    28_000,
+    'Community AI moderation'
   );
 
   if (error) throw error;
@@ -49,15 +54,19 @@ export async function generateBuklodCommunityTakeaway(
   postId: string,
   publish = false,
 ): Promise<CommunityTakeawayResult> {
-  const { data, error } = await supabase.functions.invoke(
-    'buklod-community-ai',
-    {
-      body: {
-        action: 'takeaway',
-        post_id: postId,
-        publish,
+  const { data, error } = await withBuklodTimeout<any>(
+    supabase.functions.invoke(
+      'buklod-community-ai',
+      {
+        body: {
+          action: 'takeaway',
+          post_id: postId,
+          publish,
+        },
       },
-    },
+    ),
+    28_000,
+    'Community AI Takeaway'
   );
 
   if (error) throw error;

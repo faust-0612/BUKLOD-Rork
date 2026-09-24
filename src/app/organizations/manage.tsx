@@ -23,6 +23,11 @@ import { isActiveMembershipStatus } from '@/lib/buklodOrganization';
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import { enterScopedWorkspace } from '@/lib/buklodScopeRoute';
+import { useBuklodFeedback } from '@/providers/BuklodFeedbackProvider';
+import {
+  buildBuklodUserFeedback,
+  trackBuklodFeedbackEvent,
+} from '@/lib/buklodUserFeedback';
 
 type ScopeRow = {
   id: string;
@@ -116,6 +121,53 @@ function canShowJoin(
 export default function OrganizationsManageListScreen() {
   const router = useRouter();
   const { selectScope } = useBuklodScope();
+  const { showFeedback } = useBuklodFeedback();
+
+  const reportOrganizationFailure = useCallback(
+    (
+      error: unknown,
+      title: string,
+      message: string,
+      outcome: string,
+    ) => {
+      const base = buildBuklodUserFeedback(
+        error,
+        {
+          context: 'general',
+          fallbackTitle: title,
+          fallbackMessage: message,
+        },
+      );
+      const feedback = {
+        ...base,
+        tone: 'error' as const,
+        title,
+        message,
+        nextStep: 'Try again. If it repeats, open Need Help.',
+        supportCode: base.supportCode ?? 'SYS-500',
+        retryable: true,
+        needsSupport: true,
+      };
+      showFeedback(feedback, {
+        autoHideMs: null,
+        helpParams: {
+          category: 'ORGANIZATION',
+          errorCode: feedback.supportCode,
+          message: feedback.message,
+          sourceRoute: '/organizations/manage',
+        },
+      });
+      void trackBuklodFeedbackEvent({
+        event: 'error_shown',
+        category: feedback.category,
+        supportCode: feedback.supportCode,
+        route: '/organizations/manage',
+        feature: 'Organization',
+        outcome,
+      });
+    },
+    [showFeedback],
+  );
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -230,10 +282,11 @@ export default function OrganizationsManageListScreen() {
 
       setActiveMemberIds(nextMemberships);
     } catch (error: any) {
-      Alert.alert(
-        'Organizations',
-        error?.message ||
-          'Could not load Organizations.',
+      reportOrganizationFailure(
+        error,
+        'Organizations unavailable',
+        "BUKLOD couldn't load Organizations right now.",
+        'organization_load_failed',
       );
     } finally {
       setLoading(false);
@@ -295,11 +348,11 @@ export default function OrganizationsManageListScreen() {
         { section: 'home', fromPortal: true },
       );
     } catch (error: unknown) {
-      Alert.alert(
-        'Organization Workspace',
-        error instanceof Error
-          ? error.message
-          : 'Could not open this workspace.',
+      reportOrganizationFailure(
+        error,
+        'Workspace not opened',
+        "BUKLOD couldn't open this Organization workspace right now.",
+        'organization_workspace_failed',
       );
     }
   };

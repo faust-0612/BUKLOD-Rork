@@ -22,9 +22,22 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
-import { recordReferral } from '@/lib/buklodRewards';
+import {
+  attachBuklodReferral,
+  captureBuklodReferralCode,
+  ensureBuklodProfitFirstIdentity,
+  normalizeBuklodReferralCode,
+  readPendingBuklodReferralCode,
+  recordBuklodReferralFunnel,
+  resolveBuklodReferralCode,
+} from '@/lib/buklodReferralV2';
 import { colors } from '@/lib/theme';
 import { useBuklodDrawerBottomInset } from '@/lib/buklodSafeArea';
+import { useBuklodFeedback } from '@/providers/BuklodFeedbackProvider';
+import {
+  buildBuklodUserFeedback,
+  trackBuklodFeedbackEvent,
+} from '@/lib/buklodUserFeedback';
 
 type Church = {
   id: string;
@@ -117,6 +130,50 @@ function buildFullName(
 export default function RegisterScreen() {
   const params = useLocalSearchParams<{ ref?: string; referral?: string }>();
   const drawerBottomInset = useBuklodDrawerBottomInset();
+  const { showFeedback } = useBuklodFeedback();
+
+  const reportRegisterFailure = (
+    error: unknown,
+    title: string,
+    message: string,
+    outcome: string,
+  ) => {
+    const base = buildBuklodUserFeedback(
+      error,
+      {
+        context: 'general',
+        fallbackTitle: title,
+        fallbackMessage: message,
+      },
+    );
+    const feedback = {
+      ...base,
+      tone: 'error' as const,
+      title,
+      message,
+      nextStep: 'Check the form, try again, or open Need Help if the problem repeats.',
+      supportCode: base.supportCode ?? 'SYS-500',
+      retryable: true,
+      needsSupport: true,
+    };
+    showFeedback(feedback, {
+      autoHideMs: null,
+      helpParams: {
+        category: 'OTHER_ACCOUNT',
+        errorCode: feedback.supportCode,
+        message: feedback.message,
+        sourceRoute: '/(auth)/register',
+      },
+    });
+    void trackBuklodFeedbackEvent({
+      event: 'error_shown',
+      category: feedback.category,
+      supportCode: feedback.supportCode,
+      route: '/(auth)/register',
+      feature: 'Account Registration',
+      outcome,
+    });
+  };
 
   const [churches, setChurches] =
     useState<Church[]>([]);
@@ -197,12 +254,10 @@ export default function RegisterScreen() {
     useState('');
 
   const [referralCode, setReferralCode] =
-    useState(
-      () =>
-        String(params.ref ?? params.referral ?? '')
-          .trim()
-          .toUpperCase(),
-    );
+    useState(() => normalizeBuklodReferralCode(params.ref ?? params.referral ?? ''));
+  const [referralChecking,setReferralChecking]=useState(false);
+  const [referralResolvedLabel,setReferralResolvedLabel]=useState('');
+  const [referralInvalid,setReferralInvalid]=useState(false);
 
   const [
     showPassword,
@@ -213,6 +268,52 @@ export default function RegisterScreen() {
     memberNote,
     setMemberNote,
   ] = useState('');
+
+  useEffect(()=>{
+    let alive=true;
+    const paramCode=normalizeBuklodReferralCode(params.ref ?? params.referral ?? '');
+    void (async()=>{
+      if(paramCode){
+        await captureBuklodReferralCode(paramCode,'REGISTER_LINK');
+        if(alive)setReferralCode(paramCode);
+        return;
+      }
+      const pending=await readPendingBuklodReferralCode();
+      if(alive&&pending)setReferralCode(current=>current||pending);
+    })();
+    return()=>{alive=false};
+  },[params.ref,params.referral]);
+
+  useEffect(()=>{
+    const clean=normalizeBuklodReferralCode(referralCode);
+    setReferralResolvedLabel('');
+    setReferralInvalid(false);
+    if(!clean)return;
+
+    let alive=true;
+    const timer=setTimeout(()=>{
+      setReferralChecking(true);
+      void resolveBuklodReferralCode(clean)
+        .then(result=>{
+          if(!alive)return;
+          if(result.found){
+            setReferralResolvedLabel('Referral found: '+(result.referrer_label??'BUKLOD member'));
+            setReferralInvalid(false);
+            void captureBuklodReferralCode(clean,'MANUAL_OR_LINK');
+          }else{
+            setReferralResolvedLabel('Referral not found');
+            setReferralInvalid(true);
+          }
+        })
+        .catch(()=>{
+          if(!alive)return;
+          setReferralResolvedLabel('Could not verify referral. Check your connection.');
+          setReferralInvalid(true);
+        })
+        .finally(()=>{if(alive)setReferralChecking(false)});
+    },650);
+    return()=>{alive=false;clearTimeout(timer)};
+  },[referralCode]);
 
   /* PATCH_164A_REG2_STATE_RECOVERY_V2 */
 
@@ -320,9 +421,11 @@ useEffect(() => {
 
         if (error) {
           setGroups([]);
-          Alert.alert(
-            'Could not load BUKLOD clusters',
-            error.message
+          reportRegisterFailure(
+            error,
+            'BUKLOD clusters unavailable',
+            "BUKLOD couldn't load the cluster list right now. You may retry or continue without selecting a cluster where allowed.",
+            'cluster_load_failed',
           );
         } else {
           setGroups(
@@ -547,11 +650,38 @@ useEffect(() => {
         );
       }
 
+      const cleanReferral=normalizeBuklodReferralCode(referralCode);
+      if(cleanReferral){
+        setReferralChecking(true);
+        try{
+          const resolved=await resolveBuklodReferralCode(cleanReferral);
+          if(!resolved.found){
+            setReferralInvalid(true);
+            setReferralResolvedLabel('Referral not found');
+            return Alert.alert(
+              'Referral not found',
+              'Check the referral username/code or remove it before creating your account.'
+            );
+          }
+          setReferralInvalid(false);
+          setReferralResolvedLabel('Referral found: '+(resolved.referrer_label??'BUKLOD member'));
+          await captureBuklodReferralCode(cleanReferral,'SIGNUP');
+        }catch{
+          return Alert.alert(
+            'Referral verification',
+            'BUKLOD could not verify the referral right now. Check your connection or remove the referral code to continue without one.'
+          );
+        }finally{
+          setReferralChecking(false);
+        }
+      }
+
       if (createAccountInFlight.current) {
         return;
       }
 
       createAccountInFlight.current = true;
+      void recordBuklodReferralFunnel('SIGNUP_STARTED','REGISTER');
       setBusy(true);
 
       const { data, error } =
@@ -631,12 +761,20 @@ useEffect(() => {
             error.message
           );
 
-        return Alert.alert(
-          'Could not create account',
-          duplicate
-            ? `That ${loginMethod} is already being used by another BUKLOD account.`
-            : error.message
+        if (duplicate) {
+          return Alert.alert(
+            'Could not create account',
+            `That ${loginMethod} is already being used by another BUKLOD account.`,
+          );
+        }
+
+        reportRegisterFailure(
+          error,
+          'Account not created',
+          "BUKLOD couldn't create your account right now. Your form information is still on this screen.",
+          'account_create_failed',
         );
+        return;
       }
 
       if (!data.session) {
@@ -711,42 +849,45 @@ useEffect(() => {
 
         Alert.alert(
           'Account created - local setup pending',
-          'Your BUKLOD account and private onboarding were saved, but Local assignment could not finish. You may continue to Public Home and retry your address setup later.'
+          'Your BUKLOD account and private onboarding were saved, but Local assignment could not finish. You may continue to the Public Community and retry your address setup later.'
         );
 
         router.replace(
-          '/(tabs)/home'
+          '/(tabs)/buklod'
         );
 
         return;
       }
 
-      if (referralCode.trim()) {
-        try {
-          await recordReferral(
-            referralCode
-          );
-        } catch (
-          referralError: unknown
-        ) {
-          console.warn(
-            'Referral record failed:',
-            referralError instanceof Error
-              ? referralError.message
-              : referralError,
-          );
+      let referralMessage='';
+      try{
+        await ensureBuklodProfitFirstIdentity(true);
+        const cleanReferral=normalizeBuklodReferralCode(referralCode);
+        if(cleanReferral){
+          const attached=await attachBuklodReferral(cleanReferral);
+          referralMessage=attached?.idempotent
+            ? ' Your first-line referral is already secured.'
+            : ' Your first-line referrer is now locked and the ₱20 referral reward is Pending qualification.';
         }
+        void recordBuklodReferralFunnel('SIGNUP_COMPLETED','REGISTER');
+      }catch(referralError:unknown){
+        referralMessage=' Referral status could not be finalized yet. Your account is active, and a valid pending referral will retry automatically.';
+        void trackBuklodFeedbackEvent({
+          event: 'action_failed',
+          route: '/(auth)/register',
+          feature: 'Referral',
+          outcome: 'post_signup_referral_sync_deferred',
+        });
       }
 
       finishCreateAccount();
 
       Alert.alert(
         'Account created',
-        'Your BUKLOD account is ready. You can enter the Public Community immediately. Local, Cluster, Church, and Organization memberships can be added separately.'
+        'Your BUKLOD account is ready. You can enter the Public Community immediately.'+referralMessage
       );
 
-      /* PATCH_156A_V2_COMMUNITY_SUCCESS */
-      router.replace('/(tabs)/home');
+      router.replace('/(tabs)/buklod');
     };
 
   const loginMethodLabel =
@@ -1132,11 +1273,22 @@ useEffect(() => {
           placeholder="Friend's BUKLOD invite code"
           value={referralCode}
           onChangeText={(value) =>
-            setReferralCode(value.trim().toUpperCase())
+            setReferralCode(normalizeBuklodReferralCode(value))
           }
           autoCapitalize="characters"
           autoCorrect={false}
         />
+        {referralChecking ? (
+          <Text style={styles.help}>Checking referral…</Text>
+        ) : referralResolvedLabel ? (
+          <Text style={[styles.help, referralInvalid && { color: '#9A3B34' }]}>
+            {referralResolvedLabel}
+          </Text>
+        ) : (
+          <Text style={styles.help}>
+            Optional. Once a valid first-line referrer is confirmed, it normally cannot be changed.
+          </Text>
+        )}
 
         {/* PATCH_164A_REG2_PRIVATE_ADDRESS */}
 

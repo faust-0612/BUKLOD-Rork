@@ -4,14 +4,16 @@ import { BuklodGuideAvatar } from '@/components/BuklodGuideAvatar';
 import BuklodFormationEntryScopeTracker from '@/components/BuklodFormationEntryScopeTracker';
 import BuklodTrustedDeviceGate from '@/components/BuklodTrustedDeviceGate';
 import '@/lib/performanceBoot';
-import { Stack, type ErrorBoundaryProps } from 'expo-router';
+import { Stack, router, type ErrorBoundaryProps } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AuthProvider } from '@/providers/AuthProvider';
+import { BuklodI18nProvider } from '@/providers/BuklodI18nProvider';
 import { BuklodBibleNarrationProvider } from '@/providers/BuklodBibleNarrationProvider';
 import { BuklodScopeProvider } from '@/providers/BuklodScopeProvider';
 import { BuklodFoundationProvider } from '@/providers/BuklodFoundationProvider';
 import { NetworkProvider } from '@/providers/NetworkProvider';
+import { BuklodFeedbackProvider } from '@/providers/BuklodFeedbackProvider';
 import { NotificationProvider } from '@/providers/NotificationProvider';
 import { ComplianceProvider } from '@/providers/ComplianceProvider';
 import { RuntimeConfigProvider } from '@/providers/RuntimeConfigProvider';
@@ -22,20 +24,43 @@ import BuklodFocusAppRouteGuard from '@/components/BuklodFocusAppRouteGuard';
 import BuklodCanonicalNavigationGuard from '@/components/BuklodCanonicalNavigationGuard';
 import BuklodClusterInviteDeepLinkHandler from '@/components/BuklodClusterInviteDeepLinkHandler';
 import BuklodAttendanceDeepLinkHandler from '@/components/BuklodAttendanceDeepLinkHandler';
+import BuklodAdSafetyRouteBridge from '@/components/BuklodAdSafetyRouteBridge';
+import BuklodWebAdSenseProvider from '@/components/BuklodWebAdSenseProvider';
+import BuklodProfitFirstIdentityBootstrap from '@/components/BuklodProfitFirstIdentityBootstrap';
 import { colors } from '@/lib/theme';
 import { StreamVideoProvider } from '@/providers/StreamVideoProvider';
 import { BuklodThemeProvider } from '@/providers/BuklodThemeProvider';
 import { BuklodCharacterEventProvider } from '@/components/character/BuklodCharacterEventProvider';
 import RorkAvatarOnboardingGate from '@/components/character/RorkAvatarOnboardingGate';
 
-export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
   return (
     <View style={styles.error}>
-      <Text style={styles.errorTitle}>Something went wrong</Text>
-      <Text style={styles.errorText}>{error.message}</Text>
-      <Pressable onPress={retry} style={styles.retry}>
-        <Text style={styles.retryText}>TRY AGAIN</Text>
-      </Pressable>
+      <Text style={styles.errorTitle}>BUKLOD could not open this screen</Text>
+      <Text style={styles.errorText}>
+        We couldn't complete this action. Please try again.
+      </Text>
+      <Text style={styles.errorCode}>Support code: SYS-500</Text>
+      <View style={styles.errorActions}>
+        <Pressable onPress={retry} style={styles.retry}>
+          <Text style={styles.retryText}>TRY AGAIN</Text>
+        </Pressable>
+        <Pressable
+          onPress={() =>
+            router.push({
+              pathname: '/help' as any,
+              params: {
+                category: 'TECHNICAL',
+                errorCode: 'SYS-500',
+                message: "BUKLOD couldn't open the requested screen.",
+              },
+            })
+          }
+          style={styles.helpButton}
+        >
+          <Text style={styles.helpButtonText}>NEED HELP?</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -63,10 +88,12 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
+    <BuklodI18nProvider>
     <GestureHandlerRootView
       style={{ flex: 1 }}
     >
       <AuthProvider>
+        <BuklodProfitFirstIdentityBootstrap />
         <BuklodTrustedDeviceGate>
         <BuklodBibleNarrationProvider>
         <BuklodThemeProvider>
@@ -76,10 +103,12 @@ export default function RootLayout() {
         <BuklodFormationEntryScopeTracker />
         <BuklodFoundationProvider>
       <NetworkProvider>
+        <BuklodFeedbackProvider>
         <BuklodOfflineSyncProvider>
         <ComplianceProvider>
           <RuntimeConfigProvider>
           <AdsProvider>
+            <BuklodAdSafetyRouteBridge />
       <NotificationProvider>
             <StreamVideoProvider>
             <BuklodRootKeyboardAvoidingView style={{ flex: 1 }}>
@@ -90,6 +119,7 @@ export default function RootLayout() {
               <BuklodCanonicalNavigationGuard />
               <BuklodClusterInviteDeepLinkHandler />
               <BuklodAttendanceDeepLinkHandler />
+              <BuklodWebAdSenseProvider>
               <BuklodNavSafeShell>
               <Stack
                 screenOptions={{
@@ -102,6 +132,7 @@ export default function RootLayout() {
                 <Stack.Screen name="child-safety" />
                 <Stack.Screen name="(auth)" />
                 <Stack.Screen name="privacy/index" />
+                <Stack.Screen name="help/index" />
                 <Stack.Screen name="delete-account/index" />
                 <Stack.Screen name="privacy/notice" />
                 <Stack.Screen name="privacy/consent" />
@@ -139,6 +170,9 @@ export default function RootLayout() {
                 <Stack.Screen name="formation/mission-project" />
                 <Stack.Screen name="word/index" />
                 <Stack.Screen name="bible/index" />
+                <Stack.Screen name="bayanihan/index" />
+                <Stack.Screen name="bayanihan/guide" />
+                <Stack.Screen name="preferences/language" />
 {/* PATCH_155BC_NEW_ROUTES */}
                 <Stack.Screen name="mentoring/index" />
                 <Stack.Screen name="reels/index" />
@@ -231,11 +265,13 @@ export default function RootLayout() {
                 <Stack.Screen name="admin/privacy/index" />
                 <Stack.Screen name="admin/content-reports" />
                 <Stack.Screen name="admin/system-announcement-boards" />
+                <Stack.Screen name="admin/daily-engagement" />
                 <Stack.Screen name="scope/attendance/index" />
                 <Stack.Screen name="scope/attendance/report" />
                 <Stack.Screen name="organizations/events-attendance" />
               </Stack>
               </BuklodNavSafeShell>
+              </BuklodWebAdSenseProvider>
             </BuklodRootKeyboardAvoidingView>
             </StreamVideoProvider>
                       {/* PATCH_163A_R_ROOT_GUIDE */}
@@ -245,6 +281,7 @@ export default function RootLayout() {
           </RuntimeConfigProvider>
         </ComplianceProvider>
         </BuklodOfflineSyncProvider>
+        </BuklodFeedbackProvider>
       </NetworkProvider>
             </BuklodFoundationProvider>
             </BuklodScopeProvider>
@@ -254,6 +291,7 @@ export default function RootLayout() {
         </BuklodTrustedDeviceGate>
 </AuthProvider>
     </GestureHandlerRootView>
+    </BuklodI18nProvider>
     </SafeAreaProvider>
   );
 }
@@ -263,7 +301,11 @@ const styles=StyleSheet.create({
   error:{flex:1,alignItems:'center',justifyContent:'center',padding:24,backgroundColor:colors.white},
   errorTitle:{fontSize:24,fontWeight:'900',color:colors.text},
   errorText:{marginTop:8,textAlign:'center',color:colors.muted},
-  retry:{marginTop:18,backgroundColor:colors.green,paddingVertical:12,paddingHorizontal:18,borderRadius:12},
-  retryText:{color:colors.white,fontWeight:'900'}
+  errorCode:{marginTop:8,fontSize:11,fontWeight:'900',color:colors.muted},
+  errorActions:{marginTop:18,flexDirection:'row',flexWrap:'wrap',justifyContent:'center',gap:10},
+  retry:{backgroundColor:colors.green,paddingVertical:12,paddingHorizontal:18,borderRadius:12},
+  retryText:{color:colors.white,fontWeight:'900'},
+  helpButton:{borderWidth:1,borderColor:colors.green,paddingVertical:12,paddingHorizontal:18,borderRadius:12},
+  helpButtonText:{color:colors.green,fontWeight:'900'}
 });
 

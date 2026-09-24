@@ -1,62 +1,81 @@
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
 import { buklodAdsTestMode } from '@/lib/buklodAdUnits';
+import {
+  enqueueBuklodAdOperationalEvent,
+} from '@/lib/buklodAdOperationalTelemetry';
 
 export type BuklodAdDiagnosticPlacement =
-  | 'home_bottom_banner'
-  | 'community_inline'
+  | 'legacy_home_banner'
+  | 'community_wall_feed'
+  | 'content_inline'
+  | 'prayer_banner'
+  | 'messages_banner'
+  | 'profile_banner'
   | 'reels_inline'
-  | 'test';
+  | 'interstitial'
+  | 'rewarded_optional'
+  | 'test'
+  // Compatibility inputs from excluded/legacy source. Runtime records normalize.
+  | 'home_bottom_banner'
+  | 'community_inline';
 
 export type BuklodAdDiagnosticEvent =
-  | 'requested'
-  | 'loaded'
-  | 'displayed'
-  | 'impression'
-  | 'failed_load'
-  | 'failed_show';
+  | 'ad_request'
+  | 'ad_loaded'
+  | 'ad_rendered'
+  | 'ad_impression'
+  | 'ad_failed'
+  | 'ad_dismissed'
+  | 'ad_opened';
+
+type PlacementCounts = {
+  ad_request: number;
+  ad_loaded: number;
+  ad_rendered: number;
+  ad_impression: number;
+  ad_failed: number;
+  ad_dismissed: number;
+  ad_opened: number;
+};
 
 export type BuklodAdDiagnosticRecord = {
   placement: BuklodAdDiagnosticPlacement;
   event: BuklodAdDiagnosticEvent;
   timestamp: number;
   environment: string;
+  provider: 'ADMOB_NATIVE' | 'ADSENSE_WEB' | 'BUKLOD_SPONSOR';
+  platform: string;
+  route: string;
   appVersion: string | null;
+  buildVersion: string | null;
+  runtimeVersion: string | null;
+  sessionId: string;
   errorCode?: string;
   errorMessage?: string;
 };
 
-type PlacementCounts = {
-  requested: number;
-  loaded: number;
-  displayed: number;
-  impression: number;
-  failed_load: number;
-  failed_show: number;
-};
-
-const EMPTY_COUNTS: PlacementCounts = {
-  requested: 0,
-  loaded: 0,
-  displayed: 0,
-  impression: 0,
-  failed_load: 0,
-  failed_show: 0,
-};
-
-const MAX_RECENT = 40;
-
-const countsByPlacement: Record<
+const MAX_RECENT = 60;
+const countsByPlacement = new Map<
   BuklodAdDiagnosticPlacement,
   PlacementCounts
-> = {
-  home_bottom_banner: { ...EMPTY_COUNTS },
-  community_inline: { ...EMPTY_COUNTS },
-  reels_inline: { ...EMPTY_COUNTS },
-  test: { ...EMPTY_COUNTS },
-};
-
+>();
 const recent: BuklodAdDiagnosticRecord[] = [];
+const sessionId =
+  `ads-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+
+function blankCounts(): PlacementCounts {
+  return {
+    ad_request: 0,
+    ad_loaded: 0,
+    ad_rendered: 0,
+    ad_impression: 0,
+    ad_failed: 0,
+    ad_dismissed: 0,
+    ad_opened: 0,
+  };
+}
 
 function appEnvironment() {
   return String(
@@ -72,97 +91,181 @@ function appVersion() {
   return Constants.expoConfig?.version ?? null;
 }
 
+function buildVersion() {
+  const value =
+    (Constants as any).nativeBuildVersion ??
+    Constants.expoConfig?.android?.versionCode ??
+    Constants.expoConfig?.ios?.buildNumber ??
+    null;
+  return value == null ? null : String(value);
+}
+
+function runtimeVersion() {
+  const value = Constants.expoConfig?.runtimeVersion as unknown;
+  if (typeof value === 'string') return value;
+  if (value && typeof value === 'object') {
+    try {
+      return JSON.stringify(value).slice(0, 80);
+    } catch {}
+  }
+  return null;
+}
+
+function normalizeRoute(value: unknown) {
+  const raw = String(value ?? '/').trim().split('?')[0]?.split('#')[0] || '/';
+  return (raw.startsWith('/') ? raw : `/${raw}`).slice(0, 180);
+}
+
 function sanitizeError(value: unknown) {
   if (value == null) return undefined;
   const raw =
     typeof value === 'object' && value && 'message' in value
       ? String((value as { message?: unknown }).message ?? '')
       : String(value);
-  return raw.replace(/\S+@\S+/g, '[redacted]').slice(0, 180);
+  return raw
+    .replace(/\S+@\S+/g, '[redacted]')
+    .replace(/\+?\d[\d\s().-]{7,}/g, '[redacted]')
+    .slice(0, 180);
 }
 
 function sanitizeCode(value: unknown) {
   if (value == null) return undefined;
   if (typeof value === 'object' && value && 'code' in value) {
-    return String((value as { code?: unknown }).code ?? '').slice(0, 40);
+    return String((value as { code?: unknown }).code ?? '').slice(0, 48);
   }
   return undefined;
+}
+
+function percent(numerator: number, denominator: number) {
+  if (denominator <= 0) return 0;
+  return Math.round((numerator / denominator) * 10000) / 100;
 }
 
 export function recordBuklodAdEvent(
   placement: BuklodAdDiagnosticPlacement,
   event: BuklodAdDiagnosticEvent,
   error?: unknown,
+  context?: {
+    route?: string | null;
+    provider?: 'ADMOB_NATIVE' | 'ADSENSE_WEB' | 'BUKLOD_SPONSOR';
+  },
 ) {
-  const bucket = countsByPlacement[placement];
-  bucket[event] += 1;
+  placement =
+    placement === 'home_bottom_banner'
+      ? 'legacy_home_banner'
+      : placement === 'community_inline'
+        ? 'community_wall_feed'
+        : placement;
 
+  const bucket = countsByPlacement.get(placement) ?? blankCounts();
+  bucket[event] += 1;
+  countsByPlacement.set(placement, bucket);
+
+  const provider =
+    context?.provider ??
+    (Platform.OS === 'web' ? 'ADSENSE_WEB' : 'ADMOB_NATIVE');
+  const errorCode = event === 'ad_failed' ? sanitizeCode(error) : undefined;
   const record: BuklodAdDiagnosticRecord = {
     placement,
     event,
     timestamp: Date.now(),
     environment: appEnvironment(),
+    provider,
+    platform: Platform.OS,
+    route: normalizeRoute(context?.route),
     appVersion: appVersion(),
-    errorCode: event.startsWith('failed') ? sanitizeCode(error) : undefined,
-    errorMessage: event.startsWith('failed')
-      ? sanitizeError(error)
-      : undefined,
+    buildVersion: buildVersion(),
+    runtimeVersion: runtimeVersion(),
+    sessionId,
+    errorCode,
+    errorMessage: event === 'ad_failed' ? sanitizeError(error) : undefined,
   };
 
   recent.unshift(record);
-  if (recent.length > MAX_RECENT) {
-    recent.length = MAX_RECENT;
-  }
+  if (recent.length > MAX_RECENT) recent.length = MAX_RECENT;
 
-  if (buklodAdsTestMode) {
-    console.info('BUKLOD AdMob', placement, event, record.errorCode ?? '');
+  if (!buklodAdsTestMode) {
+    enqueueBuklodAdOperationalEvent({
+      occurredAt: new Date(record.timestamp).toISOString(),
+      placementId: placement,
+      eventType: event,
+      provider,
+      platform: Platform.OS,
+      route: record.route,
+      appVersion: record.appVersion,
+      buildVersion: record.buildVersion,
+      runtimeVersion: record.runtimeVersion,
+      sessionId,
+      errorCategory: errorCode ?? (event === 'ad_failed' ? 'AD_ERROR' : null),
+    });
+  } else {
+    console.info(
+      'BUKLOD Ad',
+      placement,
+      event,
+      errorCode ?? '',
+    );
   }
 }
 
 export function getBuklodAdDiagnosticsSummary() {
-  const placements = (
-    Object.keys(countsByPlacement) as BuklodAdDiagnosticPlacement[]
-  ).map((placement) => {
-    const counts = countsByPlacement[placement];
-    const rate =
-      counts.requested > 0
-        ? Math.round((counts.impression / counts.requested) * 100)
-        : 0;
-    const loadRate =
-      counts.requested > 0
-        ? Math.round((counts.loaded / counts.requested) * 100)
-        : 0;
-
-    return {
+  const placements = Array.from(countsByPlacement.entries()).map(
+    ([placement, counts]) => ({
       placement,
-      ...counts,
-      loadToImpressionRate: rate,
-      requestToLoadRate: loadRate,
-    };
-  });
+      requested: counts.ad_request,
+      loaded: counts.ad_loaded,
+      rendered: counts.ad_rendered,
+      impression: counts.ad_impression,
+      failed_load: counts.ad_failed,
+      failed_show: 0,
+      dismissed: counts.ad_dismissed,
+      opened: counts.ad_opened,
+      requestToLoadRate: percent(counts.ad_loaded, counts.ad_request),
+      loadToRenderRate: percent(counts.ad_rendered, counts.ad_loaded),
+      showRate: percent(counts.ad_impression, counts.ad_loaded),
+      requestToImpressionRate: percent(
+        counts.ad_impression,
+        counts.ad_request,
+      ),
+    }),
+  );
 
   const totals = placements.reduce(
     (acc, row) => {
       acc.requested += row.requested;
       acc.loaded += row.loaded;
+      acc.rendered += row.rendered;
       acc.impression += row.impression;
-      acc.failures += row.failed_load + row.failed_show;
+      acc.failures += row.failed_load;
       return acc;
     },
-    { requested: 0, loaded: 0, impression: 0, failures: 0 },
+    {
+      requested: 0,
+      loaded: 0,
+      rendered: 0,
+      impression: 0,
+      failures: 0,
+    },
   );
+
+  const showRate = percent(totals.impression, totals.loaded);
 
   return {
     environment: appEnvironment(),
     appVersion: appVersion(),
     testMode: buklodAdsTestMode,
     totals,
-    loadToImpressionRate:
-      totals.requested > 0
-        ? Math.round((totals.impression / totals.requested) * 100)
-        : 0,
+    requestToLoadRate: percent(totals.loaded, totals.requested),
+    loadToRenderRate: percent(totals.rendered, totals.loaded),
+    showRate,
+    requestToImpressionRate: percent(
+      totals.impression,
+      totals.requested,
+    ),
+    // Backward-compatible field name used by the staging diagnostics card.
+    loadToImpressionRate: showRate,
     placements,
-    recent: buklodAdsTestMode ? recent.slice(0, 12) : [],
+    recent: buklodAdsTestMode ? recent.slice(0, 20) : [],
   };
 }
 

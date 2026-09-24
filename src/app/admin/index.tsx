@@ -498,6 +498,13 @@ export default function AdminDashboard() {
               />
 
               <AdminRow
+                icon="robot-outline"
+                title="BUKLOD Today AI"
+                subtitle="Preview, replace, pause and schedule shared daily Community content"
+                path="/admin/daily-engagement"
+              />
+
+              <AdminRow
                 icon="bullhorn-outline"
                 title="Announcement Boards"
                 subtitle="Home board and profile message content"

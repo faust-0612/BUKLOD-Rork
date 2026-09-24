@@ -36,6 +36,11 @@ import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import {
   enterScopedWorkspace,
 } from '@/lib/buklodScopeRoute';
+import { useBuklodFeedback } from '@/providers/BuklodFeedbackProvider';
+import {
+  buildBuklodUserFeedback,
+  trackBuklodFeedbackEvent,
+} from '@/lib/buklodUserFeedback';
 
 type ScopeRow = {
   id: string;
@@ -105,6 +110,53 @@ export default function SuborganizationsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { selectScope } = useBuklodScope();
+  const { showFeedback } = useBuklodFeedback();
+
+  const reportSuborganizationFailure = useCallback(
+    (
+      error: unknown,
+      title: string,
+      message: string,
+      outcome: string,
+    ) => {
+      const base = buildBuklodUserFeedback(
+        error,
+        {
+          context: 'general',
+          fallbackTitle: title,
+          fallbackMessage: message,
+        },
+      );
+      const feedback = {
+        ...base,
+        tone: 'error' as const,
+        title,
+        message,
+        nextStep: 'Try again. If it repeats, open Need Help.',
+        supportCode: base.supportCode ?? 'SYS-500',
+        retryable: true,
+        needsSupport: true,
+      };
+      showFeedback(feedback, {
+        autoHideMs: null,
+        helpParams: {
+          category: 'ORGANIZATION',
+          errorCode: feedback.supportCode,
+          message: feedback.message,
+          sourceRoute: '/organizations/suborganizations',
+        },
+      });
+      void trackBuklodFeedbackEvent({
+        event: 'error_shown',
+        category: feedback.category,
+        supportCode: feedback.supportCode,
+        route: '/organizations/suborganizations',
+        feature: 'Sub-Organization',
+        outcome,
+      });
+    },
+    [showFeedback],
+  );
 
   const mode = firstString(params.mode) || 'units';
 
@@ -197,11 +249,11 @@ export default function SuborganizationsScreen() {
       const rows = await listSuborganizations(parentScopeId, LIST_LIMIT, 0);
       setChildren(rows);
     } catch (error: unknown) {
-      Alert.alert(
-        'Units & Structure',
-        error instanceof Error
-          ? error.message
-          : 'Could not load Sub-organization information.'
+      reportSuborganizationFailure(
+        error,
+        'Units & Structure unavailable',
+        "BUKLOD couldn't load Sub-organization information right now.",
+        'suborganization_load_failed',
       );
     } finally {
       setLoading(false);
@@ -220,11 +272,11 @@ export default function SuborganizationsScreen() {
         { fromPortal: true }
       );
     } catch (error: unknown) {
-      Alert.alert(
-        'Open Sub-organization',
-        error instanceof Error
-          ? error.message
-          : 'Could not open this workspace.'
+      reportSuborganizationFailure(
+        error,
+        'Workspace not opened',
+        "BUKLOD couldn't open this Sub-organization workspace right now.",
+        'suborganization_workspace_failed',
       );
     }
   };
@@ -281,11 +333,11 @@ export default function SuborganizationsScreen() {
 
       await load();
     } catch (error: unknown) {
-      Alert.alert(
-        'Could not create Sub-organization',
-        error instanceof Error
-          ? error.message
-          : 'The Sub-organization was not created.'
+      reportSuborganizationFailure(
+        error,
+        'Sub-organization not created',
+        'The Sub-organization was not created. Your existing Organization data is unchanged.',
+        'suborganization_create_failed',
       );
     } finally {
       setSaving(false);

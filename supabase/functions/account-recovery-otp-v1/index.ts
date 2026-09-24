@@ -1,5 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+const RECOVERY_PROVIDER_TIMEOUT_MS = 8_000;
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-buklod-client, x-retry-count',
@@ -305,6 +307,7 @@ Deno.serve(async (req: Request) => {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({ To: to, Channel: 'sms' }),
+      signal: AbortSignal.timeout(RECOVERY_PROVIDER_TIMEOUT_MS),
     });
     if (!r.ok) {
       console.error('Twilio Verify start failed', r.status, await r.text());
@@ -323,6 +326,7 @@ Deno.serve(async (req: Request) => {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({ To: to, Code: code }),
+      signal: AbortSignal.timeout(RECOVERY_PROVIDER_TIMEOUT_MS),
     });
     if (!r.ok) {
       console.error('Twilio Verify check failed', r.status, await r.text());
@@ -344,6 +348,7 @@ Deno.serve(async (req: Request) => {
         text: `Your BUKLOD password recovery code is ${code}. It expires in 5 minutes. If you did not request this, ignore this message.`,
         html: `<p>Your BUKLOD password recovery code is <strong style="font-size:24px;letter-spacing:4px">${code}</strong>.</p><p>It expires in 5 minutes. If you did not request this, ignore this message.</p>`,
       }),
+      signal: AbortSignal.timeout(RECOVERY_PROVIDER_TIMEOUT_MS),
     });
     if (!r.ok) {
       console.error('Recovery email send failed', r.status, await r.text());

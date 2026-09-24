@@ -1,8 +1,10 @@
-﻿import React from 'react';
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
 
 import BuklodWebAdSlot from '@/components/BuklodWebAdSlot.web';
 
 export default function BuklodCommunityInlineAd({
+  slotId,
   active = true,
 }: {
   slotId?: string;
@@ -13,10 +15,27 @@ export default function BuklodCommunityInlineAd({
   }
 
   return (
-    <BuklodWebAdSlot
-      placement="community"
-      compact
-      format="inline"
-    />
+    <View style={styles.wrap}>
+
+      <View style={styles.adWrap}>
+        <BuklodWebAdSlot
+          placement="community"
+          placementId="community_wall_feed"
+          compact
+          format="inline"
+        />
+      </View>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  wrap: {
+    width: '100%',
+    gap: 10,
+  },
+  adWrap: {
+    width: '100%',
+    alignItems: 'center',
+  },
+});

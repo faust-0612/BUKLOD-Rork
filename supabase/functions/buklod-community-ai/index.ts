@@ -5,6 +5,7 @@ const cors = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
+const GEMINI_TIMEOUT_MS = 8_000;
 
 const moderationSchema = {
   type: 'object', additionalProperties: false, required: ['verdict','reason','categories','confidence'],
@@ -32,8 +33,10 @@ async function callGemini(apiKey: string, model: string, prompt: string, schema:
   const parts: any[] = [{ text: prompt }];
   if (image?.data) parts.push({ inlineData: { mimeType: image.mimeType, data: image.data } });
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-    method: 'POST', headers: { 'x-goog-api-key': apiKey, 'Content-Type': 'application/json' },
+    method: 'POST',
+    headers: { 'x-goog-api-key': apiKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({ contents: [{ role: 'user', parts }], generationConfig: { responseMimeType: 'application/json', responseJsonSchema: schema, maxOutputTokens: 1200, thinkingConfig: { thinkingLevel: 'low' } } }),
+    signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
   });
   const raw = await response.text();
   if (!response.ok) throw new Error(`${model} failed (${response.status}): ${raw}`);
