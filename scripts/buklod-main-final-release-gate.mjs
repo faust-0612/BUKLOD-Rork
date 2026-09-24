@@ -464,9 +464,9 @@ requireText(
 );
 
 // Central Help & Support is release-critical and must work before authentication.
-requireText(
+requireRegex(
   'src/app/(auth)/login.tsx',
-  "router.push('/help' as any)",
+  /router\.push\s*\(\s*(?:['"]\/help['"](?:\s+as\s+any)?|\{\s*pathname:\s*['"]\/help['"](?:\s+as\s+any)?)/m,
   'Pre-login Need Help entry is permanent',
 );
 requireText(
@@ -591,9 +591,9 @@ requireText(
   'showFeedback',
   'App-wide feedback provider remains installed',
 );
-requireText(
+requireRegex(
   'src/app/(auth)/login.tsx',
-  "router.replace(\n      '/(tabs)/buklod'\n    )",
+  /router\.replace\s*\(\s*['"]\/\(tabs\)\/buklod['"](?:\s+as\s+any)?\s*\)/m,
   'Login success remains Community Wall-rooted',
 );
 forbidText(
