@@ -130,7 +130,18 @@ Deno.serve(async(req:Request)=>{
     return reply(503,{ok:false,error:"support_unavailable",message:"BUKLOD Help is temporarily unavailable."});
   }
 
-  const admin=createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+  const adminFetch=(input:RequestInfo|URL,init?:RequestInit)=>{
+    const headers=new Headers(init?.headers);
+    const auth=headers.get("authorization")||"";
+    if(serviceKey.startsWith("sb_secret_")&&auth===`Bearer ${serviceKey}`){
+      headers.delete("authorization");
+    }
+    return fetch(input,{...init,headers});
+  };
+  const admin=createClient(url,serviceKey,{
+    auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},
+    global:{fetch:adminFetch},
+  });
   let body:any={};
   try{body=await req.json();}catch{return reply(400,{ok:false,error:"invalid_request"});}
   const action=clean(body?.action,40)||"resolve_or_case";
