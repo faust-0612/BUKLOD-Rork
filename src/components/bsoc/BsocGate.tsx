@@ -43,18 +43,35 @@ export function BsocGate({
     void (async () => {
       try {
         const { data, error } = await supabase.rpc(
-          'buklod_bsoc_staff_role_v1' as any,
+          'buklod_bsoc_my_access_v1' as any,
         );
 
         if (!alive) return;
 
-        const role =
-          !error && typeof data === 'string'
-            ? data.trim()
-            : '';
+        const access =
+          !error && data && typeof data === 'object'
+            ? (data as any)
+            : null;
 
-        if (role) {
-          setGate({ status: 'allowed', role });
+        const allowed =
+          !!access?.has_bsoc_access ||
+          !!access?.is_system_admin;
+
+        const roles =
+          Array.isArray(access?.roles)
+            ? access.roles
+            : [];
+
+        if (allowed) {
+          setGate({
+            status: 'allowed',
+            role: String(
+              roles[0] ??
+                (access?.is_system_admin
+                  ? 'SYSTEM_ADMIN'
+                  : 'BSOC'),
+            ),
+          });
         } else {
           setGate({ status: 'denied', role: null });
         }
