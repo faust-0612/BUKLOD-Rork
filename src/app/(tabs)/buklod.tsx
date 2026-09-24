@@ -3168,15 +3168,18 @@ const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p
    }
 
    return (
-    <BuklodCommunityPhotoCollage
-     items={media}
-     onPressPhoto={(index, photos)=>
-      openPhotoViewer(
-       photos,
-       index
-      )
-     }
-    />
+    <View style={{marginHorizontal:-12}}>
+     <BuklodCommunityPhotoCollage
+      items={media}
+      contentFit="contain"
+      onPressPhoto={(index, photos)=>
+       openPhotoViewer(
+        photos,
+        index
+       )
+      }
+     />
+    </View>
    );
   };
 
@@ -3490,11 +3493,8 @@ const refreshCommunity186L=
       {publishNotice}
      </Text>
     )}
-    <Text style={[shared.muted,{marginBottom:8,fontSize:11}]}>
-      Up to {COMMUNITY_MAX_PHOTOS} photos per post. Video posting is disabled in this BUKLOD Main release. Posting continues in the background so you can keep using BUKLOD.
-      {photos.length
-       ? ' Long-press a photo to highlight, draw, add text, emoji, or remove.'
-       : ''}
+    <Text style={[shared.muted,{marginBottom:8,fontSize:10}]}>
+      Max. {COMMUNITY_MAX_PHOTOS} photos
     </Text>
     
     {!!wallVideo186O&&(
