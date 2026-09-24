@@ -26,6 +26,7 @@ type Props = {
   height?: number;
   style?: StyleProp<ViewStyle>;
   imageStyle?: StyleProp<ImageStyle>;
+  contentFit?: 'cover' | 'contain';
   onPressPhoto?: (
     index: number,
     items: CommunityPhotoCollageItem[]
@@ -150,6 +151,7 @@ export function BuklodCommunityPhotoCollage({
   height,
   style,
   imageStyle,
+  contentFit = 'cover',
   onPressPhoto,
 }: Props) {
   const photos = communityPhotoCollageItems(items);
@@ -204,7 +206,7 @@ export function BuklodCommunityPhotoCollage({
           uri={photos[0].media_url}
           mediaPath={photos[0].media_path}
           style={[styles.image, imageStyle]}
-          contentFit="cover"
+          contentFit={contentFit}
         />
       </Pressable>
     );
@@ -253,7 +255,7 @@ export function BuklodCommunityPhotoCollage({
               uri={photo.media_url}
               mediaPath={photo.media_path}
               style={[styles.image, imageStyle]}
-              contentFit="cover"
+              contentFit={contentFit}
             />
 
             {showMore ? (
