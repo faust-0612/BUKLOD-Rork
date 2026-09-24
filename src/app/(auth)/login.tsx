@@ -1879,7 +1879,7 @@ const chooseSuggestedLogin =
           </Pressable>
 
           <Text style={styles.note}>
-            New accounts can enter the BUKLOD Community immediately. Local Church and BUKLOD Group access requires membership verification.
+            New accounts can enter the BUKLOD Community immediately. Organization, Cluster, and other scoped access is added separately when you join or are approved.
           </Text>
           </LoginMotionFadeUp>
         </Animated.View>
