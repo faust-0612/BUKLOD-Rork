@@ -219,6 +219,9 @@ module.exports = ({ config }) => {
       './plugins/withBuklodWebRTC.js',
 
 
+      'expo-image',
+      'expo-sqlite',
+
       'expo-router',
 
       [
