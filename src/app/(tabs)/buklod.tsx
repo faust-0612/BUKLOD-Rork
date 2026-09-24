@@ -3172,6 +3172,7 @@ const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p
      <BuklodCommunityPhotoCollage
       items={media}
       contentFit="cover"
+      preserveSinglePhotoAspectRatio
       onPressPhoto={(index, photos)=>
        openPhotoViewer(
         photos,

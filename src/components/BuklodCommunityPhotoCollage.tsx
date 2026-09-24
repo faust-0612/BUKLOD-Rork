@@ -27,6 +27,7 @@ type Props = {
   style?: StyleProp<ViewStyle>;
   imageStyle?: StyleProp<ImageStyle>;
   contentFit?: 'cover' | 'contain';
+  preserveSinglePhotoAspectRatio?: boolean;
   onPressPhoto?: (
     index: number,
     items: CommunityPhotoCollageItem[]
@@ -152,6 +153,7 @@ export function BuklodCommunityPhotoCollage({
   style,
   imageStyle,
   contentFit = 'cover',
+  preserveSinglePhotoAspectRatio = false,
   onPressPhoto,
 }: Props) {
   const photos = communityPhotoCollageItems(items);
@@ -159,6 +161,11 @@ export function BuklodCommunityPhotoCollage({
   const [measuredWidth, setMeasuredWidth] = useState(
     Math.max(1, Dimensions.get('window').width - 24)
   );
+
+  const [
+    singleAspectRatio,
+    setSingleAspectRatio,
+  ] = useState<number | null>(null);
 
   if (!count) {
     return null;
@@ -168,8 +175,26 @@ export function BuklodCommunityPhotoCollage({
     1,
     width ?? measuredWidth
   );
+  const singlePhotoHeight =
+    height ??
+    (
+      preserveSinglePhotoAspectRatio &&
+      singleAspectRatio &&
+      singleAspectRatio > 0
+        ? Math.max(
+            1,
+            Math.round(
+              collageWidth /
+                singleAspectRatio
+            )
+          )
+        : 310
+    );
+
   const collageHeight =
-    height ?? (count === 1 ? 310 : 280);
+    count === 1
+      ? singlePhotoHeight
+      : (height ?? 280);
 
   const handleLayout = (event: LayoutChangeEvent) => {
     if (width != null) {
@@ -206,7 +231,56 @@ export function BuklodCommunityPhotoCollage({
           uri={photos[0].media_url}
           mediaPath={photos[0].media_path}
           style={[styles.image, imageStyle]}
-          contentFit={contentFit}
+          contentFit={
+            preserveSinglePhotoAspectRatio
+              ? 'contain'
+              : contentFit
+          }
+          onLoad={(event: any) => {
+            if (
+              !preserveSinglePhotoAspectRatio ||
+              height != null
+            ) {
+              return;
+            }
+
+            const source =
+              event?.source ?? event;
+
+            const imageWidth =
+              Number(
+                source?.width ??
+                event?.width ??
+                0
+              );
+
+            const imageHeight =
+              Number(
+                source?.height ??
+                event?.height ??
+                0
+              );
+
+            if (
+              imageWidth > 0 &&
+              imageHeight > 0
+            ) {
+              const nextRatio =
+                imageWidth /
+                imageHeight;
+
+              setSingleAspectRatio(
+                current =>
+                  current &&
+                  Math.abs(
+                    current -
+                    nextRatio
+                  ) < 0.001
+                    ? current
+                    : nextRatio
+              );
+            }
+          }}
         />
       </Pressable>
     );

@@ -12,6 +12,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 
 import BuklodScopeFaithMonitoringAdminFeedbackCard from '@/components/BuklodScopeFaithMonitoringAdminFeedbackCard';
+import BuklodScopeFormationRecentSubmissions from '@/components/BuklodScopeFormationRecentSubmissions';
 import BuklodScopedWorkspaceScrollView from '@/components/BuklodScopedWorkspaceScrollView';
 import { Card, SectionTitle, shared } from '@/components/UI';
 import { useBuklodAccess } from '@/hooks/useBuklodAccess';
@@ -237,6 +238,11 @@ export default function ScopeFaithMonitoringReportScreen() {
             checking={summary.buklod_lesson.automatic_checking}
             revision={summary.buklod_lesson.needs_revision}
             total={summary.active_members}
+          />
+
+          <SectionTitle>RECENT SUBMISSIONS</SectionTitle>
+          <BuklodScopeFormationRecentSubmissions
+            scopeId={activeScope.scope_id}
           />
 
           <SectionTitle>ANALYSIS</SectionTitle>
