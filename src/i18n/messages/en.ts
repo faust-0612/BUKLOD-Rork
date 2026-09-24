@@ -109,7 +109,7 @@ export const enMessages = {
     myCases: 'My Support Cases',
     refreshCases: 'Refresh status',
     noCases: 'No support cases on this device or account.',
-    creationFailed: 'Support case was not created. Check your connection and try again.',
+    creationFailed: 'Support case was not created. BUKLOD Help could not complete the request. Please try again.',
     statusOpen: 'Open',
     statusWaiting: 'Waiting for You',
     statusReview: 'Being Reviewed',
