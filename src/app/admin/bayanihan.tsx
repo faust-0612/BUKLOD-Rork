@@ -41,18 +41,6 @@ function Section({ title, subtitle, children }: { title: string; subtitle?: stri
   );
 }
 
-function FlagRow({ label, enabled }: { label: string; enabled: boolean }) {
-  return (
-    <View style={styles.flagRow}>
-      <View style={[styles.flagDot, enabled ? styles.flagDotOn : styles.flagDotOff]} />
-      <Text style={styles.flagLabel}>{label}</Text>
-      <Text style={[styles.flagState, enabled && styles.flagStateOn]}>
-        {enabled ? 'ENABLED' : 'OFF'}
-      </Text>
-    </View>
-  );
-}
-
 export default function AdminBayanihanScreen() {
   const [report, setReport] = useState<BuklodR38AdminEconomyReport | null>(null);
   const [loading, setLoading] = useState(true);
@@ -88,7 +76,6 @@ export default function AdminBayanihanScreen() {
   }, [report]);
 
   const revenue = report?.revenue_chain;
-  const activation = report?.activation ?? {};
   const checks = report?.invariant_checks ?? {};
   const shareCount = report?.user_shares?.length ?? 0;
 
