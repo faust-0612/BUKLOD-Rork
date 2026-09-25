@@ -27,11 +27,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
 import { useAuth } from '@/providers/AuthProvider';
+import { useBuklodI18n } from '@/providers/BuklodI18nProvider';
 import {
   isBuklodInvalidCredentialsError,
+  isBuklodRateLimitError,
   isBuklodTransientAuthError,
   resolveBuklodAccountLifecycleAfterLogin,
-  signInWithPasswordResilient,
+  signInWithCanonicalIdentifierResilient,
   signOutBuklodResilient,
 } from '@/lib/buklodAuthResilience';
 import {
@@ -42,6 +44,13 @@ import {
   clearSavedSuggestedLoginPassword,
   consumePasswordRecoveryNotice,
 } from '@/lib/buklodSuggestedLoginStorage';
+import { BuklodFeedbackBanner } from '@/components/BuklodFeedbackBanner';
+import { useBuklodFeedback } from '@/providers/BuklodFeedbackProvider';
+import {
+  buildBuklodUserFeedback,
+  trackBuklodFeedbackEvent,
+  type BuklodUserFeedback,
+} from '@/lib/buklodUserFeedback';
 
 const LOGIN_EASING = Easing.out(Easing.cubic);
 
@@ -218,43 +227,9 @@ function useLoginShake() {
 
 const BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY =
   'buklod.auth.fresh_login_public.v1';
+const BUKLOD_LOGIN_RATE_LIMIT_COOLDOWN_MS = 30_000;
 
 
-function normalizePhilippinePhone(value: string) {
-  const cleaned = value.replace(/[^\d+]/g, '');
-
-  if (/^\+639\d{9}$/.test(cleaned)) return cleaned;
-  if (/^639\d{9}$/.test(cleaned)) return `+${cleaned}`;
-  if (/^09\d{9}$/.test(cleaned)) return `+63${cleaned.slice(1)}`;
-
-  return null;
-}
-
-function normalizeUsername(value: string) {
-  const username = value.trim().toLowerCase();
-
-  if (
-    username.length < 3 ||
-    username.length > 30 ||
-    !/^(?=.*[a-z])[a-z0-9]+(?:[._-][a-z0-9]+)*$/.test(username)
-  ) {
-    return null;
-  }
-
-  return username;
-}
-
-function mobileInternalEmail(phone: string) {
-  return `m.${phone.replace(/\D/g, '')}@buklod.invalid`;
-}
-
-function legacyMobileInternalEmail(phone: string) {
-  return `${phone.replace(/\D/g, '')}@buklod.invalid`;
-}
-
-function usernameInternalEmail(username: string) {
-  return `u.${username}@buklod.invalid`;
-}
 
 /* PATCH_171I_SUGGESTED_LOGIN_BUBBLES */
 type SuggestedLogin = {
@@ -353,10 +328,8 @@ function parseSuggestedLogins(
 }
 
 async function signInForFreshPublicHome(
-  credentials:
-    Parameters<
-      typeof supabase.auth.signInWithPassword
-    >[0]
+  identifier: string,
+  password: string
 ) {
   try {
     await AsyncStorage.setItem(
@@ -372,8 +345,9 @@ async function signInForFreshPublicHome(
   }
 
   const result =
-    await signInWithPasswordResilient(
-      credentials
+    await signInWithCanonicalIdentifierResilient(
+      identifier,
+      password
     );
 
   if (result.error) {
@@ -387,7 +361,7 @@ async function signInForFreshPublicHome(
 
 /* PATCH_174C_R5_SUGGESTED_LOGIN_AVATAR_EXACT_AST_FIX */
 const SUGGESTED_LOGIN_BUKLOD_LOGO =
-  require('../../../assets/release/buklod-generic.png');
+  require('../../../assets/release/app-icon.png');
 
 function normalizeSuggestedAvatarUrl(
   rawAvatarUrl: unknown
@@ -609,15 +583,20 @@ function SuggestedLoginAvatar({
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
+  const { t, languageName } = useBuklodI18n();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [loginStatus, setLoginStatus] = useState('');
+  const [loginFeedback, setLoginFeedback] =
+    useState<BuklodUserFeedback | null>(null);
   const [passwordRecoveryNotice, setPasswordRecoveryNotice] =
     useState(false);
   // HIGH_CONCURRENCY_LOGIN_R1: React state alone cannot stop same-tick double taps.
   const loginInFlightRef = useRef(false);
+  // BUKLOD_MASS_LOGIN_RATE_LIMIT_GUARD_R22: back off after a real Auth 429.
+  const loginRateLimitUntilRef = useRef(0);
   const [
     suggestedLogins,
     setSuggestedLogins,
@@ -643,6 +622,35 @@ export default function LoginScreen() {
   const [rememberLoaded, setRememberLoaded] =
     useState(false);
   const { shakeX, triggerShake } = useLoginShake();
+  const { showFeedback } = useBuklodFeedback();
+
+  const openLoginHelp = useCallback(
+    (feedback?: BuklodUserFeedback | null) => {
+      const activeFeedback = feedback ?? loginFeedback;
+      void trackBuklodFeedbackEvent({
+        event: 'support_opened_after_error',
+        category: activeFeedback?.category ?? null,
+        supportCode: activeFeedback?.supportCode ?? null,
+        route: '/(auth)/login',
+        feature: 'Login',
+        outcome: activeFeedback?.title ?? 'manual_help',
+      });
+
+      router.push({
+        pathname: '/help' as any,
+        params: {
+          category: 'SIGN_IN',
+          errorCode: activeFeedback?.supportCode ?? '',
+          message:
+            activeFeedback?.message ??
+            loginStatus ??
+            'I need help signing in.',
+          sourceRoute: '/(auth)/login',
+        },
+      });
+    },
+    [loginFeedback, loginStatus],
+  );
 
   useEffect(() => {
     let active = true;
@@ -876,7 +884,7 @@ const chooseSuggestedLogin =
     ) => {
       /*
        * HIGH_CONCURRENCY_LOGIN_R1
-       * signInWithPassword already returned the authenticated user. Do not
+       * Canonical login already returned the authenticated user. Do not
        * call auth.getUser() and profiles again just to paint a local bubble.
        */
       const userId =
@@ -986,14 +994,63 @@ const chooseSuggestedLogin =
       password;
 
     if (!raw || !effectivePassword) {
-      setLoginStatus(
-        'Enter your login and password to continue.'
-      );
+      const feedback: BuklodUserFeedback = {
+        tone: 'warning',
+        category: 'VALIDATION_ERROR',
+        title: 'Enter your sign-in details',
+        message:
+          'Enter your username, email, or mobile number and your password.',
+        nextStep: 'Complete both fields, then try again.',
+        supportCode: null,
+        retryable: false,
+        needsSupport: false,
+      };
+      setLoginFeedback(feedback);
+      setLoginStatus(feedback.message);
       triggerShake();
-      return Alert.alert(
-        'BUKLOD',
-        'Enter your Mobile Number, Username, or Email and your password.'
+      void trackBuklodFeedbackEvent({
+        event: 'error_shown',
+        category: feedback.category,
+        route: '/(auth)/login',
+        feature: 'Login',
+        outcome: 'missing_credentials',
+      });
+      return;
+    }
+
+    const rateLimitRemainingMs =
+      loginRateLimitUntilRef.current - Date.now();
+
+    if (rateLimitRemainingMs > 0) {
+      const waitSeconds = Math.max(
+        1,
+        Math.ceil(rateLimitRemainingMs / 1000),
       );
+
+      const feedback: BuklodUserFeedback = {
+        tone: 'warning',
+        category: 'RATE_LIMIT',
+        title: 'Login traffic is busy',
+        message: t('auth.trafficBusy'),
+        nextStep: `Wait about ${waitSeconds} seconds, then try once.`,
+        supportCode: 'AUTH-429',
+        retryable: true,
+        needsSupport: true,
+      };
+
+      setLoginFeedback(feedback);
+      setLoginStatus(feedback.message);
+      triggerShake();
+      void trackBuklodFeedbackEvent({
+        event: 'error_shown',
+        category: feedback.category,
+        supportCode: feedback.supportCode,
+        route: '/(auth)/login',
+        feature: 'Login',
+        outcome: 'local_rate_limit',
+        metadata: { wait_seconds: waitSeconds },
+      });
+      return;
     }
 
     if (loginInFlightRef.current) {
@@ -1005,9 +1062,14 @@ const chooseSuggestedLogin =
 
     loginInFlightRef.current = true;
     setBusy(true);
-    setLoginStatus(
-      'Checking your BUKLOD account…'
-    );
+    setLoginFeedback(null);
+    setLoginStatus(t('auth.checkingAccount'));
+    void trackBuklodFeedbackEvent({
+      event: 'action_processing',
+      route: '/(auth)/login',
+      feature: 'Login',
+      outcome: 'sign_in_started',
+    });
 
     const releaseLogin = (
       status?: string
@@ -1022,87 +1084,31 @@ const chooseSuggestedLogin =
     let error: any = null;
     let authenticatedUser: any = null;
 
-    if (raw.includes('@')) {
-      const result = await signInForFreshPublicHome({
-        email: raw.toLowerCase(),
-        password: effectivePassword,
-      });
+    const result =
+      await signInForFreshPublicHome(
+        raw,
+        effectivePassword
+      );
 
-      error = result.error;
+    error = result.error;
 
-      authenticatedUser =
-
-        result.data?.user ??
-
-
-        null;
-    } else {
-      const phone = normalizePhilippinePhone(raw);
-
-      if (phone) {
-        let result = await signInForFreshPublicHome({
-          email: mobileInternalEmail(phone),
-          password: effectivePassword,
-        });
-
-        // Patch 147 backward compatibility. Only probe the legacy
-        // identifier after a real credential miss. Do not double auth traffic
-        // when Supabase itself is returning a transient 5xx/timeout.
-        if (
-          result.error &&
-          isBuklodInvalidCredentialsError(
-            result.error
-          )
-        ) {
-          result = await signInForFreshPublicHome({
-            email: legacyMobileInternalEmail(phone),
-            password: effectivePassword,
-          });
-        }
-
-        error = result.error;
-
-        authenticatedUser =
-
-          result.data?.user ??
-
-
-          null;
-      } else {
-        const username = normalizeUsername(raw);
-
-        if (!username) {
-          releaseLogin(
-            'Enter a valid mobile number, username, or email.'
-          );
-
-          return Alert.alert(
-            'BUKLOD',
-            'Enter a valid Mobile Number, Username, or Email.'
-          );
-        }
-
-        const result = await signInForFreshPublicHome({
-          email: usernameInternalEmail(username),
-          password: effectivePassword,
-        });
-
-        error = result.error;
-
-        authenticatedUser =
-
-          result.data?.user ??
-
-
-          null;
-      }
-    }
+    authenticatedUser =
+      result.data?.user ??
+      null;
 
     if (error) {
+      const rateLimited =
+        isBuklodRateLimitError(error);
       const temporaryFailure =
         isBuklodTransientAuthError(error);
       const invalidCredentials =
         isBuklodInvalidCredentialsError(error);
+
+      if (rateLimited) {
+        loginRateLimitUntilRef.current =
+          Date.now() +
+          BUKLOD_LOGIN_RATE_LIMIT_COOLDOWN_MS;
+      }
 
       if (
         invalidCredentials &&
@@ -1115,7 +1121,7 @@ const chooseSuggestedLogin =
         }).catch(clearError => {
           console.warn(
             'Could not clear stale Suggested Login password.',
-            clearError
+            clearError,
           );
         });
 
@@ -1127,37 +1133,103 @@ const chooseSuggestedLogin =
                   ...item,
                   hasPassword: false,
                 }
-              : item
-          )
+              : item,
+          ),
         );
         setPassword('');
         setRememberPassword(false);
       }
 
-      releaseLogin(
-        temporaryFailure
-          ? 'BUKLOD did not finish this sign-in request. You can try again; no extra request will be started while the old one is still active.'
-          : invalidCredentials &&
-            credentialsOverride?.suggestedUserId
-            ? 'The saved password no longer matches this account. Enter the current password, then you may save it again.'
-            : 'Login was not completed. Check your login and password, then try again.'
+      let feedback = buildBuklodUserFeedback(
+        error,
+        {
+          context: 'login',
+          fallbackTitle: 'Sign-in not completed',
+          fallbackMessage: t('auth.temporaryFailure'),
+        },
       );
+
+      if (rateLimited) {
+        feedback = {
+          ...feedback,
+          tone: 'warning',
+          category: 'RATE_LIMIT',
+          title: 'Login traffic is busy',
+          message: t('auth.trafficBusy'),
+          nextStep: 'Wait about 30 seconds, then try once.',
+          supportCode: 'AUTH-429',
+          retryable: true,
+          needsSupport: true,
+        };
+      } else if (
+        invalidCredentials &&
+        credentialsOverride?.suggestedUserId
+      ) {
+        feedback = {
+          ...feedback,
+          tone: 'warning',
+          category: 'AUTH_ERROR',
+          title: 'Saved password needs updating',
+          message:
+            'The password saved on this device no longer works for this account.',
+          nextStep:
+            'Enter the current password. If you recently reset it, use the new password.',
+          supportCode: 'AUTH-101',
+          retryable: true,
+          needsSupport: true,
+        };
+      } else if (invalidCredentials) {
+        feedback = {
+          ...feedback,
+          tone: 'error',
+          category: 'AUTH_ERROR',
+          title: 'Sign-in not completed',
+          message: t('auth.invalidCredentials'),
+          nextStep: t('auth.invalidCredentialsNext'),
+          supportCode: 'AUTH-101',
+          retryable: true,
+          needsSupport: true,
+        };
+      } else if (temporaryFailure) {
+        feedback = {
+          ...feedback,
+          tone: 'warning',
+          title: 'Sign-in interrupted',
+          message: t('auth.temporaryFailure'),
+          nextStep:
+            'Try again. If the same problem repeats, open Need Help.',
+          retryable: true,
+          needsSupport: true,
+        };
+      }
+
+      setLoginFeedback(feedback);
+      releaseLogin(feedback.message);
       triggerShake();
 
-      return Alert.alert(
-        temporaryFailure
-          ? 'BUKLOD is temporarily busy'
-          : invalidCredentials &&
-            credentialsOverride?.suggestedUserId
-            ? 'Saved password needs updating'
-            : 'Login failed',
-        temporaryFailure
-          ? 'BUKLOD did not finish the sign-in request. Please try again. If this continues, close and reopen BUKLOD before retrying.'
-          : invalidCredentials &&
-            credentialsOverride?.suggestedUserId
-            ? 'The password saved on this device is no longer valid. Enter your current password. If you recently reset it, use the new password.'
-            : 'Invalid login identifier or password.'
-      );
+      void trackBuklodFeedbackEvent({
+        event: 'error_shown',
+        category: feedback.category,
+        supportCode: feedback.supportCode,
+        route: '/(auth)/login',
+        feature: 'Login',
+        outcome: invalidCredentials
+          ? 'invalid_credentials'
+          : rateLimited
+            ? 'rate_limited'
+            : temporaryFailure
+              ? 'transient_failure'
+              : 'unknown_failure',
+      });
+      void trackBuklodFeedbackEvent({
+        event: 'action_failed',
+        category: feedback.category,
+        supportCode: feedback.supportCode,
+        route: '/(auth)/login',
+        feature: 'Login',
+        outcome: 'sign_in_failed',
+      });
+      return;
     }
 
     // PATCH_171D_NO_LOGIN_UI_FLICKER
@@ -1177,25 +1249,34 @@ const chooseSuggestedLogin =
     if (accountLifecycleError) {
       await signOutBuklodResilient();
 
-      const temporaryFailure =
-        isBuklodTransientAuthError(
-          accountLifecycleError
-        );
-
-      releaseLogin(
-        temporaryFailure
-          ? 'Password accepted, but BUKLOD could not finish the account-status check. Please try again.'
-          : 'BUKLOD could not verify this account status. Please try again.'
+      const feedback = buildBuklodUserFeedback(
+        accountLifecycleError,
+        {
+          context: 'login',
+          fallbackTitle: 'Account status check interrupted',
+          fallbackMessage: t('auth.accountStatusFailed'),
+        },
       );
 
-      Alert.alert(
-        temporaryFailure
-          ? 'BUKLOD is temporarily busy'
-          : 'Account Status',
-        temporaryFailure
-          ? 'Your password was accepted, but BUKLOD could not safely finish the account-status check. Please try again in a moment.'
-          : 'BUKLOD could not verify this account status. Sign-in was stopped safely. Please try again.'
-      );
+      setLoginFeedback({
+        ...feedback,
+        tone: 'warning',
+        title: 'Account status check interrupted',
+        message: t('auth.accountStatusFailed'),
+        nextStep:
+          'Try signing in again. If it repeats, open Need Help.',
+        needsSupport: true,
+      });
+      releaseLogin(t('auth.accountStatusFailed'));
+
+      void trackBuklodFeedbackEvent({
+        event: 'error_shown',
+        category: feedback.category,
+        supportCode: feedback.supportCode,
+        route: '/(auth)/login',
+        feature: 'Login',
+        outcome: 'account_status_check_failed',
+      });
       return;
     }
 
@@ -1218,9 +1299,9 @@ const chooseSuggestedLogin =
           ? (
               accountLifecycle?.can_self_reactivate === true
                 ? 'This account is currently deactivated. Reactivate it to continue using BUKLOD.'
-                : 'This account cannot be self-reactivated. Please contact a BUKLOD administrator.'
+                : 'This account cannot be self-reactivated. Use Need Help so BUKLOD can check the account safely.'
             )
-          : 'This account is inactive. Please contact a BUKLOD administrator.',
+          : 'This account is inactive. Use Need Help for the next safe recovery step.',
         accountLifecycle?.can_self_reactivate === true
           ? [
               {
@@ -1257,11 +1338,25 @@ const chooseSuggestedLogin =
                     });
                   } catch (error: any) {
                     await signOutBuklodResilient();
-                    releaseLogin();
-                    Alert.alert(
-                      'Could Not Reactivate',
-                      String(error?.message ?? error ?? 'Please try again.')
+                    const feedback = buildBuklodUserFeedback(
+                      error,
+                      {
+                        context: 'login',
+                        fallbackTitle: 'Could not reactivate account',
+                        fallbackMessage:
+                          "BUKLOD couldn't reactivate this account right now.",
+                      },
                     );
+                    setLoginFeedback(feedback);
+                    releaseLogin(feedback.message);
+                    void trackBuklodFeedbackEvent({
+                      event: 'error_shown',
+                      category: feedback.category,
+                      supportCode: feedback.supportCode,
+                      route: '/(auth)/login',
+                      feature: 'Account Reactivation',
+                      outcome: 'reactivation_failed',
+                    });
                   }
                 },
               },
@@ -1279,32 +1374,34 @@ const chooseSuggestedLogin =
       return;
     }
     setLoginAccepted(true);
-    setLoginStatus(
-      'Signed in. Opening BUKLOD…'
-    );
+    setLoginFeedback(null);
+    setLoginStatus(t('auth.signedIn'));
 
-    /*
-     * PATCH_171K_R3_BUBBLE_HOME_REOPEN_CONNECT
-     *
-     * A successful authentication action ALWAYS opens Public Home:
-     * - manual Log In
-     * - remembered Suggested Login bubble
-     *
-     * Existing-session app reopen is handled by src/app/index.tsx
-     * and remains global/personal Connect.
-     */
+    const successFeedback: BuklodUserFeedback = {
+      tone: 'success',
+      category: null,
+      title: 'Sign-in successful',
+      message: t('auth.signedIn'),
+      nextStep: null,
+      supportCode: null,
+      retryable: false,
+      needsSupport: false,
+    };
+    showFeedback(successFeedback, {
+      autoHideMs: 4200,
+    });
+    void trackBuklodFeedbackEvent({
+      event: 'action_success',
+      route: '/(auth)/login',
+      feature: 'Login',
+      outcome: 'signed_in',
+    });
+
+    // Community Wall is the canonical post-login root.
     router.replace(
-      '/(tabs)/home'
+      '/(tabs)/buklod'
     );
 
-
-    /*
-     * PATCH_171K_SUGGESTED_CONNECT_MANUAL_HOME
-     *
-     * Manual Log In -> Public/global Home.
-     * Remembered Suggested Profile -> global/personal Connect.
-     * No intermediate route and no artificial delay.
-     */
 
     /*
      * Keep Suggested Login persistence non-blocking.
@@ -1631,12 +1728,26 @@ const chooseSuggestedLogin =
                 />
               ) : null}
               <Text style={styles.primaryText}>
-                {busy ? 'LOGGING IN…' : 'LOG IN'}
+                {busy ? 'SIGNING IN…' : 'LOG IN'}
               </Text>
             </View>
           </HomePressable>
 
-          {!!loginStatus ? (
+          {!!loginFeedback ? (
+            <BuklodFeedbackBanner
+              feedback={loginFeedback}
+              onRetry={
+                loginFeedback.retryable && !busy
+                  ? () => void login()
+                  : null
+              }
+              onNeedHelp={
+                loginFeedback.needsSupport
+                  ? () => openLoginHelp(loginFeedback)
+                  : null
+              }
+            />
+          ) : !!loginStatus ? (
             <Text
               accessibilityLiveRegion="polite"
               style={styles.loginStatus}
@@ -1648,11 +1759,17 @@ const chooseSuggestedLogin =
           
           {/* PATCH_166D_PASSWORD_RECOVERY */}
           <Pressable
-            onPress={() =>
+            onPress={() => {
+              void trackBuklodFeedbackEvent({
+                event: 'recovery_offered',
+                route: '/(auth)/login',
+                feature: 'Login',
+                outcome: 'forgot_password_opened',
+              });
               router.push(
                 '/(auth)/forgot-password' as any
-              )
-            }
+              );
+            }}
             disabled={busy}
             style={{
               alignSelf: 'flex-end',
@@ -1670,6 +1787,29 @@ const chooseSuggestedLogin =
               FORGOT PASSWORD?
             </Text>
           </Pressable>
+          <Pressable
+            onPress={() => openLoginHelp(loginFeedback)}
+            disabled={busy}
+            accessibilityRole="button"
+            accessibilityLabel={t('support.needHelp')}
+            style={{
+              alignSelf: 'center',
+              paddingVertical: 9,
+              paddingHorizontal: 12,
+            }}
+          >
+            <Text
+              style={{
+                color: colors.greenDark,
+                fontSize: 13,
+                fontWeight: '900',
+                textDecorationLine: 'underline',
+              }}
+            >
+              {t('support.needHelp')}
+            </Text>
+          </Pressable>
+
           {/* PATCH_CREATE_ACCOUNT_TOUCH_R1 */}
           <Pressable
             onPress={() => router.push('/(auth)/register')}
@@ -1680,6 +1820,24 @@ const chooseSuggestedLogin =
           >
             <Text style={styles.secondaryText}>
               CREATE ACCOUNT
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => router.push('/preferences/language' as any)}
+            disabled={busy}
+            accessibilityRole="button"
+            accessibilityLabel={t('language.open')}
+            style={{ alignSelf: 'center', paddingVertical: 10 }}
+          >
+            <Text
+              style={{
+                color: colors.greenDark,
+                fontSize: 13,
+                fontWeight: '900',
+              }}
+            >
+              🌐 {t('language.open')}: {languageName}
             </Text>
           </Pressable>
 
@@ -1721,7 +1879,7 @@ const chooseSuggestedLogin =
           </Pressable>
 
           <Text style={styles.note}>
-            New accounts can enter the BUKLOD Community immediately. Local Church and BUKLOD Group access requires membership verification.
+            New accounts can enter the BUKLOD Community immediately. Organization, Cluster, and other scoped access is added separately when you join or are approved.
           </Text>
           </LoginMotionFadeUp>
         </Animated.View>

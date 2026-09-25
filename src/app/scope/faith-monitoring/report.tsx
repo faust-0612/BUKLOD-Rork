@@ -12,6 +12,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 
 import BuklodScopeFaithMonitoringAdminFeedbackCard from '@/components/BuklodScopeFaithMonitoringAdminFeedbackCard';
+import BuklodScopeFaithMonitoringMetricDetailsModal, { type FaithMonitoringMetricKey } from '@/components/BuklodScopeFaithMonitoringMetricDetailsModal';
+import BuklodScopeFormationRecentSubmissions from '@/components/BuklodScopeFormationRecentSubmissions';
 import BuklodScopedWorkspaceScrollView from '@/components/BuklodScopedWorkspaceScrollView';
 import { Card, SectionTitle, shared } from '@/components/UI';
 import { useBuklodAccess } from '@/hooks/useBuklodAccess';
@@ -29,12 +31,46 @@ import { shareCsv } from '@/lib/reports/export';
 import { colors } from '@/lib/theme';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 
-function MetricRow({ label, value }: { label: string; value: string | number }) {
-  return (
-    <View style={styles.metricRow}>
+function MetricRow({
+  label,
+  value,
+  onPress,
+}: {
+  label: string;
+  value: string | number;
+  onPress?: () => void;
+}) {
+  const content = (
+    <>
       <Text style={styles.metricLabel}>{label}</Text>
-      <Text style={styles.metricValue}>{value}</Text>
-    </View>
+      <View style={styles.metricValueWrap}>
+        <Text style={styles.metricValue}>{value}</Text>
+        {onPress ? (
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={16}
+            color={colors.greenDark}
+          />
+        ) : null}
+      </View>
+    </>
+  );
+
+  return onPress ? (
+    <Pressable
+      style={({ pressed }) => [
+        styles.metricRow,
+        styles.metricRowPressable,
+        pressed && styles.metricRowPressed,
+      ]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}: ${value}. Open details.`}
+    >
+      {content}
+    </Pressable>
+  ) : (
+    <View style={styles.metricRow}>{content}</View>
   );
 }
 
@@ -45,6 +81,8 @@ function PipelineCard({
   checking,
   revision,
   total,
+  metricPrefix,
+  onOpenMetric,
 }: {
   title: string;
   submitted: number;
@@ -52,14 +90,55 @@ function PipelineCard({
   checking: number;
   revision: number;
   total: number;
+  metricPrefix: 'DAILY_READING' | 'DEVOTION' | 'LESSON';
+  onOpenMetric: (
+    metric: FaithMonitoringMetricKey,
+    title: string
+  ) => void;
 }) {
   return (
     <Card>
       <Text style={styles.pipelineTitle}>{title}</Text>
-      <MetricRow label="Submitted today" value={`${submitted} (${formatFaithMonitoringRate(submitted, total)})`} />
-      <MetricRow label="Automatically approved" value={approved} />
-      <MetricRow label="Automatic checking" value={checking} />
-      <MetricRow label="Needs revision" value={revision} />
+      <MetricRow
+        label="Submitted today"
+        value={`${submitted} (${formatFaithMonitoringRate(submitted, total)})`}
+        onPress={() =>
+          onOpenMetric(
+            `${metricPrefix}_SUBMITTED_TODAY` as FaithMonitoringMetricKey,
+            `${title} · Submitted today`
+          )
+        }
+      />
+      <MetricRow
+        label="Automatically approved"
+        value={approved}
+        onPress={() =>
+          onOpenMetric(
+            `${metricPrefix}_APPROVED_TODAY` as FaithMonitoringMetricKey,
+            `${title} · Automatically approved`
+          )
+        }
+      />
+      <MetricRow
+        label="Automatic checking"
+        value={checking}
+        onPress={() =>
+          onOpenMetric(
+            `${metricPrefix}_CHECKING` as FaithMonitoringMetricKey,
+            `${title} · Automatic checking`
+          )
+        }
+      />
+      <MetricRow
+        label="Needs revision"
+        value={revision}
+        onPress={() =>
+          onOpenMetric(
+            `${metricPrefix}_NEEDS_REVISION` as FaithMonitoringMetricKey,
+            `${title} · Needs revision`
+          )
+        }
+      />
     </Card>
   );
 }
@@ -73,6 +152,10 @@ export default function ScopeFaithMonitoringReportScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [canLeadership, setCanLeadership] = useState(false);
+  const [detail, setDetail] = useState<{
+    metric: FaithMonitoringMetricKey;
+    title: string;
+  } | null>(null);
 
   const isAdmin = Boolean(activeScope?.is_admin) || isExactScopeAdmin || isSystemAdmin || canLeadership;
 
@@ -117,6 +200,62 @@ export default function ScopeFaithMonitoringReportScreen() {
   );
 
   const analysis = useMemo(() => (summary ? buildFaithMonitoringAnalysis(summary) : []), [summary]);
+
+  const openMetric = useCallback(
+    (metric: FaithMonitoringMetricKey, title: string) => {
+      setDetail({ metric, title });
+    },
+    []
+  );
+
+  const analysisMetric = useCallback(
+    (key: string): { metric: FaithMonitoringMetricKey; title: string } | null => {
+      if (key === 'OVERVIEW') {
+        return {
+          metric: 'OVERVIEW_ACTIVE_MEMBERS',
+          title: 'Overview · Active members',
+        };
+      }
+
+      if (key === 'DAILY READING') {
+        return {
+          metric: 'DAILY_READING_APPROVED_TODAY',
+          title: 'Daily Reading · Approved today',
+        };
+      }
+
+      if (key === 'DEVOTION') {
+        return {
+          metric: 'DEVOTION_SUBMITTED_TODAY',
+          title: 'Daily Devotion · Completed today',
+        };
+      }
+
+      if (key === 'BUKLOD LESSON') {
+        return {
+          metric: 'LESSON_ACTIVITY',
+          title: 'BUKLOD Lesson · Members with activity',
+        };
+      }
+
+      if (key === 'ATTENTION') {
+        return {
+          metric: 'DAILY_READING_NOT_SUBMITTED',
+          title: 'Daily Reading · Not submitted today',
+        };
+      }
+
+      if (key === 'DEVOTION FOLLOW-UP') {
+        return {
+          metric: 'DEVOTION_NOT_COMPLETED',
+          title: 'Daily Devotion · Not completed today',
+        };
+      }
+
+      return null;
+    },
+    []
+  );
 
   const exportReport = useCallback(async () => {
     if (!summary || !activeScope?.scope_id) return;
@@ -217,6 +356,8 @@ export default function ScopeFaithMonitoringReportScreen() {
             checking={summary.daily_reading.automatic_checking}
             revision={summary.daily_reading.needs_revision}
             total={summary.active_members}
+            metricPrefix="DAILY_READING"
+            onOpenMetric={openMetric}
           />
 
           <SectionTitle>DAILY DEVOTION</SectionTitle>
@@ -227,6 +368,8 @@ export default function ScopeFaithMonitoringReportScreen() {
             checking={summary.devotion.automatic_checking}
             revision={summary.devotion.needs_revision}
             total={summary.active_members}
+            metricPrefix="DEVOTION"
+            onOpenMetric={openMetric}
           />
 
           <SectionTitle>BUKLOD LESSON</SectionTitle>
@@ -237,22 +380,69 @@ export default function ScopeFaithMonitoringReportScreen() {
             checking={summary.buklod_lesson.automatic_checking}
             revision={summary.buklod_lesson.needs_revision}
             total={summary.active_members}
+            metricPrefix="LESSON"
+            onOpenMetric={openMetric}
+          />
+
+          <SectionTitle>RECENT SUBMISSIONS</SectionTitle>
+          <BuklodScopeFormationRecentSubmissions
+            scopeId={activeScope.scope_id}
           />
 
           <SectionTitle>ANALYSIS</SectionTitle>
           <Card>
             <View style={styles.analysisWrap}>
-              {analysis.map((section) => (
-                <View key={section.key} style={styles.analysisBlock}>
-                  <Text style={styles.analysisKey}>{section.key}</Text>
-                  <Text style={styles.analysisBody}>{section.body}</Text>
-                </View>
-              ))}
+              {analysis.map((section) => {
+                const target = analysisMetric(section.key);
+
+                return (
+                  <Pressable
+                    key={section.key}
+                    disabled={!target}
+                    onPress={() => {
+                      if (target) {
+                        openMetric(target.metric, target.title);
+                      }
+                    }}
+                    style={({ pressed }) => [
+                      styles.analysisBlock,
+                      target && styles.analysisBlockPressable,
+                      pressed && target && styles.analysisBlockPressed,
+                    ]}
+                    accessibilityRole={target ? 'button' : undefined}
+                  >
+                    <View style={styles.analysisHeader}>
+                      <Text style={styles.analysisKey}>{section.key}</Text>
+                      {target ? (
+                        <MaterialCommunityIcons
+                          name="chevron-right"
+                          size={17}
+                          color={colors.greenDark}
+                        />
+                      ) : null}
+                    </View>
+                    <Text style={styles.analysisBody}>{section.body}</Text>
+                    {target ? (
+                      <Text style={styles.tapHint}>
+                        Tap to see who and why
+                      </Text>
+                    ) : null}
+                  </Pressable>
+                );
+              })}
             </View>
           </Card>
 
           <SectionTitle>MEMBER FEEDBACK</SectionTitle>
           <BuklodScopeFaithMonitoringAdminFeedbackCard scopeId={activeScope.scope_id} scopeName={activeScope.name} />
+
+          <BuklodScopeFaithMonitoringMetricDetailsModal
+            visible={Boolean(detail)}
+            scopeId={activeScope.scope_id}
+            metric={detail?.metric ?? null}
+            title={detail?.title ?? 'Report details'}
+            onClose={() => setDetail(null)}
+          />
         </>
       ) : (
         <Text style={shared.muted}>No report data available right now.</Text>
@@ -297,7 +487,10 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   metricLabel: { flex: 1, color: colors.muted, fontSize: 11, fontWeight: '600' },
+  metricValueWrap: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   metricValue: { color: colors.text, fontSize: 11, fontWeight: '800' },
+  metricRowPressable: { borderRadius: 10, paddingHorizontal: 6, marginHorizontal: -6 },
+  metricRowPressed: { backgroundColor: '#F1F7F3' },
   pipelineTitle: { color: colors.greenDark, fontSize: 13, fontWeight: '900', marginBottom: 8 },
   autoTitle: { color: colors.greenDark, fontSize: 11, fontWeight: '900', letterSpacing: 0.5, marginBottom: 6 },
   analysisWrap: { gap: 10 },
@@ -309,6 +502,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     gap: 6,
   },
+  analysisHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  analysisBlockPressable: { borderColor: '#CFE0D7' },
+  analysisBlockPressed: { backgroundColor: '#F4F9F6' },
   analysisKey: { fontSize: 10, fontWeight: '900', letterSpacing: 0.8, color: colors.greenDark },
+  tapHint: { fontSize: 9, fontWeight: '800', color: colors.green, marginTop: 2 },
   analysisBody: { fontSize: 12, lineHeight: 18, color: colors.text },
 });

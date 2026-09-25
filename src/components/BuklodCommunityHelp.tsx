@@ -12,8 +12,11 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
+import * as LocalAuthentication from 'expo-local-authentication';
+import { useLocalSearchParams } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
+import { acquireBuklodAdSafetyLock } from '@/lib/buklodGlobalAdController';
 import { registerPushToken } from '@/lib/pushNotifications';
 import { useAuth } from '@/providers/AuthProvider';
 import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
@@ -60,9 +63,12 @@ function relativeAge(iso:string){
 
 export default function BuklodCommunityHelp(){
   const {user}=useAuth();
+  const params=useLocalSearchParams<{sos?:string|string[]}>();
+  const sosSignal=Array.isArray(params.sos)?params.sos[0]:params.sos;
   const {colors}=useBuklodPresentation();
   const s=useMemo(()=>styles(colors),[colors]);
   const mounted=useRef(true);
+  const handledSosLaunch=useRef(false);
   const [enabled,setEnabled]=useState(false);
   const [busy,setBusy]=useState(false);
   const [loading,setLoading]=useState(false);
@@ -73,6 +79,14 @@ export default function BuklodCommunityHelp(){
   const [message,setMessage]=useState('');
 
   useEffect(()=>()=>{mounted.current=false},[]);
+
+  useEffect(()=>{
+    if(!open)return;
+    return acquireBuklodAdSafetyLock(
+      kind==='EMERGENCY'?'transaction':'form'
+    );
+  },[kind,open]);
+
 
   const refresh=useCallback(async()=>{
     if(!user?.id)return;
@@ -146,18 +160,63 @@ export default function BuklodCommunityHelp(){
     return()=>{clearInterval(feed);clearInterval(presence)};
   },[enabled,ensurePresence,refresh]);
 
-  const begin=(next:HelpKind)=>{
+  const begin=useCallback((next:HelpKind)=>{
     if(!user?.id){Alert.alert('Sign in required','Please sign in before requesting help.');return}
     setKind(next);
     setCategory(next==='EMERGENCY'?'MEDICAL':'GENERAL');
     setMessage('');
     setOpen(true);
-  };
+  },[user?.id]);
+
+  /*
+   * BUKLOD_SOS_QUICK_SETTINGS_R1
+   *
+   * The native Quick Settings tile only opens this existing confirmation
+   * sheet. It does not send an SOS or request location by itself.
+   */
+  useEffect(()=>{
+    if(
+      handledSosLaunch.current ||
+      !user?.id ||
+      String(sosSignal??'').trim()!=='1'
+    ){
+      return;
+    }
+
+    handledSosLaunch.current=true;
+    begin('EMERGENCY');
+  },[begin,sosSignal,user?.id]);
 
   const submit=useCallback(async()=>{
     if(busy)return;
     setBusy(true);
     try{
+      if(kind==='EMERGENCY'){
+        /* BUKLOD_SOS_LOCAL_AUTH_R2
+         * Deliberate SOS send requires local device confirmation before GPS
+         * capture and server fan-out. Device PIN remains the fallback.
+         */
+        const authLevel=await LocalAuthentication
+          .getEnrolledLevelAsync()
+          .catch(()=>LocalAuthentication.SecurityLevel.NONE);
+
+        if(authLevel!==LocalAuthentication.SecurityLevel.NONE){
+          const verified=await LocalAuthentication.authenticateAsync({
+            promptMessage:'Confirm Emergency SOS',
+            promptSubtitle:'Send an urgent nearby BUKLOD alert',
+            promptDescription:'Confirm with fingerprint, Face ID, or device PIN.',
+            cancelLabel:'Cancel',
+            fallbackLabel:'Use device PIN',
+            disableDeviceFallback:false,
+            requireConfirmation:true,
+          });
+          if(!verified.success){
+            Alert.alert('SOS cancelled','Emergency SOS was not sent.');
+            return;
+          }
+        }
+      }
+
       const coords=await ensurePresence(true);
       if(!coords)return;
       const {data,error}=await supabase.rpc('buklod_help_create_request',{

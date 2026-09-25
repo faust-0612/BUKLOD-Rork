@@ -33,6 +33,40 @@ import type {
   FormationWeeklyDelivery,
 } from '@/types/buklodFormation';
 
+function lessonAvailableLabel(
+  value: string | null | undefined,
+) {
+  if (!value) return null;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(now.getDate() + 1);
+
+  const sameLocalDay =
+    date.getFullYear() === tomorrow.getFullYear() &&
+    date.getMonth() === tomorrow.getMonth() &&
+    date.getDate() === tomorrow.getDate();
+
+  const time = date.toLocaleTimeString([], {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+
+  if (sameLocalDay) {
+    return `Available tomorrow · ${time}`;
+  }
+
+  return `Available ${date.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })}`;
+}
+
 export default function TrackDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
@@ -344,6 +378,9 @@ export default function TrackDetail() {
         formationCopy.lessonUnavailableTitle,
         [
           friendlyLessonBlockingReason(access?.blocking_reason),
+          access?.blocking_reason === 'NEXT_LESSON_DAILY_WAIT'
+            ? lessonAvailableLabel(access.available_from)
+            : null,
           lessonBlockingGuide(access?.blocking_reason),
         ]
           .filter(Boolean)
@@ -659,9 +696,18 @@ export default function TrackDetail() {
                   </Text>
 
                   {locked ? (
-                    <Text style={styles.lessonLockedMeta}>
-                      {friendlyLessonBlockingReason(access?.blocking_reason)}
-                    </Text>
+                    <>
+                      <Text style={styles.lessonLockedMeta}>
+                        {friendlyLessonBlockingReason(access?.blocking_reason)}
+                      </Text>
+
+                      {access?.blocking_reason === 'NEXT_LESSON_DAILY_WAIT' &&
+                      lessonAvailableLabel(access.available_from) ? (
+                        <Text style={styles.lessonAvailableMeta}>
+                          {lessonAvailableLabel(access.available_from)}
+                        </Text>
+                      ) : null}
+                    </>
                   ) : null}
                 </View>
 
@@ -789,6 +835,13 @@ const styles = StyleSheet.create({
 
   lessonRowLocked: {
     opacity: 0.72,
+  },
+
+  lessonAvailableMeta: {
+    marginTop: 3,
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.greenDark,
   },
 
   lessonLockedMeta: {

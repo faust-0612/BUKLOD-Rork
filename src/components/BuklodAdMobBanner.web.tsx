@@ -2,14 +2,16 @@
 
 import BuklodWebAdSlot from '@/components/BuklodWebAdSlot.web';
 import type { BuklodAdPlacement } from '@/lib/buklodAdUnits';
+import type { BuklodAdDiagnosticPlacement } from '@/lib/buklodAdDiagnostics';
 
 type Props = {
   placement: BuklodAdPlacement;
   compact?: boolean;
   format?: 'adaptive' | 'inline' | 'mediumRectangle';
-  diagnosticName?: 'home_bottom_banner' | 'community_inline' | 'reels_inline' | 'test';
+  diagnosticName?: BuklodAdDiagnosticPlacement;
   requireViewport?: boolean;
   showLabel?: boolean;
+  placementId?: string;
 };
 
 /*
@@ -22,6 +24,7 @@ export default function BuklodAdMobBanner({
   compact = false,
   format = 'adaptive',
   showLabel = true,
+  placementId,
 }: Props) {
   return (
     <BuklodWebAdSlot
@@ -29,6 +32,7 @@ export default function BuklodAdMobBanner({
       compact={compact}
       format={format}
       showLabel={showLabel}
+      placementId={placementId}
     />
   );
 }

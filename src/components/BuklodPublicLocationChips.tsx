@@ -13,6 +13,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
+import BuklodLifeEntryCard from '@/components/BuklodLifeEntryCard';
 import BuklodCommunityHelp from '@/components/BuklodCommunityHelp';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import { colors } from '@/lib/theme';
@@ -46,6 +47,7 @@ export default function BuklodPublicLocationChips({selectedScopeId,onChange}:Pro
     .sort((a,b)=>weight(a)-weight(b)),[scopes]);
 
   return <View>
+    <BuklodLifeEntryCard />
     <BuklodCommunityHelp />
 
     <ScrollView

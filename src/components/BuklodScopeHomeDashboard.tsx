@@ -332,7 +332,7 @@ export default function BuklodScopeHomeDashboard({
         </View>
       </View>
 
-      <BuklodScreenBottomBanner placement="home" variant="large" />
+      <BuklodScreenBottomBanner placement="content" variant="large" />
     </ScrollView>
   );
 }

@@ -39,6 +39,7 @@ import {
 } from '@expo/vector-icons';
 
 import {
+  Redirect,
   router,
   useLocalSearchParams,
 } from 'expo-router';
@@ -269,11 +270,13 @@ ScopeWorkspaceScreen() {
   const exitWorkspace =
     useCallback(
       async () => {
-        if (router.canGoBack()) {
-          router.back();
-          return;
-        }
-
+        /*
+         * BUKLOD_SCOPED_EXIT_PUBLIC_FIRST_R2
+         * Managed workspaces must restore PUBLIC before any history-based
+         * navigation. Otherwise a valid browser/native history entry can keep
+         * the active Organization/Cluster scope alive and bounce the user back
+         * into /scope instead of reaching Community Wall.
+         */
         if (
           workspaceScope?.scope_type ===
             'CLUSTER' ||
@@ -283,12 +286,17 @@ ScopeWorkspaceScreen() {
           await exitScopedWorkspace(
             selectScope,
             scopes,
-            '/home'
+            '/buklod'
           );
           return;
         }
 
-        router.back();
+        if (router.canGoBack()) {
+          router.back();
+          return;
+        }
+
+        router.replace('/(tabs)/buklod' as any);
       },
       [
         workspaceScope?.scope_type,
@@ -398,14 +406,7 @@ if (
     'PUBLIC'
   ) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator
-          color={colors.green}
-        />
-        <Text style={styles.muted}>
-          Opening Public BUKLOD...
-        </Text>
-      </View>
+      <Redirect href="/(tabs)/buklod" />
     );
   }
 return (
@@ -665,7 +666,7 @@ function LegacyScopeHome({
         <BuklodCommunityBulletin />
       )}
 
-      <BuklodScreenBottomBanner placement="home" variant="large" />
+      <BuklodScreenBottomBanner placement="content" variant="large" />
     </ScrollView>
   );
 }

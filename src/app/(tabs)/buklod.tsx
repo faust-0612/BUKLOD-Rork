@@ -21,6 +21,7 @@ import {
   attachCommunityPostMedia,
   discardIncompleteCommunityPost,
   extractCreatedRecordId,
+  loadCommunityPostMediaByPostIds,
 } from '@/lib/buklodCommunityPostMedia';
 import { enqueueCommunityPublish } from '@/lib/buklodCommunityPublishQueue';
 import {
@@ -53,8 +54,15 @@ import { useBuklodCommunityAdViewability } from '@/hooks/useBuklodCommunityAdVie
 /* PATCH_179D_FIX_COMMUNITY_IMAGE_STABLE_CACHE */
 import BuklodPublicLocationChips from '@/components/BuklodPublicLocationChips';
 import BuklodMaritesBoard from '@/components/BuklodMaritesBoard';
+import BuklodTodayCard from '@/components/BuklodTodayCard';
+import BuklodCommunityContributionCard from '@/components/BuklodCommunityContributionCard';
+import { assertCommunityVideoQuotaAvailable } from '@/lib/buklodCommunityContributionEconomy';
+import SmartDrawerWallCard from '@/components/SmartDrawerWallCard';
+import BuklodCommunityWallEngagementLayer, {
+  BuklodCommunityQuickActions,
+  type BuklodCommunityComposerIntent,
+} from '@/components/BuklodCommunityWallEngagementLayer';
 import { repairMojibakeText } from '@/lib/repairMojibakeText';
-import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
 import { BuklodCommunityGifPicker, BuklodCommunityGifPreview, type BuklodCommunityGifFile } from '@/components/BuklodCommunityGifPicker';
 /* PATCH_160_COMMUNITY_AVATARS_TIME */
 import { formatSpecificDateTime } from '@/lib/dateTime';
@@ -133,6 +141,11 @@ import {useAuth} from '@/providers/AuthProvider';
 import {useBuklodScope} from '@/providers/BuklodScopeProvider';
 import {useBuklodPresentation} from '@/hooks/useBuklodPresentation';
 import {useNetwork} from '@/providers/NetworkProvider';
+import { useBuklodFeedback } from '@/providers/BuklodFeedbackProvider';
+import {
+  buildBuklodUserFeedback,
+  trackBuklodFeedbackEvent,
+} from '@/lib/buklodUserFeedback';
 import {createCommunityStyles} from '@/app/(tabs)/buklodCommunityStyles';
 import {
   useBuklodScrollBottomInset,
@@ -194,6 +207,54 @@ type Mention={user_id:string;full_name:string;church_name:string;group_name:stri
 
 let PERF2_MENTION_SEARCH_SEQ = 0;
 
+/* BUKLOD_WALL_REMOTE_GUARD_R4
+ * Normalize thrown transport failures so Community actions always return to
+ * an actionable UI state. Reads are additionally time-bounded; writes stay
+ * authoritative and are not locally timed out because a timed-out write may
+ * already have committed and must never be blindly replayed.
+ */
+async function communityRpc(
+ name:string,
+ args:Record<string,unknown>
+):Promise<any>{
+ try{
+  return await (supabase as any).rpc(name,args);
+ }
+ catch(error:any){
+  return {
+   data:null,
+   error:{
+    message:String(
+     error?.message??
+     error??
+     'Community request failed.'
+    )
+   }
+  };
+ }
+}
+
+async function communityReadRpc(
+ name:string,
+ args:Record<string,unknown>,
+ timeoutMs=7000
+):Promise<any>{
+ return withBuklodTimeout(
+  communityRpc(name,args),
+  timeoutMs,
+  `Community ${name}`
+ ).catch((error:any)=>({
+  data:null,
+  error:{
+   message:String(
+    error?.message??
+    error??
+    'Community request timed out.'
+   )
+  }
+ }));
+}
+
 /* PERF2_MENTION_SEARCH_DEBOUNCE */
 
 // PATCH_161H_C_PHOTO_VIEWER_PLUS
@@ -234,7 +295,6 @@ export default function BuklodScreen(){
   shared,
   paletteId,
  }=useBuklodPresentation();
-
  if(scopeLoading && !activeScope){
   return(
    <View
@@ -269,8 +329,7 @@ export default function BuklodScreen(){
       Community unavailable
      </Text>
      <Text style={shared.muted}>
-      {scopeError||
-       'No active Community is available.'}
+      No active Community is available right now. Please try again or open Need Help.
      </Text>
     </Card>
    </View>
@@ -304,6 +363,47 @@ function LegacyPublicBuklodScreen(){
   shared,
   paletteId,
  }=useBuklodPresentation();
+ const { showFeedback }=useBuklodFeedback();
+
+ const reportCommunityFailure=useCallback((
+  error:unknown,
+  title:string,
+  message:string,
+  outcome:string,
+ )=>{
+  const base=buildBuklodUserFeedback(error,{
+   context:'general',
+   fallbackTitle:title,
+   fallbackMessage:message,
+  });
+  const feedback={
+   ...base,
+   tone:'error' as const,
+   title,
+   message,
+   nextStep:'Try again. If it repeats, open Need Help.',
+   supportCode:base.supportCode??'SYS-500',
+   retryable:true,
+   needsSupport:true,
+  };
+  showFeedback(feedback,{
+   autoHideMs:null,
+   helpParams:{
+    category:'TECHNICAL',
+    errorCode:feedback.supportCode,
+    message:feedback.message,
+    sourceRoute:'/(tabs)/buklod',
+   },
+  });
+  void trackBuklodFeedbackEvent({
+   event:'error_shown',
+   category:feedback.category,
+   supportCode:feedback.supportCode,
+   route:'/(tabs)/buklod',
+   feature:'Community Wall',
+   outcome,
+  });
+ },[showFeedback]);
  const {
   openReport,
   reportSheet,
@@ -545,11 +645,7 @@ function LegacyPublicBuklodScreen(){
 
         if (videoRows.length) {
           incomingShare187A.clearSharedPayloads();
-          Alert.alert(
-            'BUKLOD IGPAT',
-            'Videos belong in BUKLOD IGPAT. Opening the IGPAT creator.'
-          );
-          router.push('/igpat/create' as any);
+          Alert.alert('Community', 'Video sharing is disabled in this BUKLOD Main release.');
           return;
         }
 
@@ -633,12 +729,11 @@ function LegacyPublicBuklodScreen(){
         );
       }
       catch (error: any) {
-        Alert.alert(
-          'Share to BUKLOD',
-          String(
-            error?.message ??
-              'Could not import the shared item.'
-          )
+        reportCommunityFailure(
+          error,
+          'Shared item not imported',
+          "BUKLOD couldn't import the shared item right now.",
+          'incoming_share_failed',
         );
       }
     })();
@@ -649,7 +744,23 @@ function LegacyPublicBuklodScreen(){
   ]);
 
  const [posts,setPosts]=useState<any[]>([]),[group,setGroup]=useState<any>(null),[body,setBody]=useState('');
- const [category]=useState<typeof CATEGORIES[number]>('reflection');
+ const [category,setCategory]=useState<
+  'reflection'|'testimony'|'encouragement'|'discussion'
+ >('reflection');
+ const [composerIntent,setComposerIntent]=useState<BuklodCommunityComposerIntent>('post');
+ const composerInputRef=useRef<any>(null);
+
+ const activateComposerIntent=(intent:BuklodCommunityComposerIntent)=>{
+  setComposerIntent(intent);
+  setCategory(
+   intent==='ask'||intent==='need_help'
+    ? 'discussion'
+    : intent==='offer'
+      ? 'encouragement'
+      : 'reflection'
+  );
+  setTimeout(()=>composerInputRef.current?.focus?.(),0);
+ };
 
  // COMMUNITY_COMPACT_COMPOSER_20260811
  const [audience]=useState<Audience>('public');
@@ -949,9 +1060,11 @@ const load=useCallback(async(options?:{
       }
     }
 
-    Alert.alert(
-      'Community',
-      error.message
+    reportCommunityFailure(
+      error,
+      'Community unavailable',
+      "BUKLOD couldn't refresh Community right now. If saved posts are available, they remain safe.",
+      'community_feed_failed',
     );
 
     return -1;
@@ -985,46 +1098,48 @@ const load=useCallback(async(options?:{
       'author_name',
     ),
     postIds.length
-      ? supabase
-          .from('reactions')
-          .select('post_id,reaction')
-          .eq(
-            'user_id',
-            user.id
-          )
-          .in(
-            'post_id',
-            postIds
-          )
-      : Promise.resolve({
+      ? withBuklodTimeout<any>(
+          supabase
+            .from('reactions')
+            .select('post_id,reaction')
+            .eq(
+              'user_id',
+              user.id
+            )
+            .in(
+              'post_id',
+              postIds
+            ),
+          5000,
+          'Community my reactions'
+        ).catch(() => ({
           data: [] as any[],
           error: null,
-        }),
-    postIds.length
-      ? withBuklodTimeout<{data:any,error:any}>(
-          (supabase as any).rpc(
-            'get_buklod_post_media_v1',
-            {
-              p_post_ids:
-                postIds
-            }
-          ),
-          5000,
-          'Community photos'
-        ).catch((err:any)=>({
-          data:null,
-          error:{
-            message:String(
-              err?.message ??
-              err ??
-              'Photos timed out.'
-            )
-          }
         }))
       : Promise.resolve({
           data: [] as any[],
           error: null,
         }),
+    postIds.length
+      ? withBuklodTimeout<Record<string,any[]>>(
+          loadCommunityPostMediaByPostIds(
+            postIds
+          ),
+          8000,
+          'Community media'
+        ).catch((err:any)=>{
+          console.warn(
+            'Community media:',
+            String(
+              err?.message ??
+              err ??
+              'Media timed out.'
+            )
+          );
+
+          return {};
+        })
+      : Promise.resolve({}),
   ]);
 
   if(
@@ -1073,69 +1188,80 @@ const load=useCallback(async(options?:{
       }
     );
 
-  // PATCH_161H_MEDIA_LOAD
+  /*
+   * BUKLOD_PUBLIC_WALL_MEDIA_V2_ONLY_R1
+   *
+   * Public Wall uses only the canonical v2/external-media loader so
+   * AWS Wall videos cannot regress to an empty media_items fallback.
+   */
   const mediaMap:
-   Record<string,any[]> =
-   {};
-
-  const mediaRows=
-    mediaResult?.data;
-  const mediaError=
-    mediaResult?.error;
-
-  if(mediaError){
-    console.warn(
-     'Community photos:',
-     mediaError.message
-    );
-  }
-  else{
-    for(
-     const row
-     of mediaRows??[]
-    ){
-     if(!row?.post_id){
-      continue;
-     }
-
-     if(
-      !mediaMap[
-       row.post_id
-      ]
-     ){
-      mediaMap[
-       row.post_id
-      ]=[];
-     }
-
-     mediaMap[
-      row.post_id
-     ].push({
-      ...row,
-      media_url:
-        peekCommunityMediaUrl(
-          row.media_path,
-          null
-        ) ?? row.media_url,
-     });
-    }
-  }
+    Record<string,any[]> =
+    mediaResult ?? {};
 
   for(const p of next){
    const loaded=
-    mediaMap[p.id]??[];
+    Array.isArray(
+      mediaMap[p.id]
+    )
+      ? [...mediaMap[p.id]].sort(
+          (a:any,b:any)=>
+            Number(
+              a.media_position??0
+            )-
+            Number(
+              b.media_position??0
+            )
+        )
+      : [];
 
    if(loaded.length){
     p.media_items=
-     loaded.sort(
-      (a:any,b:any)=>
-       Number(
-        a.media_position??0
-       )-
-       Number(
-        b.media_position??0
-       )
-     );
+      loaded.map((row:any)=>({
+        ...row,
+        media_url:
+          peekCommunityMediaUrl(
+            String(
+              row?.media_path??
+              ''
+            ).trim(),
+            null
+          ) ?? row?.media_url
+      }));
+
+    const firstVideo=
+      p.media_items.find(
+        (row:any)=>
+          String(
+            row?.media_mime_type??
+            ''
+          )
+            .trim()
+            .toLowerCase()
+            .startsWith(
+              'video/'
+            ) &&
+          String(
+            row?.media_url??
+            ''
+          ).trim()
+      );
+
+    if(firstVideo){
+      p.media_path=
+        firstVideo.media_path ??
+        p.media_path;
+
+      p.media_mime_type=
+        firstVideo.media_mime_type ??
+        p.media_mime_type;
+
+      p.media_size_bytes=
+        firstVideo.media_size_bytes ??
+        p.media_size_bytes;
+
+      p.media_url=
+        firstVideo.media_url;
+    }
    }
    else if(
     p.media_url &&
@@ -1484,10 +1610,11 @@ const load=useCallback(async(options?:{
     );
    }
    catch(e:any){
-    Alert.alert(
-     'Photos',
-     e?.message||
-      'Could not select photos.'
+    reportCommunityFailure(
+     e,
+     'Photos not selected',
+     "BUKLOD couldn't prepare the selected photos right now.",
+     'photo_picker_failed',
     );
    }
    finally{
@@ -1535,14 +1662,22 @@ const load=useCallback(async(options?:{
     });
 
    if(validationError){
-    Alert.alert(
-     'Video',
-     validationError
-    );
-    return false;
-   }
+     Alert.alert(
+      'Video',
+      validationError
+     );
+     return false;
+    }
 
-   const uri=
+    if(sizeBytes){
+     const quota=await assertCommunityVideoQuotaAvailable(sizeBytes);
+     if(quota.allowed===false){
+      Alert.alert('Monthly Video Allowance','This video would exceed your current monthly Community Wall video allowance.');
+      return false;
+     }
+    }
+
+    const uri=
     String(
      asset?.uri??''
     );
@@ -1636,10 +1771,11 @@ const load=useCallback(async(options?:{
     );
    }
    catch(error:any){
-    Alert.alert(
-     'Video',
-     error?.message||
-      'Could not prepare this video.'
+    reportCommunityFailure(
+     error,
+     'Video not prepared',
+     "BUKLOD couldn't prepare this video right now.",
+     'video_prepare_failed',
     );
    }
    finally{
@@ -1668,8 +1804,16 @@ const load=useCallback(async(options?:{
   ) {
     return;
   }
-const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v2',{p_audience:audience,p_group_id:audience==='group'?group?.id??null:null,p_query:q,p_limit:40});
-  if(error)return Alert.alert('Mention',error.message);(
+const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p_audience:audience,p_group_id:audience==='group'?group?.id??null:null,p_query:q,p_limit:40},6000);
+  if(error){
+   reportCommunityFailure(
+    error,
+    'Mention search unavailable',
+    "BUKLOD couldn't search people to mention right now.",
+    'mention_search_failed',
+   );
+   return;
+  }(
   perfMentionSeq ===
   PERF2_MENTION_SEARCH_SEQ
 ) && setMentionRows(
@@ -1680,10 +1824,10 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
  const publish=async()=>{
   if(!user)return;
 
-  if(wallVideo186O || communityGif){
+  if(communityGif){
    return Alert.alert(
     'Community',
-    'Community accepts text and photos only. Post videos through BUKLOD IGPAT.'
+    'GIF posting is not available in Community.'
    );
   }
 
@@ -1794,10 +1938,7 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
     data:created,
     error:createError
    }=
-    await (
-     supabase as any
-    ).rpc(
-     'create_buklod_community_post_v3',
+    await communityRpc('create_buklod_community_post_v3',
      {
       p_audience:
        snapshot.audience,
@@ -1811,7 +1952,7 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
        snapshot.body ||
        (
         snapshot.wallVideo
-         ? 'Shared a video.'
+         ? ''
          : snapshot.communityGif
           ? 'Shared a GIF.'
           : snapshot.photos.length
@@ -1819,18 +1960,22 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
           : 'Shared an update.'
        ),
       p_media_path:
-       first?.media_path??
-       null,
-      p_media_mime_type:
-       first?.media_mime_type??
-       null,
-      p_media_size_bytes:
-       first?.media_size_bytes??
-       null,
-      p_media_duration_seconds:
        snapshot.wallVideo
-        ? snapshot.wallVideo.durationSeconds
-        : null,
+        ? null
+        : first?.media_path??
+          null,
+      p_media_mime_type:
+       snapshot.wallVideo
+        ? null
+        : first?.media_mime_type??
+          null,
+      p_media_size_bytes:
+       snapshot.wallVideo
+        ? null
+        : first?.media_size_bytes??
+          null,
+      p_media_duration_seconds:
+       null,
       p_is_reel:false,
       p_mentioned_user_ids:
        snapshot.mentions.map(
@@ -2008,10 +2153,11 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
    setCommunityGif(snapshot.communityGif);
    setMentions(snapshot.mentions);
 
-   Alert.alert(
-    'Could Not Post',
-    e?.message||
-    'Posting failed.'
+   reportCommunityFailure(
+    e,
+    'Post not published',
+    "BUKLOD couldn't publish your post. Your composer content was restored.",
+    'post_publish_failed',
    );
 
    await load();
@@ -2135,10 +2281,7 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
   );
 
   const {error}=
-    await(
-      supabase as any
-    ).rpc(
-      'set_buklod_post_reaction_v3',
+    await communityRpc('set_buklod_post_reaction_v3',
       {
         p_post_id:
           postId,
@@ -2163,9 +2306,11 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
         )
     );
 
-    Alert.alert(
-      'Reaction',
-      error.message
+    reportCommunityFailure(
+      error,
+      'Reaction not saved',
+      "BUKLOD couldn't save your reaction. The previous reaction was restored.",
+      'post_reaction_failed',
     );
   }
 
@@ -2186,20 +2331,14 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
      reactionsResult
     ]=
      await Promise.all([
-      (
-       supabase as any
-      ).rpc(
-       'get_buklod_post_comments_v4',
+      communityReadRpc('get_buklod_post_comments_v4',
        {
         p_post_id:
          postId
        }
       ),
 
-      (
-       supabase as any
-      ).rpc(
-       'get_buklod_comment_reactions_v1',
+      communityReadRpc('get_buklod_comment_reactions_v1',
        {
         p_post_id:
          postId
@@ -2210,11 +2349,11 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
     if(
      commentsResult.error
     ){
-     Alert.alert(
-      'Comments',
-      commentsResult
-       .error
-       .message
+     reportCommunityFailure(
+      commentsResult.error,
+      'Comments unavailable',
+      "BUKLOD couldn't load comments right now.",
+      'comments_load_failed',
      );
      return;
     }
@@ -2226,19 +2365,27 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
      ) as any[];
 
     const hydratedRows=
-      await hydratePersonNamesOnRows(
-        rows,
-        'user_id',
-        'commenter_name',
-      );
+      await withBuklodTimeout(
+        hydratePersonNamesOnRows(
+          rows,
+          'user_id',
+          'commenter_name',
+        ),
+        5000,
+        'Community comment names'
+      ).catch(()=>rows);
 
     const clusterMap=
-     await getClusterLabels(
-      hydratedRows.map(
-       (row:any)=>
-        row.user_id
-      )
-     );
+     await withBuklodTimeout(
+       getClusterLabels(
+        hydratedRows.map(
+         (row:any)=>
+          row.user_id
+        )
+       ),
+       5000,
+       'Community comment clusters'
+     ).catch(()=>({} as Record<string,string>));
 
     const reactionMap=
      new Map<string,any>();
@@ -2353,10 +2500,7 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
    setCommentBusy(true);
 
    const {error}=
-    await (
-     supabase as any
-    ).rpc(
-     'add_buklod_post_comment_v4',
+    await communityRpc('add_buklod_post_comment_v4',
      {
       p_post_id:
        commentPost.id,
@@ -2371,10 +2515,13 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
    setCommentBusy(false);
 
    if(error){
-    return Alert.alert(
-     'Comment',
-     error.message
+    reportCommunityFailure(
+     error,
+     'Comment not posted',
+     "BUKLOD couldn't post your comment right now.",
+     'comment_post_failed',
     );
+    return;
    }
 
    setCommentText('');
@@ -2464,10 +2611,7 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
    );
 
    const {error}=
-    await (
-     supabase as any
-    ).rpc(
-     'set_buklod_comment_reaction_v1',
+    await communityRpc('set_buklod_comment_reaction_v1',
      {
       p_comment_id:
        targetId,
@@ -2477,9 +2621,11 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
     );
 
    if(error){
-    Alert.alert(
-     'Reaction',
-     error.message
+    reportCommunityFailure(
+     error,
+     'Reaction not saved',
+     "BUKLOD couldn't save your reaction right now.",
+     'comment_reaction_failed',
     );
 
     if(commentPost?.id){
@@ -2498,10 +2644,7 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
    body:string
   )=>{
    const {error}=
-    await (
-     supabase as any
-    ).rpc(
-     'update_buklod_post_comment_v1',
+    await communityRpc('update_buklod_post_comment_v1',
      {
       p_comment_id:commentId,
       p_body:body
@@ -2520,10 +2663,7 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
  const deleteCommentById=
   async(commentId:string)=>{
    const {error}=
-    await (
-     supabase as any
-    ).rpc(
-     'delete_buklod_post_comment_v1',
+    await communityRpc('delete_buklod_post_comment_v1',
      {
       p_comment_id:commentId
      }
@@ -2599,10 +2739,7 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
     data,
     error
    }=
-    await (
-     supabase as any
-    ).rpc(
-     'set_buklod_photo_reaction_v1',
+    await communityRpc('set_buklod_photo_reaction_v1',
      {
       p_post_id:
        postId,
@@ -2617,10 +2754,13 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
 
 
    if(error){
-    return Alert.alert(
-     'Photo Reaction',
-     error.message
+    reportCommunityFailure(
+     error,
+     'Photo reaction not saved',
+     "BUKLOD couldn't save your photo reaction right now.",
+     'photo_reaction_failed',
     );
+    return;
    }
 
 
@@ -2844,10 +2984,11 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
     );
    }
    catch(e:any){
-    Alert.alert(
-     'Save Photo',
-     e?.message||
-     'Could not save this photo.'
+    reportCommunityFailure(
+     e,
+     'Photo not saved',
+     "BUKLOD couldn't save this photo right now.",
+     'save_photo_failed',
     );
    }
    finally{
@@ -3048,15 +3189,19 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
    }
 
    return (
-    <BuklodCommunityPhotoCollage
-     items={media}
-     onPressPhoto={(index, photos)=>
-      openPhotoViewer(
-       photos,
-       index
-      )
-     }
-    />
+    <View style={{marginHorizontal:-12}}>
+     <BuklodCommunityPhotoCollage
+      items={media}
+      contentFit="cover"
+      preserveSinglePhotoAspectRatio
+      onPressPhoto={(index, photos)=>
+       openPhotoViewer(
+        photos,
+        index
+       )
+      }
+     />
+    </View>
    );
   };
 
@@ -3227,12 +3372,7 @@ const refreshCommunity186L=
           (post: any) =>
             /* PATCH_MARITES_STORYLINE_ONLY_R2C */
             !isMaritesCommunityPost(post) &&
-            !String(
-              post.media_mime_type ||
-                '',
-            ).startsWith(
-              'video/',
-            ),
+            !Boolean(post.is_reel),
         );
 
       return buildCommunityFeedWithInlineAds(
@@ -3296,40 +3436,19 @@ const refreshCommunity186L=
      </Text>
     </View>
 
-    <ConnectPressable
-     onPress={() =>
-      router.push(
-       '/igpat' as any
-      )
-     }
-     style={{
-      flex:1,
-      minHeight:42,
-      borderRadius:12,
-      borderWidth:1,
-      borderColor:colors.green,
-      backgroundColor:colors.white,
-      alignItems:'center',
-      justifyContent:'center'
-     }}
-    >
-     <Text
-      style={{
-       fontSize:11,
-       fontWeight:'900',
-       color:colors.greenDark
-      }}
-     >
-      BUKLOD IGPAT
-     </Text>
-    </ConnectPressable>
    </View>
+
+   <SmartDrawerWallCard />
+
+   <BuklodTodayCard onRespond={()=>activateComposerIntent('post')} />
 
    <BuklodMaritesBoard
     locationScopeId={
      publicLocationScopeId
     }
    />
+
+   <BuklodCommunityContributionCard />
 
    <Text style={shared.muted}>
     Encourage, connect and grow together.
@@ -3343,10 +3462,24 @@ const refreshCommunity186L=
           setPublicLocationScopeId
         }
       />
-    {/* PATCH_162A_SPONSOR_COMMUNITY */}
-<BuklodCommunitySponsoredAd audience="public" />
+   <BuklodCommunityQuickActions onIntent={activateComposerIntent} />
    <SectionTitle>SHARE SOMETHING</SectionTitle><Card>
-<TextInput multiline value={body} onChangeText={setBody} placeholder="Share with your Community..." style={s.area}/>
+<TextInput
+ ref={composerInputRef}
+ multiline
+ value={body}
+ onChangeText={setBody}
+ placeholder={
+  composerIntent==='ask'
+   ? 'Ano ang gusto mong itanong sa Community?'
+   : composerIntent==='need_help'
+    ? 'Anong tulong ang kailangan mo?'
+    : composerIntent==='offer'
+     ? 'Ano ang maitutulong o maibabahagi mo?'
+     : 'Share with your Community...'
+ }
+ style={s.area}
+/>
     {!!mentions.length&&<Text style={s.mentioned}>{mentions.map(x=>`@${x.full_name}`).join(' ')}</Text>}
     <View
       /* PATCH_154L_COMPOSER_SPACING */
@@ -3357,25 +3490,21 @@ const refreshCommunity186L=
         },
       ]}
     ><Pressable style={s.tool} onPress={async()=>{setMentionOpen(true);setMentionSearch('');await searchMentions('')}}><MaterialCommunityIcons name="account-plus-outline" size={17} color={colors.green}/><Text style={s.toolText}>Mention</Text></Pressable>
-    <Pressable style={s.tool} onPress={()=>{setWallVideo186O(null);void pickPhoto();}}><MaterialCommunityIcons name="image-plus" size={17} color={colors.green}/><Text style={s.toolText}>{photoBusy
- ? 'Preparing...'
- : photos.length
- ? `${photos.length}/${COMMUNITY_MAX_PHOTOS} Photos`
- : 'Add Photos'}</Text></Pressable>
-    <Pressable
-     style={s.tool}
-     disabled={busy}
-     onPress={()=>
-      router.push('/igpat/create' as any)
-     }
-    >
-     <MaterialCommunityIcons
-      name="video-outline"
-      size={17}
-      color={colors.green}
-     />
-     <Text style={s.toolText}>BUKLOD IGPAT</Text>
-    </Pressable></View>
+     <Pressable
+      style={s.tool}
+      disabled={busy || videoBusy186O}
+      onPress={()=>void pickWallVideo186O()}
+     >
+      <MaterialCommunityIcons name="video-plus-outline" size={17} color={colors.green}/>
+      <Text style={s.toolText}>
+       {videoBusy186O
+        ? 'Preparing...'
+        : wallVideo186O
+         ? 'Change Video'
+         : 'Add Video'}
+      </Text>
+     </Pressable>
+</View>
     {!!communityGif&&(
      <BuklodCommunityGifPreview
       file={communityGif}
@@ -3397,11 +3526,8 @@ const refreshCommunity186L=
       {publishNotice}
      </Text>
     )}
-    <Text style={[shared.muted,{marginBottom:8,fontSize:11}]}>
-      Up to {COMMUNITY_MAX_PHOTOS} photos per post. Videos are posted through BUKLOD IGPAT. Posting continues in the background so you can keep using BUKLOD.
-      {photos.length
-       ? ' Long-press a photo to highlight, draw, add text, emoji, or remove.'
-       : ''}
+    <Text style={[shared.muted,{marginBottom:8,fontSize:10}]}>
+      Max. {COMMUNITY_MAX_PHOTOS} photos or 1 video · Video up to 1 GB / 30 min
     </Text>
     
     {!!wallVideo186O&&(
@@ -3510,6 +3636,7 @@ const refreshCommunity186L=
      onPress={publish}
     />
    </Card>
+   <BuklodCommunityWallEngagementLayer onIntent={activateComposerIntent} />
    <SectionTitle>COMMUNITY POSTS</SectionTitle>
   </View></BuklodFocusFadeUp>}
   ListEmptyComponent={<Card><Text style={shared.muted}>No Public posts yet.</Text></Card>}
@@ -3679,10 +3806,25 @@ const refreshCommunity186L=
     </View>
    </View>
    </View>
-   <Text style={s.body}>{String(repairMojibakeText(item.body) ?? '').replace(
-  /^Shared from [^\r\n]+(?:\r?\n\s*|$)+/i,
-  ''
-)}</Text>{!!ms.length&&<Text style={s.mentioned}>{ms.map((x:any)=>`@${x.full_name}`).join(' ')}</Text>}
+   <Text style={s.body}>{(()=>{
+    const cleanedBody=
+      String(
+        repairMojibakeText(item.body) ??
+        ''
+      ).replace(
+        /^Shared from [^\r\n]+(?:\r?\n\s*|$)+/i,
+        ''
+      );
+
+    return (
+      communityPostIsVideo(item) &&
+      /^Shared a video\.\s*$/i.test(
+        cleanedBody
+      )
+    )
+      ? ''
+      : cleanedBody;
+   })()}</Text>{!!ms.length&&<Text style={s.mentioned}>{ms.map((x:any)=>`@${x.full_name}`).join(' ')}</Text>}
 
     {renderCommunityMedia(item)}
 

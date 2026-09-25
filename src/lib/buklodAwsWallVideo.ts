@@ -401,7 +401,7 @@ async function uploadNativeMultipart(options: {
 
   if (typeof (source as any).open !== 'function') {
     throw new Error(
-      'This installed app version cannot safely stream large IGPAT videos. Please update BUKLOD before publishing this video.',
+      'This installed app version cannot safely stream large videos. Please update BUKLOD before publishing this video.',
     );
   }
 

@@ -169,7 +169,7 @@ export async function adminReviewBuklodR38Withdrawal(
   reason?: string,
 ) {
   return rpc<Record<string, unknown>>(
-    'admin_review_buklod_r38_referral_withdrawal_v1',
+    'admin_review_buklod_pf_withdrawal_v2',
     {
       p_withdrawal_id: withdrawalId,
       p_approve: approve,
@@ -181,7 +181,7 @@ export async function adminReviewBuklodR38Withdrawal(
 
 export async function adminGetBuklodR38PayoutDetails(withdrawalId: string) {
   return rpc<BuklodR38PayoutDetails>(
-    'admin_get_buklod_r38_withdrawal_payout_details_v1',
+    'admin_get_buklod_pf_withdrawal_payout_details_v2',
     { p_withdrawal_id: withdrawalId },
     'Could not access payout destination.',
   );
@@ -192,7 +192,7 @@ export async function adminMarkBuklodR38WithdrawalPaid(
   transactionRef: string,
 ) {
   return rpc<Record<string, unknown>>(
-    'admin_mark_buklod_r38_referral_withdrawal_paid_v1',
+    'admin_mark_buklod_pf_withdrawal_paid_v2',
     {
       p_withdrawal_id: withdrawalId,
       p_transaction_ref: transactionRef.trim(),

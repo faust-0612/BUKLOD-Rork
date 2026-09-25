@@ -26,6 +26,8 @@ export const formationCopy = {
     'Complete the previous BUKLOD stage first. Your finished lessons stay saved — you just need to finish the stage before this one opens.',
   lessonPendingReleaseGuide:
     'This lesson is on your track but not released yet. Your Pastor or organization admin will open it when it is ready.',
+  lessonDailyWaitGuide:
+    'BUKLOD opens one lesson at a time. After you pass the current lesson, the next lesson opens the following day.',
   lessonCouldNotOpenGuide:
     'We could not open this lesson right now. Go back and try again, or ask your Pastor or organization admin if this keeps happening.',
   lessonOpeningTitle: 'Opening lesson',
@@ -65,6 +67,7 @@ const blockingFriendly: Record<FormationBlockingReason, string> = {
 const lessonBlockingExtraGuide: Record<string, string> = {
   STAGE_LOCKED: formationCopy.lessonStageLockedGuide,
   LESSON_NOT_RELEASED: formationCopy.lessonPendingReleaseGuide,
+  NEXT_LESSON_DAILY_WAIT: formationCopy.lessonDailyWaitGuide,
   CURRICULUM_NOT_ASSIGNED: formationCopy.curriculumPreparing,
   FORMATION_TRACK_NOT_ASSIGNED: formationCopy.trackAssignmentHint,
 };
@@ -78,7 +81,8 @@ export function lessonBlockingGuide(
 
 const lessonBlockingFriendly: Record<string, string> = {
   LESSON_NOT_RELEASED: 'This lesson is not available yet.',
-  PREREQUISITE_LESSON_INCOMPLETE: 'Complete the previous lesson first.',
+  NEXT_LESSON_DAILY_WAIT: 'Next lesson opens the following day.',
+  PREREQUISITE_LESSON_INCOMPLETE: 'Complete and pass the previous lesson first.',
   FORMATION_TRACK_NOT_ASSIGNED: 'Your formation track has not been assigned yet.',
   CURRICULUM_NOT_ASSIGNED: 'Your formation lessons are being prepared.',
   STAGE_LOCKED: 'Complete the previous stage first.',

@@ -133,7 +133,17 @@ export default function DeleteAccountScreen() {
         title={busy ? 'DELETING...' : 'DELETE MY ACCOUNT PERMANENTLY'}
         onPress={remove}
       />
-      <Button title="CANCEL" outline onPress={() => router.back()} />
+      <Button
+        title="CANCEL"
+        outline
+        onPress={() => {
+          if (router.canGoBack()) {
+            router.back();
+            return;
+          }
+          router.replace('/(tabs)/me' as any);
+        }}
+      />
     </ScrollView>
   );
 }

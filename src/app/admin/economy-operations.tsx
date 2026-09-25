@@ -14,6 +14,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import { AdminGate } from '@/components/AdminGate';
+import BuklodCommunityEconomyAdminCard from '@/components/BuklodCommunityEconomyAdminCard';
 import { shared } from '@/components/UI';
 import {
   adminAddBuklodR38FinancialEntry,
@@ -392,6 +393,8 @@ export default function AdminEconomyOperationsScreen() {
                 <Text style={styles.reportLinkText}>OPEN FULL ECONOMY REPORT</Text>
               </Pressable>
             </View>
+
+            <BuklodCommunityEconomyAdminCard periodKey={periodKey} />
 
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Referral qualification</Text>

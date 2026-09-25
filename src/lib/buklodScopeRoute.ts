@@ -426,7 +426,9 @@ export async function exitScopedWorkspace(
   scopes: BuklodScope[],
   destination:
     | '/home'
-    | '/(tabs)/me' = '/home'
+    | '/buklod'
+    | '/(tabs)/buklod'
+    | '/(tabs)/me' = '/buklod'
 ) {
   const publicScope = scopes.find(
     (scope) =>

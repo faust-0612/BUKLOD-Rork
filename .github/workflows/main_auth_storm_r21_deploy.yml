@@ -2,14 +2,11 @@ name: BUKLOD Main Auth Storm R21 + Concurrency R32 Deploy
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/main_auth_storm_r21_deploy.yml'
-      - 'src/lib/buklodAuthResilience.ts'
-      - 'src/lib/buklodR4RequestShield.ts'
-      - 'src/lib/supabase.ts'
+
+# BUKLOD_FINAL_RELEASE_PIPELINE_R1
+# Automatic production deployment is centralized in
+# .github/workflows/buklod_main_final_release.yml.
+# This historical workflow remains manual-only for rollback/forensics.
 
 permissions:
   contents: read

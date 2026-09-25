@@ -44,15 +44,14 @@ export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
     detectSessionInUrl: false,
   },
   global: {
-    headers: {
-      'x-buklod-client':
-        Platform.OS === 'web'
-          ? 'web'
-          : 'mobile',
-    },
-
-  fetch: buklodPermissionSnapshotFetch
-},
+    headers:
+      Platform.OS === 'web'
+        ? {}
+        : {
+            'x-buklod-client': 'mobile',
+          },
+    fetch: buklodPermissionSnapshotFetch,
+  },
   realtime: {
     params: {
       eventsPerSecond: 8,

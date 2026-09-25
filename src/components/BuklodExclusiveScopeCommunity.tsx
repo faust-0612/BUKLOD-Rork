@@ -10,6 +10,7 @@ import {
   readVideoSizeBytes,
   validateCommunityVideoUpload,
 } from '@/lib/buklodCommunityWallMedia';
+import { assertCommunityVideoQuotaAvailable } from '@/lib/buklodCommunityContributionEconomy';
 import {
   setCommunityPostAuthorOnly,
   saveCommunityPostEdit,
@@ -1191,6 +1192,14 @@ export default function BuklodExclusiveScopeCommunity({
         return;
       }
 
+      if (sizeBytes) {
+        const quota = await assertCommunityVideoQuotaAvailable(sizeBytes);
+        if (quota.allowed === false) {
+          Alert.alert('Monthly Video Allowance','This video would exceed your current monthly Community Wall video allowance.');
+          return;
+        }
+      }
+
       setWallVideo(
         {
           uri:
@@ -1418,7 +1427,7 @@ export default function BuklodExclusiveScopeCommunity({
       ) {
         Alert.alert(
           'Community',
-          'Community accepts text and photos only. Post videos through BUKLOD IGPAT.'
+          'Community accepts text and photos only. Video posting is disabled in this BUKLOD Main release.'
         );
         return;
       }
@@ -1449,7 +1458,7 @@ export default function BuklodExclusiveScopeCommunity({
       ) {
         Alert.alert(
           'Nothing to Post',
-          'Write a message or add photos first.'
+          'Write a message or add photos or a video first.'
         );
 
         return;
@@ -1660,6 +1669,14 @@ export default function BuklodExclusiveScopeCommunity({
 
           isReel =
             false;
+
+          extraMedia = [
+            {
+              media_path: uploadedPath,
+              media_mime_type: snapshot.wallVideo.mimeType,
+              media_size_bytes: snapshot.wallVideo.sizeBytes || 0,
+            },
+          ];
         }
 
         if (
@@ -1742,13 +1759,25 @@ export default function BuklodExclusiveScopeCommunity({
               p_category:
                 'discussion',
               p_media_path:
-                uploadedPath,
+                snapshot.wallVideo &&
+                !snapshot.publishingReel
+                  ? null
+                  : uploadedPath,
               p_media_mime_type:
-                mediaMime,
+                snapshot.wallVideo &&
+                !snapshot.publishingReel
+                  ? null
+                  : mediaMime,
               p_media_size_bytes:
-                mediaSize,
+                snapshot.wallVideo &&
+                !snapshot.publishingReel
+                  ? null
+                  : mediaSize,
               p_duration_seconds:
-                duration,
+                snapshot.wallVideo &&
+                !snapshot.publishingReel
+                  ? null
+                  : duration,
               p_is_reel:
                 isReel,
             }
@@ -3490,71 +3519,7 @@ return (
             styles.modeRow
           }
         >
-          <Pressable
-            onPress={() => {
-              setMode(
-                'wall'
-              );
-              setReel(
-                null
-              );
-            }}
-            style={[
-              styles.modeButton,
-              mode ===
-                'wall' &&
-                styles.modeButtonOn,
-            ]}
-          >
-            <MaterialCommunityIcons
-              name="view-stream-outline"
-              size={19}
-              color={
-                mode ===
-                  'wall'
-                  ? colors.white
-                  : colors.greenDark
-              }
-            />
 
-            <Text
-              style={[
-                styles.modeText,
-                mode ===
-                  'wall' &&
-                  styles.modeTextOn,
-              ]}
-            >
-              WALL
-            </Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() =>
-              router.push('/igpat' as any)
-            }
-            style={
-              styles.modeButton
-            }
-            accessibilityRole="button"
-            accessibilityLabel="Open BUKLOD IGPAT"
-          >
-            <MaterialCommunityIcons
-              name="movie-play-outline"
-              size={19}
-              color={
-                colors.greenDark
-              }
-            />
-
-            <Text
-              style={
-                styles.modeText
-              }
-            >
-              BUKLOD IGPAT
-            </Text>
-          </Pressable>
         </View>
 
         <View
@@ -3952,58 +3917,21 @@ return (
             {mode === 'wall' ? (
               <>
                 <Pressable
-                  disabled={
-                    busy
-                  }
-                  onPress={() =>
-                    void choosePhoto()
-                  }
-                  style={
-                    styles.mediaButton
-                  }
+                  disabled={busy || wallVideoBusy}
+                  onPress={() => void pickWallVideo()}
+                  style={styles.mediaButton}
                 >
                   <MaterialCommunityIcons
-                    name="image-outline"
+                    name="video-plus-outline"
                     size={19}
-                    color={
-                      colors.greenDark
-                    }
+                    color={colors.greenDark}
                   />
-                  <Text
-                    style={
-                      styles.mediaButtonText
-                    }
-                  >
-                    {photos.length
-                      ? `${photos.length}/${COMMUNITY_MAX_PHOTOS} Photos`
-                      : 'Photos'}
-                  </Text>
-                </Pressable>
-
-                <Pressable
-                  disabled={busy}
-                  onPress={() =>
-                    router.push('/igpat/create' as any)
-                  }
-                  style={
-                    styles.mediaButton
-                  }
-                  accessibilityRole="button"
-                  accessibilityLabel="Create in BUKLOD IGPAT"
-                >
-                  <MaterialCommunityIcons
-                    name="video-outline"
-                    size={19}
-                    color={
-                      colors.greenDark
-                    }
-                  />
-                  <Text
-                    style={
-                      styles.mediaButtonText
-                    }
-                  >
-                    BUKLOD IGPAT
+                  <Text style={styles.mediaButtonText}>
+                    {wallVideoBusy
+                      ? 'Preparing...'
+                      : wallVideo
+                        ? 'Change Video'
+                        : 'Add Video'}
                   </Text>
                 </Pressable>
               </>

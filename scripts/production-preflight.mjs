@@ -61,17 +61,38 @@ if (legal.includes('[OFFICIAL ORGANIZATION ADDRESS')) {
   failures.push('Privacy notice still contains the organization-address placeholder.');
 }
 
-const seedProd = read('supabase/seed.production.sql');
-if (/Leadership Pilot|Pilot Week|QA Church|test user/i.test(seedProd)) {
-  failures.push('Production seed appears to contain staging/pilot/demo data.');
+const productionSeedUrl = new URL('../supabase/seed.production.sql', import.meta.url);
+if (fs.existsSync(productionSeedUrl)) {
+  const seedProd = fs.readFileSync(productionSeedUrl, 'utf8');
+  if (/Leadership Pilot|Pilot Week|QA Church|test user/i.test(seedProd)) {
+    failures.push('Production seed appears to contain staging/pilot/demo data.');
+  }
+} else {
+  warnings.push(
+    'No production seed is bundled; release is migrations-only and will not inject demo/baseline data.'
+  );
 }
 
 const migrations = fs.readdirSync(new URL('../supabase/migrations/', import.meta.url))
   .filter(x => x.endsWith('.sql'))
   .sort();
 
-if (migrations.length !== 43) {
-  failures.push(`Expected 43 canonical production migrations; found ${migrations.length}.`);
+if (migrations.length === 0) {
+  failures.push('No production migrations were found.');
+}
+
+const migrationVersions = migrations.map(name => name.match(/^(\d{14})_/)?.[1] ?? '');
+if (migrationVersions.some(version => !version)) {
+  failures.push('Every production migration must begin with a 14-digit timestamp.');
+}
+
+const duplicateVersions = migrationVersions.filter(
+  (version, index) => version && migrationVersions.indexOf(version) !== index
+);
+if (duplicateVersions.length) {
+  failures.push(
+    `Duplicate migration versions detected: ${[...new Set(duplicateVersions)].join(', ')}`
+  );
 }
 
 for (let i=1;i<migrations.length;i++) {
@@ -82,8 +103,8 @@ for (let i=1;i<migrations.length;i++) {
 }
 
 const releaseManifest = JSON.parse(read('release/PRODUCTION_RELEASE_MANIFEST.json'));
-if (releaseManifest.version !== '1.0.0') {
-  warnings.push(`Release manifest version is ${releaseManifest.version}, expected 1.0.0 for initial release.`);
+if (releaseManifest.version !== '1.3.0') {
+  failures.push(`Release manifest version is ${releaseManifest.version}, expected 1.3.0 for this BUKLOD Main release.`);
 }
 
 console.log('BUKLOD Production Preflight');

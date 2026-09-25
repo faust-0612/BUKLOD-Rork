@@ -1,4 +1,5 @@
-﻿import { setFirebaseListeners } from './src/utils/setFirebaseListeners';
+﻿import './src/lib/buklodSentry';
+import { setFirebaseListeners } from './src/utils/setFirebaseListeners';
 import { setPushConfig } from './src/utils/setPushConfig';
 
 setPushConfig();

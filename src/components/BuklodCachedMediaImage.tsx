@@ -26,6 +26,7 @@ type Props = {
   mediaPath?: string | null;
   style?: StyleProp<ImageStyle>;
   contentFit?: 'cover' | 'contain';
+  onLoad?: (event: any) => void;
 };
 
 function BuklodCachedMediaImageInner({
@@ -33,6 +34,7 @@ function BuklodCachedMediaImageInner({
   mediaPath,
   style,
   contentFit = 'cover',
+  onLoad,
 }: Props) {
   const path = String(mediaPath ?? '').trim();
   const cacheKey = communityMediaCacheKey(path, path ? path : uri);
@@ -92,6 +94,7 @@ function BuklodCachedMediaImageInner({
       cachePolicy="memory-disk"
       recyclingKey={cacheKey}
       transition={0}
+      onLoad={onLoad}
       onError={() => {
         if (!path) {
           return;

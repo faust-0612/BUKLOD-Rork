@@ -56,7 +56,7 @@ export default function BuklodFocusAppAdStrip() {
         placement="focus"
         compact
         format="adaptive"
-        requireViewport={false}
+        requireViewport
         showLabel
       />
     </View>

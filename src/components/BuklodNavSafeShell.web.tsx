@@ -7,7 +7,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { usePathname } from 'expo-router';
+import { router, usePathname } from 'expo-router';
 
 import BuklodDesktopWebShell from '@/components/BuklodDesktopWebShell';
 import BuklodFocusAppAdStrip from '@/components/BuklodFocusAppAdStrip';
@@ -24,10 +24,12 @@ import {
 } from '@/lib/buklodAsyncTimeout';
 import {
   isBuklodScopedWorkspacePath,
+  normalizeBuklodPathname,
 } from '@/lib/buklodSafeArea';
 import {
   supabase,
 } from '@/lib/supabase';
+import { useAuth } from '@/providers/AuthProvider';
 
 /*
  * BUKLOD_WEB_RESPONSIVE_SPLIT_R3
@@ -142,6 +144,190 @@ export default function BuklodNavSafeShell({
 
   const { width } = useWindowDimensions();
   const pathname = usePathname();
+  const { user } = useAuth();
+
+  /*
+   * BUKLOD_WEB_TERMINAL_BACK_GUARD_R4
+   *
+   * One authenticated popstate listener stays mounted across ALL public and
+   * scoped routes. R3 mounted the listener only while Profile/Wall was active,
+   * which left a gap during Organization -> Back -> Profile transitions.
+   *
+   * Canonical behavior:
+   * - Profile (/me or /profile) Back -> Community Wall.
+   * - Community Wall (/buklod) Back is always consumed and re-armed.
+   * - Community Wall never reloads or exits on Back.
+   * - Organization/other routes keep their normal browser/router history.
+   */
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    const root = globalThis as any;
+    const browserWindow = root?.window;
+
+    if (
+      !browserWindow?.history?.pushState ||
+      !browserWindow?.history?.replaceState ||
+      !browserWindow?.addEventListener
+    ) {
+      return;
+    }
+
+    const TERMINAL_BASE =
+      '__BUKLOD_WEB_TERMINAL_BASE_R4__';
+    const TERMINAL_GUARD =
+      '__BUKLOD_WEB_TERMINAL_GUARD_R4__';
+
+    const normalizeLivePath = () =>
+      normalizeBuklodPathname(
+        String(
+          browserWindow.location?.pathname ?? ''
+        )
+      );
+
+    const routeKindFor = (path: string) => {
+      if (
+        path === '/me' ||
+        path === '/profile'
+      ) {
+        return 'PROFILE';
+      }
+
+      if (path === '/buklod') {
+        return 'WALL';
+      }
+
+      return null;
+    };
+
+    const armTerminalGuard = (
+      routeKind: 'PROFILE' | 'WALL',
+    ) => {
+      const currentState =
+        browserWindow.history.state &&
+        typeof browserWindow.history.state === 'object'
+          ? browserWindow.history.state
+          : {};
+
+      browserWindow.history.replaceState(
+        {
+          ...currentState,
+          [TERMINAL_BASE]: routeKind,
+          [TERMINAL_GUARD]: undefined,
+        },
+        '',
+        browserWindow.location.href,
+      );
+
+      browserWindow.history.pushState(
+        {
+          ...currentState,
+          [TERMINAL_BASE]: routeKind,
+          [TERMINAL_GUARD]: routeKind,
+        },
+        '',
+        browserWindow.location.href,
+      );
+    };
+
+    const currentKind =
+      routeKindFor(
+        normalizeLivePath()
+      );
+
+    if (currentKind) {
+      armTerminalGuard(
+        currentKind
+      );
+    }
+
+    const onPopState = () => {
+      const livePath =
+        normalizeLivePath();
+
+      const liveKind =
+        routeKindFor(
+          livePath
+        );
+
+      if (liveKind === 'PROFILE') {
+        /*
+         * Re-arm the current Profile entry immediately so a second rapid
+         * hardware Back cannot leave the installed PWA while Expo Router is
+         * converging to the canonical root.
+         */
+        const latestState =
+          browserWindow.history.state &&
+          typeof browserWindow.history.state === 'object'
+            ? browserWindow.history.state
+            : {};
+
+        browserWindow.history.pushState(
+          {
+            ...latestState,
+            [TERMINAL_BASE]: 'PROFILE',
+            [TERMINAL_GUARD]: 'PROFILE',
+          },
+          '',
+          browserWindow.location.href,
+        );
+
+        router.replace(
+          '/buklod' as any
+        );
+
+        return;
+      }
+
+      if (liveKind === 'WALL') {
+        /*
+         * Consume Back at the canonical root. Do NOT reload: reload can reset
+         * the SPA history relationship and was the remaining R3 close path.
+         */
+        const latestState =
+          browserWindow.history.state &&
+          typeof browserWindow.history.state === 'object'
+            ? browserWindow.history.state
+            : {};
+
+        browserWindow.history.pushState(
+          {
+            ...latestState,
+            [TERMINAL_BASE]: 'WALL',
+            [TERMINAL_GUARD]: 'WALL',
+          },
+          '',
+          browserWindow.location.href,
+        );
+
+        return;
+      }
+
+      /*
+       * Non-terminal routes keep normal browser/router Back semantics.
+       * Because this listener remains mounted globally, when that Back lands
+       * on Profile or Wall the next pathname render re-arms its sentinel.
+       */
+    };
+
+    browserWindow.addEventListener(
+      'popstate',
+      onPopState,
+    );
+
+    return () => {
+      browserWindow.removeEventListener(
+        'popstate',
+        onPopState,
+      );
+    };
+  }, [
+    pathname,
+    user?.id,
+  ]);
+
   const publicMinimal =
     !isBuklodScopedWorkspacePath(pathname);
 

@@ -264,7 +264,7 @@ export async function saveMyBuklodR38PayoutProfile(input: {
 
 export async function loadMyBuklodR38WithdrawalHistory(limit = 50) {
   const { data, error } = await (supabase as any).rpc(
-    'get_my_buklod_r38_referral_withdrawals_v1',
+    'get_my_buklod_pf_withdrawals_v2',
     { p_limit: limit },
   );
 
@@ -280,7 +280,7 @@ export async function requestMyBuklodR38ReferralWithdrawal(
   idempotencyKey?: string,
 ) {
   const { data, error } = await (supabase as any).rpc(
-    'request_my_buklod_r38_referral_withdrawal_v1',
+    'request_my_buklod_pf_withdrawal_v2',
     {
       p_payout_method: profile.payout_method,
       p_payout_profile_ref: profile.id,
@@ -302,7 +302,7 @@ export async function requestMyBuklodR38ReferralWithdrawal(
 
 export async function cancelMyBuklodR38ReferralWithdrawal(withdrawalId: string) {
   const { data, error } = await (supabase as any).rpc(
-    'cancel_my_buklod_r38_referral_withdrawal_v1',
+    'cancel_my_buklod_pf_withdrawal_v2',
     { p_withdrawal_id: withdrawalId },
   );
 

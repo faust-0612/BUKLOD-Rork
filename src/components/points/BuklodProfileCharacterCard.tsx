@@ -80,6 +80,10 @@ import {
 } from '@/lib/supabase';
 
 import {
+  withBuklodTimeout,
+} from '@/lib/buklodAsyncTimeout';
+
+import {
   withAlpha,
 } from '@/lib/buklodContrast';
 
@@ -162,13 +166,17 @@ export default function BuklodProfileCharacterCard({
     setTopTenBusy(true);
 
     try {
-      const { data, error } = await (supabase as any).rpc(
-        'get_buklod_points_leaderboard',
-        {
-          p_period: 'all_time',
-          p_limit: 10,
-          p_church_id: null,
-        },
+      const { data, error } = await withBuklodTimeout<any>(
+        (supabase as any).rpc(
+          'get_buklod_points_leaderboard',
+          {
+            p_period: 'all_time',
+            p_limit: 10,
+            p_church_id: null,
+          },
+        ),
+        8_000,
+        'Profile Points leaderboard',
       );
 
       if (error) {

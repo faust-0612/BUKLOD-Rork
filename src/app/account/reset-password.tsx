@@ -34,9 +34,22 @@ import {
 import {
   consumeSupabaseRecoveryUrl,
 } from '@/lib/buklodAuthRecovery';
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
+import { BuklodFeedbackBanner } from '@/components/BuklodFeedbackBanner';
+import { useBuklodFeedback } from '@/providers/BuklodFeedbackProvider';
+import { useBuklodI18n } from '@/providers/BuklodI18nProvider';
+import {
+  buildBuklodUserFeedback,
+  trackBuklodFeedbackEvent,
+  type BuklodUserFeedback,
+} from '@/lib/buklodUserFeedback';
 
 export default function
 ResetPasswordScreen() {
+  const { t } = useBuklodI18n();
+  const { showFeedback } = useBuklodFeedback();
+  const [feedback, setFeedback] =
+    useState<BuklodUserFeedback | null>(null);
   const [
     ready,
     setReady,
@@ -85,14 +98,36 @@ ResetPasswordScreen() {
           error
         ) {
           console.warn(
-            'Recovery deep link:',
-            String(
-              (
-                error as any
-              )?.message ??
-                error
-            )
+            'Recovery deep link could not be consumed.'
           );
+          const next = buildBuklodUserFeedback(
+            error,
+            {
+              context: 'recovery',
+              fallbackTitle: 'Recovery link problem',
+              fallbackMessage:
+                'This recovery link could not be opened safely. Request a new recovery link.',
+            },
+          );
+          if (active) {
+            setFeedback({
+              ...next,
+              title: 'Recovery link problem',
+              message:
+                'This recovery link could not be opened safely. Request a new recovery link.',
+              nextStep: 'Request a new recovery link or open Need Help.',
+              supportCode: next.supportCode ?? 'REC-100',
+              needsSupport: true,
+            });
+          }
+          void trackBuklodFeedbackEvent({
+            event: 'error_shown',
+            category: next.category,
+            supportCode: next.supportCode ?? 'REC-100',
+            route: '/account/reset-password',
+            feature: 'Password Recovery',
+            outcome: 'recovery_link_failed',
+          });
         }
 
         const {
@@ -183,10 +218,16 @@ ResetPasswordScreen() {
         password.length <
         8
       ) {
-        Alert.alert(
-          'New Password',
-          'Use at least 8 characters.'
-        );
+        setFeedback({
+          tone: 'warning',
+          category: 'VALIDATION_ERROR',
+          title: 'Password is too short',
+          message: 'Use at least 8 characters.',
+          nextStep: 'Create a longer password, then try again.',
+          supportCode: null,
+          retryable: false,
+          needsSupport: false,
+        });
         return;
       }
 
@@ -194,40 +235,78 @@ ResetPasswordScreen() {
         password !==
         confirm
       ) {
-        Alert.alert(
-          'New Password',
-          'The passwords do not match.'
-        );
+        setFeedback({
+          tone: 'warning',
+          category: 'VALIDATION_ERROR',
+          title: 'Passwords do not match',
+          message: 'The two password fields must match.',
+          nextStep: 'Re-enter the confirmation password.',
+          supportCode: null,
+          retryable: false,
+          needsSupport: false,
+        });
         return;
       }
 
       setBusy(true);
+      setFeedback(null);
+      void trackBuklodFeedbackEvent({
+        event: 'recovery_attempted',
+        route: '/account/reset-password',
+        feature: 'Password Recovery',
+        outcome: 'password_update',
+      });
 
       try {
         const {
           error,
         } =
-          await supabase
-            .auth
-            .updateUser({
-              password,
-            });
+          await withBuklodTimeout(
+            supabase
+              .auth
+              .updateUser({
+                password,
+              }),
+            15_000,
+            'Update recovery password',
+          );
 
         if (error) {
           throw error;
         }
 
-        await supabase
-          .auth
-          .signOut();
+        await withBuklodTimeout(
+          supabase.auth.signOut(),
+          10_000,
+          'Recovery sign out',
+        );
+
+        const successFeedback: BuklodUserFeedback = {
+          tone: 'success',
+          category: null,
+          title: t('recovery.passwordUpdated'),
+          message: t('recovery.passwordUpdatedNext'),
+          nextStep: 'Go to Login and use your new password.',
+          supportCode: null,
+          retryable: false,
+          needsSupport: false,
+        };
+        setFeedback(successFeedback);
+        showFeedback(successFeedback, { autoHideMs: 5200 });
+        void trackBuklodFeedbackEvent({
+          event: 'recovery_success',
+          route: '/account/reset-password',
+          feature: 'Password Recovery',
+          outcome: 'password_updated',
+        });
 
         Alert.alert(
-          'Password Changed',
-          'Your new password is ready. Sign in again.',
+          t('recovery.passwordUpdated'),
+          t('recovery.passwordUpdatedNext'),
           [
             {
               text:
-                'SIGN IN',
+                'GO TO LOGIN',
               onPress:
                 () =>
                   router.replace(
@@ -239,15 +318,33 @@ ResetPasswordScreen() {
       } catch (
         error
       ) {
-        Alert.alert(
-          'New Password',
-          String(
-            (
-              error as any
-            )?.message ??
-              error
-          )
+        const next = buildBuklodUserFeedback(
+          error,
+          {
+            context: 'recovery',
+            fallbackTitle: 'Password update failed',
+            fallbackMessage:
+              "We couldn't update your password right now.",
+          },
         );
+        const safeFeedback: BuklodUserFeedback = {
+          ...next,
+          title: 'Password update failed',
+          message:
+            "We couldn't update your password right now.",
+          nextStep: 'Try again. If it repeats, open Need Help.',
+          supportCode: next.supportCode ?? 'REC-100',
+          needsSupport: true,
+        };
+        setFeedback(safeFeedback);
+        void trackBuklodFeedbackEvent({
+          event: 'error_shown',
+          category: safeFeedback.category,
+          supportCode: safeFeedback.supportCode,
+          route: '/account/reset-password',
+          feature: 'Password Recovery',
+          outcome: 'password_update_failed',
+        });
       } finally {
         setBusy(false);
       }
@@ -305,6 +402,42 @@ ResetPasswordScreen() {
       >
         Set New Password
       </Text>
+
+      {!!feedback && (
+        <View style={styles.feedbackWrap}>
+          <BuklodFeedbackBanner
+            feedback={feedback}
+            onRetry={
+              feedback.retryable && !busy
+                ? () => void save()
+                : null
+            }
+            onNeedHelp={
+              feedback.needsSupport
+                ? () => {
+                    void trackBuklodFeedbackEvent({
+                      event: 'support_opened_after_error',
+                      category: feedback.category,
+                      supportCode: feedback.supportCode,
+                      route: '/account/reset-password',
+                      feature: 'Password Recovery',
+                      outcome: 'need_help',
+                    });
+                    router.push({
+                      pathname: '/help' as any,
+                      params: {
+                        category: 'RECOVERY_CODE',
+                        errorCode: feedback.supportCode ?? 'REC-100',
+                        message: feedback.message,
+                        sourceRoute: '/account/reset-password',
+                      },
+                    });
+                  }
+                : null
+            }
+          />
+        </View>
+      )}
 
       {!ready ? (
         <View
@@ -408,11 +541,16 @@ ResetPasswordScreen() {
             ]}
           >
             {busy ? (
-              <ActivityIndicator
-                color={
-                  colors.white
-                }
-              />
+              <View style={styles.busyRow}>
+                <ActivityIndicator
+                  color={
+                    colors.white
+                  }
+                />
+                <Text style={styles.primaryText}>
+                  UPDATING PASSWORD…
+                </Text>
+              </View>
             ) : (
               <Text
                 style={
@@ -481,6 +619,13 @@ const styles =
       fontWeight: '900',
     },
 
+    feedbackWrap: {
+      width: '100%',
+      maxWidth: 620,
+      alignSelf: 'center',
+      marginBottom: 12,
+    },
+
     card: {
       padding: 16,
       borderWidth: 1,
@@ -532,6 +677,13 @@ const styles =
       borderRadius: 13,
       backgroundColor:
         colors.greenDark,
+    },
+
+    busyRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
     },
 
     primaryText: {

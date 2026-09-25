@@ -133,6 +133,8 @@ export function BuklodGuideAvatar() {
   /* PATCH_167M_ALL_DASHBOARDS_EXCEPT_PROFILE */
   const guideVisible =
     Boolean(session) &&
+    !pathname.startsWith('/help') &&
+    !pathname.startsWith('/support') &&
     !pathname.includes('points') &&
     !pathname.includes('/privacy') &&
     !pathname.includes('/delete-account') &&

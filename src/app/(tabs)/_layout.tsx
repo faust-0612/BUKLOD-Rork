@@ -1,9 +1,6 @@
 import BuklodDashboardContextBar from '@/components/BuklodDashboardContextBar';
 import BuklodHeaderSponsor from '@/components/BuklodHeaderSponsor';
 import {
-  warmBuklodInterstitial,
-} from '@/lib/buklodAds';
-import {
   Redirect,
   Stack,
   router,
@@ -79,7 +76,7 @@ function SwipeDashboardHeader() {
     pathname.startsWith('/home/')
   ) {
     title = 'Buklod';
-    placement = 'home';
+    placement = null;
   } else if (
     pathname === '/messages' ||
     pathname.startsWith('/messages/')
@@ -244,9 +241,6 @@ export default function TabsLayout() {
     config,
   } = useRuntimeConfig();
 
-  useEffect(() => {
-    warmBuklodInterstitial();
-  }, []);
 
   /*
    * BUKLOD_GLOBAL_BOOT_R20
@@ -414,6 +408,11 @@ export default function TabsLayout() {
 
           <View
             key="workspace-center"
+            {...(
+              Platform.OS === 'web'
+                ? ({ 'google-side-rail-overlap': 'false' } as any)
+                : {}
+            )}
             style={{
               flex: desktopHome ? 2.8 : 1,
               minWidth: 0,

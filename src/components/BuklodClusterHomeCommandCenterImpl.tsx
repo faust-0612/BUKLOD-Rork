@@ -310,7 +310,7 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
     />
    </Pressable>
   )}
-  <BuklodScreenBottomBanner placement="home" variant="large" />
+  <BuklodScreenBottomBanner placement="content" variant="large" />
   <View style={{height:28}}/>
  </ScrollView>
  <Modal

@@ -1,3 +1,6 @@
+const sentryOrg = (process.env.SENTRY_ORG || '').trim();
+const sentryProject = (process.env.SENTRY_PROJECT || '').trim();
+
 const googleMapsAndroidApiKey =
   (
     process.env.GOOGLE_MAPS_ANDROID_API_KEY ||
@@ -27,6 +30,9 @@ module.exports = ({ config }) => {
 
   const webOutput = (process.env.BUKLOD_WEB_OUTPUT || 'single').trim();
 
+  // BUKLOD_MAIN_CANONICAL_BRAND_R1 — one asset for Main icon, adaptive icon, web favicon, and native splash.
+  const mainBrandIcon = './assets/release/app-icon.png';
+
   const appName = isClassroom
     ? (isStaging ? 'BUKLOD Classroom Staging' : 'BUKLOD Classroom')
     : (isStaging ? 'BUKLOD Staging' : 'BUKLOD');
@@ -51,7 +57,7 @@ module.exports = ({ config }) => {
 
     userInterfaceStyle: 'automatic',
 
-    icon: isClassroom ? './assets/classroom/app-icon.png' : './assets/release/app-icon.png',
+    icon: isClassroom ? './assets/classroom/app-icon.png' : mainBrandIcon,
 
     assetBundlePatterns: [
       'assets/**',
@@ -79,7 +85,7 @@ module.exports = ({ config }) => {
     android: {
       package: packageId,
 
-      versionCode: isStaging ? undefined : 20,
+      versionCode: isStaging ? undefined : 21,
 
       // Never silently reuse Main Firebase credentials for the standalone Classroom package.
       googleServicesFile: isClassroom
@@ -95,7 +101,33 @@ module.exports = ({ config }) => {
         'android.permission.MODIFY_AUDIO_SETTINGS',
         'android.permission.BLUETOOTH',
         'android.permission.BLUETOOTH_CONNECT',
+        'android.permission.POST_NOTIFICATIONS',
+        'android.permission.VIBRATE',
+        'android.permission.FOREGROUND_SERVICE',
+        'android.permission.FOREGROUND_SERVICE_MICROPHONE',
+        'android.permission.FOREGROUND_SERVICE_CAMERA',
+        'android.permission.FOREGROUND_SERVICE_PHONE_CALL',
+        'android.permission.MANAGE_OWN_CALLS',
+        'android.permission.USE_FULL_SCREEN_INTENT',
       ],
+
+      intentFilters:
+        (!isClassroom && !isStaging)
+          ? [
+              {
+                action: 'VIEW',
+                autoVerify: false,
+                data: [
+                  {
+                    scheme: 'https',
+                    host: 'buklod.expo.app',
+                    pathPrefix: '/register',
+                  },
+                ],
+                category: ['BROWSABLE', 'DEFAULT'],
+              },
+            ]
+          : [],
 
       blockedPermissions: [
         'android.permission.READ_MEDIA_IMAGES',
@@ -107,7 +139,7 @@ module.exports = ({ config }) => {
       adaptiveIcon: {
         foregroundImage: isClassroom
           ? './assets/classroom/adaptive-icon.png'
-          : './assets/release/app-icon.png',
+          : mainBrandIcon,
 
         backgroundColor:
           '#FFFFFF',
@@ -126,6 +158,16 @@ module.exports = ({ config }) => {
 
 
     plugins: [
+      ...(sentryOrg && sentryProject
+        ? [[
+            '@sentry/react-native/expo',
+            {
+              url: 'https://sentry.io/',
+              organization: sentryOrg,
+              project: sentryProject,
+            },
+          ]]
+        : []),
       'expo-background-task',
       [
         'react-native-google-mobile-ads',
@@ -179,8 +221,32 @@ module.exports = ({ config }) => {
 
       './plugins/withBuklodWebRTC.js',
 
+      ...(!isClassroom
+        ? [
+            './plugins/withBuklodSosQuickSettings.js',
+          ]
+        : []),
 
-      'expo-router',
+
+      'expo-image',
+      'expo-sqlite',
+
+      [
+        'expo-router',
+        {
+          headers: {
+            'Cross-Origin-Embedder-Policy': 'credentialless',
+            'Cross-Origin-Opener-Policy': 'same-origin',
+          },
+        },
+      ],
+
+      [
+        'expo-screen-orientation',
+        {
+          initialOrientation: 'DEFAULT',
+        },
+      ],
 
 
 
@@ -344,7 +410,7 @@ module.exports = ({ config }) => {
 
           image: isClassroom
             ? './assets/classroom/splash-icon.png'
-            : './assets/release/splash-icon.png',
+            : mainBrandIcon,
 
           imageWidth: 200,
 
@@ -354,7 +420,7 @@ module.exports = ({ config }) => {
 
             image: isClassroom
               ? './assets/classroom/splash-icon.png'
-              : './assets/release/splash-icon.png',
+              : './assets/release/app-icon.png',
           },
         },
       ],

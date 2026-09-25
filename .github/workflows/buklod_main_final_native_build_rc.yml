@@ -1,0 +1,178 @@
+name: BUKLOD Main Final Native Build RC
+
+on:
+  push:
+    branches:
+      - release/buklod-main-final-rc-20260923
+    paths:
+      - '.github/workflows/buklod_main_final_native_build_rc.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: buklod-main-final-native-build-rc
+  cancel-in-progress: false
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  EXPO_PUBLIC_APP_ENV: production
+  APP_VARIANT: production
+  BUKLOD_APP_TARGET: main
+
+jobs:
+  native-gate-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout exact release branch commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Record exact native RC
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "NATIVE_RC_SHA=$(git rev-parse HEAD)"
+          echo "NATIVE_RC_PARENT=$(git rev-parse HEAD^)"
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          git status --short
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: TypeScript
+        run: npx tsc --noEmit
+
+      - name: Full native release gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run release:apk:gate
+          npm run health:contract
+
+      - name: Verify exact Main production identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F "version: '1.3.0'" app.config.js
+          grep -F "versionCode: isStaging ? undefined : 21" app.config.js
+          grep -F "'org.mzbministry.buklod'" app.config.js
+          grep -F "const mainBrandIcon = './assets/release/app-icon.png';" app.config.js
+          grep -F '"production-apk"' eas.json
+          grep -F '"buildType": "app-bundle"' eas.json
+          test -s assets/release/app-icon.png
+          test -s google-services.production.json
+          node <<'NODE'
+          const fs = require('fs');
+          const crypto = require('crypto');
+          const icon = fs.readFileSync('assets/release/app-icon.png');
+          const iconHash = crypto.createHash('sha256').update(icon).digest('hex');
+          if (iconHash !== '3c6519857023ddeaf327828456f38746ededd8312ad9dc93b00e7da17cd7132e') {
+            throw new Error('Canonical BUKLOD logo hash mismatch');
+          }
+          const cfg = JSON.parse(fs.readFileSync('google-services.production.json','utf8'));
+          const clients = cfg.client || [];
+          const main = clients.find(c => c?.client_info?.android_client_info?.package_name === 'org.mzbministry.buklod');
+          if (!main) throw new Error('Production Firebase client for BUKLOD Main missing');
+          console.log('NATIVE_IDENTITY=PASS');
+          console.log('BRAND_HASH=PASS');
+          NODE
+
+      - name: Expo / EAS identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          npx eas-cli@latest whoami --non-interactive
+          npx expo-doctor@latest
+
+      - name: Production Android JS export sanity
+        shell: bash
+        env:
+          NODE_ENV: production
+        run: |
+          set -euo pipefail
+          rm -rf dist-android
+          npx expo export --platform android --output-dir dist-android --clear
+          test -d dist-android
+          find dist-android -type f | grep -q .
+          echo "ANDROID_EXPORT=PASS"
+
+      - name: Verify source remains clean
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          git diff --exit-code -- .
+          git diff --cached --exit-code -- .
+
+      - name: Build final production APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest build             --platform android             --profile production-apk             --non-interactive             --wait             --json | tee eas-final-apk.json
+          test -s eas-final-apk.json
+
+      - name: Build final production AAB
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest build             --platform android             --profile production             --non-interactive             --wait             --json | tee eas-final-aab.json
+          test -s eas-final-aab.json
+
+      - name: Summarize native artifacts
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          function first(path) {
+            const parsed = JSON.parse(fs.readFileSync(path,'utf8'));
+            return Array.isArray(parsed) ? parsed[0] : parsed;
+          }
+          const apk = first('eas-final-apk.json');
+          const aab = first('eas-final-aab.json');
+          const pick = b => ({
+            id: b?.id || '',
+            status: b?.status || '',
+            url: b?.artifacts?.buildUrl || b?.artifacts?.applicationArchiveUrl || '',
+          });
+          const A = pick(apk), B = pick(aab);
+          if (!A.url) throw new Error('APK artifact URL missing');
+          if (!B.url) throw new Error('AAB artifact URL missing');
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+            '# BUKLOD Main Final Native Build\n\n' +
+            '- RC SHA: ' + process.env.GITHUB_SHA + '\n' +
+            '- Version: 1.3.0\n' +
+            '- VersionCode: 21\n' +
+            '- APK build: ' + A.id + ' (' + A.status + ')\n' +
+            '- APK: ' + A.url + '\n' +
+            '- AAB build: ' + B.id + ' (' + B.status + ')\n' +
+            '- AAB: ' + B.url + '\n'
+          );
+          console.log('APK_BUILD_ID=' + A.id);
+          console.log('APK_URL=' + A.url);
+          console.log('AAB_BUILD_ID=' + B.id);
+          console.log('AAB_URL=' + B.url);
+          NODE
+
+      - name: Preserve native build records
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-main-final-native-${{ github.sha }}
+          path: |
+            eas-final-apk.json
+            eas-final-aab.json
+          if-no-files-found: ignore
+          retention-days: 90

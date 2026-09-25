@@ -1,8 +1,13 @@
 const path = require('path');
-const { getDefaultConfig } = require('expo/metro-config');
+const { getSentryExpoConfig } = require('@sentry/react-native/metro');
 
 /** @type {import('expo/metro-config').MetroConfig} */
-const config = getDefaultConfig(__dirname);
+const config = getSentryExpoConfig(__dirname);
+
+// BUKLOD_EXPO_SQLITE_WEB_WASM_R1 — Expo SQLite web requires .wasm as a Metro asset.
+if (!config.resolver.assetExts.includes('wasm')) {
+  config.resolver.assetExts.push('wasm');
+}
 
 const blockPatterns = [
   /[/\\]BUKLOD_PLAYSTORE_ARCHIVE_CHECK[/\\].*/,
