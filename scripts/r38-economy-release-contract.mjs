@@ -99,6 +99,7 @@ requireText(registerPath, register, [
 ]);
 
 requireText(bayanihanPath, bayanihan, [
+  'const canonical = report?.canonical_finance;',
   'Qualified Monthly Points',
   '30% User Pool',
   'First-Line Referral',
@@ -134,6 +135,7 @@ requireText(migrationPath, migration, [
   'get_my_buklod_financial_summary_v3',
   'R38 financial finalization is superseded',
   'Legacy R38 withdrawal is superseded',
+  'System Admin access required',
 ]);
 
 requireText(containmentMigrationPath, containmentMigration, [
