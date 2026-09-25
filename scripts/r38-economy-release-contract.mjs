@@ -1,11 +1,10 @@
 import fs from 'node:fs';
 
 const failures = [];
-const warnings = [];
 
 function read(path) {
   if (!fs.existsSync(path)) {
-    failures.push(`Missing required R38 source: ${path}`);
+    failures.push(`Missing required canonical finance source: ${path}`);
     return '';
   }
   return fs.readFileSync(path, 'utf8');
@@ -13,111 +12,148 @@ function read(path) {
 
 function requireText(path, content, needles) {
   for (const needle of needles) {
-    if (!content.includes(needle)) failures.push(`${path} is missing contract marker: ${needle}`);
+    if (!content.includes(needle)) {
+      failures.push(`${path} is missing contract marker: ${needle}`);
+    }
   }
 }
 
 function forbidText(path, content, needles) {
   for (const needle of needles) {
-    if (content.includes(needle)) failures.push(`${path} contains retired/unsafe R38 marker: ${needle}`);
+    if (content.includes(needle)) {
+      failures.push(`${path} contains retired/unsafe finance marker: ${needle}`);
+    }
   }
 }
 
 const userEconomyPath = 'src/lib/buklodR38Economy.ts';
 const adminEconomyPath = 'src/lib/buklodR38AdminEconomy.ts';
+const identityPath = 'src/lib/buklodCanonicalFinanceIdentity.ts';
+const rewardsPath = 'src/lib/buklodRewards.ts';
+const authPath = 'src/providers/AuthProvider.tsx';
+const registerPath = 'src/app/(auth)/register.tsx';
 const bayanihanPath = 'src/app/bayanihan/index.tsx';
-const payoutPath = 'src/app/bayanihan/payout-profile.tsx';
-const withdrawalsPath = 'src/app/bayanihan/withdrawals.tsx';
-const referralPath = 'src/components/BuklodReferralInviteCard.tsx';
-const redeemPath = 'src/components/points/BuklodRedeemCatalogSection.tsx';
-const legacyAdminPath = 'src/app/admin/points-redemptions.tsx';
 const adminReportPath = 'src/app/admin/bayanihan.tsx';
 const adminOpsPath = 'src/app/admin/economy-operations.tsx';
-const adminReportsPath = 'src/app/admin/reports-center.tsx';
+const migrationPath = 'supabase/migrations/20260924144309_buklod_main_profit_first_referral_v2.sql';
+const referralEdgePath = 'supabase/functions/buklod-referral-v2/index.ts';
+const valueEdgePath = 'supabase/functions/buklod-finalized-value-v2/index.ts';
 
 const userEconomy = read(userEconomyPath);
 const adminEconomy = read(adminEconomyPath);
+const identity = read(identityPath);
+const rewards = read(rewardsPath);
+const auth = read(authPath);
+const register = read(registerPath);
 const bayanihan = read(bayanihanPath);
-const payout = read(payoutPath);
-const withdrawals = read(withdrawalsPath);
-const referral = read(referralPath);
-const redeem = read(redeemPath);
-const legacyAdmin = read(legacyAdminPath);
 const adminReport = read(adminReportPath);
 const adminOps = read(adminOpsPath);
-const adminReports = read(adminReportsPath);
+const migration = read(migrationPath);
+const referralEdge = read(referralEdgePath);
+const valueEdge = read(valueEdgePath);
 
 requireText(userEconomyPath, userEconomy, [
-  'get_my_buklod_r38_economy_report_v1',
-  'get_buklod_r38_economy_policy_v1',
-  'get_my_buklod_r38_payout_profile_v1',
-  'set_my_buklod_r38_payout_profile_v1',
-  'get_my_buklod_r38_referral_withdrawals_v1',
-  'request_my_buklod_r38_referral_withdrawal_v1',
-  'cancel_my_buklod_r38_referral_withdrawal_v1',
-  'admin_get_buklod_r38_economy_report_v1',
+  'get_my_buklod_financial_summary_v3',
+  'get_my_buklod_referral_summary_v2',
+  'get_my_buklod_pf_withdrawals_v2',
+  'request_my_buklod_pf_withdrawal_v2',
+  'cancel_my_buklod_pf_withdrawal_v2',
+  'admin_get_buklod_pf_financial_report_v3',
+  'ESTIMATED — SUBJECT TO MONTHLY FINALIZATION',
 ]);
 
 requireText(adminEconomyPath, adminEconomy, [
-  'admin_create_buklod_r38_economic_period_v1',
-  'admin_add_buklod_r38_financial_entry_v1',
-  'admin_set_buklod_r38_period_status_v1',
-  'admin_finalize_buklod_r38_economic_period_v1',
-  'admin_reconcile_buklod_r38_referrals_v1',
-  'admin_list_buklod_r38_referral_withdrawals_v1',
-  'admin_review_buklod_r38_referral_withdrawal_v1',
-  'admin_get_buklod_r38_withdrawal_payout_details_v1',
-  'admin_mark_buklod_r38_referral_withdrawal_paid_v1',
+  'admin_record_buklod_pf_financial_entry_v3',
+  'admin_finalize_buklod_pf_month_v3',
+  'admin_review_buklod_pf_withdrawal_v2',
+  'admin_get_buklod_pf_withdrawal_payout_details_v2',
+  'admin_mark_buklod_pf_withdrawal_paid_v2',
+]);
+
+requireText(identityPath, identity, [
+  "supabase.functions.invoke('buklod-referral-v2'",
+  "action: 'ensure_identity'",
+  "action: 'attach_referral'",
+]);
+
+requireText(rewardsPath, rewards, [
+  'get_my_buklod_referral_summary_v2',
+  'attachBuklodCanonicalReferral',
+]);
+
+requireText(authPath, auth, [
+  'ensureCanonicalFinanceForUser',
+  'ensureBuklodCanonicalFinanceIdentity',
+]);
+
+requireText(registerPath, register, [
+  'ensureBuklodCanonicalFinanceIdentity',
+  'recordReferral',
 ]);
 
 requireText(bayanihanPath, bayanihan, [
+  'Qualified Monthly Points',
+  '30% User Pool',
+  'First-Line Referral',
   'Points are not money',
-  'Real platform revenue first',
-  'Finalized cash can move to payout',
 ]);
-requireText(referralPath, referral, [
-  'VIEW MY ECONOMY REPORT',
-  'PAYOUT PROFILE',
-  'HISTORY',
-]);
-requireText(redeemPath, redeem, [
-  'Points stay progression-only',
-  'OPEN ECONOMY & BAYANIHAN REPORT',
-]);
-requireText(legacyAdminPath, legacyAdmin, [
-  'point-to-value workflow has been retired',
-  'Point-derived money is disabled',
-]);
+
 requireText(adminReportPath, adminReport, [
-  'Hard economic invariant',
-  'OPEN ECONOMY OPERATIONS',
+  'Canonical Finance V3',
+  'User Revenue Pool 30%',
+  'Qualified Monthly Points',
 ]);
+
 requireText(adminOpsPath, adminOps, [
-  'This console contains no activation switches',
-  'FINALIZE FUNDED PERIOD',
+  'FINALIZE CANONICAL MONTH',
+  'UNATTRIBUTED_ELIGIBLE_REVENUE',
+  'Canonical server gates remain authoritative',
   'ACCESS PAYOUT DESTINATION',
   'MARK PAID AFTER EXTERNAL TRANSFER',
 ]);
-requireText(adminReportsPath, adminReports, [
-  'Admin Reports Center',
-  'Lifetime Points',
-  'Pending Claimable',
-  'Bayanihan, Shares & Revenue',
-  'No fixed Points-to-peso',
+
+requireText(migrationPath, migration, [
+  'BUKLOD_CANONICAL_FINANCIAL_ENGINE_V3',
+  "policy_version text not null default 'canonical_finance_v3'",
+  'user_pool_bps integer not null default 3000',
+  'first_line_bps integer not null default 1000',
+  'one_time_referral_centavos bigint not null default 2000',
+  'referred_qualification_centavos bigint not null default 4000',
+  'no_referrer_qualification_centavos bigint not null default 6000',
+  'referral_months integer not null default 6',
+  'USER_POOL_LARGEST_REMAINDER',
+  'record_buklod_finalized_value_v2',
+  'admin_finalize_buklod_pf_month_v3',
+  'get_my_buklod_financial_summary_v3',
+  'R38 financial finalization is superseded',
+  'Legacy R38 withdrawal is superseded',
+]);
+
+requireText(referralEdgePath, referralEdge, [
+  'REFERRAL_IDENTITY_PEPPER',
+  'buklod_pf_link_identity_service_v2',
+  'buklod_pf_attach_referral_service_v2',
+  'auth.getUser(token)',
+]);
+
+requireText(valueEdgePath, valueEdge, [
+  'BUKLOD_FINANCE_VALUE_WEBHOOK_SECRET',
+  'x-buklod-finance-secret',
+  'record_buklod_finalized_value_v2',
+  'idempotency_key',
+  'Positive gross_value_php required',
 ]);
 
 const clientSources = [
   [userEconomyPath, userEconomy],
   [adminEconomyPath, adminEconomy],
+  [identityPath, identity],
+  [rewardsPath, rewards],
+  [authPath, auth],
+  [registerPath, register],
   [bayanihanPath, bayanihan],
-  [payoutPath, payout],
-  [withdrawalsPath, withdrawals],
-  [referralPath, referral],
-  [redeemPath, redeem],
-  [legacyAdminPath, legacyAdmin],
   [adminReportPath, adminReport],
   [adminOpsPath, adminOps],
-  [adminReportsPath, adminReports],
 ];
 
 for (const [path, content] of clientSources) {
@@ -126,55 +162,32 @@ for (const [path, content] of clientSources) {
     'requestBuklodCashReward',
     'point_equivalent_peso',
     'cash_redemption_enabled',
-    'payout_destination_snapshot',
-    'payout_destination_full_snapshot',
-    'payout_account_name_snapshot',
   ]);
-  if (/\.from\(\s*['\"](?:private\.)?buklod_r38_/m.test(content)) {
-    failures.push(`${path} directly accesses an R38 table; client R38 financial access must remain RPC-mediated.`);
-  }
 }
 
-const migrations = [
-  '20260912141510_buklod_unified_economy_r38_a_foundation.sql',
-  '20260912142712_buklod_r38_disable_legacy_point_money_paths.sql',
-  '20260912143050_buklod_r38_actual_revenue_accounting_foundation.sql',
-  '20260912143206_buklod_r38_referral_qualification_and_rcu_engine.sql',
-  '20260912143322_buklod_r38_revenue_reconciliation_and_finalization.sql',
-  '20260912143500_buklod_r38_user_admin_reports_and_withdrawals.sql',
-  '20260912155310_buklod_r38_public_policy_contract_v1.sql',
-  '20260912160805_buklod_r38_secure_payout_profile_v1.sql',
-  '20260912161124_buklod_r38_admin_withdrawal_queue_hardening_v1.sql',
-  '20260912161538_buklod_r38_user_withdrawal_history_v1.sql',
-  '20260912161802_buklod_r38_withdrawal_destination_snapshot_v1.sql',
-  '20260912161836_buklod_r38_withdrawal_replay_privacy_guard_v1.sql',
-  '20260912164859_buklod_r38_fk_index_hardening_v1.sql',
-];
-
-for (const name of migrations) read(`supabase/migrations/${name}`);
-
-const indexHardening = read('supabase/migrations/20260912164859_buklod_r38_fk_index_hardening_v1.sql');
-const indexCount = (indexHardening.match(/create index if not exists/gi) || []).length;
-if (indexCount !== 15) failures.push(`Expected 15 R38 FK hardening indexes, found ${indexCount}.`);
-
-const replayGuard = read('supabase/migrations/20260912161836_buklod_r38_withdrawal_replay_privacy_guard_v1.sql');
-requireText('withdrawal replay privacy guard', replayGuard, [
-  'payout_account_name_snapshot',
-  'payout_destination_snapshot',
+forbidText(rewardsPath, rewards, [
+  'get_my_buklod_referral_summary_v1',
+  'buklod_record_referral_v1',
 ]);
 
-const snapshotGuard = read('supabase/migrations/20260912161802_buklod_r38_withdrawal_destination_snapshot_v1.sql');
-requireText('withdrawal destination snapshot', snapshotGuard, [
-  'payout_account_name_snapshot',
-  'payout_destination_snapshot',
+forbidText(userEconomyPath, userEconomy, [
+  "'get_my_buklod_r38_referral_withdrawals_v1'",
+  "'request_my_buklod_r38_referral_withdrawal_v1'",
+  "'cancel_my_buklod_r38_referral_withdrawal_v1'",
+  "'admin_get_buklod_r38_economy_report_v1'",
 ]);
+
+if (/\.from\(\s*['"](?:private\.)?buklod_pf_/m.test(
+  [userEconomy, adminEconomy, rewards, identity].join('\n'),
+)) {
+  failures.push('Client canonical finance code directly accesses private PF tables; all money access must remain RPC/service mediated.');
+}
 
 if (failures.length) {
-  console.error('R38 ECONOMY RELEASE CONTRACT: FAIL');
+  console.error('CANONICAL FINANCE V3 RELEASE CONTRACT: FAIL');
   for (const item of failures) console.error(`- ${item}`);
   process.exit(1);
 }
 
-console.log('R38 ECONOMY RELEASE CONTRACT: PASS');
-console.log(`Validated ${clientSources.length} R38 client/admin sources and ${migrations.length} ordered economy migrations.`);
-for (const item of warnings) console.warn(`WARN: ${item}`);
+console.log('CANONICAL FINANCE V3 RELEASE CONTRACT: PASS');
+console.log('Validated canonical identity, points-weighted User Pool, referral, withdrawal, admin settlement, migration parity and trusted revenue ingress.');
