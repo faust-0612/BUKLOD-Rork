@@ -281,7 +281,6 @@ export default function AdminReportsCenterScreen() {
   const shareCount = economy?.user_shares?.length ?? 0;
   const revenue = economy?.revenue_chain;
   const qualifiedBcu = economy?.qualified_units?.bcu;
-  const qualifiedRcu = economy?.qualified_units?.rcu;
   const entryGroups = economy?.financial_entry_breakdown?.length ?? 0;
 
   return (
@@ -445,9 +444,7 @@ export default function AdminReportsCenterScreen() {
                 <Metric label="Financial Entry Groups" value={entryGroups.toLocaleString('en-PH')} />
                 <Metric label="User Pool Distributed" value={formatPhp(economy?.distributed?.bayanihan)} />
                 <Metric label="First-Line Referral Distributed" value={formatPhp(economy?.distributed?.direct_referral)} />
-                <Metric label="Available Cash" value={formatPhp(economy?.cash_ledger?.available)} />
-                <Metric label="Reserved Cash" value={formatPhp(economy?.cash_ledger?.reserved)} />
-                <Metric label="Paid Earnings" value={formatPhp(economy?.cash_ledger?.paid)} />
+                <Metric label="Canonical Cash Ledger" value="Open full finance report" note="Aggregate AVAILABLE / RESERVED / PAID is not inferred from missing data." />
               </View>
 
               <View style={styles.twoColumn}>
