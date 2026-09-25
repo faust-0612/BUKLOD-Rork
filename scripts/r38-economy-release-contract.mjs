@@ -72,13 +72,16 @@ requireText(adminEconomyPath, adminEconomy, [
 
 requireText(identityPath, identity, [
   "supabase.functions.invoke('buklod-referral-v2'",
-  "action: 'ensure_identity'",
-  "action: 'attach_referral'",
+  "invokeReferralIdentityService('ensure_identity')",
+  "invokeReferralIdentityService('attach_referral', code)",
 ]);
 
 requireText(rewardsPath, rewards, [
   'get_my_buklod_referral_summary_v2',
   'attachBuklodCanonicalReferral',
+  'one_time_reward_php',
+  'first_line_share_pct',
+  'referral_months',
 ]);
 
 requireText(authPath, auth, [
