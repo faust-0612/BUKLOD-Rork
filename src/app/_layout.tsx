@@ -208,6 +208,7 @@ export default function RootLayout() {
                 <Stack.Screen name="(auth)" />
                 <Stack.Screen name="privacy/index" />
                 <Stack.Screen name="help/index" />
+                <Stack.Screen name="life/index" />
                 <Stack.Screen name="delete-account/index" />
                 <Stack.Screen name="privacy/notice" />
                 <Stack.Screen name="privacy/consent" />
