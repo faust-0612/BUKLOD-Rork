@@ -22,7 +22,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
-import { recordReferral } from '@/lib/buklodRewards';
+import { recordReferral } from '@/lib/buklodRewards';\nimport { ensureBuklodCanonicalFinanceIdentity } from '@/lib/buklodCanonicalFinanceIdentity';
 import { colors } from '@/lib/theme';
 import { useBuklodDrawerBottomInset } from '@/lib/buklodSafeArea';
 
@@ -721,21 +721,23 @@ useEffect(() => {
         return;
       }
 
-      if (referralCode.trim()) {
-        try {
+      try {
+        if (referralCode.trim()) {
           await recordReferral(
             referralCode
           );
-        } catch (
-          referralError: unknown
-        ) {
-          console.warn(
-            'Referral record failed:',
-            referralError instanceof Error
-              ? referralError.message
-              : referralError,
-          );
+        } else {
+          await ensureBuklodCanonicalFinanceIdentity();
         }
+      } catch (
+        referralError: unknown
+      ) {
+        console.warn(
+          'Canonical finance identity/referral setup failed:',
+          referralError instanceof Error
+            ? referralError.message
+            : referralError,
+        );
       }
 
       finishCreateAccount();
