@@ -7,7 +7,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { usePathname } from 'expo-router';
+import { router, usePathname } from 'expo-router';
 
 import BuklodDesktopWebShell from '@/components/BuklodDesktopWebShell';
 import BuklodFocusAppAdStrip from '@/components/BuklodFocusAppAdStrip';
@@ -24,10 +24,12 @@ import {
 } from '@/lib/buklodAsyncTimeout';
 import {
   isBuklodScopedWorkspacePath,
+  normalizeBuklodPathname,
 } from '@/lib/buklodSafeArea';
 import {
   supabase,
 } from '@/lib/supabase';
+import { useAuth } from '@/providers/AuthProvider';
 
 /*
  * BUKLOD_WEB_RESPONSIVE_SPLIT_R3
@@ -142,6 +144,163 @@ export default function BuklodNavSafeShell({
 
   const { width } = useWindowDimensions();
   const pathname = usePathname();
+  const { user } = useAuth();
+
+  /*
+   * BUKLOD_WEB_PROFILE_BACK_TO_WALL_R2
+   *
+   * Mobile web / installed PWA does not execute the native BackHandler in
+   * BuklodNavSafeShell.tsx because Expo resolves this .web.tsx file instead.
+   *
+   * Canonical behavior:
+   * - Profile root (/me or /profile) -> browser/system Back goes to Community Wall.
+   * - Community Wall (/buklod) is the signed-in terminal root.
+   * - Back from Community Wall is consumed by a same-URL history barrier and
+   *   refreshes the Wall instead of leaving/closing the installed PWA.
+   */
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    const normalized =
+      normalizeBuklodPathname(pathname);
+
+    const root = globalThis as any;
+    const browserWindow = root?.window;
+
+    if (
+      !browserWindow?.history?.pushState ||
+      !browserWindow?.addEventListener
+    ) {
+      return;
+    }
+
+    const isProfileRoot =
+      normalized === '/me' ||
+      normalized === '/profile';
+
+    const isWall =
+      normalized === '/buklod';
+
+    if (!isProfileRoot && !isWall) {
+      return;
+    }
+
+    const PROFILE_BASE =
+      '__BUKLOD_WEB_PROFILE_BASE_R2__';
+    const PROFILE_GUARD =
+      '__BUKLOD_WEB_PROFILE_GUARD_R2__';
+    const WALL_BASE =
+      '__BUKLOD_WEB_WALL_BASE_R2__';
+    const WALL_GUARD =
+      '__BUKLOD_WEB_WALL_GUARD_R2__';
+
+    const state =
+      browserWindow.history.state &&
+      typeof browserWindow.history.state === 'object'
+        ? browserWindow.history.state
+        : {};
+
+    if (isProfileRoot) {
+      if (
+        !state?.[PROFILE_BASE] &&
+        !state?.[PROFILE_GUARD]
+      ) {
+        browserWindow.history.replaceState(
+          {
+            ...state,
+            [PROFILE_BASE]: true,
+          },
+          '',
+          browserWindow.location.href,
+        );
+
+        browserWindow.history.pushState(
+          {
+            ...state,
+            [PROFILE_GUARD]: true,
+          },
+          '',
+          browserWindow.location.href,
+        );
+      }
+    }
+
+    if (isWall) {
+      if (
+        !state?.[WALL_BASE] &&
+        !state?.[WALL_GUARD]
+      ) {
+        browserWindow.history.replaceState(
+          {
+            ...state,
+            [WALL_BASE]: true,
+          },
+          '',
+          browserWindow.location.href,
+        );
+
+        browserWindow.history.pushState(
+          {
+            ...state,
+            [WALL_GUARD]: true,
+          },
+          '',
+          browserWindow.location.href,
+        );
+      }
+    }
+
+    const onPopState = () => {
+      if (isProfileRoot) {
+        router.replace('/buklod' as any);
+        return;
+      }
+
+      if (isWall) {
+        const latestState =
+          browserWindow.history.state &&
+          typeof browserWindow.history.state === 'object'
+            ? browserWindow.history.state
+            : {};
+
+        browserWindow.history.pushState(
+          {
+            ...latestState,
+            [WALL_GUARD]: true,
+          },
+          '',
+          browserWindow.location.href,
+        );
+
+        if (
+          typeof browserWindow.location?.reload ===
+          'function'
+        ) {
+          browserWindow.setTimeout(
+            () => browserWindow.location.reload(),
+            0,
+          );
+        }
+      }
+    };
+
+    browserWindow.addEventListener(
+      'popstate',
+      onPopState,
+    );
+
+    return () => {
+      browserWindow.removeEventListener(
+        'popstate',
+        onPopState,
+      );
+    };
+  }, [
+    pathname,
+    user?.id,
+  ]);
   const publicMinimal =
     !isBuklodScopedWorkspacePath(pathname);
 
