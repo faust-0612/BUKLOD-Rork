@@ -418,6 +418,12 @@ export type ReferralSummary = {
   invited_count: number;
   qualified_count: number;
   was_referred: boolean;
+  one_time_reward_php: number;
+  first_line_share_pct: number;
+  referral_months: number;
+  my_qualification_value_php: number;
+  my_qualification_threshold_php: number;
+  my_user_share_active: boolean;
 };
 
 export async function loadReferralSummary(): Promise<ReferralSummary | null> {
@@ -450,6 +456,12 @@ export async function loadReferralSummary(): Promise<ReferralSummary | null> {
     invited_count: toNumber(row.invited_count),
     qualified_count: toNumber(row.qualified_count),
     was_referred: Boolean(row.was_referred),
+    one_time_reward_php: toNumber(row.one_time_reward_php),
+    first_line_share_pct: toNumber(row.first_line_share_pct),
+    referral_months: toNumber(row.referral_months),
+    my_qualification_value_php: toNumber(row.my_qualification_value_php),
+    my_qualification_threshold_php: toNumber(row.my_qualification_threshold_php),
+    my_user_share_active: Boolean(row.my_user_share_active),
   };
 }
 
