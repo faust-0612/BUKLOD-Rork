@@ -172,7 +172,7 @@ export default function BuklodNativeCommunityMapHeader() {
       toolbarEnabled={false}
       showsTraffic
       showsBuildings
-      showsPointsOfInterest
+      showsPointsOfInterests
       pitchEnabled={interactive}
       rotateEnabled={interactive}
       scrollEnabled={interactive}
