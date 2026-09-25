@@ -129,6 +129,13 @@ export type BuklodR38UserEconomyReport = {
     estimated_user_pool_php: number;
     estimated_earnings_php: number;
     latest_finalized_user_share_php: number;
+    latest_first_line_share_php: number;
+    latest_total_share_php: number;
+    lifetime_user_pool_earned_php: number;
+    lifetime_first_line_earned_php: number;
+    lifetime_referral_reward_earned_php: number;
+    lifetime_total_earned_php: number;
+    latest_period_key: string | null;
     withdrawable_php: number;
     reserved_php: number;
     paid_php: number;
@@ -270,10 +277,11 @@ async function loadCanonicalFinanceSummaryWithIdentity() {
 export async function loadMyBuklodR38EconomyReport() {
   const finance = await loadCanonicalFinanceSummaryWithIdentity();
 
-  const [pointsResult, legacyProgressResult, referralResult] = await Promise.all([
+  const [pointsResult, legacyProgressResult, referralResult, breakdownResult] = await Promise.all([
     (supabase as any).rpc('get_my_buklod_points_dashboard'),
     (supabase as any).rpc('get_my_buklod_r38_economy_report_v1'),
     (supabase as any).rpc('get_my_buklod_referral_summary_v2'),
+    (supabase as any).rpc('get_my_buklod_financial_earnings_breakdown_v1'),
   ]);
 
   const points =
@@ -290,6 +298,17 @@ export async function loadMyBuklodR38EconomyReport() {
     !referralResult.error && referralResult.data && typeof referralResult.data === 'object'
       ? referralResult.data as Record<string, any>
       : {};
+  const breakdown =
+    !breakdownResult.error &&
+    breakdownResult.data &&
+    typeof breakdownResult.data === 'object' &&
+    (breakdownResult.data as Record<string, unknown>).identity_ready !== false
+      ? breakdownResult.data as Record<string, any>
+      : {};
+
+  const latestBreakdown = (breakdown.latest_finalized ?? {}) as Record<string, any>;
+  const lifetimeBreakdown = (breakdown.lifetime_earned ?? {}) as Record<string, any>;
+  const cashBreakdown = (breakdown.cash_status ?? {}) as Record<string, any>;
 
   const progress = (finance.progress ?? {}) as Record<string, any>;
   const earnings = (finance.earnings ?? {}) as Record<string, any>;
@@ -306,10 +325,16 @@ export async function loadMyBuklodR38EconomyReport() {
   const qualifiedMonthlyPoints = asMoney(progress.qualified_monthly_points);
   const totalQualifiedMonthlyPoints = asMoney(progress.total_qualified_monthly_points);
   const estimatedEarnings = asMoney(earnings.estimated_earnings_php);
-  const latestFinalizedUserShare = asMoney(earnings.latest_finalized_user_share_php);
-  const availableCash = asMoney(earnings.withdrawable_php);
-  const reservedCash = asMoney(earnings.reserved_php);
-  const paidCash = asMoney(earnings.paid_php);
+  const latestFinalizedUserShare = asMoney(
+    latestBreakdown.user_pool_php ?? earnings.latest_finalized_user_share_php,
+  );
+  const latestFirstLineShare = asMoney(latestBreakdown.first_line_php);
+  const latestTotalShare = asMoney(
+    latestBreakdown.total_share_php ?? (latestFinalizedUserShare + latestFirstLineShare),
+  );
+  const availableCash = asMoney(cashBreakdown.available_php ?? earnings.withdrawable_php);
+  const reservedCash = asMoney(cashBreakdown.reserved_php ?? earnings.reserved_php);
+  const paidCash = asMoney(cashBreakdown.paid_php ?? earnings.paid_php);
 
   return {
     progress: {
@@ -342,8 +367,8 @@ export async function loadMyBuklodR38EconomyReport() {
       },
       finalized_share: {
         bayanihan: latestFinalizedUserShare,
-        direct_referral: 0,
-        total: latestFinalizedUserShare,
+        direct_referral: latestFirstLineShare,
+        total: latestTotalShare,
       },
       available_cash: {
         bayanihan: availableCash,
@@ -376,6 +401,16 @@ export async function loadMyBuklodR38EconomyReport() {
       estimated_user_pool_php: asMoney(earnings.estimated_user_pool_php),
       estimated_earnings_php: estimatedEarnings,
       latest_finalized_user_share_php: latestFinalizedUserShare,
+      latest_first_line_share_php: latestFirstLineShare,
+      latest_total_share_php: latestTotalShare,
+      lifetime_user_pool_earned_php: asMoney(lifetimeBreakdown.user_pool_php),
+      lifetime_first_line_earned_php: asMoney(lifetimeBreakdown.first_line_php),
+      lifetime_referral_reward_earned_php: asMoney(lifetimeBreakdown.referral_reward_php),
+      lifetime_total_earned_php: asMoney(lifetimeBreakdown.total_php),
+      latest_period_key:
+        typeof breakdown.latest_period_key === 'string'
+          ? breakdown.latest_period_key
+          : null,
       withdrawable_php: availableCash,
       reserved_php: reservedCash,
       paid_php: paidCash,
