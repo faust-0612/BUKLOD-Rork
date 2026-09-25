@@ -45,8 +45,10 @@ import {
 } from '@/lib/buklodTouch';
 import React, { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  BackHandler,
   Image,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -449,6 +451,34 @@ export default function MeScreen() {
   /* PATCH_174B_R2_PROFILE_FOCUS_STABILITY */
   const profileScrollRef =
     useProfileScrollRef(null as ScrollView | null);
+
+  /*
+   * BUKLOD_PROFILE_NATIVE_BACK_TO_WALL_R4
+   *
+   * Install the Profile hardware-back handler at screen focus so it is newer
+   * than the surrounding navigation handler. This prevents Android from
+   * closing BUKLOD when Profile is the visible root tab.
+   */
+  useProfileFocusEffect(
+    useProfileFocusCallback(() => {
+      if (Platform.OS !== 'android') {
+        return;
+      }
+
+      const subscription =
+        BackHandler.addEventListener(
+          'hardwareBackPress',
+          () => {
+            router.replace('/buklod' as any);
+            return true;
+          },
+        );
+
+      return () => {
+        subscription.remove();
+      };
+    }, [])
+  );
 
   useProfileFocusEffect(
     useProfileFocusCallback(() => {
