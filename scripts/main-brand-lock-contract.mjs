@@ -71,8 +71,18 @@ if (!fs.existsSync(path.join(ROOT, canonicalAsset))) {
       .update(bytes)
       .digest('hex');
 
+    const expectedHash =
+      '49260ffb09b162b082b5e4d6773c9c4712834de4f593f836029c0e5df439dc60';
+
     console.log(`CANONICAL_ICON_SHA256=${hash}`);
-    passes.push('canonical Main app icon exists');
+
+    if (hash !== expectedHash) {
+      failures.push(
+        'Canonical Main app icon hash changed. Restore the locked new BUKLOD logo.',
+      );
+    } else {
+      passes.push('canonical Main app icon exact hash locked');
+    }
   }
 }
 
