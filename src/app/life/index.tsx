@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -31,6 +32,8 @@ import {
 } from '@/lib/buklodLifeContent';
 import { useNetwork } from '@/providers/NetworkProvider';
 import { useBuklodI18n } from '@/providers/BuklodI18nProvider';
+import { useAuth } from '@/providers/AuthProvider';
+import { trackBuklodLifeEvent } from '@/lib/buklodLifeTelemetry';
 
 type LifePage =
   | 'home'
@@ -43,6 +46,44 @@ type LifePage =
   | 'soul-winner'
   | 'perspective'
   | 'crisis';
+
+type LifePrivateProgress = {
+  page:
+    | 'topic'
+    | 'questions'
+    | 'question'
+    | 'gospel'
+    | 'soul-winner'
+    | 'perspective';
+  topicId: string;
+  questionId: string;
+  gospelStep: number;
+  contentVersion: string;
+};
+
+const LIFE_PRIVATE_PROGRESS_PREFIX =
+  '@buklod/life/private-progress-v1/';
+
+function isLifePrivateProgress(
+  value: unknown,
+): value is LifePrivateProgress {
+  if (!value || typeof value !== 'object') return false;
+  const row = value as Record<string, unknown>;
+  return (
+    [
+      'topic',
+      'questions',
+      'question',
+      'gospel',
+      'soul-winner',
+      'perspective',
+    ].includes(String(row.page ?? '')) &&
+    typeof row.topicId === 'string' &&
+    typeof row.questionId === 'string' &&
+    Number.isInteger(Number(row.gospelStep)) &&
+    typeof row.contentVersion === 'string'
+  );
+}
 
 function ActionButton({
   label,
@@ -106,6 +147,12 @@ export default function BuklodLifeScreen() {
   const { width } = useWindowDimensions();
   const { online } = useNetwork();
   const { locale } = useBuklodI18n();
+  const { user } = useAuth();
+
+  const [resumePoint, setResumePoint] =
+    useState<LifePrivateProgress | null>(null);
+  const telemetrySeenRef = useRef(new Set<string>());
+  const lastLocaleRef = useRef<string | null>(null);
 
   const [page, setPage] = useState<LifePage>(
     String(params.mode ?? '').toLowerCase() === 'help'
@@ -119,11 +166,163 @@ export default function BuklodLifeScreen() {
   const [gospelLength, setGospelLength] =
     useState<'short' | 'three' | 'full'>('short');
 
+  const privateProgressKey =
+    user?.id
+      ? LIFE_PRIVATE_PROGRESS_PREFIX + user.id
+      : null;
+
   useEffect(() => {
     if (String(params.mode ?? '').toLowerCase() === 'help') {
       setPage('soul-winner');
     }
   }, [params.mode]);
+
+  useEffect(() => {
+    if (!privateProgressKey) {
+      setResumePoint(null);
+      return;
+    }
+
+    let active = true;
+
+    void AsyncStorage.getItem(privateProgressKey)
+      .then(raw => {
+        if (!active || !raw) return;
+        try {
+          const parsed = JSON.parse(raw);
+          if (
+            isLifePrivateProgress(parsed) &&
+            parsed.contentVersion === LIFE_GOSPEL_CORE_VERSION
+          ) {
+            setResumePoint(parsed);
+          }
+        } catch {
+          // Corrupt local progress is ignored; LIFE remains usable.
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+    };
+  }, [privateProgressKey]);
+
+  useEffect(() => {
+    const key = 'life_opened';
+    if (telemetrySeenRef.current.has(key)) return;
+    telemetrySeenRef.current.add(key);
+
+    void trackBuklodLifeEvent('life_opened', {
+      locale,
+      online,
+    });
+  }, [locale, online]);
+
+  useEffect(() => {
+    if (lastLocaleRef.current === locale) return;
+    lastLocaleRef.current = locale;
+
+    void trackBuklodLifeEvent('life_language_selected', {
+      locale,
+      online,
+    });
+  }, [locale, online]);
+
+  useEffect(() => {
+    if (online) return;
+
+    const key = 'life_ai_fallback_used';
+    if (telemetrySeenRef.current.has(key)) return;
+    telemetrySeenRef.current.add(key);
+
+    void trackBuklodLifeEvent('life_ai_fallback_used', {
+      locale,
+      online: false,
+    });
+  }, [locale, online]);
+
+  useEffect(() => {
+    let event:
+      | 'life_topic_opened'
+      | 'life_question_opened'
+      | 'life_explore_jesus_started'
+      | 'life_gospel_step_viewed'
+      | 'life_help_someone_opened'
+      | 'life_gospel_path_completed'
+      | null = null;
+
+    if (page === 'topic') event = 'life_topic_opened';
+    else if (page === 'question') event = 'life_question_opened';
+    else if (page === 'gospel') event = 'life_gospel_step_viewed';
+    else if (page === 'soul-winner') event = 'life_help_someone_opened';
+    else if (page === 'response') event = 'life_gospel_path_completed';
+
+    if (!event) return;
+
+    const key =
+      event === 'life_gospel_step_viewed'
+        ? `${event}:${gospelStep}`
+        : event;
+
+    if (telemetrySeenRef.current.has(key)) return;
+    telemetrySeenRef.current.add(key);
+
+    void trackBuklodLifeEvent(event, {
+      locale,
+      online,
+    });
+  }, [gospelStep, locale, online, page]);
+
+  useEffect(() => {
+    if (page !== 'gospel') return;
+
+    const key = 'life_explore_jesus_started';
+    if (telemetrySeenRef.current.has(key)) return;
+    telemetrySeenRef.current.add(key);
+
+    void trackBuklodLifeEvent('life_explore_jesus_started', {
+      locale,
+      online,
+    });
+  }, [locale, online, page]);
+
+  useEffect(() => {
+    if (!privateProgressKey) return;
+
+    const saveablePages: LifePrivateProgress['page'][] = [
+      'topic',
+      'questions',
+      'question',
+      'gospel',
+      'soul-winner',
+      'perspective',
+    ];
+
+    if (!saveablePages.includes(page as LifePrivateProgress['page'])) {
+      return;
+    }
+
+    const progress: LifePrivateProgress = {
+      page: page as LifePrivateProgress['page'],
+      topicId,
+      questionId,
+      gospelStep,
+      contentVersion: LIFE_GOSPEL_CORE_VERSION,
+    };
+
+    setResumePoint(progress);
+
+    void AsyncStorage.setItem(
+      privateProgressKey,
+      JSON.stringify(progress),
+    ).catch(() => undefined);
+  }, [
+    gospelStep,
+    page,
+    privateProgressKey,
+    questionId,
+    topicId,
+  ]);
 
   const topic = useMemo(() => findLifeTopic(topicId), [topicId]);
   const question = useMemo(
@@ -169,6 +368,22 @@ export default function BuklodLifeScreen() {
   const startGospel = () => {
     setGospelStep(0);
     setPage('gospel');
+  };
+
+  const resumeJourney = () => {
+    if (!resumePoint) return;
+    setTopicId(resumePoint.topicId);
+    setQuestionId(resumePoint.questionId);
+    setGospelStep(
+      Math.max(
+        0,
+        Math.min(
+          LIFE_GOSPEL_STEPS.length - 1,
+          resumePoint.gospelStep,
+        ),
+      ),
+    );
+    setPage(resumePoint.page);
   };
 
   const contentWidth =
@@ -256,6 +471,36 @@ export default function BuklodLifeScreen() {
                 </Text>
               </View>
             </View>
+
+            {resumePoint ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Continue your private LIFE journey"
+                onPress={resumeJourney}
+                style={styles.continueCard}
+              >
+                <View style={styles.continueIcon}>
+                  <MaterialCommunityIcons
+                    name="bookmark-outline"
+                    size={20}
+                    color="#275D45"
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.continueTitle}>
+                    Continue Your Journey
+                  </Text>
+                  <Text style={styles.continueText}>
+                    Private progress saved only for your account on this device.
+                  </Text>
+                </View>
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={20}
+                  color="#60766B"
+                />
+              </Pressable>
+            ) : null}
 
             <View style={styles.topicGrid}>
               {LIFE_PRIMARY_TOPICS.map(item => (
@@ -934,6 +1179,38 @@ const styles = StyleSheet.create({
     color: '#486457',
     fontSize: 9.5,
     fontWeight: '800',
+  },
+  continueCard: {
+    marginTop: 10,
+    minHeight: 60,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#D9E5DF',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  continueIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#EDF4F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  continueTitle: {
+    color: '#214F3C',
+    fontSize: 12.5,
+    fontWeight: '900',
+  },
+  continueText: {
+    marginTop: 2,
+    color: '#6B7F75',
+    fontSize: 10,
+    lineHeight: 14,
   },
   topicGrid: {
     marginTop: 12,
