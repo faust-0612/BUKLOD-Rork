@@ -1,4 +1,5 @@
-import { supabase } from '@/lib/supabase';\nimport { ensureBuklodCanonicalFinanceIdentity } from '@/lib/buklodCanonicalFinanceIdentity';
+import { supabase } from '@/lib/supabase';
+import { ensureBuklodCanonicalFinanceIdentity } from '@/lib/buklodCanonicalFinanceIdentity';
 
 export type BuklodR38MoneySummary = {
   bayanihan: number;
