@@ -1,4 +1,4 @@
-name: BUKLOD R38 Economy QA
+name: BUKLOD Canonical Finance V3 QA
 
 on:
   pull_request:
@@ -14,7 +14,7 @@ on:
       - 'src/app/bayanihan/**'
       - 'src/components/BuklodReferralInviteCard.tsx'
       - 'src/components/points/BuklodRedeemCatalogSection.tsx'
-      - 'src/lib/buklodR38*.ts'
+      - 'src/lib/buklodR38*.ts'\n      - 'src/lib/buklodCanonicalFinanceIdentity.ts'\n      - 'src/lib/buklodRewards.ts'\n      - 'src/providers/AuthProvider.tsx'\n      - 'src/app/(auth)/register.tsx'\n      - 'supabase/functions/buklod-referral-v2/**'\n      - 'supabase/functions/buklod-finalized-value-v2/**'\n      - 'supabase/migrations/20260924144309_buklod_main_profit_first_referral_v2.sql'
       - 'supabase/migrations/*buklod*r38*.sql'
   workflow_dispatch:
 
@@ -42,11 +42,11 @@ jobs:
       - name: TypeScript QA
         run: npx tsc --noEmit
 
-      - name: R38 economy invariant contract
+      - name: Canonical Finance V3 invariant contract
         run: node scripts/r38-economy-release-contract.mjs
 
       - name: Export web without deploying
-        run: npx expo export --platform web --output-dir dist-r38-qa
+        run: npx expo export --platform web --output-dir dist-finance-v3-qa
 
       - name: Confirm no release action
         run: echo 'QA only — no EAS build, OTA/update, native release, production web deploy, or monetization activation was executed.'
