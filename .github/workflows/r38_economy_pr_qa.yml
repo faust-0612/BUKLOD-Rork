@@ -24,6 +24,8 @@ on:
       - 'supabase/migrations/20260924144309_buklod_main_profit_first_referral_v2.sql'
       - 'supabase/migrations/20260925115931_buklod_finance_v3_containment_guard.sql'
       - 'supabase/migrations/20260925121017_buklod_finance_v3_fk_index_hardening.sql'
+      - 'supabase/migrations/20260925121444_buklod_finance_v3_user_earnings_breakdown.sql'
+      - 'supabase/migrations/20260925121017_buklod_finance_v3_fk_index_hardening.sql'
       - 'supabase/migrations/*buklod*r38*.sql'
   workflow_dispatch:
 
