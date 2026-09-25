@@ -120,6 +120,12 @@ requireAll('app.config.js', [
   "host: 'buklod.expo.app'",
   "pathPrefix: '/register'",
   "'@sentry/react-native/expo'",
+  "orientation: 'default'",
+  "'expo-screen-orientation'",
+  "initialOrientation: 'DEFAULT'",
+  "const scheme = isClassroom",
+  "'buklod'",
+  "'./plugins/withBuklodSosQuickSettings.js'",
 ], 'Android/Expo native config');
 
 const index = requireAll('index.js', [
@@ -204,6 +210,43 @@ requireAll('src/providers/NotificationProvider.tsx', [
   'clearLastNotificationResponse',
   'AndroidImportance.MAX',
 ], 'cold-start/exact-target notification routing');
+
+requireAll('src/components/BuklodTrustedDeviceGate.native.tsx', [
+  'BUKLOD_AUTH_EMAIL_LOCAL_DEVICE_R1',
+  'LocalAuthentication.authenticateAsync',
+  'SecureStore.setItemAsync',
+], 'native biometric/trusted-device security');
+
+requireAll('src/app/+native-intent.ts', [
+  'BUKLOD_NATIVE_INCOMING_SHARE_R2',
+  'getSharedPayloads',
+  "'/handle-share'",
+], 'native inbound Share-to-BUKLOD cold start');
+
+requireAll('src/app/handle-share.tsx', [
+  'refreshSharePayloads',
+], 'native incoming share handler');
+
+requireAll('src/components/BuklodCommunityHelp.tsx', [
+  'BUKLOD_SOS_QUICK_SETTINGS_R1',
+  'useLocalSearchParams',
+  "begin('EMERGENCY')",
+  'Confirm Emergency SOS',
+  'HOLD TO SEND SOS',
+  'requestForegroundPermissionsAsync',
+], 'Community SOS explicit-confirmation flow');
+
+requireAll('plugins/withBuklodSosQuickSettings.js', [
+  'BUKLOD_SOS_QUICK_SETTINGS_R1',
+  'android.permission.BIND_QUICK_SETTINGS_TILE',
+  'android.service.quicksettings.action.QS_TILE',
+  'BuklodSosTileService',
+  'buklod://buklod?sos=1',
+  'unlockAndRun',
+  'Build.VERSION_CODES.UPSIDE_DOWN_CAKE',
+  'startActivityAndCollapse',
+  'PendingIntent.getActivity',
+], 'Android Quick Settings SOS tile service');
 
 requireAll('src/components/BuklodNativeCommunityMapHeader.native.tsx', [
   'PROVIDER_GOOGLE',
