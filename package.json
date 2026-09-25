@@ -22,7 +22,7 @@
     "supabase:local:reset": "supabase db reset",
     "supabase:test": "supabase test db",
     "build:android:preview": "eas build --platform android --profile preview",
-    "production:preflight": "node scripts/production-preflight.mjs",
+    "production:preflight": "node scripts/production-preflight.mjs",\n    "production:admob-preflight": "node scripts/android-admob-preflight.mjs",
     "production:migrations": "node scripts/verify-production-migrations.mjs",
     "production:dry-run": "bash scripts/production-cutover.sh",
     "production:android": "bash scripts/build-android-production.sh",
