@@ -38,8 +38,8 @@ jobs:
       - name: TypeScript QA
         run: npx tsc --noEmit
 
-      - name: Full native completeness gate
-        run: npm run release:native:gate
+      - name: Full Main APK completeness gate
+        run: npm run release:apk:gate
 
       - name: Verify Main Android identity, Firebase config, and APK profile
         shell: bash
