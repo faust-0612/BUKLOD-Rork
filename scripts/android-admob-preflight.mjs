@@ -7,6 +7,26 @@ const isAdMobUnitId = (value) => /^ca-app-pub-\d{16}\/\d{10}$/.test(value);
 const isGoogleSampleId = (value) => value.startsWith('ca-app-pub-3940256099942544');
 
 const env = clean(process.env.EXPO_PUBLIC_APP_ENV);
+const easBuild = clean(process.env.EAS_BUILD).toLowerCase() === 'true';
+const easBuildPlatform = clean(process.env.EAS_BUILD_PLATFORM).toLowerCase();
+const easBuildProfile = clean(process.env.EAS_BUILD_PROFILE).toLowerCase();
+const appTarget = clean(process.env.BUKLOD_APP_TARGET || 'main').toLowerCase();
+const productionMainProfiles = new Set(['production', 'production-apk', 'direct']);
+
+if (
+  easBuild &&
+  (
+    easBuildPlatform !== 'android' ||
+    appTarget === 'classroom' ||
+    !productionMainProfiles.has(easBuildProfile)
+  )
+) {
+  console.log(
+    `BUKLOD Android AdMob Production Preflight skipped for platform=${easBuildPlatform || 'unknown'} profile=${easBuildProfile || 'unknown'} target=${appTarget || 'main'}.`,
+  );
+  process.exit(0);
+}
+
 const appId = clean(process.env.ADMOB_ANDROID_APP_ID);
 const genericBanner = clean(process.env.EXPO_PUBLIC_ADMOB_BANNER_UNIT_ID);
 
