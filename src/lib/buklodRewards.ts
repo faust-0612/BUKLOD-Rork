@@ -1,5 +1,9 @@
 import { supabase } from '@/lib/supabase';
-import { cachedQuery, invalidateCache } from '@/lib/performance';\nimport {\n  attachBuklodCanonicalReferral,\n  ensureBuklodCanonicalFinanceIdentity,\n} from '@/lib/buklodCanonicalFinanceIdentity';
+import { cachedQuery, invalidateCache } from '@/lib/performance';
+import {
+  attachBuklodCanonicalReferral,
+  ensureBuklodCanonicalFinanceIdentity,
+} from '@/lib/buklodCanonicalFinanceIdentity';
 
 export type BuklodPointsDashboard = {
   total_points: number;
