@@ -21,6 +21,7 @@ import {
   attachCommunityPostMedia,
   discardIncompleteCommunityPost,
   extractCreatedRecordId,
+  loadCommunityPostMediaByPostIds,
 } from '@/lib/buklodCommunityPostMedia';
 import { enqueueCommunityPublish } from '@/lib/buklodCommunityPublishQueue';
 import {
@@ -1120,30 +1121,25 @@ const load=useCallback(async(options?:{
           error: null,
         }),
     postIds.length
-      ? withBuklodTimeout<{data:any,error:any}>(
-          (supabase as any).rpc(
-            'get_buklod_post_media_v1',
-            {
-              p_post_ids:
-                postIds
-            }
+      ? withBuklodTimeout<Record<string,any[]>>(
+          loadCommunityPostMediaByPostIds(
+            postIds
           ),
-          5000,
-          'Community photos'
-        ).catch((err:any)=>({
-          data:null,
-          error:{
-            message:String(
+          8000,
+          'Community media'
+        ).catch((err:any)=>{
+          console.warn(
+            'Community media:',
+            String(
               err?.message ??
               err ??
-              'Photos timed out.'
+              'Media timed out.'
             )
-          }
-        }))
-      : Promise.resolve({
-          data: [] as any[],
-          error: null,
-        }),
+          );
+
+          return {};
+        })
+      : Promise.resolve({}),
   ]);
 
   if(
@@ -1192,69 +1188,81 @@ const load=useCallback(async(options?:{
       }
     );
 
-  // PATCH_161H_MEDIA_LOAD
+  /*
+   * BUKLOD_PUBLIC_WALL_MEDIA_V2_ONLY_R1
+   *
+   * Public Wall must use the canonical media loader. The old direct
+   * get_buklod_post_media_v1 path is intentionally removed so AWS/external
+   * Wall videos cannot regress to an empty media_items fallback.
+   */
   const mediaMap:
-   Record<string,any[]> =
-   {};
-
-  const mediaRows=
-    mediaResult?.data;
-  const mediaError=
-    mediaResult?.error;
-
-  if(mediaError){
-    console.warn(
-     'Community photos:',
-     mediaError.message
-    );
-  }
-  else{
-    for(
-     const row
-     of mediaRows??[]
-    ){
-     if(!row?.post_id){
-      continue;
-     }
-
-     if(
-      !mediaMap[
-       row.post_id
-      ]
-     ){
-      mediaMap[
-       row.post_id
-      ]=[];
-     }
-
-     mediaMap[
-      row.post_id
-     ].push({
-      ...row,
-      media_url:
-        peekCommunityMediaUrl(
-          row.media_path,
-          null
-        ) ?? row.media_url,
-     });
-    }
-  }
+    Record<string,any[]> =
+    mediaResult ?? {};
 
   for(const p of next){
    const loaded=
-    mediaMap[p.id]??[];
+    Array.isArray(
+      mediaMap[p.id]
+    )
+      ? [...mediaMap[p.id]].sort(
+          (a:any,b:any)=>
+            Number(
+              a.media_position??0
+            )-
+            Number(
+              b.media_position??0
+            )
+        )
+      : [];
 
    if(loaded.length){
     p.media_items=
-     loaded.sort(
-      (a:any,b:any)=>
-       Number(
-        a.media_position??0
-       )-
-       Number(
-        b.media_position??0
-       )
-     );
+      loaded.map((row:any)=>({
+        ...row,
+        media_url:
+          peekCommunityMediaUrl(
+            String(
+              row?.media_path??
+              ''
+            ).trim(),
+            null
+          ) ?? row?.media_url
+      }));
+
+    const firstVideo=
+      p.media_items.find(
+        (row:any)=>
+          String(
+            row?.media_mime_type??
+            ''
+          )
+            .trim()
+            .toLowerCase()
+            .startsWith(
+              'video/'
+            ) &&
+          String(
+            row?.media_url??
+            ''
+          ).trim()
+      );
+
+    if(firstVideo){
+      p.media_path=
+        firstVideo.media_path ??
+        p.media_path;
+
+      p.media_mime_type=
+        firstVideo.media_mime_type ??
+        p.media_mime_type;
+
+      p.media_size_bytes=
+        firstVideo.media_size_bytes ??
+        p.media_size_bytes;
+
+      p.media_url=
+        firstVideo.media_url;
+    }
    }
    else if(
     p.media_url &&
@@ -1945,7 +1953,7 @@ const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p
        snapshot.body ||
        (
         snapshot.wallVideo
-         ? 'Shared a video.'
+         ? ''
          : snapshot.communityGif
           ? 'Shared a GIF.'
           : snapshot.photos.length
