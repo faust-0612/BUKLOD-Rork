@@ -38,11 +38,14 @@ jobs:
       - name: TypeScript QA
         run: npx tsc --noEmit
 
+      - name: Full native completeness gate
+        run: npm run release:native:gate
+
       - name: Verify Main Android identity, Firebase config, and APK profile
         shell: bash
         run: |
           grep -F "'org.mzbministry.buklod');" app.config.js
-          grep -F 'versionCode: isStaging ? undefined : 20' app.config.js
+          grep -F 'versionCode: isStaging ? undefined : 21' app.config.js
           grep -F '"production-apk"' eas.json
           grep -F '"buildType": "apk"' eas.json
           grep -F '"environment": "production"' eas.json
