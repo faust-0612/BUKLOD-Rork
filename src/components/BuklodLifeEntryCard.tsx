@@ -18,8 +18,8 @@ export default function BuklodLifeEntryCard() {
       style={[
         styles.card,
         {
-          borderColor: colors.border ?? '#D4E1D9',
-          backgroundColor: colors.surface ?? '#FFFFFF',
+          borderColor: colors.line ?? '#D4E1D9',
+          backgroundColor: colors.white ?? '#FFFFFF',
         },
       ]}
     >
