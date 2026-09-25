@@ -13,6 +13,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import * as LocalAuthentication from 'expo-local-authentication';
+import { useLocalSearchParams } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
 import { acquireBuklodAdSafetyLock } from '@/lib/buklodGlobalAdController';
@@ -62,9 +63,12 @@ function relativeAge(iso:string){
 
 export default function BuklodCommunityHelp(){
   const {user}=useAuth();
+  const params=useLocalSearchParams<{sos?:string|string[]}>();
+  const sosSignal=Array.isArray(params.sos)?params.sos[0]:params.sos;
   const {colors}=useBuklodPresentation();
   const s=useMemo(()=>styles(colors),[colors]);
   const mounted=useRef(true);
+  const handledSosLaunch=useRef(false);
   const [enabled,setEnabled]=useState(false);
   const [busy,setBusy]=useState(false);
   const [loading,setLoading]=useState(false);
@@ -156,13 +160,32 @@ export default function BuklodCommunityHelp(){
     return()=>{clearInterval(feed);clearInterval(presence)};
   },[enabled,ensurePresence,refresh]);
 
-  const begin=(next:HelpKind)=>{
+  const begin=useCallback((next:HelpKind)=>{
     if(!user?.id){Alert.alert('Sign in required','Please sign in before requesting help.');return}
     setKind(next);
     setCategory(next==='EMERGENCY'?'MEDICAL':'GENERAL');
     setMessage('');
     setOpen(true);
-  };
+  },[user?.id]);
+
+  /*
+   * BUKLOD_SOS_QUICK_SETTINGS_R1
+   *
+   * The native Quick Settings tile only opens this existing confirmation
+   * sheet. It does not send an SOS or request location by itself.
+   */
+  useEffect(()=>{
+    if(
+      handledSosLaunch.current ||
+      !user?.id ||
+      String(sosSignal??'').trim()!=='1'
+    ){
+      return;
+    }
+
+    handledSosLaunch.current=true;
+    begin('EMERGENCY');
+  },[begin,sosSignal,user?.id]);
 
   const submit=useCallback(async()=>{
     if(busy)return;
