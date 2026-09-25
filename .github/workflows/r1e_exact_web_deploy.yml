@@ -1,0 +1,117 @@
+name: BUKLOD R1E Exact Web Deploy
+
+on:
+  push:
+    branches:
+      - release/r1e-web-deploy-20260925
+    paths:
+      - '.github/workflows/r1e_exact_web_deploy.yml'
+      - '.buklod/R1E_WEB_DEPLOY_TRIGGER_20260925'
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  EXPO_PUBLIC_APP_ENV: production
+
+jobs:
+  deploy-exact-r1e-web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact immutable R1E RC
+        uses: actions/checkout@v4
+        with:
+          ref: 24a4ff22b1c95e7c873adc7e793aa9cdcfd37405
+          fetch-depth: 0
+
+      - name: Verify exact source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "24a4ff22b1c95e7c873adc7e793aa9cdcfd37405"
+          git diff --exit-code -- .
+          git diff --cached --exit-code -- .
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Expo production auth and public env
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          npx eas-cli@latest whoami --non-interactive
+          rm -f .env.local
+          npx eas-cli@latest env:pull --environment production --path .env.local --non-interactive
+          test -s .env.local
+          set -a
+          . ./.env.local
+          set +a
+          test "${EXPO_PUBLIC_SUPABASE_URL:-}" = "https://yhanxndaqbmuzbdqlblu.supabase.co"
+          while IFS='=' read -r name _; do
+            case "$name" in
+              EXPO_PUBLIC_*)
+                value="${!name-}"
+                {
+                  echo "${name}<<__BUKLOD_ENV__"
+                  printf '%s\n' "$value"
+                  echo '__BUKLOD_ENV__'
+                } >> "$GITHUB_ENV"
+                ;;
+            esac
+          done < <(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env.local)
+
+      - name: Targeted TypeScript gate
+        run: npx tsc --noEmit
+
+      - name: Export exact production web artifact
+        shell: bash
+        env:
+          NODE_ENV: production
+        run: |
+          set -euo pipefail
+          rm -rf dist
+          npx expo export --platform web --output-dir dist --clear
+          node scripts/write-adsense-dist-assets.mjs dist
+          test -s dist/index.html
+          test -s dist/ads.txt
+          grep -RFl --include='*.js' 'yhanxndaqbmuzbdqlblu.supabase.co' dist/_expo/static/js/web >/dev/null
+          if grep -RIE --include='*.js' 'localhost|127\.0\.0\.1|supabase\.local' dist/_expo/static/js/web >/dev/null; then
+            echo 'Development endpoint detected in production web bundle.'
+            exit 1
+          fi
+
+      - name: Deploy exact R1E RC to Expo production web
+        shell: bash
+        env:
+          NODE_ENV: production
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest deploy --prod --environment production --non-interactive 2>&1 | tee deploy-output.txt
+
+      - name: Verify live origin responds
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location --max-time 30 https://buklod.expo.app/ -o /tmp/buklod-live.html
+          test -s /tmp/buklod-live.html
+          echo "R1E_WEB_DEPLOY=PASS"
+          echo "DEPLOYED_SHA=24a4ff22b1c95e7c873adc7e793aa9cdcfd37405"
+          echo "DB_MIGRATION_APPLIED=NO"
+          echo "AAB_DEPLOYED=NO"
+
+      - name: Preserve deploy output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r1e-web-deploy-output
+          path: deploy-output.txt
+          if-no-files-found: ignore
