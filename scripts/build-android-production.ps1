@@ -4,6 +4,7 @@ Write-Host "BUKLOD 1.0 — Android Production Release Candidate"
 Write-Host "================================================="
 
 node scripts/production-preflight.mjs
+node scripts/android-admob-preflight.mjs
 node scripts/verify-production-migrations.mjs | Out-File -Encoding utf8 release/PRODUCTION_MIGRATION_HASHES.json
 
 npx expo-doctor@latest
