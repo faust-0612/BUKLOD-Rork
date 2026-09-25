@@ -39,7 +39,6 @@ const migrationPath = 'supabase/migrations/20260924144309_buklod_main_profit_fir
 const containmentMigrationPath = 'supabase/migrations/20260925115931_buklod_finance_v3_containment_guard.sql';
 const indexHardeningMigrationPath = 'supabase/migrations/20260925121017_buklod_finance_v3_fk_index_hardening.sql';
 const earningsBreakdownMigrationPath = 'supabase/migrations/20260925121444_buklod_finance_v3_user_earnings_breakdown.sql';
-const indexHardeningMigrationPath = 'supabase/migrations/20260925121017_buklod_finance_v3_fk_index_hardening.sql';
 const referralEdgePath = 'supabase/functions/buklod-referral-v2/index.ts';
 const valueEdgePath = 'supabase/functions/buklod-finalized-value-v2/index.ts';
 
@@ -56,7 +55,6 @@ const migration = read(migrationPath);
 const containmentMigration = read(containmentMigrationPath);
 const indexHardeningMigration = read(indexHardeningMigrationPath);
 const earningsBreakdownMigration = read(earningsBreakdownMigrationPath);
-const indexHardeningMigration = read(indexHardeningMigrationPath);
 const referralEdge = read(referralEdgePath);
 const valueEdge = read(valueEdgePath);
 
@@ -154,12 +152,6 @@ requireText(indexHardeningMigrationPath, indexHardeningMigration, [
   'idx_buklod_pf_cash_source_value',
   'idx_buklod_pf_referral_settlements_referrer',
   'idx_buklod_pf_referral_settlements_referred',
-  'idx_buklod_pf_user_settlements_person',
-]);
-
-requireText(indexHardeningMigrationPath, indexHardeningMigration, [
-  'idx_buklod_pf_cash_referral',
-  'idx_buklod_pf_referral_settlements_referrer',
   'idx_buklod_pf_user_settlements_person',
 ]);
 
