@@ -48,6 +48,7 @@ function categoryKey(category: BuklodSupportCategory) {
     OTHER_ACCOUNT: 'support.category.otherAccount',
     QUIZ: 'support.category.quiz',
     CLASSROOM: 'support.category.classroom',
+    LESSON: 'support.category.lesson',
     ORGANIZATION: 'support.category.organization',
     REPORTED_CONTENT: 'support.category.reportedContent',
     TECHNICAL: 'support.category.technical',
@@ -232,7 +233,9 @@ export default function BuklodHelpScreen() {
               ? 'Quiz'
               : category === 'CLASSROOM'
                 ? 'Classroom'
-                : category === 'ORGANIZATION'
+                : category === 'LESSON'
+                  ? 'BUKLOD Lesson'
+                  : category === 'ORGANIZATION'
                   ? 'Organization / Cluster / Sub-Org'
                   : '',
         route: sourceRoute,
@@ -317,7 +320,9 @@ export default function BuklodHelpScreen() {
         />
         <View style={{ flex: 1 }}>
           <Text style={styles.infoTitle}>
-            {signedIn ? t('support.subtitle') : t('support.prelogin')}
+            {signedIn
+              ? t('support.diagnosticsTitle')
+              : t('support.prelogin')}
           </Text>
           <Text style={styles.infoBody}>
             {t('support.subtitle')}
@@ -400,12 +405,12 @@ export default function BuklodHelpScreen() {
         ]}
       >
         {busy ? (
-          <ActivityIndicator size="small" color="#FFFFFF" />
+          <ActivityIndicator size="small" color={colors.greenDark} />
         ) : (
           <MaterialCommunityIcons
             name="stethoscope"
-            size={19}
-            color="#FFFFFF"
+            size={18}
+            color={colors.greenDark}
           />
         )}
         <Text style={styles.primaryText}>
@@ -598,9 +603,18 @@ const styles = StyleSheet.create({
     borderColor: '#D5E2DB',
     backgroundColor: '#FFFFFF',
   },
-  categorySelected: { backgroundColor: '#1F6B45', borderColor: '#1F6B45' },
-  categoryText: { fontSize: 12, fontWeight: '800', color: '#365648' },
-  categoryTextSelected: { color: '#FFFFFF' },
+  categorySelected: {
+    backgroundColor: '#EAF5EF',
+    borderColor: '#AFCFBC',
+  },
+  categoryText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#365648',
+  },
+  categoryTextSelected: {
+    color: '#1F6B45',
+  },
   fieldBlock: { gap: 6 },
   label: { fontSize: 12, fontWeight: '900', color: '#365648' },
   input: {
@@ -616,15 +630,23 @@ const styles = StyleSheet.create({
   messageInput: { minHeight: 96, textAlignVertical: 'top' },
   safetyText: { fontSize: 11, lineHeight: 16, color: '#7B6257' },
   primary: {
-    minHeight: 48,
+    alignSelf: 'flex-start',
+    minHeight: 44,
+    paddingHorizontal: 18,
     borderRadius: 14,
-    backgroundColor: '#1F6B45',
+    backgroundColor: '#EAF5EF',
+    borderWidth: 1,
+    borderColor: '#AFCFBC',
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 8,
   },
-  primaryText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
+  primaryText: {
+    color: '#1F6B45',
+    fontSize: 12,
+    fontWeight: '900',
+  },
   errorCard: {
     flexDirection: 'row',
     gap: 8,

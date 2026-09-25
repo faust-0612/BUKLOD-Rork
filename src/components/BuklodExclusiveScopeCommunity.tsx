@@ -1449,7 +1449,7 @@ export default function BuklodExclusiveScopeCommunity({
       ) {
         Alert.alert(
           'Nothing to Post',
-          'Write a message or add photos first.'
+          'Write a message or add photos or a video first.'
         );
 
         return;
@@ -1660,6 +1660,14 @@ export default function BuklodExclusiveScopeCommunity({
 
           isReel =
             false;
+
+          extraMedia = [
+            {
+              media_path: uploadedPath,
+              media_mime_type: snapshot.wallVideo.mimeType,
+              media_size_bytes: snapshot.wallVideo.sizeBytes || 0,
+            },
+          ];
         }
 
         if (
@@ -1742,13 +1750,25 @@ export default function BuklodExclusiveScopeCommunity({
               p_category:
                 'discussion',
               p_media_path:
-                uploadedPath,
+                snapshot.wallVideo &&
+                !snapshot.publishingReel
+                  ? null
+                  : uploadedPath,
               p_media_mime_type:
-                mediaMime,
+                snapshot.wallVideo &&
+                !snapshot.publishingReel
+                  ? null
+                  : mediaMime,
               p_media_size_bytes:
-                mediaSize,
+                snapshot.wallVideo &&
+                !snapshot.publishingReel
+                  ? null
+                  : mediaSize,
               p_duration_seconds:
-                duration,
+                snapshot.wallVideo &&
+                !snapshot.publishingReel
+                  ? null
+                  : duration,
               p_is_reel:
                 isReel,
             }
@@ -3887,7 +3907,24 @@ return (
           >
             {mode === 'wall' ? (
               <>
-
+                <Pressable
+                  disabled={busy || wallVideoBusy}
+                  onPress={() => void pickWallVideo()}
+                  style={styles.mediaButton}
+                >
+                  <MaterialCommunityIcons
+                    name="video-plus-outline"
+                    size={19}
+                    color={colors.greenDark}
+                  />
+                  <Text style={styles.mediaButtonText}>
+                    {wallVideoBusy
+                      ? 'Preparing...'
+                      : wallVideo
+                        ? 'Change Video'
+                        : 'Add Video'}
+                  </Text>
+                </Pressable>
               </>
             ) : (
               <>

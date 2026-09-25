@@ -1807,10 +1807,10 @@ const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p
  const publish=async()=>{
   if(!user)return;
 
-  if(wallVideo186O || communityGif){
+  if(communityGif){
    return Alert.alert(
     'Community',
-    'Community accepts text and photos only. Video posting is disabled in this BUKLOD Main release.'
+    'GIF posting is not available in Community.'
    );
   }
 
@@ -1943,18 +1943,22 @@ const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p
           : 'Shared an update.'
        ),
       p_media_path:
-       first?.media_path??
-       null,
-      p_media_mime_type:
-       first?.media_mime_type??
-       null,
-      p_media_size_bytes:
-       first?.media_size_bytes??
-       null,
-      p_media_duration_seconds:
        snapshot.wallVideo
-        ? snapshot.wallVideo.durationSeconds
-        : null,
+        ? null
+        : first?.media_path??
+          null,
+      p_media_mime_type:
+       snapshot.wallVideo
+        ? null
+        : first?.media_mime_type??
+          null,
+      p_media_size_bytes:
+       snapshot.wallVideo
+        ? null
+        : first?.media_size_bytes??
+          null,
+      p_media_duration_seconds:
+       null,
       p_is_reel:false,
       p_mentioned_user_ids:
        snapshot.mentions.map(
@@ -3351,12 +3355,7 @@ const refreshCommunity186L=
           (post: any) =>
             /* PATCH_MARITES_STORYLINE_ONLY_R2C */
             !isMaritesCommunityPost(post) &&
-            !String(
-              post.media_mime_type ||
-                '',
-            ).startsWith(
-              'video/',
-            ),
+            !Boolean(post.is_reel),
         );
 
       return buildCommunityFeedWithInlineAds(
@@ -3472,6 +3471,20 @@ const refreshCommunity186L=
         },
       ]}
     ><Pressable style={s.tool} onPress={async()=>{setMentionOpen(true);setMentionSearch('');await searchMentions('')}}><MaterialCommunityIcons name="account-plus-outline" size={17} color={colors.green}/><Text style={s.toolText}>Mention</Text></Pressable>
+     <Pressable
+      style={s.tool}
+      disabled={busy || videoBusy186O}
+      onPress={()=>void pickWallVideo186O()}
+     >
+      <MaterialCommunityIcons name="video-plus-outline" size={17} color={colors.green}/>
+      <Text style={s.toolText}>
+       {videoBusy186O
+        ? 'Preparing...'
+        : wallVideo186O
+         ? 'Change Video'
+         : 'Add Video'}
+      </Text>
+     </Pressable>
 </View>
     {!!communityGif&&(
      <BuklodCommunityGifPreview
@@ -3495,7 +3508,7 @@ const refreshCommunity186L=
      </Text>
     )}
     <Text style={[shared.muted,{marginBottom:8,fontSize:10}]}>
-      Max. {COMMUNITY_MAX_PHOTOS} photos
+      Max. {COMMUNITY_MAX_PHOTOS} photos or 1 video · Video up to 1 GB / 30 min
     </Text>
     
     {!!wallVideo186O&&(

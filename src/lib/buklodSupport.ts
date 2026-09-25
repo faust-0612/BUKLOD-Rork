@@ -15,6 +15,7 @@ export type BuklodSupportCategory =
   | 'OTHER_ACCOUNT'
   | 'QUIZ'
   | 'CLASSROOM'
+  | 'LESSON'
   | 'ORGANIZATION'
   | 'REPORTED_CONTENT'
   | 'TECHNICAL'
@@ -34,6 +35,7 @@ export const BUKLOD_SUPPORT_CATEGORIES: {
   { key: 'OTHER_ACCOUNT', label: 'Other account problem', preLogin: true },
   { key: 'QUIZ', label: 'Quiz', preLogin: false },
   { key: 'CLASSROOM', label: 'Classroom', preLogin: false },
+  { key: 'LESSON', label: 'BUKLOD Lesson', preLogin: false },
   { key: 'ORGANIZATION', label: 'Organization / Cluster / Sub-Org', preLogin: false },
   { key: 'REPORTED_CONTENT', label: 'Report content / moderation', preLogin: false },
   { key: 'TECHNICAL', label: 'Technical problem', preLogin: false },
@@ -192,10 +194,15 @@ export async function runBuklodSupportFlow(input: {
     '-' +
     Math.random().toString(36).slice(2, 12);
 
+  const backendCategory =
+    input.category === 'LESSON'
+      ? 'TECHNICAL'
+      : input.category;
+
   const payload = {
     action: 'resolve_or_case',
     request_id: requestId,
-    category: input.category,
+    category: backendCategory,
     identifier: String(input.identifier ?? '').trim(),
     message: String(input.message ?? '').trim(),
     app: input.app ?? 'BUKLOD Main',
@@ -209,6 +216,7 @@ export async function runBuklodSupportFlow(input: {
     network_summary: networkSummary(),
     diagnostics: {
       support_flow: 'BUKLOD_HELP_V1',
+      support_category: input.category,
       platform: Platform.OS,
       route: input.route ?? '',
       error_code: input.errorCode ?? '',

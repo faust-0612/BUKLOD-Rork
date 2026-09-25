@@ -39,6 +39,7 @@ export type FormationStageCatalog = {
 
 export type FormationLessonBlockingReason =
   | 'LESSON_NOT_RELEASED'
+  | 'NEXT_LESSON_DAILY_WAIT'
   | 'PREREQUISITE_LESSON_INCOMPLETE'
   | 'FORMATION_TRACK_NOT_ASSIGNED'
   | 'CURRICULUM_NOT_ASSIGNED'
