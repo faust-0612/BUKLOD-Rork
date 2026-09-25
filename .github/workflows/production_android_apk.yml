@@ -1,6 +1,6 @@
-# Canonical Main installable Android release lane
-# Release retrigger: 2026-09-09 current canonical main
-name: BUKLOD Production Android APK
+# Canonical BUKLOD Main native release lane
+# Builds the frozen RC only. No web deploy. No store submission.
+name: BUKLOD Production Android Native Build
 
 on:
   workflow_dispatch:
@@ -9,22 +9,36 @@ on:
       - main
     paths:
       - '.github/workflows/production_android_apk.yml'
-      - 'google-services.production.json'
 
 permissions:
   contents: read
 
 env:
   EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  FROZEN_NATIVE_RC: 354de4763e4e1d24ecbb3e3811c7f3c231e9714f
+  EXPO_PUBLIC_APP_ENV: production
+  APP_VARIANT: production
+  BUKLOD_APP_TARGET: main
 
 jobs:
-  qa-and-build-apk:
+  qa-and-build-native:
     runs-on: ubuntu-latest
+    timeout-minutes: 180
     steps:
-      - name: Checkout canonical main
+      - name: Checkout exact frozen native RC
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ env.FROZEN_NATIVE_RC }}
+          fetch-depth: 0
+
+      - name: Verify exact RC identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${FROZEN_NATIVE_RC}"
+          echo "FROZEN_NATIVE_RC=${FROZEN_NATIVE_RC}"
+          echo "APP_RC_PARENT=$(git rev-parse HEAD^)"
+          git status --short
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -32,87 +46,156 @@ jobs:
           node-version: '22'
           cache: npm
 
-      - name: Install dependencies
+      - name: Install locked dependencies
         run: npm ci --ignore-scripts
 
       - name: TypeScript QA
         run: npx tsc --noEmit
 
-      - name: Verify Main Android identity, Firebase config, and APK profile
+      - name: Full Main native/APK release gates
         shell: bash
         run: |
-          grep -F "'org.mzbministry.buklod');" app.config.js
-          grep -F 'versionCode: isStaging ? undefined : 20' app.config.js
+          set -euo pipefail
+          npm run release:apk:gate
+          npm run health:contract
+
+      - name: Verify Main Android production identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F "version: '1.3.0'" app.config.js
+          grep -F "versionCode: isStaging ? undefined : 21" app.config.js
+          grep -F "'org.mzbministry.buklod'" app.config.js
+          grep -F "const mainBrandIcon = './assets/release/app-icon.png';" app.config.js
           grep -F '"production-apk"' eas.json
           grep -F '"buildType": "apk"' eas.json
+          grep -F '"buildType": "app-bundle"' eas.json
           grep -F '"environment": "production"' eas.json
           grep -F 'firebase-video-production' eas.json
           node <<'NODE'
           const fs = require('fs');
+          const crypto = require('crypto');
+
+          const icon = fs.readFileSync('assets/release/app-icon.png');
+          const iconHash = crypto.createHash('sha256').update(icon).digest('hex');
+          if (iconHash !== '3c6519857023ddeaf327828456f38746ededd8312ad9dc93b00e7da17cd7132e') {
+            throw new Error('Canonical BUKLOD logo hash mismatch');
+          }
+
           const cfg = JSON.parse(fs.readFileSync('google-services.production.json', 'utf8'));
           const clients = cfg.client || [];
-          const main = clients.find(c => c?.client_info?.android_client_info?.package_name === 'org.mzbministry.buklod');
-          if (cfg?.project_info?.project_id !== 'buklod-efa4a') throw new Error('Firebase project_id mismatch');
-          if (cfg?.project_info?.project_number !== '1014299074416') throw new Error('Firebase project_number mismatch');
-          if (main?.client_info?.mobilesdk_app_id !== '1:1014299074416:android:bd8d04868e7f2c67ab39b5') throw new Error('BUKLOD Main Firebase app ID mismatch');
-          console.log('Verified Firebase project and BUKLOD Main Android client.');
+          const main = clients.find(
+            c => c?.client_info?.android_client_info?.package_name === 'org.mzbministry.buklod'
+          );
+          if (cfg?.project_info?.project_id !== 'buklod-efa4a') {
+            throw new Error('Firebase project_id mismatch');
+          }
+          if (cfg?.project_info?.project_number !== '1014299074416') {
+            throw new Error('Firebase project_number mismatch');
+          }
+          if (main?.client_info?.mobilesdk_app_id !== '1:1014299074416:android:bd8d04868e7f2c67ab39b5') {
+            throw new Error('BUKLOD Main Firebase app ID mismatch');
+          }
+
+          console.log('NATIVE_IDENTITY=PASS');
+          console.log('BRAND_HASH=PASS');
           NODE
 
-      - name: Expo credential preflight
+      - name: Expo credential and dependency preflight
         shell: bash
         run: |
+          set -euo pipefail
           if [ -z "${EXPO_TOKEN:-}" ]; then
             echo 'EXPO_TOKEN repository secret is missing.'
             exit 1
           fi
           npx eas-cli@latest whoami --non-interactive
+          npx expo-doctor@latest
 
-      - name: Build production APK
+      - name: Android production export sanity
+        shell: bash
+        env:
+          NODE_ENV: production
+        run: |
+          set -euo pipefail
+          rm -rf dist-android
+          npx expo export --platform android --output-dir dist-android --clear
+          test -d dist-android
+          find dist-android -type f | grep -q .
+          echo 'ANDROID_EXPORT=PASS'
+
+      - name: Verify frozen RC remained source-clean
         shell: bash
         run: |
-          set -o pipefail
-          npx eas-cli@latest build \
-            --platform android \
-            --profile production-apk \
-            --non-interactive \
-            --wait \
-            --json > eas-apk-build.json
-          cat eas-apk-build.json
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${FROZEN_NATIVE_RC}"
+          git diff --exit-code -- .
+          git diff --cached --exit-code -- .
 
-      - name: Extract APK build result
-        id: apk
+      - name: Build final production APK
+        id: build_apk
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest build             --platform android             --profile production-apk             --non-interactive             --wait             --json | tee eas-final-apk.json
+          test -s eas-final-apk.json
+
+      - name: Build final production AAB
+        id: build_aab
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest build             --platform android             --profile production             --non-interactive             --wait             --json | tee eas-final-aab.json
+          test -s eas-final-aab.json
+
+      - name: Summarize native artifacts
         shell: bash
         run: |
           node <<'NODE'
           const fs = require('fs');
-          const raw = fs.readFileSync('eas-apk-build.json', 'utf8').trim();
-          const parsed = JSON.parse(raw);
-          const build = Array.isArray(parsed) ? parsed[0] : parsed;
-          const url = build?.artifacts?.buildUrl || build?.artifacts?.applicationArchiveUrl || '';
-          const id = build?.id || '';
-          const status = build?.status || '';
-          if (!url) {
-            console.error('No APK artifact URL returned by EAS Build.');
-            process.exit(1);
+
+          function build(path) {
+            const parsed = JSON.parse(fs.readFileSync(path, 'utf8'));
+            const b = Array.isArray(parsed) ? parsed[0] : parsed;
+            return {
+              id: b?.id || '',
+              status: b?.status || '',
+              url: b?.artifacts?.buildUrl || b?.artifacts?.applicationArchiveUrl || '',
+            };
           }
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `build_id=${id}\nstatus=${status}\napk_url=${url}\n`);
-          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## BUKLOD Production APK\n\n- EAS build: ${id}\n- Status: ${status}\n- APK: ${url}\n`);
-          console.log(`EAS build: ${id}`);
-          console.log(`Status: ${status}`);
-          console.log(`APK: ${url}`);
+
+          const apk = build('eas-final-apk.json');
+          const aab = build('eas-final-aab.json');
+
+          if (!apk.url) throw new Error('APK artifact URL missing');
+          if (!aab.url) throw new Error('AAB artifact URL missing');
+
+          fs.appendFileSync(
+            process.env.GITHUB_STEP_SUMMARY,
+            '# BUKLOD Main Final Native Build\n\n' +
+            '- Frozen RC: ' + process.env.FROZEN_NATIVE_RC + '\n' +
+            '- Version: 1.3.0\n' +
+            '- VersionCode: 21\n' +
+            '- APK build: ' + apk.id + ' (' + apk.status + ')\n' +
+            '- APK: ' + apk.url + '\n' +
+            '- AAB build: ' + aab.id + ' (' + aab.status + ')\n' +
+            '- AAB: ' + aab.url + '\n' +
+            '- Store submission: NOT PERFORMED\n'
+          );
+
+          console.log('APK_BUILD_ID=' + apk.id);
+          console.log('APK_URL=' + apk.url);
+          console.log('AAB_BUILD_ID=' + aab.id);
+          console.log('AAB_URL=' + aab.url);
           NODE
 
-      - name: Preserve build metadata
+      - name: Preserve native build metadata
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: buklod-production-apk-metadata-${{ github.run_number }}
-          path: eas-apk-build.json
+          name: buklod-final-native-${{ env.FROZEN_NATIVE_RC }}
+          path: |
+            eas-final-apk.json
+            eas-final-aab.json
           if-no-files-found: ignore
-
-      - name: APK status
-        shell: bash
-        run: |
-          echo 'BUKLOD production APK build succeeded.'
-          echo 'EAS build ID: ${{ steps.apk.outputs.build_id }}'
-          echo 'APK URL: ${{ steps.apk.outputs.apk_url }}'
+          retention-days: 90
