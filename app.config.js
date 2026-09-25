@@ -218,6 +218,12 @@ module.exports = ({ config }) => {
 
       './plugins/withBuklodWebRTC.js',
 
+      ...(!isClassroom
+        ? [
+            './plugins/withBuklodSosQuickSettings.js',
+          ]
+        : []),
+
 
       'expo-image',
       'expo-sqlite',
