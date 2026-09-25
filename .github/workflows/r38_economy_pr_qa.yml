@@ -14,7 +14,14 @@ on:
       - 'src/app/bayanihan/**'
       - 'src/components/BuklodReferralInviteCard.tsx'
       - 'src/components/points/BuklodRedeemCatalogSection.tsx'
-      - 'src/lib/buklodR38*.ts'\n      - 'src/lib/buklodCanonicalFinanceIdentity.ts'\n      - 'src/lib/buklodRewards.ts'\n      - 'src/providers/AuthProvider.tsx'\n      - 'src/app/(auth)/register.tsx'\n      - 'supabase/functions/buklod-referral-v2/**'\n      - 'supabase/functions/buklod-finalized-value-v2/**'\n      - 'supabase/migrations/20260924144309_buklod_main_profit_first_referral_v2.sql'
+      - 'src/lib/buklodR38*.ts'
+      - 'src/lib/buklodCanonicalFinanceIdentity.ts'
+      - 'src/lib/buklodRewards.ts'
+      - 'src/providers/AuthProvider.tsx'
+      - 'src/app/(auth)/register.tsx'
+      - 'supabase/functions/buklod-referral-v2/**'
+      - 'supabase/functions/buklod-finalized-value-v2/**'
+      - 'supabase/migrations/20260924144309_buklod_main_profit_first_referral_v2.sql'
       - 'supabase/migrations/*buklod*r38*.sql'
   workflow_dispatch:
 
