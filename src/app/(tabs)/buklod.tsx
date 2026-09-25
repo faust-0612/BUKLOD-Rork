@@ -3806,20 +3806,25 @@ const refreshCommunity186L=
     </View>
    </View>
    </View>
-   <Text style={s.body}>{String(repairMojibakeText(item.body) ?? '')
-    .replace(
-      /^Shared from [^\r\n]+(?:\r?\n\s*|$)+/i,
-      ''
+   <Text style={s.body}>{(()=>{
+    const cleanedBody=
+      String(
+        repairMojibakeText(item.body) ??
+        ''
+      ).replace(
+        /^Shared from [^\r\n]+(?:\r?\n\s*|$)+/i,
+        ''
+      );
+
+    return (
+      communityPostIsVideo(item) &&
+      /^Shared a video\.\s*$/i.test(
+        cleanedBody
+      )
     )
-    .replace(
-      /^Shared a video\.\s*$/i,
-      communityPostIsVideo(item)
-        ? ''
-        : '   <Text style={s.body}>{String(repairMojibakeText(item.body) ?? '').replace(
-  /^Shared from [^\r\n]+(?:\r?\n\s*|$)+/i,
-  ''
-)}</Text>{!!ms.length&&<Text style={s.mentioned}>{ms.map((x:any)=>`@${x.full_name}`).join(' ')}</Text>}'
-    )}</Text>{!!ms.length&&<Text style={s.mentioned}>{ms.map((x:any)=>`@${x.full_name}`).join(' ')}</Text>}
+      ? ''
+      : cleanedBody;
+   })()}</Text>{!!ms.length&&<Text style={s.mentioned}>{ms.map((x:any)=>`@${x.full_name}`).join(' ')}</Text>}
 
     {renderCommunityMedia(item)}
 
