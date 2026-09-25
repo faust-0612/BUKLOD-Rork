@@ -37,6 +37,7 @@ const adminReportPath = 'src/app/admin/bayanihan.tsx';
 const adminOpsPath = 'src/app/admin/economy-operations.tsx';
 const migrationPath = 'supabase/migrations/20260924144309_buklod_main_profit_first_referral_v2.sql';
 const containmentMigrationPath = 'supabase/migrations/20260925115931_buklod_finance_v3_containment_guard.sql';
+const indexHardeningMigrationPath = 'supabase/migrations/20260925121017_buklod_finance_v3_fk_index_hardening.sql';
 const referralEdgePath = 'supabase/functions/buklod-referral-v2/index.ts';
 const valueEdgePath = 'supabase/functions/buklod-finalized-value-v2/index.ts';
 
@@ -51,6 +52,7 @@ const adminReport = read(adminReportPath);
 const adminOps = read(adminOpsPath);
 const migration = read(migrationPath);
 const containmentMigration = read(containmentMigrationPath);
+const indexHardeningMigration = read(indexHardeningMigrationPath);
 const referralEdge = read(referralEdgePath);
 const valueEdge = read(valueEdgePath);
 
@@ -139,6 +141,14 @@ requireText(containmentMigrationPath, containmentMigration, [
   'Canonical finance economics is disabled. Finalized value writes are blocked.',
   'revoke execute on function public.buklod_qualify_referral_v1(uuid)',
   'revoke execute on function public.buklod_record_referral_v1(text)',
+]);
+
+requireText(indexHardeningMigrationPath, indexHardeningMigration, [
+  'idx_buklod_pf_cash_referral',
+  'idx_buklod_pf_cash_source_value',
+  'idx_buklod_pf_referral_settlements_referrer',
+  'idx_buklod_pf_referral_settlements_referred',
+  'idx_buklod_pf_user_settlements_person',
 ]);
 
 requireText(referralEdgePath, referralEdge, [
