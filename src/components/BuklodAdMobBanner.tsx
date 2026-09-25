@@ -15,6 +15,7 @@ import {
 import {
   BannerAd,
   BannerAdSize,
+  type PaidEvent,
 } from 'react-native-google-mobile-ads';
 
 import {
@@ -40,6 +41,11 @@ import {
 import {
   useNetwork,
 } from '@/providers/NetworkProvider';
+
+import {
+  flushBuklodAdMobPaidEventQueue,
+  recordBuklodAdMobPaidEvent,
+} from '@/lib/buklodFbcFinance';
 
 const RETRY_DELAYS_MS = [8000, 20000, 45000];
 const MAX_RETRIES = RETRY_DELAYS_MS.length;
@@ -102,6 +108,10 @@ function BuklodAdMobBanner({
   }, []);
 
   useEffect(() => {
+    if (online) {
+      void flushBuklodAdMobPaidEventQueue();
+    }
+
     if (online && retryTimer.current == null) {
       return;
     }
@@ -199,6 +209,15 @@ function BuklodAdMobBanner({
               }}
               onAdOpened={() => {
                 recordBuklodAdEvent(diagnostic, 'displayed');
+              }}
+              onPaid={(event: PaidEvent) => {
+                void recordBuklodAdMobPaidEvent({
+                  placement: String(placement),
+                  adUnitId: unitId,
+                  value: event.value,
+                  currency: event.currency,
+                  precision: event.precision,
+                });
               }}
               {...({
                 onAdImpression: () => {
