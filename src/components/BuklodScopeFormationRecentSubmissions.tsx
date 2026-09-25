@@ -1,6 +1,7 @@
 import React, {
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from 'react';
 
@@ -32,6 +33,8 @@ type Row = {
   submitted_at: string;
   decided_at: string | null;
   status: string;
+  why?: string | null;
+  automatic_feedback?: string | null;
 };
 
 function kindLabel(value: string) {
@@ -49,14 +52,57 @@ function statusLabel(value: string) {
   return String(value || 'UNKNOWN').replace(/_/g, ' ');
 }
 
+function manilaDateKey(value: string | Date) {
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (Number.isNaN(date.getTime())) return 'UNKNOWN';
+
+  return date.toLocaleDateString('en-CA', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+}
+
+function dayLabel(key: string) {
+  if (key === 'UNKNOWN') return 'Unknown date';
+
+  const today = manilaDateKey(new Date());
+  const yesterday = manilaDateKey(
+    new Date(Date.now() - 24 * 60 * 60 * 1000)
+  );
+
+  if (key === today) return 'Today';
+  if (key === yesterday) return 'Yesterday';
+
+  const date = new Date(`${key}T12:00:00+08:00`);
+
+  return date.toLocaleDateString(undefined, {
+    timeZone: 'Asia/Manila',
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
 function submittedLabel(value: string) {
   const date = new Date(value);
 
-  if (Number.isNaN(date.getTime())) {
-    return '';
-  }
+  if (Number.isNaN(date.getTime())) return '';
 
-  return date.toLocaleString();
+  return date.toLocaleTimeString(undefined, {
+    timeZone: 'Asia/Manila',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function isMissingRpc(message: string) {
+  return /could not find the function|function.*does not exist|schema cache/i.test(
+    message
+  );
 }
 
 export default function BuklodScopeFormationRecentSubmissions({
@@ -67,30 +113,54 @@ export default function BuklodScopeFormationRecentSubmissions({
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedDays, setExpandedDays] = useState<
+    Record<string, boolean>
+  >({});
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const result =
-        await (supabase as any).rpc(
+      let result = await (supabase as any).rpc(
+        'buklod_scope_formation_submission_history_v2',
+        {
+          p_scope_id: scopeId,
+          p_limit: 150,
+        },
+      );
+
+      if (
+        result.error &&
+        isMissingRpc(String(result.error?.message ?? ''))
+      ) {
+        result = await (supabase as any).rpc(
           'buklod_scope_formation_submission_history_v1',
           {
             p_scope_id: scopeId,
-            p_limit: 100,
+            p_limit: 150,
           },
         );
+      }
 
       if (result.error) {
         throw result.error;
       }
 
-      setRows(
-        Array.isArray(result.data)
-          ? result.data
-          : []
-      );
+      const nextRows = Array.isArray(result.data)
+        ? (result.data as Row[])
+        : [];
+
+      setRows(nextRows);
+
+      const today = manilaDateKey(new Date());
+      setExpandedDays((current) => ({
+        ...current,
+        [today]:
+          current[today] == null
+            ? true
+            : current[today],
+      }));
     } catch (loadError: any) {
       setRows([]);
       setError(
@@ -108,6 +178,39 @@ export default function BuklodScopeFormationRecentSubmissions({
     void load();
   }, [load]);
 
+  const groups = useMemo(() => {
+    const byDay = new Map<string, Row[]>();
+
+    for (const row of rows) {
+      const key = manilaDateKey(row.submitted_at);
+      byDay.set(key, [...(byDay.get(key) ?? []), row]);
+    }
+
+    return Array.from(byDay.entries()).map(
+      ([dateKey, dayRows]) => {
+        const byKind = new Map<string, Row[]>();
+
+        for (const row of dayRows) {
+          byKind.set(
+            row.item_kind,
+            [...(byKind.get(row.item_kind) ?? []), row]
+          );
+        }
+
+        return {
+          dateKey,
+          rows: dayRows,
+          kinds: Array.from(byKind.entries()).map(
+            ([kind, kindRows]) => ({
+              kind,
+              rows: kindRows,
+            })
+          ),
+        };
+      }
+    );
+  }, [rows]);
+
   return (
     <Card>
       <View style={styles.header}>
@@ -116,8 +219,8 @@ export default function BuklodScopeFormationRecentSubmissions({
             Latest Formation activity
           </Text>
           <Text style={shared.muted}>
-            Shows who submitted, what they submitted,
-            when it was submitted, and the current result.
+            Grouped by day and activity. Open a day to see
+            names, status, and revision reasons.
           </Text>
         </View>
 
@@ -138,81 +241,208 @@ export default function BuklodScopeFormationRecentSubmissions({
         <View style={styles.loading}>
           <ActivityIndicator color={colors.green} />
           <Text style={shared.muted}>
-            Loading recent submissionsâ€¦
+            Loading recent submissions…
           </Text>
         </View>
       ) : error ? (
-        <Text style={styles.error}>
-          {error}
-        </Text>
-      ) : rows.length ? (
-        <View style={styles.list}>
-          {rows.map(row => {
-            const canOpen =
-              row.item_kind === 'DAILY_READING';
+        <Text style={styles.error}>{error}</Text>
+      ) : groups.length ? (
+        <View style={styles.dayList}>
+          {groups.map((group) => {
+            const expanded =
+              expandedDays[group.dateKey] ??
+              group.dateKey === manilaDateKey(new Date());
 
             return (
-              <Pressable
-                key={row.approval_id}
-                disabled={!canOpen}
-                onPress={() => {
-                  if (!canOpen) return;
-
-                  router.push({
-                    pathname:
-                      '/scope/faith-monitoring/daily-reading/[submissionId]' as any,
-                    params: {
-                      submissionId: row.item_id,
-                      scopeId: row.scope_id,
-                      approvalId: row.approval_id,
-                    },
-                  });
-                }}
-                style={({ pressed }) => [
-                  styles.row,
-                  pressed &&
-                  canOpen &&
-                  styles.rowPressed,
-                ]}
+              <View
+                key={group.dateKey}
+                style={styles.dayGroup}
               >
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.name}>
-                    {row.learner_name}
-                  </Text>
-
-                  <Text style={styles.meta}>
-                    {kindLabel(row.item_kind)}
-                    {' Â· '}
-                    {row.title}
-                  </Text>
-
-                  {!!row.subtitle && (
-                    <Text style={styles.meta}>
-                      {row.subtitle}
+                <Pressable
+                  style={styles.dayHeader}
+                  onPress={() =>
+                    setExpandedDays((current) => ({
+                      ...current,
+                      [group.dateKey]: !expanded,
+                    }))
+                  }
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.dayTitle}>
+                      {dayLabel(group.dateKey)}
                     </Text>
-                  )}
+                    <Text style={styles.dayMeta}>
+                      {group.rows.length} submission
+                      {group.rows.length === 1 ? '' : 's'}
+                    </Text>
+                  </View>
 
-                  <Text style={styles.time}>
-                    {row.scope_name}
-                    {' Â· Submitted '}
-                    {submittedLabel(row.submitted_at)}
-                  </Text>
-                </View>
+                  <MaterialCommunityIcons
+                    name={
+                      expanded
+                        ? 'chevron-up'
+                        : 'chevron-down'
+                    }
+                    size={20}
+                    color={colors.greenDark}
+                  />
+                </Pressable>
 
-                <View style={styles.status}>
-                  <Text style={styles.statusText}>
-                    {statusLabel(row.status)}
-                  </Text>
+                {expanded ? (
+                  <View style={styles.kindList}>
+                    {group.kinds.map((kindGroup) => (
+                      <View
+                        key={kindGroup.kind}
+                        style={styles.kindGroup}
+                      >
+                        <View style={styles.kindHeader}>
+                          <Text style={styles.kindTitle}>
+                            {kindLabel(kindGroup.kind)}
+                          </Text>
+                          <Text style={styles.kindCount}>
+                            {kindGroup.rows.length}
+                          </Text>
+                        </View>
 
-                  {canOpen ? (
-                    <MaterialCommunityIcons
-                      name="chevron-right"
-                      size={20}
-                      color={colors.greenDark}
-                    />
-                  ) : null}
-                </View>
-              </Pressable>
+                        <View style={styles.list}>
+                          {kindGroup.rows.map((row) => {
+                            const canOpen =
+                              row.item_kind ===
+                              'DAILY_READING';
+                            const needsRevision =
+                              row.status === 'REJECTED';
+
+                            return (
+                              <Pressable
+                                key={row.approval_id}
+                                disabled={!canOpen}
+                                onPress={() => {
+                                  if (!canOpen) return;
+
+                                  router.push({
+                                    pathname:
+                                      '/scope/faith-monitoring/daily-reading/[submissionId]' as any,
+                                    params: {
+                                      submissionId:
+                                        row.item_id,
+                                      scopeId:
+                                        row.scope_id,
+                                      approvalId:
+                                        row.approval_id,
+                                    },
+                                  });
+                                }}
+                                style={({ pressed }) => [
+                                  styles.row,
+                                  needsRevision &&
+                                    styles.rowRevision,
+                                  pressed &&
+                                  canOpen &&
+                                    styles.rowPressed,
+                                ]}
+                              >
+                                <View style={{ flex: 1 }}>
+                                  <Text style={styles.name}>
+                                    {row.learner_name}
+                                  </Text>
+
+                                  <Text style={styles.meta}>
+                                    {row.title}
+                                  </Text>
+
+                                  {!!row.subtitle && (
+                                    <Text
+                                      style={styles.meta}
+                                    >
+                                      {row.subtitle}
+                                    </Text>
+                                  )}
+
+                                  <Text style={styles.time}>
+                                    Submitted{' '}
+                                    {submittedLabel(
+                                      row.submitted_at
+                                    )}
+                                  </Text>
+
+                                  {needsRevision &&
+                                  row.why?.trim() ? (
+                                    <View
+                                      style={styles.reasonBox}
+                                    >
+                                      <Text
+                                        style={
+                                          styles.reasonLabel
+                                        }
+                                      >
+                                        WHY
+                                      </Text>
+                                      <Text
+                                        style={
+                                          styles.reasonText
+                                        }
+                                      >
+                                        {row.why}
+                                      </Text>
+
+                                      {row.automatic_feedback?.trim() &&
+                                      row.automatic_feedback !==
+                                        row.why ? (
+                                        <>
+                                          <Text
+                                            style={
+                                              styles.feedbackLabel
+                                            }
+                                          >
+                                            AUTO FEEDBACK
+                                          </Text>
+                                          <Text
+                                            style={
+                                              styles.feedbackText
+                                            }
+                                          >
+                                            {
+                                              row.automatic_feedback
+                                            }
+                                          </Text>
+                                        </>
+                                      ) : null}
+                                    </View>
+                                  ) : null}
+                                </View>
+
+                                <View style={styles.status}>
+                                  <Text
+                                    style={[
+                                      styles.statusText,
+                                      needsRevision &&
+                                        styles.statusRevision,
+                                    ]}
+                                  >
+                                    {statusLabel(
+                                      row.status
+                                    )}
+                                  </Text>
+
+                                  {canOpen ? (
+                                    <MaterialCommunityIcons
+                                      name="chevron-right"
+                                      size={20}
+                                      color={
+                                        colors.greenDark
+                                      }
+                                    />
+                                  ) : null}
+                                </View>
+                              </Pressable>
+                            );
+                          })}
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+              </View>
             );
           })}
         </View>
@@ -258,9 +488,71 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 17,
   },
-  list: {
+  dayList: {
     marginTop: 12,
+    gap: 10,
+  },
+  dayGroup: {
+    borderWidth: 1,
+    borderColor: '#DCE5E0',
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#F8FAF9',
+  },
+  dayHeader: {
+    minHeight: 50,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  dayTitle: {
+    color: colors.greenDark,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  dayMeta: {
+    marginTop: 2,
+    color: colors.muted,
+    fontSize: 9,
+    fontWeight: '700',
+  },
+  kindList: {
+    borderTopWidth: 1,
+    borderTopColor: '#E8EFEA',
+    padding: 10,
+    gap: 12,
+    backgroundColor: '#FFFFFF',
+  },
+  kindGroup: {
+    gap: 7,
+  },
+  kindHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 8,
+  },
+  kindTitle: {
+    color: '#476055',
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  kindCount: {
+    minWidth: 22,
+    borderRadius: 999,
+    backgroundColor: '#E8F5EE',
+    color: colors.greenDark,
+    fontSize: 9,
+    fontWeight: '900',
+    textAlign: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+  },
+  list: {
+    gap: 7,
   },
   row: {
     flexDirection: 'row',
@@ -268,9 +560,13 @@ const styles = StyleSheet.create({
     gap: 10,
     borderWidth: 1,
     borderColor: colors.line,
-    borderRadius: 14,
-    padding: 12,
+    borderRadius: 12,
+    padding: 10,
     backgroundColor: colors.white,
+  },
+  rowRevision: {
+    borderColor: '#F0C9C4',
+    backgroundColor: '#FFFAF9',
   },
   rowPressed: {
     opacity: 0.72,
@@ -292,6 +588,36 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '700',
   },
+  reasonBox: {
+    marginTop: 8,
+    borderRadius: 10,
+    backgroundColor: '#FFF1EF',
+    padding: 9,
+    gap: 3,
+  },
+  reasonLabel: {
+    color: '#B3261E',
+    fontSize: 8,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  reasonText: {
+    color: '#6C2A24',
+    fontSize: 10,
+    lineHeight: 15,
+  },
+  feedbackLabel: {
+    marginTop: 5,
+    color: '#31528A',
+    fontSize: 8,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  feedbackText: {
+    color: '#263A5B',
+    fontSize: 10,
+    lineHeight: 15,
+  },
   status: {
     alignItems: 'flex-end',
     justifyContent: 'center',
@@ -302,5 +628,8 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '900',
     textAlign: 'right',
+  },
+  statusRevision: {
+    color: '#B3261E',
   },
 });
