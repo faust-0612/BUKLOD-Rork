@@ -1,0 +1,118 @@
+name: BUKLOD RC Web Only Release TEMP
+
+on:
+  push:
+    branches:
+      - release/buklod-main-final-rc-20260923
+    paths:
+      - .github/workflows/buklod_rc_web_only_release_temp.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: buklod-rc-web-only-temp
+  cancel-in-progress: false
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  EXPO_PUBLIC_APP_ENV: production
+  BUKLOD_APP_TARGET: main
+  APP_VARIANT: production
+
+jobs:
+  web-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact RC
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Verify web-only release identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          echo "RC_SHA=${GITHUB_SHA}"
+          grep -F "buklod_scope_faith_monitoring_metric_details_v1" src/components/BuklodScopeFaithMonitoringMetricDetailsModal.tsx
+          grep -F "buklod_scope_formation_submission_history_v2" src/components/BuklodScopeFormationRecentSubmissions.tsx
+          grep -F "Published ✓" src/components/BuklodScopeFaithMonitoringAdminFeedbackCard.tsx
+          grep -F "Tap to see who and why" src/app/scope/faith-monitoring/report.tsx
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: TypeScript
+        run: npx tsc --noEmit
+
+      - name: EAS production identity and env
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          npx eas-cli@latest whoami --non-interactive | grep -F "faust_0612"
+          rm -f .env.local
+          npx eas-cli@latest env:pull --environment production --path .env.local --non-interactive
+          test -s .env.local
+          set -a
+          . ./.env.local
+          set +a
+          test "${EXPO_PUBLIC_SUPABASE_URL:-}" = "https://yhanxndaqbmuzbdqlblu.supabase.co"
+          while IFS='=' read -r name _; do
+            case "$name" in
+              EXPO_PUBLIC_*)
+                value="${!name-}"
+                {
+                  echo "${name}<<__BUKLOD_ENV__"
+                  printf '%s\n' "$value"
+                  echo '__BUKLOD_ENV__'
+                } >> "$GITHUB_ENV"
+                ;;
+            esac
+          done < <(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env.local)
+
+      - name: Fresh production web export
+        shell: bash
+        env:
+          NODE_ENV: production
+        run: |
+          set -euo pipefail
+          rm -rf dist
+          npx expo export --platform web --output-dir dist --clear
+          test -s dist/index.html
+          test "$(find dist -type f -name '*.js' | wc -l)" -gt 0
+          grep -RFl --include='*.js' 'yhanxndaqbmuzbdqlblu.supabase.co' dist >/dev/null
+          if grep -RIE --include='*.js' 'localhost|127\.0\.0\.1|supabase\.local' dist >/dev/null; then
+            echo "Development endpoint detected in production web bundle"
+            exit 1
+          fi
+
+      - name: Deploy exact web artifact
+        shell: bash
+        env:
+          NODE_ENV: production
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest deploy --export-dir dist --prod --environment production --non-interactive
+
+      - name: Verify live origin
+        shell: bash
+        run: |
+          set -euo pipefail
+          for n in 1 2 3 4 5; do
+            code="$(curl -L -sS -o /tmp/buklod-live.html -w '%{http_code}' --max-time 30 https://buklod.expo.app/)"
+            test "$code" = "200"
+            test -s /tmp/buklod-live.html
+          done
+          echo "WEB_ONLY_RELEASE=PASS"
+          echo "LIVE_URL=https://buklod.expo.app"
+          echo "RC_SHA=${GITHUB_SHA}"
