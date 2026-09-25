@@ -5,7 +5,6 @@ echo "BUKLOD 1.0 — Android Production Release Candidate"
 echo "================================================="
 
 node scripts/production-preflight.mjs
-node scripts/android-admob-preflight.mjs
 node scripts/verify-production-migrations.mjs > release/PRODUCTION_MIGRATION_HASHES.json
 
 npx expo-doctor@latest
@@ -16,6 +15,7 @@ echo "Before build, verify:"
 echo "  - production Supabase schema is deployed"
 echo "  - Maintenance Mode is ON"
 echo "  - production EAS variables are correct"
+echo "  - EAS cloud build will hard-fail if required AdMob production IDs are missing/test IDs"
 echo
 
 read -r -p "Type BUILD-ANDROID-1.0 to start the production AAB build: " CONFIRM
