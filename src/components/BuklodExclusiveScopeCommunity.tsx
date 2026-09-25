@@ -10,6 +10,7 @@ import {
   readVideoSizeBytes,
   validateCommunityVideoUpload,
 } from '@/lib/buklodCommunityWallMedia';
+import { assertCommunityVideoQuotaAvailable } from '@/lib/buklodCommunityContributionEconomy';
 import {
   setCommunityPostAuthorOnly,
   saveCommunityPostEdit,
@@ -1189,6 +1190,14 @@ export default function BuklodExclusiveScopeCommunity({
         );
 
         return;
+      }
+
+      if (sizeBytes) {
+        const quota = await assertCommunityVideoQuotaAvailable(sizeBytes);
+        if (quota.allowed === false) {
+          Alert.alert('Monthly Video Allowance','This video would exceed your current monthly Community Wall video allowance.');
+          return;
+        }
       }
 
       setWallVideo(

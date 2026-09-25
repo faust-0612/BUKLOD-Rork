@@ -169,7 +169,7 @@ requireText(
 );
 requireText(
   'src/components/BuklodNavSafeShell.tsx',
-  'BUKLOD_ROOT_BACK_TO_WALL_R1',
+  'BUKLOD_ROOT_BACK_TO_WALL_R2',
   'Android core direct-entry back converges on Wall',
 );
 requireText('src/app/account/security.tsx', 'Current Password', 'Change Password requires current-password verification');
@@ -658,6 +658,11 @@ if (fs.existsSync(path.join(root, '.github/workflows/buklod_main_final_release.y
   forbidText('.github/workflows/buklod_main_final_release.yml', 'patch-', 'Final workflow never runs patch scripts');
   forbidText('.github/workflows/buklod_main_final_release.yml', 'git apply', 'Final workflow never mutates RC source');
 }
+
+requireText('src/lib/buklodCommunityContributionEconomy.ts', 'BUKLOD_COMMUNITY_QMP_ECONOMY_R1', 'Community QMP server-client contract');
+requireText('src/components/BuklodCommunityContributionCard.tsx', 'YOUR COMMUNITY CONTRIBUTION', 'Community contribution Wall UX');
+requireText('src/app/community-contribution.tsx', 'HOW CAN I INCREASE MY SHARE?', 'Community contribution guidance page');
+requireText('scripts/community-contribution-economy-release-contract.mjs', 'BUKLOD COMMUNITY CONTRIBUTION ECONOMY CONTRACT PASS', 'Community economy release contract');
 
 for (const c of checks) {
   console.log(`${c.ok ? 'PASS' : 'FAIL'}: ${c.label}`);

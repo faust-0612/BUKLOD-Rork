@@ -54,6 +54,8 @@ import { useBuklodCommunityAdViewability } from '@/hooks/useBuklodCommunityAdVie
 import BuklodPublicLocationChips from '@/components/BuklodPublicLocationChips';
 import BuklodMaritesBoard from '@/components/BuklodMaritesBoard';
 import BuklodTodayCard from '@/components/BuklodTodayCard';
+import BuklodCommunityContributionCard from '@/components/BuklodCommunityContributionCard';
+import { assertCommunityVideoQuotaAvailable } from '@/lib/buklodCommunityContributionEconomy';
 import SmartDrawerWallCard from '@/components/SmartDrawerWallCard';
 import BuklodCommunityWallEngagementLayer, {
   BuklodCommunityQuickActions,
@@ -1653,14 +1655,22 @@ const load=useCallback(async(options?:{
     });
 
    if(validationError){
-    Alert.alert(
-     'Video',
-     validationError
-    );
-    return false;
-   }
+     Alert.alert(
+      'Video',
+      validationError
+     );
+     return false;
+    }
 
-   const uri=
+    if(sizeBytes){
+     const quota=await assertCommunityVideoQuotaAvailable(sizeBytes);
+     if(quota.allowed===false){
+      Alert.alert('Monthly Video Allowance','This video would exceed your current monthly Community Wall video allowance.');
+      return false;
+     }
+    }
+
+    const uri=
     String(
      asset?.uri??''
     );
@@ -3430,6 +3440,8 @@ const refreshCommunity186L=
      publicLocationScopeId
     }
    />
+
+   <BuklodCommunityContributionCard />
 
    <Text style={shared.muted}>
     Encourage, connect and grow together.
