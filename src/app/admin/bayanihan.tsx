@@ -197,9 +197,7 @@ export default function AdminBayanihanScreen() {
               <View style={styles.grid}>
                 <Metric label="User Pool Distributed" value={formatPhp(report.distributed.bayanihan)} />
                 <Metric label="First-Line Referral Distributed" value={formatPhp(report.distributed.direct_referral)} />
-                <Metric label="Cash Available" value={formatPhp(report.cash_ledger.available)} />
-                <Metric label="Cash Reserved" value={formatPhp(report.cash_ledger.reserved)} />
-                <Metric label="Cash Paid" value={formatPhp(report.cash_ledger.paid)} />
+                <Metric label="Canonical Cash Ledger" value="See withdrawal / payout ledger" note="No synthetic zero balances are shown." />
               </View>
 
               {report.user_shares.length ? (
