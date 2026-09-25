@@ -139,6 +139,65 @@ requireAll('src/app/(auth)/login.tsx', [
   "../../../assets/release/app-icon.png",
 ], 'Login canonical logo');
 
+function walkRuntime(dir) {
+  if (!fs.existsSync(dir)) return [];
+
+  const out = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+
+    if (entry.isDirectory()) {
+      out.push(...walkRuntime(full));
+      continue;
+    }
+
+    if (
+      entry.isFile() &&
+      /\.(?:ts|tsx|js|jsx|mjs|cjs|json)$/.test(entry.name)
+    ) {
+      out.push(full);
+    }
+  }
+  return out;
+}
+
+const runtimeRoots = [
+  path.join(ROOT, 'src'),
+  path.join(ROOT, 'plugins'),
+];
+
+const legacyRuntimeMarkers = [
+  'assets/release/buklod-generic.png',
+  'assets/release/splash-icon.png',
+  '../release/buklod-generic.png',
+  '../release/splash-icon.png',
+  '../../assets/release/buklod-generic.png',
+  '../../assets/release/splash-icon.png',
+  '../../../assets/release/buklod-generic.png',
+  '../../../assets/release/splash-icon.png',
+];
+
+let runtimeLegacyClean = true;
+
+for (const root of runtimeRoots) {
+  for (const file of walkRuntime(root)) {
+    const text = fs.readFileSync(file, 'utf8');
+
+    for (const marker of legacyRuntimeMarkers) {
+      if (text.includes(marker)) {
+        failures.push(
+          `Legacy Main logo reference found in runtime source: ${path.relative(ROOT, file)} -> ${marker}`,
+        );
+        runtimeLegacyClean = false;
+      }
+    }
+  }
+}
+
+if (runtimeLegacyClean) {
+  passes.push('all runtime source is legacy-logo free');
+}
+
 if (failures.length) {
   console.error('');
   for (const failure of failures) {
