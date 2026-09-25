@@ -16,7 +16,8 @@ import {
   readPersistedSupabaseSession,
   writeAuthSnapshot,
 } from '@/lib/buklodAuthSnapshot';
-import { cachedQuery } from '@/lib/performance';\nimport { ensureBuklodCanonicalFinanceIdentity } from '@/lib/buklodCanonicalFinanceIdentity';
+import { cachedQuery } from '@/lib/performance';
+import { ensureBuklodCanonicalFinanceIdentity } from '@/lib/buklodCanonicalFinanceIdentity';
 
 export type AppRole =
   | 'member'
