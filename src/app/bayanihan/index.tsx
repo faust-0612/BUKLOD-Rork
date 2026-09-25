@@ -129,6 +129,7 @@ export default function BayanihanScreen() {
   const paid = report?.actual_earnings?.paid_earnings;
   const withdrawalEnabled =
     report?.actual_earnings?.referral_withdrawal_enabled === true;
+  const canonical = report?.canonical_finance;
 
   return (
     <BuklodPortalScrollView
