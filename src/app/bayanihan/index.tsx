@@ -280,7 +280,19 @@ export default function BayanihanScreen() {
             ) : null}
 
             <View style={styles.gridTwo}>
-              <Metric label="Latest Finalized User Pool Share" value={formatPhp(finalized?.total)} emphasized />
+              <Metric
+                label="Latest User Pool Share"
+                value={formatPhp(finalized?.bayanihan)}
+                emphasized
+              />
+              <Metric
+                label="Latest First-Line Share"
+                value={formatPhp(finalized?.direct_referral)}
+              />
+              <Metric
+                label="Latest Finalized Total"
+                value={formatPhp(finalized?.total)}
+              />
               <Metric label="Available Cash" value={formatPhp(availableCash?.total)} />
               <Metric
                 label="Reserved"
@@ -290,7 +302,22 @@ export default function BayanihanScreen() {
             </View>
 
             <View style={styles.breakdownCard}>
-              <Text style={styles.breakdownTitle}>Canonical finance status</Text>
+              <Text style={styles.breakdownTitle}>Canonical earnings breakdown</Text>
+              <Text style={styles.breakdownLine}>
+                Latest period: {canonical?.latest_period_key || 'Not finalized yet'}
+              </Text>
+              <Text style={styles.breakdownLine}>
+                Lifetime User Pool: {formatPhp(canonical?.lifetime_user_pool_earned_php)}
+              </Text>
+              <Text style={styles.breakdownLine}>
+                Lifetime First-Line: {formatPhp(canonical?.lifetime_first_line_earned_php)}
+              </Text>
+              <Text style={styles.breakdownLine}>
+                Lifetime Referral Rewards: {formatPhp(canonical?.lifetime_referral_reward_earned_php)}
+              </Text>
+              <Text style={styles.breakdownLine}>
+                Lifetime Total Earned: {formatPhp(canonical?.lifetime_total_earned_php)}
+              </Text>
               <Text style={styles.breakdownLine}>
                 Estimated current earnings: {formatPhp(canonical?.estimated_earnings_php)}
               </Text>
