@@ -5,6 +5,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 
@@ -88,6 +89,8 @@ const MAP_DOORS: MapDoor[] = [
 
 export default function BuklodCommunityMapNav() {
   const { theme } = useBuklodTheme();
+  const { width } = useWindowDimensions();
+  const compact = width < 560;
 
   const styles = useMemo(
     () =>
@@ -103,12 +106,16 @@ export default function BuklodCommunityMapNav() {
           overflow: 'hidden',
         },
         header: {
-          minHeight: 48,
+          minHeight: 64,
           paddingHorizontal: 14,
+          paddingVertical: 12,
           flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: 'space-between',
           gap: 12,
+        },
+        headerCopy: {
+          flex: 1,
+          minWidth: 0,
         },
         eyebrow: {
           color: theme.accent,
@@ -118,146 +125,154 @@ export default function BuklodCommunityMapNav() {
           letterSpacing: 1.15,
         },
         subtitle: {
-          marginTop: 2,
+          marginTop: 3,
           color: theme.textMuted,
           fontSize: 11,
-          lineHeight: 15,
+          lineHeight: 16,
           fontWeight: '700',
         },
-        map: {
-          position: 'relative',
-          minHeight: 300,
-          marginHorizontal: 10,
-          marginBottom: 10,
-          borderRadius: 17,
-          borderWidth: 1,
-          borderColor: theme.border,
-          backgroundColor: theme.canvas,
-          overflow: 'hidden',
-        },
-        roadHorizontalTop: {
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          top: '25%',
-          height: 14,
-          backgroundColor: theme.border,
-          opacity: 0.5,
-        },
-        roadHorizontalMiddle: {
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          top: '50%',
-          height: 14,
-          backgroundColor: theme.border,
-          opacity: 0.5,
-        },
-        roadHorizontalBottom: {
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          top: '75%',
-          height: 14,
-          backgroundColor: theme.border,
-          opacity: 0.5,
-        },
-        roadVertical: {
-          position: 'absolute',
-          top: 0,
-          bottom: 0,
-          left: '48%',
-          width: 18,
-          backgroundColor: theme.border,
-          opacity: 0.55,
-        },
-        centerMarker: {
-          position: 'absolute',
-          left: '50%',
-          top: '50%',
-          width: 26,
-          height: 26,
-          marginLeft: -13,
-          marginTop: -6,
-          borderRadius: 13,
-          borderWidth: 3,
-          borderColor: theme.canvas,
-          backgroundColor: theme.accent,
+        mapButton: {
+          width: 44,
+          height: 44,
+          borderRadius: 14,
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 1,
+          borderWidth: 1,
+          borderColor: theme.border,
+          backgroundColor: theme.headerSurface,
+        },
+        mapButtonPressed: {
+          opacity: 0.7,
+        },
+        mapCta: {
+          marginHorizontal: 12,
+          marginBottom: 10,
+          minHeight: 48,
+          borderRadius: 14,
+          paddingHorizontal: 13,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 10,
+          borderWidth: 1,
+          borderColor: theme.border,
+          backgroundColor: theme.headerSurface,
+        },
+        mapCtaCopy: {
+          flex: 1,
+          minWidth: 0,
+        },
+        mapCtaTitle: {
+          color: theme.textPrimary,
+          fontSize: 12,
+          lineHeight: 16,
+          fontWeight: '900',
+        },
+        mapCtaSub: {
+          marginTop: 1,
+          color: theme.textMuted,
+          fontSize: 9.5,
+          lineHeight: 13,
+          fontWeight: '700',
+        },
+        doors: {
+          paddingHorizontal: 12,
+          paddingBottom: 12,
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: 9,
         },
         door: {
-          position: 'absolute',
-          width: '39%',
-          minHeight: 52,
+          width: compact ? '100%' : '48.6%',
+          minHeight: 58,
           borderRadius: 14,
           borderWidth: 1,
           borderColor: theme.border,
           backgroundColor: theme.surface,
-          paddingHorizontal: 9,
-          paddingVertical: 8,
+          paddingHorizontal: 12,
+          paddingVertical: 10,
           flexDirection: 'row',
           alignItems: 'center',
-          gap: 8,
-          zIndex: 2,
+          gap: 10,
         },
-        topLeft: { left: '5%', top: 10 },
-        topRight: { right: '5%', top: 10 },
-        upperMiddleLeft: { left: '5%', top: 82 },
-        upperMiddleRight: { right: '5%', top: 82 },
-        lowerMiddleLeft: { left: '5%', top: 154 },
-        lowerMiddleRight: { right: '5%', top: 154 },
-        bottomLeft: { left: '5%', bottom: 10 },
-        bottomRight: { right: '5%', bottom: 10 },
         doorIcon: {
-          width: 30,
-          height: 30,
-          borderRadius: 10,
+          width: 34,
+          height: 34,
+          borderRadius: 11,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: theme.headerSurface,
         },
         doorTitle: {
           flex: 1,
+          minWidth: 0,
           color: theme.textPrimary,
-          fontSize: 10,
-          lineHeight: 13,
+          fontSize: 12,
+          lineHeight: 16,
           fontWeight: '900',
         },
       }),
-    [theme],
+    [compact, theme],
   );
+
+  const openMap = () => {
+    router.push('/city' as any);
+  };
 
   return (
     <View style={styles.shell}>
       <View style={styles.header}>
-        <View style={{ flex: 1 }}>
+        <View style={styles.headerCopy}>
           <Text style={styles.eyebrow}>BUKLOD NAVIGATION</Text>
           <Text style={styles.subtitle}>
             Community places, organizations, Bayanihan and your Home.
           </Text>
         </View>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Open Community Map"
+          onPress={openMap}
+          style={({ pressed }) => [
+            styles.mapButton,
+            pressed && styles.mapButtonPressed,
+          ]}
+        >
+          <MaterialCommunityIcons
+            name="map-marker-radius-outline"
+            size={23}
+            color={theme.accent}
+          />
+        </Pressable>
+      </View>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Open live Community Map"
+        onPress={openMap}
+        style={({ pressed }) => [
+          styles.mapCta,
+          pressed && styles.mapButtonPressed,
+        ]}
+      >
         <MaterialCommunityIcons
-          name="map-marker-radius-outline"
+          name="map-outline"
           size={23}
           color={theme.accent}
         />
-      </View>
-
-      <View style={styles.map}>
-        <View pointerEvents="none" style={styles.roadHorizontalTop} />
-        <View pointerEvents="none" style={styles.roadHorizontalMiddle} />
-        <View pointerEvents="none" style={styles.roadHorizontalBottom} />
-        <View pointerEvents="none" style={styles.roadVertical} />
-        <View pointerEvents="none" style={styles.centerMarker}>
-          <MaterialCommunityIcons
-            name="map-marker"
-            size={15}
-            color={theme.surface}
-          />
+        <View style={styles.mapCtaCopy}>
+          <Text style={styles.mapCtaTitle}>Community Map</Text>
+          <Text style={styles.mapCtaSub}>
+            Open the interactive BUKLOD City map and places.
+          </Text>
         </View>
+        <MaterialCommunityIcons
+          name="chevron-right"
+          size={19}
+          color={theme.textMuted}
+        />
+      </Pressable>
 
+      <View style={styles.doors}>
         {MAP_DOORS.map((door) => (
           <Pressable
             key={door.key}
@@ -266,23 +281,25 @@ export default function BuklodCommunityMapNav() {
             onPress={() => router.push(door.route as any)}
             style={({ pressed }) => [
               styles.door,
-              styles[door.placement],
               { opacity: pressed ? 0.72 : 1 },
             ]}
           >
             <View style={styles.doorIcon}>
               <MaterialCommunityIcons
                 name={door.icon}
-                size={19}
+                size={20}
                 color={theme.accent}
               />
             </View>
-            <Text numberOfLines={2} style={styles.doorTitle}>
+            <Text
+              numberOfLines={compact ? 1 : 2}
+              style={styles.doorTitle}
+            >
               {door.title}
             </Text>
             <MaterialCommunityIcons
               name="chevron-right"
-              size={17}
+              size={18}
               color={theme.textMuted}
             />
           </Pressable>
