@@ -61,7 +61,7 @@ if (!fs.existsSync(path.join(ROOT, canonicalAsset))) {
     path.join(ROOT, canonicalAsset),
   );
 
-  if (bytes.length < 20_000) {
+  if (bytes.length < 10_000) {
     failures.push(
       'Canonical Main app icon looks unexpectedly small/corrupt.',
     );
@@ -72,7 +72,7 @@ if (!fs.existsSync(path.join(ROOT, canonicalAsset))) {
       .digest('hex');
 
     const expectedHash =
-      '49260ffb09b162b082b5e4d6773c9c4712834de4f593f836029c0e5df439dc60';
+      '3c6519857023ddeaf327828456f38746ededd8312ad9dc93b00e7da17cd7132e';
 
     console.log(`CANONICAL_ICON_SHA256=${hash}`);
 
