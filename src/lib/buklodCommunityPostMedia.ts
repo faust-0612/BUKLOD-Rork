@@ -175,23 +175,11 @@ async function loadMediaRpc(ids: string[]) {
     p_post_ids: ids,
   });
 
-  if (!v2?.error) {
-    return v2.data ?? [];
-  }
-
-  if (!isMissingRpcError(String(v2.error?.message ?? ''))) {
+  if (v2?.error) {
     throw v2.error;
   }
 
-  const v1 = await (supabase as any).rpc('get_buklod_post_media_v1', {
-    p_post_ids: ids,
-  });
-  if (v1?.error) throw v1.error;
-  return (v1.data ?? []).map((row: any) => ({
-    ...row,
-    storage_provider: 'SUPABASE',
-    external_object_key: null,
-  }));
+  return v2.data ?? [];
 }
 
 export async function loadCommunityPostMediaByPostIds(
