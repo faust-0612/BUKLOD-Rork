@@ -3807,10 +3807,20 @@ const refreshCommunity186L=
     </View>
    </View>
    </View>
-   <Text style={s.body}>{String(repairMojibakeText(item.body) ?? '').replace(
+   <Text style={s.body}>{String(repairMojibakeText(item.body) ?? '')
+    .replace(
+      /^Shared from [^\r\n]+(?:\r?\n\s*|$)+/i,
+      ''
+    )
+    .replace(
+      /^Shared a video\.\s*$/i,
+      communityPostIsVideo(item)
+        ? ''
+        : '   <Text style={s.body}>{String(repairMojibakeText(item.body) ?? '').replace(
   /^Shared from [^\r\n]+(?:\r?\n\s*|$)+/i,
   ''
-)}</Text>{!!ms.length&&<Text style={s.mentioned}>{ms.map((x:any)=>`@${x.full_name}`).join(' ')}</Text>}
+)}</Text>{!!ms.length&&<Text style={s.mentioned}>{ms.map((x:any)=>`@${x.full_name}`).join(' ')}</Text>}'
+    )}</Text>{!!ms.length&&<Text style={s.mentioned}>{ms.map((x:any)=>`@${x.full_name}`).join(' ')}</Text>}
 
     {renderCommunityMedia(item)}
 
