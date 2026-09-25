@@ -22,6 +22,7 @@ on:
       - 'supabase/functions/buklod-referral-v2/**'
       - 'supabase/functions/buklod-finalized-value-v2/**'
       - 'supabase/migrations/20260924144309_buklod_main_profit_first_referral_v2.sql'
+      - 'supabase/migrations/20260925115931_buklod_finance_v3_containment_guard.sql'
       - 'supabase/migrations/*buklod*r38*.sql'
   workflow_dispatch:
 
