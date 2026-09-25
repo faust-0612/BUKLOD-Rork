@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { cachedQuery, invalidateCache } from '@/lib/performance';
+import { cachedQuery, invalidateCache } from '@/lib/performance';\nimport {\n  attachBuklodCanonicalReferral,\n  ensureBuklodCanonicalFinanceIdentity,\n} from '@/lib/buklodCanonicalFinanceIdentity';
 
 export type BuklodPointsDashboard = {
   total_points: number;
@@ -417,9 +417,23 @@ export type ReferralSummary = {
 };
 
 export async function loadReferralSummary(): Promise<ReferralSummary | null> {
-  const { data, error } = await (supabase as any).rpc(
-    'get_my_buklod_referral_summary_v1',
+  let result = await (supabase as any).rpc(
+    'get_my_buklod_referral_summary_v2',
   );
+
+  if (
+    !result.error &&
+    result.data &&
+    typeof result.data === 'object' &&
+    (result.data as Record<string, unknown>).identity_ready === false
+  ) {
+    await ensureBuklodCanonicalFinanceIdentity();
+    result = await (supabase as any).rpc(
+      'get_my_buklod_referral_summary_v2',
+    );
+  }
+
+  const { data, error } = result;
 
   if (error || !data || typeof data !== 'object') {
     return null;
@@ -436,12 +450,5 @@ export async function loadReferralSummary(): Promise<ReferralSummary | null> {
 }
 
 export async function recordReferral(referrerCode: string) {
-  const { error } = await (supabase as any).rpc(
-    'buklod_record_referral_v1',
-    { p_referrer_code: referrerCode.trim() },
-  );
-
-  if (error) {
-    throw error;
-  }
+  await attachBuklodCanonicalReferral(referrerCode);
 }
