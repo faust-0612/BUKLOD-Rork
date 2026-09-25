@@ -36,6 +36,7 @@ const bayanihanPath = 'src/app/bayanihan/index.tsx';
 const adminReportPath = 'src/app/admin/bayanihan.tsx';
 const adminOpsPath = 'src/app/admin/economy-operations.tsx';
 const migrationPath = 'supabase/migrations/20260924144309_buklod_main_profit_first_referral_v2.sql';
+const containmentMigrationPath = 'supabase/migrations/20260925115931_buklod_finance_v3_containment_guard.sql';
 const referralEdgePath = 'supabase/functions/buklod-referral-v2/index.ts';
 const valueEdgePath = 'supabase/functions/buklod-finalized-value-v2/index.ts';
 
@@ -49,6 +50,7 @@ const bayanihan = read(bayanihanPath);
 const adminReport = read(adminReportPath);
 const adminOps = read(adminOpsPath);
 const migration = read(migrationPath);
+const containmentMigration = read(containmentMigrationPath);
 const referralEdge = read(referralEdgePath);
 const valueEdge = read(valueEdgePath);
 
@@ -130,6 +132,13 @@ requireText(migrationPath, migration, [
   'get_my_buklod_financial_summary_v3',
   'R38 financial finalization is superseded',
   'Legacy R38 withdrawal is superseded',
+]);
+
+requireText(containmentMigrationPath, containmentMigration, [
+  'buklod_pf_finalized_value_economics_guard_v3',
+  'Canonical finance economics is disabled. Finalized value writes are blocked.',
+  'revoke execute on function public.buklod_qualify_referral_v1(uuid)',
+  'revoke execute on function public.buklod_record_referral_v1(text)',
 ]);
 
 requireText(referralEdgePath, referralEdge, [
