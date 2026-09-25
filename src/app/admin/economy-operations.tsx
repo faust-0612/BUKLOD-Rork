@@ -47,12 +47,8 @@ function defaultMonth() {
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth();
-  const start = new Date(year, month, 1, 0, 0, 0, 0);
-  const end = new Date(year, month + 1, 1, 0, 0, 0, 0);
   return {
     key: `${year}-${String(month + 1).padStart(2, '0')}`,
-    start: start.toISOString(),
-    end: end.toISOString(),
   };
 }
 
