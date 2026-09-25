@@ -1191,9 +1191,8 @@ const load=useCallback(async(options?:{
   /*
    * BUKLOD_PUBLIC_WALL_MEDIA_V2_ONLY_R1
    *
-   * Public Wall must use the canonical media loader. The old direct
-   * get_buklod_post_media_v1 path is intentionally removed so AWS/external
-   * Wall videos cannot regress to an empty media_items fallback.
+   * Public Wall uses only the canonical v2/external-media loader so
+   * AWS Wall videos cannot regress to an empty media_items fallback.
    */
   const mediaMap:
     Record<string,any[]> =
