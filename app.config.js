@@ -420,7 +420,7 @@ module.exports = ({ config }) => {
 
             image: isClassroom
               ? './assets/classroom/splash-icon.png'
-              : './assets/release/splash-icon.png',
+              : './assets/release/app-icon.png',
           },
         },
       ],
