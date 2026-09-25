@@ -55,6 +55,10 @@ export default function BuklodScopeFaithMonitoringAdminFeedbackCard({
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [publishResult, setPublishResult] = useState<{
+    kind: 'success' | 'error';
+    text: string;
+  } | null>(null);
 
   const selectedMember = useMemo(
     () =>
@@ -163,6 +167,7 @@ export default function BuklodScopeFaithMonitoringAdminFeedbackCard({
     }
 
     setSaving(true);
+    setPublishResult(null);
 
     try {
       await upsertScopeFaithMonitoringFeedback({
@@ -176,23 +181,32 @@ export default function BuklodScopeFaithMonitoringAdminFeedbackCard({
 
       await load();
 
-      Alert.alert(
-        'Feedback saved',
+      const successMessage =
         audience === 'all'
-          ? 'All members will see this on their Faith Monitoring card.'
-          : `${resolvePersonDisplayName(
+          ? 'Published successfully. All members will see this on their Faith Monitoring card.'
+          : `Published successfully for ${resolvePersonDisplayName(
               selectedMember?.full_name,
               selectedMemberId
-            )} will see this on their home only.`
-      );
+            )}.`;
+
+      setPublishResult({
+        kind: 'success',
+        text: successMessage,
+      });
+
+      Alert.alert('Feedback published', successMessage);
     } catch (error) {
-      Alert.alert(
-        'Feedback',
-        String(
-          (error as Error)?.message ??
-            'Could not save feedback.'
-        )
+      const messageText = String(
+        (error as Error)?.message ??
+          'Could not publish feedback.'
       );
+
+      setPublishResult({
+        kind: 'error',
+        text: messageText,
+      });
+
+      Alert.alert('Feedback not published', messageText);
     } finally {
       setSaving(false);
     }
@@ -350,9 +364,47 @@ export default function BuklodScopeFaithMonitoringAdminFeedbackCard({
             onPress={() => void save()}
           >
             <Text style={styles.saveBtnText}>
-              {saving ? 'Saving…' : 'Publish feedback'}
+              {saving
+                ? 'Publishing…'
+                : publishResult?.kind === 'success'
+                  ? 'Published ✓'
+                  : 'Publish feedback'}
             </Text>
           </Pressable>
+
+          {publishResult ? (
+            <View
+              style={[
+                styles.publishResult,
+                publishResult.kind === 'success'
+                  ? styles.publishResultSuccess
+                  : styles.publishResultError,
+              ]}
+            >
+              <MaterialCommunityIcons
+                name={
+                  publishResult.kind === 'success'
+                    ? 'check-circle-outline'
+                    : 'alert-circle-outline'
+                }
+                size={17}
+                color={
+                  publishResult.kind === 'success'
+                    ? '#1B6B45'
+                    : '#B3261E'
+                }
+              />
+              <Text
+                style={[
+                  styles.publishResultText,
+                  publishResult.kind === 'error' &&
+                    styles.publishResultTextError,
+                ]}
+              >
+                {publishResult.text}
+              </Text>
+            </View>
+          ) : null}
 
           {published.length ? (
             <View style={styles.publishedWrap}>
@@ -550,6 +602,33 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '900',
+  },
+  publishResult: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    borderRadius: 11,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    borderWidth: 1,
+  },
+  publishResultSuccess: {
+    backgroundColor: '#EEF8F2',
+    borderColor: '#B9DEC9',
+  },
+  publishResultError: {
+    backgroundColor: '#FFF4F2',
+    borderColor: '#F0C9C4',
+  },
+  publishResultText: {
+    flex: 1,
+    color: '#1B6B45',
+    fontSize: 10,
+    lineHeight: 15,
+    fontWeight: '700',
+  },
+  publishResultTextError: {
+    color: '#B3261E',
   },
   publishedWrap: {
     marginTop: 4,
