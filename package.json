@@ -18,6 +18,7 @@
     "game:contract:dist": "node scripts/game-kingdom-release-contract.mjs --dist dist",
     "main:scope:contract": "node scripts/main-release-scope-contract.mjs",
     "native:contract": "node scripts/native-completeness-contract.mjs",
+    "native:sos:generated": "node scripts/verify-generated-sos-tile.mjs",
     "sos:contract": "node scripts/community-help-sos-release-contract.mjs",
     "release:base-gate": "node scripts/release-gate.mjs",
     "release:gate": "npm run character:contract && npm run main:scope:contract && npm run release:base-gate",
