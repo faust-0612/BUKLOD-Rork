@@ -79,7 +79,12 @@ export async function adminAddBuklodR38FinancialEntry(input: {
     {
       p_period_key: input.periodKey.trim(),
       p_entry_type: entryType,
-      p_direction: input.direction === 'revenue' ? 'CREDIT' : 'DEBIT',
+      p_direction:
+        input.entryKind.trim().toUpperCase() === 'REVENUE_REVERSAL'
+          ? 'DEBIT'
+          : input.direction === 'revenue'
+            ? 'CREDIT'
+            : 'DEBIT',
       p_amount_php: input.amount,
       p_reconciliation_state: canonicalState,
       p_source_system: input.sourceSystem.trim() || 'manual_admin',
