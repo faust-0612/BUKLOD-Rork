@@ -147,16 +147,22 @@ export default function BuklodNavSafeShell({
   const { user } = useAuth();
 
   /*
-   * BUKLOD_WEB_PROFILE_BACK_TO_WALL_R2
+   * BUKLOD_WEB_TERMINAL_BACK_GUARD_R3
    *
-   * Mobile web / installed PWA does not execute the native BackHandler in
-   * BuklodNavSafeShell.tsx because Expo resolves this .web.tsx file instead.
+   * Mobile web / installed PWA resolves this .web.tsx shell, so native
+   * BackHandler cannot protect Profile or Community Wall.
+   *
+   * R2 could leave a stale guard after a round-trip such as:
+   * Profile -> Organization -> Back -> Profile -> Back.
+   * Re-arm a fresh same-URL history pair every time Profile or Community Wall
+   * becomes the active route. popstate resolves the CURRENT browser pathname
+   * instead of relying on a route captured when the effect was installed.
    *
    * Canonical behavior:
-   * - Profile root (/me or /profile) -> browser/system Back goes to Community Wall.
-   * - Community Wall (/buklod) is the signed-in terminal root.
-   * - Back from Community Wall is consumed by a same-URL history barrier and
-   *   refreshes the Wall instead of leaving/closing the installed PWA.
+   * - Profile (/me or /profile) Back -> Community Wall.
+   * - Community Wall (/buklod) Back -> stay on/reload Community Wall.
+   * - Re-entering either terminal route after another screen always receives a
+   *   fresh guard, so browser/PWA history cannot fall through and close.
    */
   useEffect(() => {
     if (!user) {
@@ -165,16 +171,6 @@ export default function BuklodNavSafeShell({
 
     const normalized =
       normalizeBuklodPathname(pathname);
-
-    const root = globalThis as any;
-    const browserWindow = root?.window;
-
-    if (
-      !browserWindow?.history?.pushState ||
-      !browserWindow?.addEventListener
-    ) {
-      return;
-    }
 
     const isProfileRoot =
       normalized === '/me' ||
@@ -187,78 +183,77 @@ export default function BuklodNavSafeShell({
       return;
     }
 
-    const PROFILE_BASE =
-      '__BUKLOD_WEB_PROFILE_BASE_R2__';
-    const PROFILE_GUARD =
-      '__BUKLOD_WEB_PROFILE_GUARD_R2__';
-    const WALL_BASE =
-      '__BUKLOD_WEB_WALL_BASE_R2__';
-    const WALL_GUARD =
-      '__BUKLOD_WEB_WALL_GUARD_R2__';
+    const root = globalThis as any;
+    const browserWindow = root?.window;
 
-    const state =
+    if (
+      !browserWindow?.history?.pushState ||
+      !browserWindow?.history?.replaceState ||
+      !browserWindow?.addEventListener
+    ) {
+      return;
+    }
+
+    const TERMINAL_BASE =
+      '__BUKLOD_WEB_TERMINAL_BASE_R3__';
+    const TERMINAL_GUARD =
+      '__BUKLOD_WEB_TERMINAL_GUARD_R3__';
+
+    const routeKind =
+      isProfileRoot
+        ? 'PROFILE'
+        : 'WALL';
+
+    const currentState =
       browserWindow.history.state &&
       typeof browserWindow.history.state === 'object'
         ? browserWindow.history.state
         : {};
 
-    if (isProfileRoot) {
-      if (
-        !state?.[PROFILE_BASE] &&
-        !state?.[PROFILE_GUARD]
-      ) {
-        browserWindow.history.replaceState(
-          {
-            ...state,
-            [PROFILE_BASE]: true,
-          },
-          '',
-          browserWindow.location.href,
-        );
+    /*
+     * Always re-arm on route entry/re-entry. Do not trust a historical guard
+     * flag: that is exactly what failed after Organization -> Back -> Profile.
+     */
+    browserWindow.history.replaceState(
+      {
+        ...currentState,
+        [TERMINAL_BASE]: routeKind,
+        [TERMINAL_GUARD]: undefined,
+      },
+      '',
+      browserWindow.location.href,
+    );
 
-        browserWindow.history.pushState(
-          {
-            ...state,
-            [PROFILE_GUARD]: true,
-          },
-          '',
-          browserWindow.location.href,
-        );
-      }
-    }
-
-    if (isWall) {
-      if (
-        !state?.[WALL_BASE] &&
-        !state?.[WALL_GUARD]
-      ) {
-        browserWindow.history.replaceState(
-          {
-            ...state,
-            [WALL_BASE]: true,
-          },
-          '',
-          browserWindow.location.href,
-        );
-
-        browserWindow.history.pushState(
-          {
-            ...state,
-            [WALL_GUARD]: true,
-          },
-          '',
-          browserWindow.location.href,
-        );
-      }
-    }
+    browserWindow.history.pushState(
+      {
+        ...currentState,
+        [TERMINAL_BASE]: routeKind,
+        [TERMINAL_GUARD]: routeKind,
+      },
+      '',
+      browserWindow.location.href,
+    );
 
     const onPopState = () => {
-      if (isProfileRoot) {
-        router.replace('/buklod' as any);
-        return;
-      }
+      const livePath =
+        normalizeBuklodPathname(
+          String(
+            browserWindow.location?.pathname ?? ''
+          )
+        );
 
-      if (isWall) {
+      const liveIsProfile =
+        livePath === '/me' ||
+        livePath === '/profile';
+
+      const liveIsWall =
+        livePath === '/buklod';
+
+      if (liveIsProfile) {
+        /*
+         * Restore a guard immediately before changing route so a very fast
+         * second hardware-Back cannot fall through while Expo Router updates.
+         */
         const latestState =
           browserWindow.history.state &&
           typeof browserWindow.history.state === 'object'
@@ -268,7 +263,27 @@ export default function BuklodNavSafeShell({
         browserWindow.history.pushState(
           {
             ...latestState,
-            [WALL_GUARD]: true,
+            [TERMINAL_GUARD]: 'PROFILE',
+          },
+          '',
+          browserWindow.location.href,
+        );
+
+        router.replace('/buklod' as any);
+        return;
+      }
+
+      if (liveIsWall) {
+        const latestState =
+          browserWindow.history.state &&
+          typeof browserWindow.history.state === 'object'
+            ? browserWindow.history.state
+            : {};
+
+        browserWindow.history.pushState(
+          {
+            ...latestState,
+            [TERMINAL_GUARD]: 'WALL',
           },
           '',
           browserWindow.location.href,
@@ -279,11 +294,22 @@ export default function BuklodNavSafeShell({
           'function'
         ) {
           browserWindow.setTimeout(
-            () => browserWindow.location.reload(),
+            () => {
+              browserWindow.location.reload();
+            },
             0,
           );
         }
+
+        return;
       }
+
+      /*
+       * A terminal duplicate entry should normally keep the pathname on the
+       * same screen. If the browser already crossed to an older external/app
+       * entry, converge back to Community Wall instead of allowing PWA exit.
+       */
+      router.replace('/buklod' as any);
     };
 
     browserWindow.addEventListener(
@@ -301,6 +327,7 @@ export default function BuklodNavSafeShell({
     pathname,
     user?.id,
   ]);
+
   const publicMinimal =
     !isBuklodScopedWorkspacePath(pathname);
 
