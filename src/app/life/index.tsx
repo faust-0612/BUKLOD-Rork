@@ -974,7 +974,7 @@ export default function BuklodLifeScreen() {
                 color="#275D45"
               />
               <Text style={styles.privacyText}>
-                No souls-won leaderboard, conversion points, cash reward,
+                No souls-won leaderboard, points for a profession of faith, cash reward,
                 public counter or automatic spiritual-status sharing.
               </Text>
             </View>
