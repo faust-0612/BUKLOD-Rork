@@ -167,7 +167,8 @@ export function BuklodLiveSatelliteMap({
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+<!-- BUKLOD_LOCAL_LEAFLET_ENGINE_R4 -->
+<link rel="stylesheet" href="/vendor/leaflet/leaflet.css?v=1.9.4-buklod-r4" />
 <style>
 html,body,#map{width:100%;height:100%;margin:0;padding:0;background:#eef2f4;font-family:Inter,system-ui,-apple-system,sans-serif}
 .leaflet-control-attribution{font-size:9px}
@@ -207,8 +208,12 @@ html,body,#map{width:100%;height:100%;margin:0;padding:0;background:#eef2f4;font
 </head>
 <body>
 <div id="map"></div>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="/vendor/leaflet/leaflet.js?v=1.9.4-buklod-r4"></script>
 <script>
+if(!window.L){
+ document.getElementById('map').innerHTML='<div style="height:100%;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;color:#49616f;font:700 12px/18px system-ui;background:#eef2f4">BUKLOD map engine could not load. Please refresh the page.</div>';
+ throw new Error('BUKLOD_LOCAL_LEAFLET_ENGINE_MISSING');
+}
 const points=${safeJson(payload)};
 const colors=${safeJson(CATEGORY_COLORS)};
 const center=${safeJson([
@@ -238,18 +243,15 @@ const satelliteLabels=L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest
  keepBuffer:4,
  attribution:'Reference &copy; Esri'
 });
-/* BUKLOD_ROAD_TILE_FAILSAFE_R3
- * OSM is the primary road layer because it is the most reliable across normal
- * browsers and in-app browsers. If a tile request fails, swap the base layer
- * to Carto Voyager instead of leaving a black map.
+/* BUKLOD_ROAD_TILE_FAILSAFE_R4
+ * Keep the map engine same-origin. Road tiles use a three-stage fallback
+ * without forcing CORS mode on image tiles.
  */
-const street=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+const street=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
  maxNativeZoom:19,
  maxZoom:19,
- detectRetina:true,
  keepBuffer:4,
  updateWhenIdle:false,
- crossOrigin:true,
  attribution:'&copy; OpenStreetMap contributors'
 }).addTo(map);
 
@@ -257,28 +259,73 @@ const streetFallback=L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/
  subdomains:'abcd',
  maxNativeZoom:20,
  maxZoom:20,
- detectRetina:true,
  keepBuffer:4,
  updateWhenIdle:false,
- crossOrigin:true,
  attribution:'&copy; OpenStreetMap contributors &copy; CARTO'
 });
 
-let roadFallbackActivated=false;
-street.on('tileerror',()=>{
- if(roadFallbackActivated) return;
- roadFallbackActivated=true;
- try{
-  map.removeLayer(street);
-  streetFallback.addTo(map);
-  setLiveStatus('Road map • fallback tiles active');
- }catch{}
+const streetFallback2=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',{
+ maxNativeZoom:19,
+ maxZoom:19,
+ keepBuffer:4,
+ updateWhenIdle:false,
+ attribution:'Tiles &copy; Esri and contributors'
 });
+
+let roadStage=0;
+let roadTileLoaded=false;
+function activateRoadFallback(reason){
+ if(roadStage===0){
+  roadStage=1;
+  try{map.removeLayer(street);}catch{}
+  streetFallback.addTo(map);
+  setLiveStatus('Road map • alternate tiles');
+  return;
+ }
+ if(roadStage===1){
+  roadStage=2;
+  try{map.removeLayer(streetFallback);}catch{}
+  streetFallback2.addTo(map);
+  setLiveStatus('Road map • backup tiles');
+  return;
+ }
+ setLiveStatus('Road tiles unavailable • retry when connection improves');
+}
+
+street.once('tileload',()=>{
+ roadTileLoaded=true;
+ setLiveStatus('Road map • zoom in for nearby places');
+});
+street.on('tileerror',()=>activateRoadFallback('osm-error'));
+
+streetFallback.once('tileload',()=>{
+ roadTileLoaded=true;
+ setLiveStatus('Road map • zoom in for nearby places');
+});
+streetFallback.on('tileerror',()=>activateRoadFallback('carto-error'));
+
+streetFallback2.once('tileload',()=>{
+ roadTileLoaded=true;
+ setLiveStatus('Road map • zoom in for nearby places');
+});
+
+setTimeout(()=>{
+ if(!roadTileLoaded&&roadStage===0){
+  activateRoadFallback('osm-timeout');
+ }
+},3500);
+
+setTimeout(()=>{
+ if(!roadTileLoaded&&roadStage===1){
+  activateRoadFallback('carto-timeout');
+ }
+},7500);
+
 const nearbyPlaces=L.layerGroup().addTo(map);
 const routeLayer=L.layerGroup().addTo(map);
 
 L.control.layers(
- { 'Road map': street, 'Road map fallback': streetFallback, 'Satellite': satellite },
+ { 'Road map': street, 'Road map alternate': streetFallback, 'Road map backup': streetFallback2, 'Satellite': satellite },
  { 'Satellite labels': satelliteLabels, 'Nearby places': nearbyPlaces },
  { position:'bottomright', collapsed:true }
 ).addTo(map);
@@ -733,7 +780,7 @@ setTimeout(()=>{
         width: '100%',
         height: '100%',
         display: 'block',
-        background: '#0D1720',
+        background: '#eef2f4',
         pointerEvents: interactive ? 'auto' : 'none',
       },
       referrerPolicy: 'no-referrer',
