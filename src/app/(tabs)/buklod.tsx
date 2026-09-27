@@ -78,6 +78,7 @@ import {
   communityFeedCacheKey,
   keepStableCommunityMedia,
   readOfflineCache,
+  readOfflineCacheSync,
   writeOfflineCache,
 } from '@/lib/buklodOfflineSync';
 import { SCALE_LIMITS } from '@/lib/performanceScale';
@@ -648,7 +649,16 @@ function LegacyPublicBuklodScreen(){
     incomingShare187A.resolvedSharedPayloads,
   ]);
 
- const [posts,setPosts]=useState<any[]>([]),[group,setGroup]=useState<any>(null),[body,setBody]=useState('');
+ const [posts,setPosts]=useState<any[]>(()=>
+  user?.id
+    ? readOfflineCacheSync<any[]>(
+        communityFeedCacheKey(
+          user.id,
+          null
+        )
+      ) ?? []
+    : []
+ ),[group,setGroup]=useState<any>(null),[body,setBody]=useState('');
  const [category]=useState<typeof CATEGORIES[number]>('reflection');
 
  // COMMUNITY_COMPACT_COMPOSER_20260811
@@ -959,6 +969,54 @@ const load=useCallback(async(options?:{
   /* PATCH_154N_COMMUNITY_FEED_ROWS */
   let feedRows=
     (data??[]) as any[];
+
+  /*
+   * COMMUNITY_INSTANT_FEED_R1
+   *
+   * Paint the canonical post rows as soon as the primary feed RPC returns.
+   * Reactions, media, ranks, cluster labels, and comment previews are
+   * enrichment only and must never block the first visible Community posts.
+   * Existing cached/enriched fields stay stable until the richer rows arrive.
+   */
+  const primaryPaintRows=
+    feedRows.map((p:any)=>({
+      ...p,
+      media_url:
+        peekCommunityMediaUrl(
+          String(p.media_path??'').trim(),
+          null
+        ) ?? p.media_url
+    }));
+
+  if(appendPage186L){
+    setPosts(previous=>{
+      const seen=
+        new Set(
+          previous.map(
+            (row:any)=>
+              String(row.id)
+          )
+        );
+
+      return [
+        ...previous,
+        ...primaryPaintRows.filter(
+          (row:any)=>
+            !seen.has(
+              String(row.id)
+            )
+        )
+      ];
+    });
+  }
+  else if(primaryPaintRows.length){
+    setPosts(previous=>
+      keepStableCommunityMedia(
+        previous,
+        primaryPaintRows
+      )
+    );
+  }
 
   const postIds=
     feedRows
