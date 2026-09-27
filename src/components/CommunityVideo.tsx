@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import {
   StyleSheet,
+  Text,
   View,
 } from 'react-native';
 
@@ -13,12 +14,14 @@ type Props = {
   uri: string;
   height?: number;
   autoPlay?: boolean;
+  expectedDurationSeconds?: number;
 };
 
 export function CommunityVideo({
   uri,
   height = 380,
   autoPlay = false,
+  expectedDurationSeconds,
 }: Props) {
   const player = useVideoPlayer(
     uri,
@@ -58,10 +61,25 @@ export function CommunityVideo({
         nativeControls
         contentFit="cover"
       />
+      {Number(expectedDurationSeconds ?? 0) > 0 ? (
+        <View pointerEvents="none" style={styles.durationChip}>
+          <Text style={styles.durationText}>
+            {formatDuration(Number(expectedDurationSeconds))}
+          </Text>
+        </View>
+      ) : null}
     </View>
   );
 }
 
+function formatDuration(seconds: number) {
+  const total = Math.max(0, Math.round(Number(seconds) || 0));
+  const minutes = Math.floor(total / 60);
+  const rest = total % 60;
+  return `${minutes}:${String(rest).padStart(2, '0')}`;
+}
+
+/* BUKLOD_COMMUNITY_NATIVE_VIDEO_DURATION_R3 */
 const styles = StyleSheet.create({
   wrap: {
     width: '100%',
@@ -74,5 +92,19 @@ const styles = StyleSheet.create({
   video: {
     width: '100%',
     height: '100%',
+  },
+  durationChip: {
+    position: 'absolute',
+    right: 10,
+    top: 10,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.68)',
+    paddingHorizontal: 7,
+    paddingVertical: 4,
+  },
+  durationText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
   },
 });
