@@ -40,7 +40,11 @@ import {
   BuklodCommunityPhotoCollage,
   communityPhotoCollageItems,
 } from '@/components/BuklodCommunityPhotoCollage';
-import { peekCommunityMediaUrl } from '@/lib/buklodMediaUrl';
+import {
+  peekCommunityMediaUrl,
+  prefetchCommunityMedia,
+  resolveCommunityMediaUrl,
+} from '@/lib/buklodMediaUrl';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 
 import BuklodCommunityInlineAd from '@/components/BuklodCommunityInlineAd';
@@ -1337,6 +1341,120 @@ const load=useCallback(async(options?:{
    }
   }
 
+  /*
+   * BUKLOD_COMMUNITY_PROGRESSIVE_MEDIA_R1
+   *
+   * The first page already has the canonical posts + media rows at this
+   * point. Paint them now instead of waiting for rank, cluster labels and
+   * comment previews. Those enrichments are non-layout metadata and can land
+   * on the same rows a moment later.
+   *
+   * IMPORTANT: no Community photo sizing/crop/aspect-ratio rule changes here.
+   */
+  if(
+    !appendPage186L &&
+    communityLoadSeq ===
+      communityLoadSeqRef.current
+  ){
+    setPosts(previous=>{
+      const merged=
+        keepStableCommunityMedia(
+          previous,
+          next
+        );
+
+      if(communityCacheKey){
+        const warmRows=
+          merged.slice(
+            0,
+            SCALE_LIMITS.offlineCommunityCachePosts
+          );
+
+        communityWarmFeedMemory.set(
+          communityCacheKey,
+          warmRows
+        );
+
+        void writeOfflineCache(
+          communityCacheKey,
+          warmRows,
+          'network'
+        );
+      }
+
+      return merged;
+    });
+
+    /*
+     * Pre-sign and prefetch only the first visible burst. Signing is already
+     * batched by buklodMediaUrl, so this does not create one request per photo.
+     */
+    const firstVisibleMedia=
+      next
+        .slice(0,8)
+        .flatMap((post:any)=>
+          Array.isArray(post.media_items)
+            ? post.media_items
+            : []
+        )
+        .filter((item:any)=>
+          !String(
+            item?.media_mime_type??
+            ''
+          )
+            .toLowerCase()
+            .startsWith('video/')
+        )
+        .slice(0,12);
+
+    void Promise
+      .all(
+        firstVisibleMedia.map(
+          async(item:any)=>{
+            const path=
+              String(
+                item?.media_path??
+                ''
+              ).trim();
+
+            const direct=
+              peekCommunityMediaUrl(
+                path,
+                item?.media_url
+              ) ??
+              String(
+                item?.media_url??
+                ''
+              ).trim();
+
+            if(direct){
+              return direct;
+            }
+
+            if(!path){
+              return null;
+            }
+
+            return resolveCommunityMediaUrl(
+              path,
+              null
+            );
+          }
+        )
+      )
+      .then(urls=>{
+        if(
+          communityLoadSeq !==
+            communityLoadSeqRef.current
+        ){
+          return;
+        }
+
+        prefetchCommunityMedia(urls);
+      })
+      .catch(()=>undefined);
+  }
+
 // COMMUNITY_AUTHOR_CIRCLE_RANK
   const authorIds = Array.from(
     new Set(
@@ -1450,21 +1568,12 @@ const load=useCallback(async(options?:{
         );
 
       if(communityCacheKey){
-        const warmRows=
+        communityWarmFeedMemory.set(
+          communityCacheKey,
           merged.slice(
             0,
             SCALE_LIMITS.offlineCommunityCachePosts
-          );
-
-        communityWarmFeedMemory.set(
-          communityCacheKey,
-          warmRows
-        );
-
-        void writeOfflineCache(
-          communityCacheKey,
-          warmRows,
-          'network'
+          )
         );
       }
 
