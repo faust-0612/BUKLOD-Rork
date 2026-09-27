@@ -364,7 +364,7 @@ async function signInForFreshPublicHome(
 
 /* PATCH_174C_R5_SUGGESTED_LOGIN_AVATAR_EXACT_AST_FIX */
 const SUGGESTED_LOGIN_BUKLOD_LOGO =
-  require('../../../assets/release/app-icon.png');
+  require('../../../assets/release/buklod-main-canonical.png');
 
 function normalizeSuggestedAvatarUrl(
   rawAvatarUrl: unknown
@@ -1468,7 +1468,7 @@ const chooseSuggestedLogin =
         <View style={styles.brand}>
           <LoginMotionScale>
             <Image
-              source={require('../../../assets/release/app-icon.png')}
+              source={require('../../../assets/release/buklod-main-canonical.png')}
               style={styles.logo}
             />
           </LoginMotionScale>
