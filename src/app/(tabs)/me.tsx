@@ -1291,7 +1291,7 @@ export default function MeScreen() {
   /* BUKLOD_MAIN_CANONICAL_PROFILE_FALLBACK_R1 */
   const fallbackPortrait = isSystemAdmin
     ? require('../../../assets/branding/admin-profile.jpg')
-    : require('../../../assets/release/app-icon.png');
+    : require('../../../assets/release/buklod-main-canonical.png');
 
   const coverUrl =
     profileBackgroundUrl ||
