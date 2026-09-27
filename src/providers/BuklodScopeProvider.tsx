@@ -25,6 +25,7 @@ import {
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import AsyncStorage
   from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 const BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY =
   'buklod.auth.fresh_login_public.v1';
@@ -136,13 +137,39 @@ export function BuklodScopeProvider({
 
             if (scopesRef.current.length === 0) {
               setScopes(cached.scopes);
+              /*
+               * BUKLOD_WEB_PUBLIC_BOOT_FAST_R1
+               *
+               * Web always lands in canonical PUBLIC Community on boot.
+               * Prefer cached PUBLIC immediately instead of restoring a stale
+               * managed workspace and then waiting for another redirect.
+               */
+              const cachedBootScope =
+                Platform.OS === 'web'
+                  ? (
+                      cached.scopes.find(
+                        scope =>
+                          scope.scope_type ===
+                          'PUBLIC'
+                      ) ??
+                      cached.scopes.find(
+                        scope =>
+                          scope.scope_id ===
+                          cached.activeScopeId
+                      ) ??
+                      pickActiveScope(cached.scopes)
+                    )
+                  : (
+                      cached.scopes.find(
+                        scope =>
+                          scope.scope_id ===
+                          cached.activeScopeId
+                      ) ??
+                      pickActiveScope(cached.scopes)
+                    );
+
               setActiveScope(
-                cached.scopes.find(
-                  scope =>
-                    scope.scope_id ===
-                    cached.activeScopeId
-                ) ??
-                pickActiveScope(cached.scopes)
+                cachedBootScope
               );
               setLoading(false);
             }
@@ -502,8 +529,22 @@ export function BuklodScopeProvider({
               null
             : null;
 
+        const webBootPublicScope =
+          Platform.OS === 'web' &&
+          !activeScopeRef.current
+            ? (
+                rows.find(
+                  scope =>
+                    scope.scope_type ===
+                    'PUBLIC'
+                ) ??
+                null
+              )
+            : null;
+
         const nextActive =
           freshPublicScope ??
+          webBootPublicScope ??
           keptScope ??
           pickActiveScope(rows);
 
