@@ -937,7 +937,7 @@ useEffect(() => {
           }}
         >
           <Image
-            source={require('../../../assets/release/app-icon.png')}
+            source={require('../../../assets/release/buklod-main-canonical.png')}
             style={styles.logo}
           />
 
