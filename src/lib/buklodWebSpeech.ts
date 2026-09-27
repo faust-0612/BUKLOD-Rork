@@ -2,11 +2,46 @@ import type { BibleSpeechDelivery } from '@/lib/buklodBibleNarration';
 
 type WebSpeechResult = 'done' | 'stopped' | 'stale';
 
+/*
+ * BUKLOD_WEB_SPEECH_CAPABILITY_R1
+ *
+ * Facebook/Messenger in-app browsers can expose a partial or injected browser
+ * runtime without a usable Web Speech API. Treat speech as optional and never
+ * call missing constructors/methods.
+ */
 function speechSynthesis(): SpeechSynthesis | null {
   if (typeof window === 'undefined') {
     return null;
   }
-  return window.speechSynthesis ?? null;
+
+  const candidate =
+    (window as any).speechSynthesis;
+
+  if (
+    !candidate ||
+    typeof candidate.getVoices !== 'function' ||
+    typeof candidate.speak !== 'function' ||
+    typeof candidate.cancel !== 'function'
+  ) {
+    return null;
+  }
+
+  return candidate as SpeechSynthesis;
+}
+
+function speechUtteranceConstructor():
+  | (new (text?: string) => SpeechSynthesisUtterance)
+  | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const ctor =
+    (window as any).SpeechSynthesisUtterance;
+
+  return typeof ctor === 'function'
+    ? ctor
+    : null;
 }
 
 function scoreWebVoice(
@@ -74,9 +109,21 @@ function waitForWebVoices() {
     return Promise.resolve(existing);
   }
 
+  if (
+    typeof (synth as any).addEventListener !== 'function' ||
+    typeof (synth as any).removeEventListener !== 'function'
+  ) {
+    return Promise.resolve(existing);
+  }
+
   return new Promise<SpeechSynthesisVoice[]>((resolve) => {
     const finish = () => {
-      synth.removeEventListener('voiceschanged', onChange);
+      try {
+        synth.removeEventListener('voiceschanged', onChange);
+      }
+      catch {
+        /* optional browser API */
+      }
       resolve(synth.getVoices());
     };
     const onChange = () => finish();
@@ -98,7 +145,10 @@ export async function speakWebBibleChunk(input: {
   isCurrent: () => boolean;
 }): Promise<WebSpeechResult> {
   const synth = speechSynthesis();
-  if (!synth) {
+  const Utterance =
+    speechUtteranceConstructor();
+
+  if (!synth || !Utterance) {
     return 'done';
   }
 
@@ -110,7 +160,8 @@ export async function speakWebBibleChunk(input: {
   return new Promise((resolve) => {
     let settled = false;
     let watchdog: ReturnType<typeof setTimeout> | null = null;
-    const utterance = new SpeechSynthesisUtterance(input.text);
+    const utterance =
+      new Utterance(input.text);
 
     const finish = (value: WebSpeechResult) => {
       if (settled) {
@@ -146,7 +197,11 @@ export async function speakWebBibleChunk(input: {
     };
 
     try {
-      synth.resume();
+      if (
+        typeof (synth as any).resume === 'function'
+      ) {
+        synth.resume();
+      }
       synth.speak(utterance);
     } catch {
       finish('done');
