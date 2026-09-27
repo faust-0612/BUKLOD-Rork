@@ -29,11 +29,20 @@ export default function BuklodMainBrandIntro({
   const screenOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
+    /*
+     * BUKLOD_WEB_FAST_BRAND_R1
+     *
+     * Keep the full native startup identity for APK, but web must not add
+     * more than a brief transition on top of JS/network startup.
+     */
+    const webFast =
+      Platform.OS === 'web';
+
     const sequence = Animated.sequence([
       Animated.parallel([
         Animated.timing(markOpacity, {
           toValue: 1,
-          duration: 260,
+          duration: webFast ? 90 : 260,
           easing: Easing.out(Easing.cubic),
           useNativeDriver: Platform.OS !== 'web',
         }),
@@ -47,21 +56,21 @@ export default function BuklodMainBrandIntro({
       Animated.parallel([
         Animated.timing(textOpacity, {
           toValue: 1,
-          duration: 220,
+          duration: webFast ? 90 : 220,
           easing: Easing.out(Easing.quad),
           useNativeDriver: Platform.OS !== 'web',
         }),
         Animated.timing(textTranslate, {
           toValue: 0,
-          duration: 220,
+          duration: webFast ? 90 : 220,
           easing: Easing.out(Easing.quad),
           useNativeDriver: Platform.OS !== 'web',
         }),
       ]),
-      Animated.delay(420),
+      Animated.delay(webFast ? 70 : 420),
       Animated.timing(screenOpacity, {
         toValue: 0,
-        duration: 220,
+        duration: webFast ? 90 : 220,
         easing: Easing.in(Easing.quad),
         useNativeDriver: Platform.OS !== 'web',
       }),
