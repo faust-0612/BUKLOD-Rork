@@ -74,6 +74,25 @@ export default function IndexWeb() {
       return;
     }
 
+    /*
+     * BUKLOD_WEB_PUBLIC_ENTRY_NONBLOCKING_R1
+     *
+     * When scope metadata has not hydrated yet, enter the canonical PUBLIC
+     * shell immediately. BuklodScopeProvider now prefers PUBLIC on web boot,
+     * so the background scope refresh cannot bounce this route into a stale
+     * managed workspace.
+     */
+    if (
+      scopeLoading &&
+      !activeScope &&
+      scopes.length === 0
+    ) {
+      publicResetInFlight.current = false;
+      setBootError(null);
+      setBootReady(true);
+      return;
+    }
+
     if (
       activeScope?.scope_type ===
       'PUBLIC'
