@@ -34,6 +34,7 @@ import { BuklodThemeProvider } from '@/providers/BuklodThemeProvider';
 import { BuklodCharacterEventProvider } from '@/components/character/BuklodCharacterEventProvider';
 import RorkAvatarOnboardingGate from '@/components/character/RorkAvatarOnboardingGate';
 import BuklodMainHealthAgent from '@/components/BuklodMainHealthAgent';
+import BuklodMainBrandIntro from '@/components/BuklodMainBrandIntro';
 import { reportBuklodMainHealthIssue } from '@/lib/buklodMainHealth';
 
 export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
@@ -161,6 +162,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 export default function RootLayout() {
   return (
+    <BuklodMainBrandIntro>
     <SafeAreaProvider>
     <BuklodI18nProvider>
     <GestureHandlerRootView
@@ -375,6 +377,7 @@ export default function RootLayout() {
     </GestureHandlerRootView>
     </BuklodI18nProvider>
     </SafeAreaProvider>
+    </BuklodMainBrandIntro>
   );
 }
 
