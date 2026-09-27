@@ -144,9 +144,6 @@ export default function BuklodMainBrandIntro({
                 },
               ]}
             >
-              <Text style={styles.name}>
-                BUKLOD
-              </Text>
               <Text style={styles.tagline}>
                 Your Daily Companion in Life
               </Text>
@@ -175,11 +172,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
   },
   logo: {
-    width: 190,
-    height: 190,
+    width: 220,
+    height: 220,
   },
   copy: {
-    marginTop: 14,
+    marginTop: 8,
     alignItems: 'center',
   },
   name: {
