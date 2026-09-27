@@ -24,7 +24,6 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Keyboard,
   Modal,
   Platform,
   Pressable,
@@ -47,6 +46,7 @@ import {
   Image as ExpoImage,
 } from 'expo-image';
 import * as Clipboard from 'expo-clipboard';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   useStreamVideoClient,
 } from '@/lib/streamVideoSdk';
@@ -373,6 +373,9 @@ const QUICK_SEND_EMOJIS = [
   '\u{1F622}',
 ] as const;
 
+const BUKLOD_CONNECT_QUICK_REACTION_KEY =
+  'buklod.connect.quick-reaction.v1';
+
 const EXTENDED_SEND_EMOJIS = [
   '\u{1F600}','\u{1F603}','\u{1F604}','\u{1F601}',
   '\u{1F606}','\u{1F605}','\u{1F923}','\u{1F602}',
@@ -643,7 +646,6 @@ function BuklodConnectThreadInner({
     useRef<View | null>(null);
   const {
     composerBottom,
-    clearComposerInset,
     resyncComposerInset,
   } = useConnectComposerKeyboardInset(threadBodyRef);
 
@@ -670,6 +672,103 @@ function BuklodConnectThreadInner({
 
   const effectiveContainerId =
     resolvedContainerId || containerId;
+
+  /*
+   * BUKLOD_CONNECT_FIRST_TAP_SEND_R1
+   *
+   * A Community profile bubble may open a brand-new direct thread before the
+   * get-or-create RPC has returned. Keep one shared promise so the first Send
+   * (or quick reaction) waits for that exact thread instead of being dropped.
+   */
+  const effectiveContainerIdRef =
+    useRef<string | undefined>(
+      effectiveContainerId || undefined
+    );
+  const directThreadCreatePromiseRef =
+    useRef<Promise<string | null> | null>(
+      null
+    );
+
+  effectiveContainerIdRef.current =
+    effectiveContainerId || undefined;
+
+  const ensureEffectiveContainerId =
+    useCallback(async (): Promise<string | null> => {
+      const existing =
+        effectiveContainerIdRef.current;
+
+      if (existing) {
+        return existing;
+      }
+
+      if (
+        mode !== 'direct' ||
+        !pendingTargetUserId
+      ) {
+        return null;
+      }
+
+      if (
+        directThreadCreatePromiseRef.current
+      ) {
+        return directThreadCreatePromiseRef.current;
+      }
+
+      const promise =
+        (async () => {
+          const result =
+            await (supabase as any).rpc(
+              'buklod_connect_get_or_create_direct_thread',
+              {
+                _target_user_id:
+                  pendingTargetUserId,
+              }
+            );
+
+          if (result.error) {
+            throw result.error;
+          }
+
+          const raw =
+            Array.isArray(result.data)
+              ? result.data[0]
+              : result.data;
+
+          const threadId =
+            typeof raw === 'string'
+              ? raw
+              : raw?.thread_id ?? raw?.id;
+
+          if (!threadId) {
+            throw new Error(
+              'Could not open conversation.'
+            );
+          }
+
+          const resolved =
+            String(threadId);
+
+          effectiveContainerIdRef.current =
+            resolved;
+          setResolvedContainerId(
+            resolved
+          );
+
+          return resolved;
+        })()
+          .finally(() => {
+            directThreadCreatePromiseRef.current =
+              null;
+          });
+
+      directThreadCreatePromiseRef.current =
+        promise;
+
+      return promise;
+    }, [
+      mode,
+      pendingTargetUserId,
+    ]);
 
   /* BUKLOD_OFFLINE_R2_CONNECT_THREAD */
   const { online } =
@@ -965,6 +1064,65 @@ const [
   const [draft, setDraft] =
     useState('');
 
+  const [
+    quickReaction,
+    setQuickReaction,
+  ] = useState<string>(
+    QUICK_SEND_EMOJIS[0]
+  );
+
+  useEffect(() => {
+    if (!profileId) {
+      return;
+    }
+
+    let active = true;
+    const key =
+      `${BUKLOD_CONNECT_QUICK_REACTION_KEY}:${profileId}`;
+
+    void AsyncStorage
+      .getItem(key)
+      .then(value => {
+        if (
+          active &&
+          value &&
+          (QUICK_SEND_EMOJIS as readonly string[])
+            .includes(value)
+        ) {
+          setQuickReaction(value);
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+    };
+  }, [profileId]);
+
+  const chooseQuickReaction =
+    useCallback(
+      (emoji: string) => {
+        if (
+          !(QUICK_SEND_EMOJIS as readonly string[])
+            .includes(emoji)
+        ) {
+          return;
+        }
+
+        setQuickReaction(emoji);
+
+        if (profileId) {
+          void AsyncStorage
+            .setItem(
+              `${BUKLOD_CONNECT_QUICK_REACTION_KEY}:${profileId}`,
+              emoji
+            )
+            .catch(() => undefined);
+        }
+      },
+      [profileId]
+    );
+
   const composerInputRef =
     useRef<TextInput | null>(
       null
@@ -1069,50 +1227,19 @@ const [
 
     let active = true;
 
-    void (async () => {
-      const result =
-        await (supabase as any).rpc(
-          'buklod_connect_get_or_create_direct_thread',
-          {
-            _target_user_id:
-              pendingTargetUserId,
-          }
-        );
+    void ensureEffectiveContainerId()
+      .catch((error: any) => {
+        if (!active) {
+          return;
+        }
 
-      if (!active) {
-        return;
-      }
-
-      if (result.error) {
         Alert.alert(
           'Connect',
-          result.error.message
+          error?.message ||
+            'Could not open conversation.'
         );
         router.back();
-        return;
-      }
-
-      const raw = Array.isArray(result.data)
-        ? result.data[0]
-        : result.data;
-      const threadId =
-        typeof raw === 'string'
-          ? raw
-          : raw?.thread_id ?? raw?.id;
-
-      if (!threadId) {
-        Alert.alert(
-          'Connect',
-          'Could not open conversation.'
-        );
-        router.back();
-        return;
-      }
-
-      setResolvedContainerId(
-        String(threadId)
-      );
-    })();
+      });
 
     return () => {
       active = false;
@@ -1120,6 +1247,7 @@ const [
   }, [
     pendingTargetUserId,
     containerId,
+    ensureEffectiveContainerId,
   ]);
 
   /* PATCH_168D_OFFICE_ORGANIZER */
@@ -2663,9 +2791,39 @@ const [
       if (
         mode !== 'direct' ||
         !profileId ||
-        !effectiveContainerId ||
         !text.trim()
       ) {
+        return;
+      }
+
+      if (!online) {
+        Alert.alert(
+          'Offline',
+          'Reconnect to send this reaction.'
+        );
+        return;
+      }
+
+      let threadId: string | null =
+        effectiveContainerIdRef.current ??
+        null;
+
+      if (!threadId) {
+        try {
+          threadId =
+            await ensureEffectiveContainerId();
+        }
+        catch (error: any) {
+          Alert.alert(
+            'Connect',
+            error?.message ||
+              'Could not open conversation.'
+          );
+          return;
+        }
+      }
+
+      if (!threadId) {
         return;
       }
 
@@ -2708,7 +2866,7 @@ const [
             )
             .insert({
               thread_id:
-                effectiveContainerId,
+                threadId,
               sender_id:
                 profileId,
               body:
@@ -2854,11 +3012,16 @@ const [
   const sendCapturedText =
     (
       trimmed: string,
-      replyMessage?: Message | null
+      replyMessage?: Message | null,
+      containerOverride?: string | null
     ) => {
+      const sendContainerId =
+        containerOverride ||
+        effectiveContainerIdRef.current;
+
       if (
         !profileId ||
-        !effectiveContainerId ||
+        !sendContainerId ||
         !trimmed
       ) {
         return;
@@ -2916,11 +3079,11 @@ const [
             mode === 'direct'
           ) {
             payload.thread_id =
-              effectiveContainerId;
+              sendContainerId;
           }
           else {
             payload.scope_id =
-              effectiveContainerId;
+              sendContainerId;
           }
 
           const result =
@@ -2955,11 +3118,16 @@ const [
     (
       album: ComposerPhoto[],
       caption: string,
-      replyMessage?: Message | null
+      replyMessage?: Message | null,
+      containerOverride?: string | null
     ) => {
+      const sendContainerId =
+        containerOverride ||
+        effectiveContainerIdRef.current;
+
       if (
         !profileId ||
-        !effectiveContainerId ||
+        !sendContainerId ||
         !album.length
       ) {
         return;
@@ -3055,7 +3223,7 @@ const [
                 {
                   mode,
                   containerId:
-                    effectiveContainerId,
+                    sendContainerId,
                   file: photo,
                   uniqueKey: `${Date.now()}-${index}-${Math.random()
                     .toString(36)
@@ -3110,11 +3278,11 @@ const [
 
           if (mode === 'direct') {
             payload.thread_id =
-              effectiveContainerId;
+              sendContainerId;
           }
           else {
             payload.scope_id =
-              effectiveContainerId;
+              sendContainerId;
           }
 
           const result =
@@ -3205,17 +3373,14 @@ const [
     };
 
   const send =
-    () => {
+    async () => {
       if (
         sendInFlightRef.current
       ) {
         return;
       }
 
-      if (
-        !profileId ||
-        !effectiveContainerId
-      ) {
+      if (!profileId) {
         return;
       }
 
@@ -3245,12 +3410,41 @@ const [
         return;
       }
 
-      clearComposerInset();
-      Keyboard.dismiss();
-      composerInputRef.current?.blur();
-
       sendInFlightRef.current =
         true;
+
+      let sendContainerId: string | null =
+        effectiveContainerIdRef.current ??
+        null;
+
+      if (!sendContainerId) {
+        try {
+          sendContainerId =
+            await ensureEffectiveContainerId();
+        }
+        catch (error: any) {
+          sendInFlightRef.current =
+            false;
+          Alert.alert(
+            'Connect',
+            error?.message ||
+              'Could not open conversation.'
+          );
+          return;
+        }
+      }
+
+      if (!sendContainerId) {
+        sendInFlightRef.current =
+          false;
+        return;
+      }
+
+      /*
+       * Keep the composer focused. Sending must be one tap while the keyboard
+       * stays open; do not dismiss or blur before dispatch.
+       */
+      resyncComposerInset();
       const activeReply =
         replyToRef.current;
       setReplyTo(null);
@@ -3274,7 +3468,8 @@ const [
         sendAlbum(
           savedPhotos,
           savedText,
-          activeReply
+          activeReply,
+          sendContainerId
         );
         sendInFlightRef.current =
           false;
@@ -3364,7 +3559,7 @@ const [
                 {
                   mode,
                   containerId:
-                    effectiveContainerId,
+                    sendContainerId,
                   file:
                     savedFile,
                 }
@@ -3404,11 +3599,11 @@ const [
               mode === 'direct'
             ) {
               payload.thread_id =
-                effectiveContainerId;
+                sendContainerId;
             }
             else {
               payload.scope_id =
-                effectiveContainerId;
+                sendContainerId;
             }
 
             const result =
@@ -3469,7 +3664,8 @@ const [
       setDraft('');
       sendCapturedText(
         text,
-        activeReply
+        activeReply,
+        sendContainerId
       );
       setTimeout(
         () => {
@@ -4218,7 +4414,21 @@ const [
           draftRef.current = value;
           setDraft(value);
         }}
-        onSend={send}
+        onSend={() => {
+          void send();
+        }}
+        quickReaction={quickReaction}
+        quickReactionOptions={
+          QUICK_SEND_EMOJIS
+        }
+        onQuickReaction={() => {
+          void sendQuickBody(
+            quickReaction
+          );
+        }}
+        onSelectQuickReaction={
+          chooseQuickReaction
+        }
         onAttachPress={handleAttachPress}
         onChoosePhoto={() => void choosePhoto()}
         onClearFile={() => {
