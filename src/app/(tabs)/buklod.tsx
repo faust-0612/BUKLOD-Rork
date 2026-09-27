@@ -206,6 +206,16 @@ type Mention={user_id:string;full_name:string;church_name:string;group_name:stri
 
 let PERF2_MENTION_SEARCH_SEQ = 0;
 
+/*
+ * BUKLOD_COMMUNITY_WARM_FEED_R1
+ *
+ * Keep the last prepared first page in memory across Community Wall remounts.
+ * The Wall can repaint immediately on return while disk/network refresh in the
+ * background. This is presentation cache only; Supabase remains authoritative.
+ */
+const communityWarmFeedMemory =
+  new Map<string, any[]>();
+
 /* BUKLOD_WALL_REMOTE_GUARD_R4
  * Normalize thrown transport failures so Community actions always return to
  * an actionable UI state. Reads are additionally time-bounded; writes stay
@@ -959,20 +969,66 @@ const load=useCallback(async(options?:{
     !appendPage186L &&
     communityCacheKey
   ){
-    const cachedPosts=
-      await readOfflineCache<any[]>(
+    const warmPosts=
+      communityWarmFeedMemory.get(
         communityCacheKey
       );
 
     if(
-      cachedPosts?.length &&
+      warmPosts?.length &&
       communityLoadSeq===
         communityLoadSeqRef.current
     ){
-      setPosts(cachedPosts);
+      setPosts(warmPosts);
     }
 
+    const cachedPostsPromise=
+      readOfflineCache<any[]>(
+        communityCacheKey
+      );
+
+    /*
+     * Do not hold the feed RPC behind AsyncStorage. Paint disk cache when it
+     * arrives only if no warmer/newer rows are already on screen.
+     */
+    void cachedPostsPromise
+      .then(cachedPosts=>{
+        if(
+          !cachedPosts?.length ||
+          communityLoadSeq!==
+            communityLoadSeqRef.current
+        ){
+          return;
+        }
+
+        communityWarmFeedMemory.set(
+          communityCacheKey,
+          cachedPosts
+        );
+
+        setPosts(previous=>
+          previous.length
+            ? previous
+            : cachedPosts
+        );
+      })
+      .catch(()=>undefined);
+
     if(!communityOnlineRef.current){
+      const cachedPosts=
+        warmPosts?.length
+          ? warmPosts
+          : await cachedPostsPromise
+              .catch(()=>null);
+
+      if(
+        cachedPosts?.length &&
+        communityLoadSeq===
+          communityLoadSeqRef.current
+      ){
+        setPosts(cachedPosts);
+      }
+
       return cachedPosts?.length ?? 0;
     }
   } else if (!communityOnlineRef.current) {
@@ -1400,12 +1456,20 @@ const load=useCallback(async(options?:{
         );
 
       if(communityCacheKey){
-        void writeOfflineCache(
-          communityCacheKey,
+        const warmRows=
           merged.slice(
             0,
             SCALE_LIMITS.offlineCommunityCachePosts
-          ),
+          );
+
+        communityWarmFeedMemory.set(
+          communityCacheKey,
+          warmRows
+        );
+
+        void writeOfflineCache(
+          communityCacheKey,
+          warmRows,
           'network'
         );
       }
