@@ -58,7 +58,7 @@ jobs:
           assert.equal(main.slug, 'buklod');
           assert.equal(main.android.package, 'org.mzbministry.buklod');
           assert.equal(main.extra.eas.projectId, '23dad7d0-389a-406e-8dec-08965dab85d8');
-          assert.equal(main.icon, './assets/release/app-icon.png');
+          assert.equal(main.icon, './assets/release/buklod-main-canonical.png');
           process.env.BUKLOD_APP_TARGET = 'classroom';
           const classroom = factory({ config: { extra: {} } });
           assert.equal(classroom.name, 'BUKLOD Classroom');
