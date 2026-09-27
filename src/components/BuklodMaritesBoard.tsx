@@ -452,6 +452,33 @@ function createStyles(
       justifyContent: 'center',
       backgroundColor: 'rgba(0,0,0,0.42)',
     },
+    fullscreenStoryNav: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+    },
+    fullscreenStoryNavBtn: {
+      minWidth: 62,
+      height: 40,
+      paddingHorizontal: 8,
+      borderRadius: 20,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 2,
+      backgroundColor: 'rgba(0,0,0,0.52)',
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: 'rgba(255,255,255,0.24)',
+    },
+    fullscreenStoryNavBtnDisabled: {
+      opacity: 0.34,
+    },
+    fullscreenStoryNavText: {
+      color: '#FFFFFF',
+      fontSize: 10,
+      fontWeight: '900',
+    },
     fullscreenReactionDock: {
       position: 'absolute',
       left: 16,
@@ -988,8 +1015,65 @@ export default function BuklodMaritesBoard({
   const openStoryViewer = useCallback((story: MaritesStory) => {
     setStoryZoomed(false);
     setReactionPickerOpen(false);
+    longPressHandledRef.current = false;
     setViewStory(story);
   }, []);
+
+  /*
+   * MARITES_STORY_VIEWER_NAV_R1
+   *
+   * Keep the full-screen viewer open while moving through the same ordered
+   * story strip. Multi-photo stories keep their own horizontal photo paging;
+   * these controls move only between Marites stories.
+   */
+  const viewStoryIndex = useMemo(
+    () =>
+      viewStory
+        ? stories.findIndex(
+            (story) => story.id === viewStory.id
+          )
+        : -1,
+    [stories, viewStory?.id]
+  );
+
+  const showStoryAtIndex = useCallback(
+    (index: number) => {
+      const nextStory = stories[index];
+
+      if (!nextStory) {
+        return;
+      }
+
+      setStoryZoomed(false);
+      setReactionPickerOpen(false);
+      longPressHandledRef.current = false;
+      setViewStory(nextStory);
+    },
+    [stories]
+  );
+
+  const goToPreviousStory = useCallback(() => {
+    if (viewStoryIndex <= 0) {
+      return;
+    }
+
+    showStoryAtIndex(viewStoryIndex - 1);
+  }, [showStoryAtIndex, viewStoryIndex]);
+
+  const goToNextStory = useCallback(() => {
+    if (
+      viewStoryIndex < 0 ||
+      viewStoryIndex >= stories.length - 1
+    ) {
+      return;
+    }
+
+    showStoryAtIndex(viewStoryIndex + 1);
+  }, [
+    showStoryAtIndex,
+    stories.length,
+    viewStoryIndex,
+  ]);
 
   const communityPostIdForStory = useCallback(
     (story: MaritesStory) => {
@@ -1899,6 +1983,8 @@ export default function BuklodMaritesBoard({
                 style={styles.fullscreenHeaderBtn}
                 onPress={closeStoryViewer}
                 hitSlop={BUKLOD_HIT_SLOP}
+                accessibilityRole="button"
+                accessibilityLabel="Close Marites Story"
               >
                 <MaterialCommunityIcons
                   name="close"
@@ -1906,6 +1992,66 @@ export default function BuklodMaritesBoard({
                   color="#FFFFFF"
                 />
               </Pressable>
+
+              <View style={styles.fullscreenStoryNav}>
+                <Pressable
+                  disabled={viewStoryIndex <= 0}
+                  onPress={goToPreviousStory}
+                  hitSlop={BUKLOD_HIT_SLOP}
+                  accessibilityRole="button"
+                  accessibilityLabel="Previous Marites Story"
+                  accessibilityState={{
+                    disabled: viewStoryIndex <= 0,
+                  }}
+                  style={[
+                    styles.fullscreenStoryNavBtn,
+                    viewStoryIndex <= 0 &&
+                      styles.fullscreenStoryNavBtnDisabled,
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="chevron-left"
+                    size={18}
+                    color="#FFFFFF"
+                  />
+                  <Text style={styles.fullscreenStoryNavText}>
+                    PREV
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  disabled={
+                    viewStoryIndex < 0 ||
+                    viewStoryIndex >= stories.length - 1
+                  }
+                  onPress={goToNextStory}
+                  hitSlop={BUKLOD_HIT_SLOP}
+                  accessibilityRole="button"
+                  accessibilityLabel="Next Marites Story"
+                  accessibilityState={{
+                    disabled:
+                      viewStoryIndex < 0 ||
+                      viewStoryIndex >= stories.length - 1,
+                  }}
+                  style={[
+                    styles.fullscreenStoryNavBtn,
+                    (
+                      viewStoryIndex < 0 ||
+                      viewStoryIndex >= stories.length - 1
+                    ) &&
+                      styles.fullscreenStoryNavBtnDisabled,
+                  ]}
+                >
+                  <Text style={styles.fullscreenStoryNavText}>
+                    NEXT
+                  </Text>
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={18}
+                    color="#FFFFFF"
+                  />
+                </Pressable>
+              </View>
 
               {viewStory.user_id === user?.id ? (
                 storyOwnerMenu(
@@ -1936,8 +2082,8 @@ export default function BuklodMaritesBoard({
               >
                 <Text style={styles.fullscreenHintText}>
                   {getMaritesStoryPhotos(viewStory).length
-                    ? 'Pinch to zoom · Drag to move · Long press for reactions'
-                    : 'Long press for reactions · Tap to go back'}
+                    ? 'Swipe photos · Pinch to zoom · PREV/NEXT changes story'
+                    : 'Long press for reactions · PREV/NEXT changes story'}
                 </Text>
               </View>
             ) : null}
