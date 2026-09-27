@@ -1,5 +1,6 @@
 /* BUKLOD_COMMUNITY_EXTERNAL_MEDIA_AWS_R1 */
 import { supabase } from '@/lib/supabase';
+import { resolveCommunityMediaUrl } from '@/lib/buklodMediaUrl';
 
 import {
   COMMUNITY_MAX_PHOTOS,
@@ -222,12 +223,27 @@ export async function loadCommunityPostMediaByPostIds(
         row?.external_object_key ?? '',
       ).trim();
 
+      /* BUKLOD_COMMUNITY_VIDEO_URL_R3
+       * Media RPCs return paths/provider metadata, not a playable URL.
+       * Materialize video URLs here so both web and native feed renderers
+       * receive a fresh source. Photos remain lazy and resolve in the image
+       * component to avoid signing the whole feed up front.
+       */
+      const mediaPath = String(row?.media_path ?? '').trim();
+      const mediaMime = String(row?.media_mime_type ?? '').toLowerCase();
+      const isVideo = mediaMime.startsWith('video/');
       let mediaUrl = row?.media_url ?? null;
-      if (provider === 'AWS' && externalKey) {
+
+      if (isVideo && provider === 'AWS' && externalKey) {
         mediaUrl = await getAwsWallVideoViewUrl(
           postId,
           externalKey,
         ).catch(() => null);
+      } else if (isVideo && mediaPath) {
+        mediaUrl = await resolveCommunityMediaUrl(
+          mediaPath,
+          mediaUrl,
+        ).catch(() => mediaUrl ?? null);
       }
 
       const normalized: CommunityPostMediaRow = {
