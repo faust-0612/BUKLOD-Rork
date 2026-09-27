@@ -1473,11 +1473,7 @@ const chooseSuggestedLogin =
             />
           </LoginMotionScale>
 
-          <LoginMotionFadeUp delay={60} duration={240}>
-            <Text style={styles.title}>BUKLOD</Text>
-          </LoginMotionFadeUp>
-
-          <LoginMotionFadeUp delay={100} duration={240}>
+          <LoginMotionFadeUp delay={80} duration={240}>
             <Text style={styles.tagline}>
               Samahang Binuklod ng Pag-ibig
             </Text>
@@ -1907,9 +1903,9 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   logo: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: 132,
+    height: 132,
+    borderRadius: 24,
   },
   title: {
     marginTop: 12,
