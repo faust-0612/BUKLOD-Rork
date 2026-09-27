@@ -21,7 +21,18 @@ export default function BuklodMainBrandIntro({
 }: {
   children: React.ReactNode;
 }) {
-  const [visible, setVisible] = useState(true);
+  /* BUKLOD_WEB_INTRO_ONCE_PER_TAB_R2
+   * The web startup brand is a boot-only experience. Browser back/forward
+   * or route remounts must never replay the startup overlay.
+   */
+  const [visible, setVisible] = useState(() => {
+    if (Platform.OS !== 'web') return true;
+    try {
+      return window.sessionStorage.getItem('buklod.web.brand-intro.v2') !== 'shown';
+    } catch {
+      return true;
+    }
+  });
   const markOpacity = useRef(new Animated.Value(0)).current;
   const markScale = useRef(new Animated.Value(0.86)).current;
   const textOpacity = useRef(new Animated.Value(0)).current;
@@ -29,6 +40,18 @@ export default function BuklodMainBrandIntro({
   const screenOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
+    if (!visible) {
+      return;
+    }
+
+    if (Platform.OS === 'web') {
+      try {
+        window.sessionStorage.setItem('buklod.web.brand-intro.v2', 'shown');
+      } catch {
+        // Session storage is optional; intro still completes normally.
+      }
+    }
+
     /*
      * BUKLOD_WEB_FAST_BRAND_R1
      *
@@ -103,6 +126,7 @@ export default function BuklodMainBrandIntro({
     screenOpacity,
     textOpacity,
     textTranslate,
+    visible,
   ]);
 
   return (
