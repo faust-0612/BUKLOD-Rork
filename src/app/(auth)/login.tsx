@@ -52,6 +52,9 @@ import {
   type BuklodUserFeedback,
 } from '@/lib/buklodUserFeedback';
 
+/* BUKLOD_MAIN_CANONICAL_LOGIN_LOGO_R1
+ * Main auth screens must use only the canonical BUKLOD app icon.
+ */
 const LOGIN_EASING = Easing.out(Easing.cubic);
 
 function LoginMotionScale({
@@ -1465,7 +1468,7 @@ const chooseSuggestedLogin =
         <View style={styles.brand}>
           <LoginMotionScale>
             <Image
-              source={require('../../../assets/release/buklod-generic-photo.jpg')}
+              source={require('../../../assets/release/app-icon.png')}
               style={styles.logo}
             />
           </LoginMotionScale>
