@@ -169,7 +169,7 @@ export function BuklodLiveSatelliteMap({
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
 <style>
-html,body,#map{width:100%;height:100%;margin:0;padding:0;background:#0d1720;font-family:Inter,system-ui,-apple-system,sans-serif}
+html,body,#map{width:100%;height:100%;margin:0;padding:0;background:#eef2f4;font-family:Inter,system-ui,-apple-system,sans-serif}
 .leaflet-control-attribution{font-size:9px}
 .leaflet-popup-content{min-width:205px;margin:11px 13px}
 .buklod-pin{width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.34);display:flex;align-items:center;justify-content:center}
@@ -238,19 +238,47 @@ const satelliteLabels=L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest
  keepBuffer:4,
  attribution:'Reference &copy; Esri'
 });
-const street=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',{
+/* BUKLOD_ROAD_TILE_FAILSAFE_R3
+ * OSM is the primary road layer because it is the most reliable across normal
+ * browsers and in-app browsers. If a tile request fails, swap the base layer
+ * to Carto Voyager instead of leaving a black map.
+ */
+const street=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
  maxNativeZoom:19,
  maxZoom:19,
  detectRetina:true,
  keepBuffer:4,
  updateWhenIdle:false,
- attribution:'Road map &copy; Esri and contributors'
+ crossOrigin:true,
+ attribution:'&copy; OpenStreetMap contributors'
 }).addTo(map);
+
+const streetFallback=L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
+ subdomains:'abcd',
+ maxNativeZoom:20,
+ maxZoom:20,
+ detectRetina:true,
+ keepBuffer:4,
+ updateWhenIdle:false,
+ crossOrigin:true,
+ attribution:'&copy; OpenStreetMap contributors &copy; CARTO'
+});
+
+let roadFallbackActivated=false;
+street.on('tileerror',()=>{
+ if(roadFallbackActivated) return;
+ roadFallbackActivated=true;
+ try{
+  map.removeLayer(street);
+  streetFallback.addTo(map);
+  setLiveStatus('Road map • fallback tiles active');
+ }catch{}
+});
 const nearbyPlaces=L.layerGroup().addTo(map);
 const routeLayer=L.layerGroup().addTo(map);
 
 L.control.layers(
- { 'Road map': street, 'Satellite': satellite },
+ { 'Road map': street, 'Road map fallback': streetFallback, 'Satellite': satellite },
  { 'Satellite labels': satelliteLabels, 'Nearby places': nearbyPlaces },
  { position:'bottomright', collapsed:true }
 ).addTo(map);
