@@ -128,6 +128,15 @@ html,body,#map{width:100%;height:100%;margin:0;padding:0;background:#0d1720;font
 .buklod-live-status{padding:6px 9px;border-radius:11px;background:rgba(10,25,36,.84);color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.3);font-size:9px;line-height:12px;font-weight:800;max-width:210px}
 .poi-pin{width:28px;height:28px;border-radius:10px;background:rgba(255,255,255,.96);border:2px solid #1f6d5b;display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 3px 10px rgba(0,0,0,.34)}
 .poi-type{display:inline-block;margin-top:5px;padding:2px 6px;border-radius:999px;background:#edf6f2;color:#246653;font-size:9px;font-weight:800;text-transform:capitalize}
+.buklod-route-panel{min-width:190px;max-width:min(320px,calc(100vw - 40px));padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.97);border:1px solid #cfe0d7;box-shadow:0 8px 24px rgba(0,0,0,.22);color:#203d4e}
+.buklod-route-title{font-size:11px;line-height:14px;font-weight:900;color:#177552}
+.buklod-route-meta{margin-top:3px;font-size:10px;line-height:14px;font-weight:800;color:#405d6d}
+.buklod-route-note{margin-top:4px;font-size:8px;line-height:11px;color:#728693}
+.buklod-route-actions{display:flex;gap:6px;margin-top:8px}
+.buklod-route-actions a,.buklod-route-actions button{appearance:none;border:0;border-radius:9px;padding:7px 9px;font:800 9px/12px Inter,system-ui,sans-serif;text-decoration:none;cursor:pointer}
+.buklod-route-actions a{background:#177552;color:#fff}
+.buklod-route-actions button{background:#edf6f2;color:#246653}
+.buklod-user-dot{width:18px;height:18px;border-radius:50%;background:#1677ff;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.34)}
 @media (max-width:560px){.buklod-nav-control{min-width:145px;max-width:calc(100vw - 86px);padding:8px 9px}.buklod-nav-control strong{font-size:10px}.buklod-nav-control span{font-size:8px}.buklod-home-marker{width:150px}.buklod-home-address{max-width:144px;font-size:8px;line-height:11px}.buklod-live-status{max-width:165px;font-size:8px}}
 </style>
 </head>
@@ -142,26 +151,37 @@ const center=${safeJson([
       Number(mapCenter.longitude),
     ])};
 
+/*
+ * BUKLOD_IN_MAP_DRIVING_NAV_R1
+ *
+ * Start with the clearer road map for actual wayfinding. Satellite remains
+ * one tap away in Layers and its place-label overlay remains available.
+ */
 const map=L.map('map',{zoomControl:true,attributionControl:true}).setView(center,14);
 const satellite=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
  maxZoom:19,
  attribution:'Tiles &copy; Esri, Maxar, Earthstar Geographics, and the GIS User Community'
-}).addTo(map);
+});
 const satelliteLabels=L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{
  maxZoom:19,
  attribution:'Reference &copy; Esri'
-}).addTo(map);
+});
 const street=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
  maxZoom:19,
  attribution:'&copy; OpenStreetMap contributors'
-});
+}).addTo(map);
 const nearbyPlaces=L.layerGroup().addTo(map);
+const routeLayer=L.layerGroup().addTo(map);
 
 L.control.layers(
- { 'Satellite': satellite, 'Street map': street },
- { 'Place labels': satelliteLabels, 'Nearby places': nearbyPlaces },
+ { 'Road map': street, 'Satellite': satellite },
+ { 'Satellite labels': satelliteLabels, 'Nearby places': nearbyPlaces },
  { position:'bottomright', collapsed:true }
 ).addTo(map);
+
+let selectedDestination=null;
+let activeRoute=null;
+let userLocationMarker=null;
 
 const NavigationControl=L.Control.extend({
  onAdd(){
@@ -172,18 +192,32 @@ const NavigationControl=L.Control.extend({
   link.innerHTML='<strong>🧭 BUKLOD Navigation</strong><span>Tap a place pin to choose a destination</span>';
   L.DomEvent.disableClickPropagation(link);
   L.DomEvent.on(link,'click',(event)=>{
-    if(link.getAttribute('aria-disabled')==='true') L.DomEvent.preventDefault(event);
+    L.DomEvent.preventDefault(event);
+    if(link.getAttribute('aria-disabled')==='true'||!selectedDestination) return;
+    void startBuklodNavigation(selectedDestination);
   });
   return link;
  }
 });
 new NavigationControl({position:'topleft'}).addTo(map);
 
+const RoutePanelControl=L.Control.extend({
+ onAdd(){
+  const panel=L.DomUtil.create('div','buklod-route-panel');
+  panel.id='buklod-route-panel';
+  panel.style.display='none';
+  L.DomEvent.disableClickPropagation(panel);
+  L.DomEvent.disableScrollPropagation(panel);
+  return panel;
+ }
+});
+new RoutePanelControl({position:'bottomleft'}).addTo(map);
+
 const LiveStatusControl=L.Control.extend({
  onAdd(){
   const status=L.DomUtil.create('div','buklod-live-status');
   status.id='buklod-live-status';
-  status.textContent='Satellite • loading nearby places…';
+  status.textContent='Road map • loading nearby places…';
   L.DomEvent.disableClickPropagation(status);
   return status;
  }
@@ -200,23 +234,173 @@ function navigationUrl(p){
  return 'https://www.google.com/maps/dir/?api=1&destination='+destination+'&travelmode=driving&dir_action=navigate';
 }
 function isNavigablePoint(p){return String(p.kind||'').toUpperCase()!=='PERSON' && String(p.category||'').toLowerCase()!=='people';}
+function formatDistance(meters){
+ const km=Number(meters||0)/1000;
+ return km<1 ? Math.max(1,Math.round(Number(meters||0)))+' m' : km.toFixed(km<10?1:0)+' km';
+}
+function formatDuration(seconds){
+ const minutes=Math.max(1,Math.round(Number(seconds||0)/60));
+ if(minutes<60) return minutes+' min';
+ const hours=Math.floor(minutes/60);
+ const rest=minutes%60;
+ return hours+' hr'+(rest?' '+rest+' min':'');
+}
+function hideRoutePanel(){
+ const panel=document.getElementById('buklod-route-panel');
+ if(panel) panel.style.display='none';
+}
+function clearBuklodRoute(){
+ routeLayer.clearLayers();
+ activeRoute=null;
+ if(userLocationMarker){
+  map.removeLayer(userLocationMarker);
+  userLocationMarker=null;
+ }
+ hideRoutePanel();
+ const link=document.getElementById('buklod-nav-control');
+ if(link&&selectedDestination){
+  link.innerHTML='<strong>🧭 BUKLOD Navigation</strong><span>Route to '+escapeHtml(selectedDestination.title)+'</span>';
+ }
+}
+window.__buklodClearRoute=clearBuklodRoute;
+
+function showRouteFallback(p,message){
+ const panel=document.getElementById('buklod-route-panel');
+ if(!panel) return;
+ panel.style.display='block';
+ panel.innerHTML=
+  '<div class="buklod-route-title">BUKLOD Navigation</div>'+
+  '<div class="buklod-route-meta">'+escapeHtml(message)+'</div>'+
+  '<div class="buklod-route-note">You can still continue with external driving directions.</div>'+
+  '<div class="buklod-route-actions">'+
+   '<a href="'+navigationUrl(p)+'" target="_blank" rel="noopener noreferrer">Open Google Maps</a>'+
+   '<button type="button" onclick="window.__buklodClearRoute()">Clear</button>'+
+  '</div>';
+}
+
+function renderDrivingRoute(origin,p,route){
+ routeLayer.clearLayers();
+
+ const line=L.geoJSON(route.geometry,{
+  style:{
+   color:'#177552',
+   weight:7,
+   opacity:.92,
+   lineCap:'round',
+   lineJoin:'round',
+  }
+ }).addTo(routeLayer);
+
+ const startIcon=L.divIcon({
+  className:'',
+  html:'<div class="buklod-user-dot"></div>',
+  iconSize:[18,18],
+  iconAnchor:[9,9],
+ });
+ userLocationMarker=L.marker(
+  [origin.latitude,origin.longitude],
+  {icon:startIcon,title:'Your location'}
+ ).addTo(map);
+
+ const routeBounds=line.getBounds();
+ if(routeBounds.isValid()){
+  map.fitBounds(routeBounds,{padding:[42,42],maxZoom:17});
+ }
+
+ activeRoute=route;
+
+ const panel=document.getElementById('buklod-route-panel');
+ if(panel){
+  panel.style.display='block';
+  panel.innerHTML=
+   '<div class="buklod-route-title">🧭 BUKLOD Navigation</div>'+
+   '<div class="buklod-route-meta">'+
+    formatDistance(route.distance)+' • '+formatDuration(route.duration)+
+    ' to '+escapeHtml(p.title)+
+   '</div>'+
+   '<div class="buklod-route-note">Driving route shown inside BUKLOD. Keep the map open while travelling. Use Google Maps only if you want external turn-by-turn voice guidance.</div>'+
+   '<div class="buklod-route-actions">'+
+    '<a href="'+navigationUrl(p)+'" target="_blank" rel="noopener noreferrer">Voice guidance</a>'+
+    '<button type="button" onclick="window.__buklodClearRoute()">Clear route</button>'+
+   '</div>';
+ }
+
+ const link=document.getElementById('buklod-nav-control');
+ if(link){
+  link.innerHTML='<strong>🧭 Route ready</strong><span>'+formatDistance(route.distance)+' • '+formatDuration(route.duration)+'</span>';
+ }
+}
+
+async function requestDrivingRoute(origin,p){
+ const url=
+  'https://router.project-osrm.org/route/v1/driving/'+
+  encodeURIComponent(origin.longitude+','+origin.latitude+';'+p.longitude+','+p.latitude)+
+  '?overview=full&geometries=geojson&steps=true&alternatives=false';
+
+ const response=await fetch(url);
+ if(!response.ok) throw new Error('Driving route unavailable');
+
+ const data=await response.json();
+ const route=Array.isArray(data.routes)?data.routes[0]:null;
+ if(!route||!route.geometry) throw new Error('No driving route found');
+
+ renderDrivingRoute(origin,p,route);
+}
+
+async function startBuklodNavigation(p){
+ if(!p||!isNavigablePoint(p)) return;
+
+ const link=document.getElementById('buklod-nav-control');
+ if(link){
+  link.innerHTML='<strong>🧭 BUKLOD Navigation</strong><span>Getting your current location…</span>';
+ }
+
+ if(!navigator.geolocation){
+  showRouteFallback(p,'Current location is unavailable in this browser.');
+  return;
+ }
+
+ navigator.geolocation.getCurrentPosition(
+  (position)=>{
+   const origin={
+    latitude:Number(position.coords.latitude),
+    longitude:Number(position.coords.longitude),
+   };
+   void requestDrivingRoute(origin,p).catch(()=>{
+    showRouteFallback(p,'Could not build the in-app driving route.');
+   });
+  },
+  ()=>{
+   showRouteFallback(p,'Location permission is needed for an in-app route.');
+  },
+  {
+   enableHighAccuracy:true,
+   timeout:10000,
+   maximumAge:30000,
+  }
+ );
+}
+
 function selectNavigationDestination(p){
  const link=document.getElementById('buklod-nav-control');
  if(!link) return;
+
+ clearBuklodRoute();
+
  if(!isNavigablePoint(p)){
+  selectedDestination=null;
   link.className='buklod-nav-control privacy';
   link.setAttribute('aria-disabled','true');
-  link.removeAttribute('target');
   link.href='#';
   link.innerHTML='<strong>🛡 Privacy-protected presence</strong><span>People pins are not navigation destinations</span>';
   return;
  }
+
+ selectedDestination=p;
  link.className='buklod-nav-control active';
  link.setAttribute('aria-disabled','false');
- link.setAttribute('target','_blank');
- link.setAttribute('rel','noopener noreferrer');
- link.href=navigationUrl(p);
- link.innerHTML='<strong>🧭 BUKLOD Navigation</strong><span>Navigate to '+escapeHtml(p.title)+'</span>';
+ link.href='#';
+ link.innerHTML='<strong>🧭 BUKLOD Navigation</strong><span>Route to '+escapeHtml(p.title)+'</span>';
 }
 
 const bounds=[];
@@ -324,7 +508,7 @@ async function loadNearbyPlaces(force=false){
    'https://overpass-api.de/api/interpreter',
    'https://overpass.kumi.systems/api/interpreter'
  ];
- setLiveStatus('Satellite • loading nearby places…');
+ setLiveStatus('Road map • loading nearby places…');
  for(const endpoint of endpoints){
    try{
      const response=await fetch(endpoint,{
@@ -341,13 +525,13 @@ async function loadNearbyPlaces(force=false){
        if(addNearbyPlace(element)) count+=1;
        if(count>=140) break;
      }
-     setLiveStatus('Satellite • '+count+' nearby places');
+     setLiveStatus('Road map • '+count+' nearby places');
      return;
    }catch(error){
      if(error&&error.name==='AbortError') return;
    }
  }
- setLiveStatus('Satellite • BUKLOD places online');
+ setLiveStatus('Road map • BUKLOD places online');
 }
 
 map.on('moveend',()=>{
@@ -382,6 +566,7 @@ setTimeout(()=>{
         pointerEvents: interactive ? 'auto' : 'none',
       },
       referrerPolicy: 'no-referrer',
+      allow: 'geolocation',
     });
 
   const controls = (showClose = false) => (
@@ -422,11 +607,11 @@ setTimeout(()=>{
         >
           <View style={styles.previewPrompt}>
             <MaterialCommunityIcons
-              name="satellite-variant"
+              name="map-marker-path"
               size={18}
               color="#FFFFFF"
             />
-            <Text style={styles.previewPromptText}>Tap map to open</Text>
+            <Text style={styles.previewPromptText}>Open clear map + navigation</Text>
           </View>
         </Pressable>
         {controls(false)}
