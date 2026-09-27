@@ -1,16 +1,9 @@
 name: BUKLOD Web RC Preview Runtime Gate
 
 on:
-  pull_request:
+  push:
     branches:
-      - release/buklod-main-final-rc-20260923
-    paths:
-      - 'src/**'
-      - 'assets/**'
-      - 'app.config.js'
-      - 'package.json'
-      - 'package-lock.json'
-      - '.github/workflows/web_rc_preview_runtime_gate.yml'
+      - web-rc/b04a-recovery-20260927
   workflow_dispatch:
 
 permissions:
@@ -97,6 +90,12 @@ jobs:
           test -s dist/index.html
           find dist -type f | head -100 > web-files.txt
           grep -RFl --include='*.js' 'yhanxndaqbmuzbdqlblu.supabase.co' dist/_expo/static/js/web >/dev/null
+          if grep -RFl --include='*.js' 'test.supabase.co' dist/_expo/static/js/web >/dev/null; then
+            echo 'STOP: test.supabase.co is embedded in the web bundle.'
+            exit 1
+          fi
+          echo 'PRODUCTION_SUPABASE_EMBED=PASS'
+          echo 'TEST_SUPABASE_ABSENT=PASS'
           echo 'WEB_EXPORT_PASS'
 
       - name: Deploy preview only
