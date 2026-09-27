@@ -1,0 +1,151 @@
+name: TEMP BUKLOD Brand-Only Web Preview
+
+on:
+  push:
+    branches:
+      - web-hotfix/brand-only-7edf-20260927
+    paths:
+      - '.github/workflows/temp_brand_only_web_preview.yml'
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Pull protected production public environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          npx eas-cli@latest whoami --non-interactive >/dev/null
+          rm -f .env.local
+          npx eas-cli@latest env:pull --environment production --path .env.local --non-interactive
+          test -s .env.local
+          set -a
+          . ./.env.local
+          set +a
+          test "${EXPO_PUBLIC_SUPABASE_URL:-}" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
+          test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}"
+          while IFS='=' read -r name _; do
+            case "$name" in
+              EXPO_PUBLIC_*)
+                value="${!name-}"
+                {
+                  echo "${name}<<__BUKLOD_ENV__"
+                  printf '%s\n' "$value"
+                  echo '__BUKLOD_ENV__'
+                } >> "$GITHUB_ENV"
+                ;;
+            esac
+          done < <(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env.local)
+          echo 'PRODUCTION_ENV=PASS'
+
+      - name: Targeted brand contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F "BuklodMainBrandIntro" src/app/_layout.tsx
+          grep -F "Your Daily Companion in Life" src/components/BuklodMainBrandIntro.tsx
+          grep -F "assets/release/app-icon.png" 'src/app/(auth)/login.tsx'
+          grep -F "const mainBrandIcon = './assets/release/app-icon.png';" app.config.js
+          test "$(git diff --name-only 7edf5daed84be53ff0465fad344c0fd9ce8960db...HEAD | grep -v '^.github/workflows/temp_brand_only_web_preview.yml$' | wc -l)" -eq 5
+          echo 'TARGETED_BRAND_SCOPE=PASS'
+
+      - name: TypeScript
+        run: npx tsc --noEmit
+
+      - name: Export exact web candidate
+        shell: bash
+        env:
+          APP_VARIANT: production
+          EXPO_PUBLIC_APP_ENV: production
+          NODE_ENV: production
+          BUKLOD_WEB_OUTPUT: single
+        run: |
+          set -euo pipefail
+          rm -rf dist
+          npx expo export --platform web --output-dir dist --clear
+          test -s dist/index.html
+          JS_DIR='dist/_expo/static/js/web'
+          grep -RFl --include='*.js' 'yhanxndaqbmuzbdqlblu.supabase.co' "$JS_DIR" >/dev/null
+          if grep -RFl --include='*.js' 'test.supabase.co' "$JS_DIR" >/dev/null; then
+            echo 'STOP: test.supabase.co embedded in candidate'
+            exit 1
+          fi
+          grep -RFl --include='*.js' 'Your Daily Companion in Life' "$JS_DIR" >/dev/null
+          echo 'WEB_EXPORT_PROD_SUPABASE_BRAND=PASS'
+
+      - name: Deploy unique preview only
+        id: deploy
+        shell: bash
+        env:
+          APP_VARIANT: production
+          EXPO_PUBLIC_APP_ENV: production
+          NODE_ENV: production
+          BUKLOD_WEB_OUTPUT: single
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest deploy --export-dir dist --environment production --non-interactive 2>&1 | tee preview.txt
+          URL="$(grep -Eo 'https://buklod--[A-Za-z0-9-]+\.expo\.app' preview.txt | tail -1)"
+          test -n "$URL"
+          echo "PREVIEW_URL=$URL" >> "$GITHUB_ENV"
+          echo "preview_url=$URL" >> "$GITHUB_OUTPUT"
+          echo "PREVIEW_URL=$URL"
+
+      - name: Browser runtime smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          BROWSER="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$BROWSER"
+
+          check_page() {
+            label="$1"
+            url="$2"
+            dom="/tmp/${label}.dom"
+            log="/tmp/${label}.log"
+            timeout 50s "$BROWSER"               --headless=new               --no-sandbox               --disable-gpu               --disable-extensions               --no-first-run               --window-size=390,844               --virtual-time-budget=12000               --enable-logging=stderr               --v=0               --dump-dom               "$url" > "$dom" 2> "$log" || true
+            test -s "$dom"
+            if grep -Eqi 'Uncaught (Error|TypeError|ReferenceError|SyntaxError)|supabaseUrl is required' "$log"; then
+              echo "STOP: runtime error on $label"
+              grep -Ei 'Uncaught|supabaseUrl is required' "$log" | head -20
+              exit 1
+            fi
+            grep -q '<div id="root"><' "$dom"
+            echo "${label}_ROOT_MOUNT=PASS"
+          }
+
+          check_page ROOT "$PREVIEW_URL/"
+          check_page LOGIN "$PREVIEW_URL/login"
+          grep -Eqi 'LOG IN|BUKLOD' /tmp/LOGIN.dom
+          echo 'LOGIN_RENDER=PASS'
+          echo 'WHITE_SCREEN=ABSENT'
+
+      - name: Preserve preview proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: brand-only-preview-proof
+          path: |
+            preview.txt
+            /tmp/ROOT.dom
+            /tmp/ROOT.log
+            /tmp/LOGIN.dom
+            /tmp/LOGIN.log
+          if-no-files-found: ignore
