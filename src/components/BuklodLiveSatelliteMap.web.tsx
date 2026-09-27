@@ -192,6 +192,7 @@ html,body,#map{width:100%;height:100%;margin:0;padding:0;background:#0d1720;font
 .poi-pin{width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.98);border:1.5px solid #1f6d5b;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;color:#205b4d;box-shadow:0 2px 6px rgba(0,0,0,.26)}
 .poi-type{display:inline-block;margin-top:5px;padding:2px 6px;border-radius:999px;background:#edf6f2;color:#246653;font-size:9px;font-weight:800;text-transform:capitalize}
 .poi-photo{display:block;width:100%;height:92px;object-fit:cover;border-radius:10px;margin:0 0 8px;background:#eef3f0}
+.buklod-popup-nav{margin-top:9px;width:100%;border:0;border-radius:9px;background:#177552;color:#fff;padding:8px 10px;font:800 10px/13px Inter,system-ui,sans-serif;cursor:pointer}
 .buklod-route-panel{min-width:190px;max-width:min(320px,calc(100vw - 40px));padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.97);border:1px solid #cfe0d7;box-shadow:0 8px 24px rgba(0,0,0,.22);color:#203d4e}
 .buklod-route-title{font-size:11px;line-height:14px;font-weight:900;color:#177552}
 .buklod-route-meta{margin-top:3px;font-size:10px;line-height:14px;font-weight:800;color:#405d6d}
@@ -341,6 +342,11 @@ function clearBuklodRoute(){
  }
 }
 window.__buklodClearRoute=clearBuklodRoute;
+window.__buklodNavigateSelected=()=>{
+ if(selectedDestination){
+  void startBuklodNavigation(selectedDestination);
+ }
+};
 
 function showRouteFallback(p,message){
  const panel=document.getElementById('buklod-route-panel');
@@ -573,7 +579,8 @@ function addNearbyPlace(element){
    '<div class="buklod-popup-title">'+escapeHtml(name)+'</div>'+
    '<div class="poi-type">'+escapeHtml(meta.type)+'</div>'+
    (address?'<div class="buklod-popup-sub" style="margin-top:6px">'+escapeHtml(address)+'</div>':'')+
-   '<div class="buklod-popup-note">Selected place. Tap BUKLOD Navigation for directions.</div>';
+   '<div class="buklod-popup-note">Selected place. Zoom in to reveal more nearby establishments.</div>'+
+   '<button class="buklod-popup-nav" type="button" onclick="window.__buklodNavigateSelected()">Navigate</button>';
  marker.bindTooltip(escapeHtml(name),{direction:'top'});
  marker.bindPopup(popup);
  marker.on('click',()=>selectNavigationDestination({
