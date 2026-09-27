@@ -36,7 +36,7 @@ function isKnownInAppBrowserBridgeNoise(event: any) {
     );
 
   const injectedIabFrame =
-    frameFiles.some(filename =>
+    frameFiles.some((filename: string) =>
       /^iabjs:\/\//i.test(filename)
     );
 
