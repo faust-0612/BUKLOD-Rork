@@ -361,7 +361,7 @@ async function signInForFreshPublicHome(
 
 /* PATCH_174C_R5_SUGGESTED_LOGIN_AVATAR_EXACT_AST_FIX */
 const SUGGESTED_LOGIN_BUKLOD_LOGO =
-  require('../../../assets/release/buklod-generic.png');
+  require('../../../assets/release/app-icon.png');
 
 function normalizeSuggestedAvatarUrl(
   rawAvatarUrl: unknown
