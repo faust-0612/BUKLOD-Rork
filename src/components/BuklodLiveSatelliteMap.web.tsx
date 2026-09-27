@@ -86,6 +86,69 @@ export function BuklodLiveSatelliteMap({
   const previewHeight = mobile ? 190 : 250;
   const mapCenter = center ?? points[0] ?? FALLBACK_CENTER;
 
+  /*
+   * BUKLOD_WEB_MAP_PARENT_GEO_R2
+   * srcDoc iframes may be denied geolocation by in-app browsers even when
+   * the top-level HTTPS page is allowed. Ask the parent page for location and
+   * send only the coordinate result back to the requesting map iframe.
+   */
+  useEffect(() => {
+    const handleMessage = (event: any) => {
+      if (
+        event?.data?.type !== 'BUKLOD_MAP_REQUEST_LOCATION' ||
+        !event?.source
+      ) {
+        return;
+      }
+
+      const target = event.source as any;
+
+      if (!navigator?.geolocation) {
+        target.postMessage(
+          {
+            type: 'BUKLOD_MAP_LOCATION_RESULT',
+            ok: false,
+            message: 'Current location is unavailable in this browser.',
+          },
+          '*'
+        );
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        position => {
+          target.postMessage(
+            {
+              type: 'BUKLOD_MAP_LOCATION_RESULT',
+              ok: true,
+              latitude: Number(position.coords.latitude),
+              longitude: Number(position.coords.longitude),
+            },
+            '*'
+          );
+        },
+        () => {
+          target.postMessage(
+            {
+              type: 'BUKLOD_MAP_LOCATION_RESULT',
+              ok: false,
+              message: 'Location permission is needed for an in-app route.',
+            },
+            '*'
+          );
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 30000,
+        }
+      );
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
   const srcDoc = useMemo(() => {
     const payload = points.map((point) => ({
       id: point.id,
@@ -126,8 +189,9 @@ html,body,#map{width:100%;height:100%;margin:0;padding:0;background:#0d1720;font
 .buklod-nav-control.active{cursor:pointer;border-color:#9ccdb8;background:#f8fffb}
 .buklod-nav-control.privacy strong{color:#697f8e}
 .buklod-live-status{padding:6px 9px;border-radius:11px;background:rgba(10,25,36,.84);color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.3);font-size:9px;line-height:12px;font-weight:800;max-width:210px}
-.poi-pin{width:28px;height:28px;border-radius:10px;background:rgba(255,255,255,.96);border:2px solid #1f6d5b;display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 3px 10px rgba(0,0,0,.34)}
+.poi-pin{width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.98);border:1.5px solid #1f6d5b;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;color:#205b4d;box-shadow:0 2px 6px rgba(0,0,0,.26)}
 .poi-type{display:inline-block;margin-top:5px;padding:2px 6px;border-radius:999px;background:#edf6f2;color:#246653;font-size:9px;font-weight:800;text-transform:capitalize}
+.poi-photo{display:block;width:100%;height:92px;object-fit:cover;border-radius:10px;margin:0 0 8px;background:#eef3f0}
 .buklod-route-panel{min-width:190px;max-width:min(320px,calc(100vw - 40px));padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.97);border:1px solid #cfe0d7;box-shadow:0 8px 24px rgba(0,0,0,.22);color:#203d4e}
 .buklod-route-title{font-size:11px;line-height:14px;font-weight:900;color:#177552}
 .buklod-route-meta{margin-top:3px;font-size:10px;line-height:14px;font-weight:800;color:#405d6d}
@@ -157,18 +221,29 @@ const center=${safeJson([
  * Start with the clearer road map for actual wayfinding. Satellite remains
  * one tap away in Layers and its place-label overlay remains available.
  */
-const map=L.map('map',{zoomControl:true,attributionControl:true}).setView(center,14);
+/* BUKLOD_PROGRESSIVE_CLEAR_MAP_R2 */
+const map=L.map('map',{zoomControl:true,attributionControl:true,preferCanvas:true,maxZoom:19}).setView(center,14);
 const satellite=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
+ maxNativeZoom:19,
  maxZoom:19,
+ detectRetina:true,
+ keepBuffer:4,
  attribution:'Tiles &copy; Esri, Maxar, Earthstar Geographics, and the GIS User Community'
 });
 const satelliteLabels=L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{
+ maxNativeZoom:19,
  maxZoom:19,
+ detectRetina:true,
+ keepBuffer:4,
  attribution:'Reference &copy; Esri'
 });
-const street=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+const street=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',{
+ maxNativeZoom:19,
  maxZoom:19,
- attribution:'&copy; OpenStreetMap contributors'
+ detectRetina:true,
+ keepBuffer:4,
+ updateWhenIdle:false,
+ attribution:'Road map &copy; Esri and contributors'
 }).addTo(map);
 const nearbyPlaces=L.layerGroup().addTo(map);
 const routeLayer=L.layerGroup().addTo(map);
@@ -192,8 +267,11 @@ const NavigationControl=L.Control.extend({
   link.innerHTML='<strong>🧭 BUKLOD Navigation</strong><span>Tap a place pin to choose a destination</span>';
   L.DomEvent.disableClickPropagation(link);
   L.DomEvent.on(link,'click',(event)=>{
+    if(link.getAttribute('aria-disabled')==='true'||!selectedDestination){
+      L.DomEvent.preventDefault(event);
+      return;
+    }
     L.DomEvent.preventDefault(event);
-    if(link.getAttribute('aria-disabled')==='true'||!selectedDestination) return;
     void startBuklodNavigation(selectedDestination);
   });
   return link;
@@ -347,39 +425,50 @@ async function requestDrivingRoute(origin,p){
  renderDrivingRoute(origin,p,route);
 }
 
+let pendingNavigationDestination=null;
+
 async function startBuklodNavigation(p){
  if(!p||!isNavigablePoint(p)) return;
+
+ pendingNavigationDestination=p;
 
  const link=document.getElementById('buklod-nav-control');
  if(link){
   link.innerHTML='<strong>🧭 BUKLOD Navigation</strong><span>Getting your current location…</span>';
  }
 
- if(!navigator.geolocation){
-  showRouteFallback(p,'Current location is unavailable in this browser.');
+ try{
+  window.parent.postMessage({type:'BUKLOD_MAP_REQUEST_LOCATION'},'*');
+ }catch{
+  showRouteFallback(p,'Could not request your current location.');
+ }
+}
+
+window.addEventListener('message',(event)=>{
+ const data=event&&event.data;
+ if(!data||data.type!=='BUKLOD_MAP_LOCATION_RESULT'||!pendingNavigationDestination) return;
+ const p=pendingNavigationDestination;
+ pendingNavigationDestination=null;
+
+ if(!data.ok){
+  showRouteFallback(p,String(data.message||'Location is unavailable.'));
   return;
  }
 
- navigator.geolocation.getCurrentPosition(
-  (position)=>{
-   const origin={
-    latitude:Number(position.coords.latitude),
-    longitude:Number(position.coords.longitude),
-   };
-   void requestDrivingRoute(origin,p).catch(()=>{
-    showRouteFallback(p,'Could not build the in-app driving route.');
-   });
-  },
-  ()=>{
-   showRouteFallback(p,'Location permission is needed for an in-app route.');
-  },
-  {
-   enableHighAccuracy:true,
-   timeout:10000,
-   maximumAge:30000,
-  }
- );
-}
+ const origin={
+  latitude:Number(data.latitude),
+  longitude:Number(data.longitude),
+ };
+
+ if(!Number.isFinite(origin.latitude)||!Number.isFinite(origin.longitude)){
+  showRouteFallback(p,'Current location is unavailable.');
+  return;
+ }
+
+ void requestDrivingRoute(origin,p).catch(()=>{
+  showRouteFallback(p,'Could not build the in-app driving route.');
+ });
+});
 
 function selectNavigationDestination(p){
  const link=document.getElementById('buklod-nav-control');
@@ -399,8 +488,10 @@ function selectNavigationDestination(p){
  selectedDestination=p;
  link.className='buklod-nav-control active';
  link.setAttribute('aria-disabled','false');
- link.href='#';
- link.innerHTML='<strong>🧭 BUKLOD Navigation</strong><span>Route to '+escapeHtml(p.title)+'</span>';
+ link.href=navigationUrl(p);
+ link.target='_blank';
+ link.rel='noopener noreferrer';
+ link.innerHTML='<strong>🧭 BUKLOD Navigation</strong><span>Navigate to '+escapeHtml(p.title)+'</span>';
 }
 
 const bounds=[];
@@ -429,20 +520,20 @@ function poiMeta(tags){
  const shop=String(tags.shop||'').toLowerCase();
  const office=String(tags.office||'').toLowerCase();
  const tourism=String(tags.tourism||'').toLowerCase();
- if(['hospital','clinic','doctors'].includes(amenity)) return {type:'medical',icon:'🏥'};
- if(amenity==='pharmacy') return {type:'pharmacy',icon:'💊'};
- if(['school','college','university'].includes(amenity)) return {type:'school',icon:'🏫'};
- if(amenity==='police') return {type:'police',icon:'🚓'};
- if(amenity==='fire_station') return {type:'fire station',icon:'🚒'};
- if(amenity==='marketplace') return {type:'market',icon:'🛒'};
- if(['restaurant','cafe','fast_food'].includes(amenity)) return {type:'food',icon:'🍴'};
- if(['bank','atm'].includes(amenity)) return {type:'bank',icon:'🏦'};
- if(amenity==='fuel') return {type:'fuel',icon:'⛽'};
- if(tourism==='hotel') return {type:'hotel',icon:'🏨'};
- if(tourism==='attraction') return {type:'attraction',icon:'📍'};
- if(shop) return {type:shop.replaceAll('_',' '),icon:'🏪'};
- if(office) return {type:office.replaceAll('_',' '),icon:'🏢'};
- return {type:'place',icon:'📍'};
+ if(['hospital','clinic','doctors'].includes(amenity)) return {type:'medical',icon:'H'};
+ if(amenity==='pharmacy') return {type:'pharmacy',icon:'+'};
+ if(['school','college','university'].includes(amenity)) return {type:'school',icon:'S'};
+ if(amenity==='police') return {type:'police',icon:'P'};
+ if(amenity==='fire_station') return {type:'fire station',icon:'F'};
+ if(amenity==='marketplace') return {type:'market',icon:'M'};
+ if(['restaurant','cafe','fast_food'].includes(amenity)) return {type:'food',icon:'R'};
+ if(['bank','atm'].includes(amenity)) return {type:'bank',icon:'B'};
+ if(amenity==='fuel') return {type:'fuel',icon:'G'};
+ if(tourism==='hotel') return {type:'hotel',icon:'H'};
+ if(tourism==='attraction') return {type:'attraction',icon:'•'};
+ if(shop) return {type:shop.replaceAll('_',' '),icon:'•'};
+ if(office) return {type:office.replaceAll('_',' '),icon:'•'};
+ return {type:'place',icon:'•'};
 }
 function poiAddress(tags){
  const pieces=[tags['addr:housenumber'],tags['addr:street'],tags['addr:barangay'],tags['addr:city']]
@@ -455,6 +546,15 @@ function elementCoordinates(element){
  if(!Number.isFinite(latitude)||!Number.isFinite(longitude)) return null;
  return {latitude,longitude};
 }
+function poiPhotoUrl(tags){
+ const raw=String(tags.image||'').trim();
+ if(/^https?:\/\//i.test(raw)) return raw;
+ const commons=String(tags.wikimedia_commons||'').trim();
+ if(/^File:/i.test(commons)){
+  return 'https://commons.wikimedia.org/wiki/Special:Redirect/file/'+encodeURIComponent(commons.replace(/^File:/i,''));
+ }
+ return '';
+}
 function addNearbyPlace(element){
  const tags=element.tags||{};
  const name=String(tags.name||'').trim();
@@ -462,13 +562,18 @@ function addNearbyPlace(element){
  const coords=elementCoordinates(element);
  if(!coords) return false;
  const meta=poiMeta(tags);
- const icon=L.divIcon({className:'',html:'<div class="poi-pin">'+meta.icon+'</div>',iconSize:[28,28],iconAnchor:[14,14],popupAnchor:[0,-14]});
+ const zoom=map.getZoom();
+ const pinSize=zoom>=18?22:(zoom>=16?20:18);
+ const icon=L.divIcon({className:'',html:'<div class="poi-pin" style="width:'+pinSize+'px;height:'+pinSize+'px">'+meta.icon+'</div>',iconSize:[pinSize,pinSize],iconAnchor:[pinSize/2,pinSize/2],popupAnchor:[0,-pinSize/2]});
  const marker=L.marker([coords.latitude,coords.longitude],{icon,title:name}).addTo(nearbyPlaces);
  const address=poiAddress(tags);
- const popup='<div class="buklod-popup-title">'+escapeHtml(name)+'</div>'+
+ const photo=poiPhotoUrl(tags);
+ const popup=
+   (photo?'<img class="poi-photo" src="'+escapeHtml(photo)+'" alt="" loading="lazy" referrerpolicy="no-referrer" />':'')+
+   '<div class="buklod-popup-title">'+escapeHtml(name)+'</div>'+
    '<div class="poi-type">'+escapeHtml(meta.type)+'</div>'+
    (address?'<div class="buklod-popup-sub" style="margin-top:6px">'+escapeHtml(address)+'</div>':'')+
-   '<div class="buklod-popup-note">Tap this pin, then use BUKLOD Navigation for directions.</div>';
+   '<div class="buklod-popup-note">Selected place. Tap BUKLOD Navigation for directions.</div>';
  marker.bindTooltip(escapeHtml(name),{direction:'top'});
  marker.bindPopup(popup);
  marker.on('click',()=>selectNavigationDestination({
@@ -481,9 +586,11 @@ function addNearbyPlace(element){
  return true;
 }
 
+/* BUKLOD_PROGRESSIVE_POI_ZOOM_R2 */
 let poiTimer=null;
 let poiAbort=null;
 let lastPoiCenter=null;
+let lastPoiZoom=null;
 function distanceKm(a,b){
  const rad=Math.PI/180;
  const dLat=(b.lat-a.lat)*rad;
@@ -491,24 +598,53 @@ function distanceKm(a,b){
  const x=Math.sin(dLat/2)**2+Math.cos(a.lat*rad)*Math.cos(b.lat*rad)*Math.sin(dLon/2)**2;
  return 6371*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
 }
+function poiProfileForZoom(zoom){
+ if(zoom<=13) return {radius:6000,limit:14,requeryKm:1.5,detail:0};
+ if(zoom<=15) return {radius:3200,limit:28,requeryKm:.8,detail:1};
+ if(zoom<=17) return {radius:1400,limit:48,requeryKm:.35,detail:2};
+ return {radius:650,limit:72,requeryKm:.16,detail:3};
+}
 async function loadNearbyPlaces(force=false){
  const c=map.getCenter();
- if(!force&&lastPoiCenter&&distanceKm(lastPoiCenter,c)<1.2) return;
+ const zoom=Math.round(map.getZoom());
+ const profile=poiProfileForZoom(zoom);
+ if(
+   !force&&
+   lastPoiCenter&&
+   lastPoiZoom===zoom&&
+   distanceKm(lastPoiCenter,c)<profile.requeryKm
+ ) return;
+
  lastPoiCenter={lat:c.lat,lng:c.lng};
+ lastPoiZoom=zoom;
+
  if(poiAbort) poiAbort.abort();
  poiAbort=new AbortController();
- const radius=4500;
- const query='[out:json][timeout:10];('+
-   'nwr(around:'+radius+','+c.lat+','+c.lng+')["amenity"~"hospital|clinic|doctors|pharmacy|police|fire_station|school|college|university|bank|atm|fuel|marketplace|restaurant|cafe|fast_food"]["name"];'+
-   'nwr(around:'+radius+','+c.lat+','+c.lng+')["shop"]["name"];'+
-   'nwr(around:'+radius+','+c.lat+','+c.lng+')["office"]["name"];'+
-   'nwr(around:'+radius+','+c.lat+','+c.lng+')["tourism"~"hotel|attraction"]["name"];'+
-   ');out center 140;';
+
+ const radius=profile.radius;
+ let query='[out:json][timeout:10];('+
+   'nwr(around:'+radius+','+c.lat+','+c.lng+')["amenity"~"hospital|clinic|doctors|pharmacy|police|fire_station|school|college|university|bank|atm|fuel|marketplace"]["name"];';
+
+ if(profile.detail>=1){
+   query+='nwr(around:'+radius+','+c.lat+','+c.lng+')["amenity"~"restaurant|cafe|fast_food"]["name"];';
+   query+='nwr(around:'+radius+','+c.lat+','+c.lng+')["tourism"~"hotel|attraction"]["name"];';
+ }
+ if(profile.detail>=2){
+   query+='nwr(around:'+radius+','+c.lat+','+c.lng+')["shop"]["name"];';
+ }
+ if(profile.detail>=3){
+   query+='nwr(around:'+radius+','+c.lat+','+c.lng+')["office"]["name"];';
+ }
+
+ query+=');out center '+profile.limit+';';
+
  const endpoints=[
    'https://overpass-api.de/api/interpreter',
    'https://overpass.kumi.systems/api/interpreter'
  ];
- setLiveStatus('Road map • loading nearby places…');
+
+ setLiveStatus('Zoom '+zoom+' • loading nearby places…');
+
  for(const endpoint of endpoints){
    try{
      const response=await fetch(endpoint,{
@@ -523,9 +659,9 @@ async function loadNearbyPlaces(force=false){
      let count=0;
      for(const element of (data.elements||[])){
        if(addNearbyPlace(element)) count+=1;
-       if(count>=140) break;
+       if(count>=profile.limit) break;
      }
-     setLiveStatus('Road map • '+count+' nearby places');
+     setLiveStatus('Zoom '+zoom+' • '+count+' places • zoom in for more');
      return;
    }catch(error){
      if(error&&error.name==='AbortError') return;
@@ -536,7 +672,7 @@ async function loadNearbyPlaces(force=false){
 
 map.on('moveend',()=>{
  if(poiTimer) clearTimeout(poiTimer);
- poiTimer=setTimeout(()=>{void loadNearbyPlaces(false);},900);
+ poiTimer=setTimeout(()=>{void loadNearbyPlaces(false);},320);
 });
 setTimeout(()=>{
  map.invalidateSize();
