@@ -6,6 +6,7 @@ import React, {
 } from 'react';
 
 import {
+  Platform,
   StyleSheet,
   View,
   type StyleProp,
@@ -105,7 +106,12 @@ function BuklodCachedMediaImageInner({
       contentFit={contentFit}
       cachePolicy="memory-disk"
       priority="high"
-      recyclingKey={cacheKey}
+      /* BUKLOD_WEB_MEDIA_NO_RECYCLE_BLANK_R3
+       * On web, recyclingKey intentionally clears the underlying image while
+       * FlashList reuses a row. Keep the browser cache key but do not clear the
+       * painted image during fast scrolling/back-scroll.
+       */
+      recyclingKey={Platform.OS === 'web' ? undefined : cacheKey}
       transition={0}
       onLoad={onLoad}
       onError={() => {
