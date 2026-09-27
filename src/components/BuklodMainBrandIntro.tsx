@@ -38,11 +38,25 @@ export default function BuklodMainBrandIntro({
     const webFast =
       Platform.OS === 'web';
 
+    /*
+     * BUKLOD_WEB_BRAND_3S_R1
+     *
+     * Keep the canonical B mark visible for about 3 seconds on web while the
+     * app hydrates underneath. This is intentional brand time, not a blocking
+     * data fetch.
+     */
+    const webIntroMs = {
+      mark: 320,
+      copy: 320,
+      hold: 1960,
+      fade: 400,
+    };
+
     const sequence = Animated.sequence([
       Animated.parallel([
         Animated.timing(markOpacity, {
           toValue: 1,
-          duration: webFast ? 90 : 260,
+          duration: webFast ? webIntroMs.mark : 260,
           easing: Easing.out(Easing.cubic),
           useNativeDriver: Platform.OS !== 'web',
         }),
@@ -56,21 +70,21 @@ export default function BuklodMainBrandIntro({
       Animated.parallel([
         Animated.timing(textOpacity, {
           toValue: 1,
-          duration: webFast ? 90 : 220,
+          duration: webFast ? webIntroMs.copy : 220,
           easing: Easing.out(Easing.quad),
           useNativeDriver: Platform.OS !== 'web',
         }),
         Animated.timing(textTranslate, {
           toValue: 0,
-          duration: webFast ? 90 : 220,
+          duration: webFast ? webIntroMs.copy : 220,
           easing: Easing.out(Easing.quad),
           useNativeDriver: Platform.OS !== 'web',
         }),
       ]),
-      Animated.delay(webFast ? 70 : 420),
+      Animated.delay(webFast ? webIntroMs.hold : 420),
       Animated.timing(screenOpacity, {
         toValue: 0,
-        duration: webFast ? 90 : 220,
+        duration: webFast ? webIntroMs.fade : 220,
         easing: Easing.in(Easing.quad),
         useNativeDriver: Platform.OS !== 'web',
       }),
