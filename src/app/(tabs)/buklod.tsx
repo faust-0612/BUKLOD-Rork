@@ -21,6 +21,7 @@ import {
   attachCommunityPostMedia,
   discardIncompleteCommunityPost,
   extractCreatedRecordId,
+  loadCommunityPostMediaByPostIds,
 } from '@/lib/buklodCommunityPostMedia';
 import { enqueueCommunityPublish } from '@/lib/buklodCommunityPublishQueue';
 import {
@@ -1175,22 +1176,23 @@ const load=useCallback(async(options?:{
         }),
     postIds.length
       ? withBuklodTimeout<{data:any,error:any}>(
-          (supabase as any).rpc(
-            'get_buklod_post_media_v1',
-            {
-              p_post_ids:
-                postIds
-            }
-          ),
+          loadCommunityPostMediaByPostIds(
+            postIds
+          ).then(mediaByPost=>({
+            data:Object.values(
+              mediaByPost
+            ).flat(),
+            error:null,
+          })),
           5000,
-          'Community photos'
+          'Community media'
         ).catch((err:any)=>({
           data:null,
           error:{
             message:String(
               err?.message ??
               err ??
-              'Photos timed out.'
+              'Media timed out.'
             )
           }
         }))
@@ -1286,10 +1288,11 @@ const load=useCallback(async(options?:{
      ].push({
       ...row,
       media_url:
+        row.media_url ??
         peekCommunityMediaUrl(
           row.media_path,
           null
-        ) ?? row.media_url,
+        ),
      });
     }
   }
@@ -1391,7 +1394,7 @@ const load=useCallback(async(options?:{
      */
     const firstVisibleMedia=
       next
-        .slice(0,8)
+        .slice(0,20)
         .flatMap((post:any)=>
           Array.isArray(post.media_items)
             ? post.media_items
@@ -1405,7 +1408,7 @@ const load=useCallback(async(options?:{
             .toLowerCase()
             .startsWith('video/')
         )
-        .slice(0,12);
+        .slice(0,32);
 
     void Promise
       .all(
@@ -2134,8 +2137,11 @@ const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p
         ? null
         : first?.media_size_bytes??
           null,
+      /* BUKLOD_WALL_VIDEO_DURATION_PERSIST_R3 */
       p_media_duration_seconds:
-       null,
+       snapshot.wallVideo
+        ? snapshot.wallVideo.durationSeconds
+        : null,
       p_is_reel:false,
       p_mentioned_user_ids:
        snapshot.mentions.map(
@@ -3300,32 +3306,77 @@ const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p
  const renderCommunityMedia=
   (item:any)=>{
 
-    const videoMime186O=
-     String(
-      item?.media_mime_type??
-      ''
-     )
-      .trim()
-      .toLowerCase();
+    /*
+     * BUKLOD_COMMUNITY_ATTACHED_VIDEO_RENDER_R3
+     * Wall videos are stored in community_post_media. Do not rely only on the
+     * legacy main-post media fields; prefer the attached normalized media row
+     * because it carries a fresh Supabase/AWS playback URL.
+     */
+    const attachedVideo186O=
+      (
+        Array.isArray(
+          item?.media_items
+        )
+          ? item.media_items
+          : []
+      ).find(
+        (media:any)=>
+          String(
+            media?.media_mime_type??
+            ''
+          )
+            .trim()
+            .toLowerCase()
+            .startsWith('video/')
+      );
+
+    const fallbackVideo186O=
+      String(
+        item?.media_mime_type??
+        ''
+      )
+        .trim()
+        .toLowerCase()
+        .startsWith('video/')
+        ? item
+        : null;
+
+    const video186O=
+      attachedVideo186O ??
+      fallbackVideo186O;
 
     const videoUrl186O=
-     String(
-      item?.media_url??
-      ''
-     )
-      .trim();
+      String(
+        video186O?.media_url??
+        ''
+      ).trim();
+
+    const videoPath186O=
+      String(
+        video186O?.media_path??
+        ''
+      ).trim();
 
     if(
-     videoMime186O
-      .startsWith('video/') &&
-     videoUrl186O
+      video186O &&
+      videoUrl186O
     ){
-     return (
-      <CommunityVideo
-       uri={videoUrl186O}
-       height={300}
-      />
-     );
+      return (
+        <CommunityVideo
+          key={
+            videoPath186O ||
+            videoUrl186O
+          }
+          uri={videoUrl186O}
+          height={300}
+          expectedDurationSeconds={
+            Number(
+              item?.media_duration_seconds??
+              0
+            ) || undefined
+          }
+        />
+      );
     }
 
    const media=
@@ -3553,6 +3604,8 @@ const refreshCommunity186L=
  return <>
  <FlashList
  /* PERF2_PROGRESSIVE_FEED_LIST */
+ /* BUKLOD_COMMUNITY_FAST_SCROLL_BUFFER_R3 */
+ drawDistance={Platform.OS==='web' ? 1800 : 900}
  onEndReachedThreshold={0.45}
   onEndReached={() => {
     void loadMoreCommunity186L();
