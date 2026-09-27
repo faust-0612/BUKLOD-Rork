@@ -127,7 +127,7 @@ export default function BuklodMainBrandIntro({
               }}
             >
               <Image
-                source={require('../../assets/release/app-icon.png')}
+                source={require('../../assets/release/buklod-main-canonical.png')}
                 resizeMode="contain"
                 style={styles.logo}
               />
