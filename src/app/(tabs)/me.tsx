@@ -1288,9 +1288,10 @@ export default function MeScreen() {
     );
   };
 
+  /* BUKLOD_MAIN_CANONICAL_PROFILE_FALLBACK_R1 */
   const fallbackPortrait = isSystemAdmin
     ? require('../../../assets/branding/admin-profile.jpg')
-    : require('../../../assets/release/buklod-generic-photo.jpg');
+    : require('../../../assets/release/app-icon.png');
 
   const coverUrl =
     profileBackgroundUrl ||
