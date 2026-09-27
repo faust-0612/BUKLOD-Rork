@@ -1,7 +1,9 @@
 import React, {
   useMemo,
+  useState,
 } from 'react';
 import {
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -55,6 +57,10 @@ type Props = {
   onClearReply?: () => void;
   onChangeDraft: (value: string) => void;
   onSend: () => void;
+  quickReaction?: string;
+  quickReactionOptions?: readonly string[];
+  onQuickReaction?: () => void;
+  onSelectQuickReaction?: (emoji: string) => void;
   onAttachPress: () => void;
   onChoosePhoto: () => void;
   onClearFile: () => void;
@@ -202,6 +208,55 @@ function createStyles(theme: ConnectThemeRoles) {
       justifyContent: 'center',
       backgroundColor: theme.fabBg,
     },
+    quickReactionButton: {
+      backgroundColor: theme.accentMuted,
+    },
+    quickReactionEmoji: {
+      fontSize: 21,
+      lineHeight: 25,
+    },
+    quickPickerBackdrop: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      backgroundColor: 'rgba(0,0,0,.28)',
+    },
+    quickPickerSheet: {
+      paddingTop: 10,
+      paddingHorizontal: 16,
+      paddingBottom: 22,
+      borderTopLeftRadius: 22,
+      borderTopRightRadius: 22,
+      backgroundColor: theme.surface,
+    },
+    quickPickerTitle: {
+      marginBottom: 10,
+      color: theme.textPrimary,
+      fontSize: 13,
+      fontWeight: '900',
+      textAlign: 'center',
+    },
+    quickPickerRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      gap: 9,
+    },
+    quickPickerChoice: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.accentMuted,
+    },
+    quickPickerChoiceActive: {
+      borderWidth: 2,
+      borderColor: theme.accent,
+    },
+    quickPickerEmoji: {
+      fontSize: 25,
+      lineHeight: 30,
+    },
     replyBanner: {
       marginHorizontal: 8,
       marginBottom: 6,
@@ -247,6 +302,10 @@ export function ConnectComposer({
   onClearReply,
   onChangeDraft,
   onSend,
+  quickReaction = '👍',
+  quickReactionOptions = [],
+  onQuickReaction,
+  onSelectQuickReaction,
   onAttachPress,
   onChoosePhoto,
   onClearFile,
@@ -261,6 +320,20 @@ export function ConnectComposer({
     () => createStyles(theme),
     [theme]
   );
+  const [
+    quickPickerOpen,
+    setQuickPickerOpen,
+  ] = useState(false);
+
+  const hasSendContent =
+    !!draft.trim() ||
+    !!selectedFile ||
+    selectedPhotos.length > 0;
+
+  const showQuickReaction =
+    mode === 'direct' &&
+    !hasSendContent &&
+    !!onQuickReaction;
 
   return (
     <>
@@ -462,23 +535,107 @@ export function ConnectComposer({
           style={styles.input}
         />
 
-        <ConnectPressable
-          accessibilityRole="button"
-          accessibilityLabel="Send message"
-          instant
-          nested={false}
-          onPress={onSend}
-          style={styles.iconHit}
-        >
-          <View style={styles.send} pointerEvents="none">
-            <MaterialCommunityIcons
-              name="send"
-              size={17}
-              color={theme.fabText}
-            />
-          </View>
-        </ConnectPressable>
+        {showQuickReaction ? (
+          <ConnectPressable
+            accessibilityRole="button"
+            accessibilityLabel={`Send quick reaction ${quickReaction}`}
+            accessibilityHint="Tap to send. Long press to change the quick reaction."
+            nested={false}
+            onPress={onQuickReaction}
+            onLongPress={() => {
+              if (
+                quickReactionOptions.length &&
+                onSelectQuickReaction
+              ) {
+                setQuickPickerOpen(true);
+              }
+            }}
+            style={styles.iconHit}
+          >
+            <View
+              style={[
+                styles.send,
+                styles.quickReactionButton,
+              ]}
+              pointerEvents="none"
+            >
+              <Text style={styles.quickReactionEmoji}>
+                {quickReaction}
+              </Text>
+            </View>
+          </ConnectPressable>
+        ) : (
+          <ConnectPressable
+            accessibilityRole="button"
+            accessibilityLabel="Send message"
+            instant
+            nested={false}
+            onPress={onSend}
+            style={styles.iconHit}
+          >
+            <View style={styles.send} pointerEvents="none">
+              <MaterialCommunityIcons
+                name="send"
+                size={17}
+                color={theme.fabText}
+              />
+            </View>
+          </ConnectPressable>
+        )}
       </View>
+
+      <Modal
+        transparent
+        visible={quickPickerOpen}
+        animationType="fade"
+        onRequestClose={() =>
+          setQuickPickerOpen(false)
+        }
+      >
+        <Pressable
+          style={styles.quickPickerBackdrop}
+          onPress={() =>
+            setQuickPickerOpen(false)
+          }
+        >
+          <Pressable
+            style={styles.quickPickerSheet}
+            onPress={event =>
+              event.stopPropagation()
+            }
+          >
+            <Text style={styles.quickPickerTitle}>
+              Choose your quick reaction
+            </Text>
+            <View style={styles.quickPickerRow}>
+              {quickReactionOptions.map(emoji => (
+                <Pressable
+                  key={emoji}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Use ${emoji} as quick reaction`}
+                  onPress={() => {
+                    onSelectQuickReaction?.(
+                      emoji
+                    );
+                    setQuickPickerOpen(
+                      false
+                    );
+                  }}
+                  style={[
+                    styles.quickPickerChoice,
+                    emoji === quickReaction &&
+                      styles.quickPickerChoiceActive,
+                  ]}
+                >
+                  <Text style={styles.quickPickerEmoji}>
+                    {emoji}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </>
   );
 }
