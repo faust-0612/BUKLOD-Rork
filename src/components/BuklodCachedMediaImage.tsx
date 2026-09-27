@@ -36,12 +36,14 @@ function BuklodCachedMediaImageInner({
   contentFit = 'cover',
   onLoad,
 }: Props) {
+  /* BUKLOD_COMMUNITY_MEDIA_FRESH_URI_R2 */
   const path = String(mediaPath ?? '').trim();
-  const cacheKey = communityMediaCacheKey(path, path ? path : uri);
+  const preferredUri = String(uri ?? '').trim();
+  const cacheKey = communityMediaCacheKey(path, path ? path : preferredUri);
   const lockedPath = useRef(path);
   const [displayUri, setDisplayUri] = useState<string | null>(() =>
-    peekCommunityMediaUrl(path, null) ||
-    String(uri ?? '').trim() ||
+    peekCommunityMediaUrl(path, preferredUri) ||
+    preferredUri ||
     null,
   );
 
@@ -49,12 +51,22 @@ function BuklodCachedMediaImageInner({
     if (path !== lockedPath.current) {
       lockedPath.current = path;
       setDisplayUri(
-        peekCommunityMediaUrl(path, null) ||
-          String(uri ?? '').trim() ||
+        peekCommunityMediaUrl(path, preferredUri) ||
+          preferredUri ||
           null,
       );
+      return;
     }
-  }, [path]);
+
+    if (preferredUri && preferredUri !== displayUri) {
+      const next =
+        peekCommunityMediaUrl(path, preferredUri) ||
+        preferredUri;
+      if (next && next !== displayUri) {
+        setDisplayUri(next);
+      }
+    }
+  }, [path, preferredUri, displayUri]);
 
   useEffect(() => {
     if (!path || displayUri) {
@@ -92,6 +104,7 @@ function BuklodCachedMediaImageInner({
       style={style}
       contentFit={contentFit}
       cachePolicy="memory-disk"
+      priority="high"
       recyclingKey={cacheKey}
       transition={0}
       onLoad={onLoad}
@@ -116,7 +129,11 @@ export const BuklodCachedMediaImage = memo(
     const prevPath = String(prev.mediaPath ?? '');
     const nextPath = String(next.mediaPath ?? '');
     if (prevPath || nextPath) {
-      return prevPath === nextPath && prev.contentFit === next.contentFit;
+      return (
+        prevPath === nextPath &&
+        String(prev.uri ?? '') === String(next.uri ?? '') &&
+        prev.contentFit === next.contentFit
+      );
     }
 
     return (
