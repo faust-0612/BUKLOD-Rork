@@ -31,7 +31,7 @@ module.exports = ({ config }) => {
   const webOutput = (process.env.BUKLOD_WEB_OUTPUT || 'single').trim();
 
   // BUKLOD_MAIN_CANONICAL_BRAND_R1 — one Main brand asset across web/native identity.
-  const mainBrandIcon = './assets/release/app-icon.png';
+  const mainBrandIcon = './assets/release/buklod-main-canonical.png';
 
   const appName = isClassroom
     ? (isStaging ? 'BUKLOD Classroom Staging' : 'BUKLOD Classroom')
