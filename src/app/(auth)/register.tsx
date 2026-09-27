@@ -127,6 +127,7 @@ function buildFullName(
     .join(' ');
 }
 
+/* BUKLOD_MAIN_CANONICAL_REGISTER_LOGO_R1 */
 export default function RegisterScreen() {
   const params = useLocalSearchParams<{ ref?: string; referral?: string }>();
   const drawerBottomInset = useBuklodDrawerBottomInset();
@@ -936,7 +937,7 @@ useEffect(() => {
           }}
         >
           <Image
-            source={require('../../../assets/release/buklod-generic-photo.jpg')}
+            source={require('../../../assets/release/app-icon.png')}
             style={styles.logo}
           />
 
