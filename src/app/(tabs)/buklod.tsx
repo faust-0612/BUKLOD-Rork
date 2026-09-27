@@ -304,21 +304,15 @@ export default function BuklodScreen(){
   shared,
   paletteId,
  }=useBuklodPresentation();
+ /*
+  * BUKLOD_PUBLIC_SHELL_NONBLOCKING_R1
+  *
+  * /buklod is the canonical PUBLIC route. The feed does not require scope
+  * metadata to begin loading, so do not hide the entire wall behind the scope
+  * spinner. Scope controls hydrate in the background.
+  */
  if(scopeLoading && !activeScope){
-  return(
-   <View
-    style={[
-     shared.screen,
-     {
-      flex:1,
-      alignItems:'center',
-      justifyContent:'center'
-     }
-    ]}
-   >
-    <ActivityIndicator color={colors.green}/>
-   </View>
-  );
+  return <LegacyPublicBuklodScreen/>;
  }
 
  if(!activeScope){
