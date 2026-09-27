@@ -1646,8 +1646,8 @@ const styles =
       gap: 5,
     },
     logo: {
-      width: 78,
-      height: 78,
+      width: 112,
+      height: 112,
       borderRadius: 39,
     },
     title: {
