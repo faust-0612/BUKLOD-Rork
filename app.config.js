@@ -30,6 +30,9 @@ module.exports = ({ config }) => {
 
   const webOutput = (process.env.BUKLOD_WEB_OUTPUT || 'single').trim();
 
+  // BUKLOD_MAIN_CANONICAL_BRAND_R1 — one Main brand asset across web/native identity.
+  const mainBrandIcon = './assets/release/app-icon.png';
+
   const appName = isClassroom
     ? (isStaging ? 'BUKLOD Classroom Staging' : 'BUKLOD Classroom')
     : (isStaging ? 'BUKLOD Staging' : 'BUKLOD');
@@ -54,7 +57,7 @@ module.exports = ({ config }) => {
 
     userInterfaceStyle: 'automatic',
 
-    icon: isClassroom ? './assets/classroom/app-icon.png' : './assets/release/app-icon.png',
+    icon: isClassroom ? './assets/classroom/app-icon.png' : mainBrandIcon,
 
     assetBundlePatterns: [
       'assets/**',
@@ -136,7 +139,7 @@ module.exports = ({ config }) => {
       adaptiveIcon: {
         foregroundImage: isClassroom
           ? './assets/classroom/adaptive-icon.png'
-          : './assets/release/app-icon.png',
+          : mainBrandIcon,
 
         backgroundColor:
           '#FFFFFF',
@@ -150,7 +153,7 @@ module.exports = ({ config }) => {
 
       favicon: isClassroom
         ? './assets/classroom/favicon.png'
-        : './assets/release/app-icon.png',
+        : mainBrandIcon,
     },
 
 
@@ -401,7 +404,7 @@ module.exports = ({ config }) => {
 
           image: isClassroom
             ? './assets/classroom/splash-icon.png'
-            : './assets/release/splash-icon.png',
+            : mainBrandIcon,
 
           imageWidth: 200,
 
@@ -411,7 +414,7 @@ module.exports = ({ config }) => {
 
             image: isClassroom
               ? './assets/classroom/splash-icon.png'
-              : './assets/release/splash-icon.png',
+              : mainBrandIcon,
           },
         },
       ],
