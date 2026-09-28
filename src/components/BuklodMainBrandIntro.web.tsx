@@ -214,7 +214,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFFDF7',
-    willChange: 'opacity' as any,
   },
   brand: {
     alignItems: 'center',
@@ -224,7 +223,6 @@ const styles = StyleSheet.create({
   markInitial: {
     opacity: 0,
     transform: [{ scale: 0.94 }],
-    willChange: 'opacity, transform' as any,
   },
   logo: {
     width: 220,
