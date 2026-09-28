@@ -32,6 +32,19 @@ export type CommunityContributionDashboard = {
   qualified_posts: number;
   qualified_videos: number;
   meaningful_replies: number;
+  engagement_breakdown?: {
+    validated_engagement_qmp: number;
+    validated_engagement_events: number;
+    reaction_bonus_qmp: number;
+    internal_share_bonus_qmp: number;
+    reply_engagement_bonus_qmp: number;
+    useful_post_qmp: number;
+    qualified_video_qmp: number;
+    meaningful_reply_qmp: number;
+    other_qmp: number;
+  };
+  share_weight_previous?: number;
+  share_weight_delta?: number;
   contribution_level: string;
   next_level: { label: string; min_qmp: number; remaining_qmp: number } | null;
   estimated_share_minor: number | null;
@@ -79,7 +92,16 @@ async function rpc<T>(name: string, args: Record<string, unknown> = {}): Promise
 }
 
 export async function loadMyCommunityContribution() {
-  return rpc<CommunityContributionDashboard>('get_my_buklod_community_contribution_v1');
+  try {
+    return await rpc<CommunityContributionDashboard>(
+      'get_my_buklod_community_contribution_v2',
+    );
+  } catch {
+    // Backward-compatible during staged rollout.
+    return rpc<CommunityContributionDashboard>(
+      'get_my_buklod_community_contribution_v1',
+    );
+  }
 }
 
 export async function loadMyCommunityVideoQuota() {
