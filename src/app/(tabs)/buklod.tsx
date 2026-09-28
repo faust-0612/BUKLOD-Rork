@@ -49,6 +49,8 @@ import {
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 
 import BuklodCommunityInlineAd from '@/components/BuklodCommunityInlineAd';
+import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
+import BuklodVideoCompanionAd from '@/components/BuklodVideoCompanionAd';
 import {
   buildCommunityFeedWithInlineAds,
   isCommunityFeedInlineAdRow,
@@ -3716,47 +3718,50 @@ const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p
        ).trim();
 
       return (
-        <View
-          /* BUKLOD_COMMUNITY_VIDEO_FULL_BLEED_R4 */
-          style={{
-            marginHorizontal:-12,
-            position:'relative',
-          }}
-        >
-          <CommunityVideo
-            key={
-              postId+
-              ':'+
-              wallUri
-            }
-            uri={wallUri}
-            height={Math.min(
-              520,
-              Math.max(
-                300,
-                Dimensions.get('window').width*
-                  (Platform.OS==='web'
-                    ? 0.56
-                    : 0.78)
-              )
-            )}
-            edgeToEdge
-            expectedDurationSeconds={
-              wallVideo.durationSeconds
-            }
-            onPlaybackError={()=>{
-             void refreshWallVideoUrl(
-              item,
-              wallUri
-             );
+        <>
+          <View
+            /* BUKLOD_COMMUNITY_VIDEO_FULL_BLEED_R4 */
+            style={{
+              marginHorizontal:-12,
+              position:'relative',
             }}
-            onOpenFullscreen={()=>
-              openVideoViewer(
-                String(item.id)
-              )
-            }
-          />
-        </View>
+          >
+            <CommunityVideo
+              key={
+                postId+
+                ':'+
+                wallUri
+              }
+              uri={wallUri}
+              height={Math.min(
+                520,
+                Math.max(
+                  300,
+                  Dimensions.get('window').width*
+                    (Platform.OS==='web'
+                      ? 0.56
+                      : 0.78)
+                )
+              )}
+              edgeToEdge
+              expectedDurationSeconds={
+                wallVideo.durationSeconds
+              }
+              onPlaybackError={()=>{
+               void refreshWallVideoUrl(
+                item,
+                wallUri
+               );
+              }}
+              onOpenFullscreen={()=>
+                openVideoViewer(
+                  String(item.id)
+                )
+              }
+            />
+          </View>
+          <BuklodVideoCompanionAd contentId={postId} />
+        </>
       );
     }
 
@@ -4123,6 +4128,11 @@ const refreshCommunity186L=
     </Pressable>
 
    </View>
+
+   <BuklodFirstViewAd
+    placement="community_entry"
+    placementId="public_wall_entry"
+   />
 
    <SmartDrawerWallCard />
 
