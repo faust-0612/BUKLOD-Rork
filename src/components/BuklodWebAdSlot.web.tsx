@@ -86,6 +86,9 @@ function slotForPlacement(
   const placementSlot =
     placement === 'home'
       ? clean(process.env.EXPO_PUBLIC_ADSENSE_HOME_SLOT_ID)
+      : placement === 'community_entry'
+        ? clean(process.env.EXPO_PUBLIC_ADSENSE_COMMUNITY_ENTRY_SLOT_ID) ||
+          clean(process.env.EXPO_PUBLIC_ADSENSE_COMMUNITY_SLOT_ID)
       : placement === 'community'
         ? clean(process.env.EXPO_PUBLIC_ADSENSE_COMMUNITY_SLOT_ID)
         : placement === 'messages'
@@ -116,6 +119,8 @@ function sponsorPlacementFor(
 
   if (
     placement === 'community' ||
+    placement === 'community_entry' ||
+    placement === 'video_companion' ||
     placement === 'reels'
   ) {
     return 'community';
@@ -129,7 +134,8 @@ function sponsorPlacementFor(
     placement === 'bible' ||
     placement === 'devotion' ||
     placement === 'focus' ||
-    placement === 'content'
+    placement === 'content' ||
+    placement === 'submission'
   ) {
     return 'learn';
   }
