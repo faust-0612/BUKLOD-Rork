@@ -2,9 +2,13 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import BuklodAdMobBanner from '@/components/BuklodAdMobBanner';
+import {
+  shouldUseBuklodImaForVideo,
+} from '@/lib/buklodVideoMonetization';
 
 type Props = {
   contentId?: string | null;
+  expectedDurationSeconds?: number | null;
 };
 
 /**
@@ -17,7 +21,16 @@ type Props = {
  */
 export default function BuklodVideoCompanionAd({
   contentId,
+  expectedDurationSeconds,
 }: Props) {
+  if (
+    shouldUseBuklodImaForVideo(
+      expectedDurationSeconds,
+    )
+  ) {
+    return null;
+  }
+
   const safeId = String(contentId ?? 'unknown').slice(0, 80);
 
   return (
