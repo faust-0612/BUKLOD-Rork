@@ -209,6 +209,76 @@ type Photo={
 };
 type Mention={user_id:string;full_name:string;church_name:string;group_name:string};
 
+type CommunityWallVideoDescriptor={
+ post:any;
+ media:any;
+ uri:string;
+ mediaPath:string;
+ durationSeconds?:number;
+};
+
+function communityWallVideoDescriptor(
+ post:any
+):CommunityWallVideoDescriptor|null{
+ const attached=
+  (
+   Array.isArray(post?.media_items)
+    ? post.media_items
+    : []
+  ).find(
+   (media:any)=>
+    String(
+     media?.media_mime_type??
+     ''
+    )
+     .trim()
+     .toLowerCase()
+     .startsWith('video/')
+  );
+
+ const fallback=
+  String(
+   post?.media_mime_type??
+   ''
+  )
+   .trim()
+   .toLowerCase()
+   .startsWith('video/')
+   ? post
+   : null;
+
+ const media=
+  attached??
+  fallback;
+
+ const uri=
+  String(
+   media?.media_url??
+   ''
+  ).trim();
+
+ if(!media||!uri){
+  return null;
+ }
+
+ return{
+  post,
+  media,
+  uri,
+  mediaPath:
+   String(
+    media?.media_path??
+    ''
+   ).trim(),
+  durationSeconds:
+   Number(
+    post?.media_duration_seconds??
+    0
+   )||undefined,
+ };
+}
+
+/* BUKLOD_COMMUNITY_VIDEO_FULLSCREEN_SWIPE_R4 */
 let PERF2_MENTION_SEARCH_SEQ = 0;
 
 /*
@@ -908,6 +978,32 @@ function LegacyPublicBuklodScreen(){
 
  const [viewerZoomed,setViewerZoomed]=
   useState(false);
+
+ const [
+  videoViewerOpen,
+  setVideoViewerOpen
+ ]=useState(false);
+
+ const [
+  videoViewerIndex,
+  setVideoViewerIndex
+ ]=useState(0);
+
+ const videoViewerPosts=
+  useMemo(
+   ()=>
+    posts.filter(
+     (post:any)=>
+      !isMaritesCommunityPost(post)&&
+      !Boolean(post?.is_reel)&&
+      Boolean(
+       communityWallVideoDescriptor(
+        post
+       )
+      )
+    ),
+   [posts]
+  );
 
  const [
   savingPhotoKey,
@@ -3302,80 +3398,68 @@ const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p
    setViewerOpen(true);
   };
 
+ const openVideoViewer=
+  (postId:string)=>{
+   const index=
+    videoViewerPosts.findIndex(
+     (post:any)=>
+      String(post?.id)===
+      String(postId)
+    );
+
+   if(index<0){
+    return;
+   }
+
+   setVideoViewerIndex(index);
+   setVideoViewerOpen(true);
+  };
+
 
  const renderCommunityMedia=
   (item:any)=>{
 
-    /*
-     * BUKLOD_COMMUNITY_ATTACHED_VIDEO_RENDER_R3
-     * Wall videos are stored in community_post_media. Do not rely only on the
-     * legacy main-post media fields; prefer the attached normalized media row
-     * because it carries a fresh Supabase/AWS playback URL.
-     */
-    const attachedVideo186O=
-      (
-        Array.isArray(
-          item?.media_items
-        )
-          ? item.media_items
-          : []
-      ).find(
-        (media:any)=>
-          String(
-            media?.media_mime_type??
-            ''
-          )
-            .trim()
-            .toLowerCase()
-            .startsWith('video/')
+    const wallVideo=
+      communityWallVideoDescriptor(
+        item
       );
 
-    const fallbackVideo186O=
-      String(
-        item?.media_mime_type??
-        ''
-      )
-        .trim()
-        .toLowerCase()
-        .startsWith('video/')
-        ? item
-        : null;
-
-    const video186O=
-      attachedVideo186O ??
-      fallbackVideo186O;
-
-    const videoUrl186O=
-      String(
-        video186O?.media_url??
-        ''
-      ).trim();
-
-    const videoPath186O=
-      String(
-        video186O?.media_path??
-        ''
-      ).trim();
-
-    if(
-      video186O &&
-      videoUrl186O
-    ){
+    if(wallVideo){
       return (
-        <CommunityVideo
-          key={
-            videoPath186O ||
-            videoUrl186O
-          }
-          uri={videoUrl186O}
-          height={300}
-          expectedDurationSeconds={
-            Number(
-              item?.media_duration_seconds??
-              0
-            ) || undefined
-          }
-        />
+        <View
+          /* BUKLOD_COMMUNITY_VIDEO_FULL_BLEED_R4 */
+          style={{
+            marginHorizontal:-11,
+            position:'relative',
+          }}
+        >
+          <CommunityVideo
+            key={
+              wallVideo.mediaPath ||
+              wallVideo.uri
+            }
+            uri={wallVideo.uri}
+            height={Math.min(
+              520,
+              Math.max(
+                300,
+                Dimensions.get('window').width*
+                  (Platform.OS==='web'
+                    ? 0.56
+                    : 0.78)
+              )
+            )}
+            edgeToEdge
+            expectedDurationSeconds={
+              wallVideo.durationSeconds
+            }
+            onOpenFullscreen={()=>
+              openVideoViewer(
+                String(item.id)
+              )
+            }
+          />
+        </View>
       );
     }
 
@@ -4073,6 +4157,303 @@ const refreshCommunity186L=
   </Card>
       </BuklodFocusVisibleRow>
     );}}/>
+{/* BUKLOD_COMMUNITY_VIDEO_FULLSCREEN_SWIPE_R4 */}
+ <Modal
+  visible={videoViewerOpen}
+  animationType="fade"
+  onRequestClose={()=>
+   setVideoViewerOpen(false)
+  }
+ >
+  <GestureHandlerRootView
+   style={{flex:1}}
+   unstable_forceActive
+  >
+   <View
+    style={{
+     flex:1,
+     backgroundColor:'#000000'
+    }}
+   >
+    <GestureFlatList
+     key={
+      'video-viewer-'+
+      videoViewerIndex+
+      '-'+
+      videoViewerPosts.length
+     }
+     style={{
+      flex:1,
+      width:'100%'
+     }}
+     data={videoViewerPosts}
+     keyExtractor={(post,index)=>
+      String(
+       post?.id??
+       index
+      )
+     }
+     pagingEnabled
+     showsVerticalScrollIndicator={false}
+     initialScrollIndex={
+      Math.min(
+       videoViewerIndex,
+       Math.max(
+        0,
+        videoViewerPosts.length-1
+       )
+      )
+     }
+     getItemLayout={(_data,index)=>({
+      length:
+       COMMUNITY_VIEWER_HEIGHT,
+      offset:
+       COMMUNITY_VIEWER_HEIGHT*
+       index,
+      index
+     })}
+     onMomentumScrollEnd={event=>{
+      const nextIndex=
+       Math.round(
+        event.nativeEvent
+         .contentOffset.y/
+        COMMUNITY_VIEWER_HEIGHT
+       );
+
+      setVideoViewerIndex(
+       Math.max(
+        0,
+        Math.min(
+         nextIndex,
+         videoViewerPosts.length-1
+        )
+       )
+      );
+     }}
+     renderItem={({item,index})=>{
+      const descriptor=
+       communityWallVideoDescriptor(
+        item
+       );
+
+      if(!descriptor){
+       return (
+        <View
+         style={{
+          width:'100%',
+          height:
+           COMMUNITY_VIEWER_HEIGHT,
+          backgroundColor:'#000000'
+         }}
+        />
+       );
+      }
+
+      return (
+       <View
+        style={{
+         width:'100%',
+         height:
+          COMMUNITY_VIEWER_HEIGHT,
+         backgroundColor:'#000000',
+         alignItems:'center',
+         justifyContent:'center'
+        }}
+       >
+        <CommunityVideo
+         key={
+          descriptor.mediaPath||
+          descriptor.uri
+         }
+         uri={descriptor.uri}
+         height={COMMUNITY_VIEWER_HEIGHT}
+         fullscreen
+         active={
+          index===
+          videoViewerIndex
+         }
+         autoPlay={
+          index===
+          videoViewerIndex
+         }
+         expectedDurationSeconds={
+          descriptor.durationSeconds
+         }
+        />
+       </View>
+      );
+     }}
+    />
+
+    <View
+     style={[
+      s.communityViewerTop,
+      {
+       pointerEvents:'box-none'
+      } as any
+     ]}
+    >
+     <Text
+      style={
+       s.communityViewerCount
+      }
+     >
+      {videoViewerIndex+1}
+      {' / '}
+      {videoViewerPosts.length}
+     </Text>
+
+     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Close full screen video"
+      onPress={()=>
+       setVideoViewerOpen(false)
+      }
+      style={
+       s.communityViewerClose
+      }
+     >
+      <MaterialCommunityIcons
+       name="close"
+       size={27}
+       color="#FFFFFF"
+      />
+     </Pressable>
+    </View>
+
+    {!!videoViewerPosts[
+      videoViewerIndex
+    ]&&(()=>{
+     const activePost=
+      videoViewerPosts[
+       videoViewerIndex
+      ];
+     const counts=
+      activePost?.reaction_counts||
+      {};
+
+     return (
+      <View
+       style={{
+        position:'absolute',
+        left:8,
+        right:8,
+        bottom:
+         Math.max(
+          communityInsets.bottom+8,
+          12
+         ),
+        paddingHorizontal:10,
+        paddingTop:8,
+        paddingBottom:10,
+        borderRadius:16,
+        backgroundColor:
+         'rgba(255,255,255,.94)'
+       }}
+      >
+       <Text
+        numberOfLines={1}
+        style={{
+         marginBottom:2,
+         color:colors.text,
+         fontSize:12,
+         fontWeight:'900'
+        }}
+       >
+        {resolvePersonDisplayName(
+         activePost.author_name,
+         activePost.user_id,
+        )}
+       </Text>
+
+       {!!String(
+        repairMojibakeText(
+         activePost.body
+        )??''
+       ).trim()&&(
+        <Text
+         numberOfLines={2}
+         style={{
+          marginBottom:4,
+          color:colors.muted,
+          fontSize:10.5,
+          lineHeight:14
+         }}
+        >
+         {String(
+          repairMojibakeText(
+           activePost.body
+          )??''
+         )}
+        </Text>
+       )}
+
+       <BuklodCommunityPostEngagement
+        reactionOptions={
+         BUKLOD_PUBLIC_COMMUNITY_REACTIONS
+        }
+        reactionCounts={counts}
+        myReaction={
+         activePost.my_reaction
+        }
+        commentCount={
+         activePost.comment_count
+        }
+        commentPreview={null}
+        onReactionSummaryPress={key =>
+         openReactionDetails(
+          activePost,
+          key
+         )
+        }
+        onReact={key=>{
+         void react(
+          activePost.id,
+          key as Reaction
+         );
+        }}
+        onOpenComments={()=>
+         openComments(
+          activePost
+         )
+        }
+        showCommentAction
+        rightAction={
+         <BuklodPostInternalShare
+          postId={
+           activePost.id
+          }
+          compact
+          iconOnly
+         />
+        }
+       />
+      </View>
+     );
+    })()}
+
+    {videoViewerPosts.length>1&&(
+     <Text
+      style={[
+       s.communityViewerHint,
+       {
+        bottom:
+         Math.max(
+          communityInsets.bottom+118,
+          Platform.OS==='android'
+           ? 158
+           : 128
+         )
+       }
+      ]}
+     >
+      Swipe vertically for next video
+     </Text>
+    )}
+   </View>
+  </GestureHandlerRootView>
+ </Modal>
+
 {/* PATCH_161H_PHOTO_VIEWER */}
  <Modal
   visible={viewerOpen}
