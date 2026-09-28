@@ -1,4 +1,5 @@
 import { LearningQuestionResponse } from '@/components/LearningQuestionResponse';
+import BuklodSubmissionAdSlot from '@/components/BuklodSubmissionAdSlot';
 import {
   BuklodAnswerValidationGate,
 } from '@/components/education/BuklodAnswerValidationGate';
@@ -864,6 +865,7 @@ export default function LessonDetail() {
             </Card>
           ))}
 
+          <BuklodSubmissionAdSlot placementId="lesson_quiz_submission" />
           <Button
             title={busy ? 'SUBMITTING...' : 'SUBMIT QUIZ'}
             onPress={submitQuiz}
@@ -899,6 +901,7 @@ export default function LessonDetail() {
             </BuklodAnswerValidationGate>
           </Card>
 
+          <BuklodSubmissionAdSlot placementId="lesson_assignment_submission" />
           <Button
             title={busy ? 'SUBMITTING...' : 'SUBMIT ASSIGNMENT'}
             onPress={submitAssignment}
@@ -908,10 +911,13 @@ export default function LessonDetail() {
 
       {!isFormation &&
         !['quiz', 'assignment'].includes(lesson.lesson_type) && (
+          <>
+            <BuklodSubmissionAdSlot placementId="lesson_completion_submission" />
           <Button
             title={busy ? 'SAVING...' : '? COMPLETE LESSON'}
             onPress={completeLegacyLesson}
           />
+          </>
         )}
     </ScrollView>
       </SafeAreaView>
