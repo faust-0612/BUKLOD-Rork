@@ -1,9 +1,11 @@
 import React, { useEffect } from 'react';
 import {
+  Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import {
   VideoView,
@@ -15,6 +17,10 @@ type Props = {
   height?: number;
   autoPlay?: boolean;
   expectedDurationSeconds?: number;
+  fullscreen?: boolean;
+  edgeToEdge?: boolean;
+  active?: boolean;
+  onOpenFullscreen?: () => void;
 };
 
 export function CommunityVideo({
@@ -22,6 +28,10 @@ export function CommunityVideo({
   height = 380,
   autoPlay = false,
   expectedDurationSeconds,
+  fullscreen = false,
+  edgeToEdge = false,
+  active = true,
+  onOpenFullscreen,
 }: Props) {
   const player = useVideoPlayer(
     uri,
@@ -35,13 +45,16 @@ export function CommunityVideo({
    */
   useEffect(
     () => {
-      if (autoPlay) {
+      if (!active) {
+        player.pause();
+      } else if (autoPlay) {
         player.play();
       } else {
         player.pause();
       }
     },
     [
+      active,
       autoPlay,
       player,
       uri,
@@ -52,6 +65,8 @@ export function CommunityVideo({
     <View
       style={[
         styles.wrap,
+        edgeToEdge && styles.edgeToEdgeWrap,
+        fullscreen && styles.fullscreenWrap,
         { height },
       ]}
     >
@@ -59,8 +74,27 @@ export function CommunityVideo({
         player={player}
         style={styles.video}
         nativeControls
-        contentFit="cover"
+        contentFit={fullscreen ? "contain" : "cover"}
       />
+      {onOpenFullscreen && !fullscreen ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Open video full screen"
+          onPress={() => {
+            try {
+              player.pause();
+            } catch {}
+            onOpenFullscreen();
+          }}
+          style={styles.fullscreenButton}
+        >
+          <MaterialCommunityIcons
+            name="fullscreen"
+            size={24}
+            color="#FFFFFF"
+          />
+        </Pressable>
+      ) : null}
       {Number(expectedDurationSeconds ?? 0) > 0 ? (
         <View pointerEvents="none" style={styles.durationChip}>
           <Text style={styles.durationText}>
@@ -80,6 +114,7 @@ function formatDuration(seconds: number) {
 }
 
 /* BUKLOD_COMMUNITY_NATIVE_VIDEO_DURATION_R3 */
+/* BUKLOD_COMMUNITY_VIDEO_FULLSCREEN_R4 */
 const styles = StyleSheet.create({
   wrap: {
     width: '100%',
@@ -89,9 +124,27 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
 
+  edgeToEdgeWrap: {
+    borderRadius: 0,
+  },
+  fullscreenWrap: {
+    marginTop: 0,
+    borderRadius: 0,
+  },
   video: {
     width: '100%',
     height: '100%',
+  },
+  fullscreenButton: {
+    position: 'absolute',
+    right: 10,
+    bottom: 10,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.62)',
   },
   durationChip: {
     position: 'absolute',
