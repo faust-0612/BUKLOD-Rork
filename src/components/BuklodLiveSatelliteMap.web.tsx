@@ -257,7 +257,22 @@ html,body,#map{width:100%;height:100%;margin:0;padding:0;background:#eef2f4;font
 .buklod-route-actions a{background:#177552;color:#fff}
 .buklod-route-actions button{background:#edf6f2;color:#246653}
 .buklod-user-dot{width:18px;height:18px;border-radius:50%;background:#1677ff;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.34)}
-@media (max-width:560px){.buklod-nav-control{min-width:145px;max-width:calc(100vw - 86px);padding:8px 9px}.buklod-nav-control strong{font-size:10px}.buklod-nav-control span{font-size:8px}.buklod-home-marker{width:150px}.buklod-home-address{max-width:144px;font-size:8px;line-height:11px}.buklod-live-status{max-width:165px;font-size:8px}}
+.buklod-destination-search{width:min(330px,calc(100vw - 92px));padding:9px;border:1px solid #cfe0d7;border-radius:14px;background:rgba(255,255,255,.98);box-shadow:0 7px 22px rgba(0,0,0,.24);color:#1f3c4e}
+.buklod-destination-search-row{display:flex;gap:6px;align-items:center}
+.buklod-destination-search input{min-width:0;flex:1;border:1px solid #c6d8cf;border-radius:10px;padding:8px 9px;background:#fff;color:#183047;font:700 10px/14px Inter,system-ui,sans-serif;outline:none}
+.buklod-destination-search input:focus{border-color:#177552;box-shadow:0 0 0 2px rgba(23,117,82,.12)}
+.buklod-destination-search button{appearance:none;border:0;border-radius:10px;padding:8px 10px;background:#177552;color:#fff;font:900 9px/12px Inter,system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+.buklod-destination-results{display:none;margin-top:7px;max-height:190px;overflow:auto;border-top:1px solid #e1ebe6;padding-top:5px}
+.buklod-destination-result{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #edf2ef;background:#fff;color:#284655;padding:7px 5px;cursor:pointer}
+.buklod-destination-result strong{display:block;font:900 10px/13px Inter,system-ui,sans-serif;color:#1f4f3d}
+.buklod-destination-result span{display:block;margin-top:2px;font:600 8px/11px Inter,system-ui,sans-serif;color:#71828d;white-space:normal}
+.buklod-destination-selected{padding:7px 5px}
+.buklod-destination-selected strong{display:block;font-size:10px;line-height:13px;color:#177552}
+.buklod-destination-selected span{display:block;margin:2px 0 7px;font-size:8px;line-height:11px;color:#71828d}
+.buklod-destination-selected-actions{display:flex;gap:6px}
+.buklod-destination-selected-actions button{flex:1}
+.buklod-destination-note{padding:6px 5px;color:#71828d;font:700 8px/11px Inter,system-ui,sans-serif}
+@media (max-width:560px){.buklod-nav-control{min-width:145px;max-width:calc(100vw - 86px);padding:8px 9px}.buklod-nav-control strong{font-size:10px}.buklod-nav-control span{font-size:8px}.buklod-destination-search{width:calc(100vw - 86px);padding:8px}.buklod-home-marker{width:150px}.buklod-home-address{max-width:144px;font-size:8px;line-height:11px}.buklod-live-status{max-width:165px;font-size:8px}}
 </style>
 </head>
 <body>
@@ -387,6 +402,8 @@ L.control.layers(
 let selectedDestination=null;
 let activeRoute=null;
 let userLocationMarker=null;
+let lastKnownOrigin=null;
+let destinationSearchResults=[];
 
 const NavigationControl=L.Control.extend({
  onAdd(){
@@ -420,6 +437,49 @@ const NavigationControl=L.Control.extend({
 });
 new NavigationControl({position:'topleft'}).addTo(map);
 
+/* BUKLOD_NAV_DESTINATION_SEARCH_R8 */
+const DestinationSearchControl=L.Control.extend({
+ onAdd(){
+  const panel=L.DomUtil.create('div','buklod-destination-search');
+  panel.id='buklod-destination-search';
+  panel.style.display='none';
+  panel.innerHTML=
+   '<div class="buklod-destination-search-row">'+
+    '<input id="buklod-destination-input" type="search" inputmode="search" autocomplete="off" aria-label="Search destination" placeholder="Search destination…" />'+
+    '<button id="buklod-destination-search-button" type="button">SEARCH</button>'+
+   '</div>'+
+   '<div id="buklod-destination-results" class="buklod-destination-results"></div>';
+  L.DomEvent.disableClickPropagation(panel);
+  L.DomEvent.disableScrollPropagation(panel);
+
+  const input=panel.querySelector('#buklod-destination-input');
+  const button=panel.querySelector('#buklod-destination-search-button');
+
+  const runSearch=()=>{
+   void searchDestinationQuery(input&&input.value);
+  };
+
+  if(button){
+   L.DomEvent.on(button,'click',(event)=>{
+    L.DomEvent.preventDefault(event);
+    runSearch();
+   });
+  }
+
+  if(input){
+   L.DomEvent.on(input,'keydown',(event)=>{
+    if(event&&event.key==='Enter'){
+     L.DomEvent.preventDefault(event);
+     runSearch();
+    }
+   });
+  }
+
+  return panel;
+ }
+});
+new DestinationSearchControl({position:'topleft'}).addTo(map);
+
 const RoutePanelControl=L.Control.extend({
  onAdd(){
   const panel=L.DomUtil.create('div','buklod-route-panel');
@@ -446,6 +506,117 @@ new LiveStatusControl({position:'bottomleft'}).addTo(map);
 function setLiveStatus(text){
  const el=document.getElementById('buklod-live-status');
  if(el) el.textContent=text;
+}
+function showDestinationSearch(){
+ const panel=document.getElementById('buklod-destination-search');
+ if(panel) panel.style.display='block';
+}
+function setDestinationResultsHtml(html){
+ const results=document.getElementById('buklod-destination-results');
+ if(!results) return null;
+ results.style.display='block';
+ results.innerHTML=html;
+ return results;
+}
+function destinationTitle(item){
+ const named=String(item&&item.name||'').trim();
+ if(named) return named;
+ return String(item&&item.display_name||'Destination').split(',')[0].trim()||'Destination';
+}
+async function searchDestinationQuery(rawQuery){
+ const query=String(rawQuery||'').trim();
+ showDestinationSearch();
+
+ if(query.length<2){
+  setDestinationResultsHtml('<div class="buklod-destination-note">Type at least 2 letters to search a destination.</div>');
+  return;
+ }
+
+ setDestinationResultsHtml('<div class="buklod-destination-note">Searching destination…</div>');
+
+ try{
+  const url=
+   'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&addressdetails=1&q='+
+   encodeURIComponent(query);
+  const response=await fetch(url,{headers:{Accept:'application/json'}});
+  if(!response.ok) throw new Error('Destination search unavailable');
+
+  const data=await response.json();
+  destinationSearchResults=(Array.isArray(data)?data:[])
+   .map((item)=>({
+    latitude:Number(item&&item.lat),
+    longitude:Number(item&&item.lon),
+    title:destinationTitle(item),
+    subtitle:String(item&&item.display_name||'').trim(),
+    kind:'SEARCH',
+    category:'search',
+   }))
+   .filter((item)=>Number.isFinite(item.latitude)&&Number.isFinite(item.longitude));
+
+  if(!destinationSearchResults.length){
+   setDestinationResultsHtml('<div class="buklod-destination-note">No matching destination found. Try a more specific place name or tap a map pin.</div>');
+   return;
+  }
+
+  const results=setDestinationResultsHtml(
+   destinationSearchResults.map((item,index)=>
+    '<button class="buklod-destination-result" type="button" data-index="'+index+'">'+
+     '<strong>'+escapeHtml(item.title)+'</strong>'+
+     '<span>'+escapeHtml(item.subtitle)+'</span>'+
+    '</button>'
+   ).join('')+
+   '<div class="buklod-destination-note">Search results © OpenStreetMap contributors</div>'
+  );
+
+  if(results){
+   results.querySelectorAll('button[data-index]').forEach((button)=>{
+    L.DomEvent.on(button,'click',(event)=>{
+     L.DomEvent.preventDefault(event);
+     const index=Number(button.getAttribute('data-index'));
+     const p=destinationSearchResults[index];
+     if(!p) return;
+     selectNavigationDestination(p);
+     renderSelectedSearchDestination(p);
+    });
+   });
+  }
+ }catch{
+  setDestinationResultsHtml('<div class="buklod-destination-note">Destination search is temporarily unavailable. You can still tap any place pin on the map.</div>');
+ }
+}
+function renderSelectedSearchDestination(p){
+ showDestinationSearch();
+ const results=setDestinationResultsHtml(
+  '<div class="buklod-destination-selected">'+
+   '<strong>Destination: '+escapeHtml(p.title)+'</strong>'+
+   '<span>'+escapeHtml(p.subtitle||'Tap START to build your route.')+'</span>'+
+   '<div class="buklod-destination-selected-actions">'+
+    '<button id="buklod-destination-start" type="button">START</button>'+
+    '<button id="buklod-destination-change" type="button">CHANGE</button>'+
+   '</div>'+
+  '</div>'
+ );
+ if(!results) return;
+
+ const start=results.querySelector('#buklod-destination-start');
+ const change=results.querySelector('#buklod-destination-change');
+
+ if(start){
+  L.DomEvent.on(start,'click',(event)=>{
+   L.DomEvent.preventDefault(event);
+   void startBuklodNavigation(p);
+  });
+ }
+ if(change){
+  L.DomEvent.on(change,'click',(event)=>{
+   L.DomEvent.preventDefault(event);
+   const input=document.getElementById('buklod-destination-input');
+   setDestinationResultsHtml('<div class="buklod-destination-note">Search another destination above.</div>');
+   if(input&&input.focus) input.focus();
+  });
+ }
+ map.setView([p.latitude,p.longitude],16);
+ setLiveStatus('Destination selected • tap START');
 }
 function escapeHtml(value){return String(value||'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));}
 function navigationUrl(p){
@@ -576,6 +747,22 @@ let pendingNavigationDestination=null;
 async function startBuklodNavigation(p){
  if(!p||!isNavigablePoint(p)) return;
 
+ if(
+  lastKnownOrigin&&
+  Number.isFinite(lastKnownOrigin.latitude)&&
+  Number.isFinite(lastKnownOrigin.longitude)
+ ){
+  pendingNavigationDestination=null;
+  const link=document.getElementById('buklod-nav-control');
+  if(link){
+   link.innerHTML='<strong>🧭 BUKLOD Navigation</strong><span>Building route…</span>';
+  }
+  void requestDrivingRoute(lastKnownOrigin,p).catch(()=>{
+   showRouteFallback(p,'Could not build the in-app driving route.');
+  });
+  return;
+ }
+
  pendingNavigationDestination=p;
 
  const link=document.getElementById('buklod-nav-control');
@@ -620,6 +807,8 @@ window.addEventListener('message',(event)=>{
   return;
  }
 
+ lastKnownOrigin=origin;
+
  if(!p||data.locateOnly){
   if(data.locateOnly){
    pendingNavigationDestination=null;
@@ -638,13 +827,16 @@ window.addEventListener('message',(event)=>{
    {icon:myIcon,title:'Your location'}
   ).addTo(map);
   map.setView([origin.latitude,origin.longitude],17);
-  setLiveStatus('Your location • tap a place pin to navigate');
+  showDestinationSearch();
+  setLiveStatus('Your location • search or tap a place pin');
   const link=document.getElementById('buklod-nav-control');
   if(link&&!selectedDestination){
    link.className='buklod-nav-control active';
    link.setAttribute('aria-disabled','false');
-   link.innerHTML='<strong>🧭 You are here</strong><span>Tap a place pin to choose a destination</span>';
+   link.innerHTML='<strong>🧭 You are here</strong><span>Search destination or tap a place pin</span>';
   }
+  const input=document.getElementById('buklod-destination-input');
+  if(input&&input.focus) input.focus();
   return;
  }
 
@@ -675,7 +867,11 @@ function selectNavigationDestination(p){
  link.href=navigationUrl(p);
  link.target='_blank';
  link.rel='noopener noreferrer';
- link.innerHTML='<strong>🧭 BUKLOD Navigation</strong><span>Navigate to '+escapeHtml(p.title)+'</span>';
+ link.innerHTML='<strong>🧭 Destination selected</strong><span>'+escapeHtml(p.title)+' • tap here to start</span>';
+
+ if(String(p.kind||'').toUpperCase()==='SEARCH'){
+  renderSelectedSearchDestination(p);
+ }
 }
 
 const bounds=[];
