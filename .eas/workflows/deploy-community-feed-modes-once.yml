@@ -10,22 +10,21 @@ on:
     if: ${{ contains(github.commit_message, '[web-only]') }}
 
 jobs:
-  qa:
-    name: Verify Community web release
-    steps:
-      - run: npm ci --ignore-scripts
-      - run: npx tsc --noEmit
-      - run: |
-          grep -F "type FeedMode='for_you'|'following'|'latest';" 'src/app/(tabs)/buklod.tsx'
-          grep -F "p_mode: feedMode" 'src/app/(tabs)/buklod.tsx'
-          grep -F "BUKLOD_COMMUNITY_FEED_MODES_R1" 'src/app/(tabs)/buklod.tsx'
-          grep -F "BUKLOD_COMMUNITY_AUTHOR_FOLLOW_R1" 'src/app/(tabs)/buklod.tsx'
-          grep -F "buklod_user_follows" 'src/app/(tabs)/buklod.tsx'
-
   deploy_web:
-    name: Deploy BUKLOD web production
-    needs: [qa]
+    name: Verify and deploy Community feed modes to production web
     type: deploy
     environment: production
+    hooks:
+      after_install_node_modules:
+        - name: TypeScript QA
+          run: npx tsc --noEmit
+        - name: Verify Community feed release anchors
+          run: |
+            set -euo pipefail
+            grep -F "type FeedMode='for_you'|'following'|'latest';" 'src/app/(tabs)/buklod.tsx'
+            grep -F "p_mode: feedMode" 'src/app/(tabs)/buklod.tsx'
+            grep -F "BUKLOD_COMMUNITY_FEED_MODES_R1" 'src/app/(tabs)/buklod.tsx'
+            grep -F "BUKLOD_COMMUNITY_AUTHOR_FOLLOW_R1" 'src/app/(tabs)/buklod.tsx'
+            grep -F "buklod_user_follows" 'src/app/(tabs)/buklod.tsx'
     params:
       prod: true
