@@ -3795,7 +3795,7 @@ const refreshCommunity186L=
     {formatSpecificDateTime(
      item.created_at
     )}</Text>
-    {item.user_id!==user?.id&&(
+    {!!item.user_id&&item.user_id!==user?.id&&(
      <Pressable
       accessibilityRole="button"
       accessibilityLabel={
