@@ -345,7 +345,8 @@ export function BuklodGuideAvatar() {
       });
     }
 
-    router.replace(
+    /* BUKLOD_PROFILE_HISTORY_PUSH_R6 */
+    router.push(
       '/me' as any
     );
   };
