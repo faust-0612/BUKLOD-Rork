@@ -140,6 +140,9 @@ export default function RootLayout() {
                 <Stack.Screen name="word/index" />
                 <Stack.Screen name="bible/index" />
                 <Stack.Screen name="life/index" />
+                <Stack.Screen name="life/share" />
+                <Stack.Screen name="life/impact" />
+                <Stack.Screen name="life/invite" />
                 <Stack.Screen name="life/topic" />
 {/* PATCH_155BC_NEW_ROUTES */}
                 <Stack.Screen name="mentoring/index" />
