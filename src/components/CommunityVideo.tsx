@@ -1,9 +1,11 @@
 import React, { useEffect } from 'react';
 import {
+  Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import {
   VideoView,
@@ -17,6 +19,8 @@ type Props = {
   expectedDurationSeconds?: number;
   fullscreen?: boolean;
   edgeToEdge?: boolean;
+  active?: boolean;
+  onOpenFullscreen?: () => void;
 };
 
 export function CommunityVideo({
@@ -26,6 +30,8 @@ export function CommunityVideo({
   expectedDurationSeconds,
   fullscreen = false,
   edgeToEdge = false,
+  active = true,
+  onOpenFullscreen,
 }: Props) {
   const player = useVideoPlayer(
     uri,
@@ -39,13 +45,16 @@ export function CommunityVideo({
    */
   useEffect(
     () => {
-      if (autoPlay) {
+      if (!active) {
+        player.pause();
+      } else if (autoPlay) {
         player.play();
       } else {
         player.pause();
       }
     },
     [
+      active,
       autoPlay,
       player,
       uri,
@@ -67,6 +76,25 @@ export function CommunityVideo({
         nativeControls
         contentFit={fullscreen ? "contain" : "cover"}
       />
+      {onOpenFullscreen && !fullscreen ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Open video full screen"
+          onPress={() => {
+            try {
+              player.pause();
+            } catch {}
+            onOpenFullscreen();
+          }}
+          style={styles.fullscreenButton}
+        >
+          <MaterialCommunityIcons
+            name="fullscreen"
+            size={24}
+            color="#FFFFFF"
+          />
+        </Pressable>
+      ) : null}
       {Number(expectedDurationSeconds ?? 0) > 0 ? (
         <View pointerEvents="none" style={styles.durationChip}>
           <Text style={styles.durationText}>
@@ -106,6 +134,17 @@ const styles = StyleSheet.create({
   video: {
     width: '100%',
     height: '100%',
+  },
+  fullscreenButton: {
+    position: 'absolute',
+    right: 10,
+    bottom: 10,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.62)',
   },
   durationChip: {
     position: 'absolute',
