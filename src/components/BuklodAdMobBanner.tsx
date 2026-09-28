@@ -159,7 +159,7 @@ function BuklodAdMobBanner({
       diagnostic,
       'ad_request',
       undefined,
-      { route: pathname },
+      { route: pathname, placementId: stablePlacementId },
     );
   }, [
     attempt,
@@ -180,7 +180,7 @@ function BuklodAdMobBanner({
         diagnostic,
         'ad_rendered',
         undefined,
-        { route: pathname },
+        { route: pathname, placementId: stablePlacementId },
       );
     }
 
@@ -246,18 +246,18 @@ function BuklodAdMobBanner({
               size={bannerSize}
               onAdLoaded={() => {
                 setLoaded(true);
-                recordBuklodAdEvent(diagnostic, 'ad_loaded', undefined, { route: pathname });
+                recordBuklodAdEvent(diagnostic, 'ad_loaded', undefined, { route: pathname, placementId: stablePlacementId });
               }}
               onAdOpened={() => {
-                recordBuklodAdEvent(diagnostic, 'ad_opened', undefined, { route: pathname });
+                recordBuklodAdEvent(diagnostic, 'ad_opened', undefined, { route: pathname, placementId: stablePlacementId });
               }}
               {...({
                 onAdImpression: () => {
-                  recordBuklodAdEvent(diagnostic, 'ad_impression', undefined, { route: pathname });
+                  recordBuklodAdEvent(diagnostic, 'ad_impression', undefined, { route: pathname, placementId: stablePlacementId });
                 },
               } as object)}
               onAdFailedToLoad={(error) => {
-                recordBuklodAdEvent(diagnostic, 'ad_failed', error, { route: pathname });
+                recordBuklodAdEvent(diagnostic, 'ad_failed', error, { route: pathname, placementId: stablePlacementId });
                 setLoaded(false);
 
                 if (!online) {
