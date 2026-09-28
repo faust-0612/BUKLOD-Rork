@@ -103,8 +103,8 @@ for (let i=1;i<migrations.length;i++) {
 }
 
 const releaseManifest = JSON.parse(read('release/PRODUCTION_RELEASE_MANIFEST.json'));
-if (releaseManifest.version !== '1.3.0') {
-  failures.push(`Release manifest version is ${releaseManifest.version}, expected 1.3.0 for this BUKLOD Main release.`);
+if (releaseManifest.version !== '1.3.1') {
+  failures.push(`Release manifest version is ${releaseManifest.version}, expected 1.3.1 for this BUKLOD Main release.`);
 }
 
 console.log('BUKLOD Production Preflight');
