@@ -17,14 +17,23 @@ const DZAS_STREAM_URL = String(
 ).trim();
 
 const DZAS_WEBSITE_URL = 'https://dzas.febc.ph';
+const DZAS_YOUTUBE_CHANNEL_ID = 'UCFYknqXTqheggqJ2JCPy28w';
+const DZAS_YOUTUBE_PAGE_URL =
+  'https://www.youtube.com/@702dzasfebcradyotv/live';
+const DZAS_YOUTUBE_LIVE_EMBED =
+  'https://www.youtube.com/embed/live_stream?channel=' +
+  DZAS_YOUTUBE_CHANNEL_ID +
+  '&autoplay=1&playsinline=1&rel=0';
 const DZAS_FAVORITE_KEY = 'buklod.radio.favorite.702dzas';
 
 /*
- * BUKLOD_DZAS_WEB_NATIVE_AUDIO_R2
+ * BUKLOD_DZAS_WEB_OFFICIAL_LIVE_R3
  *
- * Web/PWA intentionally uses the browser's HTMLAudioElement for the raw
- * Icecast audio/mpeg stream. The shared radio.tsx remains the native APK/iOS
- * implementation with expo-audio.
+ * The legacy Icecast endpoint currently fails in phone browsers with
+ * "no supported source". Web/PWA therefore uses the official 702 DZAS
+ * FEBC RadyoTV YouTube live player as the primary source. The direct audio
+ * endpoint stays available as a secondary retry for future recovery.
+ * Native APK/iOS remains on radio.tsx and is untouched.
  */
 export default function BuklodRadioWebScreen() {
   const audioRef = useRef<any>(null);
@@ -35,9 +44,10 @@ export default function BuklodRadioWebScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [statusText, setStatusText] = useState('Ready');
+  const [youtubeOpen, setYoutubeOpen] = useState(false);
 
   const streamLabel = useMemo(
-    () => (DZAS_STREAM_URL ? 'Browser live stream' : 'Stream unavailable'),
+    () => 'Official DZAS RadyoTV live',
     [],
   );
 
@@ -114,12 +124,13 @@ export default function BuklodRadioWebScreen() {
 
       setPlaying(false);
       setBusy(false);
-      setStatusText('Stream error');
+      setYoutubeOpen(true);
+      setStatusText('Official DZAS live ready');
 
       setError(
         code
-          ? `Hindi ma-play ng browser ang DZAS stream ngayon (media error ${code}). Tap Retry.`
-          : 'Hindi ma-play ng browser ang DZAS stream ngayon. Tap Retry.',
+          ? `Direct audio unavailable (media error ${code}). Gamitin ang official DZAS live player sa ibaba.`
+          : 'Direct audio unavailable. Gamitin ang official DZAS live player sa ibaba.',
       );
     };
 
@@ -239,10 +250,12 @@ export default function BuklodRadioWebScreen() {
 
       setPlaying(false);
       setBusy(false);
-      setStatusText('Could not play');
+      setYoutubeOpen(true);
+      setStatusText('Official DZAS live ready');
       setError(
-        message ||
-          'Hindi mabuksan ang DZAS audio stream. Tap Retry o buksan ang official DZAS site.',
+        message
+          ? `${message} Gamitin ang official DZAS live player sa ibaba.`
+          : 'Direct audio unavailable. Gamitin ang official DZAS live player sa ibaba.',
       );
     }
   };
@@ -276,6 +289,45 @@ export default function BuklodRadioWebScreen() {
     void Linking.openURL(DZAS_WEBSITE_URL);
   };
 
+  const openOfficialYouTube = () => {
+    void Linking.openURL(DZAS_YOUTUBE_PAGE_URL);
+  };
+
+  const startOfficialLive = () => {
+    try {
+      audioRef.current?.pause?.();
+    } catch {
+      // Direct stream may already be unavailable.
+    }
+
+    setPlaying(false);
+    setBusy(false);
+    setError('');
+    setYoutubeOpen(true);
+    setStatusText('Official DZAS live');
+  };
+
+  const youtubeFrame =
+    youtubeOpen
+      ? React.createElement(
+          'iframe',
+          {
+            src: DZAS_YOUTUBE_LIVE_EMBED,
+            title: '702 DZAS FEBC RadyoTV Live',
+            allow:
+              'autoplay; encrypted-media; picture-in-picture',
+            allowFullScreen: true,
+            style: {
+              display: 'block',
+              width: '100%',
+              height: '100%',
+              border: '0',
+              backgroundColor: '#000000',
+            },
+          },
+        )
+      : null;
+
   return (
     <ScrollView
       style={styles.screen}
@@ -305,7 +357,7 @@ export default function BuklodRadioWebScreen() {
           </Text>
 
           <Text style={styles.subtitle}>
-            Live Christian radio inside BUKLOD. Tap Play to start the browser audio stream.
+            Live Christian radio inside BUKLOD. Web/PWA uses the official 702 DZAS FEBC RadyoTV live source.
           </Text>
         </View>
       </View>
@@ -372,42 +424,24 @@ export default function BuklodRadioWebScreen() {
         <View style={styles.controls}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={
-              playing
-                ? 'Pause DZAS'
-                : 'Play DZAS'
-            }
-            disabled={busy}
-            onPress={() => {
-              if (playing) {
-                pause();
-              } else {
-                void play(false);
-              }
-            }}
-            style={[
-              styles.primaryButton,
-              busy && styles.buttonDisabled,
-            ]}
+            accessibilityLabel="Open official DZAS live player"
+            onPress={startOfficialLive}
+            style={styles.primaryButton}
           >
             <MaterialCommunityIcons
-              name={playing ? 'pause' : 'play'}
+              name="television-play"
               size={28}
               color="#FFFFFF"
             />
 
             <Text style={styles.primaryButtonText}>
-              {busy
-                ? 'CONNECTING...'
-                : playing
-                  ? 'PAUSE'
-                  : 'PLAY LIVE'}
+              PLAY LIVE
             </Text>
           </Pressable>
 
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Retry DZAS live stream"
+            accessibilityLabel="Try direct DZAS audio stream"
             disabled={busy}
             onPress={() => void play(true)}
             style={[
@@ -416,13 +450,13 @@ export default function BuklodRadioWebScreen() {
             ]}
           >
             <MaterialCommunityIcons
-              name="refresh"
+              name="radio"
               size={20}
               color="#31543E"
             />
 
             <Text style={styles.secondaryButtonText}>
-              RETRY
+              TRY DIRECT AUDIO
             </Text>
           </Pressable>
         </View>
@@ -459,6 +493,46 @@ export default function BuklodRadioWebScreen() {
           </View>
         )}
 
+        {youtubeOpen ? (
+          <View style={styles.youtubeCard}>
+            <View style={styles.youtubeHeader}>
+              <MaterialCommunityIcons
+                name="youtube"
+                size={22}
+                color="#B3261E"
+              />
+              <View style={styles.youtubeHeaderCopy}>
+                <Text style={styles.youtubeTitle}>
+                  Official 702 DZAS FEBC RadyoTV Live
+                </Text>
+                <Text style={styles.youtubeHint}>
+                  Kung hindi mag-autoplay ang tunog, tap Play sa official player.
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.youtubeFrame}>
+              {youtubeFrame}
+            </View>
+
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="Open official DZAS YouTube live page"
+              onPress={openOfficialYouTube}
+              style={styles.youtubeLink}
+            >
+              <MaterialCommunityIcons
+                name="youtube"
+                size={18}
+                color="#B3261E"
+              />
+              <Text style={styles.youtubeLinkText}>
+                OPEN OFFICIAL DZAS YOUTUBE
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
+
         <Pressable
           accessibilityRole="link"
           accessibilityLabel="Open official DZAS website"
@@ -477,7 +551,7 @@ export default function BuklodRadioWebScreen() {
             </Text>
 
             <Text style={styles.linkSub}>
-              Fallback kapag pansamantalang unavailable ang direct stream.
+              Official station website at listening information.
             </Text>
           </View>
         </Pressable>
@@ -492,11 +566,11 @@ export default function BuklodRadioWebScreen() {
 
         <View style={styles.noteCopy}>
           <Text style={styles.noteTitle}>
-            Web/PWA audio mode
+            Web/PWA official live mode
           </Text>
 
           <Text style={styles.noteText}>
-            Sa web shortcut, BUKLOD uses the browser audio engine directly for the DZAS Icecast stream. Hindi nito nire-restream o nire-record ang station audio.
+            Sa web shortcut, ang primary live source ay official 702 DZAS FEBC RadyoTV. Ang direct Icecast audio ay secondary retry lamang habang unavailable ang lumang stream endpoint.
           </Text>
         </View>
       </View>
@@ -704,6 +778,55 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 17,
     fontWeight: '700',
+  },
+  youtubeCard: {
+    borderRadius: 16,
+    padding: 10,
+    backgroundColor: '#F8FAF7',
+    borderWidth: 1,
+    borderColor: '#D8E1D7',
+    gap: 10,
+  },
+  youtubeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  youtubeHeaderCopy: {
+    flex: 1,
+  },
+  youtubeTitle: {
+    color: '#1F3629',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  youtubeHint: {
+    marginTop: 2,
+    color: '#6B786F',
+    fontSize: 9.5,
+    lineHeight: 14,
+    fontWeight: '600',
+  },
+  youtubeFrame: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#000000',
+  },
+  youtubeLink: {
+    minHeight: 40,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    backgroundColor: '#FFF1F0',
+  },
+  youtubeLinkText: {
+    color: '#8F241F',
+    fontSize: 10,
+    fontWeight: '900',
   },
   officialLink: {
     minHeight: 52,
