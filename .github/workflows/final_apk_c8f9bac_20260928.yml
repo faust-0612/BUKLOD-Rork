@@ -1,0 +1,166 @@
+name: BUKLOD Final APK c8f9bac
+
+on:
+  push:
+    branches:
+      - ci/final-apk-c8f9bac-20260928
+    paths:
+      - '.github/workflows/final_apk_c8f9bac_20260928.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: buklod-final-apk-c8f9bac
+  cancel-in-progress: false
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  APP_VARIANT: production
+  EXPO_PUBLIC_APP_ENV: production
+  BUKLOD_APP_TARGET: main
+  EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-production
+  FINAL_RC_SHA: c8f9bac816689ec1aa25920fc94117e321a313db
+  FINAL_APK_NAME: BUKLOD-1.3.0-v20-final-c8f9bac.apk
+
+jobs:
+  verify-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout exact verified RC
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.FINAL_RC_SHA }}
+          fetch-depth: 0
+
+      - name: Lock exact source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$FINAL_RC_SHA"
+          echo "FINAL_RC_LOCK=PASS $(git rev-parse HEAD)"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --include=dev
+
+      - name: Verify production APK identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F "version: '1.3.0'" app.config.js
+          grep -F "versionCode: isStaging ? undefined : 20" app.config.js
+          grep -F "'org.mzbministry.buklod'" app.config.js
+          grep -F '"production-apk"' eas.json
+          grep -F '"buildType": "apk"' eas.json
+          echo "ANDROID_IDENTITY=PASS"
+
+      - name: Pull production environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          npx --yes eas-cli@latest whoami --non-interactive
+          rm -f .env.local
+          npx --yes eas-cli@latest env:pull --environment production --path .env.local --non-interactive
+          test -s .env.local
+          set -a
+          . ./.env.local
+          set +a
+          test "${EXPO_PUBLIC_SUPABASE_URL:-}" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
+          echo "PRODUCTION_ENV=PASS"
+
+      - name: Static final release gate
+        run: node scripts/buklod-main-final-release-gate.mjs
+
+      - name: Android native source gate
+        run: node scripts/buklod-main-final-native-gate.mjs
+
+      - name: Regression tests
+        run: npm test
+
+      - name: TypeScript
+        run: npx tsc --noEmit
+
+      - name: Expo Doctor
+        run: npx expo-doctor@latest
+
+      - name: Fresh Android JS bundle and assets
+        shell: bash
+        env:
+          NODE_ENV: production
+        run: |
+          set -euo pipefail
+          rm -rf dist-android
+          npx expo export --platform android --output-dir dist-android --clear
+          test -d dist-android
+          find dist-android -type f | grep -q .
+          echo "ANDROID_EXPORT=PASS"
+
+      - name: Confirm source remained exact
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$FINAL_RC_SHA"
+          git diff --exit-code -- .
+          git diff --cached --exit-code -- .
+          echo "SOURCE_CLEAN=PASS"
+
+      - name: Build final production APK with EAS
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          npx --yes eas-cli@latest build \
+            --platform android \
+            --profile production-apk \
+            --non-interactive \
+            --wait \
+            --json > eas-apk-build.json
+          test -s eas-apk-build.json
+          echo "EAS_APK_BUILD=PASS"
+
+      - name: Download exact APK artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs');
+          const raw = fs.readFileSync('eas-apk-build.json', 'utf8').trim();
+          const parsed = JSON.parse(raw);
+          const build = Array.isArray(parsed) ? parsed[0] : parsed;
+          const url =
+            build?.artifacts?.buildUrl ||
+            build?.artifacts?.applicationArchiveUrl ||
+            build?.artifacts?.url;
+          if (!url) {
+            console.error(JSON.stringify(build, null, 2));
+            throw new Error('APK artifact URL missing from EAS build response');
+          }
+          fs.writeFileSync('apk-url.txt', url);
+          NODE
+          curl --fail --location --retry 3 --output "$FINAL_APK_NAME" "$(cat apk-url.txt)"
+          test -s "$FINAL_APK_NAME"
+          sha256sum "$FINAL_APK_NAME" | tee "$FINAL_APK_NAME.sha256"
+          printf 'source_sha=%s\nversion=1.3.0\nversion_code=20\npackage=org.mzbministry.buklod\nprofile=production-apk\n' "$FINAL_RC_SHA" > final-apk-manifest.txt
+          echo "APK_DOWNLOAD=PASS"
+
+      - name: Upload final APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-final-apk-c8f9bac
+          path: |
+            ${{ env.FINAL_APK_NAME }}
+            ${{ env.FINAL_APK_NAME }}.sha256
+            final-apk-manifest.txt
+            eas-apk-build.json
+          retention-days: 30
+          if-no-files-found: error
