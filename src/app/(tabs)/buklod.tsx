@@ -995,6 +995,14 @@ function LegacyPublicBuklodScreen(){
  ]=useState<Record<string,string>>({});
 
  const [
+  wallVideoFreshUrls,
+  setWallVideoFreshUrls
+ ]=useState<Record<string,string>>({});
+
+ const wallVideoFailedUriRef=
+  useRef<Record<string,string>>({});
+
+ const [
   videoViewerResolvingPostId,
   setVideoViewerResolvingPostId
  ]=useState<string|null>(null);
@@ -1015,6 +1023,73 @@ function LegacyPublicBuklodScreen(){
    [posts]
   );
 
+ const closeVideoViewer=
+  useCallback(()=>{
+   if(Platform.OS==='web'){
+    const browserWindow=
+     (globalThis as any)?.window;
+
+    if(
+     browserWindow?.history?.state
+      ?.__BUKLOD_VIDEO_VIEWER_R6__
+    ){
+     browserWindow.history.back();
+     return;
+    }
+   }
+
+   setVideoViewerOpen(false);
+  },[]);
+
+ useEffect(()=>{
+  if(
+   Platform.OS!=='web'||
+   !videoViewerOpen
+  ){
+   return;
+  }
+
+  const browserWindow=
+   (globalThis as any)?.window;
+
+  if(
+   !browserWindow?.history?.pushState
+  ){
+   return;
+  }
+
+  const key=
+   '__BUKLOD_VIDEO_VIEWER_R6__';
+
+  if(!browserWindow.history.state?.[key]){
+   browserWindow.history.pushState(
+    {
+     ...(browserWindow.history.state??{}),
+     [key]:true
+    },
+    '',
+    browserWindow.location.href
+   );
+  }
+
+  const onPopState=()=>{
+   setVideoViewerOpen(false);
+  };
+
+  browserWindow.addEventListener(
+   'popstate',
+   onPopState
+  );
+
+  return ()=>{
+   browserWindow.removeEventListener(
+    'popstate',
+    onPopState
+   );
+  };
+ },[videoViewerOpen]);
+
+ /* BUKLOD_VIDEO_VIEWER_ONE_STEP_BACK_R6 */
  const [
   savingPhotoKey,
   setSavingPhotoKey
@@ -3408,6 +3483,110 @@ const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p
    setViewerOpen(true);
   };
 
+ const resolveFreshVideoUrl=
+  useCallback(
+   async(post:any)=>{
+    const postId=
+     String(post?.id??'').trim();
+
+    if(!postId){
+     return null;
+    }
+
+    const mediaMap=
+     await loadCommunityPostMediaByPostIds(
+      [postId],
+      {
+       forceFreshVideoUrls:true
+      }
+     );
+
+    const freshVideo=
+     (
+      Array.isArray(
+       mediaMap?.[postId]
+      )
+       ? mediaMap[postId]
+       : []
+     ).find(
+      (media:any)=>
+       String(
+        media?.media_mime_type??
+        ''
+       )
+        .trim()
+        .toLowerCase()
+        .startsWith('video/')
+     );
+
+    const freshUrl=
+     String(
+      freshVideo?.media_url??
+      ''
+     ).trim();
+
+    return freshUrl||null;
+   },
+   []
+  );
+
+ const refreshWallVideoUrl=
+  useCallback(
+   async(
+    post:any,
+    failedUri?:string
+   )=>{
+    const postId=
+     String(post?.id??'').trim();
+
+    if(!postId){
+     return null;
+    }
+
+    const failed=
+     String(failedUri??'').trim();
+
+    if(
+     failed&&
+     wallVideoFailedUriRef
+      .current[postId]===failed
+    ){
+     return null;
+    }
+
+    if(failed){
+     wallVideoFailedUriRef
+      .current[postId]=failed;
+    }
+
+    try{
+     const freshUrl=
+      await resolveFreshVideoUrl(
+       post
+      );
+
+     if(
+      freshUrl&&
+      freshUrl!==failed
+     ){
+      setWallVideoFreshUrls(
+       current=>({
+        ...current,
+        [postId]:freshUrl
+       })
+      );
+      return freshUrl;
+     }
+
+     return null;
+    }
+    catch{
+     return null;
+    }
+   },
+   [resolveFreshVideoUrl]
+  );
+
  const refreshVideoViewerUrl=
   useCallback(
    async(post:any)=>{
@@ -3423,34 +3602,10 @@ const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p
     );
 
     try{
-     const mediaMap=
-      await loadCommunityPostMediaByPostIds(
-       [postId]
-      );
-
-     const freshVideo=
-      (
-       Array.isArray(
-        mediaMap?.[postId]
-       )
-        ? mediaMap[postId]
-        : []
-      ).find(
-       (media:any)=>
-        String(
-         media?.media_mime_type??
-         ''
-        )
-         .trim()
-         .toLowerCase()
-         .startsWith('video/')
-      );
-
      const freshUrl=
-      String(
-       freshVideo?.media_url??
-       ''
-      ).trim();
+      await resolveFreshVideoUrl(
+       post
+      );
 
      if(freshUrl){
       setVideoViewerFreshUrls(
@@ -3459,6 +3614,14 @@ const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p
         [postId]:freshUrl
        })
       );
+
+      setWallVideoFreshUrls(
+       current=>({
+        ...current,
+        [postId]:freshUrl
+       })
+      );
+
       return freshUrl;
      }
 
@@ -3476,8 +3639,10 @@ const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p
      );
     }
    },
-   []
+   [resolveFreshVideoUrl]
   );
+
+ /* BUKLOD_WALL_VIDEO_PLAYABLE_REFRESH_R6 */
 
  const openVideoViewer=
   (postId:string)=>{
@@ -3519,6 +3684,17 @@ const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p
       );
 
     if(wallVideo){
+      const postId=
+       String(item?.id??'');
+
+      const wallUri=
+       String(
+        wallVideoFreshUrls[
+         postId
+        ]??
+        wallVideo.uri
+       ).trim();
+
       return (
         <View
           /* BUKLOD_COMMUNITY_VIDEO_FULL_BLEED_R4 */
@@ -3529,10 +3705,11 @@ const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p
         >
           <CommunityVideo
             key={
-              wallVideo.mediaPath ||
-              wallVideo.uri
+              postId+
+              ':'+
+              wallUri
             }
-            uri={wallVideo.uri}
+            uri={wallUri}
             height={Math.min(
               520,
               Math.max(
@@ -3547,6 +3724,12 @@ const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p
             expectedDurationSeconds={
               wallVideo.durationSeconds
             }
+            onPlaybackError={()=>{
+             void refreshWallVideoUrl(
+              item,
+              wallUri
+             );
+            }}
             onOpenFullscreen={()=>
               openVideoViewer(
                 String(item.id)
@@ -4255,8 +4438,8 @@ const refreshCommunity186L=
  <Modal
   visible={videoViewerOpen}
   animationType="fade"
-  onRequestClose={()=>
-   setVideoViewerOpen(false)
+  onRequestClose={
+   closeVideoViewer
   }
  >
   <GestureHandlerRootView
@@ -4405,6 +4588,11 @@ const refreshCommunity186L=
          expectedDurationSeconds={
           descriptor.durationSeconds
          }
+         onPlaybackError={()=>{
+          void refreshVideoViewerUrl(
+           item
+          );
+         }}
         />
 
         {videoViewerResolvingPostId===
@@ -4459,8 +4647,8 @@ const refreshCommunity186L=
      <Pressable
       accessibilityRole="button"
       accessibilityLabel="Close full screen video"
-      onPress={()=>
-       setVideoViewerOpen(false)
+      onPress={
+       closeVideoViewer
       }
       style={
        s.communityViewerClose
