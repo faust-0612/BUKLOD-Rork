@@ -1,0 +1,77 @@
+name: BUKLOD Canonical Reference Center R1 QA
+
+on:
+  pull_request:
+    branches:
+      - release/buklod-main-final-20260920
+    paths:
+      - 'src/app/admin/canonical-reference.tsx'
+      - 'src/components/CanonicalReferenceGate.tsx'
+      - 'src/components/BuklodCanonicalMarkdown.tsx'
+      - 'src/lib/buklodCanonicalReference.ts'
+      - 'src/app/admin/index.tsx'
+      - 'src/app/_layout.tsx'
+      - 'supabase/migrations/20260921113000_buklod_canonical_reference_center_r1.sql'
+      - 'supabase/tests/buklod_canonical_reference_center_r1_test.sql'
+      - 'scripts/verify-canonical-reference-center-r1.cjs'
+      - 'scripts/RUN_CANONICAL_REFERENCE_CENTER_R1_LOCAL_QA.ps1'
+      - 'package.json'
+      - '.github/workflows/canonical_reference_center_r1_qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reference-center-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact PR source
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Canonical Reference invariant contract
+        run: npm run reference:contract
+
+      - name: Preserve standalone app boundaries
+        run: node scripts/verify-buklod-app-boundaries.cjs
+
+      - name: TypeScript
+        run: npx tsc --noEmit
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start ephemeral local Supabase
+        run: supabase start
+
+      - name: Rebuild local DB from migrations
+        run: supabase db reset
+
+      - name: Database lint
+        run: supabase db lint --level error
+
+      - name: Canonical Reference pgTAP E2E
+        run: supabase test db supabase/tests/buklod_canonical_reference_center_r1_test.sql
+
+      - name: Stop ephemeral local Supabase
+        if: always()
+        run: supabase stop --no-backup
+
+      - name: No production deployment in QA
+        run: |
+          echo "REFERENCE_CENTER_QA_ONLY=1"
+          echo "DB_APPLY=NO"
+          echo "WEB_DEPLOY=NO"
+          echo "ANDROID_BUILD=NO"

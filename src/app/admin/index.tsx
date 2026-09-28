@@ -555,6 +555,13 @@ export default function AdminDashboard() {
               />
 
               <AdminRow
+                icon="book-lock-outline"
+                title="Canonical Reference"
+                subtitle="Current approved BUKLOD rules, version history, implementation status and audited change control"
+                path="/admin/canonical-reference"
+              />
+
+              <AdminRow
                 icon="tune-variant"
                 title="Configuration Center"
                 subtitle="System and scoped configuration controls"
