@@ -20,14 +20,10 @@ const DZAS_WEBSITE_URL = 'https://dzas.febc.ph';
 const DZAS_YOUTUBE_CHANNEL_ID = 'UCFYknqXTqheggqJ2JCPy28w';
 const DZAS_YOUTUBE_PAGE_URL =
   'https://www.youtube.com/@702dzasfebcradyotv/live';
-const DZAS_YOUTUBE_LIVE_EMBED =
-  'https://www.youtube.com/embed/live_stream?channel=' +
-  DZAS_YOUTUBE_CHANNEL_ID +
-  '&autoplay=0&playsinline=1&rel=0&enablejsapi=1';
 const DZAS_FAVORITE_KEY = 'buklod.radio.favorite.702dzas';
 
 /*
- * BUKLOD_DZAS_WEB_OFFICIAL_LIVE_R3
+ * BUKLOD_DZAS_WEB_EXTERNAL_LIVE_R5
  *
  * The legacy Icecast endpoint currently fails in phone browsers with
  * "no supported source". Web/PWA therefore uses the official 702 DZAS
@@ -37,7 +33,6 @@ const DZAS_FAVORITE_KEY = 'buklod.radio.favorite.702dzas';
  */
 export default function BuklodRadioWebScreen() {
   const audioRef = useRef<any>(null);
-  const youtubeRef = useRef<any>(null);
   const mountedRef = useRef(true);
 
   const [favorite, setFavorite] = useState(false);
@@ -45,8 +40,6 @@ export default function BuklodRadioWebScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [statusText, setStatusText] = useState('Ready');
-  const [youtubeOpen, setYoutubeOpen] = useState(true);
-  const [youtubeReady, setYoutubeReady] = useState(false);
 
   const streamLabel = useMemo(
     () => 'Official DZAS RadyoTV live',
@@ -126,13 +119,12 @@ export default function BuklodRadioWebScreen() {
 
       setPlaying(false);
       setBusy(false);
-      setYoutubeOpen(true);
-      setStatusText('Official DZAS live ready');
+      setStatusText('Direct audio unavailable');
 
       setError(
         code
-          ? `Direct audio unavailable (media error ${code}). Official DZAS live is ready below.`
-          : 'Direct audio unavailable. Official DZAS live is ready below.',
+          ? `Direct audio unavailable (media error ${code}). Use PLAY LIVE for the official DZAS stream.`
+          : 'Direct audio unavailable. Use PLAY LIVE for the official DZAS stream.',
       );
     };
 
@@ -252,12 +244,11 @@ export default function BuklodRadioWebScreen() {
 
       setPlaying(false);
       setBusy(false);
-      setYoutubeOpen(true);
-      setStatusText('Official DZAS live ready');
+      setStatusText('Direct audio unavailable');
       setError(
         message
-          ? `${message} Gamitin ang official DZAS live player sa ibaba.`
-          : 'Direct audio unavailable. Gamitin ang official DZAS live player sa ibaba.',
+          ? `${message} Use PLAY LIVE for the official DZAS stream.`
+          : 'Direct audio unavailable. Use PLAY LIVE for the official DZAS stream.',
       );
     }
   };
@@ -295,23 +286,6 @@ export default function BuklodRadioWebScreen() {
     void Linking.openURL(DZAS_YOUTUBE_PAGE_URL);
   };
 
-  const sendYouTubeCommand = (
-    func: 'playVideo' | 'pauseVideo' | 'unMute',
-  ) => {
-    try {
-      youtubeRef.current?.contentWindow?.postMessage(
-        JSON.stringify({
-          event: 'command',
-          func,
-          args: [],
-        }),
-        '*',
-      );
-    } catch {
-      // The visible YouTube controls remain available as fallback.
-    }
-  };
-
   const startOfficialLive = () => {
     try {
       const audio = audioRef.current;
@@ -319,57 +293,37 @@ export default function BuklodRadioWebScreen() {
       audio?.removeAttribute?.('src');
       audio?.load?.();
     } catch {
-      // Direct stream may already be unavailable.
+      // Best effort cleanup only.
     }
 
     setPlaying(false);
     setBusy(false);
     setError('');
-    setYoutubeOpen(true);
-    setStatusText(
-      youtubeReady
-        ? 'Starting official DZAS live...'
-        : 'Official player loading...',
-    );
+    setStatusText('Opening official DZAS live...');
 
     /*
-     * Run these commands synchronously from the user's tap. Mobile browsers
-     * are much more likely to permit unmuted playback when the play command
-     * itself is tied to the gesture, rather than iframe autoplay after load.
+     * Phone web/PWA: open the official YouTube live destination directly from
+     * this user gesture. This avoids Android PWA/WebView iframe failures and
+     * YouTube autoplay restrictions while preserving the official source.
      */
-    sendYouTubeCommand('unMute');
-    sendYouTubeCommand('playVideo');
+    void Linking.openURL(DZAS_YOUTUBE_PAGE_URL)
+      .then(() => {
+        if (mountedRef.current) {
+          setStatusText('Official DZAS live opened');
+        }
+      })
+      .catch((openError: any) => {
+        if (!mountedRef.current) return;
 
-    if (youtubeReady) {
-      setStatusText('Official DZAS live');
-    }
+        setStatusText('Could not open live');
+        setError(
+          String(
+            openError?.message ||
+              'Could not open the official DZAS live page.',
+          ),
+        );
+      });
   };
-
-  const youtubeFrame =
-    youtubeOpen
-      ? React.createElement(
-          'iframe',
-          {
-            ref: youtubeRef,
-            src: DZAS_YOUTUBE_LIVE_EMBED,
-            title: '702 DZAS FEBC RadyoTV Live',
-            allow:
-              'autoplay; encrypted-media; picture-in-picture',
-            allowFullScreen: true,
-            onLoad: () => {
-              setYoutubeReady(true);
-              setStatusText('Official DZAS live ready');
-            },
-            style: {
-              display: 'block',
-              width: '100%',
-              height: '100%',
-              border: '0',
-              backgroundColor: '#000000',
-            },
-          },
-        )
-      : null;
 
   return (
     <ScrollView
@@ -536,45 +490,23 @@ export default function BuklodRadioWebScreen() {
           </View>
         )}
 
-        {youtubeOpen ? (
-          <View style={styles.youtubeCard}>
-            <View style={styles.youtubeHeader}>
-              <MaterialCommunityIcons
-                name="youtube"
-                size={22}
-                color="#B3261E"
-              />
-              <View style={styles.youtubeHeaderCopy}>
-                <Text style={styles.youtubeTitle}>
-                  Official 702 DZAS FEBC RadyoTV Live
-                </Text>
-                <Text style={styles.youtubeHint}>
-                  Tap PLAY LIVE sa BUKLOD. Kung i-block pa rin ng browser ang autoplay, tap Play sa official player.
-                </Text>
-              </View>
-            </View>
+        <View style={styles.officialLiveCard}>
+          <MaterialCommunityIcons
+            name="youtube"
+            size={22}
+            color="#B3261E"
+          />
 
-            <View style={styles.youtubeFrame}>
-              {youtubeFrame}
-            </View>
+          <View style={styles.officialLiveCopy}>
+            <Text style={styles.youtubeTitle}>
+              Official 702 DZAS FEBC RadyoTV Live
+            </Text>
 
-            <Pressable
-              accessibilityRole="link"
-              accessibilityLabel="Open official DZAS YouTube live page"
-              onPress={openOfficialYouTube}
-              style={styles.youtubeLink}
-            >
-              <MaterialCommunityIcons
-                name="youtube"
-                size={18}
-                color="#B3261E"
-              />
-              <Text style={styles.youtubeLinkText}>
-                OPEN OFFICIAL DZAS YOUTUBE
-              </Text>
-            </Pressable>
+            <Text style={styles.youtubeHint}>
+              PLAY LIVE opens the official DZAS live stream directly in YouTube for reliable audio on phone web/PWA.
+            </Text>
           </View>
-        ) : null}
+        </View>
 
         <Pressable
           accessibilityRole="link"
@@ -822,20 +754,18 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     fontWeight: '700',
   },
-  youtubeCard: {
+  officialLiveCard: {
+    minHeight: 72,
     borderRadius: 16,
-    padding: 10,
+    padding: 12,
     backgroundColor: '#F8FAF7',
     borderWidth: 1,
     borderColor: '#D8E1D7',
-    gap: 10,
-  },
-  youtubeHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
-  youtubeHeaderCopy: {
+  officialLiveCopy: {
     flex: 1,
   },
   youtubeTitle: {
@@ -844,32 +774,11 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   youtubeHint: {
-    marginTop: 2,
+    marginTop: 3,
     color: '#6B786F',
-    fontSize: 9.5,
-    lineHeight: 14,
-    fontWeight: '600',
-  },
-  youtubeFrame: {
-    width: '100%',
-    aspectRatio: 16 / 9,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: '#000000',
-  },
-  youtubeLink: {
-    minHeight: 40,
-    borderRadius: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 7,
-    backgroundColor: '#FFF1F0',
-  },
-  youtubeLinkText: {
-    color: '#8F241F',
     fontSize: 10,
-    fontWeight: '900',
+    lineHeight: 15,
+    fontWeight: '600',
   },
   officialLink: {
     minHeight: 52,
