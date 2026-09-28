@@ -4084,14 +4084,14 @@ const refreshCommunity186L=
     </View>
 
     {/* BUKLOD_DZAS_WALL_SHORTCUT_R1 */}
-    {/* BUKLOD_DZAS_WEB_ONE_TAP_R7 */}
+    {/* BUKLOD_DZAS_WEB_SIMPLE_PLAY_R8 */}
     <Pressable
      accessibilityRole="button"
      accessibilityLabel="Open 702 DZAS Radio"
      onPress={()=>{
       if(Platform.OS==='web'){
        void Linking.openURL(
-        'https://play.radios.com.br/10256'
+        'https://www.youtube.com/@702dzasfebcradyotv/live'
        );
        return;
       }
@@ -4116,7 +4116,7 @@ const refreshCommunity186L=
      })}
     >
      <MaterialCommunityIcons
-      name="radio"
+      name="play-circle-outline"
       size={16}
       color={colors.green}
      />
@@ -4127,7 +4127,7 @@ const refreshCommunity186L=
        color:colors.green,
       }}
      >
-      DZAS
+      DZAS · PLAY
      </Text>
     </Pressable>
 
