@@ -747,7 +747,8 @@ export function BuklodGuideAvatar() {
       return;
     }
 
-    router.navigate(
+    /* BUKLOD_PROFILE_HISTORY_PUSH_R6 */
+    router.push(
       '/me' as any
     );
   };
