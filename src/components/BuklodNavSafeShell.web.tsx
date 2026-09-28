@@ -204,6 +204,55 @@ export default function BuklodNavSafeShell({
         ? 'PROFILE'
         : 'WALL';
 
+    const WALL_SCROLL_TOP_KEY =
+      '__BUKLOD_WALL_SCROLL_TOP_AFTER_REFRESH_R1__';
+
+    /*
+     * If Wall Back triggered a reload, force a deterministic top position
+     * after the new document mounts. Mobile browsers otherwise may restore the
+     * previous scroll offset even after location.reload().
+     */
+    if (isWall) {
+      try {
+        if (
+          browserWindow.sessionStorage?.getItem(
+            WALL_SCROLL_TOP_KEY
+          ) === '1'
+        ) {
+          browserWindow.sessionStorage.removeItem(
+            WALL_SCROLL_TOP_KEY
+          );
+
+          if (browserWindow.history) {
+            browserWindow.history.scrollRestoration =
+              'manual';
+          }
+
+          const forceTop = () => {
+            try {
+              browserWindow.scrollTo(0, 0);
+            } catch {
+              // Best effort only.
+            }
+          };
+
+          browserWindow.requestAnimationFrame?.(
+            forceTop
+          );
+          browserWindow.setTimeout(
+            forceTop,
+            80,
+          );
+          browserWindow.setTimeout(
+            forceTop,
+            260,
+          );
+        }
+      } catch {
+        // Storage/scroll restoration may be unavailable in hardened browsers.
+      }
+    }
+
     /*
      * Phone web / installed PWA gets two same-URL sentinels. This gives the
      * Android system Back button an in-app history entry even when BUKLOD was
@@ -325,6 +374,25 @@ export default function BuklodNavSafeShell({
           typeof browserWindow.location?.reload ===
           'function'
         ) {
+          try {
+            if (browserWindow.history) {
+              browserWindow.history.scrollRestoration =
+                'manual';
+            }
+
+            browserWindow.sessionStorage?.setItem(
+              WALL_SCROLL_TOP_KEY,
+              '1'
+            );
+
+            browserWindow.scrollTo?.(
+              0,
+              0
+            );
+          } catch {
+            // The reload still proceeds if storage or scroll APIs are blocked.
+          }
+
           browserWindow.setTimeout(
             () => {
               browserWindow.location.reload();
