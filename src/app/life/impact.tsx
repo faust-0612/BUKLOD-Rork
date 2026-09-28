@@ -549,7 +549,7 @@ export default function BuklodLifeImpactScreen() {
         }
       >
         <MaterialCommunityIcons
-          name="chart-timeline-variant-shimmer"
+          name="chart-line"
           size={31}
           color="#2F6D3A"
         />
@@ -945,7 +945,7 @@ export default function BuklodLifeImpactScreen() {
                 }
               >
                 <MaterialCommunityIcons
-                  name="sprout-outline"
+                  name="sprout"
                   size={30}
                   color="#78907B"
                 />
