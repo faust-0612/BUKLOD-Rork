@@ -164,8 +164,23 @@ requireText(
 );
 requireText(
   'src/components/BuklodCommunityInlineAd.android.tsx',
-  "placementId: 'community_wall_feed'",
-  'Community ad has stable placement attribution',
+  "const placementId =",
+  'Community ad computes a stable scoped placement attribution',
+);
+requireText(
+  'src/components/BuklodCommunityInlineAd.android.tsx',
+  "'public_wall_feed'",
+  'Public Community ad attribution is explicit',
+);
+requireText(
+  'src/components/BuklodCommunityInlineAd.android.tsx',
+  "'org_wall_feed'",
+  'Organization Community ad attribution is explicit',
+);
+requireText(
+  'src/components/BuklodCommunityInlineAd.android.tsx',
+  "'cluster_wall_feed'",
+  'Cluster Community ad attribution is explicit',
 );
 requireText(
   'src/components/BuklodNavSafeShell.tsx',
@@ -286,8 +301,18 @@ requireText(
 );
 requireText(
   'src/components/BuklodCommunityInlineAd.web.tsx',
-  'placementId="community_wall_feed"',
-  'Web Community feed ad has stable attribution ID',
+  'placementId={placementId}',
+  'Web Community feed ad passes stable scoped attribution ID',
+);
+requireText(
+  'src/components/BuklodCommunityInlineAd.web.tsx',
+  "'org_wall_feed'",
+  'Web Organization Community ad attribution is explicit',
+);
+requireText(
+  'src/components/BuklodCommunityInlineAd.web.tsx',
+  "'cluster_wall_feed'",
+  'Web Cluster Community ad attribution is explicit',
 );
 forbidText(
   'src/app/(tabs)/buklod.tsx',
