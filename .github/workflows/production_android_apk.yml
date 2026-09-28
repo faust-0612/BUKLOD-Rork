@@ -42,7 +42,7 @@ jobs:
         shell: bash
         run: |
           grep -F "'org.mzbministry.buklod');" app.config.js
-          grep -F 'versionCode: isStaging ? undefined : 20' app.config.js
+          grep -F 'versionCode: isStaging ? undefined : 22' app.config.js
           grep -F '"production-apk"' eas.json
           grep -F '"buildType": "apk"' eas.json
           grep -F '"environment": "production"' eas.json
