@@ -91,21 +91,42 @@ function slotForPlacement(
           clean(process.env.EXPO_PUBLIC_ADSENSE_COMMUNITY_SLOT_ID)
       : placement === 'community'
         ? clean(process.env.EXPO_PUBLIC_ADSENSE_COMMUNITY_SLOT_ID)
-        : placement === 'messages'
-          ? clean(process.env.EXPO_PUBLIC_ADSENSE_MESSAGES_SLOT_ID)
-          : placement === 'prayer'
-            ? clean(process.env.EXPO_PUBLIC_ADSENSE_PRAYER_SLOT_ID)
-            : placement === 'reels'
-              ? clean(process.env.EXPO_PUBLIC_ADSENSE_REELS_SLOT_ID)
-              : placement === 'bible'
-                ? clean(process.env.EXPO_PUBLIC_ADSENSE_BIBLE_SLOT_ID)
-                : placement === 'devotion'
-                  ? clean(process.env.EXPO_PUBLIC_ADSENSE_DEVOTION_SLOT_ID)
-                  : placement === 'me'
-                    ? clean(process.env.EXPO_PUBLIC_ADSENSE_ME_SLOT_ID)
-                    : placement === 'focus' || placement === 'content'
-                      ? clean(process.env.EXPO_PUBLIC_ADSENSE_FOCUS_SLOT_ID)
-                      : '';
+        : placement === 'org_community'
+          ? clean(process.env.EXPO_PUBLIC_ADSENSE_ORG_COMMUNITY_SLOT_ID) ||
+            clean(process.env.EXPO_PUBLIC_ADSENSE_COMMUNITY_SLOT_ID)
+          : placement === 'cluster_community'
+            ? clean(process.env.EXPO_PUBLIC_ADSENSE_CLUSTER_COMMUNITY_SLOT_ID) ||
+              clean(process.env.EXPO_PUBLIC_ADSENSE_COMMUNITY_SLOT_ID)
+            : placement === 'messages'
+              ? clean(process.env.EXPO_PUBLIC_ADSENSE_MESSAGES_SLOT_ID)
+              : placement === 'prayer'
+                ? clean(process.env.EXPO_PUBLIC_ADSENSE_PRAYER_SLOT_ID)
+                : placement === 'reels'
+                  ? clean(process.env.EXPO_PUBLIC_ADSENSE_REELS_SLOT_ID)
+                  : placement === 'profile'
+                    ? clean(process.env.EXPO_PUBLIC_ADSENSE_PROFILE_SLOT_ID) ||
+                      clean(process.env.EXPO_PUBLIC_ADSENSE_ME_SLOT_ID)
+                    : placement === 'org'
+                      ? clean(process.env.EXPO_PUBLIC_ADSENSE_ORG_SLOT_ID) ||
+                        clean(process.env.EXPO_PUBLIC_ADSENSE_FOCUS_SLOT_ID)
+                      : placement === 'cluster'
+                        ? clean(process.env.EXPO_PUBLIC_ADSENSE_CLUSTER_SLOT_ID) ||
+                          clean(process.env.EXPO_PUBLIC_ADSENSE_FOCUS_SLOT_ID)
+                        : placement === 'submission'
+                          ? clean(process.env.EXPO_PUBLIC_ADSENSE_SUBMISSION_SLOT_ID) ||
+                            clean(process.env.EXPO_PUBLIC_ADSENSE_FOCUS_SLOT_ID)
+                          : placement === 'video_companion'
+                            ? clean(process.env.EXPO_PUBLIC_ADSENSE_VIDEO_COMPANION_SLOT_ID) ||
+                              clean(process.env.EXPO_PUBLIC_ADSENSE_COMMUNITY_SLOT_ID)
+                            : placement === 'bible'
+                              ? clean(process.env.EXPO_PUBLIC_ADSENSE_BIBLE_SLOT_ID)
+                              : placement === 'devotion'
+                                ? clean(process.env.EXPO_PUBLIC_ADSENSE_DEVOTION_SLOT_ID)
+                                : placement === 'me'
+                                  ? clean(process.env.EXPO_PUBLIC_ADSENSE_ME_SLOT_ID)
+                                  : placement === 'focus' || placement === 'content'
+                                    ? clean(process.env.EXPO_PUBLIC_ADSENSE_FOCUS_SLOT_ID)
+                                    : '';
 
   return placementSlot || GENERIC_SLOT;
 }
@@ -120,6 +141,8 @@ function sponsorPlacementFor(
   if (
     placement === 'community' ||
     placement === 'community_entry' ||
+    placement === 'org_community' ||
+    placement === 'cluster_community' ||
     placement === 'video_companion' ||
     placement === 'reels'
   ) {
@@ -252,9 +275,19 @@ export default function BuklodWebAdSlot({
       diagnosticPlacementFor(placement),
       'ad_rendered',
       undefined,
-      { route: pathname, provider: 'ADSENSE_WEB' },
+      {
+        route: pathname,
+        provider: 'ADSENSE_WEB',
+        placementId: stablePlacementId,
+      },
     );
-  }, [canServeGoogle, eligible, pathname, placement]);
+  }, [
+    canServeGoogle,
+    eligible,
+    pathname,
+    placement,
+    stablePlacementId,
+  ]);
 
   if (!routeSafe) {
     return null;
