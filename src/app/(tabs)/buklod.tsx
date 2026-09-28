@@ -183,6 +183,7 @@ import {
 /* PATCH_166H_REALTIME_DEBOUNCE_IS_EFFECT_LOCAL */
 const CATEGORIES=['reflection','testimony','encouragement'] as const;
 type Audience='group'|'local'|'public';
+type FeedMode='for_you'|'following'|'latest';
 type Reaction = BuklodCommunityReactionKey;
 type Photo={
  id:string;
@@ -650,6 +651,7 @@ function LegacyPublicBuklodScreen(){
 
  const [posts,setPosts]=useState<any[]>([]),[group,setGroup]=useState<any>(null),[body,setBody]=useState('');
  const [category]=useState<typeof CATEGORIES[number]>('reflection');
+ const [feedMode,setFeedMode]=useState<FeedMode>('for_you');
 
  // COMMUNITY_COMPACT_COMPOSER_20260811
  const [audience]=useState<Audience>('public');
@@ -839,10 +841,10 @@ const load=useCallback(async(options?:{
   const communityLoadSeq=++communityLoadSeqRef.current;
   const communityCacheKey=
     user
-      ? communityFeedCacheKey(
+      ? `${communityFeedCacheKey(
           user.id,
           publicLocationScopeId
-        )
+        )}:${feedMode}`
       : null;
 
   if(
@@ -902,7 +904,7 @@ const load=useCallback(async(options?:{
         {
           p_location_scope_id:
             publicLocationScopeId,
-          p_mode: 'for_you',
+          p_mode: feedMode,
           p_limit: limit186L,
           p_offset: offset186L,
         }
@@ -1296,7 +1298,7 @@ const load=useCallback(async(options?:{
   }
 
   return preparedPosts186L.length;
- },[user?.id, publicLocationScopeId]);
+ },[user?.id, publicLocationScopeId, feedMode]);
 /* PATCH_166H_INITIAL_LOAD */
  useEffect(()=>{
   void load();
@@ -2025,7 +2027,104 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
  }
  );
 
- }; const react=async(
+ };
+
+/* BUKLOD_COMMUNITY_AUTHOR_FOLLOW_R1 */
+ const toggleAuthorFollow=
+  useCallback(
+   async(
+    targetUserId:string,
+    nextFollowing:boolean
+   )=>{
+    const viewerId=
+     String(user?.id??'').trim();
+    const targetId=
+     String(targetUserId??'').trim();
+
+    if(
+     !viewerId||
+     !targetId||
+     viewerId===targetId
+    ){
+     return;
+    }
+
+    const currentPost=
+     posts.find(
+      (post:any)=>
+       String(post.user_id)===targetId
+     );
+
+    const previousFollowing=
+     Boolean(
+      currentPost?.is_following_author
+     );
+
+    setPosts(current=>
+     current.map((post:any)=>
+      String(post.user_id)===targetId
+       ?{
+         ...post,
+         is_following_author:
+          nextFollowing
+        }
+       :post
+     )
+    );
+
+    const request=
+     nextFollowing
+      ? supabase
+         .from('buklod_user_follows')
+         .insert({
+          follower_id:viewerId,
+          followed_user_id:targetId
+         })
+      : supabase
+         .from('buklod_user_follows')
+         .delete()
+         .eq('follower_id',viewerId)
+         .eq('followed_user_id',targetId);
+
+    const {error}=
+     await request;
+
+    if(error){
+     setPosts(current=>
+      current.map((post:any)=>
+       String(post.user_id)===targetId
+        ?{
+          ...post,
+          is_following_author:
+           previousFollowing
+         }
+        :post
+      )
+     );
+
+     Alert.alert(
+      'Following',
+      error.message
+     );
+     return;
+    }
+
+    if(
+     feedMode==='following'&&
+     !nextFollowing
+    ){
+     setPosts(current=>
+      current.filter(
+       (post:any)=>
+        String(post.user_id)!==targetId
+      )
+     );
+    }
+   },
+   [feedMode, posts, user?.id]
+  );
+
+ const react=async(
   postId:string,
   reaction:Reaction
 )=>{
@@ -3136,6 +3235,23 @@ const [
   setCommunityHasMore186L
 ]=useState(true);
 
+/* BUKLOD_COMMUNITY_FEED_MODES_R1 */
+const selectCommunityFeedMode=
+  useCallback(
+    (nextMode:FeedMode)=>{
+      if(nextMode===feedMode){
+        return;
+      }
+
+      communityLoadSeqRef.current+=1;
+      communityPageBusyRef186L.current=false;
+      setCommunityHasMore186L(true);
+      setPosts([]);
+      setFeedMode(nextMode);
+    },
+    [feedMode]
+  );
+
 const loadMoreCommunity186L=
   useCallback(
     async()=>{
@@ -3343,6 +3459,64 @@ const refreshCommunity186L=
           setPublicLocationScopeId
         }
       />
+
+      {/* BUKLOD_COMMUNITY_FEED_MODES_R1 */}
+      <View
+       style={{
+        flexDirection:'row',
+        gap:7,
+        marginTop:10,
+        marginBottom:12
+       }}
+      >
+       {([
+        ['for_you','FOR YOU'],
+        ['following','FOLLOWING'],
+        ['latest','LATEST']
+       ] as const).map(([mode,label])=>{
+        const active=
+         feedMode===mode;
+
+        return(
+         <ConnectPressable
+          key={mode}
+          accessibilityRole="button"
+          accessibilityLabel={`Show ${label.toLowerCase()} Community posts`}
+          onPress={()=>
+           selectCommunityFeedMode(mode)
+          }
+          style={{
+           flex:1,
+           minHeight:38,
+           borderRadius:999,
+           borderWidth:1,
+           borderColor:colors.green,
+           backgroundColor:
+            active
+             ? colors.green
+             : colors.white,
+           alignItems:'center',
+           justifyContent:'center',
+           paddingHorizontal:8
+          }}
+         >
+          <Text
+           style={{
+            fontSize:10,
+            fontWeight:'900',
+            color:
+             active
+              ? '#FFFFFF'
+              : colors.greenDark
+           }}
+          >
+           {label}
+          </Text>
+         </ConnectPressable>
+        );
+       })}
+      </View>
+
     {/* PATCH_162A_SPONSOR_COMMUNITY */}
 <BuklodCommunitySponsoredAd audience="public" />
    <SectionTitle>SHARE SOMETHING</SectionTitle><Card>
@@ -3512,7 +3686,15 @@ const refreshCommunity186L=
    </Card>
    <SectionTitle>COMMUNITY POSTS</SectionTitle>
   </View></BuklodFocusFadeUp>}
-  ListEmptyComponent={<Card><Text style={shared.muted}>No Public posts yet.</Text></Card>}
+  ListEmptyComponent={
+   <Card>
+    <Text style={shared.muted}>
+     {feedMode==='following'
+      ? 'Follow BUKLOD members to see their posts here.'
+      : 'No Public posts yet.'}
+    </Text>
+   </Card>
+  }
   renderItem={({item,index}:{item:any,index:number})=>{
     if (
       isCommunityFeedInlineAdRow(
@@ -3613,6 +3795,50 @@ const refreshCommunity186L=
     {formatSpecificDateTime(
      item.created_at
     )}</Text>
+    {item.user_id!==user?.id&&(
+     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={
+       item.is_following_author
+        ? 'Unfollow this member'
+        : 'Follow this member'
+      }
+      onPress={()=>
+       void toggleAuthorFollow(
+        String(item.user_id),
+        !item.is_following_author
+       )
+      }
+      style={{
+       alignSelf:'flex-start',
+       marginTop:6,
+       paddingHorizontal:10,
+       paddingVertical:5,
+       borderRadius:999,
+       borderWidth:1,
+       borderColor:colors.green,
+       backgroundColor:
+        item.is_following_author
+         ? colors.green
+         : colors.white
+      }}
+     >
+      <Text
+       style={{
+        fontSize:9,
+        fontWeight:'900',
+        color:
+         item.is_following_author
+          ? '#FFFFFF'
+          : colors.greenDark
+       }}
+      >
+       {item.is_following_author
+        ? 'FOLLOWING'
+        : 'FOLLOW'}
+      </Text>
+     </Pressable>
+    )}
 </View>
     {item.user_id===user?.id ? (
      <BuklodContentOverflowMenu
