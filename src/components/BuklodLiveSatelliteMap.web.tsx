@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -85,6 +85,59 @@ export function BuklodLiveSatelliteMap({
   const mobile = width < 720;
   const previewHeight = mobile ? 190 : 250;
   const mapCenter = center ?? points[0] ?? FALLBACK_CENTER;
+  const previewIframeRef = useRef<any>(null);
+  const fullIframeRef = useRef<any>(null);
+
+  /* BUKLOD_MAP_MY_LOCATION_R6 */
+  const locateCurrentPosition = () => {
+    const targets = [
+      previewIframeRef.current?.contentWindow,
+      fullIframeRef.current?.contentWindow,
+    ].filter(Boolean);
+
+    const send = (payload: Record<string, unknown>) => {
+      for (const target of targets) {
+        try {
+          target.postMessage(payload, '*');
+        } catch {}
+      }
+    };
+
+    if (!navigator?.geolocation) {
+      send({
+        type: 'BUKLOD_MAP_LOCATION_RESULT',
+        ok: false,
+        message: 'Current location is unavailable in this browser.',
+      });
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        send({
+          type: 'BUKLOD_MAP_LOCATION_RESULT',
+          ok: true,
+          latitude: Number(position.coords.latitude),
+          longitude: Number(position.coords.longitude),
+          locateOnly: true,
+        });
+        onShareLocation?.();
+      },
+      () => {
+        send({
+          type: 'BUKLOD_MAP_LOCATION_RESULT',
+          ok: false,
+          message: 'Allow location access to center the BUKLOD map on you.',
+          locateOnly: true,
+        });
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 30000,
+      }
+    );
+  };
 
   /*
    * BUKLOD_WEB_MAP_PARENT_GEO_R2
@@ -123,6 +176,7 @@ export function BuklodLiveSatelliteMap({
               ok: true,
               latitude: Number(position.coords.latitude),
               longitude: Number(position.coords.longitude),
+              locateOnly: Boolean(event?.data?.locateOnly),
             },
             '*'
           );
@@ -243,25 +297,25 @@ const satelliteLabels=L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest
  keepBuffer:4,
  attribution:'Reference &copy; Esri'
 });
-/* BUKLOD_ROAD_TILE_FAILSAFE_R4
- * Keep the map engine same-origin. Road tiles use a three-stage fallback
- * without forcing CORS mode on image tiles.
+/* BUKLOD_ROAD_DEFAULT_ESRI_R6
+ * The previously visible Carto alternate now requires an API key and paints
+ * an API KEY REQUIRED watermark. Use Esri World Street Map as the default,
+ * keep OpenStreetMap as the first fallback, and Esri Topo as backup.
  */
-const street=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+const street=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',{
+ maxNativeZoom:19,
+ maxZoom:19,
+ keepBuffer:4,
+ updateWhenIdle:false,
+ attribution:'Tiles &copy; Esri and contributors'
+}).addTo(map);
+
+const streetFallback=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
  maxNativeZoom:19,
  maxZoom:19,
  keepBuffer:4,
  updateWhenIdle:false,
  attribution:'&copy; OpenStreetMap contributors'
-}).addTo(map);
-
-const streetFallback=L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
- subdomains:'abcd',
- maxNativeZoom:20,
- maxZoom:20,
- keepBuffer:4,
- updateWhenIdle:false,
- attribution:'&copy; OpenStreetMap contributors &copy; CARTO'
 });
 
 const streetFallback2=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',{
@@ -279,14 +333,14 @@ function activateRoadFallback(reason){
   roadStage=1;
   try{map.removeLayer(street);}catch{}
   streetFallback.addTo(map);
-  setLiveStatus('Road map • alternate tiles');
+  setLiveStatus('Road map • OSM fallback');
   return;
  }
  if(roadStage===1){
   roadStage=2;
   try{map.removeLayer(streetFallback);}catch{}
   streetFallback2.addTo(map);
-  setLiveStatus('Road map • backup tiles');
+  setLiveStatus('Road map • topo backup');
   return;
  }
  setLiveStatus('Road tiles unavailable • retry when connection improves');
@@ -296,13 +350,13 @@ street.once('tileload',()=>{
  roadTileLoaded=true;
  setLiveStatus('Road map • zoom in for nearby places');
 });
-street.on('tileerror',()=>activateRoadFallback('osm-error'));
+street.on('tileerror',()=>activateRoadFallback('esri-street-error'));
 
 streetFallback.once('tileload',()=>{
  roadTileLoaded=true;
  setLiveStatus('Road map • zoom in for nearby places');
 });
-streetFallback.on('tileerror',()=>activateRoadFallback('carto-error'));
+streetFallback.on('tileerror',()=>activateRoadFallback('osm-error'));
 
 streetFallback2.once('tileload',()=>{
  roadTileLoaded=true;
@@ -311,13 +365,13 @@ streetFallback2.once('tileload',()=>{
 
 setTimeout(()=>{
  if(!roadTileLoaded&&roadStage===0){
-  activateRoadFallback('osm-timeout');
+  activateRoadFallback('esri-street-timeout');
  }
 },3500);
 
 setTimeout(()=>{
  if(!roadTileLoaded&&roadStage===1){
-  activateRoadFallback('carto-timeout');
+  activateRoadFallback('osm-timeout');
  }
 },7500);
 
@@ -325,7 +379,7 @@ const nearbyPlaces=L.layerGroup().addTo(map);
 const routeLayer=L.layerGroup().addTo(map);
 
 L.control.layers(
- { 'Road map': street, 'Road map alternate': streetFallback, 'Road map backup': streetFallback2, 'Satellite': satellite },
+ { 'Road map': street, 'Road map OSM': streetFallback, 'Road map topo': streetFallback2, 'Satellite': satellite },
  { 'Satellite labels': satelliteLabels, 'Nearby places': nearbyPlaces },
  { position:'bottomright', collapsed:true }
 ).addTo(map);
@@ -339,15 +393,26 @@ const NavigationControl=L.Control.extend({
   const link=L.DomUtil.create('a','buklod-nav-control');
   link.id='buklod-nav-control';
   link.href='#';
-  link.setAttribute('aria-disabled','true');
-  link.innerHTML='<strong>🧭 BUKLOD Navigation</strong><span>Tap a place pin to choose a destination</span>';
+  link.setAttribute('aria-disabled','false');
+  link.className='buklod-nav-control active';
+  link.innerHTML='<strong>🧭 BUKLOD Navigation</strong><span>Tap here to locate yourself, or tap a place pin</span>';
   L.DomEvent.disableClickPropagation(link);
   L.DomEvent.on(link,'click',(event)=>{
-    if(link.getAttribute('aria-disabled')==='true'||!selectedDestination){
-      L.DomEvent.preventDefault(event);
+    L.DomEvent.preventDefault(event);
+
+    if(!selectedDestination){
+      link.className='buklod-nav-control active';
+      link.setAttribute('aria-disabled','false');
+      link.innerHTML='<strong>🧭 Finding your location…</strong><span>Then tap a place pin for your destination</span>';
+      setLiveStatus('Getting your current location…');
+      try{
+        window.parent.postMessage({type:'BUKLOD_MAP_REQUEST_LOCATION',locateOnly:true},'*');
+      }catch{
+        setLiveStatus('Could not request your current location.');
+      }
       return;
     }
-    L.DomEvent.preventDefault(event);
+
     void startBuklodNavigation(selectedDestination);
   });
   return link;
@@ -527,12 +592,21 @@ async function startBuklodNavigation(p){
 
 window.addEventListener('message',(event)=>{
  const data=event&&event.data;
- if(!data||data.type!=='BUKLOD_MAP_LOCATION_RESULT'||!pendingNavigationDestination) return;
+ if(!data||data.type!=='BUKLOD_MAP_LOCATION_RESULT') return;
+
  const p=pendingNavigationDestination;
- pendingNavigationDestination=null;
 
  if(!data.ok){
-  showRouteFallback(p,String(data.message||'Location is unavailable.'));
+  if(p){
+   pendingNavigationDestination=null;
+   showRouteFallback(p,String(data.message||'Location is unavailable.'));
+  }else{
+   setLiveStatus(String(data.message||'Location is unavailable.'));
+   const link=document.getElementById('buklod-nav-control');
+   if(link){
+    link.innerHTML='<strong>🧭 BUKLOD Navigation</strong><span>Tap here to retry location, or tap a place pin</span>';
+   }
+  }
   return;
  }
 
@@ -542,10 +616,39 @@ window.addEventListener('message',(event)=>{
  };
 
  if(!Number.isFinite(origin.latitude)||!Number.isFinite(origin.longitude)){
-  showRouteFallback(p,'Current location is unavailable.');
+  setLiveStatus('Current location is unavailable.');
   return;
  }
 
+ if(!p||data.locateOnly){
+  if(data.locateOnly){
+   pendingNavigationDestination=null;
+  }
+  if(userLocationMarker){
+   try{map.removeLayer(userLocationMarker);}catch{}
+  }
+  const myIcon=L.divIcon({
+   className:'',
+   html:'<div class="buklod-user-dot"></div>',
+   iconSize:[18,18],
+   iconAnchor:[9,9],
+  });
+  userLocationMarker=L.marker(
+   [origin.latitude,origin.longitude],
+   {icon:myIcon,title:'Your location'}
+  ).addTo(map);
+  map.setView([origin.latitude,origin.longitude],17);
+  setLiveStatus('Your location • tap a place pin to navigate');
+  const link=document.getElementById('buklod-nav-control');
+  if(link&&!selectedDestination){
+   link.className='buklod-nav-control active';
+   link.setAttribute('aria-disabled','false');
+   link.innerHTML='<strong>🧭 You are here</strong><span>Tap a place pin to choose a destination</span>';
+  }
+  return;
+ }
+
+ pendingNavigationDestination=null;
  void requestDrivingRoute(origin,p).catch(()=>{
   showRouteFallback(p,'Could not build the in-app driving route.');
  });
@@ -629,7 +732,8 @@ function elementCoordinates(element){
 }
 function poiPhotoUrl(tags){
  const raw=String(tags.image||'').trim();
- /* BUKLOD_MAP_SRCDOC_PARSE_FIX_R5
+ /* BUKLOD_NAVIGATION_LOCATION_FULL_R6 */
+/* BUKLOD_MAP_SRCDOC_PARSE_FIX_R5
   * Avoid slash-escaped regex inside the outer TS template literal. In the
   * generated srcDoc, \/ escapes are consumed and would produce an invalid
   * regex, aborting the whole map script before L.map() runs.
@@ -777,6 +881,10 @@ setTimeout(()=>{
 
   const iframe = (interactive: boolean) =>
     React.createElement('iframe', {
+      ref: (node: any) => {
+        if (interactive) fullIframeRef.current = node;
+        else previewIframeRef.current = node;
+      },
       title: interactive
         ? 'BUKLOD live satellite interactive community map'
         : 'BUKLOD live satellite community map preview',
@@ -797,8 +905,8 @@ setTimeout(()=>{
     <View style={styles.mapControls} pointerEvents="box-none">
       <MapIcon
         icon="crosshairs-gps"
-        label="Share location"
-        onPress={onShareLocation}
+        label="Center map on my location"
+        onPress={locateCurrentPosition}
       />
       <MapIcon
         icon="pencil"
