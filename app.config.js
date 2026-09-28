@@ -50,7 +50,7 @@ module.exports = ({ config }) => {
 
     name: appName,
     slug: isClassroom ? 'buklod-classroom' : 'buklod',
-    version: '1.3.0',
+    version: '1.3.1',
 
     orientation: 'default',
     scheme,
@@ -85,7 +85,7 @@ module.exports = ({ config }) => {
     android: {
       package: packageId,
 
-      versionCode: isStaging ? undefined : 20,
+      versionCode: isStaging ? undefined : 21,
 
       // Never silently reuse Main Firebase credentials for the standalone Classroom package.
       googleServicesFile: isClassroom
@@ -448,7 +448,7 @@ module.exports = ({ config }) => {
         : undefined,
 
 
-    runtimeVersion: isClassroom ? '1.3.0' : (isStaging ? '1.3.2' : '1.3.0'),
+    runtimeVersion: isClassroom ? '1.3.0' : (isStaging ? '1.3.2' : '1.3.1'),
   };
 };
 
