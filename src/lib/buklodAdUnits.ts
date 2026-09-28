@@ -17,6 +17,12 @@ export type BuklodAdPlacement =
   | 'reels'
   | 'focus'
   | 'content'
+  | 'community_entry'
+  | 'profile'
+  | 'org'
+  | 'cluster'
+  | 'submission'
+  | 'video_companion'
   | 'test';
 
 /* Standard AdMob BANNER creative is 320x50. Dashboard chrome
@@ -116,8 +122,14 @@ export function diagnosticPlacementFor(
   placement: BuklodAdPlacement,
 ): BuklodAdDiagnosticPlacement {
   if (placement === 'home') return 'legacy_home_banner';
+  if (placement === 'community_entry') return 'community_wall_entry';
   if (placement === 'community') return 'community_wall_feed';
   if (placement === 'reels') return 'reels_inline';
+  if (placement === 'profile') return 'profile_banner';
+  if (placement === 'org') return 'org_home_entry';
+  if (placement === 'cluster') return 'cluster_home_entry';
+  if (placement === 'submission') return 'content_submission';
+  if (placement === 'video_companion') return 'video_companion';
   if (
     placement === 'content' ||
     placement === 'focus' ||
@@ -151,9 +163,81 @@ export function getBuklodBannerUnitId(
         );
       break;
 
+    case 'community_entry':
+      placementId =
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_COMMUNITY_ENTRY_BANNER_UNIT_ID
+        ) ||
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_COMMUNITY_BANNER_UNIT_ID
+        );
+      break;
+
     case 'community':
     case 'reels':
       placementId =
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_COMMUNITY_BANNER_UNIT_ID
+        );
+      break;
+
+    case 'profile':
+      placementId =
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_PROFILE_BANNER_UNIT_ID
+        ) ||
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_CONTENT_BANNER_UNIT_ID
+        );
+      break;
+
+    case 'org':
+      placementId =
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_ORG_BANNER_UNIT_ID
+        ) ||
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_CONTENT_BANNER_UNIT_ID
+        );
+      break;
+
+    case 'cluster':
+      placementId =
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_CLUSTER_BANNER_UNIT_ID
+        ) ||
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_CONTENT_BANNER_UNIT_ID
+        );
+      break;
+
+    case 'submission':
+      placementId =
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_CONTENT_SUBMISSION_BANNER_UNIT_ID
+        ) ||
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_CONTENT_BANNER_UNIT_ID
+        );
+      break;
+
+    case 'video_companion':
+      placementId =
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_VIDEO_COMPANION_BANNER_UNIT_ID
+        ) ||
         clean(
           process.env
             .EXPO_PUBLIC_ADMOB_COMMUNITY_BANNER_UNIT_ID
