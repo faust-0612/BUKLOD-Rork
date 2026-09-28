@@ -15,6 +15,7 @@ type Props = {
   height?: number;
   autoPlay?: boolean;
   expectedDurationSeconds?: number;
+  fullscreen?: boolean;
 };
 
 export function CommunityVideo({
@@ -22,6 +23,7 @@ export function CommunityVideo({
   height = 380,
   autoPlay = false,
   expectedDurationSeconds,
+  fullscreen = false,
 }: Props) {
   const player = useVideoPlayer(
     uri,
@@ -52,6 +54,7 @@ export function CommunityVideo({
     <View
       style={[
         styles.wrap,
+        fullscreen && styles.fullscreenWrap,
         { height },
       ]}
     >
@@ -59,7 +62,7 @@ export function CommunityVideo({
         player={player}
         style={styles.video}
         nativeControls
-        contentFit="cover"
+        contentFit={fullscreen ? "contain" : "cover"}
       />
       {Number(expectedDurationSeconds ?? 0) > 0 ? (
         <View pointerEvents="none" style={styles.durationChip}>
@@ -80,6 +83,7 @@ function formatDuration(seconds: number) {
 }
 
 /* BUKLOD_COMMUNITY_NATIVE_VIDEO_DURATION_R3 */
+/* BUKLOD_COMMUNITY_VIDEO_FULLSCREEN_R4 */
 const styles = StyleSheet.create({
   wrap: {
     width: '100%',
@@ -89,6 +93,10 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
 
+  fullscreenWrap: {
+    marginTop: 0,
+    borderRadius: 0,
+  },
   video: {
     width: '100%',
     height: '100%',
