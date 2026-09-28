@@ -1,0 +1,57 @@
+name: BUKLOD Smart Drawer R1 QA
+
+on:
+  pull_request:
+    branches:
+      - release/buklod-main-final-20260920
+    paths:
+      - 'src/app/drawer/**'
+      - 'src/components/SmartDrawerWallCard.tsx'
+      - 'src/lib/smartDrawer/**'
+      - 'src/app/(tabs)/buklod.tsx'
+      - 'src/app/_layout.tsx'
+      - '__tests__/smartDrawerClassification.test.ts'
+      - 'scripts/verify-smart-drawer-r1.cjs'
+      - 'scripts/RUN_BUKLOD_SMART_DRAWER_R1_LOCAL_QA.ps1'
+      - 'package.json'
+      - '.github/workflows/smart_drawer_r1_qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smart-drawer-source-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact PR source
+        uses: actions/checkout@v4
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --include=dev --no-audit --no-fund
+
+      - name: Smart Drawer invariant contract
+        run: npm run drawer:contract
+
+      - name: Preserve standalone app boundaries
+        run: node scripts/verify-buklod-app-boundaries.cjs
+
+      - name: Focused Smart Drawer unit tests
+        run: npm test -- __tests__/smartDrawerClassification.test.ts
+
+      - name: TypeScript
+        run: npx tsc --noEmit
+
+      - name: No production deployment in QA
+        run: |
+          echo "SMART_DRAWER_QA_ONLY=1"
+          echo "PRODUCTION_DB_APPLY=NO"
+          echo "WEB_DEPLOY=NO"
+          echo "ANDROID_BUILD=NO"

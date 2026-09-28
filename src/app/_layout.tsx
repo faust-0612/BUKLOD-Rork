@@ -269,6 +269,13 @@ export default function RootLayout() {
                 <Stack.Screen name="scope/attendance/index" />
                 <Stack.Screen name="scope/attendance/report" />
                 <Stack.Screen name="organizations/events-attendance" />
+                <Stack.Screen name="drawer/index" />
+                <Stack.Screen name="drawer/quick-note" />
+                <Stack.Screen name="drawer/capture" />
+                <Stack.Screen name="drawer/import" />
+                <Stack.Screen name="drawer/review" />
+                <Stack.Screen name="drawer/item/[id]" />
+                <Stack.Screen name="drawer/settings" />
               </Stack>
               </BuklodNavSafeShell>
               </BuklodWebAdSenseProvider>

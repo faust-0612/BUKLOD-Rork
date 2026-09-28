@@ -161,6 +161,7 @@ export async function runBuklodSupportFlow(input: {
   route?: string;
   errorCode?: string | null;
   languageCode?: string;
+  diagnostics?: Record<string, string | number | boolean | null>;
 }): Promise<BuklodSupportResult> {
   if (input.category === 'SIGN_IN') {
     void trackBuklodFeedbackEvent({
@@ -212,6 +213,19 @@ export async function runBuklodSupportFlow(input: {
       route: input.route ?? '',
       error_code: input.errorCode ?? '',
       language_code: input.languageCode ?? 'en',
+      ...Object.fromEntries(
+        Object.entries(input.diagnostics ?? {})
+          .filter(([key, value]) =>
+            !/title|body|text|note|image|asset|list|content|extract/i.test(key) &&
+            (
+              value === null ||
+              typeof value === 'string' ||
+              typeof value === 'number' ||
+              typeof value === 'boolean'
+            ),
+          )
+          .slice(0, 20),
+      ),
     },
   };
 

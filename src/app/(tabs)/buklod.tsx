@@ -54,6 +54,7 @@ import { useBuklodCommunityAdViewability } from '@/hooks/useBuklodCommunityAdVie
 import BuklodPublicLocationChips from '@/components/BuklodPublicLocationChips';
 import BuklodMaritesBoard from '@/components/BuklodMaritesBoard';
 import BuklodTodayCard from '@/components/BuklodTodayCard';
+import SmartDrawerWallCard from '@/components/SmartDrawerWallCard';
 import BuklodCommunityWallEngagementLayer, {
   BuklodCommunityQuickActions,
   type BuklodCommunityComposerIntent,
@@ -3416,6 +3417,8 @@ const refreshCommunity186L=
     </View>
 
    </View>
+
+   <SmartDrawerWallCard />
 
    <BuklodTodayCard onRespond={()=>activateComposerIntent('post')} />
 
