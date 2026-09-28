@@ -5,6 +5,7 @@ type Props = {
   height?: number;
   autoPlay?: boolean;
   expectedDurationSeconds?: number;
+  fullscreen?: boolean;
 };
 
 function formatDuration(seconds: number) {
@@ -16,6 +17,7 @@ function formatDuration(seconds: number) {
 
 /*
  * BUKLOD_COMMUNITY_HTML5_VIDEO_R3
+ * BUKLOD_COMMUNITY_VIDEO_FULLSCREEN_R4
  *
  * Browser-native video playback for Community Wall.
  * preload=metadata gives duration/seek data early, and native HTML5 controls
@@ -26,6 +28,7 @@ export function CommunityVideo({
   height = 380,
   autoPlay = false,
   expectedDurationSeconds,
+  fullscreen = false,
 }: Props) {
   const duration =
     Number(expectedDurationSeconds ?? 0) > 0
@@ -38,8 +41,8 @@ export function CommunityVideo({
       style: {
         width: '100%',
         height,
-        marginTop: 12,
-        borderRadius: 14,
+        marginTop: fullscreen ? 0 : 12,
+        borderRadius: fullscreen ? 0 : 14,
         overflow: 'hidden',
         background: '#111',
         position: 'relative',
@@ -56,7 +59,7 @@ export function CommunityVideo({
         display: 'block',
         width: '100%',
         height: '100%',
-        objectFit: 'cover',
+        objectFit: fullscreen ? 'contain' : 'cover',
         background: '#111',
       },
     }),
