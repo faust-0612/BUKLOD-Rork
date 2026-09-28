@@ -6,6 +6,7 @@ type Props = {
   autoPlay?: boolean;
   expectedDurationSeconds?: number;
   fullscreen?: boolean;
+  edgeToEdge?: boolean;
 };
 
 function formatDuration(seconds: number) {
@@ -29,6 +30,7 @@ export function CommunityVideo({
   autoPlay = false,
   expectedDurationSeconds,
   fullscreen = false,
+  edgeToEdge = false,
 }: Props) {
   const duration =
     Number(expectedDurationSeconds ?? 0) > 0
@@ -42,7 +44,7 @@ export function CommunityVideo({
         width: '100%',
         height,
         marginTop: fullscreen ? 0 : 12,
-        borderRadius: fullscreen ? 0 : 14,
+        borderRadius: fullscreen || edgeToEdge ? 0 : 14,
         overflow: 'hidden',
         background: '#111',
         position: 'relative',
