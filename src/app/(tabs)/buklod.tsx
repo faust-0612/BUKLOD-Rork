@@ -3858,7 +3858,10 @@ const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p
               }
             />
           </View>
-          <BuklodVideoCompanionAd contentId={postId} />
+          <BuklodVideoCompanionAd
+            contentId={postId}
+            expectedDurationSeconds={wallVideo.durationSeconds}
+          />
         </>
       );
     }
