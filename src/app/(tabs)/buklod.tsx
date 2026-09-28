@@ -4329,7 +4329,6 @@ const refreshCommunity186L=
 
    {Platform.OS==='web' ? (
     <View
-     accessibilityRole="tablist"
      style={{
       flexDirection:'row',
       gap:7,
