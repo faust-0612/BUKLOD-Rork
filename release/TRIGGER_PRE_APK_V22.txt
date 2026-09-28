@@ -1,0 +1,8 @@
+BUKLOD MAIN PRE-APK V22
+Triggered: 2026-09-28
+Branch: codex/pre-apk-economy-ads-v2-20260928
+Purpose: EAS production-apk build after exact source QA.
+No web deploy.
+No OTA publish.
+No Play Store submission.
+No financial activation.
