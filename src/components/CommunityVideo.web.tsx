@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 
 type Props = {
   uri: string;
@@ -7,6 +7,8 @@ type Props = {
   expectedDurationSeconds?: number;
   fullscreen?: boolean;
   edgeToEdge?: boolean;
+  active?: boolean;
+  onOpenFullscreen?: () => void;
 };
 
 function formatDuration(seconds: number) {
@@ -31,11 +33,28 @@ export function CommunityVideo({
   expectedDurationSeconds,
   fullscreen = false,
   edgeToEdge = false,
+  active = true,
+  onOpenFullscreen,
 }: Props) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const duration =
     Number(expectedDurationSeconds ?? 0) > 0
       ? formatDuration(Number(expectedDurationSeconds))
       : null;
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (!active) {
+      video.pause();
+      return;
+    }
+
+    if (autoPlay) {
+      void video.play().catch(() => undefined);
+    }
+  }, [active, autoPlay, uri]);
 
   return React.createElement(
     'div',
@@ -51,6 +70,7 @@ export function CommunityVideo({
       },
     },
     React.createElement('video', {
+      ref: videoRef,
       key: uri,
       src: uri,
       controls: true,
@@ -65,6 +85,37 @@ export function CommunityVideo({
         background: '#111',
       },
     }),
+    onOpenFullscreen && !fullscreen
+      ? React.createElement(
+          'button',
+          {
+            type: 'button',
+            'aria-label': 'Open video full screen',
+            onClick: (event: any) => {
+              event.stopPropagation();
+              videoRef.current?.pause();
+              onOpenFullscreen();
+            },
+            style: {
+              position: 'absolute',
+              right: 10,
+              bottom: 10,
+              width: 42,
+              height: 42,
+              border: 0,
+              borderRadius: 21,
+              background: 'rgba(0,0,0,.62)',
+              color: '#fff',
+              fontSize: 24,
+              lineHeight: '42px',
+              textAlign: 'center',
+              cursor: 'pointer',
+              zIndex: 3,
+            },
+          },
+          '⛶',
+        )
+      : null,
     duration
       ? React.createElement(
           'div',
