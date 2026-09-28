@@ -19,7 +19,7 @@ jobs:
       - name: Checkout exact PR head
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
 
       - name: Verify live-web ancestry
@@ -58,12 +58,26 @@ jobs:
           EXPO_PUBLIC_APP_ENV: production
         run: npx expo export --platform web --output-dir dist-pre-apk-economy-v2
 
+      - name: Android JS export regression gate
+        env:
+          EXPO_PUBLIC_APP_ENV: production
+          APP_VARIANT: production
+          BUKLOD_APP_TARGET: main
+        run: npx expo export --platform android --output-dir dist-pre-apk-android-v2 --clear
+
       - name: Verify protected release identity
         shell: bash
         run: |
           set -euo pipefail
           grep -F "'org.mzbministry.buklod'" app.config.js
+          grep -F 'versionCode: isStaging ? undefined : 22' app.config.js
           grep -F '"production-apk"' eas.json
           grep -F '"buildType": "apk"' eas.json
-          grep -F 'financial_finalization_enabled' supabase/migrations/*.sql >/dev/null || true
+          grep -F "BUKLOD_COMMUNITY_FEED_MODES_ALL_R2" 'src/app/(tabs)/buklod.tsx'
+          grep -F "BUKLOD_COMMUNITY_AUTHOR_FOLLOW_ALL_R2" 'src/app/(tabs)/buklod.tsx'
+          grep -F "get_my_buklod_community_contribution_v2" src/lib/buklodCommunityContributionEconomy.ts
+          grep -F "Legacy revenue split is read-only" src/lib/buklodRewards.ts
+          grep -F "org_wall_feed" src/components/BuklodCommunityInlineAd.tsx
+          grep -F "cluster_wall_feed" src/components/BuklodCommunityInlineAd.tsx
+          grep -F "placementId: stablePlacementId" src/components/BuklodAdMobBanner.tsx
           echo "PRE_APK_QA=PASS"
