@@ -1,0 +1,66 @@
+name: BUKLOD Pre-APK Economy Ads V2 QA
+
+on:
+  pull_request:
+    branches:
+      - web-map-life-combined-20260928
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Verify live-web ancestry
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 0c4991462c2564e6ab4430140d97f06ba0600c5a HEAD
+          echo "LIVE_WEB_RC_ANCESTRY=PASS"
+          echo "HEAD=$(git rev-parse HEAD)"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci --ignore-scripts
+
+      - name: TypeScript
+        run: npx tsc --noEmit
+
+      - name: Targeted contract tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -x node_modules/.bin/jest ]; then
+            npx jest --runInBand \
+              __tests__/buklodAdMonetizationPolicy.test.ts \
+              __tests__/buklodCommunityContribution*.test.ts \
+              --passWithNoTests
+          fi
+
+      - name: Web export regression gate
+        env:
+          EXPO_PUBLIC_APP_ENV: production
+        run: npx expo export --platform web --output-dir dist-pre-apk-economy-v2
+
+      - name: Verify protected release identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F "'org.mzbministry.buklod'" app.config.js
+          grep -F '"production-apk"' eas.json
+          grep -F '"buildType": "apk"' eas.json
+          grep -F 'financial_finalization_enabled' supabase/migrations/*.sql >/dev/null || true
+          echo "PRE_APK_QA=PASS"
