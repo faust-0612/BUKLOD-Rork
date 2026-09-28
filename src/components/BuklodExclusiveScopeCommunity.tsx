@@ -3494,7 +3494,7 @@ return (
                 router.push(
                   '/personal-home/radio' as any
                 );
-              }
+              }}
               style={({ pressed }) => ({
                 minWidth: 68,
                 height: 34,
