@@ -1030,8 +1030,7 @@ function LegacyPublicBuklodScreen(){
      (globalThis as any)?.window;
 
     if(
-     browserWindow?.history?.state
-      ?.__BUKLOD_VIDEO_VIEWER_R6__
+     browserWindow?.history?.state?.__BUKLOD_VIDEO_VIEWER_R6__
     ){
      browserWindow.history.back();
      return;
