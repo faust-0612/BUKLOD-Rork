@@ -65,6 +65,7 @@ export default function PersonalHomeRadioScreen() {
           albumTitle: 'BUKLOD Radio',
         },
         {
+          isLiveStream: true,
           showSeekBackward: false,
           showSeekForward: false,
         }
@@ -84,6 +85,11 @@ export default function PersonalHomeRadioScreen() {
 
     try {
       await configurePreachingAudioMode();
+
+      if (status.error) {
+        player.replace(DZAS_STREAM_URL);
+      }
+
       activateLockScreen();
       player.play();
     } catch (playError) {
@@ -109,11 +115,18 @@ export default function PersonalHomeRadioScreen() {
     }
   };
 
+  const playbackError =
+    error || status.error || '';
+
   const liveLabel = status.playing
     ? 'LIVE • Playing'
-    : status.isLoaded
-      ? 'Ready to listen'
-      : 'Connecting when you press play';
+    : status.isBuffering
+      ? 'Connecting...'
+      : status.isLoaded
+        ? status.isLive
+          ? 'LIVE • Ready'
+          : 'Ready to listen'
+        : 'Connecting when you press play';
 
   return (
     <ScrollView
@@ -143,9 +156,10 @@ export default function PersonalHomeRadioScreen() {
         </View>
       </View>
 
-      {error ? (
+      {playbackError ? (
         <Text style={styles.error}>
-          {error}
+          {error ||
+            'Hindi ma-play ang DZAS stream ngayon. Subukan muli o gamitin ang Official DZAS / Radio Garden.'}
         </Text>
       ) : null}
 
