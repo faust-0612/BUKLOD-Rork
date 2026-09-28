@@ -1,0 +1,36 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'org.mzbministry.buklod.imavideo'
+version = '0.1.0'
+
+android {
+  namespace "org.mzbministry.buklod.imavideo"
+
+  defaultConfig {
+    versionCode 1
+    versionName "0.1.0"
+    minSdk 24
+  }
+
+  compileOptions {
+    coreLibraryDesugaringEnabled true
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+  }
+
+  lintOptions {
+    abortOnError false
+  }
+}
+
+dependencies {
+  def media3_version = "1.11.0"
+
+  coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
+  implementation "androidx.media3:media3-ui:$media3_version"
+  implementation "androidx.media3:media3-exoplayer:$media3_version"
+  implementation "androidx.media3:media3-exoplayer-ima:$media3_version"
+}
