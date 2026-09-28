@@ -32,10 +32,10 @@ const ACTIONS: MediaAction[] = [
     route: '/(tabs)/buklod',
   },
   {
-    title: 'Internet Radio',
-    subtitle: 'Open Radio Garden and choose live stations around the world.',
+    title: 'BUKLOD Radio',
+    subtitle: 'Listen to 702 DZAS in-app, then discover more live stations.',
     icon: 'radio',
-    url: 'https://radio.garden/',
+    route: '/personal-home/radio',
   },
   {
     title: 'Spotify',
