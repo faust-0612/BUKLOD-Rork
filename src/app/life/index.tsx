@@ -42,6 +42,8 @@ import {
   type BuklodLifeTopicKey,
 } from '@/lib/buklodLifeContent';
 
+import BuklodLifeTabs from '@/components/BuklodLifeTabs';
+
 import {
   useAuth,
 } from '@/providers/AuthProvider';
@@ -272,6 +274,11 @@ export default function BuklodLifeScreen() {
           </Text>
         </View>
       </View>
+
+      <BuklodLifeTabs
+        active="my-life"
+        language={language}
+      />
 
 
       <LinearGradient
