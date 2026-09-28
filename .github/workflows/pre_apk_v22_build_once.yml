@@ -1,0 +1,234 @@
+name: BUKLOD Pre-APK V22 Build Once
+
+on:
+  push:
+    branches:
+      - codex/pre-apk-economy-ads-v2-20260928
+    paths:
+      - '.github/workflows/pre_apk_v22_build_once.yml'
+
+permissions:
+  contents: write
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  EXPO_PUBLIC_APP_ENV: production
+  APP_VARIANT: production
+  BUKLOD_APP_TARGET: main
+
+jobs:
+  qa-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout exact source SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run full pre-APK QA
+        id: qa
+        shell: bash
+        run: |
+          set +e
+          bash -o pipefail -c '
+            set -euo pipefail
+            echo "SOURCE_SHA=$(git rev-parse HEAD)"
+            test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+
+            echo "=== TYPESCRIPT ==="
+            npx tsc --noEmit
+
+            echo "=== BASE RELEASE GATE ==="
+            node scripts/release-gate.mjs
+
+            echo "=== COMMUNITY QMP CONTRACT ==="
+            node scripts/community-contribution-economy-release-contract.mjs
+
+            echo "=== UX / NO-SILENT-FAILURE GATE ==="
+            node scripts/buklod-main-ux-feedback-gate.mjs
+
+            echo "=== MAIN SELF-HEAL CONTRACT ==="
+            npm run health:contract
+
+            echo "=== FINAL MAIN RELEASE SOURCE GATE ==="
+            node scripts/buklod-main-final-release-gate.mjs
+
+            echo "=== NATIVE CAPABILITY GATE ==="
+            node scripts/buklod-main-final-native-gate.mjs
+
+            echo "=== RELEASE IDENTITY ==="
+            grep -F "version: '\''1.3.1'\''" app.config.js
+            grep -F "versionCode: isStaging ? undefined : 22" app.config.js
+            grep -F "'\''org.mzbministry.buklod'\''" app.config.js
+            grep -F "BUKLOD_COMMUNITY_FEED_MODES_ALL_R2" "src/app/(tabs)/buklod.tsx"
+            grep -F "BUKLOD_COMMUNITY_AUTHOR_FOLLOW_ALL_R2" "src/app/(tabs)/buklod.tsx"
+            grep -F "get_my_buklod_community_contribution_v2" src/lib/buklodCommunityContributionEconomy.ts
+            grep -F "Legacy revenue split is read-only" src/lib/buklodRewards.ts
+            grep -F "'\''org_wall_feed'\''" src/components/BuklodCommunityInlineAd.android.tsx
+            grep -F "'\''cluster_wall_feed'\''" src/components/BuklodCommunityInlineAd.android.tsx
+            grep -F "placementId: stablePlacementId" src/components/BuklodAdMobBanner.tsx
+            grep -F ""production-apk"" eas.json
+            grep -F ""buildType": "apk"" eas.json
+
+            echo "=== ANDROID JS EXPORT ==="
+            rm -rf dist-pre-apk-v22
+            npx expo export --platform android --output-dir dist-pre-apk-v22 --clear
+            test -d dist-pre-apk-v22
+            find dist-pre-apk-v22 -type f | grep -q .
+
+            echo "PRE_APK_V22_QA=PASS"
+          ' > pre-apk-v22-qa.log 2>&1
+          QA_EXIT=$?
+          set -e
+
+          cat pre-apk-v22-qa.log
+          echo "qa_exit=${QA_EXIT}" >> "${GITHUB_OUTPUT}"
+
+          if [ "${QA_EXIT}" -ne 0 ]; then
+            node <<'NODE'
+          const fs = require('fs');
+          const log = fs.readFileSync('pre-apk-v22-qa.log', 'utf8');
+          const result = {
+            status: 'FAILED',
+            source_sha: process.env.GITHUB_SHA,
+            version: '1.3.1',
+            version_code: 22,
+            created_at: new Date().toISOString(),
+            tail: log.split(/\r?\n/).slice(-220),
+          };
+          fs.mkdirSync('release', { recursive: true });
+          fs.writeFileSync(
+            'release/PRE_APK_V22_QA_RESULT.json',
+            JSON.stringify(result, null, 2) + '\n'
+          );
+          NODE
+
+            git config user.name "BUKLOD Release Bot"
+            git config user.email "actions@users.noreply.github.com"
+            git add release/PRE_APK_V22_QA_RESULT.json
+            git commit -m "ci(apk): record failed pre-APK v22 QA" || true
+            git push origin HEAD:codex/pre-apk-economy-ads-v2-20260928
+            exit "${QA_EXIT}"
+          fi
+
+      - name: Expo credential preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${EXPO_TOKEN:-}" ]; then
+            echo "EXPO_TOKEN repository secret is missing."
+            exit 1
+          fi
+          npx eas-cli@latest whoami --non-interactive
+
+      - name: Build production APK from exact tested SHA
+        id: build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+
+          npx eas-cli@latest build \
+            --platform android \
+            --profile production-apk \
+            --non-interactive \
+            --wait \
+            --json | tee eas-apk-v22.json
+
+          test -s eas-apk-v22.json
+
+      - name: Record APK result on release branch
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node <<'NODE'
+          const fs = require('fs');
+
+          const raw = fs.readFileSync('eas-apk-v22.json', 'utf8').trim();
+          const parsed = JSON.parse(raw);
+          const build = Array.isArray(parsed) ? parsed[0] : parsed;
+          const url =
+            build?.artifacts?.buildUrl ||
+            build?.artifacts?.applicationArchiveUrl ||
+            '';
+          const id = build?.id || '';
+          const status = build?.status || '';
+
+          if (!url) {
+            throw new Error('APK artifact URL missing from EAS build output.');
+          }
+
+          const result = {
+            status: 'SUCCEEDED',
+            source_sha: process.env.GITHUB_SHA,
+            version: '1.3.1',
+            version_code: 22,
+            eas_build_id: id,
+            eas_status: status,
+            apk_url: url,
+            created_at: new Date().toISOString(),
+            store_submission: false,
+          };
+
+          const qa = {
+            status: 'PASSED',
+            source_sha: process.env.GITHUB_SHA,
+            version: '1.3.1',
+            version_code: 22,
+            created_at: new Date().toISOString(),
+            gates: [
+              'typescript',
+              'base_release_gate',
+              'community_qmp_contract',
+              'ux_feedback_gate',
+              'main_self_heal_contract',
+              'final_main_release_source_gate',
+              'native_capability_gate',
+              'android_js_export'
+            ]
+          };
+
+          fs.mkdirSync('release', { recursive: true });
+          fs.writeFileSync(
+            'release/PRE_APK_V22_QA_RESULT.json',
+            JSON.stringify(qa, null, 2) + '\n'
+          );
+          fs.writeFileSync(
+            'release/APK_BUILD_RESULT_V22.json',
+            JSON.stringify(result, null, 2) + '\n'
+          );
+
+          console.log(JSON.stringify(result, null, 2));
+          NODE
+
+          git config user.name "BUKLOD Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add release/PRE_APK_V22_QA_RESULT.json release/APK_BUILD_RESULT_V22.json
+          git commit -m "ci(apk): record BUKLOD 1.3.1 v22 APK result"
+          git push origin HEAD:codex/pre-apk-economy-ads-v2-20260928
+
+      - name: Preserve QA and APK metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-pre-apk-v22-${{ github.sha }}
+          path: |
+            pre-apk-v22-qa.log
+            eas-apk-v22.json
+            release/PRE_APK_V22_QA_RESULT.json
+            release/APK_BUILD_RESULT_V22.json
+          if-no-files-found: ignore
+          retention-days: 90
