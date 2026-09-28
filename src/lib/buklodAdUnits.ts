@@ -21,6 +21,8 @@ export type BuklodAdPlacement =
   | 'profile'
   | 'org'
   | 'cluster'
+  | 'org_community'
+  | 'cluster_community'
   | 'submission'
   | 'video_companion'
   | 'test';
@@ -128,6 +130,8 @@ export function diagnosticPlacementFor(
   if (placement === 'profile') return 'profile_banner';
   if (placement === 'org') return 'org_home_entry';
   if (placement === 'cluster') return 'cluster_home_entry';
+  if (placement === 'org_community') return 'org_wall_feed';
+  if (placement === 'cluster_community') return 'cluster_wall_feed';
   if (placement === 'submission') return 'content_submission';
   if (placement === 'video_companion') return 'video_companion';
   if (
@@ -217,6 +221,30 @@ export function getBuklodBannerUnitId(
         clean(
           process.env
             .EXPO_PUBLIC_ADMOB_CONTENT_BANNER_UNIT_ID
+        );
+      break;
+
+    case 'org_community':
+      placementId =
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_ORG_COMMUNITY_BANNER_UNIT_ID
+        ) ||
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_COMMUNITY_BANNER_UNIT_ID
+        );
+      break;
+
+    case 'cluster_community':
+      placementId =
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_CLUSTER_COMMUNITY_BANNER_UNIT_ID
+        ) ||
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_COMMUNITY_BANNER_UNIT_ID
         );
       break;
 
