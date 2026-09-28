@@ -31,7 +31,7 @@ import {
   isBuklodInvalidCredentialsError,
   isBuklodTransientAuthError,
   resolveBuklodAccountLifecycleAfterLogin,
-  signInWithPasswordResilient,
+  signInWithCanonicalIdentifierResilient,
   signOutBuklodResilient,
 } from '@/lib/buklodAuthResilience';
 import {
@@ -220,41 +220,6 @@ const BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY =
   'buklod.auth.fresh_login_public.v1';
 
 
-function normalizePhilippinePhone(value: string) {
-  const cleaned = value.replace(/[^\d+]/g, '');
-
-  if (/^\+639\d{9}$/.test(cleaned)) return cleaned;
-  if (/^639\d{9}$/.test(cleaned)) return `+${cleaned}`;
-  if (/^09\d{9}$/.test(cleaned)) return `+63${cleaned.slice(1)}`;
-
-  return null;
-}
-
-function normalizeUsername(value: string) {
-  const username = value.trim().toLowerCase();
-
-  if (
-    username.length < 3 ||
-    username.length > 30 ||
-    !/^(?=.*[a-z])[a-z0-9]+(?:[._-][a-z0-9]+)*$/.test(username)
-  ) {
-    return null;
-  }
-
-  return username;
-}
-
-function mobileInternalEmail(phone: string) {
-  return `m.${phone.replace(/\D/g, '')}@buklod.invalid`;
-}
-
-function legacyMobileInternalEmail(phone: string) {
-  return `${phone.replace(/\D/g, '')}@buklod.invalid`;
-}
-
-function usernameInternalEmail(username: string) {
-  return `u.${username}@buklod.invalid`;
-}
 
 /* PATCH_171I_SUGGESTED_LOGIN_BUBBLES */
 type SuggestedLogin = {
@@ -353,10 +318,8 @@ function parseSuggestedLogins(
 }
 
 async function signInForFreshPublicHome(
-  credentials:
-    Parameters<
-      typeof supabase.auth.signInWithPassword
-    >[0]
+  identifier: string,
+  password: string
 ) {
   try {
     await AsyncStorage.setItem(
@@ -372,8 +335,9 @@ async function signInForFreshPublicHome(
   }
 
   const result =
-    await signInWithPasswordResilient(
-      credentials
+    await signInWithCanonicalIdentifierResilient(
+      identifier,
+      password
     );
 
   if (result.error) {
@@ -876,7 +840,7 @@ const chooseSuggestedLogin =
     ) => {
       /*
        * HIGH_CONCURRENCY_LOGIN_R1
-       * signInWithPassword already returned the authenticated user. Do not
+       * Canonical login already returned the authenticated user. Do not
        * call auth.getUser() and profiles again just to paint a local bubble.
        */
       const userId =
@@ -1022,81 +986,17 @@ const chooseSuggestedLogin =
     let error: any = null;
     let authenticatedUser: any = null;
 
-    if (raw.includes('@')) {
-      const result = await signInForFreshPublicHome({
-        email: raw.toLowerCase(),
-        password: effectivePassword,
-      });
+    const result =
+      await signInForFreshPublicHome(
+        raw,
+        effectivePassword
+      );
 
-      error = result.error;
+    error = result.error;
 
-      authenticatedUser =
-
-        result.data?.user ??
-
-
-        null;
-    } else {
-      const phone = normalizePhilippinePhone(raw);
-
-      if (phone) {
-        let result = await signInForFreshPublicHome({
-          email: mobileInternalEmail(phone),
-          password: effectivePassword,
-        });
-
-        // Patch 147 backward compatibility. Only probe the legacy
-        // identifier after a real credential miss. Do not double auth traffic
-        // when Supabase itself is returning a transient 5xx/timeout.
-        if (
-          result.error &&
-          isBuklodInvalidCredentialsError(
-            result.error
-          )
-        ) {
-          result = await signInForFreshPublicHome({
-            email: legacyMobileInternalEmail(phone),
-            password: effectivePassword,
-          });
-        }
-
-        error = result.error;
-
-        authenticatedUser =
-
-          result.data?.user ??
-
-
-          null;
-      } else {
-        const username = normalizeUsername(raw);
-
-        if (!username) {
-          releaseLogin(
-            'Enter a valid mobile number, username, or email.'
-          );
-
-          return Alert.alert(
-            'BUKLOD',
-            'Enter a valid Mobile Number, Username, or Email.'
-          );
-        }
-
-        const result = await signInForFreshPublicHome({
-          email: usernameInternalEmail(username),
-          password: effectivePassword,
-        });
-
-        error = result.error;
-
-        authenticatedUser =
-
-          result.data?.user ??
-
-
-          null;
-      }
-    }
+    authenticatedUser =
+      result.data?.user ??
+      null;
 
     if (error) {
       const temporaryFailure =
