@@ -62,6 +62,7 @@ import BuklodTodayCard from '@/components/BuklodTodayCard';
 import BuklodCommunityContributionCard from '@/components/BuklodCommunityContributionCard';
 import { assertCommunityVideoQuotaAvailable } from '@/lib/buklodCommunityContributionEconomy';
 import SmartDrawerWallCard from '@/components/SmartDrawerWallCard';
+import BuklodLifeWallCard from '@/components/BuklodLifeWallCard';
 import BuklodCommunityWallEngagementLayer, {
   BuklodCommunityQuickActions,
   type BuklodCommunityComposerIntent,
@@ -390,28 +391,15 @@ export default function BuklodScreen(){
   return <LegacyPublicBuklodScreen/>;
  }
 
+ /*
+  * BUKLOD_COMMUNITY_BACK_NO_FALSE_UNAVAILABLE_R7
+  *
+  * /buklod is the canonical public surface. Scope state can briefly be null
+  * while returning through browser/native history; keep the mature public wall
+  * mounted instead of flashing a false "Community unavailable" state.
+  */
  if(!activeScope){
-  return(
-   <View
-    style={[
-     shared.screen,
-     {
-      flex:1,
-      padding:16,
-      justifyContent:'center'
-     }
-    ]}
-   >
-    <Card>
-     <Text style={shared.h2}>
-      Community unavailable
-     </Text>
-     <Text style={shared.muted}>
-      No active Community is available right now. Please try again or open Need Help.
-     </Text>
-    </Card>
-   </View>
-  );
+  return <LegacyPublicBuklodScreen/>;
  }
 
  /*
@@ -4012,6 +4000,9 @@ const refreshCommunity186L=
    </View>
 
    <SmartDrawerWallCard />
+
+   {/* BUKLOD_LIFE_WALL_ENTRY_R1 */}
+   <BuklodLifeWallCard />
 
    <BuklodTodayCard onRespond={()=>activateComposerIntent('post')} />
 
