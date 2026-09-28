@@ -1399,11 +1399,16 @@ export default function BuklodSpatialHomeV2() {
                 </Pressable>
               </View>
             </View>
-            <View style={styles.stereo}>
+            <Pressable
+              onPress={() => router.push('/personal-home/radio' as any)}
+              style={styles.stereo}
+              accessibilityRole="button"
+              accessibilityLabel="Open BUKLOD Radio"
+            >
               <MaterialCommunityIcons name="radio" size={18} color={palette.primary} />
               <MaterialCommunityIcons name="music-note" size={18} color={palette.secondary} />
               <Text style={styles.objectLabel}>Radio / Music</Text>
-            </View>
+            </Pressable>
           </View>
 
           <View style={styles.room}>
