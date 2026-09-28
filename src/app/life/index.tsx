@@ -1,1317 +1,1653 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+
 import {
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
-  findLifeQuestion,
-  findLifeTopic,
-  LIFE_ADDITIONAL_TOPICS,
-  LIFE_CRISIS_COPY,
-  LIFE_GOSPEL_CORE_VERSION,
-  LIFE_GOSPEL_STEPS,
-  LIFE_NEXT_STEPS,
-  LIFE_PRIMARY_TOPICS,
-  LIFE_QUESTIONS,
-  LIFE_RESPONSE_EXPLANATION,
-  LIFE_SAMPLE_PRAYER,
-  LIFE_SCRIPTURE_PACK_VERSION,
-  LIFE_SOUL_WINNER_GUIDE,
-  LIFE_SOUL_WINNER_GUIDE_VERSION,
-  LIFE_SOUL_WINNER_ISSUES,
-  scriptureForReferences,
+  MaterialCommunityIcons,
+} from '@expo/vector-icons';
+
+import {
+  LinearGradient,
+} from 'expo-linear-gradient';
+
+import {
+  router,
+} from 'expo-router';
+
+import {
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
+
+import {
+  supabase,
+} from '@/lib/supabase';
+
+import {
+  detectBuklodPublicLanguage,
+} from '@/lib/buklodPublicDailyContent';
+
+import {
+  getBuklodLifeCopy,
+  normalizeBuklodLifeLanguage,
+  type BuklodLifeTopicKey,
 } from '@/lib/buklodLifeContent';
-import { useNetwork } from '@/providers/NetworkProvider';
-import { useBuklodI18n } from '@/providers/BuklodI18nProvider';
 
-type LifePage =
-  | 'home'
-  | 'topic'
-  | 'questions'
-  | 'question'
-  | 'gospel'
-  | 'response'
-  | 'response-yes'
-  | 'soul-winner'
-  | 'perspective'
-  | 'crisis';
+import BuklodLifeTabs from '@/components/BuklodLifeTabs';
 
-function ActionButton({
-  label,
-  onPress,
-  secondary = false,
-}: {
-  label: string;
-  onPress: () => void;
-  secondary?: boolean;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={[
-        styles.actionButton,
-        secondary && styles.actionButtonSecondary,
-      ]}
-    >
-      <Text
-        style={[
-          styles.actionButtonText,
-          secondary && styles.actionButtonTextSecondary,
-        ]}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
+import {
+  useAuth,
+} from '@/providers/AuthProvider';
 
-function InfoCard({
-  title,
-  body,
-  icon = 'lightbulb-outline',
-}: {
-  title: string;
-  body: string;
-  icon?: string;
-}) {
-  return (
-    <View style={styles.infoCard}>
-      <View style={styles.infoIcon}>
-        <MaterialCommunityIcons
-          name={icon as any}
-          size={18}
-          color="#275D45"
-        />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.infoTitle}>{title}</Text>
-        <Text style={styles.body}>{body}</Text>
-      </View>
-    </View>
-  );
-}
 
 export default function BuklodLifeScreen() {
-  const params = useLocalSearchParams<{ mode?: string }>();
-  const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
-  const { online } = useNetwork();
-  const { locale } = useBuklodI18n();
 
-  const [page, setPage] = useState<LifePage>(
-    String(params.mode ?? '').toLowerCase() === 'help'
-      ? 'soul-winner'
-      : 'home',
-  );
-  const [topicId, setTopicId] = useState('hope');
-  const [questionId, setQuestionId] = useState('why-jesus');
-  const [gospelStep, setGospelStep] = useState(0);
-  const [soulIssue, setSoulIssue] = useState<string>('Guilt');
-  const [gospelLength, setGospelLength] =
-    useState<'short' | 'three' | 'full'>('short');
+  const insets =
+    useSafeAreaInsets();
+
+  const {
+    user,
+    profile,
+  } =
+    useAuth();
+
+  const [
+    address,
+    setAddress,
+  ] =
+    useState<{
+      country?: string | null;
+      province?: string | null;
+    }>({});
+
 
   useEffect(() => {
-    if (String(params.mode ?? '').toLowerCase() === 'help') {
-      setPage('soul-winner');
-    }
-  }, [params.mode]);
 
-  const topic = useMemo(() => findLifeTopic(topicId), [topicId]);
-  const question = useMemo(
-    () => findLifeQuestion(questionId),
-    [questionId],
-  );
-  const gospel = LIFE_GOSPEL_STEPS[gospelStep] ?? LIFE_GOSPEL_STEPS[0];
-  const scriptures = useMemo(
-    () => scriptureForReferences(gospel.scriptureRefs),
-    [gospel.scriptureRefs],
-  );
+    let alive = true;
 
-  const openWall = () => {
-    router.replace('/buklod' as any);
-  };
+    const load =
+      async () => {
 
-  const goBack = () => {
-    if (page === 'home') {
-      openWall();
-      return;
-    }
-    if (page === 'question') {
-      setPage('questions');
-      return;
-    }
-    if (page === 'response-yes') {
-      setPage('response');
-      return;
-    }
-    if (page === 'response') {
-      setPage('gospel');
-      setGospelStep(Math.max(0, LIFE_GOSPEL_STEPS.length - 1));
-      return;
-    }
-    setPage('home');
-  };
+        if (!user?.id) {
+          return;
+        }
 
-  const startTopic = (id: string) => {
-    setTopicId(id);
-    setPage('topic');
-  };
+        const {
+          data,
+        } =
+          await supabase
+            .from(
+              'buklod_user_addresses'
+            )
+            .select(
+              'country,province'
+            )
+            .eq(
+              'user_id',
+              user.id
+            )
+            .maybeSingle();
 
-  const startGospel = () => {
-    setGospelStep(0);
-    setPage('gospel');
-  };
+        if (
+          alive &&
+          data
+        ) {
+          setAddress(
+            data
+          );
+        }
+      };
 
-  const contentWidth =
-    width >= 900 ? Math.min(760, width - 80) : width;
+    void load();
+
+    return () => {
+      alive = false;
+    };
+
+  }, [
+    user?.id,
+  ]);
+
+
+  const language =
+    useMemo(
+      () =>
+        normalizeBuklodLifeLanguage(
+          detectBuklodPublicLanguage(
+            (
+              profile as any
+            )?.preferred_language,
+            address.country ??
+              (
+                profile as any
+              )?.country,
+            address.province ??
+              (
+                profile as any
+              )?.province,
+          )
+        ),
+      [
+        profile,
+        address.country,
+        address.province,
+      ]
+    );
+
+
+  const copy =
+    useMemo(
+      () =>
+        getBuklodLifeCopy(
+          language
+        ),
+      [
+        language,
+      ]
+    );
+
+
+  const openTopic =
+    (
+      topic: BuklodLifeTopicKey,
+      question?: string,
+    ) => {
+
+      router.push({
+        pathname:
+          '/life/topic' as any,
+
+        params: {
+          topic,
+          lang:
+            language,
+          ...(question
+            ? {
+              question,
+            }
+            : {}),
+        },
+      });
+    };
+
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
+    <ScrollView
+      style={
+        styles.screen
+      }
+      contentContainerStyle={[
+        styles.content,
+        {
+          paddingTop:
+            Math.max(
+              insets.top,
+              14
+            ),
+          paddingBottom:
+            Math.max(
+              insets.bottom + 28,
+              42
+            ),
+        },
+      ]}
+      showsVerticalScrollIndicator={
+        false
+      }
+    >
+
+      <View
+        style={
+          styles.header
+        }
+      >
         <Pressable
+          onPress={() =>
+            router.back()
+          }
           accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={goBack}
-          style={styles.headerButton}
+          accessibilityLabel={
+            language === 'fil'
+              ? 'Bumalik'
+              : 'Back'
+          }
+          style={
+            styles.back
+          }
         >
           <MaterialCommunityIcons
             name="arrow-left"
-            size={22}
-            color="#173F31"
+            size={23}
+            color="#24442B"
           />
         </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>LIFE</Text>
-          <Text style={styles.headerSubtitle}>
-            Hope • Purpose • Direction
+
+        <View
+          style={
+            styles.headerCopy
+          }
+        >
+          <Text
+            style={
+              styles.brand
+            }
+          >
+            BUKLOD
+            <Text
+              style={
+                styles.lifeWord
+              }
+            >
+              {' '}Life
+            </Text>
+          </Text>
+
+          <Text
+            style={
+              styles.brandSubtitle
+            }
+          >
+            {copy.brandSubtitle}
           </Text>
         </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back to Community Wall"
-          onPress={openWall}
-          style={styles.headerButton}
+
+        <View
+          style={
+            styles.languageBadge
+          }
+        >
+          <Text
+            style={
+              styles.languageText
+            }
+          >
+            {copy.languageLabel}
+          </Text>
+        </View>
+      </View>
+
+      <BuklodLifeTabs
+        active="my-life"
+        language={language}
+      />
+
+
+      <LinearGradient
+        colors={[
+          '#F5EEDB',
+          '#E7F0DF',
+          '#D6E8D0',
+        ]}
+        start={{
+          x: 0,
+          y: 0,
+        }}
+        end={{
+          x: 1,
+          y: 1,
+        }}
+        style={
+          styles.hero
+        }
+      >
+        <View
+          style={
+            styles.heroSprout
+          }
         >
           <MaterialCommunityIcons
-            name="home-outline"
-            size={21}
-            color="#173F31"
+            name="sprout"
+            size={30}
+            color="#2F6D3A"
           />
+        </View>
+
+        <Text
+          style={
+            styles.heroEyebrow
+          }
+        >
+          {copy.eyebrow}
+        </Text>
+
+        <Text
+          style={
+            styles.heroTitle
+          }
+        >
+          {copy.needTitle}
+        </Text>
+
+        <Text
+          style={
+            styles.heroBody
+          }
+        >
+          {copy.needSubtitle}
+        </Text>
+
+        <View
+          style={
+            styles.privacyPill
+          }
+        >
+          <MaterialCommunityIcons
+            name="shield-lock-outline"
+            size={14}
+            color="#365D3E"
+          />
+
+          <Text
+            style={
+              styles.privacyText
+            }
+          >
+            {
+              language === 'fil'
+                ? 'Pribado bilang default • Walang pressure'
+                : 'Private by default • No pressure'
+            }
+          </Text>
+        </View>
+      </LinearGradient>
+
+
+      <View
+        style={
+          styles.topicGrid
+        }
+      >
+        {
+          copy.primaryTopics.map(
+            topic => (
+              <Pressable
+                key={
+                  topic.key
+                }
+                onPress={() =>
+                  openTopic(
+                    topic.key
+                  )
+                }
+                accessibilityRole="button"
+                accessibilityLabel={
+                  topic.title
+                }
+                style={({ pressed }) => [
+                  styles.topicCard,
+                  {
+                    backgroundColor:
+                      topic.soft,
+                    borderColor:
+                      `${topic.accent}22`,
+                  },
+                  pressed &&
+                    styles.pressed,
+                ]}
+              >
+                <View
+                  style={[
+                    styles.topicIcon,
+                    {
+                      backgroundColor:
+                        topic.accent,
+                    },
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name={
+                      topic.icon
+                    }
+                    size={22}
+                    color="#FFFFFF"
+                  />
+                </View>
+
+                <Text
+                  style={[
+                    styles.topicTitle,
+                    {
+                      color:
+                        topic.accent,
+                    },
+                  ]}
+                >
+                  {topic.title}
+                </Text>
+
+                <Text
+                  numberOfLines={3}
+                  style={
+                    styles.topicSubtitle
+                  }
+                >
+                  {topic.subtitle}
+                </Text>
+
+                <MaterialCommunityIcons
+                  name="arrow-top-right"
+                  size={16}
+                  color={
+                    topic.accent
+                  }
+                  style={
+                    styles.topicArrow
+                  }
+                />
+              </Pressable>
+            )
+          )
+        }
+      </View>
+
+
+      <Text
+        style={
+          styles.sectionTitle
+        }
+      >
+        {copy.forYouTitle}
+      </Text>
+
+      <Pressable
+        onPress={() =>
+          openTopic(
+            'hope'
+          )
+        }
+        style={({ pressed }) => [
+          styles.featureCard,
+          pressed &&
+            styles.pressed,
+        ]}
+      >
+        <LinearGradient
+          colors={[
+            '#233D2B',
+            '#49664E',
+            '#8C7A4D',
+          ]}
+          start={{
+            x: 0,
+            y: 0,
+          }}
+          end={{
+            x: 1,
+            y: 1,
+          }}
+          style={
+            styles.featureGradient
+          }
+        >
+          <MaterialCommunityIcons
+            name="weather-sunset-up"
+            size={31}
+            color="#F4D98B"
+          />
+
+          <View
+            style={{
+              flex: 1,
+            }}
+          >
+            <Text
+              style={
+                styles.featureTitle
+              }
+            >
+              {copy.forYouHeadline}
+            </Text>
+
+            <Text
+              style={
+                styles.featureBody
+              }
+            >
+              {copy.forYouBody}
+            </Text>
+          </View>
+
+          <View
+            style={
+              styles.roundArrow
+            }
+          >
+            <MaterialCommunityIcons
+              name="arrow-right"
+              size={18}
+              color="#1F4529"
+            />
+          </View>
+        </LinearGradient>
+      </Pressable>
+
+
+      <View
+        style={
+          styles.sectionRow
+        }
+      >
+        <Text
+          style={
+            styles.sectionTitle
+          }
+        >
+          {copy.strugglesTitle}
+        </Text>
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={
+          false
+        }
+        contentContainerStyle={
+          styles.horizontalRow
+        }
+      >
+        {
+          copy.commonStruggles.map(
+            item => (
+              <Pressable
+                key={
+                  item.label
+                }
+                onPress={() =>
+                  openTopic(
+                    item.target
+                  )
+                }
+                style={({ pressed }) => [
+                  styles.struggleCard,
+                  pressed &&
+                    styles.pressed,
+                ]}
+              >
+                <View
+                  style={
+                    styles.struggleIcon
+                  }
+                >
+                  <MaterialCommunityIcons
+                    name={
+                      item.icon
+                    }
+                    size={23}
+                    color="#335C3D"
+                  />
+                </View>
+
+                <Text
+                  style={
+                    styles.struggleText
+                  }
+                >
+                  {item.label}
+                </Text>
+              </Pressable>
+            )
+          )
+        }
+      </ScrollView>
+
+
+      <View
+        style={
+          styles.sectionRow
+        }
+      >
+        <Text
+          style={
+            styles.sectionTitle
+          }
+        >
+          {copy.questionsTitle}
+        </Text>
+
+        <Pressable
+          onPress={() =>
+            openTopic(
+              'questions'
+            )
+          }
+        >
+          <Text
+            style={
+              styles.seeAll
+            }
+          >
+            {copy.seeAll} →
+          </Text>
         </Pressable>
       </View>
 
       <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[
-          styles.content,
-          {
-            width: contentWidth,
-            paddingBottom: Math.max(36, insets.bottom + 24),
-          },
-        ]}
-        showsVerticalScrollIndicator={false}
+        horizontal
+        showsHorizontalScrollIndicator={
+          false
+        }
+        contentContainerStyle={
+          styles.horizontalRow
+        }
       >
-        {!online ? (
-          <View style={styles.offlineBanner}>
-            <MaterialCommunityIcons
-              name="cloud-off-outline"
-              size={17}
-              color="#5F4A00"
-            />
-            <Text style={styles.offlineText}>
-              You're offline. Core LIFE content is still available.
-            </Text>
-          </View>
-        ) : null}
-
-        {locale !== 'en' ? (
-          <View style={styles.languageNotice}>
-            <Text style={styles.languageNoticeText}>
-              Approved English LIFE content is shown until a reviewed
-              language pack is available for your selected language.
-            </Text>
-          </View>
-        ) : null}
-
-        {page === 'home' ? (
-          <>
-            <View style={styles.hero}>
-              <Text style={styles.heroEyebrow}>LIFE</Text>
-              <Text style={styles.heroTitle}>What do you need today?</Text>
-              <Text style={styles.heroText}>
-                Start with what is real. Go deeper only when you choose.
-              </Text>
-              <View style={styles.versionRow}>
-                <Text style={styles.versionText}>
-                  Curated core • works without AI
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.topicGrid}>
-              {LIFE_PRIMARY_TOPICS.map(item => (
+        {
+          copy.questions
+            .slice(
+              0,
+              4
+            )
+            .map(
+              (
+                question,
+                index
+              ) => (
                 <Pressable
-                  key={item.id}
-                  accessibilityRole="button"
-                  onPress={() => startTopic(item.id)}
-                  style={styles.topicCard}
-                >
-                  <MaterialCommunityIcons
-                    name="compass-outline"
-                    size={20}
-                    color="#275D45"
-                  />
-                  <Text style={styles.topicTitle}>{item.title}</Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Text style={styles.sectionTitle}>More of what life can carry</Text>
-            <View style={styles.listCard}>
-              {LIFE_ADDITIONAL_TOPICS.map(item => (
-                <Pressable
-                  key={item.id}
-                  onPress={() => startTopic(item.id)}
-                  accessibilityRole="button"
-                  style={styles.listRow}
-                >
-                  <Text style={styles.listText}>{item.title}</Text>
-                  <MaterialCommunityIcons
-                    name="chevron-right"
-                    size={18}
-                    color="#6E8178"
-                  />
-                </Pressable>
-              ))}
-            </View>
-
-            <Text style={styles.sectionTitle}>Questions worth asking</Text>
-            <Pressable
-              onPress={() => setPage('questions')}
-              style={styles.featureCard}
-              accessibilityRole="button"
-            >
-              <View style={styles.featureIcon}>
-                <MaterialCommunityIcons
-                  name="help-circle-outline"
-                  size={22}
-                  color="#275D45"
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.featureTitle}>
-                  Explore honest questions
-                </Text>
-                <Text style={styles.featureText}>
-                  God, suffering, forgiveness, death, salvation and the
-                  resurrection.
-                </Text>
-              </View>
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={20}
-                color="#647A70"
-              />
-            </Pressable>
-
-            <Text style={styles.sectionTitle}>Explore Jesus</Text>
-            <Pressable
-              onPress={startGospel}
-              style={styles.jesusCard}
-              accessibilityRole="button"
-            >
-              <Text style={styles.jesusEyebrow}>
-                WHO HE IS • WHY HE CAME • WHAT HE OFFERS
-              </Text>
-              <Text style={styles.jesusTitle}>
-                See the Christian Gospel clearly
-              </Text>
-              <Text style={styles.jesusText}>
-                Curated truth. Voluntary response. No pressure.
-              </Text>
-              <View style={styles.inlineAction}>
-                <Text style={styles.inlineActionText}>Explore Jesus</Text>
-                <MaterialCommunityIcons
-                  name="arrow-right"
-                  size={17}
-                  color="#FFFFFF"
-                />
-              </View>
-            </Pressable>
-
-            <Text style={styles.sectionTitle}>Help someone</Text>
-            <Pressable
-              onPress={() => setPage('soul-winner')}
-              style={styles.featureCard}
-              accessibilityRole="button"
-            >
-              <View style={styles.featureIcon}>
-                <MaterialCommunityIcons
-                  name="hand-heart-outline"
-                  size={22}
-                  color="#275D45"
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.featureTitle}>
-                  A simple guide for sharing hope
-                </Text>
-                <Text style={styles.featureText}>
-                  Listen first. Ask permission. Share Christ clearly.
-                  Respect the person's response.
-                </Text>
-              </View>
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={20}
-                color="#647A70"
-              />
-            </Pressable>
-
-            <Pressable
-              onPress={() => setPage('perspective')}
-              style={styles.quietLink}
-              accessibilityRole="button"
-            >
-              <Text style={styles.quietLinkText}>
-                Another faith, skeptical, or hurt by religion?
-              </Text>
-            </Pressable>
-
-            <Pressable
-              onPress={() => setPage('crisis')}
-              style={styles.urgentLink}
-              accessibilityRole="button"
-            >
-              <MaterialCommunityIcons
-                name="alert-circle-outline"
-                size={17}
-                color="#8A341F"
-              />
-              <Text style={styles.urgentLinkText}>
-                Need urgent safety help?
-              </Text>
-            </Pressable>
-          </>
-        ) : null}
-
-        {page === 'topic' && topic ? (
-          <>
-            <Text style={styles.pageEyebrow}>START WITH REAL LIFE</Text>
-            <Text style={styles.pageTitle}>{topic.title}</Text>
-            <InfoCard
-              title="First, something practical"
-              body={topic.intro}
-              icon="lightbulb-outline"
-            />
-            <InfoCard
-              title="One next step"
-              body={topic.practical}
-              icon="walk"
-            />
-            <View style={styles.bridgeCard}>
-              <Text style={styles.bridgeEyebrow}>A DEEPER QUESTION</Text>
-              <Text style={styles.bridgeText}>{topic.bridge}</Text>
-            </View>
-            <View style={styles.buttonStack}>
-              <ActionButton label="Continue" onPress={startGospel} />
-              <ActionButton
-                label="Ask a Question"
-                onPress={() => setPage('questions')}
-                secondary
-              />
-              <ActionButton
-                label="Not Now"
-                onPress={() => setPage('home')}
-                secondary
-              />
-            </View>
-          </>
-        ) : null}
-
-        {page === 'questions' ? (
-          <>
-            <Text style={styles.pageEyebrow}>QUESTIONS WORTH ASKING</Text>
-            <Text style={styles.pageTitle}>Ask without pretending</Text>
-            <Text style={styles.pageIntro}>
-              These answers explain the Christian view without insulting
-              another belief or forcing you to agree.
-            </Text>
-            <View style={styles.listCard}>
-              {LIFE_QUESTIONS.map(item => (
-                <Pressable
-                  key={item.id}
-                  onPress={() => {
-                    setQuestionId(item.id);
-                    setPage('question');
-                  }}
-                  style={styles.listRow}
-                  accessibilityRole="button"
-                >
-                  <Text style={styles.listText}>{item.question}</Text>
-                  <MaterialCommunityIcons
-                    name="chevron-right"
-                    size={18}
-                    color="#6E8178"
-                  />
-                </Pressable>
-              ))}
-            </View>
-            <View style={styles.buttonStack}>
-              <ActionButton label="Explore Jesus" onPress={startGospel} />
-              <ActionButton
-                label="Not Now"
-                onPress={() => setPage('home')}
-                secondary
-              />
-            </View>
-          </>
-        ) : null}
-
-        {page === 'question' && question ? (
-          <>
-            <Text style={styles.pageEyebrow}>A CHRISTIAN PERSPECTIVE</Text>
-            <Text style={styles.pageTitle}>{question.question}</Text>
-            <View style={styles.answerCard}>
-              <Text style={styles.answerText}>{question.answer}</Text>
-            </View>
-            <View style={styles.buttonStack}>
-              <ActionButton label="Explore Jesus" onPress={startGospel} />
-              <ActionButton
-                label="Ask Another Question"
-                onPress={() => setPage('questions')}
-                secondary
-              />
-              <ActionButton
-                label="Not Now"
-                onPress={() => setPage('home')}
-                secondary
-              />
-            </View>
-          </>
-        ) : null}
-
-        {page === 'gospel' ? (
-          <>
-            <Text style={styles.pageEyebrow}>
-              EXPLORE JESUS • STEP {gospelStep + 1} OF {LIFE_GOSPEL_STEPS.length}
-            </Text>
-            <Text style={styles.pageTitle}>{gospel.title}</Text>
-            <View style={styles.gospelCard}>
-              <Text style={styles.gospelBody}>{gospel.body}</Text>
-            </View>
-
-            {scriptures.map(item => (
-              <View key={item.reference} style={styles.scriptureCard}>
-                <Text style={styles.scriptureRef}>
-                  {item.reference} • {item.version}
-                </Text>
-                <Text style={styles.scriptureText}>{item.text}</Text>
-              </View>
-            ))}
-
-            <Text style={styles.versionFoot}>
-              Gospel core: {LIFE_GOSPEL_CORE_VERSION}
-              {'\n'}Scripture pack: {LIFE_SCRIPTURE_PACK_VERSION}
-            </Text>
-
-            <View style={styles.buttonStack}>
-              <ActionButton
-                label={
-                  gospelStep >= LIFE_GOSPEL_STEPS.length - 1
-                    ? 'Continue to Response'
-                    : 'Continue'
-                }
-                onPress={() => {
-                  if (gospelStep >= LIFE_GOSPEL_STEPS.length - 1) {
-                    setPage('response');
-                  } else {
-                    setGospelStep(current => current + 1);
+                  key={
+                    question
                   }
-                }}
-              />
-              <ActionButton
-                label="I Have Questions"
-                onPress={() => setPage('questions')}
-                secondary
-              />
-              <ActionButton
-                label="Not Now"
-                onPress={() => setPage('home')}
-                secondary
-              />
-            </View>
-          </>
-        ) : null}
-
-        {page === 'response' ? (
-          <>
-            <Text style={styles.pageEyebrow}>YOUR RESPONSE IS YOUR CHOICE</Text>
-            <Text style={styles.pageTitle}>
-              Would you like to trust Christ?
-            </Text>
-            <Text style={styles.pageIntro}>
-              No countdown. No pressure. An app cannot manufacture faith or
-              declare your spiritual status from a button click.
-            </Text>
-            <View style={styles.buttonStack}>
-              <ActionButton
-                label="Yes, I Want to Respond"
-                onPress={() => setPage('response-yes')}
-              />
-              <ActionButton
-                label="I Have Questions"
-                onPress={() => setPage('questions')}
-                secondary
-              />
-              <ActionButton
-                label="Not Now"
-                onPress={() => setPage('home')}
-                secondary
-              />
-            </View>
-          </>
-        ) : null}
-
-        {page === 'response-yes' ? (
-          <>
-            <Text style={styles.pageEyebrow}>A VOLUNTARY RESPONSE</Text>
-            <Text style={styles.pageTitle}>Talk honestly with God</Text>
-            <InfoCard
-              title="What prayer means here"
-              body={LIFE_RESPONSE_EXPLANATION}
-              icon="message-outline"
-            />
-            <View style={styles.prayerCard}>
-              <Text style={styles.prayerLabel}>OPTIONAL SAMPLE PRAYER</Text>
-              <Text style={styles.prayerText}>{LIFE_SAMPLE_PRAYER}</Text>
-            </View>
-            <Text style={styles.sectionTitle}>Optional next steps</Text>
-            <View style={styles.listCard}>
-              {LIFE_NEXT_STEPS.map(item => (
-                <View key={item} style={styles.listRow}>
-                  <MaterialCommunityIcons
-                    name="check-circle-outline"
-                    size={17}
-                    color="#275D45"
-                  />
-                  <Text style={[styles.listText, { flex: 1 }]}>{item}</Text>
-                </View>
-              ))}
-            </View>
-            <View style={styles.privacyCard}>
-              <MaterialCommunityIcons
-                name="shield-lock-outline"
-                size={20}
-                color="#275D45"
-              />
-              <Text style={styles.privacyText}>
-                LIFE does not publish this response, award points or cash,
-                notify an Organization, pastor or ordinary BSOC operator, or
-                label you SAVED / UNSAVED / CONVERTED from app activity.
-              </Text>
-            </View>
-            <View style={styles.buttonStack}>
-              <ActionButton
-                label="Continue Exploring Questions"
-                onPress={() => setPage('questions')}
-              />
-              <ActionButton
-                label="Back to BUKLOD"
-                onPress={openWall}
-                secondary
-              />
-            </View>
-          </>
-        ) : null}
-
-        {page === 'soul-winner' ? (
-          <>
-            <Text style={styles.pageEyebrow}>HELP SOMEONE</Text>
-            <Text style={styles.pageTitle}>
-              A simple guide for sharing hope
-            </Text>
-            <Text style={styles.pageIntro}>
-              Listen first. Do not treat a person like a target or a score.
-            </Text>
-
-            <Text style={styles.sectionTitle}>What are they carrying?</Text>
-            <View style={styles.chipWrap}>
-              {LIFE_SOUL_WINNER_ISSUES.map(issue => (
-                <Pressable
-                  key={issue}
-                  onPress={() => setSoulIssue(issue)}
-                  style={[
-                    styles.chip,
-                    soulIssue === issue && styles.chipActive,
-                  ]}
-                  accessibilityRole="button"
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      soulIssue === issue && styles.chipTextActive,
-                    ]}
-                  >
-                    {issue}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <InfoCard
-              title={soulIssue}
-              body={'Try permission before explanation: "Would it be okay if I share something that helped me understand this differently?"'}
-              icon="ear-hearing"
-            />
-
-            {LIFE_SOUL_WINNER_GUIDE.map(item => (
-              <InfoCard
-                key={item.title}
-                title={item.title}
-                body={item.body}
-                icon="account-heart-outline"
-              />
-            ))}
-
-            <Text style={styles.sectionTitle}>Choose the conversation length</Text>
-            <View style={styles.chipWrap}>
-              {[
-                ['short', 'Short version'],
-                ['three', '3-minute version'],
-                ['full', 'Full conversation'],
-              ].map(([key, label]) => (
-                <Pressable
-                  key={key}
                   onPress={() =>
-                    setGospelLength(key as 'short' | 'three' | 'full')
+                    openTopic(
+                      'questions',
+                      question
+                    )
                   }
-                  style={[
-                    styles.chip,
-                    gospelLength === key && styles.chipActive,
+                  style={({ pressed }) => [
+                    styles.questionCard,
+                    pressed &&
+                      styles.pressed,
                   ]}
                 >
-                  <Text
+                  <View
                     style={[
-                      styles.chipText,
-                      gospelLength === key && styles.chipTextActive,
+                      styles.questionIcon,
+                      index === 2 && {
+                        backgroundColor:
+                          '#F5E6D7',
+                      },
                     ]}
                   >
-                    {label}
+                    <MaterialCommunityIcons
+                      name={
+                        index === 2
+                          ? 'cross'
+                          : 'help-circle-outline'
+                      }
+                      size={24}
+                      color={
+                        index === 2
+                          ? '#9B5B2F'
+                          : '#365D3E'
+                      }
+                    />
+                  </View>
+
+                  <Text
+                    numberOfLines={4}
+                    style={
+                      styles.questionText
+                    }
+                  >
+                    {question}
                   </Text>
                 </Pressable>
-              ))}
-            </View>
-
-            <View style={styles.answerCard}>
-              <Text style={styles.answerText}>
-                {gospelLength === 'short'
-                  ? 'God made us for relationship with Him. Sin separates us from God. Jesus Christ died for our sins and rose again. Salvation is a gift of grace received through repentance and faith in Him.'
-                  : gospelLength === 'three'
-                    ? 'Begin with the person, then explain the Gospel in six movements: God, our sin, Jesus Christ, grace, response, and new life. Ask questions along the way instead of delivering a speech.'
-                    : 'Use the full curated Gospel path in LIFE. Move slowly enough to listen, clarify questions, use approved Scripture, and respect Interested / Has Questions / Not Ready / Wants Prayer / Professes Faith without turning any response into a score.'}
-              </Text>
-            </View>
-
-            <View style={styles.privacyCard}>
-              <MaterialCommunityIcons
-                name="shield-lock-outline"
-                size={20}
-                color="#275D45"
-              />
-              <Text style={styles.privacyText}>
-                No souls-won leaderboard, conversion points, cash reward,
-                public counter or automatic spiritual-status sharing.
-              </Text>
-            </View>
-
-            <Text style={styles.versionFoot}>
-              Soul Winner guide: {LIFE_SOUL_WINNER_GUIDE_VERSION}
-            </Text>
-
-            <View style={styles.buttonStack}>
-              <ActionButton label="Open Gospel Core" onPress={startGospel} />
-              <ActionButton
-                label="Back to LIFE"
-                onPress={() => setPage('home')}
-                secondary
-              />
-            </View>
-          </>
-        ) : null}
-
-        {page === 'perspective' ? (
-          <>
-            <Text style={styles.pageEyebrow}>YOU CAN BE HONEST HERE</Text>
-            <Text style={styles.pageTitle}>
-              Another faith, skeptical, or hurt by religion?
-            </Text>
-            <View style={styles.answerCard}>
-              <Text style={styles.answerText}>
-                Thank you for being clear. LIFE does not need to insult your
-                beliefs to explain the Christian view. If you would like, you
-                can explore who Jesus is according to the Christian Gospel.
-                You are free to stop at any point.
-              </Text>
-            </View>
-            <View style={styles.buttonStack}>
-              <ActionButton label="Continue" onPress={startGospel} />
-              <ActionButton
-                label="Ask a Question"
-                onPress={() => setPage('questions')}
-                secondary
-              />
-              <ActionButton
-                label="Not Now"
-                onPress={() => setPage('home')}
-                secondary
-              />
-            </View>
-          </>
-        ) : null}
-
-        {page === 'crisis' ? (
-          <>
-            <Text style={styles.pageEyebrow}>URGENT SAFETY</Text>
-            <Text style={styles.pageTitle}>{LIFE_CRISIS_COPY.title}</Text>
-            <View style={styles.crisisCard}>
-              <MaterialCommunityIcons
-                name="alert-circle-outline"
-                size={28}
-                color="#8A341F"
-              />
-              <Text style={styles.crisisText}>{LIFE_CRISIS_COPY.body}</Text>
-            </View>
-            <Text style={styles.pageIntro}>{LIFE_CRISIS_COPY.note}</Text>
-            <View style={styles.buttonStack}>
-              <ActionButton
-                label="Back to LIFE"
-                onPress={() => setPage('home')}
-              />
-              <ActionButton
-                label="Also Show Spiritual Encouragement"
-                onPress={() => startTopic('hope')}
-                secondary
-              />
-            </View>
-          </>
-        ) : null}
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Private by default • Curated content • Voluntary response
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() =>
-              router.push(
-                '/help?category=TECHNICAL&sourceRoute=%2Flife' as any,
               )
+            )
+        }
+      </ScrollView>
+
+
+      <Text
+        style={
+          styles.sectionTitle
+        }
+      >
+        {copy.exploreTitle}
+      </Text>
+
+      <Pressable
+        onPress={() =>
+          openTopic(
+            'jesus'
+          )
+        }
+        style={({ pressed }) => [
+          styles.bigCard,
+          pressed &&
+            styles.pressed,
+        ]}
+      >
+        <LinearGradient
+          colors={[
+            '#F5E7D3',
+            '#EED0A8',
+            '#E9B97D',
+          ]}
+          start={{
+            x: 0,
+            y: 0,
+          }}
+          end={{
+            x: 1,
+            y: 1,
+          }}
+          style={
+            styles.bigGradient
+          }
+        >
+          <View
+            style={
+              styles.bigIcon
             }
           >
-            <Text style={styles.helpLink}>Need Help with LIFE?</Text>
-          </Pressable>
-        </View>
-      </ScrollView>
-    </View>
+            <MaterialCommunityIcons
+              name="book-open-page-variant-outline"
+              size={28}
+              color="#7C4A26"
+            />
+          </View>
+
+          <Text
+            style={
+              styles.bigTitle
+            }
+          >
+            {copy.exploreHeadline}
+          </Text>
+
+          <Text
+            style={
+              styles.bigBody
+            }
+          >
+            {copy.exploreBody}
+          </Text>
+
+          <View
+            style={
+              styles.bigCta
+            }
+          >
+            <Text
+              style={
+                styles.bigCtaText
+              }
+            >
+              {copy.exploreCta}
+            </Text>
+
+            <MaterialCommunityIcons
+              name="arrow-right"
+              size={17}
+              color="#FFFFFF"
+            />
+          </View>
+        </LinearGradient>
+      </Pressable>
+
+
+      <Text
+        style={
+          styles.sectionTitle
+        }
+      >
+        {copy.helpTitle}
+      </Text>
+
+      <Pressable
+        onPress={() =>
+          openTopic(
+            'help'
+          )
+        }
+        style={({ pressed }) => [
+          styles.bigCard,
+          pressed &&
+            styles.pressed,
+        ]}
+      >
+        <LinearGradient
+          colors={[
+            '#E8F0DF',
+            '#D7E7CE',
+            '#C6D9B8',
+          ]}
+          start={{
+            x: 0,
+            y: 0,
+          }}
+          end={{
+            x: 1,
+            y: 1,
+          }}
+          style={
+            styles.bigGradient
+          }
+        >
+          <View
+            style={[
+              styles.bigIcon,
+              {
+                backgroundColor:
+                  'rgba(255,255,255,0.72)',
+              },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="hand-heart-outline"
+              size={29}
+              color="#355D3D"
+            />
+          </View>
+
+          <Text
+            style={[
+              styles.bigTitle,
+              {
+                color:
+                  '#24482D',
+              },
+            ]}
+          >
+            {copy.helpHeadline}
+          </Text>
+
+          <Text
+            style={[
+              styles.bigBody,
+              {
+                color:
+                  '#3E5C45',
+              },
+            ]}
+          >
+            {copy.helpBody}
+          </Text>
+
+          <View
+            style={[
+              styles.bigCta,
+              {
+                backgroundColor:
+                  '#2F6D3A',
+              },
+            ]}
+          >
+            <Text
+              style={
+                styles.bigCtaText
+              }
+            >
+              {copy.helpCta}
+            </Text>
+
+            <MaterialCommunityIcons
+              name="arrow-right"
+              size={17}
+              color="#FFFFFF"
+            />
+          </View>
+        </LinearGradient>
+      </Pressable>
+
+
+      <Text
+        style={
+          styles.footer
+        }
+      >
+        {
+          language === 'fil'
+            ? 'Ang LIFE ay pribado bilang default. Ikaw ang magpapasya kung magpapatuloy, magtatanong, o hihinto muna.'
+            : 'LIFE is private by default. You choose whether to continue, ask a question, or stop for now.'
+        }
+      </Text>
+
+    </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: '#F4F7F5',
-  },
-  header: {
-    minHeight: 58,
-    paddingHorizontal: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#DFE8E3',
-    backgroundColor: '#FFFFFF',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#EEF4F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    color: '#173F31',
-    fontWeight: '900',
-    fontSize: 17,
-    letterSpacing: 1.2,
-  },
-  headerSubtitle: {
-    marginTop: 1,
-    color: '#687B72',
-    fontSize: 10.5,
-    fontWeight: '700',
-  },
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    alignSelf: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 14,
-  },
-  offlineBanner: {
-    marginBottom: 10,
-    borderRadius: 13,
-    backgroundColor: '#FFF6D8',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  offlineText: {
-    flex: 1,
-    color: '#5F4A00',
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  languageNotice: {
-    marginBottom: 10,
-    borderRadius: 13,
-    backgroundColor: '#EEF3F0',
-    padding: 10,
-  },
-  languageNoticeText: {
-    color: '#566B61',
-    fontSize: 10.5,
-    lineHeight: 15,
-  },
-  hero: {
-    borderRadius: 22,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#DFE8E3',
-    padding: 18,
-  },
-  heroEyebrow: {
-    color: '#275D45',
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 1.4,
-  },
-  heroTitle: {
-    marginTop: 6,
-    color: '#173F31',
-    fontSize: 26,
-    lineHeight: 31,
-    fontWeight: '900',
-  },
-  heroText: {
-    marginTop: 7,
-    color: '#65786F',
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  versionRow: {
-    marginTop: 12,
-    alignSelf: 'flex-start',
-    borderRadius: 999,
-    backgroundColor: '#EDF4F0',
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-  },
-  versionText: {
-    color: '#486457',
-    fontSize: 9.5,
-    fontWeight: '800',
-  },
-  topicGrid: {
-    marginTop: 12,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  topicCard: {
-    width: '48%',
-    minHeight: 82,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#DCE7E1',
-    backgroundColor: '#FFFFFF',
-    padding: 12,
-    justifyContent: 'space-between',
-  },
-  topicTitle: {
-    color: '#214F3C',
-    fontSize: 13,
-    fontWeight: '900',
-  },
-  sectionTitle: {
-    marginTop: 20,
-    marginBottom: 8,
-    color: '#294D3E',
-    fontSize: 13,
-    fontWeight: '900',
-    letterSpacing: 0.2,
-  },
-  listCard: {
-    overflow: 'hidden',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#DFE8E3',
-    backgroundColor: '#FFFFFF',
-  },
-  listRow: {
-    minHeight: 48,
-    paddingHorizontal: 13,
-    paddingVertical: 11,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E6ECE8',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  listText: {
-    flex: 1,
-    color: '#315347',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  featureCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#DCE7E1',
-    backgroundColor: '#FFFFFF',
-    padding: 13,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  featureIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 13,
-    backgroundColor: '#EDF4F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  featureTitle: {
-    color: '#214F3C',
-    fontSize: 13,
-    fontWeight: '900',
-  },
-  featureText: {
-    marginTop: 2,
-    color: '#6B7F75',
-    fontSize: 10.5,
-    lineHeight: 15,
-  },
-  jesusCard: {
-    borderRadius: 18,
-    backgroundColor: '#275D45',
-    padding: 16,
-  },
-  jesusEyebrow: {
-    color: '#CFE1D7',
-    fontSize: 9,
-    fontWeight: '900',
-    letterSpacing: 0.7,
-  },
-  jesusTitle: {
-    marginTop: 6,
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  jesusText: {
-    marginTop: 5,
-    color: '#E3EEE8',
-    fontSize: 11.5,
-    lineHeight: 17,
-  },
-  inlineAction: {
-    marginTop: 12,
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  inlineActionText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '900',
-  },
-  quietLink: {
-    marginTop: 16,
-    paddingVertical: 11,
-  },
-  quietLinkText: {
-    color: '#526F61',
-    fontSize: 11.5,
-    textAlign: 'center',
-    textDecorationLine: 'underline',
-  },
-  urgentLink: {
-    marginTop: 4,
-    borderRadius: 13,
-    borderWidth: 1,
-    borderColor: '#E8C8BF',
-    backgroundColor: '#FFF8F5',
-    padding: 11,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 7,
-  },
-  urgentLinkText: {
-    color: '#8A341F',
-    fontSize: 11,
-    fontWeight: '900',
-  },
-  pageEyebrow: {
-    color: '#527063',
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.8,
-  },
-  pageTitle: {
-    marginTop: 6,
-    marginBottom: 10,
-    color: '#173F31',
-    fontSize: 25,
-    lineHeight: 30,
-    fontWeight: '900',
-  },
-  pageIntro: {
-    marginBottom: 13,
-    color: '#64776E',
-    fontSize: 12.5,
-    lineHeight: 18,
-  },
-  infoCard: {
-    marginBottom: 9,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#DFE8E3',
-    backgroundColor: '#FFFFFF',
-    padding: 13,
-    flexDirection: 'row',
-    gap: 10,
-  },
-  infoIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 11,
-    backgroundColor: '#EDF4F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  infoTitle: {
-    color: '#214F3C',
-    fontSize: 12.5,
-    fontWeight: '900',
-  },
-  body: {
-    marginTop: 3,
-    color: '#667A70',
-    fontSize: 11.5,
-    lineHeight: 17,
-  },
-  bridgeCard: {
-    marginTop: 2,
-    borderRadius: 17,
-    backgroundColor: '#E8F0EB',
-    padding: 14,
-  },
-  bridgeEyebrow: {
-    color: '#527063',
-    fontSize: 9.5,
-    fontWeight: '900',
-    letterSpacing: 0.7,
-  },
-  bridgeText: {
-    marginTop: 5,
-    color: '#214F3C',
-    fontSize: 13,
-    lineHeight: 19,
-    fontWeight: '700',
-  },
-  buttonStack: {
-    marginTop: 14,
-    gap: 8,
-  },
-  actionButton: {
-    minHeight: 46,
-    borderRadius: 14,
-    backgroundColor: '#275D45',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 14,
-  },
-  actionButtonSecondary: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#C9D9D1',
-  },
-  actionButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '900',
-  },
-  actionButtonTextSecondary: {
-    color: '#275D45',
-  },
-  answerCard: {
-    borderRadius: 17,
-    borderWidth: 1,
-    borderColor: '#DFE8E3',
-    backgroundColor: '#FFFFFF',
-    padding: 15,
-  },
-  answerText: {
-    color: '#375A4B',
-    fontSize: 13,
-    lineHeight: 20,
-  },
-  gospelCard: {
-    borderRadius: 19,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#D9E5DF',
-    padding: 17,
-  },
-  gospelBody: {
-    color: '#244D3B',
-    fontSize: 15,
-    lineHeight: 23,
-    fontWeight: '700',
-  },
-  scriptureCard: {
-    marginTop: 9,
-    borderRadius: 14,
-    backgroundColor: '#EEF4F0',
-    padding: 12,
-  },
-  scriptureRef: {
-    color: '#275D45',
-    fontSize: 10,
-    fontWeight: '900',
-  },
-  scriptureText: {
-    marginTop: 4,
-    color: '#506A5D',
-    fontSize: 11.5,
-    lineHeight: 17,
-  },
-  versionFoot: {
-    marginTop: 10,
-    color: '#788A81',
-    fontSize: 9.5,
-    lineHeight: 14,
-  },
-  prayerCard: {
-    marginTop: 3,
-    borderRadius: 17,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#DCE7E1',
-    padding: 15,
-  },
-  prayerLabel: {
-    color: '#527063',
-    fontSize: 9.5,
-    fontWeight: '900',
-    letterSpacing: 0.6,
-  },
-  prayerText: {
-    marginTop: 7,
-    color: '#375A4B',
-    fontSize: 12.5,
-    lineHeight: 19,
-    fontStyle: 'italic',
-  },
-  privacyCard: {
-    marginTop: 12,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: '#D9E5DF',
-    backgroundColor: '#F6FAF8',
-    padding: 12,
-    flexDirection: 'row',
-    gap: 9,
-  },
-  privacyText: {
-    flex: 1,
-    color: '#5D7469',
-    fontSize: 10.5,
-    lineHeight: 16,
-  },
-  chipWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 7,
-    marginBottom: 12,
-  },
-  chip: {
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#C9D9D1',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 11,
-    paddingVertical: 8,
-  },
-  chipActive: {
-    backgroundColor: '#275D45',
-    borderColor: '#275D45',
-  },
-  chipText: {
-    color: '#486457',
-    fontSize: 10.5,
-    fontWeight: '800',
-  },
-  chipTextActive: {
-    color: '#FFFFFF',
-  },
-  crisisCard: {
-    borderRadius: 17,
-    borderWidth: 1,
-    borderColor: '#E3B7AA',
-    backgroundColor: '#FFF7F4',
-    padding: 15,
-    gap: 10,
-  },
-  crisisText: {
-    color: '#75301F',
-    fontSize: 13,
-    lineHeight: 20,
-    fontWeight: '700',
-  },
-  footer: {
-    marginTop: 24,
-    paddingTop: 14,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#D7E2DC',
-    alignItems: 'center',
-    gap: 8,
-  },
-  footerText: {
-    color: '#7A8A82',
-    fontSize: 9.5,
-    textAlign: 'center',
-  },
-  helpLink: {
-    color: '#275D45',
-    fontSize: 10.5,
-    fontWeight: '900',
-  },
-});
+
+const styles =
+  StyleSheet.create({
+
+    screen: {
+      flex:
+        1,
+
+      backgroundColor:
+        '#FAFAF7',
+    },
+
+    content: {
+      paddingHorizontal:
+        14,
+    },
+
+    header: {
+      flexDirection:
+        'row',
+
+      alignItems:
+        'center',
+
+      gap:
+        10,
+
+      marginBottom:
+        12,
+    },
+
+    back: {
+      width:
+        42,
+
+      height:
+        42,
+
+      borderRadius:
+        14,
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'center',
+
+      backgroundColor:
+        '#FFFFFF',
+
+      borderWidth:
+        1,
+
+      borderColor:
+        '#E3E8E1',
+    },
+
+    headerCopy: {
+      flex:
+        1,
+    },
+
+    brand: {
+      fontSize:
+        22,
+
+      fontWeight:
+        '900',
+
+      color:
+        '#173D22',
+    },
+
+    lifeWord: {
+      color:
+        '#6C8B2A',
+
+      fontStyle:
+        'italic',
+    },
+
+    brandSubtitle: {
+      marginTop:
+        1,
+
+      fontSize:
+        10,
+
+      fontWeight:
+        '800',
+
+      color:
+        '#6C756B',
+    },
+
+    languageBadge: {
+      paddingHorizontal:
+        8,
+
+      paddingVertical:
+        6,
+
+      borderRadius:
+        999,
+
+      backgroundColor:
+        '#E7F0DF',
+    },
+
+    languageText: {
+      fontSize:
+        7,
+
+      letterSpacing:
+        0.7,
+
+      fontWeight:
+        '900',
+
+      color:
+        '#365D3E',
+    },
+
+    hero: {
+      padding:
+        18,
+
+      borderRadius:
+        24,
+
+      overflow:
+        'hidden',
+
+      borderWidth:
+        1,
+
+      borderColor:
+        'rgba(47,109,58,0.12)',
+
+      marginBottom:
+        14,
+    },
+
+    heroSprout: {
+      width:
+        54,
+
+      height:
+        54,
+
+      borderRadius:
+        18,
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'center',
+
+      backgroundColor:
+        'rgba(255,255,255,0.74)',
+
+      marginBottom:
+        14,
+    },
+
+    heroEyebrow: {
+      fontSize:
+        9,
+
+      fontWeight:
+        '900',
+
+      letterSpacing:
+        1.1,
+
+      color:
+        '#477250',
+
+      marginBottom:
+        5,
+    },
+
+    heroTitle: {
+      fontSize:
+        25,
+
+      lineHeight:
+        30,
+
+      fontWeight:
+        '900',
+
+      color:
+        '#1F3926',
+    },
+
+    heroBody: {
+      marginTop:
+        5,
+
+      fontSize:
+        13,
+
+      lineHeight:
+        19,
+
+      color:
+        '#506455',
+    },
+
+    privacyPill: {
+      alignSelf:
+        'flex-start',
+
+      flexDirection:
+        'row',
+
+      alignItems:
+        'center',
+
+      gap:
+        6,
+
+      marginTop:
+        14,
+
+      paddingHorizontal:
+        9,
+
+      paddingVertical:
+        7,
+
+      borderRadius:
+        999,
+
+      backgroundColor:
+        'rgba(255,255,255,0.62)',
+    },
+
+    privacyText: {
+      fontSize:
+        9,
+
+      fontWeight:
+        '800',
+
+      color:
+        '#365D3E',
+    },
+
+    topicGrid: {
+      flexDirection:
+        'row',
+
+      flexWrap:
+        'wrap',
+
+      gap:
+        10,
+
+      marginBottom:
+        18,
+    },
+
+    topicCard: {
+      width:
+        '48.4%',
+
+      minHeight:
+        156,
+
+      borderRadius:
+        20,
+
+      borderWidth:
+        1,
+
+      padding:
+        13,
+
+      position:
+        'relative',
+    },
+
+    topicIcon: {
+      width:
+        42,
+
+      height:
+        42,
+
+      borderRadius:
+        14,
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'center',
+
+      marginBottom:
+        11,
+    },
+
+    topicTitle: {
+      fontSize:
+        18,
+
+      fontWeight:
+        '900',
+
+      marginBottom:
+        5,
+    },
+
+    topicSubtitle: {
+      paddingRight:
+        18,
+
+      fontSize:
+        11,
+
+      lineHeight:
+        16,
+
+      color:
+        '#46534A',
+    },
+
+    topicArrow: {
+      position:
+        'absolute',
+
+      right:
+        11,
+
+      bottom:
+        11,
+    },
+
+    pressed: {
+      opacity:
+        0.9,
+
+      transform: [
+        {
+          scale:
+            0.99,
+        },
+      ],
+    },
+
+    sectionRow: {
+      flexDirection:
+        'row',
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'space-between',
+    },
+
+    sectionTitle: {
+      marginBottom:
+        9,
+
+      fontSize:
+        18,
+
+      fontWeight:
+        '900',
+
+      color:
+        '#1F3325',
+    },
+
+    seeAll: {
+      marginBottom:
+        9,
+
+      fontSize:
+        10,
+
+      fontWeight:
+        '800',
+
+      color:
+        '#59705F',
+    },
+
+    featureCard: {
+      marginBottom:
+        18,
+
+      borderRadius:
+        20,
+
+      overflow:
+        'hidden',
+    },
+
+    featureGradient: {
+      minHeight:
+        142,
+
+      borderRadius:
+        20,
+
+      padding:
+        16,
+
+      flexDirection:
+        'row',
+
+      alignItems:
+        'center',
+
+      gap:
+        12,
+    },
+
+    featureTitle: {
+      fontSize:
+        19,
+
+      fontWeight:
+        '900',
+
+      color:
+        '#FFFFFF',
+
+      marginBottom:
+        4,
+    },
+
+    featureBody: {
+      fontSize:
+        11,
+
+      lineHeight:
+        16,
+
+      color:
+        'rgba(255,255,255,0.84)',
+    },
+
+    roundArrow: {
+      width:
+        36,
+
+      height:
+        36,
+
+      borderRadius:
+        18,
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'center',
+
+      backgroundColor:
+        '#F7F1DF',
+    },
+
+    horizontalRow: {
+      gap:
+        9,
+
+      paddingBottom:
+        17,
+    },
+
+    struggleCard: {
+      width:
+        116,
+
+      minHeight:
+        118,
+
+      borderRadius:
+        18,
+
+      padding:
+        12,
+
+      justifyContent:
+        'space-between',
+
+      backgroundColor:
+        '#EEF2EB',
+
+      borderWidth:
+        1,
+
+      borderColor:
+        '#E1E8DE',
+    },
+
+    struggleIcon: {
+      width:
+        42,
+
+      height:
+        42,
+
+      borderRadius:
+        14,
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'center',
+
+      backgroundColor:
+        '#FFFFFF',
+    },
+
+    struggleText: {
+      fontSize:
+        12,
+
+      lineHeight:
+        16,
+
+      fontWeight:
+        '900',
+
+      color:
+        '#293E30',
+    },
+
+    questionCard: {
+      width:
+        135,
+
+      minHeight:
+        148,
+
+      borderRadius:
+        18,
+
+      padding:
+        12,
+
+      backgroundColor:
+        '#FFFFFF',
+
+      borderWidth:
+        1,
+
+      borderColor:
+        '#E5E8E2',
+    },
+
+    questionIcon: {
+      width:
+        42,
+
+      height:
+        42,
+
+      borderRadius:
+        14,
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'center',
+
+      backgroundColor:
+        '#E8F0E4',
+
+      marginBottom:
+        12,
+    },
+
+    questionText: {
+      fontSize:
+        12,
+
+      lineHeight:
+        17,
+
+      fontWeight:
+        '800',
+
+      color:
+        '#2A3B30',
+    },
+
+    bigCard: {
+      marginBottom:
+        18,
+
+      borderRadius:
+        22,
+
+      overflow:
+        'hidden',
+    },
+
+    bigGradient: {
+      minHeight:
+        220,
+
+      padding:
+        18,
+
+      borderRadius:
+        22,
+    },
+
+    bigIcon: {
+      width:
+        52,
+
+      height:
+        52,
+
+      borderRadius:
+        17,
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'center',
+
+      backgroundColor:
+        'rgba(255,255,255,0.58)',
+
+      marginBottom:
+        15,
+    },
+
+    bigTitle: {
+      maxWidth:
+        270,
+
+      fontSize:
+        22,
+
+      lineHeight:
+        27,
+
+      fontWeight:
+        '900',
+
+      color:
+        '#633D23',
+    },
+
+    bigBody: {
+      maxWidth:
+        310,
+
+      marginTop:
+        7,
+
+      fontSize:
+        12,
+
+      lineHeight:
+        18,
+
+      color:
+        '#71533A',
+    },
+
+    bigCta: {
+      alignSelf:
+        'flex-start',
+
+      marginTop:
+        18,
+
+      paddingHorizontal:
+        13,
+
+      paddingVertical:
+        9,
+
+      borderRadius:
+        999,
+
+      flexDirection:
+        'row',
+
+      alignItems:
+        'center',
+
+      gap:
+        6,
+
+      backgroundColor:
+        '#8B5731',
+    },
+
+    bigCtaText: {
+      fontSize:
+        11,
+
+      fontWeight:
+        '900',
+
+      color:
+        '#FFFFFF',
+    },
+
+    footer: {
+      marginTop:
+        2,
+
+      paddingHorizontal:
+        10,
+
+      textAlign:
+        'center',
+
+      fontSize:
+        10,
+
+      lineHeight:
+        15,
+
+      color:
+        '#788078',
+    },
+
+  });
