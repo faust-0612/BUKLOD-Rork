@@ -327,8 +327,10 @@ export default function BuklodReferralInviteCard(){
       <Text style={styles.eyebrow}>REFERRAL + SHARING</Text>
       <Text style={styles.title}>Share BUKLOD</Text>
       <Text style={styles.sub}>
-        One-time ₱20 per genuinely unique qualified first-line referral.
-        Pending is not withdrawable. The first-line relationship is normally permanent.
+        One-time {php(summary.one_time_reward_php ?? 20)} per genuinely unique
+        qualified first-line referral, plus {Number(summary.first_line_share_pct ?? 10).toFixed(0)}%
+        first-line share for {Number(summary.referral_months ?? 6).toFixed(0)} months under the
+        active policy. Pending is not withdrawable. There is no downline commission.
       </Text>
 
       <View style={styles.codeRow}>
@@ -428,7 +430,7 @@ export default function BuklodReferralInviteCard(){
               {Number(row.qualification_pct??0).toFixed(1)}%
             </Text>
             <Text style={styles.itemMeta}>
-              6-month share: {shareText}
+              {Number(summary.first_line_share_pct ?? 10).toFixed(0)}% first-line share: {shareText}
             </Text>
           </View>
         );
