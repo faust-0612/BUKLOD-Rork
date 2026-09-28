@@ -4681,19 +4681,20 @@ const refreshCommunity186L=
         right:8,
         bottom:
          Math.max(
-          communityInsets.bottom+8,
-          12
+          communityInsets.bottom+
+           (Platform.OS==='web'
+            ? 78
+            : 72),
+          84
          ),
-        paddingHorizontal:10,
-        paddingTop:8,
-        paddingBottom:10,
-        borderRadius:16,
-        /* BUKLOD_VIDEO_VIEWER_GLASS_ACTIONS_R5 */
+        paddingHorizontal:8,
+        paddingTop:4,
+        paddingBottom:4,
+        borderRadius:14,
+        /* BUKLOD_VIDEO_VIEWER_NO_CONTROL_OVERLAP_R6 */
         backgroundColor:
-         'rgba(255,255,255,.34)',
-        borderWidth:1,
-        borderColor:
-         'rgba(255,255,255,.30)'
+         'rgba(0,0,0,.16)',
+        borderWidth:0
        }}
       >
        <Text
