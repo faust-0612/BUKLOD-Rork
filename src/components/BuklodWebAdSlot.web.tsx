@@ -209,7 +209,7 @@ export default function BuklodWebAdSlot({
       diagnosticPlacementFor(placement),
       'ad_request',
       undefined,
-      { route: pathname, provider: 'ADSENSE_WEB' },
+      { route: pathname, provider: 'ADSENSE_WEB', placementId: stablePlacementId },
     );
 
     ensureAdSenseScript(ADSENSE_CLIENT);
