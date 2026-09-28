@@ -133,26 +133,15 @@ export default function BuklodNavSafeShell({
           }
 
           /*
-           * BUKLOD_PROFILE_ROOT_BACK_TO_WALL_R3
+           * BUKLOD_ONE_STEP_BACK_R6
            *
-           * My BUKLOD/Profile is a root-level public destination. Android
-           * hardware Back must converge on Community Wall instead of
-           * delegating to an exhausted/native tab stack that can close the app.
-           * Nested Profile routes keep their normal stack history.
+           * Hardware Back consumes exactly one meaningful navigation entry
+           * when history exists. Do not special-case Profile/Me back to the
+           * Community root because that skips the screen the user came from.
            */
-          if (
-            normalized === '/me' ||
-            normalized === '/profile'
-          ) {
-            router.replace(
-              '/buklod' as any
-            );
-
-            return true;
-          }
-
           if (router.canGoBack()) {
-            return false;
+            router.back();
+            return true;
           }
 
           router.replace(
