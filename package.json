@@ -27,7 +27,11 @@
     "production:dry-run": "bash scripts/production-cutover.sh",
     "production:android": "bash scripts/build-android-production.sh",
     "play:draft": "bash scripts/submit-google-play-draft.sh",
-    "play:internal": "bash scripts/submit-google-play-internal.sh"
+    "play:internal": "bash scripts/submit-google-play-internal.sh",
+    "web:home": "node scripts/start-standalone-web.mjs home",
+    "web:kingdom": "node scripts/start-standalone-web.mjs kingdom",
+    "web:home:export": "node scripts/export-standalone-web.mjs home",
+    "web:kingdom:export": "node scripts/export-standalone-web.mjs kingdom"
   },
   "jest": {
     "preset": "jest-expo",
