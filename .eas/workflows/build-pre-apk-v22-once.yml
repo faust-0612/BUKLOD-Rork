@@ -1,0 +1,65 @@
+name: BUKLOD Main Pre-APK V22 Build
+
+# One-shot Android APK build on EAS infrastructure.
+# No web deploy. No OTA publish. No Play Store submit. No backend mutation.
+on:
+  push:
+    branches: ['codex/pre-apk-economy-ads-v2-20260928']
+    paths:
+      - '.eas/workflows/build-pre-apk-v22-once.yml'
+
+jobs:
+  qa:
+    name: Verify exact BUKLOD v22 release source
+    steps:
+      - uses: eas/checkout
+      - uses: eas/install_node_modules
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Base release gate
+        run: node scripts/release-gate.mjs
+      - name: Community QMP contract
+        run: node scripts/community-contribution-economy-release-contract.mjs
+      - name: UX and no-silent-failure gate
+        run: node scripts/buklod-main-ux-feedback-gate.mjs
+      - name: Main self-heal contract
+        run: npm run health:contract
+      - name: Final Main source gate
+        run: node scripts/buklod-main-final-release-gate.mjs
+      - name: Native capability gate
+        run: node scripts/buklod-main-final-native-gate.mjs
+      - name: Verify v22 release anchors
+        run: |
+          set -euo pipefail
+          grep -F "version: '1.3.1'" app.config.js
+          grep -F "versionCode: isStaging ? undefined : 22" app.config.js
+          grep -F "'org.mzbministry.buklod'" app.config.js
+          grep -F '"production-apk"' eas.json
+          grep -F '"buildType": "apk"' eas.json
+          grep -F "BUKLOD_COMMUNITY_FEED_MODES_ALL_R2" 'src/app/(tabs)/buklod.tsx'
+          grep -F "BUKLOD_COMMUNITY_AUTHOR_FOLLOW_ALL_R2" 'src/app/(tabs)/buklod.tsx'
+          grep -F "get_my_buklod_community_contribution_v2" src/lib/buklodCommunityContributionEconomy.ts
+          grep -F "Legacy revenue split is read-only" src/lib/buklodRewards.ts
+          grep -F "'public_wall_feed'" src/components/BuklodCommunityInlineAd.android.tsx
+          grep -F "'org_wall_feed'" src/components/BuklodCommunityInlineAd.android.tsx
+          grep -F "'cluster_wall_feed'" src/components/BuklodCommunityInlineAd.android.tsx
+          echo "BUKLOD_PRE_APK_V22_QA=PASS"
+
+  build_android_apk:
+    name: Build BUKLOD 1.3.1 v22 APK
+    needs: [qa]
+    type: build
+    environment: production
+    params:
+      platform: android
+      profile: production-apk
+      message: BUKLOD 1.3.1 v22 - economy, Community, ads and latest updates
+
+  report_to_pr:
+    name: Report APK build to GitHub PR
+    needs: [build_android_apk]
+    type: github-comment
+    params:
+      message: BUKLOD 1.3.1 v22 APK build completed from the exact tested pre-APK release source. No web deploy, OTA publish, Play Store submit, or finance activation was performed.
+      build_ids:
+        - ${{ needs.build_android_apk.outputs.build_id }}
