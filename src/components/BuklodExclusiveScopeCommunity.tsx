@@ -43,6 +43,7 @@ import {
   Alert,
   FlatList,
   Image,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -3471,6 +3472,7 @@ return (
     (
       <View>
         {/* BUKLOD_DZAS_SCOPED_WALL_SHORTCUT_R1 */}
+        {/* BUKLOD_DZAS_WEB_ONE_TAP_R7 */}
         {mode === 'wall' ? (
           <View
             style={{
@@ -3481,10 +3483,17 @@ return (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Open 702 DZAS Radio"
-              onPress={() =>
+              onPress={() => {
+                if (Platform.OS === 'web') {
+                  void Linking.openURL(
+                    'https://play.radios.com.br/10256'
+                  );
+                  return;
+                }
+
                 router.push(
                   '/personal-home/radio' as any
-                )
+                );
               }
               style={({ pressed }) => ({
                 minWidth: 68,
