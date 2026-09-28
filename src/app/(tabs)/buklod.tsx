@@ -989,6 +989,16 @@ function LegacyPublicBuklodScreen(){
   setVideoViewerIndex
  ]=useState(0);
 
+ const [
+  videoViewerFreshUrls,
+  setVideoViewerFreshUrls
+ ]=useState<Record<string,string>>({});
+
+ const [
+  videoViewerResolvingPostId,
+  setVideoViewerResolvingPostId
+ ]=useState<string|null>(null);
+
  const videoViewerPosts=
   useMemo(
    ()=>
@@ -3398,6 +3408,77 @@ const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p
    setViewerOpen(true);
   };
 
+ const refreshVideoViewerUrl=
+  useCallback(
+   async(post:any)=>{
+    const postId=
+     String(post?.id??'').trim();
+
+    if(!postId){
+     return null;
+    }
+
+    setVideoViewerResolvingPostId(
+     postId
+    );
+
+    try{
+     const mediaMap=
+      await loadCommunityPostMediaByPostIds(
+       [postId]
+      );
+
+     const freshVideo=
+      (
+       Array.isArray(
+        mediaMap?.[postId]
+       )
+        ? mediaMap[postId]
+        : []
+      ).find(
+       (media:any)=>
+        String(
+         media?.media_mime_type??
+         ''
+        )
+         .trim()
+         .toLowerCase()
+         .startsWith('video/')
+      );
+
+     const freshUrl=
+      String(
+       freshVideo?.media_url??
+       ''
+      ).trim();
+
+     if(freshUrl){
+      setVideoViewerFreshUrls(
+       current=>({
+        ...current,
+        [postId]:freshUrl
+       })
+      );
+      return freshUrl;
+     }
+
+     return null;
+    }
+    catch{
+     return null;
+    }
+    finally{
+     setVideoViewerResolvingPostId(
+      current=>
+       current===postId
+        ? null
+        : current
+     );
+    }
+   },
+   []
+  );
+
  const openVideoViewer=
   (postId:string)=>{
    const index=
@@ -3411,8 +3492,21 @@ const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p
     return;
    }
 
+   const target=
+    videoViewerPosts[index];
+
    setVideoViewerIndex(index);
    setVideoViewerOpen(true);
+
+   /*
+    * BUKLOD_VIDEO_FULLSCREEN_FRESH_URL_R5
+    * A Wall URL may be a short-lived signed URL. Refresh it when opening the
+    * fullscreen player so a second player instance never relies only on the
+    * feed's older URL.
+    */
+   void refreshVideoViewerUrl(
+    target
+   );
   };
 
 
@@ -4217,21 +4311,32 @@ const refreshCommunity186L=
      })}
      onMomentumScrollEnd={event=>{
       const nextIndex=
-       Math.round(
-        event.nativeEvent
-         .contentOffset.y/
-        COMMUNITY_VIEWER_HEIGHT
-       );
-
-      setVideoViewerIndex(
        Math.max(
         0,
         Math.min(
-         nextIndex,
+         Math.round(
+          event.nativeEvent
+           .contentOffset.y/
+          COMMUNITY_VIEWER_HEIGHT
+         ),
          videoViewerPosts.length-1
         )
-       )
+       );
+
+      setVideoViewerIndex(
+       nextIndex
       );
+
+      const nextPost=
+       videoViewerPosts[
+        nextIndex
+       ];
+
+      if(nextPost){
+       void refreshVideoViewerUrl(
+        nextPost
+       );
+      }
      }}
      renderItem={({item,index})=>{
       const descriptor=
@@ -4239,7 +4344,22 @@ const refreshCommunity186L=
         item
        );
 
-      if(!descriptor){
+      const postId=
+       String(
+        item?.id??
+        ''
+       );
+
+      const fullscreenUri=
+       String(
+        videoViewerFreshUrls[
+         postId
+        ]??
+        descriptor?.uri??
+        ''
+       ).trim();
+
+      if(!descriptor||!fullscreenUri){
        return (
         <View
          style={{
@@ -4265,10 +4385,13 @@ const refreshCommunity186L=
        >
         <CommunityVideo
          key={
-          descriptor.mediaPath||
-          descriptor.uri
+          postId+
+          ':'+
+          fullscreenUri
          }
-         uri={descriptor.uri}
+         uri={
+          fullscreenUri
+         }
          height={COMMUNITY_VIEWER_HEIGHT}
          fullscreen
          active={
@@ -4283,6 +4406,33 @@ const refreshCommunity186L=
           descriptor.durationSeconds
          }
         />
+
+        {videoViewerResolvingPostId===
+         postId&&(
+         <View
+          pointerEvents="none"
+          style={{
+           position:'absolute',
+           top:'48%',
+           alignSelf:'center',
+           paddingHorizontal:12,
+           paddingVertical:7,
+           borderRadius:16,
+           backgroundColor:
+            'rgba(0,0,0,.46)'
+          }}
+         >
+          <Text
+           style={{
+            color:'#FFFFFF',
+            fontSize:10,
+            fontWeight:'800'
+           }}
+          >
+           Refreshing video…
+          </Text>
+         </View>
+        )}
        </View>
       );
      }}
@@ -4350,15 +4500,21 @@ const refreshCommunity186L=
         paddingTop:8,
         paddingBottom:10,
         borderRadius:16,
+        /* BUKLOD_VIDEO_VIEWER_GLASS_ACTIONS_R5 */
         backgroundColor:
-         'rgba(255,255,255,.94)'
+         'rgba(255,255,255,.34)',
+        borderWidth:1,
+        borderColor:
+         'rgba(255,255,255,.30)'
        }}
       >
        <Text
         numberOfLines={1}
         style={{
          marginBottom:2,
-         color:colors.text,
+         color:'#FFFFFF',
+         textShadowColor:'rgba(0,0,0,.55)',
+         textShadowRadius:3,
          fontSize:12,
          fontWeight:'900'
         }}
@@ -4378,7 +4534,9 @@ const refreshCommunity186L=
          numberOfLines={2}
          style={{
           marginBottom:4,
-          color:colors.muted,
+          color:'rgba(255,255,255,.88)',
+          textShadowColor:'rgba(0,0,0,.55)',
+          textShadowRadius:3,
           fontSize:10.5,
           lineHeight:14
          }}
