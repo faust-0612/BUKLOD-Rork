@@ -23,7 +23,7 @@ const DZAS_YOUTUBE_PAGE_URL =
 const DZAS_YOUTUBE_LIVE_EMBED =
   'https://www.youtube.com/embed/live_stream?channel=' +
   DZAS_YOUTUBE_CHANNEL_ID +
-  '&autoplay=1&playsinline=1&rel=0';
+  '&autoplay=0&playsinline=1&rel=0&enablejsapi=1';
 const DZAS_FAVORITE_KEY = 'buklod.radio.favorite.702dzas';
 
 /*
@@ -37,6 +37,7 @@ const DZAS_FAVORITE_KEY = 'buklod.radio.favorite.702dzas';
  */
 export default function BuklodRadioWebScreen() {
   const audioRef = useRef<any>(null);
+  const youtubeRef = useRef<any>(null);
   const mountedRef = useRef(true);
 
   const [favorite, setFavorite] = useState(false);
@@ -44,7 +45,8 @@ export default function BuklodRadioWebScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [statusText, setStatusText] = useState('Ready');
-  const [youtubeOpen, setYoutubeOpen] = useState(false);
+  const [youtubeOpen, setYoutubeOpen] = useState(true);
+  const [youtubeReady, setYoutubeReady] = useState(false);
 
   const streamLabel = useMemo(
     () => 'Official DZAS RadyoTV live',
@@ -129,8 +131,8 @@ export default function BuklodRadioWebScreen() {
 
       setError(
         code
-          ? `Direct audio unavailable (media error ${code}). Gamitin ang official DZAS live player sa ibaba.`
-          : 'Direct audio unavailable. Gamitin ang official DZAS live player sa ibaba.',
+          ? `Direct audio unavailable (media error ${code}). Official DZAS live is ready below.`
+          : 'Direct audio unavailable. Official DZAS live is ready below.',
       );
     };
 
@@ -293,9 +295,29 @@ export default function BuklodRadioWebScreen() {
     void Linking.openURL(DZAS_YOUTUBE_PAGE_URL);
   };
 
+  const sendYouTubeCommand = (
+    func: 'playVideo' | 'pauseVideo' | 'unMute',
+  ) => {
+    try {
+      youtubeRef.current?.contentWindow?.postMessage(
+        JSON.stringify({
+          event: 'command',
+          func,
+          args: [],
+        }),
+        '*',
+      );
+    } catch {
+      // The visible YouTube controls remain available as fallback.
+    }
+  };
+
   const startOfficialLive = () => {
     try {
-      audioRef.current?.pause?.();
+      const audio = audioRef.current;
+      audio?.pause?.();
+      audio?.removeAttribute?.('src');
+      audio?.load?.();
     } catch {
       // Direct stream may already be unavailable.
     }
@@ -304,7 +326,23 @@ export default function BuklodRadioWebScreen() {
     setBusy(false);
     setError('');
     setYoutubeOpen(true);
-    setStatusText('Official DZAS live');
+    setStatusText(
+      youtubeReady
+        ? 'Starting official DZAS live...'
+        : 'Official player loading...',
+    );
+
+    /*
+     * Run these commands synchronously from the user's tap. Mobile browsers
+     * are much more likely to permit unmuted playback when the play command
+     * itself is tied to the gesture, rather than iframe autoplay after load.
+     */
+    sendYouTubeCommand('unMute');
+    sendYouTubeCommand('playVideo');
+
+    if (youtubeReady) {
+      setStatusText('Official DZAS live');
+    }
   };
 
   const youtubeFrame =
@@ -312,11 +350,16 @@ export default function BuklodRadioWebScreen() {
       ? React.createElement(
           'iframe',
           {
+            ref: youtubeRef,
             src: DZAS_YOUTUBE_LIVE_EMBED,
             title: '702 DZAS FEBC RadyoTV Live',
             allow:
               'autoplay; encrypted-media; picture-in-picture',
             allowFullScreen: true,
+            onLoad: () => {
+              setYoutubeReady(true);
+              setStatusText('Official DZAS live ready');
+            },
             style: {
               display: 'block',
               width: '100%',
@@ -506,7 +549,7 @@ export default function BuklodRadioWebScreen() {
                   Official 702 DZAS FEBC RadyoTV Live
                 </Text>
                 <Text style={styles.youtubeHint}>
-                  Kung hindi mag-autoplay ang tunog, tap Play sa official player.
+                  Tap PLAY LIVE sa BUKLOD. Kung i-block pa rin ng browser ang autoplay, tap Play sa official player.
                 </Text>
               </View>
             </View>
