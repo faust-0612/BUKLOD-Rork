@@ -3997,6 +3997,46 @@ const refreshCommunity186L=
      </Text>
     </View>
 
+    {/* BUKLOD_DZAS_WALL_SHORTCUT_R1 */}
+    <Pressable
+     accessibilityRole="button"
+     accessibilityLabel="Open 702 DZAS Radio"
+     onPress={()=>
+      router.push(
+       '/personal-home/radio' as any
+      )
+     }
+     style={({pressed})=>({
+      minWidth:68,
+      height:42,
+      borderRadius:12,
+      paddingHorizontal:10,
+      flexDirection:'row',
+      alignItems:'center',
+      justifyContent:'center',
+      gap:5,
+      borderWidth:1,
+      borderColor:colors.line,
+      backgroundColor:colors.white,
+      opacity:pressed?0.72:1,
+     })}
+    >
+     <MaterialCommunityIcons
+      name="radio"
+      size={16}
+      color={colors.green}
+     />
+     <Text
+      style={{
+       fontSize:10,
+       fontWeight:'900',
+       color:colors.green,
+      }}
+     >
+      DZAS
+     </Text>
+    </Pressable>
+
    </View>
 
    <SmartDrawerWallCard />
