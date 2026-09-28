@@ -35,6 +35,10 @@ import {
   type BuklodLifeTopicKey,
 } from '@/lib/buklodLifeContent';
 
+import {
+  markMyBuklodLifeStage,
+} from '@/lib/buklodLifeImpact';
+
 
 const LIFE_TOPIC_KEYS =
   new Set<BuklodLifeTopicKey>([
@@ -153,6 +157,14 @@ export default function BuklodLifeTopicScreen() {
         String(
           params.question
         )
+      );
+    }
+
+    if (
+      topic === 'jesus'
+    ) {
+      void markMyBuklodLifeStage(
+        'JESUS_SHARED'
       );
     }
 
@@ -748,6 +760,260 @@ export default function BuklodLifeTopicScreen() {
                       : 'Example: “Lord Jesus, I admit that I need You. I turn from my sin and trust what You have done for me. Teach me to follow You and live the new life You give.”'
                   }
                 </Text>
+
+                <Text
+                  style={[
+                    styles.clarifierTitle,
+                    {
+                      marginTop:
+                        16,
+                    },
+                  ]}
+                >
+                  {
+                    language === 'fil'
+                      ? 'Ano ang gusto mong gawin?'
+                      : 'What would you like to do?'
+                  }
+                </Text>
+
+                <Pressable
+                  onPress={async () => {
+                    await markMyBuklodLifeStage(
+                      'SEEKING'
+                    );
+                  }}
+                  style={
+                    styles.journeyAction
+                  }
+                >
+                  <View
+                    style={[
+                      styles.journeyActionIcon,
+                      {
+                        backgroundColor:
+                          '#DDF3E4',
+                      },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="book-open-page-variant-outline"
+                      size={21}
+                      color="#2F7A49"
+                    />
+                  </View>
+
+                  <Text
+                    style={
+                      styles.journeyActionText
+                    }
+                  >
+                    {
+                      language === 'fil'
+                        ? 'Gusto kong makilala pa si Jesus'
+                        : 'I want to know Jesus more'
+                    }
+                  </Text>
+
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={20}
+                    color="#7A857C"
+                  />
+                </Pressable>
+
+                <Pressable
+                  onPress={async () => {
+                    await markMyBuklodLifeStage(
+                      'SEEKING'
+                    );
+
+                    router.push(
+                      '/connect' as any
+                    );
+                  }}
+                  style={
+                    styles.journeyAction
+                  }
+                >
+                  <View
+                    style={[
+                      styles.journeyActionIcon,
+                      {
+                        backgroundColor:
+                          '#E2F1FF',
+                      },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="message-processing-outline"
+                      size={21}
+                      color="#2B7BB5"
+                    />
+                  </View>
+
+                  <Text
+                    style={
+                      styles.journeyActionText
+                    }
+                  >
+                    {
+                      language === 'fil'
+                        ? 'Gusto kong may makausap'
+                        : 'I want someone to talk with'
+                    }
+                  </Text>
+
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={20}
+                    color="#7A857C"
+                  />
+                </Pressable>
+
+                <Pressable
+                  onPress={async () => {
+                    await markMyBuklodLifeStage(
+                      'WALKING_TOGETHER'
+                    );
+
+                    router.push(
+                      '/bible' as any
+                    );
+                  }}
+                  style={
+                    styles.journeyAction
+                  }
+                >
+                  <View
+                    style={[
+                      styles.journeyActionIcon,
+                      {
+                        backgroundColor:
+                          '#ECE4FF',
+                      },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="book-open-variant"
+                      size={21}
+                      color="#7055C2"
+                    />
+                  </View>
+
+                  <Text
+                    style={
+                      styles.journeyActionText
+                    }
+                  >
+                    {
+                      language === 'fil'
+                        ? 'Gusto kong magbasa pa'
+                        : 'I want to read more'
+                    }
+                  </Text>
+
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={20}
+                    color="#7A857C"
+                  />
+                </Pressable>
+
+                <Pressable
+                  onPress={() =>
+                    router.push(
+                      '/prayer/new' as any
+                    )
+                  }
+                  style={
+                    styles.journeyAction
+                  }
+                >
+                  <View
+                    style={[
+                      styles.journeyActionIcon,
+                      {
+                        backgroundColor:
+                          '#FFE1EC',
+                      },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="hands-pray"
+                      size={21}
+                      color="#C34D7B"
+                    />
+                  </View>
+
+                  <Text
+                    style={
+                      styles.journeyActionText
+                    }
+                  >
+                    {
+                      language === 'fil'
+                        ? 'Gusto kong manalangin'
+                        : 'I want to pray'
+                    }
+                  </Text>
+
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={20}
+                    color="#7A857C"
+                  />
+                </Pressable>
+
+                <Pressable
+                  onPress={async () => {
+                    await markMyBuklodLifeStage(
+                      'NEW_BEGINNING'
+                    );
+                  }}
+                  style={[
+                    styles.journeyAction,
+                    styles.journeyActionPrimary,
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.journeyActionIcon,
+                      {
+                        backgroundColor:
+                          '#F6E7BE',
+                      },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="sprout"
+                      size={21}
+                      color="#6A782C"
+                    />
+                  </View>
+
+                  <Text
+                    style={[
+                      styles.journeyActionText,
+                      {
+                        color:
+                          '#24482D',
+                      },
+                    ]}
+                  >
+                    {
+                      language === 'fil'
+                        ? 'Gusto kong magsimulang sumunod kay Jesus'
+                        : 'I want to begin following Jesus'
+                    }
+                  </Text>
+
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={20}
+                    color="#5D704E"
+                  />
+                </Pressable>
               </View>
             )}
           </View>
@@ -1680,6 +1946,64 @@ const styles =
         'italic',
       color:
         '#5A634F',
+    },
+
+    journeyAction: {
+      minHeight:
+        54,
+      flexDirection:
+        'row',
+      alignItems:
+        'center',
+      gap:
+        10,
+      marginTop:
+        8,
+      paddingHorizontal:
+        10,
+      paddingVertical:
+        8,
+      borderRadius:
+        14,
+      backgroundColor:
+        '#FFFFFF',
+      borderWidth:
+        1,
+      borderColor:
+        '#E2E7E1',
+    },
+
+    journeyActionPrimary: {
+      backgroundColor:
+        '#F1F6E8',
+      borderColor:
+        '#D6E3C4',
+    },
+
+    journeyActionIcon: {
+      width:
+        38,
+      height:
+        38,
+      borderRadius:
+        12,
+      alignItems:
+        'center',
+      justifyContent:
+        'center',
+    },
+
+    journeyActionText: {
+      flex:
+        1,
+      fontSize:
+        11,
+      lineHeight:
+        16,
+      fontWeight:
+        '800',
+      color:
+        '#465148',
     },
 
     helpHero: {
