@@ -24,6 +24,8 @@ permissions:
 
 jobs:
   qa-and-publish:
+    # Shared Wall source can be released web-only without publishing Android OTA.
+    if: ${{ github.event_name != 'push' || !contains(github.event.head_commit.message, '[web-only]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
