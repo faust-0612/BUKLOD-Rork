@@ -3429,7 +3429,7 @@ const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p
         <View
           /* BUKLOD_COMMUNITY_VIDEO_FULL_BLEED_R4 */
           style={{
-            marginHorizontal:-11,
+            marginHorizontal:-12,
             position:'relative',
           }}
         >
@@ -4194,6 +4194,9 @@ const refreshCommunity186L=
       )
      }
      pagingEnabled
+     snapToInterval={COMMUNITY_VIEWER_HEIGHT}
+     snapToAlignment="start"
+     decelerationRate="fast"
      showsVerticalScrollIndicator={false}
      initialScrollIndex={
       Math.min(
