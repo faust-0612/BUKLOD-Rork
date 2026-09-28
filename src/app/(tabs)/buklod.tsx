@@ -1101,11 +1101,11 @@ const [
 ] = useState<string | null>(null);
 
 /*
- * BUKLOD_COMMUNITY_FEED_MODES_WEB_R1
+ * BUKLOD_COMMUNITY_FEED_MODES_ALL_R2
  *
- * Web exposes the existing server-side For You / Following / Latest modes.
- * Native keeps the canonical for_you behavior unchanged until an Android/iOS
- * release explicitly scopes this UI.
+ * For You / Following / Latest now use the same server-backed feed contract on
+ * web and native. Mode caches stay isolated so switching tabs never paints a
+ * stale list from another mode.
  */
 const [
   communityFeedMode,
@@ -1153,12 +1153,11 @@ const load=useCallback(async(options?:{
       : null;
 
   const communityCacheKey=
-    communityBaseCacheKey &&
-    Platform.OS==='web'
+    communityBaseCacheKey
       ? communityBaseCacheKey+
         ':mode:'+
         communityFeedMode
-      : communityBaseCacheKey;
+      : null;
 
   if(
     !appendPage186L &&
@@ -1264,9 +1263,7 @@ const load=useCallback(async(options?:{
           p_location_scope_id:
             publicLocationScopeId,
           p_mode:
-            Platform.OS==='web'
-              ? communityFeedMode
-              : 'for_you',
+            communityFeedMode,
           p_limit: limit186L,
           p_offset: offset186L,
         }
@@ -2540,7 +2537,108 @@ const {data,error}=await communityReadRpc('search_post_mention_candidates_v2',{p
  }
  );
 
- }; const react=async(
+ };
+
+/* BUKLOD_COMMUNITY_AUTHOR_FOLLOW_ALL_R2 */
+ const toggleAuthorFollow=
+  useCallback(
+   async(
+    targetUserId:string,
+    nextFollowing:boolean
+   )=>{
+    const viewerId=
+     String(user?.id??'').trim();
+    const targetId=
+     String(targetUserId??'').trim();
+
+    if(
+     !viewerId||
+     !targetId||
+     viewerId===targetId
+    ){
+     return;
+    }
+
+    const previousFollowing=
+     Boolean(
+      posts.find(
+       (post:any)=>
+        String(post.user_id)===targetId
+      )?.is_following_author
+     );
+
+    setPosts(current=>
+     current.map((post:any)=>
+      String(post.user_id)===targetId
+       ?{
+         ...post,
+         is_following_author:
+          nextFollowing
+        }
+       :post
+     )
+    );
+
+    const request=
+     nextFollowing
+      ? supabase
+         .from('buklod_user_follows')
+         .insert({
+          follower_id:viewerId,
+          followed_user_id:targetId
+         })
+      : supabase
+         .from('buklod_user_follows')
+         .delete()
+         .eq('follower_id',viewerId)
+         .eq('followed_user_id',targetId);
+
+    const {error}=
+     await request;
+
+    if(error){
+     setPosts(current=>
+      current.map((post:any)=>
+       String(post.user_id)===targetId
+        ?{
+          ...post,
+          is_following_author:
+           previousFollowing
+         }
+        :post
+      )
+     );
+
+     reportCommunityFailure(
+      error,
+      'Following not updated',
+      "BUKLOD couldn't update this follow right now.",
+      'community_follow_failed',
+     );
+     return;
+    }
+
+    if(
+     communityFeedMode==='following'&&
+     !nextFollowing
+    ){
+     setPosts(current=>
+      current.filter(
+       (post:any)=>
+        String(post.user_id)!==targetId
+      )
+     );
+    }
+   },
+   [
+    communityFeedMode,
+    posts,
+    reportCommunityFailure,
+    user?.id
+   ]
+  );
+
+ const react=async(
   postId:string,
   reaction:Reaction
 )=>{
@@ -3882,7 +3980,6 @@ const selectCommunityFeedMode=
   useCallback(
     (nextMode:CommunityFeedMode)=>{
       if(
-        Platform.OS!=='web' ||
         nextMode===communityFeedMode
       ){
         return;
@@ -4337,71 +4434,67 @@ const refreshCommunity186L=
    </Card>
    <BuklodCommunityWallEngagementLayer onIntent={activateComposerIntent} />
 
-   {Platform.OS==='web' ? (
-    <View
-     style={{
-      flexDirection:'row',
-      gap:7,
-      marginTop:4,
-      marginBottom:8,
-     }}
-    >
-     {COMMUNITY_FEED_TABS.map(tab=>{
-      const selected=
-       communityFeedMode===tab.key;
+   <View
+    style={{
+     flexDirection:'row',
+     gap:7,
+     marginTop:4,
+     marginBottom:8,
+    }}
+   >
+    {COMMUNITY_FEED_TABS.map(tab=>{
+     const selected=
+      communityFeedMode===tab.key;
 
-      return (
-       <Pressable
-        key={tab.key}
-        accessibilityRole="button"
-        accessibilityState={{selected}}
-        onPress={()=>
-         selectCommunityFeedMode(
-          tab.key
-         )
-        }
-        style={({pressed})=>({
-         flex:1,
-         minHeight:36,
-         borderRadius:12,
-         borderWidth:1,
-         borderColor:
+     return (
+      <Pressable
+       key={tab.key}
+       accessibilityRole="button"
+       accessibilityState={{selected}}
+       onPress={()=>
+        selectCommunityFeedMode(
+         tab.key
+        )
+       }
+       style={({pressed})=>({
+        flex:1,
+        minHeight:36,
+        borderRadius:12,
+        borderWidth:1,
+        borderColor:
+         selected
+          ? colors.green
+          : colors.line,
+        backgroundColor:
+         selected
+          ? colors.green
+          : colors.white,
+        alignItems:'center',
+        justifyContent:'center',
+        opacity:pressed?0.76:1,
+       })}
+      >
+       <Text
+        style={{
+         fontSize:10,
+         fontWeight:'900',
+         color:
           selected
-           ? colors.green
-           : colors.line,
-         backgroundColor:
-          selected
-           ? colors.green
-           : colors.white,
-         alignItems:'center',
-         justifyContent:'center',
-         opacity:pressed?0.76:1,
-        })}
+           ? '#FFFFFF'
+           : colors.greenDark,
+        }}
        >
-        <Text
-         style={{
-          fontSize:10,
-          fontWeight:'900',
-          color:
-           selected
-            ? '#FFFFFF'
-            : colors.greenDark,
-         }}
-        >
-         {tab.label}
-        </Text>
-       </Pressable>
-      );
-     })}
-    </View>
-   ) : null}
+        {tab.label}
+       </Text>
+      </Pressable>
+     );
+    })}
+   </View>
 
    <SectionTitle>
-    {Platform.OS==='web' &&
-     communityFeedMode==='following'
+    {communityFeedMode==='following'
       ? 'FOLLOWING POSTS'
-      : Platform.OS==='web' &&
-        communityFeedMode==='latest'
+      : communityFeedMode==='latest'
        ? 'LATEST POSTS'
        : 'COMMUNITY POSTS'}
    </SectionTitle>
@@ -4409,8 +4502,7 @@ const refreshCommunity186L=
   ListEmptyComponent={
    <Card>
     <Text style={shared.muted}>
-     {Platform.OS==='web' &&
-      communityFeedMode==='following'
+     {communityFeedMode==='following'
        ? 'No posts from people you follow yet.'
        : 'No Public posts yet.'}
     </Text>
@@ -4570,13 +4662,66 @@ const refreshCommunity186L=
       }}
      />
     ) : (
-     <BuklodContentOverflowMenu
-      title="Post"
-      iconColor={colors.muted}
-      onReport={() =>
-       openReport('post', item.id)
-      }
-     />
+     <View
+      style={{
+       flexDirection:'row',
+       alignItems:'center',
+       gap:6,
+      }}
+     >
+      {!!item.user_id&&(
+       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={
+         item.is_following_author
+          ? 'Unfollow this member'
+          : 'Follow this member'
+        }
+        onPress={()=>
+         void toggleAuthorFollow(
+          String(item.user_id),
+          !item.is_following_author
+         )
+        }
+        style={({pressed})=>({
+         minHeight:32,
+         paddingHorizontal:10,
+         borderRadius:999,
+         borderWidth:1,
+         borderColor:colors.green,
+         backgroundColor:
+          item.is_following_author
+           ? colors.green
+           : colors.white,
+         alignItems:'center',
+         justifyContent:'center',
+         opacity:pressed?0.72:1,
+        })}
+       >
+        <Text
+         style={{
+          fontSize:8.5,
+          fontWeight:'900',
+          color:
+           item.is_following_author
+            ? '#FFFFFF'
+            : colors.greenDark,
+         }}
+        >
+         {item.is_following_author
+          ? 'FOLLOWING'
+          : 'FOLLOW'}
+        </Text>
+       </Pressable>
+      )}
+      <BuklodContentOverflowMenu
+       title="Post"
+       iconColor={colors.muted}
+       onReport={() =>
+        openReport('post', item.id)
+       }
+      />
+     </View>
     )}
    </View>
     </View>
