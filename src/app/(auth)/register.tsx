@@ -23,6 +23,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
 import { recordReferral } from '@/lib/buklodRewards';
+import { recordBuklodLifeReferralFunnel } from '@/lib/buklodLifeImpact';
 import { colors } from '@/lib/theme';
 import { useBuklodDrawerBottomInset } from '@/lib/buklodSafeArea';
 
@@ -115,7 +116,11 @@ function buildFullName(
 }
 
 export default function RegisterScreen() {
-  const params = useLocalSearchParams<{ ref?: string; referral?: string }>();
+  const params = useLocalSearchParams<{
+    ref?: string;
+    referral?: string;
+    life?: string;
+  }>();
   const drawerBottomInset = useBuklodDrawerBottomInset();
 
   const [churches, setChurches] =
@@ -738,12 +743,42 @@ useEffect(() => {
         }
       }
 
+      if (
+        String(
+          params.life ??
+          ''
+        ) === '1'
+      ) {
+        await recordBuklodLifeReferralFunnel(
+          'SIGNUP_COMPLETED',
+          'LIFE_INVITE'
+        );
+      }
+
       finishCreateAccount();
 
       Alert.alert(
         'Account created',
         'Your BUKLOD account is ready. You can enter the Public Community immediately. Local, Cluster, Church, and Organization memberships can be added separately.'
       );
+
+      if (
+        String(
+          params.life ??
+          ''
+        ) === '1'
+      ) {
+        router.replace({
+          pathname:
+            '/life/invite' as any,
+          params: {
+            ref:
+              referralCode.trim(),
+          },
+        });
+
+        return;
+      }
 
       /* PATCH_156A_V2_COMMUNITY_SUCCESS */
       router.replace('/(tabs)/home');
