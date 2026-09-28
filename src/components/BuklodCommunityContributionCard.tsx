@@ -39,6 +39,14 @@ export default function BuklodCommunityContributionCard() {
   const estimate = data.estimated_share_minor === null
     ? 'No safe estimate yet'
     : formatMinorPhp(data.estimated_share_minor);
+  const breakdown = data.engagement_breakdown;
+  const trendPctPoints = Number(data.share_weight_delta || 0) * 100;
+  const trendLabel =
+    Math.abs(trendPctPoints) < 0.0001
+      ? 'No prior-period change yet'
+      : `${trendPctPoints > 0 ? '+' : ''}${trendPctPoints.toFixed(
+          Math.abs(trendPctPoints) < 0.01 ? 4 : 2,
+        )} pp share-weight trend`;
 
   return (
     <View style={s.shell}>
@@ -66,6 +74,16 @@ export default function BuklodCommunityContributionCard() {
           <Text style={s.metricValue}>{data.qualified_posts + data.qualified_videos}</Text>
           <Text style={s.metricLabel}>QUALIFIED CONTENT</Text>
         </View>
+      </View>
+
+      <View style={s.impact}>
+        <Text style={s.impactTitle}>WHAT HELPED YOUR SHARE GROW?</Text>
+        <Text style={s.impactText}>
+          Posts {breakdown?.useful_post_qmp ?? 0} QMP · Videos {breakdown?.qualified_video_qmp ?? 0} QMP · Replies {breakdown?.meaningful_reply_qmp ?? 0} QMP
+        </Text>
+        <Text style={s.impactText}>
+          Validated engagement {breakdown?.validated_engagement_qmp ?? 0} QMP · {trendLabel}
+        </Text>
       </View>
 
       <View style={s.estimate}>
@@ -100,6 +118,9 @@ const s = StyleSheet.create({
   metrics:{flexDirection:'row',gap:6},
   metric:{flex:1,minHeight:56,borderRadius:12,backgroundColor:'#F7FAF8',padding:8,justifyContent:'center'},
   metricValue:{fontSize:15,fontWeight:'900',color:'#173C2C'}, metricLabel:{marginTop:2,fontSize:7,fontWeight:'900',color:'#7A887F'},
+  impact:{borderRadius:12,borderWidth:1,borderColor:'#E2EBE6',backgroundColor:'#FBFDFC',padding:9},
+  impactTitle:{fontSize:8,fontWeight:'900',color:'#4C6859'},
+  impactText:{marginTop:3,fontSize:8.5,lineHeight:12,color:'#5F7066'},
   estimate:{borderRadius:12,backgroundColor:'#F1F7F3',padding:10}, estimateLabel:{fontSize:8,fontWeight:'900',color:'#4C6859'},
   estimateValue:{marginTop:2,fontSize:17,fontWeight:'900',color:'#1E6B45'}, estimateGuard:{marginTop:2,fontSize:7,lineHeight:10,fontWeight:'900',color:'#7A6A32'},
   primary:{minHeight:36,borderRadius:10,backgroundColor:'#1E6B45',alignItems:'center',justifyContent:'center'}, primaryText:{color:'#FFF',fontSize:9,fontWeight:'900'},
