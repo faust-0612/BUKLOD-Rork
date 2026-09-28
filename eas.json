@@ -32,7 +32,8 @@
       "env": {
         "APP_VARIANT": "production",
         "EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME": "firebase-video-production",
-        "EXPO_PUBLIC_APP_ENV": "production"
+        "EXPO_PUBLIC_APP_ENV": "production",
+        "EXPO_PUBLIC_ADS_ALLOW_LIVE_IDS": "true"
       },
       "android": {
         "buildType": "app-bundle"
