@@ -15,6 +15,7 @@ export type BuklodAdDiagnosticPlacement =
   | 'org_home_entry'
   | 'cluster_home_entry'
   | 'video_companion'
+  | 'video_instream'
   | 'prayer_banner'
   | 'messages_banner'
   | 'profile_banner'
@@ -50,7 +51,7 @@ export type BuklodAdDiagnosticRecord = {
   event: BuklodAdDiagnosticEvent;
   timestamp: number;
   environment: string;
-  provider: 'ADMOB_NATIVE' | 'ADSENSE_WEB' | 'BUKLOD_SPONSOR';
+  provider: 'ADMOB_NATIVE' | 'ADSENSE_WEB' | 'BUKLOD_SPONSOR' | 'GOOGLE_IMA';
   platform: string;
   route: string;
   appVersion: string | null;
@@ -152,7 +153,7 @@ export function recordBuklodAdEvent(
   error?: unknown,
   context?: {
     route?: string | null;
-    provider?: 'ADMOB_NATIVE' | 'ADSENSE_WEB' | 'BUKLOD_SPONSOR';
+    provider?: 'ADMOB_NATIVE' | 'ADSENSE_WEB' | 'BUKLOD_SPONSOR' | 'GOOGLE_IMA';
     placementId?: string | null;
   },
 ) {
