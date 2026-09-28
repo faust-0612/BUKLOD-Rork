@@ -201,6 +201,12 @@ import {
 /* PATCH_166H_REALTIME_DEBOUNCE_IS_EFFECT_LOCAL */
 const CATEGORIES=['reflection','testimony','encouragement'] as const;
 type Audience='group'|'local'|'public';
+type CommunityFeedMode='for_you'|'following'|'latest';
+const COMMUNITY_FEED_TABS:ReadonlyArray<{key:CommunityFeedMode;label:string}>=[
+ {key:'for_you',label:'For You'},
+ {key:'following',label:'Following'},
+ {key:'latest',label:'Latest'},
+];
 type Reaction = BuklodCommunityReactionKey;
 type Photo={
  id:string;
@@ -1092,6 +1098,18 @@ const [
   setPublicLocationScopeId,
 ] = useState<string | null>(null);
 
+/*
+ * BUKLOD_COMMUNITY_FEED_MODES_WEB_R1
+ *
+ * Web exposes the existing server-side For You / Following / Latest modes.
+ * Native keeps the canonical for_you behavior unchanged until an Android/iOS
+ * release explicitly scopes this UI.
+ */
+const [
+  communityFeedMode,
+  setCommunityFeedMode,
+] = useState<CommunityFeedMode>('for_you');
+
 /* PATCH_186L_R3_TRUE_PAGED_STRICT_PUBLIC */
 const load=useCallback(async(options?:{
   append?:boolean;
@@ -1124,13 +1142,21 @@ const load=useCallback(async(options?:{
       )
     );
   const communityLoadSeq=++communityLoadSeqRef.current;
-  const communityCacheKey=
+  const communityBaseCacheKey=
     user
       ? communityFeedCacheKey(
           user.id,
           publicLocationScopeId
         )
       : null;
+
+  const communityCacheKey=
+    communityBaseCacheKey &&
+    Platform.OS==='web'
+      ? communityBaseCacheKey+
+        ':mode:'+
+        communityFeedMode
+      : communityBaseCacheKey;
 
   if(
     !appendPage186L &&
@@ -1235,7 +1261,10 @@ const load=useCallback(async(options?:{
         {
           p_location_scope_id:
             publicLocationScopeId,
-          p_mode: 'for_you',
+          p_mode:
+            Platform.OS==='web'
+              ? communityFeedMode
+              : 'for_you',
           p_limit: limit186L,
           p_offset: offset186L,
         }
@@ -1753,7 +1782,11 @@ const load=useCallback(async(options?:{
   }
 
   return preparedPosts186L.length;
- },[user?.id, publicLocationScopeId]);
+ },[
+  user?.id,
+  publicLocationScopeId,
+  communityFeedMode,
+ ]);
 /* PATCH_166H_INITIAL_LOAD */
  useEffect(()=>{
   void load();
@@ -3840,6 +3873,58 @@ const [
   setCommunityHasMore186L
 ]=useState(true);
 
+const selectCommunityFeedMode=
+  useCallback(
+    (nextMode:CommunityFeedMode)=>{
+      if(
+        Platform.OS!=='web' ||
+        nextMode===communityFeedMode
+      ){
+        return;
+      }
+
+      /*
+       * Invalidate an older in-flight mode request before painting another
+       * mode. Warm memory is mode-specific so switching back is immediate.
+       */
+      communityLoadSeqRef.current+=1;
+      communityPageBusyRef186L.current=false;
+      setCommunityHasMore186L(true);
+
+      const baseKey=
+        user
+          ? communityFeedCacheKey(
+              user.id,
+              publicLocationScopeId
+            )
+          : null;
+
+      const modeKey=
+        baseKey
+          ? baseKey+
+            ':mode:'+
+            nextMode
+          : null;
+
+      setPosts(
+        modeKey
+          ? communityWarmFeedMemory.get(
+              modeKey
+            ) ?? []
+          : []
+      );
+
+      setCommunityFeedMode(
+        nextMode
+      );
+    },
+    [
+      communityFeedMode,
+      publicLocationScopeId,
+      user?.id,
+    ]
+  );
+
 const loadMoreCommunity186L=
   useCallback(
     async()=>{
@@ -4241,9 +4326,87 @@ const refreshCommunity186L=
     />
    </Card>
    <BuklodCommunityWallEngagementLayer onIntent={activateComposerIntent} />
-   <SectionTitle>COMMUNITY POSTS</SectionTitle>
+
+   {Platform.OS==='web' ? (
+    <View
+     accessibilityRole="tablist"
+     style={{
+      flexDirection:'row',
+      gap:7,
+      marginTop:4,
+      marginBottom:8,
+     }}
+    >
+     {COMMUNITY_FEED_TABS.map(tab=>{
+      const selected=
+       communityFeedMode===tab.key;
+
+      return (
+       <Pressable
+        key={tab.key}
+        accessibilityRole="tab"
+        accessibilityState={{selected}}
+        onPress={()=>
+         selectCommunityFeedMode(
+          tab.key
+         )
+        }
+        style={({pressed})=>({
+         flex:1,
+         minHeight:36,
+         borderRadius:12,
+         borderWidth:1,
+         borderColor:
+          selected
+           ? colors.green
+           : colors.line,
+         backgroundColor:
+          selected
+           ? colors.green
+           : colors.white,
+         alignItems:'center',
+         justifyContent:'center',
+         opacity:pressed?0.76:1,
+        })}
+       >
+        <Text
+         style={{
+          fontSize:10,
+          fontWeight:'900',
+          color:
+           selected
+            ? '#FFFFFF'
+            : colors.greenDark,
+         }}
+        >
+         {tab.label}
+        </Text>
+       </Pressable>
+      );
+     })}
+    </View>
+   ) : null}
+
+   <SectionTitle>
+    {Platform.OS==='web' &&
+     communityFeedMode==='following'
+      ? 'FOLLOWING POSTS'
+      : Platform.OS==='web' &&
+        communityFeedMode==='latest'
+       ? 'LATEST POSTS'
+       : 'COMMUNITY POSTS'}
+   </SectionTitle>
   </View></BuklodFocusFadeUp>}
-  ListEmptyComponent={<Card><Text style={shared.muted}>No Public posts yet.</Text></Card>}
+  ListEmptyComponent={
+   <Card>
+    <Text style={shared.muted}>
+     {Platform.OS==='web' &&
+      communityFeedMode==='following'
+       ? 'No posts from people you follow yet.'
+       : 'No Public posts yet.'}
+    </Text>
+   </Card>
+  }
   renderItem={({item,index}:{item:any,index:number})=>{
     if (
       isCommunityFeedInlineAdRow(
