@@ -10,7 +10,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePathname } from 'expo-router';
 
 import BuklodSponsorSlot from '@/components/BuklodSponsorSlot';
-import { buklodInstantReplace } from '@/lib/buklodInstantNavigation';
+import { buklodInstantPush, buklodInstantReplace } from '@/lib/buklodInstantNavigation';
 import {
   normalizeBuklodPathname,
   shouldShowBuklodPublicBottomNav,
@@ -250,6 +250,11 @@ export default function BuklodDesktopWebShell({
     }
 
     if (isActiveRoute(normalizedPath, route)) return;
+
+    if (route === '/me') {
+      buklodInstantPush(route as any);
+      return;
+    }
 
     buklodInstantReplace(route as any);
   };
