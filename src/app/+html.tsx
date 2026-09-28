@@ -137,17 +137,21 @@ export default function Root({
           name="google-adsense-account"
           content={ADSENSE_CLIENT}
         />
-        {/* BUKLOD_WEB_CANONICAL_FAVICON_R2
-            Explicit versioned path prevents browsers from reusing the old
-            generated favicon.ico after a brand change. */}
+        {/* BUKLOD_WEB_BRAND_LOCK_R1
+            One canonical source for browser, desktop shortcut, Android PWA,
+            and Apple home-screen identity. Versioning breaks stale icon caches. */}
+        <link
+          rel="manifest"
+          href="/manifest.json?v=20260928brandlock1"
+        />
         <link
           rel="icon"
           type="image/png"
-          href="/buklod-main-canonical-v2.png?v=20260927r2"
+          href="/buklod-main-canonical-v2.png?v=20260928brandlock1"
         />
         <link
           rel="apple-touch-icon"
-          href="/buklod-main-canonical-v2.png?v=20260927r2"
+          href="/buklod-main-canonical-v2.png?v=20260928brandlock1"
         />
         <ScrollViewStyleReset />
         <style>{WEB_LIVE_ATMOSPHERE_CSS}</style>
