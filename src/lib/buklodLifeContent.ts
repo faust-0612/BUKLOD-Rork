@@ -1,5 +1,14 @@
 import type { BuklodPublicLanguage } from '@/lib/buklodPublicDailyContent';
 
+export const LIFE_GOSPEL_CORE_VERSION =
+  'LIFE_GOSPEL_CORE_2026_09_V1';
+
+export const LIFE_SOUL_WINNER_GUIDE_VERSION =
+  'LIFE_SOUL_WINNER_GUIDE_2026_09_V1';
+
+export const LIFE_SCRIPTURE_PACK_VERSION =
+  'LIFE_SCRIPTURE_PACK_2026_09_V1';
+
 export type BuklodLifeLanguage = 'fil' | 'en';
 
 export type BuklodLifeTopicKey =
