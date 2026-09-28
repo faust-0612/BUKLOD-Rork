@@ -1,5 +1,6 @@
 import {
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -8,6 +9,48 @@ import {
 import {
   isCommunityFeedInlineAdRow,
 } from '@/lib/buklodAdPlacements';
+
+let visibleCommunityInlineIds: ReadonlySet<string> = new Set();
+const visibleCommunityInlineListeners = new Set<() => void>();
+
+function sameIds(a: ReadonlySet<string>, b: ReadonlySet<string>) {
+  if (a.size !== b.size) return false;
+  for (const id of a) {
+    if (!b.has(id)) return false;
+  }
+  return true;
+}
+
+function publishVisibleCommunityInlineIds(ids: ReadonlySet<string>) {
+  if (sameIds(visibleCommunityInlineIds, ids)) return;
+  visibleCommunityInlineIds = ids;
+  visibleCommunityInlineListeners.forEach(listener => listener());
+}
+
+/**
+ * Current on-screen state for an inline Community feed row.
+ * This is deliberately separate from the sticky AdMob activation state below:
+ * ads stay mounted after first view, while video playback may use true current
+ * visibility so an off-screen IGPAT cannot continue playing.
+ */
+export function useBuklodCommunityInlineVisibility(slotId?: string) {
+  const readVisible = useCallback(
+    () => Boolean(slotId && visibleCommunityInlineIds.has(slotId)),
+    [slotId],
+  );
+  const [visible, setVisible] = useState(readVisible);
+
+  useEffect(() => {
+    const sync = () => setVisible(readVisible());
+    visibleCommunityInlineListeners.add(sync);
+    sync();
+    return () => {
+      visibleCommunityInlineListeners.delete(sync);
+    };
+  }, [readVisible]);
+
+  return visible;
+}
 
 /**
  * Activates community inline ads only after they are actually on screen.
@@ -31,6 +74,9 @@ export function useBuklodCommunityAdViewability() {
           incoming.push(token.item.id);
         }
       }
+
+      publishVisibleCommunityInlineIds(new Set(incoming));
+
       if (!incoming.length) {
         return;
       }
