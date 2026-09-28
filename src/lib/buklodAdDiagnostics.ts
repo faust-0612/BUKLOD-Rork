@@ -14,6 +14,8 @@ export type BuklodAdDiagnosticPlacement =
   | 'content_submission'
   | 'org_home_entry'
   | 'cluster_home_entry'
+  | 'org_wall_feed'
+  | 'cluster_wall_feed'
   | 'video_companion'
   | 'video_instream'
   | 'prayer_banner'
