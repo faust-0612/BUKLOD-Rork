@@ -634,8 +634,8 @@ requireText('supabase/functions/buklod-community-ai/index.ts', 'AbortSignal.time
 // Main production identity.
 requireText('app.config.js', "'23dad7d0-389a-406e-8dec-08965dab85d8'", 'Main EAS project identity');
 requireText('app.config.js', "'org.mzbministry.buklod'", 'Main Android package identity');
-requireText('app.config.js', "version: '1.3.0'", 'Main app version');
-requireText('app.config.js', 'versionCode: isStaging ? undefined : 20', 'Main Android versionCode');
+requireText('app.config.js', "version: '1.3.1'", 'Main app version');
+requireText('app.config.js', 'versionCode: isStaging ? undefined : 22', 'Main Android versionCode');
 requireText('.buklod/app-boundaries.json', '"appId": "buklod-main"', 'Main app boundary');
 
 // Migration sanity: never use stale hard-coded expected counts.
