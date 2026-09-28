@@ -386,32 +386,15 @@ export default function BuklodScreen(){
   * metadata to begin loading, so do not hide the entire wall behind the scope
   * spinner. Scope controls hydrate in the background.
   */
- if(scopeLoading && !activeScope){
-  return <LegacyPublicBuklodScreen/>;
- }
-
+ /*
+  * BUKLOD_COMMUNITY_BACK_WARM_SHELL_R7
+  *
+  * /buklod is the canonical Public Community Wall. During normal Back,
+  * scope metadata can briefly rehydrate with activeScope unset. Keep the
+  * existing Wall mounted instead of flashing an unavailable card.
+  */
  if(!activeScope){
-  return(
-   <View
-    style={[
-     shared.screen,
-     {
-      flex:1,
-      padding:16,
-      justifyContent:'center'
-     }
-    ]}
-   >
-    <Card>
-     <Text style={shared.h2}>
-      Community unavailable
-     </Text>
-     <Text style={shared.muted}>
-      No active Community is available right now. Please try again or open Need Help.
-     </Text>
-    </Card>
-   </View>
-  );
+  return <LegacyPublicBuklodScreen/>;
  }
 
  /*
