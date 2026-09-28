@@ -3472,7 +3472,7 @@ return (
     (
       <View>
         {/* BUKLOD_DZAS_SCOPED_WALL_SHORTCUT_R1 */}
-        {/* BUKLOD_DZAS_WEB_ONE_TAP_R7 */}
+        {/* BUKLOD_DZAS_WEB_SIMPLE_PLAY_R8 */}
         {mode === 'wall' ? (
           <View
             style={{
@@ -3486,7 +3486,7 @@ return (
               onPress={() => {
                 if (Platform.OS === 'web') {
                   void Linking.openURL(
-                    'https://play.radios.com.br/10256'
+                    'https://www.youtube.com/@702dzasfebcradyotv/live'
                   );
                   return;
                 }
@@ -3511,7 +3511,7 @@ return (
               })}
             >
               <MaterialCommunityIcons
-                name="radio"
+                name="play-circle-outline"
                 size={15}
                 color={colors.greenDark}
               />
@@ -3522,7 +3522,7 @@ return (
                   color: colors.greenDark,
                 }}
               >
-                DZAS
+                DZAS · PLAY
               </Text>
             </Pressable>
           </View>
