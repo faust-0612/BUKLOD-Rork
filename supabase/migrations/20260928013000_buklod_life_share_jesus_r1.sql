@@ -25,6 +25,9 @@ create table if not exists private.buklod_life_journeys (
 create index if not exists buklod_life_journeys_stage_idx
   on private.buklod_life_journeys(stage, updated_at desc);
 
+revoke all on table private.buklod_life_journeys
+  from public, anon, authenticated;
+
 create index if not exists buklod_referrals_referrer_referred_life_idx
   on public.buklod_referrals(referrer_id, referred_id);
 
