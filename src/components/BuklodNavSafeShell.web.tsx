@@ -147,7 +147,7 @@ export default function BuklodNavSafeShell({
   const { user } = useAuth();
 
   /*
-   * BUKLOD_WEB_TERMINAL_BACK_GUARD_R3
+   * BUKLOD_WEB_TERMINAL_BACK_GUARD_R4
    *
    * Mobile web / installed PWA resolves this .web.tsx shell, so native
    * BackHandler cannot protect Profile or Community Wall.
@@ -204,6 +204,14 @@ export default function BuklodNavSafeShell({
         ? 'PROFILE'
         : 'WALL';
 
+    /*
+     * Phone web / installed PWA gets two same-URL sentinels. This gives the
+     * Android system Back button an in-app history entry even when BUKLOD was
+     * launched directly from a Home Screen shortcut with no useful prior page.
+     */
+    const mobileWeb =
+      width < BUKLOD_DESKTOP_WEB_MIN_WIDTH;
+
     const currentState =
       browserWindow.history.state &&
       typeof browserWindow.history.state === 'object'
@@ -224,17 +232,41 @@ export default function BuklodNavSafeShell({
       browserWindow.location.href,
     );
 
-    browserWindow.history.pushState(
-      {
-        ...currentState,
-        [TERMINAL_BASE]: routeKind,
-        [TERMINAL_GUARD]: routeKind,
-      },
-      '',
-      browserWindow.location.href,
-    );
+    const armGuard = () => {
+      const latestState =
+        browserWindow.history.state &&
+        typeof browserWindow.history.state === 'object'
+          ? browserWindow.history.state
+          : currentState;
 
-    const onPopState = () => {
+      browserWindow.history.pushState(
+        {
+          ...latestState,
+          [TERMINAL_BASE]: routeKind,
+          [TERMINAL_GUARD]: routeKind,
+        },
+        '',
+        browserWindow.location.href,
+      );
+    };
+
+    armGuard();
+
+    if (mobileWeb) {
+      armGuard();
+    }
+
+    const onPopState = (event: any) => {
+      /*
+       * Run before Expo Router's normal web popstate handling on phone/PWA.
+       * Terminal Back is owned by BUKLOD: Profile -> Wall, Wall -> refresh.
+       */
+      if (
+        mobileWeb &&
+        typeof event?.stopImmediatePropagation === 'function'
+      ) {
+        event.stopImmediatePropagation();
+      }
       const livePath =
         normalizeBuklodPathname(
           String(
@@ -315,17 +347,20 @@ export default function BuklodNavSafeShell({
     browserWindow.addEventListener(
       'popstate',
       onPopState,
+      mobileWeb,
     );
 
     return () => {
       browserWindow.removeEventListener(
         'popstate',
         onPopState,
+        mobileWeb,
       );
     };
   }, [
     pathname,
     user?.id,
+    width,
   ]);
 
   const publicMinimal =
