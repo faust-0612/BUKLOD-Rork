@@ -11,19 +11,107 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
+import {
+  isBuklodInvalidCredentialsError,
+  isBuklodTransientAuthError,
+  signInWithPasswordResilient,
+} from '@/lib/buklodAuthResilience';
 
 type RecoveryStatus = {
   pinConfigured: boolean;
   loginHint: string | null;
 };
 
+const SUGGESTED_LOGINS_KEY = 'buklod.suggested_logins.v2';
+const REMEMBERED_CREDENTIALS_KEY = 'buklod.remembered_credentials.v1';
+
+function suggestedLoginPasswordKey(userId: string) {
+  return `buklod.suggested_login.password.${userId}`;
+}
+
+async function writeStoredLoginSecret(key: string, value: string) {
+  if (Platform.OS === 'web') {
+    await AsyncStorage.setItem(key, value);
+    return;
+  }
+
+  await SecureStore.setItemAsync(key, value);
+}
+
+async function syncRememberedPasswordForCurrentUser(
+  userId: string,
+  newPassword: string
+) {
+  const rawSuggested = await AsyncStorage.getItem(SUGGESTED_LOGINS_KEY);
+  let currentIdentifier: string | null = null;
+
+  if (rawSuggested) {
+    try {
+      const parsed = JSON.parse(rawSuggested);
+      if (Array.isArray(parsed)) {
+        const current = parsed.find(
+          (item: any) =>
+            String(item?.userId ?? '') === userId
+        );
+
+        if (typeof current?.identifier === 'string') {
+          currentIdentifier = current.identifier.trim();
+        }
+
+        if (current?.hasPassword === true) {
+          await writeStoredLoginSecret(
+            suggestedLoginPasswordKey(userId),
+            newPassword
+          );
+        }
+      }
+    } catch (error) {
+      console.warn('Could not refresh suggested-login password.', error);
+    }
+  }
+
+  if (!currentIdentifier) return;
+
+  const rawRemembered = await AsyncStorage.getItem(
+    REMEMBERED_CREDENTIALS_KEY
+  );
+  if (!rawRemembered) return;
+
+  try {
+    const remembered = JSON.parse(rawRemembered);
+    const rememberedIdentifier =
+      typeof remembered?.identifier === 'string'
+        ? remembered.identifier.trim()
+        : '';
+
+    if (
+      rememberedIdentifier &&
+      rememberedIdentifier.toLowerCase() ===
+        currentIdentifier.toLowerCase()
+    ) {
+      await AsyncStorage.setItem(
+        REMEMBERED_CREDENTIALS_KEY,
+        JSON.stringify({
+          ...remembered,
+          password: newPassword,
+        })
+      );
+    }
+  } catch (error) {
+    console.warn('Could not refresh remembered BUKLOD credentials.', error);
+  }
+}
+
 export default function AccountSecurityScreen() {
-  const [password, setPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false);
   const [recoveryBusy, setRecoveryBusy] = useState(true);
@@ -54,23 +142,121 @@ export default function AccountSecurityScreen() {
   }, []);
 
   const changePassword = async () => {
-    if (password.length < 8) {
+    if (!currentPassword) {
+      return Alert.alert(
+        'Current Password',
+        'Enter your current password first.'
+      );
+    }
+    if (newPassword.length < 8) {
       return Alert.alert('New Password', 'Use at least 8 characters.');
     }
-    if (password !== confirm) {
+    if (newPassword !== confirm) {
       return Alert.alert('New Password', 'The passwords do not match.');
     }
+    if (newPassword === currentPassword) {
+      return Alert.alert(
+        'New Password',
+        'Choose a new password that is different from your current password.'
+      );
+    }
     if (inFlight.current) return;
+
     inFlight.current = true;
     setBusy(true);
+
     try {
-      const { error } = await supabase.auth.updateUser({ password });
-      if (error) throw error;
-      setPassword('');
+      const { data: userData, error: userError } =
+        await supabase.auth.getUser();
+
+      if (userError) throw userError;
+
+      const user = userData.user;
+      if (!user) {
+        throw new Error('Your session has expired. Please sign in again.');
+      }
+
+      const email = user.email?.trim();
+      const phone = user.phone?.trim();
+
+      if (!email && !phone) {
+        throw new Error(
+          'BUKLOD could not securely identify this account for password verification.'
+        );
+      }
+
+      const verifyResult = await signInWithPasswordResilient(
+        email
+          ? { email, password: currentPassword }
+          : { phone: phone as string, password: currentPassword }
+      );
+
+      if (verifyResult.error) {
+        if (isBuklodInvalidCredentialsError(verifyResult.error)) {
+          Alert.alert(
+            'Current Password',
+            'Your current password is incorrect.'
+          );
+          return;
+        }
+
+        if (isBuklodTransientAuthError(verifyResult.error)) {
+          Alert.alert(
+            'BUKLOD is temporarily busy',
+            'Your password was not rejected. The server did not finish the verification request. Please try again.'
+          );
+          return;
+        }
+
+        throw verifyResult.error;
+      }
+
+      if (
+        !verifyResult.data.user?.id ||
+        verifyResult.data.user.id !== user.id
+      ) {
+        throw new Error(
+          'BUKLOD could not verify the current account safely.'
+        );
+      }
+
+      const { error: updateError } =
+        await supabase.auth.updateUser({ password: newPassword });
+
+      if (updateError) throw updateError;
+
+      try {
+        await syncRememberedPasswordForCurrentUser(
+          user.id,
+          newPassword
+        );
+      } catch (storageError) {
+        console.warn(
+          'Password changed, but stored login credentials could not be refreshed.',
+          storageError
+        );
+      }
+
+      setCurrentPassword('');
+      setNewPassword('');
       setConfirm('');
-      Alert.alert('Password Changed', 'Your BUKLOD password has been updated.');
+      Alert.alert(
+        'Password Changed',
+        'Your BUKLOD password has been updated successfully.'
+      );
     } catch (error: any) {
-      Alert.alert('Password & Recovery', String(error?.message ?? error ?? 'Could not change password.'));
+      if (isBuklodTransientAuthError(error)) {
+        Alert.alert(
+          'BUKLOD is temporarily busy',
+          'The password change could not be completed because the server did not finish the request. Please try again.'
+        );
+        return;
+      }
+
+      Alert.alert(
+        'Password & Recovery',
+        String(error?.message ?? error ?? 'Could not change password.')
+      );
     } finally {
       inFlight.current = false;
       setBusy(false);
@@ -119,10 +305,39 @@ export default function AccountSecurityScreen() {
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Change Password</Text>
+          <Text style={styles.label}>Current Password</Text>
+          <TextInput
+            value={currentPassword}
+            onChangeText={setCurrentPassword}
+            secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+            textContentType="password"
+            placeholder="Enter current password"
+            style={styles.input}
+          />
           <Text style={styles.label}>New Password</Text>
-          <TextInput value={password} onChangeText={setPassword} secureTextEntry placeholder="At least 8 characters" style={styles.input} />
+          <TextInput
+            value={newPassword}
+            onChangeText={setNewPassword}
+            secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+            textContentType="newPassword"
+            placeholder="At least 8 characters"
+            style={styles.input}
+          />
           <Text style={styles.label}>Confirm New Password</Text>
-          <TextInput value={confirm} onChangeText={setConfirm} secureTextEntry placeholder="Re-enter new password" style={styles.input} />
+          <TextInput
+            value={confirm}
+            onChangeText={setConfirm}
+            secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+            textContentType="newPassword"
+            placeholder="Re-enter new password"
+            style={styles.input}
+          />
           <Pressable disabled={busy} onPress={() => void changePassword()} style={[styles.primary, busy && styles.disabled]}>
             {busy ? <ActivityIndicator color={colors.white} /> : <Text style={styles.primaryText}>CHANGE PASSWORD</Text>}
           </Pressable>
