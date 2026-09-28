@@ -90,7 +90,7 @@ export default function BuklodLifeInviteWelcomeScreen() {
         laterSub:
           'Maaari mong balikan ang LIFE anumang oras. Walang pressure.',
         optional:
-          'OPSyonal',
+          'OPSYONAL',
       }
       : {
         welcome:
