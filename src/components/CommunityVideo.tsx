@@ -16,6 +16,7 @@ type Props = {
   autoPlay?: boolean;
   expectedDurationSeconds?: number;
   fullscreen?: boolean;
+  edgeToEdge?: boolean;
 };
 
 export function CommunityVideo({
@@ -24,6 +25,7 @@ export function CommunityVideo({
   autoPlay = false,
   expectedDurationSeconds,
   fullscreen = false,
+  edgeToEdge = false,
 }: Props) {
   const player = useVideoPlayer(
     uri,
@@ -54,6 +56,7 @@ export function CommunityVideo({
     <View
       style={[
         styles.wrap,
+        edgeToEdge && styles.edgeToEdgeWrap,
         fullscreen && styles.fullscreenWrap,
         { height },
       ]}
@@ -93,6 +96,9 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
 
+  edgeToEdgeWrap: {
+    borderRadius: 0,
+  },
   fullscreenWrap: {
     marginTop: 0,
     borderRadius: 0,
