@@ -49,9 +49,3 @@ jobs:
             grep -F "'cluster_wall_feed'" src/components/BuklodCommunityInlineAd.android.tsx
             echo "BUKLOD_PRE_APK_V22_SOURCE_QA=PASS"
 
-  report:
-    name: Report pre-APK result to PR
-    after: [build_android_apk]
-    type: github-comment
-    params:
-      message: BUKLOD 1.3.1 v22 pre-APK build finished on EAS from the release branch. No web deploy, OTA publish, Play Store submit, or finance activation was performed.
