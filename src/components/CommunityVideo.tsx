@@ -21,6 +21,7 @@ type Props = {
   edgeToEdge?: boolean;
   active?: boolean;
   onOpenFullscreen?: () => void;
+  onPlaybackError?: () => void;
 };
 
 export function CommunityVideo({
@@ -32,6 +33,7 @@ export function CommunityVideo({
   edgeToEdge = false,
   active = true,
   onOpenFullscreen,
+  onPlaybackError,
 }: Props) {
   const player = useVideoPlayer(
     uri,
@@ -43,6 +45,22 @@ export function CommunityVideo({
    * PATCH_173F_R11_COMMUNITY_VIDEO_AUTOPLAY
    * Autoplay is opt-in. Native controls stay available.
    */
+  useEffect(() => {
+    const subscription = player.addListener(
+      'statusChange',
+      (event: any) => {
+        if (event?.status === 'error') {
+          onPlaybackError?.();
+        }
+      }
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [onPlaybackError, player]);
+
+  /* BUKLOD_COMMUNITY_VIDEO_RETRY_R6 */
   useEffect(
     () => {
       if (!active) {
