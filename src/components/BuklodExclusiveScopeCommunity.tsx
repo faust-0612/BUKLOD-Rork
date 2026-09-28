@@ -3470,6 +3470,55 @@ return (
   const Header =
     (
       <View>
+        {/* BUKLOD_DZAS_SCOPED_WALL_SHORTCUT_R1 */}
+        {mode === 'wall' ? (
+          <View
+            style={{
+              alignItems: 'flex-end',
+              marginBottom: 8,
+            }}
+          >
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open 702 DZAS Radio"
+              onPress={() =>
+                router.push(
+                  '/personal-home/radio' as any
+                )
+              }
+              style={({ pressed }) => ({
+                minWidth: 68,
+                height: 34,
+                paddingHorizontal: 10,
+                borderRadius: 11,
+                borderWidth: 1,
+                borderColor: colors.line,
+                backgroundColor: colors.white,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 5,
+                opacity: pressed ? 0.72 : 1,
+              })}
+            >
+              <MaterialCommunityIcons
+                name="radio"
+                size={15}
+                color={colors.greenDark}
+              />
+              <Text
+                style={{
+                  fontSize: 9,
+                  fontWeight: '900',
+                  color: colors.greenDark,
+                }}
+              >
+                DZAS
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
+
         {/* PATCH_172F_HIDE_ORG_EXCLUSIVE_CARD */}
         {scope.scope_type !== 'ORGANIZATION' && (
           <View
