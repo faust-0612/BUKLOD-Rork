@@ -1,6 +1,9 @@
 name: BUKLOD Pre-APK Economy Ads V2 QA
 
 on:
+  push:
+    branches:
+      - codex/pre-apk-economy-ads-v2-20260928
   pull_request:
     branches:
       - web-map-life-combined-20260928
