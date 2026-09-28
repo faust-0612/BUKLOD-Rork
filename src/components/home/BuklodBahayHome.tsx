@@ -793,7 +793,7 @@ export default function BuklodBahayHome() {
               <BahayHomeAdBanner />
 
               <View style={styles.utilityRow}>
-                <Pressable onPress={()=>router.push('/personal-home/media' as any)} style={styles.utility}><MaterialCommunityIcons name="radio" size={19} color="#31543E"/><Text style={styles.utilityText}>Media</Text></Pressable>
+                <Pressable onPress={()=>router.push('/personal-home/radio' as any)} style={styles.utility}><MaterialCommunityIcons name="radio" size={19} color="#31543E"/><Text style={styles.utilityText}>Radio</Text></Pressable>
                 <Pressable onPress={()=>router.push('/personal-home/recipe' as any)} style={styles.utility}><MaterialCommunityIcons name="chef-hat" size={19} color="#31543E"/><Text style={styles.utilityText}>Recipe</Text></Pressable>
                 <Pressable onPress={()=>router.push('/personal-home/budget' as any)} style={styles.utility}><MaterialCommunityIcons name="wallet-outline" size={19} color="#31543E"/><Text style={styles.utilityText}>Budget</Text></Pressable>
                 <Pressable onPress={()=>router.push('/personal-home/reminders' as any)} style={styles.utility}><MaterialCommunityIcons name="alarm" size={19} color="#31543E"/><Text style={styles.utilityText}>Reminder</Text></Pressable>
