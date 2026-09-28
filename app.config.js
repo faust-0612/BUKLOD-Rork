@@ -79,7 +79,9 @@ module.exports = ({ config }) => {
     android: {
       package: packageId,
 
-      versionCode: isStaging ? undefined : 20,
+      // Emergency Alert Mode R2 requires Main build 21+. Preserve standalone
+      // Classroom's existing production version code and native permission set.
+      versionCode: isStaging ? undefined : (isClassroom ? 20 : 21),
 
       // Never silently reuse Main Firebase credentials for the standalone Classroom package.
       googleServicesFile: isClassroom
@@ -90,6 +92,7 @@ module.exports = ({ config }) => {
         'android.permission.CAMERA',
         'android.permission.RECORD_AUDIO',
         'android.permission.ACCESS_NETWORK_STATE',
+        ...(!isClassroom ? ['android.permission.ACCESS_NOTIFICATION_POLICY'] : []),
         'android.permission.WAKE_LOCK',
         'android.permission.CHANGE_NETWORK_STATE',
         'android.permission.MODIFY_AUDIO_SETTINGS',
