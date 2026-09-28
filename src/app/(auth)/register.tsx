@@ -31,6 +31,7 @@ import {
   recordBuklodReferralFunnel,
   resolveBuklodReferralCode,
 } from '@/lib/buklodReferralV2';
+import { recordBuklodLifeReferralFunnel } from '@/lib/buklodLifeImpact';
 import { colors } from '@/lib/theme';
 import { useBuklodDrawerBottomInset } from '@/lib/buklodSafeArea';
 import { useBuklodFeedback } from '@/providers/BuklodFeedbackProvider';
@@ -129,7 +130,7 @@ function buildFullName(
 
 /* BUKLOD_MAIN_CANONICAL_REGISTER_LOGO_R1 */
 export default function RegisterScreen() {
-  const params = useLocalSearchParams<{ ref?: string; referral?: string }>();
+  const params = useLocalSearchParams<{ ref?: string; referral?: string; life?: string }>();
   const drawerBottomInset = useBuklodDrawerBottomInset();
   const { showFeedback } = useBuklodFeedback();
 
@@ -871,6 +872,12 @@ useEffect(() => {
             : ' Your first-line referrer is now locked and the ₱20 referral reward is Pending qualification.';
         }
         void recordBuklodReferralFunnel('SIGNUP_COMPLETED','REGISTER');
+        if (String(params.life ?? '') === '1') {
+          void recordBuklodLifeReferralFunnel(
+            'SIGNUP_COMPLETED',
+            'LIFE_INVITE'
+          );
+        }
       }catch(referralError:unknown){
         referralMessage=' Referral status could not be finalized yet. Your account is active, and a valid pending referral will retry automatically.';
         void trackBuklodFeedbackEvent({
@@ -887,6 +894,16 @@ useEffect(() => {
         'Account created',
         'Your BUKLOD account is ready. You can enter the Public Community immediately.'+referralMessage
       );
+
+      if (String(params.life ?? '') === '1') {
+        router.replace({
+          pathname: '/life/invite' as any,
+          params: {
+            ref: referralCode.trim(),
+          },
+        });
+        return;
+      }
 
       router.replace('/(tabs)/buklod');
     };
