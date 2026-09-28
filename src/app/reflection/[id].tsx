@@ -3,6 +3,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { Button, shared } from '@/components/UI';
+import BuklodSubmissionAdSlot from '@/components/BuklodSubmissionAdSlot';
 import { useAuth } from '@/providers/AuthProvider';
 import { colors } from '@/lib/theme';
 
@@ -92,6 +93,7 @@ export default function ReflectionScreen() {
       <Text style={shared.muted}>
         Completing this devotional automatically saves and submits it for BUKLOD checking.
       </Text>
+      <BuklodSubmissionAdSlot placementId="daily_devotion_submission" />
       <Button title={busy?'COMPLETING...':'✓ COMPLETE DEVOTIONAL'} onPress={complete} />
     </ScrollView>
   );

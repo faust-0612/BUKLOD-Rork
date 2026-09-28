@@ -3,6 +3,7 @@ import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-nativ
 import { useAudioPlayer } from 'expo-audio';
 
 import { Button, Card, SectionTitle, shared } from '@/components/UI';
+import BuklodSubmissionAdSlot from '@/components/BuklodSubmissionAdSlot';
 import { BuklodAnswerValidationFeedback } from '@/components/education/BuklodAnswerValidationGate';
 import {
   buildGeneratedLessonQuestionContext,
@@ -316,6 +317,8 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
           </Text>
         </View>
       )}
+
+      <BuklodSubmissionAdSlot placementId="formation_lesson_submission" />
 
       <Button
         title={

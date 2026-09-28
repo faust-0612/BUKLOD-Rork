@@ -19,6 +19,7 @@ import{BuklodTappableAvatar}from'@/components/BuklodTappableAvatar';
 import{CommunityVideo}from'@/components/CommunityVideo';
 import{BuklodQrMatrix}from'@/components/BuklodQrMatrix';
 import BuklodScreenBottomBanner from '@/components/BuklodScreenBottomBanner';
+import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
 import{buildClusterInviteUrl}from'@/lib/buklodClusterInvite';
 import{fetchClusterHomeMembers}from'@/lib/buklodScopeMembers';
 import{scopeRouteParams}from'@/lib/buklodScopeManage';
@@ -246,6 +247,7 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
  if(loading&&!notices.length&&!events.length&&!posts.length)return <View style={s.loading}><ActivityIndicator color={colors.green}/><Text style={s.empty}>Loading Cluster Home...</Text></View>;
  return <><ScrollView contentContainerStyle={[s.content,{paddingBottom:scrollBottomInset}]} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={()=>{setRefreshing(true);void load({background:true})}}/>} showsVerticalScrollIndicator={false}>
   <View style={s.topBar}><TextInput value={searchQuery} onChangeText={setSearchQuery} placeholder="Search Cluster..." placeholderTextColor={colors.muted} style={s.topSearch} returnKeyType="search" clearButtonMode="while-editing"/>{manageMode?<Pressable onPress={()=>void shareInvite()} style={s.topInvite} accessibilityRole="button" accessibilityLabel="Share Cluster invite"><MaterialCommunityIcons name="share-variant-outline" size={18} color="#fff"/><Text style={s.topInviteText}>Share</Text></Pressable>:null}</View>
+  <BuklodFirstViewAd placement="cluster" placementId="cluster_home_entry" />
   {show('notice')&&<Card icon={notice?.priority==='EMERGENCY'?'alert-octagon-outline':'alert-circle-outline'} title={notice?.priority==='EMERGENCY'?'EMERGENCY NOTICE':'IMPORTANT NOTICE'} action={isAdmin?'EDIT':undefined} onAction={isAdmin?()=>edit('notice'):undefined}>{notice?<><Text style={[s.big,notice.priority==='EMERGENCY'&&{color:'#A82020'}]}>{notice.title}</Text>{notice.body?<Text style={s.body}>{notice.body}</Text>:null}</>:<Empty>No important notice right now.</Empty>}</Card>}
   {/* CLUSTER BULLETIN uses the existing official bulletin card directly. */}
   {show('bulletin')&&<BuklodHomeScopeBulletins/>}

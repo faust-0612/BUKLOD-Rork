@@ -6,6 +6,7 @@ import {
   useMemo,
   useState,
 } from 'react';
+import { AppState } from 'react-native';
 
 import {
   initializeBuklodAds,
@@ -15,6 +16,9 @@ import {
 import {
   buklodAdsTestMode,
 } from '@/lib/buklodAdUnits';
+import {
+  flushBuklodAdOperationalTelemetry,
+} from '@/lib/buklodAdOperationalTelemetry';
 
 type AdsContextValue = {
   ready: boolean;
@@ -76,6 +80,25 @@ export function AdsProvider({
     },
     []
   );
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener(
+      'change',
+      (nextState) => {
+        if (
+          nextState === 'background' ||
+          nextState === 'inactive'
+        ) {
+          void flushBuklodAdOperationalTelemetry();
+        }
+      },
+    );
+
+    return () => {
+      subscription.remove();
+      void flushBuklodAdOperationalTelemetry();
+    };
+  }, []);
 
   const refreshConsent =
     async () => {

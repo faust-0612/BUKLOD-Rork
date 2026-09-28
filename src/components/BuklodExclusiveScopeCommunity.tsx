@@ -128,6 +128,8 @@ import type {
 } from '@/lib/buklodScope';
 
 import BuklodCommunityInlineAd from '@/components/BuklodCommunityInlineAd';
+import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
+import BuklodVideoCompanionAd from '@/components/BuklodVideoCompanionAd';
 import {
   buildCommunityFeedWithInlineAds,
   isCommunityFeedInlineAdRow,
@@ -3265,53 +3267,58 @@ return (
 
           {!!item.media_url &&
             isVideo && (
-              <View
-                style={
-                  styles.videoWrap
-                }
-              >
-                <CommunityVideo
-                  uri={
-                    item.media_url
-                  }
-                  height={
-                    470
-                  }
-                />
-
+              <>
                 <View
                   style={
-                    styles.reelBadge
+                    styles.videoWrap
                   }
                 >
-                  <MaterialCommunityIcons
-                    name="movie-play-outline"
-                    size={14}
-                    color={
-                      colors.white
+                  <CommunityVideo
+                    uri={
+                      item.media_url
+                    }
+                    height={
+                      470
                     }
                   />
 
-                  <Text
+                  <View
                     style={
-                      styles.reelBadgeText
+                      styles.reelBadge
                     }
                   >
-                    {isScopedReelPost(
-                      item
-                    )
-                      ? 'REEL'
-                      : 'VIDEO'}
-                    {item.media_duration_seconds
-                      ? ` · ${Math.round(
-                          Number(
-                            item.media_duration_seconds
-                          )
-                        )}s`
-                      : ''}
-                  </Text>
+                    <MaterialCommunityIcons
+                      name="movie-play-outline"
+                      size={14}
+                      color={
+                        colors.white
+                      }
+                    />
+
+                    <Text
+                      style={
+                        styles.reelBadgeText
+                      }
+                    >
+                      {isScopedReelPost(
+                        item
+                      )
+                        ? 'REEL'
+                        : 'VIDEO'}
+                      {item.media_duration_seconds
+                        ? ` · ${Math.round(
+                            Number(
+                              item.media_duration_seconds
+                            )
+                          )}s`
+                        : ''}
+                    </Text>
+                  </View>
                 </View>
-              </View>
+                {mode === 'wall' ? (
+                  <BuklodVideoCompanionAd contentId={String(item.id)} />
+                ) : null}
+              </>
             )}
 
           <View
@@ -3517,6 +3524,25 @@ return (
               </Text>
             </Pressable>
           </View>
+        ) : null}
+
+        {mode === 'wall' ? (
+          <BuklodFirstViewAd
+            placement={
+              scope.scope_type === 'CLUSTER'
+                ? 'cluster'
+                : scope.scope_type === 'ORGANIZATION'
+                  ? 'org'
+                  : 'content'
+            }
+            placementId={
+              scope.scope_type === 'CLUSTER'
+                ? 'cluster_wall_entry'
+                : scope.scope_type === 'ORGANIZATION'
+                  ? 'org_wall_entry'
+                  : 'scope_wall_entry'
+            }
+          />
         ) : null}
 
         {/* PATCH_172F_HIDE_ORG_EXCLUSIVE_CARD */}

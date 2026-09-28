@@ -23,6 +23,7 @@ import {
 } from '@/components/BuklodProfileMotion';
 import BuklodProfileCharacterCard from '@/components/points/BuklodProfileCharacterCard';
 import BuklodReferralInviteCard from '@/components/BuklodReferralInviteCard';
+import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
 import {
   resolveContrastPaint,
   withAlpha,
@@ -1912,6 +1913,11 @@ export default function MeScreen() {
           </ProfileMotionFadeUp>
         )}
       </View>
+
+      <BuklodFirstViewAd
+        placement="profile"
+        placementId="profile_entry"
+      />
 
       <View style={styles.sectionPad}>
         <BuklodSystemAnnouncementBoard slot="profile" />

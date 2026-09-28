@@ -8,8 +8,13 @@ import {
 
 export type BuklodAdDiagnosticPlacement =
   | 'legacy_home_banner'
+  | 'community_wall_entry'
   | 'community_wall_feed'
   | 'content_inline'
+  | 'content_submission'
+  | 'org_home_entry'
+  | 'cluster_home_entry'
+  | 'video_companion'
   | 'prayer_banner'
   | 'messages_banner'
   | 'profile_banner'
@@ -148,6 +153,7 @@ export function recordBuklodAdEvent(
   context?: {
     route?: string | null;
     provider?: 'ADMOB_NATIVE' | 'ADSENSE_WEB' | 'BUKLOD_SPONSOR';
+    placementId?: string | null;
   },
 ) {
   placement =
@@ -187,7 +193,7 @@ export function recordBuklodAdEvent(
   if (!buklodAdsTestMode) {
     enqueueBuklodAdOperationalEvent({
       occurredAt: new Date(record.timestamp).toISOString(),
-      placementId: placement,
+      placementId: String(context?.placementId ?? placement).slice(0, 80),
       eventType: event,
       provider,
       platform: Platform.OS,
