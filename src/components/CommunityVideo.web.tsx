@@ -9,6 +9,7 @@ type Props = {
   edgeToEdge?: boolean;
   active?: boolean;
   onOpenFullscreen?: () => void;
+  onPlaybackError?: () => void;
 };
 
 function formatDuration(seconds: number) {
@@ -21,6 +22,7 @@ function formatDuration(seconds: number) {
 /*
  * BUKLOD_COMMUNITY_HTML5_VIDEO_R3
  * BUKLOD_COMMUNITY_VIDEO_FULLSCREEN_R4
+ * BUKLOD_COMMUNITY_VIDEO_RETRY_R6
  *
  * Browser-native video playback for Community Wall.
  * preload=metadata gives duration/seek data early, and native HTML5 controls
@@ -35,6 +37,7 @@ export function CommunityVideo({
   edgeToEdge = false,
   active = true,
   onOpenFullscreen,
+  onPlaybackError,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const duration =
@@ -77,6 +80,9 @@ export function CommunityVideo({
       preload: 'metadata',
       playsInline: true,
       autoPlay,
+      onError: () => {
+        onPlaybackError?.();
+      },
       style: {
         display: 'block',
         width: '100%',
