@@ -13,6 +13,8 @@
   | 'profile'
   | 'org'
   | 'cluster'
+  | 'org_community'
+  | 'cluster_community'
   | 'submission'
   | 'video_companion'
   | 'test';
@@ -53,6 +55,8 @@ export function diagnosticPlacementFor(
   if (placement === 'me' || placement === 'profile') return 'profile_banner' as const;
   if (placement === 'org') return 'org_home_entry' as const;
   if (placement === 'cluster') return 'cluster_home_entry' as const;
+  if (placement === 'org_community') return 'org_wall_feed' as const;
+  if (placement === 'cluster_community') return 'cluster_wall_feed' as const;
   if (placement === 'submission') return 'content_submission' as const;
   if (placement === 'video_companion') return 'video_companion' as const;
   return 'test' as const;
