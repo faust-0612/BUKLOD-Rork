@@ -3316,7 +3316,10 @@ return (
                   </View>
                 </View>
                 {mode === 'wall' ? (
-                  <BuklodVideoCompanionAd contentId={String(item.id)} />
+                  <BuklodVideoCompanionAd
+                    contentId={String(item.id)}
+                    expectedDurationSeconds={item.media_duration_seconds}
+                  />
                 ) : null}
               </>
             )}
