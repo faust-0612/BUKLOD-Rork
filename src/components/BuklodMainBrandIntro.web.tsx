@@ -233,7 +233,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     opacity: 0,
     transform: [{ translateY: 8 }],
-    willChange: 'opacity, transform' as any,
   },
   tagline: {
     marginTop: 5,
