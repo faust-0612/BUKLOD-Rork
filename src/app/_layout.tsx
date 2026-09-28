@@ -139,6 +139,8 @@ export default function RootLayout() {
                 <Stack.Screen name="formation/mission-project" />
                 <Stack.Screen name="word/index" />
                 <Stack.Screen name="bible/index" />
+                <Stack.Screen name="life/index" />
+                <Stack.Screen name="life/topic" />
 {/* PATCH_155BC_NEW_ROUTES */}
                 <Stack.Screen name="mentoring/index" />
                 <Stack.Screen name="reels/index" />
