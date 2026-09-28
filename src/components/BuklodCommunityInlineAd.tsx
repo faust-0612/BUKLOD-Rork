@@ -31,13 +31,15 @@ import { useBuklodAdViewportGate } from '@/lib/buklodAdViewport';
 import { useAds } from '@/providers/AdsProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 
+type CommunityAdInventory = 'public' | 'org' | 'cluster';
+
 type Props = {
   slotId?: string;
   active?: boolean;
+  inventory?: CommunityAdInventory;
 };
 
 const AD_LOAD_TIMEOUT_MS = 8_000;
-const PLACEMENT_ID = 'community_wall_feed';
 
 function clean(value: string | undefined) {
   return String(value ?? '').trim();
@@ -46,6 +48,7 @@ function clean(value: string | undefined) {
 export default function BuklodCommunityInlineAd({
   slotId,
   active = true,
+  inventory = 'public',
 }: Props) {
   const { width } = useWindowDimensions();
   const pathname = usePathname();
@@ -65,18 +68,54 @@ export default function BuklodCommunityInlineAd({
   const nativeRendered = useRef(false);
   const bannerRendered = useRef(false);
 
+  const diagnosticPlacement =
+    inventory === 'org'
+      ? 'org_wall_feed'
+      : inventory === 'cluster'
+        ? 'cluster_wall_feed'
+        : 'community_wall_feed';
+
+  const placementId =
+    inventory === 'org'
+      ? 'org_wall_feed'
+      : inventory === 'cluster'
+        ? 'cluster_wall_feed'
+        : 'public_wall_feed';
+
+  const bannerPlacement =
+    inventory === 'org'
+      ? 'org_community'
+      : inventory === 'cluster'
+        ? 'cluster_community'
+        : 'community';
+
   const routeSafe = isBuklodPassiveAdAllowed({
-    placement: 'community',
-    placementId: PLACEMENT_ID,
+    placement: bannerPlacement,
+    placementId,
     pathname,
   });
 
   const nativeUnitId = useMemo(() => {
     if (buklodAdsTestMode) return TestIds.NATIVE;
-    return clean(process.env.EXPO_PUBLIC_ADMOB_COMMUNITY_NATIVE_UNIT_ID);
-  }, []);
 
-  const bannerUnitId = getBuklodBannerUnitId('community');
+    if (inventory === 'org') {
+      return (
+        clean(process.env.EXPO_PUBLIC_ADMOB_ORG_COMMUNITY_NATIVE_UNIT_ID) ||
+        clean(process.env.EXPO_PUBLIC_ADMOB_COMMUNITY_NATIVE_UNIT_ID)
+      );
+    }
+
+    if (inventory === 'cluster') {
+      return (
+        clean(process.env.EXPO_PUBLIC_ADMOB_CLUSTER_COMMUNITY_NATIVE_UNIT_ID) ||
+        clean(process.env.EXPO_PUBLIC_ADMOB_COMMUNITY_NATIVE_UNIT_ID)
+      );
+    }
+
+    return clean(process.env.EXPO_PUBLIC_ADMOB_COMMUNITY_NATIVE_UNIT_ID);
+  }, [inventory]);
+
+  const bannerUnitId = getBuklodBannerUnitId(bannerPlacement);
   const sdkReady = ready && canRequestAds;
   const canAttempt =
     active &&
@@ -96,7 +135,7 @@ export default function BuklodCommunityInlineAd({
       return;
     }
 
-    if (!reserveBuklodPassiveAdRequest(PLACEMENT_ID, requestKey)) {
+    if (!reserveBuklodPassiveAdRequest(placementId, requestKey)) {
       setNativeFailed(true);
       setBannerFailed(true);
       return;
@@ -104,10 +143,10 @@ export default function BuklodCommunityInlineAd({
 
     nativeRequestStarted.current = true;
     recordBuklodAdEvent(
-      'community_wall_feed',
+      diagnosticPlacement,
       'ad_request',
       undefined,
-      { route: pathname },
+      { route: pathname, placementId },
     );
 
     let cancelled = false;
@@ -117,10 +156,10 @@ export default function BuklodCommunityInlineAd({
     nativeTimeoutRef.current = setTimeout(() => {
       if (!cancelled) {
         recordBuklodAdEvent(
-          'community_wall_feed',
+          diagnosticPlacement,
           'ad_failed',
           new Error('NATIVE_AD_LOAD_TIMEOUT'),
-          { route: pathname },
+          { route: pathname, placementId },
         );
         setNativeFailed(true);
       }
@@ -146,19 +185,19 @@ export default function BuklodCommunityInlineAd({
           NativeAdEventType.IMPRESSION,
           () => {
             recordBuklodAdEvent(
-              'community_wall_feed',
+              diagnosticPlacement,
               'ad_impression',
               undefined,
-              { route: pathname },
+              { route: pathname, placementId },
             );
           },
         );
 
         recordBuklodAdEvent(
-          'community_wall_feed',
+          diagnosticPlacement,
           'ad_loaded',
           undefined,
-          { route: pathname },
+          { route: pathname, placementId },
         );
         setNativeAd(ad);
       })
@@ -170,10 +209,10 @@ export default function BuklodCommunityInlineAd({
 
         if (!cancelled) {
           recordBuklodAdEvent(
-            'community_wall_feed',
+            diagnosticPlacement,
             'ad_failed',
             error,
-            { route: pathname },
+            { route: pathname, placementId },
           );
           setNativeFailed(true);
         }
@@ -188,18 +227,26 @@ export default function BuklodCommunityInlineAd({
       impressionSubscription?.remove();
       createdAd?.destroy();
     };
-  }, [canAttempt, nativeFailed, nativeUnitId, pathname, requestKey]);
+  }, [
+    canAttempt,
+    diagnosticPlacement,
+    nativeFailed,
+    nativeUnitId,
+    pathname,
+    placementId,
+    requestKey,
+  ]);
 
   useEffect(() => {
     if (!nativeAd || nativeRendered.current) return;
     nativeRendered.current = true;
     recordBuklodAdEvent(
-      'community_wall_feed',
+      diagnosticPlacement,
       'ad_rendered',
       undefined,
-      { route: pathname },
+      { route: pathname, placementId },
     );
-  }, [nativeAd, pathname]);
+  }, [diagnosticPlacement, nativeAd, pathname, placementId]);
 
   useEffect(() => {
     if (
@@ -214,18 +261,18 @@ export default function BuklodCommunityInlineAd({
 
     bannerRequestStarted.current = true;
     recordBuklodAdEvent(
-      'community_wall_feed',
+      diagnosticPlacement,
       'ad_request',
       undefined,
-      { route: pathname },
+      { route: pathname, placementId },
     );
 
     bannerTimeoutRef.current = setTimeout(() => {
       recordBuklodAdEvent(
-        'community_wall_feed',
+        diagnosticPlacement,
         'ad_failed',
         new Error('BANNER_AD_LOAD_TIMEOUT'),
-        { route: pathname },
+        { route: pathname, placementId },
       );
       setBannerFailed(true);
     }, AD_LOAD_TIMEOUT_MS);
@@ -236,18 +283,26 @@ export default function BuklodCommunityInlineAd({
         bannerTimeoutRef.current = null;
       }
     };
-  }, [bannerFailed, bannerUnitId, canAttempt, nativeFailed, pathname]);
+  }, [
+    bannerFailed,
+    bannerUnitId,
+    canAttempt,
+    diagnosticPlacement,
+    nativeFailed,
+    pathname,
+    placementId,
+  ]);
 
   useEffect(() => {
     if (!bannerLoaded || bannerRendered.current) return;
     bannerRendered.current = true;
     recordBuklodAdEvent(
-      'community_wall_feed',
+      diagnosticPlacement,
       'ad_rendered',
       undefined,
-      { route: pathname },
+      { route: pathname, placementId },
     );
-  }, [bannerLoaded, pathname]);
+  }, [bannerLoaded, diagnosticPlacement, pathname, placementId]);
 
   if (!active || !routeSafe) return null;
 
@@ -324,19 +379,19 @@ export default function BuklodCommunityInlineAd({
               bannerTimeoutRef.current = null;
             }
             recordBuklodAdEvent(
-              'community_wall_feed',
+              diagnosticPlacement,
               'ad_loaded',
               undefined,
-              { route: pathname },
+              { route: pathname, placementId },
             );
             setBannerLoaded(true);
           }}
           onAdImpression={() => {
             recordBuklodAdEvent(
-              'community_wall_feed',
+              diagnosticPlacement,
               'ad_impression',
               undefined,
-              { route: pathname },
+              { route: pathname, placementId },
             );
           }}
           onAdFailedToLoad={error => {
@@ -345,10 +400,10 @@ export default function BuklodCommunityInlineAd({
               bannerTimeoutRef.current = null;
             }
             recordBuklodAdEvent(
-              'community_wall_feed',
+              diagnosticPlacement,
               'ad_failed',
               error,
-              { route: pathname },
+              { route: pathname, placementId },
             );
             setBannerFailed(true);
           }}
