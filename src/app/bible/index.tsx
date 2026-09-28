@@ -1,4 +1,5 @@
 import { repairMojibakeText } from '@/lib/repairMojibakeText';
+import BuklodSubmissionAdSlot from '@/components/BuklodSubmissionAdSlot';
 import BuklodOccasionalAd from '@/components/BuklodOccasionalAd';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -2083,6 +2084,8 @@ export default function DailyBibleScreen() {
                 Revision requested{submission.admin_note?`: ${submission.admin_note}`:''}
               </Text>
             )}
+
+            <BuklodSubmissionAdSlot placementId="daily_reading_submission" />
 
             <Pressable
               disabled={!canSubmit || busy}
