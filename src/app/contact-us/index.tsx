@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -23,6 +24,9 @@ import {
   colors,
 } from '@/lib/theme';
 
+const BUKLOD_CONTACT_PHONE = '09811646218';
+const BUKLOD_CONTACT_PHONE_DISPLAY = '0981 164 6218';
+
 export default function
 ContactUsScreen() {
   return (
@@ -36,9 +40,65 @@ ContactUsScreen() {
       </Text>
 
       <Text style={styles.body}>
-        Contact BUKLOD through the in-app feedback channel or{' '}
-        {BUKLOD_PRIVACY_CONTACT_EMAIL}.
+        Need help with BUKLOD? You can contact us directly by email or phone,
+        or use the in-app feedback channel.
       </Text>
+
+      <Pressable
+        accessibilityRole="link"
+        style={styles.row}
+        onPress={() =>
+          void Linking.openURL(
+            `mailto:${BUKLOD_PRIVACY_CONTACT_EMAIL}`
+          )
+        }
+      >
+        <MaterialCommunityIcons
+          name="email-outline"
+          size={24}
+          color={colors.green}
+        />
+
+        <View style={styles.copy}>
+          <Text style={styles.rowTitle}>
+            Email
+          </Text>
+          <Text
+            selectable
+            style={styles.rowBody}
+          >
+            {BUKLOD_PRIVACY_CONTACT_EMAIL}
+          </Text>
+        </View>
+      </Pressable>
+
+      <Pressable
+        accessibilityRole="link"
+        style={styles.row}
+        onPress={() =>
+          void Linking.openURL(
+            `tel:${BUKLOD_CONTACT_PHONE}`
+          )
+        }
+      >
+        <MaterialCommunityIcons
+          name="phone-outline"
+          size={24}
+          color={colors.green}
+        />
+
+        <View style={styles.copy}>
+          <Text style={styles.rowTitle}>
+            Call / Text
+          </Text>
+          <Text
+            selectable
+            style={styles.rowBody}
+          >
+            {BUKLOD_CONTACT_PHONE_DISPLAY}
+          </Text>
+        </View>
+      </Pressable>
 
       <Pressable
         style={styles.row}
@@ -148,6 +208,7 @@ const styles =
       borderRadius: 16,
       backgroundColor:
         colors.white,
+      marginBottom: 12,
     },
 
     copy: {
