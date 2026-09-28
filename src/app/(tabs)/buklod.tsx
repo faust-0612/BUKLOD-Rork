@@ -4343,7 +4343,7 @@ const refreshCommunity186L=
       return (
        <Pressable
         key={tab.key}
-        accessibilityRole="tab"
+        accessibilityRole="button"
         accessibilityState={{selected}}
         onPress={()=>
          selectCommunityFeedMode(
