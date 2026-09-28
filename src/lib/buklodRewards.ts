@@ -412,20 +412,19 @@ export async function loadRevenueSplitConfig(): Promise<RevenueSplitConfig | nul
   };
 }
 
-export async function saveRevenueSplitConfig(input: RevenueSplitConfig) {
-  const { error } = await (supabase as any).rpc(
-    'admin_set_buklod_revenue_split_config_v1',
-    {
-      p_creator_pool_pct: input.creator_pool_pct,
-      p_referral_pool_pct: input.referral_pool_pct,
-      p_points_budget_pct: input.points_budget_pct,
-      p_operations_pct: input.operations_pct,
-    },
+/**
+ * LEGACY / READ-ONLY.
+ *
+ * The historical 40/5/10/45 split is no longer an authoritative money
+ * configuration for BUKLOD Main. Canonical financed allocations now come from
+ * the versioned finance/QMP policy. Keep the reader for historical/admin
+ * compatibility, but fail closed on mutation so an old screen cannot silently
+ * overwrite the active economy model.
+ */
+export async function saveRevenueSplitConfig(_input: RevenueSplitConfig) {
+  throw new Error(
+    'Legacy revenue split is read-only. Use the canonical BUKLOD finance policy and versioned settlement controls.',
   );
-
-  if (error) {
-    throw error;
-  }
 }
 
 export type ReferralSummary = {
