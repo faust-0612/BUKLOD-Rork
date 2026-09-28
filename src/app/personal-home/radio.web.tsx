@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Linking,
   Pressable,
@@ -11,265 +11,63 @@ import {
   View,
 } from 'react-native';
 
-const DZAS_STREAM_URL = String(
-  process.env.EXPO_PUBLIC_DZAS_STREAM_URL ||
-    'https://sg-icecast.eradioportal.com:8443/febc_dzas',
-).trim();
+const DZAS_ZENO_PLAYER_URL =
+  'https://zeno.fm/player/dzas-702-am';
 
-const DZAS_WEBSITE_URL = 'https://dzas.febc.ph';
-const DZAS_YOUTUBE_CHANNEL_ID = 'UCFYknqXTqheggqJ2JCPy28w';
+const DZAS_ZENO_PAGE_URL =
+  'https://zeno.fm/radio/dzas-702-am/';
+
+const DZAS_WEBSITE_URL =
+  'https://dzas.febc.ph';
+
 const DZAS_YOUTUBE_PAGE_URL =
   'https://www.youtube.com/@702dzasfebcradyotv/live';
-const DZAS_FAVORITE_KEY = 'buklod.radio.favorite.702dzas';
+
+const DZAS_FAVORITE_KEY =
+  'buklod.radio.favorite.702dzas';
 
 /*
- * BUKLOD_DZAS_WEB_EXTERNAL_LIVE_R5
+ * BUKLOD_DZAS_WEB_AUDIO_ONLY_R6
  *
- * The legacy Icecast endpoint currently fails in phone browsers with
- * "no supported source". Web/PWA therefore uses the official 702 DZAS
- * FEBC RadyoTV YouTube live player as the primary source. The direct audio
- * endpoint stays available as a secondary retry for future recovery.
- * Native APK/iOS remains on radio.tsx and is untouched.
+ * Phone web/PWA uses Zeno's embeddable audio player for the DZAS 702 AM
+ * listing. This avoids the broken legacy Icecast endpoint and avoids video
+ * playback inside BUKLOD. Native APK/iOS radio.tsx remains untouched.
  */
 export default function BuklodRadioWebScreen() {
-  const audioRef = useRef<any>(null);
-  const mountedRef = useRef(true);
+  const mountedRef =
+    useRef(true);
 
-  const [favorite, setFavorite] = useState(false);
-  const [playing, setPlaying] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  const [statusText, setStatusText] = useState('Ready');
+  const [favorite, setFavorite] =
+    useState(false);
 
-  const streamLabel = useMemo(
-    () => 'Official DZAS RadyoTV live',
-    [],
-  );
+  const [playerReady, setPlayerReady] =
+    useState(false);
 
   useEffect(() => {
     mountedRef.current = true;
 
-    void AsyncStorage.getItem(DZAS_FAVORITE_KEY).then((value) => {
-      if (mountedRef.current) {
-        setFavorite(value === '1');
-      }
-    });
-
-    const AudioCtor =
-      typeof window !== 'undefined'
-        ? (window as any).Audio
-        : null;
-
-    const audio =
-      typeof AudioCtor === 'function'
-        ? new AudioCtor()
-        : null;
-
-    if (!audio) {
-      setError('Hindi available ang browser audio player sa device na ito.');
-      return () => {
-        mountedRef.current = false;
-      };
-    }
-
-    audioRef.current = audio;
-    audio.preload = 'none';
-    audio.volume = 1;
-    audio.muted = false;
-
-    const onPlaying = () => {
-      if (!mountedRef.current) return;
-      setPlaying(true);
-      setBusy(false);
-      setError('');
-      setStatusText('LIVE');
-    };
-
-    const onPause = () => {
-      if (!mountedRef.current) return;
-      setPlaying(false);
-      setBusy(false);
-      setStatusText('Paused');
-    };
-
-    const onWaiting = () => {
-      if (!mountedRef.current) return;
-      setBusy(true);
-      setStatusText('Buffering...');
-    };
-
-    const onCanPlay = () => {
-      if (!mountedRef.current) return;
-      setStatusText(current =>
-        current === 'LIVE' ? current : 'Connected',
-      );
-    };
-
-    const onStalled = () => {
-      if (!mountedRef.current) return;
-      setBusy(true);
-      setStatusText('Reconnecting...');
-    };
-
-    const onError = () => {
-      if (!mountedRef.current) return;
-
-      const mediaError = audio.error;
-      const code = Number(mediaError?.code || 0);
-
-      setPlaying(false);
-      setBusy(false);
-      setStatusText('Direct audio unavailable');
-
-      setError(
-        code
-          ? `Direct audio unavailable (media error ${code}). Use PLAY LIVE for the official DZAS stream.`
-          : 'Direct audio unavailable. Use PLAY LIVE for the official DZAS stream.',
-      );
-    };
-
-    audio.addEventListener('playing', onPlaying);
-    audio.addEventListener('pause', onPause);
-    audio.addEventListener('waiting', onWaiting);
-    audio.addEventListener('canplay', onCanPlay);
-    audio.addEventListener('stalled', onStalled);
-    audio.addEventListener('error', onError);
+    void AsyncStorage
+      .getItem(
+        DZAS_FAVORITE_KEY,
+      )
+      .then(value => {
+        if (
+          mountedRef.current
+        ) {
+          setFavorite(
+            value === '1',
+          );
+        }
+      });
 
     return () => {
       mountedRef.current = false;
-
-      audio.removeEventListener('playing', onPlaying);
-      audio.removeEventListener('pause', onPause);
-      audio.removeEventListener('waiting', onWaiting);
-      audio.removeEventListener('canplay', onCanPlay);
-      audio.removeEventListener('stalled', onStalled);
-      audio.removeEventListener('error', onError);
-
-      try {
-        audio.pause();
-        audio.removeAttribute('src');
-        audio.load();
-      } catch {
-        // Best-effort browser cleanup.
-      }
-
-      audioRef.current = null;
     };
   }, []);
 
-  const setMediaSession = () => {
-    try {
-      const mediaSession =
-        typeof navigator !== 'undefined'
-          ? (navigator as any).mediaSession
-          : null;
-
-      const MediaMetadataCtor =
-        typeof window !== 'undefined'
-          ? (window as any).MediaMetadata
-          : null;
-
-      if (mediaSession && MediaMetadataCtor) {
-        mediaSession.metadata =
-          new MediaMetadataCtor({
-            title: '702 DZAS',
-            artist: 'FEBC Philippines',
-            album: 'BUKLOD Radio Live',
-          });
-      }
-    } catch {
-      // Media Session metadata is optional.
-    }
-  };
-
-  const play = async (forceReload = false) => {
-    const audio = audioRef.current;
-
-    if (!audio || !DZAS_STREAM_URL) {
-      setError('Walang available DZAS browser stream.');
-      return;
-    }
-
-    setBusy(true);
-    setError('');
-    setStatusText('Connecting...');
-
-    try {
-      /*
-       * Keep play() directly inside the user-triggered action so Android/iOS
-       * browser/PWA autoplay policies recognize this as an intentional start.
-       */
-      const needsSource =
-        forceReload ||
-        audio.getAttribute('src') !==
-          DZAS_STREAM_URL;
-
-      if (needsSource) {
-        try {
-          audio.pause();
-        } catch {
-          // no-op
-        }
-
-        audio.src = DZAS_STREAM_URL;
-        audio.preload = 'none';
-        audio.volume = 1;
-        audio.muted = false;
-        audio.load();
-      } else {
-        audio.volume = 1;
-        audio.muted = false;
-      }
-
-      setMediaSession();
-
-      const promise = audio.play();
-
-      if (
-        promise &&
-        typeof promise.then === 'function'
-      ) {
-        await promise;
-      }
-
-      if (mountedRef.current) {
-        setPlaying(!audio.paused);
-        setBusy(false);
-        setStatusText(audio.paused ? 'Ready' : 'LIVE');
-      }
-    } catch (playError: any) {
-      if (!mountedRef.current) return;
-
-      const message = String(playError?.message || '').trim();
-
-      setPlaying(false);
-      setBusy(false);
-      setStatusText('Direct audio unavailable');
-      setError(
-        message
-          ? `${message} Use PLAY LIVE for the official DZAS stream.`
-          : 'Direct audio unavailable. Use PLAY LIVE for the official DZAS stream.',
-      );
-    }
-  };
-
-  const pause = () => {
-    const audio = audioRef.current;
-
-    if (!audio) return;
-
-    try {
-      audio.pause();
-      setPlaying(false);
-      setBusy(false);
-      setStatusText('Paused');
-    } catch {
-      // no-op
-    }
-  };
-
   const toggleFavorite = () => {
     const next = !favorite;
+
     setFavorite(next);
 
     void AsyncStorage.setItem(
@@ -279,62 +77,65 @@ export default function BuklodRadioWebScreen() {
   };
 
   const openOfficialSite = () => {
-    void Linking.openURL(DZAS_WEBSITE_URL);
+    void Linking.openURL(
+      DZAS_WEBSITE_URL,
+    );
   };
 
   const openOfficialYouTube = () => {
-    void Linking.openURL(DZAS_YOUTUBE_PAGE_URL);
+    void Linking.openURL(
+      DZAS_YOUTUBE_PAGE_URL,
+    );
   };
 
-  const startOfficialLive = () => {
-    try {
-      const audio = audioRef.current;
-      audio?.pause?.();
-      audio?.removeAttribute?.('src');
-      audio?.load?.();
-    } catch {
-      // Best effort cleanup only.
-    }
-
-    setPlaying(false);
-    setBusy(false);
-    setError('');
-    setStatusText('Opening official DZAS live...');
-
-    /*
-     * Phone web/PWA: open the official YouTube live destination directly from
-     * this user gesture. This avoids Android PWA/WebView iframe failures and
-     * YouTube autoplay restrictions while preserving the official source.
-     */
-    void Linking.openURL(DZAS_YOUTUBE_PAGE_URL)
-      .then(() => {
-        if (mountedRef.current) {
-          setStatusText('Official DZAS live opened');
-        }
-      })
-      .catch((openError: any) => {
-        if (!mountedRef.current) return;
-
-        setStatusText('Could not open live');
-        setError(
-          String(
-            openError?.message ||
-              'Could not open the official DZAS live page.',
-          ),
-        );
-      });
+  const openZenoPage = () => {
+    void Linking.openURL(
+      DZAS_ZENO_PAGE_URL,
+    );
   };
+
+  const audioPlayer =
+    React.createElement(
+      'iframe',
+      {
+        src: DZAS_ZENO_PLAYER_URL,
+        title: 'DZAS 702 AM audio player',
+        loading: 'eager',
+        allow: 'autoplay',
+        frameBorder: '0',
+        scrolling: 'no',
+        onLoad: () => {
+          if (
+            mountedRef.current
+          ) {
+            setPlayerReady(true);
+          }
+        },
+        style: {
+          display: 'block',
+          width: '100%',
+          height: '250px',
+          border: '0',
+          backgroundColor:
+            '#FFFFFF',
+        },
+      },
+    );
 
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={
+        styles.content
+      }
     >
       <View style={styles.header}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Back"
-          onPress={() => router.back()}
+          onPress={() =>
+            router.back()
+          }
           style={styles.iconButton}
         >
           <MaterialCommunityIcons
@@ -344,24 +145,52 @@ export default function BuklodRadioWebScreen() {
           />
         </Pressable>
 
-        <View style={styles.headerCopy}>
-          <Text style={styles.eyebrow}>
+        <View
+          style={
+            styles.headerCopy
+          }
+        >
+          <Text
+            style={
+              styles.eyebrow
+            }
+          >
             BUKLOD RADIO
           </Text>
 
-          <Text style={styles.title}>
+          <Text
+            style={
+              styles.title
+            }
+          >
             Makinig. Manatiling konektado.
           </Text>
 
-          <Text style={styles.subtitle}>
-            Live Christian radio inside BUKLOD. Web/PWA uses the official 702 DZAS FEBC RadyoTV live source.
+          <Text
+            style={
+              styles.subtitle
+            }
+          >
+            Audio-only live radio inside BUKLOD.
           </Text>
         </View>
       </View>
 
-      <View style={styles.stationCard}>
-        <View style={styles.stationTop}>
-          <View style={styles.stationIcon}>
+      <View
+        style={
+          styles.stationCard
+        }
+      >
+        <View
+          style={
+            styles.stationTop
+          }
+        >
+          <View
+            style={
+              styles.stationIcon
+            }
+          >
             <MaterialCommunityIcons
               name="radio-tower"
               size={34}
@@ -369,34 +198,65 @@ export default function BuklodRadioWebScreen() {
             />
           </View>
 
-          <View style={styles.stationCopy}>
-            <View style={styles.liveRow}>
+          <View
+            style={
+              styles.stationCopy
+            }
+          >
+            <View
+              style={
+                styles.liveRow
+              }
+            >
               <View
                 style={[
                   styles.liveDot,
-                  playing && styles.liveDotOn,
+                  playerReady &&
+                    styles.liveDotOn,
                 ]}
               />
 
-              <Text style={styles.liveText}>
-                {playing ? 'LIVE' : statusText.toUpperCase()}
+              <Text
+                style={
+                  styles.liveText
+                }
+              >
+                {playerReady
+                  ? 'AUDIO PLAYER READY'
+                  : 'LOADING AUDIO'}
               </Text>
 
-              <Text style={styles.frequency}>
+              <Text
+                style={
+                  styles.frequency
+                }
+              >
                 702 AM
               </Text>
             </View>
 
-            <Text style={styles.stationName}>
+            <Text
+              style={
+                styles.stationName
+              }
+            >
               702 DZAS
             </Text>
 
-            <Text style={styles.stationTagline}>
+            <Text
+              style={
+                styles.stationTagline
+              }
+            >
               Agapay ng Sambayanan
             </Text>
 
-            <Text style={styles.stationMeta}>
-              FEBC Philippines · {streamLabel}
+            <Text
+              style={
+                styles.stationMeta
+              }
+            >
+              FEBC Philippines · audio-only web player
             </Text>
           </View>
 
@@ -407,112 +267,160 @@ export default function BuklodRadioWebScreen() {
                 ? 'Remove DZAS from favorites'
                 : 'Add DZAS to favorites'
             }
-            onPress={toggleFavorite}
-            style={styles.favoriteButton}
-          >
-            <MaterialCommunityIcons
-              name={favorite ? 'heart' : 'heart-outline'}
-              size={24}
-              color={favorite ? '#A73C46' : '#31543E'}
-            />
-          </Pressable>
-        </View>
-
-        <View style={styles.controls}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Open official DZAS live player"
-            onPress={startOfficialLive}
-            style={styles.primaryButton}
-          >
-            <MaterialCommunityIcons
-              name="television-play"
-              size={28}
-              color="#FFFFFF"
-            />
-
-            <Text style={styles.primaryButtonText}>
-              PLAY LIVE
-            </Text>
-          </Pressable>
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Try direct DZAS audio stream"
-            disabled={busy}
-            onPress={() => void play(true)}
-            style={[
-              styles.secondaryButton,
-              busy && styles.buttonDisabled,
-            ]}
-          >
-            <MaterialCommunityIcons
-              name="radio"
-              size={20}
-              color="#31543E"
-            />
-
-            <Text style={styles.secondaryButtonText}>
-              TRY DIRECT AUDIO
-            </Text>
-          </Pressable>
-        </View>
-
-        <View style={styles.statusBox}>
-          <MaterialCommunityIcons
-            name={
-              playing
-                ? 'volume-high'
-                : busy
-                  ? 'loading'
-                  : 'volume-medium'
+            onPress={
+              toggleFavorite
             }
-            size={18}
+            style={
+              styles.favoriteButton
+            }
+          >
+            <MaterialCommunityIcons
+              name={
+                favorite
+                  ? 'heart'
+                  : 'heart-outline'
+              }
+              size={24}
+              color={
+                favorite
+                  ? '#A73C46'
+                  : '#31543E'
+              }
+            />
+          </Pressable>
+        </View>
+
+        <View
+          style={
+            styles.playerIntro
+          }
+        >
+          <MaterialCommunityIcons
+            name="volume-high"
+            size={20}
             color="#31543E"
           />
 
-          <Text style={styles.statusText}>
-            {statusText}
-          </Text>
+          <View
+            style={
+              styles.playerIntroCopy
+            }
+          >
+            <Text
+              style={
+                styles.playerIntroTitle
+              }
+            >
+              LIVE AUDIO
+            </Text>
+
+            <Text
+              style={
+                styles.playerIntroText
+              }
+            >
+              Tap the Play button in the audio player below.
+            </Text>
+          </View>
         </View>
 
-        {!!error && (
-          <View style={styles.errorBox}>
-            <MaterialCommunityIcons
-              name="alert-circle-outline"
-              size={18}
-              color="#8B3D32"
-            />
+        <View
+          style={
+            styles.audioFrame
+          }
+        >
+          {audioPlayer}
+        </View>
 
-            <Text style={styles.errorText}>
-              {error}
-            </Text>
-          </View>
-        )}
-
-        <View style={styles.officialLiveCard}>
+        <View
+          style={
+            styles.providerNote
+          }
+        >
           <MaterialCommunityIcons
-            name="youtube"
-            size={22}
-            color="#B3261E"
+            name="information-outline"
+            size={18}
+            color="#64756A"
           />
 
-          <View style={styles.officialLiveCopy}>
-            <Text style={styles.youtubeTitle}>
-              Official 702 DZAS FEBC RadyoTV Live
-            </Text>
-
-            <Text style={styles.youtubeHint}>
-              PLAY LIVE opens the official DZAS live stream directly in YouTube for reliable audio on phone web/PWA.
-            </Text>
-          </View>
+          <Text
+            style={
+              styles.providerText
+            }
+          >
+            Audio player provided through the DZAS 702 AM listing on Zeno.FM.
+          </Text>
         </View>
 
         <Pressable
           accessibilityRole="link"
-          accessibilityLabel="Open official DZAS website"
-          onPress={openOfficialSite}
-          style={styles.officialLink}
+          accessibilityLabel="Open DZAS audio player page"
+          onPress={
+            openZenoPage
+          }
+          style={
+            styles.secondaryLink
+          }
+        >
+          <MaterialCommunityIcons
+            name="radio"
+            size={18}
+            color="#31543E"
+          />
+
+          <View
+            style={
+              styles.linkCopy
+            }
+          >
+            <Text
+              style={
+                styles.linkTitle
+              }
+            >
+              Open audio player separately
+            </Text>
+
+            <Text
+              style={
+                styles.linkSub
+              }
+            >
+              Backup if your phone blocks the embedded player.
+            </Text>
+          </View>
+        </Pressable>
+      </View>
+
+      <View
+        style={
+          styles.fallbackCard
+        }
+      >
+        <Text
+          style={
+            styles.fallbackTitle
+          }
+        >
+          Official DZAS links
+        </Text>
+
+        <Text
+          style={
+            styles.fallbackText
+          }
+        >
+          If the audio listing is temporarily unavailable, use the official DZAS sources below.
+        </Text>
+
+        <Pressable
+          accessibilityRole="link"
+          onPress={
+            openOfficialSite
+          }
+          style={
+            styles.officialLink
+          }
         >
           <MaterialCommunityIcons
             name="open-in-new"
@@ -520,32 +428,70 @@ export default function BuklodRadioWebScreen() {
             color="#31543E"
           />
 
-          <View style={styles.linkCopy}>
-            <Text style={styles.linkTitle}>
-              Open official DZAS site
-            </Text>
+          <Text
+            style={
+              styles.officialLinkText
+            }
+          >
+            Official DZAS website
+          </Text>
+        </Pressable>
 
-            <Text style={styles.linkSub}>
-              Official station website at listening information.
-            </Text>
-          </View>
+        <Pressable
+          accessibilityRole="link"
+          onPress={
+            openOfficialYouTube
+          }
+          style={
+            styles.officialLink
+          }
+        >
+          <MaterialCommunityIcons
+            name="youtube"
+            size={19}
+            color="#B3261E"
+          />
+
+          <Text
+            style={
+              styles.officialLinkText
+            }
+          >
+            Official DZAS RadyoTV Live
+          </Text>
         </Pressable>
       </View>
 
-      <View style={styles.noteCard}>
+      <View
+        style={
+          styles.noteCard
+        }
+      >
         <MaterialCommunityIcons
-          name="web"
+          name="headphones"
           size={22}
           color="#31543E"
         />
 
-        <View style={styles.noteCopy}>
-          <Text style={styles.noteTitle}>
-            Web/PWA official live mode
+        <View
+          style={
+            styles.noteCopy
+          }
+        >
+          <Text
+            style={
+              styles.noteTitle
+            }
+          >
+            Audio-only mode
           </Text>
 
-          <Text style={styles.noteText}>
-            Sa web shortcut, ang primary live source ay official 702 DZAS FEBC RadyoTV. Ang direct Icecast audio ay secondary retry lamang habang unavailable ang lumang stream endpoint.
+          <Text
+            style={
+              styles.noteText
+            }
+          >
+            Walang video sa BUKLOD Radio web screen. The station audio player stays inside this page while you listen.
           </Text>
         </View>
       </View>
@@ -553,282 +499,290 @@ export default function BuklodRadioWebScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: '#F3F5EE',
-  },
-  content: {
-    width: '100%',
-    maxWidth: 760,
-    alignSelf: 'center',
-    padding: 18,
-    paddingBottom: 42,
-    gap: 18,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-  },
-  iconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#D8E1D7',
-  },
-  headerCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  eyebrow: {
-    color: '#4E7D5B',
-    fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 1.2,
-  },
-  title: {
-    marginTop: 4,
-    color: '#1F3629',
-    fontSize: 25,
-    lineHeight: 30,
-    fontWeight: '900',
-  },
-  subtitle: {
-    marginTop: 5,
-    color: '#6B786F',
-    fontSize: 13,
-    lineHeight: 19,
-    fontWeight: '600',
-  },
-  stationCard: {
-    borderRadius: 24,
-    padding: 18,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#D8E1D7',
-    gap: 18,
-  },
-  stationTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 13,
-  },
-  stationIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#4E7D5B',
-  },
-  stationCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  liveRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  liveDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#87948B',
-  },
-  liveDotOn: {
-    backgroundColor: '#B33A3A',
-  },
-  liveText: {
-    color: '#B33A3A',
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.8,
-  },
-  frequency: {
-    color: '#6B786F',
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  stationName: {
-    marginTop: 3,
-    color: '#1F3629',
-    fontSize: 22,
-    fontWeight: '900',
-  },
-  stationTagline: {
-    marginTop: 1,
-    color: '#31543E',
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  stationMeta: {
-    marginTop: 3,
-    color: '#7A877E',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  favoriteButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F3F5EE',
-  },
-  controls: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  primaryButton: {
-    flexGrow: 1,
-    minWidth: 190,
-    minHeight: 52,
-    paddingHorizontal: 18,
-    borderRadius: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#31543E',
-  },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '900',
-    letterSpacing: 0.4,
-  },
-  secondaryButton: {
-    minHeight: 52,
-    paddingHorizontal: 18,
-    borderRadius: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 7,
-    backgroundColor: '#EDF3EC',
-    borderWidth: 1,
-    borderColor: '#D8E1D7',
-  },
-  secondaryButtonText: {
-    color: '#31543E',
-    fontSize: 12,
-    fontWeight: '900',
-  },
-  buttonDisabled: {
-    opacity: 0.58,
-  },
-  statusBox: {
-    minHeight: 40,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    backgroundColor: '#F1F5EF',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  statusText: {
-    flex: 1,
-    color: '#31543E',
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  errorBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    padding: 12,
-    borderRadius: 14,
-    backgroundColor: '#FFF3F0',
-  },
-  errorText: {
-    flex: 1,
-    color: '#8B3D32',
-    fontSize: 11,
-    lineHeight: 17,
-    fontWeight: '700',
-  },
-  officialLiveCard: {
-    minHeight: 72,
-    borderRadius: 16,
-    padding: 12,
-    backgroundColor: '#F8FAF7',
-    borderWidth: 1,
-    borderColor: '#D8E1D7',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  officialLiveCopy: {
-    flex: 1,
-  },
-  youtubeTitle: {
-    color: '#1F3629',
-    fontSize: 12,
-    fontWeight: '900',
-  },
-  youtubeHint: {
-    marginTop: 3,
-    color: '#6B786F',
-    fontSize: 10,
-    lineHeight: 15,
-    fontWeight: '600',
-  },
-  officialLink: {
-    minHeight: 52,
-    borderRadius: 14,
-    backgroundColor: '#F3F5EE',
-    borderWidth: 1,
-    borderColor: '#D8E1D7',
-    paddingHorizontal: 13,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  linkCopy: {
-    flex: 1,
-  },
-  linkTitle: {
-    color: '#31543E',
-    fontSize: 12,
-    fontWeight: '900',
-  },
-  linkSub: {
-    marginTop: 2,
-    color: '#758179',
-    fontSize: 10,
-    lineHeight: 15,
-    fontWeight: '600',
-  },
-  noteCard: {
-    borderRadius: 18,
-    backgroundColor: '#EAF1E8',
-    borderWidth: 1,
-    borderColor: '#D4E1D2',
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-  },
-  noteCopy: {
-    flex: 1,
-  },
-  noteTitle: {
-    color: '#31543E',
-    fontSize: 12,
-    fontWeight: '900',
-  },
-  noteText: {
-    marginTop: 3,
-    color: '#607166',
-    fontSize: 10,
-    lineHeight: 16,
-    fontWeight: '600',
-  },
-});
+const styles =
+  StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor:
+        '#F3F5EE',
+    },
+    content: {
+      width: '100%',
+      maxWidth: 760,
+      alignSelf: 'center',
+      padding: 18,
+      paddingBottom: 42,
+      gap: 18,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems:
+        'flex-start',
+      gap: 12,
+    },
+    iconButton: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: 'center',
+      justifyContent:
+        'center',
+      backgroundColor:
+        '#FFFFFF',
+      borderWidth: 1,
+      borderColor:
+        '#D8E1D7',
+    },
+    headerCopy: {
+      flex: 1,
+      minWidth: 0,
+    },
+    eyebrow: {
+      color: '#4E7D5B',
+      fontSize: 11,
+      fontWeight: '900',
+      letterSpacing: 1.2,
+    },
+    title: {
+      marginTop: 4,
+      color: '#1F3629',
+      fontSize: 25,
+      lineHeight: 30,
+      fontWeight: '900',
+    },
+    subtitle: {
+      marginTop: 5,
+      color: '#6B786F',
+      fontSize: 13,
+      lineHeight: 19,
+      fontWeight: '600',
+    },
+    stationCard: {
+      borderRadius: 24,
+      padding: 18,
+      backgroundColor:
+        '#FFFFFF',
+      borderWidth: 1,
+      borderColor:
+        '#D8E1D7',
+      gap: 16,
+    },
+    stationTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 13,
+    },
+    stationIcon: {
+      width: 64,
+      height: 64,
+      borderRadius: 20,
+      alignItems: 'center',
+      justifyContent:
+        'center',
+      backgroundColor:
+        '#4E7D5B',
+    },
+    stationCopy: {
+      flex: 1,
+      minWidth: 0,
+    },
+    liveRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: 6,
+    },
+    liveDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor:
+        '#87948B',
+    },
+    liveDotOn: {
+      backgroundColor:
+        '#4E7D5B',
+    },
+    liveText: {
+      color: '#4E7D5B',
+      fontSize: 10,
+      fontWeight: '900',
+      letterSpacing: 0.7,
+    },
+    frequency: {
+      color: '#6B786F',
+      fontSize: 10,
+      fontWeight: '800',
+    },
+    stationName: {
+      marginTop: 3,
+      color: '#1F3629',
+      fontSize: 22,
+      fontWeight: '900',
+    },
+    stationTagline: {
+      marginTop: 1,
+      color: '#31543E',
+      fontSize: 13,
+      fontWeight: '800',
+    },
+    stationMeta: {
+      marginTop: 3,
+      color: '#7A877E',
+      fontSize: 10,
+      fontWeight: '700',
+    },
+    favoriteButton: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      alignItems: 'center',
+      justifyContent:
+        'center',
+      backgroundColor:
+        '#F3F5EE',
+    },
+    playerIntro: {
+      minHeight: 54,
+      borderRadius: 14,
+      paddingHorizontal: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      backgroundColor:
+        '#EEF4EC',
+    },
+    playerIntroCopy: {
+      flex: 1,
+    },
+    playerIntroTitle: {
+      color: '#31543E',
+      fontSize: 11,
+      fontWeight: '900',
+      letterSpacing: 0.5,
+    },
+    playerIntroText: {
+      marginTop: 2,
+      color: '#65746A',
+      fontSize: 10,
+      lineHeight: 15,
+      fontWeight: '600',
+    },
+    audioFrame: {
+      width: '100%',
+      minHeight: 250,
+      borderRadius: 16,
+      overflow: 'hidden',
+      backgroundColor:
+        '#FFFFFF',
+      borderWidth: 1,
+      borderColor:
+        '#D8E1D7',
+    },
+    providerNote: {
+      flexDirection: 'row',
+      alignItems:
+        'flex-start',
+      gap: 8,
+      paddingHorizontal: 2,
+    },
+    providerText: {
+      flex: 1,
+      color: '#64756A',
+      fontSize: 9.5,
+      lineHeight: 14,
+      fontWeight: '600',
+    },
+    secondaryLink: {
+      minHeight: 52,
+      borderRadius: 14,
+      paddingHorizontal: 13,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      backgroundColor:
+        '#F3F5EE',
+      borderWidth: 1,
+      borderColor:
+        '#D8E1D7',
+    },
+    linkCopy: {
+      flex: 1,
+    },
+    linkTitle: {
+      color: '#31543E',
+      fontSize: 12,
+      fontWeight: '900',
+    },
+    linkSub: {
+      marginTop: 2,
+      color: '#758179',
+      fontSize: 10,
+      lineHeight: 15,
+      fontWeight: '600',
+    },
+    fallbackCard: {
+      borderRadius: 18,
+      padding: 14,
+      backgroundColor:
+        '#FFFFFF',
+      borderWidth: 1,
+      borderColor:
+        '#D8E1D7',
+      gap: 9,
+    },
+    fallbackTitle: {
+      color: '#31543E',
+      fontSize: 13,
+      fontWeight: '900',
+    },
+    fallbackText: {
+      color: '#68776E',
+      fontSize: 10,
+      lineHeight: 16,
+      fontWeight: '600',
+    },
+    officialLink: {
+      minHeight: 42,
+      borderRadius: 12,
+      paddingHorizontal: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor:
+        '#F6F8F4',
+    },
+    officialLinkText: {
+      color: '#31543E',
+      fontSize: 11,
+      fontWeight: '900',
+    },
+    noteCard: {
+      borderRadius: 18,
+      backgroundColor:
+        '#EAF1E8',
+      borderWidth: 1,
+      borderColor:
+        '#D4E1D2',
+      padding: 14,
+      flexDirection: 'row',
+      alignItems:
+        'flex-start',
+      gap: 10,
+    },
+    noteCopy: {
+      flex: 1,
+    },
+    noteTitle: {
+      color: '#31543E',
+      fontSize: 12,
+      fontWeight: '900',
+    },
+    noteText: {
+      marginTop: 3,
+      color: '#607166',
+      fontSize: 10,
+      lineHeight: 16,
+      fontWeight: '600',
+    },
+  });
