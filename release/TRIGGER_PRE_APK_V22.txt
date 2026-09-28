@@ -6,3 +6,4 @@ No web deploy.
 No OTA publish.
 No Play Store submission.
 No financial activation.
+Trigger generation: 2
