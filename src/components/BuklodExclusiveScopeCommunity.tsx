@@ -4231,6 +4231,13 @@ return (
                 <BuklodCommunityInlineAd
                   slotId={item.id}
                   active={isAdActive(item.id)}
+                  inventory={
+                    scope.scope_type === 'CLUSTER'
+                      ? 'cluster'
+                      : scope.scope_type === 'ORGANIZATION'
+                        ? 'org'
+                        : 'public'
+                  }
                 />
               );
             }
