@@ -80,7 +80,7 @@ need('app.config.js', 'supportsPictureInPicture: true', 'video PiP');
 need('app.config.js', 'enableBackgroundPlayback: true', 'audio background playback');
 need('app.config.js', 'google-services.production.json', 'production Firebase config');
 need('app.config.js', 'org.mzbministry.buklod', 'production Android package');
-need('app.config.js', 'versionCode: isStaging ? undefined : 20', 'production versionCode');
+need('app.config.js', 'versionCode: isStaging ? undefined : 22', 'production versionCode');
 need('eas.json', '"buildType": "app-bundle"', 'production AAB profile');
 (pkg.main === 'index.js' ? pass('package main = index.js') : fail('package main = index.js'));
 need('app.config.js', 'addNoiseCancellation: true', 'Stream native noise cancellation');
