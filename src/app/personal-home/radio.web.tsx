@@ -50,10 +50,14 @@ export default function BuklodRadioWebScreen() {
       }
     });
 
+    const AudioCtor =
+      typeof window !== 'undefined'
+        ? (window as any).Audio
+        : null;
+
     const audio =
-      typeof window !== 'undefined' &&
-      typeof window.Audio === 'function'
-        ? new window.Audio()
+      typeof AudioCtor === 'function'
+        ? new AudioCtor()
         : null;
 
     if (!audio) {
@@ -192,8 +196,8 @@ export default function BuklodRadioWebScreen() {
        */
       const needsSource =
         forceReload ||
-        !audio.src ||
-        !String(audio.src).includes('febc_dzas');
+        audio.getAttribute('src') !==
+          DZAS_STREAM_URL;
 
       if (needsSource) {
         try {
