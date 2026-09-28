@@ -629,7 +629,13 @@ function elementCoordinates(element){
 }
 function poiPhotoUrl(tags){
  const raw=String(tags.image||'').trim();
- if(/^https?:\/\//i.test(raw)) return raw;
+ /* BUKLOD_MAP_SRCDOC_PARSE_FIX_R5
+  * Avoid slash-escaped regex inside the outer TS template literal. In the
+  * generated srcDoc, \/ escapes are consumed and would produce an invalid
+  * regex, aborting the whole map script before L.map() runs.
+  */
+ const lowerRaw=raw.toLowerCase();
+ if(lowerRaw.startsWith('http://')||lowerRaw.startsWith('https://')) return raw;
  const commons=String(tags.wikimedia_commons||'').trim();
  if(/^File:/i.test(commons)){
   return 'https://commons.wikimedia.org/wiki/Special:Redirect/file/'+encodeURIComponent(commons.replace(/^File:/i,''));
