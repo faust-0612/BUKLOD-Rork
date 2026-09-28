@@ -5,7 +5,7 @@ import {
 
 import type {
   BuklodImaVideoProps,
-} from '@/components/BuklodImaVideo';
+} from '@/components/BuklodImaVideo.types';
 
 let NativeView:
   | React.ComponentType<BuklodImaVideoProps>
