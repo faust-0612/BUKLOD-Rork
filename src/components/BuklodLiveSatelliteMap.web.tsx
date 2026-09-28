@@ -621,6 +621,9 @@ window.addEventListener('message',(event)=>{
  }
 
  if(!p||data.locateOnly){
+  if(data.locateOnly){
+   pendingNavigationDestination=null;
+  }
   if(userLocationMarker){
    try{map.removeLayer(userLocationMarker);}catch{}
   }
