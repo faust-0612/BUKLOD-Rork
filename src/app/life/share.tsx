@@ -818,7 +818,7 @@ export default function BuklodLifeShareScreen() {
             }
           >
             <MaterialCommunityIcons
-              name="shield-heart-outline"
+              name="shield-check-outline"
               size={23}
               color="#456C4C"
             />
