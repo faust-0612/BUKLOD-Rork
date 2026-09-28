@@ -9,11 +9,13 @@ import {
   BannerAd,
   BannerAdSize,
   NativeAd,
+  NativeAdEventType,
   NativeAdView,
   NativeAsset,
   NativeAssetType,
   NativeMediaView,
   TestIds,
+  type PaidEvent,
 } from 'react-native-google-mobile-ads';
 import {
   type BuklodAdPlacement,
@@ -22,6 +24,10 @@ import {
 import {
   initializeBuklodAds,
 } from '@/lib/buklodAds';
+
+import {
+  recordBuklodAdMobPaidEvent,
+} from '@/lib/buklodFbcFinance';
 
 type Props = {
   slotId?: string;
@@ -225,6 +231,35 @@ export default function BuklodReelsInlineAd({
   ]);
 
   useEffect(() => {
+    if (!nativeAd || testMode) {
+      return;
+    }
+
+    const unsubscribePaid =
+      nativeAd.addAdEventListener(
+        NativeAdEventType.PAID,
+        (event: PaidEvent) => {
+          void recordBuklodAdMobPaidEvent({
+            placement: slotId
+              ? `reels_native:${slotId}`
+              : 'reels_native',
+            adUnitId: nativeUnitId,
+            value: event.value,
+            currency: event.currency,
+            precision: event.precision,
+          });
+        },
+      );
+
+    return unsubscribePaid;
+  }, [
+    nativeAd,
+    nativeUnitId,
+    slotId,
+    testMode,
+  ]);
+
+  useEffect(() => {
     if (
       !active ||
       !sdkReady ||
@@ -383,6 +418,17 @@ export default function BuklodReelsInlineAd({
           maxHeight={
             100
           }
+          onPaid={(event: PaidEvent) => {
+            void recordBuklodAdMobPaidEvent({
+              placement: slotId
+                ? `reels_banner:${slotId}`
+                : 'reels_banner',
+              adUnitId: bannerUnitId,
+              value: event.value,
+              currency: event.currency,
+              precision: event.precision,
+            });
+          }}
           onAdLoaded={() => {
             if (
               bannerTimeoutRef.current

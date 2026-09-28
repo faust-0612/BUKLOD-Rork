@@ -5,6 +5,7 @@ import {
   AdEventType,
   AdsConsent,
   InterstitialAd,
+  type PaidEvent,
 } from 'react-native-google-mobile-ads';
 
 import {
@@ -28,6 +29,10 @@ import {
 import {
   isBuklodAdLightPassActive,
 } from '@/lib/buklodAdLightPass';
+
+import {
+  recordBuklodAdMobPaidEvent,
+} from '@/lib/buklodFbcFinance';
 
 export async function initializeBuklodAds():
   Promise<boolean> {
@@ -191,6 +196,23 @@ async function prepareInterstitial() {
           interstitialLoaded =
             true;
         }
+      )
+  );
+
+
+  listenerCleanup.push(
+    interstitial
+      .addAdEventListener(
+        AdEventType.PAID,
+        (event: PaidEvent) => {
+          void recordBuklodAdMobPaidEvent({
+            placement: 'interstitial',
+            adUnitId: unitId,
+            value: event.value,
+            currency: event.currency,
+            precision: event.precision,
+          });
+        },
       )
   );
 

@@ -13,6 +13,7 @@ import {
 import {
   BannerAd,
   BannerAdSize,
+  type PaidEvent,
 } from 'react-native-google-mobile-ads';
 
 import BuklodPaidHeaderAd
@@ -26,6 +27,10 @@ import {
 import {
   initializeBuklodAds,
 } from '@/lib/buklodAds';
+
+import {
+  recordBuklodAdMobPaidEvent,
+} from '@/lib/buklodFbcFinance';
 
 type Placement =
   | 'home'
@@ -170,6 +175,15 @@ function StandardScopedAdMob({
             () =>
               setLoaded(true)
           }
+          onPaid={(event: PaidEvent) => {
+            void recordBuklodAdMobPaidEvent({
+              placement: `scoped_header_${placement}`,
+              adUnitId: unitId,
+              value: event.value,
+              currency: event.currency,
+              precision: event.precision,
+            });
+          }}
           onAdFailedToLoad={
             (error) => {
               console.warn(

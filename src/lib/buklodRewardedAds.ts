@@ -3,6 +3,7 @@ import {
   RewardedAd,
   RewardedAdEventType,
   TestIds,
+  type PaidEvent,
   type RewardedAdReward,
 } from 'react-native-google-mobile-ads';
 
@@ -12,6 +13,10 @@ import {
 import {
   buklodAdsTestMode,
 } from '@/lib/buklodAdUnits';
+
+import {
+  recordBuklodAdMobPaidEvent,
+} from '@/lib/buklodFbcFinance';
 
 /**
  * Rewarded ads are strictly opt-in. This module never grants Circle Points,
@@ -149,6 +154,7 @@ export async function showBuklodRewardedAd(
   }
 
   const ad = warmedAd;
+  const rewardedUnitId = getBuklodRewardedUnitId() ?? '';
   let earnedReward: RewardedAdReward | null = null;
   let earnedHandled = false;
   showing = true;
@@ -160,6 +166,7 @@ export async function showBuklodRewardedAd(
       if (settled) return;
       settled = true;
       clearTimeout(timeout);
+      unsubscribePaid();
       unsubscribeEarned();
       unsubscribeClosed();
       unsubscribeError();
@@ -172,6 +179,19 @@ export async function showBuklodRewardedAd(
         reward: earnedReward,
       });
     };
+
+    const unsubscribePaid = ad.addAdEventListener(
+      AdEventType.PAID,
+      (event: PaidEvent) => {
+        void recordBuklodAdMobPaidEvent({
+          placement: 'rewarded',
+          adUnitId: rewardedUnitId,
+          value: event.value,
+          currency: event.currency,
+          precision: event.precision,
+        });
+      },
+    );
 
     const unsubscribeEarned = ad.addAdEventListener(
       RewardedAdEventType.EARNED_REWARD,
