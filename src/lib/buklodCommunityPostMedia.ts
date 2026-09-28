@@ -195,8 +195,12 @@ async function loadMediaRpc(ids: string[]) {
   }));
 }
 
+/* BUKLOD_COMMUNITY_VIDEO_FORCE_REFRESH_R6 */
 export async function loadCommunityPostMediaByPostIds(
   postIds: string[],
+  options?: {
+    forceFreshVideoUrls?: boolean;
+  },
 ) {
   const ids = [
     ...new Set(
@@ -238,6 +242,9 @@ export async function loadCommunityPostMediaByPostIds(
         mediaUrl = await getAwsWallVideoViewUrl(
           postId,
           externalKey,
+          Boolean(
+            options?.forceFreshVideoUrls
+          ),
         ).catch(() => null);
       } else if (isVideo && mediaPath) {
         mediaUrl = await resolveCommunityMediaUrl(
