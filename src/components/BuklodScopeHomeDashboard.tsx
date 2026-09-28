@@ -21,6 +21,7 @@ import BuklodMzbHomeWidgets from '@/components/BuklodMzbHomeWidgets';
 import BuklodOrgHomeClusterCard from '@/components/BuklodOrgHomeClusterCard';
 import BuklodOrgHomeBayanihanCard from '@/components/BuklodOrgHomeBayanihanCard';
 import BuklodScreenBottomBanner from '@/components/BuklodScreenBottomBanner';
+import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
 import { useBuklodAccess } from '@/hooks/useBuklodAccess';
 import { useScreenFocused } from '@/hooks/useScreenFocused';
 import {
@@ -191,6 +192,15 @@ export default function BuklodScopeHomeDashboard({
         <Text style={styles.heroTitle}>{scope.name}</Text>
         <Text style={styles.heroText}>{homeSubtitle(scope)}</Text>
       </View>
+
+      <BuklodFirstViewAd
+        placement={scope.scope_type === 'ORGANIZATION' ? 'org' : 'content'}
+        placementId={
+          scope.scope_type === 'ORGANIZATION'
+            ? 'org_home_entry'
+            : 'scope_home_entry'
+        }
+      />
 
       {loadError ? (
         <View style={styles.errorCard}>
