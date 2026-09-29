@@ -41,18 +41,6 @@ function Section({ title, subtitle, children }: { title: string; subtitle?: stri
   );
 }
 
-function FlagRow({ label, enabled }: { label: string; enabled: boolean }) {
-  return (
-    <View style={styles.flagRow}>
-      <View style={[styles.flagDot, enabled ? styles.flagDotOn : styles.flagDotOff]} />
-      <Text style={styles.flagLabel}>{label}</Text>
-      <Text style={[styles.flagState, enabled && styles.flagStateOn]}>
-        {enabled ? 'ENABLED' : 'OFF'}
-      </Text>
-    </View>
-  );
-}
-
 export default function AdminBayanihanScreen() {
   const [report, setReport] = useState<BuklodR38AdminEconomyReport | null>(null);
   const [loading, setLoading] = useState(true);
@@ -88,7 +76,6 @@ export default function AdminBayanihanScreen() {
   }, [report]);
 
   const revenue = report?.revenue_chain;
-  const activation = report?.activation ?? {};
   const checks = report?.invariant_checks ?? {};
   const shareCount = report?.user_shares?.length ?? 0;
 
@@ -105,7 +92,7 @@ export default function AdminBayanihanScreen() {
             <Text style={styles.eyebrow}>SYSTEM ADMIN · ECONOMY REPORT</Text>
             <Text style={shared.h1}>Economy, Bayanihan & Shares</Text>
             <Text style={shared.muted}>
-              Platform revenue reconciliation, funded-pool allocation, BCU/RCU weights, finalized user shares and payout controls.
+              Canonical Finance V3 reconciliation, 30% User Pool allocation, Qualified Monthly Points, first-line referral settlement and payout controls.
             </Text>
           </View>
           <MaterialCommunityIcons name="finance" size={31} color={colors.greenDark} />
@@ -116,7 +103,7 @@ export default function AdminBayanihanScreen() {
           <View style={{ flex: 1 }}>
             <Text style={styles.guardTitle}>Hard economic invariant</Text>
             <Text style={styles.guardText}>
-              Points, Circle Rank, Character, Collectibles, BCU and RCU never mint pesos. Cash may be created only from reconciled, finalized and funded platform revenue pools.
+              Points, Circle Rank, Character and Collectibles never mint pesos. Qualified Monthly Points are distribution weights only. Cash comes only from eligible finalized platform value and canonical settlement.
             </Text>
           </View>
         </View>
@@ -170,47 +157,34 @@ export default function AdminBayanihanScreen() {
               subtitle="Pools are percentages of the reconciled distributable base — never of user Points."
             >
               <View style={styles.grid}>
-                <Metric label="Bayanihan 30%" value={formatPhp(revenue?.bayanihan_pool)} />
-                <Metric label="Direct Referral 5%" value={formatPhp(revenue?.referral_pool)} />
-                <Metric label="Founder 35%" value={formatPhp(revenue?.founder)} />
-                <Metric label="Growth 20%" value={formatPhp(revenue?.growth)} />
-                <Metric label="Reserve 10%" value={formatPhp(revenue?.reserve)} />
+                <Metric label="User Revenue Pool 30%" value={formatPhp(revenue?.bayanihan_pool)} />
+                <Metric label="First-Line Referral Settlement" value={formatPhp(revenue?.referral_pool)} />
+                <Metric label="Qualification Reserve" value={formatPhp(revenue?.reserve)} />
               </View>
             </Section>
 
             <Section
-              title="Contribution Units"
-              subtitle="BCU and RCU are proportional weights only. The effective PHP/unit shown after finalization is retrospective analytics, not a future rate."
+              title="Qualified Monthly Points"
+              subtitle="Qualified Monthly Points are monthly proportional weights for the 30% User Revenue Pool. They never have a fixed peso conversion rate."
             >
               <View style={styles.grid}>
                 <Metric
-                  label="Qualified BCU"
+                  label="Qualified Monthly Points"
                   value={asMoney(report.qualified_units?.bcu).toLocaleString('en-PH', { maximumFractionDigits: 6 })}
                 />
                 <Metric
-                  label="Qualified RCU"
-                  value={asMoney(report.qualified_units?.rcu).toLocaleString('en-PH', { maximumFractionDigits: 6 })}
-                />
-                <Metric
-                  label="Effective PHP / BCU"
+                  label="Retrospective PHP / Qualified Point"
                   value={report.effective_rates_analytics_only.php_per_bcu == null ? '—' : formatPhp(report.effective_rates_analytics_only.php_per_bcu)}
-                  note="Analytics only"
-                />
-                <Metric
-                  label="Effective PHP / RCU"
-                  value={report.effective_rates_analytics_only.php_per_rcu == null ? '—' : formatPhp(report.effective_rates_analytics_only.php_per_rcu)}
-                  note="Analytics only"
+                  note="Analytics only — never a promised rate"
                 />
               </View>
             </Section>
 
             <Section title="Finalized Distribution" subtitle={`${shareCount.toLocaleString('en-PH')} finalized user-share records in the selected period.`}>
               <View style={styles.grid}>
-                <Metric label="Bayanihan Distributed" value={formatPhp(report.distributed.bayanihan)} />
-                <Metric label="Referral Distributed" value={formatPhp(report.distributed.direct_referral)} />
-                <Metric label="Cash Available" value={formatPhp(report.cash_ledger.available)} />
-                <Metric label="Cash Reserved" value={formatPhp(report.cash_ledger.reserved)} />
-                <Metric label="Cash Paid" value={formatPhp(report.cash_ledger.paid)} />
+                <Metric label="User Pool Distributed" value={formatPhp(report.distributed.bayanihan)} />
+                <Metric label="First-Line Referral Distributed" value={formatPhp(report.distributed.direct_referral)} />
+                <Metric label="Canonical Cash Ledger" value="See withdrawal / payout ledger" note="No synthetic zero balances are shown." />
               </View>
 
               {report.user_shares.length ? (
@@ -221,7 +195,7 @@ export default function AdminBayanihanScreen() {
                       <View style={{ flex: 1 }}>
                         <Text style={styles.shareName}>{item.full_name}</Text>
                         <Text style={styles.shareMeta}>
-                          {item.pool_key === 'DIRECT_REFERRAL' ? 'Direct Referral' : 'Bayanihan'} · {asMoney(item.qualified_units).toLocaleString('en-PH', { maximumFractionDigits: 6 })} units
+                          {item.pool_key === 'DIRECT_REFERRAL' ? 'First-Line Referral' : 'User Pool'} · {asMoney(item.qualified_units).toLocaleString('en-PH', { maximumFractionDigits: 6 })} units
                         </Text>
                       </View>
                       <Text style={styles.shareAmount}>{formatPhp(item.finalized_share_amount)}</Text>
@@ -229,16 +203,6 @@ export default function AdminBayanihanScreen() {
                   ))}
                 </View>
               ) : null}
-            </Section>
-
-            <Section title="Activation Gates" subtitle="Money movement remains disabled until each controlled phase is explicitly activated.">
-              <View style={styles.flagCard}>
-                <FlagRow label="RCU accrual" enabled={activation.rcu_accrual_enabled === true} />
-                <FlagRow label="Estimated economics" enabled={activation.estimated_economics_enabled === true} />
-                <FlagRow label="Financial finalization" enabled={activation.financial_finalization_enabled === true} />
-                <FlagRow label="Referral withdrawal" enabled={activation.referral_withdrawal_enabled === true} />
-                <FlagRow label="Payout processing" enabled={activation.payout_processing_enabled === true} />
-              </View>
             </Section>
 
             <Section title="Safety Checks">

@@ -58,24 +58,6 @@ export function makeBuklodR38IdempotencyKey(prefix: string) {
   return `${prefix}:${Date.now()}:${Math.random().toString(36).slice(2, 10)}`;
 }
 
-export async function adminCreateBuklodR38EconomicPeriod(input: {
-  periodKey: string;
-  startIso: string;
-  endIso: string;
-  notes?: string;
-}) {
-  return rpc<Record<string, unknown>>(
-    'admin_create_buklod_r38_economic_period_v1',
-    {
-      p_period_key: input.periodKey.trim(),
-      p_period_start: input.startIso,
-      p_period_end: input.endIso,
-      p_notes: input.notes?.trim() || null,
-    },
-    'Could not create the economic period.',
-  );
-}
-
 export async function adminAddBuklodR38FinancialEntry(input: {
   periodKey: string;
   entryKind: string;
@@ -86,72 +68,43 @@ export async function adminAddBuklodR38FinancialEntry(input: {
   reconciliationState: 'ESTIMATED' | 'RECONCILED' | 'EXCLUDED';
   idempotencyKey?: string;
 }) {
-  return rpc<{ idempotent_replay: boolean; entry: Record<string, unknown> }>(
-    'admin_add_buklod_r38_financial_entry_v1',
+  const entryType = input.entryKind.trim().toUpperCase();
+  const canonicalState =
+    input.reconciliationState === 'EXCLUDED'
+      ? 'REVERSED'
+      : input.reconciliationState;
+
+  return rpc<Record<string, unknown>>(
+    'admin_record_buklod_pf_financial_entry_v3',
     {
       p_period_key: input.periodKey.trim(),
-      p_entry_kind: input.entryKind.trim().toUpperCase(),
-      p_direction: input.direction,
-      p_amount: input.amount,
+      p_entry_type: entryType,
+      p_direction:
+        input.entryKind.trim().toUpperCase() === 'REVENUE_REVERSAL'
+          ? 'DEBIT'
+          : input.direction === 'revenue'
+            ? 'CREDIT'
+            : 'DEBIT',
+      p_amount_php: input.amount,
+      p_reconciliation_state: canonicalState,
       p_source_system: input.sourceSystem.trim() || 'manual_admin',
       p_external_reference: input.externalReference?.trim() || null,
       p_idempotency_key:
-        input.idempotencyKey || makeBuklodR38IdempotencyKey('financial-entry'),
-      p_reconciliation_state: input.reconciliationState,
-      p_metadata: { entered_from: 'admin_r38_operations' },
+        input.idempotencyKey || makeBuklodR38IdempotencyKey('pf-financial-entry'),
+      p_notes: 'Canonical Finance V3 admin operation',
     },
-    'Could not add the financial entry.',
+    'Could not add the canonical financial entry.',
   );
 }
 
-export async function adminSetBuklodR38FinancialEntryState(
-  entryId: string,
-  reconciliationState: 'ESTIMATED' | 'RECONCILED' | 'EXCLUDED',
-  reason?: string,
-) {
+export async function adminFinalizeBuklodR38EconomicPeriod(periodKey: string, _reason?: string) {
   return rpc<Record<string, unknown>>(
-    'admin_set_buklod_r38_financial_entry_state_v1',
-    {
-      p_entry_id: entryId,
-      p_reconciliation_state: reconciliationState,
-      p_reason: reason?.trim() || null,
-    },
-    'Could not update reconciliation state.',
-  );
-}
-
-export async function adminSetBuklodR38PeriodStatus(
-  periodKey: string,
-  status: 'OPEN' | 'ESTIMATING' | 'RECONCILING' | 'READY_FOR_FINALIZATION',
-  reason?: string,
-) {
-  return rpc<Record<string, unknown>>(
-    'admin_set_buklod_r38_period_status_v1',
+    'admin_finalize_buklod_pf_month_v3',
     {
       p_period_key: periodKey.trim(),
-      p_status: status,
-      p_reason: reason?.trim() || null,
+      p_idempotency_key: makeBuklodR38IdempotencyKey(`pf-finalize:${periodKey.trim()}`),
     },
-    'Could not update the economic period status.',
-  );
-}
-
-export async function adminFinalizeBuklodR38EconomicPeriod(periodKey: string, reason?: string) {
-  return rpc<Record<string, unknown>>(
-    'admin_finalize_buklod_r38_economic_period_v1',
-    {
-      p_period_key: periodKey.trim(),
-      p_reason: reason?.trim() || null,
-    },
-    'Could not finalize the economic period.',
-  );
-}
-
-export async function adminReconcileBuklodR38Referrals(limit = 500) {
-  return rpc<Record<string, unknown>>(
-    'admin_reconcile_buklod_r38_referrals_v1',
-    { p_limit: limit },
-    'Could not reconcile referral qualification.',
+    'Could not finalize the canonical financial month.',
   );
 }
 
@@ -159,7 +112,7 @@ export async function adminListBuklodR38Withdrawals(status?: string | null) {
   return rpc<BuklodR38AdminWithdrawalQueue>(
     'admin_list_buklod_r38_referral_withdrawals_v1',
     { p_status: status?.trim() || null, p_limit: 100 },
-    'Could not load the R38 withdrawal queue.',
+    'Could not load the canonical withdrawal queue.',
   );
 }
 
@@ -169,21 +122,21 @@ export async function adminReviewBuklodR38Withdrawal(
   reason?: string,
 ) {
   return rpc<Record<string, unknown>>(
-    'admin_review_buklod_r38_referral_withdrawal_v1',
+    'admin_review_buklod_pf_withdrawal_v2',
     {
       p_withdrawal_id: withdrawalId,
       p_approve: approve,
       p_reason: reason?.trim() || null,
     },
-    'Could not review the withdrawal request.',
+    'Could not review the canonical withdrawal request.',
   );
 }
 
 export async function adminGetBuklodR38PayoutDetails(withdrawalId: string) {
   return rpc<BuklodR38PayoutDetails>(
-    'admin_get_buklod_r38_withdrawal_payout_details_v1',
+    'admin_get_buklod_pf_withdrawal_payout_details_v2',
     { p_withdrawal_id: withdrawalId },
-    'Could not access payout destination.',
+    'Could not access canonical payout destination.',
   );
 }
 
@@ -192,11 +145,11 @@ export async function adminMarkBuklodR38WithdrawalPaid(
   transactionRef: string,
 ) {
   return rpc<Record<string, unknown>>(
-    'admin_mark_buklod_r38_referral_withdrawal_paid_v1',
+    'admin_mark_buklod_pf_withdrawal_paid_v2',
     {
       p_withdrawal_id: withdrawalId,
       p_transaction_ref: transactionRef.trim(),
     },
-    'Could not mark the withdrawal as paid.',
+    'Could not mark the canonical withdrawal as paid.',
   );
 }

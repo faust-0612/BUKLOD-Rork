@@ -17,6 +17,7 @@ import {
   writeAuthSnapshot,
 } from '@/lib/buklodAuthSnapshot';
 import { cachedQuery } from '@/lib/performance';
+import { ensureBuklodCanonicalFinanceIdentity } from '@/lib/buklodCanonicalFinanceIdentity';
 
 export type AppRole =
   | 'member'
@@ -123,6 +124,23 @@ export function AuthProvider({
 
   const bootstrappedRef = useRef(false);
   const sessionUserIdRef = useRef<string | null>(null);
+  const canonicalFinanceUserRef = useRef<string | null>(null);
+
+  const ensureCanonicalFinanceForUser = (userId?: string | null) => {
+    if (!userId || canonicalFinanceUserRef.current === userId) {
+      return;
+    }
+
+    canonicalFinanceUserRef.current = userId;
+
+    void ensureBuklodCanonicalFinanceIdentity().catch((error: unknown) => {
+      canonicalFinanceUserRef.current = null;
+      console.warn(
+        'Canonical finance identity bootstrap failed:',
+        error instanceof Error ? error.message : error,
+      );
+    });
+  };
 
   const loadRoles = async (
     userId?: string,
@@ -447,6 +465,7 @@ export function AuthProvider({
         await loadProfile(
           nextSession?.user.id
         );
+        ensureCanonicalFinanceForUser(nextSession?.user?.id);
       })
       .catch(async (error: any) => {
         if (disposed) {
@@ -470,6 +489,7 @@ export function AuthProvider({
           sessionUserIdRef.current =
             persisted.user.id;
           await loadProfile(persisted.user.id);
+          ensureCanonicalFinanceForUser(persisted.user.id);
           return;
         }
 
@@ -509,6 +529,7 @@ export function AuthProvider({
             !nextUserId
           ) {
             void clearAuthSnapshot(previousUserId);
+            canonicalFinanceUserRef.current = null;
             setProfile(null);
             setRoles([]);
             setMembershipState('none');
@@ -548,6 +569,9 @@ export function AuthProvider({
             void loadProfile(
               nextSession?.user.id
             )
+              .then(() => {
+                ensureCanonicalFinanceForUser(nextSession?.user?.id);
+              })
               .catch((error: any) => {
                 console.warn(
                   'BUKLOD auth state hydration:',

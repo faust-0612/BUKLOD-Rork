@@ -1,5 +1,9 @@
 import { supabase } from '@/lib/supabase';
 import { cachedQuery, invalidateCache } from '@/lib/performance';
+import {
+  attachBuklodCanonicalReferral,
+  ensureBuklodCanonicalFinanceIdentity,
+} from '@/lib/buklodCanonicalFinanceIdentity';
 
 export type BuklodPointsDashboard = {
   total_points: number;
@@ -414,12 +418,32 @@ export type ReferralSummary = {
   invited_count: number;
   qualified_count: number;
   was_referred: boolean;
+  one_time_reward_php: number;
+  first_line_share_pct: number;
+  referral_months: number;
+  my_qualification_value_php: number;
+  my_qualification_threshold_php: number;
+  my_user_share_active: boolean;
 };
 
 export async function loadReferralSummary(): Promise<ReferralSummary | null> {
-  const { data, error } = await (supabase as any).rpc(
-    'get_my_buklod_referral_summary_v1',
+  let result = await (supabase as any).rpc(
+    'get_my_buklod_referral_summary_v2',
   );
+
+  if (
+    !result.error &&
+    result.data &&
+    typeof result.data === 'object' &&
+    (result.data as Record<string, unknown>).identity_ready === false
+  ) {
+    await ensureBuklodCanonicalFinanceIdentity();
+    result = await (supabase as any).rpc(
+      'get_my_buklod_referral_summary_v2',
+    );
+  }
+
+  const { data, error } = result;
 
   if (error || !data || typeof data !== 'object') {
     return null;
@@ -432,16 +456,15 @@ export async function loadReferralSummary(): Promise<ReferralSummary | null> {
     invited_count: toNumber(row.invited_count),
     qualified_count: toNumber(row.qualified_count),
     was_referred: Boolean(row.was_referred),
+    one_time_reward_php: toNumber(row.one_time_reward_php),
+    first_line_share_pct: toNumber(row.first_line_share_pct),
+    referral_months: toNumber(row.referral_months),
+    my_qualification_value_php: toNumber(row.my_qualification_value_php),
+    my_qualification_threshold_php: toNumber(row.my_qualification_threshold_php),
+    my_user_share_active: Boolean(row.my_user_share_active),
   };
 }
 
 export async function recordReferral(referrerCode: string) {
-  const { error } = await (supabase as any).rpc(
-    'buklod_record_referral_v1',
-    { p_referrer_code: referrerCode.trim() },
-  );
-
-  if (error) {
-    throw error;
-  }
+  await attachBuklodCanonicalReferral(referrerCode);
 }

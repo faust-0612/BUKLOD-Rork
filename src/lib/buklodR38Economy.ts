@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { ensureBuklodCanonicalFinanceIdentity } from '@/lib/buklodCanonicalFinanceIdentity';
 
 export type BuklodR38MoneySummary = {
   bayanihan: number;
@@ -120,6 +121,39 @@ export type BuklodR38UserEconomyReport = {
     rcu_is_weight_only: boolean;
     bcu_is_weight_only: boolean;
   };
+  canonical_finance: {
+    policy_version: string;
+    qualified_monthly_points: number;
+    total_qualified_monthly_points: number;
+    estimated_pool_share_pct: number;
+    estimated_user_pool_php: number;
+    estimated_earnings_php: number;
+    latest_finalized_user_share_php: number;
+    latest_first_line_share_php: number;
+    latest_total_share_php: number;
+    lifetime_user_pool_earned_php: number;
+    lifetime_first_line_earned_php: number;
+    lifetime_referral_reward_earned_php: number;
+    lifetime_total_earned_php: number;
+    latest_period_key: string | null;
+    withdrawable_php: number;
+    reserved_php: number;
+    paid_php: number;
+    user_pool_eligibility_active: boolean;
+    economics_enabled: boolean;
+    withdrawal_enabled: boolean;
+    referral_code: string;
+    invited_count: number;
+    qualified_count: number;
+    one_time_reward_php: number;
+    qualification_value_php: number;
+    qualification_threshold_php: number;
+    qualification_pct: number;
+    first_line_share_pct: number;
+    referral_months: number;
+    referrals: Array<Record<string, unknown>>;
+    community: Record<string, unknown>;
+  };
 };
 
 export type BuklodR38AdminEconomyReport = {
@@ -206,16 +240,196 @@ export function formatPhp(value: unknown) {
   });
 }
 
-export async function loadMyBuklodR38EconomyReport() {
-  const { data, error } = await (supabase as any).rpc(
-    'get_my_buklod_r38_economy_report_v1',
+async function loadCanonicalFinanceSummaryWithIdentity() {
+  let result = await (supabase as any).rpc(
+    'get_my_buklod_financial_summary_v3',
   );
 
-  if (error) {
-    throw new Error(messageFrom(error, 'Could not load your BUKLOD economy report.'));
+  if (
+    !result.error &&
+    result.data &&
+    typeof result.data === 'object' &&
+    (result.data as Record<string, unknown>).identity_ready === false
+  ) {
+    await ensureBuklodCanonicalFinanceIdentity();
+    result = await (supabase as any).rpc(
+      'get_my_buklod_financial_summary_v3',
+    );
   }
 
-  return data as BuklodR38UserEconomyReport;
+  if (result.error) {
+    throw new Error(
+      messageFrom(result.error, 'Could not load the canonical BUKLOD financial summary.'),
+    );
+  }
+
+  if (
+    !result.data ||
+    typeof result.data !== 'object' ||
+    (result.data as Record<string, unknown>).identity_ready === false
+  ) {
+    throw new Error('Your BUKLOD financial identity is still being initialized. Please refresh.');
+  }
+
+  return result.data as Record<string, any>;
+}
+
+export async function loadMyBuklodR38EconomyReport() {
+  const finance = await loadCanonicalFinanceSummaryWithIdentity();
+
+  const [pointsResult, legacyProgressResult, referralResult, breakdownResult] = await Promise.all([
+    (supabase as any).rpc('get_my_buklod_points_dashboard'),
+    (supabase as any).rpc('get_my_buklod_r38_economy_report_v1'),
+    (supabase as any).rpc('get_my_buklod_referral_summary_v2'),
+    (supabase as any).rpc('get_my_buklod_financial_earnings_breakdown_v1'),
+  ]);
+
+  const points =
+    !pointsResult.error && pointsResult.data && typeof pointsResult.data === 'object'
+      ? pointsResult.data as Record<string, any>
+      : {};
+  const legacy =
+    !legacyProgressResult.error &&
+    legacyProgressResult.data &&
+    typeof legacyProgressResult.data === 'object'
+      ? legacyProgressResult.data as Record<string, any>
+      : {};
+  const referral =
+    !referralResult.error && referralResult.data && typeof referralResult.data === 'object'
+      ? referralResult.data as Record<string, any>
+      : {};
+  const breakdown =
+    !breakdownResult.error &&
+    breakdownResult.data &&
+    typeof breakdownResult.data === 'object' &&
+    (breakdownResult.data as Record<string, unknown>).identity_ready !== false
+      ? breakdownResult.data as Record<string, any>
+      : {};
+
+  const latestBreakdown = (breakdown.latest_finalized ?? {}) as Record<string, any>;
+  const lifetimeBreakdown = (breakdown.lifetime_earned ?? {}) as Record<string, any>;
+  const cashBreakdown = (breakdown.cash_status ?? {}) as Record<string, any>;
+
+  const progress = (finance.progress ?? {}) as Record<string, any>;
+  const earnings = (finance.earnings ?? {}) as Record<string, any>;
+  const referralCore = (finance.referral ?? {}) as Record<string, any>;
+  const community = (finance.community ?? {}) as Record<string, any>;
+  const referralItems = Array.isArray(referralCore.items) ? referralCore.items : [];
+
+  const referralStatuses: Record<string, number> = {};
+  for (const item of referralItems) {
+    const status = String((item as Record<string, unknown>)?.status ?? 'UNKNOWN');
+    referralStatuses[status] = (referralStatuses[status] ?? 0) + 1;
+  }
+
+  const qualifiedMonthlyPoints = asMoney(progress.qualified_monthly_points);
+  const totalQualifiedMonthlyPoints = asMoney(progress.total_qualified_monthly_points);
+  const estimatedEarnings = asMoney(earnings.estimated_earnings_php);
+  const latestFinalizedUserShare = asMoney(
+    latestBreakdown.user_pool_php ?? earnings.latest_finalized_user_share_php,
+  );
+  const latestFirstLineShare = asMoney(latestBreakdown.first_line_php);
+  const latestTotalShare = asMoney(
+    latestBreakdown.total_share_php ?? (latestFinalizedUserShare + latestFirstLineShare),
+  );
+  const availableCash = asMoney(cashBreakdown.available_php ?? earnings.withdrawable_php);
+  const reservedCash = asMoney(cashBreakdown.reserved_php ?? earnings.reserved_php);
+  const paidCash = asMoney(cashBreakdown.paid_php ?? earnings.paid_php);
+
+  return {
+    progress: {
+      lifetime_points: asMoney(progress.lifetime_points ?? points.lifetime_points ?? points.total_points),
+      available_points: asMoney(points.available_points),
+      pending_points: asMoney(points.pending_claimable_points),
+      circle_rank: legacy?.progress?.circle_rank ?? {},
+      character: legacy?.progress?.character ?? null,
+      collectibles: asMoney(legacy?.progress?.collectibles),
+    },
+    economic_contribution: {
+      qualified_bcu: qualifiedMonthlyPoints,
+      current_period_bcu: totalQualifiedMonthlyPoints,
+      current_period: null,
+    },
+    app_sharing: {
+      qualified_direct_referrals: asMoney(referralCore.qualified_count),
+      qualified_rcu: asMoney(referralCore.invited_count),
+      current_period_rcu: asMoney(referralCore.first_line_pct),
+      referral_statuses: referralStatuses,
+      direct_only: true,
+    },
+    actual_earnings: {
+      estimated_share: {
+        bayanihan: estimatedEarnings,
+        direct_referral: 0,
+        total: estimatedEarnings,
+        label: 'ESTIMATED — SUBJECT TO MONTHLY FINALIZATION',
+        withdrawable: false,
+      },
+      finalized_share: {
+        bayanihan: latestFinalizedUserShare,
+        direct_referral: latestFirstLineShare,
+        total: latestTotalShare,
+      },
+      available_cash: {
+        bayanihan: availableCash,
+        direct_referral: 0,
+        total: availableCash,
+      },
+      reserved_for_withdrawal: reservedCash,
+      paid_earnings: {
+        bayanihan: paidCash,
+        direct_referral: 0,
+        total: paidCash,
+      },
+      referral_withdrawal_enabled: referral.withdrawal_enabled === true,
+      currency: 'PHP',
+    },
+    economic_invariants: {
+      points_are_money: false,
+      fixed_php_per_point: false,
+      fixed_php_per_bcu: false,
+      fixed_php_per_rcu: false,
+      cash_source: 'FINALIZED_PLATFORM_VALUE_AND_MONTHLY_CANONICAL_SETTLEMENT',
+      rcu_is_weight_only: true,
+      bcu_is_weight_only: true,
+    },
+    canonical_finance: {
+      policy_version: String(finance.policy_version ?? referral.policy_version ?? 'canonical_finance_v3'),
+      qualified_monthly_points: qualifiedMonthlyPoints,
+      total_qualified_monthly_points: totalQualifiedMonthlyPoints,
+      estimated_pool_share_pct: asMoney(earnings.estimated_pool_share_pct),
+      estimated_user_pool_php: asMoney(earnings.estimated_user_pool_php),
+      estimated_earnings_php: estimatedEarnings,
+      latest_finalized_user_share_php: latestFinalizedUserShare,
+      latest_first_line_share_php: latestFirstLineShare,
+      latest_total_share_php: latestTotalShare,
+      lifetime_user_pool_earned_php: asMoney(lifetimeBreakdown.user_pool_php),
+      lifetime_first_line_earned_php: asMoney(lifetimeBreakdown.first_line_php),
+      lifetime_referral_reward_earned_php: asMoney(lifetimeBreakdown.referral_reward_php),
+      lifetime_total_earned_php: asMoney(lifetimeBreakdown.total_php),
+      latest_period_key:
+        typeof breakdown.latest_period_key === 'string'
+          ? breakdown.latest_period_key
+          : null,
+      withdrawable_php: availableCash,
+      reserved_php: reservedCash,
+      paid_php: paidCash,
+      user_pool_eligibility_active: earnings.user_pool_eligibility_active === true,
+      economics_enabled: referral.economics_enabled === true,
+      withdrawal_enabled: referral.withdrawal_enabled === true,
+      referral_code: String(referralCore.referral_code ?? referral.referral_code ?? ''),
+      invited_count: asMoney(referralCore.invited_count ?? referral.invited_count),
+      qualified_count: asMoney(referralCore.qualified_count ?? referral.qualified_count),
+      one_time_reward_php: asMoney(referralCore.one_time_reward_php ?? referral.one_time_reward_php),
+      qualification_value_php: asMoney(referral.my_qualification_value_php),
+      qualification_threshold_php: asMoney(referral.my_qualification_threshold_php),
+      qualification_pct: asMoney(referral.my_qualification_pct),
+      first_line_share_pct: asMoney(referralCore.first_line_pct ?? referral.first_line_share_pct),
+      referral_months: asMoney(referralCore.referral_months ?? referral.referral_months),
+      referrals: referralItems,
+      community,
+    },
+  } satisfies BuklodR38UserEconomyReport;
 }
 
 export async function loadBuklodR38EconomyPolicy() {
@@ -264,7 +478,7 @@ export async function saveMyBuklodR38PayoutProfile(input: {
 
 export async function loadMyBuklodR38WithdrawalHistory(limit = 50) {
   const { data, error } = await (supabase as any).rpc(
-    'get_my_buklod_r38_referral_withdrawals_v1',
+    'get_my_buklod_pf_withdrawals_v2',
     { p_limit: limit },
   );
 
@@ -280,12 +494,12 @@ export async function requestMyBuklodR38ReferralWithdrawal(
   idempotencyKey?: string,
 ) {
   const { data, error } = await (supabase as any).rpc(
-    'request_my_buklod_r38_referral_withdrawal_v1',
+    'request_my_buklod_pf_withdrawal_v2',
     {
       p_payout_method: profile.payout_method,
       p_payout_profile_ref: profile.id,
       p_destination_masked: profile.destination_masked,
-      p_request_key: idempotencyKey || requestKey('r38-withdrawal'),
+      p_request_key: idempotencyKey || requestKey('pf-v3-withdrawal'),
     },
   );
 
@@ -302,7 +516,7 @@ export async function requestMyBuklodR38ReferralWithdrawal(
 
 export async function cancelMyBuklodR38ReferralWithdrawal(withdrawalId: string) {
   const { data, error } = await (supabase as any).rpc(
-    'cancel_my_buklod_r38_referral_withdrawal_v1',
+    'cancel_my_buklod_pf_withdrawal_v2',
     { p_withdrawal_id: withdrawalId },
   );
 
@@ -315,13 +529,82 @@ export async function cancelMyBuklodR38ReferralWithdrawal(withdrawalId: string) 
 
 export async function loadAdminBuklodR38EconomyReport(periodKey?: string | null) {
   const { data, error } = await (supabase as any).rpc(
-    'admin_get_buklod_r38_economy_report_v1',
+    'admin_get_buklod_pf_financial_report_v3',
     { p_period_key: periodKey?.trim() || null },
   );
 
   if (error) {
-    throw new Error(messageFrom(error, 'Could not load the R38 economy report.'));
+    throw new Error(messageFrom(error, 'Could not load the canonical finance report.'));
   }
 
-  return data as BuklodR38AdminEconomyReport;
+  const row = (data ?? {}) as Record<string, any>;
+  const settlement = (row.settlement ?? null) as Record<string, any> | null;
+  const shares = Array.isArray(row.user_shares) ? row.user_shares : [];
+
+  const userPool = asMoney(settlement?.user_pool_php);
+  const firstLine = asMoney(settlement?.first_line_php);
+  const normalRevenue = asMoney(settlement?.normal_eligible_revenue_php);
+  const prequalificationRevenue = asMoney(settlement?.prequalification_revenue_php);
+  const operatingCost = asMoney(settlement?.operating_cost_php);
+  const taxReserve = asMoney(settlement?.tax_reserve_php);
+  const totalQualifiedPoints = asMoney(settlement?.qualified_monthly_points);
+
+  return {
+    period: settlement,
+    revenue_chain: settlement
+      ? {
+          actual_reconciled_revenue: normalRevenue + prequalificationRevenue,
+          actual_reconciled_costs: operatingCost + taxReserve,
+          distributable_base: normalRevenue,
+          bayanihan_pool: userPool,
+          referral_pool: firstLine,
+          founder: 0,
+          growth: 0,
+          reserve: asMoney(settlement?.qualification_reserve_closing_php),
+        }
+      : null,
+    financial_entry_breakdown: [],
+    qualified_units: settlement
+      ? { bcu: totalQualifiedPoints, rcu: null }
+      : null,
+    user_shares: shares.map((share: Record<string, any>) => ({
+      user_id: String(share.person_id ?? ''),
+      full_name: 'Canonical BUKLOD member',
+      pool_key: 'USER_POOL',
+      qualified_units: asMoney(share.qualified_monthly_points),
+      total_qualified_units: totalQualifiedPoints,
+      share_ratio:
+        totalQualifiedPoints > 0
+          ? asMoney(share.qualified_monthly_points) / totalQualifiedPoints
+          : 0,
+      funded_pool_amount: userPool,
+      finalized_share_amount: asMoney(share.share_php),
+      effective_php_per_unit_analytics_only:
+        totalQualifiedPoints > 0 ? userPool / totalQualifiedPoints : null,
+    })),
+    distributed: {
+      bayanihan: asMoney(settlement?.user_pool_distributed_php),
+      direct_referral: firstLine,
+    },
+    effective_rates_analytics_only: {
+      php_per_bcu:
+        totalQualifiedPoints > 0 ? userPool / totalQualifiedPoints : null,
+      php_per_rcu: null,
+      not_future_conversion_rate: true,
+    },
+    cash_ledger: {
+      available: 0,
+      reserved: 0,
+      paid: 0,
+      currency: 'PHP',
+    },
+    referral_states: {},
+    withdrawals: {},
+    activation: {},
+    invariant_checks: {
+      canonical_finance_v3: true,
+      points_used_for_cash: false,
+      profit_guard_passed: settlement?.status === 'FINALIZED',
+    },
+  } satisfies BuklodR38AdminEconomyReport;
 }

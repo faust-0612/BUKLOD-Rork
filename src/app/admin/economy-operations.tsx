@@ -17,14 +17,11 @@ import { AdminGate } from '@/components/AdminGate';
 import { shared } from '@/components/UI';
 import {
   adminAddBuklodR38FinancialEntry,
-  adminCreateBuklodR38EconomicPeriod,
   adminFinalizeBuklodR38EconomicPeriod,
   adminGetBuklodR38PayoutDetails,
   adminListBuklodR38Withdrawals,
   adminMarkBuklodR38WithdrawalPaid,
-  adminReconcileBuklodR38Referrals,
   adminReviewBuklodR38Withdrawal,
-  adminSetBuklodR38PeriodStatus,
   type BuklodR38AdminWithdrawalQueue,
   type BuklodR38PayoutDetails,
 } from '@/lib/buklodR38AdminEconomy';
@@ -36,33 +33,22 @@ import {
 import { colors } from '@/lib/theme';
 
 const ENTRY_KINDS = [
-  'REVENUE',
-  'INFRASTRUCTURE',
-  'DATABASE',
-  'STORAGE',
-  'BANDWIDTH',
-  'MEDIA',
-  'AI_TTS',
-  'PAYMENT_PROCESSING',
-  'PLATFORM_FEE',
-  'INVALID_TRAFFIC',
-  'REFUND_CHARGEBACK',
-  'OPERATIONAL_COST',
-  'TAX_STATUTORY',
+  'UNATTRIBUTED_ELIGIBLE_REVENUE',
+  'REVENUE_REVERSAL',
+  'OPERATING_COST',
+  'INFRASTRUCTURE_COST',
+  'PAYOUT_COST',
+  'PAYMENT_PROCESSING_COST',
+  'TAX_RESERVE',
   'OTHER_COST',
-  'ADJUSTMENT',
 ] as const;
 
 function defaultMonth() {
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth();
-  const start = new Date(year, month, 1, 0, 0, 0, 0);
-  const end = new Date(year, month + 1, 1, 0, 0, 0, 0);
   return {
     key: `${year}-${String(month + 1).padStart(2, '0')}`,
-    start: start.toISOString(),
-    end: end.toISOString(),
   };
 }
 
@@ -106,12 +92,8 @@ export default function AdminEconomyOperationsScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const [periodKey, setPeriodKey] = useState(month.key);
-  const [periodStart, setPeriodStart] = useState(month.start);
-  const [periodEnd, setPeriodEnd] = useState(month.end);
-  const [periodNotes, setPeriodNotes] = useState('');
-
   const [direction, setDirection] = useState<'revenue' | 'cost'>('revenue');
-  const [entryKind, setEntryKind] = useState<string>('REVENUE');
+  const [entryKind, setEntryKind] = useState<string>('UNATTRIBUTED_ELIGIBLE_REVENUE');
   const [amount, setAmount] = useState('');
   const [sourceSystem, setSourceSystem] = useState('manual_admin');
   const [externalReference, setExternalReference] = useState('');
@@ -148,10 +130,8 @@ export default function AdminEconomyOperationsScreen() {
     setRefreshing(false);
   }, [load]);
 
-  const currentStatus = String(report?.period?.status ?? 'NO PERIOD');
-  const activation = report?.activation ?? {};
-  const canFinalize = activation.financial_finalization_enabled === true && currentStatus === 'READY_FOR_FINALIZATION';
-  const payoutEnabled = activation.payout_processing_enabled === true;
+  const currentStatus = String(report?.period?.status ?? 'NO SETTLEMENT');
+  const canFinalize = currentStatus !== 'FINALIZED';
 
   const run = async (key: string, work: () => Promise<unknown>, success: string) => {
     setBusy(key);
@@ -164,19 +144,6 @@ export default function AdminEconomyOperationsScreen() {
     } finally {
       setBusy(null);
     }
-  };
-
-  const createPeriod = () => {
-    void run(
-      'period',
-      () => adminCreateBuklodR38EconomicPeriod({
-        periodKey,
-        startIso: periodStart,
-        endIso: periodEnd,
-        notes: periodNotes,
-      }),
-      'Economic period created or loaded.',
-    );
   };
 
   const addEntry = () => {
@@ -200,19 +167,11 @@ export default function AdminEconomyOperationsScreen() {
     );
   };
 
-  const setPeriodStatus = (status: 'OPEN' | 'ESTIMATING' | 'RECONCILING' | 'READY_FOR_FINALIZATION') => {
-    void run(
-      `status-${status}`,
-      () => adminSetBuklodR38PeriodStatus(periodKey, status, 'Changed from R38 admin operations console'),
-      `Period moved to ${status}.`,
-    );
-  };
-
   const finalize = () => {
     if (!canFinalize) return;
     Alert.alert(
-      'Finalize Funded Economy Period?',
-      'This creates immutable finalized user cash shares from reconciled funded platform revenue. Points are not used. Continue only after all real revenue and costs are reconciled.',
+      'Finalize Canonical Finance Month?',
+      'This creates the immutable 30% User Pool distribution, first-line referral settlement and community allocation from eligible finalized value. Points are weights only. Continue only after real revenue and costs are reconciled.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -220,8 +179,8 @@ export default function AdminEconomyOperationsScreen() {
           style: 'destructive',
           onPress: () => void run(
             'finalize',
-            () => adminFinalizeBuklodR38EconomicPeriod(periodKey, 'System Admin finalization from operations console'),
-            'Economic period finalized.',
+            () => adminFinalizeBuklodR38EconomicPeriod(periodKey, 'Canonical Finance V3 operations console'),
+            'Canonical financial month finalized.',
           ),
         },
       ],
@@ -243,7 +202,7 @@ export default function AdminEconomyOperationsScreen() {
   };
 
   const paySelected = () => {
-    if (!selectedPayout || !transactionRef.trim() || !payoutEnabled) return;
+    if (!selectedPayout || !transactionRef.trim()) return;
     Alert.alert(
       'Confirm External Payment?',
       `${formatPhp(selectedPayout.requested_amount)} must already have been sent to ${selectedPayout.payout_method} ${selectedPayout.destination_masked}. Marking PAID records the transaction reference and consumes the reserved funded cash.`,
@@ -279,7 +238,7 @@ export default function AdminEconomyOperationsScreen() {
             <Text style={styles.eyebrow}>SYSTEM ADMIN · ECONOMY OPERATIONS</Text>
             <Text style={shared.h1}>Economy Operations</Text>
             <Text style={shared.muted}>
-              Prepare real revenue periods, reconcile costs, finalize only when the central gate is active, and process funded referral withdrawals.
+              Record reconciled platform revenue and costs, finalize the canonical monthly settlement, and process only funded ledger withdrawals.
             </Text>
           </View>
           <MaterialCommunityIcons name="finance" size={30} color={colors.greenDark} />
@@ -288,14 +247,14 @@ export default function AdminEconomyOperationsScreen() {
         <View style={styles.guardCard}>
           <MaterialCommunityIcons name="shield-lock-outline" size={22} color={colors.greenDark} />
           <Text style={styles.guardText}>
-            This console contains no activation switches and no point-conversion controls. Financial finalization and payout remain impossible while their server gates are OFF.
+            This console contains no activation switches and no Points-to-peso controls. Canonical server gates remain authoritative for settlement, withdrawal and payout processing.
           </Text>
         </View>
 
         {loading ? (
           <View style={styles.loadingCard}>
             <ActivityIndicator color={colors.greenDark} />
-            <Text style={styles.muted}>Loading R38 operations...</Text>
+            <Text style={styles.muted}>Loading canonical finance operations...</Text>
           </View>
         ) : error ? (
           <View style={styles.loadingCard}>
@@ -306,42 +265,13 @@ export default function AdminEconomyOperationsScreen() {
         ) : (
           <>
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Activation state</Text>
-              <View style={styles.flagGrid}>
-                {[
-                  ['RCU accrual', activation.rcu_accrual_enabled],
-                  ['Estimated economics', activation.estimated_economics_enabled],
-                  ['Financial finalization', activation.financial_finalization_enabled],
-                  ['Referral withdrawal', activation.referral_withdrawal_enabled],
-                  ['Payout processing', activation.payout_processing_enabled],
-                ].map(([label, enabled]) => (
-                  <View key={String(label)} style={styles.flagRow}>
-                    <View style={[styles.dot, enabled === true ? styles.dotOn : styles.dotOff]} />
-                    <Text style={styles.flagLabel}>{String(label)}</Text>
-                    <Text style={styles.flagValue}>{enabled === true ? 'ON' : 'OFF'}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Economic period</Text>
+              <Text style={styles.sectionTitle}>Canonical settlement month</Text>
               <Text style={styles.muted}>Current status: {currentStatus}</Text>
               <TextInput value={periodKey} onChangeText={setPeriodKey} placeholder="Period key, e.g. 2026-09" style={styles.input} autoCapitalize="characters" />
-              <TextInput value={periodStart} onChangeText={setPeriodStart} placeholder="Start ISO timestamp" style={styles.input} autoCapitalize="none" />
-              <TextInput value={periodEnd} onChangeText={setPeriodEnd} placeholder="End ISO timestamp" style={styles.input} autoCapitalize="none" />
-              <TextInput value={periodNotes} onChangeText={setPeriodNotes} placeholder="Notes (optional)" style={styles.input} />
-              <ActionButton title={busy === 'period' ? 'WORKING...' : 'CREATE / LOAD PERIOD'} icon="calendar-plus" onPress={createPeriod} disabled={!!busy} />
-              <View style={styles.actionWrap}>
-                <ActionButton title="RECONCILING" icon="sync" onPress={() => setPeriodStatus('RECONCILING')} disabled={!!busy || !report?.period} />
-                <ActionButton title="READY TO FINALIZE" icon="check-decagram-outline" onPress={() => setPeriodStatus('READY_FOR_FINALIZATION')} disabled={!!busy || !report?.period} />
-              </View>
-              <ActionButton title="FINALIZE FUNDED PERIOD" icon="lock-check-outline" onPress={finalize} disabled={!!busy || !canFinalize} danger />
-              {!canFinalize && (
-                <Text style={styles.warningText}>
-                  Finalization remains locked unless the period is READY_FOR_FINALIZATION and the centralized financial finalization gate is ON.
-                </Text>
-              )}
+              <ActionButton title="FINALIZE CANONICAL MONTH" icon="lock-check-outline" onPress={finalize} disabled={!!busy || !canFinalize} danger />
+              <Text style={styles.warningText}>
+                The server refuses finalization while canonical economics/settlement gates are OFF. No client switch can bypass that guard.
+              </Text>
             </View>
 
             <View style={styles.section}>
@@ -350,15 +280,19 @@ export default function AdminEconomyOperationsScreen() {
                 {(['revenue', 'cost'] as const).map((value) => (
                   <Pressable key={value} onPress={() => {
                     setDirection(value);
-                    if (value === 'revenue' && entryKind !== 'ADJUSTMENT') setEntryKind('REVENUE');
-                    if (value === 'cost' && entryKind === 'REVENUE') setEntryKind('OPERATIONAL_COST');
+                    if (value === 'revenue') setEntryKind('UNATTRIBUTED_ELIGIBLE_REVENUE');
+                    if (value === 'cost') setEntryKind('OPERATING_COST');
                   }} style={[styles.segment, direction === value && styles.segmentActive]}>
                     <Text style={[styles.segmentText, direction === value && styles.segmentTextActive]}>{value.toUpperCase()}</Text>
                   </Pressable>
                 ))}
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-                {ENTRY_KINDS.filter((kind) => direction === 'revenue' ? kind === 'REVENUE' || kind === 'ADJUSTMENT' : kind !== 'REVENUE').map((kind) => (
+                {ENTRY_KINDS.filter((kind) =>
+                  direction === 'revenue'
+                    ? kind === 'UNATTRIBUTED_ELIGIBLE_REVENUE' || kind === 'REVENUE_REVERSAL'
+                    : !['UNATTRIBUTED_ELIGIBLE_REVENUE', 'REVENUE_REVERSAL'].includes(kind)
+                ).map((kind) => (
                   <Pressable key={kind} onPress={() => setEntryKind(kind)} style={[styles.chip, entryKind === kind && styles.chipActive]}>
                     <Text style={[styles.chipText, entryKind === kind && styles.chipTextActive]}>{kind.replace(/_/g, ' ')}</Text>
                   </Pressable>
@@ -377,7 +311,7 @@ export default function AdminEconomyOperationsScreen() {
               <Text style={styles.muted}>
                 Use RECONCILED only for actual recognized revenue/cost supported by the provider statement or real bill. Estimated entries cannot be finalized.
               </Text>
-              <ActionButton title={busy === 'entry' ? 'RECORDING...' : 'ADD FINANCIAL ENTRY'} icon="database-plus-outline" onPress={addEntry} disabled={!!busy || !report?.period} />
+              <ActionButton title={busy === 'entry' ? 'RECORDING...' : 'ADD FINANCIAL ENTRY'} icon="database-plus-outline" onPress={addEntry} disabled={!!busy} />
             </View>
 
             <View style={styles.section}>
@@ -391,12 +325,6 @@ export default function AdminEconomyOperationsScreen() {
                 <MaterialCommunityIcons name="chart-box-outline" size={17} color={colors.greenDark} />
                 <Text style={styles.reportLinkText}>OPEN FULL ECONOMY REPORT</Text>
               </Pressable>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Referral qualification</Text>
-              <Text style={styles.muted}>Recompute server-side direct referral states. This does not mint RCU while the RCU gate is OFF.</Text>
-              <ActionButton title={busy === 'referrals' ? 'RECONCILING...' : 'RECONCILE REFERRALS'} icon="account-sync-outline" onPress={() => void run('referrals', () => adminReconcileBuklodR38Referrals(), 'Referral states reconciled.')} disabled={!!busy} />
             </View>
 
             <View style={styles.section}>
@@ -415,12 +343,12 @@ export default function AdminEconomyOperationsScreen() {
                   </View>
                   {['REQUESTED', 'UNDER_REVIEW'].includes(row.status) && (
                     <View style={styles.actionWrap}>
-                      <ActionButton title="APPROVE" icon="check" onPress={() => void run(`approve-${row.id}`, () => adminReviewBuklodR38Withdrawal(row.id, true, 'Approved from R38 operations console'), 'Withdrawal approved.')} disabled={!!busy} />
+                      <ActionButton title="APPROVE" icon="check" onPress={() => void run(`approve-${row.id}`, () => adminReviewBuklodR38Withdrawal(row.id, true, 'Approved from Canonical Finance V3 operations console'), 'Withdrawal approved.')} disabled={!!busy} />
                       <ActionButton title="REJECT" icon="close" onPress={() => void run(`reject-${row.id}`, () => adminReviewBuklodR38Withdrawal(row.id, false, 'Rejected by System Admin'), 'Withdrawal rejected and reserved cash released.')} disabled={!!busy} danger />
                     </View>
                   )}
                   {['APPROVED', 'PROCESSING'].includes(row.status) && (
-                    <ActionButton title="ACCESS PAYOUT DESTINATION" icon="eye-lock-outline" onPress={() => revealPayout(row.id)} disabled={!!busy || !payoutEnabled} />
+                    <ActionButton title="ACCESS PAYOUT DESTINATION" icon="eye-lock-outline" onPress={() => revealPayout(row.id)} disabled={!!busy} />
                   )}
                 </View>
               )) : <Text style={styles.muted}>No withdrawal requests.</Text>}
@@ -438,7 +366,7 @@ export default function AdminEconomyOperationsScreen() {
                   </View>
                 </View>
                 <TextInput value={transactionRef} onChangeText={setTransactionRef} placeholder="External payout transaction reference" style={styles.input} />
-                <ActionButton title="MARK PAID AFTER EXTERNAL TRANSFER" icon="cash-check" onPress={paySelected} disabled={!payoutEnabled || !transactionRef.trim() || !!busy} danger />
+                <ActionButton title="MARK PAID AFTER EXTERNAL TRANSFER" icon="cash-check" onPress={paySelected} disabled={!transactionRef.trim() || !!busy} danger />
               </View>
             ) : null}
           </>

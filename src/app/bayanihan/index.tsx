@@ -129,6 +129,7 @@ export default function BayanihanScreen() {
   const paid = report?.actual_earnings?.paid_earnings;
   const withdrawalEnabled =
     report?.actual_earnings?.referral_withdrawal_enabled === true;
+  const canonical = report?.canonical_finance;
 
   return (
     <BuklodPortalScrollView
@@ -205,38 +206,65 @@ export default function BayanihanScreen() {
             </Pressable>
           </Section>
 
-          <Section eyebrow="ECONOMIC CONTRIBUTION" title="Qualified Participation Weight">
+          <Section eyebrow="ECONOMIC CONTRIBUTION" title="Qualified Monthly Points">
             <View style={styles.gridTwo}>
               <Metric
-                label="Qualified BCU"
-                value={asMoney(report.economic_contribution.qualified_bcu).toLocaleString('en-PH', { maximumFractionDigits: 6 })}
-                note="Weight unit only"
+                label="Your Qualified Points"
+                value={asMoney(canonical?.qualified_monthly_points).toLocaleString('en-PH')}
+                note="Monthly weight only"
               />
               <Metric
-                label="Current Period BCU"
-                value={asMoney(report.economic_contribution.current_period_bcu).toLocaleString('en-PH', { maximumFractionDigits: 6 })}
-                note="Not a peso rate"
+                label="All Qualified Points"
+                value={asMoney(canonical?.total_qualified_monthly_points).toLocaleString('en-PH')}
+                note="Current month"
+              />
+              <Metric
+                label="Estimated Pool Share"
+                value={`${asMoney(canonical?.estimated_pool_share_pct).toLocaleString('en-PH', { maximumFractionDigits: 4 })}%`}
+              />
+              <Metric
+                label="30% User Pool"
+                value={formatPhp(canonical?.estimated_user_pool_php)}
+                note="Estimate until finalization"
               />
             </View>
             <Text style={styles.explainer}>
-              BCU helps determine a proportional share only when a real funded Bayanihan pool is finalized. There is no fixed PHP-per-BCU promise.
+              Qualified Monthly Points determine your proportional share of the 30% User Revenue Pool. Points never convert to pesos and have no fixed PHP value.
             </Text>
           </Section>
 
-          <Section eyebrow="APP SHARING" title="Direct Referral Contribution">
+          <Section eyebrow="APP SHARING" title="First-Line Referral">
             <View style={styles.gridTwo}>
               <Metric
-                label="Qualified Direct Referrals"
-                value={Number(report.app_sharing.qualified_direct_referrals ?? 0).toLocaleString('en-PH')}
+                label="Invited"
+                value={Number(canonical?.invited_count ?? 0).toLocaleString('en-PH')}
               />
               <Metric
-                label="Qualified RCU"
-                value={asMoney(report.app_sharing.qualified_rcu).toLocaleString('en-PH', { maximumFractionDigits: 6 })}
-                note="Weight unit only"
+                label="Qualified"
+                value={Number(canonical?.qualified_count ?? 0).toLocaleString('en-PH')}
+              />
+              <Metric
+                label="One-Time Reward"
+                value={formatPhp(canonical?.one_time_reward_php)}
+                note="After referred user qualifies"
+              />
+              <Metric
+                label="First-Line Share"
+                value={`${asMoney(canonical?.first_line_share_pct).toLocaleString('en-PH')}%`}
+                note={`${Number(canonical?.referral_months ?? 0)} months only`}
               />
             </View>
+            <View style={styles.breakdownCard}>
+              <Text style={styles.breakdownTitle}>Your qualification</Text>
+              <Text style={styles.breakdownLine}>
+                {formatPhp(canonical?.qualification_value_php)} of {formatPhp(canonical?.qualification_threshold_php)}
+              </Text>
+              <Text style={styles.breakdownLine}>
+                User Pool eligibility: {canonical?.user_pool_eligibility_active ? 'ACTIVE' : 'NOT YET ACTIVE'}
+              </Text>
+            </View>
             <Text style={styles.explainer}>
-              Sharing the app does not create a fixed cash reward. A qualified direct referral may contribute RCU during its earning window; RCU only shares a funded referral pool after period finalization.
+              Referral income is first-line only. The one-time reward and six-month share are backed by finalized platform value; no referral cash is created from Points.
             </Text>
           </Section>
 
@@ -252,7 +280,19 @@ export default function BayanihanScreen() {
             ) : null}
 
             <View style={styles.gridTwo}>
-              <Metric label="Finalized Share" value={formatPhp(finalized?.total)} emphasized />
+              <Metric
+                label="Latest User Pool Share"
+                value={formatPhp(finalized?.bayanihan)}
+                emphasized
+              />
+              <Metric
+                label="Latest First-Line Share"
+                value={formatPhp(finalized?.direct_referral)}
+              />
+              <Metric
+                label="Latest Finalized Total"
+                value={formatPhp(finalized?.total)}
+              />
               <Metric label="Available Cash" value={formatPhp(availableCash?.total)} />
               <Metric
                 label="Reserved"
@@ -262,22 +302,37 @@ export default function BayanihanScreen() {
             </View>
 
             <View style={styles.breakdownCard}>
-              <Text style={styles.breakdownTitle}>Finalized share breakdown</Text>
+              <Text style={styles.breakdownTitle}>Canonical earnings breakdown</Text>
               <Text style={styles.breakdownLine}>
-                Bayanihan pool share: {formatPhp(finalized?.bayanihan)}
+                Latest period: {canonical?.latest_period_key || 'Not finalized yet'}
               </Text>
               <Text style={styles.breakdownLine}>
-                Direct referral pool share: {formatPhp(finalized?.direct_referral)}
+                Lifetime User Pool: {formatPhp(canonical?.lifetime_user_pool_earned_php)}
+              </Text>
+              <Text style={styles.breakdownLine}>
+                Lifetime First-Line: {formatPhp(canonical?.lifetime_first_line_earned_php)}
+              </Text>
+              <Text style={styles.breakdownLine}>
+                Lifetime Referral Rewards: {formatPhp(canonical?.lifetime_referral_reward_earned_php)}
+              </Text>
+              <Text style={styles.breakdownLine}>
+                Lifetime Total Earned: {formatPhp(canonical?.lifetime_total_earned_php)}
+              </Text>
+              <Text style={styles.breakdownLine}>
+                Estimated current earnings: {formatPhp(canonical?.estimated_earnings_php)}
+              </Text>
+              <Text style={styles.breakdownLine}>
+                Policy: {canonical?.policy_version || 'canonical_finance_v3'}
               </Text>
             </View>
 
             <InfoRow
               icon={withdrawalEnabled ? 'cash-check' : 'lock-outline'}
-              title={withdrawalEnabled ? 'Referral withdrawal is enabled' : 'Withdrawal is not activated yet'}
+              title={withdrawalEnabled ? 'Canonical withdrawal is enabled' : 'Withdrawal is not activated yet'}
               text={
                 withdrawalEnabled
-                  ? 'Only finalized, available Direct Referral cash can enter the withdrawal workflow. Points are never deducted or converted.'
-                  : 'No withdrawal can be created while the R38 withdrawal flag is off. This prevents unfunded or premature payouts.'
+                  ? 'Only finalized cash in your canonical AVAILABLE ledger can enter withdrawal. Points are never deducted or converted.'
+                  : 'No withdrawal can be created while the canonical withdrawal gate is off. This prevents unfunded or premature payouts.'
               }
             />
           </Section>
@@ -295,13 +350,13 @@ export default function BayanihanScreen() {
             />
             <InfoRow
               icon="chart-pie"
-              title="3. Funded pools are created"
-              text="Only the remaining distributable base can fund Bayanihan, Direct Referral, Founder, Growth and Reserve allocations."
+              title="3. The 30% User Pool is calculated"
+              text="Thirty percent of normal eligible finalized revenue forms one monthly User Revenue Pool. Qualified Monthly Points determine each eligible user's proportion."
             />
             <InfoRow
               icon="scale-balance"
-              title="4. BCU and RCU determine proportional share"
-              text="The value per unit can differ each finalized period. A retrospective effective rate is analytics only — never a future conversion rate."
+              title="4. First-line referral is separate"
+              text="A qualified first-line referral may produce the configured one-time reward plus the configured first-line percentage for the six-month window. No second-line or Points-to-cash path is used."
             />
             <InfoRow
               icon="bank-check"

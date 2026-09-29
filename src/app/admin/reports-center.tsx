@@ -281,7 +281,6 @@ export default function AdminReportsCenterScreen() {
   const shareCount = economy?.user_shares?.length ?? 0;
   const revenue = economy?.revenue_chain;
   const qualifiedBcu = economy?.qualified_units?.bcu;
-  const qualifiedRcu = economy?.qualified_units?.rcu;
   const entryGroups = economy?.financial_entry_breakdown?.length ?? 0;
 
   return (
@@ -302,7 +301,7 @@ export default function AdminReportsCenterScreen() {
             <Text style={styles.eyebrow}>SYSTEM ADMIN · REPORTING</Text>
             <Text style={shared.h1}>Admin Reports Center</Text>
             <Text style={shared.muted}>
-              One clean entry point for Points health, economy, Bayanihan, app-sharing,
+              One clean entry point for Points health, canonical User Pool, first-line referrals,
               finalized shares, payouts, attendance, formation and scope reports.
             </Text>
           </View>
@@ -312,9 +311,9 @@ export default function AdminReportsCenterScreen() {
         <View style={styles.guardCard}>
           <MaterialCommunityIcons name="shield-check-outline" size={22} color={colors.greenDark} />
           <Text style={styles.guardText}>
-            Points, Circle Rank, Character, BCU and RCU are progression or contribution signals,
-            not money. Cash reports come only from reconciled platform revenue and finalized funded
-            shares. No fixed Points-to-peso, BCU-to-peso or RCU-to-peso rate is used.
+            Points, Circle Rank and Character are progression signals, not money. Qualified Monthly
+            Points are weights for the 30% User Revenue Pool. Cash reports come only from finalized
+            platform value and canonical settlement; no fixed Points-to-peso rate is used.
           </Text>
         </View>
 
@@ -401,7 +400,7 @@ export default function AdminReportsCenterScreen() {
           <View style={styles.sectionHeader}>
             <View>
               <Text style={styles.sectionEyebrow}>ECONOMY SNAPSHOT</Text>
-              <Text style={styles.sectionTitle}>Bayanihan, Shares & Revenue</Text>
+              <Text style={styles.sectionTitle}>User Pool, Referral & Revenue</Text>
             </View>
             <Text style={styles.period}>{periodLabel}</Text>
           </View>
@@ -438,17 +437,14 @@ export default function AdminReportsCenterScreen() {
                 <Metric label="Reconciled Revenue" value={formatPhp(revenue?.actual_reconciled_revenue)} />
                 <Metric label="Reconciled Costs" value={formatPhp(revenue?.actual_reconciled_costs)} />
                 <Metric label="Distributable Base" value={formatPhp(revenue?.distributable_base)} />
-                <Metric label="Bayanihan Pool" value={formatPhp(revenue?.bayanihan_pool)} />
-                <Metric label="Referral Pool" value={formatPhp(revenue?.referral_pool)} />
+                <Metric label="User Revenue Pool 30%" value={formatPhp(revenue?.bayanihan_pool)} />
+                <Metric label="First-Line Referral Settlement" value={formatPhp(revenue?.referral_pool)} />
                 <Metric label="Finalized Share Records" value={shareCount.toLocaleString('en-PH')} />
-                <Metric label="Qualified BCU" value={qualifiedBcu == null ? '—' : asMoney(qualifiedBcu).toLocaleString('en-PH', { maximumFractionDigits: 6 })} />
-                <Metric label="Qualified RCU" value={qualifiedRcu == null ? '—' : asMoney(qualifiedRcu).toLocaleString('en-PH', { maximumFractionDigits: 6 })} />
+                <Metric label="Qualified Monthly Points" value={qualifiedBcu == null ? '—' : asMoney(qualifiedBcu).toLocaleString('en-PH', { maximumFractionDigits: 6 })} />
                 <Metric label="Financial Entry Groups" value={entryGroups.toLocaleString('en-PH')} />
-                <Metric label="Bayanihan Distributed" value={formatPhp(economy?.distributed?.bayanihan)} />
-                <Metric label="Referral Distributed" value={formatPhp(economy?.distributed?.direct_referral)} />
-                <Metric label="Available Cash" value={formatPhp(economy?.cash_ledger?.available)} />
-                <Metric label="Reserved Cash" value={formatPhp(economy?.cash_ledger?.reserved)} />
-                <Metric label="Paid Earnings" value={formatPhp(economy?.cash_ledger?.paid)} />
+                <Metric label="User Pool Distributed" value={formatPhp(economy?.distributed?.bayanihan)} />
+                <Metric label="First-Line Referral Distributed" value={formatPhp(economy?.distributed?.direct_referral)} />
+                <Metric label="Canonical Cash Ledger" value="Open full finance report" note="Aggregate AVAILABLE / RESERVED / PAID is not inferred from missing data." />
               </View>
 
               <View style={styles.twoColumn}>
@@ -472,8 +468,8 @@ export default function AdminReportsCenterScreen() {
               <View style={styles.quickLinks}>
                 <ReportRow
                   icon="finance"
-                  title="Full Economy, Bayanihan & User Shares"
-                  subtitle="Funded pools, BCU/RCU, finalized per-user shares, referral states and withdrawals"
+                  title="Full Canonical Economy & User Shares"
+                  subtitle="30% User Pool, Qualified Monthly Points, finalized per-user shares, first-line referrals and withdrawals"
                   path="/admin/bayanihan"
                 />
                 <ReportRow

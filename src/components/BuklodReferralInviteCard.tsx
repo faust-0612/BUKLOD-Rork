@@ -230,9 +230,9 @@ export default function BuklodReferralInviteCard() {
       <Text style={styles.eyebrow}>INVITE FRIENDS</Text>
       <Text style={styles.title}>Share BUKLOD</Text>
       <Text style={styles.sub}>
-        Direct referrals only. A qualified referral may contribute referral
-        weight during its earning window; sharing or qualification does not
-        create a fixed cash reward.
+        First-line referrals only. The one-time reward becomes available only
+        after the referred member qualifies from finalized platform value, then
+        the first-line revenue-share window runs for the configured period.
       </Text>
 
       <View style={styles.codeRow}>
@@ -266,8 +266,17 @@ export default function BuklodReferralInviteCard() {
         {summary.was_referred ? ' · You joined via referral' : ''}
       </Text>
       <Text style={styles.economyNote}>
-        Any cash share can come only from a finalized, funded BUKLOD revenue
-        pool. Points and referral units are not pesos.
+        Qualified referral reward: ₱{summary.one_time_reward_php.toFixed(2)} ·
+        First-line share: {summary.first_line_share_pct}% for {summary.referral_months} months.
+      </Text>
+      <Text style={styles.economyNote}>
+        Your qualification: ₱{summary.my_qualification_value_php.toFixed(2)} /
+        ₱{summary.my_qualification_threshold_php.toFixed(2)} ·
+        User Pool {summary.my_user_share_active ? 'ACTIVE' : 'NOT YET ACTIVE'}.
+      </Text>
+      <Text style={styles.economyNote}>
+        Cash comes only from finalized platform value. BUKLOD Points are
+        participation weights and never convert directly to pesos.
       </Text>
 
       {economyLinks}
