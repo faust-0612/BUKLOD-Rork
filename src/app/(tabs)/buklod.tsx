@@ -3310,64 +3310,99 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
  const renderCommunityMedia=
   (item:any)=>{
 
-    const videoMime186O=
-     String(
-      item?.media_mime_type??
-      ''
-     )
-      .trim()
-      .toLowerCase();
+   const rawMedia=
+    (
+     Array.isArray(item?.media_items) &&
+     item.media_items.length
+    )
+     ? item.media_items
+     : (
+        item?.media_path ||
+        item?.media_url
+       )
+        ? [{
+           media_path:item?.media_path??null,
+           media_url:item?.media_url??null,
+           media_mime_type:
+            item?.media_mime_type??
+            'image/jpeg',
+          }]
+        : [];
 
-    const videoUrl186O=
-     String(
-      item?.media_url??
-      ''
-     )
-      .trim();
+   const videoMedia=
+    rawMedia.find(
+     (media:any)=>
+      String(
+       media?.media_mime_type??''
+      )
+       .toLowerCase()
+       .startsWith('video/') &&
+      Boolean(media?.media_url)
+    )??null;
 
-    if(
-     videoMime186O
-      .startsWith('video/') &&
-     videoUrl186O
-    ){
-     return (
+   const photos=
+    communityPhotoCollageItems(
+     rawMedia,
+     null
+    );
+
+   if(videoMedia && photos.length){
+    return (
+     <View
+      style={{
+       overflow:'hidden',
+       borderRadius:14,
+       marginTop:12,
+       backgroundColor:'#111'
+      }}
+     >
       <CommunityVideo
-       uri={videoUrl186O}
-       height={300}
+       uri={String(videoMedia.media_url)}
+       height={220}
        autoPlay={
         activeCommunityVideoId===
          String(item?.id??'')
        }
       />
-     );
-    }
-
-   const media=
-    communityPhotoCollageItems(
-     item?.media_items,
-     {
-      media_path:
-       item?.media_path ??
-       null,
-      media_url:
-       item?.media_url ??
-       null,
-      media_mime_type:
-       item?.media_mime_type ??
-       'image/jpeg',
-     }
+      <View style={{marginTop:2}}>
+       <BuklodCommunityPhotoCollage
+        items={photos}
+        height={190}
+        onPressPhoto={(index, photoItems)=>
+         openPhotoViewer(
+          photoItems,
+          index
+         )
+        }
+       />
+      </View>
+     </View>
     );
+   }
 
-   if(!media.length){
+   if(videoMedia){
+    return (
+     <CommunityVideo
+      uri={String(videoMedia.media_url)}
+      height={300}
+      autoPlay={
+       activeCommunityVideoId===
+        String(item?.id??'')
+      }
+     />
+    );
+   }
+
+   if(!photos.length){
     return null;
    }
 
    return (
     <BuklodCommunityPhotoCollage
-     items={media}
-     onPressPhoto={(index, photos)=>
+     items={photos}
+     onPressPhoto={(index, photoItems)=>
       openPhotoViewer(
-       photos,
+       photoItems,
        index
       )
      }
@@ -3885,7 +3920,7 @@ const refreshCommunity186L=
      </Text>
     )}
     <Text style={[shared.muted,{marginBottom:8,fontSize:11}]}>
-      Up to {COMMUNITY_MAX_PHOTOS} photos per post. Videos are posted through BUKLOD IGPAT. Posting continues in the background so you can keep using BUKLOD.
+      Gallery supports up to 10 media items per Wall post, including up to 1 video plus photos. Posting continues in the background so you can keep using BUKLOD.
       {photos.length
        ? ' Long-press a photo to highlight, draw, add text, emoji, or remove.'
        : ''}
