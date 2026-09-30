@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
+import { isHiddenCommunityCardCopy } from '@/lib/buklodCommunityCardVisibility';
 import { useAuth } from '@/providers/AuthProvider';
 
 type Placement =
@@ -218,6 +219,15 @@ export default function BuklodPaidHeaderAd({
               campaignMatchesGeo(
                 campaign,
                 profileRecord,
+              ),
+          )
+          .filter(
+            campaign =>
+              placement !== 'community' ||
+              !isHiddenCommunityCardCopy(
+                campaign.advertiser_name,
+                campaign.headline,
+                campaign.short_text,
               ),
           );
 
