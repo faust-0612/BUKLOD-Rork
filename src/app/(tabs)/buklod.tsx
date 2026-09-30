@@ -1529,6 +1529,133 @@ const load=useCallback(async(options?:{
    }
   };
 
+ const pickCommunityGallery=async()=>{
+  if(busy||photoBusy||videoBusy186O){
+   return;
+  }
+
+  try{
+   setPhotoBusy(true);
+
+   const P=await import('expo-image-picker');
+   const allowed=await ensureImagePickerLibraryAccess(
+    P.requestMediaLibraryPermissionsAsync
+   );
+
+   if(!allowed){
+    Alert.alert(
+     'Gallery Permission',
+     'Please allow BUKLOD to access your photos and videos.'
+    );
+    return;
+   }
+
+   const currentCount=
+    photos.length+(wallVideo186O?1:0);
+   const remaining=
+    Math.max(1,10-currentCount);
+
+   const result=await P.launchImageLibraryAsync({
+    mediaTypes:['images','videos'] as any,
+    allowsMultipleSelection:true,
+    selectionLimit:remaining,
+    allowsEditing:false,
+    quality:1,
+   });
+
+   if(result.canceled||!result.assets?.length){
+    return;
+   }
+
+   const selectedVideos=result.assets.filter((asset:any)=>
+    asset?.type==='video'||
+    String(asset?.mimeType??'')
+     .toLowerCase()
+     .startsWith('video/')
+   );
+
+   if(selectedVideos.length>1){
+    Alert.alert(
+     'Gallery',
+     'Choose only one video per Community Wall post.'
+    );
+    return;
+   }
+
+   const selectedImages=result.assets.filter(
+    (asset:any)=>!selectedVideos.includes(asset)
+   );
+
+   const willHaveVideo=
+    Boolean(selectedVideos[0]||wallVideo186O);
+   const maxPhotos=
+    willHaveVideo?9:10;
+   const photoSlots=
+    Math.max(0,maxPhotos-photos.length);
+   const prepared:Photo[]=[];
+
+   for(
+    const [index,asset]
+    of selectedImages
+      .slice(0,photoSlots)
+      .entries()
+   ){
+    const context=
+     IncomingShareImageManipulator187A
+      .ImageManipulator
+      .manipulate(asset.uri);
+    const rendered=
+     await context.renderAsync();
+    const saved=
+     await rendered.saveAsync({
+      format:
+       IncomingShareImageManipulator187A
+        .SaveFormat.JPEG,
+      compress:.84,
+      base64:true,
+     });
+
+    prepared.push({
+     id:
+      `gallery-${Date.now()}-${index}-${Math.random().toString(36).slice(2)}`,
+     uri:saved.uri,
+     base64:saved.base64,
+     sizeBytes:
+      saved.base64
+       ? Math.ceil(saved.base64.length*.75)
+       : Number((asset as any)?.fileSize??0)||undefined,
+    });
+   }
+
+   setCommunityGif(null);
+
+   if(prepared.length){
+    setPhotos(current=>
+     [...current,...prepared]
+      .slice(0,willHaveVideo?9:10)
+    );
+   }
+
+   if(selectedVideos[0]){
+    setVideoBusy186O(true);
+    await acceptWallVideo186O(
+     selectedVideos[0]
+    );
+   }
+  }
+  catch(error:any){
+   Alert.alert(
+    'Gallery',
+    error?.message||
+     'Could not prepare the selected media.'
+   );
+  }
+  finally{
+   setPhotoBusy(false);
+   setVideoBusy186O(false);
+  }
+ };
+
  const acceptWallVideo186O=
   async(asset:any)=>{
    const durationSeconds=
@@ -1608,7 +1735,6 @@ const load=useCallback(async(options?:{
        : 'video/mp4';
 
    setCommunityGif(null);
-   setPhotos([]);
    setWallVideo186O({
     uri,
     mimeType,
