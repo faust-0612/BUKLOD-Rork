@@ -57,6 +57,7 @@ import BuklodMaritesBoard from '@/components/BuklodMaritesBoard';
 import { repairMojibakeText } from '@/lib/repairMojibakeText';
 import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
 import BuklodCommunityIgpatStrip from '@/components/BuklodCommunityIgpatStrip';
+import BuklodCommunityContributionCard from '@/components/BuklodCommunityContributionCard';
 import { BuklodCommunityGifPicker, BuklodCommunityGifPreview, type BuklodCommunityGifFile } from '@/components/BuklodCommunityGifPicker';
 /* PATCH_160_COMMUNITY_AVATARS_TIME */
 import { formatSpecificDateTime } from '@/lib/dateTime';
@@ -3796,6 +3797,8 @@ const refreshCommunity186L=
      publicLocationScopeId
     }
    />
+
+   <BuklodCommunityContributionCard />
 
    <Text style={shared.muted}>
     Encourage, connect and grow together.
