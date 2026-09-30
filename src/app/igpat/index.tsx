@@ -1,6 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import {
+  router,
+  useLocalSearchParams,
+} from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -176,6 +179,16 @@ function ActionButton({
 export default function IgpatScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{
+    start?: string | string[];
+  }>();
+  const startPostId =
+    Array.isArray(params.start)
+      ? String(params.start[0] ?? '').trim()
+      : String(params.start ?? '').trim();
+  const startHandledRef = useRef('');
+  const listRef =
+    useRef<FlatList<IgpatFeedRow>>(null);
   const [rows, setRows] = useState<IgpatRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -189,6 +202,41 @@ export default function IgpatScreen() {
   const [reactionBusy, setReactionBusy] = useState<Set<string>>(new Set());
   const viewportHeight = Dimensions.get('window').height;
   const feedRows = useMemo(() => buildReelsFeedWithInlineAds(rows), [rows]);
+
+  useEffect(() => {
+    if (
+      !startPostId ||
+      !feedRows.length ||
+      startHandledRef.current === startPostId
+    ) {
+      return;
+    }
+
+    const targetIndex =
+      feedRows.findIndex(
+        row =>
+          !isReelsFeedInlineAdRow(row) &&
+          row.id === startPostId,
+      );
+
+    if (targetIndex < 0) {
+      return;
+    }
+
+    startHandledRef.current = startPostId;
+    setActiveIndex(targetIndex);
+
+    const timer = setTimeout(() => {
+      try {
+        listRef.current?.scrollToIndex({
+          index: targetIndex,
+          animated: false,
+        });
+      } catch {}
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [feedRows, startPostId]);
 
   useEffect(() => {
     let mounted = true;
@@ -473,6 +521,7 @@ export default function IgpatScreen() {
   return (
     <View style={styles.root}>
       <FlatList
+        ref={listRef}
         data={feedRows}
         extraData={activeIndex}
         key={`${feedMode}:${dataSaver ? 'saver' : 'normal'}`}
