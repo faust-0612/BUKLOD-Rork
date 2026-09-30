@@ -486,6 +486,14 @@ export default function BuklodExclusiveScopeCommunity({
     );
 
   const [
+    activeCommunityVideoId,
+    setActiveCommunityVideoId,
+  ] =
+    useState<string | null>(
+      null
+    );
+
+  const [
     busy,
     setBusy,
   ] =
@@ -1052,6 +1060,79 @@ export default function BuklodExclusiveScopeCommunity({
     extraData: communityAdExtraData,
     isAdActive,
   } = useBuklodCommunityAdViewability();
+
+  const onCommunityFeedViewableItemsChanged =
+    useRef(
+      ({
+        viewableItems,
+      }: {
+        viewableItems: Array<{
+          item?: any;
+        }>;
+      }) => {
+        onCommunityAdViewableItemsChanged({
+          viewableItems,
+        });
+
+        let nextVideoId:
+          string | null =
+          null;
+
+        for (
+          const token of
+          viewableItems
+        ) {
+          const row =
+            token?.item as
+              | SocialPost
+              | undefined;
+
+          if (
+            !row ||
+            isCommunityFeedInlineAdRow(
+              row
+            )
+          ) {
+            continue;
+          }
+
+          const mime =
+            String(
+              row.media_mime_type ??
+                ''
+            )
+              .trim()
+              .toLowerCase();
+
+          if (
+            mime.startsWith(
+              'video/'
+            ) &&
+            !isScopedReelPost(
+              row
+            )
+          ) {
+            nextVideoId =
+              String(
+                row.id ??
+                  ''
+              ) || null;
+            break;
+          }
+        }
+
+        setActiveCommunityVideoId(
+          current =>
+            current ===
+            nextVideoId
+              ? current
+              : nextVideoId
+        );
+      }
+    ).current;
+
+  const communityFeedExtraData =
+    `${communityAdExtraData}|video:${activeCommunityVideoId ?? ''}`;
 
   const listData =
     mode ===
@@ -3279,6 +3360,10 @@ return (
                   height={
                     470
                   }
+                  autoPlay={
+                    activeCommunityVideoId ===
+                    item.id
+                  }
                 />
 
                 <View
@@ -4237,10 +4322,10 @@ return (
             item.id
         }
         extraData={
-          communityAdExtraData
+          communityFeedExtraData
         }
         onViewableItemsChanged={
-          onCommunityAdViewableItemsChanged
+          onCommunityFeedViewableItemsChanged
         }
         viewabilityConfig={
           communityAdViewabilityConfig
