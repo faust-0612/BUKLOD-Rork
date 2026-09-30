@@ -27,6 +27,7 @@ import {
   BUKLOD_WALL_VIDEO_MAX_DURATION_SECONDS,
   BUKLOD_WALL_VIDEO_TOO_LONG_MESSAGE,
   formatVideoBytes,
+  isReelMediaPath,
   readVideoDurationSeconds,
   readVideoSizeBytes,
   validateCommunityVideoUpload,
@@ -3137,6 +3138,10 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
       <CommunityVideo
        uri={videoUrl186O}
        height={300}
+       autoPlay={
+        activeCommunityVideoId===
+         String(item?.id??'')
+       }
       />
      );
     }
@@ -3253,6 +3258,10 @@ const [
   communityRefreshing186L,
   setCommunityRefreshing186L
 ]=useState(false);
+const [
+  activeCommunityVideoId,
+  setActiveCommunityVideoId
+]=useState<string|null>(null);
 
 /* BUKLOD_COMMUNITY_FEED_MODES_R1 */
 const selectCommunityFeedMode=
@@ -3387,11 +3396,13 @@ const refreshCommunity186L=
           (post: any) =>
             /* PATCH_MARITES_STORYLINE_ONLY_R2C */
             !isMaritesCommunityPost(post) &&
-            !String(
-              post.media_mime_type ||
-                '',
-            ).startsWith(
-              'video/',
+            /*
+             * BUKLOD_COMMUNITY_VIDEO_FB_LIKE_R1
+             * Ordinary Wall videos stay in Community.
+             * IGPAT/Reel media stays outside the Wall.
+             */
+            !isReelMediaPath(
+              post.media_path
             ),
         );
 
@@ -3409,6 +3420,60 @@ const refreshCommunity186L=
   isAdActive,
  } = useBuklodCommunityAdViewability();
 
+ const onCommunityFeedViewableItemsChanged=
+  useRef(
+   ({
+    viewableItems,
+   }:{
+    viewableItems:Array<{item?:any}>;
+   })=>{
+    onCommunityAdViewableItemsChanged({
+     viewableItems,
+    });
+
+    let nextVideoId:string|null=null;
+
+    for(const token of viewableItems){
+     const row=token?.item;
+
+     if(
+      !row ||
+      isCommunityFeedInlineAdRow(row)
+     ){
+      continue;
+     }
+
+     const mime=
+      String(
+       row.media_mime_type??''
+      )
+       .trim()
+       .toLowerCase();
+
+     if(
+      mime.startsWith('video/') &&
+      !isReelMediaPath(
+       row.media_path
+      )
+     ){
+      nextVideoId=
+       String(row.id??'')||null;
+      break;
+     }
+    }
+
+    setActiveCommunityVideoId(
+     current=>
+      current===nextVideoId
+       ? current
+       : nextVideoId
+    );
+   }
+  ).current;
+
+ const communityFeedExtraData=
+  `${communityAdExtraData}|video:${activeCommunityVideoId??''}`;
+
  if(!featureEnabled('community_feed'))return <FeatureUnavailable title="Community"/>;
  return <>
  <FlashList
@@ -3419,7 +3484,7 @@ const refreshCommunity186L=
   }}
       style={shared.screen} contentContainerStyle={s.content} data={
       communityFeedRows
-    } keyExtractor={(i: any)=>i.id} extraData={communityAdExtraData} onViewableItemsChanged={onCommunityAdViewableItemsChanged} viewabilityConfig={communityAdViewabilityConfig} /* PATCH_186L_R3_PULL_REFRESH_PAGE_ZERO */
+    } keyExtractor={(i: any)=>i.id} extraData={communityFeedExtraData} onViewableItemsChanged={onCommunityFeedViewableItemsChanged} viewabilityConfig={communityAdViewabilityConfig} /* PATCH_186L_R3_PULL_REFRESH_PAGE_ZERO */
     refreshing={communityRefreshing186L}
     onRefresh={refreshCommunity186L}
   ListHeaderComponent={<BuklodFocusFadeUp duration={240} fromY={10} fromOpacity={0.78}><View>
