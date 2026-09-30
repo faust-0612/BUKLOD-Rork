@@ -1890,13 +1890,6 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
  const publish=async()=>{
   if(!user)return;
 
-  if(wallVideo186O || communityGif){
-   return Alert.alert(
-    'Community',
-    'Community accepts text and photos only. Post videos through BUKLOD IGPAT.'
-   );
-  }
-
   if(
    audience==='group' &&
    !group?.id
@@ -1930,14 +1923,25 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
    }
 
   if(
-    (wallVideo186O && photos.length) ||
-    (communityGif && (photos.length || wallVideo186O))
+    communityGif &&
+    (photos.length || wallVideo186O)
    ){
     return Alert.alert(
      'BUKLOD',
-     'Choose one media type: GIF, photos, or one video.'
+     'GIF cannot be mixed with photos or video.'
     );
    }
+
+  if(
+   photos.length+
+   (wallVideo186O?1:0)>
+   10
+  ){
+   return Alert.alert(
+    'BUKLOD',
+    'You can add up to 10 total media items per Wall post.'
+   );
+  }
 
  const snapshot={
    body:
