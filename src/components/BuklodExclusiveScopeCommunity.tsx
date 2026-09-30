@@ -493,6 +493,18 @@ export default function BuklodExclusiveScopeCommunity({
       null
     );
 
+  useEffect(
+    () => {
+      setActiveCommunityVideoId(
+        null
+      );
+    },
+    [
+      mode,
+      scope.scope_id,
+    ]
+  );
+
   const [
     busy,
     setBusy,
