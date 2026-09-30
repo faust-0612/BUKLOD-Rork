@@ -1,5 +1,6 @@
 import React, {
   useEffect,
+  useMemo,
   useState,
 } from 'react';
 import {
@@ -33,8 +34,20 @@ export function CommunityVideo({
     setMuted,
   ] = useState(autoPlay);
 
+  const videoSource =
+    useMemo(
+      () =>
+        /^https?:\/\//i.test(uri)
+          ? {
+              uri,
+              useCaching: true,
+            }
+          : uri,
+      [uri],
+    );
+
   const player = useVideoPlayer(
-    uri,
+    videoSource,
     (instance) => {
       instance.loop = false;
       instance.muted = autoPlay;
