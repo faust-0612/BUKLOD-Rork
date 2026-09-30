@@ -56,6 +56,7 @@ import BuklodPublicLocationChips from '@/components/BuklodPublicLocationChips';
 import BuklodMaritesBoard from '@/components/BuklodMaritesBoard';
 import { repairMojibakeText } from '@/lib/repairMojibakeText';
 import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
+import BuklodCommunityIgpatStrip from '@/components/BuklodCommunityIgpatStrip';
 import { BuklodCommunityGifPicker, BuklodCommunityGifPreview, type BuklodCommunityGifFile } from '@/components/BuklodCommunityGifPicker';
 /* PATCH_160_COMMUNITY_AVATARS_TIME */
 import { formatSpecificDateTime } from '@/lib/dateTime';
@@ -3635,6 +3636,9 @@ const refreshCommunity186L=
         );
        })}
       </View>
+
+    {/* BUKLOD_COMMUNITY_IGPAT_STRIP_R1 */}
+<BuklodCommunityIgpatStrip />
 
     {/* PATCH_162A_SPONSOR_COMMUNITY */}
 <BuklodCommunitySponsoredAd audience="public" />
