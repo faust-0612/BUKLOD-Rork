@@ -196,6 +196,20 @@ type Photo={
 };
 type Mention={user_id:string;full_name:string;church_name:string;group_name:string};
 
+function activeMentionQuery(value:string){
+ const match=String(value??'').match(/(?:^|\s)@([^@\n\r\t ]*)$/);
+ return match ? match[1] : null;
+}
+
+function insertSelectedMention(value:string,name:string){
+ const safe=String(name??'').trim();
+ if(!safe) return value;
+ return String(value??'').replace(
+  /(^|\s)@[^@\n\r\t ]*$/,
+  (_match,prefix)=>`${prefix}@${safe} `
+ );
+}
+
 let PERF2_MENTION_SEARCH_SEQ = 0;
 
 /* PERF2_MENTION_SEARCH_DEBOUNCE */
@@ -719,7 +733,8 @@ function LegacyPublicBuklodScreen(){
  ]=useState<number|null>(null);
 
 
- const [mentionOpen,setMentionOpen]=useState(false),[mentionSearch,setMentionSearch]=useState(''),[mentionRows,setMentionRows]=useState<Mention[]>([]),[mentions,setMentions]=useState<Mention[]>([]);
+ const [mentionRows,setMentionRows]=useState<Mention[]>([]),[mentions,setMentions]=useState<Mention[]>([]);
+ const [commentMentionRows,setCommentMentionRows]=useState<Mention[]>([]);
  const [commentOpen,setCommentOpen]=
   useState(false);
 
@@ -1694,7 +1709,57 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
 ) && setMentionRows(
   data ?? []
 )};
- const toggleMention=(m:Mention)=>setMentions(v=>v.some(x=>x.user_id===m.user_id)?v.filter(x=>x.user_id!==m.user_id):[...v,m]);
+ const selectComposerMention=(m:Mention)=>{
+  setBody(current=>insertSelectedMention(current,m.full_name));
+  setMentions(current=>
+   current.some(x=>x.user_id===m.user_id)
+    ? current
+    : [...current,m]
+  );
+  setMentionRows([]);
+ };
+
+ const handleComposerTextChange=(value:string)=>{
+  setBody(value);
+  const query=activeMentionQuery(value);
+  if(query===null){
+   setMentionRows([]);
+   return;
+  }
+  void searchMentions(query);
+ };
+
+ const searchCommentMentions=async(q:string)=>{
+  const {data,error}=await (supabase as any).rpc(
+   'search_post_mention_candidates_v2',
+   {
+    p_audience:'public',
+    p_group_id:null,
+    p_query:q,
+    p_limit:20
+   }
+  );
+  if(error){
+   setCommentMentionRows([]);
+   return;
+  }
+  setCommentMentionRows(data??[]);
+ };
+
+ const handleCommentTextChange=(value:string)=>{
+  setCommentText(value);
+  const query=activeMentionQuery(value);
+  if(query===null){
+   setCommentMentionRows([]);
+   return;
+  }
+  void searchCommentMentions(query);
+ };
+
+ const selectCommentMention=(m:Mention)=>{
+  setCommentText(current=>insertSelectedMention(current,m.full_name));
+  setCommentMentionRows([]);
+ };
 
  const publish=async()=>{
   if(!user)return;
@@ -3643,8 +3708,17 @@ const refreshCommunity186L=
     {/* PATCH_162A_SPONSOR_COMMUNITY */}
 <BuklodCommunitySponsoredAd audience="public" />
    <SectionTitle>SHARE SOMETHING</SectionTitle><Card>
-<TextInput multiline value={body} onChangeText={setBody} placeholder="Share with your Community..." style={s.area}/>
-    {!!mentions.length&&<Text style={s.mentioned}>{mentions.map(x=>`@${x.full_name}`).join(' ')}</Text>}
+<TextInput multiline value={body} onChangeText={handleComposerTextChange} placeholder="Share with your Community... Type @ to mention someone" style={s.area}/>
+    {!!mentionRows.length&&activeMentionQuery(body)!==null&&(
+     <View style={{borderWidth:1,borderColor:colors.line,borderRadius:12,overflow:'hidden',marginTop:6,marginBottom:8,backgroundColor:colors.white}}>
+      {mentionRows.slice(0,6).map(m=>(
+       <Pressable key={m.user_id} onPress={()=>selectComposerMention(m)} style={{paddingHorizontal:12,paddingVertical:10,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:colors.line}}>
+        <Text style={{fontWeight:'900',color:'#39D353'}}>@{m.full_name}</Text>
+        {!!(m.church_name||m.group_name)&&<Text style={{marginTop:2,fontSize:10,color:colors.muted}}>{m.church_name}{m.group_name?` · ${m.group_name}`:''}</Text>}
+       </Pressable>
+      ))}
+     </View>
+    )}
     <View
       /* PATCH_154L_COMPOSER_SPACING */
       style={[
@@ -3653,26 +3727,12 @@ const refreshCommunity186L=
           marginBottom: 14,
         },
       ]}
-    ><Pressable style={s.tool} onPress={async()=>{setMentionOpen(true);setMentionSearch('');await searchMentions('')}}><MaterialCommunityIcons name="account-plus-outline" size={17} color={colors.green}/><Text style={s.toolText}>Mention</Text></Pressable>
-    <Pressable style={s.tool} onPress={()=>{setWallVideo186O(null);void pickPhoto();}}><MaterialCommunityIcons name="image-plus" size={17} color={colors.green}/><Text style={s.toolText}>{photoBusy
- ? 'Preparing...'
- : photos.length
- ? `${photos.length}/${COMMUNITY_MAX_PHOTOS} Photos`
- : 'Add Photos'}</Text></Pressable>
-    <Pressable
-     style={s.tool}
-     disabled={busy}
-     onPress={()=>
-      router.push('/igpat/create' as any)
-     }
     >
-     <MaterialCommunityIcons
-      name="video-outline"
-      size={17}
-      color={colors.green}
-     />
-     <Text style={s.toolText}>BUKLOD IGPAT</Text>
-    </Pressable></View>
+    <Pressable style={s.tool} disabled={busy||photoBusy||videoBusy186O} onPress={()=>void pickCommunityGallery()}>
+     <MaterialCommunityIcons name="image-multiple-outline" size={17} color={colors.green}/>
+     <Text style={s.toolText}>{photoBusy||videoBusy186O?'Preparing...':wallVideo186O||photos.length?`Gallery (${photos.length+(wallVideo186O?1:0)}/10)`:'Gallery'}</Text>
+    </Pressable>
+   </View>
     {!!communityGif&&(
      <BuklodCommunityGifPreview
       file={communityGif}
@@ -4419,7 +4479,7 @@ const refreshCommunity186L=
 
       <TextInput
        value={commentText}
-       onChangeText={setCommentText}
+       onChangeText={handleCommentTextChange}
        multiline
        placeholder={
         replyTo
@@ -4428,6 +4488,16 @@ const refreshCommunity186L=
        }
        style={s.communityCommentInput}
       />
+
+      {!!commentMentionRows.length&&activeMentionQuery(commentText)!==null&&(
+       <View style={{position:'absolute',left:12,right:62,bottom:64,borderWidth:1,borderColor:colors.line,borderRadius:12,overflow:'hidden',backgroundColor:colors.white,zIndex:20}}>
+        {commentMentionRows.slice(0,5).map(m=>(
+         <Pressable key={m.user_id} onPress={()=>selectCommentMention(m)} style={{paddingHorizontal:12,paddingVertical:9,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:colors.line}}>
+          <Text style={{fontWeight:'900',color:'#39D353'}}>@{m.full_name}</Text>
+         </Pressable>
+        ))}
+       </View>
+      )}
 
       <Pressable
        disabled={
@@ -4462,11 +4532,7 @@ const refreshCommunity186L=
  </Modal>
 
 
- <Modal visible={mentionOpen} transparent animationType="slide" onRequestClose={()=>setMentionOpen(false)}><View style={s.overlay}><Pressable style={{flex:1}} onPress={()=>setMentionOpen(false)}/><View style={[s.drawer,{paddingBottom:drawerBottomInset}]}><Text style={s.drawerTitle}>Mention Members</Text>
-  <TextInput style={s.search} placeholder="Search member..." value={mentionSearch} onChangeText={v=>{setMentionSearch(v);void searchMentions(v)}}/>
-  <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{gap:7,paddingVertical:10}}>{mentionRows.map(m=>{const on=mentions.some(x=>x.user_id===m.user_id);return <Pressable key={m.user_id} onPress={()=>toggleMention(m)} style={[s.member,on&&s.memberOn]}><View style={{flex:1}}><Text style={s.memberName}>{m.full_name}</Text><Text style={s.memberMeta}>{m.church_name}{m.group_name?` | ${m.group_name}`:''}</Text></View>{on&&<MaterialCommunityIcons name="check-circle" size={21} color={colors.green}/>}</Pressable>})}</ScrollView>
-  <Button title={`DONE (${mentions.length})`} onPress={()=>setMentionOpen(false)}/></View></View></Modal>
- 
+
      {/* PATCH_186B_PHOTO_EDITOR_PUBLIC_MODAL */}
      <BuklodComposerPhotoEditSheet
       visible={!!photoEditSheetPhoto}
