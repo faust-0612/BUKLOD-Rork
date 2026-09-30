@@ -27,6 +27,7 @@ import {
   BUKLOD_WALL_VIDEO_MAX_DURATION_SECONDS,
   BUKLOD_WALL_VIDEO_TOO_LONG_MESSAGE,
   formatVideoBytes,
+  isReelMediaPath,
   readVideoDurationSeconds,
   readVideoSizeBytes,
   validateCommunityVideoUpload,
@@ -55,6 +56,8 @@ import BuklodPublicLocationChips from '@/components/BuklodPublicLocationChips';
 import BuklodMaritesBoard from '@/components/BuklodMaritesBoard';
 import { repairMojibakeText } from '@/lib/repairMojibakeText';
 import BuklodCommunitySponsoredAd from '@/components/BuklodCommunitySponsoredAd';
+import BuklodCommunityIgpatStrip from '@/components/BuklodCommunityIgpatStrip';
+import BuklodCommunityContributionCard from '@/components/BuklodCommunityContributionCard';
 import { BuklodCommunityGifPicker, BuklodCommunityGifPreview, type BuklodCommunityGifFile } from '@/components/BuklodCommunityGifPicker';
 /* PATCH_160_COMMUNITY_AVATARS_TIME */
 import { formatSpecificDateTime } from '@/lib/dateTime';
@@ -78,6 +81,7 @@ import {
   communityFeedCacheKey,
   keepStableCommunityMedia,
   readOfflineCache,
+  readOfflineCacheSync,
   writeOfflineCache,
 } from '@/lib/buklodOfflineSync';
 import { SCALE_LIMITS } from '@/lib/performanceScale';
@@ -192,6 +196,20 @@ type Photo={
  sizeBytes?:number;
 };
 type Mention={user_id:string;full_name:string;church_name:string;group_name:string};
+
+function activeMentionQuery(value:string){
+ const match=String(value??'').match(/(?:^|\s)@([^@\n\r\t ]*)$/);
+ return match ? match[1] : null;
+}
+
+function insertSelectedMention(value:string,name:string){
+ const safe=String(name??'').trim();
+ if(!safe) return value;
+ return String(value??'').replace(
+  /(^|\s)@[^@\n\r\t ]*$/,
+  (_match,prefix)=>`${prefix}@${safe} `
+ );
+}
 
 let PERF2_MENTION_SEARCH_SEQ = 0;
 
@@ -649,9 +667,28 @@ function LegacyPublicBuklodScreen(){
     incomingShare187A.resolvedSharedPayloads,
   ]);
 
- const [posts,setPosts]=useState<any[]>([]),[group,setGroup]=useState<any>(null),[body,setBody]=useState('');
- const [category]=useState<typeof CATEGORIES[number]>('reflection');
  const [feedMode,setFeedMode]=useState<FeedMode>('for_you');
+ const [
+  publicLocationScopeId,
+  setPublicLocationScopeId,
+ ] = useState<string | null>(null);
+ const initialPublicCommunityCacheKey=
+  user
+   ? `${communityFeedCacheKey(
+       user.id,
+       null
+      )}:for_you`
+   : null;
+ const [posts,setPosts]=useState<any[]>(
+  ()=>
+   initialPublicCommunityCacheKey
+    ? readOfflineCacheSync<any[]>(
+       initialPublicCommunityCacheKey
+      )??[]
+    :[]
+ );
+ const [group,setGroup]=useState<any>(null),[body,setBody]=useState('');
+ const [category]=useState<typeof CATEGORIES[number]>('reflection');
 
  // COMMUNITY_COMPACT_COMPOSER_20260811
  const [audience]=useState<Audience>('public');
@@ -697,7 +734,8 @@ function LegacyPublicBuklodScreen(){
  ]=useState<number|null>(null);
 
 
- const [mentionOpen,setMentionOpen]=useState(false),[mentionSearch,setMentionSearch]=useState(''),[mentionRows,setMentionRows]=useState<Mention[]>([]),[mentions,setMentions]=useState<Mention[]>([]);
+ const [mentionRows,setMentionRows]=useState<Mention[]>([]),[mentions,setMentions]=useState<Mention[]>([]);
+ const [commentMentionRows,setCommentMentionRows]=useState<Mention[]>([]);
  const [commentOpen,setCommentOpen]=
   useState(false);
 
@@ -802,11 +840,6 @@ function LegacyPublicBuklodScreen(){
  const postReactBusyRef=useRef(false);
  const commentReactBusyRef=useRef(false);
 /* PATCH_173H_R4_PUBLIC_LOCATION_STATE */
-const [
-  publicLocationScopeId,
-  setPublicLocationScopeId,
-] = useState<string | null>(null);
-
 /* PATCH_186L_R3_TRUE_PAGED_STRICT_PUBLIC */
 const load=useCallback(async(options?:{
   append?:boolean;
@@ -1497,6 +1530,133 @@ const load=useCallback(async(options?:{
    }
   };
 
+ const pickCommunityGallery=async()=>{
+  if(busy||photoBusy||videoBusy186O){
+   return;
+  }
+
+  try{
+   setPhotoBusy(true);
+
+   const P=await import('expo-image-picker');
+   const allowed=await ensureImagePickerLibraryAccess(
+    P.requestMediaLibraryPermissionsAsync
+   );
+
+   if(!allowed){
+    Alert.alert(
+     'Gallery Permission',
+     'Please allow BUKLOD to access your photos and videos.'
+    );
+    return;
+   }
+
+   const currentCount=
+    photos.length+(wallVideo186O?1:0);
+   const remaining=
+    Math.max(1,10-currentCount);
+
+   const result=await P.launchImageLibraryAsync({
+    mediaTypes:['images','videos'] as any,
+    allowsMultipleSelection:true,
+    selectionLimit:remaining,
+    allowsEditing:false,
+    quality:1,
+   });
+
+   if(result.canceled||!result.assets?.length){
+    return;
+   }
+
+   const selectedVideos=result.assets.filter((asset:any)=>
+    asset?.type==='video'||
+    String(asset?.mimeType??'')
+     .toLowerCase()
+     .startsWith('video/')
+   );
+
+   if(selectedVideos.length>1){
+    Alert.alert(
+     'Gallery',
+     'Choose only one video per Community Wall post.'
+    );
+    return;
+   }
+
+   const selectedImages=result.assets.filter(
+    (asset:any)=>!selectedVideos.includes(asset)
+   );
+
+   const willHaveVideo=
+    Boolean(selectedVideos[0]||wallVideo186O);
+   const maxPhotos=
+    willHaveVideo?9:10;
+   const photoSlots=
+    Math.max(0,maxPhotos-photos.length);
+   const prepared:Photo[]=[];
+
+   for(
+    const [index,asset]
+    of selectedImages
+      .slice(0,photoSlots)
+      .entries()
+   ){
+    const context=
+     IncomingShareImageManipulator187A
+      .ImageManipulator
+      .manipulate(asset.uri);
+    const rendered=
+     await context.renderAsync();
+    const saved=
+     await rendered.saveAsync({
+      format:
+       IncomingShareImageManipulator187A
+        .SaveFormat.JPEG,
+      compress:.84,
+      base64:true,
+     });
+
+    prepared.push({
+     id:
+      `gallery-${Date.now()}-${index}-${Math.random().toString(36).slice(2)}`,
+     uri:saved.uri,
+     base64:saved.base64,
+     sizeBytes:
+      saved.base64
+       ? Math.ceil(saved.base64.length*.75)
+       : Number((asset as any)?.fileSize??0)||undefined,
+    });
+   }
+
+   setCommunityGif(null);
+
+   if(prepared.length){
+    setPhotos(current=>
+     [...current,...prepared]
+      .slice(0,willHaveVideo?9:10)
+    );
+   }
+
+   if(selectedVideos[0]){
+    setVideoBusy186O(true);
+    await acceptWallVideo186O(
+     selectedVideos[0]
+    );
+   }
+  }
+  catch(error:any){
+   Alert.alert(
+    'Gallery',
+    error?.message||
+     'Could not prepare the selected media.'
+   );
+  }
+  finally{
+   setPhotoBusy(false);
+   setVideoBusy186O(false);
+  }
+ };
+
  const acceptWallVideo186O=
   async(asset:any)=>{
    const durationSeconds=
@@ -1576,7 +1736,6 @@ const load=useCallback(async(options?:{
        : 'video/mp4';
 
    setCommunityGif(null);
-   setPhotos([]);
    setWallVideo186O({
     uri,
     mimeType,
@@ -1677,17 +1836,60 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
 ) && setMentionRows(
   data ?? []
 )};
- const toggleMention=(m:Mention)=>setMentions(v=>v.some(x=>x.user_id===m.user_id)?v.filter(x=>x.user_id!==m.user_id):[...v,m]);
+ const selectComposerMention=(m:Mention)=>{
+  setBody(current=>insertSelectedMention(current,m.full_name));
+  setMentions(current=>
+   current.some(x=>x.user_id===m.user_id)
+    ? current
+    : [...current,m]
+  );
+  setMentionRows([]);
+ };
+
+ const handleComposerTextChange=(value:string)=>{
+  setBody(value);
+  const query=activeMentionQuery(value);
+  if(query===null){
+   setMentionRows([]);
+   return;
+  }
+  void searchMentions(query);
+ };
+
+ const searchCommentMentions=async(q:string)=>{
+  const {data,error}=await (supabase as any).rpc(
+   'search_post_mention_candidates_v2',
+   {
+    p_audience:'public',
+    p_group_id:null,
+    p_query:q,
+    p_limit:20
+   }
+  );
+  if(error){
+   setCommentMentionRows([]);
+   return;
+  }
+  setCommentMentionRows(data??[]);
+ };
+
+ const handleCommentTextChange=(value:string)=>{
+  setCommentText(value);
+  const query=activeMentionQuery(value);
+  if(query===null){
+   setCommentMentionRows([]);
+   return;
+  }
+  void searchCommentMentions(query);
+ };
+
+ const selectCommentMention=(m:Mention)=>{
+  setCommentText(current=>insertSelectedMention(current,m.full_name));
+  setCommentMentionRows([]);
+ };
 
  const publish=async()=>{
   if(!user)return;
-
-  if(wallVideo186O || communityGif){
-   return Alert.alert(
-    'Community',
-    'Community accepts text and photos only. Post videos through BUKLOD IGPAT.'
-   );
-  }
 
   if(
    audience==='group' &&
@@ -1722,14 +1924,25 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
    }
 
   if(
-    (wallVideo186O && photos.length) ||
-    (communityGif && (photos.length || wallVideo186O))
+    communityGif &&
+    (photos.length || wallVideo186O)
    ){
     return Alert.alert(
      'BUKLOD',
-     'Choose one media type: GIF, photos, or one video.'
+     'GIF cannot be mixed with photos or video.'
     );
    }
+
+  if(
+   photos.length+
+   (wallVideo186O?1:0)>
+   10
+  ){
+   return Alert.alert(
+    'BUKLOD',
+    'You can add up to 10 total media items per Wall post.'
+   );
+  }
 
  const snapshot={
    body:
@@ -3098,60 +3311,99 @@ const {data,error}=await (supabase as any).rpc('search_post_mention_candidates_v
  const renderCommunityMedia=
   (item:any)=>{
 
-    const videoMime186O=
-     String(
-      item?.media_mime_type??
-      ''
-     )
-      .trim()
-      .toLowerCase();
+   const rawMedia=
+    (
+     Array.isArray(item?.media_items) &&
+     item.media_items.length
+    )
+     ? item.media_items
+     : (
+        item?.media_path ||
+        item?.media_url
+       )
+        ? [{
+           media_path:item?.media_path??null,
+           media_url:item?.media_url??null,
+           media_mime_type:
+            item?.media_mime_type??
+            'image/jpeg',
+          }]
+        : [];
 
-    const videoUrl186O=
-     String(
-      item?.media_url??
-      ''
-     )
-      .trim();
+   const videoMedia=
+    rawMedia.find(
+     (media:any)=>
+      String(
+       media?.media_mime_type??''
+      )
+       .toLowerCase()
+       .startsWith('video/') &&
+      Boolean(media?.media_url)
+    )??null;
 
-    if(
-     videoMime186O
-      .startsWith('video/') &&
-     videoUrl186O
-    ){
-     return (
-      <CommunityVideo
-       uri={videoUrl186O}
-       height={300}
-      />
-     );
-    }
-
-   const media=
+   const photos=
     communityPhotoCollageItems(
-     item?.media_items,
-     {
-      media_path:
-       item?.media_path ??
-       null,
-      media_url:
-       item?.media_url ??
-       null,
-      media_mime_type:
-       item?.media_mime_type ??
-       'image/jpeg',
-     }
+     rawMedia,
+     null
     );
 
-   if(!media.length){
+   if(videoMedia && photos.length){
+    return (
+     <View
+      style={{
+       overflow:'hidden',
+       borderRadius:14,
+       marginTop:12,
+       backgroundColor:'#111'
+      }}
+     >
+      <CommunityVideo
+       uri={String(videoMedia.media_url)}
+       height={220}
+       autoPlay={
+        activeCommunityVideoId===
+         String(item?.id??'')
+       }
+      />
+      <View style={{marginTop:2}}>
+       <BuklodCommunityPhotoCollage
+        items={photos}
+        height={190}
+        onPressPhoto={(index, photoItems)=>
+         openPhotoViewer(
+          photoItems,
+          index
+         )
+        }
+       />
+      </View>
+     </View>
+    );
+   }
+
+   if(videoMedia){
+    return (
+     <CommunityVideo
+      uri={String(videoMedia.media_url)}
+      height={300}
+      autoPlay={
+       activeCommunityVideoId===
+        String(item?.id??'')
+      }
+     />
+    );
+   }
+
+   if(!photos.length){
     return null;
    }
 
    return (
     <BuklodCommunityPhotoCollage
-     items={media}
-     onPressPhoto={(index, photos)=>
+     items={photos}
+     onPressPhoto={(index, photoItems)=>
       openPhotoViewer(
-       photos,
+       photoItems,
        index
       )
      }
@@ -3234,6 +3486,24 @@ const [
   communityHasMore186L,
   setCommunityHasMore186L
 ]=useState(true);
+const [
+  communityRefreshing186L,
+  setCommunityRefreshing186L
+]=useState(false);
+const [
+  activeCommunityVideoId,
+  setActiveCommunityVideoId
+]=useState<string|null>(null);
+
+useEffect(
+ ()=>{
+  setActiveCommunityVideoId(null);
+ },
+ [
+  feedMode,
+  publicLocationScopeId,
+ ]
+);
 
 /* BUKLOD_COMMUNITY_FEED_MODES_R1 */
 const selectCommunityFeedMode=
@@ -3246,10 +3516,33 @@ const selectCommunityFeedMode=
       communityLoadSeqRef.current+=1;
       communityPageBusyRef186L.current=false;
       setCommunityHasMore186L(true);
-      setPosts([]);
+
+      const nextCacheKey=
+        user
+          ? `${communityFeedCacheKey(
+              user.id,
+              publicLocationScopeId
+            )}:${nextMode}`
+          : null;
+      const cachedNextPosts=
+        nextCacheKey
+          ? readOfflineCacheSync<any[]>(
+              nextCacheKey
+            )
+          : null;
+
+      setPosts(
+        cachedNextPosts?.length
+          ? cachedNextPosts
+          : []
+      );
       setFeedMode(nextMode);
     },
-    [feedMode]
+    [
+      feedMode,
+      publicLocationScopeId,
+      user?.id,
+    ]
   );
 
 const loadMoreCommunity186L=
@@ -3310,6 +3603,7 @@ const refreshCommunity186L=
 
       communityPageBusyRef186L.current=
         true;
+      setCommunityRefreshing186L(true);
 
       try{
         const count=
@@ -3330,6 +3624,7 @@ const refreshCommunity186L=
       finally{
         communityPageBusyRef186L.current=
           false;
+        setCommunityRefreshing186L(false);
       }
     },
     [load]
@@ -3343,11 +3638,13 @@ const refreshCommunity186L=
           (post: any) =>
             /* PATCH_MARITES_STORYLINE_ONLY_R2C */
             !isMaritesCommunityPost(post) &&
-            !String(
-              post.media_mime_type ||
-                '',
-            ).startsWith(
-              'video/',
+            /*
+             * BUKLOD_COMMUNITY_VIDEO_FB_LIKE_R1
+             * Ordinary Wall videos stay in Community.
+             * IGPAT/Reel media stays outside the Wall.
+             */
+            !isReelMediaPath(
+              post.media_path
             ),
         );
 
@@ -3365,6 +3662,60 @@ const refreshCommunity186L=
   isAdActive,
  } = useBuklodCommunityAdViewability();
 
+ const onCommunityFeedViewableItemsChanged=
+  useRef(
+   ({
+    viewableItems,
+   }:{
+    viewableItems:Array<{item?:any}>;
+   })=>{
+    onCommunityAdViewableItemsChanged({
+     viewableItems,
+    });
+
+    let nextVideoId:string|null=null;
+
+    for(const token of viewableItems){
+     const row=token?.item;
+
+     if(
+      !row ||
+      isCommunityFeedInlineAdRow(row)
+     ){
+      continue;
+     }
+
+     const mime=
+      String(
+       row.media_mime_type??''
+      )
+       .trim()
+       .toLowerCase();
+
+     if(
+      mime.startsWith('video/') &&
+      !isReelMediaPath(
+       row.media_path
+      )
+     ){
+      nextVideoId=
+       String(row.id??'')||null;
+      break;
+     }
+    }
+
+    setActiveCommunityVideoId(
+     current=>
+      current===nextVideoId
+       ? current
+       : nextVideoId
+    );
+   }
+  ).current;
+
+ const communityFeedExtraData=
+  `${communityAdExtraData}|video:${activeCommunityVideoId??''}`;
+
  if(!featureEnabled('community_feed'))return <FeatureUnavailable title="Community"/>;
  return <>
  <FlashList
@@ -3375,8 +3726,8 @@ const refreshCommunity186L=
   }}
       style={shared.screen} contentContainerStyle={s.content} data={
       communityFeedRows
-    } keyExtractor={(i: any)=>i.id} extraData={communityAdExtraData} onViewableItemsChanged={onCommunityAdViewableItemsChanged} viewabilityConfig={communityAdViewabilityConfig} /* PATCH_186L_R3_PULL_REFRESH_PAGE_ZERO */
-    refreshing={busy}
+    } keyExtractor={(i: any)=>i.id} extraData={communityFeedExtraData} onViewableItemsChanged={onCommunityFeedViewableItemsChanged} viewabilityConfig={communityAdViewabilityConfig} /* PATCH_186L_R3_PULL_REFRESH_PAGE_ZERO */
+    refreshing={communityRefreshing186L}
     onRefresh={refreshCommunity186L}
   ListHeaderComponent={<BuklodFocusFadeUp duration={240} fromY={10} fromOpacity={0.78}><View>
    {/* PATCH_161A_COMMUNITY_COMPACT */}
@@ -3446,6 +3797,8 @@ const refreshCommunity186L=
      publicLocationScopeId
     }
    />
+
+   <BuklodCommunityContributionCard />
 
    <Text style={shared.muted}>
     Encourage, connect and grow together.
@@ -3517,11 +3870,23 @@ const refreshCommunity186L=
        })}
       </View>
 
+    {/* BUKLOD_COMMUNITY_IGPAT_STRIP_R1 */}
+<BuklodCommunityIgpatStrip />
+
     {/* PATCH_162A_SPONSOR_COMMUNITY */}
 <BuklodCommunitySponsoredAd audience="public" />
    <SectionTitle>SHARE SOMETHING</SectionTitle><Card>
-<TextInput multiline value={body} onChangeText={setBody} placeholder="Share with your Community..." style={s.area}/>
-    {!!mentions.length&&<Text style={s.mentioned}>{mentions.map(x=>`@${x.full_name}`).join(' ')}</Text>}
+<TextInput multiline value={body} onChangeText={handleComposerTextChange} placeholder="Share with your Community... Type @ to mention someone" style={s.area}/>
+    {!!mentionRows.length&&activeMentionQuery(body)!==null&&(
+     <View style={{borderWidth:1,borderColor:colors.line,borderRadius:12,overflow:'hidden',marginTop:6,marginBottom:8,backgroundColor:colors.white}}>
+      {mentionRows.slice(0,6).map(m=>(
+       <Pressable key={m.user_id} onPress={()=>selectComposerMention(m)} style={{paddingHorizontal:12,paddingVertical:10,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:colors.line}}>
+        <Text style={{fontWeight:'900',color:'#39D353'}}>@{m.full_name}</Text>
+        {!!(m.church_name||m.group_name)&&<Text style={{marginTop:2,fontSize:10,color:colors.muted}}>{m.church_name}{m.group_name?` · ${m.group_name}`:''}</Text>}
+       </Pressable>
+      ))}
+     </View>
+    )}
     <View
       /* PATCH_154L_COMPOSER_SPACING */
       style={[
@@ -3530,26 +3895,12 @@ const refreshCommunity186L=
           marginBottom: 14,
         },
       ]}
-    ><Pressable style={s.tool} onPress={async()=>{setMentionOpen(true);setMentionSearch('');await searchMentions('')}}><MaterialCommunityIcons name="account-plus-outline" size={17} color={colors.green}/><Text style={s.toolText}>Mention</Text></Pressable>
-    <Pressable style={s.tool} onPress={()=>{setWallVideo186O(null);void pickPhoto();}}><MaterialCommunityIcons name="image-plus" size={17} color={colors.green}/><Text style={s.toolText}>{photoBusy
- ? 'Preparing...'
- : photos.length
- ? `${photos.length}/${COMMUNITY_MAX_PHOTOS} Photos`
- : 'Add Photos'}</Text></Pressable>
-    <Pressable
-     style={s.tool}
-     disabled={busy}
-     onPress={()=>
-      router.push('/igpat/create' as any)
-     }
     >
-     <MaterialCommunityIcons
-      name="video-outline"
-      size={17}
-      color={colors.green}
-     />
-     <Text style={s.toolText}>BUKLOD IGPAT</Text>
-    </Pressable></View>
+    <Pressable style={s.tool} disabled={busy||photoBusy||videoBusy186O} onPress={()=>void pickCommunityGallery()}>
+     <MaterialCommunityIcons name="image-multiple-outline" size={17} color={colors.green}/>
+     <Text style={s.toolText}>{photoBusy||videoBusy186O?'Preparing...':wallVideo186O||photos.length?`Gallery (${photos.length+(wallVideo186O?1:0)}/10)`:'Gallery'}</Text>
+    </Pressable>
+   </View>
     {!!communityGif&&(
      <BuklodCommunityGifPreview
       file={communityGif}
@@ -3572,7 +3923,7 @@ const refreshCommunity186L=
      </Text>
     )}
     <Text style={[shared.muted,{marginBottom:8,fontSize:11}]}>
-      Up to {COMMUNITY_MAX_PHOTOS} photos per post. Videos are posted through BUKLOD IGPAT. Posting continues in the background so you can keep using BUKLOD.
+      Gallery supports up to 10 media items per Wall post, including up to 1 video plus photos. Posting continues in the background so you can keep using BUKLOD.
       {photos.length
        ? ' Long-press a photo to highlight, draw, add text, emoji, or remove.'
        : ''}
@@ -4296,7 +4647,7 @@ const refreshCommunity186L=
 
       <TextInput
        value={commentText}
-       onChangeText={setCommentText}
+       onChangeText={handleCommentTextChange}
        multiline
        placeholder={
         replyTo
@@ -4305,6 +4656,16 @@ const refreshCommunity186L=
        }
        style={s.communityCommentInput}
       />
+
+      {!!commentMentionRows.length&&activeMentionQuery(commentText)!==null&&(
+       <View style={{position:'absolute',left:12,right:62,bottom:64,borderWidth:1,borderColor:colors.line,borderRadius:12,overflow:'hidden',backgroundColor:colors.white,zIndex:20}}>
+        {commentMentionRows.slice(0,5).map(m=>(
+         <Pressable key={m.user_id} onPress={()=>selectCommentMention(m)} style={{paddingHorizontal:12,paddingVertical:9,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:colors.line}}>
+          <Text style={{fontWeight:'900',color:'#39D353'}}>@{m.full_name}</Text>
+         </Pressable>
+        ))}
+       </View>
+      )}
 
       <Pressable
        disabled={
@@ -4339,11 +4700,7 @@ const refreshCommunity186L=
  </Modal>
 
 
- <Modal visible={mentionOpen} transparent animationType="slide" onRequestClose={()=>setMentionOpen(false)}><View style={s.overlay}><Pressable style={{flex:1}} onPress={()=>setMentionOpen(false)}/><View style={[s.drawer,{paddingBottom:drawerBottomInset}]}><Text style={s.drawerTitle}>Mention Members</Text>
-  <TextInput style={s.search} placeholder="Search member..." value={mentionSearch} onChangeText={v=>{setMentionSearch(v);void searchMentions(v)}}/>
-  <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{gap:7,paddingVertical:10}}>{mentionRows.map(m=>{const on=mentions.some(x=>x.user_id===m.user_id);return <Pressable key={m.user_id} onPress={()=>toggleMention(m)} style={[s.member,on&&s.memberOn]}><View style={{flex:1}}><Text style={s.memberName}>{m.full_name}</Text><Text style={s.memberMeta}>{m.church_name}{m.group_name?` | ${m.group_name}`:''}</Text></View>{on&&<MaterialCommunityIcons name="check-circle" size={21} color={colors.green}/>}</Pressable>})}</ScrollView>
-  <Button title={`DONE (${mentions.length})`} onPress={()=>setMentionOpen(false)}/></View></View></Modal>
- 
+
      {/* PATCH_186B_PHOTO_EDITOR_PUBLIC_MODAL */}
      <BuklodComposerPhotoEditSheet
       visible={!!photoEditSheetPhoto}

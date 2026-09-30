@@ -114,8 +114,20 @@ export async function attachCommunityPostMedia(
   const hasExternal = items.some(
     item => item.storage_provider === 'AWS',
   );
+  const mixedMedia =
+    items.some(item =>
+      String(item.media_mime_type ?? '')
+        .toLowerCase()
+        .startsWith('video/')
+    ) &&
+    items.some(item =>
+      String(item.media_mime_type ?? '')
+        .toLowerCase()
+        .startsWith('image/')
+    );
 
   const rpcNames = [
+    'set_buklod_post_media_v6',
     'set_buklod_post_media_v5',
     'set_buklod_post_media_v4',
     'set_buklod_post_media_v3',
@@ -126,7 +138,18 @@ export async function attachCommunityPostMedia(
   let lastError: { message?: string } | null = null;
 
   for (const name of rpcNames) {
-    if (hasExternal && name !== 'set_buklod_post_media_v5') {
+    if (
+      mixedMedia &&
+      name !== 'set_buklod_post_media_v6'
+    ) {
+      break;
+    }
+
+    if (
+      hasExternal &&
+      name !== 'set_buklod_post_media_v6' &&
+      name !== 'set_buklod_post_media_v5'
+    ) {
       break;
     }
 
@@ -145,6 +168,10 @@ export async function attachCommunityPostMedia(
     if (!isMissingRpcError(message)) {
       throw error;
     }
+  }
+
+  if (mixedMedia) {
+    throw lastError ?? new Error('Mixed Community media RPC is unavailable.');
   }
 
   if (hasExternal) {
