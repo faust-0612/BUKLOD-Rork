@@ -221,6 +221,14 @@ type SocialPost = {
   comment_preview?: BuklodPostCommentPreview | null;
 };
 
+/*
+ * BUKLOD_COMMUNITY_INSTANT_FEED_R1
+ * Session cache keeps the last rendered scoped feed alive while the app
+ * is open. Persistent AsyncStorage remains the cold-start fallback.
+ */
+const scopedCommunitySessionFeedCache =
+  new Map<string, SocialPost[]>();
+
 function isScopedReelPost(post: SocialPost) {
   if (post.is_reel) {
     return true;
@@ -423,6 +431,18 @@ export default function BuklodExclusiveScopeCommunity({
     isInternetReachable !== false;
   const scopedOnlineRef = useRef(scopedOnline);
   scopedOnlineRef.current = scopedOnline;
+
+  const scopedCommunityOfflineCacheKey =
+    `scope-community:${scope.scope_type}:${scope.scope_id}`;
+  const scopedCommunitySessionCacheKey =
+    `${user?.id ?? 'guest'}:${scopedCommunityOfflineCacheKey}`;
+  const initialScopedCommunityPosts =
+    user?.id
+      ? scopedCommunitySessionFeedCache.get(
+          scopedCommunitySessionCacheKey
+        ) ?? []
+      : [];
+
   const {
     openReport,
     reportSheet,
@@ -452,7 +472,7 @@ export default function BuklodExclusiveScopeCommunity({
     setPosts,
   ] =
     useState<SocialPost[]>(
-      []
+      () => initialScopedCommunityPosts
     );
   const postsRef = useRef(posts);
   postsRef.current = posts;
@@ -461,7 +481,29 @@ export default function BuklodExclusiveScopeCommunity({
     loading,
     setLoading,
   ] =
-    useState(true);
+    useState(
+      initialScopedCommunityPosts.length === 0
+    );
+
+  const [
+    activeCommunityVideoId,
+    setActiveCommunityVideoId,
+  ] =
+    useState<string | null>(
+      null
+    );
+
+  useEffect(
+    () => {
+      setActiveCommunityVideoId(
+        null
+      );
+    },
+    [
+      mode,
+      scope.scope_id,
+    ]
+  );
 
   const [
     busy,
@@ -657,9 +699,6 @@ export default function BuklodExclusiveScopeCommunity({
     `${scope.name} members only`;
 
   /* BUKLOD_OFFLINE_R2_SCOPED_COMMUNITY */
-  const scopedCommunityOfflineCacheKey =
-    `scope-community:${scope.scope_type}:${scope.scope_id}`;
-
   useEffect(() => {
     if (!user?.id) {
       return;
@@ -679,11 +718,16 @@ export default function BuklodExclusiveScopeCommunity({
           active &&
           cached?.data?.length
         ) {
+          scopedCommunitySessionFeedCache.set(
+            scopedCommunitySessionCacheKey,
+            cached.data
+          );
           setPosts(current =>
             current.length
               ? current
               : cached.data
           );
+          setLoading(false);
         }
       })
       .catch(() => undefined);
@@ -693,6 +737,7 @@ export default function BuklodExclusiveScopeCommunity({
     };
   }, [
     scopedCommunityOfflineCacheKey,
+    scopedCommunitySessionCacheKey,
     user?.id,
   ]);
 
@@ -703,6 +748,11 @@ export default function BuklodExclusiveScopeCommunity({
     ) {
       return;
     }
+
+    scopedCommunitySessionFeedCache.set(
+      scopedCommunitySessionCacheKey,
+      posts.slice(0, 80)
+    );
 
     const timer =
       setTimeout(() => {
@@ -723,6 +773,7 @@ export default function BuklodExclusiveScopeCommunity({
   }, [
     posts,
     scopedCommunityOfflineCacheKey,
+    scopedCommunitySessionCacheKey,
     user?.id,
   ]);
   const load =
@@ -1021,6 +1072,79 @@ export default function BuklodExclusiveScopeCommunity({
     extraData: communityAdExtraData,
     isAdActive,
   } = useBuklodCommunityAdViewability();
+
+  const onCommunityFeedViewableItemsChanged =
+    useRef(
+      ({
+        viewableItems,
+      }: {
+        viewableItems: Array<{
+          item?: any;
+        }>;
+      }) => {
+        onCommunityAdViewableItemsChanged({
+          viewableItems,
+        });
+
+        let nextVideoId:
+          string | null =
+          null;
+
+        for (
+          const token of
+          viewableItems
+        ) {
+          const row =
+            token?.item as
+              | SocialPost
+              | undefined;
+
+          if (
+            !row ||
+            isCommunityFeedInlineAdRow(
+              row
+            )
+          ) {
+            continue;
+          }
+
+          const mime =
+            String(
+              row.media_mime_type ??
+                ''
+            )
+              .trim()
+              .toLowerCase();
+
+          if (
+            mime.startsWith(
+              'video/'
+            ) &&
+            !isScopedReelPost(
+              row
+            )
+          ) {
+            nextVideoId =
+              String(
+                row.id ??
+                  ''
+              ) || null;
+            break;
+          }
+        }
+
+        setActiveCommunityVideoId(
+          current =>
+            current ===
+            nextVideoId
+              ? current
+              : nextVideoId
+        );
+      }
+    ).current;
+
+  const communityFeedExtraData =
+    `${communityAdExtraData}|video:${activeCommunityVideoId ?? ''}`;
 
   const listData =
     mode ===
@@ -3248,6 +3372,10 @@ return (
                   height={
                     470
                   }
+                  autoPlay={
+                    activeCommunityVideoId ===
+                    item.id
+                  }
                 />
 
                 <View
@@ -4206,10 +4334,10 @@ return (
             item.id
         }
         extraData={
-          communityAdExtraData
+          communityFeedExtraData
         }
         onViewableItemsChanged={
-          onCommunityAdViewableItemsChanged
+          onCommunityFeedViewableItemsChanged
         }
         viewabilityConfig={
           communityAdViewabilityConfig

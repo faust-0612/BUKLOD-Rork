@@ -61,7 +61,16 @@ export function BuklodMentionText({
     <Text style={style} numberOfLines={numberOfLines}>
       {parts.map((part, index) =>
         part.mention ? (
-          <Text key={`${index}-${part.value}`} style={mentionStyle}>
+          <Text
+            key={`${index}-${part.value}`}
+            style={[
+              mentionStyle,
+              {
+                color: '#39D353',
+                fontWeight: '900',
+              },
+            ]}
+          >
             {part.value}
           </Text>
         ) : (

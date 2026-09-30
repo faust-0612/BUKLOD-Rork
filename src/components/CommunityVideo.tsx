@@ -1,8 +1,18 @@
-import React, { useEffect } from 'react';
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import {
+  Pressable,
+  Platform,
   StyleSheet,
   View,
 } from 'react-native';
+
+import {
+  MaterialCommunityIcons,
+} from '@expo/vector-icons';
 
 import {
   VideoView,
@@ -20,19 +30,48 @@ export function CommunityVideo({
   height = 380,
   autoPlay = false,
 }: Props) {
+  const [
+    muted,
+    setMuted,
+  ] = useState(autoPlay);
+
+  const videoSource =
+    useMemo(
+      () =>
+        /^https?:\/\//i.test(uri)
+          ? {
+              uri,
+              useCaching: Platform.OS !== 'web',
+            }
+          : uri,
+      [uri],
+    );
+
   const player = useVideoPlayer(
-    uri,
+    videoSource,
     (instance) => {
       instance.loop = false;
+      instance.muted = autoPlay;
     }
   );
+
   /*
-   * PATCH_173F_R11_COMMUNITY_VIDEO_AUTOPLAY
-   * Autoplay is opt-in. Native controls stay available.
+   * BUKLOD_COMMUNITY_VIDEO_FB_LIKE_R1
+   *
+   * Feed autoplay is opt-in from the parent list's viewport state:
+   * - visible feed video starts muted
+   * - leaving the active viewport pauses it
+   * - native controls remain available for play/pause/scrub/fullscreen
+   * - the explicit sound button lets the user opt in to audio
+   *
+   * Non-feed callers keep their existing manual-play behavior because
+   * autoPlay defaults to false.
    */
   useEffect(
     () => {
       if (autoPlay) {
+        player.muted = true;
+        setMuted(true);
         player.play();
       } else {
         player.pause();
@@ -44,6 +83,14 @@ export function CommunityVideo({
       uri,
     ],
   );
+
+  const toggleMuted = () => {
+    const next =
+      !player.muted;
+
+    player.muted = next;
+    setMuted(next);
+  };
 
   return (
     <View
@@ -58,6 +105,28 @@ export function CommunityVideo({
         nativeControls
         contentFit="cover"
       />
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={
+          muted
+            ? 'Turn video sound on'
+            : 'Mute video'
+        }
+        hitSlop={8}
+        onPress={toggleMuted}
+        style={styles.soundButton}
+      >
+        <MaterialCommunityIcons
+          name={
+            muted
+              ? 'volume-off'
+              : 'volume-high'
+          }
+          size={19}
+          color="#FFFFFF"
+        />
+      </Pressable>
     </View>
   );
 }
@@ -74,5 +143,18 @@ const styles = StyleSheet.create({
   video: {
     width: '100%',
     height: '100%',
+  },
+
+  soundButton: {
+    position: 'absolute',
+    right: 10,
+    top: 10,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor:
+      'rgba(0,0,0,0.62)',
   },
 });

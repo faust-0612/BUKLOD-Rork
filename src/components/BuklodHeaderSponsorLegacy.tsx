@@ -18,6 +18,7 @@ import {
 import {
   supabase,
 } from '@/lib/supabase';
+import { isHiddenCommunityCardCopy } from '@/lib/buklodCommunityCardVisibility';
 
 
 type Placement =
@@ -265,6 +266,15 @@ export default function BuklodHeaderSponsor({
                   row.ends_at
                 ).getTime() >
                   nowMs
+              )
+              &&
+              (
+                placement !== 'community'
+                ||
+                !isHiddenCommunityCardCopy(
+                  row.sponsor_name,
+                  row.headline,
+                )
               )
           ) as Sponsor[];
 
