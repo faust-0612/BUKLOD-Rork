@@ -5,6 +5,7 @@ import React, {
 } from 'react';
 import {
   Pressable,
+  Platform,
   StyleSheet,
   View,
 } from 'react-native';
@@ -40,7 +41,7 @@ export function CommunityVideo({
         /^https?:\/\//i.test(uri)
           ? {
               uri,
-              useCaching: true,
+              useCaching: Platform.OS !== 'web',
             }
           : uri,
       [uri],
