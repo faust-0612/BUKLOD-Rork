@@ -78,6 +78,7 @@ import {
   communityFeedCacheKey,
   keepStableCommunityMedia,
   readOfflineCache,
+  readOfflineCacheSync,
   writeOfflineCache,
 } from '@/lib/buklodOfflineSync';
 import { SCALE_LIMITS } from '@/lib/performanceScale';
@@ -649,9 +650,28 @@ function LegacyPublicBuklodScreen(){
     incomingShare187A.resolvedSharedPayloads,
   ]);
 
- const [posts,setPosts]=useState<any[]>([]),[group,setGroup]=useState<any>(null),[body,setBody]=useState('');
- const [category]=useState<typeof CATEGORIES[number]>('reflection');
  const [feedMode,setFeedMode]=useState<FeedMode>('for_you');
+ const [
+  publicLocationScopeId,
+  setPublicLocationScopeId,
+ ] = useState<string | null>(null);
+ const initialPublicCommunityCacheKey=
+  user
+   ? `${communityFeedCacheKey(
+       user.id,
+       null
+      )}:for_you`
+   : null;
+ const [posts,setPosts]=useState<any[]>(
+  ()=>
+   initialPublicCommunityCacheKey
+    ? readOfflineCacheSync<any[]>(
+       initialPublicCommunityCacheKey
+      )??[]
+    :[]
+ );
+ const [group,setGroup]=useState<any>(null),[body,setBody]=useState('');
+ const [category]=useState<typeof CATEGORIES[number]>('reflection');
 
  // COMMUNITY_COMPACT_COMPOSER_20260811
  const [audience]=useState<Audience>('public');
@@ -802,11 +822,6 @@ function LegacyPublicBuklodScreen(){
  const postReactBusyRef=useRef(false);
  const commentReactBusyRef=useRef(false);
 /* PATCH_173H_R4_PUBLIC_LOCATION_STATE */
-const [
-  publicLocationScopeId,
-  setPublicLocationScopeId,
-] = useState<string | null>(null);
-
 /* PATCH_186L_R3_TRUE_PAGED_STRICT_PUBLIC */
 const load=useCallback(async(options?:{
   append?:boolean;
@@ -3234,6 +3249,10 @@ const [
   communityHasMore186L,
   setCommunityHasMore186L
 ]=useState(true);
+const [
+  communityRefreshing186L,
+  setCommunityRefreshing186L
+]=useState(false);
 
 /* BUKLOD_COMMUNITY_FEED_MODES_R1 */
 const selectCommunityFeedMode=
@@ -3246,10 +3265,33 @@ const selectCommunityFeedMode=
       communityLoadSeqRef.current+=1;
       communityPageBusyRef186L.current=false;
       setCommunityHasMore186L(true);
-      setPosts([]);
+
+      const nextCacheKey=
+        user
+          ? `${communityFeedCacheKey(
+              user.id,
+              publicLocationScopeId
+            )}:${nextMode}`
+          : null;
+      const cachedNextPosts=
+        nextCacheKey
+          ? readOfflineCacheSync<any[]>(
+              nextCacheKey
+            )
+          : null;
+
+      setPosts(
+        cachedNextPosts?.length
+          ? cachedNextPosts
+          : []
+      );
       setFeedMode(nextMode);
     },
-    [feedMode]
+    [
+      feedMode,
+      publicLocationScopeId,
+      user?.id,
+    ]
   );
 
 const loadMoreCommunity186L=
@@ -3310,6 +3352,7 @@ const refreshCommunity186L=
 
       communityPageBusyRef186L.current=
         true;
+      setCommunityRefreshing186L(true);
 
       try{
         const count=
@@ -3330,6 +3373,7 @@ const refreshCommunity186L=
       finally{
         communityPageBusyRef186L.current=
           false;
+        setCommunityRefreshing186L(false);
       }
     },
     [load]
@@ -3376,7 +3420,7 @@ const refreshCommunity186L=
       style={shared.screen} contentContainerStyle={s.content} data={
       communityFeedRows
     } keyExtractor={(i: any)=>i.id} extraData={communityAdExtraData} onViewableItemsChanged={onCommunityAdViewableItemsChanged} viewabilityConfig={communityAdViewabilityConfig} /* PATCH_186L_R3_PULL_REFRESH_PAGE_ZERO */
-    refreshing={busy}
+    refreshing={communityRefreshing186L}
     onRefresh={refreshCommunity186L}
   ListHeaderComponent={<BuklodFocusFadeUp duration={240} fromY={10} fromOpacity={0.78}><View>
    {/* PATCH_161A_COMMUNITY_COMPACT */}
