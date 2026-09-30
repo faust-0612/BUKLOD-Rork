@@ -21,18 +21,33 @@ export default function BuklodMainBrandIntro({
 }: {
   children: React.ReactNode;
 }) {
+  const isWeb = Platform.OS === 'web';
+
   /* BUKLOD_WEB_INTRO_ONCE_PER_TAB_R2
    * The web startup brand is a boot-only experience. Browser back/forward
    * or route remounts must never replay the startup overlay.
    */
   const [visible, setVisible] = useState(() => {
-    if (Platform.OS !== 'web') return true;
+    if (!isWeb) return true;
     try {
       return window.sessionStorage.getItem('buklod.web.brand-intro.v2') !== 'shown';
     } catch {
       return true;
     }
   });
+
+  /*
+   * BUKLOD_NATIVE_STARTUP_ISOLATION_R1
+   *
+   * Web keeps hydrating under the startup overlay, exactly as before.
+   * Native intentionally does NOT mount the app tree while the intro is
+   * visible. This prevents AuthProvider / TrustedDeviceGate / route loading
+   * indicators and the OS fingerprint prompt from competing with the logo
+   * during the Android startup animation.
+   */
+  const mountChildren =
+    isWeb || !visible;
+
   const markOpacity = useRef(new Animated.Value(0)).current;
   const markScale = useRef(new Animated.Value(0.86)).current;
   const textOpacity = useRef(new Animated.Value(0)).current;
@@ -44,7 +59,7 @@ export default function BuklodMainBrandIntro({
       return;
     }
 
-    if (Platform.OS === 'web') {
+    if (isWeb) {
       try {
         window.sessionStorage.setItem('buklod.web.brand-intro.v2', 'shown');
       } catch {
@@ -59,7 +74,7 @@ export default function BuklodMainBrandIntro({
      * more than a brief transition on top of JS/network startup.
      */
     const webFast =
-      Platform.OS === 'web';
+      isWeb;
 
     /*
      * BUKLOD_WEB_BRAND_3S_R1
@@ -81,13 +96,13 @@ export default function BuklodMainBrandIntro({
           toValue: 1,
           duration: webFast ? webIntroMs.mark : 260,
           easing: Easing.out(Easing.cubic),
-          useNativeDriver: Platform.OS !== 'web',
+          useNativeDriver: !isWeb,
         }),
         Animated.spring(markScale, {
           toValue: 1,
           speed: 16,
           bounciness: 4,
-          useNativeDriver: Platform.OS !== 'web',
+          useNativeDriver: !isWeb,
         }),
       ]),
       Animated.parallel([
@@ -95,13 +110,13 @@ export default function BuklodMainBrandIntro({
           toValue: 1,
           duration: webFast ? webIntroMs.copy : 220,
           easing: Easing.out(Easing.quad),
-          useNativeDriver: Platform.OS !== 'web',
+          useNativeDriver: !isWeb,
         }),
         Animated.timing(textTranslate, {
           toValue: 0,
           duration: webFast ? webIntroMs.copy : 220,
           easing: Easing.out(Easing.quad),
-          useNativeDriver: Platform.OS !== 'web',
+          useNativeDriver: !isWeb,
         }),
       ]),
       Animated.delay(webFast ? webIntroMs.hold : 420),
@@ -109,7 +124,7 @@ export default function BuklodMainBrandIntro({
         toValue: 0,
         duration: webFast ? webIntroMs.fade : 220,
         easing: Easing.in(Easing.quad),
-        useNativeDriver: Platform.OS !== 'web',
+        useNativeDriver: !isWeb,
       }),
     ]);
 
@@ -121,6 +136,7 @@ export default function BuklodMainBrandIntro({
       sequence.stop();
     };
   }, [
+    isWeb,
     markOpacity,
     markScale,
     screenOpacity,
@@ -130,8 +146,13 @@ export default function BuklodMainBrandIntro({
   ]);
 
   return (
-    <View style={styles.root}>
-      {children}
+    <View
+      style={[
+        styles.root,
+        !isWeb && styles.nativeRoot,
+      ]}
+    >
+      {mountChildren ? children : null}
 
       {visible ? (
         <Animated.View
@@ -140,6 +161,7 @@ export default function BuklodMainBrandIntro({
           importantForAccessibility="no-hide-descendants"
           style={[
             styles.overlay,
+            !isWeb && styles.nativeOverlay,
             { opacity: screenOpacity },
           ]}
         >
@@ -153,7 +175,10 @@ export default function BuklodMainBrandIntro({
               <Image
                 source={require('../../assets/release/buklod-main-canonical.png')}
                 resizeMode="contain"
-                style={styles.logo}
+                style={[
+                  styles.logo,
+                  !isWeb && styles.nativeLogo,
+                ]}
               />
             </Animated.View>
 
@@ -183,12 +208,18 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
   },
+  nativeRoot: {
+    backgroundColor: '#FFFFFF',
+  },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 99999,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFFDF7',
+  },
+  nativeOverlay: {
+    backgroundColor: '#FFFFFF',
   },
   brand: {
     alignItems: 'center',
@@ -198,6 +229,10 @@ const styles = StyleSheet.create({
   logo: {
     width: 220,
     height: 220,
+  },
+  nativeLogo: {
+    width: 200,
+    height: 200,
   },
   copy: {
     marginTop: 8,
