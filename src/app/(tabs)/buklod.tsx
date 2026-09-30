@@ -3263,6 +3263,16 @@ const [
   setActiveCommunityVideoId
 ]=useState<string|null>(null);
 
+useEffect(
+ ()=>{
+  setActiveCommunityVideoId(null);
+ },
+ [
+  feedMode,
+  publicLocationScopeId,
+ ]
+);
+
 /* BUKLOD_COMMUNITY_FEED_MODES_R1 */
 const selectCommunityFeedMode=
   useCallback(
