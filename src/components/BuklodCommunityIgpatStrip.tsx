@@ -7,6 +7,7 @@ import React, {
   useState,
 } from 'react';
 import {
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -49,7 +50,7 @@ function IgpatTilePreview({
   const player = useVideoPlayer(
     {
       uri,
-      useCaching: true,
+      useCaching: Platform.OS !== 'web',
     },
     instance => {
       instance.loop = true;
