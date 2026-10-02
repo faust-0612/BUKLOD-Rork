@@ -18,10 +18,8 @@ import {
 
 import { configurePreachingAudioMode } from '@/lib/preachingAudio';
 
-const DZAS_STREAM_URL = String(
-  process.env.EXPO_PUBLIC_DZAS_STREAM_URL ||
-    'https://sg-icecast.eradioportal.com:8443/febc_dzas',
-).trim();
+const DZAS_STREAM_URL =
+  'https://sg-icecast.eradioportal.com:8443/febc_dzas';
 
 const DZAS_WEBSITE_URL = 'https://dzas.febc.ph';
 const DZAS_FAVORITE_KEY = 'buklod.radio.favorite.702dzas';
@@ -83,6 +81,7 @@ export default function BuklodRadioScreen() {
           albumTitle: 'BUKLOD Radio · Live',
         },
         {
+          isLiveStream: true,
           showSeekBackward: false,
           showSeekForward: false,
         },
