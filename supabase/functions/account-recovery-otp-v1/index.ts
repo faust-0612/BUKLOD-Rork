@@ -1,5 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+const RECOVERY_PROVIDER_TIMEOUT_MS = 8_000;
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-buklod-client, x-retry-count',
@@ -139,7 +141,7 @@ Deno.serve(async (req: Request) => {
   }
 
   async function resolveAccounts(contact: { channel: 'sms' | 'email'; value: string }) {
-    const fields = 'id,username,full_name,mobile,login_method,login_identifier,is_active';
+    const fields = 'id,username,full_name,mobile,login_method,login_identifier,birth_date,is_active';
     if (contact.channel === 'sms') {
       const digits = contact.value.replace(/[^0-9]/g, '');
       const variants = Array.from(new Set([contact.value, digits, digits.startsWith('63') ? '0' + digits.slice(2) : digits]));
@@ -197,13 +199,23 @@ Deno.serve(async (req: Request) => {
     const directRaw = text(payload?.contact || payload?.identifier || payload?.username);
     const directContact = parseContact(directRaw);
     if (directContact) {
-      const accounts = await resolveAccounts(directContact);
+      const birthDate = text(payload?.birthDate);
+      if (!validDate(birthDate)) {
+        return {
+          state: 'invalid',
+          code: 'BIRTHDATE_REQUIRED',
+          message: 'Enter the account birthday as YYYY-MM-DD to continue recovery.',
+          lookupSubject: 'direct:' + directContact.channel + ':' + directContact.value,
+        };
+      }
+      const accounts = (await resolveAccounts(directContact))
+        .filter((p: any) => text(p?.birth_date) === birthDate);
       return {
         state: accounts.length ? 'matched' : 'not_matched',
         accounts,
         contact: directContact,
-        matchMethod: directContact.channel === 'sms' ? 'mobile' : 'email',
-        lookupSubject: 'direct:' + directContact.channel + ':' + directContact.value,
+        matchMethod: directContact.channel === 'sms' ? 'mobile_birthdate' : 'email_birthdate',
+        lookupSubject: 'direct:' + directContact.channel + ':' + directContact.value + ':' + birthDate,
       };
     }
 
@@ -305,6 +317,7 @@ Deno.serve(async (req: Request) => {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({ To: to, Channel: 'sms' }),
+      signal: AbortSignal.timeout(RECOVERY_PROVIDER_TIMEOUT_MS),
     });
     if (!r.ok) {
       console.error('Twilio Verify start failed', r.status, await r.text());
@@ -323,6 +336,7 @@ Deno.serve(async (req: Request) => {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({ To: to, Code: code }),
+      signal: AbortSignal.timeout(RECOVERY_PROVIDER_TIMEOUT_MS),
     });
     if (!r.ok) {
       console.error('Twilio Verify check failed', r.status, await r.text());
@@ -344,6 +358,7 @@ Deno.serve(async (req: Request) => {
         text: `Your BUKLOD password recovery code is ${code}. It expires in 5 minutes. If you did not request this, ignore this message.`,
         html: `<p>Your BUKLOD password recovery code is <strong style="font-size:24px;letter-spacing:4px">${code}</strong>.</p><p>It expires in 5 minutes. If you did not request this, ignore this message.</p>`,
       }),
+      signal: AbortSignal.timeout(RECOVERY_PROVIDER_TIMEOUT_MS),
     });
     if (!r.ok) {
       console.error('Recovery email send failed', r.status, await r.text());
@@ -355,8 +370,10 @@ Deno.serve(async (req: Request) => {
   if (action === 'service_status') {
     return json({
       ok: true,
-      smsReady: await smsConfigured(),
-      emailReady: await emailConfigured(),
+      inAppReady: true,
+      deliveryMode: 'in_app',
+      emailReady: true,
+      smsReady: false,
       usernameRecovery: true,
       identityRecovery: true,
       autoRejectUnmatched: true,
@@ -403,31 +420,18 @@ Deno.serve(async (req: Request) => {
         message: 'More than one account matches those details. Use Admin Help so the correct account can be recovered safely.',
       }, 409);
     }
-    if (target.state === 'no_channel' || !target.contact) {
-      await audit('otp_auto_lookup', 'no_delivery_channel', {
-        userId: target.accounts?.length === 1 ? target.accounts[0]?.id : null,
-        subjectHash: lookupGate.subjectHash,
-      });
+    const accounts = Array.isArray(target.accounts) ? target.accounts : [];
+    if (accounts.length !== 1 || !accounts[0]?.id) {
       return json({
         ok: false,
-        code: 'ADMIN_FALLBACK_REQUIRED',
-        matched: true,
-        adminFallback: true,
-        message: 'Account matched, but no registered recovery email or mobile number is available. Use Admin Help.',
-      }, 409);
+        code: 'NOT_MATCHED',
+        matched: false,
+        message: 'NOT MATCHED — the information entered could not be verified against one active BUKLOD account.',
+      }, 404);
     }
 
-    const contact = target.contact as { channel: 'sms' | 'email'; value: string };
-    const accounts = Array.isArray(target.accounts) ? target.accounts : [];
-    const providerReady = contact.channel === 'sms' ? await smsConfigured() : await emailConfigured();
-    if (!providerReady) {
-      const msg = contact.channel === 'sms'
-        ? 'Account matched, but SMS recovery is temporarily unavailable. Try a registered email if available or use Admin Help.'
-        : 'Account matched, but email recovery is temporarily unavailable. Try a registered mobile number if available or use Admin Help.';
-      return json({ ok: false, code: 'DELIVERY_NOT_CONFIGURED', matched: true, adminFallback: true, message: msg }, 503);
-    }
-
-    const contactHash = await contactHashOf(contact.value);
+    const userId = String(accounts[0].id);
+    const contactHash = await contactHashOf('in_app:' + userId);
     const nowMs = Date.now();
     const cooldownSince = new Date(nowMs - 45_000).toISOString();
     const limitSince = new Date(nowMs - 15 * 60_000).toISOString();
@@ -436,69 +440,66 @@ Deno.serve(async (req: Request) => {
       admin.from('buklod_recovery_otp_challenges').select('id', { count: 'exact', head: true }).eq('contact_hash', contactHash).gte('created_at', limitSince),
       admin.from('buklod_recovery_otp_challenges').select('id', { count: 'exact', head: true }).eq('ip_hash', ipHash).gte('created_at', limitSince),
     ]);
-    if (cooldown.error || contactCount.error || ipCount.error) return json({ ok: false, message: 'Recovery is temporarily unavailable.' }, 500);
-    if (Number(cooldown.count ?? 0) > 0) return json({ ok: false, code: 'RESEND_COOLDOWN', matched: true, retryAfterSeconds: 45, message: 'Account matched. Please wait before requesting another code.' }, 429);
+    if (cooldown.error || contactCount.error || ipCount.error) {
+      return json({ ok: false, message: 'Recovery is temporarily unavailable.' }, 500);
+    }
+    if (Number(cooldown.count ?? 0) > 0) {
+      return json({
+        ok: false,
+        code: 'RESEND_COOLDOWN',
+        matched: true,
+        retryAfterSeconds: 45,
+        message: 'Account verified. Please wait before generating another recovery code.',
+      }, 429);
+    }
     if (Number(contactCount.count ?? 0) >= 3 || Number(ipCount.count ?? 0) >= 10) {
-      await audit('otp_request', 'rate_limited', { subjectHash: contactHash });
-      return json({ ok: false, code: 'RATE_LIMITED', matched: true, message: 'Too many recovery-code requests. Try again later or use Admin Help.' }, 429);
+      await audit('otp_request', 'rate_limited', { userId, subjectHash: contactHash });
+      return json({
+        ok: false,
+        code: 'RATE_LIMITED',
+        matched: true,
+        message: 'Too many recovery-code requests. Try again later or use Admin Help.',
+      }, 429);
     }
 
     const challengeId = crypto.randomUUID();
     const code = sixDigitCode();
     const expiresAt = new Date(nowMs + 5 * 60_000).toISOString();
-    const provider = contact.channel === 'sms' ? 'twilio_verify' : 'resend_otp';
-    const otpHash = provider === 'resend_otp' ? await otpHashOf(challengeId, code) : null;
-    const userIds = accounts.map((a: any) => a.id);
-    const encryptedContact = await encryptContact(contact.value);
+    const otpHash = await otpHashOf(challengeId, code);
 
     const { error: insertError } = await admin.from('buklod_recovery_otp_challenges').insert({
       id: challengeId,
-      channel: contact.channel,
+      channel: 'in_app',
       contact_hash: contactHash,
-      user_ids: userIds,
-      provider,
+      user_ids: [userId],
+      provider: 'in_app_otp',
       otp_hash: otpHash,
       expires_at: expiresAt,
       ip_hash: ipHash,
-      contact_ciphertext: encryptedContact.cipher,
-      contact_iv: encryptedContact.iv,
+      contact_ciphertext: null,
+      contact_iv: null,
       match_method: target.matchMethod,
     });
     if (insertError) {
-      console.error('Recovery challenge insert failed', insertError);
+      console.error('In-app recovery challenge insert failed', insertError);
       return json({ ok: false, message: 'Recovery is temporarily unavailable.' }, 500);
     }
 
-    const delivered = contact.channel === 'sms'
-      ? await twilioStart(contact.value)
-      : await sendEmailOtp(contact.value, code);
-    if (!delivered) {
-      await admin.from('buklod_recovery_otp_challenges').delete().eq('id', challengeId);
-      await audit('otp_request', 'delivery_failed', { subjectHash: contactHash });
-      return json({
-        ok: false,
-        code: 'DELIVERY_FAILED',
-        matched: true,
-        adminFallback: true,
-        message: 'Account matched, but the recovery code could not be delivered. Try another recovery method or Admin Help.',
-      }, 503);
-    }
-
-    await audit('otp_request', 'matched_and_sent', {
-      userId: userIds.length === 1 ? userIds[0] : null,
+    await audit('otp_request', 'matched_and_generated_in_app', {
+      userId,
       subjectHash: contactHash,
     });
-    const maskedDestination = contact.channel === 'sms' ? maskMobile(contact.value) : maskEmail(contact.value);
     return json({
       ok: true,
       matched: true,
       challengeId,
-      channel: contact.channel,
-      maskedDestination,
+      channel: 'in_app',
+      deliveryMode: 'in_app',
+      code,
       matchMethod: target.matchMethod,
       expiresInSeconds: 300,
       resendAfterSeconds: 45,
-      message: 'Account matched. A 6-digit recovery code was sent to ' + maskedDestination + '.',
+      message: 'ACCOUNT VERIFIED — your one-time recovery code is ready below.',
     });
   }
 
@@ -516,32 +517,41 @@ Deno.serve(async (req: Request) => {
       return json({ ok: false, code: 'INVALID_OTP', message: 'Invalid or expired recovery code.' }, 400);
     }
 
-    let contact = parseContact(body?.contact);
-    if (!contact && ch.contact_ciphertext && ch.contact_iv) {
-      try {
-        const recovered = await decryptContact(String(ch.contact_ciphertext), String(ch.contact_iv));
-        contact = parseContact(recovered);
-      } catch (e) {
-        console.error('Recovery delivery contact decrypt failed', e);
-      }
-    }
-    if (!contact) {
-      return json({ ok: false, code: 'INVALID_OTP', message: 'This recovery challenge is no longer valid. Request a new code.' }, 400);
-    }
-
-    const incomingContactHash = await contactHashOf(contact.value);
-    if (ch.channel !== contact.channel || !equal(incomingContactHash, String(ch.contact_hash)) || Number(ch.attempts ?? 0) >= Number(ch.max_attempts ?? 5)) {
-      return json({ ok: false, code: 'INVALID_OTP', message: 'Invalid or expired recovery code.' }, 400);
-    }
-    if (ch.verified_at) return json({ ok: false, code: 'OTP_ALREADY_VERIFIED', message: 'This code was already verified. Request a new code if needed.' }, 400);
-
+    const isInApp = ch.channel === 'in_app' && ch.provider === 'in_app_otp';
     let valid = false;
-    if ((ch.user_ids ?? []).length > 0 && ch.provider === 'twilio_verify') {
-      if (!(await smsConfigured())) return json({ ok: false, message: 'SMS verification is temporarily unavailable.' }, 503);
-      valid = await twilioCheck(contact.value, code);
-    } else if ((ch.user_ids ?? []).length > 0 && ch.provider === 'resend_otp') {
+
+    if (isInApp) {
+      if (Number(ch.attempts ?? 0) >= Number(ch.max_attempts ?? 5)) {
+        return json({ ok: false, code: 'OTP_LOCKED', message: 'Too many incorrect codes. Request a new recovery code.' }, 429);
+      }
       const incomingOtpHash = await otpHashOf(challengeId, code);
       valid = !!ch.otp_hash && equal(incomingOtpHash, String(ch.otp_hash));
+    } else {
+      let contact = parseContact(body?.contact);
+      if (!contact && ch.contact_ciphertext && ch.contact_iv) {
+        try {
+          const recovered = await decryptContact(String(ch.contact_ciphertext), String(ch.contact_iv));
+          contact = parseContact(recovered);
+        } catch (e) {
+          console.error('Recovery delivery contact decrypt failed', e);
+        }
+      }
+      if (!contact) {
+        return json({ ok: false, code: 'INVALID_OTP', message: 'This recovery challenge is no longer valid. Request a new code.' }, 400);
+      }
+
+      const incomingContactHash = await contactHashOf(contact.value);
+      if (ch.channel !== contact.channel || !equal(incomingContactHash, String(ch.contact_hash)) || Number(ch.attempts ?? 0) >= Number(ch.max_attempts ?? 5)) {
+        return json({ ok: false, code: 'INVALID_OTP', message: 'Invalid or expired recovery code.' }, 400);
+      }
+
+      if ((ch.user_ids ?? []).length > 0 && ch.provider === 'twilio_verify') {
+        if (!(await smsConfigured())) return json({ ok: false, message: 'SMS verification is temporarily unavailable.' }, 503);
+        valid = await twilioCheck(contact.value, code);
+      } else if ((ch.user_ids ?? []).length > 0 && ch.provider === 'resend_otp') {
+        const incomingOtpHash = await otpHashOf(challengeId, code);
+        valid = !!ch.otp_hash && equal(incomingOtpHash, String(ch.otp_hash));
+      }
     }
 
     if (!valid) {
