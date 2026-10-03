@@ -499,7 +499,7 @@ Deno.serve(async (req: Request) => {
       matchMethod: target.matchMethod,
       expiresInSeconds: 300,
       resendAfterSeconds: 45,
-      message: 'ACCOUNT VERIFIED — your one-time recovery code is ready below.',
+      message: 'ACCOUNT VERIFIED — Recovery code: ' + code + '. Enter this code below to continue.',
     });
   }
 
