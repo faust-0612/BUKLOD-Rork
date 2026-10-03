@@ -152,7 +152,7 @@ export default function ForgotPasswordScreen() {
           setEmailReady(false);
           return;
         }
-        setEmailReady(data?.emailReady === true || data?.smsReady === true);
+        setEmailReady(data?.inAppReady === true || data?.emailReady === true || data?.smsReady === true);
       } catch {
         if (!cancelled) setEmailReady(false);
       }
@@ -254,6 +254,11 @@ export default function ForgotPasswordScreen() {
           'Enter birthday as YYYY-MM-DD, for example 1990-05-23.'
         );
       }
+    } else if (!/^\d{4}-\d{2}-\d{2}$/.test(autoBirthDate.trim())) {
+      return Alert.alert(
+        'Automatic Recovery',
+        'Enter the account birthday as YYYY-MM-DD to verify the account.'
+      );
     }
     if (emailReady === false) {
       return Alert.alert(
@@ -265,7 +270,7 @@ export default function ForgotPasswordScreen() {
 
     emailInFlight.current = true;
     setEmailBusy(true);
-    setEmailStatus('Checking account and sending a 6-digit recovery code…');
+    setEmailStatus('Checking the account and generating a one-time recovery code…');
     setEmailOtp('');
     setEmailRecoveryToken('');
     setEmailAccountId('');
@@ -307,13 +312,19 @@ export default function ForgotPasswordScreen() {
         throw new Error('The recovery request was not started correctly. Please try again.');
       }
 
+      const generatedCode = cleanEmailOtp(String(data?.code ?? ''));
+      if (!/^\d{6}$/.test(generatedCode)) {
+        throw new Error('The account matched, but the in-app recovery code was not returned correctly.');
+      }
+
       if (!autoForgotLogin) setEmail(clean);
       setEmailChallengeId(challengeId);
+      setEmailOtp(generatedCode);
       setEmailOtpSent(true);
       setEmailStatus(
         String(
           data?.message ??
-            'Account matched. A 6-digit recovery code was sent to the registered recovery contact.'
+            'ACCOUNT VERIFIED — your one-time recovery code is ready below.'
         )
       );
     } catch (error: any) {
@@ -334,7 +345,7 @@ export default function ForgotPasswordScreen() {
       return Alert.alert('Automatic Recovery', 'Request a recovery code first.');
     }
     if (!/^\d{6}$/.test(cleanOtp)) {
-      return Alert.alert('Automatic Recovery', 'Enter the 6-digit recovery code that was sent.');
+      return Alert.alert('Automatic Recovery', 'Enter the 6-digit recovery code shown in the app.');
     }
     if (emailInFlight.current) return;
 
@@ -726,8 +737,10 @@ export default function ForgotPasswordScreen() {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Automatic Recovery</Text>
             <Text style={styles.help}>
-              Enter your registered email, mobile number, or username. Username recovery also
-              requires birthday. If you forgot your login identifier, use name + birthday below.
+              Verify your BUKLOD account using your registered email, mobile number, or username
+              together with your birthday. No email or SMS code will be sent. When the account
+              matches, BUKLOD generates the one-time recovery code directly on this screen.
+              If you forgot your login identifier, use name + birthday below.
             </Text>
 
             {emailReady === null ? (
@@ -792,7 +805,7 @@ export default function ForgotPasswordScreen() {
                   editable={!emailBusy && !emailOtpVerified}
                   style={styles.input}
                 />
-                <FieldLabel>Birthday (required when using username)</FieldLabel>
+                <FieldLabel>Birthday (required)</FieldLabel>
                 <TextInput
                   value={autoBirthDate}
                   onChangeText={(value) =>
@@ -854,13 +867,13 @@ export default function ForgotPasswordScreen() {
                 <PrimaryButton
                   busy={emailBusy && !emailOtpSent}
                   disabled={emailReady !== true}
-                  label={emailOtpSent ? 'SEND NEW CODE' : 'MATCH ACCOUNT & SEND CODE'}
+                  label={emailOtpSent ? 'GENERATE NEW CODE' : 'VERIFY ACCOUNT & GENERATE CODE'}
                   onPress={requestEmailOtp}
                 />
 
                 {emailOtpSent && (
                   <>
-                    <FieldLabel>6-digit code</FieldLabel>
+                    <FieldLabel>Your 6-digit recovery code</FieldLabel>
                     <TextInput
                       value={emailOtp}
                       onChangeText={(value) => setEmailOtp(cleanEmailOtp(value))}
@@ -923,9 +936,9 @@ export default function ForgotPasswordScreen() {
             )}
 
             <Text style={styles.privacyText}>
-              If the details do not match an active account, BUKLOD rejects the request immediately.
-              If matched, the code is generated and sent automatically. Codes expire quickly and
-              cannot be reused.
+              If the identifier + birthday or name + birthday does not match one active account,
+              BUKLOD rejects the request. If matched, the recovery code is generated only inside
+              this recovery session. Codes expire quickly, are rate-limited, and cannot be reused.
             </Text>
           </View>
         )}
