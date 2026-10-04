@@ -14,43 +14,34 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import { AdminGate } from '@/components/AdminGate';
+import BuklodCommunityEconomyAdminCard from '@/components/BuklodCommunityEconomyAdminCard';
 import { shared } from '@/components/UI';
 import {
-  adminAddBuklodR38FinancialEntry,
-  adminCreateBuklodR38EconomicPeriod,
-  adminFinalizeBuklodR38EconomicPeriod,
+  adminFailBuklodPfWithdrawal,
+  adminFinalizeBuklodPfMonthV3,
+  adminGetBuklodPfFinanceConsoleV3,
   adminGetBuklodR38PayoutDetails,
   adminListBuklodR38Withdrawals,
+  adminMarkBuklodPfWithdrawalProcessing,
   adminMarkBuklodR38WithdrawalPaid,
-  adminReconcileBuklodR38Referrals,
+  adminRecordBuklodPfFinancialEntryV3,
   adminReviewBuklodR38Withdrawal,
-  adminSetBuklodR38PeriodStatus,
+  type BuklodPfFinanceConsoleV3,
   type BuklodR38AdminWithdrawalQueue,
   type BuklodR38PayoutDetails,
 } from '@/lib/buklodR38AdminEconomy';
-import {
-  formatPhp,
-  loadAdminBuklodR38EconomyReport,
-  type BuklodR38AdminEconomyReport,
-} from '@/lib/buklodR38Economy';
+import { formatPhp } from '@/lib/buklodR38Economy';
 import { colors } from '@/lib/theme';
 
 const ENTRY_KINDS = [
-  'REVENUE',
-  'INFRASTRUCTURE',
-  'DATABASE',
-  'STORAGE',
-  'BANDWIDTH',
-  'MEDIA',
-  'AI_TTS',
-  'PAYMENT_PROCESSING',
-  'PLATFORM_FEE',
-  'INVALID_TRAFFIC',
-  'REFUND_CHARGEBACK',
-  'OPERATIONAL_COST',
-  'TAX_STATUTORY',
+  'UNATTRIBUTED_ELIGIBLE_REVENUE',
+  'REVENUE_REVERSAL',
+  'OPERATING_COST',
+  'INFRASTRUCTURE_COST',
+  'PAYOUT_COST',
+  'PAYMENT_PROCESSING_COST',
+  'TAX_RESERVE',
   'OTHER_COST',
-  'ADJUSTMENT',
 ] as const;
 
 function defaultMonth() {
@@ -98,24 +89,31 @@ function ActionButton({
 
 export default function AdminEconomyOperationsScreen() {
   const month = useMemo(defaultMonth, []);
-  const [report, setReport] = useState<BuklodR38AdminEconomyReport | null>(null);
-  const [queue, setQueue] = useState<BuklodR38AdminWithdrawalQueue | null>(null);
+  const [report, setReport] =
+    useState<BuklodPfFinanceConsoleV3 | null>(null);
+  const [queue, setQueue] =
+    useState<BuklodR38AdminWithdrawalQueue | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [periodKey, setPeriodKey] = useState(month.key);
-  const [periodStart, setPeriodStart] = useState(month.start);
-  const [periodEnd, setPeriodEnd] = useState(month.end);
-  const [periodNotes, setPeriodNotes] = useState('');
 
-  const [direction, setDirection] = useState<'revenue' | 'cost'>('revenue');
-  const [entryKind, setEntryKind] = useState<string>('REVENUE');
+  const [entryKind, setEntryKind] =
+    useState<(typeof ENTRY_KINDS)[number]>(
+      'UNATTRIBUTED_ELIGIBLE_REVENUE',
+    );
   const [amount, setAmount] = useState('');
-  const [sourceSystem, setSourceSystem] = useState('manual_admin');
-  const [externalReference, setExternalReference] = useState('');
-  const [entryState, setEntryState] = useState<'ESTIMATED' | 'RECONCILED'>('ESTIMATED');
+  const [sourceSystem, setSourceSystem] =
+    useState('manual_admin');
+  const [externalReference, setExternalReference] =
+    useState('');
+  const [entryNotes, setEntryNotes] = useState('');
+  const [entryState, setEntryState] =
+    useState<'ESTIMATED' | 'RECONCILED' | 'REVERSED'>(
+      'ESTIMATED',
+    );
 
   const [selectedPayout, setSelectedPayout] = useState<BuklodR38PayoutDetails | null>(null);
   const [transactionRef, setTransactionRef] = useState('');
@@ -123,20 +121,24 @@ export default function AdminEconomyOperationsScreen() {
   const load = useCallback(async () => {
     try {
       setError(null);
+
       const [nextReport, nextQueue] = await Promise.all([
-        loadAdminBuklodR38EconomyReport(),
+        adminGetBuklodPfFinanceConsoleV3(periodKey),
         adminListBuklodR38Withdrawals(),
       ]);
+
       setReport(nextReport);
       setQueue(nextQueue);
-      const key = nextReport.period?.period_key;
-      if (typeof key === 'string' && key.trim()) setPeriodKey(key);
     } catch (nextError: unknown) {
-      setError(nextError instanceof Error ? nextError.message : 'Could not load economy operations.');
+      setError(
+        nextError instanceof Error
+          ? nextError.message
+          : 'Could not load canonical BUKLOD Economy operations.',
+      );
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [periodKey]);
 
   useEffect(() => {
     void load();
@@ -148,10 +150,18 @@ export default function AdminEconomyOperationsScreen() {
     setRefreshing(false);
   }, [load]);
 
-  const currentStatus = String(report?.period?.status ?? 'NO PERIOD');
-  const activation = report?.activation ?? {};
-  const canFinalize = activation.financial_finalization_enabled === true && currentStatus === 'READY_FOR_FINALIZATION';
-  const payoutEnabled = activation.payout_processing_enabled === true;
+  const controls = report?.controls;
+  const settlement = report?.settlement ?? null;
+  const currentStatus =
+    settlement?.status ?? 'NOT FINALIZED';
+
+  const canFinalize =
+    controls?.economics_enabled === true &&
+    controls?.settlement_enabled === true &&
+    currentStatus !== 'FINALIZED';
+
+  const payoutEnabled =
+    queue?.payout_processing_enabled === true;
 
   const run = async (key: string, work: () => Promise<unknown>, success: string) => {
     setBusy(key);
@@ -166,63 +176,89 @@ export default function AdminEconomyOperationsScreen() {
     }
   };
 
-  const createPeriod = () => {
-    void run(
-      'period',
-      () => adminCreateBuklodR38EconomicPeriod({
-        periodKey,
-        startIso: periodStart,
-        endIso: periodEnd,
-        notes: periodNotes,
-      }),
-      'Economic period created or loaded.',
-    );
+  const loadPeriod = () => {
+    if (!/^\d{4}-\d{2}$/.test(periodKey.trim())) {
+      Alert.alert(
+        'Finance Period',
+        'Enter the month as YYYY-MM.',
+      );
+      return;
+    }
+
+    void load();
   };
 
   const addEntry = () => {
     const numericAmount = Number(amount);
-    if (!Number.isFinite(numericAmount) || numericAmount < 0) {
-      Alert.alert('Financial Entry', 'Enter a valid non-negative amount.');
+
+    if (
+      !Number.isFinite(numericAmount) ||
+      numericAmount < 0
+    ) {
+      Alert.alert(
+        'Financial Entry',
+        'Enter a valid non-negative amount.',
+      );
       return;
     }
+
+    if (!/^\d{4}-\d{2}$/.test(periodKey.trim())) {
+      Alert.alert(
+        'Financial Entry',
+        'Period must be YYYY-MM.',
+      );
+      return;
+    }
+
+    const direction: 'CREDIT' | 'DEBIT' =
+      entryKind === 'UNATTRIBUTED_ELIGIBLE_REVENUE'
+        ? 'CREDIT'
+        : 'DEBIT';
+
     void run(
       'entry',
-      () => adminAddBuklodR38FinancialEntry({
-        periodKey,
-        entryKind,
-        direction,
-        amount: numericAmount,
-        sourceSystem,
-        externalReference,
-        reconciliationState: entryState,
-      }),
-      'Financial entry recorded.',
-    );
-  };
-
-  const setPeriodStatus = (status: 'OPEN' | 'ESTIMATING' | 'RECONCILING' | 'READY_FOR_FINALIZATION') => {
-    void run(
-      `status-${status}`,
-      () => adminSetBuklodR38PeriodStatus(periodKey, status, 'Changed from R38 admin operations console'),
-      `Period moved to ${status}.`,
-    );
+      () =>
+        adminRecordBuklodPfFinancialEntryV3({
+          periodKey,
+          entryType: entryKind,
+          direction,
+          amount: numericAmount,
+          sourceSystem,
+          externalReference,
+          reconciliationState: entryState,
+          notes: entryNotes,
+        }),
+      'Canonical financial entry recorded.',
+    ).then(() => {
+      setAmount('');
+      setExternalReference('');
+      setEntryNotes('');
+    });
   };
 
   const finalize = () => {
     if (!canFinalize) return;
+
     Alert.alert(
-      'Finalize Funded Economy Period?',
-      'This creates immutable finalized user cash shares from reconciled funded platform revenue. Points are not used. Continue only after all real revenue and costs are reconciled.',
+      'Finalize Canonical Finance Month?',
+      'This runs the authoritative Finance V3 settlement. Only finalized eligible revenue enters the distribution engine. Qualified Monthly Points are weights only and do not create money. Finalization is idempotent and cannot be used while the server economics or settlement gate is OFF.',
       [
-        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
         {
           text: 'Finalize',
           style: 'destructive',
-          onPress: () => void run(
-            'finalize',
-            () => adminFinalizeBuklodR38EconomicPeriod(periodKey, 'System Admin finalization from operations console'),
-            'Economic period finalized.',
-          ),
+          onPress: () =>
+            void run(
+              'finalize',
+              () =>
+                adminFinalizeBuklodPfMonthV3(
+                  periodKey,
+                ),
+              'Canonical Finance V3 month finalized.',
+            ),
         },
       ],
     );
@@ -276,10 +312,10 @@ export default function AdminEconomyOperationsScreen() {
 
         <View style={styles.hero}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.eyebrow}>SYSTEM ADMIN · ECONOMY OPERATIONS</Text>
+            <Text style={styles.eyebrow}>SYSTEM ADMIN Ã‚Â· ECONOMY OPERATIONS</Text>
             <Text style={shared.h1}>Economy Operations</Text>
             <Text style={shared.muted}>
-              Prepare real revenue periods, reconcile costs, finalize only when the central gate is active, and process funded referral withdrawals.
+              Record canonical eligible revenue and costs, inspect Finance V3 settlement state, finalize only through the authoritative server settlement engine, and process finalized-cash withdrawals.
             </Text>
           </View>
           <MaterialCommunityIcons name="finance" size={30} color={colors.greenDark} />
@@ -295,7 +331,7 @@ export default function AdminEconomyOperationsScreen() {
         {loading ? (
           <View style={styles.loadingCard}>
             <ActivityIndicator color={colors.greenDark} />
-            <Text style={styles.muted}>Loading R38 operations...</Text>
+            <Text style={styles.muted}>Loading BUKLOD Economy operations...</Text>
           </View>
         ) : error ? (
           <View style={styles.loadingCard}>
@@ -306,121 +342,468 @@ export default function AdminEconomyOperationsScreen() {
         ) : (
           <>
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Activation state</Text>
+              <Text style={styles.sectionTitle}>
+                Canonical Finance V3 controls
+              </Text>
+
+              <Text style={styles.muted}>
+                Policy {report?.policy?.version || 'canonical_finance_v3'} · User Pool {String(report?.policy?.user_pool_pct ?? 30)}% · First-line {String(report?.policy?.first_line_pct ?? 10)}% · Community {String(report?.policy?.cluster_pct ?? 5)}% / {String(report?.policy?.organization_pct ?? 7)}%
+              </Text>
+
               <View style={styles.flagGrid}>
                 {[
-                  ['RCU accrual', activation.rcu_accrual_enabled],
-                  ['Estimated economics', activation.estimated_economics_enabled],
-                  ['Financial finalization', activation.financial_finalization_enabled],
-                  ['Referral withdrawal', activation.referral_withdrawal_enabled],
-                  ['Payout processing', activation.payout_processing_enabled],
+                  ['Economics', controls?.economics_enabled],
+                  ['Settlement', controls?.settlement_enabled],
+                  ['Withdrawal', controls?.withdrawal_enabled],
+                  ['Payout processing', controls?.payout_processing_enabled],
                 ].map(([label, enabled]) => (
-                  <View key={String(label)} style={styles.flagRow}>
-                    <View style={[styles.dot, enabled === true ? styles.dotOn : styles.dotOff]} />
-                    <Text style={styles.flagLabel}>{String(label)}</Text>
-                    <Text style={styles.flagValue}>{enabled === true ? 'ON' : 'OFF'}</Text>
+                  <View
+                    key={String(label)}
+                    style={styles.flagRow}
+                  >
+                    <View
+                      style={[
+                        styles.dot,
+                        enabled === true
+                          ? styles.dotOn
+                          : styles.dotOff,
+                      ]}
+                    />
+                    <Text style={styles.flagLabel}>
+                      {String(label)}
+                    </Text>
+                    <Text style={styles.flagValue}>
+                      {enabled === true ? 'ON' : 'OFF'}
+                    </Text>
                   </View>
                 ))}
               </View>
+
+              <TextInput
+                value={periodKey}
+                onChangeText={setPeriodKey}
+                autoCapitalize="none"
+                placeholder="YYYY-MM"
+                style={styles.input}
+              />
+
+              <View style={styles.actionWrap}>
+                <ActionButton
+                  title={
+                    busy === 'period-load'
+                      ? 'LOADING...'
+                      : 'LOAD MONTH'
+                  }
+                  icon="calendar-search"
+                  onPress={() => {
+                    void loadPeriod();
+                  }}
+                  disabled={!!busy}
+                />
+
+                <ActionButton
+                  title={
+                    currentStatus === 'FINALIZED'
+                      ? 'MONTH FINALIZED'
+                      : 'FINALIZE CANONICAL MONTH'
+                  }
+                  icon="lock-check-outline"
+                  onPress={finalize}
+                  disabled={
+                    !!busy ||
+                    !canFinalize ||
+                    currentStatus === 'FINALIZED'
+                  }
+                  danger
+                />
+              </View>
+
+              <Text style={styles.muted}>
+                Settlement status: {currentStatus}
+              </Text>
+
+              {!canFinalize &&
+                currentStatus !== 'FINALIZED' && (
+                  <Text style={styles.warningText}>
+                    Finalization is locked by the canonical backend. Economics and Settlement must both be ON before a month can be finalized.
+                  </Text>
+                )}
             </View>
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Economic period</Text>
-              <Text style={styles.muted}>Current status: {currentStatus}</Text>
-              <TextInput value={periodKey} onChangeText={setPeriodKey} placeholder="Period key, e.g. 2026-09" style={styles.input} autoCapitalize="characters" />
-              <TextInput value={periodStart} onChangeText={setPeriodStart} placeholder="Start ISO timestamp" style={styles.input} autoCapitalize="none" />
-              <TextInput value={periodEnd} onChangeText={setPeriodEnd} placeholder="End ISO timestamp" style={styles.input} autoCapitalize="none" />
-              <TextInput value={periodNotes} onChangeText={setPeriodNotes} placeholder="Notes (optional)" style={styles.input} />
-              <ActionButton title={busy === 'period' ? 'WORKING...' : 'CREATE / LOAD PERIOD'} icon="calendar-plus" onPress={createPeriod} disabled={!!busy} />
+              <Text style={styles.sectionTitle}>
+                Record canonical financial entry
+              </Text>
+
+              <Text style={styles.muted}>
+                UNATTRIBUTED_ELIGIBLE_REVENUE is the only manual eligible-revenue credit here. Other entry types are debits for reversals, operating/infrastructure/payout/payment-processing costs, tax reserve, or other cost. Recording a value does not itself create user cash.
+              </Text>
+
               <View style={styles.actionWrap}>
-                <ActionButton title="RECONCILING" icon="sync" onPress={() => setPeriodStatus('RECONCILING')} disabled={!!busy || !report?.period} />
-                <ActionButton title="READY TO FINALIZE" icon="check-decagram-outline" onPress={() => setPeriodStatus('READY_FOR_FINALIZATION')} disabled={!!busy || !report?.period} />
+                {ENTRY_KINDS.map((value) => (
+                  <Pressable
+                    key={value}
+                    onPress={() => setEntryKind(value)}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 8,
+                      borderRadius: 9,
+                      borderWidth: 1,
+                      borderColor:
+                        entryKind === value
+                          ? colors.greenDark
+                          : colors.line,
+                      backgroundColor:
+                        entryKind === value
+                          ? '#EEF8F2'
+                          : colors.white,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 9.5,
+                        fontWeight: '900',
+                        color:
+                          entryKind === value
+                            ? colors.greenDark
+                            : colors.text,
+                      }}
+                    >
+                      {value.replace(/_/g, ' ')}
+                    </Text>
+                  </Pressable>
+                ))}
               </View>
-              <ActionButton title="FINALIZE FUNDED PERIOD" icon="lock-check-outline" onPress={finalize} disabled={!!busy || !canFinalize} danger />
-              {!canFinalize && (
-                <Text style={styles.warningText}>
-                  Finalization remains locked unless the period is READY_FOR_FINALIZATION and the centralized financial finalization gate is ON.
+
+              <Text style={styles.muted}>
+                Direction: {entryKind === 'UNATTRIBUTED_ELIGIBLE_REVENUE' ? 'CREDIT' : 'DEBIT'}
+              </Text>
+
+              <TextInput
+                value={amount}
+                onChangeText={setAmount}
+                keyboardType="decimal-pad"
+                placeholder="Amount in PHP"
+                style={styles.input}
+              />
+
+              <TextInput
+                value={sourceSystem}
+                onChangeText={setSourceSystem}
+                placeholder="Source system"
+                style={styles.input}
+              />
+
+              <TextInput
+                value={externalReference}
+                onChangeText={setExternalReference}
+                placeholder="Provider / external reference"
+                style={styles.input}
+              />
+
+              <TextInput
+                value={entryNotes}
+                onChangeText={setEntryNotes}
+                placeholder="Notes / supporting reference"
+                style={styles.input}
+              />
+
+              <View style={styles.actionWrap}>
+                {(
+                  [
+                    'ESTIMATED',
+                    'RECONCILED',
+                    'REVERSED',
+                  ] as const
+                ).map((value) => (
+                  <Pressable
+                    key={value}
+                    onPress={() => setEntryState(value)}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 9,
+                      borderRadius: 9,
+                      borderWidth: 1,
+                      borderColor:
+                        entryState === value
+                          ? colors.greenDark
+                          : colors.line,
+                      backgroundColor:
+                        entryState === value
+                          ? '#EEF8F2'
+                          : colors.white,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 10,
+                        fontWeight: '900',
+                        color:
+                          entryState === value
+                            ? colors.greenDark
+                            : colors.text,
+                      }}
+                    >
+                      {value}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <Text style={styles.muted}>
+                Use RECONCILED only when supported by an actual provider statement, receipt, bill, or verified accounting record. ESTIMATED values do not enter final settlement.
+              </Text>
+
+              <ActionButton
+                title={
+                  busy === 'entry'
+                    ? 'RECORDING...'
+                    : 'ADD CANONICAL ENTRY'
+                }
+                icon="database-plus-outline"
+                onPress={addEntry}
+                disabled={
+                  !!busy ||
+                  !/^\d{4}-\d{2}$/.test(
+                    periodKey.trim(),
+                  )
+                }
+              />
+            </View>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>
+                Canonical settlement summary
+              </Text>
+
+              <View
+                style={[
+                  styles.metrics,
+                  { flexWrap: 'wrap' },
+                ]}
+              >
+                <View style={styles.metric}>
+                  <Text style={styles.metricValue}>
+                    {formatPhp(
+                      settlement?.normal_eligible_revenue_php ?? 0,
+                    )}
+                  </Text>
+                  <Text style={styles.metricLabel}>
+                    Eligible Revenue
+                  </Text>
+                </View>
+
+                <View style={styles.metric}>
+                  <Text style={styles.metricValue}>
+                    {formatPhp(
+                      settlement?.user_pool_php ?? 0,
+                    )}
+                  </Text>
+                  <Text style={styles.metricLabel}>
+                    30% User Pool
+                  </Text>
+                </View>
+
+                <View style={styles.metric}>
+                  <Text style={styles.metricValue}>
+                    {formatPhp(
+                      settlement?.first_line_php ?? 0,
+                    )}
+                  </Text>
+                  <Text style={styles.metricLabel}>
+                    First-line
+                  </Text>
+                </View>
+
+                <View style={styles.metric}>
+                  <Text style={styles.metricValue}>
+                    {formatPhp(
+                      settlement?.community_fund_php ?? 0,
+                    )}
+                  </Text>
+                  <Text style={styles.metricLabel}>
+                    Community Fund
+                  </Text>
+                </View>
+
+                <View style={styles.metric}>
+                  <Text style={styles.metricValue}>
+                    {formatPhp(
+                      settlement?.buklod_retained_php ?? 0,
+                    )}
+                  </Text>
+                  <Text style={styles.metricLabel}>
+                    BUKLOD Retained
+                  </Text>
+                </View>
+
+                <View style={styles.metric}>
+                  <Text style={styles.metricValue}>
+                    {formatPhp(
+                      settlement?.operating_cost_php ?? 0,
+                    )}
+                  </Text>
+                  <Text style={styles.metricLabel}>
+                    Operating Cost
+                  </Text>
+                </View>
+
+                <View style={styles.metric}>
+                  <Text style={styles.metricValue}>
+                    {formatPhp(
+                      settlement?.tax_reserve_php ?? 0,
+                    )}
+                  </Text>
+                  <Text style={styles.metricLabel}>
+                    Tax Reserve
+                  </Text>
+                </View>
+
+                <View style={styles.metric}>
+                  <Text style={styles.metricValue}>
+                    {formatPhp(
+                      settlement?.estimated_final_net_php ?? 0,
+                    )}
+                  </Text>
+                  <Text style={styles.metricLabel}>
+                    Final Net
+                  </Text>
+                </View>
+              </View>
+
+              <Text style={styles.muted}>
+                QMP total: {String(settlement?.qualified_monthly_points ?? 0)} · Settled users: {String(report?.user_shares?.length ?? 0)} · Community allocations: {String(report?.community_allocations?.length ?? 0)}
+              </Text>
+            </View>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>
+                Financial entries for {periodKey}
+              </Text>
+
+              {report?.financial_entries?.length ? (
+                report.financial_entries
+                  .slice(0, 12)
+                  .map((row) => (
+                    <View
+                      key={row.id}
+                      style={styles.withdrawalCard}
+                    >
+                      <View style={styles.withdrawalHeader}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.withdrawalName}>
+                            {row.entry_type.replace(/_/g, ' ')}
+                          </Text>
+                          <Text style={styles.muted}>
+                            {row.direction} · {row.reconciliation_state} · {row.source_system || 'No source'}
+                          </Text>
+                        </View>
+
+                        <Text style={styles.withdrawalAmount}>
+                          {formatPhp(row.amount_php)}
+                        </Text>
+                      </View>
+
+                      {!!row.external_reference && (
+                        <Text style={styles.muted}>
+                          Ref: {row.external_reference}
+                        </Text>
+                      )}
+
+                      {!!row.notes && (
+                        <Text style={styles.muted}>
+                          {row.notes}
+                        </Text>
+                      )}
+                    </View>
+                  ))
+              ) : (
+                <Text style={styles.muted}>
+                  No canonical financial entries recorded for this month.
                 </Text>
               )}
             </View>
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Record platform revenue / cost</Text>
-              <View style={styles.segmentRow}>
-                {(['revenue', 'cost'] as const).map((value) => (
-                  <Pressable key={value} onPress={() => {
-                    setDirection(value);
-                    if (value === 'revenue' && entryKind !== 'ADJUSTMENT') setEntryKind('REVENUE');
-                    if (value === 'cost' && entryKind === 'REVENUE') setEntryKind('OPERATIONAL_COST');
-                  }} style={[styles.segment, direction === value && styles.segmentActive]}>
-                    <Text style={[styles.segmentText, direction === value && styles.segmentTextActive]}>{value.toUpperCase()}</Text>
-                  </Pressable>
-                ))}
-              </View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-                {ENTRY_KINDS.filter((kind) => direction === 'revenue' ? kind === 'REVENUE' || kind === 'ADJUSTMENT' : kind !== 'REVENUE').map((kind) => (
-                  <Pressable key={kind} onPress={() => setEntryKind(kind)} style={[styles.chip, entryKind === kind && styles.chipActive]}>
-                    <Text style={[styles.chipText, entryKind === kind && styles.chipTextActive]}>{kind.replace(/_/g, ' ')}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-              <TextInput value={amount} onChangeText={setAmount} placeholder="Amount in PHP" keyboardType="decimal-pad" style={styles.input} />
-              <TextInput value={sourceSystem} onChangeText={setSourceSystem} placeholder="Source system (e.g. AdMob, manual_admin)" style={styles.input} />
-              <TextInput value={externalReference} onChangeText={setExternalReference} placeholder="External reference / invoice / statement ID" style={styles.input} />
-              <View style={styles.segmentRow}>
-                {(['ESTIMATED', 'RECONCILED'] as const).map((value) => (
-                  <Pressable key={value} onPress={() => setEntryState(value)} style={[styles.segment, entryState === value && styles.segmentActive]}>
-                    <Text style={[styles.segmentText, entryState === value && styles.segmentTextActive]}>{value}</Text>
-                  </Pressable>
-                ))}
-              </View>
-              <Text style={styles.muted}>
-                Use RECONCILED only for actual recognized revenue/cost supported by the provider statement or real bill. Estimated entries cannot be finalized.
-              </Text>
-              <ActionButton title={busy === 'entry' ? 'RECORDING...' : 'ADD FINANCIAL ENTRY'} icon="database-plus-outline" onPress={addEntry} disabled={!!busy || !report?.period} />
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Current revenue chain</Text>
-              <View style={styles.metrics}>
-                <View style={styles.metric}><Text style={styles.metricValue}>{formatPhp(report?.revenue_chain?.actual_reconciled_revenue)}</Text><Text style={styles.metricLabel}>Revenue</Text></View>
-                <View style={styles.metric}><Text style={styles.metricValue}>{formatPhp(report?.revenue_chain?.actual_reconciled_costs)}</Text><Text style={styles.metricLabel}>Costs</Text></View>
-                <View style={styles.metric}><Text style={styles.metricValue}>{formatPhp(report?.revenue_chain?.distributable_base)}</Text><Text style={styles.metricLabel}>Distributable Base</Text></View>
-              </View>
-              <Pressable onPress={() => router.push('/admin/bayanihan' as any)} style={styles.reportLink}>
-                <MaterialCommunityIcons name="chart-box-outline" size={17} color={colors.greenDark} />
-                <Text style={styles.reportLinkText}>OPEN FULL ECONOMY REPORT</Text>
-              </Pressable>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Referral qualification</Text>
-              <Text style={styles.muted}>Recompute server-side direct referral states. This does not mint RCU while the RCU gate is OFF.</Text>
-              <ActionButton title={busy === 'referrals' ? 'RECONCILING...' : 'RECONCILE REFERRALS'} icon="account-sync-outline" onPress={() => void run('referrals', () => adminReconcileBuklodR38Referrals(), 'Referral states reconciled.')} disabled={!!busy} />
-            </View>
-
-            <View style={styles.section}>
               <Text style={styles.sectionTitle}>Withdrawal queue</Text>
               <Text style={styles.muted}>
-                Payout destinations remain masked during review. Full destination access is blocked until payout processing is ON and the withdrawal is approved.
+                Payout destinations remain masked during review. An APPROVED request must enter PROCESSING before the full payout destination can be accessed.
               </Text>
               {queue?.rows.length ? queue.rows.map((row) => (
                 <View key={row.id} style={styles.withdrawalCard}>
                   <View style={styles.withdrawalHeader}>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.withdrawalName}>{row.full_name}</Text>
-                      <Text style={styles.muted}>{row.payout_method || '—'} · {row.payout_destination_masked || 'No destination'} · {row.status}</Text>
+                      <Text style={styles.muted}>{row.payout_method || 'Ã¢â‚¬â€'} Ã‚Â· {row.payout_destination_masked || 'No destination'} Ã‚Â· {row.status}</Text>
                     </View>
                     <Text style={styles.withdrawalAmount}>{formatPhp(row.requested_amount)}</Text>
                   </View>
                   {['REQUESTED', 'UNDER_REVIEW'].includes(row.status) && (
                     <View style={styles.actionWrap}>
-                      <ActionButton title="APPROVE" icon="check" onPress={() => void run(`approve-${row.id}`, () => adminReviewBuklodR38Withdrawal(row.id, true, 'Approved from R38 operations console'), 'Withdrawal approved.')} disabled={!!busy} />
+                      <ActionButton title="APPROVE" icon="check" onPress={() => void run(`approve-${row.id}`, () => adminReviewBuklodR38Withdrawal(row.id, true, 'Approved from canonical BUKLOD Economy operations'), 'Withdrawal approved.')} disabled={!!busy} />
                       <ActionButton title="REJECT" icon="close" onPress={() => void run(`reject-${row.id}`, () => adminReviewBuklodR38Withdrawal(row.id, false, 'Rejected by System Admin'), 'Withdrawal rejected and reserved cash released.')} disabled={!!busy} danger />
                     </View>
                   )}
-                  {['APPROVED', 'PROCESSING'].includes(row.status) && (
-                    <ActionButton title="ACCESS PAYOUT DESTINATION" icon="eye-lock-outline" onPress={() => revealPayout(row.id)} disabled={!!busy || !payoutEnabled} />
+                  {row.status === 'APPROVED' && (
+                    <ActionButton
+                      title="START PROCESSING"
+                      icon="progress-clock"
+                      onPress={() =>
+                        void run(
+                          `processing-${row.id}`,
+                          () => adminMarkBuklodPfWithdrawalProcessing(row.id),
+                          'Withdrawal moved to PROCESSING.',
+                        )
+                      }
+                      disabled={!!busy || !payoutEnabled}
+                    />
+                  )}
+
+                  {row.status === 'PROCESSING' && (
+                    <View style={styles.actionWrap}>
+                      <ActionButton
+                        title="ACCESS PAYOUT DESTINATION"
+                        icon="eye-lock-outline"
+                        onPress={() => revealPayout(row.id)}
+                        disabled={!!busy || !payoutEnabled}
+                      />
+
+                      <ActionButton
+                        title="MARK FAILED / RETURN FUNDS"
+                        icon="cash-refund"
+                        onPress={() =>
+                          Alert.alert(
+                            'Mark Payout Failed?',
+                            'Use this only when the external transfer was not completed. The reserved finalized cash will be returned to the member Available balance.',
+                            [
+                              {
+                                text: 'Cancel',
+                                style: 'cancel',
+                              },
+                              {
+                                text: 'Mark Failed',
+                                style: 'destructive',
+                                onPress: () =>
+                                  void run(
+                                    `failed-${row.id}`,
+                                    () =>
+                                      adminFailBuklodPfWithdrawal(
+                                        row.id,
+                                        'External payout was not completed.',
+                                      ),
+                                    'Payout marked FAILED and reserved cash returned.',
+                                  ).then(() => {
+                                    setSelectedPayout(null);
+                                    setTransactionRef('');
+                                  }),
+                              },
+                            ],
+                          )
+                        }
+                        disabled={!!busy || !payoutEnabled}
+                        danger
+                      />
+                    </View>
                   )}
                 </View>
               )) : <Text style={styles.muted}>No withdrawal requests.</Text>}
@@ -433,8 +816,8 @@ export default function AdminEconomyOperationsScreen() {
                   <MaterialCommunityIcons name="shield-key-outline" size={22} color={colors.greenDark} />
                   <View style={{ flex: 1 }}>
                     <Text style={styles.withdrawalName}>{selectedPayout.account_name}</Text>
-                    <Text style={styles.sensitiveValue}>{selectedPayout.payout_method} · {selectedPayout.destination}</Text>
-                    <Text style={styles.muted}>{formatPhp(selectedPayout.requested_amount)} · {selectedPayout.status}</Text>
+                    <Text style={styles.sensitiveValue}>{selectedPayout.payout_method} Ã‚Â· {selectedPayout.destination}</Text>
+                    <Text style={styles.muted}>{formatPhp(selectedPayout.requested_amount)} Ã‚Â· {selectedPayout.status}</Text>
                   </View>
                 </View>
                 <TextInput value={transactionRef} onChangeText={setTransactionRef} placeholder="External payout transaction reference" style={styles.input} />

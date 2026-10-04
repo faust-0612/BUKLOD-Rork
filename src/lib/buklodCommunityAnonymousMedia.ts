@@ -2,6 +2,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { prepareCommunityJpegUri } from '@/lib/uploadCommunityVideoFile';
 
 export async function uploadBuklodAnonymousCommunityPhoto(
@@ -12,15 +13,19 @@ export async function uploadBuklodAnonymousCommunityPhoto(
     throw new Error('Anonymous Community photos are limited to 5 MB.');
   }
 
-  const { data, error } = await supabase.functions.invoke(
-    'buklod-community-ai',
-    {
-      body: {
-        action: 'anonymous_upload_url',
-        mime_type: 'image/jpeg',
-        size_bytes: prepared.sizeBytes,
+  const { data, error } = await withBuklodTimeout<any>(
+    supabase.functions.invoke(
+      'buklod-community-ai',
+      {
+        body: {
+          action: 'anonymous_upload_url',
+          mime_type: 'image/jpeg',
+          size_bytes: prepared.sizeBytes,
+        },
       },
-    },
+    ),
+    10_000,
+    'Anonymous Community upload URL'
   );
   if (error) throw error;
 

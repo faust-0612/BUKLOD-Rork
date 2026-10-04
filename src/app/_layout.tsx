@@ -1,18 +1,21 @@
+import BuklodPttGlobalHost from '@/components/BuklodPttGlobalHost';
 import BuklodNavSafeShell from '@/components/BuklodNavSafeShell';
 import BuklodRootKeyboardAvoidingView from '@/components/BuklodRootKeyboardAvoidingView';
 import { BuklodGuideAvatar } from '@/components/BuklodGuideAvatar';
 import BuklodFormationEntryScopeTracker from '@/components/BuklodFormationEntryScopeTracker';
 import BuklodTrustedDeviceGate from '@/components/BuklodTrustedDeviceGate';
-import BuklodPttGlobalHost from '@/components/BuklodPttGlobalHost';
 import '@/lib/performanceBoot';
-import { Stack, type ErrorBoundaryProps } from 'expo-router';
+import { Stack, router, usePathname, type ErrorBoundaryProps } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useEffect, useState } from 'react';
 import { AuthProvider } from '@/providers/AuthProvider';
+import { BuklodI18nProvider } from '@/providers/BuklodI18nProvider';
 import { BuklodBibleNarrationProvider } from '@/providers/BuklodBibleNarrationProvider';
 import { BuklodScopeProvider } from '@/providers/BuklodScopeProvider';
 import { BuklodFoundationProvider } from '@/providers/BuklodFoundationProvider';
 import { NetworkProvider } from '@/providers/NetworkProvider';
+import { BuklodFeedbackProvider } from '@/providers/BuklodFeedbackProvider';
 import { NotificationProvider } from '@/providers/NotificationProvider';
 import { ComplianceProvider } from '@/providers/ComplianceProvider';
 import { RuntimeConfigProvider } from '@/providers/RuntimeConfigProvider';
@@ -23,36 +26,137 @@ import BuklodFocusAppRouteGuard from '@/components/BuklodFocusAppRouteGuard';
 import BuklodCanonicalNavigationGuard from '@/components/BuklodCanonicalNavigationGuard';
 import BuklodClusterInviteDeepLinkHandler from '@/components/BuklodClusterInviteDeepLinkHandler';
 import BuklodAttendanceDeepLinkHandler from '@/components/BuklodAttendanceDeepLinkHandler';
+import BuklodAdSafetyRouteBridge from '@/components/BuklodAdSafetyRouteBridge';
+import BuklodWebAdSenseProvider from '@/components/BuklodWebAdSenseProvider';
+import BuklodProfitFirstIdentityBootstrap from '@/components/BuklodProfitFirstIdentityBootstrap';
 import { colors } from '@/lib/theme';
 import { StreamVideoProvider } from '@/providers/StreamVideoProvider';
 import { BuklodThemeProvider } from '@/providers/BuklodThemeProvider';
 import { BuklodCharacterEventProvider } from '@/components/character/BuklodCharacterEventProvider';
 import RorkAvatarOnboardingGate from '@/components/character/RorkAvatarOnboardingGate';
+import BuklodMainHealthAgent from '@/components/BuklodMainHealthAgent';
+import BuklodMainBrandIntro from '@/components/BuklodMainBrandIntro';
+import BuklodCenteredBrandMark, {
+  BUKLOD_BRAND_LOGO_NATIVE,
+  BUKLOD_BRAND_LOGO_WEB,
+} from '@/components/BuklodCenteredBrandMark';
+import { reportBuklodMainHealthIssue } from '@/lib/buklodMainHealth';
 
-export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
   return (
     <View style={styles.error}>
-      <Text style={styles.errorTitle}>Something went wrong</Text>
-      <Text style={styles.errorText}>{error.message}</Text>
-      <Pressable onPress={retry} style={styles.retry}>
-        <Text style={styles.retryText}>TRY AGAIN</Text>
-      </Pressable>
+      <Text style={styles.errorTitle}>BUKLOD could not open this screen</Text>
+      <Text style={styles.errorText}>
+        We couldn't complete this action. Please try again.
+      </Text>
+      <Text style={styles.errorCode}>Support code: SYS-500</Text>
+      <View style={styles.errorActions}>
+        <Pressable onPress={retry} style={styles.retry}>
+          <Text style={styles.retryText}>TRY AGAIN</Text>
+        </Pressable>
+        <Pressable
+          onPress={() =>
+            router.push({
+              pathname: '/help' as any,
+              params: {
+                category: 'TECHNICAL',
+                errorCode: 'SYS-500',
+                message: "BUKLOD couldn't open the requested screen.",
+              },
+            })
+          }
+          style={styles.helpButton}
+        >
+          <Text style={styles.helpButtonText}>NEED HELP?</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
 
 export function SuspenseFallback() {
+  const pathname = usePathname();
+  const { height } = useWindowDimensions();
+  const [timedOut, setTimedOut] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setTimedOut(true);
+      void reportBuklodMainHealthIssue({
+        category: 'LOADING',
+        severity: 'ERROR',
+        safeErrorCode: 'ROUTE-408',
+        errorSignature: 'ROUTE_LOAD_TIMEOUT',
+        correlationKey: 'BUKLOD_MAIN_ROUTE_LOAD_TIMEOUT',
+        routeModule: String(pathname ?? '')
+          .replace(/^\/+/, '')
+          .replace(/[^A-Za-z0-9_./:-]/g, '')
+          .slice(0, 160) || 'unknown',
+        networkState: 'UNKNOWN',
+        authState: 'UNKNOWN',
+        syncState: 'UNKNOWN',
+        localStorageState: 'UNKNOWN',
+        pendingWorkCount: 0,
+        lastSuccessfulAction: 'ROUTE_OPEN',
+        localSelfHealAttempted: true,
+        localSelfHealResult: 'FAILED',
+        privacyClassification: 'OPERATIONAL',
+      });
+    }, 12_000);
+
+    return () => clearTimeout(timer);
+  }, [pathname]);
+
+  if (timedOut) {
+    return (
+      <View style={styles.error}>
+        <Text style={styles.errorTitle}>
+          BUKLOD is taking longer than expected
+        </Text>
+        <Text style={styles.errorText}>
+          The screen did not finish loading. You can return to Community
+          Wall or open Need Help.
+        </Text>
+        <Text style={styles.errorCode}>
+          Support code: ROUTE-408
+        </Text>
+        <View style={styles.errorActions}>
+          <Pressable
+            onPress={() => router.replace('/buklod' as any)}
+            style={styles.retry}
+          >
+            <Text style={styles.retryText}>COMMUNITY WALL</Text>
+          </Pressable>
+          <Pressable
+            onPress={() =>
+              router.push({
+                pathname: '/help' as any,
+                params: {
+                  category: 'TECHNICAL',
+                  errorCode: 'ROUTE-408',
+                  sourceRoute: pathname,
+                },
+              })
+            }
+            style={styles.helpButton}
+          >
+            <Text style={styles.helpButtonText}>NEED HELP?</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.loading}>
-      <ActivityIndicator color={colors.green} />
-      <Text
-        style={{
-          marginTop: 8,
-          color: colors.muted,
-        }}
-      >
-        Loading BUKLOD...
-      </Text>
+    <View style={[styles.loading, { minHeight: height }]}>
+      <BuklodCenteredBrandMark
+        logoSize={
+          Platform.OS === 'web'
+            ? BUKLOD_BRAND_LOGO_WEB
+            : BUKLOD_BRAND_LOGO_NATIVE
+        }
+        showTagline={false}
+      />
     </View>
   );
 }
@@ -63,11 +167,14 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 function RootLayout() {
   return (
+    <BuklodMainBrandIntro>
     <SafeAreaProvider>
+    <BuklodI18nProvider>
     <GestureHandlerRootView
       style={{ flex: 1 }}
     >
       <AuthProvider>
+        <BuklodProfitFirstIdentityBootstrap />
         <BuklodTrustedDeviceGate>
         <BuklodBibleNarrationProvider>
         <BuklodThemeProvider>
@@ -77,10 +184,13 @@ function RootLayout() {
         <BuklodFormationEntryScopeTracker />
         <BuklodFoundationProvider>
       <NetworkProvider>
+        <BuklodMainHealthAgent />
+        <BuklodFeedbackProvider>
         <BuklodOfflineSyncProvider>
         <ComplianceProvider>
           <RuntimeConfigProvider>
           <AdsProvider>
+            <BuklodAdSafetyRouteBridge />
       <NotificationProvider>
             <StreamVideoProvider>
             <BuklodRootKeyboardAvoidingView style={{ flex: 1 }}>
@@ -91,6 +201,7 @@ function RootLayout() {
               <BuklodCanonicalNavigationGuard />
               <BuklodClusterInviteDeepLinkHandler />
               <BuklodAttendanceDeepLinkHandler />
+              <BuklodWebAdSenseProvider>
               <BuklodNavSafeShell>
               <Stack
                 screenOptions={{
@@ -103,6 +214,7 @@ function RootLayout() {
                 <Stack.Screen name="child-safety" />
                 <Stack.Screen name="(auth)" />
                 <Stack.Screen name="privacy/index" />
+                <Stack.Screen name="help/index" />
                 <Stack.Screen name="delete-account/index" />
                 <Stack.Screen name="privacy/notice" />
                 <Stack.Screen name="privacy/consent" />
@@ -140,6 +252,14 @@ function RootLayout() {
                 <Stack.Screen name="formation/mission-project" />
                 <Stack.Screen name="word/index" />
                 <Stack.Screen name="bible/index" />
+                <Stack.Screen name="life/index" />
+                <Stack.Screen name="life/share" />
+                <Stack.Screen name="life/impact" />
+                <Stack.Screen name="life/invite" />
+                <Stack.Screen name="life/topic" />
+                <Stack.Screen name="bayanihan/index" />
+                <Stack.Screen name="bayanihan/guide" />
+                <Stack.Screen name="preferences/language" />
 {/* PATCH_155BC_NEW_ROUTES */}
                 <Stack.Screen name="mentoring/index" />
                 <Stack.Screen name="reels/index" />
@@ -232,11 +352,20 @@ function RootLayout() {
                 <Stack.Screen name="admin/privacy/index" />
                 <Stack.Screen name="admin/content-reports" />
                 <Stack.Screen name="admin/system-announcement-boards" />
+                <Stack.Screen name="admin/daily-engagement" />
                 <Stack.Screen name="scope/attendance/index" />
                 <Stack.Screen name="scope/attendance/report" />
                 <Stack.Screen name="organizations/events-attendance" />
+                <Stack.Screen name="drawer/index" />
+                <Stack.Screen name="drawer/quick-note" />
+                <Stack.Screen name="drawer/capture" />
+                <Stack.Screen name="drawer/import" />
+                <Stack.Screen name="drawer/review" />
+                <Stack.Screen name="drawer/item/[id]" />
+                <Stack.Screen name="drawer/settings" />
               </Stack>
               </BuklodNavSafeShell>
+              </BuklodWebAdSenseProvider>
             </BuklodRootKeyboardAvoidingView>
             </StreamVideoProvider>
                       {/* PATCH_163A_R_ROOT_GUIDE */}
@@ -246,6 +375,7 @@ function RootLayout() {
           </RuntimeConfigProvider>
         </ComplianceProvider>
         </BuklodOfflineSyncProvider>
+        </BuklodFeedbackProvider>
       </NetworkProvider>
             </BuklodFoundationProvider>
             </BuklodScopeProvider>
@@ -255,9 +385,24 @@ function RootLayout() {
         </BuklodTrustedDeviceGate>
 </AuthProvider>
     </GestureHandlerRootView>
+    </BuklodI18nProvider>
     </SafeAreaProvider>
+    </BuklodMainBrandIntro>
   );
 }
+
+const styles=StyleSheet.create({
+  loading:{flex:1,backgroundColor:'#FFFFFF'},
+  error:{flex:1,alignItems:'center',justifyContent:'center',padding:24,backgroundColor:colors.white},
+  errorTitle:{fontSize:24,fontWeight:'900',color:colors.text},
+  errorText:{marginTop:8,textAlign:'center',color:colors.muted},
+  errorCode:{marginTop:8,fontSize:11,fontWeight:'900',color:colors.muted},
+  errorActions:{marginTop:18,flexDirection:'row',flexWrap:'wrap',justifyContent:'center',gap:10},
+  retry:{backgroundColor:colors.green,paddingVertical:12,paddingHorizontal:18,borderRadius:12},
+  retryText:{color:colors.white,fontWeight:'900'},
+  helpButton:{borderWidth:1,borderColor:colors.green,paddingVertical:12,paddingHorizontal:18,borderRadius:12},
+  helpButtonText:{color:colors.green,fontWeight:'900'}
+});
 
 /* BUKLOD_PTT_GLOBAL_HOST_R2 */
 export default function BuklodRootLayoutWithPttR2() {
@@ -268,13 +413,3 @@ export default function BuklodRootLayoutWithPttR2() {
     </>
   );
 }
-
-const styles=StyleSheet.create({
-  loading:{flex:1,alignItems:'center',justifyContent:'center',backgroundColor:colors.white},
-  error:{flex:1,alignItems:'center',justifyContent:'center',padding:24,backgroundColor:colors.white},
-  errorTitle:{fontSize:24,fontWeight:'900',color:colors.text},
-  errorText:{marginTop:8,textAlign:'center',color:colors.muted},
-  retry:{marginTop:18,backgroundColor:colors.green,paddingVertical:12,paddingHorizontal:18,borderRadius:12},
-  retryText:{color:colors.white,fontWeight:'900'}
-});
-

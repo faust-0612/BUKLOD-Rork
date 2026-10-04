@@ -401,7 +401,7 @@ async function uploadNativeMultipart(options: {
 
   if (typeof (source as any).open !== 'function') {
     throw new Error(
-      'This installed app version cannot safely stream large IGPAT videos. Please update BUKLOD before publishing this video.',
+      'This installed app version cannot safely stream large videos. Please update BUKLOD before publishing this video.',
     );
   }
 
@@ -519,9 +519,11 @@ export async function deleteAwsWallVideo(objectKey: string) {
   await callVideoApi({ action: 'delete', key });
 }
 
+/* BUKLOD_AWS_VIDEO_FORCE_REFRESH_R6 */
 export async function getAwsWallVideoViewUrl(
   postId: string,
   objectKey: string,
+  forceRefresh = false,
 ) {
   const post = String(postId ?? '').trim();
   const key = String(objectKey ?? '').trim();
@@ -529,7 +531,11 @@ export async function getAwsWallVideoViewUrl(
 
   const cacheKey = `${post}:${key}`;
   const hit = viewUrlCache.get(cacheKey);
-  if (hit && hit.expiresAt > Date.now() + 30_000) {
+  if (
+    !forceRefresh &&
+    hit &&
+    hit.expiresAt > Date.now() + 30_000
+  ) {
     return hit.url;
   }
 

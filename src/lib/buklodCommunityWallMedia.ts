@@ -2,7 +2,7 @@
 /**
  * Community vs BUKLOD IGPAT media rules.
  * Canonical product contract:
- * - Community: text/photos only for new posts.
+ * - Community: text/photos plus one Wall video, max 1 GB / 30 minutes.
  * - IGPAT: short-form video, max 60 seconds.
  *
  * Some legacy names remain exported as compatibility aliases so older stable
@@ -29,7 +29,7 @@ export const BUKLOD_REEL_MAX_DURATION_SECONDS =
 export const BUKLOD_WALL_VIDEO_MAX_DURATION_SECONDS = 1800;
 
 export const BUKLOD_WALL_VIDEO_TOO_LONG_MESSAGE =
-  'Legacy Community videos can be up to 30 minutes long.';
+  'Community Wall videos can be up to 30 minutes long.';
 
 export const BUKLOD_IGPAT_TOO_LONG_MESSAGE =
   'BUKLOD IGPAT may be up to 60 seconds only.';

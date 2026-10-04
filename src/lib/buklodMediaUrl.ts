@@ -10,7 +10,9 @@ const SIGN_TIMEOUT_MS = 6000;
 const SIGN_CACHE_TTL_MS = 50 * 60 * 1000;
 const NEGATIVE_CACHE_TTL_MS = 45 * 1000;
 const SIGN_BATCH_DELAY_MS = 20;
-const PREFETCH_BURST_LIMIT = 12;
+/* BUKLOD_COMMUNITY_MEDIA_PREFETCH_R2 */
+/* BUKLOD_COMMUNITY_MEDIA_PREFETCH_R3 — bounded ahead-of-viewport warm cache */
+const PREFETCH_BURST_LIMIT = 36;
 
 type SignedHit = {
   url: string;

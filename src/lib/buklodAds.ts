@@ -1,6 +1,3 @@
-import AsyncStorage
-  from '@react-native-async-storage/async-storage';
-
 import {
   AdEventType,
   AdsConsent,
@@ -10,359 +7,185 @@ import {
 import {
   initializeBuklodAds as initializeBuklodAdsSdk,
 } from '@/lib/adMob';
-
 import {
   getBuklodAdDiagnosticsSummary,
+  recordBuklodAdEvent,
 } from '@/lib/buklodAdDiagnostics';
-
-import {
-  INTERSTITIAL_COOLDOWN_MS,
-  INTERSTITIAL_MIN_EVENT_COUNT,
-} from '@/lib/buklodAdMonetizationPolicy';
-
 import {
   buklodAdsTestMode,
   getBuklodInterstitialUnitId,
 } from '@/lib/buklodAdUnits';
-
 import {
   isBuklodAdLightPassActive,
 } from '@/lib/buklodAdLightPass';
+import {
+  canWarmBuklodFullScreenAd,
+  finishBuklodFullScreenAd,
+  getBuklodGlobalAdSafetySnapshot,
+  reserveBuklodFullScreenAd,
+  type BuklodNaturalInterstitialReason,
+} from '@/lib/buklodGlobalAdController';
 
-export async function initializeBuklodAds():
-  Promise<boolean> {
+export async function initializeBuklodAds(): Promise<boolean> {
   try {
-    const state =
-      await initializeBuklodAdsSdk();
-
+    const state = await initializeBuklodAdsSdk();
     return state.ready && state.canRequestAds;
   } catch (error) {
-    console.warn(
-      'BUKLOD Ads initialization:',
-      error
-    );
+    console.warn('BUKLOD Ads initialization:', error);
     return false;
   }
 }
 
-
-export async function
-getBuklodAdsDiagnostics() {
-
-  let consent:
-    Awaited<
-      ReturnType<
-        typeof AdsConsent.getConsentInfo
-      >
-    > |
-    null =
+export async function getBuklodAdsDiagnostics() {
+  let consent: Awaited<ReturnType<typeof AdsConsent.getConsentInfo>> | null =
     null;
 
-
   try {
-    consent =
-      await AdsConsent
-        .getConsentInfo();
-  }
-  catch {
+    consent = await AdsConsent.getConsentInfo();
+  } catch {
     consent = null;
   }
 
-
   return {
-    testMode:
-      buklodAdsTestMode,
-
-    canRequestAds:
-      consent?.canRequestAds ??
-      false,
-
-    consentStatus:
-      consent?.status ??
-      null,
-
-    interstitialConfigured:
-      Boolean(
-        getBuklodInterstitialUnitId()
-      ),
-
-    fill:
-      getBuklodAdDiagnosticsSummary(),
+    testMode: buklodAdsTestMode,
+    canRequestAds: consent?.canRequestAds ?? false,
+    consentStatus: consent?.status ?? null,
+    interstitialConfigured: Boolean(getBuklodInterstitialUnitId()),
+    fill: getBuklodAdDiagnosticsSummary(),
+    safety: getBuklodGlobalAdSafetySnapshot(),
   };
 }
 
-
-
-/*
- * ===========================================================
- * INTERSTITIAL ENGINE
- *
- * NO automatic every-tap ads.
- *
- * A caller must explicitly invoke this only at a natural
- * transition such as:
- *
- * - completed devotional
- * - completed lesson/content session
- * - leaving a longer reading session
- *
- * Frequency is platform-configured. Android intentionally uses
- * a heavier cadence while web/iOS retain the conservative defaults.
- * ===========================================================
- */
-
-const INTERSTITIAL_LAST_KEY =
-  '@buklod/ad/interstitial-last';
-
-const INTERSTITIAL_COUNT_KEY =
-  '@buklod/ad/interstitial-count';
-
-const MIN_EVENT_COUNT =
-  INTERSTITIAL_MIN_EVENT_COUNT;
-
-const COOLDOWN_MS =
-  INTERSTITIAL_COOLDOWN_MS;
-
-
-let interstitial:
-  InterstitialAd | null =
-  null;
-
-let interstitialLoaded =
-  false;
-
-let listenerCleanup:
-  (() => void)[] =
-  [];
-
+let interstitial: InterstitialAd | null = null;
+let interstitialLoaded = false;
+let listenerCleanup: (() => void)[] = [];
 
 function cleanupInterstitialListeners() {
-
-  listenerCleanup.forEach(
-    (fn) => {
-      try {
-        fn();
-      }
-      catch {}
-    }
-  );
-
+  listenerCleanup.forEach(fn => {
+    try {
+      fn();
+    } catch {}
+  });
   listenerCleanup = [];
 }
 
+async function prepareInterstitial(
+  placementId = 'interstitial_generic',
+) {
+  if (!canWarmBuklodFullScreenAd(placementId)) return;
 
-async function prepareInterstitial() {
+  const ready = await initializeBuklodAds();
+  if (!ready) return;
 
-  const ready =
-    await initializeBuklodAds();
+  const unitId = getBuklodInterstitialUnitId();
+  if (!unitId || interstitial) return;
 
+  interstitial = InterstitialAd.createForAdRequest(unitId);
+  const route = getBuklodGlobalAdSafetySnapshot().pathname;
+  recordBuklodAdEvent(
+    'interstitial',
+    'ad_request',
+    undefined,
+    { route },
+  );
 
-  if (!ready) {
-    return;
-  }
-
-
-  const unitId =
-    getBuklodInterstitialUnitId();
-
-
-  if (!unitId) {
-    return;
-  }
-
-
-  if (interstitial) {
-    return;
-  }
-
-
-  interstitial =
-    InterstitialAd
-      .createForAdRequest(
-        unitId
+  listenerCleanup.push(
+    interstitial.addAdEventListener(AdEventType.LOADED, () => {
+      interstitialLoaded = true;
+      recordBuklodAdEvent(
+        'interstitial',
+        'ad_loaded',
+        undefined,
+        { route },
       );
-
-
+    }),
+  );
   listenerCleanup.push(
-    interstitial
-      .addAdEventListener(
-        AdEventType.LOADED,
-        () => {
-          interstitialLoaded =
-            true;
-        }
-      )
+    interstitial.addAdEventListener(AdEventType.CLOSED, () => {
+      recordBuklodAdEvent(
+        'interstitial',
+        'ad_dismissed',
+        undefined,
+        { route },
+      );
+      interstitialLoaded = false;
+      cleanupInterstitialListeners();
+      interstitial = null;
+    }),
+  );
+  listenerCleanup.push(
+    interstitial.addAdEventListener(AdEventType.ERROR, error => {
+      recordBuklodAdEvent(
+        'interstitial',
+        'ad_failed',
+        error,
+        { route },
+      );
+      interstitialLoaded = false;
+      cleanupInterstitialListeners();
+      interstitial = null;
+    }),
   );
 
-
   listenerCleanup.push(
-    interstitial
-      .addAdEventListener(
-        AdEventType.CLOSED,
-        () => {
-          interstitialLoaded =
-            false;
-
-          cleanupInterstitialListeners();
-
-          interstitial =
-            null;
-
-          void prepareInterstitial();
-        }
-      )
+    interstitial.addAdEventListener(AdEventType.OPENED, () => {
+      recordBuklodAdEvent(
+        'interstitial',
+        'ad_rendered',
+        undefined,
+        { route },
+      );
+    }),
   );
-
-
-  listenerCleanup.push(
-    interstitial
-      .addAdEventListener(
-        AdEventType.ERROR,
-        () => {
-          interstitialLoaded =
-            false;
-
-          cleanupInterstitialListeners();
-
-          interstitial =
-            null;
-        }
-      )
-  );
-
-
   interstitial.load();
 }
 
-
-export function warmBuklodInterstitial() {
-  void prepareInterstitial();
+export function warmBuklodInterstitial(
+  placementId = 'interstitial_generic',
+) {
+  if (canWarmBuklodFullScreenAd(placementId)) {
+    void prepareInterstitial(placementId);
+  }
 }
 
-
-export async function
-maybeShowBuklodInterstitial(
-  reason:
-    | 'devotional_completed'
-    | 'lesson_completed'
-    | 'reading_session_completed'
-    | 'content_session_completed'
+export async function maybeShowBuklodInterstitial(
+  reason: BuklodNaturalInterstitialReason,
+  placementId = `interstitial_${reason}`,
 ): Promise<boolean> {
-
-  /*
-   * `reason` is intentionally restricted.
-   * Random button taps cannot call this engine
-   * without changing its type/API.
-   */
-  void reason;
-
-
   try {
-    if (await isBuklodAdLightPassActive()) {
-      await prepareInterstitial();
-      return false;
+    if (await isBuklodAdLightPassActive()) return false;
+  } catch (error) {
+    console.warn('BUKLOD Ad-Light pass check:', error);
+  }
+
+  const reserved = await reserveBuklodFullScreenAd(reason, placementId);
+  if (!reserved) {
+    if (canWarmBuklodFullScreenAd(placementId)) {
+      void prepareInterstitial(placementId);
     }
-  }
-  catch (error) {
-    console.warn(
-      'BUKLOD Ad-Light pass check:',
-      error
-    );
-  }
-
-
-  const previousCount =
-    Number(
-      await AsyncStorage
-        .getItem(
-          INTERSTITIAL_COUNT_KEY
-        ) ??
-      '0'
-    );
-
-
-  const count =
-    previousCount + 1;
-
-
-  await AsyncStorage
-    .setItem(
-      INTERSTITIAL_COUNT_KEY,
-      String(count)
-    );
-
-
-  if (
-    count <
-    MIN_EVENT_COUNT
-  ) {
-    await prepareInterstitial();
-
     return false;
   }
 
+  await prepareInterstitial(placementId);
 
-  const lastShown =
-    Number(
-      await AsyncStorage
-        .getItem(
-          INTERSTITIAL_LAST_KEY
-        ) ??
-      '0'
-    );
-
-
-  if (
-    Date.now() -
-      lastShown <
-    COOLDOWN_MS
-  ) {
-    await prepareInterstitial();
-
+  if (!interstitial || !interstitialLoaded) {
+    await finishBuklodFullScreenAd(false);
     return false;
   }
-
-
-  await prepareInterstitial();
-
-
-  if (
-    !interstitial ||
-    !interstitialLoaded
-  ) {
-    return false;
-  }
-
 
   try {
-
     await interstitial.show();
-
-
-    await AsyncStorage
-      .multiSet([
-        [
-          INTERSTITIAL_LAST_KEY,
-          String(
-            Date.now()
-          ),
-        ],
-        [
-          INTERSTITIAL_COUNT_KEY,
-          '0',
-        ],
-      ]);
-
-
+    await finishBuklodFullScreenAd(true);
     return true;
-  }
-  catch (error) {
-
-    console.warn(
-      'BUKLOD interstitial:',
-      error
+  } catch (error) {
+    await finishBuklodFullScreenAd(false);
+    recordBuklodAdEvent(
+      'interstitial',
+      'ad_failed',
+      error,
+      { route: getBuklodGlobalAdSafetySnapshot().pathname },
     );
-
+    console.warn('BUKLOD interstitial:', error);
     return false;
   }
 }

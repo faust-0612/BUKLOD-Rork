@@ -13,12 +13,12 @@ import { router } from 'expo-router';
 
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 import { shared } from '@/components/UI';
+import { formatPhp } from '@/lib/buklodR38Economy';
 import {
-  cancelMyBuklodR38ReferralWithdrawal,
-  formatPhp,
-  loadMyBuklodR38WithdrawalHistory,
-  type BuklodR38WithdrawalHistory,
-} from '@/lib/buklodR38Economy';
+  cancelMyBuklodWithdrawalV3,
+  loadMyBuklodWithdrawalsV3,
+  type BuklodWithdrawalHistoryV3,
+} from '@/lib/buklodEconomyV3';
 
 function statusIcon(status: string): React.ComponentProps<typeof MaterialCommunityIcons>['name'] {
   switch (status) {
@@ -32,8 +32,8 @@ function statusIcon(status: string): React.ComponentProps<typeof MaterialCommuni
   }
 }
 
-export default function BuklodR38WithdrawalHistoryScreen() {
-  const [history, setHistory] = useState<BuklodR38WithdrawalHistory | null>(null);
+export default function BuklodWithdrawalHistoryScreen() {
+  const [history, setHistory] = useState<BuklodWithdrawalHistoryV3 | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -42,7 +42,7 @@ export default function BuklodR38WithdrawalHistoryScreen() {
   const load = useCallback(async () => {
     try {
       setError(null);
-      setHistory(await loadMyBuklodR38WithdrawalHistory());
+      setHistory(await loadMyBuklodWithdrawalsV3());
     } catch (nextError: unknown) {
       setError(nextError instanceof Error ? nextError.message : 'Could not load withdrawal history.');
     } finally {
@@ -63,7 +63,7 @@ export default function BuklodR38WithdrawalHistoryScreen() {
   const cancelRequest = (id: string, amount: number) => {
     Alert.alert(
       'Cancel Withdrawal?',
-      `${formatPhp(amount)} will be released back to your available finalized Direct Referral cash. Points are not affected.`,
+      `${formatPhp(amount)} will be released back to your available finalized BUKLOD Economy cash. Points are not affected.`,
       [
         { text: 'Keep Request', style: 'cancel' },
         {
@@ -73,9 +73,9 @@ export default function BuklodR38WithdrawalHistoryScreen() {
             void (async () => {
               setBusyId(id);
               try {
-                await cancelMyBuklodR38ReferralWithdrawal(id);
+                await cancelMyBuklodWithdrawalV3(id);
                 await load();
-                Alert.alert('Withdrawal Cancelled', 'Reserved referral cash was released back to available cash.');
+                Alert.alert('Withdrawal Cancelled', 'Reserved finalized cash was released back to available cash.');
               } catch (nextError: unknown) {
                 Alert.alert('Withdrawal', nextError instanceof Error ? nextError.message : 'Could not cancel withdrawal.');
               } finally {
@@ -102,10 +102,10 @@ export default function BuklodR38WithdrawalHistoryScreen() {
 
       <View style={styles.hero}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.eyebrow}>R38 WITHDRAWALS</Text>
+          <Text style={styles.eyebrow}>BUKLOD ECONOMY WITHDRAWALS</Text>
           <Text style={styles.title}>Withdrawal History</Text>
           <Text style={styles.subtitle}>
-            Finalized Direct Referral cash only. Destinations are shown masked and BUKLOD Points are never involved.
+            Finalized withdrawable BUKLOD Economy cash only. Destinations remain masked and BUKLOD Points are never converted or deducted.
           </Text>
         </View>
         <MaterialCommunityIcons name="history" size={29} color="#275D45" />
@@ -143,7 +143,7 @@ export default function BuklodR38WithdrawalHistoryScreen() {
 
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Payout</Text>
-                  <Text style={styles.detailValue}>{row.payout_method || '—'} · {row.payout_destination_masked || '—'}</Text>
+                  <Text style={styles.detailValue}>{row.payout_method || 'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â'} ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· {row.payout_destination_masked || 'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â'}</Text>
                 </View>
                 {row.payout_transaction_ref ? (
                   <View style={styles.detailRow}>
@@ -173,7 +173,7 @@ export default function BuklodR38WithdrawalHistoryScreen() {
           <MaterialCommunityIcons name="bank-transfer-out" size={30} color="#87928C" />
           <Text style={styles.emptyTitle}>No withdrawals yet</Text>
           <Text style={styles.muted}>
-            A withdrawal can exist only after finalized Direct Referral cash is available and the central withdrawal gate is enabled.
+            A withdrawal can exist only after finalized withdrawable cash is available and the canonical withdrawal gate is enabled.
           </Text>
           <Pressable onPress={() => router.push('/bayanihan/payout-profile' as any)} style={styles.primaryBtn}>
             <Text style={styles.primaryText}>OPEN PAYOUT PROFILE</Text>

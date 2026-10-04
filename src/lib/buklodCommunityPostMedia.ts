@@ -1,8 +1,9 @@
 /* BUKLOD_COMMUNITY_EXTERNAL_MEDIA_AWS_R1 */
 import { supabase } from '@/lib/supabase';
+import { resolveCommunityMediaUrl } from '@/lib/buklodMediaUrl';
 
 import {
-  COMMUNITY_MAX_PHOTOS,
+  COMMUNITY_MAX_WALL_MEDIA,
   COMMUNITY_MEDIA_POSITION_MIN,
 } from '@/lib/buklodCommunityMediaLimits';
 import {
@@ -57,7 +58,7 @@ export function buildCommunityPostMediaRows(
   media: CommunityPostMediaItem[],
   startPosition = COMMUNITY_MEDIA_POSITION_MIN,
 ) {
-  return media.slice(0, COMMUNITY_MAX_PHOTOS).map((item, index) => ({
+  return media.slice(0, COMMUNITY_MAX_WALL_MEDIA).map((item, index) => ({
     post_id: postId,
     media_position: startPosition + index,
     media_path: item.media_path,
@@ -106,7 +107,7 @@ export async function attachCommunityPostMedia(
   const id = String(postId ?? '').trim();
   const originalItems = media
     .filter(item => String(item.media_path ?? '').trim())
-    .slice(0, COMMUNITY_MAX_PHOTOS);
+    .slice(0, COMMUNITY_MAX_WALL_MEDIA);
   const items = originalItems.map(materializePendingExternalMedia);
 
   if (!id || !items.length) return;
@@ -194,8 +195,12 @@ async function loadMediaRpc(ids: string[]) {
   }));
 }
 
+/* BUKLOD_COMMUNITY_VIDEO_FORCE_REFRESH_R6 */
 export async function loadCommunityPostMediaByPostIds(
   postIds: string[],
+  options?: {
+    forceFreshVideoUrls?: boolean;
+  },
 ) {
   const ids = [
     ...new Set(
@@ -222,12 +227,30 @@ export async function loadCommunityPostMediaByPostIds(
         row?.external_object_key ?? '',
       ).trim();
 
+      /* BUKLOD_COMMUNITY_VIDEO_URL_R3
+       * Media RPCs return paths/provider metadata, not a playable URL.
+       * Materialize video URLs here so both web and native feed renderers
+       * receive a fresh source. Photos remain lazy and resolve in the image
+       * component to avoid signing the whole feed up front.
+       */
+      const mediaPath = String(row?.media_path ?? '').trim();
+      const mediaMime = String(row?.media_mime_type ?? '').toLowerCase();
+      const isVideo = mediaMime.startsWith('video/');
       let mediaUrl = row?.media_url ?? null;
-      if (provider === 'AWS' && externalKey) {
+
+      if (isVideo && provider === 'AWS' && externalKey) {
         mediaUrl = await getAwsWallVideoViewUrl(
           postId,
           externalKey,
+          Boolean(
+            options?.forceFreshVideoUrls
+          ),
         ).catch(() => null);
+      } else if (isVideo && mediaPath) {
+        mediaUrl = await resolveCommunityMediaUrl(
+          mediaPath,
+          mediaUrl,
+        ).catch(() => mediaUrl ?? null);
       }
 
       const normalized: CommunityPostMediaRow = {

@@ -1,7 +1,9 @@
+import { usePathname } from 'expo-router';
 import React, {
   createElement,
   useEffect,
   useMemo,
+  useRef,
 } from 'react';
 import {
   StyleSheet,
@@ -11,6 +13,16 @@ import {
 
 import BuklodSponsorSlot from '@/components/BuklodSponsorSlot';
 import type { BuklodAdPlacement } from '@/lib/buklodAdUnits';
+import {
+  buklodAdsLiveIdsEnabled,
+  diagnosticPlacementFor,
+} from '@/lib/buklodAdUnits';
+import {
+  isBuklodPassiveAdAllowed,
+  reserveBuklodPassiveAdRequest,
+} from '@/lib/buklodGlobalAdController';
+import { useBuklodAdViewportGate } from '@/lib/buklodAdViewport';
+import { recordBuklodAdEvent } from '@/lib/buklodAdDiagnostics';
 
 /*
  * BUKLOD_WEB_ADS_R1
@@ -41,6 +53,8 @@ type Props = {
   compact?: boolean;
   format?: Format;
   showLabel?: boolean;
+  placementId?: string;
+  requestKey?: string;
 };
 
 const ADSENSE_SCRIPT_ID =
@@ -72,23 +86,47 @@ function slotForPlacement(
   const placementSlot =
     placement === 'home'
       ? clean(process.env.EXPO_PUBLIC_ADSENSE_HOME_SLOT_ID)
+      : placement === 'community_entry'
+        ? clean(process.env.EXPO_PUBLIC_ADSENSE_COMMUNITY_ENTRY_SLOT_ID) ||
+          clean(process.env.EXPO_PUBLIC_ADSENSE_COMMUNITY_SLOT_ID)
       : placement === 'community'
         ? clean(process.env.EXPO_PUBLIC_ADSENSE_COMMUNITY_SLOT_ID)
-        : placement === 'messages'
-          ? clean(process.env.EXPO_PUBLIC_ADSENSE_MESSAGES_SLOT_ID)
-          : placement === 'prayer'
-            ? clean(process.env.EXPO_PUBLIC_ADSENSE_PRAYER_SLOT_ID)
-            : placement === 'reels'
-              ? clean(process.env.EXPO_PUBLIC_ADSENSE_REELS_SLOT_ID)
-              : placement === 'bible'
-                ? clean(process.env.EXPO_PUBLIC_ADSENSE_BIBLE_SLOT_ID)
-                : placement === 'devotion'
-                  ? clean(process.env.EXPO_PUBLIC_ADSENSE_DEVOTION_SLOT_ID)
-                  : placement === 'me'
-                    ? clean(process.env.EXPO_PUBLIC_ADSENSE_ME_SLOT_ID)
-                    : placement === 'focus'
-                      ? clean(process.env.EXPO_PUBLIC_ADSENSE_FOCUS_SLOT_ID)
-                      : '';
+        : placement === 'org_community'
+          ? clean(process.env.EXPO_PUBLIC_ADSENSE_ORG_COMMUNITY_SLOT_ID) ||
+            clean(process.env.EXPO_PUBLIC_ADSENSE_COMMUNITY_SLOT_ID)
+          : placement === 'cluster_community'
+            ? clean(process.env.EXPO_PUBLIC_ADSENSE_CLUSTER_COMMUNITY_SLOT_ID) ||
+              clean(process.env.EXPO_PUBLIC_ADSENSE_COMMUNITY_SLOT_ID)
+            : placement === 'messages'
+              ? clean(process.env.EXPO_PUBLIC_ADSENSE_MESSAGES_SLOT_ID)
+              : placement === 'prayer'
+                ? clean(process.env.EXPO_PUBLIC_ADSENSE_PRAYER_SLOT_ID)
+                : placement === 'reels'
+                  ? clean(process.env.EXPO_PUBLIC_ADSENSE_REELS_SLOT_ID)
+                  : placement === 'profile'
+                    ? clean(process.env.EXPO_PUBLIC_ADSENSE_PROFILE_SLOT_ID) ||
+                      clean(process.env.EXPO_PUBLIC_ADSENSE_ME_SLOT_ID)
+                    : placement === 'org'
+                      ? clean(process.env.EXPO_PUBLIC_ADSENSE_ORG_SLOT_ID) ||
+                        clean(process.env.EXPO_PUBLIC_ADSENSE_FOCUS_SLOT_ID)
+                      : placement === 'cluster'
+                        ? clean(process.env.EXPO_PUBLIC_ADSENSE_CLUSTER_SLOT_ID) ||
+                          clean(process.env.EXPO_PUBLIC_ADSENSE_FOCUS_SLOT_ID)
+                        : placement === 'submission'
+                          ? clean(process.env.EXPO_PUBLIC_ADSENSE_SUBMISSION_SLOT_ID) ||
+                            clean(process.env.EXPO_PUBLIC_ADSENSE_FOCUS_SLOT_ID)
+                          : placement === 'video_companion'
+                            ? clean(process.env.EXPO_PUBLIC_ADSENSE_VIDEO_COMPANION_SLOT_ID) ||
+                              clean(process.env.EXPO_PUBLIC_ADSENSE_COMMUNITY_SLOT_ID)
+                            : placement === 'bible'
+                              ? clean(process.env.EXPO_PUBLIC_ADSENSE_BIBLE_SLOT_ID)
+                              : placement === 'devotion'
+                                ? clean(process.env.EXPO_PUBLIC_ADSENSE_DEVOTION_SLOT_ID)
+                                : placement === 'me'
+                                  ? clean(process.env.EXPO_PUBLIC_ADSENSE_ME_SLOT_ID)
+                                  : placement === 'focus' || placement === 'content'
+                                    ? clean(process.env.EXPO_PUBLIC_ADSENSE_FOCUS_SLOT_ID)
+                                    : '';
 
   return placementSlot || GENERIC_SLOT;
 }
@@ -102,6 +140,10 @@ function sponsorPlacementFor(
 
   if (
     placement === 'community' ||
+    placement === 'community_entry' ||
+    placement === 'org_community' ||
+    placement === 'cluster_community' ||
+    placement === 'video_companion' ||
     placement === 'reels'
   ) {
     return 'community';
@@ -114,7 +156,9 @@ function sponsorPlacementFor(
   if (
     placement === 'bible' ||
     placement === 'devotion' ||
-    placement === 'focus'
+    placement === 'focus' ||
+    placement === 'content' ||
+    placement === 'submission'
   ) {
     return 'learn';
   }
@@ -149,20 +193,53 @@ export default function BuklodWebAdSlot({
   compact = false,
   format = 'adaptive',
   showLabel = true,
+  placementId,
+  requestKey,
 }: Props) {
+  const pathname = usePathname();
+  const { ref, eligible } = useBuklodAdViewportGate();
+  const requestStarted = useRef(false);
+  const rendered = useRef(false);
+  const stablePlacementId = placementId ?? `${placement}_generic`;
+  const routeSafe = isBuklodPassiveAdAllowed({
+    placement,
+    placementId: stablePlacementId,
+    pathname,
+  });
   const slot = useMemo(
     () => slotForPlacement(placement),
     [placement]
   );
 
   const canServeGoogle =
+    buklodAdsLiveIdsEnabled &&
     isValidClient(ADSENSE_CLIENT) &&
     isValidSlot(slot);
 
   useEffect(() => {
-    if (!canServeGoogle || typeof window === 'undefined') {
+    if (
+      !routeSafe ||
+      !eligible ||
+      !canServeGoogle ||
+      typeof window === 'undefined' ||
+      requestStarted.current
+    ) {
       return;
     }
+
+    const accepted = reserveBuklodPassiveAdRequest(
+      stablePlacementId,
+      requestKey ?? `${pathname}:${stablePlacementId}`,
+    );
+    if (!accepted) return;
+
+    requestStarted.current = true;
+    recordBuklodAdEvent(
+      diagnosticPlacementFor(placement),
+      'ad_request',
+      undefined,
+      { route: pathname, provider: 'ADSENSE_WEB', placementId: stablePlacementId },
+    );
 
     ensureAdSenseScript(ADSENSE_CLIENT);
 
@@ -180,11 +257,58 @@ export default function BuklodWebAdSlot({
     return () => {
       window.clearTimeout(timer);
     };
-  }, [canServeGoogle, slot]);
+  }, [
+    canServeGoogle,
+    eligible,
+    pathname,
+    placement,
+    requestKey,
+    routeSafe,
+    slot,
+    stablePlacementId,
+  ]);
+
+  useEffect(() => {
+    if (!eligible || !canServeGoogle || rendered.current) return;
+    rendered.current = true;
+    recordBuklodAdEvent(
+      diagnosticPlacementFor(placement),
+      'ad_rendered',
+      undefined,
+      {
+        route: pathname,
+        provider: 'ADSENSE_WEB',
+        placementId: stablePlacementId,
+      },
+    );
+  }, [
+    canServeGoogle,
+    eligible,
+    pathname,
+    placement,
+    stablePlacementId,
+  ]);
+
+  if (!routeSafe) {
+    return null;
+  }
+
+  if (!eligible) {
+    return (
+      <View
+        ref={ref}
+        collapsable={false}
+        pointerEvents="none"
+        style={styles.viewportProbe}
+      />
+    );
+  }
 
   if (!canServeGoogle) {
     return (
       <View
+        ref={ref}
+        collapsable={false}
         style={[
           styles.sponsorFallback,
           compact && styles.compact,
@@ -211,6 +335,8 @@ export default function BuklodWebAdSlot({
 
   return (
     <View
+      ref={ref}
+      collapsable={false}
       style={[
         styles.shell,
         compact && styles.compact,
@@ -242,6 +368,11 @@ export default function BuklodWebAdSlot({
 }
 
 const styles = StyleSheet.create({
+  viewportProbe: {
+    width: '100%',
+    minHeight: 16,
+    opacity: 0,
+  },
   shell: {
     width: '100%',
     backgroundColor: '#FFFFFF',

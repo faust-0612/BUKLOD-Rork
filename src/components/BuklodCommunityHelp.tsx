@@ -12,8 +12,10 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
+import * as LocalAuthentication from 'expo-local-authentication';
 
 import { supabase } from '@/lib/supabase';
+import { acquireBuklodAdSafetyLock } from '@/lib/buklodGlobalAdController';
 import { registerPushToken } from '@/lib/pushNotifications';
 import { useAuth } from '@/providers/AuthProvider';
 import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
@@ -73,6 +75,14 @@ export default function BuklodCommunityHelp(){
   const [message,setMessage]=useState('');
 
   useEffect(()=>()=>{mounted.current=false},[]);
+
+  useEffect(()=>{
+    if(!open)return;
+    return acquireBuklodAdSafetyLock(
+      kind==='EMERGENCY'?'transaction':'form'
+    );
+  },[kind,open]);
+
 
   const refresh=useCallback(async()=>{
     if(!user?.id)return;
@@ -158,6 +168,32 @@ export default function BuklodCommunityHelp(){
     if(busy)return;
     setBusy(true);
     try{
+      if(kind==='EMERGENCY'){
+        /* BUKLOD_SOS_LOCAL_AUTH_R2
+         * Deliberate SOS send requires local device confirmation before GPS
+         * capture and server fan-out. Device PIN remains the fallback.
+         */
+        const authLevel=await LocalAuthentication
+          .getEnrolledLevelAsync()
+          .catch(()=>LocalAuthentication.SecurityLevel.NONE);
+
+        if(authLevel!==LocalAuthentication.SecurityLevel.NONE){
+          const verified=await LocalAuthentication.authenticateAsync({
+            promptMessage:'Confirm Emergency SOS',
+            promptSubtitle:'Send an urgent nearby BUKLOD alert',
+            promptDescription:'Confirm with fingerprint, Face ID, or device PIN.',
+            cancelLabel:'Cancel',
+            fallbackLabel:'Use device PIN',
+            disableDeviceFallback:false,
+            requireConfirmation:true,
+          });
+          if(!verified.success){
+            Alert.alert('SOS cancelled','Emergency SOS was not sent.');
+            return;
+          }
+        }
+      }
+
       const coords=await ensurePresence(true);
       if(!coords)return;
       const {data,error}=await supabase.rpc('buklod_help_create_request',{

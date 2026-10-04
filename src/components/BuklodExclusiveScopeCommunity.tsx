@@ -10,6 +10,7 @@ import {
   readVideoSizeBytes,
   validateCommunityVideoUpload,
 } from '@/lib/buklodCommunityWallMedia';
+import { assertCommunityVideoQuotaAvailable } from '@/lib/buklodCommunityContributionEconomy';
 import {
   setCommunityPostAuthorOnly,
   saveCommunityPostEdit,
@@ -23,6 +24,12 @@ import {
   useBuklodContentReport,
 } from '@/components/BuklodContentReportSheet';
 import BuklodMentionText from '@/components/BuklodMentionText';
+import BuklodMentionField from '@/components/BuklodMentionField';
+import {
+  mentionsStillInText,
+  type BuklodMention,
+} from '@/lib/buklodMentionCompose';
+import { notifyBuklodCommunityMentions } from '@/lib/buklodNotifyMentions';
 import {
   ConnectPhotoViewer,
 } from '@/components/connect/ConnectPhotoViewer';
@@ -127,6 +134,8 @@ import type {
 } from '@/lib/buklodScope';
 
 import BuklodCommunityInlineAd from '@/components/BuklodCommunityInlineAd';
+import BuklodFirstViewAd from '@/components/BuklodFirstViewAd';
+import BuklodVideoCompanionAd from '@/components/BuklodVideoCompanionAd';
 import {
   buildCommunityFeedWithInlineAds,
   isCommunityFeedInlineAdRow,
@@ -156,7 +165,7 @@ import {
   mapWithConcurrency,
 } from '@/lib/uploadCommunityVideoFile';
 import { COMMUNITY_MAX_PHOTOS } from '@/lib/buklodCommunityMediaLimits';
-import { pickCommunityPhotos } from '@/lib/buklodPickCommunityPhotos';
+import { pickCommunityPhotos, pickCommunityGallery } from '@/lib/buklodPickCommunityPhotos';
 import {
   attachCommunityPostMedia,
   discardIncompleteCommunityPost,
@@ -484,6 +493,12 @@ export default function BuklodExclusiveScopeCommunity({
     useState('');
 
   const [
+    mentions,
+    setMentions,
+  ] =
+    useState<BuklodMention[]>([]);
+
+  const [
     photos,
     setPhotos,
   ] =
@@ -577,6 +592,18 @@ export default function BuklodExclusiveScopeCommunity({
     setCommentText,
   ] =
     useState('');
+
+  const [
+    commentMentions,
+    setCommentMentions,
+  ] =
+    useState<BuklodMention[]>([]);
+
+  const [
+    composerVideoOpen,
+    setComposerVideoOpen,
+  ] =
+    useState(false);
 
   const [
     commentBusy,
@@ -1020,6 +1047,7 @@ export default function BuklodExclusiveScopeCommunity({
     viewabilityConfig: communityAdViewabilityConfig,
     extraData: communityAdExtraData,
     isAdActive,
+    visibleVideoPostId,
   } = useBuklodCommunityAdViewability();
 
   const listData =
@@ -1191,6 +1219,14 @@ export default function BuklodExclusiveScopeCommunity({
         return;
       }
 
+      if (sizeBytes) {
+        const quota = await assertCommunityVideoQuotaAvailable(sizeBytes);
+        if (quota.allowed === false) {
+          Alert.alert('Monthly Video Allowance','This video would exceed your current monthly Community Wall video allowance.');
+          return;
+        }
+      }
+
       setWallVideo(
         {
           uri:
@@ -1205,10 +1241,6 @@ export default function BuklodExclusiveScopeCommunity({
       );
 
       setCommunityGif(null);
-
-      setPhotos(
-        []
-      );
 
       setReel(
         null
@@ -1279,6 +1311,57 @@ export default function BuklodExclusiveScopeCommunity({
         setWallVideoBusy(
           false
         );
+      }
+    };
+
+  const chooseGallery =
+    async () => {
+      if (busy || wallVideoBusy) {
+        return;
+      }
+
+      try {
+        setWallVideoBusy(true);
+
+        const picked = await pickCommunityGallery({
+          photoRemaining: COMMUNITY_MAX_PHOTOS - photos.length,
+          hasVideo: !!wallVideo,
+        });
+
+        if (!picked) {
+          return;
+        }
+
+        if (picked.photos.length || picked.videoAsset) {
+          setCommunityGif(null);
+          setReel(null);
+        }
+
+        if (picked.photos.length) {
+          setPhotos(current =>
+            [
+              ...current,
+              ...picked.photos.map(photo => ({
+                id: photo.id,
+                uri: photo.uri,
+                sizeBytes: 0,
+              })),
+            ].slice(0, COMMUNITY_MAX_PHOTOS)
+          );
+        }
+
+        if (picked.videoAsset) {
+          await acceptWallVideo(picked.videoAsset);
+        }
+      }
+      catch (error: any) {
+        Alert.alert(
+          'Gallery',
+          error?.message || 'Could not open the gallery.'
+        );
+      }
+      finally {
+        setWallVideoBusy(false);
       }
     };
 
@@ -1418,7 +1501,7 @@ export default function BuklodExclusiveScopeCommunity({
       ) {
         Alert.alert(
           'Community',
-          'Community accepts text and photos only. Post videos through BUKLOD IGPAT.'
+          'Community accepts text and photos only. Video posting is disabled in this BUKLOD Main release.'
         );
         return;
       }
@@ -1449,7 +1532,7 @@ export default function BuklodExclusiveScopeCommunity({
       ) {
         Alert.alert(
           'Nothing to Post',
-          'Write a message or add photos first.'
+          'Write a message or add photos or a video first.'
         );
 
         return;
@@ -1457,14 +1540,13 @@ export default function BuklodExclusiveScopeCommunity({
 
       if (
         !publishingReel &&
-        (
-          (photos.length && wallVideo) ||
+          (
           (communityGif && (photos.length || wallVideo))
         )
       ) {
         Alert.alert(
           'BUKLOD',
-          'Choose one media type: GIF, photos, or one video.'
+          'A GIF stays on its own. Gallery can hold 1 video and up to 10 photos.'
         );
 
         return;
@@ -1479,6 +1561,7 @@ export default function BuklodExclusiveScopeCommunity({
         communityGif:
           communityGif as BuklodCommunityGifFile | null,
         cleanBody,
+        mentions: mentionsStillInText(cleanBody, mentions),
         publishingReel:
           publishingReel as boolean,
         userId: user.id,
@@ -1486,6 +1569,7 @@ export default function BuklodExclusiveScopeCommunity({
       };
 
       setBody('');
+      setMentions([]);
       clearMedia();
       setBusy(false);
       setPublishNotice(
@@ -1660,6 +1744,20 @@ export default function BuklodExclusiveScopeCommunity({
 
           isReel =
             false;
+
+          extraMedia = [
+            {
+              media_path: uploadedPath,
+              media_mime_type: snapshot.wallVideo.mimeType,
+              media_size_bytes: snapshot.wallVideo.sizeBytes || 0,
+            },
+            ...extraMedia.filter(
+              item =>
+                !String(item.media_mime_type ?? '')
+                  .toLowerCase()
+                  .startsWith('video/')
+            ),
+          ];
         }
 
         if (
@@ -1742,13 +1840,25 @@ export default function BuklodExclusiveScopeCommunity({
               p_category:
                 'discussion',
               p_media_path:
-                uploadedPath,
+                snapshot.wallVideo &&
+                !snapshot.publishingReel
+                  ? null
+                  : uploadedPath,
               p_media_mime_type:
-                mediaMime,
+                snapshot.wallVideo &&
+                !snapshot.publishingReel
+                  ? null
+                  : mediaMime,
               p_media_size_bytes:
-                mediaSize,
+                snapshot.wallVideo &&
+                !snapshot.publishingReel
+                  ? null
+                  : mediaSize,
               p_duration_seconds:
-                duration,
+                snapshot.wallVideo &&
+                !snapshot.publishingReel
+                  ? null
+                  : duration,
               p_is_reel:
                 isReel,
             }
@@ -1775,6 +1885,19 @@ export default function BuklodExclusiveScopeCommunity({
           );
         }
 
+        if (
+          createdId &&
+          snapshot.mentions.length
+        ) {
+          void notifyBuklodCommunityMentions({
+            postId: createdId,
+            mentionedUserIds: snapshot.mentions.map(
+              mention => mention.user_id
+            ),
+            context: 'post',
+          });
+        }
+
         await load();
       }
       catch (
@@ -1796,6 +1919,7 @@ export default function BuklodExclusiveScopeCommunity({
         }
 
         setBody(snapshot.cleanBody);
+        setMentions(snapshot.mentions);
         setPhotos(snapshot.photos);
         setWallVideo(snapshot.wallVideo);
         setReel(snapshot.reel);
@@ -2053,9 +2177,8 @@ export default function BuklodExclusiveScopeCommunity({
         []
       );
 
-      setCommentText(
-        ''
-      );
+      setCommentText('');
+      setCommentMentions([]);
 
       setReplyTo(
         null
@@ -2128,31 +2251,34 @@ export default function BuklodExclusiveScopeCommunity({
 
       try {
         let finalBody =
-          commentText
-            .trim();
+          commentText.trim();
+        const mentionIds = mentionsStillInText(
+          finalBody,
+          commentMentions
+        ).map(mention => mention.user_id);
 
-        if (
-          replyTo
-        ) {
-          const mention =
-            '@' +
-            String(
-              resolvePersonDisplayName(
-                replyTo.commenter_name,
-                replyTo.user_id,
-              )
-            );
+        if (replyTo) {
+          const replyName = String(
+            resolvePersonDisplayName(
+              replyTo.commenter_name,
+              replyTo.user_id,
+            )
+          );
+          const mention = '@' + replyName;
 
           if (
             !finalBody
               .toLowerCase()
-              .startsWith(
-                mention
-                  .toLowerCase()
-              )
+              .startsWith(mention.toLowerCase())
           ) {
-            finalBody =
-              `${mention} ${finalBody}`;
+            finalBody = `${mention} ${finalBody}`;
+          }
+
+          if (
+            replyTo.user_id &&
+            !mentionIds.includes(String(replyTo.user_id))
+          ) {
+            mentionIds.push(String(replyTo.user_id));
           }
         }
 
@@ -2182,13 +2308,15 @@ export default function BuklodExclusiveScopeCommunity({
           throw error;
         }
 
-        setCommentText(
-          ''
-        );
+        setCommentText('');
+        setCommentMentions([]);
+        setReplyTo(null);
 
-        setReplyTo(
-          null
-        );
+        void notifyBuklodCommunityMentions({
+          postId: String(commentPost.id),
+          mentionedUserIds: mentionIds,
+          context: 'comment',
+        });
 
         await Promise.all(
           [
@@ -2721,17 +2849,21 @@ export default function BuklodExclusiveScopeCommunity({
             return;
           }
 
-          setReplyTo(
-            comment
+          setReplyTo(comment);
+          const replyName = String(
+            resolvePersonDisplayName(
+              comment.commenter_name,
+              comment.user_id,
+            )
           );
-
           setCommentText(
             options?.replyMentionPrefix ??
-              `@${resolvePersonDisplayName(
-                comment.commenter_name,
-                comment.user_id,
-              )} `
+              `@${replyName} `
           );
+          setCommentMentions([{
+            user_id: String(comment.user_id),
+            full_name: replyName,
+          }]);
         }}
         onReact={key =>
           void reactToComment(
@@ -2884,7 +3016,7 @@ export default function BuklodExclusiveScopeCommunity({
                     name="movie-play-outline"
                     size={13}
                     color={
-                      colors.greenDark
+                      '#0A63D8'
                     }
                   />
 
@@ -2962,7 +3094,7 @@ export default function BuklodExclusiveScopeCommunity({
                   name="heart-outline"
                   size={16}
                   color={
-                    colors.greenDark
+                    '#0A63D8'
                   }
                 />
 
@@ -2994,7 +3126,7 @@ export default function BuklodExclusiveScopeCommunity({
                   name="comment-outline"
                   size={16}
                   color={
-                    colors.greenDark
+                    '#0A63D8'
                   }
                 />
 
@@ -3106,7 +3238,7 @@ export default function BuklodExclusiveScopeCommunity({
                   name="comment-outline"
                   size={18}
                   color={
-                    colors.greenDark
+                    '#0A63D8'
                   }
                 />
 
@@ -3189,17 +3321,13 @@ return (
           </View>
 
           {!!item.body && (
-            <Text
-              style={
-                styles.body
-              }
-            >
-              {repairMojibakeText(item.body)}
-            </Text>
+            <BuklodMentionText
+              text={repairMojibakeText(item.body)}
+              style={styles.body}
+            />
           )}
 
-          {!isVideo &&
-            communityPhotoCollageItems(
+          {communityPhotoCollageItems(
               item.media_items,
               {
                 media_path: item.media_path,
@@ -3236,53 +3364,66 @@ return (
 
           {!!item.media_url &&
             isVideo && (
-              <View
-                style={
-                  styles.videoWrap
-                }
-              >
-                <CommunityVideo
-                  uri={
-                    item.media_url
-                  }
-                  height={
-                    470
-                  }
-                />
-
+              <>
                 <View
                   style={
-                    styles.reelBadge
+                    styles.videoWrap
                   }
                 >
-                  <MaterialCommunityIcons
-                    name="movie-play-outline"
-                    size={14}
-                    color={
-                      colors.white
+                  <CommunityVideo
+                    uri={
+                      item.media_url
+                    }
+                    height={
+                      470
+                    }
+                    autoPlay
+                    active={
+                      visibleVideoPostId ===
+                      String(item.id)
                     }
                   />
 
-                  <Text
+                  <View
                     style={
-                      styles.reelBadgeText
+                      styles.reelBadge
                     }
                   >
-                    {isScopedReelPost(
-                      item
-                    )
-                      ? 'REEL'
-                      : 'VIDEO'}
-                    {item.media_duration_seconds
-                      ? ` · ${Math.round(
-                          Number(
-                            item.media_duration_seconds
-                          )
-                        )}s`
-                      : ''}
-                  </Text>
+                    <MaterialCommunityIcons
+                      name="movie-play-outline"
+                      size={14}
+                      color={
+                        colors.white
+                      }
+                    />
+
+                    <Text
+                      style={
+                        styles.reelBadgeText
+                      }
+                    >
+                      {isScopedReelPost(
+                        item
+                      )
+                        ? 'REEL'
+                        : 'VIDEO'}
+                      {item.media_duration_seconds
+                        ? ` · ${Math.round(
+                            Number(
+                              item.media_duration_seconds
+                            )
+                          )}s`
+                        : ''}
+                    </Text>
+                  </View>
                 </View>
-              </View>
+                {mode === 'wall' ? (
+                  <BuklodVideoCompanionAd
+                    contentId={String(item.id)}
+                    expectedDurationSeconds={item.media_duration_seconds}
+                  />
+                ) : null}
+              </>
             )}
 
           <View
@@ -3417,7 +3558,7 @@ return (
               name="comment-outline"
               size={18}
               color={
-                colors.greenDark
+                '#0A63D8'
               }
             />
 
@@ -3441,6 +3582,74 @@ return (
   const Header =
     (
       <View>
+        {/* BUKLOD_DZAS_SCOPED_WALL_SHORTCUT_R1 */}
+        {mode === 'wall' ? (
+          <View
+            style={{
+              alignItems: 'flex-end',
+              marginBottom: 8,
+            }}
+          >
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open 702 DZAS Radio"
+              onPress={() =>
+                router.push(
+                  '/personal-home/radio' as any
+                )
+              }
+              style={({ pressed }) => ({
+                minWidth: 68,
+                height: 34,
+                paddingHorizontal: 10,
+                borderRadius: 11,
+                borderWidth: 1,
+                borderColor: colors.line,
+                backgroundColor: colors.white,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 5,
+                opacity: pressed ? 0.72 : 1,
+              })}
+            >
+              <MaterialCommunityIcons
+                name="radio"
+                size={15}
+                color={'#0A63D8'}
+              />
+              <Text
+                style={{
+                  fontSize: 9,
+                  fontWeight: '900',
+                  color: '#0A63D8',
+                }}
+              >
+                DZAS
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
+
+        {mode === 'wall' ? (
+          <BuklodFirstViewAd
+            placement={
+              scope.scope_type === 'CLUSTER'
+                ? 'cluster'
+                : scope.scope_type === 'ORGANIZATION'
+                  ? 'org'
+                  : 'content'
+            }
+            placementId={
+              scope.scope_type === 'CLUSTER'
+                ? 'cluster_wall_entry'
+                : scope.scope_type === 'ORGANIZATION'
+                  ? 'org_wall_entry'
+                  : 'scope_wall_entry'
+            }
+          />
+        ) : null}
+
         {/* PATCH_172F_HIDE_ORG_EXCLUSIVE_CARD */}
         {scope.scope_type !== 'ORGANIZATION' && (
           <View
@@ -3450,7 +3659,7 @@ return (
                       name="lock-outline"
                       size={19}
                       color={
-                        colors.greenDark
+                        '#0A63D8'
                       }
                     />
           
@@ -3490,71 +3699,7 @@ return (
             styles.modeRow
           }
         >
-          <Pressable
-            onPress={() => {
-              setMode(
-                'wall'
-              );
-              setReel(
-                null
-              );
-            }}
-            style={[
-              styles.modeButton,
-              mode ===
-                'wall' &&
-                styles.modeButtonOn,
-            ]}
-          >
-            <MaterialCommunityIcons
-              name="view-stream-outline"
-              size={19}
-              color={
-                mode ===
-                  'wall'
-                  ? colors.white
-                  : colors.greenDark
-              }
-            />
 
-            <Text
-              style={[
-                styles.modeText,
-                mode ===
-                  'wall' &&
-                  styles.modeTextOn,
-              ]}
-            >
-              WALL
-            </Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() =>
-              router.push('/igpat' as any)
-            }
-            style={
-              styles.modeButton
-            }
-            accessibilityRole="button"
-            accessibilityLabel="Open BUKLOD IGPAT"
-          >
-            <MaterialCommunityIcons
-              name="movie-play-outline"
-              size={19}
-              color={
-                colors.greenDark
-              }
-            />
-
-            <Text
-              style={
-                styles.modeText
-              }
-            >
-              BUKLOD IGPAT
-            </Text>
-          </Pressable>
         </View>
 
         <View
@@ -3571,7 +3716,7 @@ return (
               name="lock"
               size={14}
               color={
-                colors.greenDark
+                '#0A63D8'
               }
             />
 
@@ -3587,71 +3732,54 @@ return (
             </Text>
           </View>
 
-          <TextInput
-            value={
-              body
+          <BuklodMentionField
+            value={body}
+            onChangeText={setBody}
+            mentions={mentions}
+            onMentionsChange={setMentions}
+            audience={
+              scope.scope_type === 'LOCAL' ||
+              scope.scope_type === 'CHURCH'
+                ? 'local'
+                : 'public'
             }
-            onChangeText={
-              setBody
-            }
+            groupId={null}
+            excludeUserId={user?.id}
             placeholder={
               mode === 'reels'
                 ? 'Add a Reel caption...'
                 : 'Share something with this community...'
             }
-            placeholderTextColor={
-              colors.muted
-            }
-            multiline
-            maxLength={
-              5000
-            }
-            style={
-              styles.composer
-            }
+            placeholderTextColor={colors.muted}
+            maxLength={5000}
+            style={styles.composer}
           />
 
           {photos.length > 0 && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.preview}
-              contentContainerStyle={{
-                gap: 8,
-                paddingRight: 8,
-              }}
-            >
-              {photos.map((item, index) => (
-                <View key={item.id ?? item.uri}>
-                  <Image
-                    source={{
-                      uri: item.uri,
-                    }}
-                    style={
-                      styles.previewImage
-                    }
-                  />
-                  <Pressable
-                    onPress={() =>
-                      setPhotos(current =>
-                        current.filter((_, i) => i !== index)
-                      )
-                    }
-                    style={
-                      styles.previewClose
-                    }
-                  >
-                    <MaterialCommunityIcons
-                      name="close"
-                      size={18}
-                      color={
-                        colors.white
-                      }
-                    />
-                  </Pressable>
-                </View>
-              ))}
-            </ScrollView>
+            <View style={{ marginTop: 10 }}>
+              <BuklodCommunityPhotoCollage
+                items={photos.map(item => ({
+                  media_url: item.uri,
+                }))}
+                width={
+                  CommunityEdgeDimensionsR5.get('window').width - 48
+                }
+                height={220}
+                onPressPhoto={(index, items) =>
+                  setPhotoViewer({
+                    uris: items.map(photo =>
+                      String(photo.media_url ?? '')
+                    ),
+                    index,
+                  })
+                }
+                onLongPressPhoto={index =>
+                  setPhotos(current =>
+                    current.filter((_, itemIndex) => itemIndex !== index)
+                  )
+                }
+              />
+            </View>
           )}
 
           {mode === 'wall' && communityGif && (
@@ -3686,7 +3814,7 @@ return (
                   style={{
                     fontSize: 10,
                     fontWeight: '900',
-                    color: colors.greenDark,
+                    color: '#0A63D8',
                   }}
                 >
                   AUTO PLAY PREVIEW
@@ -3721,7 +3849,7 @@ return (
                   justifyContent: 'center',
                   backgroundColor:
                     autoPlayPreview
-                      ? colors.greenDark
+                      ? '#0A63D8'
                       : colors.line,
                 }}
               >
@@ -3809,7 +3937,7 @@ return (
                   name="movie-play-outline"
                   size={24}
                   color={
-                    colors.greenDark
+                    '#0A63D8'
                   }
                 />
 
@@ -3907,14 +4035,13 @@ return (
                   name="video-outline"
                   size={24}
                   color={
-                    colors.greenDark
+                    '#0A63D8'
                   }
                 />
 
-                <View
-                  style={
-                    styles.reelDraftCopy
-                  }
+                <Pressable
+                  style={styles.reelDraftCopy}
+                  onPress={() => setComposerVideoOpen(true)}
                 >
                   <Text
                     style={
@@ -3939,7 +4066,7 @@ return (
                         )
                       : 'size unavailable'}
                   </Text>
-                </View>
+                </Pressable>
               </View>
             </View>
           )}
@@ -3952,58 +4079,19 @@ return (
             {mode === 'wall' ? (
               <>
                 <Pressable
-                  disabled={
-                    busy
-                  }
-                  onPress={() =>
-                    void choosePhoto()
-                  }
-                  style={
-                    styles.mediaButton
-                  }
+                  disabled={busy || wallVideoBusy}
+                  onPress={() => void chooseGallery()}
+                  style={styles.mediaButton}
                 >
                   <MaterialCommunityIcons
-                    name="image-outline"
+                    name="image-multiple-outline"
                     size={19}
-                    color={
-                      colors.greenDark
-                    }
+                    color={'#0A63D8'}
                   />
-                  <Text
-                    style={
-                      styles.mediaButtonText
-                    }
-                  >
-                    {photos.length
-                      ? `${photos.length}/${COMMUNITY_MAX_PHOTOS} Photos`
-                      : 'Photos'}
-                  </Text>
-                </Pressable>
-
-                <Pressable
-                  disabled={busy}
-                  onPress={() =>
-                    router.push('/igpat/create' as any)
-                  }
-                  style={
-                    styles.mediaButton
-                  }
-                  accessibilityRole="button"
-                  accessibilityLabel="Create in BUKLOD IGPAT"
-                >
-                  <MaterialCommunityIcons
-                    name="video-outline"
-                    size={19}
-                    color={
-                      colors.greenDark
-                    }
-                  />
-                  <Text
-                    style={
-                      styles.mediaButtonText
-                    }
-                  >
-                    BUKLOD IGPAT
+                  <Text style={styles.mediaButtonText}>
+                    {wallVideoBusy
+                      ? 'Preparing...'
+                      : 'Gallery'}
                   </Text>
                 </Pressable>
               </>
@@ -4024,7 +4112,7 @@ return (
                     name="movie-open-outline"
                     size={19}
                     color={
-                      colors.greenDark
+                      '#0A63D8'
                     }
                   />
                   <Text
@@ -4051,7 +4139,7 @@ return (
                     name="camera-outline"
                     size={19}
                     color={
-                      colors.greenDark
+                      '#0A63D8'
                     }
                   />
                   <Text
@@ -4168,7 +4256,11 @@ return (
         <View
           style={[
               styles.feedHeading,
-              mode === 'reels' && { display: 'none' },
+              (
+                mode === 'reels' ||
+                scope.scope_type === 'ORGANIZATION' ||
+                scope.scope_type === 'CLUSTER'
+              ) && { display: 'none' },
             ]}
         >
           <Text
@@ -4225,6 +4317,13 @@ return (
                 <BuklodCommunityInlineAd
                   slotId={item.id}
                   active={isAdActive(item.id)}
+                  inventory={
+                    scope.scope_type === 'CLUSTER'
+                      ? 'cluster'
+                      : scope.scope_type === 'ORGANIZATION'
+                        ? 'org'
+                        : 'public'
+                  }
                 />
               );
             }
@@ -4262,7 +4361,7 @@ return (
             >
               <ActivityIndicator
                 color={
-                  colors.greenDark
+                  '#0A63D8'
                 }
               />
 
@@ -4462,16 +4561,18 @@ return (
                             {
                               isReply: true,
                               onReply: () => {
-                                setReplyTo(
-                                  root
-                                );
-
-                                setCommentText(
-                                  `@${resolvePersonDisplayName(
+                                setReplyTo(root);
+                                const replyName = String(
+                                  resolvePersonDisplayName(
                                     reply.commenter_name,
                                     reply.user_id,
-                                  )} `
+                                  )
                                 );
+                                setCommentText(`@${replyName} `);
+                                setCommentMentions([{
+                                  user_id: String(reply.user_id),
+                                  full_name: replyName,
+                                }]);
                               },
                             }
                           )}
@@ -4529,28 +4630,26 @@ return (
                 },
               ]}
             >
-              <TextInput
-                value={
-                  commentText
+              <BuklodMentionField
+                value={commentText}
+                onChangeText={setCommentText}
+                mentions={commentMentions}
+                onMentionsChange={setCommentMentions}
+                audience={
+                  scope.scope_type === 'LOCAL' ||
+                  scope.scope_type === 'CHURCH'
+                    ? 'local'
+                    : 'public'
                 }
-                onChangeText={
-                  setCommentText
-                }
+                excludeUserId={user?.id}
                 placeholder={
                   replyTo
                     ? 'Write a reply...'
                     : 'Write a comment...'
                 }
-                placeholderTextColor={
-                  colors.muted
-                }
-                multiline
-                maxLength={
-                  2000
-                }
-                style={
-                  styles.commentInput
-                }
+                placeholderTextColor={colors.muted}
+                maxLength={2000}
+                style={styles.commentInput}
               />
 
               <Pressable
@@ -4649,6 +4748,26 @@ return (
           setReactionDetailsFilter(null);
         }}
       />
+      <Modal
+        visible={composerVideoOpen && !!wallVideo}
+        animationType="fade"
+        onRequestClose={() => setComposerVideoOpen(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center' }}>
+          {!!wallVideo && (
+            <CommunityVideo
+              uri={wallVideo.uri}
+              height={420}
+            />
+          )}
+          <Pressable
+            onPress={() => setComposerVideoOpen(false)}
+            style={{ position: 'absolute', top: 48, right: 16 }}
+          >
+            <MaterialCommunityIcons name="close" size={28} color="#FFFFFF" />
+          </Pressable>
+        </View>
+      </Modal>
       {reportSheet}
 </>
   );
@@ -4659,12 +4778,16 @@ const styles =
   StyleSheet.create(
     {
       content: {
-        padding:
+        paddingHorizontal:
+          12,
+        paddingTop:
           12,
         paddingBottom:
           120,
         gap:
           10,
+        backgroundColor:
+          '#F5F8FD',
       },
 
       scopeNotice: {
@@ -4683,7 +4806,7 @@ const styles =
         borderColor:
           colors.line,
         backgroundColor:
-          colors.greenSoft,
+          '#EAF2FF',
         marginBottom:
           10,
       },
@@ -4695,7 +4818,7 @@ const styles =
 
       scopeNoticeTitle: {
         color:
-          colors.greenDark,
+          '#0A63D8',
         fontSize:
           13,
         fontWeight:
@@ -4749,14 +4872,14 @@ const styles =
 
       modeButtonOn: {
         backgroundColor:
-          colors.greenDark,
+          '#0A63D8',
         borderColor:
-          colors.greenDark,
+          '#0A63D8',
       },
 
       modeText: {
         color:
-          colors.greenDark,
+          '#0A63D8',
         fontSize:
           11,
         fontWeight:
@@ -4770,7 +4893,7 @@ const styles =
 
       composerCard: {
         borderRadius:
-          17,
+          19,
         backgroundColor:
           colors.white,
         borderWidth:
@@ -4802,7 +4925,7 @@ const styles =
         flex:
           1,
         color:
-          colors.greenDark,
+          '#0A63D8',
         fontSize:
           9.5,
         fontWeight:
@@ -4883,7 +5006,7 @@ const styles =
         borderColor:
           colors.line,
         backgroundColor:
-          colors.greenSoft,
+          '#EAF2FF',
         padding:
           11,
         marginBottom:
@@ -4897,7 +5020,7 @@ const styles =
 
       reelDraftTitle: {
         color:
-          colors.greenDark,
+          '#0A63D8',
         fontWeight:
           '900',
         fontSize:
@@ -4955,7 +5078,7 @@ const styles =
 
       mediaButtonText: {
         color:
-          colors.greenDark,
+          '#0A63D8',
         fontSize:
           10,
         fontWeight:
@@ -4968,7 +5091,7 @@ const styles =
         borderRadius:
           13,
         backgroundColor:
-          colors.greenDark,
+          '#0A63D8',
         flexDirection:
           'row',
         alignItems:
@@ -5029,9 +5152,9 @@ const styles =
         overflow:
           'hidden',
         color:
-          colors.greenDark,
+          '#0A63D8',
         backgroundColor:
-          colors.greenSoft,
+          '#EAF2FF',
         fontSize:
           10,
         fontWeight:
@@ -5040,7 +5163,7 @@ const styles =
 
       postCard: {
         borderRadius:
-          17,
+          19,
         backgroundColor:
           colors.white,
         borderWidth:
@@ -5070,7 +5193,7 @@ const styles =
         borderRadius:
           20,
         backgroundColor:
-          colors.greenDark,
+          '#0A63D8',
         alignItems:
           'center',
         justifyContent:
@@ -5127,28 +5250,19 @@ const styles =
         fontWeight:
           '500',
       },
-
       photo: {
-        /* PATCH_COMMUNITY_TRUE_EDGE_R5 */
         width:
-          CommunityEdgeDimensionsR5
-            .get('window')
-            .width,
-
+          '100%',
         alignSelf:
-          'center',
-
+          'stretch',
         borderRadius:
-          0,
-
-        
+          14,
         height:
-          330,
-        
+          290,
         marginTop:
           12,
         backgroundColor:
-          colors.background,
+          '#EEF3F9',
       },
 
       videoWrap: {
@@ -5248,9 +5362,9 @@ const styles =
 
       reactionButtonOn: {
         borderColor:
-          colors.greenDark,
+          '#0A63D8',
         backgroundColor:
-          colors.greenSoft,
+          '#EAF2FF',
       },
 
       reactionEmoji: {
@@ -5271,12 +5385,12 @@ const styles =
 
       reactionLabelOn: {
         color:
-          colors.greenDark,
+          '#0A63D8',
       },
 
       myReaction: {
         color:
-          colors.greenDark,
+          '#0A63D8',
         marginTop:
           7,
         textAlign:
@@ -5295,7 +5409,7 @@ const styles =
         borderRadius:
           11,
         backgroundColor:
-          colors.greenSoft,
+          '#EAF2FF',
         flexDirection:
           'row',
         alignItems:
@@ -5308,7 +5422,7 @@ const styles =
 
       commentButtonText: {
         color:
-          colors.greenDark,
+          '#0A63D8',
         fontSize:
           9.5,
         fontWeight:
@@ -5400,7 +5514,7 @@ const styles =
 
       commentSheetSub: {
         color:
-          colors.greenDark,
+          '#0A63D8',
         marginTop:
           2,
         fontSize:
@@ -5522,7 +5636,7 @@ const styles =
 
       replyLink: {
         color:
-          colors.greenDark,
+          '#0A63D8',
         fontSize:
           8.5,
         fontWeight:
@@ -5539,7 +5653,7 @@ const styles =
         borderTopColor:
           colors.line,
         backgroundColor:
-          colors.greenSoft,
+          '#EAF2FF',
         flexDirection:
           'row',
         alignItems:
@@ -5552,7 +5666,7 @@ const styles =
         flex:
           1,
         color:
-          colors.greenDark,
+          '#0A63D8',
         fontSize:
           9,
         fontWeight:
@@ -5613,7 +5727,7 @@ const styles =
         borderRadius:
           22,
         backgroundColor:
-          colors.greenDark,
+          '#0A63D8',
         alignItems:
           'center',
         justifyContent:
@@ -5630,7 +5744,7 @@ const styles =
         lineHeight: 12,
         fontWeight: '900',
         letterSpacing: 0.8,
-        color: colors.greenDark,
+        color: '#0A63D8',
       },
 
       publicReelsTitle: {
@@ -5653,7 +5767,7 @@ const styles =
         fontSize: 8.5,
         lineHeight: 12,
         fontWeight: '800',
-        color: colors.greenDark,
+        color: '#0A63D8',
       },
 
       publicReelCard: {
@@ -5696,13 +5810,13 @@ const styles =
         alignItems: 'center',
         gap: 4,
         borderRadius: 99,
-        backgroundColor: colors.greenSoft,
+        backgroundColor: '#EAF2FF',
       },
 
       publicReelDurationText: {
         fontSize: 8.5,
         fontWeight: '900',
-        color: colors.greenDark,
+        color: '#0A63D8',
       },
 
       publicReelVideoFrame: {
@@ -5787,8 +5901,8 @@ const styles =
       },
 
       publicReelReactionOn: {
-        borderColor: colors.greenDark,
-        backgroundColor: colors.greenSoft,
+        borderColor: '#0A63D8',
+        backgroundColor: '#EAF2FF',
       },
 
       publicReelReactionEmoji: {
@@ -5802,7 +5916,7 @@ const styles =
       },
 
       publicReelReactionTextOn: {
-        color: colors.greenDark,
+        color: '#0A63D8',
       },
 
       publicReelMyReaction: {
@@ -5810,7 +5924,7 @@ const styles =
         paddingTop: 6,
         fontSize: 8,
         fontWeight: '800',
-        color: colors.greenDark,
+        color: '#0A63D8',
       },
 
       publicReelBottomActions: {
@@ -5837,7 +5951,7 @@ const styles =
       publicReelCommentText: {
         fontSize: 9,
         fontWeight: '900',
-        color: colors.greenDark,
+        color: '#0A63D8',
       },
 commentSendDisabled: {
         opacity:
