@@ -117,6 +117,7 @@ import {ActivityIndicator,
 import { FlashList } from '@shopify/flash-list';
 import {Redirect,router} from 'expo-router';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
+import BuklodPttEntryButton from '@/components/BuklodPttEntryButton';
 import {
   useSafeAreaInsets
 } from 'react-native-safe-area-context';
@@ -3379,6 +3380,7 @@ const refreshCommunity186L=
     refreshing={busy}
     onRefresh={refreshCommunity186L}
   ListHeaderComponent={<BuklodFocusFadeUp duration={240} fromY={10} fromOpacity={0.78}><View>
+   <BuklodPttEntryButton />
    {/* PATCH_161A_COMMUNITY_COMPACT */}
    <Text style={s.eyebrow}>
     BUKLOD

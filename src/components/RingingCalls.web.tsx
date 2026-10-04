@@ -179,6 +179,8 @@ function BrowserCallSurface({ call }: { call: Call }) {
 }
 
 function isVisibleCall(call: Call) {
+  if (call.type === 'buklod_ptt') return false;
+
   const state = call.state.callingState;
   const text = String(state ?? '').toLowerCase();
 

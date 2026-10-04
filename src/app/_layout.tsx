@@ -3,6 +3,7 @@ import BuklodRootKeyboardAvoidingView from '@/components/BuklodRootKeyboardAvoid
 import { BuklodGuideAvatar } from '@/components/BuklodGuideAvatar';
 import BuklodFormationEntryScopeTracker from '@/components/BuklodFormationEntryScopeTracker';
 import BuklodTrustedDeviceGate from '@/components/BuklodTrustedDeviceGate';
+import BuklodPttGlobalHost from '@/components/BuklodPttGlobalHost';
 import '@/lib/performanceBoot';
 import { Stack, type ErrorBoundaryProps } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -60,7 +61,7 @@ import { AdsProvider } from '@/providers/AdsProvider';
 import { BuklodOfflineSyncProvider } from '@/providers/BuklodOfflineSyncProvider';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-export default function RootLayout() {
+function RootLayout() {
   return (
     <SafeAreaProvider>
     <GestureHandlerRootView
@@ -255,6 +256,16 @@ export default function RootLayout() {
 </AuthProvider>
     </GestureHandlerRootView>
     </SafeAreaProvider>
+  );
+}
+
+/* BUKLOD_PTT_GLOBAL_HOST_R2 */
+export default function BuklodRootLayoutWithPttR2() {
+  return (
+    <>
+      <BuklodPttGlobalHost />
+      <RootLayout />
+    </>
   );
 }
 
