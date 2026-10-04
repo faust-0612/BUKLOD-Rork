@@ -102,9 +102,7 @@ import {
   hydratePersonNamesOnRows,
   resolvePersonDisplayName,
 } from '@/lib/buklodPersonDisplay';
-import {
-  BuklodCommunityCommentBubble,
-} from '@/components/BuklodCommunityCommentBubble';
+import BuklodCommunityCommentThread from '@/components/BuklodCommunityCommentThread';
 import {
   type BuklodCommunityReactionKey,
   type CommunityReactionDetailsTarget,
@@ -3040,6 +3038,15 @@ const load=useCallback(async(options?:{
      commentMentions
     ).map(mention=>mention.user_id);
 
+   // FB-style: replies nest under the root comment (one level).
+   const replyRootId=
+    replyTo
+     ? String(
+        replyTo.parent_id??
+        replyTo.id
+       )
+     : null;
+
    if(replyTo){
     const replyName=
      String(
@@ -3087,8 +3094,7 @@ const load=useCallback(async(options?:{
       p_body:
        finalBody,
       p_parent_id:
-       replyTo?.id??
-       null
+       replyRootId
      }
     );
 
@@ -5590,7 +5596,7 @@ const communityFeedRows =
           commentPost.author_name,
           commentPost.user_id,
          )}
-         {' â€¢ '}
+         {' · '}
          {comments.length}
          {' '}
          {comments.length===1
@@ -5620,115 +5626,101 @@ const communityFeedRows =
        s.communityCommentList
       }
      >
-      {!comments.length&&(
-       <Text style={s.communityCommentEmpty}>
-        No comments yet. Be the first to respond.
-       </Text>
-      )}
-
-      {comments.map(c=>{
-       const metaParts=[
-        formatClusterName(c.cluster_name),
-       ].filter(Boolean);
-
-       return (
-        <View
-         key={c.id}
-         style={[
-          s.communityCommentItem,
-          c.parent_id&&
-           s.communityReplyItem
-         ]}
-        >
-         <BuklodTappableAvatar
-          userId={c.user_id}
-          name={resolvePersonDisplayName(
-           c.commenter_name,
-           c.user_id,
-          )}
-          size={34}
-         />
-
-         <View style={{flex:1, minWidth:0}}>
-          <BuklodCommunityCommentBubble
-           comment={c}
-           currentUserId={user?.id}
-           reactionOptions={
-            BUKLOD_PUBLIC_COMMUNITY_REACTIONS
-           }
-           isReply={Boolean(c.parent_id)}
-           metaLine={metaParts.join(' â€¢ ') || null}
-           timeLabel={
-            formatSpecificDateTime(
-             c.created_at
-            )
-           }
-           onReply={()=>{
-            const replyName=resolvePersonDisplayName(
-             c.commenter_name,
-             c.user_id,
-            );
-            setReplyTo(c);
-            setCommentText(`@${replyName} `);
-            setCommentMentions([{
-             user_id:String(c.user_id),
-             full_name:String(replyName),
-            }]);
-           }}
-           onReact={key=>
-            void reactToComment(
-             c,
-             key as Reaction
-            )
-           }
-           onReactionSummaryPress={key =>
-            openCommentReactionDetails(
-             c,
-             key
-            )
-           }
-           onEdit={body=>
-            updateCommentBody(
-             String(c.id),
-             body
-            )
-           }
-           onDelete={()=>
-            deleteCommentById(
-             String(c.id)
-            )
-           }
-           onReport={()=>
-            openReport(
-             'comment',
-             String(c.id)
-            )
-           }
-          />
-         </View>
-        </View>
-       );
-      })}
+      <BuklodCommunityCommentThread
+       comments={comments}
+       currentUserId={user?.id}
+       reactionOptions={
+        BUKLOD_PUBLIC_COMMUNITY_REACTIONS
+       }
+       formatTime={formatSpecificDateTime}
+       formatMeta={c=>{
+        const meta=formatClusterName(
+         (c as any).cluster_name
+        );
+        return meta||null;
+       }}
+       onReply={(target)=>{
+        const replyName=resolvePersonDisplayName(
+         target.commenter_name,
+         target.user_id,
+        );
+        setReplyTo(target);
+        setCommentText(`@${replyName} `);
+        setCommentMentions([{
+         user_id:String(target.user_id),
+         full_name:String(replyName),
+        }]);
+       }}
+       onReact={(c,key)=>
+        void reactToComment(
+         c,
+         key as Reaction
+        )
+       }
+       onReactionSummaryPress={(c,key)=>
+        openCommentReactionDetails(
+         c,
+         key
+        )
+       }
+       onEdit={(commentId,body)=>
+        updateCommentBody(
+         commentId,
+         body
+        )
+       }
+       onDelete={commentId=>
+        deleteCommentById(
+         commentId
+        )
+       }
+       onReport={commentId=>
+        openReport(
+         'comment',
+         commentId
+        )
+       }
+      />
      </ScrollView>
 
 
      {!!replyTo&&(
       <View style={s.communityReplyBanner}>
        <View style={{flex:1}}>
-        <BuklodMentionText
-         text={`@${resolvePersonDisplayName(
+        <Text style={s.communityReplyBannerLabel}>
+         Replying to
+        </Text>
+        <Text
+         numberOfLines={1}
+         style={s.communityReplyBannerName}
+        >
+         {resolvePersonDisplayName(
           replyTo.commenter_name,
           replyTo.user_id,
-         )}`}
-         style={s.communityReplyBannerName}
-         mentionStyle={s.communityReplyBannerName}
-        />
+         )}
+        </Text>
+        <Text
+         numberOfLines={2}
+         style={{
+          marginTop:2,
+          fontSize:11,
+          color:colors.muted,
+         }}
+        >
+         {String(replyTo.body||'').trim()}
+        </Text>
        </View>
 
        <Pressable
-        onPress={()=>
-         setReplyTo(null)
-        }
+        onPress={()=>{
+         setReplyTo(null);
+         if(
+          commentText.trim().startsWith('@')
+         ){
+          setCommentText('');
+          setCommentMentions([]);
+         }
+        }}
        >
         <MaterialCommunityIcons
          name="close"

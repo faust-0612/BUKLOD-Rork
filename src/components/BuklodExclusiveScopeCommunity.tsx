@@ -120,9 +120,7 @@ import {
   hydratePersonNamesOnRows,
   resolvePersonDisplayName,
 } from '@/lib/buklodPersonDisplay';
-import {
-  BuklodCommunityCommentBubble,
-} from '@/components/BuklodCommunityCommentBubble';
+import BuklodCommunityCommentThread from '@/components/BuklodCommunityCommentThread';
 import {
   type BuklodCommunityReactionKey,
   type CommunityReactionDetailsTarget,
@@ -2296,9 +2294,11 @@ export default function BuklodExclusiveScopeCommunity({
                 commentPost.id,
               p_body:
                 finalBody,
+              // FB-style: nest under root comment (one level).
               p_parent_id:
-                replyTo?.id ??
-                null,
+                replyTo
+                  ? (replyTo.parent_id ?? replyTo.id)
+                  : null,
             }
           );
 
@@ -2799,120 +2799,6 @@ export default function BuklodExclusiveScopeCommunity({
         );
       }
     };
-
-  const renderScopeCommentBubble =
-    (
-      comment:
-        ScopeComment,
-      options?: {
-        isReply?: boolean;
-        replyingToLabel?: string | null;
-        replyMentionPrefix?: string | null;
-        onReply?: () => void;
-      }
-    ) => (
-      <BuklodCommunityCommentBubble
-        comment={{
-          ...comment,
-          body: repairMojibakeText(
-            comment.body
-          ),
-        }}
-        currentUserId={
-          user?.id
-        }
-        reactionOptions={
-          BUKLOD_SCOPE_COMMUNITY_REACTIONS
-        }
-        isReply={
-          options?.isReply
-        }
-        replyingToLabel={
-          options?.replyingToLabel
-        }
-        bubbleStyle={
-          options?.isReply
-            ? styles.replyBubble
-            : undefined
-        }
-        timeLabel={
-          formatTime(
-            comment.created_at
-          )
-        }
-        onReply={() => {
-          if (
-            options?.onReply
-          ) {
-            options.onReply();
-
-            return;
-          }
-
-          setReplyTo(comment);
-          const replyName = String(
-            resolvePersonDisplayName(
-              comment.commenter_name,
-              comment.user_id,
-            )
-          );
-          setCommentText(
-            options?.replyMentionPrefix ??
-              `@${replyName} `
-          );
-          setCommentMentions([{
-            user_id: String(comment.user_id),
-            full_name: replyName,
-          }]);
-        }}
-        onReact={key =>
-          void reactToComment(
-            comment,
-            key as Reaction
-          )
-        }
-        onReactionSummaryPress={key =>
-          openCommentReactionDetails(
-            comment,
-            key
-          )
-        }
-        onEdit={body =>
-          updateScopedComment(
-            comment.id,
-            body
-          )
-        }
-        onDelete={() =>
-          removeScopedComment(
-            comment
-          )
-        }
-        onReport={() =>
-          openReport(
-            'comment',
-            comment.id
-          )
-        }
-      />
-    );
-
-  const roots =
-    comments.filter(
-      comment =>
-        !comment.parent_id
-    );
-
-  const repliesFor =
-    (
-      parentId:
-        string
-    ) =>
-      comments.filter(
-        comment =>
-          comment.parent_id ===
-          parentId
-      );
 
   const renderPost =
     ({
@@ -4507,81 +4393,63 @@ return (
               }
               keyboardShouldPersistTaps="handled"
             >
-              {!comments
-                .length && (
-                <View
-                  style={
-                    styles.emptyComments
-                  }
-                >
-                  <Text
-                    style={
-                      styles.emptyText
-                    }
-                  >
-                    No comments yet.
-                  </Text>
-                </View>
-              )}
-
-              {roots.map(
-                root => (
-                  <View
-                    key={
-                      root.id
-                    }
-                    style={
-                      styles.commentThread
-                    }
-                  >
-                    {renderScopeCommentBubble(
-                      root
-                    )}
-
-                    {repliesFor(
-                      root.id
-                    ).map(
-                      reply => (
-                        <View
-                          key={
-                            reply.id
-                          }
-                          style={
-                            styles.replyWrap
-                          }
-                        >
-                          <View
-                            style={
-                              styles.replyLine
-                            }
-                          />
-
-                          {renderScopeCommentBubble(
-                            reply,
-                            {
-                              isReply: true,
-                              onReply: () => {
-                                setReplyTo(root);
-                                const replyName = String(
-                                  resolvePersonDisplayName(
-                                    reply.commenter_name,
-                                    reply.user_id,
-                                  )
-                                );
-                                setCommentText(`@${replyName} `);
-                                setCommentMentions([{
-                                  user_id: String(reply.user_id),
-                                  full_name: replyName,
-                                }]);
-                              },
-                            }
-                          )}
-                        </View>
-                      )
-                    )}
-                  </View>
-                )
-              )}
+              <BuklodCommunityCommentThread
+                comments={comments.map(comment => ({
+                  ...comment,
+                  body: repairMojibakeText(comment.body),
+                }))}
+                currentUserId={user?.id}
+                reactionOptions={
+                  BUKLOD_SCOPE_COMMUNITY_REACTIONS
+                }
+                emptyText="No comments yet."
+                formatTime={formatTime}
+                onReply={(target) => {
+                  const replyName = String(
+                    resolvePersonDisplayName(
+                      target.commenter_name,
+                      target.user_id,
+                    )
+                  );
+                  setReplyTo(target as any);
+                  setCommentText(`@${replyName} `);
+                  setCommentMentions([{
+                    user_id: String(target.user_id),
+                    full_name: replyName,
+                  }]);
+                }}
+                onReact={(comment, key) =>
+                  void reactToComment(
+                    comment as any,
+                    key as Reaction
+                  )
+                }
+                onReactionSummaryPress={(comment, key) =>
+                  openCommentReactionDetails(
+                    comment as any,
+                    key
+                  )
+                }
+                onEdit={(commentId, body) =>
+                  updateScopedComment(
+                    commentId,
+                    body
+                  )
+                }
+                onDelete={async (commentId) => {
+                  const target = comments.find(
+                    item => String(item.id) === commentId
+                  );
+                  if (!target) return;
+                  await removeScopedComment(target);
+                }}
+                onReport={(commentId) =>
+                  openReport(
+                    'comment',
+                    commentId
+                  )
+                }
+              />
             </ScrollView>
 
             {!!replyTo && (
@@ -4590,25 +4458,36 @@ return (
                   styles.replyingTo
                 }
               >
-                <BuklodMentionText
-                  text={`@${resolvePersonDisplayName(
-                    replyTo.commenter_name,
-                    replyTo.user_id,
-                  )}`}
-                  style={
-                    styles.replyingText
-                  }
-                  mentionStyle={
-                    styles.replyingText
-                  }
-                />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={styles.replyingText}>
+                    Replying to{' '}
+                    {resolvePersonDisplayName(
+                      replyTo.commenter_name,
+                      replyTo.user_id,
+                    )}
+                  </Text>
+                  <Text
+                    numberOfLines={2}
+                    style={{
+                      marginTop: 2,
+                      fontSize: 11,
+                      color: colors.muted,
+                    }}
+                  >
+                    {repairMojibakeText(
+                      String(replyTo.body || '')
+                    )}
+                  </Text>
+                </View>
 
                 <Pressable
-                  onPress={() =>
-                    setReplyTo(
-                      null
-                    )
-                  }
+                  onPress={() => {
+                    setReplyTo(null);
+                    if (commentText.trim().startsWith('@')) {
+                      setCommentText('');
+                      setCommentMentions([]);
+                    }
+                  }}
                 >
                   <MaterialCommunityIcons
                     name="close"

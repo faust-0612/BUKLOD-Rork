@@ -112,22 +112,41 @@ function createStyles(theme: BuklodThemeRoles) {
       color: theme.accent,
     },
     footer: {
-      marginTop: 2,
-      paddingLeft: 2,
+      marginTop: 4,
+      paddingLeft: 4,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 6,
+      flexWrap: 'wrap',
+      gap: 10,
+    },
+    footerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
     },
     footerReactions: {
-      flex: 1,
+      flexGrow: 1,
       minWidth: 0,
     },
-    replyLink: {
-      fontSize: 11,
+    actionLink: {
+      fontSize: 12,
       fontWeight: '800',
-      color: theme.accent,
-      paddingHorizontal: 2,
+      color: theme.textMuted,
       paddingVertical: 2,
+    },
+    actionLinkActive: {
+      color: theme.accent,
+    },
+    replyLink: {
+      fontSize: 12,
+      fontWeight: '800',
+      color: theme.textMuted,
+      paddingVertical: 2,
+    },
+    footerTime: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: theme.textMuted,
     },
     modalBackdrop: {
       flex: 1,
@@ -470,10 +489,6 @@ export function BuklodCommunityCommentBubble({
           </Text>
         )}
 
-        <Text style={styles.timeInBubble}>
-          {timeLabel}
-        </Text>
-
         <BuklodMentionText
           text={comment.body}
           style={styles.body}
@@ -482,6 +497,45 @@ export function BuklodCommunityCommentBubble({
       </Pressable>
 
       <View style={styles.footer}>
+        <View style={styles.footerActions}>
+          <Pressable
+            onPress={() =>
+              onReact(
+                reactionOptions[0]?.key ?? 'with_you'
+              )
+            }
+            hitSlop={BUKLOD_HIT_SLOP}
+            accessibilityRole="button"
+            accessibilityLabel="Like comment"
+          >
+            <Text
+              style={[
+                styles.actionLink,
+                comment.my_reaction ===
+                  (reactionOptions[0]?.key ?? 'with_you') &&
+                  styles.actionLinkActive,
+              ]}
+            >
+              Like
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={onReply}
+            hitSlop={BUKLOD_HIT_SLOP}
+            accessibilityRole="button"
+            accessibilityLabel="Reply"
+          >
+            <Text style={styles.replyLink}>
+              Reply
+            </Text>
+          </Pressable>
+
+          <Text style={styles.footerTime}>
+            {timeLabel}
+          </Text>
+        </View>
+
         <View style={styles.footerReactions}>
           <BuklodReactionAction
             layout="comment"
@@ -492,17 +546,6 @@ export function BuklodCommunityCommentBubble({
             onSummaryPress={onReactionSummaryPress}
           />
         </View>
-
-        <Pressable
-          onPress={onReply}
-          hitSlop={BUKLOD_HIT_SLOP}
-          accessibilityRole="button"
-          accessibilityLabel="Reply"
-        >
-          <Text style={styles.replyLink}>
-            Reply
-          </Text>
-        </Pressable>
       </View>
 
       <Modal
