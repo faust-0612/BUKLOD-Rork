@@ -22,7 +22,12 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
-import { recordReferral } from '@/lib/buklodRewards';
+import {
+  recordReferral,
+  resolveReferralTarget,
+  suggestReferralTargets,
+  type ReferralSuggestItem,
+} from '@/lib/buklodRewards';
 import { colors } from '@/lib/theme';
 import { useBuklodDrawerBottomInset } from '@/lib/buklodSafeArea';
 
@@ -196,13 +201,23 @@ export default function RegisterScreen() {
   const [password, setPassword] =
     useState('');
 
-  const [referralCode, setReferralCode] =
+  const [referralQuery, setReferralQuery] =
     useState(
       () =>
-        String(params.ref ?? params.referral ?? '')
-          .trim()
-          .toUpperCase(),
+        String(params.ref ?? params.referral ?? '').trim(),
     );
+  const [referralSuggestions, setReferralSuggestions] =
+    useState<ReferralSuggestItem[]>([]);
+  const [referralStatus, setReferralStatus] = useState<
+    'idle' | 'checking' | 'matched' | 'missing'
+  >('idle');
+  const [referralMatchLabel, setReferralMatchLabel] =
+    useState('');
+  const [selectedReferralCode, setSelectedReferralCode] =
+    useState('');
+  const referralSuggestTimer = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
 
   const [
     showPassword,
@@ -282,6 +297,88 @@ export default function RegisterScreen() {
     createAccountInFlight.current = false;
     setBusy(false);
   };
+
+  const applyReferralSelection = (item: ReferralSuggestItem) => {
+    setReferralQuery(item.username || item.referral_code);
+    setSelectedReferralCode(item.referral_code);
+    setReferralMatchLabel(item.username || item.label);
+    setReferralStatus('matched');
+    setReferralSuggestions([]);
+  };
+
+  const onReferralQueryChange = (value: string) => {
+    const next = value.replace(/^\s+/, '');
+    setReferralQuery(next);
+    setSelectedReferralCode('');
+    setReferralMatchLabel('');
+
+    if (referralSuggestTimer.current) {
+      clearTimeout(referralSuggestTimer.current);
+      referralSuggestTimer.current = null;
+    }
+
+    const trimmed = next.trim();
+    if (trimmed.length < 2) {
+      setReferralSuggestions([]);
+      setReferralStatus(trimmed ? 'checking' : 'idle');
+      return;
+    }
+
+    setReferralStatus('checking');
+    referralSuggestTimer.current = setTimeout(() => {
+      void (async () => {
+        const items = await suggestReferralTargets(trimmed, 8);
+        setReferralSuggestions(items);
+
+        const exact = items.find(
+          (item) =>
+            item.match_kind === 'username_exact' ||
+            item.match_kind === 'code' ||
+            (item.username &&
+              item.username.toLowerCase() === trimmed.toLowerCase()) ||
+            item.referral_code.toLowerCase() === trimmed.toLowerCase(),
+        );
+
+        if (exact) {
+          setSelectedReferralCode(exact.referral_code);
+          setReferralMatchLabel(exact.username || exact.label);
+          setReferralStatus('matched');
+          return;
+        }
+
+        const resolved = await resolveReferralTarget(trimmed);
+        if (resolved.found && resolved.referral_code) {
+          setSelectedReferralCode(resolved.referral_code);
+          setReferralMatchLabel(
+            resolved.username || resolved.label || 'BUKLOD member',
+          );
+          setReferralStatus('matched');
+          return;
+        }
+
+        setSelectedReferralCode('');
+        setReferralMatchLabel('');
+        setReferralStatus(items.length ? 'idle' : 'missing');
+      })();
+    }, 280);
+  };
+
+  useEffect(() => {
+    const seed = String(params.ref ?? params.referral ?? '').trim();
+    if (!seed) return;
+    onReferralQueryChange(seed);
+    // Prefill once from deep-link params.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (referralSuggestTimer.current) {
+        clearTimeout(referralSuggestTimer.current);
+      }
+    };
+  }, []);
+
 /* PATCH_183B_NO_REGISTRATION_CHURCH_FETCH
  *
  * Registration creates a universal BUKLOD account only.
@@ -721,20 +818,33 @@ useEffect(() => {
         return;
       }
 
-      if (referralCode.trim()) {
+      let referralLinked = false;
+      let referralLinkNote = '';
+      const referralValue =
+        selectedReferralCode.trim() ||
+        referralQuery.trim();
+
+      if (referralValue) {
         try {
-          await recordReferral(
-            referralCode
-          );
+          await recordReferral(referralValue);
+          referralLinked = true;
         } catch (
           referralError: unknown
         ) {
-          console.warn(
-            'Referral record failed:',
+          const message =
             referralError instanceof Error
               ? referralError.message
-              : referralError,
+              : String(referralError ?? '');
+          console.warn(
+            'Referral record failed:',
+            message,
           );
+          referralLinkNote =
+            /invalid referral|not found|no matching/i.test(
+              message,
+            )
+              ? ' Your referral could not be linked because that account name or invite code was not recognized.'
+              : ' Your referral could not be linked automatically. You can ask support if this keeps happening.';
         }
       }
 
@@ -742,7 +852,9 @@ useEffect(() => {
 
       Alert.alert(
         'Account created',
-        'Your BUKLOD account is ready. You can enter the Public Community immediately. Local, Cluster, Church, and Organization memberships can be added separately.'
+        referralLinked
+          ? 'Your BUKLOD account is ready and your referral was linked. Sharing rewards follow the active BUKLOD referral settings. Local, Cluster, Church, and Organization memberships can be added separately.'
+          : `Your BUKLOD account is ready. You can enter the Public Community immediately. Local, Cluster, Church, and Organization memberships can be added separately.${referralLinkNote}`,
       );
 
       /* PATCH_156A_V2_COMMUNITY_SUCCESS */
@@ -1124,19 +1236,64 @@ useEffect(() => {
         </View>
 
         <Text style={styles.fieldTitle}>
-          Invite code (optional)
+          Referred by (optional)
+        </Text>
+
+        <Text style={styles.help}>
+          Type a friend&apos;s BUKLOD account name or invite code. Matching accounts appear as you type.
         </Text>
 
         <TextInput
           style={styles.input}
-          placeholder="Friend's BUKLOD invite code"
-          value={referralCode}
-          onChangeText={(value) =>
-            setReferralCode(value.trim().toUpperCase())
-          }
-          autoCapitalize="characters"
+          placeholder="Account name or invite code"
+          value={referralQuery}
+          onChangeText={onReferralQueryChange}
+          autoCapitalize="none"
           autoCorrect={false}
         />
+
+        {referralStatus === 'checking' ? (
+          <Text style={styles.referralHint}>
+            Checking BUKLOD accounts...
+          </Text>
+        ) : null}
+
+        {referralStatus === 'matched' ? (
+          <Text style={styles.referralMatched}>
+            Matched: {referralMatchLabel}
+          </Text>
+        ) : null}
+
+        {referralStatus === 'missing' ? (
+          <Text style={styles.referralMissing}>
+            No matching BUKLOD account found. Check the account name or invite code.
+          </Text>
+        ) : null}
+
+        {referralSuggestions.length > 0 ? (
+          <View style={styles.referralSuggestBox}>
+            {referralSuggestions.map((item) => {
+              const key = `${item.referral_code}:${item.username || item.label}`;
+              const title = item.username
+                ? `@${item.username}`
+                : item.label;
+              return (
+                <Pressable
+                  key={key}
+                  style={styles.referralSuggestRow}
+                  onPress={() => applyReferralSelection(item)}
+                >
+                  <Text style={styles.referralSuggestTitle}>
+                    {title}
+                  </Text>
+                  <Text style={styles.referralSuggestMeta}>
+                    Invite code {item.referral_code}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
 
         {/* PATCH_164A_REG2_PRIVATE_ADDRESS */}
 
@@ -1533,6 +1690,47 @@ const styles =
       padding: 10,
       backgroundColor:
         colors.white,
+    },
+    referralHint: {
+      fontSize: 12,
+      color: colors.muted,
+      marginTop: -2,
+    },
+    referralMatched: {
+      fontSize: 12,
+      fontWeight: '800',
+      color: colors.greenDark,
+      marginTop: -2,
+    },
+    referralMissing: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: '#9A3412',
+      marginTop: -2,
+    },
+    referralSuggestBox: {
+      borderWidth: 1,
+      borderColor: colors.line,
+      borderRadius: 12,
+      backgroundColor: colors.white,
+      overflow: 'hidden',
+      marginTop: -4,
+    },
+    referralSuggestRow: {
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.line,
+      gap: 2,
+    },
+    referralSuggestTitle: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: colors.text,
+    },
+    referralSuggestMeta: {
+      fontSize: 11,
+      color: colors.muted,
     },
     loginChoices: {
       flexDirection: 'row',

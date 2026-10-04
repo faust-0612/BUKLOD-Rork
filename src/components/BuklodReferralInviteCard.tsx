@@ -16,8 +16,11 @@ import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
 import { loadReferralSummary, type ReferralSummary } from '@/lib/buklodRewards';
 import { withAlpha } from '@/lib/buklodContrast';
 
-function buildInviteMessage(code: string) {
-  return `Join me on BUKLOD — use my invite code ${code} when you sign up.`;
+function buildInviteMessage(code: string, username?: string | null) {
+  if (username) {
+    return `Join me on BUKLOD — when you create your account, type my account name ${username} (or invite code ${code}) in the referral bar.`;
+  }
+  return `Join me on BUKLOD — when you create your account, use my invite code ${code} in the referral bar.`;
 }
 
 export default function BuklodReferralInviteCard() {
@@ -217,8 +220,8 @@ export default function BuklodReferralInviteCard() {
     return (
       <View style={styles.card}>
         <Text style={styles.sub}>
-          Invite friends to BUKLOD. Your referral code will appear here once
-          referral sharing is available on the server.
+          Invite friends to BUKLOD. Pull to refresh this page if your invite
+          code does not appear yet.
         </Text>
         {economyLinks}
       </View>
@@ -230,9 +233,10 @@ export default function BuklodReferralInviteCard() {
       <Text style={styles.eyebrow}>INVITE FRIENDS</Text>
       <Text style={styles.title}>Share BUKLOD</Text>
       <Text style={styles.sub}>
-        Direct referrals only. A qualified referral may contribute referral
-        weight during its earning window; sharing or qualification does not
-        create a fixed cash reward.
+        Friends can type your BUKLOD account name or this invite code when they
+        create an account. Direct referrals only. A qualified referral may
+        contribute referral weight during its earning window; sharing or
+        qualification does not create a fixed cash reward.
       </Text>
 
       <View style={styles.codeRow}>

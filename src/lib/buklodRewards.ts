@@ -416,6 +416,21 @@ export type ReferralSummary = {
   was_referred: boolean;
 };
 
+export type ReferralSuggestItem = {
+  username: string | null;
+  label: string;
+  referral_code: string;
+  match_kind: string;
+};
+
+export type ReferralResolveResult = {
+  found: boolean;
+  username?: string | null;
+  label?: string;
+  referral_code?: string;
+  message?: string;
+};
+
 export async function loadReferralSummary(): Promise<ReferralSummary | null> {
   const { data, error } = await (supabase as any).rpc(
     'get_my_buklod_referral_summary_v1',
@@ -435,10 +450,101 @@ export async function loadReferralSummary(): Promise<ReferralSummary | null> {
   };
 }
 
+export async function suggestReferralTargets(
+  query: string,
+  limit = 8,
+): Promise<ReferralSuggestItem[]> {
+  const trimmed = query.trim();
+  if (trimmed.length < 2) return [];
+
+  const { data, error } = await (supabase as any).rpc(
+    'suggest_buklod_referral_targets_v1',
+    {
+      p_query: trimmed,
+      p_limit: limit,
+    },
+  );
+
+  if (error || !data || typeof data !== 'object') {
+    return [];
+  }
+
+  const items = Array.isArray((data as any).items)
+    ? ((data as any).items as unknown[])
+    : [];
+
+  return items
+    .map((row) => {
+      const item = row as Record<string, unknown>;
+      const code = String(item.referral_code ?? '').trim();
+      const label = String(item.label ?? item.username ?? '').trim();
+      if (!code || !label) return null;
+      return {
+        username: item.username ? String(item.username) : null,
+        label,
+        referral_code: code,
+        match_kind: String(item.match_kind ?? ''),
+      } satisfies ReferralSuggestItem;
+    })
+    .filter(Boolean) as ReferralSuggestItem[];
+}
+
+export async function resolveReferralTarget(
+  query: string,
+): Promise<ReferralResolveResult> {
+  const trimmed = query.trim();
+  if (!trimmed) {
+    return {
+      found: false,
+      message: 'Enter a BUKLOD account name or invite code.',
+    };
+  }
+
+  const { data, error } = await (supabase as any).rpc(
+    'resolve_buklod_referral_target_v1',
+    { p_query: trimmed },
+  );
+
+  if (error || !data || typeof data !== 'object') {
+    return {
+      found: false,
+      message: 'Could not check this referral right now. Try again.',
+    };
+  }
+
+  const row = data as Record<string, unknown>;
+  if (!Boolean(row.found)) {
+    return {
+      found: false,
+      message: String(
+        row.message ??
+          'No matching BUKLOD account was found. Try the account name or invite code.',
+      ),
+    };
+  }
+
+  return {
+    found: true,
+    username: row.username ? String(row.username) : null,
+    label: String(row.label ?? 'BUKLOD member'),
+    referral_code: String(row.referral_code ?? ''),
+  };
+}
+
 export async function recordReferral(referrerCode: string) {
+  const value = referrerCode.trim();
+  if (!value) {
+    throw new Error('Referral code required');
+  }
+
+  const resolved = await resolveReferralTarget(value);
+  const code = resolved.found
+    ? String(resolved.referral_code || value)
+    : value;
+
   const { error } = await (supabase as any).rpc(
     'buklod_record_referral_v1',
-    { p_referrer_code: referrerCode.trim() },
+    { p_referrer_code: code },
   );
 
   if (error) {
