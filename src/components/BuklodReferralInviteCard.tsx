@@ -23,15 +23,36 @@ function buildInviteMessage(code: string, username?: string | null) {
   return `Join me on BUKLOD — when you create your account, use my invite code ${code} in the referral bar.`;
 }
 
-export default function BuklodReferralInviteCard() {
+type Props = {
+  username?: string | null;
+};
+
+export default function BuklodReferralInviteCard({
+  username = null,
+}: Props) {
   const { theme } = useBuklodPresentation();
   const [summary, setSummary] = useState<ReferralSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      setSummary(await loadReferralSummary());
+      const next = await loadReferralSummary();
+      setSummary(next);
+      if (!next?.referral_code) {
+        setError(
+          'Your invite code could not be loaded. Tap retry.',
+        );
+      }
+    } catch (loadError: unknown) {
+      setSummary(null);
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : 'Could not load your invite details.',
+      );
     } finally {
       setLoading(false);
     }
@@ -41,18 +62,27 @@ export default function BuklodReferralInviteCard() {
     void load();
   }, [load]);
 
+  const accountName = String(username ?? '').trim();
+  const code = String(summary?.referral_code ?? '').trim();
+
   const copyCode = async () => {
-    if (!summary?.referral_code) return;
-    await Clipboard.setStringAsync(summary.referral_code);
-    Alert.alert('Copied', 'Invite code copied to clipboard.');
+    if (!code) return;
+    await Clipboard.setStringAsync(code);
+    Alert.alert('Copied', 'Invite code copied.');
+  };
+
+  const copyAccountName = async () => {
+    if (!accountName) return;
+    await Clipboard.setStringAsync(accountName);
+    Alert.alert('Copied', 'Account name copied.');
   };
 
   const shareInvite = async () => {
-    if (!summary?.referral_code) return;
+    if (!code) return;
     try {
       await Share.share({
         title: 'Join BUKLOD',
-        message: buildInviteMessage(summary.referral_code),
+        message: buildInviteMessage(code, accountName || null),
       });
     } catch {
       // user dismissed
@@ -83,6 +113,27 @@ export default function BuklodReferralInviteCard() {
       fontSize: 12,
       lineHeight: 17,
       color: theme.textMuted,
+    },
+    identityRow: {
+      marginTop: 2,
+      borderWidth: 1,
+      borderColor: withAlpha(theme.accent, 0.28),
+      backgroundColor: withAlpha(theme.accentSoft, 0.5),
+      borderRadius: 12,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      gap: 2,
+    },
+    identityLabel: {
+      fontSize: 10,
+      fontWeight: '800',
+      letterSpacing: 0.8,
+      color: theme.textMuted,
+    },
+    identityValue: {
+      fontSize: 16,
+      fontWeight: '900',
+      color: theme.accent,
     },
     codeRow: {
       marginTop: 4,
@@ -178,6 +229,12 @@ export default function BuklodReferralInviteCard() {
       lineHeight: 15,
       color: theme.textMuted,
     },
+    errorText: {
+      fontSize: 12,
+      lineHeight: 17,
+      color: '#9A3412',
+      fontWeight: '700',
+    },
   });
 
   const economyLinks = (
@@ -216,13 +273,28 @@ export default function BuklodReferralInviteCard() {
     );
   }
 
-  if (!summary?.referral_code) {
+  if (!code) {
     return (
       <View style={styles.card}>
-        <Text style={styles.sub}>
-          Invite friends to BUKLOD. Pull to refresh this page if your invite
-          code does not appear yet.
+        <Text style={styles.eyebrow}>INVITE FRIENDS</Text>
+        <Text style={styles.title}>Share BUKLOD</Text>
+        <Text style={styles.errorText}>
+          {error ||
+            'Your invite code is not ready yet. Tap retry to create it.'}
         </Text>
+        {accountName ? (
+          <Pressable onPress={() => void copyAccountName()} style={styles.identityRow}>
+            <Text style={styles.identityLabel}>YOUR ACCOUNT NAME</Text>
+            <Text style={styles.identityValue}>@{accountName}</Text>
+          </Pressable>
+        ) : null}
+        <Pressable
+          onPress={() => void load()}
+          style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.8 }]}
+        >
+          <MaterialCommunityIcons name="refresh" size={14} color="#fff" />
+          <Text style={styles.actionText}>RETRY</Text>
+        </Pressable>
         {economyLinks}
       </View>
     );
@@ -233,45 +305,65 @@ export default function BuklodReferralInviteCard() {
       <Text style={styles.eyebrow}>INVITE FRIENDS</Text>
       <Text style={styles.title}>Share BUKLOD</Text>
       <Text style={styles.sub}>
-        Friends can type your BUKLOD account name or this invite code when they
-        create an account. Direct referrals only. A qualified referral may
-        contribute referral weight during its earning window; sharing or
-        qualification does not create a fixed cash reward.
+        Friends can type your BUKLOD account name or invite code when they
+        create an account. Copy or share below.
       </Text>
 
+      {accountName ? (
+        <Pressable onPress={() => void copyAccountName()} style={styles.identityRow}>
+          <Text style={styles.identityLabel}>YOUR ACCOUNT NAME</Text>
+          <Text style={styles.identityValue}>@{accountName}</Text>
+        </Pressable>
+      ) : null}
+
       <View style={styles.codeRow}>
-        <View style={styles.codePill}>
-          <Text style={styles.codeText}>{summary.referral_code}</Text>
-        </View>
+        <Pressable onPress={() => void copyCode()} style={styles.codePill}>
+          <Text style={styles.codeText}>{code}</Text>
+        </Pressable>
       </View>
 
       <View style={styles.actionRow}>
+        {accountName ? (
+          <Pressable
+            onPress={() => void copyAccountName()}
+            style={[styles.actionBtn, styles.actionBtnOutline]}
+          >
+            <MaterialCommunityIcons
+              name="account-outline"
+              size={14}
+              color={theme.textPrimary}
+            />
+            <Text style={[styles.actionText, styles.actionTextOutline]}>
+              COPY NAME
+            </Text>
+          </Pressable>
+        ) : null}
         <Pressable onPress={() => void copyCode()} style={styles.actionBtn}>
           <MaterialCommunityIcons name="content-copy" size={14} color="#fff" />
-          <Text style={styles.actionText}>COPY</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => void shareInvite()}
-          style={[styles.actionBtn, styles.actionBtnOutline]}
-        >
-          <MaterialCommunityIcons
-            name="share-variant-outline"
-            size={14}
-            color={theme.textPrimary}
-          />
-          <Text style={[styles.actionText, styles.actionTextOutline]}>
-            SHARE
-          </Text>
+          <Text style={styles.actionText}>COPY CODE</Text>
         </Pressable>
       </View>
 
+      <Pressable
+        onPress={() => void shareInvite()}
+        style={({ pressed }) => [
+          styles.actionBtn,
+          { marginTop: 2 },
+          pressed && { opacity: 0.84 },
+        ]}
+      >
+        <MaterialCommunityIcons name="share-variant" size={14} color="#fff" />
+        <Text style={styles.actionText}>SHARE INVITE</Text>
+      </Pressable>
+
       <Text style={styles.stats}>
-        Invited {summary.invited_count} · Qualified {summary.qualified_count}
-        {summary.was_referred ? ' · You joined via referral' : ''}
+        Invited {summary?.invited_count ?? 0} · Qualified{' '}
+        {summary?.qualified_count ?? 0}
+        {summary?.was_referred ? ' · You joined via referral' : ''}
       </Text>
       <Text style={styles.economyNote}>
-        Any cash share can come only from a finalized, funded BUKLOD revenue
-        pool. Points and referral units are not pesos.
+        Sharing rewards follow the active BUKLOD referral settings. Points and
+        referral units are not pesos.
       </Text>
 
       {economyLinks}
