@@ -28,9 +28,11 @@ $env:CI = '1'
 Write-Host "Publishing OTA → channel=production environment=production runtime=1.3.3"
 Write-Host "Message: $Message"
 
+# Android-only: production APK/AAB path. Avoids web export noise (e.g. sqlite wasm).
 npx eas update `
   --channel production `
   --environment production `
+  --platform android `
   --message $Message `
   --non-interactive
 
