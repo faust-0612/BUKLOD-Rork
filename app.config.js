@@ -389,7 +389,9 @@ module.exports = ({ config }) => {
         : undefined,
 
 
-    runtimeVersion: isClassroom ? '1.3.0' : (isStaging ? '1.3.2' : '1.3.3'),
+    // Main BUKLOD (prod APK + daily DEV install) share one runtime so OTA is one channel.
+    // Classroom stays on its own runtime. Do not fork Main staging to a different runtime.
+    runtimeVersion: isClassroom ? '1.3.0' : '1.3.3',
   };
 };
 

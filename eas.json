@@ -45,6 +45,9 @@
         "buildType": "apk"
       }
     },
+    "dev-apk": {
+      "extends": "production-apk"
+    },
     "e2e-test": {
       "withoutCredentials": true,
       "ios": {

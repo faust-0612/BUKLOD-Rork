@@ -22,6 +22,8 @@
     "supabase:local:reset": "supabase db reset",
     "supabase:test": "supabase test db",
     "build:android:preview": "eas build --platform android --profile preview",
+    "dev:apk": "powershell -ExecutionPolicy Bypass -File ./scripts/BUILD_DEV_APK.ps1",
+    "ota:main": "powershell -ExecutionPolicy Bypass -File ./scripts/PUSH_MAIN_OTA.ps1",
     "production:preflight": "node scripts/production-preflight.mjs",
     "production:migrations": "node scripts/verify-production-migrations.mjs",
     "production:dry-run": "bash scripts/production-cutover.sh",
