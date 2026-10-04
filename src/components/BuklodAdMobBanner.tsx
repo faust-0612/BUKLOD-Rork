@@ -11,6 +11,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { usePathname } from 'expo-router';
 
 import {
   BannerAd,
@@ -40,8 +41,13 @@ import {
 import {
   useNetwork,
 } from '@/providers/NetworkProvider';
+import {
+  isBuklodPassiveAdAllowed,
+  reserveBuklodPassiveAdRequest,
+} from '@/lib/buklodGlobalAdController';
+import { BANNER_RETRY_DELAYS_MS } from '@/lib/buklodAdMonetizationPolicy';
 
-const RETRY_DELAYS_MS = [8000, 20000, 45000];
+const RETRY_DELAYS_MS = BANNER_RETRY_DELAYS_MS;
 const MAX_RETRIES = RETRY_DELAYS_MS.length;
 
 type Props = {
@@ -62,6 +68,9 @@ type Props = {
   requireViewport?: boolean;
 
   showLabel?: boolean;
+  placementId?: string;
+  /** Tall inline banners only. Ignored for anchored and rectangle sizes. */
+  maxHeight?: number;
 };
 
 function BuklodAdMobBanner({
@@ -71,9 +80,18 @@ function BuklodAdMobBanner({
   diagnosticName,
   requireViewport = true,
   showLabel = true,
+  placementId,
+  maxHeight,
 }: Props) {
   const { ready, canRequestAds } = useAds();
   const { online } = useNetwork();
+  const pathname = usePathname();
+  const stablePlacementId = placementId ?? `${placement}_generic`;
+  const routeSafe = isBuklodPassiveAdAllowed({
+    placement,
+    placementId: stablePlacementId,
+    pathname,
+  });
   const { ref, eligible } = useBuklodAdViewportGate();
   const viewportReady = !requireViewport || eligible;
   const diagnostic =
@@ -85,13 +103,16 @@ function BuklodAdMobBanner({
   const [opacity] = useState(() => new Animated.Value(0));
   const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestedAttempt = useRef(-1);
+  const renderedAttempt = useRef(-1);
+  const slotReserved = useRef(false);
   const failedBecauseOffline = useRef(false);
 
   const unitId = getBuklodBannerUnitId(placement);
   const sdkReady = ready && canRequestAds;
   const shouldRequest =
-    !!unitId && sdkReady && viewportReady && online && !failed;
-  const mountBanner = (shouldRequest || loaded) && !!unitId && !failed;
+    routeSafe && !!unitId && sdkReady && viewportReady && online && !failed;
+  const mountBanner =
+    routeSafe && (shouldRequest || loaded) && !!unitId && !failed;
 
   useEffect(() => {
     return () => {
@@ -124,13 +145,46 @@ function BuklodAdMobBanner({
     if (!shouldRequest || requestedAttempt.current === attempt) {
       return;
     }
+    if (!slotReserved.current) {
+      const accepted = reserveBuklodPassiveAdRequest(
+        stablePlacementId,
+        `${pathname}:${stablePlacementId}`,
+      );
+      if (!accepted) {
+        setFailed(true);
+        return;
+      }
+      slotReserved.current = true;
+    }
+
     requestedAttempt.current = attempt;
-    recordBuklodAdEvent(diagnostic, 'requested');
-  }, [attempt, shouldRequest, diagnostic]);
+    recordBuklodAdEvent(
+      diagnostic,
+      'ad_request',
+      undefined,
+      { route: pathname, placementId: stablePlacementId },
+    );
+  }, [
+    attempt,
+    shouldRequest,
+    diagnostic,
+    pathname,
+    stablePlacementId,
+  ]);
 
   useEffect(() => {
     if (!loaded) {
       return;
+    }
+
+    if (renderedAttempt.current !== attempt) {
+      renderedAttempt.current = attempt;
+      recordBuklodAdEvent(
+        diagnostic,
+        'ad_rendered',
+        undefined,
+        { route: pathname, placementId: stablePlacementId },
+      );
     }
 
     Animated.timing(opacity, {
@@ -138,7 +192,7 @@ function BuklodAdMobBanner({
       duration: 280,
       useNativeDriver: true,
     }).start();
-  }, [loaded, opacity]);
+  }, [attempt, diagnostic, loaded, opacity, pathname]);
 
   const bannerSize =
     format === 'mediumRectangle'
@@ -147,7 +201,7 @@ function BuklodAdMobBanner({
         ? BannerAdSize.INLINE_ADAPTIVE_BANNER
         : BannerAdSize.ANCHORED_ADAPTIVE_BANNER;
 
-  if (!unitId || failed) {
+  if (!routeSafe || !unitId || failed) {
     return null;
   }
 
@@ -185,7 +239,9 @@ function BuklodAdMobBanner({
             styles.adArea,
             format === 'mediumRectangle'
               ? { minHeight: 250 }
-              : { minHeight: BUKLOD_DASHBOARD_BANNER_AD_HEIGHT },
+              : format === 'inline' && maxHeight
+                ? { minHeight: maxHeight }
+                : { minHeight: BUKLOD_DASHBOARD_BANNER_AD_HEIGHT },
           ]}
         >
           {mountBanner && unitId ? (
@@ -193,20 +249,21 @@ function BuklodAdMobBanner({
               key={`${unitId}:${attempt}`}
               unitId={unitId}
               size={bannerSize}
+              {...(format === 'inline' && maxHeight ? { maxHeight } : {})}
               onAdLoaded={() => {
                 setLoaded(true);
-                recordBuklodAdEvent(diagnostic, 'loaded');
+                recordBuklodAdEvent(diagnostic, 'ad_loaded', undefined, { route: pathname, placementId: stablePlacementId });
               }}
               onAdOpened={() => {
-                recordBuklodAdEvent(diagnostic, 'displayed');
+                recordBuklodAdEvent(diagnostic, 'ad_opened', undefined, { route: pathname, placementId: stablePlacementId });
               }}
               {...({
                 onAdImpression: () => {
-                  recordBuklodAdEvent(diagnostic, 'impression');
+                  recordBuklodAdEvent(diagnostic, 'ad_impression', undefined, { route: pathname, placementId: stablePlacementId });
                 },
               } as object)}
               onAdFailedToLoad={(error) => {
-                recordBuklodAdEvent(diagnostic, 'failed_load', error);
+                recordBuklodAdEvent(diagnostic, 'ad_failed', error, { route: pathname, placementId: stablePlacementId });
                 setLoaded(false);
 
                 if (!online) {

@@ -12,6 +12,7 @@ export type BuklodR38AdminWithdrawalRow = {
   requested_at: string;
   reviewed_at: string | null;
   approved_at: string | null;
+  processing_at: string | null;
   paid_at: string | null;
   payout_transaction_ref: string | null;
   rejection_reason: string | null;
@@ -21,7 +22,9 @@ export type BuklodR38AdminWithdrawalRow = {
 export type BuklodR38AdminWithdrawalQueue = {
   rows: BuklodR38AdminWithdrawalRow[];
   payout_processing_enabled: boolean;
-  referral_withdrawal_enabled: boolean;
+  withdrawal_enabled: boolean;
+  minimum_withdrawal_php: number;
+  full_balance_only: boolean;
 };
 
 export type BuklodR38PayoutDetails = {
@@ -157,9 +160,9 @@ export async function adminReconcileBuklodR38Referrals(limit = 500) {
 
 export async function adminListBuklodR38Withdrawals(status?: string | null) {
   return rpc<BuklodR38AdminWithdrawalQueue>(
-    'admin_list_buklod_r38_referral_withdrawals_v1',
+    'admin_list_buklod_pf_withdrawals_v2',
     { p_status: status?.trim() || null, p_limit: 100 },
-    'Could not load the R38 withdrawal queue.',
+    'Could not load the canonical withdrawal queue.',
   );
 }
 
@@ -169,7 +172,7 @@ export async function adminReviewBuklodR38Withdrawal(
   reason?: string,
 ) {
   return rpc<Record<string, unknown>>(
-    'admin_review_buklod_r38_referral_withdrawal_v1',
+    'admin_review_buklod_pf_withdrawal_v2',
     {
       p_withdrawal_id: withdrawalId,
       p_approve: approve,
@@ -179,9 +182,33 @@ export async function adminReviewBuklodR38Withdrawal(
   );
 }
 
+export async function adminMarkBuklodPfWithdrawalProcessing(
+  withdrawalId: string,
+) {
+  return rpc<Record<string, unknown>>(
+    'admin_mark_buklod_pf_withdrawal_processing_v2',
+    { p_withdrawal_id: withdrawalId },
+    'Could not move the withdrawal to processing.',
+  );
+}
+
+export async function adminFailBuklodPfWithdrawal(
+  withdrawalId: string,
+  reason: string,
+) {
+  return rpc<Record<string, unknown>>(
+    'admin_fail_buklod_pf_withdrawal_v2',
+    {
+      p_withdrawal_id: withdrawalId,
+      p_reason: reason.trim(),
+    },
+    'Could not mark the payout as failed.',
+  );
+}
+
 export async function adminGetBuklodR38PayoutDetails(withdrawalId: string) {
   return rpc<BuklodR38PayoutDetails>(
-    'admin_get_buklod_r38_withdrawal_payout_details_v1',
+    'admin_get_buklod_pf_withdrawal_payout_details_v2',
     { p_withdrawal_id: withdrawalId },
     'Could not access payout destination.',
   );
@@ -192,11 +219,146 @@ export async function adminMarkBuklodR38WithdrawalPaid(
   transactionRef: string,
 ) {
   return rpc<Record<string, unknown>>(
-    'admin_mark_buklod_r38_referral_withdrawal_paid_v1',
+    'admin_mark_buklod_pf_withdrawal_paid_v2',
     {
       p_withdrawal_id: withdrawalId,
       p_transaction_ref: transactionRef.trim(),
     },
     'Could not mark the withdrawal as paid.',
+  );
+}
+
+// BUKLOD_CANONICAL_FINANCE_ADMIN_V3
+export type BuklodPfFinancialEntryV3 = {
+  id: string;
+  entry_type: string;
+  direction: 'CREDIT' | 'DEBIT' | string;
+  amount_php: number;
+  reconciliation_state: string;
+  source_system: string | null;
+  external_reference: string | null;
+  idempotency_key: string;
+  notes: string | null;
+  created_at: string;
+};
+
+export type BuklodPfFinanceConsoleV3 = {
+  period_key: string;
+  controls: {
+    economics_enabled: boolean;
+    settlement_enabled: boolean;
+    withdrawal_enabled: boolean;
+    payout_processing_enabled: boolean;
+    minimum_withdrawal_php: number;
+  };
+  policy: {
+    version: string;
+    user_pool_pct: number;
+    first_line_pct: number;
+    cluster_pct: number;
+    organization_pct: number;
+    organization_threshold: number;
+  };
+  settlement: null | {
+    id: string;
+    period_key: string;
+    status: string;
+    prequalification_revenue_php: number;
+    qualification_reserve_opening_php: number;
+    qualification_reserve_closing_php: number;
+    one_time_referral_rewards_php: number;
+    prequalification_retained_transfer_php: number;
+    normal_eligible_revenue_php: number;
+    user_pool_php: number;
+    user_pool_distributed_php: number;
+    user_pool_reserved_php: number;
+    first_line_php: number;
+    community_fund_php: number;
+    buklod_retained_php: number;
+    operating_cost_php: number;
+    tax_reserve_php: number;
+    estimated_final_net_php: number;
+    qualified_monthly_points: number;
+    finalized_at: string | null;
+    policy_version: string;
+  };
+  financial_entries: BuklodPfFinancialEntryV3[];
+  user_shares: Array<{
+    person_id: string;
+    qualified_monthly_points: number;
+    share_php: number;
+  }>;
+  community_allocations: Array<{
+    scope_id: string;
+    tier: string;
+    active_contributors: number;
+    source_revenue_php: number;
+    allocation_pct: number;
+    allocation_php: number;
+  }>;
+};
+
+function makeBuklodPfIdempotencyKey(prefix: string) {
+  return `${prefix}:${Date.now()}:${Math.random()
+    .toString(36)
+    .slice(2, 10)}`;
+}
+
+export async function adminGetBuklodPfFinanceConsoleV3(
+  periodKey?: string | null,
+) {
+  return rpc<BuklodPfFinanceConsoleV3>(
+    'admin_get_buklod_pf_finance_console_v3',
+    {
+      p_period_key: periodKey?.trim() || null,
+    },
+    'Could not load the canonical Finance V3 console.',
+  );
+}
+
+export async function adminRecordBuklodPfFinancialEntryV3(input: {
+  periodKey: string;
+  entryType: string;
+  direction: 'CREDIT' | 'DEBIT';
+  amount: number;
+  reconciliationState: 'ESTIMATED' | 'RECONCILED' | 'REVERSED';
+  sourceSystem: string;
+  externalReference?: string;
+  notes?: string;
+  idempotencyKey?: string;
+}) {
+  return rpc<Record<string, unknown>>(
+    'admin_record_buklod_pf_financial_entry_v3',
+    {
+      p_period_key: input.periodKey.trim(),
+      p_entry_type: input.entryType.trim().toUpperCase(),
+      p_direction: input.direction,
+      p_amount_php: input.amount,
+      p_reconciliation_state: input.reconciliationState,
+      p_source_system: input.sourceSystem.trim() || 'manual_admin',
+      p_external_reference:
+        input.externalReference?.trim() || null,
+      p_idempotency_key:
+        input.idempotencyKey ||
+        makeBuklodPfIdempotencyKey('pf-financial-entry'),
+      p_notes: input.notes?.trim() || null,
+    },
+    'Could not record the canonical financial entry.',
+  );
+}
+
+export async function adminFinalizeBuklodPfMonthV3(
+  periodKey: string,
+) {
+  const key = periodKey.trim();
+
+  return rpc<Record<string, unknown>>(
+    'admin_finalize_buklod_pf_month_v3',
+    {
+      p_period_key: key,
+      p_idempotency_key:
+        `pf-finalize:${key}:canonical-v3`,
+    },
+    'Could not finalize the canonical Finance V3 month.',
   );
 }

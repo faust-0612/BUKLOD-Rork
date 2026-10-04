@@ -30,7 +30,8 @@ export function RingingCalls() {
   const ringingCall =
     calls.find(
       call =>
-        call.ringing
+        call.ringing &&
+        call.type !== 'buklod_ptt'
     );
 
 

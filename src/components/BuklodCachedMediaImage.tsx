@@ -6,6 +6,7 @@ import React, {
 } from 'react';
 
 import {
+  Platform,
   StyleSheet,
   View,
   type StyleProp,
@@ -26,6 +27,7 @@ type Props = {
   mediaPath?: string | null;
   style?: StyleProp<ImageStyle>;
   contentFit?: 'cover' | 'contain';
+  onLoad?: (event: any) => void;
 };
 
 function BuklodCachedMediaImageInner({
@@ -33,13 +35,16 @@ function BuklodCachedMediaImageInner({
   mediaPath,
   style,
   contentFit = 'cover',
+  onLoad,
 }: Props) {
+  /* BUKLOD_COMMUNITY_MEDIA_FRESH_URI_R2 */
   const path = String(mediaPath ?? '').trim();
-  const cacheKey = communityMediaCacheKey(path, path ? path : uri);
+  const preferredUri = String(uri ?? '').trim();
+  const cacheKey = communityMediaCacheKey(path, path ? path : preferredUri);
   const lockedPath = useRef(path);
   const [displayUri, setDisplayUri] = useState<string | null>(() =>
-    peekCommunityMediaUrl(path, null) ||
-    String(uri ?? '').trim() ||
+    peekCommunityMediaUrl(path, preferredUri) ||
+    preferredUri ||
     null,
   );
 
@@ -47,12 +52,22 @@ function BuklodCachedMediaImageInner({
     if (path !== lockedPath.current) {
       lockedPath.current = path;
       setDisplayUri(
-        peekCommunityMediaUrl(path, null) ||
-          String(uri ?? '').trim() ||
+        peekCommunityMediaUrl(path, preferredUri) ||
+          preferredUri ||
           null,
       );
+      return;
     }
-  }, [path]);
+
+    if (preferredUri && preferredUri !== displayUri) {
+      const next =
+        peekCommunityMediaUrl(path, preferredUri) ||
+        preferredUri;
+      if (next && next !== displayUri) {
+        setDisplayUri(next);
+      }
+    }
+  }, [path, preferredUri, displayUri]);
 
   useEffect(() => {
     if (!path || displayUri) {
@@ -90,8 +105,15 @@ function BuklodCachedMediaImageInner({
       style={style}
       contentFit={contentFit}
       cachePolicy="memory-disk"
-      recyclingKey={cacheKey}
+      priority="high"
+      /* BUKLOD_WEB_MEDIA_NO_RECYCLE_BLANK_R3
+       * On web, recyclingKey intentionally clears the underlying image while
+       * FlashList reuses a row. Keep the browser cache key but do not clear the
+       * painted image during fast scrolling/back-scroll.
+       */
+      recyclingKey={Platform.OS === 'web' ? undefined : cacheKey}
       transition={0}
+      onLoad={onLoad}
       onError={() => {
         if (!path) {
           return;
@@ -113,7 +135,11 @@ export const BuklodCachedMediaImage = memo(
     const prevPath = String(prev.mediaPath ?? '');
     const nextPath = String(next.mediaPath ?? '');
     if (prevPath || nextPath) {
-      return prevPath === nextPath && prev.contentFit === next.contentFit;
+      return (
+        prevPath === nextPath &&
+        String(prev.uri ?? '') === String(next.uri ?? '') &&
+        prev.contentFit === next.contentFit
+      );
     }
 
     return (

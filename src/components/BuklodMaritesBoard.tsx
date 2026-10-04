@@ -452,6 +452,26 @@ function createStyles(
       justifyContent: 'center',
       backgroundColor: 'rgba(0,0,0,0.42)',
     },
+    fullscreenStoryNav: {
+      position: 'absolute',
+      left: 10,
+      right: 10,
+      top: '46%',
+      zIndex: 24,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    fullscreenStoryNavBtn: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(0,0,0,0.48)',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.18)',
+    },
     fullscreenReactionDock: {
       position: 'absolute',
       left: 16,
@@ -924,9 +944,7 @@ export default function BuklodMaritesBoard({
     }
 
     try {
-      const rows = await withMaritesRefreshTimeout(
-        refreshPromise
-      );
+      const rows = await refreshPromise;
 
       if (generation !== loadGenerationRef.current) {
         return;
@@ -937,11 +955,19 @@ export default function BuklodMaritesBoard({
         userId
       );
 
-      maritesMemory.set(cacheKey, {
-        rows: visibleRows,
-        remoteUpdatedAt: Date.now(),
+      setStories((current) => {
+        const next =
+          visibleRows.length > 0
+            ? visibleRows
+            : current;
+
+        maritesMemory.set(cacheKey, {
+          rows: next,
+          remoteUpdatedAt: Date.now(),
+        });
+
+        return next;
       });
-      setStories(visibleRows);
     } catch (remoteError) {
       /* Keep warm/local stories visible when refresh is unavailable. */
       console.warn(
@@ -990,6 +1016,52 @@ export default function BuklodMaritesBoard({
     setReactionPickerOpen(false);
     setViewStory(story);
   }, []);
+
+  /*
+   * BUKLOD_MARITES_STORY_NAV_R1
+   *
+   * Story viewer stays open. Previous/Next moves directly between visible
+   * stories so users never need Back -> tap another card -> reopen.
+   */
+  const stepStoryViewer = useCallback(
+    (direction: -1 | 1) => {
+      if (
+        !viewStory ||
+        stories.length < 2
+      ) {
+        return;
+      }
+
+      const currentIndex =
+        stories.findIndex(
+          story =>
+            story.id ===
+            viewStory.id
+        );
+
+      const safeIndex =
+        currentIndex >= 0
+          ? currentIndex
+          : 0;
+
+      const nextIndex =
+        (
+          safeIndex +
+          direction +
+          stories.length
+        ) % stories.length;
+
+      setStoryZoomed(false);
+      setReactionPickerOpen(false);
+      setViewStory(
+        stories[nextIndex]
+      );
+    },
+    [
+      stories,
+      viewStory,
+    ]
+  );
 
   const communityPostIdForStory = useCallback(
     (story: MaritesStory) => {
@@ -1462,10 +1534,22 @@ export default function BuklodMaritesBoard({
         photoUris,
       });
 
-      setStories((current) => [
-        story,
-        ...current.filter((row) => row.id !== story.id),
-      ]);
+      loadGenerationRef.current += 1;
+      maritesRefreshes.delete(cacheKey);
+
+      setStories((current) => {
+        const next = [
+          story,
+          ...current.filter((row) => row.id !== story.id),
+        ];
+
+        maritesMemory.set(cacheKey, {
+          rows: next,
+          remoteUpdatedAt: Date.now(),
+        });
+
+        return next;
+      });
 
       if (!shared) {
         Alert.alert(
@@ -1488,6 +1572,7 @@ export default function BuklodMaritesBoard({
     }
   }, [
     draft,
+    cacheKey,
     photos,
     profile?.avatar_url,
     profile?.full_name,
@@ -1839,10 +1924,7 @@ export default function BuklodMaritesBoard({
                     onPress={() => {
                       if (longPressHandledRef.current) {
                         longPressHandledRef.current = false;
-                        return;
                       }
-
-                      closeStoryViewer();
                     }}
                     onLongPress={() => {
                       longPressHandledRef.current = true;
@@ -1921,6 +2003,53 @@ export default function BuklodMaritesBoard({
               )}
             </View>
 
+            {stories.length > 1 &&
+            !storyZoomed &&
+            !reactionPickerOpen ? (
+              <View
+                style={
+                  styles.fullscreenStoryNav
+                }
+                pointerEvents="box-none"
+              >
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Previous Marites story"
+                  style={
+                    styles.fullscreenStoryNavBtn
+                  }
+                  onPress={() =>
+                    stepStoryViewer(-1)
+                  }
+                  hitSlop={BUKLOD_HIT_SLOP}
+                >
+                  <MaterialCommunityIcons
+                    name="chevron-left"
+                    size={31}
+                    color="#FFFFFF"
+                  />
+                </Pressable>
+
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Next Marites story"
+                  style={
+                    styles.fullscreenStoryNavBtn
+                  }
+                  onPress={() =>
+                    stepStoryViewer(1)
+                  }
+                  hitSlop={BUKLOD_HIT_SLOP}
+                >
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={31}
+                    color="#FFFFFF"
+                  />
+                </Pressable>
+              </View>
+            ) : null}
+
             {!reactionPickerOpen ? (
               <View
                 style={[
@@ -1936,8 +2065,8 @@ export default function BuklodMaritesBoard({
               >
                 <Text style={styles.fullscreenHintText}>
                   {getMaritesStoryPhotos(viewStory).length
-                    ? 'Pinch to zoom · Drag to move · Long press for reactions'
-                    : 'Long press for reactions · Tap to go back'}
+                    ? 'Pinch to zoom · Drag to move · Long press for reactions · Use arrows for next story'
+                    : 'Long press for reactions · Use arrows for previous/next story'}
                 </Text>
               </View>
             ) : null}

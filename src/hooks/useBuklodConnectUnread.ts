@@ -20,6 +20,30 @@ function uniqueIds(
   );
 }
 
+function sumUnread(
+  rows: unknown
+) {
+  if (!Array.isArray(rows)) {
+    return 0;
+  }
+
+  return rows.reduce(
+    (total, row) => {
+      const value =
+        Math.max(
+          0,
+          Number(
+            (row as { unread_count?: unknown })
+              ?.unread_count ?? 0
+          ) || 0
+        );
+
+      return total + value;
+    },
+    0
+  );
+}
+
 function chunkIds(
   ids: string[],
   size = REALTIME_FILTER_CHUNK
@@ -51,45 +75,75 @@ export function useBuklodConnectUnread() {
     unreadCount,
     setUnreadCount,
   ] = useState(0);
+  const [
+    personalUnread,
+    setPersonalUnread,
+  ] = useState(0);
+  const [
+    communityUnread,
+    setCommunityUnread,
+  ] = useState(0);
 
   const refresh = useCallback(
     async () => {
       if (!profileId) {
         setUnreadCount(0);
+        setPersonalUnread(0);
+        setCommunityUnread(0);
         return;
       }
 
-      const {
-        data,
-        error,
-      } =
-        await (supabase as any).rpc(
-          'buklod_connect_unread_count'
-        );
+      const [
+        countResult,
+        personalResult,
+        roomResult,
+      ] =
+        await Promise.all([
+          (supabase as any).rpc(
+            'buklod_connect_unread_count'
+          ),
+          (supabase as any).rpc(
+            'buklod_connect_personal_threads'
+          ),
+          (supabase as any).rpc(
+            'buklod_connect_community_rooms'
+          ),
+        ]);
 
-      if (error) {
-        return;
+      if (!countResult.error) {
+        const data = countResult.data;
+        const raw =
+          Array.isArray(data)
+            ? data[0] ?? 0
+            : data ?? 0;
+
+        const numeric =
+          Number(
+            typeof raw === 'object'
+              ? raw?.unread_count ??
+                  raw?.count ??
+                  0
+              : raw
+          );
+
+        setUnreadCount(
+          Number.isFinite(numeric)
+            ? Math.max(0, numeric)
+            : 0
+        );
       }
 
-      const raw =
-        Array.isArray(data)
-          ? data[0] ?? 0
-          : data ?? 0;
-
-      const numeric =
-        Number(
-          typeof raw === 'object'
-            ? raw?.unread_count ??
-                raw?.count ??
-                0
-            : raw
+      if (!personalResult.error) {
+        setPersonalUnread(
+          sumUnread(personalResult.data)
         );
+      }
 
-      setUnreadCount(
-        Number.isFinite(numeric)
-          ? Math.max(0, numeric)
-          : 0
-      );
+      if (!roomResult.error) {
+        setCommunityUnread(
+          sumUnread(roomResult.data)
+        );
+      }
     },
     [
       profileId,
@@ -270,6 +324,8 @@ export function useBuklodConnectUnread() {
 
   return {
     unreadCount,
+    personalUnread,
+    communityUnread,
     refresh,
   };
 }

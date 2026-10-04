@@ -1,6 +1,8 @@
 /* BUKLOD_COMMUNITY_MEDIA_CANONICAL_R3 */
 /** Community Wall canonical composer contract. */
 export const COMMUNITY_MAX_PHOTOS = 10;
+/** One video plus up to 10 photos on the same post. */
+export const COMMUNITY_MAX_WALL_MEDIA = COMMUNITY_MAX_PHOTOS + 1;
 
 /**
  * Community Wall GIF posting is intentionally retired.
@@ -13,7 +15,7 @@ export const COMMUNITY_WALL_VIDEO_MAX_BYTES = 1_073_741_824;
 export const COMMUNITY_WALL_VIDEO_MAX_SECONDS = 30 * 60;
 
 export const COMMUNITY_MEDIA_POSITION_MIN = 0;
-export const COMMUNITY_MEDIA_POSITION_MAX = COMMUNITY_MAX_PHOTOS - 1;
+export const COMMUNITY_MEDIA_POSITION_MAX = COMMUNITY_MAX_WALL_MEDIA - 1;
 
 export function communityPhotoLimitMessage(
   maxPhotos = COMMUNITY_MAX_PHOTOS

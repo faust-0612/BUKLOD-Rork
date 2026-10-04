@@ -26,7 +26,13 @@ type Props = {
   height?: number;
   style?: StyleProp<ViewStyle>;
   imageStyle?: StyleProp<ImageStyle>;
+  contentFit?: 'cover' | 'contain';
+  preserveSinglePhotoAspectRatio?: boolean;
   onPressPhoto?: (
+    index: number,
+    items: CommunityPhotoCollageItem[]
+  ) => void;
+  onLongPressPhoto?: (
     index: number,
     items: CommunityPhotoCollageItem[]
   ) => void;
@@ -150,13 +156,21 @@ export function BuklodCommunityPhotoCollage({
   height,
   style,
   imageStyle,
+  contentFit = 'cover',
+  preserveSinglePhotoAspectRatio = false,
   onPressPhoto,
+  onLongPressPhoto,
 }: Props) {
   const photos = communityPhotoCollageItems(items);
   const count = photos.length;
   const [measuredWidth, setMeasuredWidth] = useState(
     Math.max(1, Dimensions.get('window').width - 24)
   );
+
+  const [
+    singleAspectRatio,
+    setSingleAspectRatio,
+  ] = useState<number | null>(null);
 
   if (!count) {
     return null;
@@ -166,8 +180,26 @@ export function BuklodCommunityPhotoCollage({
     1,
     width ?? measuredWidth
   );
+  const singlePhotoHeight =
+    height ??
+    (
+      preserveSinglePhotoAspectRatio &&
+      singleAspectRatio &&
+      singleAspectRatio > 0
+        ? Math.max(
+            1,
+            Math.round(
+              collageWidth /
+                singleAspectRatio
+            )
+          )
+        : 310
+    );
+
   const collageHeight =
-    height ?? (count === 1 ? 310 : 280);
+    count === 1
+      ? singlePhotoHeight
+      : (height ?? 280);
 
   const handleLayout = (event: LayoutChangeEvent) => {
     if (width != null) {
@@ -191,6 +223,7 @@ export function BuklodCommunityPhotoCollage({
       <Pressable
         onLayout={handleLayout}
         onPress={() => onPressPhoto?.(0, photos)}
+        onLongPress={() => onLongPressPhoto?.(0, photos)}
         style={[
           styles.one,
           {
@@ -204,7 +237,56 @@ export function BuklodCommunityPhotoCollage({
           uri={photos[0].media_url}
           mediaPath={photos[0].media_path}
           style={[styles.image, imageStyle]}
-          contentFit="cover"
+          contentFit={
+            preserveSinglePhotoAspectRatio
+              ? 'contain'
+              : contentFit
+          }
+          onLoad={(event: any) => {
+            if (
+              !preserveSinglePhotoAspectRatio ||
+              height != null
+            ) {
+              return;
+            }
+
+            const source =
+              event?.source ?? event;
+
+            const imageWidth =
+              Number(
+                source?.width ??
+                event?.width ??
+                0
+              );
+
+            const imageHeight =
+              Number(
+                source?.height ??
+                event?.height ??
+                0
+              );
+
+            if (
+              imageWidth > 0 &&
+              imageHeight > 0
+            ) {
+              const nextRatio =
+                imageWidth /
+                imageHeight;
+
+              setSingleAspectRatio(
+                current =>
+                  current &&
+                  Math.abs(
+                    current -
+                    nextRatio
+                  ) < 0.001
+                    ? current
+                    : nextRatio
+              );
+            }
+          }}
         />
       </Pressable>
     );
@@ -247,13 +329,16 @@ export function BuklodCommunityPhotoCollage({
             onPress={() =>
               onPressPhoto?.(index, photos)
             }
+            onLongPress={() =>
+              onLongPressPhoto?.(index, photos)
+            }
             style={[styles.tile, tileStyle]}
           >
             <BuklodCachedMediaImage
               uri={photo.media_url}
               mediaPath={photo.media_path}
               style={[styles.image, imageStyle]}
-              contentFit="cover"
+              contentFit={contentFit}
             />
 
             {showMore ? (
