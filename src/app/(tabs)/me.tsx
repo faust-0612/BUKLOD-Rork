@@ -1276,13 +1276,15 @@ export default function MeScreen() {
       </ProfileMotionFadeUp>
     ) : null;
 
-  const referralSection = sectionVisible('highlights') ? (
+  /* Always visible on Profile — not tied to customizable Highlights layout. */
+  const referralSection = (
     <ProfileMotionFadeUp delay={60}>
       <View style={styles.sectionPad}>
-        <BuklodReferralInviteCard />
+        <Text style={styles.eyebrow}>SHARE BUKLOD</Text>
+        <BuklodReferralInviteCard username={username || null} />
       </View>
     </ProfileMotionFadeUp>
-  ) : null;
+  );
 
   const quickActionItems = useMemo<QuickActionItem[]>(
     () => [
