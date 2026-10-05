@@ -52,7 +52,6 @@ describe(
       'offline',
       'reconnecting-failed',
       'reconnecting_failed',
-      '',
     ])(
       'treats %s as terminal',
       state => {
@@ -85,6 +84,16 @@ describe(
     test(
       'uses ringing fallback only for unknown non-terminal SDK state',
       () => {
+        expect(
+          isBuklodActiveNonPttCall(
+            fakeCall(
+              '',
+              'default',
+              true
+            )
+          )
+        ).toBe(true);
+
         expect(
           isBuklodActiveNonPttCall(
             fakeCall(
