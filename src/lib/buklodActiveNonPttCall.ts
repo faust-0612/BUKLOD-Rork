@@ -20,7 +20,6 @@ const LIVE_STATES = new Set([
 ]);
 
 const TERMINAL_STATES = new Set([
-  '',
   'idle',
   'left',
   'offline',
