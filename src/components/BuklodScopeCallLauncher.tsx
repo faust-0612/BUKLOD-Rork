@@ -3,6 +3,9 @@ import {
   buildBuklodScopeCallId,
   formatBuklodCallStartError,
 } from '@/lib/buklodStreamCall';
+import {
+  restoreActiveNonPttCallIfAny,
+} from '@/lib/buklodActiveNonPttCall';
 import React, {
   useCallback,
   useEffect,
@@ -314,6 +317,14 @@ BuklodScopeCallLauncher({
           const callClient =
             videoClient ??
             await ensureBuklodStreamVideoClient();
+
+          if (
+            restoreActiveNonPttCallIfAny(
+              callClient.state.calls
+            )
+          ) {
+            return;
+          }
 
           /*
            * Refresh immediately before ringing so membership
