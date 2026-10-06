@@ -21,6 +21,9 @@ import {
   buildBuklodScopeCallId,
   formatBuklodCallStartError,
 } from '@/lib/buklodStreamCall';
+import {
+  restoreActiveNonPttCallIfAny,
+} from '@/lib/buklodActiveNonPttCall';
 import { useStreamVideoClient } from '@/lib/streamVideoSdk';
 import { supabase } from '@/lib/supabase';
 import { useConnectTheme } from '@/providers/ConnectThemeProvider';
@@ -145,6 +148,14 @@ export default function BuklodScopeCallLauncher({
       const client =
         videoClient ??
         await ensureBuklodStreamVideoClient();
+
+      if (
+        restoreActiveNonPttCallIfAny(
+          client.state.calls
+        )
+      ) {
+        return;
+      }
 
       const membersResult = await (supabase as any).rpc(
         'buklod_connect_scope_call_members',
