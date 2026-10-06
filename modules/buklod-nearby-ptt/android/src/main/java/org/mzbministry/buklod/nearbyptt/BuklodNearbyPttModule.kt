@@ -5,10 +5,13 @@ import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.media.AudioAttributes
+import android.media.AudioDeviceInfo
 import android.media.AudioFormat
+import android.media.AudioManager
 import android.media.AudioRecord
 import android.media.AudioTrack
 import android.media.MediaRecorder
+import android.os.Build
 import androidx.core.content.ContextCompat
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.AdvertisingOptions
@@ -96,6 +99,16 @@ class BuklodNearbyPttModule : Module() {
   @Volatile
   private var recordThread:
     Thread? =
+    null
+
+  @Volatile
+  private var previousAudioMode:
+    Int? =
+    null
+
+  @Volatile
+  private var previousSpeakerphoneOn:
+    Boolean? =
     null
 
   private val reactContext: Context
@@ -490,6 +503,95 @@ class BuklodNearbyPttModule : Module() {
       ) ==
       PackageManager.PERMISSION_GRANTED
 
+  private fun audioManager():
+    AudioManager =
+    reactContext.getSystemService(
+      Context.AUDIO_SERVICE
+    ) as AudioManager
+
+  private fun enableRadioAudioRoute() {
+    try {
+      val manager =
+        audioManager()
+
+      if (previousAudioMode == null) {
+        previousAudioMode =
+          manager.mode
+      }
+
+      if (previousSpeakerphoneOn == null) {
+        previousSpeakerphoneOn =
+          manager.isSpeakerphoneOn
+      }
+
+      manager.mode =
+        AudioManager.MODE_IN_COMMUNICATION
+
+      if (
+        Build.VERSION.SDK_INT >=
+          Build.VERSION_CODES.S
+      ) {
+        val speaker =
+          manager
+            .availableCommunicationDevices
+            .firstOrNull {
+              it.type ==
+                AudioDeviceInfo.TYPE_BUILTIN_SPEAKER
+            }
+
+        if (speaker != null) {
+          manager.setCommunicationDevice(
+            speaker
+          )
+        }
+      } else {
+        @Suppress("DEPRECATION")
+        manager.isSpeakerphoneOn =
+          true
+      }
+    } catch (
+      error: Throwable
+    ) {
+      emitError(
+        "E_NEARBY_AUDIO_ROUTE",
+        error
+      )
+    }
+  }
+
+  private fun restoreRadioAudioRoute() {
+    try {
+      val manager =
+        audioManager()
+
+      if (
+        Build.VERSION.SDK_INT >=
+          Build.VERSION_CODES.S
+      ) {
+        manager.clearCommunicationDevice()
+      } else {
+        previousSpeakerphoneOn
+          ?.let {
+            @Suppress("DEPRECATION")
+            manager.isSpeakerphoneOn =
+              it
+          }
+      }
+
+      previousAudioMode
+        ?.let {
+          manager.mode =
+            it
+        }
+    } catch (_: Throwable) {
+    } finally {
+      previousAudioMode =
+        null
+      previousSpeakerphoneOn =
+        null
+    }
+  }
+
   private fun startNearbyInternal() {
     stopDiscoveryOnly()
 
@@ -502,6 +604,8 @@ class BuklodNearbyPttModule : Module() {
       .startListening(
         reactContext
       )
+
+    enableRadioAudioRoute()
 
     val strategy =
       Strategy.P2P_CLUSTER
@@ -601,6 +705,8 @@ class BuklodNearbyPttModule : Module() {
       .stop(
         reactContext
       )
+
+    restoreRadioAudioRoute()
   }
 
   private fun audioTrack():
