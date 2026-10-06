@@ -30,7 +30,7 @@
 
   <application>
     <service
-      android:name=".BuklodNearbyPttService"
+      android:name="org.mzbministry.buklod.nearbyptt.BuklodNearbyPttService"
       android:exported="false"
       android:stopWithTask="false"
       android:foregroundServiceType="connectedDevice|microphone" />
