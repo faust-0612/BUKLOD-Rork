@@ -116,6 +116,13 @@ async function ensureNearbyPermission(): Promise<boolean> {
     if (api >= 33 && (PermissionsAndroid.PERMISSIONS as any).NEARBY_WIFI_DEVICES) {
       perms.push((PermissionsAndroid.PERMISSIONS as any).NEARBY_WIFI_DEVICES);
     }
+    if (
+      api >= 23 &&
+      api <= 32 &&
+      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+    ) {
+      perms.push(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
+    }
 
     if (!perms.length) return true;
 
@@ -222,6 +229,17 @@ export async function refreshBuklodPttSetup(): Promise<BuklodPttSetupSnapshot> {
         checks.push(
           PermissionsAndroid.check(
             (PermissionsAndroid.PERMISSIONS as any).NEARBY_WIFI_DEVICES,
+          ),
+        );
+      }
+      if (
+        api >= 23 &&
+        api <= 32 &&
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+      ) {
+        checks.push(
+          PermissionsAndroid.check(
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
           ),
         );
       }
