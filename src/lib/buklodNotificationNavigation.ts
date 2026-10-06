@@ -106,13 +106,23 @@ export function resolveBuklodNotificationTarget(
 
   const assignmentId = clean(payload.assignment_id);
   const assignedDate = clean(payload.date);
-  if (
-    normalizedKind === 'formation_daily_reading_reminder' &&
-    assignmentId
-  ) {
+  if (normalizedKind === 'formation_daily_reading_reminder') {
+    /*
+     * DAILY_READING_NOTIFICATION_ROUTE_R1
+     *
+     * Keep notification entry identical to the canonical Daily Reading
+     * doorway used by the Cluster/Organization Home card.
+     *
+     * Do NOT pass assignment_id into /bible/read here. BibleLayout treats
+     * a bare source=daily_plan doorway as a request for the current Daily
+     * Reading dashboard and redirects to /bible?mode=respond. Passing an
+     * assignment id bypasses that doorway and can reopen stale reader state.
+     *
+     * The producer may continue carrying assignment_id in the notification
+     * payload for identity/audit purposes; navigation intentionally ignores it.
+     */
     const query = new URLSearchParams();
     query.set('source', 'daily_plan');
-    query.set('assignment_id', assignmentId);
     if (assignedDate) query.set('assignedDate', assignedDate);
 
     return {
