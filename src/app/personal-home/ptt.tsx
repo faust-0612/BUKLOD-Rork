@@ -484,6 +484,13 @@ export default function BuklodPttScreen() {
   const chooseRoute = async (next: BuklodPttRouteMode) => {
     setRouteMode(next);
     await saveBuklodPttRouteMode(next);
+
+    if (next !== 'INTERNET' && setup && !setup.nearby) {
+      const nearbyItem = setup.items.find((item) => item.key === 'nearby');
+      if (nearbyItem?.action) {
+        await runSetupAction('nearby', nearbyItem.action);
+      }
+    }
   };
 
   useEffect(() => {
@@ -501,7 +508,8 @@ export default function BuklodPttScreen() {
     if (
       routeMode === 'INTERNET' ||
       !scope ||
-      Platform.OS !== 'android'
+      Platform.OS !== 'android' ||
+      !setup?.nearby
     ) {
       stopPolling();
       setNearbyPeers([]);
@@ -581,7 +589,7 @@ export default function BuklodPttScreen() {
       void stopBuklodNearbyPttTransmit().catch(() => undefined);
       void stopBuklodNearbyPtt().catch(() => undefined);
     };
-  }, [routeMode, scope?.id, channel]);
+  }, [routeMode, scope?.id, channel, setup?.nearby]);
 
   useEffect(() => {
     if (effectiveRoute !== 'NEARBY') return;
