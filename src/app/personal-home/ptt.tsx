@@ -499,7 +499,7 @@ export default function BuklodPttScreen() {
     };
 
     if (
-      effectiveRoute !== 'NEARBY' ||
+      routeMode === 'INTERNET' ||
       !scope ||
       Platform.OS !== 'android'
     ) {
@@ -526,8 +526,6 @@ export default function BuklodPttScreen() {
 
     setNearbySearching(true);
     setNearbyTransmitting(false);
-
-    void disconnectBuklodPttRuntime().catch(() => undefined);
 
     void (async () => {
       const {
@@ -583,7 +581,13 @@ export default function BuklodPttScreen() {
       void stopBuklodNearbyPttTransmit().catch(() => undefined);
       void stopBuklodNearbyPtt().catch(() => undefined);
     };
-  }, [effectiveRoute, scope?.id, channel]);
+  }, [routeMode, scope?.id, channel]);
+
+  useEffect(() => {
+    if (effectiveRoute !== 'NEARBY') return;
+    if (!runtime.connection) return;
+    void disconnectBuklodPttRuntime().catch(() => undefined);
+  }, [effectiveRoute, runtime.connection]);
 
   const nearbyDown = useCallback(async () => {
     await startBuklodNearbyPttTransmit();
