@@ -8,6 +8,10 @@ import {
   Platform,
 } from 'react-native';
 
+import {
+  isBuklodNearbyBluetoothEnabled,
+} from './buklodNearbyPtt';
+
 export type BuklodPttRouteMode = 'AUTO' | 'INTERNET' | 'NEARBY';
 
 export type BuklodPttSetupItemKey =
@@ -254,7 +258,10 @@ export async function refreshBuklodPttSetup(): Promise<BuklodPttSetupSnapshot> {
   const internet =
     net?.isConnected !== false && net?.isInternetReachable !== false;
   const wifiOn = wifiConnected ? true : connectionType === 'none' ? false : null;
-  const bluetoothOn = nearby ? null : null;
+  const bluetoothOn =
+    Platform.OS === 'android'
+      ? isBuklodNearbyBluetoothEnabled()
+      : null;
 
   const items: BuklodPttSetupItem[] = [
     {
@@ -303,9 +310,9 @@ export async function refreshBuklodPttSetup(): Promise<BuklodPttSetupSnapshot> {
     {
       key: 'bluetooth',
       label: 'Bluetooth',
-      ok: true,
-      actionLabel: null,
-      action: null,
+      ok: bluetoothOn !== false,
+      actionLabel: bluetoothOn === false ? 'TURN ON BLUETOOTH' : null,
+      action: bluetoothOn === false ? openBluetoothSettings : null,
     },
     {
       key: 'background',
