@@ -6,6 +6,9 @@ import {
   buildBuklodPersonalCallId,
   formatBuklodCallStartError,
 } from '@/lib/buklodStreamCall';
+import {
+  restoreActiveNonPttCallIfAny,
+} from '@/lib/buklodActiveNonPttCall';
 import { repairMojibakeText } from '@/lib/repairMojibakeText';
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -822,6 +825,19 @@ function BuklodConnectThreadInner({
           const callClient =
             directVideoClient ??
             await ensureBuklodStreamVideoClient();
+
+          /*
+           * If any normal BUKLOD call is already live,
+           * the Call button is a "return to call" action.
+           * Never mint a second ringing call while one is active.
+           */
+          if (
+            restoreActiveNonPttCallIfAny(
+              callClient.state.calls
+            )
+          ) {
+            return;
+          }
 
           const callId =
             buildBuklodPersonalCallId(
