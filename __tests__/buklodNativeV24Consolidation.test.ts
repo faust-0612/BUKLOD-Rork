@@ -50,6 +50,9 @@ describe('V24 native consolidation contract', () => {
     expect(native).toContain('acceptConnection');
     expect(native).toContain('AudioRecord');
     expect(native).toContain('AudioTrack');
+    expect(native).toContain('MODE_IN_COMMUNICATION');
+    expect(native).toContain('TYPE_BUILTIN_SPEAKER');
+    expect(native).toContain('setCommunicationDevice');
     expect(native).toContain('sendPayload');
     expect(native).toContain('Strategy.P2P_CLUSTER');
   });
