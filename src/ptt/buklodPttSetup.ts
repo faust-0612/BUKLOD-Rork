@@ -107,6 +107,9 @@ async function ensureNearbyPermission(): Promise<boolean> {
     if (api >= 31 && PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT) {
       perms.push(PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT);
     }
+    if (api >= 31 && (PermissionsAndroid.PERMISSIONS as any).BLUETOOTH_ADVERTISE) {
+      perms.push((PermissionsAndroid.PERMISSIONS as any).BLUETOOTH_ADVERTISE);
+    }
     if (api >= 31 && PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN) {
       perms.push(PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN);
     }
@@ -199,6 +202,20 @@ export async function refreshBuklodPttSetup(): Promise<BuklodPttSetupSnapshot> {
       if (api >= 31 && PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT) {
         checks.push(
           PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT),
+        );
+      }
+      if (api >= 31 && (PermissionsAndroid.PERMISSIONS as any).BLUETOOTH_SCAN) {
+        checks.push(
+          PermissionsAndroid.check(
+            (PermissionsAndroid.PERMISSIONS as any).BLUETOOTH_SCAN,
+          ),
+        );
+      }
+      if (api >= 31 && (PermissionsAndroid.PERMISSIONS as any).BLUETOOTH_ADVERTISE) {
+        checks.push(
+          PermissionsAndroid.check(
+            (PermissionsAndroid.PERMISSIONS as any).BLUETOOTH_ADVERTISE,
+          ),
         );
       }
       if (api >= 33 && (PermissionsAndroid.PERMISSIONS as any).NEARBY_WIFI_DEVICES) {
