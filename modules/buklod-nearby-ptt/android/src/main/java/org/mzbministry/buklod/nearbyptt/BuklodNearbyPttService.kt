@@ -58,13 +58,12 @@ class BuklodNearbyPttService : Service() {
     }
 
     fun stop(context: Context) {
-      val intent =
+      context.stopService(
         Intent(
           context,
           BuklodNearbyPttService::class.java
-        ).setAction(ACTION_STOP)
-
-      context.startService(intent)
+        )
+      )
     }
   }
 
@@ -98,6 +97,13 @@ class BuklodNearbyPttService : Service() {
   }
 
   override fun onBind(intent: Intent?): IBinder? = null
+
+  override fun onDestroy() {
+    stopForeground(
+      STOP_FOREGROUND_REMOVE
+    )
+    super.onDestroy()
+  }
 
   private fun ensureChannel() {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
@@ -160,9 +166,7 @@ class BuklodNearbyPttService : Service() {
 
     builder
       .setSmallIcon(
-        applicationInfo.icon
-          .takeIf { it != 0 }
-          ?: android.R.drawable.stat_sys_data_bluetooth
+        android.R.drawable.stat_sys_data_bluetooth
       )
       .setContentTitle(
         if (transmitting) {
