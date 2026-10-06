@@ -39,15 +39,19 @@ jobs:
       - name: Expo prebuild Android
         run: npx expo prebuild --platform android --clean --no-install
 
-      - name: Compile Android Kotlin
+      - name: Compile Nearby PTT Kotlin only
         working-directory: android
+        env:
+          GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4g
         run: |
           chmod +x gradlew
-          ./gradlew :app:compileDebugKotlin --stacktrace --no-daemon
+          ./gradlew :buklod-nearby-ptt:compileDebugKotlin --stacktrace --no-daemon
 
       - name: Generate merged Android manifest
         working-directory: android
-        run: ./gradlew :app:processDebugMainManifest --no-daemon
+        env:
+          GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4g
+        run: ./gradlew :app:processDebugMainManifest --stacktrace --no-daemon
 
       - name: Verify consolidated native manifest
         run: |
