@@ -10,6 +10,7 @@ export type BuklodNearbyPttPeer = {
 
 type BuklodNearbyPttNative = {
   isAvailable(): boolean;
+  isBluetoothEnabled(): boolean;
   getPeers(): BuklodNearbyPttPeer[];
   start(
     scopeId: string,
@@ -43,6 +44,14 @@ function moduleOrThrow() {
   }
 
   return native;
+}
+
+export function isBuklodNearbyBluetoothEnabled() {
+  try {
+    return native?.isBluetoothEnabled?.() ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export function getBuklodNearbyPttPeers():
