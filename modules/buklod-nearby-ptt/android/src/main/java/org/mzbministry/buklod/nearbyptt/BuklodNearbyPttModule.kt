@@ -1,6 +1,7 @@
 package org.mzbministry.buklod.nearbyptt
 
 import android.Manifest
+import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.media.AudioAttributes
@@ -924,6 +925,24 @@ class BuklodNearbyPttModule : Module() {
         "getPeers"
       ) {
         peerRows()
+      }
+
+      Function(
+        "isBluetoothEnabled"
+      ) {
+        try {
+          val manager =
+            reactContext
+              .getSystemService(
+                Context.BLUETOOTH_SERVICE
+              ) as BluetoothManager
+
+          manager.adapter
+            ?.isEnabled
+            ?: false
+        } catch (_: Throwable) {
+          false
+        }
       }
 
       AsyncFunction(
