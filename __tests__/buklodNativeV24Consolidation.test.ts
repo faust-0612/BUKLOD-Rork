@@ -42,7 +42,7 @@ describe('V24 native consolidation contract', () => {
     );
 
     expect(gradle).toContain(
-      "com.google.android.gms:play-services-nearby:19.5.0",
+      "com.google.android.gms:play-services-nearby:19.3.0",
     );
     expect(native).toContain('startAdvertising');
     expect(native).toContain('startDiscovery');
