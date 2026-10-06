@@ -6,7 +6,6 @@ const PERMISSIONS = [
   ['android.permission.NEARBY_WIFI_DEVICES', 'neverForLocation'],
   ['android.permission.ACCESS_WIFI_STATE', null],
   ['android.permission.CHANGE_WIFI_STATE', null],
-  ['android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE', null],
 ];
 
 function ensurePermission(manifest, name, flags) {
