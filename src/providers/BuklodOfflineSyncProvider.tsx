@@ -15,7 +15,6 @@ import {
   subscribePendingActions,
   type BuklodPendingAction,
 } from '@/lib/buklodOfflineSync';
-import { SCALE_LIMITS } from '@/lib/performanceScale';
 import { hydrateCommunityMediaUrlCache } from '@/lib/buklodMediaUrl';
 import { supabase } from '@/lib/supabase';
 import { useNetwork } from '@/providers/NetworkProvider';
@@ -29,7 +28,7 @@ type OfflineSyncValue = {
 
 const BuklodOfflineSyncContext =
   createContext<OfflineSyncValue>({
-    online: true,
+    online: false,
     pendingCount: 0,
     pendingActions: [],
     flushNow: async () => {},
@@ -88,9 +87,7 @@ export function BuklodOfflineSyncProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const { isConnected, isInternetReachable } = useNetwork();
-  const online =
-    isConnected && isInternetReachable !== false;
+  const { online } = useNetwork();
 
   const [pendingActions, setPendingActions] = useState<
     BuklodPendingAction[]
@@ -127,26 +124,6 @@ export function BuklodOfflineSyncProvider({
       void reloadPending();
     });
   }, [reloadPending]);
-
-  useEffect(() => {
-    if (!online) {
-      return;
-    }
-
-    void flushNow();
-  }, [online, flushNow]);
-
-  useEffect(() => {
-    if (!online) {
-      return;
-    }
-
-    const timer = setInterval(() => {
-      void flushNow();
-    }, SCALE_LIMITS.offlineBackgroundRefreshMs);
-
-    return () => clearInterval(timer);
-  }, [online, flushNow]);
 
   const value = useMemo(
     () => ({
