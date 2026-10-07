@@ -15,8 +15,8 @@ import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 
 export default function Index() {
   const { session, loading, profile } = useAuth();
-  const { loading: complianceLoading, requiresAcceptance } = useCompliance();
-  const { loading: runtimeLoading, config } = useRuntimeConfig();
+  const { requiresAcceptance } = useCompliance();
+  const { config } = useRuntimeConfig();
 
   /*
    * BUKLOD_PUBLIC_BOOT_R21
@@ -111,11 +111,7 @@ export default function Index() {
     selectScope,
   ]);
 
-  if (
-    (loading && !session && !profile) ||
-    (complianceLoading && !session) ||
-    (runtimeLoading && !config)
-  ) {
+  if (loading && !session && !profile) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white }}>
         <ActivityIndicator color={colors.green} />
