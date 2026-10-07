@@ -21,6 +21,7 @@ import { useNetwork } from '@/providers/NetworkProvider';
 
 type OfflineSyncValue = {
   online: boolean;
+  syncing: boolean;
   pendingCount: number;
   pendingActions: BuklodPendingAction[];
   flushNow: () => Promise<void>;
@@ -29,6 +30,7 @@ type OfflineSyncValue = {
 const BuklodOfflineSyncContext =
   createContext<OfflineSyncValue>({
     online: false,
+    syncing: false,
     pendingCount: 0,
     pendingActions: [],
     flushNow: async () => {},
@@ -93,6 +95,7 @@ export function BuklodOfflineSyncProvider({
     BuklodPendingAction[]
   >([]);
   const [pendingCount, setPendingCount] = useState(0);
+  const [syncing, setSyncing] = useState(false);
 
   const reloadPending = useCallback(async () => {
     const [actions, count] = await Promise.all([
@@ -108,8 +111,13 @@ export function BuklodOfflineSyncProvider({
       return;
     }
 
-    await flushPendingActions();
-    await reloadPending();
+    setSyncing(true);
+    try {
+      await flushPendingActions();
+      await reloadPending();
+    } finally {
+      setSyncing(false);
+    }
   }, [online, reloadPending]);
 
   useEffect(() => {
@@ -128,11 +136,12 @@ export function BuklodOfflineSyncProvider({
   const value = useMemo(
     () => ({
       online,
+      syncing,
       pendingCount,
       pendingActions,
       flushNow,
     }),
-    [online, pendingCount, pendingActions, flushNow],
+    [online, syncing, pendingCount, pendingActions, flushNow],
   );
 
   return (
