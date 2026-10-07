@@ -165,7 +165,6 @@ export async function showBuklodRewardedAd(
       unsubscribeError();
       showing = false;
       clearWarmedAd(ad);
-      void prepareRewardedAd();
       resolve({
         shown,
         earned: Boolean(earnedReward),
