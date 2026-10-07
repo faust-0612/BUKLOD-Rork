@@ -1,4 +1,5 @@
 import NetInfo, { type NetInfoState } from '@react-native-community/netinfo';
+import { Platform } from 'react-native';
 import React, {
   createContext,
   useCallback,
@@ -54,6 +55,18 @@ function classifyNetworkState(
   }
 
   if (state.isInternetReachable === true) {
+    return 'online';
+  }
+
+  /*
+   * Browsers commonly expose only navigator.onLine through NetInfo and may
+   * leave isInternetReachable=null. Do not strand the web app in DEGRADED
+   * forever when the browser itself confirms a connected transport.
+   */
+  if (
+    Platform.OS === 'web' &&
+    state.isInternetReachable == null
+  ) {
     return 'online';
   }
 
