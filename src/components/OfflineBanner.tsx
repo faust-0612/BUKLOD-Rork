@@ -15,9 +15,13 @@ export function OfflineBanner() {
       ? pendingCount > 0
         ? `Offline • ${pendingCount} pending • saved data remains available`
         : 'Offline • saved data remains available'
-      : status === 'syncing'
-        ? `Syncing • ${pendingCount} pending`
-        : `${pendingCount} pending • waiting to sync`;
+      : status === 'degraded'
+        ? pendingCount > 0
+          ? `Limited connection • ${pendingCount} pending • using saved data`
+          : 'Limited connection • using saved data'
+        : status === 'syncing'
+          ? `Syncing • ${pendingCount} pending`
+          : `${pendingCount} pending • waiting to sync`;
 
   return (
     <View
