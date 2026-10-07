@@ -770,17 +770,18 @@ function ExpoCommunityVideo({
                       Number(player.currentTime || currentTime || 0),
                     );
                     player.pause();
-
-                    const ownerId =
-                      instanceIdRef.current;
-                    if (ownerId) {
-                      releaseCommunityVideoPlayback(
-                        ownerId,
-                      );
-                    }
                   } catch {
                     // Opening fullscreen still continues from the saved time.
                   }
+
+                  const ownerId =
+                    instanceIdRef.current;
+                  if (ownerId) {
+                    releaseCommunityVideoPlayback(
+                      ownerId,
+                    );
+                  }
+
                   onOpenFullscreen();
                 }}
                 style={styles.roundButton}
