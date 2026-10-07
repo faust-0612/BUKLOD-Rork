@@ -53,9 +53,7 @@ export function useBuklodOfflineCache<T>({
   merge,
   refreshIntervalMs,
 }: Options<T>) {
-  const { isConnected, isInternetReachable } = useNetwork();
-  const online =
-    isConnected && isInternetReachable !== false;
+  const { online } = useNetwork();
 
   const initial = initialCacheState<T>(cacheKey, enabled);
   const [data, setData] = useState<T | null>(initial.data);
