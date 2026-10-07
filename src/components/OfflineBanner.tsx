@@ -11,10 +11,13 @@ export function OfflineBanner() {
   } = useNetwork();
   const {
     pendingCount: featurePendingCount,
+    syncing: featureSyncing,
   } = useBuklodOfflineSync();
 
   const pendingCount =
     queuePendingCount + featurePendingCount;
+  const syncing =
+    status === 'syncing' || featureSyncing;
 
   if (status === 'unknown' || (status === 'online' && pendingCount === 0)) {
     return null;
@@ -29,7 +32,7 @@ export function OfflineBanner() {
         ? pendingCount > 0
           ? `Limited connection • ${pendingCount} pending • using saved data`
           : 'Limited connection • using saved data'
-        : status === 'syncing'
+        : syncing
           ? `Syncing • ${pendingCount} pending`
           : `${pendingCount} pending • waiting to sync`;
 
