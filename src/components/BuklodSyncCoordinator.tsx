@@ -5,6 +5,7 @@ import React, {
 } from 'react';
 import { AppState } from 'react-native';
 
+import { SCALE_LIMITS } from '@/lib/performanceScale';
 import { useBuklodOfflineSync } from '@/providers/BuklodOfflineSyncProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 
@@ -71,6 +72,18 @@ export default function BuklodSyncCoordinator() {
     }, RECONNECT_SETTLE_MS);
 
     return () => clearTimeout(timer);
+  }, [online, runSync]);
+
+  useEffect(() => {
+    if (!online) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      void runSync();
+    }, SCALE_LIMITS.offlineBackgroundRefreshMs);
+
+    return () => clearInterval(interval);
   }, [online, runSync]);
 
   useEffect(() => {
