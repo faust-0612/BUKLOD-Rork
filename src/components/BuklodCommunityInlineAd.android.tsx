@@ -28,6 +28,7 @@ import {
   reserveBuklodPassiveAdRequest,
 } from '@/lib/buklodGlobalAdController';
 import { useBuklodAdViewportGate } from '@/lib/buklodAdViewport';
+import { useBuklodCommunityInlineVisibility } from '@/hooks/useBuklodCommunityAdViewability';
 import { useAds } from '@/providers/AdsProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 
@@ -55,6 +56,7 @@ export default function BuklodCommunityInlineAd({
   const { ready, canRequestAds } = useAds();
   const { online } = useNetwork();
   const { ref, eligible } = useBuklodAdViewportGate();
+  const currentlyVisible = useBuklodCommunityInlineVisibility(slotId);
 
   const [nativeAd, setNativeAd] = useState<NativeAd | null>(null);
   const [nativeFailed, setNativeFailed] = useState(false);
@@ -229,6 +231,7 @@ export default function BuklodCommunityInlineAd({
     };
   }, [
     canAttempt,
+    currentlyVisible,
     diagnosticPlacement,
     nativeFailed,
     nativeUnitId,
@@ -251,6 +254,7 @@ export default function BuklodCommunityInlineAd({
   useEffect(() => {
     if (
       !canAttempt ||
+      !currentlyVisible ||
       !nativeFailed ||
       !bannerUnitId ||
       bannerRequestStarted.current ||
