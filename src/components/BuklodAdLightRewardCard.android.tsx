@@ -70,7 +70,6 @@ export default function BuklodAdLightRewardCard() {
   }, []);
 
   useEffect(() => {
-    warmBuklodRewardedAd();
     void refreshStatus();
 
     const timer = setInterval(() => {
