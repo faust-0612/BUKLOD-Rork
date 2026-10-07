@@ -231,7 +231,6 @@ export default function BuklodCommunityInlineAd({
     };
   }, [
     canAttempt,
-    currentlyVisible,
     diagnosticPlacement,
     nativeFailed,
     nativeUnitId,
@@ -291,6 +290,7 @@ export default function BuklodCommunityInlineAd({
     bannerFailed,
     bannerUnitId,
     canAttempt,
+    currentlyVisible,
     diagnosticPlacement,
     nativeFailed,
     pathname,
