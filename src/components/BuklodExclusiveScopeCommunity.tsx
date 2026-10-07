@@ -422,12 +422,8 @@ export default function BuklodExclusiveScopeCommunity({
     user,
   } = useAuth();
   const {
-    isConnected,
-    isInternetReachable,
+    online: scopedOnline,
   } = useNetwork();
-  const scopedOnline =
-    isConnected &&
-    isInternetReachable !== false;
   const scopedOnlineRef = useRef(scopedOnline);
   scopedOnlineRef.current = scopedOnline;
   const {

@@ -51,11 +51,10 @@ const RUNTIME_CONFIG_FRESH_MS = 2 * 60 * 1000;
 
 export function RuntimeConfigProvider({children}:{children:React.ReactNode}){
   const {user}=useAuth();
-  const {isConnected,isInternetReachable}=useNetwork();
+  const {online}=useNetwork();
   const [loading,setLoading]=useState(true);
   const [config,setConfig]=useState<RuntimeConfig|null>(null);
 
-  const online=isConnected && isInternetReachable!==false;
   const version=Constants.expoConfig?.version ?? '0.0.0';
   const cacheKey=user ? `buklod:runtime:${user.id}:${appEnvironment}` : null;
   const cacheFreshKey=cacheKey ? `${cacheKey}:fetched-at` : null;

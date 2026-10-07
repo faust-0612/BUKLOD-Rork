@@ -445,9 +445,7 @@ function ConnectScreenInner({
     [scrollBottomInset, theme]
   );
   const { profile } = useAuth();
-  const { isConnected, isInternetReachable } = useNetwork();
-  const connectOnline =
-    isConnected && isInternetReachable !== false;
+  const { online: connectOnline } = useNetwork();
   const profileId = (profile as any)?.id as string | undefined;
   const [tab, setTab] =
     useState<'personal' | 'community'>('personal');

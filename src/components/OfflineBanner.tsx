@@ -1,10 +1,23 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { useBuklodOfflineSync } from '@/providers/BuklodOfflineSyncProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 
 export function OfflineBanner() {
-  const { status, pendingCount } = useNetwork();
+  const {
+    status,
+    pendingCount: queuePendingCount,
+  } = useNetwork();
+  const {
+    pendingCount: featurePendingCount,
+    syncing: featureSyncing,
+  } = useBuklodOfflineSync();
+
+  const pendingCount =
+    queuePendingCount + featurePendingCount;
+  const syncing =
+    status === 'syncing' || featureSyncing;
 
   if (status === 'unknown' || (status === 'online' && pendingCount === 0)) {
     return null;
@@ -15,9 +28,13 @@ export function OfflineBanner() {
       ? pendingCount > 0
         ? `Offline • ${pendingCount} pending • saved data remains available`
         : 'Offline • saved data remains available'
-      : status === 'syncing'
-        ? `Syncing • ${pendingCount} pending`
-        : `${pendingCount} pending • waiting to sync`;
+      : status === 'degraded'
+        ? pendingCount > 0
+          ? `Limited connection • ${pendingCount} pending • using saved data`
+          : 'Limited connection • using saved data'
+        : syncing
+          ? `Syncing • ${pendingCount} pending`
+          : `${pendingCount} pending • waiting to sync`;
 
   return (
     <View
