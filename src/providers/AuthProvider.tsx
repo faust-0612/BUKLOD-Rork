@@ -678,6 +678,10 @@ export function AuthProvider({
       },
 
       refreshRoles: async () => {
+        if (!onlineRef.current) {
+          return;
+        }
+
         const nextRoles = await loadRoles(
           session?.user.id,
           profile?.role,
@@ -693,6 +697,10 @@ export function AuthProvider({
       },
 
       refreshMembership: async () => {
+        if (!onlineRef.current) {
+          return;
+        }
+
         await loadMembership(
           session?.user.id,
           roles,
