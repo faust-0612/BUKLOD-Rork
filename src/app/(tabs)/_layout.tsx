@@ -1,9 +1,6 @@
 import BuklodDashboardContextBar from '@/components/BuklodDashboardContextBar';
 import BuklodHeaderSponsor from '@/components/BuklodHeaderSponsor';
 import {
-  warmBuklodInterstitial,
-} from '@/lib/buklodAds';
-import {
   Redirect,
   Stack,
   router,
@@ -243,10 +240,6 @@ export default function TabsLayout() {
     loading: runtimeLoading,
     config,
   } = useRuntimeConfig();
-
-  useEffect(() => {
-    warmBuklodInterstitial();
-  }, []);
 
   /*
    * BUKLOD_GLOBAL_BOOT_R20
