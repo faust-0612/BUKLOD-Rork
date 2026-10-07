@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import BuklodAdMobBanner from '@/components/BuklodAdMobBanner';
@@ -29,10 +29,6 @@ export function BahayGardenRewardAd({
   onGranted?: () => void | Promise<void>;
 }) {
   const [busy,setBusy]=useState(false);
-
-  useEffect(()=>{
-    warmBuklodRewardedAd();
-  },[]);
 
   const handleWatch=useCallback(async()=>{
     if (busy || !homeId) return;
