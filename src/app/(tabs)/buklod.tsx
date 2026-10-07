@@ -528,9 +528,7 @@ function LegacyPublicBuklodScreen(){
   useRef<Record<string,{url:string;at:number}>>({});
 
  const {featureEnabled}=useRuntimeConfig(); const {user,profile}=useAuth();
- const {isConnected,isInternetReachable}=useNetwork();
- const communityOnline=
-  isConnected && isInternetReachable!==false;
+ const {online:communityOnline}=useNetwork();
  const communityOnlineRef=useRef(communityOnline);
  communityOnlineRef.current=communityOnline;
 
