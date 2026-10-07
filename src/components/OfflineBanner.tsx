@@ -1,10 +1,20 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { useBuklodOfflineSync } from '@/providers/BuklodOfflineSyncProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 
 export function OfflineBanner() {
-  const { status, pendingCount } = useNetwork();
+  const {
+    status,
+    pendingCount: queuePendingCount,
+  } = useNetwork();
+  const {
+    pendingCount: featurePendingCount,
+  } = useBuklodOfflineSync();
+
+  const pendingCount =
+    queuePendingCount + featurePendingCount;
 
   if (status === 'unknown' || (status === 'online' && pendingCount === 0)) {
     return null;
