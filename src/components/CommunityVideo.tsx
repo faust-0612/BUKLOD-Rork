@@ -289,6 +289,53 @@ function ImaCommunityVideo({
 
 const playbackTimeByUri = new Map<string, number>();
 
+type CommunityVideoPlaybackOwnerListener =
+  (ownerId: string | null) => void;
+
+let communityVideoPlaybackOwnerId: string | null = null;
+let communityVideoInstanceSequence = 0;
+
+const communityVideoPlaybackOwnerListeners =
+  new Set<CommunityVideoPlaybackOwnerListener>();
+
+function createCommunityVideoInstanceId() {
+  communityVideoInstanceSequence += 1;
+  return `community-video-${communityVideoInstanceSequence}`;
+}
+
+function claimCommunityVideoPlayback(ownerId: string) {
+  if (communityVideoPlaybackOwnerId === ownerId) {
+    return;
+  }
+
+  communityVideoPlaybackOwnerId = ownerId;
+  communityVideoPlaybackOwnerListeners.forEach((listener) => {
+    listener(ownerId);
+  });
+}
+
+function releaseCommunityVideoPlayback(ownerId: string) {
+  if (communityVideoPlaybackOwnerId !== ownerId) {
+    return;
+  }
+
+  communityVideoPlaybackOwnerId = null;
+  communityVideoPlaybackOwnerListeners.forEach((listener) => {
+    listener(null);
+  });
+}
+
+function subscribeCommunityVideoPlaybackOwner(
+  listener: CommunityVideoPlaybackOwnerListener,
+) {
+  communityVideoPlaybackOwnerListeners.add(listener);
+  listener(communityVideoPlaybackOwnerId);
+
+  return () => {
+    communityVideoPlaybackOwnerListeners.delete(listener);
+  };
+}
+
 function communityVideoSource(uri: string) {
   // Same source shape as perf/community-video-fb-like-r1 @ 93259ff.
   // expo-video keeps a valid http(s) file in its cache instead of
@@ -342,7 +389,14 @@ function ExpoCommunityVideo({
   onPlaybackError,
 }: Props) {
   const soundOn = useSessionSound();
+  const instanceIdRef = useRef<string | null>(null);
+  if (!instanceIdRef.current) {
+    instanceIdRef.current =
+      createCommunityVideoInstanceId();
+  }
+
   const userPausedRef = useRef(false);
+  const playingRef = useRef(false);
   const activeRef = useRef(active);
   const autoPlayRef = useRef(autoPlay);
   activeRef.current = active;
@@ -367,9 +421,17 @@ function ExpoCommunityVideo({
       instance.loop = true;
       instance.muted = !sessionSoundOn;
       instance.timeUpdateEventInterval = 0.25;
-      instance.audioMixingMode = instance.muted
-        ? 'mixWithOthers'
-        : 'doNotMix';
+
+      /*
+       * BUKLOD_COMMUNITY_VIDEO_AUDIO_ISOLATION_R1
+       *
+       * Community post video must not request exclusive Android audio focus.
+       * DZAS, PTT monitoring/RX/TX and other BUKLOD audio may coexist without
+       * forcing this player into an accidental pause. Video-to-video
+       * exclusivity is handled explicitly by the playback-owner coordinator
+       * below instead of by the global OS audio session.
+       */
+      instance.audioMixingMode = 'mixWithOthers';
     },
   );
 
@@ -377,13 +439,52 @@ function ExpoCommunityVideo({
     const muted = !soundOn;
     try {
       player.muted = muted;
-      player.audioMixingMode = muted
-        ? 'mixWithOthers'
-        : 'doNotMix';
+      player.audioMixingMode = 'mixWithOthers';
     } catch {
       // Player can already be released while the feed row recycles.
     }
   }, [player, soundOn]);
+
+  const playIfEligible = () => {
+    const ownerId = instanceIdRef.current;
+    if (
+      !ownerId ||
+      !activeRef.current ||
+      userPausedRef.current
+    ) {
+      return;
+    }
+
+    claimCommunityVideoPlayback(ownerId);
+
+    try {
+      player.play();
+    } catch {
+      // Player can be between native lifecycle states.
+    }
+  };
+
+  useEffect(() => {
+    const ownerId = instanceIdRef.current;
+    if (!ownerId) {
+      return undefined;
+    }
+
+    return subscribeCommunityVideoPlaybackOwner(
+      (nextOwnerId) => {
+        if (
+          nextOwnerId &&
+          nextOwnerId !== ownerId
+        ) {
+          try {
+            player.pause();
+          } catch {
+            // Released player.
+          }
+        }
+      },
+    );
+  }, [player]);
 
   useEffect(() => {
     const subscription = player.addListener(
@@ -415,11 +516,7 @@ function ExpoCommunityVideo({
             autoPlayRef.current &&
             !userPausedRef.current
           ) {
-            try {
-              player.play();
-            } catch {
-              // A released player can reject play during recycle.
-            }
+            playIfEligible();
           }
         }
       },
@@ -428,7 +525,22 @@ function ExpoCommunityVideo({
     const playingSub = player.addListener(
       'playingChange',
       (event: { isPlaying?: boolean }) => {
-        setPlaying(Boolean(event?.isPlaying));
+        const nextPlaying =
+          Boolean(event?.isPlaying);
+
+        playingRef.current = nextPlaying;
+        setPlaying(nextPlaying);
+
+        if (
+          nextPlaying &&
+          activeRef.current &&
+          !userPausedRef.current
+        ) {
+          const ownerId = instanceIdRef.current;
+          if (ownerId) {
+            claimCommunityVideoPlayback(ownerId);
+          }
+        }
       },
     );
 
@@ -451,7 +563,13 @@ function ExpoCommunityVideo({
   }, [onPlaybackError, player, uri]);
 
   useEffect(() => {
+    const ownerId = instanceIdRef.current;
+
     if (!active) {
+      if (ownerId) {
+        releaseCommunityVideoPlayback(ownerId);
+      }
+
       try {
         player.pause();
       } catch {
@@ -461,16 +579,50 @@ function ExpoCommunityVideo({
     }
 
     if (autoPlay && !userPausedRef.current) {
-      try {
-        player.play();
-      } catch {
-        // Autoplay can fail before the source is ready.
-      }
+      playIfEligible();
     }
   }, [active, autoPlay, player]);
 
+  /*
+   * Some Android communication stacks can still transiently suspend a media
+   * player while changing route/focus even when mixing is allowed. Recover
+   * only the current Community-video owner. If another Community video has
+   * taken ownership, or the user paused manually, this guard does nothing.
+   */
+  useEffect(() => {
+    if (!active) {
+      return undefined;
+    }
+
+    const timer = setInterval(() => {
+      const ownerId = instanceIdRef.current;
+
+      if (
+        !ownerId ||
+        communityVideoPlaybackOwnerId !== ownerId ||
+        userPausedRef.current ||
+        playingRef.current
+      ) {
+        return;
+      }
+
+      try {
+        player.play();
+      } catch {
+        // Native audio focus can still be transitioning.
+      }
+    }, 1200);
+
+    return () => clearInterval(timer);
+  }, [active, player]);
+
   useEffect(() => {
     return () => {
+      const ownerId = instanceIdRef.current;
+      if (ownerId) {
+        releaseCommunityVideoPlayback(ownerId);
+      }
+
       if (centerTimerRef.current) {
         clearTimeout(centerTimerRef.current);
       }
@@ -492,6 +644,12 @@ function ExpoCommunityVideo({
   function togglePlayback() {
     if (playing) {
       userPausedRef.current = true;
+
+      const ownerId = instanceIdRef.current;
+      if (ownerId) {
+        releaseCommunityVideoPlayback(ownerId);
+      }
+
       try {
         player.pause();
       } catch {
@@ -502,11 +660,7 @@ function ExpoCommunityVideo({
     }
 
     userPausedRef.current = false;
-    try {
-      player.play();
-    } catch {
-      // Ignore.
-    }
+    playIfEligible();
     flashCenter(true);
   }
 
@@ -619,6 +773,15 @@ function ExpoCommunityVideo({
                   } catch {
                     // Opening fullscreen still continues from the saved time.
                   }
+
+                  const ownerId =
+                    instanceIdRef.current;
+                  if (ownerId) {
+                    releaseCommunityVideoPlayback(
+                      ownerId,
+                    );
+                  }
+
                   onOpenFullscreen();
                 }}
                 style={styles.roundButton}
