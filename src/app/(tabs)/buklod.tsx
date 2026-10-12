@@ -68,6 +68,7 @@ import { assertCommunityVideoQuotaAvailable } from '@/lib/buklodCommunityContrib
 import SmartDrawerWallCard from '@/components/SmartDrawerWallCard';
 import BuklodLifeWallCard from '@/components/BuklodLifeWallCard';
 import BuklodCommunityWallProfileBubbles from '@/components/BuklodCommunityWallProfileBubbles';
+import BuklodIgpatCompactCard from '@/components/BuklodIgpatCompactCard';
 import {
   type BuklodCommunityComposerIntent,
 } from '@/components/BuklodCommunityWallEngagementLayer';
@@ -503,6 +504,19 @@ function LegacyPublicBuklodScreen(){
   });
  const drawerBottomInset=
   useBuklodDrawerBottomInset();
+ // V26 IGPAT: destroy the video decoder when the compact card scrolls away.
+ const igpatCardBoundsRef = useRef({ start: 520, end: 1050 });
+ const igpatHeaderNearTopRef = useRef(true);
+ const [igpatHeaderNearTop, setIgpatHeaderNearTop] = useState(true);
+ const refreshIgpatHeaderVisibility = useCallback((scrollY: number) => {
+   const { start, end } = igpatCardBoundsRef.current;
+   const viewportHeight = Dimensions.get('window').height;
+   const visible = scrollY < end - 30 && scrollY + viewportHeight > start + 30;
+   if (igpatHeaderNearTopRef.current !== visible) {
+     igpatHeaderNearTopRef.current = visible;
+     setIgpatHeaderNearTop(visible);
+   }
+ }, []);
  const s=useMemo(
   ()=>{
    const base=
@@ -4330,6 +4344,7 @@ const communityFeedRows =
     onScroll={(event:any) => {
       communityScrollYRefBackR2.current =
         Number(event?.nativeEvent?.contentOffset?.y ?? 0);
+      refreshIgpatHeaderVisibility(communityScrollYRefBackR2.current);
     }}
     scrollEventThrottle={16}
  /* PERF2_PROGRESSIVE_FEED_LIST */
@@ -4488,6 +4503,17 @@ const communityFeedRows =
 
    {Platform.OS !== 'web' ? (
     <BuklodCommunityWallProfileBubbles />
+   ) : null}
+
+   {/* V26 IGPAT: below Message/Profile bubbles, immediately above the Drawer. */}
+   {Platform.OS !== 'web' ? (
+    <View onLayout={event => {
+      const { y, height } = event.nativeEvent.layout;
+      igpatCardBoundsRef.current = { start: y, end: y + height };
+      refreshIgpatHeaderVisibility(communityScrollYRefBackR2.current);
+    }}>
+      <BuklodIgpatCompactCard nearTop={igpatHeaderNearTop} />
+    </View>
    ) : null}
 
    <BuklodFirstViewAd
