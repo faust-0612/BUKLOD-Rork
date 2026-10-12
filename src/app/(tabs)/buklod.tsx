@@ -3986,7 +3986,8 @@ const load=useCallback(async(options?:{
               autoPlay
               active={
                 visibleVideoPostId===postId &&
-                !videoViewerOpen
+                !videoViewerOpen &&
+                (Platform.OS==='web' || !igpatHeaderNearTop)
               }
               expectedDurationSeconds={
                 wallVideo.durationSeconds
