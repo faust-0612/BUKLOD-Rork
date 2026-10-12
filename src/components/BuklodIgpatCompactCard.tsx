@@ -15,6 +15,11 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
+import BuklodReelsInlineAd from '@/components/BuklodReelsInlineAd';
+import {
+  buildReelsFeedWithInlineAds,
+  isReelsFeedInlineAdRow,
+} from '@/lib/buklodAdPlacements';
 
 type Mode = 'for-you' | 'following' | 'latest';
 type Reel = {
@@ -35,7 +40,7 @@ type Comment = {
   parent_id?: string | null;
 };
 const SAVED_KEY = '@buklod_igpat_saved_ids_v1';
-const MAX_ROWS = 8;
+const MAX_ROWS = 16; // Same normal feed batch as the existing IGPAT screen.
 const SIGNED_TTL = 1200;
 
 function CompactPlayer({
@@ -137,12 +142,22 @@ export default function BuklodIgpatCompactCard({ nearTop = true }: { nearTop?: b
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [following, setFollowing] = useState<Set<string>>(new Set());
   const requestId = useRef(0);
-  const latestRows = useRef<Reel[]>([]);
-  const latestIndex = useRef(0);
-  latestRows.current = rows;
-  latestIndex.current = index;
-  const current = rows[index];
-  const canPlay = isFocused && nearTop && appActive && !commentOpen;
+  // Share the canonical IGPAT ad cadence. Never place an ad as the final item.
+  const feedRows = useMemo(() => {
+    const mixed = buildReelsFeedWithInlineAds(rows);
+    return mixed.length && isReelsFeedInlineAdRow(mixed[mixed.length - 1])
+      ? mixed.slice(0, -1)
+      : mixed;
+  }, [rows]);
+  const selectedRow = feedRows[index];
+  const activeAd = selectedRow && isReelsFeedInlineAdRow(selectedRow) ? selectedRow : null;
+  const current: Reel | undefined =
+    selectedRow && !isReelsFeedInlineAdRow(selectedRow) ? selectedRow : undefined;
+  const selectedReelRef = useRef<Reel | undefined>(undefined);
+  selectedReelRef.current = current;
+  const feedLengthRef = useRef(0);
+  feedLengthRef.current = feedRows.length;
+  const canPlay = isFocused && nearTop && appActive && !commentOpen && !activeAd;
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', status => {
@@ -208,7 +223,7 @@ export default function BuklodIgpatCompactCard({ nearTop = true }: { nearTop?: b
   }, [isFocused, load, loadFollowing]);
 
   const move = useCallback((direction: number) => {
-    setIndex(i => Math.min(Math.max(i + direction, 0), latestRows.current.length - 1));
+    setIndex(i => Math.min(Math.max(i + direction, 0), Math.max(0, feedLengthRef.current - 1)));
   }, []);
   const gesture = useMemo(() => PanResponder.create({
     onMoveShouldSetPanResponder: (_, g) =>
@@ -221,7 +236,7 @@ export default function BuklodIgpatCompactCard({ nearTop = true }: { nearTop?: b
   }), [move]);
 
   const love = useCallback(async () => {
-    const reel = latestRows.current[latestIndex.current];
+    const reel = selectedReelRef.current;
     if (!reel || reactionBusy || reel.my_reaction === 'love') return;
     setReactionBusy(true);
     setRows(old => old.map(x => x.id === reel.id ? {
@@ -344,8 +359,14 @@ export default function BuklodIgpatCompactCard({ nearTop = true }: { nearTop?: b
             </Pressable>
           ))}
       </View>
-      <View style={styles.stage} {...gesture.panHandlers}>
-        {canPlay && current?.media_url ? (
+      <View style={activeAd ? styles.adStage : styles.stage} {...gesture.panHandlers}>
+        {activeAd ? (
+          <BuklodReelsInlineAd
+            key={activeAd.id}
+            slotId={activeAd.id}
+            active={isFocused && nearTop && appActive && !commentOpen}
+          />
+        ) : canPlay && current?.media_url ? (
           <CompactPlayer key={current.id} uri={current.media_url} active />
         ) : (
           <View style={styles.placeholder}>
@@ -365,10 +386,20 @@ export default function BuklodIgpatCompactCard({ nearTop = true }: { nearTop?: b
             <Text numberOfLines={1} style={styles.videoAuthor}>
               {resolvePersonDisplayName(current.author_name, current.user_id)}
             </Text>
-            <Text style={styles.counter}>{index + 1} / {rows.length}  ↑↓</Text>
+            <Text style={styles.counter}>{index + 1} / {feedRows.length}  ↑↓</Text>
           </View>
         ) : null}
       </View>
+      {activeAd ? (
+        <View style={styles.adFooter}>
+          <Text style={styles.adContinueText}>Swipe pataas para sa next IGPAT</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="Next IGPAT"
+            onPress={() => move(1)} style={styles.nextAfterAd}>
+            <Text style={styles.nextAfterAdText}>Next</Text>
+            <MaterialCommunityIcons name="arrow-up" size={16} color="#008657" />
+          </Pressable>
+        </View>
+      ) : null}
       {current ? (
         <>
           {current.body ? <Text numberOfLines={2} style={styles.bodyText}>{current.body}</Text> : null}
@@ -458,6 +489,15 @@ const styles = StyleSheet.create({
   selectedModeText: { color: '#008657' },
   stage: { width: '100%', aspectRatio: 16 / 9, backgroundColor: '#101B18',
     justifyContent: 'center', overflow: 'hidden' },
+  // Native creative requires full view/CTA height: do not crop or overlay it.
+  adStage: { width: '100%', minHeight: 520, backgroundColor: '#000000',
+    justifyContent: 'center' },
+  adFooter: { paddingVertical: 8, paddingHorizontal: 12, flexDirection: 'row',
+    alignItems: 'center', justifyContent: 'space-between' },
+  adContinueText: { color: '#648071', fontSize: 11, fontWeight: '700' },
+  nextAfterAd: { flexDirection: 'row', alignItems: 'center', gap: 4,
+    padding: 6, borderRadius: 8 },
+  nextAfterAdText: { color: '#008657', fontSize: 11, fontWeight: '800' },
   videoInner: { flex: 1, width: '100%', backgroundColor: '#101B18' },
   leftGutter: { position: 'absolute', left: 0, top: 0, bottom: 0, width: '10%',
     backgroundColor: 'rgba(255,255,255,0.06)' },
