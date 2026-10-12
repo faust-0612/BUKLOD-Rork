@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router, useIsFocused } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
@@ -117,7 +117,11 @@ function Action({
 
 export default function BuklodIgpatCompactCard({ nearTop = true }: { nearTop?: boolean }) {
   const { user } = useAuth();
-  const isFocused = useIsFocused();
+  const [isFocused, setIsFocused] = useState(false);
+  useFocusEffect(useCallback(() => {
+    setIsFocused(true);
+    return () => setIsFocused(false);
+  }, []));
   const [appActive, setAppActive] = useState(AppState.currentState === 'active');
   const [rows, setRows] = useState<Reel[]>([]);
   const [index, setIndex] = useState(0);
