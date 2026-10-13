@@ -4224,6 +4224,14 @@ const [
         onChangeDraft={value => {
           draftRef.current = value;
           setDraft(value);
+          // Typing a new message returns the conversation to the latest row.
+          if (connectReadingOlderRef.current) {
+            connectReadingOlderRef.current = false;
+            connectPreserveScrollRef.current = false;
+            requestAnimationFrame(() => {
+              listRef.current?.scrollToEnd({ animated: false });
+            });
+          }
         }}
         onSend={send}
         onAttachPress={handleAttachPress}
