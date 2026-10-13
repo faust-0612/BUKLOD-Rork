@@ -3751,7 +3751,7 @@ const [
             listRef.current?.scrollToEnd({ animated: false });
           }
           connectOwnSendScrollPendingRef.current = false;
-        }
+        }}
         ListEmptyComponent={
           <View
             style={
