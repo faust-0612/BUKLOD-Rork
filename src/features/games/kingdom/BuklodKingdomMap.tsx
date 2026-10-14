@@ -30,6 +30,8 @@ import { playRorkSignatureSfx } from '@/features/games/runtime/rorkAudio';
 
 import {
   loadBuklodKingdomPreviewProgress,
+  canImportLegacyBuklodKingdomProgress,
+  importLegacyBuklodKingdomProgress,
   subscribeBuklodKingdomPreviewProgress,
   type BuklodKingdomPreviewProgress,
 } from './progress';
@@ -309,6 +311,9 @@ export default function BuklodKingdomMap() {
   const [progress, setProgress] = useState<BuklodKingdomPreviewProgress>(emptyProgress());
   const { user } = useAuth();
   const userId = user?.id ?? null;
+  const [legacyAvailable, setLegacyAvailable] = useState(false);
+  const [legacyPrompt, setLegacyPrompt] = useState(false);
+  const [legacyError, setLegacyError] = useState('');
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
@@ -327,6 +332,32 @@ export default function BuklodKingdomMap() {
       unsubscribe();
     };
   }, [userId]);
+
+  useEffect(() => {
+    let active = true;
+    setLegacyAvailable(false);
+    setLegacyPrompt(false);
+    setLegacyError('');
+    if (userId) {
+      canImportLegacyBuklodKingdomProgress(userId).then((allowed) => {
+        if (active) setLegacyAvailable(allowed);
+      }).catch(() => undefined);
+    }
+    return () => { active = false; };
+  }, [userId]);
+
+  const importLegacy = async () => {
+    if (!userId) return;
+    try {
+      const imported = await importLegacyBuklodKingdomProgress(userId);
+      setProgress(imported);
+      setLegacyAvailable(false);
+      setLegacyPrompt(false);
+      setLegacyError('');
+    } catch {
+      setLegacyError('Could not import local preview progress. It was not deleted.');
+    }
+  };
 
   const clearedCount = useMemo(
     () => STATIONS.filter((station) => (progress.stations[station.id]?.clears ?? 0) > 0).length,
@@ -537,6 +568,29 @@ export default function BuklodKingdomMap() {
           </View>
         </ScrollView>
       </ScrollView>
+      {legacyAvailable ? (
+        <View style={styles.legacyPanel}>
+          {legacyPrompt ? (
+            <>
+              <Text style={styles.legacyTitle}>Is the older Kingdom preview on this device yours?</Text>
+              <Text style={styles.legacyCopy}>Import only if you played those games. The old preview remains unchanged.</Text>
+              {legacyError ? <Text style={styles.legacyError}>{legacyError}</Text> : null}
+              <View style={styles.legacyActions}>
+                <Pressable accessibilityRole="button" onPress={() => void importLegacy()} style={styles.legacyButton}>
+                  <Text style={styles.legacyButtonText}>YES, IMPORT</Text>
+                </Pressable>
+                <Pressable accessibilityRole="button" onPress={() => setLegacyPrompt(false)} style={styles.legacyButton}>
+                  <Text style={styles.legacyButtonText}>CANCEL</Text>
+                </Pressable>
+              </View>
+            </>
+          ) : (
+            <Pressable accessibilityRole="button" onPress={() => setLegacyPrompt(true)}>
+              <Text style={styles.legacyButtonText}>IMPORT MY OLDER KINGDOM GAME RESULTS</Text>
+            </Pressable>
+          )}
+        </View>
+      ) : null}
       <BuklodGameCharacterCompanion gameId="kingdom-map" />
     </View>
   );
@@ -544,6 +598,13 @@ export default function BuklodKingdomMap() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#071b2a' },
+  legacyPanel: { position: 'absolute', right: 10, bottom: 12, zIndex: 15, maxWidth: 320, padding: 12, backgroundColor: 'rgba(14,33,49,0.96)', borderColor: '#d2a54d', borderWidth: 1, borderRadius: 12 },
+  legacyTitle: { fontSize: 14, fontWeight: '900', color: '#ffedc6' },
+  legacyCopy: { fontSize: 11, color: '#e6e1db', marginTop: 5, marginBottom: 8 },
+  legacyError: { fontSize: 11, color: '#ffb8b8' },
+  legacyActions: { flexDirection: 'row', gap: 8 },
+  legacyButton: { borderRadius: 8, backgroundColor: '#805c2e', padding: 9 },
+  legacyButtonText: { fontSize: 11, fontWeight: '900', color: '#fff2ce' },
   horizontalContent: { minWidth: '100%' },
   verticalContent: { minHeight: '100%' },
   worldFrame: {
