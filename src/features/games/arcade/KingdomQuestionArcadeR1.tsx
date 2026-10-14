@@ -119,7 +119,7 @@ export function KingdomQuestionArcadeR1({ mode, onFinish }: Props) {
         <Text style={styles.stat}>CORRECT {correctCount}</Text>
         <Text style={styles.stat}>SCORE {score}</Text>
       </View>
-      <View style={styles.progressTrack}><View style={[styles.progressFill, { width: progress + '%' }]} /></View>
+      <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${progress}%` }]} /></View>
       {phase === 'ready' ? (
         <View style={styles.panel}>
           <Text style={styles.head}>Every answer teaches something.</Text>
