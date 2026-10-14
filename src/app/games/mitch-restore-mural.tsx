@@ -1,26 +1,20 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 
 import { recordBuklodKingdomPreviewResult } from '@/features/games/kingdom/progress';
-import { RestoreMuralGameV1 } from '@/features/games/mitch/RestoreMuralGameV1';
 import { BuklodGameStage } from '@/features/games/runtime/BuklodGameStage';
+import { KingdomBlocksGameR1 } from '@/features/games/arcade/KingdomBlocksGameR1';
 
 const GAME_ID = 'mitch-restore-mural';
 
 export default function MitchRestoreMuralScreen() {
   return (
     <BuklodGameStage biome="art" gameId={GAME_ID}>
-      <View style={styles.page}>
-        <RestoreMuralGameV1 onFinish={(result) => { void recordBuklodKingdomPreviewResult(result); }} />
-      </View>
+      <ScrollView contentContainerStyle={styles.page}>
+        <KingdomBlocksGameR1 onFinish={(result) => { void recordBuklodKingdomPreviewResult(result); }} />
+      </ScrollView>
     </BuklodGameStage>
   );
 }
 
-const styles = StyleSheet.create({
-  page: {
-    flex: 1,
-    paddingTop: 20,
-    paddingBottom: 28,
-  },
-});
+const styles = StyleSheet.create({ page: { flexGrow: 1, paddingTop: 12, paddingBottom: 40 } });
