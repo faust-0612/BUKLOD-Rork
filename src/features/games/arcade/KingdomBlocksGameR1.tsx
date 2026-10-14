@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { playBuklodGameFeedback } from '../runtime/BuklodGameFeedback';
@@ -64,7 +64,6 @@ export function KingdomBlocksGameR1({ onFinish }: Props) {
   const [notice, setNotice] = useState('Choose a shape, then tap where its top-left corner should land.');
   const target = 900;
   const active = hand[selected] == null ? null : SHAPES[hand[selected] as number];
-  const remaining = useMemo(() => hand.filter((piece): piece is number => piece !== null), [hand]);
 
   const start = useCallback(() => {
     setBoard(EMPTY());
