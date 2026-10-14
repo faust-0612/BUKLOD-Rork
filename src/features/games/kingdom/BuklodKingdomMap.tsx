@@ -24,6 +24,8 @@ import Svg, {
 } from 'react-native-svg';
 
 import BuklodGameBackdrop from '@/features/games/runtime/BuklodGameBackdrop';
+import BuklodGameCharacterCompanion from '@/features/games/runtime/BuklodGameCharacterCompanion';
+import { useAuth } from '@/providers/AuthProvider';
 import { playRorkSignatureSfx } from '@/features/games/runtime/rorkAudio';
 
 import {
@@ -53,15 +55,15 @@ const STATIONS: readonly Station[] = [
   { id: 'vhen-farm-to-market', character: 'Vhen', region: 'Agricultural Valley', game: 'Farm to Market', href: '/games/vhen-farm-to-market', x: 265, y: 745, icon: 'sprout', accent: '#75a841', worldChange: 'Fields become greener and the market road activates.' },
   { id: 'jawo-forest-trail', character: 'Jawo', region: 'Explorer Forest', game: 'Forest Trail', href: '/games/jawo-forest-trail', x: 170, y: 475, icon: 'pine-tree', accent: '#3d8758', worldChange: 'Trail lights awaken and the forest route glows.' },
   { id: 'trudice-playground-memory', character: 'Trudice', region: "Children's Haven", game: 'Wonder Path', href: '/games/trudice-playground-memory', x: 355, y: 375, icon: 'human-child', accent: '#bc6fb1', worldChange: 'Playground stations light up one by one.' },
-  { id: 'mitch-restore-mural', character: 'Mitch', region: 'Art Village', game: 'Restore the Mural', href: '/games/mitch-restore-mural', x: 505, y: 545, icon: 'palette-outline', accent: '#bf6d50', worldChange: 'The village mural returns and new colors appear.' },
-  { id: 'christian-civic-leadership', character: 'Christian', region: 'Civic Academy', game: 'Leadership Council', href: '/games/christian-civic-leadership', x: 580, y: 285, icon: 'bank-outline', accent: '#4b69a0', worldChange: 'The council hall opens and civic lights activate.' },
+  { id: 'mitch-restore-mural', character: 'Mitch', region: 'Art Village', game: 'Block Forge', href: '/games/mitch-restore-mural', x: 505, y: 545, icon: 'palette-outline', accent: '#bf6d50', worldChange: 'New block mosaic patterns light up the art village.' },
+  { id: 'christian-civic-leadership', character: 'Christian', region: 'Civic Academy', game: 'Bible Quest', href: '/games/christian-civic-leadership', x: 580, y: 285, icon: 'bank-outline', accent: '#4b69a0', worldChange: 'Bible wisdom challenges illuminate the Academy.' },
   { id: 'ace-rescue-grid', character: 'Ace', region: 'Strategy / Rescue', game: 'Rescue Grid', href: '/games/ace-rescue-grid', x: 720, y: 430, icon: 'map-marker-path', accent: '#397b9c', worldChange: 'Blocked corridors clear and rescue beacons stay lit.' },
-  { id: 'van-living-city-dispatch', character: 'Van', region: 'Living City', game: 'City Dispatch', href: '/games/van-living-city-dispatch', x: 825, y: 260, icon: 'city-variant-outline', accent: '#327c91', worldChange: 'The skyline activates and service routes begin moving.' },
+  { id: 'van-living-city-dispatch', character: 'Van', region: 'Living City', game: 'Mind Challenge', href: '/games/van-living-city-dispatch', x: 825, y: 260, icon: 'city-variant-outline', accent: '#327c91', worldChange: 'Solved logic puzzles illuminate the city.' },
   { id: 'lhen-rhythm-journey', character: 'Lhen', region: 'Music City', game: 'Rhythm Journey', href: '/games/lhen-rhythm-journey', x: 970, y: 350, icon: 'music-note', accent: '#8b4b91', worldChange: 'Music lights pulse across the performance district.' },
   { id: 'angel-kingdom-treasury', character: 'Angel', region: 'Treasury City', game: 'Kingdom Treasury', href: '/games/angel-kingdom-treasury', x: 910, y: 620, icon: 'treasure-chest-outline', accent: '#a36c24', worldChange: 'Treasury lanterns glow and reserve vaults open.' },
   { id: 'niel-mission-trail', character: 'Niel', region: 'Mission Frontier', game: 'Mission Trail', href: '/games/niel-mission-trail', x: 690, y: 710, icon: 'compass-outline', accent: '#55744d', worldChange: 'A frontier road extends toward distant settlements.' },
   { id: 'elesur-village-builder', character: 'ELESUR', region: 'Highland Community', game: 'Village Builder', href: '/games/elesur-village-builder', x: 1040, y: 710, icon: 'home-group', accent: '#54766f', worldChange: 'New community structures rise in the highlands.' },
-  { id: 'quin-discovery-expedition', character: 'Quin', region: 'Discovery World', game: 'Discovery Expedition', href: '/games/quin-discovery-expedition', x: 1045, y: 135, icon: 'telescope', accent: '#5268a4', worldChange: 'Fog clears and a hidden route becomes visible.' },
+  { id: 'quin-discovery-expedition', character: 'Quin', region: 'Discovery World', game: 'Guessing Quest', href: '/games/quin-discovery-expedition', x: 1045, y: 135, icon: 'telescope', accent: '#5268a4', worldChange: 'New discoveries and guessing clues reveal hidden paths.' },
 ] as const;
 
 const JOURNEY_PATH = [
@@ -305,22 +307,26 @@ function DecorativeLabel({
 
 export default function BuklodKingdomMap() {
   const [progress, setProgress] = useState<BuklodKingdomPreviewProgress>(emptyProgress());
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
     let mounted = true;
-    loadBuklodKingdomPreviewProgress().then((value) => {
+    setProgress(emptyProgress());
+    if (!userId) return () => { mounted = false; };
+    loadBuklodKingdomPreviewProgress(userId).then((value) => {
       if (mounted) setProgress(value);
     }).catch(() => undefined);
     const unsubscribe = subscribeBuklodKingdomPreviewProgress((value) => {
       if (mounted) setProgress(value);
-    });
+    }, userId);
     return () => {
       mounted = false;
       unsubscribe();
     };
-  }, []);
+  }, [userId]);
 
   const clearedCount = useMemo(
     () => STATIONS.filter((station) => (progress.stations[station.id]?.clears ?? 0) > 0).length,
@@ -531,6 +537,7 @@ export default function BuklodKingdomMap() {
           </View>
         </ScrollView>
       </ScrollView>
+      <BuklodGameCharacterCompanion gameId="kingdom-map" />
     </View>
   );
 }
