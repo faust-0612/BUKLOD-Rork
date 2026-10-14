@@ -137,3 +137,60 @@ export function subscribeBuklodKingdomPreviewProgress(
   listeners.add(entry);
   return () => { listeners.delete(entry); };
 }
+
+
+const LEGACY_STORAGE_KEY = 'buklod.kingdom.preview.progress.v1';
+const LEGACY_OWNER_KEY = 'buklod.kingdom.preview.legacy.owner.r1';
+const LEGACY_IMPORT_PREFIX = 'buklod.kingdom.preview.legacy.imported.r1.';
+
+/**
+ * Legacy v1 results were device-global. Never auto-merge them into whichever
+ * user happens to sign in next. Import is an explicit, one-owner action.
+ */
+export async function canImportLegacyBuklodKingdomProgress(userId: string | null) {
+  if (!validOwner(userId)) return false;
+  try {
+    const [raw, owner, imported] = await Promise.all([
+      AsyncStorage.getItem(LEGACY_STORAGE_KEY),
+      AsyncStorage.getItem(LEGACY_OWNER_KEY),
+      AsyncStorage.getItem(LEGACY_IMPORT_PREFIX + userId),
+    ]);
+    return !!raw && !imported && (!owner || owner === userId);
+  } catch {
+    return false;
+  }
+}
+
+export async function importLegacyBuklodKingdomProgress(userId: string) {
+  if (!(await canImportLegacyBuklodKingdomProgress(userId))) {
+    throw new Error('Legacy Kingdom preview data is unavailable or belongs to another account.');
+  }
+  const raw = await AsyncStorage.getItem(LEGACY_STORAGE_KEY);
+  if (!raw) return loadBuklodKingdomPreviewProgress(userId);
+  const legacy = normalize(JSON.parse(raw));
+  const current = await loadBuklodKingdomPreviewProgress(userId);
+  const stations = { ...current.stations };
+  Object.entries(legacy.stations).forEach(([id, old]) => {
+    if (!old || typeof old !== 'object' || !id) return;
+    const now = stations[id];
+    const oldClears = Math.max(0, Number(old.clears) || 0);
+    const oldScore = Math.max(0, Number(old.bestScore) || 0);
+    const oldStars = Math.min(3, Math.max(0, Number(old.bestStars) || 0)) as 0 | 1 | 2 | 3;
+    stations[id] = {
+      gameId: id,
+      clears: Math.max(now?.clears ?? 0, oldClears),
+      bestScore: Math.max(now?.bestScore ?? 0, oldScore),
+      bestStars: Math.max(now?.bestStars ?? 0, oldStars) as 0 | 1 | 2 | 3,
+      lastStatus: now?.lastStatus ?? (old.lastStatus === 'lost' ? 'lost' : 'won'),
+      updatedAt: now?.updatedAt ?? (typeof old.updatedAt === 'string' ? old.updatedAt : new Date().toISOString()),
+    };
+  });
+  const merged: BuklodKingdomPreviewProgress = { version: 1, stations };
+  // Mark ownership before publishing new results so another account cannot
+  // consume the same anonymous results during an account switch.
+  await AsyncStorage.setItem(LEGACY_OWNER_KEY, userId);
+  await AsyncStorage.setItem(STORAGE_PREFIX + userId, JSON.stringify(merged));
+  await AsyncStorage.setItem(LEGACY_IMPORT_PREFIX + userId, 'yes');
+  publish(userId, merged);
+  return merged;
+}
