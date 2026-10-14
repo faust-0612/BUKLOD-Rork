@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet } from 'react-native';
 
 import { recordBuklodKingdomPreviewResult } from '@/features/games/kingdom/progress';
 import { BuklodGameStage } from '@/features/games/runtime/BuklodGameStage';
-import { LivingCityDispatchGameV1 } from '@/features/games/van/LivingCityDispatchGameV1';
+import { KingdomQuestionArcadeR1 } from '@/features/games/arcade/KingdomQuestionArcadeR1';
 
 const GAME_ID = 'van-living-city-dispatch';
 
@@ -11,10 +11,10 @@ export default function VanLivingCityDispatchScreen() {
   return (
     <BuklodGameStage biome="city" gameId={GAME_ID}>
       <ScrollView contentContainerStyle={styles.page}>
-        <LivingCityDispatchGameV1 onFinish={(result) => { void recordBuklodKingdomPreviewResult(result); }} />
+        <KingdomQuestionArcadeR1 mode="logic" onFinish={(result) => { void recordBuklodKingdomPreviewResult(result); }} />
       </ScrollView>
     </BuklodGameStage>
   );
 }
 
-const styles = StyleSheet.create({ page: { flexGrow: 1, paddingTop: 18, paddingBottom: 32 } });
+const styles = StyleSheet.create({ page: { flexGrow: 1, paddingTop: 12, paddingBottom: 40 } });
