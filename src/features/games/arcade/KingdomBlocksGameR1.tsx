@@ -167,7 +167,23 @@ export function KingdomBlocksGameR1({ onFinish }: Props) {
             style={[styles.piece, selected === index && styles.pieceSelected]}
           >
             <Text style={styles.pieceName}>{piece === null ? 'USED' : SHAPES[piece].name}</Text>
-            <Text style={styles.pieceDots}>{piece === null ? '—' : '■'.repeat(SHAPES[piece].cells.length)}</Text>
+            {piece !== null ? (
+              <View style={styles.shapePreview}>
+                {Array.from({ length: 3 }, (_, y) => (
+                  <View key={y} style={styles.shapePreviewRow}>
+                    {Array.from({ length: 3 }, (_, x) => (
+                      <View
+                        key={x}
+                        style={[
+                          styles.shapePreviewCell,
+                          SHAPES[piece].cells.some(([dx, dy]) => dx === x && dy === y) && styles.shapePreviewFilled,
+                        ]}
+                      />
+                    ))}
+                  </View>
+                ))}
+              </View>
+            ) : null}
           </Pressable>
         ))}
       </View>
@@ -193,7 +209,10 @@ const styles = StyleSheet.create({
   piece: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 64, backgroundColor: '#342a3d', borderRadius: 10, borderWidth: 2, borderColor: '#68556a' },
   pieceSelected: { borderColor: '#ffcf74', backgroundColor: '#68415e' },
   pieceName: { fontSize: 12, fontWeight: '800', color: '#f8e6c7' },
-  pieceDots: { color: '#ffcd75', fontSize: 15, letterSpacing: 1 },
+  shapePreview: { marginTop: 5, padding: 3 },
+  shapePreviewRow: { flexDirection: 'row' },
+  shapePreviewCell: { width: 9, height: 9, margin: 1, borderRadius: 2, backgroundColor: 'transparent' },
+  shapePreviewFilled: { backgroundColor: '#ffcd75', borderWidth: 1, borderColor: '#ffeab8' },
   action: { borderRadius: 14, paddingHorizontal: 24, paddingVertical: 12, backgroundColor: '#bb7a36', marginVertical: 12 },
   actionText: { color: '#fff', fontWeight: '900' },
   footer: { color: '#c7a999', fontSize: 10, textAlign: 'center', marginTop: 14 },
