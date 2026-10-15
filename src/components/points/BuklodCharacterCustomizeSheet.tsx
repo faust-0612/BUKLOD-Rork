@@ -23,7 +23,6 @@ import { BUKLOD_HIT_SLOP } from '@/lib/buklodTouch';
 import {
   CHARACTER_DISPLAY_NAME,
   getMyBuklodCharacterSelectionV2,
-  getCachedBuklodCharacterSelectionV2,
   subscribeBuklodCharacterSelectionV2,
   type BuklodCharacterSelectionV2State,
 } from '@/lib/buklodCharacterSelectionV2';
@@ -51,16 +50,13 @@ export default function BuklodCharacterCustomizeSheet({ visible, onClose, userId
   useEffect(() => {
     if (!visible || !userId) return;
     let mounted = true;
-    // Render the last known character immediately; refresh server state quietly.
-    const cached = getCachedBuklodCharacterSelectionV2(userId);
-    setState(cached);
-    setLoading(!cached);
+    setLoading(true);
 
     void getMyBuklodCharacterSelectionV2(userId, true)
       .then(
         (next) => { if (mounted) setState(next); },
         (error: unknown) => {
-          if (mounted && !cached) {
+          if (mounted) {
             Alert.alert(
               'BUKLOD Character',
               error instanceof Error ? error.message : 'Could not load Character Selection.',
