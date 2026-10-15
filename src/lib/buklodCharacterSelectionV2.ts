@@ -119,6 +119,8 @@ const ALL_CHARACTER_IDS = new Set<string>([
 
 const cache = new Map<string, BuklodCharacterSelectionV2State>();
 const inflight = new Map<string, Promise<BuklodCharacterSelectionV2State>>();
+// A selection mutation invalidates reads started before that mutation.
+const mutationGenerations = new Map<string, number>();
 const listeners = new Set<(
   userId: string,
   state: BuklodCharacterSelectionV2State,
@@ -220,6 +222,7 @@ export async function getMyBuklodCharacterSelectionV2(
     if (cached) return cached;
   }
 
+  const readGeneration = mutationGenerations.get(userId) ?? 0;
   const request = (async () => {
     const { data, error } = await (supabase as any).rpc(
       'get_my_buklod_character_selection_v2',
@@ -232,6 +235,10 @@ export async function getMyBuklodCharacterSelectionV2(
     }
 
     const state = normalizeState(data);
+    // Prevent a slow, pre-mutation read from overwriting a newer selection.
+    if ((mutationGenerations.get(userId) ?? 0) !== readGeneration) {
+      return cache.get(userId) ?? state;
+    }
     publish(userId, state);
     return state;
   })();
@@ -262,6 +269,7 @@ export async function setMyBuklodCharacterActiveV2(
   }
 
   const state = normalizeState(data);
+  mutationGenerations.set(userId, (mutationGenerations.get(userId) ?? 0) + 1);
   publish(userId, state);
   return state;
 }
