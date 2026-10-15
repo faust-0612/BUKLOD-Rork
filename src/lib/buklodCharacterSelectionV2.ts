@@ -211,11 +211,13 @@ export async function getMyBuklodCharacterSelectionV2(
     throw new Error('Authentication required');
   }
 
+  // Collapse concurrent refreshes even when callers request force=true.
+  // Only one selection RPC per user may be in flight at a time.
+  const pending = inflight.get(userId);
+  if (pending) return pending;
   if (!force) {
     const cached = cache.get(userId);
     if (cached) return cached;
-    const pending = inflight.get(userId);
-    if (pending) return pending;
   }
 
   const request = (async () => {
