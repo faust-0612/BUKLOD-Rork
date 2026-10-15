@@ -340,7 +340,8 @@ export async function trackBuklodFeedbackEvent(input: {
     void request.finally(() => {
       telemetryPendingRequests = Math.max(0, telemetryPendingRequests - 1);
     }).catch(() => undefined);
-    await withBuklodTimeout(request, 1_800, 'BUKLOD support telemetry');
+    void withBuklodTimeout(request, 1_800, 'BUKLOD support telemetry')
+      .catch(() => undefined);
   } catch {
     // Telemetry must never block or change the user's action.
   }
