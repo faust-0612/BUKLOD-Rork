@@ -255,10 +255,13 @@ export default function ForgotPasswordScreen() {
         );
       }
     }
-    if (emailReady === false) {
+    // The readiness probe is advisory. A transient status-check failure must
+    // not disable self-service recovery for every account; request_otp remains
+    // the authoritative, rate-limited server-side eligibility check.
+    if (!autoForgotLogin && !/^\d{4}-\d{2}-\d{2}$/.test(autoBirthDate.trim())) {
       return Alert.alert(
         'Automatic Recovery',
-        'Automatic recovery is temporarily unavailable. Use Recovery PIN or Admin Help.'
+        'Enter the account birthday as YYYY-MM-DD to match your account securely.'
       );
     }
     if (emailInFlight.current) return;
@@ -296,6 +299,17 @@ export default function ForgotPasswordScreen() {
         );
       }
       if (!data?.ok) {
+        if (data?.adminFallback === true) {
+          // No verified delivery channel or ambiguous identity: use the
+          // existing manual verification, never bypass recovery proof.
+          if (autoForgotLogin) {
+            setForgotLogin(true);
+          } else {
+            setForgotLogin(false);
+            setAdminIdentifier(clean);
+          }
+          setPath('admin');
+        }
         throw new Error(
           data?.message ??
             'The account could not be recovered automatically. Check the information or use Admin Help.'
@@ -739,7 +753,7 @@ export default function ForgotPasswordScreen() {
               <View style={styles.warningCard}>
                 <MaterialCommunityIcons name="alert-circle-outline" size={20} color="#8A5A00" />
                 <Text style={styles.warningText}>
-                  Automatic recovery is temporarily unavailable. Use Recovery PIN or Admin Help.
+                  Recovery service readiness could not be confirmed. You can still try secure Automatic Recovery, or use Recovery PIN / Admin Help if code delivery is unavailable.
                 </Text>
               </View>
             ) : null}
@@ -792,7 +806,7 @@ export default function ForgotPasswordScreen() {
                   editable={!emailBusy && !emailOtpVerified}
                   style={styles.input}
                 />
-                <FieldLabel>Birthday (required when using username)</FieldLabel>
+                <FieldLabel>Birthday (required for secure account matching)</FieldLabel>
                 <TextInput
                   value={autoBirthDate}
                   onChangeText={(value) =>
@@ -853,7 +867,7 @@ export default function ForgotPasswordScreen() {
               <>
                 <PrimaryButton
                   busy={emailBusy && !emailOtpSent}
-                  disabled={emailReady !== true}
+                  disabled={emailBusy}
                   label={emailOtpSent ? 'SEND NEW CODE' : 'MATCH ACCOUNT & SEND CODE'}
                   onPress={requestEmailOtp}
                 />
