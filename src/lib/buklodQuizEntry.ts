@@ -41,97 +41,94 @@ function timeoutResult<T>(value: T, ms: number) {
   });
 }
 
-async function getValidatedMainAccessToken() {
-  const current = await supabase.auth.getSession();
-  if (current.error) throw current.error;
-
-  let accessToken = String(current.data.session?.access_token ?? '').trim();
-  if (!accessToken) {
-    throw new Error(
-      'Your BUKLOD Main session is unavailable. Sign in to BUKLOD Main again, then open BUKLOD Quiz.',
-    );
-  }
-
-  const validation = await Promise.race([
-    supabase.auth.getUser(accessToken),
+/* BUKLOD_QUIZ_AUTH_504_FAST_PATH_20261016
+ * Quiz bridge verifies the signed Main token cryptographically (getClaims).
+ * Avoid a separate Main /auth/v1/user request on every door tap: that service
+ * returned 504/522 during active sessions and blocked valid users unnecessarily.
+ * A 401 from the bridge is the only reason to refresh and retry once.
+ */
+async function getMainAccessToken() {
+  const result: any = await Promise.race([
+    supabase.auth.getSession(),
     timeoutResult<any>(
       {
-        data: { user: null },
-        error: new Error('BUKLOD_MAIN_SESSION_VALIDATE_TIMEOUT'),
+        data: { session: null },
+        error: new Error('BUKLOD_MAIN_SESSION_READ_TIMEOUT'),
       },
       SESSION_TIMEOUT_MS,
     ),
   ]);
 
-  if (!validation?.error && validation?.data?.user) {
-    return accessToken;
+  const token = String(result?.data?.session?.access_token ?? '').trim();
+  if (token) return token;
+
+  if (result?.error?.message === 'BUKLOD_MAIN_SESSION_READ_TIMEOUT') {
+    throw new Error(
+      'BUKLOD Main is taking too long to restore your session. Check your connection and tap Quiz again.',
+    );
   }
 
-  const refreshed = await Promise.race([
+  throw new Error(
+    'BUKLOD Main has no usable session on this device. Sign in to BUKLOD Main, then open Quiz.',
+  );
+}
+
+async function refreshMainTokenOnce() {
+  const refreshed: any = await Promise.race([
     supabase.auth.refreshSession(),
     timeoutResult<any>(
       {
-        data: { session: null, user: null },
+        data: { session: null },
         error: new Error('BUKLOD_MAIN_SESSION_REFRESH_TIMEOUT'),
       },
       SESSION_TIMEOUT_MS,
     ),
   ]);
-
-  accessToken = String(refreshed?.data?.session?.access_token ?? '').trim();
-  if (refreshed?.error || !accessToken) {
+  const token = String(refreshed?.data?.session?.access_token ?? '').trim();
+  if (refreshed?.error || !token) {
     throw new Error(
-      'Your saved BUKLOD session on this device is no longer valid. Sign in to BUKLOD Main again, then open BUKLOD Quiz.',
+      'Your BUKLOD Main session has expired or could not be refreshed. Sign in again, then open Quiz.',
     );
   }
-
-  const revalidated = await Promise.race([
-    supabase.auth.getUser(accessToken),
-    timeoutResult<any>(
-      {
-        data: { user: null },
-        error: new Error('BUKLOD_MAIN_SESSION_REVALIDATE_TIMEOUT'),
-      },
-      SESSION_TIMEOUT_MS,
-    ),
-  ]);
-
-  if (revalidated?.error || !revalidated?.data?.user) {
-    throw new Error(
-      'BUKLOD refreshed your saved session, but this device could not validate it. Check your connection, then sign in again if needed.',
-    );
-  }
-
-  return accessToken;
+  return token;
 }
 
-export async function createBuklodQuizLaunchUrl(
-  options: OpenBuklodQuizOptions,
-) {
-  const accessToken = await getValidatedMainAccessToken();
+async function postQuizBridge(accessToken: string, source: QuizEntrySource) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), ENTRY_TIMEOUT_MS);
-
-  let response: Awaited<ReturnType<typeof fetch>>;
   try {
-    response = await fetch(QUIZ_ENTRY_BRIDGE, {
+    return await fetch(QUIZ_ENTRY_BRIDGE, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ source: options.source }),
+      body: JSON.stringify({ source }),
       signal: controller.signal,
     });
   } catch (error: any) {
     if (error?.name === 'AbortError' || controller.signal.aborted) {
       throw new Error(
-        'BUKLOD Quiz entry timed out. Check your connection, then tap BUKLOD Quiz once to retry.',
+        'BUKLOD Quiz entry timed out. Check your connection, then tap Quiz once to retry.',
       );
     }
     throw error;
   } finally {
     clearTimeout(timeoutId);
+  }
+}
+
+export async function createBuklodQuizLaunchUrl(
+  options: OpenBuklodQuizOptions,
+) {
+  let accessToken = await getMainAccessToken();
+  let response = await postQuizBridge(accessToken, options.source);
+
+  // A 401 is rejected before the Quiz gate/identity creation, so one
+  // refresh + retry cannot duplicate attempts, exams, or handoff requests.
+  if (response.status === 401) {
+    accessToken = await refreshMainTokenOnce();
+    response = await postQuizBridge(accessToken, options.source);
   }
 
   const result = await response.json().catch(() => null);
@@ -147,10 +144,14 @@ export async function createBuklodQuizLaunchUrl(
 
     if (code === 'entry_already_in_progress') {
       throw new Error(
-        'Your BUKLOD Quiz entry is already processing. Wait a few seconds, then tap BUKLOD Quiz once.',
+        'Your BUKLOD Quiz entry is already processing. Wait a few seconds, then tap Quiz once.',
       );
     }
-
+    if (response.status === 401 || code === 'main_session_required') {
+      throw new Error(
+        'Your BUKLOD Main session was rejected after refresh. Sign in again, then open Quiz.',
+      );
+    }
     throw new Error(
       String(
         result?.message ??
