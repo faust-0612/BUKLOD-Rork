@@ -51,14 +51,14 @@ export function CommunityVideo({
     const video = videoRef.current;
     if (!video) return;
 
-    if (!active) {
-      video.pause();
-      return;
-    }
-
     if (autoPlay) {
       void video.play().catch(() => undefined);
     }
+
+    return () => {
+      // Stop any in-flight playback when the row goes offscreen.
+      video.pause();
+    };
   }, [active, autoPlay, uri]);
 
   return React.createElement(
