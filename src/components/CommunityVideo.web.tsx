@@ -74,7 +74,9 @@ export function CommunityVideo({
         position: 'relative',
       },
     },
-    React.createElement('video', {
+    // Do not preload or keep a DOM media element for offscreen posts.
+    active
+      ? React.createElement('video', {
       ref: videoRef,
       key: uri,
       src: uri,
@@ -94,7 +96,8 @@ export function CommunityVideo({
         objectFit: fullscreen ? 'contain' : 'cover',
         background: '#111',
       },
-    }),
+    })
+      : null,
     onOpenFullscreen && !fullscreen
       ? React.createElement(
           'button',
