@@ -137,7 +137,9 @@ export function isBuklodTransientAuthError(
     status === 500 ||
     status === 502 ||
     status === 503 ||
-    status === 504
+    status === 504 ||
+    // Cloudflare 522 is a temporary origin connection timeout.
+    status === 522
   ) {
     return true;
   }
