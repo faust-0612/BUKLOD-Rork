@@ -90,6 +90,7 @@ export default function ForgotPasswordScreen() {
   const [path, setPath] = useState<RecoveryPath>('email');
 
   const [emailReady, setEmailReady] = useState<boolean | null>(null);
+  const [emailDeliveryUnconfigured, setEmailDeliveryUnconfigured] = useState(false);
   const [email, setEmail] = useState('');
   const [autoForgotLogin, setAutoForgotLogin] = useState(false);
   const [autoBirthDate, setAutoBirthDate] = useState('');
@@ -150,11 +151,17 @@ export default function ForgotPasswordScreen() {
         if (cancelled) return;
         if (error || !data?.ok) {
           setEmailReady(false);
+          setEmailDeliveryUnconfigured(false);
           return;
         }
-        setEmailReady(data?.emailReady === true || data?.smsReady === true);
+        const deliveryReady = data?.emailReady === true || data?.smsReady === true;
+        setEmailReady(deliveryReady);
+        setEmailDeliveryUnconfigured(!deliveryReady);
       } catch {
-        if (!cancelled) setEmailReady(false);
+        if (!cancelled) {
+          setEmailReady(false);
+          setEmailDeliveryUnconfigured(false);
+        }
       }
     };
 
@@ -753,7 +760,9 @@ export default function ForgotPasswordScreen() {
               <View style={styles.warningCard}>
                 <MaterialCommunityIcons name="alert-circle-outline" size={20} color="#8A5A00" />
                 <Text style={styles.warningText}>
-                  Recovery service readiness could not be confirmed. You can still try secure Automatic Recovery, or use Recovery PIN / Admin Help if code delivery is unavailable.
+                  {emailDeliveryUnconfigured
+                    ? 'Automatic code delivery is not configured on the BUKLOD server. You can check AUTO, but use Recovery PIN or Admin Help until email/SMS recovery is restored.'
+                    : 'Recovery service readiness could not be confirmed. You can still try AUTO, or use Recovery PIN / Admin Help if code delivery is unavailable.'}
                 </Text>
               </View>
             ) : null}
