@@ -46,22 +46,23 @@ type Props = {
 };
 
 export function CommunityVideo(props: Props) {
-  const imaEligible =
-    props.active !== false &&
-    !props.fullscreen &&
-    Platform.OS === 'android' &&
-    isBuklodImaNativeAvailable() &&
-    shouldUseBuklodImaForVideo(
-      props.expectedDurationSeconds,
-    );
-
-  if (props.fullscreen && props.active === false) {
+  // Never mount an ExoPlayer or IMA player for an inactive feed card.
+  // Pausing an offscreen player is not enough to release its decoder.
+  if (props.active === false) {
     return (
       <InactiveCommunityVideo
         {...props}
       />
     );
   }
+
+  const imaEligible =
+    !props.fullscreen &&
+    Platform.OS === 'android' &&
+    isBuklodImaNativeAvailable() &&
+    shouldUseBuklodImaForVideo(
+      props.expectedDurationSeconds,
+    );
 
   if (imaEligible) {
     return (
