@@ -23,7 +23,6 @@ const AUTH_LOCAL_SESSION_TIMEOUT_MS = 1_200;
 const AUTH_LOCAL_SIGN_OUT_TIMEOUT_MS = 2_500;
 const AUTH_FRESH_SIGN_IN_USER_TTL_MS = 60_000;
 const AUTH_PASSWORD_SIGN_IN_TIMEOUT_MS = 12_000;
-const AUTH_EXISTING_PASSWORD_SIGN_IN_TIMEOUT_MS = 3_500;
 
 /*
  * BUKLOD_MAIN_AUTH_STORM_R21
@@ -172,22 +171,18 @@ export async function signInWithPasswordResilient(
    * grant while the original request is still active.
    */
   if (authRuntimeState.passwordSignInInFlight) {
-    try {
-      return await withBuklodTimeout<any>(
-        authRuntimeState.passwordSignInInFlight,
-        AUTH_EXISTING_PASSWORD_SIGN_IN_TIMEOUT_MS,
-        'BUKLOD sign-in already in progress'
-      );
-    }
-    catch (error) {
-      return {
-        data: {
-          user: null,
-          session: null,
-        },
-        error,
-      } as any;
-    }
+    /*
+     * Never return the result of a previous password request to a caller
+     * that may have submitted different credentials. The old request is
+     * still pending; the new password has NOT been checked by Supabase.
+     */
+    return {
+      data: { user: null, session: null },
+      error: Object.assign(
+        new Error('Previous sign-in still processing; new password not checked.'),
+        { code: 'sign_in_in_progress', status: 409 }
+      ),
+    } as any;
   }
 
   const task = supabase.auth
