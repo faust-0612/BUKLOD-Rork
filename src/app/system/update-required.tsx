@@ -9,6 +9,7 @@ import { notifyBuklodBsocClientR1 } from '@/lib/buklodBsocClientSafetyR1';
 export default function UpdateRequired() {
   const {config,refresh} = useRuntimeConfig();
   const [busy,setBusy] = useState(false);
+  const [reported,setReported] = useState(false);
 
   useEffect(() => {
     void notifyBuklodBsocClientR1('UPGRADE_NOTICE','APP_VERSION_UNSUPPORTED','REPORTED');
@@ -39,6 +40,14 @@ export default function UpdateRequired() {
           try { await refresh(); router.replace('/'); } finally { setBusy(false); }
         }}>
           <Text style={{fontWeight:'900',marginTop:18}}>CHECK AGAIN</Text>
+        </Pressable>
+        <Pressable onPress={async () => {
+          const sent = await notifyBuklodBsocClientR1('REQUEST_HELP','APP_VERSION_UNSUPPORTED','REPORTED');
+          if (sent) setReported(true);
+        }}>
+          <Text style={{fontWeight:'800',marginTop:16,color:'#23623D'}}>
+            {reported ? 'REQUEST SENT TO BSOC' : 'REQUEST BSOC ASSISTANCE'}
+          </Text>
         </Pressable>
         <Text style={[shared.muted,{marginTop:14}]}>
           Kung walang compatible OTA, kailangan ng approved native APK mula sa official distributor.
