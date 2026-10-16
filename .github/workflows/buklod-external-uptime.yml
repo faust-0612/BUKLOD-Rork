@@ -1,0 +1,114 @@
+# Independent, read-only external availability checks for BUKLOD Connect.
+# Runs outside Supabase. Does not access private user data or deploy app code.
+name: BUKLOD External Uptime
+
+on:
+  schedule:
+    - cron: '19 * * * *' # Once per hour, UTC; GitHub schedule can be delayed.
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/buklod-external-uptime.yml'
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: buklod-external-uptime
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Independent BUKLOD health check
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Probe public services and open/resolve one incident issue
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const host = 'https://yhanxndaqbmuzbdqlblu.supabase.co';
+            const issueTitle = 'BUKLOD External Uptime Incident';
+            const stamp = new Date().toISOString();
+            const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+            const results = [];
+            async function probe(label, url, opts = {}) {
+              let status = 'NO_RESPONSE', ok = false;
+              for (let attempt = 0; attempt < 2; attempt++) {
+                try {
+                  const response = await fetch(url, {
+                    method: 'GET', redirect: 'follow',
+                    signal: AbortSignal.timeout(9000),
+                    ...opts,
+                  });
+                  status = String(response.status);
+                  ok = response.status >= 200 && response.status < 400;
+                  if (ok) break;
+                } catch (err) {
+                  status = 'CONNECTION_FAILED';
+                }
+                if (attempt === 0) await sleep(2000);
+              }
+              results.push({label, status, ok});
+              return ok;
+            }
+
+            await probe('BUKLOD website', 'https://buklod.expo.app/');
+            const configUrl = host + '/functions/v1/bsoc-liveops-r2?api=config';
+            let key = null;
+            const configOk = await probe('BSOC public configuration', configUrl);
+            if (configOk) {
+              try {
+                const res = await fetch(configUrl, {signal: AbortSignal.timeout(9000)});
+                const config = await res.json();
+                const candidate = new URL(config.url);
+                if (candidate.protocol !== 'https:' || candidate.hostname !== 'yhanxndaqbmuzbdqlblu.supabase.co') {
+                  throw new Error('Unexpected configuration hostname');
+                }
+                if (!config.key || typeof config.key !== 'string') throw new Error('Publishable key unavailable');
+                key = config.key; // Never print or persist the public key.
+              } catch (_) {
+                results.push({label: 'Configuration parsing', status: 'INVALID_CONFIG', ok: false});
+              }
+            }
+            if (key) {
+              const headers = {'apikey': key, 'Accept': 'application/json'};
+              await probe('Authentication health', host + '/auth/v1/health', {headers});
+              await probe('Data API empty read', host + '/rest/v1/app_runtime_config?select=*&limit=0', {headers});
+            } else {
+              results.push({label:'Auth/Data API direct verification',status:'UNVERIFIED_CONFIG_UNAVAILABLE',ok:false});
+            }
+            const failures = results.filter(x => !x.ok);
+            for (const r of results) core.info(r.label + ': ' + r.status);
+            const {owner, repo} = context.repo;
+            const openIssues = await github.paginate(github.rest.issues.listForRepo, {owner,repo,state:'open',per_page:100});
+            const existing = openIssues.find(x => !x.pull_request && x.title === issueTitle);
+
+            if (failures.length) {
+              const lines = failures.map(x => '- ' + x.label + ': ' + x.status).join('\n');
+              const body = '## ACTIVE — external availability warning\n' +
+                'Checked (UTC): ' + stamp + '\n\n' + lines + '\n\n' +
+                'This is an independent GitHub-runner check, not proof of the root cause. ' +
+                'A missing public BSOC config also makes the downstream Auth/API checks UNVERIFIED. ' +
+                'No secrets, app code or user records were accessed or changed.\n\n' +
+                'Source: ' + context.serverUrl + '/' + owner + '/' + repo + '/actions/workflows/buklod-external-uptime.yml\n\n' +
+                'cc @faust-0612';
+              if (!existing) {
+                await github.rest.issues.create({owner,repo,title:issueTitle,body,assignees:['faust-0612']});
+                core.info('Opened one GitHub incident issue.');
+              } else {
+                core.info('Previously active incident exists — no duplicate issue.');
+              }
+              core.setFailed('BUKLOD external check failed: ' + failures.map(x=>x.label).join(', '));
+            } else {
+              if (existing) {
+                await github.rest.issues.createComment({owner,repo,issue_number:existing.number,
+                  body:'**RECOVERED (external availability only)** at '+stamp+
+                  '. Website, BSOC configuration, Auth health and empty Data API request passed. '+
+                  'This does not establish a permanent backend fix.'});
+                await github.rest.issues.update({owner,repo,issue_number:existing.number,state:'closed'});
+                core.info('Closed prior availability incident after verified good checks.');
+              }
+              core.info('All external endpoints reachable; no incident update.');
+            }
