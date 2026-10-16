@@ -292,7 +292,7 @@ export default function ForgotPasswordScreen() {
     // The readiness probe is advisory. A transient status-check failure must
     // not disable self-service recovery for every account; request_otp remains
     // the authoritative, rate-limited server-side eligibility check.
-    if (!autoForgotLogin && !/^\d{4}-\d{2}-\d{2}$/.test(autoBirthDate.trim())) {
+    if (!autoForgotLogin && !emailDeliveryUnconfigured && !/^\d{4}-\d{2}-\d{2}$/.test(autoBirthDate.trim())) {
       return Alert.alert(
         'Automatic Recovery',
         'Enter the account birthday as YYYY-MM-DD to match your account securely.'
@@ -862,7 +862,11 @@ export default function ForgotPasswordScreen() {
                   editable={!emailBusy && !emailOtpVerified}
                   style={styles.input}
                 />
-                <FieldLabel>Birthday (required for secure account matching)</FieldLabel>
+                <FieldLabel>
+                  {emailDeliveryUnconfigured
+                    ? 'Birthday (optional for Admin-verified recovery)'
+                    : 'Birthday (required for automatic code recovery)'}
+                </FieldLabel>
                 <TextInput
                   value={autoBirthDate}
                   onChangeText={(value) =>
