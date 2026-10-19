@@ -739,8 +739,27 @@ export default function ForgotPasswordScreen() {
               <View style={styles.warningCard}>
                 <MaterialCommunityIcons name="alert-circle-outline" size={20} color="#8A5A00" />
                 <Text style={styles.warningText}>
-                  Automatic recovery is temporarily unavailable. Use Recovery PIN or Admin Help.
+                  Automatic recovery delivery is unavailable or could not be checked. You may retry the service check, or use Recovery PIN / Need Help.
                 </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Retry automatic recovery service check"
+                  onPress={async () => {
+                    setEmailReady(null);
+                    try {
+                      const { data, error } = await supabase.functions.invoke('account-recovery-otp-v1', {
+                        body: { action: 'service_status' },
+                      });
+                      setEmailReady(!error && data?.ok === true &&
+                        (data?.emailReady === true || data?.smsReady === true));
+                    } catch {
+                      setEmailReady(false);
+                    }
+                  }}
+                  style={{ paddingVertical: 12 }}
+                >
+                  <Text style={{ color: colors.green, fontWeight: '700' }}>RECHECK RECOVERY SERVICE</Text>
+                </Pressable>
               </View>
             ) : null}
 
