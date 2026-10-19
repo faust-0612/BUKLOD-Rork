@@ -531,14 +531,21 @@ export async function resolveReferralTarget(
   };
 }
 
-export async function recordReferral(referrerCode: string) {
+export async function recordReferral(
+  referrerCode: string,
+  options?: { validatedCode?: boolean },
+) {
   const value = referrerCode.trim();
   if (!value) {
     throw new Error('Referral code required');
   }
 
-  const resolved = await resolveReferralTarget(value);
-  const code = resolved.found
+  // A code returned by the referral picker has already been resolved.
+  // Avoid another fragile network lookup during signup on weak connections.
+  const resolved = options?.validatedCode
+    ? null
+    : await resolveReferralTarget(value);
+  const code = resolved?.found
     ? String(resolved.referral_code || value)
     : value;
 
