@@ -22,7 +22,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
-import { enqueueBuklodMainHealthIssue } from '@/lib/buklodMainHealth';
+import { enqueueBuklodMainHealthIssue, flushBuklodMainHealthQueue } from '@/lib/buklodMainHealth';
 import {
   recordReferral,
   resolveReferralTarget,
@@ -859,14 +859,17 @@ useEffect(() => {
               correlationKey: 'REGISTER_REFERRAL_ATTACH',
               routeModule: 'auth/register',
               privacyClassification: 'OPERATIONAL',
-            }).catch(() => undefined);
+            }).then(() => flushBuklodMainHealthQueue(healthUserId))
+              .catch(() => undefined);
           }
           referralLinkNote =
-            /invalid referral|not found|no matching/i.test(
-              message,
-            )
-              ? ' Your referral could not be linked because that account name or invite code was not recognized.'
-              : ' Your referral could not be linked automatically. You can ask support if this keeps happening.';
+            /already recorded/i.test(message)
+              ? ' A referral is already recorded for this account.'
+              : /not authenticated|jwt|session/i.test(message)
+                ? ' Your account was created, but referral linking is pending because your login session was not ready.'
+                : /invalid referral|not found|no matching/i.test(message)
+                  ? ' Your account was created, but the referral could not be validated during submission.'
+                  : ' Your account was created, but referral linking could not finish. Please contact support rather than registering again.';
         }
       }
 
