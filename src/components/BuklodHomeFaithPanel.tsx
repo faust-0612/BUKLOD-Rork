@@ -154,7 +154,7 @@ function FaithAction({
     >
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={label}
+        accessibilityLabel={`${label}. ${title}`}
         onPress={onPress}
         onPressIn={() =>
           pressTo(0.97, 70)
@@ -623,9 +623,9 @@ export default function BuklodHomeFaithPanel({
             ABC lesson completion uses the existing BUKLOD Points claim flow.
         */}
         <FaithAction
-          label="ABC Study"
-          title="ABC’s ng Paglagong Kristyano"
-          meta="Lessons • Bible links • +5 points"
+          label="ABAKA"
+          title="ABAKA ng Bagong Likha"
+          meta="Sunday school • A–Z • +5 points"
           icon="school-outline"
           tone="bible"
           onPress={() =>

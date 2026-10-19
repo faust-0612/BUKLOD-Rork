@@ -209,7 +209,7 @@ function activityLabel(type: string) {
     case 'formation_lesson':
       return 'Formation Lesson';
     case 'abc_growth_lesson':
-      return 'ABC Growth Lesson';
+      return 'ABAKA ng Bagong Likha';
     case 'daily_bible':
       return 'Daily Bible Reading';
     case 'daily_bible_verification':

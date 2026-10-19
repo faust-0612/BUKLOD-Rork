@@ -352,7 +352,7 @@ BuklodAbcLessonsScreen() {
               styles.title
             }
           >
-            ABC’s ng Paglagong Kristyano
+            {ABC_SOURCE.title}
           </Text>
 
           <Text
@@ -360,7 +360,7 @@ BuklodAbcLessonsScreen() {
               styles.subtitle
             }
           >
-            Lesson-by-lesson study with answer fields, Bible links and BUKLOD Points.
+            Sunday school mula A hanggang Z. Bawat tanong ay may talata. Si Hesus ang sentro.
           </Text>
         </View>
       </View>
@@ -384,8 +384,6 @@ BuklodAbcLessonsScreen() {
           }
         >
           {ABC_SOURCE.englishTitle}
-          {'\n'}
-          ni {ABC_SOURCE.author} · {ABC_SOURCE.copyright}
         </Text>
 
         <Text
@@ -393,7 +391,7 @@ BuklodAbcLessonsScreen() {
             styles.sourceNote
           }
         >
-          Source text follows the uploaded material. Your answers are personal study notes; the app does not invent an answer key.
+          {ABC_SOURCE.copyright} Sagutin ang bawat tanong mula sa talatang nakakabit. Ang huling sagot ay sarili mong hakbang.
         </Text>
       </View>
 
@@ -473,7 +471,7 @@ BuklodAbcLessonsScreen() {
         />
 
         <TextInput
-          accessibilityLabel="Search ABC lessons"
+          accessibilityLabel="Search ABAKA lessons"
           value={query}
           onChangeText={
             setQuery

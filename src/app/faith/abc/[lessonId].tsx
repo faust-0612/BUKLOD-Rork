@@ -473,11 +473,7 @@ BuklodAbcLessonDetailScreen() {
       if (unanswered > 0) {
         Alert.alert(
           'May kulang pang sagot',
-          `May ${unanswered} answer field${
-            unanswered === 1
-              ? ''
-              : 's'
-          } pang walang laman. Punan muna ang mga ito bago ma-complete ang lesson at makakuha ng BUKLOD Points.`
+          `May ${unanswered} tanong pang walang sagot. Sagutin muna ang bawat tanong bago tapusin ang aralin.`
         );
         return;
       }
@@ -1324,11 +1320,7 @@ BuklodAbcLessonDetailScreen() {
                 styles.citationText
               }
             >
-              {ABC_SOURCE.author}. {ABC_SOURCE.title} ({ABC_SOURCE.englishTitle}). {ABC_SOURCE.copyright}. Uploaded source, pp. {lesson.sourcePages[0]}
-              {lesson.sourcePages[1] !==
-              lesson.sourcePages[0]
-                ? `–${lesson.sourcePages[1]}`
-                : ''}.
+              {ABC_SOURCE.title}. {ABC_SOURCE.copyright} Sanggunian ng balangkas: {ABC_SOURCE.author}.
             </Text>
 
             <Text
@@ -1336,7 +1328,7 @@ BuklodAbcLessonDetailScreen() {
                 styles.citationNote
               }
             >
-              Bible references are preserved from the lesson source and linked to BUKLOD’s existing Bible reader.
+              Ang mga talata ay naka-ugnay sa mambabasa ng Biblia ng BUKLOD. Sagutin mula sa talata.
             </Text>
           </View>
         </ScrollView>
