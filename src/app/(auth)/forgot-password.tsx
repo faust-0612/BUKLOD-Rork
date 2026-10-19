@@ -698,15 +698,20 @@ export default function ForgotPasswordScreen() {
         <Text style={styles.title}>Recover Your BUKLOD Account</Text>
         <Text style={styles.subtitle}>
           Automatic recovery checks your registered email, mobile number, or username. A matched
-          account receives a 6-digit code automatically. Admin Help is fallback only.
+          account receives a 6-digit code when verified contact delivery is available.
+          Otherwise, use the existing identity verification and admin-approved recovery process.
         </Text>
 
         <View style={styles.pathRow}>
           <PathButton
             active={path === 'email'}
             icon="account-key-outline"
-            label="AUTO"
-            onPress={() => selectPath('email')}
+            label={emailReady === true ? 'AUTO' : 'RECOVER'}
+            onPress={() => {
+              // Verified-contact OTP is optional. Without a configured provider,
+              // route to the existing identity-match + admin-approved recovery flow.
+              selectPath(emailReady === true ? 'email' : 'admin');
+            }}
           />
           <PathButton
             active={path === 'pin'}
