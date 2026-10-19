@@ -481,7 +481,7 @@ export default function BuklodHomeFaithPanel({
           </Text>
 
           <Text style={[styles.sectionSubtitle, { color: colors.muted }]}>
-            Scripture, devotion, prayer, Christian growth and hymns.
+            Scripture, devotion, prayer, ABAKA, and hymns.
           </Text>
         </View>
 

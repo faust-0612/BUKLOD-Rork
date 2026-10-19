@@ -801,7 +801,7 @@ BuklodAbcLessonDetailScreen() {
                 styles.primaryButtonText
               }
             >
-              Back to ABC Lessons
+              Back to ABAKA
             </Text>
           </Pressable>
         </View>
@@ -1199,8 +1199,8 @@ BuklodAbcLessonDetailScreen() {
                   ? 'Mark introduction unread'
                   : 'Mark introduction read'
                 : completed
-                  ? 'ABC lesson completed'
-                  : 'Complete ABC lesson and earn five BUKLOD Points'
+                  ? 'ABAKA lesson completed'
+                  : 'Complete this ABAKA lesson and earn five BUKLOD Points'
             }
             disabled={
               rewardBusy ||

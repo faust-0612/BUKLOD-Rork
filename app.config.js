@@ -44,7 +44,7 @@ module.exports = ({ config }) => {
 
     name: appName,
     slug: isClassroom ? 'buklod-classroom' : 'buklod',
-    version: '1.3.3',
+    version: '1.3.4',
 
     orientation: 'default',
     scheme,
@@ -79,7 +79,7 @@ module.exports = ({ config }) => {
     android: {
       package: packageId,
 
-      versionCode: isStaging ? undefined : 21,
+      versionCode: isStaging ? undefined : 28,
 
       // Never silently reuse Main Firebase credentials for the standalone Classroom package.
       googleServicesFile: isClassroom
@@ -389,9 +389,8 @@ module.exports = ({ config }) => {
         : undefined,
 
 
-    // Main BUKLOD (prod APK + daily DEV install) share one runtime so OTA is one channel.
-    // Classroom stays on its own runtime. Do not fork Main staging to a different runtime.
-    runtimeVersion: isClassroom ? '1.3.0' : '1.3.3',
+    // Main BUKLOD 1.3.4 is native v28. Classroom stays on its own runtime.
+    runtimeVersion: isClassroom ? '1.3.0' : '1.3.4',
   };
 };
 
