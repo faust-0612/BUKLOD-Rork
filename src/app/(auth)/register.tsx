@@ -22,6 +22,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
+import { enqueueBuklodMainHealthIssue } from '@/lib/buklodMainHealth';
 import {
   recordReferral,
   resolveReferralTarget,
@@ -826,7 +827,7 @@ useEffect(() => {
 
       if (referralValue) {
         try {
-          await recordReferral(referralValue);
+          await recordReferral(referralValue, { alreadyResolved: Boolean(selectedReferralCode.trim()) });
           referralLinked = true;
         } catch (
           referralError: unknown
@@ -839,6 +840,27 @@ useEffect(() => {
             'Referral record failed:',
             message,
           );
+          // Report a privacy-safe operational failure through the existing
+          // BUKLOD health queue. Never send names, codes, or passwords.
+          const healthUserId = data?.user?.id;
+          if (healthUserId) {
+            const signature = /already recorded/i.test(message)
+              ? 'REFERRAL_ALREADY_RECORDED'
+              : /not authenticated|jwt|session/i.test(message)
+                ? 'REFERRAL_SESSION_NOT_READY'
+                : /invalid referral|not found|no matching/i.test(message)
+                  ? 'REFERRAL_VALIDATION_REJECTED'
+                  : 'REFERRAL_ATTACH_FAILED';
+            void enqueueBuklodMainHealthIssue(healthUserId, {
+              category: 'SUBMISSION',
+              severity: 'ERROR',
+              safeErrorCode: 'REFERRAL_ATTACH_FAILED',
+              errorSignature: signature,
+              correlationKey: 'REGISTER_REFERRAL_ATTACH',
+              routeModule: 'auth/register',
+              privacyClassification: 'OPERATIONAL',
+            }).catch(() => undefined);
+          }
           referralLinkNote =
             /invalid referral|not found|no matching/i.test(
               message,
