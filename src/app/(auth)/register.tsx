@@ -22,6 +22,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
+import { reportBuklodMainHealthIssue } from '@/lib/buklodMainHealth';
 import {
   recordReferral,
   resolveReferralTarget,
@@ -826,7 +827,11 @@ useEffect(() => {
 
       if (referralValue) {
         try {
-          await recordReferral(referralValue);
+          // The selected code was already validated by the referral picker.
+          // Do not repeat its lookup on a weak network.
+          await recordReferral(referralValue, {
+            validatedCode: Boolean(selectedReferralCode.trim()),
+          });
           referralLinked = true;
         } catch (
           referralError: unknown
@@ -835,10 +840,23 @@ useEffect(() => {
             referralError instanceof Error
               ? referralError.message
               : String(referralError ?? '');
-          console.warn(
-            'Referral record failed:',
-            message,
-          );
+          console.warn('Referral record failed:', message);
+          // Privacy-safe operational telemetry: no names, codes or passwords.
+          void reportBuklodMainHealthIssue({
+            category: 'SUBMISSION',
+            severity: 'ERROR',
+            safeErrorCode: 'REFERRAL_ATTACH_FAILED',
+            errorSignature: /not authenticated/i.test(message)
+              ? 'REFERRAL_SESSION_NOT_READY'
+              : /already recorded/i.test(message)
+                ? 'REFERRAL_ALREADY_RECORDED'
+                : /invalid referral|not found|no matching/i.test(message)
+                  ? 'REFERRAL_VALIDATION_REJECTED'
+                  : 'REFERRAL_RPC_FAILURE',
+            correlationKey: 'V28_SIGNUP_REFERRAL_ATTACH',
+            routeModule: 'auth/register',
+            privacyClassification: 'OPERATIONAL',
+          }).catch(() => undefined);
           referralLinkNote =
             /invalid referral|not found|no matching/i.test(
               message,
