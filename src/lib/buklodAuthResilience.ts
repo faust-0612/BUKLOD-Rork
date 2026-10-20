@@ -23,14 +23,13 @@ const AUTH_LOCAL_SESSION_TIMEOUT_MS = 1_200;
 const AUTH_LOCAL_SIGN_OUT_TIMEOUT_MS = 2_500;
 const AUTH_FRESH_SIGN_IN_USER_TTL_MS = 60_000;
 const AUTH_PASSWORD_SIGN_IN_TIMEOUT_MS = 12_000;
-const AUTH_EXISTING_PASSWORD_SIGN_IN_TIMEOUT_MS = 3_500;
 
 /*
  * BUKLOD_MAIN_AUTH_STORM_R21
  * Keep the login lock on globalThis rather than component state so route
  * remounts / Fast Refresh cannot start a second password grant while the
  * first one is still running. One app runtime can only authenticate one
- * account at a time, so sharing the in-flight promise is the safest behavior.
+ * account at a time. Reject later callers without sharing another attempt’s result.
  *
  * We also remember the user id from a successful password grant briefly.
  * The account-lifecycle gate can then query the profile fallback directly
@@ -172,22 +171,13 @@ export async function signInWithPasswordResilient(
    * grant while the original request is still active.
    */
   if (authRuntimeState.passwordSignInInFlight) {
-    try {
-      return await withBuklodTimeout<any>(
-        authRuntimeState.passwordSignInInFlight,
-        AUTH_EXISTING_PASSWORD_SIGN_IN_TIMEOUT_MS,
-        'BUKLOD sign-in already in progress'
-      );
-    }
-    catch (error) {
-      return {
-        data: {
-          user: null,
-          session: null,
-        },
-        error,
-      } as any;
-    }
+    // Never return another attempt's session to a caller with new credentials.
+    return {
+      data: { user: null, session: null },
+      error: Object.assign(new Error('Sign-in is already in progress. Please wait and try again.'), {
+        code: 'auth_in_progress',
+      }),
+    } as any;
   }
 
   const task = supabase.auth
@@ -442,3 +432,4 @@ export async function signOutBuklodResilient() {
     error: signOutError,
   };
 }
+

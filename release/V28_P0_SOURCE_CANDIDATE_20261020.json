@@ -1,0 +1,59 @@
+{
+  "status": "SOURCE_CANDIDATE_ONLY_NOT_RC_NOT_OTA_READY",
+  "base_branch": "dev/v28-p0-reliability-20261020",
+  "base_commit": "f5fdab158b677ce94ebbcc70c5b904644f24def6",
+  "native_source_ancestor": "cbd650bc6113e832d2520986bb76bb1359d4181b",
+  "native_source_ancestor_verified": "GitHub compare: two DEV commits modifying register.tsx and buklodRewards.ts only. app.config.js declares version/runtime 1.3.4 and Android build 28. APK embedded bundle parity remains unverified.",
+  "accepted_expo_evidence": {
+    "account": "faust_0612",
+    "channel": "production",
+    "branch": "production",
+    "latest_group": "40ec8105-eaeb-4335-a0f2-7d08ca76e202",
+    "last_20_groups_runtime": "1.3.2",
+    "native_v28_runtime": "1.3.4"
+  },
+  "runtime_conclusion": "Runtime 1.3.2 groups are not directly compatible with V28 1.3.4. Do not replay old OTA bundles or assume their deltas are included in the V28 embedded bundle.",
+  "changes": [
+    "src/hooks/useBuklodOfflineCache.ts",
+    "src/lib/buklodAuthResilience.ts",
+    "src/lib/buklodPerformanceFetch.ts",
+    "tests/v28-p0-source.test.cjs"
+  ],
+  "completed": [
+    "Preserved existing referral and health-reporting candidate from f5fdab1",
+    "Removed mutating referral RPC from root read cache",
+    "Bound safe-read headers/body at 12s with abort and lock cleanup; mutations/auth bypass",
+    "Added offline-hook stale-response isolation, duplicate request containment, bounded hydration/refresh, retained cached content and privacy-safe health issue reporting",
+    "Rejected concurrent password calls instead of sharing another attempt's session",
+    "Inspected live referral resolver/attach definitions and registration/lifecycle/health RPC signatures and grants; no database writes"
+  ],
+  "tests": {
+    "command": "node --test tests/v28-p0-source.test.cjs",
+    "passed": 14,
+    "failed": 0,
+    "scope": "Node 24 stripped-TypeScript behavioral tests with mocks and lightweight hook harness; not a React renderer, Jest full suite, TypeScript typecheck or Android test"
+  },
+  "release_gates": {
+    "cumulative_apk_source_parity": "UNVERIFIED",
+    "full_typecheck": "NOT_RUN_DEPENDENCIES_UNAVAILABLE",
+    "existing_jest_regression": "NOT_RUN_JEST_UNAVAILABLE",
+    "android_weak_network_and_auth_flows": "NOT_RUN",
+    "live_authenticated_referral_and_health_e2e": "NOT_RUN_NO_TEST_SESSION",
+    "verified_rc": "NOT_FROZEN",
+    "ota": "NOT_PUBLISHED"
+  },
+  "remaining": [
+    "Map APK embedded JS/assets to exact source and reconcile required historical changes; app.config alone is not bundle parity",
+    "Run full TypeScript/Jest and existing protected-module release gates in dependency-equipped execution",
+    "Authenticated staging/device referral signup, weak-network login/loading and BSOC delivery verification",
+    "Signed-out auth failures cannot be reported by current authenticated-only health RPC; no anon grant or schema change made",
+    "Password request that never settles retains single-flight lock after bounded UI timeout; safe cancellation/session reconciliation needs end-to-end verification before broader repair"
+  ],
+  "prohibited_actions_performed": {
+    "main_merge": false,
+    "native_build": false,
+    "workflow_dispatch": false,
+    "ota_publish": false,
+    "database_mutation": false
+  }
+}

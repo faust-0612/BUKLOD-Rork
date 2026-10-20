@@ -70,7 +70,6 @@ const rpcReadTtlMs: Record<string, number> = {
   get_my_buklod_referral_summary_v1: 30_000,
   suggest_buklod_referral_targets_v1: 8_000,
   resolve_buklod_referral_target_v1: 8_000,
-  buklod_record_referral_v1: 15_000,
   get_buklod_public_community_feed_v7_page: 1_500,
   get_buklod_public_community_feed_v5: 1_500,
   get_my_buklod_points_dashboard: 12_000,
@@ -444,6 +443,34 @@ export function getBuklodPerformanceFetchStats() {
   };
 }
 
+// Bound safe-read headers AND response bodies. Mutations/auth bypass this helper.
+async function boundedReadSnapshot(
+  baseFetch: typeof fetch,
+  input: FetchInput,
+  init?: FetchInit,
+): Promise<ResponseSnapshot> {
+  const controller = new AbortController();
+  const parent = init?.signal ?? (typeof input === 'object' ? (input as Request).signal : null);
+  const abort = () => controller.abort();
+  if (parent?.aborted) abort();
+  else parent?.addEventListener('abort', abort, { once: true });
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      (async () => toSnapshot(await baseFetch(input, { ...init, signal: controller.signal })))(),
+      new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(() => {
+          controller.abort();
+          reject(new Error('BUKLOD safe read timed out after 12000ms.'));
+        }, 12_000);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+    parent?.removeEventListener('abort', abort);
+  }
+}
+
 export function createBuklodPerformanceFetch(
   baseFetch: typeof fetch
 ): typeof fetch {
@@ -530,14 +557,13 @@ export function createBuklodPerformanceFetch(
     state.stats.network += 1;
 
     const task = (async () => {
-      const response = await baseFetch(input, init);
-      const snapshot = await toSnapshot(response);
+      const snapshot = await boundedReadSnapshot(baseFetch, input, init);
 
-      const cacheTtl = response.ok
+      const cacheTtl = snapshot.status >= 200 && snapshot.status < 300
         ? ttlMs
-        : shouldNegativeCache(response.status)
+        : shouldNegativeCache(snapshot.status)
           ? Math.min(ttlMs, negativeReadTtlMs)
-          : shouldTransientFailureCache(response.status)
+          : shouldTransientFailureCache(snapshot.status)
             ? Math.min(ttlMs, transientReadFailureTtlMs)
             : 0;
 

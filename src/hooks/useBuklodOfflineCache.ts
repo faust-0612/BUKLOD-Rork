@@ -10,6 +10,8 @@ import {
   readOfflineCacheSync,
   writeOfflineCache,
 } from '@/lib/buklodOfflineSync';
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
+import { reportBuklodMainHealthIssue } from '@/lib/buklodMainHealth';
 import { useNetwork } from '@/providers/NetworkProvider';
 
 type Options<T> = {
@@ -65,6 +67,26 @@ export function useBuklodOfflineCache<T>({
   const [error, setError] = useState<string | null>(null);
   const [fromCache, setFromCache] = useState(initial.fromCache);
 
+  const scopeRef = useRef({ cacheKey, enabled, online, generation: 0 });
+  if (scopeRef.current.cacheKey !== cacheKey || scopeRef.current.enabled !== enabled || scopeRef.current.online !== online) {
+    scopeRef.current = { cacheKey, enabled, online, generation: scopeRef.current.generation + 1 };
+  }
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+  const pendingRef = useRef<{ scope: object; task: Promise<T> } | null>(null);
+  const request = useCallback((scope: object) => {
+    if (pendingRef.current?.scope === scope) return pendingRef.current.task;
+    const load = fetcherRef.current;
+    const task = Promise.resolve().then(() => load());
+    pendingRef.current = { scope, task };
+    void task.finally(() => {
+      if (pendingRef.current?.task === task) pendingRef.current = null;
+    }).catch(() => undefined);
+    return task;
+  }, []);
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
 
@@ -76,6 +98,9 @@ export function useBuklodOfflineCache<T>({
       setData(null);
       setLoading(false);
       setFromCache(false);
+      setError(null);
+      setRefreshing(false);
+      setSyncing(false);
       return;
     }
 
@@ -87,91 +112,68 @@ export function useBuklodOfflineCache<T>({
       return;
     }
 
+    setData(null);
+    setFromCache(false);
+    setError(null);
+    setRefreshing(false);
+    setSyncing(false);
     setLoading(true);
   }, [cacheKey, enabled]);
 
-  const hydrate = useCallback(async () => {
-    if (!enabled || !cacheKey) {
-      setLoading(false);
-      return;
-    }
-
+  const run = useCallback(async (manual: boolean) => {
+    const scope = scopeRef.current;
+    const current = () => mountedRef.current && scopeRef.current === scope;
+    if (!enabled || !cacheKey) return;
+    if (manual) setRefreshing(true);
     setError(null);
-
-    const cached =
-      readOfflineCacheSync<T>(cacheKey) ??
-      (await readOfflineCache<T>(cacheKey));
-
+    let cached: T | null = readOfflineCacheSync<T>(cacheKey);
+    try {
+      if (cached == null) {
+        cached = await withBuklodTimeout(readOfflineCache<T>(cacheKey), 1_500, 'Saved content');
+      }
+    } catch { /* Network refresh may still recover unavailable local storage. */ }
+    if (!current()) return;
     if (cached != null) {
       setData(cached);
       setFromCache(true);
       setLoading(false);
     }
-
     if (!online) {
-      if (cached == null) {
-        setLoading(false);
-        setError('Offline — no saved data yet.');
-      }
+      setLoading(false);
+      setRefreshing(false);
+      setSyncing(false);
+      if (cached == null) setError('Offline — no saved data yet.');
       return;
     }
-
     setSyncing(true);
-
     try {
-      const fresh = await fetcherRef.current();
-      const next =
-        cached != null && mergeRef.current
-          ? mergeRef.current(cached, fresh)
-          : fresh;
-
+      const fresh = await withBuklodTimeout(request(scope), 12_000, 'Content refresh');
+      if (!current()) return;
+      const next = cached != null && mergeRef.current ? mergeRef.current(cached, fresh) : fresh;
       setData(next);
       setFromCache(false);
       setError(null);
-      await writeOfflineCache(cacheKey, next, 'network');
+      // Storage cannot hold the loading indicator or turn a successful read into failure.
+      void writeOfflineCache(cacheKey, next, 'network').catch(() => undefined);
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : 'Could not refresh.';
-
-      if (cached == null) {
-        setError(message);
+      if (!current()) return;
+      setError(err instanceof Error ? err.message : 'Could not refresh.');
+      // Fixed operational labels only: cache keys may contain account identifiers.
+      void reportBuklodMainHealthIssue({
+        category: 'LOADING', severity: 'WARNING', safeErrorCode: 'CONTENT_REFRESH_FAILED',
+        errorSignature: 'CONTENT_REFRESH_FAILED', correlationKey: 'OFFLINE_CACHE_REFRESH',
+        routeModule: 'offline-cache', privacyClassification: 'OPERATIONAL',
+      }).catch(() => undefined);
+    } finally {
+      if (current()) {
+        setSyncing(false);
+        setLoading(false);
+        setRefreshing(false);
       }
-    } finally {
-      setSyncing(false);
-      setLoading(false);
     }
-  }, [cacheKey, enabled, online]);
-
-  const refresh = useCallback(async () => {
-    if (!enabled || !online) {
-      return;
-    }
-
-    setRefreshing(true);
-    setSyncing(true);
-
-    try {
-      const fresh = await fetcherRef.current();
-      setData((current) => {
-        const next =
-          current != null && mergeRef.current
-            ? mergeRef.current(current, fresh)
-            : fresh;
-
-        void writeOfflineCache(cacheKey, next, 'network');
-        return next;
-      });
-      setFromCache(false);
-      setError(null);
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : 'Could not refresh.';
-      setError(message);
-    } finally {
-      setRefreshing(false);
-      setSyncing(false);
-    }
-  }, [cacheKey, enabled, online]);
+  }, [cacheKey, enabled, online, request]);
+  const hydrate = useCallback(() => run(false), [run]);
+  const refresh = useCallback(() => run(true), [run]);
 
   useEffect(() => {
     void hydrate();
@@ -201,3 +203,4 @@ export function useBuklodOfflineCache<T>({
     hydrate,
   };
 }
+
