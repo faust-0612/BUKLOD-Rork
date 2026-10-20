@@ -2,6 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { supabase } from '@/lib/supabase';
+import { enqueueDeferredBuklodFailure } from '@/lib/buklodDeferredHealth';
+import { cancelBuklodPasswordTransport } from '@/lib/buklodPerformanceFetch';
 import {
   clearInflight,
   clearRealtimeRegistry,
@@ -192,6 +194,12 @@ export async function signInWithPasswordResilient(
         authRuntimeState.lastSignedInAt = Date.now();
       }
 
+      if (result?.error) {
+        void enqueueDeferredBuklodFailure(
+          /timed out|timeout/i.test(authErrorText(result.error))
+            ? 'AUTH_REQUEST_TIMEOUT' : 'AUTH_REQUEST_FAILED',
+        ).catch(() => undefined);
+      }
       return result;
     });
 
@@ -217,11 +225,12 @@ export async function signInWithPasswordResilient(
     );
   }
   catch (error) {
+    void enqueueDeferredBuklodFailure(
+      /timed out|timeout/i.test(authErrorText(error))
+        ? 'AUTH_REQUEST_TIMEOUT' : 'AUTH_REQUEST_FAILED',
+    ).catch(() => undefined);
     return {
-      data: {
-        user: null,
-        session: null,
-      },
+      data: { user: null, session: null },
       error,
     } as any;
   }
@@ -395,6 +404,7 @@ export async function clearBuklodPersistedAuthStorage() {
 }
 
 export async function signOutBuklodResilient() {
+  cancelBuklodPasswordTransport();
   let signOutError: any = null;
 
   authRuntimeState.lastSignedInUserId = null;

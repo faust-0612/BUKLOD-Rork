@@ -32,6 +32,7 @@ type CacheEntry = {
 };
 
 type PerfState = {
+  passwordTransport?: { cancel: (() => void) | null } | null;
   cache: Map<string, CacheEntry>;
   inFlight: Map<string, Promise<ResponseSnapshot>>;
   stats: {
@@ -430,6 +431,11 @@ function prune(now: number) {
   }
 }
 
+// Explicit sign-out cancels the grant before it can reach SDK session storage.
+export function cancelBuklodPasswordTransport() {
+  state.passwordTransport?.cancel?.();
+}
+
 export function clearBuklodPerformanceFetchCache() {
   state.cache.clear();
   state.inFlight.clear();
@@ -443,11 +449,15 @@ export function getBuklodPerformanceFetchStats() {
   };
 }
 
-// Bound safe-read headers AND response bodies. Mutations/auth bypass this helper.
+// Bound safe-read/auth headers AND bodies before any response reaches the SDK.
+// Late transport results are discarded, so a timed-out grant cannot install a session.
 async function boundedReadSnapshot(
   baseFetch: typeof fetch,
   input: FetchInput,
   init?: FetchInit,
+  timeoutMs = 12_000,
+  label = 'safe read',
+  registerCancel?: (cancel: () => void) => void,
 ): Promise<ResponseSnapshot> {
   const controller = new AbortController();
   const parent = init?.signal ?? (typeof input === 'object' ? (input as Request).signal : null);
@@ -455,14 +465,21 @@ async function boundedReadSnapshot(
   if (parent?.aborted) abort();
   else parent?.addEventListener('abort', abort, { once: true });
   let timer: ReturnType<typeof setTimeout> | undefined;
+  const cancelled = new Promise<never>((_resolve, reject) => {
+    registerCancel?.(() => {
+      controller.abort();
+      reject(new Error('BUKLOD password sign-in cancelled.'));
+    });
+  });
   try {
     return await Promise.race([
+      cancelled,
       (async () => toSnapshot(await baseFetch(input, { ...init, signal: controller.signal })))(),
       new Promise<never>((_resolve, reject) => {
         timer = setTimeout(() => {
           controller.abort();
-          reject(new Error('BUKLOD safe read timed out after 12000ms.'));
-        }, 12_000);
+          reject(new Error(`BUKLOD ${label} timed out after ${timeoutMs}ms.`));
+        }, timeoutMs);
       }),
     ]);
   } finally {
@@ -480,6 +497,22 @@ export function createBuklodPerformanceFetch(
   ): Promise<Response> => {
     const rawUrl = rawUrlOf(input);
     const method = methodOf(input, init);
+
+    // Password grants are never cached, coalesced or automatically retried.
+    // Complete body buffering under the transport deadline prevents late SDK
+    // session writes even when the native fetch ignores AbortController.
+    if (method === 'POST' && /\/auth\/v1\/token(?:[?#]|$)/i.test(rawUrl) &&
+        /(?:[?&])grant_type=password(?:&|$)/i.test(rawUrl)) {
+      if (state.passwordTransport) throw new Error('BUKLOD password sign-in already in progress.');
+      const owner = { cancel: null as (() => void) | null };
+      state.passwordTransport = owner;
+      try {
+        return fromSnapshot(await boundedReadSnapshot(baseFetch, input, init, 10_000,
+          'password sign-in', cancel => { owner.cancel = cancel; }));
+      } finally {
+        if (state.passwordTransport === owner) state.passwordTransport = null;
+      }
+    }
 
     /*
      * BUKLOD_AUTH_INFLIGHT_SHIELD_R1
@@ -506,10 +539,7 @@ export function createBuklodPerformanceFetch(
 
       state.stats.network += 1;
 
-      const task = (async () => {
-        const response = await baseFetch(input, init);
-        return toSnapshot(response);
-      })();
+      const task = boundedReadSnapshot(baseFetch, input, init, 10_000, 'auth request');
 
       state.inFlight.set(key, task);
 

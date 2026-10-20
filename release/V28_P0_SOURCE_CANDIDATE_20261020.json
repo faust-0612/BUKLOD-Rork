@@ -1,5 +1,5 @@
 {
-  "status": "SOURCE_CANDIDATE_ONLY_NOT_RC_NOT_OTA_READY",
+  "status": "SOURCE_CANDIDATE_R2_NOT_RC_NOT_OTA_READY",
   "base_branch": "dev/v28-p0-reliability-20261020",
   "base_commit": "f5fdab158b677ce94ebbcc70c5b904644f24def6",
   "native_source_ancestor": "cbd650bc6113e832d2520986bb76bb1359d4181b",
@@ -14,9 +14,12 @@
   },
   "runtime_conclusion": "Runtime 1.3.2 groups are not directly compatible with V28 1.3.4. Do not replay old OTA bundles or assume their deltas are included in the V28 embedded bundle.",
   "changes": [
-    "src/hooks/useBuklodOfflineCache.ts",
+    "src/hooks/useBuklodOfflineCache.ts (preserved from 3a77e27)",
     "src/lib/buklodAuthResilience.ts",
     "src/lib/buklodPerformanceFetch.ts",
+    "src/lib/buklodDeferredHealth.ts",
+    "src/lib/buklodMainHealth.ts",
+    "src/components/BuklodMainHealthAgent.tsx",
     "tests/v28-p0-source.test.cjs"
   ],
   "completed": [
@@ -29,9 +32,11 @@
   ],
   "tests": {
     "command": "node --test tests/v28-p0-source.test.cjs",
-    "passed": 14,
+    "passed": 23,
     "failed": 0,
-    "scope": "Node 24 stripped-TypeScript behavioral tests with mocks and lightweight hook harness; not a React renderer, Jest full suite, TypeScript typecheck or Android test"
+    "scope": "Node 24 stripped-TypeScript mock/behavioral tests, not React-renderer, SDK integration, full TypeScript or Jest",
+    "jest_attempt": "npm test -- --watch=false: exit 127, jest not found. Package/lock do not declare Jest or jest-expo.",
+    "typecheck_attempt": "npx --offline --no-install tsc --noEmit: ENOTCACHED; local compiler missing. Npm registry request timed out."
   },
   "release_gates": {
     "cumulative_apk_source_parity": "UNVERIFIED",
@@ -43,11 +48,10 @@
     "ota": "NOT_PUBLISHED"
   },
   "remaining": [
-    "Map APK embedded JS/assets to exact source and reconcile required historical changes; app.config alone is not bundle parity",
-    "Run full TypeScript/Jest and existing protected-module release gates in dependency-equipped execution",
-    "Authenticated staging/device referral signup, weak-network login/loading and BSOC delivery verification",
-    "Signed-out auth failures cannot be reported by current authenticated-only health RPC; no anon grant or schema change made",
-    "Password request that never settles retains single-flight lock after bounded UI timeout; safe cancellation/session reconciliation needs end-to-end verification before broader repair"
+    "Exact embedded APK bundle/assets to source/RC provenance unavailable: need original V28 build source/hash manifest or matching reproducible export; APK has no source map/commit mapping.",
+    "TypeScript and existing Jest/regression suite blocked by missing dependencies and registry access; no native build attempted.",
+    "Full locked-SDK and Android weak-network signup/login/sign-out/session persistence plus authenticated BSOC device-to-backend delivery not executed.",
+    "A non-network SDK storage/subscriber promise that never settles is deliberately not unlocked; doing so could allow unsafe concurrent session mutations."
   ],
   "prohibited_actions_performed": {
     "main_merge": false,
@@ -55,5 +59,34 @@
     "workflow_dispatch": false,
     "ota_publish": false,
     "database_mutation": false
+  },
+  "continuation_base_commit": "3a77e276f5a02c27298049f8f917e5c139d378ca",
+  "authentication_lifecycle": "Password grants and identical refresh/user-check transport requests have 10s headers-and-body deadlines. Password transport is single-owner; late responses cannot reach SDK. Explicit sign-out cancels active password transport. The SDK task retains the application login lock until it settles; arbitrary SDK storage/subscriber stalls are not forcibly unlocked. Full SDK/device verification is still required.",
+  "deferred_health": "Fixed-code-only device queue, 30 rows, 23h TTL (live backend 24h limit), 5min deduplication, serialized persistence, stable retry IDs, authenticated session checked before delivery, server receipt required for removal, foreground/reconnect polling retries. No credentials, identifiers, raw errors, arbitrary routes, device or session references are queued. Storage failures retain volatile safe events for the runtime.",
+  "apk_evidence": {
+    "sha256": "820ff2c74e63a63a371b7b88466b24c4b0c324b1ae619a140e241c719f428a95",
+    "package": "org.mzbministry.buklod",
+    "version": "1.3.4",
+    "versionCode": 28,
+    "channel": "production",
+    "expo_project": "23dad7d0-389a-406e-8dec-08965dab85d8",
+    "embedded_update_id": "d1b48c00-58c2-4c99-9cb4-f0b8bcd723f0",
+    "embedded_created_at": "2026-10-16T16:50:42.166Z",
+    "hermes_bytecode_version": 98,
+    "bundle_sha256": "38a36b0a5ab7533f487ea227d47450805b4ac39cb7a5e96f3e2a57a8fadfc939",
+    "source_map_present": false,
+    "exact_source_commit_present": false,
+    "conclusion": "Embedded symbols confirm existing auth/performance/referral/health machinery and absence of new candidate markers. No source map or build-source hash manifest links the full APK bundle/assets to a Git commit. Exact cumulative parity remains unverified."
+  },
+  "backend_contract": {
+    "BUKLOD_MAIN_enabled": true,
+    "max_event_age_seconds": 86400,
+    "dedupe_window_seconds": 300,
+    "AUTH_LOADING_UNKNOWN_accepted": true,
+    "health_rpc_anon_execute": false,
+    "health_rpc_authenticated_execute": true,
+    "health_table_RLS": true,
+    "health_table_anon_insert": false,
+    "database_writes": false
   }
 }

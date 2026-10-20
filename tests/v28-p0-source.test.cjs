@@ -9,7 +9,7 @@ function mod(file,deps={}) {
  let src=stripTypeScriptTypes(fs.readFileSync(path.join(root,file),'utf8'));
  src=src.replace(/import[\s\S]*?from\s+['"][^'"]+['"];?/g,'').replace(/export\s+(?=(async\s+)?function|class|const)/g,'');
  const names=[...src.matchAll(/^(?:async\s+)?function\s+(\w+)|^class\s+(\w+)/gm)].map(m=>m[1]||m[2]);
- const ctx={console,Promise,Date,Map,Set,Error,process,Response,Headers,URL,AbortController,setTimeout,clearTimeout,setInterval,clearInterval,...deps};
+ const ctx={console,Promise,Date,Map,Set,Error,process,Response,Headers,URL,AbortController,setTimeout,clearTimeout,setInterval,clearInterval,enqueueDeferredBuklodFailure:async()=>{},cancelBuklodPasswordTransport:()=>{},...deps};
  vm.createContext(ctx);vm.runInContext(src+'\nthis.exports={'+names.join(',')+'}',ctx);return ctx.exports;
 }
 const timeout=mod('src/lib/buklodAsyncTimeout.ts');
@@ -93,4 +93,74 @@ test('disabled scope clears saved content and avoids network',async()=>{
 test('rejected login releases lock and permits a subsequent attempt',async()=>{
  let calls=0;const api=mod('src/lib/buklodAuthResilience.ts',{supabase:{auth:{signInWithPassword:()=>++calls===1?Promise.reject(new Error('network unavailable')):Promise.resolve({data:{user:{id:'B'}},error:null})}},...timeout});
  assert.match((await api.signInWithPasswordResilient({email:'A',password:'a'})).error.message,/network/);await tick();assert.equal((await api.signInWithPasswordResilient({email:'B',password:'b'})).data.user.id,'B');
+});
+
+function deferredQueue(storage=new Map()) {
+ const AsyncStorage={getItem:async k=>storage.get(k)??null,setItem:async(k,v)=>{storage.set(k,v)}};
+ return {api:mod('src/lib/buklodDeferredHealth.ts',{AsyncStorage}),storage};
+}
+test('hanging password transport releases auth gate and discards late grant',async()=>{
+ const late=deferred();let calls=0;const installed=[];
+ const transport=mod('src/lib/buklodPerformanceFetch.ts',{setTimeout:(f,ms)=>setTimeout(f,ms===10000?5:ms)}).createBuklodPerformanceFetch(async()=>{
+   calls++;return calls===1?late.promise:new Response(JSON.stringify({id:'B'}));
+ });
+ const auth=mod('src/lib/buklodAuthResilience.ts',{...timeout,supabase:{auth:{signInWithPassword:async credentials=>{
+  const r=await transport('https://example.invalid/auth/v1/token?grant_type=password',{method:'POST',body:JSON.stringify(credentials)});
+  const user=await r.json();installed.push(user.id);return {data:{user},error:null};
+ }}}});
+ const first=auth.signInWithPasswordResilient({email:'A',password:'SECRET_A'});
+ assert.equal((await auth.signInWithPasswordResilient({email:'B',password:'SECRET_B'})).error.code,'auth_in_progress');
+ assert.match((await first).error.message,/timed out/);await tick();
+ assert.equal((await auth.signInWithPasswordResilient({email:'B',password:'SECRET_B'})).data.user.id,'B');
+ late.resolve(new Response(JSON.stringify({id:'A'})));await tick();assert.deepEqual(installed,['B']);assert.equal(calls,2);
+});
+test('hanging password response body is bounded and never installed late',async()=>{
+ const body=deferred();const api=mod('src/lib/buklodPerformanceFetch.ts',{setTimeout:(f,ms)=>setTimeout(f,ms===10000?5:ms)});
+ let signal;const f=api.createBuklodPerformanceFetch(async(_u,init)=>{signal=init.signal;return {status:200,statusText:'OK',headers:new Headers(),text:()=>body.promise}});
+ await assert.rejects(f('https://example.invalid/auth/v1/token?grant_type=password',{method:'POST'}),/timed out/);
+ assert.equal(signal.aborted,true);body.resolve('late');await tick();
+});
+test('preauth failures persist offline, deduplicate concurrently and reject arbitrary data',async()=>{
+ const {api,storage}=deferredQueue();await Promise.all(Array.from({length:10},()=>api.enqueueDeferredBuklodFailure('AUTH_REQUEST_FAILED')));
+ await api.enqueueDeferredBuklodFailure('password=SECRET email=PERSON');const raw=[...storage.values()][0],rows=JSON.parse(raw);
+ assert.equal(rows.length,1);assert.equal(rows[0].count,10);assert.equal(raw.includes('SECRET'),false);assert.equal(raw.includes('PERSON'),false);
+ const reloaded=deferredQueue(storage).api;let sent=0;await reloaded.drainDeferredBuklodFailures(async()=>{sent++;return true});assert.equal(sent,1);assert.equal(JSON.parse([...storage.values()][0]).length,0);
+});
+test('failed deferred delivery is retained with stable retry id',async()=>{
+ const {api}=deferredQueue();await api.enqueueDeferredBuklodFailure('AUTH_REQUEST_TIMEOUT');let first;
+ await api.drainDeferredBuklodFailures(async event=>{first=event.id;return false});let retry;
+ await api.drainDeferredBuklodFailures(async event=>{retry=event.id;return true});assert.equal(first,retry);
+});
+test('new failures arriving during drain survive acknowledgement',async()=>{
+ const {api}=deferredQueue();await api.enqueueDeferredBuklodFailure('AUTH_REQUEST_FAILED');const gate=deferred();const draining=api.drainDeferredBuklodFailures(async()=>{await gate.promise;return true});await tick();
+ await api.enqueueDeferredBuklodFailure('CONTENT_REFRESH_FAILED');gate.resolve();await draining;let next=[];await api.drainDeferredBuklodFailures(async e=>{next.push(e.code);return true});assert.deepEqual(next,['CONTENT_REFRESH_FAILED']);
+});
+test('persisted pollution and expired events cannot reach delivery',async()=>{
+ const {api,storage}=deferredQueue();await api.enqueueDeferredBuklodFailure('AUTH_REQUEST_FAILED');const key=[...storage.keys()][0];let row=JSON.parse(storage.get(key))[0];row.password='SECRET';row.email='PERSON';storage.set(key,JSON.stringify([row]));
+ const reload=deferredQueue(storage).api;let received;await reload.drainDeferredBuklodFailures(async e=>{received=e;return false});assert.equal(JSON.stringify(received).includes('SECRET'),false);
+ row.detectedAt=new Date(Date.now()-25*60*60*1000).toISOString();row.lastAt=row.detectedAt;storage.set(key,JSON.stringify([row]));let count=0;await deferredQueue(storage).api.drainDeferredBuklodFailures(async()=>{count++;return true});assert.equal(count,0);
+});
+test('signed-out capture sends no RPC; authenticated delivery requires matching session and receipt',async()=>{
+ const q=deferredQueue();let user=null,calls=[];const api=mod('src/lib/buklodMainHealth.ts',{
+  ...timeout,...q.api,Constants:{expoConfig:{version:'1.3.4'}},Platform:{OS:'android'},
+  supabase:{auth:{getSession:async()=>({data:{session:user?{user:{id:user}}:null}})},rpc:async(name,args)=>{calls.push({name,args});return {data:{event_id:'verified-id'},error:null}}},
+ });
+ await api.reportBuklodMainHealthIssue({category:'LOADING',safeErrorCode:'SECRET',errorSignature:'PERSON'});assert.equal(calls.length,0);
+ await api.flushDeferredBuklodHealth('A');assert.equal(calls.length,0);
+ user='B';await api.flushDeferredBuklodHealth('A');assert.equal(calls.length,0);
+ user='A';await api.flushDeferredBuklodHealth('A');assert.equal(calls.length,1);assert.equal(calls[0].name,'buklod_record_health_event_v1');assert.equal(calls[0].args.p_device_ref,null);assert.equal(JSON.stringify(calls).includes('SECRET'),false);assert.equal(JSON.stringify(calls).includes('PERSON'),false);
+});
+
+test('explicit sign-out cancellation rejects old transport and permits clean retry',async()=>{
+ const late=deferred();let count=0;const api=mod('src/lib/buklodPerformanceFetch.ts');
+ const f=api.createBuklodPerformanceFetch(async()=>++count===1?late.promise:new Response('{}'));
+ const u='https://example.invalid/auth/v1/token?grant_type=password';const first=f(u,{method:'POST'});
+ api.cancelBuklodPasswordTransport();await assert.rejects(first,/cancelled/);
+ assert.equal((await f(u,{method:'POST'})).status,200);late.resolve(new Response('{"old":"session"}'));await tick();
+});
+test('transport rejects concurrent grants without caching or credential mixing',async()=>{
+ const d=deferred();let count=0;const api=mod('src/lib/buklodPerformanceFetch.ts');const f=api.createBuklodPerformanceFetch(async()=>{count++;return d.promise});
+ const u='https://example.invalid/auth/v1/token?grant_type=password';const first=f(u,{method:'POST',body:'A'});
+ await assert.rejects(f(u,{method:'POST',body:'B'}),/already in progress/);assert.equal(count,1);
+ d.resolve(new Response('{}'));await first;
 });
