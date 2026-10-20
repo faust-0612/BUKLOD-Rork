@@ -1,0 +1,125 @@
+{
+  "status": "CANDIDATE_UNFROZEN",
+  "ota_ready": false,
+  "mandatory_gates_passed": false,
+  "candidate_parent_commit": "4f564977a1cf1c521e40d332278edd437d23c030",
+  "baseline_product_tree": "b9410df25ce5f29dc40113ffbde9136b5158972f",
+  "product_source_and_assets_unchanged": true,
+  "product_source_asset_files_verified": 1217,
+  "toolchain": {
+    "node": "24.19.0",
+    "typescript": "6.0.3",
+    "supabase_js": "2.112.2",
+    "auth_js": "2.112.2",
+    "jest": "29.7.0",
+    "jest_expo": "57.0.4"
+  },
+  "dependency_restore": {
+    "original_lockfile_npm_ci": "PASS: 870 packages restored with --ignore-scripts",
+    "candidate_lockfile_offline_dry_run": "PASS",
+    "existing_locked_package_versions_changed": 0,
+    "existing_locked_packages_removed": 0,
+    "root_runtime_dependencies_changed": false,
+    "test_setup_repair": "Repository already uses Jest/Testing Library; declared five missing pinned dev dependencies and repaired native-storage/public matcher setup."
+  },
+  "tests": {
+    "typescript_full": {
+      "status": "PASS",
+      "diagnostics": 0
+    },
+    "node_targeted": {
+      "status": "PASS",
+      "tests": 23
+    },
+    "locked_sdk_integration": {
+      "status": "PASS",
+      "tests": 5,
+      "network": "Fake HTTP only; actual locked auth/PostgREST SDK and source transport used."
+    },
+    "jest_full_regression": {
+      "status": "FAIL",
+      "passed": 89,
+      "failed": 2,
+      "suites_passed": 16,
+      "suites_failed": 2,
+      "failures": [
+        {
+          "test": "__tests__/router.smoke.test.tsx",
+          "expected": "/(auth)/login",
+          "actual": "/login"
+        },
+        {
+          "test": "__tests__/formationUi.test.ts",
+          "expected": "stageProgressPercent > 0 for empty 106 curriculum",
+          "actual": 0
+        }
+      ],
+      "note": "Both failing tests and their product modules are unchanged from the parent baseline. Assertions were not weakened and unrelated behavior was not modified."
+    },
+    "jest_p0_scope_foundation": {
+      "status": "PASS",
+      "tests": 5
+    },
+    "character_active_renderer_kingdom_base_release_contracts": "PASS"
+  },
+  "artifact_checks": {
+    "apk_sha256": "820ff2c74e63a63a371b7b88466b24c4b0c324b1ae619a140e241c719f428a95",
+    "embedded_bundle_sha256": "38a36b0a5ab7533f487ea227d47450805b4ac39cb7a5e96f3e2a57a8fadfc939",
+    "repository_assets_byte_identical_in_apk": 193,
+    "apk_source_parity": "UNPROVEN",
+    "android_js_exports": "Both successful under identical explicit test/public placeholder environment; no native build.",
+    "export_reproducibility": "DIFFERENT_OR_EMPTY",
+    "export_files_each": 247,
+    "different_files": [
+      "_expo/static/js/android/index-07a3a621740417180e5a8ee9d8b7659e.hbc"
+    ],
+    "exports_are_production_candidates": false
+  },
+  "physical_android_gate": "NOT_EXECUTED; precise prerequisites/scenarios in V28_ANDROID_VERIFICATION_20261020.md",
+  "accepted_expo_history": {
+    "channel": "production",
+    "branch": "production",
+    "latest_group": "40ec8105-eaeb-4335-a0f2-7d08ca76e202",
+    "group_runtime": "1.3.2",
+    "v28_runtime": "1.3.4",
+    "conclusion": "1.3.2 history is not directly applicable to V28 runtime; no old bundle was replayed."
+  },
+  "blockers": [
+    "Two unchanged full-regression test failures remain.",
+    "Two controlled exports have different Hermes bundle bytes; reproducibility is not established.",
+    "Original APK embedded-source commit/build manifest/map is unavailable; matching resources and source-tree hashes do not prove historical bundle parity.",
+    "Physical candidate-device verification and non-production end-to-end backend receipt evidence remain outstanding."
+  ],
+  "actions_not_performed": [
+    "RC freeze",
+    "main merge",
+    "production workflow trigger",
+    "native APK/AAB build",
+    "OTA publish",
+    "backend modification",
+    "Community Wall media modification"
+  ],
+  "evidence_files": [
+    "V28_BASELINE_4F56497.json",
+    "V28_APK_PROVENANCE_20261020.json",
+    "V28_ANDROID_VERIFICATION_20261020.md",
+    "V28_REPRODUCIBLE_BASELINE_METHOD_20261020.md",
+    "V28_RELEASE_TEST_RESULTS_20261020.md"
+  ],
+  "candidate_file_sha256": {
+    "package.json": "90d739c53fb587ee4aa9506af6c0db8e98e3b257b075531f8685c4ea43970fcc",
+    "package-lock.json": "4e1a08ec5df3d1e0dbafbd9a449b862d99f22b17d49cef37c58f3d19284c851a",
+    "jest.setup.ts": "852fd15f542f5f34076451f495f149c455ac963285c6b0513eda0bd887293b6d",
+    "__tests__/buklodFoundationBootstrapP0.test.ts": "8bb8a40bbf8b59b073a4b6b7d3e9f9855daa76f0edd26f8d2a6369ba8d55d6a3",
+    "__tests__/buklodScopeP0Containment.test.ts": "8acad68a77e517bebd65a80731ddeae6d56f23f4e5a210ab6c181ca1049c8872",
+    "tests/v28-p0-sdk.test.cjs": "5c52fdf740c4913981bd7b7a7fad8ead41a36d3f669cfb119c10eb97987d7d53",
+    "scripts/verify-v28-apk-provenance.py": "0e1625dd59a96b697419d528fa91769fbb3d1a9972cf1e3283a6a648bb896eaa"
+  },
+  "evidence_file_sha256": {
+    "V28_BASELINE_4F56497.json": "a70a926e6a5900219bdfc3f183b571c57ac4e5b458694a69fd099ab2601f844e",
+    "V28_APK_PROVENANCE_20261020.json": "80f00c099d6f1ba590b9b20cb4ee7cbec21464e4827b5cb50c3323773fd223a7",
+    "V28_ANDROID_VERIFICATION_20261020.md": "35c3ce50f316a2729878fb1e5819881535046e9a5d13f2a27c27eaf40e3b8fe5",
+    "V28_REPRODUCIBLE_BASELINE_METHOD_20261020.md": "7591efa302115695597e241b68fae14a487a7f1b20ace32c34d2f463f4f2c5ad",
+    "V28_RELEASE_TEST_RESULTS_20261020.md": "c831f89cf539c437c3cc1e507189ebd2f9227e21c7fa1be3184d1cb576cb284f"
+  }
+}

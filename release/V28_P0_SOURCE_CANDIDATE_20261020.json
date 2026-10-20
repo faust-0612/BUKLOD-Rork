@@ -88,5 +88,7 @@
     "health_table_RLS": true,
     "health_table_anon_insert": false,
     "database_writes": false
-  }
+  },
+  "historical_evidence_only": true,
+  "superseded_by": "release/V28_P0_RC_CANDIDATE_20261020.json"
 }

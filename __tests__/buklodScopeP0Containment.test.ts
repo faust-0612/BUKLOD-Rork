@@ -52,7 +52,7 @@ describe('BUKLOD P0 scope request containment', () => {
 
   it('collapses concurrent buklod_my_scopes calls for the same signed-in user', async () => {
     const { rpc } = installMocks();
-    const { getMyBuklodScopes } = await import('@/lib/buklodScope');
+    const { getMyBuklodScopes } = require('@/lib/buklodScope') as typeof import('@/lib/buklodScope');
 
     const [first, second] = await Promise.all([
       getMyBuklodScopes(),
@@ -70,7 +70,7 @@ describe('BUKLOD P0 scope request containment', () => {
     const {
       getMyBuklodScopes,
       setBuklodActiveScope,
-    } = await import('@/lib/buklodScope');
+    } = require('@/lib/buklodScope') as typeof import('@/lib/buklodScope');
 
     await getMyBuklodScopes();
     await setBuklodActiveScope('public-scope');
@@ -82,7 +82,7 @@ describe('BUKLOD P0 scope request containment', () => {
 
   it('collapses concurrent writes when a new active scope is selected', async () => {
     const { rpc } = installMocks();
-    const { setBuklodActiveScope } = await import('@/lib/buklodScope');
+    const { setBuklodActiveScope } = require('@/lib/buklodScope') as typeof import('@/lib/buklodScope');
 
     await Promise.all([
       setBuklodActiveScope('org-scope'),
