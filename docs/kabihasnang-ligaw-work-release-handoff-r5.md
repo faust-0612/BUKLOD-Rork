@@ -1,0 +1,12 @@
+# Kabihasnang Ligaw R5 — Work release handoff
+This release is queued AFTER the prior V28 Android production OTA has actually passed gates and is verified live. Do not assume prior release completion. Check authoritative latest production OTA group, runtime/channel and source/RC, then reconcile cumulative baseline before integrating this branch; never blindly merge its old base.
+
+Approved creative baseline: read `docs/kabihasnang-ligaw-approved-creative-release-contract-r5.md`. The user's Filipino Panimula and Chapter 1 `Ang Gabi ng Pag-ahon` are approved, but their complete exact manuscript must be imported and verified before publication; preview fragments are insufficient. Episodes 2–30 remain outlines and must not auto-publish as finished text. Preserve author credit and approved style.
+
+Scene illustrations: create scene-to-paragraph shot manifest, preserve character/wardrobe/architecture/time/action continuity and spoiler boundaries, review each image alongside manuscript, obtain owner approval. No generic fantasy substitute.
+
+Placement: Community Wall Dashboard -> LIFE -> Kabihasnang Ligaw -> BUKLOD TODAY. Isolated reader/library with glossary, optional audio, image loading and weak-network handling. No changes to Community Posting, DZAS, PTT, LIFE, BUKLOD TODAY or unrelated modules.
+
+Server schedule: owner-approved content unlocks at 06:00 Asia/Manila via server timestamps, no daily OTA, admin schedule/pause/audit. Existing points +2 per valid first episode completion and +10 per valid first season completion; server verified, transactional, idempotent, concurrent-safe. Separate cosmetic Story Journey. Review unapplied candidate SQL migration for RLS, policies, ledger integration, and migration ordering; never apply unreviewed schema or allow client direct reward writes.
+
+Required release gates: verified cumulative V28 production baseline -> scoped DEV integration -> complete reader, media, admin and backend -> lockfile restore, TypeScript/Jest, SQL RLS/idempotence, Android export and regression tests -> frozen exact RC + visual owner acceptance -> production Android OTA only if all PASS -> verify update group/client delivery and rollback. Existing OTA script assumes main/runtime 1.3.3: verify rather than blindly execute. Do not build APK, force merge, spend credits or publish on failed gates. Report exact blockers and only request truly necessary manual input.
