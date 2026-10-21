@@ -1,0 +1,85 @@
+name: BUKLOD Web 1.3.4 preview
+# Manual preview from the V28 source. Does not assign the production alias.
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize]
+permissions:
+  contents: read
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  BUKLOD_WEB_OUTPUT: single
+  APP_VARIANT: production
+  EXPO_PUBLIC_APP_ENV: production
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Confirm Expo authentication without printing the token
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          npx --yes eas-cli@25.3.0 whoami --non-interactive >/dev/null
+          echo 'Expo authentication ready'
+      - name: Load production public environment
+        run: |
+          set -euo pipefail
+          rm -f .env.local
+          npx --yes eas-cli@25.3.0 env:pull --environment production --path .env.local --non-interactive
+          test -s .env.local
+          set -a
+          . ./.env.local
+          set +a
+          test "$EXPO_PUBLIC_SUPABASE_URL" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
+          while IFS='=' read -r name _; do
+            case "$name" in
+              EXPO_PUBLIC_*)
+                value="${!name-}"
+                {
+                  echo "${name}<<__BUKLOD_ENV__"
+                  printf '%s\n' "$value"
+                  echo '__BUKLOD_ENV__'
+                } >> "$GITHUB_ENV"
+                ;;
+            esac
+          done < <(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env.local)
+          rm -f .env.local
+      - name: Record live alias before preview upload
+        run: python3 scripts/verify-web-134-static.py live-before live-before.txt
+      - name: Export web 1.3.4
+        run: |
+          set -euo pipefail
+          test "$EXPO_PUBLIC_SUPABASE_URL" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
+          rm -rf dist
+          npx expo export --platform web --output-dir dist
+          python3 scripts/stage-web-134-static.py dist
+          python3 scripts/verify-web-134-static.py dist
+      - name: Deploy preview only
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@25.3.0 deploy --non-interactive --environment production --export-dir dist --json > deploy-raw.json
+          python3 scripts/verify-web-134-static.py preview-url deploy-raw.json
+          rm -f deploy-raw.json
+      - name: Verify preview file and unchanged live alias
+        run: python3 scripts/verify-web-134-static.py verify-preview live-before.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: web-134-preview-evidence
+          path: |
+            live-before.txt
+            preview-url.txt
+            deploy-summary.json
+          retention-days: 14
+          if-no-files-found: warn

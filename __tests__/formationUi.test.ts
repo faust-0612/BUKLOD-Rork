@@ -57,8 +57,23 @@ describe('formationUi', () => {
 
   it('does not show complete when curriculum is empty for 106', () => {
     expect(mapStageCardStatus(baseStage)).toBe('IN_PROGRESS');
-    expect(stageProgressPercent(baseStage)).toBeGreaterThan(0);
-    expect(stageProgressPercent(baseStage)).toBeLessThan(100);
+    // This fallback counts completed requirement gates, not fractional points.
+    // Neither the points nor bayanihan gate has been met in this fixture.
+    expect(stageProgressPercent(baseStage)).toBe(0);
+  });
+
+  it('counts met requirement gates when no lesson denominator exists', () => {
+    expect(stageProgressPercent({ ...baseStage, stage_points_met: true })).toBe(50);
+    expect(stageProgressPercent({
+      ...baseStage, stage_points_met: true, stage_bayanihan_met: true,
+    })).toBe(100);
+  });
+
+  it('uses approved lessons when an assigned curriculum exists', () => {
+    expect(stageProgressPercent({
+      ...baseStage,
+      progress: { ...baseStage.progress, expected_lessons: 4, approved_lessons: 1 },
+    })).toBe(25);
   });
 
   it('shows historically locked state', () => {

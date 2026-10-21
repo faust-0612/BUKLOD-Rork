@@ -106,9 +106,14 @@ html,body,#map,.leaflet-container{position:fixed;inset:0;width:100%;height:100%;
 <div id="map"></div>
 <script src="${leafletJs}"></script>
 <script>
-if(!window.L){
+function buklodShowMapEngineError(){
  document.getElementById('map').innerHTML='<div style="height:100%;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;color:#49616f;font:700 12px/18px system-ui;background:#eef2f4">BUKLOD map engine could not load. Please refresh the page.</div>';
  throw new Error('BUKLOD_LOCAL_LEAFLET_ENGINE_MISSING');
+}
+function buklodBootLiveMap(){
+if(!window.L){
+ buklodShowMapEngineError();
+ return;
 }
 const points=${pointsJson};
 const colors=${colorsJson};
@@ -911,6 +916,23 @@ setTimeout(()=>{
  map.invalidateSize();
  void loadNearbyPlaces(true);
 },160);
+}
+if(window.L){
+ buklodBootLiveMap();
+}else{
+ var buklodLeafletCss=document.createElement('link');
+ buklodLeafletCss.rel='stylesheet';
+ buklodLeafletCss.href=${safeJson(BUKLOD_MAP_LEAFLET_CSS_CDN)};
+ document.head.appendChild(buklodLeafletCss);
+ var buklodLeafletFallback=document.createElement('script');
+ buklodLeafletFallback.src=${safeJson(BUKLOD_MAP_LEAFLET_JS_CDN)};
+ buklodLeafletFallback.onload=function(){
+  if(window.L) buklodBootLiveMap();
+  else buklodShowMapEngineError();
+ };
+ buklodLeafletFallback.onerror=function(){ buklodShowMapEngineError(); };
+ document.head.appendChild(buklodLeafletFallback);
+}
 </script>
 </body>
 </html>`;
