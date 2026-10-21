@@ -316,6 +316,7 @@ const PROVISIONAL_SCENE_ART: Record<string, string> = {
   's1-e01-shot-02': 'assets/kabihasnang-ligaw/kl-e01-shot-02.jpg',
   's1-e01-shot-03': 'assets/kabihasnang-ligaw/kl-e01-shot-03.jpg',
   's1-e01-shot-04': 'assets/kabihasnang-ligaw/kl-e01-shot-04.jpg',
+  's1-e01-shot-05': 'assets/kabihasnang-ligaw/kl-e01-shot-05.jpg',
 };
 
 export function buildAssetGate(): AssetRow[] {
@@ -331,7 +332,7 @@ export function buildAssetGate(): AssetRow[] {
         classification: 'PROVISIONAL' as const,
         required: true,
         approved: false,
-        reason: 'Original scene still generated in cloud. Not owner-approved. Publication stays blocked while music, ambient audio, and the closing missing-shadow still are absent.',
+        reason: 'Original scene still generated in cloud. Not owner-approved. Publication stays blocked while required music and ambient audio are absent.',
       };
     }
     return {
@@ -343,9 +344,7 @@ export function buildAssetGate(): AssetRow[] {
       classification: 'MISSING' as const,
       required: true,
       approved: false,
-      reason: row.sceneId === 's1-e01-shot-05'
-        ? 'Closing reveal still is missing. Generated attempts did not show Phan’s ground shadow beside a child who casts none.'
-        : 'No scene-accurate illustration binary is in the repository. Owner approval is pending.',
+      reason: 'No scene-accurate illustration binary is in the repository. Owner approval is pending.',
     };
   });
 

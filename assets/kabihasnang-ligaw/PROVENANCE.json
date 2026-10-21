@@ -26,11 +26,17 @@
       "path": "assets/kabihasnang-ligaw/kl-e01-shot-04.jpg",
       "sha256": "a34f8b8f2a4c80d0e6fb8d56de60a723bfedfcf4f40f8ff35c0d5454018594a5",
       "constraints": "Phan hauling the child, root at the ankle. Father is not pictured."
+    },
+    {
+      "sceneId": "s1-e01-shot-05",
+      "path": "assets/kabihasnang-ligaw/kl-e01-shot-05.jpg",
+      "sha256": "d7d5a372de8afd16887aca3bb92160e3cb85a9a546b211c43eb0a0af5f13e51b",
+      "constraints": "Phan has no ground shadow. The child has a ground shadow. No reflection of either figure. No rain. Father not shown. approved false."
     }
   ],
   "blocked": [
-    "s1-e01-shot-05",
     "asset-music",
     "asset-ambient"
-  ]
+  ],
+  "shot05Check": "Visual inspection of attempt B after deleting attempt A. Standing man: no ground shadow. Crouching child: dark ground shadow. Dry dirt, no water, glass, or floor reflection of either figure."
 }
