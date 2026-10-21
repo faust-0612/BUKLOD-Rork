@@ -13,7 +13,9 @@ jobs:
       - name: Inspect live HTTP responses and baseline hashes
         shell: python
         run: |
+          import os
           import urllib.request, urllib.error, urllib.parse, hashlib, re, json
+          print("PROXY_VARIABLE_NAMES", [key for key in os.environ if "proxy" in key.lower()])
           expected = b"google.com, pub-3448515158880100, DIRECT, f08c47fec0942fa0"
           for url in ["http://buklod.expo.app/app-ads.txt", "https://buklod.expo.app/app-ads.txt", "https://buklod.expo.app/"]:
               try:
@@ -32,4 +34,7 @@ jobs:
                                   print(json.dumps({"asset": asset_url, "status": asset.status, "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}))
               except Exception as error:
                   print(json.dumps({"url": url, "error": str(error)}))
+                  if isinstance(error, urllib.error.HTTPError):
+                      print("ERROR_HEADERS", dict(error.headers))
+                      print("ERROR_BODY", repr(error.read(1500)))
                   continue
