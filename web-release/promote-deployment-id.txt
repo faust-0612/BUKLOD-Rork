@@ -1,0 +1,3 @@
+DEPLOYMENT_ID=bni0k8jqji
+PREVIEW_URL=https://buklod--bni0k8jqji.expo.app
+SOURCE_SHA=f7e2fb94168f4bd440a298b8eedc94eb4b687fd5
