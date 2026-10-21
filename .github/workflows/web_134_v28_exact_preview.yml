@@ -455,29 +455,38 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          bundle_name="${WEB_JS_PATH##*/}"
           ok=0
-          for _ in 1 2 3 4 5 6 7 8 9 10; do
-            body="$(curl -fsS "$PRODUCTION_URL/")"
-            if printf '%s' "$body" | grep -F "$WEB_JS_PATH" >/dev/null; then
+          for attempt in $(seq 1 24); do
+            body="$(curl -fsS -H 'Cache-Control: no-cache' -H 'Pragma: no-cache' "${PRODUCTION_URL}/?cb=${attempt}-$(date +%s)")"
+            if printf '%s' "$body" | grep -F "$bundle_name" >/dev/null; then
               ok=1
+              echo "Production URL served ${bundle_name} on attempt ${attempt}."
               break
             fi
-            sleep 6
+            echo "attempt ${attempt}: production URL has not shown ${bundle_name} yet"
+            sleep 10
           done
           if [ "$ok" -ne 1 ]; then
-            echo "Live alias did not serve the promoted bundle. Restoring ${ROLLBACK_DEPLOYMENT_ID}."
+            echo "Production URL did not show the promoted bundle during the cache window."
+            echo "The alias was left unchanged. Archived rollback deployment remains ${ROLLBACK_DEPLOYMENT_ID}."
+            exit 1
+          fi
+          curl -fsS -H 'Cache-Control: no-cache' "$PRODUCTION_URL$WEB_JS_PATH" -o live-bundle.js
+          if ! python3 - <<'PY'
+          from pathlib import Path
+          js = Path('live-bundle.js').read_text(errors='replace')
+          missing = [item for item in ['version\\":\\"1.3.4', 'runtimeVersion\\":\\"1.3.4', 'yhanxndaqbmuzbdqlblu.supabase.co'] if item not in js]
+          if missing or 'version\\":\\"1.3.2' in js:
+              print('LIVE_BUNDLE_INVALID ' + ','.join(missing))
+              raise SystemExit(1)
+          print('LIVE version 1.3.4: VERIFIED')
+          PY
+          then
+            echo "Promoted bundle is not 1.3.4. Restoring ${ROLLBACK_DEPLOYMENT_ID}."
             npx --yes eas-cli@latest deploy:alias --prod --id="$ROLLBACK_DEPLOYMENT_ID" --non-interactive --json
             exit 1
           fi
-          curl -fsS "$PRODUCTION_URL$WEB_JS_PATH" -o live-bundle.js
-          python3 - <<'PY'
-          from pathlib import Path
-          js = Path('live-bundle.js').read_text(errors='replace')
-          for item in ['version\\":\\"1.3.4', 'runtimeVersion\\":\\"1.3.4', 'yhanxndaqbmuzbdqlblu.supabase.co']:
-              if item not in js:
-                  raise SystemExit('Live bundle missing ' + item)
-          print('LIVE version 1.3.4: VERIFIED')
-          PY
           rollback="$(curl -fsS "https://buklod--${ROLLBACK_DEPLOYMENT_ID}.expo.app/")"
           printf '%s' "$rollback" | grep -F "$LIVE_1_3_2_BUNDLE" >/dev/null
           echo "Rollback deployment ${ROLLBACK_DEPLOYMENT_ID} still serves archived 1.3.2."
