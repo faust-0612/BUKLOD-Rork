@@ -44,6 +44,17 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
     };
   }
 
+  // Preserve the verified web-only Connect/Drawer SQLite bypass.
+  if (
+    platform === 'web' &&
+    (moduleName === 'expo-sqlite' || moduleName.startsWith('expo-sqlite/'))
+  ) {
+    return {
+      type: 'sourceFile',
+      filePath: path.resolve(__dirname, 'src/lib/expoSqliteWebStub.ts'),
+    };
+  }
+
   if (originalResolveRequest) {
     return originalResolveRequest(context, moduleName, platform);
   }
