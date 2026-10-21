@@ -106,7 +106,10 @@ import {
 import {
   type CommunityFeedPaintState,
   type CommunityFeedToken,
+  applyAuthoritativeCommunityMedia,
+  communityFeedUserId,
   createCommunityFeedSession,
+  dropWarmCommunityFeedForUser,
   executeProgressiveCommunityFeed,
   invalidateCommunityFeedSession,
   isCommunityFeedTokenCurrent,
@@ -1222,6 +1225,21 @@ const load=useCallback(async(options?:{
       void writeOfflineCache(communityCacheKey, warmRows, 'network');
     },
     onState:setCommunityPaintState,
+    onPageReady:rowCount=>{
+      if(!appendPage186L){
+        setCommunityHasMore186L(rowCount>=limit186L);
+      }
+    },
+    onIdentityChange:(previousIdentity, nextIdentity)=>{
+      const previousUser=communityFeedUserId(previousIdentity);
+      const nextUser=communityFeedUserId(nextIdentity);
+      if(previousUser && previousUser!==nextUser){
+        dropWarmCommunityFeedForUser(
+          communityWarmFeedMemory,
+          previousUser,
+        );
+      }
+    },
     onFailure:(error, hadCache)=>{
       if(hadCache) return;
       if(!shouldReportCommunityFeedFailure('community_feed_failed')) return;
@@ -1302,6 +1320,7 @@ const load=useCallback(async(options?:{
         append:meta.append,
         preserveEmptyMedia:meta.preserveEmptyMedia,
         replaceWithNext:meta.replaceWithNext,
+        keepUnmentioned:meta.keepUnmentioned,
       }));
     },
     enrich:async feedRows=>{
@@ -1311,15 +1330,49 @@ const load=useCallback(async(options?:{
         token,
       );
       const postIds=feedRows.map((p:any)=>p.id).filter(Boolean);
+      const mediaState:{lookup:'authoritative'|'failed'}={
+        lookup:'failed',
+      };
+      let mediaByPost:Record<string, any[]>={};
       const communityMediaPromise:Promise<Record<string, any[]>>=
         postIds.length
           ? loadCommunityPostMediaByPostIds(postIds)
           : Promise.resolve({});
+      const mediaTask=communityMediaPromise.then(result=>{
+        mediaByPost=result??{};
+        mediaState.lookup='authoritative';
+        if(!feedIsCurrent()) return;
+        setPosts(current=>{
+          const next=applyAuthoritativeCommunityMedia(
+            current,
+            postIds,
+            mediaByPost,
+          );
+          if(!appendPage186L && communityCacheKey){
+            const warmRows=next.slice(
+              0,
+              SCALE_LIMITS.offlineCommunityCachePosts,
+            );
+            communityWarmFeedMemory.set(communityCacheKey, warmRows);
+            void writeOfflineCache(communityCacheKey, warmRows, 'network');
+          }
+          return next;
+        });
+      }).catch(error=>{
+        mediaState.lookup='failed';
+        console.warn(
+          'Community media background:',
+          error?.message??error,
+        );
+      });
+      await Promise.race([
+        mediaTask,
+        new Promise(resolve=>setTimeout(resolve, 650)),
+      ]);
 
       const [
         hydratedFeedRows,
         myReactionResult,
-        mediaResult,
       ]=await Promise.all([
         hydratePersonNamesOnRows(feedRows, 'user_id', 'author_name'),
         postIds.length
@@ -1333,14 +1386,6 @@ const load=useCallback(async(options?:{
               'Community my reactions',
             ).catch(()=>({ data:[] as any[], error:null }))
           : Promise.resolve({ data:[] as any[], error:null }),
-        withBuklodTimeout<{data:any,error:any}>(
-          communityMediaPromise.then(mediaByPost=>({
-            data:Object.values(mediaByPost).flat(),
-            error:null,
-          })),
-          650,
-          'Community media initial',
-        ).catch(()=>({ data:[] as any[], error:null })),
       ]);
 
       if(!feedIsCurrent()) return feedRows;
@@ -1352,78 +1397,40 @@ const load=useCallback(async(options?:{
         }
       }
 
-      const next=hydratedFeedRows.map((p:any)=>({
-        ...p,
-        my_reaction:myReactionByPost[p.id]??null,
-        media_url:
-          peekCommunityMediaUrl(String(p.media_path??'').trim(), null)??
-          p.media_url,
-      }));
-
-      const mediaMap:Record<string,any[]>={};
-      if(!mediaResult?.error){
-        for(const row of mediaResult?.data??[]){
-          if(!row?.post_id) continue;
-          if(!mediaMap[row.post_id]) mediaMap[row.post_id]=[];
-          mediaMap[row.post_id].push({
-            ...row,
-            media_url:
-              row.media_url??
-              peekCommunityMediaUrl(row.media_path, null),
-          });
+      const next=hydratedFeedRows.map((p:any)=>{
+        const loaded=mediaState.lookup==='authoritative'
+          ? (mediaByPost[String(p.id??'')]??[])
+          : [];
+        if(mediaState.lookup==='authoritative' && loaded.length===0){
+          return {
+            ...p,
+            my_reaction:myReactionByPost[p.id]??null,
+            media_path:null,
+            media_url:null,
+            media_items:[],
+          };
         }
-      }
-
-      for(const p of next){
-        const loaded=mediaMap[p.id]??[];
         if(loaded.length){
-          p.media_items=loaded.sort(
-            (a:any,b:any)=>
-              Number(a.media_position??0)-Number(b.media_position??0),
-          );
-        }else if(
-          p.media_url &&
-          !String(p.media_mime_type??'').toLowerCase().startsWith('video/')
-        ){
-          p.media_items=[{
-            post_id:p.id,
-            media_position:0,
-            media_path:p.media_path,
-            media_mime_type:p.media_mime_type,
-            media_size_bytes:p.media_size_bytes,
-            media_url:p.media_url,
-          }];
-        }else{
-          p.media_items=p.media_items??[];
+          return {
+            ...p,
+            my_reaction:myReactionByPost[p.id]??null,
+            media_items:loaded.slice().sort(
+              (a:any,b:any)=>
+                Number(a?.media_position??0)-Number(b?.media_position??0),
+            ),
+          };
         }
-      }
+        return {
+          ...p,
+          my_reaction:myReactionByPost[p.id]??null,
+          media_url:
+            peekCommunityMediaUrl(String(p.media_path??'').trim(), null)??
+            p.media_url,
+          media_items:[],
+        };
+      });
 
-      if(!appendPage186L && (
-        !Array.isArray(mediaResult?.data) ||
-        mediaResult.data.length===0
-      )){
-        void communityMediaPromise.then(mediaByPost=>{
-          if(!feedIsCurrent() || !mediaByPost || !Object.keys(mediaByPost).length){
-            return;
-          }
-          setPosts(current=>current.map((post:any)=>{
-            const postId=String(post?.id??'').trim();
-            const loaded=postId ? mediaByPost[postId] : undefined;
-            if(!Array.isArray(loaded) || !loaded.length) return post;
-            return {
-              ...post,
-              media_items:loaded.slice().sort(
-                (a:any,b:any)=>
-                  Number(a?.media_position??0)-Number(b?.media_position??0),
-              ),
-            };
-          }));
-        }).catch(error=>{
-          console.warn('Community media background:', error?.message??error);
-        });
-      }
-
-      if(!appendPage186L){
+      if(mediaState.lookup==='authoritative'){
         const firstVisibleMedia=next
           .slice(0, 12)
           .flatMap((post:any)=>Array.isArray(post.media_items)?post.media_items:[])
@@ -1431,7 +1438,6 @@ const load=useCallback(async(options?:{
             !String(item?.media_mime_type??'').toLowerCase().startsWith('video/'),
           )
           .slice(0, 20);
-
         void Promise.all(firstVisibleMedia.map(async(item:any)=>{
           const path=String(item?.media_path??'').trim();
           const direct=
@@ -1474,7 +1480,9 @@ const load=useCallback(async(options?:{
         ).catch(()=>({} as Record<string, unknown>)),
       ]);
 
-      if(!feedIsCurrent()) return next;
+      if(!feedIsCurrent()){
+        return { rows:next, mediaLookup:'failed' as const };
+      }
 
       const rankMap=new Map<string, string>();
       for(const row of rankResult?.data??[]){
@@ -1483,12 +1491,15 @@ const load=useCallback(async(options?:{
         }
       }
 
-      return next.map((p:any)=>({
-        ...p,
-        cluster_name:clusterMap[p.user_id]??null,
-        author_rank_name:rankMap.get(p.user_id)??'Circle Starter V',
-        comment_preview:commentPreviewMap[p.id]??null,
-      }));
+      return {
+        mediaLookup:mediaState.lookup,
+        rows:next.map((p:any)=>({
+          ...p,
+          cluster_name:clusterMap[p.user_id]??null,
+          author_rank_name:rankMap.get(p.user_id)??'Circle Starter V',
+          comment_preview:commentPreviewMap[p.id]??null,
+        })),
+      };
     },
   });
 

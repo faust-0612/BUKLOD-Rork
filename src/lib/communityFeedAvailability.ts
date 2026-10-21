@@ -32,6 +32,14 @@ export type CommunityFeedToken = {
   refreshGeneration: number;
   appendGeneration: number;
   identityChanged: boolean;
+  previousIdentity: string | null;
+};
+
+export type CommunityMediaLookup = 'authoritative' | 'failed';
+
+export type CommunityEnrichment<T> = {
+  rows: T[];
+  mediaLookup: CommunityMediaLookup;
 };
 
 export type CommunityFeedPaintMode =
@@ -57,7 +65,8 @@ export function beginCommunityFeedLoad(
   session: CommunityFeedSession,
   input: { append: boolean; identity: string },
 ): CommunityFeedToken | null {
-  const identityChanged = session.identity !== input.identity;
+  const previousIdentity = session.identity;
+  const identityChanged = previousIdentity !== input.identity;
   if (identityChanged) {
     session.identity = input.identity;
     session.pageOneReady = false;
@@ -71,6 +80,7 @@ export function beginCommunityFeedLoad(
       refreshGeneration: session.refreshGeneration,
       appendGeneration: session.appendGeneration,
       identityChanged: false,
+      previousIdentity,
     };
   }
 
@@ -82,6 +92,7 @@ export function beginCommunityFeedLoad(
     refreshGeneration: session.refreshGeneration,
     appendGeneration: session.appendGeneration,
     identityChanged,
+    previousIdentity,
   };
 }
 
@@ -114,6 +125,35 @@ export function invalidateCommunityFeedSession(session: CommunityFeedSession) {
 
 export function versionedCommunityFeedCacheKey(baseModeKey: string) {
   return `${baseModeKey}:v${COMMUNITY_FEED_CACHE_VERSION}`;
+}
+
+export function communityFeedUserId(identity: string | null | undefined) {
+  const userId = String(identity ?? '').split(':')[0]?.trim();
+  return userId || null;
+}
+
+export function dropWarmCommunityFeedForUser(
+  memory: Map<string, any>,
+  userId: string,
+) {
+  const prefix = `community_feed:${userId}:`;
+  for (const key of [...memory.keys()]) {
+    if (key.startsWith(prefix)) memory.delete(key);
+  }
+}
+
+export function asCommunityEnrichment<T>(
+  result: T[] | CommunityEnrichment<T>,
+): CommunityEnrichment<T> {
+  if (Array.isArray(result)) {
+    return { rows: result, mediaLookup: 'failed' };
+  }
+  return {
+    rows: result.rows,
+    mediaLookup: result.mediaLookup === 'authoritative'
+      ? 'authoritative'
+      : 'failed',
+  };
 }
 
 export function communityRetryAllowed(
@@ -150,6 +190,7 @@ export function mergePaintedCommunityPosts<
   T extends {
     id?: string | number;
     author_name?: string | null;
+    media_path?: string | null;
     media_url?: string | null;
     media_items?: any[];
     my_reaction?: unknown;
@@ -161,6 +202,7 @@ export function mergePaintedCommunityPosts<
     append: boolean;
     preserveEmptyMedia: boolean;
     replaceWithNext?: boolean;
+    keepUnmentioned?: boolean;
   },
 ): T[] {
   if (options.replaceWithNext) return next.slice();
@@ -173,28 +215,83 @@ export function mergePaintedCommunityPosts<
     ];
   }
 
-  const prevById = new Map(
-    previous.map(row => [String(row.id ?? ''), row]),
-  );
-
-  return next.map(row => {
-    const old = prevById.get(String(row.id ?? ''));
+  const combine = (old: T | undefined, row: T): T => {
     if (!old) return row;
-
     const nextItems = Array.isArray(row.media_items) ? row.media_items : [];
     const oldItems = Array.isArray(old.media_items) ? old.media_items : [];
-    const mediaItems =
-      options.preserveEmptyMedia && nextItems.length === 0
-        ? oldItems
-        : nextItems;
-
+    const keepProvisional =
+      options.preserveEmptyMedia && nextItems.length === 0;
+    const clearMedia = !options.preserveEmptyMedia && nextItems.length === 0;
     return {
       ...old,
       ...row,
       author_name: row.author_name || old.author_name,
-      media_url: row.media_url || old.media_url,
-      media_items: mediaItems,
+      media_path: clearMedia
+        ? null
+        : (row.media_path ?? (keepProvisional ? old.media_path : row.media_path)),
+      media_url: clearMedia
+        ? null
+        : (row.media_url || (keepProvisional ? old.media_url : row.media_url)),
+      media_items: keepProvisional ? oldItems : nextItems,
       my_reaction: row.my_reaction ?? old.my_reaction ?? null,
+    };
+  };
+
+  if (options.keepUnmentioned) {
+    const nextById = new Map(next.map(row => [String(row.id ?? ''), row]));
+    const seen = new Set<string>();
+    const merged = previous.map(old => {
+      const id = String(old.id ?? '');
+      const row = nextById.get(id);
+      if (!row) return old;
+      seen.add(id);
+      return combine(old, row);
+    });
+    for (const row of next) {
+      const id = String(row.id ?? '');
+      if (!seen.has(id)) merged.push(row);
+    }
+    return merged;
+  }
+
+  const prevById = new Map(
+    previous.map(row => [String(row.id ?? ''), row]),
+  );
+
+  return next.map(row => combine(prevById.get(String(row.id ?? '')), row));
+}
+
+export function applyAuthoritativeCommunityMedia<
+  T extends {
+    id?: string | number;
+    media_path?: string | null;
+    media_url?: string | null;
+    media_items?: any[];
+  },
+>(
+  posts: T[],
+  postIds: Array<string | number>,
+  mediaByPost: Record<string, any[] | null | undefined>,
+): T[] {
+  const ids = new Set(postIds.map(id => String(id)));
+  return posts.map(post => {
+    const id = String(post.id ?? '');
+    if (!ids.has(id)) return post;
+    const loaded = mediaByPost[id];
+    if (Array.isArray(loaded) && loaded.length) {
+      return {
+        ...post,
+        media_items: loaded.slice().sort(
+          (a: any, b: any) =>
+            Number(a?.media_position ?? 0) - Number(b?.media_position ?? 0),
+        ),
+      };
+    }
+    return {
+      ...post,
+      media_path: null,
+      media_url: null,
+      media_items: [],
     };
   });
 }
@@ -250,7 +347,7 @@ export async function executeProgressiveCommunityFeed<T>(options: {
   readDisk: () => Promise<T[] | null | undefined>;
   fetchFeed: () => Promise<ProgressiveFeedResult<T>>;
   toCanonical: (rows: T[]) => T[];
-  enrich: (rows: T[]) => Promise<T[]>;
+  enrich: (rows: T[]) => Promise<T[] | CommunityEnrichment<T>>;
   paint: (
     rows: T[],
     meta: {
@@ -258,9 +355,15 @@ export async function executeProgressiveCommunityFeed<T>(options: {
       append: boolean;
       preserveEmptyMedia: boolean;
       replaceWithNext: boolean;
+      keepUnmentioned: boolean;
     },
   ) => void;
   onState: (state: CommunityFeedPaintState) => void;
+  onPageReady?: (rowCount: number) => void;
+  onIdentityChange?: (
+    previousIdentity: string | null,
+    nextIdentity: string,
+  ) => void;
   onFailure?: (error: unknown, hadCache: boolean) => void;
   persist?: (rows: T[]) => void;
   onToken?: (token: CommunityFeedToken) => void;
@@ -272,6 +375,9 @@ export async function executeProgressiveCommunityFeed<T>(options: {
 
   if (!token) return -1;
   options.onToken?.(token);
+  if (token.identityChanged) {
+    options.onIdentityChange?.(token.previousIdentity, options.identity);
+  }
 
   const current = () =>
     isCommunityFeedTokenCurrent(options.session, token);
@@ -287,6 +393,7 @@ export async function executeProgressiveCommunityFeed<T>(options: {
         append: false,
         preserveEmptyMedia: false,
         replaceWithNext: true,
+        keepUnmentioned: false,
       });
       options.onState(options.online ? 'LOADING' : 'RETRYABLE_ERROR');
     }
@@ -300,6 +407,7 @@ export async function executeProgressiveCommunityFeed<T>(options: {
         append: false,
         preserveEmptyMedia: true,
         replaceWithNext: false,
+        keepUnmentioned: false,
       });
       options.onState(options.online ? 'LOADED' : 'CACHED_OFFLINE');
       recordCommunityFeedMetric({
@@ -326,9 +434,11 @@ export async function executeProgressiveCommunityFeed<T>(options: {
         append: false,
         preserveEmptyMedia: true,
         replaceWithNext: false,
+        keepUnmentioned: false,
       });
       options.onState('CACHED_OFFLINE');
       markCommunityPageOneReady(options.session, token);
+      options.onPageReady?.(disk.length);
       return disk.length;
     }
 
@@ -346,6 +456,7 @@ export async function executeProgressiveCommunityFeed<T>(options: {
           append: false,
           preserveEmptyMedia: true,
           replaceWithNext: false,
+          keepUnmentioned: false,
         });
         options.onState('CACHED_OFFLINE');
       })
@@ -386,9 +497,11 @@ export async function executeProgressiveCommunityFeed<T>(options: {
         append: false,
         preserveEmptyMedia: true,
         replaceWithNext: false,
+        keepUnmentioned: false,
       });
       options.onState('CACHED_OFFLINE');
       markCommunityPageOneReady(options.session, token);
+      options.onPageReady?.(disk.length);
       options.onFailure?.(fetched.error, true);
       return disk.length;
     }
@@ -406,8 +519,11 @@ export async function executeProgressiveCommunityFeed<T>(options: {
       append: false,
       preserveEmptyMedia: true,
       replaceWithNext: false,
+      keepUnmentioned: false,
     });
     options.onState(canonical.length ? 'LOADED' : 'EMPTY_CONFIRMED');
+    markCommunityPageOneReady(options.session, token);
+    options.onPageReady?.(canonical.length);
     if (canonical.length) options.persist?.(canonical);
     recordCommunityFeedMetric({
       stage: 'first_text_paint',
@@ -422,25 +538,32 @@ export async function executeProgressiveCommunityFeed<T>(options: {
   }
 
   let enriched = canonical;
+  let mediaLookup: CommunityMediaLookup = 'failed';
   try {
-    enriched = await options.enrich(fetched.rows);
+    const enrichment = asCommunityEnrichment(
+      await options.enrich(fetched.rows),
+    );
+    enriched = enrichment.rows;
+    mediaLookup = enrichment.mediaLookup;
   } catch {
     enriched = canonical;
+    mediaLookup = 'failed';
   }
 
   if (!current()) return -1;
 
+  const mediaAuthoritative = mediaLookup === 'authoritative';
   options.paint(enriched, {
     mode: 'enriched',
     append: options.append,
-    preserveEmptyMedia: true,
+    preserveEmptyMedia: !mediaAuthoritative,
     replaceWithNext: false,
+    keepUnmentioned: !options.append,
   });
 
   if (!options.append) {
     options.onState(enriched.length ? 'LOADED' : 'EMPTY_CONFIRMED');
-    markCommunityPageOneReady(options.session, token);
-    if (enriched.length) options.persist?.(enriched);
+    if (mediaAuthoritative && enriched.length) options.persist?.(enriched);
   }
 
   return enriched.length;

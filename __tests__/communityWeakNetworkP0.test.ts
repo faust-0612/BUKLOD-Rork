@@ -8,10 +8,12 @@ import {
   resetNetworkQualityForTests,
 } from '@/lib/buklodNetworkQuality';
 import {
+  applyAuthoritativeCommunityMedia,
   beginCommunityFeedLoad,
   communityFeedStatusMessage,
   communityRetryAllowed,
   createCommunityFeedSession,
+  dropWarmCommunityFeedForUser,
   executeProgressiveCommunityFeed,
   isCommunityFeedTokenCurrent,
   mergePaintedCommunityPosts,
@@ -103,6 +105,7 @@ describe('community weak-network feed', () => {
     expect(canonical?.[0].author_name).toBe('Member author');
     expect(events.indexOf('paint')).toBeLessThan(events.indexOf('enrich'));
     expect(paints.at(-1)?.[0].media_items ?? []).toHaveLength(0);
+    expect(session.pageOneReady).toBe(true);
 
     names.resolve();
     await loadPromise;
@@ -257,6 +260,16 @@ describe('community weak-network feed', () => {
     });
 
     expect(loaded).toEqual(['community-media:photos/b.jpg']);
+    const imageTypes = path.join(
+      process.cwd(),
+      'node_modules/expo-image/build/Image.d.ts',
+    );
+    if (fs.existsSync(imageTypes)) {
+      const source = fs.readFileSync(imageTypes, 'utf8');
+      expect(source).toContain('loadAsync');
+      expect(source).toContain('cacheKey');
+      expect(source).toContain('getCachePathAsync');
+    }
     const delays = [0, 1, 2].map(attempt =>
       communityMediaResignDelayMs(attempt, 0),
     );
@@ -264,7 +277,7 @@ describe('community weak-network feed', () => {
     expect(delays[2]).toBeGreaterThan(delays[1]);
   });
 
-  test('video cache reuses retained ranges and does not bypass authorization or IMA', () => {
+  test('video cache policy model requests missing ranges and blocks IMA byte reuse', () => {
     expect(shouldMountCommunityVideoPlayer({
       active: false,
       fullscreen: false,
@@ -290,6 +303,7 @@ describe('community weak-network feed', () => {
       playIntent: false,
     })).toBe(true);
 
+    // Policy model only. These byte counts are not a device packet capture.
     const needed = [{ start: 0, end: 999 }];
     expect(replayDownloadedBytes({
       player: 'expo-video',
@@ -332,6 +346,190 @@ describe('community weak-network feed', () => {
     });
     expect(COMMUNITY_VIDEO_CACHE_BUDGET_BYTES).toBeLessThan(1024 * 1024 * 1024);
     expect(communityVideoCachePlan('google-ima').persistentByteCache).toBe(false);
+  });
+
+  test('hung name enrichment still paginates and does not drop page 2', async () => {
+    const session = createCommunityFeedSession();
+    let posts: any[] = [];
+    const names = deferred<void>();
+    const paint = (rows: any[], meta: any) => {
+      posts = mergePaintedCommunityPosts(posts, rows, meta);
+    };
+    const shared = {
+      session,
+      online: true,
+      readMemory: () => null,
+      readDisk: async () => null,
+      paint,
+      onState: () => undefined,
+    };
+
+    const first = executeProgressiveCommunityFeed({
+      ...shared,
+      append: false,
+      identity: 'user-a:all:for_you',
+      fetchFeed: async () => ({
+        ok: true,
+        rows: [{ id: 'p1', body: 'Page one', user_id: 'author-1' }],
+      }),
+      toCanonical: rows =>
+        rows.map(row => withCanonicalCommunityAuthor(row, () => 'Member')),
+      enrich: async rows => {
+        await names.promise;
+        return {
+          mediaLookup: 'authoritative' as const,
+          rows: rows.map(row => ({ ...row, author_name: 'Later Name' })),
+        };
+      },
+    });
+
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(posts.map(row => row.body)).toEqual(['Page one']);
+    expect(session.pageOneReady).toBe(true);
+
+    const pageTwo = await executeProgressiveCommunityFeed({
+      ...shared,
+      append: true,
+      identity: 'user-a:all:for_you',
+      fetchFeed: async () => ({
+        ok: true,
+        rows: [{ id: 'p2', body: 'Page two', user_id: 'author-2' }],
+      }),
+      toCanonical: rows => rows,
+      enrich: async rows => ({ rows, mediaLookup: 'failed' as const }),
+    });
+
+    expect(pageTwo).toBe(1);
+    expect(posts.map(row => row.id)).toEqual(['p1', 'p2']);
+    await expect(Promise.race([
+      first.then(() => 'done'),
+      Promise.resolve('pending'),
+    ])).resolves.toBe('pending');
+
+    names.resolve();
+    await first;
+    expect(posts.map(row => row.id)).toEqual(['p1', 'p2']);
+    expect(posts[0].author_name).toBe('Later Name');
+  });
+
+  test('a newer account replaces the screen before an old enrichment returns', async () => {
+    const session = createCommunityFeedSession();
+    let posts: any[] = [];
+    const oldNames = deferred<void>();
+    const memory = new Map<string, any[]>();
+    const paint = (rows: any[], meta: any) => {
+      posts = mergePaintedCommunityPosts(posts, rows, meta);
+    };
+
+    const oldLoad = executeProgressiveCommunityFeed({
+      session,
+      append: false,
+      identity: 'user-a:all:for_you',
+      online: true,
+      readMemory: () => memory.get('user-a') ?? null,
+      readDisk: async () => null,
+      fetchFeed: async () => ({
+        ok: true,
+        rows: [{ id: 'a1', body: 'Account A', user_id: 'user-a' }],
+      }),
+      toCanonical: rows => rows,
+      enrich: async rows => {
+        await oldNames.promise;
+        return { rows, mediaLookup: 'authoritative' as const };
+      },
+      paint,
+      onState: () => undefined,
+      onIdentityChange: (previous, next) => {
+        const previousUser = previous?.split(':')[0];
+        const nextUser = next.split(':')[0];
+        if (previousUser && previousUser !== nextUser) {
+          dropWarmCommunityFeedForUser(memory, previousUser);
+        }
+      },
+    });
+
+    await Promise.resolve();
+    await Promise.resolve();
+    memory.set('community_feed:user-a:all:mode:for_you:v2', posts.slice());
+
+    const nextLoad = executeProgressiveCommunityFeed({
+      session,
+      append: false,
+      identity: 'user-b:all:for_you',
+      online: true,
+      readMemory: () => null,
+      readDisk: async () => null,
+      fetchFeed: async () => ({
+        ok: true,
+        rows: [{ id: 'b1', body: 'Account B', user_id: 'user-b' }],
+      }),
+      toCanonical: rows => rows,
+      enrich: async rows => ({ rows, mediaLookup: 'failed' as const }),
+      paint,
+      onState: () => undefined,
+      onIdentityChange: (previous, next) => {
+        const previousUser = previous?.split(':')[0];
+        const nextUser = next.split(':')[0];
+        if (previousUser && previousUser !== nextUser) {
+          dropWarmCommunityFeedForUser(memory, previousUser);
+        }
+      },
+    });
+    await nextLoad;
+    expect(posts.map(row => row.body)).toEqual(['Account B']);
+    expect(memory.has('community_feed:user-a:all:mode:for_you:v2')).toBe(false);
+
+    oldNames.resolve();
+    await oldLoad;
+    expect(posts.map(row => row.body)).toEqual(['Account B']);
+  });
+
+  test('authoritative empty media removes a revoked photo and a failed lookup keeps it', () => {
+    const visible = [{
+      id: 'post-1',
+      body: 'Hello',
+      media_path: 'private/photo.jpg',
+      media_url: 'https://cdn.example/private?token=old',
+      media_items: [{ media_path: 'private/photo.jpg' }],
+    }];
+    const removed = mergePaintedCommunityPosts<any>(
+      visible,
+      [{ id: 'post-1', body: 'Hello', media_items: [] }],
+      { append: false, preserveEmptyMedia: false, keepUnmentioned: true },
+    );
+    expect(removed[0].media_items).toEqual([]);
+    expect(removed[0].media_url).toBeNull();
+    expect(removed[0].media_path).toBeNull();
+
+    const kept = mergePaintedCommunityPosts<any>(
+      visible,
+      [{ id: 'post-1', body: 'Hello', media_items: [] }],
+      { append: false, preserveEmptyMedia: true, keepUnmentioned: true },
+    );
+    expect(kept[0].media_items).toEqual([{ media_path: 'private/photo.jpg' }]);
+
+    const unchanged = mergePaintedCommunityPosts<any>(
+      visible,
+      [{
+        id: 'post-1',
+        body: 'Hello',
+        media_items: [{ media_path: 'private/photo.jpg', media_url: 'https://cdn.example/private?token=new' }],
+      }],
+      { append: false, preserveEmptyMedia: false },
+    );
+    expect(unchanged[0].media_items[0].media_path).toBe('private/photo.jpg');
+
+    const page = applyAuthoritativeCommunityMedia(
+      [
+        ...visible,
+        { id: 'post-2', body: 'Next page', media_items: [{ media_path: 'other.jpg' }] },
+      ],
+      ['post-1'],
+      {},
+    );
+    expect(page[0].media_items).toEqual([]);
+    expect(page[1].media_items).toEqual([{ media_path: 'other.jpg' }]);
   });
 
   test('refresh keeps already visible photos when the next text payload has no media yet', () => {
