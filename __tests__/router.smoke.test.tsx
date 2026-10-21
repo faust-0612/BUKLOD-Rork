@@ -4,7 +4,7 @@ import { renderRouter, screen } from 'expo-router/testing-library';
 
 describe('Expo Router test harness', () => {
   it('can render the BUKLOD login route in memory', () => {
-    renderRouter(
+    const rendered = renderRouter(
       {
         index: () => <Text>BUKLOD</Text>,
         '(auth)/login': () => <Text>LOG IN</Text>,
@@ -14,7 +14,9 @@ describe('Expo Router test harness', () => {
     );
 
     // @ts-expect-error Expo Router matcher exists at runtime but is missing from installed typings
-    expect(screen).toHavePathname('/(auth)/login');
+    expect(screen).toHavePathname('/login');
+    // Route groups select the screen but are omitted from the public pathname.
+    expect(rendered.getSegments()).toEqual(['(auth)', 'login']);
     expect(screen.getByText('LOG IN')).toBeTruthy();
   });
 });

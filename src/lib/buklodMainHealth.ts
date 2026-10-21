@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
+import { enqueueDeferredBuklodFailure, drainDeferredBuklodFailures } from '@/lib/buklodDeferredHealth';
 
 export type BuklodHealthCategory =
   | 'AUTH'
@@ -333,9 +334,12 @@ export async function reportBuklodMainHealthIssue(
   input: BuklodHealthIssue,
 ) {
   try {
-    const { data } = await supabase.auth.getSession();
+    const { data } = await withBuklodTimeout(supabase.auth.getSession(), 1_500, 'Health local session');
     const userId = data.session?.user?.id ?? '';
-    if (!userId) return;
+    if (!userId) {
+      await enqueueDeferredBuklodFailure(input.category === 'LOADING' ? 'CONTENT_REFRESH_FAILED' : 'CLIENT_OPERATION_FAILED');
+      return;
+    }
 
     await enqueueBuklodMainHealthIssue(userId, input);
 
@@ -346,8 +350,50 @@ export async function reportBuklodMainHealthIssue(
       await flushBuklodMainHealthQueue(userId);
     }
   } catch {
-    // Health reporting must never block or break BUKLOD Main.
+    // No raw errors or identifying context are retained in the signed-out queue.
+    await enqueueDeferredBuklodFailure('CLIENT_OPERATION_FAILED').catch(() => undefined);
   }
+}
+
+export async function flushDeferredBuklodHealth(userId: string) {
+  if (!userId) return;
+  await drainDeferredBuklodFailures(async event => {
+    try {
+      const { data } = await withBuklodTimeout(supabase.auth.getSession(), 1_500, 'Health delivery session');
+      if (data.session?.user?.id !== userId) return false;
+      const { data: receipt, error } = await withBuklodTimeout(
+        (supabase as any).rpc('buklod_record_health_event_v1', {
+          p_client_event_id: event.id,
+          p_app_id: APP_ID,
+          p_app_version: Constants.expoConfig?.version ?? '',
+          p_platform: Platform.OS,
+          p_environment: process.env.EXPO_PUBLIC_APP_ENV === 'production' ? 'production' :
+            process.env.EXPO_PUBLIC_APP_ENV === 'staging' ? 'staging' : 'development',
+          p_route_module: 'deferred-client',
+          p_health_category: event.code.startsWith('AUTH_') ? 'AUTH' : event.code === 'CONTENT_REFRESH_FAILED' ? 'LOADING' : 'UNKNOWN',
+          p_severity: 'WARNING',
+          p_safe_error_code: event.code,
+          p_error_signature: event.code,
+          p_device_ref: null,
+          p_session_ref: null,
+          p_network_state: 'UNKNOWN',
+          p_auth_state: 'DEFERRED_DEVICE_EVENT',
+          p_sync_state: 'UNKNOWN',
+          p_local_storage_state: 'AVAILABLE',
+          p_notification_state: 'UNKNOWN',
+          p_last_successful_action: null,
+          p_pending_work_count: 0,
+          p_known_incident_hint: null,
+          p_local_self_heal_attempted: false,
+          p_local_self_heal_result: 'NOT_ATTEMPTED',
+          p_correlation_key: 'DEFERRED_CLIENT_FAILURE',
+          p_privacy_classification: 'MINIMAL',
+          p_detected_at: event.detectedAt,
+        }), 8_000, 'Deferred health delivery',
+      ) as { data: { event_id?: string } | null; error: unknown };
+      return !error && typeof receipt?.event_id === 'string' && receipt.event_id.length > 0;
+    } catch { return false; }
+  });
 }
 
 export async function pollBuklodMainRecoveryCommands() {
@@ -454,3 +500,4 @@ export const BUKLOD_MAIN_HEALTH_CONTRACT = {
     'REQUEST_CLIENT_ORG_RERESOLVE',
   ] as const,
 };
+

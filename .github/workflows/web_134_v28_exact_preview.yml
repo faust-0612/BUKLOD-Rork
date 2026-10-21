@@ -1,0 +1,515 @@
+# Isolated BUKLOD Web 1.3.4 pipeline.
+# Checks out this branch's exact SHA. Never checks out main.
+# Preview upload and production alias promotion are separate jobs.
+# Direct production publication is a separate alias step. Native builds are out of scope.
+
+name: BUKLOD Web 1.3.4 Exact Preview
+
+on:
+  push:
+    branches:
+      - cursor/web-134-v28-preview-2f83
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: buklod-web-134-v28-exact
+  cancel-in-progress: false
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  BASELINE_SHA: f3b97cab40a4140e93342491e7eef092c7cd4573
+  PROTECTED_SUPABASE_URL: https://yhanxndaqbmuzbdqlblu.supabase.co
+  ROLLBACK_DEPLOYMENT_ID: zpvvpw9hif
+  PRODUCTION_URL: https://buklod.expo.app
+  LIVE_1_3_2_BUNDLE: index-6a93809e5c09eb7c7bd6b0635c410db2.js
+  APP_ADS_SHA256: ca45d7888bb03edd619e0d58db69b0eb91b53fd65a0dfae92e46b1c51b39655a
+
+jobs:
+  select:
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.mode.outputs.mode }}
+      deployment_id: ${{ steps.mode.outputs.deployment_id }}
+      preview_url: ${{ steps.mode.outputs.preview_url }}
+      source_sha: ${{ steps.mode.outputs.source_sha }}
+    steps:
+      - name: Checkout exact release SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Choose preview or exact-id promotion
+        id: mode
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_REF}" != "refs/heads/cursor/web-134-v28-preview-2f83" ]; then
+            echo "Refused: this pipeline is pinned to the isolated web 1.3.4 branch."
+            exit 1
+          fi
+          git merge-base --is-ancestor "$BASELINE_SHA" HEAD
+          grep -F "version: '1.3.4'" app.config.js
+          grep -F "versionCode: isStaging ? undefined : 28" app.config.js
+          grep -F "runtimeVersion: isClassroom ? '1.3.0' : '1.3.4'" app.config.js
+          python3 - <<'PY'
+          from hashlib import sha256
+          from pathlib import Path
+          body = Path('public/app-ads.txt').read_bytes()
+          expected = b'google.com, pub-3448515158880100, DIRECT, f08c47fec0942fa0\n'
+          if body != expected or sha256(body).hexdigest() != 'ca45d7888bb03edd619e0d58db69b0eb91b53fd65a0dfae92e46b1c51b39655a':
+              raise SystemExit('public/app-ads.txt is not the approved seller record')
+          print('app-ads.txt bytes: EXACT')
+          PY
+
+          if [ ! -f web-release/promote-deployment-id.txt ]; then
+            echo "mode=preview" >> "$GITHUB_OUTPUT"
+            echo "SOURCE $(git rev-parse HEAD) mode=preview baseline=$BASELINE_SHA"
+            exit 0
+          fi
+
+          deployment_id="$(awk -F= '/^DEPLOYMENT_ID=/{print $2}' web-release/promote-deployment-id.txt | tr -d '[:space:]')"
+          preview_url="$(awk -F= '/^PREVIEW_URL=/{print $2}' web-release/promote-deployment-id.txt | tr -d '[:space:]')"
+          source_sha="$(awk -F= '/^SOURCE_SHA=/{print $2}' web-release/promote-deployment-id.txt | tr -d '[:space:]')"
+          if ! printf '%s' "$deployment_id" | grep -Eq '^[a-z0-9]{8,20}$'; then
+            echo "Refused: deployment id is missing or malformed."
+            exit 1
+          fi
+          if [ "$deployment_id" = "$ROLLBACK_DEPLOYMENT_ID" ]; then
+            echo "Refused: promotion file points at the archived 1.3.2 rollback deployment."
+            exit 1
+          fi
+          case "$preview_url" in
+            https://buklod--"$deployment_id".expo.app) ;;
+            *)
+              echo "Refused: preview URL does not match the deployment id."
+              exit 1
+              ;;
+          esac
+          if [ "$preview_url" = "$PRODUCTION_URL" ]; then
+            echo "Refused: preview URL is the production alias."
+            exit 1
+          fi
+          git merge-base --is-ancestor "$BASELINE_SHA" "$source_sha"
+          git merge-base --is-ancestor "$source_sha" HEAD
+          unexpected="$(git diff --name-only "$source_sha" HEAD | grep -v -E '^(web-release/promote-deployment-id.txt|\.github/workflows/web_134_v28_exact_preview.yml)$' || true)"
+          if [ -n "$unexpected" ]; then
+            echo "Refused: promotion history changes more than the alias pipeline."
+            printf '%s\n' "$unexpected"
+            exit 1
+          fi
+          echo "mode=promote" >> "$GITHUB_OUTPUT"
+          echo "deployment_id=$deployment_id" >> "$GITHUB_OUTPUT"
+          echo "preview_url=$preview_url" >> "$GITHUB_OUTPUT"
+          echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
+
+  preview:
+    needs: select
+    if: needs.select.outputs.mode == 'preview'
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - name: Checkout exact release SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Expo credential and production environment preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${EXPO_TOKEN:-}" ]; then
+            echo "OWNER BLOCKER: EXPO_TOKEN is not available to this workflow. No deploy was attempted."
+            exit 1
+          fi
+          npx --yes eas-cli@latest whoami --non-interactive >/dev/null
+          echo "Expo authentication: READY"
+          rm -f .env.local
+          npx --yes eas-cli@latest env:pull --environment production --path .env.local --non-interactive
+          test -s .env.local
+          set -a
+          # shellcheck disable=SC1091
+          . ./.env.local
+          set +a
+          if [ "${EXPO_PUBLIC_SUPABASE_URL:-}" != "$PROTECTED_SUPABASE_URL" ]; then
+            echo "STOP: EAS production Supabase URL is not the protected BUKLOD project."
+            exit 1
+          fi
+          test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}"
+          while IFS='=' read -r name _; do
+            case "$name" in
+              EXPO_PUBLIC_*)
+                value="${!name-}"
+                {
+                  echo "${name}<<__BUKLOD_ENV__"
+                  printf '%s\n' "$value"
+                  echo '__BUKLOD_ENV__'
+                } >> "$GITHUB_ENV"
+                ;;
+            esac
+          done < <(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env.local)
+          rm -f .env.local
+          echo "Protected BUKLOD production public environment: READY"
+
+      - name: Verify web source contracts without legacy rewrites
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'const snapshot =' src/components/BuklodExclusiveScopeCommunity.tsx
+          grep -F 'setBusy(false);' src/components/BuklodExclusiveScopeCommunity.tsx
+          grep -F 'setPublishNotice(' src/components/BuklodExclusiveScopeCommunity.tsx
+          grep -F 'BUKLOD_HOME_IDENTITY_R23_CLEAN_TWO_ROW' 'src/app/(tabs)/home.tsx'
+          grep -F 'openingProfileFromScopedWorkspace' src/components/BuklodGuideAvatar.tsx
+          test -s assets/release/buklod-main-canonical.png
+          echo "Web source contracts: VERIFIED. Legacy guide rewrite was not applied."
+
+      - name: Export web from this SHA
+        shell: bash
+        env:
+          NODE_ENV: production
+          APP_VARIANT: production
+          EXPO_PUBLIC_APP_ENV: production
+          NODE_OPTIONS: --max-old-space-size=6144
+        run: |
+          set -euo pipefail
+          test "${EXPO_PUBLIC_SUPABASE_URL:-}" = "$PROTECTED_SUPABASE_URL"
+          test -n "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}"
+          rm -rf dist
+          npx expo export --platform web --output-dir dist
+          test -s dist/index.html
+          cmp -s public/app-ads.txt dist/app-ads.txt
+          test -n "$(find dist/_expo/static/js/web -type f -name 'worker-*.js' -print -quit)"
+          test -n "$(find dist -type f -name '*.wasm' -print -quit)"
+          test -n "$(find dist -type f -name '*buklod-main-canonical*.png' -print -quit)"
+          node scripts/inject-adsense-web-head.cjs
+          cmp -s public/app-ads.txt dist/app-ads.txt
+          grep -F 'ca-pub-6260135521836249' dist/index.html
+          grep -F 'google-adsense-account' dist/index.html
+          js="dist$(python3 - <<'PY'
+          import re
+          from pathlib import Path
+          html = Path('dist/index.html').read_text()
+          matches = re.findall(r'src="(/_expo/static/js/web/index-[^"]+\.js)"', html)
+          if len(matches) != 1:
+              raise SystemExit('Expected one app bundle script in dist/index.html')
+          print(matches[0])
+          PY
+          )"
+          test -s "$js"
+          python3 - "$js" <<'PY'
+          import pathlib, sys
+          js = pathlib.Path(sys.argv[1]).read_text(errors='replace')
+          required = [
+              'version\\":\\"1.3.4',
+              'runtimeVersion\\":\\"1.3.4',
+              'yhanxndaqbmuzbdqlblu.supabase.co',
+          ]
+          missing = [item for item in required if item not in js]
+          if missing:
+              raise SystemExit('WEB EXPORT FAILED, missing: ' + ', '.join(missing))
+          if 'version\\":\\"1.3.2' in js or '"version":"1.3.2"' in js:
+              raise SystemExit('WEB EXPORT FAILED: stale 1.3.2 manifest is still embedded')
+          print('Embedded version 1.3.4 and protected Supabase host: VERIFIED')
+          PY
+          python3 - <<'PY'
+          import hashlib, os
+          from pathlib import Path
+          root = Path('dist')
+          lines = []
+          for path in sorted(p for p in root.rglob('*') if p.is_file()):
+              digest = hashlib.sha256(path.read_bytes()).hexdigest()
+              lines.append(f'{digest}  {path.as_posix()}')
+          Path('web-release-hashes.txt').write_text('\n'.join(lines) + '\n')
+          print(f'hashed {len(lines)} export files')
+          PY
+          basename="$(basename "$js")"
+          echo "WEB_BUNDLE=$basename" >> "$GITHUB_ENV"
+          echo "Exported bundle: $basename"
+
+      - name: Confirm production alias is still the archived 1.3.2 deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          body="$(curl -fsS "$PRODUCTION_URL/")"
+          printf '%s' "$body" | grep -F "$LIVE_1_3_2_BUNDLE" >/dev/null
+          rollback="$(curl -fsS "https://buklod--${ROLLBACK_DEPLOYMENT_ID}.expo.app/")"
+          printf '%s' "$rollback" | grep -F "$LIVE_1_3_2_BUNDLE" >/dev/null
+          echo "Production alias and rollback deployment still serve archived 1.3.2."
+
+      - name: Deploy preview only
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          npx --yes eas-cli@latest deploy \
+            --non-interactive \
+            --json \
+            --environment production \
+            --export-dir dist \
+            --no-source-maps \
+            > deploy.json \
+            2> deploy.err
+          code=$?
+          set -e
+          cat deploy.err
+          if [ "$code" -ne 0 ]; then
+            if grep -Ei 'credit|quota|limit exceeded|payment required|billing|upgrade your plan|insufficient' deploy.err deploy.json; then
+              echo "OWNER BLOCKER: EAS Hosting refused the upload. No paid upgrade was attempted and production was not changed."
+            fi
+            exit "$code"
+          fi
+          python3 - <<'PY'
+          import json, re
+          from pathlib import Path
+          raw = Path('deploy.json').read_text()
+          data = json.loads(raw)
+          urls = []
+          def walk(node):
+              if isinstance(node, dict):
+                  for value in node.values():
+                      walk(value)
+              elif isinstance(node, list):
+                  for value in node:
+                      walk(value)
+              elif isinstance(node, str) and 'expo.app' in node:
+                  urls.append(node.strip())
+          walk(data)
+          urls.extend(re.findall(r'https://[a-z0-9-]+--[a-z0-9]+\.expo\.app', raw))
+          cleaned = [url.rstrip('/') for url in urls]
+          preview = next((url for url in cleaned if re.fullmatch(r'https://buklod--[a-z0-9]+\.expo\.app', url)), '')
+          if not preview:
+              raise SystemExit('Preview URL was not present in eas deploy JSON')
+          deployment_id = preview.rsplit('--', 1)[1].removesuffix('.expo.app')
+          if deployment_id == 'zpvvpw9hif' or preview == 'https://buklod.expo.app':
+              raise SystemExit('Deploy command returned the production alias')
+          Path('preview-identity.txt').write_text(
+              f'DEPLOYMENT_ID={deployment_id}\nPREVIEW_URL={preview}\nSOURCE_SHA={Path("/dev/stdin").read() if False else ""}'
+          )
+          # SOURCE_SHA is filled by the shell below; keep the id and url here.
+          Path('preview-url.txt').write_text(preview + '\n')
+          Path('preview-id.txt').write_text(deployment_id + '\n')
+          print(f'PREVIEW_URL={preview}')
+          print(f'DEPLOYMENT_ID={deployment_id}')
+          PY
+          source_sha="$(git rev-parse HEAD)"
+          deployment_id="$(tr -d '[:space:]' < preview-id.txt)"
+          preview_url="$(tr -d '[:space:]' < preview-url.txt)"
+          cat > preview-identity.txt <<EOF
+          DEPLOYMENT_ID=${deployment_id}
+          PREVIEW_URL=${preview_url}
+          SOURCE_SHA=${source_sha}
+          WEB_BUNDLE=${WEB_BUNDLE}
+          BASELINE_SHA=${BASELINE_SHA}
+          ROLLBACK_DEPLOYMENT_ID=${ROLLBACK_DEPLOYMENT_ID}
+          EOF
+          echo "Preview deployment recorded. Production alias was not requested."
+
+      - name: Verify preview and prove production was not replaced
+        shell: bash
+        run: |
+          set -euo pipefail
+          preview_url="$(awk -F= '/^PREVIEW_URL=/{print $2}' preview-identity.txt)"
+          deployment_id="$(awk -F= '/^DEPLOYMENT_ID=/{print $2}' preview-identity.txt)"
+          html="$(curl -fsS "$preview_url/")"
+          printf '%s' "$html" | grep -F "$WEB_BUNDLE" >/dev/null
+          js_path="$(printf '%s' "$html" | python3 -c 'import sys,re; m=re.search(r"/_expo/static/js/web/index-[^\" ]+\.js", sys.stdin.read()); print(m.group(0) if m else "")')"
+          test -n "$js_path"
+          curl -fsS "$preview_url$js_path" -o preview-bundle.js
+          python3 - <<'PY'
+          from pathlib import Path
+          js = Path('preview-bundle.js').read_text(errors='replace')
+          required = ['version\\":\\"1.3.4', 'runtimeVersion\\":\\"1.3.4', 'yhanxndaqbmuzbdqlblu.supabase.co']
+          missing = [item for item in required if item not in js]
+          if missing:
+              raise SystemExit('Preview bundle missing: ' + ', '.join(missing))
+          if 'version\\":\\"1.3.2' in js:
+              raise SystemExit('Preview bundle still embeds 1.3.2')
+          print('Preview bundle version 1.3.4: VERIFIED')
+          PY
+          python3 - <<'PY'
+          import pathlib, urllib.error, urllib.request
+          preview = pathlib.Path('preview-identity.txt').read_text().split('PREVIEW_URL=', 1)[1].splitlines()[0]
+          expected = pathlib.Path('public/app-ads.txt').read_bytes()
+          agents = {
+              'browser': 'Mozilla/5.0',
+              'googlebot': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+              'mediapartners': 'Mediapartners-Google',
+          }
+          lines = []
+          ok = True
+          for name, agent in agents.items():
+              request = urllib.request.Request(preview + '/app-ads.txt', headers={'User-Agent': agent})
+              try:
+                  with urllib.request.urlopen(request, timeout=30) as response:
+                      status = response.status
+                      body = response.read()
+                      ctype = response.headers.get('content-type', '')
+              except urllib.error.HTTPError as error:
+                  status = error.code
+                  body = error.read()
+                  ctype = error.headers.get('content-type', '')
+              match = status == 200 and body == expected and 'text/plain' in ctype.lower() and 'text/html' not in ctype.lower()
+              ok = ok and match
+              lines.append(f'{name} status={status} content_type={ctype} bytes={len(body)} exact={match}')
+          result = 'text_plain_exact' if ok else 'not_text_plain'
+          pathlib.Path('app-ads-preview.txt').write_text('\n'.join(lines) + f'\nADMOB_PREVIEW={result}\n')
+          print('\n'.join(lines))
+          print(f'ADMOB_PREVIEW={result}')
+          PY
+          live="$(curl -fsS "$PRODUCTION_URL/")"
+          if ! printf '%s' "$live" | grep -F "$LIVE_1_3_2_BUNDLE" >/dev/null; then
+            echo "PRODUCTION ALIAS CHANGED DURING PREVIEW. Restoring archived deployment ${ROLLBACK_DEPLOYMENT_ID}."
+            npx --yes eas-cli@latest deploy:alias --prod --id="$ROLLBACK_DEPLOYMENT_ID" --non-interactive --json
+            exit 1
+          fi
+          echo "Production alias unchanged: $LIVE_1_3_2_BUNDLE"
+          echo "PREVIEW_READY deployment=$deployment_id url=$preview_url"
+
+      - name: Upload release proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-web-134-preview-proof
+          path: |
+            preview-identity.txt
+            preview-url.txt
+            preview-id.txt
+            deploy.json
+            deploy.err
+            app-ads-preview.txt
+            web-release-hashes.txt
+            dist/index.html
+            dist/app-ads.txt
+          if-no-files-found: ignore
+
+  promote:
+    needs: select
+    if: needs.select.outputs.mode == 'promote'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout promotion commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies for the Expo project config
+        run: npm ci --ignore-scripts
+
+      - name: Re-verify the immutable preview before aliasing production
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${EXPO_TOKEN:-}" ]; then
+            echo "OWNER BLOCKER: EXPO_TOKEN is not available. Production was not changed."
+            exit 1
+          fi
+          preview_url="${{ needs.select.outputs.preview_url }}"
+          deployment_id="${{ needs.select.outputs.deployment_id }}"
+          html="$(curl -fsS "$preview_url/")"
+          js_path="$(printf '%s' "$html" | python3 -c 'import sys,re; m=re.search(r"/_expo/static/js/web/index-[^\" ]+\.js", sys.stdin.read()); print(m.group(0) if m else "")')"
+          test -n "$js_path"
+          curl -fsS "$preview_url$js_path" -o preview-bundle.js
+          python3 - <<'PY'
+          from pathlib import Path
+          js = Path('preview-bundle.js').read_text(errors='replace')
+          for item in ['version\\":\\"1.3.4', 'runtimeVersion\\":\\"1.3.4', 'yhanxndaqbmuzbdqlblu.supabase.co']:
+              if item not in js:
+                  raise SystemExit('Refusing promotion. Preview bundle missing ' + item)
+          if 'version\\":\\"1.3.2' in js:
+              raise SystemExit('Refusing promotion. Preview still embeds 1.3.2')
+          print('Preview still serves 1.3.4. Promotion may continue.')
+          PY
+          echo "WEB_JS_PATH=$js_path" >> "$GITHUB_ENV"
+          echo "DEPLOYMENT_ID=$deployment_id" >> "$GITHUB_ENV"
+
+      - name: Promote the verified deployment id to production
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$DEPLOYMENT_ID" != "$ROLLBACK_DEPLOYMENT_ID"
+          npx --yes eas-cli@latest whoami --non-interactive >/dev/null
+          npx --yes eas-cli@latest deploy:alias --prod --id="$DEPLOYMENT_ID" --non-interactive --json | tee promote.json
+
+      - name: Verify live 1.3.4 and keep the rollback deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle_name="${WEB_JS_PATH##*/}"
+          ok=0
+          for attempt in $(seq 1 24); do
+            body="$(curl -fsS -H 'Cache-Control: no-cache' -H 'Pragma: no-cache' "${PRODUCTION_URL}/?cb=${attempt}-$(date +%s)")"
+            if printf '%s' "$body" | grep -F "$bundle_name" >/dev/null; then
+              ok=1
+              echo "Production URL served ${bundle_name} on attempt ${attempt}."
+              break
+            fi
+            echo "attempt ${attempt}: production URL has not shown ${bundle_name} yet"
+            sleep 10
+          done
+          if [ "$ok" -ne 1 ]; then
+            echo "Production URL did not show the promoted bundle during the cache window."
+            echo "The alias was left unchanged. Archived rollback deployment remains ${ROLLBACK_DEPLOYMENT_ID}."
+            exit 1
+          fi
+          curl -fsS -H 'Cache-Control: no-cache' "$PRODUCTION_URL$WEB_JS_PATH" -o live-bundle.js
+          if ! python3 - <<'PY'
+          from pathlib import Path
+          js = Path('live-bundle.js').read_text(errors='replace')
+          missing = [item for item in ['version\\":\\"1.3.4', 'runtimeVersion\\":\\"1.3.4', 'yhanxndaqbmuzbdqlblu.supabase.co'] if item not in js]
+          if missing or 'version\\":\\"1.3.2' in js:
+              print('LIVE_BUNDLE_INVALID ' + ','.join(missing))
+              raise SystemExit(1)
+          print('LIVE version 1.3.4: VERIFIED')
+          PY
+          then
+            echo "Promoted bundle is not 1.3.4. Restoring ${ROLLBACK_DEPLOYMENT_ID}."
+            npx --yes eas-cli@latest deploy:alias --prod --id="$ROLLBACK_DEPLOYMENT_ID" --non-interactive --json
+            exit 1
+          fi
+          rollback="$(curl -fsS "https://buklod--${ROLLBACK_DEPLOYMENT_ID}.expo.app/")"
+          printf '%s' "$rollback" | grep -F "$LIVE_1_3_2_BUNDLE" >/dev/null
+          echo "Rollback deployment ${ROLLBACK_DEPLOYMENT_ID} still serves archived 1.3.2."
+          python3 - <<'PY'
+          import pathlib, urllib.request
+          expected = pathlib.Path('public/app-ads.txt').read_bytes()
+          request = urllib.request.Request(
+              'https://buklod.expo.app/app-ads.txt',
+              headers={'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'},
+          )
+          with urllib.request.urlopen(request, timeout=30) as response:
+              body = response.read()
+              ctype = response.headers.get('content-type', '')
+          exact = body == expected and 'text/plain' in ctype.lower() and 'text/html' not in ctype.lower()
+          print(f'LIVE_APP_ADS content_type={ctype} bytes={len(body)} exact={exact}')
+          PY
+
+      - name: Upload promotion proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buklod-web-134-promotion-proof
+          path: |
+            promote.json
+            web-release/promote-deployment-id.txt
+          if-no-files-found: ignore

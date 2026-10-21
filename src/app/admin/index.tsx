@@ -503,6 +503,13 @@ export default function AdminDashboard() {
                 subtitle="Home board and profile message content"
                 path="/admin/system-announcement-boards"
               />
+
+              <AdminRow
+                icon="script-text-outline"
+                title="Kabihasnang Ligaw"
+                subtitle="Story management, preview, schedule, and pause"
+                path="/admin/kabihasnang-ligaw"
+              />
             </DrawerSection>
 
             <DrawerSection
