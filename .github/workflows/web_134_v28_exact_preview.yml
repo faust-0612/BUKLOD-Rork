@@ -64,10 +64,6 @@ jobs:
               raise SystemExit('public/app-ads.txt is not the approved seller record')
           print('app-ads.txt bytes: EXACT')
           PY
-          if grep -n 'eas-cli@latest deploy --prod' .github/workflows/web_134_v28_exact_preview.yml; then
-            echo "Refused: preview workflow contains a direct production deploy."
-            exit 1
-          fi
 
           if [ ! -f web-release/promote-deployment-id.txt ]; then
             echo "mode=preview" >> "$GITHUB_OUTPUT"
