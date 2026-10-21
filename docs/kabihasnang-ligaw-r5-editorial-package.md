@@ -6,14 +6,14 @@ This package is only what is already in the repository. It is not owner approval
 
 Export each file from the owner's ChatGPT Library and commit it at the path below. Do not rename the file. Do not draw a replacement.
 
-| Export from the ChatGPT Library | Land in the repo |
-|---|---|
-| `KABIHASNANG_LIGAW_R5_LATEST_VIEW.html` | `docs/imports/kabihasnang-ligaw/KABIHASNANG_LIGAW_R5_LATEST_VIEW.html` |
-| `KABIHASNANG_LIGAW_R5_INTEGRATION_CANDIDATE.zip` | `docs/imports/kabihasnang-ligaw/KABIHASNANG_LIGAW_R5_INTEGRATION_CANDIDATE.zip` |
-| `KABIHASNANG_LIGAW_R5_WORK_HANDOFF.md` | `docs/imports/kabihasnang-ligaw/KABIHASNANG_LIGAW_R5_WORK_HANDOFF.md` |
-| `KABIHASNANG_LIGAW_R5_ARCHITECTURE.md` | `docs/imports/kabihasnang-ligaw/KABIHASNANG_LIGAW_R5_ARCHITECTURE.md` |
+| Export from the ChatGPT Library | Land in the repo | Present |
+|---|---|---|
+| `KABIHASNANG_LIGAW_R5_LATEST_VIEW.html` | `docs/imports/kabihasnang-ligaw/KABIHASNANG_LIGAW_R5_LATEST_VIEW.html` | Yes, unchanged |
+| `KABIHASNANG_LIGAW_R5_INTEGRATION_CANDIDATE.zip` | `docs/imports/kabihasnang-ligaw/KABIHASNANG_LIGAW_R5_INTEGRATION_CANDIDATE.zip` | No. Not supplied. |
+| `KABIHASNANG_LIGAW_R5_WORK_HANDOFF.md` | `docs/imports/kabihasnang-ligaw/KABIHASNANG_LIGAW_R5_WORK_HANDOFF.md` | Yes, unchanged |
+| `KABIHASNANG_LIGAW_R5_ARCHITECTURE.md` | `docs/imports/kabihasnang-ligaw/KABIHASNANG_LIGAW_R5_ARCHITECTURE.md` | Yes, unchanged |
 
-Until those four files are in the repo, the reader and wall card stay as they are on `cf59ba65`.
+The HTML is the interaction baseline. Its embedded landscape and `IMAGE_HERE` slot are not owner-approved final art. The screenshot title Ang Ikapitong Ani is not the manuscript.
 
 ## Already in the repo
 

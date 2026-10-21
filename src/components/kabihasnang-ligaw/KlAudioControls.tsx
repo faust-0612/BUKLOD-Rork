@@ -20,6 +20,7 @@ type Props = {
 
 function Channel({
   title,
+  channel,
   status,
   muted,
   volume,
@@ -30,6 +31,7 @@ function Channel({
   onUnavailable,
 }: {
   title: string;
+  channel: 'music' | 'ambient';
   status: AssetClass;
   muted: boolean;
   volume: number;
@@ -40,7 +42,7 @@ function Channel({
   onUnavailable: () => void;
 }) {
   const decision = resolveAudioChannel({
-    channel: title === klCopy.music ? 'music' : 'ambient',
+    channel,
     assetStatus: status,
     userIntentPlaying: false,
     otherAudioPlaying,
@@ -78,22 +80,24 @@ function Channel({
 }
 
 export default function KlAudioControls(props: Props) {
-  if (props.musicStatus !== 'APPROVED' && props.ambientStatus !== 'APPROVED') return null;
   return (
     <View style={styles.wrap}>
       <Channel
-        title={klCopy.music}
+        title={klCopy.hymnTitle}
+        channel="music"
         status={props.musicStatus}
         muted={props.musicMuted}
         volume={props.musicVolume}
         otherAudioPlaying={props.otherAudioPlaying}
-        missingLabel={klCopy.noMusic}
+        missingLabel={klCopy.audioOff}
         onToggleMute={() => props.onToggleMute('music')}
         onCycleVolume={() => props.onCycleVolume('music')}
         onUnavailable={() => props.onUnavailable('music')}
       />
+      {props.ambientStatus === 'APPROVED' ? (
       <Channel
         title={klCopy.ambient}
+        channel="ambient"
         status={props.ambientStatus}
         muted={props.ambientMuted}
         volume={props.ambientVolume}
@@ -103,6 +107,7 @@ export default function KlAudioControls(props: Props) {
         onCycleVolume={() => props.onCycleVolume('ambient')}
         onUnavailable={() => props.onUnavailable('ambient')}
       />
+      ) : null}
       {props.otherAudioPlaying ? <Text style={styles.yield}>{klCopy.yielded}</Text> : null}
     </View>
   );

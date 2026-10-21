@@ -19,9 +19,9 @@ export default function KabihasnangLigawWallCard() {
       style={[styles.card, compact && styles.cardCompact]}
     >
       <Text style={styles.eyebrow}>{klCopy.libraryKicker}</Text>
-      <Text style={[styles.title, compact && styles.titleCompact]}>{klCopy.libraryTitle}</Text>
-      <Text style={styles.description}>{klCopy.librarySubtitle}</Text>
-      <Text style={styles.schedule}>{klCopy.cardSchedule}</Text>
+      <Text style={styles.chapter}>{klCopy.cardChapter}</Text>
+      <Text style={[styles.title, compact && styles.titleCompact]}>{klCopy.cardTitle}</Text>
+      <Text style={styles.description}>{klCopy.cardLine}</Text>
       <Text style={styles.credit}>{KL_AUTHOR}</Text>
       <View style={styles.actionRow}>
         <Text style={styles.action}>{klCopy.openLibrary}</Text>
@@ -42,7 +42,8 @@ const styles = StyleSheet.create({
   },
   cardCompact: { padding: 16, marginHorizontal: 8 },
   eyebrow: { fontSize: 11, fontWeight: '800', letterSpacing: 1.4, color: '#e3c990' },
-  title: { fontSize: 26, fontWeight: '800', color: '#fff4df', marginTop: 13, lineHeight: 32 },
+  chapter: { fontSize: 12, fontWeight: '700', letterSpacing: 0.6, color: '#d6c8ad', marginTop: 12 },
+  title: { fontSize: 26, fontWeight: '800', color: '#fff4df', marginTop: 6, lineHeight: 32 },
   titleCompact: { fontSize: 22, lineHeight: 28 },
   description: { fontSize: 15, color: '#e2e9df', marginTop: 9, lineHeight: 22 },
   schedule: { fontSize: 14, color: '#d6c8ad', marginTop: 8, lineHeight: 21 },

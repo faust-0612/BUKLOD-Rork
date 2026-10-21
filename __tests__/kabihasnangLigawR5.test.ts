@@ -14,6 +14,7 @@ import {
   KL_UNRESOLVED_NAME,
 } from '../src/lib/kabihasnang-ligaw/catalog';
 import { klCopy } from '../src/lib/kabihasnang-ligaw/copy';
+import { KL_DICTIONARY } from '../src/lib/kabihasnang-ligaw/dictionary';
 import {
   applyCompletion,
   isManilaSix,
@@ -460,6 +461,15 @@ describe('Kabihasnang Ligaw R5 gates', () => {
     expect(canonicalSql).toContain('pg_advisory_xact_lock');
     expect(canonicalSql).not.toContain('bayanihan_ledger');
     expect(read('src/components/kabihasnang-ligaw/KlReaderScreen.tsx')).not.toContain('May mga lugar sa daigdig na hindi makikita');
+    expect(klCopy.cardTitle).toBe('Ang Gabi ng Pag-ahon');
+    expect(klCopy.cardLine).toBe('Sa Lunawen, may tinig na hindi dapat marinig.');
+    expect(klCopy.author).toBe('Likha ni Faustino Jr. M. Gabut');
+    expect(klCopy.hymnTitle).toBe('Himig ng Pag-ahon');
+    expect(read('src/components/KabihasnangLigawWallCard.tsx')).toContain('klCopy.cardLine');
+    expect(read('src/components/KabihasnangLigawWallCard.tsx')).toContain('klCopy.cardTitle');
+    expect(KL_DICTIONARY.map((entry) => entry.name)).toEqual(['Lunawen', 'Dumalir', 'Sanghira', 'Marukha', 'Nalimor']);
+    expect(read('src/lib/kabihasnang-ligaw/dictionary.ts')).not.toContain('Ikapitong Ani');
+    expect(read('src/lib/kabihasnang-ligaw/dictionary.ts')).not.toContain('Ulnarik');
     const exported = JSON.parse(read('docs/kabihasnang-ligaw-r5-media-storyboard-manifest.json'));
     expect(exported).toEqual(manifest);
   });
