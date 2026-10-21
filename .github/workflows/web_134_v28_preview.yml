@@ -30,13 +30,13 @@ jobs:
         run: |
           set -euo pipefail
           test -n "${EXPO_TOKEN:-}"
-          npx --yes eas-cli@16.28.0 whoami --non-interactive >/dev/null
+          npx --yes eas-cli@25.3.0 whoami --non-interactive >/dev/null
           echo 'Expo authentication ready'
       - name: Load production public environment
         run: |
           set -euo pipefail
           rm -f .env.local
-          npx --yes eas-cli@16.28.0 env:pull --environment production --path .env.local --non-interactive
+          npx --yes eas-cli@25.3.0 env:pull --environment production --path .env.local --non-interactive
           test -s .env.local
           set -a
           . ./.env.local
@@ -67,7 +67,7 @@ jobs:
       - name: Deploy preview only
         run: |
           set -euo pipefail
-          npx --yes eas-cli@16.28.0 deploy --non-interactive --environment production --export-dir dist --json > deploy-raw.json
+          npx --yes eas-cli@25.3.0 deploy --non-interactive --environment production --export-dir dist --json > deploy-raw.json
           python3 scripts/verify-web-134-static.py preview-url deploy-raw.json
           rm -f deploy-raw.json
       - name: Verify preview file and unchanged live alias
