@@ -55,13 +55,13 @@ report["releases"] = [{"id": r["id"], "tag": r["tag_name"], "assets": [{"name": 
 report["tags"] = gh("git/matching-refs/tags")
 secrets = gh("actions/secrets?per_page=100")
 report["github_credential_names"] = [s["name"] for s in secrets.get("secrets", [])] if "secrets" in secrets else secrets
-query = """query($id:String!){app{byId(appId:$id){id name ownerAccount{name} environmentVariables(environment:production){name visibility type createdAt updatedAt} workerDeploymentAliases(first:50){edges{node{aliasName url workerDeployment{id deploymentIdentifier createdAt initiatingActor{__typename ... on UserActor{username}}}}}}}}"""
-report["expo_identity_and_env_names"] = gql(query, {"id":APP})
+query = """query($appId:String!,$environment:EnvironmentVariableEnvironment){app{byId(appId:$appId){id environmentVariables(environment:$environment){name visibility type environments createdAt updatedAt}}}}"""
+report["expo_identity_and_env_names"] = gql(query, {"appId":APP,"environment":"production"})
 meta = report["expo_identity_and_env_names"].get("data",{}).get("app",{}).get("byId",{})
 public_names = [v["name"] for v in meta.get("environmentVariables",[]) if v["visibility"] == "PUBLIC" and v["type"] == "STRING" and v["name"].startswith("EXPO_PUBLIC_")]
 if public_names:
-    q = """query($id:String!,$names:[String!]){app{byId(appId:$id){environmentVariables(environment:production,filterNames:$names){name value}}}}"""
-    values = gql(q, {"id":APP,"names":public_names})
+    q = """query($id:String!,$names:[String!],$environment:EnvironmentVariableEnvironment){app{byId(appId:$id){environmentVariables(environment:$environment,filterNames:$names){name value}}}}"""
+    values = gql(q, {"id":APP,"names":public_names,"environment":"production"})
     variables = values.get("data",{}).get("app",{}).get("byId",{}).get("environmentVariables",[])
     report["current_public_env_fingerprints"] = [{"name":v["name"],"sha256":hashlib.sha256(v["value"].encode()).hexdigest() if isinstance(v.get("value"),str) else None} for v in variables]
 report["env_caveat"] = "Current variable metadata/fingerprints only; not a historical October 3 environment snapshot. Secret and sensitive values were not requested."
