@@ -310,18 +310,44 @@ export function buildCatalogEpisodes(): CatalogEpisode[] {
   return [panimula, chapterOne, ...outlines];
 }
 
+/** Original cloud-generated stills. Not publication-cleared: approved stays false. */
+const PROVISIONAL_SCENE_ART: Record<string, string> = {
+  's1-e01-shot-01': 'assets/kabihasnang-ligaw/kl-e01-shot-01.jpg',
+  's1-e01-shot-02': 'assets/kabihasnang-ligaw/kl-e01-shot-02.jpg',
+  's1-e01-shot-03': 'assets/kabihasnang-ligaw/kl-e01-shot-03.jpg',
+  's1-e01-shot-04': 'assets/kabihasnang-ligaw/kl-e01-shot-04.jpg',
+};
+
 export function buildAssetGate(): AssetRow[] {
-  const storyboardAssets: AssetRow[] = buildStoryboard().map((row) => ({
-    id: `asset-${row.sceneId}`,
-    kind: 'illustration',
-    episodeId: row.episodeId,
-    sceneId: row.sceneId,
-    path: null,
-    classification: 'MISSING',
-    required: true,
-    approved: false,
-    reason: 'No scene-accurate illustration binary is in the repository. Owner approval is pending.',
-  }));
+  const storyboardAssets: AssetRow[] = buildStoryboard().map((row) => {
+    const generated = row.sceneId ? PROVISIONAL_SCENE_ART[row.sceneId] : undefined;
+    if (generated) {
+      return {
+        id: `asset-${row.sceneId}`,
+        kind: 'illustration' as const,
+        episodeId: row.episodeId,
+        sceneId: row.sceneId,
+        path: generated,
+        classification: 'PROVISIONAL' as const,
+        required: true,
+        approved: false,
+        reason: 'Original scene still generated in cloud. Not owner-approved. Publication stays blocked while music, ambient audio, and the closing missing-shadow still are absent.',
+      };
+    }
+    return {
+      id: `asset-${row.sceneId}`,
+      kind: 'illustration' as const,
+      episodeId: row.episodeId,
+      sceneId: row.sceneId,
+      path: null,
+      classification: 'MISSING' as const,
+      required: true,
+      approved: false,
+      reason: row.sceneId === 's1-e01-shot-05'
+        ? 'Closing reveal still is missing. Generated attempts did not show Phan’s ground shadow beside a child who casts none.'
+        : 'No scene-accurate illustration binary is in the repository. Owner approval is pending.',
+    };
+  });
 
   const repoAssets: AssetRow[] = [
     {

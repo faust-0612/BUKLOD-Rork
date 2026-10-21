@@ -1455,44 +1455,44 @@
       "kind": "illustration",
       "episodeId": "11111111-1111-4111-8111-000000000001",
       "sceneId": "s1-e01-shot-01",
-      "path": null,
-      "classification": "MISSING",
+      "path": "assets/kabihasnang-ligaw/kl-e01-shot-01.jpg",
+      "classification": "PROVISIONAL",
       "required": true,
       "approved": false,
-      "reason": "No scene-accurate illustration binary is in the repository. Owner approval is pending."
+      "reason": "Original scene still generated in cloud. Not owner-approved. Publication stays blocked while music, ambient audio, and the closing missing-shadow still are absent."
     },
     {
       "id": "asset-s1-e01-shot-02",
       "kind": "illustration",
       "episodeId": "11111111-1111-4111-8111-000000000001",
       "sceneId": "s1-e01-shot-02",
-      "path": null,
-      "classification": "MISSING",
+      "path": "assets/kabihasnang-ligaw/kl-e01-shot-02.jpg",
+      "classification": "PROVISIONAL",
       "required": true,
       "approved": false,
-      "reason": "No scene-accurate illustration binary is in the repository. Owner approval is pending."
+      "reason": "Original scene still generated in cloud. Not owner-approved. Publication stays blocked while music, ambient audio, and the closing missing-shadow still are absent."
     },
     {
       "id": "asset-s1-e01-shot-03",
       "kind": "illustration",
       "episodeId": "11111111-1111-4111-8111-000000000001",
       "sceneId": "s1-e01-shot-03",
-      "path": null,
-      "classification": "MISSING",
+      "path": "assets/kabihasnang-ligaw/kl-e01-shot-03.jpg",
+      "classification": "PROVISIONAL",
       "required": true,
       "approved": false,
-      "reason": "No scene-accurate illustration binary is in the repository. Owner approval is pending."
+      "reason": "Original scene still generated in cloud. Not owner-approved. Publication stays blocked while music, ambient audio, and the closing missing-shadow still are absent."
     },
     {
       "id": "asset-s1-e01-shot-04",
       "kind": "illustration",
       "episodeId": "11111111-1111-4111-8111-000000000001",
       "sceneId": "s1-e01-shot-04",
-      "path": null,
-      "classification": "MISSING",
+      "path": "assets/kabihasnang-ligaw/kl-e01-shot-04.jpg",
+      "classification": "PROVISIONAL",
       "required": true,
       "approved": false,
-      "reason": "No scene-accurate illustration binary is in the repository. Owner approval is pending."
+      "reason": "Original scene still generated in cloud. Not owner-approved. Publication stays blocked while music, ambient audio, and the closing missing-shadow still are absent."
     },
     {
       "id": "asset-s1-e01-shot-05",
@@ -1503,7 +1503,7 @@
       "classification": "MISSING",
       "required": true,
       "approved": false,
-      "reason": "No scene-accurate illustration binary is in the repository. Owner approval is pending."
+      "reason": "Closing reveal still is missing. Generated attempts did not show Phan’s ground shadow beside a child who casts none."
     },
     {
       "id": "asset-s1-e02-outline",

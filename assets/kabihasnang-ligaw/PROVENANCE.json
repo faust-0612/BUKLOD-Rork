@@ -1,0 +1,36 @@
+{
+  "generator": "authorized cloud image generation",
+  "license": "original work produced for BUKLOD Kabihasnang Ligaw; not stock; not publication-cleared",
+  "approved": false,
+  "scenes": [
+    {
+      "sceneId": "s1-e01-shot-01",
+      "path": "assets/kabihasnang-ligaw/kl-e01-shot-01.jpg",
+      "sha256": "b6843157720cb28630fd837813d5b683cf7f9d2c025690fe31794992e0b8808e",
+      "constraints": "Storehouse, tied stalks, grain jar, hairline floor crack. No root, child, rain, or father."
+    },
+    {
+      "sceneId": "s1-e01-shot-02",
+      "path": "assets/kabihasnang-ligaw/kl-e01-shot-02.jpg",
+      "sha256": "90345b9d2603b24ef3137d176ccfe22d328ea842df3a6c25a616dee4dc35d7fa",
+      "constraints": "Mother, Tali, Phan, grey root with pale-green veins. No visible father, no rain, no fissure child."
+    },
+    {
+      "sceneId": "s1-e01-shot-03",
+      "path": "assets/kabihasnang-ligaw/kl-e01-shot-03.jpg",
+      "sha256": "6c0435c6a7a04a6a92497a4a9e862d397bb07ba7f590c9487f44bbffdb7b7643",
+      "constraints": "Ordinary child at the fissure edge, Phan lowering a knotted rope. No missing-shadow hint."
+    },
+    {
+      "sceneId": "s1-e01-shot-04",
+      "path": "assets/kabihasnang-ligaw/kl-e01-shot-04.jpg",
+      "sha256": "a34f8b8f2a4c80d0e6fb8d56de60a723bfedfcf4f40f8ff35c0d5454018594a5",
+      "constraints": "Phan hauling the child, root at the ankle. Father is not pictured."
+    }
+  ],
+  "blocked": [
+    "s1-e01-shot-05",
+    "asset-music",
+    "asset-ambient"
+  ]
+}
