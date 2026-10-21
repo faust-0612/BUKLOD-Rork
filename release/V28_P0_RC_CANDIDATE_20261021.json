@@ -92,11 +92,11 @@
     "reason": "No original embedded-source commit, map or build manifest; matching assets/repeatable placeholder exports are partial evidence."
   },
   "remaining_gates": {
-    "physical_android": "NOT_EXECUTED",
-    "photos": "SEPARATE_MEASURED_INVESTIGATION_PENDING",
-    "nonproduction_BSOC_referral_receipt": "NOT_EXECUTED_NO_DESIGNATED_ENDPOINT_TEST_SESSION",
-    "production_environment_candidate_export_verification": "NOT_EXECUTED",
-    "immutable_RC": "NOT_FROZEN"
+    "physical_android": "BLOCKED_OWNER_CONFIRMED_NO_RUNTIME_1_3_4_ANDROID_HARNESS",
+    "photos": "BLOCKED_NO_ANDROID_MEASUREMENTS_SEPARATE_INVESTIGATION",
+    "nonproduction_BSOC_referral_receipt": "BLOCKED_OWNER_CONFIRMED_NO_DESIGNATED_MAIN_BACKEND_OR_TEST_SESSION",
+    "production_environment_candidate_export_verification": "BLOCKED_NO_VERIFIED_PRODUCTION_INPUT_SOURCE",
+    "immutable_RC": "BLOCKED_MANDATORY_GATES_OPEN_NOT_FROZEN"
   },
   "retained_expo_history": {
     "channel": "production",
@@ -112,7 +112,8 @@
     "release/V28_APK_PROVENANCE_20261021.json": "d7411859b49a72eee23f7d6e5d95797d99444882fa3bd068c269b324b94ff14e",
     "release/V28_ANDROID_ACCEPTANCE_20261021.md": "665127d8bdfdb73911079a351aeb9b955b7a376bf2d78d3e95de05caf8f9c5c2",
     "scripts/export-v28-reproducible.cjs": "dbdd6c1971551308a2a66b2fb0881306c0d556c798aa8cc942f83152d08d6799",
-    "__tests__/router.smoke.test.tsx": "d2c9fc7a37667c307d32672a75259aaba1113be1981bf3c53ecbac3396ca9629"
+    "__tests__/router.smoke.test.tsx": "d2c9fc7a37667c307d32672a75259aaba1113be1981bf3c53ecbac3396ca9629",
+    "release/V28_CLOUD_GATE_DISPOSITION_20261021.md": "1b0cabf5721523d27c5e63df4ec3a5f290a89977b948f31c1257a3e955b79250"
   },
   "execution_log_sha256": {
     "deps-20261021.log": "4b85ea79b9a00c4ad54fc0384417e65812b28cc656090aa723aacf9a953e5af1",
@@ -132,5 +133,48 @@
     "production_ota": false,
     "database_mutation": false,
     "media_repair": false
+  },
+  "continuation_verification": {
+    "parent_dev_commit": "a28c4c6e24a7cc6bf80b7fca722fa98b36e1f76c",
+    "retained_test_export_evidence_commit": "bfb3dea41514672feb903a669dbe99780b96d050",
+    "fresh_test_or_export_reruns": false,
+    "cloud_executor_available": true,
+    "owner_windows_pc_accessed": false,
+    "relevant_injected_environment_variables": 0,
+    "workspace_env_sources": "Only .env.example; not production authority",
+    "repository_env_sources": [
+      ".env.example",
+      ".env.production.example",
+      ".env.staging.example"
+    ],
+    "eas_auth_state_present": false,
+    "eas_cli_available": false,
+    "verified_production_input_source_available": false,
+    "local_input_tool_files_verified": [
+      {
+        "path": "package-lock.json",
+        "sha": "6a4eb5ba4698cc169cec0fd26d0d5c70e5567e74"
+      },
+      {
+        "path": "app.config.js",
+        "sha": "e1dae6d4f54f40c1bf46375a359335c2562e41ec"
+      },
+      {
+        "path": "eas.json",
+        "sha": "1d782a39147dd0930c0b47ae7915cfcf075f9a03"
+      },
+      {
+        "path": "scripts/export-v28-reproducible.cjs",
+        "sha": "cd93c98211e44a2ec03db305b65701a26423b7ac"
+      }
+    ],
+    "owner_confirmed_missing": [
+      "designated non-production Main backend",
+      "authenticated non-production test session",
+      "physical runtime 1.3.4 Android harness"
+    ],
+    "disposition_evidence": "release/V28_CLOUD_GATE_DISPOSITION_20261021.md",
+    "original_cloud_audit_preserved": "release/V28_CLOUD_CONTINUATION_AUDIT_20261021.md",
+    "test_evidence_note": "Existing fresh_verification object records the prior run; all those results are retained, not rerun in this continuation."
   }
 }
