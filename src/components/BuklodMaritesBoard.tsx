@@ -63,6 +63,7 @@ import {
   loadAllMaritesStories,
   loadMaritesStories,
   mergeMaritesStories,
+  type MaritesLoadResult,
   MARITES_MAX_CHARS,
   MARITES_MAX_PHOTOS,
   MARITES_QUICK_EMOJI,
@@ -77,6 +78,9 @@ import {
   parseCommunityMaritesPostId,
   type MaritesStory,
 } from '@/lib/buklodMaritesBoard';
+import {
+  resolveMaritesVisibleRows,
+} from '@/lib/buklodMaritesFeedPages';
 import {
   resolvePersonDisplayName,
 } from '@/lib/buklodPersonDisplay';
@@ -117,7 +121,6 @@ const MARITES_COMPACT_CARD_WIDTH = 124;
 const MARITES_COMPACT_CARD_HEIGHT = 168;
 const MARITES_COMPACT_FOOTER_HEIGHT = 32;
 const MARITES_MEMORY_FRESH_MS = 20_000;
-const MARITES_REFRESH_TIMEOUT_MS = 8_000;
 
 type MaritesMemoryEntry = {
   rows: MaritesStory[];
@@ -125,34 +128,13 @@ type MaritesMemoryEntry = {
 };
 
 const maritesMemory = new Map<string, MaritesMemoryEntry>();
-const maritesRefreshes = new Map<string, Promise<MaritesStory[]>>();
+const maritesRefreshes = new Map<string, Promise<MaritesLoadResult>>();
 
 function maritesMemoryKey(
   locationScopeId: string | null | undefined,
   userId: string | null | undefined
 ) {
   return `${locationScopeId || 'public'}:${userId || 'anonymous'}`;
-}
-
-async function withMaritesRefreshTimeout(
-  promise: Promise<MaritesStory[]>
-) {
-  let timeoutId: ReturnType<typeof setTimeout> | null = null;
-
-  try {
-    return await Promise.race([
-      promise,
-      new Promise<MaritesStory[]>((_, reject) => {
-        timeoutId = setTimeout(() => {
-          reject(new Error('Marites shared refresh timed out.'));
-        }, MARITES_REFRESH_TIMEOUT_MS);
-      }),
-    ]);
-  } finally {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-  }
 }
 
 function storyEditPhotos(story: MaritesStory): CommunityEditPhoto[] {
@@ -944,29 +926,33 @@ export default function BuklodMaritesBoard({
     }
 
     try {
-      const rows = await refreshPromise;
+      const result = await refreshPromise;
 
       if (generation !== loadGenerationRef.current) {
         return;
       }
 
       const visibleRows = filterMaritesStoriesForViewer(
-        rows,
+        result.stories,
         userId
       );
 
       setStories((current) => {
-        const next =
-          visibleRows.length > 0
-            ? visibleRows
-            : current;
+        const resolved = resolveMaritesVisibleRows({
+          current,
+          incoming: visibleRows,
+          refreshFailed: result.refreshFailed,
+        });
+        const previous = maritesMemory.get(cacheKey);
 
         maritesMemory.set(cacheKey, {
-          rows: next,
-          remoteUpdatedAt: Date.now(),
+          rows: resolved.rows,
+          remoteUpdatedAt: resolved.markFresh
+            ? Date.now()
+            : (previous?.remoteUpdatedAt ?? 0),
         });
 
-        return next;
+        return resolved.rows;
       });
     } catch (remoteError) {
       /* Keep warm/local stories visible when refresh is unavailable. */

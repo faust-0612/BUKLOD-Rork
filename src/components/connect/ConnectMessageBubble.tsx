@@ -3,9 +3,11 @@ import React, {
   useRef,
 } from 'react';
 import {
+  ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import {
@@ -36,6 +38,23 @@ import {
 import {
   BUKLOD_LONG_PRESS_MS,
 } from '@/lib/buklodTouch';
+import {
+  connectCollageTiles,
+  connectSinglePhotoFrame,
+  visibleReaderAvatars,
+} from '@/lib/connectChatWindow';
+
+export type ConnectPhotoSlot = {
+  key: string;
+  uri: string | null;
+  failed?: boolean;
+};
+
+export type ConnectSeenReader = {
+  userId: string;
+  name: string;
+  avatarUrl?: string | null;
+};
 
 type AvatarReaction = {
   emoji: string;
@@ -55,6 +74,12 @@ type Props = {
   sharedPostSlot?: React.ReactNode;
   photoUrl?: string | null;
   photoUrls?: string[];
+  photoSlots?: ConnectPhotoSlot[];
+  onRetryPhoto?: (index: number) => void;
+  seenReaders?: ConnectSeenReader[];
+  onPressSeenReaders?: () => void;
+  compact?: boolean;
+  showTime?: boolean;
   isGif?: boolean;
   fileName?: string | null;
   fileSizeLabel?: string | null;
@@ -85,6 +110,9 @@ function createStyles(theme: ConnectThemeRoles) {
       marginBottom: 20,
       position: 'relative',
       overflow: 'visible',
+    },
+    wrapCompact: {
+      marginBottom: 4,
     },
     own: {
       alignItems: 'flex-end',
@@ -190,7 +218,6 @@ function createStyles(theme: ConnectThemeRoles) {
       color: theme.deliveryFailed,
     },
     inlineMediaPress: {
-      width: 238,
       maxWidth: '100%',
       marginTop: 5,
       borderRadius: 15,
@@ -200,10 +227,23 @@ function createStyles(theme: ConnectThemeRoles) {
     },
     inlineMedia: {
       width: '100%',
-      height: 220,
+      height: '100%',
+    },
+    mediaFallback: {
+      width: '100%',
+      height: '100%',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      paddingHorizontal: 8,
+    },
+    mediaFallbackText: {
+      color: theme.white,
+      fontSize: 12,
+      fontWeight: '800',
+      textAlign: 'center',
     },
     collage: {
-      width: 238,
       maxWidth: '100%',
       marginTop: 5,
       borderRadius: 15,
@@ -212,6 +252,39 @@ function createStyles(theme: ConnectThemeRoles) {
       flexWrap: 'wrap',
       gap: 2,
       backgroundColor: 'rgba(0,0,0,0.18)',
+    },
+    seenRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 4,
+      minHeight: 28,
+    },
+    seenRowOwn: {
+      alignSelf: 'flex-end',
+    },
+    seenRowOther: {
+      alignSelf: 'flex-start',
+    },
+    seenAvatar: {
+      marginRight: -6,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: theme.canvas,
+    },
+    seenExtra: {
+      marginLeft: 10,
+      minWidth: 28,
+      height: 22,
+      borderRadius: 11,
+      paddingHorizontal: 6,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.surface,
+    },
+    seenExtraText: {
+      color: theme.textPrimary,
+      fontSize: 11,
+      fontWeight: '800',
     },
     collageTile: {
       overflow: 'hidden',
@@ -355,6 +428,12 @@ export function ConnectMessageBubble({
   sharedPostSlot,
   photoUrl,
   photoUrls,
+  photoSlots,
+  onRetryPhoto,
+  seenReaders,
+  onPressSeenReaders,
+  compact = false,
+  showTime = true,
   isGif,
   fileName,
   fileSizeLabel,
@@ -383,6 +462,24 @@ export function ConnectMessageBubble({
       : photoUrl
       ? [photoUrl]
       : [];
+  const slots =
+    photoSlots ??
+    albumUrls.map((uri, index) => ({
+      key: `${uri}-${index}`,
+      uri,
+      failed: false,
+    }));
+  const { width: windowWidth } = useWindowDimensions();
+  const chatWidth = Math.max(
+    240,
+    Math.min(windowWidth, 840) - (showSenderAvatar ? 56 : 28)
+  );
+  const frame = connectSinglePhotoFrame(chatWidth);
+  const collageTiles = connectCollageTiles(
+    Math.max(slots.length, 2),
+    frame.width
+  );
+  const seen = visibleReaderAvatars(seenReaders ?? []);
 
   const bubbleRef =
     useRef<View>(null);
@@ -406,24 +503,79 @@ export function ConnectMessageBubble({
       );
     };
 
-  function collageTileStyle(count: number, index: number) {
-    if (count === 2) {
-      return { width: 118, height: 176 };
-    }
+  function renderSlot(
+    slot: ConnectPhotoSlot,
+    index: number,
+    width: number,
+    height: number
+  ) {
+    const showMore =
+      slots.length > 4 && index === 3;
+    const extraCount = slots.length - 4;
 
-    if (count === 3) {
-      return index === 0
-        ? { width: 238, height: 148 }
-        : { width: 118, height: 110 };
-    }
-
-    return { width: 118, height: 118 };
+    return (
+      <Pressable
+        key={slot.key}
+        accessibilityLabel={
+          slot.failed
+            ? 'Photo failed to load. Retry.'
+            : showMore
+              ? `Open photos, ${extraCount} more`
+              : slot.uri
+                ? `Open photo ${index + 1}`
+                : 'Photo is loading'
+        }
+        onPress={() => {
+          if (slot.failed) {
+            onRetryPhoto?.(index);
+            return;
+          }
+          if (slot.uri) {
+            onOpenPhoto?.(index);
+          }
+        }}
+        onLongPress={handleLongPress}
+        delayLongPress={BUKLOD_LONG_PRESS_MS}
+        style={[
+          styles.collageTile,
+          { width, height },
+        ]}
+      >
+        {slot.uri && !slot.failed ? (
+          <ExpoImage
+            source={{ uri: slot.uri }}
+            style={styles.collageImage}
+            contentFit="cover"
+            transition={120}
+            onError={() => onRetryPhoto?.(index)}
+          />
+        ) : (
+          <View style={styles.mediaFallback}>
+            {slot.failed ? (
+              <Text style={styles.mediaFallbackText}>
+                Tap to retry
+              </Text>
+            ) : (
+              <ActivityIndicator color="#ffffff" />
+            )}
+          </View>
+        )}
+        {showMore && (
+          <View style={styles.collageMore} pointerEvents="none">
+            <Text style={styles.collageMoreText}>
+              +{extraCount}
+            </Text>
+          </View>
+        )}
+      </Pressable>
+    );
   }
 
   return (
     <View
       style={[
         styles.wrap,
+        compact && styles.wrapCompact,
         own ? styles.own : styles.other,
       ]}
     >
@@ -464,6 +616,12 @@ export function ConnectMessageBubble({
             ]}
             onLongPress={handleLongPress}
             delayLongPress={BUKLOD_LONG_PRESS_MS}
+            accessibilityLabel={[
+              senderName,
+              timeLabel,
+              bodyText,
+              deliveryLabel,
+            ].filter(Boolean).join('. ')}
             accessibilityHint="Long press for reactions and message actions."
           >
         {!!senderLabel && (
@@ -542,23 +700,53 @@ export function ConnectMessageBubble({
           </>
         )}
 
-        {albumUrls.length === 1 && (
+        {slots.length === 1 && (
           <Pressable
             accessibilityLabel={
-              isGif ? 'Open animated GIF' : 'Open photo'
+              slots[0].failed
+                ? 'Photo failed to load. Retry.'
+                : isGif
+                  ? 'Open animated GIF'
+                  : slots[0].uri
+                    ? 'Open photo'
+                    : 'Photo is loading'
             }
-            onPress={() => onOpenPhoto?.(0)}
+            onPress={() => {
+              if (slots[0].failed) {
+                onRetryPhoto?.(0);
+                return;
+              }
+              if (slots[0].uri) {
+                onOpenPhoto?.(0);
+              }
+            }}
             onLongPress={handleLongPress}
             delayLongPress={BUKLOD_LONG_PRESS_MS}
-            style={styles.inlineMediaPress}
+            style={[
+              styles.inlineMediaPress,
+              { width: frame.width, height: frame.height },
+            ]}
           >
-            <ExpoImage
-              source={{ uri: albumUrls[0] }}
-              style={styles.inlineMedia}
-              contentFit="cover"
-              transition={120}
-            />
-            {isGif && (
+            {slots[0].uri && !slots[0].failed ? (
+              <ExpoImage
+                source={{ uri: slots[0].uri }}
+                style={styles.inlineMedia}
+                contentFit="cover"
+                transition={120}
+                onError={() => onRetryPhoto?.(0)}
+              />
+            ) : (
+              <View style={styles.mediaFallback}>
+                {slots[0].failed ? (
+                  <Text style={styles.mediaFallbackText}>
+                    Tap to retry
+                  </Text>
+                ) : (
+                  <ActivityIndicator color="#ffffff" />
+                )}
+              </View>
+            )}
+            {isGif && slots[0].uri && !slots[0].failed && (
               <View style={styles.gifBadge}>
                 <Text style={styles.gifBadgeText}>GIF</Text>
               </View>
@@ -566,45 +754,11 @@ export function ConnectMessageBubble({
           </Pressable>
         )}
 
-        {albumUrls.length > 1 && (
-          <View style={styles.collage}>
-            {albumUrls.slice(0, 4).map((uri, index) => {
-              const visibleCount = Math.min(4, albumUrls.length);
-              const extraCount = albumUrls.length - 4;
-              const showMore =
-                extraCount > 0 && index === visibleCount - 1;
-
-              return (
-                <Pressable
-                  key={`${uri}-${index}`}
-                  accessibilityLabel={
-                    showMore
-                      ? `Open photos, ${extraCount} more`
-                      : `Open photo ${index + 1}`
-                  }
-                  onPress={() => onOpenPhoto?.(index)}
-                  onLongPress={handleLongPress}
-                  delayLongPress={BUKLOD_LONG_PRESS_MS}
-                  style={[
-                    styles.collageTile,
-                    collageTileStyle(visibleCount, index),
-                  ]}
-                >
-                  <ExpoImage
-                    source={{ uri }}
-                    style={styles.collageImage}
-                    contentFit="cover"
-                    transition={120}
-                  />
-                  {showMore && (
-                    <View style={styles.collageMore} pointerEvents="none">
-                      <Text style={styles.collageMoreText}>
-                        +{extraCount}
-                      </Text>
-                    </View>
-                  )}
-                </Pressable>
-              );
+        {slots.length > 1 && (
+          <View style={[styles.collage, { width: frame.width }]}>
+            {slots.slice(0, 4).map((slot, index) => {
+              const tile = collageTiles[index] ?? collageTiles[0];
+              return renderSlot(slot, index, tile.width, tile.height);
             })}
           </View>
         )}
@@ -655,7 +809,9 @@ export function ConnectMessageBubble({
           </>
         )}
 
+        {(showTime || !!deliveryLabel) && (
         <View style={styles.timeRow}>
+          {showTime && (
           <Text
             style={[
               styles.time,
@@ -666,6 +822,7 @@ export function ConnectMessageBubble({
           >
             {timeLabel}
           </Text>
+          )}
           {!!deliveryLabel && (
             <Text
               style={[
@@ -678,6 +835,7 @@ export function ConnectMessageBubble({
             </Text>
           )}
         </View>
+        )}
       </Pressable>
 
           <ConnectReactionPicker
@@ -690,6 +848,42 @@ export function ConnectMessageBubble({
           />
         </View>
       </View>
+      {seen.shown.length > 0 && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={
+            seen.extra > 0
+              ? `Seen by ${seen.shown.length + seen.extra} people`
+              : `Seen by ${seen.shown.map(reader => reader.name).join(', ')}`
+          }
+          onPress={onPressSeenReaders}
+          style={[
+            styles.seenRow,
+            own ? styles.seenRowOwn : styles.seenRowOther,
+            showSenderAvatar &&
+              (own
+                ? styles.bubbleWithAvatarOwn
+                : styles.bubbleWithAvatar),
+          ]}
+        >
+          {seen.shown.map(reader => (
+            <View key={reader.userId} style={styles.seenAvatar}>
+              <ConnectTappableAvatar
+                userId={reader.userId}
+                name={reader.name}
+                uri={reader.avatarUrl}
+                size={22}
+                onPress={onPressSeenReaders}
+              />
+            </View>
+          ))}
+          {seen.extra > 0 && (
+            <View style={styles.seenExtra}>
+              <Text style={styles.seenExtraText}>+{seen.extra}</Text>
+            </View>
+          )}
+        </Pressable>
+      )}
     </View>
   );
 }
