@@ -4,16 +4,25 @@ import { Image } from 'expo-image';
 
 import { klCopy } from '@/lib/kabihasnang-ligaw/copy';
 
-const COVER = require('../../../assets/kabihasnang-ligaw/kl-r5-approved-cover.webp');
+const CHAPTER_STRIP = require('../../../assets/kabihasnang-ligaw/kl-r5-approved-cover.webp');
+const SERIES_POSTER = require('../../../assets/kabihasnang-ligaw/kl-s1-ang-lupang-hindi-namamatay.jpg');
 
 const CROP = {
   card: 16 / 7,
   hero: 3 / 1,
+  series: 1024 / 682,
+} as const;
+
+const FIT = {
+  card: 'cover',
+  hero: 'cover',
+  series: 'contain',
 } as const;
 
 const LABEL = {
   card: 'Cinematic fantasy concept landscape',
   hero: 'Orihinal na pantasyang pamayanan sa lambak',
+  series: 'KABIHASNANG LIGAW, SERYE 1, ANG LUPANG HINDI NAMAMATAY, NI FAUSTINO JR. M. GABUT',
 } as const;
 
 /** Owner-supplied card cover only. Not a scene-approval. */
@@ -49,18 +58,19 @@ export default function KlCoverImage({
   return (
     <Image
       key={`${variant}-${attempt}`}
-      source={COVER}
-      contentFit="cover"
+      source={variant === 'series' ? SERIES_POSTER : CHAPTER_STRIP}
+      contentFit={FIT[variant]}
       cachePolicy="memory-disk"
       accessibilityLabel={LABEL[variant]}
       onError={() => setFailed(true)}
-      style={[styles.image, { aspectRatio: CROP[variant] }]}
+      style={[styles.image, { aspectRatio: CROP[variant] }, variant === 'series' && styles.series]}
     />
   );
 }
 
 const styles = StyleSheet.create({
   image: { width: '100%' },
+  series: { backgroundColor: '#101a20' },
   frame: {
     width: '100%',
     alignItems: 'center',

@@ -30,7 +30,8 @@ Author credit stays `Likha ni Faustino Jr. M. Gabut`.
 ## Counts
 
 - Approved and scheduled episodes: 0
-- Card and reader hero image: `assets/kabihasnang-ligaw/kl-r5-approved-cover.webp` only. The other scene files stay `approved: false`.
+- Series cover on the Community Wall: `assets/kabihasnang-ligaw/kl-s1-ang-lupang-hindi-namamatay.jpg`, shown whole. Not a chapter approval.
+- Chapter strip and reader hero: `assets/kabihasnang-ligaw/kl-r5-approved-cover.webp`. The other scene files stay `approved: false`.
 - Panimula and Kabanata 1: manuscript text is in the repo; workflow status stays draft until art and server approval exist
 - Episodes 2–30: outline labels only. No episode-by-episode arc is in the repo, so no drafts were written
 - Jawo/Javvo: unresolved and unpublished

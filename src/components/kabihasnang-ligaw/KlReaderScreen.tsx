@@ -405,6 +405,7 @@ export default function KlReaderScreen() {
           <Pressable accessibilityRole="button" onPress={() => setSelectedId(null)} style={styles.secondary}>
             <Text style={styles.secondaryText}>{klCopy.back}</Text>
           </Pressable>
+          <KlCoverImage variant="card" lowBandwidth={lowBandwidth} />
           <Text style={styles.kicker}>{selected.kind === 'panimula' ? 'PANIMULA' : `KABANATA ${String(selected.episodeNumber).padStart(2, '0')}`}</Text>
           <Text style={[styles.chapter, compact && styles.titleCompact]}>{selected.titleMode === 'outline_label' ? selected.title : selected.title}</Text>
           {paragraphs.length > 0 ? (
