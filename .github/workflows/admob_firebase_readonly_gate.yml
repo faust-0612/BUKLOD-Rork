@@ -6,8 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       project_number:
-        description: Numeric project number from Firebase Project settings. Not a secret.
+        description: Numeric Firebase project number recorded from the owner console on 2026-10-21. Not a secret.
         required: true
+        default: "567448289999"
         type: string
 permissions:
   contents: read
