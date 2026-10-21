@@ -17,13 +17,27 @@ def gh(path):
     return get("https://api.github.com/repos/" + REPO + "/" + path, os.environ["GH_TOKEN"])
 def gql(query, variables=None):
     req = urllib.request.Request("https://api.expo.dev/graphql", data=json.dumps({"query": query, "variables": variables or {}}).encode(), headers={"Content-Type": "application/json", "User-Agent": "eas-cli", "Authorization": "Bearer " + os.environ["EXPO_TOKEN"]})
-    with urllib.request.urlopen(req, timeout=60) as r: return json.load(r)
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r: return json.load(r)
+    except urllib.error.HTTPError as e:
+        try:
+            parsed=json.load(e)
+            return {"http_error":e.code,"errors":[{"message":x.get("message","")} for x in parsed.get("errors",[])]}
+        except ValueError:
+            return {"http_error":e.code}
 runs = gh("actions/runs?created=2026-10-02..2026-10-04&per_page=100")
 summaries = []
 for run in runs.get("workflow_runs", []):
     rid = run["id"]
     arts = gh(f"actions/runs/{rid}/artifacts?per_page=100")
     summaries.append({"id": rid, "name": run["name"], "sha": run["head_sha"], "created_at": run["created_at"], "conclusion": run["conclusion"], "artifacts": [{"id": a["id"], "name": a["name"], "expired": a["expired"], "expires_at": a["expires_at"]} for a in arts.get("artifacts", [])]})
+log_checks=[]
+for run in runs.get("workflow_runs", []):
+    if "web" in run["name"].lower() or run["created_at"].startswith("2026-10-03"):
+        process=subprocess.run(["gh","run","view",str(run["id"]),"--repo",REPO,"--log"],capture_output=True,text=True,timeout=60)
+        text=process.stdout
+        log_checks.append({"run":run["id"],"available":process.returncode==0,"log_bytes":len(text.encode()),"sha256":hashlib.sha256(text.encode()).hexdigest() if text else None,"deployment_identifier_found":"zpvvpw9hif" in text,"live_bundle_filename_found":"6a93809e5c09eb7c7bd6b0635c410db2" in text,"mentions_export":"expo export" in text})
+report["historical_log_checks"]=log_checks
 report["github_oct2_4_runs"] = {"total_count": runs.get("total_count"), "runs": summaries}
 artifacts = []
 for page in range(1, 11):
@@ -41,12 +55,12 @@ report["releases"] = [{"id": r["id"], "tag": r["tag_name"], "assets": [{"name": 
 report["tags"] = gh("git/matching-refs/tags")
 secrets = gh("actions/secrets?per_page=100")
 report["github_credential_names"] = [s["name"] for s in secrets.get("secrets", [])] if "secrets" in secrets else secrets
-query = """query($id:String!){app{byId(appId:$id){id name ownerAccount{name} environmentVariables(environment:PRODUCTION){name visibility type createdAt updatedAt} workerDeploymentAliases(first:50){edges{node{aliasName url workerDeployment{id deploymentIdentifier createdAt initiatingActor{__typename ... on UserActor{username}}}}}}}}"""
+query = """query($id:String!){app{byId(appId:$id){id name ownerAccount{name} environmentVariables(environment:production){name visibility type createdAt updatedAt} workerDeploymentAliases(first:50){edges{node{aliasName url workerDeployment{id deploymentIdentifier createdAt initiatingActor{__typename ... on UserActor{username}}}}}}}}"""
 report["expo_identity_and_env_names"] = gql(query, {"id":APP})
 meta = report["expo_identity_and_env_names"].get("data",{}).get("app",{}).get("byId",{})
 public_names = [v["name"] for v in meta.get("environmentVariables",[]) if v["visibility"] == "PUBLIC" and v["type"] == "STRING" and v["name"].startswith("EXPO_PUBLIC_")]
 if public_names:
-    q = """query($id:String!,$names:[String!]){app{byId(appId:$id){environmentVariables(environment:PRODUCTION,filterNames:$names){name value}}}}"""
+    q = """query($id:String!,$names:[String!]){app{byId(appId:$id){environmentVariables(environment:production,filterNames:$names){name value}}}}"""
     values = gql(q, {"id":APP,"names":public_names})
     variables = values.get("data",{}).get("app",{}).get("byId",{}).get("environmentVariables",[])
     report["current_public_env_fingerprints"] = [{"name":v["name"],"sha256":hashlib.sha256(v["value"].encode()).hexdigest() if isinstance(v.get("value"),str) else None} for v in variables]
