@@ -465,6 +465,13 @@ describe('Kabihasnang Ligaw R5 gates', () => {
     expect(klCopy.cardLine).toBe('Sa Lunawen, may tinig na hindi dapat marinig.');
     expect(klCopy.author).toBe('Likha ni Faustino Jr. M. Gabut');
     expect(klCopy.hymnTitle).toBe('Himig ng Pag-ahon');
+    const cover = read('src/components/kabihasnang-ligaw/KlCoverImage.tsx');
+    expect(cover).toContain('kl-r5-approved-cover.webp');
+    expect(cover).toContain('16 / 7');
+    expect(cover).toContain('3 / 1');
+    expect(crypto.createHash('sha256').update(fs.readFileSync(path.join(root, 'assets/kabihasnang-ligaw/kl-r5-approved-cover.webp'))).digest('hex')).toBe('24dae272bb981527b71f004f6f4919c4b770617b6210a8b9b499b82176f9aa69');
+    expect(read('src/components/KabihasnangLigawWallCard.tsx')).toContain('variant="card"');
+    expect(read('src/components/kabihasnang-ligaw/KlReaderScreen.tsx')).toContain('variant="hero"');
     expect(read('src/components/KabihasnangLigawWallCard.tsx')).toContain('klCopy.cardLine');
     expect(read('src/components/KabihasnangLigawWallCard.tsx')).toContain('klCopy.cardTitle');
     expect(KL_DICTIONARY.map((entry) => entry.name)).toEqual(['Lunawen', 'Dumalir', 'Sanghira', 'Marukha', 'Nalimor']);

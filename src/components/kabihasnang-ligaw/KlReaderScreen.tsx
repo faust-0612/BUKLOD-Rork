@@ -16,6 +16,7 @@ import { Stack } from 'expo-router';
 
 import { useBuklodReduceMotion } from '@/components/HomeMotion';
 import KlAudioControls from '@/components/kabihasnang-ligaw/KlAudioControls';
+import KlCoverImage from '@/components/kabihasnang-ligaw/KlCoverImage';
 import KlSceneMotion from '@/components/kabihasnang-ligaw/KlSceneMotion';
 import {
   buildAssetGate,
@@ -267,6 +268,9 @@ export default function KlReaderScreen() {
       onScroll={(event: NativeSyntheticEvent<NativeScrollEvent>) => syncViewport(event.nativeEvent.contentOffset.y)}
     >
       <Stack.Screen options={{ title: 'Kabihasnang Ligaw' }} />
+      <View style={{ marginHorizontal: compact ? -16 : -24 }}>
+        <KlCoverImage variant="hero" lowBandwidth={lowBandwidth} />
+      </View>
       <Text style={styles.kicker}>{klCopy.libraryKicker}</Text>
       <Text style={[styles.title, compact && styles.titleCompact]}>{KL_SEASON_ONE_TITLE}</Text>
       <Text style={styles.by}>{KL_AUTHOR}</Text>
