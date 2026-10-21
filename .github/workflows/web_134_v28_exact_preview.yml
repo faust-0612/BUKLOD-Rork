@@ -94,8 +94,11 @@ jobs:
             exit 1
           fi
           git merge-base --is-ancestor "$BASELINE_SHA" "$source_sha"
-          if [ "$(git rev-parse HEAD^)" != "$source_sha" ]; then
-            echo "Refused: promotion commit must sit directly on the exported source commit."
+          git merge-base --is-ancestor "$source_sha" HEAD
+          unexpected="$(git diff --name-only "$source_sha" HEAD | grep -v -E '^(web-release/promote-deployment-id.txt|\.github/workflows/web_134_v28_exact_preview.yml)$' || true)"
+          if [ -n "$unexpected" ]; then
+            echo "Refused: promotion history changes more than the alias pipeline."
+            printf '%s\n' "$unexpected"
             exit 1
           fi
           echo "mode=promote" >> "$GITHUB_OUTPUT"
@@ -408,6 +411,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies for the Expo project config
+        run: npm ci --ignore-scripts
 
       - name: Re-verify the immutable preview before aliasing production
         shell: bash
