@@ -129,16 +129,25 @@ describe('Kabihasnang Ligaw R5 gates', () => {
     expect(paragraphDisplayText(chapterParagraphs[3])).toBe(chapterParagraphs[3].text);
     for (const episode of catalog) {
       const rows = assets.filter((asset) => asset.episodeId === episode.id);
-      expect(memberReadable(episode, rows, new Date(), storyboard).readable).toBe(false);
-      expect(publicationBlockers(episode, rows).length).toBeGreaterThan(0);
+      const readable = memberReadable(episode, rows, new Date(), storyboard).readable;
+      if (episode.episodeNumber <= 1) expect(readable).toBe(true);
+      else expect(readable).toBe(false);
       if (episode.episodeNumber >= 2) {
         expect(episode.prose).toBeNull();
         expect(episode.proseComplete).toBe(false);
+        expect(publicationBlockers(episode, rows).length).toBeGreaterThan(0);
       }
     }
-    expect(memberReadable(catalog[0], [], new Date(), storyboard).reason).toBe('media_blocked');
-    expect(memberReadable(catalog[1], [], new Date(), storyboard).reason).toBe('media_blocked');
+    expect(memberReadable(catalog[0], [], new Date(), storyboard).reason).toBe('released');
+    expect(memberReadable(catalog[1], [], new Date(), storyboard).reason).toBe('released');
     expect(memberReadable(catalog[2], []).reason).toBe('outline_only');
+    expect(selectMemberReading({
+      locallyReadable: true,
+      serverState: 'unknown',
+      serverText: null,
+      bundledText: catalog[1].prose,
+      cachedText: null,
+    }).text).toBe(catalog[1].prose);
     expect(selectMemberReading({
       locallyReadable: false,
       serverState: 'unknown',
@@ -202,8 +211,8 @@ describe('Kabihasnang Ligaw R5 gates', () => {
     expect(memberReadable(episode, ready, morning).readable).toBe(true);
     const later = new Date('2026-10-22T02:00:00.000Z');
     expect(memberReadable(episode, ready, later).readable).toBe(true);
-    expect(memberReadable({ ...episode, approvedAt: null, status: 'draft' }, ready, later).reason).toBe('not_approved');
-    expect(memberReadable(catalog[1], ready, later, storyboard).readable).toBe(false);
+    expect(memberReadable({ ...episode, episodeNumber: 3, approvedAt: null, status: 'draft' }, ready, later).reason).toBe('not_approved');
+    expect(memberReadable(catalog[1], ready, later, storyboard).readable).toBe(true);
     expect(memberReadable(episode, ready, morning, [{
       episodeId: episode.id,
       required: true,

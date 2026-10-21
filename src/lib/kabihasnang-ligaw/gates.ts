@@ -101,6 +101,14 @@ export function storyboardBlocksReading(
   return rows.some((row) => row.paragraphRange == null || row.approved !== true);
 }
 
+/** This release opens the two canonical texts. Optional audio and unapproved stills do not hide them. */
+export function canonicalMemberRelease(episode: CatalogEpisode): boolean {
+  if (episode.episodeNumber !== 0 && episode.episodeNumber !== 1) return false;
+  if (episode.seasonEmergencyStop || episode.seasonPaused || episode.paused || episode.status === 'paused') return false;
+  if (episode.status === 'outline_only' || episode.manuscriptStatus === 'outline_only') return false;
+  return episode.manuscriptStatus === 'approved_complete' && episode.proseComplete && Boolean(episode.prose?.trim());
+}
+
 export function memberReadable(
   episode: CatalogEpisode,
   assets: AssetRow[],
@@ -112,6 +120,9 @@ export function memberReadable(
   }
   if (episode.status === 'outline_only' || episode.manuscriptStatus === 'outline_only') {
     return { readable: false, reason: 'outline_only' };
+  }
+  if (canonicalMemberRelease(episode)) {
+    return { readable: true, reason: 'released' };
   }
   if (
     episode.manuscriptStatus !== 'approved_complete' ||

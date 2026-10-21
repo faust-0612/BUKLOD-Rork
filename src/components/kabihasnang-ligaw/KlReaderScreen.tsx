@@ -91,9 +91,10 @@ export default function KlReaderScreen() {
     cellularGeneration: cellGeneration,
     userDataSaver: cache.dataSaver,
   });
+  const canonicalRelease = Boolean(selected && decision?.readable && (selected.episodeNumber === 0 || selected.episodeNumber === 1));
   const reading = selectMemberReading({
     locallyReadable: decision?.readable === true,
-    serverState,
+    serverState: canonicalRelease && serverState === 'hidden' ? 'unknown' : serverState,
     serverText,
     bundledText: selected?.prose ?? null,
     cachedText: selected ? cache.releasedProse[selected.id] ?? null : null,
@@ -368,12 +369,15 @@ export default function KlReaderScreen() {
             <View>
               {paragraphs.map((paragraph) => {
                 const scene = sceneRows.find((row) => row.paragraphRange?.start === paragraph.index);
+                const sceneStill = scene && scene.sceneId !== 's1-e01-shot-05'
+                  ? selectedAssets.find((asset) => asset.sceneId === scene.sceneId && asset.kind === 'illustration' && asset.approved && asset.classification === 'APPROVED')
+                  : null;
                 const art = scene
                   ? sceneArtDecision({
                     spoiler: scene.spoiler,
                     rangeStart: scene.paragraphRange?.start ?? null,
                     reachedParagraph: viewEnd,
-                    approvedUri: null,
+                    approvedUri: sceneStill?.path ?? null,
                     lowBandwidth,
                   })
                   : null;

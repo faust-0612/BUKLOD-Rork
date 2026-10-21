@@ -78,6 +78,7 @@ function Channel({
 }
 
 export default function KlAudioControls(props: Props) {
+  if (props.musicStatus !== 'APPROVED' && props.ambientStatus !== 'APPROVED') return null;
   return (
     <View style={styles.wrap}>
       <Channel
