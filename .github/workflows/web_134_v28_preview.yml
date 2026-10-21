@@ -63,6 +63,7 @@ jobs:
           test "$EXPO_PUBLIC_SUPABASE_URL" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
           rm -rf dist
           npx expo export --platform web --output-dir dist
+          python3 scripts/stage-web-134-static.py dist
           python3 scripts/verify-web-134-static.py dist
       - name: Deploy preview only
         run: |

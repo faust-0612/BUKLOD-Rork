@@ -8,6 +8,11 @@ import urllib.request
 
 EXPECTED = b"google.com, pub-3448515158880100, DIRECT, f08c47fec0942fa0"
 LIVE = "https://buklod.expo.app/"
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+OLD_WEB_ICONS = {
+    "buklod-192.png": "96eb445f0326acc2c81a12dfc4b2057c6a3c814f45bc428251e1251d453a2c48",
+    "buklod-512.png": "9183800b0e63def848165f6732266e1ca00c696782b34b5c17ef5068a6ab030b",
+}
 
 
 def verify(dist: pathlib.Path) -> None:
@@ -25,6 +30,30 @@ def verify(dist: pathlib.Path) -> None:
             blob += path.read_bytes()
     if b"1.3.4" not in blob:
         raise SystemExit("exported web assets do not contain version 1.3.4")
+
+    token = hashlib.sha256((ROOT / "public" / "buklod-192.png").read_bytes()).hexdigest()[:12]
+    html = index.read_text(encoding="utf-8")
+    if f"/buklod-192.png?v={token}" not in html:
+        raise SystemExit("web icon link is not cache-busted to the canonical mark")
+    if 'href="/favicon.ico"' in html:
+        raise SystemExit("web icon still points at unversioned favicon.ico")
+
+    for name, old_hash in OLD_WEB_ICONS.items():
+        body = (dist / name).read_bytes()
+        source = (ROOT / "public" / name).read_bytes()
+        digest = hashlib.sha256(body).hexdigest()
+        if body != source or digest == old_hash:
+            raise SystemExit(f"{name} is not the canonical web icon sha256={digest}")
+
+    leaflet_js = (dist / "vendor" / "leaflet" / "leaflet.js").read_bytes()
+    leaflet_css = (dist / "vendor" / "leaflet" / "leaflet.css").read_bytes()
+    if leaflet_js.lstrip().startswith(b"<") or b"1.9.4" not in leaflet_js:
+        raise SystemExit("leaflet.js is missing or is the SPA HTML fallback")
+    if leaflet_css.lstrip().startswith(b"<") or b".leaflet-container" not in leaflet_css:
+        raise SystemExit("leaflet.css is missing or is the SPA HTML fallback")
+    if not (dist / "vendor" / "leaflet" / "images" / "marker-icon.png").is_file():
+        raise SystemExit("leaflet marker image is missing")
+
     print(
         "static-ok",
         hashlib.sha256(EXPECTED).hexdigest(),

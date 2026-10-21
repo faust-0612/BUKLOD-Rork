@@ -119,9 +119,13 @@ module.exports = ({ config }) => {
       bundler: 'metro',
       output: webOutput,
 
+      /*
+       * Browser and PWA icons follow the approved in-app mark.
+       * The native icon stays assets/release/app-icon.png.
+       */
       favicon: isClassroom
         ? './assets/classroom/favicon.png'
-        : './assets/release/app-icon.png',
+        : './assets/release/buklod-main-canonical.png',
     },
 
 
