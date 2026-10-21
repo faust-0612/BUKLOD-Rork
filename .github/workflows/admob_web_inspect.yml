@@ -38,13 +38,29 @@ jobs:
                       print("ERROR_HEADERS", dict(error.headers))
                       print("ERROR_BODY", repr(error.read(1500)))
                   continue
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Install config dependencies on cloud runner only
-        run: npm ci --ignore-scripts
-      - name: Inspect Expo hosting deployments without publishing
+      - name: Read authoritative Expo hosting aliases and deployment identities
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: npx eas-cli@latest deploy:list --json --non-interactive
+        shell: python
+        run: |
+          import os, json, urllib.request
+          query = """query InspectHosting($appId: String!) {
+            app { byId(appId: $appId) {
+              id
+              workerDeploymentAliases(first: 50) {
+                edges { node { id aliasName url workerDeployment { id deploymentIdentifier createdAt } } }
+              }
+              workerDeployments(first: 10) {
+                edges { node { id deploymentIdentifier createdAt } }
+              }
+            } }
+          }"""
+          token = os.environ.get("EXPO_TOKEN", "")
+          if not token:
+              raise RuntimeError("EXPO_TOKEN is missing")
+          request = urllib.request.Request("https://api.expo.dev/graphql", data=json.dumps({"query": query, "variables": {"appId": "23dad7d0-389a-406e-8dec-08965dab85d8"}}).encode(), headers={"Content-Type": "application/json", "Authorization": "Bearer " + token, "User-Agent": "eas-cli"})
+          with urllib.request.urlopen(request, timeout=60) as response:
+              result = json.load(response)
+          print(json.dumps(result, indent=2))
+          if result.get("errors"):
+              raise RuntimeError("Expo hosting identity query failed")
