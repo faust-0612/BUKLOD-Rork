@@ -614,7 +614,7 @@ describe('Connect scope read review migration', () => {
     expect(sql).toContain('public.buklod_connect_scope_reads');
     expect(sql).toContain('buklod_connect_mark_scope_read');
     expect(sql).toContain('buklod_connect_can_use_scope_room(_scope_id)');
-    expect(sql).toContain('drop function if exists public.buklod_connect_mark_scope_read_v2(uuid)');
+    expect(sql).not.toMatch(/^\s*drop\s+(?:function|policy|table)\b/im);
     expect(sql).not.toMatch(/create\s+table/i);
     expect(sql).not.toMatch(/create\s+policy/i);
     expect(sql).not.toMatch(/insert\s+into\s+public\.buklod_connect_scope_reads/i);
@@ -622,8 +622,6 @@ describe('Connect scope read review migration', () => {
     expect(sql).not.toMatch(
       /create\s+(or\s+replace\s+)?function\s+public\.buklod_connect_mark_scope_read_v2/i
     );
-    expect(sql).toMatch(/drop policy if exists buklod_connect_scope_reads_select_member/i);
-    expect(sql).toMatch(/drop policy if exists buklod_connect_scope_reads_write_own/i);
   });
 
   it('authorizes readers for that scope only and grants authenticated execute', () => {
