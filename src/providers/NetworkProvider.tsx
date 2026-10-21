@@ -10,6 +10,7 @@ import React, {
 } from 'react';
 import { AppState } from 'react-native';
 
+import { noteNetInfoHint } from '@/lib/buklodNetworkQuality';
 import {
   drainOfflineQueue,
   getOfflineQueueSnapshot,
@@ -61,6 +62,18 @@ export function NetworkProvider({
   const lastAutoSyncRef = useRef(0);
 
   const online = stateIsOnline(state);
+
+  useEffect(() => {
+    const details = state?.details as {
+      cellularGeneration?: string | null;
+    } | null;
+    noteNetInfoHint({
+      isConnected: state ? state.isConnected : null,
+      isInternetReachable: state ? state.isInternetReachable : null,
+      type: state?.type ?? null,
+      cellularGeneration: details?.cellularGeneration ?? null,
+    });
+  }, [state]);
 
   const refreshNetwork = useCallback(async () => {
     try {

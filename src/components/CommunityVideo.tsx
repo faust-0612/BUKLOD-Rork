@@ -15,6 +15,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePathname } from 'expo-router';
 
 import {
+  setVideoCacheSizeAsync,
   VideoView,
   useVideoPlayer,
 } from 'expo-video';
@@ -31,6 +32,15 @@ import {
 import {
   recordBuklodAdEvent,
 } from '@/lib/buklodAdDiagnostics';
+import {
+  classifyNetworkQuality,
+  subscribeNetworkQuality,
+} from '@/lib/buklodNetworkQuality';
+import { recordCommunityFeedMetric } from '@/lib/communityFeedTelemetry';
+import {
+  COMMUNITY_VIDEO_CACHE_BUDGET_BYTES,
+  shouldMountCommunityVideoPlayer,
+} from '@/lib/communityVideoPlayback';
 
 type Props = {
   uri: string;
@@ -43,9 +53,81 @@ type Props = {
   controlsBottomInset?: number;
   onOpenFullscreen?: () => void;
   onPlaybackError?: () => void;
+  onRequestPlay?: () => void;
 };
 
+let communityVideoCacheConfigured = false;
+
+function configureCommunityVideoCacheBudget() {
+  if (
+    communityVideoCacheConfigured ||
+    Platform.OS === 'web' ||
+    typeof setVideoCacheSizeAsync !== 'function'
+  ) {
+    return;
+  }
+  communityVideoCacheConfigured = true;
+  // SDK 57 default is 1 GB. 256 MB keeps replay of ordinary wall clips
+  // without retaining every long upload. The call is a no-op when a player
+  // already exists; the OS may still evict the LRU.
+  try {
+    void Promise.resolve(
+      setVideoCacheSizeAsync(COMMUNITY_VIDEO_CACHE_BUDGET_BYTES),
+    ).catch(() => {
+      communityVideoCacheConfigured = false;
+    });
+  } catch {
+    communityVideoCacheConfigured = false;
+  }
+}
+
+configureCommunityVideoCacheBudget();
+
+function useCommunityNetworkDegraded() {
+  const [degraded, setDegraded] = useState(() => {
+    const quality = classifyNetworkQuality();
+    return quality === 'degraded' || quality === 'offline';
+  });
+
+  useEffect(() => {
+    return subscribeNetworkQuality(() => {
+      const quality = classifyNetworkQuality();
+      setDegraded(quality === 'degraded' || quality === 'offline');
+    });
+  }, []);
+
+  return degraded;
+}
+
 export function CommunityVideo(props: Props) {
+  const degraded = useCommunityNetworkDegraded();
+  const [playIntent, setPlayIntent] = useState(false);
+
+  useEffect(() => {
+    if (props.active === false) setPlayIntent(false);
+  }, [props.active]);
+
+  const mountPlayer = shouldMountCommunityVideoPlayer({
+    active: props.active !== false,
+    fullscreen: Boolean(props.fullscreen),
+    degraded,
+    playIntent,
+  });
+
+  const requestPlay = () => {
+    setPlayIntent(true);
+    props.onRequestPlay?.();
+  };
+
+  if (!mountPlayer) {
+    return (
+      <InactiveCommunityVideo
+        {...props}
+        onRequestPlay={requestPlay}
+      />
+    );
+  }
+
   const imaEligible =
     props.active !== false &&
     !props.fullscreen &&
@@ -54,14 +136,6 @@ export function CommunityVideo(props: Props) {
     shouldUseBuklodImaForVideo(
       props.expectedDurationSeconds,
     );
-
-  if (props.fullscreen && props.active === false) {
-    return (
-      <InactiveCommunityVideo
-        {...props}
-      />
-    );
-  }
 
   if (imaEligible) {
     return (
@@ -85,6 +159,7 @@ function InactiveCommunityVideo({
   edgeToEdge = false,
   controlsBottomInset = 0,
   onOpenFullscreen,
+  onRequestPlay,
 }: Props) {
   const knownDuration =
     Number(expectedDurationSeconds ?? 0) || 0;
@@ -103,8 +178,12 @@ function InactiveCommunityVideo({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Play video"
-        disabled={!onOpenFullscreen}
+        disabled={!onRequestPlay && !onOpenFullscreen}
         onPress={() => {
+          if (onRequestPlay) {
+            onRequestPlay();
+            return;
+          }
           onOpenFullscreen?.();
         }}
         style={styles.tapLayer}
@@ -151,6 +230,15 @@ function ImaCommunityVideo({
     buildBuklodImaAdTagUrl(
       expectedDurationSeconds,
     );
+
+  useEffect(() => {
+    recordCommunityFeedMetric({
+      stage: 'video_player',
+      elapsedMs: 0,
+      status: 'ok',
+      player: 'google-ima',
+    });
+  }, [uri]);
 
   const companionHeight = 90;
 
@@ -354,7 +442,21 @@ function ExpoCommunityVideo({
     Number(expectedDurationSeconds ?? 0) || 0,
   );
   const [showCenter, setShowCenter] = useState(false);
+  const [playerStatus, setPlayerStatus] = useState<
+    'idle' | 'loading' | 'readyToPlay' | 'error'
+  >('idle');
+  const replayAttemptsRef = useRef(0);
   const centerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    recordCommunityFeedMetric({
+      stage: 'video_player',
+      elapsedMs: 0,
+      status: 'ok',
+      player: 'expo-video',
+      cache: 'miss',
+    });
+  }, [uri]);
 
   const source = useMemo(
     () => communityVideoSource(uri),
@@ -389,12 +491,23 @@ function ExpoCommunityVideo({
     const subscription = player.addListener(
       'statusChange',
       (event: { status?: string }) => {
-        if (event?.status === 'error') {
-          onPlaybackError?.();
+        const nextStatus = event?.status;
+        if (
+          nextStatus === 'loading' ||
+          nextStatus === 'readyToPlay' ||
+          nextStatus === 'error' ||
+          nextStatus === 'idle'
+        ) {
+          setPlayerStatus(nextStatus);
+        }
+
+        if (nextStatus === 'error') {
+          // Keep the same URI mounted. A transient fault must not
+          // immediately rotate the signed URL and discard cached bytes.
           return;
         }
 
-        if (event?.status === 'readyToPlay') {
+        if (nextStatus === 'readyToPlay') {
           const known = Number(player.duration || 0);
           if (known > 0) setDuration(known);
 
@@ -489,6 +602,21 @@ function ExpoCommunityVideo({
     }
   }
 
+  function retryPlayback() {
+    if (replayAttemptsRef.current < 1) {
+      replayAttemptsRef.current += 1;
+      setPlayerStatus('loading');
+      try {
+        player.replay();
+      } catch {
+        onPlaybackError?.();
+      }
+      return;
+    }
+
+    onPlaybackError?.();
+  }
+
   function togglePlayback() {
     if (playing) {
       userPausedRef.current = true;
@@ -560,6 +688,23 @@ function ExpoCommunityVideo({
         contentFit={fullscreen ? 'contain' : 'cover'}
         allowsPictureInPicture={false}
       />
+
+      {playerStatus === 'loading' ? (
+        <View pointerEvents="none" style={styles.bufferChip}>
+          <Text style={styles.durationText}>Buffering…</Text>
+        </View>
+      ) : null}
+
+      {playerStatus === 'error' ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Retry video"
+          onPress={retryPlayback}
+          style={styles.bufferChip}
+        >
+          <Text style={styles.durationText}>Retry</Text>
+        </Pressable>
+      ) : null}
 
       <Pressable
         accessibilityRole="button"
@@ -814,5 +959,15 @@ const styles =
       color: '#FFFFFF',
       fontSize: 11,
       fontWeight: '800',
+    },
+
+    bufferChip: {
+      position: 'absolute',
+      left: 10,
+      top: 10,
+      borderRadius: 8,
+      backgroundColor: 'rgba(0,0,0,0.68)',
+      paddingHorizontal: 7,
+      paddingVertical: 4,
     },
   });
