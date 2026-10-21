@@ -17,7 +17,7 @@ jobs:
           import urllib.request, urllib.error, urllib.parse, hashlib, re, json
           print("PROXY_VARIABLE_NAMES", [key for key in os.environ if "proxy" in key.lower()])
           expected = b"google.com, pub-3448515158880100, DIRECT, f08c47fec0942fa0"
-          for url in ["http://buklod.expo.app/app-ads.txt", "https://buklod.expo.app/app-ads.txt", "https://buklod.expo.app/"]:
+          for url in ["http://buklod.expo.app/app-ads.txt", "https://buklod.expo.app/app-ads.txt", "https://buklod.expo.app/", "https://buklod--zpvvpw9hif.expo.app/"]:
               try:
                   req = urllib.request.Request(url, headers={"Cache-Control": "no-cache", "User-Agent": "Mozilla/5.0", "Accept": "*/*"})
                   with urllib.request.urlopen(req, timeout=45) as response:
@@ -64,3 +64,13 @@ jobs:
           print(json.dumps(result, indent=2))
           if result.get("errors"):
               raise RuntimeError("Expo hosting identity query failed")
+      - name: Inspect available deployment metadata for artifact recovery
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        shell: python
+        run: |
+          import os, json, urllib.request
+          query = '{ __type(name: "WorkerDeployment") { name fields { name type { kind name ofType { kind name } } } } }'
+          request = urllib.request.Request("https://api.expo.dev/graphql", data=json.dumps({"query": query}).encode(), headers={"Content-Type": "application/json", "Authorization": "Bearer " + os.environ["EXPO_TOKEN"], "User-Agent": "eas-cli"})
+          with urllib.request.urlopen(request, timeout=60) as response:
+              print(json.dumps(json.load(response), indent=2))
