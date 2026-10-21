@@ -2,6 +2,8 @@ name: BUKLOD Web 1.3.4 preview
 # Manual preview from the V28 source. Does not assign the production alias.
 on:
   workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize]
 permissions:
   contents: read
 env:
@@ -16,6 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
