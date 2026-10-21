@@ -4,6 +4,9 @@ name: BUKLOD V28 P0 Android Production OTA
 
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - 'v28-p0-verified-*'
 
 permissions:
   contents: read
@@ -18,6 +21,8 @@ jobs:
     steps:
       - name: Checkout this V28 commit
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
 
       - name: Set up Node
         uses: actions/setup-node@v4
