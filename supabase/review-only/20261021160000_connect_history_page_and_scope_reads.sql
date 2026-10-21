@@ -26,16 +26,9 @@
 -- * no cross-scope rows: the reader query filters r.scope_id = _scope_id
 -- * no second cursor write and no admin bypass beside the canonical room gate
 --
--- The two policies and mark_scope_read_v2 below existed only in an earlier
--- draft of this review file. Live production has neither. Dropping them does
--- not drop or rewrite public.buklod_connect_scope_reads.
-
-drop function if exists public.buklod_connect_mark_scope_read_v2(uuid);
-
-drop policy if exists buklod_connect_scope_reads_select_member
-  on public.buklod_connect_scope_reads;
-drop policy if exists buklod_connect_scope_reads_write_own
-  on public.buklod_connect_scope_reads;
+-- Additive-only database proposal: no DROP of any live or historical object.
+-- Older unused draft objects, if present in disposable test environments,
+-- must be reviewed and retired separately; never inside this production proposal.
 
 create or replace function public.buklod_connect_direct_messages_page_v2(
   _thread_id uuid,
