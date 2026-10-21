@@ -87,37 +87,26 @@ The owner opened all four signed-in Firebase console pages and supplied screensh
 | Hosting sites | Exactly three: `buklod-connect` (`buklod-connect.web.app`, release Aug 18 2025, 22:08); `buklod-connect-f8a20` (`buklod-connect-f8a20.web.app`, release Sep 12 2025, 15:52); `studio-fddc0` (`studio-fddc0.web.app`, release Aug 18 2025, 22:06). |
 | Project settings | Project ID `buklod-connect`. Project number `567448289999`. Environment type Production. |
 
-The Android package on this Firebase project is not the production Play package `org.mzbministry.buklod`. Hosting here is only a separate developer website. Spark stays as it is. Do not create `buklodBillingPlanReader`, a service account, a Workload Identity pool, or a JSON key unless the site decision below is approved.
+The Android package on `buklod-connect` is `com.example.bklodconnect`. That is not the Play package `org.mzbministry.buklod`. The owner later identified a separate Firebase project named **BUKLOD**, on the Spark plan, with 5 apps and a package beginning `org.mzbministry.b`. **No Firebase Hosting site is approved for replacement**, including `buklod-connect-f8a20`. Do not create a role, service account, Workload Identity pool, or JSON key for either project.
 
-`buklod-connect-f8a20` is a candidate only. Public checks previously showed a Firebase welcome page and HTTP 404 for `/app-ads.txt`. Its September 12, 2025 release stays in place until the owner approves replacement. The other two sites are not candidates.
+### AdMob route check — October 21, 2026 correction
+Public Play listing for `org.mzbministry.buklod` shows the developer website `https://buklod.expo.app` (support page label “Website”). Privacy on that listing is `https://buklod.expo.app/privacy`. AdMob’s crawl host for that listing is therefore `buklod.expo.app`, provided this is the AdMob-linked app. This cloud session cannot open the AdMob console, so the AdMob row itself is not re-verified here. No Play listing was edited.
 
-### One owner decision
-May this project replace the existing welcome page on `buklod-connect-f8a20.web.app` with the tested BUKLOD developer page and root `app-ads.txt`, while `https://buklod.expo.app` stays unchanged?
+The repo file `google-services.production.json` binds package `org.mzbministry.buklod` to Firebase project id `buklod-efa4a`, project number `1014299074416`. That is a different project from `buklod-connect` / `567448289999`. The owner’s BUKLOD screenshot is consistent with this package, and the screenshot text did not include that project id or a Hosting site list. Public GET of `https://buklod-efa4a.web.app`, `https://buklod-efa4a.firebaseapp.com`, and `https://buklod.web.app`, including `/app-ads.txt`, returned HTTP 404. Those responses do not prove which Hosting sites exist. No Firebase site is recommended.
 
-Approval here selects that site. It does not publish, change the Spark plan, edit the Play listing, or touch `buklod-connect` or `studio-fddc0`.
-
-If the answer is yes, the next setup is one keyless cloud login, still with no JSON key and no laptop npm:
-
-- Pool `buklod-github-actions`; OIDC provider name and ID `github`; issuer `https://token.actions.githubusercontent.com/`; default audience.
-- Mapping `google.subject` = `assertion.sub` and `attribute.repository_id` = `assertion.repository_id`. Condition `assertion.repository_id=='1337331837'`.
-- Service account `buklod-hosting-reader`. Project role: only **Firebase Hosting Viewer** (`roles/firebasehosting.viewer`).
-- On that service account, **Workload Identity User** for `principalSet://iam.googleapis.com/projects/567448289999/locations/global/workloadIdentityPools/buklod-github-actions/attribute.repository_id/1337331837`.
-
-That login lets GitHub read the chosen site. A preview deploy needs a later, separate grant of **Firebase Hosting Admin** plus **API Keys Viewer**, and the workflow must name only `buklod-connect-f8a20`. Firebase Hosting IAM cannot restrict those roles to one site, so the workflow target is the guard. Live promotion stays a second approval after the preview URL returns the exact 58-byte text file. Do not create `buklodBillingPlanReader`.
+The preferred open route is the already authorized web upgrade in [issue #239](https://github.com/faust-0612/BUKLOD-Rork/issues/239): a fresh Expo web 1.3.4 preview of `https://buklod.expo.app` that serves the exact `app-ads.txt` as HTTP 200 text/plain. That can fix this PR on the current Play website without either Firebase project and without a Play domain change. Both releases stay gated. This PR does not publish the web alias or a Firebase site. Live Expo deployment `zpvvpw9hif` stays in place until that preview is independently verified.
 
 ### Subsequent cloud release gates
+These Firebase publish steps are inactive. No Hosting site is approved. The active candidate is the gated web 1.3.4 preview in issue #239.
+
 1. Confirm target project/site and free access; pin the candidate source commit/artifact. Keep Expo unchanged.
 2. Use GitHub cloud execution and approved Firebase authentication only; never run npm/npx/firebase CLI or downloads on the owner's laptop. Do not pass credential values through chat.
 3. Publish a scoped Firebase preview for this static directory only; verify HTTPS root /app-ads.txt status 200, text/plain and exact bytes, robots allow crawlers, homepage link, and unknown path 404. Save Firebase version/site/channel identifiers.
 4. After required account/publication approval, clone the **exact verified preview version** to the selected live Hosting channel; verify live HTTP again. Do not rebuild source between preview and live.
 5. Only then request approval for or have owner perform the Play developer website change.
 
-### Exact crawl URL and Play change — conditional, not published
-Use the site's actual verified root hostname, with no www/m prefix, extra nested subdomain, private GitHub raw URL, or subpath.
-For example **only if ownership and publication of site buklod-connect-f8a20 are approved and verified**:
-- Play developer website: `https://buklod-connect-f8a20.web.app`
-- AdMob expected crawl URL: `https://buklod-connect-f8a20.web.app/app-ads.txt`
-That file URL currently returns 404; it is not a successful live result. If another site is selected, derive both exact URLs from the verified Firebase site ID. Google's guide explicitly supports PROJECT_ID.web.app; generic crawler rules probe at most one subdomain level, exclude www/m, and ignore website subpaths.
+### Exact crawl URL and Play change — not requested
+The public Play website is already `https://buklod.expo.app`. The crawl URL AdMob would use for that listing is `https://buklod.expo.app/app-ads.txt`. Live production still serves HTML there. No Play website change is requested. The earlier `buklod-connect-f8a20.web.app` example is withdrawn. Google's guide explicitly supports the developer-website hostname; generic crawler rules probe at most one subdomain level, exclude www/m, and ignore website subpaths.
 
 Owner Play steps, **after confirmed live file and explicit listing approval**:
 [Play Console](https://play.google.com/console) → BUKLOD (org.mzbministry.buklod) → Grow users → Store presence → Store settings → Store listing contact details → Website = verified developer root URL → save/submit the listing change as prompted. Confirm that the public app's App support website points to that same hostname.
@@ -126,6 +115,6 @@ No listing change has been performed.
 Then [AdMob](https://admob.google.com/) → Apps → View all apps → app-ads.txt → BUKLOD Android → expand row → Check for updates → verify status. Inspect AdMob's actual crawled URL. Google documents 24 hours or more after developer-domain changes; its FAQ advises allowing longer and waiting a week before seeking further help. Do not mark Verified until AdMob confirms.
 
 ## Choice
-Track B is the narrower path for finishing AdMob because it avoids replacing the live Expo application and needs only a small static website plus a separately approved Play listing domain change. Track A remains an optional recovery effort requiring missing provenance/provider help.
+The current Play developer website is already `https://buklod.expo.app`. A verified web 1.3.4 preview that serves the exact seller file is the route that can finish AdMob without a Firebase site change. Firebase project `buklod-connect` is not the Play app’s Firebase project. Project `buklod-efa4a` matches the production package in source, and its Hosting sites are not identified, so no Firebase target is recommended. Track A remains an optional recovery effort for the old Expo workers.
 
-No publication, Expo alias change, new project, billing activation, Play metadata change, APK/AAB/OTA, Supabase/database mutation, or owner-laptop file write was performed. The owner console record is stored. Site replacement, Workload Identity, and the read-only workflow remain unauthorized. The custom billing role stays withdrawn. Documentation/metadata reads on C: were read-only; all intentional writes and package operations were GitHub/cloud only.
+No publication, Expo alias change, Firebase site change, new project, billing activation, Play metadata change, APK/AAB/OTA, Supabase/database mutation, or owner-laptop file write was performed. Site replacement is explicitly not approved. The read-only Firebase workflow was not dispatched. Documentation/metadata reads on C: were read-only; all intentional writes and package operations were GitHub/cloud only.

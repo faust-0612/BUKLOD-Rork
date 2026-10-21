@@ -1,7 +1,7 @@
 name: BUKLOD AdMob Firebase read-only gate
 # Manual only. GET project, billingInfo, and Hosting sites. No deploy and no
-# Expo alias change. The service account, when later created, gets only
-# roles/firebasehosting.viewer. Do not grant a custom billing role or a write role.
+# Expo alias change. Do not dispatch: buklod-connect is not the approved AdMob
+# project, and no Hosting site replacement is authorized.
 on:
   workflow_dispatch:
     inputs:
