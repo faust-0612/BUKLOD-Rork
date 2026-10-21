@@ -22,11 +22,12 @@ Deliver a fast, reliable, observable BUKLOD Android experience, including on wea
 
 ## Current checkpoint (2026-10-21)
 Repository: faust-0612/BUKLOD-Rork
-DEV branch: dev/v28-p0-reliability-20261020
-Last verified before this charter: d7add781b8db22ac237a7c9221b852712f7d1f5d
-Prior verified checks: TypeScript PASS, 23 targeted P0 PASS, 5 SDK integration PASS, 5 foundation Jest PASS. Earlier full Jest 89 PASS / 2 FAIL; router and formation test-only corrections committed at d7add781; **full Jest not yet rerun**.
-Outstanding: full Jest rerun, Hermes export reproducibility, exact APK-to-source provenance, physical Android weak-network/auth/media acceptance, non-production BSOC end-to-end receipt, immutable RC. Production V28 OTA **NOT READY**.
-The V28 native runtime is 1.3.4; previously inspected production OTA groups used runtime 1.3.2 and cannot be assumed compatible.
+DEV: dev/v28-p0-reliability-20261020
+Verified source/tooling checkpoint: 2dce0331929064279061c80413b733702aa2ebec (Hermes tooling e872d32c).
+Fresh results: full Jest 93/93 in 18 suites; full TypeScript PASS; 23 P0 plus 5 locked-SDK tests PASS; Character/Kingdom/base contracts PASS; all 1,217 product source/assets exact. Two controlled Android JS exports: 247/247 byte-identical, Hermes SHA-256 0934c43594b122faeceb05c96267186868765151fd5c63fdb384c476209cc6c7. Placeholder-environment exports are not production artifacts.
+Latest evidence: V28_P0_RC_CANDIDATE_20261021.json, V28_RELEASE_TEST_RESULTS_20261021.md, V28_APK_PROVENANCE_20261021.json and V28_ANDROID_ACCEPTANCE_20261021.md.
+Open mandatory gates: historical APK-to-source binding/complete alternative candidate qualification; actual authenticated non-production receipt/referral end-to-end verification; physical Android acceptance, including separate measured photo diagnosis/repair; production-environment candidate verification and immutable RC. No native build/main merge/OTA authorized while these are unverified. OTA NOT READY; RC UNFROZEN.
+Accepted prior Expo evidence: production channel -> production branch; latest group 40ec8105-eaeb-4335-a0f2-7d08ca76e202, runtime 1.3.2. V28 runtime is 1.3.4; old groups cannot be assumed compatible. This is retained evidence, not a fresh Expo service read.
 
 ## Continuation rule
 At the start of any new engineering conversation or Work run, read this charter and the latest DEV/RC/release manifests, check actual GitHub/Expo heads, and continue only unfinished tasks. Update the checkpoint with verifiable evidence after each meaningful release milestone. This document is a persistent repository policy, not proof that a chat's memory has been permanently changed.

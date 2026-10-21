@@ -1,0 +1,136 @@
+{
+  "status": "CANDIDATE_UNFROZEN",
+  "ota_ready": false,
+  "mandatory_gates_passed": false,
+  "verified_source_tooling_commit": "2dce0331929064279061c80413b733702aa2ebec",
+  "start_checkpoint": "dcd866b5e3498aa3b027f3b7b3141f3c38dd3f45",
+  "product_source_and_assets_changed": false,
+  "exact_product_files": 1217,
+  "toolchain": {
+    "node": "v24.19.0",
+    "npm": "11.9.0",
+    "versions": {
+      "expo": "57.0.15",
+      "expo-router": "57.0.15",
+      "@expo/metro-config": "57.0.9",
+      "hermes-compiler": "250829098.0.16",
+      "typescript": "6.0.3",
+      "jest": "29.7.0",
+      "jest-expo": "57.0.4",
+      "@supabase/supabase-js": "2.112.2",
+      "@supabase/auth-js": "2.112.2"
+    },
+    "hashes": {
+      "package.json": "90d739c53fb587ee4aa9506af6c0db8e98e3b257b075531f8685c4ea43970fcc",
+      "package-lock.json": "4e1a08ec5df3d1e0dbafbd9a449b862d99f22b17d49cef37c58f3d19284c851a",
+      "scripts/export-v28-reproducible.cjs": "dbdd6c1971551308a2a66b2fb0881306c0d556c798aa8cc942f83152d08d6799",
+      "app.config.js": "3ac9e32e8e1b52cbfe5fb5ff63d5b00c12ec96f87aa3fbae92c09171233115cf",
+      "metro.config.js": "d657b4901a0a8616938385a6b666f126ae067a76a3644563b684c4b7281db775",
+      "node_modules/hermes-compiler/hermesc/linux64-bin/hermesc": "53e182e46cd46e330a3182d21e1b982235ec1e5c50080be485d635e3b44a1a39",
+      "node_modules/@expo/metro-config/build/serializer/exportHermes.js": "36896ffe82771c12b3ae24242d43acbd3ca8adc85cb344d922d1c5c05a7ff0ef"
+    }
+  },
+  "dependency_restore": {
+    "status": "PASS",
+    "packages": 1102,
+    "seconds": 38,
+    "install_scripts": false,
+    "lockfile_changed": false
+  },
+  "fresh_verification": {
+    "typescript": {
+      "status": "PASS",
+      "diagnostics": 0
+    },
+    "jest": {
+      "success": true,
+      "numPassedTests": 93,
+      "numFailedTests": 0,
+      "numPassedTestSuites": 18,
+      "numFailedTestSuites": 0
+    },
+    "targeted_P0": {
+      "passed": 23,
+      "failed": 0
+    },
+    "locked_SDK_integration": {
+      "passed": 5,
+      "failed": 0,
+      "transport": "fake HTTP only"
+    },
+    "protected_and_base_contracts": "PASS"
+  },
+  "controlled_exports": {
+    "status": "MATCH",
+    "files_each": 247,
+    "different_files": [],
+    "hbc_sha256": "0934c43594b122faeceb05c96267186868765151fd5c63fdb384c476209cc6c7",
+    "hbc_bytes": 16728218,
+    "hermes_version": 98,
+    "source_hash_header": "261d65f4ab2b4865d3abc0b6ee06a0e3900aed87",
+    "public_environment_inputs": {
+      "CI": "1",
+      "EXPO_OFFLINE": "1",
+      "EXPO_NO_TELEMETRY": "1",
+      "EXPO_NO_DOTENV": "1",
+      "APP_VARIANT": "production",
+      "EXPO_PUBLIC_APP_ENV": "production",
+      "EXPO_PUBLIC_SUPABASE_URL": "https://v28-verification.invalid",
+      "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "test-public-key"
+    },
+    "environment_inputs_sha256": "4749ff83167245469e92997e5a06cac239e11b68e322faa337d384fc2f3f1500",
+    "production_artifacts": false,
+    "frozen": false,
+    "reason_for_tooling_fix": "Random absolute Expo compiler input filename embedded in Hermes debug metadata; same compiler/source/flags now use relative index.js. No output normalization."
+  },
+  "provenance": {
+    "apk_sha256": "820ff2c74e63a63a371b7b88466b24c4b0c324b1ae619a140e241c719f428a95",
+    "embedded_bundle_sha256": "38a36b0a5ab7533f487ea227d47450805b4ac39cb7a5e96f3e2a57a8fadfc939",
+    "exact_assets": 193,
+    "historical_apk_source_parity": "UNPROVEN",
+    "alternative_candidate_qualification": "INCOMPLETE",
+    "reason": "No original embedded-source commit, map or build manifest; matching assets/repeatable placeholder exports are partial evidence."
+  },
+  "remaining_gates": {
+    "physical_android": "NOT_EXECUTED",
+    "photos": "SEPARATE_MEASURED_INVESTIGATION_PENDING",
+    "nonproduction_BSOC_referral_receipt": "NOT_EXECUTED_NO_DESIGNATED_ENDPOINT_TEST_SESSION",
+    "production_environment_candidate_export_verification": "NOT_EXECUTED",
+    "immutable_RC": "NOT_FROZEN"
+  },
+  "retained_expo_history": {
+    "channel": "production",
+    "branch": "production",
+    "group": "40ec8105-eaeb-4335-a0f2-7d08ca76e202",
+    "runtime": "1.3.2",
+    "v28_runtime": "1.3.4",
+    "fresh_service_read": false
+  },
+  "evidence_sha256": {
+    "release/BUKLOD_ENGINEERING_CHARTER.md": "69a57e8b65adb2199d25dd33458c1dd005e20b7d81c7712f1cecc7049b516642",
+    "release/V28_RELEASE_TEST_RESULTS_20261021.md": "a7f056d68e6726c70c074fee553fc479a8722a52d10c968a6bd15e0685d0d6ab",
+    "release/V28_APK_PROVENANCE_20261021.json": "d7411859b49a72eee23f7d6e5d95797d99444882fa3bd068c269b324b94ff14e",
+    "release/V28_ANDROID_ACCEPTANCE_20261021.md": "665127d8bdfdb73911079a351aeb9b955b7a376bf2d78d3e95de05caf8f9c5c2",
+    "scripts/export-v28-reproducible.cjs": "dbdd6c1971551308a2a66b2fb0881306c0d556c798aa8cc942f83152d08d6799",
+    "__tests__/router.smoke.test.tsx": "d2c9fc7a37667c307d32672a75259aaba1113be1981bf3c53ecbac3396ca9629"
+  },
+  "execution_log_sha256": {
+    "deps-20261021.log": "4b85ea79b9a00c4ad54fc0384417e65812b28cc656090aa723aacf9a953e5af1",
+    "jest-focused-20261021.log": "09d9e8c1d5e30c8fe8ad6e79819f156b1369cd97a5988b4d2f7d680fcc181cc8",
+    "jest-router-fixed-20261021.log": "e3e6c7881816dcd2403c0d2353f2baf29428cf346eed20835c14602d9ba39db5",
+    "jest-full-20261021.log": "0a7bbe0b35901311f6ae996bf43be0908def24a7eb660c1cba636d939233f31b",
+    "ts-fixed-20261021.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "p0-20261021.log": "8ae0aca5d5f6a3c20203b68e95f5aa768ae92b0a1d0bb18f9f744d0d15cbf744",
+    "contracts-final-20261021.log": "dbcfb5a4db7fd2c89037e334f64b11d71669f8efe8c3174a08c6595a098aa301",
+    "export-a-20261021.log": "592b45c6e1c512b5a781ed2ed4367689d29992db44990a23e4d2440a72424b9f",
+    "export-b-20261021.log": "e25b9979f25b17b55151c8f34e156ef7837209154d52e63438d8fea42873d6f0"
+  },
+  "prohibited_actions_performed": {
+    "main_merge": false,
+    "native_build": false,
+    "workflow_dispatch": false,
+    "production_ota": false,
+    "database_mutation": false,
+    "media_repair": false
+  }
+}
