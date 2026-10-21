@@ -3,7 +3,7 @@ import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 
 import { resolveLivingMotion } from '@/lib/kabihasnang-ligaw/livingMotion';
 
-const DROPS = [8, 22, 36, 51, 67, 80, 14, 44, 60, 73, 28, 90];
+const SPECKS = [8, 22, 36, 51, 67, 80, 14, 44, 60, 73, 28, 90];
 
 type Props = {
   visible: boolean;
@@ -55,19 +55,19 @@ export default function KlLivingFixture(props: Props) {
       <Text style={styles.label}>Pansamantalang pagsubok ng galaw. Hindi ito eksena ng kuwento.</Text>
       {decision.animate ? (
         <View style={styles.stage}>
-          {DROPS.map((left, index) => (
+          {SPECKS.map((top, index) => (
             <Animated.View
-              key={left}
+              key={top}
               style={[
-                styles.drop,
+                styles.speck,
                 {
-                  left: `${left}%`,
+                  top: `${top}%`,
                   opacity: 0.35 + (index % 3) * 0.12,
                   transform: [
                     {
-                      translateY: drift.interpolate({
+                      translateX: drift.interpolate({
                         inputRange: [0, 1],
-                        outputRange: [-8, 72],
+                        outputRange: [-6, 18 + (index % 4) * 8],
                       }),
                     },
                   ],
@@ -93,12 +93,12 @@ const styles = StyleSheet.create({
   },
   label: { color: '#d6c8ad', fontSize: 13, lineHeight: 20 },
   stage: { height: 88, marginTop: 12, overflow: 'hidden', backgroundColor: '#0d171c', borderRadius: 12 },
-  drop: {
+  speck: {
     position: 'absolute',
-    top: 0,
-    width: 2,
-    height: 10,
-    borderRadius: 2,
+    left: 12,
+    width: 4,
+    height: 4,
+    borderRadius: 4,
     backgroundColor: '#d5e4ea',
   },
   still: { color: '#f1ece3', marginTop: 10, fontSize: 15 },

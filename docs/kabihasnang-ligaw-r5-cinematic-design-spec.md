@@ -20,17 +20,9 @@ Palette in the shell reuses the provisional prototype colors already in the R5 c
 
 ## Manuscript
 
-Panimula and Kabanata 1, "Ang Gabi ng Pag-ahon", are approved in direction only. Their complete word-for-word text is not in the repository or in the R5 documents. Searched:
+Panimula and Kabanata 1 are the canonical files `content/kabihasnang-ligaw/panimula.md` and `content/kabihasnang-ligaw/kabanata-01.md`. The reader and the admin review load that text. Members still do not see it: the episodes stay draft, art and audio are unapproved, and the server returns an empty chapter until release. Episodes 2–30 are outline labels only.
 
-- `docs/kabihasnang-ligaw-approved-creative-release-contract-r5.md`
-- `docs/kabihasnang-ligaw-work-release-handoff-r5.md`
-- `docs/kabihasnang-ligaw-story-admin-ota-gate-r5.md`
-- `src/app/kabihasnang-ligaw.tsx` (previous short preview; removed from the reader)
-- `release/BUKLOD_ENGINEERING_CHARTER.md` (absent)
-
-The reader therefore shows a locked chapter state. It does not reconstruct prose. Episodes 2–30 are outline labels only.
-
-`release/BUKLOD_ENGINEERING_CHARTER.md` was requested and is not in this branch.
+`release/BUKLOD_ENGINEERING_CHARTER.md` was requested and is not on this branch or on `origin/main`.
 
 ## Reader shell
 
@@ -45,7 +37,7 @@ The reader therefore shows a locked chapter state. It does not reconstruct prose
 
 ## Living illustrations
 
-Chapter 1 priorities from the supplement — rain, environmental motion, glowing root, water reflection — are recorded in the manifest and stay inactive. They have no paragraph range because the word-for-word manuscript is not in the repo. The admin motion test is an abstract rainfall on a labeled panel. It does not depict Phan, the child, Lunawen, or any later episode. Motion pauses off-screen, in the background, with Reduce Motion, with the member motion switch off, in battery-saving mode, and on a weak connection. There is no video layer.
+Chapter 1 living layers are bound to paragraph spans from the canonical text and stay unapproved. Rain is forbidden: the chapter is moonlit and windy, and rainfall is not in the prose. Leaf, dust, root-light, and closing-reveal water motion pause off-screen, in the background, with Reduce Motion, with the member motion switch off, in battery-saving mode, and on a weak connection. The closing shadow and the duplicated voice are not shown before that paragraph. The admin motion test is a labeled abstract drift, not rainfall and not a story scene. There is no video layer.
 
 ## Audio and DZAS
 

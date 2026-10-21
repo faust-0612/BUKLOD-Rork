@@ -18,6 +18,7 @@ export type ReaderCache = {
   ambientMuted: boolean;
   lastEpisodeId: string | null;
   scrollByEpisode: Record<string, number>;
+  releasedProse: Record<string, string>;
   issues: ReaderIssue[];
 };
 
@@ -33,6 +34,7 @@ export const DEFAULT_READER_CACHE: ReaderCache = {
   ambientMuted: false,
   lastEpisodeId: null,
   scrollByEpisode: {},
+  releasedProse: {},
   issues: [],
 };
 
@@ -52,6 +54,13 @@ export function sanitizeReaderCache(input: Partial<ReaderCache> | null | undefin
   const issues = Array.isArray(input?.issues)
     ? input.issues.filter((issue) => issue && typeof issue.detail === 'string').slice(-20)
     : [];
+  const releasedProse: Record<string, string> = {};
+  const rawProse = input?.releasedProse ?? {};
+  for (const [key, value] of Object.entries(rawProse)) {
+    if (typeof value === 'string' && value.trim() && Object.keys(releasedProse).length < 8) {
+      releasedProse[key] = value.slice(0, 200_000);
+    }
+  }
   return {
     version: 1,
     textScale: clamp(input?.textScale ?? 1, 0.85, 1.35),
@@ -64,8 +73,65 @@ export function sanitizeReaderCache(input: Partial<ReaderCache> | null | undefin
     ambientMuted: Boolean(input?.ambientMuted),
     lastEpisodeId: typeof input?.lastEpisodeId === 'string' ? input.lastEpisodeId : null,
     scrollByEpisode: scroll,
+    releasedProse,
     issues,
   };
+}
+
+export function rememberReleasedReading(
+  cache: ReaderCache,
+  episodeId: string,
+  text: string | null,
+  show: boolean,
+): ReaderCache {
+  const releasedProse = { ...cache.releasedProse };
+  if (!show || !text?.trim()) delete releasedProse[episodeId];
+  else releasedProse[episodeId] = text.slice(0, 200_000);
+  return sanitizeReaderCache({ ...cache, releasedProse, lastEpisodeId: episodeId });
+}
+
+export type MemberReading = {
+  text: string | null;
+  source: 'server' | 'bundle' | 'cache' | 'hidden';
+};
+
+/**
+ * Server refusal wins. Bundled prose is shown only after the server cannot be
+ * reached and the local release gate already says the episode is readable.
+ * A draft stays hidden even though the canonical text is in the bundle.
+ */
+export function selectMemberReading(input: {
+  locallyReadable: boolean;
+  serverState: 'unread' | 'readable' | 'hidden' | 'unknown';
+  serverText: string | null;
+  bundledText: string | null;
+  cachedText: string | null;
+}): MemberReading {
+  if (input.serverState === 'hidden') return { text: null, source: 'hidden' };
+  if (input.serverState === 'readable') {
+    if (input.serverText?.trim()) return { text: input.serverText, source: 'server' };
+    return { text: null, source: 'hidden' };
+  }
+  if (!input.locallyReadable) return { text: null, source: 'hidden' };
+  if (input.cachedText?.trim()) return { text: input.cachedText, source: 'cache' };
+  if (input.serverState === 'unknown' && input.bundledText?.trim()) {
+    return { text: input.bundledText, source: 'bundle' };
+  }
+  return { text: null, source: 'hidden' };
+}
+
+export function sceneArtDecision(input: {
+  spoiler: boolean;
+  rangeStart: number | null;
+  reachedParagraph: number | null;
+  approvedUri: string | null;
+  lowBandwidth: boolean;
+}): { showImage: boolean; message: 'missing' | 'withheld' | 'ready' | 'spoiler_held' } {
+  if (input.spoiler && (input.rangeStart == null || input.reachedParagraph == null || input.reachedParagraph < input.rangeStart)) {
+    return { showImage: false, message: 'spoiler_held' };
+  }
+  const slot = imageSlot(input.approvedUri, input.lowBandwidth);
+  return slot;
 }
 
 export function rememberScroll(

@@ -10,6 +10,7 @@ export type LivingDecision = {
     | 'reduced'
     | 'manuscript_unbound'
     | 'pending_owner'
+    | 'forbidden_layer'
     | 'provisional_fixture'
     | 'approved_scene';
 };
@@ -42,7 +43,7 @@ export function resolveLivingMotion(input: {
         animate: true,
         staticFallback: false,
         depictsStory: false,
-        layers: ['rain'],
+        layers: ['lighting'],
         reason: 'provisional_fixture',
       };
     }
@@ -63,13 +64,50 @@ export function resolveLivingMotion(input: {
       reason: 'pending_owner',
     };
   }
+  const allowed = input.depictsStory ? layers.filter((layer) => layer !== 'rain') : layers;
+  if (input.depictsStory && allowed.length === 0) {
+    return {
+      animate: false,
+      staticFallback: true,
+      depictsStory: true,
+      layers: [],
+      reason: 'forbidden_layer',
+    };
+  }
   return {
     animate: true,
     staticFallback: false,
     depictsStory: true,
-    layers,
+    layers: allowed,
     reason: 'approved_scene',
   };
+}
+
+export function visibleLivingLayers(input: {
+  layers: readonly {
+    layer: LivingLayerKind;
+    activation: string;
+    paragraphRange: { start: number; end: number } | null;
+  }[];
+  viewStart: number | null;
+  viewEnd: number | null;
+  revealParagraph: number | null;
+}): LivingLayerKind[] {
+  if (input.viewStart == null || input.viewEnd == null) return [];
+  const visible: LivingLayerKind[] = [];
+  for (const layer of input.layers) {
+    if (layer.layer === 'rain' || layer.activation === 'FORBIDDEN_NOT_IN_CHAPTER_TEXT') continue;
+    if (layer.activation === 'BLOCKED_ANCHOR_MISMATCH' || layer.paragraphRange == null) continue;
+    if (
+      layer.activation === 'CLOSING_REVEAL_ONLY' &&
+      (input.revealParagraph == null || input.viewEnd < input.revealParagraph)
+    ) {
+      continue;
+    }
+    if (layer.paragraphRange.end < input.viewStart || layer.paragraphRange.start > input.viewEnd) continue;
+    visible.push(layer.layer);
+  }
+  return visible;
 }
 
 export function isLowBandwidth(input: {

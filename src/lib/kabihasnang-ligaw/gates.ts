@@ -85,10 +85,27 @@ export type ReadableDecision = {
     | 'not_yet_released';
 };
 
+export type ReadingStoryboardRow = {
+  episodeId: string;
+  required: boolean;
+  approved: boolean;
+  paragraphRange: { start: number; end: number } | null;
+};
+
+export function storyboardBlocksReading(
+  episodeId: string,
+  storyboard: readonly ReadingStoryboardRow[],
+): boolean {
+  const rows = storyboard.filter((row) => row.episodeId === episodeId && row.required);
+  if (rows.length === 0) return true;
+  return rows.some((row) => row.paragraphRange == null || row.approved !== true);
+}
+
 export function memberReadable(
   episode: CatalogEpisode,
   assets: AssetRow[],
   now = new Date(),
+  storyboard?: readonly ReadingStoryboardRow[],
 ): ReadableDecision {
   if (episode.seasonEmergencyStop || episode.seasonPaused || episode.paused || episode.status === 'paused') {
     return { readable: false, reason: 'paused' };
@@ -104,6 +121,9 @@ export function memberReadable(
     return { readable: false, reason: 'manuscript_incomplete' };
   }
   if (episode.mediaGate !== 'clear' || mediaGateFor(assets) !== 'clear') {
+    return { readable: false, reason: 'media_blocked' };
+  }
+  if (storyboard && storyboardBlocksReading(episode.id, storyboard)) {
     return { readable: false, reason: 'media_blocked' };
   }
   if (!episode.approvedAt || !READABLE_STATUSES.has(episode.status)) {

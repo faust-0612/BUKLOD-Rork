@@ -34,6 +34,7 @@ export type StoryKind = 'panimula' | 'episode';
 export type LivingLayerKind =
   | 'rain'
   | 'fog'
+  | 'dust'
   | 'wind_foliage'
   | 'fireflies'
   | 'water_ripples'
@@ -59,26 +60,40 @@ export type AssetRow = {
   reason: string;
 };
 
+export type ParagraphRange = {
+  start: number;
+  end: number;
+  startId: string;
+  endId: string;
+};
+
 export type StoryboardRow = {
   episodeId: string;
   sceneId: string;
   episodeNumber: number;
-  paragraphRange: null;
-  paragraphRangeStatus: 'BLOCKED_NO_APPROVED_MANUSCRIPT' | 'OUTLINE_ONLY';
+  paragraphRange: ParagraphRange | null;
+  paragraphRangeStatus: 'BOUND' | 'BLOCKED_ANCHOR_MISMATCH' | 'OUTLINE_ONLY' | 'NO_SCENE_ANCHORS';
   editorialIntent: string | null;
   status: string;
   artworkStatus: 'NO_ARTWORK';
   approvalStatus: 'pending';
   approved: false;
   required: true;
-  livingLayers: [];
+  spoiler: boolean;
+  livingLayers: LivingLayerKind[];
 };
+
+export type LivingActivation =
+  | 'BOUND_PENDING_OWNER'
+  | 'CLOSING_REVEAL_ONLY'
+  | 'FORBIDDEN_NOT_IN_CHAPTER_TEXT'
+  | 'BLOCKED_ANCHOR_MISMATCH';
 
 export type LivingScopeRow = {
   episodeId: string;
   layer: LivingLayerKind;
-  activation: 'BLOCKED_UNTIL_WORD_FOR_WORD_MANUSCRIPT';
-  paragraphRange: null;
+  activation: LivingActivation;
+  paragraphRange: ParagraphRange | null;
   approved: false;
   note: string;
 };
@@ -93,6 +108,8 @@ export type CatalogEpisode = {
   status: EpisodeWorkflowStatus;
   manuscriptStatus: ManuscriptStatus;
   prose: string | null;
+  proseSha256: string | null;
+  sourcePath: string | null;
   proseComplete: boolean;
   mediaGate: MediaGate;
   approvedAt: string | null;

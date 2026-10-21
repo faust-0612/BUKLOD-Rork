@@ -8,6 +8,7 @@ export const klCopy = {
   openLibrary: 'Buksan ang aklatan',
   cardSchedule: 'Kapag handa na ang kabanata, bubukas ito tuwing 6:00 ng umaga.',
   locked: 'Hindi pa mababasa',
+  readable: 'Mababasa na',
   notReady: 'Hindi pa handa ang buong kabanata.',
   panimulaNotReady: 'Hindi pa handa ang panimula.',
   outlineLocked: 'Hindi pa aprubado ang kabanatang ito.',

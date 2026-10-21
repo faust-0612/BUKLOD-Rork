@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 
@@ -24,12 +25,20 @@ import {
   publicationBlockers,
 } from '../src/lib/kabihasnang-ligaw/gates';
 import { journeyMark, journeySummary } from '../src/lib/kabihasnang-ligaw/journey';
-import { isLowBandwidth, resolveLivingMotion } from '../src/lib/kabihasnang-ligaw/livingMotion';
+import { isLowBandwidth, resolveLivingMotion, visibleLivingLayers } from '../src/lib/kabihasnang-ligaw/livingMotion';
+import {
+  paragraphDisplayText,
+  resolveAnchorRange,
+  sceneRangesAreOrdered,
+  splitCanonicalParagraphs,
+} from '../src/lib/kabihasnang-ligaw/manuscript';
 import {
   imageSlot,
   queueReaderIssue,
   rememberScroll,
   sanitizeReaderCache,
+  sceneArtDecision,
+  selectMemberReading,
 } from '../src/lib/kabihasnang-ligaw/readerSession';
 import { KL_EPISODE_RULE, KL_SEASON_RULE } from '../src/lib/kabihasnang-ligaw/types';
 import type { AssetRow, CatalogEpisode, PointRule } from '../src/lib/kabihasnang-ligaw/types';
@@ -96,16 +105,47 @@ describe('Kabihasnang Ligaw R5 gates', () => {
 
   it('does not publish Panimula, Kabanata 1, or episodes 2–30', () => {
     expect(catalog).toHaveLength(31);
+    const panimulaFile = read('content/kabihasnang-ligaw/panimula.md');
+    const chapterFile = read('content/kabihasnang-ligaw/kabanata-01.md');
+    expect(catalog[0].prose).toBe(panimulaFile);
+    expect(catalog[1].prose).toBe(chapterFile);
+    expect(catalog[0].proseSha256).toBe(crypto.createHash('sha256').update(panimulaFile).digest('hex'));
+    expect(catalog[1].proseSha256).toBe(crypto.createHash('sha256').update(chapterFile).digest('hex'));
+    expect(panimulaFile.startsWith('### KABIHASNANG LIGAW\n')).toBe(true);
+    expect(panimulaFile.endsWith('hinintay na marinig.\n')).toBe(true);
+    expect(chapterFile.startsWith('### UNANG SERYE\n')).toBe(true);
+    expect(chapterFile.endsWith('WAKAS NG KABANATA 1\n')).toBe(true);
+    expect(catalog[0].proseComplete).toBe(true);
+    expect(catalog[1].proseComplete).toBe(true);
+    expect(catalog[0].manuscriptStatus).toBe('approved_complete');
+    expect(catalog[1].status).toBe('draft');
+    expect(catalog[1].approvedAt).toBeNull();
+    const panimulaParagraphs = splitCanonicalParagraphs(panimulaFile, 0);
+    const chapterParagraphs = splitCanonicalParagraphs(chapterFile, 1);
+    expect(panimulaParagraphs[0].id).toBe('kl-e00-p001');
+    expect(chapterParagraphs[chapterParagraphs.length - 1].id).toBe(`kl-e01-p${String(chapterParagraphs.length).padStart(3, '0')}`);
+    expect(chapterParagraphs[chapterParagraphs.length - 1].text).toBe('WAKAS NG KABANATA 1');
+    expect(paragraphDisplayText(panimulaParagraphs[0])).toBe('KABIHASNANG LIGAW');
+    expect(paragraphDisplayText(chapterParagraphs[3])).toBe(chapterParagraphs[3].text);
     for (const episode of catalog) {
       const rows = assets.filter((asset) => asset.episodeId === episode.id);
-      expect(episode.prose).toBeNull();
-      expect(episode.proseComplete).toBe(false);
-      expect(memberReadable(episode, rows).readable).toBe(false);
+      expect(memberReadable(episode, rows, new Date(), storyboard).readable).toBe(false);
       expect(publicationBlockers(episode, rows).length).toBeGreaterThan(0);
+      if (episode.episodeNumber >= 2) {
+        expect(episode.prose).toBeNull();
+        expect(episode.proseComplete).toBe(false);
+      }
     }
-    expect(memberReadable(catalog[0], []).reason).toBe('manuscript_incomplete');
-    expect(memberReadable(catalog[1], []).reason).toBe('manuscript_incomplete');
+    expect(memberReadable(catalog[0], [], new Date(), storyboard).reason).toBe('media_blocked');
+    expect(memberReadable(catalog[1], [], new Date(), storyboard).reason).toBe('media_blocked');
     expect(memberReadable(catalog[2], []).reason).toBe('outline_only');
+    expect(selectMemberReading({
+      locallyReadable: false,
+      serverState: 'unknown',
+      serverText: null,
+      bundledText: catalog[1].prose,
+      cachedText: catalog[1].prose,
+    }).text).toBeNull();
     expect(storyboard.filter((row) => row.episodeNumber >= 2).every((row) =>
       row.status === 'OUTLINE ONLY / MANUSCRIPT NOT APPROVED / NO ARTWORK' &&
       row.editorialIntent === null &&
@@ -114,14 +154,41 @@ describe('Kabihasnang Ligaw R5 gates', () => {
   });
 
   it('binds no invented paragraph ranges and leaves artwork pending', () => {
-    expect(storyboard.every((row) => row.paragraphRange === null && row.approved === false)).toBe(true);
-    expect(storyboard.filter((row) => row.episodeNumber === 1)).toHaveLength(5);
-    expect(KL_CHAPTER_ONE_LIVING_SCOPE.every((row) =>
-      row.activation === 'BLOCKED_UNTIL_WORD_FOR_WORD_MANUSCRIPT' &&
-      row.paragraphRange === null &&
-      row.approved === false,
+    const chapter = storyboard.filter((row) => row.episodeNumber === 1);
+    expect(chapter).toHaveLength(5);
+    expect(chapter.every((row) => row.paragraphRangeStatus === 'BOUND' && row.paragraphRange != null && row.approved === false)).toBe(true);
+    const ranges = chapter.flatMap((row) => (row.paragraphRange ? [row.paragraphRange] : []));
+    expect(sceneRangesAreOrdered(ranges)).toBe(true);
+    expect(chapter[4].spoiler).toBe(true);
+    expect(chapter.slice(0, 4).every((row) => row.spoiler === false)).toBe(true);
+    const reveal = chapter[4].paragraphRange;
+    const paragraphs = splitCanonicalParagraphs(catalog[1].prose ?? '', 1);
+    const missingShadow = paragraphs.filter((paragraph) => paragraph.text.includes('walang aninong sumusunod'));
+    const duplicatedVoice = paragraphs.filter((paragraph) => paragraph.text.includes('Bakit mo ako iniwan'));
+    expect(missingShadow).toHaveLength(1);
+    expect(duplicatedVoice).toHaveLength(1);
+    expect(reveal != null && missingShadow[0].index >= reveal.start && missingShadow[0].index <= reveal.end).toBe(true);
+    expect(reveal != null && duplicatedVoice[0].index >= reveal.start && duplicatedVoice[0].index <= reveal.end).toBe(true);
+    expect(resolveAnchorRange(paragraphs, 'missing anchor phrase', 'missing anchor phrase').ok).toBe(false);
+    expect(resolveAnchorRange(
+      [
+        { id: 'a', index: 1, text: 'same phrase', kind: 'body' },
+        { id: 'b', index: 2, text: 'same phrase', kind: 'body' },
+      ],
+      'same phrase',
+      'same phrase',
+    ).ok).toBe(false);
+    expect(storyboard[0].paragraphRangeStatus).toBe('NO_SCENE_ANCHORS');
+    expect(storyboard[0].paragraphRange).toBeNull();
+    expect(KL_CHAPTER_ONE_LIVING_SCOPE.find((row) => row.layer === 'rain')?.activation).toBe('FORBIDDEN_NOT_IN_CHAPTER_TEXT');
+    expect(KL_CHAPTER_ONE_LIVING_SCOPE.find((row) => row.layer === 'rain')?.paragraphRange).toBeNull();
+    expect(KL_CHAPTER_ONE_LIVING_SCOPE.filter((row) => row.layer !== 'rain').every((row) =>
+      row.paragraphRange != null && row.approved === false,
     )).toBe(true);
+    expect(KL_CHAPTER_ONE_LIVING_SCOPE.find((row) => row.layer === 'water_ripples')?.activation).toBe('CLOSING_REVEAL_ONLY');
     expect(assets.every((asset) => asset.approved === false)).toBe(true);
+    expect(assets.find((asset) => asset.kind === 'music')?.required).toBe(true);
+    expect(assets.find((asset) => asset.kind === 'ambient')?.required).toBe(true);
     expect(assets.filter((asset) => asset.classification === 'APPROVED').map((asset) => asset.path)).toEqual([
       'docs/kabihasnang-ligaw-approved-creative-release-contract-r5.md',
     ]);
@@ -136,7 +203,13 @@ describe('Kabihasnang Ligaw R5 gates', () => {
     const later = new Date('2026-10-22T02:00:00.000Z');
     expect(memberReadable(episode, ready, later).readable).toBe(true);
     expect(memberReadable({ ...episode, approvedAt: null, status: 'draft' }, ready, later).reason).toBe('not_approved');
-    expect(memberReadable(catalog[1], ready, later).readable).toBe(false);
+    expect(memberReadable(catalog[1], ready, later, storyboard).readable).toBe(false);
+    expect(memberReadable(episode, ready, morning, [{
+      episodeId: episode.id,
+      required: true,
+      approved: true,
+      paragraphRange: { start: 1, end: 2 },
+    }]).readable).toBe(true);
     expect(manilaSixUtc('2026-10-21')).toBe('2026-10-20T22:00:00.000Z');
     expect(isManilaSix('2026-10-20T23:00:00.000Z')).toBe(false);
   });
@@ -274,6 +347,35 @@ describe('Kabihasnang Ligaw R5 gates', () => {
       batterySaver: true,
       lowBandwidth: true,
     }).reason).toBe('paused');
+
+    expect(resolveLivingMotion({
+      boundToManuscriptParagraph: true,
+      manuscriptApprovedComplete: true,
+      ownerApproved: true,
+      depictsStory: true,
+      technicalFixture: false,
+      allowUnapprovedPreview: false,
+      visible: true,
+      appActive: true,
+      reduceMotion: false,
+      userMotionEnabled: true,
+      batterySaver: false,
+      lowBandwidth: false,
+      layers: ['rain'],
+    }).reason).toBe('forbidden_layer');
+    const reveal = KL_CHAPTER_ONE_LIVING_SCOPE.find((row) => row.layer === 'water_ripples');
+    expect(visibleLivingLayers({
+      layers: KL_CHAPTER_ONE_LIVING_SCOPE,
+      viewStart: 1,
+      viewEnd: 8,
+      revealParagraph: reveal?.paragraphRange?.start ?? null,
+    }).includes('water_ripples')).toBe(false);
+    expect(visibleLivingLayers({
+      layers: KL_CHAPTER_ONE_LIVING_SCOPE,
+      viewStart: 1,
+      viewEnd: 8,
+      revealParagraph: reveal?.paragraphRange?.start ?? null,
+    }).includes('rain')).toBe(false);
   });
 
   it('withholds images on a weak connection and does not cache locked reading progress', () => {
@@ -286,6 +388,20 @@ describe('Kabihasnang Ligaw R5 gates', () => {
     expect(next.lastEpisodeId).toBe('locked');
     expect(queueReaderIssue(cache, { kind: 'unlock', detail: 'x'.repeat(400), at: 't' }).issues[0].detail).toHaveLength(180);
     expect(mediaGateFor([])).toBe('missing');
+    expect(sceneArtDecision({
+      spoiler: true,
+      rangeStart: 186,
+      reachedParagraph: 10,
+      approvedUri: 'https://example.test/reveal.png',
+      lowBandwidth: false,
+    }).message).toBe('spoiler_held');
+    expect(sceneArtDecision({
+      spoiler: true,
+      rangeStart: 186,
+      reachedParagraph: 186,
+      approvedUri: 'https://example.test/reveal.png',
+      lowBandwidth: true,
+    }).showImage).toBe(false);
   });
 
   it('keeps member copy free of allegory, unresolved names, and system jargon', () => {
@@ -323,8 +439,18 @@ describe('Kabihasnang Ligaw R5 gates', () => {
     expect(sql.toLowerCase()).not.toContain('javvo');
     const manifest = buildMediaManifest();
     expect(manifest.rcFrozen).toBe(false);
-    expect(manifest.manuscript).toBe('CONTENT_BLOCKED');
+    expect(manifest.manuscript).toBe('CANONICAL_IMPORTED_UNPUBLISHED');
+    expect(manifest.assetGate).toBe('BLOCKED_NO_ORIGINAL_SCENE_ART');
+    expect(manifest.audioGate).toBe('BLOCKED_NO_RIGHTS_CLEARED_FILE');
     expect(manifest.ownerImageApproval).toBe('pending');
+    const canonicalSql = read('supabase/migrations/20261021234500_kabihasnang_ligaw_r5_canonical_text.sql');
+    expect(canonicalSql).toContain(catalog[0].proseSha256 ?? '');
+    expect(canonicalSql).toContain(catalog[1].proseSha256 ?? '');
+    expect(canonicalSql).toContain('FORBIDDEN_NOT_IN_CHAPTER_TEXT');
+    expect(canonicalSql).toContain('one_episode_per_manila_day');
+    expect(canonicalSql).toContain('pg_advisory_xact_lock');
+    expect(canonicalSql).not.toContain('bayanihan_ledger');
+    expect(read('src/components/kabihasnang-ligaw/KlReaderScreen.tsx')).not.toContain('May mga lugar sa daigdig na hindi makikita');
     const exported = JSON.parse(read('docs/kabihasnang-ligaw-r5-media-storyboard-manifest.json'));
     expect(exported).toEqual(manifest);
   });

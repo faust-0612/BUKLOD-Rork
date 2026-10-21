@@ -2,7 +2,9 @@
   "version": 1,
   "rcFrozen": false,
   "ownerImageApproval": "pending",
-  "manuscript": "CONTENT_BLOCKED",
+  "manuscript": "CANONICAL_IMPORTED_UNPUBLISHED",
+  "assetGate": "BLOCKED_NO_ORIGINAL_SCENE_ART",
+  "audioGate": "BLOCKED_NO_RIGHTS_CLEARED_FILE",
   "jawoJavvo": {
     "blocker": "jawo_javvo_spelling",
     "resolved": false,
@@ -21,12 +23,14 @@
       "seasonId": "22222222-2222-4222-8222-000000000001",
       "kind": "panimula",
       "episodeNumber": 0,
-      "title": "Panimula",
+      "title": "Ang Daigdig na May Sariling Alaala",
       "titleMode": "canon_title",
       "status": "draft",
-      "manuscriptStatus": "content_blocked",
-      "prose": null,
-      "proseComplete": false,
+      "manuscriptStatus": "approved_complete",
+      "prose": "### KABIHASNANG LIGAW\n\nIsang orihinal na serye ng hiwaga, pakikipagsapalaran, at mga lihim ng isang daigdig.\n\nLikha ni Faustino Jr. M. Gabut\n\n### PANIMULA\n\n### Ang Daigdig na May Sariling Alaala\n\nMay mga lugar sa daigdig na hindi makikita sa anumang mapa. Hindi dahil nakatago ang mga ito sa likod ng malalayong kabundukan o napapalibutan ng dagat, kundi dahil may mga lugar na nagbabago ng kinalalagyan. May mga daang lumilitaw lamang kapag umuulan, mga kagubatang hindi pareho ang anyo sa umaga at gabi, at mga pamayanang isang araw ay naroon, ngunit kinabukasan ay wala nang nakaaalala kung saan matatagpuan.\n\nSa daigdig na ito, hindi lahat ng kakaiba ay kinatatakutan. May mga magsasakang marunong makinig sa lupa bago magtanim, mga manlalakbay na sumusunod sa mga bituing hindi nakikita ng iba, at mga tagapagtayo ng lungsod na naniniwalang may sariling ugali ang bawat tahanan. May mga bagay ding hindi maipaliwanag, ngunit natutuhan nang tanggapin ng mga tao bilang bahagi ng kanilang pang-araw-araw na buhay.\n\nGayunman, may hangganan ang mga bagay na kayang unawain ng tao.\n\nMay mga binhing tumutubo kahit walang tubig. May mga ilog na nagdadala ng mga bagay mula sa mga lugar na hindi pa nararating. May mga awiting naaalala ng isang tao kahit hindi pa niya naririnig. At kung minsan, may mga tinig na bumabalik mula sa mga taong matagal nang namatay.\n\nSa loob ng maraming salinlahi, magkakahiwalay na namuhay ang mga pamayanan. Bawat isa ay may sariling kuwento tungkol sa mga kababalaghang nakapaligid sa kanila. Walang nakaaalam kung iisa ang pinagmulan ng mga ito, o kung nagkataon lamang na ang daigdig ay puno ng mga bagay na hindi maipaliwanag.\n\nHanggang sa nagsimulang magbago ang mga bagay na matagal nang hindi gumagalaw.\n\nSa isang maliit na pamayanang tinatawag na Lunawen, isang magsasaka ang unang makakasaksi sa pagbabagong iyon.\n\nAng pangalan niya ay Phan.\n\nAt sa gabing nagsimulang umangat ang lupa, may isang tinig na matagal na niyang hinintay na marinig.\n",
+      "proseSha256": "78195ad435ba17ae033ec6d5649813edd85411b70189a437bf502db96cce77c2",
+      "sourcePath": "content/kabihasnang-ligaw/panimula.md",
+      "proseComplete": true,
       "mediaGate": "missing",
       "approvedAt": null,
       "approvedBy": null,
@@ -43,9 +47,11 @@
       "title": "Ang Gabi ng Pag-ahon",
       "titleMode": "canon_title",
       "status": "draft",
-      "manuscriptStatus": "content_blocked",
-      "prose": null,
-      "proseComplete": false,
+      "manuscriptStatus": "approved_complete",
+      "prose": "### UNANG SERYE\n\n### Ang Lupang Hindi Namamatay\n\n### KABANATA 1 — ANG GABI NG PAG-AHON\n\nUnang naramdaman ni Phan ang paggalaw sa ilalim ng kanyang mga paa habang tinatali niya ang huling bungkos ng mga tangkay sa kanilang imbakan.\n\nMahina lamang iyon, halos katulad ng pagdaan ng mabigat na kariton sa malayong daan. Huminto siya at pinakinggan ang paligid. Wala namang kariton. Tahimik na ang mga bahay sa Lunawen, at ang tanging maririnig ay ang pagaspas ng mga dahon sa gilid ng kanilang bakuran.\n\nMuli niyang hinigpitan ang tali.\n\nPagkatapos ay gumalaw na naman ang lupa.\n\nSa pagkakataong ito, may narinig siyang mahabang paglangitngit mula sa ilalim ng imbakan. Unti-unting gumulong ang isang sisidlang puno ng tuyong butil hanggang sa tumama sa kanyang paa.\n\nNapatingin siya sa sahig.\n\nIsang manipis na guhit ang lumitaw sa pagitan ng mga batong nakabaon sa lupa. Habang pinagmamasdan niya iyon, dahan-dahang humaba ang guhit, na para bang may humihila sa magkabilang dulo ng sahig.\n\n“Phan!”\n\nTinig iyon ng kanyang ina mula sa bahay.\n\nIniwan niya ang mga tangkay at nagmamadaling lumabas. Sa kabilang bakuran, may ilang taong nakatayo sa harap ng kanilang mga tahanan. May isang matandang nakayuko at nakadikit ang palad sa lupa. Ang mga alagang hayop sa tabi ng daan ay nagkakagulo, pilit na kumakawala sa kanilang mga tali.\n\nPaglingon ni Phan sa kanilang bahay, nakita niyang nakabukas ang pinto.\n\nNakatayo sa bungad ang kanyang ina, hawak sa balikat ang nakababatang kapatid niyang si Tali.\n\n“Bakit gumagalaw ang lupa?” tanong ng bata.\n\nHindi agad sumagot si Phan.\n\nSa likod ng kanilang bahay, ang maliit na punong itinanim ng kanyang ama maraming taon na ang nakalilipas ay nakatagilid na. Hindi ito tinatangay ng hangin. Gumagalaw ang mismong lupang kinakapitan ng mga ugat nito.\n\n“Lumabas kayo sa daan,” sabi niya. “Doon sa maluwang.”\n\n“Ano'ng nangyayari?” tanong ng kanyang ina.\n\n“Hindi ko alam. Basta lumayo muna kayo sa bahay.”\n\nHinawakan niya ang kamay ni Tali at inakay silang dalawa palabas ng bakuran. Hindi pa sila nakalalayo nang marinig nila ang isang malakas na pagputok.\n\nNapalingon si Phan.\n\nNahati ang lupang nasa ilalim ng imbakan. Bumagsak ang isang haligi, sumunod ang bubong, at sa gitna ng alikabok ay may umangat na makapal na bagay na tila isang napakalaking ugat.\n\nHindi iyon katulad ng karaniwang ugat ng puno.\n\nMakinis ang ibabaw nito, kulay abo na may mahahabang guhit na maputlang luntian. Gumagalaw ito sa ilalim ng lupa na para bang may sariling lakas. Sa bawat pag-angat nito, natutulak paitaas ang mga bato at nahihila pababa ang ibang bahagi ng bakuran.\n\nMay sumigaw sa kabilang bahay.\n\n“Lumubog ang sahig!”\n\nNagsimulang magtakbuhan ang mga tao. May mga magulang na buhat ang kanilang mga anak, may mga matandang inaalalayan palabas, at may ilang nagsisikap pang iligtas ang kanilang mga kagamitan.\n\nSa gitna ng kaguluhan, napansin ni Phan ang isang bagay na lalong nagpalamig sa kanyang katawan.\n\nHindi lamang ang kanilang bakuran ang gumagalaw.\n\nSa buong Lunawen, may mga bahaging unti-unting lumulubog habang may ibang bahagi namang umaangat. Ang daang dati ay patag ay nagkaroon ng mahahabang umbok. Ang mga bakod ay tumagilid. Ang mga punong nakatanim sa magkabilang panig ng daan ay tila hinihila sa magkasalungat na direksyon.\n\nAt mula sa ilalim ng lupa, may lumilitaw na maputlang liwanag.\n\n“Phan, halika na!” sigaw ng kanyang ina.\n\n“Mauna na kayo sa liwasan!”\n\n“Hindi kita iiwan!”\n\n“Susunod ako!”\n\nHindi niya alam kung bakit niya iyon sinabi. Wala naman siyang balak bumalik sa bahay. Ngunit may narinig siyang panibagong sigaw mula sa kabilang bakuran.\n\nIsang bata.\n\nHumihingi ng tulong.\n\nTumingin siya sa pinanggalingan ng tinig.\n\nSa pagitan ng dalawang gumuhong bakod, may nabuksang makitid na siwang. Isang maliit na kamay ang nakakapit sa gilid nito. Sa ilalim ng kamay, bahagya niyang nakita ang mukha ng isang batang lalaki.\n\n“Tulungan ninyo ako!”\n\nHumakbang si Phan papalapit.\n\n“Phan!” sigaw ng kanyang ina.\n\nHindi siya lumingon.\n\n“Pumunta kayo sa liwasan! Ngayon na!”\n\nTumakbo siya patungo sa siwang. Sa bawat hakbang, nararamdaman niyang hindi matatag ang lupa. May mga batong lumulubog sa bigat ng kanyang paa, at ang ilang bahagi ng daan ay tila lumalambot.\n\nNang makarating siya sa gilid, lumuhod siya at iniabot ang kamay.\n\n“Abutin mo ako!”\n\nSinubukan ng bata, ngunit masyadong malayo.\n\n“Hindi ko kaya!”\n\n“Tumayo ka sa bato sa likod mo!”\n\n“Wala pong bato!”\n\nNapatingin si Phan sa loob ng siwang.\n\nHindi niya makita ang ilalim.\n\nSa halip na karaniwang lupa at bato, may mga makakapal na ugat na nakapulupot sa magkabilang dingding. Sa pagitan ng mga ito ay may liwanag na tila nagmumula sa ilalim ng isang malalim na balon.\n\n“Makinig ka,” sabi ni Phan. “Huwag mong bibitawan ang gilid. Kukuha ako ng lubid.”\n\nTumango ang bata.\n\nTumayo si Phan at lumingon sa kanilang bakuran. May lubid sa tabi ng imbakan, ngunit halos natabunan na iyon ng gumuhong bubong.\n\nNagmadali siyang bumalik.\n\nHabang hinihila niya ang lubid mula sa ilalim ng mga kahoy, may narinig siyang malakas na paglangitngit mula sa kanilang bahay.\n\nAng isa sa mga haligi nito ay lumubog.\n\nSumunod ang buong gilid ng dingding.\n\nNapahinto siya.\n\nSa bukas na pinto, nakita niya ang loob ng tahanang kinalakhan niya. Naroon pa ang mahabang hapag na ginawa ng kanyang ama, ang mga sisidlang ginagamit ng kanyang ina sa pagluluto, at ang maliit na bangkong madalas upuan ni Tali habang hinihintay siyang umuwi mula sa bukid.\n\nLahat ng iyon ay unti-unting tumatagilid.\n\nMay bahagi sa kanya na gustong tumakbo papasok upang iligtas ang kahit ano.\n\nAng mga kagamitan. Ang mga binhi. Ang lumang kahong pinaglalagyan ng mga gamit ng kanyang ama.\n\nNgunit mula sa kabilang bakuran ay muling sumigaw ang bata.\n\n“Kuya!”\n\nHinila ni Phan ang lubid.\n\nNakuha niya ang isang dulo, ngunit naipit ang natitirang bahagi sa ilalim ng malaking kahoy. Yumuko siya, itinukod ang balikat, at buong lakas na itinulak ang nakaharang.\n\nHindi gumalaw.\n\nMuli niyang itinulak.\n\nSa pagkakataong ito, bahagyang umangat ang kahoy. Nahila niya ang lubid, ngunit kasabay nito ay may bumagsak na bahagi ng bubong sa kanyang likuran.\n\nNapayuko siya upang makaiwas.\n\nNang tumingala siya, nakita niyang halos kalahati na ng kanilang bahay ang lumubog.\n\nHindi niya namalayang mahigpit na pala niyang hawak ang lubid.\n\nIsang iglap siyang nanatiling nakatayo, nakatitig sa bahay na hindi na niya maililigtas.\n\nPagkatapos ay tumalikod siya at tumakbo pabalik sa bata.\n\nMas lumawak na ang siwang.\n\n“Abutin mo ito!” sigaw niya habang inihahagis ang lubid.\n\nHindi agad sumagot ang bata.\n\nNakasandal na lamang ito sa isang makapal na ugat. Ang mga daliri nitong kanina ay nakakapit sa gilid ay nanginginig na.\n\n“Kuya, may gumagalaw po rito.”\n\n“Nakikita ko. Hawakan mo ang lubid!”\n\n“May humihila po sa paa ko.”\n\nNapatingin si Phan sa ibabang bahagi ng katawan ng bata.\n\nMay isang manipis na ugat na nakapulupot sa bukung-bukong nito.\n\nHindi iyon mahigpit. Ngunit habang pinagmamasdan niya, dahan-dahang gumapang ang ugat paitaas.\n\nNaramdaman ni Phan ang mabilis na pagtibok ng kanyang puso.\n\nHinila niya pabalik ang lubid, gumawa ng malaking buhol sa dulo, at muling ibinaba iyon.\n\n“Ipasok mo ang braso mo rito!”\n\nSinunod siya ng bata.\n\n“Mahigpit ang kapit mo?”\n\n“Opo!”\n\n“Kapag sinabi kong hila, itulak mo ang sarili mo pataas.”\n\nTumango ang bata.\n\nItinukod ni Phan ang kanyang mga paa sa matigas na bahagi ng lupa at nagsimulang humila.\n\nMabigat.\n\nMas mabigat kaysa sa inaasahan niya.\n\nNaramdaman niyang humihigpit ang lubid sa kanyang mga palad. Unti-unting umangat ang bata, ngunit kasabay nito ay gumalaw ang ugat na nakapulupot sa paa nito.\n\n“Masakit po!”\n\n“Kaunti na lang!”\n\nMuling humila si Phan.\n\nSa ilalim ng siwang, may mahinang tunog na tila paghinga.\n\nHuminto siya.\n\nHindi niya alam kung saan iyon nanggaling.\n\nPagkatapos ay may narinig siyang tinig.\n\n“Phan.”\n\nNapalingon siya.\n\nWalang tao sa kanyang likuran.\n\nMula sa liwasan ay naririnig pa rin ang mga sigaw ng mga taga-Lunawen. Sa paligid niya ay patuloy ang pagguho ng lupa.\n\nNgunit ang tinig na narinig niya ay malinaw.\n\nPamilyar.\n\nAt matagal na niyang hindi naririnig.\n\n“Phan,” muling tawag nito.\n\nNanigas ang kanyang mga daliri sa lubid.\n\nHindi maaaring totoo.\n\nAlam niya ang tinig na iyon. Kilala niya ang mababang tono nito, ang bahagyang paos na pagbigkas sa kanyang pangalan, at ang paraan ng pagsasalita na para bang kahit gaano kabigat ang problema ay may panahon pa rin upang pag-isipan ang susunod na gagawin.\n\nTinig iyon ng kanyang ama.\n\nAng amang tatlong taon nang nakalibing sa gilid ng kanilang bukirin.\n\n“Anak.”\n\nDahan-dahang tumingin si Phan sa siwang.\n\nMula sa pagitan ng mga ugat, may maputlang liwanag na unti-unting lumalakas.\n\n“Pakawalan mo ang lubid.”\n\nHindi siya gumalaw.\n\n“Anak, makinig ka sa akin.”\n\nNapalunok si Phan.\n\n“...Ama?”\n\nMay sumagot mula sa ilalim ng lupa.\n\n“Huwag mong iahon ang batang iyan.”\n\nNaramdaman niyang nanlamig ang kanyang mga kamay.\n\nSa ibaba, nakatingala sa kanya ang bata.\n\n“Kuya?”\n\nHindi niya alam kung alin ang dapat niyang paniwalaan.\n\nAng batang nakikita niya, nanginginig at humihingi ng tulong?\n\nO ang tinig ng kanyang ama na nanggagaling sa isang lugar na hindi niya maipaliwanag?\n\n“Kuya, huwag ninyo akong bitawan.”\n\nHumigpit ang kapit ni Phan sa lubid.\n\nMuling nagsalita ang tinig.\n\n“Hindi mo alam kung ano ang kasama niyang aahon.”\n\nSa pagkakataong iyon, biglang tumigil ang paggalaw ng lupa.\n\nNawala ang paglangitngit ng mga bahay. Tumahimik ang mga ugat. Kahit ang malayong sigawan mula sa liwasan ay tila humina.\n\nSa loob ng ilang saglit, ang tanging naririnig ni Phan ay ang sariling paghinga.\n\nAt ang mahinang pag-iyak ng bata.\n\nTumingin siya sa mukha nito.\n\nMay luha sa pisngi. May putik sa noo. Hindi ito naiiba sa ibang batang nakita niyang nasugatan at natakot.\n\nNgunit sa likod nito, sa pagitan ng mga nagliliwanag na ugat, may isang aninong dahan-dahang gumalaw.\n\nHindi niya matukoy ang hugis.\n\nMasyado itong malalim.\n\n“Phan,” sabi ng tinig ng kanyang ama. “Huling pagkakataon mo na ito.”\n\nPumikit siya sandali.\n\nNaalala niya ang mga kamay ng kanyang ama, magaspang sa pagtatanim. Ang pagtawa nito kapag may pumapalpak siyang gawain. Ang huling gabing nakita niya itong buhay, nakaupo sa tabi ng hapag habang sinusubukang itago ang matinding pagod.\n\nGusto niyang maniwala.\n\nHigit sa lahat, gusto niyang marinig muli ang tinig na iyon.\n\nNgunit nang dumilat siya, nakita niyang unti-unti nang dumudulas ang lubid sa mga kamay ng bata.\n\n“Kuya!”\n\nHuminga nang malalim si Phan.\n\nAt humila.\n\nBuong lakas.\n\nNapahiyaw ang bata habang umaangat ang katawan nito. Kumalas ang ugat sa bukung-bukong nito, at sa isang huling paghila ay bumagsak silang dalawa sa lupa.\n\nNiyakap ng bata ang sariling mga tuhod at humagulgol.\n\nHindi agad nakatayo si Phan.\n\nNakahiga siya sa tabi ng siwang, hinihingal, habang pinagmamasdan ang mga ugat na dahan-dahang bumababa sa ilalim.\n\nNawala ang liwanag.\n\nNawala rin ang tinig ng kanyang ama.\n\nMaya-maya, bumalik ang karaniwang ingay ng gabi. May mga taong tumatawag sa kanilang mga kamag-anak. May umiiyak. May mga paa na nagmamadaling tumatakbo sa daan.\n\nUmupo si Phan at tumingin sa batang kanyang nailigtas.\n\n“Ano'ng pangalan mo?”\n\nPinunasan ng bata ang mukha nito.\n\nHindi sumagot.\n\n“Saan ang bahay ninyo?”\n\nDahan-dahang umiling ang bata.\n\n“May kasama ka bang magulang?”\n\nMuli itong umiling.\n\nNapabuntong-hininga si Phan. Hinubad niya ang kanyang panlabas na kasuotan at ibinalot iyon sa nanginginig na balikat ng bata.\n\n“Halika. Hahanapin natin sila.”\n\nTumayo siya at inalalayan ito.\n\nSa pagharap nila sa liwasan, nakita niyang nakatayo sa malayo ang kanyang ina at si Tali. Kumakaway ang kanyang kapatid, at sa unang pagkakataon mula nang magsimula ang pagguho ay nakaramdam siya ng kaunting ginhawa.\n\nBuhay sila.\n\nNasa ligtas na lugar.\n\nMay oras pa upang alamin kung ano ang nangyari sa kanilang tahanan.\n\nHinawakan niya ang kamay ng bata at nagsimulang maglakad.\n\nNgunit pagdaan nila sa tabi ng isang nakatumbang sisidlang puno ng tubig, may napansin si Phan.\n\nNaaninag sa tubig ang maputlang buwan, ang kanyang mukha, at ang mahabang anino ng kanyang katawan.\n\nSa tabi niya, nakatayo ang bata.\n\nNakita niya ang repleksiyon nito sa tubig.\n\nNgunit sa lupa, sa ilalim ng liwanag ng buwan, walang aninong sumusunod sa mga paa nito.\n\nHuminto si Phan.\n\nNapatingin sa kanya ang bata.\n\n“Kuya?”\n\nHindi siya nakasagot.\n\nSa likuran nila, mula sa ilalim ng gumuhong bahay, may isang mahinang tinig na muling nagsalita.\n\nHindi na iyon tinig ng kanyang ama.\n\nTinig iyon ng isang batang lalaki.\n\nAt eksaktong kapareho ng batang hawak niya sa kamay.\n\n“Kuya Phan,” tawag nito mula sa dilim.\n\n“Bakit mo ako iniwan?”\n\nWAKAS NG KABANATA 1\n",
+      "proseSha256": "fef559f06b20884bb57fd36898c44a1174293a2324823f02af17b48eff463173",
+      "sourcePath": "content/kabihasnang-ligaw/kabanata-01.md",
+      "proseComplete": true,
       "mediaGate": "missing",
       "approvedAt": null,
       "approvedBy": null,
@@ -64,6 +70,8 @@
       "status": "outline_only",
       "manuscriptStatus": "outline_only",
       "prose": null,
+      "proseSha256": null,
+      "sourcePath": null,
       "proseComplete": false,
       "mediaGate": "missing",
       "approvedAt": null,
@@ -83,6 +91,8 @@
       "status": "outline_only",
       "manuscriptStatus": "outline_only",
       "prose": null,
+      "proseSha256": null,
+      "sourcePath": null,
       "proseComplete": false,
       "mediaGate": "missing",
       "approvedAt": null,
@@ -102,6 +112,8 @@
       "status": "outline_only",
       "manuscriptStatus": "outline_only",
       "prose": null,
+      "proseSha256": null,
+      "sourcePath": null,
       "proseComplete": false,
       "mediaGate": "missing",
       "approvedAt": null,
@@ -121,6 +133,8 @@
       "status": "outline_only",
       "manuscriptStatus": "outline_only",
       "prose": null,
+      "proseSha256": null,
+      "sourcePath": null,
       "proseComplete": false,
       "mediaGate": "missing",
       "approvedAt": null,
@@ -140,6 +154,8 @@
       "status": "outline_only",
       "manuscriptStatus": "outline_only",
       "prose": null,
+      "proseSha256": null,
+      "sourcePath": null,
       "proseComplete": false,
       "mediaGate": "missing",
       "approvedAt": null,
@@ -159,6 +175,8 @@
       "status": "outline_only",
       "manuscriptStatus": "outline_only",
       "prose": null,
+      "proseSha256": null,
+      "sourcePath": null,
       "proseComplete": false,
       "mediaGate": "missing",
       "approvedAt": null,
@@ -178,6 +196,8 @@
       "status": "outline_only",
       "manuscriptStatus": "outline_only",
       "prose": null,
+      "proseSha256": null,
+      "sourcePath": null,
       "proseComplete": false,
       "mediaGate": "missing",
       "approvedAt": null,
@@ -197,6 +217,8 @@
       "status": "outline_only",
       "manuscriptStatus": "outline_only",
       "prose": null,
+      "proseSha256": null,
+      "sourcePath": null,
       "proseComplete": false,
       "mediaGate": "missing",
       "approvedAt": null,
@@ -216,6 +238,8 @@
       "status": "outline_only",
       "manuscriptStatus": "outline_only",
       "prose": null,
+      "proseSha256": null,
+      "sourcePath": null,
       "proseComplete": false,
       "mediaGate": "missing",
       "approvedAt": null,
@@ -235,6 +259,8 @@
       "status": "outline_only",
       "manuscriptStatus": "outline_only",
       "prose": null,
+      "proseSha256": null,
+      "sourcePath": null,
       "proseComplete": false,
       "mediaGate": "missing",
       "approvedAt": null,
@@ -254,6 +280,8 @@
       "status": "outline_only",
       "manuscriptStatus": "outline_only",
       "prose": null,
+      "proseSha256": null,
+      "sourcePath": null,
       "proseComplete": false,
       "mediaGate": "missing",
       "approvedAt": null,
@@ -273,6 +301,8 @@
       "status": "outline_only",
       "manuscriptStatus": "outline_only",
       "prose": null,
+      "proseSha256": null,
+      "sourcePath": null,
       "proseComplete": false,
       "mediaGate": "missing",
       "approvedAt": null,
@@ -292,6 +322,8 @@
       "status": "outline_only",
       "manuscriptStatus": "outline_only",
       "prose": null,
+      "proseSha256": null,
+      "sourcePath": null,
       "proseComplete": false,
       "mediaGate": "missing",
       "approvedAt": null,
@@ -311,6 +343,8 @@
       "status": "outline_only",
       "manuscriptStatus": "outline_only",
       "prose": null,
+      "proseSha256": null,
+      "sourcePath": null,
       "proseComplete": false,
       "mediaGate": "missing",
       "approvedAt": null,
@@ -330,6 +364,8 @@
       "status": "outline_only",
       "manuscriptStatus": "outline_only",
       "prose": null,
+      "proseSha256": null,
+      "sourcePath": null,
       "proseComplete": false,
       "mediaGate": "missing",
       "approvedAt": null,
@@ -349,6 +385,8 @@
       "status": "outline_only",
       "manuscriptStatus": "outline_only",
       "prose": null,
+      "proseSha256": null,
+      "sourcePath": null,
       "proseComplete": false,
       "mediaGate": "missing",
       "approvedAt": null,
@@ -368,6 +406,8 @@
       "status": "outline_only",
       "manuscriptStatus": "outline_only",
       "prose": null,
+      "proseSha256": null,
+      "sourcePath": null,
       "proseComplete": false,
       "mediaGate": "missing",
       "approvedAt": null,
@@ -387,6 +427,8 @@
       "status": "outline_only",
       "manuscriptStatus": "outline_only",
       "prose": null,
+      "proseSha256": null,
+      "sourcePath": null,
       "proseComplete": false,
       "mediaGate": "missing",
       "approvedAt": null,
@@ -406,6 +448,8 @@
       "status": "outline_only",
       "manuscriptStatus": "outline_only",
       "prose": null,
+      "proseSha256": null,
+      "sourcePath": null,
       "proseComplete": false,
       "mediaGate": "missing",
       "approvedAt": null,
@@ -425,6 +469,8 @@
       "status": "outline_only",
       "manuscriptStatus": "outline_only",
       "prose": null,
+      "proseSha256": null,
+      "sourcePath": null,
       "proseComplete": false,
       "mediaGate": "missing",
       "approvedAt": null,
@@ -444,6 +490,8 @@
       "status": "outline_only",
       "manuscriptStatus": "outline_only",
       "prose": null,
+      "proseSha256": null,
+      "sourcePath": null,
       "proseComplete": false,
       "mediaGate": "missing",
       "approvedAt": null,
@@ -463,6 +511,8 @@
       "status": "outline_only",
       "manuscriptStatus": "outline_only",
       "prose": null,
+      "proseSha256": null,
+      "sourcePath": null,
       "proseComplete": false,
       "mediaGate": "missing",
       "approvedAt": null,
@@ -482,6 +532,8 @@
       "status": "outline_only",
       "manuscriptStatus": "outline_only",
       "prose": null,
+      "proseSha256": null,
+      "sourcePath": null,
       "proseComplete": false,
       "mediaGate": "missing",
       "approvedAt": null,
@@ -501,6 +553,8 @@
       "status": "outline_only",
       "manuscriptStatus": "outline_only",
       "prose": null,
+      "proseSha256": null,
+      "sourcePath": null,
       "proseComplete": false,
       "mediaGate": "missing",
       "approvedAt": null,
@@ -520,6 +574,8 @@
       "status": "outline_only",
       "manuscriptStatus": "outline_only",
       "prose": null,
+      "proseSha256": null,
+      "sourcePath": null,
       "proseComplete": false,
       "mediaGate": "missing",
       "approvedAt": null,
@@ -539,6 +595,8 @@
       "status": "outline_only",
       "manuscriptStatus": "outline_only",
       "prose": null,
+      "proseSha256": null,
+      "sourcePath": null,
       "proseComplete": false,
       "mediaGate": "missing",
       "approvedAt": null,
@@ -558,6 +616,8 @@
       "status": "outline_only",
       "manuscriptStatus": "outline_only",
       "prose": null,
+      "proseSha256": null,
+      "sourcePath": null,
       "proseComplete": false,
       "mediaGate": "missing",
       "approvedAt": null,
@@ -577,6 +637,8 @@
       "status": "outline_only",
       "manuscriptStatus": "outline_only",
       "prose": null,
+      "proseSha256": null,
+      "sourcePath": null,
       "proseComplete": false,
       "mediaGate": "missing",
       "approvedAt": null,
@@ -596,6 +658,8 @@
       "status": "outline_only",
       "manuscriptStatus": "outline_only",
       "prose": null,
+      "proseSha256": null,
+      "sourcePath": null,
       "proseComplete": false,
       "mediaGate": "missing",
       "approvedAt": null,
@@ -612,84 +676,126 @@
       "sceneId": "s1-panimula-unbound",
       "episodeNumber": 0,
       "paragraphRange": null,
-      "paragraphRangeStatus": "BLOCKED_NO_APPROVED_MANUSCRIPT",
+      "paragraphRangeStatus": "NO_SCENE_ANCHORS",
       "editorialIntent": null,
-      "status": "CONTENT BLOCKED / MANUSCRIPT NOT IN REPOSITORY / NO ARTWORK",
+      "status": "CANONICAL TEXT IMPORTED / NO SCENE ANCHORS / NO ARTWORK",
       "artworkStatus": "NO_ARTWORK",
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
+      "spoiler": false,
       "livingLayers": []
     },
     {
       "episodeId": "11111111-1111-4111-8111-000000000001",
       "sceneId": "s1-e01-shot-01",
       "episodeNumber": 1,
-      "paragraphRange": null,
-      "paragraphRangeStatus": "BLOCKED_NO_APPROVED_MANUSCRIPT",
-      "editorialIntent": "Phan tying harvested stalks in a quiet Lunawen storehouse as a floor crack forms.",
-      "status": "CONTENT BLOCKED / MANUSCRIPT NOT IN REPOSITORY / NO ARTWORK",
+      "paragraphRange": {
+        "start": 4,
+        "end": 10,
+        "startId": "kl-e01-p004",
+        "endId": "kl-e01-p010"
+      },
+      "paragraphRangeStatus": "BOUND",
+      "editorialIntent": "Lunawen storehouse, tied stalks, grain jar rolling, hairline floor crack. No giant root or child. No rainfall.",
+      "status": "BOUND / ART PENDING OWNER APPROVAL / NO ARTWORK",
       "artworkStatus": "NO_ARTWORK",
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
-      "livingLayers": []
+      "spoiler": false,
+      "livingLayers": [
+        "wind_foliage"
+      ]
     },
     {
       "episodeId": "11111111-1111-4111-8111-000000000001",
       "sceneId": "s1-e01-shot-02",
       "episodeNumber": 1,
-      "paragraphRange": null,
-      "paragraphRangeStatus": "BLOCKED_NO_APPROVED_MANUSCRIPT",
-      "editorialIntent": "Mother and Tali at the doorway while earth and a pale-green veined root rise beside the storehouse.",
-      "status": "CONTENT BLOCKED / MANUSCRIPT NOT IN REPOSITORY / NO ARTWORK",
+      "paragraphRange": {
+        "start": 15,
+        "end": 33,
+        "startId": "kl-e01-p015",
+        "endId": "kl-e01-p033"
+      },
+      "paragraphRangeStatus": "BOUND",
+      "editorialIntent": "Mother, Tali, Phan, tilting homestead and grey massive root with pale green veins. No visible father. No rainfall.",
+      "status": "BOUND / ART PENDING OWNER APPROVAL / NO ARTWORK",
       "artworkStatus": "NO_ARTWORK",
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
-      "livingLayers": []
+      "spoiler": false,
+      "livingLayers": [
+        "dust",
+        "magical_glow"
+      ]
     },
     {
       "episodeId": "11111111-1111-4111-8111-000000000001",
       "sceneId": "s1-e01-shot-03",
       "episodeNumber": 1,
-      "paragraphRange": null,
-      "paragraphRangeStatus": "BLOCKED_NO_APPROVED_MANUSCRIPT",
-      "editorialIntent": "A small child gripping a fissure edge above luminous roots, Phan lowering a knotted rope.",
-      "status": "CONTENT BLOCKED / MANUSCRIPT NOT IN REPOSITORY / NO ARTWORK",
+      "paragraphRange": {
+        "start": 42,
+        "end": 57,
+        "startId": "kl-e01-p042",
+        "endId": "kl-e01-p057"
+      },
+      "paragraphRangeStatus": "BOUND",
+      "editorialIntent": "Child gripping fissure edge, Phan reaching, tangled underground roots and light. Child looks ordinary. Do not hint at a missing shadow.",
+      "status": "BOUND / ART PENDING OWNER APPROVAL / NO ARTWORK",
       "artworkStatus": "NO_ARTWORK",
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
-      "livingLayers": []
+      "spoiler": false,
+      "livingLayers": [
+        "magical_glow"
+      ]
     },
     {
       "episodeId": "11111111-1111-4111-8111-000000000001",
       "sceneId": "s1-e01-shot-04",
       "episodeNumber": 1,
-      "paragraphRange": null,
-      "paragraphRangeStatus": "BLOCKED_NO_APPROVED_MANUSCRIPT",
-      "editorialIntent": "Phan hauling the child while the father's voice is heard; no visible ghost or physical father.",
-      "status": "CONTENT BLOCKED / MANUSCRIPT NOT IN REPOSITORY / NO ARTWORK",
+      "paragraphRange": {
+        "start": 72,
+        "end": 168,
+        "startId": "kl-e01-p072",
+        "endId": "kl-e01-p168"
+      },
+      "paragraphRangeStatus": "BOUND",
+      "editorialIntent": "Phan securing rope, child rising, root at ankle, collapsing home. Father is a voice only, never a visible ghost. Do not expose a hidden creature form.",
+      "status": "BOUND / ART PENDING OWNER APPROVAL / NO ARTWORK",
       "artworkStatus": "NO_ARTWORK",
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
-      "livingLayers": []
+      "spoiler": false,
+      "livingLayers": [
+        "magical_glow"
+      ]
     },
     {
       "episodeId": "11111111-1111-4111-8111-000000000001",
       "sceneId": "s1-e01-shot-05",
       "episodeNumber": 1,
-      "paragraphRange": null,
-      "paragraphRangeStatus": "BLOCKED_NO_APPROVED_MANUSCRIPT",
-      "editorialIntent": "Moonlit water vessel reflection and the child's absent cast shadow, preserving the narrative distinction: reflection visible, ground shadow absent.",
-      "status": "CONTENT BLOCKED / MANUSCRIPT NOT IN REPOSITORY / NO ARTWORK",
+      "paragraphRange": {
+        "start": 186,
+        "end": 201,
+        "startId": "kl-e01-p186",
+        "endId": "kl-e01-p201"
+      },
+      "paragraphRangeStatus": "BOUND",
+      "editorialIntent": "Moonlight, water reflection of the child, no child shadow on the ground, ruined house beyond. Closing reveal only.",
+      "status": "BOUND / ART PENDING OWNER APPROVAL / NO ARTWORK",
       "artworkStatus": "NO_ARTWORK",
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
-      "livingLayers": []
+      "spoiler": true,
+      "livingLayers": [
+        "water_ripples"
+      ]
     },
     {
       "episodeId": "11111111-1111-4111-8111-000000000002",
@@ -703,6 +809,7 @@
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
+      "spoiler": false,
       "livingLayers": []
     },
     {
@@ -717,6 +824,7 @@
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
+      "spoiler": false,
       "livingLayers": []
     },
     {
@@ -731,6 +839,7 @@
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
+      "spoiler": false,
       "livingLayers": []
     },
     {
@@ -745,6 +854,7 @@
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
+      "spoiler": false,
       "livingLayers": []
     },
     {
@@ -759,6 +869,7 @@
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
+      "spoiler": false,
       "livingLayers": []
     },
     {
@@ -773,6 +884,7 @@
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
+      "spoiler": false,
       "livingLayers": []
     },
     {
@@ -787,6 +899,7 @@
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
+      "spoiler": false,
       "livingLayers": []
     },
     {
@@ -801,6 +914,7 @@
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
+      "spoiler": false,
       "livingLayers": []
     },
     {
@@ -815,6 +929,7 @@
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
+      "spoiler": false,
       "livingLayers": []
     },
     {
@@ -829,6 +944,7 @@
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
+      "spoiler": false,
       "livingLayers": []
     },
     {
@@ -843,6 +959,7 @@
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
+      "spoiler": false,
       "livingLayers": []
     },
     {
@@ -857,6 +974,7 @@
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
+      "spoiler": false,
       "livingLayers": []
     },
     {
@@ -871,6 +989,7 @@
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
+      "spoiler": false,
       "livingLayers": []
     },
     {
@@ -885,6 +1004,7 @@
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
+      "spoiler": false,
       "livingLayers": []
     },
     {
@@ -899,6 +1019,7 @@
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
+      "spoiler": false,
       "livingLayers": []
     },
     {
@@ -913,6 +1034,7 @@
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
+      "spoiler": false,
       "livingLayers": []
     },
     {
@@ -927,6 +1049,7 @@
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
+      "spoiler": false,
       "livingLayers": []
     },
     {
@@ -941,6 +1064,7 @@
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
+      "spoiler": false,
       "livingLayers": []
     },
     {
@@ -955,6 +1079,7 @@
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
+      "spoiler": false,
       "livingLayers": []
     },
     {
@@ -969,6 +1094,7 @@
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
+      "spoiler": false,
       "livingLayers": []
     },
     {
@@ -983,6 +1109,7 @@
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
+      "spoiler": false,
       "livingLayers": []
     },
     {
@@ -997,6 +1124,7 @@
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
+      "spoiler": false,
       "livingLayers": []
     },
     {
@@ -1011,6 +1139,7 @@
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
+      "spoiler": false,
       "livingLayers": []
     },
     {
@@ -1025,6 +1154,7 @@
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
+      "spoiler": false,
       "livingLayers": []
     },
     {
@@ -1039,6 +1169,7 @@
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
+      "spoiler": false,
       "livingLayers": []
     },
     {
@@ -1053,6 +1184,7 @@
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
+      "spoiler": false,
       "livingLayers": []
     },
     {
@@ -1067,6 +1199,7 @@
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
+      "spoiler": false,
       "livingLayers": []
     },
     {
@@ -1081,6 +1214,7 @@
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
+      "spoiler": false,
       "livingLayers": []
     },
     {
@@ -1095,6 +1229,7 @@
       "approvalStatus": "pending",
       "approved": false,
       "required": true,
+      "spoiler": false,
       "livingLayers": []
     }
   ],
@@ -1102,34 +1237,62 @@
     {
       "episodeId": "11111111-1111-4111-8111-000000000001",
       "layer": "rain",
-      "activation": "BLOCKED_UNTIL_WORD_FOR_WORD_MANUSCRIPT",
+      "activation": "FORBIDDEN_NOT_IN_CHAPTER_TEXT",
       "paragraphRange": null,
       "approved": false,
-      "note": "Atmospheric rain stays inactive until that moment is present in the word-for-word approved manuscript."
+      "note": "Chapter 1 is a moonlit, windy night. Rainfall is not in the text and must not be drawn or animated."
     },
     {
       "episodeId": "11111111-1111-4111-8111-000000000001",
       "layer": "wind_foliage",
-      "activation": "BLOCKED_UNTIL_WORD_FOR_WORD_MANUSCRIPT",
-      "paragraphRange": null,
+      "activation": "BOUND_PENDING_OWNER",
+      "paragraphRange": {
+        "start": 5,
+        "end": 5,
+        "startId": "kl-e01-p005",
+        "endId": "kl-e01-p005"
+      },
       "approved": false,
-      "note": "Environmental motion stays inactive until the approved manuscript names the moment."
+      "note": "Leaf movement only while that storehouse paragraph is on screen. Owner art is still pending."
+    },
+    {
+      "episodeId": "11111111-1111-4111-8111-000000000001",
+      "layer": "dust",
+      "activation": "BOUND_PENDING_OWNER",
+      "paragraphRange": {
+        "start": 24,
+        "end": 24,
+        "startId": "kl-e01-p024",
+        "endId": "kl-e01-p024"
+      },
+      "approved": false,
+      "note": "Dust only in the collapse paragraph that names it. Owner art is still pending."
     },
     {
       "episodeId": "11111111-1111-4111-8111-000000000001",
       "layer": "magical_glow",
-      "activation": "BLOCKED_UNTIL_WORD_FOR_WORD_MANUSCRIPT",
-      "paragraphRange": null,
+      "activation": "BOUND_PENDING_OWNER",
+      "paragraphRange": {
+        "start": 33,
+        "end": 167,
+        "startId": "kl-e01-p033",
+        "endId": "kl-e01-p167"
+      },
       "approved": false,
-      "note": "Glowing-root light stays inactive until a real paragraph range is bound. Contract shot notes are not the manuscript."
+      "note": "Root light from the moment it appears until the prose says the light is gone. Owner art is still pending."
     },
     {
       "episodeId": "11111111-1111-4111-8111-000000000001",
       "layer": "water_ripples",
-      "activation": "BLOCKED_UNTIL_WORD_FOR_WORD_MANUSCRIPT",
-      "paragraphRange": null,
+      "activation": "CLOSING_REVEAL_ONLY",
+      "paragraphRange": {
+        "start": 186,
+        "end": 201,
+        "startId": "kl-e01-p186",
+        "endId": "kl-e01-p201"
+      },
       "approved": false,
-      "note": "Water-reflection motion stays inactive until a real paragraph range is bound."
+      "note": "Water ripples only after the reader reaches the closing reveal. No earlier preview."
     }
   ],
   "assets": [
@@ -1140,9 +1303,9 @@
       "sceneId": null,
       "path": null,
       "classification": "MISSING",
-      "required": false,
+      "required": true,
       "approved": false,
-      "reason": "No original or licensed melodic instrumental file is in the repository."
+      "reason": "No rights-cleared music file. The owner has not waived the media gate."
     },
     {
       "id": "asset-ambient",
@@ -1151,9 +1314,9 @@
       "sceneId": null,
       "path": null,
       "classification": "MISSING",
-      "required": false,
+      "required": true,
       "approved": false,
-      "reason": "No original or licensed ambient bed is in the repository."
+      "reason": "No rights-cleared ambient file. The owner has not waived the media gate."
     },
     {
       "id": "asset-font",
@@ -1219,7 +1382,7 @@
       "classification": "PROVISIONAL",
       "required": false,
       "approved": false,
-      "reason": "Earlier reader prototype. Its short preview is not the approved manuscript."
+      "reason": "Reader shell. Canonical prose is loaded from content/kabihasnang-ligaw, not from this screen."
     },
     {
       "id": "asset-brand-generic",
@@ -1663,10 +1826,8 @@
     }
   ],
   "searchedManuscriptPaths": [
-    "docs/kabihasnang-ligaw-approved-creative-release-contract-r5.md",
-    "docs/kabihasnang-ligaw-work-release-handoff-r5.md",
-    "docs/kabihasnang-ligaw-story-admin-ota-gate-r5.md",
-    "src/app/kabihasnang-ligaw.tsx",
+    "content/kabihasnang-ligaw/panimula.md",
+    "content/kabihasnang-ligaw/kabanata-01.md",
     "release/BUKLOD_ENGINEERING_CHARTER.md"
   ]
 }

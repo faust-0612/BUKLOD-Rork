@@ -13,6 +13,7 @@ import {
   KL_UNRESOLVED_NAME,
 } from '@/lib/kabihasnang-ligaw/catalog';
 import { mediaGateFor, publicationBlockers } from '@/lib/kabihasnang-ligaw/gates';
+import { splitCanonicalParagraphs } from '@/lib/kabihasnang-ligaw/manuscript';
 import { adminActionArgs, KL_RPC, type AdminAction } from '@/lib/kabihasnang-ligaw/rpc';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
@@ -29,7 +30,8 @@ export default function KabihasnangLigawAdminScreen() {
   const [result, setResult] = useState('Nothing has been approved.');
   const [busy, setBusy] = useState(false);
   const episode = EPISODES.find((item) => item.id === episodeId) ?? EPISODES[0];
-  const episodeAssets = ASSETS.filter((asset) => asset.episodeId === episode.id);
+  const episodeAssets = ASSETS.filter((asset) =>
+    asset.episodeId === episode.id || (asset.episodeId == null && asset.required));
   const blockers = useMemo(
     () => publicationBlockers(episode, episodeAssets),
     [episode, episodeAssets],
@@ -74,7 +76,9 @@ export default function KabihasnangLigawAdminScreen() {
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Manuscript</Text>
-          <Text style={styles.body}>Complete Panimula and Kabanata 1 text was not found. Publication stays blocked.</Text>
+          <Text style={styles.body}>
+            Panimula and Kabanata 1 are the saved text. Members do not see them until approval, art, sound, and the 6:00 a.m. release all pass. Nothing here is published.
+          </Text>
           {KL_MANUSCRIPT_SEARCH_PATHS.map((path) => (
             <Text key={path} style={styles.meta}>{path}</Text>
           ))}
@@ -93,22 +97,35 @@ export default function KabihasnangLigawAdminScreen() {
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Preview · {episode.title}</Text>
-          <Text style={styles.body}>Exact manuscript paragraphs: none on file.</Text>
+          <Text style={styles.meta}>
+            {episode.prose ? `${splitCanonicalParagraphs(episode.prose, episode.episodeNumber).length} paragraphs` : 'No prose'}
+            {episode.proseSha256 ? ` · ${episode.proseSha256}` : ''}
+          </Text>
           <Text style={styles.meta}>Media gate: {mediaGateFor(episodeAssets)}</Text>
           <Text style={styles.meta}>Blockers: {blockers.join(', ') || 'none'}</Text>
+          {episode.prose ? splitCanonicalParagraphs(episode.prose, episode.episodeNumber).map((paragraph) => (
+            <Text key={paragraph.id} style={styles.body}>{paragraph.id} {paragraph.text}</Text>
+          )) : (
+            <Text style={styles.body}>No approved prose is stored for this episode.</Text>
+          )}
           {shots.map((shot) => (
             <View key={shot.sceneId} style={styles.shot}>
-              <Text style={styles.rowTitle}>{shot.sceneId}</Text>
+              <Text style={styles.rowTitle}>{shot.sceneId}{shot.spoiler ? ' · closing reveal' : ''}</Text>
               <Text style={styles.meta}>{shot.status}</Text>
-              <Text style={styles.meta}>Paragraph range: not bound</Text>
+              <Text style={styles.meta}>
+                {shot.paragraphRange
+                  ? `Paragraphs ${shot.paragraphRange.startId}–${shot.paragraphRange.endId}`
+                  : 'Paragraph range: not bound'}
+              </Text>
               <Text style={styles.body}>{shot.editorialIntent ?? 'No scene prose. Outline only.'}</Text>
-              <Text style={styles.meta}>Artwork: {shot.artworkStatus}. Approval: {shot.approvalStatus}.</Text>
+              <Text style={styles.meta}>Artwork: {shot.artworkStatus}. Approval: {shot.approvalStatus}. Not approved.</Text>
             </View>
           ))}
           <Text style={styles.cardTitle}>Chapter 1 living layers</Text>
           {KL_CHAPTER_ONE_LIVING_SCOPE.map((layer) => (
             <Text key={layer.layer} style={styles.meta}>
-              {layer.layer}: {layer.activation}. Not approved.
+              {layer.layer}: {layer.activation}
+              {layer.paragraphRange ? ` ${layer.paragraphRange.startId}–${layer.paragraphRange.endId}` : ''}. Not approved.
             </Text>
           ))}
           <KlLivingFixture
