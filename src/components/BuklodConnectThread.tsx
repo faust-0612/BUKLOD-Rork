@@ -128,11 +128,12 @@ import {
   connectThreadSessionKey,
   mergeConnectServerMessages,
   readersForMessageWindow,
+  shouldAdvanceConnectReadCursor,
+  type ConnectReadCursorReason,
   type ConnectScopeReader,
 } from '@/lib/connectChatWindow';
 import {
   fetchScopeConnectReaders,
-  markScopeConnectReadV2,
 } from '@/lib/connectScopeReaders';
 import {
   FLATLIST_TUNING,
@@ -1294,6 +1295,12 @@ const [
   const nearBottomRef =
     useRef(true);
 
+  const listAnchoredRef =
+    useRef(false);
+
+  const pendingVisibleReadRef =
+    useRef<ConnectReadCursorReason | null>(null);
+
   const pinLatestOnOpenRef =
     useRef(true);
 
@@ -1361,6 +1368,8 @@ const [
     setHasOlder(false);
     setLoadingOlder(false);
     setListAnchored(false);
+    listAnchoredRef.current = false;
+    pendingVisibleReadRef.current = null;
     setAwayFromLatest(false);
     setNewWhileAway(0);
     setFailedAttachmentPaths({});
@@ -1683,7 +1692,61 @@ const [
       ]
     );
 
-  const scheduleInitialAnchor = () => {
+  const markVisibleRoomRead = (
+    reason: ConnectReadCursorReason
+  ) => {
+    if (
+      !effectiveContainerId ||
+      !profileId ||
+      !shouldAdvanceConnectReadCursor({
+        listAnchored: listAnchoredRef.current,
+        nearLatest: nearBottomRef.current,
+        reason,
+      })
+    ) {
+      return;
+    }
+
+    pendingVisibleReadRef.current = null;
+
+    const containerId = effectiveContainerId;
+    const readMode = mode;
+
+    void (async () => {
+      const result = await (supabase as any).rpc(
+        readMode === 'direct'
+          ? 'buklod_connect_mark_direct_read'
+          : 'buklod_connect_mark_scope_read',
+        readMode === 'direct'
+          ? { _thread_id: containerId }
+          : { _scope_id: containerId }
+      );
+
+      if (result.error) {
+        console.warn(
+          'Connect mark read:',
+          result.error.message
+        );
+        return;
+      }
+
+      if (readMode === 'scope') {
+        const readers = await fetchScopeConnectReaders(
+          containerId
+        );
+        if (readers) {
+          setScopeReaders(readers);
+        }
+        return;
+      }
+
+      void loadPeerRead();
+    })();
+  };
+
+  const scheduleInitialAnchor = (
+    markOnReveal = false
+  ) => {
     const action = connectScrollAction({
       intent: 'open',
       nearBottom: nearBottomRef.current,
@@ -1701,7 +1764,12 @@ const [
 
       if (messagesLengthRef.current < 1) {
         pinLatestOnOpenRef.current = false;
+        nearBottomRef.current = true;
+        listAnchoredRef.current = true;
         setListAnchored(true);
+        if (markOnReveal) {
+          markVisibleRoomRead('open');
+        }
         return;
       }
 
@@ -1715,9 +1783,13 @@ const [
         });
         pinLatestOnOpenRef.current = false;
         nearBottomRef.current = true;
+        listAnchoredRef.current = true;
         setAwayFromLatest(false);
         setNewWhileAway(0);
         setListAnchored(true);
+        if (markOnReveal) {
+          markVisibleRoomRead('open');
+        }
       }, 32);
     }, 48);
   };
@@ -1784,6 +1856,9 @@ const [
         }
 
         try {
+        const newestBeforeLoad =
+          messagesRef.current[messagesRef.current.length - 1] ?? null;
+
         if (
           mode === 'direct'
         ) {
@@ -1835,24 +1910,6 @@ const [
             );
 
           applyHistoryPage(page);
-
-          const readResult =
-            await (
-              supabase as any
-            ).rpc(
-              'buklod_connect_mark_direct_read',
-              {
-                _thread_id:
-                  effectiveContainerId,
-              }
-            );
-
-          if (readResult.error) {
-            console.warn(
-              'Connect mark direct read:',
-              readResult.error.message
-            );
-          }
         }
         else {
           const details =
@@ -1905,28 +1962,6 @@ const [
 
           applyHistoryPage(page);
 
-          const readResult =
-            await (
-              supabase as any
-            ).rpc(
-              'buklod_connect_mark_scope_read',
-              {
-                _scope_id:
-                  effectiveContainerId,
-              }
-            );
-
-          if (readResult.error) {
-            console.warn(
-              'Connect mark scope read:',
-              readResult.error.message
-            );
-          }
-
-          await markScopeConnectReadV2(
-            effectiveContainerId
-          );
-
           const readers =
             await fetchScopeConnectReaders(
               effectiveContainerId
@@ -1937,8 +1972,36 @@ const [
 
         await loadReactions();
 
+        const newestAfterLoad =
+          messagesRef.current[messagesRef.current.length - 1] ?? null;
+        const hasNewerMessage =
+          !!newestAfterLoad &&
+          (
+            !newestBeforeLoad ||
+            newestAfterLoad.id !== newestBeforeLoad.id ||
+            newestAfterLoad.created_at !== newestBeforeLoad.created_at
+          );
+        const reloading =
+          initialLoadSettledRef.current;
         initialLoadSettledRef.current = true;
-        scheduleInitialAnchor();
+
+        if (!reloading) {
+          scheduleInitialAnchor(true);
+        } else if (
+          nearBottomRef.current &&
+          listAnchoredRef.current &&
+          hasNewerMessage
+        ) {
+          // Wait until the new row is scrolled into view. now() before that
+          // would cover a message the reader has not seen yet.
+          pendingVisibleReadRef.current = 'incoming';
+        } else if (
+          nearBottomRef.current &&
+          listAnchoredRef.current &&
+          !hasNewerMessage
+        ) {
+          markVisibleRoomRead('reconnect');
+        }
       } catch (error: any) {
         console.warn(
           'Connect history load:',
@@ -1946,7 +2009,7 @@ const [
         );
 
         initialLoadSettledRef.current = true;
-        scheduleInitialAnchor();
+        scheduleInitialAnchor(false);
 
         Alert.alert(
           'Connect',
@@ -2277,8 +2340,7 @@ const [
       loadingOlderRef.current ||
       !hasOlder ||
       !historyCursorRef.current ||
-      !effectiveContainerId ||
-      messagesLengthRef.current >= SCALE_LIMITS.connectRenderWindow
+      !effectiveContainerId
     ) {
       return;
     }
@@ -4006,10 +4068,35 @@ const [
           },
         ]}
         ListHeaderComponent={
-          loadingOlder ? (
-            <View style={{ paddingVertical: 12 }}>
-              <ActivityIndicator color={theme.accent} />
-            </View>
+          hasOlder || loadingOlder ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Load earlier messages"
+              disabled={loadingOlder}
+              onPress={() => {
+                void loadOlder();
+              }}
+              style={{
+                minHeight: 44,
+                paddingVertical: 12,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {loadingOlder ? (
+                <ActivityIndicator color={theme.accent} />
+              ) : (
+                <Text
+                  style={{
+                    color: theme.accent,
+                    fontSize: 13,
+                    fontWeight: '800',
+                  }}
+                >
+                  Load earlier messages
+                </Text>
+              )}
+            </Pressable>
           ) : null
         }
         onContentSizeChange={(_width, height) => {
@@ -4039,6 +4126,7 @@ const [
             messagesLengthRef.current < 1
           ) {
             pinLatestOnOpenRef.current = false;
+            listAnchoredRef.current = true;
             setListAnchored(true);
             return;
           }
@@ -4051,6 +4139,12 @@ const [
             nearBottomRef.current = true;
             setAwayFromLatest(false);
             setNewWhileAway(0);
+            if (listAnchoredRef.current) {
+              pendingVisibleReadRef.current = 'own-send';
+              setTimeout(() => {
+                markVisibleRoomRead('own-send');
+              }, 32);
+            }
             return;
           }
 
@@ -4064,6 +4158,14 @@ const [
             listRef.current?.scrollToEnd({
               animated: false,
             });
+            const pending = pendingVisibleReadRef.current;
+            if (pending && listAnchoredRef.current) {
+              setTimeout(() => {
+                if (nearBottomRef.current) {
+                  markVisibleRoomRead(pending);
+                }
+              }, 32);
+            }
           }
         }}
         ListEmptyComponent={
@@ -4133,7 +4235,16 @@ const [
 
           const nearBottom =
             distanceFromBottom <= CONNECT_NEAR_BOTTOM_PX;
+          const wasNearLatest = nearBottomRef.current;
           nearBottomRef.current = nearBottom;
+
+          if (
+            nearBottom &&
+            !wasNearLatest &&
+            listAnchoredRef.current
+          ) {
+            markVisibleRoomRead('returned-to-latest');
+          }
 
           if (nearBottom) {
             if (awayFromLatest || newWhileAway > 0) {
@@ -4601,12 +4712,16 @@ const [
           }
           onPress={() => {
             followOwnSendRef.current = false;
+            listRef.current?.scrollToEnd({
+              animated: false,
+            });
             nearBottomRef.current = true;
             setAwayFromLatest(false);
             setNewWhileAway(0);
-            listRef.current?.scrollToEnd({
-              animated: true,
-            });
+            pendingVisibleReadRef.current = 'returned-to-latest';
+            setTimeout(() => {
+              markVisibleRoomRead('returned-to-latest');
+            }, 32);
           }}
           style={{
             position: 'absolute',
@@ -4677,6 +4792,16 @@ const [
               }}
             >
               Seen by
+            </Text>
+            <Text
+              style={{
+                color: theme.textMuted,
+                fontSize: 12,
+                fontWeight: '600',
+                marginBottom: 12,
+              }}
+            >
+              When they last viewed the latest messages. This is not a separate receipt for every message.
             </Text>
             {(seenDetail ?? []).map(reader => (
               <View

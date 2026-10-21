@@ -2,79 +2,40 @@
 -- It is intentionally outside supabase/migrations so release tooling will not run it.
 -- Apply only in a later, separately approved database release.
 --
--- What this adds, without replacing live RPCs:
--- 1. Newest-page + keyset history functions for direct and scope Connect.
--- 2. A scope read-cursor table and reader list so group Seen avatars can be
---    real membership-scoped data. mark_scope_read alone does not expose readers.
+-- Live schema already has, and this file must not recreate or rewrite:
+-- * public.buklod_connect_scope_reads (scope_id, user_id, last_read_at, primary key, FKs)
+-- * RLS enabled on that table, with no new policies added here
+-- * public.buklod_connect_mark_scope_read(uuid), which already upserts that table
+--   after public.buklod_connect_can_use_scope_room(_scope_id)
 --
--- Security:
--- * SECURITY DEFINER with an explicit caller check.
--- * Direct history is limited to the two people on that thread.
--- * Scope history and read cursors are limited to active members of THAT scope
---   (or a system admin). No cross-organization or cross-cluster rows are returned.
--- * Clients must ignore missing functions and must not show optimistic Seen.
+-- last_read_at is a room cursor written by the existing mark function (now() at
+-- call time). It is not a per-message receipt. This file does not write cursors.
+--
+-- Added here only:
+-- * buklod_connect_scope_readers_v1 — read co-member room cursors for one scope
+-- * newest-page history functions, because legacy *_messages_v1 ordering is not
+--   proven and direct table reads may be blocked by RLS. They do not replace
+--   the live message RPCs.
+--
+-- Negative cases this file must keep closed, without a new table policy:
+-- * signed-out caller
+-- * direct history for anyone who is not user_one or user_two, including a
+--   system admin who is not a participant
+-- * scope history/readers when buklod_connect_can_use_scope_room is false:
+--   non-member, departed member, unrelated scope, and a disallowed scope type
+-- * no cross-scope rows: the reader query filters r.scope_id = _scope_id
+-- * no second cursor write and no admin bypass beside the canonical room gate
+--
+-- The two policies and mark_scope_read_v2 below existed only in an earlier
+-- draft of this review file. Live production has neither. Dropping them does
+-- not drop or rewrite public.buklod_connect_scope_reads.
 
-create table if not exists public.buklod_connect_scope_reads (
-  scope_id uuid not null references public.buklod_scopes(id) on delete cascade,
-  user_id uuid not null references auth.users(id) on delete cascade,
-  last_read_at timestamptz not null default now(),
-  primary key (scope_id, user_id)
-);
-
-alter table public.buklod_connect_scope_reads enable row level security;
+drop function if exists public.buklod_connect_mark_scope_read_v2(uuid);
 
 drop policy if exists buklod_connect_scope_reads_select_member
   on public.buklod_connect_scope_reads;
-create policy buklod_connect_scope_reads_select_member
-  on public.buklod_connect_scope_reads
-  for select
-  to authenticated
-  using (
-    public.buklod_is_system_admin()
-    or exists (
-      select 1
-      from public.buklod_scope_memberships sm
-      where sm.scope_id = buklod_connect_scope_reads.scope_id
-        and sm.user_id = (select auth.uid())
-        and sm.membership_status = 'ACTIVE'
-    )
-  );
-
 drop policy if exists buklod_connect_scope_reads_write_own
   on public.buklod_connect_scope_reads;
-create policy buklod_connect_scope_reads_write_own
-  on public.buklod_connect_scope_reads
-  for all
-  to authenticated
-  using (
-    user_id = (select auth.uid())
-    and (
-      public.buklod_is_system_admin()
-      or exists (
-        select 1
-        from public.buklod_scope_memberships sm
-        where sm.scope_id = buklod_connect_scope_reads.scope_id
-          and sm.user_id = (select auth.uid())
-          and sm.membership_status = 'ACTIVE'
-      )
-    )
-  )
-  with check (
-    user_id = (select auth.uid())
-    and (
-      public.buklod_is_system_admin()
-      or exists (
-        select 1
-        from public.buklod_scope_memberships sm
-        where sm.scope_id = buklod_connect_scope_reads.scope_id
-          and sm.user_id = (select auth.uid())
-          and sm.membership_status = 'ACTIVE'
-      )
-    )
-  );
-
-create index if not exists buklod_connect_scope_reads_scope_idx
-  on public.buklod_connect_scope_reads (scope_id, last_read_at desc);
 
 create or replace function public.buklod_connect_direct_messages_page_v2(
   _thread_id uuid,
@@ -95,15 +56,12 @@ begin
     raise exception 'Sign in is required';
   end if;
 
+  -- Exact personal-thread participants only. No admin bypass.
   if not exists (
     select 1
     from public.buklod_connect_direct_threads t
     where t.id = _thread_id
-      and (
-        t.user_one = auth.uid()
-        or t.user_two = auth.uid()
-        or public.buklod_is_system_admin()
-      )
+      and auth.uid() in (t.user_one, t.user_two)
   ) then
     raise exception 'Personal Connect is not available';
   end if;
@@ -141,17 +99,9 @@ begin
     raise exception 'Sign in is required';
   end if;
 
-  if not (
-    public.buklod_is_system_admin()
-    or exists (
-      select 1
-      from public.buklod_scope_memberships sm
-      where sm.scope_id = _scope_id
-        and sm.user_id = auth.uid()
-        and sm.membership_status = 'ACTIVE'
-    )
-  ) then
-    raise exception 'Active membership in this Connect room is required';
+  -- Canonical room gate: active membership and permitted scope type.
+  if not public.buklod_connect_can_use_scope_room(_scope_id) then
+    raise exception 'This Connect room is not available';
   end if;
 
   return query
@@ -165,47 +115,6 @@ begin
     )
   order by m.created_at desc, m.id desc
   limit v_limit;
-end;
-$$;
-
-create or replace function public.buklod_connect_mark_scope_read_v2(
-  _scope_id uuid
-)
-returns void
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  if auth.uid() is null then
-    raise exception 'Sign in is required';
-  end if;
-
-  if not (
-    public.buklod_is_system_admin()
-    or exists (
-      select 1
-      from public.buklod_scope_memberships sm
-      where sm.scope_id = _scope_id
-        and sm.user_id = auth.uid()
-        and sm.membership_status = 'ACTIVE'
-    )
-  ) then
-    raise exception 'Active membership in this Connect room is required';
-  end if;
-
-  insert into public.buklod_connect_scope_reads (
-    scope_id,
-    user_id,
-    last_read_at
-  )
-  values (
-    _scope_id,
-    auth.uid(),
-    now()
-  )
-  on conflict (scope_id, user_id)
-  do update set last_read_at = excluded.last_read_at;
 end;
 $$;
 
@@ -228,17 +137,12 @@ begin
     raise exception 'Sign in is required';
   end if;
 
-  if not (
-    public.buklod_is_system_admin()
-    or exists (
-      select 1
-      from public.buklod_scope_memberships sm
-      where sm.scope_id = _scope_id
-        and sm.user_id = auth.uid()
-        and sm.membership_status = 'ACTIVE'
-    )
-  ) then
-    raise exception 'Active membership in this Connect room is required';
+  -- Same canonical gate as buklod_connect_mark_scope_read.
+  -- Non-members, departed members, unrelated scopes, and disallowed scope
+  -- types fail closed inside buklod_connect_can_use_scope_room.
+  -- System admin is not an additional bypass.
+  if not public.buklod_connect_can_use_scope_room(_scope_id) then
+    raise exception 'This Connect room is not available';
   end if;
 
   return query
@@ -263,10 +167,8 @@ $$;
 
 revoke all on function public.buklod_connect_direct_messages_page_v2(uuid, integer, timestamptz, uuid) from public, anon;
 revoke all on function public.buklod_connect_scope_messages_page_v2(uuid, integer, timestamptz, uuid) from public, anon;
-revoke all on function public.buklod_connect_mark_scope_read_v2(uuid) from public, anon;
 revoke all on function public.buklod_connect_scope_readers_v1(uuid) from public, anon;
 
 grant execute on function public.buklod_connect_direct_messages_page_v2(uuid, integer, timestamptz, uuid) to authenticated;
 grant execute on function public.buklod_connect_scope_messages_page_v2(uuid, integer, timestamptz, uuid) to authenticated;
-grant execute on function public.buklod_connect_mark_scope_read_v2(uuid) to authenticated;
 grant execute on function public.buklod_connect_scope_readers_v1(uuid) to authenticated;

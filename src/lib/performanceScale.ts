@@ -12,11 +12,10 @@ export const SCALE_LIMITS = {
    */
   connectOlderPage: 80,
   /**
-   * Maximum messages kept in one open thread after paging backward.
-   * The list renders every loaded message until this cap; it no longer
-   * hides the tail of a fetched page.
+   * FlatList virtualization budget. This is not a history ceiling.
+   * Older pages keep loading until the thread itself has no earlier message.
    */
-  connectRenderWindow: 400,
+  connectRenderWindow: 100,
   /** Reaction rows fetched per thread. */
   connectReactions: 800,
   /** Community feed first page. */

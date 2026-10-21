@@ -14,7 +14,12 @@ import {
   connectThreadSessionKey,
   mergeConnectHistoryPages,
   mergeConnectServerMessages,
+  directHistoryParticipantAllowed,
   readersForMessageWindow,
+  roomCursorCoversMessage,
+  scopeReadCursorsForCaller,
+  scopeRoomReaderAllowed,
+  shouldAdvanceConnectReadCursor,
   splitAlbumUpload,
   visibleReaderAvatars,
 } from '@/lib/connectChatWindow';
@@ -360,7 +365,7 @@ describe('Connect scope seen avatars', () => {
     },
   ];
 
-  it('places each reader on the latest message they have actually read', () => {
+  it('places a room cursor on the latest loaded message at or before that time', () => {
     const early = readersForMessageWindow({
       messageCreatedAt: '2026-10-21T12:04:00.000Z',
       nextMessageCreatedAt: '2026-10-21T12:08:00.000Z',
@@ -410,12 +415,188 @@ describe('Connect scope seen avatars', () => {
   });
 });
 
+describe('Connect room read cursor', () => {
+  it('advances only after the latest messages are on screen', () => {
+    expect(
+      shouldAdvanceConnectReadCursor({
+        listAnchored: false,
+        nearLatest: true,
+        reason: 'open',
+      })
+    ).toBe(false);
+    expect(
+      shouldAdvanceConnectReadCursor({
+        listAnchored: true,
+        nearLatest: true,
+        reason: 'open',
+      })
+    ).toBe(true);
+    expect(
+      shouldAdvanceConnectReadCursor({
+        listAnchored: true,
+        nearLatest: false,
+        reason: 'reconnect',
+      })
+    ).toBe(false);
+    expect(
+      shouldAdvanceConnectReadCursor({
+        listAnchored: true,
+        nearLatest: true,
+        reason: 'reconnect',
+      })
+    ).toBe(true);
+    expect(
+      shouldAdvanceConnectReadCursor({
+        listAnchored: true,
+        nearLatest: true,
+        reason: 'incoming',
+      })
+    ).toBe(true);
+    expect(
+      shouldAdvanceConnectReadCursor({
+        listAnchored: true,
+        nearLatest: true,
+        reason: 'history-reload',
+      })
+    ).toBe(false);
+    expect(
+      shouldAdvanceConnectReadCursor({
+        listAnchored: true,
+        nearLatest: true,
+        reason: 'returned-to-latest',
+      })
+    ).toBe(true);
+    expect(
+      shouldAdvanceConnectReadCursor({
+        listAnchored: false,
+        nearLatest: true,
+        reason: 'returned-to-latest',
+      })
+    ).toBe(false);
+    expect(
+      shouldAdvanceConnectReadCursor({
+        listAnchored: true,
+        nearLatest: true,
+        reason: 'own-send',
+      })
+    ).toBe(true);
+  });
+
+  it('treats last_read_at as a room timestamp, including messages not displayed', () => {
+    expect(
+      roomCursorCoversMessage(
+        '2026-10-21T12:08:00.000Z',
+        '2026-10-21T12:09:00.000Z'
+      )
+    ).toBe(true);
+    expect(
+      roomCursorCoversMessage(
+        '2026-10-21T12:10:00.000Z',
+        '2026-10-21T12:09:00.000Z'
+      )
+    ).toBe(false);
+  });
+});
+
+describe('Connect history and reader authorization', () => {
+  it('keeps direct history to the two participants', () => {
+    expect(
+      directHistoryParticipantAllowed({
+        signedIn: true,
+        isThreadParticipant: true,
+        isSystemAdmin: false,
+      })
+    ).toBe(true);
+    expect(
+      directHistoryParticipantAllowed({
+        signedIn: false,
+        isThreadParticipant: true,
+      })
+    ).toBe(false);
+    expect(
+      directHistoryParticipantAllowed({
+        signedIn: true,
+        isThreadParticipant: false,
+        isSystemAdmin: true,
+      })
+    ).toBe(false);
+  });
+
+  it('follows the canonical scope room gate and ignores an admin-only bypass', () => {
+    expect(
+      scopeRoomReaderAllowed({
+        signedIn: true,
+        canUseScopeRoom: true,
+        isSystemAdmin: false,
+      })
+    ).toBe(true);
+    expect(
+      scopeRoomReaderAllowed({
+        signedIn: true,
+        canUseScopeRoom: false,
+        isSystemAdmin: true,
+      })
+    ).toBe(false);
+    expect(
+      scopeRoomReaderAllowed({
+        signedIn: false,
+        canUseScopeRoom: true,
+      })
+    ).toBe(false);
+    expect(
+      scopeRoomReaderAllowed({
+        signedIn: true,
+        canUseScopeRoom: false,
+      })
+    ).toBe(false);
+  });
+
+  it('drops departed members, other scopes, and the caller from reader rows', () => {
+    const rows = scopeReadCursorsForCaller({
+      scopeId: 'scope-a',
+      callerId: 'self',
+      rows: [
+        {
+          scopeId: 'scope-a',
+          userId: 'member',
+          membershipStatus: 'ACTIVE',
+          lastReadAt: '2026-10-21T12:00:00.000Z',
+        },
+        {
+          scopeId: 'scope-a',
+          userId: 'departed',
+          membershipStatus: 'LEFT',
+          lastReadAt: '2026-10-21T12:00:00.000Z',
+        },
+        {
+          scopeId: 'scope-b',
+          userId: 'other-scope',
+          membershipStatus: 'ACTIVE',
+          lastReadAt: '2026-10-21T12:00:00.000Z',
+        },
+        {
+          scopeId: 'scope-a',
+          userId: 'self',
+          membershipStatus: 'ACTIVE',
+          lastReadAt: '2026-10-21T12:00:00.000Z',
+        },
+      ],
+    });
+
+    expect(rows.map(row => row.userId)).toEqual(['member']);
+  });
+});
+
 describe('Connect scope read review migration', () => {
   const sqlPath = path.join(
     process.cwd(),
     'supabase/review-only/20261021160000_connect_history_page_and_scope_reads.sql'
   );
   const sql = fs.readFileSync(sqlPath, 'utf8');
+  const threadSource = fs.readFileSync(
+    path.join(process.cwd(), 'src/components/BuklodConnectThread.tsx'),
+    'utf8'
+  );
 
   it('stays out of the live migrations folder', () => {
     expect(
@@ -429,20 +610,46 @@ describe('Connect scope read review migration', () => {
     expect(sql).toMatch(/REVIEW ONLY/);
   });
 
-  it('authorizes scope reads only for active members of that scope', () => {
-    expect(sql).toContain('buklod_connect_scope_reads');
+  it('reuses the live scope read table and mark function', () => {
+    expect(sql).toContain('public.buklod_connect_scope_reads');
+    expect(sql).toContain('buklod_connect_mark_scope_read');
+    expect(sql).toContain('buklod_connect_can_use_scope_room(_scope_id)');
+    expect(sql).toContain('drop function if exists public.buklod_connect_mark_scope_read_v2(uuid)');
+    expect(sql).not.toMatch(/create\s+table/i);
+    expect(sql).not.toMatch(/create\s+policy/i);
+    expect(sql).not.toMatch(/insert\s+into\s+public\.buklod_connect_scope_reads/i);
+    expect(sql).not.toContain('buklod_is_system_admin');
+    expect(sql).not.toMatch(
+      /create\s+(or\s+replace\s+)?function\s+public\.buklod_connect_mark_scope_read_v2/i
+    );
+    expect(sql).toMatch(/drop policy if exists buklod_connect_scope_reads_select_member/i);
+    expect(sql).toMatch(/drop policy if exists buklod_connect_scope_reads_write_own/i);
+  });
+
+  it('authorizes readers for that scope only and grants authenticated execute', () => {
     expect(sql).toContain("membership_status = 'ACTIVE'");
-    expect(sql).toContain('sm.scope_id = buklod_connect_scope_reads.scope_id');
+    expect(sql).toContain('sm.scope_id = r.scope_id');
+    expect(sql).toContain('sm.user_id = r.user_id');
     expect(sql).toContain('r.scope_id = _scope_id');
     expect(sql).toContain('r.user_id <> auth.uid()');
     expect(sql).toMatch(/revoke all on function public\.buklod_connect_scope_readers_v1\(uuid\) from public, anon/i);
-    expect(sql).not.toMatch(/grant execute[\s\S]{0,120}to anon/i);
+    expect(sql).toMatch(/grant execute on function public\.buklod_connect_scope_readers_v1\(uuid\) to authenticated/i);
+    expect(sql).not.toMatch(/grant execute[\s\S]{0,160}to anon/i);
   });
 
-  it('returns the newest history page for direct and scope rooms', () => {
+  it('returns the newest history page without an admin bypass', () => {
     expect(sql).toContain('order by m.created_at desc, m.id desc');
-    expect(sql).toContain('t.user_one = auth.uid()');
-    expect(sql).toContain('t.user_two = auth.uid()');
-    expect(sql).toContain('Active membership in this Connect room is required');
+    expect(sql).toContain('auth.uid() in (t.user_one, t.user_two)');
+    expect(sql).not.toContain('t.user_one = auth.uid()');
+    expect(sql).toContain('if not public.buklod_connect_can_use_scope_room(_scope_id)');
+  });
+
+  it('does not stop history at a render-window ceiling', () => {
+    expect(threadSource).toContain('Load earlier messages');
+    expect(threadSource).not.toContain('connectRenderWindow');
+    expect(threadSource).not.toContain('markScopeConnectReadV2');
+    expect(threadSource).toContain(
+      'This is not a separate receipt for every message.'
+    );
   });
 });

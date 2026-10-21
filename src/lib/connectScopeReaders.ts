@@ -2,7 +2,6 @@ import { supabase } from '@/lib/supabase';
 import type { ConnectScopeReader } from '@/lib/connectChatWindow';
 
 let readersRpcAvailable: boolean | null = null;
-let markV2Available: boolean | null = null;
 
 function isMissingRpc(message: string) {
   return /could not find the function|function.*does not exist|schema cache/i.test(
@@ -24,13 +23,14 @@ function asRows(data: unknown) {
 
 export function resetConnectScopeReaderAvailabilityForTests() {
   readersRpcAvailable = null;
-  markV2Available = null;
 }
 
 /**
- * Authoritative scope read cursors.
- * Returns null when the review-only RPC is not installed. Callers must not
- * invent Seen avatars from mark_scope_read alone.
+ * Reads the existing scope-read cursors through the review-only list RPC.
+ * Returns null when that RPC is not installed. Callers must not invent
+ * Seen avatars, and must not write a second cursor of their own.
+ * last_read_at comes from buklod_connect_mark_scope_read and is a room
+ * cursor, not a per-message receipt.
  */
 export async function fetchScopeConnectReaders(
   scopeId: string
@@ -76,25 +76,4 @@ export async function fetchScopeConnectReaders(
       } satisfies ConnectScopeReader;
     })
     .filter((row): row is ConnectScopeReader => !!row);
-}
-
-/** Stores a scope read cursor when the review-only function exists. */
-export async function markScopeConnectReadV2(scopeId: string) {
-  if (!scopeId || markV2Available === false) {
-    return;
-  }
-
-  const result = await (supabase as any).rpc(
-    'buklod_connect_mark_scope_read_v2',
-    { _scope_id: scopeId }
-  );
-
-  if (result.error) {
-    if (isMissingRpc(String(result.error.message ?? ''))) {
-      markV2Available = false;
-    }
-    return;
-  }
-
-  markV2Available = true;
 }

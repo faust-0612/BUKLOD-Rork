@@ -429,6 +429,11 @@ export type ConnectScopeReader = {
   lastReadAt: string;
 };
 
+/**
+ * Room-cursor placement only. last_read_at is the timestamp stored by
+ * buklod_connect_mark_scope_read, not proof that each message was opened.
+ * A reader is shown on the latest loaded message at or before that timestamp.
+ */
 export function readersForMessageWindow(args: {
   messageCreatedAt: string;
   nextMessageCreatedAt: string | null;
@@ -452,6 +457,79 @@ export function readersForMessageWindow(args: {
     const readAt = new Date(reader.lastReadAt).getTime();
     return Number.isFinite(readAt) && readAt >= start && readAt < end;
   });
+}
+
+export type ConnectReadCursorReason =
+  | 'open'
+  | 'reconnect'
+  | 'incoming'
+  | 'history-reload'
+  | 'returned-to-latest'
+  | 'own-send';
+
+/**
+ * The live mark function stores now() for the whole room. Call it only when
+ * the latest messages are actually on screen. A history reload while the
+ * reader is away must not move the cursor.
+ */
+export function shouldAdvanceConnectReadCursor(args: {
+  listAnchored: boolean;
+  nearLatest: boolean;
+  reason: ConnectReadCursorReason;
+}) {
+  if (!args.listAnchored || !args.nearLatest) {
+    return false;
+  }
+
+  return args.reason !== 'history-reload';
+}
+
+/** True when a room cursor would cover this message. This is not per-message Seen. */
+export function roomCursorCoversMessage(
+  messageCreatedAt: string,
+  cursorAt: string
+) {
+  const messageAt = new Date(messageCreatedAt).getTime();
+  const cursor = new Date(cursorAt).getTime();
+  return (
+    Number.isFinite(messageAt) &&
+    Number.isFinite(cursor) &&
+    messageAt <= cursor
+  );
+}
+
+export function directHistoryParticipantAllowed(args: {
+  signedIn: boolean;
+  isThreadParticipant: boolean;
+  isSystemAdmin?: boolean;
+}) {
+  return args.signedIn && args.isThreadParticipant;
+}
+
+export function scopeRoomReaderAllowed(args: {
+  signedIn: boolean;
+  canUseScopeRoom: boolean;
+  isSystemAdmin?: boolean;
+}) {
+  return args.signedIn && args.canUseScopeRoom;
+}
+
+export function scopeReadCursorsForCaller(args: {
+  scopeId: string;
+  callerId: string;
+  rows: Array<{
+    scopeId: string;
+    userId: string;
+    membershipStatus: string;
+    lastReadAt: string;
+  }>;
+}) {
+  return args.rows.filter(
+    row =>
+      row.scopeId === args.scopeId &&
+      row.userId !== args.callerId &&
+      row.membershipStatus === 'ACTIVE'
+  );
 }
 
 export function visibleReaderAvatars<T>(
