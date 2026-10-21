@@ -1,5 +1,8 @@
 # CURSOR — STANDING AUTHORIZATION FOR AUTOMATIC ANDROID PRODUCTION OTA
 
+> **TARGET CORRECTION:** For the current P0 OTA, the authoritative target is **V28 / versionCode 28 / runtime 1.3.4 / Android production**. Follow `docs/CURSOR_V28_P0_OTA_SINGLE_SOURCE_OF_TRUTH_20261021.md` over any contradictory text below. Historical V25 runtime 1.3.2 is NOT a blocker. R5 stays disabled until separately ready.
+
+
 Owner directive (2026-10-21): **“bkt d nalang ipaderetso ng OTA kapag natapos na”**. The owner authorizes automatic Android Production OTA publication **after** all mandatory technical release gates have passed, without a repeated final approval request. This supersedes the prior requirement for an additional final publish permission for this coordinated P0/R5 scope. This document itself is not an OTA and does not assert that the gates passed.
 
 ## Execution — do not pause for routine permission
