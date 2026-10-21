@@ -14,7 +14,9 @@ describe('Expo Router test harness', () => {
     );
 
     // @ts-expect-error Expo Router matcher exists at runtime but is missing from installed typings
-    expect(screen).toHavePathname('/(auth)/login');
+    expect(screen).toHavePathname('/login');
+    // Route groups select the screen but are omitted from the public pathname.
+    expect(screen.getSegments()).toEqual(['(auth)', 'login']);
     expect(screen.getByText('LOG IN')).toBeTruthy();
   });
 });
