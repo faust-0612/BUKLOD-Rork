@@ -31,6 +31,7 @@ test('auth invalid credentials stay distinct from transient network failures',()
  const api=mod('src/lib/buklodAuthResilience.ts',{supabase:{},...timeout});
  assert.equal(api.isBuklodTransientAuthError({code:'invalid_credentials'}),false);
  assert.equal(api.isBuklodTransientAuthError({status:503}),true);
+ assert.equal(api.isBuklodTransientAuthError({status:522}),true);
 });
 test('selected referral calls authoritative attach without redundant lookup',async()=>{
  const calls=[];const api=mod('src/lib/buklodRewards.ts',{supabase:{rpc:async(n,a)=>{calls.push([n,a]);return {error:null}}}});
