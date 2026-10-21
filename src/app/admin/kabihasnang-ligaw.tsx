@@ -156,7 +156,7 @@ export default function KabihasnangLigawAdminScreen() {
             style={styles.input}
           />
           <View style={styles.actions}>
-            {(['approve', 'revise', 'schedule', 'pause', 'resume', 'pause_season', 'resume_season', 'emergency_stop', 'emergency_clear'] as AdminAction[]).map((action) => (
+            {(['approve', 'revise', 'correct', 'schedule', 'pause', 'hold', 'resume', 'pause_season', 'resume_season', 'emergency_stop', 'emergency_clear'] as AdminAction[]).map((action) => (
               <Pressable
                 key={action}
                 disabled={busy || (action === 'approve' && blockers.length > 0)}

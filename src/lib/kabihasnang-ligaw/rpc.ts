@@ -13,8 +13,10 @@ export const KL_RPC = {
 export type AdminAction =
   | 'approve'
   | 'revise'
+  | 'correct'
   | 'schedule'
   | 'pause'
+  | 'hold'
   | 'resume'
   | 'pause_season'
   | 'resume_season'

@@ -1,0 +1,35 @@
+# Kabihasnang Ligaw R5 editorial package
+
+This package is only what is already in the repository. It is not owner approval, and it is not a layout.
+
+## Import these bytes before any visual replacement
+
+Export each file from the owner's ChatGPT Library and commit it at the path below. Do not rename the file. Do not draw a replacement.
+
+| Export from the ChatGPT Library | Land in the repo |
+|---|---|
+| `KABIHASNANG_LIGAW_R5_LATEST_VIEW.html` | `docs/imports/kabihasnang-ligaw/KABIHASNANG_LIGAW_R5_LATEST_VIEW.html` |
+| `KABIHASNANG_LIGAW_R5_INTEGRATION_CANDIDATE.zip` | `docs/imports/kabihasnang-ligaw/KABIHASNANG_LIGAW_R5_INTEGRATION_CANDIDATE.zip` |
+| `KABIHASNANG_LIGAW_R5_WORK_HANDOFF.md` | `docs/imports/kabihasnang-ligaw/KABIHASNANG_LIGAW_R5_WORK_HANDOFF.md` |
+| `KABIHASNANG_LIGAW_R5_ARCHITECTURE.md` | `docs/imports/kabihasnang-ligaw/KABIHASNANG_LIGAW_R5_ARCHITECTURE.md` |
+
+Until those four files are in the repo, the reader and wall card stay as they are on `cf59ba65`.
+
+## Already in the repo
+
+| Path | Status |
+|---|---|
+| `docs/kabihasnang-ligaw-approved-creative-release-contract-r5.md` | Creative direction record. Not a schedule. |
+| `content/kabihasnang-ligaw/panimula.md` | Word-for-word Panimula. Not scheduled. |
+| `content/kabihasnang-ligaw/kabanata-01.md` | Word-for-word Kabanata 1. Not scheduled. |
+| `assets/kabihasnang-ligaw/kl-e01-shot-01.jpg` through `kl-e01-shot-05.jpg` | `approved: false` |
+| Music and ambient | Missing |
+
+Author credit stays `Likha ni Faustino Jr. M. Gabut`.
+
+## Counts
+
+- Approved and scheduled episodes: 0
+- Panimula and Kabanata 1: manuscript text is in the repo; workflow status stays draft until art and server approval exist
+- Episodes 2–30: outline labels only. No episode-by-episode arc is in the repo, so no drafts were written
+- Jawo/Javvo: unresolved and unpublished
