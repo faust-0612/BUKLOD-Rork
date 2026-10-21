@@ -118,6 +118,10 @@ jobs:
                                       return parts.scheme + "://" + parts.netloc + parts.path
                                   return value
                               print("RECOVERY_SAMPLE", json.dumps(sanitize(parsed)))
+                              if field == "signedDeploymentURL":
+                                  print("WORKER_FILE_CONTENT_AVAILABILITY", [{"name": item.get("name"), "keys": list(item), "contents_bytes": len(item.get("contents", ""))} for item in parsed.get("files", [])])
+                              else:
+                                  print("ASSET_COUNT", len(parsed.get("assets", [])))
                           except ValueError:
                               print("RECOVERY_FORMAT", data[:40].hex())
               except urllib.error.HTTPError as error:
