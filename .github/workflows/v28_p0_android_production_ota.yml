@@ -50,15 +50,6 @@ jobs:
           fi
           npx eas-cli@latest whoami --non-interactive
 
-      - name: Export web before any production publish
-        shell: bash
-        run: |
-          set -euo pipefail
-          npx eas-cli@latest env:exec production 'npx expo export --platform web --output-dir dist' --non-interactive
-          test -f dist/index.html
-          test -n "$(find dist -name 'wa-sqlite*.wasm' -print -quit)"
-          test -n "$(find dist -name 'kl-s1-ang-lupang-hindi-namamatay*.jpg' -print -quit)"
-
       - name: Publish Android production OTA for runtime 1.3.4
         shell: bash
         run: |
@@ -70,8 +61,18 @@ jobs:
             --message "V28 P0 runtime 1.3.4 $(git rev-parse --short HEAD): referral attach, weak-network reads, bounded auth" \
             --non-interactive
 
+      - name: Export web after the Android bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest env:exec production 'npx expo export --platform web --output-dir dist-web-rc' --non-interactive
+          test -f dist-web-rc/index.html
+          grep -F '_expo/static/js/web/' dist-web-rc/index.html
+          test -n "$(find dist-web-rc -name 'wa-sqlite*.wasm' -print -quit)"
+          test -n "$(find dist-web-rc -name 'kl-s1-ang-lupang-hindi-namamatay*.jpg' -print -quit)"
+
       - name: Deploy the same commit to production web
         shell: bash
         run: |
           set -euo pipefail
-          npx eas-cli@latest deploy --prod --environment production --non-interactive --export-dir dist
+          npx eas-cli@latest deploy --prod --environment production --non-interactive --export-dir dist-web-rc

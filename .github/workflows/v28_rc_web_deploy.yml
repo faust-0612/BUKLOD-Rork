@@ -1,0 +1,54 @@
+# Deploys the tagged or dispatched commit's web export. Does not publish an Android OTA.
+name: BUKLOD V28 RC web deploy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  CI: '1'
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout this commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Require the Expo token already stored for Actions
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          npx eas-cli@latest whoami --non-interactive
+
+      - name: Export web
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest env:exec production 'npx expo export --platform web --output-dir dist-web-rc' --non-interactive
+          test -f dist-web-rc/index.html
+          grep -F '_expo/static/js/web/' dist-web-rc/index.html
+          test -n "$(find dist-web-rc -name 'wa-sqlite*.wasm' -print -quit)"
+          test -n "$(find dist-web-rc -name 'kl-s1-ang-lupang-hindi-namamatay*.jpg' -print -quit)"
+
+      - name: Deploy production web
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest deploy --prod --environment production --non-interactive --export-dir dist-web-rc
