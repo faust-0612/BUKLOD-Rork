@@ -1,6 +1,7 @@
 name: BUKLOD AdMob Firebase read-only gate
-# Manual only. Lists the existing Firebase project, billing flag, and Hosting
-# sites. It does not deploy, create a channel, or change the Expo alias.
+# Manual only. GET project, billingInfo, and Hosting sites. No deploy and no
+# Expo alias change. The service account, when later created, gets only
+# roles/firebasehosting.viewer. Do not grant a custom billing role or a write role.
 on:
   workflow_dispatch:
     inputs:

@@ -1,9 +1,11 @@
 """Read-only Firebase project, billing-plan, and Hosting gate.
 
 Performs HTTP GET requests only. Does not deploy, create channels, or print
-access tokens. Intended for the workflow_dispatch job in
-.github/workflows/admob_firebase_readonly_gate.yml after the owner creates
-the keyless Workload Identity Federation reader.
+access tokens. Intended for the manual workflow after a later keyless reader
+exists. That reader should have roles/firebasehosting.viewer only.
+projects.getBillingInfo needs resourcemanager.projects.get, which that role
+includes. A custom billing role is not requested from a 403 until Hosting
+Viewer is confirmed and this call still fails.
 """
 import json
 import os
@@ -173,6 +175,12 @@ def main():
         "status": billing_status,
         "body": allow_billing(billing) if billing_status == 200 else billing,
     }
+    if billing_status == 403:
+        report["billingPermissionGap"] = (
+            "403 from projects.getBillingInfo. Confirm roles/firebasehosting.viewer "
+            "is the only project role before adding any billing permission. "
+            "Do not create buklodBillingPlanReader first."
+        )
 
     sites_status, sites_payload = record(
         "firebasehosting.sites.list",

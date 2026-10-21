@@ -63,7 +63,9 @@ Authenticated route check in this Cursor cloud session:
 - Repository workflows reference only `EXPO_TOKEN`. No workflow contains a Workload Identity provider or a Firebase service-account secret. GitHub repository secret metadata remains HTTP 403 for this integration, including for `EXPO_TOKEN`, so an unused Firebase secret can neither be confirmed nor ruled out. Organization secret lookups for the same Firebase names returned HTTP 404. No GitHub environments exist.
 - Official Firebase Hosting GitHub setup (`firebase init hosting:github`, documented October 20, 2026) creates a long-lived JSON key. That path was not used.
 
-The read-only project/Spark/site gate is therefore not runnable yet. A manual GitHub workflow, `.github/workflows/admob_firebase_readonly_gate.yml`, is prepared and does not run on push. It only performs GET requests for the Firebase project, the Cloud Billing enabled flag, Hosting sites, release metadata, and channels. It does not deploy or create a preview channel. Dispatch it only after the owner action below, using the project number from that reply.
+The cloud API gate is therefore not runnable yet. A manual GitHub workflow, `.github/workflows/admob_firebase_readonly_gate.yml`, is prepared and does not run on push. It only performs GET requests. It does not deploy or create a preview channel. Do not dispatch it for the current question: the signed-in Firebase console already shows the plan and Hosting sites.
+
+Official Cloud Billing reference for `projects.getBillingInfo` requires `resourcemanager.projects.get` on the project, which can be granted by Project Viewer. It does not require `billing.resourceAssociations.get`. `roles/firebasehosting.viewer` includes `resourcemanager.projects.get`, `firebase.projects.get`, and Hosting `sites.get` / `sites.list`. `roles/firebase.developViewer` can also read Hosting, and it is broader, so it is not the role to assign. The custom role `buklodBillingPlanReader` is withdrawn unless a later call returns 403 after Hosting Viewer is actually in place.
 
 ### Candidate scope and tests
 Files are confined to `admob-developer-site/`, plus cloud audit/CI files. Hosting config serves only four public static files; no rewrites, redirects, Functions, databases, native code, or project binding.
@@ -76,25 +78,26 @@ Files are confined to `admob-developer-site/`, plus cloud audit/CI files. Hostin
 Official firebase-tools 14.22.0 Hosting emulator tests passed on GitHub Ubuntu for Google-adstxt, Mediapartners-Google, Googlebot, and browser user agents. The demo-buklod-admob emulator ID cannot deploy to a real project. No Firebase credentials were supplied to that job.
 
 ### Single next owner action
-Do not reinstall the Firebase plugin. Do not download a JSON key, copy a token into chat, or run npm/npx on the Windows PC. Use the Google account that already owns `buklod-connect`. If that project is absent from the project picker, stop; do not create a project. If any screen asks to upgrade to Blaze or add a billing account, stop.
+Do not create a role, service account, Workload Identity pool, or JSON key. Do not reinstall the Firebase plugin, and do not run npm/npx on the Windows PC. The signed-in Firebase console is enough to identify the plan and the Hosting sites. A public website response is not that check.
 
-In one Google Cloud console session, create keyless read access for this repository only:
+Use the Google account that already owns `buklod-connect`. Read only. If any screen offers **Upgrade**, **Modify plan**, **Add a billing account**, **Get started**, **Add another site**, or **Create project**, do not click it.
 
-1. Open [Create role](https://console.cloud.google.com/iam-admin/roles/create?project=buklod-connect). Title `BUKLOD billing plan reader`, ID `buklodBillingPlanReader`, permission `billing.resourceAssociations.get` only, then **Create**. Do not assign Project Billing Manager.
-2. Open [New workload provider and pool](https://console.cloud.google.com/iam-admin/workload-identity-pools/create?project=buklod-connect). If prompted, **Enable** the IAM, Service Account Credentials, and Security Token Service APIs.
-   - Pool name: `buklod-github-actions`
-   - Continue
-   - Provider: **OpenID Connect (OIDC)**; provider name and provider ID: `github`
-   - Issuer URL: `https://token.actions.githubusercontent.com/`
-   - Audiences: **Default audience**
-   - Continue
-   - Attribute mapping: keep `google.subject` = `assertion.sub`, and add `attribute.repository_id` = `assertion.repository_id`
-   - Attribute condition: `assertion.repository_id=='1337331837'`
-   - **Save**
-3. Open [Create service account](https://console.cloud.google.com/iam-admin/serviceaccounts/create?project=buklod-connect). Name and ID: `buklod-hosting-reader`. Grant only **Firebase Develop Viewer** (`roles/firebase.developViewer`) and the custom role **BUKLOD billing plan reader**. Leave the next user-access step empty. **Done**. Do not open **Keys** and do not create a key.
-4. Open [Workload Identity Pools](https://console.cloud.google.com/iam-admin/workload-identity-pools?project=buklod-connect), select `buklod-github-actions`, then **Grant access**. Choose service-account impersonation, select `buklod-hosting-reader@buklod-connect.iam.gserviceaccount.com`, then **Only identities matching the filter**. Attribute name `repository_id`, attribute value `1337331837`. **Save**.
+1. Open [project overview](https://console.firebase.google.com/project/buklod-connect/overview). If `buklod-connect` does not open, stop.
+2. Open [Usage and billing](https://console.firebase.google.com/project/buklod-connect/usage/details). If that address is unavailable, use the gear **Settings** → **Usage and billing**. Read the plan name shown, Spark or Blaze. Do not change it.
+3. Open [Hosting sites](https://console.firebase.google.com/project/buklod-connect/hosting/sites). Write down every site ID shown, including whether `buklod-connect`, `buklod-connect-f8a20`, or `studio-fddc0` appears. This is the list a later deploy could replace.
+4. Open [Project settings](https://console.firebase.google.com/project/buklod-connect/settings/general). Copy the **Project ID** and numeric **Project number**. The number is not a credential.
 
-Reply on this PR with the numeric **Project number** shown at [Project settings](https://console.firebase.google.com/project/buklod-connect/settings/general). That number is not a credential. The cloud gate will then be dispatched manually against the prepared workflow. No publication, Play listing change, or new Firebase project is included in this action.
+Reply on this PR with those four facts. No publication or Play listing change is part of this action.
+
+### Deferred keyless read access — do not perform now
+Use this only if the console cannot be opened, or after a later explicit approval for the cloud job to call Google APIs. Still create no key and change no billing plan.
+
+- Pool `buklod-github-actions`; OIDC provider name and ID `github`; issuer `https://token.actions.githubusercontent.com/`; default audience.
+- Attribute mapping: `google.subject` = `assertion.sub` and `attribute.repository_id` = `assertion.repository_id`.
+- Provider condition: `assertion.repository_id=='1337331837'`.
+- Service account `buklod-hosting-reader`. On the project, grant only **Firebase Hosting Viewer** (`roles/firebasehosting.viewer`). Do not grant Firebase Develop Viewer, Hosting Admin, Editor, or Owner.
+- On that service account, grant **Workload Identity User** (`roles/iam.workloadIdentityUser`) to `principalSet://iam.googleapis.com/projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/buklod-github-actions/attribute.repository_id/1337331837`.
+- Do not create `buklodBillingPlanReader`. Hosting Viewer already includes `resourcemanager.projects.get`. Revisit permissions only if `projects.getBillingInfo` returns 403 after that role is in place. A 403 on release or channel metadata is not a reason to grant a write role; the sites list is the target check.
 
 ### Subsequent cloud release gates
 1. Confirm target project/site and free access; pin the candidate source commit/artifact. Keep Expo unchanged.
@@ -119,4 +122,4 @@ Then [AdMob](https://admob.google.com/) → Apps → View all apps → app-ads.t
 ## Choice
 Track B is the narrower path for finishing AdMob because it avoids replacing the live Expo application and needs only a small static website plus a separately approved Play listing domain change. Track A remains an optional recovery effort requiring missing provenance/provider help.
 
-No publication, Expo alias change, new project, billing activation, Play metadata change, APK/AAB/OTA, Supabase/database mutation, or owner-laptop file write was performed. The October 21 authentication follow-up added only the idle read-only workflow, its GET-only script, and this handoff. The read-only gate was not dispatched because Google credentials are not available yet. Documentation/metadata reads on C: were read-only; all intentional writes and package operations were GitHub/cloud only.
+No publication, Expo alias change, new project, billing activation, Play metadata change, APK/AAB/OTA, Supabase/database mutation, or owner-laptop file write was performed. The read-only workflow was not dispatched. The custom billing role and Firebase Develop Viewer grant are withdrawn. Documentation/metadata reads on C: were read-only; all intentional writes and package operations were GitHub/cloud only.
