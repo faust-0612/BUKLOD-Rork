@@ -4,10 +4,19 @@
  */
 
 export const SCALE_LIMITS = {
-  /** Initial connect history fetch per open thread. */
+  /** Newest connect history page fetched when a thread opens. */
   connectHistory: 120,
-  /** Max messages rendered in the connect FlatList at once. */
-  connectRenderWindow: 100,
+  /**
+   * Older-page size when the reader reaches the top of a thread.
+   * Kept below the opening page so each scroll-up stays bounded.
+   */
+  connectOlderPage: 80,
+  /**
+   * Maximum messages kept in one open thread after paging backward.
+   * The list renders every loaded message until this cap; it no longer
+   * hides the tail of a fetched page.
+   */
+  connectRenderWindow: 400,
   /** Reaction rows fetched per thread. */
   connectReactions: 800,
   /** Community feed first page. */
