@@ -25,6 +25,12 @@ config.resolver.blockList = [
   ...blockPatterns,
 ];
 
+// expo-sqlite's web worker imports wa-sqlite.wasm. Expo's default asset list
+// includes db files but not wasm, so web export stops before a bundle exists.
+if (!config.resolver.assetExts.includes('wasm')) {
+  config.resolver.assetExts.push('wasm');
+}
+
 const originalResolveRequest = config.resolver.resolveRequest;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   if (
