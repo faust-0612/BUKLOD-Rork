@@ -8,6 +8,12 @@ import {
 } from '@/lib/repairMojibakeText';
 import { supabase } from '@/lib/supabase';
 import { attachCommunityPostMedia, discardIncompleteCommunityPost } from '@/lib/buklodCommunityPostMedia';
+import {
+  collectMaritesFeedPages,
+  maritesFeedPageArgs,
+  maritesFeedPageLimit,
+  withMaritesPageDeadline,
+} from '@/lib/buklodMaritesFeedPages';
 
 /**
  * Marites Story — compact community stories.
@@ -527,11 +533,16 @@ function mapCommunityPostToMaritesStory(
   };
 }
 
+export type MaritesCommunityLoad = {
+  stories: MaritesStory[];
+  refreshFailed: boolean;
+};
+
 export async function loadCommunityMaritesStories(
   locationScopeId?: string | null,
   viewerUserId?: string | null,
-  pageSize = 40
-): Promise<MaritesStory[]> {
+  pageSize = 100
+): Promise<MaritesCommunityLoad> {
   const scopeId = String(
     locationScopeId ?? ''
   ).trim();
@@ -539,87 +550,83 @@ export async function loadCommunityMaritesStories(
   /*
    * PATCH_MARITES_STORY_COMPLETE_FEED
    *
-   * Server page size remains conservative.
-   * We paginate until every available authorized row
-   * has been retrieved.
+   * Walk every authorized page. A 40-row response is one page,
+   * not the end of the story strip. Latest order follows the
+   * same feed contract as the Latest tab. A failed or timed-out
+   * page keeps the pages already received.
    */
-  const requestPageSize =
-    Math.min(
-      Math.max(
-        Math.trunc(pageSize || 40),
-        1
-      ),
-      40
-    );
+  const requestPageSize = maritesFeedPageLimit(pageSize);
 
-  const allFeedRows: Record<
-    string,
-    unknown
-  >[] = [];
+  const collected = await collectMaritesFeedPages({
+    pageSize: requestPageSize,
+    fetchPage: async (offset, limit) => {
+      const pending = Promise.resolve(
+        (supabase as any).rpc(
+          'get_buklod_public_community_feed_v7_page',
+          maritesFeedPageArgs(scopeId, offset, limit),
+        ),
+      )
+        .then(
+          ({
+            data,
+            error,
+          }: {
+            data: unknown;
+            error: { message?: string } | null;
+          }) => {
+            if (error) {
+              const message = String(error.message ?? '');
 
-  let offset = 0;
+              if (!isMissingRpcError(message)) {
+                console.warn(
+                  'Marites Story community feed:',
+                  message,
+                );
+              }
 
-  while (true) {
-    const {
-      data,
-      error,
-    } = await (supabase as any).rpc(
-      'get_buklod_public_community_feed_v7_page',
-      {
-        p_location_scope_id:
-          scopeId || null,
-        p_mode:
-          'for_you',
-        p_limit:
-          requestPageSize,
-        p_offset:
-          offset,
-      }
-    );
+              return {
+                rows: [] as Record<string, unknown>[],
+                error: message || 'Marites feed request failed.',
+              };
+            }
 
-    if (error) {
-      if (
-        !isMissingRpcError(
-          String(
-            error.message ?? ''
-          )
+            return {
+              rows: Array.isArray(data)
+                ? (data as Record<string, unknown>[])
+                : [],
+              error: null,
+            };
+          },
         )
-      ) {
+        .catch((error: unknown) => ({
+          rows: [] as Record<string, unknown>[],
+          error: String(
+            (error as Error)?.message ?? error,
+          ),
+        }));
+
+      try {
+        return await withMaritesPageDeadline(pending);
+      } catch (error) {
+        const message = String(
+          (error as Error)?.message ?? error,
+        );
         console.warn(
           'Marites Story community feed:',
-          error.message
+          message,
         );
+        return {
+          rows: [] as Record<string, unknown>[],
+          error: message,
+        };
       }
+    },
+  });
 
-      return [];
-    }
+  const refreshFailed =
+    !collected.complete || Boolean(collected.error);
 
-    const pageRows =
-      Array.isArray(data)
-        ? data as Record<
-            string,
-            unknown
-          >[]
-        : [];
-
-    if (!pageRows.length) {
-      break;
-    }
-
-    allFeedRows.push(
-      ...pageRows
-    );
-
-    offset +=
-      pageRows.length;
-
-    if (
-      pageRows.length <
-      requestPageSize
-    ) {
-      break;
-    }
-  }
+  const allFeedRows = collected.rows;
 
   /*
    * Offset pagination can theoretically see the same row
@@ -934,22 +941,25 @@ export async function loadCommunityMaritesStories(
       )
     );
 
-  return hydrated
-    .filter(
-      (row) =>
-        isMaritesCommunityPost(
-          row
-        )
-    )
-    .map(
-      (row) =>
-        mapCommunityPostToMaritesStory(
-          row
-        )
-    )
-    .filter(
-      Boolean
-    ) as MaritesStory[];
+  return {
+    stories: hydrated
+      .filter(
+        (row) =>
+          isMaritesCommunityPost(
+            row
+          )
+      )
+      .map(
+        (row) =>
+          mapCommunityPostToMaritesStory(
+            row
+          )
+      )
+      .filter(
+        Boolean
+      ) as MaritesStory[],
+    refreshFailed,
+  };
 }
 
 export function mergeMaritesStories(
@@ -1029,17 +1039,22 @@ export function mergeMaritesStories(
   );
 }
 
+export type MaritesLoadResult = {
+  stories: MaritesStory[];
+  refreshFailed: boolean;
+};
+
 export async function loadAllMaritesStories(
   locationScopeId?: string | null,
   viewerUserId?: string | null
-): Promise<MaritesStory[]> {
-  const [localStories, communityStories] =
+): Promise<MaritesLoadResult> {
+  const [localStories, community] =
     await Promise.all([
       loadMaritesStories(),
       loadCommunityMaritesStories(
         locationScopeId,
         viewerUserId,
-        40
+        100
       ),
     ]);
 
@@ -1048,10 +1063,13 @@ export async function loadAllMaritesStories(
     viewerUserId
   );
 
-  return mergeMaritesStories(
-    filteredLocal,
-    communityStories
-  );
+  return {
+    stories: mergeMaritesStories(
+      filteredLocal,
+      community.stories
+    ),
+    refreshFailed: community.refreshFailed,
+  };
 }
 
 export async function saveMaritesStories(
