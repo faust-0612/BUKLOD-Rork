@@ -1,0 +1,108 @@
+name: BUKLOD V28 1.3.4 Combined Cloud QA Only
+on:
+  push:
+    branches:
+      - qa/v28-connect-web-134-r2-20261022
+    paths:
+      - '.github/workflows/v28_connect_web_134_qa.yml'
+permissions:
+  contents: read
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  EXPO_PUBLIC_APP_ENV: production
+  APP_VARIANT: production
+  BUKLOD_APP_TARGET: main
+jobs:
+  qa-only-no-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact source for isolated QA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Confirm source matches integrated DEV application
+        shell: bash
+        run: |
+          set -euo pipefail
+          git cat-file -e f81b0dcf29ca55c86094773e7810108dbb8c75fc^{commit}
+          diff_files="$(git diff --name-only f81b0dcf29ca55c86094773e7810108dbb8c75fc HEAD)"
+          test "$diff_files" = '.github/workflows/v28_connect_web_134_qa.yml'
+          echo 'APP_SOURCE_IDENTICAL_TO_DEV=PASS'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+      - name: Verify Android runtime identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F "version: '1.3.4'" app.config.js
+          grep -F 'versionCode: isStaging ? undefined : 28' app.config.js
+          grep -F "runtimeVersion: isClassroom ? '1.3.0' : '1.3.4'" app.config.js
+          node -e "const c=require('./app.config.js')({config:{}}); if(c.android.package!=='org.mzbministry.buklod'||c.version!=='1.3.4'||c.android.versionCode!==28||c.runtimeVersion!=='1.3.4') process.exit(1);"
+          echo 'ANDROID_134_IDENTITY=PASS'
+      - name: TypeScript check
+        run: npx tsc --noEmit
+      - name: Full Jest regression suite
+        run: npm test -- --silent
+      - name: Verify preview regression contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f public/vendor/leaflet/leaflet.js
+          test -f public/app-ads.txt
+          grep -q 'google.com, pub-' public/app-ads.txt
+          test -f src/lib/connectHistoryLoader.ts
+          test -f __tests__/connectChatWindow.test.ts
+          test -f __tests__/buklodWebLeafletAssets.test.ts
+          test -f __tests__/buklodMaritesFeedPages.test.ts
+          test -f supabase/review-only/20261021160000_connect_history_page_and_scope_reads.sql
+          test ! -f supabase/migrations/20261021160000_connect_history_page_and_scope_reads.sql
+          if grep -Eqi '^drop[[:space:]]+(table|function|policy)' supabase/review-only/20261021160000_connect_history_page_and_scope_reads.sql; then
+            echo 'Unsafe SQL cleanup found.'; exit 1
+          fi
+          echo 'REVIEW_SQL_NOT_APPLIED=PASS'
+      - name: Pull protected Expo production public environment for Android export only
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          npx --yes eas-cli@25.3.0 whoami --non-interactive >/dev/null
+          npx --yes eas-cli@25.3.0 env:pull --environment production --path .env.local --non-interactive
+          test -s .env.local
+          set -a
+          . ./.env.local
+          set +a
+          test "$EXPO_PUBLIC_SUPABASE_URL" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
+          while IFS='=' read -r name _; do
+            case "$name" in
+              EXPO_PUBLIC_*)
+                value="${!name-}"
+                {
+                  echo "${name}<<__BUKLOD_ENV__"
+                  printf '%s\n' "$value"
+                  echo '__BUKLOD_ENV__'
+                } >> "$GITHUB_ENV"
+                ;;
+            esac
+          done < <(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env.local)
+          rm -f .env.local
+      - name: Compile Android JS bundle - no publish or native APK build
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx expo export --platform android --output-dir dist-android
+          test -d dist-android
+          test "$(find dist-android -type f | wc -l)" -gt 3
+          echo 'ANDROID_JS_EXPORT=PASS'
+      - name: Verify repository remained immutable
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD
+          echo 'CLOUD_QA_ONLY=PASS'
