@@ -22,12 +22,13 @@ jobs:
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
+          fetch-depth: 0
       - name: Confirm source matches integrated DEV application
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = '581d9d01a3f4a36d50611e8390b92fdcb43617bd'
-          diff_files="$(git diff --name-only HEAD^ HEAD)"
+          git cat-file -e 581d9d01a3f4a36d50611e8390b92fdcb43617bd^{commit}
+          diff_files="$(git diff --name-only 581d9d01a3f4a36d50611e8390b92fdcb43617bd HEAD)"
           test "$diff_files" = '.github/workflows/v28_connect_web_134_qa.yml'
           echo 'APP_SOURCE_IDENTICAL_TO_DEV=PASS'
       - uses: actions/setup-node@v4
