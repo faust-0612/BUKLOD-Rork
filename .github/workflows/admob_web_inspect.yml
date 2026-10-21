@@ -108,6 +108,16 @@ jobs:
                           try:
                               parsed = json.loads(data)
                               print("JSON_STRUCTURE", list(parsed)[:50] if isinstance(parsed, dict) else type(parsed).__name__)
+                              def sanitize(value):
+                                  if isinstance(value, dict):
+                                      return {k: sanitize(v) for k, v in value.items()}
+                                  if isinstance(value, list):
+                                      return [sanitize(v) for v in value[:3]]
+                                  if isinstance(value, str) and value.startswith("http"):
+                                      parts = urllib.parse.urlsplit(value)
+                                      return parts.scheme + "://" + parts.netloc + parts.path
+                                  return value
+                              print("RECOVERY_SAMPLE", json.dumps(sanitize(parsed)))
                           except ValueError:
                               print("RECOVERY_FORMAT", data[:40].hex())
               except urllib.error.HTTPError as error:
