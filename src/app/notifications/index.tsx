@@ -1,5 +1,7 @@
 import BuklodPressable from '@/components/BuklodPressable';
+import ClusterNotificationActions from '@/components/ClusterNotificationActions';
 import { buklodInstantPush } from '@/lib/buklodInstantNavigation';
+import { runClusterJoinNotificationAction } from '@/lib/clusterJoinNotificationAction';
 import {useCallback,useEffect,useState} from 'react';
 import {Alert,FlatList,StyleSheet,Text,View} from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
@@ -21,7 +23,7 @@ export default function NotificationCenter(){
  const {user}=useAuth();
  const {scopes,selectScope,activeScope}=useBuklodScope();
  const {unreadCount,refreshUnread,markAllRead}=useNotifications();
- const [items,setItems]=useState<any[]>([]),[loading,setLoading]=useState(false);
+ const [items,setItems]=useState<any[]>([]),[loading,setLoading]=useState(false),[busyId,setBusyId]=useState<string|null>(null);
  const load=useCallback(async()=>{if(!user?.id)return;setLoading(true);const {data,error}=await supabase.from('notifications').select('id,title,body,kind,data,read_at,created_at').eq('user_id',user.id).order('created_at',{ascending:false}).limit(150);setLoading(false);if(error)return Alert.alert('Notifications',error.message);setItems(data??[]);await refreshUnread()},[user?.id,refreshUnread]);
  useEffect(()=>{void load()},[load]);
  const open=async(x:any)=>{
@@ -48,6 +50,19 @@ export default function NotificationCenter(){
   }
 
   Alert.alert('Notification','This notification does not have a destination yet.');
+ };
+ const decide=async(item:any,approve:boolean)=>{
+  setBusyId(item.id);
+  try{
+   await runClusterJoinNotificationAction({kind:String(item?.kind??''),data:item?.data??null,approve});
+   const resolved=approve?'APPROVED':'DECLINED';
+   setItems(current=>current.map(row=>row.id===item.id?{...row,read_at:row.read_at??new Date().toISOString(),data:{...(row.data??{}),resolved}}:row));
+   await refreshUnread();
+  }catch(error:any){
+   Alert.alert('Cluster',error?.message||'Could not update this request.');
+  }finally{
+   setBusyId(null);
+  }
  };
  return <View style={[shared.screen,{paddingTop:insets.top}]}><FlatList contentContainerStyle={[s.content,{paddingBottom:scrollBottomInset}]} data={items} keyExtractor={x=>x.id} refreshing={loading} onRefresh={load}
  ListHeaderComponent={<View><View style={s.header}><View style={{flex:1}}><Text style={shared.h1}>Notifications</Text><Text style={shared.muted}>{unreadCount} unread</Text></View><View style={s.bell}><MaterialCommunityIcons name="bell-outline" size={23} color={colors.greenDark}/>{unreadCount>0&&<View style={s.badge}><Text style={s.badgeText}>{Math.min(unreadCount,99)}</Text></View>}</View></View>
