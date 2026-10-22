@@ -664,9 +664,11 @@ export default function BuklodHomeFaithPanel({
 
 </View>
 
-      <View style={{ marginTop: 6 }}>
-        <BuklodFindAChurchDoorway />
-      </View>
+      {!compact ? (
+        <View style={{ marginTop: 6 }}>
+          <BuklodFindAChurchDoorway />
+        </View>
+      ) : null}
     </RNAnimated.View>
   );
 }
