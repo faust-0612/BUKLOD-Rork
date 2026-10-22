@@ -1,4 +1,4 @@
-# Release trigger: 2026-10-22 remove Wall Public CONNECT/EXPLORE chips + Dugtong icon
+# Release trigger: 2026-10-22 pending OTA complete — cluster search/join notif + photo rollback failsafe
 name: BUKLOD Production Android OTA
 
 on:
@@ -8,6 +8,12 @@ on:
       - main
     paths:
       - '.github/workflows/production_android_ota.yml'
+      - 'src/app/clusters/index.tsx'
+      - 'src/components/ClusterNotificationActions.tsx'
+      - 'src/lib/clusterJoinNotification.ts'
+      - 'src/lib/clusterJoinNotificationAction.ts'
+      - 'src/lib/buklodNotificationNavigation.ts'
+      - 'supabase/migrations/*cluster_join_request_notifications*.sql'
       - 'src/components/BuklodCommunityPostEngagement.tsx'
       - 'src/components/BuklodCommunityPostEngagement.web.tsx'
       - 'src/app/admin/kabihasnang-ligaw.tsx'
@@ -253,7 +259,7 @@ jobs:
             --channel production \
             --platform android \
             --environment production \
-            --message "Runtime 1.3.2 Wall: remove Public CONNECT/EXPLORE chips and Dugtong icon; keep KL Chap2+ approval and reader live discussion" \
+            --message "Runtime 1.3.2 pending OTA: cluster search + join notif approve/decline; Wall photo rollback failsafe; cumulative V28 live bundle" \
             --non-interactive
 
       - name: Deployment status

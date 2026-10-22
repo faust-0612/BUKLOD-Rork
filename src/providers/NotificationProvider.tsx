@@ -8,6 +8,11 @@ import {useBuklodScope} from '@/providers/BuklodScopeProvider';
 import {registerPushToken} from '@/lib/pushNotifications';
 import { syncScopeSelection } from '@/lib/buklodScopeRoute';
 import { resolveBuklodNotificationTarget } from '@/lib/buklodNotificationNavigation';
+import { runClusterJoinNotificationAction } from '@/lib/clusterJoinNotificationAction';
+import {
+  CLUSTER_JOIN_APPROVE_ACTION,
+  CLUSTER_JOIN_DECLINE_ACTION,
+} from '@/lib/clusterJoinNotification';
 import { resolveMzbOrganizationScopeId } from '@/lib/buklodMzbOrganization';
 
 type Ctx={unreadCount:number;refreshUnread:()=>Promise<void>;markAllRead:()=>Promise<void>};
@@ -68,6 +73,16 @@ export function NotificationProvider({children}:{children:ReactNode}){
       enableVibrate:true,
       showBadge:true
      });
+     if(Platform.OS!=='web'){
+      await Notifications.setNotificationCategoryAsync('buklod_cluster_join_request',[
+       {identifier:CLUSTER_JOIN_APPROVE_ACTION,buttonTitle:'Approve',options:{opensAppToForeground:true}},
+       {identifier:CLUSTER_JOIN_DECLINE_ACTION,buttonTitle:'Decline',options:{opensAppToForeground:true,isDestructive:true}},
+      ]);
+      await Notifications.setNotificationCategoryAsync('buklod_cluster_invite',[
+       {identifier:CLUSTER_JOIN_APPROVE_ACTION,buttonTitle:'Accept',options:{opensAppToForeground:true}},
+       {identifier:CLUSTER_JOIN_DECLINE_ACTION,buttonTitle:'Decline',options:{opensAppToForeground:true,isDestructive:true}},
+      ]);
+     }
      const p=await Notifications.getPermissionsAsync();
      if(!cancelled && p.status!=='granted')await Notifications.requestPermissionsAsync();
     }catch(e){console.warn('Notification permission',e)}
@@ -133,6 +148,20 @@ export function NotificationProvider({children}:{children:ReactNode}){
 
    const d:any=
     r.notification.request.content.data||{};
+
+   if(
+    actionId===CLUSTER_JOIN_APPROVE_ACTION||
+    actionId===CLUSTER_JOIN_DECLINE_ACTION
+   ){
+    void runClusterJoinNotificationAction({
+     kind:String(d.kind||''),
+     data:d,
+     approve:actionId===CLUSTER_JOIN_APPROVE_ACTION,
+    }).catch(()=>{
+     void openNotification(String(d.kind||'general'),d);
+    });
+    return;
+   }
 
    void openNotification(
      String(d.kind||'general'),
