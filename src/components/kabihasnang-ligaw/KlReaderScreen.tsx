@@ -82,6 +82,7 @@ export default function KlReaderScreen() {
   const [viewStart, setViewStart] = useState<number | null>(null);
   const [viewEnd, setViewEnd] = useState<number | null>(null);
   const paragraphY = useRef<Record<number, number>>({});
+  const readerTop = useRef(0);
 
   const compact = width < 420;
   const bodySize = Math.round(19 * cache.textScale);
@@ -202,7 +203,7 @@ export default function KlReaderScreen() {
 
   const syncViewport = (scrollY: number) => {
     const entries = Object.entries(paragraphY.current)
-      .map(([index, y]) => ({ index: Number(index), y }))
+      .map(([index, y]) => ({ index: Number(index), y: y + readerTop.current }))
       .sort((left, right) => left.y - right.y);
     const top = scrollY + 24;
     const bottom = scrollY + Math.max(320, height);
@@ -316,7 +317,12 @@ export default function KlReaderScreen() {
       >
         <Stack.Screen options={{ title: selected?.title ?? 'Kabihasnang Ligaw' }} />
         {readingOpen && selected ? (
-          <View style={styles.reader}>
+          <View
+            style={styles.reader}
+            onLayout={(event) => {
+              readerTop.current = event.nativeEvent.layout.y;
+            }}
+          >
             <View style={styles.nav}>
               <IconButton icon="arrow-left" label={klCopy.back} onPress={closeReader} />
               <IconButton
