@@ -1,10 +1,10 @@
 name: BUKLOD V28 runtime 1.3.2 Infinix cumulative QA
 on:
   push:
-    branches: [dev/v28-infinix-runtime132-20261022]
+    branches: [dev/v28-infinix-runtime132-release-final-20261022]
   workflow_dispatch:
 concurrency:
-  group: v28-runtime132-infinix-qa
+  group: v28-runtime132-infinix-final-qa
   cancel-in-progress: true
 permissions:
   contents: read
