@@ -1,4 +1,4 @@
-# Release trigger: 2026-09-17 BUKLOD Auth R1 trusted-device unlock
+# Release trigger: 2026-10-22 V28 cluster-without-org + Bayanihan economy + character live
 name: BUKLOD Production Android OTA
 
 on:
@@ -8,6 +8,14 @@ on:
       - main
     paths:
       - '.github/workflows/production_android_ota.yml'
+      - 'src/app/clusters/create.tsx'
+      - 'src/lib/buklodClusters.ts'
+      - 'src/app/points/economy.tsx'
+      - 'src/components/points/BuklodEconomyDashboard.tsx'
+      - 'src/lib/buklodEconomyLedger.ts'
+      - 'src/lib/buklodCharacterWorldCatalog.ts'
+      - 'src/components/points/BuklodProgressiveCharacterSelector.tsx'
+      - 'src/components/points/BuklodSpecialCharacterSeries.tsx'
       - 'scripts/community-help-sos-release-contract.mjs'
       - 'src/components/BuklodCommunityHelp.tsx'
       - 'src/components/BuklodPublicLocationChips.tsx'
@@ -220,7 +228,7 @@ jobs:
             --channel production \
             --platform android \
             --environment production \
-            --message "V28 runtime 1.3.2: approved V28 plus current OTAs, PTT retained, Kabihasnang Ligaw" \
+            --message "V28 runtime 1.3.2: cluster without mother org, Bayanihan economy ledger, latest character design/layout; PTT retained" \
             --non-interactive
 
       - name: Deployment status
