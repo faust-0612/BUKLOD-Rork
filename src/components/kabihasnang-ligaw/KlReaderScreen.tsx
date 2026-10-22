@@ -88,10 +88,9 @@ export default function KlReaderScreen() {
     cellularGeneration: cellGeneration,
     userDataSaver: cache.dataSaver,
   });
-  const canonicalRelease = Boolean(selected && decision?.readable && (selected.episodeNumber === 0 || selected.episodeNumber === 1));
   const reading = selectMemberReading({
     locallyReadable: decision?.readable === true,
-    serverState: canonicalRelease && serverState === 'hidden' ? 'unknown' : serverState,
+    serverState,
     serverText,
     bundledText: selected?.prose ?? null,
     cachedText: selected ? cache.releasedProse[selected.id] ?? null : null,

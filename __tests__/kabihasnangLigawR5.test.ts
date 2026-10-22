@@ -133,16 +133,15 @@ describe('Kabihasnang Ligaw R5 gates', () => {
     for (const episode of catalog) {
       const rows = assets.filter((asset) => asset.episodeId === episode.id);
       const readable = memberReadable(episode, rows, new Date(), storyboard).readable;
-      if (episode.episodeNumber <= 1) expect(readable).toBe(true);
-      else expect(readable).toBe(false);
+      expect(readable).toBe(false);
       if (episode.episodeNumber >= 2) {
         expect(episode.prose).toBeNull();
         expect(episode.proseComplete).toBe(false);
         expect(publicationBlockers(episode, rows).length).toBeGreaterThan(0);
       }
     }
-    expect(memberReadable(catalog[0], [], new Date(), storyboard).reason).toBe('released');
-    expect(memberReadable(catalog[1], [], new Date(), storyboard).reason).toBe('released');
+    expect(memberReadable(catalog[0], [], new Date(), storyboard).reason).toBe('media_blocked');
+    expect(memberReadable(catalog[1], [], new Date(), storyboard).reason).toBe('media_blocked');
     expect(memberReadable(catalog[2], []).reason).toBe('outline_only');
     expect(selectMemberReading({
       locallyReadable: true,
@@ -207,6 +206,28 @@ describe('Kabihasnang Ligaw R5 gates', () => {
     expect(assets.some((asset) => asset.classification === 'MISSING' && asset.kind === 'music')).toBe(true);
   });
 
+  it('does not expose draft manuscripts or override explicit server refusal', () => {
+    const pending = catalog[1];
+    const pendingAssets = assets.filter((asset) => asset.episodeId === pending.id);
+    expect(memberReadable(pending, pendingAssets, new Date(), storyboard).readable).toBe(false);
+    expect(selectMemberReading({
+      locallyReadable: true,
+      serverState: 'hidden',
+      serverText: null,
+      bundledText: pending.prose,
+      cachedText: pending.prose,
+    }).text).toBeNull();
+    expect(selectMemberReading({
+      locallyReadable: false,
+      serverState: 'unknown',
+      serverText: null,
+      bundledText: pending.prose,
+      cachedText: pending.prose,
+    }).source).toBe('hidden');
+    const reader = read('src/components/kabihasnang-ligaw/KlReaderScreen.tsx');
+    expect(reader).not.toMatch(/serverState:\s*canonicalRelease\s*&&/);
+  });
+
   it('keeps an approved chapter readable after 06:00 and locks unapproved chapters', () => {
     const { episode, assets: ready } = readableFixture();
     const morning = new Date('2026-10-21T00:30:00.000Z');
@@ -215,7 +236,7 @@ describe('Kabihasnang Ligaw R5 gates', () => {
     const later = new Date('2026-10-22T02:00:00.000Z');
     expect(memberReadable(episode, ready, later).readable).toBe(true);
     expect(memberReadable({ ...episode, episodeNumber: 3, approvedAt: null, status: 'draft' }, ready, later).reason).toBe('not_approved');
-    expect(memberReadable(catalog[1], ready, later, storyboard).readable).toBe(true);
+    expect(memberReadable(catalog[1], ready, later, storyboard).readable).toBe(false);
     expect(memberReadable(episode, ready, morning, [{
       episodeId: episode.id,
       required: true,
