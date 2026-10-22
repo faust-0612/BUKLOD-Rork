@@ -13,6 +13,7 @@ import {
   verifyBuklodMainRecovery,
 } from '@/lib/buklodMainHealth';
 import { supabase } from '@/lib/supabase';
+import { registerBuklodClientReleaseR1, notifyBuklodBsocClientR1 } from '@/lib/buklodBsocClientSafetyR1';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import {
   getOfflineQueueSnapshot,
@@ -24,7 +25,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 
-const POLL_MS = 30_000;
+const POLL_MS = 3 * 60_000; // Fewer no-op BSOC RPCs; foreground/resume checks remain.
 const SYNC_STUCK_MS = 60_000;
 const LOCAL_RETRY_COOLDOWN_MS = 5 * 60_000;
 
@@ -70,6 +71,7 @@ export default function BuklodMainHealthAgent() {
 
   const activeRef = useRef(true);
   const executingRef = useRef(false);
+  const lastPollAtRef = useRef(0);
   const pendingSinceRef = useRef<number | null>(null);
   const lastSyncRecoveryRef = useRef(0);
   const lastScopeRecoveryRef = useRef(0);
@@ -85,6 +87,7 @@ export default function BuklodMainHealthAgent() {
       await enqueueBuklodMainHealthIssue(userId, input);
       if (online) {
         await flushBuklodMainHealthQueue(userId).catch(() => undefined);
+        void notifyBuklodBsocClientR1('RECOVERY_FAILED', input.errorSignature, 'FAILED');
       }
     },
     [online],
@@ -328,6 +331,7 @@ export default function BuklodMainHealthAgent() {
     }
 
     executingRef.current = true;
+    lastPollAtRef.current = Date.now();
     try {
       const commands =
         (await pollBuklodMainRecoveryCommands()) as RecoveryCommand[];
@@ -369,16 +373,28 @@ export default function BuklodMainHealthAgent() {
     void flushBuklodMainHealthQueue(user.id).catch(
       () => undefined,
     );
-    void poll();
+    if (AppState.currentState === 'active') void poll();
 
     const timer = setInterval(() => {
-      if (AppState.currentState === 'active') {
+      if (AppState.currentState === 'active') void poll();
+    }, POLL_MS + Math.floor(Math.random() * 30_000));
+    const resumed = AppState.addEventListener('change', state => {
+      if (state === 'active' && Date.now() - lastPollAtRef.current >= 2 * 60_000) {
         void poll();
       }
-    }, POLL_MS);
-
-    return () => clearInterval(timer);
+    });
+    return () => { clearInterval(timer); resumed.remove(); };
   }, [online, poll, user?.id]);
+
+  useEffect(() => {
+    if (!user?.id || !online) return;
+    const id = user.id;
+    void registerBuklodClientReleaseR1(id);
+    const resumed = AppState.addEventListener('change', state => {
+      if (state === 'active') void registerBuklodClientReleaseR1(id);
+    });
+    return () => resumed.remove();
+  }, [user?.id, online]);
 
   useEffect(() => {
     if (!user?.id || !online) {
@@ -429,6 +445,7 @@ export default function BuklodMainHealthAgent() {
       if (healed) {
         pendingSinceRef.current =
           after > 0 ? Date.now() : null;
+        void notifyBuklodBsocClientR1('LOCAL_RECOVERY_RESULT','SYNC_QUEUE_STUCK','APPLIED_VERIFIED');
         return;
       }
 
@@ -496,7 +513,10 @@ export default function BuklodMainHealthAgent() {
         healed = false;
       }
 
-      if (healed) return;
+      if (healed) {
+        void notifyBuklodBsocClientR1('LOCAL_RECOVERY_RESULT','ORG_CONTEXT_STALE','APPLIED_VERIFIED');
+        return;
+      }
 
       await emitUnresolved({
         category: 'ORG_CONTEXT',
@@ -566,7 +586,10 @@ export default function BuklodMainHealthAgent() {
         healed = false;
       }
 
-      if (healed) return;
+      if (healed) {
+        void notifyBuklodBsocClientR1('LOCAL_RECOVERY_RESULT','AUTH_SESSION_STALE','APPLIED_VERIFIED');
+        return;
+      }
 
       await emitUnresolved({
         category: 'AUTH',

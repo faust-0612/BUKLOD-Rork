@@ -35,6 +35,7 @@ import { BuklodThemeProvider } from '@/providers/BuklodThemeProvider';
 import { BuklodCharacterEventProvider } from '@/components/character/BuklodCharacterEventProvider';
 import RorkAvatarOnboardingGate from '@/components/character/RorkAvatarOnboardingGate';
 import BuklodMainHealthAgent from '@/components/BuklodMainHealthAgent';
+import BuklodClientReleaseNotice from '@/components/BuklodClientReleaseNotice';
 import BuklodMainBrandIntro from '@/components/BuklodMainBrandIntro';
 import BuklodCenteredBrandMark, {
   BUKLOD_BRAND_LOGO_NATIVE,
@@ -195,6 +196,7 @@ function RootLayout() {
             <StreamVideoProvider>
             <BuklodRootKeyboardAvoidingView style={{ flex: 1 }}>
               <OfflineBanner/>
+               <BuklodClientReleaseNotice/>
               <BuklodPublishBanner />
               <BuklodEntitlementRouteGuard />
               <BuklodFocusAppRouteGuard />
