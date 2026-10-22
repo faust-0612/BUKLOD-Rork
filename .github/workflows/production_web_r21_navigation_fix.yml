@@ -49,7 +49,7 @@ jobs:
           grep -F 'BUKLOD_WEB_SCOPE_BOOT_R22' 'src/components/BuklodCanonicalNavigationGuard.web.tsx'
           grep -F "router.replace(" 'src/components/BuklodCanonicalNavigationGuard.web.tsx'
           grep -F "'/messages' as any" 'src/components/BuklodCanonicalNavigationGuard.web.tsx'
-          grep -F 'BUKLOD_WEB_PROFILE_AVATAR_R22' 'src/components/BuklodGuideAvatar.web.tsx'
+          grep -F 'BUKLOD_WEB_PROFILE_AVATAR_R23_MOBILE_TOUCH' 'src/components/BuklodGuideAvatar.web.tsx'
           grep -F "'/me' as any" 'src/components/BuklodGuideAvatar.web.tsx'
           grep -F 'BUKLOD_WEB_RESPONSIVE_SPLIT_R3' 'src/components/BuklodNavSafeShell.web.tsx'
           grep -F 'BUKLOD_DESKTOP_WEB_SHELL_R3' 'src/components/BuklodDesktopWebShell.tsx'

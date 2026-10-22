@@ -1,6 +1,7 @@
 # BUKLOD Automatic Recovery production web release trigger — 2026-09-19
 # R25 Organization Home door deploy trigger
 # 2026-10-22: refresh stale safety anchors + restore web SQLite/wasm export gate
+# 2026-10-22b: keep index.web + AuthProvider on canonical web deploy path; unblock stale City/R22 gates
 name: BUKLOD Production Web Deploy
 
 on:
@@ -18,6 +19,8 @@ on:
       - 'scripts/inject-adsense-web-head.cjs'
       - 'src/app/+html.tsx'
       - 'src/app/index.tsx'
+      - 'src/app/index.web.tsx'
+      - 'src/providers/AuthProvider.tsx'
       - 'src/app/onboarding/index.tsx'
       - 'src/app/(tabs)/home.tsx'
       - 'src/components/BuklodPublicWordShortcut.tsx'
