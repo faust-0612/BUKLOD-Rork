@@ -8,6 +8,8 @@ import React, {
   useState,
 } from 'react';
 import { supabase } from '@/lib/supabase';
+import { prewarmConnectContacts } from '@/lib/buklodConnectContactCache';
+import { hydrateAvatarCache } from '@/lib/buklodAvatarCache';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { signOutBuklodResilient } from '@/lib/buklodAuthResilience';
 import {
@@ -129,6 +131,13 @@ export function AuthProvider({
   const bootstrappedRef = useRef(false);
   const sessionUserIdRef = useRef<string | null>(null);
   const lastOnlineHydrationUserRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const viewerId = session?.user?.id;
+    if (!viewerId) return;
+    void prewarmConnectContacts(viewerId).catch(() => undefined);
+    void hydrateAvatarCache();
+  }, [session?.user?.id]);
 
   const loadRoles = async (
     userId?: string,

@@ -3,6 +3,9 @@ on:
   push:
     branches: [codex/infinix-loading-session-ptt]
   workflow_dispatch:
+concurrency:
+  group: infinix-loading-session-qa
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
@@ -28,13 +31,25 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci --no-audit --no-fund
+      - name: Install dependencies
+        id: dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Install isolated test tools
+        run: npm install --no-save --package-lock=false --ignore-scripts jest@29.7.0 jest-expo@57.0.4 @testing-library/react-native@13.3.3 react-test-renderer@19.2.3
       - run: npx --no-install tsc --noEmit
-      - run: npm test -- --watchAll=false --watchman=false
-      - run: npm run character:contract && npm run game:contract
+      - if: "!cancelled() && steps.dependencies.outcome == 'success'"
+        run: npm test -- --watchAll=false --watchman=false
+      - name: Character contract
+        if: "!cancelled() && steps.dependencies.outcome == 'success'"
+        run: npm run character:contract
+      - name: Game contract
+        if: "!cancelled() && steps.dependencies.outcome == 'success'"
+        run: npm run game:contract
       - name: Dedicated story permissions and paging fixtures
+        if: "!cancelled() && steps.dependencies.outcome == 'success'"
         env:
           PGPASSWORD: fixture-only
         run: psql -h localhost -U postgres -v ON_ERROR_STOP=1 -f scripts/sql/buklod_marites_feed_fixture.sql
       - name: Inspect live Quiz client capability without creating a session
+        if: "!cancelled() && steps.dependencies.outcome == 'success'"
         run: node scripts/inspect-quiz-handoff.mjs

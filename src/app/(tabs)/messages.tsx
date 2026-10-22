@@ -37,6 +37,10 @@ import {
   acquireSharedRealtimeSubscription,
 } from '@/lib/performance';
 import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
+import {
+  getWarmConnectContacts, hasWarmConnectContacts,
+  prewarmConnectContacts, rememberConnectContacts,
+} from '@/lib/buklodConnectContactCache';
 import { useAuth } from '@/providers/AuthProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
@@ -341,14 +345,31 @@ function communitySectionLabel(
   return filter.toUpperCase();
 }
 
-export default function ConnectScreen(
-  props: ConnectScreenProps = {}
-) {
+export default function ConnectScreen(props: ConnectScreenProps = {}) {
   const { user } = useAuth();
+  return <ConnectCachedScreen key={`${user?.id ?? 'anonymous'}:${props.forcedScopeId ?? 'public'}`} {...props} />;
+}
+
+function ConnectCachedScreen(props: ConnectScreenProps) {
+  const { user } = useAuth();
+  const viewer = user?.id;
+  const [cacheReady, setCacheReady] = useState(
+    () => !viewer || hasWarmConnectContacts(viewer, props.forcedScopeId),
+  );
+  useEffect(() => {
+    if (!viewer) return;
+    let active = true;
+    void prewarmConnectContacts(viewer, props.forcedScopeId)
+      .catch(() => undefined)
+      .finally(() => { if (active) setCacheReady(true); });
+    return () => { active = false; };
+  }, [viewer, props.forcedScopeId]);
+  // Only local storage gates the first content frame; no server read does.
+  if (!cacheReady) return null;
   return (
     <ConnectThemeProvider>
       <ChatBackgroundProvider>
-        <ConnectScreenInner key={`${user?.id ?? 'anonymous'}:${props.forcedScopeId ?? 'public'}`} {...props} />
+        <ConnectScreenInner {...props} />
       </ChatBackgroundProvider>
     </ConnectThemeProvider>
   );
@@ -463,7 +484,7 @@ function ConnectScreenInner({
   const [people, setPeople] =
     useState<Person[]>([]);
   const [suggestedContacts, setSuggestedContacts] =
-    useState<ConnectSuggestedContact[]>([]);
+    useState<ConnectSuggestedContact[]>(() => getWarmConnectContacts(profileId, forcedScopeId));
   const [refreshing, setRefreshing] =
     useState(false);
   const [communityFilter, setCommunityFilter] =
@@ -481,7 +502,7 @@ function ConnectScreenInner({
     let active = true;
     setPersonal([]);
     setRooms([]);
-    setSuggestedContacts([]);
+    setSuggestedContacts(getWarmConnectContacts(profileId, forcedScopeId));
 
     void getOfflineCache<{
       personal: PersonalThread[];
@@ -601,12 +622,16 @@ function ConnectScreenInner({
     const publishContacts = (rows: ConnectSuggestedContact[]) => {
       if (!active() || !rows.length) return;
       displayedContacts = true;
+      rememberConnectContacts(profileId, forcedScopeId, rows);
       setSuggestedContacts(rows);
       // Enrichment cannot hold up either the faces or the other inbox reads.
       void withBuklodTimeout(
         enrichConnectSuggestedContactsWithNotes(rows), 6000, 'Connect notes and ranks',
       ).then(enriched => {
-        if (active()) setSuggestedContacts(enriched);
+        if (active()) {
+          rememberConnectContacts(profileId, forcedScopeId, enriched);
+          setSuggestedContacts(enriched);
+        }
       }).catch(() => undefined);
     };
 
