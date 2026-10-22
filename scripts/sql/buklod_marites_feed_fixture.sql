@@ -78,12 +78,24 @@ end $$;
 
 insert into public.buklod_community_post_meta values
  ('10000000-0000-0000-0000-000000000001','anonymous','approved');
+insert into public.buklod_community_post_meta values
+ ('10000000-0000-0000-0000-000000000002','anonymous','approved');
 do $$ begin
  if exists(select 1 from public.get_buklod_marites_feed_v1(null,20,0)
  where id='10000000-0000-0000-0000-000000000001'
  and (user_id is not null or avatar_url is not null or author_name<>'Anonymous BUKLOD Member')) then
    raise exception 'Anonymous identity leaked'; end if;
 end $$;
+-- A photo-only anonymous story must never expose the author's ID in
+-- user_id, avatar URL, primary media path or JSON media items.
+do $ begin
+ if not exists(
+   select 1 from public.get_buklod_marites_feed_v1(null,20,0)
+   where id='10000000-0000-0000-0000-000000000002'
+     and user_id is null and avatar_url is null and media_path is null
+     and media_items='[]'::jsonb
+ ) then raise exception 'Anonymous photo storage path or identity exposed'; end if;
+end $;
 select set_config('request.jwt.claim.sub','',true);
 do $$ begin
  begin
