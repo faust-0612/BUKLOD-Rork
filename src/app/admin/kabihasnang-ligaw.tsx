@@ -328,6 +328,7 @@ export default function KabihasnangLigawAdminScreen() {
       }
       const payload = data as { ok?: boolean; message?: string } | null;
       const ok = payload?.ok === true;
+      if (!ok) { setResult('Server did not confirm this action. Local approval and scheduling were not changed.'); return; }
       const returned = (payload?.message || '').trim()
         || (ok
           ? 'Server accepted this step. Feedback is saved on this desk.'
@@ -342,9 +343,6 @@ export default function KabihasnangLigawAdminScreen() {
         });
         if (action === 'approve') {
           next = markEpisodeApproved(next, episode, EPISODES, manilaDate);
-          if (ok) {
-            next = markNextReleaseScheduled(next, manilaDate);
-          }
           const package_ = next.nextRelease;
           const focusArrived = isReleasedForApproval(next.focusEpisodeNumber, now)
             || isMemberReleasedEpisode(next.focusEpisodeNumber);
@@ -354,7 +352,7 @@ export default function KabihasnangLigawAdminScreen() {
           setEpisodeId(klEpisodeId(focusNumber));
           setResult(
             package_
-              ? `${package_.title} locked for ${package_.manilaDate} 6:00 a.m. That exact text, picture, motion, and music are the next release. Next desk focus: Kabanata ${String(focusNumber).padStart(2, '0')}.`
+              ? `${package_.title} approved on server; desk preview prepared. NOT scheduled or published. Schedule separately after server verification. Next desk focus: Kabanata ${String(focusNumber).padStart(2, '0')}.`
               : `${episode.title} approved, but the release date was not valid.`,
           );
         } else if (action === 'schedule') {
@@ -362,7 +360,7 @@ export default function KabihasnangLigawAdminScreen() {
           const package_ = next.nextRelease;
           setResult(
             package_
-              ? `Scheduled. Members will receive exactly: ${nextReleaseSummary(package_)}.`
+              ? `Server accepted schedule for ${manilaDate} at 6:00 a.m. Manila. Verify release status in the reader before claiming it is live. Desk package: ${nextReleaseSummary(package_)}.`
               : returned,
           );
         } else {
