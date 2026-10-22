@@ -336,12 +336,20 @@ function QuickLink({
   label: string;
   onPress?: () => void;
 }) {
+  const tones: Record<string, {background: string; foreground: string}> = {
+    Attendance: {background:'#E6F2FF',foreground:'#0874DE'},
+    Manage: {background:'#E6F8EF',foreground:'#15995C'},
+    Clusters: {background:'#F0E9FD',foreground:'#8452DC'},
+    'Org access': {background:'#FFF2E2',foreground:'#DD8618'},
+  };
+  const tone = tones[label] ?? tones.Attendance;
   return (
     <Pressable
       onPress={onPress}
       disabled={!onPress}
       style={({ pressed }) => [
         styles.quick,
+        { backgroundColor: tone.background },
         !onPress && styles.quickDisabled,
         pressed && onPress && styles.pressed,
       ]}
@@ -349,7 +357,7 @@ function QuickLink({
       <MaterialCommunityIcons
         name={icon}
         size={20}
-        color="#0874DE"
+        color={tone.foreground}
       />
       <Text style={styles.quickText}>{label}</Text>
     </Pressable>
@@ -451,12 +459,12 @@ const styles = StyleSheet.create({
   },
   roleChip: {
     borderRadius: 999,
-    backgroundColor: '#E8F5EE',
+    backgroundColor: '#E6F2FF',
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
   roleChipText: {
-    color: '#176B4A',
+    color: '#1262AC',
     fontSize: 11,
     fontWeight: '800',
   },
