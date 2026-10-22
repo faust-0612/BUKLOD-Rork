@@ -4549,7 +4549,19 @@ const communityFeedRows =
    {/* KL_R5_COMMUNITY_DASHBOARD_PLACEMENT: LIFE → story → BUKLOD TODAY */}
    <KabihasnangLigawWallCard />
 
-   <BuklodTodayCard onRespond={()=>activateComposerIntent('post')} />
+   <BuklodTodayCard
+    onRespond={(draft)=>{
+      if(draft?.trim()){
+        setBody(current=>{
+          const next=draft.trim();
+          if(!current.trim())return next;
+          if(current.includes(next))return current;
+          return `${current.trim()}\n\n${next}`;
+        });
+      }
+      activateComposerIntent('post');
+    }}
+   />
 
    <BuklodMaritesBoard
     locationScopeId={
