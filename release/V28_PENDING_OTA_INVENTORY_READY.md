@@ -1,4 +1,4 @@
-# BUKLOD V28 Pending OTA Inventory — PUBLISHED
+# BUKLOD V28 Production OTA — Endless boot loading fix
 
 **Status:** OTA PUBLISHED  
 **Target:** Android production channel, runtime **1.3.2**, versionCode **28**  
@@ -8,62 +8,35 @@
 
 | Field | Value |
 |---|---|
-| Android update ID | `01a16362-bf5f-77fc-baa3-09e1112510fa` |
-| Update group ID | `576f18e4-df4d-4ad4-9fb6-0d8f9b5d5798` |
+| Android update ID | `01a1639c-02e0-766f-8721-b17c383bb270` |
+| Update group ID | `250cb4d6-2e10-4065-97c2-83de04f9f443` |
 | Runtime | 1.3.2 |
-| Commit | `ca5918ff` (dirty flag in Expo) |
-| Published | 2026-10-22 ~19:32 Asia/Manila |
-| Workflow | https://github.com/faust-0612/BUKLOD-Rork/actions/runs/39770909298 |
-| Message | Wall chips/Dugtong removal + KL Chap2+ approval / reader live discussion |
-
-Included cumulative scopes already on that baseline: Character, Cluster create (no mother org + org search), Bayanihan/Economy, Marites, non-PTT call restore, weak-network/offline, Wall weak-signal helpers, referral/auth, Connect, KL 6pm desk, ABAKA, cardColor, Today/comment/Wall chip cleanup (#256 and earlier).
-
-**Gap verified:** `015cacd3` (AAB v28 video-only fullscreen Wall) was on `main` but **not** in that OTA (path filter miss on `CommunityVideo.tsx`).
+| Commit | `b72a05c4` |
+| Published | 2026-10-22 ~20:35 Asia/Manila |
+| Workflow | https://github.com/faust-0612/BUKLOD-Rork/actions/runs/39779024164 |
+| Message | Runtime 1.3.2 pending OTA: cluster search + join notif approve/decline; Wall photo rollback failsafe; cumulative V28 live bundle |
 
 ## Newly published OTA (this run)
 
 | Field | Value |
 |---|---|
-| Android update ID | `01a1639c-02e0-766f-8721-b17c383bb270` |
-| Update group ID | `250cb4d6-2e10-4065-97c2-83de04f9f443` |
+| Android update ID | `01a163c9-33c1-7be2-8f87-aa9ade2c562b` |
+| Update group ID | `810369da-69d0-4ea1-a8cb-0c58e730051a` |
 | Runtime | 1.3.2 |
 | Platform | android |
 | Channel/branch | production |
-| Commit | `b72a05c4` |
-| Published | 2026-10-22 ~20:35 Asia/Manila |
-| Workflow | https://github.com/faust-0612/BUKLOD-Rork/actions/runs/39779024164 |
-| EAS | https://expo.dev/accounts/faust_0612/projects/buklod/updates/250cb4d6-2e10-4065-97c2-83de04f9f443 |
-| Message | Runtime 1.3.2 pending OTA: cluster search + join notif approve/decline; Wall photo rollback failsafe; cumulative V28 live bundle |
+| Commit | `94ca01a6` |
+| Published | 2026-10-22 ~21:24 Asia/Manila |
+| Workflow | https://github.com/faust-0612/BUKLOD-Rork/actions/runs/39786086190 |
+| EAS | https://expo.dev/accounts/faust_0612/projects/buklod/updates/810369da-69d0-4ea1-a8cb-0c58e730051a |
+| Message | Runtime 1.3.2 OTA: stop endless app loading (Public bootReady + auth shell); cumulative V28 live bundle |
 
 ### Newly added vs prior live OTA
 
-1. Cluster live search + join-request Approve/Decline (invite Accept/Decline)
-2. Wall photo rollback failsafe (never delete uploads after ambiguous publish)
-3. AAB v28 video-only full-screen Wall viewer
-
-## Full inventory (all now in published OTA source)
-
-| # | Scope | Status |
-|---|---|---|
-| 1 | V28 Character layout | LIVE (prior + this) |
-| 2 | Cluster create no Mother Org + org search | LIVE (prior + this) |
-| 3 | Bayanihan / Economy | LIVE (prior + this) |
-| 4 | Marites | LIVE (prior + this) |
-| 5 | False call / non-PTT restore | LIVE (prior + this) |
-| 6 | Weak-network / offline cache | LIVE (prior + this) |
-| 7 | Wall weak-signal helpers | LIVE (prior + this) |
-| 8 | Referral + sign-in resilience | LIVE (prior + this) |
-| 9 | Connect chat / Seen / composer | LIVE (prior + this) |
-| 10 | KL + Chap2+ 6pm approval | LIVE (prior + this) |
-| 11 | ABAKA @ 1.3.2 | LIVE (prior + this) |
-| 12 | Cluster Home cardColor | LIVE (prior + this) |
-| 13 | Buklod Today blank reply | LIVE (prior + this) |
-| 14 | Wall comment composer | LIVE (prior + this) |
-| 15 | Remove Public CONNECT/EXPLORE + Dugtong | LIVE (prior + this) |
-| 16 | AAB v28 video-only fullscreen Wall | **NEW in this OTA** |
-| 17 | Cluster live search + join notif actions | **NEW in this OTA** |
-| 18 | Wall photo rollback failsafe | **NEW in this OTA** |
+1. Stop endless index loading: optimistic Public `bootReady` + 4s watchdog (`index.tsx` / `index.web.tsx`)
+2. Auth shell release after session is known (profile hydrates in background)
+3. Regression contract test `__tests__/buklodBootReadyPublicReset.test.ts`
 
 ## Device step
 
-Open production APK (runtime 1.3.2) → pull update → confirm update ID / behavior above.
+Open production APK (runtime 1.3.2) → pull update → confirm update ID `01a163c9-33c1-7be2-8f87-aa9ade2c562b` and cold-start no longer stuck on spinner when last workspace was Organization/Cluster.
