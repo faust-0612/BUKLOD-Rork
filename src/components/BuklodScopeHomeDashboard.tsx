@@ -183,14 +183,58 @@ export default function BuklodScopeHomeDashboard({
       }
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.hero}>
-        <Text style={styles.heroType}>
-          {scopeTypeLabel}
-          {scope.geo_level ? ` · ${scope.geo_level}` : ''}
-        </Text>
-        <Text style={styles.heroTitle}>{scope.name}</Text>
-        <Text style={styles.heroText}>{homeSubtitle(scope)}</Text>
+      {/* BUKLOD_V28_ORG_HOME_BLUE_R1: Quick Links exclude Community/Connect. */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>QUICK LINKS</Text>
+        <View style={styles.quickGrid}>
+          <QuickLink
+            icon="clipboard-check-outline"
+            label="Attendance"
+            onPress={() =>
+              router.push({
+                pathname: '/scope/attendance',
+                params: scopeRouteParams(scope.scope_id),
+              } as any)
+            }
+          />
+          {showAdminSummary ? (
+            <>
+              <QuickLink
+                icon="shield-crown-outline"
+                label="Manage"
+                onPress={() =>
+                  router.push(scopeManageRoute(scope) as any)
+                }
+              />
+              {scope.scope_type === 'ORGANIZATION' ? (
+                <>
+                  <QuickLink
+                    icon="account-group-outline"
+                    label="Clusters"
+                    onPress={() =>
+                      router.push({
+                        pathname: '/organizations/clusters-oversight',
+                        params: { organizationId: scope.scope_id },
+                      } as any)
+                    }
+                  />
+                  <QuickLink
+                    icon="swap-horizontal"
+                    label="Org access"
+                    onPress={() =>
+                      router.push({
+                        pathname: '/organizations/cross-access',
+                        params: { organizationId: scope.scope_id },
+                      } as any)
+                    }
+                  />
+                </>
+              ) : null}
+            </>
+          ) : null}
+        </View>
       </View>
+
 
       {loadError ? (
         <View style={styles.errorCard}>
@@ -250,13 +294,6 @@ export default function BuklodScopeHomeDashboard({
         </Text>
       </View>
 
-      {isMzbScope ? (
-        <BuklodMzbHomeWidgets
-          scope={scope}
-          onOpenCommunity={onOpenCommunity}
-        />
-      ) : null}
-
       {scope.show_faith_content ? (
         <>
           <BuklodScopeFaithMonitoringSummary scope={scope} />
@@ -271,66 +308,11 @@ export default function BuklodScopeHomeDashboard({
         scopeType={scope.scope_type}
       />
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>QUICK LINKS</Text>
-        <View style={styles.quickGrid}>
-          <QuickLink
-            icon="account-group-outline"
-            label="Community"
-            onPress={onOpenCommunity}
-          />
-          <QuickLink
-            icon="message-text-outline"
-            label="Connect"
-            onPress={onOpenConnect}
-          />
-          <QuickLink
-            icon="clipboard-check-outline"
-            label="Attendance"
-            onPress={() =>
-              router.push({
-                pathname: '/scope/attendance',
-                params: scopeRouteParams(scope.scope_id),
-              } as any)
-            }
-          />
-          {showAdminSummary ? (
-            <>
-              <QuickLink
-                icon="shield-crown-outline"
-                label="Manage"
-                onPress={() =>
-                  router.push(scopeManageRoute(scope) as any)
-                }
-              />
-              {scope.scope_type === 'ORGANIZATION' ? (
-                <>
-                  <QuickLink
-                    icon="account-group-outline"
-                    label="Clusters"
-                    onPress={() =>
-                      router.push({
-                        pathname: '/organizations/clusters-oversight',
-                        params: { organizationId: scope.scope_id },
-                      } as any)
-                    }
-                  />
-                  <QuickLink
-                    icon="swap-horizontal"
-                    label="Org access"
-                    onPress={() =>
-                      router.push({
-                        pathname: '/organizations/cross-access',
-                        params: { organizationId: scope.scope_id },
-                      } as any)
-                    }
-                  />
-                </>
-              ) : null}
-            </>
-          ) : null}
-        </View>
-      </View>
+      {isMzbScope ? (
+        <BuklodMzbHomeWidgets scope={scope} onOpenCommunity={onOpenCommunity} />
+      ) : null}
+
+
 
       <BuklodScreenBottomBanner placement="home" variant="large" />
     </ScrollView>
@@ -359,7 +341,7 @@ function QuickLink({
       <MaterialCommunityIcons
         name={icon}
         size={20}
-        color={colors.greenDark}
+        color="#0874DE"
       />
       <Text style={styles.quickText}>{label}</Text>
     </Pressable>
@@ -368,10 +350,11 @@ function QuickLink({
 
 const styles = StyleSheet.create({
   content: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingHorizontal: 10,
+    paddingTop: 9,
     paddingBottom: 28,
-    gap: 12,
+    gap: 9,
+    backgroundColor: '#F2F7FD',
   },
   loading: {
     paddingVertical: 48,
@@ -404,10 +387,10 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#DCE5E0',
+    borderColor: '#E1EBF7',
     backgroundColor: '#FFFFFF',
-    padding: 14,
-    gap: 10,
+    padding: 11,
+    gap: 9,
   },
   cardHead: {
     flexDirection: 'row',
@@ -416,10 +399,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   cardTitle: {
-    color: '#173B2F',
+    color: '#113C72',
     fontSize: 12,
     fontWeight: '900',
-    letterSpacing: 0.6,
+    letterSpacing: 0.2,
   },
   statRow: {
     flexDirection: 'row',
@@ -429,7 +412,7 @@ const styles = StyleSheet.create({
   statCard: {
     minWidth: 72,
     borderRadius: 12,
-    backgroundColor: '#F4F7F5',
+    backgroundColor: '#EAF4FF',
     paddingHorizontal: 10,
     paddingVertical: 8,
     gap: 2,
@@ -491,12 +474,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   quick: {
-    width: '47%',
-    minHeight: 72,
-    borderRadius: 14,
+    width: '22%',
+    minWidth: 68,
+    flexGrow: 1,
+    minHeight: 64,
+    borderRadius: 11,
     borderWidth: 1,
-    borderColor: '#DCE5E0',
-    backgroundColor: '#F8FAF9',
+    borderColor: '#DCEAF9',
+    backgroundColor: '#EAF4FF',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
@@ -506,9 +491,10 @@ const styles = StyleSheet.create({
     opacity: 0.45,
   },
   quickText: {
-    color: '#173B2F',
-    fontSize: 11,
+    color: '#164675',
+    fontSize: 10,
     fontWeight: '800',
+    textAlign: 'center',
   },
   pressed: {
     opacity: 0.72,
