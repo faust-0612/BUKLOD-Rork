@@ -56,8 +56,19 @@ function isSessionTransportError(error: any) {
 }
 
 export async function getValidatedMainAccessToken() {
-  const current = await supabase.auth.getSession();
-  if (current.error) throw current.error;
+  let current: Awaited<ReturnType<typeof supabase.auth.getSession>>;
+  try {
+    // Session storage/refresh can stall under a weak connection too.
+    current = await sessionDeadline(supabase.auth.getSession());
+  } catch {
+    throw new Error('BUKLOD could not load your saved session yet. Check your connection, then tap Quiz again.');
+  }
+  if (current.error) {
+    if (isSessionTransportError(current.error)) {
+      throw new Error('BUKLOD could not load your saved session yet. Check your connection, then tap Quiz again.');
+    }
+    throw current.error;
+  }
   const saved = current.data.session;
   let accessToken = String(saved?.access_token ?? '').trim();
   if (!accessToken) {
