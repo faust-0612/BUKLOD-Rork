@@ -38,11 +38,19 @@ import {
   sanitizeAdminFlow,
   type AdminApprovalFlow,
 } from '@/lib/kabihasnang-ligaw/adminApproval';
+import {
+  approvalQueue,
+  isReleasedForApproval,
+  manilaCivilDate,
+  manilaDayRelation,
+  nextApprovalArrival,
+  nextLiveRelease,
+} from '@/lib/kabihasnang-ligaw/approvalQueue';
 import { manilaSixUtc } from '@/lib/kabihasnang-ligaw/gates';
 import {
   buildAssetGate,
   buildCatalogEpisodes,
-  KL_RELEASED_THROUGH_EPISODE,
+  klEpisodeId,
 } from '@/lib/kabihasnang-ligaw/catalog';
 import {
   paragraphDisplayText,
@@ -154,16 +162,23 @@ export default function KabihasnangLigawAdminScreen() {
     () => adminApprovalBlockers(episode, draft, KL_ADMIN_IMAGE_CHOICES.length > 0),
     [episode, draft],
   );
+  const now = new Date();
+  const openEntries = approvalQueue(now);
+  const openNumbers = new Set(openEntries.map((entry) => entry.episodeNumber));
   const released = EPISODES.filter((item) => isMemberReleasedEpisode(item.episodeNumber));
-  const queue = EPISODES.filter((item) => item.episodeNumber > KL_RELEASED_THROUGH_EPISODE);
+  const queue = EPISODES.filter((item) => openNumbers.has(item.episodeNumber));
+  const nextArrival = nextApprovalArrival(now);
+  const nextLive = nextLiveRelease(now);
+  const nextArrivalTitle = EPISODES.find((item) => item.episodeNumber === nextArrival?.episodeNumber)?.title;
+  const nextLiveTitle = EPISODES.find((item) => item.episodeNumber === nextLive?.episodeNumber)?.title;
   const paragraphs = episode.prose
     ? splitCanonicalParagraphs(episode.prose, episode.episodeNumber)
     : [];
   const revisions = revisionThreadForEpisode(flow, episode.id);
   const selectedImage = adminImageSource(draft.imageKey);
   const scheduledImage = adminImageSource(flow.nextRelease?.imageKey ?? null);
-  const nextNumber = nextApprovalEpisodeNumber(EPISODES, flow.drafts);
-  const canApprove = blockers.length === 0 && !busy;
+  const nextNumber = nextApprovalEpisodeNumber(queue, flow.drafts);
+  const canApprove = blockers.length === 0 && !busy && openNumbers.has(episode.episodeNumber);
   const releaseDateOk = Boolean(manilaSixUtc(manilaDate));
   const deskDiffers = draftDiffersFromNextRelease(draft, catalogEpisode, flow.nextRelease);
   const nextReleaseParagraphs = flow.nextRelease
@@ -201,6 +216,16 @@ export default function KabihasnangLigawAdminScreen() {
     if (!hydrated) return;
     void AsyncStorage.setItem(KL_ADMIN_FLOW_STORAGE_KEY, JSON.stringify(flow)).catch(() => undefined);
   }, [flow, hydrated]);
+
+  const openKey = openEntries.map((entry) => entry.episodeNumber).join(',');
+  useEffect(() => {
+    if (!hydrated) return;
+    if (isMemberReleasedEpisode(catalogEpisode.episodeNumber)) return;
+    const open = new Set(openKey.split(',').filter(Boolean).map(Number));
+    if (open.has(catalogEpisode.episodeNumber)) return;
+    const first = Number(openKey.split(',')[0]);
+    if (Number.isInteger(first) && first > 0) setEpisodeId(klEpisodeId(first));
+  }, [hydrated, catalogEpisode.episodeNumber, openKey]);
 
   useEffect(() => {
     setFlow((current) => {
@@ -321,10 +346,15 @@ export default function KabihasnangLigawAdminScreen() {
             next = markNextReleaseScheduled(next, manilaDate);
           }
           const package_ = next.nextRelease;
-          setEpisodeId(focusEpisodeId(next));
+          const focusArrived = isReleasedForApproval(next.focusEpisodeNumber, now)
+            || isMemberReleasedEpisode(next.focusEpisodeNumber);
+          const focusNumber = focusArrived
+            ? next.focusEpisodeNumber
+            : (openEntries.at(-1)?.episodeNumber ?? next.focusEpisodeNumber);
+          setEpisodeId(klEpisodeId(focusNumber));
           setResult(
             package_
-              ? `${package_.title} locked for ${package_.manilaDate} 6:00 a.m. That exact text, picture, motion, and music are the next release. Next desk focus: Kabanata ${String(next.focusEpisodeNumber).padStart(2, '0')}.`
+              ? `${package_.title} locked for ${package_.manilaDate} 6:00 a.m. That exact text, picture, motion, and music are the next release. Next desk focus: Kabanata ${String(focusNumber).padStart(2, '0')}.`
               : `${episode.title} approved, but the release date was not valid.`,
           );
         } else if (action === 'schedule') {
@@ -443,9 +473,32 @@ export default function KabihasnangLigawAdminScreen() {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Approval queue · Chapter 2 onward</Text>
+          <Text style={styles.cardTitle}>Approval queue</Text>
+          <Text style={styles.body}>
+            A new chapter arrives here at 6:00 p.m., two days before its 6:00 a.m. live release. Members do not see it until you approve it.
+          </Text>
+          {nextLive && nextLiveTitle ? (
+            <Text style={styles.meta}>
+              {manilaDayRelation(now, nextLive.at) === 'today' ? 'Today' : 'Tomorrow'}
+              {', 6:00 a.m.: '}
+              {nextLiveTitle}
+              {' is the next live slot if you have approved it.'}
+            </Text>
+          ) : null}
+          {nextArrival && nextArrivalTitle ? (
+            <Text style={styles.meta}>
+              {manilaDayRelation(now, nextArrival.at) === 'today' ? 'Today' : 'Tomorrow'}
+              {', 6:00 p.m.: '}
+              {nextArrivalTitle}
+              {' arrives for approval.'}
+            </Text>
+          ) : (
+            <Text style={styles.meta}>Every remaining chapter is already in this queue.</Text>
+          )}
           {queue.map((item) => {
             const itemDraft = draftForEpisode(flow, item);
+            const arrived = openEntries.find((entry) => entry.episodeNumber === item.episodeNumber);
+            const arrivedToday = arrived?.releasedOn === manilaCivilDate(now);
             return (
               <Pressable
                 key={item.id}
@@ -455,6 +508,7 @@ export default function KabihasnangLigawAdminScreen() {
                 <Text style={styles.rowTitle}>{itemDraft.title.trim() || item.title}</Text>
                 <Text style={styles.meta}>
                   {friendlyEpisodeLabel(item, itemDraft, flow.nextRelease)}
+                  {arrivedToday ? ' · Arrived today at 6:00 p.m.' : ''}
                 </Text>
               </Pressable>
             );
