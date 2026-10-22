@@ -42,14 +42,16 @@ function keyFor(account: string, scope: string, dataset: string) {
   return PREFIX + account + '/' + scope + '/' + dataset;
 }
 async function load<T>(key: string): Promise<Snapshot<T> | null> {
+  const generation = generations.get(key) ?? 0;
   const cached = memory.get(key) as Snapshot<T> | undefined;
   if (cached) return cached;
   try {
     const raw = await AsyncStorage.getItem(key);
-    if (!raw) return null;
+    if ((generations.get(key) ?? 0) !== generation || !raw) return null;
     const parsed = JSON.parse(raw) as Snapshot<T>;
     if (parsed.schema !== 1 || !Array.isArray(parsed.rows) ||
         typeof parsed.cursor !== 'string' || typeof parsed.syncedAt !== 'number') return null;
+    if ((generations.get(key) ?? 0) !== generation) return null;
     memory.set(key, parsed);
     return parsed;
   } catch { return null; }
@@ -70,7 +72,11 @@ export async function readBuklodOfflineFirst<T extends { id: string }>(args: {
 }): Promise<{ rows: T[]; source: 'device' | 'network'; syncing: boolean }> {
   if (!args.authorized) throw new Error('BUKLOD scope not authorized');
   const key = keyFor(args.accountId, args.permissionScope, args.dataset);
+  const generation = generations.get(key) ?? 0;
   const cached = await load<T>(key);
+  if ((generations.get(key) ?? 0) !== generation) {
+    throw new Error('BUKLOD scope changed during cache read');
+  }
   const refreshDue = !cached || Date.now() - cached.syncedAt >=
     (args.refreshAfterMs ?? DEFAULT_REFRESH_MS);
   if (!args.online || !refreshDue) {
