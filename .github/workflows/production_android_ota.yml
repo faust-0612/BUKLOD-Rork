@@ -1,4 +1,4 @@
-# Release trigger: 2026-10-22 pending OTA complete — cluster search/join notif + photo rollback failsafe
+# Release trigger: 2026-10-22 endless boot loading fix — Public scope bootReady + auth shell release
 name: BUKLOD Production Android OTA
 
 on:
@@ -8,6 +8,7 @@ on:
       - main
     paths:
       - '.github/workflows/production_android_ota.yml'
+      - 'src/app/index.web.tsx'
       - 'src/app/clusters/index.tsx'
       - 'src/components/ClusterNotificationActions.tsx'
       - 'src/lib/clusterJoinNotification.ts'
@@ -259,7 +260,7 @@ jobs:
             --channel production \
             --platform android \
             --environment production \
-            --message "Runtime 1.3.2 pending OTA: cluster search + join notif approve/decline; Wall photo rollback failsafe; cumulative V28 live bundle" \
+            --message "Runtime 1.3.2 OTA: stop endless app loading (Public bootReady + auth shell); cumulative V28 live bundle" \
             --non-interactive
 
       - name: Deployment status
