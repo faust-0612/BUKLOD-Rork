@@ -199,6 +199,70 @@ export async function staleWhileRevalidate<T>(args: {
   }
 }
 
+/**
+ * Device-persistent stale-while-revalidate for authorized read models.
+ * Returns a previously saved snapshot immediately, then refreshes once per
+ * user/key in the background. Callers must check their mounted/account scope
+ * before applying onFresh. Never use for writes or permission decisions.
+ */
+const refreshes = new Map<string, Promise<void>>();
+
+export async function readCachedThenSync<T>(args: {
+  key: string;
+  userId: string;
+  ttlMs?: number;
+  fetcher: () => Promise<T>;
+  onFresh?: (value: T) => void;
+  onError?: (error: unknown) => void;
+  offline?: boolean;
+}): Promise<{ value: T; source: 'cache' | 'network'; stale: boolean; syncing: boolean }> {
+  if (!args.userId?.trim()) {
+    throw new Error('Persistent scoped cache requires an authenticated user ID.');
+  }
+  const cached = await getOfflineCache<T>(args.key, {
+    userId: args.userId,
+    allowStale: true,
+  });
+  const target = storageKey(args.key, args.userId);
+  if (args.offline) {
+    if (cached) return { value: cached.data, source: 'cache', stale: cached.isStale, syncing: false };
+    throw new Error('No saved offline data for this screen.');
+  }
+
+  const refresh = () => {
+    let pending = refreshes.get(target);
+    if (!pending) {
+      pending = (async () => {
+        const fresh = await args.fetcher();
+        await setOfflineCache(args.key, fresh, {
+          userId: args.userId,
+          ttlMs: args.ttlMs,
+        });
+        args.onFresh?.(fresh);
+      })().finally(() => {
+        refreshes.delete(target);
+      });
+      refreshes.set(target, pending);
+    }
+    return pending;
+  };
+
+  if (cached) {
+    // No re-download within TTL; expired snapshots remain visible while
+    // a single refresh reconciles changes.
+    if (!cached.isStale) {
+      return { value: cached.data, source: 'cache', stale: false, syncing: false };
+    }
+    void refresh().catch(error => args.onError?.(error));
+    return { value: cached.data, source: 'cache', stale: true, syncing: true };
+  }
+
+  await refresh();
+  const fresh = await getOfflineCache<T>(args.key, { userId: args.userId, allowStale: true });
+  if (!fresh) throw new Error('Network read completed without a persisted snapshot.');
+  return { value: fresh.data, source: 'network', stale: false, syncing: false };
+}
+
 /*
  * SECURITY:
  * Never cache auth tokens, passwords, recovery PINs, face embeddings,
