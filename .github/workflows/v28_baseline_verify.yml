@@ -1,0 +1,126 @@
+# Prepared rollback base. This workflow only checks the recovered source.
+# It does not publish an OTA, deploy web, or change the database.
+name: BUKLOD V28 baseline verify
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-recovered-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout this RC
+        uses: actions/checkout@v4
+
+      - name: Confirm native identity
+        shell: bash
+        run: |
+          grep -F "versionCode 28" android/app/build.gradle
+          grep -F 'versionName "1.3.4"' android/app/build.gradle
+          grep -F "runtimeVersion: isClassroom ? '1.3.0' : (isStaging ? '1.3.2' : '1.3.2')" app.config.js
+          if find . \( -name '*.keystore' -o -name '*.jks' -o -name '.env' -o -name '.env.*' \) -print | grep -q .; then
+            echo 'A signing key or environment file is present in the RC.'
+            find . \( -name '*.keystore' -o -name '*.jks' -o -name '.env' -o -name '.env.*' \) -print
+            exit 1
+          fi
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Verify Classroom and Home separation
+        shell: bash
+        run: |
+          grep -F 'BUKLOD_HOME_IDENTITY_R23_CLEAN_TWO_ROW' 'src/app/(tabs)/home.tsx'
+          grep -F 'BUKLOD_CLASSROOM_ACCOUNT_ISOLATION_R2' 'src/app/profile/buklod-classrooms.tsx'
+          grep -F "row.role_key === 'STUDENT'" 'src/app/profile/buklod-classrooms.tsx'
+          if grep -F "row.role_key === 'FACULTY'" 'src/app/profile/buklod-classrooms.tsx'; then
+            echo 'Faculty rows are still rendered in student My Classroom.'
+            exit 1
+          fi
+
+      - name: TypeScript QA
+        run: npx tsc --noEmit
+
+      - name: Verify production safety anchors
+        shell: bash
+        run: |
+          grep -F "HIGH_CONCURRENCY_LOGIN_R1" 'src/app/(auth)/login.tsx'
+          grep -F "loginInFlightRef.current" 'src/app/(auth)/login.tsx'
+          grep -F "HIGH_CONCURRENCY_LOGIN_R1" 'src/lib/buklodAuthResilience.ts'
+          grep -F "BUKLOD_MAIN_AUTH_STORM_R21" 'src/lib/buklodAuthResilience.ts'
+          grep -F "authRuntimeState.passwordSignInInFlight" 'src/lib/buklodAuthResilience.ts'
+          test "$(grep -cF '.signInWithPassword(credentials)' 'src/lib/buklodAuthResilience.ts')" -eq 1
+          grep -F 'persistSession: true' 'src/lib/supabase.ts'
+          grep -F 'BUKLOD_AUTH_EMAIL_LOCAL_DEVICE_R1' 'src/components/BuklodTrustedDeviceGate.native.tsx'
+          grep -F 'LocalAuthentication.authenticateAsync' 'src/components/BuklodTrustedDeviceGate.native.tsx'
+          grep -F 'SecureStore.setItemAsync' 'src/components/BuklodTrustedDeviceGate.native.tsx'
+          grep -F 'BUKLOD_LEGACY_VERIFICATION_REMOVAL_R22' 'src/app/index.tsx'
+          grep -F 'BUKLOD_LEGACY_VERIFICATION_REMOVAL_R22' 'src/app/onboarding/index.tsx'
+          if grep -F 'WAITING FOR ADMIN VERIFICATION' 'src/app/onboarding/index.tsx'; then
+            echo 'Legacy verification interstitial text is still present.'
+            exit 1
+          fi
+          if grep -F 'Redirect href="/onboarding"' 'src/app/index.tsx'; then
+            echo 'Legacy verification redirect is still present in app boot.'
+            exit 1
+          fi
+          grep -F "buklod_registration_version:" 'src/app/(auth)/register.tsx'
+          grep -F "createAccountInFlight.current" 'src/app/(auth)/register.tsx'
+          grep -F "buklod_complete_registration_v1" 'src/app/(auth)/register.tsx'
+          grep -F "account-recovery-otp-v1" 'src/app/(auth)/forgot-password.tsx'
+          grep -F "action: 'request_otp'" 'src/app/(auth)/forgot-password.tsx'
+          grep -F "action: 'verify_otp'" 'src/app/(auth)/forgot-password.tsx'
+          grep -F "action: 'reset_password'" 'src/app/(auth)/forgot-password.tsx'
+          grep -F "account-recovery-v3" 'src/app/(auth)/forgot-password.tsx'
+          grep -F "I forgot my login too" 'src/app/(auth)/forgot-password.tsx'
+          grep -F "recover_with_admin_code" 'src/app/(auth)/forgot-password.tsx'
+          grep -F "recovery_status" 'src/app/account/recovery-pin.tsx'
+          grep -F "admin_reject_request" 'src/app/admin/account-recovery.tsx'
+          grep -F "MANAGE CLUSTER" 'src/components/BuklodClusterHomeCommandCenter.tsx'
+          grep -F "constrainContextToOrganization" 'src/lib/buklodClusterFormationGate.ts'
+          grep -F "readMediaForUpload" 'src/app/scope/bulletin-editor.tsx'
+          grep -F "Title and message are required before publishing." 'src/app/scope/bulletin-editor.tsx'
+          grep -F "router.push('/profile/buklod-classrooms' as any)" 'src/components/BuklodPublicWordShortcut.tsx'
+          grep -F "import { FacultyClassroomHeader } from '@/components/classroom/FacultyClassroomHeader';" 'src/app/profile/buklod-faculty-class.tsx'
+          grep -F 'auto_grading_mode: string;' 'src/app/profile/buklod-classroom-work.tsx'
+          grep -F 'ai_suggested_score: number | null;' 'src/app/profile/buklod-classroom-work.tsx'
+          grep -F 'buklod_classroom_start_live_v1' 'src/app/profile/buklod-classroom.tsx'
+          grep -F 'StreamVideoClient.getOrCreateInstance' 'src/components/classroom/ClassroomLiveView.native.tsx'
+          grep -F 'PATCH_CALL_LIFECYCLE_R1' 'src/lib/buklodStreamCall.ts'
+          grep -F 'installBuklodCallLifecycle' 'src/providers/StreamVideoProvider.tsx'
+          grep -F 'firebase-video-production' 'src/utils/setPushConfig.ts'
+          grep -F 'call.missed' 'src/utils/setFirebaseListeners.android.ts'
+          grep -F 'PATCH_191D_LIVE_GIPHY_COMPACT_PICKER' 'src/components/connect/ConnectComposerPicker.tsx'
+          grep -F 'searchConnectGifs' 'src/lib/buklodConnectGifCatalog.ts'
+          grep -F 'CONNECT_GIF_CATEGORIES' 'src/lib/buklodConnectGifCatalog.ts'
+          grep -F 'BUKLOD_FOCUS_APP_ADS_R1' 'src/components/BuklodFocusAppAdStrip.tsx'
+          grep -F 'placement="focus"' 'src/components/BuklodFocusAppAdStrip.tsx'
+          grep -F "case 'focus':" 'src/lib/buklodAdUnits.ts'
+          grep -F 'BUKLOD_AWS_WALL_VIDEO_R3_NATIVE_BOUNDED_MEMORY' 'src/lib/buklodAwsWallVideo.ts'
+          grep -F 'BUKLOD_AWS_WALL_VIDEO_ROUTE_R1' 'src/lib/uploadCommunityVideoFile.ts'
+          grep -F 'set_buklod_post_media_v5' 'src/lib/buklodCommunityPostMedia.ts'
+          grep -F 'BUKLOD_AWS_SIGNED_MEDIA_CACHE_R2_BATCHED' 'src/lib/buklodMediaUrl.ts'
+          grep -F 'BUKLOD_5K_SCALE_R1_NOTIFICATION_NO_CDC' 'src/providers/NotificationProvider.tsx'
+          grep -F 'BUKLOD_5K_SCALE_R1_PRAYER_NO_CDC' 'src/app/(tabs)/prayer.tsx'
+
+      - name: Verify automatic Formation completion anchors
+        shell: bash
+        run: |
+          grep -F "complete_my_devotional_v2" 'src/app/reflection/[id].tsx'
+          grep -F "complete_my_formation_lesson_v2" 'src/components/LearningQuestionResponse.tsx'
+          grep -F "buklod_scope_faith_monitoring_summary_v3" 'src/lib/buklodScopeFaithMonitoring.ts'
+          grep -F "Manual approval is no longer required." 'src/app/scope/formation-approvals.tsx'
+          grep -F "No separate manual submission or Admin approval is required." 'src/app/scope/faith-monitoring/report.tsx'
+          if grep -F "buklod_review_scope_formation_approval_v2" 'src/app/scope/formation-approvals.tsx'; then
+            echo 'Manual Formation approval action is still exposed.'
+            exit 1
+          fi

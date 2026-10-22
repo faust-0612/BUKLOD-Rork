@@ -1,0 +1,2255 @@
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+
+import {
+  Alert,
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  useWindowDimensions,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
+
+import {
+  MaterialCommunityIcons,
+} from '@expo/vector-icons';
+
+import {
+  BuklodFocusFadeUp,
+} from '@/components/HomeMotion';
+import {
+  BuklodTappableAvatar,
+} from '@/components/BuklodTappableAvatar';
+import BuklodMaritesPhotoCollage from '@/components/BuklodMaritesPhotoCollage';
+import { BuklodComposerPhotoEditSheet } from '@/components/BuklodComposerPhotoEditSheet';
+import {
+  BuklodPhotoEditor,
+  type BuklodPhotoEditorTool,
+} from '@/components/BuklodPhotoEditor';
+import {
+  BuklodContentOverflowMenu,
+} from '@/components/BuklodContentOverflowMenu';
+import {
+  deleteCommunityPost,
+  saveCommunityPostEdit,
+  setCommunityPostAuthorOnly,
+  updateCommunityPost,
+  type CommunityEditPhoto,
+} from '@/lib/buklodCommunityPostOwnerActions';
+import {
+  useBuklodPresentation,
+} from '@/hooks/useBuklodPresentation';
+import {
+  BUKLOD_PUBLIC_COMMUNITY_REACTIONS,
+  rememberCommunityReaction,
+} from '@/components/BuklodReactionAction';
+import {
+  deleteMaritesStory,
+  filterMaritesStoriesForViewer,
+  getMaritesStoryPhotos,
+  isCommunityMaritesStory,
+  isMaritesEmojiOnlyBody,
+  loadAllMaritesStories,
+  loadMaritesStories,
+  mergeMaritesStories,
+  MARITES_MAX_CHARS,
+  MARITES_MAX_PHOTOS,
+  MARITES_QUICK_EMOJI,
+  maritesAgeLabel,
+  publishMaritesStory,
+  setMaritesStoryAuthorOnly,
+  setMaritesStoryReaction,
+  sumMaritesReactionCounts,
+  topMaritesReactionKey,
+  updateMaritesStory,
+  withMaritesPostMarker,
+  parseCommunityMaritesPostId,
+  type MaritesStory,
+} from '@/lib/buklodMaritesBoard';
+import {
+  resolvePersonDisplayName,
+} from '@/lib/buklodPersonDisplay';
+import { pickCommunityPhotos } from '@/lib/buklodPickCommunityPhotos';
+import { useAuth } from '@/providers/AuthProvider';
+import {
+  BUKLOD_HIT_SLOP,
+  BUKLOD_LONG_PRESS_MS,
+} from '@/lib/buklodTouch';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useBuklodDrawerBottomInset } from '@/lib/buklodSafeArea';
+import {
+  GestureHandlerRootView,
+  ScrollView as GestureScrollView,
+} from 'react-native-gesture-handler';
+import {
+  BuklodZoomablePhoto,
+} from '@/components/BuklodZoomablePhoto';
+
+type Props = {
+  /** Reserved for future scoped RPC filter. */
+  locationScopeId?: string | null;
+};
+
+type MaritesComposerPhoto = {
+  id: string;
+  uri: string;
+};
+
+/*
+ * MARITES_COMPACT_STABLE_R20
+ *
+ * Keep the lightweight story strip warm across Community Wall remounts.
+ * Stories are short-lived already, so a small freshness window prevents
+ * repeated remote/media signing work without turning this into durable state.
+ */
+const MARITES_COMPACT_CARD_WIDTH = 124;
+const MARITES_COMPACT_CARD_HEIGHT = 168;
+const MARITES_COMPACT_FOOTER_HEIGHT = 32;
+const MARITES_MEMORY_FRESH_MS = 20_000;
+const MARITES_REFRESH_TIMEOUT_MS = 8_000;
+
+type MaritesMemoryEntry = {
+  rows: MaritesStory[];
+  remoteUpdatedAt: number;
+};
+
+const maritesMemory = new Map<string, MaritesMemoryEntry>();
+const maritesRefreshes = new Map<string, Promise<MaritesStory[]>>();
+
+function maritesMemoryKey(
+  locationScopeId: string | null | undefined,
+  userId: string | null | undefined
+) {
+  return `${locationScopeId || 'public'}:${userId || 'anonymous'}`;
+}
+
+async function withMaritesRefreshTimeout(
+  promise: Promise<MaritesStory[]>
+) {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<MaritesStory[]>((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new Error('Marites shared refresh timed out.'));
+        }, MARITES_REFRESH_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
+
+function storyEditPhotos(story: MaritesStory): CommunityEditPhoto[] {
+  const uris = getMaritesStoryPhotos(story);
+  const paths = story.photo_paths ?? [];
+
+  return uris.map((uri, index) => ({
+    id: `${paths[index] || uri}-${index}`,
+    uri,
+    mediaPath: paths[index] || null,
+  }));
+}
+
+function createStyles(
+  colors: ReturnType<
+    typeof useBuklodPresentation
+  >['colors']
+) {
+  return StyleSheet.create({
+    section: {
+      marginTop: 2,
+      marginBottom: 8,
+    },
+    headingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 8,
+      marginBottom: 6,
+    },
+    headingActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      gap: 7,
+      flexShrink: 1,
+    },
+    title: {
+      fontSize: 9,
+      fontWeight: '900',
+      letterSpacing: 0.7,
+      color: colors.greenDark,
+    },
+    hint: {
+      fontSize: 8,
+      fontWeight: '700',
+      color: colors.muted,
+      flexShrink: 1,
+    },
+    shareButton: {
+      minHeight: 28,
+      paddingHorizontal: 9,
+      paddingVertical: 4,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: colors.line,
+      backgroundColor: `${colors.green}10`,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 3,
+      flexShrink: 0,
+    },
+    shareButtonText: {
+      fontSize: 9,
+      fontWeight: '900',
+      color: colors.greenDark,
+    },
+    row: {
+      paddingRight: 8,
+      gap: 7,
+    },
+    cardShell: {
+      flexShrink: 0,
+    },
+    storyCard: {
+      width: MARITES_COMPACT_CARD_WIDTH,
+      height: MARITES_COMPACT_CARD_HEIGHT,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.line,
+      backgroundColor: `${colors.green}10`,
+      overflow: 'hidden',
+    },
+    cardMenuBtn: {
+      position: 'absolute',
+      top: 5,
+      right: 5,
+      zIndex: 4,
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(0,0,0,0.42)',
+    },
+    storyPhotoFill: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: MARITES_COMPACT_FOOTER_HEIGHT,
+      backgroundColor: colors.line,
+    },
+    mediaFill: {
+      ...StyleSheet.absoluteFill,
+    },
+    emojiFillText: {
+      width: '100%',
+      height: '100%',
+      fontSize: 56,
+      lineHeight: 64,
+      textAlign: 'center',
+      textAlignVertical: 'center',
+      includeFontPadding: false,
+    },
+    textFill: {
+      ...StyleSheet.absoluteFill,
+      paddingHorizontal: 8,
+      paddingTop: 8,
+      paddingBottom: 34,
+      justifyContent: 'center',
+    },
+    bodyFill: {
+      fontSize: 10.5,
+      lineHeight: 14,
+      fontWeight: '700',
+      color: colors.text,
+      textAlign: 'center',
+    },
+    photoCaption: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: 0,
+      paddingHorizontal: 8,
+      paddingTop: 8,
+      paddingBottom: 44,
+      justifyContent: 'flex-end',
+    },
+    photoCaptionText: {
+      fontSize: 9.5,
+      lineHeight: 12,
+      fontWeight: '800',
+      color: '#FFFFFF',
+      textShadowColor: 'rgba(0,0,0,0.65)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 3,
+    },
+    authorFooter: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      minHeight: MARITES_COMPACT_FOOTER_HEIGHT,
+      paddingHorizontal: 6,
+      paddingVertical: 4,
+      backgroundColor: 'rgba(255,255,255,0.94)',
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.line,
+    },
+    authorFooterOnPhoto: {
+      backgroundColor: 'rgba(8, 16, 12, 0.55)',
+      borderTopWidth: 0,
+    },
+    authorName: {
+      flex: 1,
+      fontSize: 8,
+      fontWeight: '900',
+      color: colors.text,
+    },
+    authorNameOnPhoto: {
+      color: '#FFFFFF',
+    },
+    age: {
+      fontSize: 7,
+      fontWeight: '700',
+      color: colors.muted,
+    },
+    ageOnPhoto: {
+      color: 'rgba(255,255,255,0.82)',
+    },
+    reactionPill: {
+      fontSize: 7,
+      fontWeight: '800',
+      color: colors.greenDark,
+      marginLeft: 1,
+    },
+    reactionPillOnPhoto: {
+      color: '#FFFFFF',
+    },
+    viewReactions: {
+      marginTop: 12,
+      marginBottom: 4,
+    },
+    fullscreen: {
+      flex: 1,
+      backgroundColor: '#050807',
+    },
+    fullscreenTapArea: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    fullscreenPhotoWrap: {
+      flex: 1,
+      width: '100%',
+    },
+    fullscreenPhoto: {
+      width: '100%',
+      height: '100%',
+    },
+    fullscreenPhotoPage: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingTop: 72,
+      paddingBottom: 128,
+      paddingHorizontal: 10,
+    },
+    fullscreenEmoji: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 24,
+    },
+    fullscreenEmojiText: {
+      fontSize: 120,
+      lineHeight: 132,
+      textAlign: 'center',
+    },
+    fullscreenTextWrap: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 24,
+    },
+    fullscreenBodyText: {
+      fontSize: 22,
+      lineHeight: 30,
+      fontWeight: '700',
+      color: '#FFFFFF',
+      textAlign: 'center',
+    },
+    fullscreenFooter: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      paddingHorizontal: 16,
+      paddingTop: 48,
+      backgroundColor: 'rgba(0,0,0,0.55)',
+    },
+    fullscreenFooterText: {
+      color: '#FFFFFF',
+      fontSize: 15,
+      lineHeight: 21,
+      fontWeight: '700',
+      marginBottom: 10,
+    },
+    fullscreenMetaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    fullscreenAuthor: {
+      flex: 1,
+      color: '#FFFFFF',
+      fontSize: 13,
+      fontWeight: '900',
+    },
+    fullscreenMeta: {
+      color: 'rgba(255,255,255,0.78)',
+      fontSize: 10,
+      fontWeight: '700',
+      marginTop: 2,
+    },
+    fullscreenHeader: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: 0,
+      zIndex: 20,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 12,
+      paddingBottom: 10,
+    },
+    fullscreenHeaderBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(0,0,0,0.42)',
+    },
+    fullscreenStoryNav: {
+      position: 'absolute',
+      left: 10,
+      right: 10,
+      top: '46%',
+      zIndex: 24,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    fullscreenStoryNavBtn: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(0,0,0,0.48)',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.18)',
+    },
+    fullscreenReactionDock: {
+      position: 'absolute',
+      left: 16,
+      right: 16,
+      bottom: 110,
+      zIndex: 30,
+      alignItems: 'flex-start',
+    },
+    fullscreenHint: {
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      left: 0,
+      alignItems: 'center',
+      zIndex: 15,
+    },
+    fullscreenHintText: {
+      marginTop: 8,
+      color: 'rgba(255,255,255,0.72)',
+      fontSize: 10,
+      fontWeight: '700',
+    },
+    emptyNote: {
+      marginTop: 5,
+      fontSize: 8.5,
+      fontWeight: '600',
+      color: colors.muted,
+      lineHeight: 12,
+    },
+    backdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(8, 16, 12, 0.52)',
+      justifyContent: 'flex-end',
+    },
+    sheet: {
+      maxHeight: '88%',
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      backgroundColor: colors.white,
+      paddingHorizontal: 16,
+      paddingTop: 14,
+      paddingBottom: 24,
+    },
+    sheetHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 12,
+    },
+    sheetTitle: {
+      fontSize: 13,
+      fontWeight: '900',
+      color: colors.text,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.line,
+      borderRadius: 12,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: 13,
+      color: colors.text,
+      minHeight: 88,
+      textAlignVertical: 'top',
+    },
+    charCount: {
+      marginTop: 4,
+      fontSize: 9,
+      fontWeight: '700',
+      color: colors.muted,
+      textAlign: 'right',
+    },
+    emojiRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 6,
+      marginTop: 10,
+      marginBottom: 10,
+    },
+    emojiChip: {
+      width: 34,
+      height: 34,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.line,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.white,
+    },
+    emojiText: {
+      fontSize: 18,
+    },
+    toolRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginBottom: 12,
+    },
+    toolBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.line,
+    },
+    toolText: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: colors.greenDark,
+    },
+    previewPhoto: {
+      width: 88,
+      height: 88,
+      borderRadius: 12,
+      backgroundColor: colors.line,
+    },
+    composerPhotoRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginBottom: 12,
+    },
+    composerPhotoWrap: {
+      width: 88,
+      height: 88,
+      borderRadius: 12,
+      overflow: 'hidden',
+      position: 'relative',
+      backgroundColor: colors.line,
+    },
+    composerPhotoRemove: {
+      position: 'absolute',
+      top: 4,
+      right: 4,
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(0,0,0,0.55)',
+    },
+    composerPhotoHint: {
+      marginTop: -4,
+      marginBottom: 10,
+      fontSize: 9,
+      fontWeight: '600',
+      color: colors.muted,
+      lineHeight: 13,
+    },
+    viewPhotoGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginBottom: 10,
+    },
+    viewPhotoTile: {
+      width: '48%',
+      height: 140,
+      borderRadius: 14,
+      overflow: 'hidden',
+      backgroundColor: colors.line,
+    },
+    viewPhotoImage: {
+      width: '100%',
+      height: '100%',
+    },
+    postBtn: {
+      minHeight: 44,
+      borderRadius: 12,
+      backgroundColor: colors.green,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    postBtnText: {
+      fontSize: 12,
+      fontWeight: '900',
+      color: '#FFFFFF',
+    },
+    viewBody: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.text,
+      marginBottom: 10,
+    },
+    viewPhoto: {
+      width: '100%',
+      height: 220,
+      borderRadius: 14,
+      marginBottom: 10,
+      backgroundColor: colors.line,
+    },
+    localBadge: {
+      marginTop: 8,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 10,
+      backgroundColor: `${colors.green}12`,
+    },
+    localBadgeText: {
+      fontSize: 9,
+      fontWeight: '700',
+      color: colors.muted,
+      lineHeight: 13,
+    },
+  });
+}
+
+function MaritesStoryCard({
+  story,
+  colors,
+  onPress,
+  menu,
+}: {
+  story: MaritesStory;
+  colors: ReturnType<
+    typeof useBuklodPresentation
+  >['colors'];
+  onPress: () => void;
+  menu?: React.ReactNode;
+}) {
+  const styles = useMemo(
+    () => createStyles(colors),
+    [colors]
+  );
+
+  const hasPhoto = getMaritesStoryPhotos(story).length > 0;
+  const photoUris = getMaritesStoryPhotos(story);
+  const body = story.body.trim();
+  const emojiOnly =
+    !hasPhoto && isMaritesEmojiOnlyBody(body);
+  const displayName = resolvePersonDisplayName(
+    story.author_name,
+    story.user_id
+  );
+  const age = maritesAgeLabel(story.created_at);
+  const reactionTotal = sumMaritesReactionCounts(
+    story.reaction_counts
+  );
+  const topReactionKey = topMaritesReactionKey(
+    story.reaction_counts
+  );
+  const topReactionEmoji =
+    BUKLOD_PUBLIC_COMMUNITY_REACTIONS.find(
+      (option) => option.key === topReactionKey
+    )?.emoji ?? null;
+
+  return (
+    <View style={styles.storyCard}>
+    <Pressable
+      onPress={onPress}
+      style={StyleSheet.absoluteFill}
+    >
+      {hasPhoto && (
+        <BuklodMaritesPhotoCollage
+          uris={photoUris}
+          style={styles.storyPhotoFill}
+        />
+      )}
+
+      {!hasPhoto && emojiOnly && (
+        <View style={styles.mediaFill}>
+          <Text
+            adjustsFontSizeToFit
+            minimumFontScale={0.3}
+            numberOfLines={4}
+            style={styles.emojiFillText}
+          >
+            {body}
+          </Text>
+        </View>
+      )}
+
+      {!hasPhoto && !emojiOnly && !!body && (
+        <View style={styles.textFill}>
+          <Text
+            numberOfLines={6}
+            style={styles.bodyFill}
+          >
+            {body}
+          </Text>
+        </View>
+      )}
+
+      {hasPhoto && !!body && (
+        <View style={styles.photoCaption}>
+          <Text
+            numberOfLines={3}
+            style={styles.photoCaptionText}
+          >
+            {body}
+          </Text>
+        </View>
+      )}
+
+      <View
+        style={[
+          styles.authorFooter,
+          hasPhoto && styles.authorFooterOnPhoto,
+        ]}
+        onStartShouldSetResponder={() => true}
+      >
+        <BuklodTappableAvatar
+          userId={story.user_id}
+          uri={story.avatar_url}
+          name={story.author_name}
+          size={20}
+        />
+        <Text
+          numberOfLines={1}
+          style={[
+            styles.authorName,
+            hasPhoto && styles.authorNameOnPhoto,
+          ]}
+        >
+          {displayName}
+        </Text>
+        <Text
+          style={[
+            styles.age,
+            hasPhoto && styles.ageOnPhoto,
+          ]}
+        >
+          {story.author_only ? 'Ako lang · ' : ''}
+          {age}
+        </Text>
+        {reactionTotal > 0 && topReactionEmoji ? (
+          <Text
+            style={[
+              styles.reactionPill,
+              hasPhoto && styles.reactionPillOnPhoto,
+            ]}
+          >
+            {topReactionEmoji} {reactionTotal}
+          </Text>
+        ) : null}
+      </View>
+    </Pressable>
+    {menu}
+    </View>
+  );
+}
+
+export default function BuklodMaritesBoard({
+  locationScopeId,
+}: Props) {
+  const { user, profile } = useAuth();
+  const { colors } = useBuklodPresentation();
+  const styles = useMemo(
+    () => createStyles(colors),
+    [colors]
+  );
+  const cacheKey = useMemo(
+    () => maritesMemoryKey(locationScopeId, user?.id),
+    [locationScopeId, user?.id]
+  );
+
+  const [stories, setStories] = useState<
+    MaritesStory[]
+  >(() => maritesMemory.get(cacheKey)?.rows ?? []);
+  const loadGenerationRef = useRef(0);
+  const [composerOpen, setComposerOpen] =
+    useState(false);
+  const [viewStory, setViewStory] =
+    useState<MaritesStory | null>(null);
+  const [storyZoomed, setStoryZoomed] =
+    useState(false);
+  const [reactionPickerOpen, setReactionPickerOpen] =
+    useState(false);
+  const longPressHandledRef = useRef(false);
+  const [draft, setDraft] = useState('');
+  const [photos, setPhotos] = useState<MaritesComposerPhoto[]>(
+    []
+  );
+  const [posting, setPosting] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoEditorSource, setPhotoEditorSource] =
+    useState<MaritesComposerPhoto | null>(null);
+  const [photoEditorTargetId, setPhotoEditorTargetId] =
+    useState<string | null>(null);
+  const [photoEditSheetPhoto, setPhotoEditSheetPhoto] =
+    useState<MaritesComposerPhoto | null>(null);
+  const [photoEditorInitialTool, setPhotoEditorInitialTool] =
+    useState<BuklodPhotoEditorTool>('draw');
+
+  const load = useCallback(async (forceRemote = false) => {
+    const generation = ++loadGenerationRef.current;
+    const userId = user?.id ?? null;
+
+    if (!userId) {
+      setStories([]);
+      return;
+    }
+
+    const cached = maritesMemory.get(cacheKey);
+
+    if (cached) {
+      const visibleCached = filterMaritesStoriesForViewer(
+        cached.rows,
+        userId
+      );
+
+      if (!forceRemote) {
+        setStories(visibleCached);
+      }
+
+      if (
+        !forceRemote &&
+        cached.remoteUpdatedAt > 0 &&
+        Date.now() - cached.remoteUpdatedAt <
+          MARITES_MEMORY_FRESH_MS
+      ) {
+        return;
+      }
+    } else {
+      try {
+        const localRows = filterMaritesStoriesForViewer(
+          await loadMaritesStories(),
+          userId
+        );
+
+        if (generation !== loadGenerationRef.current) {
+          return;
+        }
+
+        setStories(localRows);
+        maritesMemory.set(cacheKey, {
+          rows: localRows,
+          remoteUpdatedAt: 0,
+        });
+      } catch (localError) {
+        console.warn(
+          'Marites Story local cache:',
+          String(
+            (localError as Error)?.message ??
+              localError
+          )
+        );
+      }
+    }
+
+    let refreshPromise =
+      !forceRemote
+        ? maritesRefreshes.get(cacheKey)
+        : undefined;
+
+    if (!refreshPromise) {
+      const nextPromise = loadAllMaritesStories(
+        locationScopeId,
+        userId
+      );
+
+      refreshPromise = nextPromise;
+      maritesRefreshes.set(cacheKey, nextPromise);
+
+      void nextPromise.then(
+        () => {
+          if (maritesRefreshes.get(cacheKey) === nextPromise) {
+            maritesRefreshes.delete(cacheKey);
+          }
+        },
+        () => {
+          if (maritesRefreshes.get(cacheKey) === nextPromise) {
+            maritesRefreshes.delete(cacheKey);
+          }
+        }
+      );
+    }
+
+    try {
+      const rows = await refreshPromise;
+
+      if (generation !== loadGenerationRef.current) {
+        return;
+      }
+
+      const visibleRows = filterMaritesStoriesForViewer(
+        rows,
+        userId
+      );
+
+      setStories((current) => {
+        const next =
+          visibleRows.length > 0
+            ? visibleRows
+            : current;
+
+        maritesMemory.set(cacheKey, {
+          rows: next,
+          remoteUpdatedAt: Date.now(),
+        });
+
+        return next;
+      });
+    } catch (remoteError) {
+      /* Keep warm/local stories visible when refresh is unavailable. */
+      console.warn(
+        'Marites Story shared refresh:',
+        String(
+          (remoteError as Error)?.message ??
+            remoteError
+        )
+      );
+    }
+  }, [cacheKey, locationScopeId, user?.id]);
+
+  useEffect(() => {
+    void load();
+
+    return () => {
+      loadGenerationRef.current += 1;
+    };
+  }, [load]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      return;
+    }
+
+    const current = maritesMemory.get(cacheKey);
+
+    if (!current && stories.length === 0) {
+      return;
+    }
+
+    maritesMemory.set(cacheKey, {
+      rows: stories,
+      remoteUpdatedAt: current?.remoteUpdatedAt ?? 0,
+    });
+  }, [cacheKey, stories, user?.id]);
+
+  const closeStoryViewer = useCallback(() => {
+    setStoryZoomed(false);
+    setViewStory(null);
+    setReactionPickerOpen(false);
+  }, []);
+
+  const openStoryViewer = useCallback((story: MaritesStory) => {
+    setStoryZoomed(false);
+    setReactionPickerOpen(false);
+    setViewStory(story);
+  }, []);
+
+  /*
+   * BUKLOD_MARITES_STORY_NAV_R1
+   *
+   * Story viewer stays open. Previous/Next moves directly between visible
+   * stories so users never need Back -> tap another card -> reopen.
+   */
+  const stepStoryViewer = useCallback(
+    (direction: -1 | 1) => {
+      if (
+        !viewStory ||
+        stories.length < 2
+      ) {
+        return;
+      }
+
+      const currentIndex =
+        stories.findIndex(
+          story =>
+            story.id ===
+            viewStory.id
+        );
+
+      const safeIndex =
+        currentIndex >= 0
+          ? currentIndex
+          : 0;
+
+      const nextIndex =
+        (
+          safeIndex +
+          direction +
+          stories.length
+        ) % stories.length;
+
+      setStoryZoomed(false);
+      setReactionPickerOpen(false);
+      setViewStory(
+        stories[nextIndex]
+      );
+    },
+    [
+      stories,
+      viewStory,
+    ]
+  );
+
+  const communityPostIdForStory = useCallback(
+    (story: MaritesStory) => {
+      return (
+        String(story.community_post_id ?? '').trim() ||
+        parseCommunityMaritesPostId(story.id)
+      );
+    },
+    []
+  );
+
+  const applyLocalStoryRows = useCallback(
+    (next: MaritesStory[], storyId: string) => {
+      if (!user?.id) {
+        return;
+      }
+
+      const filtered = filterMaritesStoriesForViewer(
+        next,
+        user.id
+      );
+      setStories((current) =>
+        mergeMaritesStories(
+          filtered,
+          current.filter((item) =>
+            isCommunityMaritesStory(item)
+          )
+        )
+      );
+      setViewStory((open) =>
+        open?.id === storyId
+          ? filtered.find((item) => item.id === storyId) ??
+            null
+          : open
+      );
+    },
+    [user?.id]
+  );
+
+  const saveStoryBody = useCallback(
+    async (
+      story: MaritesStory,
+      body: string,
+      nextPhotos?: CommunityEditPhoto[]
+    ) => {
+      const trimmed = body.trim();
+
+      if (isCommunityMaritesStory(story)) {
+        const postId = communityPostIdForStory(story);
+
+        if (!postId) {
+          throw new Error(
+            'This story could not be updated.'
+          );
+        }
+
+        if (nextPhotos) {
+          const saved = await saveCommunityPostEdit({
+            postId,
+            userId: String(user?.id ?? ''),
+            body: withMaritesPostMarker(trimmed),
+            photos: nextPhotos,
+          });
+          const nextUris = saved.media_items
+            .map((item) => String(item.media_url ?? '').trim())
+            .filter(Boolean);
+          const nextPaths = saved.media_items
+            .map((item) => String(item.media_path ?? '').trim())
+            .filter(Boolean);
+
+          setStories((current) =>
+            current.map((item) =>
+              item.id === story.id
+                ? {
+                    ...item,
+                    body: trimmed,
+                    photo_uris: nextUris,
+                    photo_uri: nextUris[0] ?? null,
+                    photo_paths: nextPaths,
+                  }
+                : item
+            )
+          );
+          setViewStory((open) =>
+            open?.id === story.id
+              ? {
+                  ...open,
+                  body: trimmed,
+                  photo_uris: nextUris,
+                  photo_uri: nextUris[0] ?? null,
+                  photo_paths: nextPaths,
+                }
+              : open
+          );
+          return;
+        }
+
+        await updateCommunityPost(
+          postId,
+          withMaritesPostMarker(trimmed)
+        );
+
+        setStories((current) =>
+          current.map((item) =>
+            item.id === story.id
+              ? { ...item, body: trimmed }
+              : item
+          )
+        );
+        setViewStory((open) =>
+          open?.id === story.id
+            ? { ...open, body: trimmed }
+            : open
+        );
+        return;
+      }
+
+      const photoUris = nextPhotos
+        ? nextPhotos
+            .map((photo) => String(photo.uri ?? '').trim())
+            .filter(Boolean)
+        : undefined;
+      const next = await updateMaritesStory(
+        story.id,
+        trimmed,
+        photoUris
+      );
+      applyLocalStoryRows(next, story.id);
+    },
+    [applyLocalStoryRows, communityPostIdForStory, user?.id]
+  );
+
+  const deleteOwnStory = useCallback(
+    async (story: MaritesStory) => {
+      if (isCommunityMaritesStory(story)) {
+        const postId = communityPostIdForStory(story);
+
+        if (!postId) {
+          throw new Error(
+            'This story could not be deleted.'
+          );
+        }
+
+        await deleteCommunityPost(postId);
+        setStories((current) =>
+          current.filter((item) => item.id !== story.id)
+        );
+        setViewStory((open) =>
+          open?.id === story.id ? null : open
+        );
+        return;
+      }
+
+      const next = await deleteMaritesStory(story.id);
+      applyLocalStoryRows(next, story.id);
+    },
+    [applyLocalStoryRows, communityPostIdForStory]
+  );
+
+  const toggleStoryAuthorOnly = useCallback(
+    async (story: MaritesStory) => {
+      const nextAuthorOnly = !story.author_only;
+
+      if (isCommunityMaritesStory(story)) {
+        const postId = communityPostIdForStory(story);
+
+        if (!postId) {
+          throw new Error(
+            'Could not update visibility.'
+          );
+        }
+
+        await setCommunityPostAuthorOnly(
+          postId,
+          nextAuthorOnly
+        );
+
+        setStories((current) =>
+          current.map((item) =>
+            item.id === story.id
+              ? { ...item, author_only: nextAuthorOnly }
+              : item
+          )
+        );
+        setViewStory((open) =>
+          open?.id === story.id
+            ? { ...open, author_only: nextAuthorOnly }
+            : open
+        );
+        return;
+      }
+
+      const next = await setMaritesStoryAuthorOnly(
+        story.id,
+        nextAuthorOnly
+      );
+      applyLocalStoryRows(next, story.id);
+    },
+    [applyLocalStoryRows, communityPostIdForStory]
+  );
+
+  const storyOwnerMenu = useCallback(
+    (
+      story: MaritesStory,
+      menuStyle?: object,
+      iconColor = '#FFFFFF'
+    ) => {
+      if (!user?.id || story.user_id !== user.id) {
+        return null;
+      }
+
+      return (
+        <BuklodContentOverflowMenu
+          title="Your story"
+          body={story.body}
+          authorOnly={!!story.author_only}
+          iconColor={iconColor}
+          iconSize={18}
+          maxChars={MARITES_MAX_CHARS}
+          maxPhotos={MARITES_MAX_PHOTOS}
+          allowPhotoEdit
+          photos={storyEditPhotos(story)}
+          style={menuStyle}
+          onEdit={(nextBody, nextPhotos) =>
+            saveStoryBody(story, nextBody, nextPhotos)
+          }
+          onDelete={() => deleteOwnStory(story)}
+          onToggleAuthorOnly={() =>
+            toggleStoryAuthorOnly(story)
+          }
+        />
+      );
+    },
+    [
+      deleteOwnStory,
+      saveStoryBody,
+      toggleStoryAuthorOnly,
+      user?.id,
+    ]
+  );
+
+  const resetComposer = useCallback(() => {
+    setDraft('');
+    setPhotos([]);
+    setPhotoEditorSource(null);
+    setPhotoEditorTargetId(null);
+    setComposerOpen(false);
+  }, []);
+
+  const reactToStory = useCallback(
+    (storyId: string, reactionKey: string) => {
+      if (!user?.id) {
+        return;
+      }
+
+      const current = stories.find(
+        (story) => story.id === storyId
+      );
+
+      if (!current) {
+        return;
+      }
+
+      const previous = current.my_reaction ?? null;
+      const nextReaction =
+        previous === reactionKey ? null : reactionKey;
+
+      rememberCommunityReaction(
+        nextReaction ?? reactionKey
+      );
+
+      const applyReaction = (
+        story: MaritesStory
+      ): MaritesStory => {
+        const counts = {
+          ...(story.reaction_counts ?? {}),
+        };
+
+        if (previous) {
+          counts[previous] = Math.max(
+            0,
+            Number(counts[previous] ?? 0) - 1
+          );
+        }
+
+        if (nextReaction) {
+          counts[nextReaction] = Math.max(
+            0,
+            Number(counts[nextReaction] ?? 0) + 1
+          );
+        }
+
+        return {
+          ...story,
+          reaction_counts: counts,
+          my_reaction: nextReaction,
+        };
+      };
+
+      const syncStories = (
+        updater: (story: MaritesStory) => MaritesStory
+      ) => {
+        setStories((openStories) =>
+          openStories.map((story) =>
+            story.id === storyId
+              ? updater(story)
+              : story
+          )
+        );
+
+        setViewStory((open) => {
+          if (!open || open.id !== storyId) {
+            return open;
+          }
+
+          return updater(open);
+        });
+      };
+
+      if (isCommunityMaritesStory(current)) {
+        syncStories(applyReaction);
+
+        void setMaritesStoryReaction(
+          storyId,
+          user.id,
+          nextReaction
+        ).catch((error) => {
+          syncStories(() => current);
+          Alert.alert(
+            'Reaction',
+            String(
+              (error as Error)?.message ??
+                'Could not save reaction.'
+            )
+          );
+        });
+
+        return;
+      }
+
+      void setMaritesStoryReaction(
+        storyId,
+        user.id,
+        nextReaction
+      ).then((next) => {
+        const filtered = filterMaritesStoriesForViewer(
+          next,
+          user.id
+        );
+
+        setStories((openStories) => {
+          const communityStories = openStories.filter(
+            (story) =>
+              isCommunityMaritesStory(story)
+          );
+
+          return mergeMaritesStories(
+            filtered,
+            communityStories
+          );
+        });
+
+        setViewStory((open) => {
+          if (!open || open.id !== storyId) {
+            return open;
+          }
+
+          return (
+            filtered.find(
+              (story) => story.id === storyId
+            ) ?? open
+          );
+        });
+      });
+    },
+    [stories, user?.id]
+  );
+
+  const removeComposerPhoto = useCallback((id: string) => {
+    setPhotos((current) =>
+      current.filter((photo) => photo.id !== id)
+    );
+  }, []);
+
+  const openPhotoActions = useCallback(
+    (photo: MaritesComposerPhoto) => {
+      setPhotoEditSheetPhoto(photo);
+    },
+    []
+  );
+
+  const openPhotoEditor = useCallback(
+    (
+      photo: MaritesComposerPhoto,
+      tool: BuklodPhotoEditorTool
+    ) => {
+      setPhotoEditorTargetId(photo.id);
+      setPhotoEditorInitialTool(tool);
+      setPhotoEditorSource(photo);
+    },
+    []
+  );
+
+  const pickPhotos = useCallback(async () => {
+    try {
+      setPhotoBusy(true);
+      const picked = await pickCommunityPhotos({
+        remaining: MARITES_MAX_PHOTOS - photos.length,
+        maxPhotos: MARITES_MAX_PHOTOS,
+      });
+
+      if (!picked.length) {
+        return;
+      }
+
+      setPhotos(current =>
+        [...current, ...picked].slice(0, MARITES_MAX_PHOTOS)
+      );
+    } catch (error) {
+      Alert.alert(
+        'Photos',
+        String(
+          (error as Error)?.message ??
+            'Could not select photos.'
+        )
+      );
+    } finally {
+      setPhotoBusy(false);
+    }
+  }, [photos.length]);
+
+  const submitStory = useCallback(async () => {
+    const body = draft.trim();
+    const photoUris = photos.map((photo) => photo.uri);
+
+    if (!body && !photoUris.length) {
+      Alert.alert(
+        'Marites Story',
+        'Add a short message or photo first.'
+      );
+      return;
+    }
+
+    if (!user?.id) {
+      Alert.alert(
+        'Marites Story',
+        'Sign in to share a story.'
+      );
+      return;
+    }
+
+    if (body.length > MARITES_MAX_CHARS) {
+      Alert.alert(
+        'Marites Story',
+        `Keep it short — ${MARITES_MAX_CHARS} characters max.`
+      );
+      return;
+    }
+
+    setPosting(true);
+
+    try {
+      const { story, shared } = await publishMaritesStory({
+        userId: user.id,
+        authorName:
+          profile?.full_name?.trim() ||
+          'Member',
+        avatarUrl: profile?.avatar_url ?? null,
+        body,
+        photoUris,
+      });
+
+      loadGenerationRef.current += 1;
+      maritesRefreshes.delete(cacheKey);
+
+      setStories((current) => {
+        const next = [
+          story,
+          ...current.filter((row) => row.id !== story.id),
+        ];
+
+        maritesMemory.set(cacheKey, {
+          rows: next,
+          remoteUpdatedAt: Date.now(),
+        });
+
+        return next;
+      });
+
+      if (!shared) {
+        Alert.alert(
+          'Marites Story',
+          'Saved on this device. Shared board needs a community connection — try again when online.'
+        );
+      }
+
+      resetComposer();
+    } catch (error) {
+      Alert.alert(
+        'Marites Story',
+        String(
+          (error as Error)?.message ??
+            'Could not save your story.'
+        )
+      );
+    } finally {
+      setPosting(false);
+    }
+  }, [
+    draft,
+    cacheKey,
+    photos,
+    profile?.avatar_url,
+    profile?.full_name,
+    resetComposer,
+    user?.id,
+  ]);
+
+  const appendEmoji = useCallback(
+    (emoji: string) => {
+      setDraft((current) => {
+        const next = `${current}${emoji}`;
+
+        if (next.length > MARITES_MAX_CHARS) {
+          return current;
+        }
+
+        return next;
+      });
+    },
+    []
+  );
+
+  const insets = useSafeAreaInsets();
+  const drawerBottomInset = useBuklodDrawerBottomInset();
+  const { height: windowHeight, width: windowWidth } =
+    useWindowDimensions();
+
+  return (
+    <View style={styles.section}>
+      <View style={styles.headingRow}>
+        <Text style={styles.title}>
+          MARITES STORY
+        </Text>
+        <View style={styles.headingActions}>
+          <Text
+            numberOfLines={1}
+            style={styles.hint}
+          >
+            Tap · Hold react
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Share Marites update"
+            hitSlop={6}
+            onPress={() => setComposerOpen(true)}
+            style={({ pressed }) => [
+              styles.shareButton,
+              pressed && { opacity: 0.72 },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="plus"
+              size={13}
+              color={colors.green}
+            />
+            <Text style={styles.shareButtonText}>
+              Share
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.row}
+      >
+        {stories.map((story, index) => (
+          <BuklodFocusFadeUp
+            key={story.id}
+            delay={Math.min(index, 8) * 30}
+            duration={220}
+            fromY={6}
+            fromOpacity={0.82}
+            style={styles.cardShell}
+          >
+            <MaritesStoryCard
+              story={story}
+              colors={colors}
+              onPress={() =>
+                openStoryViewer(story)
+              }
+              menu={storyOwnerMenu(
+                story,
+                styles.cardMenuBtn
+              )}
+            />
+          </BuklodFocusFadeUp>
+        ))}
+      </ScrollView>
+
+      {stories.length === 0 && (
+        <Text style={styles.emptyNote}>
+          Be the first to share a quick update, or wait
+          for community members to post.
+        </Text>
+      )}
+
+      <Modal
+        visible={composerOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={resetComposer}
+      >
+        {/* PATCH_MARITES_KEYBOARD_SAFE_R2C */}
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={
+            Platform.OS === 'ios'
+              ? 'padding'
+              : 'height'
+          }
+          keyboardVerticalOffset={0}
+        >
+        <Pressable
+          style={styles.backdrop}
+          onPress={resetComposer}
+        >
+          <Pressable
+            style={[
+              styles.sheet,
+              { paddingBottom: drawerBottomInset + 12 },
+            ]}
+            onPress={(event) =>
+              event.stopPropagation()
+            }
+          >
+            <ScrollView
+              keyboardDismissMode={
+                Platform.OS === 'ios'
+                  ? 'interactive'
+                  : 'on-drag'
+              }
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>
+                New Marites Story
+              </Text>
+              <Pressable onPress={resetComposer}>
+                <MaterialCommunityIcons
+                  name="close"
+                  size={24}
+                  color={colors.text}
+                />
+              </Pressable>
+            </View>
+
+            <TextInput
+              value={draft}
+              onChangeText={(value) =>
+                setDraft(
+                  value.slice(0, MARITES_MAX_CHARS)
+                )
+              }
+              placeholder="Quick update for the community…"
+              placeholderTextColor={colors.muted}
+              multiline
+              style={styles.input}
+            />
+            <Text style={styles.charCount}>
+              {draft.length}/{MARITES_MAX_CHARS}
+            </Text>
+
+            <View style={styles.emojiRow}>
+              {MARITES_QUICK_EMOJI.map((emoji) => (
+                <Pressable
+                  key={emoji}
+                  style={styles.emojiChip}
+                  onPress={() =>
+                    appendEmoji(emoji)
+                  }
+                >
+                  <Text style={styles.emojiText}>
+                    {emoji}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <View style={styles.toolRow}>
+              <Pressable
+                style={styles.toolBtn}
+                disabled={photoBusy}
+                onPress={() => void pickPhotos()}
+              >
+                <MaterialCommunityIcons
+                  name="image-plus"
+                  size={17}
+                  color={colors.green}
+                />
+                <Text style={styles.toolText}>
+                  {photoBusy
+                    ? 'Preparing…'
+                    : photos.length
+                      ? `Add photos (${photos.length}/${MARITES_MAX_PHOTOS})`
+                      : 'Add photos'}
+                </Text>
+              </Pressable>
+            </View>
+
+            <Text style={styles.composerPhotoHint}>
+              Tap Add photos, then tap each photo you want. Press OK when done.
+              Long-press a photo to highlight, draw, add text, emoji, or remove.
+            </Text>
+
+            {!!photos.length && (
+              <View style={styles.composerPhotoRow}>
+                {photos.map((photo) => (
+                  <Pressable
+                    key={photo.id}
+                    style={styles.composerPhotoWrap}
+                    onLongPress={() =>
+                      openPhotoActions(photo)
+                    }
+                    delayLongPress={BUKLOD_LONG_PRESS_MS}
+                  >
+                    <Image
+                      source={{ uri: photo.uri }}
+                      style={styles.previewPhoto}
+                      resizeMode="cover"
+                    />
+                    <Pressable
+                      style={styles.composerPhotoRemove}
+                      onPress={() =>
+                        removeComposerPhoto(photo.id)
+                      }
+                    >
+                      <MaterialCommunityIcons
+                        name="close"
+                        size={14}
+                        color="#FFFFFF"
+                      />
+                    </Pressable>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+
+            <Pressable
+              style={[
+                styles.postBtn,
+                posting && { opacity: 0.7 },
+              ]}
+              disabled={posting}
+              onPress={() => void submitStory()}
+            >
+              <Text style={styles.postBtnText}>
+                {posting ? 'Posting…' : 'Post story'}
+              </Text>
+            </Pressable>
+
+            <View style={styles.localBadge}>
+              <Text style={styles.localBadgeText}>
+                Stories appear only in Marites Story.
+              </Text>
+            </View>
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      
+        </KeyboardAvoidingView>
+</Modal>
+
+      <Modal
+        visible={viewStory !== null}
+        animationType="fade"
+        presentationStyle="fullScreen"
+        onRequestClose={closeStoryViewer}
+      >
+        {viewStory && (
+          <GestureHandlerRootView style={styles.fullscreen}>
+            {(() => {
+                const photoUris =
+                  getMaritesStoryPhotos(viewStory);
+                const body =
+                  viewStory.body.trim();
+                const emojiOnly =
+                  !photoUris.length &&
+                  isMaritesEmojiOnlyBody(body);
+
+                if (photoUris.length) {
+                  if (photoUris.length === 1) {
+                    return (
+                      <View
+                        style={
+                          styles.fullscreenPhotoWrap
+                        }
+                      >
+                        <BuklodZoomablePhoto
+                          uri={photoUris[0]}
+                          onZoomedChange={setStoryZoomed}
+                          onLongPress={() =>
+                            setReactionPickerOpen(true)
+                          }
+                        />
+                      </View>
+                    );
+                  }
+
+                  return (
+                    <GestureScrollView
+                      horizontal
+                      pagingEnabled={!storyZoomed}
+                      scrollEnabled={!storyZoomed}
+                      showsHorizontalScrollIndicator={
+                        false
+                      }
+                      style={{
+                        flex: 1,
+                        width: '100%',
+                      }}
+                      contentContainerStyle={{
+                        alignItems: 'center',
+                      }}
+                    >
+                      {photoUris.map((uri) => (
+                        <View
+                          key={uri}
+                          style={[
+                            styles.fullscreenPhotoPage,
+                            {
+                              width: windowWidth,
+                              height:
+                                windowHeight,
+                            },
+                          ]}
+                        >
+                          <BuklodZoomablePhoto
+                            uri={uri}
+                            onZoomedChange={
+                              setStoryZoomed
+                            }
+                            onLongPress={() =>
+                              setReactionPickerOpen(true)
+                            }
+                          />
+                        </View>
+                      ))}
+                    </GestureScrollView>
+                  );
+                }
+
+                return (
+                  <Pressable
+                    style={styles.fullscreenTapArea}
+                    onPress={() => {
+                      if (longPressHandledRef.current) {
+                        longPressHandledRef.current = false;
+                      }
+                    }}
+                    onLongPress={() => {
+                      longPressHandledRef.current = true;
+                      setReactionPickerOpen(true);
+                    }}
+                    delayLongPress={BUKLOD_LONG_PRESS_MS}
+                  >
+                    {emojiOnly ? (
+                      <View
+                        style={
+                          styles.fullscreenEmoji
+                        }
+                      >
+                        <Text
+                          style={
+                            styles.fullscreenEmojiText
+                          }
+                        >
+                          {body}
+                        </Text>
+                      </View>
+                    ) : (
+                      <View
+                        style={
+                          styles.fullscreenTextWrap
+                        }
+                      >
+                        <Text
+                          style={
+                            styles.fullscreenBodyText
+                          }
+                        >
+                          {body}
+                        </Text>
+                      </View>
+                    )}
+                  </Pressable>
+                );
+              })()}
+
+            <View
+              style={[
+                styles.fullscreenHeader,
+                {
+                  paddingTop: Math.max(
+                    insets.top,
+                    10
+                  ),
+                },
+              ]}
+              pointerEvents="box-none"
+            >
+              <Pressable
+                style={styles.fullscreenHeaderBtn}
+                onPress={closeStoryViewer}
+                hitSlop={BUKLOD_HIT_SLOP}
+              >
+                <MaterialCommunityIcons
+                  name="close"
+                  size={22}
+                  color="#FFFFFF"
+                />
+              </Pressable>
+
+              {viewStory.user_id === user?.id ? (
+                storyOwnerMenu(
+                  viewStory,
+                  styles.fullscreenHeaderBtn
+                )
+              ) : (
+                <View
+                  style={
+                    styles.fullscreenHeaderBtn
+                  }
+                />
+              )}
+            </View>
+
+            {stories.length > 1 &&
+            !storyZoomed &&
+            !reactionPickerOpen ? (
+              <View
+                style={
+                  styles.fullscreenStoryNav
+                }
+                pointerEvents="box-none"
+              >
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Previous Marites story"
+                  style={
+                    styles.fullscreenStoryNavBtn
+                  }
+                  onPress={() =>
+                    stepStoryViewer(-1)
+                  }
+                  hitSlop={BUKLOD_HIT_SLOP}
+                >
+                  <MaterialCommunityIcons
+                    name="chevron-left"
+                    size={31}
+                    color="#FFFFFF"
+                  />
+                </Pressable>
+
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Next Marites story"
+                  style={
+                    styles.fullscreenStoryNavBtn
+                  }
+                  onPress={() =>
+                    stepStoryViewer(1)
+                  }
+                  hitSlop={BUKLOD_HIT_SLOP}
+                >
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={31}
+                    color="#FFFFFF"
+                  />
+                </Pressable>
+              </View>
+            ) : null}
+
+            {!reactionPickerOpen ? (
+              <View
+                style={[
+                  styles.fullscreenHint,
+                  {
+                    top: Math.max(
+                      insets.top + 52,
+                      62
+                    ),
+                  },
+                ]}
+                pointerEvents="none"
+              >
+                <Text style={styles.fullscreenHintText}>
+                  {getMaritesStoryPhotos(viewStory).length
+                    ? 'Pinch to zoom · Drag to move · Long press for reactions · Use arrows for next story'
+                    : 'Long press for reactions · Use arrows for previous/next story'}
+                </Text>
+              </View>
+            ) : null}
+
+            {reactionPickerOpen ? (
+              <View
+                style={[
+                  styles.fullscreenReactionDock,
+                  {
+                    bottom:
+                      Math.max(
+                        insets.bottom,
+                        16
+                      ) + 96,
+                  },
+                ]}
+              >
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    flexWrap: 'wrap',
+                    gap: 8,
+                    paddingHorizontal: 10,
+                    paddingVertical: 10,
+                    borderRadius: 24,
+                    backgroundColor:
+                      'rgba(18,22,20,0.92)',
+                    borderWidth: 1,
+                    borderColor:
+                      'rgba(255,255,255,0.12)',
+                  }}
+                >
+                  {BUKLOD_PUBLIC_COMMUNITY_REACTIONS.map(
+                    (option) => (
+                      <Pressable
+                        key={option.key}
+                        onPress={() => {
+                          reactToStory(
+                            viewStory.id,
+                            option.key
+                          );
+                          setReactionPickerOpen(
+                            false
+                          );
+                        }}
+                        style={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: 22,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor:
+                            viewStory.my_reaction ===
+                            option.key
+                              ? 'rgba(40,125,84,0.95)'
+                              : 'rgba(255,255,255,0.08)',
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 22,
+                            lineHeight: 26,
+                          }}
+                        >
+                          {option.emoji}
+                        </Text>
+                      </Pressable>
+                    )
+                  )}
+                </View>
+              </View>
+            ) : null}
+
+            <View
+              style={[
+                styles.fullscreenFooter,
+                {
+                  paddingBottom: drawerBottomInset,
+                },
+              ]}
+              pointerEvents="none"
+            >
+              {!!viewStory.body &&
+                !!getMaritesStoryPhotos(
+                  viewStory
+                ).length && (
+                  <Text
+                    style={
+                      styles.fullscreenFooterText
+                    }
+                  >
+                    {viewStory.body}
+                  </Text>
+                )}
+
+              <View style={styles.fullscreenMetaRow}>
+                <BuklodTappableAvatar
+                  userId={viewStory.user_id}
+                  uri={viewStory.avatar_url}
+                  name={viewStory.author_name}
+                  size={34}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text
+                    numberOfLines={1}
+                    style={styles.fullscreenAuthor}
+                  >
+                    {resolvePersonDisplayName(
+                      viewStory.author_name,
+                      viewStory.user_id
+                    )}
+                  </Text>
+                  <Text style={styles.fullscreenMeta}>
+                    {maritesAgeLabel(
+                      viewStory.created_at
+                    )}
+                    {viewStory.author_only
+                      ? ' · Ako lang'
+                      : ''}
+                    {sumMaritesReactionCounts(
+                      viewStory.reaction_counts
+                    ) > 0
+                      ? ` · ${sumMaritesReactionCounts(
+                          viewStory.reaction_counts
+                        )} reactions`
+                      : ''}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </GestureHandlerRootView>
+        )}
+      </Modal>
+
+      <BuklodComposerPhotoEditSheet
+        visible={!!photoEditSheetPhoto}
+        onClose={() =>
+          setPhotoEditSheetPhoto(null)
+        }
+        onSelectTool={(tool) => {
+          if (!photoEditSheetPhoto) {
+            return;
+          }
+
+          openPhotoEditor(
+            photoEditSheetPhoto,
+            tool
+          );
+        }}
+        onRemove={() => {
+          if (!photoEditSheetPhoto) {
+            return;
+          }
+
+          removeComposerPhoto(
+            photoEditSheetPhoto.id
+          );
+        }}
+      />
+
+      <BuklodPhotoEditor
+        visible={!!photoEditorSource}
+        sourceUri={photoEditorSource?.uri ?? null}
+        initialTool={photoEditorInitialTool}
+        onCancel={() => {
+          setPhotoEditorSource(null);
+          setPhotoEditorTargetId(null);
+        }}
+        onDone={(edited) => {
+          if (photoEditorTargetId) {
+            setPhotos((current) =>
+              current.map((photo) =>
+                photo.id === photoEditorTargetId
+                  ? { ...photo, uri: edited.uri }
+                  : photo
+              )
+            );
+          }
+
+          setPhotoEditorSource(null);
+          setPhotoEditorTargetId(null);
+        }}
+      />
+    </View>
+  );
+}

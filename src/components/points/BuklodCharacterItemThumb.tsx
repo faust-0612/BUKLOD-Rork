@@ -1,0 +1,274 @@
+/* BUKLOD_CHARACTER_R25_REAL_WARDROBE_PREVIEWS */
+/* BUKLOD_CHARACTER_R25B_DEPLOY_TRIGGER */
+/* BUKLOD_CHARACTER_R25D_THUMB_VIEWPORT */
+import React, {
+  memo,
+} from 'react';
+
+import {
+  Image,
+  StyleSheet,
+  View,
+} from 'react-native';
+
+import {
+  LinearGradient,
+} from 'expo-linear-gradient';
+
+import {
+  MaterialCommunityIcons,
+} from '@expo/vector-icons';
+
+import BuklodCharacterLayeredArt
+  from '@/components/points/BuklodCharacterLayeredArt';
+
+import {
+  useBuklodPresentation,
+} from '@/hooks/useBuklodPresentation';
+
+import {
+  assetUrl,
+} from '@/lib/character-lab-core/assets';
+
+import {
+  assetKeyFor,
+} from '@/lib/character-lab-core/catalog';
+
+import {
+  catalogItemGlyph,
+} from '@/lib/character-lab-core/localLooks';
+
+import {
+  equipmentForRankLook,
+} from '@/lib/buklodCharacter';
+
+import type {
+  BodyId,
+  CatalogItem,
+  Equipment,
+} from '@/lib/character-lab-core/types';
+
+type Props = {
+  item: CatalogItem;
+  body: BodyId;
+  locked: boolean;
+  size?: number;
+};
+
+type IconName =
+  React.ComponentProps<
+    typeof MaterialCommunityIcons
+  >['name'];
+
+const CHARACTER_PREVIEW_SLOTS = new Set([
+  'base',
+  'face',
+  'hair',
+  'top',
+  'bottom',
+  'shoes',
+  'accessory',
+]);
+
+function BuklodCharacterItemThumbImpl({
+  item,
+  body,
+  locked,
+  size = 56,
+}: Props) {
+  const { theme } =
+    useBuklodPresentation();
+
+  const [from, to] =
+    item.swatch;
+
+  const glyph =
+    catalogItemGlyph(item) as IconName;
+
+  const assetKey =
+    item.slot === 'background'
+      ? item.stage ?? null
+      : assetKeyFor(item, body);
+
+  const url = assetUrl(assetKey);
+
+  const prestige =
+    item.id.startsWith('prestige_');
+
+  const useCharacterPreview =
+    CHARACTER_PREVIEW_SLOTS.has(item.slot);
+
+  const previewEquipment: Equipment = {
+    ...equipmentForRankLook(
+      body,
+      item.unlockAtLifetime,
+    ),
+    [item.slot]: item.id,
+  };
+
+  return (
+    <View
+      style={[
+        styles.root,
+        {
+          width: size,
+          height: size,
+          borderColor: theme.border,
+          backgroundColor:
+            theme.surfaceMuted,
+        },
+      ]}
+    >
+      <LinearGradient
+        colors={[
+          `${from}30`,
+          `${to}18`,
+        ]}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {useCharacterPreview ? (
+        <View style={styles.characterPreview}>
+          <BuklodCharacterLayeredArt
+            body={body}
+            equipment={previewEquipment}
+            height={Math.round(size * 1.16)}
+            viewportWidth={Math.max(44, Math.round(size * 0.92))}
+            showStage={false}
+            showEffects={false}
+          />
+        </View>
+      ) : url ? (
+        <>
+          <Image
+            source={{ uri: url }}
+            resizeMode={
+              item.slot === 'background'
+                ? 'cover'
+                : 'contain'
+            }
+            fadeDuration={0}
+            style={[
+              StyleSheet.absoluteFill,
+              styles.realArt,
+            ]}
+          />
+
+          {prestige ? (
+            item.slot === 'background' ? (
+              <View
+                style={[
+                  StyleSheet.absoluteFill,
+                  {
+                    backgroundColor:
+                      `${to}24`,
+                  },
+                ]}
+              />
+            ) : (
+              <Image
+                source={{ uri: url }}
+                resizeMode="contain"
+                fadeDuration={0}
+                style={[
+                  StyleSheet.absoluteFill,
+                  styles.realArt,
+                  {
+                    tintColor: to,
+                    opacity: 0.28,
+                  },
+                ]}
+              />
+            )
+          ) : null}
+        </>
+      ) : (
+        <View style={styles.fallback}>
+          <MaterialCommunityIcons
+            name={glyph}
+            size={Math.round(
+              size * 0.38,
+            )}
+            color={
+              locked
+                ? theme.textMuted
+                : to
+            }
+          />
+        </View>
+      )}
+
+      {prestige ? (
+        <View
+          style={[
+            styles.prestigeDot,
+            { backgroundColor: to },
+          ]}
+        />
+      ) : null}
+
+      {locked ? (
+        <View style={styles.lockedOverlay}>
+          <MaterialCommunityIcons
+            name="lock-outline"
+            size={18}
+            color={theme.white}
+          />
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+export default memo(
+  BuklodCharacterItemThumbImpl,
+);
+
+const styles = StyleSheet.create({
+  root: {
+    position: 'relative',
+    borderRadius: 14,
+    overflow: 'hidden',
+    borderWidth: 1,
+  },
+
+  characterPreview: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
+  },
+
+  realArt: {
+    margin: 3,
+  },
+
+  fallback: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  prestigeDot: {
+    position: 'absolute',
+    left: 5,
+    bottom: 5,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+  },
+
+  lockedOverlay: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor:
+      'rgba(0,0,0,0.40)',
+  },
+});

@@ -1,0 +1,1317 @@
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import {
+  Alert,
+  FlatList,
+  Platform,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  useStreamVideoClient,
+} from '@/lib/streamVideoSdk';
+import { ensureBuklodStreamVideoClient } from '@/lib/buklodStreamVideoClient';
+import {
+  buildBuklodPersonalCallId,
+  formatBuklodCallStartError,
+} from '@/lib/buklodStreamCall';
+import {
+  restoreActiveCallIfAny,
+} from '@/lib/buklodActiveCall';
+import { FLATLIST_TUNING } from '@/lib/performanceInstrumentation';
+import { SCALE_LIMITS } from '@/lib/performanceScale';
+import {
+  useBuklodScrollBottomInset,
+} from '@/lib/buklodSafeArea';
+import { supabase } from '@/lib/supabase';
+import {
+  acquireSharedRealtimeSubscription,
+} from '@/lib/performance';
+import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
+import { useAuth } from '@/providers/AuthProvider';
+import { useNetwork } from '@/providers/NetworkProvider';
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
+import {
+  formatConnectTimestamp,
+  connectAlbumInboxPreview,
+} from '@/lib/buklodConnect';
+import {
+  connectSpacing,
+  connectTypography,
+  type CommunityFilterKey,
+  type ConnectThemeRoles,
+} from '@/lib/connectTheme';
+import {
+  ConnectThemeProvider,
+  useConnectTheme,
+} from '@/providers/ConnectThemeProvider';
+import {
+  ChatBackgroundProvider,
+} from '@/providers/ChatBackgroundProvider';
+import {
+  ConnectCommunityFilters,
+} from '@/components/connect/ConnectCommunityFilters';
+import {
+  ConnectCommunityRow,
+} from '@/components/connect/ConnectCommunityRow';
+import {
+  ConnectInboxRow,
+} from '@/components/connect/ConnectInboxRow';
+import {
+  ConnectInboxSearch,
+} from '@/components/connect/ConnectInboxSearch';
+import {
+  ConnectInboxTabs,
+} from '@/components/connect/ConnectInboxTabs';
+import {
+  ConnectSuggestedContacts,
+} from '@/components/connect/ConnectQuickContacts';
+import {
+  enrichConnectSuggestedContactsWithNotes,
+  loadConnectSuggestedContacts,
+  type ConnectSuggestedContact,
+} from '@/lib/buklodConnectSuggestedContacts';
+import {
+  ConnectThemeSelectorButton,
+} from '@/components/connect/ConnectThemeSelector';
+import {
+  ConnectThreadBackground,
+} from '@/components/connect/ConnectThreadBackground';
+import {
+  BuklodFocusFadeUp,
+  BuklodFocusVisibleRow,
+} from '@/components/HomeMotion';
+
+type PersonalThread = {
+  thread_id: string;
+  other_user_id: string;
+  other_user_name: string;
+  last_message: string | null;
+  last_message_at: string | null;
+  unread_count: number;
+};
+type Person = {
+  user_id: string;
+  full_name: string;
+  avatar_url: string | null;
+};
+type CommunityRoom = {
+  scope_id: string;
+  scope_type: 'LOCAL' | 'CLUSTER' | 'CHURCH' | 'ORGANIZATION';
+  scope_name: string;
+  geo_level: string | null;
+  last_message: string | null;
+  last_message_at: string | null;
+  unread_count: number;
+};
+
+const n = (value: any) =>
+  Math.max(0, Number(value ?? 0) || 0);
+
+type ConnectScreenProps = {
+  forcedScopeId?: string;
+};
+
+function repairBuklodPreviewText(
+  value: string | null | undefined
+) {
+  const input = String(value ?? '');
+
+  if (
+    !/[\u00C2\u00C3\u00E2\u00F0\u00EF]/.test(input)
+  ) {
+    return input;
+  }
+
+  const cp1252: Record<number, number> = {
+    0x20AC: 0x80,
+    0x201A: 0x82,
+    0x0192: 0x83,
+    0x201E: 0x84,
+    0x2026: 0x85,
+    0x2020: 0x86,
+    0x2021: 0x87,
+    0x02C6: 0x88,
+    0x2030: 0x89,
+    0x0160: 0x8A,
+    0x2039: 0x8B,
+    0x0152: 0x8C,
+    0x017D: 0x8E,
+    0x2018: 0x91,
+    0x2019: 0x92,
+    0x201C: 0x93,
+    0x201D: 0x94,
+    0x2022: 0x95,
+    0x2013: 0x96,
+    0x2014: 0x97,
+    0x02DC: 0x98,
+    0x2122: 0x99,
+    0x0161: 0x9A,
+    0x203A: 0x9B,
+    0x0153: 0x9C,
+    0x017E: 0x9E,
+    0x0178: 0x9F,
+  };
+
+  const suspectCount = (text: string) =>
+    (text.match(/[\u00C2\u00C3\u00E2\u00F0\u00EF]/g) || []).length;
+
+  return input.replace(
+    /[\x00-\xFF\u20AC\u201A\u0192\u201E\u2026\u2020\u2021\u02C6\u2030\u0160\u2039\u0152\u017D\u2018\u2019\u201C\u201D\u2022\u2013\u2014\u02DC\u2122\u0161\u203A\u0153\u017E\u0178]+/g,
+    run => {
+      if (!/[\u00C2\u00C3\u00E2\u00F0\u00EF]/.test(run)) {
+        return run;
+      }
+
+      const bytes: number[] = [];
+
+      for (const char of run) {
+        const code = char.codePointAt(0) ?? 0;
+
+        if (code <= 0xff) {
+          bytes.push(code);
+          continue;
+        }
+
+        const mapped = cp1252[code];
+
+        if (typeof mapped !== 'number') {
+          return run;
+        }
+
+        bytes.push(mapped);
+      }
+
+      try {
+        const encoded = bytes
+          .map(
+            byte =>
+              '%' + byte.toString(16).padStart(2, '0')
+          )
+          .join('');
+
+        const decoded = decodeURIComponent(encoded);
+
+        return suspectCount(decoded) < suspectCount(run)
+          ? decoded
+          : run;
+      } catch {
+        return run;
+      }
+    }
+  );
+}
+
+function connectMessagePreview(
+  value: string | null | undefined
+) {
+  const text = repairBuklodPreviewText(value);
+
+  if (
+    /^\[\[BUKLOD_AVATAR_REACTION:[a-z_]+\]\]$/.test(
+      text.trim()
+    )
+  ) {
+    return 'Avatar reaction';
+  }
+
+  const albumPreview = connectAlbumInboxPreview(text);
+  if (albumPreview) {
+    return albumPreview;
+  }
+
+  return text || 'No messages yet';
+}
+
+function formatInboxTime(value?: string | null) {
+  if (!value) {
+    return '';
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  const now = new Date();
+  const startOfToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate()
+  );
+  const startOfMessage = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate()
+  );
+  const dayDiff = Math.round(
+    (startOfToday.getTime() - startOfMessage.getTime()) /
+      86400000
+  );
+
+  if (dayDiff === 0) {
+    return date.toLocaleTimeString('en-PH', {
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  }
+
+  if (dayDiff === 1) {
+    return 'Yesterday';
+  }
+
+  if (dayDiff < 7) {
+    return date.toLocaleDateString('en-PH', {
+      weekday: 'short',
+    });
+  }
+
+  return formatConnectTimestamp(value);
+}
+
+function iconFor(type: CommunityRoom['scope_type']) {
+  return type === 'LOCAL' || type === 'CHURCH'
+    ? 'map-marker-radius-outline'
+    : type === 'ORGANIZATION'
+      ? 'domain'
+      : 'account-group-outline';
+}
+
+function matchesCommunityFilter(
+  room: CommunityRoom,
+  filter: CommunityFilterKey
+) {
+  if (filter === 'all') {
+    return true;
+  }
+
+  const type = String(room.scope_type ?? '').toUpperCase();
+  const geo = String(room.geo_level ?? '').toUpperCase();
+
+  if (filter === 'organization') {
+    return (
+      type === 'ORGANIZATION' &&
+      !geo.includes('SUB')
+    );
+  }
+
+  if (filter === 'sub_org') {
+    return (
+      type === 'ORGANIZATION' &&
+      geo.includes('SUB')
+    );
+  }
+
+  if (filter === 'cluster') {
+    return type === 'CLUSTER';
+  }
+
+  if (filter === 'location') {
+    return type === 'CHURCH' || type === 'LOCAL';
+  }
+
+  return true;
+}
+
+function communitySectionLabel(
+  filter: CommunityFilterKey
+) {
+  if (filter === 'all') {
+    return null;
+  }
+
+  if (filter === 'sub_org') {
+    return 'SUB-ORGANIZATION';
+  }
+
+  if (filter === 'location') {
+    return 'LOCATION';
+  }
+
+  return filter.toUpperCase();
+}
+
+export default function ConnectScreen(
+  props: ConnectScreenProps = {}
+) {
+  return (
+    <ConnectThemeProvider>
+      <ChatBackgroundProvider>
+        <ConnectScreenInner {...props} />
+      </ChatBackgroundProvider>
+    </ConnectThemeProvider>
+  );
+}
+
+function createInboxStyles(theme: ConnectThemeRoles) {
+  return StyleSheet.create({
+    screen: {
+      flex: 1,
+    },
+    body: {
+      flex: 1,
+      minHeight: 0,
+    },
+    center: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.canvas,
+    },
+    listContent: {
+      paddingBottom: connectSpacing.sectionGap + 8,
+    },
+    communityListContent: {
+      paddingBottom: connectSpacing.sectionGap + 8,
+    },
+    inboxFooter: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      zIndex: 20,
+      flexShrink: 0,
+      alignItems: 'center',
+      backgroundColor: 'transparent',
+    },
+    inboxHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingHorizontal: connectSpacing.screenHorizontal,
+      paddingTop: 4,
+      paddingBottom: 6,
+    },
+    sectionLabel: {
+      ...connectTypography.sectionLabel,
+      color: theme.textMuted,
+      paddingHorizontal: connectSpacing.screenHorizontal,
+      paddingTop: 4,
+      paddingBottom: 6,
+    },
+    empty: {
+      alignItems: 'center',
+      paddingVertical: 48,
+      paddingHorizontal: 28,
+    },
+    emptyTitle: {
+      color: theme.textPrimary,
+      fontSize: 15,
+      fontWeight: '900',
+      textAlign: 'center',
+    },
+    emptyText: {
+      marginTop: 6,
+      color: theme.textMuted,
+      fontSize: 13,
+      textAlign: 'center',
+      lineHeight: 18,
+    },
+  });
+}
+
+function ConnectScreenInner({
+  forcedScopeId,
+}: ConnectScreenProps = {}) {
+  const { theme } = useConnectTheme();
+  const insets = useSafeAreaInsets();
+  const phoneNavInset = Math.max(insets.bottom, 0);
+  const inboxTabsReserved =
+    connectSpacing.bottomNavHeight + 10;
+  const scrollBottomInset =
+    useBuklodScrollBottomInset({
+      extra: 8,
+    }) + inboxTabsReserved;
+  const styles = useMemo(
+    () => ({
+      ...createInboxStyles(theme),
+      inboxFooter: {
+        ...createInboxStyles(theme).inboxFooter,
+        bottom: phoneNavInset,
+      },
+      listContent: {
+        ...createInboxStyles(theme).listContent,
+        paddingBottom: scrollBottomInset,
+      },
+      communityListContent: {
+        ...createInboxStyles(theme).communityListContent,
+        paddingBottom: scrollBottomInset,
+      },
+    }),
+    [phoneNavInset, scrollBottomInset, theme]
+  );
+  const { profile } = useAuth();
+  const { isConnected, isInternetReachable } = useNetwork();
+  const connectOnline =
+    isConnected && isInternetReachable !== false;
+  const profileId = (profile as any)?.id as string | undefined;
+  const { tab: requestedTabParam } =
+    useLocalSearchParams<{ tab?: string | string[] }>();
+  const requestedTabValue =
+    Array.isArray(requestedTabParam)
+      ? requestedTabParam[0]
+      : requestedTabParam;
+  const requestedInboxTab =
+    requestedTabValue === 'community' ||
+    requestedTabValue === 'personal'
+      ? requestedTabValue
+      : null;
+  const [tab, setTab] =
+    useState<'personal' | 'community'>(
+      requestedInboxTab ?? 'personal'
+    );
+  const [personal, setPersonal] =
+    useState<PersonalThread[]>([]);
+  const [rooms, setRooms] =
+    useState<CommunityRoom[]>([]);
+  const [query, setQuery] = useState('');
+  const [people, setPeople] =
+    useState<Person[]>([]);
+  const [suggestedContacts, setSuggestedContacts] =
+    useState<ConnectSuggestedContact[]>([]);
+  const [refreshing, setRefreshing] =
+    useState(false);
+  const [communityFilter, setCommunityFilter] =
+    useState<CommunityFilterKey>('all');
+
+  /* BUKLOD_OFFLINE_R2_CONNECT_HUB */
+  const connectHubOfflineCacheKey =
+    `connect-hub:${forcedScopeId ?? 'public'}`;
+
+  useEffect(() => {
+    if (!profileId) {
+      return;
+    }
+
+    let active = true;
+
+    void getOfflineCache<{
+      personal: PersonalThread[];
+      rooms: CommunityRoom[];
+      suggestedContacts?: ConnectSuggestedContact[];
+    }>(
+      connectHubOfflineCacheKey,
+      {
+        userId: profileId,
+        allowStale: true,
+      }
+    )
+      .then(cached => {
+        if (!active || !cached?.data) {
+          return;
+        }
+
+        if (cached.data.suggestedContacts?.length) {
+          setSuggestedContacts(current => current.length ? current : cached.data.suggestedContacts!);
+        }
+
+        if (cached.data.personal?.length) {
+          setPersonal(current =>
+            current.length
+              ? current
+              : cached.data.personal
+          );
+        }
+
+        if (cached.data.rooms?.length) {
+          setRooms(current =>
+            current.length
+              ? current
+              : cached.data.rooms
+          );
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+    };
+  }, [
+    connectHubOfflineCacheKey,
+    profileId,
+  ]);
+
+  useEffect(() => {
+    if (
+      !profileId ||
+      (
+        personal.length === 0 &&
+        rooms.length === 0 && suggestedContacts.length === 0
+      )
+    ) {
+      return;
+    }
+
+    const timer =
+      setTimeout(() => {
+        void setOfflineCache(
+          connectHubOfflineCacheKey,
+          {
+            personal,
+            rooms,
+            suggestedContacts,
+          },
+          {
+            userId: profileId,
+            ttlMs: 30 * 60 * 1000,
+          }
+        ).catch(
+          () => undefined
+        );
+      }, 180);
+
+    return () =>
+      clearTimeout(timer);
+  }, [
+    connectHubOfflineCacheKey,
+    personal,
+    profileId,
+    rooms,
+    suggestedContacts,
+  ]);
+  const searchInputRef =
+    useRef<TextInput | null>(null);
+
+  const personalThreadPath =
+    '/connect/personal/[threadId]';
+
+  const communityThreadPath =
+    '/connect/community/[scopeId]';
+
+  const load = useCallback(async () => {
+    if (!profileId) {
+      return;
+    }
+
+    if (!connectOnline) {
+      return;
+    }
+
+    const [p, r, suggested] = await Promise.all([
+      withBuklodTimeout<any>(
+        (supabase as any).rpc(
+          'buklod_connect_personal_threads'
+        ),
+        6000,
+        'Connect threads'
+      ).catch(() => ({ data: null, error: { message: 'offline' } })),
+      withBuklodTimeout<any>(
+        (supabase as any).rpc(
+          'buklod_connect_community_rooms'
+        ),
+        6000,
+        'Connect rooms'
+      ).catch(() => ({ data: null, error: { message: 'offline' } })),
+      withBuklodTimeout(
+        loadConnectSuggestedContacts(40),
+        6000,
+        'Connect people'
+      ).then(data => ({ data, error: false }))
+        .catch(() => ({ data: [] as ConnectSuggestedContact[], error: true })),
+    ]);
+
+    let nextSuggested = suggested.data;
+
+    if (!nextSuggested.length && !p.error && Array.isArray(p.data)) {
+      nextSuggested = await enrichConnectSuggestedContactsWithNotes(
+        (p.data ?? [])
+          .map((thread: any) => ({
+            user_id: String(thread.other_user_id ?? ''),
+            full_name: String(thread.other_user_name ?? 'BUKLOD Member'),
+            avatar_url: thread.other_avatar_url
+              ? String(thread.other_avatar_url)
+              : null,
+            shared_scope_label: 'Recent chat',
+            rank_name: null,
+            thread_id: thread.thread_id
+              ? String(thread.thread_id)
+              : null,
+            unread_count: Number(thread.unread_count ?? 0),
+            quick_note: null,
+          }))
+          .filter((row: ConnectSuggestedContact) => !!row.user_id)
+      );
+    }
+
+    if (!p.error) {
+      setPersonal(
+        (p.data ?? []).map((x: any) => ({
+          ...x,
+          unread_count: n(x.unread_count),
+        }))
+      );
+    }
+
+    if (!r.error) {
+      setRooms(
+        (r.data ?? []).map((x: any) => ({
+          ...x,
+          unread_count: n(x.unread_count),
+        }))
+      );
+    }
+
+    if (!suggested.error) setSuggestedContacts(nextSuggested);
+
+  }, [profileId, connectOnline]);
+
+  const loadRef = useRef(load);
+
+  useEffect(() => {
+    loadRef.current = load;
+  }, [load]);
+
+  /*
+   * BUKLOD PERFORMANCE 001
+   *
+   * Do not listen to every Connect message in the platform.
+   * The hub subscribes only to the signed-in user's known
+   * personal threads and accessible scope rooms.
+   *
+   * A low-frequency refresh catches newly-created threads
+   * without bringing back global Postgres Changes listeners.
+   */
+
+  const personalRealtimeKey =
+    Array.from(
+      new Set(
+        personal
+          .map(item =>
+            String(
+              item.thread_id ?? ''
+            ).trim()
+          )
+          .filter(Boolean)
+      )
+    )
+      .sort()
+      .join(',');
+
+  const scopeRealtimeKey =
+    Array.from(
+      new Set(
+        (
+          forcedScopeId
+            ? [forcedScopeId]
+            : rooms.map(
+                item =>
+                  item.scope_id
+              )
+        )
+          .map(value =>
+            String(
+              value ?? ''
+            ).trim()
+          )
+          .filter(Boolean)
+      )
+    )
+      .sort()
+      .join(',');
+
+  useEffect(() => {
+    void load();
+
+    const pollTimer =
+      setInterval(
+        () => {
+          void load();
+        },
+        SCALE_LIMITS.messagesInboxPollMs
+      );
+
+    return () => {
+      clearInterval(
+        pollTimer
+      );
+    };
+  }, [load]);
+
+  useEffect(() => {
+    if (!profileId) {
+      return;
+    }
+
+    const threadIds = personalRealtimeKey
+      ? personalRealtimeKey.split(',')
+      : [];
+    const scopeIds = scopeRealtimeKey
+      ? scopeRealtimeKey.split(',')
+      : [];
+
+    const chunks = (ids: string[], size = 100) => {
+      const result: string[][] = [];
+      for (let index = 0; index < ids.length; index += size) {
+        result.push(ids.slice(index, index + size));
+      }
+      return result;
+    };
+
+    const releases: Array<() => void> = [];
+
+    const registerSharedChannel = (
+      kind: 'direct' | 'scope',
+      ids: string[],
+    ) => {
+      if (!ids.length) return;
+
+      const stableIds = [...ids].sort();
+      const registryKey =
+        `connect-hub:${kind}:${profileId}:${stableIds.join(',')}`;
+
+      const release = acquireSharedRealtimeSubscription(
+        registryKey,
+        () => {
+          void loadRef.current();
+        },
+        emit => {
+          const channelName =
+            `connect-hub:${kind}:${profileId}:${stableIds.join('-')}`;
+          let channel = supabase.channel(channelName);
+
+          for (const idChunk of chunks(stableIds)) {
+            channel = channel.on(
+              'postgres_changes',
+              {
+                event: 'INSERT',
+                schema: 'public',
+                table:
+                  kind === 'direct'
+                    ? 'buklod_connect_direct_messages'
+                    : 'buklod_connect_scope_messages',
+                filter:
+                  kind === 'direct'
+                    ? `thread_id=in.(${idChunk.join(',')})`
+                    : `scope_id=in.(${idChunk.join(',')})`,
+              },
+              payload => emit(payload),
+            );
+          }
+
+          const subscribed = channel.subscribe();
+          return () => {
+            void supabase.removeChannel(subscribed);
+          };
+        },
+      );
+
+      releases.push(release);
+    };
+
+    registerSharedChannel('direct', threadIds);
+    registerSharedChannel('scope', scopeIds);
+
+    return () => {
+      for (const release of releases) {
+        release();
+      }
+    };
+  }, [
+    profileId,
+    personalRealtimeKey,
+    scopeRealtimeKey,
+  ]);
+
+  useEffect(() => {
+    const clean = query.trim();
+
+    if (clean.length < 2) {
+      setPeople([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    const timer = setTimeout(async () => {
+      const result = await (supabase as any).rpc(
+        'buklod_connect_people_search',
+        {
+          _query: clean,
+          _limit: 20,
+        }
+      );
+
+      if (!cancelled && !result.error) {
+        setPeople(result.data ?? []);
+      }
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query]);
+
+  const refresh = async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  };
+
+  const videoClient = useStreamVideoClient();
+  const [callingUserId, setCallingUserId] =
+    useState<string | null>(null);
+
+  const callPerson = async (
+    userId: string,
+    threadId?: string | null
+  ) => {
+    if (!profileId || callingUserId) {
+      return;
+    }
+
+    setCallingUserId(userId);
+
+    try {
+      const callClient =
+        videoClient ??
+        (await ensureBuklodStreamVideoClient());
+
+      if (
+        restoreActiveCallIfAny(
+          callClient.state.calls
+        )
+      ) {
+        return;
+      }
+
+      /*
+       * Every ringing attempt gets a fresh ID, including search calls
+       * before a direct thread has been resolved.
+       */
+      const callId =
+        buildBuklodPersonalCallId(
+          threadId || userId
+        );
+
+      const call = callClient.call('default', callId);
+
+      await call.getOrCreate({
+        ring: true,
+        video: false,
+        data: {
+          members: [
+            { user_id: profileId },
+            { user_id: userId },
+          ],
+          custom: {
+            buklod_call_scope: 'PERSONAL',
+            buklod_call_mode: 'audio',
+            buklod_call_source: 'SEARCH',
+            buklod_thread_id: threadId ?? null,
+          },
+        },
+      });
+    } catch (error: any) {
+      console.warn('BUKLOD search audio call:', error);
+
+      Alert.alert(
+        'Call unavailable',
+        formatBuklodCallStartError(
+          error
+        )
+      );
+    } finally {
+      setCallingUserId(null);
+    }
+  };
+
+  const callPersonalRow = async (item: any) => {
+    try {
+      let targetUserId = String(
+        item?.user_id ?? item?.other_user_id ?? ''
+      ).trim();
+
+      if (!targetUserId && item?.thread_id) {
+        const details = await (supabase as any).rpc(
+          'buklod_connect_direct_thread_details',
+          { _thread_id: item.thread_id }
+        );
+
+        if (details.error) {
+          throw details.error;
+        }
+
+        const d = Array.isArray(details.data)
+          ? details.data[0]
+          : details.data;
+
+        targetUserId = String(
+          d?.other_user_id ?? ''
+        ).trim();
+      }
+
+      if (!targetUserId) {
+        Alert.alert(
+          'Call unavailable',
+          'This member could not be identified.'
+        );
+        return;
+      }
+
+      await callPerson(
+        targetUserId,
+        item?.thread_id
+      );
+    } catch (error: any) {
+      console.warn('BUKLOD personal row:', error);
+
+      Alert.alert(
+        'Call unavailable',
+        'Could not start the call.'
+      );
+    }
+  };
+
+  const openPerson = (
+    userId: string,
+    fullName?: string
+  ) => {
+    setQuery('');
+    setPeople([]);
+
+    router.push({
+      pathname: personalThreadPath as any,
+      params: {
+        threadId: 'new',
+        targetUserId: userId,
+        otherUserName: fullName ?? '',
+      },
+    } as any);
+  };
+
+  const openSuggestedContact = (
+    contact: ConnectSuggestedContact
+  ) => {
+    if (contact.thread_id) {
+      openPersonalThread(contact.thread_id, {
+        thread_id: contact.thread_id,
+        other_user_id: contact.user_id,
+        other_user_name: contact.full_name,
+        last_message: null,
+        last_message_at: null,
+        unread_count: contact.unread_count,
+      });
+      return;
+    }
+
+    openPerson(contact.user_id, contact.full_name);
+  };
+
+  const openPersonalThread = (
+    threadId: string,
+    item?: PersonalThread
+  ) => {
+    router.push({
+      pathname: personalThreadPath as any,
+      params: {
+        threadId,
+        otherUserName: item?.other_user_name ?? '',
+        otherUserId: item?.other_user_id ?? '',
+      },
+    } as any);
+  };
+
+  const openCommunityRoom = (
+    scopeId: string,
+    item?: CommunityRoom
+  ) => {
+    router.push({
+      pathname: communityThreadPath as any,
+      params: {
+        scopeId,
+        scopeName: item?.scope_name ?? '',
+        scopeType: item?.scope_type ?? '',
+      },
+    } as any);
+  };
+
+  useEffect(() => {
+    if (requestedInboxTab) {
+      setTab(requestedInboxTab);
+    }
+  }, [requestedInboxTab]);
+
+  const personalUnread = useMemo(
+    () =>
+      personal.reduce(
+        (total, thread) =>
+          total + n(thread.unread_count),
+        0
+      ),
+    [personal]
+  );
+
+  const visibleRooms = forcedScopeId
+    ? rooms.filter(room => room.scope_id === forcedScopeId)
+    : rooms;
+
+  const communityUnread = visibleRooms.reduce(
+    (total, room) =>
+      total + n(room.unread_count),
+    0
+  );
+
+  const filteredRooms = visibleRooms.filter(room =>
+    matchesCommunityFilter(room, communityFilter)
+  );
+
+  const isSearching = query.trim().length >= 2;
+  const personalListData = (
+    isSearching ? people : personal
+  ) as any[];
+
+  const sectionLabel =
+    communitySectionLabel(communityFilter);
+
+  return (
+    <ConnectThreadBackground style={styles.screen}>
+      <BuklodFocusFadeUp duration={240} fromY={10} fromOpacity={0.78}>
+        <View style={styles.inboxHeader}>
+          <ConnectInboxSearch
+            inline
+            inputRef={searchInputRef}
+            value={query}
+            onChangeText={setQuery}
+            placeholder={
+              isSearching
+                ? 'Search BUKLOD users...'
+                : 'Search messages'
+            }
+          />
+          <ConnectThemeSelectorButton />
+        </View>
+      </BuklodFocusFadeUp>
+
+      <View style={styles.body}>
+        {tab === 'personal' ? (
+          <>
+            {!isSearching && (
+              <BuklodFocusFadeUp duration={240} fromY={10} fromOpacity={0.78}>
+                <ConnectSuggestedContacts
+                  currentUser={
+                    profileId
+                      ? {
+                          user_id: profileId,
+                          full_name: String(
+                            (profile as any)?.full_name ??
+                              'You'
+                          ),
+                          avatar_url:
+                            (profile as any)?.avatar_url ??
+                            null,
+                        }
+                      : null
+                  }
+                  contacts={suggestedContacts}
+                  onOpenContact={openSuggestedContact}
+                  onStatusNoteSaved={() => {
+                    void loadRef.current();
+                  }}
+                />
+              </BuklodFocusFadeUp>
+            )}
+
+            <FlatList
+              data={personalListData}
+              keyExtractor={(item: any) =>
+                item.thread_id ?? item.user_id
+              }
+              initialNumToRender={
+                FLATLIST_TUNING.inbox.initialNumToRender
+              }
+              maxToRenderPerBatch={
+                FLATLIST_TUNING.inbox.maxToRenderPerBatch
+              }
+              updateCellsBatchingPeriod={
+                FLATLIST_TUNING.inbox.updateCellsBatchingPeriod
+              }
+              windowSize={
+                FLATLIST_TUNING.inbox.windowSize
+              }
+              removeClippedSubviews={false}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={refresh}
+                  tintColor={theme.accent}
+                />
+              }
+              contentContainerStyle={
+                styles.listContent
+              }
+              keyboardShouldPersistTaps="always"
+              ListEmptyComponent={
+                <View style={styles.empty}>
+                  <Text style={styles.emptyTitle}>
+                    {isSearching
+                      ? 'No user found'
+                      : 'No personal conversations yet'}
+                  </Text>
+                  <Text style={styles.emptyText}>
+                    Search a BUKLOD user to start a
+                    personal conversation.
+                  </Text>
+                </View>
+              }
+              renderItem={({ item, index }: any) => {
+                const isPerson =
+                  Boolean(item.user_id) &&
+                  !item.thread_id;
+                const unread = isPerson
+                  ? 0
+                  : n(item.unread_count);
+
+                return (
+                  <BuklodFocusVisibleRow index={index}>
+                    <ConnectInboxRow
+                    userId={
+                      isPerson
+                        ? item.user_id
+                        : item.other_user_id
+                    }
+                    name={
+                      isPerson
+                        ? item.full_name
+                        : item.other_user_name
+                    }
+                    avatarUri={
+                      isPerson ? item.avatar_url : null
+                    }
+                    preview={
+                      isPerson
+                        ? 'Start personal conversation'
+                        : connectMessagePreview(
+                            item.last_message
+                          )
+                    }
+                    timeLabel={
+                      !isPerson
+                        ? formatInboxTime(
+                            item.last_message_at
+                          )
+                        : undefined
+                    }
+                    unreadCount={unread}
+                    isSearchResult={isPerson}
+                    showSentIndicator={
+                      !isPerson &&
+                      unread === 0 &&
+                      !!item.last_message_at
+                    }
+                    onPressRow={() =>
+                      isPerson
+                        ? openPerson(
+                            item.user_id,
+                            item.full_name
+                          )
+                        : openPersonalThread(
+                            item.thread_id,
+                            item
+                          )
+                    }
+                    />
+                  </BuklodFocusVisibleRow>
+                );
+              }}
+            />
+          </>
+        ) : (
+          <FlatList
+            data={filteredRooms}
+            keyExtractor={item => item.scope_id}
+            initialNumToRender={
+              FLATLIST_TUNING.inbox.initialNumToRender
+            }
+            maxToRenderPerBatch={
+              FLATLIST_TUNING.inbox.maxToRenderPerBatch
+            }
+            updateCellsBatchingPeriod={
+              FLATLIST_TUNING.inbox.updateCellsBatchingPeriod
+            }
+            windowSize={
+              FLATLIST_TUNING.inbox.windowSize
+            }
+            removeClippedSubviews={
+              Platform.OS === 'android'
+            }
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={refresh}
+                tintColor={theme.accent}
+              />
+            }
+            contentContainerStyle={
+              styles.communityListContent
+            }
+            ListHeaderComponent={
+              !forcedScopeId ? (
+                <>
+                  <ConnectCommunityFilters
+                    active={communityFilter}
+                    onChange={setCommunityFilter}
+                  />
+
+                  {!!sectionLabel && (
+                    <Text style={styles.sectionLabel}>
+                      {sectionLabel}
+                    </Text>
+                  )}
+                </>
+              ) : null
+            }
+            ListEmptyComponent={
+              <View style={styles.empty}>
+                <Text style={styles.emptyTitle}>
+                  No community rooms yet
+                </Text>
+              </View>
+            }
+            renderItem={({ item, index }) => (
+              <BuklodFocusVisibleRow index={index}>
+                <ConnectCommunityRow
+                  scopeName={item.scope_name}
+                  scopeType={item.scope_type}
+                  preview={connectMessagePreview(
+                    item.last_message
+                  )}
+                  timeLabel={formatInboxTime(
+                    item.last_message_at
+                  )}
+                  unreadCount={item.unread_count}
+                  iconName={iconFor(item.scope_type)}
+                  onPressRow={() =>
+                    openCommunityRoom(
+                      item.scope_id,
+                      item
+                    )
+                  }
+                />
+              </BuklodFocusVisibleRow>
+            )}
+          />
+        )}
+      </View>
+
+      <View style={styles.inboxFooter} pointerEvents="box-none">
+        <ConnectInboxTabs
+          tab={tab}
+          personalUnread={personalUnread}
+          communityUnread={communityUnread}
+          onTabChange={setTab}
+        />
+      </View>
+    </ConnectThreadBackground>
+  );
+}

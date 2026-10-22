@@ -1,0 +1,336 @@
+// R25 Organization Home door OTA trigger — no ad behavior change.
+import Constants from 'expo-constants';
+import {
+  TestIds,
+} from 'react-native-google-mobile-ads';
+
+import type { BuklodAdDiagnosticPlacement } from '@/lib/buklodAdDiagnostics';
+
+export type BuklodAdPlacement =
+  | 'home'
+  | 'community'
+  | 'prayer'
+  | 'messages'
+  | 'bible'
+  | 'devotion'
+  | 'me'
+  | 'reels'
+  | 'focus'
+  | 'content'
+  | 'community_entry'
+  | 'profile'
+  | 'org'
+  | 'cluster'
+  | 'org_community'
+  | 'cluster_community'
+  | 'submission'
+  | 'video_companion'
+  | 'test';
+
+/* Standard AdMob BANNER creative is 320x50. Dashboard chrome
+ * reserves this plus the Sponsored label/padding so the shell
+ * never collapses while an ad is loading, empty, or failed. */
+export const BUKLOD_DASHBOARD_BANNER_AD_HEIGHT = 50;
+export const BUKLOD_DASHBOARD_BANNER_RESERVED_HEIGHT = 68;
+
+const GOOGLE_SAMPLE_ANDROID_APP_ID =
+  'ca-app-pub-3940256099942544~3347511713';
+
+const PRODUCTION_PACKAGE =
+  'org.mzbministry.buklod';
+
+const STAGING_PACKAGE =
+  'org.mzbministry.buklod.staging';
+
+const appEnvironment =
+  (
+    process.env.EXPO_PUBLIC_APP_ENV ||
+    String(
+      Constants.expoConfig?.extra?.appEnvironment ||
+        'production',
+    )
+  )
+    .trim()
+    .toLowerCase();
+
+function nativePackages() {
+  return {
+    androidPackage: String(
+      Constants.expoConfig?.android?.package ?? '',
+    ).trim(),
+    iosBundle: String(
+      Constants.expoConfig?.ios?.bundleIdentifier ?? '',
+    ).trim(),
+  };
+}
+
+function isStagingNativeIdentity() {
+  const { androidPackage, iosBundle } =
+    nativePackages();
+
+  return (
+    androidPackage === STAGING_PACKAGE ||
+    iosBundle === STAGING_PACKAGE
+  );
+}
+
+function isProductionNativeIdentity() {
+  const { androidPackage, iosBundle } =
+    nativePackages();
+
+  return (
+    androidPackage === PRODUCTION_PACKAGE ||
+    iosBundle === PRODUCTION_PACKAGE
+  );
+}
+
+export const buklodAdsLiveIdsEnabled =
+  clean(process.env.EXPO_PUBLIC_ADS_ALLOW_LIVE_IDS).toLowerCase() === 'true';
+
+export const buklodAdsTestMode =
+  !buklodAdsLiveIdsEnabled ||
+  isStagingNativeIdentity() ||
+  !isProductionNativeIdentity() ||
+  __DEV__ ||
+  appEnvironment !== 'production';
+
+export const BUKLOD_GOOGLE_TEST_ANDROID_APP_ID =
+  GOOGLE_SAMPLE_ANDROID_APP_ID;
+
+function clean(
+  value:
+    string | undefined
+) {
+  return (
+    value ?? ''
+  ).trim();
+}
+
+
+const genericBanner =
+  clean(
+    process.env
+      .EXPO_PUBLIC_ADMOB_BANNER_UNIT_ID
+  );
+
+export function getBuklodAdTestDeviceIds(): string[] {
+  return clean(process.env.EXPO_PUBLIC_ADMOB_TEST_DEVICE_IDS)
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
+export function diagnosticPlacementFor(
+  placement: BuklodAdPlacement,
+): BuklodAdDiagnosticPlacement {
+  if (placement === 'home') return 'legacy_home_banner';
+  if (placement === 'community_entry') return 'community_wall_entry';
+  if (placement === 'community') return 'community_wall_feed';
+  if (placement === 'reels') return 'reels_inline';
+  if (placement === 'profile') return 'profile_banner';
+  if (placement === 'org') return 'org_home_entry';
+  if (placement === 'cluster') return 'cluster_home_entry';
+  if (placement === 'org_community') return 'org_wall_feed';
+  if (placement === 'cluster_community') return 'cluster_wall_feed';
+  if (placement === 'submission') return 'content_submission';
+  if (placement === 'video_companion') return 'video_companion';
+  if (
+    placement === 'content' ||
+    placement === 'focus' ||
+    placement === 'bible' ||
+    placement === 'devotion'
+  ) return 'content_inline';
+  if (placement === 'prayer') return 'prayer_banner';
+  if (placement === 'messages') return 'messages_banner';
+  if (placement === 'me') return 'profile_banner';
+  return 'test';
+}
+
+export function getBuklodBannerUnitId(
+  placement:
+    BuklodAdPlacement
+): string | null {
+
+  if (buklodAdsTestMode) {
+    return TestIds.ADAPTIVE_BANNER;
+  }
+
+
+  let placementId = '';
+
+  switch (placement) {
+    case 'home':
+      placementId =
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_HOME_BANNER_UNIT_ID
+        );
+      break;
+
+    case 'community_entry':
+      placementId =
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_COMMUNITY_ENTRY_BANNER_UNIT_ID
+        ) ||
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_COMMUNITY_BANNER_UNIT_ID
+        );
+      break;
+
+    case 'community':
+    case 'reels':
+      placementId =
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_COMMUNITY_BANNER_UNIT_ID
+        );
+      break;
+
+    case 'profile':
+      placementId =
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_PROFILE_BANNER_UNIT_ID
+        ) ||
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_CONTENT_BANNER_UNIT_ID
+        );
+      break;
+
+    case 'org':
+      placementId =
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_ORG_BANNER_UNIT_ID
+        ) ||
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_CONTENT_BANNER_UNIT_ID
+        );
+      break;
+
+    case 'cluster':
+      placementId =
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_CLUSTER_BANNER_UNIT_ID
+        ) ||
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_CONTENT_BANNER_UNIT_ID
+        );
+      break;
+
+    case 'org_community':
+      placementId =
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_ORG_COMMUNITY_BANNER_UNIT_ID
+        ) ||
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_COMMUNITY_BANNER_UNIT_ID
+        );
+      break;
+
+    case 'cluster_community':
+      placementId =
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_CLUSTER_COMMUNITY_BANNER_UNIT_ID
+        ) ||
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_COMMUNITY_BANNER_UNIT_ID
+        );
+      break;
+
+    case 'submission':
+      placementId =
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_CONTENT_SUBMISSION_BANNER_UNIT_ID
+        ) ||
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_CONTENT_BANNER_UNIT_ID
+        );
+      break;
+
+    case 'video_companion':
+      placementId =
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_VIDEO_COMPANION_BANNER_UNIT_ID
+        ) ||
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_COMMUNITY_BANNER_UNIT_ID
+        );
+      break;
+
+    case 'prayer':
+      placementId =
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_PRAYER_BANNER_UNIT_ID
+        );
+      break;
+
+    case 'messages':
+      placementId =
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_MESSAGES_BANNER_UNIT_ID
+        );
+      break;
+
+    case 'bible':
+    case 'devotion':
+    case 'focus':
+    case 'content':
+      placementId =
+        clean(
+          process.env
+            .EXPO_PUBLIC_ADMOB_CONTENT_BANNER_UNIT_ID
+        );
+      break;
+
+    case 'me':
+      placementId =
+        genericBanner;
+      break;
+
+
+    case 'test':
+      return TestIds.ADAPTIVE_BANNER;
+  }
+
+
+  return (
+    placementId ||
+    genericBanner ||
+    null
+  );
+}
+
+
+export function getBuklodInterstitialUnitId():
+  string | null {
+
+  if (buklodAdsTestMode) {
+    return TestIds.INTERSTITIAL;
+  }
+
+
+  return (
+    clean(
+      process.env
+        .EXPO_PUBLIC_ADMOB_INTERSTITIAL_UNIT_ID
+    ) ||
+    null
+  );
+}

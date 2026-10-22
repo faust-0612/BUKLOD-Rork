@@ -1,0 +1,482 @@
+const sentryOrg = (process.env.SENTRY_ORG || '').trim();
+const sentryProject = (process.env.SENTRY_PROJECT || '').trim();
+
+const googleMapsAndroidApiKey =
+  (
+    process.env.GOOGLE_MAPS_ANDROID_API_KEY ||
+    ''
+  ).trim();
+module.exports = ({ config }) => {
+  /* BUKLOD_CLASSROOM_APP_TARGET_R4 Ã¢â‚¬â€ standalone identity without mutating Main defaults */
+  const appTarget = (process.env.BUKLOD_APP_TARGET || 'main').trim().toLowerCase();
+  const isClassroom = appTarget === 'classroom';
+  const classroomProjectId = '14100ed1-7f25-4551-9627-09d280498241';
+  const classroomGoogleServicesFile = (process.env.CLASSROOM_GOOGLE_SERVICES_FILE || '').trim();
+  const projectId = isClassroom
+    ? classroomProjectId
+    : (process.env.EAS_PROJECT_ID ||
+       process.env.EXPO_PUBLIC_EAS_PROJECT_ID ||
+       '23dad7d0-389a-406e-8dec-08965dab85d8');
+
+  const variant =
+    process.env.APP_VARIANT ||
+    process.env.EXPO_PUBLIC_APP_ENV ||
+    'production';
+
+  const isDevelopment = variant === 'development';
+
+  const isStaging =
+    variant === 'staging' ||
+    variant === 'preview' ||
+    variant === 'development';
+
+  const webOutput = (process.env.BUKLOD_WEB_OUTPUT || 'single').trim();
+
+  // BUKLOD_MAIN_CANONICAL_BRAND_R1 Ã¢â‚¬â€ one Main brand asset across web/native identity.
+  const mainBrandIcon = './assets/release/buklod-main-canonical.png';
+
+  const appName = isClassroom
+    ? (isStaging ? 'BUKLOD Classroom Staging' : 'BUKLOD Classroom')
+    : (isDevelopment ? 'BUKLOD DEV' : (isStaging ? 'BUKLOD Staging' : 'BUKLOD'));
+
+  const packageId = isClassroom
+    ? 'org.mzbministry.buklod.classroom'
+    : (isDevelopment
+        ? 'org.mzbministry.buklod.dev'
+        : (isStaging ? 'org.mzbministry.buklod.staging' : 'org.mzbministry.buklod'));
+
+  const scheme = isClassroom
+    ? 'buklod-classroom'
+    : (isDevelopment ? 'buklod-dev' : (isStaging ? 'buklod-staging' : 'buklod'));
+
+  return {
+    ...config,
+
+    name: appName,
+    slug: isClassroom ? 'buklod-classroom' : 'buklod',
+    version: '1.3.4',
+
+    orientation: 'default',
+    scheme,
+
+    userInterfaceStyle: 'automatic',
+
+    icon: isClassroom ? './assets/classroom/app-icon.png' : mainBrandIcon,
+
+    assetBundlePatterns: [
+      'assets/**',
+    ],
+
+
+    ios: {
+      supportsTablet: true,
+
+      bundleIdentifier: packageId,
+
+      infoPlist: {
+        NSCameraUsageDescription:
+          'Allow BUKLOD to use your camera for photos, Reels, QR check-in, and video calls.',
+
+        NSMicrophoneUsageDescription:
+          'Allow BUKLOD to use your microphone for voice messages, recordings, videos, and calls.',
+
+        NSLocalNetworkUsageDescription:
+          'Allow BUKLOD to use network connections for voice and video communication.',
+      },
+    },
+
+
+    android: {
+      package: packageId,
+
+      versionCode: isStaging ? undefined : 26,
+
+      // Never silently reuse Main Firebase credentials for the standalone Classroom package.
+      googleServicesFile: isClassroom
+        ? (classroomGoogleServicesFile || undefined)
+        : (isDevelopment
+            ? './google-services.dev.json'
+            : (isStaging ? './google-services.staging.json' : './google-services.production.json')),
+
+      permissions: [
+        'android.permission.CAMERA',
+        'android.permission.RECORD_AUDIO',
+        'android.permission.ACCESS_NETWORK_STATE',
+        'android.permission.WAKE_LOCK',
+        'android.permission.CHANGE_NETWORK_STATE',
+        'android.permission.MODIFY_AUDIO_SETTINGS',
+        'android.permission.BLUETOOTH',
+        'android.permission.BLUETOOTH_CONNECT',
+        'android.permission.BLUETOOTH_SCAN',
+        'android.permission.NEARBY_WIFI_DEVICES',
+        'android.permission.ACCESS_WIFI_STATE',
+        'android.permission.CHANGE_WIFI_STATE',
+        'android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE',
+        'android.permission.POST_NOTIFICATIONS',
+        'android.permission.VIBRATE',
+        'android.permission.FOREGROUND_SERVICE',
+        'android.permission.FOREGROUND_SERVICE_MICROPHONE',
+        'android.permission.FOREGROUND_SERVICE_CAMERA',
+        'android.permission.FOREGROUND_SERVICE_PHONE_CALL',
+        'android.permission.MANAGE_OWN_CALLS',
+        'android.permission.USE_FULL_SCREEN_INTENT',
+      ],
+
+      intentFilters:
+        (!isClassroom && !isStaging)
+          ? [
+              {
+                action: 'VIEW',
+                autoVerify: false,
+                data: [
+                  {
+                    scheme: 'https',
+                    host: 'buklod.expo.app',
+                    pathPrefix: '/register',
+                  },
+                ],
+                category: ['BROWSABLE', 'DEFAULT'],
+              },
+            ]
+          : [],
+
+      blockedPermissions: [
+        'android.permission.READ_MEDIA_IMAGES',
+        'android.permission.READ_MEDIA_VIDEO',
+        'android.permission.READ_MEDIA_VISUAL_USER_SELECTED',
+        'android.permission.READ_EXTERNAL_STORAGE',
+      ],
+
+      adaptiveIcon: {
+        foregroundImage: isClassroom
+          ? './assets/classroom/adaptive-icon.png'
+          : mainBrandIcon,
+
+        backgroundColor:
+          '#FFFFFF',
+      },
+    },
+
+
+    web: {
+      bundler: 'metro',
+      output: webOutput,
+
+      favicon: isClassroom
+        ? './assets/classroom/favicon.png'
+        : mainBrandIcon,
+    },
+
+
+    plugins: [
+      ...(sentryOrg && sentryProject
+        ? [[
+            '@sentry/react-native/expo',
+            {
+              url: 'https://sentry.io/',
+              organization: sentryOrg,
+              project: sentryProject,
+            },
+          ]]
+        : []),
+      'expo-background-task',
+      [
+        'react-native-google-mobile-ads',
+        {
+          androidAppId:
+            isStaging
+              ? 'ca-app-pub-3940256099942544~3347511713'
+              : (
+                  process.env.ADMOB_ANDROID_APP_ID ||
+                  ''
+                ).trim(),
+
+          delayAppMeasurementInit: true,
+          optimizeInitialization: true,
+          optimizeAdLoading: true,
+        },
+      ],
+
+
+      [
+
+
+        'react-native-maps',
+
+
+        {
+
+
+          androidGoogleMapsApiKey: googleMapsAndroidApiKey,
+
+
+        },
+
+
+      ],
+      [
+        '@sfourdrinier/react-native-ble-plx',
+        {
+          androidEnableForegroundService: true,
+          bluetoothAlwaysPermission:
+            'Allow BUKLOD to connect to compatible nearby communication devices.',
+        },
+      ],
+      [
+        '@stream-io/video-react-native-sdk',
+        {
+        enableScreenshare: true,
+          androidKeepCallAlive: true,
+          addNoiseCancellation: true,
+        
+
+          ringing: true,
+
+          androidMessagingServiceBaseClass: 'io.invertase.firebase.messaging.ReactNativeFirebaseMessagingService',
+},
+      ],
+      '@react-native-firebase/app',
+      '@react-native-firebase/messaging',
+
+      './plugins/withBuklodWebRTC.js',
+      /* BUKLOD_CORE_LIBRARY_DESUGARING_R1 */
+      './plugins/withBuklodCoreLibraryDesugaring.js',
+
+
+      'expo-image',
+      'expo-sqlite',
+
+      [
+        'expo-router',
+        {
+          headers: {
+            'Cross-Origin-Embedder-Policy': 'credentialless',
+            'Cross-Origin-Opener-Policy': 'same-origin',
+          },
+        },
+      ],
+
+      [
+        'expo-screen-orientation',
+        {
+          initialOrientation: 'DEFAULT',
+        },
+      ],
+
+
+
+      [
+        'expo-notifications',
+        {
+          enableBackgroundRemoteNotifications: true,
+        },
+      ],
+
+
+      'expo-status-bar',
+
+      /* BUKLOD_SHARE_TARGET_187A */
+      [
+        'expo-sharing',
+        {
+          android: {
+            enabled: true,
+            singleShareMimeTypes: [
+              'image/*',
+              'video/*',
+              'text/*',
+            ],
+            multipleShareMimeTypes: [
+              'image/*',
+            ],
+          },
+        },
+      ],
+
+
+      [
+        'expo-image-picker',
+        {
+          photosPermission:
+            'Allow BUKLOD to choose photos and videos for posts, messages, profiles, and Reels.',
+
+          cameraPermission:
+            'Allow BUKLOD to use your camera for photos, Reels, and video calls.',
+
+          microphonePermission:
+            'Allow BUKLOD to use your microphone when recording videos.',
+        },
+      ],
+
+
+      [
+        'expo-media-library',
+        {
+          savePhotosPermission:
+            'Allow BUKLOD to save photos to your device gallery.',
+
+          granularPermissions: [],
+        },
+      ],
+
+
+      [
+        'expo-camera',
+        {
+          cameraPermission:
+            'Allow BUKLOD to use your camera for photos, Reels, QR check-in, and video calls.',
+
+          microphonePermission:
+            'Allow BUKLOD to use your microphone for recorded video and calls.',
+
+          recordAudioAndroid: true,
+
+          barcodeScannerEnabled: true,
+        },
+      ],
+
+
+      [
+        'expo-video',
+        {
+          supportsBackgroundPlayback: true,
+
+          supportsPictureInPicture: true,
+        },
+      ],
+
+
+      [
+        'expo-audio',
+        {
+          microphonePermission: false,
+          recordAudioAndroid: false,
+          enableBackgroundPlayback: true,
+          enableBackgroundRecording: false,
+        },
+      ],
+
+
+      [
+        'expo-secure-store',
+        {
+          configureAndroidBackup: true,
+
+          faceIDPermission:
+            'Allow BUKLOD to use Face ID to protect your account.',
+        },
+      ],
+
+
+      [
+        'expo-local-authentication',
+        {
+          faceIDPermission:
+            'Allow BUKLOD to use Face ID for secure authentication.',
+        },
+      ],
+
+
+      [
+        'expo-web-browser',
+        {
+          experimentalLauncherActivity: true,
+        },
+      ],
+
+
+      [
+        'expo-location',
+        {
+          locationWhenInUsePermission:
+            'Allow BUKLOD to use your location for church check-ins and location-based ministry features.',
+
+          isIosBackgroundLocationEnabled: false,
+
+          isAndroidBackgroundLocationEnabled: false,
+
+          isAndroidForegroundServiceEnabled: false,
+        },
+      ],
+
+
+      [
+        'expo-build-properties',
+        {
+          android: {
+            minSdkVersion: 24,
+            enableProguardInReleaseBuilds: true,
+            enableShrinkResourcesInReleaseBuilds: true,
+            extraProguardRules: '-keep class com.google.android.gms.internal.consent_sdk.** { *; }',
+          },
+
+          ios: {
+            deploymentTarget: '16.4',
+          },
+        },
+      ],
+
+
+      [
+        'expo-splash-screen',
+        {
+          backgroundColor:
+            '#FFFFFF',
+
+          image: isClassroom
+            ? './assets/classroom/splash-icon.png'
+            : mainBrandIcon,
+
+          imageWidth: 200,
+
+          dark: {
+            backgroundColor:
+              '#0E4F20',
+
+            image: isClassroom
+              ? './assets/classroom/splash-icon.png'
+              : mainBrandIcon,
+          },
+        },
+      ],
+    ],
+
+
+    extra: {
+      ...config.extra,
+
+      appEnvironment:
+        process.env.EXPO_PUBLIC_APP_ENV ||
+        variant,
+
+      appTarget: isClassroom ? 'classroom' : 'main',
+
+      eas:
+        projectId
+          ? { projectId }
+          : config.extra?.eas,
+    },
+
+
+    updates:
+      isDevelopment
+        ? {
+            enabled: false,
+          }
+        : projectId
+          ? {
+              url:
+                `https://u.expo.dev/${projectId}`,
+
+              fallbackToCacheTimeout: 0,
+              // Local release builds need the same OTA channel as EAS builds.
+              ...(!isStaging && !isClassroom
+                ? { requestHeaders: { 'expo-channel-name': 'production' } }
+                : {}),
+            }
+          : undefined,
+
+
+    runtimeVersion: isClassroom ? '1.3.0' : (isStaging ? '1.3.2' : '1.3.2'),
+  };
+};

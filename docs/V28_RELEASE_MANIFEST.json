@@ -1,0 +1,13 @@
+{
+  "artifact": "original Google Play V28 AAB",
+  "package": "org.mzbministry.buklod",
+  "versionName": "1.3.4",
+  "versionCode": 28,
+  "runtimeVersion": "1.3.2",
+  "channel": "production",
+  "aabSha256": "E735885E20F222B03CD91184F7D0FB5281523EC846667B9FB935D50E9FF7C5C2",
+  "embeddedBundleSha256": "38A36B0A5AB7533F487EA227D47450805B4AC39CB7A5E96F3E2A57A8FADFC939",
+  "embeddedManifestSha256": "CBFB811876D47AEC339EED418A5906A19B0C3DFFC993095C13E6CC2E101A202D",
+  "storage": "private GitHub release on faust-0612/BUKLOD-Rork",
+  "otaPublished": false
+}
