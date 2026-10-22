@@ -1,4 +1,4 @@
-# Release trigger: 2026-10-22 KL admin Chap2+ + reader music top + live comments/readers
+# Release trigger: 2026-10-22 remove Wall Public CONNECT/EXPLORE chips + Dugtong icon
 name: BUKLOD Production Android OTA
 
 on:
@@ -8,6 +8,8 @@ on:
       - main
     paths:
       - '.github/workflows/production_android_ota.yml'
+      - 'src/components/BuklodCommunityPostEngagement.tsx'
+      - 'src/components/BuklodCommunityPostEngagement.web.tsx'
       - 'src/app/admin/kabihasnang-ligaw.tsx'
       - 'src/lib/kabihasnang-ligaw/**'
       - 'src/components/kabihasnang-ligaw/**'
@@ -251,7 +253,7 @@ jobs:
             --channel production \
             --platform android \
             --environment production \
-            --message "Runtime 1.3.2 KL: Chap2+ approval locks next 6am package; reader music on top; live comments + who is reading on released chapters" \
+            --message "Runtime 1.3.2 Wall: remove Public CONNECT/EXPLORE chips and Dugtong icon; keep KL Chap2+ approval and reader live discussion" \
             --non-interactive
 
       - name: Deployment status
