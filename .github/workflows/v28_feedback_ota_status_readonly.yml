@@ -1,5 +1,5 @@
 name: BUKLOD V28 Runtime132 Production OTA Status — read only
-# Poll exact RC after corrected Expo channel parser (release 725b7173)
+# Inspect repaired workflow release 300c8cfa and production group
 on:
   push:
     branches: [codex/v28-action-feedback-cumulative132-20261022]
