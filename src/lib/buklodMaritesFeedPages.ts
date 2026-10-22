@@ -159,9 +159,8 @@ export function resolveMaritesVisibleRows<T>(input: {
     return { rows, markFresh: false };
   }
 
-  if (!input.incoming.length) {
-    return { rows: input.current, markFresh: false };
-  }
-
+  // A completed authorized refresh is authoritative, including an empty
+  // result after deletion or visibility revocation. Never retain stale posts
+  // when the server has confirmed there are none.
   return { rows: input.incoming, markFresh: true };
 }
