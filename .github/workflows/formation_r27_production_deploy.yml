@@ -2,21 +2,6 @@ name: BUKLOD Formation R27 Production Deploy
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/formation_r27_production_deploy.yml'
-      - 'scripts/patch-formation-r27.cjs'
-      - 'supabase/migrations/20260907143000_formation_auto_validation_notifications_reminders_r27.sql'
-      - 'supabase/migrations/20260911050000_formation_daily_pipeline_repair_r1.sql'
-      - 'supabase/functions/buklod-ai-validate-response/**'
-      - 'src/lib/buklodAiResponseValidation.ts'
-      - 'src/components/LearningQuestionResponse.tsx'
-      - 'src/app/learn/lesson.tsx'
-      - 'src/app/bible/index.tsx'
-      - 'src/app/reflection/**'
-
 permissions:
   contents: read
 
@@ -27,6 +12,7 @@ env:
 
 jobs:
   qa-web-android-ota:
+    if: ${{ false }} # Legacy production publisher retired; use the exact-RC Android workflow.
     runs-on: ubuntu-latest
     steps:
       - name: Checkout production source

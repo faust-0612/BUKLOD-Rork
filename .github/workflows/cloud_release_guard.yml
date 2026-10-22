@@ -1,0 +1,28 @@
+name: BUKLOD Cloud Release Policy Guard
+on:
+  pull_request:
+    paths:
+      - 'AGENTS.md'
+      - '.github/workflows/**'
+      - 'app.config.js'
+      - 'eas.json'
+      - 'scripts/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cloud-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check release policy and disallow automatic OTA on push
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'cloud-only engineering policy' AGENTS.md
+          test -f .github/workflows/production_android_ota.yml
+          npm ci --ignore-scripts
+          node scripts/check-android-release-policy.cjs
+          node --test tests/android-release-policy.test.cjs

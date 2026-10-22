@@ -15,16 +15,16 @@ import {
 /* BUKLOD_PERMISSION_SNAPSHOT_ANON_GUARD_R2_RELEASE */
 /*
  * BUKLOD_LOGIN_LATENCY_GUARD_R2
- * Normal lifecycle checks are sub-second. Keep the safety gate authoritative,
- * but do not let a saturated database hold an already-authenticated login for
- * 5.5s plus another 3.5s fallback window.
+ * Keep the lifecycle safety gate authoritative even on congested networks.
+ * Allow the primary check and fallback enough time to complete instead of
+ * rejecting a valid password due to an overly short local watchdog.
  */
-const AUTH_LIFECYCLE_TIMEOUT_MS = 1_800;
-const AUTH_PROFILE_FALLBACK_TIMEOUT_MS = 1_500;
+const AUTH_LIFECYCLE_TIMEOUT_MS = 4_500;
+const AUTH_PROFILE_FALLBACK_TIMEOUT_MS = 3_500;
 const AUTH_LOCAL_SESSION_TIMEOUT_MS = 1_200;
 const AUTH_LOCAL_SIGN_OUT_TIMEOUT_MS = 2_500;
 const AUTH_FRESH_SIGN_IN_USER_TTL_MS = 60_000;
-const AUTH_PASSWORD_SIGN_IN_TIMEOUT_MS = 12_000;
+const AUTH_PASSWORD_SIGN_IN_TIMEOUT_MS = 28_000;
 
 /*
  * BUKLOD_MAIN_AUTH_STORM_R21
@@ -157,7 +157,12 @@ export function isBuklodTransientAuthError(
     text.includes('fetch failed') ||
     text.includes('temporarily unavailable') ||
     text.includes('connection terminated') ||
-    text.includes('connection reset')
+    text.includes('connection reset') ||
+    text.includes('network connection was lost') ||
+    text.includes('load failed') ||
+    text.includes('the operation was aborted') ||
+    text.includes('sign-in interrupted') ||
+    text.includes('sign in interrupted')
   );
 }
 

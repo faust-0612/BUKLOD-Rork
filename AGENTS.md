@@ -1,3 +1,19 @@
+# BUKLOD cloud-only engineering policy (2026-10-22)
+
+This policy supersedes any Windows-local canonical-source or local-build instructions below. GitHub private repository is the source of truth. Local copies are disposable and never authoritative.
+
+- All future engineering: scoped DEV branch -> reviewed/frozen immutable RC SHA -> gated Production OTA. Never publish from mutable main or on ordinary push.
+- Run CI, builds, exports, tests, artifact comparisons, and releases in cloud runners. Do not require a laptop, local keystore, or local working tree for normal operations.
+- Pin the exact approved source SHA, runtime, channel, and artifact manifest. Require reproducibility/feature parity, secret scan, regression tests, and a successful release verification. Workflow success alone does not prove device success.
+- Secrets must live in protected cloud secret stores; never commit or upload keystores or credentials. A local RC branch containing a debug keystore in history must never be pushed.
+- Original V28 reference: AAB SHA256 E735885E20F222B03CD91184F7D0FB5281523EC846667B9FB935D50E9FF7C5C2; bundled JS SHA256 38A36B0A5AB7533F487EA227D47450805B4AC39CB7A5E96F3E2A57A8FADFC939; Android versionCode 28; runtime 1.3.2; channel production. These hashes are reference evidence, NOT proof that the cloud source or OTA is verified.
+- Do not remove local originals until restricted cloud backups and a cloud-only recovery drill are independently verified AND user expressly authorizes deletion.
+- No unrelated changes, no new AAB, web deployment, or database mutation during V28 rollback. Preserve current production OTA until replacement passes all gates.
+- Do not bypass legitimate release safety checks, fabricate SQL migrations, or silently restore removed PTT/IGPAT features.
+- See issue #249 for migration completion gates. If cloud release prerequisites are missing, stop safely and report only the actual blocker.
+
+---
+
 # BUKLOD Main Agent Contract
 
 This repository is BUKLOD Main. All coding agents, chats, IDEs, and release scripts must use the same source-of-truth rules.

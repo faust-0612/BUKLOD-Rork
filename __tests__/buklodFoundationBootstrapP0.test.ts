@@ -74,9 +74,7 @@ describe('BUKLOD P0 Foundation bootstrap containment', () => {
 
   it('collapses concurrent Foundation permission snapshot loads into one RPC', async () => {
     const { rpc } = installMocks();
-    const { resolveFoundationFocusAppsFast } = await import(
-      '@/lib/buklodFoundationFast'
-    );
+    const { resolveFoundationFocusAppsFast } = require('@/lib/buklodFoundationFast') as typeof import('@/lib/buklodFoundationFast');
 
     const options = {
       isSystemAdmin: false,
@@ -102,9 +100,7 @@ describe('BUKLOD P0 Foundation bootstrap containment', () => {
 
   it('reuses the same runtime permission snapshot during the 30-second presentation window', async () => {
     const { rpc } = installMocks();
-    const { resolveFoundationFocusAppsFast } = await import(
-      '@/lib/buklodFoundationFast'
-    );
+    const { resolveFoundationFocusAppsFast } = require('@/lib/buklodFoundationFast') as typeof import('@/lib/buklodFoundationFast');
 
     const options = {
       isSystemAdmin: false,

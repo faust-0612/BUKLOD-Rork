@@ -2,13 +2,6 @@ name: BUKLOD Character R25D Context Viewport Deploy
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/character_r25d_context_viewport_deploy.yml'
-      - 'scripts/apply-character-r25d-context-viewport.cjs'
-
 permissions:
   contents: write
 
@@ -18,6 +11,7 @@ env:
 
 jobs:
   patch-qa-deploy:
+    if: ${{ false }} # Legacy production publisher retired; use the exact-RC Android workflow.
     runs-on: ubuntu-latest
     steps:
       - name: Checkout current main

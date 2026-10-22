@@ -376,7 +376,12 @@ async function signInForFreshPublicHome(
       credentials
     );
 
-  if (result.error) {
+  if (
+    result.error &&
+    String(result.error?.code ?? '') !== 'auth_in_progress'
+  ) {
+    // Another pending grant may still succeed after a route remount.
+    // Do not erase that original attempt's fresh-login routing intent.
     await AsyncStorage.removeItem(
       BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY
     ).catch(() => undefined);
@@ -1099,6 +1104,14 @@ const chooseSuggestedLogin =
     }
 
     if (error) {
+      // A previous credential grant can outlive a route remount. Never
+      // misreport its in-flight shield as an incorrect password or start
+      // a second grant while Supabase is still finishing the first.
+      if (String(error?.code ?? '') === 'auth_in_progress') {
+        releaseLogin('Your sign-in is still being processed. BUKLOD will continue when the existing request finishes.');
+        return;
+      }
+
       const temporaryFailure =
         isBuklodTransientAuthError(error);
       const invalidCredentials =
@@ -1140,7 +1153,9 @@ const chooseSuggestedLogin =
           : invalidCredentials &&
             credentialsOverride?.suggestedUserId
             ? 'The saved password no longer matches this account. Enter the current password, then you may save it again.'
-            : 'Login was not completed. Check your login and password, then try again.'
+            : invalidCredentials
+              ? 'Login identifier or password not recognized. Check your details and try again.'
+              : 'BUKLOD could not finish signing in right now. Please try again.'
       );
       triggerShake();
 
@@ -1156,7 +1171,9 @@ const chooseSuggestedLogin =
           : invalidCredentials &&
             credentialsOverride?.suggestedUserId
             ? 'The password saved on this device is no longer valid. Enter your current password. If you recently reset it, use the new password.'
-            : 'Invalid login identifier or password.'
+            : invalidCredentials
+              ? 'Invalid login identifier or password.'
+              : 'The sign-in could not be completed. This does not mean your password is incorrect.'
       );
     }
 

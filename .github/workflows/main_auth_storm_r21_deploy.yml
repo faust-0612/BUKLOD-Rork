@@ -2,15 +2,6 @@ name: BUKLOD Main Auth Storm R21 + Concurrency R32 Deploy
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/main_auth_storm_r21_deploy.yml'
-      - 'src/lib/buklodAuthResilience.ts'
-      - 'src/lib/buklodR4RequestShield.ts'
-      - 'src/lib/supabase.ts'
-
 permissions:
   contents: read
 
@@ -20,6 +11,7 @@ env:
 
 jobs:
   qa-web-android:
+    if: ${{ false }} # Legacy production publisher retired; use the exact-RC Android workflow.
     runs-on: ubuntu-latest
     steps:
       - name: Checkout production source
