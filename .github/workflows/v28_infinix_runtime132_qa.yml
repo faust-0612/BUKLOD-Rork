@@ -51,8 +51,8 @@ jobs:
           __tests__/buklodConnectFacesFirst.test.ts
           __tests__/buklodAvatarPersistence.test.ts
           __tests__/communityWeakNetworkP0.test.ts
-      - name: V28 published source contract
-        run: node --test tests/v28-p0-source.test.cjs
+      - name: Preserved cumulative runtime 1.3.2 action feedback contract
+        run: node --test __tests__/buklodActionFeedbackContract.test.js
       - name: Complete Jest regression
         run: npm test -- --watchAll=false --watchman=false
       - name: Character visual and gating contract
