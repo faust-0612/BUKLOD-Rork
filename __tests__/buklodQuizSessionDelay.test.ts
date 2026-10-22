@@ -10,6 +10,14 @@ beforeEach(() => {
   auth.getSession.mockResolvedValue({ data: { session: { access_token: 'saved', expires_at: Date.now()/1000 + 300 } }, error: null });
 });
 afterEach(() => { jest.useRealTimers(); });
+test('stalled session storage returns a retryable error instead of loading forever', async () => {
+  auth.getSession.mockImplementation(() => new Promise(() => {}));
+  const check = getValidatedMainAccessToken();
+  const assertion = expect(check).rejects.toThrow('tap Quiz again');
+  await jest.advanceTimersByTimeAsync(8001);
+  await assertion;
+  expect(auth.getUser).not.toHaveBeenCalled();
+});
 test('slow validation retains an unexpired saved token for server-side bridge validation', async () => {
   auth.getUser.mockImplementation(() => new Promise(() => {}));
   const check = getValidatedMainAccessToken();
