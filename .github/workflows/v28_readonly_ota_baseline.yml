@@ -4,6 +4,9 @@ on:
   push:
     branches: [codex/v28-action-feedback-20261022]
     paths: ['.github/workflows/v28_readonly_ota_baseline.yml']
+  pull_request:
+    branches: [codex/v28-web-sync]
+    paths: ['.github/workflows/v28_readonly_ota_baseline.yml']
 
 permissions:
   contents: read
