@@ -1,15 +1,15 @@
 {
-  "objective": "Close CI path-filter gaps and reject broad scope manifests without editing app modules",
+  "objective": "Group correlated Supabase permission-denied logs into read-only incidents without modifying runtime or backend",
   "baseRef": "main",
-  "productionBaselineEvidence": "verified: this PR changes engineering tooling only, not a production release; live runtime verification remains mandatory before release",
+  "productionBaselineEvidence": "verified: guard-only tooling, no production runtime release; current live OTA fingerprint must be separately verified for any future release",
   "allowedPaths": [
-    ".github/workflows/engineering-accountability.yml",
-    "scripts/engineering-accountability-gate.mjs",
+    "scripts/global-stability-incident-guard.mjs",
+    "scripts/global-stability-incident-guard.test.mjs",
     ".buklod/work-scope.json"
   ],
   "acceptanceChecks": [
-    "Scope gate runs for all pull requests",
-    "Overbroad allowlist rejected",
-    "No application code or production release"
+    "Incident burst grouped once",
+    "Different incident windows remain separate",
+    "No app runtime or Supabase mutations"
   ]
 }
