@@ -160,7 +160,9 @@ export function isBuklodTransientAuthError(
     text.includes('connection reset') ||
     text.includes('network connection was lost') ||
     text.includes('load failed') ||
-    text.includes('the operation was aborted')
+    text.includes('the operation was aborted') ||
+    text.includes('sign-in interrupted') ||
+    text.includes('sign in interrupted')
   );
 }
 
