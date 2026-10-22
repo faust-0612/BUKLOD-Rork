@@ -78,6 +78,7 @@ on:
       - 'src/lib/buklodScopeFaithMonitoring.ts'
       - 'src/components/BuklodClusterHomeCommandCenter.tsx'
       - 'src/components/BuklodClusterHomeCommandCenterImpl.tsx'
+      - 'src/components/BuklodHomeFaithPanel.tsx'
       - 'src/lib/buklodClusterFormationGate.ts'
       - 'src/app/(tabs)/me.tsx'
       - 'src/app/(tabs)/prayer.tsx'
