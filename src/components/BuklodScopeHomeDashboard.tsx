@@ -246,12 +246,14 @@ export default function BuklodScopeHomeDashboard({
       ) : null}
 
       {scope.scope_type === 'ORGANIZATION' ? (
-        <>
-          <BuklodOrgHomeClusterCard organizationId={scope.scope_id} />
-          <BuklodOrgHomeBayanihanCard />
-        </>
+        <View style={styles.homePair}>
+          <View style={styles.homePairItem}><BuklodOrgHomeClusterCard organizationId={scope.scope_id} /></View>
+          <View style={styles.homePairItem}><BuklodOrgHomeBayanihanCard /></View>
+        </View>
       ) : null}
 
+      <View style={styles.homePair}>
+        <View style={styles.homePairItem}>
       {showAdminSummary && summary ? (
         <View style={styles.card}>
           <Text style={styles.cardTitle}>ADMIN SUMMARY</Text>
@@ -269,7 +271,9 @@ export default function BuklodScopeHomeDashboard({
         </View>
       ) : null}
 
-      <BuklodScopeActionCenterSlot items={actionItems} />
+        </View>
+        <View style={styles.homePairItem}><BuklodScopeActionCenterSlot items={actionItems} /></View>
+      </View>
 
       <View style={styles.card}>
         <View style={styles.cardHead}>
@@ -296,8 +300,10 @@ export default function BuklodScopeHomeDashboard({
 
       {scope.show_faith_content ? (
         <>
-          <BuklodScopeFaithMonitoringSummary scope={scope} />
-          <BuklodScopeBuklodLessonPanel scope={scope} />
+          <View style={styles.homePair}>
+            <View style={styles.homePairItem}><BuklodScopeFaithMonitoringSummary scope={scope} /></View>
+            <View style={styles.homePairItem}><BuklodScopeBuklodLessonPanel scope={scope} /></View>
+          </View>
           <BuklodHomeFaithPanel scopeId={scope.scope_id} compact />
         </>
       ) : null}
@@ -349,6 +355,9 @@ function QuickLink({
 }
 
 const styles = StyleSheet.create({
+  // Paired panels wrap below 350dp; nothing can overflow the phone viewport.
+  homePair: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 8 },
+  homePairItem: { flexGrow: 1, flexShrink: 1, flexBasis: '46%', minWidth: 166 },
   content: {
     paddingHorizontal: 10,
     paddingTop: 9,
