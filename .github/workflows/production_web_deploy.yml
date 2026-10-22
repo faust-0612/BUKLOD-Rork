@@ -1,6 +1,6 @@
 # BUKLOD Automatic Recovery production web release trigger — 2026-09-19
 # R25 Organization Home door deploy trigger
-# 2026-10-22: refresh stale safety anchors (Classroom door, community placement, AWS R3)
+# 2026-10-22: refresh stale safety anchors + restore web SQLite/wasm export gate
 name: BUKLOD Production Web Deploy
 
 on:
@@ -10,6 +10,9 @@ on:
       - main
     paths:
       - '.github/workflows/production_web_deploy.yml'
+      - 'metro.config.js'
+      - 'src/lib/expoSqliteWebStub.ts'
+      - 'src/lib/smartDrawer/localStore.ts'
       - 'scripts/patch-web-community-post.cjs'
       - 'scripts/patch-home-identity-action-row.cjs'
       - 'scripts/inject-adsense-web-head.cjs'

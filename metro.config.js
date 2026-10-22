@@ -16,6 +16,12 @@ const blockPatterns = [
   /[/\\]node_modules[/\\]typescript[/\\]lib[/\\].*\.d\.ts$/,
 ];
 
+// BUKLOD_EXPO_SQLITE_WEB_WASM_R1 — if any path still loads the worker, .wasm
+// must resolve as a Metro asset (native Android never loads this file).
+if (!config.resolver.assetExts.includes('wasm')) {
+  config.resolver.assetExts.push('wasm');
+}
+
 config.resolver.blockList = [
   ...(Array.isArray(config.resolver.blockList)
     ? config.resolver.blockList
@@ -35,6 +41,19 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
     return {
       type: 'sourceFile',
       filePath: path.resolve(__dirname, 'src/lib/buklodMapsWebStub.tsx'),
+    };
+  }
+
+  // Smart Drawer imports expo-sqlite only after a native platform check, but
+  // Metro still follows the dynamic import on web and then fails on
+  // wa-sqlite.wasm. The website already uses AsyncStorage for drawer data.
+  if (
+    platform === 'web' &&
+    (moduleName === 'expo-sqlite' || moduleName.startsWith('expo-sqlite/'))
+  ) {
+    return {
+      type: 'sourceFile',
+      filePath: path.resolve(__dirname, 'src/lib/expoSqliteWebStub.ts'),
     };
   }
 
