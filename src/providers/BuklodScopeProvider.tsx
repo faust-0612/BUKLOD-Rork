@@ -9,6 +9,7 @@ import React, {
 } from 'react';
 
 import { useAuth } from '@/providers/AuthProvider';
+import { useNetwork } from '@/providers/NetworkProvider';
 
 import {
   BuklodScope,
@@ -81,6 +82,8 @@ export function BuklodScopeProvider({
 }) {
   const { user } =
     useAuth();
+  const { online } =
+    useNetwork();
 
   const [scopes, setScopes] =
     useState<BuklodScope[]>([]);
@@ -177,6 +180,17 @@ export function BuklodScopeProvider({
         }
       } catch {
         // Cached scopes are optional.
+      }
+
+      /*
+       * BUKLOD_OFFLINE_RUNTIME_R1:
+       * Scope cache is sufficient for startup. Do not begin the managed-scope
+       * network waterfall until internet reachability is positively confirmed.
+       */
+      if (!online) {
+        setError(null);
+        setLoading(false);
+        return;
       }
 
       /*
@@ -616,7 +630,7 @@ export function BuklodScopeProvider({
         clearTimeout(loadingWatchdog);
         setLoading(false);
       }
-    }, [user?.id]);
+    }, [user?.id, online]);
 
   useEffect(() => {
     void refresh();
@@ -693,16 +707,18 @@ export function BuklodScopeProvider({
          * PERF: update local scope immediately for navigation;
          * persist active scope without blocking UI transitions.
          */
-        void setBuklodActiveScope(
-          scopeId
-        ).catch((error) => {
-          console.warn(
-            'BUKLOD scope persistence:',
-            error
-          );
-        });
+        if (online) {
+          void setBuklodActiveScope(
+            scopeId
+          ).catch((error) => {
+            console.warn(
+              'BUKLOD scope persistence:',
+              error
+            );
+          });
+        }
       },
-      [scopes, user?.id]
+      [scopes, user?.id, online]
     );
 
   const featureEnabled =

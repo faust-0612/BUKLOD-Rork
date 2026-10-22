@@ -217,7 +217,7 @@ export async function refreshBuklodPttSetup(): Promise<BuklodPttSetupSnapshot> {
   const connectionType = String(net?.type || 'unknown');
   const wifiConnected = connectionType === 'wifi';
   const internet =
-    net?.isConnected !== false && net?.isInternetReachable !== false;
+    net?.isConnected === true && net?.isInternetReachable === true;
   const wifiOn = wifiConnected ? true : connectionType === 'none' ? false : null;
   const bluetoothOn = nearby ? null : null;
 

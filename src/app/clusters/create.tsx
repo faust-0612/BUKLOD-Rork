@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 
 import {
   Alert,
@@ -64,11 +64,14 @@ type OrgOption = {
   name: string;
 };
 
+const ORG_SEARCH_RESULT_LIMIT = 8;
+
 export default function CreateClusterScreen() {
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
   const [organizationId, setOrganizationId] = useState('');
+  const [orgSearch, setOrgSearch] = useState('');
   const [organizations, setOrganizations] = useState<OrgOption[]>([]);
   const [visibility, setVisibility] =
     useState<ClusterVisibility>('PUBLIC');
@@ -93,6 +96,7 @@ export default function CreateClusterScreen() {
         })).filter((row: OrgOption) => row.scope_id);
         setOrganizations(rows);
         setOrganizationId('');
+        setOrgSearch('');
       } catch {
         if (active) setOrganizations([]);
       }
@@ -101,6 +105,29 @@ export default function CreateClusterScreen() {
       active = false;
     };
   }, []);
+
+  const selectedOrganization = useMemo(
+    () => organizations.find((org) => org.scope_id === organizationId) ?? null,
+    [organizationId, organizations],
+  );
+
+  const orgMatches = useMemo(() => {
+    const q = orgSearch.trim().toLowerCase();
+    if (!q) return [];
+    return organizations
+      .filter((org) => org.name.toLowerCase().includes(q))
+      .slice(0, ORG_SEARCH_RESULT_LIMIT);
+  }, [orgSearch, organizations]);
+
+  const clearOrganization = () => {
+    setOrganizationId('');
+    setOrgSearch('');
+  };
+
+  const selectOrganization = (org: OrgOption) => {
+    setOrganizationId(org.scope_id);
+    setOrgSearch('');
+  };
 
   const submit = async () => {
     if (!name.trim()) {
@@ -147,30 +174,59 @@ export default function CreateClusterScreen() {
       <View style={styles.card}>
         <Text style={styles.label}>ORGANIZATION (OPTIONAL)</Text>
         <Text style={styles.help}>
-          Leave this empty to create the Cluster without a mother organization.
+          Default is no organization. Search only if you want to link one.
         </Text>
-        <Pressable
-          onPress={() => setOrganizationId('')}
-          style={[styles.orgRow, !organizationId && styles.orgRowOn]}
-        >
-          <Text style={[styles.orgName, !organizationId && styles.orgNameOn]}>
-            No organization
-          </Text>
-        </Pressable>
-        {organizations.map((org) => {
-          const selected = organizationId === org.scope_id;
-          return (
-            <Pressable
-              key={org.scope_id}
-              onPress={() => setOrganizationId(org.scope_id)}
-              style={[styles.orgRow, selected && styles.orgRowOn]}
-            >
-              <Text style={[styles.orgName, selected && styles.orgNameOn]}>
-                {org.name}
+
+        {selectedOrganization ? (
+          <View style={[styles.orgRow, styles.orgRowOn]}>
+            <View style={styles.orgSelectedCopy}>
+              <Text style={styles.orgSelectedLabel}>Linked organization</Text>
+              <Text style={[styles.orgName, styles.orgNameOn]}>
+                {selectedOrganization.name}
               </Text>
+            </View>
+            <Pressable
+              onPress={clearOrganization}
+              accessibilityRole="button"
+              accessibilityLabel="Remove organization"
+              hitSlop={8}
+            >
+              <Text style={styles.orgClear}>Clear</Text>
             </Pressable>
-          );
-        })}
+          </View>
+        ) : (
+          <>
+            <View style={[styles.orgRow, styles.orgRowOn]}>
+              <Text style={[styles.orgName, styles.orgNameOn]}>
+                No organization
+              </Text>
+            </View>
+            <TextInput
+              style={styles.input}
+              placeholder="Search organization name"
+              value={orgSearch}
+              onChangeText={setOrgSearch}
+              autoCapitalize="none"
+              autoCorrect={false}
+              maxLength={120}
+            />
+            {orgSearch.trim() ? (
+              orgMatches.length ? (
+                orgMatches.map((org) => (
+                  <Pressable
+                    key={org.scope_id}
+                    onPress={() => selectOrganization(org)}
+                    style={styles.orgRow}
+                  >
+                    <Text style={styles.orgName}>{org.name}</Text>
+                  </Pressable>
+                ))
+              ) : (
+                <Text style={styles.orgEmpty}>No matching organization.</Text>
+              )
+            ) : null}
+          </>
+        )}
 
         <Text style={styles.label}>CLUSTER NAME *</Text>
         <TextInput
@@ -271,11 +327,24 @@ const styles = StyleSheet.create({
     borderColor: '#DCE5E0',
     borderRadius: 11,
     paddingHorizontal: 12,
-    justifyContent: 'center',
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
   },
   orgRowOn: { borderColor: '#2D6A4F', backgroundColor: '#E8F5EE' },
+  orgSelectedCopy: { flex: 1, gap: 2 },
+  orgSelectedLabel: {
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.4,
+    color: '#2D6A4F',
+  },
   orgName: { fontSize: 12, fontWeight: '800', color: '#6E7E76' },
   orgNameOn: { color: '#173B2F' },
+  orgClear: { fontSize: 11, fontWeight: '900', color: '#2D6A4F' },
+  orgEmpty: { fontSize: 11, color: '#6E7E76', paddingHorizontal: 2 },
   sectionTitle: { marginTop: 8, fontSize: 9, fontWeight: '900', letterSpacing: 0.8, color: '#2D6A4F' },
   choice: {
     borderWidth: 1,

@@ -35,6 +35,7 @@ import { BuklodThemeProvider } from '@/providers/BuklodThemeProvider';
 import { BuklodCharacterEventProvider } from '@/components/character/BuklodCharacterEventProvider';
 import RorkAvatarOnboardingGate from '@/components/character/RorkAvatarOnboardingGate';
 import BuklodMainHealthAgent from '@/components/BuklodMainHealthAgent';
+import BuklodSyncCoordinator from '@/components/BuklodSyncCoordinator';
 import BuklodMainBrandIntro from '@/components/BuklodMainBrandIntro';
 import BuklodCenteredBrandMark, {
   BUKLOD_BRAND_LOGO_NATIVE,
@@ -173,6 +174,7 @@ function RootLayout() {
     <GestureHandlerRootView
       style={{ flex: 1 }}
     >
+      <NetworkProvider>
       <AuthProvider>
         <BuklodProfitFirstIdentityBootstrap />
         <BuklodTrustedDeviceGate>
@@ -183,10 +185,10 @@ function RootLayout() {
         <BuklodScopeProvider>
         <BuklodFormationEntryScopeTracker />
         <BuklodFoundationProvider>
-      <NetworkProvider>
-        <BuklodMainHealthAgent />
         <BuklodFeedbackProvider>
         <BuklodOfflineSyncProvider>
+          <BuklodSyncCoordinator />
+          <BuklodMainHealthAgent />
         <ComplianceProvider>
           <RuntimeConfigProvider>
           <AdsProvider>
@@ -257,7 +259,6 @@ function RootLayout() {
                 <Stack.Screen name="life/impact" />
                 <Stack.Screen name="life/invite" />
                 <Stack.Screen name="life/topic" />
-                <Stack.Screen name="points/economy" options={{ title: 'Economy & Bayanihan' }} />
                 <Stack.Screen name="bayanihan/index" />
                 <Stack.Screen name="bayanihan/guide" />
                 <Stack.Screen name="preferences/language" />
@@ -377,7 +378,6 @@ function RootLayout() {
         </ComplianceProvider>
         </BuklodOfflineSyncProvider>
         </BuklodFeedbackProvider>
-      </NetworkProvider>
             </BuklodFoundationProvider>
             </BuklodScopeProvider>
         </BuklodCharacterEventProvider>
@@ -385,6 +385,7 @@ function RootLayout() {
         </BuklodBibleNarrationProvider>
         </BuklodTrustedDeviceGate>
 </AuthProvider>
+      </NetworkProvider>
     </GestureHandlerRootView>
     </BuklodI18nProvider>
     </SafeAreaProvider>

@@ -15,6 +15,7 @@ import {
 
 import { Image as ExpoImage } from 'expo-image';
 
+import { communityMediaResignDelayMs } from '@/lib/buklodNetworkQuality';
 import {
   communityMediaCacheKey,
   peekCommunityMediaUrl,
@@ -42,6 +43,8 @@ function BuklodCachedMediaImageInner({
   const preferredUri = String(uri ?? '').trim();
   const cacheKey = communityMediaCacheKey(path, path ? path : preferredUri);
   const lockedPath = useRef(path);
+  const resignAttemptRef = useRef(0);
+  const resignNotBeforeRef = useRef(0);
   const [displayUri, setDisplayUri] = useState<string | null>(() =>
     peekCommunityMediaUrl(path, preferredUri) ||
     preferredUri ||
@@ -119,11 +122,29 @@ function BuklodCachedMediaImageInner({
           return;
         }
 
-        void resignCommunityMediaUrl(path).then(next => {
+        void (async () => {
+          const reader = (
+            ExpoImage as {
+              getCachePathAsync?: (key: string) => Promise<string | null>;
+            }
+          ).getCachePathAsync;
+          if (cacheKey && reader) {
+            const cached = await reader(cacheKey).catch(() => null);
+            if (cached) return;
+          }
+
+          const now = Date.now();
+          if (now < resignNotBeforeRef.current) return;
+          resignNotBeforeRef.current =
+            now +
+            communityMediaResignDelayMs(resignAttemptRef.current);
+          resignAttemptRef.current += 1;
+
+          const next = await resignCommunityMediaUrl(path);
           if (next && next !== displayUri) {
             setDisplayUri(next);
           }
-        });
+        })();
       }}
     />
   );

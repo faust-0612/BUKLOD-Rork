@@ -17,6 +17,7 @@ import {
 } from 'expo-router';
 
 import BuklodClusterHomeCommandCenterImpl from '@/components/BuklodClusterHomeCommandCenterImpl';
+import type { DashboardTheme } from '@/components/BuklodDashboardCustomizer';
 import { clusterScopeManageRoute } from '@/lib/buklodCluster';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
@@ -27,6 +28,7 @@ type Props = {
   onOpenCommunity?: () => void;
   onOpenConnect?: () => void;
   manageMode?: boolean;
+  theme?: DashboardTheme;
 };
 
 /**
@@ -44,6 +46,7 @@ export default function BuklodClusterHomeCommandCenter({
   onOpenCommunity,
   onOpenConnect,
   manageMode = false,
+  theme,
 }: Props) {
   const localCanManage = Boolean(
     manageMode || scope.is_admin
@@ -163,6 +166,7 @@ export default function BuklodClusterHomeCommandCenter({
           onOpenCommunity={onOpenCommunity}
           onOpenConnect={onOpenConnect}
           manageMode={canManageCluster}
+          theme={theme}
         />
       </View>
     </View>

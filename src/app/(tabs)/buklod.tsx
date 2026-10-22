@@ -98,6 +98,11 @@ import {
   readOfflineCache,
   writeOfflineCache,
 } from '@/lib/buklodOfflineSync';
+import {
+  classifyNetworkQuality,
+  communityFirstPageLimit,
+} from '@/lib/buklodNetworkQuality';
+import { shouldReportCommunityFeedFailure } from '@/lib/communityFeedTelemetry';
 import { SCALE_LIMITS } from '@/lib/performanceScale';
 import {
   hydratePersonNamesOnRows,
@@ -1159,13 +1164,17 @@ const load=useCallback(async(options?:{
       )||0
     );
 
+  const weakNetworkLimit=
+    communityFirstPageLimit(
+      classifyNetworkQuality()
+    );
   const limit186L=
     Math.max(
       1,
       Math.min(
         Number(
-          options?.limit??40
-        )||40,
+          options?.limit??weakNetworkLimit
+        )||weakNetworkLimit,
         100
       )
     );
@@ -1336,12 +1345,14 @@ const load=useCallback(async(options?:{
       }
     }
 
-    reportCommunityFailure(
-      error,
-      'Community unavailable',
-      "BUKLOD couldn't refresh Community right now. If saved posts are available, they remain safe.",
-      'community_feed_failed',
-    );
+    if (shouldReportCommunityFeedFailure('community_feed_failed')) {
+      reportCommunityFailure(
+        error,
+        'Community unavailable',
+        "BUKLOD couldn't refresh Community right now. If saved posts are available, they remain safe.",
+        'community_feed_failed',
+      );
+    }
 
     return -1;
   }
