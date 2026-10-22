@@ -143,19 +143,24 @@ export function resolveMaritesVisibleRows<T>(input: {
   refreshFailed: boolean;
 }): { rows: T[]; markFresh: boolean } {
   if (input.refreshFailed) {
-    if (input.incoming.length > input.current.length) {
-      return { rows: input.incoming, markFresh: false };
+    const rows = [...input.current];
+    const positions = new Map<unknown, number>();
+    rows.forEach((row, index) => positions.set(
+      row && typeof row === 'object' && 'id' in row ? (row as { id: unknown }).id : row, index,
+    ));
+    for (const row of input.incoming) {
+      const key = row && typeof row === 'object' && 'id' in row ? (row as { id: unknown }).id : row;
+      const index = positions.get(key);
+      if (index === undefined) {
+        positions.set(key, rows.length);
+        rows.push(row);
+      } else rows[index] = row;
     }
-
-    return {
-      rows: input.current.length ? input.current : input.incoming,
-      markFresh: false,
-    };
+    return { rows, markFresh: false };
   }
 
-  if (!input.incoming.length) {
-    return { rows: input.current, markFresh: false };
-  }
-
+  // A completed authorized refresh is authoritative, including an empty
+  // result after deletion or visibility revocation. Never retain stale posts
+  // when the server has confirmed there are none.
   return { rows: input.incoming, markFresh: true };
 }

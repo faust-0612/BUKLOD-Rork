@@ -4,117 +4,11 @@ name: BUKLOD Production Android OTA
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
       - '.github/workflows/production_android_ota.yml'
-      - 'src/app/index.web.tsx'
-      - 'src/app/clusters/index.tsx'
-      - 'src/components/ClusterNotificationActions.tsx'
-      - 'src/lib/clusterJoinNotification.ts'
-      - 'src/lib/clusterJoinNotificationAction.ts'
-      - 'src/lib/buklodNotificationNavigation.ts'
-      - 'supabase/migrations/*cluster_join_request_notifications*.sql'
-      - 'src/components/BuklodCommunityPostEngagement.tsx'
-      - 'src/components/BuklodCommunityPostEngagement.web.tsx'
-      - 'src/app/admin/kabihasnang-ligaw.tsx'
-      - 'src/lib/kabihasnang-ligaw/**'
-      - 'src/components/kabihasnang-ligaw/**'
-      - 'src/lib/kabihasnangLigawPublishing.ts'
-      - 'assets/kabihasnang-ligaw/**'
-      - 'supabase/migrations/*kl_reader*'
-      - 'src/components/BuklodTodayCard.tsx'
-      - 'src/lib/buklodDailyEngagement.ts'
-      - 'supabase/functions/buklod-community-daily-engagement/**'
-      - 'src/components/BuklodConnectThread.tsx'
-      - 'src/components/BuklodCommunityCommentComposer.tsx'
-      - 'src/components/BuklodCommunityCommentBubble.tsx'
-      - 'src/lib/buklodCommentMediaBody.ts'
-      - 'src/app/(tabs)/buklod.tsx'
-      - 'src/app/(tabs)/buklodCommunityStyles.ts'
-      - 'src/lib/buklodStartupChrome.ts'
-      - 'src/components/BuklodMainBrandIntro.tsx'
-      - 'src/components/BuklodGuideAvatarDeferred.tsx'
-      - 'src/app/_layout.tsx'
-      - 'src/providers/AuthProvider.tsx'
-      - 'src/providers/AdsProvider.tsx'
-      - 'src/providers/NetworkProvider.tsx'
-      - 'src/components/BuklodMainHealthAgent.tsx'
-      - 'src/app/clusters/create.tsx'
-      - 'src/lib/buklodClusters.ts'
-      - 'src/app/points/economy.tsx'
-      - 'src/components/points/BuklodEconomyDashboard.tsx'
-      - 'src/lib/buklodEconomyLedger.ts'
-      - 'src/lib/buklodCharacterWorldCatalog.ts'
-      - 'src/components/points/BuklodProgressiveCharacterSelector.tsx'
-      - 'src/components/points/BuklodSpecialCharacterSeries.tsx'
-      - 'scripts/community-help-sos-release-contract.mjs'
-      - 'src/components/BuklodCommunityHelp.tsx'
-      - 'src/components/BuklodPublicLocationChips.tsx'
-      - 'src/providers/NotificationProvider.tsx'
+      - 'src/**'
       - 'app.config.js'
-      - 'supabase/functions/buklod-help-alert/**'
-      - 'supabase/migrations/*community_help_sos*.sql'
-      - 'scripts/patch-home-identity-action-row.cjs'
-      - 'src/app/index.tsx'
-      - 'src/app/onboarding/index.tsx'
-      - 'src/app/(tabs)/home.tsx'
-      - 'src/components/BuklodPublicWordShortcut.tsx'
-      - 'src/app/(auth)/login.tsx'
-      - 'src/lib/buklodAuthResilience.ts'
-      - 'src/app/(auth)/register.tsx'
-      - 'src/app/(auth)/forgot-password.tsx'
-      - 'src/app/account/recovery-pin.tsx'
-      - 'src/app/account/security.tsx'
-      - 'src/app/admin/account-recovery.tsx'
-      - 'src/components/BuklodTrustedDeviceGate.tsx'
-      - 'src/components/BuklodTrustedDeviceGate.native.tsx'
-      - 'src/app/scope/index.tsx'
-      - 'src/app/scope/bulletin-editor.tsx'
-      - 'src/app/scope/faith-monitoring/report.tsx'
-      - 'src/app/scope/formation-approvals.tsx'
-      - 'src/app/reflection/[id].tsx'
-      - 'src/components/LearningQuestionResponse.tsx'
-      - 'src/lib/buklodScopeFaithMonitoring.ts'
-      - 'src/components/BuklodClusterHomeCommandCenter.tsx'
-      - 'src/components/BuklodClusterHomeCommandCenterImpl.tsx'
-      - 'src/lib/buklodClusterFormationGate.ts'
-      - 'src/app/(tabs)/me.tsx'
-      - 'src/app/(tabs)/prayer.tsx'
-      - 'src/app/(tabs)/messages.tsx'
-      - 'src/app/notifications/index.tsx'
-      - 'src/app/post/[id].tsx'
-      - 'src/hooks/useBuklodConnectUnread.ts'
-      - 'src/app/profile/buklod-faculty-class.tsx'
-      - 'src/app/profile/buklod-faculty.tsx'
-      - 'src/app/profile/buklod-faculty-quiz-results.tsx'
-      - 'src/app/profile/buklod-classroom*.tsx'
-      - 'src/components/classroom/**'
-      - 'src/components/BuklodScopeCallLauncher.tsx'
-      - 'src/components/BuklodConnectThread.tsx'
-      - 'src/components/connect/ConnectComposerPicker.tsx'
-      - 'src/lib/buklodConnectGifCatalog.ts'
-      - 'src/lib/buklodStreamCall.ts'
-      - 'src/lib/buklodCallLifecycle.ts'
-      - 'src/providers/StreamVideoProvider.tsx'
-      - 'src/utils/setFirebaseListeners.android.ts'
-      - 'src/utils/setPushConfig.ts'
-      - 'src/components/BuklodNavSafeShell.tsx'
-      - 'src/components/BuklodFocusAppAdStrip.tsx'
-      - 'src/components/BuklodAdMobBanner.tsx'
-      - 'src/components/BuklodHeaderSponsor.android.tsx'
-      - 'src/components/BuklodScopedHeaderBanner.android.tsx'
-      - 'src/lib/buklodAdUnits.ts'
-      - 'src/lib/buklodAwsWallVideo.ts'
-      - 'src/lib/uploadCommunityVideoFile.ts'
-      - 'src/lib/buklodCommunityPostMedia.ts'
-      - 'src/lib/buklodMediaUrl.ts'
-      - 'supabase/migrations/*community_external_video_storage_aws*.sql'
-      - 'supabase/migrations/*buklod_call_lifecycle*.sql'
-      - 'supabase/migrations/*buklod_5k_scale_hardening*.sql'
-      - 'supabase/migrations/*formation_auto_scope_uuid_aggregate_fix*.sql'
-      - 'supabase/migrations/*formation_daily_pipeline_repair*.sql'
-      - 'supabase/migrations/*formation_auto_submit_photo_report*.sql'
 
 env:
   EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
@@ -127,6 +21,9 @@ permissions:
 jobs:
   qa-and-publish:
     runs-on: ubuntu-latest
+    concurrency:
+      group: buklod-production-android-ota
+      cancel-in-progress: false
     steps:
       - name: Checkout production source
         uses: actions/checkout@v4
@@ -250,8 +147,8 @@ jobs:
         run: |
           if [ -z "$EXPO_TOKEN" ]; then
             echo "Expo OTA not published: repository secret EXPO_TOKEN is not configured."
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            exit 0
+            echo "Missing EXPO_TOKEN: OTA publish blocked."
+            exit 1
           fi
           npx eas-cli@latest whoami --non-interactive
           echo "ready=true" >> "$GITHUB_OUTPUT"
