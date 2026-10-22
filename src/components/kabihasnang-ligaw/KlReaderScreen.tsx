@@ -43,9 +43,8 @@ import {
   type ReaderCache,
 } from '@/lib/kabihasnang-ligaw/readerSession';
 import { KL_RPC } from '@/lib/kabihasnang-ligaw/rpc';
-import { peekDzasPlaying } from '@/lib/buklodDzasRadio';
+import { otherAudioPlaying } from '@/lib/kabihasnang-ligaw/externalAudioState';
 import { supabase } from '@/lib/supabase';
-import { getBuklodPttRuntimeState } from '@/ptt/buklodPttRuntime';
 import { useAuth } from '@/providers/AuthProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 
@@ -55,11 +54,6 @@ const STORYBOARD = buildStoryboard();
 
 function cacheKey(userId: string | null): string {
   return `kl.reader.v1.${userId ?? 'device'}`;
-}
-
-function otherAudioPlaying(): boolean {
-  const ptt = getBuklodPttRuntimeState();
-  return peekDzasPlaying() || ptt.transmitting || ptt.priorityReceiving;
 }
 
 export default function KlReaderScreen() {
