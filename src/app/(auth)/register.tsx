@@ -30,6 +30,7 @@ import {
   type ReferralSuggestItem,
 } from '@/lib/buklodRewards';
 import { colors } from '@/lib/theme';
+import BuklodActionFeedback, { type BuklodActionStatus } from '@/components/BuklodActionFeedback';
 import { useBuklodDrawerBottomInset } from '@/lib/buklodSafeArea';
 
 type Church = {
@@ -293,6 +294,13 @@ export default function RegisterScreen() {
     useState(false);
   const createAccountInFlight =
     useRef(false);
+  const accountCreated = useRef(false);
+  const [created, setCreated] = useState(false);
+  const [feedback, setFeedback] = useState<{ status: BuklodActionStatus; message: string }>({ status: 'idle', message: '' });
+  const showRegistrationError = (title: string, message: string) => {
+    setFeedback({ status: 'error', message });
+    if (Platform.OS !== 'web') Alert.alert(title, message);
+  };
 
   const finishCreateAccount = () => {
     createAccountInFlight.current = false;
@@ -502,14 +510,14 @@ useEffect(() => {
         !province.trim() ||
         !country.trim()
       ) {
-        return Alert.alert(
+        return showRegistrationError(
           'BUKLOD',
           'First Name, Surname, your chosen Login, Password, Barangay, Municipality/City, Province, and Country are required.'
         );
       }
 
       if (password.length < 6) {
-        return Alert.alert(
+        return showRegistrationError(
           'BUKLOD',
           'Use a password with at least 6 characters.'
         );
@@ -542,7 +550,7 @@ useEffect(() => {
           );
 
         if (!phone) {
-          return Alert.alert(
+          return showRegistrationError(
             'Mobile Number',
             'Enter a valid Philippine mobile number such as 09171234567.'
           );
@@ -564,7 +572,7 @@ useEffect(() => {
           );
 
         if (!username) {
-          return Alert.alert(
+          return showRegistrationError(
             'Username',
             'Use 3-30 characters, include at least one letter, and use only letters, numbers, dot, underscore, or hyphen.'
           );
@@ -586,7 +594,7 @@ useEffect(() => {
             );
 
           if (!phone) {
-            return Alert.alert(
+            return showRegistrationError(
               'Contact Mobile',
               'Enter a valid Philippine mobile number or leave it blank.'
             );
@@ -605,7 +613,7 @@ useEffect(() => {
             email
           )
         ) {
-          return Alert.alert(
+          return showRegistrationError(
             'Email',
             'Enter a valid email address.'
           );
@@ -624,7 +632,7 @@ useEffect(() => {
             );
 
           if (!phone) {
-            return Alert.alert(
+            return showRegistrationError(
               'Contact Mobile',
               'Enter a valid Philippine mobile number or leave it blank.'
             );
@@ -639,19 +647,20 @@ useEffect(() => {
         proposedGroupName
           .trim().length < 2
       ) {
-        return Alert.alert(
+        return showRegistrationError(
           'BUKLOD Cluster',
           'Enter a proposed group name, or cancel the group proposal.'
         );
       }
 
-      if (createAccountInFlight.current) {
+      if (createAccountInFlight.current || accountCreated.current) {
         return;
       }
 
       createAccountInFlight.current = true;
       setBusy(true);
-
+      setFeedback({ status: 'pending', message: 'Creating account. Please do not submit twice.' });
+      try {
       const { data, error } =
         await supabase.auth.signUp(
           {
@@ -723,13 +732,12 @@ useEffect(() => {
         );
 
       if (error) {
-        finishCreateAccount();
         const duplicate =
           /already registered|already been registered|duplicate/i.test(
             error.message
           );
 
-        return Alert.alert(
+        return showRegistrationError(
           'Could not create account',
           duplicate
             ? `That ${loginMethod} is already being used by another BUKLOD account.`
@@ -737,14 +745,17 @@ useEffect(() => {
         );
       }
 
-      if (!data.session) {
-        finishCreateAccount();
-        return Alert.alert(
-          'Confirmation setting',
-          'BUKLOD does not use confirmation. In Supabase Auth > Providers > Email, keep Email ON and Confirm Email OFF. Phone provider stays OFF.'
-        );
+      if (data?.user?.id) {
+        accountCreated.current = true;
+        setCreated(true);
       }
-
+      if (!data.session) {
+        setFeedback({
+          status: 'warning',
+          message: 'Account request accepted, but no login session was returned. Sign In or contact support before creating another account.',
+        });
+        return;
+      }
 
       /*
        * PATCH_193A_REGISTRATION_HARDENING
@@ -805,17 +816,10 @@ useEffect(() => {
       }
 
       if (localSetupError) {
-        finishCreateAccount();
-
-        Alert.alert(
-          'Account created - local setup pending',
-          'Your BUKLOD account and private onboarding were saved, but Local assignment could not finish. You may continue to Public Home and retry your address setup later.'
-        );
-
-        router.replace(
-          '/(tabs)/home'
-        );
-
+        setFeedback({
+          status: 'warning',
+          message: 'Account created. Local setup is pending. Use OPEN PUBLIC HOME and complete address setup later. Do not create another account.',
+        });
         return;
       }
 
@@ -873,17 +877,22 @@ useEffect(() => {
         }
       }
 
-      finishCreateAccount();
-
-      Alert.alert(
-        'Account created',
-        referralLinked
-          ? 'Your BUKLOD account is ready and your referral was linked. Sharing rewards follow the active BUKLOD referral settings. Local, Cluster, Church, and Organization memberships can be added separately.'
-          : `Your BUKLOD account is ready. You can enter the Public Community immediately. Local, Cluster, Church, and Organization memberships can be added separately.${referralLinkNote}`,
-      );
-
-      /* PATCH_156A_V2_COMMUNITY_SUCCESS */
-      router.replace('/(tabs)/home');
+      setFeedback({
+        status: referralLinkNote ? 'warning' : 'success',
+        message: referralLinked
+          ? 'Account created successfully and referral linked. Tap OPEN PUBLIC HOME.'
+          : `Account created successfully. Tap OPEN PUBLIC HOME.${referralLinkNote}`,
+      });
+      } catch (error: unknown) {
+        setFeedback({
+          status: accountCreated.current ? 'warning' : 'error',
+          message: accountCreated.current
+            ? 'Account created but setup interrupted. Use OPEN PUBLIC HOME or Sign In; do not register again.'
+            : `Creation could not be confirmed: ${error instanceof Error ? error.message : 'Check your connection and Sign In first.'}`,
+        });
+      } finally {
+        finishCreateAccount();
+      }
     };
 
   const loginMethodLabel =
@@ -1467,21 +1476,17 @@ useEffect(() => {
           })}
         </View>
 
-<Pressable
-          style={styles.primary}
-          onPress={createAccount}
-          disabled={busy}
-        >
-          <Text
-            style={
-              styles.primaryText
-            }
-          >
-            {busy
-              ? 'CREATING ACCOUNT...'
-              : 'CREATE ACCOUNT'}
-          </Text>
-        </Pressable>
+        <BuklodActionFeedback status={feedback.status} message={feedback.message} />
+        {created ? (
+          <Pressable accessibilityRole="button" style={styles.primary} onPress={() => router.replace('/(tabs)/home')}>
+            <Text style={styles.primaryText}>OPEN PUBLIC HOME</Text>
+          </Pressable>
+        ) : (
+          <Pressable accessibilityRole="button" style={[styles.primary, busy && { opacity: 0.65 }]} onPress={createAccount} disabled={busy}>
+            {busy ? <ActivityIndicator size="small" color="#FFFFFF" /> : null}
+            <Text style={styles.primaryText}>{busy ? 'CREATING ACCOUNT...' : 'CREATE ACCOUNT'}</Text>
+          </Pressable>
+        )}
 
         <Pressable
           style={
