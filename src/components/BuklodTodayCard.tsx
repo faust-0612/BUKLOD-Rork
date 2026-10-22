@@ -110,29 +110,34 @@ export default function BuklodTodayCard({
         <View style={s.titleRow}>
           <MaterialCommunityIcons
             name={iconFor(active.item_type) as any}
-            size={18}
+            size={16}
             color="#1E6B45"
           />
-          <Text style={s.title}>{active.title}</Text>
+          <Text style={s.title} numberOfLines={1}>
+            {active.title}
+          </Text>
           {active.source_kind === 'REAL_TRENDING' ? (
             <Text style={s.real}>REAL ACTIVITY</Text>
           ) : null}
         </View>
-        <Text style={s.body}>{active.body}</Text>
-        <TextInput
-          value={activeDraft}
-          onChangeText={text =>
-            setDrafts(current => ({ ...current, [active.id]: text }))
-          }
-          onFocus={() => setWriting(true)}
-          onBlur={() => setWriting(false)}
-          placeholder="Isulat ang sagot mo dito…"
-          placeholderTextColor="#8A978F"
-          multiline
-          style={s.blank}
-          accessibilityLabel="BUKLOD Today answer blank"
-        />
+        <Text style={s.body} numberOfLines={2}>
+          {active.body}
+        </Text>
         <View style={s.footerRow}>
+          <TextInput
+            value={activeDraft}
+            onChangeText={text =>
+              setDrafts(current => ({ ...current, [active.id]: text }))
+            }
+            onFocus={() => setWriting(true)}
+            onBlur={() => setWriting(false)}
+            placeholder="Isulat ang sagot…"
+            placeholderTextColor="#8A978F"
+            returnKeyType="send"
+            onSubmitEditing={submitDraft}
+            style={s.blank}
+            accessibilityLabel="BUKLOD Today answer blank"
+          />
           <Pressable onPress={submitDraft} style={s.respond}>
             <Text style={s.respondText}>Sumagot</Text>
           </Pressable>
@@ -183,13 +188,15 @@ const s = StyleSheet.create({
   counterWrap: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   counter: { fontSize: 8, fontWeight: '900', color: '#728077' },
   card: {
+    minHeight: 126,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#DDE7E1',
     backgroundColor: '#FFFFFF',
-    padding: 13,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
   },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   title: { flex: 1, fontSize: 13, fontWeight: '900', color: '#173C2C' },
   real: {
     fontSize: 7,
@@ -197,32 +204,35 @@ const s = StyleSheet.create({
     letterSpacing: 0.5,
     color: '#21704A',
   },
-  body: { marginTop: 7, fontSize: 13, lineHeight: 19, color: '#43554B' },
+  body: {
+    marginTop: 6,
+    minHeight: 36,
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#43554B',
+  },
   blank: {
-    marginTop: 10,
-    minHeight: 72,
-    maxHeight: 140,
+    flex: 1,
+    minWidth: 0,
+    height: 36,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#CFE0D6',
     backgroundColor: '#F8FBF9',
-    paddingHorizontal: 11,
-    paddingVertical: 10,
-    fontSize: 13,
-    lineHeight: 19,
+    paddingHorizontal: 10,
+    paddingVertical: 0,
+    fontSize: 12,
     color: '#173C2C',
-    textAlignVertical: 'top',
   },
   footerRow: {
-    marginTop: 10,
+    marginTop: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
+    gap: 7,
   },
   respond: {
-    minHeight: 34,
-    paddingHorizontal: 14,
+    height: 36,
+    paddingHorizontal: 12,
     borderRadius: 10,
     backgroundColor: '#1E6B45',
     alignItems: 'center',
@@ -230,9 +240,9 @@ const s = StyleSheet.create({
   },
   respondText: { fontSize: 10, fontWeight: '900', color: '#FFFFFF' },
   next: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: '#D5E4DB',
     alignItems: 'center',
