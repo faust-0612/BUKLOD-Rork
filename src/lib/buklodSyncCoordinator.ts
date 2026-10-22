@@ -95,6 +95,9 @@ export function configureBuklodSyncNetwork(state: { online: boolean; degraded: b
       job.controller.abort();
       job.reject(new Error('BUKLOD offline: saved data remains available'));
     }
+    // Also cancel active reads: a transport that ignores abort must not
+    // persist a late response after connectivity has been lost.
+    for (const job of active.values()) job.controller.abort();
   }
   drain();
 }
