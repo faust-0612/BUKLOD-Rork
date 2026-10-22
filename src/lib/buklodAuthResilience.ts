@@ -15,9 +15,9 @@ import {
 /* BUKLOD_PERMISSION_SNAPSHOT_ANON_GUARD_R2_RELEASE */
 /*
  * BUKLOD_LOGIN_LATENCY_GUARD_R2
- * Normal lifecycle checks are sub-second. Keep the safety gate authoritative,
- * but do not let a saturated database hold an already-authenticated login for
- * 5.5s plus another 3.5s fallback window.
+ * Keep the lifecycle safety gate authoritative even on congested networks.
+ * Allow the primary check and fallback enough time to complete instead of
+ * rejecting a valid password due to an overly short local watchdog.
  */
 const AUTH_LIFECYCLE_TIMEOUT_MS = 4_500;
 const AUTH_PROFILE_FALLBACK_TIMEOUT_MS = 3_500;
