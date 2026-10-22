@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   Alert,
@@ -76,6 +76,8 @@ export default function CreateClusterScreen() {
   const [visibility, setVisibility] =
     useState<ClusterVisibility>('PUBLIC');
   const [busy, setBusy] = useState(false);
+  const submitting = useRef(false);
+  const [createdId, setCreatedId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -130,10 +132,12 @@ export default function CreateClusterScreen() {
   };
 
   const submit = async () => {
+    if (submitting.current || busy || createdId) return;
     if (!name.trim()) {
       Alert.alert('Cluster', 'Enter a Cluster name.');
       return;
     }
+    submitting.current = true;
     setBusy(true);
 
     try {
@@ -145,13 +149,19 @@ export default function CreateClusterScreen() {
         organizationId: organizationId || null,
       });
 
-      router.replace({
-        pathname: '/clusters/[id]' as any,
-        params: { id },
-      } as any);
+      if (!id || id === 'undefined' || id === 'null') throw new Error('Cluster not confirmed by the server.');
+      // R3: success is confirmed by server RPC, not by the subsequent navigation.
+      setCreatedId(id);
+      Alert.alert('Cluster Created', 'Your Cluster is saved. Open its Home now.', [
+        { text: 'OPEN CLUSTER', onPress: () => router.replace({
+          pathname: '/clusters/[id]' as any,
+          params: { id },
+        } as any) },
+      ]);
     } catch (error) {
-      Alert.alert('Create Cluster', messageOf(error));
+      Alert.alert('Could Not Create Cluster', messageOf(error));
     } finally {
+      submitting.current = false;
       setBusy(false);
     }
   };
@@ -276,14 +286,19 @@ export default function CreateClusterScreen() {
       })}
 
       <Pressable
-        disabled={busy}
+        disabled={busy || Boolean(createdId)}
         onPress={() => void submit()}
         style={[styles.primary, busy && { opacity: 0.55 }]}
       >
         <Text style={styles.primaryText}>
-          {busy ? 'CREATING...' : 'CREATE CLUSTER'}
+          {createdId ? 'CLUSTER CREATED' : busy ? 'CREATING...' : 'CREATE CLUSTER'}
         </Text>
       </Pressable>
+      {createdId ? <Pressable accessibilityRole="button"
+        onPress={() => router.replace({ pathname: '/clusters/[id]' as any, params: { id: createdId } } as any)}
+        style={{ padding: 12, backgroundColor: '#E6F8EF', borderRadius: 12 }}>
+        <Text style={{ color: '#12683D', fontWeight: '900' }}>Created successfully. OPEN CLUSTER ›</Text>
+      </Pressable> : null}
     </BuklodPortalScrollView>
   );
 }
