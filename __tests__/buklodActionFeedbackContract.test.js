@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { describe, it } = require('node:test');
+const { execFileSync } = require('node:child_process');
 const assert = require('node:assert/strict');
 
 const read = file => fs.readFileSync(path.join(process.cwd(), file), 'utf8');
@@ -39,6 +40,20 @@ describe('BUKLOD V28 runtime 1.3.2 action feedback contract', () => {
     ]) {
       assert.ok(code.includes(marker), 'Missing registration guard/status ' + marker);
     }
+  });
+
+  it('Home compatibility patch reproduces the last production source exactly', () => {
+    const original = execFileSync('git', [
+      'show',
+      '363658fc81b7fe7132a7b8a78035f0d1a9917088:src/app/(tabs)/home.tsx',
+    ], { encoding: 'utf8' });
+    const marker = '{/* BUKLOD_HOME_IDENTITY_R23_CLEAN_TWO_ROW */}';
+    assert.equal(original.split(marker).length, 2, 'Expected one R23 marker');
+    const expected = original.replace(
+      marker,
+      marker + '\\n      {/* HOME_IDENTITY_ACTION_ROW_R2 — compatibility marker; R23 remains authoritative */}',
+    );
+    assert.equal(read('src/app/(tabs)/home.tsx'), expected);
   });
 
   it('runtime remains compatible with installed V28 APK', () => {
