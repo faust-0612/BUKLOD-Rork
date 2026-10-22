@@ -136,18 +136,12 @@ const PROFILES: Record<BuklodSpecialCharacterId, Profile> = {
   },
 };
 
-/** Unlocked specials + the next locked preview only. Farther specials stay concealed. */
+/** All identities are previewable; activation remains server-gated by Circle Rank. */
 function visibleSpecialRail(
-  rankOrder: number,
-  unlockedIds: readonly string[],
+  _rankOrder: number,
+  _unlockedIds: readonly string[],
 ): BuklodSpecialCharacterId[] {
-  const unlocked = SPECIAL_ORDER.filter(
-    (id) => unlockedIds.includes(id) || rankOrder >= SPECIAL_REQUIRED_RANK_ORDER[id],
-  );
-  const nextLocked = SPECIAL_ORDER.find(
-    (id) => !unlocked.includes(id),
-  );
-  return nextLocked ? [...unlocked, nextLocked] : unlocked;
+  return SPECIAL_ORDER;
 }
 
 const METRIC_LABELS: Record<string, string> = {
@@ -361,7 +355,7 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
             <Pressable
               key={id}
               accessibilityRole="button"
-              accessibilityLabel={unlocked ? `View ${character.name}` : `Next locked preview`}
+              accessibilityLabel={unlocked ? `View ${character.name}` : `Preview locked ${character.name}`}
               onPress={() => setSelectedId(id)}
               style={[styles.characterCard, chosen && styles.characterCardSelected, !unlocked && styles.characterCardLocked]}
             >
