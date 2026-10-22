@@ -1,6 +1,5 @@
-/* BUKLOD Living Wall discovery + public location filters.
- * The default Wall must stay casual and scroll-first. Deep Living Wall tools
- * stay behind one lightweight Explore entry instead of a dashboard of buttons.
+/* BUKLOD public location filters.
+ * The default Wall stays casual and scroll-first: Public plus local place chips only.
  */
 import React, { useMemo } from 'react';
 import {
@@ -10,8 +9,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 
 import BuklodCommunityHelp from '@/components/BuklodCommunityHelp';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
@@ -67,27 +64,6 @@ export default function BuklodPublicLocationChips({selectedScopeId,onChange}:Pro
         <Text style={[styles.text,selectedScopeId===null&&styles.textOn]}>PUBLIC</Text>
       </Pressable>
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Open BUKLOD Connect"
-        accessibilityHint="Opens your BUKLOD messages from inside Community Wall"
-        onPress={()=>router.push('/messages' as any)}
-        style={({pressed})=>[styles.connectChip,pressed&&{opacity:.72}]}
-      >
-        <MaterialCommunityIcons name="message-processing-outline" size={14} color="#FFFFFF"/>
-        <Text style={styles.connectText}>CONNECT</Text>
-      </Pressable>
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Explore Dugtong, Moments, Challenges, Polls and Resources"
-        onPress={()=>router.push('/community/discover?mode=for_you' as any)}
-        style={({pressed})=>[styles.exploreChip,pressed&&{opacity:.72}]}
-      >
-        <MaterialCommunityIcons name="compass-outline" size={14} color={colors.greenDark}/>
-        <Text style={styles.exploreText}>EXPLORE</Text>
-      </Pressable>
-
       {localScopes.map(scope=>{
         const on=selectedScopeId===scope.scope_id;
         return <Pressable
@@ -113,8 +89,4 @@ const styles=StyleSheet.create({
   chipOn:{borderColor:colors.greenDark,backgroundColor:colors.greenDark},
   text:{fontSize:9.5,fontWeight:'900',letterSpacing:.25,color:colors.greenDark},
   textOn:{color:'#FFFFFF'},
-  connectChip:{minHeight:34,borderRadius:18,paddingHorizontal:11,backgroundColor:colors.greenDark,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:5},
-  connectText:{fontSize:9,fontWeight:'900',letterSpacing:.2,color:'#FFFFFF'},
-  exploreChip:{minHeight:34,borderRadius:18,paddingHorizontal:11,backgroundColor:'#F2F7F4',flexDirection:'row',alignItems:'center',justifyContent:'center',gap:5},
-  exploreText:{fontSize:9,fontWeight:'900',letterSpacing:.2,color:colors.greenDark},
 });
