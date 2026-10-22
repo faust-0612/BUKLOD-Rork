@@ -1,18 +1,16 @@
-import React, { useCallback, useState } from 'react';
+import React from 'react';
 import {
-  ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 
 import {
   buildScopeBuklodLessonHubPath,
 } from '@/lib/buklodLessonStages';
-import { fetchScopeFaithAccessStatusResilient } from '@/lib/buklodScopeFaithAccess';
 import type { BuklodScope } from '@/lib/buklodScope';
 import { colors } from '@/lib/theme';
 
@@ -23,31 +21,8 @@ type Props = {
 export default function BuklodScopeBuklodLessonPanel({
   scope,
 }: Props) {
-  const [loading, setLoading] = useState(true);
-  const [unlockedCount, setUnlockedCount] = useState(0);
-  const [stageCount] = useState(7);
-  const [mzbExempt, setMzbExempt] = useState(false);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-
-    const access = await fetchScopeFaithAccessStatusResilient(
-      scope.scope_id,
-    );
-
-    setMzbExempt(access.is_mzb_scope_exempt);
-    setUnlockedCount(
-      access.lesson_stages.filter((stage) => stage.scope_unlocked)
-        .length,
-    );
-    setLoading(false);
-  }, [scope.scope_id]);
-
-  useFocusEffect(
-    useCallback(() => {
-      void load();
-    }, [load]),
-  );
+  // R3: this is a doorway, not a dashboard data dependency.
+  // The destination performs the real stage/access check after the user opens it.
 
   if (!scope.show_faith_content) {
     return null;
@@ -93,21 +68,7 @@ export default function BuklodScopeBuklodLessonPanel({
         </View>
       </View>
 
-      {loading ? (
-        <View style={styles.metaRow}>
-          <ActivityIndicator size="small" color={colors.green} />
-          <Text style={styles.metaText}>Opening lesson portal...</Text>
-        </View>
-      ) : mzbExempt ? (
-        <Text style={styles.metaText}>
-          MZB — all BUKLOD 101–107 lesson stages are FREE for this scope.
-        </Text>
-      ) : (
-        <Text style={styles.metaText}>
-          {unlockedCount} of {stageCount} scope stages unlocked · tap to open
-          lessons
-        </Text>
-      )}
+      <Text style={styles.metaText}>BUKLOD 101–107 • Tap to open lessons and view available stages.</Text>
     </Pressable>
   );
 }
