@@ -466,8 +466,9 @@ function ExpoCommunityVideo({
   const player = useVideoPlayer(
     source,
     (instance) => {
-      instance.loop = true;
-      instance.muted = !sessionSoundOn;
+      // AAB v28 full screen viewer plays the video once, with sound.
+      instance.loop = !fullscreen;
+      instance.muted = fullscreen ? false : !sessionSoundOn;
       instance.timeUpdateEventInterval = 0.25;
       instance.audioMixingMode = instance.muted
         ? 'mixWithOthers'
@@ -476,8 +477,9 @@ function ExpoCommunityVideo({
   );
 
   useEffect(() => {
-    const muted = !soundOn;
+    const muted = fullscreen ? false : !soundOn;
     try {
+      player.loop = !fullscreen;
       player.muted = muted;
       player.audioMixingMode = muted
         ? 'mixWithOthers'
@@ -485,7 +487,7 @@ function ExpoCommunityVideo({
     } catch {
       // Player can already be released while the feed row recycles.
     }
-  }, [player, soundOn]);
+  }, [fullscreen, player, soundOn]);
 
   useEffect(() => {
     const subscription = player.addListener(
@@ -725,7 +727,18 @@ function ExpoCommunityVideo({
         </View>
       ) : null}
 
-      {chromeVisible && knownDuration > 0 ? (
+      {fullscreen && knownDuration > 0 ? (
+        <View
+          pointerEvents="none"
+          style={styles.fullscreenDurationChip}
+        >
+          <Text style={styles.durationText}>
+            {formatDuration(knownDuration)}
+          </Text>
+        </View>
+      ) : null}
+
+      {!fullscreen && chromeVisible && knownDuration > 0 ? (
         <View
           pointerEvents="none"
           style={[
@@ -734,13 +747,12 @@ function ExpoCommunityVideo({
           ]}
         >
           <Text style={styles.durationText}>
-            {fullscreen
-              ? `${formatDuration(currentTime)} / ${formatDuration(knownDuration)}`
-              : clock}
+            {clock}
           </Text>
         </View>
       ) : null}
 
+      {fullscreen ? null : (
       <View
         pointerEvents="box-none"
         style={[
@@ -818,6 +830,7 @@ function ExpoCommunityVideo({
           </View>
         </Pressable>
       </View>
+      )}
     </View>
   );
 }
@@ -942,6 +955,16 @@ const styles =
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: 'rgba(0,0,0,0.62)',
+    },
+
+    fullscreenDurationChip: {
+      position: 'absolute',
+      left: 12,
+      top: 56,
+      borderRadius: 8,
+      backgroundColor: 'rgba(0,0,0,0.68)',
+      paddingHorizontal: 7,
+      paddingVertical: 4,
     },
 
     durationChip: {
