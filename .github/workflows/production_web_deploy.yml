@@ -39,6 +39,7 @@ on:
       - 'src/app/scope/bulletin-editor.tsx'
       - 'src/components/BuklodClusterHomeCommandCenter.tsx'
       - 'src/components/BuklodClusterHomeCommandCenterImpl.tsx'
+      - 'src/components/BuklodHomeFaithPanel.tsx'
       - 'src/lib/buklodClusterFormationGate.ts'
       - 'src/app/(tabs)/me.tsx'
       - 'src/app/(tabs)/prayer.tsx'
