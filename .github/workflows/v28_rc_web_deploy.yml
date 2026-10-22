@@ -10,6 +10,7 @@ permissions:
 env:
   EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
   CI: '1'
+  BUKLOD_EXPECTED_SUPABASE_URL: 'https://yhanxndaqbmuzbdqlblu.supabase.co'
 
 jobs:
   web:
@@ -41,7 +42,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npx eas-cli@latest env:exec production 'npx expo export --platform web --output-dir dist-web-rc' --non-interactive
+          npx eas-cli@latest env:exec production 'node scripts/verify-web-build-env.cjs && npx expo export --platform web --clear --output-dir dist-web-rc' --non-interactive
           test -f dist-web-rc/index.html
           grep -F '_expo/static/js/web/' dist-web-rc/index.html
           test -n "$(find dist-web-rc -name 'wa-sqlite*.wasm' -print -quit)"
