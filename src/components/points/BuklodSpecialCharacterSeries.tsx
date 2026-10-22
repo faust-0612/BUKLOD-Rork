@@ -1,21 +1,26 @@
 /* BUKLOD_SPECIAL_BATCH1_R40_PREMIUM_UI */
 /* Approved Sep. 5 R40 presentation; current V2/server unlock and activation remain authoritative. */
 import React, { useEffect, useState } from 'react';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Image as ExpoImage } from 'expo-image';
 import {
   ActivityIndicator,
   Image,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
   useWindowDimensions,
+  type ImageStyle,
+  type StyleProp,
 } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
 import {
+  SPECIAL_CHARACTER_ORDER,
   SPECIAL_REQUIRED_RANK_ORDER,
+  setBuklodCharacterDisplayOverride,
   setMyBuklodCharacterActiveV2,
   type BuklodCharacterSelectionV2State,
   type BuklodSpecialCharacterId,
@@ -24,6 +29,13 @@ import {
   SPECIAL_CHARACTER_HERO,
   getBuklodSpecialLevelAsset,
 } from '@/lib/buklodSpecialCharacterAssets';
+import {
+  BUKLOD_CHARACTER_BADGES,
+  BUKLOD_CHARACTER_STAGES,
+  BUKLOD_COLLECTIBLE_SLOT_LABELS,
+  buklodCollectibleNames,
+  buklodStageMasteryBadge,
+} from '@/lib/buklodCharacterWorldCatalog';
 
 type Props = {
   userId?: string | null;
@@ -63,16 +75,7 @@ type Profile = {
   stages: readonly string[];
 };
 
-const SPECIAL_ORDER: BuklodSpecialCharacterId[] = [
-  'ace',
-  'ellusur',
-  'jawo',
-  'mitch',
-  'niel',
-  'angel',
-  'vhen',
-  'trudice',
-];
+const SPECIAL_ORDER: BuklodSpecialCharacterId[] = [...SPECIAL_CHARACTER_ORDER];
 
 const PROFILES: Record<BuklodSpecialCharacterId, Profile> = {
   ace: {
@@ -80,58 +83,72 @@ const PROFILES: Record<BuklodSpecialCharacterId, Profile> = {
     quote: 'Small steps of care create a stronger community.',
     description: 'Health, discipline, practical care, and wise service shaped into one purposeful journey.',
     traits: ['Health Advocacy', 'Community Service', 'Strategy & Planning', 'Practical Discipleship'],
-    stages: ['Curious Learner','Caring Student','Chess Beginner','School Helper','Youth Encourager','Nursing Student','Chess Competitor','Community Helper','Campus Leader','Junior Nurse','Board Passer','Staff Nurse','Wellness Advocate','Chess Mentor','Community Health Leader','Mission Nurse','Strategic Mentor','Healing Servant Leader','Regional Health Mentor','Legacy Care Champion'],
+    stages: BUKLOD_CHARACTER_STAGES.ace,
   },
   ellusur: {
-    id: 'ellusur', name: 'ELLUSUR', domain: 'FAITH TEACHING SERVICE',
+    id: 'ellusur', name: 'ELESUR', domain: 'FAITH TEACHING SERVICE',
     quote: 'Faith grows best when it is planted, taught, and lived.',
     description: 'A steady path of learning, teaching, agriculture, ministry, and faithful community service.',
     traits: ['Faith Formation', 'Teaching', 'Agriculture', 'Pastoral Service'],
-    stages: ['Little Learner','Church Boy','Student Helper','Youth Volunteer','Bible Learner','Classroom Assistant','Farm Helper','Community Volunteer','Sunday Helper','Teacher-in-Service','Ministry Worker','Field Mentor','Faith Leader','Community Teacher','Pastor','Agricultural Advocate','Volunteer Coordinator','Mission Pastor','Community Builder','Legacy Shepherd'],
+    stages: BUKLOD_CHARACTER_STAGES.ellusur,
   },
   jawo: {
-    id: 'jawo', name: 'JAVVO', domain: 'NATURE MUSIC COMMUNITY',
+    id: 'jawo', name: 'JAWO', domain: 'NATURE MUSIC COMMUNITY',
     quote: 'Harmony is built when gifts are shared with purpose.',
     description: 'Music, nature, worship, creativity, and community life grow together through service.',
     traits: ['Music', 'Nature', 'Worship', 'Community'],
-    stages: ['Young Dreamer','Nature Lover','Student Musician','Campus Volunteer','Youth Encourager','Choir Member','Guitar Learner','Worship Music Helper','Community Singer','Music Team Member','Youth Mentor','Worship Leader','Creative Ministry Worker','Forest Advocate','CommunityOrganizer','Music Trainer','Mission Volunteer','Discipleship Worker','Church Planting Partner','Purposeful Leader'],
+    stages: BUKLOD_CHARACTER_STAGES.jawo,
   },
   mitch: {
     id: 'mitch', name: 'MITCH', domain: 'ARTS CULTURE TEACHING',
     quote: 'Creativity becomes powerful when it helps others learn.',
     description: 'A creative educator journey joining visual art, culture, teaching, mentorship, and mission.',
     traits: ['Creative Arts', 'Teaching', 'Culture', 'Mentorship'],
-    stages: ['Little Dreamer','Young Creator','Art Helper','Story Drawer','Classroom Assistant','Student Teacher','Creative Mentor','Community Artist','Arts Teacher','Tribal Educator','Culture Advocate','Creative Leader','Workshop Facilitator','Arts Ministry Worker','Community Inspiration Builder','Education & Arts Coordinator','Missionary-Educator','Regional Creative Trainer','Heritage Advocate','Legacy Art Mentor'],
+    stages: BUKLOD_CHARACTER_STAGES.mitch,
   },
   niel: {
     id: 'niel', name: 'NIEL', domain: 'WORSHIP DISCIPLESHIP MISSION',
     quote: 'Lead worship. Make disciples. Carry the mission forward.',
     description: 'A worship and discipleship path that matures into mentoring, mission, and church planting.',
     traits: ['Worship', 'Discipleship', 'Mentoring', 'Mission'],
-    stages: ['Young Singer','Faith Listener','Youth Helper','Small Group Member','Worship Volunteer','Bible Learner','Student Mentor','Young Teacher','Worship Leader','Youth Pastor','Discipleship Leader','Mission Volunteer','Outreach Trainer','Church Planting Apprentice','Community Shepherd','Ministry Coordinator','Discipleship Pastor','Church Planting Leader','Regional Mission Mentor','Legacy Disciple-Maker'],
+    stages: BUKLOD_CHARACTER_STAGES.niel,
   },
   angel: {
     id: 'angel', name: 'ANGEL', domain: 'STEWARDSHIP ACCOUNTABILITY',
     quote: 'Steward well today so more can be served tomorrow.',
     description: 'A stewardship journey built around responsibility, transparent records, planning, and resource care.',
     traits: ['Stewardship', 'Finance', 'Accountability', 'Resource Planning'],
-    stages: ['Little Helper','Savings Learner','Student Organizer','Class Treasurer','Young Steward','Record Keeper','Budget Assistant','Community Volunteer','Stewardship Worker','Finance Coordinator','Ministry Treasurer','Resource Planner','Budget Manager','Community Treasurer','Financial Trainer','Stewardship Leader','Development Coordinator','Resource Director','Community Finance Head','Legacy Steward'],
+    stages: BUKLOD_CHARACTER_STAGES.angel,
   },
   vhen: {
     id: 'vhen', name: 'VHEN', domain: 'AGRICULTURE BUSINESS FAMILY',
     quote: 'Grow what matters. Build what lasts. Provide with purpose.',
     description: 'Agriculture, productivity, enterprise, family provision, and stewardship form this builder journey.',
     traits: ['Agriculture', 'Enterprise', 'Family', 'Stewardship'],
-    stages: ['Farm Helper','Garden Learner','Student Worker','Youth Volunteer','Field Assistant','Crop Care Worker','Community Helper','Agriculture Learner','Farm Technician','Harvest Organizer','Agribusiness Starter','Small Business Owner','Community Grower','Agriculture Specialist','Family Provider','Farm Entrepreneur','Community Business Leader','Resource Steward','Agriculture Mentor','Legacy Builder'],
+    stages: BUKLOD_CHARACTER_STAGES.vhen,
   },
   trudice: {
     id: 'trudice', name: 'TRUDICE', domain: 'CHILDREN TEACHING DISCIPLESHIP',
     quote: 'Teach with care, and every lesson can shape a life.',
     description: 'A children and education journey centered on teaching, values, curriculum, and mentoring teachers.',
     traits: ['Children', 'Teaching', 'Values', 'Mentoring'],
-    stages: ['Little Learner','Story Listener','Sunday School Helper','Young Teacher','Children’s Guide','Classroom Assistant','Student Mentor','Learning Facilitator','Sunday School Teacher','Classroom Teacher','Creative Educator','Values Mentor','Children’s Ministry Teacher','Learning Coordinator','Teacher-Leader','Curriculum Builder','Mentor of Teachers','Education Ministry Leader','Community Educator','Legacy Teacher'],
+    stages: BUKLOD_CHARACTER_STAGES.trudice,
   },
 };
+
+/** Unlocked specials + the next locked preview only. Farther specials stay concealed. */
+function visibleSpecialRail(
+  rankOrder: number,
+  unlockedIds: readonly string[],
+): BuklodSpecialCharacterId[] {
+  const unlocked = SPECIAL_ORDER.filter(
+    (id) => unlockedIds.includes(id) || rankOrder >= SPECIAL_REQUIRED_RANK_ORDER[id],
+  );
+  const nextLocked = SPECIAL_ORDER.find(
+    (id) => !unlocked.includes(id),
+  );
+  return nextLocked ? [...unlocked, nextLocked] : unlocked;
+}
 
 const METRIC_LABELS: Record<string, string> = {
   event_attended: 'verified event attendance',
@@ -165,6 +182,18 @@ function friendlyRequirement(value: unknown, secret: boolean) {
   return parts.length ? parts.join(' + ') : 'Complete the required mastery milestones.';
 }
 
+function CharacterPhoto({ source, style }: { source: number; style: StyleProp<ImageStyle> }) {
+  return (
+    <ExpoImage
+      source={source}
+      contentFit="contain"
+      transition={0}
+      cachePolicy="memory-disk"
+      style={style}
+    />
+  );
+}
+
 export default function BuklodSpecialCharacterSeries({ userId, state, onStateRefresh }: Props) {
   const { width } = useWindowDimensions();
   const compact = width < 760;
@@ -177,14 +206,10 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
   const isUnlocked = (id: BuklodSpecialCharacterId) =>
     visible.includes(id) || state.circle_rank_order >= SPECIAL_REQUIRED_RANK_ORDER[id];
 
-  /* BUKLOD_SPECIAL_LOCKED_IDENTITIES_HIDDEN */
-  const visibleSpecialIds = SPECIAL_ORDER.filter(isUnlocked);
   const [selectedId, setSelectedId] = useState<BuklodSpecialCharacterId>(
-    activeSpecial ?? visibleSpecialIds[0] ?? 'ace',
+    activeSpecial ?? 'ace',
   );
-  const effectiveSelectedId = visibleSpecialIds.includes(selectedId)
-    ? selectedId
-    : visibleSpecialIds[0] ?? null;
+  const effectiveSelectedId = SPECIAL_ORDER.includes(selectedId) ? selectedId : 'ace';
   const [collectibles, setCollectibles] = useState<CollectiblePayload | null>(null);
   const [collectibleLoading, setCollectibleLoading] = useState(false);
   const [using, setUsing] = useState(false);
@@ -192,24 +217,54 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
   const [showAllCollectibles, setShowAllCollectibles] = useState(false);
   const [nativeDetailsOpen, setNativeDetailsOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [previewLevel, setPreviewLevel] = useState(1);
+
+  useEffect(() => {
+    const urls = SPECIAL_ORDER
+      .map((id) => Image.resolveAssetSource(SPECIAL_CHARACTER_HERO[id])?.uri)
+      .filter((uri): uri is string => typeof uri === 'string' && uri.length > 0);
+    if (urls.length > 0) void ExpoImage.prefetch(urls, 'memory-disk');
+  }, []);
 
   useEffect(() => {
     if (activeSpecial) setSelectedId(activeSpecial);
   }, [activeSpecial]);
 
   useEffect(() => {
+    const rail = visibleSpecialRail(state.circle_rank_order, visible);
+    if (!rail.includes(selectedId)) {
+      setSelectedId(rail[0] ?? 'ace');
+    }
+  }, [selectedId, state.circle_rank_order, visible]);
+
+  useEffect(() => {
     setShowAllLevels(false);
     setShowAllCollectibles(false);
     if (nativeLayout) setNativeDetailsOpen(false);
-  }, [nativeLayout, effectiveSelectedId]);
+    const nextLevel =
+      state.active_character_id === effectiveSelectedId
+        ? Math.max(1, Math.min(20, state.character_level))
+        : 1;
+    setPreviewLevel(nextLevel);
+  }, [nativeLayout, effectiveSelectedId, state.active_character_id, state.character_level]);
 
   useEffect(() => {
-    if (!userId || !effectiveSelectedId || (nativeLayout && !nativeDetailsOpen)) {
+    setBuklodCharacterDisplayOverride({
+      character_id: effectiveSelectedId,
+      character_level: previewLevel,
+    });
+  }, [effectiveSelectedId, previewLevel]);
+
+  useEffect(() => {
+    const unlockedNow = visible.includes(effectiveSelectedId)
+      || state.circle_rank_order >= SPECIAL_REQUIRED_RANK_ORDER[effectiveSelectedId];
+    if (!userId || !effectiveSelectedId || !unlockedNow) {
       setCollectibles(null);
       setCollectibleLoading(false);
       return;
     }
     let mounted = true;
+    setCollectibles(null);
     setCollectibleLoading(true);
     setMessage(null);
     void (async () => {
@@ -230,55 +285,47 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
       }
     })();
     return () => { mounted = false; };
-  }, [effectiveSelectedId, nativeDetailsOpen, nativeLayout, userId]);
-
-  if (!effectiveSelectedId) {
-    return (
-      <View style={[styles.shell, nativeLayout && styles.shellNative]}>
-        <View style={[styles.topHeader, compact && styles.topHeaderCompact]}>
-          <View style={styles.brandMark}><Text style={styles.brandMarkText}>SC</Text></View>
-          <View style={[styles.headerCopy, nativeLayout && compact && styles.headerCopyNativeCompact]}>
-            <Text style={styles.heading}>Special Character Journey</Text>
-            <Text style={styles.subheading}>
-              Special Characters appear only when your Circle Rank unlocks them.
-            </Text>
-          </View>
-          {!compact ? (
-            <View style={styles.missionNote}>
-              <Text style={styles.missionTitle}>More than a character. A mission.</Text>
-              <Text style={styles.missionText}>Grow in character. Serve with purpose. Make an impact.</Text>
-            </View>
-          ) : null}
-        </View>
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Keep growing your Circle Rank</Text>
-          <Text style={styles.sectionCaption}>
-            Your first Special Character will appear here automatically when it becomes available.
-          </Text>
-        </View>
-      </View>
-    );
-  }
+  }, [effectiveSelectedId, state.circle_rank_order, state.visible_special_character_ids, userId, visible]);
 
   const selected = PROFILES[effectiveSelectedId];
+  const selectedUnlocked = isUnlocked(selected.id);
   const active = state.active_character_id === selected.id;
   const currentLevel = active ? Math.max(1, Math.min(20, state.character_level)) : 1;
   const requiredRank = SPECIAL_REQUIRED_RANK_ORDER[selected.id];
   const progress = Math.max(0, Math.min(1, state.circle_rank_order / Math.max(1, requiredRank)));
+  const badgeLevel = selectedUnlocked
+    ? Math.max(1, Math.min(20, Number(collectibles?.current_level) || 1))
+    : 1;
+  const railIds = visibleSpecialRail(state.circle_rank_order, visible);
   const levelItems = showAllLevels
     ? Array.from({ length: 20 }, (_, index) => index + 1)
     : Array.from({ length: 12 }, (_, index) => index + 1);
+  const catalogLevelItems = buklodCollectibleNames(effectiveSelectedId, previewLevel);
+  const stageBadgeName = buklodStageMasteryBadge(effectiveSelectedId, previewLevel);
+  const signatureBadge = BUKLOD_CHARACTER_BADGES[effectiveSelectedId].signature;
   const visibleCollectibles = showAllCollectibles
     ? collectibles?.collectibles ?? []
     : (collectibles?.collectibles ?? []).slice(0, 12);
+  const earnedBadges = (collectibles?.collectibles ?? []).filter((item) => item.earned);
 
   const useCharacter = async () => {
-    if (!userId || active || using) return;
+    if (!userId || active || using || !selectedUnlocked) {
+      if (!selectedUnlocked) {
+        setMessage(`This Special Character opens at Circle Rank ${requiredRank}.`);
+      }
+      return;
+    }
     setUsing(true);
     setMessage(null);
     try {
-      await setMyBuklodCharacterActiveV2(userId, selected.id);
+      const next = await setMyBuklodCharacterActiveV2(userId, selected.id);
+      setPreviewLevel(Math.max(1, Math.min(20, next.character_level)));
       await onStateRefresh();
+      setBuklodCharacterDisplayOverride({
+        character_id: next.active_character_id,
+        character_level: next.character_level,
+      });
+      setMessage(`${selected.name} is now Showing Now at Level ${next.character_level}.`);
     } catch (error: unknown) {
       setMessage(error instanceof Error ? error.message : 'Could not activate Special Character.');
     } finally {
@@ -290,10 +337,10 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
     <View style={[styles.shell, nativeLayout && styles.shellNative]}>
       <View style={[styles.topHeader, compact && styles.topHeaderCompact]}>
         <View style={styles.brandMark}><Text style={styles.brandMarkText}>SC</Text></View>
-        <View style={[styles.headerCopy, nativeLayout && compact && styles.headerCopyNativeCompact]}>
-          <Text style={styles.heading}>Special Character Journey</Text>
+        <View style={[styles.headerCopy, compact && styles.headerCopyCompact]}>
+          <Text style={styles.heading}>EIGHT SPECIAL CHARACTERS</Text>
           <Text style={styles.subheading}>
-            Harder mastery progression. Special Characters appear only when your Circle Rank unlocks them.
+            Unlocked Specials plus the next locked preview. Use puts one on your profile at Level 1. Circle Rank stays. Items and badges are character-specific.
           </Text>
         </View>
         {!compact ? (
@@ -304,67 +351,135 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
         ) : null}
       </View>
 
-      <ScrollView
-        horizontal
-        nestedScrollEnabled
-        removeClippedSubviews={nativeLayout}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.characterRail}
-      >
-        {visibleSpecialIds.map((id) => {
+      <View style={styles.characterRail}>
+        {railIds.map((id, index) => {
           const character = PROFILES[id];
           const chosen = id === selected.id;
           const activeNow = state.active_character_id === id;
+          const unlocked = isUnlocked(id);
           return (
             <Pressable
               key={id}
               accessibilityRole="button"
-              accessibilityLabel={`View ${character.name}`}
+              accessibilityLabel={unlocked ? `View ${character.name}` : `Next locked preview`}
               onPress={() => setSelectedId(id)}
-              style={[styles.characterCard, chosen && styles.characterCardSelected]}
+              style={[styles.characterCard, chosen && styles.characterCardSelected, !unlocked && styles.characterCardLocked]}
             >
               <View style={styles.characterImageFrame}>
-                <Image source={SPECIAL_CHARACTER_HERO[id]} style={styles.characterImage} resizeMode="contain" />
+                {unlocked ? (
+                  <CharacterPhoto source={SPECIAL_CHARACTER_HERO[id] as number} style={styles.characterImage} />
+                ) : (
+                  <View style={styles.characterImageHidden}>
+                    <MaterialCommunityIcons name="lock" size={28} color="#8B95A8" />
+                  </View>
+                )}
               </View>
-              <Text style={styles.characterName}>{character.name}</Text>
-              <Text style={styles.characterRank}>Rank {SPECIAL_REQUIRED_RANK_ORDER[id]}</Text>
-              <Text style={activeNow ? styles.characterStateActive : styles.characterStateReady}>
-                {activeNow ? 'ACTIVE' : 'AVAILABLE'}
-              </Text>
+              <View style={styles.characterCopy}>
+                <Text style={styles.characterName}>
+                  {unlocked ? `${index + 1}. ${character.name}` : `${index + 1}. NEXT SPECIAL`}
+                </Text>
+                <Text style={styles.characterRank} numberOfLines={1}>
+                  {unlocked ? character.domain : `Opens at Circle Rank ${SPECIAL_REQUIRED_RANK_ORDER[id]}`}
+                </Text>
+                <Text style={activeNow ? styles.characterStateActive : unlocked ? styles.characterStateReady : styles.characterStateMuted}>
+                  {activeNow ? 'ACTIVE' : unlocked ? `RANK ${SPECIAL_REQUIRED_RANK_ORDER[id]}` : 'LOCKED'}
+                </Text>
+              </View>
+              {!unlocked ? (
+                <MaterialCommunityIcons name="lock" size={16} color="#8B95A8" />
+              ) : null}
             </Pressable>
           );
         })}
-      </ScrollView>
+      </View>
 
-      <View style={[styles.heroPanel, compact && styles.heroPanelCompact, nativeLayout && compact && styles.heroPanelNativeCompact]}>
-        <View style={[styles.largeArtFrame, compact && styles.largeArtFrameCompact, nativeLayout && compact && styles.largeArtFrameNativeCompact]}>
-          <Image source={SPECIAL_CHARACTER_HERO[selected.id]} style={[styles.largeArt, nativeLayout && compact && styles.largeArtNativeCompact]} resizeMode="contain" />
-        </View>
-
-        <View style={[styles.heroCopy, nativeLayout && compact && styles.heroCopyNativeCompact]}>
+      <View style={[styles.heroPanel, compact && styles.heroPanelCompact]}>
+        {compact ? (
+          <View style={styles.largeArtFrameCompact}>
+            {selectedUnlocked ? (
+              <CharacterPhoto
+                key={`${selected.id}-${previewLevel}-compact`}
+                source={getBuklodSpecialLevelAsset(selected.id, previewLevel) as number}
+                style={styles.heroPhoto}
+              />
+            ) : (
+              <View style={styles.characterImageHidden}>
+                <MaterialCommunityIcons name="lock" size={36} color="#8B95A8" />
+              </View>
+            )}
+            {selectedUnlocked && earnedBadges.length ? (
+              <View style={styles.badgeStack}>
+                {earnedBadges.slice(0, 5).map((badge) => (
+                  <View key={badge.collectible_id} style={styles.badgePin} accessibilityLabel={badge.badge_name || badge.collectible_name}>
+                    <MaterialCommunityIcons name="medal" size={14} color="#E8C56B" />
+                  </View>
+                ))}
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+        <View style={[styles.heroCopy, compact && styles.heroCopyCompact]}>
           <View style={styles.titleRow}>
-            <Text style={styles.detailTitle}>{selected.name}</Text>
+            <Text style={styles.detailTitle}>{selectedUnlocked ? selected.name : 'NEXT SPECIAL'}</Text>
             <View style={styles.specialPill}><Text style={styles.specialPillText}>SPECIAL CHARACTER</Text></View>
           </View>
-          <Text style={styles.detailDomain}>{selected.domain}</Text>
-          <Text style={styles.quoteText}>"{selected.quote}"</Text>
-          <Text style={styles.description}>{selected.description}</Text>
-          <View style={styles.traitWrap}>
-            {selected.traits.map((trait, index) => (
-              <View key={trait} style={styles.traitPill}>
-                <View style={[styles.traitDot, index === 1 && styles.traitDotAlt, index === 2 && styles.traitDotGold, index === 3 && styles.traitDotPurple]} />
-                <Text style={styles.traitText}>{trait}</Text>
-              </View>
-            ))}
-          </View>
+          <Text style={styles.detailDomain}>
+            {selectedUnlocked ? selected.domain : `Opens at Circle Rank ${requiredRank}`}
+          </Text>
+          <Text style={styles.quoteText}>
+            {selectedUnlocked ? `"${selected.quote}"` : 'Keep growing your Circle Rank to reveal the next Special Character.'}
+          </Text>
+          <Text style={styles.description}>
+            {selectedUnlocked
+              ? selected.description
+              : 'True artwork and identity stay hidden until this Special unlocks.'}
+          </Text>
+          {selectedUnlocked ? (
+            <View style={styles.traitWrap}>
+              {selected.traits.map((trait, index) => (
+                <View key={trait} style={styles.traitPill}>
+                  <View style={[styles.traitDot, index === 1 && styles.traitDotAlt, index === 2 && styles.traitDotGold, index === 3 && styles.traitDotPurple]} />
+                  <Text style={styles.traitText}>{trait}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
         </View>
 
-        <View style={[styles.rankPanel, nativeLayout && compact && styles.rankPanelNativeCompact]}>
-          <Text style={styles.rankStatus}>{active ? `Level ${currentLevel}` : 'Unlocked'}</Text>
+        {compact ? null : (
+          <View style={styles.largeArtFrame}>
+            {selectedUnlocked ? (
+              <CharacterPhoto
+                key={`${selected.id}-${previewLevel}-wide`}
+                source={getBuklodSpecialLevelAsset(selected.id, previewLevel) as number}
+                style={styles.heroPhoto}
+              />
+            ) : (
+              <View style={styles.characterImageHidden}>
+                <MaterialCommunityIcons name="lock" size={36} color="#8B95A8" />
+              </View>
+            )}
+            {selectedUnlocked && earnedBadges.length ? (
+              <View style={styles.badgeStack}>
+                {earnedBadges.slice(0, 5).map((badge) => (
+                  <View key={badge.collectible_id} style={styles.badgePin} accessibilityLabel={badge.badge_name || badge.collectible_name}>
+                    <MaterialCommunityIcons name="medal" size={14} color="#E8C56B" />
+                  </View>
+                ))}
+              </View>
+            ) : null}
+          </View>
+        )}
+      </View>
+
+      <View style={[styles.rankPanel, nativeLayout && compact && styles.rankPanelNativeCompact]}>
+          <Text style={styles.rankStatus}>{active ? `Level ${currentLevel}` : selectedUnlocked ? 'Unlocked' : 'Locked'}</Text>
           <Text style={styles.rankSubtitle}>
             {active
-              ? selected.stages[currentLevel - 1]
-              : `Selecting ${selected.name} starts it at Level 1.`}
+              ? `Showing on your profile. ${selected.stages[currentLevel - 1]}`
+              : selectedUnlocked
+                ? `Not on your profile yet. Use this character to show ${selected.name}. They start at Level 1.`
+                : `Opens at Circle Rank ${requiredRank}. Artwork stays hidden until unlocked.`}
           </Text>
           <View style={styles.rankLine}>
             <Text style={styles.rankLabel}>Your Current Rank</Text>
@@ -372,25 +487,28 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
           </View>
           <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${progress * 100}%` }]} /></View>
           <Text style={styles.rankHelp}>
-            Circle Points and Circle Rank remain intact when changing Character. Character levels do not transfer.
+            {selectedUnlocked
+              ? earnedBadges.length
+                ? `${earnedBadges.length} earned ${earnedBadges.length === 1 ? 'badge is' : 'badges are'} beside ${selected.name}. Badges are added automatically.`
+                : `No earned badge beside ${selected.name} yet. Badges are added automatically when you finish their tasks.`
+              : `Badges open at Circle Rank ${requiredRank}.`}
           </Text>
           <Pressable
-            disabled={using || active}
+            disabled={using || active || !selectedUnlocked}
             onPress={() => void useCharacter()}
-            style={[styles.primaryAction, (using || active) && styles.primaryActionDisabled]}
+            style={[styles.primaryAction, (using || active || !selectedUnlocked) && styles.primaryActionDisabled]}
           >
             <Text style={styles.primaryActionText}>
-              {active ? 'ACTIVE CHARACTER' : using ? 'SETTING...' : 'USE CHARACTER'}
+              {active ? 'SHOWING ON YOUR PROFILE' : !selectedUnlocked ? `OPENS AT RANK ${requiredRank}` : using ? 'SETTING...' : 'USE THIS CHARACTER'}
             </Text>
           </Pressable>
         </View>
-      </View>
 
       {nativeLayout ? (
         <Pressable onPress={() => setNativeDetailsOpen((value) => !value)} style={styles.nativeDetailsToggle}>
           <Text style={styles.nativeDetailsToggleTitle}>{nativeDetailsOpen ? 'HIDE JOURNEY DETAILS' : 'OPEN JOURNEY DETAILS'}</Text>
           <Text style={styles.nativeDetailsToggleText}>
-            {nativeDetailsOpen ? 'Close detailed levels and collectibles for faster browsing.' : 'Loads Level 1-20 and collectibles only when you open them.'}
+            {nativeDetailsOpen ? 'Hide the level list and the full badge list.' : 'See every level and the full badge list. Earned badges already stay beside this character.'}
           </Text>
         </Pressable>
       ) : null}
@@ -408,40 +526,93 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
               </Pressable>
             </View>
 
-            <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false} contentContainerStyle={styles.levelRail}>
+            <View style={styles.levelRail}>
               {levelItems.map((level) => {
-                const viewable = level === 1 || (active && level <= currentLevel);
-                const isCurrent = active && level === currentLevel;
-                const item = collectibles?.collectibles?.find((row) => row.level_no === level);
+                const badge = collectibles?.collectibles?.find((row) => row.level_no === level);
+                const viewable = selectedUnlocked
+                  ? (typeof badge?.level_viewable === 'boolean' ? badge.level_viewable : level <= badgeLevel)
+                  : level === 1;
+                const isCurrent = selectedUnlocked && level === badgeLevel;
                 return (
-                  <View key={`${selected.id}-${level}`} style={[styles.levelCard, isCurrent && styles.levelCardCurrent]}>
-                    <View style={styles.levelImageFrame}>
-                      {viewable ? (
-                        <Image source={getBuklodSpecialLevelAsset(selected.id, level)} style={styles.levelImage} resizeMode="contain" />
-                      ) : (
-                        <View style={styles.lockedPreview}>
-                          <View style={styles.lockCircle}><Text style={styles.lockCircleText}>L</Text></View>
-                        </View>
-                      )}
-                      <View style={styles.levelNumberBadge}><Text style={styles.levelNumberText}>{level}</Text></View>
+                  <Pressable
+                    key={`${selected.id}-${level}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Preview ${selected.name} level ${level}`}
+                    onPress={() => setPreviewLevel(level)}
+                    style={styles.levelCard}
+                  >
+                    <View style={[styles.levelCardInner, (isCurrent || previewLevel === level) && styles.levelCardCurrent]}>
+                      <View style={styles.levelImageFrame}>
+                        {viewable || previewLevel === level ? (
+                          <CharacterPhoto
+                            source={getBuklodSpecialLevelAsset(selected.id, level) as number}
+                            style={styles.levelImage}
+                          />
+                        ) : (
+                          <View style={styles.lockedPreview}>
+                            <View style={styles.lockCircle}><Text style={styles.lockCircleText}>L</Text></View>
+                          </View>
+                        )}
+                        <View style={styles.levelNumberBadge}><Text style={styles.levelNumberText}>{level}</Text></View>
+                      </View>
+                      <Text style={styles.levelTitle} numberOfLines={2}>{selected.stages[level - 1] ?? `Level ${level}`}</Text>
+                      <Text style={viewable ? styles.levelOpen : styles.levelLocked}>
+                        {previewLevel === level ? 'SHOWING' : viewable ? (isCurrent ? 'CURRENT' : 'PREVIEW') : 'LOCKED'}
+                      </Text>
+                      <Text style={styles.levelCollectible} numberOfLines={1}>
+                        {buklodCollectibleNames(selected.id, level)[0]}
+                      </Text>
                     </View>
-                    <Text style={styles.levelTitle} numberOfLines={2}>{selected.stages[level - 1] ?? `Level ${level}`}</Text>
-                    <Text style={viewable ? styles.levelOpen : styles.levelLocked}>{viewable ? (isCurrent ? 'CURRENT' : 'PREVIEW') : 'LOCKED'}</Text>
-                    {item ? <Text style={styles.levelCollectible} numberOfLines={1}>{item.collectible_name}</Text> : null}
-                  </View>
+                  </Pressable>
                 );
               })}
-            </ScrollView>
+            </View>
           </View>
 
           <View style={styles.sectionCard}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionHeaderCopy}>
-                <Text style={styles.sectionTitle}>COLLECTIBLES & BADGES</Text>
-                <Text style={styles.sectionCaption}>Harder cross-feature mastery rewards, awarded automatically by the server.</Text>
+                <Text style={styles.sectionTitle}>LEVEL {previewLevel} ITEMS</Text>
+                <Text style={styles.sectionCaption}>
+                  Five real story objects for {selected.name} · {selected.stages[previewLevel - 1]}. Collectibles are not badges.
+                </Text>
+              </View>
+            </View>
+            <View style={styles.collectibleGrid}>
+              {catalogLevelItems.map((itemName, index) => {
+                const owned = selectedUnlocked && previewLevel <= currentLevel && active;
+                return (
+                  <View key={`${selected.id}-${previewLevel}-${index + 1}`} style={styles.collectibleCard}>
+                    <View style={styles.collectibleCardInner}>
+                      <View style={[styles.collectibleIcon, !owned && styles.collectibleIconSecret]}>
+                        <MaterialCommunityIcons
+                          name={owned ? 'package-variant-closed' : 'lock-outline'}
+                          size={18}
+                          color={owned ? '#16813E' : '#627069'}
+                        />
+                      </View>
+                      <Text style={styles.collectibleName} numberOfLines={2}>{itemName}</Text>
+                      <Text style={styles.badgeName} numberOfLines={1}>{BUKLOD_COLLECTIBLE_SLOT_LABELS[index]}</Text>
+                      <Text style={owned ? styles.collectibleEarned : styles.collectibleTier}>
+                        {owned ? 'OWNED' : active ? `OPENS AT ${selected.name} L${previewLevel}` : 'USE CHARACTER FIRST'}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionHeaderCopy}>
+                <Text style={styles.sectionTitle}>BADGES & TITLES</Text>
+                <Text style={styles.sectionCaption}>
+                  Badges mark what you accomplished. Signature: {signatureBadge}. This stage: {stageBadgeName}.
+                </Text>
               </View>
               <Pressable onPress={() => setShowAllCollectibles((value) => !value)} style={styles.textAction}>
-                <Text style={styles.textActionText}>{showAllCollectibles ? 'SHOW LESS' : 'VIEW ALL COLLECTIBLES'}</Text>
+                <Text style={styles.textActionText}>{showAllCollectibles ? 'SHOW LESS' : 'VIEW ALL BADGES'}</Text>
               </Pressable>
             </View>
 
@@ -449,22 +620,40 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
               <ActivityIndicator style={styles.collectibleLoader} />
             ) : visibleCollectibles.length ? (
               <View style={styles.collectibleGrid}>
-                {visibleCollectibles.map((item) => (
-                  <View key={item.collectible_id} style={[styles.collectibleCard, compact && styles.collectibleCardCompact]}>
-                    <View style={[styles.collectibleIcon, item.secret && !item.earned && styles.collectibleIconSecret]}>
-                      <Text style={styles.collectibleIconText}>{item.secret && !item.earned ? '?' : item.level_no}</Text>
+                {visibleCollectibles.map((item) => {
+                  const catalogBadge = item.level_no
+                    ? buklodStageMasteryBadge(effectiveSelectedId, item.level_no)
+                    : item.badge_name;
+                  const catalogItem = item.level_no
+                    ? buklodCollectibleNames(effectiveSelectedId, item.level_no)[4]
+                    : item.collectible_name;
+                  return (
+                    <View key={item.collectible_id} style={styles.collectibleCard}>
+                      <View style={styles.collectibleCardInner}>
+                        <View style={[styles.collectibleIcon, item.secret && !item.earned && styles.collectibleIconSecret]}>
+                          <MaterialCommunityIcons
+                            name={item.secret && !item.earned ? 'help' : item.earned ? 'medal' : 'lock-outline'}
+                            size={18}
+                            color={item.earned ? '#16813E' : '#627069'}
+                          />
+                        </View>
+                        <Text style={styles.collectibleName} numberOfLines={2}>{catalogBadge}</Text>
+                        <Text style={styles.badgeName} numberOfLines={1}>Legacy object: {catalogItem}</Text>
+                        <Text style={styles.requirementText} numberOfLines={3}>{friendlyRequirement(item.requirement, item.secret && !item.earned)}</Text>
+                        <Text style={item.earned ? styles.collectibleEarned : item.secret ? styles.collectibleSecret : styles.collectibleTier}>
+                          {item.earned ? (item.earned_early ? 'EARNED EARLY' : 'EARNED') : item.secret ? 'SECRET' : `TIER ${item.difficulty_tier}`}
+                        </Text>
+                      </View>
                     </View>
-                    <Text style={styles.collectibleName} numberOfLines={2}>{item.collectible_name}</Text>
-                    <Text style={styles.badgeName} numberOfLines={1}>{item.badge_name}</Text>
-                    <Text style={styles.requirementText} numberOfLines={3}>{friendlyRequirement(item.requirement, item.secret && !item.earned)}</Text>
-                    <Text style={item.earned ? styles.collectibleEarned : item.secret ? styles.collectibleSecret : styles.collectibleTier}>
-                      {item.earned ? (item.earned_early ? 'COLLECTED EARLY' : 'COLLECTED') : item.secret ? 'SECRET' : `TIER ${item.difficulty_tier}`}
-                    </Text>
-                  </View>
-                ))}
+                  );
+                })}
               </View>
             ) : (
-              <Text style={styles.emptyBadges}>No Special Character badge data is available from the server for this selection yet.</Text>
+              <Text style={styles.emptyBadges}>
+                {selectedUnlocked
+                  ? 'No badges are recorded for this character yet.'
+                  : `Badges open at Circle Rank ${requiredRank}.`}
+              </Text>
             )}
           </View>
         </>
@@ -476,106 +665,121 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
 }
 
 const styles = StyleSheet.create({
-  shell: { marginTop: 18, borderRadius: 24, borderWidth: 1, borderColor: '#D9E7DE', backgroundColor: '#F7FBF8', overflow: 'hidden' },
-  shellNative: { overflow: 'visible' },
+  shell: { marginTop: 16, marginHorizontal: 14, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(232,197,107,0.28)', backgroundColor: '#10182A', overflow: 'hidden', maxWidth: '100%' },
+  shellNative: { overflow: 'hidden', maxWidth: '100%' },
   topHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingTop: 18, paddingBottom: 10 },
-  topHeaderCompact: { alignItems: 'flex-start', flexWrap: 'wrap' },
-  brandMark: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#178A43', alignItems: 'center', justifyContent: 'center' },
-  brandMarkText: { color: '#FFFFFF', fontSize: 14, fontWeight: '900' },
-  headerCopy: { flex: 1, minWidth: 220 },
-  headerCopyNativeCompact: { minWidth: 0, width: '100%' },
-  heading: { fontSize: 25, lineHeight: 30, fontWeight: '900', color: '#0D2A1C' },
-  subheading: { marginTop: 2, fontSize: 11.5, lineHeight: 17, color: '#315F45' },
+  topHeaderCompact: { flexDirection: 'column', alignItems: 'flex-start' },
+  brandMark: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#E8C56B', alignItems: 'center', justifyContent: 'center' },
+  brandMarkText: { color: '#1A1406', fontSize: 12, fontWeight: '900' },
+  headerCopy: { flex: 1, minWidth: 0 },
+  headerCopyCompact: { flexGrow: 0, width: '100%' },
+  heading: { fontSize: 14, lineHeight: 18, fontWeight: '900', letterSpacing: 0.6, color: '#F4E7C3' },
+  subheading: { marginTop: 2, fontSize: 11, lineHeight: 16, color: '#9AA6BD' },
   missionNote: { maxWidth: 360, minWidth: 260, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 18, backgroundColor: '#F3F7EF', borderWidth: 1, borderColor: '#E1E8DA' },
   missionTitle: { fontSize: 12, fontWeight: '900', color: '#253528' },
   missionText: { marginTop: 2, fontSize: 10.5, color: '#5E6C62' },
-  characterRail: { paddingHorizontal: 16, paddingVertical: 12, gap: 10 },
-  characterCard: { width: 150, borderRadius: 17, padding: 7, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#DDE7E0' },
-  characterCardSelected: { borderColor: '#1EA653', borderWidth: 2, shadowColor: '#1EA653', shadowOpacity: 0.12, shadowRadius: 8, elevation: 2 },
-  characterImageFrame: { height: 138, borderRadius: 13, overflow: 'hidden', backgroundColor: '#F1F5F2', alignItems: 'center', justifyContent: 'center' },
-  characterImage: { width: '100%', height: '100%' },
+  characterRail: { paddingHorizontal: 12, paddingBottom: 12, gap: 8 },
+  characterCard: { alignSelf: 'stretch', minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 14, padding: 8, backgroundColor: '#162033', borderWidth: 1, borderColor: '#243044' },
+  characterCardSelected: { borderColor: '#E8C56B' },
+  characterCardLocked: { opacity: 0.72 },
+  characterImageFrame: { width: 48, height: 48, borderRadius: 12, overflow: 'hidden', backgroundColor: '#0E1524', alignItems: 'center', justifyContent: 'center' },
+  characterImage: { width: 48, height: 48 },
+  characterImageHidden: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0E1524' },
+  characterCopy: { flex: 1, minWidth: 0 },
   lockChip: { position: 'absolute', right: 6, top: 6, borderRadius: 999, paddingHorizontal: 7, paddingVertical: 4, backgroundColor: 'rgba(255,255,255,0.92)' },
   lockChipText: { fontSize: 8, fontWeight: '900', color: '#667069' },
-  characterName: { marginTop: 7, textAlign: 'center', fontSize: 14, fontWeight: '900', color: '#15271D' },
-  characterRank: { marginTop: 1, textAlign: 'center', fontSize: 10, color: '#506257' },
-  characterStateActive: { marginTop: 5, textAlign: 'center', fontSize: 8.5, fontWeight: '900', color: '#15783A' },
-  characterStateNext: { marginTop: 5, textAlign: 'center', fontSize: 8.5, fontWeight: '900', color: '#178A43' },
-  characterStateMuted: { marginTop: 5, textAlign: 'center', fontSize: 8.5, fontWeight: '900', color: '#879089' },
-  characterStateReady: { marginTop: 5, textAlign: 'center', fontSize: 8.5, fontWeight: '900', color: '#34754A' },
-  heroPanel: { marginHorizontal: 16, marginBottom: 14, padding: 10, borderRadius: 22, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#DCE7E0', flexDirection: 'row', gap: 18, alignItems: 'stretch' },
-  heroPanelCompact: { flexDirection: 'column' },
-  heroPanelNativeCompact: { alignItems: 'stretch' },
-  largeArtFrame: { width: 360, minHeight: 260, borderRadius: 18, overflow: 'hidden', backgroundColor: '#EDF5F0', alignItems: 'center', justifyContent: 'center' },
-  largeArtFrameCompact: { width: '100%', minHeight: 280 },
-  largeArtFrameNativeCompact: { height: 300 },
-  largeArt: { width: '100%', height: '100%', minHeight: 260 },
-  largeArtNativeCompact: { minHeight: 300 },
-  heroCopy: { flex: 1.2, paddingVertical: 12, minWidth: 240 },
-  heroCopyNativeCompact: { minWidth: 0, width: '100%' },
+  characterName: { fontSize: 13, fontWeight: '900', color: '#F7F1DE' },
+  characterRank: { marginTop: 1, fontSize: 10, color: '#9AA6BD' },
+  characterStateActive: { marginTop: 2, fontSize: 8.5, fontWeight: '900', color: '#E8C56B' },
+  characterStateNext: { marginTop: 2, fontSize: 8.5, fontWeight: '900', color: '#E8C56B' },
+  characterStateMuted: { marginTop: 2, fontSize: 8.5, fontWeight: '900', color: '#8B95A8' },
+  characterStateReady: { marginTop: 2, fontSize: 8.5, fontWeight: '900', color: '#C9D2E3' },
+  heroPanel: { marginHorizontal: 12, marginBottom: 12, padding: 10, borderRadius: 18, backgroundColor: '#162033', borderWidth: 1, borderColor: 'rgba(232,197,107,0.45)', flexDirection: 'row', gap: 12, alignItems: 'center' },
+  heroPanelCompact: { flexDirection: 'column', alignItems: 'stretch' },
+  largeArtFrame: { width: 140, height: 160, borderRadius: 14, overflow: 'hidden', backgroundColor: '#0E1524', alignItems: 'center', justifyContent: 'center' },
+  badgeStack: { position: 'absolute', left: 6, top: 8, gap: 4 },
+  badgePin: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1A1406', borderWidth: 1, borderColor: '#E8C56B' },
+  largeArtFrameCompact: {
+    width: 140,
+    height: 168,
+    alignSelf: 'center',
+    marginBottom: 8,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#0E1524',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  largeArt: { width: '100%', height: '100%' },
+  largeArtNativeCompact: {},
+  heroCopy: { flex: 1, flexShrink: 1, paddingVertical: 4, minWidth: 0, maxWidth: '100%' },
+  heroCopyCompact: { flexGrow: 0, flexShrink: 1, width: '100%', maxWidth: '100%' },
   titleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 10 },
-  detailTitle: { fontSize: 34, lineHeight: 40, fontWeight: '900', color: '#0E2A1C' },
+  detailTitle: { fontSize: 20, lineHeight: 24, fontWeight: '900', color: '#F7F1DE' },
   specialPill: { backgroundColor: '#F6EBD1', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
   specialPillText: { fontSize: 9, fontWeight: '900', color: '#8A6517' },
-  detailDomain: { marginTop: 5, fontSize: 16, fontWeight: '900', color: '#178A43' },
-  quoteText: { marginTop: 8, fontSize: 13, lineHeight: 19, fontStyle: 'italic', color: '#4C6658' },
-  description: { marginTop: 8, fontSize: 12, lineHeight: 19, color: '#43564B' },
+  detailDomain: { marginTop: 4, fontSize: 12, fontWeight: '800', color: '#E8C56B' },
+  quoteText: { marginTop: 6, fontSize: 11, lineHeight: 16, fontStyle: 'italic', color: '#9AA6BD' },
+  description: { marginTop: 6, fontSize: 11, lineHeight: 16, color: '#C9D2E3' },
   traitWrap: { marginTop: 14, flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  traitPill: { minWidth: 120, flexDirection: 'row', alignItems: 'center', gap: 7, borderWidth: 1, borderColor: '#E3E9E5', borderRadius: 14, paddingHorizontal: 10, paddingVertical: 8, backgroundColor: '#FFFFFF' },
+  traitPill: { maxWidth: '100%', flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 7, borderWidth: 1, borderColor: '#243044', borderRadius: 14, paddingHorizontal: 10, paddingVertical: 8, backgroundColor: '#10182A' },
   traitDot: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#1C9A4C' },
   traitDotAlt: { backgroundColor: '#2687D8' },
   traitDotGold: { backgroundColor: '#E3A516' },
   traitDotPurple: { backgroundColor: '#8D48CC' },
-  traitText: { flex: 1, fontSize: 9.5, fontWeight: '800', color: '#2F3D34' },
-  rankPanel: { width: 300, minWidth: 240, padding: 16, borderRadius: 18, backgroundColor: '#EDF8F1', justifyContent: 'center' },
+  traitText: { flexShrink: 1, fontSize: 9.5, fontWeight: '800', color: '#C9D2E3' },
+  rankPanel: { marginHorizontal: 12, marginBottom: 12, width: undefined, minWidth: 0, padding: 12, borderRadius: 14, backgroundColor: '#10182A', justifyContent: 'center' },
+  heroPhoto: { width: 112, height: 132 },
   rankPanelNativeCompact: { width: '100%', minWidth: 0 },
-  rankStatus: { fontSize: 18, fontWeight: '900', color: '#163A26' },
-  rankSubtitle: { marginTop: 2, fontSize: 11, lineHeight: 16, color: '#3C5B49' },
+  rankStatus: { fontSize: 14, fontWeight: '900', color: '#F7F1DE' },
+  rankSubtitle: { marginTop: 2, fontSize: 11, lineHeight: 16, color: '#9AA6BD' },
   rankLine: { marginTop: 20, flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
-  rankLabel: { fontSize: 10, color: '#53675A' },
-  rankValue: { fontSize: 12, fontWeight: '900', color: '#167C3C' },
-  progressTrack: { marginTop: 7, height: 10, borderRadius: 5, backgroundColor: '#CFE8D8', overflow: 'hidden' },
-  progressFill: { height: '100%', borderRadius: 5, backgroundColor: '#1AA14C' },
-  rankHelp: { marginTop: 14, fontSize: 10.5, lineHeight: 16, color: '#237243' },
-  primaryAction: { marginTop: 14, alignSelf: 'flex-start', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9, backgroundColor: '#168A42' },
+  rankLabel: { fontSize: 10, color: '#9AA6BD' },
+  rankValue: { fontSize: 12, fontWeight: '900', color: '#E8C56B' },
+  progressTrack: { marginTop: 7, height: 8, borderRadius: 5, backgroundColor: '#2A3548', overflow: 'hidden' },
+  progressFill: { height: '100%', borderRadius: 5, backgroundColor: '#E8C56B' },
+  rankHelp: { marginTop: 10, fontSize: 10, lineHeight: 15, color: '#C9D2E3' },
+  primaryAction: { marginTop: 12, alignSelf: 'flex-start', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9, backgroundColor: '#E8C56B' },
   primaryActionDisabled: { opacity: 0.55 },
-  primaryActionText: { fontSize: 9, fontWeight: '900', color: '#FFFFFF' },
-  nativeDetailsToggle: { marginHorizontal: 16, marginBottom: 12, padding: 12, borderRadius: 16, borderWidth: 1, borderColor: '#DDE7E0', backgroundColor: '#FFFFFF' },
-  nativeDetailsToggleTitle: { fontSize: 11, fontWeight: '900', color: '#176E39' },
-  nativeDetailsToggleText: { marginTop: 3, fontSize: 9.5, lineHeight: 14, color: '#617068' },
-  sectionCard: { marginHorizontal: 16, marginBottom: 12, padding: 12, borderRadius: 20, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#DDE7E0' },
+  primaryActionText: { fontSize: 9, fontWeight: '900', color: '#1A1406' },
+  nativeDetailsToggle: { marginHorizontal: 12, marginBottom: 12, padding: 12, borderRadius: 16, borderWidth: 1, borderColor: '#243044', backgroundColor: '#162033' },
+  nativeDetailsToggleTitle: { fontSize: 11, fontWeight: '900', color: '#E8C56B' },
+  nativeDetailsToggleText: { marginTop: 3, fontSize: 9.5, lineHeight: 14, color: '#9AA6BD' },
+  sectionCard: { marginHorizontal: 12, marginBottom: 12, padding: 12, borderRadius: 18, backgroundColor: '#162033', borderWidth: 1, borderColor: '#243044' },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   sectionHeaderCopy: { flex: 1 },
-  sectionTitle: { fontSize: 15, fontWeight: '900', color: '#163425' },
-  sectionCaption: { marginTop: 2, fontSize: 10.5, lineHeight: 15, color: '#617068' },
+  sectionTitle: { fontSize: 13, fontWeight: '900', color: '#F4E7C3' },
+  sectionCaption: { marginTop: 2, fontSize: 10.5, lineHeight: 15, color: '#9AA6BD' },
   textAction: { paddingHorizontal: 9, paddingVertical: 6 },
-  textActionText: { fontSize: 9, fontWeight: '900', color: '#176E39' },
-  levelRail: { paddingTop: 10, gap: 8 },
-  levelCard: { width: 124, minHeight: 176, borderRadius: 14, padding: 6, borderWidth: 1, borderColor: '#E0E7E2', backgroundColor: '#FBFDFC' },
+  textActionText: { fontSize: 9, fontWeight: '900', color: '#E8C56B' },
+  levelRail: { marginTop: 6, flexDirection: 'row', flexWrap: 'wrap' },
+  levelCard: { width: '33.33%', padding: 4 },
+  levelCardInner: { minHeight: 156, borderRadius: 14, padding: 6, borderWidth: 1, borderColor: '#243044', backgroundColor: '#121A2B' },
   levelCardCurrent: { borderColor: '#1DA04C', borderWidth: 2 },
   levelImageFrame: { height: 92, borderRadius: 11, overflow: 'hidden', backgroundColor: '#ECF1EE', alignItems: 'center', justifyContent: 'center' },
-  levelImage: { width: '100%', height: '100%' },
+  levelImage: { width: '100%', height: 92 },
   lockedPreview: { flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F0F3F1' },
   lockCircle: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#D8DEDA', alignItems: 'center', justifyContent: 'center' },
   lockCircleText: { color: '#FFFFFF', fontWeight: '900', fontSize: 12 },
   levelNumberBadge: { position: 'absolute', bottom: 5, left: 5, width: 20, height: 20, borderRadius: 10, backgroundColor: '#178E45', alignItems: 'center', justifyContent: 'center' },
   levelNumberText: { color: '#FFFFFF', fontSize: 9, fontWeight: '900' },
-  levelTitle: { marginTop: 6, minHeight: 30, fontSize: 10.5, lineHeight: 14, fontWeight: '800', color: '#24352B' },
-  levelOpen: { marginTop: 3, fontSize: 8.5, fontWeight: '900', color: '#16813E' },
-  levelLocked: { marginTop: 3, fontSize: 8.5, fontWeight: '900', color: '#879088' },
-  levelCollectible: { marginTop: 5, fontSize: 8.5, color: '#66736B' },
+  levelTitle: { marginTop: 6, minHeight: 30, fontSize: 10.5, lineHeight: 14, fontWeight: '800', color: '#F7F1DE' },
+  levelOpen: { marginTop: 3, fontSize: 8.5, fontWeight: '900', color: '#E8C56B' },
+  levelLocked: { marginTop: 3, fontSize: 8.5, fontWeight: '900', color: '#8B95A8' },
+  levelCollectible: { marginTop: 5, fontSize: 8.5, color: '#9AA6BD' },
   collectibleLoader: { marginVertical: 20 },
-  collectibleGrid: { marginTop: 10, flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  collectibleCard: { width: 150, minHeight: 168, borderRadius: 14, padding: 10, borderWidth: 1, borderColor: '#E1E8E3', backgroundColor: '#FBFDFC' },
-  collectibleCardCompact: { width: '48%' },
+  collectibleGrid: { marginTop: 6, flexDirection: 'row', flexWrap: 'wrap' },
+  collectibleCard: { width: '50%', padding: 4 },
+  collectibleCardInner: { minHeight: 168, borderRadius: 14, padding: 10, borderWidth: 1, borderColor: '#243044', backgroundColor: '#121A2B' },
   collectibleIcon: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#E0F3E6', alignItems: 'center', justifyContent: 'center' },
   collectibleIconSecret: { backgroundColor: '#E6E8E7' },
   collectibleIconText: { fontSize: 12, fontWeight: '900', color: '#227541' },
-  collectibleName: { marginTop: 8, fontSize: 10.5, lineHeight: 14, fontWeight: '900', color: '#26382E' },
-  badgeName: { marginTop: 3, fontSize: 8.5, fontWeight: '800', color: '#627069' },
-  requirementText: { marginTop: 7, fontSize: 8.5, lineHeight: 13, color: '#67756D' },
+  collectibleName: { marginTop: 8, fontSize: 10.5, lineHeight: 14, fontWeight: '900', color: '#F7F1DE' },
+  badgeName: { marginTop: 3, fontSize: 8.5, fontWeight: '800', color: '#9AA6BD' },
+  requirementText: { marginTop: 7, fontSize: 8.5, lineHeight: 13, color: '#C9D2E3' },
   collectibleEarned: { marginTop: 8, fontSize: 8, fontWeight: '900', color: '#16813E' },
   collectibleSecret: { marginTop: 8, fontSize: 8, fontWeight: '900', color: '#777F79' },
   collectibleTier: { marginTop: 8, fontSize: 8, fontWeight: '900', color: '#9A7118' },
-  emptyBadges: { marginTop: 12, fontSize: 10, lineHeight: 15, color: '#67756D' },
-  message: { marginHorizontal: 16, marginBottom: 14, fontSize: 10, lineHeight: 15, color: '#56685D' },
+  emptyBadges: { marginTop: 12, fontSize: 10, lineHeight: 15, color: '#9AA6BD' },
+  message: { marginHorizontal: 16, marginBottom: 14, fontSize: 10, lineHeight: 15, color: '#C9D2E3' },
 });

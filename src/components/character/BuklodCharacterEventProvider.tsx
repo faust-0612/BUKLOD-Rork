@@ -8,8 +8,6 @@ import React, {
   useState,
 } from 'react';
 
-import * as Speech from 'expo-speech';
-
 import { useAuth } from '@/providers/AuthProvider';
 import {
   type ActiveCharacterPresentation,
@@ -33,6 +31,7 @@ import {
   saveCharacterReactionsMode,
   saveCharacterVoiceEnabled,
   speakCharacterLine,
+  stopCharacterSpeech,
 } from '@/lib/buklodCharacterEvents';
 
 type CharacterEventContextValue = {
@@ -241,11 +240,7 @@ export function BuklodCharacterEventProvider({
     setVoiceEnabledState(enabled);
     void saveCharacterVoiceEnabled(enabled);
     if (!enabled) {
-      try {
-        Speech.stop();
-      } catch {
-        /* noop */
-      }
+      stopCharacterSpeech();
     }
   }, []);
 

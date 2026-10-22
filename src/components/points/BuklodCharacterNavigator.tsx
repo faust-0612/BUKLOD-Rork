@@ -14,6 +14,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { router } from 'expo-router';
 
 import BuklodActiveCharacterArt from '@/components/points/BuklodActiveCharacterArt';
 import { useBuklodCharacterEventsOptional } from '@/components/character/BuklodCharacterEventProvider';
@@ -21,7 +22,6 @@ import { useBuklodReduceMotion } from '@/components/HomeMotion';
 import { useBuklodPresentation } from '@/hooks/useBuklodPresentation';
 import { withAlpha } from '@/lib/buklodContrast';
 import type { BuklodCharacterState } from '@/lib/buklodCharacter';
-import { CharacterEventType } from '@/lib/buklodCharacterEvents';
 
 type Props = {
   character: BuklodCharacterState;
@@ -39,7 +39,6 @@ export default function BuklodCharacterNavigator({
   lifetimePoints = 0,
   pointsToNext = null,
   nextRankName = null,
-  onOpenCustomize,
 }: Props) {
   const { theme } = useBuklodPresentation();
   const reduceMotion = useBuklodReduceMotion();
@@ -201,17 +200,9 @@ export default function BuklodCharacterNavigator({
       return;
     }
 
-    if (onOpenCustomize) {
-      onOpenCustomize();
-      return;
-    }
-
-    events?.emit({
-      type: CharacterEventType.WAVE,
-      success: true,
-      dialogue: 'Tap Customize to change your look!',
-    });
-  }, [claimableCount, events, onOpenCustomize, showBubble]);
+    // Character picture door → canonical Economy & Bayanihan ledger.
+    router.push('/points/economy' as any);
+  }, [claimableCount, showBubble]);
 
   const avatarSize = 48;
 
@@ -262,7 +253,7 @@ export default function BuklodCharacterNavigator({
         accessibilityLabel={
           claimableCount > 0
             ? 'Open claimable rewards'
-            : 'Open character options'
+            : 'Open Economy and Bayanihan'
         }
         style={({ pressed }) => [
           styles.row,

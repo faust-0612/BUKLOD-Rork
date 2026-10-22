@@ -19,15 +19,23 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
+
+import {
+  buildBuklodUserFeedback,
+  trackBuklodFeedbackEvent,
+} from '@/lib/buklodUserFeedback';
 
 import { shared } from '@/components/UI';
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 import BuklodPointsClaimCelebration from '@/components/points/BuklodPointsClaimCelebration';
 import BuklodRedeemCatalogSection from '@/components/points/BuklodRedeemCatalogSection';
+import BuklodActiveCharacterArt from '@/components/points/BuklodActiveCharacterArt';
 import { useClaimButtonGlow } from '@/components/points/PointsMotion';
 import { useBuklodReduceMotion } from '@/components/HomeMotion';
 import { useBuklodCharacterEventsOptional } from '@/components/character/BuklodCharacterEventProvider';
 import { CharacterEventType } from '@/lib/buklodCharacterEvents';
+import { DEFAULT_CHARACTER } from '@/lib/buklodCharacter';
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import {
   claimBuklodRewardGroup,
@@ -578,6 +586,9 @@ export default function BuklodPointsRewardsScreen() {
   const [lastSuccess, setLastSuccess] = useState<{ label: string; points: number } | null>(null);
   const [celebrationActive, setCelebrationActive] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [dashboardError, setDashboardError] = useState('');
+  const [dashboardSupportCode, setDashboardSupportCode] =
+    useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
   const [animationsOn, setAnimationsOn] = useState(true);
@@ -628,10 +639,34 @@ export default function BuklodPointsRewardsScreen() {
     ]);
 
     try {
+      setDashboardError('');
+      setDashboardSupportCode(null);
       const nextDashboard = await loadBuklodPointsDashboard();
       setDashboard(nextDashboard);
     } catch (error) {
-      console.warn('BUKLOD Points dashboard:', normalizeErrorMessage(error));
+      console.warn('BUKLOD Points dashboard could not be loaded.');
+      const feedback = buildBuklodUserFeedback(
+        error,
+        {
+          context: 'general',
+          fallbackTitle: 'BUKLOD Points unavailable',
+          fallbackMessage:
+            "BUKLOD couldn't load your Points dashboard right now.",
+        },
+      );
+      setDashboard(null);
+      setDashboardError(
+        "BUKLOD couldn't load your Points dashboard right now. Your existing points are unchanged.",
+      );
+      setDashboardSupportCode(feedback.supportCode ?? 'SYS-500');
+      void trackBuklodFeedbackEvent({
+        event: 'error_shown',
+        category: feedback.category,
+        supportCode: feedback.supportCode ?? 'SYS-500',
+        route: '/points',
+        feature: 'Points',
+        outcome: 'points_dashboard_failed',
+      });
     }
 
     try {
@@ -790,13 +825,68 @@ export default function BuklodPointsRewardsScreen() {
 
   const recentHistory = history.slice(0, 5);
 
-  if (loading || !dashboard) {
+  if (loading) {
     return (
       <View style={[shared.screen, styles.loadingScreen]}>
         <View style={styles.loadingCoin}>
           <MaterialCommunityIcons name="leaf" size={30} color={COLORS.gold} />
         </View>
         <Text style={styles.loadingTitle}>Loading BUKLOD Points…</Text>
+      </View>
+    );
+  }
+
+  if (!dashboard) {
+    return (
+      <View style={[shared.screen, styles.loadingScreen]}>
+        <MaterialCommunityIcons
+          name="alert-circle-outline"
+          size={34}
+          color={COLORS.danger}
+        />
+        <Text style={styles.loadingTitle}>BUKLOD Points unavailable</Text>
+        <Text style={styles.dashboardErrorText}>
+          {dashboardError ||
+            "BUKLOD couldn't load your Points dashboard right now."}
+        </Text>
+        {!!dashboardSupportCode && (
+          <Text style={styles.dashboardSupportCode}>
+            Support code: {dashboardSupportCode}
+          </Text>
+        )}
+        <View style={styles.dashboardErrorActions}>
+          <Pressable
+            onPress={() => void load()}
+            style={styles.dashboardRetry}
+          >
+            <Text style={styles.dashboardRetryText}>TRY AGAIN</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              void trackBuklodFeedbackEvent({
+                event: 'support_opened_after_error',
+                supportCode: dashboardSupportCode,
+                route: '/points',
+                feature: 'Points',
+                outcome: 'need_help',
+              });
+              router.push({
+                pathname: '/help' as any,
+                params: {
+                  category: 'OTHER',
+                  errorCode: dashboardSupportCode ?? 'SYS-500',
+                  message:
+                    dashboardError ||
+                    "BUKLOD couldn't load your Points dashboard right now.",
+                  sourceRoute: '/points',
+                },
+              });
+            }}
+            style={styles.dashboardHelp}
+          >
+            <Text style={styles.dashboardHelpText}>NEED HELP?</Text>
+          </Pressable>
+        </View>
       </View>
     );
   }
@@ -853,6 +943,31 @@ export default function BuklodPointsRewardsScreen() {
             warm
           />
         </View>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Open Economy and Bayanihan"
+          onPress={() => router.push('/points/economy' as any)}
+          style={({ pressed }) => [styles.economyDoor, pressed && { opacity: 0.9 }]}
+        >
+          <View style={styles.economyDoorArt}>
+            <BuklodActiveCharacterArt
+              fallbackCharacter={DEFAULT_CHARACTER}
+              height={96}
+              viewportWidth={72}
+              showStage={false}
+              showEffects={false}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.economyDoorKicker}>CHARACTER DOOR</Text>
+            <Text style={styles.economyDoorTitle}>Economy & Bayanihan</Text>
+            <Text style={styles.economyDoorSub}>
+              Open your full Points, Pool/QMP share weight, Bayanihan ₱, claims, and history ledger.
+            </Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={22} color={COLORS.green} />
+        </Pressable>
 
         <View style={styles.feedbackRow}>
           <FeedbackToggle
@@ -1198,6 +1313,49 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#F0C55F',
   },
+  dashboardErrorText: {
+    marginTop: 8,
+    maxWidth: 440,
+    textAlign: 'center',
+    color: COLORS.muted,
+    fontSize: 12.5,
+    lineHeight: 18,
+  },
+  dashboardSupportCode: {
+    marginTop: 7,
+    color: COLORS.danger,
+    fontSize: 10.5,
+    fontWeight: '900',
+  },
+  dashboardErrorActions: {
+    marginTop: 14,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  dashboardRetry: {
+    borderRadius: 10,
+    backgroundColor: COLORS.green,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  dashboardRetryText: {
+    color: COLORS.white,
+    fontSize: 10.5,
+    fontWeight: '900',
+  },
+  dashboardHelp: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.green,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  dashboardHelpText: {
+    color: COLORS.green,
+    fontSize: 10.5,
+    fontWeight: '900',
+  },
   loadingTitle: {
     marginTop: 12,
     fontSize: 15,
@@ -1312,6 +1470,42 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 14,
     marginTop: 10,
+  },
+  economyDoor: {
+    marginTop: 12,
+    marginHorizontal: 14,
+    padding: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(39,93,69,0.22)',
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  economyDoorArt: {
+    width: 72,
+    height: 96,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  economyDoorKicker: {
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.7,
+    color: COLORS.green,
+  },
+  economyDoorTitle: {
+    marginTop: 2,
+    fontSize: 15,
+    fontWeight: '900',
+    color: COLORS.ink,
+  },
+  economyDoorSub: {
+    marginTop: 3,
+    fontSize: 10.5,
+    lineHeight: 15,
+    color: COLORS.muted,
   },
   summaryTile: {
     flex: 1,

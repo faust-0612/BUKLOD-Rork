@@ -92,9 +92,7 @@ export default function CreateClusterScreen() {
           name: String(row.name ?? 'Organization'),
         })).filter((row: OrgOption) => row.scope_id);
         setOrganizations(rows);
-        if (rows.length === 1) {
-          setOrganizationId(rows[0].scope_id);
-        }
+        setOrganizationId('');
       } catch {
         if (active) setOrganizations([]);
       }
@@ -109,14 +107,6 @@ export default function CreateClusterScreen() {
       Alert.alert('Cluster', 'Enter a Cluster name.');
       return;
     }
-    if (!organizationId) {
-      Alert.alert(
-        'Cluster',
-        'Every Cluster must belong to an Organization. Create or select an Organization first.',
-      );
-      return;
-    }
-
     setBusy(true);
 
     try {
@@ -125,7 +115,7 @@ export default function CreateClusterScreen() {
         category,
         description,
         visibility,
-        organizationId,
+        organizationId: organizationId || null,
       });
 
       router.replace({
@@ -149,41 +139,38 @@ export default function CreateClusterScreen() {
         <Text style={styles.eyebrow}>NEW COMMUNITY</Text>
         <Text style={styles.title}>Create a Cluster</Text>
         <Text style={styles.subtitle}>
-          Clusters belong to an Organization. Organization registration stays
-          free. You become Cluster Admin of this Cluster only.
+          A Cluster can stand on its own. An Organization is optional. You
+          become the leader of this Cluster only.
         </Text>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.label}>PARENT ORGANIZATION *</Text>
-        {organizations.length === 0 ? (
-          <>
-            <Text style={styles.help}>
-              Create an Organization first. Clusters cannot be created without one.
-            </Text>
+        <Text style={styles.label}>ORGANIZATION (OPTIONAL)</Text>
+        <Text style={styles.help}>
+          Leave this empty to create the Cluster without a mother organization.
+        </Text>
+        <Pressable
+          onPress={() => setOrganizationId('')}
+          style={[styles.orgRow, !organizationId && styles.orgRowOn]}
+        >
+          <Text style={[styles.orgName, !organizationId && styles.orgNameOn]}>
+            No organization
+          </Text>
+        </Pressable>
+        {organizations.map((org) => {
+          const selected = organizationId === org.scope_id;
+          return (
             <Pressable
-              onPress={() => router.push('/organizations/create' as any)}
-              style={styles.secondary}
+              key={org.scope_id}
+              onPress={() => setOrganizationId(org.scope_id)}
+              style={[styles.orgRow, selected && styles.orgRowOn]}
             >
-              <Text style={styles.secondaryText}>CREATE ORGANIZATION</Text>
+              <Text style={[styles.orgName, selected && styles.orgNameOn]}>
+                {org.name}
+              </Text>
             </Pressable>
-          </>
-        ) : (
-          organizations.map((org) => {
-            const selected = organizationId === org.scope_id;
-            return (
-              <Pressable
-                key={org.scope_id}
-                onPress={() => setOrganizationId(org.scope_id)}
-                style={[styles.orgRow, selected && styles.orgRowOn]}
-              >
-                <Text style={[styles.orgName, selected && styles.orgNameOn]}>
-                  {org.name}
-                </Text>
-              </Pressable>
-            );
-          })
-        )}
+          );
+        })}
 
         <Text style={styles.label}>CLUSTER NAME *</Text>
         <TextInput
@@ -233,9 +220,9 @@ export default function CreateClusterScreen() {
       })}
 
       <Pressable
-        disabled={busy || !organizationId}
+        disabled={busy}
         onPress={() => void submit()}
-        style={[styles.primary, (busy || !organizationId) && { opacity: 0.55 }]}
+        style={[styles.primary, busy && { opacity: 0.55 }]}
       >
         <Text style={styles.primaryText}>
           {busy ? 'CREATING...' : 'CREATE CLUSTER'}

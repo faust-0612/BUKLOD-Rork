@@ -36,6 +36,16 @@ import BuklodAdLightRewardCard
   from '@/components/BuklodAdLightRewardCard';
 
 import {
+  CHARACTER_DISPLAY_NAME,
+  getCachedBuklodCharacterSelectionV2,
+  getMyBuklodCharacterSelectionV2,
+  resolveBuklodCharacterDisplay,
+  subscribeBuklodCharacterDisplayOverride,
+  subscribeBuklodCharacterSelectionV2,
+  type BuklodCharacterSelectionV2State,
+} from '@/lib/buklodCharacterSelectionV2';
+
+import {
   ProfileMotionFadeUp,
 } from '@/components/BuklodProfileMotion';
 
@@ -80,6 +90,10 @@ import {
 } from '@/lib/supabase';
 
 import {
+  withBuklodTimeout,
+} from '@/lib/buklodAsyncTimeout';
+
+import {
   withAlpha,
 } from '@/lib/buklodContrast';
 
@@ -116,6 +130,10 @@ export default function BuklodProfileCharacterCard({
   const [claimGroups, setClaimGroups] = useState<BuklodClaimGroup[]>([]);
   const [topTen, setTopTen] = useState<ProfileLeaderboardRow[]>([]);
   const [topTenBusy, setTopTenBusy] = useState(false);
+  const [selection, setSelection] = useState<BuklodCharacterSelectionV2State | null>(() =>
+    getCachedBuklodCharacterSelectionV2(userId),
+  );
+  const [, setSelectionTick] = useState(0);
 
   useEffect(() => {
     setDisplayPoints(lifetimePoints);
@@ -134,6 +152,40 @@ export default function BuklodProfileCharacterCard({
       setConfig(reconciled);
     });
   }, [displayPoints, userId]);
+
+  useEffect(() => {
+    if (!userId) {
+      setSelection(null);
+      return;
+    }
+    let mounted = true;
+    void getMyBuklodCharacterSelectionV2(userId, true).then(
+      (next) => {
+        if (mounted) setSelection(next);
+      },
+      () => undefined,
+    );
+    const unsubscribeSelection = subscribeBuklodCharacterSelectionV2((changedUserId, next) => {
+      if (mounted && changedUserId === userId) {
+        setSelection(next);
+        setSelectionTick((value) => value + 1);
+      }
+    });
+    const unsubscribeDisplay = subscribeBuklodCharacterDisplayOverride(() => {
+      if (mounted) setSelectionTick((value) => value + 1);
+    });
+    return () => {
+      mounted = false;
+      unsubscribeSelection();
+      unsubscribeDisplay();
+    };
+  }, [userId]);
+
+  const liveDisplay = resolveBuklodCharacterDisplay(selection);
+  const liveName = liveDisplay
+    ? CHARACTER_DISPLAY_NAME[liveDisplay.character_id]
+    : null;
+  const liveLevel = liveDisplay?.character_level ?? null;
 
   const loadClaimGroups = useCallback(async () => {
     if (!userId) {
@@ -162,13 +214,17 @@ export default function BuklodProfileCharacterCard({
     setTopTenBusy(true);
 
     try {
-      const { data, error } = await (supabase as any).rpc(
-        'get_buklod_points_leaderboard',
-        {
-          p_period: 'all_time',
-          p_limit: 10,
-          p_church_id: null,
-        },
+      const { data, error } = await withBuklodTimeout<any>(
+        (supabase as any).rpc(
+          'get_buklod_points_leaderboard',
+          {
+            p_period: 'all_time',
+            p_limit: 10,
+            p_church_id: null,
+          },
+        ),
+        8_000,
+        'Profile Points leaderboard',
       );
 
       if (error) {
@@ -467,6 +523,7 @@ export default function BuklodProfileCharacterCard({
                 ]}
               >
                 <BuklodActiveCharacterArt
+                  key={`profile-art-${liveDisplay?.character_id ?? 'none'}-${liveLevel ?? 0}`}
                   fallbackCharacter={config}
                   height={124}
                   viewportWidth={82}
@@ -485,15 +542,18 @@ export default function BuklodProfileCharacterCard({
                     style={styles.rankTitle}
                     numberOfLines={1}
                   >
-                    {rankLabel || 'BUKLOD Character'}
+                    {liveName
+                      ? `${liveName} · Level ${liveLevel ?? 1}`
+                      : rankLabel || 'BUKLOD Character'}
                   </Text>
 
                   <Text style={styles.pointsMeta}>
                     {formatPoints(displayPoints)} lifetime pts
+                    {rankLabel ? ` · ${rankLabel}` : ''}
                   </Text>
 
                   <Text style={styles.helper}>
-                    Rank, points, and ready rewards are visible directly in Profile.
+                    This is the character and level on your profile right now.
                   </Text>
                 </Pressable>
 
@@ -675,6 +735,16 @@ export default function BuklodProfileCharacterCard({
         userId={userId}
         lifetimePoints={displayPoints}
         onSaved={setConfig}
+        onActiveChanged={() => {
+          if (!userId) return;
+          void getMyBuklodCharacterSelectionV2(userId, true).then(
+            (next) => {
+              setSelection(next);
+              setSelectionTick((value) => value + 1);
+            },
+            () => undefined,
+          );
+        }}
       />
     </>
   );

@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Speech from 'expo-speech';
+import { Platform } from 'react-native';
 
 import {
   CELEBRATE_MS,
@@ -152,6 +153,50 @@ let greetingShownThisSession = false;
 let lastDialogueAt = 0;
 let lastEquipVoiceAt = 0;
 let speechBusy = false;
+
+/*
+ * BUKLOD_CHARACTER_WEB_SPEECH_GUARD_R1
+ *
+ * expo-speech uses the browser Web Speech API on web. Facebook/Messenger IAB
+ * may not provide a complete implementation, so character voice becomes a
+ * graceful no-op there instead of an unhandled browser exception.
+ */
+function characterSpeechAvailable() {
+  if (Platform.OS !== 'web') {
+    return true;
+  }
+
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  const runtime = window as any;
+
+  return (
+    !!runtime.speechSynthesis &&
+    typeof runtime.speechSynthesis.speak === 'function' &&
+    typeof runtime.speechSynthesis.cancel === 'function' &&
+    typeof runtime.SpeechSynthesisUtterance === 'function'
+  );
+}
+
+export function stopCharacterSpeech() {
+  if (!characterSpeechAvailable()) {
+    speechBusy = false;
+    return;
+  }
+
+  try {
+    const result = Speech.stop();
+    void Promise.resolve(result)
+      .catch(() => undefined);
+  }
+  catch {
+    /* optional speech feature */
+  }
+
+  speechBusy = false;
+}
 
 export function resetCharacterSessionFlags() {
   greetingShownThisSession = false;
@@ -424,11 +469,21 @@ export function speakCharacterLine(
   text: string,
   enabled: boolean
 ) {
-  if (!enabled || !text.trim() || speechBusy) return;
+  if (
+    !enabled ||
+    !text.trim() ||
+    speechBusy ||
+    !characterSpeechAvailable()
+  ) {
+    return;
+  }
 
   speechBusy = true;
   try {
-    Speech.stop();
+    const stopResult = Speech.stop();
+    void Promise.resolve(stopResult)
+      .catch(() => undefined);
+
     Speech.speak(normalizeBuklodSpeechText(text), {
       language: 'en-PH',
       rate: 0.92,

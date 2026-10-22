@@ -70,29 +70,30 @@ export const CORE_CHARACTER_ORDER: readonly BuklodCoreCharacterId[] = [
   'lhen',
 ] as const;
 
+/** Presentation / unlock order by accepted Circle Rank table. */
 export const SPECIAL_CHARACTER_ORDER: readonly BuklodSpecialCharacterId[] = [
-  'jawo',
-  'trudice',
   'ace',
+  'ellusur',
+  'jawo',
   'mitch',
   'niel',
   'angel',
   'vhen',
-  'ellusur',
+  'trudice',
 ] as const;
 
 export const SPECIAL_REQUIRED_RANK_ORDER: Record<
   BuklodSpecialCharacterId,
   number
 > = {
-  jawo: 3,
-  trudice: 5,
-  ace: 7,
-  mitch: 9,
-  niel: 11,
-  angel: 13,
-  vhen: 15,
-  ellusur: 17,
+  ace: 5,
+  ellusur: 6,
+  jawo: 7,
+  mitch: 8,
+  niel: 9,
+  angel: 10,
+  vhen: 11,
+  trudice: 13,
 };
 
 export const CHARACTER_DISPLAY_NAME: Record<BuklodCharacterId, string> = {
@@ -123,6 +124,78 @@ const listeners = new Set<(
   userId: string,
   state: BuklodCharacterSelectionV2State,
 ) => void>();
+
+/** Bumps on every publish so every visible Character surface remounts art. */
+let selectionRevision = 0;
+
+export type BuklodCharacterDisplayOverride = {
+  character_id: BuklodCharacterId;
+  character_level: number;
+};
+
+let displayOverride: BuklodCharacterDisplayOverride | null = null;
+const displayListeners = new Set<(next: BuklodCharacterDisplayOverride | null) => void>();
+
+export function getBuklodCharacterSelectionRevision() {
+  return selectionRevision;
+}
+
+export function getBuklodCharacterDisplayOverride() {
+  return displayOverride;
+}
+
+export function setBuklodCharacterDisplayOverride(
+  next: BuklodCharacterDisplayOverride | null,
+) {
+  if (
+    next &&
+    (!ALL_CHARACTER_IDS.has(next.character_id) ||
+      !Number.isFinite(next.character_level))
+  ) {
+    return;
+  }
+
+  displayOverride = next
+    ? {
+        character_id: next.character_id,
+        character_level: Math.max(
+          1,
+          Math.min(20, Math.floor(Number(next.character_level) || 1)),
+        ),
+      }
+    : null;
+  selectionRevision += 1;
+  displayListeners.forEach((listener) => listener(displayOverride));
+  // Also nudge selection listeners so mounted art re-reads override + revision.
+  cache.forEach((state, userId) => {
+    listeners.forEach((listener) => listener(userId, state));
+  });
+}
+
+export function subscribeBuklodCharacterDisplayOverride(
+  listener: (next: BuklodCharacterDisplayOverride | null) => void,
+) {
+  displayListeners.add(listener);
+  return () => displayListeners.delete(listener);
+}
+
+export function resolveBuklodCharacterDisplay(
+  state: BuklodCharacterSelectionV2State | null | undefined,
+): { character_id: BuklodCharacterId; character_level: number; revision: number } | null {
+  if (displayOverride) {
+    return {
+      character_id: displayOverride.character_id,
+      character_level: displayOverride.character_level,
+      revision: selectionRevision,
+    };
+  }
+  if (!state) return null;
+  return {
+    character_id: state.active_character_id,
+    character_level: state.character_level,
+    revision: selectionRevision,
+  };
+}
 
 function toSpecialId(value: unknown): BuklodSpecialCharacterId | null {
   const id = String(value ?? '').toLowerCase();
@@ -193,6 +266,12 @@ function normalizeState(value: unknown): BuklodCharacterSelectionV2State {
 
 function publish(userId: string, state: BuklodCharacterSelectionV2State) {
   cache.set(userId, state);
+  selectionRevision += 1;
+  // Server selection is the live profile truth. Clear temporary customize previews.
+  if (displayOverride) {
+    displayOverride = null;
+    displayListeners.forEach((listener) => listener(null));
+  }
   listeners.forEach((listener) => listener(userId, state));
 }
 
@@ -211,11 +290,12 @@ export async function getMyBuklodCharacterSelectionV2(
     throw new Error('Authentication required');
   }
 
+  // A forced refresh bypasses cache, but joins an already running refresh.
+  const pending = inflight.get(userId);
+  if (pending) return pending;
   if (!force) {
     const cached = cache.get(userId);
     if (cached) return cached;
-    const pending = inflight.get(userId);
-    if (pending) return pending;
   }
 
   const request = (async () => {

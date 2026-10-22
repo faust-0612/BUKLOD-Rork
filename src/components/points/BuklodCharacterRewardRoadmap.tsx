@@ -490,7 +490,7 @@ BuklodCharacterRewardRoadmap({
                     },
                   ]}
                 >
-                  {achieved ? 'âœ“ ' : ''}
+                  {achieved ? '✓ ' : ''}
                   {formatPoints(threshold)}
                 </Text>
               </View>

@@ -257,6 +257,7 @@ function RootLayout() {
                 <Stack.Screen name="life/impact" />
                 <Stack.Screen name="life/invite" />
                 <Stack.Screen name="life/topic" />
+                <Stack.Screen name="points/economy" options={{ title: 'Economy & Bayanihan' }} />
                 <Stack.Screen name="bayanihan/index" />
                 <Stack.Screen name="bayanihan/guide" />
                 <Stack.Screen name="preferences/language" />

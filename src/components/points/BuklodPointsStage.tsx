@@ -7,6 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { router } from 'expo-router';
 
 import {
   MaterialCommunityIcons,
@@ -204,7 +205,12 @@ export default function BuklodPointsStage({
           intensity={0.72}
         />
 
-        <View style={styles.art}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Open Economy and Bayanihan"
+          onPress={() => router.push('/points/economy' as any)}
+          style={styles.art}
+        >
           <BuklodCharacterLayeredArt
             body={character.body}
             equipment={character.equipment}
@@ -212,7 +218,7 @@ export default function BuklodPointsStage({
             showStage
             showEffects
           />
-        </View>
+        </Pressable>
 
         <View style={styles.copy}>
           <Text style={styles.eyebrow}>

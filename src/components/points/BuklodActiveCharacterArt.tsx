@@ -1,13 +1,22 @@
 /* BUKLOD_CHARACTER_VISIBLE_SYNC_R31_R40_V2 */
 import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import BuklodProgressiveCharacterArt from '@/components/points/BuklodProgressiveCharacterArt';
 import { useAuth } from '@/providers/AuthProvider';
 import {
+  characterTokenIcon,
+  getMyCharacterCollectibles,
+  shownCollectiblePins,
+} from '@/lib/buklodCharacterCollectibles';
+import {
   CORE_CHARACTER_ORDER,
   SPECIAL_CHARACTER_ORDER,
+  getCachedBuklodCharacterSelectionV2,
   getMyBuklodCharacterSelectionV2,
+  resolveBuklodCharacterDisplay,
+  subscribeBuklodCharacterDisplayOverride,
   subscribeBuklodCharacterSelectionV2,
   type BuklodCharacterSelectionV2State,
   type BuklodCoreCharacterId,
@@ -15,6 +24,7 @@ import {
 } from '@/lib/buklodCharacterSelectionV2';
 import { getBuklodSpecialLevelAsset } from '@/lib/buklodSpecialCharacterAssets';
 import type { BuklodCharacterState } from '@/lib/buklodCharacter';
+import type { ProgressiveCharacterId } from '@/lib/buklodProgressiveCharacter';
 
 type Props = {
   fallbackCharacter: BuklodCharacterState;
@@ -24,13 +34,23 @@ type Props = {
   showEffects?: boolean;
 };
 
+type Pin = {
+  key: string;
+  characterId: ProgressiveCharacterId;
+  itemIndex: number;
+};
+
 export default function BuklodActiveCharacterArt({
   height,
   viewportWidth,
 }: Props) {
   const { session } = useAuth();
   const userId = session?.user?.id ?? null;
-  const [selection, setSelection] = useState<BuklodCharacterSelectionV2State | null>(null);
+  const [selection, setSelection] = useState<BuklodCharacterSelectionV2State | null>(() =>
+    getCachedBuklodCharacterSelectionV2(userId),
+  );
+  const [tick, setTick] = useState(0);
+  const [pins, setPins] = useState<Pin[]>([]);
 
   useEffect(() => {
     if (!userId) {
@@ -39,7 +59,10 @@ export default function BuklodActiveCharacterArt({
     }
 
     let mounted = true;
-    void getMyBuklodCharacterSelectionV2(userId).then(
+    const cached = getCachedBuklodCharacterSelectionV2(userId);
+    if (cached) setSelection(cached);
+
+    void getMyBuklodCharacterSelectionV2(userId, true).then(
       (next) => {
         if (mounted) setSelection(next);
       },
@@ -48,28 +71,71 @@ export default function BuklodActiveCharacterArt({
       },
     );
 
-    const unsubscribe = subscribeBuklodCharacterSelectionV2((changedUserId, next) => {
-      if (mounted && changedUserId === userId) setSelection(next);
+    const unsubscribeSelection = subscribeBuklodCharacterSelectionV2((changedUserId, next) => {
+      if (mounted && changedUserId === userId) {
+        setSelection(next);
+        setTick((value) => value + 1);
+      }
+    });
+    const unsubscribeDisplay = subscribeBuklodCharacterDisplayOverride(() => {
+      if (mounted) setTick((value) => value + 1);
     });
 
     return () => {
       mounted = false;
-      unsubscribe();
+      unsubscribeSelection();
+      unsubscribeDisplay();
     };
   }, [userId]);
 
-  const activeId = selection?.active_character_id;
-  const level = Math.max(1, Math.min(20, Number(selection?.character_level ?? 1) || 1));
+  const display = resolveBuklodCharacterDisplay(selection);
+  const activeId = display?.character_id;
+  const level = display?.character_level ?? 1;
+  const artKey = `${activeId ?? 'none'}-${level}-${display?.revision ?? 0}-${tick}`;
+  const isCore = Boolean(activeId && CORE_CHARACTER_ORDER.includes(activeId as BuklodCoreCharacterId));
+
+  useEffect(() => {
+    if (!userId || !isCore || !activeId) {
+      setPins([]);
+      return;
+    }
+    let alive = true;
+    void getMyCharacterCollectibles(activeId as ProgressiveCharacterId)
+      .then((state) => {
+        if (!alive) return;
+        setPins(shownCollectiblePins(state, activeId as ProgressiveCharacterId));
+      })
+      .catch(() => {
+        if (alive) setPins([]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [userId, isCore, activeId, tick]);
 
   if (activeId && CORE_CHARACTER_ORDER.includes(activeId as BuklodCoreCharacterId)) {
     return (
       <View pointerEvents="none" style={[styles.frame, viewportWidth ? { width: viewportWidth } : null, { height }]}>
         <BuklodProgressiveCharacterArt
+          key={artKey}
           characterId={activeId as BuklodCoreCharacterId}
           level={level}
           height={height}
           viewportWidth={viewportWidth}
         />
+        {pins.length ? (
+          <View style={styles.besideStack}>
+            {pins.map((pin) => (
+              <View key={pin.key} style={styles.besidePin}>
+                <MaterialCommunityIcons
+                  name={characterTokenIcon(pin.characterId, pin.itemIndex) as never}
+                  size={12}
+                  color="#E8C56B"
+                />
+              </View>
+            ))}
+          </View>
+        ) : null}
       </View>
     );
   }
@@ -78,6 +144,7 @@ export default function BuklodActiveCharacterArt({
     return (
       <View pointerEvents="none" style={[styles.frame, viewportWidth ? { width: viewportWidth } : null, { height }]}>
         <Image
+          key={artKey}
           source={getBuklodSpecialLevelAsset(activeId as BuklodSpecialCharacterId, level)}
           resizeMode="contain"
           fadeDuration={0}
@@ -87,9 +154,6 @@ export default function BuklodActiveCharacterArt({
     );
   }
 
-  /* Fail closed to the canonical Character system. Never resurrect the retired
-   * layered/wardrobe renderer when server-backed V2 state is unavailable.
-   * Keep the frame height stable while the canonical state loads or retries. */
   return (
     <View
       pointerEvents="none"
@@ -105,5 +169,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-end',
     overflow: 'visible',
+  },
+  besideStack: {
+    position: 'absolute',
+    left: 0,
+    top: 4,
+    gap: 3,
+  },
+  besidePin: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1A1406',
+    borderWidth: 1,
+    borderColor: '#E8C56B',
   },
 });

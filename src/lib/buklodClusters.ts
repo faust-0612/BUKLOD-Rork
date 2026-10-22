@@ -117,7 +117,7 @@ export async function createCluster(input: {
   description?: string;
   category?: string;
   visibility: ClusterVisibility;
-  organizationId: string;
+  organizationId?: string | null;
 }) {
   const data = await rpc<string>(
     'buklod_create_cluster_v2',
@@ -128,7 +128,7 @@ export async function createCluster(input: {
       _category:
         input.category?.trim() || null,
       _visibility: input.visibility,
-      _organization_id: input.organizationId,
+      _organization_id: input.organizationId || null,
     }
   );
 

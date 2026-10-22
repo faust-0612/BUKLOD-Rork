@@ -137,7 +137,7 @@ export default function BuklodRedeemCatalogSection({
 
       <Pressable
         accessibilityRole="button"
-        onPress={() => router.push('/bayanihan' as any)}
+        onPress={() => router.push('/points/economy' as any)}
         style={({ pressed }) => [
           styles.button,
           pressed && { opacity: 0.82 },
@@ -148,7 +148,7 @@ export default function BuklodRedeemCatalogSection({
           size={18}
           color="#FFFFFF"
         />
-        <Text style={styles.buttonText}>OPEN ECONOMY & BAYANIHAN REPORT</Text>
+        <Text style={styles.buttonText}>OPEN ECONOMY & BAYANIHAN</Text>
       </Pressable>
     </View>
   );
