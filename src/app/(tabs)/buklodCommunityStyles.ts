@@ -311,7 +311,9 @@ member:{minHeight:57,padding:11,borderWidth:1,borderColor:c.line,borderRadius:12
   backgroundColor:c.background,
   borderTopLeftRadius:18,
   borderTopRightRadius:18,
-  overflow:'hidden'
+  // Keep overflow visible so the write-comment blank + tools are not clipped
+  // under the Android keyboard / phone nav pane.
+  overflow:'visible'
  },
 
  communityDrawerHandle:{
