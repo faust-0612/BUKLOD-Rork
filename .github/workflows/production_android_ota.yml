@@ -3,6 +3,12 @@ name: BUKLOD Production Android OTA
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/production_android_ota.yml'
+      - 'src/**'
+      - 'app.config.js'
 
 env:
   EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
