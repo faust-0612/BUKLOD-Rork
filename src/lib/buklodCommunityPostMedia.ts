@@ -8,7 +8,6 @@ import {
 } from '@/lib/buklodCommunityMediaLimits';
 import {
   clearPendingAwsWallVideo,
-  deleteAwsWallVideo,
   getAwsWallVideoViewUrl,
   peekPendingAwsWallVideo,
 } from '@/lib/buklodAwsWallVideo';
@@ -278,6 +277,17 @@ export async function loadCommunityPostMediaByPostIds(
   return mediaMap;
 }
 
+/**
+ * Fail closed on ambiguous publish failures.
+ *
+ * Storage deletion is NEVER safe from the client rollback path: a timed-out
+ * create/attach RPC can have committed the post, even when postId is null,
+ * and a best-effort delete RPC can leave the post visible. Removing its
+ * media here leaves a permanently blank Community Wall post.
+ *
+ * Preserve uploaded files. A separately verified, server-side orphan
+ * collector may reclaim truly unreferenced objects after a safety window.
+ */
 export async function discardIncompleteCommunityPost(options: {
   postId?: string | null;
   mediaPaths?: string[];
@@ -285,68 +295,45 @@ export async function discardIncompleteCommunityPost(options: {
 }) {
   const postId = String(options.postId ?? '').trim();
   const scopeId = String(options.scopeId ?? '').trim();
-  const mediaPaths = (options.mediaPaths ?? [])
-    .map(path => String(path ?? '').trim())
-    .filter(Boolean);
 
-  if (postId) {
-    try {
-      if (scopeId) {
-        const scoped = await (supabase as any).rpc(
-          'buklod_scope_social_delete_post_v1',
-          {
-            p_scope_id: scopeId,
-            p_post_id: postId,
-          },
-        );
+  // No ID does NOT prove that the create request failed to commit.
+  if (!postId) return;
 
-        if (scoped?.error) {
-          await (supabase as any).rpc(
-            'delete_buklod_community_post_v1',
-            { p_post_id: postId },
-          );
-        }
-      } else {
-        const { error } = await (supabase as any).rpc(
+  try {
+    if (scopeId) {
+      const scoped = await (supabase as any).rpc(
+        'buklod_scope_social_delete_post_v1',
+        {
+          p_scope_id: scopeId,
+          p_post_id: postId,
+        },
+      );
+
+      if (scoped?.error) {
+        await (supabase as any).rpc(
           'delete_buklod_community_post_v1',
           { p_post_id: postId },
         );
-
-        if (error) {
-          await supabase
-            .from('community_posts')
-            .update({ is_hidden: true })
-            .eq('id', postId);
-        }
       }
-    } catch {
-      // Best-effort rollback. Caller surfaces the original error.
-    }
-  }
-
-  const supabasePaths: string[] = [];
-
-  for (const path of mediaPaths) {
-    const pending = peekPendingAwsWallVideo(path);
-    if (pending?.external_object_key) {
-      await deleteAwsWallVideo(
-        pending.external_object_key,
-      ).catch(() => undefined);
-      clearPendingAwsWallVideo(path);
     } else {
-      supabasePaths.push(path);
+      const { error } = await (supabase as any).rpc(
+        'delete_buklod_community_post_v1',
+        { p_post_id: postId },
+      );
+
+      if (error) {
+        await supabase
+          .from('community_posts')
+          .update({ is_hidden: true })
+          .eq('id', postId);
+      }
     }
+  } catch {
+    // Best-effort record rollback; never remove possibly referenced photos.
   }
 
-  if (supabasePaths.length) {
-    try {
-      await supabase.storage
-        .from('community-media')
-        .remove(supabasePaths);
-    } catch {
-      // Storage cleanup is best-effort.
-    }
-  }
+  // Intentionally ignore options.mediaPaths. A failed, unverified publish
+  // must not delete image/video objects that a committed post may reference.
 }
 
 export function extractCreatedRecordId(data: unknown): string | null {
