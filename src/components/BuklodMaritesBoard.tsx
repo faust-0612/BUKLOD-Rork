@@ -761,7 +761,7 @@ function MaritesStoryCard({
         onStartShouldSetResponder={() => true}
       >
         <BuklodTappableAvatar
-          userId={story.user_id}
+          userId={story.user_id.startsWith('anonymous-story:') ? null : story.user_id}
           uri={story.avatar_url}
           name={story.author_name}
           size={20}
@@ -2165,7 +2165,7 @@ export default function BuklodMaritesBoard({
 
               <View style={styles.fullscreenMetaRow}>
                 <BuklodTappableAvatar
-                  userId={viewStory.user_id}
+                  userId={viewStory.user_id.startsWith('anonymous-story:') ? null : viewStory.user_id}
                   uri={viewStory.avatar_url}
                   name={viewStory.author_name}
                   size={34}
