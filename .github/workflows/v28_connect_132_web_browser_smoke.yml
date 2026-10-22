@@ -1,0 +1,82 @@
+name: BUKLOD runtime 1.3.2 Connect Web Preview Browser QA
+on:
+  push:
+    branches: [qa/v28-runtime-132-web-browser-20261022]
+    paths: ['.github/workflows/v28_connect_132_web_browser_smoke.yml']
+permissions:
+  contents: read
+jobs:
+  preview-browser-read-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PREVIEW: https://buklod--4ymu9c676l.expo.app
+      FROZEN_RC: 43092995e8777a2a485a95d350937e6685949175
+    steps:
+      - name: Verify preview HTTP and web media contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 2 --max-time 30 "$PREVIEW/" > /tmp/preview-index.html
+          test -s /tmp/preview-index.html
+          grep -q '<div id="root"' /tmp/preview-index.html
+          code=$(curl -sSL -o /tmp/preview-ads.txt -w '%{http_code}' --max-time 30 "$PREVIEW/app-ads.txt")
+          test "$code" = "200"
+          grep -Eq '^google\.com, pub-[0-9]+, DIRECT,' /tmp/preview-ads.txt
+          curl -fsSI --max-time 30 "$PREVIEW/vendor/leaflet/leaflet.js?v=1.9.4-buklod-r4" > /tmp/leaflet-headers.txt
+          grep -qi 'content-type:.*javascript' /tmp/leaflet-headers.txt
+          curl -fsSI --max-time 30 "$PREVIEW/vendor/leaflet/leaflet.css?v=1.9.4-buklod-r4" > /tmp/leaflet-css-headers.txt
+          grep -qi 'content-type:.*text/css' /tmp/leaflet-css-headers.txt
+          curl -fsSI --max-time 30 "$PREVIEW/buklod-192.png" > /tmp/icon-headers.txt
+          grep -qi 'content-type:.*image/png' /tmp/icon-headers.txt
+          echo 'PREVIEW_HTTP_MEDIA=PASS'
+      - name: Find Chrome
+        id: chrome
+        shell: bash
+        run: |
+          set -euo pipefail
+          BROWSER="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$BROWSER"
+          echo "path=$BROWSER" >> "$GITHUB_OUTPUT"
+          "$BROWSER" --version
+      - name: Render desktop and mobile public/auth routes
+        shell: bash
+        env:
+          CHROME: ${{ steps.chrome.outputs.path }}
+        run: |
+          set -euo pipefail
+          for scenario in desktop mobile; do
+            if [ "$scenario" = desktop ]; then size='1440,900'; else size='390,844'; fi
+            for route in / /login /privacy /register /forgot-password; do
+              safe="$(printf '%s' "${scenario}${route}" | tr -c '[:alnum:]' '-')"
+              timeout 50s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-extensions --no-first-run --window-size="$size" --virtual-time-budget=14000 --enable-logging=stderr --v=0 --dump-dom "$PREVIEW$route" > "/tmp/${safe}.dom" 2> "/tmp/${safe}.log" || code=$?
+              test -s "/tmp/${safe}.dom"
+              if grep -Eqi 'Uncaught (TypeError|ReferenceError|SyntaxError)|supabaseUrl is required' "/tmp/${safe}.log"; then
+                echo "FATAL_JS=${scenario}${route}"
+                grep -Ei 'Uncaught|supabaseUrl is required' "/tmp/${safe}.log" | head -15
+                exit 1
+              fi
+              if ! grep -q 'id="root"' "/tmp/${safe}.dom"; then
+                echo "ROOT_NOT_MOUNTED=${scenario}${route}"
+                exit 1
+              fi
+              echo "PUBLIC_RENDER_PASS ${scenario}${route}"
+            done
+          done
+          echo 'ANONYMOUS_WEB_BROWSER_SMOKE=PASS'
+      - name: Release limitation
+        run: |
+          echo 'Browser checks are anonymous only. Authenticated Connect, Marites parity and Android personal/Cluster/Organization QA remain unverified.'
+          echo 'NO_PRODUCTION_PUBLISH=TRUE'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: web-134-preview-browser-smoke
+          path: |
+            /tmp/preview-index.html
+            /tmp/leaflet-headers.txt
+            /tmp/leaflet-css-headers.txt
+            /tmp/icon-headers.txt
+            /tmp/*.log
+          if-no-files-found: ignore
+          retention-days: 3
