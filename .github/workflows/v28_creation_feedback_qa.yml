@@ -1,0 +1,47 @@
+name: BUKLOD V28 Creation Feedback QA
+
+on:
+  push:
+    branches:
+      - codex/v28-action-feedback-20261022
+    paths:
+      - 'src/components/BuklodActionFeedback.tsx'
+      - 'src/app/clusters/create.tsx'
+      - 'src/app/organizations/create.tsx'
+      - 'src/app/organizations/suborganizations.tsx'
+      - 'src/app/admin/groups.tsx'
+      - 'src/app/(auth)/register.tsx'
+      - '__tests__/buklodActionFeedbackContract.test.js'
+      - '.github/workflows/v28_creation_feedback_qa.yml'
+  pull_request:
+    branches:
+      - codex/v28-web-sync
+    paths:
+      - 'src/components/BuklodActionFeedback.tsx'
+      - 'src/app/clusters/create.tsx'
+      - 'src/app/organizations/create.tsx'
+      - 'src/app/organizations/suborganizations.tsx'
+      - 'src/app/admin/groups.tsx'
+      - 'src/app/(auth)/register.tsx'
+      - '__tests__/buklodActionFeedbackContract.test.js'
+      - '.github/workflows/v28_creation_feedback_qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Locked dependency install
+        run: npm ci --ignore-scripts
+      - name: TypeScript compile gate
+        run: npx tsc --noEmit
+      - name: Creation action contract
+        run: npm test -- --runTestsByPath __tests__/buklodActionFeedbackContract.test.js
