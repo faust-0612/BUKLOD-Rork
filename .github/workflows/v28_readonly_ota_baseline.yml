@@ -1,0 +1,34 @@
+name: BUKLOD V28 Expo 1.3.2 Read-Only Baseline
+
+on:
+  push:
+    branches: [codex/v28-action-feedback-20261022]
+    paths: ['.github/workflows/v28_readonly_ota_baseline.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-ota:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EXPO_PUBLIC_APP_ENV: production
+      BUKLOD_APP_TARGET: main
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Confirm OTA target (read only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          grep -F "runtimeVersion: isClassroom ? '1.3.0' : '1.3.2'" app.config.js
+          npx eas-cli@latest whoami --non-interactive
+          npx eas-cli@latest channel:view production --json
+          npx eas-cli@latest update:list --all --platform android --runtime-version 1.3.2 --limit 12 --json
+          echo 'READ_ONLY_NO_OTA_PUBLISHED'
