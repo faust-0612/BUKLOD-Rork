@@ -448,6 +448,7 @@ export default function GroupsScreen() {
         p_leader_id: leaderId || null,
       });
       if (result.error) throw result.error;
+      if (!result.data) throw new Error('Server did not return a Cluster ID. Check the list before retrying.');
       setCreateFeedback({status:'success',message:`Cluster "${name.trim()}" created successfully.`});
       setName('');
       setCode('');
