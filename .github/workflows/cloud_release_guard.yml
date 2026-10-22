@@ -1,0 +1,34 @@
+name: BUKLOD Cloud Release Policy Guard
+on:
+  pull_request:
+    paths:
+      - 'AGENTS.md'
+      - '.github/workflows/**'
+      - 'app.config.js'
+      - 'eas.json'
+      - 'scripts/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cloud-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check release policy and disallow automatic OTA on push
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'cloud-only engineering policy' AGENTS.md
+          test -f .github/workflows/production_android_ota.yml
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.github/workflows/production_android_ota.yml').read_text()
+          if '  push:' in p:
+              raise SystemExit('BLOCKED: production OTA workflow still has push trigger. Remove after reviewing its other release gates.')
+          if 'ref: main' in p:
+              raise SystemExit('BLOCKED: production OTA workflow checks out mutable main; pin approved RC SHA.')
+          print('Cloud release policy trigger/checkout checks passed')
+          PY
