@@ -8,7 +8,8 @@ create or replace function public.get_buklod_marites_feed_v1(
 returns table(
   id uuid, user_id uuid, author_name text, avatar_url text, body text,
   created_at timestamptz, media_path text, media_mime_type text,
-  media_items jsonb, author_only boolean
+  media_items jsonb, author_only boolean, reaction_counts jsonb,
+  my_reaction text, mentions jsonb
 )
 language plpgsql stable security definer
 set search_path=''
@@ -47,7 +48,21 @@ begin
       ) order by m.media_position)
       from public.community_post_media m where m.post_id=p.id
     ),'[]'::jsonb),
-    coalesce(p.author_only,false)
+    coalesce(p.author_only,false),
+    coalesce((
+      select jsonb_object_agg(counts.reaction,counts.total)
+      from (select r.reaction,count(*) as total from public.reactions r
+        where r.post_id=p.id group by r.reaction) counts
+    ),'{}'::jsonb),
+    (select mine.reaction from public.reactions mine
+      where mine.post_id=p.id and mine.user_id=actor limit 1),
+    case when coalesce(meta.privacy,'public')='anonymous' and owner.id<>actor then '[]'::jsonb
+    else coalesce((
+      select jsonb_agg(jsonb_build_object('user_id',mentioned.id,'full_name',mentioned.full_name))
+      from public.post_mentions mention
+      join public.profiles mentioned on mentioned.id=mention.mentioned_user_id
+      where mention.post_id=p.id
+    ),'[]'::jsonb) end
   from public.community_posts p
   left join public.buklod_community_post_meta meta on meta.post_id=p.id
   cross join lateral (select public.buklod_community_root_owner_v1(p.id) as id) owner

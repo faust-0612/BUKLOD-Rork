@@ -14,6 +14,8 @@ create table public.community_posts(
  deleted_at timestamptz,is_hidden boolean default false,author_only boolean default false
 );
 create table public.community_post_media(post_id uuid,media_path text,media_mime_type text,media_position smallint);
+create table public.reactions(post_id uuid,user_id uuid,reaction text);
+create table public.post_mentions(post_id uuid,mentioned_user_id uuid);
 create table public.buklod_community_post_meta(post_id uuid,privacy text,moderation_state text);
 create function public.buklod_is_system_admin() returns boolean language sql as $$ select false $$;
 create function public.buklod_community_root_owner_v1(p_id uuid) returns uuid language sql as

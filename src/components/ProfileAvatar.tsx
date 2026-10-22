@@ -228,7 +228,11 @@ export function ProfileAvatarStatusIndicator({
   );
 }
 
-export function ProfileAvatar({
+export function ProfileAvatar(props: ProfileAvatarProps) {
+  return <ProfileAvatarImage key={`${props.userId ?? ''}:${props.uri ?? ''}`} {...props} />;
+}
+
+function ProfileAvatarImage({
   userId,
   uri,
   name,

@@ -618,17 +618,19 @@ function ConnectScreenInner({
     const generation = ++inboxGeneration.current;
     const active = () => generation === inboxGeneration.current;
     let displayedContacts = false;
+    let contactRevision = 0;
 
     const publishContacts = (rows: ConnectSuggestedContact[]) => {
       if (!active() || !rows.length) return;
       displayedContacts = true;
+      const revision = ++contactRevision;
       rememberConnectContacts(profileId, forcedScopeId, rows);
       setSuggestedContacts(rows);
       // Enrichment cannot hold up either the faces or the other inbox reads.
       void withBuklodTimeout(
         enrichConnectSuggestedContactsWithNotes(rows), 6000, 'Connect notes and ranks',
       ).then(enriched => {
-        if (active()) {
+        if (active() && revision === contactRevision) {
           rememberConnectContacts(profileId, forcedScopeId, enriched);
           setSuggestedContacts(enriched);
         }
