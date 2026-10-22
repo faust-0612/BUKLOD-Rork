@@ -42,6 +42,29 @@ export default function Index() {
   const publicResetInFlight =
     useRef(false);
 
+  /*
+   * BUKLOD_BOOT_READY_WATCHDOG_R1
+   *
+   * Public-scope reset is best-effort. Never leave the index spinner
+   * waiting forever if activeScope never flips to PUBLIC (failed
+   * selectScope, scope refresh race, or in-flight guard skip).
+   */
+  useEffect(() => {
+    if (bootReady || !session?.user?.id) {
+      return;
+    }
+
+    const watchdog = setTimeout(() => {
+      console.warn(
+        'BUKLOD boot: releasing index spinner after Public reset watchdog.'
+      );
+      publicResetInFlight.current = false;
+      setBootReady(true);
+    }, 4000);
+
+    return () => clearTimeout(watchdog);
+  }, [bootReady, session?.user?.id]);
+
   useEffect(() => {
     if (
       !session?.user?.id ||
@@ -69,13 +92,16 @@ export default function Index() {
       );
 
     if (publicScope) {
-      setBootReady(false);
-
       if (
         !publicResetInFlight.current
       ) {
         publicResetInFlight.current = true;
 
+        /*
+         * PERF_STARTUP_R1: selectScope updates local activeScope
+         * immediately; do not hold the index spinner for persistence.
+         * A failed persist or refresh race must not trap bootReady.
+         */
         void selectScope(
           publicScope.scope_id
         )
@@ -90,6 +116,7 @@ export default function Index() {
           });
       }
 
+      setBootReady(true);
       return;
     }
 

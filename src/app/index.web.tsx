@@ -21,6 +21,26 @@ export default function IndexWeb() {
   const [bootReady, setBootReady] = useState(false);
   const publicResetInFlight = useRef(false);
 
+  /*
+   * BUKLOD_BOOT_READY_WATCHDOG_R1
+   * Mirror native index: never trap /city behind Public reset forever.
+   */
+  useEffect(() => {
+    if (bootReady || !session?.user?.id) {
+      return;
+    }
+
+    const watchdog = setTimeout(() => {
+      console.warn(
+        'BUKLOD City web boot: releasing index spinner after Public reset watchdog.'
+      );
+      publicResetInFlight.current = false;
+      setBootReady(true);
+    }, 4000);
+
+    return () => clearTimeout(watchdog);
+  }, [bootReady, session?.user?.id]);
+
   useEffect(() => {
     if (!session?.user?.id || (loading && !profile)) {
       publicResetInFlight.current = false;
@@ -36,13 +56,17 @@ export default function IndexWeb() {
 
     const publicScope = scopes.find(scope => scope.scope_type === 'PUBLIC');
     if (publicScope) {
-      setBootReady(false);
       if (!publicResetInFlight.current) {
         publicResetInFlight.current = true;
+        /*
+         * PERF_STARTUP_R1: selectScope updates local activeScope immediately.
+         * Do not hold the City entry spinner for persistence.
+         */
         void selectScope(publicScope.scope_id)
           .catch(error => console.warn('BUKLOD City web boot Public scope reset:', error))
           .finally(() => { publicResetInFlight.current = false; });
       }
+      setBootReady(true);
       return;
     }
 
