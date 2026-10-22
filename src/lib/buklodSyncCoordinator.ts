@@ -79,8 +79,8 @@ function drain() {
     running.set(job.key, task);
     void task.then(job.resolve, job.reject).finally(() => {
       activeCount--;
-      active.delete(job.key);
-      running.delete(job.key);
+      if (active.get(job.key) === job) active.delete(job.key);
+      if (running.get(job.key) === task) running.delete(job.key);
       drain();
     });
   }
@@ -97,7 +97,13 @@ export function configureBuklodSyncNetwork(state: { online: boolean; degraded: b
     }
     // Also cancel active reads: a transport that ignores abort must not
     // persist a late response after connectivity has been lost.
-    for (const job of active.values()) job.controller.abort();
+    for (const job of active.values()) {
+      job.controller.abort();
+      // Drop deduplication immediately so a reconnect never inherits an
+      // aborted request whose transport has not settled yet.
+      active.delete(job.key);
+      running.delete(job.key);
+    }
   }
   drain();
 }
@@ -128,9 +134,9 @@ export function enqueueBuklodRead<T>(args: {
   // Requiring a colon rejected those valid keys before any network read ran.
   const namespaced = args.key.includes(':') || args.key.startsWith('@buklod/offline-first/v1/');
   if (!namespaced) return Promise.reject(new Error('Sync key must be namespaced'));
+  if (!online) return Promise.reject(new Error('BUKLOD offline: use local snapshot'));
   const duplicate = running.get(args.key) ?? queued.get(args.key);
   if (duplicate) return duplicate as Promise<T>;
-  if (!online) return Promise.reject(new Error('BUKLOD offline: use local snapshot'));
   let resolve!: (value: T) => void;
   let reject!: (reason: unknown) => void;
   const promise = new Promise<T>((yes, no) => { resolve = yes; reject = no; });
