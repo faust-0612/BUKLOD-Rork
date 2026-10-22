@@ -222,7 +222,11 @@ jobs:
           grep -F "VERIFY ACCOUNT — AUTO DELIVER CODE" 'src/app/admin/account-recovery.tsx'
           grep -F "admin_reject_request" 'src/app/admin/account-recovery.tsx'
           grep -F "recovery_status" 'src/app/account/recovery-pin.tsx'
-          grep -F "MANAGE CLUSTER" 'src/components/BuklodClusterHomeCommandCenter.tsx'
+          # BUKLOD_V28_BLUE_SCOPE_RELEASE_GATE_R2 — keep server-verified Manage check after inline relocation
+          grep -F 'serverCanManage' 'src/components/BuklodClusterHomeCommandCenter.tsx'
+          grep -F 'accessibilityLabel="Manage Cluster"' 'src/components/BuklodClusterHomeCommandCenterImpl.tsx'
+          grep -F 'clusterScopeManageRoute(scope.scope_id,scope.name)' 'src/components/BuklodClusterHomeCommandCenterImpl.tsx'
+          grep -F 'paddingTop: insets.top' 'src/components/BuklodScopedDashboardHeader.tsx'
           grep -F "constrainContextToOrganization" 'src/lib/buklodClusterFormationGate.ts'
           grep -F "readMediaForUpload" 'src/app/scope/bulletin-editor.tsx'
           grep -F "Title and message are required before publishing." 'src/app/scope/bulletin-editor.tsx'
