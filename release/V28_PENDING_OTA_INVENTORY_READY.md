@@ -1,52 +1,69 @@
-# BUKLOD V28 Pending OTA Inventory — READY
+# BUKLOD V28 Pending OTA Inventory — PUBLISHED
 
-**Status:** READY for OTA  
+**Status:** OTA PUBLISHED  
 **Target:** Android production channel, runtime **1.3.2**, versionCode **28**  
-**Source tip for this bundle:** (see PR branch after merge to `main`)  
-**Generated:** 2026-10-22 (Asia/Manila)
+**Timezone note:** times below converted to Asia/Manila
 
-## Complete inventory (all OTA scopes)
+## Verified prior live OTA (before this publish)
 
-| # | Scope | Status on source |
+| Field | Value |
+|---|---|
+| Android update ID | `01a16362-bf5f-77fc-baa3-09e1112510fa` |
+| Update group ID | `576f18e4-df4d-4ad4-9fb6-0d8f9b5d5798` |
+| Runtime | 1.3.2 |
+| Commit | `ca5918ff` (dirty flag in Expo) |
+| Published | 2026-10-22 ~19:32 Asia/Manila |
+| Workflow | https://github.com/faust-0612/BUKLOD-Rork/actions/runs/39770909298 |
+| Message | Wall chips/Dugtong removal + KL Chap2+ approval / reader live discussion |
+
+Included cumulative scopes already on that baseline: Character, Cluster create (no mother org + org search), Bayanihan/Economy, Marites, non-PTT call restore, weak-network/offline, Wall weak-signal helpers, referral/auth, Connect, KL 6pm desk, ABAKA, cardColor, Today/comment/Wall chip cleanup (#256 and earlier).
+
+**Gap verified:** `015cacd3` (AAB v28 video-only fullscreen Wall) was on `main` but **not** in that OTA (path filter miss on `CommunityVideo.tsx`).
+
+## Newly published OTA (this run)
+
+| Field | Value |
+|---|---|
+| Android update ID | `01a1639c-02e0-766f-8721-b17c383bb270` |
+| Update group ID | `250cb4d6-2e10-4065-97c2-83de04f9f443` |
+| Runtime | 1.3.2 |
+| Platform | android |
+| Channel/branch | production |
+| Commit | `b72a05c4` |
+| Published | 2026-10-22 ~20:35 Asia/Manila |
+| Workflow | https://github.com/faust-0612/BUKLOD-Rork/actions/runs/39779024164 |
+| EAS | https://expo.dev/accounts/faust_0612/projects/buklod/updates/250cb4d6-2e10-4065-97c2-83de04f9f443 |
+| Message | Runtime 1.3.2 pending OTA: cluster search + join notif approve/decline; Wall photo rollback failsafe; cumulative V28 live bundle |
+
+### Newly added vs prior live OTA
+
+1. Cluster live search + join-request Approve/Decline (invite Accept/Decline)
+2. Wall photo rollback failsafe (never delete uploads after ambiguous publish)
+3. AAB v28 video-only full-screen Wall viewer
+
+## Full inventory (all now in published OTA source)
+
+| # | Scope | Status |
 |---|---|---|
-| 1 | V28 Character layout / progressive selector | ON MAIN (prior live OTA) |
-| 2 | Cluster create without required Mother Organization + org search | ON MAIN (#256) |
-| 3 | Bayanihan / Economy ledger dashboard | ON MAIN (prior live OTA) |
-| 4 | V28 Marites board | ON MAIN |
-| 5 | False ongoing-call / non-PTT restore (PTT stays removed) | ON MAIN (#256) |
-| 6 | Global weak-network / offline cache / sync coordinator | ON MAIN (#256) |
-| 7 | Community Wall weak-signal helpers + text-first limits | ON MAIN (#256) |
-| 8 | Referral + sign-in interruption resilience | ON MAIN (#256) |
-| 9 | Connect chat newest history / Seen / composer above nav | ON MAIN |
-| 10 | Kabihasnang Ligaw reader + Chap2+ approval + 6pm desk | ON MAIN (OTA published) |
-| 11 | ABAKA on runtime 1.3.2 | ON MAIN |
-| 12 | Cluster Home theme `cardColor` | ON MAIN (#256) |
-| 13 | Buklod Today blank reply / hold-while-writing | ON MAIN |
-| 14 | Wall comment composer (photo/GIF/reaction) | ON MAIN |
-| 15 | Remove Public CONNECT/EXPLORE + Dugtong | ON MAIN |
-| 16 | AAB v28 video-only full-screen Wall viewer | ON MAIN |
-| 17 | **Cluster live search + join-request Approve/Decline on Notifications** | **THIS PR** |
-| 18 | **Wall photo rollback failsafe (never delete uploads on ambiguous publish)** | **THIS PR** |
+| 1 | V28 Character layout | LIVE (prior + this) |
+| 2 | Cluster create no Mother Org + org search | LIVE (prior + this) |
+| 3 | Bayanihan / Economy | LIVE (prior + this) |
+| 4 | Marites | LIVE (prior + this) |
+| 5 | False call / non-PTT restore | LIVE (prior + this) |
+| 6 | Weak-network / offline cache | LIVE (prior + this) |
+| 7 | Wall weak-signal helpers | LIVE (prior + this) |
+| 8 | Referral + sign-in resilience | LIVE (prior + this) |
+| 9 | Connect chat / Seen / composer | LIVE (prior + this) |
+| 10 | KL + Chap2+ 6pm approval | LIVE (prior + this) |
+| 11 | ABAKA @ 1.3.2 | LIVE (prior + this) |
+| 12 | Cluster Home cardColor | LIVE (prior + this) |
+| 13 | Buklod Today blank reply | LIVE (prior + this) |
+| 14 | Wall comment composer | LIVE (prior + this) |
+| 15 | Remove Public CONNECT/EXPLORE + Dugtong | LIVE (prior + this) |
+| 16 | AAB v28 video-only fullscreen Wall | **NEW in this OTA** |
+| 17 | Cluster live search + join notif actions | **NEW in this OTA** |
+| 18 | Wall photo rollback failsafe | **NEW in this OTA** |
 
-## Explicitly excluded (not OTA blockers)
+## Device step
 
-- Full Community progressive-feed whole-file rewrite from older wall branch (would regress newer main Wall features)
-- Draft/HOLD PRs not approved for this cumulative (#220 Kingdom HOLD, Quiz held issues, etc.)
-- New AAB / native rebuild / web deploy
-- Exact AAB-era Cluster/Org home chrome rollback (newer main home extras retained by design)
-
-## Verification
-
-- TypeScript: `npx tsc --noEmit` PASS
-- Photo rollback: `node --test tests/community-photo-rollback-safety.test.cjs` — 6/6 PASS
-- Cluster join helpers: lightweight node assert PASS
-- Runtime config: `runtimeVersion: 1.3.2`, `versionCode: 28`
-
-## Publish path (owner / CI)
-
-1. Merge this PR to `main`
-2. Canonical Android production OTA via `production_android_ota.yml` (path filters include new Cluster + media files) or `scripts/PUSH_MAIN_OTA.ps1`
-3. Confirm Expo update ID + runtime 1.3.2 on production channel
-4. Live device verify on installed V28 APK
-
-**READY for OTA** — source cumulative; publish remains the separate Expo step.
+Open production APK (runtime 1.3.2) → pull update → confirm update ID / behavior above.
