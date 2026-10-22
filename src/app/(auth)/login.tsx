@@ -1099,6 +1099,14 @@ const chooseSuggestedLogin =
     }
 
     if (error) {
+      // A previous credential grant can outlive a route remount. Never
+      // misreport its in-flight shield as an incorrect password or start
+      // a second grant while Supabase is still finishing the first.
+      if (String(error?.code ?? '') === 'auth_in_progress') {
+        releaseLogin('Your sign-in is still being processed. BUKLOD will continue when the existing request finishes.');
+        return;
+      }
+
       const temporaryFailure =
         isBuklodTransientAuthError(error);
       const invalidCredentials =
