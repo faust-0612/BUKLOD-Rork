@@ -306,7 +306,9 @@ Deno.serve(async (req: Request) => {
      * Release still requires a successful signed-in handoff smoke test.
      * A missing hash retains the legacy fallback.
      */
-    session_launch_ready: Boolean(sessionLaunchUrl),
+    // Do not enable direct handoff from a bundle string scan alone.
+    // Require a successful signed-in Quiz-client acceptance test first.
+    session_launch_ready: false,
     expires_hint_seconds: 300,
     shadow_created: ensured?.created === true,
   });
