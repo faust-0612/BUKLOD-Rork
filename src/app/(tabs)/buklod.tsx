@@ -4159,8 +4159,21 @@ const load=useCallback(async(options?:{
 
 
 /* BUKLOD_COMMUNITY_BACK_ENDPOINT_R2 */
+const COMMUNITY_WALL_BACK_KEY =
+  '__BUKLOD_COMMUNITY_WALL_SCROLL_BACK__';
 const communityFeedRefBackR2 = useRef<any>(null);
 const communityScrollYRefBackR2 = useRef(0);
+const communityWallBackSentinelRef = useRef(false);
+const communityWallBackIgnorePopRef = useRef(false);
+const communityWallScrollingHomeRef = useRef(false);
+const communityOverlayOpenRef = useRef(false);
+const communityVideoViewerOpenRef = useRef(false);
+const refreshCommunity186LRef = useRef<() => void>(() => {});
+const readCommunityFeedOffsetRef = useRef<() => number>(() => 0);
+const scrollCommunityFeedToTopRef = useRef<() => void>(() => {});
+const syncCommunityWallBackSentinelRef = useRef<
+  (offset: number) => void
+>(() => {});
 /* PATCH_186L_R3_PAGE_CONTROL */
 const communityPageBusyRef186L=
   useRef(false);
@@ -4305,32 +4318,239 @@ const refreshCommunity186L=
   );
 
  /* BUKLOD_COMMUNITY_BACK_ENDPOINT_R2_HANDLER */
+communityOverlayOpenRef.current = Boolean(
+  videoViewerOpen ||
+  viewerOpen ||
+  commentOpen ||
+  composerVideoOpen ||
+  communityGifPickerOpen ||
+  photoEditSheetPhoto ||
+  communityPhotoEditor ||
+  reactionDetailsPost
+);
+communityVideoViewerOpenRef.current = videoViewerOpen;
+refreshCommunity186LRef.current = () => {
+  void refreshCommunity186L();
+};
+
+const readCommunityFeedOffset = () => {
+  const list = communityFeedRefBackR2.current;
+  const tracked = Number(
+    communityScrollYRefBackR2.current || 0
+  );
+  const absolute = Number(
+    list?.getAbsoluteLastScrollOffset?.() || 0
+  );
+  let nodeTop = 0;
+  let windowTop = 0;
+
+  if (Platform.OS === 'web') {
+    const node = list?.getScrollableNode?.();
+    const browserWindow = (globalThis as any)?.window;
+    const browserDocument = (globalThis as any)?.document;
+    nodeTop = Number(node?.scrollTop || 0);
+    windowTop = Math.max(
+      Number(browserWindow?.scrollY || 0),
+      Number(
+        browserDocument?.scrollingElement?.scrollTop || 0
+      ),
+    );
+  }
+
+  return Math.max(tracked, absolute, nodeTop, windowTop);
+};
+
+const scrollCommunityFeedToTop = () => {
+  communityWallScrollingHomeRef.current = true;
+  communityScrollYRefBackR2.current = 0;
+  const list = communityFeedRefBackR2.current;
+
+  if (typeof list?.scrollToTop === 'function') {
+    list.scrollToTop({ animated: true });
+  } else {
+    list?.scrollToOffset?.({
+      offset: 0,
+      animated: true,
+      skipFirstItemOffset: true,
+    });
+  }
+
+  if (Platform.OS !== 'web') {
+    return;
+  }
+
+  const browserWindow = (globalThis as any)?.window;
+  const browserDocument = (globalThis as any)?.document;
+  const node = list?.getScrollableNode?.();
+
+  try {
+    node?.scrollTo?.({ top: 0, behavior: 'smooth' });
+  } catch {
+    try {
+      node?.scrollTo?.(0, 0);
+    } catch {
+      // The list scroller is enough when the DOM node cannot scroll.
+    }
+  }
+
+  try {
+    let parent = node?.parentElement ?? null;
+    while (parent) {
+      if (Number(parent.scrollTop) > 0) {
+        parent.scrollTo?.({ top: 0, behavior: 'smooth' });
+      }
+      parent = parent.parentElement ?? null;
+    }
+
+    browserWindow?.scrollTo?.({ top: 0, behavior: 'smooth' });
+    browserDocument?.scrollingElement?.scrollTo?.({
+      top: 0,
+      behavior: 'smooth',
+    });
+  } catch {
+    // Keep the FlashList scroll when a parent scroller rejects the call.
+  }
+};
+
+readCommunityFeedOffsetRef.current = readCommunityFeedOffset;
+scrollCommunityFeedToTopRef.current = scrollCommunityFeedToTop;
+
+syncCommunityWallBackSentinelRef.current = (offset: number) => {
+  if (
+    Platform.OS !== 'web' ||
+    communityOverlayOpenRef.current
+  ) {
+    return;
+  }
+
+  const browserWindow = (globalThis as any)?.window;
+  if (!browserWindow?.history?.pushState) {
+    return;
+  }
+
+  if (communityWallScrollingHomeRef.current) {
+    if (offset <= 12) {
+      communityWallScrollingHomeRef.current = false;
+    }
+    return;
+  }
+
+  if (offset > 12) {
+    if (!communityWallBackSentinelRef.current) {
+      browserWindow.history.pushState(
+        {
+          ...(browserWindow.history.state ?? {}),
+          [COMMUNITY_WALL_BACK_KEY]: true,
+        },
+        '',
+        browserWindow.location.href,
+      );
+      communityWallBackSentinelRef.current = true;
+    }
+    return;
+  }
+
+  if (
+    communityWallBackSentinelRef.current &&
+    browserWindow.history.state?.[COMMUNITY_WALL_BACK_KEY]
+  ) {
+    communityWallBackSentinelRef.current = false;
+    communityWallBackIgnorePopRef.current = true;
+    browserWindow.history.back();
+  }
+};
+
 useFocusEffect(
   useCallback(() => {
-    if (Platform.OS !== 'android') {
+    const onHardwareBack = () => {
+      if (communityOverlayOpenRef.current) {
+        return false;
+      }
+
+      if (readCommunityFeedOffsetRef.current() > 12) {
+        scrollCommunityFeedToTopRef.current();
+      } else {
+        refreshCommunity186LRef.current();
+      }
+
+      // Community Wall is the back endpoint while this route is focused.
+      return true;
+    };
+
+    if (Platform.OS === 'android') {
+      const subscription = BackHandler.addEventListener(
+        'hardwareBackPress',
+        onHardwareBack,
+      );
+
+      return () => subscription.remove();
+    }
+
+    if (Platform.OS !== 'web') {
       return undefined;
     }
 
-    const subscription = BackHandler.addEventListener(
-      'hardwareBackPress',
-      () => {
-        if (communityScrollYRefBackR2.current > 12) {
-          communityFeedRefBackR2.current?.scrollToOffset?.({
-            offset: 0,
-            animated: true,
-          });
-        } else {
-          void refreshCommunity186L();
-        }
+    const browserWindow = (globalThis as any)?.window;
+    if (!browserWindow?.addEventListener) {
+      return undefined;
+    }
 
-        // Community Wall is the Android Back endpoint.
-        // Never navigate away or exit while this route is focused.
-        return true;
-      },
-    );
+    const restoreScrollSentinel = () => {
+      if (!communityWallBackSentinelRef.current) {
+        return;
+      }
 
-    return () => subscription.remove();
-  }, [refreshCommunity186L]),
+      browserWindow.history.pushState(
+        {
+          ...(browserWindow.history.state ?? {}),
+          [COMMUNITY_WALL_BACK_KEY]: true,
+        },
+        '',
+        browserWindow.location.href,
+      );
+    };
+
+    const onPopState = (event: any) => {
+      if (communityWallBackIgnorePopRef.current) {
+        communityWallBackIgnorePopRef.current = false;
+        event?.stopImmediatePropagation?.();
+        return;
+      }
+
+      if (communityVideoViewerOpenRef.current) {
+        return;
+      }
+
+      if (communityOverlayOpenRef.current) {
+        restoreScrollSentinel();
+        event?.stopImmediatePropagation?.();
+        return;
+      }
+
+      if (!communityWallBackSentinelRef.current) {
+        return;
+      }
+
+      event?.stopImmediatePropagation?.();
+      communityWallBackSentinelRef.current = false;
+      scrollCommunityFeedToTopRef.current();
+    };
+
+    const onAnyScroll = () => {
+      syncCommunityWallBackSentinelRef.current(
+        readCommunityFeedOffsetRef.current()
+      );
+    };
+
+    browserWindow.addEventListener('popstate', onPopState, true);
+    browserWindow.addEventListener('scroll', onAnyScroll, true);
+    onAnyScroll();
+
+    return () => {
+      browserWindow.removeEventListener('popstate', onPopState, true);
+      browserWindow.removeEventListener('scroll', onAnyScroll, true);
+    };
+  }, []),
 );
 const communityFeedRows =
   useMemo(
@@ -4363,8 +4583,13 @@ const communityFeedRows =
  <FlashList
     ref={communityFeedRefBackR2}
     onScroll={(event:any) => {
-      communityScrollYRefBackR2.current =
-        Number(event?.nativeEvent?.contentOffset?.y ?? 0);
+      const nextOffset = Number(
+        event?.nativeEvent?.contentOffset?.y ?? 0
+      );
+      communityScrollYRefBackR2.current = nextOffset;
+      syncCommunityWallBackSentinelRef.current(
+        Math.max(nextOffset, readCommunityFeedOffset())
+      );
     }}
     scrollEventThrottle={16}
  /* PERF2_PROGRESSIVE_FEED_LIST */
