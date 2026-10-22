@@ -4,9 +4,10 @@ name: BUKLOD MZB Profile Home Door R26 Fix
 
 on:
   workflow_dispatch:
+    # One-time legacy repair only; never part of OTA-ready or OTA publish.
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   patch:
@@ -15,7 +16,7 @@ jobs:
       - name: Checkout latest main
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.ref_name }}
           fetch-depth: 0
 
       - name: Protected rollback snapshot
@@ -142,19 +143,12 @@ jobs:
           npm ci --ignore-scripts
           npx tsc --noEmit
 
-      - name: Commit source fix only after gates pass
+      - name: Source-only verification summary (no push)
         shell: bash
         run: |
           set -euo pipefail
-          if git diff --quiet -- 'src/components/BuklodProfileMembershipNav.tsx'; then
-            echo 'MZB profile Home-door fix is already installed.'
-            exit 0
-          fi
-          git config user.name 'BUKLOD Production Bot'
-          git config user.email 'actions@users.noreply.github.com'
-          git add 'src/components/BuklodProfileMembershipNav.tsx'
-          git commit -m 'fix(profile): open MZB organization tile on Home'
-          git push origin HEAD:main
+          echo 'Legacy R26 workflow is verification-only. No commit, push, RC, or OTA publish.'
+          git diff --check
 
       - name: Stability summary
         run: |
