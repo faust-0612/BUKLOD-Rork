@@ -311,11 +311,20 @@ function parseStories(raw: string | null): MaritesStory[] {
   }
 }
 
+export const MARITES_VALIDITY_MS = 72 * 60 * 60 * 1000;
+
+/** Reject expired, invalid and future-dated stories consistently across caches and feeds. */
+export function isActiveMaritesStory(story: Pick<MaritesStory, 'created_at'>, now = Date.now()): boolean {
+  const created = Date.parse(story.created_at);
+  return Number.isFinite(created) && created <= now && now - created < MARITES_VALIDITY_MS;
+}
+
 export async function loadMaritesStories(): Promise<MaritesStory[]> {
   const raw = await AsyncStorage.getItem(MARITES_STORAGE_KEY);
   const rows = parseStories(raw);
 
   return rows
+    .filter((story) => isActiveMaritesStory(story))
     .map((story) => ({
       ...story,
       source: story.source ?? 'local',
@@ -987,6 +996,9 @@ export function mergeMaritesStories(
         ? `community:${postId}`
         : `local:${story.id}`;
     };
+
+  localStories = localStories.filter((story) => isActiveMaritesStory(story));
+  communityStories = communityStories.filter((story) => isActiveMaritesStory(story));
 
   const communityKeys =
     new Set(
