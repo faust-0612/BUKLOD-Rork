@@ -35,19 +35,23 @@ begin
 
   return query
   select p.id,
-    case when coalesce(meta.privacy,'public')='anonymous' and owner.id<>actor then null::uuid else owner.id end,
-    case when coalesce(meta.privacy,'public')='anonymous' and owner.id<>actor
+    case when coalesce(meta.privacy,'public')='anonymous' and owner.id is distinct from actor then null::uuid else owner.id end,
+    case when coalesce(meta.privacy,'public')='anonymous' and owner.id is distinct from actor
       then 'Anonymous BUKLOD Member'::text else coalesce(nullif(trim(profile.full_name),''),'BUKLOD Member') end,
-    case when coalesce(meta.privacy,'public')='anonymous' and owner.id<>actor
+    case when coalesce(meta.privacy,'public')='anonymous' and owner.id is distinct from actor
       then null::text else profile.avatar_url end,
-    p.body,p.created_at,p.media_path,p.media_mime_type,
-    coalesce((
+    p.body,p.created_at,
+    case when coalesce(meta.privacy,'public')='anonymous' and owner.id is distinct from actor
+      then null::text else p.media_path end,
+    p.media_mime_type,
+    case when coalesce(meta.privacy,'public')='anonymous' and owner.id is distinct from actor
+      then '[]'::jsonb else coalesce((
       select jsonb_agg(jsonb_build_object(
         'media_path',m.media_path,'media_mime_type',m.media_mime_type,
         'media_position',m.media_position
       ) order by m.media_position)
       from public.community_post_media m where m.post_id=p.id
-    ),'[]'::jsonb),
+    ),'[]'::jsonb) end,
     coalesce(p.author_only,false),
     coalesce((
       select jsonb_object_agg(counts.reaction,counts.total)
@@ -56,7 +60,7 @@ begin
     ),'{}'::jsonb),
     (select mine.reaction from public.reactions mine
       where mine.post_id=p.id and mine.user_id=actor limit 1),
-    case when coalesce(meta.privacy,'public')='anonymous' and owner.id<>actor then '[]'::jsonb
+    case when coalesce(meta.privacy,'public')='anonymous' and owner.id is distinct from actor then '[]'::jsonb
     else coalesce((
       select jsonb_agg(jsonb_build_object('user_id',mentioned.id,'full_name',mentioned.full_name))
       from public.post_mentions mention
