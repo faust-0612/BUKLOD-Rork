@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -28,6 +29,7 @@ import {
 
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
+import BuklodActionFeedback, { type BuklodActionStatus } from '@/components/BuklodActionFeedback';
 import { useAuth } from '@/providers/AuthProvider';
 
 
@@ -111,6 +113,8 @@ export default function GroupsScreen() {
 
   const [busy, setBusy] =
     useState(false);
+  const createInFlight = useRef(false);
+  const [createFeedback, setCreateFeedback] = useState<{status: BuklodActionStatus; message: string}>({status:'idle',message:''});
 
 
   const load = useCallback(async () => {
@@ -423,82 +427,46 @@ export default function GroupsScreen() {
 
 
   const create = async () => {
+    if (createInFlight.current) return;
     if (!deploymentReady) {
-      Alert.alert(
-        'BUKLOD Clusters',
-        'The secure Pastor cluster-management migration has not been deployed yet.'
-      );
-
+      setCreateFeedback({status:'error',message:'The secure cluster-management migration is not deployed yet.'});
       return;
     }
-
-
-    if (
-      !churchId ||
-      !name.trim()
-    ) {
-      Alert.alert(
-        'BUKLOD Cluster',
-        'Local Church and cluster name are required.'
-      );
-
+    if (!churchId || !name.trim()) {
+      setCreateFeedback({status:'error',message:'Local Church and Cluster name are required.'});
       return;
     }
-
-
+    createInFlight.current = true;
     setBusy(true);
-
-    const result =
-      await db.rpc(
-        'manage_create_buklod_group',
-        {
-          p_church_id:
-            churchId,
-
-          p_name:
-            name.trim(),
-
-          p_code:
-            code.trim() ||
-            null,
-
-          p_description:
-            description.trim() ||
-            null,
-
-          p_leader_id:
-            leaderId ||
-            null,
-        }
-      );
-
-    setBusy(false);
-
-
-    if (result.error) {
-      Alert.alert(
-        'Could not create cluster',
-        result.error.message
-      );
-
-      return;
+    setCreateFeedback({status:'pending',message:'Creating Cluster. Please do not submit twice.'});
+    try {
+      const result = await db.rpc('manage_create_buklod_group', {
+        p_church_id: churchId,
+        p_name: name.trim(),
+        p_code: code.trim() || null,
+        p_description: description.trim() || null,
+        p_leader_id: leaderId || null,
+      });
+      if (result.error) throw result.error;
+      setCreateFeedback({status:'success',message:`Cluster "${name.trim()}" created successfully.`});
+      setName('');
+      setCode('');
+      setDescription('');
+      setLeaderId('');
+      // Refresh is secondary; it must never turn a committed create into a failure.
+      try {
+        await load();
+        await loadLeaders(churchId);
+      } catch (refreshError) {
+        console.warn('Cluster created; admin list refresh pending:', refreshError);
+      }
+    } catch (error: any) {
+      setCreateFeedback({status:'error',message:`Cluster creation could not be confirmed: ${error?.message || 'Check your Cluster list before retrying.'}`});
+    } finally {
+      createInFlight.current = false;
+      setBusy(false);
     }
-
-
-    setName('');
-    setCode('');
-    setDescription('');
-    setLeaderId('');
-
-    Alert.alert(
-      'BUKLOD Cluster',
-      'Cluster created successfully.'
-    );
-
-    await load();
-    await loadLeaders(churchId);
   };
-
 
   const refresh =
     useCallback(async () => {
@@ -805,15 +773,11 @@ export default function GroupsScreen() {
                       )}
 
 
+                    <BuklodActionFeedback status={createFeedback.status} message={createFeedback.message} />
                     <Button
-                      title={
-                        busy
-                          ? 'CREATING...'
-                          : 'CREATE CLUSTER'
-                      }
-                      onPress={
-                        create
-                      }
+                      title={busy ? 'CREATING...' : 'CREATE CLUSTER'}
+                      onPress={create}
+                      disabled={busy}
                     />
                   </>
                 )}
