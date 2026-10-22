@@ -104,6 +104,12 @@ import {
   resolvePersonDisplayName,
 } from '@/lib/buklodPersonDisplay';
 import BuklodCommunityCommentThread from '@/components/BuklodCommunityCommentThread';
+import BuklodCommunityCommentComposer from '@/components/BuklodCommunityCommentComposer';
+import {
+  type BuklodCommentMedia,
+  encodeBuklodCommentMediaBody,
+  buklodCommentHasSendableContent,
+} from '@/lib/buklodCommentMediaBody';
 import {
   type BuklodCommunityReactionKey,
   type CommunityReactionDetailsTarget,
@@ -158,7 +164,6 @@ import {
 import {createCommunityStyles} from '@/app/(tabs)/buklodCommunityStyles';
 import {
   useBuklodScrollBottomInset,
-  useBuklodDrawerBottomInset,
 } from '@/lib/buklodSafeArea';
 import {
   FLATLIST_TUNING,
@@ -502,8 +507,6 @@ function LegacyPublicBuklodScreen(){
   useBuklodScrollBottomInset({
    extra:10,
   });
- const drawerBottomInset=
-  useBuklodDrawerBottomInset();
  const s=useMemo(
   ()=>{
    const base=
@@ -911,6 +914,10 @@ function LegacyPublicBuklodScreen(){
   useState('');
  const [commentMentions,setCommentMentions]=
   useState<Mention[]>([]);
+ const [commentMedia,setCommentMedia]=
+  useState<BuklodCommentMedia|null>(null);
+ const [commentMediaPreview,setCommentMediaPreview]=
+  useState<string|null>(null);
 
  const [commentBusy,setCommentBusy]=
   useState(false);
@@ -3037,6 +3044,8 @@ const load=useCallback(async(options?:{
    setComments([]);
    setCommentText('');
    setCommentMentions([]);
+   setCommentMedia(null);
+   setCommentMediaPreview(null);
    setReplyTo(null);
    setCommentOpen(true);
 
@@ -3052,6 +3061,8 @@ const load=useCallback(async(options?:{
    setReplyTo(null);
    setCommentText('');
    setCommentMentions([]);
+   setCommentMedia(null);
+   setCommentMediaPreview(null);
   };
 
 
@@ -3059,7 +3070,10 @@ const load=useCallback(async(options?:{
   async()=>{
    if(
     !commentPost?.id ||
-    !commentText.trim() ||
+    !buklodCommentHasSendableContent(
+     commentText,
+     commentMedia
+    ) ||
     commentBusy
    ){
     return;
@@ -3095,6 +3109,7 @@ const load=useCallback(async(options?:{
      replyName;
 
     if(
+     finalBody &&
      !finalBody
       .toLowerCase()
       .startsWith(
@@ -3121,46 +3136,87 @@ const load=useCallback(async(options?:{
 
    setCommentBusy(true);
 
-   const {error}=
-    await communityRpc('add_buklod_post_comment_v4',
-     {
-      p_post_id:
-       commentPost.id,
-      p_body:
-       finalBody,
-      p_parent_id:
-       replyRootId
-     }
-    );
+   let mediaForBody=
+    commentMedia;
 
-   setCommentBusy(false);
+   try{
+    if(
+     commentMedia?.kind==='image' &&
+     commentMedia.ref &&
+     !commentMedia.ref.startsWith('http') &&
+     user?.id
+    ){
+     const path=
+      `${user.id}/comment-photo-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
+     await uploadCommunityPhotoFile({
+      path,
+      uri:commentMedia.ref,
+     });
+     mediaForBody={
+      kind:'image',
+      ref:path,
+     };
+    }
 
-   if(error){
+    finalBody=
+     encodeBuklodCommentMediaBody(
+      mediaForBody,
+      finalBody,
+     );
+
+    const {error}=
+     await communityRpc('add_buklod_post_comment_v4',
+      {
+       p_post_id:
+        commentPost.id,
+       p_body:
+        finalBody,
+       p_parent_id:
+        replyRootId
+      }
+     );
+
+    if(error){
+     reportCommunityFailure(
+      error,
+      'Comment not posted',
+      "BUKLOD couldn't post your comment right now.",
+      'comment_post_failed',
+     );
+     return;
+    }
+
+    setCommentText('');
+    setCommentMentions([]);
+    setCommentMedia(null);
+    setCommentMediaPreview(null);
+    setReplyTo(null);
+
+    void notifyBuklodCommunityMentions({
+     postId:String(commentPost.id),
+     mentionedUserIds:mentionIds,
+     context:'comment',
+    });
+
+    await Promise.all([
+     loadComments(
+      commentPost.id
+     ),
+     load()
+    ]);
+   }
+   catch(error:any){
     reportCommunityFailure(
      error,
      'Comment not posted',
-     "BUKLOD couldn't post your comment right now.",
+     error?.message??
+      "BUKLOD couldn't post your comment right now.",
      'comment_post_failed',
     );
-    return;
    }
-
-   setCommentText('');
-   setCommentMentions([]);
-   setReplyTo(null);
-
-   void notifyBuklodCommunityMentions({
-    postId:String(commentPost.id),
-    mentionedUserIds:mentionIds,
-    context:'comment',
-   });
-
-   await Promise.all([
-    loadComments(
-     commentPost.id
-    ),
-    load()
-   ]);
+   finally{
+    setCommentBusy(false);
+   }
   };
 
 
@@ -5619,7 +5675,7 @@ const communityFeedRows =
    behavior={
     Platform.OS==='ios'
      ? 'padding'
-     : 'height'
+     : undefined
    }
    keyboardVerticalOffset={0}
   >
@@ -5785,58 +5841,30 @@ const communityFeedRows =
      )}
 
 
-     <View
-      style={[
-       s.communityCommentComposer,
-       {
-        paddingBottom:
-         drawerBottomInset
-       }
-      ]}
-     >
-
-      <BuklodMentionField
-       value={commentText}
-       onChangeText={setCommentText}
-       mentions={commentMentions}
-       onMentionsChange={setCommentMentions}
-       audience={audience}
-       groupId={audience==='group'?group?.id??null:null}
-       excludeUserId={user?.id}
-       placeholder={
-        replyTo
-         ? 'Write a reply...'
-         : 'Write a comment...'
-       }
-       style={s.communityCommentInput}
-      />
-
-      <Pressable
-       disabled={
-        commentBusy||
-        !commentText.trim()
-       }
-       onPress={()=>
-        void submitCommunityComment()
-       }
-       style={[
-        s.communityCommentSend,
-        (
-         commentBusy||
-         !commentText.trim()
-        )&&{
-         opacity:.4
-        }
-       ]}
-      >
-       <MaterialCommunityIcons
-        name="send"
-        size={20}
-        color="#FFFFFF"
-       />
-      </Pressable>
-
-     </View>
+     <BuklodCommunityCommentComposer
+      value={commentText}
+      onChangeText={setCommentText}
+      mentions={commentMentions}
+      onMentionsChange={setCommentMentions}
+      audience={audience}
+      groupId={audience==='group'?group?.id??null:null}
+      excludeUserId={user?.id}
+      placeholder={
+       replyTo
+        ? 'Write a reply...'
+        : 'Write a comment...'
+      }
+      busy={commentBusy}
+      media={commentMedia}
+      mediaPreviewUri={commentMediaPreview}
+      onMediaChange={(next,preview)=>{
+       setCommentMedia(next);
+       setCommentMediaPreview(preview??null);
+      }}
+      onSend={()=>
+       void submitCommunityComment()
+      }
+     />
 
     </View>
    </View>
