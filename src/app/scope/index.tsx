@@ -233,6 +233,8 @@ ScopeWorkspaceScreen() {
   /* PATCH_172I_R3_CLUSTER_TOP_NAV_ALL_SECTIONS */
   const visibleSections =
     SECTIONS;
+  // BUKLOD_V28_BLUE_SCOPE_TABS_R1: tabs are below the safe-area header.
+  const blueWorkspaceTabs = workspaceScope?.scope_type === 'ORGANIZATION' || workspaceScope?.scope_type === 'CLUSTER';
 
   /*
    * Cluster uses Public Connect.
@@ -464,7 +466,7 @@ return (
             backgroundColor:
               dashboardTheme.cardColor,
           },
-        ], (/* PATCH_172I_CLUSTER_CONNECT_FLUSH */ (workspaceScope.scope_type === 'ORGANIZATION' || workspaceScope.scope_type === 'CLUSTER') && section === 'connect') && { /* PATCH_172H_TOP_NAV_FLUSH */ marginBottom: 0 }]}
+        ], blueWorkspaceTabs && { minHeight: 43, paddingVertical: 2, borderBottomColor: '#D4E7FA', backgroundColor: '#F4F9FF' }, (/* PATCH_172I_CLUSTER_CONNECT_FLUSH */ (workspaceScope.scope_type === 'ORGANIZATION' || workspaceScope.scope_type === 'CLUSTER') && section === 'connect') && { /* PATCH_172H_TOP_NAV_FLUSH */ marginBottom: 0 }]}
       >
         {visibleSections.map(
           (item) => {
@@ -483,9 +485,10 @@ return (
                   styles.tab,
                   active &&
                     styles.tabOn,
+                  blueWorkspaceTabs && { minHeight: 38, borderRadius: 0, backgroundColor: 'transparent', borderBottomWidth: active ? 3 : 0, borderBottomColor: '#0874DE' },
                 ]}
               >
-                <MaterialCommunityIcons
+                {!blueWorkspaceTabs && <MaterialCommunityIcons
                   name={item.icon}
                   size={18}
                   color={
@@ -493,13 +496,14 @@ return (
                       ? colors.greenDark
                       : colors.muted
                   }
-                />
+                />}
 
                 <Text
                   style={[
                     styles.tabText,
                     active &&
                       styles.tabTextOn,
+                    blueWorkspaceTabs && { color: active ? '#0874DE' : '#486E9E', fontSize: 11 },
                   ]}
                 >
                   {item.label}
