@@ -12,6 +12,8 @@ export default function KabihasnangLigawAdminScreen() {
  const [selected,setSelected]=useState<string|null>(null);
  const [preview,setPreview]=useState<Preview|null>(null);
  const [notes,setNotes]=useState('');
+ const [editedText,setEditedText]=useState('');
+ const [editing,setEditing]=useState(false);
  const [date,setDate]=useState('');
  const [busy,setBusy]=useState(false);
  const [loading,setLoading]=useState(false);
@@ -31,12 +33,12 @@ export default function KabihasnangLigawAdminScreen() {
  useEffect(()=>{void refresh();},[refresh]);
  const open=async(id:string)=>{
   if(busy)return;
-  setSelected(id);setPreview(null);setLoading(true);setNotes('');
+  setSelected(id);setPreview(null);setLoading(true);setNotes('');setEditing(false);
   try{
    const {data,error}=await supabase.rpc('kl_admin_preview_v1',{p_episode_id:id});
    if(error)throw error;
    if(!data || typeof data!=='object')throw new Error('Preview unavailable');
-   setPreview(data as Preview);setFeedback('Complete manuscript loaded from server.');
+   setPreview(data as Preview);setEditedText((data as Preview).manuscript??'');setFeedback('Complete manuscript loaded from server.');
   }catch(e){setFeedback('Could not load manuscript. No action taken. '+(e instanceof Error?e.message:''));}
   finally{setLoading(false);}
  };
@@ -51,11 +53,25 @@ export default function KabihasnangLigawAdminScreen() {
    if(!(data as {ok?:boolean}|null)?.ok)throw new Error('Server did not confirm the change');
    const {data:verified,error:verifyError}=await supabase.rpc('kl_admin_preview_v1',{p_episode_id:preview.id});
    if(verifyError||!verified)throw new Error('Action committed but refresh failed. Do not tap again; reload to verify.');
-   setPreview(verified as Preview);
+   setPreview(verified as Preview);setEditedText((verified as Preview).manuscript??'');setEditing(false);
    const {data:list,error:listError}=await supabase.rpc('kl_admin_list_v1');
    if(!listError&&Array.isArray(list))setRows(list as Episode[]);
    setFeedback(action.toUpperCase()+' saved and verified on server. Approval alone does not publish.');
   }catch(e){setFeedback('Could not confirm action: '+(e instanceof Error?e.message:'Unknown error')+'. Check status before retrying.');}
+  finally{setBusy(false);}
+ };
+ const saveDraft=async()=>{
+  if(busy||loading||!preview||preview.status!=='draft')return;
+  if(editedText.trim().length<100){setFeedback('Manuscript needs at least 100 characters.');return;}
+  setBusy(true);setFeedback('Saving corrected manuscript…');
+  try{
+   const {data,error}=await supabase.rpc('kl_admin_save_draft_v1',{p_episode_id:preview.id,p_manuscript:editedText,p_notes:notes});
+   if(error)throw error;
+   if(!(data as {ok?:boolean}|null)?.ok)throw new Error('No server confirmation');
+   const {data:check,error:checkError}=await supabase.rpc('kl_admin_preview_v1',{p_episode_id:preview.id});
+   if(checkError||!check){setFeedback('Saved, but verification failed. Refresh before editing again.');return;}
+   setPreview(check as Preview);setEditing(false);setFeedback('Corrected manuscript saved and verified. Still pending approval.');
+  }catch(e){setFeedback('Could not confirm save: '+(e instanceof Error?e.message:'Unknown error')+'. Check server before retrying.');}
   finally{setBusy(false);}
  };
  const confirm=(action:Action)=>{
@@ -64,13 +80,13 @@ export default function KabihasnangLigawAdminScreen() {
    {text:'Cancel',style:'cancel'},{text:'Confirm',onPress:()=>void perform(action)}
   ]);
  };
- const visible=filter==='pending'?rows.filter(x=>x.status==='draft'):rows;
+ const visible=filter==='pending'?rows.filter(x=>x.status==='draft' && x.episode_number>=2):rows;
  return <AdminGate><ScrollView contentContainerStyle={styles.page}>
   <Text style={styles.kicker}>BUKLOD ADMIN · STORY MANAGEMENT</Text>
   <Text style={styles.title}>Kabihasnang Ligaw</Text>
   <Text style={styles.info}>Review manuscripts, request revisions and approve. Approval does not release an episode. Scheduling is a separate action.</Text>
   <View style={styles.actions}>
-   <Pressable accessibilityRole="button" onPress={()=>setFilter('pending')} style={styles.button}><Text style={styles.buttonText}>Pending ({rows.filter(x=>x.status==='draft').length})</Text></Pressable>
+   <Pressable accessibilityRole="button" onPress={()=>setFilter('pending')} style={styles.button}><Text style={styles.buttonText}>Pending ({rows.filter(x=>x.status==='draft' && x.episode_number>=2).length})</Text></Pressable>
    <Pressable accessibilityRole="button" onPress={()=>setFilter('all')} style={styles.button}><Text style={styles.buttonText}>All ({rows.length})</Text></Pressable>
    <Pressable accessibilityRole="button" disabled={loading||busy} onPress={()=>void refresh()} style={styles.button}><Text style={styles.buttonText}>Refresh</Text></Pressable>
   </View>
@@ -86,7 +102,11 @@ export default function KabihasnangLigawAdminScreen() {
    <Text style={styles.heading}>{preview.title}</Text>
    <Text style={styles.info}>Server status: {preview.status} · {preview.manuscript?.length??0} characters</Text>
    {preview.revision_notes?<Text style={styles.info}>Revision feedback: {preview.revision_notes}</Text>:null}
-   <Text selectable style={styles.prose}>{preview.manuscript||'No manuscript available.'}</Text>
+   {editing?<TextInput multiline accessibilityLabel="Edit manuscript" value={editedText} onChangeText={setEditedText} style={[styles.input,styles.editor]}/>:<Text selectable style={styles.prose}>{preview.manuscript||'No manuscript available.'}</Text>}
+   {preview.status==='draft'?<View style={styles.actions}>
+    <Pressable accessibilityRole="button" disabled={busy||loading} onPress={()=>setEditing(!editing)} style={styles.button}><Text style={styles.buttonText}>{editing?'Cancel edit':'Edit manuscript'}</Text></Pressable>
+    {editing?<Pressable accessibilityRole="button" disabled={busy||loading} onPress={()=>void saveDraft()} style={styles.button}><Text style={styles.buttonText}>Save corrected draft</Text></Pressable>:null}
+   </View>:null}
    <Text style={styles.heading}>Decision and feedback</Text>
    <TextInput multiline accessibilityLabel="Revision feedback" placeholder="Specific changes needed before approval" placeholderTextColor={colors.muted} value={notes} onChangeText={setNotes} style={styles.input}/>
    <TextInput accessibilityLabel="Release date Manila" placeholder="YYYY-MM-DD for 6:00 AM Manila release" placeholderTextColor={colors.muted} value={date} onChangeText={setDate} style={styles.input}/>
@@ -108,5 +128,6 @@ const styles=StyleSheet.create({
  buttonText:{color:colors.white,fontWeight:'700',fontSize:13},
  disabled:{opacity:.45},
  prose:{color:colors.text,fontSize:16,lineHeight:26},
+ editor:{minHeight:320,fontSize:16,lineHeight:25},
  input:{borderWidth:1,borderColor:colors.line,borderRadius:10,padding:12,color:colors.text,minHeight:48,textAlignVertical:'top'}
 });
