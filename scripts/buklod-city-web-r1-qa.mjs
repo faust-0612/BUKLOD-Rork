@@ -32,6 +32,7 @@ requireText(indexNative, 'href="/(tabs)/buklod"', 'native Community Wall boot');
 
 requireText(cityWeb, 'Compatibility alias for old web BUKLOD City links', 'web City redirect alias');
 requireText(cityWeb, '<Redirect href="/(tabs)/buklod" />', 'web City → Community Wall');
+requireText(cityNative, 'Compatibility alias for old BUKLOD City links', 'native City redirect alias');
 requireText(cityNative, '<Redirect href="/(tabs)/buklod" />', 'native City → Community Wall');
 
 requireText(cityDashboard, 'Share my presence', 'opt-in people presence');
