@@ -1,0 +1,16 @@
+{
+  "objective": "Install engineering accountability checks without modifying product modules",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: this PR changes engineering tooling only, not a production release; live runtime verification remains mandatory before release",
+  "allowedPaths": [
+    "docs/engineering/global-accountability-contract-r1.md",
+    "scripts/engineering-accountability-gate.mjs",
+    ".buklod/work-scope.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "acceptanceChecks": [
+    "Full changed-file allowlist passes",
+    "Missing or unrelated file manifest fails closed",
+    "Production publish remains separately gated"
+  ]
+}
