@@ -14,6 +14,10 @@ function checkPolicy(text) {
     if (triggers.workflow_dispatch?.inputs?.[name]?.required !== true) throw new Error('Missing required authorization input ' + name);
   }
   const steps = workflow.jobs?.['qa-and-publish']?.steps ?? [];
+  if (workflow.jobs?.['qa-and-publish']?.if !== "inputs.operation == 'publish'") throw new Error('Read-only inspection must not publish');
+  const inspection = workflow.jobs?.inspect;
+  if (inspection?.steps.find(step => step.uses?.startsWith('actions/checkout@'))?.with?.ref !== '${{ inputs.rc_sha }}') throw new Error('Inspection checkout must also use immutable RC input');
+  if (inspection?.if !== "inputs.operation == 'inspect'" || inspection.steps.some(step => /eas-cli@\S+\s+update\s+--/.test(step.run ?? ''))) throw new Error('Inspection must remain read-only');
   const checkout = steps.find(x => x.uses?.startsWith('actions/checkout@'));
   if (checkout?.with?.ref !== '${{ inputs.rc_sha }}') throw new Error('Checkout must use the exact immutable RC input');
   const source = steps.map(x => x.run ?? '').join('\n');

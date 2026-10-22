@@ -8,6 +8,12 @@ test('manual immutable-RC workflow passes policy; ordinary pushes and mutable ma
   assert.doesNotThrow(() => checkPolicy(workflow));
   assert.throws(() => checkPolicy(workflow.replace('on:\n', 'on:\n  push:\n')), /manual only/);
   assert.throws(() => checkPolicy(workflow.replace('ref: ${{ inputs.rc_sha }}', 'ref: main')), /immutable RC/);
+  assert.throws(() => checkPolicy(workflow.replace("    if: inputs.operation == 'publish'\n", '')), /must not publish/);
+});
+test('read-only inspection evidence omits credentials and signed artifact URLs', () => {
+  const { sanitize } = require('../scripts/sanitize-expo-inspection.cjs');
+  const result = sanitize({id:'build-id',gitCommitHash:'sha',artifacts:{applicationArchiveUrl:'https://example.invalid/signed'},ownerAccount:{email:'private'},environment:{EXPO_TOKEN:'private'}});
+  assert.deepEqual(result,{id:'build-id',gitCommitHash:'sha',artifacts:{}});
 });
 test('required readiness and publish verification gates cannot be removed', () => {
   for (const gate of ['verify-android-rc-readiness.cjs', 'character:contract', 'verify-production-android-update.cjs published']) {
