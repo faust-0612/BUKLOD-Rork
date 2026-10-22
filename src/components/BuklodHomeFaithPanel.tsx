@@ -215,10 +215,11 @@ function FaithAction({
             size={16}
             color={`${styleTone.accent}99`}
           />}
+          {compact && locked ? <MaterialCommunityIcons name="lock-outline" size={12} color="#FFFFFF" /> : null}
         </View>
 
         <Text
-          numberOfLines={1}
+          numberOfLines={compact ? 2 : 1}
           style={[
             styles.eyebrow,
             {
@@ -234,9 +235,7 @@ function FaithAction({
           <View style={styles.loadingBox}>
             <ActivityIndicator
               size="small"
-              color={
-                styleTone.accent
-              }
+              color={compact ? '#FFFFFF' : styleTone.accent}
             />
           </View>
         ) : (
