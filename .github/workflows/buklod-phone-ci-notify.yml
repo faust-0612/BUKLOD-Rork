@@ -1,0 +1,45 @@
+name: BUKLOD Phone CI Notification
+
+# Event-driven: no polling, no extra builds. Activate only after review/merge
+# to the repository default branch and configuring Telegram secrets.
+on:
+  workflow_run:
+    workflows:
+      - BUKLOD Performance R1 QA
+      - BUKLOD Character R31-R40 Recovery QA
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  phone-notification:
+    if: ${{ github.event.workflow_run.event == 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Send CI result to Telegram
+        env:
+          BOT_TOKEN: ${{ secrets.BUKLOD_TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.BUKLOD_TELEGRAM_CHAT_ID }}
+          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+          WORKFLOW_RESULT: ${{ github.event.workflow_run.conclusion }}
+          WORKFLOW_URL: ${{ github.event.workflow_run.html_url }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          if [ -z "$BOT_TOKEN" ] || [ -z "$CHAT_ID" ]; then
+            echo "Telegram secrets are not configured; no notification sent."
+            exit 0
+          fi
+          case "$WORKFLOW_RESULT" in
+            success) STATUS="PASSED" ;;
+            failure) STATUS="FAILED" ;;
+            cancelled) STATUS="CANCELLED" ;;
+            *) STATUS="$WORKFLOW_RESULT" ;;
+          esac
+          MESSAGE=$(printf 'BUKLOD CI %s\nWorkflow: %s\nBranch: %s\nCommit: %.12s\nDetails: %s' "$STATUS" "$WORKFLOW_NAME" "$BRANCH" "$SHA" "$WORKFLOW_URL")
+          curl --fail --silent --show-error --retry 2 --max-time 15 \
+            --request POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${CHAT_ID}" \
+            --data-urlencode "text=${MESSAGE}" >/dev/null
