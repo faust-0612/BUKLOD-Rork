@@ -44,13 +44,19 @@ function applyObservedQuality() {
 }
 subscribeNetworkQuality(applyObservedQuality);
 
+// One active read per feature boundary; a slow feature cannot monopolize the pool.
+const MAX_PER_SCOPE = 1;
 const MAX_NORMAL = 2; // never flood backend when many screens mount
 function limit() { return degraded ? 1 : MAX_NORMAL; }
 function drain() {
   if (!online) return;
   pending.sort((a, b) => a.priority - b.priority || a.kindPriority - b.kindPriority || a.seq - b.seq);
   while (activeCount < limit() && pending.length) {
-    const job = pending.shift()!;
+    const nextIndex = pending.findIndex(candidate =>
+      [...active.values()].filter(job => job.scope === candidate.scope).length < MAX_PER_SCOPE
+    );
+    if (nextIndex < 0) break;
+    const [job] = pending.splice(nextIndex, 1);
     queued.delete(job.key);
     if (job.controller.signal.aborted) {
       job.reject(new Error('BUKLOD sync cancelled'));
@@ -114,6 +120,8 @@ export function enqueueBuklodRead<T>(args: {
   run: (signal: AbortSignal) => Promise<T>;
 }): Promise<T> {
   if (!args.key || !args.view) return Promise.reject(new Error('Sync scope required'));
+  // Require an explicit namespace so unrelated features cannot share a dedup key.
+  if (!args.key.includes(':')) return Promise.reject(new Error('Sync key must be namespaced'));
   const duplicate = running.get(args.key) ?? queued.get(args.key);
   if (duplicate) return duplicate as Promise<T>;
   if (!online) return Promise.reject(new Error('BUKLOD offline: use local snapshot'));
