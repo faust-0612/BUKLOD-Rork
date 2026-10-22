@@ -531,23 +531,27 @@ export async function resolveReferralTarget(
   };
 }
 
-export async function recordReferral(referrerCode: string) {
+export async function recordReferral(
+  referrerCode: string,
+  options: { alreadyResolved?: boolean } = {},
+) {
   const value = referrerCode.trim();
-  if (!value) {
-    throw new Error('Referral code required');
-  }
+  if (!value) throw new Error('Referral code required');
 
-  const resolved = await resolveReferralTarget(value);
-  const code = resolved.found
-    ? String(resolved.referral_code || value)
-    : value;
+  // A selected suggestion already carries the canonical referral code.
+  // The server RPC remains authoritative and validates it again.
+  let code = value;
+  if (!options.alreadyResolved) {
+    const resolved = await resolveReferralTarget(value);
+    if (!resolved.found) {
+      throw new Error(resolved.message || 'Referral could not be verified.');
+    }
+    code = String(resolved.referral_code || value);
+  }
 
   const { error } = await (supabase as any).rpc(
     'buklod_record_referral_v1',
     { p_referrer_code: code },
   );
-
-  if (error) {
-    throw error;
-  }
+  if (error) throw error;
 }

@@ -67,6 +67,7 @@ import BuklodCommunityContributionCard from '@/components/BuklodCommunityContrib
 import { assertCommunityVideoQuotaAvailable } from '@/lib/buklodCommunityContributionEconomy';
 import SmartDrawerWallCard from '@/components/SmartDrawerWallCard';
 import BuklodLifeWallCard from '@/components/BuklodLifeWallCard';
+import KabihasnangLigawWallCard from '@/components/KabihasnangLigawWallCard';
 import BuklodCommunityWallProfileBubbles from '@/components/BuklodCommunityWallProfileBubbles';
 import {
   type BuklodCommunityComposerIntent,
@@ -4499,6 +4500,9 @@ const communityFeedRows =
 
    {/* BUKLOD_LIFE_WALL_ENTRY_R1 */}
    <BuklodLifeWallCard />
+
+   {/* KL_R5_COMMUNITY_DASHBOARD_PLACEMENT: LIFE → story → BUKLOD TODAY */}
+   <KabihasnangLigawWallCard />
 
    <BuklodTodayCard onRespond={()=>activateComposerIntent('post')} />
 

@@ -1,0 +1,78 @@
+# Publishes the checked-out V28 commit to Android production runtime 1.3.4.
+# Dispatch this file from dev/kabihasnang-ligaw-dashboard-r5. It does not check out main.
+name: BUKLOD V28 P0 Android Production OTA
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v28-p0-verified-*'
+      - 'r5-verified-*'
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+jobs:
+  publish-v28:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout this V28 commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Refuse any runtime other than V28 1.3.4
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "SOURCE_SHA=$(git rev-parse HEAD)"
+          grep -F "version: '1.3.4'" app.config.js
+          grep -F "versionCode: isStaging ? undefined : 28" app.config.js
+          grep -F "runtimeVersion: isClassroom ? '1.3.0' : '1.3.4'" app.config.js
+          grep -F "alreadyResolved" src/app/\(auth\)/register.tsx
+          grep -F "cancelBuklodPasswordTransport" src/lib/buklodPerformanceFetch.ts
+          if [ -z "${EXPO_TOKEN}" ]; then
+            echo "EXPO_TOKEN is not available to this workflow."
+            exit 1
+          fi
+          npx eas-cli@latest whoami --non-interactive
+
+      - name: Publish Android production OTA for runtime 1.3.4
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest update \
+            --channel production \
+            --platform android \
+            --environment production \
+            --message "V28 P0 runtime 1.3.4 $(git rev-parse --short HEAD): referral attach, weak-network reads, bounded auth" \
+            --non-interactive
+
+      - name: Export web after the Android bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest env:exec production 'npx expo export --platform web --output-dir dist-web-rc' --non-interactive
+          test -f dist-web-rc/index.html
+          grep -F '_expo/static/js/web/' dist-web-rc/index.html
+          test -n "$(find dist-web-rc -name 'wa-sqlite*.wasm' -print -quit)"
+          test -n "$(find dist-web-rc -name 'kl-s1-ang-lupang-hindi-namamatay*.jpg' -print -quit)"
+
+      - name: Deploy the same commit to production web
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest deploy --prod --environment production --non-interactive --export-dir dist-web-rc

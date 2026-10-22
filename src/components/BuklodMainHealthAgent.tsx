@@ -8,6 +8,7 @@ import { usePathname } from 'expo-router';
 
 import {
   enqueueBuklodMainHealthIssue,
+  flushDeferredBuklodHealth,
   flushBuklodMainHealthQueue,
   pollBuklodMainRecoveryCommands,
   verifyBuklodMainRecovery,
@@ -327,6 +328,8 @@ export default function BuklodMainHealthAgent() {
       return;
     }
 
+    // Independently single-flight; deferred telemetry cannot hold recovery polling.
+    void flushDeferredBuklodHealth(userIdRef.current).catch(() => undefined);
     executingRef.current = true;
     try {
       const commands =
@@ -598,3 +601,4 @@ export default function BuklodMainHealthAgent() {
 
   return null;
 }
+
