@@ -112,7 +112,10 @@ export async function readBuklodOfflineFirst<T extends { id: string }>(args: {
         }
         await AsyncStorage.setItem(key, JSON.stringify(next));
         if ((generations.get(key) ?? 0) !== generation || signal.aborted) {
-          await AsyncStorage.removeItem(key);
+          // A newer authorized generation may already have written a fresh
+          // snapshot. Never delete that snapshot from a stale completion.
+          const stored = await AsyncStorage.getItem(key);
+          if (stored === JSON.stringify(next)) await AsyncStorage.removeItem(key);
           throw new Error('BUKLOD sync scope revoked during persistence');
         }
         memory.set(key, next);
