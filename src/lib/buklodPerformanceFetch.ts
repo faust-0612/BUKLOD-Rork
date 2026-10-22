@@ -507,7 +507,7 @@ export function createBuklodPerformanceFetch(
       const owner = { cancel: null as (() => void) | null };
       state.passwordTransport = owner;
       try {
-        return fromSnapshot(await boundedReadSnapshot(baseFetch, input, init, 10_000,
+        return fromSnapshot(await boundedReadSnapshot(baseFetch, input, init, 24_000,
           'password sign-in', cancel => { owner.cancel = cancel; }));
       } finally {
         if (state.passwordTransport === owner) state.passwordTransport = null;
