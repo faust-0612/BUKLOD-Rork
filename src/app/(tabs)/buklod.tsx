@@ -1367,7 +1367,7 @@ const load=useCallback(async(options?:{
       ? loadCommunityPostMediaByPostIds(postIds)
       : Promise.resolve({});
 
-  const authorIds=
+  const followBackAuthorIds=
     [...new Set(
       feedRows
         .map((p:any)=>String(p.user_id??'').trim())
@@ -1421,13 +1421,13 @@ const load=useCallback(async(options?:{
       data: [] as any[],
       error: null,
     })),
-    authorIds.length
+    followBackAuthorIds.length
       ? withBuklodTimeout<any>(
           supabase
             .from('buklod_user_follows')
             .select('follower_id')
             .eq('followed_user_id', user.id)
-            .in('follower_id', authorIds),
+            .in('follower_id', followBackAuthorIds),
           5000,
           'Community follow back'
         ).catch(() => ({
