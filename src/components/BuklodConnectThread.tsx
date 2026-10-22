@@ -629,9 +629,10 @@ function BuklodConnectThreadInner({
   const shellReservesPersistentNav =
     isBuklodScopedWorkspacePath(pathname) &&
     navOccupied > 0;
+  // Match drawer clearance so attach / GIF / reaction icons stay tappable above the phone nav pane.
   const phoneNavClearance = shellReservesPersistentNav
     ? 0
-    : Math.max(insets.bottom, 6);
+    : Math.max(insets.bottom, 8) + 12;
   const composerDockBottom = Math.max(
     composerBottom,
     phoneNavClearance,
