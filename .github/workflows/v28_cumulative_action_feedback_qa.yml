@@ -36,4 +36,4 @@ jobs:
       - name: TypeScript compile
         run: npx tsc --noEmit
       - name: Creation feedback contract
-        run: npm test -- --runTestsByPath __tests__/buklodActionFeedbackContract.test.js
+        run: node --test __tests__/buklodActionFeedbackContract.test.js
