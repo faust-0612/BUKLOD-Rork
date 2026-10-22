@@ -605,9 +605,18 @@ export function AuthProvider({
            * same-user events share the same cached/in-flight reads.
            */
           setTimeout(() => {
-            if (disposed) {
+            if (disposed || sessionUserIdRef.current !== nextUserId) {
               return;
             }
+
+            // A slow profile service must not keep the entire app on the
+            // sign-in spinner. Keep the existing hydration running.
+            const hydrationWatchdog = setTimeout(() => {
+              if (!disposed && sessionUserIdRef.current === nextUserId) {
+                bootstrappedRef.current = true;
+                setLoading(false);
+              }
+            }, 4000);
 
             void loadProfile(
               nextSession?.user.id,
@@ -631,7 +640,8 @@ export function AuthProvider({
                 );
               })
               .finally(() => {
-                if (!disposed) {
+                clearTimeout(hydrationWatchdog);
+                if (!disposed && sessionUserIdRef.current === nextUserId) {
                   bootstrappedRef.current = true;
                   setLoading(false);
                 }
