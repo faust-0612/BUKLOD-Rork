@@ -12,6 +12,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
+import BuklodActionFeedback, { type BuklodActionStatus } from '@/components/BuklodActionFeedback';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
@@ -151,6 +152,7 @@ export default function CreateOrganizationScreen() {
   const [busy, setBusy] = useState(false);
   const createInFlight = useRef(false);
   const [createdId, setCreatedId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{status: BuklodActionStatus; message: string}>({status:'idle',message:''});
 
   const selectedOption = useMemo(
     () => TYPES.find(item => item.key === selectedType) ?? null,
@@ -175,25 +177,23 @@ export default function CreateOrganizationScreen() {
 
   const createOrganization = async () => {
     if (!selectedType) {
-      Alert.alert('Organization', 'Choose an organization type first.');
+      setFeedback({status:'error',message:'Choose an organization type first.'});
       return;
     }
     if (!values.name?.trim()) {
-      Alert.alert('Organization', 'Organization name is required.');
+      setFeedback({status:'error',message:'Organization name is required.'});
       return;
     }
     if (selectedType === 'CHURCH') {
       if (!values.city_municipality?.trim() && !values.address_line?.trim()) {
-        Alert.alert(
-          'Church address',
-          'Add a usable church address so Find a Church can store coordinates.',
-        );
+        setFeedback({status:'error',message:'Add a usable church address so Find a Church can store coordinates.'});
         return;
       }
     }
     if (busy || createInFlight.current || createdId) return;
     createInFlight.current = true;
     setBusy(true);
+    setFeedback({status:'pending',message:'Creating Organization. Please do not submit twice.'});
     try {
       const profile = Object.fromEntries(
         Object.entries(values)
@@ -241,6 +241,7 @@ export default function CreateOrganizationScreen() {
       // R3: the RPC committed the Organization and admin membership.
       // A later scope list refresh MUST NOT turn confirmed success into a creation failure.
       setCreatedId(scopeId);
+      setFeedback({status:'success',message:`Organization "${values.name.trim()}" created successfully. Open your workspace below.`});
       void refresh().catch(error => console.warn('Post-create Organization scope refresh:', error));
 
       Alert.alert(
@@ -274,10 +275,7 @@ export default function CreateOrganizationScreen() {
       );
     } catch (error: any) {
       if (createdId) return;
-      Alert.alert(
-        'Could Not Create Organization',
-        String(error?.message ?? error ?? 'Please try again.'),
-      );
+      setFeedback({status:'error',message:`Organization creation could not be confirmed: ${String(error?.message ?? error ?? 'Please try again.')}`});
     } finally {
       createInFlight.current = false;
       setBusy(false);
@@ -402,6 +400,7 @@ export default function CreateOrganizationScreen() {
             </View>
           </View>
 
+          <BuklodActionFeedback status={feedback.status} message={feedback.message} />
           <Pressable
             disabled={busy || Boolean(createdId)}
             onPress={() => void createOrganization()}

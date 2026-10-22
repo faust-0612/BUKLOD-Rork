@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
+  ActivityIndicator,
   Alert,
   Pressable,
   StyleSheet,
@@ -10,6 +11,7 @@ import {
 } from 'react-native';
 
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
+import BuklodActionFeedback, { type BuklodActionStatus } from '@/components/BuklodActionFeedback';
 
 import { router } from 'expo-router';
 
@@ -78,6 +80,7 @@ export default function CreateClusterScreen() {
   const [busy, setBusy] = useState(false);
   const submitting = useRef(false);
   const [createdId, setCreatedId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{status: BuklodActionStatus; message: string}>({status:'idle',message:''});
 
   useEffect(() => {
     let active = true;
@@ -134,11 +137,12 @@ export default function CreateClusterScreen() {
   const submit = async () => {
     if (submitting.current || busy || createdId) return;
     if (!name.trim()) {
-      Alert.alert('Cluster', 'Enter a Cluster name.');
+      setFeedback({status:'error',message:'Enter a Cluster name.'});
       return;
     }
     submitting.current = true;
     setBusy(true);
+    setFeedback({status:'pending',message:'Creating Cluster. Please do not submit twice.'});
 
     try {
       const id = await createCluster({
@@ -152,6 +156,7 @@ export default function CreateClusterScreen() {
       if (!id || id === 'undefined' || id === 'null') throw new Error('Cluster not confirmed by the server.');
       // R3: success is confirmed by server RPC, not by the subsequent navigation.
       setCreatedId(id);
+      setFeedback({status:'success',message:`Cluster "${name.trim()}" created successfully. Open it below.`});
       Alert.alert('Cluster Created', 'Your Cluster is saved. Open its Home now.', [
         { text: 'OPEN CLUSTER', onPress: () => router.replace({
           pathname: '/clusters/[id]' as any,
@@ -159,7 +164,7 @@ export default function CreateClusterScreen() {
         } as any) },
       ]);
     } catch (error) {
-      Alert.alert('Could Not Create Cluster', messageOf(error));
+      setFeedback({status:'error',message:`Cluster creation could not be confirmed: ${messageOf(error)}`});
     } finally {
       submitting.current = false;
       setBusy(false);
@@ -285,11 +290,13 @@ export default function CreateClusterScreen() {
         );
       })}
 
+      <BuklodActionFeedback status={feedback.status} message={feedback.message} />
       <Pressable
         disabled={busy || Boolean(createdId)}
         onPress={() => void submit()}
         style={[styles.primary, busy && { opacity: 0.55 }]}
       >
+        {busy ? <ActivityIndicator color="#FFFFFF" size="small" /> : null}
         <Text style={styles.primaryText}>
           {createdId ? 'CLUSTER CREATED' : busy ? 'CREATING...' : 'CREATE CLUSTER'}
         </Text>

@@ -2,9 +2,11 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Pressable,
   StyleSheet,
@@ -14,6 +16,7 @@ import {
 } from 'react-native';
 
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
+import BuklodActionFeedback, { type BuklodActionStatus } from '@/components/BuklodActionFeedback';
 import {
   Stack,
   useLocalSearchParams,
@@ -120,6 +123,9 @@ export default function SuborganizationsScreen() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const inFlight = useRef(false);
+  const [createdId, setCreatedId] = useState('');
+  const [feedback, setFeedback] = useState<{status: BuklodActionStatus; message: string}>({status: 'idle',message: ''});
   const [allowed, setAllowed] = useState(false);
   const [parent, setParent] = useState<ScopeRow | null>(null);
   const [children, setChildren] = useState<SuborganizationRow[]>([]);
@@ -230,27 +236,26 @@ export default function SuborganizationsScreen() {
   };
 
   const handleCreate = async () => {
-    if (!parentScopeId || !parent) return;
-
+    if (inFlight.current || createdId) return;
+    if (!parentScopeId || !parent) {
+      setFeedback({ status: 'error', message: 'Select a parent Organization first.' });
+      return;
+    }
     if (!allowed) {
-      Alert.alert(
-        'Admin access required',
-        'Only an authorized admin of the parent Organization can create a Sub-organization.'
-      );
+      setFeedback({ status: 'error', message: 'Only a parent Organization admin can create a Sub-organization.' });
       return;
     }
-
     const cleanName = name.trim();
-
     if (!cleanName) {
-      Alert.alert('Sub-organization name', 'Enter a Sub-organization name.');
+      setFeedback({ status: 'error', message: 'Enter a Sub-organization name.' });
       return;
     }
 
+    inFlight.current = true;
     setSaving(true);
-
+    setFeedback({ status: 'pending', message: 'Creating Sub-organization. Do not submit twice.' });
     try {
-      const createdId = await createSuborganization({
+      const id = await createSuborganization({
         parentScopeId,
         name: cleanName,
         description,
@@ -258,36 +263,21 @@ export default function SuborganizationsScreen() {
         joinPolicy,
         organizationType: organizationType.trim() || inheritedType,
       });
-
-      Alert.alert(
-        'Sub-organization created',
-        `${cleanName} was created under ${
-          parent.name || routeParentName || 'the parent Organization'
-        }.`,
-        [
-          {
-            text: 'Open workspace',
-            onPress: () => void openChildWorkspace(createdId),
-          },
-          { text: 'Stay here', style: 'cancel' },
-        ]
-      );
-
-      setName('');
-      setDescription('');
-      setVisibility(upper(parent.visibility || 'PUBLIC'));
-      setJoinPolicy('APPROVAL_REQUIRED');
-      setOrganizationType(inheritedType);
-
-      await load();
+      if (!id) throw new Error('Server did not confirm a Sub-organization ID. Check the list before retrying.');
+      setCreatedId(id);
+      setFeedback({status:'success',message:`Sub-organization "${cleanName}" created under ${parent.name || routeParentName || 'the parent Organization'}.`});
+      try {
+        await load();
+      } catch (refreshError) {
+        console.warn('Sub-organization created; list refresh pending:', refreshError);
+      }
     } catch (error: unknown) {
-      Alert.alert(
-        'Could not create Sub-organization',
-        error instanceof Error
-          ? error.message
-          : 'The Sub-organization was not created.'
-      );
+      setFeedback({
+        status: 'error',
+        message: `Sub-organization creation could not be confirmed: ${error instanceof Error ? error.message : 'Please check the list before retrying.'}`,
+      });
     } finally {
+      inFlight.current = false;
       setSaving(false);
     }
   };
@@ -560,18 +550,27 @@ export default function SuborganizationsScreen() {
                   </Text>
                 </View>
 
-                <Pressable
-                  disabled={saving}
-                  onPress={() => void handleCreate()}
-                  style={({ pressed }) => [
-                    styles.createButton,
-                    (pressed || saving) && styles.pressed,
-                  ]}
-                >
-                  <Text style={styles.createText}>
-                    {saving ? 'CREATING...' : 'CREATE SUB-ORGANIZATION'}
-                  </Text>
-                </Pressable>
+                <BuklodActionFeedback status={feedback.status} message={feedback.message} />
+                {createdId ? (
+                  <Pressable accessibilityRole="button" onPress={() => void openChildWorkspace(createdId)} style={styles.createButton}>
+                    <Text style={styles.createText}>OPEN CREATED SUB-ORGANIZATION</Text>
+                  </Pressable>
+                ) : (
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={saving}
+                    onPress={() => void handleCreate()}
+                    style={({ pressed }) => [
+                      styles.createButton,
+                      (pressed || saving) && styles.pressed,
+                    ]}
+                  >
+                    {saving ? <ActivityIndicator color="#FFFFFF" size="small" /> : null}
+                    <Text style={styles.createText}>
+                      {saving ? 'CREATING...' : 'CREATE SUB-ORGANIZATION'}
+                    </Text>
+                  </Pressable>
+                )}
               </>
             )}
           </>

@@ -1,0 +1,31 @@
+name: BUKLOD V28 Main Feedback Reconcile QA
+on:
+  push:
+    branches: [codex/v28-feedback-reconcile-main-20261023]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Protect current Cluster and runtime behavior
+        run: |
+          grep -F "runtimeVersion: isClassroom ? '1.3.0' : '1.3.2'" app.config.js
+          grep -F "organizationId: organizationId || null" src/app/clusters/create.tsx
+          grep -F "submitting.current" src/app/clusters/create.tsx
+          grep -F "createInFlight.current" src/app/organizations/create.tsx
+      - name: Compile and action-feedback contract
+        run: |
+          npx tsc --noEmit
+          node --test __tests__/buklodActionFeedbackContract.test.js
