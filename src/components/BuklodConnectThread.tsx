@@ -1299,6 +1299,10 @@ const [
   const connectReadingOlderRef =
     useRef(false);
 
+  /* V25_CHAT_LATEST_R1: own sends override layout/keyboard scroll races. */
+  const connectOwnSendScrollPendingRef =
+    useRef(false);
+
   const connectPreserveScrollRef =
     useRef(false);
 
@@ -1309,6 +1313,20 @@ const [
     useRef<ReturnType<typeof setTimeout> | null>(
       null
     );
+
+  const scrollConnectToLatestAfterSend =
+    () => {
+      connectOwnSendScrollPendingRef.current = true;
+      connectReadingOlderRef.current = false;
+      connectPreserveScrollRef.current = false;
+      if (connectPreserveTimerRef.current) {
+        clearTimeout(connectPreserveTimerRef.current);
+        connectPreserveTimerRef.current = null;
+      }
+      requestAnimationFrame(() => {
+        listRef.current?.scrollToEnd({ animated: false });
+      });
+    };
 
   const armConnectScrollPreservation =
     () => {
@@ -1838,13 +1856,13 @@ const [
 
         await loadReactions();
 
-        requestAnimationFrame(
-          () =>
-            listRef.current
-              ?.scrollToEnd({
-                animated: false,
-              })
-        );
+        // Realtime refresh should not displace someone reading old messages.
+        if (!connectReadingOlderRef.current &&
+            !connectPreserveScrollRef.current) {
+          requestAnimationFrame(() => {
+            listRef.current?.scrollToEnd({ animated: false });
+          });
+        }
       } catch (error: any) {
         console.warn(
           'Connect history load:',
@@ -2553,13 +2571,7 @@ const [
         ]
       );
 
-      requestAnimationFrame(
-        () =>
-          listRef.current
-            ?.scrollToEnd({
-              animated: true,
-            })
-      );
+      scrollConnectToLatestAfterSend();
     };
 
   const markLocalMessageSent =
@@ -2650,10 +2662,7 @@ const [
         next;
 
       setDraft(next);
-
-      setComposerPickerOpen(
-        false
-      );
+      // Keep the emoji picker open for multiple consecutive selections.
     };
 
   const sendQuickBody =
@@ -3026,13 +3035,7 @@ const [
         ]
       );
 
-      requestAnimationFrame(
-        () =>
-          listRef.current
-            ?.scrollToEnd({
-              animated: true,
-            })
-      );
+      scrollConnectToLatestAfterSend();
 
       void (async () => {
         try {
@@ -3349,13 +3352,7 @@ const [
           ]
         );
 
-        requestAnimationFrame(
-          () =>
-            listRef.current
-              ?.scrollToEnd({
-                animated: true,
-              })
-        );
+        scrollConnectToLatestAfterSend();
 
         void (async () => {
           try {
@@ -3702,6 +3699,13 @@ const [
         ref={threadBodyRef}
         onLayout={() => {
           resyncComposerInset();
+          // Android keyboard resize must keep the latest row visible.
+          if (!connectReadingOlderRef.current &&
+              !connectPreserveScrollRef.current) {
+            requestAnimationFrame(() => {
+              listRef.current?.scrollToEnd({ animated: false });
+            });
+          }
         }}
         style={{ flex: 1 }}
       >
@@ -3737,13 +3741,17 @@ const [
               18,
           },
         ]}
-        onContentSizeChange={
-          () =>
-            listRef.current
-              ?.scrollToEnd({
-                animated: true,
-              })
-        }
+        onContentSizeChange={() => {
+          if (connectPreserveScrollRef.current &&
+              !connectOwnSendScrollPendingRef.current) {
+            return;
+          }
+          if (connectOwnSendScrollPendingRef.current ||
+              !connectReadingOlderRef.current) {
+            listRef.current?.scrollToEnd({ animated: false });
+          }
+          connectOwnSendScrollPendingRef.current = false;
+        }}
         ListEmptyComponent={
           <View
             style={
@@ -3809,13 +3817,12 @@ const [
               layoutMeasurement.height
             );
 
-          connectReadingOlderRef.current =
-            distanceFromBottom > 120;
+          if (!connectOwnSendScrollPendingRef.current) {
+            connectReadingOlderRef.current =
+              distanceFromBottom > 120;
+          }
         }}
         scrollEventThrottle={16}
-        maintainVisibleContentPosition={{
-          minIndexForVisible: 0,
-        }}
         renderItem={({
           item,
         }) => {
@@ -4217,6 +4224,14 @@ const [
         onChangeDraft={value => {
           draftRef.current = value;
           setDraft(value);
+          // Typing a new message returns the conversation to the latest row.
+          if (connectReadingOlderRef.current) {
+            connectReadingOlderRef.current = false;
+            connectPreserveScrollRef.current = false;
+            requestAnimationFrame(() => {
+              listRef.current?.scrollToEnd({ animated: false });
+            });
+          }
         }}
         onSend={send}
         onAttachPress={handleAttachPress}
