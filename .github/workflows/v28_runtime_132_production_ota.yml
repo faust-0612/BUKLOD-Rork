@@ -33,6 +33,14 @@ jobs:
       - name: Install locked dependencies
         run: npm ci --ignore-scripts
 
+      - name: Fail-closed native runtime compatibility check
+        env:
+          OTA_CHANNEL: production
+          OTA_PLATFORM: android
+          APP_VARIANT: production
+          EXPO_PUBLIC_APP_ENV: production
+        run: node scripts/guard-android-ota-runtime.cjs
+
       - name: Confirm runtime 1.3.2
         shell: bash
         run: |
