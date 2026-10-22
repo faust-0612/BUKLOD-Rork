@@ -21,7 +21,7 @@ function inviteScheme(): string {
 export function buildClusterInviteUrl(scopeId: string): string {
   const id = String(scopeId ?? '').trim();
 
-  return `${inviteScheme()}://clusters/${encodeURIComponent(id)}`;
+  return `https://buklod.expo.app/clusters/${encodeURIComponent(id)}?fromInvite=1`;
 }
 
 /** Parse invite URL back to scope id (supports production + staging schemes). */
@@ -41,7 +41,7 @@ export function parseClusterInviteUrl(url: string): string | null {
   }
 
   const pathMatch = trimmed.match(
-    /(?:^|\/)clusters\/([^/?#]+)/i
+    /^https:\/\/buklod\.expo\.app\/clusters\/([^/?#]+)/i
   );
 
   if (pathMatch?.[1]) {
