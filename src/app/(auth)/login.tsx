@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Animated,
   Easing,
@@ -1005,9 +1004,9 @@ const chooseSuggestedLogin =
 
     loginInFlightRef.current = true;
     setBusy(true);
-    setLoginStatus(
-      'Checking your BUKLOD account…'
-    );
+    // The button already communicates progress. Avoid a second, flashing
+    // loading message for normal sub-second sign-ins.
+    setLoginStatus('');
 
     const releaseLogin = (
       status?: string
@@ -1624,12 +1623,6 @@ const chooseSuggestedLogin =
             ]}
           >
             <View style={styles.primaryContent}>
-              {busy ? (
-                <ActivityIndicator
-                  size="small"
-                  color={colors.white}
-                />
-              ) : null}
               <Text style={styles.primaryText}>
                 {busy ? 'LOGGING IN…' : 'LOG IN'}
               </Text>

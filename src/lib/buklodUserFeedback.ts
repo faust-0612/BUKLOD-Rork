@@ -274,6 +274,13 @@ function sanitizeMetadata(input: Record<string, unknown> | undefined) {
   return output;
 }
 
+// Avoid flooding the network when a component renders the same error repeatedly.
+// Keep important recovery outcomes unthrottled; actual support tickets use a separate path.
+const BUKLOD_FEEDBACK_EVENT_WINDOW_MS = 15_000;
+const BUKLOD_FEEDBACK_MAX_CONCURRENT = 3;
+const recentLowPriorityEvents = new Map<string, number>();
+let telemetryPendingRequests = 0;
+
 export async function trackBuklodFeedbackEvent(input: {
   event: BuklodFeedbackTelemetryEvent;
   category?: BuklodErrorCategory | null;
@@ -283,10 +290,38 @@ export async function trackBuklodFeedbackEvent(input: {
   outcome?: string | null;
   metadata?: Record<string, unknown>;
 }) {
+  const lowPriority =
+    input.event === 'error_shown' ||
+    input.event === 'error_category' ||
+    input.event === 'recovery_offered';
+
+  const eventKey = [
+    input.event,
+    input.category ?? '',
+    input.supportCode ?? '',
+    input.route ?? '',
+    input.feature ?? '',
+  ].join('|');
+  const now = Date.now();
+  if (lowPriority) {
+    const last = recentLowPriorityEvents.get(eventKey) ?? 0;
+    if (now - last < BUKLOD_FEEDBACK_EVENT_WINDOW_MS) return;
+  }
+  if (telemetryPendingRequests >= BUKLOD_FEEDBACK_MAX_CONCURRENT) return;
+  if (lowPriority) {
+    recentLowPriorityEvents.set(eventKey, now);
+    if (recentLowPriorityEvents.size > 100) {
+      for (const [key, timestamp] of recentLowPriorityEvents) {
+        if (now - timestamp > BUKLOD_FEEDBACK_EVENT_WINDOW_MS) {
+          recentLowPriorityEvents.delete(key);
+        }
+      }
+    }
+  }
+  telemetryPendingRequests++;
   try {
-    await withBuklodTimeout(
-      supabase.functions.invoke('buklod-support-v1', {
-        body: {
+    const request = supabase.functions.invoke('buklod-support-v1', {
+      body: {
           action: 'telemetry',
           event: input.event,
           category: input.category ?? null,
@@ -298,11 +333,15 @@ export async function trackBuklodFeedbackEvent(input: {
           app_version: Constants.expoConfig?.version ?? '',
           platform: Platform.OS,
           metadata: sanitizeMetadata(input.metadata),
-        },
-      }),
-      4_000,
-      'BUKLOD support telemetry',
-    );
+      },
+    });
+    // The visible action is not blocked by telemetry. The underlying promise
+    // owns the concurrency slot until it truly settles, even on a client timeout.
+    void request.finally(() => {
+      telemetryPendingRequests = Math.max(0, telemetryPendingRequests - 1);
+    }).catch(() => undefined);
+    void withBuklodTimeout(request, 1_800, 'BUKLOD support telemetry')
+      .catch(() => undefined);
   } catch {
     // Telemetry must never block or change the user's action.
   }
