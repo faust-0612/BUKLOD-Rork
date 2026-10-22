@@ -192,7 +192,9 @@ Deno.serve(async (req: Request) => {
       'Create the shared BUKLOD TODAY daily engagement batch for ordinary public users.',
       'The output must be generic, friendly, concise, useful, non-deceptive, and suitable for Filipino/Taglish/English audiences.',
       'Never invent announcements, jobs, emergencies, lost-and-found, government notices, marketplace listings, user names, user activity, counts, testimonials, real opportunities, or real events.',
-      'Generate only conversation starters, polls, challenges, trivia, would-you-rather, practical/reflection/fun questions.',
+      'Generate only open-ended conversation starters, challenges, trivia prompts, would-you-rather prompts, and practical/reflection/fun questions.',
+      'Do NOT offer multiple-choice options, poll choices, A/B chips, or selectable answers. Every card must invite a free-text reply in a blank.',
+      'Always set options to an empty array [].',
       'Use diverse categories and avoid near-duplicates of recent content.',
       'For trending: ONLY summarize one of REAL_TRENDING_INPUTS if supplied. source_post_id must exactly match one supplied id. If none qualify, set trending=null.',
       'Do not expose names or identifying details from real posts. Neutral summary only.',
@@ -219,7 +221,8 @@ Deno.serve(async (req: Request) => {
         item_type:String(card.item_type ?? 'CONVERSATION_STARTER'),
         title:title.slice(0,120),
         body:bodyText.slice(0,700),
-        options:Array.isArray(card.options) ? card.options.slice(0,4).map((x:any)=>String(x).slice(0,90)) : [],
+        // Free-text blank only — never ship selectable choices.
+        options:[],
         category:String(card.category ?? 'community'),
       });
     }
