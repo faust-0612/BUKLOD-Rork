@@ -13,7 +13,7 @@ import { router } from 'expo-router';
 
 import BuklodHomeFaithPanel from '@/components/BuklodHomeFaithPanel';
 import BuklodScopeBuklodLessonPanel from '@/components/BuklodScopeBuklodLessonPanel';
-import BuklodScopeFaithMonitoringSummary from '@/components/BuklodScopeFaithMonitoringSummary';
+import BuklodScopeFaithMonitoringDoor from '@/components/BuklodScopeFaithMonitoringDoor';
 import BuklodHomeScopeBulletins from '@/components/BuklodHomeScopeBulletins';
 import BuklodScopeActionCenterSlot from '@/components/BuklodScopeActionCenterSlot';
 import BuklodScopeAttendanceCard from '@/components/BuklodScopeAttendanceCard';
@@ -156,15 +156,6 @@ export default function BuklodScopeHomeDashboard({
       extra: 12,
     });
 
-  if (loading && !homeCache) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator color={colors.green} />
-        <Text style={styles.loadingText}>Loading scope home...</Text>
-      </View>
-    );
-  }
-
   return (
     <ScrollView
       contentContainerStyle={[
@@ -236,6 +227,13 @@ export default function BuklodScopeHomeDashboard({
       </View>
 
 
+      {loading && !homeCache ? (
+        <View style={styles.card}>
+          <ActivityIndicator color="#0874DE" />
+          <Text style={styles.loadingText}>Loading Organization details; available actions can be opened now.</Text>
+        </View>
+      ) : null}
+
       {loadError ? (
         <View style={styles.errorCard}>
           <Text style={styles.errorText}>{loadError}</Text>
@@ -303,7 +301,7 @@ export default function BuklodScopeHomeDashboard({
       {scope.show_faith_content ? (
         <>
           <View style={styles.homePair}>
-            <View style={styles.homePairItem}><BuklodScopeFaithMonitoringSummary scope={scope} /></View>
+            <View style={styles.homePairItem}><BuklodScopeFaithMonitoringDoor scope={scope} /></View>
             <View style={styles.homePairItem}><BuklodScopeBuklodLessonPanel scope={scope} /></View>
           </View>
           <BuklodHomeFaithPanel scopeId={scope.scope_id} compact />
@@ -366,8 +364,9 @@ function QuickLink({
 
 const styles = StyleSheet.create({
   // Paired panels wrap below 350dp; nothing can overflow the phone viewport.
-  homePair: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 8 },
-  homePairItem: { flexGrow: 1, flexShrink: 1, flexBasis: '46%', minWidth: 166 },
+  /* BUKLOD_V28_R3_PHONE_SINGLE_COLUMN: prevents 166px child width from vertically breaking text. */
+  homePair: { flexDirection: 'column', alignItems: 'stretch', gap: 9, width: '100%' },
+  homePairItem: { width: '100%', minWidth: 0, flexShrink: 0 },
   content: {
     paddingHorizontal: 10,
     paddingTop: 9,
