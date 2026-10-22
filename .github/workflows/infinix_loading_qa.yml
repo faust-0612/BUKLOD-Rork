@@ -1,0 +1,40 @@
+name: Infinix loading and session QA
+on:
+  push:
+    branches: [codex/infinix-loading-session-ptt]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: fixture-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx --no-install tsc --noEmit
+      - run: npm test -- --watchAll=false --watchman=false
+      - run: npm run character:contract && npm run game:contract
+      - name: Dedicated story permissions and paging fixtures
+        env:
+          PGPASSWORD: fixture-only
+        run: psql -h localhost -U postgres -v ON_ERROR_STOP=1 -f scripts/sql/buklod_marites_feed_fixture.sql
+      - name: Inspect live Quiz client capability without creating a session
+        run: node scripts/inspect-quiz-handoff.mjs

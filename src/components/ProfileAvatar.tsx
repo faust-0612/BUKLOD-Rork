@@ -2,6 +2,7 @@ import { Image as ExpoImage } from 'expo-image';
 import {
   useEffect,
   useState,
+  useRef,
 } from 'react';
 
 import {
@@ -17,17 +18,10 @@ import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
 
 
-type AvatarCacheRow = {
-  url: string | null;
-  at: number;
-};
-
-const avatarCache =
-  new Map<
-    string,
-    AvatarCacheRow
-  >();
-
+import {
+  avatarCache, hydrateAvatarCache, normalizeAvatarUrl,
+  rememberAvatarUrl, resolveAvatarUrl,
+} from '@/lib/buklodAvatarCache';
 
 type ProfileAvatarProps = {
   userId?:
@@ -234,29 +228,6 @@ export function ProfileAvatarStatusIndicator({
   );
 }
 
-function normalizeAvatarUrl(
-  raw: string | null | undefined
-) {
-  const value = String(raw ?? '').trim();
-  if (!value) {
-    return null;
-  }
-  if (/^https?:\/\//i.test(value)) {
-    return value;
-  }
-  const objectPath = value
-    .replace(/^\/+/, '')
-    .replace(/^profile-avatars\//i, '')
-    .split('?')[0];
-  if (!objectPath) {
-    return null;
-  }
-  const { data: publicData } = supabase.storage
-    .from('profile-avatars')
-    .getPublicUrl(objectPath);
-  return publicData?.publicUrl ?? null;
-}
-
 export function ProfileAvatar({
   userId,
   uri,
@@ -265,53 +236,31 @@ export function ProfileAvatar({
   fallbackSource,
 }: ProfileAvatarProps) {
   const [remoteUrl, setRemoteUrl] = useState<string | null>(
-    normalizeAvatarUrl(uri)
+    normalizeAvatarUrl(uri) ?? (userId ? avatarCache.get(userId)?.url ?? null : null)
   );
   const [imageFailed, setImageFailed] = useState(false);
   const [imageReady, setImageReady] = useState(false);
 
+  const avatarGeneration = useRef(0);
+  const recoveryAttempted = useRef(false);
   useEffect(() => {
-    let active = true;
+    const generation = ++avatarGeneration.current;
+    const active = () => generation === avatarGeneration.current;
+    recoveryAttempted.current = false;
     setImageFailed(false);
-
-    const directUri = normalizeAvatarUrl(uri);
-    if (directUri) {
-      setRemoteUrl(current =>
-        current === directUri ? current : directUri
-      );
-      return () => {
-        active = false;
-      };
+    setImageReady(false);
+    const direct = normalizeAvatarUrl(uri);
+    setRemoteUrl(direct ?? (userId ? avatarCache.get(userId)?.url ?? null : null));
+    if (direct && userId) rememberAvatarUrl(userId, direct);
+    if (!direct && userId) {
+      void hydrateAvatarCache().then(async () => {
+        const cached = avatarCache.get(userId);
+        if (active() && cached?.url) setRemoteUrl(cached.url);
+        const url = await resolveAvatarUrl(userId);
+        if (active()) setRemoteUrl(url);
+      }).catch(() => undefined);
     }
-
-    if (userId) {
-      const cached = avatarCache.get(userId);
-      if (cached?.url && active) {
-        setRemoteUrl(current =>
-          current === cached.url ? current : cached.url
-        );
-      }
-
-      const { data: canonicalData } = supabase.storage
-        .from('profile-avatars')
-        .getPublicUrl(`${userId}/avatar.jpg`);
-      const canonicalUrl = canonicalData?.publicUrl ?? null;
-      if (canonicalUrl && active) {
-        avatarCache.set(userId, {
-          url: canonicalUrl,
-          at: Date.now(),
-        });
-        setRemoteUrl(current =>
-          current === canonicalUrl ? current : canonicalUrl
-        );
-      }
-    } else if (active) {
-      setRemoteUrl(null);
-    }
-
-    return () => {
-      active = false;
-    };
+    return () => { ++avatarGeneration.current; };
   }, [userId, uri]);
 
   const initial = (name?.trim()?.[0] || 'B').toUpperCase();
@@ -366,7 +315,7 @@ export function ProfileAvatar({
         <ExpoImage
           source={{
             uri: remoteUrl,
-            cacheKey: userId ? `avatar:${userId}` : remoteUrl,
+            cacheKey: userId ? `avatar:${userId}:${remoteUrl}` : remoteUrl,
           }}
           style={{
             ...circleStyle,
@@ -382,54 +331,22 @@ export function ProfileAvatar({
             setImageReady(true);
           }}
           onError={() => {
-            void (async () => {
-              let fallback = normalizeAvatarUrl(uri);
-              if (fallback === remoteUrl) {
-                fallback = null;
-              }
-
-              if (!fallback && userId) {
-                try {
-                  const { data: rpcData, error: rpcError } = await (
-                    supabase as any
-                  ).rpc('get_buklod_profile_avatars_v1', {
-                    p_user_ids: [userId],
-                  });
-                  if (!rpcError) {
-                    const row = Array.isArray(rpcData) ? rpcData[0] : rpcData;
-                    fallback = normalizeAvatarUrl(row?.avatar_url);
-                  }
-                } catch {
-                  fallback = null;
-                }
-              }
-
-              if (!fallback && userId) {
-                try {
-                  const { data: profileRow, error: profileError } = await (
-                    supabase as any
-                  )
-                    .from('profiles')
-                    .select('avatar_url')
-                    .eq('id', userId)
-                    .maybeSingle();
-                  if (!profileError) {
-                    fallback = normalizeAvatarUrl(profileRow?.avatar_url);
-                  }
-                } catch {
-                  fallback = null;
-                }
-              }
-
+            if (!userId || recoveryAttempted.current) {
+              setImageFailed(true);
+              return;
+            }
+            recoveryAttempted.current = true;
+            const generation = avatarGeneration.current;
+            void resolveAvatarUrl(userId, true).then(fallback => {
+              if (generation !== avatarGeneration.current) return;
               if (fallback && fallback !== remoteUrl) {
                 setImageFailed(false);
                 setImageReady(false);
                 setRemoteUrl(fallback);
-                return;
-              }
-
-              setImageFailed(true);
-            })();
+              } else setImageFailed(true);
+            }).catch(() => {
+              if (generation === avatarGeneration.current) setImageFailed(true);
+            });
           }}
         />
       ) : null}

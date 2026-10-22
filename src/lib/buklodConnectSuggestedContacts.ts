@@ -92,10 +92,10 @@ async function loadSuggestedFromScopeMembers(
   limit: number
 ): Promise<ConnectSuggestedContact[]> {
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  const viewerId = user?.id;
+  const viewerId = session?.user?.id;
 
   if (!viewerId) {
     return [];
@@ -325,18 +325,23 @@ export async function enrichConnectSuggestedContactsWithNotes(
     return contacts;
   }
 
-  const withNotes =
-    await attachQuickNotes(contacts);
-
-  return attachCircleRanks(withNotes);
+  const [withNotes, withRanks] = await Promise.all([
+    attachQuickNotes(contacts),
+    attachCircleRanks(contacts),
+  ]);
+  return contacts.map((contact, index) => ({
+    ...contact,
+    quick_note: withNotes[index].quick_note,
+    rank_name: withRanks[index].rank_name,
+  }));
 }
 
 async function loadSuggestedContactsFallback(
   limit: number
 ): Promise<ConnectSuggestedContact[]> {
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
   const [threads, scopeMembers] = await Promise.all([
     loadSuggestedFromPersonalThreads(),
@@ -345,20 +350,18 @@ async function loadSuggestedContactsFallback(
 
   const merged = dedupeContacts(
     [...scopeMembers, ...threads],
-    user?.id
+    session?.user?.id
   ).slice(0, limit);
 
-  return attachCircleRanks(
-    await attachQuickNotes(merged)
-  );
+  return merged;
 }
 
 export async function loadConnectSuggestedContacts(
   limit = 40
 ): Promise<ConnectSuggestedContact[]> {
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
   let rows: ConnectSuggestedContact[] = [];
 
@@ -388,9 +391,8 @@ export async function loadConnectSuggestedContacts(
   if (!rows.length) {
     rows = await loadSuggestedContactsFallback(limit);
   } else {
-    rows = dedupeContacts(rows, user?.id);
-    rows = await attachQuickNotes(rows);
-    rows = await attachCircleRanks(rows);
+    rows = dedupeContacts(rows, session?.user?.id);
+    // Notes and ranks are independent background enrichment after faces render.
   }
 
   return rows.slice(0, limit);

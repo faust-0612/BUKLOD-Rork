@@ -205,9 +205,15 @@ export async function connectBuklodPtt(
   try {
     await call.microphone.disable();
   } catch {}
-  await call.join();
-  await call.camera.disable();
-  await call.microphone.disable();
+  try {
+    await call.join();
+    await call.camera.disable();
+    await call.microphone.disable();
+  } catch (error) {
+    await call.microphone.disable().catch(() => undefined);
+    await call.leave().catch(() => undefined);
+    throw error;
+  }
 
   return {
     client,

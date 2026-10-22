@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 
 import BuklodAdMobBanner from '@/components/BuklodAdMobBanner';
 import { useNetwork } from '@/providers/NetworkProvider';
@@ -142,14 +142,17 @@ function LiveHoldButton({
     : blocked
       ? 'Wait for them to finish, or use Priority / SOS.'
       : remoteSpeaker && !tx
-        ? 'Release stays listen mode. Hold when the channel is clear.'
+        ? 'Release ends the call. Hold when the channel is clear.'
         : 'Hold the button while speaking. Release when finished.';
 
   const down = async () => {
     if (!enabled || blocked) return;
     if (!runtime.connection) {
       const ok = await onNeedConnect();
-      if (!ok || !heldRef.current) return;
+      if (!ok || !heldRef.current) {
+        await pttUp();
+        return;
+      }
     }
     try {
       await pttDown(talkMode);
@@ -161,6 +164,11 @@ function LiveHoldButton({
       );
     }
   };
+
+  useEffect(() => () => {
+    heldRef.current = false;
+    void pttUp();
+  }, []);
 
   const up = async () => {
     heldRef.current = false;
@@ -231,6 +239,9 @@ export default function BuklodPttScreen() {
   const [setup, setSetup] = useState<BuklodPttSetupSnapshot | null>(null);
   const [runtime, setRuntime] = useState(getBuklodPttRuntimeState());
   const connectLock = useRef(false);
+  useFocusEffect(useCallback(() => () => {
+    void disconnectBuklodPttRuntime();
+  }, []));
 
   const refreshSetup = useCallback(async () => {
     const next = await refreshBuklodPttSetup();
@@ -271,11 +282,13 @@ export default function BuklodPttScreen() {
 
     const appSub = AppState.addEventListener('change', (state) => {
       if (state === 'active') void refreshSetup();
+      else void disconnectBuklodPttRuntime();
     });
 
     return () => {
       unsubscribe();
       appSub.remove();
+      void disconnectBuklodPttRuntime();
     };
   }, [refreshSetup]);
 
@@ -357,7 +370,7 @@ export default function BuklodPttScreen() {
       if (runtime.connection) {
         return {
           tone: 'ready',
-          title: 'Internet PTT Ready',
+          title: 'Internet PTT transmitting',
           detail: `${runtime.connection.scope.name} · Channel ${runtime.connection.channel}`,
         };
       }
@@ -460,20 +473,6 @@ export default function BuklodPttScreen() {
     }
   }, [scope, channel, setup, refreshSetup, network.online]);
 
-  // Auto-join Internet when ready so the user only holds to talk.
-  useEffect(() => {
-    if (effectiveRoute !== 'INTERNET') return;
-    if (!internetReady) return;
-    if (runtime.connection || busy || connectLock.current) return;
-    void connectInternet();
-  }, [
-    effectiveRoute,
-    internetReady,
-    runtime.connection,
-    busy,
-    connectInternet,
-  ]);
-
   const chooseTarget = async (
     nextScope: BuklodPttScope,
     nextChannel: number,
@@ -554,7 +553,10 @@ export default function BuklodPttScreen() {
     <View style={{ flex: 1, backgroundColor: '#030A10' }}>
       <View style={[styles.screen, { paddingTop: insets.top }]}>
         <View style={styles.topbar}>
-          <Pressable onPress={() => router.back()} style={styles.back} accessibilityLabel="Go back">
+          <Pressable onPress={() => {
+              void disconnectBuklodPttRuntime();
+              router.back();
+            }} style={styles.back} accessibilityLabel="Go back">
             <MaterialCommunityIcons name="arrow-left" size={24} color="#FFFFFF" />
           </Pressable>
           <View style={{ flex: 1 }}>
@@ -842,7 +844,7 @@ export default function BuklodPttScreen() {
             <Text style={styles.modalStep}>1. Choose or stay on Auto</Text>
             <Text style={styles.modalStep}>2. Select a channel</Text>
             <Text style={styles.modalStep}>3. Hold PTT to speak</Text>
-            <Text style={styles.modalStep}>4. Release to listen</Text>
+            <Text style={styles.modalStep}>4. Release to disconnect</Text>
             <Text style={styles.modalNote}>
               Offline Nearby needs Wi-Fi/Bluetooth. Internet PTT needs data or Wi-Fi
               internet.

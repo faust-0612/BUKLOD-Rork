@@ -61,6 +61,8 @@ import {
   isCommunityMaritesStory,
   isMaritesEmojiOnlyBody,
   loadAllMaritesStories,
+  loadCachedMaritesStories,
+  cacheSharedMaritesStories,
   loadMaritesStories,
   mergeMaritesStories,
   type MaritesLoadResult,
@@ -873,7 +875,10 @@ export default function BuklodMaritesBoard({
     } else {
       try {
         const localRows = filterMaritesStoriesForViewer(
-          await loadMaritesStories(),
+          mergeMaritesStories(
+            await loadMaritesStories(),
+            await loadCachedMaritesStories(locationScopeId, userId),
+          ),
           userId
         );
 
@@ -905,7 +910,11 @@ export default function BuklodMaritesBoard({
     if (!refreshPromise) {
       const nextPromise = loadAllMaritesStories(
         locationScopeId,
-        userId
+        userId,
+        rows => {
+          if (generation !== loadGenerationRef.current) return;
+          setStories(current => mergeMaritesStories(current, filterMaritesStoriesForViewer(rows, userId)));
+        },
       );
 
       refreshPromise = nextPromise;
@@ -931,6 +940,12 @@ export default function BuklodMaritesBoard({
       if (generation !== loadGenerationRef.current) {
         return;
       }
+
+      const previousRows = maritesMemory.get(cacheKey)?.rows ?? [];
+      const persistedRows = result.refreshFailed
+        ? mergeMaritesStories(previousRows, result.stories)
+        : result.stories;
+      void cacheSharedMaritesStories(locationScopeId, userId, persistedRows).catch(() => undefined);
 
       const visibleRows = filterMaritesStoriesForViewer(
         result.stories,

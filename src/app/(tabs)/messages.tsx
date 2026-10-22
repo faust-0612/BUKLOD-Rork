@@ -344,10 +344,11 @@ function communitySectionLabel(
 export default function ConnectScreen(
   props: ConnectScreenProps = {}
 ) {
+  const { user } = useAuth();
   return (
     <ConnectThemeProvider>
       <ChatBackgroundProvider>
-        <ConnectScreenInner {...props} />
+        <ConnectScreenInner key={`${user?.id ?? 'anonymous'}:${props.forcedScopeId ?? 'public'}`} {...props} />
       </ChatBackgroundProvider>
     </ConnectThemeProvider>
   );
@@ -447,11 +448,11 @@ function ConnectScreenInner({
     }),
     [scrollBottomInset, theme]
   );
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const { isConnected, isInternetReachable } = useNetwork();
   const connectOnline =
     isConnected && isInternetReachable !== false;
-  const profileId = (profile as any)?.id as string | undefined;
+  const profileId = user?.id ?? ((profile as any)?.id as string | undefined);
   const [tab, setTab] =
     useState<'personal' | 'community'>('personal');
   const [personal, setPersonal] =
@@ -478,10 +479,14 @@ function ConnectScreenInner({
     }
 
     let active = true;
+    setPersonal([]);
+    setRooms([]);
+    setSuggestedContacts([]);
 
     void getOfflineCache<{
       personal: PersonalThread[];
       rooms: CommunityRoom[];
+      suggestedContacts?: ConnectSuggestedContact[];
     }>(
       connectHubOfflineCacheKey,
       {
@@ -502,6 +507,9 @@ function ConnectScreenInner({
           );
         }
 
+        if (cached.data.suggestedContacts?.length) {
+          setSuggestedContacts(current => current.length ? current : cached.data.suggestedContacts!);
+        }
         if (cached.data.rooms?.length) {
           setRooms(current =>
             current.length
@@ -525,7 +533,8 @@ function ConnectScreenInner({
       !profileId ||
       (
         personal.length === 0 &&
-        rooms.length === 0
+        rooms.length === 0 &&
+        suggestedContacts.length === 0
       )
     ) {
       return;
@@ -538,6 +547,7 @@ function ConnectScreenInner({
           {
             personal,
             rooms,
+            suggestedContacts,
           },
           {
             userId: profileId,
@@ -555,6 +565,7 @@ function ConnectScreenInner({
     personal,
     profileId,
     rooms,
+    suggestedContacts,
   ]);
   const searchInputRef =
     useRef<TextInput | null>(null);
@@ -565,81 +576,76 @@ function ConnectScreenInner({
   const communityThreadPath =
     '/connect/community/[scopeId]';
 
+  const inboxGeneration = useRef(0);
+  const inboxOwner = useRef('');
+  const inboxBusy = useRef(false);
+  const ownerKey = `${profileId ?? ''}:${forcedScopeId ?? 'public'}`;
+  if (inboxOwner.current !== ownerKey) {
+    inboxOwner.current = ownerKey;
+    inboxGeneration.current++;
+    inboxBusy.current = false;
+  }
+
+  useEffect(() => () => {
+    inboxGeneration.current++;
+    inboxBusy.current = false;
+  }, [ownerKey]);
+
   const load = useCallback(async () => {
-    if (!profileId) {
-      return;
+    if (!profileId || !connectOnline || inboxBusy.current) return;
+    inboxBusy.current = true;
+    const generation = ++inboxGeneration.current;
+    const active = () => generation === inboxGeneration.current;
+    let displayedContacts = false;
+
+    const publishContacts = (rows: ConnectSuggestedContact[]) => {
+      if (!active() || !rows.length) return;
+      displayedContacts = true;
+      setSuggestedContacts(rows);
+      // Enrichment cannot hold up either the faces or the other inbox reads.
+      void withBuklodTimeout(
+        enrichConnectSuggestedContactsWithNotes(rows), 6000, 'Connect notes and ranks',
+      ).then(enriched => {
+        if (active()) setSuggestedContacts(enriched);
+      }).catch(() => undefined);
+    };
+
+    try {
+      await Promise.all([
+        withBuklodTimeout<any>(
+          (supabase as any).rpc('buklod_connect_personal_threads'), 6000, 'Connect threads',
+        ).then(result => {
+          if (!active() || result.error) return;
+          setPersonal((result.data ?? []).map((row: any) => ({
+            ...row, unread_count: n(row.unread_count),
+          })));
+          if (!displayedContacts) {
+            publishContacts((result.data ?? []).map((thread: any) => ({
+              user_id: String(thread.other_user_id ?? ''),
+              full_name: String(thread.other_user_name ?? 'BUKLOD Member'),
+              avatar_url: thread.other_avatar_url ?? null,
+              shared_scope_label: 'Recent chat',
+              rank_name: null, thread_id: thread.thread_id ?? null,
+              unread_count: n(thread.unread_count), quick_note: null,
+            })).filter((row: ConnectSuggestedContact) => !!row.user_id));
+          }
+        }).catch(() => undefined),
+        withBuklodTimeout<any>(
+          (supabase as any).rpc('buklod_connect_community_rooms'), 6000, 'Connect rooms',
+        ).then(result => {
+          if (active() && !result.error) {
+            setRooms((result.data ?? []).map((row: any) => ({
+              ...row, unread_count: n(row.unread_count),
+            })));
+          }
+        }).catch(() => undefined),
+        withBuklodTimeout(loadConnectSuggestedContacts(40), 6000, 'Connect people')
+          .then(publishContacts).catch(() => undefined),
+      ]);
+    } finally {
+      if (active()) inboxBusy.current = false;
     }
-
-    if (!connectOnline) {
-      return;
-    }
-
-    const [p, r, suggested] = await Promise.all([
-      withBuklodTimeout<any>(
-        (supabase as any).rpc(
-          'buklod_connect_personal_threads'
-        ),
-        6000,
-        'Connect threads'
-      ).catch(() => ({ data: null, error: { message: 'offline' } })),
-      withBuklodTimeout<any>(
-        (supabase as any).rpc(
-          'buklod_connect_community_rooms'
-        ),
-        6000,
-        'Connect rooms'
-      ).catch(() => ({ data: null, error: { message: 'offline' } })),
-      withBuklodTimeout(
-        loadConnectSuggestedContacts(40),
-        6000,
-        'Connect people'
-      ).catch(() => [] as ConnectSuggestedContact[]),
-    ]);
-
-    let nextSuggested = suggested;
-
-    if (!nextSuggested.length && !p.error && Array.isArray(p.data)) {
-      nextSuggested = await enrichConnectSuggestedContactsWithNotes(
-        (p.data ?? [])
-          .map((thread: any) => ({
-            user_id: String(thread.other_user_id ?? ''),
-            full_name: String(thread.other_user_name ?? 'BUKLOD Member'),
-            avatar_url: thread.other_avatar_url
-              ? String(thread.other_avatar_url)
-              : null,
-            shared_scope_label: 'Recent chat',
-            rank_name: null,
-            thread_id: thread.thread_id
-              ? String(thread.thread_id)
-              : null,
-            unread_count: Number(thread.unread_count ?? 0),
-            quick_note: null,
-          }))
-          .filter((row: ConnectSuggestedContact) => !!row.user_id)
-      );
-    }
-
-    if (!p.error) {
-      setPersonal(
-        (p.data ?? []).map((x: any) => ({
-          ...x,
-          unread_count: n(x.unread_count),
-        }))
-      );
-    }
-
-    if (!r.error) {
-      setRooms(
-        (r.data ?? []).map((x: any) => ({
-          ...x,
-          unread_count: n(x.unread_count),
-        }))
-      );
-    }
-
-    setSuggestedContacts(nextSuggested);
-
-  }, [profileId, connectOnline]);
+  }, [profileId, connectOnline, forcedScopeId]);
 
   const loadRef = useRef(load);
 
