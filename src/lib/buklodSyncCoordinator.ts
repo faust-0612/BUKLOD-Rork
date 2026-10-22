@@ -23,6 +23,7 @@ const pending: Job<unknown>[] = [];
 const running = new Map<string, Promise<unknown>>();
 const queued = new Map<string, Promise<unknown>>();
 const active = new Map<string, Job<unknown>>();
+const MAX_READ_WAIT_MS = 12_000;
 let sequence = 0;
 let currentView = '';
 let online = true;
@@ -42,7 +43,18 @@ function drain() {
     }
     activeCount++;
     active.set(job.key, job);
-    const task = Promise.resolve().then(() => job.run(job.controller.signal));
+    // Abort the underlying fetch when possible and settle the UI even if
+    // the transport ignores cancellation. Late results cannot enter the queue.
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const task = Promise.race([
+      Promise.resolve().then(() => job.run(job.controller.signal)),
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => {
+          job.controller.abort();
+          reject(new Error('BUKLOD read timeout; retain local snapshot'));
+        }, MAX_READ_WAIT_MS);
+      }),
+    ]).finally(() => { if (timeout) clearTimeout(timeout); });
     running.set(job.key, task);
     void task.then(job.resolve, job.reject).finally(() => {
       activeCount--;
