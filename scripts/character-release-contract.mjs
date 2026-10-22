@@ -199,8 +199,9 @@ if (r40.includes("rpc('set_my_buklod_special_character_active_v1'")) {
 if (!r40.includes('return SPECIAL_ORDER;') || !r40.includes('railIds.map(')) {
   failures.push('R42 must show all Special identities in the preview rail.');
 }
-if (!r40.includes('setMyBuklodCharacterActiveV2') || !r40.includes('isUnlocked')) {
-  failures.push('R42 must preserve server-authoritative activation gating.');
+if (!r40.includes('setMyBuklodCharacterActiveV2') ||
+    !r40.includes('if (!userId || active || using || !selectedUnlocked)')) {
+  failures.push('R42 must preserve locked activation gating before the server RPC.');
 }
 forbidTokens('src/components/points/BuklodSpecialCharacterSeries.tsx', [
   'BUKLOD_CHARACTER_R41',
