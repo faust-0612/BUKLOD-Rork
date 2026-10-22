@@ -473,11 +473,12 @@ function mapCommunityPostToMaritesStory(
     return null;
   }
 
-  const userId = String(post.user_id ?? '').trim();
-
-  if (!userId) {
-    return null;
-  }
+  // The dedicated reader intentionally hides the real author ID on
+  // anonymous posts. Keep their stories visible without inventing a profile.
+  const rawUserId = String(post.user_id ?? '').trim();
+  const anonymous = String(post.author_name ?? '').trim() === 'Anonymous BUKLOD Member';
+  if (!rawUserId && !anonymous) return null;
+  const userId = rawUserId || `anonymous-story:${postId}`;
 
   const photoUris = communityPostPhotoUris(post);
   const body = stripMaritesPostMarker(
