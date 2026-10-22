@@ -55,3 +55,13 @@ test('a shorter failed refresh adds new identities without losing cached stories
   expect(result.rows.map(row => row.id)).toEqual(['a', 'b', 'c']);
   expect(result.markFresh).toBe(false);
 });
+
+test('authoritative empty refresh clears removed or hidden cached stories', () => {
+  const result = resolveMaritesVisibleRows({
+    current: [{ id: 'no-longer-visible' }],
+    incoming: [],
+    refreshFailed: false,
+  });
+  expect(result.rows).toEqual([]);
+  expect(result.markFresh).toBe(true);
+});
