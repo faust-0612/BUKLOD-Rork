@@ -1,4 +1,3 @@
-import { Dimensions as CommunityEdgeDimensionsR5 } from 'react-native';
 import {
   BUKLOD_REEL_MAX_DURATION_SECONDS,
   BUKLOD_REEL_TOO_LONG_MESSAGE,
@@ -3221,6 +3220,7 @@ return (
                 media_mime_type: item.media_mime_type,
               }
             ).length > 0 && (
+              <View style={styles.postPhotos}>
               <BuklodCommunityPhotoCollage
                 items={communityPhotoCollageItems(
                   item.media_items,
@@ -3230,9 +3230,6 @@ return (
                     media_mime_type: item.media_mime_type,
                   }
                 )}
-                width={
-                  CommunityEdgeDimensionsR5.get('window').width
-                }
                 height={330}
                 onPressPhoto={(index, photos) =>
                   setPhotoViewer({
@@ -3246,6 +3243,7 @@ return (
                   })
                 }
               />
+              </View>
             )}
 
           {!!item.media_url &&
@@ -3642,14 +3640,11 @@ return (
           />
 
           {photos.length > 0 && (
-            <View style={{ marginTop: 10 }}>
+            <View style={styles.composerPhotos}>
               <BuklodCommunityPhotoCollage
                 items={photos.map(item => ({
                   media_url: item.uri,
                 }))}
-                width={
-                  CommunityEdgeDimensionsR5.get('window').width - 48
-                }
                 height={220}
                 onPressPhoto={(index, items) =>
                   setPhotoViewer({
@@ -5053,6 +5048,30 @@ const styles =
           12,
         marginBottom:
           10,
+        overflow:
+          'hidden',
+      },
+
+      postPhotos: {
+        width:
+          '100%',
+        maxWidth:
+          '100%',
+        marginTop:
+          10,
+        overflow:
+          'hidden',
+      },
+
+      composerPhotos: {
+        width:
+          '100%',
+        maxWidth:
+          '100%',
+        marginTop:
+          10,
+        overflow:
+          'hidden',
       },
 
       postHeader: {

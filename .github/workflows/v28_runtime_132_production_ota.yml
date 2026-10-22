@@ -1,0 +1,57 @@
+# Publishes the current V28 JavaScript to Android production runtime 1.3.2.
+# The installed versionCode 28 APK checks runtime 1.3.2, so a 1.3.4 update is ignored.
+name: BUKLOD V28 runtime 1.3.2 production OTA
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v28-runtime-132-*'
+
+permissions:
+  contents: read
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+jobs:
+  publish-132:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout this commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Confirm runtime 1.3.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "SOURCE_SHA=$(git rev-parse HEAD)"
+          grep -F "runtimeVersion: isClassroom ? '1.3.0' : '1.3.2'" app.config.js
+          if [ -z "${EXPO_TOKEN}" ]; then
+            echo "EXPO_TOKEN is not available to this workflow."
+            exit 1
+          fi
+          npx eas-cli@latest whoami --non-interactive
+
+      - name: Publish Android production OTA for runtime 1.3.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest update \
+            --channel production \
+            --platform android \
+            --environment production \
+            --message "V28 runtime 1.3.2 $(git rev-parse --short HEAD): current community, story cover, follow back, photo fit" \
+            --non-interactive

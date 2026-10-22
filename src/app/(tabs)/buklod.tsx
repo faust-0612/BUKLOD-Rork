@@ -1367,10 +1367,18 @@ const load=useCallback(async(options?:{
       ? loadCommunityPostMediaByPostIds(postIds)
       : Promise.resolve({});
 
+  const authorIds=
+    [...new Set(
+      feedRows
+        .map((p:any)=>String(p.user_id??'').trim())
+        .filter(Boolean)
+    )];
+
   const [
     hydratedFeedRows,
     myReactionResult,
     mediaResult,
+    followsViewerResult,
   ] = await Promise.all([
     hydratePersonNamesOnRows(
       feedRows,
@@ -1413,6 +1421,23 @@ const load=useCallback(async(options?:{
       data: [] as any[],
       error: null,
     })),
+    authorIds.length
+      ? withBuklodTimeout<any>(
+          supabase
+            .from('buklod_user_follows')
+            .select('follower_id')
+            .eq('followed_user_id', user.id)
+            .in('follower_id', authorIds),
+          5000,
+          'Community follow back'
+        ).catch(() => ({
+          data: [] as any[],
+          error: null,
+        }))
+      : Promise.resolve({
+          data: [] as any[],
+          error: null,
+        }),
   ]);
 
   if(
@@ -1445,11 +1470,20 @@ const load=useCallback(async(options?:{
     }
   }
 
+  const followsViewer=
+    new Set(
+      (followsViewerResult?.data??[])
+        .map((row:any)=>String(row.follower_id??'').trim())
+        .filter(Boolean)
+    );
+
   const next=
     feedRows.map(
       (p:any)=>{
         return{
           ...p,
+          author_follows_viewer:
+            followsViewer.has(String(p.user_id??'').trim()),
           my_reaction:
             myReactionByPost[p.id]??null,
           media_url:
@@ -4930,7 +4964,9 @@ const communityFeedRows =
         accessibilityLabel={
          item.is_following_author
           ? 'Unfollow this member'
-          : 'Follow this member'
+          : item.author_follows_viewer
+           ? 'Follow back this member'
+           : 'Follow this member'
         }
         onPress={()=>
          void toggleAuthorFollow(
@@ -4965,7 +5001,9 @@ const communityFeedRows =
         >
          {item.is_following_author
           ? 'FOLLOWING'
-          : 'FOLLOW'}
+          : item.author_follows_viewer
+           ? 'FOLLOW BACK'
+           : 'FOLLOW'}
         </Text>
        </Pressable>
       )}
