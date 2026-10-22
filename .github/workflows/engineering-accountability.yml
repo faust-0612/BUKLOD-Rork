@@ -1,0 +1,25 @@
+name: Engineering Accountability
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'scripts/**'
+      - '.github/workflows/**'
+      - '.buklod/**'
+      - 'supabase/**'
+      - 'docs/engineering/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  objective-scope-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify scope contract
+        run: node scripts/engineering-accountability-gate.mjs
