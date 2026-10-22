@@ -121,7 +121,10 @@ export function enqueueBuklodRead<T>(args: {
 }): Promise<T> {
   if (!args.key || !args.view) return Promise.reject(new Error('Sync scope required'));
   // Require an explicit namespace so unrelated features cannot share a dedup key.
-  if (!args.key.includes(':')) return Promise.reject(new Error('Sync key must be namespaced'));
+  // Offline-first storage keys use slash-separated account/scope/dataset paths.
+  // Requiring a colon rejected those valid keys before any network read ran.
+  const namespaced = args.key.includes(':') || args.key.startsWith('@buklod/offline-first/v1/');
+  if (!namespaced) return Promise.reject(new Error('Sync key must be namespaced'));
   const duplicate = running.get(args.key) ?? queued.get(args.key);
   if (duplicate) return duplicate as Promise<T>;
   if (!online) return Promise.reject(new Error('BUKLOD offline: use local snapshot'));
