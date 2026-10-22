@@ -1,8 +1,7 @@
 /* PATCH_175A_COMPLETE_ORGANIZATION_CREATE */
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   StyleSheet,
   Text,
@@ -12,6 +11,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
+import BuklodActionFeedback, { type BuklodActionStatus } from '@/components/BuklodActionFeedback';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
@@ -149,6 +149,9 @@ export default function CreateOrganizationScreen() {
   const [visibility, setVisibility] = useState<'PUBLIC' | 'PRIVATE'>('PUBLIC');
   const [joinPolicy, setJoinPolicy] = useState<'OPEN' | 'APPROVAL_REQUIRED' | 'INVITE_ONLY'>('APPROVAL_REQUIRED');
   const [busy, setBusy] = useState(false);
+  const inFlight = useRef(false);
+  const [createdId, setCreatedId] = useState('');
+  const [feedback, setFeedback] = useState<{ status: BuklodActionStatus; message: string }>({ status: 'idle', message: '' });
 
   const selectedOption = useMemo(
     () => TYPES.find(item => item.key === selectedType) ?? null,
@@ -172,26 +175,23 @@ export default function CreateOrganizationScreen() {
   };
 
   const createOrganization = async () => {
+    if (inFlight.current || createdId) return;
     if (!selectedType) {
-      Alert.alert('Organization', 'Choose an organization type first.');
+      setFeedback({ status: 'error', message: 'Choose an organization type first.' });
       return;
     }
     if (!values.name?.trim()) {
-      Alert.alert('Organization', 'Organization name is required.');
+      setFeedback({ status: 'error', message: 'Organization name is required.' });
       return;
     }
-    if (selectedType === 'CHURCH') {
-      if (!values.city_municipality?.trim() && !values.address_line?.trim()) {
-        Alert.alert(
-          'Church address',
-          'Add a usable church address so Find a Church can store coordinates.',
-        );
-        return;
-      }
+    if (selectedType === 'CHURCH' && !values.city_municipality?.trim() && !values.address_line?.trim()) {
+      setFeedback({ status: 'error', message: 'Add a usable church address so Find a Church can store coordinates.' });
+      return;
     }
-    if (busy) return;
 
+    inFlight.current = true;
     setBusy(true);
+    setFeedback({ status: 'pending', message: 'Creating Organization. Please do not submit twice.' });
     try {
       const profile = Object.fromEntries(
         Object.entries(values)
@@ -216,9 +216,7 @@ export default function CreateOrganizationScreen() {
           profile.barangay,
           profile.city_municipality,
           profile.province,
-        ]
-          .filter(Boolean)
-          .join(', ');
+        ].filter(Boolean).join(', ');
       }
 
       const { data, error } = await (supabase as any).rpc(
@@ -231,43 +229,33 @@ export default function CreateOrganizationScreen() {
           _join_policy: visibility === 'PRIVATE' ? 'INVITE_ONLY' : joinPolicy,
         },
       );
-
       if (error) throw error;
-      const scopeId = String(data ?? '');
-      if (!scopeId) throw new Error('Organization was not created.');
+      const scopeId = String(data ?? '').trim();
+      if (!scopeId || scopeId === 'null') {
+        throw new Error('The server did not return an Organization ID. Check your Organization list before retrying.');
+      }
 
-      await refresh();
-      await selectScope(scopeId);
-
-      Alert.alert(
-        'Organization Created',
-        'The organization is active. You are its Organization Admin.',
-        [
-          {
-            text: 'OPEN WORKSPACE',
-            onPress: () =>
-              void enterScopedWorkspace(
-                selectScope,
-                scopeId,
-                { fromPortal: true }
-              ),
-          },
-          {
-            text: 'MANAGE',
-            onPress: () =>
-              router.replace({
-                pathname: '/organizations/manage',
-                params: { organization: scopeId },
-              } as any),
-          },
-        ],
-      );
+      // Creation is already committed. Never treat a subsequent workspace error
+      // as a failed create and allow another submit.
+      setCreatedId(scopeId);
+      setFeedback({ status: 'success', message: `Organization "${values.name.trim()}" created successfully. You are its Organization Admin.` });
+      try {
+        await refresh();
+        await selectScope(scopeId);
+      } catch (workspaceError) {
+        console.warn('Organization created; workspace sync pending:', workspaceError);
+        setFeedback({
+          status: 'warning',
+          message: 'Organization created successfully, but workspace refresh did not finish. Use OPEN WORKSPACE or MANAGE below; do not create another Organization.',
+        });
+      }
     } catch (error: any) {
-      Alert.alert(
-        'Could Not Create Organization',
-        String(error?.message ?? error ?? 'Please try again.'),
-      );
+      setFeedback({
+        status: 'error',
+        message: `Organization creation could not be confirmed: ${String(error?.message ?? error ?? 'Please try again.')}`,
+      });
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   };
@@ -390,24 +378,45 @@ export default function CreateOrganizationScreen() {
             </View>
           </View>
 
-          <Pressable
-            disabled={busy}
-            onPress={() => void createOrganization()}
-            style={({ pressed }) => [
-              styles.primary,
-              busy && { opacity: 0.55 },
-              pressed && !busy && { opacity: 0.8 },
-            ]}
-          >
-            {busy ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <MaterialCommunityIcons name="plus-circle-outline" size={20} color="#FFFFFF" />
-            )}
-            <Text style={styles.primaryText}>
-              {busy ? 'CREATING...' : 'CREATE ORGANIZATION'}
-            </Text>
-          </Pressable>
+          <BuklodActionFeedback status={feedback.status} message={feedback.message} />
+          {createdId ? (
+            <>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => void enterScopedWorkspace(selectScope, createdId, { fromPortal: true })}
+                style={styles.primary}
+              >
+                <Text style={styles.primaryText}>OPEN CREATED ORGANIZATION</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => router.replace({ pathname: '/organizations/manage', params: { organization: createdId } } as any)}
+                style={[styles.primary, { backgroundColor: '#2D6A4F' }]}
+              >
+                <Text style={styles.primaryText}>MANAGE ORGANIZATION</Text>
+              </Pressable>
+            </>
+          ) : (
+            <Pressable
+              accessibilityRole="button"
+              disabled={busy}
+              onPress={() => void createOrganization()}
+              style={({ pressed }) => [
+                styles.primary,
+                busy && { opacity: 0.55 },
+                pressed && !busy && { opacity: 0.8 },
+              ]}
+            >
+              {busy ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <MaterialCommunityIcons name="plus-circle-outline" size={20} color="#FFFFFF" />
+              )}
+              <Text style={styles.primaryText}>
+                {busy ? 'CREATING...' : 'CREATE ORGANIZATION'}
+              </Text>
+            </Pressable>
+          )}
         </>
       )}
     </BuklodPortalScrollView>
