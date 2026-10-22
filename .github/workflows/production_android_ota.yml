@@ -1,4 +1,4 @@
-# Release trigger: 2026-10-22 startup perf — chrome-ready wire + deferred boot work
+# Release trigger: 2026-10-22 wall Today/Connect/comment composer APK cluster
 name: BUKLOD Production Android OTA
 
 on:
@@ -8,6 +8,15 @@ on:
       - main
     paths:
       - '.github/workflows/production_android_ota.yml'
+      - 'src/components/BuklodTodayCard.tsx'
+      - 'src/lib/buklodDailyEngagement.ts'
+      - 'supabase/functions/buklod-community-daily-engagement/**'
+      - 'src/components/BuklodConnectThread.tsx'
+      - 'src/components/BuklodCommunityCommentComposer.tsx'
+      - 'src/components/BuklodCommunityCommentBubble.tsx'
+      - 'src/lib/buklodCommentMediaBody.ts'
+      - 'src/app/(tabs)/buklod.tsx'
+      - 'src/app/(tabs)/buklodCommunityStyles.ts'
       - 'src/lib/buklodStartupChrome.ts'
       - 'src/components/BuklodMainBrandIntro.tsx'
       - 'src/components/BuklodGuideAvatarDeferred.tsx'
@@ -236,7 +245,7 @@ jobs:
             --channel production \
             --platform android \
             --environment production \
-            --message "Runtime 1.3.2 startup perf: wire chrome-ready after trusted-device gate, early auth shell release, defer Stream/ads/push/guide; keep V28 cluster/Bayanihan/character/PTT" \
+            --message "Runtime 1.3.2 wall APK cluster: Today blank hold, Connect composer above phone nav, comment blank photo/GIF/reaction; keep V28 startup/cluster/Bayanihan/character" \
             --non-interactive
 
       - name: Deployment status
