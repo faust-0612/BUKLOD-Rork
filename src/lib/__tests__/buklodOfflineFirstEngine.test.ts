@@ -54,4 +54,22 @@ describe('BUKLOD offline-first engine', () => {
     await expect(readBuklodOfflineFirst({ ...base, authorized: false, fetchDelta })).rejects.toThrow('not authorized');
     expect(fetchDelta).not.toHaveBeenCalled();
   });
+  it('does not reuse an in-flight request after scope revocation', async () => {
+    let finishOld!: (value: any) => void;
+    const oldFetch = jest.fn(() => new Promise<any>(resolve => { finishOld = resolve; }));
+    const first = readBuklodOfflineFirst({ ...base, fetchDelta: oldFetch });
+    await new Promise(resolve => setTimeout(resolve, 0));
+    await invalidateBuklodOfflineScope(base.accountId, base.permissionScope, base.dataset);
+    const newFetch = jest.fn(async () => ({
+      upserts: [{ id: 'fresh', title: 'Fresh' }], deletedIds: [], nextCursor: 'new',
+    }));
+    const second = await readBuklodOfflineFirst({ ...base, fetchDelta: newFetch });
+    expect(second.rows).toEqual([{ id: 'fresh', title: 'Fresh' }]);
+    expect(newFetch).toHaveBeenCalledTimes(1);
+    finishOld({ upserts: [{ id: 'stale', title: 'Stale' }], deletedIds: [], nextCursor: 'old' });
+    await expect(first).rejects.toThrow(/cancelled|revoked|changed/);
+    const offline = await readBuklodOfflineFirst({ ...base, online: false, fetchDelta: newFetch });
+    expect(offline.rows).toEqual([{ id: 'fresh', title: 'Fresh' }]);
+  });
+
 });
