@@ -177,7 +177,7 @@ function FaithAction({
           {
             backgroundColor: compact ? compactColor : styleTone.surface,
             borderColor: compact ? compactColor : `${styleTone.accent}22`,
-            minHeight: compact ? 69 : 72,
+            minHeight: compact ? 82 : 72,
           },
           pressed && {
             opacity: 0.90,
@@ -676,10 +676,12 @@ export default function BuklodHomeFaithPanel({
 const styles =
   StyleSheet.create({
     compactSection: { marginHorizontal: 0, marginTop: 0, marginBottom: 0, padding: 10, borderRadius: 15 },
-    compactShell: { flexGrow: 1, flexShrink: 1, flexBasis: '15%' as any, minWidth: 42 },
-    compactCard: { minHeight: 69, paddingHorizontal: 2, paddingVertical: 8, alignItems: 'center', borderRadius: 9 },
+    /* BUKLOD_V28_R4_EQUAL_FAITH_TILES: fixed-row six-button scoped layout, no content-driven height. */
+    compactShell: { flexGrow: 0, flexShrink: 0, flexBasis: '15%' as any, minWidth: 42, maxWidth: '16%' as any },
+    compactCard: { height: 82, minHeight: 82, maxHeight: 82, paddingHorizontal: 2, paddingVertical: 7,
+      alignItems: 'center', justifyContent: 'center', borderRadius: 9 },
     compactCardTop: { justifyContent: 'center', marginBottom: 1 },
-    compactEyebrow: { textAlign: 'center', fontSize: 7, letterSpacing: 0, marginBottom: 0 },
+    compactEyebrow: { textAlign: 'center', fontSize: 7, lineHeight: 10, letterSpacing: 0, marginBottom: 0 },
     section: {
       marginTop: 6,
       marginHorizontal: 12,
