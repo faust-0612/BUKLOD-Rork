@@ -11,6 +11,7 @@ type Job<T> = {
   key: string;
   priority: number;
   kindPriority: number;
+  deadlineMs: number;
   seq: number;
   run: (signal: AbortSignal) => Promise<T>;
   controller: AbortController;
@@ -23,7 +24,11 @@ const pending: Job<unknown>[] = [];
 const running = new Map<string, Promise<unknown>>();
 const queued = new Map<string, Promise<unknown>>();
 const active = new Map<string, Job<unknown>>();
-const MAX_READ_WAIT_MS = 12_000;
+// Per-kind deadlines: visible UI never waits on the queue for a media download.
+// These are safety ceilings, not intentional loading delays.
+const READ_DEADLINE_MS: Record<SyncDataKind, number> = {
+  connect: 6_000, photo: 8_000, video: 15_000, other: 7_000,
+};
 let sequence = 0;
 let currentView = '';
 let online = true;
@@ -52,7 +57,7 @@ function drain() {
         timeout = setTimeout(() => {
           job.controller.abort();
           reject(new Error('BUKLOD read timeout; retain local snapshot'));
-        }, MAX_READ_WAIT_MS);
+        }, job.deadlineMs);
       }),
     ]).finally(() => { if (timeout) clearTimeout(timeout); });
     running.set(job.key, task);
@@ -108,6 +113,7 @@ export function enqueueBuklodRead<T>(args: {
   const job: Job<T> = {
     key: args.key, scope: args.view, priority: ranks[args.priority],
     kindPriority: kindRanks[args.kind ?? 'other'],
+    deadlineMs: degraded ? Math.min(20_000, Math.round(READ_DEADLINE_MS[args.kind ?? 'other'] * 1.5)) : READ_DEADLINE_MS[args.kind ?? 'other'],
     seq: ++sequence, run: args.run, controller: new AbortController(),
     resolve, reject,
   };
