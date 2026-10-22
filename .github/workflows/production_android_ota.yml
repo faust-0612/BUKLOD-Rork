@@ -1,96 +1,25 @@
-# Release trigger: 2026-10-22 startup perf — chrome-ready wire + deferred boot work
+# Manual immutable-RC Android publisher. No ordinary-push production release.
 name: BUKLOD Production Android OTA
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/production_android_ota.yml'
-      - 'src/lib/buklodStartupChrome.ts'
-      - 'src/components/BuklodMainBrandIntro.tsx'
-      - 'src/components/BuklodGuideAvatarDeferred.tsx'
-      - 'src/app/_layout.tsx'
-      - 'src/providers/AuthProvider.tsx'
-      - 'src/providers/AdsProvider.tsx'
-      - 'src/providers/NetworkProvider.tsx'
-      - 'src/components/BuklodMainHealthAgent.tsx'
-      - 'src/app/clusters/create.tsx'
-      - 'src/lib/buklodClusters.ts'
-      - 'src/app/points/economy.tsx'
-      - 'src/components/points/BuklodEconomyDashboard.tsx'
-      - 'src/lib/buklodEconomyLedger.ts'
-      - 'src/lib/buklodCharacterWorldCatalog.ts'
-      - 'src/components/points/BuklodProgressiveCharacterSelector.tsx'
-      - 'src/components/points/BuklodSpecialCharacterSeries.tsx'
-      - 'scripts/community-help-sos-release-contract.mjs'
-      - 'src/components/BuklodCommunityHelp.tsx'
-      - 'src/components/BuklodPublicLocationChips.tsx'
-      - 'src/providers/NotificationProvider.tsx'
-      - 'app.config.js'
-      - 'supabase/functions/buklod-help-alert/**'
-      - 'supabase/migrations/*community_help_sos*.sql'
-      - 'scripts/patch-home-identity-action-row.cjs'
-      - 'src/app/index.tsx'
-      - 'src/app/onboarding/index.tsx'
-      - 'src/app/(tabs)/home.tsx'
-      - 'src/components/BuklodPublicWordShortcut.tsx'
-      - 'src/app/(auth)/login.tsx'
-      - 'src/lib/buklodAuthResilience.ts'
-      - 'src/app/(auth)/register.tsx'
-      - 'src/app/(auth)/forgot-password.tsx'
-      - 'src/app/account/recovery-pin.tsx'
-      - 'src/app/account/security.tsx'
-      - 'src/app/admin/account-recovery.tsx'
-      - 'src/components/BuklodTrustedDeviceGate.tsx'
-      - 'src/components/BuklodTrustedDeviceGate.native.tsx'
-      - 'src/app/scope/index.tsx'
-      - 'src/app/scope/bulletin-editor.tsx'
-      - 'src/app/scope/faith-monitoring/report.tsx'
-      - 'src/app/scope/formation-approvals.tsx'
-      - 'src/app/reflection/[id].tsx'
-      - 'src/components/LearningQuestionResponse.tsx'
-      - 'src/lib/buklodScopeFaithMonitoring.ts'
-      - 'src/components/BuklodClusterHomeCommandCenter.tsx'
-      - 'src/components/BuklodClusterHomeCommandCenterImpl.tsx'
-      - 'src/lib/buklodClusterFormationGate.ts'
-      - 'src/app/(tabs)/me.tsx'
-      - 'src/app/(tabs)/prayer.tsx'
-      - 'src/app/(tabs)/messages.tsx'
-      - 'src/app/notifications/index.tsx'
-      - 'src/app/post/[id].tsx'
-      - 'src/hooks/useBuklodConnectUnread.ts'
-      - 'src/app/profile/buklod-faculty-class.tsx'
-      - 'src/app/profile/buklod-faculty.tsx'
-      - 'src/app/profile/buklod-faculty-quiz-results.tsx'
-      - 'src/app/profile/buklod-classroom*.tsx'
-      - 'src/components/classroom/**'
-      - 'src/components/BuklodScopeCallLauncher.tsx'
-      - 'src/components/BuklodConnectThread.tsx'
-      - 'src/components/connect/ConnectComposerPicker.tsx'
-      - 'src/lib/buklodConnectGifCatalog.ts'
-      - 'src/lib/buklodStreamCall.ts'
-      - 'src/lib/buklodCallLifecycle.ts'
-      - 'src/providers/StreamVideoProvider.tsx'
-      - 'src/utils/setFirebaseListeners.android.ts'
-      - 'src/utils/setPushConfig.ts'
-      - 'src/components/BuklodNavSafeShell.tsx'
-      - 'src/components/BuklodFocusAppAdStrip.tsx'
-      - 'src/components/BuklodAdMobBanner.tsx'
-      - 'src/components/BuklodHeaderSponsor.android.tsx'
-      - 'src/components/BuklodScopedHeaderBanner.android.tsx'
-      - 'src/lib/buklodAdUnits.ts'
-      - 'src/lib/buklodAwsWallVideo.ts'
-      - 'src/lib/uploadCommunityVideoFile.ts'
-      - 'src/lib/buklodCommunityPostMedia.ts'
-      - 'src/lib/buklodMediaUrl.ts'
-      - 'supabase/migrations/*community_external_video_storage_aws*.sql'
-      - 'supabase/migrations/*buklod_call_lifecycle*.sql'
-      - 'supabase/migrations/*buklod_5k_scale_hardening*.sql'
-      - 'supabase/migrations/*formation_auto_scope_uuid_aggregate_fix*.sql'
-      - 'supabase/migrations/*formation_daily_pipeline_repair*.sql'
-      - 'supabase/migrations/*formation_auto_submit_photo_report*.sql'
+    inputs:
+      rc_sha:
+        description: Approved immutable RC commit SHA (40 hex characters)
+        required: true
+        type: string
+      confirm:
+        description: Type PUBLISH_ANDROID_PRODUCTION
+        required: true
+        type: string
+      expected_production_update_id:
+        description: Independently verified current production Android update ID
+        required: true
+        type: string
+
+concurrency:
+  group: buklod-android-production-ota
+  cancel-in-progress: false
 
 env:
   EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
@@ -102,12 +31,23 @@ permissions:
 
 jobs:
   qa-and-publish:
+    timeout-minutes: 45
     runs-on: ubuntu-latest
     steps:
       - name: Checkout production source
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ inputs.rc_sha }}
+          persist-credentials: false
+
+      - name: Verify exact RC and explicit production authorization
+        env:
+          APPROVED_RC_SHA: ${{ inputs.rc_sha }}
+          RELEASE_CONFIRMATION: ${{ inputs.confirm }}
+          OTA_CHANNEL: production
+          OTA_PLATFORM: android
+          APP_VARIANT: production
+        run: node scripts/guard-android-ota-runtime.cjs
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -121,8 +61,17 @@ jobs:
       - name: Verify locked Community Help / Emergency SOS baseline
         run: node scripts/community-help-sos-release-contract.mjs
 
-      - name: Apply Home identity action row
-        run: node scripts/patch-home-identity-action-row.cjs
+      - name: Verify committed Home identity action row
+        run: git diff --exit-code HEAD -- src
+
+      - name: Regression and release contracts
+        run: |
+          set -euo pipefail
+          npm test -- --watchAll=false --watchman=false
+          node --test tests/v28-p0-source.test.cjs tests/android-release-policy.test.cjs
+          npm run character:contract
+          npm run game:contract
+          node scripts/verify-android-rc-readiness.cjs
 
       - name: Verify Classroom and Home separation
         shell: bash
@@ -216,36 +165,38 @@ jobs:
             exit 1
           fi
 
-      - name: Expo credential preflight
-        id: expo
+      - name: Expo credential preflight (fail closed)
         shell: bash
         run: |
-          if [ -z "$EXPO_TOKEN" ]; then
-            echo "Expo OTA not published: repository secret EXPO_TOKEN is not configured."
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          npx eas-cli@latest whoami --non-interactive
-          echo "ready=true" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}" || { echo 'BLOCKED: EXPO_TOKEN is not configured.'; exit 1; }
+          npx eas-cli@25.3.0 whoami --non-interactive
 
-      - name: Publish production Android OTA
-        if: steps.expo.outputs.ready == 'true'
+      - name: Export exact RC with existing EAS production environment
         shell: bash
         run: |
-          npx eas-cli@latest update \
-            --channel production \
-            --platform android \
-            --environment production \
-            --message "Runtime 1.3.2 startup perf: wire chrome-ready after trusted-device gate, early auth shell release, defer Stream/ads/push/guide; keep V28 cluster/Bayanihan/character/PTT" \
-            --non-interactive
+          set -euo pipefail
+          npx eas-cli@25.3.0 env:exec production 'node scripts/verify-android-release-env.cjs && npx expo export --platform android --clear --max-workers 2 --output-dir dist-android-rc' --non-interactive
+          git diff --exit-code HEAD
+          node scripts/android-export-manifest.cjs dist-android-rc > android-export-manifest.json
 
-      - name: Deployment status
+      - name: Recheck live baseline and publish exact Android export
         shell: bash
         env:
-          EXPO_READY: ${{ steps.expo.outputs.ready }}
+          EXPECTED_PRODUCTION_UPDATE_ID: ${{ inputs.expected_production_update_id }}
         run: |
-          if [ "$EXPO_READY" = "true" ]; then
-            echo "BUKLOD production Android OTA published successfully."
-          else
-            echo "BUKLOD source QA passed; OTA remains pending only because EXPO_TOKEN is unavailable."
-          fi
+          set -euo pipefail
+          node scripts/verify-production-android-update.cjs baseline
+          npx eas-cli@25.3.0 update --channel production --platform android --environment production --skip-bundler --input-dir dist-android-rc --message "Approved immutable Android RC $(git rev-parse HEAD) runtime 1.3.2; no PTT restoration" --non-interactive --json > android-update-result.json
+          node scripts/verify-production-android-update.cjs published
+
+      - name: Preserve release verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-production-release-evidence-${{ github.run_id }}
+          path: |
+            android-export-manifest.json
+            android-update-result.json
+            android-production-verification.json
+          if-no-files-found: ignore

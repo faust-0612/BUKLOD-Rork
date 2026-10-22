@@ -3,20 +3,6 @@ name: BUKLOD Points One-Tap Claim Production
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/production_points_claim.yml'
-      - 'src/app/points/**'
-      - 'src/components/points/**'
-      - 'src/lib/buklodPointsRedemption.ts'
-      - 'src/app/admin/points-redemptions.tsx'
-      - 'src/app/admin/bayanihan.tsx'
-      - 'supabase/migrations/*buklod_points_redemption*'
-      - 'assets/sounds/**'
-      - 'scripts/inject-adsense-web-head.cjs'
-
 env:
   EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
   EXPO_PUBLIC_APP_ENV: production
@@ -27,6 +13,7 @@ permissions:
 
 jobs:
   qa-web-ota:
+    if: ${{ false }} # Legacy production publisher retired; use the exact-RC Android workflow.
     runs-on: ubuntu-latest
     steps:
       - name: Checkout production source

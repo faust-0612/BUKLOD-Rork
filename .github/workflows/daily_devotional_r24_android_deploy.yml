@@ -1,11 +1,6 @@
 name: BUKLOD Daily Devotional R24 Android Deploy
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/daily_devotional_r24_android_deploy.yml'
   workflow_dispatch:
 
 env:
@@ -19,6 +14,7 @@ permissions:
 
 jobs:
   qa-and-publish:
+    if: ${{ false }} # Legacy production publisher retired; use the exact-RC Android workflow.
     runs-on: ubuntu-latest
     steps:
       - name: Checkout current main

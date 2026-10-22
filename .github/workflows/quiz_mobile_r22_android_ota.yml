@@ -2,13 +2,6 @@ name: BUKLOD Quiz Mobile R22 Android OTA
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - 'src/lib/buklodQuizEntry.ts'
-      - '.github/workflows/quiz_mobile_r22_android_ota.yml'
-
 permissions:
   contents: read
 
@@ -18,6 +11,7 @@ env:
 
 jobs:
   qa-and-publish-android:
+    if: ${{ false }} # Legacy production publisher retired; use the exact-RC Android workflow.
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:

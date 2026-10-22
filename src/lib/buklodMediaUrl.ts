@@ -1,8 +1,8 @@
 /* BUKLOD_AWS_SIGNED_MEDIA_CACHE_R2_BATCHED */
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Image as ExpoImage } from 'expo-image';
 
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
+import { runCommunityMediaPrefetch } from '@/lib/communityMediaPrefetch';
 import { supabase } from '@/lib/supabase';
 
 const SIGN_STORAGE_KEY = '@buklod/media-sign/v3';
@@ -10,9 +10,6 @@ const SIGN_TIMEOUT_MS = 6000;
 const SIGN_CACHE_TTL_MS = 50 * 60 * 1000;
 const NEGATIVE_CACHE_TTL_MS = 45 * 1000;
 const SIGN_BATCH_DELAY_MS = 20;
-/* BUKLOD_COMMUNITY_MEDIA_PREFETCH_R2 */
-/* BUKLOD_COMMUNITY_MEDIA_PREFETCH_R3 — bounded ahead-of-viewport warm cache */
-const PREFETCH_BURST_LIMIT = 36;
 
 type SignedHit = {
   url: string;
@@ -299,19 +296,14 @@ export async function resignCommunityMediaUrl(
 }
 
 export function prefetchCommunityMedia(
-  urls: Array<string | null | undefined>,
+  urls: Array<
+    | string
+    | null
+    | undefined
+    | { uri: string; cacheKey?: string }
+  >,
 ) {
-  const unique = [
-    ...new Set(
-      urls
-        .map(url => String(url ?? '').trim())
-        .filter(value => value && !isLocalMediaUri(value)),
-    ),
-  ].slice(0, PREFETCH_BURST_LIMIT);
-
-  for (const value of unique) {
-    void ExpoImage.prefetch(value).catch(() => undefined);
-  }
+  void runCommunityMediaPrefetch(urls).catch(() => undefined);
 }
 
 void hydrateCommunityMediaUrlCache();
