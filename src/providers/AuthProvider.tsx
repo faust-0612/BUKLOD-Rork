@@ -460,7 +460,11 @@ export function AuthProvider({
 
         const nextSession =
           data.session ??
-          (await readPersistedSupabaseSession());
+          (await withBuklodTimeout(
+            readPersistedSupabaseSession(),
+            2500,
+            'BUKLOD local session lookup'
+          ));
 
         setSession(nextSession);
         sessionUserIdRef.current =
