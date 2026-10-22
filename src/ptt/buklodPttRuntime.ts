@@ -92,11 +92,15 @@ export async function pttDown(kind: BuklodPttKind = 'NORMAL') {
   const operation = (async () => {
     await stopping;
     if (!held()) return;
-    const connection = await connectBuklodPtt(selected.scope, selected.channel);
+    const connection = await connectBuklodPtt(selected.scope, selected.channel, held);
     let floorId: string | null = null;
     let keep = false;
     try {
       if (!held()) return;
+      // Expose the muted joined call immediately so release can leave even
+      // while the floor request is still waiting for the network.
+      state = { ...state, connection };
+      emit();
       const floor = await claimBuklodPttFloor(
         selected.scope.id, selected.channel, kind, connection.callId,
       );
@@ -127,6 +131,10 @@ export async function pttDown(kind: BuklodPttKind = 'NORMAL') {
     } finally {
       // A late join/floor/microphone completion must never survive release.
       if (!keep) {
+        if (state.connection === connection) {
+          state = { ...state, connection: null, transmitting: false, txKind: null, transmissionId: null };
+          emit();
+        }
         await disconnectBuklodPtt(connection);
         await dropFloor(floorId);
       }

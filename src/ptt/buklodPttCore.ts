@@ -162,12 +162,14 @@ async function getSecurePttAccess(
 export async function connectBuklodPtt(
   scope: BuklodPttScope,
   channel: number,
+  stillHeld: () => boolean = () => true,
 ): Promise<BuklodPttConnection> {
   if (!Number.isInteger(channel) || channel < 1 || channel > 10) {
     throw new Error('PTT channel must be between CH01 and CH10.');
   }
 
   const { session, data } = await getSecurePttAccess(scope, channel);
+  if (!stillHeld()) throw new Error('PTT_HOLD_CANCELLED');
 
   const displayName = String(
     session.user.user_metadata?.full_name ||
@@ -197,21 +199,22 @@ export async function connectBuklodPtt(
   // ACTIVE BUKLOD scope member as a Stream call_member.
   // The client is intentionally not allowed to create arbitrary PTT calls.
   await call.get();
+  if (!stillHeld()) throw new Error('PTT_HOLD_CANCELLED');
   // Mute before join. Stream publishes the mic on join, so a connect
   // was transmitting until the disable below finished.
+  await call.camera.disable();
+  await call.microphone.disable();
   try {
-    await call.camera.disable();
-  } catch {}
-  try {
-    await call.microphone.disable();
-  } catch {}
-  try {
+    if (!stillHeld()) throw new Error('PTT_HOLD_CANCELLED');
     await call.join();
+    if (!stillHeld()) throw new Error('PTT_HOLD_CANCELLED');
     await call.camera.disable();
     await call.microphone.disable();
   } catch (error) {
-    await call.microphone.disable().catch(() => undefined);
-    await call.leave().catch(() => undefined);
+    await Promise.allSettled([
+      Promise.resolve().then(() => call.microphone.disable()),
+      Promise.resolve().then(() => call.leave()),
+    ]);
     throw error;
   }
 
@@ -231,13 +234,10 @@ export async function disconnectBuklodPtt(
 ) {
   if (!connection) return;
 
-  try {
-    await connection.call.microphone.disable();
-  } catch {}
-
-  try {
-    await connection.call.leave();
-  } catch {}
+  await Promise.allSettled([
+    Promise.resolve().then(() => connection.call.microphone.disable()),
+    Promise.resolve().then(() => connection.call.leave()),
+  ]);
 }
 
 export async function setBuklodPttMonitor(

@@ -1,6 +1,3 @@
-jest.mock('react-native', () => ({
-  AppState: { addEventListener: jest.fn(() => ({ remove: jest.fn() })) },
-}));
 jest.mock('@/ptt/buklodPttCore', () => ({
   connectBuklodPtt: jest.fn(),
   disconnectBuklodPtt: jest.fn(async () => undefined),
@@ -8,6 +5,8 @@ jest.mock('@/ptt/buklodPttCore', () => ({
   refreshBuklodPttFloor: jest.fn(async () => true),
   releaseBuklodPttFloor: jest.fn(async () => true),
 }));
+import { AppState } from 'react-native';
+jest.spyOn(AppState, 'addEventListener').mockReturnValue({ remove: jest.fn() });
 import * as core from '@/ptt/buklodPttCore';
 import * as runtime from '@/ptt/buklodPttRuntime';
 const scope = { id: 'scope', name: 'Test', scope_type: 'ORGANIZATION' as const };
@@ -46,6 +45,7 @@ test('a join completing after release is immediately left without claiming floor
   const down = runtime.pttDown();
   await flush();
   await runtime.pttUp();
+  expect((core.connectBuklodPtt as jest.Mock).mock.calls[0][2]()).toBe(false);
   resolve(connection);
   await down;
   expect(core.claimBuklodPttFloor).not.toHaveBeenCalled();
@@ -59,6 +59,7 @@ test('floor response after exit is released and never enables the mic', async ()
   const down = runtime.pttDown();
   await flush();
   await runtime.disconnectBuklodPttRuntime();
+  expect(core.disconnectBuklodPtt).toHaveBeenCalledWith(connection);
   resolve({ granted: true, transmission_id: 'late-floor' });
   await down;
   expect(connection.call.microphone.enable).not.toHaveBeenCalled();

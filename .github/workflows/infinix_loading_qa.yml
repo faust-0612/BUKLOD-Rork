@@ -37,7 +37,17 @@ jobs:
       - name: Install isolated test tools
         run: npm install --no-save --package-lock=false --ignore-scripts jest@29.7.0 jest-expo@57.0.4 @testing-library/react-native@13.3.3 react-test-renderer@19.2.3
       - run: npx --no-install tsc --noEmit
-      - if: "!cancelled() && steps.dependencies.outcome == 'success'"
+      - name: Focused Infinix regression tests
+        if: "!cancelled() && steps.dependencies.outcome == 'success'"
+        run: >-
+          npm test -- --watchAll=false --watchman=false --runTestsByPath
+          __tests__/buklodMaritesDedicatedReader.test.ts
+          __tests__/buklodPttHoldLifecycle.test.ts
+          __tests__/buklodQuizSessionDelay.test.ts
+          __tests__/buklodConnectFacesFirst.test.ts
+          __tests__/buklodAvatarPersistence.test.ts
+      - name: Full regression suite
+        if: "!cancelled() && steps.dependencies.outcome == 'success'"
         run: npm test -- --watchAll=false --watchman=false
       - name: Character contract
         if: "!cancelled() && steps.dependencies.outcome == 'success'"

@@ -370,7 +370,7 @@ export default function BuklodPttScreen() {
       if (runtime.connection) {
         return {
           tone: 'ready',
-          title: 'Internet PTT transmitting',
+          title: runtime.transmitting ? 'Internet PTT transmitting' : 'Preparing transmission…',
           detail: `${runtime.connection.scope.name} · Channel ${runtime.connection.channel}`,
         };
       }

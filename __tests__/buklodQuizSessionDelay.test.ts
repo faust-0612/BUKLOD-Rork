@@ -31,3 +31,21 @@ test('definitive rejection and invalid refresh still require sign in', async () 
   auth.refreshSession.mockResolvedValue({ data: { session: null }, error: { status: 400 } });
   await expect(getValidatedMainAccessToken()).rejects.toThrow('Sign in');
 });
+
+test('a ready direct handoff is preferred over the one-time Auth redirect', async () => {
+  const { createBuklodQuizLaunchUrl } = require('@/lib/buklodQuizEntry') as typeof import('@/lib/buklodQuizEntry');
+  auth.getUser.mockResolvedValue({ data: { user: { id: 'viewer' } }, error: null });
+  const originalFetch = global.fetch;
+  global.fetch = jest.fn(async () => ({
+    ok: true,
+    json: async () => ({
+      ok: true, launch_url: 'https://auth.invalid/verify',
+      session_launch_url: 'https://quiz.invalid/?buklod_quiz_token_hash=test-only',
+      session_launch_ready: true,
+    }),
+  })) as any;
+  try {
+    await expect(createBuklodQuizLaunchUrl({ source: 'buklod-main-profile' }))
+      .resolves.toBe('https://quiz.invalid/?buklod_quiz_token_hash=test-only');
+  } finally { global.fetch = originalFetch; }
+});
