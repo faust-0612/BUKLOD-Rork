@@ -376,7 +376,12 @@ async function signInForFreshPublicHome(
       credentials
     );
 
-  if (result.error) {
+  if (
+    result.error &&
+    String(result.error?.code ?? '') !== 'auth_in_progress'
+  ) {
+    // Another pending grant may still succeed after a route remount.
+    // Do not erase that original attempt's fresh-login routing intent.
     await AsyncStorage.removeItem(
       BUKLOD_FRESH_LOGIN_PUBLIC_INTENT_KEY
     ).catch(() => undefined);
