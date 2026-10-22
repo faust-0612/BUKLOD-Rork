@@ -1,27 +1,24 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import Constants from 'expo-constants';
-
 import { router } from 'expo-router';
 
 export const PENDING_CLUSTER_INVITE_KEY =
   'buklod_pending_cluster_invite_v1';
-
-function inviteScheme(): string {
-  const scheme = Constants.expoConfig?.scheme;
-
-  if (typeof scheme === 'string' && scheme.trim()) {
-    return scheme.trim();
-  }
-
-  return 'buklod';
-}
 
 /** Canonical Cluster invite deep link — shared by QR, Share, and Manage. */
 export function buildClusterInviteUrl(scopeId: string): string {
   const id = String(scopeId ?? '').trim();
 
   return `https://buklod.expo.app/clusters/${encodeURIComponent(id)}?fromInvite=1`;
+}
+
+function validScopeId(raw: string): string | null {
+  try {
+    const id = decodeURIComponent(raw);
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ? id : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Parse invite URL back to scope id (supports production + staging schemes). */
@@ -37,7 +34,7 @@ export function parseClusterInviteUrl(url: string): string | null {
   );
 
   if (schemeMatch?.[1]) {
-    return decodeURIComponent(schemeMatch[1]);
+    return validScopeId(schemeMatch[1]);
   }
 
   const pathMatch = trimmed.match(
@@ -45,7 +42,7 @@ export function parseClusterInviteUrl(url: string): string | null {
   );
 
   if (pathMatch?.[1]) {
-    return decodeURIComponent(pathMatch[1]);
+    return validScopeId(pathMatch[1]);
   }
 
   return null;
@@ -67,7 +64,7 @@ export async function storePendingClusterInvite(
 ) {
   const id = String(scopeId ?? '').trim();
 
-  if (!id) {
+  if (!validScopeId(id)) {
     return;
   }
 
