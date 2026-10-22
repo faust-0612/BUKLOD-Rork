@@ -35,73 +35,76 @@ type OpenBuklodQuizOptions = {
   source: QuizEntrySource;
 };
 
-function timeoutResult<T>(value: T, ms: number) {
-  return new Promise<T>(resolve => {
-    setTimeout(() => resolve(value), ms);
-  });
+async function sessionDeadline<T>(pending: PromiseLike<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      Promise.resolve(pending),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('BUKLOD_SESSION_CHECK_TIMEOUT')), SESSION_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
-async function getValidatedMainAccessToken() {
-  const current = await supabase.auth.getSession();
-  if (current.error) throw current.error;
+function isSessionTransportError(error: any) {
+  const status = Number(error?.status ?? 0);
+  return !status || status >= 500 ||
+    error?.name === 'AuthRetryableFetchError';
+}
 
-  let accessToken = String(current.data.session?.access_token ?? '').trim();
+export async function getValidatedMainAccessToken() {
+  let current: Awaited<ReturnType<typeof supabase.auth.getSession>>;
+  try {
+    // Session storage/refresh can stall under a weak connection too.
+    current = await sessionDeadline(supabase.auth.getSession());
+  } catch {
+    throw new Error('BUKLOD could not load your saved session yet. Check your connection, then tap Quiz again.');
+  }
+  if (current.error) {
+    if (isSessionTransportError(current.error)) {
+      throw new Error('BUKLOD could not load your saved session yet. Check your connection, then tap Quiz again.');
+    }
+    throw current.error;
+  }
+  const saved = current.data.session;
+  let accessToken = String(saved?.access_token ?? '').trim();
   if (!accessToken) {
-    throw new Error(
-      'Your BUKLOD Main session is unavailable. Sign in to BUKLOD Main again, then open BUKLOD Quiz.',
-    );
+    throw new Error('Your BUKLOD Main session is unavailable. Sign in to BUKLOD Main again, then open BUKLOD Quiz.');
   }
 
-  const validation = await Promise.race([
-    supabase.auth.getUser(accessToken),
-    timeoutResult<any>(
-      {
-        data: { user: null },
-        error: new Error('BUKLOD_MAIN_SESSION_VALIDATE_TIMEOUT'),
-      },
-      SESSION_TIMEOUT_MS,
-    ),
-  ]);
-
-  if (!validation?.error && validation?.data?.user) {
-    return accessToken;
+  const savedIsCurrent = () => Number(saved?.expires_at ?? 0) * 1000 > Date.now() + 10_000;
+  let validation: Awaited<ReturnType<typeof supabase.auth.getUser>>;
+  try {
+    validation = await sessionDeadline(supabase.auth.getUser(accessToken));
+  } catch {
+    if (savedIsCurrent()) return accessToken;
+    throw new Error('BUKLOD could not check your session yet. Check your connection, then tap Quiz again.');
+  }
+  if (!validation.error && validation.data.user) return accessToken;
+  if (validation.error && isSessionTransportError(validation.error)) {
+    // The bridge still validates the bearer token server-side.
+    if (savedIsCurrent()) return accessToken;
+    throw new Error('BUKLOD could not check your session yet. Check your connection, then tap Quiz again.');
   }
 
-  const refreshed = await Promise.race([
-    supabase.auth.refreshSession(),
-    timeoutResult<any>(
-      {
-        data: { session: null, user: null },
-        error: new Error('BUKLOD_MAIN_SESSION_REFRESH_TIMEOUT'),
-      },
-      SESSION_TIMEOUT_MS,
-    ),
-  ]);
-
-  accessToken = String(refreshed?.data?.session?.access_token ?? '').trim();
-  if (refreshed?.error || !accessToken) {
-    throw new Error(
-      'Your saved BUKLOD session on this device is no longer valid. Sign in to BUKLOD Main again, then open BUKLOD Quiz.',
-    );
+  let refreshed: Awaited<ReturnType<typeof supabase.auth.refreshSession>>;
+  try {
+    refreshed = await sessionDeadline(supabase.auth.refreshSession());
+  } catch {
+    throw new Error('BUKLOD could not refresh your session yet. Check your connection, then tap Quiz again.');
   }
-
-  const revalidated = await Promise.race([
-    supabase.auth.getUser(accessToken),
-    timeoutResult<any>(
-      {
-        data: { user: null },
-        error: new Error('BUKLOD_MAIN_SESSION_REVALIDATE_TIMEOUT'),
-      },
-      SESSION_TIMEOUT_MS,
-    ),
-  ]);
-
-  if (revalidated?.error || !revalidated?.data?.user) {
-    throw new Error(
-      'BUKLOD refreshed your saved session, but this device could not validate it. Check your connection, then sign in again if needed.',
-    );
+  accessToken = String(refreshed.data.session?.access_token ?? '').trim();
+  if (refreshed.error) {
+    if (isSessionTransportError(refreshed.error)) {
+      throw new Error('BUKLOD could not refresh your session yet. Check your connection, then tap Quiz again.');
+    }
+    throw new Error('Your saved BUKLOD session is no longer valid. Sign in to BUKLOD Main again, then open Quiz.');
   }
-
+  if (!accessToken) throw new Error('Your BUKLOD Main session is unavailable. Sign in again, then open Quiz.');
+  // refreshSession issued a fresh token; the bridge performs authoritative validation.
   return accessToken;
 }
 
