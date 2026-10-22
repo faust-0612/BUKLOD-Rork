@@ -4,6 +4,8 @@
  * realtime subscriptions and protected permission checks never enter this queue.
  * Callers own persistence (offlineCache) and incremental cursor queries.
  */
+import { classifyNetworkQuality, subscribeNetworkQuality } from './buklodNetworkQuality';
+
 export type SyncPriority = 'visible' | 'interaction' | 'nearby' | 'background';
 export type SyncDataKind = 'video' | 'photo' | 'connect' | 'other';
 const kindRanks: Record<SyncDataKind, number> = { video: 0, photo: 1, connect: 2, other: 3 };
@@ -34,6 +36,14 @@ let currentView = '';
 let online = true;
 let degraded = false;
 let activeCount = 0;
+// Keep queue state in sync with the existing NetInfo/latency observations.
+// The quality module owns network detection; this module only consumes it.
+function applyObservedQuality() {
+  const quality = classifyNetworkQuality();
+  configureBuklodSyncNetwork({ online: quality !== 'offline', degraded: quality === 'degraded' });
+}
+subscribeNetworkQuality(applyObservedQuality);
+
 const MAX_NORMAL = 2; // never flood backend when many screens mount
 function limit() { return degraded ? 1 : MAX_NORMAL; }
 function drain() {
