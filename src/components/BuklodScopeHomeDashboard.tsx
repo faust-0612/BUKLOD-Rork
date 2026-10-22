@@ -252,9 +252,10 @@ export default function BuklodScopeHomeDashboard({
         </View>
       ) : null}
 
+      {showAdminSummary ? (
       <View style={styles.homePair}>
         <View style={styles.homePairItem}>
-      {showAdminSummary && summary ? (
+      {summary ? (
         <View style={styles.card}>
           <Text style={styles.cardTitle}>ADMIN SUMMARY</Text>
           <View style={styles.statRow}>
@@ -274,6 +275,7 @@ export default function BuklodScopeHomeDashboard({
         </View>
         <View style={styles.homePairItem}><BuklodScopeActionCenterSlot items={actionItems} /></View>
       </View>
+      ) : null}
 
       <View style={styles.card}>
         <View style={styles.cardHead}>
