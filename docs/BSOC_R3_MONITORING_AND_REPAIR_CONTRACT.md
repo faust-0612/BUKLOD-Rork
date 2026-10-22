@@ -30,3 +30,14 @@ BSOC monitor is READ-ONLY and NEVER performs DML, DDL, code changes, deployment 
 - No duplicate client incidents and no personal identifiers in alerts.
 - No unauthorized mutation by monitoring.
 - Do not enable autonomous production changes by merely merging this document.
+
+
+## Autonomous next-move execution (owner authorization, 2026-10-23)
+- An alert's Suggested Next Move is an **executable investigation task**, not a request for the owner to manually copy a prompt. Route it to a separately permissioned repair coordinator with an incident ID, safe log pointers, severity, last verified state and idempotency key.
+- The monitoring scheduler stays READ-ONLY; it must not have write credentials. The coordinator executes independent read-only diagnosis automatically, then only **preapproved, scoped, reversible** changes after proving the cause and passing tests. Owner approval is still required for destructive changes, access-policy widening, expensive scaling, billing changes, or release-gate exceptions.
+- Classify outcomes as OBSERVING, DIAGNOSING, PROVEN, FIXING, VERIFYING, FIXED, PARTIALLY_FIXED or BLOCKED. FIXED requires actual production evidence, not a completed GitHub commit.
+- Deduplicate incidents by affected endpoint + error family + bounded time; cap retries, apply exponential backoff, circuit-break on repeated failure, and never spawn recursive investigations.
+- Track known fixes with fingerprints, preconditions, expected result, rollback, test and release evidence; do not blindly reapply fixes to different failures.
+- When database connectivity is unavailable, log UNKNOWN and defer writes; do not equate SQL timeouts with 0 failures. Preserve last verified metrics separately.
+- Keep a clear audit trail of action, tool execution, changed artifact, test, deployed release ID, and verification. Never expose user identities, secrets or full SQL editor text in reports.
+- A draft PR or document alone does NOT deploy an autonomous system. Implement a real event dispatcher, coordinator permissions, durable queue, test harness and alerts before marking operational.
