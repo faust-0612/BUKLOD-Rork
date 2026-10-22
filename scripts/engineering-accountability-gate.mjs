@@ -12,6 +12,7 @@ const safe = p => typeof p==='string' && p.length && !p.includes('..') && !p.sta
 if (!m.allowedPaths.every(safe)) {fail('Unsafe allowedPaths');process.exit();}
 let changed=[];try {changed=execFileSync('git',['diff','--name-only','--diff-filter=ACMRD',m.baseRef,'HEAD','--'],{encoding:'utf8'}).trim().split('\n').filter(Boolean);}catch {fail('Base ref missing; no fallback');process.exit();}
 const allowed=p=>m.allowedPaths.some(rule=>rule.endsWith('/')?p.startsWith(rule):p===rule);
+if (m.allowedPaths.some(rule=>rule==='src/' || rule==='scripts/' || rule==='supabase/' || rule==='.github/' || rule==='')) fail('Overbroad scope allowlist; specify concrete modules or files');
 const blocked=changed.filter(p=>!allowed(p));
 if (changed.includes(file) && m.objective.toLowerCase().includes('stability')) fail('Stability work may not self-edit the scope manifest');
 if(blocked.length)fail('Unrelated changes: '+blocked.join(', '));

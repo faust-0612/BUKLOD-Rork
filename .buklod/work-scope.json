@@ -1,16 +1,15 @@
 {
-  "objective": "Install engineering accountability checks without modifying product modules",
+  "objective": "Close CI path-filter gaps and reject broad scope manifests without editing app modules",
   "baseRef": "main",
   "productionBaselineEvidence": "verified: this PR changes engineering tooling only, not a production release; live runtime verification remains mandatory before release",
   "allowedPaths": [
-    "docs/engineering/global-accountability-contract-r1.md",
+    ".github/workflows/engineering-accountability.yml",
     "scripts/engineering-accountability-gate.mjs",
-    ".buklod/work-scope.json",
-    ".github/workflows/engineering-accountability.yml"
+    ".buklod/work-scope.json"
   ],
   "acceptanceChecks": [
-    "Full changed-file allowlist passes",
-    "Missing or unrelated file manifest fails closed",
-    "Production publish remains separately gated"
+    "Scope gate runs for all pull requests",
+    "Overbroad allowlist rejected",
+    "No application code or production release"
   ]
 }
