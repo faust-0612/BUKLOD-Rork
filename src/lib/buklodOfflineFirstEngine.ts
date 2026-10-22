@@ -31,7 +31,8 @@ const inFlight = new Map<string, Promise<unknown>>();
 const memory = new Map<string, Snapshot<unknown>>();
 // Revocation generations prevent an in-flight read from restoring invalidated data.
 const generations = new Map<string, number>();
-const MAX_ROWS = 2000;
+// Never silently discard records while retaining a cursor that says they were synced.
+// Dataset-specific pagination/retention must be implemented by each loader.
 const DEFAULT_REFRESH_MS = 5 * 60 * 1000;
 
 function keyFor(account: string, scope: string, dataset: string) {
@@ -97,7 +98,7 @@ export async function readBuklodOfflineFirst<T extends { id: string }>(args: {
         }
         const next: Snapshot<T> = {
           schema: 1, cursor: delta.nextCursor,
-          rows: Array.from(rows.values()).slice(-MAX_ROWS), syncedAt: Date.now(),
+          rows: Array.from(rows.values()), syncedAt: Date.now(),
         };
         // Serialize against revocation: stale responses must never resurrect data.
         if ((generations.get(key) ?? 0) !== generation || signal.aborted) {
@@ -125,7 +126,9 @@ export async function readBuklodOfflineFirst<T extends { id: string }>(args: {
     return { rows, source: 'network', syncing: false };
   } catch (error) {
     args.onSyncError?.(error);
-    return { rows: [], source: 'device', syncing: false };
+    // No cached snapshot exists: do not misrepresent a failed request as an
+    // authoritative empty feed. The caller must show a retry/offline state.
+    throw error;
   }
 }
 /** Call on account sign-out or access revocation, never merely on app close. */
