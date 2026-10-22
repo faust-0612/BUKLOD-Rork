@@ -95,6 +95,32 @@ BuklodScopedDashboardHeader({
     normalizedType === 'ORGANIZATION' ||
     normalizedType === 'CLUSTER';
 
+  /* BUKLOD_V28_BLUE_SCOPE_LAYOUT_R1: stay BELOW the phone status bar. */
+  if (showCommercialHeader) {
+    return (
+      <View style={[styles.blueShell, { paddingTop: insets.top }]}>
+        <View style={styles.blueTopRow}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Back"
+            onPress={onBack} hitSlop={BUKLOD_HIT_SLOP_TIGHT} style={styles.blueBack}>
+            <MaterialCommunityIcons name="arrow-left" size={23} color="#FFFFFF" />
+          </Pressable>
+          <View style={styles.blueIdentity}>
+            <View style={styles.blueTitleRow}>
+              <Text numberOfLines={1} style={styles.blueTitle}>
+                {normalizedType === 'CLUSTER' ? 'Cluster Home' : 'Organization Home'}
+              </Text>
+              <View style={styles.blueActive}><Text style={styles.blueActiveText}>Active</Text></View>
+            </View>
+            <Text numberOfLines={1} style={styles.blueSubtitle}>{scopeName}</Text>
+          </View>
+          <View style={styles.blueCustomizer}>
+            <BuklodDashboardCustomizer theme={theme} canCustomize={canCustomize} onSave={onThemeChange} />
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View
       style={[
@@ -236,6 +262,16 @@ const styles =
         '#EEF6F1',
     },
 
+    blueShell: { width: '100%', backgroundColor: '#07539B' },
+    blueTopRow: { minHeight: 62, paddingHorizontal: 10, paddingVertical: 7, flexDirection: 'row', alignItems: 'center', gap: 8 },
+    blueBack: { width: 37, height: 40, alignItems: 'center', justifyContent: 'center' },
+    blueIdentity: { flex: 1, minWidth: 0 },
+    blueTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+    blueTitle: { flexShrink: 1, color: '#FFFFFF', fontSize: 17, fontWeight: '900' },
+    blueActive: { backgroundColor: '#19B780', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
+    blueActiveText: { color: '#FFFFFF', fontSize: 8, fontWeight: '900' },
+    blueSubtitle: { marginTop: 3, fontSize: 10, color: '#D9EAFF' },
+    blueCustomizer: { minWidth: 42, alignItems: 'center', justifyContent: 'center' },
     encouragementText: {
       flexShrink: 1,
       textAlign: 'center',
