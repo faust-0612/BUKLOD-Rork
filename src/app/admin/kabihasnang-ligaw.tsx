@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { AdminGate } from '@/components/AdminGate';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
@@ -14,6 +14,7 @@ export default function KabihasnangLigawAdminScreen() {
  const [notes,setNotes]=useState('');
  const [editedText,setEditedText]=useState('');
  const [editing,setEditing]=useState(false);
+ const [confirmAction,setConfirmAction]=useState<Action|null>(null);
  const [date,setDate]=useState('');
  const [busy,setBusy]=useState(false);
  const [loading,setLoading]=useState(false);
@@ -33,7 +34,7 @@ export default function KabihasnangLigawAdminScreen() {
  useEffect(()=>{void refresh();},[refresh]);
  const open=async(id:string)=>{
   if(busy)return;
-  setSelected(id);setPreview(null);setLoading(true);setNotes('');setEditing(false);
+  setSelected(id);setPreview(null);setLoading(true);setNotes('');setEditing(false);setConfirmAction(null);
   try{
    const {data,error}=await supabase.rpc('kl_admin_preview_v1',{p_episode_id:id});
    if(error)throw error;
@@ -46,7 +47,7 @@ export default function KabihasnangLigawAdminScreen() {
   if(busy||loading||!preview)return;
   if(action==='revise' && notes.trim().length<5){setFeedback('Enter specific revision feedback (at least 5 characters).');return;}
   if(action==='schedule'&&!/^\d{4}-\d{2}-\d{2}$/.test(date)){setFeedback('Enter release date as YYYY-MM-DD.');return;}
-  setBusy(true);setFeedback('Saving '+action+' to server…');
+  setConfirmAction(null);setBusy(true);setFeedback('Saving '+action+' to server…');
   try{
    const {data,error}=await supabase.rpc('kl_admin_action_v1',{p_episode_id:preview.id,p_action:action,p_notes:notes,p_manila_date:action==='schedule'?date:null});
    if(error)throw error;
@@ -70,15 +71,14 @@ export default function KabihasnangLigawAdminScreen() {
    if(!(data as {ok?:boolean}|null)?.ok)throw new Error('No server confirmation');
    const {data:check,error:checkError}=await supabase.rpc('kl_admin_preview_v1',{p_episode_id:preview.id});
    if(checkError||!check){setFeedback('Saved, but verification failed. Refresh before editing again.');return;}
+   if((check as Preview).manuscript!==editedText){setFeedback('Server text differs from edited draft. Reload before retrying.');return;}
    setPreview(check as Preview);setEditing(false);setFeedback('Corrected manuscript saved and verified. Still pending approval.');
   }catch(e){setFeedback('Could not confirm save: '+(e instanceof Error?e.message:'Unknown error')+'. Check server before retrying.');}
   finally{setBusy(false);}
  };
  const confirm=(action:Action)=>{
-  if(!preview||busy)return;
-  Alert.alert('Confirm '+action,action==='approve'?'Approve manuscript only? This does not publish.':action==='schedule'?'Schedule release at 6:00 AM Manila time?':'Apply '+action+' to '+preview.title+'?',[
-   {text:'Cancel',style:'cancel'},{text:'Confirm',onPress:()=>void perform(action)}
-  ]);
+  if(!preview||busy||loading)return;
+  setConfirmAction(action);
  };
  const visible=filter==='pending'?rows.filter(x=>x.status==='draft' && x.episode_number>=2):rows;
  return <AdminGate><ScrollView contentContainerStyle={styles.page}>
@@ -108,6 +108,7 @@ export default function KabihasnangLigawAdminScreen() {
     {editing?<Pressable accessibilityRole="button" disabled={busy||loading} onPress={()=>void saveDraft()} style={styles.button}><Text style={styles.buttonText}>Save corrected draft</Text></Pressable>:null}
    </View>:null}
    <Text style={styles.heading}>Decision and feedback</Text>
+   {confirmAction?<View style={styles.confirm}><Text style={styles.info}>Confirm {confirmAction.toUpperCase()} for {preview.title}? Approval does not publish. Scheduling releases at 6:00 AM Manila time.</Text><View style={styles.actions}><Pressable accessibilityRole="button" onPress={()=>setConfirmAction(null)} style={styles.button}><Text style={styles.buttonText}>Cancel</Text></Pressable><Pressable accessibilityRole="button" disabled={busy} onPress={()=>void perform(confirmAction)} style={styles.button}><Text style={styles.buttonText}>Confirm {confirmAction}</Text></Pressable></View></View>:null>
    <TextInput multiline accessibilityLabel="Revision feedback" placeholder="Specific changes needed before approval" placeholderTextColor={colors.muted} value={notes} onChangeText={setNotes} style={styles.input}/>
    <TextInput accessibilityLabel="Release date Manila" placeholder="YYYY-MM-DD for 6:00 AM Manila release" placeholderTextColor={colors.muted} value={date} onChangeText={setDate} style={styles.input}/>
    <View style={styles.actions}>{(['approve','revise','schedule','pause','resume'] as Action[]).map(action=><Pressable key={action} accessibilityRole="button" disabled={busy||loading||!preview.manuscript} onPress={()=>confirm(action)} style={[styles.button,(busy||loading||!preview.manuscript)&&styles.disabled]}><Text style={styles.buttonText}>{busy?'Working…':action.toUpperCase()}</Text></Pressable>)}</View>
@@ -128,6 +129,7 @@ const styles=StyleSheet.create({
  buttonText:{color:colors.white,fontWeight:'700',fontSize:13},
  disabled:{opacity:.45},
  prose:{color:colors.text,fontSize:16,lineHeight:26},
+ confirm:{padding:12,borderWidth:1,borderColor:colors.green,borderRadius:12,gap:10},
  editor:{minHeight:320,fontSize:16,lineHeight:25},
  input:{borderWidth:1,borderColor:colors.line,borderRadius:10,padding:12,color:colors.text,minHeight:48,textAlignVertical:'top'}
 });
