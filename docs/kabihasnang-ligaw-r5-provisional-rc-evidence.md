@@ -25,9 +25,9 @@ This release candidate is **not frozen**. V28 production is not treated as confi
 
 ## Content
 
-- Manuscript: CONTENT BLOCKED. Panimula and Kabanata 1 are not byte-preserved because the complete text is not in the repo.
+- Manuscript: Panimula and Kabanata 1 imported into `content/kabihasnang-ligaw/` and embedded in the draft manifest with SHA-256 fields. Source-to-manifest and original-owner-message verification still require a passing automated check. Both entries are **drafts, not approved or released**.
 - Manifest: `docs/kabihasnang-ligaw-r5-media-storyboard-manifest.json`
-- Image approval: pending. No illustration `approved` flag is true.
+- Approval queue: Panimula and Kabanata 1 have complete draft prose and should be surfaced for administrator review; this has NOT been verified in the live Admin Panel. Both have `approvedAt: null`, missing media, and 2099 placeholder release dates. Image approval: pending; no illustration `approved` flag is true.
 - Audio: MISSING. Controls stay silent. No oscillator.
 - Jawo/Javvo: unresolved and unpublished.
 
