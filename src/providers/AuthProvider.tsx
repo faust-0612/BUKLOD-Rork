@@ -466,8 +466,26 @@ export function AuthProvider({
         sessionUserIdRef.current =
           nextSession?.user?.id ?? null;
 
+        const userId = nextSession?.user?.id;
+
+        /*
+         * PERF_STARTUP_R1
+         *
+         * Session alone is enough to release the auth shell and trusted-
+         * device gate. Profile/roles still hydrate via loadProfile
+         * (snapshot first, then network when online) without holding
+         * loading=true — which previously trapped the whole app on
+         * "Restoring your BUKLOD session…" when profile fetches were slow.
+         */
+        if (!userId) {
+          setMembershipState('none');
+          finishBootstrap();
+          return;
+        }
+
+        finishBootstrap();
         await loadProfile(
-          nextSession?.user.id,
+          userId,
           false,
           onlineRef.current,
         );
@@ -493,6 +511,7 @@ export function AuthProvider({
           setSession(persisted);
           sessionUserIdRef.current =
             persisted.user.id;
+          finishBootstrap();
           await loadProfile(
             persisted.user.id,
             false,
