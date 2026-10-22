@@ -27,7 +27,7 @@ type Snapshot<T> = {
   syncedAt: number;
 };
 const PREFIX = '@buklod/offline-first/v1/';
-const inFlight = new Map<string, Promise<unknown>>();
+const inFlight = new Map<string, { generation: number; promise: Promise<unknown> }>();
 const memory = new Map<string, Snapshot<unknown>>();
 // Revocation generations prevent an in-flight read from restoring invalidated data.
 const generations = new Map<string, number>();
@@ -84,7 +84,7 @@ export async function readBuklodOfflineFirst<T extends { id: string }>(args: {
   }
   const sync = () => {
     const existing = inFlight.get(key);
-    if (existing) return existing as Promise<T[]>;
+    if (existing && existing.generation === generation) return existing.promise as Promise<T[]>;
     const generation = generations.get(key) ?? 0;
     const task = enqueueBuklodRead({
       key, view: args.view, kind: args.kind ?? 'other', priority: 'visible',
@@ -119,8 +119,10 @@ export async function readBuklodOfflineFirst<T extends { id: string }>(args: {
         args.onUpdated?.(next.rows);
         return next.rows;
       },
-    }).finally(() => inFlight.delete(key));
-    inFlight.set(key, task);
+    }).finally(() => {
+      if (inFlight.get(key)?.promise === task) inFlight.delete(key);
+    });
+    inFlight.set(key, { generation, promise: task });
     return task;
   };
   if (cached) {
