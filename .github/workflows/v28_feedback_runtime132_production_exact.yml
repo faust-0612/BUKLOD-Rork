@@ -1,0 +1,104 @@
+name: BUKLOD V28 runtime 1.3.2 Create Feedback Production OTA — exact RC
+on:
+  push:
+    branches:
+      - release/v28-create-feedback-runtime132-20261022
+    paths:
+      - '.github/workflows/v28_feedback_runtime132_production_exact.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: buklod-v28-creation-feedback-production-20261022
+  cancel-in-progress: false
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  EXPO_PUBLIC_APP_ENV: production
+  EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-production
+  APP_VARIANT: production
+  BUKLOD_APP_TARGET: main
+
+jobs:
+  qa-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - name: Checkout exact frozen RC
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Release source and APK compatibility gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = '49e142147649d002205f8b191eb875ce5552beaa'
+          test "$(git diff --name-only HEAD^ HEAD)" = '.github/workflows/v28_feedback_runtime132_production_exact.yml'
+          test "$(git merge-base 363658fc81b7fe7132a7b8a78035f0d1a9917088 HEAD)" = '363658fc81b7fe7132a7b8a78035f0d1a9917088'
+          test -z "$(git diff --name-only 363658fc81b7fe7132a7b8a78035f0d1a9917088 HEAD -- android ios eas.json package.json package-lock.json assets)"
+          grep -F "version: '1.3.4'" app.config.js
+          grep -F "versionCode: isStaging ? undefined : 28" app.config.js
+          grep -F "runtimeVersion: isClassroom ? '1.3.0' : '1.3.2'" app.config.js
+          test -f src/components/BuklodActionFeedback.tsx
+          test -f __tests__/buklodActionFeedbackContract.test.js
+          echo "FROZEN_RC_SHA=$(git rev-parse HEAD)"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install exact dependencies
+        run: npm ci --ignore-scripts
+      - name: Verify frozen RC
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx tsc --noEmit
+          node --test __tests__/buklodActionFeedbackContract.test.js
+          test -z "$(git status --porcelain)"
+          echo 'RC_COMPILE_AND_CONTRACT=PASS'
+      - name: Verify Expo ownership and latest Android production group
+        shell: bash
+        env:
+          EXPECTED_GROUP: 0c363aa1-f62d-4395-995e-68c806305551
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          npx eas-cli@latest whoami --non-interactive
+          npx eas-cli@latest update:list --all --platform android --runtime-version 1.3.2 --limit 1 --json > "$RUNNER_TEMP/current-production-ota.json"
+          node - "$RUNNER_TEMP/current-production-ota.json" "$EXPECTED_GROUP" <<'NODE'
+          const fs = require('fs');
+          const [file, expected] = process.argv.slice(2);
+          const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+          const first = Array.isArray(data) ? data[0] : (data?.updates?.[0] ?? data?.data?.[0]);
+          if (!first || first.group !== expected || first.runtimeVersion !== '1.3.2' || first.branch !== 'production') {
+            console.error('RELEASE_BLOCKED: Production OTA head changed or runtime/channel does not match the reconciled baseline.');
+            console.error(JSON.stringify({observedGroup:first?.group, observedRuntime:first?.runtimeVersion, observedBranch:first?.branch, expectedGroup:expected}));
+            process.exit(1);
+          }
+          console.log('PRODUCTION_BASELINE_EXACT_GROUP=PASS', first.group);
+          NODE
+      - name: Publish frozen RC to Android Production OTA runtime 1.3.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest update \
+            --channel production \
+            --platform android \
+            --environment production \
+            --message "BUKLOD V28 runtime 1.3.2: server-confirmed Create Account, Cluster, Organization feedback; source 49e14214" \
+            --non-interactive
+      - name: Record production release result
+        shell: bash
+        run: |
+          {
+            echo '## BUKLOD V28 creation feedback OTA'
+            echo 'Android Production OTA publish command completed successfully.'
+            echo 'Installed APK expo-updates runtime: 1.3.2'
+            echo 'APK versionCode: 28'
+            echo "Exact RC SHA: $(git rev-parse HEAD)"
+            echo 'Prior production update group: 0c363aa1-f62d-4395-995e-68c806305551'
+            echo 'No APK/AAB build and no database changes.'
+          } >> "$GITHUB_STEP_SUMMARY"
