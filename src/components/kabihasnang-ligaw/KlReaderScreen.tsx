@@ -16,6 +16,7 @@ import { Stack } from 'expo-router';
 
 import { useBuklodReduceMotion } from '@/components/HomeMotion';
 import KlAudioControls from '@/components/kabihasnang-ligaw/KlAudioControls';
+import KlCoverImage from '@/components/kabihasnang-ligaw/KlCoverImage';
 import KlSceneMotion from '@/components/kabihasnang-ligaw/KlSceneMotion';
 import {
   buildAssetGate,
@@ -28,6 +29,7 @@ import {
 import { klCopy } from '@/lib/kabihasnang-ligaw/copy';
 import { memberReadable } from '@/lib/kabihasnang-ligaw/gates';
 import { isLowBandwidth, resolveLivingMotion, visibleLivingLayers } from '@/lib/kabihasnang-ligaw/livingMotion';
+import { dictionaryByName, KL_DICTIONARY, splitDictionaryTerms } from '@/lib/kabihasnang-ligaw/dictionary';
 import { paragraphDisplayText, splitCanonicalParagraphs } from '@/lib/kabihasnang-ligaw/manuscript';
 import { journeySummary } from '@/lib/kabihasnang-ligaw/journey';
 import {
@@ -41,9 +43,8 @@ import {
   type ReaderCache,
 } from '@/lib/kabihasnang-ligaw/readerSession';
 import { KL_RPC } from '@/lib/kabihasnang-ligaw/rpc';
-import { peekDzasPlaying } from '@/lib/buklodDzasRadio';
+import { otherAudioPlaying } from '@/lib/kabihasnang-ligaw/externalAudioState';
 import { supabase } from '@/lib/supabase';
-import { getBuklodPttRuntimeState } from '@/ptt/buklodPttRuntime';
 import { useAuth } from '@/providers/AuthProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
 
@@ -55,11 +56,6 @@ function cacheKey(userId: string | null): string {
   return `kl.reader.v1.${userId ?? 'device'}`;
 }
 
-function otherAudioPlaying(): boolean {
-  const ptt = getBuklodPttRuntimeState();
-  return peekDzasPlaying() || ptt.transmitting || ptt.priorityReceiving;
-}
-
 export default function KlReaderScreen() {
   const { width, height } = useWindowDimensions();
   const reduceMotion = useBuklodReduceMotion();
@@ -68,6 +64,7 @@ export default function KlReaderScreen() {
   const [cache, setCache] = useState<ReaderCache>(DEFAULT_READER_CACHE);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [glossaryOpen, setGlossaryOpen] = useState(false);
+  const [openTerm, setOpenTerm] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [appActive, setAppActive] = useState(true);
@@ -265,10 +262,29 @@ export default function KlReaderScreen() {
       onScroll={(event: NativeSyntheticEvent<NativeScrollEvent>) => syncViewport(event.nativeEvent.contentOffset.y)}
     >
       <Stack.Screen options={{ title: 'Kabihasnang Ligaw' }} />
+      <View style={{ marginHorizontal: compact ? -16 : -24 }}>
+        <KlCoverImage variant="hero" lowBandwidth={lowBandwidth} />
+      </View>
       <Text style={styles.kicker}>{klCopy.libraryKicker}</Text>
       <Text style={[styles.title, compact && styles.titleCompact]}>{KL_SEASON_ONE_TITLE}</Text>
       <Text style={styles.by}>{KL_AUTHOR}</Text>
       <Text style={styles.lede}>{klCopy.librarySubtitle}</Text>
+      <View style={styles.row}>
+        <Pressable accessibilityRole="button" onPress={() => setSelectedId(null)} style={styles.secondary}>
+          <Text style={styles.secondaryText}>{klCopy.backToCard}</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => {
+            const label = selected?.episodeNumber === 1 ? 'Kabanata 01' : (selected?.title ?? 'Kabanata 01');
+            void persist({ ...cache, bookmarkLabel: label, lastEpisodeId: selected?.id ?? cache.lastEpisodeId });
+            setNotice(klCopy.bookmarkSaved);
+          }}
+          style={styles.secondary}
+        >
+          <Text style={styles.secondaryText}>{`☆ ${klCopy.bookmark}`}</Text>
+        </Pressable>
+      </View>
 
       {!online || notice ? (
         <View style={styles.banner}>
@@ -350,9 +366,29 @@ export default function KlReaderScreen() {
       />
 
       <Pressable accessibilityRole="button" onPress={() => setGlossaryOpen((open) => !open)} style={styles.secondary}>
-        <Text style={styles.secondaryText}>{klCopy.glossary}</Text>
+        <Text style={styles.secondaryText}>{klCopy.openDictionary}</Text>
       </Pressable>
-      {glossaryOpen ? <Text style={[styles.body, { fontSize: bodySize, lineHeight: Math.round(bodySize * 1.65) }]}>{klCopy.glossaryEmpty}</Text> : null}
+      {glossaryOpen ? (
+        <View style={styles.panel}>
+          <Text style={styles.panelTitle}>{klCopy.glossary}</Text>
+          <Text style={styles.meta}>{klCopy.glossaryNote}</Text>
+          {KL_DICTIONARY.map((entry) => (
+            <Pressable key={entry.name} accessibilityRole="button" onPress={() => setOpenTerm(entry.name)}>
+              <Text style={styles.term}>{entry.name}</Text>
+              <Text style={styles.meta}>{`${entry.kind} — ${entry.meaning}`}</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+      {openTerm ? (
+        <View style={styles.panel}>
+          <Text style={styles.panelTitle}>{openTerm}</Text>
+          <Text style={styles.body}>{dictionaryByName(openTerm)?.meaning}</Text>
+          <Pressable accessibilityRole="button" onPress={() => setOpenTerm(null)} style={styles.secondary}>
+            <Text style={styles.secondaryText}>{klCopy.back}</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       <Pressable accessibilityRole="button" onPress={() => void refresh()} style={styles.secondary}>
         <Text style={styles.secondaryText}>{klCopy.tryAgain}</Text>
@@ -363,6 +399,7 @@ export default function KlReaderScreen() {
           <Pressable accessibilityRole="button" onPress={() => setSelectedId(null)} style={styles.secondary}>
             <Text style={styles.secondaryText}>{klCopy.back}</Text>
           </Pressable>
+          <KlCoverImage variant="card" lowBandwidth={lowBandwidth} />
           <Text style={styles.kicker}>{selected.kind === 'panimula' ? 'PANIMULA' : `KABANATA ${String(selected.episodeNumber).padStart(2, '0')}`}</Text>
           <Text style={[styles.chapter, compact && styles.titleCompact]}>{selected.titleMode === 'outline_label' ? selected.title : selected.title}</Text>
           {paragraphs.length > 0 ? (
@@ -395,7 +432,15 @@ export default function KlReaderScreen() {
                       paragraph.kind === 'body' && { fontSize: bodySize, lineHeight: Math.round(bodySize * 1.65) },
                     ]}
                     >
-                      {paragraphDisplayText(paragraph)}
+                      {splitDictionaryTerms(paragraphDisplayText(paragraph)).map((part, index) => (
+                        part.term ? (
+                          <Text key={`${paragraph.id}-${index}`} style={styles.term} onPress={() => setOpenTerm(part.term)}>
+                            {part.text}
+                          </Text>
+                        ) : (
+                          <Text key={`${paragraph.id}-${index}`}>{part.text}</Text>
+                        )
+                      ))}
                     </Text>
                     {art && art.message !== 'spoiler_held' ? (
                       <Text style={styles.meta}>{art.message === 'withheld' ? klCopy.imageWithheld : klCopy.noImage}</Text>
@@ -445,6 +490,7 @@ const styles = StyleSheet.create({
   lede: { color: '#e2e9df', fontSize: 16, lineHeight: 24 },
   body: { color: '#f1ece3', fontSize: 18, lineHeight: 30 },
   meta: { color: '#d6c8ad', fontSize: 13, lineHeight: 20 },
+  term: { color: '#e5c891', fontWeight: '700', textDecorationLine: 'underline' },
   banner: { padding: 14, borderRadius: 14, borderWidth: 1, borderColor: '#78613c', gap: 8 },
   bannerText: { color: '#f1ece3', fontSize: 15, lineHeight: 22 },
   panel: { padding: 14, borderRadius: 16, backgroundColor: '#16262a', gap: 6 },

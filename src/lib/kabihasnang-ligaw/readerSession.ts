@@ -17,6 +17,7 @@ export type ReaderCache = {
   musicMuted: boolean;
   ambientMuted: boolean;
   lastEpisodeId: string | null;
+  bookmarkLabel: string | null;
   scrollByEpisode: Record<string, number>;
   releasedProse: Record<string, string>;
   issues: ReaderIssue[];
@@ -28,11 +29,12 @@ export const DEFAULT_READER_CACHE: ReaderCache = {
   dataSaver: false,
   motionEnabled: true,
   batterySaver: false,
-  musicVolume: 0.6,
+  musicVolume: 0.25,
   ambientVolume: 0.4,
   musicMuted: false,
   ambientMuted: false,
   lastEpisodeId: null,
+  bookmarkLabel: null,
   scrollByEpisode: {},
   releasedProse: {},
   issues: [],
@@ -67,11 +69,12 @@ export function sanitizeReaderCache(input: Partial<ReaderCache> | null | undefin
     dataSaver: Boolean(input?.dataSaver),
     motionEnabled: input?.motionEnabled !== false,
     batterySaver: Boolean(input?.batterySaver),
-    musicVolume: clamp(input?.musicVolume ?? 0.6, 0, 1),
+    musicVolume: clamp(input?.musicVolume ?? 0.25, 0, 1),
     ambientVolume: clamp(input?.ambientVolume ?? 0.4, 0, 1),
     musicMuted: Boolean(input?.musicMuted),
     ambientMuted: Boolean(input?.ambientMuted),
     lastEpisodeId: typeof input?.lastEpisodeId === 'string' ? input.lastEpisodeId : null,
+    bookmarkLabel: typeof input?.bookmarkLabel === 'string' ? input.bookmarkLabel.slice(0, 80) : null,
     scrollByEpisode: scroll,
     releasedProse,
     issues,

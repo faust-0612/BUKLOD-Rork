@@ -16,6 +16,12 @@ const blockPatterns = [
   /[/\\]node_modules[/\\]typescript[/\\]lib[/\\].*\.d\.ts$/,
 ];
 
+// expo-sqlite's web worker imports wa-sqlite.wasm. Native Android keeps the
+// native module and does not load this file.
+if (!config.resolver.assetExts.includes('wasm')) {
+  config.resolver.assetExts.push('wasm');
+}
+
 config.resolver.blockList = [
   ...(Array.isArray(config.resolver.blockList)
     ? config.resolver.blockList

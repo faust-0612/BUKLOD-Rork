@@ -14,6 +14,9 @@ import {
   KL_UNRESOLVED_NAME,
 } from '../src/lib/kabihasnang-ligaw/catalog';
 import { klCopy } from '../src/lib/kabihasnang-ligaw/copy';
+import { KL_DICTIONARY } from '../src/lib/kabihasnang-ligaw/dictionary';
+import { KL_SEASON_ONE_ID } from '../src/lib/kabihasnang-ligaw/catalog';
+import { selectReaderSeries } from '../src/lib/kabihasnang-ligaw/seriesProgress';
 import {
   applyCompletion,
   isManilaSix,
@@ -460,6 +463,29 @@ describe('Kabihasnang Ligaw R5 gates', () => {
     expect(canonicalSql).toContain('pg_advisory_xact_lock');
     expect(canonicalSql).not.toContain('bayanihan_ledger');
     expect(read('src/components/kabihasnang-ligaw/KlReaderScreen.tsx')).not.toContain('May mga lugar sa daigdig na hindi makikita');
+    expect(klCopy.cardTitle).toBe('Ang Gabi ng Pag-ahon');
+    expect(klCopy.cardLine).toBe('Sa Lunawen, may tinig na hindi dapat marinig.');
+    expect(klCopy.author).toBe('Likha ni Faustino Jr. M. Gabut');
+    expect(klCopy.hymnTitle).toBe('Himig ng Pag-ahon');
+    const cover = read('src/components/kabihasnang-ligaw/KlCoverImage.tsx');
+    expect(cover).toContain('kl-r5-approved-cover.webp');
+    expect(cover).toContain('kl-s1-ang-lupang-hindi-namamatay.jpg');
+    expect(cover).toContain('16 / 7');
+    expect(cover).toContain('3 / 1');
+    expect(cover).toContain("series: 'contain'");
+    expect(crypto.createHash('sha256').update(fs.readFileSync(path.join(root, 'assets/kabihasnang-ligaw/kl-r5-approved-cover.webp'))).digest('hex')).toBe('24dae272bb981527b71f004f6f4919c4b770617b6210a8b9b499b82176f9aa69');
+    expect(crypto.createHash('sha256').update(fs.readFileSync(path.join(root, 'assets/kabihasnang-ligaw/kl-s1-ang-lupang-hindi-namamatay.jpg'))).digest('hex')).toBe('76ccfa6b72570b9b5bb92d381457bfd07fc350428609d4c2951b5a120d16a11f');
+    expect(read('src/components/KabihasnangLigawWallCard.tsx')).toContain('variant="series"');
+    expect(read('src/components/KabihasnangLigawWallCard.tsx')).not.toContain('klCopy.cardTitle');
+    expect(read('src/components/kabihasnang-ligaw/KlReaderScreen.tsx')).toContain('variant="hero"');
+    expect(read('src/components/kabihasnang-ligaw/KlReaderScreen.tsx')).toContain('variant="card"');
+    expect(KL_DICTIONARY.map((entry) => entry.name)).toEqual(['Lunawen', 'Dumalir', 'Sanghira', 'Marukha', 'Nalimor']);
+    expect(read('src/lib/kabihasnang-ligaw/dictionary.ts')).not.toContain('Ikapitong Ani');
+    expect(selectReaderSeries({ currentSeriesId: null, completedSeriesIds: [] })).toBe(KL_SEASON_ONE_ID);
+    expect(selectReaderSeries({ currentSeriesId: KL_SEASON_ONE_ID, completedSeriesIds: [] })).toBe(KL_SEASON_ONE_ID);
+    expect(selectReaderSeries({ currentSeriesId: KL_SEASON_ONE_ID, completedSeriesIds: [KL_SEASON_ONE_ID] })).toBe(KL_SEASON_ONE_ID);
+    expect(selectReaderSeries({ currentSeriesId: 'unpublished-series', completedSeriesIds: [] })).toBe(KL_SEASON_ONE_ID);
+    expect(read('src/lib/kabihasnang-ligaw/dictionary.ts')).not.toContain('Ulnarik');
     const exported = JSON.parse(read('docs/kabihasnang-ligaw-r5-media-storyboard-manifest.json'));
     expect(exported).toEqual(manifest);
   });
