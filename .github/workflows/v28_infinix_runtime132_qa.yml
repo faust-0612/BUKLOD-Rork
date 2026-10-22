@@ -1,0 +1,65 @@
+name: BUKLOD V28 runtime 1.3.2 Infinix cumulative QA
+on:
+  push:
+    branches: [dev/v28-infinix-runtime132-20261022]
+  workflow_dispatch:
+concurrency:
+  group: v28-runtime132-infinix-qa
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: fixture-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Install runner-only test tools
+        run: npm install --no-save --package-lock=false --ignore-scripts jest@29.7.0 jest-expo@57.0.4 @testing-library/react-native@13.3.3 react-test-renderer@19.2.3
+      - name: Verify runtime identity and published cumulative features
+        run: |
+          grep -F "runtimeVersion: isClassroom ? '1.3.0' : '1.3.2'" app.config.js
+          grep -F "versionCode: isStaging ? undefined : 28" app.config.js
+          test -f src/components/BuklodActionFeedback.tsx
+          test -f src/components/kabihasnang-ligaw/KlReaderScreen.tsx
+      - name: TypeScript
+        run: npx --no-install tsc --noEmit
+      - name: V28 focused regression
+        run: >-
+          npm test -- --watchAll=false --watchman=false --runTestsByPath
+          __tests__/buklodMaritesDedicatedReader.test.ts
+          __tests__/buklodQuizSessionDelay.test.ts
+          __tests__/buklodConnectFacesFirst.test.ts
+          __tests__/buklodAvatarPersistence.test.ts
+          __tests__/communityWeakNetworkP0.test.ts
+      - name: V28 published source contract
+        run: node --test tests/v28-p0-source.test.cjs
+      - name: Complete Jest regression
+        run: npm test -- --watchAll=false --watchman=false
+      - name: Character visual and gating contract
+        run: npm run character:contract
+      - name: Kingdom contract
+        run: npm run game:contract
+      - name: Marites reader SQL permissions and paging fixtures
+        env:
+          PGPASSWORD: fixture-only
+        run: psql -h localhost -U postgres -v ON_ERROR_STOP=1 -f scripts/sql/buklod_marites_feed_fixture.sql
