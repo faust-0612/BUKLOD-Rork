@@ -21,33 +21,40 @@ export default function BuklodOrgHomeClusterCard({
 }) {
   const { selectScope } = useBuklodScope();
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [context, setContext] = useState<FormationContext | null>(null);
   const [canReport, setCanReport] = useState(false);
   const [organizationName, setOrganizationName] = useState('Current Organization');
 
   const load = useCallback(async () => {
     setLoading(true);
-
-    const [next, scopeResult] = await Promise.all([
-      fetchFormationContextResilient(organizationId),
-      (supabase as any)
-        .from('buklod_scopes')
-        .select('name')
-        .eq('id', organizationId)
-        .maybeSingle(),
-    ]);
-
-    setContext(next);
-    if (scopeResult.data?.name) {
-      setOrganizationName(String(scopeResult.data.name));
+    setLoadError(false);
+    try {
+      // R3: bound the optional formation widget; never leave this card spinning.
+      const withDeadline = <T,>(work: Promise<T>): Promise<T> =>
+        new Promise<T>((resolve, reject) => {
+          const timer = setTimeout(() => reject(new Error('Connection timed out')), 7000);
+          work.then(value => { clearTimeout(timer); resolve(value); },
+                    error => { clearTimeout(timer); reject(error); });
+        });
+      const [next, scopeResult] = await withDeadline(Promise.all([
+        fetchFormationContextResilient(organizationId),
+        (supabase as any).from('buklod_scopes').select('name')
+          .eq('id', organizationId).maybeSingle(),
+      ]));
+      setContext(next);
+      if (scopeResult.data?.name) setOrganizationName(String(scopeResult.data.name));
+      if (next.primary_cluster?.cluster_id) {
+        setCanReport(await withDeadline(canViewClusterProgress(next.primary_cluster.cluster_id)));
+      } else {
+        setCanReport(false);
+      }
+    } catch (error) {
+      console.warn('Organization My Cluster load:', error);
+      setLoadError(true);
+    } finally {
+      setLoading(false);
     }
-
-    if (next.primary_cluster?.cluster_id) {
-      setCanReport(await canViewClusterProgress(next.primary_cluster.cluster_id));
-    } else {
-      setCanReport(false);
-    }
-    setLoading(false);
   }, [organizationId]);
 
   useFocusEffect(
@@ -61,7 +68,7 @@ export default function BuklodOrgHomeClusterCard({
   return (
     <View style={styles.stack}>
       <BuklodReportDoorCard
-        iconOnly
+        compact
         scopeId={organizationId}
         scopeName={organizationName}
         scopeType="ORGANIZATION"
@@ -70,7 +77,14 @@ export default function BuklodOrgHomeClusterCard({
       <View style={styles.card}>
         <Text style={styles.eyebrow}>MY CLUSTER</Text>
         {loading ? (
-          <ActivityIndicator color={colors.green} />
+          <View style={{flexDirection:'row',alignItems:'center',gap:9}}>
+            <ActivityIndicator size="small" color={colors.green} />
+            <Text style={styles.body}>Checking Cluster...</Text>
+          </View>
+        ) : loadError ? (
+          <Pressable accessibilityRole="button" onPress={() => void load()} style={styles.secondary}>
+            <Text style={styles.secondaryText}>Cluster unavailable on this connection — RETRY</Text>
+          </Pressable>
         ) : cluster && context?.has_active_cluster ? (
           <>
             <Text style={styles.title}>{cluster.cluster_name}</Text>

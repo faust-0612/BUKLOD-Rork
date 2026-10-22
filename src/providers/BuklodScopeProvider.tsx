@@ -528,6 +528,8 @@ export function BuklodScopeProvider({
           ),
         }));
 
+        /* R3: publish fetched scopes to the synchronous ref before any immediate selectScope call. */
+        scopesRef.current = rows;
         setScopes(rows);
 
         const currentId =
@@ -640,7 +642,7 @@ export function BuklodScopeProvider({
     useCallback(
       async (scopeId: string) => {
         const target =
-          scopes.find(
+          scopesRef.current.find(
             (scope) =>
               scope.scope_id ===
               scopeId
@@ -674,6 +676,7 @@ export function BuklodScopeProvider({
           );
         }
 
+        activeScopeRef.current = target;
         setActiveScope(target);
 
         setScopes(
@@ -692,7 +695,7 @@ export function BuklodScopeProvider({
           void AsyncStorage.setItem(
             scopeCacheKey(user.id),
             JSON.stringify({
-              scopes: scopes.map(scope => ({
+              scopes: scopesRef.current.map(scope => ({
                 ...scope,
                 is_active_scope:
                   scope.scope_id ===
@@ -718,7 +721,7 @@ export function BuklodScopeProvider({
           });
         }
       },
-      [scopes, user?.id, online]
+      [user?.id, online]
     );
 
   const featureEnabled =

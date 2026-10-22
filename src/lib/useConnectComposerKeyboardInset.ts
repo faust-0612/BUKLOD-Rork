@@ -41,8 +41,11 @@ function resolveComposerLift(
         containerBottom - keyboardTop
       );
 
+      // R3 embedded Org/Cluster Connect: windowLift is measured against the
+      // full device window and can lift an in-scope composer above the thread.
+      // Use the measured overlap within the actual thread viewport instead.
       onResolved(
-        Math.max(windowLift, measuredLift)
+        height > 0 ? Math.min(height, measuredLift) : windowLift
       );
     }
   );
