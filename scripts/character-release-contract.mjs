@@ -15,16 +15,14 @@ const distDir = distIndex >= 0 ? path.resolve(ROOT, args[distIndex + 1] || 'dist
 /*
  * BUKLOD CHARACTER VISUAL + GATING LOCK — 2026-09-14
  *
- * R31 remains on the exact approved visual blob. R40 preserves the approved
- * presentation for unlocked Special Characters while enforcing the canonical
- * rule that locked Special identities are not rendered before Circle Rank unlock.
+ * R31 remains protected. R42 explicitly approves previews of all Special
+ * identities while server-authoritative Circle Rank still gates activation.
  *
  * Git blob identity is checked instead of hashing working-tree text so Windows
  * CRLF conversion cannot create false failures.
  */
 const LOCKED_VISUAL_BLOBS = {
   'src/components/points/BuklodProgressiveCharacterSelector.tsx': 'f94af7e2f6d20246c9c9fe983b06240ae50599ba',
-  'src/components/points/BuklodSpecialCharacterSeries.tsx': 'f742ed7f3644f6b8b6dd0c477b6444f86b0c279f',
   'src/components/points/BuklodCharacterCustomizeSheet.tsx': '8aa1a4dfdad33ba9aca7a07a32560765160fb176',
   'src/components/points/BuklodProgressiveCharacterArt.tsx': '7b6eef608b9844e21e412df19348de87d0468bbe',
 };
@@ -130,7 +128,7 @@ function walk(dir) {
 
 console.log('BUKLOD CHARACTER RELEASE CONTRACT — R31 + R40 CANONICAL');
 console.log('========================================================');
-console.log('LOCK POLICY: preserve approved Character presentation and hide locked Special identities until Circle Rank unlock.');
+console.log('LOCK POLICY: locked Special identities may be previewed; activation and rewards remain server-gated.');
 
 enforceExactVisualLock();
 
@@ -175,9 +173,7 @@ requireTokens('src/components/points/BuklodCharacterCustomizeSheet.tsx', [
 
 const r40 = requireTokens('src/components/points/BuklodSpecialCharacterSeries.tsx', [
   'BUKLOD_SPECIAL_BATCH1_R40_PREMIUM_UI',
-  'BUKLOD_SPECIAL_LOCKED_IDENTITIES_HIDDEN',
   'SPECIAL_ORDER',
-  'visibleSpecialIds.map',
   'Special Character Journey',
   'Special Characters appear only when your Circle Rank unlocks them.',
   'More than a character. A mission.',
@@ -200,14 +196,11 @@ const r40 = requireTokens('src/components/points/BuklodSpecialCharacterSeries.ts
 if (r40.includes("rpc('set_my_buklod_special_character_active_v1'")) {
   failures.push('Legacy R40 active-character RPC is authoritative again. Activation must use setMyBuklodCharacterActiveV2.');
 }
-if (r40.includes('SPECIAL_ORDER.map(')) {
-  failures.push('Locked Special Character identities are being rendered. The Special rail must map visibleSpecialIds only.');
+if (!r40.includes('return SPECIAL_ORDER;') || !r40.includes('railIds.map(')) {
+  failures.push('R42 must show all Special identities in the preview rail.');
 }
-if (!r40.includes('visibleSpecialIds.map(')) {
-  failures.push('R40 no longer restricts the Special rail to unlocked/visible Special Character IDs.');
-}
-if (r40.includes('NEXT TO UNLOCK')) {
-  failures.push('Locked Special Character identity preview returned. Locked Specials must remain hidden until Circle Rank unlocks them.');
+if (!r40.includes('setMyBuklodCharacterActiveV2') || !r40.includes('isUnlocked')) {
+  failures.push('R42 must preserve server-authoritative activation gating.');
 }
 forbidTokens('src/components/points/BuklodSpecialCharacterSeries.tsx', [
   'BUKLOD_CHARACTER_R41',
