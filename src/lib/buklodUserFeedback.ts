@@ -274,6 +274,11 @@ function sanitizeMetadata(input: Record<string, unknown> | undefined) {
   return output;
 }
 
+// Suppress repeated low-priority UI error telemetry during weak-network rerenders.
+// User submissions and recovery outcomes are never suppressed.
+const recentPerformanceTelemetry = new Map<string, number>();
+const PERFORMANCE_TELEMETRY_WINDOW_MS = 15_000;
+
 export async function trackBuklodFeedbackEvent(input: {
   event: BuklodFeedbackTelemetryEvent;
   category?: BuklodErrorCategory | null;
@@ -283,6 +288,17 @@ export async function trackBuklodFeedbackEvent(input: {
   outcome?: string | null;
   metadata?: Record<string, unknown>;
 }) {
+  if (input.event === 'error_shown' || input.event === 'error_category' || input.event === 'recovery_offered') {
+    const key = [input.event, input.category ?? '', input.supportCode ?? '', input.route ?? '', input.feature ?? ''].join('|');
+    const now = Date.now();
+    if (now - (recentPerformanceTelemetry.get(key) ?? 0) < PERFORMANCE_TELEMETRY_WINDOW_MS) return;
+    recentPerformanceTelemetry.set(key, now);
+    if (recentPerformanceTelemetry.size > 100) {
+      for (const [entry, time] of recentPerformanceTelemetry) {
+        if (now - time > PERFORMANCE_TELEMETRY_WINDOW_MS) recentPerformanceTelemetry.delete(entry);
+      }
+    }
+  }
   try {
     await withBuklodTimeout(
       supabase.functions.invoke('buklod-support-v1', {
