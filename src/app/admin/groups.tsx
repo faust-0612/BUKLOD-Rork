@@ -776,8 +776,7 @@ export default function GroupsScreen() {
                     <BuklodActionFeedback status={createFeedback.status} message={createFeedback.message} />
                     <Button
                       title={busy ? 'CREATING...' : 'CREATE CLUSTER'}
-                      onPress={create}
-                      disabled={busy}
+                      onPress={() => { if (!busy) void create(); }}
                     />
                   </>
                 )}
