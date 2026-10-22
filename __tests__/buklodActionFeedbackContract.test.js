@@ -51,7 +51,7 @@ describe('BUKLOD V28 runtime 1.3.2 action feedback contract', () => {
     assert.equal(original.split(marker).length, 2, 'Expected one R23 marker');
     const expected = original.replace(
       marker,
-      marker + '\\n      {/* HOME_IDENTITY_ACTION_ROW_R2 — compatibility marker; R23 remains authoritative */}',
+      marker + '\n      {/* HOME_IDENTITY_ACTION_ROW_R2 — compatibility marker; R23 remains authoritative */}',
     );
     assert.equal(read('src/app/(tabs)/home.tsx'), expected);
   });
