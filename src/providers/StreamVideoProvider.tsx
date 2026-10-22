@@ -17,6 +17,7 @@ import {
 } from 'react';
 import {
   AppState,
+  InteractionManager,
 } from 'react-native';
 
 import {
@@ -57,7 +58,20 @@ export function StreamVideoProvider({
         return;
       }
 
-      prewarmBuklodStreamVideoClient();
+      /*
+       * PERF_STARTUP_R1: defer call-client prewarm until after first paint.
+       * Incoming call push still uses setPushConfig from index.js.
+       */
+      const task =
+        InteractionManager.runAfterInteractions(
+          () => {
+            prewarmBuklodStreamVideoClient();
+          }
+        );
+
+      return () => {
+        task.cancel();
+      };
     },
     [
       user?.id,
@@ -101,13 +115,18 @@ export function StreamVideoProvider({
           }
         );
 
-      void ensureBuklodStreamVideoClient()
-        .catch(error => {
-          console.warn(
-            'BUKLOD call client:',
-            error
-          );
-        });
+      const task =
+        InteractionManager.runAfterInteractions(
+          () => {
+            void ensureBuklodStreamVideoClient()
+              .catch(error => {
+                console.warn(
+                  'BUKLOD call client:',
+                  error
+                );
+              });
+          }
+        );
 
       const onAppState =
         AppState.addEventListener(
@@ -132,6 +151,7 @@ export function StreamVideoProvider({
         );
 
       return () => {
+        task.cancel();
         onAppState.remove();
         unsubscribe();
       };

@@ -16,6 +16,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 
 import { colors } from '@/lib/theme';
+import { markBuklodStartupChromeReady } from '@/lib/buklodStartupChrome';
 import { useAuth } from '@/providers/AuthProvider';
 
 /*
@@ -232,6 +233,19 @@ export default function BuklodTrustedDeviceGate({
     setGateState('open');
     await signOut();
   }, [signOut, userId]);
+
+  /*
+   * PERF_STARTUP_R1
+   *
+   * Brand intro holds the centered logo until fingerprint chrome is done
+   * (window resize). Without this signal the overlay waited on a 20s
+   * fallback even when no unlock was needed.
+   */
+  useEffect(() => {
+    if (gateState === 'open' || gateState === 'locked') {
+      markBuklodStartupChromeReady();
+    }
+  }, [gateState]);
 
   if (authLoading && !bootDecisionMadeRef.current) {
     return (

@@ -69,13 +69,15 @@ export default function Index() {
       );
 
     if (publicScope) {
-      setBootReady(false);
-
       if (
         !publicResetInFlight.current
       ) {
         publicResetInFlight.current = true;
 
+        /*
+         * PERF_STARTUP_R1: selectScope updates local activeScope
+         * immediately; do not hold the index spinner for persistence.
+         */
         void selectScope(
           publicScope.scope_id
         )
@@ -90,6 +92,7 @@ export default function Index() {
           });
       }
 
+      setBootReady(true);
       return;
     }
 

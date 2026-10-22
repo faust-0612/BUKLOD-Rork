@@ -8,7 +8,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { AppState } from 'react-native';
+import { AppState, InteractionManager } from 'react-native';
 
 import {
   drainOfflineQueue,
@@ -99,18 +99,22 @@ export function NetworkProvider({
       }
     });
 
-    void getOfflineQueueSnapshot()
-      .then((snapshot) => {
-        if (mountedRef.current) {
-          setPendingCount(snapshot.pendingCount);
-        }
-      })
-      .catch(() => undefined);
+    /* PERF_STARTUP_R1: offline queue/cache work after first interactions. */
+    const task = InteractionManager.runAfterInteractions(() => {
+      void getOfflineQueueSnapshot()
+        .then((snapshot) => {
+          if (mountedRef.current) {
+            setPendingCount(snapshot.pendingCount);
+          }
+        })
+        .catch(() => undefined);
 
-    void pruneOfflineCache().catch(() => undefined);
+      void pruneOfflineCache().catch(() => undefined);
+    });
 
     return () => {
       mountedRef.current = false;
+      task.cancel();
       unsubscribeQueue();
     };
   }, []);

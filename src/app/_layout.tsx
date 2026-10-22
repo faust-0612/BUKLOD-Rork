@@ -1,7 +1,7 @@
 import BuklodPttGlobalHost from '@/components/BuklodPttGlobalHost';
 import BuklodNavSafeShell from '@/components/BuklodNavSafeShell';
 import BuklodRootKeyboardAvoidingView from '@/components/BuklodRootKeyboardAvoidingView';
-import { BuklodGuideAvatar } from '@/components/BuklodGuideAvatar';
+import BuklodGuideAvatarDeferred from '@/components/BuklodGuideAvatarDeferred';
 import BuklodFormationEntryScopeTracker from '@/components/BuklodFormationEntryScopeTracker';
 import BuklodTrustedDeviceGate from '@/components/BuklodTrustedDeviceGate';
 import '@/lib/performanceBoot';
@@ -370,7 +370,7 @@ function RootLayout() {
             </BuklodRootKeyboardAvoidingView>
             </StreamVideoProvider>
                       {/* PATCH_163A_R_ROOT_GUIDE */}
-            <BuklodGuideAvatar />
+            <BuklodGuideAvatarDeferred />
           </NotificationProvider>
     </AdsProvider>
           </RuntimeConfigProvider>

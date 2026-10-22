@@ -3,7 +3,7 @@ import React, {
   useEffect,
   useRef,
 } from 'react';
-import { AppState } from 'react-native';
+import { AppState, InteractionManager } from 'react-native';
 import { usePathname } from 'expo-router';
 
 import {
@@ -369,10 +369,13 @@ export default function BuklodMainHealthAgent() {
   useEffect(() => {
     if (!user?.id || !online) return;
 
-    void flushBuklodMainHealthQueue(user.id).catch(
-      () => undefined,
-    );
-    void poll();
+    /* PERF_STARTUP_R1: BSOC flush/poll after first paint. */
+    const task = InteractionManager.runAfterInteractions(() => {
+      void flushBuklodMainHealthQueue(user.id).catch(
+        () => undefined,
+      );
+      void poll();
+    });
 
     const timer = setInterval(() => {
       if (AppState.currentState === 'active') {
@@ -380,7 +383,10 @@ export default function BuklodMainHealthAgent() {
       }
     }, POLL_MS);
 
-    return () => clearInterval(timer);
+    return () => {
+      task.cancel();
+      clearInterval(timer);
+    };
   }, [online, poll, user?.id]);
 
   useEffect(() => {

@@ -1,5 +1,5 @@
 import {createContext,ReactNode,useCallback,useContext,useEffect,useMemo,useState} from 'react';
-import {AppState,Platform} from 'react-native';
+import {AppState,InteractionManager,Platform} from 'react-native';
 import * as Notifications from 'expo-notifications';
 import {router} from 'expo-router';
 import {supabase} from '@/lib/supabase';
@@ -19,7 +19,13 @@ export function NotificationProvider({children}:{children:ReactNode}){
  const {user}=useAuth();
  const {scopes,selectScope,activeScope}=useBuklodScope();
  const [unreadCount,setUnreadCount]=useState(0);
- useEffect(()=>{if(!user?.id)return;void registerPushToken(user.id).catch(e=>console.warn('BUKLOD push registration',e))},[user?.id]);
+ useEffect(()=>{
+  if(!user?.id)return;
+  const task=InteractionManager.runAfterInteractions(()=>{
+   void registerPushToken(user.id).catch(e=>console.warn('BUKLOD push registration',e));
+  });
+  return()=>{task.cancel()};
+ },[user?.id]);
  const badge=useCallback(async(n:number)=>{try{await Notifications.setBadgeCountAsync(n)}catch(e){console.warn('Notification badge',e)}},[]);
  const refreshUnread=useCallback(async()=>{if(!user?.id){setUnreadCount(0);await badge(0);return}
   const {count,error}=await supabase.from('notifications').select('id',{count:'exact',head:true}).eq('user_id',user.id).is('read_at',null);
@@ -48,15 +54,33 @@ export function NotificationProvider({children}:{children:ReactNode}){
   router.push(target.path as any);
  },[scopes,selectScope,activeScope?.scope_id]);
 
- useEffect(()=>{void (async()=>{try{if(Platform.OS==='android')await Notifications.setNotificationChannelAsync('buklod-activity-v2',{
-    name:'BUKLOD Activity Alerts',
-    importance:Notifications.AndroidImportance.MAX,
-    vibrationPattern:[0,250,250,250],
-    enableVibrate:true,
-    showBadge:true
-});
-  const p=await Notifications.getPermissionsAsync();if(p.status!=='granted')await Notifications.requestPermissionsAsync()}catch(e){console.warn('Notification permission',e)}})()},[]);
- useEffect(()=>{void refreshUnread()},[refreshUnread]);
+ /* PERF_STARTUP_R1: channel + permission work after first interactions */
+ useEffect(()=>{
+  let cancelled=false;
+  const task=InteractionManager.runAfterInteractions(()=>{
+   void (async()=>{
+    if(cancelled)return;
+    try{
+     if(Platform.OS==='android')await Notifications.setNotificationChannelAsync('buklod-activity-v2',{
+      name:'BUKLOD Activity Alerts',
+      importance:Notifications.AndroidImportance.MAX,
+      vibrationPattern:[0,250,250,250],
+      enableVibrate:true,
+      showBadge:true
+     });
+     const p=await Notifications.getPermissionsAsync();
+     if(!cancelled && p.status!=='granted')await Notifications.requestPermissionsAsync();
+    }catch(e){console.warn('Notification permission',e)}
+   })();
+  });
+  return()=>{cancelled=true;task.cancel()};
+ },[]);
+ useEffect(()=>{
+  const task=InteractionManager.runAfterInteractions(()=>{
+   void refreshUnread();
+  });
+  return()=>{task.cancel()};
+ },[refreshUnread]);
 
  /* BUKLOD_5K_SCALE_R1_NOTIFICATION_NO_CDC
   * Remote push is already the user-visible notification source, so keeping

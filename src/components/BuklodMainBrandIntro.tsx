@@ -82,6 +82,11 @@ export default function BuklodMainBrandIntro({
 
   useEffect(() => {
     if (isWeb || chromeReady) return;
+    /*
+     * PERF_STARTUP_R1: safety net only. TrustedDeviceGate now signals
+     * ready when unlock finishes or is skipped. Keep a long fallback so a
+     * slow fingerprint sheet is not cut off mid-prompt.
+     */
     const timer = setTimeout(
       () => markBuklodStartupChromeReady(),
       20000

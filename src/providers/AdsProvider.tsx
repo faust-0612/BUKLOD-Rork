@@ -6,7 +6,7 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { AppState } from 'react-native';
+import { AppState, InteractionManager } from 'react-native';
 
 import {
   initializeBuklodAds,
@@ -53,29 +53,36 @@ export function AdsProvider({
     () => {
       let mounted = true;
 
-      void initializeBuklodAds()
-        .then(result => {
-          if (!mounted) {
-            return;
+      /* PERF_STARTUP_R1: AdMob init is not needed for first paint. */
+      const task =
+        InteractionManager.runAfterInteractions(
+          () => {
+            void initializeBuklodAds()
+              .then(result => {
+                if (!mounted) {
+                  return;
+                }
+
+                setReady(
+                  result.ready
+                );
+
+                setCanRequestAds(
+                  result.canRequestAds
+                );
+              })
+              .catch(error => {
+                console.warn(
+                  'BUKLOD Ads bootstrap:',
+                  error
+                );
+              });
           }
-
-          setReady(
-            result.ready
-          );
-
-          setCanRequestAds(
-            result.canRequestAds
-          );
-        })
-        .catch(error => {
-          console.warn(
-            'BUKLOD Ads bootstrap:',
-            error
-          );
-        });
+        );
 
       return () => {
         mounted = false;
+        task.cancel();
       };
     },
     []

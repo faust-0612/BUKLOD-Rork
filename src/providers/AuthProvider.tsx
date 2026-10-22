@@ -444,9 +444,23 @@ export function AuthProvider({
         sessionUserIdRef.current =
           nextSession?.user?.id ?? null;
 
-        await loadProfile(
-          nextSession?.user.id
-        );
+        const userId = nextSession?.user?.id;
+
+        /*
+         * PERF_STARTUP_R1
+         *
+         * Session alone is enough to release the auth shell and trusted-
+         * device gate. Profile/roles still hydrate via loadProfile
+         * (snapshot first, then network) without holding loading=true.
+         */
+        if (!userId) {
+          setMembershipState('none');
+          finishBootstrap();
+          return;
+        }
+
+        finishBootstrap();
+        await loadProfile(userId);
       })
       .catch(async (error: any) => {
         if (disposed) {
@@ -469,6 +483,7 @@ export function AuthProvider({
           setSession(persisted);
           sessionUserIdRef.current =
             persisted.user.id;
+          finishBootstrap();
           await loadProfile(persisted.user.id);
           return;
         }
