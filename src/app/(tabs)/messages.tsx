@@ -361,12 +361,12 @@ function ConnectCachedScreen(props: ConnectScreenProps) {
       .finally(() => { if (active) setCacheReady(true); });
     return () => { active = false; };
   }, [viewer, props.forcedScopeId]);
-  // Only local storage gates the first content frame; no server read does.
-  if (!cacheReady) return null;
+  // Never return a blank screen while device storage is slow.
+  // Read cached contacts asynchronously and allow the inbox to paint now.
   return (
     <ConnectThemeProvider>
       <ChatBackgroundProvider>
-        <ConnectScreenInner {...props} />
+        <ConnectScreenInner {...props} warmContactsReady={cacheReady} />
       </ChatBackgroundProvider>
     </ConnectThemeProvider>
   );
@@ -440,7 +440,8 @@ function createInboxStyles(theme: ConnectThemeRoles) {
 
 function ConnectScreenInner({
   forcedScopeId,
-}: ConnectScreenProps = {}) {
+  warmContactsReady,
+}: ConnectScreenProps & { warmContactsReady?: boolean } = {}) {
   const { theme } = useConnectTheme();
   const inboxTabsReserved =
     connectSpacing.bottomNavHeight + 10;
@@ -482,6 +483,11 @@ function ConnectScreenInner({
     useState<Person[]>([]);
   const [suggestedContacts, setSuggestedContacts] =
     useState<ConnectSuggestedContact[]>(() => getWarmConnectContacts(profileId, forcedScopeId));
+  useEffect(() => {
+    if (!warmContactsReady || !profileId) return;
+    const cached = getWarmConnectContacts(profileId, forcedScopeId);
+    if (cached.length) setSuggestedContacts(current => current.length ? current : cached);
+  }, [warmContactsReady, profileId, forcedScopeId]);
   const [refreshing, setRefreshing] =
     useState(false);
   const [communityFilter, setCommunityFilter] =
