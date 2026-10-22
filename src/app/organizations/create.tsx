@@ -1,5 +1,5 @@
 /* PATCH_175A_COMPLETE_ORGANIZATION_CREATE */
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -149,6 +149,8 @@ export default function CreateOrganizationScreen() {
   const [visibility, setVisibility] = useState<'PUBLIC' | 'PRIVATE'>('PUBLIC');
   const [joinPolicy, setJoinPolicy] = useState<'OPEN' | 'APPROVAL_REQUIRED' | 'INVITE_ONLY'>('APPROVAL_REQUIRED');
   const [busy, setBusy] = useState(false);
+  const createInFlight = useRef(false);
+  const [createdId, setCreatedId] = useState<string | null>(null);
 
   const selectedOption = useMemo(
     () => TYPES.find(item => item.key === selectedType) ?? null,
@@ -189,8 +191,8 @@ export default function CreateOrganizationScreen() {
         return;
       }
     }
-    if (busy) return;
-
+    if (busy || createInFlight.current || createdId) return;
+    createInFlight.current = true;
     setBusy(true);
     try {
       const profile = Object.fromEntries(
@@ -236,8 +238,10 @@ export default function CreateOrganizationScreen() {
       const scopeId = String(data ?? '');
       if (!scopeId) throw new Error('Organization was not created.');
 
-      await refresh();
-      await selectScope(scopeId);
+      // R3: the RPC committed the Organization and admin membership.
+      // A later scope list refresh MUST NOT turn confirmed success into a creation failure.
+      setCreatedId(scopeId);
+      void refresh().catch(error => console.warn('Post-create Organization scope refresh:', error));
 
       Alert.alert(
         'Organization Created',
@@ -245,12 +249,18 @@ export default function CreateOrganizationScreen() {
         [
           {
             text: 'OPEN WORKSPACE',
-            onPress: () =>
-              void enterScopedWorkspace(
-                selectScope,
-                scopeId,
-                { fromPortal: true }
-              ),
+            onPress: () => void (async () => {
+              try {
+                await refresh();
+                await enterScopedWorkspace(selectScope, scopeId, { fromPortal: true });
+              } catch (navigationError) {
+                console.warn('Organization created; workspace navigation pending:', navigationError);
+                router.replace({
+                  pathname: '/organizations/manage',
+                  params: { organization: scopeId },
+                } as any);
+              }
+            })(),
           },
           {
             text: 'MANAGE',
@@ -263,11 +273,13 @@ export default function CreateOrganizationScreen() {
         ],
       );
     } catch (error: any) {
+      if (createdId) return;
       Alert.alert(
         'Could Not Create Organization',
         String(error?.message ?? error ?? 'Please try again.'),
       );
     } finally {
+      createInFlight.current = false;
       setBusy(false);
     }
   };
@@ -391,11 +403,11 @@ export default function CreateOrganizationScreen() {
           </View>
 
           <Pressable
-            disabled={busy}
+            disabled={busy || Boolean(createdId)}
             onPress={() => void createOrganization()}
             style={({ pressed }) => [
               styles.primary,
-              busy && { opacity: 0.55 },
+              (busy || createdId) && { opacity: 0.55 },
               pressed && !busy && { opacity: 0.8 },
             ]}
           >
@@ -405,9 +417,19 @@ export default function CreateOrganizationScreen() {
               <MaterialCommunityIcons name="plus-circle-outline" size={20} color="#FFFFFF" />
             )}
             <Text style={styles.primaryText}>
-              {busy ? 'CREATING...' : 'CREATE ORGANIZATION'}
+              {createdId ? 'ORGANIZATION CREATED' : busy ? 'CREATING...' : 'CREATE ORGANIZATION'}
             </Text>
           </Pressable>
+          {createdId ? (
+            <Pressable accessibilityRole="button"
+              onPress={() => router.replace({
+                pathname: '/organizations/manage',
+                params: { organization: createdId },
+              } as any)}
+              style={{ padding: 12, backgroundColor: '#E6F8EF', borderRadius: 12 }}>
+              <Text style={{ color: '#12683D', fontWeight: '900' }}>Created successfully. OPEN ORGANIZATION ›</Text>
+            </Pressable>
+          ) : null}
         </>
       )}
     </BuklodPortalScrollView>
