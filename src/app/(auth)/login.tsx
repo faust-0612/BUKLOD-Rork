@@ -1099,10 +1099,42 @@ const chooseSuggestedLogin =
     }
 
     if (error) {
-      const temporaryFailure =
-        isBuklodTransientAuthError(error);
       const invalidCredentials =
         isBuklodInvalidCredentialsError(error);
+      const errorCode = String(
+        error?.code ?? error?.error_code ?? ''
+      ).trim().toLowerCase();
+      const errorStatus = Number(
+        error?.status ??
+        error?.statusCode ??
+        error?.status_code ??
+        0
+      );
+      const errorMessage = String(
+        error?.message ??
+        error?.error_description ??
+        ''
+      ).toLowerCase();
+      const pendingRequest =
+        errorCode === 'sign_in_in_progress';
+      const rateLimited =
+        errorStatus === 429 ||
+        /rate.?limit|too many requests/.test(
+          errorCode + ' ' + errorMessage
+        );
+      const timedOut =
+        errorStatus === 408 ||
+        errorStatus === 504 ||
+        errorCode === 'request_timeout' ||
+        /timed out|timeout|deadline exceeded/.test(errorMessage);
+      const networkFailure =
+        /network request failed|failed to fetch|fetch failed|offline|connection reset|connection terminated/.test(
+          errorMessage
+        );
+      const serverFailure =
+        errorStatus >= 500 ||
+        errorCode === 'unexpected_failure' ||
+        isBuklodTransientAuthError(error);
 
       if (
         invalidCredentials &&
@@ -1134,29 +1166,83 @@ const chooseSuggestedLogin =
         setRememberPassword(false);
       }
 
-      releaseLogin(
-        temporaryFailure
-          ? 'BUKLOD did not finish this sign-in request. You can try again; no extra request will be started while the old one is still active.'
-          : invalidCredentials &&
-            credentialsOverride?.suggestedUserId
-            ? 'The saved password no longer matches this account. Enter the current password, then you may save it again.'
-            : 'Login was not completed. Check your login and password, then try again.'
-      );
-      triggerShake();
+      let feedbackTitle: string;
+      let feedbackMessage: string;
+      let nextStep: string;
+      let supportCode: string;
 
+      if (pendingRequest) {
+        feedbackTitle = 'Previous sign-in still processing';
+        feedbackMessage =
+          'Your earlier sign-in request is still running. The NEW password you entered has not been checked.';
+        nextStep =
+          'Wait for the previous request to finish before trying again.';
+        supportCode = 'AUTH-PENDING';
+      } else if (invalidCredentials) {
+        const savedPassword =
+          Boolean(credentialsOverride?.suggestedUserId);
+        feedbackTitle = savedPassword
+          ? 'Saved password not accepted'
+          : 'Login details not accepted';
+        feedbackMessage = savedPassword
+          ? 'The saved password or login identifier was not accepted. This saved password has been cleared from Suggested Login.'
+          : 'The login identifier or password does not match. For account security, BUKLOD cannot tell which one was incorrect.';
+        nextStep = savedPassword
+          ? 'Enter your current password. If you reset it, use the new password.'
+          : 'Check your username, email, or mobile number and password; use Forgot Password if needed.';
+        supportCode = 'AUTH-CREDENTIALS';
+      } else if (rateLimited) {
+        feedbackTitle = 'Too many sign-in attempts';
+        feedbackMessage =
+          'The authentication service is temporarily limiting sign-in requests. Your password has not been confirmed.';
+        nextStep = 'Wait a while before trying once more.';
+        supportCode = 'AUTH-429';
+      } else if (timedOut) {
+        feedbackTitle = 'Authentication server timed out';
+        feedbackMessage =
+          'The server did not respond in time. This does NOT mean the password is wrong; authentication was not confirmed.';
+        nextStep =
+          'Let any earlier request finish before trying again. If it repeats, use Need Help.';
+        supportCode = 'AUTH-TIMEOUT';
+      } else if (networkFailure) {
+        feedbackTitle = 'Connection to sign-in server failed';
+        feedbackMessage =
+          'BUKLOD could not reliably reach the authentication service. Your password was not confirmed.';
+        nextStep =
+          'Check your internet connection and try once more.';
+        supportCode = 'AUTH-NETWORK';
+      } else if (serverFailure) {
+        feedbackTitle = 'Authentication server error';
+        feedbackMessage =
+          'The authentication service returned a server error. This does NOT prove your password is wrong.';
+        nextStep =
+          'Try again after the server recovers. If it repeats, use Need Help.';
+        supportCode = 'AUTH-SERVER';
+      } else {
+        feedbackTitle = 'Sign-in could not be completed';
+        feedbackMessage =
+          'BUKLOD received an unexpected sign-in failure. It cannot safely identify this as a wrong password.';
+        nextStep =
+          'Check your connection, then use Need Help if the issue continues.';
+        supportCode = 'AUTH-UNKNOWN';
+      }
+
+      const safeServerCode =
+        /^[a-z0-9_]{1,48}$/.test(errorCode)
+          ? errorCode
+          : null;
+      const reference =
+        safeServerCode
+          ? `${supportCode} / ${safeServerCode}`
+          : Number.isFinite(errorStatus) && errorStatus > 0
+            ? `${supportCode} / HTTP ${errorStatus}`
+            : supportCode;
+
+      releaseLogin(feedbackMessage);
+      triggerShake();
       return Alert.alert(
-        temporaryFailure
-          ? 'BUKLOD is temporarily busy'
-          : invalidCredentials &&
-            credentialsOverride?.suggestedUserId
-            ? 'Saved password needs updating'
-            : 'Login failed',
-        temporaryFailure
-          ? 'BUKLOD did not finish the sign-in request. Please try again. If this continues, close and reopen BUKLOD before retrying.'
-          : invalidCredentials &&
-            credentialsOverride?.suggestedUserId
-            ? 'The password saved on this device is no longer valid. Enter your current password. If you recently reset it, use the new password.'
-            : 'Invalid login identifier or password.'
+        feedbackTitle,
+        `${feedbackMessage}\n\n${nextStep}\n\nReference: ${reference}`
       );
     }
 
