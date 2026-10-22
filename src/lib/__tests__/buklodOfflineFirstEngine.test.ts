@@ -31,6 +31,22 @@ describe('BUKLOD offline-first engine', () => {
     await expect(readBuklodOfflineFirst({ ...base, fetchDelta })).rejects.toThrow('network unavailable');
   });
 
+  it('preserves more than 2000 rows and advances using the stored cursor', async () => {
+    const fetchDelta = jest.fn(async (cursor: string) => cursor
+      ? { upserts: [{ id: 'extra', title: 'New' }], deletedIds: ['row0'], nextCursor: 'cursor2' }
+      : { upserts: Array.from({ length: 2001 }, (_, i) => ({ id: 'row' + i, title: 'Item' })), deletedIds: [], nextCursor: 'cursor1' });
+    const initial = await readBuklodOfflineFirst({ ...base, fetchDelta });
+    expect(initial.rows).toHaveLength(2001);
+    const updated = await readBuklodOfflineFirst({ ...base, refreshAfterMs: 0, fetchDelta });
+    expect(updated.rows).toHaveLength(2001);
+    await Promise.resolve();
+    expect(fetchDelta).toHaveBeenCalledWith('cursor1', expect.anything());
+    const offline = await readBuklodOfflineFirst({ ...base, online: false, fetchDelta });
+    expect(offline.rows).toHaveLength(2001);
+    expect(offline.rows.find(row => row.id === 'extra')).toBeDefined();
+    expect(offline.rows.find(row => row.id === 'row0')).toBeUndefined();
+  });
+
   it('does not permit unauthorized reads of a saved scope', async () => {
     const fetchDelta = jest.fn(async () => ({ upserts: [], deletedIds: [], nextCursor: '' }));
     await expect(readBuklodOfflineFirst({ ...base, authorized: false, fetchDelta })).rejects.toThrow('not authorized');
