@@ -10,7 +10,10 @@ import { repairMojibakeText } from '@/lib/repairMojibakeText';
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useConnectComposerKeyboardInset, CONNECT_COMPOSER_RESERVED_HEIGHT } from '@/lib/useConnectComposerKeyboardInset';
-import { useBuklodPersistentNavOccupiedHeight } from '@/lib/buklodSafeArea';
+import {
+  isBuklodScopedWorkspacePath,
+  useBuklodPersistentNavOccupiedHeight,
+} from '@/lib/buklodSafeArea';
 import BuklodScopeCallLauncher from '@/components/BuklodScopeCallLauncher';
 import React, {
   useCallback,
@@ -41,6 +44,7 @@ import {
 
 import {
   router,
+  usePathname,
 } from 'expo-router';
 
 import {
@@ -607,6 +611,7 @@ function BuklodConnectThreadInner({
   /* PATCH_169G_CONNECT_SAFE_INSETS */
   const insets =
     useSafeAreaInsets();
+  const pathname = usePathname();
   const navOccupied =
     useBuklodPersistentNavOccupiedHeight();
   const threadBodyRef =
@@ -616,6 +621,21 @@ function BuklodConnectThreadInner({
     clearComposerInset,
     resyncComposerInset,
   } = useConnectComposerKeyboardInset(threadBodyRef);
+  /*
+   * Public Connect routes no longer render/reserve the old persistent nav pane,
+   * but useBuklodPersistentNavOccupiedHeight can still report height there.
+   * Dock the write-message row above the phone/system nav instead of hiding under it.
+   */
+  const shellReservesPersistentNav =
+    isBuklodScopedWorkspacePath(pathname) &&
+    navOccupied > 0;
+  const phoneNavClearance = shellReservesPersistentNav
+    ? 0
+    : Math.max(insets.bottom, 6);
+  const composerDockBottom = Math.max(
+    composerBottom,
+    phoneNavClearance,
+  );
 
   const { theme } = useConnectTheme();
   const styles = useMemo(
@@ -3866,13 +3886,9 @@ const [
   return (
     <ConnectThreadBackground
       style={{
-        paddingBottom:
-          navOccupied > 0
-            ? 0
-            : Math.max(
-                insets.bottom,
-                6
-              ),
+        // Composer docks itself via composerDockBottom; avoid double-counting
+        // phone-nav padding under an absolutely positioned write row.
+        paddingBottom: 0,
       }}
     >
       <ConnectThreadHeader
@@ -4063,7 +4079,7 @@ const [
           {
             paddingBottom:
               CONNECT_COMPOSER_RESERVED_HEIGHT +
-              composerBottom +
+              composerDockBottom +
               18,
           },
         ]}
@@ -4727,7 +4743,7 @@ const [
             position: 'absolute',
             right: 16,
             bottom:
-              composerBottom +
+              composerDockBottom +
               CONNECT_COMPOSER_RESERVED_HEIGHT +
               12,
             zIndex: 30,
@@ -4843,7 +4859,7 @@ const [
           position: 'absolute',
           left: 0,
           right: 0,
-          bottom: composerBottom,
+          bottom: composerDockBottom,
           zIndex: 20,
         }}
       >
