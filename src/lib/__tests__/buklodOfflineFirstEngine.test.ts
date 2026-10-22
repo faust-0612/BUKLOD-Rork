@@ -37,9 +37,11 @@ describe('BUKLOD offline-first engine', () => {
       : { upserts: Array.from({ length: 2001 }, (_, i) => ({ id: 'row' + i, title: 'Item' })), deletedIds: [], nextCursor: 'cursor1' });
     const initial = await readBuklodOfflineFirst({ ...base, fetchDelta });
     expect(initial.rows).toHaveLength(2001);
-    const updated = await readBuklodOfflineFirst({ ...base, refreshAfterMs: 0, fetchDelta });
+    let resolveUpdate!: () => void;
+    const updatedSignal = new Promise<void>(resolve => { resolveUpdate = resolve; });
+    const updated = await readBuklodOfflineFirst({ ...base, refreshAfterMs: 0, fetchDelta, onUpdated: () => resolveUpdate() });
     expect(updated.rows).toHaveLength(2001);
-    await Promise.resolve();
+    await updatedSignal;
     expect(fetchDelta).toHaveBeenCalledWith('cursor1', expect.anything());
     const offline = await readBuklodOfflineFirst({ ...base, online: false, fetchDelta });
     expect(offline.rows).toHaveLength(2001);
