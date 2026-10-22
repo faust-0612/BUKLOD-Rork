@@ -38,8 +38,8 @@ jobs:
             cancelled) STATUS="CANCELLED" ;;
             *) STATUS="$WORKFLOW_RESULT" ;;
           esac
-          MESSAGE=$(printf 'BUKLOD CI %s\\nWorkflow: %s\\nBranch: %s\\nCommit: %.12s\\nDetails: %s' "$STATUS" "$WORKFLOW_NAME" "$BRANCH" "$SHA" "$WORKFLOW_URL")
-          curl --fail --silent --show-error --retry 2 --max-time 15 \\
-            --request POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \\
-            --data-urlencode "chat_id=${CHAT_ID}" \\
+          MESSAGE=$(printf 'BUKLOD CI %s\nWorkflow: %s\nBranch: %s\nCommit: %.12s\nDetails: %s' "$STATUS" "$WORKFLOW_NAME" "$BRANCH" "$SHA" "$WORKFLOW_URL")
+          curl --fail --silent --show-error --retry 2 --max-time 15 \
+            --request POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${CHAT_ID}" \
             --data-urlencode "text=${MESSAGE}" >/dev/null
