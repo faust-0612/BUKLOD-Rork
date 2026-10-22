@@ -17,6 +17,11 @@ import {
 } from '@stream-io/video-client';
 
 import {
+  findActiveNonPttCall,
+  isBuklodAcceptedNonPttCall,
+} from '@/lib/buklodActiveNonPttCall';
+
+import {
   StreamCall,
   useCalls,
 } from '@/lib/streamVideoSdk';
@@ -58,9 +63,9 @@ function BrowserCallSurface({ call }: { call: Call }) {
   ).trim() || 'BUKLOD Call';
 
   const joined =
-    callingState === CallingState.JOINED ||
-    callingState === CallingState.RECONNECTING ||
-    String(callingState).toLowerCase().includes('reconnect');
+    isBuklodAcceptedNonPttCall(
+      call
+    );
 
   const run = async (action: () => Promise<any>) => {
     if (working) {
@@ -178,28 +183,14 @@ function BrowserCallSurface({ call }: { call: Call }) {
   );
 }
 
-function isVisibleCall(call: Call) {
-  if (call.type === 'buklod_ptt') return false;
-
-  const state = call.state.callingState;
-  const text = String(state ?? '').toLowerCase();
-
-  return (
-    state === CallingState.RINGING ||
-    state === CallingState.JOINING ||
-    state === CallingState.JOINED ||
-    state === CallingState.RECONNECTING ||
-    text.includes('ring') ||
-    text.includes('join') ||
-    text.includes('reconnect')
-  );
-}
-
 export function RingingCalls() {
   const calls = useCalls();
 
   const activeCall = useMemo(
-    () => calls.find(isVisibleCall) ?? null,
+    () =>
+      findActiveNonPttCall(
+        calls
+      ),
     [calls]
   );
 
@@ -217,7 +208,11 @@ export function RingingCalls() {
     };
   }, [calls]);
 
-  const current = calls.find(isVisibleCall) ?? activeCall;
+  const current =
+    findActiveNonPttCall(
+      calls
+    ) ??
+    activeCall;
 
   if (!current) {
     return null;

@@ -20,13 +20,12 @@ const CATEGORIES=[
 
 export default function FeedbackScreen(){
   const {profile}=useAuth();
-  const {isConnected,isInternetReachable}=useNetwork();
+  const {online}=useNetwork();
   const [category,setCategory]=useState<string>('bug');
   const [title,setTitle]=useState('');
   const [message,setMessage]=useState('');
   const [busy,setBusy]=useState(false);
 
-  const online=isConnected && isInternetReachable!==false;
 
   const submit=async()=>{
     if(!online)return Alert.alert('Offline','Connect to the internet before sending feedback.');

@@ -24,6 +24,9 @@ import {
   buildBuklodPersonalCallId,
   formatBuklodCallStartError,
 } from '@/lib/buklodStreamCall';
+import {
+  restoreActiveNonPttCallIfAny,
+} from '@/lib/buklodActiveNonPttCall';
 import { FLATLIST_TUNING } from '@/lib/performanceInstrumentation';
 import { SCALE_LIMITS } from '@/lib/performanceScale';
 import {
@@ -850,14 +853,22 @@ function ConnectScreenInner({
         videoClient ??
         (await ensureBuklodStreamVideoClient());
 
-      const callId = threadId
-        ? buildBuklodPersonalCallId(
-            threadId
-          )
-        : `buklod-personal-${userId.replace(
-            /[^a-zA-Z0-9_-]/g,
-            ''
-          ).slice(0, 28)}`;
+      if (
+        restoreActiveNonPttCallIfAny(
+          callClient.state.calls
+        )
+      ) {
+        return;
+      }
+
+      /*
+       * Every ringing attempt gets a fresh ID, including search calls
+       * before a direct thread has been resolved.
+       */
+      const callId =
+        buildBuklodPersonalCallId(
+          threadId || userId
+        );
 
       const call = callClient.call('default', callId);
 

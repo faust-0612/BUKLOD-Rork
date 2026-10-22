@@ -48,10 +48,9 @@ function offlinePolicy(): RequiredPolicy {
 
 export function ComplianceProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  const { isConnected, isInternetReachable } = useNetwork();
+  const { online } = useNetwork();
   const [loading,setLoading]=useState(true);
   const [policies,setPolicies]=useState<RequiredPolicy[]>([]);
-  const online = isConnected && isInternetReachable !== false;
 
   const cacheKey = user ? `buklod:policy-ok:${user.id}` : null;
 

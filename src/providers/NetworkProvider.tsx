@@ -1,4 +1,5 @@
 import NetInfo, { type NetInfoState } from '@react-native-community/netinfo';
+import { Platform } from 'react-native';
 import React, {
   createContext,
   useCallback,
@@ -8,8 +9,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { AppState, InteractionManager } from 'react-native';
-
+import { noteNetInfoHint } from '@/lib/buklodNetworkQuality';
 import {
   drainOfflineQueue,
   getOfflineQueueSnapshot,
@@ -21,7 +21,11 @@ export type BuklodNetworkStatus =
   | 'unknown'
   | 'online'
   | 'offline'
+  | 'degraded'
   | 'syncing';
+
+type BuklodConnectivityStatus =
+  Exclude<BuklodNetworkStatus, 'syncing'>;
 
 type NetworkContextValue = {
   isConnected: boolean;
@@ -38,12 +42,41 @@ type NetworkContextValue = {
 
 export const NetworkContext = createContext<NetworkContextValue | null>(null);
 
-function stateIsOnline(state: NetInfoState | null): boolean {
-  if (!state) return true;
-  return (
-    state.isConnected !== false &&
-    state.isInternetReachable !== false
-  );
+function classifyNetworkState(
+  state: NetInfoState | null,
+): BuklodConnectivityStatus {
+  if (!state) return 'unknown';
+
+  if (state.isConnected === false) {
+    return 'offline';
+  }
+
+  if (state.isConnected !== true) {
+    return 'unknown';
+  }
+
+  if (state.isInternetReachable === true) {
+    return 'online';
+  }
+
+  /*
+   * Browsers commonly expose only navigator.onLine through NetInfo and may
+   * leave isInternetReachable=null. Do not strand the web app in DEGRADED
+   * forever when the browser itself confirms a connected transport.
+   */
+  if (
+    Platform.OS === 'web' &&
+    state.isInternetReachable == null
+  ) {
+    return 'online';
+  }
+
+  /*
+   * Connected transport without confirmed internet is not ONLINE.
+   * This covers captive portals, weak data, and NetInfo's initial
+   * reachability probe without forcing the app into a hard-offline UI.
+   */
+  return 'degraded';
 }
 
 export function NetworkProvider({
@@ -58,9 +91,21 @@ export function NetworkProvider({
   const [lastSyncAt, setLastSyncAt] = useState<number | null>(null);
 
   const mountedRef = useRef(true);
-  const lastAutoSyncRef = useRef(0);
 
-  const online = stateIsOnline(state);
+  const connectivity = classifyNetworkState(state);
+  const online = connectivity === 'online';
+
+  useEffect(() => {
+    const details = state?.details as {
+      cellularGeneration?: string | null;
+    } | null;
+    noteNetInfoHint({
+      isConnected: state ? state.isConnected : null,
+      isInternetReachable: state ? state.isInternetReachable : null,
+      type: state?.type ?? null,
+      cellularGeneration: details?.cellularGeneration ?? null,
+    });
+  }, [state]);
 
   const refreshNetwork = useCallback(async () => {
     try {
@@ -74,7 +119,7 @@ export function NetworkProvider({
   }, []);
 
   const syncNow = useCallback(async () => {
-    if (!stateIsOnline(state)) return;
+    if (!online) return;
 
     setSyncing(true);
     try {
@@ -88,7 +133,7 @@ export function NetworkProvider({
         setSyncing(false);
       }
     }
-  }, [state]);
+  }, [online]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -99,22 +144,18 @@ export function NetworkProvider({
       }
     });
 
-    /* PERF_STARTUP_R1: offline queue/cache work after first interactions. */
-    const task = InteractionManager.runAfterInteractions(() => {
-      void getOfflineQueueSnapshot()
-        .then((snapshot) => {
-          if (mountedRef.current) {
-            setPendingCount(snapshot.pendingCount);
-          }
-        })
-        .catch(() => undefined);
+    void getOfflineQueueSnapshot()
+      .then((snapshot) => {
+        if (mountedRef.current) {
+          setPendingCount(snapshot.pendingCount);
+        }
+      })
+      .catch(() => undefined);
 
-      void pruneOfflineCache().catch(() => undefined);
-    });
+    void pruneOfflineCache().catch(() => undefined);
 
     return () => {
       mountedRef.current = false;
-      task.cancel();
       unsubscribeQueue();
     };
   }, []);
@@ -126,45 +167,19 @@ export function NetworkProvider({
   }, [refreshNetwork]);
 
   useEffect(() => {
-    if (!online) return;
+    if (online) {
+      setLastOnlineAt(Date.now());
+    }
+  }, [online]);
 
-    setLastOnlineAt(Date.now());
-
-    const now = Date.now();
-    if (now - lastAutoSyncRef.current < 3_000) return;
-    lastAutoSyncRef.current = now;
-
-    const timer = setTimeout(() => {
-      void syncNow().catch(() => undefined);
-    }, 900);
-
-    return () => clearTimeout(timer);
-  }, [online, syncNow]);
-
-  useEffect(() => {
-    const subscription = AppState.addEventListener('change', (nextState) => {
-      if (nextState !== 'active') return;
-
-      void refreshNetwork();
-      if (stateIsOnline(state)) {
-        void syncNow().catch(() => undefined);
-      }
-    });
-
-    return () => subscription.remove();
-  }, [refreshNetwork, state, syncNow]);
-
-  const status: BuklodNetworkStatus = !state
-    ? 'unknown'
-    : !online
-      ? 'offline'
-      : syncing
-        ? 'syncing'
-        : 'online';
+  const status: BuklodNetworkStatus =
+    syncing && online
+      ? 'syncing'
+      : connectivity;
 
   const value = useMemo<NetworkContextValue>(
     () => ({
-      isConnected: state?.isConnected !== false,
+      isConnected: state?.isConnected === true,
       isInternetReachable: state?.isInternetReachable ?? null,
       online,
       status,

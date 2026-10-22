@@ -17,6 +17,7 @@ import {
   writeAuthSnapshot,
 } from '@/lib/buklodAuthSnapshot';
 import { cachedQuery } from '@/lib/performance';
+import { useNetwork } from '@/providers/NetworkProvider';
 
 export type AppRole =
   | 'member'
@@ -113,6 +114,10 @@ export function AuthProvider({
 }: {
   children: React.ReactNode;
 }) {
+  const { online } = useNetwork();
+  const onlineRef = useRef(online);
+  onlineRef.current = online;
+
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
@@ -123,6 +128,7 @@ export function AuthProvider({
 
   const bootstrappedRef = useRef(false);
   const sessionUserIdRef = useRef<string | null>(null);
+  const lastOnlineHydrationUserRef = useRef<string | null>(null);
 
   const loadRoles = async (
     userId?: string,
@@ -314,6 +320,7 @@ export function AuthProvider({
   const loadProfile = async (
     userId?: string,
     force = false,
+    allowRemote = true,
   ) => {
     if (!userId) {
       setProfile(null);
@@ -333,6 +340,21 @@ export function AuthProvider({
       setMembershipState(
         cachedSnapshot.membershipState as MembershipState
       );
+    }
+
+    /*
+     * BUKLOD_OFFLINE_RUNTIME_R1:
+     * Local auth/session data owns startup. Unknown, degraded, and offline
+     * network states must not start Supabase profile/role/membership reads.
+     * A confirmed-online transition refreshes this snapshot in background.
+     */
+    if (!allowRemote) {
+      if (!cachedSnapshot) {
+        setMembershipState((current) =>
+          current === 'loading' ? 'pending' : current
+        );
+      }
+      return;
     }
 
     let nextProfile: Profile | null = null;
@@ -444,23 +466,11 @@ export function AuthProvider({
         sessionUserIdRef.current =
           nextSession?.user?.id ?? null;
 
-        const userId = nextSession?.user?.id;
-
-        /*
-         * PERF_STARTUP_R1
-         *
-         * Session alone is enough to release the auth shell and trusted-
-         * device gate. Profile/roles still hydrate via loadProfile
-         * (snapshot first, then network) without holding loading=true.
-         */
-        if (!userId) {
-          setMembershipState('none');
-          finishBootstrap();
-          return;
-        }
-
-        finishBootstrap();
-        await loadProfile(userId);
+        await loadProfile(
+          nextSession?.user.id,
+          false,
+          onlineRef.current,
+        );
       })
       .catch(async (error: any) => {
         if (disposed) {
@@ -483,8 +493,11 @@ export function AuthProvider({
           setSession(persisted);
           sessionUserIdRef.current =
             persisted.user.id;
-          finishBootstrap();
-          await loadProfile(persisted.user.id);
+          await loadProfile(
+            persisted.user.id,
+            false,
+            onlineRef.current,
+          );
           return;
         }
 
@@ -561,7 +574,9 @@ export function AuthProvider({
             }
 
             void loadProfile(
-              nextSession?.user.id
+              nextSession?.user.id,
+              false,
+              onlineRef.current,
             )
               .catch((error: any) => {
                 console.warn(
@@ -595,6 +610,43 @@ export function AuthProvider({
     };
   }, []);
 
+  /*
+   * One background identity refresh when usable internet returns.
+   * Cached UI stays mounted; this never re-enters the global boot spinner.
+   */
+  useEffect(() => {
+    if (!online) {
+      lastOnlineHydrationUserRef.current = null;
+      return;
+    }
+
+    const userId = session?.user?.id ?? null;
+    if (!userId) {
+      lastOnlineHydrationUserRef.current = null;
+      return;
+    }
+
+    if (lastOnlineHydrationUserRef.current === userId) {
+      return;
+    }
+    lastOnlineHydrationUserRef.current = userId;
+
+    void loadProfile(
+      userId,
+      false,
+      true,
+    ).catch((error: any) => {
+      console.warn(
+        'BUKLOD online auth refresh:',
+        String(
+          error?.message ??
+            error ??
+            'Profile refresh failed.'
+        )
+      );
+    });
+  }, [online, session?.user?.id]);
+
   const value = useMemo<AuthContextValue>(() => {
     const hasRole = (role: AppRole) =>
       roles.includes(role);
@@ -621,10 +673,15 @@ export function AuthProvider({
         await loadProfile(
           session?.user.id,
           true,
+          onlineRef.current,
         );
       },
 
       refreshRoles: async () => {
+        if (!onlineRef.current) {
+          return;
+        }
+
         const nextRoles = await loadRoles(
           session?.user.id,
           profile?.role,
@@ -640,6 +697,10 @@ export function AuthProvider({
       },
 
       refreshMembership: async () => {
+        if (!onlineRef.current) {
+          return;
+        }
+
         await loadMembership(
           session?.user.id,
           roles,

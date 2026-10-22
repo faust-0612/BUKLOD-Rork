@@ -15,13 +15,13 @@ import {
   subscribePendingActions,
   type BuklodPendingAction,
 } from '@/lib/buklodOfflineSync';
-import { SCALE_LIMITS } from '@/lib/performanceScale';
 import { hydrateCommunityMediaUrlCache } from '@/lib/buklodMediaUrl';
 import { supabase } from '@/lib/supabase';
 import { useNetwork } from '@/providers/NetworkProvider';
 
 type OfflineSyncValue = {
   online: boolean;
+  syncing: boolean;
   pendingCount: number;
   pendingActions: BuklodPendingAction[];
   flushNow: () => Promise<void>;
@@ -29,7 +29,8 @@ type OfflineSyncValue = {
 
 const BuklodOfflineSyncContext =
   createContext<OfflineSyncValue>({
-    online: true,
+    online: false,
+    syncing: false,
     pendingCount: 0,
     pendingActions: [],
     flushNow: async () => {},
@@ -88,14 +89,13 @@ export function BuklodOfflineSyncProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const { isConnected, isInternetReachable } = useNetwork();
-  const online =
-    isConnected && isInternetReachable !== false;
+  const { online } = useNetwork();
 
   const [pendingActions, setPendingActions] = useState<
     BuklodPendingAction[]
   >([]);
   const [pendingCount, setPendingCount] = useState(0);
+  const [syncing, setSyncing] = useState(false);
 
   const reloadPending = useCallback(async () => {
     const [actions, count] = await Promise.all([
@@ -111,8 +111,13 @@ export function BuklodOfflineSyncProvider({
       return;
     }
 
-    await flushPendingActions();
-    await reloadPending();
+    setSyncing(true);
+    try {
+      await flushPendingActions();
+      await reloadPending();
+    } finally {
+      setSyncing(false);
+    }
   }, [online, reloadPending]);
 
   useEffect(() => {
@@ -128,34 +133,15 @@ export function BuklodOfflineSyncProvider({
     });
   }, [reloadPending]);
 
-  useEffect(() => {
-    if (!online) {
-      return;
-    }
-
-    void flushNow();
-  }, [online, flushNow]);
-
-  useEffect(() => {
-    if (!online) {
-      return;
-    }
-
-    const timer = setInterval(() => {
-      void flushNow();
-    }, SCALE_LIMITS.offlineBackgroundRefreshMs);
-
-    return () => clearInterval(timer);
-  }, [online, flushNow]);
-
   const value = useMemo(
     () => ({
       online,
+      syncing,
       pendingCount,
       pendingActions,
       flushNow,
     }),
-    [online, pendingCount, pendingActions, flushNow],
+    [online, syncing, pendingCount, pendingActions, flushNow],
   );
 
   return (

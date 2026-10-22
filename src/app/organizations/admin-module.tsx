@@ -71,9 +71,7 @@ export default function OrganizationAdminModuleScreen() {
   const screenTitle = typeof params.title === 'string' ? params.title : 'Organization Records';
   const mode = typeof params.mode === 'string' ? params.mode : 'manage';
 
-  const { isConnected, isInternetReachable } = useNetwork();
-  const online =
-    isConnected && isInternetReachable !== false;
+  const { online } = useNetwork();
 
   const [records, setRecords] = useState<AdminRecord[]>([]);
   const [overview, setOverview] = useState<Overview>({});

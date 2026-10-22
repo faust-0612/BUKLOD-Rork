@@ -15,8 +15,8 @@ import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 
 export default function Index() {
   const { session, loading, profile } = useAuth();
-  const { loading: complianceLoading, requiresAcceptance } = useCompliance();
-  const { loading: runtimeLoading, config } = useRuntimeConfig();
+  const { requiresAcceptance } = useCompliance();
+  const { config } = useRuntimeConfig();
 
   /*
    * BUKLOD_PUBLIC_BOOT_R21
@@ -69,15 +69,13 @@ export default function Index() {
       );
 
     if (publicScope) {
+      setBootReady(false);
+
       if (
         !publicResetInFlight.current
       ) {
         publicResetInFlight.current = true;
 
-        /*
-         * PERF_STARTUP_R1: selectScope updates local activeScope
-         * immediately; do not hold the index spinner for persistence.
-         */
         void selectScope(
           publicScope.scope_id
         )
@@ -92,7 +90,6 @@ export default function Index() {
           });
       }
 
-      setBootReady(true);
       return;
     }
 
@@ -114,11 +111,7 @@ export default function Index() {
     selectScope,
   ]);
 
-  if (
-    (loading && !session && !profile) ||
-    (complianceLoading && !session) ||
-    (runtimeLoading && !config)
-  ) {
+  if (loading && !session && !profile) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white }}>
         <ActivityIndicator color={colors.green} />

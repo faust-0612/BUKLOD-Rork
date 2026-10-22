@@ -1,9 +1,6 @@
 import BuklodDashboardContextBar from '@/components/BuklodDashboardContextBar';
 import BuklodHeaderSponsor from '@/components/BuklodHeaderSponsor';
 import {
-  warmBuklodInterstitial,
-} from '@/lib/buklodAds';
-import {
   Redirect,
   Stack,
   router,
@@ -236,29 +233,20 @@ export default function TabsLayout() {
     profile,
   } = useAuth();
   const {
-    loading: complianceLoading,
     requiresAcceptance,
   } = useCompliance();
   const {
-    loading: runtimeLoading,
     config,
   } = useRuntimeConfig();
 
-  useEffect(() => {
-    warmBuklodInterstitial();
-  }, []);
-
   /*
-   * BUKLOD_GLOBAL_BOOT_R20
+   * BUKLOD_OFFLINE_RUNTIME_R1
    *
-   * Keep auth/compliance/runtime gates authoritative.
-   * R20 bounds their provider wait time instead of bypassing them.
+   * A full-screen boot indicator is reserved for the one state where BUKLOD
+   * has no usable local identity yet. Runtime/compliance refreshes continue
+   * behind the cached shell instead of blocking the entire tab workspace.
    */
-  if (
-    (loading && !session && !profile) ||
-    (complianceLoading && !session) ||
-    (runtimeLoading && !config)
-  ) {
+  if (loading && !session && !profile) {
     return (
       <View
         style={{
