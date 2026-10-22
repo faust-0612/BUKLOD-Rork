@@ -5,9 +5,12 @@
  * Callers own persistence (offlineCache) and incremental cursor queries.
  */
 export type SyncPriority = 'visible' | 'interaction' | 'nearby' | 'background';
+export type SyncDataKind = 'video' | 'photo' | 'connect' | 'other';
+const kindRanks: Record<SyncDataKind, number> = { video: 0, photo: 1, connect: 2, other: 3 };
 type Job<T> = {
   key: string;
   priority: number;
+  kindPriority: number;
   seq: number;
   run: (signal: AbortSignal) => Promise<T>;
   controller: AbortController;
@@ -29,7 +32,7 @@ const MAX_NORMAL = 2; // never flood backend when many screens mount
 function limit() { return degraded ? 1 : MAX_NORMAL; }
 function drain() {
   if (!online) return;
-  pending.sort((a, b) => a.priority - b.priority || a.seq - b.seq);
+  pending.sort((a, b) => a.priority - b.priority || a.kindPriority - b.kindPriority || a.seq - b.seq);
   while (activeCount < limit() && pending.length) {
     const job = pending.shift()!;
     queued.delete(job.key);
@@ -80,6 +83,7 @@ export function enqueueBuklodRead<T>(args: {
   key: string;
   view: string;
   priority: SyncPriority;
+  kind?: SyncDataKind;
   run: (signal: AbortSignal) => Promise<T>;
 }): Promise<T> {
   if (!args.key || !args.view) return Promise.reject(new Error('Sync scope required'));
@@ -91,6 +95,7 @@ export function enqueueBuklodRead<T>(args: {
   const promise = new Promise<T>((yes, no) => { resolve = yes; reject = no; });
   const job: Job<T> = {
     key: args.key, scope: args.view, priority: ranks[args.priority],
+    kindPriority: kindRanks[args.kind ?? 'other'],
     seq: ++sequence, run: args.run, controller: new AbortController(),
     resolve, reject,
   };
