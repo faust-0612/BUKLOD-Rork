@@ -1148,7 +1148,9 @@ const chooseSuggestedLogin =
           : invalidCredentials &&
             credentialsOverride?.suggestedUserId
             ? 'The saved password no longer matches this account. Enter the current password, then you may save it again.'
-            : 'Login was not completed. Check your login and password, then try again.'
+            : invalidCredentials
+              ? 'Login identifier or password not recognized. Check your details and try again.'
+              : 'BUKLOD could not finish signing in right now. Please try again.'
       );
       triggerShake();
 
@@ -1164,7 +1166,9 @@ const chooseSuggestedLogin =
           : invalidCredentials &&
             credentialsOverride?.suggestedUserId
             ? 'The password saved on this device is no longer valid. Enter your current password. If you recently reset it, use the new password.'
-            : 'Invalid login identifier or password.'
+            : invalidCredentials
+              ? 'Invalid login identifier or password.'
+              : 'The sign-in could not be completed. This does not mean your password is incorrect.'
       );
     }
 
