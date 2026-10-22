@@ -14,11 +14,15 @@ import type {
 } from './types';
 
 /**
- * Panimula and Kabanata 1 are the canonical markdown files.
- * They stay draft: no approval timestamp, no art, no audio, no member unlock.
- * Episodes 2–30 are outline labels. Jawo/Javvo is not published.
+ * Panimula and Kabanata 1 are the canonical markdown files and are already
+ * readable for members (see canonicalMemberRelease). Approval work starts at
+ * Kabanata 2. Episodes 2–30 begin as outline labels until prose is saved.
+ * Jawo/Javvo is not published.
  * release/BUKLOD_ENGINEERING_CHARTER.md is not in this branch or on origin/main.
  */
+
+/** Highest episode number already with members. Next approval is this + 1. */
+export const KL_RELEASED_THROUGH_EPISODE = 1;
 
 export const KL_SEASON_ONE_ID = '22222222-2222-4222-8222-000000000001';
 export const KL_AUTHOR = 'Likha ni Faustino Jr. M. Gabut';
@@ -262,6 +266,7 @@ export function buildStoryboard(): StoryboardRow[] {
 
 function canonicalEpisode(episodeNumber: number, kind: CatalogEpisode['kind'], title: string): CatalogEpisode {
   const prose = canonicalProse(episodeNumber);
+  const memberLive = episodeNumber <= KL_RELEASED_THROUGH_EPISODE;
   return {
     id: klEpisodeId(episodeNumber),
     seasonId: KL_SEASON_ONE_ID,
@@ -269,16 +274,16 @@ function canonicalEpisode(episodeNumber: number, kind: CatalogEpisode['kind'], t
     episodeNumber,
     title,
     titleMode: 'canon_title',
-    status: 'draft',
+    status: memberLive ? 'live' : 'draft',
     manuscriptStatus: prose ? 'approved_complete' : 'content_blocked',
     prose: prose?.text ?? null,
     proseSha256: prose?.sha256 ?? null,
     sourcePath: prose?.path ?? null,
     proseComplete: prose != null && prose.text.trim().length > 0,
-    mediaGate: 'missing',
-    approvedAt: null,
-    approvedBy: null,
-    releaseAt: KL_LOCKED_RELEASE_AT,
+    mediaGate: memberLive ? 'provisional' : 'missing',
+    approvedAt: memberLive ? '2026-10-20T22:00:00.000Z' : null,
+    approvedBy: memberLive ? 'owner' : null,
+    releaseAt: memberLive ? '2026-10-21T22:00:00.000Z' : KL_LOCKED_RELEASE_AT,
     paused: false,
     seasonPaused: false,
     seasonEmergencyStop: false,

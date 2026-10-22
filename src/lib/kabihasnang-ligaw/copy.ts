@@ -53,4 +53,21 @@ export const klCopy = {
   back: 'Bumalik',
   yielded: 'Naka-pause ang tunog habang may ibang pinakikinggan.',
   motionPaused: 'Naka-pause ang galaw.',
+  liveReaders: 'Nagbabasa ngayon',
+  liveReadersEmpty: 'Ikaw pa lang ang nasa pahinang ito.',
+  liveReadersOne: '1 ang nagbabasa ngayon',
+  liveReadersManyPrefix: 'ang nagbabasa ngayon',
+  commentsTitle: 'Mga komento',
+  commentsHint: 'Para sa mga live na kabanata. Magalang na tugon sa kuwento.',
+  commentsEmpty: 'Wala pang komento. Maging una.',
+  commentPlaceholder: 'Isulat ang komento…',
+  commentSend: 'Ipadala',
+  commentNeedSignIn: 'Mag-sign in muna para magkomento.',
+  commentFailed: 'Hindi naipadala ang komento. Subukan muli.',
+  youLabel: 'Ikaw',
 } as const;
+
+export function klLiveReadersCountLabel(count: number): string {
+  if (count <= 1) return klCopy.liveReadersOne;
+  return `${count} ${klCopy.liveReadersManyPrefix}`;
+}

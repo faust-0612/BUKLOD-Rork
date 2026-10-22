@@ -20,6 +20,7 @@ import { Stack } from 'expo-router';
 import { useBuklodReduceMotion } from '@/components/HomeMotion';
 import KlAudioControls from '@/components/kabihasnang-ligaw/KlAudioControls';
 import KlCoverImage from '@/components/kabihasnang-ligaw/KlCoverImage';
+import KlLiveDiscussion from '@/components/kabihasnang-ligaw/KlLiveDiscussion';
 import KlSceneMotion from '@/components/kabihasnang-ligaw/KlSceneMotion';
 import {
   buildAssetGate,
@@ -27,6 +28,7 @@ import {
   buildStoryboard,
   KL_AUTHOR,
   KL_CHAPTER_ONE_LIVING_SCOPE,
+  KL_RELEASED_THROUGH_EPISODE,
   KL_SEASON_ONE_TITLE,
 } from '@/lib/kabihasnang-ligaw/catalog';
 import { klCopy } from '@/lib/kabihasnang-ligaw/copy';
@@ -294,6 +296,16 @@ export default function KlReaderScreen() {
     : null;
   const openTermEntry = openTerm ? dictionaryByName(openTerm) : null;
   const readingOpen = Boolean(selected && paragraphs.length > 0);
+  const liveReleased = Boolean(
+    selected
+    && decision?.readable
+    && (
+      selected.episodeNumber <= KL_RELEASED_THROUGH_EPISODE
+      || selected.status === 'live'
+      || selected.status === 'scheduled'
+      || selected.status === 'approved'
+    ),
+  );
 
   const cycleVolume = (channel: 'music' | 'ambient') => {
     const steps = [0.3, 0.6, 1];
@@ -354,6 +366,21 @@ export default function KlReaderScreen() {
               {selected.kind === 'panimula' ? 'PANIMULA' : `KABANATA ${String(selected.episodeNumber).padStart(2, '0')}`}
             </Text>
             <Text style={[styles.chapter, compact && styles.titleCompact]}>{selected.title}</Text>
+            <KlAudioControls
+              musicStatus={music?.classification ?? 'MISSING'}
+              ambientStatus={ambient?.classification ?? 'MISSING'}
+              otherAudioPlaying={externalAudio}
+              musicMuted={cache.musicMuted}
+              ambientMuted={cache.ambientMuted}
+              musicVolume={cache.musicVolume}
+              ambientVolume={cache.ambientVolume}
+              musicIntent={musicIntent}
+              onTogglePlay={() => setMusicIntent((intent) => !intent)}
+              onToggleMute={(channel) => void persist(channel === 'music'
+                ? { ...cache, musicMuted: !cache.musicMuted }
+                : { ...cache, ambientMuted: !cache.ambientMuted })}
+              onCycleVolume={cycleVolume}
+            />
             {paragraphs.map((paragraph) => {
               const scene = sceneRows.find((row) => row.paragraphRange?.start === paragraph.index);
               const still = scene?.sceneId ? KL_SCENE_STILLS[scene.sceneId] : undefined;
@@ -463,21 +490,6 @@ export default function KlReaderScreen() {
                 ))}
               </View>
             ) : null}
-            <KlAudioControls
-              musicStatus={music?.classification ?? 'MISSING'}
-              ambientStatus={ambient?.classification ?? 'MISSING'}
-              otherAudioPlaying={externalAudio}
-              musicMuted={cache.musicMuted}
-              ambientMuted={cache.ambientMuted}
-              musicVolume={cache.musicVolume}
-              ambientVolume={cache.ambientVolume}
-              musicIntent={musicIntent}
-              onTogglePlay={() => setMusicIntent((intent) => !intent)}
-              onToggleMute={(channel) => void persist(channel === 'music'
-                ? { ...cache, musicMuted: !cache.musicMuted }
-                : { ...cache, ambientMuted: !cache.ambientMuted })}
-              onCycleVolume={cycleVolume}
-            />
             {notice ? <Text style={styles.meta}>{notice}</Text> : null}
             {!online ? (
               <View style={styles.banner}>
@@ -485,6 +497,7 @@ export default function KlReaderScreen() {
                 <IconButton icon="refresh" label={klCopy.tryAgain} disabled={busy} onPress={() => void refresh()} />
               </View>
             ) : null}
+            <KlLiveDiscussion episodeId={selected.id} live={liveReleased} />
           </View>
         ) : (
           <View style={styles.list}>
