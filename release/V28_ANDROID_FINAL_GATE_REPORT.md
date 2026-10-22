@@ -7,8 +7,8 @@ This is a DEV integration and release-policy repair, not a frozen RC or a new pr
 - Target: project `23dad7d0-389a-406e-8dec-08965dab85d8`, Android, channel `production`, runtime `1.3.2`.
 - Requested update `01a162c0-c183-70a8-92a6-a7116581d5e1` was observed at the production manifest endpoint, created `2026-10-22T08:36:02.051Z`, version `1.3.4`, code `28`.
 - A newer production update was subsequently observed: `01a162ef-71f7-7959-9630-526dbb390882`, created `2026-10-22T09:27:01.879Z`, same runtime. Its launch bundle SHA256/base64url is `KdDa8TGxSZuCmo0TpF-BwKXLLUKSuTWNLBge8LXjj7c`.
-- Successful GitHub production run `39754966273` reports source `1287392ca0b847314dd79982ae384103577b0ce9`. The public manifest does not independently expose that Git SHA, so this is reported workflow provenance, not a verified byte-for-byte source match.
-- EAS CDN bundle download and GitHub redirected log download were denied by the current egress policy. Domain additions were saved in the cloud environment draft; they are not evidence of applied runtime access.
+- Successful GitHub production run `39754966273` reports source `1287392ca0b847314dd79982ae384103577b0ce9`. Authenticated read-only Expo inspection confirmed this update belongs to group 97bc06f0-887e-448e-a0be-506322ef5829 and records gitCommitHash 1287392. However isGitWorkingTreeDirty is true, so the recorded SHA is not proof that the compiled source exactly matches the clean Git tree. Native fingerprint reported by Expo: 78f57e2dc9b8eadc2cdd178f0c94ee9dedcf6e8b.
+- EAS CDN bundle download remains denied. GitHub artifact retrieval later became available, allowing authenticated inspection metadata to be read. Earlier redirected log retrieval failed. Domain additions were saved in the cloud environment draft; they are not evidence of applied runtime access.
 
 ## Feature classification
 
@@ -28,7 +28,7 @@ LIVE identifies only what the production endpoint independently confirms. Source
 | Connect follow-back, history, pagination | SOURCE ONLY; live linkage unverified | Current main already includes Connect PR243-era source; no older branch replacement. Review-only group Seen/backend requirements are not represented as live. |
 | Approved KL reader/content | SOURCE ONLY; live linkage unverified | Current main reader/manuscripts/stills retained byte-for-byte. Existing reader tests passed. No migration or content approval-state changes. Backend-dependent functionality is not newly enabled by this OTA. |
 | Draft/HOLD features | PR ONLY; excluded | No blanket merges of open draft/HOLD feature branches. |
-| Original V28 cloud binary and native compatibility evidence | MISSING / BLOCKED | Only reference hashes are available; no authoritative AAB/native inventory was located in this cloud workspace or inspected cloud artifacts. |
+| Original V28 cloud binary and native compatibility evidence | MISSING / BLOCKED | Only reference hashes are available; authenticated Expo build:list for Android version1.3.4/code28 returned zero finished builds. No authoritative original AAB/native inventory was located in this cloud workspace or inspected cloud artifacts. |
 
 ## Verification
 
@@ -60,3 +60,7 @@ Release result: BLOCKED. Frozen RC SHA: none. New production update ID: none. Ex
 ## Concurrent cumulative source reconciliation
 
 While inspection ran, main advanced to 7095a3fb5189d28be53a6e9742859e6391be9e8c (Today/Connect/comment fixes). These approved main changes were merged forward without replacing the immutable-RC publisher; only the workflow conflict required explicit resolution. TypeScript and the affected comment/weak-network suites (15 tests) passed. No backend function deployment was run. Earlier full cloud Performance QA (39757591420) and policy guard (39757591599) passed on the previous identical application baseline before these new main changes. They are not claimed as full CI verification of the later merged tree.
+
+## Existing cloud authentication and custody inspection
+
+Read-only Expo inspection run 39758157355 completed successfully using the existing Actions EXPO_TOKEN; qa-and-publish was skipped. Channel production is mapped to Expo branch production. The current update source is recorded as 1287392 but dirty=true, so exact live cumulative source/bundle verification remains a required gate. Finished EAS Android builds filtered for original version1.3.4/code28: zero. No duplicate credential or new paid service is required to repeat authorized metadata reads. Inspection derivatives retain only sanitized metadata (including recursively sanitized serialized config); no credential values are recorded here.

@@ -14,6 +14,7 @@ test('read-only inspection evidence omits credentials and signed artifact URLs',
   const { sanitize } = require('../scripts/sanitize-expo-inspection.cjs');
   const result = sanitize({id:'build-id',gitCommitHash:'sha',artifacts:{applicationArchiveUrl:'https://example.invalid/signed'},ownerAccount:{email:'private'},environment:{EXPO_TOKEN:'private'}});
   assert.deepEqual(result,{id:'build-id',gitCommitHash:'sha',artifacts:{}});
+  assert.deepEqual(JSON.parse(sanitize('{"id":"update-id","androidGoogleMapsApiKey":"private-test-fixture"}')), {id:'update-id'});
 });
 test('required readiness and publish verification gates cannot be removed', () => {
   for (const gate of ['verify-android-rc-readiness.cjs', 'character:contract', 'verify-production-android-update.cjs published']) {
