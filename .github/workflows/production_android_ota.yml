@@ -162,7 +162,7 @@ jobs:
           grep -F "constrainContextToOrganization" 'src/lib/buklodClusterFormationGate.ts'
           grep -F "readMediaForUpload" 'src/app/scope/bulletin-editor.tsx'
           grep -F "Title and message are required before publishing." 'src/app/scope/bulletin-editor.tsx'
-          grep -F "key: 'classrooms'" 'src/app/(tabs)/me.tsx'
+          grep -F "router.push('/profile/buklod-classrooms' as any)" 'src/components/BuklodPublicWordShortcut.tsx'
           grep -F "import { FacultyClassroomHeader } from '@/components/classroom/FacultyClassroomHeader';" 'src/app/profile/buklod-faculty-class.tsx'
           grep -F 'auto_grading_mode: string;' 'src/app/profile/buklod-classroom-work.tsx'
           grep -F 'ai_suggested_score: number | null;' 'src/app/profile/buklod-classroom-work.tsx'
@@ -178,7 +178,7 @@ jobs:
           grep -F 'BUKLOD_FOCUS_APP_ADS_R1' 'src/components/BuklodFocusAppAdStrip.tsx'
           grep -F 'placement="focus"' 'src/components/BuklodFocusAppAdStrip.tsx'
           grep -F "case 'focus':" 'src/lib/buklodAdUnits.ts'
-          grep -F 'BUKLOD_AWS_WALL_VIDEO_R2_FAST_MULTIPART' 'src/lib/buklodAwsWallVideo.ts'
+          grep -F 'BUKLOD_AWS_WALL_VIDEO_R3_NATIVE_BOUNDED_MEMORY' 'src/lib/buklodAwsWallVideo.ts'
           grep -F 'BUKLOD_AWS_WALL_VIDEO_ROUTE_R1' 'src/lib/uploadCommunityVideoFile.ts'
           grep -F 'set_buklod_post_media_v5' 'src/lib/buklodCommunityPostMedia.ts'
           grep -F 'BUKLOD_AWS_SIGNED_MEDIA_CACHE_R2_BATCHED' 'src/lib/buklodMediaUrl.ts'
@@ -220,7 +220,7 @@ jobs:
             --channel production \
             --platform android \
             --environment production \
-            --message "BUKLOD Auth R1 — persisted login + email OTP recovery + trusted-device unlock" \
+            --message "V28 runtime 1.3.2: approved V28 plus current OTAs, PTT retained, Kabihasnang Ligaw" \
             --non-interactive
 
       - name: Deployment status
