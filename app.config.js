@@ -390,7 +390,7 @@ module.exports = ({ config }) => {
 
 
     // Main BUKLOD 1.3.4 is native v28. Classroom stays on its own runtime.
-    runtimeVersion: isClassroom ? '1.3.0' : '1.3.4',
+    runtimeVersion: isClassroom ? '1.3.0' : '1.3.2',
   };
 };
 
