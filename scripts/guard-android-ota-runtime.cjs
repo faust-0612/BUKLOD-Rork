@@ -2,7 +2,6 @@
 // Fail-closed guard for the currently approved V28 Android binary.
 // Update this registry only after independently verifying a new downloadable binary.
 const fs = require('node:fs');
-const assert = require('node:assert/strict');
 const { execFileSync } = require('node:child_process');
 
 const registry = JSON.parse(fs.readFileSync('release/android-native-runtime.json', 'utf8'));
@@ -20,8 +19,9 @@ if (config.runtimeVersion !== expected.embeddedRuntime) fail('Embedded runtime m
 if (config.extra?.eas?.projectId !== expected.easProjectId) fail('EAS project mismatch');
 if (process.env.OTA_CHANNEL !== expected.channel) fail('OTA channel mismatch');
 if (process.env.OTA_PLATFORM !== 'android') fail('Non-Android OTA requested');
-if (process.env.GITHUB_REF_TYPE === 'tag' && !/^v28-runtime-132-[a-f0-9]+$/.test(process.env.GITHUB_REF_NAME || '')) fail('Unexpected release tag');
-if (process.env.GITHUB_REF_TYPE === 'tag') {
+if (process.env.GITHUB_REF_TYPE !== 'tag') fail('Publish must run from an immutable release tag');
+if (!/^v28-runtime-132-[a-f0-9]{8,40}$/.test(process.env.GITHUB_REF_NAME || '')) fail('Unexpected release tag');
+{
   const tag = execFileSync('git', ['rev-parse', 'HEAD'], {encoding:'utf8'}).trim();
   const short = (process.env.GITHUB_REF_NAME || '').split('-').at(-1);
   if (!tag.startsWith(short)) fail('Tag does not identify checkout commit');
