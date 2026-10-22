@@ -26,6 +26,8 @@ import {
   KL_SEASON_ONE_TITLE,
 } from '@/lib/kabihasnang-ligaw/catalog';
 import { klCopy } from '@/lib/kabihasnang-ligaw/copy';
+import { KL_ECONOMY_V2 } from '@/lib/kabihasnang-ligaw/economyPolicy';
+import { KL_MONETIZATION } from '@/lib/kabihasnang-ligaw/monetizationPolicy';
 import { memberReadable } from '@/lib/kabihasnang-ligaw/gates';
 import { isLowBandwidth, resolveLivingMotion, visibleLivingLayers } from '@/lib/kabihasnang-ligaw/livingMotion';
 import { paragraphDisplayText, splitCanonicalParagraphs } from '@/lib/kabihasnang-ligaw/manuscript';
@@ -279,6 +281,15 @@ export default function KlReaderScreen() {
         </View>
       ) : null}
 
+      <View style={styles.panel}>
+        <Text style={styles.panelTitle}>Gantimpala sa Pagbabasa</Text>
+        <Text style={styles.body}>{`+${KL_ECONOMY_V2.chapterCompletionPoints} points sa unang verified chapter completion; +${KL_ECONOMY_V2.meaningfulCommentPoints} sa eligible comment.`}</Text>
+        <Text style={styles.meta}>Ibinibigay lamang ang points kapag nakumpirma ng server. Hindi pa aktibo ang bagong reward policy.</Text>
+      </View>
+      <View style={styles.panel}>
+        <Text style={styles.panelTitle}>Libreng Pagbabasa</Text>
+        <Text style={styles.meta}>{KL_MONETIZATION.freeMainStory ? 'Libreng basahin ang pangunahing kuwento.' : 'Hindi available ang pagbabasa.'} Walang ads sa gitna ng kabanata.</Text>
+      </View>
       <View style={styles.panel}>
         <Text style={styles.panelTitle}>{klCopy.journey}</Text>
         <Text style={styles.body}>{klCopy.journeyEmpty}</Text>
