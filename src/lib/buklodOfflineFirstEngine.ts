@@ -29,6 +29,8 @@ type Snapshot<T> = {
 const PREFIX = '@buklod/offline-first/v1/';
 const inFlight = new Map<string, Promise<unknown>>();
 const memory = new Map<string, Snapshot<unknown>>();
+// Revocation generations prevent an in-flight read from restoring invalidated data.
+const generations = new Map<string, number>();
 const MAX_ROWS = 2000;
 const DEFAULT_REFRESH_MS = 5 * 60 * 1000;
 
@@ -76,11 +78,15 @@ export async function readBuklodOfflineFirst<T extends { id: string }>(args: {
   const sync = () => {
     const existing = inFlight.get(key);
     if (existing) return existing as Promise<T[]>;
+    const generation = generations.get(key) ?? 0;
     const task = enqueueBuklodRead({
       key, view: args.view, kind: args.kind ?? 'other', priority: 'visible',
       run: async signal => {
         const base = (await load<T>(key)) ?? { schema: 1 as const, cursor: '', rows: [], syncedAt: 0 };
         const delta = await args.fetchDelta(base.cursor, signal);
+        if (signal.aborted || (generations.get(key) ?? 0) !== generation) {
+          throw new Error('BUKLOD sync cancelled or scope revoked');
+        }
         if (!delta || !Array.isArray(delta.upserts) || !Array.isArray(delta.deletedIds) ||
             typeof delta.nextCursor !== 'string') throw new Error('Invalid sync delta');
         const removed = new Set(delta.deletedIds);
@@ -93,8 +99,15 @@ export async function readBuklodOfflineFirst<T extends { id: string }>(args: {
           schema: 1, cursor: delta.nextCursor,
           rows: Array.from(rows.values()).slice(-MAX_ROWS), syncedAt: Date.now(),
         };
-        // Persist before publishing. A failed disk write must not advance cursor.
+        // Serialize against revocation: stale responses must never resurrect data.
+        if ((generations.get(key) ?? 0) !== generation || signal.aborted) {
+          throw new Error('BUKLOD sync scope changed');
+        }
         await AsyncStorage.setItem(key, JSON.stringify(next));
+        if ((generations.get(key) ?? 0) !== generation || signal.aborted) {
+          await AsyncStorage.removeItem(key);
+          throw new Error('BUKLOD sync scope revoked during persistence');
+        }
         memory.set(key, next);
         args.onUpdated?.(next.rows);
         return next.rows;
@@ -118,6 +131,7 @@ export async function readBuklodOfflineFirst<T extends { id: string }>(args: {
 /** Call on account sign-out or access revocation, never merely on app close. */
 export async function invalidateBuklodOfflineScope(accountId: string, permissionScope: string, dataset: string) {
   const key = keyFor(accountId, permissionScope, dataset);
+  generations.set(key, (generations.get(key) ?? 0) + 1);
   memory.delete(key);
   await AsyncStorage.removeItem(key);
 }
