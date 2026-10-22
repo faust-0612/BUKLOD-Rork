@@ -8,6 +8,11 @@ export const KL_RPC = {
   adminPreview: 'kl_admin_preview_v1',
   adminAction: 'kl_admin_action_v1',
   reportIssue: 'kl_report_reader_issue_v1',
+  // Planned RPC names; do not call before verified backend migration/RLS.
+  listComments: 'kl_list_comments_v1',
+  postComment: 'kl_post_comment_v1',
+  reactToComment: 'kl_react_to_comment_v1',
+  removeComment: 'kl_remove_comment_v1',
 } as const;
 
 export type AdminAction =
