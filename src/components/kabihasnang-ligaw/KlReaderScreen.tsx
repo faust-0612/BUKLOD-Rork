@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AppState,
+  Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
@@ -10,6 +11,8 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import NetInfo from '@react-native-community/netinfo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stack } from 'expo-router';
@@ -30,6 +33,7 @@ import { klCopy } from '@/lib/kabihasnang-ligaw/copy';
 import { memberReadable } from '@/lib/kabihasnang-ligaw/gates';
 import { isLowBandwidth, resolveLivingMotion, visibleLivingLayers } from '@/lib/kabihasnang-ligaw/livingMotion';
 import { dictionaryByName, KL_DICTIONARY, splitDictionaryTerms } from '@/lib/kabihasnang-ligaw/dictionary';
+import { KL_SCENE_STILLS } from '@/lib/kabihasnang-ligaw/sceneStills';
 import { paragraphDisplayText, splitCanonicalParagraphs } from '@/lib/kabihasnang-ligaw/manuscript';
 import { journeySummary } from '@/lib/kabihasnang-ligaw/journey';
 import {
@@ -38,7 +42,6 @@ import {
   rememberReleasedReading,
   rememberScroll,
   sanitizeReaderCache,
-  sceneArtDecision,
   selectMemberReading,
   type ReaderCache,
 } from '@/lib/kabihasnang-ligaw/readerSession';
@@ -65,7 +68,10 @@ export default function KlReaderScreen() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [glossaryOpen, setGlossaryOpen] = useState(false);
   const [openTerm, setOpenTerm] = useState<string | null>(null);
+  const [lockedId, setLockedId] = useState<string | null>(null);
+  const [musicIntent, setMusicIntent] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
   const [busy, setBusy] = useState(false);
   const [appActive, setAppActive] = useState(true);
   const [externalAudio, setExternalAudio] = useState(false);
@@ -88,10 +94,9 @@ export default function KlReaderScreen() {
     cellularGeneration: cellGeneration,
     userDataSaver: cache.dataSaver,
   });
-  const canonicalRelease = Boolean(selected && decision?.readable && (selected.episodeNumber === 0 || selected.episodeNumber === 1));
   const reading = selectMemberReading({
     locallyReadable: decision?.readable === true,
-    serverState: canonicalRelease && serverState === 'hidden' ? 'unknown' : serverState,
+    serverState,
     serverText,
     bundledText: selected?.prose ?? null,
     cachedText: selected ? cache.releasedProse[selected.id] ?? null : null,
@@ -142,7 +147,12 @@ export default function KlReaderScreen() {
       try {
         const parsed = sanitizeReaderCache(JSON.parse(raw) as ReaderCache);
         setCache(parsed);
-        setSelectedId(parsed.lastEpisodeId);
+        const restored = EPISODES.find((episode) => episode.id === parsed.lastEpisodeId);
+        const restoredAssets = ASSETS.filter((asset) => asset.episodeId === restored?.id);
+        const restoredReadable = restored
+          ? memberReadable(restored, restoredAssets, new Date(), STORYBOARD).readable
+          : false;
+        setSelectedId(restoredReadable ? parsed.lastEpisodeId : null);
       } catch {
         setNotice(klCopy.couldNotOpen);
       }
@@ -246,242 +256,334 @@ export default function KlReaderScreen() {
     }
     await persist(nextCache);
   };
+  const episodeReadable = (episodeId: string) => {
+    const episode = EPISODES.find((item) => item.id === episodeId);
+    if (!episode) return false;
+    const episodeAssets = ASSETS.filter((asset) => asset.episodeId === episodeId);
+    return memberReadable(episode, episodeAssets, new Date(), STORYBOARD).readable;
+  };
 
-  const waitingCopy = useMemo(() => {
-    if (!selected) return null;
-    if (selected.kind === 'panimula') return klCopy.panimulaNotReady;
-    if (selected.manuscriptStatus === 'outline_only') return klCopy.outlineLocked;
-    return klCopy.notReady;
-  }, [selected]);
+  const scrollTop = () => {
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+  };
+
+  const closeReader = () => {
+    setSelectedId(null);
+    setOpenTerm(null);
+    setGlossaryOpen(false);
+    setLockedId(null);
+    scrollTop();
+  };
+
+  const openReadable = (episodeId: string) => {
+    if (!episodeReadable(episodeId)) {
+      setLockedId(episodeId);
+      setSelectedId(null);
+      return;
+    }
+    setLockedId(null);
+    scrollTop();
+    void openEpisode(episodeId);
+  };
+
+  const selectedIndex = EPISODES.findIndex((episode) => episode.id === selected?.id);
+  const previousEpisode = selectedIndex > 0 ? EPISODES[selectedIndex - 1] : null;
+  const nextEpisode = selectedIndex >= 0 && selectedIndex < EPISODES.length - 1
+    ? EPISODES[selectedIndex + 1]
+    : null;
+  const openTermEntry = openTerm ? dictionaryByName(openTerm) : null;
+  const readingOpen = Boolean(selected && paragraphs.length > 0);
+
+  const cycleVolume = (channel: 'music' | 'ambient') => {
+    const steps = [0.3, 0.6, 1];
+    if (channel === 'music') {
+      const next = steps.find((step) => step > cache.musicVolume) ?? steps[0];
+      void persist({ ...cache, musicVolume: next });
+      return;
+    }
+    const next = steps.find((step) => step > cache.ambientVolume) ?? steps[0];
+    void persist({ ...cache, ambientVolume: next });
+  };
 
   return (
-    <ScrollView
-      style={styles.page}
-      contentContainerStyle={[styles.content, { paddingHorizontal: compact ? 16 : 24 }]}
-      scrollEventThrottle={32}
-      onScroll={(event: NativeSyntheticEvent<NativeScrollEvent>) => syncViewport(event.nativeEvent.contentOffset.y)}
-    >
-      <Stack.Screen options={{ title: 'Kabihasnang Ligaw' }} />
-      <View style={{ marginHorizontal: compact ? -16 : -24 }}>
-        <KlCoverImage variant="hero" lowBandwidth={lowBandwidth} />
-      </View>
-      <Text style={styles.kicker}>{klCopy.libraryKicker}</Text>
-      <Text style={[styles.title, compact && styles.titleCompact]}>{KL_SEASON_ONE_TITLE}</Text>
-      <Text style={styles.by}>{KL_AUTHOR}</Text>
-      <Text style={styles.lede}>{klCopy.librarySubtitle}</Text>
-      <View style={styles.row}>
-        <Pressable accessibilityRole="button" onPress={() => setSelectedId(null)} style={styles.secondary}>
-          <Text style={styles.secondaryText}>{klCopy.backToCard}</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => {
-            const label = selected?.episodeNumber === 1 ? 'Kabanata 01' : (selected?.title ?? 'Kabanata 01');
-            void persist({ ...cache, bookmarkLabel: label, lastEpisodeId: selected?.id ?? cache.lastEpisodeId });
-            setNotice(klCopy.bookmarkSaved);
-          }}
-          style={styles.secondary}
-        >
-          <Text style={styles.secondaryText}>{`☆ ${klCopy.bookmark}`}</Text>
-        </Pressable>
-      </View>
-
-      {!online || notice ? (
-        <View style={styles.banner}>
-          <Text style={styles.bannerText}>{notice ?? klCopy.weakNetwork}</Text>
-          <Pressable accessibilityRole="button" onPress={() => void refresh()} style={styles.secondary}>
-            <Text style={styles.secondaryText}>{busy ? klCopy.tryAgain : klCopy.tryAgain}</Text>
-          </Pressable>
-        </View>
-      ) : null}
-
-      <View style={styles.panel}>
-        <Text style={styles.panelTitle}>{klCopy.journey}</Text>
-        <Text style={styles.body}>{klCopy.journeyEmpty}</Text>
-        <Text style={styles.meta}>{journey.completed} / {journey.total}</Text>
-        <Text style={styles.meta}>{klCopy.journeyNote}</Text>
-      </View>
-
-      <View style={styles.row}>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => void persist({ ...cache, textScale: Math.max(0.85, cache.textScale - 0.1) })}
-          style={styles.secondary}
-        >
-          <Text style={styles.secondaryText}>{klCopy.textSmaller}</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => void persist({ ...cache, textScale: Math.min(1.35, cache.textScale + 0.1) })}
-          style={styles.secondary}
-        >
-          <Text style={styles.secondaryText}>{klCopy.textLarger}</Text>
-        </Pressable>
-      </View>
-
-      <View style={styles.row}>
-        <Pressable onPress={() => void persist({ ...cache, motionEnabled: !cache.motionEnabled })} style={styles.secondary}>
-          <Text style={styles.secondaryText}>{klCopy.motion}</Text>
-        </Pressable>
-        <Pressable onPress={() => void persist({ ...cache, batterySaver: !cache.batterySaver })} style={styles.secondary}>
-          <Text style={styles.secondaryText}>{klCopy.battery}</Text>
-        </Pressable>
-        <Pressable onPress={() => void persist({ ...cache, dataSaver: !cache.dataSaver })} style={styles.secondary}>
-          <Text style={styles.secondaryText}>{klCopy.dataSaver}</Text>
-        </Pressable>
-      </View>
-      {!appActive || reduceMotion || cache.batterySaver || !cache.motionEnabled || lowBandwidth ? (
-        <Text style={styles.meta}>{klCopy.motionPaused}</Text>
-      ) : null}
-
-      <KlAudioControls
-        musicStatus={music?.classification ?? 'MISSING'}
-        ambientStatus={ambient?.classification ?? 'MISSING'}
-        otherAudioPlaying={externalAudio}
-        musicMuted={cache.musicMuted}
-        ambientMuted={cache.ambientMuted}
-        musicVolume={cache.musicVolume}
-        ambientVolume={cache.ambientVolume}
-        onToggleMute={(channel) => void persist(channel === 'music'
-          ? { ...cache, musicMuted: !cache.musicMuted }
-          : { ...cache, ambientMuted: !cache.ambientMuted })}
-        onCycleVolume={(channel) => {
-          const steps = [0.3, 0.6, 1];
-          if (channel === 'music') {
-            const next = steps.find((step) => step > cache.musicVolume) ?? steps[0];
-            void persist({ ...cache, musicVolume: next });
-            return;
-          }
-          const next = steps.find((step) => step > cache.ambientVolume) ?? steps[0];
-          void persist({ ...cache, ambientVolume: next });
-        }}
-        onUnavailable={(channel) => {
-          void persist(queueReaderIssue(cache, {
-            kind: 'audio',
-            detail: channel === 'music' ? 'music_missing' : 'ambient_missing',
-            at: new Date().toISOString(),
-          }));
-          setNotice(channel === 'music' ? klCopy.noMusic : klCopy.noAmbient);
-        }}
-      />
-
-      <Pressable accessibilityRole="button" onPress={() => setGlossaryOpen((open) => !open)} style={styles.secondary}>
-        <Text style={styles.secondaryText}>{klCopy.openDictionary}</Text>
-      </Pressable>
-      {glossaryOpen ? (
-        <View style={styles.panel}>
-          <Text style={styles.panelTitle}>{klCopy.glossary}</Text>
-          <Text style={styles.meta}>{klCopy.glossaryNote}</Text>
-          {KL_DICTIONARY.map((entry) => (
-            <Pressable key={entry.name} accessibilityRole="button" onPress={() => setOpenTerm(entry.name)}>
-              <Text style={styles.term}>{entry.name}</Text>
-              <Text style={styles.meta}>{`${entry.kind} — ${entry.meaning}`}</Text>
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
-      {openTerm ? (
-        <View style={styles.panel}>
-          <Text style={styles.panelTitle}>{openTerm}</Text>
-          <Text style={styles.body}>{dictionaryByName(openTerm)?.meaning}</Text>
-          <Pressable accessibilityRole="button" onPress={() => setOpenTerm(null)} style={styles.secondary}>
-            <Text style={styles.secondaryText}>{klCopy.back}</Text>
-          </Pressable>
-        </View>
-      ) : null}
-
-      <Pressable accessibilityRole="button" onPress={() => void refresh()} style={styles.secondary}>
-        <Text style={styles.secondaryText}>{klCopy.tryAgain}</Text>
-      </Pressable>
-
-      {selected ? (
-        <View style={styles.reader}>
-          <Pressable accessibilityRole="button" onPress={() => setSelectedId(null)} style={styles.secondary}>
-            <Text style={styles.secondaryText}>{klCopy.back}</Text>
-          </Pressable>
-          <KlCoverImage variant="card" lowBandwidth={lowBandwidth} />
-          <Text style={styles.kicker}>{selected.kind === 'panimula' ? 'PANIMULA' : `KABANATA ${String(selected.episodeNumber).padStart(2, '0')}`}</Text>
-          <Text style={[styles.chapter, compact && styles.titleCompact]}>{selected.titleMode === 'outline_label' ? selected.title : selected.title}</Text>
-          {paragraphs.length > 0 ? (
-            <View>
-              {paragraphs.map((paragraph) => {
-                const scene = sceneRows.find((row) => row.paragraphRange?.start === paragraph.index);
-                const sceneStill = scene && scene.sceneId !== 's1-e01-shot-05'
-                  ? selectedAssets.find((asset) => asset.sceneId === scene.sceneId && asset.kind === 'illustration' && asset.approved && asset.classification === 'APPROVED')
-                  : null;
-                const art = scene
-                  ? sceneArtDecision({
-                    spoiler: scene.spoiler,
-                    rangeStart: scene.paragraphRange?.start ?? null,
-                    reachedParagraph: viewEnd,
-                    approvedUri: sceneStill?.path ?? null,
-                    lowBandwidth,
-                  })
-                  : null;
-                return (
-                  <View
-                    key={paragraph.id}
-                    testID={paragraph.id}
-                    onLayout={(event) => {
-                      paragraphY.current[paragraph.index] = event.nativeEvent.layout.y;
-                    }}
-                    style={styles.paragraph}
-                  >
-                    <Text style={[
+    <>
+      <ScrollView
+        ref={scrollRef}
+        style={styles.page}
+        contentContainerStyle={[styles.content, { paddingHorizontal: compact ? 16 : 24 }]}
+        scrollEventThrottle={32}
+        onScroll={(event: NativeSyntheticEvent<NativeScrollEvent>) => syncViewport(event.nativeEvent.contentOffset.y)}
+      >
+        <Stack.Screen options={{ title: selected?.title ?? 'Kabihasnang Ligaw' }} />
+        {readingOpen && selected ? (
+          <View style={styles.reader}>
+            <View style={styles.nav}>
+              <IconButton icon="arrow-left" label={klCopy.back} onPress={closeReader} />
+              <IconButton
+                icon="chevron-left"
+                label="Nakaraang kabanata"
+                disabled={!previousEpisode || !episodeReadable(previousEpisode.id)}
+                onPress={() => previousEpisode && openReadable(previousEpisode.id)}
+              />
+              <Text style={styles.navTitle} numberOfLines={1}>{selected.title}</Text>
+              <IconButton
+                icon="chevron-right"
+                label="Susunod na kabanata"
+                disabled={!nextEpisode}
+                onPress={() => {
+                  if (!nextEpisode) return;
+                  if (episodeReadable(nextEpisode.id)) {
+                    openReadable(nextEpisode.id);
+                    return;
+                  }
+                  setLockedId(nextEpisode.id);
+                }}
+              />
+            </View>
+            {lockedId && nextEpisode && lockedId === nextEpisode.id ? (
+              <Text style={styles.meta}>{klCopy.nextLocked} {klCopy.lockedDetail}</Text>
+            ) : null}
+            <KlCoverImage variant="card" lowBandwidth={false} />
+            <Text style={styles.kicker}>
+              {selected.kind === 'panimula' ? 'PANIMULA' : `KABANATA ${String(selected.episodeNumber).padStart(2, '0')}`}
+            </Text>
+            <Text style={[styles.chapter, compact && styles.titleCompact]}>{selected.title}</Text>
+            {paragraphs.map((paragraph) => {
+              const scene = sceneRows.find((row) => row.paragraphRange?.start === paragraph.index);
+              const still = scene?.sceneId ? KL_SCENE_STILLS[scene.sceneId] : undefined;
+              const holdSpoiler = Boolean(
+                scene?.spoiler
+                && (scene.paragraphRange == null || viewEnd == null || viewEnd < scene.paragraphRange.start),
+              );
+              return (
+                <View
+                  key={paragraph.id}
+                  testID={paragraph.id}
+                  onLayout={(event) => {
+                    paragraphY.current[paragraph.index] = event.nativeEvent.layout.y;
+                  }}
+                  style={styles.paragraph}
+                >
+                  {still && !holdSpoiler ? (
+                    <Image
+                      source={still}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                      accessibilityLabel="Larawan ng eksena"
+                      style={styles.scene}
+                    />
+                  ) : null}
+                  <Text
+                    style={[
                       paragraph.kind === 'heading' ? styles.kicker : styles.body,
                       paragraph.kind === 'body' && { fontSize: bodySize, lineHeight: Math.round(bodySize * 1.65) },
                     ]}
-                    >
-                      {splitDictionaryTerms(paragraphDisplayText(paragraph)).map((part, index) => (
-                        part.term ? (
-                          <Text key={`${paragraph.id}-${index}`} style={styles.term} onPress={() => setOpenTerm(part.term)}>
-                            {part.text}
-                          </Text>
-                        ) : (
-                          <Text key={`${paragraph.id}-${index}`}>{part.text}</Text>
-                        )
-                      ))}
-                    </Text>
-                    {art && art.message !== 'spoiler_held' ? (
-                      <Text style={styles.meta}>{art.message === 'withheld' ? klCopy.imageWithheld : klCopy.noImage}</Text>
-                    ) : null}
-                  </View>
-                );
-              })}
-              <KlSceneMotion animate={motion.animate} layers={motion.layers} />
+                  >
+                    {splitDictionaryTerms(paragraphDisplayText(paragraph)).map((part, index) => (
+                      part.term ? (
+                        <Text
+                          key={`${paragraph.id}-${index}`}
+                          style={styles.term}
+                          accessibilityRole="link"
+                          accessibilityLabel={part.term}
+                          onPress={() => setOpenTerm(part.term)}
+                        >
+                          {part.text}
+                        </Text>
+                      ) : (
+                        <Text key={`${paragraph.id}-${index}`}>{part.text}</Text>
+                      )
+                    ))}
+                  </Text>
+                </View>
+              );
+            })}
+            <KlSceneMotion animate={motion.animate} layers={motion.layers} />
+            <View style={styles.row}>
+              <IconButton
+                icon="minus"
+                label={klCopy.textSmaller}
+                onPress={() => void persist({ ...cache, textScale: Math.max(0.85, cache.textScale - 0.1) })}
+              />
+              <IconButton
+                icon="plus"
+                label={klCopy.textLarger}
+                onPress={() => void persist({ ...cache, textScale: Math.min(1.35, cache.textScale + 0.1) })}
+              />
+              <IconButton
+                icon={cache.motionEnabled ? 'animation-play' : 'animation-outline'}
+                label={klCopy.motion}
+                active={cache.motionEnabled}
+                onPress={() => void persist({ ...cache, motionEnabled: !cache.motionEnabled })}
+              />
+              <IconButton
+                icon="battery"
+                label={klCopy.battery}
+                active={cache.batterySaver}
+                onPress={() => void persist({ ...cache, batterySaver: !cache.batterySaver })}
+              />
+              <IconButton
+                icon="signal-cellular-1"
+                label={klCopy.dataSaver}
+                active={cache.dataSaver}
+                onPress={() => void persist({ ...cache, dataSaver: !cache.dataSaver })}
+              />
+              <IconButton
+                icon={cache.bookmarkLabel ? 'bookmark' : 'bookmark-outline'}
+                label={klCopy.bookmark}
+                active={Boolean(cache.bookmarkLabel)}
+                onPress={() => {
+                  const label = selected.episodeNumber === 1 ? 'Kabanata 01' : selected.title;
+                  void persist({ ...cache, bookmarkLabel: label, lastEpisodeId: selected.id });
+                  setNotice(klCopy.bookmarkSaved);
+                }}
+              />
+              <IconButton
+                icon="book-open-variant"
+                label={klCopy.glossary}
+                active={glossaryOpen}
+                onPress={() => setGlossaryOpen((open) => !open)}
+              />
             </View>
-          ) : (
-            <Text style={[styles.body, { fontSize: bodySize, lineHeight: Math.round(bodySize * 1.65) }]}>
-              {`${waitingCopy} ${klCopy.readerWaiting}`}
-            </Text>
-          )}
-        </View>
-      ) : (
-        <View style={styles.list}>
-          {EPISODES.map((episode) => (
-            <Pressable
-              key={episode.id}
-              accessibilityRole="button"
-              onPress={() => void openEpisode(episode.id)}
-              style={styles.episode}
-            >
-              <Text style={styles.episodeTitle}>{episode.title}</Text>
-              <Text style={styles.meta}>
-                {memberReadable(episode, ASSETS.filter((asset) => asset.episodeId === episode.id), new Date(), STORYBOARD).readable
-                  ? klCopy.readable
-                  : klCopy.locked}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      )}
-    </ScrollView>
+            {glossaryOpen ? (
+              <View style={styles.panel}>
+                <Text style={styles.panelTitle}>{klCopy.glossary}</Text>
+                <Text style={styles.meta}>{klCopy.glossaryNote}</Text>
+                {KL_DICTIONARY.map((entry) => (
+                  <Pressable key={entry.name} accessibilityRole="button" onPress={() => setOpenTerm(entry.name)}>
+                    <Text style={styles.term}>{entry.name}</Text>
+                    <Text style={styles.meta}>{entry.kind}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+            <KlAudioControls
+              musicStatus={music?.classification ?? 'MISSING'}
+              ambientStatus={ambient?.classification ?? 'MISSING'}
+              otherAudioPlaying={externalAudio}
+              musicMuted={cache.musicMuted}
+              ambientMuted={cache.ambientMuted}
+              musicVolume={cache.musicVolume}
+              ambientVolume={cache.ambientVolume}
+              musicIntent={musicIntent}
+              onTogglePlay={() => setMusicIntent((intent) => !intent)}
+              onToggleMute={(channel) => void persist(channel === 'music'
+                ? { ...cache, musicMuted: !cache.musicMuted }
+                : { ...cache, ambientMuted: !cache.ambientMuted })}
+              onCycleVolume={cycleVolume}
+            />
+            {notice ? <Text style={styles.meta}>{notice}</Text> : null}
+            {!online ? (
+              <View style={styles.banner}>
+                <Text style={styles.bannerText}>{klCopy.weakNetwork}</Text>
+                <IconButton icon="refresh" label={klCopy.tryAgain} disabled={busy} onPress={() => void refresh()} />
+              </View>
+            ) : null}
+          </View>
+        ) : (
+          <View style={styles.list}>
+            <View style={{ marginHorizontal: compact ? -16 : -24 }}>
+              <KlCoverImage variant="hero" lowBandwidth={false} />
+            </View>
+            <Text style={styles.kicker}>{klCopy.libraryKicker}</Text>
+            <Text style={[styles.title, compact && styles.titleCompact]}>{KL_SEASON_ONE_TITLE}</Text>
+            <Text style={styles.by}>{KL_AUTHOR}</Text>
+            <Text style={styles.lede}>{klCopy.librarySubtitle}</Text>
+            <Text style={styles.meta}>{klCopy.libraryHint}</Text>
+            <View style={styles.panel}>
+              <Text style={styles.panelTitle}>{klCopy.journey}</Text>
+              <Text style={styles.body}>{klCopy.journeyEmpty}</Text>
+              <Text style={styles.meta}>{journey.completed} / {journey.total}</Text>
+              <Text style={styles.meta}>{klCopy.journeyNote}</Text>
+            </View>
+            {cache.lastEpisodeId && episodeReadable(cache.lastEpisodeId) ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Ipagpatuloy"
+                onPress={() => openReadable(cache.lastEpisodeId as string)}
+                style={styles.episode}
+              >
+                <View style={styles.statusRow}>
+                  <MaterialCommunityIcons name="play" size={18} color="#f1d39b" />
+                  <Text style={styles.episodeTitle}>Ipagpatuloy</Text>
+                </View>
+              </Pressable>
+            ) : null}
+            {EPISODES.map((episode) => {
+              const readable = episodeReadable(episode.id);
+              const showLock = lockedId === episode.id && !readable;
+              return (
+                <Pressable
+                  key={episode.id}
+                  accessibilityRole="button"
+                  onPress={() => openReadable(episode.id)}
+                  style={styles.episode}
+                >
+                  <Text style={styles.episodeTitle}>{episode.title}</Text>
+                  <View style={styles.statusRow}>
+                    <MaterialCommunityIcons
+                      name={readable ? 'book-open-variant' : 'lock'}
+                      size={16}
+                      color={readable ? '#b7e0c2' : '#e5c891'}
+                    />
+                    <Text style={styles.meta}>{readable ? klCopy.readable : klCopy.locked}</Text>
+                  </View>
+                  {showLock ? <Text style={styles.body}>{klCopy.lockedDetail}</Text> : null}
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
+      </ScrollView>
+      <Modal
+        visible={Boolean(openTermEntry)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setOpenTerm(null)}
+      >
+        <Pressable style={styles.backdrop} onPress={() => setOpenTerm(null)}>
+          <Pressable style={styles.sheet} onPress={() => undefined}>
+            <Text style={styles.panelTitle}>{openTermEntry?.name}</Text>
+            <Text style={styles.meta}>{openTermEntry?.kind}</Text>
+            <Text style={styles.body}>{openTermEntry?.meaning}</Text>
+            <IconButton icon="close" label="Isara" onPress={() => setOpenTerm(null)} />
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
+  );
+}
+
+function IconButton({
+  icon,
+  label,
+  onPress,
+  disabled,
+  active,
+}: {
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+  active?: boolean;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: !!disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={[styles.iconButton, active && styles.iconButtonOn, disabled && styles.iconButtonOff]}
+    >
+      <MaterialCommunityIcons name={icon} size={22} color={disabled ? '#8d8374' : '#f1d39b'} />
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: '#101a20' },
-  content: { paddingTop: 22, paddingBottom: 72, maxWidth: 760, width: '100%', alignSelf: 'center', gap: 14 },
+  content: { paddingTop: 18, paddingBottom: 72, maxWidth: 760, width: '100%', alignSelf: 'center', gap: 14 },
   kicker: { color: '#e5c891', fontSize: 12, fontWeight: '700', letterSpacing: 1 },
   title: { color: '#f6dfb0', fontSize: 34, fontWeight: '800', lineHeight: 40 },
   titleCompact: { fontSize: 28, lineHeight: 34 },
@@ -496,18 +598,6 @@ const styles = StyleSheet.create({
   panel: { padding: 14, borderRadius: 16, backgroundColor: '#16262a', gap: 6 },
   panelTitle: { color: '#f6dfb0', fontSize: 16, fontWeight: '800' },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  secondary: {
-    minHeight: 42,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#3d4c46',
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: '#182428',
-  },
-  secondaryText: { color: '#f1d39b', fontSize: 13, fontWeight: '700' },
   list: { gap: 8 },
   episode: {
     padding: 14,
@@ -518,6 +608,34 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   episodeTitle: { color: '#fff4df', fontSize: 16, fontWeight: '700' },
-  reader: { gap: 10, paddingTop: 8 },
-  paragraph: { marginBottom: 14 },
+  reader: { gap: 10, paddingTop: 4 },
+  paragraph: { marginBottom: 14, gap: 10 },
+  scene: { width: '100%', aspectRatio: 16 / 9, borderRadius: 16, backgroundColor: '#101a20' },
+  nav: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  navTitle: { flex: 1, color: '#f6dfb0', fontSize: 16, fontWeight: '800' },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  iconButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#78613c',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1a2c2a',
+  },
+  iconButtonOn: { backgroundColor: '#3d3422', borderColor: '#e5c891' },
+  iconButtonOff: { opacity: 0.4 },
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(8, 12, 14, 0.72)',
+    justifyContent: 'flex-end',
+    padding: 16,
+  },
+  sheet: {
+    borderRadius: 18,
+    backgroundColor: '#16262a',
+    padding: 18,
+    gap: 8,
+  },
 });

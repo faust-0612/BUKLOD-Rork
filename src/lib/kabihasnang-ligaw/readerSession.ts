@@ -99,9 +99,10 @@ export type MemberReading = {
 };
 
 /**
- * Server refusal wins. Bundled prose is shown only after the server cannot be
- * reached and the local release gate already says the episode is readable.
- * A draft stays hidden even though the canonical text is in the bundle.
+ * A locally released episode stays readable. Server silence or refusal must not
+ * flash a locked screen and then reveal the same text.
+ * An episode that is not locally released stays locked unless the server
+ * returns readable text. That is the only path that opens a later chapter.
  */
 export function selectMemberReading(input: {
   locallyReadable: boolean;
@@ -110,15 +111,14 @@ export function selectMemberReading(input: {
   bundledText: string | null;
   cachedText: string | null;
 }): MemberReading {
-  if (input.serverState === 'hidden') return { text: null, source: 'hidden' };
-  if (input.serverState === 'readable') {
-    if (input.serverText?.trim()) return { text: input.serverText, source: 'server' };
-    return { text: null, source: 'hidden' };
+  if (input.serverState === 'readable' && input.serverText?.trim()) {
+    return { text: input.serverText, source: 'server' };
   }
-  if (!input.locallyReadable) return { text: null, source: 'hidden' };
-  if (input.cachedText?.trim()) return { text: input.cachedText, source: 'cache' };
-  if (input.serverState === 'unknown' && input.bundledText?.trim()) {
+  if (input.locallyReadable && input.bundledText?.trim()) {
     return { text: input.bundledText, source: 'bundle' };
+  }
+  if (input.locallyReadable && input.cachedText?.trim()) {
+    return { text: input.cachedText, source: 'cache' };
   }
   return { text: null, source: 'hidden' };
 }

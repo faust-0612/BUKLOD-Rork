@@ -1555,6 +1555,14 @@ export default function MeScreen() {
           {isSystemAdmin && (
             <>
               <MenuRow
+                icon="book-open-page-variant"
+                title="Kabihasnang Ligaw"
+                subtitle="Aprubahan, iskedyul, at i-pause ang kuwento"
+                onPress={() =>
+                  router.push('/admin/kabihasnang-ligaw' as any)
+                }
+              />
+              <MenuRow
                 icon="lock-reset"
                 title="Account Recovery Requests"
                 onPress={() =>

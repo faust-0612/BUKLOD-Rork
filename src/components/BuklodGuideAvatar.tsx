@@ -136,6 +136,7 @@ export function BuklodGuideAvatar() {
     !pathname.includes('points') &&
     !pathname.includes('/privacy') &&
     !pathname.includes('/delete-account') &&
+    !pathname.includes('kabihasnang-ligaw') &&
     (!isProfileRoute || profileReturnMode);
 
 
