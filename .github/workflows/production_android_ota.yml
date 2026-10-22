@@ -214,9 +214,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npx eas-cli@25.3.0 env:exec production 'node scripts/verify-android-release-env.cjs && npx expo export --platform android --clear --max-workers 2 --output-dir dist-android-rc' --non-interactive
+          npx eas-cli@25.3.0 env:exec production 'node scripts/verify-android-release-env.cjs && npx expo export --platform android --clear --max-workers 2 --output-dir .buklod-temp/android-rc' --non-interactive
           git diff --exit-code HEAD
-          node scripts/android-export-manifest.cjs dist-android-rc > android-export-manifest.json
+          test -z "$(git status --porcelain)"
+          node scripts/android-export-manifest.cjs .buklod-temp/android-rc > .buklod-temp/android-export-manifest.json
 
       - name: Recheck live baseline and publish exact Android export
         shell: bash
@@ -225,7 +226,7 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/verify-production-android-update.cjs baseline
-          npx eas-cli@25.3.0 update --channel production --platform android --environment production --skip-bundler --input-dir dist-android-rc --message "Approved immutable Android RC $(git rev-parse HEAD) runtime 1.3.2; no PTT restoration" --non-interactive --json > android-update-result.json
+          npx eas-cli@25.3.0 update --channel production --platform android --environment production --skip-bundler --input-dir .buklod-temp/android-rc --message "Approved immutable Android RC $(git rev-parse HEAD) runtime 1.3.2; no PTT restoration" --non-interactive --json > .buklod-temp/android-update-result.json
           node scripts/verify-production-android-update.cjs published
 
       - name: Preserve release verification evidence
@@ -233,8 +234,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: android-production-release-evidence-${{ github.run_id }}
+          include-hidden-files: true
           path: |
-            android-export-manifest.json
-            android-update-result.json
-            android-production-verification.json
+            .buklod-temp/android-export-manifest.json
+            .buklod-temp/android-update-result.json
+            .buklod-temp/android-production-verification.json
           if-no-files-found: ignore

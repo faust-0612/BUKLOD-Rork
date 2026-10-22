@@ -24,8 +24,9 @@ function checkPolicy(text) {
   for (const command of ['guard-android-ota-runtime.cjs', 'character:contract', 'game:contract', 'verify-android-rc-readiness.cjs', 'verify-android-release-env.cjs', 'verify-production-android-update.cjs baseline', 'verify-production-android-update.cjs published']) {
     if (!source.includes(command)) throw new Error('Missing release gate ' + command);
   }
-  if (!source.includes('--platform android') || !source.includes('--channel production') || !source.includes('--environment production') || !source.includes('--skip-bundler --input-dir dist-android-rc')) throw new Error('Publish must reuse the exact Android production export');
+  if (!source.includes('--platform android') || !source.includes('--channel production') || !source.includes('--environment production') || !source.includes('--skip-bundler --input-dir .buklod-temp/android-rc')) throw new Error('Publish must reuse the exact Android production export');
   if (!source.includes('exit 1') || !source.includes('EXPO_TOKEN')) throw new Error('Credentials must fail closed');
+  if (!source.includes('git status --porcelain')) throw new Error('Frozen source must stay clean including untracked files');
   if (source.includes('patch-home-identity-action-row')) throw new Error('Publisher must not patch frozen source');
 }
 if (require.main === module) {
