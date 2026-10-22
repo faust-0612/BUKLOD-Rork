@@ -355,7 +355,7 @@ export default function BuklodSpecialCharacterSeries({ userId, state, onStateRef
             <Pressable
               key={id}
               accessibilityRole="button"
-              accessibilityLabel={unlocked ? `View ${character.name}` : `Next locked preview`}
+              accessibilityLabel={unlocked ? `View ${character.name}` : `Preview locked ${character.name}`}
               onPress={() => setSelectedId(id)}
               style={[styles.characterCard, chosen && styles.characterCardSelected, !unlocked && styles.characterCardLocked]}
             >
