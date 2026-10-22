@@ -130,7 +130,9 @@ export async function removeOfflineCache(
   key: string,
   userId?: string | null,
 ): Promise<void> {
-  await AsyncStorage.removeItem(storageKey(key, userId));
+  const target = storageKey(key, userId);
+  cacheGenerations.set(target, (cacheGenerations.get(target) ?? 0) + 1);
+  await AsyncStorage.removeItem(target);
 }
 
 export async function clearOfflineCacheForUser(
@@ -140,6 +142,7 @@ export async function clearOfflineCacheForUser(
   const keys = await AsyncStorage.getAllKeys();
   const matches = keys.filter((key) => key.startsWith(prefix));
   if (matches.length) {
+    for (const key of matches) cacheGenerations.set(key, (cacheGenerations.get(key) ?? 0) + 1);
     await AsyncStorage.multiRemove(matches);
   }
 }
@@ -206,6 +209,7 @@ export async function staleWhileRevalidate<T>(args: {
  * before applying onFresh. Never use for writes or permission decisions.
  */
 const refreshes = new Map<string, Promise<void>>();
+const cacheGenerations = new Map<string, number>();
 
 export async function readCachedThenSync<T>(args: {
   key: string;
@@ -232,12 +236,18 @@ export async function readCachedThenSync<T>(args: {
   const refresh = () => {
     let pending = refreshes.get(target);
     if (!pending) {
+      const generation = cacheGenerations.get(target) ?? 0;
       pending = (async () => {
         const fresh = await args.fetcher();
+        if ((cacheGenerations.get(target) ?? 0) !== generation) return;
         await setOfflineCache(args.key, fresh, {
           userId: args.userId,
           ttlMs: args.ttlMs,
         });
+        if ((cacheGenerations.get(target) ?? 0) !== generation) {
+          await AsyncStorage.removeItem(target);
+          return;
+        }
         args.onFresh?.(fresh);
       })().finally(() => {
         refreshes.delete(target);
