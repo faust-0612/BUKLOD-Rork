@@ -9,7 +9,6 @@ import {
 } from '@/lib/repairMojibakeText';
 import { supabase } from '@/lib/supabase';
 import { attachCommunityPostMedia, discardIncompleteCommunityPost } from '@/lib/buklodCommunityPostMedia';
-import { maritesFeedPageLimit, withMaritesPageDeadline } from '@/lib/buklodMaritesFeedPages';
 import {
   collectMaritesFeedPages,
   maritesFeedPageArgs,
