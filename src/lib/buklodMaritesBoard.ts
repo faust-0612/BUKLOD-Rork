@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
 
 import {
   hydratePersonNamesOnRows,
@@ -8,6 +9,7 @@ import {
 } from '@/lib/repairMojibakeText';
 import { supabase } from '@/lib/supabase';
 import { attachCommunityPostMedia, discardIncompleteCommunityPost } from '@/lib/buklodCommunityPostMedia';
+import { maritesFeedPageLimit, withMaritesPageDeadline } from '@/lib/buklodMaritesFeedPages';
 
 /**
  * Marites Story — compact community stories.
@@ -468,11 +470,10 @@ function mapCommunityPostToMaritesStory(
     return null;
   }
 
-  const userId = String(post.user_id ?? '').trim();
-
-  if (!userId) {
-    return null;
-  }
+  const rawUserId = String(post.user_id ?? '').trim();
+  const anonymous = String(post.author_name ?? '').trim() === 'Anonymous BUKLOD Member';
+  if (!rawUserId && !anonymous) return null;
+  const userId = rawUserId || `anonymous-story:${postId}`;
 
   const photoUris = communityPostPhotoUris(post);
   const body = stripMaritesPostMarker(
@@ -527,429 +528,94 @@ function mapCommunityPostToMaritesStory(
   };
 }
 
+export type MaritesCommunityLoad = {
+  stories: MaritesStory[];
+  refreshFailed: boolean;
+};
+
 export async function loadCommunityMaritesStories(
   locationScopeId?: string | null,
   viewerUserId?: string | null,
-  pageSize = 40
-): Promise<MaritesStory[]> {
-  const scopeId = String(
-    locationScopeId ?? ''
-  ).trim();
-
-  /*
-   * PATCH_MARITES_STORY_COMPLETE_FEED
-   *
-   * Server page size remains conservative.
-   * We paginate until every available authorized row
-   * has been retrieved.
-   */
-  const requestPageSize =
-    Math.min(
-      Math.max(
-        Math.trunc(pageSize || 40),
-        1
-      ),
-      40
-    );
-
-  const allFeedRows: Record<
-    string,
-    unknown
-  >[] = [];
-
+  pageSize = 20,
+  onStories?: (stories: MaritesStory[]) => void,
+): Promise<MaritesCommunityLoad> {
+  const limit = maritesFeedPageLimit(pageSize);
+  let stories: MaritesStory[] = [];
+  const seen = new Set<string>();
   let offset = 0;
-
-  while (true) {
-    const {
-      data,
-      error,
-    } = await (supabase as any).rpc(
-      'get_buklod_public_community_feed_v7_page',
-      {
-        p_location_scope_id:
-          scopeId || null,
-        p_mode:
-          'for_you',
-        p_limit:
-          requestPageSize,
-        p_offset:
-          offset,
-      }
-    );
-
-    if (error) {
-      if (
-        !isMissingRpcError(
-          String(
-            error.message ?? ''
-          )
-        )
-      ) {
-        console.warn(
-          'Marites Story community feed:',
-          error.message
-        );
-      }
-
-      return [];
+  // The dedicated endpoint filters stories BEFORE paging, and includes media paths.
+  // No Community ranking window, names, ranks or reaction queries gate story text.
+  for (let page = 0; page < 125; page++) {
+    const controller = new AbortController();
+    let result: any;
+    try {
+      result = await withMaritesPageDeadline(Promise.resolve(
+        (supabase as any).rpc('get_buklod_marites_feed_v1', {
+          p_location_scope_id: locationScopeId || null,
+          p_limit: limit, p_offset: offset,
+        }).abortSignal(controller.signal),
+      ), 12_000);
+    } catch {
+      controller.abort();
+      return { stories, refreshFailed: true };
     }
-
-    const pageRows =
-      Array.isArray(data)
-        ? data as Record<
-            string,
-            unknown
-          >[]
-        : [];
-
-    if (!pageRows.length) {
-      break;
+    if (result.error || !Array.isArray(result.data)) {
+      return { stories, refreshFailed: true };
     }
+    const rows = result.data as Record<string, unknown>[];
+    const fresh = rows.filter(row => {
+      const id = String(row.id ?? '');
+      if (!id || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+    const pageStories = fresh.filter(isMaritesCommunityPost)
+      .map(mapCommunityPostToMaritesStory).filter(Boolean) as MaritesStory[];
+    stories = mergeMaritesStories(stories, pageStories);
+    onStories?.(stories);
 
-    allFeedRows.push(
-      ...pageRows
-    );
-
-    offset +=
-      pageRows.length;
-
-    if (
-      pageRows.length <
-      requestPageSize
-    ) {
-      break;
-    }
+    // Paint paths/text first. Signing cannot prevent a photo-only story being found.
+    const signed = await Promise.all(pageStories.map(async story => {
+      const uris = await Promise.all((story.photo_paths ?? []).map(path =>
+        withMaritesPageDeadline(signCommunityMediaPath(path), 4000).catch(() => null),
+      ));
+      return {
+        ...story,
+        photo_uris: uris.map((uri, index) => uri || story.photo_uris[index]),
+        photo_uri: uris[0] || story.photo_uri || null,
+      };
+    }));
+    stories = mergeMaritesStories(stories, signed);
+    onStories?.(stories);
+    if (rows.length < limit) return { stories, refreshFailed: false };
+    if (!fresh.length) return { stories, refreshFailed: true };
+    offset += rows.length;
   }
+  return { stories, refreshFailed: true };
+}
 
-  /*
-   * Offset pagination can theoretically see the same row
-   * twice if the live feed changes during loading.
-   * Deduplicate by canonical Community post id.
-   */
-  const seenPostIds =
-    new Set<string>();
+function sharedStoryCacheKey(scopeId?: string | null) {
+  return `marites-shared:v2:${scopeId || 'public'}`;
+}
 
-  let feedRows =
-    allFeedRows.filter(
-      (row) => {
-        const id =
-          String(
-            row.id ?? ''
-          ).trim();
+export async function loadCachedMaritesStories(
+  scopeId: string | null | undefined,
+  viewerId: string,
+): Promise<MaritesStory[]> {
+  const cached = await getOfflineCache<MaritesStory[]>(sharedStoryCacheKey(scopeId), {
+    userId: viewerId, allowStale: true,
+  });
+  return Array.isArray(cached?.data) ? cached.data : [];
+}
 
-        if (
-          !id ||
-          seenPostIds.has(id)
-        ) {
-          return false;
-        }
-
-        seenPostIds.add(id);
-        return true;
-      }
-    );
-
-  feedRows =
-    await hydratePersonNamesOnRows(
-      feedRows,
-      'user_id',
-      'author_name'
-    );
-
-  /*
-   * Marites Story must remain isolated from ordinary
-   * Community Wall posts.
-   */
-  feedRows =
-    feedRows.filter(
-      (row) =>
-        isMaritesCommunityPost(
-          row
-        )
-    );
-
-  const viewerId =
-    String(
-      viewerUserId ?? ''
-    ).trim();
-
-  const postIds =
-    feedRows
-      .map(
-        (row) =>
-          String(
-            row.id ?? ''
-          ).trim()
-      )
-      .filter(Boolean);
-
-  const myReactionByPost:
-    Record<
-      string,
-      string
-    > = {};
-
-  /*
-   * Avoid an oversized PostgREST IN request when
-   * Marites Story becomes large.
-   */
-  const QUERY_CHUNK_SIZE =
-    100;
-
-  if (
-    viewerId &&
-    postIds.length
-  ) {
-    for (
-      let index = 0;
-      index < postIds.length;
-      index += QUERY_CHUNK_SIZE
-    ) {
-      const chunk =
-        postIds.slice(
-          index,
-          index +
-            QUERY_CHUNK_SIZE
-        );
-
-      const {
-        data:
-          myReactionRows,
-        error:
-          myReactionError,
-      } =
-        await supabase
-          .from('reactions')
-          .select(
-            'post_id,reaction'
-          )
-          .eq(
-            'user_id',
-            viewerId
-          )
-          .in(
-            'post_id',
-            chunk
-          );
-
-      if (
-        !myReactionError
-      ) {
-        for (
-          const row
-          of myReactionRows ?? []
-        ) {
-          myReactionByPost[
-            String(
-              row.post_id
-            )
-          ] =
-            String(
-              row.reaction
-            );
-        }
-      }
-    }
-  }
-
-  const mediaMap:
-    Record<
-      string,
-      Record<
-        string,
-        unknown
-      >[]
-    > = {};
-
-  /*
-   * Media lookup is also chunked so the board can
-   * scale beyond a few dozen stories.
-   */
-  if (postIds.length) {
-    for (
-      let index = 0;
-      index < postIds.length;
-      index += QUERY_CHUNK_SIZE
-    ) {
-      const chunk =
-        postIds.slice(
-          index,
-          index +
-            QUERY_CHUNK_SIZE
-        );
-
-      const {
-        data:
-          mediaRows,
-        error:
-          mediaError,
-      } =
-        await (supabase as any).rpc(
-          'get_buklod_post_media_v1',
-          {
-            p_post_ids:
-              chunk,
-          }
-        );
-
-      if (
-        mediaError ||
-        !Array.isArray(
-          mediaRows
-        )
-      ) {
-        continue;
-      }
-
-      const signedMedia =
-        await Promise.all(
-          mediaRows.map(
-            async (
-              row:
-                Record<
-                  string,
-                  unknown
-                >
-            ) => {
-              const mediaPath =
-                String(
-                  row.media_path ??
-                    ''
-                ).trim();
-
-              const mediaUrl =
-                mediaPath
-                  ? await signCommunityMediaPath(
-                      mediaPath
-                    )
-                  : null;
-
-              return {
-                ...row,
-                media_url:
-                  mediaUrl,
-              };
-            }
-          )
-        );
-
-      for (
-        const row
-        of signedMedia
-      ) {
-        const postId =
-          String(
-            'post_id' in row
-              ? row.post_id ??
-                  ''
-              : ''
-          ).trim();
-
-        if (!postId) {
-          continue;
-        }
-
-        if (
-          !mediaMap[
-            postId
-          ]
-        ) {
-          mediaMap[
-            postId
-          ] = [];
-        }
-
-        mediaMap[
-          postId
-        ].push(row);
-      }
-    }
-  }
-
-  const hydrated =
-    await Promise.all(
-      feedRows.map(
-        async (row) => {
-          const postId =
-            String(
-              row.id ?? ''
-            ).trim();
-
-          const loaded =
-            mediaMap[
-              postId
-            ] ?? [];
-
-          if (
-            loaded.length
-          ) {
-            row.media_items =
-              loaded.sort(
-                (a,b) =>
-                  Number(
-                    a.media_position ??
-                      0
-                  ) -
-                  Number(
-                    b.media_position ??
-                      0
-                  )
-              );
-          }
-          else if (
-            row.media_path
-          ) {
-            const mime =
-              String(
-                row.media_mime_type ??
-                  ''
-              ).toLowerCase();
-
-            if (
-              !mime.startsWith(
-                'video/'
-              )
-            ) {
-              const mediaUrl =
-                await signCommunityMediaPath(
-                  String(
-                    row.media_path
-                  )
-                );
-
-              if (mediaUrl) {
-                row.media_url =
-                  mediaUrl;
-              }
-            }
-          }
-
-          row.my_reaction =
-            myReactionByPost[
-              postId
-            ] ?? null;
-
-          return row;
-        }
-      )
-    );
-
-  return hydrated
-    .filter(
-      (row) =>
-        isMaritesCommunityPost(
-          row
-        )
-    )
-    .map(
-      (row) =>
-        mapCommunityPostToMaritesStory(
-          row
-        )
-    )
-    .filter(
-      Boolean
-    ) as MaritesStory[];
+export async function cacheSharedMaritesStories(
+  scopeId: string | null | undefined,
+  viewerId: string,
+  stories: MaritesStory[],
+) {
+  await setOfflineCache(sharedStoryCacheKey(scopeId), stories, {
+    userId: viewerId, ttlMs: 30 * 60 * 1000,
+  });
 }
 
 export function mergeMaritesStories(
@@ -1029,29 +695,25 @@ export function mergeMaritesStories(
   );
 }
 
+export type MaritesLoadResult = {
+  stories: MaritesStory[];
+  refreshFailed: boolean;
+};
+
 export async function loadAllMaritesStories(
   locationScopeId?: string | null,
-  viewerUserId?: string | null
-): Promise<MaritesStory[]> {
-  const [localStories, communityStories] =
-    await Promise.all([
-      loadMaritesStories(),
-      loadCommunityMaritesStories(
-        locationScopeId,
-        viewerUserId,
-        40
-      ),
-    ]);
-
-  const filteredLocal = filterMaritesStoriesForViewer(
-    localStories,
-    viewerUserId
+  viewerUserId?: string | null,
+  onStories?: (stories: MaritesStory[]) => void,
+): Promise<MaritesLoadResult> {
+  const local = filterMaritesStoriesForViewer(await loadMaritesStories(), viewerUserId);
+  const community = await loadCommunityMaritesStories(
+    locationScopeId, viewerUserId, 20,
+    rows => onStories?.(mergeMaritesStories(local, rows)),
   );
-
-  return mergeMaritesStories(
-    filteredLocal,
-    communityStories
-  );
+  return {
+    stories: mergeMaritesStories(local, community.stories),
+    refreshFailed: community.refreshFailed,
+  };
 }
 
 export async function saveMaritesStories(
