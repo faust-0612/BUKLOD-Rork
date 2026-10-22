@@ -1,5 +1,6 @@
 # BUKLOD Automatic Recovery production web release trigger — 2026-09-19
 # R25 Organization Home door deploy trigger
+# 2026-10-22: refresh stale safety anchors (Classroom door, community placement, AWS R3)
 name: BUKLOD Production Web Deploy
 
 on:
@@ -219,7 +220,10 @@ jobs:
           grep -F "constrainContextToOrganization" 'src/lib/buklodClusterFormationGate.ts'
           grep -F "readMediaForUpload" 'src/app/scope/bulletin-editor.tsx'
           grep -F "Title and message are required before publishing." 'src/app/scope/bulletin-editor.tsx'
-          grep -F "key: 'classrooms'" 'src/app/(tabs)/me.tsx'
+          # Classroom is a standalone door (not a Me-tab menu key). Keep the
+          # launcher route + isolation contract as the production web anchors.
+          grep -F "router.push('/profile/buklod-classrooms' as any)" 'src/components/BuklodPublicWordShortcut.tsx'
+          grep -F 'BUKLOD_CLASSROOM_ACCOUNT_ISOLATION_R2' 'src/app/profile/buklod-classrooms.tsx'
           grep -F "import { FacultyClassroomHeader } from '@/components/classroom/FacultyClassroomHeader';" 'src/app/profile/buklod-faculty-class.tsx'
           grep -F 'auto_grading_mode: string;' 'src/app/profile/buklod-classroom-work.tsx'
           grep -F 'ai_suggested_score: number | null;' 'src/app/profile/buklod-classroom-work.tsx'
@@ -245,7 +249,10 @@ jobs:
           grep -F 'BUKLOD_WEB_ADMOB_BRIDGE_R1' 'src/components/BuklodAdMobBanner.web.tsx'
           grep -F 'BUKLOD_FOCUS_APP_ADS_R1' 'src/components/BuklodFocusAppAdStrip.tsx'
           grep -F 'placement="focus"' 'src/components/BuklodFocusAppAdStrip.tsx'
-          grep -F "placement=\"community\"" 'src/components/BuklodCommunityInlineAd.web.tsx'
+          grep -F 'placement={placement}' 'src/components/BuklodCommunityInlineAd.web.tsx'
+          grep -F ": 'community'" 'src/components/BuklodCommunityInlineAd.web.tsx'
+          grep -F "'org_community'" 'src/components/BuklodCommunityInlineAd.web.tsx'
+          grep -F "'cluster_community'" 'src/components/BuklodCommunityInlineAd.web.tsx'
           grep -F "placement=\"reels\"" 'src/components/BuklodReelsInlineAd.web.tsx'
           grep -F 'BUKLOD_WEB_CALLING_R1' 'src/lib/buklodStreamVideoClient.web.ts'
           grep -F "from '@stream-io/video-client'" 'src/lib/buklodStreamVideoClient.web.ts'
@@ -262,7 +269,7 @@ jobs:
           grep -F 'PATCH_191D_LIVE_GIPHY_COMPACT_PICKER' 'src/components/connect/ConnectComposerPicker.tsx'
           grep -F 'searchConnectGifs' 'src/lib/buklodConnectGifCatalog.ts'
           grep -F 'CONNECT_GIF_CATEGORIES' 'src/lib/buklodConnectGifCatalog.ts'
-          grep -F 'BUKLOD_AWS_WALL_VIDEO_R2_FAST_MULTIPART' 'src/lib/buklodAwsWallVideo.ts'
+          grep -F 'BUKLOD_AWS_WALL_VIDEO_R3_NATIVE_BOUNDED_MEMORY' 'src/lib/buklodAwsWallVideo.ts'
           grep -F 'BUKLOD_AWS_WALL_VIDEO_ROUTE_R1' 'src/lib/uploadCommunityVideoFile.ts'
           grep -F 'set_buklod_post_media_v5' 'src/lib/buklodCommunityPostMedia.ts'
           grep -F 'BUKLOD_AWS_SIGNED_MEDIA_CACHE_R2_BATCHED' 'src/lib/buklodMediaUrl.ts'
