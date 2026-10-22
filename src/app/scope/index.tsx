@@ -515,6 +515,7 @@ return (
         <View style={{ flex: 1, minHeight: 0 }}>
         <ScopeHome
           scope={workspaceScope}
+          theme={dashboardTheme}
           onOpenCommunity={() =>
             openSection('community')
           }
@@ -561,10 +562,12 @@ function ScopeHome({
   scope,
   onOpenCommunity,
   onOpenConnect,
+  theme,
 }: {
   scope: BuklodScope;
   onOpenCommunity?: () => void;
   onOpenConnect?: () => void;
+  theme: DashboardTheme;
 }) {
   if (scope.scope_type === 'CLUSTER') {
     return (
@@ -573,6 +576,7 @@ function ScopeHome({
         onOpenCommunity={onOpenCommunity}
         onOpenConnect={onOpenConnect}
         manageMode={false}
+        theme={theme}
       />
     );
   }
