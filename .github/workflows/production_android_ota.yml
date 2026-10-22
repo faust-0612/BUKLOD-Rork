@@ -3,78 +3,15 @@ name: BUKLOD Production Android OTA
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/production_android_ota.yml'
-      - 'scripts/community-help-sos-release-contract.mjs'
-      - 'src/components/BuklodCommunityHelp.tsx'
-      - 'src/components/BuklodPublicLocationChips.tsx'
-      - 'src/providers/NotificationProvider.tsx'
-      - 'app.config.js'
-      - 'supabase/functions/buklod-help-alert/**'
-      - 'supabase/migrations/*community_help_sos*.sql'
-      - 'scripts/patch-home-identity-action-row.cjs'
-      - 'src/app/index.tsx'
-      - 'src/app/onboarding/index.tsx'
-      - 'src/app/(tabs)/home.tsx'
-      - 'src/components/BuklodPublicWordShortcut.tsx'
-      - 'src/app/(auth)/login.tsx'
-      - 'src/lib/buklodAuthResilience.ts'
-      - 'src/app/(auth)/register.tsx'
-      - 'src/app/(auth)/forgot-password.tsx'
-      - 'src/app/account/recovery-pin.tsx'
-      - 'src/app/account/security.tsx'
-      - 'src/app/admin/account-recovery.tsx'
-      - 'src/components/BuklodTrustedDeviceGate.tsx'
-      - 'src/components/BuklodTrustedDeviceGate.native.tsx'
-      - 'src/app/scope/index.tsx'
-      - 'src/app/scope/bulletin-editor.tsx'
-      - 'src/app/scope/faith-monitoring/report.tsx'
-      - 'src/app/scope/formation-approvals.tsx'
-      - 'src/app/reflection/[id].tsx'
-      - 'src/components/LearningQuestionResponse.tsx'
-      - 'src/lib/buklodScopeFaithMonitoring.ts'
-      - 'src/components/BuklodClusterHomeCommandCenter.tsx'
-      - 'src/components/BuklodClusterHomeCommandCenterImpl.tsx'
-      - 'src/lib/buklodClusterFormationGate.ts'
-      - 'src/app/(tabs)/me.tsx'
-      - 'src/app/(tabs)/prayer.tsx'
-      - 'src/app/(tabs)/messages.tsx'
-      - 'src/app/notifications/index.tsx'
-      - 'src/app/post/[id].tsx'
-      - 'src/hooks/useBuklodConnectUnread.ts'
-      - 'src/app/profile/buklod-faculty-class.tsx'
-      - 'src/app/profile/buklod-faculty.tsx'
-      - 'src/app/profile/buklod-faculty-quiz-results.tsx'
-      - 'src/app/profile/buklod-classroom*.tsx'
-      - 'src/components/classroom/**'
-      - 'src/components/BuklodScopeCallLauncher.tsx'
-      - 'src/components/BuklodConnectThread.tsx'
-      - 'src/components/connect/ConnectComposerPicker.tsx'
-      - 'src/lib/buklodConnectGifCatalog.ts'
-      - 'src/lib/buklodStreamCall.ts'
-      - 'src/lib/buklodCallLifecycle.ts'
-      - 'src/providers/StreamVideoProvider.tsx'
-      - 'src/utils/setFirebaseListeners.android.ts'
-      - 'src/utils/setPushConfig.ts'
-      - 'src/components/BuklodNavSafeShell.tsx'
-      - 'src/components/BuklodFocusAppAdStrip.tsx'
-      - 'src/components/BuklodAdMobBanner.tsx'
-      - 'src/components/BuklodHeaderSponsor.android.tsx'
-      - 'src/components/BuklodScopedHeaderBanner.android.tsx'
-      - 'src/lib/buklodAdUnits.ts'
-      - 'src/lib/buklodAwsWallVideo.ts'
-      - 'src/lib/uploadCommunityVideoFile.ts'
-      - 'src/lib/buklodCommunityPostMedia.ts'
-      - 'src/lib/buklodMediaUrl.ts'
-      - 'supabase/migrations/*community_external_video_storage_aws*.sql'
-      - 'supabase/migrations/*buklod_call_lifecycle*.sql'
-      - 'supabase/migrations/*buklod_5k_scale_hardening*.sql'
-      - 'supabase/migrations/*formation_auto_scope_uuid_aggregate_fix*.sql'
-      - 'supabase/migrations/*formation_daily_pipeline_repair*.sql'
-      - 'supabase/migrations/*formation_auto_submit_photo_report*.sql'
+    inputs:
+      rc_sha:
+        description: 'Approved immutable RC commit SHA (40 hex characters)'
+        required: true
+        type: string
+      confirm:
+        description: 'Type PUBLISH_ANDROID_PRODUCTION'
+        required: true
+        type: string
 
 env:
   EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
@@ -91,7 +28,18 @@ jobs:
       - name: Checkout production source
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ inputs.rc_sha }}
+
+      - name: Verify frozen RC checkout and authorization
+        shell: bash
+        env:
+          APPROVED_RC_SHA: ${{ inputs.rc_sha }}
+          PUBLISH_CONFIRMATION: ${{ inputs.confirm }}
+        run: |
+          [[ "$APPROVED_RC_SHA" =~ ^[0-9a-fA-F]{40}$ ]] || exit 1
+          [ "$PUBLISH_CONFIRMATION" = "PUBLISH_ANDROID_PRODUCTION" ] || exit 1
+          [ "$(git rev-parse HEAD)" = "${APPROVED_RC_SHA,,}" ] || exit 1
+          grep -F "runtimeVersion: isClassroom ? '1.3.0' : '1.3.2'" app.config.js
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -205,9 +153,8 @@ jobs:
         shell: bash
         run: |
           if [ -z "$EXPO_TOKEN" ]; then
-            echo "Expo OTA not published: repository secret EXPO_TOKEN is not configured."
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            exit 0
+            echo "BLOCKED: EXPO_TOKEN is not configured."
+            exit 1
           fi
           npx eas-cli@latest whoami --non-interactive
           echo "ready=true" >> "$GITHUB_OUTPUT"
@@ -220,7 +167,7 @@ jobs:
             --channel production \
             --platform android \
             --environment production \
-            --message "V28 runtime 1.3.2: approved V28 plus current OTAs, PTT retained, Kabihasnang Ligaw" \
+            --message "Approved pinned RC Android OTA runtime 1.3.2; no PTT restoration" \
             --non-interactive
 
       - name: Deployment status
