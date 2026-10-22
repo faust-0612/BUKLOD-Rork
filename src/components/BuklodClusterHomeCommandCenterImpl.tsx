@@ -45,6 +45,8 @@ type Kind='notice'|'event'|'task'|'poll'|'resource'|'recognition'|'about'|null;
 
 const WIDGETS=[['notice','Important Notice'],['bulletin','Cluster Bulletin'],['today','Today / This Week'],['events','Upcoming Events'],['members','Member Snapshot'],['officers','Officers / Admins'],['tasks','Tasks'],['poll','Poll'],['community','Community Posts'],['attendance','Attendance'],['resources','Files & Resources'],['recognition','Recognition'],['calls','Calls'],['invite','Invite / QR'],['about','About'],['insights','Admin Insights']] as const;
 const TILE_ICONS: Record<string,string>={today:'calendar-today',events:'calendar-star',members:'account-group',officers:'shield-account',tasks:'clipboard-check',poll:'poll',community:'message-text',attendance:'calendar-check',resources:'folder',recognition:'trophy',calls:'video',invite:'qrcode',about:'information',insights:'chart-bar'};
+const TILE_LABELS: Record<string,string>={tasks:'Tasks & Assignments',poll:'Poll / Quick Vote',attendance:'Attendance Snapshot',recognition:'Recognition / Milestones',calls:'Cluster Audio / Video Call',about:'About Cluster'};
+const TILE_COLORS: Record<string,string>={today:'#0D82DC',events:'#0D82DC',members:'#157BD2',officers:'#D28C19',tasks:'#14A372',poll:'#9B55DC',community:'#1587DC',attendance:'#0979D8',resources:'#E39413',recognition:'#C99513',calls:'#1A81DB',invite:'#177FDA',about:'#1977D0',insights:'#5659CF'};
 const dt=(v?:string|null)=>{if(!v)return'';const d=new Date(v);return Number.isNaN(d.getTime())?v:d.toLocaleString()};
 const sd=(v?:string|null)=>{if(!v)return'';const d=new Date(v);return Number.isNaN(d.getTime())?v:d.toLocaleDateString(undefined,{month:'short',day:'numeric'})};
 const total=(x?:Record<string,number>|null)=>Object.values(x??{}).reduce((a,b)=>a+Number(b??0),0);
@@ -276,12 +278,12 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
   {/* 14 existing configurable widgets as buttons; selecting opens the original fully functional card below. */}
   <View style={s.featureGrid}>
     {WIDGETS.filter(([k])=>k!=='notice' && k!=='bulletin' && show(k) && (k!=='insights'||isAdmin)).map(([k,l])=>(
-      <Pressable key={k} accessibilityRole="button" accessibilityLabel={`Open ${l}`}
+      <Pressable key={k} accessibilityRole="button" accessibilityLabel={`Open ${TILE_LABELS[k] ?? l}`}
         accessibilityState={{expanded:openWidget===k}}
         onPress={()=>setOpenWidget(current=>current===k?null:k)}
         style={[s.featureTile,openWidget===k&&s.featureTileActive]}>
-        <MaterialCommunityIcons name={TILE_ICONS[k] as any} size={20} color={openWidget===k?'#FFFFFF':'#0874DE'} />
-        <Text style={[s.featureTileText,openWidget===k&&{color:'#FFFFFF'}]}>{l}</Text>
+        <MaterialCommunityIcons name={TILE_ICONS[k] as any} size={20} color={openWidget===k?'#FFFFFF':(TILE_COLORS[k] ?? '#0874DE')} />
+        <Text style={[s.featureTileText,openWidget===k&&{color:'#FFFFFF'}]}>{TILE_LABELS[k] ?? l}</Text>
       </Pressable>
     ))}
   </View>
