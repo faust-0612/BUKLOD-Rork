@@ -1,11 +1,12 @@
 {
   "objective": "Targeted Android PTT/Connect call isolation: prevent non-ringing PTT joins from registering as ordinary Telecom ongoing calls",
   "baseRef": "74a20a47bee6b1284f899f76dd16af212051e391",
-  "productionBaselineEvidence": "DEV repair based on canonical main 74a20a47bee6b1284f899f76dd16af212051e391. No current production OTA manifest was verified in this task; release remains gated on cumulative production baseline and Android device verification.",
+  "productionBaselineEvidence": "Verified publish logs: https://github.com/faust-0612/BUKLOD-Rork/actions/runs/39844940133; Android update 01a16536-c621-79b9-b010-bb1fe4b733ff, group 07965658-7df7-475a-88cf-bff203596c3f, runtime 1.3.2, source 74a20a47bee6b1284f899f76dd16af212051e391. Existing Home compatibility-comment build overlay noted in release manifest.",
   "allowedPaths": [
     "src/utils/setPushConfig.ts",
     "tests/buklod-ptt-call-isolation.test.cjs",
-    ".buklod/work-scope.json"
+    ".buklod/work-scope.json",
+    "release/PTT_CONNECT_ISOLATION_SOURCE_20261023.json"
   ],
   "acceptanceChecks": [
     "node --test tests/buklod-ptt-call-isolation.test.cjs: 4 passing tests",

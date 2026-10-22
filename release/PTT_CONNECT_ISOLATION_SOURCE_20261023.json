@@ -1,0 +1,49 @@
+{
+  "status": "SOURCE_PREPARED_RELEASE_BLOCKED",
+  "scope": "Android PTT must not register as an ordinary Telecom ongoing call",
+  "sourceSnapshot": "72b377412f8afa3498ed1f2ee61f8d00ab1108af",
+  "baseline": {
+    "channel": "production",
+    "platform": "android",
+    "runtimeVersion": "1.3.2",
+    "sourceCommit": "74a20a47bee6b1284f899f76dd16af212051e391",
+    "updateGroupId": "07965658-7df7-475a-88cf-bff203596c3f",
+    "androidUpdateId": "01a16536-c621-79b9-b010-bb1fe4b733ff",
+    "publishedAt": "2026-10-23T04:04:11+08:00",
+    "workflowRun": "https://github.com/faust-0612/BUKLOD-Rork/actions/runs/39844940133",
+    "jobId": 120055655646,
+    "evidence": "Publish step succeeded, with Published!, production branch, runtime 1.3.2, Android update ID and group ID in job logs. Latest Android production workflow in the 30 most recent repository runs.",
+    "buildOverlay": "Existing release script adds HOME_IDENTITY_ACTION_ROW_R2 compatibility comment for the newer R23 Home layout; publisher reports dirty commit (*). This existing overlay is unrelated to the unchanged PTT source."
+  },
+  "productFiles": [
+    {
+      "path": "src/utils/setPushConfig.ts",
+      "sha256": "1dc701fddfc56875769f3f67e4316941e93ae79708664c55828b887680c61efb"
+    }
+  ],
+  "testFiles": [
+    {
+      "path": "tests/buklod-ptt-call-isolation.test.cjs",
+      "sha256": "ada2f8f4916bf502c427510269e8d657c3339e6974fd5bad72aee81ea9900406"
+    }
+  ],
+  "verification": {
+    "focusedTests": "4 passed",
+    "lockedSdk": "1.43.0",
+    "sdkHarness": "Original issue reproduced with ongoing calls enabled; corrected configuration suppresses non-ringing Telecom registration, retains real outgoing and incoming calls, starts PTT foreground service.",
+    "typecheck": "Exact baseline passed TypeScript in run 39844940133; candidate full TypeScript/build not executed. Product edit changes only a boolean and comments.",
+    "database": "Read-only query found no PTT CIDs in buklod_call_logs; no mutations."
+  },
+  "remainingGates": [
+    "Actual Android PTT listen/transmit/background/stop and subsequent Connect incoming/outgoing test",
+    "Candidate full source identity, TypeScript/export, bundle and release-contract checks",
+    "Reconfirm latest cumulative OTA baseline at release time"
+  ],
+  "releaseProtection": "No main merge, workflow dispatch or OTA publication. No connected adb/emulator and no eas CLI in this session. Do not mark this source snapshot as a fully verified RC.",
+  "deviceAcceptance": [
+    "Start PTT and confirm it is labeled PTT rather than an ongoing Connect call",
+    "Confirm PTT listen/transmit works while app is backgrounded",
+    "Stop PTT, open Connect and confirm no phantom ongoing-call surface",
+    "Place and receive a real audio/video call; verify ringing, answer, end and return-to-call"
+  ]
+}
