@@ -1,4 +1,4 @@
-# Release trigger: 2026-10-22 remove Wall Public CONNECT/EXPLORE chips + Dugtong icon
+# Release trigger: 2026-10-22 Cluster search, join, and notification approval buttons
 name: BUKLOD Production Android OTA
 
 on:

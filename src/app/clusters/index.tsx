@@ -2,6 +2,7 @@
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -177,14 +178,27 @@ export default function ClustersScreen() {
   const [busyId, setBusyId] =
     useState<string | null>(null);
 
+  const [searching, setSearching] =
+    useState(false);
+
+  const firstLoad = useRef(true);
+  const searchRequest = useRef(0);
+
   const load = useCallback(
     async (
       searchValue: string = query,
       refresh = false
     ) => {
-      refresh
-        ? setRefreshing(true)
-        : setLoading(true);
+      const requestId = searchRequest.current + 1;
+      searchRequest.current = requestId;
+
+      if (refresh) {
+        setRefreshing(true);
+      } else if (firstLoad.current) {
+        setLoading(true);
+      } else {
+        setSearching(true);
+      }
 
       try {
         const [mine, found] =
@@ -193,24 +207,43 @@ export default function ClustersScreen() {
             discoverClusters(searchValue),
           ]);
 
+        if (requestId !== searchRequest.current) {
+          return;
+        }
+
         setMyClusters(mine);
         setDiscover(found);
       } catch (error) {
+        if (requestId !== searchRequest.current) {
+          return;
+        }
+
         Alert.alert(
           'Clusters',
           messageOf(error)
         );
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        if (requestId === searchRequest.current) {
+          firstLoad.current = false;
+          setLoading(false);
+          setSearching(false);
+          setRefreshing(false);
+        }
       }
     },
     [query]
   );
 
   useEffect(() => {
-    void load('');
-  }, []);
+    const delay = query.trim() ? 180 : 0;
+    const timer = setTimeout(() => {
+      void load(query);
+    }, delay);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [load, query]);
 
   const activeClusters = useMemo(
     () =>

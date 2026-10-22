@@ -81,6 +81,24 @@ export function resolveBuklodNotificationTarget(
     return formationTarget;
   }
 
+  if (
+    normalizedKind === 'cluster_join_request' ||
+    normalizedKind === 'cluster_invite' ||
+    normalizedKind === 'cluster_join_result'
+  ) {
+    const clusterScopeId = clean(payload.scope_id);
+
+    if (clusterScopeId) {
+      return {
+        path:
+          normalizedKind === 'cluster_join_request'
+            ? `/clusters/join-requests?cluster=${encodeURIComponent(clusterScopeId)}`
+            : `/clusters/${encodeURIComponent(clusterScopeId)}`,
+        scopeId: clusterScopeId,
+      };
+    }
+  }
+
   const helpRequestId = clean(payload.help_request_id);
   if (helpRequestId) {
     return {
