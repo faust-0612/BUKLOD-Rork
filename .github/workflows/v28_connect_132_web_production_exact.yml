@@ -1,0 +1,139 @@
+name: BUKLOD V28 Connect 1.3.2-compatible production web exact RC
+# Manual preview from the V28 source. Does not assign the production alias.
+on:
+  push:
+    branches:
+      - release/v28-runtime132-connect-web-r2-43092995-20261022
+    paths:
+      - '.github/workflows/v28_connect_132_web_production_exact.yml'
+permissions:
+  contents: read
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  BUKLOD_WEB_OUTPUT: single
+  APP_VARIANT: production
+  EXPO_PUBLIC_APP_ENV: production
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify exact frozen Android-1.3.2-compatible source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = '43092995e8777a2a485a95d350937e6685949175'
+          test "$(git rev-parse HEAD^^)" = 'b07e3042643f88387d8cf6f83ee3dd5aa5355d13'
+          test "$(git diff --name-only HEAD^ HEAD)" = '.github/workflows/v28_connect_132_web_production_exact.yml'
+          grep -F "runtimeVersion: isClassroom ? '1.3.0' : '1.3.2'" app.config.js
+          grep -F "versionCode: isStaging ? undefined : 28" app.config.js
+          test -f src/lib/connectHistoryLoader.ts
+          test -f src/lib/connectScopeReaders.ts
+          test ! -f supabase/migrations/20261021160000_connect_history_page_and_scope_reads.sql
+          echo 'WEB_EXACT_FROZEN_RC=PASS'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Confirm Expo authentication without printing the token
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          npx --yes eas-cli@25.3.0 whoami --non-interactive >/dev/null
+          echo 'Expo authentication ready'
+      - name: Load production public environment
+        run: |
+          set -euo pipefail
+          rm -f .env.local
+          npx --yes eas-cli@25.3.0 env:pull --environment production --path .env.local --non-interactive
+          test -s .env.local
+          set -a
+          . ./.env.local
+          set +a
+          test "$EXPO_PUBLIC_SUPABASE_URL" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
+          while IFS='=' read -r name _; do
+            case "$name" in
+              EXPO_PUBLIC_*)
+                value="${!name-}"
+                {
+                  echo "${name}<<__BUKLOD_ENV__"
+                  printf '%s\n' "$value"
+                  echo '__BUKLOD_ENV__'
+                } >> "$GITHUB_ENV"
+                ;;
+            esac
+          done < <(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env.local)
+          rm -f .env.local
+      - name: Record live alias before preview upload
+        run: python3 scripts/verify-web-134-static.py live-before live-before.txt
+      - name: Export web 1.3.4
+        run: |
+          set -euo pipefail
+          test "$EXPO_PUBLIC_SUPABASE_URL" = 'https://yhanxndaqbmuzbdqlblu.supabase.co'
+          rm -rf dist
+          npx expo export --platform web --output-dir dist
+          python3 scripts/stage-web-134-static.py dist
+          python3 scripts/verify-web-134-static.py dist
+      - name: Deploy this exact web export to production (no Android OTA)
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@25.3.0 deploy --prod --non-interactive --environment production --export-dir dist --json > deploy-raw.json
+          python3 scripts/verify-web-134-static.py preview-url deploy-raw.json
+          echo 'EAS_WEB_PRODUCTION_DEPLOY_COMMAND=SUCCESS'
+          rm -f deploy-raw.json
+      - name: Verify immutable deployment and check production alias
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib, re, urllib.request, time
+          html = pathlib.Path('dist/index.html').read_text()
+          matches = re.findall(r'/_expo/static/js/web/index-[0-9a-f]+\.js', html)
+          if not matches:
+              raise SystemExit('missing expected Expo index asset before live check')
+          expected = matches[0]
+          imm = pathlib.Path('preview-url.txt').read_text().strip().rstrip('/')
+          def fetch(url):
+              request = urllib.request.Request(url,headers={'User-Agent':'BUKLOD-Release-Verify','Cache-Control':'no-cache'})
+              with urllib.request.urlopen(request,timeout=45) as response:
+                  return response.read().decode('utf-8','replace')
+          if expected not in fetch(imm+'/'):
+              raise SystemExit('Immutable deployment script does not match frozen web export')
+          print('IMMUTABLE_WEB_ASSET=PASS',expected,imm)
+          live_matched=False
+          for attempt in range(12):
+              try:
+                  if expected in fetch('https://buklod.expo.app/?buklod_release_verify='+str(attempt)):
+                      live_matched=True
+                      break
+              except Exception as exc:
+                  print('LIVE_CHECK_TRANSIENT',type(exc).__name__)
+              time.sleep(10)
+          print('PRODUCTION_WEB_ALIAS='+('VERIFIED' if live_matched else 'NOT_YET_VERIFIED'))
+          pathlib.Path('alias-verification.txt').write_text(('VERIFIED' if live_matched else 'NOT_YET_VERIFIED')+'\n')
+          PY
+      - name: Release summary
+        shell: bash
+        run: |
+          echo 'BUKLOD 1.3.4 WEB from RC 43092995e8777a2a485a95d350937e6685949175 (Android installed runtime 1.3.2)' >> "$GITHUB_STEP_SUMMARY"
+          echo "WEB_ALIAS_CHECK=$(cat alias-verification.txt)" >> "$GITHUB_STEP_SUMMARY"
+          echo 'No Android OTA, APK, AAB or live DB migration in this workflow.' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: web-134-runtime132-production-evidence
+          path: |
+            live-before.txt
+            preview-url.txt
+            deploy-summary.json
+            alias-verification.txt
+          retention-days: 14
+          if-no-files-found: warn
