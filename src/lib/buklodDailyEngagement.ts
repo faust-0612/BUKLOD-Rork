@@ -19,9 +19,9 @@ const TRIGGER_KEY='buklod:daily-engagement:last-trigger-date';
 
 export const CURATED_BUKLOD_TODAY: Omit<BuklodTodayItem,'id'|'publish_date'|'slot'>[] = [
   {item_type:'QUESTION',title:'Tanong ng Bayan',body:'Ano ang simpleng bagay na nagpapagaan ng araw mo?',options:[],category:'practical_life',source_kind:'CURATED_FALLBACK'},
-  {item_type:'POLL',title:'Daily Pulse',body:'Kapag may libreng oras, alin ang mas gusto mo?',options:['Pahinga','Lakad sa labas','Music','Kwentuhan'],category:'hobbies',source_kind:'CURATED_FALLBACK'},
+  {item_type:'POLL',title:'Daily Pulse',body:'Kapag may libreng oras, ano ang mas gusto mong gawin? Isulat ang sagot mo.',options:[],category:'hobbies',source_kind:'CURATED_FALLBACK'},
   {item_type:'CHALLENGE',title:'Daily Challenge',body:'Magpasalamat sa isang taong nakatulong sa iyo ngayong linggo.',options:[],category:'relationships',source_kind:'CURATED_FALLBACK'},
-  {item_type:'WOULD_YOU_RATHER',title:'Would You Rather?',body:'Mas pipiliin mo ba ang tahimik na weekend o spontaneous na lakad?',options:['Tahimik na weekend','Spontaneous na lakad'],category:'entertainment',source_kind:'CURATED_FALLBACK'},
+  {item_type:'WOULD_YOU_RATHER',title:'Would You Rather?',body:'Mas pipiliin mo ba ang tahimik na weekend o spontaneous na lakad? Isulat kung alin at bakit.',options:[],category:'entertainment',source_kind:'CURATED_FALLBACK'},
 ];
 
 function localDateKey(){

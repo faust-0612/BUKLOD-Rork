@@ -1,4 +1,5 @@
 import * as Clipboard from 'expo-clipboard';
+import { Image as ExpoImage } from 'expo-image';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import {
   BUKLOD_HIT_SLOP,
@@ -6,6 +7,7 @@ import {
 } from '@/lib/buklodTouch';
 
 import React, {
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -36,6 +38,13 @@ import {
 import {
   type BuklodThemeRoles,
 } from '@/lib/buklodTheme';
+import {
+  encodeBuklodCommentMediaBody,
+  parseBuklodCommentMediaBody,
+} from '@/lib/buklodCommentMediaBody';
+import {
+  resolveCommunityMediaUrl,
+} from '@/lib/buklodMediaUrl';
 
 export type BuklodCommunityCommentModel = {
   id: string;
@@ -106,6 +115,19 @@ function createStyles(theme: BuklodThemeRoles) {
       fontSize: 15,
       lineHeight: 21,
       color: theme.textPrimary,
+    },
+    media: {
+      marginTop: 8,
+      width: '100%',
+      minHeight: 140,
+      maxHeight: 220,
+      borderRadius: 12,
+      backgroundColor: theme.surfaceMuted,
+      overflow: 'hidden',
+    },
+    mediaImage: {
+      width: '100%',
+      height: 180,
     },
     mention: {
       fontWeight: '800',
@@ -250,6 +272,36 @@ export function BuklodCommunityCommentBubble({
   const [reactionPickerOpen, setReactionPickerOpen] =
     useState(false);
   const menuOpenRef = useRef(false);
+  const parsedBody = useMemo(
+    () => parseBuklodCommentMediaBody(comment.body),
+    [comment.body],
+  );
+  const [mediaUri, setMediaUri] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    const media = parsedBody.media;
+    if (!media?.ref) {
+      setMediaUri(null);
+      return;
+    }
+
+    if (
+      media.kind === 'gif' ||
+      /^https?:\/\//i.test(media.ref)
+    ) {
+      setMediaUri(media.ref);
+      return;
+    }
+
+    void resolveCommunityMediaUrl(media.ref).then(url => {
+      if (alive) setMediaUri(url || null);
+    });
+
+    return () => {
+      alive = false;
+    };
+  }, [parsedBody.media]);
 
   const canEdit =
     Boolean(comment.is_owner) &&
@@ -264,7 +316,8 @@ export function BuklodCommunityCommentBubble({
     comment.user_id !== currentUserId;
 
   const openEdit = () => {
-    setEditBody(comment.body);
+    const caption = parsedBody.caption;
+    setEditBody(caption);
     if (Platform.OS === 'ios') {
       Alert.prompt(
         'Edit comment',
@@ -275,16 +328,21 @@ export function BuklodCommunityCommentBubble({
             text: 'Save',
             onPress: (value?: string) => {
               const trimmed = String(value ?? '').trim();
-              if (!trimmed) {
+              if (!trimmed && !parsedBody.media) {
                 return;
               }
 
-              void onEdit(trimmed);
+              void onEdit(
+                encodeBuklodCommentMediaBody(
+                  parsedBody.media,
+                  trimmed,
+                ),
+              );
             },
           },
         ],
         'plain-text',
-        comment.body
+        caption
       );
 
       return;
@@ -352,7 +410,7 @@ export function BuklodCommunityCommentBubble({
         text: 'Copy Text',
         onPress: () => {
           void Clipboard.setStringAsync(
-            comment.body
+            parsedBody.caption || comment.body
           );
         },
       },
@@ -430,7 +488,7 @@ export function BuklodCommunityCommentBubble({
   const saveEdit = async () => {
     const trimmed = editBody.trim();
 
-    if (!trimmed) {
+    if (!trimmed && !parsedBody.media) {
       Alert.alert(
         'Edit comment',
         'Comment cannot be empty.'
@@ -442,7 +500,12 @@ export function BuklodCommunityCommentBubble({
     setEditBusy(true);
 
     try {
-      await onEdit(trimmed);
+      await onEdit(
+        encodeBuklodCommentMediaBody(
+          parsedBody.media,
+          trimmed,
+        ),
+      );
       setEditOpen(false);
     }
     catch (error: any) {
@@ -489,11 +552,23 @@ export function BuklodCommunityCommentBubble({
           </Text>
         )}
 
-        <BuklodMentionText
-          text={comment.body}
-          style={styles.body}
-          mentionStyle={styles.mention}
-        />
+        {!!mediaUri && (
+          <View style={styles.media}>
+            <ExpoImage
+              source={{ uri: mediaUri }}
+              style={styles.mediaImage}
+              contentFit="cover"
+            />
+          </View>
+        )}
+
+        {!!parsedBody.caption.trim() && (
+          <BuklodMentionText
+            text={parsedBody.caption}
+            style={styles.body}
+            mentionStyle={styles.mention}
+          />
+        )}
       </Pressable>
 
       <View style={styles.footer}>

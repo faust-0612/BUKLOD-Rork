@@ -35,7 +35,7 @@ LIVE identifies only what the production endpoint independently confirms. Source
 - TypeScript passed after integration and test-harness corrections.
 - Jest initially executed 106 tests: 99 passed, 7 failed in four pre-existing fixture/harness suites. Reused previously reviewed fixes for Router group/path expectations, supported Jest import/matcher setup, and Formation denominator fixtures (including additional assertions). The four affected suites then passed all 13 tests. Combined coverage is 20 suites / 108 tests across those runs, not a claimed single green full-suite run.
 - Node V28 P0 suite: 23 passed, including real 24-second password transport timeout/cancellation cases.
-- Android policy/runtime tests: 5 passed, including wrong target/SHA/authorization rejection and missing readiness evidence rejection.
+- Android policy/runtime tests: 6 passed, including wrong target/SHA/authorization rejection and missing readiness evidence rejection.
 - Kingdom game source contract passed.
 - Character source contract FAILED with 18 blockers. The integration does not change Character source, artwork or expected contract hashes to conceal this.
 - No Android export was performed after the required Character gate failed. No native APK/AAB or iOS build was run. No emulator/device/authorized test session is available for the required native critical-flow checks.
@@ -46,7 +46,7 @@ The canonical publisher is manual-only, accepts an exact 40-character RC SHA and
 
 Ten legacy Android production publishing entry points are retired on this DEV branch so ordinary pushes/manual legacy jobs cannot bypass canonical release gates. Their source remains available for historical review. No test assertion or current Character release gate was disabled to make the candidate pass. Existing application production functionality is retained.
 
-PR250's cloud policy and PR247's runtime registry/guard were selectively reconciled on top of latest main rather than replacing main with a diverged old branch. No production workflow was dispatched by this task. Branch changes do not themselves activate policy on main.
+PR250's cloud policy and PR247's runtime registry/guard were selectively reconciled on top of latest main rather than replacing main with a diverged old branch. Only the read-only inspect operation was dispatched (run 39758157355); the publication job was skipped. Branch changes do not themselves activate policy on main.
 
 ## Remaining real release gates
 
@@ -56,3 +56,7 @@ PR250's cloud policy and PR247's runtime registry/guard were selectively reconci
 4. Only after these gates pass, create matched readiness evidence, freeze an immutable RC, and use the existing working GitHub Actions Expo credential. Do not request a duplicate Expo token merely because it is not injected into this machine.
 
 Release result: BLOCKED. Frozen RC SHA: none. New production update ID: none. Existing production update is preserved. No web deploy, database mutation, paid upgrade, or local-PC operation occurred.
+
+## Concurrent cumulative source reconciliation
+
+While inspection ran, main advanced to 7095a3fb5189d28be53a6e9742859e6391be9e8c (Today/Connect/comment fixes). These approved main changes were merged forward without replacing the immutable-RC publisher; only the workflow conflict required explicit resolution. TypeScript and the affected comment/weak-network suites (15 tests) passed. No backend function deployment was run. Earlier full cloud Performance QA (39757591420) and policy guard (39757591599) passed on the previous identical application baseline before these new main changes. They are not claimed as full CI verification of the later merged tree.
