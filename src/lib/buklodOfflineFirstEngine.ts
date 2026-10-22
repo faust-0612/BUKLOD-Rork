@@ -83,9 +83,9 @@ export async function readBuklodOfflineFirst<T extends { id: string }>(args: {
     return { rows: cached?.rows ?? [], source: 'device', syncing: false };
   }
   const sync = () => {
+    const generation = generations.get(key) ?? 0;
     const existing = inFlight.get(key);
     if (existing && existing.generation === generation) return existing.promise as Promise<T[]>;
-    const generation = generations.get(key) ?? 0;
     const task = enqueueBuklodRead({
       key, view: args.view, kind: args.kind ?? 'other', priority: 'visible',
       run: async signal => {
