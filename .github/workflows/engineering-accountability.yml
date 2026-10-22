@@ -1,13 +1,6 @@
 name: Engineering Accountability
 on:
   pull_request:
-    paths:
-      - 'src/**'
-      - 'scripts/**'
-      - '.github/workflows/**'
-      - '.buklod/**'
-      - 'supabase/**'
-      - 'docs/engineering/**'
   workflow_dispatch:
 permissions:
   contents: read
