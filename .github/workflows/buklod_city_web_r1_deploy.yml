@@ -8,8 +8,10 @@ on:
     paths:
       - '.github/workflows/buklod_city_web_r1_deploy.yml'
       - 'src/app/city.web.tsx'
+      - 'src/app/city.tsx'
       - 'src/app/index.web.tsx'
       - 'src/components/BuklodCityMap.web.tsx'
+      - 'src/components/BuklodCityDashboardR6.web.tsx'
       - 'src/lib/buklodCity.ts'
       - 'scripts/buklod-city-web-r1-qa.mjs'
       - 'supabase/migrations/*buklod_city_web*.sql'

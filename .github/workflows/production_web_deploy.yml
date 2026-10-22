@@ -18,6 +18,8 @@ on:
       - 'scripts/inject-adsense-web-head.cjs'
       - 'src/app/+html.tsx'
       - 'src/app/index.tsx'
+      - 'src/app/index.web.tsx'
+      - 'src/providers/AuthProvider.tsx'
       - 'src/app/onboarding/index.tsx'
       - 'src/app/(tabs)/home.tsx'
       - 'src/components/BuklodPublicWordShortcut.tsx'
