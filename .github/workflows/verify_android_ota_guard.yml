@@ -1,0 +1,33 @@
+name: Verify Android OTA runtime guard (no publish)
+on:
+  push:
+    branches:
+      - safety/ota-runtime-guard-v28
+  pull_request:
+    paths:
+      - 'scripts/guard-android-ota-runtime.cjs'
+      - 'release/android-native-runtime.json'
+      - '.github/workflows/v28_runtime_132_production_ota.yml'
+      - '.github/workflows/verify_android_ota_guard.yml'
+permissions:
+  contents: read
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Assert correct target passes and wrong targets fail
+        shell: bash
+        run: |
+          set -euo pipefail
+          export OTA_CHANNEL=production OTA_PLATFORM=android APP_VARIANT=production EXPO_PUBLIC_APP_ENV=production
+          export GITHUB_REF_TYPE=tag
+          export GITHUB_REF_NAME="v28-runtime-132-$(git rev-parse --short=8 HEAD)"
+          node scripts/guard-android-ota-runtime.cjs
+          if OTA_CHANNEL=preview node scripts/guard-android-ota-runtime.cjs; then echo "Wrong channel passed"; exit 1; fi
+          if OTA_PLATFORM=ios node scripts/guard-android-ota-runtime.cjs; then echo "Wrong platform passed"; exit 1; fi
+          if EAS_PROJECT_ID=wrong-project node scripts/guard-android-ota-runtime.cjs; then echo "Wrong project passed"; exit 1; fi
+          if GITHUB_REF_TYPE=branch node scripts/guard-android-ota-runtime.cjs; then echo "Untagged release passed"; exit 1; fi
