@@ -120,45 +120,7 @@ export default function BuklodClusterHomeCommandCenter({
 
   return (
     <View style={styles.screen}>
-      {canManageCluster ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Manage ${scope.name} Cluster`}
-          onPress={() =>
-            router.push(
-              clusterScopeManageRoute(
-                scope.scope_id,
-                scope.name
-              ) as any
-            )
-          }
-          style={({ pressed }) => [
-            styles.manageButton,
-            pressed && styles.pressed,
-          ]}
-        >
-          <View style={styles.manageIcon}>
-            <MaterialCommunityIcons
-              name="shield-crown-outline"
-              size={20}
-              color={colors.white}
-            />
-          </View>
-          <View style={styles.manageCopy}>
-            <Text style={styles.manageTitle}>
-              MANAGE CLUSTER
-            </Text>
-            <Text style={styles.manageSubtitle}>
-              Members, requests, admins, settings, features and Cluster controls
-            </Text>
-          </View>
-          <MaterialCommunityIcons
-            name="chevron-right"
-            size={22}
-            color={colors.white}
-          />
-        </Pressable>
-      ) : null}
+      {/* BUKLOD_V28_CLUSTER_MANAGE_INLINE_R1: compact Manage button now lives beside Search in the command center. */}
 
       <View style={styles.commandCenter}>
         <BuklodClusterHomeCommandCenterImpl

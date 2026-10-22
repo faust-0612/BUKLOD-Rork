@@ -183,107 +183,10 @@ export default function BuklodScopeHomeDashboard({
       }
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.hero}>
-        <Text style={styles.heroType}>
-          {scopeTypeLabel}
-          {scope.geo_level ? ` · ${scope.geo_level}` : ''}
-        </Text>
-        <Text style={styles.heroTitle}>{scope.name}</Text>
-        <Text style={styles.heroText}>{homeSubtitle(scope)}</Text>
-      </View>
-
-      {loadError ? (
-        <View style={styles.errorCard}>
-          <Text style={styles.errorText}>{loadError}</Text>
-          <Pressable onPress={() => void load()} style={styles.retry}>
-            <Text style={styles.retryText}>RETRY</Text>
-          </Pressable>
-        </View>
-      ) : null}
-
-      {scope.scope_type === 'ORGANIZATION' ? (
-        <>
-          <BuklodOrgHomeClusterCard organizationId={scope.scope_id} />
-          <BuklodOrgHomeBayanihanCard />
-        </>
-      ) : null}
-
-      {showAdminSummary && summary ? (
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>ADMIN SUMMARY</Text>
-          <View style={styles.statRow}>
-            <StatCard label="MEMBERS" value={summary.total_members} />
-            <StatCard label="ACTIVE" value={summary.active_members} />
-            <StatCard label="ADMINS" value={summary.admin_count} />
-            <StatCard label="ROLES" value={summary.functional_role_count} />
-          </View>
-          {summary.pending_join_requests > 0 ? (
-            <Text style={styles.pending}>
-              Pending join requests: {summary.pending_join_requests}
-            </Text>
-          ) : null}
-        </View>
-      ) : null}
-
-      <BuklodScopeActionCenterSlot items={actionItems} />
-
-      <View style={styles.card}>
-        <View style={styles.cardHead}>
-          <Text style={styles.cardTitle}>MY ROLE(S)</Text>
-        </View>
-        {summary?.my_functional_roles.length ? (
-          <View style={styles.roleChips}>
-            {summary.my_functional_roles.map((role) => (
-              <View key={role.id} style={styles.roleChip}>
-                <Text style={styles.roleChipText}>{role.name}</Text>
-              </View>
-            ))}
-          </View>
-        ) : (
-          <Text style={styles.muted}>
-            No functional role assigned yet in this scope.
-          </Text>
-        )}
-        <Text style={styles.accessLine}>
-          Access:{' '}
-          {summary?.my_is_admin || scope.is_admin ? 'ADMIN' : 'MEMBER'}
-        </Text>
-      </View>
-
-      {isMzbScope ? (
-        <BuklodMzbHomeWidgets
-          scope={scope}
-          onOpenCommunity={onOpenCommunity}
-        />
-      ) : null}
-
-      {scope.show_faith_content ? (
-        <>
-          <BuklodScopeFaithMonitoringSummary scope={scope} />
-          <BuklodScopeBuklodLessonPanel scope={scope} />
-          <BuklodHomeFaithPanel scopeId={scope.scope_id} />
-        </>
-      ) : null}
-
-      <BuklodHomeScopeBulletins />
-      <BuklodScopeAttendanceCard
-        scopeId={scope.scope_id}
-        scopeType={scope.scope_type}
-      />
-
+      {/* BUKLOD_V28_ORG_HOME_BLUE_R1: Quick Links exclude Community/Connect. */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>QUICK LINKS</Text>
         <View style={styles.quickGrid}>
-          <QuickLink
-            icon="account-group-outline"
-            label="Community"
-            onPress={onOpenCommunity}
-          />
-          <QuickLink
-            icon="message-text-outline"
-            label="Connect"
-            onPress={onOpenConnect}
-          />
           <QuickLink
             icon="clipboard-check-outline"
             label="Attendance"
@@ -332,6 +235,93 @@ export default function BuklodScopeHomeDashboard({
         </View>
       </View>
 
+
+      {loadError ? (
+        <View style={styles.errorCard}>
+          <Text style={styles.errorText}>{loadError}</Text>
+          <Pressable onPress={() => void load()} style={styles.retry}>
+            <Text style={styles.retryText}>RETRY</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {scope.scope_type === 'ORGANIZATION' ? (
+        <View style={styles.homePair}>
+          <View style={styles.homePairItem}><BuklodOrgHomeClusterCard organizationId={scope.scope_id} /></View>
+          <View style={styles.homePairItem}><BuklodOrgHomeBayanihanCard /></View>
+        </View>
+      ) : null}
+
+      {showAdminSummary ? (
+      <View style={styles.homePair}>
+        <View style={styles.homePairItem}>
+      {summary ? (
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>ADMIN SUMMARY</Text>
+          <View style={styles.statRow}>
+            <StatCard label="MEMBERS" value={summary.total_members} />
+            <StatCard label="ACTIVE" value={summary.active_members} />
+            <StatCard label="ADMINS" value={summary.admin_count} />
+            <StatCard label="ROLES" value={summary.functional_role_count} />
+          </View>
+          {summary.pending_join_requests > 0 ? (
+            <Text style={styles.pending}>
+              Pending join requests: {summary.pending_join_requests}
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
+
+        </View>
+        <View style={styles.homePairItem}><BuklodScopeActionCenterSlot items={actionItems} /></View>
+      </View>
+      ) : null}
+
+      <View style={styles.card}>
+        <View style={styles.cardHead}>
+          <Text style={styles.cardTitle}>MY ROLE(S)</Text>
+        </View>
+        {summary?.my_functional_roles.length ? (
+          <View style={styles.roleChips}>
+            {summary.my_functional_roles.map((role) => (
+              <View key={role.id} style={styles.roleChip}>
+                <Text style={styles.roleChipText}>{role.name}</Text>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <Text style={styles.muted}>
+            No functional role assigned yet in this scope.
+          </Text>
+        )}
+        <Text style={styles.accessLine}>
+          Access:{' '}
+          {summary?.my_is_admin || scope.is_admin ? 'ADMIN' : 'MEMBER'}
+        </Text>
+      </View>
+
+      {scope.show_faith_content ? (
+        <>
+          <View style={styles.homePair}>
+            <View style={styles.homePairItem}><BuklodScopeFaithMonitoringSummary scope={scope} /></View>
+            <View style={styles.homePairItem}><BuklodScopeBuklodLessonPanel scope={scope} /></View>
+          </View>
+          <BuklodHomeFaithPanel scopeId={scope.scope_id} compact />
+        </>
+      ) : null}
+
+      <BuklodHomeScopeBulletins />
+      <BuklodScopeAttendanceCard
+        scopeId={scope.scope_id}
+        scopeType={scope.scope_type}
+      />
+
+      {isMzbScope ? (
+        <BuklodMzbHomeWidgets scope={scope} onOpenCommunity={onOpenCommunity} />
+      ) : null}
+
+
+
       <BuklodScreenBottomBanner placement="home" variant="large" />
     </ScrollView>
   );
@@ -346,12 +336,20 @@ function QuickLink({
   label: string;
   onPress?: () => void;
 }) {
+  const tones: Record<string, {background: string; foreground: string}> = {
+    Attendance: {background:'#E6F2FF',foreground:'#0874DE'},
+    Manage: {background:'#E6F8EF',foreground:'#15995C'},
+    Clusters: {background:'#F0E9FD',foreground:'#8452DC'},
+    'Org access': {background:'#FFF2E2',foreground:'#DD8618'},
+  };
+  const tone = tones[label] ?? tones.Attendance;
   return (
     <Pressable
       onPress={onPress}
       disabled={!onPress}
       style={({ pressed }) => [
         styles.quick,
+        { backgroundColor: tone.background },
         !onPress && styles.quickDisabled,
         pressed && onPress && styles.pressed,
       ]}
@@ -359,7 +357,7 @@ function QuickLink({
       <MaterialCommunityIcons
         name={icon}
         size={20}
-        color={colors.greenDark}
+        color={tone.foreground}
       />
       <Text style={styles.quickText}>{label}</Text>
     </Pressable>
@@ -367,11 +365,15 @@ function QuickLink({
 }
 
 const styles = StyleSheet.create({
+  // Paired panels wrap below 350dp; nothing can overflow the phone viewport.
+  homePair: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 8 },
+  homePairItem: { flexGrow: 1, flexShrink: 1, flexBasis: '46%', minWidth: 166 },
   content: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingHorizontal: 10,
+    paddingTop: 9,
     paddingBottom: 28,
-    gap: 12,
+    gap: 9,
+    backgroundColor: '#F2F7FD',
   },
   loading: {
     paddingVertical: 48,
@@ -404,10 +406,10 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#DCE5E0',
+    borderColor: '#E1EBF7',
     backgroundColor: '#FFFFFF',
-    padding: 14,
-    gap: 10,
+    padding: 11,
+    gap: 9,
   },
   cardHead: {
     flexDirection: 'row',
@@ -416,10 +418,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   cardTitle: {
-    color: '#173B2F',
+    color: '#113C72',
     fontSize: 12,
     fontWeight: '900',
-    letterSpacing: 0.6,
+    letterSpacing: 0.2,
   },
   statRow: {
     flexDirection: 'row',
@@ -429,7 +431,7 @@ const styles = StyleSheet.create({
   statCard: {
     minWidth: 72,
     borderRadius: 12,
-    backgroundColor: '#F4F7F5',
+    backgroundColor: '#EAF4FF',
     paddingHorizontal: 10,
     paddingVertical: 8,
     gap: 2,
@@ -457,12 +459,12 @@ const styles = StyleSheet.create({
   },
   roleChip: {
     borderRadius: 999,
-    backgroundColor: '#E8F5EE',
+    backgroundColor: '#E6F2FF',
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
   roleChipText: {
-    color: '#176B4A',
+    color: '#1262AC',
     fontSize: 11,
     fontWeight: '800',
   },
@@ -491,12 +493,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   quick: {
-    width: '47%',
-    minHeight: 72,
-    borderRadius: 14,
+    width: '22%',
+    minWidth: 68,
+    flexGrow: 1,
+    minHeight: 64,
+    borderRadius: 11,
     borderWidth: 1,
-    borderColor: '#DCE5E0',
-    backgroundColor: '#F8FAF9',
+    borderColor: '#DCEAF9',
+    backgroundColor: '#EAF4FF',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
@@ -506,9 +510,10 @@ const styles = StyleSheet.create({
     opacity: 0.45,
   },
   quickText: {
-    color: '#173B2F',
-    fontSize: 11,
+    color: '#164675',
+    fontSize: 10,
     fontWeight: '800',
+    textAlign: 'center',
   },
   pressed: {
     opacity: 0.72,

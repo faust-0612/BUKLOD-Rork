@@ -74,6 +74,7 @@ type FaithActionProps = {
   onPress: () => void;
   loading?: boolean;
   locked?: boolean;
+  compact?: boolean;
 };
 
 function useFaithTones() {
@@ -112,6 +113,7 @@ function FaithAction({
   onPress,
   loading = false,
   locked = false,
+  compact = false,
 }: FaithActionProps) {
   const { colors } = useBuklodPresentation();
   const reduceMotion = useBuklodReduceMotion();
@@ -122,6 +124,12 @@ function FaithAction({
 
   const styleTone =
     useFaithTones()[tone];
+  // BUKLOD_V28_FAITH_SIX_TILE_R1
+  const tileColor: Record<string, string> = {
+    'Daily Reading': '#319AED', 'My Bible': '#2DB753', Word: '#F5A31E',
+    Prayer: '#E74F82', ABAKA: '#8B50E9', Hymns: '#09B8C6',
+  };
+  const compactColor = tileColor[label] ?? styleTone.accent;
 
   const pressTo = (
     value: number,
@@ -143,6 +151,7 @@ function FaithAction({
     <RNAnimated.View
       style={[
         styles.cardShell,
+        compact && styles.compactShell,
         {
           transform: [
             {
@@ -164,20 +173,18 @@ function FaithAction({
         }
         style={({pressed}) => [
           styles.card,
+          compact && styles.compactCard,
           {
-            backgroundColor:
-              styleTone.surface,
-
-            borderColor:
-              `${styleTone.accent}22`,
-            minHeight: 72,
+            backgroundColor: compact ? compactColor : styleTone.surface,
+            borderColor: compact ? compactColor : `${styleTone.accent}22`,
+            minHeight: compact ? 69 : 72,
           },
           pressed && {
             opacity: 0.90,
           },
         ]}
       >
-        <View
+        {!compact && <View
           style={[
             styles.accentRail,
             {
@@ -185,42 +192,40 @@ function FaithAction({
                 styleTone.accent,
             },
           ]}
-        />
+        />}
 
-        <View style={styles.cardTop}>
+        <View style={[styles.cardTop, compact && styles.compactCardTop]}>
           <View
             style={[
               styles.iconBubble,
               {
-                backgroundColor:
-                  styleTone.iconSurface,
+                backgroundColor: compact ? 'transparent' : styleTone.iconSurface,
               },
             ]}
           >
             <MaterialCommunityIcons
               name={icon}
               size={19}
-              color={
-                styleTone.accent
-              }
+              color={compact ? '#FFFFFF' : styleTone.accent}
             />
           </View>
 
-          <MaterialCommunityIcons
+          {!compact && <MaterialCommunityIcons
             name={locked ? 'lock-outline' : 'arrow-top-right'}
             size={16}
             color={`${styleTone.accent}99`}
-          />
+          />}
+          {compact && locked ? <MaterialCommunityIcons name="lock-outline" size={12} color="#FFFFFF" /> : null}
         </View>
 
         <Text
-          numberOfLines={1}
+          numberOfLines={compact ? 2 : 1}
           style={[
             styles.eyebrow,
             {
-              color:
-                styleTone.accent,
+              color: compact ? '#FFFFFF' : styleTone.accent,
             },
+            compact && styles.compactEyebrow,
           ]}
         >
           {label.toUpperCase()}
@@ -230,9 +235,7 @@ function FaithAction({
           <View style={styles.loadingBox}>
             <ActivityIndicator
               size="small"
-              color={
-                styleTone.accent
-              }
+              color={compact ? '#FFFFFF' : styleTone.accent}
             />
           </View>
         ) : (
@@ -241,6 +244,7 @@ function FaithAction({
               numberOfLines={2}
               style={[
                 styles.cardTitle,
+                compact && { display: 'none' },
                 { color: colors.text },
               ]}
             >
@@ -251,6 +255,7 @@ function FaithAction({
               numberOfLines={2}
               style={[
                 styles.meta,
+                compact && { display: 'none' },
                 { color: colors.muted },
               ]}
             >
@@ -265,8 +270,10 @@ function FaithAction({
 
 export default function BuklodHomeFaithPanel({
   scopeId,
+  compact = false,
 }: {
   scopeId?: string;
+  compact?: boolean;
 } = {}) {
   const { colors } = useBuklodPresentation();
   const reduceMotion = useBuklodReduceMotion();
@@ -448,6 +455,7 @@ export default function BuklodHomeFaithPanel({
     <RNAnimated.View
       style={[
         styles.section,
+        compact && styles.compactSection,
         {
           backgroundColor: colors.white,
           borderColor: colors.line,
@@ -499,6 +507,7 @@ export default function BuklodHomeFaithPanel({
 
       <View style={styles.grid}>
         <FaithAction
+          compact={compact}
           label="Daily Reading"
           title={
             reading
@@ -552,6 +561,7 @@ export default function BuklodHomeFaithPanel({
         />
 
         <FaithAction
+          compact={compact}
           label="My Bible"
           title="Read the Bible"
           meta="Read • Highlight • Notes"
@@ -571,6 +581,7 @@ export default function BuklodHomeFaithPanel({
         />
 
         <FaithAction
+          compact={compact}
           label="Word"
           title="Daily devotional"
           meta={
@@ -605,6 +616,7 @@ export default function BuklodHomeFaithPanel({
         />
 
         <FaithAction
+          compact={compact}
           label="Prayer"
           title="Prayer"
           meta="Pray • Share • Encourage"
@@ -623,6 +635,7 @@ export default function BuklodHomeFaithPanel({
             ABC lesson completion uses the existing BUKLOD Points claim flow.
         */}
         <FaithAction
+          compact={compact}
           label="ABAKA"
           title="ABAKA ng Bagong Likha"
           meta="Sunday school • A–Z • +5 points"
@@ -636,6 +649,7 @@ export default function BuklodHomeFaithPanel({
         />
 
         <FaithAction
+          compact={compact}
           label="Hymns"
           title="Samahang Binuklod ng Pag-ibig"
           meta="Search • Select • Font • Zoom"
@@ -659,6 +673,11 @@ export default function BuklodHomeFaithPanel({
 
 const styles =
   StyleSheet.create({
+    compactSection: { marginHorizontal: 0, marginTop: 0, marginBottom: 0, padding: 10, borderRadius: 15 },
+    compactShell: { flexGrow: 1, flexShrink: 1, flexBasis: '15%' as any, minWidth: 42 },
+    compactCard: { minHeight: 69, paddingHorizontal: 2, paddingVertical: 8, alignItems: 'center', borderRadius: 9 },
+    compactCardTop: { justifyContent: 'center', marginBottom: 1 },
+    compactEyebrow: { textAlign: 'center', fontSize: 7, letterSpacing: 0, marginBottom: 0 },
     section: {
       marginTop: 6,
       marginHorizontal: 12,
