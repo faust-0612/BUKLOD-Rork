@@ -1,4 +1,4 @@
-# Release trigger: 2026-10-22 wall Today/Connect/comment composer APK cluster
+# Release trigger: 2026-10-22 KL admin Chap2+ + reader music top + live comments/readers
 name: BUKLOD Production Android OTA
 
 on:
@@ -8,6 +8,12 @@ on:
       - main
     paths:
       - '.github/workflows/production_android_ota.yml'
+      - 'src/app/admin/kabihasnang-ligaw.tsx'
+      - 'src/lib/kabihasnang-ligaw/**'
+      - 'src/components/kabihasnang-ligaw/**'
+      - 'src/lib/kabihasnangLigawPublishing.ts'
+      - 'assets/kabihasnang-ligaw/**'
+      - 'supabase/migrations/*kl_reader*'
       - 'src/components/BuklodTodayCard.tsx'
       - 'src/lib/buklodDailyEngagement.ts'
       - 'supabase/functions/buklod-community-daily-engagement/**'
@@ -245,7 +251,7 @@ jobs:
             --channel production \
             --platform android \
             --environment production \
-            --message "Runtime 1.3.2 wall APK cluster: Today blank hold, Connect composer above phone nav, comment blank photo/GIF/reaction; keep V28 startup/cluster/Bayanihan/character" \
+            --message "Runtime 1.3.2 KL: Chap2+ approval locks next 6am package; reader music on top; live comments + who is reading on released chapters" \
             --non-interactive
 
       - name: Deployment status
