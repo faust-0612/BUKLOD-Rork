@@ -589,6 +589,7 @@ export default function HomeScreen() {
       <EnvironmentBadge />
 
       {/* BUKLOD_HOME_IDENTITY_R23_CLEAN_TWO_ROW */}
+      {/* HOME_IDENTITY_ACTION_ROW_R2 — compatibility marker; R23 remains authoritative */}
       <HomeMotionSection delay={0}>
         <View
           style={{

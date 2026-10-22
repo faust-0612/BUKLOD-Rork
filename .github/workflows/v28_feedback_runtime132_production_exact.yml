@@ -1,0 +1,94 @@
+name: BUKLOD V28 runtime132 Create Feedback Production OTA Exact RC
+on:
+  push:
+    branches:
+      - release/v28-create-feedback-runtime132-20261022
+    paths:
+      - '.github/workflows/v28_feedback_runtime132_production_exact.yml'
+permissions:
+  contents: read
+concurrency:
+  group: buklod-v28-feedback-production-runtime132
+  cancel-in-progress: false
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  EXPO_PUBLIC_APP_ENV: production
+  EXPO_PUBLIC_STREAM_ANDROID_PUSH_PROVIDER_NAME: firebase-video-production
+  APP_VARIANT: production
+  BUKLOD_APP_TARGET: main
+jobs:
+  qa-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - name: Checkout immutable exact RC
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate immutable source and APK compatibility
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = '725b7173d93fe0d4bd12c0cd4bd152d53e6c5d05'
+          test "$(git diff --name-only 49e142147649d002205f8b191eb875ce5552beaa HEAD)" = '.github/workflows/v28_feedback_runtime132_production_exact.yml'
+          test "$(git merge-base 363658fc81b7fe7132a7b8a78035f0d1a9917088 HEAD)" = '363658fc81b7fe7132a7b8a78035f0d1a9917088'
+          test -z "$(git diff --name-only 363658fc81b7fe7132a7b8a78035f0d1a9917088 HEAD -- android ios eas.json package.json package-lock.json assets)"
+          grep -F "version: '1.3.4'" app.config.js
+          grep -F "versionCode: isStaging ? undefined : 28" app.config.js
+          grep -F "runtimeVersion: isClassroom ? '1.3.0' : '1.3.2'" app.config.js
+          test -f src/components/BuklodActionFeedback.tsx
+          echo "FROZEN_EXACT_RC=$(git rev-parse HEAD)"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+      - name: Typecheck and creation contract QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx tsc --noEmit
+          node --test __tests__/buklodActionFeedbackContract.test.js
+          test -z "$(git status --porcelain)"
+          echo 'FROZEN_RC_VERIFIED'
+      - name: Verify authenticated Expo and unchanged production OTA head
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}"
+          npx eas-cli@latest whoami --non-interactive
+          npx eas-cli@latest update:list --all --platform android --runtime-version 1.3.2 --limit 1 --json > "$RUNNER_TEMP/v28-current-ota.txt" 2>&1
+          node - "$RUNNER_TEMP/v28-current-ota.txt" <<'NODE'
+          const fs = require('fs');
+          const raw = fs.readFileSync(process.argv[2], 'utf8');
+          const lines = raw.split(/\r?\n/).map(x => x.trim());
+          const field = label => lines.find(line => line.startsWith(label + ' '))?.slice(label.length).trim() || '';
+          const group = field('Group ID');
+          const branch = field('Branch');
+          const platforms = field('Platforms');
+          const runtime = field('Runtime Version');
+          console.log(JSON.stringify({group,branch,platforms,runtime}));
+          if (group !== '0c363aa1-f62d-4395-995e-68c806305551' || branch !== 'production' || platforms !== 'android' || runtime !== '1.3.2') {
+            console.error('OTA_BLOCKED: live Android runtime or latest group changed or Expo listing did not provide trusted values');
+            process.exit(1);
+          }
+          console.log('EXACT_LIVE_OTA_BASELINE_PASS');
+          NODE
+      - name: Publish exact RC Android Production OTA runtime 1.3.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx eas-cli@latest update \
+            --channel production \
+            --platform android \
+            --environment production \
+            --message "BUKLOD V28 runtime 1.3.2: Create Account Cluster Organization feedback RC49e14214" \
+            --non-interactive
+      - name: Save publication evidence
+        shell: bash
+        run: |
+          echo "Android Production OTA runtime 1.3.2 published from exact RC $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+          echo "No native APK/AAB build, database writes or web publication." >> "$GITHUB_STEP_SUMMARY"

@@ -1,7 +1,7 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
-  Alert,
+  ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
+import BuklodActionFeedback, { type BuklodActionStatus } from '@/components/BuklodActionFeedback';
 
 import { router } from 'expo-router';
 
@@ -76,6 +77,9 @@ export default function CreateClusterScreen() {
   const [visibility, setVisibility] =
     useState<ClusterVisibility>('PUBLIC');
   const [busy, setBusy] = useState(false);
+  const inFlight = useRef(false);
+  const [createdId, setCreatedId] = useState('');
+  const [feedback, setFeedback] = useState<{status: BuklodActionStatus; message: string}>({status:'idle', message:''});
 
   useEffect(() => {
     let active = true;
@@ -130,12 +134,14 @@ export default function CreateClusterScreen() {
   };
 
   const submit = async () => {
+    if (inFlight.current || createdId) return;
     if (!name.trim()) {
-      Alert.alert('Cluster', 'Enter a Cluster name.');
+      setFeedback({ status: 'error', message: 'Enter a Cluster name.' });
       return;
     }
+    inFlight.current = true;
     setBusy(true);
-
+    setFeedback({ status: 'pending', message: 'Creating Cluster. Do not submit twice.' });
     try {
       const id = await createCluster({
         name,
@@ -144,14 +150,15 @@ export default function CreateClusterScreen() {
         visibility,
         organizationId: organizationId || null,
       });
-
-      router.replace({
-        pathname: '/clusters/[id]' as any,
-        params: { id },
-      } as any);
+      if (!id || id === 'null' || id === 'undefined') {
+        throw new Error('Server did not confirm a Cluster ID. Check the list before retrying.');
+      }
+      setCreatedId(id);
+      setFeedback({ status: 'success', message: `Cluster "${name.trim()}" created successfully. Open it below.` });
     } catch (error) {
-      Alert.alert('Create Cluster', messageOf(error));
+      setFeedback({status:'error', message:`Cluster creation could not be confirmed: ${messageOf(error)}`});
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   };
@@ -275,15 +282,25 @@ export default function CreateClusterScreen() {
         );
       })}
 
-      <Pressable
-        disabled={busy}
-        onPress={() => void submit()}
-        style={[styles.primary, busy && { opacity: 0.55 }]}
-      >
-        <Text style={styles.primaryText}>
-          {busy ? 'CREATING...' : 'CREATE CLUSTER'}
-        </Text>
-      </Pressable>
+      <BuklodActionFeedback status={feedback.status} message={feedback.message} />
+      {createdId ? (
+        <Pressable accessibilityRole="button" style={styles.primary}
+          onPress={() => router.replace({ pathname: '/clusters/[id]' as any, params: { id: createdId } } as any)}>
+          <Text style={styles.primaryText}>OPEN CREATED CLUSTER</Text>
+        </Pressable>
+      ) : (
+        <Pressable
+          accessibilityRole="button"
+          disabled={busy}
+          onPress={() => void submit()}
+          style={[styles.primary, busy && { opacity: 0.55 }]}
+        >
+          {busy ? <ActivityIndicator color="#FFFFFF" size="small" /> : null}
+          <Text style={styles.primaryText}>
+            {busy ? 'CREATING...' : 'CREATE CLUSTER'}
+          </Text>
+        </Pressable>
+      )}
     </BuklodPortalScrollView>
   );
 }
