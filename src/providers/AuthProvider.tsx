@@ -504,8 +504,21 @@ export function AuthProvider({
           )
         );
 
-        const persisted =
-          await readPersistedSupabaseSession();
+        // Local storage can also stall on damaged/slow devices.
+        // Bound recovery independently of the remote session request.
+        let persisted: Awaited<ReturnType<typeof readPersistedSupabaseSession>> = null;
+        try {
+          persisted = await withBuklodTimeout(
+            readPersistedSupabaseSession(),
+            2500,
+            'BUKLOD persisted session recovery'
+          );
+        } catch (recoveryError: any) {
+          console.warn(
+            'BUKLOD persisted session recovery:',
+            String(recoveryError?.message ?? recoveryError)
+          );
+        }
 
         if (persisted?.user?.id) {
           setSession(persisted);
