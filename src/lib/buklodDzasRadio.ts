@@ -96,3 +96,13 @@ export function pauseDzasRadio() {
     // no-op
   }
 }
+
+/** Read-only. Does not create a player or change DZAS playback. */
+export function peekDzasPlaying(): boolean {
+  try {
+    const active = player as { playing?: boolean } | null;
+    return Boolean(active?.playing);
+  } catch {
+    return false;
+  }
+}

@@ -1366,10 +1366,18 @@ const load=useCallback(async(options?:{
       ? loadCommunityPostMediaByPostIds(postIds)
       : Promise.resolve({});
 
+  const followBackAuthorIds=
+    [...new Set(
+      feedRows
+        .map((p:any)=>String(p.user_id??'').trim())
+        .filter(Boolean)
+    )];
+
   const [
     hydratedFeedRows,
     myReactionResult,
     mediaResult,
+    followsViewerResult,
   ] = await Promise.all([
     hydratePersonNamesOnRows(
       feedRows,
@@ -1412,6 +1420,23 @@ const load=useCallback(async(options?:{
       data: [] as any[],
       error: null,
     })),
+    followBackAuthorIds.length
+      ? withBuklodTimeout<any>(
+          supabase
+            .from('buklod_user_follows')
+            .select('follower_id')
+            .eq('followed_user_id', user.id)
+            .in('follower_id', followBackAuthorIds),
+          5000,
+          'Community follow back'
+        ).catch(() => ({
+          data: [] as any[],
+          error: null,
+        }))
+      : Promise.resolve({
+          data: [] as any[],
+          error: null,
+        }),
   ]);
 
   if(
@@ -1432,6 +1457,13 @@ const load=useCallback(async(options?:{
   const myReactionError =
     myReactionResult?.error;
 
+  const followsViewer=
+    new Set(
+      (followsViewerResult?.data??[])
+        .map((row:any)=>String(row.follower_id??'').trim())
+        .filter(Boolean)
+    );
+
   if(!myReactionError){
     for(
       const row of
@@ -1449,6 +1481,8 @@ const load=useCallback(async(options?:{
       (p:any)=>{
         return{
           ...p,
+          author_follows_viewer:
+            followsViewer.has(String(p.user_id??'').trim()),
           my_reaction:
             myReactionByPost[p.id]??null,
           media_url:
@@ -4279,11 +4313,22 @@ useFocusEffect(
     const subscription = BackHandler.addEventListener(
       'hardwareBackPress',
       () => {
-        if (communityScrollYRefBackR2.current > 12) {
-          communityFeedRefBackR2.current?.scrollToOffset?.({
-            offset: 0,
-            animated: true,
-          });
+        const scrolled = Math.max(
+          communityScrollYRefBackR2.current,
+          Number(
+            communityFeedRefBackR2.current?.getAbsoluteLastScrollOffset?.() || 0
+          ),
+        );
+        if (scrolled > 12) {
+          if (typeof communityFeedRefBackR2.current?.scrollToTop === 'function') {
+            communityFeedRefBackR2.current.scrollToTop({ animated: true });
+          } else {
+            communityFeedRefBackR2.current?.scrollToOffset?.({
+              offset: 0,
+              animated: true,
+              skipFirstItemOffset: true,
+            });
+          }
         } else {
           void refreshCommunity186L();
         }
@@ -4926,7 +4971,9 @@ const communityFeedRows =
         accessibilityLabel={
          item.is_following_author
           ? 'Unfollow this member'
-          : 'Follow this member'
+          : item.author_follows_viewer
+           ? 'Follow back this member'
+           : 'Follow this member'
         }
         onPress={()=>
          void toggleAuthorFollow(
@@ -4961,7 +5008,9 @@ const communityFeedRows =
         >
          {item.is_following_author
           ? 'FOLLOWING'
-          : 'FOLLOW'}
+          : item.author_follows_viewer
+           ? 'FOLLOW BACK'
+           : 'FOLLOW'}
         </Text>
        </Pressable>
       )}
