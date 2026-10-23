@@ -1,3 +1,4 @@
+import { BuklodExpandableWallCaption } from '@/components/BuklodExpandableWallCaption';
 /* BUKLOD_ROOT_PERFORMANCE_R3_COMMUNITY_REALTIME: existing broadcast implementation preserved */
 /* PERF_EMERGENCY_R2_VISIBLE_POSTS: list-shape-drift-safely-skipped */
 /* PERF_EMERGENCY_R2_MULTI_MEDIA_CACHE: existing-community-media-url-cache-preserved */
@@ -5115,7 +5116,8 @@ const communityFeedRows =
     </View>
    </View>
    </View>
-   <BuklodMentionText
+   <BuklodExpandableWallCaption
+    key={String(item.id)}
     text={String(repairMojibakeText(item.body) ?? '').replace(
      /^Shared from [^\r\n]+(?:\r?\n\s*|$)+/i,
      ''

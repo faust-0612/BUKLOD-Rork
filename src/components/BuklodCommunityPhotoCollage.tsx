@@ -188,9 +188,9 @@ export function BuklodCommunityPhotoCollage({
       singleAspectRatio > 0
         ? Math.max(
             1,
-            Math.round(
-              collageWidth /
-                singleAspectRatio
+            Math.min(
+              520,
+              Math.max(220, Math.round(collageWidth / singleAspectRatio))
             )
           )
         : 310
