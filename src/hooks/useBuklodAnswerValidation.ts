@@ -26,8 +26,15 @@ export function useBuklodAnswerValidation(
   );
   const [error, setError] = useState<string | null>(null);
   const lastValidatedValueRef = useRef<string>('');
+  const generationRef = useRef(0);
+  const pendingRef = useRef(false);
+  const currentAnswerRef = useRef(watchedResponse?.trim());
+  currentAnswerRef.current = watchedResponse?.trim();
 
   const reset = useCallback(() => {
+    generationRef.current += 1;
+    pendingRef.current = false;
+    setIsValidating(false);
     setLastResult(null);
     setError(null);
     lastValidatedValueRef.current = '';
@@ -54,12 +61,15 @@ export function useBuklodAnswerValidation(
   const validate = useCallback(
     async (input: ValidateInput): Promise<AIAnswerValidationResult | null> => {
       const trimmed = input.response.trim();
+      if (pendingRef.current) return null;
       if (!trimmed) {
         setError('Write your answer before checking.');
         setLastResult(null);
         return null;
       }
 
+      const generation = ++generationRef.current;
+      pendingRef.current = true;
       setIsValidating(true);
       setError(null);
 
@@ -70,10 +80,12 @@ export function useBuklodAnswerValidation(
           attachments: input.attachments,
         });
 
+        if (generation !== generationRef.current || (currentAnswerRef.current != null && currentAnswerRef.current !== trimmed)) return null;
         setLastResult(result);
         lastValidatedValueRef.current = trimmed;
         return result;
       } catch (validationError: any) {
+        if (generation !== generationRef.current) return null;
         setError(
           validationError?.message ??
             'Could not check your answer right now. Please try again.',
@@ -81,7 +93,10 @@ export function useBuklodAnswerValidation(
         setLastResult(null);
         return null;
       } finally {
-        setIsValidating(false);
+        if (generation === generationRef.current) {
+          pendingRef.current = false;
+          setIsValidating(false);
+        }
       }
     },
     [questionContext],
