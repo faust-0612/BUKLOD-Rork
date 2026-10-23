@@ -848,6 +848,7 @@ export default function BuklodMaritesBoard({
   const [photos, setPhotos] = useState<MaritesComposerPhoto[]>(
     []
   );
+  const [quickVideo, setQuickVideo] = useState<{ uri: string; durationSeconds: number; mimeType: string } | null>(null);
   const [posting, setPosting] = useState(false);
   const postingGuardRef = useRef(false);
   const [expiryTick, setExpiryTick] = useState(0);
@@ -1328,6 +1329,7 @@ export default function BuklodMaritesBoard({
   const resetComposer = useCallback(() => {
     setDraft('');
     setPhotos([]);
+    setQuickVideo(null);
     setPhotoEditorSource(null);
     setPhotoEditorTargetId(null);
     setComposerOpen(false);
@@ -1515,12 +1517,27 @@ export default function BuklodMaritesBoard({
     }
   }, [photos.length]);
 
+  const pickQuickVideo = useCallback(async () => {
+    try {
+      const P = await import('expo-image-picker');
+      const permission = await P.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) { Alert.alert('Quick Video', 'Allow video library access first.'); return; }
+      const result = await P.launchImageLibraryAsync({ mediaTypes: ['videos'], videoMaxDuration: 30, allowsEditing: false });
+      if (result.canceled || !result.assets?.[0]) return;
+      const asset = result.assets[0];
+      const durationSeconds = Number(asset.duration ?? 0) / 1000;
+      if (!Number.isFinite(durationSeconds) || durationSeconds <= 0 || durationSeconds > 30) { Alert.alert('Quick Video', 'Select a video no longer than 30 seconds.'); return; }
+      setPhotos([]);
+      setQuickVideo({ uri: asset.uri, durationSeconds, mimeType: asset.mimeType || 'video/mp4' });
+    } catch (error) { Alert.alert('Quick Video', String((error as Error)?.message ?? 'Could not select video.')); }
+  }, []);
+
   const submitStory = useCallback(async () => {
     if (postingGuardRef.current) return;
     const body = draft.trim();
     const photoUris = photos.map((photo) => photo.uri);
 
-    if (!body && !photoUris.length) {
+    if (!body && !photoUris.length && !quickVideo) {
       Alert.alert(
         'Marites Story',
         'Add a short message or photo first.'
@@ -1556,6 +1573,7 @@ export default function BuklodMaritesBoard({
         avatarUrl: profile?.avatar_url ?? null,
         body,
         photoUris,
+        video: quickVideo,
       });
 
       loadGenerationRef.current += 1;
@@ -1599,6 +1617,7 @@ export default function BuklodMaritesBoard({
     draft,
     cacheKey,
     photos,
+    quickVideo,
     profile?.avatar_url,
     profile?.full_name,
     resetComposer,
@@ -1787,7 +1806,7 @@ export default function BuklodMaritesBoard({
             <View style={styles.toolRow}>
               <Pressable
                 style={styles.toolBtn}
-                disabled={photoBusy}
+                disabled={photoBusy || Boolean(quickVideo)}
                 onPress={() => void pickPhotos()}
               >
                 <MaterialCommunityIcons
@@ -1803,7 +1822,9 @@ export default function BuklodMaritesBoard({
                       : 'Add photos'}
                 </Text>
               </Pressable>
+              <Pressable style={styles.toolBtn} disabled={posting} onPress={() => void pickQuickVideo()}><MaterialCommunityIcons name="video-plus" size={17} color={colors.green} /><Text style={styles.toolText}>{quickVideo ? 'Replace Quick Video' : 'Quick Video (max 30s)'}</Text></Pressable>
             </View>
+            {quickVideo ? <View style={{ height: 190 }}><MaritesQuickVideo uri={quickVideo.uri} /><Pressable onPress={() => setQuickVideo(null)}><Text style={styles.toolText}>Remove video</Text></Pressable></View> : null}
 
             <Text style={styles.composerPhotoHint}>
               Tap Add photos, then tap each photo you want. Press OK when done.
