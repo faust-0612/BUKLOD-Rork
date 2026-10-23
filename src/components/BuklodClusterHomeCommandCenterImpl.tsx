@@ -1,6 +1,6 @@
 import { BuklodGivingSettingsButton } from './BuklodGivingSettingsButton';
 /* PATCH_170B_CLUSTER_HOME_COMMAND_CENTER */
-import React,{useCallback,useMemo,useState}from'react';
+import React,{useCallback,useMemo,useRef,useState}from'react';
 import{ActivityIndicator,Alert,Image,Linking,Modal,Pressable,RefreshControl,ScrollView,Share,StyleSheet,Text,TextInput,View}from'react-native';
 import*as Clipboard from'expo-clipboard';
 import{MaterialCommunityIcons}from'@expo/vector-icons';
@@ -151,9 +151,14 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
  /* BUKLOD_V28_CLUSTER_TILE_LAYOUT_R1: preserve all existing widget bodies and actions. */
  const hidden=useMemo(()=>new Set(settings?.hidden_widgets??[]),[settings?.hidden_widgets]);const show=(k:string)=>(manageMode||(k!=='members'&&k!=='officers'))&&!hidden.has(k);
 
+ const requestRef=useRef<{key:string;pending:boolean;generation:number}>({key:'',pending:false,generation:0});
  const load=useCallback(async(options?:{background?:boolean})=>{
   if(scope.scope_type!=='CLUSTER')return;
   const cacheKey=`${scope.scope_id}:${manageMode?'admin':'member'}`;
+  if(requestRef.current.pending&&requestRef.current.key===cacheKey)return;
+  const generation=++requestRef.current.generation;
+  requestRef.current={key:cacheKey,pending:true,generation};
+  const isCurrent=()=>requestRef.current.generation===generation;
   const cached=readClusterHomeCache(cacheKey);
   if(cached&&!options?.background){
    applySnapshot(cached);
@@ -194,10 +199,11 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
     attendance:Array.isArray(att)?att:[],
     description:String(sc?.description??''),
    };
+   if(!isCurrent())return;
    clusterHomeCache.set(cacheKey,{at:Date.now(),data:snapshot});
    applySnapshot(snapshot);
-   void hydratePostMedia(raw).then((signed)=>{setPosts(signed);clusterHomeCache.set(cacheKey,{at:Date.now(),data:{...snapshot,posts:signed}});});
-  }catch(err:any){console.warn('Cluster Home:',err);if(!cached)Alert.alert('Cluster Home',err?.message??'Could not load Cluster Home.')}finally{setLoading(false);setRefreshing(false)}
+   void hydratePostMedia(raw).then((signed)=>{if(!isCurrent())return;setPosts(signed);clusterHomeCache.set(cacheKey,{at:Date.now(),data:{...snapshot,posts:signed}});}).catch(error=>console.warn('Cluster Home media:',error));
+  }catch(err:any){console.warn('Cluster Home:',err);if(isCurrent()&&!cached)Alert.alert('Cluster Home',err?.message??'Could not load Cluster Home.')}finally{if(isCurrent()){requestRef.current.pending=false;setLoading(false);setRefreshing(false)}}
  },[applySnapshot,manageMode,scope.scope_id,scope.scope_type,user?.id]);
 
  useFocusEffect(useCallback(()=>{void load();},[load]));
