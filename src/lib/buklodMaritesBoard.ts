@@ -492,7 +492,7 @@ function mapCommunityPostToMaritesStory(
 
   const photoUris = communityPostPhotoUris(post);
   const videoItem = (Array.isArray(post.media_items) ? post.media_items : []).find((item: any) => String(item?.media_mime_type ?? '').toLowerCase().startsWith('video/'));
-  const videoUri = String(videoItem?.media_url ?? (String(post.media_mime_type ?? '').toLowerCase().startsWith('video/') ? post.media_url : '') ?? '').trim();
+  const videoUri = String(videoItem?.media_url || (String(post.media_mime_type ?? '').toLowerCase().startsWith('video/') ? post.media_url : '') || '').trim();
   const body = stripMaritesPostMarker(
     repairMojibakeText(String(post.body ?? ''))
   ).trim();
