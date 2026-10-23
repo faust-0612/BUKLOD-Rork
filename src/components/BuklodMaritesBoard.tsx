@@ -104,6 +104,7 @@ import {
 type Props = {
   /** Reserved for future scoped RPC filter. */
   locationScopeId?: string | null;
+  onOpenComments?: (postId: string) => void;
 };
 
 type MaritesComposerPhoto = {
@@ -670,6 +671,7 @@ function MaritesStoryCard({
   colors,
   onPress,
   menu,
+  onComments,
 }: {
   story: MaritesStory;
   colors: ReturnType<
@@ -677,6 +679,7 @@ function MaritesStoryCard({
   >['colors'];
   onPress: () => void;
   menu?: React.ReactNode;
+  onComments?: () => void;
 }) {
   const styles = useMemo(
     () => createStyles(colors),
@@ -795,6 +798,11 @@ function MaritesStoryCard({
         ) : null}
       </View>
     </Pressable>
+    {onComments ? (
+      <Pressable accessibilityRole="button" accessibilityLabel="Open story comments" onPress={onComments} style={{ position: 'absolute', right: 5, bottom: MARITES_COMPACT_FOOTER_HEIGHT + 6, width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' }}>
+        <MaterialCommunityIcons name="comment-text-outline" size={21} color="#FFFFFF" />
+      </Pressable>
+    ) : null}
     {menu}
     </View>
   );
@@ -802,6 +810,7 @@ function MaritesStoryCard({
 
 export default function BuklodMaritesBoard({
   locationScopeId,
+  onOpenComments,
 }: Props) {
   const { user, profile } = useAuth();
   const { colors } = useBuklodPresentation();
@@ -1658,6 +1667,7 @@ export default function BuklodMaritesBoard({
                 story,
                 styles.cardMenuBtn
               )}
+              onComments={onOpenComments && communityPostIdForStory(story) ? () => onOpenComments(communityPostIdForStory(story)) : undefined}
             />
           </BuklodFocusFadeUp>
         ))}
