@@ -70,7 +70,7 @@ const ASSETS = buildAssetGate();
 const MUSIC_PREVIEW = require('../../../assets/bible-ambience/night.wav');
 const AMBIENT_PREVIEW = require('../../../assets/bible-ambience/wind.wav');
 
-const PRIMARY_ACTIONS: AdminAction[] = ['approve', 'revise', 'correct', 'schedule'];
+const PRIMARY_ACTIONS: AdminAction[] = ['approve', 'reject'];
 const MORE_ACTIONS: AdminAction[] = [
   'pause',
   'hold',
@@ -85,6 +85,8 @@ function actionLabel(action: AdminAction): string {
   switch (action) {
     case 'approve':
       return 'Approve';
+    case 'reject':
+      return 'Reject — return for editing';
     case 'revise':
       return 'Send revision';
     case 'correct':
@@ -178,7 +180,7 @@ export default function KabihasnangLigawAdminScreen() {
   const selectedImage = adminImageSource(draft.imageKey);
   const scheduledImage = adminImageSource(flow.nextRelease?.imageKey ?? null);
   const nextNumber = nextApprovalEpisodeNumber(queue, flow.drafts);
-  const canApprove = blockers.length === 0 && !busy && openNumbers.has(episode.episodeNumber);
+  const canApprove = blockers.length === 0 && !busy;
   const releaseDateOk = Boolean(manilaSixUtc(manilaDate));
   const deskDiffers = draftDiffersFromNextRelease(draft, catalogEpisode, flow.nextRelease);
   const nextReleaseParagraphs = flow.nextRelease
@@ -269,7 +271,7 @@ export default function KabihasnangLigawAdminScreen() {
       setResult(blockers[0]);
       return;
     }
-    if ((action === 'approve' || action === 'schedule') && !releaseDateOk) {
+    if (action === 'schedule' && !releaseDateOk) {
       setResult('Set a valid release date (YYYY-MM-DD). Members open it at 6:00 a.m. Manila.');
       return;
     }
@@ -279,8 +281,8 @@ export default function KabihasnangLigawAdminScreen() {
     }
     setBusy(true);
     try {
-      if (action === 'revise' || action === 'correct') {
-        const text = notes.trim() || (action === 'correct' ? 'Quick story fix saved for this chapter.' : '');
+      if (action === 'reject' || action === 'revise' || action === 'correct') {
+        const text = notes.trim() || (action === 'correct' ? 'Quick story fix saved for this chapter.' : 'Rejected for revision; return to manuscript editing.');
         if (action === 'revise' && !text) {
           setResult('Write the revision note so the feedback can come back clearly.');
           setBusy(false);
@@ -313,7 +315,7 @@ export default function KabihasnangLigawAdminScreen() {
         action,
         episodeId: targetEpisodeId,
         notes: releaseNote,
-        manilaDate: action === 'schedule' || action === 'approve' ? manilaDate : null,
+        manilaDate: action === 'schedule' ? manilaDate : null,
       });
       const { data, error } = await supabase.rpc(KL_RPC.adminAction, args);
       if (error) {
@@ -342,9 +344,7 @@ export default function KabihasnangLigawAdminScreen() {
         });
         if (action === 'approve') {
           next = markEpisodeApproved(next, episode, EPISODES, manilaDate);
-          if (ok) {
-            next = markNextReleaseScheduled(next, manilaDate);
-          }
+          // Final approval does not schedule or release the chapter.
           const package_ = next.nextRelease;
           const focusArrived = isReleasedForApproval(next.focusEpisodeNumber, now)
             || isMemberReleasedEpisode(next.focusEpisodeNumber);
@@ -370,7 +370,7 @@ export default function KabihasnangLigawAdminScreen() {
         }
         return next;
       });
-      if (action === 'revise' || action === 'correct') {
+      if (action === 'reject' || action === 'revise' || action === 'correct') {
         setNotes('');
       }
     } catch {
