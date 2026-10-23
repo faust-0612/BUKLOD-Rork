@@ -104,7 +104,7 @@ import {
 type Props = {
   /** Reserved for future scoped RPC filter. */
   locationScopeId?: string | null;
-  onOpenComments?: (postId: string) => void;
+  onOpenComments?: (postId: string, story: MaritesStory) => void;
 };
 
 type MaritesComposerPhoto = {
@@ -1677,7 +1677,7 @@ export default function BuklodMaritesBoard({
                 story,
                 styles.cardMenuBtn
               )}
-              onComments={onOpenComments && communityPostIdForStory(story) ? () => onOpenComments(communityPostIdForStory(story)) : undefined}
+              onComments={onOpenComments && communityPostIdForStory(story) ? () => onOpenComments(communityPostIdForStory(story), story) : undefined}
             />
           </BuklodFocusFadeUp>
         ))}
