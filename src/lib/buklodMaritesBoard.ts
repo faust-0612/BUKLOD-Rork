@@ -1318,11 +1318,26 @@ export async function publishMaritesStory(input: {
 
     return { story: sharedStory, shared: true };
   } catch (error) {
-    if (createdPostId || uploaded.length) {
+    // Once the RPC commits a post, deleting it on a later signing or
+    // attachment failure can erase a successfully shared story.
+    // Preserve the committed post and let a refresh recover its state.
+    if (!createdPostId && uploaded.length) {
       await discardIncompleteCommunityPost({
-        postId: createdPostId,
+        postId: null,
         mediaPaths: uploaded.map((item) => item.media_path),
       });
+    }
+    if (createdPostId) {
+      return {
+        story: {
+          ...localStory,
+          id: `${COMMUNITY_MARITES_ID_PREFIX}${createdPostId}`,
+          source: 'community',
+          community_post_id: createdPostId,
+          photo_paths: uploaded.map((item) => item.media_path),
+        },
+        shared: true,
+      };
     }
 
     const message = String(
