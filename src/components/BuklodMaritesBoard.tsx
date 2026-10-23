@@ -720,7 +720,7 @@ function MaritesStoryCard({
       onPress={onPress}
       style={StyleSheet.absoluteFill}
     >
-      {hasVideo && <View style={styles.storyPhotoFill}><MaritesQuickVideo uri={story.video_uri!} /></View>}
+      {hasVideo && <View style={[styles.storyPhotoFill, { backgroundColor: '#151515', alignItems: 'center', justifyContent: 'center' }]}><MaterialCommunityIcons name="play-circle-outline" size={44} color="#fff" /><Text style={{ color: '#fff', fontSize: 11, marginTop: 4 }}>Quick Video</Text></View>}
       {hasPhoto && !hasVideo && (
         <BuklodMaritesPhotoCollage
           uris={photoUris}
