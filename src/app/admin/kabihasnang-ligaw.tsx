@@ -337,6 +337,12 @@ export default function KabihasnangLigawAdminScreen() {
       if (action === 'schedule' && serverEpisode.status !== 'approved') {
         setResult('Server episode must be approved before scheduling.'); return;
       }
+      if (targetNumber <= 1 && ['approve', 'revise', 'schedule', 'pause', 'resume'].includes(action)) {
+        setResult('Already-live Panimula and Kabanata 1 are protected. No server mutation was sent.'); return;
+      }
+      if (action === 'approve' && (!serverEpisode.manuscript || serverEpisode.manuscript.trim().length < 100)) {
+        setResult('Server manuscript is missing or incomplete. Save the exact reviewed text on the server before approval.'); return;
+      }
       if (action === 'revise' && episode.episodeNumber <= 1) {
         setResult('Live Panimula and Kabanata 1 are protected from revision.'); return;
       }
