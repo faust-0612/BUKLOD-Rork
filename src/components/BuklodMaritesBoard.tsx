@@ -118,9 +118,9 @@ type MaritesComposerPhoto = {
  * Stories are short-lived already, so a small freshness window prevents
  * repeated remote/media signing work without turning this into durable state.
  */
-const MARITES_COMPACT_CARD_WIDTH = 124;
-const MARITES_COMPACT_CARD_HEIGHT = 168;
-const MARITES_COMPACT_FOOTER_HEIGHT = 32;
+const MARITES_COMPACT_CARD_WIDTH = 186;
+const MARITES_COMPACT_CARD_HEIGHT = 252;
+const MARITES_COMPACT_FOOTER_HEIGHT = 40;
 const MARITES_MEMORY_FRESH_MS = 20_000;
 
 type MaritesMemoryEntry = {
@@ -225,9 +225,9 @@ function createStyles(
       top: 5,
       right: 5,
       zIndex: 4,
-      width: 24,
-      height: 24,
-      borderRadius: 12,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: 'rgba(0,0,0,0.42)',
