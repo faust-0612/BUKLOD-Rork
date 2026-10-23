@@ -32,7 +32,11 @@ jobs:
           git fetch --depth=1 origin 74a20a47bee6b1284f899f76dd16af212051e391
           git diff --name-only 74a20a47bee6b1284f899f76dd16af212051e391 HEAD > /tmp/ptt-delta.txt
           cat /tmp/ptt-delta.txt
-          if grep -Ev '^(src/utils/setPushConfig.ts|tests/buklod-ptt-call-isolation.test.cjs|.buklod/work-scope.json|release/PTT_CONNECT_ISOLATION_SOURCE_20261023.json|.github/workflows/ptt_connect_candidate.yml)
+          if grep -Ev '^(src/utils/setPushConfig.ts|tests/buklod-ptt-call-isolation.test.cjs|.buklod/work-scope.json|release/PTT_CONNECT_ISOLATION_SOURCE_20261023.json|.github/workflows/ptt_connect_candidate.yml)$' /tmp/ptt-delta.txt; then
+            echo 'Unexpected change outside PTT scope'; exit 1
+          fi
+          git diff --exit-code 74a20a47bee6b1284f899f76dd16af212051e391 HEAD -- src/components/points src/features/games assets package.json package-lock.json app.config.js
+          node scripts/community-help-sos-release-contract.mjs
       - name: Preserve production Home overlay
         run: node scripts/patch-home-identity-action-row.cjs
       - run: npx tsc --noEmit
@@ -49,23 +53,6 @@ jobs:
         run: |
           npx eas-cli@25.3.0 channel:view production --json --non-interactive
           npx eas-cli@25.3.0 update:list --branch production --platform android --runtime-version 1.3.2 --limit 1 --json --non-interactive
-      - name: Record verified candidate
-        run: |
-          git rev-parse HEAD
-          git diff --stat
-          find dist-ptt -type f -name '*.js' -exec sha256sum {} +
- /tmp/ptt-delta.txt; then
-            echo 'Unexpected change outside PTT scope'; exit 1
-          fi
-          git diff --exit-code 74a20a47bee6b1284f899f76dd16af212051e391 HEAD -- src/components/points src/features/games assets package.json package-lock.json app.config.js
-          node scripts/community-help-sos-release-contract.mjs
-      - name: Preserve production Home overlay
-        run: node scripts/patch-home-identity-action-row.cjs
-      - run: npx tsc --noEmit
-      - name: Android JavaScript export
-        run: npx expo export --platform android --output-dir dist-ptt --no-bytecode
-      - name: Compiled Character contract
-        run: node scripts/character-release-contract.mjs --dist dist-ptt
       - name: Record verified candidate
         run: |
           git rev-parse HEAD
