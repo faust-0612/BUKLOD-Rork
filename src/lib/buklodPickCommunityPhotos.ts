@@ -1,4 +1,4 @@
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 
 import { COMMUNITY_MAX_PHOTOS } from '@/lib/buklodCommunityMediaLimits';
 import { ensureImagePickerLibraryAccess } from '@/lib/buklodImagePickerAccess';
@@ -7,6 +7,22 @@ export type PickedCommunityPhoto = {
   id: string;
   uri: string;
 };
+
+async function optimizePickedPhoto(uri: string): Promise<string> {
+  if (Platform.OS === 'web') return uri;
+  try {
+    const ImageManipulator = await import('expo-image-manipulator');
+    const result = await ImageManipulator.manipulateAsync(
+      uri,
+      [{ resize: { width: 1440 } }],
+      { compress: 0.72, format: ImageManipulator.SaveFormat.JPEG },
+    );
+    return result.uri || uri;
+  } catch {
+    // Preserve the original photo if device-side optimization is unavailable.
+    return uri;
+  }
+}
 
 export async function pickCommunityPhotos(options: {
   remaining: number;
@@ -46,13 +62,14 @@ export async function pickCommunityPhotos(options: {
     return [];
   }
 
-  return result.assets
+  return Promise.all(result.assets
     .map(asset => ({
       id: `photo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       uri: String(asset.uri ?? '').trim(),
     }))
     .filter(photo => !!photo.uri)
-    .slice(0, remaining);
+    .slice(0, remaining)
+    .map(async photo => ({ ...photo, uri: await optimizePickedPhoto(photo.uri) })));
 }
 
 function isVideoAsset(asset: { type?: string | null; mimeType?: string | null }) {
@@ -109,13 +126,14 @@ export async function pickCommunityGallery(options: {
 
   const videos = result.assets.filter(isVideoAsset);
   const images = result.assets.filter(asset => !isVideoAsset(asset));
-  const photos = images
+  const photos = await Promise.all(images
     .map(asset => ({
       id: `photo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       uri: String(asset.uri ?? '').trim(),
     }))
     .filter(photo => !!photo.uri)
-    .slice(0, photoRemaining);
+    .slice(0, photoRemaining)
+    .map(async photo => ({ ...photo, uri: await optimizePickedPhoto(photo.uri) })));
 
   const notices: string[] = [];
 
