@@ -8,6 +8,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   useWindowDimensions,
   View,
 } from 'react-native';
@@ -47,7 +48,7 @@ import {
   selectMemberReading,
   type ReaderCache,
 } from '@/lib/kabihasnang-ligaw/readerSession';
-import { KL_RPC } from '@/lib/kabihasnang-ligaw/rpc';
+import { KL_RPC, adminActionArgs } from '@/lib/kabihasnang-ligaw/rpc';
 import { otherAudioPlaying } from '@/lib/kabihasnang-ligaw/externalAudioState';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
@@ -65,7 +66,12 @@ export default function KlReaderScreen() {
   const { width, height } = useWindowDimensions();
   const reduceMotion = useBuklodReduceMotion();
   const { online } = useNetwork();
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
+  const isSystemAdmin = hasRole('system_admin');
+  const [adminBusyId, setAdminBusyId] = useState<string | null>(null);
+  const [adminFeedback, setAdminFeedback] = useState('');
+  const [rejectTarget, setRejectTarget] = useState<string | null>(null);
+  const [rejectNotes, setRejectNotes] = useState('');
   const [cache, setCache] = useState<ReaderCache>(DEFAULT_READER_CACHE);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [glossaryOpen, setGlossaryOpen] = useState(false);
@@ -181,6 +187,22 @@ export default function KlReaderScreen() {
       netSub();
     };
   }, []);
+
+  const decideEpisode = async (episodeId: string, action: 'approve' | 'reject', notes = '') => {
+    if (!isSystemAdmin || adminBusyId) return;
+    if (action === 'reject' && !notes.trim()) { setAdminFeedback('Maglagay ng dahilan ng rejection.'); return; }
+    setAdminBusyId(episodeId);
+    setAdminFeedback('Pinoproseso ang desisyon…');
+    try {
+      const { error } = await supabase.rpc(KL_RPC.adminAction, adminActionArgs({ action, episodeId, notes }));
+      if (error) throw error;
+      setAdminFeedback(action === 'approve' ? 'Naaprubahan sa server. Hindi pa inilalabas ang kabanata.' : 'Ibinalik sa draft sa server.');
+      setRejectTarget(null);
+      setRejectNotes('');
+    } catch (error) {
+      setAdminFeedback(error instanceof Error ? `Hindi na-save: ${error.message}` : 'Hindi na-save ang desisyon. Subukan muli.');
+    } finally { setAdminBusyId(null); }
+  };
 
   const refresh = useCallback(async () => {
     setBusy(true);
@@ -528,6 +550,8 @@ export default function KlReaderScreen() {
                 </View>
               </Pressable>
             ) : null}
+            {isSystemAdmin ? <Text style={styles.meta}>System Admin · Manuscript approval (hindi awtomatikong release)</Text> : null}
+            {isSystemAdmin && adminFeedback ? <Text accessibilityRole="alert" style={styles.meta}>{adminFeedback}</Text> : null}
             {EPISODES.map((episode) => {
               const readable = episodeReadable(episode.id);
               const showLock = lockedId === episode.id && !readable;
@@ -548,6 +572,21 @@ export default function KlReaderScreen() {
                     <Text style={styles.meta}>{readable ? klCopy.readable : klCopy.locked}</Text>
                   </View>
                   {showLock ? <Text style={styles.body}>{klCopy.lockedDetail}</Text> : null}
+                  {isSystemAdmin ? (
+                    <View style={{ marginTop: 10, gap: 8 }}>
+                      <View style={{ flexDirection: 'row', gap: 12 }}>
+                        <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)} onPress={(event) => { event.stopPropagation(); void decideEpisode(episode.id, 'approve'); }} style={{ padding: 12, backgroundColor: '#28583f', borderRadius: 8 }}><Text style={{ color: '#fff' }}>Approve</Text></Pressable>
+                        <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)} onPress={(event) => { event.stopPropagation(); setRejectTarget(episode.id); setAdminFeedback(''); }} style={{ padding: 12, backgroundColor: '#783b3b', borderRadius: 8 }}><Text style={{ color: '#fff' }}>Reject</Text></Pressable>
+                      </View>
+                      {rejectTarget === episode.id ? (
+                        <View style={{ gap: 8 }}>
+                          <TextInput accessibilityLabel="Dahilan ng rejection" placeholder="Dahilan ng rejection (required)" placeholderTextColor="#999" value={rejectNotes} onChangeText={setRejectNotes} multiline style={{ color: '#fff', borderColor: '#aaa', borderWidth: 1, padding: 10, borderRadius: 8 }} />
+                          <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId) || !rejectNotes.trim()} onPress={(event) => { event.stopPropagation(); void decideEpisode(episode.id, 'reject', rejectNotes); }}><Text style={{ color: '#f1d39b' }}>Confirm Reject</Text></Pressable>
+                          <Pressable accessibilityRole="button" onPress={(event) => { event.stopPropagation(); setRejectTarget(null); }}><Text style={{ color: '#fff' }}>Cancel</Text></Pressable>
+                        </View>
+                      ) : null}
+                    </View>
+                  ) : null}
                 </Pressable>
               );
             })}
