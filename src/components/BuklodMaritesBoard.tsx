@@ -1525,7 +1525,8 @@ export default function BuklodMaritesBoard({
       const result = await P.launchImageLibraryAsync({ mediaTypes: ['videos'], videoMaxDuration: 30, allowsEditing: false });
       if (result.canceled || !result.assets?.[0]) return;
       const asset = result.assets[0];
-      const durationSeconds = Number(asset.duration ?? 0) / 1000;
+      const rawDuration = Number(asset.duration ?? 0);
+      const durationSeconds = rawDuration > 1000 ? rawDuration / 1000 : rawDuration;
       if (!Number.isFinite(durationSeconds) || durationSeconds <= 0 || durationSeconds > 30) { Alert.alert('Quick Video', 'Select a video no longer than 30 seconds.'); return; }
       setPhotos([]);
       setQuickVideo({ uri: asset.uri, durationSeconds, mimeType: asset.mimeType || 'video/mp4' });
