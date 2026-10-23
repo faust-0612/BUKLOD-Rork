@@ -758,6 +758,8 @@ function MaritesStoryCard({
       {hasPhoto && !hasVideo && (
         <BuklodMaritesPhotoCollage
           uris={photoUris}
+          width={MARITES_COMPACT_CARD_WIDTH}
+          height={MARITES_COMPACT_CARD_HEIGHT - MARITES_COMPACT_FOOTER_HEIGHT}
           style={styles.storyPhotoFill}
         />
       )}
