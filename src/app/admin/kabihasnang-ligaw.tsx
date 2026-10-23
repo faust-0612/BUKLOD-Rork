@@ -265,6 +265,7 @@ export default function KabihasnangLigawAdminScreen() {
   };
 
   const run = async (action: AdminAction) => {
+    if (busy) return;
     if (action === 'approve' && blockers.length > 0) {
       setResult(blockers[0]);
       return;
@@ -276,6 +277,9 @@ export default function KabihasnangLigawAdminScreen() {
     if (action === 'schedule' && !flow.nextRelease) {
       setResult('Approve first. Schedule only sends the exact approved package.');
       return;
+    }
+    if (action === 'revise' && episode.episodeNumber <= 1) {
+      setResult('Live chapters cannot be sent for revision.'); return;
     }
     setBusy(true);
     try {
@@ -320,7 +324,7 @@ export default function KabihasnangLigawAdminScreen() {
         ? (flow.nextRelease?.episodeNumber ?? episode.episodeNumber)
         : episode.episodeNumber;
       const matches = (serverRows as Array<{id?: string; episode_number?: number; season_number?: number}>)
-        .filter((row) => row.episode_number === targetNumber && row.season_number === 1 && !!row.id);
+        .filter((row) => Number(row.episode_number) === targetNumber && (row.season_number == null || Number(row.season_number) === 1) && !!row.id);
       if (matches.length !== 1) {
         setResult('Server episode ID is missing or ambiguous. Action blocked; nothing was published.');
         return;
