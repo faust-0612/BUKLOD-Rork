@@ -1,15 +1,21 @@
 {
-  "objective": "App Performance OTA: suppress duplicate low-priority feedback telemetry during weak-network rerenders without changing important events",
+  "objective": "Cluster invitation QR and share link routing to the existing membership request flow",
   "baseRef": "main",
   "productionBaselineEvidence": "verified: release/V28_PENDING_OTA_INVENTORY_READY.md records Android production runtime 1.3.2 OTA update 01a163c9-33c1-7be2-8f87-aa9ade2c562b at commit 94ca01a6 (workflow 39786086190). This verifies a historical publish, NOT the latest live fingerprint. Latest OTA still requires separate verification before release.",
   "allowedPaths": [
-    "src/lib/buklodUserFeedback.ts",
-    ".buklod/work-scope.json"
+    ".buklod/work-scope.json",
+    "src/app/clusters/[id].tsx",
+    "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
+    "src/components/BuklodClusterInviteDeepLinkHandler.tsx",
+    "src/lib/buklodClusterInvite.ts",
+    "src/lib/buklodClusterInvite.test.ts"
   ],
   "acceptanceChecks": [
-    "Only repeated low-priority telemetry suppressed within 15 seconds",
-    "Recovery outcomes and user submissions unchanged",
-    "TypeScript QA passes",
-    "Latest production OTA baseline verified before release"
+    "QR and share link resolve to same Cluster",
+    "Invalid URLs rejected",
+    "Authentication handoff retains invite",
+    "Membership access controls preserved",
+    "Typecheck and focused tests pass",
+    "Web and Android routing verified before release"
   ]
 }

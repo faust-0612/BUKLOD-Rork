@@ -78,9 +78,10 @@ export default function BuklodClusterInviteDeepLinkHandler() {
       );
     };
 
-    void Linking.getInitialURL().then(
-      handleUrl
-    );
+    // Initial URL is processed once per mount; auth transitions use the pending invite.
+    if (!lastHandledRef.current) {
+      void Linking.getInitialURL().then(handleUrl).catch(() => {});
+    }
 
     const subscription =
       Linking.addEventListener(

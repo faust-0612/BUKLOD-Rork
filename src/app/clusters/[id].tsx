@@ -418,7 +418,7 @@ export default function ClusterDetailScreen() {
       <View style={styles.hero}>
         <Text style={styles.eyebrow}>
           {fromInvite
-            ? 'CLUSTER INVITATION'
+            ? 'JOIN THIS CLUSTER'
             : 'CLUSTER HOME'}
         </Text>
 
@@ -488,7 +488,7 @@ export default function ClusterDetailScreen() {
                   ) {
                     Alert.alert(
                       'Request sent',
-                      'Your request is waiting for Cluster Admin approval.'
+                      'Your join request was received and is waiting for Cluster Admin approval.'
                     );
                     return;
                   }
@@ -509,10 +509,7 @@ export default function ClusterDetailScreen() {
           cluster.visibility ===
             'INVITE_ONLY' && (
             <Text style={styles.inviteOnly}>
-              This Cluster is invite-only.
-              Ask a Cluster Admin to send
-              you an invitation, then open
-              this link again to accept.
+              This Cluster is invite-only. Scanning the QR does not grant membership. Ask a Cluster Admin to invite your account, then reopen this QR to accept.
             </Text>
           )}
 
@@ -555,7 +552,7 @@ export default function ClusterDetailScreen() {
 
         {membership === 'PENDING' && (
           <ActionButton
-            title="CANCEL JOIN REQUEST"
+            title="JOIN REQUEST PENDING — CANCEL"
             outline
             disabled={busy}
             onPress={() =>
