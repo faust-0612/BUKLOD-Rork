@@ -86,6 +86,7 @@ import {
   resolvePersonDisplayName,
 } from '@/lib/buklodPersonDisplay';
 import { pickCommunityPhotos } from '@/lib/buklodPickCommunityPhotos';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { useAuth } from '@/providers/AuthProvider';
 import {
   BUKLOD_HIT_SLOP,
@@ -106,6 +107,11 @@ type Props = {
   locationScopeId?: string | null;
   onOpenComments?: (postId: string, story: MaritesStory) => void;
 };
+
+function MaritesQuickVideo({ uri }: { uri: string }) {
+  const player = useVideoPlayer(uri, instance => { instance.loop = false; });
+  return <VideoView player={player} nativeControls contentFit="contain" style={{ width: '100%', height: '100%', backgroundColor: '#000' }} />;
+}
 
 type MaritesComposerPhoto = {
   id: string;
@@ -687,6 +693,7 @@ function MaritesStoryCard({
   );
 
   const hasPhoto = getMaritesStoryPhotos(story).length > 0;
+  const hasVideo = Boolean(story.video_uri);
   const photoUris = getMaritesStoryPhotos(story);
   const body = story.body.trim();
   const emojiOnly =
@@ -713,14 +720,15 @@ function MaritesStoryCard({
       onPress={onPress}
       style={StyleSheet.absoluteFill}
     >
-      {hasPhoto && (
+      {hasVideo && <View style={styles.storyPhotoFill}><MaritesQuickVideo uri={story.video_uri!} /></View>}
+      {hasPhoto && !hasVideo && (
         <BuklodMaritesPhotoCollage
           uris={photoUris}
           style={styles.storyPhotoFill}
         />
       )}
 
-      {!hasPhoto && emojiOnly && (
+      {!hasPhoto && !hasVideo && emojiOnly && (
         <View style={styles.mediaFill}>
           <Text
             adjustsFontSizeToFit
@@ -733,7 +741,7 @@ function MaritesStoryCard({
         </View>
       )}
 
-      {!hasPhoto && !emojiOnly && !!body && (
+      {!hasPhoto && !hasVideo && !emojiOnly && !!body && (
         <View style={styles.textFill}>
           <Text
             numberOfLines={6}
@@ -1877,6 +1885,7 @@ export default function BuklodMaritesBoard({
                   !photoUris.length &&
                   isMaritesEmojiOnlyBody(body);
 
+                if (viewStory.video_uri) return <MaritesQuickVideo uri={viewStory.video_uri} />;
                 if (photoUris.length) {
                   if (photoUris.length === 1) {
                     return (
