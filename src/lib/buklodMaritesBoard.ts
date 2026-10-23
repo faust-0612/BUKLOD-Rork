@@ -156,6 +156,7 @@ export type MaritesStory = {
   community_post_id?: string | null;
   /** Storage paths aligned with photo_uris for community stories. */
   photo_paths?: string[];
+  video_uri?: string | null;
   reaction_counts?: Record<string, number>;
   my_reaction?: string | null;
   created_at: string;
