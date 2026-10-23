@@ -916,22 +916,9 @@ export async function loadCommunityMaritesStories(
                   ''
               ).toLowerCase();
 
-            if (
-              !mime.startsWith(
-                'video/'
-              )
-            ) {
-              const mediaUrl =
-                await signCommunityMediaPath(
-                  String(
-                    row.media_path
-                  )
-                );
-
-              if (mediaUrl) {
-                row.media_url =
-                  mediaUrl;
-              }
+            if (mime.startsWith('video/') || mime.startsWith('image/')) {
+              const mediaUrl = await signCommunityMediaPath(String(row.media_path));
+              if (mediaUrl) row.media_url = mediaUrl;
             }
           }
 
