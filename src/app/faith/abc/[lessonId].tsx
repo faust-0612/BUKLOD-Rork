@@ -24,6 +24,7 @@ import {
 } from '@expo/vector-icons';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '@/providers/AuthProvider';
 
 import {
   supabase,
@@ -79,6 +80,9 @@ function displayPrompt(
 
 export default function
 BuklodAbcLessonDetailScreen() {
+  const { user } = useAuth();
+  const accountId = user?.id;
+  const accountCompletionKey = accountId ? `${COMPLETION_KEY}.${accountId}` : null;
   const params =
     useLocalSearchParams<{
       lessonId?:
@@ -93,6 +97,7 @@ BuklodAbcLessonDetailScreen() {
       ? params.lessonId[0]
       : params.lessonId;
 
+  const accountAnswerKey = accountId && lessonId ? `${answerKey(lessonId)}.${accountId}` : null;
   const lesson =
     useMemo(
       () =>
@@ -152,7 +157,11 @@ BuklodAbcLessonDetailScreen() {
       let active =
         true;
 
-      if (!lesson) {
+      setLoaded(false);
+      setAnswers({});
+      setCompleted(false);
+      setRewardState(null);
+      if (!lesson || !accountId || !accountCompletionKey || !accountAnswerKey) {
         setLoaded(true);
         return;
       }
@@ -204,14 +213,8 @@ BuklodAbcLessonDetailScreen() {
       }
 
       void Promise.all([
-        AsyncStorage.getItem(
-          answerKey(
-            lesson.id
-          )
-        ),
-        AsyncStorage.getItem(
-          COMPLETION_KEY
-        ),
+        AsyncStorage.getItem(accountAnswerKey),
+        AsyncStorage.getItem(accountCompletionKey),
         AsyncStorage.getItem(
           FONT_KEY
         ),
@@ -305,14 +308,15 @@ BuklodAbcLessonDetailScreen() {
           false;
       };
     },
-    [lesson]
+    [lesson, accountId, accountCompletionKey, accountAnswerKey]
   );
 
   useEffect(
     () => {
       if (
         !loaded ||
-        !lesson
+        !lesson ||
+        !accountAnswerKey
       ) {
         return;
       }
@@ -322,9 +326,7 @@ BuklodAbcLessonDetailScreen() {
           () => {
             void AsyncStorage
               .setItem(
-                answerKey(
-                  lesson.id
-                ),
+                accountAnswerKey,
                 JSON.stringify(
                   answers
                 )
@@ -342,6 +344,7 @@ BuklodAbcLessonDetailScreen() {
       answers,
       lesson,
       loaded,
+      accountAnswerKey,
     ]
   );
 
@@ -376,7 +379,7 @@ BuklodAbcLessonDetailScreen() {
     async (
       value: boolean
     ) => {
-      if (!lesson) {
+      if (!lesson || !accountCompletionKey) {
         return;
       }
 
@@ -390,7 +393,7 @@ BuklodAbcLessonDetailScreen() {
         const raw =
           await AsyncStorage
             .getItem(
-              COMPLETION_KEY
+              accountCompletionKey
             );
 
         if (raw) {
@@ -416,7 +419,7 @@ BuklodAbcLessonDetailScreen() {
 
       await AsyncStorage
         .setItem(
-          COMPLETION_KEY,
+          accountCompletionKey,
           JSON.stringify(
             map
           )
