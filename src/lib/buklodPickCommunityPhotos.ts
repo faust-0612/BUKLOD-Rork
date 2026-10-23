@@ -1,4 +1,4 @@
-import { Alert, Platform } from 'react-native';
+import { Alert } from 'react-native';
 
 import { COMMUNITY_MAX_PHOTOS } from '@/lib/buklodCommunityMediaLimits';
 import { ensureImagePickerLibraryAccess } from '@/lib/buklodImagePickerAccess';
@@ -7,24 +7,6 @@ export type PickedCommunityPhoto = {
   id: string;
   uri: string;
 };
-
-async function optimizePickedPhoto(uri: string, width?: number): Promise<string> {
-  if (Platform.OS === 'web') return uri;
-  try {
-    const ImageManipulator = await import('expo-image-manipulator');
-    const result = await ImageManipulator.manipulateAsync(
-      uri,
-      Number.isFinite(width) && Number(width) > 0 && Number(width) <= 1440
-        ? []
-        : [{ resize: { width: 1440 } }],
-      { compress: 0.72, format: ImageManipulator.SaveFormat.JPEG },
-    );
-    return result.uri || uri;
-  } catch {
-    // Preserve the original photo if device-side optimization is unavailable.
-    return uri;
-  }
-}
 
 export async function pickCommunityPhotos(options: {
   remaining: number;
@@ -64,15 +46,14 @@ export async function pickCommunityPhotos(options: {
     return [];
   }
 
-  return Promise.all(result.assets
+  return result.assets
     .map(asset => ({
       id: `photo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       uri: String(asset.uri ?? '').trim(),
-      width: Number(asset.width ?? 0),
     }))
     .filter(photo => !!photo.uri)
     .slice(0, remaining)
-    .map(async photo => ({ ...photo, uri: await optimizePickedPhoto(photo.uri, photo.width) })));
+;
 }
 
 function isVideoAsset(asset: { type?: string | null; mimeType?: string | null }) {
@@ -129,7 +110,7 @@ export async function pickCommunityGallery(options: {
 
   const videos = result.assets.filter(isVideoAsset);
   const images = result.assets.filter(asset => !isVideoAsset(asset));
-  const photos = await Promise.all(images
+  const photos = images
     .map(asset => ({
       id: `photo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       uri: String(asset.uri ?? '').trim(),
