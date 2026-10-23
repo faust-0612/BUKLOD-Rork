@@ -1044,7 +1044,7 @@ export default function BuklodMaritesBoard({
           safeIndex +
           direction +
           activeStories.length
-        ) % stories.length;
+        ) % activeStories.length;
 
       setStoryZoomed(false);
       setReactionPickerOpen(false);
@@ -1053,7 +1053,7 @@ export default function BuklodMaritesBoard({
       );
     },
     [
-      stories,
+      activeStories,
       viewStory,
     ]
   );
@@ -2001,7 +2001,7 @@ export default function BuklodMaritesBoard({
               )}
             </View>
 
-            {stories.length > 1 &&
+            {activeStories.length > 1 &&
             !storyZoomed &&
             !reactionPickerOpen ? (
               <View
