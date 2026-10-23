@@ -133,6 +133,7 @@ export async function pickCommunityGallery(options: {
     .map(asset => ({
       id: `photo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       uri: String(asset.uri ?? '').trim(),
+      width: Number(asset.width ?? 0),
     }))
     .filter(photo => !!photo.uri)
     .slice(0, photoRemaining)
