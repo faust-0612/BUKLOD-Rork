@@ -4631,6 +4631,7 @@ const communityFeedRows =
    />
 
    <BuklodMaritesBoard
+    onOpenComments={(postId) => void openComments({ id: postId })}
     locationScopeId={
      publicLocationScopeId
     }
