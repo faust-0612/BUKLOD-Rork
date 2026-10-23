@@ -2266,6 +2266,19 @@ export default function BuklodMaritesBoard({
               </View>
             ) : null}
 
+            {!reactionPickerOpen && !storyZoomed ? (
+              <View style={{ position: 'absolute', right: 18, bottom: drawerBottomInset + 82, flexDirection: 'row', gap: 12, zIndex: 20 }}>
+                <Pressable accessibilityRole="button" accessibilityLabel="React to story" onPress={() => setReactionPickerOpen(true)} style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center' }}>
+                  <MaterialCommunityIcons name="heart-outline" size={26} color="#FFFFFF" />
+                </Pressable>
+                {onOpenComments && parseCommunityMaritesPostId(viewStory.id) ? (
+                  <Pressable accessibilityRole="button" accessibilityLabel="Comment on story" onPress={() => { const id = parseCommunityMaritesPostId(viewStory.id); if (id) { closeStoryViewer(); onOpenComments(id, viewStory); } }} style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center' }}>
+                    <MaterialCommunityIcons name="comment-text-outline" size={25} color="#FFFFFF" />
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : null}
+
             <View
               style={[
                 styles.fullscreenFooter,
