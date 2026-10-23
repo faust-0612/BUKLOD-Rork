@@ -1173,6 +1173,7 @@ export async function publishMaritesStory(input: {
   avatarUrl?: string | null;
   body: string;
   photoUris: string[];
+  video?: { uri: string; durationSeconds: number; mimeType: string } | null;
 }): Promise<{
   story: MaritesStory;
   shared: boolean;
@@ -1185,6 +1186,8 @@ export async function publishMaritesStory(input: {
     .filter(Boolean)
     .slice(0, MARITES_MAX_PHOTOS);
 
+  if (input.video && (!Number.isFinite(input.video.durationSeconds) || input.video.durationSeconds <= 0 || input.video.durationSeconds > 30)) throw new Error('Quick Video must be 30 seconds or shorter.');
+  if (input.video && photoUris.length) throw new Error('Share Quick Video separately from photos.');
   const localStory: MaritesStory = {
     id: `${Date.now()}-${Math.random()
       .toString(36)
@@ -1195,6 +1198,7 @@ export async function publishMaritesStory(input: {
     body,
     photo_uris: photoUris,
     photo_uri: photoUris[0] ?? null,
+    video_uri: input.video?.uri ?? null,
     mentions: [],
     author_only: false,
     source: 'local',
