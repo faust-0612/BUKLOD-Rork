@@ -491,11 +491,13 @@ function mapCommunityPostToMaritesStory(
   }
 
   const photoUris = communityPostPhotoUris(post);
+  const videoItem = (Array.isArray(post.media_items) ? post.media_items : []).find((item: any) => String(item?.media_mime_type ?? '').toLowerCase().startsWith('video/'));
+  const videoUri = String(videoItem?.media_url ?? (String(post.media_mime_type ?? '').toLowerCase().startsWith('video/') ? post.media_url : '') ?? '').trim();
   const body = stripMaritesPostMarker(
     repairMojibakeText(String(post.body ?? ''))
   ).trim();
 
-  if (!body && !photoUris.length) {
+  if (!body && !photoUris.length && !videoUri) {
     return null;
   }
 
@@ -512,6 +514,7 @@ function mapCommunityPostToMaritesStory(
     photo_uris: photoUris,
     photo_uri: photoUris[0] ?? null,
     photo_paths: communityPostPhotoPaths(post),
+    video_uri: videoUri || null,
     mentions: Array.isArray(post.mentions)
       ? post.mentions.map((item) => String(item))
       : [],
