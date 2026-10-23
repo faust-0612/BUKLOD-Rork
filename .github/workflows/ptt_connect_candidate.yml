@@ -38,7 +38,19 @@ jobs:
           git diff --exit-code 74a20a47bee6b1284f899f76dd16af212051e391 HEAD -- src/components/points src/features/games assets package.json package-lock.json app.config.js
           node scripts/community-help-sos-release-contract.mjs
       - name: Preserve production Home overlay
-        run: node scripts/patch-home-identity-action-row.cjs
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const file = 'src/app/(tabs)/home.tsx';
+          const source = fs.readFileSync(file, 'utf8');
+          const anchor = '{/* BUKLOD_HOME_IDENTITY_R23_CLEAN_TWO_ROW */}';
+          for (const token of [anchor, 'REWARDS', "router.push('/points')", '<BuklodPublicWordShortcut />', 'MY CLUSTER', "router.push('/clusters' as any)"]) {
+            if (!source.includes(token)) throw new Error('Published Home overlay anchor missing: ' + token);
+          }
+          if (source.includes('HOME_IDENTITY_ACTION_ROW_R2')) throw new Error('Unexpected existing overlay');
+          fs.writeFileSync(file, source.replace(anchor, () => anchor + '\n      {/* HOME_IDENTITY_ACTION_ROW_R2 — compatibility marker; R23 remains authoritative */}'));
+          console.log('Candidate-only reproduction of existing production comment overlay; no release identity generated.');
+          NODE
       - run: npx tsc --noEmit
       - name: Android JavaScript export
         run: npx expo export --platform android --output-dir dist-ptt --no-bytecode
