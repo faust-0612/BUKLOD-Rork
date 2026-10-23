@@ -48,7 +48,7 @@ async function run() {
   if (mode === 'baseline') {
     const before = await manifest();
     // This release was reconciled against this independently observed source/update pair.
-    assert.equal(before.id, '01a1679a-c74e-7348-b4d9-41228afa4dc2', 'Production advanced: reconcile before releasing');
+    assert.equal(before.id, '01a1682a-cfee-77ba-a1cc-f46b5674deff', 'Production advanced: reconcile before releasing');
     git('merge-base', '--is-ancestor', '2f26645e50e8e079ebf09f3999aacfc506ae7651', sha);
     assert.equal(git('diff', '--name-only', '2f26645e50e8e079ebf09f3999aacfc506ae7651', sha, '--', 'package.json', 'package-lock.json', 'app.config.js', 'android', 'plugins'), '', 'Native baseline changed');
     write('ota-evidence/baseline.json', {id:before.id, runtime, source:sha, launchAssetHash:before.launchAsset.hash});
