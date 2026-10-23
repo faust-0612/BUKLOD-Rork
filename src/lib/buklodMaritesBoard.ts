@@ -900,21 +900,12 @@ export async function loadCommunityMaritesStories(
               postId
             ] ?? [];
 
-          if (
-            loaded.length
-          ) {
-            row.media_items =
-              loaded.sort(
-                (a,b) =>
-                  Number(
-                    a.media_position ??
-                      0
-                  ) -
-                  Number(
-                    b.media_position ??
-                      0
-                  )
-              );
+          if (loaded.length) {
+            row.media_items = await Promise.all(loaded.map(async (item) => {
+              const path = String(item.media_path ?? '').trim();
+              const url = path ? await signCommunityMediaPath(path) : '';
+              return { ...item, media_url: url || item.media_url || null };
+            }));
           }
           else if (
             row.media_path
