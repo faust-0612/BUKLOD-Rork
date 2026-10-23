@@ -965,8 +965,9 @@ export async function loadCommunityMaritesStories(
           )
       )
       .filter(
-        Boolean
-      ) as MaritesStory[],
+        (story): story is MaritesStory =>
+          Boolean(story) && isActiveMaritesStory(story as MaritesStory)
+      ),
     refreshFailed,
   };
 }
