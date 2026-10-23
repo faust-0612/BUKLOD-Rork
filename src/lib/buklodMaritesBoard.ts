@@ -901,11 +901,11 @@ export async function loadCommunityMaritesStories(
             ] ?? [];
 
           if (loaded.length) {
-            row.media_items = await Promise.all(loaded.map(async (item) => {
-              const path = String(item.media_path ?? '').trim();
-              const url = path ? await signCommunityMediaPath(path) : '';
-              return { ...item, media_url: url || item.media_url || null };
-            }));
+            // Media rows were already signed during the paged media lookup.
+            // Preserve those URLs rather than signing every row a second time.
+            row.media_items = loaded.sort((a, b) =>
+              Number(a.media_position ?? 0) - Number(b.media_position ?? 0)
+            );
           }
           else if (
             row.media_path
