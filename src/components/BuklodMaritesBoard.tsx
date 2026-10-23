@@ -1824,7 +1824,7 @@ export default function BuklodMaritesBoard({
               </Pressable>
               <Pressable style={styles.toolBtn} disabled={posting} onPress={() => void pickQuickVideo()}><MaterialCommunityIcons name="video-plus" size={17} color={colors.green} /><Text style={styles.toolText}>{quickVideo ? 'Replace Quick Video' : 'Quick Video (max 30s)'}</Text></Pressable>
             </View>
-            {quickVideo ? <View style={{ height: 190 }}><MaritesQuickVideo uri={quickVideo.uri} /><Pressable onPress={() => setQuickVideo(null)}><Text style={styles.toolText}>Remove video</Text></Pressable></View> : null}
+            {quickVideo ? <View><View style={{ height: 190 }}><MaritesQuickVideo uri={quickVideo.uri} /></View><Pressable accessibilityRole="button" onPress={() => setQuickVideo(null)}><Text style={styles.toolText}>Remove video</Text></Pressable></View> : null}
 
             <Text style={styles.composerPhotoHint}>
               Tap Add photos, then tap each photo you want. Press OK when done.
