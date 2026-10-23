@@ -1,22 +1,18 @@
 {
-  "objective": "Marites 72-hour stories, sharing, owner menu, comments, enlarged cards and 30-second visible Quick Video; Android-only exact RC release",
+  "objective": "Community Wall standardized photo card bounds and expandable long captions (PR #289), without unrelated media/backend changes",
   "baseRef": "2b6a53125875b5fe03d5b045aef56409b9019d8b",
-  "productionBaselineEvidence": "Android production manifest verified update 01a1679a-c74e-7348-b4d9-41228afa4dc2 runtime 1.3.2; source 2f26645e50e8e079ebf09f3999aacfc506ae7651. Reconciled targeted Marites delta onto current main, preserving KL and AdMob. CI rechecks production before export and publish.",
+  "productionBaselineEvidence": "Prior Android production manifest verification documented in original scope; current live production update must be independently reverified before release. No production release authorized by this manifest alone.",
   "allowedPaths": [
-    "scripts/android-ota-rc.cjs",
-    "scripts/test-marites-release.cjs",
-    ".github/workflows/production_android_ota.yml",
-    "src/lib/buklodMaritesBoard.ts",
-    "src/lib/buklodMaritesPlayback.ts",
-    "src/components/BuklodMaritesBoard.tsx",
     "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodCommunityPhotoCollage.tsx",
+    "src/components/BuklodExpandableWallCaption.tsx",
     ".buklod/work-scope.json"
   ],
   "acceptanceChecks": [
-    "Targeted behavior tests and full TypeScript QA pass",
-    "No native runtime/dependency changes",
-    "Only focused foreground visible Quick Video autoplays, muted and mixed with other audio",
-    "Archive hashed Android RC before publishing with skip-bundler",
-    "Verify production update ID and served bundle hash match exact RC"
+    "Engineering Accountability scope gate passes for exact changed files",
+    "BUKLOD Performance R1 QA and targeted TypeScript checks pass",
+    "Single-photo card stays bounded while original image remains accessible",
+    "Long caption expands and collapses without affecting other post actions",
+    "Reconcile latest production baseline and freeze exact Android RC before any OTA publication"
   ]
 }
