@@ -8,13 +8,15 @@ export type PickedCommunityPhoto = {
   uri: string;
 };
 
-async function optimizePickedPhoto(uri: string): Promise<string> {
+async function optimizePickedPhoto(uri: string, width?: number): Promise<string> {
   if (Platform.OS === 'web') return uri;
   try {
     const ImageManipulator = await import('expo-image-manipulator');
     const result = await ImageManipulator.manipulateAsync(
       uri,
-      [{ resize: { width: 1440 } }],
+      Number.isFinite(width) && Number(width) > 0 && Number(width) <= 1440
+        ? []
+        : [{ resize: { width: 1440 } }],
       { compress: 0.72, format: ImageManipulator.SaveFormat.JPEG },
     );
     return result.uri || uri;
@@ -66,10 +68,11 @@ export async function pickCommunityPhotos(options: {
     .map(asset => ({
       id: `photo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       uri: String(asset.uri ?? '').trim(),
+      width: Number(asset.width ?? 0),
     }))
     .filter(photo => !!photo.uri)
     .slice(0, remaining)
-    .map(async photo => ({ ...photo, uri: await optimizePickedPhoto(photo.uri) })));
+    .map(async photo => ({ ...photo, uri: await optimizePickedPhoto(photo.uri, photo.width) })));
 }
 
 function isVideoAsset(asset: { type?: string | null; mimeType?: string | null }) {
