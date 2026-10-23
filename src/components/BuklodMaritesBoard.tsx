@@ -57,6 +57,7 @@ import {
 import {
   deleteMaritesStory,
   filterMaritesStoriesForViewer,
+  isActiveMaritesStory,
   getMaritesStoryPhotos,
   isCommunityMaritesStory,
   isMaritesEmojiOnlyBody,
@@ -815,7 +816,7 @@ export default function BuklodMaritesBoard({
 
   const [stories, setStories] = useState<
     MaritesStory[]
-  >(() => maritesMemory.get(cacheKey)?.rows ?? []);
+  >(() => (maritesMemory.get(cacheKey)?.rows ?? []).filter(isActiveMaritesStory));
   const loadGenerationRef = useRef(0);
   const [composerOpen, setComposerOpen] =
     useState(false);
@@ -831,6 +832,8 @@ export default function BuklodMaritesBoard({
     []
   );
   const [posting, setPosting] = useState(false);
+  const postingGuardRef = useRef(false);
+  const [expiryTick, setExpiryTick] = useState(0);
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoEditorSource, setPhotoEditorSource] =
     useState<MaritesComposerPhoto | null>(null);
@@ -840,6 +843,12 @@ export default function BuklodMaritesBoard({
     useState<MaritesComposerPhoto | null>(null);
   const [photoEditorInitialTool, setPhotoEditorInitialTool] =
     useState<BuklodPhotoEditorTool>('draw');
+
+  useEffect(() => {
+    const timer = setInterval(() => setExpiryTick((value) => value + 1), 30_000);
+    return () => clearInterval(timer);
+  }, []);
+  const activeStories = useMemo(() => stories.filter((story) => isActiveMaritesStory(story)), [stories, expiryTick]);
 
   const load = useCallback(async (forceRemote = false) => {
     const generation = ++loadGenerationRef.current;
@@ -1480,6 +1489,7 @@ export default function BuklodMaritesBoard({
   }, [photos.length]);
 
   const submitStory = useCallback(async () => {
+    if (postingGuardRef.current) return;
     const body = draft.trim();
     const photoUris = photos.map((photo) => photo.uri);
 
@@ -1507,6 +1517,7 @@ export default function BuklodMaritesBoard({
       return;
     }
 
+    postingGuardRef.current = true;
     setPosting(true);
 
     try {
@@ -1554,6 +1565,7 @@ export default function BuklodMaritesBoard({
         )
       );
     } finally {
+      postingGuardRef.current = false;
       setPosting(false);
     }
   }, [
