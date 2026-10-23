@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "packageName": "org.mzbministry.buklod",
+  "runtimeVersion": "1.3.2",
+  "approvedApkSha256": "",
+  "approvedLiveUpdateId": "",
+  "reconciliationEvidence": "",
+  "note": "Release intentionally blocked until SHA-256 of owner-approved installed APK, currently active OTA ID, and documented comparison of approved native/layout plus current live JS against release source are independently verified. V28 is reference only. Never fill by guessing."
+}
