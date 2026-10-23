@@ -1022,13 +1022,13 @@ export default function BuklodMaritesBoard({
     (direction: -1 | 1) => {
       if (
         !viewStory ||
-        stories.length < 2
+        activeStories.length < 2
       ) {
         return;
       }
 
       const currentIndex =
-        stories.findIndex(
+        activeStories.findIndex(
           story =>
             story.id ===
             viewStory.id
@@ -1043,13 +1043,13 @@ export default function BuklodMaritesBoard({
         (
           safeIndex +
           direction +
-          stories.length
+          activeStories.length
         ) % stories.length;
 
       setStoryZoomed(false);
       setReactionPickerOpen(false);
       setViewStory(
-        stories[nextIndex]
+        activeStories[nextIndex]
       );
     },
     [
@@ -1639,7 +1639,7 @@ export default function BuklodMaritesBoard({
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.row}
       >
-        {stories.map((story, index) => (
+        {activeStories.map((story, index) => (
           <BuklodFocusFadeUp
             key={story.id}
             delay={Math.min(index, 8) * 30}
@@ -1663,7 +1663,7 @@ export default function BuklodMaritesBoard({
         ))}
       </ScrollView>
 
-      {stories.length === 0 && (
+      {activeStories.length === 0 && (
         <Text style={styles.emptyNote}>
           Be the first to share a quick update, or wait
           for community members to post.
