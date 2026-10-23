@@ -157,6 +157,19 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: node scripts/patch-home-identity-action-row.cjs
 
+      - name: Verify expected Home compatibility-only patch
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          # The legacy marker is inserted in CI only for the existing R23 layout.
+          # No other file may change before the exact-source RC baseline gate.
+          test "$(git diff --name-only)" = 'src/app/(tabs)/home.tsx'
+          git diff -- 'src/app/(tabs)/home.tsx' | grep -F 'HOME_IDENTITY_ACTION_ROW_R2'
+          git diff -- 'src/app/(tabs)/home.tsx' | grep -F 'BUKLOD_HOME_IDENTITY_R23_CLEAN_TWO_ROW'
+          # Restore the pristine source; do not export a mutated tree.
+          git restore -- 'src/app/(tabs)/home.tsx'
+          git diff --exit-code
+
       - name: Verify Classroom and Home separation
         shell: bash
         run: |
