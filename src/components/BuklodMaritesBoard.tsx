@@ -858,6 +858,16 @@ export default function BuklodMaritesBoard({
     return () => clearInterval(timer);
   }, []);
   const activeStories = useMemo(() => stories.filter((story) => isActiveMaritesStory(story)), [stories, expiryTick]);
+  // A story can expire while its fullscreen viewer is still open.
+  // Close it instead of leaving expired content visible indefinitely.
+  useEffect(() => {
+    if (viewStory && !activeStories.some((story) => story.id === viewStory.id)) {
+      setViewStory(null);
+      setStoryZoomed(false);
+      setReactionPickerOpen(false);
+    }
+  }, [activeStories, viewStory]);
+
 
   const load = useCallback(async (forceRemote = false) => {
     const generation = ++loadGenerationRef.current;
