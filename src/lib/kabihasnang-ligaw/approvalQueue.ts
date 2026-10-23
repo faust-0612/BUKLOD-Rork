@@ -2,13 +2,13 @@ import { KL_RELEASE_HOUR, KL_TIME_ZONE } from './types';
 
 /**
  * Kabihasnang Ligaw schedule, Asia/Manila.
- * Kabanata 2 goes live 23 October 2026 at 6:00 a.m.
+ * Kabanata 2 targets 24 October 2026 at 6:00 a.m., subject to server approval and release gates.
  * Each later chapter goes live one day after that, at 6:00 a.m.
  * The draft for approval arrives at 6:00 p.m., two civil days before that live morning.
  * A draft in this window is not approved and is not visible to members.
  */
 export const KL_APPROVAL_HOUR = 18;
-export const KL_FIRST_LIVE_DATE = '2026-10-23';
+export const KL_FIRST_LIVE_DATE = '2026-10-24';
 export const KL_APPROVAL_FIRST_EPISODE = 2;
 export const KL_APPROVAL_LAST_EPISODE = 30;
 
