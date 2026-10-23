@@ -54,6 +54,9 @@ export default function ReflectionScreen() {
       if (error) throw error;
 
       const result = (data ?? {}) as DevotionalCompletionResult;
+      if (result.ok !== true || !result.submission_id) {
+        throw new Error('Completion was not confirmed by the server. Check your devotional status before trying again.');
+      }
 
       Alert.alert(
         result.already_completed ? 'Devotional already completed' : 'Devotional completed',
@@ -65,7 +68,7 @@ export default function ReflectionScreen() {
     } catch (error: any) {
       Alert.alert(
         'Could not complete devotional',
-        error?.message ?? 'Nothing was partially submitted. Please try again.'
+        error?.message ?? 'The connection may have interrupted the confirmation. Check your devotional status before trying again.'
       );
     } finally {
       setBusy(false);

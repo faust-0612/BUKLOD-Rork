@@ -1,27 +1,18 @@
 {
-  "objective": "Reduce Cluster/Organization Home request fan-out and repeated loading while preserving access checks",
-  "baseRef": "82187b0fc4c3575d51d5a23c95fb3eddabb5e51b",
-  "productionBaselineEvidence": "Source reconciled against main 82187b0, including its duplicate-load and stale-media protections. GitHub production Android run 40021861531 reports successful freeze and publication for this parent; exact installed OTA fingerprint has not been independently inspected. DEV only; not a production release approval.",
+  "objective": "Show Faith targeted reliability fixes",
+  "baseRef": "4ec5be5b3e9cf44b9b9ac001b04320d33cfef16a",
+  "productionBaselineEvidence": "DEV scope only; compared against main 4ec5be5b3e9cf44b9b9ac001b04320d33cfef16a. Live production OTA fingerprint not verified; no release authorization.",
   "allowedPaths": [
-    "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
-    "src/components/BuklodHomeFaithPanel.tsx",
-    "src/components/ClusterManageGate.tsx",
-    "src/lib/clusterHomeLoading.ts",
-    "scripts/test-cluster-home-loading.cjs",
-    "scripts/test-cluster-loading-render.cjs",
-    ".buklod/work-scope.json",
-    "CLUSTER_ORG_LOADING_FIX.md",
-    ".github/workflows/production_web_deploy.yml"
+    "src/hooks/useBuklodAnswerValidation.ts",
+    "src/app/reflection/[id].tsx",
+    "src/app/faith/abc/[lessonId].tsx",
+    ".buklod/work-scope.json"
   ],
   "acceptanceChecks": [
-    "Cluster renders with only notices/settings reads before selecting optional widgets",
-    "Repeated opens reuse user/scope/admin/date-partitioned cache",
-    "Mutations refresh only affected resources",
-    "Read failures retain content; hanging reads release waiting state",
-    "Late reads cannot overwrite another scope or account",
-    "Admin network failures offer retry without granting access",
-    "Shared Faith panel has one focus access check",
-    "Full application TypeScript/export and exact RC verification before production",
-    "Android-only merge marker skips Web deployment; manual Web deployment remains available"
+    "AI validation ignores stale and concurrent requests",
+    "Devotional success requires confirmed server submission",
+    "ABAKA local data isolated by authenticated account",
+    "Focused regression and TypeScript checks before RC",
+    "Verify live OTA baseline before publication"
   ]
 }
