@@ -108,9 +108,10 @@ type Props = {
   onOpenComments?: (postId: string, story: MaritesStory) => void;
 };
 
-function MaritesQuickVideo({ uri }: { uri: string }) {
-  const player = useVideoPlayer(uri, instance => { instance.loop = false; });
-  return <VideoView player={player} nativeControls contentFit="contain" style={{ width: '100%', height: '100%', backgroundColor: '#000' }} />;
+function MaritesQuickVideo({ uri, autoPlay = false, muted = false }: { uri: string; autoPlay?: boolean; muted?: boolean }) {
+  const player = useVideoPlayer(uri, instance => { instance.loop = autoPlay; instance.muted = muted; });
+  useEffect(() => { player.muted = muted; if (autoPlay) player.play(); else player.pause(); return () => { player.pause(); }; }, [player, autoPlay, muted]);
+  return <VideoView player={player} nativeControls={!autoPlay} contentFit="contain" style={{ width: '100%', height: '100%', backgroundColor: '#000' }} />;
 }
 
 type MaritesComposerPhoto = {
@@ -678,8 +679,10 @@ function MaritesStoryCard({
   onPress,
   menu,
   onComments,
+  autoPlayVideo = false,
 }: {
   story: MaritesStory;
+  autoPlayVideo?: boolean;
   colors: ReturnType<
     typeof useBuklodPresentation
   >['colors'];
@@ -720,7 +723,7 @@ function MaritesStoryCard({
       onPress={onPress}
       style={StyleSheet.absoluteFill}
     >
-      {hasVideo && <View style={[styles.storyPhotoFill, { backgroundColor: '#151515', alignItems: 'center', justifyContent: 'center' }]}><MaterialCommunityIcons name="play-circle-outline" size={44} color="#fff" /><Text style={{ color: '#fff', fontSize: 11, marginTop: 4 }}>Quick Video</Text></View>}
+      {hasVideo && <View style={styles.storyPhotoFill}>{autoPlayVideo ? <MaritesQuickVideo uri={story.video_uri!} autoPlay muted /> : <View style={{ flex: 1, backgroundColor: '#151515', alignItems: 'center', justifyContent: 'center' }}><MaterialCommunityIcons name="play-circle-outline" size={44} color="#fff" /></View>}</View>}
       {hasPhoto && !hasVideo && (
         <BuklodMaritesPhotoCollage
           uris={photoUris}
@@ -837,6 +840,7 @@ export default function BuklodMaritesBoard({
   const loadGenerationRef = useRef(0);
   const [composerOpen, setComposerOpen] =
     useState(false);
+  const [storyStripOffset, setStoryStripOffset] = useState(0);
   const [viewStory, setViewStory] =
     useState<MaritesStory | null>(null);
   const [storyZoomed, setStoryZoomed] =
@@ -1685,6 +1689,8 @@ export default function BuklodMaritesBoard({
         showsHorizontalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.row}
+        scrollEventThrottle={100}
+        onScroll={event => setStoryStripOffset(event.nativeEvent.contentOffset.x)}
       >
         {activeStories.map((story, index) => (
           <BuklodFocusFadeUp
@@ -1697,6 +1703,7 @@ export default function BuklodMaritesBoard({
           >
             <MaritesStoryCard
               story={story}
+              autoPlayVideo={Boolean(story.video_uri) && !viewStory && !composerOpen && index === Math.max(0, Math.floor((storyStripOffset + 90) / (MARITES_COMPACT_CARD_WIDTH + 7)))}
               colors={colors}
               onPress={() =>
                 openStoryViewer(story)
