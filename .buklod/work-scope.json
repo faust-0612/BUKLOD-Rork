@@ -1,7 +1,7 @@
 {
   "objective": "Community Wall standardized photo card bounds and expandable long captions (PR #289), without unrelated media/backend changes",
-  "baseRef": "9e0429bf2202809c8cfa969dd6f25d2d00899f7d",
-  "productionBaselineEvidence": "PR scope comparison base is the verified branch fork at main commit 9e0429bf2202809c8cfa969dd6f25d2d00899f7d. This is NOT evidence of current live Android production; release requires independent live manifest and RC verification.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: PR scope compares with checked-out main tracking ref in CI. This verifies only the PR change boundary, NOT the current live Android production baseline. Before OTA, independently verify the live production manifest, approved installed APK fingerprint, source reconciliation, and exact frozen RC.",
   "allowedPaths": [
     "src/app/(tabs)/buklod.tsx",
     "src/components/BuklodCommunityPhotoCollage.tsx",
