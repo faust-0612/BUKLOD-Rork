@@ -100,6 +100,8 @@ env:
 
 jobs:
   qa-export-deploy:
+    # Explicit Android-only releases must not publish Expo Hosting.
+    if: github.event_name != 'push' || !contains(github.event.head_commit.message, '[android-ota-only]')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout production source

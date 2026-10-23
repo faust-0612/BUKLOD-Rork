@@ -10,7 +10,8 @@
     "scripts/test-cluster-home-loading.cjs",
     "scripts/test-cluster-loading-render.cjs",
     ".buklod/work-scope.json",
-    "CLUSTER_ORG_LOADING_FIX.md"
+    "CLUSTER_ORG_LOADING_FIX.md",
+    ".github/workflows/production_web_deploy.yml"
   ],
   "acceptanceChecks": [
     "Cluster renders with only notices/settings reads before selecting optional widgets",
@@ -20,6 +21,7 @@
     "Late reads cannot overwrite another scope or account",
     "Admin network failures offer retry without granting access",
     "Shared Faith panel has one focus access check",
-    "Full application TypeScript/export and exact RC verification before production"
+    "Full application TypeScript/export and exact RC verification before production",
+    "Android-only merge marker skips Web deployment; manual Web deployment remains available"
   ]
 }
