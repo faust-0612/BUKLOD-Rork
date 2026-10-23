@@ -7,7 +7,7 @@ import {
   repairMojibakeText,
 } from '@/lib/repairMojibakeText';
 import { supabase } from '@/lib/supabase';
-import { attachCommunityPostMedia, discardIncompleteCommunityPost } from '@/lib/buklodCommunityPostMedia';
+import { attachCommunityPostMedia, discardIncompleteCommunityPost, loadCommunityPostMediaByPostIds } from '@/lib/buklodCommunityPostMedia';
 import {
   collectMaritesFeedPages,
   maritesFeedPageArgs,
@@ -156,6 +156,7 @@ export type MaritesStory = {
   community_post_id?: string | null;
   /** Storage paths aligned with photo_uris for community stories. */
   photo_paths?: string[];
+  video_uri?: string | null;
   reaction_counts?: Record<string, number>;
   my_reaction?: string | null;
   created_at: string;
@@ -254,6 +255,7 @@ function normalizeStory(row: Record<string, unknown>): MaritesStory | null {
     body: String(row.body ?? ''),
     photo_uris: mergedPhotos.slice(0, MARITES_MAX_PHOTOS),
     photo_uri: mergedPhotos[0] ?? null,
+    video_uri: row.video_uri ? String(row.video_uri) : null,
     mentions: Array.isArray(row.mentions)
       ? row.mentions.map((item) => String(item))
       : [],
@@ -311,11 +313,20 @@ function parseStories(raw: string | null): MaritesStory[] {
   }
 }
 
+export const MARITES_VALIDITY_MS = 72 * 60 * 60 * 1000;
+
+/** Reject expired, invalid and future-dated stories consistently across caches and feeds. */
+export function isActiveMaritesStory(story: Pick<MaritesStory, 'created_at'>, now = Date.now()): boolean {
+  const created = Date.parse(story.created_at);
+  return Number.isFinite(created) && created <= now && now - created < MARITES_VALIDITY_MS;
+}
+
 export async function loadMaritesStories(): Promise<MaritesStory[]> {
   const raw = await AsyncStorage.getItem(MARITES_STORAGE_KEY);
   const rows = parseStories(raw);
 
   return rows
+    .filter((story) => isActiveMaritesStory(story))
     .map((story) => ({
       ...story,
       source: story.source ?? 'local',
@@ -481,11 +492,13 @@ function mapCommunityPostToMaritesStory(
   }
 
   const photoUris = communityPostPhotoUris(post);
+  const videoItem = (Array.isArray(post.media_items) ? post.media_items : []).find((item: any) => String(item?.media_mime_type ?? '').toLowerCase().startsWith('video/'));
+  const videoUri = String(videoItem?.media_url || (String(post.media_mime_type ?? '').toLowerCase().startsWith('video/') ? post.media_url : '') || '').trim();
   const body = stripMaritesPostMarker(
     repairMojibakeText(String(post.body ?? ''))
   ).trim();
 
-  if (!body && !photoUris.length) {
+  if (!body && !photoUris.length && !videoUri) {
     return null;
   }
 
@@ -502,6 +515,7 @@ function mapCommunityPostToMaritesStory(
     photo_uris: photoUris,
     photo_uri: photoUris[0] ?? null,
     photo_paths: communityPostPhotoPaths(post),
+    video_uri: videoUri || null,
     mentions: Array.isArray(post.mentions)
       ? post.mentions.map((item) => String(item))
       : [],
@@ -623,7 +637,7 @@ export async function loadCommunityMaritesStories(
     },
   });
 
-  const refreshFailed =
+  let refreshFailed =
     !collected.complete || Boolean(collected.error);
 
   const allFeedRows = collected.rows;
@@ -785,90 +799,17 @@ export async function loadCommunityMaritesStories(
             QUERY_CHUNK_SIZE
         );
 
-      const {
-        data:
-          mediaRows,
-        error:
-          mediaError,
-      } =
-        await (supabase as any).rpc(
-          'get_buklod_post_media_v1',
-          {
-            p_post_ids:
-              chunk,
-          }
-        );
-
-      if (
-        mediaError ||
-        !Array.isArray(
-          mediaRows
-        )
-      ) {
-        continue;
-      }
-
-      const signedMedia =
-        await Promise.all(
-          mediaRows.map(
-            async (
-              row:
-                Record<
-                  string,
-                  unknown
-                >
-            ) => {
-              const mediaPath =
-                String(
-                  row.media_path ??
-                    ''
-                ).trim();
-
-              const mediaUrl =
-                mediaPath
-                  ? await signCommunityMediaPath(
-                      mediaPath
-                    )
-                  : null;
-
-              return {
-                ...row,
-                media_url:
-                  mediaUrl,
-              };
-            }
-          )
-        );
-
-      for (
-        const row
-        of signedMedia
-      ) {
-        const postId =
-          String(
-            'post_id' in row
-              ? row.post_id ??
-                  ''
-              : ''
-          ).trim();
-
-        if (!postId) {
-          continue;
+      try {
+        const loaded = await loadCommunityPostMediaByPostIds(chunk);
+        for (const [postId, rows] of Object.entries(loaded)) {
+          mediaMap[postId] = await Promise.all(rows.map(async row => ({
+            ...row,
+            media_url: row.media_url || (row.media_path
+              ? await signCommunityMediaPath(row.media_path) : null),
+          })));
         }
-
-        if (
-          !mediaMap[
-            postId
-          ]
-        ) {
-          mediaMap[
-            postId
-          ] = [];
-        }
-
-        mediaMap[
-          postId
-        ].push(row);
+      } catch {
+        refreshFailed = true;
       }
     }
   }
@@ -887,21 +828,12 @@ export async function loadCommunityMaritesStories(
               postId
             ] ?? [];
 
-          if (
-            loaded.length
-          ) {
-            row.media_items =
-              loaded.sort(
-                (a,b) =>
-                  Number(
-                    a.media_position ??
-                      0
-                  ) -
-                  Number(
-                    b.media_position ??
-                      0
-                  )
-              );
+          if (loaded.length) {
+            // Media rows were already signed during the paged media lookup.
+            // Preserve those URLs rather than signing every row a second time.
+            row.media_items = loaded.sort((a, b) =>
+              Number(a.media_position ?? 0) - Number(b.media_position ?? 0)
+            );
           }
           else if (
             row.media_path
@@ -912,22 +844,9 @@ export async function loadCommunityMaritesStories(
                   ''
               ).toLowerCase();
 
-            if (
-              !mime.startsWith(
-                'video/'
-              )
-            ) {
-              const mediaUrl =
-                await signCommunityMediaPath(
-                  String(
-                    row.media_path
-                  )
-                );
-
-              if (mediaUrl) {
-                row.media_url =
-                  mediaUrl;
-              }
+            if (mime.startsWith('video/') || mime.startsWith('image/')) {
+              const mediaUrl = await signCommunityMediaPath(String(row.media_path));
+              if (mediaUrl) row.media_url = mediaUrl;
             }
           }
 
@@ -956,8 +875,9 @@ export async function loadCommunityMaritesStories(
           )
       )
       .filter(
-        Boolean
-      ) as MaritesStory[],
+        (story): story is MaritesStory =>
+          Boolean(story) && isActiveMaritesStory(story as MaritesStory)
+      ),
     refreshFailed,
   };
 }
@@ -987,6 +907,9 @@ export function mergeMaritesStories(
         ? `community:${postId}`
         : `local:${story.id}`;
     };
+
+  localStories = localStories.filter((story) => isActiveMaritesStory(story));
+  communityStories = communityStories.filter((story) => isActiveMaritesStory(story));
 
   const communityKeys =
     new Set(
@@ -1156,6 +1079,7 @@ export async function publishMaritesStory(input: {
   avatarUrl?: string | null;
   body: string;
   photoUris: string[];
+  video?: { uri: string; durationSeconds: number; mimeType: string } | null;
 }): Promise<{
   story: MaritesStory;
   shared: boolean;
@@ -1168,6 +1092,8 @@ export async function publishMaritesStory(input: {
     .filter(Boolean)
     .slice(0, MARITES_MAX_PHOTOS);
 
+  if (input.video && (!Number.isFinite(input.video.durationSeconds) || input.video.durationSeconds <= 0 || input.video.durationSeconds > 30)) throw new Error('Quick Video must be 30 seconds or shorter.');
+  if (input.video && photoUris.length) throw new Error('Share Quick Video separately from photos.');
   const localStory: MaritesStory = {
     id: `${Date.now()}-${Math.random()
       .toString(36)
@@ -1178,6 +1104,7 @@ export async function publishMaritesStory(input: {
     body,
     photo_uris: photoUris,
     photo_uri: photoUris[0] ?? null,
+    video_uri: input.video?.uri ?? null,
     mentions: [],
     author_only: false,
     source: 'local',
@@ -1193,8 +1120,15 @@ export async function publishMaritesStory(input: {
   }> = [];
 
   let createdPostId: string | null = null;
+  let videoPath: string | null = null;
 
   try {
+    if (input.video) {
+      const { uploadCommunityVideoFile } = await import('@/lib/uploadCommunityVideoFile');
+      videoPath = `${input.userId}/marites-${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`;
+      await uploadCommunityVideoFile({ path: videoPath, uri: input.video.uri, contentType: input.video.mimeType });
+      uploaded.push({ media_path: videoPath, media_mime_type: input.video.mimeType, media_size_bytes: 0 });
+    }
     for (let index = 0; index < photoUris.length; index += 1) {
       const encoded = await encodeMaritesPhotoBase64(
         photoUris[index]
@@ -1227,7 +1161,7 @@ export async function publishMaritesStory(input: {
         (uploaded.length > 1
           ? 'Shared photos.'
           : uploaded.length
-            ? 'Shared a photo.'
+            ? (input.video ? 'Shared a Quick Video.' : 'Shared a photo.')
             : '')
     );
 
@@ -1241,7 +1175,7 @@ export async function publishMaritesStory(input: {
       p_media_path: first?.media_path ?? null,
       p_media_mime_type: first?.media_mime_type ?? null,
       p_media_size_bytes: first?.media_size_bytes ?? null,
-      p_media_duration_seconds: null,
+      p_media_duration_seconds: input.video?.durationSeconds ?? null,
       p_is_reel: false,
       p_mentioned_user_ids: [],
     });
@@ -1292,9 +1226,10 @@ export async function publishMaritesStory(input: {
       author_name: input.authorName || 'Member',
       avatar_url: input.avatarUrl ?? null,
       body,
-      photo_uris: signedPhotos.filter(Boolean),
-      photo_uri: signedPhotos.find(Boolean) ?? null,
-      photo_paths: uploaded.map((item) => item.media_path),
+      photo_uris: input.video ? [] : signedPhotos.filter(Boolean),
+      photo_uri: input.video ? null : (signedPhotos.find(Boolean) ?? null),
+      photo_paths: input.video ? [] : uploaded.map((item) => item.media_path),
+      video_uri: input.video ? (signedPhotos[0] || input.video.uri) : null,
       mentions: [],
       author_only: false,
       source: 'community',
@@ -1306,11 +1241,26 @@ export async function publishMaritesStory(input: {
 
     return { story: sharedStory, shared: true };
   } catch (error) {
-    if (createdPostId || uploaded.length) {
+    // Once the RPC commits a post, deleting it on a later signing or
+    // attachment failure can erase a successfully shared story.
+    // Preserve the committed post and let a refresh recover its state.
+    if (!createdPostId && uploaded.length) {
       await discardIncompleteCommunityPost({
-        postId: createdPostId,
+        postId: null,
         mediaPaths: uploaded.map((item) => item.media_path),
       });
+    }
+    if (createdPostId) {
+      return {
+        story: {
+          ...localStory,
+          id: `${COMMUNITY_MARITES_ID_PREFIX}${createdPostId}`,
+          source: 'community',
+          community_post_id: createdPostId,
+          photo_paths: uploaded.map((item) => item.media_path),
+        },
+        shared: true,
+      };
     }
 
     const message = String(
@@ -1334,6 +1284,7 @@ export function filterMaritesStoriesForViewer(
   viewerId?: string | null
 ) {
   return stories.filter((story) => {
+    if (!isActiveMaritesStory(story)) return false;
     if (!story.author_only) {
       return true;
     }
@@ -1530,3 +1481,4 @@ export const MARITES_QUICK_EMOJI = [
   '👍',
   '🕊️',
 ] as const;
+

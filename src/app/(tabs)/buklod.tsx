@@ -4436,6 +4436,7 @@ const communityFeedRows =
   visibleVideoPostId,
  } = useBuklodCommunityAdViewability();
 
+ const maritesVisibilityRefreshRef = useRef<(() => void) | null>(null);
  if(!featureEnabled('community_feed'))return <FeatureUnavailable title="Community"/>;
  return <>
  <FlashList
@@ -4443,6 +4444,7 @@ const communityFeedRows =
     onScroll={(event:any) => {
       communityScrollYRefBackR2.current =
         Number(event?.nativeEvent?.contentOffset?.y ?? 0);
+      maritesVisibilityRefreshRef.current?.();
     }}
     scrollEventThrottle={16}
  /* PERF2_PROGRESSIVE_FEED_LIST */
@@ -4631,6 +4633,9 @@ const communityFeedRows =
    />
 
    <BuklodMaritesBoard
+    playbackBlocked={commentOpen}
+    visibilityRefreshRef={maritesVisibilityRefreshRef}
+    onOpenComments={(postId, story) => void openComments({ id: postId, author_name: story.author_name, user_id: story.user_id, body: story.body, avatar_url: story.avatar_url })}
     locationScopeId={
      publicLocationScopeId
     }
@@ -6003,3 +6008,4 @@ const communityFeedRows =
      {reportSheet}
 </>;
 }
+

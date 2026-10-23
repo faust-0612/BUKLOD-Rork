@@ -8,6 +8,7 @@ import React, {
 
 import {
   Alert,
+  AppState,
   Image,
   Modal,
   Pressable,
@@ -57,6 +58,7 @@ import {
 import {
   deleteMaritesStory,
   filterMaritesStoriesForViewer,
+  isActiveMaritesStory,
   getMaritesStoryPhotos,
   isCommunityMaritesStory,
   isMaritesEmojiOnlyBody,
@@ -85,6 +87,9 @@ import {
   resolvePersonDisplayName,
 } from '@/lib/buklodPersonDisplay';
 import { pickCommunityPhotos } from '@/lib/buklodPickCommunityPhotos';
+import { VideoView, useVideoPlayer } from 'expo-video';
+import { useFocusEffect } from 'expo-router';
+import { selectVisibleMaritesVideo, quickVideoDurationSeconds } from '@/lib/buklodMaritesPlayback';
 import { useAuth } from '@/providers/AuthProvider';
 import {
   BUKLOD_HIT_SLOP,
@@ -103,7 +108,42 @@ import {
 type Props = {
   /** Reserved for future scoped RPC filter. */
   locationScopeId?: string | null;
+  playbackBlocked?: boolean;
+  visibilityRefreshRef?: React.MutableRefObject<(() => void) | null>;
+  onOpenComments?: (postId: string, story: MaritesStory) => void;
 };
+
+function useMaritesPlaybackActive() {
+  const [focused, setFocused] = useState(false);
+  const [foreground, setForeground] = useState(AppState.currentState === 'active');
+  useFocusEffect(useCallback(() => {
+    setFocused(true);
+    return () => setFocused(false);
+  }, []));
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', state => setForeground(state === 'active'));
+    return () => subscription.remove();
+  }, []);
+  return focused && foreground;
+}
+
+function MaritesQuickVideo({ uri, autoPlay = false, muted = false }: { uri: string; autoPlay?: boolean; muted?: boolean }) {
+  const active = useMaritesPlaybackActive();
+  const player = useVideoPlayer(uri, instance => {
+    instance.audioMixingMode = 'mixWithOthers';
+    instance.showNowPlayingNotification = false;
+    instance.staysActiveInBackground = false;
+    instance.loop = autoPlay;
+    instance.muted = muted;
+  });
+  useEffect(() => {
+    player.muted = muted;
+    if (autoPlay && active) player.play();
+    else player.pause();
+  }, [player, autoPlay, muted, active]);
+  // useVideoPlayer releases the native player on unmount.
+  return <VideoView player={player} nativeControls={!autoPlay && active} contentFit="contain" style={{ width: '100%', height: '100%', backgroundColor: '#000' }} />;
+}
 
 type MaritesComposerPhoto = {
   id: string;
@@ -117,9 +157,9 @@ type MaritesComposerPhoto = {
  * Stories are short-lived already, so a small freshness window prevents
  * repeated remote/media signing work without turning this into durable state.
  */
-const MARITES_COMPACT_CARD_WIDTH = 124;
-const MARITES_COMPACT_CARD_HEIGHT = 168;
-const MARITES_COMPACT_FOOTER_HEIGHT = 32;
+const MARITES_COMPACT_CARD_WIDTH = 186;
+const MARITES_COMPACT_CARD_HEIGHT = 252;
+const MARITES_COMPACT_FOOTER_HEIGHT = 40;
 const MARITES_MEMORY_FRESH_MS = 20_000;
 
 type MaritesMemoryEntry = {
@@ -224,9 +264,9 @@ function createStyles(
       top: 5,
       right: 5,
       zIndex: 4,
-      width: 24,
-      height: 24,
-      borderRadius: 12,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: 'rgba(0,0,0,0.42)',
@@ -669,13 +709,17 @@ function MaritesStoryCard({
   colors,
   onPress,
   menu,
+  onComments,
+  autoPlayVideo = false,
 }: {
   story: MaritesStory;
+  autoPlayVideo?: boolean;
   colors: ReturnType<
     typeof useBuklodPresentation
   >['colors'];
   onPress: () => void;
   menu?: React.ReactNode;
+  onComments?: () => void;
 }) {
   const styles = useMemo(
     () => createStyles(colors),
@@ -683,6 +727,7 @@ function MaritesStoryCard({
   );
 
   const hasPhoto = getMaritesStoryPhotos(story).length > 0;
+  const hasVideo = Boolean(story.video_uri);
   const photoUris = getMaritesStoryPhotos(story);
   const body = story.body.trim();
   const emojiOnly =
@@ -709,14 +754,15 @@ function MaritesStoryCard({
       onPress={onPress}
       style={StyleSheet.absoluteFill}
     >
-      {hasPhoto && (
+      {hasVideo && <View style={styles.storyPhotoFill}>{autoPlayVideo ? <MaritesQuickVideo uri={story.video_uri!} autoPlay muted /> : <View style={{ flex: 1, backgroundColor: '#151515', alignItems: 'center', justifyContent: 'center' }}><MaterialCommunityIcons name="play-circle-outline" size={44} color="#fff" /></View>}</View>}
+      {hasPhoto && !hasVideo && (
         <BuklodMaritesPhotoCollage
           uris={photoUris}
           style={styles.storyPhotoFill}
         />
       )}
 
-      {!hasPhoto && emojiOnly && (
+      {!hasPhoto && !hasVideo && emojiOnly && (
         <View style={styles.mediaFill}>
           <Text
             adjustsFontSizeToFit
@@ -729,7 +775,7 @@ function MaritesStoryCard({
         </View>
       )}
 
-      {!hasPhoto && !emojiOnly && !!body && (
+      {!hasPhoto && !hasVideo && !emojiOnly && !!body && (
         <View style={styles.textFill}>
           <Text
             numberOfLines={6}
@@ -794,6 +840,11 @@ function MaritesStoryCard({
         ) : null}
       </View>
     </Pressable>
+    {onComments ? (
+      <Pressable accessibilityRole="button" accessibilityLabel="Open story comments" onPress={onComments} style={{ position: 'absolute', right: 5, bottom: MARITES_COMPACT_FOOTER_HEIGHT + 6, width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' }}>
+        <MaterialCommunityIcons name="comment-text-outline" size={21} color="#FFFFFF" />
+      </Pressable>
+    ) : null}
     {menu}
     </View>
   );
@@ -801,6 +852,9 @@ function MaritesStoryCard({
 
 export default function BuklodMaritesBoard({
   locationScopeId,
+  onOpenComments,
+  playbackBlocked = false,
+  visibilityRefreshRef,
 }: Props) {
   const { user, profile } = useAuth();
   const { colors } = useBuklodPresentation();
@@ -815,10 +869,14 @@ export default function BuklodMaritesBoard({
 
   const [stories, setStories] = useState<
     MaritesStory[]
-  >(() => maritesMemory.get(cacheKey)?.rows ?? []);
+  >(() => (maritesMemory.get(cacheKey)?.rows ?? []).filter(story => isActiveMaritesStory(story)));
   const loadGenerationRef = useRef(0);
   const [composerOpen, setComposerOpen] =
     useState(false);
+  const storyStripOffset = useRef(0);
+  const stripViewportRef = useRef<View>(null);
+  const [visibleVideoIndex, setVisibleVideoIndex] = useState(-1);
+  const playbackActive = useMaritesPlaybackActive();
   const [viewStory, setViewStory] =
     useState<MaritesStory | null>(null);
   const [storyZoomed, setStoryZoomed] =
@@ -830,7 +888,10 @@ export default function BuklodMaritesBoard({
   const [photos, setPhotos] = useState<MaritesComposerPhoto[]>(
     []
   );
+  const [quickVideo, setQuickVideo] = useState<{ uri: string; durationSeconds: number; mimeType: string } | null>(null);
   const [posting, setPosting] = useState(false);
+  const postingGuardRef = useRef(false);
+  const [expiryTick, setExpiryTick] = useState(0);
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoEditorSource, setPhotoEditorSource] =
     useState<MaritesComposerPhoto | null>(null);
@@ -840,6 +901,22 @@ export default function BuklodMaritesBoard({
     useState<MaritesComposerPhoto | null>(null);
   const [photoEditorInitialTool, setPhotoEditorInitialTool] =
     useState<BuklodPhotoEditorTool>('draw');
+
+  useEffect(() => {
+    const timer = setInterval(() => setExpiryTick((value) => value + 1), 30_000);
+    return () => clearInterval(timer);
+  }, []);
+  const activeStories = useMemo(() => stories.filter((story) => isActiveMaritesStory(story)), [stories, expiryTick]);
+  // A story can expire while its fullscreen viewer is still open.
+  // Close it instead of leaving expired content visible indefinitely.
+  useEffect(() => {
+    if (viewStory && !activeStories.some((story) => story.id === viewStory.id)) {
+      setViewStory(null);
+      setStoryZoomed(false);
+      setReactionPickerOpen(false);
+    }
+  }, [activeStories, viewStory]);
+
 
   const load = useCallback(async (forceRemote = false) => {
     const generation = ++loadGenerationRef.current;
@@ -1013,13 +1090,13 @@ export default function BuklodMaritesBoard({
     (direction: -1 | 1) => {
       if (
         !viewStory ||
-        stories.length < 2
+        activeStories.length < 2
       ) {
         return;
       }
 
       const currentIndex =
-        stories.findIndex(
+        activeStories.findIndex(
           story =>
             story.id ===
             viewStory.id
@@ -1034,17 +1111,17 @@ export default function BuklodMaritesBoard({
         (
           safeIndex +
           direction +
-          stories.length
-        ) % stories.length;
+          activeStories.length
+        ) % activeStories.length;
 
       setStoryZoomed(false);
       setReactionPickerOpen(false);
       setViewStory(
-        stories[nextIndex]
+        activeStories[nextIndex]
       );
     },
     [
-      stories,
+      activeStories,
       viewStory,
     ]
   );
@@ -1292,6 +1369,7 @@ export default function BuklodMaritesBoard({
   const resetComposer = useCallback(() => {
     setDraft('');
     setPhotos([]);
+    setQuickVideo(null);
     setPhotoEditorSource(null);
     setPhotoEditorTargetId(null);
     setComposerOpen(false);
@@ -1479,11 +1557,28 @@ export default function BuklodMaritesBoard({
     }
   }, [photos.length]);
 
+  const pickQuickVideo = useCallback(async () => {
+    try {
+      const P = await import('expo-image-picker');
+      const permission = await P.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) { Alert.alert('Quick Video', 'Allow video library access first.'); return; }
+      const result = await P.launchImageLibraryAsync({ mediaTypes: ['videos'], videoMaxDuration: 30, allowsEditing: false });
+      if (result.canceled || !result.assets?.[0]) return;
+      const asset = result.assets[0];
+      const rawDuration = Number(asset.duration ?? 0);
+      const durationSeconds = quickVideoDurationSeconds(rawDuration);
+      if (!Number.isFinite(durationSeconds) || durationSeconds <= 0 || durationSeconds > 30) { Alert.alert('Quick Video', 'Select a video no longer than 30 seconds.'); return; }
+      setPhotos([]);
+      setQuickVideo({ uri: asset.uri, durationSeconds, mimeType: asset.mimeType || 'video/mp4' });
+    } catch (error) { Alert.alert('Quick Video', String((error as Error)?.message ?? 'Could not select video.')); }
+  }, []);
+
   const submitStory = useCallback(async () => {
+    if (postingGuardRef.current) return;
     const body = draft.trim();
     const photoUris = photos.map((photo) => photo.uri);
 
-    if (!body && !photoUris.length) {
+    if (!body && !photoUris.length && !quickVideo) {
       Alert.alert(
         'Marites Story',
         'Add a short message or photo first.'
@@ -1507,6 +1602,7 @@ export default function BuklodMaritesBoard({
       return;
     }
 
+    postingGuardRef.current = true;
     setPosting(true);
 
     try {
@@ -1518,6 +1614,7 @@ export default function BuklodMaritesBoard({
         avatarUrl: profile?.avatar_url ?? null,
         body,
         photoUris,
+        video: quickVideo,
       });
 
       loadGenerationRef.current += 1;
@@ -1554,12 +1651,14 @@ export default function BuklodMaritesBoard({
         )
       );
     } finally {
+      postingGuardRef.current = false;
       setPosting(false);
     }
   }, [
     draft,
     cacheKey,
     photos,
+    quickVideo,
     profile?.avatar_url,
     profile?.full_name,
     resetComposer,
@@ -1585,6 +1684,35 @@ export default function BuklodMaritesBoard({
   const drawerBottomInset = useBuklodDrawerBottomInset();
   const { height: windowHeight, width: windowWidth } =
     useWindowDimensions();
+
+  const canPlayInline = playbackActive && !playbackBlocked && !viewStory && !composerOpen;
+  const visibilityGeneration = useRef(0);
+  const measureVisibility = useCallback(() => {
+    const generation = ++visibilityGeneration.current;
+    if (!canPlayInline) { setVisibleVideoIndex(-1); return; }
+    stripViewportRef.current?.measureInWindow((x, y, width, height) => {
+      if (generation !== visibilityGeneration.current) return;
+      setVisibleVideoIndex(selectVisibleMaritesVideo({
+        x, y, width, height, windowWidth, windowHeight,
+        topInset: insets.top, bottomInset: Math.max(insets.bottom, drawerBottomInset),
+        offset: storyStripOffset.current,
+        cardWidth: MARITES_COMPACT_CARD_WIDTH, gap: 7,
+        videos: activeStories.map(story => Boolean(story.video_uri)),
+      }));
+    });
+  }, [canPlayInline, activeStories, windowWidth, windowHeight, insets.top, insets.bottom, drawerBottomInset]);
+  useEffect(() => {
+    if (visibilityRefreshRef) visibilityRefreshRef.current = measureVisibility;
+    measureVisibility();
+    // Also catch header animation/layout changes without rerendering the Wall.
+    const timer = canPlayInline && activeStories.some(story => story.video_uri)
+      ? setInterval(measureVisibility, 250) : null;
+    return () => {
+      ++visibilityGeneration.current;
+      if (timer) clearInterval(timer);
+      if (visibilityRefreshRef?.current === measureVisibility) visibilityRefreshRef.current = null;
+    };
+  }, [measureVisibility, canPlayInline, activeStories, visibilityRefreshRef]);
 
   return (
     <View style={styles.section}>
@@ -1621,13 +1749,16 @@ export default function BuklodMaritesBoard({
         </View>
       </View>
 
+      <View ref={stripViewportRef} collapsable={false} onLayout={measureVisibility}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.row}
+        scrollEventThrottle={100}
+        onScroll={event => { storyStripOffset.current = event.nativeEvent.contentOffset.x; measureVisibility(); }}
       >
-        {stories.map((story, index) => (
+        {activeStories.map((story, index) => (
           <BuklodFocusFadeUp
             key={story.id}
             delay={Math.min(index, 8) * 30}
@@ -1638,6 +1769,7 @@ export default function BuklodMaritesBoard({
           >
             <MaritesStoryCard
               story={story}
+              autoPlayVideo={canPlayInline && index === visibleVideoIndex}
               colors={colors}
               onPress={() =>
                 openStoryViewer(story)
@@ -1646,12 +1778,17 @@ export default function BuklodMaritesBoard({
                 story,
                 styles.cardMenuBtn
               )}
+              onComments={onOpenComments ? (() => {
+                const postId = communityPostIdForStory(story);
+                return postId ? () => onOpenComments(postId, story) : undefined;
+              })() : undefined}
             />
           </BuklodFocusFadeUp>
         ))}
       </ScrollView>
+      </View>
 
-      {stories.length === 0 && (
+      {activeStories.length === 0 && (
         <Text style={styles.emptyNote}>
           Be the first to share a quick update, or wait
           for community members to post.
@@ -1744,7 +1881,7 @@ export default function BuklodMaritesBoard({
             <View style={styles.toolRow}>
               <Pressable
                 style={styles.toolBtn}
-                disabled={photoBusy}
+                disabled={photoBusy || Boolean(quickVideo)}
                 onPress={() => void pickPhotos()}
               >
                 <MaterialCommunityIcons
@@ -1760,7 +1897,9 @@ export default function BuklodMaritesBoard({
                       : 'Add photos'}
                 </Text>
               </Pressable>
+              <Pressable style={styles.toolBtn} disabled={posting} onPress={() => void pickQuickVideo()}><MaterialCommunityIcons name="video-plus" size={17} color={colors.green} /><Text style={styles.toolText}>{quickVideo ? 'Replace Quick Video' : 'Quick Video (max 30s)'}</Text></Pressable>
             </View>
+            {quickVideo ? <View><View style={{ height: 190 }}><MaritesQuickVideo uri={quickVideo.uri} /></View><Pressable accessibilityRole="button" onPress={() => setQuickVideo(null)}><Text style={styles.toolText}>Remove video</Text></Pressable></View> : null}
 
             <Text style={styles.composerPhotoHint}>
               Tap Add photos, then tap each photo you want. Press OK when done.
@@ -1842,6 +1981,7 @@ export default function BuklodMaritesBoard({
                   !photoUris.length &&
                   isMaritesEmojiOnlyBody(body);
 
+                if (viewStory.video_uri) return <MaritesQuickVideo uri={viewStory.video_uri} />;
                 if (photoUris.length) {
                   if (photoUris.length === 1) {
                     return (
@@ -1989,7 +2129,7 @@ export default function BuklodMaritesBoard({
               )}
             </View>
 
-            {stories.length > 1 &&
+            {activeStories.length > 1 &&
             !storyZoomed &&
             !reactionPickerOpen ? (
               <View
@@ -2239,3 +2379,4 @@ export default function BuklodMaritesBoard({
     </View>
   );
 }
+

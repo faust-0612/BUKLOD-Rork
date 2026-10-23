@@ -1,16 +1,22 @@
 {
-  "objective": "Kabihasnang Ligaw final manuscript Approve/Reject controls only",
-  "baseRef": "1d9741be37a548f2248e3e54c6f8ad6e5885b51a",
-  "productionBaselineEvidence": "Prior Android production OTA verified: update 01a16536-c621-79b9-b010-bb1fe4b733ff, runtime 1.3.2, source 74a20a47bee6b1284f899f76dd16af212051e391. Must independently verify latest production OTA and RC before publishing this KL change.",
+  "objective": "Marites 72-hour stories, sharing, owner menu, comments, enlarged cards and 30-second visible Quick Video; Android-only exact RC release",
+  "baseRef": "2b6a53125875b5fe03d5b045aef56409b9019d8b",
+  "productionBaselineEvidence": "Android production manifest verified update 01a1679a-c74e-7348-b4d9-41228afa4dc2 runtime 1.3.2; source 2f26645e50e8e079ebf09f3999aacfc506ae7651. Reconciled targeted Marites delta onto current main, preserving KL and AdMob. CI rechecks production before export and publish.",
   "allowedPaths": [
-    "src/app/admin/kabihasnang-ligaw.tsx",
-    "src/lib/kabihasnang-ligaw/rpc.ts",
+    "scripts/android-ota-rc.cjs",
+    "scripts/test-marites-release.cjs",
+    ".github/workflows/production_android_ota.yml",
+    "src/lib/buklodMaritesBoard.ts",
+    "src/lib/buklodMaritesPlayback.ts",
+    "src/components/BuklodMaritesBoard.tsx",
+    "src/app/(tabs)/buklod.tsx",
     ".buklod/work-scope.json"
   ],
   "acceptanceChecks": [
-    "Approve and Reject controls are inside Kabihasnang Ligaw manuscript card",
-    "Backend RPC permits authorized rejection and approval without immediate release",
-    "Focused TypeScript and UI tests must pass before freezing RC",
-    "Verify current production baseline and publish only exact verified RC to Android Production runtime 1.3.2"
+    "Targeted behavior tests and full TypeScript QA pass",
+    "No native runtime/dependency changes",
+    "Only focused foreground visible Quick Video autoplays, muted and mixed with other audio",
+    "Archive hashed Android RC before publishing with skip-bundler",
+    "Verify production update ID and served bundle hash match exact RC"
   ]
 }
