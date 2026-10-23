@@ -1677,7 +1677,10 @@ export default function BuklodMaritesBoard({
                 story,
                 styles.cardMenuBtn
               )}
-              onComments={onOpenComments && communityPostIdForStory(story) ? () => onOpenComments(communityPostIdForStory(story), story) : undefined}
+              onComments={onOpenComments ? (() => {
+                const postId = communityPostIdForStory(story);
+                return postId ? () => onOpenComments(postId, story) : undefined;
+              })() : undefined}
             />
           </BuklodFocusFadeUp>
         ))}
