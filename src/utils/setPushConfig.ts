@@ -345,8 +345,11 @@ export function setPushConfig() {
                 'Declining BUKLOD call...',
             },
 
+            // PTT joins are non-ringing media sessions, not Connect calls.
+            // Keep Android Telecom for real ringing calls; StreamCall's
+            // foreground service keeps non-ringing PTT audio alive instead.
             enableOngoingCalls:
-              true,
+              false,
 
             defaultDeviceEndpointType:
               'speaker',

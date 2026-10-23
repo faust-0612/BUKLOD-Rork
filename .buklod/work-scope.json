@@ -1,15 +1,18 @@
 {
-  "objective": "App Performance OTA: suppress duplicate low-priority feedback telemetry during weak-network rerenders without changing important events",
-  "baseRef": "main",
-  "productionBaselineEvidence": "verified: release/V28_PENDING_OTA_INVENTORY_READY.md records Android production runtime 1.3.2 OTA update 01a163c9-33c1-7be2-8f87-aa9ade2c562b at commit 94ca01a6 (workflow 39786086190). This verifies a historical publish, NOT the latest live fingerprint. Latest OTA still requires separate verification before release.",
+  "objective": "Targeted Android PTT/Connect call isolation: prevent non-ringing PTT joins from registering as ordinary Telecom ongoing calls",
+  "baseRef": "74a20a47bee6b1284f899f76dd16af212051e391",
+  "productionBaselineEvidence": "Verified publish logs: https://github.com/faust-0612/BUKLOD-Rork/actions/runs/39844940133; Android update 01a16536-c621-79b9-b010-bb1fe4b733ff, group 07965658-7df7-475a-88cf-bff203596c3f, runtime 1.3.2, source 74a20a47bee6b1284f899f76dd16af212051e391. Existing Home compatibility-comment build overlay noted in release manifest.",
   "allowedPaths": [
-    "src/lib/buklodUserFeedback.ts",
-    ".buklod/work-scope.json"
+    "src/utils/setPushConfig.ts",
+    "tests/buklod-ptt-call-isolation.test.cjs",
+    ".buklod/work-scope.json",
+    "release/PTT_CONNECT_ISOLATION_SOURCE_20261023.json"
   ],
   "acceptanceChecks": [
-    "Only repeated low-priority telemetry suppressed within 15 seconds",
-    "Recovery outcomes and user submissions unchanged",
-    "TypeScript QA passes",
-    "Latest production OTA baseline verified before release"
+    "node --test tests/buklod-ptt-call-isolation.test.cjs: 4 passing tests",
+    "Locked Stream SDK 1.43.0 execution harness reproduces previous non-ringing Telecom registration and verifies corrected exclusion, preserved incoming/outgoing ringing and PTT foreground-service startup",
+    "User waived prepublication physical-device testing on 2026-10-23; PTT/Connect device acceptance remains post-OTA verification.",
+    "Latest production OTA baseline and normal release gates required before publication",
+    "Frozen RC eb371d5c82a75838e8378a36ef40600a29c26aa8: TypeScript, Android export, compiled PTT configuration, exact unrelated production preservation PASS (run39888617519)"
   ]
 }
