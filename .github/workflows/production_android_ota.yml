@@ -310,7 +310,7 @@ jobs:
         shell: bash
         run: |
           node scripts/android-ota-rc.cjs verify
-          npx eas-cli@latest update --channel production --platform android --environment production --input-dir rc --skip-bundler --message "Marites verified RC ${GITHUB_SHA}: 72h stories, sharing, comments, 30s visible autoplay" --json --non-interactive > ota-evidence/published.json
+          npx eas-cli@latest update --channel production --platform android --environment production --input-dir rc --skip-bundler --message "BUKLOD verified Android RC ${GITHUB_SHA}: cumulative main production update" --json --non-interactive > ota-evidence/published.json
           node scripts/android-ota-rc.cjs published
 
       - name: Archive publication evidence
