@@ -25,5 +25,8 @@ const {clusterHomeResources: plan, createClusterReadCache: create} = context.exp
  let resolve;const slow=cache.read('race',()=>new Promise(r=>resolve=r));
  const forced=cache.read('race',async()=>2,true);
  await Promise.resolve();resolve(1);await slow;assert.equal(await forced,2);
+ let release;const first=cache.read('serial',()=>new Promise(r=>release=r));
+ const second=cache.read('serial',async()=>2,true);const third=cache.read('serial',async()=>3,true);
+ await Promise.resolve();release(1);await Promise.all([first,second,third]);assert.equal(cache.peek('serial'),3);
  console.log('PASS: lazy loading, admin resource restriction, deduplication, freshness, account separation, mutation refresh, failure retention, timeout recovery.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

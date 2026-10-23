@@ -19,10 +19,11 @@ export function createClusterReadCache(ttlMs = 90_000, timeoutMs = 10_000) {
     peek(key: string) { return values.get(key)?.data; },
     async read<T>(key: string, fetcher: () => Promise<T>, force = false): Promise<T> {
       // A forced refresh waits for an earlier read, then obtains post-mutation data.
-      const previous = pending.get(key);
-      if (previous) {
+      let previous = pending.get(key);
+      while (previous) {
         if (!force) return previous as Promise<T>;
         await previous.catch(() => undefined);
+        previous = pending.get(key);
       }
       const cached = values.get(key);
       if (!force && cached && Date.now() - cached.at < ttlMs) return cached.data as T;
