@@ -47,8 +47,17 @@ async function run() {
   sourceGate();
   if (mode === 'baseline') {
     const before = await manifest();
-    // This release was reconciled against this independently observed source/update pair.
-    assert.equal(before.id, '01a1682a-cfee-77ba-a1cc-f46b5674deff', 'Production advanced: reconcile before releasing');
+    // The installed, owner-approved Android build is the native authority.
+    // Its current live OTA is the JS authority. Never treat a historical V28
+    // export, Git HEAD, or a previously observed update ID as approval.
+    const approval = read('release/approved-android-baseline.json');
+    assert.equal(approval.schemaVersion, 1, 'Invalid approved baseline schema');
+    assert.match(approval.approvedApkSha256 || '', /^[a-f0-9]{64}$/i, 'Approved installed APK SHA-256 must be recorded before publishing');
+    assert.equal(approval.runtimeVersion, runtime, 'Approved APK runtime differs');
+    assert.equal(approval.packageName, 'org.mzbministry.buklod', 'Approved APK package differs');
+    assert.match(approval.approvedLiveUpdateId || '', /^[0-9a-f-]{36}$/i, 'Approved live OTA ID is missing');
+    assert.equal(before.id, approval.approvedLiveUpdateId, 'Production advanced or installed baseline not reconciled; do not publish');
+    assert.match(approval.reconciliationEvidence || '', /\\S{20,}/, 'Approved APK / live OTA / source reconciliation evidence is required');
     git('merge-base', '--is-ancestor', '2f26645e50e8e079ebf09f3999aacfc506ae7651', sha);
     assert.equal(git('diff', '--name-only', '2f26645e50e8e079ebf09f3999aacfc506ae7651', sha, '--', 'package.json', 'package-lock.json', 'app.config.js', 'android', 'plugins'), '', 'Native baseline changed');
     write('ota-evidence/baseline.json', {id:before.id, runtime, source:sha, launchAssetHash:before.launchAsset.hash});
