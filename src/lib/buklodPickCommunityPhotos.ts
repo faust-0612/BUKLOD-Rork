@@ -52,8 +52,7 @@ export async function pickCommunityPhotos(options: {
       uri: String(asset.uri ?? '').trim(),
     }))
     .filter(photo => !!photo.uri)
-    .slice(0, remaining)
-;
+    .slice(0, remaining);
 }
 
 function isVideoAsset(asset: { type?: string | null; mimeType?: string | null }) {
@@ -114,11 +113,9 @@ export async function pickCommunityGallery(options: {
     .map(asset => ({
       id: `photo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       uri: String(asset.uri ?? '').trim(),
-      width: Number(asset.width ?? 0),
     }))
     .filter(photo => !!photo.uri)
-    .slice(0, photoRemaining)
-    .map(async photo => ({ ...photo, uri: await optimizePickedPhoto(photo.uri) })));
+    .slice(0, photoRemaining);
 
   const notices: string[] = [];
 
