@@ -309,9 +309,30 @@ export default function KabihasnangLigawAdminScreen() {
         ].join('\n')
         : (notes.trim() || (action === 'correct' ? 'Quick fix from story desk.' : ''));
 
+      // Catalog IDs differ from the live Supabase kl_episodes UUIDs.
+      // Resolve the canonical server ID before any mutation; never submit a guessed ID.
+      const { data: serverRows, error: listError } = await supabase.rpc(KL_RPC.adminList);
+      if (listError || !Array.isArray(serverRows)) {
+        setResult('Cannot verify server episode identity. Action blocked; nothing was published.');
+        return;
+      }
+      const targetNumber = action === 'schedule'
+        ? (flow.nextRelease?.episodeNumber ?? episode.episodeNumber)
+        : episode.episodeNumber;
+      const matches = (serverRows as Array<{id?: string; episode_number?: number; season_number?: number}>)
+        .filter((row) => row.episode_number === targetNumber && row.season_number === 1 && !!row.id);
+      if (matches.length !== 1) {
+        setResult('Server episode ID is missing or ambiguous. Action blocked; nothing was published.');
+        return;
+      }
+      const canonicalServerId = matches[0].id!;
+      if (!['approve', 'revise', 'schedule', 'pause', 'resume'].includes(action)) {
+        setResult('This action has no verified server implementation. Nothing was changed.');
+        return;
+      }
       const args = adminActionArgs({
         action,
-        episodeId: targetEpisodeId,
+        episodeId: canonicalServerId,
         notes: releaseNote,
         manilaDate: action === 'schedule' || action === 'approve' ? manilaDate : null,
       });
