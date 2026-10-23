@@ -1,18 +1,27 @@
 {
-  "objective": "Community Wall standardized photo card bounds and expandable long captions (PR #289), without unrelated media/backend changes",
-  "baseRef": "main",
-  "productionBaselineEvidence": "verified: PR scope compares with checked-out main tracking ref in CI. This verifies only the PR change boundary, NOT the current live Android production baseline. Before OTA, independently verify the live production manifest, approved installed APK fingerprint, source reconciliation, and exact frozen RC.",
+  "objective": "Reduce Cluster/Organization Home request fan-out and repeated loading while preserving access checks",
+  "baseRef": "82187b0fc4c3575d51d5a23c95fb3eddabb5e51b",
+  "productionBaselineEvidence": "Source reconciled against main 82187b0, including its duplicate-load and stale-media protections. GitHub production Android run 40021861531 reports successful freeze and publication for this parent; exact installed OTA fingerprint has not been independently inspected. DEV only; not a production release approval.",
   "allowedPaths": [
-    "src/app/(tabs)/buklod.tsx",
-    "src/components/BuklodCommunityPhotoCollage.tsx",
-    "src/components/BuklodExpandableWallCaption.tsx",
-    ".buklod/work-scope.json"
+    "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
+    "src/components/BuklodHomeFaithPanel.tsx",
+    "src/components/ClusterManageGate.tsx",
+    "src/lib/clusterHomeLoading.ts",
+    "scripts/test-cluster-home-loading.cjs",
+    "scripts/test-cluster-loading-render.cjs",
+    ".buklod/work-scope.json",
+    "CLUSTER_ORG_LOADING_FIX.md",
+    ".github/workflows/production_web_deploy.yml"
   ],
   "acceptanceChecks": [
-    "Engineering Accountability scope gate passes for exact changed files",
-    "BUKLOD Performance R1 QA and targeted TypeScript checks pass",
-    "Single-photo card stays bounded while original image remains accessible",
-    "Long caption expands and collapses without affecting other post actions",
-    "Reconcile latest production baseline and freeze exact Android RC before any OTA publication"
+    "Cluster renders with only notices/settings reads before selecting optional widgets",
+    "Repeated opens reuse user/scope/admin/date-partitioned cache",
+    "Mutations refresh only affected resources",
+    "Read failures retain content; hanging reads release waiting state",
+    "Late reads cannot overwrite another scope or account",
+    "Admin network failures offer retry without granting access",
+    "Shared Faith panel has one focus access check",
+    "Full application TypeScript/export and exact RC verification before production",
+    "Android-only merge marker skips Web deployment; manual Web deployment remains available"
   ]
 }

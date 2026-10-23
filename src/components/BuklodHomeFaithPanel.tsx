@@ -14,6 +14,8 @@ import React, {
 } from 'react';
 
 import { useFocusEffect } from 'expo-router';
+import { useAuth } from '@/providers/AuthProvider';
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 
 import {
   ActivityIndicator,
@@ -335,28 +337,40 @@ export default function BuklodHomeFaithPanel({
     }, [opacity, reduceMotion, translateY])
   );
 
-  const loadFaithAccess = useCallback(async () => {
-    setAccessLoading(true);
+  const { user } = useAuth();
+  const accessContext = `${user?.id ?? ''}:${scopeId ?? ''}`;
+  const accessContextRef = useRef(accessContext);
+  accessContextRef.current = accessContext;
+  const loadedAccessContext = useRef<string | null>(null);
 
+  // One access refresh per focus. Keep already displayed content during revalidation.
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    const context = accessContext;
+    const current = () => active && accessContextRef.current === context;
     if (!scopeId) {
       setAccess(null);
       setAccessLoading(false);
       return;
     }
-
-    try {
-      const next = await fetchScopeFaithAccessStatusResilient(scopeId);
-      setAccess(next);
-    } catch (error: unknown) {
-      console.warn(
-        'SHOW FAITH access:',
-        error instanceof Error ? error.message : error
-      );
-      setAccess(buildDefaultScopeFaithAccessStatus(scopeId));
-    } finally {
-      setAccessLoading(false);
+    if (loadedAccessContext.current !== context) {
+      setAccess(null);
+      setAccessLoading(true);
     }
-  }, [scopeId]);
+    void withBuklodTimeout(fetchScopeFaithAccessStatusResilient(scopeId), 10000, 'Faith access')
+      .then(next => {
+        if (!current()) return;
+        loadedAccessContext.current = context;
+        setAccess(next);
+      })
+      .catch(error => {
+        if (!current()) return;
+        console.warn('SHOW FAITH access:', error);
+        if (loadedAccessContext.current !== context) setAccess(buildDefaultScopeFaithAccessStatus(scopeId));
+      })
+      .finally(() => { if (current()) setAccessLoading(false); });
+    return () => { active = false; };
+  }, [accessContext, scopeId]));
 
   useEffect(
     () => {
@@ -369,10 +383,7 @@ export default function BuklodHomeFaithPanel({
             const {
               data,
             } =
-              await (supabase as any)
-                .rpc(
-                  'get_automatic_bible_today'
-                );
+              await withBuklodTimeout<{ data: any }>((supabase as any).rpc('get_automatic_bible_today'), 10000, 'Daily reading');
 
             if (!active) {
               return;
@@ -414,21 +425,16 @@ export default function BuklodHomeFaithPanel({
         };
 
       void load();
-      void loadFaithAccess();
+
 
       return () => {
         active =
           false;
       };
     },
-    [loadFaithAccess]
+    []
   );
 
-  useFocusEffect(
-    useCallback(() => {
-      void loadFaithAccess();
-    }, [loadFaithAccess])
-  );
 
   const dailyReadingLocked =
     Boolean(scopeId) &&
@@ -819,3 +825,4 @@ const styles =
       justifyContent: 'center',
     },
   });
+
