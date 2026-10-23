@@ -70,7 +70,7 @@ const ASSETS = buildAssetGate();
 const MUSIC_PREVIEW = require('../../../assets/bible-ambience/night.wav');
 const AMBIENT_PREVIEW = require('../../../assets/bible-ambience/wind.wav');
 
-const PRIMARY_ACTIONS: AdminAction[] = ['approve', 'revise', 'correct', 'schedule'];
+const PRIMARY_ACTIONS: AdminAction[] = ['approve', 'reject'];
 const MORE_ACTIONS: AdminAction[] = [
   'pause',
   'hold',
@@ -85,6 +85,8 @@ function actionLabel(action: AdminAction): string {
   switch (action) {
     case 'approve':
       return 'Approve';
+    case 'reject':
+      return 'Reject — return for editing';
     case 'revise':
       return 'Send revision';
     case 'correct':
@@ -178,7 +180,7 @@ export default function KabihasnangLigawAdminScreen() {
   const selectedImage = adminImageSource(draft.imageKey);
   const scheduledImage = adminImageSource(flow.nextRelease?.imageKey ?? null);
   const nextNumber = nextApprovalEpisodeNumber(queue, flow.drafts);
-  const canApprove = blockers.length === 0 && !busy && openNumbers.has(episode.episodeNumber);
+  const canApprove = blockers.length === 0 && !busy;
   const releaseDateOk = Boolean(manilaSixUtc(manilaDate));
   const deskDiffers = draftDiffersFromNextRelease(draft, catalogEpisode, flow.nextRelease);
   const nextReleaseParagraphs = flow.nextRelease
@@ -269,7 +271,7 @@ export default function KabihasnangLigawAdminScreen() {
       setResult(blockers[0]);
       return;
     }
-    if ((action === 'approve' || action === 'schedule') && !releaseDateOk) {
+    if (action === 'schedule' && !releaseDateOk) {
       setResult('Set a valid release date (YYYY-MM-DD). Members open it at 6:00 a.m. Manila.');
       return;
     }
@@ -279,8 +281,8 @@ export default function KabihasnangLigawAdminScreen() {
     }
     setBusy(true);
     try {
-      if (action === 'revise' || action === 'correct') {
-        const text = notes.trim() || (action === 'correct' ? 'Quick story fix saved for this chapter.' : '');
+      if (action === 'reject' || action === 'revise' || action === 'correct') {
+        const text = notes.trim() || (action === 'correct' ? 'Quick story fix saved for this chapter.' : 'Rejected for revision; return to manuscript editing.');
         if (action === 'revise' && !text) {
           setResult('Write the revision note so the feedback can come back clearly.');
           setBusy(false);
@@ -307,13 +309,13 @@ export default function KabihasnangLigawAdminScreen() {
             : `Pending freeze for ${episode.title}`,
           `Release date: ${manilaDate} 06:00 Asia/Manila`,
         ].join('\n')
-        : (notes.trim() || (action === 'correct' ? 'Quick fix from story desk.' : ''));
+        : (notes.trim() || (action === 'reject' ? 'Rejected for manuscript revision.' : action === 'correct' ? 'Quick fix from story desk.' : ''));
 
       const args = adminActionArgs({
         action,
         episodeId: targetEpisodeId,
         notes: releaseNote,
-        manilaDate: action === 'schedule' || action === 'approve' ? manilaDate : null,
+        manilaDate: action === 'schedule' ? manilaDate : null,
       });
       const { data, error } = await supabase.rpc(KL_RPC.adminAction, args);
       if (error) {
@@ -342,9 +344,7 @@ export default function KabihasnangLigawAdminScreen() {
         });
         if (action === 'approve') {
           next = markEpisodeApproved(next, episode, EPISODES, manilaDate);
-          if (ok) {
-            next = markNextReleaseScheduled(next, manilaDate);
-          }
+          // Final approval does not schedule or release the chapter.
           const package_ = next.nextRelease;
           const focusArrived = isReleasedForApproval(next.focusEpisodeNumber, now)
             || isMemberReleasedEpisode(next.focusEpisodeNumber);
@@ -352,11 +352,7 @@ export default function KabihasnangLigawAdminScreen() {
             ? next.focusEpisodeNumber
             : (openEntries.at(-1)?.episodeNumber ?? next.focusEpisodeNumber);
           setEpisodeId(klEpisodeId(focusNumber));
-          setResult(
-            package_
-              ? `${package_.title} locked for ${package_.manilaDate} 6:00 a.m. That exact text, picture, motion, and music are the next release. Next desk focus: Kabanata ${String(focusNumber).padStart(2, '0')}.`
-              : `${episode.title} approved, but the release date was not valid.`,
-          );
+          setResult(`${episode.title} approved as final manuscript. Release remains separately scheduled.`);
         } else if (action === 'schedule') {
           next = markNextReleaseScheduled(next, manilaDate);
           const package_ = next.nextRelease;
@@ -370,7 +366,7 @@ export default function KabihasnangLigawAdminScreen() {
         }
         return next;
       });
-      if (action === 'revise' || action === 'correct') {
+      if (action === 'reject' || action === 'revise' || action === 'correct') {
         setNotes('');
       }
     } catch {
@@ -526,6 +522,23 @@ export default function KabihasnangLigawAdminScreen() {
               ? `${paragraphs.length} paragraphs · what members will read`
               : 'No story text yet — write it below'}
           </Text>
+
+          <Text style={styles.meta}>Final manuscript decision · approval does not release immediately</Text>
+          <View style={styles.softRow}>
+            {PRIMARY_ACTIONS.map((action) => (
+              <LightAction
+                key={action}
+                label={actionLabel(action)}
+                primary={action === 'approve'}
+                disabled={
+                  busy
+                  || (action === 'approve' && !canApprove)
+                  || (action === 'schedule' && !flow.nextRelease)
+                }
+                onPress={() => void run(action)}
+              />
+            ))}
+          </View>
 
           {selectedImage ? (
             <View style={styles.previewStage}>
@@ -706,7 +719,7 @@ export default function KabihasnangLigawAdminScreen() {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Actions</Text>
+          <Text style={styles.cardTitle}>Release scheduling and controls</Text>
           {!isMemberReleasedEpisode(episode.episodeNumber) && blockers.length > 0 ? (
             <Text style={styles.warning}>{blockers.join(' ')}</Text>
           ) : null}
@@ -726,21 +739,6 @@ export default function KabihasnangLigawAdminScreen() {
             autoCapitalize="none"
             style={styles.input}
           />
-          <View style={styles.softRow}>
-            {PRIMARY_ACTIONS.map((action) => (
-              <LightAction
-                key={action}
-                label={actionLabel(action)}
-                primary={action === 'approve'}
-                disabled={
-                  busy
-                  || (action === 'approve' && !canApprove)
-                  || (action === 'schedule' && !flow.nextRelease)
-                }
-                onPress={() => void run(action)}
-              />
-            ))}
-          </View>
           {deskDiffers ? (
             <LightAction
               label="Replace scheduled release with this desk preview"

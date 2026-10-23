@@ -6,7 +6,13 @@ on:
   push:
     branches:
       - main
+      - codex/marites-72h-share-audit
     paths:
+      - 'src/components/BuklodMaritesBoard.tsx'
+      - 'src/lib/buklodMaritesBoard.ts'
+      - 'src/lib/buklodMaritesPlayback.ts'
+      - 'scripts/test-marites-release.cjs'
+      - 'scripts/android-ota-rc.cjs'
       - '.github/workflows/production_android_ota.yml'
       - 'src/app/index.web.tsx'
       - 'src/app/clusters/index.tsx'
@@ -132,7 +138,8 @@ jobs:
       - name: Checkout production source
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.sha }}
+          fetch-depth: 0
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -147,6 +154,7 @@ jobs:
         run: node scripts/community-help-sos-release-contract.mjs
 
       - name: Apply Home identity action row
+        if: github.ref == 'refs/heads/main'
         run: node scripts/patch-home-identity-action-row.cjs
 
       - name: Verify Classroom and Home separation
@@ -160,6 +168,9 @@ jobs:
             echo 'Faculty rows are still rendered in student My Classroom.'
             exit 1
           fi
+
+      - name: Marites behavior checks
+        run: node scripts/test-marites-release.cjs
 
       - name: TypeScript QA
         run: npx tsc --noEmit
@@ -246,6 +257,7 @@ jobs:
           fi
 
       - name: Expo credential preflight
+        if: github.ref == 'refs/heads/main'
         id: expo
         shell: bash
         run: |
@@ -257,24 +269,42 @@ jobs:
           npx eas-cli@latest whoami --non-interactive
           echo "ready=true" >> "$GITHUB_OUTPUT"
 
-      - name: Publish production Android OTA
-        if: steps.expo.outputs.ready == 'true'
-        shell: bash
-        run: |
-          npx eas-cli@latest update \
-            --channel production \
-            --platform android \
-            --environment production \
-            --message "Runtime 1.3.2 OTA: stop endless app loading (Public bootReady + auth shell); cumulative V28 live bundle" \
-            --non-interactive
+      - name: Verify production baseline and runtime
+        if: github.ref == 'refs/heads/main' && steps.expo.outputs.ready == 'true'
+        run: node scripts/android-ota-rc.cjs baseline
 
-      - name: Deployment status
+      - name: Export Android RC once using production environment
+        if: github.ref == 'refs/heads/main' && steps.expo.outputs.ready == 'true'
+        run: npx eas-cli@latest env:exec production 'npx expo export --platform android --output-dir rc'
+
+      - name: Freeze verified RC
+        if: github.ref == 'refs/heads/main' && steps.expo.outputs.ready == 'true'
+        run: node scripts/android-ota-rc.cjs freeze
+
+      - name: Archive exact RC before publication
+        if: github.ref == 'refs/heads/main' && steps.expo.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-rc-${{ github.sha }}
+          path: |
+            rc/
+            ota-evidence/
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Publish exact frozen Android RC
+        if: github.ref == 'refs/heads/main' && steps.expo.outputs.ready == 'true'
         shell: bash
-        env:
-          EXPO_READY: ${{ steps.expo.outputs.ready }}
         run: |
-          if [ "$EXPO_READY" = "true" ]; then
-            echo "BUKLOD production Android OTA published successfully."
-          else
-            echo "BUKLOD source QA passed; OTA remains pending only because EXPO_TOKEN is unavailable."
-          fi
+          node scripts/android-ota-rc.cjs verify
+          npx eas-cli@latest update --channel production --platform android --environment production --input-dir rc --skip-bundler --message "Marites verified RC ${GITHUB_SHA}: 72h stories, sharing, comments, 30s visible autoplay" --json --non-interactive > ota-evidence/published.json
+          node scripts/android-ota-rc.cjs published
+
+      - name: Archive publication evidence
+        if: github.ref == 'refs/heads/main' && steps.expo.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-publication-${{ github.sha }}
+          path: ota-evidence/
+          retention-days: 14
+          if-no-files-found: error

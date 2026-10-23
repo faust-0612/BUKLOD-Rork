@@ -16,6 +16,7 @@ export const KL_RPC = {
 
 export type AdminAction =
   | 'approve'
+  | 'reject'
   | 'revise'
   | 'correct'
   | 'schedule'
@@ -39,6 +40,5 @@ export function adminActionArgs(input: {
     p_episode_id: input.episodeId ?? null,
     p_notes: (input.notes ?? '').slice(0, 2000),
     p_manila_date: input.manilaDate ?? null,
-    p_expected_updated_at: input.expectedUpdatedAt ?? null,
   };
 }

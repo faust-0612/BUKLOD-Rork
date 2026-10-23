@@ -1,20 +1,22 @@
 {
-  "objective": "Marites Story: 72-hour expiry, reliable sharing, 50% larger story cards, three-dot owner options, threaded comments, and 30-second Quick Video; preserve other BUKLOD features",
-  "baseRef": "main",
-  "productionBaselineEvidence": "verified: historical Android Production OTA 01a16536-c621-79b9-b010-bb1fe4b733ff at source 74a20a47bee6b1284f899f76dd16af212051e391 (workflow 39844940133), runtime 1.3.2; latest live OTA fingerprint must be verified separately before release.",
+  "objective": "Marites 72-hour stories, sharing, owner menu, comments, enlarged cards and 30-second visible Quick Video; Android-only exact RC release",
+  "baseRef": "2b6a53125875b5fe03d5b045aef56409b9019d8b",
+  "productionBaselineEvidence": "Android production manifest verified update 01a1679a-c74e-7348-b4d9-41228afa4dc2 runtime 1.3.2; source 2f26645e50e8e079ebf09f3999aacfc506ae7651. Reconciled targeted Marites delta onto current main, preserving KL and AdMob. CI rechecks production before export and publish.",
   "allowedPaths": [
-    "src/app/(tabs)/buklod.tsx",
-    "src/components/BuklodMaritesBoard.tsx",
+    "scripts/android-ota-rc.cjs",
+    "scripts/test-marites-release.cjs",
+    ".github/workflows/production_android_ota.yml",
     "src/lib/buklodMaritesBoard.ts",
+    "src/lib/buklodMaritesPlayback.ts",
+    "src/components/BuklodMaritesBoard.tsx",
+    "src/app/(tabs)/buklod.tsx",
     ".buklod/work-scope.json"
   ],
   "acceptanceChecks": [
-    "Only Marites screen, Marites story model, and existing comment modal integration changed",
-    "Stories expire after 72 hours including cache and viewer",
-    "Sharing preserves committed post and reports actionable failure",
-    "Story cards 50% larger, owner menu and comments functional",
-    "Quick Video at most 30 seconds, signed media URL, Android upload and playback verified",
-    "TypeScript and targeted regression checks pass; reconcile current main before freezing RC",
-    "Verify latest production fingerprint and DEV to RC to Android Production OTA before publication"
+    "Targeted behavior tests and full TypeScript QA pass",
+    "No native runtime/dependency changes",
+    "Only focused foreground visible Quick Video autoplays, muted and mixed with other audio",
+    "Archive hashed Android RC before publishing with skip-bundler",
+    "Verify production update ID and served bundle hash match exact RC"
   ]
 }

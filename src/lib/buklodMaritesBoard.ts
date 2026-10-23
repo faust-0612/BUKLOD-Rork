@@ -7,7 +7,7 @@ import {
   repairMojibakeText,
 } from '@/lib/repairMojibakeText';
 import { supabase } from '@/lib/supabase';
-import { attachCommunityPostMedia, discardIncompleteCommunityPost } from '@/lib/buklodCommunityPostMedia';
+import { attachCommunityPostMedia, discardIncompleteCommunityPost, loadCommunityPostMediaByPostIds } from '@/lib/buklodCommunityPostMedia';
 import {
   collectMaritesFeedPages,
   maritesFeedPageArgs,
@@ -255,6 +255,7 @@ function normalizeStory(row: Record<string, unknown>): MaritesStory | null {
     body: String(row.body ?? ''),
     photo_uris: mergedPhotos.slice(0, MARITES_MAX_PHOTOS),
     photo_uri: mergedPhotos[0] ?? null,
+    video_uri: row.video_uri ? String(row.video_uri) : null,
     mentions: Array.isArray(row.mentions)
       ? row.mentions.map((item) => String(item))
       : [],
@@ -636,7 +637,7 @@ export async function loadCommunityMaritesStories(
     },
   });
 
-  const refreshFailed =
+  let refreshFailed =
     !collected.complete || Boolean(collected.error);
 
   const allFeedRows = collected.rows;
@@ -798,90 +799,17 @@ export async function loadCommunityMaritesStories(
             QUERY_CHUNK_SIZE
         );
 
-      const {
-        data:
-          mediaRows,
-        error:
-          mediaError,
-      } =
-        await (supabase as any).rpc(
-          'get_buklod_post_media_v1',
-          {
-            p_post_ids:
-              chunk,
-          }
-        );
-
-      if (
-        mediaError ||
-        !Array.isArray(
-          mediaRows
-        )
-      ) {
-        continue;
-      }
-
-      const signedMedia =
-        await Promise.all(
-          mediaRows.map(
-            async (
-              row:
-                Record<
-                  string,
-                  unknown
-                >
-            ) => {
-              const mediaPath =
-                String(
-                  row.media_path ??
-                    ''
-                ).trim();
-
-              const mediaUrl =
-                mediaPath
-                  ? await signCommunityMediaPath(
-                      mediaPath
-                    )
-                  : null;
-
-              return {
-                ...row,
-                media_url:
-                  mediaUrl,
-              };
-            }
-          )
-        );
-
-      for (
-        const row
-        of signedMedia
-      ) {
-        const postId =
-          String(
-            'post_id' in row
-              ? row.post_id ??
-                  ''
-              : ''
-          ).trim();
-
-        if (!postId) {
-          continue;
+      try {
+        const loaded = await loadCommunityPostMediaByPostIds(chunk);
+        for (const [postId, rows] of Object.entries(loaded)) {
+          mediaMap[postId] = await Promise.all(rows.map(async row => ({
+            ...row,
+            media_url: row.media_url || (row.media_path
+              ? await signCommunityMediaPath(row.media_path) : null),
+          })));
         }
-
-        if (
-          !mediaMap[
-            postId
-          ]
-        ) {
-          mediaMap[
-            postId
-          ] = [];
-        }
-
-        mediaMap[
-          postId
-        ].push(row);
+      } catch {
+        refreshFailed = true;
       }
     }
   }
@@ -1233,7 +1161,7 @@ export async function publishMaritesStory(input: {
         (uploaded.length > 1
           ? 'Shared photos.'
           : uploaded.length
-            ? 'Shared a photo.'
+            ? (input.video ? 'Shared a Quick Video.' : 'Shared a photo.')
             : '')
     );
 
@@ -1356,6 +1284,7 @@ export function filterMaritesStoriesForViewer(
   viewerId?: string | null
 ) {
   return stories.filter((story) => {
+    if (!isActiveMaritesStory(story)) return false;
     if (!story.author_only) {
       return true;
     }
@@ -1552,3 +1481,4 @@ export const MARITES_QUICK_EMOJI = [
   '👍',
   '🕊️',
 ] as const;
+
