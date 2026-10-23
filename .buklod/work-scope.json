@@ -6,12 +6,13 @@
     "src/utils/setPushConfig.ts",
     "tests/buklod-ptt-call-isolation.test.cjs",
     ".buklod/work-scope.json",
-    "release/PTT_CONNECT_ISOLATION_SOURCE_20261023.json"
+    "release/PTT_CONNECT_ISOLATION_SOURCE_20261023.json",
+    ".github/workflows/ptt_connect_candidate.yml"
   ],
   "acceptanceChecks": [
     "node --test tests/buklod-ptt-call-isolation.test.cjs: 4 passing tests",
     "Locked Stream SDK 1.43.0 execution harness reproduces previous non-ringing Telecom registration and verifies corrected exclusion, preserved incoming/outgoing ringing and PTT foreground-service startup",
-    "Android physical-device PTT/background/Connect transition verification required before production",
+    "User waived prepublication physical-device testing on 2026-10-23; PTT/Connect device acceptance remains post-OTA verification.",
     "Latest production OTA baseline and normal release gates required before publication"
   ]
 }

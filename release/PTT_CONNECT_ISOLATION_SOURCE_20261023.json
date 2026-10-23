@@ -35,15 +35,15 @@
     "database": "Read-only query found no PTT CIDs in buklod_call_logs; no mutations."
   },
   "remainingGates": [
-    "Actual Android PTT listen/transmit/background/stop and subsequent Connect incoming/outgoing test",
     "Candidate full source identity, TypeScript/export, bundle and release-contract checks",
     "Reconfirm latest cumulative OTA baseline at release time"
   ],
-  "releaseProtection": "No main merge, workflow dispatch or OTA publication. No connected adb/emulator and no eas CLI in this session. Do not mark this source snapshot as a fully verified RC.",
+  "releaseProtection": "Do not merge or publish until candidate source identity, TypeScript/export/bundle and release contracts pass. Branch-only verification workflow cannot publish.",
   "deviceAcceptance": [
     "Start PTT and confirm it is labeled PTT rather than an ongoing Connect call",
     "Confirm PTT listen/transmit works while app is backgrounded",
     "Stop PTT, open Connect and confirm no phantom ongoing-call surface",
     "Place and receive a real audio/video call; verify ringing, answer, end and return-to-call"
-  ]
+  ],
+  "deviceTestPolicy": "User explicitly waived actual-device testing before OTA on 2026-10-23. Device acceptance is post-publication; automated candidate gates remain mandatory."
 }
