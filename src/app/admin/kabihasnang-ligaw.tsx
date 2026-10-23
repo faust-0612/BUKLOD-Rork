@@ -269,7 +269,7 @@ export default function KabihasnangLigawAdminScreen() {
       setResult(blockers[0]);
       return;
     }
-    if ((action === 'approve' || action === 'schedule') && !releaseDateOk) {
+    if (action === 'schedule' && !releaseDateOk) {
       setResult('Set a valid release date (YYYY-MM-DD). Members open it at 6:00 a.m. Manila.');
       return;
     }
@@ -326,6 +326,16 @@ export default function KabihasnangLigawAdminScreen() {
         return;
       }
       const canonicalServerId = matches[0].id!;
+      const serverEpisode = matches[0] as {status?:string;manuscript?:string;has_manuscript?:boolean};
+      if (action === 'approve' && serverEpisode.status !== 'draft') {
+        setResult('Server episode is not a pending draft. Approval blocked.'); return;
+      }
+      if (action === 'schedule' && serverEpisode.status !== 'approved') {
+        setResult('Server episode must be approved before scheduling.'); return;
+      }
+      if (action === 'revise' && episode.episodeNumber <= 1) {
+        setResult('Live Panimula and Kabanata 1 are protected from revision.'); return;
+      }
       if (!['approve', 'revise', 'schedule', 'pause', 'resume'].includes(action)) {
         setResult('This action has no verified server implementation. Nothing was changed.');
         return;
