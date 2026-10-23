@@ -1214,8 +1214,15 @@ export async function publishMaritesStory(input: {
   }> = [];
 
   let createdPostId: string | null = null;
+  let videoPath: string | null = null;
 
   try {
+    if (input.video) {
+      const { uploadCommunityVideoFile } = await import('@/lib/uploadCommunityVideoFile');
+      videoPath = `${input.userId}/marites-${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`;
+      await uploadCommunityVideoFile({ path: videoPath, uri: input.video.uri, contentType: input.video.mimeType });
+      uploaded.push({ media_path: videoPath, media_mime_type: input.video.mimeType, media_size_bytes: 0 });
+    }
     for (let index = 0; index < photoUris.length; index += 1) {
       const encoded = await encodeMaritesPhotoBase64(
         photoUris[index]
@@ -1262,7 +1269,7 @@ export async function publishMaritesStory(input: {
       p_media_path: first?.media_path ?? null,
       p_media_mime_type: first?.media_mime_type ?? null,
       p_media_size_bytes: first?.media_size_bytes ?? null,
-      p_media_duration_seconds: null,
+      p_media_duration_seconds: input.video?.durationSeconds ?? null,
       p_is_reel: false,
       p_mentioned_user_ids: [],
     });
@@ -1315,7 +1322,8 @@ export async function publishMaritesStory(input: {
       body,
       photo_uris: signedPhotos.filter(Boolean),
       photo_uri: signedPhotos.find(Boolean) ?? null,
-      photo_paths: uploaded.map((item) => item.media_path),
+      photo_paths: input.video ? [] : uploaded.map((item) => item.media_path),
+      video_uri: input.video ? (signedPhotos[0] || input.video.uri) : null,
       mentions: [],
       author_only: false,
       source: 'community',
