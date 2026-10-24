@@ -1,5 +1,4 @@
 import React, {
-  useMemo,
 } from 'react';
 
 import {
@@ -208,11 +207,6 @@ BuklodPersistentBottomNav() {
       ? routeKey(pendingRoute)
       : routeKey(normalizedPath);
 
-  const badgeText =
-    unreadCount > 99
-      ? '99+'
-      : String(unreadCount);
-
   /* PATCH_177A_R5_VERIFIED_MODERN_NAV */
   return (
     <View
@@ -234,19 +228,12 @@ BuklodPersistentBottomNav() {
         const selected =
           active === item.key;
 
-        const showBadge = false;
-return (
+        return (
           <BuklodPressable
             key={item.key}
             accessibilityRole="button"
             accessibilityLabel={item.label}
-            accessibilityHint={
-              item.key === 'notifications'
-                ? unreadCount > 0
-                  ? `${badgeText} unread updates`
-                  : 'Open Notification Center'
-                : undefined
-            }
+            accessibilityHint={`Open ${item.label}`}
             instant
             onPress={() =>
               openGlobalDestination(
@@ -285,21 +272,6 @@ return (
               />
 
 
-              {showBadge && (
-                <View
-                  style={[
-                    styles.badge,
-                    {
-                      borderColor: theme.navBackground,
-                      backgroundColor: theme.warning,
-                    },
-                  ]}
-                >
-                  <Text style={styles.badgeText}>
-                    {badgeText}
-                  </Text>
-                </View>
-              )}
             </View>
             <Text style={{ fontSize: 10, color: selected ? theme.navIconActive : theme.navIconInactive }}>{item.label}</Text>
           </BuklodPressable>
