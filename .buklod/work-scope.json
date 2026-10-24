@@ -1,18 +1,26 @@
 {
-  "objective": "Show Faith targeted reliability fixes",
-  "baseRef": "4ec5be5b3e9cf44b9b9ac001b04320d33cfef16a",
-  "productionBaselineEvidence": "DEV scope only; compared against main 4ec5be5b3e9cf44b9b9ac001b04320d33cfef16a. Live production OTA fingerprint not verified; no release authorization.",
+  "objective": "Reconcile approved P0 client fixes and prepare manual Android RC publication",
+  "baseRef": "b0cc81dc962920f84fa9bd6281ad8db58f78d131",
+  "productionBaselineEvidence": "verified: Android 01a16b21-12af-77a0-814a-218a5f5c22ea runtime 1.3.2 source 14247804dad87dc23f0b3adeaba88c31e3b6697d; main adds only reviewed release isolation safeguards.",
   "allowedPaths": [
-    "src/hooks/useBuklodAnswerValidation.ts",
-    "src/app/reflection/[id].tsx",
-    "src/app/faith/abc/[lessonId].tsx",
-    ".buklod/work-scope.json"
+    "scripts/test-p0-reconciliation.cjs",
+    "scripts/android-ota-rc.cjs",
+    "src/lib/buklodAttendanceEvents.ts",
+    "src/lib/buklodCharacterSelectionV2.ts",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/components/BuklodHomeFaithPanel.tsx",
+    "src/components/BuklodPublicDailyMessageBar.tsx",
+    "src/app/clusters/[id].tsx",
+    "src/app/bible/index.tsx",
+    ".github/workflows/production_android_ota.yml",
+    ".buklod/work-scope.json",
+    ".buklod/p0-reconciliation.json"
   ],
   "acceptanceChecks": [
-    "AI validation ignores stale and concurrent requests",
-    "Devotional success requires confirmed server submission",
-    "ABAKA local data isolated by authenticated account",
-    "Focused regression and TypeScript checks before RC",
-    "Verify live OTA baseline before publication"
+    "Targeted session and attendance regression tests",
+    "Full CI TypeScript",
+    "Android-only export and frozen hash inventory",
+    "No publication with unresolved reconciliation blockers",
+    "Manual publication reuses exact successful run artifact"
   ]
 }

@@ -1,0 +1,23 @@
+{
+  "productionUpdate": "01a16b21-12af-77a0-814a-218a5f5c22ea",
+  "productionSource": "14247804dad87dc23f0b3adeaba88c31e3b6697d",
+  "runtime": "1.3.2",
+  "releaseBlockers": [
+    "Show Faith exact-origin report backend v4 is absent; unverified migration excluded.",
+    "Complete remaining approved P0 inventory and end-to-end scope/account regression verification before publication."
+  ],
+  "included": [
+    "Cluster timeout/retry and scope reset",
+    "Character session guard invoked for read and activation",
+    "Attendance canonical RPC avoids redundant table reads",
+    "Scoped Community Wall preserves committed posts and does not restore duplicate draft",
+    "Daily Reading submissions filtered to authenticated user",
+    "Encouragement renders before optional address lookup",
+    "Show Faith separates failed access checks from denied membership, preview RPC errors and Manila date refresh"
+  ],
+  "excluded": [
+    "Unverified database migrations and v4 client switch",
+    "Character unrelated visual changes",
+    "Stale branch history"
+  ]
+}
