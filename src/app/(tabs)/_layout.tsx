@@ -300,8 +300,6 @@ export default function TabsLayout() {
   const publicLegacyRoute =
     activeScope?.scope_type === 'PUBLIC' &&
     (
-      pathname === '/home' ||
-      pathname.startsWith('/home/') ||
       pathname === '/prayer' ||
       pathname.startsWith('/prayer/')
     );
