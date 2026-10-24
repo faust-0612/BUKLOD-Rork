@@ -1,0 +1,17 @@
+{
+  "objective": "Improve web bottom nav tap feedback without altering native navigation or scope access",
+  "baseRef": "3efd36c29df3ad991000b5d0faf9930f5116cf39",
+  "productionBaselineEvidence": "Web nav restored by merged PR #315. User confirms nav appears on web but taps have delayed feedback. Verify deployment and browser behavior before claiming fix live.",
+  "allowedPaths": [
+    "src/components/BuklodPersistentBottomNav.tsx",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/web-nav-tap-feedback.json"
+  ],
+  "acceptanceChecks": [
+    "Immediate selected-tab feedback on web touch-down",
+    "Navigation only on press release",
+    "Latest tab request preserved during in-flight scope transition",
+    "Android native behavior unchanged",
+    "CI passes and live web deployment verified"
+  ]
+}
