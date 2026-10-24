@@ -1,0 +1,23 @@
+{
+  "objective": "Move actual PTT Map Help SOS from Wall to Home while preserving Wall feed and safety backend",
+  "baseRef": "d74f0cc23439405c5519df91089223a645fb9c5a",
+  "productionBaselineEvidence": "PR #308 source merged b583f351f9fcde386d17133462ca06933b7680ce; production workflow #150 successful per user screenshot but independent live fingerprint and exact RC verification still mandatory; Android runtime 1.3.2; scope comparison now pins the actual main ancestor d74f0cc23439405c5519df91089223a645fb9c5a to exclude already merged Cluster changes",
+  "allowedPaths": [
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/(tabs)/hub.tsx",
+    "src/components/BuklodDashboardContextBar.tsx",
+    "src/components/BuklodMaritesBoard.native.tsx",
+    "src/components/BuklodPublicLocationChips.tsx",
+    "scripts/community-help-sos-release-contract.mjs",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/home-real-tools-wall-cleanup.json"
+  ],
+  "acceptanceChecks": [
+    "PTT actual card, functional map and Help SOS surface render on focused Home",
+    "No PTT Map SOS duplicated on Wall",
+    "Preserve Community Wall feed, post composer, location filter, and story",
+    "Preserve SOS backend privacy and emergency alerts",
+    "TypeScript, safety release contract, performance and accountability CI pass",
+    "Verify latest production fingerprint and frozen RC before OTA"
+  ]
+}

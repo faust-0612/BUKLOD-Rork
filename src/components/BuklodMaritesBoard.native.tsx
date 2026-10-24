@@ -4,8 +4,6 @@ import {
   View,
 } from 'react-native';
 
-import BuklodNativeCommunityMapHeader
-  from '@/components/BuklodNativeCommunityMapHeader';
 
 type Props = {
   locationScopeId?: string | null;
@@ -28,7 +26,6 @@ export default function BuklodMaritesBoardNative(
 ) {
   return (
     <View>
-      <BuklodNativeCommunityMapHeader />
       <BaseBuklodMaritesBoard
         {...props}
       />

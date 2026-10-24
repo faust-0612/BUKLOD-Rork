@@ -2,8 +2,6 @@ import { usePathname } from 'expo-router';
 import React from 'react';
 import { View } from 'react-native';
 
-import BuklodCommunityMapNav
-  from '@/components/BuklodCommunityMapNav';
 import BuklodScopeBar
   from '@/components/BuklodScopeBar';
 import BuklodPublicDailyMessageBar
@@ -82,7 +80,6 @@ export default function BuklodDashboardContextBar() {
     if (communityRoute) {
       return (
         <View>
-          <BuklodCommunityMapNav />
           <BuklodPublicDailyMessageBar />
         </View>
       );

@@ -10,7 +10,6 @@ import {
   View,
 } from 'react-native';
 
-import BuklodCommunityHelp from '@/components/BuklodCommunityHelp';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 import { colors } from '@/lib/theme';
 
@@ -43,8 +42,6 @@ export default function BuklodPublicLocationChips({selectedScopeId,onChange}:Pro
     .sort((a,b)=>weight(a)-weight(b)),[scopes]);
 
   return <View>
-    <BuklodCommunityHelp />
-
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
