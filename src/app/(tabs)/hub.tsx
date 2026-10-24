@@ -1,7 +1,6 @@
-import React, { lazy, Suspense, useEffect, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, AppState, Modal, Platform, Pressable, ScrollView, Text, View } from 'react-native';
-import { router } from 'expo-router';
-import { useIsFocused } from '@react-navigation/native';
+import { router, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
@@ -37,14 +36,17 @@ class ToolBoundary extends React.Component<{ children: React.ReactNode; onClose:
 export default function BuklodLightHome() {
   const { theme } = useBuklodTheme();
   const insets = useSafeAreaInsets();
-  const focused = useIsFocused();
+  const [focused, setFocused] = useState(false);
   const [foreground, setForeground] = useState(AppState.currentState === 'active');
   const [tool, setTool] = useState<Tool | null>(null);
   useEffect(() => {
     const subscription = AppState.addEventListener('change', state => setForeground(state === 'active'));
     return () => subscription.remove();
   }, []);
-  useEffect(() => { if (!focused) setTool(null); }, [focused]);
+  useFocusEffect(useCallback(() => {
+    setFocused(true);
+    return () => { setFocused(false); setTool(null); };
+  }, []));
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: theme.surface }} contentContainerStyle={{ padding: 18, gap: 12 }}>
