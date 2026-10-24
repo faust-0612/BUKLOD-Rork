@@ -1,0 +1,17 @@
+{
+  "objective": "Cluster membership-only compact view on latest main",
+  "baseRef": "5203d3b23e209ba290f11e61f538d7dd9d360d79",
+  "productionBaselineEvidence": "Main source baseline only; verify actual live production OTA fingerprint and RC independently",
+  "allowedPaths": [
+    "src/app/clusters/index.tsx",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/cluster-memberships-main.json"
+  ],
+  "acceptanceChecks": [
+    "All active memberships returned by RPC displayed",
+    "Direct Cluster Home and compact Create",
+    "No search or suggestions on Cluster tab",
+    "Invites and pending retained",
+    "QA and verified RC before production OTA"
+  ]
+}
