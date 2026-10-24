@@ -1,18 +1,15 @@
 {
-  "objective": "Show Faith targeted reliability fixes",
-  "baseRef": "4ec5be5b3e9cf44b9b9ac001b04320d33cfef16a",
-  "productionBaselineEvidence": "DEV scope only; compared against main 4ec5be5b3e9cf44b9b9ac001b04320d33cfef16a. Live production OTA fingerprint not verified; no release authorization.",
+  "objective": "Cluster Detail loading recovery (DEV only)",
+  "baseRef": "14247804dad87dc23f0b3adeaba88c31e3b6697d",
+  "productionBaselineEvidence": "DEV comparison verified against main 14247804dad87dc23f0b3adeaba88c31e3b6697d; latest live Android Production OTA fingerprint not verified, therefore production release blocked.",
   "allowedPaths": [
-    "src/hooks/useBuklodAnswerValidation.ts",
-    "src/app/reflection/[id].tsx",
-    "src/app/faith/abc/[lessonId].tsx",
+    "src/app/clusters/[id].tsx",
     ".buklod/work-scope.json"
   ],
   "acceptanceChecks": [
-    "AI validation ignores stale and concurrent requests",
-    "Devotional success requires confirmed server submission",
-    "ABAKA local data isolated by authenticated account",
-    "Focused regression and TypeScript checks before RC",
-    "Verify live OTA baseline before publication"
+    "TypeScript and existing performance tests pass",
+    "Cluster detail timeout and retry preserve existing content",
+    "Stale scope responses cannot overwrite new scope",
+    "Verify latest production OTA fingerprint and freeze RC before publishing"
   ]
 }
