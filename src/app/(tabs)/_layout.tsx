@@ -343,6 +343,7 @@ export default function TabsLayout() {
     >
       <Stack.Screen name="buklod" />
       <Stack.Screen name="home" />
+      <Stack.Screen name="hub" />
       <Stack.Screen name="messages" />
       {showPrayer ? (
         <Stack.Screen name="prayer" />
