@@ -1,0 +1,16 @@
+{
+  "objective": "Refresh expiring signed Marites video URLs without changing posting or access rules",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub PR #321 isolated against main 1e900ab7b3a9c1d8ce53fb2bdb22404dd798165a; production OTA fingerprint must be independently verified before release",
+  "allowedPaths": [
+    "src/lib/buklodMaritesBoard.ts",
+    ".buklod/scopes/marites-video-url-refresh.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "acceptanceChecks": [
+    "Only Marites video signing path changed",
+    "Fresh signed URL requested on remote feed reload",
+    "No change to posting or photo handling",
+    "CI scope gate and playback verification required before OTA"
+  ]
+}
