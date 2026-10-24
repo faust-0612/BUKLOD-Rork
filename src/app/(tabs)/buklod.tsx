@@ -5,7 +5,7 @@ import { BuklodExpandableWallCaption } from '@/components/BuklodExpandableWallCa
 /* PERF_EMERGENCY_R2_POSTS_ONLY_REALTIME: existing Broadcast optimization preserved */
 /* PERF_EMERGENCY_R2_STALE_LOAD: existing PATCH_166H guard preserved */
 /* BUKLOD_SHARE_TARGET_187A */
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useBuklodConnectUnread } from '@/hooks/useBuklodConnectUnread';
 import { BackHandler } from 'react-native';
 import {
@@ -860,6 +860,20 @@ function LegacyPublicBuklodScreen(){
   );
   setTimeout(()=>composerInputRef.current?.focus?.(),0);
  };
+
+ // Home Today transfers a draft only; publishing still requires the existing composer.
+ const homeTodayParams = useLocalSearchParams<{ homeTodayDraft?: string; homeTodayIntent?: string }>();
+ const consumedHomeTodayIntent = useRef<string | null>(null);
+ useEffect(() => {
+  const intent = homeTodayParams.homeTodayIntent;
+  if (!intent || consumedHomeTodayIntent.current === intent) return;
+  consumedHomeTodayIntent.current = intent;
+  const draft = String(homeTodayParams.homeTodayDraft ?? '').trim();
+  if (draft) setBody(current => current.trim() ? current.trim() + '\n\n' + draft : draft);
+  setComposerIntent('post');
+  setCategory('reflection');
+  router.setParams({ homeTodayDraft: undefined, homeTodayIntent: undefined });
+ }, [homeTodayParams.homeTodayDraft, homeTodayParams.homeTodayIntent]);
 
  // COMMUNITY_COMPACT_COMPOSER_20260811
  const [audience]=useState<Audience>('public');

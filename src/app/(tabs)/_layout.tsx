@@ -300,8 +300,6 @@ export default function TabsLayout() {
   const publicLegacyRoute =
     activeScope?.scope_type === 'PUBLIC' &&
     (
-      pathname === '/home' ||
-      pathname.startsWith('/home/') ||
       pathname === '/prayer' ||
       pathname.startsWith('/prayer/')
     );
@@ -343,6 +341,7 @@ export default function TabsLayout() {
     >
       <Stack.Screen name="buklod" />
       <Stack.Screen name="home" />
+      <Stack.Screen name="hub" />
       <Stack.Screen name="messages" />
       {showPrayer ? (
         <Stack.Screen name="prayer" />

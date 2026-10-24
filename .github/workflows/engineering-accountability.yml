@@ -19,9 +19,11 @@ jobs:
       - name: Select isolated workstream scope manifest
         shell: bash
         env:
-          PR_HEAD: ${{ github.head_ref }}
+          PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            codex/nav-home-wall-isolation-20261024)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/navigation-home-wall.json" >> "$GITHUB_ENV";;
             chore/production-performance-isolation-gates-20261024)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/performance-isolation-checklist.json" >> "$GITHUB_ENV";;
             fix/per-workstream-scope-gate-20261024)
@@ -31,3 +33,6 @@ jobs:
           esac
       - name: Verify scope contract
         run: node scripts/engineering-accountability-gate.mjs
+      - name: Verify navigation and scope transitions
+        if: github.head_ref == 'codex/nav-home-wall-isolation-20261024' || github.ref_name == 'codex/nav-home-wall-isolation-20261024'
+        run: node scripts/test-navigation-home-wall.cjs

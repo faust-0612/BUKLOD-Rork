@@ -1,8 +1,7 @@
-import React, {
-  useMemo,
-} from 'react';
+import React from 'react';
 
 import {
+  Alert,
   Keyboard,
   StyleSheet,
   Text,
@@ -35,10 +34,6 @@ import {
 } from '@/providers/BuklodScopeProvider';
 
 import {
-  useNotifications,
-} from '@/providers/NotificationProvider';
-
-import {
   useBuklodTheme,
 } from '@/providers/BuklodThemeProvider';
 
@@ -49,116 +44,31 @@ import {
 
 /* PATCH_167I_R2_PROFILE_SLOT_TO_NOTIFICATIONS */
 
-type NavKey =
-  | 'home'
-  | 'connect'
-  | 'community'
-  | 'prayer'
-  | 'notifications';
-
+type NavKey = 'home' | 'cluster' | 'community' | 'connect' | 'profile';
 type NavItem = {
   key: NavKey;
-  route:
-    | '/home'
-    | '/messages'
-    | '/buklod'
-    | '/prayer'
-    | '/notifications';
-  icon:
-    | 'home-variant-outline'
-    | 'message-processing-outline'
-    | 'account-group-outline'
-    | 'hands-pray'
-    | 'bell-outline';
+  route: '/hub' | '/clusters' | '/buklod' | '/messages' | '/me';
+  icon: 'home-variant-outline' | 'account-group-outline' | 'forum-outline' | 'message-processing-outline' | 'account-outline';
   label: string;
 };
-
-/*
- * BUKLOD_PUBLIC_COMMUNITY_ONLY_NAV_R1
- * Public/personal navigation now has one canonical surface: Community Wall.
- * Home, Connect, Prayer, and Notifications are intentionally removed from
- * the public bottom navigation. Their underlying routes remain available to
- * internal/deep-link flows. Connect is entered from inside Community Wall.
- */
 const BASE_ITEMS: NavItem[] = [
-  {
-    key: 'community',
-    route: '/buklod',
-    icon: 'account-group-outline',
-    label: 'Community',
-  },
+  { key: 'home', route: '/hub', icon: 'home-variant-outline', label: 'Home' },
+  { key: 'cluster', route: '/clusters', icon: 'account-group-outline', label: 'Cluster' },
+  { key: 'community', route: '/buklod', icon: 'forum-outline', label: 'Wall' },
+  { key: 'connect', route: '/messages', icon: 'message-processing-outline', label: 'Connect' },
+  { key: 'profile', route: '/me', icon: 'account-outline', label: 'Profile' },
 ];
 
-function routeKey(
-  pathname: string,
-): NavKey | null {
-  if (
-    pathname === '/home' ||
-    pathname.startsWith('/home/')
-  ) {
-    return 'home';
-  }
-
-  if (
-    pathname === '/messages' ||
-    pathname.startsWith('/messages/') ||
-    pathname === '/connect' ||
-    pathname.startsWith('/connect/')
-  ) {
-    return 'connect';
-  }
-
-  if (
-    pathname === '/buklod' ||
-    pathname.startsWith('/buklod/') ||
-    pathname.startsWith('/post/') ||
-    pathname.startsWith('/reels')
-  ) {
-    return 'community';
-  }
-
-  if (
-    pathname === '/prayer' ||
-    pathname.startsWith('/prayer/')
-  ) {
-    return 'prayer';
-  }
-
-  if (
-    pathname === '/notifications' ||
-    pathname.startsWith('/notifications/')
-  ) {
-    return 'notifications';
-  }
-
-  /*
-   * /me intentionally has no bottom-nav active item.
-   * Profile / My BUKLOD is now opened by the avatar.
-   */
+function routeKey(pathname: string): NavKey | null {
+  if (pathname === '/hub') return 'home';
+  if (pathname === '/clusters') return 'cluster';
+  if (pathname === '/buklod' || pathname.startsWith('/post/')) return 'community';
+  if (pathname === '/messages' || pathname.startsWith('/messages/') || pathname === '/connect' || pathname.startsWith('/connect/')) return 'connect';
+  if (pathname === '/me') return 'profile';
   return null;
 }
-
-function isOnGlobalNavDestination(
-  pathname: string,
-  route: NavItem['route']
-) {
-  if (route === '/home') {
-    return pathname === '/home';
-  }
-
-  if (route === '/messages') {
-    return pathname === '/messages';
-  }
-
-  if (route === '/buklod') {
-    return pathname === '/buklod';
-  }
-
-  if (route === '/prayer') {
-    return pathname === '/prayer';
-  }
-
-  return pathname === '/notifications';
+function isOnGlobalNavDestination(pathname: string, route: NavItem['route']) {
+  return pathname === route;
 }
 
 export default function
@@ -230,30 +140,9 @@ BuklodPersistentBottomNav() {
   } =
     useBuklodScope();
 
-  const {
-    unreadCount,
-  } =
-    useNotifications();
-
   const { theme } = useBuklodTheme();
 
-  const showPrayer =
-    Boolean(
-      activeScope
-        ?.show_faith_content
-    );
-
-  const items =
-    useMemo(
-      () =>
-        BASE_ITEMS.filter(
-          item =>
-            item.key !==
-              'prayer' ||
-            showPrayer
-        ),
-      [showPrayer]
-    );
+  const items = BASE_ITEMS;
 
   /*
    * PATCH_172E_GLOBAL_BOTTOM_NAV
@@ -265,60 +154,28 @@ BuklodPersistentBottomNav() {
    *
    * Scoped Organization navigation stays in the TOP bar.
    */
-  const openGlobalDestination =
-    (
-      route:
-        | '/home'
-        | '/messages'
-        | '/buklod'
-        | '/prayer'
-        | '/notifications'
-    ) => {
-      if (
-        isOnGlobalNavDestination(
-          normalizedPath,
-          route
-        )
-      ) {
-        return;
-      }
-
-      setPendingRoute(route);
-      buklodInstantReplace(
-        route as any
-      );
-
-      const needsScopeReset =
-        activeScope?.scope_type ===
-          'ORGANIZATION' ||
-        activeScope?.scope_type ===
-          'CLUSTER';
-
+  const navigationInFlight = React.useRef(false);
+  const openGlobalDestination = async (route: NavItem['route']) => {
+    if (navigationInFlight.current) return;
+    const needsScopeReset = activeScope?.scope_type === 'ORGANIZATION' || activeScope?.scope_type === 'CLUSTER';
+    if (isOnGlobalNavDestination(normalizedPath, route) && !needsScopeReset) return;
+    navigationInFlight.current = true;
+    setPendingRoute(route);
+    try {
       if (needsScopeReset) {
-        const publicScope =
-          scopes.find(
-            scope =>
-              scope.scope_type ===
-              'PUBLIC'
-          );
-
-        if (publicScope) {
-          queueMicrotask(() => {
-            void selectScope(
-              publicScope.scope_id
-            ).catch(
-              error => {
-                console.warn(
-                  'BUKLOD global nav scope reset:',
-                  error
-                );
-              }
-            );
-          });
-        }
+        const publicScope = scopes.find(scope => scope.scope_type === 'PUBLIC');
+        if (!publicScope) throw new Error('Hindi pa ma-load ang Public community. Subukang muli.');
+        // selectScope applies the local scope immediately; server persistence is non-blocking.
+        await selectScope(publicScope.scope_id);
       }
-    };
-
+      buklodInstantReplace(route);
+    } catch (error) {
+      setPendingRoute(null);
+      Alert.alert('Hindi mabuksan', error instanceof Error ? error.message : 'Subukang muli.');
+    } finally {
+      navigationInFlight.current = false;
+    }
+  };
 
   if (
     keyboardVisible ||
@@ -347,11 +204,6 @@ BuklodPersistentBottomNav() {
       ? routeKey(pendingRoute)
       : routeKey(normalizedPath);
 
-  const badgeText =
-    unreadCount > 99
-      ? '99+'
-      : String(unreadCount);
-
   /* PATCH_177A_R5_VERIFIED_MODERN_NAV */
   return (
     <View
@@ -373,22 +225,12 @@ BuklodPersistentBottomNav() {
         const selected =
           active === item.key;
 
-        const showBadge =
-          item.key ===
-            'notifications' &&
-          unreadCount > 0;
-return (
+        return (
           <BuklodPressable
             key={item.key}
             accessibilityRole="button"
             accessibilityLabel={item.label}
-            accessibilityHint={
-              item.key === 'notifications'
-                ? unreadCount > 0
-                  ? `${badgeText} unread updates`
-                  : 'Open Notification Center'
-                : undefined
-            }
+            accessibilityHint={`Open ${item.label}`}
             instant
             onPress={() =>
               openGlobalDestination(
@@ -427,22 +269,8 @@ return (
               />
 
 
-              {showBadge && (
-                <View
-                  style={[
-                    styles.badge,
-                    {
-                      borderColor: theme.navBackground,
-                      backgroundColor: theme.warning,
-                    },
-                  ]}
-                >
-                  <Text style={styles.badgeText}>
-                    {badgeText}
-                  </Text>
-                </View>
-              )}
             </View>
+            <Text style={{ fontSize: 10, color: selected ? theme.navIconActive : theme.navIconInactive }}>{item.label}</Text>
           </BuklodPressable>
         );
       })}
