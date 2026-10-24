@@ -1,7 +1,7 @@
 {
   "objective": "Move actual PTT Map Help SOS from Wall to Home while preserving Wall feed and safety backend",
-  "baseRef": "b583f351f9fcde386d17133462ca06933b7680ce",
-  "productionBaselineEvidence": "PR #308 source merged b583f351f9fcde386d17133462ca06933b7680ce; production workflow #150 successful per user screenshot but independent live fingerprint and exact RC verification still mandatory; Android runtime 1.3.2",
+  "baseRef": "d74f0cc23439405c5519df91089223a645fb9c5a",
+  "productionBaselineEvidence": "PR #308 source merged b583f351f9fcde386d17133462ca06933b7680ce; production workflow #150 successful per user screenshot but independent live fingerprint and exact RC verification still mandatory; Android runtime 1.3.2; scope comparison now pins the actual main ancestor d74f0cc23439405c5519df91089223a645fb9c5a to exclude already merged Cluster changes",
   "allowedPaths": [
     "src/app/(tabs)/buklod.tsx",
     "src/app/(tabs)/hub.tsx",
