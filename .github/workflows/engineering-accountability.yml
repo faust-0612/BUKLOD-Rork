@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            fix/video-stale-signed-url-20261024)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/video-stale-signed-url.json" >> "$GITHUB_ENV";;
             fix/home-real-tools-wall-cleanup-20261024)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/home-real-tools-wall-cleanup.json" >> "$GITHUB_ENV";;
             codex/cluster-clean-layout-20261024)
@@ -42,3 +44,6 @@ jobs:
       - name: Verify navigation and scope transitions
         if: github.head_ref == 'codex/nav-home-wall-isolation-20261024' || github.ref_name == 'codex/nav-home-wall-isolation-20261024'
         run: node scripts/test-navigation-home-wall.cjs
+      - name: Verify media signed URL cache
+        if: github.head_ref == 'fix/video-stale-signed-url-20261024'
+        run: node scripts/test-media-signed-cache.cjs

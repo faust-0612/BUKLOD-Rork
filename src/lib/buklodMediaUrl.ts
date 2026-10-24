@@ -5,7 +5,7 @@ import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { runCommunityMediaPrefetch } from '@/lib/communityMediaPrefetch';
 import { supabase } from '@/lib/supabase';
 
-const SIGN_STORAGE_KEY = '@buklod/media-sign/v3';
+const SIGN_STORAGE_KEY = '@buklod/media-sign/v4';
 const SIGN_TIMEOUT_MS = 6000;
 const SIGN_CACHE_TTL_MS = 50 * 60 * 1000;
 const NEGATIVE_CACHE_TTL_MS = 45 * 1000;
@@ -26,7 +26,6 @@ const inFlight = new Map<string, Promise<string | null>>();
 const signQueue = new Map<string, SignWaiter[]>();
 
 let hydratePromise: Promise<void> | null = null;
-let hydrateCompleted = false;
 let persistTimer: ReturnType<typeof setTimeout> | null = null;
 let signBatchTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -142,10 +141,9 @@ export function peekCommunityMediaUrl(
     if (hit) signedCache.delete(path);
   }
 
-  if (preferred) {
-    if (path && hydrateCompleted) {
-      rememberSignedCommunityMediaUrl(path, preferred, true);
-    }
+  // Feed/disk URLs have no trusted mint time. Re-sign from the durable
+  // Storage path instead of giving an expired credential a new cache age.
+  if (preferred && isUsableDirectMediaUri(preferred)) {
     return preferred;
   }
 
@@ -178,8 +176,6 @@ export async function hydrateCommunityMediaUrlCache() {
       }
     } catch {
       // Cache is optional.
-    } finally {
-      hydrateCompleted = true;
     }
   })();
 
