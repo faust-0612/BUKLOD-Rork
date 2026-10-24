@@ -52,3 +52,13 @@ This checklist starts only after the staging pilot has passed its required gates
 - [ ] Advisory readiness is READY FOR FINAL SIGNOFF.
 - [ ] Human reviewer records GO LIVE with rationale and exact Release Candidate.
 - [ ] Launch time and rollback owner recorded outside the app as well.
+
+## Development-to-production performance isolation gate
+- [ ] Source editing, GitHub commits, and CI builds do not invoke production database migrations, seed jobs, load tests, or data backfills.
+- [ ] DEV/staging tests use a distinct Supabase project and non-production credentials; production secrets are never used for preview/test jobs.
+- [ ] Inspect CI workflow triggers and environment bindings before enabling any automated production operation.
+- [ ] Production migrations/backfills require an explicit release window, backup/recovery plan, lock/timeout review, and measured query impact.
+- [ ] Check production database CPU/connection saturation, slow queries, and API latency before attributing app lag to development activity.
+- [ ] Avoid aggressive refresh/polling; deduplicate safe reads and preserve authentication, mutations, and RLS isolation.
+- [ ] OTA RC verification uses a frozen artifact and records its runtime and production channel; do not force reload during an active user operation.
+- [ ] If performance metrics are unavailable or monitoring times out, mark the performance gate UNVERIFIED rather than declaring production healthy.
