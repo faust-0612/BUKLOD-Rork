@@ -1,0 +1,14 @@
+{
+  "objective": "Isolate development from production performance without adding release delays",
+  "baseRef": "14247804dad87dc23f0b3adeaba88c31e3b6697d",
+  "productionBaselineEvidence": "DEV/CI-only protection; live OTA fingerprint not verified; no production release authorized",
+  "allowedPaths": [
+    "scripts/staging-gate.mjs",
+    ".buklod/scopes/staging-production-isolation.json"
+  ],
+  "acceptanceChecks": [
+    "Accountability scope check passes with only named paths",
+    "No production backend operations or OTA publication",
+    "Existing release gates remain intact"
+  ]
+}
