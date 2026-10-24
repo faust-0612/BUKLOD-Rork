@@ -11,5 +11,6 @@
     "Login, scoped workspace and immersive routes keep existing hiding behavior",
     "No Android or database modifications",
     "TypeScript, accountability and web export pass before release"
-  ]
+  ],
+  "productionBaselineEvidence": "Web Production Deploy run 40105043705 succeeded on main SHA 5203d3b23e209ba290f11e61f538d7dd9d360d79. Live browser fingerprint and interactive navigation require verification before declaring production complete."
 }
