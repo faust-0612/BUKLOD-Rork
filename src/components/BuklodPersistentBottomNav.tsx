@@ -1,5 +1,4 @@
-import React, {
-} from 'react';
+import React from 'react';
 
 import {
   Keyboard,
@@ -34,10 +33,6 @@ import {
 } from '@/providers/BuklodScopeProvider';
 
 import {
-  useNotifications,
-} from '@/providers/NotificationProvider';
-
-import {
   useBuklodTheme,
 } from '@/providers/BuklodThemeProvider';
 
@@ -67,7 +62,7 @@ function routeKey(pathname: string): NavKey | null {
   if (pathname === '/hub') return 'home';
   if (pathname === '/clusters') return 'cluster';
   if (pathname === '/buklod' || pathname.startsWith('/post/')) return 'community';
-  if (pathname === '/messages' || pathname.startsWith('/connect/')) return 'connect';
+  if (pathname === '/messages' || pathname.startsWith('/messages/') || pathname === '/connect' || pathname.startsWith('/connect/')) return 'connect';
   if (pathname === '/me') return 'profile';
   return null;
 }
@@ -143,11 +138,6 @@ BuklodPersistentBottomNav() {
     selectScope,
   } =
     useBuklodScope();
-
-  const {
-    unreadCount,
-  } =
-    useNotifications();
 
   const { theme } = useBuklodTheme();
 
