@@ -291,3 +291,114 @@ revoke all on function public.buklod_scope_faith_monitoring_summary_v2(uuid) fro
 revoke all on function public.buklod_scope_faith_monitoring_summary_v3(uuid) from public, anon, authenticated;
 revoke all on function public.buklod_scope_faith_monitoring_summary_v4(uuid) from public, anon;
 grant execute on function public.buklod_scope_faith_monitoring_summary_v4(uuid) to authenticated, service_role;
+
+
+-- Bind new Devotion submissions to the active entry context, before confirmation.
+-- Do not retroactively assign ambiguous historical submissions.
+create or replace function public.complete_my_devotional_v2(
+  p_devotional_id uuid,
+  p_reflection text,
+  p_application text,
+  p_privacy text default 'private'
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path to ''
+as $function$
+declare
+  v_user uuid := auth.uid();
+  v_scope uuid;
+  v_submission_id uuid;
+  v_submission_status text;
+  v_now timestamptz := now();
+begin
+  if v_user is null then raise exception 'Authentication required'; end if;
+  if p_devotional_id is null then raise exception 'Devotional is required'; end if;
+  if char_length(btrim(coalesce(p_reflection,''))) < 20 then
+    raise exception 'Reflection must contain at least 20 characters';
+  end if;
+  if char_length(btrim(coalesce(p_application,''))) < 20 then
+    raise exception 'Application must contain at least 20 characters';
+  end if;
+  if lower(coalesce(p_privacy,'')) not in ('private','leader','group','church') then
+    raise exception 'Invalid reflection privacy';
+  end if;
+
+  v_scope := public.buklod_get_formation_entry_scope_v1('DAILY_DEVOTION');
+  if v_scope is null then
+    raise exception 'Open Devotion from an active Cluster or Organization before submitting';
+  end if;
+  perform public.buklod_require_active_cluster_membership(v_user);
+
+  if not exists (
+    select 1 from public.devotionals d
+    where d.id=p_devotional_id and d.is_published=true
+  ) then
+    raise exception 'Published devotional not found';
+  end if;
+
+  select s.id,s.status
+    into v_submission_id,v_submission_status
+  from public.devotional_reward_submissions s
+  where s.user_id=v_user and s.devotional_id=p_devotional_id
+  for update;
+
+  if v_submission_id is not null and exists (
+    select 1 from public.buklod_scope_formation_approvals_v2 a
+    where a.learner_id=v_user and a.item_kind='DAILY_DEVOTION'
+      and a.item_id=v_submission_id and a.scope_id<>v_scope
+  ) then
+    raise exception 'Devotion was already submitted in a different scope';
+  end if;
+
+  if v_submission_id is not null and v_submission_status='approved' then
+    return jsonb_build_object(
+      'ok',true,
+      'submission_id',v_submission_id,
+      'status','approved',
+      'already_completed',true,
+      'automatic',true
+    );
+  end if;
+
+  insert into public.reflections(
+    user_id,devotional_id,reflection_text,application_text,privacy,updated_at
+  ) values (
+    v_user,p_devotional_id,btrim(p_reflection),btrim(p_application),
+    lower(p_privacy)::public.content_privacy,v_now
+  )
+  on conflict (user_id,devotional_id) do update set
+    reflection_text=excluded.reflection_text,
+    application_text=excluded.application_text,
+    privacy=excluded.privacy,
+    updated_at=v_now;
+
+  insert into public.devotional_completions(
+    user_id,devotional_id,completed_at,completion_date
+  ) values (
+    v_user,p_devotional_id,v_now,(v_now at time zone 'Asia/Manila')::date
+  )
+  on conflict (user_id,devotional_id) do update set
+    completed_at=excluded.completed_at,
+    completion_date=excluded.completion_date;
+
+  v_submission_id := public.submit_devotional_for_bayanihan(p_devotional_id);
+
+  perform public.buklod_enqueue_scope_formation_approval_v2(
+    v_scope, v_user, 'DAILY_DEVOTION', v_submission_id
+  );
+
+  select s.status into v_submission_status
+  from public.devotional_reward_submissions s
+  where s.id=v_submission_id;
+
+  return jsonb_build_object(
+    'ok',true,
+    'submission_id',v_submission_id,
+    'status',coalesce(v_submission_status,'pending_admin'),
+    'already_completed',false,
+    'automatic',true
+  );
+end;
+$function$;
