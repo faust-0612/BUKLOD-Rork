@@ -24,6 +24,22 @@ if (appEnv !== 'staging') {
   failures.push('EXPO_PUBLIC_APP_ENV must be staging for the staging gate.');
 }
 
+// Refuse a staging job that points to the known BUKLOD Connect production project.
+// This check is deliberately fail-closed even if a staging label is supplied.
+const productionRef = 'yhanxndaqbmuzbdqlblu';
+if (url.toLowerCase().includes(productionRef + '.supabase.co')) {
+  failures.push('Staging must never target the BUKLOD Connect production Supabase project.');
+}
+if (process.env.CI && !process.env.BUKLOD_STAGING_PROJECT_REF) {
+  failures.push('CI staging requires an explicitly configured BUKLOD_STAGING_PROJECT_REF.');
+}
+if (process.env.BUKLOD_STAGING_PROJECT_REF) {
+  const expected = 'https://' + process.env.BUKLOD_STAGING_PROJECT_REF + '.supabase.co';
+  if (url.toLowerCase() !== expected.toLowerCase()) {
+    failures.push('Staging Supabase URL does not match BUKLOD_STAGING_PROJECT_REF.');
+  }
+}
+
 if (!easProjectId) {
   warnings.push('EAS_PROJECT_ID is not set; EAS builds/updates may not be fully linked yet.');
 }
