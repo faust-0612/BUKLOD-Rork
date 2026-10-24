@@ -36,7 +36,7 @@ function sourceGate() {
   const preparing = process.env.BUKLOD_RC_PREPARE === 'true';
   if (!preparing) assert.equal(process.env.GITHUB_REF, 'refs/heads/main', 'Production requires main');
   if (preparing) assert.ok(['baseline', 'freeze'].includes(process.argv[2]), 'Preparation cannot publish');
-  assert.equal(sha, process.env.GITHUB_SHA, 'Exact event checkout required');
+  assert.equal(sha, process.env.RC_SOURCE_SHA || process.env.GITHUB_SHA, 'Exact source checkout required');
   git('diff', '--exit-code');
   const config = require('../app.config.js')({config:{}});
   assert.equal(config.runtimeVersion, runtime);

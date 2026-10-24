@@ -219,6 +219,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       RC_RUN_ID: ${{ inputs.rc_run_id }}
       RC_SHA: ${{ inputs.rc_sha }}
+      RC_SOURCE_SHA: ${{ inputs.rc_sha }}
     steps:
       - name: Validate immutable RC run
         shell: bash
@@ -235,7 +236,6 @@ jobs:
         run: |
           git fetch origin main
           git merge-base --is-ancestor "$RC_SHA" origin/main
-          echo "GITHUB_SHA=$RC_SHA" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
