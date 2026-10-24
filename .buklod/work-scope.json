@@ -1,15 +1,17 @@
 {
-  "objective": "Cluster Detail loading recovery (DEV only)",
+  "objective": "Cluster Detail loading recovery and gated Android OTA trigger",
   "baseRef": "14247804dad87dc23f0b3adeaba88c31e3b6697d",
   "productionBaselineEvidence": "DEV comparison verified against main 14247804dad87dc23f0b3adeaba88c31e3b6697d; latest live Android Production OTA fingerprint not verified, therefore production release blocked.",
   "allowedPaths": [
     "src/app/clusters/[id].tsx",
-    ".buklod/work-scope.json"
+    ".buklod/work-scope.json",
+    ".github/workflows/production_android_ota.yml"
   ],
   "acceptanceChecks": [
     "TypeScript and existing performance tests pass",
     "Cluster detail timeout and retry preserve existing content",
     "Stale scope responses cannot overwrite new scope",
-    "Verify latest production OTA fingerprint and freeze RC before publishing"
+    "Verify latest production OTA fingerprint and freeze RC before publishing",
+    "OTA trigger includes Cluster Detail while baseline, RC, and publish gates remain intact"
   ]
 }
