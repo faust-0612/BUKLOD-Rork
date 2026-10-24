@@ -267,7 +267,16 @@ begin
         select 1 from public.buklod_scopes s
         where s.id = p_scope_id and s.scope_type = 'CLUSTER'
       )
-      and public.buklod_is_cluster_approver(p_scope_id, auth.uid())
+      and (
+        exists (
+          select 1 from public.buklod_scope_role_assignments ra
+          where ra.scope_id = p_scope_id
+            and ra.user_id = auth.uid()
+            and ra.status = 'ACTIVE'
+            and upper(ra.role_key) in ('ADMIN','CLUSTER_ADMIN','CLUSTER_HEAD','PASTOR','MENTOR')
+        )
+        or public.buklod_user_has_functional_approver_role(p_scope_id, auth.uid())
+      )
     )
   ) then
     raise exception 'Not authorized to view this scope report' using errcode = '42501';
