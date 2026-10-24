@@ -16,6 +16,7 @@ on:
       - '.github/workflows/production_android_ota.yml'
       - 'src/app/index.web.tsx'
       - 'src/app/clusters/index.tsx'
+      - 'src/app/clusters/[id].tsx'
       - 'src/components/ClusterNotificationActions.tsx'
       - 'src/lib/clusterJoinNotification.ts'
       - 'src/lib/clusterJoinNotificationAction.ts'
