@@ -55,6 +55,7 @@ on:
       - 'src/components/classroom/**'
       - 'src/components/BuklodNavSafeShell.web.tsx'
       - 'src/components/BuklodMobileWebShell.tsx'
+      - 'src/components/BuklodPersistentBottomNav.tsx'
       - 'src/components/BuklodDesktopWebShell.tsx'
       - 'src/components/BuklodSponsorSlot.tsx'
       - 'src/components/BuklodAdMobBanner.web.tsx'

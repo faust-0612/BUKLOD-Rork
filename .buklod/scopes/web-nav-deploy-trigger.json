@@ -1,0 +1,17 @@
+{
+  "objective": "Ensure approved web navigation responsiveness changes trigger the existing production web deploy workflow",
+  "baseRef": "9bc9cce2ac6a7dbf3f4c3bf786905dba57e3cf77",
+  "productionBaselineEvidence": "PR #322 merged as 9bc9cce but no production web workflow ran because persistent bottom nav file was missing from push path filters. Existing web workflow remains the sole production deployment mechanism.",
+  "allowedPaths": [
+    ".github/workflows/production_web_deploy.yml",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/web-nav-deploy-trigger.json"
+  ],
+  "acceptanceChecks": [
+    "Add only persistent bottom nav path to web deploy trigger",
+    "Existing production QA and deployment steps unchanged",
+    "Engineering Accountability and CI pass",
+    "Confirm one production web deployment on main",
+    "Do not modify Android OTA or backend"
+  ]
+}
