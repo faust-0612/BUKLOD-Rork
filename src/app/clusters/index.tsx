@@ -29,6 +29,8 @@ import {
   respondClusterInvite,
 } from '@/lib/buklodClusters';
 import { clusterScopeManageRoute } from '@/lib/buklodCluster';
+import { enterScopedWorkspace } from '@/lib/buklodScopeRoute';
+import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 
 function messageOf(error: unknown) {
   if (
@@ -45,12 +47,6 @@ function messageOf(error: unknown) {
   return String(error || 'Unknown error');
 }
 
-function openCluster(id: string) {
-  router.push({
-    pathname: '/clusters/[id]' as any,
-    params: { id },
-  } as any);
-}
 
 function StatusBadge({
   text,
@@ -105,15 +101,17 @@ function ActionButton({
 function ClusterCard({
   item,
   children,
+  onOpen,
 }: {
   item: ClusterSummary;
+  onOpen?: (id: string) => void;
   children?: React.ReactNode;
 }) {
   return (
     <Pressable
       onPress={() =>
         item.membership_status === 'ACTIVE'
-          ? openCluster(item.scope_id)
+          ? onOpen?.(item.scope_id)
           : undefined
       }
       style={styles.card}
@@ -161,6 +159,12 @@ function ClusterCard({
 }
 
 export default function ClustersScreen() {
+  const { selectScope } = useBuklodScope();
+  const openCluster = useCallback((id: string) => {
+    void enterScopedWorkspace(selectScope, id, { section: 'home', navigation: 'replace' }).catch((error) => {
+      Alert.alert('Cluster Home', messageOf(error));
+    });
+  }, [selectScope]);
   const [myClusters, setMyClusters] =
     useState<ClusterSummary[]>([]);
 
@@ -397,6 +401,7 @@ export default function ClustersScreen() {
               <ClusterCard
                 key={item.scope_id}
                 item={item}
+                onOpen={openCluster}
               >
                 <View style={styles.actions}>
                   <Text style={styles.muted}>Tap the cluster to open Home</Text>
@@ -431,6 +436,7 @@ export default function ClustersScreen() {
                 <ClusterCard
                   key={item.scope_id}
                   item={item}
+                  onOpen={openCluster}
                 >
                   <View style={styles.actions}>
                     <ActionButton
@@ -536,6 +542,7 @@ export default function ClustersScreen() {
                 <ClusterCard
                   key={item.scope_id}
                   item={item}
+                  onOpen={openCluster}
                 >
                   <View
                     style={styles.actions}
