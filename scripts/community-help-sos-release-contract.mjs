@@ -53,9 +53,12 @@ requireAll('src/components/BuklodCommunityHelp.tsx', [
   'not a replacement for official emergency services',
 ]);
 
-// Must remain attached to the Public Community Wall, not organization-gated.
-requireAll('src/components/BuklodPublicLocationChips.tsx', [
-  "import BuklodCommunityHelp from '@/components/BuklodCommunityHelp';",
+// Approved Home-only placement: preserve the same emergency implementation and backend safety invariants.
+requireAll('src/app/(tabs)/hub.tsx', [
+  "const Help = lazy(() => import('@/components/BuklodCommunityHelp'));",
+  '<Help />',
+]);
+forbidAll('src/components/BuklodPublicLocationChips.tsx', [
   '<BuklodCommunityHelp />',
 ]);
 
@@ -132,4 +135,4 @@ if (failures.length) {
 }
 
 console.log('COMMUNITY HELP / SOS RELEASE LOCK PASSED.');
-console.log('Locked: Public Community placement, foreground-only location, privacy, RLS/RPC hardening, anti-spam, max-radius fan-out, idempotency, canonical push route.');
+console.log('Locked: Home-only SOS surface, foreground-only location, privacy, RLS/RPC hardening, anti-spam, max-radius fan-out, idempotency, canonical push route.');
