@@ -1,6 +1,7 @@
 ﻿import React, {
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from 'react';
 
@@ -136,6 +137,9 @@ export default function ClusterDetailScreen() {
   const [loading, setLoading] =
     useState(true);
 
+  const [loadError, setLoadError] = useState('');
+  const loadGeneration = useRef(0);
+
   const [refreshing, setRefreshing] =
     useState(false);
 
@@ -156,47 +160,55 @@ export default function ClusterDetailScreen() {
 
   const load = useCallback(
     async (refresh = false) => {
+      const generation = ++loadGeneration.current;
       if (!scopeId) {
         setLoading(false);
+        setLoadError('Missing Cluster ID.');
         return;
       }
 
-      refresh
-        ? setRefreshing(true)
-        : setLoading(true);
+      if (refresh) setRefreshing(true);
+      else if (!cluster) setLoading(true);
+      setLoadError('');
 
       try {
-        const info =
-          await getClusterDetails(scopeId);
-
+        // Bound the screen wait; ignore responses from expired requests.
+        const info = await Promise.race([
+          getClusterDetails(scopeId),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Connection timed out. Please retry.')), 10000)
+          ),
+        ]);
+        if (generation !== loadGeneration.current) return;
         setCluster(info);
-
         if (info) {
           setName(info.name || '');
           setCategory(info.category || '');
-          setDescription(
-            info.description || ''
-          );
+          setDescription(info.description || '');
           setVisibility(info.visibility);
           setMembers([]);
           setRequests([]);
         }
       } catch (error) {
-        Alert.alert(
-          'Cluster',
-          messageOf(error)
-        );
+        if (generation === loadGeneration.current) {
+          setLoadError(messageOf(error));
+        }
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        if (generation === loadGeneration.current) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
     },
-    [scopeId]
+    [scopeId, cluster]
   );
 
   useEffect(() => {
     void load();
-  }, [load]);
+    return () => { loadGeneration.current += 1; };
+    // Reload on scope change only, not on a refreshed cluster object.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scopeId]);
 
   const run = async (
     work: () => Promise<void>
@@ -207,7 +219,7 @@ export default function ClusterDetailScreen() {
 
     try {
       await work();
-      await load(true);
+      void load(true);
     } catch (error) {
       Alert.alert(
         'Cluster',
@@ -383,8 +395,9 @@ export default function ClusterDetailScreen() {
     return (
       <View style={styles.center}>
         <Text style={styles.notFound}>
-          Cluster unavailable
+          {loadError || 'Cluster unavailable'}
         </Text>
+        <ActionButton title="RETRY" onPress={() => void load()} />
 
         <ActionButton
           title="BACK TO CLUSTERS"
@@ -415,6 +428,7 @@ export default function ClusterDetailScreen() {
         />
       }
     >
+      {!!loadError && <View><Text style={styles.muted}>{loadError}</Text><ActionButton title="RETRY" onPress={() => void load(true)} /></View>}
       <View style={styles.hero}>
         <Text style={styles.eyebrow}>
           {fromInvite
