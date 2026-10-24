@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            codex/cluster-clean-layout-20261024)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/cluster-clean-layout.json" >> "$GITHUB_ENV";;
             fix/home-cards-wall-isolation-20261024)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/home-cards-wall-isolation.json" >> "$GITHUB_ENV";;
             codex/nav-home-wall-isolation-20261024)
