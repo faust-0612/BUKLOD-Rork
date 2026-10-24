@@ -86,10 +86,38 @@ async function functionErrorMessage(error: any, fallback: string) {
   return fallback;
 }
 
+type AdminRecoveryRequest = {
+  identifier?: string;
+  firstName?: string;
+  middleName?: string;
+  surname?: string;
+  birthDate?: string;
+};
+
+async function recoveryOtpErrorDetails(error: any): Promise<{ adminFallback: boolean; message: string }> {
+  try {
+    const response = error?.context?.clone?.() ?? error?.context;
+    if (typeof response?.json === 'function') {
+      const body = await response.json();
+      return {
+        adminFallback: body?.adminFallback === true,
+        message: String(body?.message ?? 'Recovery failed.'),
+      };
+    }
+  } catch {
+    // A transport error may not contain a JSON response.
+  }
+  return {
+    adminFallback: false,
+    message: await functionErrorMessage(error, 'Recovery service is temporarily unavailable.'),
+  };
+}
+
 export default function ForgotPasswordScreen() {
   const [path, setPath] = useState<RecoveryPath>('email');
 
   const [emailReady, setEmailReady] = useState<boolean | null>(null);
+  const [emailDeliveryUnconfigured, setEmailDeliveryUnconfigured] = useState(false);
   const [email, setEmail] = useState('');
   const [autoForgotLogin, setAutoForgotLogin] = useState(false);
   const [autoBirthDate, setAutoBirthDate] = useState('');
@@ -150,11 +178,17 @@ export default function ForgotPasswordScreen() {
         if (cancelled) return;
         if (error || !data?.ok) {
           setEmailReady(false);
+          setEmailDeliveryUnconfigured(false);
           return;
         }
-        setEmailReady(data?.emailReady === true || data?.smsReady === true);
+        const deliveryReady = data?.emailReady === true || data?.smsReady === true;
+        setEmailReady(deliveryReady);
+        setEmailDeliveryUnconfigured(!deliveryReady);
       } catch {
-        if (!cancelled) setEmailReady(false);
+        if (!cancelled) {
+          setEmailReady(false);
+          setEmailDeliveryUnconfigured(false);
+        }
       }
     };
 
@@ -255,11 +289,29 @@ export default function ForgotPasswordScreen() {
         );
       }
     }
-    if (emailReady === false) {
+    // The readiness probe is advisory. A transient status-check failure must
+    // not disable self-service recovery for every account; request_otp remains
+    // the authoritative, rate-limited server-side eligibility check.
+    if (!autoForgotLogin && !emailDeliveryUnconfigured && !/^\d{4}-\d{2}-\d{2}$/.test(autoBirthDate.trim())) {
       return Alert.alert(
         'Automatic Recovery',
-        'Automatic recovery is temporarily unavailable. Use Recovery PIN or Admin Help.'
+        'Enter the account birthday as YYYY-MM-DD to match your account securely.'
       );
+    }
+    if (emailDeliveryUnconfigured) {
+      // The live service has no configured email/SMS sender. Start the
+      // existing admin-verified recovery in one tap, without fake OTPs.
+      await requestAdminHelp(
+        autoForgotLogin
+          ? {
+              firstName: firstName.trim(),
+              middleName: middleName.trim(),
+              surname: surname.trim(),
+              birthDate: birthDate.trim(),
+            }
+          : { identifier: clean }
+      );
+      return;
     }
     if (emailInFlight.current) return;
 
@@ -287,19 +339,24 @@ export default function ForgotPasswordScreen() {
               birthDate: autoBirthDate.trim() || undefined,
             },
       });
-      if (error) {
-        throw new Error(
-          await functionErrorMessage(
-            error,
-            'The account could not be recovered automatically. Check the information or use Admin Help.'
-          )
-        );
-      }
-      if (!data?.ok) {
-        throw new Error(
-          data?.message ??
-            'The account could not be recovered automatically. Check the information or use Admin Help.'
-        );
+      const failure = error ? await recoveryOtpErrorDetails(error) : data;
+      if (error || !data?.ok) {
+        if (failure?.adminFallback === true) {
+          // HTTP 409 error bodies are in error.context, not data.
+          // Preserve the existing admin approval gate before reset.
+          await requestAdminHelp(
+            autoForgotLogin
+              ? {
+                  firstName: firstName.trim(),
+                  middleName: middleName.trim(),
+                  surname: surname.trim(),
+                  birthDate: birthDate.trim(),
+                }
+              : { identifier: clean }
+          );
+          return;
+        }
+        throw new Error(String(failure?.message ?? 'Recovery could not be started.'));
       }
 
       const challengeId = String(data?.challengeId ?? '').trim();
@@ -520,20 +577,25 @@ export default function ForgotPasswordScreen() {
     }
   };
 
-  const requestAdminHelp = async () => {
-    const cleanIdentifier = adminIdentifier.trim();
-    if (!forgotLogin && cleanIdentifier.length < 3) {
+  const requestAdminHelp = async (fromAuto?: AdminRecoveryRequest) => {
+    const cleanIdentifier = String(fromAuto?.identifier ?? adminIdentifier).trim();
+    const usingName = fromAuto ? !fromAuto.identifier : forgotLogin;
+    const requestedFirst = String(fromAuto?.firstName ?? firstName).trim();
+    const requestedMiddle = String(fromAuto?.middleName ?? middleName).trim();
+    const requestedSurname = String(fromAuto?.surname ?? surname).trim();
+    const requestedBirthDate = String(fromAuto?.birthDate ?? birthDate).trim();
+    if (!usingName && cleanIdentifier.length < 3) {
       return Alert.alert(
         'Admin Assistance',
         'Enter the username, mobile number, or email you remember. If you do not remember any login, choose “I forgot my login too.”'
       );
     }
 
-    if (forgotLogin) {
-      if (firstName.trim().length < 2 || surname.trim().length < 2) {
+    if (usingName) {
+      if (requestedFirst.length < 2 || requestedSurname.length < 2) {
         return Alert.alert('Admin Assistance', 'Enter your first name and surname.');
       }
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate.trim())) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(requestedBirthDate)) {
         return Alert.alert(
           'Admin Assistance',
           'Enter birthday as YYYY-MM-DD, for example 1990-05-23.'
@@ -542,6 +604,11 @@ export default function ForgotPasswordScreen() {
     }
 
     if (requestInFlight.current) return;
+    if (fromAuto) {
+      setForgotLogin(usingName);
+      if (!usingName) setAdminIdentifier(cleanIdentifier);
+      setPath('admin');
+    }
     requestInFlight.current = true;
     setRequestBusy(true);
     setRecoverySession(null);
@@ -552,13 +619,13 @@ export default function ForgotPasswordScreen() {
 
     try {
       const { data, error } = await supabase.functions.invoke('account-recovery-v4', {
-        body: forgotLogin
+        body: usingName
           ? {
               action: 'request_admin_recovery',
-              firstName: firstName.trim(),
-              middleName: middleName.trim() || undefined,
-              surname: surname.trim(),
-              birthDate: birthDate.trim(),
+              firstName: requestedFirst,
+              middleName: requestedMiddle || undefined,
+              surname: requestedSurname,
+              birthDate: requestedBirthDate,
             }
           : {
               action: 'request_admin_recovery',
@@ -697,8 +764,9 @@ export default function ForgotPasswordScreen() {
 
         <Text style={styles.title}>Recover Your BUKLOD Account</Text>
         <Text style={styles.subtitle}>
-          Automatic recovery checks your registered email, mobile number, or username. A matched
-          account receives a 6-digit code automatically. Admin Help is fallback only.
+          BUKLOD checks your account details. If verified email/SMS delivery is ready,
+          a one-time code is sent to your registered contact. Otherwise, Admin approval
+          is required before a recovery code can appear here.
         </Text>
 
         <View style={styles.pathRow}>
@@ -739,7 +807,9 @@ export default function ForgotPasswordScreen() {
               <View style={styles.warningCard}>
                 <MaterialCommunityIcons name="alert-circle-outline" size={20} color="#8A5A00" />
                 <Text style={styles.warningText}>
-                  Automatic recovery is temporarily unavailable. Use Recovery PIN or Admin Help.
+                  {emailDeliveryUnconfigured
+                    ? 'Email/SMS delivery is not configured. Continue below to submit a verified Admin Help request automatically; a code is shown only after approval.'
+                    : 'Recovery status could not be checked. You can still try AUTO or use PIN / Admin Help.'}
                 </Text>
               </View>
             ) : null}
@@ -792,7 +862,11 @@ export default function ForgotPasswordScreen() {
                   editable={!emailBusy && !emailOtpVerified}
                   style={styles.input}
                 />
-                <FieldLabel>Birthday (required when using username)</FieldLabel>
+                <FieldLabel>
+                  {emailDeliveryUnconfigured
+                    ? 'Birthday (optional for Admin-verified recovery)'
+                    : 'Birthday (required for automatic code recovery)'}
+                </FieldLabel>
                 <TextInput
                   value={autoBirthDate}
                   onChangeText={(value) =>
@@ -853,8 +927,8 @@ export default function ForgotPasswordScreen() {
               <>
                 <PrimaryButton
                   busy={emailBusy && !emailOtpSent}
-                  disabled={emailReady !== true}
-                  label={emailOtpSent ? 'SEND NEW CODE' : 'MATCH ACCOUNT & SEND CODE'}
+                  disabled={emailBusy}
+                  label={emailOtpSent ? 'SEND NEW CODE' : emailDeliveryUnconfigured ? 'REQUEST VERIFIED RECOVERY' : 'MATCH ACCOUNT & SEND CODE'}
                   onPress={requestEmailOtp}
                 />
 
@@ -1066,7 +1140,7 @@ export default function ForgotPasswordScreen() {
               <PrimaryButton
                 busy={requestBusy}
                 label={requestSent ? 'SUBMIT NEW REQUEST' : 'REQUEST ADMIN ASSISTANCE'}
-                onPress={requestAdminHelp}
+                onPress={() => { void requestAdminHelp(); }}
               />
 
               {!!recoveryStateText && (
