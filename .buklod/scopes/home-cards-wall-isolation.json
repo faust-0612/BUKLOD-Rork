@@ -1,0 +1,19 @@
+{
+  "objective": "Move duplicated Drawer and Today cards from Community Wall to lightweight Home only",
+  "baseRef": "49de732c27826f73f69332514e90c5c7cd724967",
+  "productionBaselineEvidence": "PR #307 merge commit verified 49de732c27826f73f69332514e90c5c7cd724967; this is a source comparison ref, not independent proof of live OTA. Verify runtime 1.3.2 live production fingerprint and immutable RC before publication.",
+  "allowedPaths": [
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/(tabs)/hub.tsx",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/home-cards-wall-isolation.json"
+  ],
+  "acceptanceChecks": [
+    "Drawer and Today appear as visible Home cards only when focused/foregrounded",
+    "No duplicate Drawer and Today cards in Wall",
+    "Community Wall remains default, posting and story preserved",
+    "PTT Map SOS and Character preserved",
+    "TypeScript, performance and accountability CI pass",
+    "Freeze exact RC and verify actual production OTA before claiming release"
+  ]
+}
