@@ -1,0 +1,15 @@
+{
+  "objective": "Android Back from Cluster list returns to Community Wall",
+  "baseRef": "1e900ab7b3a9c1d8ce53fb2bdb22404dd798165a",
+  "productionBaselineEvidence": "Reconciled against current main; verify live OTA independently before release",
+  "allowedPaths": [
+    "src/app/clusters/index.tsx",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/cluster-back-wall.json"
+  ],
+  "acceptanceChecks": [
+    "Back on focused Cluster list returns to Community Wall",
+    "Scoped Home navigation unchanged",
+    "CI gates pass before RC and OTA"
+  ]
+}
