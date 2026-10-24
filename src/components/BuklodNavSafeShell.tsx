@@ -74,9 +74,7 @@ export default function BuklodNavSafeShell({
     useBuklodPersistentNavOccupiedHeight();
   const publicMinimal =
     !isBuklodScopedWorkspacePath(pathname);
-  const navOccupied = publicMinimal
-    ? 0
-    : rawNavOccupied;
+  const navOccupied = rawNavOccupied;
   const insets = useSafeAreaInsets();
   const immersiveIgpat =
     isImmersiveIgpatPath(pathname);
@@ -162,7 +160,7 @@ export default function BuklodNavSafeShell({
         {!immersiveIgpat ? <BuklodFocusAppAdStrip /> : null}
       </View>
 
-      {!immersiveIgpat && !publicMinimal ? (
+      {!immersiveIgpat && rawNavOccupied > 0 ? (
         <View
           pointerEvents="box-none"
           style={styles.navOverlay}
