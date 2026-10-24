@@ -7,15 +7,14 @@ import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 
 // Factories execute only after the user opens a tool.
 const Today = lazy(() => import('@/components/BuklodTodayCard'));
+const DrawerCard = lazy(() => import('@/components/SmartDrawerWallCard'));
 const Help = lazy(() => import('@/components/BuklodCommunityHelp'));
 const Map = lazy(() => Platform.OS === 'web'
   ? import('@/components/BuklodWebCommunityMapHeader.web')
   : import('@/components/BuklodNativeCommunityMapHeader'));
-type Tool = 'today' | 'map' | 'sos';
+type Tool = 'map' | 'sos';
 const shortcuts = [
-  { label: 'Drawer', icon: 'view-dashboard-outline', route: '/drawer', tool: null },
   { label: 'PTT', icon: 'microphone-outline', route: '/personal-home/ptt', tool: null },
-  { label: 'BUKLOD Today', icon: 'calendar-today', route: null, tool: 'today' },
   { label: 'Map', icon: 'map-outline', route: null, tool: 'map' },
   { label: 'SOS', icon: 'shield-alert-outline', route: null, tool: 'sos' },
 ] as const;
@@ -52,6 +51,16 @@ export default function BuklodLightHome() {
     <ScrollView style={{ flex: 1, backgroundColor: theme.surface }} contentContainerStyle={{ padding: 18, gap: 12 }}>
       <Text style={{ fontSize: 24, fontWeight: '800', color: theme.textPrimary }}>BUKLOD Home</Text>
       <Text style={{ color: theme.textPrimary }}>Mga kagamitan para sa araw-araw.</Text>
+      {focused && foreground ? (
+        <ToolBoundary onClose={() => {}}>
+          <Suspense fallback={<ActivityIndicator accessibilityLabel="Loading Home cards" color={theme.accent} />}>
+            <DrawerCard />
+            <Today onRespond={draft => {
+              router.push({ pathname: '/buklod', params: { homeTodayDraft: draft ?? '', homeTodayIntent: String(Date.now()) } });
+            }} />
+          </Suspense>
+        </ToolBoundary>
+      ) : null}
       {shortcuts.map(item => (
         <Pressable key={item.label} accessibilityRole="button"
           onPress={() => { if (item.route) router.push(item.route); else setTool(item.tool); }}
@@ -73,10 +82,7 @@ export default function BuklodLightHome() {
             </Pressable>
             <ToolBoundary key={tool} onClose={() => setTool(null)}>
               <Suspense fallback={<ActivityIndicator accessibilityLabel="Opening tool" color={theme.accent} />}>
-                {tool === 'today' ? <Today onRespond={draft => {
-                  setTool(null);
-                  router.push({ pathname: '/buklod', params: { homeTodayDraft: draft ?? '', homeTodayIntent: String(Date.now()) } });
-                }} /> : tool === 'map' ? <Map /> : <Help />}
+                {tool === 'map' ? <Map /> : <Help />}
               </Suspense>
             </ToolBoundary>
           </ScrollView>
