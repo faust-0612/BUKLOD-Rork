@@ -1,0 +1,17 @@
+{
+  "objective": "Targeted Community photo and video URL signing recovery; preserve unrelated app modules",
+  "baseRef": "5203d3b23e209ba290f11e61f538d7dd9d360d79",
+  "productionBaselineEvidence": "DEV comparison against exact main commit at branch creation; independent current production OTA fingerprint and immutable RC verification required before release.",
+  "allowedPaths": [
+    "src/lib/buklodMediaUrl.ts",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/community-media-biboy-recovery.json"
+  ],
+  "acceptanceChecks": [
+    "Accountability scope gate passes against exact DEV parent",
+    "Batch missing URL and batch failure fall back to individual signed URLs",
+    "No unrelated feature or database changes",
+    "TypeScript and media tests pass",
+    "Android/Web photos, AWS/Supabase videos and Community posting verified before RC/OTA"
+  ]
+}
