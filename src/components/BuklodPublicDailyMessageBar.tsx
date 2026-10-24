@@ -87,7 +87,10 @@ export default function BuklodPublicDailyMessageBar({
 
     };
 
-    void load();
+    void load().catch(() => {
+      // Localization is optional: retain the immediately rendered fallback.
+      if (alive) setAddress({});
+    });
 
     return () => {
       alive = false;
