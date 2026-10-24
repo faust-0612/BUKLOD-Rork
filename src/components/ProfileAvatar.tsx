@@ -366,7 +366,7 @@ export function ProfileAvatar({
         <ExpoImage
           source={{
             uri: remoteUrl,
-            cacheKey: userId ? `avatar:${userId}` : remoteUrl,
+            cacheKey: remoteUrl,
           }}
           style={{
             ...circleStyle,
