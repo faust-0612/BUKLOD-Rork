@@ -1,18 +1,15 @@
 {
-  "objective": "Show Faith targeted reliability fixes",
-  "baseRef": "4ec5be5b3e9cf44b9b9ac001b04320d33cfef16a",
-  "productionBaselineEvidence": "DEV scope only; compared against main 4ec5be5b3e9cf44b9b9ac001b04320d33cfef16a. Live production OTA fingerprint not verified; no release authorization.",
+  "objective": "Existing Community Wall Kabihasnang Ligaw reader: system_admin-only inline Approve/Reject, no auto-release",
+  "baseRef": "5203d3b23e209ba290f11e61f538d7dd9d360d79",
+  "productionBaselineEvidence": "Verify current cumulative Android production OTA and source manifest before any release; do not infer production from this PR.",
   "allowedPaths": [
-    "src/hooks/useBuklodAnswerValidation.ts",
-    "src/app/reflection/[id].tsx",
-    "src/app/faith/abc/[lessonId].tsx",
-    ".buklod/work-scope.json"
+    ".buklod/work-scope.json",
+    "src/components/kabihasnang-ligaw/KlReaderScreen.tsx"
   ],
   "acceptanceChecks": [
-    "AI validation ignores stale and concurrent requests",
-    "Devotional success requires confirmed server submission",
-    "ABAKA local data isolated by authenticated account",
-    "Focused regression and TypeScript checks before RC",
-    "Verify live OTA baseline before publication"
+    "Inline controls only in existing KL reader",
+    "Server-side system_admin authorization and required rejection reason",
+    "Approval does not auto-publish",
+    "Focused QA; immutable RC; Android production runtime 1.3.2"
   ]
 }
