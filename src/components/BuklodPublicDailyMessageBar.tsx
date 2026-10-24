@@ -4,7 +4,6 @@ import React, {
 } from 'react';
 
 import {
-  ActivityIndicator,
   StyleSheet,
   Text,
   View,
@@ -61,38 +60,28 @@ export default function BuklodPublicDailyMessageBar({
       country?: string | null;
     }>({});
 
-  const [loading, setLoading] =
-    useState(true);
-
   useEffect(() => {
     let alive = true;
 
     const load = async () => {
       if (!user?.id) {
-        if (alive) {
-          setLoading(false);
+        setAddress({});
+        return;
+      }
+
+      try {
+        const { data, error } = await (supabase as any)
+          .from('buklod_user_addresses')
+          .select('province,country')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (alive && !error) {
+          setAddress(data ?? {});
         }
-
-        return;
+      } catch {
+        // Address is optional; the local encouragement stays visible.
       }
-
-      const {
-        data,
-      } = await (supabase as any)
-        .from('buklod_user_addresses')
-        .select('province,country')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (!alive) {
-        return;
-      }
-
-      setAddress(
-        data ?? {}
-      );
-
-      setLoading(false);
     };
 
     void load();
@@ -134,17 +123,6 @@ export default function BuklodPublicDailyMessageBar({
 
   if (!isPublic && !forceVisible) {
     return null;
-  }
-
-  if (loading) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator
-          size="small"
-          color={colors.greenDark}
-        />
-      </View>
-    );
   }
 
   return (
