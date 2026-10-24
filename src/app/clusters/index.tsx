@@ -29,6 +29,8 @@ import {
   respondClusterInvite,
 } from '@/lib/buklodClusters';
 import { clusterScopeManageRoute } from '@/lib/buklodCluster';
+import { enterScopedWorkspace } from '@/lib/buklodScopeRoute';
+import { useBuklodScope } from '@/providers/BuklodScopeProvider';
 
 function messageOf(error: unknown) {
   if (
@@ -45,12 +47,6 @@ function messageOf(error: unknown) {
   return String(error || 'Unknown error');
 }
 
-function openCluster(id: string) {
-  router.push({
-    pathname: '/clusters/[id]' as any,
-    params: { id },
-  } as any);
-}
 
 function StatusBadge({
   text,
@@ -105,15 +101,17 @@ function ActionButton({
 function ClusterCard({
   item,
   children,
+  onOpen,
 }: {
   item: ClusterSummary;
+  onOpen?: (id: string) => void;
   children?: React.ReactNode;
 }) {
   return (
     <Pressable
       onPress={() =>
         item.membership_status === 'ACTIVE'
-          ? openCluster(item.scope_id)
+          ? onOpen?.(item.scope_id)
           : undefined
       }
       style={styles.card}
@@ -161,6 +159,12 @@ function ClusterCard({
 }
 
 export default function ClustersScreen() {
+  const { selectScope } = useBuklodScope();
+  const openCluster = useCallback((id: string) => {
+    void enterScopedWorkspace(selectScope, id, { section: 'home', navigation: 'replace' }).catch((error) => {
+      Alert.alert('Cluster Home', messageOf(error));
+    });
+  }, [selectScope]);
   const [myClusters, setMyClusters] =
     useState<ClusterSummary[]>([]);
 
@@ -359,14 +363,13 @@ export default function ClustersScreen() {
           groups.
         </Text>
 
-        <ActionButton
-          title="CREATE A CLUSTER"
-          onPress={() =>
-            router.push(
-              '/clusters/create' as any
-            )
-          }
-        />
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push('/clusters/create' as any)}
+          style={styles.createClusterCompact}
+        >
+          <Text style={styles.createClusterCompactText}>+ Create Cluster</Text>
+        </Pressable>
       </View>
 
       {loading ? (
@@ -398,16 +401,10 @@ export default function ClustersScreen() {
               <ClusterCard
                 key={item.scope_id}
                 item={item}
+                onOpen={openCluster}
               >
                 <View style={styles.actions}>
-                  <ActionButton
-                    title="OPEN"
-                    onPress={() =>
-                      openCluster(
-                        item.scope_id
-                      )
-                    }
-                  />
+                  <Text style={styles.muted}>Tap the cluster to open Home</Text>
                   {item.is_admin && (
                     <ActionButton
                       title="MANAGE"
@@ -439,6 +436,7 @@ export default function ClustersScreen() {
                 <ClusterCard
                   key={item.scope_id}
                   item={item}
+                  onOpen={openCluster}
                 >
                   <View style={styles.actions}>
                     <ActionButton
@@ -493,9 +491,7 @@ export default function ClustersScreen() {
           )}
 
           <Text style={styles.sectionTitle}>
-            {query.trim()
-              ? 'SEARCH RESULTS'
-              : 'DISCOVER'}
+            {query.trim() ? 'SEARCH RESULTS' : 'SUGGESTED CLUSTERS'}
           </Text>
           {searching ? (
             <Text style={styles.muted}>
@@ -531,14 +527,14 @@ export default function ClustersScreen() {
             </Pressable>
           </View>
 
-          {discover.length === 0 ? (
+          {discover.filter((item) => item.membership_status !== 'ACTIVE' && item.membership_status !== 'PENDING' && item.membership_status !== 'INVITED').length === 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyTitle}>
                 No Cluster found
               </Text>
             </View>
           ) : (
-            discover.map((item) => {
+            discover.filter((item) => item.membership_status !== 'ACTIVE' && item.membership_status !== 'PENDING' && item.membership_status !== 'INVITED').slice(0, query.trim() ? 20 : 3).map((item) => {
               const current =
                 item.membership_status;
 
@@ -546,6 +542,7 @@ export default function ClustersScreen() {
                 <ClusterCard
                   key={item.scope_id}
                   item={item}
+                  onOpen={openCluster}
                 >
                   <View
                     style={styles.actions}
@@ -625,6 +622,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E1E7E3',
     gap: 8,
+  },
+
+  createClusterCompact: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#2D6A4F',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    minHeight: 36,
+    justifyContent: 'center',
+  },
+
+  createClusterCompactText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
   },
 
   eyebrow: {

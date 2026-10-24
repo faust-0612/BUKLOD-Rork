@@ -1,0 +1,17 @@
+{
+  "objective": "Cluster compact layout and direct home",
+  "baseRef": "b583f351f9fcde386d17133462ca06933b7680ce",
+  "productionBaselineEvidence": "GitHub main comparison baseline only; live OTA fingerprint and RC must be independently verified.",
+  "allowedPaths": [
+    "src/app/clusters/index.tsx",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/cluster-clean-layout.json"
+  ],
+  "acceptanceChecks": [
+    "Joined Cluster opens scoped Home directly",
+    "Compact create control and search retained",
+    "Suggestions limited",
+    "TypeScript and performance QA pass",
+    "Verified production baseline and RC before OTA"
+  ]
+}
