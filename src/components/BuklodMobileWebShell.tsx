@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import BuklodPersistentBottomNav from '@/components/BuklodPersistentBottomNav';
 import {
-  isBuklodScopedWorkspacePath,
+  shouldShowBuklodPublicBottomNav,
   normalizeBuklodPathname,
   useBuklodPersistentNavOccupiedHeight,
 } from '@/lib/buklodSafeArea';
@@ -53,8 +53,8 @@ export default function BuklodMobileWebShell({
 }) {
   const pathname = usePathname();
   const rawNavOccupied = useBuklodPersistentNavOccupiedHeight();
-  const publicMinimal = !isBuklodScopedWorkspacePath(pathname);
-  const navOccupied = publicMinimal ? 0 : rawNavOccupied;
+  const showGlobalNav = shouldShowBuklodPublicBottomNav(pathname);
+  const navOccupied = showGlobalNav ? rawNavOccupied : 0;
   const insets = useSafeAreaInsets();
   const reserveMyBuklodSystemInsets = isMyBuklodDoorPath(pathname);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -99,7 +99,7 @@ export default function BuklodMobileWebShell({
         {children}
       </View>
 
-      {!publicMinimal ? (
+      {showGlobalNav ? (
         <View pointerEvents="box-none" style={styles.navOverlay}>
           <BuklodPersistentBottomNav />
         </View>
