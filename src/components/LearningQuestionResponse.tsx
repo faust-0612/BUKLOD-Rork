@@ -13,6 +13,7 @@ import {
 import { pickGeneratedQuestions } from '@/lib/buklodQuestionEngine';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
+import { maybeShowBuklodInterstitial } from '@/lib/buklodAds';
 import type { AIAnswerValidationResult } from '@/types/buklodAiValidation';
 
 type Props = {
@@ -215,16 +216,29 @@ export function LearningQuestionResponse({ lesson, enrollmentId, onSubmitted }: 
 
       const result = (data ?? {}) as AutomaticLessonResult;
       const approved = result.status === 'approved' || result.auto_approved === true;
+      const shouldShowCompletionAd = approved && !previouslySubmitted;
       setPreviouslySubmitted(true);
+
+      await onSubmitted?.();
 
       Alert.alert(
         approved ? 'Lesson completed' : 'Please improve this lesson',
         approved
           ? 'Your answers and reflection were saved, submitted, checked, and approved automatically. No Cluster Admin approval is required.'
           : 'Your answers and reflection were saved and checked automatically. BUKLOD found something to improve; revise the guided fields and complete the lesson again. No manual approval queue is required.',
-      );
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              if (!shouldShowCompletionAd) return;
 
-      await onSubmitted?.();
+              void maybeShowBuklodInterstitial('lesson_completed').catch((adError) => {
+                console.warn('BUKLOD lesson interstitial:', adError);
+              });
+            },
+          },
+        ],
+      );
     } catch (error: any) {
       Alert.alert(
         'Could Not Complete Lesson',

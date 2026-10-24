@@ -14,6 +14,7 @@ Write-Host "Before build, verify:"
 Write-Host "  - production Supabase schema is deployed"
 Write-Host "  - Maintenance Mode is ON"
 Write-Host "  - production EAS variables are correct"
+Write-Host "  - EAS cloud build will hard-fail if required AdMob production IDs are missing/test IDs"
 
 $confirm = Read-Host "Type BUILD-ANDROID-1.0 to start the production AAB build"
 if ($confirm -ne "BUILD-ANDROID-1.0") {

@@ -15,6 +15,7 @@ echo "Before build, verify:"
 echo "  - production Supabase schema is deployed"
 echo "  - Maintenance Mode is ON"
 echo "  - production EAS variables are correct"
+echo "  - EAS cloud build will hard-fail if required AdMob production IDs are missing/test IDs"
 echo
 
 read -r -p "Type BUILD-ANDROID-1.0 to start the production AAB build: " CONFIRM

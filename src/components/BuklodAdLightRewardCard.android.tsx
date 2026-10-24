@@ -197,7 +197,7 @@ export default function BuklodAdLightRewardCard() {
 
       Alert.alert(
         'Ad-Light Pass active',
-        `Full-screen interstitials are reduced for ${PASS_MINUTES} minutes. Community Wall and IGPAT sponsored feed ads stay active.`,
+        `Full-screen interstitials are reduced for ${PASS_MINUTES} minutes. Community Wall sponsored feed ads stay active.`,
       );
     } catch (error) {
       console.warn('BUKLOD Ad-Light reward:', error);
@@ -274,7 +274,7 @@ export default function BuklodAdLightRewardCard() {
         </Pressable>
 
         <Text style={styles.note}>
-          Feed/native ads in Community Wall and IGPAT remain unchanged.
+          Feed/native ads in Community Wall remain unchanged.
           Passes do not stack; another rewarded ad becomes available after expiry.
         </Text>
       </View>

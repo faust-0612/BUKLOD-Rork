@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { Button, shared } from '@/components/UI';
 import { useAuth } from '@/providers/AuthProvider';
 import { colors } from '@/lib/theme';
+import { maybeShowBuklodInterstitial } from '@/lib/buklodAds';
 
 type Privacy = 'private'|'leader'|'group'|'church';
 
@@ -58,13 +59,33 @@ export default function ReflectionScreen() {
         throw new Error('Completion was not confirmed by the server. Check your devotional status before trying again.');
       }
 
+      const finishCompletion = async () => {
+        if (!result.already_completed) {
+          try {
+            await maybeShowBuklodInterstitial('devotional_completed');
+          } catch (adError) {
+            console.warn('BUKLOD devotional interstitial:', adError);
+          }
+        }
+
+        router.replace('/(tabs)/home');
+      };
+
       Alert.alert(
         result.already_completed ? 'Devotional already completed' : 'Devotional completed',
         result.status === 'approved'
           ? 'Your devotional is complete and already approved.'
-          : 'Your reflection, application, completion, and validation submission were saved together. BUKLOD is checking it automatically; there is no separate manual submission step.'
+          : 'Your reflection, application, completion, and validation submission were saved together. BUKLOD is checking it automatically; there is no separate manual submission step.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              void finishCompletion();
+            },
+          },
+        ],
+        { cancelable: false },
       );
-      router.replace('/(tabs)/home');
     } catch (error: any) {
       Alert.alert(
         'Could not complete devotional',
