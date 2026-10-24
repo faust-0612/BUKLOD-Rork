@@ -217,16 +217,46 @@ async function flushCommunityMediaSignBatch() {
         rememberSignedCommunityMediaUrl(path, url, true);
         resolvePath(path, url);
       } else {
-        negativeCache.set(path, Date.now() + NEGATIVE_CACHE_TTL_MS);
-        resolvePath(path, null);
+        // A partial batch response must not permanently hide an existing
+        // Community photo/video. Retry only the missing path individually.
+        try {
+          const { data: single, error: singleError } = await withBuklodTimeout<any>(
+            storage.createSignedUrl(path, 3600),
+            SIGN_TIMEOUT_MS,
+            'Community media individual sign',
+          );
+          if (singleError) throw singleError;
+          const recovered = String(single?.signedUrl ?? single?.signedURL ?? '').trim();
+          if (!recovered) throw new Error('Missing signed media URL');
+          rememberSignedCommunityMediaUrl(path, recovered, true);
+          resolvePath(path, recovered);
+        } catch {
+          negativeCache.set(path, Date.now() + NEGATIVE_CACHE_TTL_MS);
+          resolvePath(path, null);
+        }
       }
     }
   } catch {
-    const until = Date.now() + NEGATIVE_CACHE_TTL_MS;
-    for (const path of paths) {
-      negativeCache.set(path, until);
-      resolvePath(path, null);
-    }
+    // Batch signing can fail under transient Storage pressure. Recover each
+    // Community media item independently rather than blanking the whole feed.
+    const storage: any = supabase.storage.from('community-media');
+    await Promise.all(paths.map(async path => {
+      try {
+        const { data, error } = await withBuklodTimeout<any>(
+          storage.createSignedUrl(path, 3600),
+          SIGN_TIMEOUT_MS,
+          'Community media fallback sign',
+        );
+        if (error) throw error;
+        const url = String(data?.signedUrl ?? data?.signedURL ?? '').trim();
+        if (!url) throw new Error('Missing signed media URL');
+        rememberSignedCommunityMediaUrl(path, url, true);
+        resolvePath(path, url);
+      } catch {
+        negativeCache.set(path, Date.now() + NEGATIVE_CACHE_TTL_MS);
+        resolvePath(path, null);
+      }
+    }));
   }
 }
 
