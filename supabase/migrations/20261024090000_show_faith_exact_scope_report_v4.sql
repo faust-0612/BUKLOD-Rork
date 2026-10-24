@@ -168,8 +168,7 @@ begin
       count(distinct s.user_id) filter (where coalesce(a.status,'')='REJECTED' or s.status='rejected')::int
     into v_dev_submitted,v_dev_approved,v_dev_checking,v_dev_revision
     from public.devotional_reward_submissions s
-    join public.buklod_scope_memberships m on m.user_id=s.user_id and m.scope_id=p_scope_id and m.membership_status='ACTIVE'
-    left join lateral (
+    join lateral (
       select x.id,x.status
       from public.buklod_scope_formation_approvals_v2 x
       where x.scope_id=p_scope_id and x.learner_id=s.user_id and x.item_kind='DAILY_DEVOTION' and x.item_id=s.id
@@ -182,8 +181,14 @@ begin
   into v_dev_week
   from public.devotional_reward_submissions s
   join public.devotional_completions dc on dc.id=s.completion_id
-  join public.buklod_scope_memberships m on m.user_id=s.user_id and m.scope_id=p_scope_id and m.membership_status='ACTIVE'
-  where dc.completion_date between v_week_start and v_today;
+  where dc.completion_date between v_week_start and v_today
+    and exists (
+      select 1 from public.buklod_scope_formation_approvals_v2 a
+      where a.scope_id=p_scope_id
+        and a.learner_id=s.user_id
+        and a.item_kind='DAILY_DEVOTION'
+        and a.item_id=s.id
+    );
 
   select
     count(distinct a.learner_id) filter (where (a.created_at at time zone 'Asia/Manila')::date=v_today)::int,
