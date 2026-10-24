@@ -49,18 +49,18 @@ import {
 
 /* PATCH_167I_R2_PROFILE_SLOT_TO_NOTIFICATIONS */
 
-type NavKey = 'home' | 'cluster' | 'community' | 'faith' | 'profile';
+type NavKey = 'home' | 'cluster' | 'community' | 'connect' | 'profile';
 type NavItem = {
   key: NavKey;
-  route: '/hub' | '/clusters' | '/buklod' | '/learn' | '/me';
-  icon: 'home-variant-outline' | 'account-group-outline' | 'forum-outline' | 'book-open-outline' | 'account-outline';
+  route: '/hub' | '/clusters' | '/buklod' | '/messages' | '/me';
+  icon: 'home-variant-outline' | 'account-group-outline' | 'forum-outline' | 'message-processing-outline' | 'account-outline';
   label: string;
 };
 const BASE_ITEMS: NavItem[] = [
   { key: 'home', route: '/hub', icon: 'home-variant-outline', label: 'Home' },
   { key: 'cluster', route: '/clusters', icon: 'account-group-outline', label: 'Cluster' },
   { key: 'community', route: '/buklod', icon: 'forum-outline', label: 'Wall' },
-  { key: 'faith', route: '/learn', icon: 'book-open-outline', label: 'Faith' },
+  { key: 'connect', route: '/messages', icon: 'message-processing-outline', label: 'Connect' },
   { key: 'profile', route: '/me', icon: 'account-outline', label: 'Profile' },
 ];
 
@@ -68,7 +68,7 @@ function routeKey(pathname: string): NavKey | null {
   if (pathname === '/hub') return 'home';
   if (pathname === '/clusters') return 'cluster';
   if (pathname === '/buklod' || pathname.startsWith('/post/')) return 'community';
-  if (pathname === '/learn') return 'faith';
+  if (pathname === '/messages' || pathname.startsWith('/connect/')) return 'connect';
   if (pathname === '/me') return 'profile';
   return null;
 }
