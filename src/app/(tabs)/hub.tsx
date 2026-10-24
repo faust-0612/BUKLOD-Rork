@@ -7,8 +7,8 @@ import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 /** Lightweight, on-demand shortcuts. No feed, map, audio, or SOS modules mount here. */
 const shortcuts = [
   { label: 'Drawer', icon: 'view-dashboard-outline', route: '/drawer' },
-  { label: 'PTT', icon: 'microphone-outline', route: '/drawer' },
-  { label: 'BUKLOD Today', icon: 'calendar-today', route: '/hub' },
+  { label: 'PTT', icon: 'microphone-outline', route: null },
+  { label: 'BUKLOD Today', icon: 'calendar-today', route: null },
   { label: 'Map', icon: 'map-outline', route: '/hub' },
   { label: 'SOS', icon: 'shield-alert-outline', route: '/hub' },
 ] as const;
@@ -20,10 +20,10 @@ export default function BuklodLightHome() {
       <Text style={{ fontSize: 24, fontWeight: '800', color: theme.textPrimary }}>BUKLOD Home</Text>
       <Text style={{ color: theme.textPrimary }}>Open tools only when needed. Community Wall remains the default destination.</Text>
       {shortcuts.map(item => (
-        <Pressable key={item.label} accessibilityRole="button" onPress={() => { if (item.route !== '/hub') router.push(item.route as any); }}
+        <Pressable key={item.label} accessibilityRole="button" disabled={!item.route} accessibilityState={{ disabled: !item.route }} onPress={() => { if (item.route) router.push(item.route as any); }}
           style={{ flexDirection: 'row', alignItems: 'center', padding: 18, borderRadius: 14, backgroundColor: theme.canvas, gap: 14 }}>
           <MaterialCommunityIcons name={item.icon} size={24} color={theme.accent} />
-          <Text style={{ fontSize: 16, color: theme.textPrimary, fontWeight: '600' }}>{item.label}{item.route === '/hub' ? ' — unavailable until route verification' : ''}</Text>
+          <Text style={{ fontSize: 16, color: theme.textPrimary, fontWeight: '600' }}>{item.label}{!item.route ? ' — not available' : ''}</Text>
         </Pressable>
       ))}
       <Pressable accessibilityRole="button" onPress={() => router.replace('/buklod' as any)}
