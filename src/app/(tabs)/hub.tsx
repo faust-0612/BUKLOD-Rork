@@ -9,8 +9,8 @@ const shortcuts = [
   { label: 'Drawer', icon: 'view-dashboard-outline', route: '/drawer' },
   { label: 'PTT', icon: 'microphone-outline', route: null },
   { label: 'BUKLOD Today', icon: 'calendar-today', route: null },
-  { label: 'Map', icon: 'map-outline', route: '/hub' },
-  { label: 'SOS', icon: 'shield-alert-outline', route: '/hub' },
+  { label: 'Map', icon: 'map-outline', route: null },
+  { label: 'SOS', icon: 'shield-alert-outline', route: null },
 ] as const;
 
 export default function BuklodLightHome() {
