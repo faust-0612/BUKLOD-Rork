@@ -1,6 +1,6 @@
 {
   "objective": "Android Back from Cluster list returns to Community Wall",
-  "baseRef": "main",
+  "baseRef": "61c3abd01478a89dfc2375f10e164ac7c03d4c2c",
   "productionBaselineEvidence": "Reconciled against current main; verify live OTA independently before release",
   "allowedPaths": [
     "src/app/clusters/index.tsx",
