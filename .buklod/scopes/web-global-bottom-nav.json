@@ -1,0 +1,16 @@
+{
+  "objective": "Restore existing global bottom navigation on signed-in mobile web public routes only",
+  "baseRef": "5203d3b23e209ba290f11e61f538d7dd9d360d79",
+  "allowedPaths": [
+    "src/components/BuklodMobileWebShell.tsx",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/web-global-bottom-nav.json"
+  ],
+  "acceptanceChecks": [
+    "Existing five tabs visible on signed-in public mobile web routes",
+    "Login, scoped workspace and immersive routes keep existing hiding behavior",
+    "No Android or database modifications",
+    "TypeScript, accountability and web export pass before release"
+  ],
+  "productionBaselineEvidence": "Web Production Deploy run 40105043705 succeeded on main SHA 5203d3b23e209ba290f11e61f538d7dd9d360d79. Live browser fingerprint and interactive navigation require verification before declaring production complete."
+}

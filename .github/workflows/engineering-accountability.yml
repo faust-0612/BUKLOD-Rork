@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            fix/web-global-bottom-nav-20261024)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/web-global-bottom-nav.json" >> "$GITHUB_ENV";;
             fix/video-stale-signed-url-20261024)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/video-stale-signed-url.json" >> "$GITHUB_ENV";;
             fix/home-real-tools-wall-cleanup-20261024)
