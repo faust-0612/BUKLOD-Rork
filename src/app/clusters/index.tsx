@@ -359,14 +359,13 @@ export default function ClustersScreen() {
           groups.
         </Text>
 
-        <ActionButton
-          title="CREATE A CLUSTER"
-          onPress={() =>
-            router.push(
-              '/clusters/create' as any
-            )
-          }
-        />
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push('/clusters/create' as any)}
+          style={styles.createClusterCompact}
+        >
+          <Text style={styles.createClusterCompactText}>+ Create Cluster</Text>
+        </Pressable>
       </View>
 
       {loading ? (
@@ -616,6 +615,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E1E7E3',
     gap: 8,
+  },
+
+  createClusterCompact: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#2D6A4F',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    minHeight: 36,
+    justifyContent: 'center',
+  },
+
+  createClusterCompactText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
   },
 
   eyebrow: {
