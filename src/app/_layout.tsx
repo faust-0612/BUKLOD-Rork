@@ -1,7 +1,6 @@
 import BuklodPttGlobalHost from '@/components/BuklodPttGlobalHost';
 import BuklodNavSafeShell from '@/components/BuklodNavSafeShell';
 import BuklodRootKeyboardAvoidingView from '@/components/BuklodRootKeyboardAvoidingView';
-import BuklodGuideAvatarDeferred from '@/components/BuklodGuideAvatarDeferred';
 import BuklodFormationEntryScopeTracker from '@/components/BuklodFormationEntryScopeTracker';
 import BuklodTrustedDeviceGate from '@/components/BuklodTrustedDeviceGate';
 import '@/lib/performanceBoot';
@@ -32,8 +31,6 @@ import BuklodProfitFirstIdentityBootstrap from '@/components/BuklodProfitFirstId
 import { colors } from '@/lib/theme';
 import { StreamVideoProvider } from '@/providers/StreamVideoProvider';
 import { BuklodThemeProvider } from '@/providers/BuklodThemeProvider';
-import { BuklodCharacterEventProvider } from '@/components/character/BuklodCharacterEventProvider';
-import RorkAvatarOnboardingGate from '@/components/character/RorkAvatarOnboardingGate';
 import BuklodMainHealthAgent from '@/components/BuklodMainHealthAgent';
 import BuklodSyncCoordinator from '@/components/BuklodSyncCoordinator';
 import BuklodMainBrandIntro from '@/components/BuklodMainBrandIntro';
@@ -180,8 +177,6 @@ function RootLayout() {
         <BuklodTrustedDeviceGate>
         <BuklodBibleNarrationProvider>
         <BuklodThemeProvider>
-        <BuklodCharacterEventProvider>
-        <RorkAvatarOnboardingGate />
         <BuklodScopeProvider>
         <BuklodFormationEntryScopeTracker />
         <BuklodFoundationProvider>
@@ -371,7 +366,6 @@ function RootLayout() {
             </BuklodRootKeyboardAvoidingView>
             </StreamVideoProvider>
                       {/* PATCH_163A_R_ROOT_GUIDE */}
-            <BuklodGuideAvatarDeferred />
           </NotificationProvider>
     </AdsProvider>
           </RuntimeConfigProvider>
@@ -380,7 +374,6 @@ function RootLayout() {
         </BuklodFeedbackProvider>
             </BuklodFoundationProvider>
             </BuklodScopeProvider>
-        </BuklodCharacterEventProvider>
         </BuklodThemeProvider>
         </BuklodBibleNarrationProvider>
         </BuklodTrustedDeviceGate>
