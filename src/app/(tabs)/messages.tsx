@@ -599,24 +599,31 @@ function ConnectScreenInner({
     let nextSuggested = suggested;
 
     if (!nextSuggested.length && !p.error && Array.isArray(p.data)) {
-      nextSuggested = await enrichConnectSuggestedContactsWithNotes(
-        (p.data ?? [])
-          .map((thread: any) => ({
-            user_id: String(thread.other_user_id ?? ''),
-            full_name: String(thread.other_user_name ?? 'BUKLOD Member'),
-            avatar_url: thread.other_avatar_url
-              ? String(thread.other_avatar_url)
-              : null,
-            shared_scope_label: 'Recent chat',
-            rank_name: null,
-            thread_id: thread.thread_id
-              ? String(thread.thread_id)
-              : null,
-            unread_count: Number(thread.unread_count ?? 0),
-            quick_note: null,
-          }))
-          .filter((row: ConnectSuggestedContact) => !!row.user_id)
-      );
+      const recentContacts = (p.data ?? [])
+        .map((thread: any) => ({
+          user_id: String(thread.other_user_id ?? ''),
+          full_name: String(thread.other_user_name ?? 'BUKLOD Member'),
+          avatar_url: thread.other_avatar_url
+            ? String(thread.other_avatar_url)
+            : null,
+          shared_scope_label: 'Recent chat',
+          rank_name: null,
+          thread_id: thread.thread_id
+            ? String(thread.thread_id)
+            : null,
+          unread_count: Number(thread.unread_count ?? 0),
+          quick_note: null,
+        }))
+        .filter((row: ConnectSuggestedContact) => !!row.user_id);
+      // Optional notes must never block the Connect inbox.
+      nextSuggested = recentContacts;
+      if (recentContacts.length) {
+        nextSuggested = await withBuklodTimeout(
+          enrichConnectSuggestedContactsWithNotes(recentContacts),
+          2000,
+          'Connect contact notes'
+        ).catch(() => recentContacts);
+      }
     }
 
     if (!p.error) {
@@ -637,7 +644,8 @@ function ConnectScreenInner({
       );
     }
 
-    setSuggestedContacts(nextSuggested);
+    // Retain previously loaded suggestions on transient empty responses.
+    setSuggestedContacts(current => nextSuggested.length ? nextSuggested : current);
 
   }, [profileId, connectOnline]);
 
