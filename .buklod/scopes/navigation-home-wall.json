@@ -1,7 +1,7 @@
 {
   "objective": "Restore Home | Cluster | Wall | Connect | Profile navigation with Wall default and remove only Floating Guide Avatar",
   "baseRef": "b0cc81dc962920f84fa9bd6281ad8db58f78d131",
-  "productionBaselineEvidence": "PR #307 comparison base verified via GitHub compare: merge base b0cc81dc962920f84fa9bd6281ad8db58f78d131; six navigation files differ at 29abfa6bb10cae1d988e327c75f80e309f46aac6. This is a PR comparison baseline, not evidence of the live OTA. Independent live production baseline, runtime 1.3.2 and exact RC verification remain mandatory before publication.",
+  "productionBaselineEvidence": "PR #307 comparison base verified via GitHub compare: merge base b0cc81dc962920f84fa9bd6281ad8db58f78d131; six navigation files differ at 29abfa6bb10cae1d988e327c75f80e309f46aac6. This is a PR comparison baseline, not evidence of the live OTA. Independent live production baseline, runtime 1.3.2 and exact RC verification remain mandatory before publication. Publication run 40040385522 verified OTA 01a16b21-12af-77a0-814a-218a5f5c22ea runtime 1.3.2 source 14247804dad87dc23f0b3adeaba88c31e3b6697d; GitHub compare confirms this production source is an ancestor of the PR.",
   "allowedPaths": [
     "src/app/(tabs)/_layout.tsx",
     "src/app/(tabs)/hub.tsx",
@@ -10,7 +10,9 @@
     "src/components/BuklodNavSafeShell.tsx",
     "src/components/BuklodPersistentBottomNav.tsx",
     ".buklod/scopes/navigation-home-wall.json",
-    ".github/workflows/engineering-accountability.yml"
+    ".github/workflows/engineering-accountability.yml",
+    "src/app/(tabs)/buklod.tsx",
+    "scripts/test-navigation-home-wall.cjs"
   ],
   "acceptanceChecks": [
     "Five tabs in approved order; Community Wall stays default",

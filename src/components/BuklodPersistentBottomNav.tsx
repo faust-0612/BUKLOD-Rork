@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {
+  Alert,
   Keyboard,
   StyleSheet,
   Text,
@@ -153,20 +154,26 @@ BuklodPersistentBottomNav() {
    *
    * Scoped Organization navigation stays in the TOP bar.
    */
-  const openGlobalDestination = (route: NavItem['route']) => {
-    if (isOnGlobalNavDestination(normalizedPath, route)) return;
-    setPendingRoute(route);
-    buklodInstantReplace(route as any);
+  const navigationInFlight = React.useRef(false);
+  const openGlobalDestination = async (route: NavItem['route']) => {
+    if (navigationInFlight.current) return;
     const needsScopeReset = activeScope?.scope_type === 'ORGANIZATION' || activeScope?.scope_type === 'CLUSTER';
-    if (needsScopeReset) {
-      const publicScope = scopes.find(scope => scope.scope_type === 'PUBLIC');
-      if (publicScope) {
-        queueMicrotask(() => {
-          void selectScope(publicScope.scope_id).catch(error => {
-            console.warn('BUKLOD global nav scope reset:', error);
-          });
-        });
+    if (isOnGlobalNavDestination(normalizedPath, route) && !needsScopeReset) return;
+    navigationInFlight.current = true;
+    setPendingRoute(route);
+    try {
+      if (needsScopeReset) {
+        const publicScope = scopes.find(scope => scope.scope_type === 'PUBLIC');
+        if (!publicScope) throw new Error('Hindi pa ma-load ang Public community. Subukang muli.');
+        // selectScope applies the local scope immediately; server persistence is non-blocking.
+        await selectScope(publicScope.scope_id);
       }
+      buklodInstantReplace(route);
+    } catch (error) {
+      setPendingRoute(null);
+      Alert.alert('Hindi mabuksan', error instanceof Error ? error.message : 'Subukang muli.');
+    } finally {
+      navigationInFlight.current = false;
     }
   };
 

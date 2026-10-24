@@ -33,3 +33,6 @@ jobs:
           esac
       - name: Verify scope contract
         run: node scripts/engineering-accountability-gate.mjs
+      - name: Verify navigation and scope transitions
+        if: github.head_ref == 'codex/nav-home-wall-isolation-20261024' || github.ref_name == 'codex/nav-home-wall-isolation-20261024'
+        run: node scripts/test-navigation-home-wall.cjs
