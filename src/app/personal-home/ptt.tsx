@@ -4,6 +4,7 @@ import {
   Alert,
   AppState,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -15,6 +16,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 import BuklodAdMobBanner from '@/components/BuklodAdMobBanner';
+import { supabase } from '@/lib/supabase';
 import { useNetwork } from '@/providers/NetworkProvider';
 import {
   loadBuklodPttScopes,
@@ -45,6 +47,15 @@ import {
   type BuklodPttRouteMode,
   type BuklodPttSetupSnapshot,
 } from '@/ptt/buklodPttSetup';
+import {
+  getBuklodNearbyPttPeers,
+  isBuklodNearbyPttAvailable,
+  startBuklodNearbyPtt,
+  startBuklodNearbyPttTransmit,
+  stopBuklodNearbyPtt,
+  stopBuklodNearbyPttTransmit,
+  type BuklodNearbyPttPeer,
+} from '@/ptt/buklodNearbyPtt';
 
 type StatusTone = 'ready' | 'warn' | 'bad' | 'info';
 
@@ -52,12 +63,6 @@ type StatusCard = {
   tone: StatusTone;
   title: string;
   detail: string;
-};
-
-type NearbyPeer = {
-  id: string;
-  name: string;
-  signal: 'Ready' | 'Weak signal';
 };
 
 function toneColor(tone: StatusTone) {
@@ -84,11 +89,21 @@ function LiveHoldButton({
   talkMode,
   enabled,
   onNeedConnect,
+  transport,
+  nearbyPeerCount,
+  nearbyTransmitting,
+  onNearbyDown,
+  onNearbyUp,
 }: {
   runtime: BuklodPttRuntimeState;
   talkMode: BuklodPttKind;
   enabled: boolean;
   onNeedConnect: () => Promise<boolean>;
+  transport: 'INTERNET' | 'NEARBY';
+  nearbyPeerCount: number;
+  nearbyTransmitting: boolean;
+  onNearbyDown: () => Promise<void>;
+  onNearbyUp: () => Promise<void>;
 }) {
   const connection = runtime.connection;
   const [participants, setParticipants] = useState<any[]>(
@@ -98,7 +113,7 @@ function LiveHoldButton({
   const heldRef = useRef(false);
 
   useEffect(() => {
-    if (!connection) {
+    if (transport !== 'INTERNET' || !connection) {
       setParticipants([]);
       return;
     }
@@ -108,20 +123,30 @@ function LiveHoldButton({
       (next: any[]) => setParticipants(next ?? []),
     );
     return () => participantSub.unsubscribe();
-  }, [connection]);
+  }, [connection, transport]);
 
   const remoteSpeaker = useMemo(
     () =>
-      participants.find(
-        (p: any) =>
-          p.userId !== connection?.userId && Boolean(p.isSpeaking),
-      ) as any,
-    [participants, connection?.userId],
+      transport === 'INTERNET'
+        ? (participants.find(
+            (p: any) =>
+              p.userId !== connection?.userId && Boolean(p.isSpeaking),
+          ) as any)
+        : null,
+    [participants, connection?.userId, transport],
   );
 
   const blocked =
-    Boolean(remoteSpeaker) && !runtime.transmitting && talkMode === 'NORMAL';
-  const tx = runtime.transmitting;
+    transport === 'INTERNET' &&
+    Boolean(remoteSpeaker) &&
+    !runtime.transmitting &&
+    talkMode === 'NORMAL';
+
+  const tx =
+    transport === 'NEARBY'
+      ? nearbyTransmitting
+      : runtime.transmitting;
+
   const speakerName =
     remoteSpeaker?.name || remoteSpeaker?.user?.name || 'Another member';
 
@@ -133,9 +158,11 @@ function LiveHoldButton({
         ? 'TRANSMITTING...'
         : remoteSpeaker
           ? `RECEIVING — ${speakerName}`
-          : held
-            ? 'CONNECTING...'
-            : 'HOLD TO TALK';
+          : transport === 'NEARBY' && nearbyPeerCount > 0
+            ? `HOLD TO TALK · ${nearbyPeerCount} NEARBY`
+            : held
+              ? 'CONNECTING...'
+              : 'HOLD TO TALK';
 
   const hint = !enabled
     ? 'Finish setup above, then hold to speak.'
@@ -143,14 +170,31 @@ function LiveHoldButton({
       ? 'Wait for them to finish, or use Priority / SOS.'
       : remoteSpeaker && !tx
         ? 'Release stays listen mode. Hold when the channel is clear.'
-        : 'Hold the button while speaking. Release when finished.';
+        : transport === 'NEARBY'
+          ? 'Offline radio uses nearby Bluetooth/Wi-Fi. Hold while speaking; release to listen.'
+          : 'Hold the button while speaking. Release when finished.';
 
   const down = async () => {
     if (!enabled || blocked) return;
+
+    if (transport === 'NEARBY') {
+      try {
+        await onNearbyDown();
+      } catch (error: any) {
+        if (!heldRef.current) return;
+        Alert.alert(
+          'Offline Nearby PTT',
+          error?.message || 'Could not start nearby transmission.',
+        );
+      }
+      return;
+    }
+
     if (!runtime.connection) {
       const ok = await onNeedConnect();
       if (!ok || !heldRef.current) return;
     }
+
     try {
       await pttDown(talkMode);
     } catch (error: any) {
@@ -165,6 +209,12 @@ function LiveHoldButton({
   const up = async () => {
     heldRef.current = false;
     setHeld(false);
+
+    if (transport === 'NEARBY') {
+      await onNearbyUp().catch(() => undefined);
+      return;
+    }
+
     await pttUp().catch(() => undefined);
   };
 
@@ -226,8 +276,12 @@ export default function BuklodPttScreen() {
   const [setupBusy, setSetupBusy] = useState<string | null>(null);
   const [showSetupDetails, setShowSetupDetails] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [nearbyPeers] = useState<NearbyPeer[]>([]);
+  const [nearbyPeers, setNearbyPeers] = useState<BuklodNearbyPttPeer[]>([]);
   const [nearbySearching, setNearbySearching] = useState(false);
+  const [nearbyTransmitting, setNearbyTransmitting] = useState(false);
+  const [nearbyNativeAvailable, setNearbyNativeAvailable] = useState(
+    () => Platform.OS === 'android' && isBuklodNearbyPttAvailable(),
+  );
   const [setup, setSetup] = useState<BuklodPttSetupSnapshot | null>(null);
   const [runtime, setRuntime] = useState(getBuklodPttRuntimeState());
   const connectLock = useRef(false);
@@ -376,6 +430,14 @@ export default function BuklodPttScreen() {
     }
 
     // NEARBY path
+    if (!nearbyNativeAvailable) {
+      return {
+        tone: 'bad',
+        title: 'Offline Nearby native radio unavailable',
+        detail: 'Install the latest BUKLOD Android native build to use Offline Nearby PTT.',
+      };
+    }
+
     if (setup.wifiOn === false) {
       return {
         tone: 'bad',
@@ -416,16 +478,134 @@ export default function BuklodPttScreen() {
     busy,
     nearbySearching,
     nearbyPeers.length,
+    nearbyNativeAvailable,
   ]);
 
   const chooseRoute = async (next: BuklodPttRouteMode) => {
     setRouteMode(next);
     await saveBuklodPttRouteMode(next);
-    if (next === 'NEARBY' || (next === 'AUTO' && !network.online)) {
-      setNearbySearching(true);
-      setTimeout(() => setNearbySearching(false), 2200);
+
+    if (next !== 'INTERNET' && setup && !setup.nearby) {
+      const nearbyItem = setup.items.find((item) => item.key === 'nearby');
+      if (nearbyItem?.action) {
+        await runSetupAction('nearby', nearbyItem.action);
+      }
     }
   };
+
+  useEffect(() => {
+    let active = true;
+    let pollTimer: ReturnType<typeof setInterval> | null = null;
+    let settleTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const stopPolling = () => {
+      if (pollTimer) clearInterval(pollTimer);
+      if (settleTimer) clearTimeout(settleTimer);
+      pollTimer = null;
+      settleTimer = null;
+    };
+
+    if (
+      routeMode === 'INTERNET' ||
+      !scope ||
+      Platform.OS !== 'android' ||
+      !setup?.nearby
+    ) {
+      stopPolling();
+      setNearbyPeers([]);
+      setNearbySearching(false);
+      setNearbyTransmitting(false);
+      void stopBuklodNearbyPtt().catch(() => undefined);
+      return () => {
+        stopPolling();
+      };
+    }
+
+    const available = isBuklodNearbyPttAvailable();
+    setNearbyNativeAvailable(available);
+
+    if (!available) {
+      setNearbyPeers([]);
+      setNearbySearching(false);
+      return () => {
+        stopPolling();
+      };
+    }
+
+    setNearbySearching(true);
+    setNearbyTransmitting(false);
+
+    void (async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const displayName = String(
+        session?.user?.user_metadata?.full_name ||
+          session?.user?.user_metadata?.name ||
+          session?.user?.email ||
+          'BUKLOD Member',
+      );
+
+      await startBuklodNearbyPtt(
+        scope.id,
+        channel,
+        displayName,
+      );
+
+      if (!active) {
+        await stopBuklodNearbyPtt().catch(() => undefined);
+        return;
+      }
+
+      const refreshPeers = () => {
+        if (!active) return;
+        const peers = getBuklodNearbyPttPeers();
+        setNearbyPeers(peers);
+        if (peers.length > 0) {
+          setNearbySearching(false);
+        }
+      };
+
+      refreshPeers();
+      pollTimer = setInterval(refreshPeers, 800);
+      settleTimer = setTimeout(() => {
+        if (active) setNearbySearching(false);
+      }, 3000);
+    })().catch((error: any) => {
+      if (!active) return;
+      setNearbySearching(false);
+      setNearbyPeers([]);
+      Alert.alert(
+        'Offline Nearby PTT',
+        error?.message || 'Could not start Bluetooth/Wi-Fi nearby radio.',
+      );
+    });
+
+    return () => {
+      active = false;
+      stopPolling();
+      setNearbyTransmitting(false);
+      void stopBuklodNearbyPttTransmit().catch(() => undefined);
+      void stopBuklodNearbyPtt().catch(() => undefined);
+    };
+  }, [routeMode, scope?.id, channel, setup?.nearby]);
+
+  useEffect(() => {
+    if (effectiveRoute !== 'NEARBY') return;
+    if (!runtime.connection) return;
+    void disconnectBuklodPttRuntime().catch(() => undefined);
+  }, [effectiveRoute, runtime.connection]);
+
+  const nearbyDown = useCallback(async () => {
+    await startBuklodNearbyPttTransmit();
+    setNearbyTransmitting(true);
+  }, []);
+
+  const nearbyUp = useCallback(async () => {
+    setNearbyTransmitting(false);
+    await stopBuklodNearbyPttTransmit();
+  }, []);
 
   const connectInternet = useCallback(async () => {
     if (!scope || connectLock.current) return false;
@@ -506,7 +686,13 @@ export default function BuklodPttScreen() {
     if (busy) return;
     setBusy(true);
     try {
-      await disconnectBuklodPttRuntime();
+      await Promise.all([
+        disconnectBuklodPttRuntime(),
+        stopBuklodNearbyPttTransmit().catch(() => false),
+        stopBuklodNearbyPtt().catch(() => false),
+      ]);
+      setNearbyPeers([]);
+      setNearbyTransmitting(false);
       setTalkMode('NORMAL');
     } finally {
       setBusy(false);
@@ -542,13 +728,16 @@ export default function BuklodPttScreen() {
   const holdEnabled =
     effectiveRoute === 'INTERNET'
       ? Boolean(setup?.microphone) && (setup?.internet ?? network.online) && Boolean(scope)
-      : nearbyPeers.length > 0 && Boolean(setup?.microphone);
+      : nearbyNativeAvailable &&
+        nearbyPeers.length > 0 &&
+        Boolean(setup?.microphone);
 
   const showNearbyFallback =
     effectiveRoute === 'NEARBY' &&
     !nearbySearching &&
     nearbyPeers.length === 0 &&
-    Boolean(setup);
+    Boolean(setup) &&
+    nearbyNativeAvailable;
 
   return (
     <View style={{ flex: 1, backgroundColor: '#030A10' }}>
@@ -778,6 +967,11 @@ export default function BuklodPttScreen() {
               talkMode={talkMode}
               enabled={holdEnabled}
               onNeedConnect={connectInternet}
+              transport={effectiveRoute}
+              nearbyPeerCount={nearbyPeers.length}
+              nearbyTransmitting={nearbyTransmitting}
+              onNearbyDown={nearbyDown}
+              onNearbyUp={nearbyUp}
             />
 
             <Text style={styles.sectionLabel}>TALK PRIORITY</Text>

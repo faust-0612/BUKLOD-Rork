@@ -8,6 +8,10 @@ import {
   Platform,
 } from 'react-native';
 
+import {
+  isBuklodNearbyBluetoothEnabled,
+} from './buklodNearbyPtt';
+
 export type BuklodPttRouteMode = 'AUTO' | 'INTERNET' | 'NEARBY';
 
 export type BuklodPttSetupItemKey =
@@ -107,11 +111,21 @@ async function ensureNearbyPermission(): Promise<boolean> {
     if (api >= 31 && PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT) {
       perms.push(PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT);
     }
+    if (api >= 31 && (PermissionsAndroid.PERMISSIONS as any).BLUETOOTH_ADVERTISE) {
+      perms.push((PermissionsAndroid.PERMISSIONS as any).BLUETOOTH_ADVERTISE);
+    }
     if (api >= 31 && PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN) {
       perms.push(PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN);
     }
     if (api >= 33 && (PermissionsAndroid.PERMISSIONS as any).NEARBY_WIFI_DEVICES) {
       perms.push((PermissionsAndroid.PERMISSIONS as any).NEARBY_WIFI_DEVICES);
+    }
+    if (
+      api >= 23 &&
+      api <= 32 &&
+      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+    ) {
+      perms.push(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
     }
 
     if (!perms.length) return true;
@@ -201,10 +215,35 @@ export async function refreshBuklodPttSetup(): Promise<BuklodPttSetupSnapshot> {
           PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT),
         );
       }
+      if (api >= 31 && (PermissionsAndroid.PERMISSIONS as any).BLUETOOTH_SCAN) {
+        checks.push(
+          PermissionsAndroid.check(
+            (PermissionsAndroid.PERMISSIONS as any).BLUETOOTH_SCAN,
+          ),
+        );
+      }
+      if (api >= 31 && (PermissionsAndroid.PERMISSIONS as any).BLUETOOTH_ADVERTISE) {
+        checks.push(
+          PermissionsAndroid.check(
+            (PermissionsAndroid.PERMISSIONS as any).BLUETOOTH_ADVERTISE,
+          ),
+        );
+      }
       if (api >= 33 && (PermissionsAndroid.PERMISSIONS as any).NEARBY_WIFI_DEVICES) {
         checks.push(
           PermissionsAndroid.check(
             (PermissionsAndroid.PERMISSIONS as any).NEARBY_WIFI_DEVICES,
+          ),
+        );
+      }
+      if (
+        api >= 23 &&
+        api <= 32 &&
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+      ) {
+        checks.push(
+          PermissionsAndroid.check(
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
           ),
         );
       }
@@ -219,7 +258,10 @@ export async function refreshBuklodPttSetup(): Promise<BuklodPttSetupSnapshot> {
   const internet =
     net?.isConnected === true && net?.isInternetReachable === true;
   const wifiOn = wifiConnected ? true : connectionType === 'none' ? false : null;
-  const bluetoothOn = nearby ? null : null;
+  const bluetoothOn =
+    Platform.OS === 'android'
+      ? isBuklodNearbyBluetoothEnabled()
+      : null;
 
   const items: BuklodPttSetupItem[] = [
     {
@@ -268,9 +310,9 @@ export async function refreshBuklodPttSetup(): Promise<BuklodPttSetupSnapshot> {
     {
       key: 'bluetooth',
       label: 'Bluetooth',
-      ok: true,
-      actionLabel: null,
-      action: null,
+      ok: bluetoothOn !== false,
+      actionLabel: bluetoothOn === false ? 'TURN ON BLUETOOTH' : null,
+      action: bluetoothOn === false ? openBluetoothSettings : null,
     },
     {
       key: 'background',

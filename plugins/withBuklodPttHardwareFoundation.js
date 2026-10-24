@@ -2,11 +2,14 @@ const { withAndroidManifest } = require('@expo/config-plugins');
 
 const PERMISSIONS = [
   ['android.permission.BLUETOOTH_SCAN', 'neverForLocation'],
+  ['android.permission.BLUETOOTH_ADVERTISE', null],
   ['android.permission.BLUETOOTH_CONNECT', null],
   ['android.permission.NEARBY_WIFI_DEVICES', 'neverForLocation'],
   ['android.permission.ACCESS_WIFI_STATE', null],
   ['android.permission.CHANGE_WIFI_STATE', null],
+  ['android.permission.FOREGROUND_SERVICE', null],
   ['android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE', null],
+  ['android.permission.FOREGROUND_SERVICE_MICROPHONE', null],
 ];
 
 function ensurePermission(manifest, name, flags) {
