@@ -1,0 +1,16 @@
+{
+  "objective": "Android Back from Cluster list view returns to Community Wall",
+  "baseRef": "5203d3b23e209ba290f11e61f538d7dd9d360d79",
+  "productionBaselineEvidence": "DEV branch based on main; live production OTA and RC require independent verification.",
+  "allowedPaths": [
+    "src/app/clusters/index.tsx",
+    ".buklod/scopes/cluster-back-wall.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "acceptanceChecks": [
+    "Android hardware Back from focused Cluster list returns to Community Wall",
+    "Nested Cluster Home and scope navigation unchanged",
+    "Engineering Accountability and focused navigation checks pass",
+    "Verify immutable RC and production OTA before release"
+  ]
+}
