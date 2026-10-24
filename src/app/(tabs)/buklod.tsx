@@ -63,10 +63,8 @@ import { useBuklodCommunityAdViewability } from '@/hooks/useBuklodCommunityAdVie
 /* PATCH_179D_FIX_COMMUNITY_IMAGE_STABLE_CACHE */
 import BuklodPublicLocationChips from '@/components/BuklodPublicLocationChips';
 import BuklodMaritesBoard from '@/components/BuklodMaritesBoard';
-import BuklodTodayCard from '@/components/BuklodTodayCard';
 import BuklodCommunityContributionCard from '@/components/BuklodCommunityContributionCard';
 import { assertCommunityVideoQuotaAvailable } from '@/lib/buklodCommunityContributionEconomy';
-import SmartDrawerWallCard from '@/components/SmartDrawerWallCard';
 import BuklodLifeWallCard from '@/components/BuklodLifeWallCard';
 import KabihasnangLigawWallCard from '@/components/KabihasnangLigawWallCard';
 import BuklodCommunityWallProfileBubbles from '@/components/BuklodCommunityWallProfileBubbles';
@@ -4625,27 +4623,11 @@ const communityFeedRows =
     placementId="public_wall_entry"
    />
 
-   <SmartDrawerWallCard />
-
    {/* BUKLOD_LIFE_WALL_ENTRY_R1 */}
    <BuklodLifeWallCard />
 
-   {/* KL_R5_COMMUNITY_DASHBOARD_PLACEMENT: LIFE → story → BUKLOD TODAY */}
+   {/* Home-only BUKLOD Today; story remains a Community Wall post card. */}
    <KabihasnangLigawWallCard />
-
-   <BuklodTodayCard
-    onRespond={(draft)=>{
-      if(draft?.trim()){
-        setBody(current=>{
-          const next=draft.trim();
-          if(!current.trim())return next;
-          if(current.includes(next))return current;
-          return `${current.trim()}\n\n${next}`;
-        });
-      }
-      activateComposerIntent('post');
-    }}
-   />
 
    <BuklodMaritesBoard
     playbackBlocked={commentOpen}
