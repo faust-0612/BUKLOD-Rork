@@ -3,6 +3,7 @@ import React from 'react';
 import {
   Alert,
   Keyboard,
+  Platform,
   StyleSheet,
   Text,
   View,
@@ -157,13 +158,13 @@ BuklodPersistentBottomNav() {
   const navigationInFlight = React.useRef(false);
   const lastRequestedRoute = React.useRef<NavItem['route'] | null>(null);
   const openGlobalDestination = async (route: NavItem['route']) => {
-    if (navigationInFlight.current) {
+    if (Platform.OS === 'web' && navigationInFlight.current) {
       // Do not discard a user's second tab choice while a scope switch is pending.
       lastRequestedRoute.current = route;
       setPendingRoute(route);
       return;
     }
-    lastRequestedRoute.current = route;
+    if (Platform.OS === 'web') lastRequestedRoute.current = route;
     const needsScopeReset = activeScope?.scope_type === 'ORGANIZATION' || activeScope?.scope_type === 'CLUSTER';
     if (isOnGlobalNavDestination(normalizedPath, route) && !needsScopeReset) return;
     navigationInFlight.current = true;
@@ -175,7 +176,7 @@ BuklodPersistentBottomNav() {
         // selectScope applies the local scope immediately; server persistence is non-blocking.
         await selectScope(publicScope.scope_id);
       }
-      buklodInstantReplace(lastRequestedRoute.current ?? route);
+      buklodInstantReplace(Platform.OS === 'web' ? (lastRequestedRoute.current ?? route) : route);
     } catch (error) {
       setPendingRoute(null);
       Alert.alert('Hindi mabuksan', error instanceof Error ? error.message : 'Subukang muli.');
@@ -242,7 +243,7 @@ BuklodPersistentBottomNav() {
             instant
             onPressIn={() => {
               // Visual response begins on touch-down; navigation remains release-only.
-              setPendingRoute(item.route);
+              if (Platform.OS === 'web') setPendingRoute(item.route);
             }}
             onPressOut={() => {
               if (!navigationInFlight.current && normalizedPath === item.route) {
