@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            fix/home-cards-wall-isolation-20261024)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/home-cards-wall-isolation.json" >> "$GITHUB_ENV";;
             codex/nav-home-wall-isolation-20261024)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/navigation-home-wall.json" >> "$GITHUB_ENV";;
             chore/production-performance-isolation-gates-20261024)
