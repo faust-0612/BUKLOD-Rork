@@ -21,7 +21,6 @@ import {
   ProfileMotionFadeUp,
   ProfilePressable,
 } from '@/components/BuklodProfileMotion';
-import BuklodProfileCharacterCard from '@/components/points/BuklodProfileCharacterCard';
 import BuklodReferralInviteCard from '@/components/BuklodReferralInviteCard';
 import {
   resolveContrastPaint,
@@ -1811,11 +1810,6 @@ export default function MeScreen() {
       <View style={styles.sectionPad}>
         <BuklodSystemAnnouncementBoard slot="profile" />
       </View>
-
-      <BuklodProfileCharacterCard
-        lifetimePoints={lifetimePoints}
-        rankName={circleRank}
-      />
 
       {referralSection}
 
