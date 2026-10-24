@@ -1,0 +1,17 @@
+{
+  "objective": "Dock Connect personal and community message composer directly above public bottom navigation",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub PR #312 compares against main at ef80043e1bafb5d5e71843970d4743e297840596; last independently reported production OTA 01a16b21-12af-77a0-814a-218a5f5c22ea runtime 1.3.2; production reconciliation and immutable RC still required before publish.",
+  "allowedPaths": [
+    "src/components/BuklodConnectThread.tsx",
+    ".buklod/scopes/connect-composer-nav-dock.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "acceptanceChecks": [
+    "Public Connect personal and community composer flush above bottom navigation",
+    "Keyboard-open composer remains visible and accessible",
+    "Scoped standalone chat retains safe-area clearance",
+    "Performance QA and Engineering Accountability pass",
+    "Reconcile production baseline and freeze RC before production OTA"
+  ]
+}
