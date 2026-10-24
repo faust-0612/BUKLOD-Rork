@@ -18,7 +18,16 @@ begin
     where s.id = p_scope_id
       and s.scope_type in ('CLUSTER', 'ORGANIZATION')
       and s.status not in ('SUSPENDED', 'DELETED')
-  ) or not public.buklod_is_exact_scope_admin_v1(p_scope_id, auth.uid()) then
+  ) or not (
+    public.buklod_is_exact_scope_admin_v1(p_scope_id, auth.uid())
+    or (
+      exists (
+        select 1 from public.buklod_scopes s
+        where s.id = p_scope_id and s.scope_type = 'CLUSTER'
+      )
+      and public.buklod_is_cluster_approver(p_scope_id, auth.uid())
+    )
+  ) then
     raise exception 'Not authorized to view this scope report' using errcode = '42501';
   end if;
 
