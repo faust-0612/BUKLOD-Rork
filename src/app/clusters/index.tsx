@@ -8,6 +8,8 @@
 
 import {
   ActivityIndicator,
+  BackHandler,
+  Platform,
   Alert,
   Pressable,
   RefreshControl,
@@ -17,7 +19,7 @@ import {
   View,
 } from 'react-native';
 
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
 
@@ -159,6 +161,14 @@ function ClusterCard({
 }
 
 export default function ClustersScreen() {
+  useFocusEffect(useCallback(() => {
+    if (Platform.OS !== 'android') return;
+    const listener = BackHandler.addEventListener('hardwareBackPress', () => {
+      router.replace('/(tabs)/buklod' as any);
+      return true;
+    });
+    return () => listener.remove();
+  }, []));
   const { selectScope } = useBuklodScope();
   const openCluster = useCallback((id: string) => {
     void enterScopedWorkspace(selectScope, id, { section: 'home', navigation: 'replace' }).catch((error) => {
