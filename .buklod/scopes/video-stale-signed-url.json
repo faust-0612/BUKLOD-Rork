@@ -1,0 +1,18 @@
+{
+  "objective": "Re-sign stale cached Community media URLs without changing media records or access rules",
+  "baseRef": "3af2c86864eb736f4c143394ff62908bb7c80ef2",
+  "productionBaselineEvidence": "Latest main at inspection; Android workflow #157 and Web #150 reported success for this SHA. Independent live fingerprint and frozen RC verification remain required before release.",
+  "allowedPaths": [
+    "src/lib/buklodMediaUrl.ts",
+    "scripts/test-media-signed-cache.cjs",
+    ".buklod/scopes/video-stale-signed-url.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "acceptanceChecks": [
+    "Expired feed signed URL triggers fresh signing",
+    "Concurrent signing deduplicates",
+    "AWS/local/public URL behavior preserved",
+    "TypeScript and accountability pass",
+    "Exact cumulative RC and deployed playback verified before claiming recovery"
+  ]
+}
