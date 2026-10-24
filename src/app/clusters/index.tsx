@@ -400,14 +400,7 @@ export default function ClustersScreen() {
                 item={item}
               >
                 <View style={styles.actions}>
-                  <ActionButton
-                    title="OPEN"
-                    onPress={() =>
-                      openCluster(
-                        item.scope_id
-                      )
-                    }
-                  />
+                  <Text style={styles.muted}>Tap the cluster to open Home</Text>
                   {item.is_admin && (
                     <ActionButton
                       title="MANAGE"
@@ -493,9 +486,7 @@ export default function ClustersScreen() {
           )}
 
           <Text style={styles.sectionTitle}>
-            {query.trim()
-              ? 'SEARCH RESULTS'
-              : 'DISCOVER'}
+            {query.trim() ? 'SEARCH RESULTS' : 'SUGGESTED CLUSTERS'}
           </Text>
           {searching ? (
             <Text style={styles.muted}>
@@ -531,14 +522,14 @@ export default function ClustersScreen() {
             </Pressable>
           </View>
 
-          {discover.length === 0 ? (
+          {discover.filter((item) => item.membership_status !== 'ACTIVE' && item.membership_status !== 'PENDING' && item.membership_status !== 'INVITED').length === 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyTitle}>
                 No Cluster found
               </Text>
             </View>
           ) : (
-            discover.map((item) => {
+            discover.filter((item) => item.membership_status !== 'ACTIVE' && item.membership_status !== 'PENDING' && item.membership_status !== 'INVITED').slice(0, query.trim() ? 20 : 3).map((item) => {
               const current =
                 item.membership_status;
 
