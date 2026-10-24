@@ -19,6 +19,7 @@ import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 
 import {
   ActivityIndicator,
+  Alert,
   Animated as RNAnimated,
   Easing,
   Pressable,
@@ -49,8 +50,7 @@ import {
 
 import BuklodFindAChurchDoorway from '@/components/BuklodFindAChurchDoorway';
 import {
-  buildDefaultScopeFaithAccessStatus,
-  fetchScopeFaithAccessStatusResilient,
+  fetchScopeFaithAccessStatus,
   type ScopeFaithAccessStatus,
 } from '@/lib/buklodScopeFaithAccess';
 
@@ -286,6 +286,11 @@ export default function BuklodHomeFaithPanel({
 
   const [loading,setLoading] =
     useState(true);
+  const [accessError, setAccessError] = useState(false);
+  const [retryAccess, setRetryAccess] = useState(0);
+  const [readingError, setReadingError] = useState(false);
+  const [readingDay, setReadingDay] = useState(() => new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10));
+  const [retryReading, setRetryReading] = useState(0);
   const [access, setAccess] =
     useState<ScopeFaithAccessStatus | null>(null);
   const [accessLoading, setAccessLoading] =
@@ -348,6 +353,7 @@ export default function BuklodHomeFaithPanel({
     let active = true;
     const context = accessContext;
     const current = () => active && accessContextRef.current === context;
+    setAccessError(false);
     if (!scopeId) {
       setAccess(null);
       setAccessLoading(false);
@@ -357,84 +363,50 @@ export default function BuklodHomeFaithPanel({
       setAccess(null);
       setAccessLoading(true);
     }
-    void withBuklodTimeout(fetchScopeFaithAccessStatusResilient(scopeId), 10000, 'Faith access')
+    void withBuklodTimeout(fetchScopeFaithAccessStatus(scopeId), 10000, 'Faith access')
       .then(next => {
         if (!current()) return;
+        if (!next) throw new Error('Unable to verify Cluster access.');
         loadedAccessContext.current = context;
         setAccess(next);
       })
       .catch(error => {
         if (!current()) return;
         console.warn('SHOW FAITH access:', error);
-        if (loadedAccessContext.current !== context) setAccess(buildDefaultScopeFaithAccessStatus(scopeId));
+        setAccessError(true);
+        if (loadedAccessContext.current !== context) setAccess(null);
       })
       .finally(() => { if (current()) setAccessLoading(false); });
     return () => { active = false; };
-  }, [accessContext, scopeId]));
+  }, [accessContext, scopeId, retryAccess]));
 
-  useEffect(
-    () => {
-      let active =
-        true;
+  useFocusEffect(useCallback(() => {
+    const updateDay = () => setReadingDay(new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10));
+    updateDay();
+    const timer = setInterval(updateDay, 30000);
+    return () => clearInterval(timer);
+  }, []));
 
-      const load =
-        async () => {
-          try {
-            const {
-              data,
-            } =
-              await withBuklodTimeout<{ data: any }>((supabase as any).rpc('get_automatic_bible_today'), 10000, 'Daily reading');
-
-            if (!active) {
-              return;
-            }
-
-            const raw =
-              Array.isArray(data)
-                ? data[0] ?? null
-                : data ?? null;
-
-            if (raw) {
-              setReading({
-                bible_reference:
-                  String(
-                    raw.bible_reference ??
-                    ''
-                  ),
-
-                chapters_today:
-                  Number(
-                    raw.chapters_today ??
-                    1
-                  ),
-              });
-            }
-          }
-          catch (error: any) {
-            console.warn(
-              'SHOW FAITH daily reading:',
-              error?.message ??
-              error
-            );
-          }
-          finally {
-            if (active) {
-              setLoading(false);
-            }
-          }
-        };
-
-      void load();
-
-
-      return () => {
-        active =
-          false;
-      };
-    },
-    []
-  );
-
+  useEffect(() => {
+    let active = true;
+    setReadingError(false);
+    void withBuklodTimeout<{ data: any; error: any }>(
+      (supabase as any).rpc('get_automatic_bible_today'), 10000, 'Daily reading'
+    ).then(({ data, error }) => {
+      if (error) throw error;
+      if (!active) return;
+      const raw = Array.isArray(data) ? data[0] : data;
+      setReading(raw ? {
+        bible_reference: String(raw.bible_reference ?? ''),
+        chapters_today: Number(raw.chapters_today ?? 1),
+      } : null);
+    }).catch(() => {
+      if (active) setReadingError(true);
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => { active = false; };
+  }, [readingDay, retryReading]);
 
   const dailyReadingLocked =
     Boolean(scopeId) &&
@@ -521,7 +493,9 @@ export default function BuklodHomeFaithPanel({
             "Today's reading"
           }
           meta={
-            Boolean(scopeId) && (accessLoading || !access)
+            accessError
+              ? 'Unable to verify access — tap to retry'
+              : Boolean(scopeId) && (accessLoading || !access)
               ? 'Checking Cluster access…'
               : Boolean(scopeId) && !access?.has_active_cluster
               ? 'Join a Cluster first'
@@ -529,6 +503,8 @@ export default function BuklodHomeFaithPanel({
               ? access?.daily_reading.pending_request_id
                 ? 'Payment pending verification'
                 : 'This feature is available through your Cluster Premium.'
+              : readingError
+              ? 'Reading preview unavailable — tap to retry'
               : reading
               ? `${reading.chapters_today} ${
                   reading.chapters_today ===
@@ -543,6 +519,7 @@ export default function BuklodHomeFaithPanel({
           loading={loading || (Boolean(scopeId) && accessLoading)}
           locked={dailyReadingLocked}
           onPress={() => {
+            if (accessError) { setRetryAccess(value => value + 1); return; }
             if (scopeId && (accessLoading || !access)) {
               return;
             }
@@ -551,9 +528,11 @@ export default function BuklodHomeFaithPanel({
               return;
             }
             if (dailyReadingLocked) {
+              Alert.alert('Daily Reading', 'Access is locked. Check your Cluster Premium or pending payment with your Cluster administrator.');
               return;
             }
 
+            if (readingError) { setRetryReading(value => value + 1); return; }
             router.push({
   pathname: '/bible/read',
   params: {
@@ -591,7 +570,9 @@ export default function BuklodHomeFaithPanel({
           label="Word"
           title="Daily devotional"
           meta={
-            Boolean(scopeId) && (accessLoading || !access)
+            accessError
+              ? 'Unable to verify access — tap to retry'
+              : Boolean(scopeId) && (accessLoading || !access)
               ? 'Checking Cluster access…'
               : Boolean(scopeId) && !access?.has_active_cluster
               ? 'Join a Cluster first'
@@ -606,6 +587,7 @@ export default function BuklodHomeFaithPanel({
           loading={Boolean(scopeId) && accessLoading}
           locked={devotionLocked}
           onPress={() => {
+            if (accessError) { setRetryAccess(value => value + 1); return; }
             if (scopeId && (accessLoading || !access)) {
               return;
             }
@@ -614,6 +596,7 @@ export default function BuklodHomeFaithPanel({
               return;
             }
             if (devotionLocked) {
+              Alert.alert('Word', 'Access is locked. Check your Cluster Premium or pending payment with your Cluster administrator.');
               return;
             }
 
@@ -825,4 +808,5 @@ const styles =
       justifyContent: 'center',
     },
   });
+
 

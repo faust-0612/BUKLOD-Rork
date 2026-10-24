@@ -302,7 +302,8 @@ export async function listBuklodAttendanceEvents(
   }
 
   const fromRpc = await listEventsFromRpcs(id);
-  const fromTable = await listEventsFromTable(id);
+  // Canonical RPC includes all three scope columns (up to 100 rows); table fallback returns 50.
+  const fromTable = fromRpc.length ? [] : await listEventsFromTable(id);
   const merged = mergeEventRows([...fromRpc, ...fromTable]);
 
   if (merged.length) {
@@ -395,3 +396,4 @@ export async function createBuklodAttendanceEvent(input: {
   );
   return fetched;
 }
+

@@ -1,6 +1,7 @@
 ﻿import React, {
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from 'react';
 
@@ -136,6 +137,9 @@ export default function ClusterDetailScreen() {
   const [loading, setLoading] =
     useState(true);
 
+  const [loadError, setLoadError] = useState('');
+  const loadGeneration = useRef(0);
+
   const [refreshing, setRefreshing] =
     useState(false);
 
@@ -154,48 +158,53 @@ export default function ClusterDetailScreen() {
   const [visibility, setVisibility] =
     useState<ClusterVisibility>('PUBLIC');
 
-  const load = useCallback(
-    async (refresh = false) => {
-      if (!scopeId) {
-        setLoading(false);
-        return;
+  const load = useCallback(async (refresh = false) => {
+    const generation = ++loadGeneration.current;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    if (!refresh) {
+      setCluster(null);
+      setMembers([]);
+      setRequests([]);
+      setCandidates([]);
+      setName('');
+      setCategory('');
+      setDescription('');
+    }
+    setLoadError('');
+    setLoading(!refresh);
+    setRefreshing(refresh);
+    try {
+      if (!scopeId) throw new Error('Missing Cluster ID.');
+      const info = await Promise.race([
+        getClusterDetails(scopeId),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error('Connection timed out. Please retry.')), 10000);
+        }),
+      ]);
+      if (generation !== loadGeneration.current) return;
+      setCluster(info);
+      if (info) {
+        setName(info.name || '');
+        setCategory(info.category || '');
+        setDescription(info.description || '');
+        setVisibility(info.visibility);
+        setMembers([]);
+        setRequests([]);
       }
-
-      refresh
-        ? setRefreshing(true)
-        : setLoading(true);
-
-      try {
-        const info =
-          await getClusterDetails(scopeId);
-
-        setCluster(info);
-
-        if (info) {
-          setName(info.name || '');
-          setCategory(info.category || '');
-          setDescription(
-            info.description || ''
-          );
-          setVisibility(info.visibility);
-          setMembers([]);
-          setRequests([]);
-        }
-      } catch (error) {
-        Alert.alert(
-          'Cluster',
-          messageOf(error)
-        );
-      } finally {
+    } catch (error) {
+      if (generation === loadGeneration.current) setLoadError(messageOf(error));
+    } finally {
+      clearTimeout(timer);
+      if (generation === loadGeneration.current) {
         setLoading(false);
         setRefreshing(false);
       }
-    },
-    [scopeId]
-  );
+    }
+  }, [scopeId]);
 
   useEffect(() => {
     void load();
+    return () => { loadGeneration.current += 1; };
   }, [load]);
 
   const run = async (
@@ -383,9 +392,10 @@ export default function ClusterDetailScreen() {
     return (
       <View style={styles.center}>
         <Text style={styles.notFound}>
-          Cluster unavailable
+          {loadError || 'Cluster unavailable'}
         </Text>
 
+        <ActionButton title="RETRY" onPress={() => void load()} />
         <ActionButton
           title="BACK TO CLUSTERS"
           onPress={() =>
@@ -415,6 +425,7 @@ export default function ClusterDetailScreen() {
         />
       }
     >
+      {!!loadError && <View><Text style={styles.muted}>{loadError}</Text><ActionButton title="RETRY" onPress={() => void load(true)} /></View>}
       <View style={styles.hero}>
         <Text style={styles.eyebrow}>
           {fromInvite
@@ -855,3 +866,4 @@ const styles = StyleSheet.create({
     opacity: 0.45,
   },
 });
+

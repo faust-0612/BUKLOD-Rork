@@ -33,8 +33,10 @@ async function manifest() {
   return data;
 }
 function sourceGate() {
-  assert.equal(process.env.GITHUB_REF, 'refs/heads/main', 'Production requires main');
-  assert.equal(sha, process.env.GITHUB_SHA, 'Exact event checkout required');
+  const preparing = process.env.BUKLOD_RC_PREPARE === 'true';
+  if (!preparing) assert.equal(process.env.GITHUB_REF, 'refs/heads/main', 'Production requires main');
+  if (preparing) assert.ok(['baseline', 'freeze'].includes(process.argv[2]), 'Preparation cannot publish');
+  assert.equal(sha, process.env.RC_SOURCE_SHA || process.env.GITHUB_SHA, 'Exact source checkout required');
   git('diff', '--exit-code');
   const config = require('../app.config.js')({config:{}});
   assert.equal(config.runtimeVersion, runtime);
@@ -66,6 +68,8 @@ async function run() {
     write('ota-evidence/rc.json', {source:sha, tree:git('rev-parse','HEAD^{tree}'), runtime, channel:'production', baseline:baseline.id, bundle, files:inventory('rc')});
     console.log('FROZEN RC', sha, hash(bundle));
   } else if (mode === 'verify') {
+    const reconciliation = read('.buklod/p0-reconciliation.json');
+    assert.deepEqual(reconciliation.releaseBlockers, [], 'Unresolved reconciliation release blockers');
     const rc = read('ota-evidence/rc.json');
     assert.equal(rc.source, sha);
     assert.deepEqual(inventory('rc'), rc.files, 'Frozen RC changed');
@@ -99,3 +103,4 @@ async function run() {
   } else throw new Error('Unknown RC command');
 }
 run().catch(error => {console.error(error.message); process.exitCode=1;});
+

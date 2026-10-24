@@ -4,7 +4,6 @@ import React, {
 } from 'react';
 
 import {
-  ActivityIndicator,
   StyleSheet,
   Text,
   View,
@@ -61,17 +60,13 @@ export default function BuklodPublicDailyMessageBar({
       country?: string | null;
     }>({});
 
-  const [loading, setLoading] =
-    useState(true);
 
   useEffect(() => {
     let alive = true;
+    setAddress({});
 
     const load = async () => {
       if (!user?.id) {
-        if (alive) {
-          setLoading(false);
-        }
 
         return;
       }
@@ -92,10 +87,10 @@ export default function BuklodPublicDailyMessageBar({
         data ?? {}
       );
 
-      setLoading(false);
+
     };
 
-    void load();
+    void load().catch(() => { if (alive) setAddress({}); });
 
     return () => {
       alive = false;
@@ -134,17 +129,6 @@ export default function BuklodPublicDailyMessageBar({
 
   if (!isPublic && !forceVisible) {
     return null;
-  }
-
-  if (loading) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator
-          size="small"
-          color={colors.greenDark}
-        />
-      </View>
-    );
   }
 
   return (

@@ -1895,16 +1895,13 @@ export default function BuklodExclusiveScopeCommunity({
           });
         }
 
-        await load();
+        // Refresh is independent of the confirmed save.
+        void load().catch(() => undefined);
       }
       catch (
         error: any
       ) {
-        if (
-          uploadedPath ||
-          extraMedia.length ||
-          createdPostId
-        ) {
+        if (!createdPostId && (uploadedPath || extraMedia.length)) {
           await discardIncompleteCommunityPost({
             postId: createdPostId,
             scopeId: snapshot.scopeId,
@@ -1915,17 +1912,20 @@ export default function BuklodExclusiveScopeCommunity({
           });
         }
 
+        if (!createdPostId) {
         setBody(snapshot.cleanBody);
         setMentions(snapshot.mentions);
         setPhotos(snapshot.photos);
         setWallVideo(snapshot.wallVideo);
         setReel(snapshot.reel);
         setCommunityGif(snapshot.communityGif);
+        }
 
         Alert.alert(
-          'Could Not Post',
-          error?.message ??
-            'Posting failed.'
+          createdPostId ? 'Post Saved' : 'Could Not Post',
+          createdPostId
+            ? 'Your post was saved, but a follow-up operation failed. Refresh the feed; do not submit it again.'
+            : (error?.message ?? 'Posting failed.')
         );
       }
       finally {
@@ -5857,3 +5857,4 @@ commentSendDisabled: {
       },
     }
   );
+
