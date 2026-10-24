@@ -1,6 +1,5 @@
 /* PATCH_184F_R3_PROFILE_CLEANUP */
 /* PATCH_179C_R1_PREMIUM_CURRENT_PROFILE */
-import BuklodProfileCharacterCard from '@/components/points/BuklodProfileCharacterCard';
 import { useCallback as useProfileFocusCallback, useRef as useProfileScrollRef } from 'react';
 import { useFocusEffect as useProfileFocusEffect } from 'expo-router';
 import BuklodProfileMembershipNav from '@/components/BuklodProfileMembershipNav';
@@ -22,6 +21,7 @@ import {
   ProfileMotionFadeUp,
   ProfilePressable,
 } from '@/components/BuklodProfileMotion';
+import BuklodProfileCharacterCard from '@/components/points/BuklodProfileCharacterCard';
 import BuklodReferralInviteCard from '@/components/BuklodReferralInviteCard';
 import {
   resolveContrastPaint,
@@ -1812,7 +1812,10 @@ export default function MeScreen() {
         <BuklodSystemAnnouncementBoard slot="profile" />
       </View>
 
-      <BuklodProfileCharacterCard lifetimePoints={lifetimePoints} rankName={circleRank} />
+      <BuklodProfileCharacterCard
+        lifetimePoints={lifetimePoints}
+        rankName={circleRank}
+      />
 
       {referralSection}
 
