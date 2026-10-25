@@ -282,6 +282,25 @@ export function getCachedBuklodCharacterSelectionV2(
   return cache.get(userId) ?? null;
 }
 
+/** Ensure the RPC uses the signed-in account, not an anonymous or stale session. */
+async function ensureCharacterSession(userId: string): Promise<void> {
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError) throw new Error('Character session unavailable. Please sign in again.');
+  let session = sessionData.session;
+  if (!session || session.user.id !== userId) {
+    throw new Error('Character session is not ready. Please sign in again.');
+  }
+  const expiresSoon = !session.expires_at || session.expires_at * 1000 <= Date.now() + 60_000;
+  if (expiresSoon) {
+    const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+    if (refreshError || !refreshed.session || refreshed.session.user.id !== userId) {
+      throw new Error('Character session expired. Please sign in again.');
+    }
+    session = refreshed.session;
+  }
+  if (!session.access_token) throw new Error('Character session unavailable. Please sign in again.');
+}
+
 export async function getMyBuklodCharacterSelectionV2(
   userId?: string | null,
   force = false,
