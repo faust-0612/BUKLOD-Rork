@@ -287,17 +287,20 @@ export async function resolveCommunityMediaUrl(
   mediaPath?: string | null,
   preferredUri?: string | null,
 ): Promise<string | null> {
-  await hydrateCommunityMediaUrlCache();
-
   const path = String(mediaPath ?? '').trim();
   const preferred = String(preferredUri ?? '').trim();
-  if (isAwsExternalMediaPath(path)) {
-    return preferred || null;
-  }
+  // A usable URL must not wait for disk cache hydration on weak devices.
+  // Preserve AWS short-lived URL handling and existing authorization rules.
+  if (isAwsExternalMediaPath(path)) return preferred || null;
 
-  const peeked = peekCommunityMediaUrl(path, preferred);
-  if (peeked) return peeked;
+  const immediate = peekCommunityMediaUrl(path, preferred);
+  if (immediate) return immediate;
   if (!path) return null;
+
+  await hydrateCommunityMediaUrlCache();
+  // Hydration may have restored a still-valid signed URL from disk.
+  const hydrated = peekCommunityMediaUrl(path, preferred);
+  if (hydrated) return hydrated;
 
   const pending = inFlight.get(path);
   if (pending) return pending;
