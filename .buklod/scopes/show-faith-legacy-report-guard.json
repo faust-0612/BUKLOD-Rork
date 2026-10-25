@@ -1,0 +1,15 @@
+{
+  "objective": "Security-only Show Faith legacy report authorization guard (staged; no production deployment)",
+  "baseRef": "16fa1d46dca58f2125df5b67d6352896395b6073",
+  "allowedPaths": [
+    "supabase/migrations/20261025190000_show_faith_legacy_report_leadership_guard.sql",
+    ".buklod/scopes/show-faith-legacy-report-guard.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "acceptanceChecks": [
+    "SQL syntax and migration dependency review",
+    "Role-based authenticated leader/member/cross-scope negative tests",
+    "Preserve Android 1.3.2 legacy RPC signatures and permissions",
+    "No production deploy until cumulative RC gate"
+  ]
+}
