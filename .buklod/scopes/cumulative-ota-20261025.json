@@ -1,0 +1,29 @@
+{
+  "objective": "Cumulative targeted Android DEV reconciliation for media, navigation, Connect composer, Daily Reading and Show Faith scope UI",
+  "baseRef": "3c21f60a9a0c07253c392f799acca4ae703ca6b0",
+  "productionBaselineEvidence": "Verified Android production OTA run 40149190953 update 01a17099-b27f-7037-9e9e-6f6d80f58054 runtime 1.3.2 source 58fcbc3daf65858781da5dad25c70135a25c3589; production publication of this DEV branch remains prohibited until final gates pass.",
+  "allowedPaths": [
+    ".buklod/scopes/native-nav-concurrency.json",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/cumulative-ota-20261025.json",
+    "scripts/test-bottom-nav-concurrency.cjs",
+    "scripts/test-media-sign-fallback.cjs",
+    "src/app/bible/index.tsx",
+    "src/app/scope/faith-monitoring/report.tsx",
+    "src/components/BuklodConnectThread.tsx",
+    "src/components/BuklodPersistentBottomNav.tsx",
+    "src/components/BuklodScopeFaithMonitoringSummary.tsx",
+    "src/lib/buklodMaritesBoard.ts",
+    "src/lib/buklodMediaUrl.ts"
+  ],
+  "acceptanceChecks": [
+    "Engineering scope gate validates only explicit changed files",
+    "Navigation and media concurrency tests pass",
+    "Marites video URL refresh verified",
+    "Connect composer clears bottom navigation",
+    "Daily Reading submissions scoped to authenticated user",
+    "Show Faith UI limited to exact scope and authorized leadership",
+    "Report RPC v4 not assumed deployed; preserve existing fallback",
+    "Functional and security regression tests plus immutable RC required before OTA"
+  ]
+}
