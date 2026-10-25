@@ -184,12 +184,8 @@ export function isBuklodPassiveAdAllowed({
   placement?: BuklodAdPlacement;
   pathname?: string | null;
 }) {
-  if (
-    placement === 'home' ||
-    placementId === 'legacy_home_banner'
-  ) {
-    return false;
-  }
+  // Preserve the retired legacy unit block while allowing the current Home placement.
+  if (placementId === 'legacy_home_banner') return false;
 
   return (
     foreground &&
