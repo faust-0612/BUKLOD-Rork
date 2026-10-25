@@ -246,7 +246,10 @@ export function BuklodGuideAvatar() {
     !pathname.includes('/delete-account') &&
     !pathname.includes('/points') &&
     !pathname.includes('kabihasnang-ligaw') &&
-    (!isProfileRoute || profileReturnMode);
+    (profileReturnMode || (
+      scopedWorkspaceActive &&
+      isBuklodScopedWorkspacePath(pathname)
+    ));
 
   if (!visible) {
     return null;
