@@ -137,7 +137,10 @@ export function BuklodGuideAvatar() {
     !pathname.includes('/privacy') &&
     !pathname.includes('/delete-account') &&
     !pathname.includes('kabihasnang-ligaw') &&
-    (!isProfileRoute || profileReturnMode);
+    (profileReturnMode ||
+      (!isProfileRoute &&
+        scopedWorkspaceActive &&
+        isBuklodScopedWorkspacePath(pathname)));
 
 
   const basePose = useMemo(

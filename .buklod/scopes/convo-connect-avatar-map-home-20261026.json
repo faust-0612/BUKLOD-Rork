@@ -1,0 +1,24 @@
+{
+  "objective": "Consolidate scoped Connect scrolling, Profile Door visibility, Home legacy duplication and Map destination/navigation reliability",
+  "baseRef": "046213d9910128da366feef6a3da7d67556379c8",
+  "productionBaselineEvidence": "Latest production OTA lineage must be independently checked before RC or publish; this branch is based on GitHub main 046213d9910128da366feef6a3da7d67556379c8 and does not claim main equals live production.",
+  "allowedPaths": [
+    "src/app/(tabs)/home.tsx",
+    "src/app/(tabs)/messages.tsx",
+    "src/components/BuklodGuideAvatar.tsx",
+    "src/components/BuklodGuideAvatar.web.tsx",
+    "src/components/BuklodLiveSatelliteMap.native.tsx",
+    "src/components/BuklodLiveSatelliteMap.web.tsx",
+    "src/lib/buklodLiveSatelliteMapDocument.ts",
+    ".buklod/scopes/convo-connect-avatar-map-home-20261026.json",
+    ".github/workflows/engineering-accountability.yml"
+  ],
+  "acceptanceChecks": [
+    "Connect search, suggestions and conversations scroll together in Personal and Community",
+    "Profile Door appears only for Cluster/Organization scoped workspaces; profile return preserved",
+    "Home duplicate legacy greeting and shortcuts removed without losing routes",
+    "Map destination search, GPS, START, routing, stale-response guards and fallback verified",
+    "TypeScript, focused regression tests and Engineering Accountability pass",
+    "Reconcile live production OTA source, freeze exact RC and verify production release separately"
+  ]
+}
