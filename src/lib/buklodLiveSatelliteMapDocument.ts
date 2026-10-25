@@ -84,11 +84,11 @@ html,body,#map,.leaflet-container{position:fixed;inset:0;width:100%;height:100%;
 .buklod-route-actions a{background:#177552;color:#fff}
 .buklod-route-actions button{background:#edf6f2;color:#246653}
 .buklod-user-dot{width:18px;height:18px;border-radius:50%;background:#1677ff;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.34)}
-.buklod-destination-search{width:min(330px,calc(100vw - 92px));padding:9px;border:1px solid #cfe0d7;border-radius:14px;background:rgba(255,255,255,.98);box-shadow:0 7px 22px rgba(0,0,0,.24);color:#1f3c4e}
+.buklod-destination-search{width:min(460px,calc(100vw - 32px));padding:9px;border:1px solid #cfe0d7;border-radius:14px;background:rgba(255,255,255,.98);box-shadow:0 7px 22px rgba(0,0,0,.24);color:#1f3c4e}
 .buklod-destination-search-row{display:flex;gap:6px;align-items:center}
-.buklod-destination-search input{min-width:0;flex:1;border:1px solid #c6d8cf;border-radius:10px;padding:8px 9px;background:#fff;color:#183047;font:700 10px/14px Inter,system-ui,sans-serif;outline:none}
+.buklod-destination-search input{min-width:0;flex:1;min-height:46px;border:1px solid #c6d8cf;border-radius:10px;padding:12px 13px;background:#fff;color:#183047;font:700 15px/20px Inter,system-ui,sans-serif;outline:none}
 .buklod-destination-search input:focus{border-color:#177552;box-shadow:0 0 0 2px rgba(23,117,82,.12)}
-.buklod-destination-search button{appearance:none;border:0;border-radius:10px;padding:8px 10px;background:#177552;color:#fff;font:900 9px/12px Inter,system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+.buklod-destination-search button{appearance:none;border:0;border-radius:10px;min-height:46px;padding:10px 12px;background:#177552;color:#fff;font:900 9px/12px Inter,system-ui,sans-serif;cursor:pointer;white-space:nowrap}
 .buklod-destination-results{display:none;margin-top:7px;max-height:190px;overflow:auto;border-top:1px solid #e1ebe6;padding-top:5px}
 .buklod-destination-result{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #edf2ef;background:#fff;color:#284655;padding:7px 5px;cursor:pointer}
 .buklod-destination-result strong{display:block;font:900 10px/13px Inter,system-ui,sans-serif;color:#1f4f3d}
@@ -99,7 +99,7 @@ html,body,#map,.leaflet-container{position:fixed;inset:0;width:100%;height:100%;
 .buklod-destination-selected-actions{display:flex;gap:6px}
 .buklod-destination-selected-actions button{flex:1}
 .buklod-destination-note{padding:6px 5px;color:#71828d;font:700 8px/11px Inter,system-ui,sans-serif}
-@media (max-width:560px){.buklod-nav-control{min-width:145px;max-width:calc(100vw - 86px);padding:8px 9px}.buklod-nav-control strong{font-size:10px}.buklod-nav-control span{font-size:8px}.buklod-destination-search{width:calc(100vw - 86px);padding:8px}.buklod-home-marker{width:150px}.buklod-home-address{max-width:144px;font-size:8px;line-height:11px}.buklod-live-status{max-width:165px;font-size:8px}}
+@media (max-width:560px){.buklod-nav-control{min-width:145px;max-width:calc(100vw - 86px);padding:8px 9px}.buklod-nav-control strong{font-size:10px}.buklod-nav-control span{font-size:8px}.buklod-destination-search{width:calc(100vw - 32px);padding:10px}.buklod-home-marker{width:150px}.buklod-home-address{max-width:144px;font-size:8px;line-height:11px}.buklod-live-status{max-width:165px;font-size:8px}}
 </style>
 </head>
 <body>
