@@ -470,9 +470,10 @@ export function ConnectMessageBubble({
       failed: false,
     }));
   const { width: windowWidth } = useWindowDimensions();
+  // Size collage media within the 82%-width bubble, not the full screen.
   const chatWidth = Math.max(
-    240,
-    Math.min(windowWidth, 840) - (showSenderAvatar ? 56 : 28)
+    180,
+    Math.floor((Math.min(windowWidth, 840) - (showSenderAvatar ? 56 : 28)) * 0.82) - 28
   );
   const frame = connectSinglePhotoFrame(chatWidth);
   const collageTiles = connectCollageTiles(
