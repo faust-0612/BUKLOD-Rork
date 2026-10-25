@@ -87,7 +87,7 @@ export function BuklodLiveSatelliteMap({
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const mobile = width < 720;
-  const previewHeight = mobile ? 190 : 250;
+  const previewHeight = mobile ? 300 : 340;
   const screen = Dimensions.get('screen');
   const windowHeight = Dimensions.get('window').height;
   const screenWidth = screen.width;
