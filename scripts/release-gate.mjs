@@ -21,6 +21,17 @@ function readFirst(paths) {
   throw new Error(`None of the expected files exist: ${paths.join(', ')}`);
 }
 
+// Global loading contract: block release if critical protections disappear.
+const authSource = read('src/providers/AuthProvider.tsx');
+const rootSource = read('src/app/index.tsx');
+const networkQualitySource = read('src/lib/buklodNetworkQuality.ts');
+const loadingContract = read('qa/BUKLOD_GLOBAL_LOADING_REGRESSION_GATE.md');
+if (!loadingContract.includes('Required invariants')) failures.push('Global loading regression contract missing.');
+if (!authSource.includes('withBuklodTimeout(') || !authSource.includes('finishBootstrap();')) failures.push('Auth bounded bootstrap protection removed.');
+if (!authSource.includes("'BUKLOD local session lookup'") || !authSource.includes("'BUKLOD persisted session recovery'")) failures.push('Bounded local session recovery removed.');
+if (!rootSource.includes('BUKLOD_BOOT_READY_WATCHDOG_R1') || !rootSource.includes('setBootReady(true)')) failures.push('Root boot watchdog removed.');
+if (!networkQualitySource.includes('classifyNetworkQuality') || !networkQualitySource.includes('communityFirstPageLimit')) failures.push('Degraded network handling removed.');
+
 const legal = read('src/lib/legal.ts');
 const envExample = read('.env.example');
 const appConfig = readFirst(['app.config.js', 'app.config.ts']);

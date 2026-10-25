@@ -66,8 +66,18 @@ export function classifyNetworkQuality(now = Date.now()): BuklodNetworkQuality {
     return 'degraded';
   }
 
-  const recent = samples.filter(sample => now - sample.at <= SAMPLE_WINDOW_MS);
-  if (recent.some(sample => !sample.ok || sample.ms >= DEGRADED_LATENCY_MS)) {
+  const recent = samples.filter(sample =>
+    sample.at <= now && now - sample.at <= SAMPLE_WINDOW_MS
+  );
+
+  // Avoid keeping the whole app in degraded mode for a full minute after
+  // a single transient failure. Require repeated poor reads; the latest
+  // healthy measurements let the network recover without a restart.
+  const latest = recent.slice(-4);
+  const poorCount = latest.filter(sample =>
+    !sample.ok || sample.ms >= DEGRADED_LATENCY_MS
+  ).length;
+  if (poorCount >= 2 || (latest.length === 1 && poorCount === 1)) {
     return 'degraded';
   }
 
