@@ -1895,16 +1895,21 @@ export default function BuklodExclusiveScopeCommunity({
           });
         }
 
-        await load();
+        // A successful database insert must not be treated as a failed post
+        // when the subsequent feed refresh fails or times out.
+        try {
+          await load();
+        } catch (refreshError) {
+          console.warn('[ScopeCommunity] Post saved; feed refresh failed', refreshError);
+          setPublishNotice('Posted successfully. Pull down to refresh the feed.');
+        }
       }
       catch (
         error: any
       ) {
-        if (
-          uploadedPath ||
-          extraMedia.length ||
-          createdPostId
-        ) {
+        // Never delete a committed post just because media attachment or
+        // another post-commit operation failed.
+        if (!createdPostId && (uploadedPath || extraMedia.length)) {
           await discardIncompleteCommunityPost({
             postId: createdPostId,
             scopeId: snapshot.scopeId,
@@ -1923,9 +1928,10 @@ export default function BuklodExclusiveScopeCommunity({
         setCommunityGif(snapshot.communityGif);
 
         Alert.alert(
-          'Could Not Post',
-          error?.message ??
-            'Posting failed.'
+          createdPostId ? 'Post Saved' : 'Could Not Post',
+          createdPostId
+            ? 'Your post was saved, but a follow-up operation failed. Refresh the feed to see it.'
+            : (error?.message ?? 'Posting failed.')
         );
       }
       finally {
