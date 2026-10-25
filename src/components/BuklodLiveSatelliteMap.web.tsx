@@ -66,7 +66,7 @@ export function BuklodLiveSatelliteMap({
 }) {
   const { width } = useWindowDimensions();
   const mobile = width < 720;
-  const previewHeight = mobile ? 190 : 250;
+  const previewHeight = mobile ? 300 : 340;
   const mapCenter = center ?? points[0] ?? FALLBACK_CENTER;
   const previewIframeRef = useRef<any>(null);
   const fullIframeRef = useRef<any>(null);
