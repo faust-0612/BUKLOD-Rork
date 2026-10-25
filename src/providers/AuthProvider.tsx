@@ -582,6 +582,14 @@ export function AuthProvider({
             setLoading(true);
           }
 
+          // Supabase may emit SIGNED_IN again when an existing session
+          // is confirmed or the app regains focus. Keep the current
+          // screen and cached identity; do not repeat profile hydration.
+          if (_event === 'SIGNED_IN' && sameUser) {
+            finishBootstrap();
+            return;
+          }
+
           /*
            * Keep the auth callback synchronous. Defer database
            * hydration outside the auth event callback. Repeated
