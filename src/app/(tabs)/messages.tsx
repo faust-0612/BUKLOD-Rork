@@ -1038,53 +1038,59 @@ function ConnectScreenInner({
 
   return (
     <ConnectThreadBackground style={styles.screen}>
-      <BuklodFocusFadeUp duration={240} fromY={10} fromOpacity={0.78}>
-        <View style={styles.inboxHeader}>
-          <ConnectInboxSearch
-            inline
-            inputRef={searchInputRef}
-            value={query}
-            onChangeText={setQuery}
-            placeholder={
-              isSearching
-                ? 'Search BUKLOD users...'
-                : 'Search messages'
-            }
-          />
-          <ConnectThemeSelectorButton />
-        </View>
-      </BuklodFocusFadeUp>
-
       <View style={styles.body}>
         {tab === 'personal' ? (
           <>
-            {!isSearching && (
-              <BuklodFocusFadeUp duration={240} fromY={10} fromOpacity={0.78}>
-                <ConnectSuggestedContacts
-                  currentUser={
-                    profileId
-                      ? {
-                          user_id: profileId,
-                          full_name: String(
-                            (profile as any)?.full_name ??
-                              'You'
-                          ),
-                          avatar_url:
-                            (profile as any)?.avatar_url ??
-                            null,
-                        }
-                      : null
-                  }
-                  contacts={suggestedContacts}
-                  onOpenContact={openSuggestedContact}
-                  onStatusNoteSaved={() => {
-                    void loadRef.current();
-                  }}
-                />
-              </BuklodFocusFadeUp>
-            )}
+
 
             <FlatList
+              ListHeaderComponent={
+                <>
+          <BuklodFocusFadeUp duration={240} fromY={10} fromOpacity={0.78}>
+            <View style={styles.inboxHeader}>
+              <ConnectInboxSearch
+                inline
+                inputRef={searchInputRef}
+                value={query}
+                onChangeText={setQuery}
+                placeholder={
+                  isSearching
+                    ? 'Search BUKLOD users...'
+                    : 'Search messages'
+                }
+              />
+              <ConnectThemeSelectorButton />
+            </View>
+          </BuklodFocusFadeUp>
+    
+    
+                {!isSearching && (
+                  <BuklodFocusFadeUp duration={240} fromY={10} fromOpacity={0.78}>
+                    <ConnectSuggestedContacts
+                      currentUser={
+                        profileId
+                          ? {
+                              user_id: profileId,
+                              full_name: String(
+                                (profile as any)?.full_name ??
+                                  'You'
+                              ),
+                              avatar_url:
+                                (profile as any)?.avatar_url ??
+                                null,
+                            }
+                          : null
+                      }
+                      contacts={suggestedContacts}
+                      onOpenContact={openSuggestedContact}
+                      onStatusNoteSaved={() => {
+                        void loadRef.current();
+                      }}
+                    />
+                  </BuklodFocusFadeUp>
+                )}
+                </>
+              }
               data={personalListData}
               keyExtractor={(item: any) =>
                 item.thread_id ?? item.user_id
@@ -1190,6 +1196,32 @@ function ConnectScreenInner({
           </>
         ) : (
           <FlatList
+            ListHeaderComponent={
+              <>
+        <BuklodFocusFadeUp duration={240} fromY={10} fromOpacity={0.78}>
+          <View style={styles.inboxHeader}>
+            <ConnectInboxSearch
+              inline
+              inputRef={searchInputRef}
+              value={query}
+              onChangeText={setQuery}
+              placeholder={
+                isSearching
+                  ? 'Search BUKLOD users...'
+                  : 'Search messages'
+              }
+            />
+            <ConnectThemeSelectorButton />
+          </View>
+        </BuklodFocusFadeUp>
+  
+  
+                {!forcedScopeId && (
+                  <ConnectCommunityFilters active={communityFilter} onChange={setCommunityFilter} />
+                )}
+                {!!sectionLabel && <Text style={styles.sectionLabel}>{sectionLabel}</Text>}
+              </>
+            }
             data={filteredRooms}
             keyExtractor={item => item.scope_id}
             initialNumToRender={
@@ -1216,22 +1248,6 @@ function ConnectScreenInner({
             }
             contentContainerStyle={
               styles.communityListContent
-            }
-            ListHeaderComponent={
-              !forcedScopeId ? (
-                <>
-                  <ConnectCommunityFilters
-                    active={communityFilter}
-                    onChange={setCommunityFilter}
-                  />
-
-                  {!!sectionLabel && (
-                    <Text style={styles.sectionLabel}>
-                      {sectionLabel}
-                    </Text>
-                  )}
-                </>
-              ) : null
             }
             ListEmptyComponent={
               <View style={styles.empty}>
