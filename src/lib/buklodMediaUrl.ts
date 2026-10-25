@@ -10,6 +10,8 @@ const SIGN_TIMEOUT_MS = 6000;
 const SIGN_CACHE_TTL_MS = 50 * 60 * 1000;
 const NEGATIVE_CACHE_TTL_MS = 45 * 1000;
 const SIGN_BATCH_DELAY_MS = 20;
+const MAX_INDIVIDUAL_SIGNS = 3;
+let activeIndividualSigns = 0;
 
 type SignedHit = {
   url: string;
@@ -189,19 +191,54 @@ async function flushCommunityMediaSignBatch() {
   if (!entries.length) return;
 
   const paths = entries.map(([path]) => path);
+  const waitersByPath = new Map(entries);
   const resolvePath = (path: string, url: string | null) => {
-    const waiters = entries.find(([candidate]) => candidate === path)?.[1] ?? [];
-    for (const waiter of waiters) waiter.resolve(url);
+    for (const waiter of waitersByPath.get(path) ?? []) waiter.resolve(url);
+  };
+  const storage: any = supabase.storage.from('community-media');
+
+  // Recover only missing items, with bounded concurrency. Avoid a Storage
+  // request storm if batch signing fails during backend degradation.
+  const recoverMissing = async (missing: string[]) => {
+    const concurrency = Math.min(3, missing.length);
+    let next = 0;
+    await Promise.all(Array.from({ length: concurrency }, async () => {
+      while (next < missing.length) {
+        const path = missing[next++];
+        try {
+          // A UI timeout does not cancel Storage's request. Keep its global
+          // slot until the actual operation settles; saturation fails closed.
+          if (activeIndividualSigns >= MAX_INDIVIDUAL_SIGNS) {
+            throw new Error('Community media signing capacity reached');
+          }
+          activeIndividualSigns += 1;
+          const request = Promise.resolve()
+            .then(() => storage.createSignedUrl(path, 3600))
+            .finally(() => { activeIndividualSigns -= 1; });
+          const { data, error } = await withBuklodTimeout<any>(
+            request,
+            SIGN_TIMEOUT_MS,
+            'Community media individual sign',
+          );
+          if (error) throw error;
+          const url = String(data?.signedUrl ?? data?.signedURL ?? '').trim();
+          if (!url) throw new Error('Missing signed media URL');
+          rememberSignedCommunityMediaUrl(path, url, true);
+          resolvePath(path, url);
+        } catch {
+          negativeCache.set(path, Date.now() + NEGATIVE_CACHE_TTL_MS);
+          resolvePath(path, null);
+        }
+      }
+    }));
   };
 
   try {
-    const storage: any = supabase.storage.from('community-media');
     const { data, error } = await withBuklodTimeout<any>(
       storage.createSignedUrls(paths, 3600),
       SIGN_TIMEOUT_MS,
       'Community media batch',
     );
-
     if (error) throw error;
 
     const byPath = new Map<string, string>();
@@ -210,23 +247,19 @@ async function flushCommunityMediaSignBatch() {
       const url = String(row?.signedUrl ?? row?.signedURL ?? '').trim();
       if (path && url) byPath.set(path, url);
     }
-
+    const missing: string[] = [];
     for (const path of paths) {
-      const url = byPath.get(path) ?? '';
+      const url = byPath.get(path);
       if (url) {
         rememberSignedCommunityMediaUrl(path, url, true);
         resolvePath(path, url);
       } else {
-        negativeCache.set(path, Date.now() + NEGATIVE_CACHE_TTL_MS);
-        resolvePath(path, null);
+        missing.push(path);
       }
     }
+    await recoverMissing(missing);
   } catch {
-    const until = Date.now() + NEGATIVE_CACHE_TTL_MS;
-    for (const path of paths) {
-      negativeCache.set(path, until);
-      resolvePath(path, null);
-    }
+    await recoverMissing(paths);
   }
 }
 

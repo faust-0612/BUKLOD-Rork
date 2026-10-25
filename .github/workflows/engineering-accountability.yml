@@ -58,3 +58,8 @@ jobs:
 
       - name: Verify bottom navigation concurrency
         run: node scripts/test-bottom-nav-concurrency.cjs
+
+      - name: Verify Community media cache and fallback limits
+        run: |
+          node scripts/test-media-signed-cache.cjs
+          node scripts/test-media-sign-fallback.cjs
