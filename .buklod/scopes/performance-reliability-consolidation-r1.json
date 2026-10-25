@@ -1,0 +1,20 @@
+{
+  "objective": "Consolidate targeted Community media signing recovery, Marites video URL renewal, and membership-only Cluster screen while preserving Android Back-to-Wall",
+  "baseRef": "58fcbc3daf65858781da5dad25c70135a25c3589",
+  "productionBaselineEvidence": "GitHub main source SHA 58fcbc3daf65858781da5dad25c70135a25c3589 (includes KL #327); live Android production OTA fingerprint and immutable RC remain unverified and release-blocking.",
+  "allowedPaths": [
+    "src/app/clusters/index.tsx",
+    "src/lib/buklodMediaUrl.ts",
+    "src/lib/buklodMaritesBoard.ts",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/performance-reliability-consolidation-r1.json"
+  ],
+  "acceptanceChecks": [
+    "Scope gate uses exact source base SHA; no unrelated files",
+    "Cluster shows complete active memberships, invitations and pending; Android Back returns to Community Wall",
+    "Media batch missing/failure recovery is bounded at max 3 concurrent individual signing requests",
+    "Marites video URLs refresh without changing photo behavior",
+    "Focused TypeScript, navigation, media and playback checks pass",
+    "Codex-only stale cache changes reconciled separately; production fingerprint and immutable RC verified before OTA"
+  ]
+}
