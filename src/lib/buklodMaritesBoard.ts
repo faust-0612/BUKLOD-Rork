@@ -804,8 +804,10 @@ export async function loadCommunityMaritesStories(
         for (const [postId, rows] of Object.entries(loaded)) {
           mediaMap[postId] = await Promise.all(rows.map(async row => ({
             ...row,
-            media_url: row.media_url || (row.media_path
-              ? await signCommunityMediaPath(row.media_path) : null),
+            media_url: row.media_path && String(row.media_mime_type ?? '').toLowerCase().startsWith('video/')
+              ? (await signCommunityMediaPath(String(row.media_path)) || row.media_url || null)
+              : (row.media_url || (row.media_path
+                ? await signCommunityMediaPath(String(row.media_path)) : null)),
           })));
         }
       } catch {
