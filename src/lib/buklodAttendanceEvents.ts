@@ -302,7 +302,9 @@ export async function listBuklodAttendanceEvents(
   }
 
   const fromRpc = await listEventsFromRpcs(id);
-  const fromTable = await listEventsFromTable(id);
+  // Avoid redundant table lookups when the RPC already returned events.
+  // This reduces database requests during connection-pool pressure.
+  const fromTable = fromRpc.length ? [] : await listEventsFromTable(id);
   const merged = mergeEventRows([...fromRpc, ...fromTable]);
 
   if (merged.length) {
