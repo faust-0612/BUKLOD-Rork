@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            fix/native-nav-concurrency-20261025)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/native-nav-concurrency.json" >> "$GITHUB_ENV";;
             fix/web-nav-tap-feedback-20261024)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/web-nav-tap-feedback.json" >> "$GITHUB_ENV";;
             fix/cluster-back-wall-current-main-20261024)
@@ -53,3 +55,11 @@ jobs:
       - name: Verify media signed URL cache
         if: github.head_ref == 'fix/video-stale-signed-url-20261024'
         run: node scripts/test-media-signed-cache.cjs
+
+      - name: Verify bottom navigation concurrency
+        run: node scripts/test-bottom-nav-concurrency.cjs
+
+      - name: Verify Community media cache and fallback limits
+        run: |
+          node scripts/test-media-signed-cache.cjs
+          node scripts/test-media-sign-fallback.cjs

@@ -1,0 +1,26 @@
+{
+  "objective": "Restore native navigation tap suppression and bounded Community media signing recovery",
+  "baseRef": "3c21f60a9a0c07253c392f799acca4ae703ca6b0",
+  "productionBaselineEvidence": "Run 40149190953 verified Android update 01a17099-b27f-7037-9e9e-6f6d80f58054 runtime 1.3.2 source 58fcbc3daf65858781da5dad25c70135a25c3589. Current main only adds staging workflow. New cumulative release remains blocked on unreconciled fixes and functional evidence.",
+  "allowedPaths": [
+    "src/components/BuklodPersistentBottomNav.tsx",
+    "scripts/test-bottom-nav-concurrency.cjs",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/native-nav-concurrency.json",
+    "src/lib/buklodMediaUrl.ts",
+    "scripts/test-media-sign-fallback.cjs"
+  ],
+  "acceptanceChecks": [
+    "Native concurrent taps navigate once",
+    "Web concurrent taps preserve latest requested destination",
+    "Scope transition failures never navigate",
+    "Missing Public scope never navigates",
+    "Current same destination is a no-op",
+    "Full cumulative release gates required before OTA",
+    "Partial and failed media batches recover only missing URLs",
+    "Individual signing has a shared limit of three across batches",
+    "Timed-out underlying requests retain capacity until settlement",
+    "Late success does not alter cache",
+    "Negative caching suppresses repeated failures"
+  ]
+}
