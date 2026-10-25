@@ -290,6 +290,7 @@ export default function BuklodHomeFaithPanel({
     useState<ScopeFaithAccessStatus | null>(null);
   const [accessLoading, setAccessLoading] =
     useState(Boolean(scopeId));
+  const [accessError, setAccessError] = useState(false);
 
   const opacity = useRef(
     new RNAnimated.Value(1)
@@ -357,16 +358,19 @@ export default function BuklodHomeFaithPanel({
       setAccess(null);
       setAccessLoading(true);
     }
+    setAccessError(false);
     void withBuklodTimeout(fetchScopeFaithAccessStatusResilient(scopeId), 10000, 'Faith access')
       .then(next => {
         if (!current()) return;
         loadedAccessContext.current = context;
         setAccess(next);
+        setAccessError(false);
       })
       .catch(error => {
         if (!current()) return;
         console.warn('SHOW FAITH access:', error);
-        if (loadedAccessContext.current !== context) setAccess(buildDefaultScopeFaithAccessStatus(scopeId));
+        setAccessError(true);
+        if (loadedAccessContext.current !== context) setAccess(null);
       })
       .finally(() => { if (current()) setAccessLoading(false); });
     return () => { active = false; };
@@ -522,7 +526,7 @@ export default function BuklodHomeFaithPanel({
           }
           meta={
             Boolean(scopeId) && (accessLoading || !access)
-              ? 'Checking Cluster access…'
+              ? accessError ? 'Unable to verify access. Reopen to retry.' : 'Checking Cluster access…'
               : Boolean(scopeId) && !access?.has_active_cluster
               ? 'Join a Cluster first'
               : dailyReadingLocked
@@ -592,7 +596,7 @@ export default function BuklodHomeFaithPanel({
           title="Daily devotional"
           meta={
             Boolean(scopeId) && (accessLoading || !access)
-              ? 'Checking Cluster access…'
+              ? accessError ? 'Unable to verify access. Reopen to retry.' : 'Checking Cluster access…'
               : Boolean(scopeId) && !access?.has_active_cluster
               ? 'Join a Cluster first'
               : devotionLocked
