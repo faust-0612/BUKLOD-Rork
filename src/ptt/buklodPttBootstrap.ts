@@ -76,12 +76,17 @@ startBuklodPttDutyNotifications();
 void bootstrapBuklodPttRuntime().catch(() => undefined);
 
 supabase.auth.onAuthStateChange((event: string, session: any) => {
-  if (event === 'SIGNED_OUT' || !session) {
+  // INITIAL_SESSION can arrive before local session restoration completes.
+  // Do not tear down PTT on a transient null or repeatedly bootstrap on
+  // token refresh / focus-driven same-user SIGNED_IN events.
+  if (event === 'SIGNED_OUT') {
     void shutdownBuklodPttRuntime();
     return;
   }
-
-  void bootstrapBuklodPttRuntime().catch(() => undefined);
+  if (!session?.user?.id) return;
+  if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+    void bootstrapBuklodPttRuntime().catch(() => undefined);
+  }
 });
 
 Notifications.addNotificationResponseReceivedListener((response) => {
