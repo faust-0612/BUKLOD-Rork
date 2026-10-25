@@ -72,6 +72,7 @@ export default function KlReaderScreen() {
   const [adminFeedback, setAdminFeedback] = useState('');
   const [rejectTarget, setRejectTarget] = useState<string | null>(null);
   const [rejectNotes, setRejectNotes] = useState('');
+  const [releaseTarget, setReleaseTarget] = useState<string | null>(null);
   const [cache, setCache] = useState<ReaderCache>(DEFAULT_READER_CACHE);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [glossaryOpen, setGlossaryOpen] = useState(false);
@@ -188,7 +189,7 @@ export default function KlReaderScreen() {
     };
   }, []);
 
-  const decideEpisode = async (episodeId: string, action: 'approve' | 'reject', notes = '') => {
+  const decideEpisode = async (episodeId: string, action: 'approve' | 'reject' | 'release', notes = '') => {
     if (!isSystemAdmin || adminBusyId) return;
     if (action === 'reject' && !notes.trim()) { setAdminFeedback('Maglagay ng dahilan ng rejection.'); return; }
     setAdminBusyId(episodeId);
@@ -196,8 +197,9 @@ export default function KlReaderScreen() {
     try {
       const { error } = await supabase.rpc(KL_RPC.adminAction, adminActionArgs({ action, episodeId, notes }));
       if (error) throw error;
-      setAdminFeedback(action === 'approve' ? 'Naaprubahan sa server. Hindi pa inilalabas ang kabanata.' : 'Ibinalik sa draft sa server.');
+      setAdminFeedback(action === 'approve' ? 'Naaprubahan sa server. Hindi pa inilalabas ang kabanata.' : action === 'release' ? 'Na-release na ang kabanata sa server.' : 'Ibinalik sa draft sa server.');
       setRejectTarget(null);
+      setReleaseTarget(null);
       setRejectNotes('');
     } catch (error) {
       setAdminFeedback(error instanceof Error ? `Hindi na-save: ${error.message}` : 'Hindi na-save ang desisyon. Subukan muli.');
@@ -577,7 +579,15 @@ export default function KlReaderScreen() {
                       <View style={{ flexDirection: 'row', gap: 12 }}>
                         <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)} onPress={(event) => { event.stopPropagation(); void decideEpisode(episode.id, 'approve'); }} style={{ padding: 12, backgroundColor: '#28583f', borderRadius: 8 }}><Text style={{ color: '#fff' }}>Approve</Text></Pressable>
                         <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)} onPress={(event) => { event.stopPropagation(); setRejectTarget(episode.id); setAdminFeedback(''); }} style={{ padding: 12, backgroundColor: '#783b3b', borderRadius: 8 }}><Text style={{ color: '#fff' }}>Reject</Text></Pressable>
+                        <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)} onPress={(event) => { event.stopPropagation(); setReleaseTarget(episode.id); setAdminFeedback(''); }} style={{ padding: 12, backgroundColor: '#36547b', borderRadius: 8 }}><Text style={{ color: '#fff' }}>Release Now</Text></Pressable>
                       </View>
+                      {releaseTarget === episode.id ? (
+                        <View style={{ gap: 8 }}>
+                          <Text style={styles.meta}>Ilalabas agad ang kabanatang ito sa lahat ng mambabasa. Kailangan approved na ito.</Text>
+                          <Pressable accessibilityRole="button" disabled={Boolean(adminBusyId)} onPress={(event) => { event.stopPropagation(); void decideEpisode(episode.id, 'release'); }}><Text style={{ color: '#f1d39b' }}>Confirm Release Now</Text></Pressable>
+                          <Pressable accessibilityRole="button" onPress={(event) => { event.stopPropagation(); setReleaseTarget(null); }}><Text style={{ color: '#fff' }}>Cancel</Text></Pressable>
+                        </View>
+                      ) : null}
                       {rejectTarget === episode.id ? (
                         <View style={{ gap: 8 }}>
                           <TextInput accessibilityLabel="Dahilan ng rejection" placeholder="Dahilan ng rejection (required)" placeholderTextColor="#999" value={rejectNotes} onChangeText={setRejectNotes} multiline style={{ color: '#fff', borderColor: '#aaa', borderWidth: 1, padding: 10, borderRadius: 8 }} />

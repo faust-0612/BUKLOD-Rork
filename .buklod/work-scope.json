@@ -1,15 +1,16 @@
 {
-  "objective": "Existing Community Wall Kabihasnang Ligaw reader: system_admin-only inline Approve/Reject, no auto-release",
-  "baseRef": "5203d3b23e209ba290f11e61f538d7dd9d360d79",
-  "productionBaselineEvidence": "Verify current cumulative Android production OTA and source manifest before any release; do not infer production from this PR.",
+  "objective": "KL manual Release Now for approved chapters, system_admin only, existing Community Wall reader",
+  "baseRef": "9bc9cce2ac6a7dbf3f4c3bf786905dba57e3cf77",
+  "productionBaselineEvidence": "Backend action deployed separately; verify current Android production OTA and cumulative source before publishing.",
   "allowedPaths": [
     ".buklod/work-scope.json",
-    "src/components/kabihasnang-ligaw/KlReaderScreen.tsx"
+    "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
+    "src/lib/kabihasnang-ligaw/rpc.ts"
   ],
   "acceptanceChecks": [
-    "Inline controls only in existing KL reader",
-    "Server-side system_admin authorization and required rejection reason",
-    "Approval does not auto-publish",
-    "Focused QA; immutable RC; Android production runtime 1.3.2"
+    "Server-side system_admin gate",
+    "Manual release only after manuscript approval",
+    "Explicit confirmation, no automatic release",
+    "Focused QA then immutable RC and Android production OTA runtime 1.3.2"
   ]
 }

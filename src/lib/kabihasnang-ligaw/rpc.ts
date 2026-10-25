@@ -20,6 +20,7 @@ export type AdminAction =
   | 'revise'
   | 'correct'
   | 'schedule'
+  | 'release'
   | 'pause'
   | 'hold'
   | 'resume'
