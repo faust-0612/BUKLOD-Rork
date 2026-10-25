@@ -219,7 +219,6 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
   {openWidget && pendingCount>0 ? <Text style={s.empty}>Updating selected feature…</Text> : null}
   {loading && !notices.length && !events.length && !posts.length ? <View style={s.loadingNotice}><ActivityIndicator size="small" color="#0874DE"/><Text style={s.empty}>Loading Cluster details; actions remain available.</Text></View> : null}
   <View style={s.topBar}>
-    <TextInput value={searchQuery} onChangeText={setSearchQuery} placeholder="Search Cluster..." placeholderTextColor="#7A8EAA" style={s.topSearch} returnKeyType="search" clearButtonMode="while-editing" />
     {isAdmin ? <Pressable accessibilityRole="button" accessibilityLabel="Manage Cluster" onPress={()=>router.push(clusterScopeManageRoute(scope.scope_id,scope.name) as any)} style={s.manageMini}>
       <MaterialCommunityIcons name="cog-outline" size={15} color="#FFFFFF"/><Text style={s.manageMiniText}>Manage Cluster</Text>
     </Pressable> : null}
@@ -227,7 +226,6 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
       <MaterialCommunityIcons name="tune-variant" size={15} color="#0869C9"/><Text style={s.customizeMiniText}>Customize Home</Text>
     </Pressable> : null}
   </View>
-  <Card icon="lightning-bolt-outline" title="QUICK ACTIONS" cardColor={cardColor}><View style={s.grid}><Quick icon="account-group-outline" text="Community" onPress={openCommunity}/><Quick icon="message-text-outline" text="Connect" onPress={openConnect}/><Quick icon="clipboard-check-outline" text="Attendance" onPress={()=>router.push({pathname:'/scope/attendance',params:scopeRouteParams(scope.scope_id,{scopeType:'CLUSTER'})} as any)}/>{isAdmin?<><Quick icon="clipboard-plus-outline" text="Add Task" onPress={()=>edit('task')}/><Quick icon="poll" text="New Poll" onPress={()=>edit('poll')}/><Quick icon="folder-plus-outline" text="Resource" onPress={()=>edit('resource')}/><Quick icon="alert-octagon-outline" text="Emergency" onPress={()=>edit('notice')}/></>:null}</View></Card>
   {show('notice')&&<Card icon={notice?.priority==='EMERGENCY'?'alert-octagon-outline':'alert-circle-outline'} title={notice?.priority==='EMERGENCY'?'EMERGENCY NOTICE':'IMPORTANT NOTICE'} action={isAdmin?'EDIT':undefined} onAction={isAdmin?()=>edit('notice'):undefined} cardColor={cardColor}>{notice?<><Text style={[s.big,notice.priority==='EMERGENCY'&&{color:'#A82020'}]}>{notice.title}</Text>{notice.body?<Text style={s.body}>{notice.body}</Text>:null}</>:<Empty>No important notice right now.</Empty>}</Card>}
   {/* CLUSTER BULLETIN uses the existing official bulletin card directly. */}
   {show('bulletin')&&<BuklodHomeScopeBulletins/>}
@@ -273,7 +271,7 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
   {show('about')&&openWidget==='about'&&<Card icon="information-outline" title="ABOUT CLUSTER" action={isAdmin?'EDIT':undefined} onAction={isAdmin?()=>edit('about'):undefined} cardColor={cardColor}><Text style={s.body}>{settings?.about_text||description||'No Cluster description yet.'}</Text><Text style={[s.meta,{marginTop:8}]}>Visibility: {scope.visibility??'—'} · Status: {scope.scope_status??'ACTIVE'}</Text></Card>}
   {isAdmin&&show('insights')&&openWidget==='insights'&&<Card icon="chart-box-outline" title="ADMIN INSIGHTS" cardColor={cardColor}><View style={s.stats}><Stat v={scope.member_count??members.length} l="MEMBERS"/><Stat v={openTasks.length} l="OPEN TASKS"/><Stat v={upcoming.length} l="EVENTS"/><Stat v={attendance.length} l="TODAY"/></View></Card>}
   {/* PATCH_170B_R3_CUSTOMIZE_DRAWER preserved in the existing modal; entry now beside Search. */}
-  <BuklodScreenBottomBanner placement="home" variant="large" />
+  <BuklodScreenBottomBanner placement="cluster" variant="large" />
   <View style={{height:28}}/>
  </ScrollView>
  <Modal
@@ -300,7 +298,7 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
         Customize Cluster Home
        </Text>
        <Text style={s.drawerSubtitle}>
-        Show or hide cards for this Cluster. Header and Quick Actions stay available.
+        Show or hide cards for this Cluster. Header controls stay available.
        </Text>
       </View>
      </View>
