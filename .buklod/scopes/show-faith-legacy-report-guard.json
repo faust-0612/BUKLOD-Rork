@@ -11,5 +11,6 @@
     "Role-based authenticated leader/member/cross-scope negative tests",
     "Preserve Android 1.3.2 legacy RPC signatures and permissions",
     "No production deploy until cumulative RC gate"
-  ]
+  ],
+  "productionBaselineEvidence": "Verified Android production OTA run 40149190953 update 01a17099-b27f-7037-9e9e-6f6d80f58054 runtime 1.3.2 source 58fcbc3daf65858781da5dad25c70135a25c3589; staged security migration is NOT deployed and production release is prohibited until tests and cumulative RC pass."
 }
