@@ -193,6 +193,9 @@ async function syncDutyNotification(state: BuklodPttRuntimeState) {
 export function startBuklodPttDutyNotifications() {
   if (started || Platform.OS === 'web') return;
   started = true;
+  // Recover from process death: previous notification IDs were held only
+  // in memory, so clear any stale duty cards before subscribing.
+  void dismissStaleDutyNotifications().catch(() => undefined);
   subscribeBuklodPttRuntime((state) => {
     void syncDutyNotification(state);
   });
