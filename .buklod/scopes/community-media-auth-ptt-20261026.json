@@ -9,7 +9,8 @@
     "src/ptt/buklodPttDutyNotification.ts",
     ".github/workflows/engineering-accountability.yml",
     ".buklod/scopes/community-media-auth-ptt-20261026.json",
-    "src/ptt/buklodPttBootstrap.ts"
+    "src/ptt/buklodPttBootstrap.ts",
+    "src/utils/setPushConfig.ts"
   ],
   "acceptanceChecks": [
     "Cached valid media URL does not wait for disk hydration",
@@ -20,6 +21,7 @@
     "Native foreground-service notification remains independent",
     "Performance QA and accountability pass",
     "Freeze RC and independently verify Android production OTA baseline before publish",
-    "Transient initial auth null does not shut down PTT; token refresh does not repeatedly bootstrap"
+    "Transient initial auth null does not shut down PTT; token refresh does not repeatedly bootstrap",
+    "Killed-state Stream token provider rejects expired Supabase session and retains valid refreshed session"
   ]
 }
