@@ -282,6 +282,17 @@ export function getCachedBuklodCharacterSelectionV2(
   return cache.get(userId) ?? null;
 }
 
+// Validate the requested account before reading or changing Character state.
+async function ensureCharacterSession(userId: string): Promise<void> {
+  const { data, error } = await supabase.auth.getSession();
+  if (error || !data.session || data.session.user.id !== userId) {
+    throw new Error('Character session unavailable. Please sign in again.');
+  }
+  if (!data.session.access_token) {
+    throw new Error('Character session unavailable. Please sign in again.');
+  }
+}
+
 export async function getMyBuklodCharacterSelectionV2(
   userId?: string | null,
   force = false,
@@ -299,6 +310,7 @@ export async function getMyBuklodCharacterSelectionV2(
   }
 
   const request = (async () => {
+    await ensureCharacterSession(userId);
     const { data, error } = await (supabase as any).rpc(
       'get_my_buklod_character_selection_v2',
     );
@@ -330,6 +342,7 @@ export async function setMyBuklodCharacterActiveV2(
     throw new Error('Authentication required');
   }
 
+  await ensureCharacterSession(userId);
   const { data, error } = await (supabase as any).rpc(
     'set_my_buklod_character_active_v2',
     { p_character_id: characterId },
