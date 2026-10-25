@@ -185,6 +185,36 @@ jobs:
       - name: Marites behavior checks
         run: node scripts/test-marites-release.cjs
 
+      - name: Regression guard for scoped navigation and Show Faith
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const assert = require('node:assert/strict');
+          const read = p => fs.readFileSync(p, 'utf8');
+          const faith = read('src/components/BuklodHomeFaithPanel.tsx');
+          const scope = read('src/app/scope/index.tsx');
+          const cluster = read('src/components/BuklodClusterHomeCommandCenterImpl.tsx');
+          const dashboard = read('src/components/BuklodScopeHomeDashboard.tsx');
+          for (const label of ['Daily Reading', 'My Bible', 'Word', 'Prayer', 'ABAKA', 'Hymns']) {
+            assert.ok(faith.includes('label="' + label + '"'), 'Missing Show Faith card: ' + label);
+          }
+          for (const marker of ['fetchScopeFaithAccessStatusResilient', 'withBuklodTimeout', 'accessContextRef.current === context']) {
+            assert.ok(faith.includes(marker), 'Missing Faith access safety: ' + marker);
+          }
+          for (const marker of ['handleWorkspaceBack', "openSection('home')", 'exitWorkspace']) {
+            assert.ok(scope.includes(marker), 'Missing scoped back contract: ' + marker);
+          }
+          for (const marker of ['openCommunity', 'openConnect', 'scopeRouteParams(scope.scope_id']) {
+            assert.ok(cluster.includes(marker), 'Missing Cluster action: ' + marker);
+          }
+          for (const marker of ['BuklodOrgHomeClusterCard', 'BuklodScopeAttendanceCard', 'BuklodScopeFaithMonitoringDoor']) {
+            assert.ok(dashboard.includes(marker), 'Missing Organization card: ' + marker);
+          }
+          console.log('PASS: core Show Faith and scoped navigation/card contracts');
+          NODE
+
       - name: TypeScript QA
         run: npx tsc --noEmit
 
