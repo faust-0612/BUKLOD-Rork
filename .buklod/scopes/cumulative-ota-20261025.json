@@ -1,5 +1,5 @@
 {
-  "objective": "Targeted scoped Community DZAS removal and Cluster Home / Home ads corrections and Connect collage width",
+  "objective": "Targeted scoped Community DZAS removal and Cluster Home / Home ads corrections and Connect collage width; staged Show Faith legacy report security",
   "baseRef": "16fa1d46dca58f2125df5b67d6352896395b6073",
   "productionBaselineEvidence": "Verified Android production OTA run 40149190953 update 01a17099-b27f-7037-9e9e-6f6d80f58054 runtime 1.3.2 source 58fcbc3daf65858781da5dad25c70135a25c3589; production publication of this DEV branch remains prohibited until final gates pass.",
   "allowedPaths": [
@@ -8,7 +8,8 @@
     "src/components/BuklodExclusiveScopeCommunity.tsx",
     "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
     "src/lib/buklodGlobalAdController.ts",
-    "src/components/connect/ConnectMessageBubble.tsx"
+    "src/components/connect/ConnectMessageBubble.tsx",
+    "supabase/migrations/20261025190000_show_faith_legacy_report_leadership_guard.sql"
   ],
   "acceptanceChecks": [
     "Diff includes only explicit scoped files against main commit 16fa1d46",
@@ -16,6 +17,8 @@
     "Cluster Search and Quick Actions removed; Notice and Bulletins retained",
     "Cluster ad placement corrected; Home passive placement enabled with legacy unit blocked",
     "Complete functional, security and performance QA before immutable RC and OTA",
-    "Connect collage respects message bubble width without blank right region"
+    "Connect collage respects message bubble width without blank right region",
+    "Show Faith legacy RPC guard requires real authenticated leader/member/cross-scope negative tests and compatibility verification before DB deploy",
+    "Do not publish OTA until immutable RC and Android media/loading/auth acceptance are independently verified"
   ]
 }
