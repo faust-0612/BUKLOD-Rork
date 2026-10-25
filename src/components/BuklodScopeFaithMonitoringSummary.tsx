@@ -120,12 +120,11 @@ function MonitorSection({
 export default function BuklodScopeFaithMonitoringSummary({
   scope,
 }: Props) {
-  const { isExactScopeAdmin, isSystemAdmin } = useBuklodAccess();
+  const { isExactScopeAdmin } = useBuklodAccess();
   const [canLeadership, setCanLeadership] = useState(false);
   const isAdmin =
     Boolean(scope.is_admin) ||
     isExactScopeAdmin ||
-    isSystemAdmin ||
     canLeadership;
 
   const [summary, setSummary] =
