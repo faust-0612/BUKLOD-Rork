@@ -53,6 +53,29 @@ jobs:
           esac
       - name: Verify scope contract
         run: node scripts/engineering-accountability-gate.mjs
+      - name: Verify cumulative Show Faith migration contract
+        if: github.head_ref == 'dev/scoped-community-ota-consolidation-20261025'
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const sql = fs.readFileSync('supabase/migrations/20261025190000_show_faith_legacy_report_leadership_guard.sql', 'utf8');
+          const required = [
+            'buklod_scope_faith_monitoring_summary_v1',
+            'buklod_scope_faith_monitoring_summary_v2',
+            'buklod_scope_faith_monitoring_summary_v3',
+            'buklod_is_exact_scope_admin_v1',
+            'buklod_user_has_functional_approver_role',
+            "errcode = ''42501''",
+            "auth.uid() is null",
+            "SECURITY DEFINER",
+          ];
+          const missing = required.filter(x => !sql.includes(x));
+          if (missing.length) { console.error('SHOW FAITH CONTRACT BLOCK:', missing.join(', ')); process.exit(1); }
+          if (/\\b(?:drop\\s+function|revoke\\s+execute|grant\\s+execute)\\b/i.test(sql)) {
+            console.error('SHOW FAITH CONTRACT BLOCK: unexpected legacy RPC privilege mutation'); process.exit(1);
+          }
+          console.log('SHOW FAITH STATIC CONTRACT PASS (live role tests still required)');
+          NODE
       - name: Verify navigation and scope transitions
         if: github.head_ref == 'codex/nav-home-wall-isolation-20261024' || github.ref_name == 'codex/nav-home-wall-isolation-20261024'
         run: node scripts/test-navigation-home-wall.cjs
