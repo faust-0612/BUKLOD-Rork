@@ -374,6 +374,7 @@ function destinationTitle(item){
  return String(item&&item.display_name||'Destination').split(',')[0].trim()||'Destination';
 }
 async function searchDestinationQuery(rawQuery){
+ const sequence=++destinationSearchSequence;
  const query=String(rawQuery||'').trim();
  showDestinationSearch();
 
@@ -388,10 +389,15 @@ async function searchDestinationQuery(rawQuery){
   const url=
    'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&addressdetails=1&q='+
    encodeURIComponent(query);
-  const response=await fetch(url,{headers:{Accept:'application/json'}});
-  if(!response.ok) throw new Error('Destination search unavailable');
-
-  const data=await response.json();
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),10000);
+  let data;
+  try{
+   const response=await fetch(url,{headers:{Accept:'application/json'},signal:controller.signal});
+   if(!response.ok) throw new Error('Destination search unavailable');
+   data=await response.json();
+  }finally{clearTimeout(timeout);}
+  if(sequence!==destinationSearchSequence) return;
   destinationSearchResults=(Array.isArray(data)?data:[])
    .map((item)=>({
     latitude:Number(item&&item.lat),
@@ -431,6 +437,7 @@ async function searchDestinationQuery(rawQuery){
    });
   }
  }catch{
+  if(sequence!==destinationSearchSequence) return;
   setDestinationResultsHtml('<div class="buklod-destination-note">Destination search is temporarily unavailable. You can still tap any place pin on the map.</div>');
  }
 }
@@ -576,16 +583,23 @@ function renderDrivingRoute(origin,p,route){
  }
 }
 
+let routeRequestSequence=0;
 async function requestDrivingRoute(origin,p){
+ const sequence=++routeRequestSequence;
+ const controller=new AbortController();
+ const timeout=setTimeout(()=>controller.abort(),12000);
  const url=
   'https://router.project-osrm.org/route/v1/driving/'+
   encodeURIComponent(origin.longitude+','+origin.latitude+';'+p.longitude+','+p.latitude)+
   '?overview=full&geometries=geojson&steps=true&alternatives=false';
 
- const response=await fetch(url);
- if(!response.ok) throw new Error('Driving route unavailable');
-
- const data=await response.json();
+ let response,data;
+ try{
+  response=await fetch(url,{signal:controller.signal});
+  if(!response.ok) throw new Error('Driving route unavailable');
+  data=await response.json();
+ }finally{clearTimeout(timeout);}
+ if(sequence!==routeRequestSequence) return;
  const route=Array.isArray(data.routes)?data.routes[0]:null;
  if(!route||!route.geometry) throw new Error('No driving route found');
 
@@ -593,6 +607,7 @@ async function requestDrivingRoute(origin,p){
 }
 
 let pendingNavigationDestination=null;
+let destinationSearchSequence=0;
 
 async function startBuklodNavigation(p){
  if(!p||!isNavigablePoint(p)) return;
