@@ -158,6 +158,7 @@ BuklodPersistentBottomNav() {
   const navigationInFlight = React.useRef(false);
   const lastRequestedRoute = React.useRef<NavItem['route'] | null>(null);
   const openGlobalDestination = async (route: NavItem['route']) => {
+    if (Platform.OS !== 'web' && navigationInFlight.current) return;
     if (Platform.OS === 'web' && navigationInFlight.current) {
       // Do not discard a user's second tab choice while a scope switch is pending.
       lastRequestedRoute.current = route;
