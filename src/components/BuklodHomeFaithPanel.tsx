@@ -49,8 +49,7 @@ import {
 
 import BuklodFindAChurchDoorway from '@/components/BuklodFindAChurchDoorway';
 import {
-  buildDefaultScopeFaithAccessStatus,
-  fetchScopeFaithAccessStatusResilient,
+  fetchScopeFaithAccessStatus,
   type ScopeFaithAccessStatus,
 } from '@/lib/buklodScopeFaithAccess';
 
@@ -357,16 +356,18 @@ export default function BuklodHomeFaithPanel({
       setAccess(null);
       setAccessLoading(true);
     }
-    void withBuklodTimeout(fetchScopeFaithAccessStatusResilient(scopeId), 10000, 'Faith access')
+    void withBuklodTimeout(fetchScopeFaithAccessStatus(scopeId), 10000, 'Faith access')
       .then(next => {
         if (!current()) return;
+        if (!next) throw new Error('Faith access status unavailable');
         loadedAccessContext.current = context;
         setAccess(next);
       })
       .catch(error => {
         if (!current()) return;
         console.warn('SHOW FAITH access:', error);
-        if (loadedAccessContext.current !== context) setAccess(buildDefaultScopeFaithAccessStatus(scopeId));
+        // Do not turn a failed access lookup into a false locked state.
+        if (loadedAccessContext.current !== context) setAccess(null);
       })
       .finally(() => { if (current()) setAccessLoading(false); });
     return () => { active = false; };
