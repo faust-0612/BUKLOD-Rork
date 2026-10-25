@@ -92,6 +92,14 @@ export function AdsProvider({
     const subscription = AppState.addEventListener(
       'change',
       (nextState) => {
+        if (nextState === 'active' && !ready) {
+          void initializeBuklodAds()
+            .then(result => {
+              setReady(result.ready);
+              setCanRequestAds(result.canRequestAds);
+            })
+            .catch(error => console.warn('BUKLOD Ads resume:', error));
+        }
         if (
           nextState === 'background' ||
           nextState === 'inactive'
@@ -105,7 +113,7 @@ export function AdsProvider({
       subscription.remove();
       void flushBuklodAdOperationalTelemetry();
     };
-  }, []);
+  }, [ready]);
 
   const refreshConsent =
     async () => {

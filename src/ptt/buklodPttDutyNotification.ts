@@ -101,6 +101,16 @@ async function ensureDutyNotification() {
   ]);
 }
 
+// Clear only BUKLOD duty notifications, never unrelated alerts or
+// the Stream foreground-service notification managed by native code.
+async function dismissStaleDutyNotifications() {
+  const presented = await Notifications.getPresentedNotificationsAsync();
+  await Promise.all(presented
+    .filter(item => item.request.content.data?.kind === 'ptt_duty')
+    .map(item => Notifications.dismissNotificationAsync(item.request.identifier)
+      .catch(() => undefined)));
+}
+
 async function syncDutyNotification(state: BuklodPttRuntimeState) {
   applyKeepAliveCopy(state);
 
@@ -125,6 +135,7 @@ async function syncDutyNotification(state: BuklodPttRuntimeState) {
 
   try {
     if (!connection) {
+      await dismissStaleDutyNotifications();
       if (shownId) {
         await Notifications.dismissNotificationAsync(shownId).catch(() => undefined);
         shownId = null;
@@ -141,6 +152,9 @@ async function syncDutyNotification(state: BuklodPttRuntimeState) {
 
     await ensureDutyNotification();
 
+    // On restart shownId is lost, so dismiss matching presented duty
+    // notifications as well as the current in-memory one.
+    await dismissStaleDutyNotifications();
     if (shownId) {
       await Notifications.dismissNotificationAsync(shownId).catch(() => undefined);
       shownId = null;
@@ -179,6 +193,9 @@ async function syncDutyNotification(state: BuklodPttRuntimeState) {
 export function startBuklodPttDutyNotifications() {
   if (started || Platform.OS === 'web') return;
   started = true;
+  // Recover from process death: previous notification IDs were held only
+  // in memory, so clear any stale duty cards before subscribing.
+  void dismissStaleDutyNotifications().catch(() => undefined);
   subscribeBuklodPttRuntime((state) => {
     void syncDutyNotification(state);
   });

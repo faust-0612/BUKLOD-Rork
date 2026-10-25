@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            fix/community-media-fast-visible-20261026)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/community-media-auth-ptt-20261026.json" >> "$GITHUB_ENV";;
             dev/scoped-community-ota-consolidation-20261025)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/cumulative-ota-20261025.json" >> "$GITHUB_ENV";;
             dev/cumulative-ota-20261025)

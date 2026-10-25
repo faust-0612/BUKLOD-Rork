@@ -62,13 +62,13 @@ function BuklodCachedMediaImageInner({
       return;
     }
 
-    if (preferredUri && preferredUri !== displayUri) {
-      const next =
-        peekCommunityMediaUrl(path, preferredUri) ||
-        preferredUri;
-      if (next && next !== displayUri) {
-        setDisplayUri(next);
-      }
+    // Preserve the already painted image when a feed refresh rotates
+    // its signed URL. A new URL for the same storage path should not
+    // cause a redundant download or visible loading flash. The existing
+    // onError recovery still re-signs if the old credential expires.
+    if (preferredUri && !displayUri) {
+      const next = peekCommunityMediaUrl(path, preferredUri) || preferredUri;
+      if (next) setDisplayUri(next);
     }
   }, [path, preferredUri, displayUri]);
 

@@ -1,0 +1,33 @@
+{
+  "objective": "Targeted Community media visibility, same-user session hydration and PTT duty notification deduplication",
+  "baseRef": "a1cb82f5685de415ffa335ade865dbee91c26d48",
+  "productionBaselineEvidence": "Previously reported Android Production OTA run 40149190953, update 01a17099-b27f-7037-9e9e-6f6d80f58054, runtime 1.3.2, source 58fcbc3daf65858781da5dad25c70135a25c3589. Live baseline and RC must be independently verified before release.",
+  "allowedPaths": [
+    "src/lib/buklodMediaUrl.ts",
+    "src/components/BuklodCachedMediaImage.tsx",
+    "src/providers/AuthProvider.tsx",
+    "src/ptt/buklodPttDutyNotification.ts",
+    ".github/workflows/engineering-accountability.yml",
+    ".buklod/scopes/community-media-auth-ptt-20261026.json",
+    "src/ptt/buklodPttBootstrap.ts",
+    "src/utils/setPushConfig.ts",
+    "src/providers/AdsProvider.tsx",
+    "src/lib/buklodReferralV2.ts",
+    "src/components/BuklodHomeFaithPanel.tsx"
+  ],
+  "acceptanceChecks": [
+    "Cached valid media URL does not wait for disk hydration",
+    "Same-path signed URL rotation retains painted photo",
+    "Repeated same-user SIGNED_IN does not reload profile",
+    "Explicit logout and user switch still invalidate identity",
+    "PTT duty cards deduplicated after restart reconnect and disconnect",
+    "Native foreground-service notification remains independent",
+    "Performance QA and accountability pass",
+    "Freeze RC and independently verify Android production OTA baseline before publish",
+    "Transient initial auth null does not shut down PTT; token refresh does not repeatedly bootstrap",
+    "Killed-state Stream token provider rejects expired Supabase session and retains valid refreshed session",
+    "Ads initialization retry on foreground resume after failed bootstrap",
+    "Referral pending code cleared only after confirmed successful server attribution",
+    "Show Faith access lookup failure does not fabricate a locked entitlement status"
+  ]
+}

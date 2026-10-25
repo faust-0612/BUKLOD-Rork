@@ -123,6 +123,12 @@ async function createTokenProvider():
     // Keep the existing session when refresh is unavailable.
   }
 
+  // A refresh may return an error rather than throw. The previous session
+  // can still be valid, but an expired access token must never be sent.
+  if (session?.expires_at && session.expires_at * 1000 <= Date.now() + 30000) {
+    throw new Error('BUKLOD session expired for incoming call push.');
+  }
+
   if (!session?.access_token) {
     throw new Error(
       'No active BUKLOD session for Stream push.'
