@@ -8,7 +8,8 @@
     "src/providers/AuthProvider.tsx",
     "src/ptt/buklodPttDutyNotification.ts",
     ".github/workflows/engineering-accountability.yml",
-    ".buklod/scopes/community-media-auth-ptt-20261026.json"
+    ".buklod/scopes/community-media-auth-ptt-20261026.json",
+    "src/ptt/buklodPttBootstrap.ts"
   ],
   "acceptanceChecks": [
     "Cached valid media URL does not wait for disk hydration",
@@ -18,6 +19,7 @@
     "PTT duty cards deduplicated after restart reconnect and disconnect",
     "Native foreground-service notification remains independent",
     "Performance QA and accountability pass",
-    "Freeze RC and independently verify Android production OTA baseline before publish"
+    "Freeze RC and independently verify Android production OTA baseline before publish",
+    "Transient initial auth null does not shut down PTT; token refresh does not repeatedly bootstrap"
   ]
 }
