@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            dev/show-faith-legacy-authorization-guard-20261025)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/show-faith-legacy-report-guard.json" >> "$GITHUB_ENV";;
             dev/cumulative-ota-20261025)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/cumulative-ota-20261025.json" >> "$GITHUB_ENV";;
             fix/native-nav-concurrency-20261025)
