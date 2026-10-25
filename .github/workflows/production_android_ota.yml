@@ -153,34 +153,22 @@ jobs:
       - name: Verify locked Community Help / Emergency SOS baseline
         run: node scripts/community-help-sos-release-contract.mjs
 
-      - name: Apply Home identity action row
-        if: github.ref == 'refs/heads/main'
-        run: node scripts/patch-home-identity-action-row.cjs
-
-      - name: Verify expected Home compatibility-only patch
-        if: github.ref == 'refs/heads/main'
+      - name: Verify Home cleanup and Classroom separation
         shell: bash
         run: |
-          # The legacy marker is inserted in CI only for the existing R23 layout.
-          # No other file may change before the exact-source RC baseline gate.
-          test "$(git diff --name-only)" = 'src/app/(tabs)/home.tsx'
-          git diff -- 'src/app/(tabs)/home.tsx' | grep -F 'HOME_IDENTITY_ACTION_ROW_R2'
-          git diff -- 'src/app/(tabs)/home.tsx' | grep -F 'BUKLOD_HOME_IDENTITY_R23_CLEAN_TWO_ROW'
-          # Restore the pristine source; do not export a mutated tree.
-          git restore -- 'src/app/(tabs)/home.tsx'
-          git diff --exit-code
-
-      - name: Verify Classroom and Home separation
-        shell: bash
-        run: |
-          grep -F 'BUKLOD_HOME_IDENTITY_R23_CLEAN_TWO_ROW' 'src/app/(tabs)/home.tsx'
-          grep -F 'BUKLOD_CLASSROOM_ACCOUNT_ISOLATION_R2' 'src/app/profile/buklod-classrooms.tsx'
-          grep -F "row.role_key === 'STUDENT' 'src/app/profile/buklod-classrooms.tsx'" || true
-          grep -F "row.role_key === 'STUDENT'" 'src/app/profile/buklod-classrooms.tsx'
-          if grep -F "row.role_key === 'FACULTY'" 'src/app/profile/buklod-classrooms.tsx'; then
+          # Home identity action row was intentionally removed in PR #336.
+          # Do not reinsert it or require its legacy marker during production OTA.
+          if grep -Fq 'BUKLOD_HOME_IDENTITY_R23_CLEAN_TWO_ROW' 'src/app/(tabs)/home.tsx'; then
+            echo 'Legacy Home identity card unexpectedly restored.'
+            exit 1
+          fi
+          grep -Fq 'BUKLOD_CLASSROOM_ACCOUNT_ISOLATION_R2' 'src/app/profile/buklod-classrooms.tsx'
+          grep -Fq "row.role_key === 'STUDENT'" 'src/app/profile/buklod-classrooms.tsx'
+          if grep -Fq "row.role_key === 'FACULTY'" 'src/app/profile/buklod-classrooms.tsx'; then
             echo 'Faculty rows are still rendered in student My Classroom.'
             exit 1
           fi
+          git diff --exit-code
 
       - name: Marites behavior checks
         run: node scripts/test-marites-release.cjs
