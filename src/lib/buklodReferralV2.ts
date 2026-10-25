@@ -118,6 +118,9 @@ export async function attachBuklodReferral(code:string){
     const message=String((result.data as any)?.error??result.error.message??'Referral could not be recorded.');
     throw new Error(message);
   }
+  if(result.data?.ok===false || result.data?.error){
+    throw new Error(String(result.data?.reason??result.data?.error??'Referral attribution failed.'));
+  }
   await clearPendingBuklodReferralCode();
   void recordBuklodReferralFunnel('ATTRIBUTED','APP');
   return result.data;
