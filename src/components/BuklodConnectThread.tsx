@@ -629,10 +629,11 @@ function BuklodConnectThreadInner({
    * but useBuklodPersistentNavOccupiedHeight can still report height there.
    * Dock the write-message row above the phone/system nav instead of hiding under it.
    */
+  // Public navigation is outside the thread viewport; avoid duplicate safe-area clearance.
   const shellReservesPersistentNav =
-    isBuklodScopedWorkspacePath(pathname) &&
-    navOccupied > 0;
-  // Match drawer clearance so attach / GIF / reaction icons stay tappable above the phone nav pane.
+    navOccupied > 0 &&
+    !isBuklodScopedWorkspacePath(pathname);
+  // Standalone/scoped threads without public navigation retain phone clearance.
   const phoneNavClearance = shellReservesPersistentNav
     ? 0
     : Math.max(insets.bottom, 8) + 12;

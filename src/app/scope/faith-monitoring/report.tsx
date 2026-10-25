@@ -66,7 +66,7 @@ function PipelineCard({
 
 export default function ScopeFaithMonitoringReportScreen() {
   const { activeScope } = useBuklodScope();
-  const { isExactScopeAdmin, isSystemAdmin } = useBuklodAccess();
+  const { isExactScopeAdmin } = useBuklodAccess();
   const [summary, setSummary] = useState<ScopeFaithMonitoringSummary | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -74,7 +74,7 @@ export default function ScopeFaithMonitoringReportScreen() {
   const [exporting, setExporting] = useState(false);
   const [canLeadership, setCanLeadership] = useState(false);
 
-  const isAdmin = Boolean(activeScope?.is_admin) || isExactScopeAdmin || isSystemAdmin || canLeadership;
+  const isAdmin = Boolean(activeScope?.is_admin) || isExactScopeAdmin || canLeadership;
 
   const load = useCallback(async () => {
     if (!activeScope?.scope_id) {

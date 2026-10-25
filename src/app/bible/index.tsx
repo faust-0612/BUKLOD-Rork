@@ -1223,6 +1223,11 @@ export default function DailyBibleScreen() {
     setAssignments(aa);
 
     if(aa.length){
+      setSubmissions([]);
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      const authenticatedUserId = authData.user?.id;
+      if (!authenticatedUserId) throw new Error('Sign in is required to load your Daily Reading answers.');
       const {
         data:s,
         error:se
@@ -1231,6 +1236,7 @@ export default function DailyBibleScreen() {
         .select(
           'id,assignment_id,bible_text,bible_photo_path,answer_text,reflection_photo_path,answer_language,status,submitted_at,submitted_on_time,admin_note,question_answers'
         )
+        .eq('user_id', authenticatedUserId)
         .in(
           'assignment_id',
           aa.map(x=>x.id)
