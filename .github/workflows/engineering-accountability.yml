@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            consolidate/convo-connect-avatar-map-home-20261026)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/convo-connect-avatar-map-home-20261026.json" >> "$GITHUB_ENV";;
             fix/community-media-fast-visible-20261026)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/community-media-auth-ptt-20261026.json" >> "$GITHUB_ENV";;
             dev/scoped-community-ota-consolidation-20261025)
