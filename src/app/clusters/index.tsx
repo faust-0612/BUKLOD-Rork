@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useState } from 'react';
+﻿import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, BackHandler, Platform, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import BuklodPortalScrollView from '@/components/BuklodPortalScrollView';
@@ -37,22 +37,30 @@ export default function ClustersScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const requestEpoch = useRef(0);
 
   const load = useCallback(async (refresh = false) => {
+    const epoch = ++requestEpoch.current;
     if (refresh) setRefreshing(true);
     try {
       const mine = await getMyClusters();
+      if (epoch !== requestEpoch.current) return;
       setClusters(mine);
       setLoadError(null);
     } catch (error) {
-      setLoadError(messageOf(error));
+      if (epoch === requestEpoch.current) setLoadError(messageOf(error));
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (epoch === requestEpoch.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useFocusEffect(useCallback(() => {
+    void load();
+    return () => { requestEpoch.current += 1; };
+  }, [load]));
 
   const openHome = useCallback((id: string) => {
     void enterScopedWorkspace(selectScope, id, {
