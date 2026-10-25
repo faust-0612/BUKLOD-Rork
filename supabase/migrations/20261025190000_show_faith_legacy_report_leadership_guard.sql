@@ -25,6 +25,9 @@ BEGIN
     IF position(anchor in olddef) = 0 THEN
       RAISE EXCEPTION 'Unexpected report function structure: %', fn;
     END IF;
+    IF position('SECURITY DEFINER' in upper(olddef)) = 0 THEN
+      RAISE EXCEPTION 'Unexpected security mode for report function: %', fn;
+    END IF;
     newdef := overlay(olddef placing guard from position(anchor in olddef) for length(anchor));
     EXECUTE newdef;
   END LOOP;
