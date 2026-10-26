@@ -4,7 +4,7 @@ name: BUKLOD External Uptime
 
 on:
   schedule:
-    - cron: '19 * * * *' # Once per hour, UTC; GitHub schedule can be delayed.
+    - cron: '19 */3 * * *' # Every 3 hours UTC; incident handling remains enabled.
   workflow_dispatch:
   push:
     paths:
