@@ -33,6 +33,7 @@ import {
 import { clusterScopeManageRoute } from '@/lib/buklodCluster';
 import { enterScopedWorkspace } from '@/lib/buklodScopeRoute';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
+import { supabase } from '@/lib/supabase';
 
 function messageOf(error: unknown) {
   if (
@@ -176,6 +177,18 @@ export default function ClustersScreen() {
     });
     return () => listener.remove();
   }, []));
+  // Never expose a previous account's in-memory Cluster memberships.
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT' || event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+        clusterMemory = { mine: null, found: null, query: '', at: 0 };
+        setMyClusters([]);
+        setDiscover([]);
+        firstLoad.current = true;
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
   const { selectScope } = useBuklodScope();
   const openCluster = useCallback((id: string) => {
     void enterScopedWorkspace(selectScope, id, { section: 'home', navigation: 'replace' }).catch((error) => {
