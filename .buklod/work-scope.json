@@ -1,16 +1,23 @@
 {
-  "objective": "KL manual Release Now for approved chapters, system_admin only, existing Community Wall reader",
+  "objective": "KL dynamic chapter publishing: system_admin media upload, released-only reader media and server release gate",
   "baseRef": "9bc9cce2ac6a7dbf3f4c3bf786905dba57e3cf77",
   "productionBaselineEvidence": "Backend action deployed separately; verify current Android production OTA and cumulative source before publishing.",
   "allowedPaths": [
     ".buklod/work-scope.json",
     "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
-    "src/lib/kabihasnang-ligaw/rpc.ts"
+    "src/lib/kabihasnang-ligaw/rpc.ts",
+    "src/components/kabihasnang-ligaw/KlAdminMediaUpload.tsx",
+    "src/components/kabihasnang-ligaw/KlSceneEffect.tsx",
+    "src/components/kabihasnang-ligaw/KlPublishingStudio.tsx",
+    "src/components/kabihasnang-ligaw/KlAdminPreview.tsx",
+    "src/app/admin/kabihasnang-ligaw.tsx",
+    "src/components/kabihasnang-ligaw/KlDynamicLibrary.tsx",
+    "src/components/kabihasnang-ligaw/KlChapterAudio.tsx"
   ],
   "acceptanceChecks": [
-    "Server-side system_admin gate",
-    "Manual release only after manuscript approval",
-    "Explicit confirmation, no automatic release",
-    "Focused QA then immutable RC and Android production OTA runtime 1.3.2"
+    "Media uploads restricted to system_admin",
+    "No public unreleased media",
+    "Chapter 2 remains unreleased until manual Release Now",
+    "Verify reader compilation and media approval flow before merge/OTA"
   ]
 }
