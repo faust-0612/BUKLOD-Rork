@@ -69,6 +69,9 @@ const tableTtlMs: Record<string, number> = {
  */
 const rpcTtlMs: Record<string, number> = {
   buklod_my_scopes: 30_000,
+  // Cluster reads: collapse remount bursts without caching membership mutations.
+  buklod_my_clusters: 10_000,
+  buklod_discover_clusters: 10_000,
   get_member_circle_ranks_v1: 60_000,
   get_automatic_bible_today: 60_000,
   get_buklod_points_leaderboard: 30_000,
