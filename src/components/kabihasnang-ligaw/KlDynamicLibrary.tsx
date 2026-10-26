@@ -3,6 +3,7 @@ import {Pressable,Text,View} from 'react-native';
 import {Image} from 'expo-image';
 import {supabase} from '@/lib/supabase';
 import {KlSceneEffect,type SceneEffect} from './KlSceneEffect';
+import KlChapterAudio from './KlChapterAudio';
 type Chapter={id:string;season_number:number;episode_number:number;title:string};
 type Media={kind:string;placement:number;path:string;anchor?:string;side?:string;effect?:SceneEffect;intensity?:number};
 export default function KlDynamicLibrary(){
@@ -49,6 +50,7 @@ export default function KlDynamicLibrary(){
  {chapter?<View style={{gap:12}}>
  <Pressable onPress={()=>{setChapter(null);setText('');}}><Text style={{color:'#f1d39b'}}>Back to library</Text></Pressable>
  <Text style={{color:'#fff',fontSize:22}}>{chapter.title}</Text>
+ <KlChapterAudio music={urls['music:0']} ambient={urls['ambient:0']}/>
  {media.filter(m=>m.kind==='cover').map(image)}
  {paragraphs.map((p,i)=><View key={i} style={{gap:8}}>
  {media.filter(m=>m.kind==='illustration'&&m.side==='before'&&m.anchor&&p.includes(m.anchor)).map(image)}
