@@ -108,7 +108,7 @@ export default function KlReaderScreen() {
     userDataSaver: cache.dataSaver,
   });
   const reading = selectMemberReading({
-    locallyReadable: decision?.readable === true,
+    locallyReadable: decision?.readable === true || Boolean(selected && releasedIds.includes(klDatabaseId(selected.episodeNumber))),
     serverState,
     serverText,
     bundledText: selected?.prose ?? null,
@@ -200,6 +200,9 @@ export default function KlReaderScreen() {
     try {
       const { error } = await supabase.rpc(KL_RPC.adminAction, adminActionArgs({ action, episodeId, notes }));
       if (error) throw error;
+      if (action === 'release') {
+        setReleasedIds((ids) => [...new Set([...ids, klDatabaseId(EPISODES.find((item) => item.id === episodeId)?.episodeNumber ?? -1)])]);
+      }
       setAdminFeedback(action === 'approve' ? 'Naaprubahan sa server. Hindi pa inilalabas ang kabanata.' : action === 'release' ? 'Na-release na ang kabanata sa server.' : 'Ibinalik sa draft sa server.');
       setRejectTarget(null);
       setReleaseTarget(null);
@@ -230,6 +233,16 @@ export default function KlReaderScreen() {
       setBusy(false);
     }
   }, [cache, online, persist]);
+
+  useEffect(() => {
+    let active = true;
+    void supabase.rpc(KL_RPC.listLibrary).then(({ data, error }) => {
+      if (active && !error && Array.isArray(data)) {
+        setReleasedIds(data.map((entry: { episode_number: number }) => klDatabaseId(entry.episode_number)));
+      }
+    });
+    return () => { active = false; };
+  }, []);
 
   const syncViewport = (scrollY: number) => {
     const entries = Object.entries(paragraphY.current)
@@ -340,7 +353,7 @@ export default function KlReaderScreen() {
   const readingOpen = Boolean(selected && paragraphs.length > 0);
   const liveReleased = Boolean(
     selected
-    && decision?.readable
+    && (decision?.readable || releasedIds.includes(klDatabaseId(selected.episodeNumber)))
     && (
       selected.episodeNumber <= KL_RELEASED_THROUGH_EPISODE
       || selected.status === 'live'
