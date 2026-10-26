@@ -50,6 +50,6 @@ func main(){
  raw:=strings.TrimRight(os.Getenv("SUPABASE_URL"),"/")
  if raw!=""{u,err:=url.Parse(raw);if err!=nil||u.Scheme!="https"||u.Host==""||u.User!=nil||u.RawQuery!=""||u.Fragment!=""||u.Path!=""{log.Fatal("SUPABASE_URL must be HTTPS origin")}}
  s:=&server{slots:make(chan struct{},n),upstream:raw,anonKey:os.Getenv("SUPABASE_ANON_KEY"),client:&http.Client{Timeout:3*time.Second}}
- srv:=&http.Server{Addr:":8089",Handler:s.routes(),ReadHeaderTimeout:3*time.Second,ReadTimeout:10*time.Second,WriteTimeout:10*time.Second,IdleTimeout:30*time.Second}
+ port:=os.Getenv("PORT");if port==""{port="8089"};if p,err:=strconv.Atoi(port);err!=nil||p<1||p>65535{log.Fatal("invalid PORT")};srv:=&http.Server{Addr:":"+port,Handler:s.routes(),ReadHeaderTimeout:3*time.Second,ReadTimeout:10*time.Second,WriteTimeout:10*time.Second,IdleTimeout:30*time.Second}
  log.Fatal(srv.ListenAndServe())
 }
