@@ -22,6 +22,8 @@ jobs:
           PR_HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$PR_HEAD" in
+            fix/cluster-directory-home-20261026)
+              echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/cluster-directory-home-20261026.json" >> "$GITHUB_ENV";;
             consolidate/convo-connect-avatar-map-home-20261026)
               echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/convo-connect-avatar-map-home-20261026.json" >> "$GITHUB_ENV";;
             fix/community-media-fast-visible-20261026)
@@ -80,6 +82,12 @@ jobs:
           }
           console.log('SHOW FAITH STATIC CONTRACT PASS (live role tests still required)');
           NODE
+      - name: Verify Cluster directory cache
+        if: github.head_ref == 'fix/cluster-directory-home-20261026'
+        run: |
+          npm ci --ignore-scripts
+          node scripts/test-cluster-directory.cjs
+          npx tsc --noEmit
       - name: Verify navigation and scope transitions
         if: github.head_ref == 'codex/nav-home-wall-isolation-20261024' || github.ref_name == 'codex/nav-home-wall-isolation-20261024'
         run: node scripts/test-navigation-home-wall.cjs
@@ -94,3 +102,4 @@ jobs:
         run: |
           node scripts/test-media-signed-cache.cjs
           node scripts/test-media-sign-fallback.cjs
+

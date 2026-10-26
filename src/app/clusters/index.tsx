@@ -1,6 +1,5 @@
 ﻿import React, {
   useCallback,
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -32,7 +31,12 @@ import {
 } from '@/lib/buklodClusters';
 import { clusterScopeManageRoute } from '@/lib/buklodCluster';
 import { enterScopedWorkspace } from '@/lib/buklodScopeRoute';
+import { useAuth } from '@/providers/AuthProvider';
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
+import { createClusterDirectoryCache } from '@/lib/clusterDirectoryCache';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
+
+const directoryCache = createClusterDirectoryCache<ClusterSummary[]>();
 
 function messageOf(error: unknown) {
   if (
@@ -143,7 +147,7 @@ function ClusterCard({
       </View>
 
       {!!item.description && (
-        <Text style={styles.description}>
+        <Text numberOfLines={2} style={styles.description}>
           {item.description}
         </Text>
       )}
@@ -161,6 +165,13 @@ function ClusterCard({
 }
 
 export default function ClustersScreen() {
+  const { user } = useAuth();
+  const owner = user?.id ?? '';
+  directoryCache.selectOwner(owner);
+  return <ClusterDirectory key={owner} owner={owner} />;
+}
+
+function ClusterDirectory({ owner }: { owner: string }) {
   useFocusEffect(useCallback(() => {
     if (Platform.OS !== 'android') return;
     const listener = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -176,15 +187,15 @@ export default function ClustersScreen() {
     });
   }, [selectScope]);
   const [myClusters, setMyClusters] =
-    useState<ClusterSummary[]>([]);
+    useState<ClusterSummary[]>(() => directoryCache.peek(owner, 'mine') ?? []);
 
   const [discover, setDiscover] =
-    useState<ClusterSummary[]>([]);
+    useState<ClusterSummary[]>(() => directoryCache.peek(owner, 'discover:') ?? []);
 
   const [query, setQuery] = useState('');
 
   const [loading, setLoading] =
-    useState(true);
+    useState(() => Boolean(owner) && !directoryCache.peek(owner, 'mine'));
 
   const [refreshing, setRefreshing] =
     useState(false);
@@ -195,69 +206,49 @@ export default function ClustersScreen() {
   const [searching, setSearching] =
     useState(false);
 
-  const firstLoad = useRef(true);
+  const hasMine = useRef(Boolean(directoryCache.peek(owner, 'mine')));
+  const [loadError, setLoadError] = useState('');
   const searchRequest = useRef(0);
 
-  const load = useCallback(
-    async (
-      searchValue: string = query,
-      refresh = false
-    ) => {
-      const requestId = searchRequest.current + 1;
-      searchRequest.current = requestId;
-
-      if (refresh) {
-        setRefreshing(true);
-      } else if (firstLoad.current) {
-        setLoading(true);
-      } else {
-        setSearching(true);
-      }
-
-      try {
-        const [mine, found] =
-          await Promise.all([
-            getMyClusters(),
-            discoverClusters(searchValue),
-          ]);
-
-        if (requestId !== searchRequest.current) {
-          return;
-        }
-
+  const load = useCallback(async (searchValue = '', refresh = false) => {
+    if (!owner) return;
+    const requestId = ++searchRequest.current;
+    const current = () => requestId === searchRequest.current && directoryCache.isOwner(owner);
+    setLoadError('');
+    setRefreshing(refresh);
+    setLoading(!hasMine.current);
+    setSearching(true);
+    const mineTask = directoryCache.read(owner, 'mine', () =>
+      withBuklodTimeout(getMyClusters(), 10000, 'My Clusters'), refresh)
+      .then(mine => {
+        if (!current()) return;
         setMyClusters(mine);
-        setDiscover(found);
-      } catch (error) {
-        if (requestId !== searchRequest.current) {
-          return;
-        }
+        hasMine.current = true;
+      }).catch(error => {
+        if (current()) setLoadError(messageOf(error));
+      }).finally(() => {
+        // Discovery must not delay displaying the user's own clusters.
+        if (current()) setLoading(false);
+      });
+    const discoverTask = directoryCache.read(owner, `discover:${searchValue.trim()}`, () =>
+      withBuklodTimeout(discoverClusters(searchValue), 10000, 'Discover Clusters'), refresh)
+      .then(found => { if (current()) setDiscover(found); })
+      .catch(error => { if (current()) setLoadError(messageOf(error)); });
+    await Promise.all([mineTask, discoverTask]);
+    if (current()) {
+      setSearching(false);
+      setRefreshing(false);
+    }
+  }, [owner]);
 
-        Alert.alert(
-          'Clusters',
-          messageOf(error)
-        );
-      } finally {
-        if (requestId === searchRequest.current) {
-          firstLoad.current = false;
-          setLoading(false);
-          setSearching(false);
-          setRefreshing(false);
-        }
-      }
-    },
-    [query]
-  );
-
-  useEffect(() => {
-    const delay = query.trim() ? 180 : 0;
-    const timer = setTimeout(() => {
-      void load(query);
-    }, delay);
-
+  useFocusEffect(useCallback(() => {
+    const timer = setTimeout(() => { void load(query); }, query.trim() ? 180 : 0);
     return () => {
       clearTimeout(timer);
+      // Ignore responses from a screen or query that is no longer active.
+      searchRequest.current += 1;
     };
-  }, [load, query]);
+  }, [load, query]));
 
   const activeClusters = useMemo(
     () =>
@@ -301,6 +292,7 @@ export default function ClustersScreen() {
         accept
       );
 
+      directoryCache.invalidate();
       await load(query, true);
     } catch (error) {
       Alert.alert(
@@ -328,6 +320,7 @@ export default function ClustersScreen() {
         );
       }
 
+      directoryCache.invalidate();
       await load(query, true);
 
       if (status === 'ACTIVE') {
@@ -382,6 +375,12 @@ export default function ClustersScreen() {
         </Pressable>
       </View>
 
+      {!!loadError && (
+        <View style={styles.empty}>
+          <Text style={styles.muted}>{hasMine.current ? 'Showing saved Clusters. ' : ''}{loadError}</Text>
+          <ActionButton title="RETRY" onPress={() => void load(query, true)} />
+        </View>
+      )}
       {loading ? (
         <View style={styles.loading}>
           <ActivityIndicator size="large" />
@@ -398,12 +397,11 @@ export default function ClustersScreen() {
           {activeClusters.length === 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyTitle}>
-                No active Cluster yet
+                {loadError && !hasMine.current ? 'Clusters unavailable' : 'No active Cluster yet'}
               </Text>
 
               <Text style={styles.muted}>
-                Create one or discover a
-                community below.
+                {loadError && !hasMine.current ? 'Retry when your connection is available.' : 'Create one or discover a community below.'}
               </Text>
             </View>
           ) : (
@@ -413,9 +411,7 @@ export default function ClustersScreen() {
                 item={item}
                 onOpen={openCluster}
               >
-                <View style={styles.actions}>
-                  <Text style={styles.muted}>Tap the cluster to open Home</Text>
-                  {item.is_admin && (
+                {item.is_admin && <View style={styles.actions}>
                     <ActionButton
                       title="MANAGE"
                       outline
@@ -428,8 +424,7 @@ export default function ClustersScreen() {
                         )
                       }
                     />
-                  )}
-                </View>
+                </View>}
               </ClusterCard>
             ))
           )}
@@ -628,7 +623,7 @@ const styles = StyleSheet.create({
   hero: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
-    padding: 18,
+    padding: 12,
     borderWidth: 1,
     borderColor: '#E1E7E3',
     gap: 8,
@@ -658,20 +653,20 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontSize: 30,
+    fontSize: 24,
     fontWeight: '900',
     color: '#19362A',
   },
 
   subtitle: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 12,
+    lineHeight: 17,
     color: '#617068',
     marginBottom: 6,
   },
 
   sectionTitle: {
-    marginTop: 14,
+    marginTop: 8,
     marginBottom: 2,
     fontSize: 13,
     fontWeight: '900',
@@ -682,10 +677,10 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 15,
+    padding: 11,
     borderWidth: 1,
     borderColor: '#E1E7E3',
-    gap: 8,
+    gap: 5,
   },
 
   cardTitleRow: {
@@ -696,7 +691,7 @@ const styles = StyleSheet.create({
 
   cardTitle: {
     color: '#1A3329',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '900',
   },
 
@@ -824,3 +819,4 @@ const styles = StyleSheet.create({
     gap: 12,
   },
 });
+
