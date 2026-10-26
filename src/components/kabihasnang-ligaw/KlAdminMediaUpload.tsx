@@ -33,6 +33,17 @@ export default function KlAdminMediaUpload({ episodeNumber, onUploaded }: {
     setBusy(false);
   };
   const [placement, setPlacement] = useState(1);
+  const [effect, setEffect] = useState('none');
+  const [intensity, setIntensity] = useState(30);
+  const saveEffect = async () => {
+    setBusy(true);
+    const { error } = await supabase.rpc('kl_admin_scene_effect_v1', {
+      p_episode_id: klDatabaseId(episodeNumber), p_placement: placement,
+      p_effect: effect, p_intensity: intensity,
+    });
+    setFeedback(error ? error.message : 'Scene effect saved.');
+    setBusy(false);
+  };
   const upload = async () => {
     if (busy) return;
     setBusy(true);
@@ -72,6 +83,19 @@ export default function KlAdminMediaUpload({ episodeNumber, onUploaded }: {
     </View>
     <Pressable accessibilityRole="button" disabled={busy} onPress={() => void upload()}>
       <Text style={{ color: '#f1d39b' }}>{busy ? 'Uploading…' : 'Upload Image'}</Text>
+    </Pressable>
+    <Text style={{ color: '#fff' }}>Scene {placement} atmosphere (built-in, no animation upload)</Text>
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+      {['none','rain','fog','fireflies','embers','lightning'].map((option) =>
+        <Pressable key={option} disabled={busy} onPress={() => setEffect(option)}>
+          <Text style={{ color: effect === option ? '#f1d39b' : '#fff' }}>{option}</Text>
+        </Pressable>)}
+    </View>
+    <Pressable disabled={busy} onPress={() => setIntensity((n) => n >= 80 ? 20 : n + 20)}>
+      <Text style={{ color: '#fff' }}>Intensity {intensity}% (tap to adjust)</Text>
+    </Pressable>
+    <Pressable disabled={busy} onPress={() => void saveEffect()}>
+      <Text style={{ color: '#f1d39b' }}>Save Scene Effect</Text>
     </Pressable>
     {items.map((item) => <View key={item.kind + item.placement} style={{ flexDirection: 'row', gap: 12 }}>
       <Text style={{ color: '#fff' }}>{item.kind} {item.placement}: {item.approved ? 'Approved' : 'Pending'}</Text>
