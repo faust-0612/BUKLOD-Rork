@@ -34,7 +34,7 @@ export function KlSceneEffect({ effect, intensity = 30, active = true }: {
         outputRange: falling ? [-150 + p.delay * 250, 320 + p.delay * 250] : [18, -25],
       });
       return <Animated.View key={i} style={{
-        position: 'absolute', left: p.x as any, top: falling ? -20 : ((i * 29) % 90) + '%',
+        position: 'absolute', left: p.x as any, top: falling ? -20 : ((i * 29) % 90),
         width: effect === 'rain' ? 1.5 : p.size,
         height: effect === 'rain' ? 17 : p.size,
         borderRadius: 8,
