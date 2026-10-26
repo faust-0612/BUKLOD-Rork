@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "status": "REFERENCE_CANDIDATES_NOT_OWNER_VERIFIED",
+  "sourceBranch": "dev/kabihasnang-ligaw-dashboard-r5",
+  "referenceFamily": "BUKLOD R31 core / R40 special recovery",
+  "characters": [
+    {"id":"phan","path":"assets/images/characters/phan_r26.jpg","gitBlobSha":"65b9926804d543c2ba80a92817dd3cc74b8acba0","approvedForStory":false},
+    {"id":"quin","path":"assets/images/characters/quin_r26.jpg","gitBlobSha":"45a2ae6dce381d1b75fd86a12fb4b92c3e4532be","approvedForStory":false},
+    {"id":"van","path":"assets/images/characters/van_r26.jpg","gitBlobSha":"a9299036a67994cc997d05581ffa749f11cee73a","approvedForStory":false},
+    {"id":"christian","path":"assets/images/characters/christian_r26.jpg","gitBlobSha":"e494d63f0776aab49c5d516759794a58d5cc1157","approvedForStory":false},
+    {"id":"lhen","path":"assets/images/characters/lhen_r26.jpg","gitBlobSha":"a6fa4bbbcee20e2947d1d33f5fa7fb8d248e8ded","approvedForStory":false}
+  ],
+  "settings": [],
+  "covers": [],
+  "rules": {"series":12,"chaptersPerSeries":30,"minImagesPerChapter":2,"maxImagesPerChapter":3,"ownerApprovalRequired":true,"missingSettingBlocksPublication":true,"noAutomaticRegeneration":true},
+  "notes": "Git blob SHA is not SHA-256. These files were inventoried by GitHub contents metadata, not visually reviewed. No environment asset or owner approval inferred."
+}
