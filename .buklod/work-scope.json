@@ -7,7 +7,10 @@
     "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
     "src/lib/kabihasnang-ligaw/rpc.ts",
     "src/components/kabihasnang-ligaw/KlAdminMediaUpload.tsx",
-    "src/components/kabihasnang-ligaw/KlSceneEffect.tsx"
+    "src/components/kabihasnang-ligaw/KlSceneEffect.tsx",
+    "src/components/kabihasnang-ligaw/KlPublishingStudio.tsx",
+    "src/components/kabihasnang-ligaw/KlAdminPreview.tsx",
+    "src/app/admin/kabihasnang-ligaw.tsx"
   ],
   "acceptanceChecks": [
     "Media uploads restricted to system_admin",
