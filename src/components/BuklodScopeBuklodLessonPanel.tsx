@@ -12,6 +12,7 @@ import {
   buildScopeBuklodLessonHubPath,
 } from '@/lib/buklodLessonStages';
 import type { BuklodScope } from '@/lib/buklodScope';
+import { colors } from '@/lib/theme';
 
 type Props = {
   scope: BuklodScope;
@@ -46,7 +47,7 @@ export default function BuklodScopeBuklodLessonPanel({
           <MaterialCommunityIcons
             name="school-outline"
             size={22}
-            color="#FFFFFF"
+            color={colors.greenDark}
           />
         </View>
 
@@ -62,7 +63,7 @@ export default function BuklodScopeBuklodLessonPanel({
           <MaterialCommunityIcons
             name="chevron-right"
             size={18}
-            color="#FFFFFF"
+            color={colors.greenDark}
           />
         </View>
       </View>
@@ -76,8 +77,8 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#6754D9',
-    backgroundColor: '#5845C5',
+    borderColor: '#DCE5E0',
+    backgroundColor: '#FFFFFF',
     padding: 14,
     gap: 10,
   },
@@ -93,19 +94,19 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 12,
-    backgroundColor: '#E39B17',
+    backgroundColor: '#E8F5EE',
     alignItems: 'center',
     justifyContent: 'center',
   },
   cardTitle: {
-    color: '#FFFFFF',
+    color: '#173B2F',
     fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.6,
   },
   cardSubtitle: {
     marginTop: 2,
-    color: '#F0ECFF',
+    color: colors.muted,
     fontSize: 10,
     lineHeight: 14,
   },
@@ -114,12 +115,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 2,
     borderRadius: 999,
-    backgroundColor: '#246B53',
+    backgroundColor: '#E8F5EE',
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
   openBadgeText: {
-    color: '#FFFFFF',
+    color: colors.greenDark,
     fontSize: 10,
     fontWeight: '900',
   },
@@ -129,9 +130,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   metaText: {
-    color: '#F0ECFF',
+    color: '#5F6F67',
     fontSize: 11,
     lineHeight: 16,
+    flex: 1,
   },
 });
-
