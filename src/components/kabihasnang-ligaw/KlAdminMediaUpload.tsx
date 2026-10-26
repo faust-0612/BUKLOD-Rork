@@ -14,7 +14,7 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
   episodeId?: string;
   onUploaded?: () => void;
 }) {
-  const episodeId = overrideId ?? episodeId;
+  const episodeId = overrideId ?? klDatabaseId(episodeNumber);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [kind, setKind] = useState<Kind>('illustration');
