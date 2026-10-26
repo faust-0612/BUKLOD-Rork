@@ -29,6 +29,7 @@ export default function KlAdminPreview({episodeId}:{episodeId:string}) {
  return <View style={{padding:12,gap:12,backgroundColor:'#192b39'}}>
  <Text style={{color:'#f1d39b',fontSize:20}}>{bundle.title} · Preview v{bundle.version}</Text>
  <Text style={{color:'#fff'}}>Private admin preview — not released</Text>
+ <KlChapterAudio music={urls['music:0']} ambient={urls['ambient:0']}/>
  {bundle.media.filter(m=>m.kind==='cover').map(image)}
  {paragraphs.map((p,i)=><View key={i} style={{gap:8}}>
  {bundle.media.filter(m=>m.kind==='illustration'&&m.side==='before'&&m.anchor&&p.includes(m.anchor)).map(image)}
