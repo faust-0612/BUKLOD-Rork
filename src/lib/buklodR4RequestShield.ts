@@ -293,6 +293,14 @@ function invalidateAfterMutation(rawUrl: string, method: string) {
   if (method === 'GET' || method === 'HEAD') return;
   const table = tableFromUrl(rawUrl);
   if (table && invalidatedTables.has(table)) invalidateTable(table);
+  // Cluster mutations are POST RPCs; never cache them. After a confirmed
+  // mutation, invalidate user-scoped list/discovery reads across the shield.
+  const rpc = rpcFromUrl(rawUrl);
+  if (rpc && /^buklod_(create_cluster|join_cluster|respond_cluster_invite|leave_cluster|invite_cluster_member|update_cluster|remove_cluster_member|transfer_cluster_admin|archive_cluster|restore_cluster|review_cluster_request)/.test(rpc)) {
+    for (const key of shield.cache.keys()) {
+      if (key.includes('/rpc/buklod_my_clusters') || key.includes('/rpc/buklod_discover_clusters')) shield.cache.delete(key);
+    }
+  }
 }
 
 export function createBuklodR4RequestShield(baseFetch: typeof fetch): typeof fetch {
