@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import { File } from 'expo-file-system';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/lib/supabase';
 
-type Kind = 'cover' | 'illustration';
+type Kind = 'cover' | 'illustration' | 'music' | 'ambient';
 const DB_EPISODE_PREFIX = 'aa000001-0000-4000-8000-';
 export const klDatabaseId = (episodeNumber: number) =>
   DB_EPISODE_PREFIX + String(episodeNumber + 1).padStart(12, '0');
@@ -21,7 +23,7 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
   const [items, setItems] = useState<{kind: Kind; placement: number; approved: boolean}[]>([]);
   const load = async () => {
     const { data } = await supabase.rpc('kl_admin_media_list_v1', { p_episode_id: episodeId });
-    if (Array.isArray(data)) setItems(data.filter((item) => item.kind === 'cover' || item.kind === 'illustration'));
+    if (Array.isArray(data)) setItems(data.filter((item) => ['cover','illustration','music','ambient'].includes(item.kind)));
   };
   useEffect(() => { void load(); }, [episodeNumber]);
   const approve = async (mediaKind: Kind, mediaPlacement: number) => {
@@ -56,6 +58,27 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
     });
     setFeedback(error ? error.message : 'Scene effect saved.');
     setBusy(false);
+  };
+  const uploadAudio = async () => {
+    if(busy)return;
+    setBusy(true);
+    try {
+      const picked=await DocumentPicker.getDocumentAsync({type:'audio/*',copyToCacheDirectory:true});
+      if(picked.canceled||!picked.assets[0])return;
+      const asset=picked.assets[0];
+      if(asset.size && asset.size>15*1024*1024)throw new Error('Audio limit: 15 MB.');
+      const bytes=await new File(asset.uri).bytes();
+      const mime=asset.mimeType??'audio/mpeg';
+      const ext=mime.includes('wav')?'wav':mime.includes('ogg')?'ogg':mime.includes('mp4')?'m4a':'mp3';
+      const filePath=`episodes/${episodeId}/${kind}-0-${Date.now()}.${ext}`;
+      const {error:uploadError}=await supabase.storage.from('kl-publishing').upload(filePath,bytes,{contentType:mime,upsert:false});
+      if(uploadError)throw uploadError;
+      const {error:saveError}=await supabase.rpc('kl_admin_media_save_v1',{p_episode_id:episodeId,p_kind:kind,p_placement:0,p_path:filePath,p_approved:false});
+      if(saveError)throw saveError;
+      setFeedback('Audio uploaded privately. Prepare preview before approval.');
+      await load();
+    }catch(e){setFeedback(e instanceof Error?e.message:'Audio upload failed');}
+    finally{setBusy(false);}
   };
   const upload = async () => {
     if (busy) return;
@@ -92,10 +115,12 @@ export default function KlAdminMediaUpload({ episodeNumber, episodeId: overrideI
     <View style={{ flexDirection: 'row', gap: 12 }}>
       <Pressable disabled={busy} onPress={() => setKind('cover')}><Text style={{ color: kind === 'cover' ? '#f1d39b' : '#fff' }}>Cover</Text></Pressable>
       <Pressable disabled={busy} onPress={() => setKind('illustration')}><Text style={{ color: kind === 'illustration' ? '#f1d39b' : '#fff' }}>Illustration</Text></Pressable>
+      <Pressable disabled={busy} onPress={() => setKind('music')}><Text style={{color:'#fff'}}>Music</Text></Pressable>
+      <Pressable disabled={busy} onPress={() => setKind('ambient')}><Text style={{color:'#fff'}}>Ambient</Text></Pressable>
       {kind === 'illustration' && <Pressable disabled={busy} onPress={() => setPlacement((n) => n % 3 + 1)}><Text style={{ color: '#fff' }}>Scene {placement} (change)</Text></Pressable>}
     </View>
-    <Pressable accessibilityRole="button" disabled={busy} onPress={() => void upload()}>
-      <Text style={{ color: '#f1d39b' }}>{busy ? 'Uploading…' : 'Upload Image'}</Text>
+    <Pressable accessibilityRole="button" disabled={busy} onPress={() => void (kind === 'music' || kind === 'ambient' ? uploadAudio() : upload())}>
+      <Text style={{ color: '#f1d39b' }}>{busy ? 'Uploading…' : (kind === 'music' || kind === 'ambient' ? 'Upload Audio' : 'Upload Image')}</Text>
     </Pressable>
     <Text style={{ color: '#fff' }}>Exact paragraph anchor (paste a unique sentence from the chapter)</Text>
     <TextInput value={anchor} onChangeText={setAnchor} multiline placeholder="Sentence from manuscript" placeholderTextColor="#999" style={{ color: '#fff', borderWidth: 1, borderColor: '#888', padding: 8 }} />
