@@ -29,7 +29,9 @@
     "production:dry-run": "bash scripts/production-cutover.sh",
     "production:android": "bash scripts/build-android-production.sh",
     "play:draft": "bash scripts/submit-google-play-draft.sh",
-    "play:internal": "bash scripts/submit-google-play-internal.sh"
+    "play:internal": "bash scripts/submit-google-play-internal.sh",
+    "kl:visual:inventory": "node scripts/kl-visual-canon-validate.mjs",
+    "kl:visual:release": "node scripts/kl-visual-canon-validate.mjs --release"
   },
   "jest": {
     "preset": "jest-expo",
