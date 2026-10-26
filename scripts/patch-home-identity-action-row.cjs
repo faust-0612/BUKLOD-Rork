@@ -56,7 +56,19 @@ const endNeedle = '      </HomeMotionSection>';
 const start = source.indexOf(startNeedle);
 
 if (start < 0) {
-  throw new Error('Home identity card start anchor not found.');
+  // Current lightweight Home no longer contains the legacy identity card.
+  // Never reinsert removed UI or fail the production web deployment for it.
+  // Confirm this is the intentionally simplified Home, not an unknown layout.
+  const lightweightHome =
+    source.includes('CONTINUOUS_USE_STABILITY_R1: Home refreshes quietly') &&
+    source.includes('<BuklodSystemAnnouncementBoard slot="public_home" />') &&
+    source.includes('<HomeTopTenCompact') &&
+    source.includes('<BuklodScreenBottomBanner placement="home"');
+  if (!lightweightHome) {
+    throw new Error('Unknown Home layout: identity card anchor not found.');
+  }
+  console.log('HOME_IDENTITY_ACTION_ROW_R2: legacy identity card intentionally absent in lightweight Home');
+  process.exit(0);
 }
 
 const endStart = source.indexOf(endNeedle, start);
